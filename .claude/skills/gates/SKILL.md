@@ -1,0 +1,72 @@
+---
+name: gates
+description: Faehrt die Qualitaets-Gates dieses Repos (npm test/lint/typecheck/loadtest) in der richtigen Reihenfolge und im richtigen Umfang, bevor committet oder eine Aenderung als fertig gemeldet wird. Aktiv, wenn Code geaendert wurde und "ist das gruen?" beantwortet werden muss, oder wenn CI rot ist.
+---
+
+# Skill: gates
+
+Eine Definition von "grün", für Mensch und Agent. Dieselben Kommandos laufen
+in der GitLab-CI (`.gitlab-ci.yml`) und hier — es gibt keinen zweiten
+Regelsatz. Gates **blockieren**. Ein nicht-blockierendes Gate ist kein Gate.
+
+## Umfang bestimmen — nicht alles fahren
+
+Erst feststellen, was sich geändert hat:
+
+```bash
+git status --porcelain
+git diff --name-only HEAD
+```
+
+Dann nur die Spalten fahren, die betroffen sind.
+
+| Geändert | Zu fahren |
+|---|---|
+| `packages/contracts/**` | alles (Contract-Änderung propagiert in jedes Package) + ADR-Pflicht (`AGENTS.md` Regel 1) |
+| `packages/adapter-*/**` | `npm test -w <package>` + `@uacc/adapter-testkit`-Contract-Suite |
+| `packages/pwa/**` | `npm -w @uacc/pwa run build` + `npm run typecheck` |
+| `packages/server/**`, `packages/core/**`, `packages/workers/**` | `npm test` + `npm run loadtest` bei State-/EventStore-Änderungen (K5/K7/K8) |
+| `*.md` | kein Gate |
+
+## Die Kommandos
+
+```bash
+npm test                 # vitest (alle Packages, forks pool)
+npm run lint              # eslint .
+npm run typecheck         # tsc -p . --noEmit
+npm run loadtest          # K8: 20 Sessions × 30 ev/s
+npm -w @uacc/pwa run build  # nur bei PWA-Änderungen
+```
+
+`npm test`, `npm run lint`, `npm run typecheck` sind laut `AGENTS.md` Pflicht
+vor jedem Commit-Vorschlag — unabhängig vom Umfang oben, wenn Zeit reicht ist
+ein voller Lauf immer korrekt, die Tabelle spart nur Zeit bei kleinen Diffs.
+
+## Alles auf einmal
+
+```bash
+npm test && npm run lint && npm run typecheck
+```
+
+## Wenn ein Gate rot ist
+
+1. **Ursache lesen, nicht Symptom.** Die Meldung nennt Datei und Zeile.
+2. **Das Gate nicht entschärfen.** Test skippen, Typ auf `any` weichspülen,
+   ESLint-Regel ausnehmen — das alles verschiebt den Fehlschlag, es behebt
+   nichts.
+3. **Ist das Gate selbst kaputt** (fehlendes Werkzeug, kaputte Umgebung), ist
+   das ein eigener Befund und wird gemeldet, nicht umgangen.
+4. **Ratschen nur nach unten.** Es gibt in diesem Repo noch keine
+   Baseline-Dateien (das Repo ist dafür zu jung) — sollte später eine
+   Altlast-Ratsche eingeführt werden (z. B. `eslint --max-warnings`), gilt:
+   wer eine Altlast behebt, streicht ihre Zeile; wer eine neue einbaut, wird
+   blockiert.
+
+## Grenzen
+
+Der Skill führt Prüfungen aus und liest ihr Ergebnis. Er entscheidet nicht,
+ob eine Änderung fachlich richtig ist — dafür ist [`pr-review`](../pr-review/SKILL.md)
+da. Ein grüner Lauf belegt nur, was die Gates messen: Compiler, Typen, Tests,
+Durchsatz. Angemessenheit messen sie nicht.
+
+Index: [`.claude/skills/README.md`](../README.md).

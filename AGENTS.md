@@ -63,6 +63,27 @@ Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
 Keine Secrets in Config-Commits; Tokens nur als Hash. Kein Code, der Agenten-
 Output als Instruktion interpretiert (Prompt-Injection-Grenze, PRD §8.5).
 
+## Arbeitsweise für Agenten
+
+Skills unter `.claude/skills/` sind die ausführbare Form dieser Regeln —
+sie duplizieren nichts hier, sie wenden es an. Index: `.claude/skills/README.md`.
+
+- Defekt: Skill `bugfix` (Reproduce → Fix → Re-verify → Finalize). Handoff an `pr-review`, nicht selbst mergen.
+- Neuer Bug ohne Fix: Skill `bug-report` → `bugs/bug-NNNN-slug.md`.
+- Vor jedem MR: Skill `gates` (= `npm test && npm run lint && npm run typecheck`, betroffene Packages) und danach `pr-review` (6 Dimensionen inkl. Future-Fragility: Contract-Bruch, K5/K7-Verletzung, Adapter-Isolation).
+- Commit/Branch/MR: Skill `git-workflow` (Conventional Commits, kein Force-Push, kein Commit auf `main`, Post-Merge-Branch-Cleanup).
+- Neue Phase: Skill `epic-creation` bzw. Agent `epic-planner` — Vorbild `epics/EPIC-P3-adapter-flotte-sprachsuche.md`, Premortem nie überspringen.
+- Architekturfragen/Schichten: Skill `architecture-best-practices`.
+- Diff wirkt überkonstruiert: Skill `ponytail-review` (Tags `delete`/`stdlib`/`native`/`yagni`/`shrink`, Invarianten via `_shared/uacc-protected-invariants.md`).
+
+Kein Branch ohne Anweisung, kein Self-Merge, kein `--no-verify`-Äquivalent
+(es gibt aktuell keine lokalen Git-Hooks — die drei Kommandos oben sind die
+einzige Prüfung).
+
+Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder
+`epics/` für Epics. ADRs nach `docs/adr/NNNN-*.md`. Kein `*-STATUS.md`/
+`*-SUMMARY.md` auf Top-Level.
+
 ## Definition of Done (repo-weit, P0-Standard)
 
 Tests + Lint + Typecheck grün; neue Komponenten haben Contract-Bezug;

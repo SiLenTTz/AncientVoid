@@ -63,7 +63,12 @@ Handy aus voll arbeitsfähig".
 
 ## 4. Aufgaben
 
-- [ ] **T3.1** Adapter `swarm` inkl. Gate-Ergebnis-Mapping auf Approval-Queue
+- [ ] **T3.1** Adapter `swarm` inkl. Gate-Ergebnis-Mapping auf Approval-Queue.
+  Kontext (WorkItem-Felder, Event-/Live-Bus-Format, Allowlist-Sicherheitsmuster):
+  [`docs/adr/0001-swarm-adapter-context.md`](../docs/adr/0001-swarm-adapter-context.md).
+  **Abhängigkeit:** `SteerInput` kennt bisher kein "approve/reject Gate X" —
+  das Gate-Ergebnis-Mapping ist erst sauber lösbar, sobald P2 eine
+  Approval-Queue-Abstraktion bereitstellt.
 - [ ] **T3.2** Adapter `zai` (Routing via Nemesis :8788, Reasoning-Normalisierung)
 - [ ] **T3.3** Adapter `local-llm` (Stream-Parsing, Modell-Registry: welches Modell läuft wo)
 - [ ] **T3.4** Adapter `copilot` best-effort + Permission-Prompt-Hook in Approval-Queue
