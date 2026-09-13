@@ -1,0 +1,43 @@
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import eslintPluginN from "eslint-plugin-n";
+
+export default tseslint.config(
+  {
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "packages/pwa/**",
+    ],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    files: ["**/*.ts", "scripts/**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        performance: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+      },
+    },
+    plugins: { n: eslintPluginN },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/consistent-type-imports": "error",
+      "n/no-missing-import": "off",
+      "n/handle-callback-err": "error",
+      eqeqeq: ["error", "smart"],
+      "no-console": "off",
+    },
+  },
+);

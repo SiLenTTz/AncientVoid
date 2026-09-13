@@ -1,0 +1,22 @@
+{
+  "name": "@uacc/contracts",
+  "version": "0.1.0",
+  "description": "Shared contracts for UACC: NormalizedEvent, Adapter interface, worker and server protocols. Zero runtime dependencies beyond zod.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./event": "./src/event.ts",
+    "./adapter": "./src/adapter.ts",
+    "./session": "./src/session.ts",
+    "./worker": "./src/worker.ts",
+    "./wire": "./src/wire.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  }
+}

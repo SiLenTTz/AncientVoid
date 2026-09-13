@@ -1,0 +1,99 @@
+import { DatabaseSync } from "node:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+
+/**
+ * SQLite persistence for sessions, device tokens and config KV.
+ * JSONL remains the source of truth for events (ADR-P0-2); SQLite holds
+ * indices and mutable state only.
+ */
+
+export interface Migration {
+  id: number;
+  name: string;
+  sql: string;
+}
+
+export const MIGRATIONS: Migration[] = [
+  {
+    id: 1,
+    name: "initial-schema",
+    sql: `
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        adapter TEXT NOT NULL,
+        project TEXT NOT NULL,
+        worktree_sha TEXT,
+        model TEXT,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        budget_usd REAL,
+        adapter_version TEXT NOT NULL,
+        last_seq INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
+      CREATE INDEX IF NOT EXISTS idx_sessions_adapter ON sessions(adapter);
+
+      CREATE TABLE IF NOT EXISTS device_tokens (
+        token_hash TEXT PRIMARY KEY,
+        label TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        last_used_at TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS config (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `,
+  },
+];
+
+export class HubDatabase {
+  private readonly db: DatabaseSync;
+  readonly path: string;
+
+  constructor(path: string) {
+    this.path = path;
+    if (path !== ":memory:") {
+      mkdirSync(dirname(resolve(path)), { recursive: true });
+    }
+    this.db = new DatabaseSync(path);
+    this.db.exec("PRAGMA journal_mode = WAL;");
+    this.db.exec("PRAGMA foreign_keys = ON;");
+    this.migrate();
+  }
+
+  private migrate(): void {
+    this.db.exec(
+      "CREATE TABLE IF NOT EXISTS _migrations (id INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)",
+    );
+    const applied = new Set(
+      (
+        this.db.prepare("SELECT id FROM _migrations").all() as { id: number }[]
+      ).map((r) => r.id),
+    );
+    for (const m of MIGRATIONS) {
+      if (applied.has(m.id)) continue;
+      this.db.exec("BEGIN");
+      try {
+        this.db.exec(m.sql);
+        this.db
+          .prepare("INSERT INTO _migrations (id, name, applied_at) VALUES (?, ?, ?)")
+          .run(m.id, m.name, new Date().toISOString());
+        this.db.exec("COMMIT");
+      } catch (err) {
+        this.db.exec("ROLLBACK");
+        throw err;
+      }
+    }
+  }
+
+  prepare(sql: string) {
+    return this.db.prepare(sql);
+  }
+
+  close(): void {
+    this.db.close();
+  }
+}

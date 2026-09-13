@@ -1,0 +1,70 @@
+# AGENTS.md — Repo-Leitfaden für Coding-Agenten
+
+## Was das ist
+
+UACC (`mobile-hub`): local-first Hub, um Coding-Agenten vom Handy zu
+überwachen/steuern. Basis-Dokumente: `epics/` (PRD + Epics P0–P4) — **lesen,
+bevor Features gebaut werden.** Epic-Gating: P(n) startet erst, wenn die
+Exit-Kriterien von P(n-1) grün sind.
+
+## Architektur-Regeln (nicht verhandelbar)
+
+1. **Contracts first.** Alles, was Komponenten teilen, liegt in
+   `@uacc/contracts` und ist öffentlicher API-Stabilität unterworfen.
+   Änderungen am Adapter-/Event-/Worker-Contract brauchen ein ADR in
+   `docs/adr/`.
+2. **Adapter sehen nur `AdapterContext`** (`emit`, `blob`, `spawnWorker`,
+   `log`, `signal`, `workdir`, `sessionId`). Keine Hub-Internas, keine
+   Imports aus `@uacc/core` oder `@uacc/server` in Adaptern.
+3. **K5-Disziplin:** Payloads ≤ 4 KB; alles Große via `ctx.blob()` auslagern.
+   Der EventStore erzwingt es, Adaptern soll es trotzdem nicht egal sein.
+4. **K7-Disziplin:** Zustand ist aus JSONL + Snapshot rekonstruierbar. Jede
+   neue State-Quelle muss einen Recovery-Pfad haben.
+5. **Kein Scope-Creep:** Jedes Feature braucht eine Messlatten-Referenz
+   (PRD §9, K1–K10). Epic-Scopes in `epics/EPIC-P*.md` gelten.
+6. **Fail loud:** Unbekannte Provider-Formate, Adapter-Ausfälle etc. werden
+   als Events/Status sichtbar, nie still gedroppt.
+
+## Conventions
+
+- Node ≥ 22.5, ESM, TypeScript strict, **kein Build-Schritt für Server-Code**
+  (Node strip-types). Deshalb: **keine Parameter-Properties, keine Enums,
+  keine Namespaces** — nur strip-taugliche TS-Syntax. PWA baut via Vite.
+- Imports mit `.ts`-Endung (`./foo.ts`), `import type` wo möglich.
+- npm workspaces; neue Pakete nach `packages/`, Name `@uacc/<name>`.
+- Persistenz: `node:sqlite` (keine nativen Module).
+- Zeitstempel ISO-8601 UTC. IDs: `crypto.randomUUID()`.
+- Kommentare sparsam, auf Deutsch oder Englisch, Warum statt Was.
+
+## Kommandos
+
+```bash
+npm test                 # vitest (alle Packages)
+npm run lint             # eslint
+npm run typecheck        # tsc --noEmit
+npm run loadtest         # K8: 20 Sessions × 30 ev/s
+npm -w @uacc/pwa run build
+```
+
+Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
+
+## Testing
+
+- Unit/Contract-Tests in `packages/*/test/*.test.ts` (vitest, forks pool).
+- Adapter bekommen die Suite aus `@uacc/adapter-testkit` — grün =
+  hub-integrierbar.
+- tmux-Tests skipped automatisch, wenn tmux fehlt.
+- Fixtures für echte CLI-Streams (P1): aufgezeichnet, anonymisiert,
+  secret-gescannt — nie Roh-Logs committen.
+
+## Datadir & Sicherheit
+
+`data/` (SQLite, JSONL, Blobs, Worker-Logs) ist git-ignored und bleibt es.
+Keine Secrets in Config-Commits; Tokens nur als Hash. Kein Code, der Agenten-
+Output als Instruktion interpretiert (Prompt-Injection-Grenze, PRD §8.5).
+
+## Definition of Done (repo-weit, P0-Standard)
+
+Tests + Lint + Typecheck grün; neue Komponenten haben Contract-Bezug;
+Messlatten-Verletzungen werden als Testfehler sichtbar; kein TODO ohne
+Epic-Referenz.

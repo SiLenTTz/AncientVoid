@@ -1,0 +1,22 @@
+stages: [verify]
+
+default:
+  image: node:26
+  interruptible: true
+
+verify:
+  stage: verify
+  script:
+    - npm ci
+    - npm rebuild esbuild
+    - npm run typecheck
+    - npm run lint
+    - npm test
+    - npm run loadtest -- --sessions 10 --rate 20 --seconds 4
+  cache:
+    key:
+      files: [package-lock.json]
+    paths: [.npm/]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH

@@ -1,0 +1,17 @@
+{
+  "name": "@uacc/hubctl",
+  "version": "0.1.0",
+  "description": "Reference CLI client for the UACC hub (list/show/tail/tokens) — also the debugging tool of choice.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "hubctl": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@uacc/contracts": "0.1.0"
+  }
+}

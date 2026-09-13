@@ -1,0 +1,31 @@
+{
+  "$comment": "UACC hub config — copy to hub.config.json. See docs/configuration.md. hub.config.json is git-ignored; keep secrets out of the repo.",
+  "dataDir": "./data",
+  "workerRunner": "tmux",
+  "server": {
+    "host": "127.0.0.1",
+    "port": 7373,
+    "enforceTailnetIdentity": false,
+    "pwaDir": "../pwa/dist"
+  },
+  "adapters": [
+    {
+      "id": "dummy",
+      "module": "@uacc/adapter-dummy",
+      "config": {
+        "eventsPerSecond": 5,
+        "giantEvery": 0,
+        "giantBytes": 1048576,
+        "autoStopAfterEvents": 0,
+        "failStart": false,
+        "resumeOnRecover": true
+      }
+    },
+    {
+      "id": "my-custom-endpoint",
+      "module": "./adapters/my-provider/index.ts",
+      "enabled": false,
+      "config": {}
+    }
+  ]
+}

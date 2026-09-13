@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "composite": false,
+    "types": ["node"]
+  },
+  "include": [
+    "packages/contracts/src",
+    "packages/core/src",
+    "packages/workers/src",
+    "packages/adapter-dummy/src",
+    "packages/adapter-testkit/src",
+    "packages/server/src",
+    "packages/hubctl/src",
+    "packages/*/test",
+    "scripts",
+    "vitest.config.ts",
+    "eslint.config.mjs"
+  ],
+  "exclude": ["packages/pwa"]
+}

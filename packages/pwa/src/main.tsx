@@ -1,0 +1,99 @@
+import { render } from "preact";
+import { useEffect, useState } from "preact/hooks";
+import { App } from "./App.tsx";
+import { SessionTail } from "./SessionTail.tsx";
+import { getToken, setToken, hubApi, type SessionRecord } from "./api.ts";
+import "./styles.css";
+
+function TokenGate({ onReady }: { onReady: () => void }) {
+  const [token, setVal] = useState(getToken());
+  const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
+
+  const submit = async () => {
+    setChecking(true);
+    setError("");
+    try {
+      setToken(token.trim());
+      await hubApi.health();
+      onReady();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "connection failed");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <div class="card form-grid" style="margin-top: 20vh">
+      <h2 style="margin: 0">UACC Hub</h2>
+      <p class="dim" style="margin: 0">
+        Device-Token eingeben (wird beim Start des Hubs via <code>hubctl token issue</code> erzeugt).
+      </p>
+      <label>
+        Device-Token
+        <input
+          type="password"
+          value={token}
+          onInput={(e) => setVal((e.target as HTMLInputElement).value)}
+          placeholder="uacc-…"
+        />
+      </label>
+      {error && <div style="color: var(--err)">{error}</div>}
+      <button class="btn primary" onClick={submit} disabled={checking}>
+        {checking ? "Prüfe…" : "Verbinden"}
+      </button>
+    </div>
+  );
+}
+
+function Main() {
+  const [ready, setReady] = useState(false);
+  const [route, setRoute] = useState<{ view: "list" } | { view: "tail"; session: SessionRecord }>({
+    view: "list",
+  });
+
+  useEffect(() => {
+    if (ready) return;
+    hubApi
+      .health()
+      .then(() => setReady(true))
+      .catch(() => setReady(false));
+  }, []);
+
+  useEffect(() => {
+    const onStale = () => setStaleAt(new Date());
+    document.addEventListener("uacc:stale-data", onStale);
+    return () => document.removeEventListener("uacc:stale-data", onStale);
+  }, []);
+
+  const [staleAt, setStaleAt] = useState<Date | null>(null);
+
+  if (!ready) return <TokenGate onReady={() => setReady(true)} />;
+
+  return (
+    <>
+      {staleAt && (
+        <div class="topbar">
+          <span class="badge-stale">Daten vom {staleAt.toLocaleString("de-DE")} (offline)</span>
+        </div>
+      )}
+      {route.view === "list" ? (
+        <App
+          onOpen={(session) => setRoute({ view: "tail", session })}
+          ready={() => setReady(false)}
+        />
+      ) : (
+        <SessionTail session={route.session} onBack={() => setRoute({ view: "list" })} />
+      )}
+    </>
+  );
+}
+
+render(<Main />, document.getElementById("app")!);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.register("/sw.js");
+  });
+}

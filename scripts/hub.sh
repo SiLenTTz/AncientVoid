@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# UACC — hub daemon lifecycle for local dev (P0).
+#   scripts/hub.sh start|stop|status|logs
+set -euo pipefail
+cd "$(dirname "$0")/.."
+PIDFILE="/tmp/uacc-hub.pid"
+LOG="/tmp/uacc-hub.log"
+
+start() {
+  if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "hub already running (pid $(cat "$PIDFILE"))"
+    exit 0
+  fi
+  UACC_CONFIG="${UACC_CONFIG:-./hub.config.json}" \
+    setsid node packages/server/src/main.ts >>"$LOG" 2>&1 < /dev/null &
+  local pid=$!
+  echo "$pid" > "$PIDFILE"
+  sleep 1.5
+  if kill -0 "$pid" 2>/dev/null; then
+    echo "hub started (pid $pid, log: $LOG)"
+  else
+    echo "hub failed to start — see $LOG"
+    tail -5 "$LOG" || true
+    rm -f "$PIDFILE"
+    exit 1
+  fi
+}
+
+stop() {
+  if [ -f "$PIDFILE" ]; then
+    kill "$(cat "$PIDFILE")" 2>/dev/null || true
+    rm -f "$PIDFILE"
+    echo "hub stopped"
+  else
+    echo "not running"
+  fi
+}
+
+status() {
+  if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "running (pid $(cat "$PIDFILE"))"
+    curl -s http://127.0.0.1:7373/api/health || true
+    echo
+  else
+    echo "not running"
+  fi
+}
+
+case "${1:-}" in
+  start) start ;;
+  stop) stop ;;
+  status) status ;;
+  logs) tail -f "$LOG" ;;
+  *) echo "usage: $0 start|stop|status|logs"; exit 1 ;;
+esac
