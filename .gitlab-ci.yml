@@ -7,12 +7,6 @@ default:
 verify:
   stage: verify
   script:
-    # AI-P0-6: packages/workers/test/tmux.test.ts self-skips without tmux
-    # (`itTmux = hasTmux ? it : it.skip`) — it always has, silently, on
-    # this runner. That's the tmux-backed WorkerRunner (ADR-P0-3, the
-    # default runner) going completely unverified in CI. Installing tmux
-    # closes the gap instead of just writing it down.
-    - apt-get update && apt-get install -y --no-install-recommends tmux
     - npm ci
     - npm rebuild esbuild
     - npm run typecheck

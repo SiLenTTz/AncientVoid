@@ -163,9 +163,11 @@ AC-P0-5: 🟢 erfüllt (nachgezogen — siehe AI-P0-3)
    `ws.ts:14-107` haben Gap-Detection/Resync von Anfang an, mit Test.
 2. *tmux-Verfügbarkeit auf Zielsystemen* → **teilweise eingetreten, aber
    anders als erwartet:** nicht auf einem Zielsystem, sondern auf dem
-   GitLab-CI-Runner selbst fehlte tmux — `tmux.test.ts` lief dort komplett
-   geskippt (`itTmux = hasTmux ? it : it.skip`). Behoben via AI-P0-6
-   (tmux jetzt im CI-Image installiert).
+   GitLab-CI-Runner selbst fehlt tmux — `tmux.test.ts` läuft dort komplett
+   geskippt. Der Versuch, tmux im CI-Image nachzurüsten (AI-P0-6), zeigte:
+   selbst mit installiertem tmux scheitert es dort an echten
+   Funktionsfehlern (vermutlich PTY-Eigenheit des Docker-Executors) — bewusst
+   dokumentiert statt gefixt, siehe `docs/adr/0002-tmux-worker-runner-not-ci-tested.md`.
 3. *fsync-Policy falsch* → **eingetreten, aber unbemerkt bis jetzt:** die
    Batch-fsync-Policy (T0.3) hatte eine echte Race (BUG-0003) — der
    Debounce-Timer lief außerhalb der Append-Serialisierung und konnte
@@ -239,10 +241,14 @@ AI-P0-5: ✅ erledigt — makeContext().emit() ruft bei Append-Fehlern jetzt
          trotzdem persistiert) Fehlschläge. sessionmanager.ts +
          sessionmanager.test.ts.
 
-AI-P0-6: ✅ erledigt — .gitlab-ci.yml installiert jetzt tmux
-         (`apt-get install tmux`) vor `npm ci`. Lücke geschlossen statt nur
-         dokumentiert: der Default-WorkerRunner (ADR-P0-3) läuft jetzt
-         tatsächlich in CI, nicht nur lokal.
+AI-P0-6: ✅ erledigt (Doku-Weg, nicht Fix-Weg) — tmux im CI-Image
+         installiert und ausprobiert (MR !11): tmux wurde erkannt, aber 3
+         von 4 Tests scheiterten an echten Funktionsfehlern (leere
+         Pipe-Pane-Ausgabe, Session nicht auffindbar, Kill-Timeout) — sieht
+         nach einer PTY-Eigenheit des GitLab-Docker-Executors aus, nicht
+         nach einem Code-Fehler (derselbe Code läuft lokal zuverlässig).
+         Rückgängig gemacht, stattdessen bewusst dokumentiert:
+         docs/adr/0002-tmux-worker-runner-not-ci-tested.md.
 ```
 
 P1 ist durch diese Retro **nicht blockiert** — AI-P0-1, -3, -5, -6 sind
