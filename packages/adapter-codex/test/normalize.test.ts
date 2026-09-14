@@ -1,28 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { EmittedEvent } from "@uacc/contracts";
+import { checkFixture } from "@uacc/adapter-testkit";
 import { normalizeCodexLine } from "../src/normalize.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
-
-function loadFixtureLines(name: string): unknown[] {
-  return readFileSync(join(here, "fixtures", name), "utf8")
-    .split("\n")
-    .filter((l) => l.trim())
-    .map((l) => JSON.parse(l));
-}
+const fixture = (name: string) => join(here, "fixtures", name);
 
 describe("normalizeCodexLine — real captured stream-json (codex-cli 0.153.4)", () => {
   it("maps every line of the trivial-text fixture to schema-valid events", () => {
-    const lines = loadFixtureLines("trivial-text.jsonl");
-    const events = lines.flatMap(normalizeCodexLine);
-    for (const ev of events) {
-      const parsed = EmittedEvent.safeParse(ev);
-      expect(parsed.success, parsed.success ? "" : JSON.stringify(parsed.error?.issues)).toBe(true);
-      expect(ev.summary.length).toBeLessThanOrEqual(200);
-    }
+    // checkFixture (T1.4, @uacc/adapter-testkit) loads the fixture, runs
+    // every line through the normalizer, and asserts schema-validity —
+    // the generic half of this check; provider-specific assertions follow.
+    const events = checkFixture(fixture("trivial-text.jsonl"), normalizeCodexLine);
     const assistantEvents = events.filter((e) => e.type === "assistant");
     expect(assistantEvents).toHaveLength(1);
     expect(assistantEvents[0]!.summary).toBe("ok");
@@ -34,8 +24,7 @@ describe("normalizeCodexLine — real captured stream-json (codex-cli 0.153.4)",
   });
 
   it("maps the tool-use fixture to tool_use + tool_result + assistant events", () => {
-    const lines = loadFixtureLines("tool-use.jsonl");
-    const events = lines.flatMap(normalizeCodexLine);
+    const events = checkFixture(fixture("tool-use.jsonl"), normalizeCodexLine);
 
     const toolUse = events.filter((e) => e.type === "tool_use");
     expect(toolUse).toHaveLength(1);
@@ -50,8 +39,7 @@ describe("normalizeCodexLine — real captured stream-json (codex-cli 0.153.4)",
   });
 
   it("captures thread_id from thread.started for resume", () => {
-    const lines = loadFixtureLines("resume.jsonl");
-    const events = lines.flatMap(normalizeCodexLine);
+    const events = checkFixture(fixture("resume.jsonl"), normalizeCodexLine);
     const started = events.find((e) => e.summary === "codex: thread started");
     expect((started?.payload as { threadId?: string }).threadId).toBe("01a0a1fe-e6d8-7542-8f87-f62bfdcd2954");
   });
