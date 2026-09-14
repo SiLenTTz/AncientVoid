@@ -123,48 +123,68 @@ describe("SessionManager", () => {
     }
   });
 
-  it("K7: recovers sessions with identical event count after hard restart", async () => {
-    const first = makeManager(dir, { eventsPerSecond: 20, autoStopAfterEvents: 10 }, "k7.db");
+  it("K7 (AC-P0-1): recovers 5 concurrent sessions, byte-identical, restore < 3s", async () => {
+    const SESSION_COUNT = 5;
+    const first = makeManager(dir, { eventsPerSecond: 20, autoStopAfterEvents: 10 }, "k7-5.db");
     let secondManager: SessionManager | undefined;
     try {
-      const record = await first.manager.create({ adapter: "dummy", project: dir });
-      // Wait for the generator's own stop signal instead of a fixed sleep: a
-      // sleep-then-snapshot race lets a straggling event land between the
-      // "before" read below and the hard cut, which then shows up as an
-      // extra seq in the recovered stream and breaks the byte-identity
-      // assertion further down (BUG-0001).
+      const records = await Promise.all(
+        Array.from({ length: SESSION_COUNT }, () => first.manager.create({ adapter: "dummy", project: dir })),
+      );
+
+      // Wait for every session's own stop signal instead of a fixed sleep —
+      // see BUG-0001: a sleep-then-snapshot race lets a straggling event
+      // land between the "before" read below and the hard cut.
       await waitFor(async () => {
-        const events = await first.manager.tail(record.id, 0);
-        return events.some((e) => e.type === "system" && e.summary === "dummy: auto-stop reached");
+        for (const record of records) {
+          const events = await first.manager.tail(record.id, 0);
+          if (!events.some((e) => e.type === "system" && e.summary === "dummy: auto-stop reached")) return false;
+        }
+        return true;
       });
-      await first.store.flush(record.id);
-      const eventsBefore = (await first.manager.tail(record.id, 0)).length;
-      expect(eventsBefore).toBeGreaterThan(5);
+      await first.store.flush();
+
+      const eventsBefore = new Map<string, number>();
+      for (const record of records) {
+        const count = (await first.manager.tail(record.id, 0)).length;
+        expect(count).toBeGreaterThan(5);
+        eventsBefore.set(record.id, count);
+      }
+
       // Hard cut: no graceful shutdown of `first` — new manager instance
       // must restore state from the SAME on-disk artifacts (sqlite + jsonl
-      // + snapshot). `first`'s own generator already self-stopped above
-      // (autoStopAfterEvents), so it needs no cleanup here.
-      const second = makeManager(dir, { eventsPerSecond: 20 }, "k7.db");
+      // + snapshot) for all 5 sessions at once. Each session's generator
+      // already self-stopped above (autoStopAfterEvents), so none needs
+      // cleanup here.
+      const second = makeManager(dir, { eventsPerSecond: 20 }, "k7-5.db");
       secondManager = second.manager;
+      const t0 = performance.now();
       const { recovered } = await second.manager.recoverAll();
-      expect(recovered).toBeGreaterThanOrEqual(1);
-      const eventsAfter = await second.manager.tail(record.id, 0);
-      // Pre-crash stream is preserved byte-identically …
-      expect(eventsAfter.slice(0, eventsBefore).map((e) => e.seq)).toEqual(
-        Array.from({ length: eventsBefore }, (_, i) => i + 1),
-      );
-      // … and recovery may only append audit events after it.
-      expect(eventsAfter.length).toBeGreaterThanOrEqual(eventsBefore);
-      const appended = eventsAfter.slice(eventsBefore);
-      expect(appended.every((e) => e.type === "system")).toBe(true);
+      const elapsedMs = performance.now() - t0;
+
+      // AC-P0-1 as a real assertion, not the console.warn sessionmanager.ts
+      // itself falls back to — a restore that's merely logged as slow was
+      // never actually gated on the "< 3 s" requirement.
+      expect(recovered).toBeGreaterThanOrEqual(SESSION_COUNT);
+      expect(elapsedMs).toBeLessThan(3000);
+
+      for (const record of records) {
+        const before = eventsBefore.get(record.id)!;
+        const eventsAfter = await second.manager.tail(record.id, 0);
+        // Pre-crash stream is preserved byte-identically …
+        expect(eventsAfter.slice(0, before).map((e) => e.seq)).toEqual(
+          Array.from({ length: before }, (_, i) => i + 1),
+        );
+        // … and recovery may only append audit events after it.
+        expect(eventsAfter.length).toBeGreaterThanOrEqual(before);
+        expect(eventsAfter.slice(before).every((e) => e.type === "system")).toBe(true);
+      }
     } finally {
-      // BUG-0002: `recover()` restarts the dummy generator with
+      // BUG-0002: `recover()` restarts each dummy generator with
       // `autoStopAfterEvents` defaulting to 0 (endless). If any expect()
-      // above throws, this used to be skipped, leaving an infinite
-      // unref'd setInterval running for the rest of the whole test
-      // process (all files share one fork) — it kept failing every tick
-      // once `dir` was removed in afterAll, flooding stderr and stealing
-      // event-loop time from every later file.
+      // above throws, this used to be skipped, leaving up to 5 infinite,
+      // unref'd setIntervals running for the rest of the whole test
+      // process (all files share one fork).
       await secondManager?.shutdown();
     }
   });
