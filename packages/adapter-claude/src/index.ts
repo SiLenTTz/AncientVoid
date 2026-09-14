@@ -83,6 +83,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
     proc.onExit((code) => {
       meta.healthy = false;
+      // Drop the dead process reference (procs), but keep `meta` — it
+      // carries resumeSessionId, which the *next* steer(prompt) needs.
+      // claude -p is one-shot: every turn's process exits by design, not
+      // just on error, so this fires on every normal turn too.
+      if (procs.get(sessionId) === proc) procs.delete(sessionId);
       if (code !== 0 && code !== null) {
         ctx.emit({ type: "system", summary: `claude: process exited with code ${code}`, payload: { code } });
       }
