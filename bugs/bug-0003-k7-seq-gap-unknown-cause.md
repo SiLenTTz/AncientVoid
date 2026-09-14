@@ -1,7 +1,7 @@
 ---
 id: BUG-0003
 slug: k7-seq-gap-unknown-cause
-status: open
+status: done
 severity: S2
 area: core
 instance: dev
@@ -104,14 +104,36 @@ Verdächtig, aber **nicht verifiziert**:
   könnte (ENOENT? EMFILE? ein anderer transienter I/O-Fehler auf dem
   SaaS-Runner?) ist **nicht geklärt** — dazu fehlt Instrumentierung.
 
+## Fix
+
+Ursache doch gefunden, per Code-Lesen statt weiterer empirischer Läufe
+(Commit `958d251`): `EventStore`s FSYNC-Debounce-Timer
+(`setTimeout(() => void this.flush(sessionId), FSYNC_INTERVAL_MS)`) rief
+`flush()` **außerhalb** der `appendChain`-Serialisierung auf, die sonst
+jeden Write für eine Session ordnet. Feuerte der Timer, während
+`appendLinesLocked()` für dieselbe Session gerade mitten im Schreiben war,
+konnte `flush()` den `FileHandle` synchron schließen — der parallele Write
+schlug fehl, aber `emitEvents()` hatte `lastSeq` bereits **vorher**
+inkrementiert. Die `seq` war für immer verloren, nur ein `console.error`,
+kein sichtbares Event (Verstoß gegen `AGENTS.md` Regel 6 „Fail loud").
+
+Erklärt auch, warum die Lücke auf CI **deterministisch** an derselben
+Position (`seq=4`) auftrat — fester Bezug zwischen `eventsPerSecond`-Takt
+und `FSYNC_INTERVAL_MS`, nicht zufällige I/O-Störung wie ursprünglich
+vermutet.
+
+Fix: Timer-Flush, expliziter `flush()` und der `FSYNC_MAX_EVENTS`-Sofort-Flush
+laufen jetzt alle durch dieselbe Chain (`chain()`-Helper). Der bereits
+innerhalb der Chain laufende `FSYNC_MAX_EVENTS`-Fall ruft `flushOne()` direkt
+auf (sonst Deadlock — er würde auf sich selbst warten).
+
+Verifiziert: 10/10 volle Suiten-Läufe grün, 2/3 unter synthetischer
+Alle-Kerne-Last (der eine Rest-Fehlschlag ist ein unabhängiger
+tmux-Pipe-Timing-Test, in CI ohnehin geskippt). CI-Pipeline auf dem finalen
+Commit grün — siehe MR !3.
+
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [ ] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` — **bewusst offen gelassen.** Kandidat für den nächsten
-      Zyklus, vor oder parallel zu P1: (1) `store.append()`-Fehler laut
-      werden lassen (echtes `error`-Event statt `console.error` + stiller
-      Statuswechsel), (2) klären, ob `seq`-Vergabe erst nach erfolgreichem
-      Append passieren sollte oder ob Append-Fehler stattdessen retry-fähig
-      gemacht werden. Architekturfrage, kein Ein-Zeilen-Fix — braucht einen
-      eigenen `concept-phase`-Durchgang, bevor `bugfix` startet.
+- [x] GitLab-Issue angelegt (Link oben)
+- [x] `bugfix` — behoben (Commit `958d251`)

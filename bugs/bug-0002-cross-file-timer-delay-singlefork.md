@@ -1,7 +1,7 @@
 ---
 id: BUG-0002
 slug: cross-file-timer-delay-singlefork
-status: open
+status: done
 severity: S3
 area: core
 instance: dev
@@ -100,11 +100,23 @@ verifiziert**, nur Verdacht. Braucht gezielte Instrumentierung (z. B.
 `--prof`/`async_hooks`), um die tatsächliche blockierende Ressource zu
 finden.
 
+## Fix
+
+Root-Cause gefunden (Commit `ea35214`): `sessionmanager.test.ts` rief
+`manager.shutdown()` jeweils als letzte Zeile ohne `try/finally` auf. Warf
+ein `expect()` davor, wurde `shutdown()` übersprungen — beim K7-Test bleibt
+dann ein **endloser** Dummy-Generator (`recover()` setzt
+`autoStopAfterEvents` implizit auf 0) als `unref()`'ter `setInterval` für
+den Rest des gesamten `singleFork`-Prozesses aktiv. Sobald `afterAll` das
+zugehörige Temp-Verzeichnis löscht, schlägt jeder Tick mit ENOENT fehl und
+frisst Event-Loop-Zeit in allen späteren Dateien — exakt das beobachtete
+Muster. Alle Tests in der Datei jetzt mit `try/finally` abgesichert.
+
+Verifiziert: 10/10 volle Suiten-Läufe grün (vorher ~1 von 3 Fehlschläge auf
+derselben Maschine).
+
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [ ] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` — **offen gelassen**, kein Fix in diesem Lauf (Root-Cause
-      unklar, Scope über den ursprünglich gemeldeten Test hinaus). Empfehlung:
-      eigener Bugfix-Zyklus mit `async_hooks`-Instrumentierung, bevor P1
-      beginnt — betrifft die Verlässlichkeit von `npm test` als Gate.
+- [x] GitLab-Issue angelegt (Link oben)
+- [x] `bugfix` — behoben (Commit `ea35214`)
