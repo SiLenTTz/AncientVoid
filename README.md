@@ -49,7 +49,7 @@ Ollama, vLLM). Anleitung: [`CONTRIBUTING.md`](./CONTRIBUTING.md) und
 | Adapter | Typ | Reasoning | Tools | Cost | Steer | Status | Phase |
 |---|---|---|---|---|---|---|---|
 | `dummy` | synthetisch | ✓ | ✓ | — | ✓ | proven | P0 |
-| `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | geplant | P1 |
+| `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | unproven | P1 |
 | `codex` | CLI (exec JSON) | ✓ | ✓ | ~ | ✓ | geplant | P1 |
 | `copilot` | CLI + SDK | ~ | ✓ | ~ | ~ | unproven | P3 |
 | `swarm` | eigene Event-API | ✓ | ✓ | ✓ | ✓ | geplant | P3 |

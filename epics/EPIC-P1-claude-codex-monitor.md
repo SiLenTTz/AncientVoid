@@ -52,8 +52,8 @@ Session) und der Session-Tail mit drei Filter-Presets.
 
 ## 4. Aufgaben
 
-- [ ] **T1.1** Event-Normalizer-Bibliothek: provider-Events → NormalizedEvent (gemeinsamer Code, adapter-spezifische Mapper)
-- [ ] **T1.2** Adapter `claude` vollständig (inkl. Steer/Resume)
+- [x] **T1.1** Event-Normalizer — bewusst **nicht** als separate geteilte Bibliothek gebaut: mit nur einem realen Adapter (`claude`) wäre "gemeinsamer Code" eine Abstraktion ohne zweiten Aufrufer (`architecture-best-practices`: "ein Adapter ist eine hypothetische Naht, zwei sind eine echte"). Normalizer lebt in `packages/adapter-claude/src/normalize.ts`; Extraktion in ein geteiltes Paket erst mit T1.3 (`codex`), wenn sichtbar ist, was wirklich gemeinsam ist.
+- [x] **T1.2** Adapter `claude` — `packages/adapter-claude/` (Basis-Lifecycle + Steer(prompt) via `--resume`; Steer(resume) ohne Prompt ehrlich `ok:false`, kein `recover()`). Mapping-Ground-Truth: zwei echte `claude -p --output-format stream-json`-Captures (CLI 2.1.263, `test/fixtures/`), **nicht** die vereinfachte Tabelle in §3 — die kannte `hook_started`/`hook_response`/`rate_limit_event` nicht und unterschlug, dass `assistant`/`user` Content-Block-Arrays tragen statt flacher Typen. `thinking`-Mapping unverifiziert (kein Capture mit Extended Thinking vorhanden) — Vermerk in `normalize.ts`, gehört in den Fixture-Korpus von T1.4 nachgezogen.
 - [ ] **T1.3** Adapter `codex` vollständig (inkl. Version-Pinning, Degraded-Modus)
 - [ ] **T1.4** Fixture-System: echte Streams aufzeichnen, anonymisieren (keine Secrets!), als Contract-Test-Eingang
 - [ ] **T1.5** Monitor-Dashboard-Komponente (S1) mit Sortierung „zuletzt aktiv", Kosten-Aggregation je Session/Tag
