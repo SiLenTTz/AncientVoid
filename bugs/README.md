@@ -24,5 +24,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 
 | ID | Titel | Status | Schwere | Bereich | Forge |
 |---|---|---|---|---|---|
+| [BUG-0001](bug-0001-k7-recovery-race-under-load.md) | K7-Recovery-Test race unter CPU-Last | in-progress | S3 | core | [#1](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/1) |
+| [BUG-0002](bug-0002-cross-file-timer-delay-singlefork.md) | Zeitbasierte sessionmanager-Tests verzögert nach anderer Testdatei | open | S3 | core | [#2](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/2) |
 
-Die nächste freie Nummer ist **0001**.
+Die nächste freie Nummer ist **0003**.
