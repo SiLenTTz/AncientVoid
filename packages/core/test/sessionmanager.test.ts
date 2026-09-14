@@ -24,7 +24,7 @@ function makeManager(dir: string, dummyConfig?: Record<string, unknown>, dbFile?
  * fall well behind the nominal `1000 / eventsPerSecond` rate. A fixed sleep
  * races that drift; polling with a generous ceiling doesn't.
  */
-async function waitFor(check: () => Promise<boolean>, timeoutMs = 5000, stepMs = 20): Promise<void> {
+async function waitFor(check: () => Promise<boolean>, timeoutMs = 12_000, stepMs = 20): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await check()) return;
@@ -106,7 +106,15 @@ describe("SessionManager", () => {
   it("K7: recovers sessions with identical event count after hard restart", async () => {
     const first = makeManager(dir, { eventsPerSecond: 20, autoStopAfterEvents: 10 }, "k7.db");
     const record = await first.manager.create({ adapter: "dummy", project: dir });
-    await new Promise((r) => setTimeout(r, 900));
+    // Wait for the generator's own stop signal instead of a fixed sleep: a
+    // sleep-then-snapshot race lets a straggling event land between the
+    // "before" read below and the hard cut, which then shows up as an extra
+    // seq in the recovered stream and breaks the byte-identity assertion
+    // further down (BUG-0001).
+    await waitFor(async () => {
+      const events = await first.manager.tail(record.id, 0);
+      return events.some((e) => e.type === "system" && e.summary === "dummy: auto-stop reached");
+    });
     await first.store.flush(record.id);
     const eventsBefore = (await first.manager.tail(record.id, 0)).length;
     expect(eventsBefore).toBeGreaterThan(5);
