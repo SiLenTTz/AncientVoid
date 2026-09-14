@@ -96,6 +96,11 @@ nutzt diese Möglichkeit nicht).
       Ansatz für später: `ContractTestOptions` um ein optionales
       `spawnWorker`-Feld erweitern (Default: ein simpler Echo-Prozess-Mock
       statt eines werfenden Stubs), oder `runContractTests()` einen
-      `ctx`-Override-Parameter geben. Betrifft T1.3 (`codex`) direkt — vor
-      dem nächsten echten Adapter beheben, sonst wiederholt sich diese
-      Umgehung.
+      `ctx`-Override-Parameter geben.
+
+**Update (T1.3):** wie vorhergesagt betroffen — `adapter-codex` musste
+dieselbe Umgehung bauen (`packages/adapter-codex/test/adapter.test.ts`,
+eigene `makeRecordingContext({ spawnWorker: ... })`-Lifecycle-Tests statt
+`runContractTests()`). Zwei von zwei bisherigen echten Adaptern betroffen —
+sollte vor T3.x (`swarm`/weitere Adapter, P3) behoben werden, sonst
+wiederholt sich die Umgehung ein drittes Mal.

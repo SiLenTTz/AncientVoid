@@ -50,7 +50,7 @@ Ollama, vLLM). Anleitung: [`CONTRIBUTING.md`](./CONTRIBUTING.md) und
 |---|---|---|---|---|---|---|---|
 | `dummy` | synthetisch | ✓ | ✓ | — | ✓ | proven | P0 |
 | `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | unproven | P1 |
-| `codex` | CLI (exec JSON) | ✓ | ✓ | ~ | ✓ | geplant | P1 |
+| `codex` | CLI (exec JSON) | ✓ | ✓ | ~ | ✓ | unproven | P1 |
 | `copilot` | CLI + SDK | ~ | ✓ | ~ | ~ | unproven | P3 |
 | `swarm` | eigene Event-API | ✓ | ✓ | ✓ | ✓ | geplant | P3 |
 | `zai` | API-Router :8788 | ✓ | ✓ | ~ | ✓ | geplant | P3 |
