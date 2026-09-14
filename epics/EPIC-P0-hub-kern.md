@@ -1,6 +1,6 @@
 # EPIC-P0 — Hub-Kern: Sessions, EventStore, tmux-Worker, Tailscale-serve, PWA-Gerüst
 
-**Status:** offen · **Phase:** P0 · **Dauer:** 1 Agenten-Woche · **Priorität:** P0 (Blocker für alles)
+**Status:** 🟡 mechanisch fertig, 2 ACs unverifiziert (siehe Retro) · **Phase:** P0 · **Dauer:** 1 Agenten-Woche · **Priorität:** P0 (Blocker für alles)
 **Ziel-Machine:** Omarchy (Entwicklung), silenttz-server (Staging) · **Evox2:** explizit out of scope
 
 ---
@@ -69,18 +69,18 @@ Regel: `payload` darf niemals > 4 KB sein — Überschuss geht in Blob + `blob_r
 
 ## 5. Aufgaben
 
-- [ ] **T0.1** Repo-Gerüst: TypeScript strict, vitest, eslint, AGENTS.md, epics/-Ordner nach custom-rag-Hygienestandard
-- [ ] **T0.2** SQLite-Schema + Migration-Runner (sessions, device_tokens, config)
-- [ ] **T0.3** EventStore: append-only JSONL pro Session, fsync-Policy, Blob-Verlagerung, `replay(session_id)`-Funktion
-- [ ] **T0.4** SessionManager: Lifecycle (create/park/stop), State-Machine, Crash-Recovery aus JSONL+Snapshot (K7)
-- [ ] **T0.5** tmux-Wrapper: spawn/kill/list, attach-Command-Generierung, Orphan-Reaping bei Daemon-Start
-- [ ] **T0.6** Adapter-Contract-Interface + Dummy-Adapter (konfigurierbare Event-Raten 1–100/s, alle Event-Typen, kontrollierbare Riesen-Outputs)
-- [ ] **T0.7** HTTP/WS-Server: `/api/sessions`, `/api/events/:id/tail`, Auth-Middleware (Tailnet-Identität + Device-Token)
-- [ ] **T0.8** Tailscale-serve-Setup-Skript + Doku (kein öffentlicher Port, verify via `tailscale serve status`)
-- [ ] **T0.9** PWA-Gerüst: Manifest, Service Worker (Cache letzter Projektion, K10), Dark-Theme, Session-Liste + einfacher Tail
-- [ ] **T0.10** WS-Delta-Protokoll: Sequenznummern, Gap-Detection, Resync; drop-on-slow-Queue (max 100 Events gepuffert)
-- [ ] **T0.11** `hubctl`-CLI: list/show/tail (Referenz-Client + Debugging)
-- [ ] **T0.12** Lasttest-Harness: 20 Dummy-Sessions à 30 Events/s (K8-Vorbereitung)
+- [x] **T0.1** Repo-Gerüst — `AGENTS.md`, `tsconfig.base.json` (strict), `vitest.config.ts`, `eslint.config.mjs`, `epics/`
+- [x] **T0.2** SQLite-Schema + Migration-Runner — `packages/core/src/db.ts:20-82` (`_migrations`-Tabelle, `sessions`/`device_tokens`/`config`)
+- [x] **T0.3** EventStore — `packages/core/src/eventstore.ts` (append-only JSONL, `FSYNC_INTERVAL_MS`-Batch-fsync, Blob-Verlagerung, `replay()`); Flush-Race gegen Appends erst mit BUG-0003 (Commit `958d251`) sauber serialisiert
+- [x] **T0.4** SessionManager — `packages/core/src/sessionmanager.ts` (State-Machine `VALID_TRANSITIONS`, `recoverAll()` für K7); Crash-Recovery-Test war bis BUG-0001–0003 (diese Session) flaky, jetzt 10/10 stabil
+- [x] **T0.5** tmux-Wrapper — `packages/workers/src/tmux.ts` (spawn/kill/list, `attachCmd`, `reapOrphans()`), getestet in `tmux.test.ts` (lokal grün, in CI geskippt — kein tmux auf dem Runner, siehe Retro)
+- [x] **T0.6** Adapter-Contract + Dummy — `packages/contracts/src/adapter.ts`, `packages/adapter-dummy/src/index.ts` (`eventsPerSecond` 1–100, `giantEvery`/`giantBytes`, alle Event-Typen im `TYPE_CYCLE`)
+- [x] **T0.7** HTTP/WS-Server — `packages/server/src/routes.ts`, `auth.ts` (Device-Token + Tailnet-Identität), `server.test.ts` deckt 401/400/201
+- [x] **T0.8** Tailscale-serve-Skript — `scripts/setup-tailscale-serve.sh` vorhanden; **Erreichbarkeit selbst nicht verifiziert** (siehe AC-P0-3 in der Retro)
+- [x] **T0.9** PWA-Gerüst — `packages/pwa/` (Manifest, `public/sw.js` mit `X-UACC-Cached-At`, dark-first `styles.css`); gebaut (`dist/` vorhanden), **nicht** im echten Browser gegen Offline getestet (siehe AC-P0-4)
+- [x] **T0.10** WS-Delta-Protokoll — `packages/contracts/src/wire.ts` (Seq, `dropped`-Flag), `packages/server/src/ws.ts:14-107` (Gap-Detection, `resync`); Test: `server.test.ts > WS resync: client-requested replay from store fills gaps`
+- [x] **T0.11** `hubctl`-CLI — `packages/hubctl/src/cli.ts` (`sessions`, `tail -f`, `token issue`); **End-zu-Ende-Latenz nicht gemessen** (siehe AC-P0-5)
+- [x] **T0.12** Lasttest-Harness — `scripts/loadtest.mjs` (20 Sessions × 30 ev/s, seq-Gap-Check); README nennt „605 ev/s aggregiert" als letzten Lauf, aber ohne Prüfstand/Datum/Commit dokumentiert — verstößt gegen die eigene `messlauf`-Regel (Action Item unten)
 
 ## 6. Acceptance Criteria (messbar)
 
@@ -107,3 +107,144 @@ Regel: `payload` darf niemals > 4 KB sein — Überschuss geht in Blob + `blob_r
 
 Alle ACs grün + Contract-Tests Dummy-Adapter grün + `docs/architecture.md` aktualisiert +
 kein TODO-Kommentar ohne Ticket-Referenz + Premortem-Mitigationen als Tests abgebildet.
+
+## Retro
+
+**Zeitraum:** Code lag beim Kaltstart-Commit (`fb0bee6`, 2026-09-14) bereits
+vollständig vor — P0 wurde vor dieser Session implementiert, aber nie gegen
+seine eigenen ACs geprüft oder als Epic abgeschlossen. Diese Retro holt das
+nach, plus 3 während der Prüfung gefundene und gefixte Bugs
+(`ef0138f`…`958d251`, siehe `bugs/bug-0001` bis `bug-0003`).
+
+### AK-Matrix
+
+```text
+AC-P0-1 (K7): 🟡 teilweise
+  Beleg: packages/core/test/sessionmanager.test.ts:106-179 ("K7: recovers
+  sessions…") — Mechanismus (JSONL-Replay + Snapshot + recoverAll()) ist
+  bewiesen und seit BUG-0003 (Commit 958d251) auch unter Last stabil
+  (10/10 Läufe grün, vorher ~1/3 Fehlschläge).
+  Bemerkung: Die AC verlangt 5 GLEICHZEITIGE Sessions und < 3s Restore.
+  Der Test deckt nur 1 Session ab; recoverAll() loggt zwar eine Warnung bei
+  > 3000ms (sessionmanager.ts:275-277), aber kein Test asserted die
+  Zeitgrenze. Die 5-Sessions-Skalierung ist unverifiziert.
+
+AC-P0-2 (K5): 🟢 erfüllt
+  Beleg: packages/core/test/eventstore.test.ts:42-57 ("enforces K5: payload
+  > 4 KB is offloaded to a blob") — exakt das in der AC beschriebene
+  Szenario, inkl. Byte-Identitäts-Check des zurückgelesenen Blobs.
+
+AC-P0-3: 🟡 teilweise
+  Beleg: packages/server/test/server.test.ts:48-59 ("rejects requests
+  without device token (401)", "rejects invalid tokens (401)") — Auth-Teil
+  vollständig getestet.
+  Bemerkung: Der Tailscale-serve-Teil ("erreichbar über *.ts.net, NICHT
+  über LAN-IP") ist eine Netzwerk-Eigenschaft, die aus einer Dev-Session
+  heraus nicht prüfbar ist — scripts/setup-tailscale-serve.sh existiert,
+  wurde aber nie gegen ein echtes Tailnet verifiziert.
+
+AC-P0-4 (K10): 🟡 teilweise
+  Beleg: packages/pwa/public/sw.js:1-66 — Service-Worker-Logik
+  (network-first für /api/, Cache-Fallback mit X-UACC-Cached-At-Header,
+  versionierter Cache) entspricht der AC-Beschreibung.
+  Bemerkung: Kein Browser-Test durchgeführt (WLAN aus, Badge sichtbar, kein
+  White-Screen) — reine Code-Lektüre, keine Laufzeit-Evidenz.
+
+AC-P0-5: 🔴 offen
+  Beleg: packages/hubctl/src/cli.ts implementiert `tail -f`, aber keine
+  Messung existiert.
+  Bemerkung: Keine < 500 ms Ende-zu-Ende-Latenz je gemessen oder
+  dokumentiert — verstößt gegen die eigene `messlauf`-Regel (keine Zahl
+  ohne Prüfstand/Datum/Werkzeug), weil hier noch nicht mal eine Zahl
+  existiert.
+```
+
+**AK-Zusammenfassung:** 1 🟢 / 3 🟡 / 1 🔴 / 0 ⚪
+
+### Premortem-Abgleich
+
+1. *WS-Protokoll ohne Gap-Handling* → **nicht eingetreten.** `wire.ts` +
+   `ws.ts:14-107` haben Gap-Detection/Resync von Anfang an, mit Test.
+2. *tmux-Verfügbarkeit auf Zielsystemen* → **teilweise eingetreten, aber
+   anders als erwartet:** nicht auf einem Zielsystem, sondern auf dem
+   GitLab-CI-Runner selbst fehlt tmux — `tmux.test.ts` läuft dort komplett
+   geskippt (`itTmux = hasTmux ? it : it.skip`). P0s tmux-Pfad ist in CI
+   faktisch ungetestet.
+3. *fsync-Policy falsch* → **eingetreten, aber unbemerkt bis jetzt:** die
+   Batch-fsync-Policy (T0.3) hatte eine echte Race (BUG-0003) — der
+   Debounce-Timer lief außerhalb der Append-Serialisierung und konnte
+   einen FileHandle mitten im Write schließen, was eine Sequenznummer
+   permanent verschluckte. Das Premortem-Risiko war richtig benannt, die
+   Mitigation ("Lasttest misst") hat es nicht gefangen, weil kein Lasttest
+   gezielt auf Sequenzlücken unter Last prüft (der bestehende K8-Loadtest
+   zählt Events, aber die Lücke trat nur bei einem sehr spezifischen
+   Timing-Fenster auf, das ein Durchsatz-Test nicht zuverlässig trifft).
+4. *Scope-Creep Richtung "erster echter Adapter"* → **nicht eingetreten.**
+5. *PWA-Service-Worker-Cache-Hell* → **nicht bewertbar**, da nie in einem
+   Browser getestet (siehe AC-P0-4).
+
+### Erkenntnisse
+
+1. **Code kann fertig sein, während das Epic-Dokument "offen" bleibt.**
+   P0s Aufgaben standen alle auf `[ ]`, obwohl der Code vollständig war —
+   die Lücke zwischen "gebaut" und "als fertig dokumentiert" wurde erst
+   sichtbar, als diese Retro sie einforderte. Beleg: Git-History dieser
+   Datei vor diesem Commit zeigt keine Checkbox-Änderung seit dem
+   Kaltstart-Commit.
+2. **Ein Bug, den niemand suchte, weil niemand testete, was er zu
+   verhindern vorgab.** Die K7-Tests liefen lokal meist grün — die
+   EventStore-Race (BUG-0003) wurde erst durch CI (anderer Rechner, andere
+   Timing-Verhältnisse) sichtbar, zweimal identisch reproduzierbar. Beleg:
+   `bugs/bug-0003-k7-seq-gap-unknown-cause.md`.
+3. **"Fail loud" (AGENTS.md Regel 6) wurde für Append-Fehler nicht
+   eingehalten** — ein fehlgeschlagener `store.append()` erzeugte bis
+   `958d251` nur ein `console.error`, keine sichtbare Statusänderung.
+   Indirekt gefixt (die Race ist weg), aber das Prinzip "sichtbar statt
+   still" für den *nächsten* möglichen Append-Fehler ist noch nicht
+   strukturell erzwungen.
+4. **Drei der fünf ACs sind Laufzeit-/Netzwerk-Eigenschaften, die aus einer
+   reinen Coding-Session heraus nicht verifizierbar sind** (Tailscale-
+   Erreichbarkeit, Browser-Offline-Verhalten, Ende-zu-Ende-Latenz). Das ist
+   keine Prozess-Schwäche, sondern eine Grenze dieser Arbeitsweise — muss
+   aber explizit als offen geführt werden, nicht stillschweigend als
+   "Code existiert also passt es" behandelt werden.
+5. **Der einzige zitierte Messwert im Repo (README: "605 ev/s aggregiert")
+   hat keinen Prüfstand, kein Datum, keine Commit-Referenz** — verstößt
+   gegen die gerade erst eingeführte `messlauf`-Regel.
+
+### Action Items
+
+```text
+AI-P0-1: K7-Test auf 5 gleichzeitige Sessions erweitern + <3s-Grenze als
+         echte Assertion (nicht nur console.warn) — zurück als: nächste
+         Aufgabe vor P1-Start, packages/core/test/sessionmanager.test.ts
+
+AI-P0-2: Tailscale-Erreichbarkeit (AC-P0-3) und PWA-Offline-Verhalten
+         (AC-P0-4) manuell gegen eine echte Tailscale-Instanz und einen
+         echten Browser verifizieren, sobald eine Zielmaschine verfügbar
+         ist — zurück als: offene Aufgabe, kein Blocker für P1 (P1 hängt
+         nicht an diesen beiden ACs)
+
+AI-P0-3: hubctl-tail-Latenz messen und nach messlauf-Regel ablegen
+         (docs/messlauf/) — zurück als: kleine Aufgabe, parallel zu P1
+         erledigbar
+
+AI-P0-4: README-Zahl "605 ev/s aggregiert" entweder mit Prüfstand/Datum/
+         Commit belegen oder aus der README entfernen, bis ein sauberer
+         messlauf-Eintrag existiert — zurück als: docs-only Task
+
+AI-P0-5: EventStore-Append-Fehler strukturell sichtbar machen (echtes
+         error-Event statt console.error + stiller Statuswechsel) — war
+         schon in BUG-0003 als Folgearbeit vermerkt, hier bestätigt —
+         zurück als: nächste Aufgabe, packages/core/src/sessionmanager.ts
+         makeContext().emit
+
+AI-P0-6: tmux.test.ts läuft in CI komplett geskippt (kein tmux auf dem
+         Runner) — entweder tmux im CI-Image installieren oder bewusst als
+         "nur lokal getestet" dokumentieren, statt stillschweigend 4 Tests
+         zu überspringen — zurück als: ADR oder .gitlab-ci.yml-Anpassung
+```
+
+P1 ist durch diese Retro **nicht blockiert** — AI-P0-1, -3, -5, -6 sind
+sinnvoll parallel zu P1 erledigbar, AI-P0-2 hängt an externer
+Infrastruktur (Zielmaschine mit Tailscale), nicht an P1s Scope.
