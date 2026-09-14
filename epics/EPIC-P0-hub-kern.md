@@ -119,15 +119,11 @@ nach, plus 3 während der Prüfung gefundene und gefixte Bugs
 ### AK-Matrix
 
 ```text
-AC-P0-1 (K7): 🟡 teilweise
-  Beleg: packages/core/test/sessionmanager.test.ts:106-179 ("K7: recovers
-  sessions…") — Mechanismus (JSONL-Replay + Snapshot + recoverAll()) ist
-  bewiesen und seit BUG-0003 (Commit 958d251) auch unter Last stabil
-  (10/10 Läufe grün, vorher ~1/3 Fehlschläge).
-  Bemerkung: Die AC verlangt 5 GLEICHZEITIGE Sessions und < 3s Restore.
-  Der Test deckt nur 1 Session ab; recoverAll() loggt zwar eine Warnung bei
-  > 3000ms (sessionmanager.ts:275-277), aber kein Test asserted die
-  Zeitgrenze. Die 5-Sessions-Skalierung ist unverifiziert.
+AC-P0-1 (K7): 🟢 erfüllt (nachgezogen — siehe AI-P0-1)
+  Beleg: packages/core/test/sessionmanager.test.ts ("K7 (AC-P0-1): recovers
+  5 concurrent sessions…") — 5 gleichzeitige Sessions, `recovered >= 5`,
+  `elapsedMs < 3000` als echte Assertion (gemessen ~540ms), byte-identische
+  Wiederherstellung pro Session. 5/5 isolierte Läufe grün.
 
 AC-P0-2 (K5): 🟢 erfüllt
   Beleg: packages/core/test/eventstore.test.ts:42-57 ("enforces K5: payload
@@ -159,7 +155,7 @@ AC-P0-5: 🔴 offen
   existiert.
 ```
 
-**AK-Zusammenfassung:** 1 🟢 / 3 🟡 / 1 🔴 / 0 ⚪
+**AK-Zusammenfassung:** 2 🟢 / 2 🟡 / 1 🔴 / 0 ⚪ (Stand nach AI-P0-1; ursprünglich 1/3/1/0)
 
 ### Premortem-Abgleich
 
@@ -215,9 +211,10 @@ AC-P0-5: 🔴 offen
 ### Action Items
 
 ```text
-AI-P0-1: K7-Test auf 5 gleichzeitige Sessions erweitern + <3s-Grenze als
-         echte Assertion (nicht nur console.warn) — zurück als: nächste
-         Aufgabe vor P1-Start, packages/core/test/sessionmanager.test.ts
+AI-P0-1: ✅ erledigt — K7-Test deckt jetzt 5 gleichzeitige Sessions ab,
+         <3s-Grenze ist eine echte Assertion (gemessen: ~540ms, 5/5 Läufe
+         grün). packages/core/test/sessionmanager.test.ts, Commit siehe
+         git log dieser Datei nach diesem Eintrag.
 
 AI-P0-2: Tailscale-Erreichbarkeit (AC-P0-3) und PWA-Offline-Verhalten
          (AC-P0-4) manuell gegen eine echte Tailscale-Instanz und einen
