@@ -1,28 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { EmittedEvent } from "@uacc/contracts";
+import { checkFixture } from "@uacc/adapter-testkit";
 import { normalizeClaudeLine } from "../src/normalize.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
-
-function loadFixtureLines(name: string): unknown[] {
-  return readFileSync(join(here, "fixtures", name), "utf8")
-    .split("\n")
-    .filter((l) => l.trim())
-    .map((l) => JSON.parse(l));
-}
+const fixture = (name: string) => join(here, "fixtures", name);
 
 describe("normalizeClaudeLine — real captured stream-json (claude 2.1.263)", () => {
   it("maps every line of the trivial-text fixture to schema-valid events", () => {
-    const lines = loadFixtureLines("trivial-text.jsonl");
-    const events = lines.flatMap(normalizeClaudeLine);
-    for (const ev of events) {
-      const parsed = EmittedEvent.safeParse(ev);
-      expect(parsed.success, parsed.success ? "" : JSON.stringify(parsed.error?.issues)).toBe(true);
-      expect(ev.summary.length).toBeLessThanOrEqual(200);
-    }
+    // checkFixture (T1.4, @uacc/adapter-testkit) loads the fixture, runs
+    // every line through the normalizer, and asserts schema-validity —
+    // the generic half of this check; provider-specific assertions follow.
+    const events = checkFixture(fixture("trivial-text.jsonl"), normalizeClaudeLine);
     // hook_started, hook_response, init -> 3 system events
     expect(events.filter((e) => e.type === "system" && e.summary.startsWith("claude: system/")).length).toBe(3);
     // the assistant text block "ok"
@@ -38,8 +28,7 @@ describe("normalizeClaudeLine — real captured stream-json (claude 2.1.263)", (
   });
 
   it("maps the tool-use fixture to tool_use + tool_result + assistant events", () => {
-    const lines = loadFixtureLines("tool-use.jsonl");
-    const events = lines.flatMap(normalizeClaudeLine);
+    const events = checkFixture(fixture("tool-use.jsonl"), normalizeClaudeLine);
 
     const toolUse = events.filter((e) => e.type === "tool_use");
     expect(toolUse).toHaveLength(1);
@@ -51,11 +40,9 @@ describe("normalizeClaudeLine — real captured stream-json (claude 2.1.263)", (
 
     const assistantText = events.filter((e) => e.type === "assistant");
     expect(assistantText.map((e) => e.summary)).toContain("done");
-
-    // the fixture also contains a raw "rate_limit_event" line — must map to
-    // a valid EventType (system), never pass its own name through.
-    const validTypes = new Set(["user", "assistant", "thinking", "tool_use", "tool_result", "gate", "error", "system"]);
-    for (const ev of events) expect(validTypes.has(ev.type)).toBe(true);
+    // The fixture also contains a raw "rate_limit_event" line — checkFixture
+    // already asserted every event's `type` is a valid EventType (via the
+    // NormalizedEvent schema), so it can't have passed that name through.
   });
 
   it("never drops an unrecognized top-level type silently (fail loud)", () => {

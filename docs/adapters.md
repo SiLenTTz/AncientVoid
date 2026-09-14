@@ -63,6 +63,46 @@ Die Suite prüft: Identität, Capabilities, Handle-Lebenszyklus,
 Event-Schema-Validität, Health, Stop, Recovery-Signatur. Grün = der Hub kann
 deinen Adapter laden — ohne dass der Hub dich kennt.
 
+> **Bekannte Lücke (BUG-0004):** `runContractTests()` kann aktuell keinen
+> Adapter prüfen, der `ctx.spawnWorker` aufruft — sein interner Kontext
+> wirft dort immer. Betrifft jeden echten (nicht-synthetischen) Adapter.
+> Workaround, bis das behoben ist: eigene Lifecycle-Tests direkt auf
+> `makeRecordingContext({ spawnWorker: ... })` — siehe
+> `packages/adapter-claude/test/adapter.test.ts` oder
+> `packages/adapter-codex/test/adapter.test.ts` als Vorlage.
+
+## Fixtures aufzeichnen (T1.4)
+
+Ein Adapter-Mapping wird gegen echte, aufgezeichnete CLI-Streams getestet,
+nicht gegen geratene Feldnamen — beide bisherigen Adapter (`claude`,
+`codex`) wurden so gebaut, und beide zeigten dabei Abweichungen von der
+ursprünglich angenommenen Event-Struktur.
+
+```bash
+node scripts/capture-adapter-fixture.mjs \
+  --out packages/adapter-<name>/test/fixtures/<fall>.jsonl \
+  -- <cli-kommando mit JSON-Streaming-Flag>
+```
+
+Das Skript (siehe Kopfkommentar für Details):
+
+1. führt das Kommando aus und fängt stdout ab,
+2. anonymisiert Home-Verzeichnis und Socket-Pfade,
+3. scannt das Ergebnis auf secret-ähnliche Strings und **verweigert das
+   Schreiben**, falls etwas auffällt (Fund muss von Hand geprüft werden),
+4. schreibt erst dann die Datei.
+
+Ein sauberer Scan heißt „nichts hat auf ein bekanntes Secret-Muster
+gepasst" — nicht „nichts Sensibles enthalten". Datei vor dem Commit lesen.
+
+In Tests: `checkFixture(path, normalizeFn)` aus `@uacc/adapter-testkit`
+lädt die Fixture, wendet den Normalizer auf jede Zeile an und prüft jedes
+Ergebnis-Event gegen den `NormalizedEvent`-Contract (Schema, Summary-Länge)
+— das ist der geteilte Teil dieses Musters. Die Mapping-Logik selbst bleibt
+pro Adapter in dessen eigener `normalize.ts` (T1.1: mit nur zwei echten
+Adaptern ist die tatsächliche Schnittmenge ~15 Zeilen generisches
+String-Handling, keine eigene Bibliothek wert).
+
 ## Laden: drei Wege
 
 1. **Lokale Datei/Ordner**: `"module": "./adapters/my-provider/adapter.ts"`

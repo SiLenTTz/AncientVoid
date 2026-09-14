@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { EmittedEvent, type Adapter, type AdapterContext, type SessionSpec } from "@uacc/contracts";
 
 /**
@@ -163,4 +164,56 @@ export function assertContractGreen(results: ContractTestResult[]): void {
       `contract tests failed:\n${failed.map((f) => `  ✗ ${f.name}: ${f.detail}`).join("\n")}`,
     );
   }
+}
+
+/**
+ * T1.4 fixture system — the generic half of the "load a captured
+ * stream-json fixture, normalize every line, check the result" pattern
+ * adapter-claude and adapter-codex each wrote by hand for T1.2/T1.3. The
+ * provider-specific mapping logic stays in each adapter's own
+ * normalize.ts (T1.1's conclusion: that part has no real second caller);
+ * loading a fixture file and validating what came out of it against the
+ * NormalizedEvent contract does, so it lives here.
+ *
+ * Record fixtures with `scripts/capture-adapter-fixture.mjs` (anonymizes
+ * + secret-scans before writing) — AGENTS.md: "Fixtures für echte
+ * CLI-Streams (P1): aufgezeichnet, anonymisiert, secret-gescannt — nie
+ * Roh-Logs committen."
+ */
+
+/** Reads a `.jsonl` fixture (one JSON value per non-blank line). */
+export function loadFixtureLines(path: string): unknown[] {
+  return readFileSync(path, "utf8")
+    .split("\n")
+    .filter((l) => l.trim().length > 0)
+    .map((l) => JSON.parse(l));
+}
+
+/**
+ * Asserts every event is schema-valid against the NormalizedEvent contract
+ * (the same check runContractTests() runs on a live adapter's output —
+ * the schema itself enforces the summary length cap, so this doesn't
+ * duplicate that check). Throws with the offending event on the first
+ * failure.
+ */
+export function assertFixtureEventsValid(events: readonly EmittedEvent[]): void {
+  for (const ev of events) {
+    const parsed = EmittedEvent.safeParse(ev);
+    if (!parsed.success) {
+      throw new Error(
+        `invalid event from fixture: ${parsed.error.issues[0]?.message} — ${JSON.stringify(ev).slice(0, 300)}`,
+      );
+    }
+  }
+}
+
+/**
+ * Loads a fixture and runs it through an adapter's normalize function,
+ * asserting every resulting event is schema-valid. Returns the events so
+ * callers can layer their own provider-specific assertions on top.
+ */
+export function checkFixture(path: string, normalize: (line: unknown) => EmittedEvent[]): EmittedEvent[] {
+  const events = loadFixtureLines(path).flatMap(normalize);
+  assertFixtureEventsValid(events);
+  return events;
 }
