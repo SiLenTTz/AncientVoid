@@ -12,6 +12,7 @@
     "packages/workers/src",
     "packages/adapter-dummy/src",
     "packages/adapter-claude/src",
+    "packages/adapter-codex/src",
     "packages/adapter-testkit/src",
     "packages/server/src",
     "packages/hubctl/src",
