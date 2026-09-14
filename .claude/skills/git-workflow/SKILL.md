@@ -28,6 +28,27 @@ ausführbare Form; `CONTRIBUTING.md` bleibt die Regelquelle.
 - ❌ Never force-push, never rewrite published history, never commit auf `main`.
 - ❌ Never `--no-verify`.
 
+## Kadenz — wann commit, wann push, wann MR (deterministisch)
+
+Diese Momente sind fest, keine Ermessenssache:
+
+| Ereignis | Aktion |
+|---|---|
+| Task/Aufgabe (`T<n>.<m>`) einer Epic abgeschlossen | commit (lokal, auf dem laufenden `feat/`-Branch) |
+| Bugfix abgeschlossen (`bugfix`-Skill, Finalize) | commit **+ push + MR** (`glab mr create`) |
+| Epic abgeschlossen (alle AC grün, `retro` gelaufen) | commit **+ push + MR** für den Epic-/Feature-Branch nach `main` |
+
+Solo-Projekt, kein zweiter Reviewer: Self-Merge der eigenen MR ist zulässig.
+Der "Nicht self-merge"-Grundsatz aus [`pr-review`](../pr-review/SKILL.md)
+gilt der fachlichen Prüfung (MR-Beschreibung nennt Repro/Root-cause/
+Testplan, Gates sind grün) — nicht einem erzwungenen zweiten Menschen. Die
+MR bleibt trotzdem Pflicht: sie ist der Log-Eintrag der Historie, nicht die
+Freigabe.
+
+**Ausnahme:** Die ersten Commits (Kaltstart, initiale Tooling-Übernahme aus
+custom-rag) gingen einmalig direkt auf `main`, bevor diese Kadenz-Regel
+existierte. Ab hier gilt sie ausnahmslos — auch für kleine Fixes.
+
 ## Phasen/Prozess
 
 ### 1. Branch (nur auf Anweisung)
@@ -65,7 +86,8 @@ Subject ≤ ~72 Zeichen, Imperativ, Scope = Package/Bereich. Keine Secrets.
 glab mr create --title "feat(adapter-local-llm): stream parsing" --description-file mr-desc.md
 ```
 
-Body: Warum, Testplan, Link Issue. Nicht self-merge.
+Body: Warum, Testplan, Link Issue. Self-Merge zulässig (Solo-Projekt, siehe
+Kadenz oben) — die MR bleibt trotzdem Pflicht als Log-Eintrag.
 
 ### 5. Post-Merge Cleanup (Pflicht nach jedem Merge)
 
