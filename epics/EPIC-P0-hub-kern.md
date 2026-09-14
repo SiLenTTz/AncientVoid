@@ -163,9 +163,9 @@ AC-P0-5: 🟢 erfüllt (nachgezogen — siehe AI-P0-3)
    `ws.ts:14-107` haben Gap-Detection/Resync von Anfang an, mit Test.
 2. *tmux-Verfügbarkeit auf Zielsystemen* → **teilweise eingetreten, aber
    anders als erwartet:** nicht auf einem Zielsystem, sondern auf dem
-   GitLab-CI-Runner selbst fehlt tmux — `tmux.test.ts` läuft dort komplett
-   geskippt (`itTmux = hasTmux ? it : it.skip`). P0s tmux-Pfad ist in CI
-   faktisch ungetestet.
+   GitLab-CI-Runner selbst fehlte tmux — `tmux.test.ts` lief dort komplett
+   geskippt (`itTmux = hasTmux ? it : it.skip`). Behoben via AI-P0-6
+   (tmux jetzt im CI-Image installiert).
 3. *fsync-Policy falsch* → **eingetreten, aber unbemerkt bis jetzt:** die
    Batch-fsync-Policy (T0.3) hatte eine echte Race (BUG-0003) — der
    Debounce-Timer lief außerhalb der Append-Serialisierung und konnte
@@ -239,10 +239,10 @@ AI-P0-5: ✅ erledigt — makeContext().emit() ruft bei Append-Fehlern jetzt
          trotzdem persistiert) Fehlschläge. sessionmanager.ts +
          sessionmanager.test.ts.
 
-AI-P0-6: tmux.test.ts läuft in CI komplett geskippt (kein tmux auf dem
-         Runner) — entweder tmux im CI-Image installieren oder bewusst als
-         "nur lokal getestet" dokumentieren, statt stillschweigend 4 Tests
-         zu überspringen — zurück als: ADR oder .gitlab-ci.yml-Anpassung
+AI-P0-6: ✅ erledigt — .gitlab-ci.yml installiert jetzt tmux
+         (`apt-get install tmux`) vor `npm ci`. Lücke geschlossen statt nur
+         dokumentiert: der Default-WorkerRunner (ADR-P0-3) läuft jetzt
+         tatsächlich in CI, nicht nur lokal.
 ```
 
 P1 ist durch diese Retro **nicht blockiert** — AI-P0-1, -3, -5, -6 sind
