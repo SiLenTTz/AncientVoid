@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { hubApi, type AdapterInfo, type SessionRecord } from "./api.ts";
+import { Dashboard } from "./Dashboard.tsx";
 
 export function App({
   onOpen,
@@ -57,36 +58,12 @@ export function App({
 
       {sessions === null ? (
         <div class="empty">lade…</div>
-      ) : sessions.length === 0 ? (
-        <div class="empty">keine Sessions — lege eine an</div>
       ) : (
-        sessions.map((s) => <SessionCard key={s.id} session={s} onOpen={onOpen} />)
+        <Dashboard sessions={sessions} onOpen={onOpen} />
       )}
 
       <div class="bottom-actions" />
     </div>
-  );
-}
-
-function statusClass(status: string): string {
-  return `pill ${status}`;
-}
-
-function SessionCard({ session, onOpen }: { session: SessionRecord; onOpen: (s: SessionRecord) => void }) {
-  const shortProject = session.project.split("/").pop() ?? session.project;
-  return (
-    <button class="card session-card btn" onClick={() => onOpen(session)}>
-      <div class="row">
-        <strong>{shortProject}</strong>
-        <span class={statusClass(session.status)}>{session.status}</span>
-      </div>
-      <div class="row dim">
-        <span>
-          {session.adapter} · {session.model ?? "n/a"}
-        </span>
-        <span>#{session.lastSeq}</span>
-      </div>
-    </button>
   );
 }
 

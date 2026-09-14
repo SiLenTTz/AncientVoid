@@ -46,6 +46,13 @@ export const SessionRecord = z.object({
   adapterVersion: z.string().min(1),
   /** Last known event seq — used for K7 state restore. */
   lastSeq: z.number().int().nonnegative().default(0),
+  /** Sum of every event's costUsd so far (ADR-0003). 0 for adapters that
+   * never report a native cost (e.g. codex, T1.3) — "0" here means
+   * "nothing billed via this field," not "confirmed free." */
+  costUsd: z.number().nonnegative().default(0),
+  /** ISO-8601 timestamp of the last persisted change to this session
+   * (status change or event) — T1.5's "zuletzt aktiv" sort key. */
+  updatedAt: z.string().min(1),
 });
 export type SessionRecord = z.infer<typeof SessionRecord>;
 

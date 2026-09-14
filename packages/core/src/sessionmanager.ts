@@ -47,6 +47,8 @@ interface SessionRow {
   budget_usd: number | null;
   adapter_version: string;
   last_seq: number;
+  cost_usd: number;
+  updated_at: string;
 }
 
 function rowToRecord(row: SessionRow): SessionRecord {
@@ -61,6 +63,8 @@ function rowToRecord(row: SessionRow): SessionRecord {
     budgetUsd: row.budget_usd,
     adapterVersion: row.adapter_version,
     lastSeq: row.last_seq,
+    costUsd: row.cost_usd,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -134,6 +138,8 @@ export class SessionManager {
       budgetUsd: parsed.budgetUsd ?? null,
       adapterVersion: registered.adapter.version,
       lastSeq: 0,
+      costUsd: 0,
+      updatedAt: now,
     };
     await this.store.initSession(record.id);
     this.persist(record);
@@ -366,7 +372,13 @@ export class SessionManager {
       payload: e.payload ?? {},
       blobRef: e.blobRef ?? null,
       ...(e.tokensEst !== undefined ? { tokensEst: e.tokensEst } : {}),
+      ...(e.costUsd !== undefined ? { costUsd: e.costUsd } : {}),
     }));
+    // ADR-0003: costUsd is per-event, not cumulative — the hub sums it.
+    for (const e of events) {
+      if (e.costUsd !== undefined) session.record.costUsd += e.costUsd;
+    }
+    session.record.updatedAt = new Date().toISOString();
     const enforced = await this.store.append(session.record.id, events);
     this.persist(session.record);
     for (const sub of session.subscribers) {
@@ -403,6 +415,7 @@ export class SessionManager {
       );
     }
     session.record.status = status;
+    session.record.updatedAt = new Date().toISOString();
     this.persist(session.record);
     await this.store.saveSnapshot(session.record.id, this.snapshotOf(session));
   }
@@ -410,15 +423,17 @@ export class SessionManager {
   private persist(record: SessionRecord): void {
     this.db
       .prepare(
-        `INSERT INTO sessions (id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO sessions (id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq, cost_usd, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            status = excluded.status,
            model = excluded.model,
            worktree_sha = excluded.worktree_sha,
            budget_usd = excluded.budget_usd,
            adapter_version = excluded.adapter_version,
-           last_seq = excluded.last_seq`,
+           last_seq = excluded.last_seq,
+           cost_usd = excluded.cost_usd,
+           updated_at = excluded.updated_at`,
       )
       .run(
         record.id,
@@ -431,6 +446,8 @@ export class SessionManager {
         record.budgetUsd,
         record.adapterVersion,
         record.lastSeq,
+        record.costUsd,
+        record.updatedAt,
       );
   }
 }

@@ -24,7 +24,8 @@ describe("normalizeClaudeLine — real captured stream-json (claude 2.1.263)", (
       (e) => e.type === "system" && (e.payload as { kind?: string }).kind === "claude.result",
     );
     expect(resultEvents).toHaveLength(1);
-    expect((resultEvents[0]!.payload as { totalCostUsd?: number }).totalCostUsd).toBeCloseTo(0.0454606, 6);
+    // ADR-0003: cost is a first-class event field, not buried in payload.
+    expect(resultEvents[0]!.costUsd).toBeCloseTo(0.0454606, 6);
   });
 
   it("maps the tool-use fixture to tool_use + tool_result + assistant events", () => {

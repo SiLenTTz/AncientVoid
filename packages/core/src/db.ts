@@ -47,6 +47,16 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 2,
+    name: "sessions-cost-and-activity",
+    sql: `
+      ALTER TABLE sessions ADD COLUMN cost_usd REAL NOT NULL DEFAULT 0;
+      ALTER TABLE sessions ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';
+      UPDATE sessions SET updated_at = created_at WHERE updated_at = '';
+      CREATE INDEX IF NOT EXISTS idx_sessions_updated_at ON sessions(updated_at);
+    `,
+  },
 ];
 
 export class HubDatabase {
