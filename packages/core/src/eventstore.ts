@@ -111,13 +111,23 @@ export class EventStore {
     return enforced;
   }
 
-  private appendLines(sessionId: string, lines: string[]): Promise<void> {
+  /**
+   * Runs `work` after everything already queued for this session — the one
+   * lock appends, the debounce flush and explicit flush() all share, so a
+   * flush can never close the FileHandle out from under a write that's
+   * still in flight or already queued behind it (BUG-0003: an unserialized
+   * flush closing the handle mid-write silently dropped the in-flight
+   * event's `seq` forever — the K7 stream came back with a permanent gap).
+   */
+  private chain(sessionId: string, work: () => Promise<void>): Promise<void> {
     const prev = this.appendChain.get(sessionId) ?? Promise.resolve();
-    const next = prev
-      .catch(() => undefined)
-      .then(() => this.appendLinesLocked(sessionId, lines));
+    const next = prev.catch(() => undefined).then(work);
     this.appendChain.set(sessionId, next);
     return next;
+  }
+
+  private appendLines(sessionId: string, lines: string[]): Promise<void> {
+    return this.chain(sessionId, () => this.appendLinesLocked(sessionId, lines));
   }
 
   private async appendLinesLocked(sessionId: string, lines: string[]): Promise<void> {
@@ -132,25 +142,35 @@ export class EventStore {
     entry.count += lines.length;
 
     if (!entry.timer) {
-      entry.timer = setTimeout(() => void this.flush(sessionId), FSYNC_INTERVAL_MS);
+      // Chained, not a bare `flush()` call: this fires on a real-time
+      // timer, independent of the append serialization, so without
+      // chaining it could interleave between two appends and close the
+      // handle a concurrent write was about to use.
+      entry.timer = setTimeout(() => void this.chain(sessionId, () => this.flushOne(sessionId)), FSYNC_INTERVAL_MS);
       entry.timer.unref();
     }
+    // Already inside the chain here — call flushOne directly. Routing
+    // through flush()/chain() again would await a promise that depends on
+    // this very call, deadlocking.
     if (entry.count >= FSYNC_MAX_EVENTS) {
-      await this.flush(sessionId);
+      await this.flushOne(sessionId);
     }
   }
 
-  /** Force fsync of pending writes for one session (or all). */
+  private async flushOne(sessionId: string): Promise<void> {
+    const entry = this.pending.get(sessionId);
+    if (!entry) return;
+    if (entry.timer) clearTimeout(entry.timer);
+    await entry.handle.sync().catch(() => undefined);
+    await entry.handle.close().catch(() => undefined);
+    this.pending.delete(sessionId);
+  }
+
+  /** Force fsync of pending writes for one session (or all). Serialized
+   * behind that session's appendChain — see chain(). */
   async flush(sessionId?: string): Promise<void> {
     const ids = sessionId ? [sessionId] : [...this.pending.keys()];
-    for (const id of ids) {
-      const entry = this.pending.get(id);
-      if (!entry) continue;
-      if (entry.timer) clearTimeout(entry.timer);
-      await entry.handle.sync().catch(() => undefined);
-      await entry.handle.close().catch(() => undefined);
-      this.pending.delete(id);
-    }
+    await Promise.all(ids.map((id) => this.chain(id, () => this.flushOne(id))));
   }
 
   /** Full replay of a session stream (K7 restore). Skips torn/invalid lines. */
