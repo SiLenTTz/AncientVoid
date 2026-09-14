@@ -18,6 +18,21 @@ function makeManager(dir: string, dummyConfig?: Record<string, unknown>, dbFile?
   return { manager, store, db };
 }
 
+/**
+ * Poll instead of a fixed sleep: the dummy adapter's setInterval firing is
+ * wall-clock-real, and under parallel-test CPU load its actual cadence can
+ * fall well behind the nominal `1000 / eventsPerSecond` rate. A fixed sleep
+ * races that drift; polling with a generous ceiling doesn't.
+ */
+async function waitFor(check: () => Promise<boolean>, timeoutMs = 5000, stepMs = 20): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await check()) return;
+    await new Promise((r) => setTimeout(r, stepMs));
+  }
+  if (!(await check())) throw new Error(`waitFor: condition not met within ${timeoutMs}ms`);
+}
+
 describe("SessionManager", () => {
   let dir: string;
 
@@ -33,7 +48,10 @@ describe("SessionManager", () => {
     const record = await manager.create({ adapter: "dummy", project: dir });
     expect(record.id).toBeTruthy();
     expect(record.status).toBe("working");
-    await new Promise((r) => setTimeout(r, 600));
+    await waitFor(async () => {
+      const events = await manager.tail(record.id, 0);
+      return events.filter((e) => e.type !== "system").length >= 5;
+    });
     const events = await manager.tail(record.id, 0);
     const kinds = events.map((e) => (e.payload as { kind?: string }).kind);
     expect(kinds).toContain("session.created");
