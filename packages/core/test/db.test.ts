@@ -23,6 +23,14 @@ describe("HubDatabase", () => {
     }
     db.close();
   });
+
+  it("migration 2 adds cost_usd and updated_at to sessions (T1.5)", () => {
+    const db = new HubDatabase(":memory:");
+    const columns = (db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[]).map((c) => c.name);
+    expect(columns).toContain("cost_usd");
+    expect(columns).toContain("updated_at");
+    db.close();
+  });
 });
 
 describe("TokenService", () => {

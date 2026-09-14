@@ -34,6 +34,18 @@ export function authHook(opts: AuthOptions) {
   return async (req: FastifyRequest, reply: FastifyReply) => {
     // health stays open for tailnet monitoring
     if (req.url === "/api/health") return;
+    // BUG-0006: everything, including the static PWA shell (index.html,
+    // its JS/CSS bundle, manifest, service worker), used to require a
+    // device token — but a real browser only carries a URL's ?token= on
+    // the document request, never on the <script>/<link> requests that
+    // request triggers. A brand-new device could reach TokenGate's own
+    // markup at most once (the HTML, via ?token=) and then 401 on the
+    // bundle that renders it. The actual protected surface is the API,
+    // not the app shell — a SPA's static files are public the same way
+    // any other app's install artifact is; auth happens at the data
+    // calls. Exempt everything outside /api/ instead of the app shell
+    // needing a token it has no way to keep carrying.
+    if (!req.url.startsWith("/api/")) return;
     const res = checkAuth(req, opts);
     if (!res.ok) {
       await reply.code(res.status).send({ error: res.reason });

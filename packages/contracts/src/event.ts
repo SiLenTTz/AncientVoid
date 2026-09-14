@@ -43,6 +43,14 @@ export const NormalizedEvent = z.object({
   blobRef: z.string().nullable().default(null),
   /** Optional token estimate for context accounting. */
   tokensEst: z.number().int().nonnegative().optional(),
+  /**
+   * Optional real cost of THIS event/turn in USD, provider-neutral
+   * (ADR-0003). Not cumulative — the hub sums it into
+   * SessionRecord.costUsd. Adapters without a native cost figure (e.g.
+   * codex, T1.3) leave it undefined; claiming a guessed value here would
+   * be the "capabilities() promises more than it holds" anti-pattern.
+   */
+  costUsd: z.number().nonnegative().optional(),
 });
 export type NormalizedEvent = z.infer<typeof NormalizedEvent>;
 

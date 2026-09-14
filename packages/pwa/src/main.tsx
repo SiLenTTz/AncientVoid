@@ -15,7 +15,10 @@ function TokenGate({ onReady }: { onReady: () => void }) {
     setError("");
     try {
       setToken(token.trim());
-      await hubApi.health();
+      // BUG-0006 (part 2): health() needs no token, so this used to
+      // "verify" an empty or wrong token as valid — the actual API calls
+      // would then 401 on the very next screen. adapters() is protected.
+      await hubApi.adapters();
       onReady();
     } catch (err) {
       setError(err instanceof Error ? err.message : "connection failed");
@@ -54,9 +57,13 @@ function Main() {
   });
 
   useEffect(() => {
-    if (ready) return;
+    // BUG-0006 (part 2): /api/health is deliberately open (tailnet
+    // monitoring) — using it here to decide "ready" meant this always
+    // succeeded regardless of whether a valid token existed, so
+    // TokenGate could never actually appear for a device without one.
+    // adapters() is a real, token-protected endpoint.
     hubApi
-      .health()
+      .adapters()
       .then(() => setReady(true))
       .catch(() => setReady(false));
   }, []);

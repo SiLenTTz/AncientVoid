@@ -113,9 +113,11 @@ function normalizeResult(line: Record<string, unknown>): EmittedEvent {
       isError,
       numTurns: line.num_turns,
       durationMs: line.duration_ms,
-      totalCostUsd: costUsd,
       result: typeof line.result === "string" ? line.result.slice(0, 500) : undefined,
     },
+    // ADR-0003: costUsd is a first-class, provider-neutral contract field
+    // now — no longer duplicated into payload.totalCostUsd.
+    ...(costUsd !== undefined ? { costUsd } : {}),
   };
 }
 

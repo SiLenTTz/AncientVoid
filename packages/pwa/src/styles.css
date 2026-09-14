@@ -282,6 +282,40 @@ a {
   padding: 40px 0;
 }
 
+/* T1.5 Monitor-Dashboard */
+.dashboard-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 2px 4px;
+  font-size: 12px;
+}
+
+.project-tile {
+  margin: 14px 0;
+}
+
+.project-tile-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 2px 4px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badge.waiting {
+  background: color-mix(in srgb, var(--warn) 22%, transparent);
+  color: var(--warn);
+}
+
 /* thumb zone: primary actions pinned to the bottom */
 .bottom-actions {
   position: fixed;

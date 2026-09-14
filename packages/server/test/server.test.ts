@@ -50,6 +50,23 @@ describe("hub server", () => {
     expect(res.statusCode).toBe(401);
   });
 
+  it("BUG-0006: does not gate non-/api/ paths behind a token", async () => {
+    // The PWA shell (index.html, its JS/CSS bundle, manifest, sw.js) must
+    // be reachable without a token — a real browser never carries a
+    // URL's ?token= onto the <script>/<link> requests the document
+    // triggers, so gating the shell itself made TokenGate unreachable on
+    // a fresh device. No pwaDir is configured in this test app, so the
+    // request 404s past Fastify's default handler — the point here is
+    // that it's NOT 401, proving the auth hook let it through.
+    const res = await app.inject({ method: "GET", url: "/" });
+    expect(res.statusCode).not.toBe(401);
+  });
+
+  it("still gates every /api/ path, including ones added after auth.ts's exemption list", async () => {
+    const res = await app.inject({ method: "GET", url: "/api/sessions/does-not-exist/events" });
+    expect(res.statusCode).toBe(401);
+  });
+
   it("rejects invalid tokens (401)", async () => {
     const res = await app.inject({
       method: "GET",

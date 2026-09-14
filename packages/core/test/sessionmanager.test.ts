@@ -236,4 +236,45 @@ describe("SessionManager", () => {
       await secondManager?.shutdown();
     }
   });
+
+  it("T1.5/ADR-0003: accumulates costUsd across events and bumps updatedAt on activity", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    // Minimal inline adapter — the dummy adapter has no costUsd capability,
+    // and this needs a controlled costUsd-bearing EmittedEvent per turn.
+    registry.register("cost-test", () => ({
+      id: "cost-test",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true }),
+      async start(_spec, ctx) {
+        ctx.emit({ type: "system", summary: "turn 1", payload: {}, costUsd: 0.01 });
+        return { sessionId: ctx.sessionId };
+      },
+      async steer(handle, input, ctx) {
+        if (input.kind === "prompt") ctx.emit({ type: "system", summary: "turn 2", payload: {}, costUsd: 0.02 });
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" as const };
+      },
+      async stop() {},
+    }));
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "cost-test", project: dir });
+      await waitFor(async () => (await manager.tail(record.id, 0)).some((e) => e.costUsd === 0.01));
+      const createdAt = manager.get(record.id)!.updatedAt;
+
+      await new Promise((r) => setTimeout(r, 5)); // ensure a distinguishable later timestamp
+      await manager.steer(record.id, { kind: "prompt", text: "go" });
+      await waitFor(async () => (await manager.tail(record.id, 0)).some((e) => e.costUsd === 0.02));
+
+      const after = manager.get(record.id)!;
+      expect(after.costUsd).toBeCloseTo(0.03, 6); // 0.01 + 0.02, summed not overwritten
+      expect(after.updatedAt >= createdAt).toBe(true); // ISO-8601 sorts lexicographically
+    } finally {
+      await manager.shutdown();
+    }
+  });
 });
