@@ -6,10 +6,19 @@
  *   hubctl tail <sessionId> -f
  *   hubctl token issue "pixel-9"          (issues against local hub DB file)
  */
+import { pathToFileURL } from "node:url";
 import type { NormalizedEvent } from "@uacc/contracts";
 
 const BASE = process.env.UACC_URL ?? "http://127.0.0.1:7373";
 const TOKEN = process.env.UACC_TOKEN ?? "";
+
+/** Exported for unit testing — building this by hand (vs. the URL API) is
+ * exactly how BUG-0005 (ws:://host, an invalid URL) slipped in unnoticed. */
+export function buildWsUrl(base: string, token: string, sessionId: string): string {
+  const proto = base.startsWith("https") ? "wss" : "ws";
+  const url = `${proto}:${base.replace(/^https?:/, "")}/api/events/${sessionId}/tail${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  return url;
+}
 
 function usage(): never {
   console.log(`hubctl — UACC reference client
@@ -62,9 +71,7 @@ function printSession(s: SessionRow): void {
 }
 
 async function* followWs(sessionId: string): AsyncGenerator<NormalizedEvent> {
-  const proto = BASE.startsWith("https") ? "wss" : "ws";
-  const url = `${proto}:${BASE.replace(/^https?/, "")}/api/events/${sessionId}/tail${TOKEN ? `?token=${encodeURIComponent(TOKEN)}` : ""}`;
-  const socket = new WebSocket(url);
+  const socket = new WebSocket(buildWsUrl(BASE, TOKEN, sessionId));
   const queue: NormalizedEvent[] = [];
   let wake: (() => void) | null = null;
   socket.onmessage = (msg: MessageEvent) => {
@@ -181,7 +188,15 @@ function printEvent(e: NormalizedEvent): void {
   console.log(`${time} #${String(e.seq).padEnd(4)} ${e.type.padEnd(11)} ${e.summary.slice(0, 90)}${blob}`);
 }
 
-main().catch((err) => {
-  console.error("hubctl:", err instanceof Error ? err.message : err);
-  process.exit(1);
-});
+// Only run when executed directly (`node cli.ts ...` / the `hubctl` bin) —
+// not when imported as a module (e.g. cli.test.ts importing buildWsUrl).
+// Found while adding that very test: without this guard, importing this
+// file for its exports ran the full CLI as a side effect and called
+// process.exit(1) via usage(), polluting the test run.
+const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
+  main().catch((err) => {
+    console.error("hubctl:", err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}
