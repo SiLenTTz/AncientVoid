@@ -79,7 +79,7 @@ Regel: `payload` darf niemals > 4 KB sein — Überschuss geht in Blob + `blob_r
 - [x] **T0.8** Tailscale-serve-Skript — `scripts/setup-tailscale-serve.sh` vorhanden; **Erreichbarkeit selbst nicht verifiziert** (siehe AC-P0-3 in der Retro)
 - [x] **T0.9** PWA-Gerüst — `packages/pwa/` (Manifest, `public/sw.js` mit `X-UACC-Cached-At`, dark-first `styles.css`); gebaut (`dist/` vorhanden), **nicht** im echten Browser gegen Offline getestet (siehe AC-P0-4)
 - [x] **T0.10** WS-Delta-Protokoll — `packages/contracts/src/wire.ts` (Seq, `dropped`-Flag), `packages/server/src/ws.ts:14-107` (Gap-Detection, `resync`); Test: `server.test.ts > WS resync: client-requested replay from store fills gaps`
-- [x] **T0.11** `hubctl`-CLI — `packages/hubctl/src/cli.ts` (`sessions`, `tail -f`, `token issue`); **End-zu-Ende-Latenz nicht gemessen** (siehe AC-P0-5)
+- [x] **T0.11** `hubctl`-CLI — `packages/hubctl/src/cli.ts` (`sessions`, `tail -f`, `token issue`); End-zu-Ende-Latenz gemessen, siehe AC-P0-5 (dabei BUG-0005 gefunden: `tail -f` konnte vorher gar nicht per WS verbinden — behoben, jetzt mit Tests, die hubctl vorher komplett fehlten)
 - [x] **T0.12** Lasttest-Harness — `scripts/loadtest.mjs` (20 Sessions × 30 ev/s, seq-Gap-Check); README nennt „605 ev/s aggregiert" als letzten Lauf, aber ohne Prüfstand/Datum/Commit dokumentiert — verstößt gegen die eigene `messlauf`-Regel (Action Item unten)
 
 ## 6. Acceptance Criteria (messbar)
@@ -146,16 +146,16 @@ AC-P0-4 (K10): 🟡 teilweise
   Bemerkung: Kein Browser-Test durchgeführt (WLAN aus, Badge sichtbar, kein
   White-Screen) — reine Code-Lektüre, keine Laufzeit-Evidenz.
 
-AC-P0-5: 🔴 offen
-  Beleg: packages/hubctl/src/cli.ts implementiert `tail -f`, aber keine
-  Messung existiert.
-  Bemerkung: Keine < 500 ms Ende-zu-Ende-Latenz je gemessen oder
-  dokumentiert — verstößt gegen die eigene `messlauf`-Regel (keine Zahl
-  ohne Prüfstand/Datum/Werkzeug), weil hier noch nicht mal eine Zahl
-  existiert.
+AC-P0-5: 🟢 erfüllt (nachgezogen — siehe AI-P0-3)
+  Beleg: docs/messlauf/2026-09-15-hubctl-tail-latency.md — echter
+  HTTP/WS-Server + echte hubctl-CLI als Subprozess, 3 Wiederholungen,
+  max. 1.0 ms (Loopback), weit unter der 500-ms-Grenze.
+  Bemerkung: nur Loopback gemessen, keine Aussage über echte
+  Tailscale-WAN-Latenz (siehe AI-P0-2). Nebenfund beim Messen: BUG-0005
+  (hubctl tail -f konnte vorher gar keine WS-Verbindung aufbauen).
 ```
 
-**AK-Zusammenfassung:** 2 🟢 / 2 🟡 / 1 🔴 / 0 ⚪ (Stand nach AI-P0-1; ursprünglich 1/3/1/0)
+**AK-Zusammenfassung:** 3 🟢 / 2 🟡 / 0 🔴 / 0 ⚪ (Stand nach AI-P0-1/-3/-5; ursprünglich 1/3/1/0)
 
 ### Premortem-Abgleich
 
@@ -222,9 +222,10 @@ AI-P0-2: Tailscale-Erreichbarkeit (AC-P0-3) und PWA-Offline-Verhalten
          ist — zurück als: offene Aufgabe, kein Blocker für P1 (P1 hängt
          nicht an diesen beiden ACs)
 
-AI-P0-3: hubctl-tail-Latenz messen und nach messlauf-Regel ablegen
-         (docs/messlauf/) — zurück als: kleine Aufgabe, parallel zu P1
-         erledigbar
+AI-P0-3: ✅ erledigt — docs/messlauf/2026-09-15-hubctl-tail-latency.md,
+         max. 1.0ms über 3 Läufe (Loopback). Dabei BUG-0005 gefunden und
+         behoben (hubctl tail -f war komplett kaputt, keine Tests hatten
+         das je bemerkt). scripts/messlauf-hubctl-latency.mjs.
 
 AI-P0-4: README-Zahl "605 ev/s aggregiert" entweder mit Prüfstand/Datum/
          Commit belegen oder aus der README entfernen, bis ein sauberer

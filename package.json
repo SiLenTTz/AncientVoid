@@ -19,6 +19,7 @@
     "typecheck": "tsc -p . --noEmit",
     "dev:server": "node --watch packages/server/src/main.ts",
     "loadtest": "node scripts/loadtest.mjs",
+    "messlauf:hubctl-latency": "node scripts/messlauf-hubctl-latency.mjs",
     "hubctl": "node packages/hubctl/src/cli.ts"
   },
   "devDependencies": {
