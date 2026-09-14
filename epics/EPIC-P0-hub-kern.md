@@ -195,9 +195,9 @@ AC-P0-5: 🔴 offen
 3. **"Fail loud" (AGENTS.md Regel 6) wurde für Append-Fehler nicht
    eingehalten** — ein fehlgeschlagener `store.append()` erzeugte bis
    `958d251` nur ein `console.error`, keine sichtbare Statusänderung.
-   Indirekt gefixt (die Race ist weg), aber das Prinzip "sichtbar statt
-   still" für den *nächsten* möglichen Append-Fehler ist noch nicht
-   strukturell erzwungen.
+   Die konkrete Race ist weg (BUG-0003); das Prinzip selbst ist seit
+   AI-P0-5 strukturell erzwungen: `handleEmitFailure()` persistiert einen
+   echten Statuswechsel und versucht ein sichtbares `error`-Event.
 4. **Drei der fünf ACs sind Laufzeit-/Netzwerk-Eigenschaften, die aus einer
    reinen Coding-Session heraus nicht verifizierbar sind** (Tailscale-
    Erreichbarkeit, Browser-Offline-Verhalten, Ende-zu-Ende-Latenz). Das ist
@@ -230,11 +230,13 @@ AI-P0-4: README-Zahl "605 ev/s aggregiert" entweder mit Prüfstand/Datum/
          Commit belegen oder aus der README entfernen, bis ein sauberer
          messlauf-Eintrag existiert — zurück als: docs-only Task
 
-AI-P0-5: EventStore-Append-Fehler strukturell sichtbar machen (echtes
-         error-Event statt console.error + stiller Statuswechsel) — war
-         schon in BUG-0003 als Folgearbeit vermerkt, hier bestätigt —
-         zurück als: nächste Aufgabe, packages/core/src/sessionmanager.ts
-         makeContext().emit
+AI-P0-5: ✅ erledigt — makeContext().emit() ruft bei Append-Fehlern jetzt
+         handleEmitFailure(): echter setStatus("error") (validierte
+         Transition, persistiert, Snapshot) statt roher Feld-Mutation, plus
+         Best-Effort-Folge-Event vom Typ "error" im Stream. Getestet für
+         transiente (Event erscheint) und permanente (kein Crash, Status
+         trotzdem persistiert) Fehlschläge. sessionmanager.ts +
+         sessionmanager.test.ts.
 
 AI-P0-6: tmux.test.ts läuft in CI komplett geskippt (kein tmux auf dem
          Runner) — entweder tmux im CI-Image installieren oder bewusst als

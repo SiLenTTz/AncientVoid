@@ -298,14 +298,7 @@ export class SessionManager {
         else console.log(line, extra ?? "");
       },
       emit: (event: EmittedEvent) => {
-        void this.emitEvents(session, [event]).catch((err) => {
-          // Late emission after shutdown/cleanup must never crash the daemon.
-          session.record.status = "error";
-          console.error(
-            `[session:${session.record.id}] event append failed:`,
-            err instanceof Error ? err.message : err,
-          );
-        });
+        void this.emitEvents(session, [event]).catch((err) => this.handleEmitFailure(session, event, err));
       },
       blob: async (data: string | Uint8Array): Promise<BlobRef> => {
         return this.store.writeBlob(session.record.id, data);
@@ -321,6 +314,46 @@ export class SessionManager {
         });
       },
     };
+  }
+
+  /**
+   * AI-P0-5 / BUG-0003 follow-up: a failed store.append() used to be a bare
+   * console.error plus a raw `session.record.status = "error"` mutation —
+   * never persisted, never visible in the event stream, and the seq that
+   * emitEvents() had already assigned was gone for good either way. That's
+   * exactly the silent drop AGENTS.md rule 6 ("Fail loud") exists to rule
+   * out. This makes the failure visible on both channels a subscriber or
+   * API client can actually observe:
+   *   - status: a real setStatus() call (validated transition, persisted
+   *     to SQLite, snapshot saved) instead of an in-memory-only mutation.
+   *   - stream: a best-effort follow-up "error" event. Most append
+   *     failures are one-off (e.g. a transient EventStore race), so a
+   *     second attempt usually lands; if it doesn't, that failure is
+   *     logged too and swallowed rather than looping.
+   */
+  private async handleEmitFailure(session: LiveSession, failedEvent: EmittedEvent, err: unknown): Promise<void> {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[session:${session.record.id}] event append failed:`, message);
+
+    try {
+      await this.setStatus(session, "error");
+    } catch (statusErr) {
+      // Late emission after shutdown/cleanup (session already "stopped",
+      // no transition to "error" allowed) must never crash the daemon.
+      console.error(`[session:${session.record.id}] could not persist error status:`, statusErr);
+    }
+
+    try {
+      await this.emitEvents(session, [
+        {
+          type: "error",
+          summary: `event append failed: ${message.slice(0, 150)}`,
+          payload: { originalType: failedEvent.type, reason: message },
+        },
+      ]);
+    } catch (retryErr) {
+      console.error(`[session:${session.record.id}] could not surface append failure as an event either:`, retryErr);
+    }
   }
 
   private async emitEvents(session: LiveSession, emitted: EmittedEvent[]): Promise<void> {

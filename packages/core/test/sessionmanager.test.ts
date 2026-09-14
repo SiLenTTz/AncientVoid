@@ -110,6 +110,54 @@ describe("SessionManager", () => {
     }
   });
 
+  it("AI-P0-5: a transient append failure sets status error AND surfaces a visible error event", async () => {
+    const { manager, store } = makeManager(dir, { eventsPerSecond: 20, autoStopAfterEvents: 2 });
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      // Fail exactly the NEXT append (the dummy's first generated event),
+      // then behave normally — simulates a one-off I/O hiccup rather than
+      // a permanently broken store.
+      const realAppend = store.append.bind(store);
+      let failedOnce = false;
+      store.append = (sessionId, events) => {
+        if (!failedOnce) {
+          failedOnce = true;
+          return Promise.reject(new Error("simulated transient append failure"));
+        }
+        return realAppend(sessionId, events);
+      };
+
+      await waitFor(async () => {
+        const events = await manager.tail(record.id, 0);
+        return events.some((e) => e.type === "error");
+      });
+
+      const events = await manager.tail(record.id, 0);
+      const errorEvent = events.find((e) => e.type === "error");
+      expect(errorEvent?.summary).toContain("simulated transient append failure");
+      expect(manager.get(record.id)!.status).toBe("error");
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("AI-P0-5: a permanent append failure still persists status error without crashing", async () => {
+    const { manager, store } = makeManager(dir, { eventsPerSecond: 20, autoStopAfterEvents: 2 });
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      await waitFor(async () => (await manager.tail(record.id, 0)).length > 0);
+      // Every append fails from here on (e.g. disk gone) — both the
+      // original emit AND handleEmitFailure's own follow-up event fail.
+      // Must not throw/crash the adapter's fire-and-forget emit() caller.
+      store.append = () => Promise.reject(new Error("simulated permanent append failure"));
+
+      await waitFor(async () => manager.get(record.id)!.status === "error");
+      expect(manager.get(record.id)!.status).toBe("error");
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
   it("subscribers receive live event batches", async () => {
     const { manager } = makeManager(dir, { eventsPerSecond: 30 });
     try {
