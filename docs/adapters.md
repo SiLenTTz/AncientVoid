@@ -8,7 +8,7 @@ Alles, was der Hub von einem Provider weiß, steht in
 
 | Frage | Antwort im Contract |
 |---|---|
-| Was kannst du? | `capabilities()` → `{reasoning, tools, cost, steer}` |
+| Was kannst du? | `capabilities()` → `{reasoning, tools, cost, steer, usage}` |
 | Wie startest du? | `start(spec, ctx) → handle` |
 | Was passiert? | `ctx.emit(EmittedEvent)` — jederzeit, push-Modell |
 | Wie steuert man? | `steer(handle, input, ctx) → Ack` (prompt/stop/park/resume) |
@@ -38,6 +38,31 @@ Typen: `user | assistant | thinking | tool_use | tool_result | gate | error | sy
   `system`-Event mit Hinweis (`adapter.degraded`-Muster), **niemals droppen**.
 - Reasoning → `thinking` (komplett in Blob, Anker im Stream).
 - Der Hub erzwingt K5 (Payload ≤ 4 KB) mechanisch — trotzdem bewusst emit-ten.
+
+## Kontingent-Fähigkeit (`usage`, ADR-0004)
+
+`capabilities().usage: boolean` sagt, ob ein Adapter jemals einen echten
+`usageQuota` auf einem `NormalizedEvent` setzt (Account-Level-Fenster wie
+claudes "five_hour"/"seven_day" — nicht pro Session, siehe
+[ADR-0004](adr/0004-account-level-usage-quota.md)). `false` bedeutet
+**verifiziert abwesend**, nie geraten — wenn eine CLI kein Quota-Signal im
+Stream trägt (heute: `codex`), bleibt `usage: false` und die PWA zeigt
+„unbekannt" statt eines erfundenen Prozentwerts. Ein Adapter darf `usage:
+true` nur setzen, wenn er das Feld tatsächlich befüllt — sonst zeigt der Hub
+eine Zahl, für die es keine Quelle gibt.
+
+## Skill-/Agent-Übergabe (`SessionSpec.args`, ADR-0005)
+
+Es gibt **keinen** eigenen Contract-Kanal für „starte mit Skill X" — jeder
+Adapter, der Skills/Agents unterstützt, liest sie aus dem bereits
+bestehenden `SessionSpec.args` (adapterspezifischer Freiraum) selbst aus und
+entscheidet, was das für seine CLI bedeutet (siehe
+[ADR-0005](adr/0005-skill-agent-invocation-mechanism.md) für die beiden
+echten, unterschiedlichen `claude`-Mechanismen). Ein Adapter ohne
+verifizierten Mechanismus **ignoriert** `args.skill`/`args.agent` nicht
+still — er emittiert ein sichtbares `system`-Event, das die Wahl als
+wirkungslos meldet (Fail loud, `AGENTS.md` Regel 6), siehe
+`packages/adapter-codex/src/index.ts`.
 
 ## Config-Validierung
 

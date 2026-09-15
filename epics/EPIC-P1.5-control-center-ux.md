@@ -556,19 +556,25 @@ Komponente — und nicht zweimal derselbe Code.
   bereits ausreichend. Gates nach Fix: `npm test` 134/134 grün, `npm run
   lint`/`npm run typecheck` sauber, `npm -w @uacc/pwa run build`/`typecheck`
   sauber.
-- [ ] **T1.5-11** **Registrierung & Erreichbarkeit** (DoD-Teil, nicht Kosmetik).
-  Ein fertiges Feature, das nirgends registriert oder dokumentiert ist, zählt
-  nicht als fertig: `projectRoots` in
-  `packages/server/hub.config.example.json` **und**
-  [`docs/configuration.md`](../docs/configuration.md); die neuen Endpunkte
-  (`/api/adapters/:id/usage`, `/api/projects`, Skill-Liste) in
-  [`docs/architecture.md`](../docs/architecture.md); die Kontingent-Fähigkeit je
-  Adapter in der README-Status-Matrix (README §„Adapter-Status-Matrix", heute 6
-  Spalten — claude „nativ", codex ehrlich „—") und in
-  [`docs/adapters.md`](../docs/adapters.md), damit ein neuer Adapter weiß, was
-  von ihm erwartet wird; beide neuen ADRs in `docs/adr/` verlinkt. Zusätzlich:
-  P1s Ehrlichkeitsklausel beachten — Status wird erst nach bestandenen Tests
-  gesetzt, nicht vorher.
+- [x] **T1.5-11** **Registrierung & Erreichbarkeit** (DoD-Teil, nicht Kosmetik).
+  Alle Stellen aktualisiert: `projectRoots` dokumentiert in
+  `packages/server/hub.config.example.json` (Inline-`$comment`) **und**
+  einem neuen Abschnitt „Projekt-Wurzeln" in
+  [`docs/configuration.md`](../docs/configuration.md) (Containment-Regel,
+  Symlink-Sicherheit, Freitext-Fallback bei leerer Liste erklärt). Die neuen
+  Endpunkte (`GET /api/adapters/:id/usage`, `GET /api/projects`,
+  `POST /api/prompt-enhance`, `GET /api/skills`) sind im
+  [`docs/architecture.md`](../docs/architecture.md)-Serverabschnitt gelistet,
+  je mit zugehöriger Task-/ADR-Referenz; die ADR-Kurzform-Tabelle dort trägt
+  jetzt auch 0004 und 0005. Die Kontingent-Fähigkeit ist eine neue Spalte in
+  der README-Adapter-Status-Matrix (✓/—/`?`, mit Legende — nie geraten) und
+  ein neuer Abschnitt „Kontingent-Fähigkeit" in
+  [`docs/adapters.md`](../docs/adapters.md) (plus ein Abschnitt zur
+  Skill-/Agent-Übergabe über `SessionSpec.args`, damit ein neuer
+  Fremd-Adapter weiß, was von ihm erwartet wird, falls er das unterstützen
+  will). Ehrlichkeitsklausel eingehalten: `claude` in der Matrix als ✓
+  (real gemessen, ADR-0004), `codex` als — (verifiziert abwesend), alle
+  ungebauten P3-Adapter als `?` statt eines geratenen Symbols.
 
 ## 5. Acceptance Criteria
 
@@ -645,11 +651,16 @@ Komponente — und nicht zweimal derselbe Code.
   `session.created`-Rendering + `tail-skill-badge-scrolled.png` (Badge
   „Gestartet mit Skill: bugfix" real im Tail sichtbar, echte Session über die
   HTTP-API angelegt).
-- **AC-P1.5-13 (K2, Regression):** Die neuen Composer-/Overlay-/Kontingent-
+- **AC-P1.5-13 (K2, Regression): 🟢 erfüllt.** Die neuen Composer-/Overlay-/Kontingent-
   Elemente verschlechtern die in
   [`docs/messlauf/2026-09-15-k2-frame-lag.md`](../docs/messlauf/2026-09-15-k2-frame-lag.md)
   gemessene Tail-Performance nicht: 30 Events/s über 10 min, weiterhin kein
   Frame-Lag > 200 ms (Wiederholungslauf mit `scripts/k2-frame-lag.mjs`).
+  Beleg:
+  [`docs/messlauf/2026-09-16-k2-frame-lag-p1.5-regression.md`](../docs/messlauf/2026-09-16-k2-frame-lag-p1.5-regression.md) —
+  18135/18135 gematchte Events unter Budget, median 4ms, max 19ms (vs. P1s
+  median 3ms/max 8ms — leicht höher, aber ~10-fache Marge zum 200ms-Budget,
+  keine Regression im Sinne des ACs).
 
 ## 6. Premortem
 

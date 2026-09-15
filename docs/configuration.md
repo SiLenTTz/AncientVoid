@@ -8,6 +8,11 @@ git-ignored — keine Secrets committen.
 {
   "dataDir": "./data",                    // SQLite, JSONL, Blobs, Worker-Logs
   "workerRunner": "tmux",                 // "tmux" | "process" (Fallback)
+  "projectRoots": [],                     // T1.5-4: Host-Pfade, deren direkte
+                                           // Unterverzeichnisse mit .git als
+                                           // Session-Projekte angeboten werden
+                                           // (GET /api/projects). Leer → PWA
+                                           // fällt auf ein Freitextfeld zurück.
   "server": {
     "host": "127.0.0.1",                  // loopback! Exposen nur via tailscale serve
     "port": 7373,
@@ -24,6 +29,23 @@ git-ignored — keine Secrets committen.
   ]
 }
 ```
+
+## Projekt-Wurzeln (`projectRoots`)
+
+```jsonc
+"projectRoots": ["/home/user/repos"]
+```
+
+`GET /api/projects` listet genau die direkten Unterverzeichnisse eines
+konfigurierten Roots, die ein `.git` enthalten (Tiefe 1, kein rekursiver
+Scan). Ein nicht existierender Root erzeugt eine sichtbare Warnung statt
+einer stillen Leerliste. Jeder `project`-Pfad, der bei `POST /api/sessions`,
+`GET /api/skills` oder `POST /api/prompt-enhance` ankommt, wird gegen dieselbe
+Root-Liste geprüft (`isProjectPathAllowed()`, symlink-sicher — ein Symlink
+innerhalb eines Roots, der nach außen zeigt, wird abgelehnt) — dasselbe
+Nie-dem-Client-Pfad-vertrauen-Muster wie ADR-0001. Leere `projectRoots`
+(Default) bedeutet: kein Root konfiguriert, die PWA fällt auf ein
+Freitextfeld für den Projektpfad zurück, kein Endpunkt lehnt dann etwas ab.
 
 ## Device-Tokens
 
