@@ -1,12 +1,12 @@
 {
-  "$comment": "UACC hub config — copy to hub.config.json. See docs/configuration.md. hub.config.json is git-ignored; keep secrets out of the repo.",
+  "$comment": "UACC hub config — copy to hub.config.json AT THE REPO ROOT (see README Quick Start) and run `node packages/server/src/main.ts` from there — pwaDir and dataDir below are relative to that CWD, not to this file's own location. hub.config.json is git-ignored; keep secrets out of the repo.",
   "dataDir": "./data",
   "workerRunner": "tmux",
   "server": {
     "host": "127.0.0.1",
     "port": 7373,
     "enforceTailnetIdentity": false,
-    "pwaDir": "../pwa/dist"
+    "pwaDir": "./packages/pwa/dist"
   },
   "adapters": [
     {
