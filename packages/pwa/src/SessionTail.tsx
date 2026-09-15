@@ -221,7 +221,7 @@ function EventRow({
     // shows the adapter's full reasoning text, when it sent one.
     const fullText = typeof event.payload.text === "string" ? event.payload.text : undefined;
     return (
-      <div class="event thinking">
+      <div class="event thinking" data-seq={event.seq}>
         <div class="meta">
           <span>
             #{event.seq} · thinking
@@ -240,7 +240,7 @@ function EventRow({
   if (event.type === "tool_use" && toolId) {
     const state: "running" | "ok" | "error" = !toolResult ? "running" : toolResult.payload.isError ? "error" : "ok";
     return (
-      <div id={toolAnchor(toolId, "use")} class="event tool_use">
+      <div id={toolAnchor(toolId, "use")} class="event tool_use" data-seq={event.seq}>
         <div class="meta">
           <span>
             #{event.seq} · tool_use
@@ -263,7 +263,7 @@ function EventRow({
 
   if (event.type === "tool_result" && toolId) {
     return (
-      <div id={toolAnchor(toolId, "result")} class="event tool_result">
+      <div id={toolAnchor(toolId, "result")} class="event tool_result" data-seq={event.seq}>
         <div class="meta">
           <span>
             #{event.seq} · tool_result
@@ -282,7 +282,7 @@ function EventRow({
   }
 
   return (
-    <div class={`event ${event.type}`}>
+    <div class={`event ${event.type}`} data-seq={event.seq}>
       <div class="meta">
         <span>
           #{event.seq} · {event.type}
