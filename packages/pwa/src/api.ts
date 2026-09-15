@@ -55,6 +55,16 @@ export interface ProjectDiscoveryResult {
   warnings: string[];
 }
 
+/** T1.5-10/ADR-0005 — a skill or agent discovered in the target project's
+ * own .claude/skills or .claude/agents. `kind: "workflow"` is reserved in
+ * the data model but never produced by the scanner (no verified
+ * convention exists for it, see EPIC-P1.5 §3.5). */
+export interface SkillOrAgent {
+  kind: "skill" | "agent" | "workflow";
+  name: string;
+  description: string;
+}
+
 export type SteerInput =
   | { kind: "prompt"; text: string }
   | { kind: "stop" }
@@ -111,6 +121,7 @@ export const hubApi = {
   adapters: () => api<AdapterInfo[]>("/api/adapters"),
   adapterUsage: (id: string) => api<AdapterUsage>(`/api/adapters/${id}/usage`),
   projects: () => api<ProjectDiscoveryResult>("/api/projects"),
+  skills: (project: string) => api<{ items: SkillOrAgent[] }>(`/api/skills?project=${encodeURIComponent(project)}`),
   enhancePrompt: (adapter: string, project: string, text: string) =>
     api<EnhanceResult>("/api/prompt-enhance", { method: "POST", body: JSON.stringify({ adapter, project, text }) }),
   sessions: () => api<SessionRecord[]>("/api/sessions"),
@@ -125,6 +136,7 @@ export const hubApi = {
     prompt?: string;
     model?: string;
     budgetUsd?: number | null;
+    args?: { skill?: string; agent?: string };
   }) =>
     api<SessionRecord>("/api/sessions", {
       method: "POST",

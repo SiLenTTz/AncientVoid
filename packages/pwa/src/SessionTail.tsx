@@ -357,6 +357,29 @@ function EventRow({
     );
   }
 
+  // AC-P1.5-12: whatever skill/agent a session was started with must be
+  // traceable in the tail — sessionmanager.ts stashes it on the
+  // session.created system event's payload.args (T1.5-10).
+  if (event.type === "system" && (event.payload as { kind?: unknown }).kind === "session.created") {
+    const args = (event.payload as { args?: { skill?: string; agent?: string } | null }).args;
+    const skillNote = args?.skill ? `Skill: ${args.skill}` : args?.agent ? `Agent: ${args.agent}` : null;
+    return (
+      <div class="event system" data-seq={event.seq}>
+        <div class="meta">
+          <span>
+            #{event.seq} · {event.type}
+            {blobNote}
+          </span>
+          <span>{time}</span>
+        </div>
+        <div class="summary">
+          {event.summary}
+          {skillNote && <span class="badge waiting"> · Gestartet mit {skillNote}</span>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div class={`event ${event.type}`} data-seq={event.seq}>
       <div class="meta">

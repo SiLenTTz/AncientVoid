@@ -229,6 +229,21 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     expect(turn?.costUsd).toBeUndefined();
   });
 
+  it("T1.5-10/ADR-0005: a requested skill/agent is visibly ignored, never silently swallowed", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: withVersionHandshake(() => fakeCodexProcess(loadFixture("trivial-text.jsonl"))),
+    });
+    const adapter = createAdapter();
+    await adapter.start(
+      { adapter: "codex", project: "/tmp", prompt: "first", args: { skill: "bugfix" } },
+      ctx,
+    );
+    await waitFor(() => ctx.events.some((e) => e.summary.includes("skill/agent selection ignored")));
+    const ignored = ctx.events.find((e) => e.summary.includes("skill/agent selection ignored"));
+    expect(ignored?.type).toBe("system");
+    expect((ignored?.payload as { requested?: unknown }).requested).toEqual({ skill: "bugfix" });
+  });
+
   it("steer(prompt) before any thread_id is captured is an honest no", async () => {
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeCodexProcess("") });
     const adapter = createAdapter();

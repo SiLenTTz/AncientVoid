@@ -438,3 +438,78 @@ describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
     }
   });
 });
+
+describe("hub server — GET /api/skills (T1.5-10)", () => {
+  async function buildApp(projectRoots: string[]) {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-skills-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, {});
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    const tokens = new TokenService(db);
+    const token = tokens.issue("test-device").token;
+    const app = await createHubApp({
+      sessions,
+      tokens,
+      registry,
+      auth: { tokens, enforceTailnetIdentity: false },
+      projectRoots,
+    });
+    return { app, token, cleanup: () => rm(dir, { recursive: true, force: true }) };
+  }
+
+  it("400s without a project query param", async () => {
+    const { app, token, cleanup } = await buildApp([]);
+    try {
+      const res = await app.inject({ method: "GET", url: "/api/skills", headers: { authorization: `Bearer ${token}` } });
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
+
+  it("422s when the project is outside configured projectRoots", async () => {
+    const root = await mkdtemp(join(tmpdir(), "uacc-skills-root-"));
+    const outside = await mkdtemp(join(tmpdir(), "uacc-skills-outside-"));
+    const { app, token, cleanup } = await buildApp([root]);
+    try {
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/skills?project=${encodeURIComponent(outside)}`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.statusCode).toBe(422);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+      await rm(root, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("returns a real project's skills/agents when the project is allowed", async () => {
+    const root = await mkdtemp(join(tmpdir(), "uacc-skills-root-"));
+    const repo = join(root, "repo");
+    const skillDir = join(repo, ".claude", "skills", "demo");
+    await import("node:fs/promises").then((fs) => fs.mkdir(skillDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.writeFile(join(skillDir, "SKILL.md"), "---\nname: demo\ndescription: a demo skill\n---\n"),
+    );
+    const { app, token, cleanup } = await buildApp([root]);
+    try {
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/skills?project=${encodeURIComponent(repo)}`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ items: [{ kind: "skill", name: "demo", description: "a demo skill" }] });
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});

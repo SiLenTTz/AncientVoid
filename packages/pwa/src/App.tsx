@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { hubApi, type AdapterInfo, type AdapterUsage, type DiscoveredProject, type SessionRecord } from "./api.ts";
 import { Dashboard } from "./Dashboard.tsx";
 import { Composer } from "./Composer.tsx";
+import { SkillPicker, loadSelectedSkill, type SelectedSkill } from "./SkillOverlay.tsx";
 
 export function App({
   onOpen,
@@ -90,6 +91,7 @@ function CreateSession({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
+  const [skill, setSkill] = useState<SelectedSkill | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -114,6 +116,13 @@ function CreateSession({
     };
   }, []);
 
+  // T1.5-10: the last skill/agent chosen FOR THIS PROJECT is always the
+  // default (user's own requirement — "so dass man nicht immer auswählen
+  // muss aber kann") — reloaded whenever the selected project changes.
+  useEffect(() => {
+    setSkill(project ? loadSelectedSkill(project) : null);
+  }, [project]);
+
   const submit = async () => {
     setBusy(true);
     setError("");
@@ -127,6 +136,7 @@ function CreateSession({
         adapter,
         project,
         ...(prompt ? { prompt } : {}),
+        ...(skill ? { args: { [skill.kind]: skill.name } } : {}),
       });
       onCreated(rec);
     } catch (err) {
@@ -185,6 +195,7 @@ function CreateSession({
         />
       </label>
       {error && <div style="color: var(--err)">{error}</div>}
+      <SkillPicker project={project} adapter={adapter} selection={skill} onChange={setSkill} />
       <button class="btn primary" onClick={submit} disabled={busy || !project}>
         {busy ? "Starte…" : "Starten"}
       </button>
