@@ -74,6 +74,22 @@ Regeln:
 
 - Fastify, REST (`/api/health`, `/api/adapters`, `/api/sessions*`,
   `/api/tokens*`) + WS `/api/events/:id/tail`.
+- **T1.5-3/ADR-0004:** `GET /api/adapters/:id/usage` — Account-Level-
+  Kontingent-Schnappschuss (ein Wert pro Adapter, nicht pro Session), aus
+  `SessionManager.usageByAdapter` (In-Memory, nicht K7-persistiert, nicht
+  über Sessions summiert). `supported:false` statt geratenem Wert für
+  Adapter ohne Quota-Signal (heute: `codex`).
+- **T1.5-4:** `GET /api/projects` — Host-Projekt-Erkennung aus
+  `projectRoots` (`docs/configuration.md`), Tiefe 1, `.git`-Filter.
+- **T1.5-5:** `POST /api/sessions` lehnt einen `project`-Pfad außerhalb der
+  konfigurierten `projectRoots` mit 4xx ab (`isProjectPathAllowed()`).
+- **T1.5-8:** `POST /api/prompt-enhance` — Prompt-Umformulierung über den
+  bereits gewählten Coding-Adapter selbst (kein separates Modell, siehe
+  EPIC-P1.5 §3.4), läuft mit `cwd` im Zielprojekt, hinter demselben
+  Containment-Schutz wie Session-Erstellung.
+- **T1.5-10/ADR-0005:** `GET /api/skills?project=<pfad>` — Skills/Agents aus
+  `<projekt>/.claude/skills/` + `.claude/agents/` (`@uacc/core`s
+  `scanProjectSkills()`), gleicher Containment-Schutz.
 - Auth-Hook: Device-Token (Bearer/Query), optional Tailnet-Identitätszwang
   (`Tailscale-User-Login`-Header). `/api/health` bleibt offen.
 - **WS-Delta-Protokoll (ADR-P0-4):** `hello{lastSeq}` → nummerierte
@@ -108,5 +124,7 @@ Regeln:
 | P0-4 | PWA ist Projektions-Renderer | Deltas + Seq + Resync statt Client-State-Monolith |
 | P0-5 | Node-Strip-Types ohne Build | keine Parameter-Properties/Enums; `node src/main.ts` läuft direkt |
 | P0-6 | `node:sqlite` statt better-sqlite3 | keine native Dependency, Node ≥ 22.5 |
+| [0004](adr/0004-account-level-usage-quota.md) | Kontingent ist Account-, nicht Session-Zustand | ein `claude`-Limit gilt fürs ganze Konto, nicht pro Session — Summieren wäre falsch |
+| [0005](adr/0005-skill-agent-invocation-mechanism.md) | Skill/Agent-Übergabe pro Adapter verifiziert statt angenommen | `claude` hat zwei echte Mechanismen (`/skill`-Präfix, `--agent`-Flag), `codex` keinen — beide laufen über `SessionSpec.args`, kein Contract-Bruch |
 
 Neue Architekturentscheidungen: `docs/adr/` + PR.

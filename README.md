@@ -46,16 +46,21 @@ Ollama, vLLM). Anleitung: [`CONTRIBUTING.md`](./CONTRIBUTING.md) und
 
 ### Adapter-Status-Matrix
 
-| Adapter | Typ | Reasoning | Tools | Cost | Steer | Status | Phase |
-|---|---|---|---|---|---|---|---|
-| `dummy` | synthetisch | ✓ | ✓ | — | ✓ | proven | P0 |
-| `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | unproven | P1 |
-| `codex` | CLI (exec JSON) | ✓ | ✓ | ~ | ✓ | unproven | P1 |
-| `copilot` | CLI + SDK | ~ | ✓ | ~ | ~ | unproven | P3 |
-| `swarm` | eigene Event-API | ✓ | ✓ | ✓ | ✓ | geplant | P3 |
-| `zai` | API-Router :8788 | ✓ | ✓ | ~ | ✓ | geplant | P3 |
-| `local-llm` | OpenAI-kompatibel | ✓ | — | — | ✓ | Vorlage bereit | P3 |
-| `cursor-clip` | state.vscdb (read-only) | ~ | — | — | **nein** | may-break | P3 |
+| Adapter | Typ | Reasoning | Tools | Cost | Steer | Kontingent | Status | Phase |
+|---|---|---|---|---|---|---|---|---|
+| `dummy` | synthetisch | ✓ | ✓ | — | ✓ | — | proven | P0 |
+| `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | ✓ | unproven | P1 |
+| `codex` | CLI (exec JSON) | ✓ | ✓ | ~ | ✓ | — | unproven | P1 |
+| `copilot` | CLI + SDK | ~ | ✓ | ~ | ~ | ? | unproven | P3 |
+| `swarm` | eigene Event-API | ✓ | ✓ | ✓ | ✓ | ? | geplant | P3 |
+| `zai` | API-Router :8788 | ✓ | ✓ | ~ | ✓ | ? | geplant | P3 |
+| `local-llm` | OpenAI-kompatibel | ✓ | — | — | ✓ | — | Vorlage bereit | P3 |
+| `cursor-clip` | state.vscdb (read-only) | ~ | — | — | **nein** | — | may-break | P3 |
+
+Kontingent (`capabilities().usage`, [ADR-0004](docs/adr/0004-account-level-usage-quota.md)):
+✓ = liefert real ein Account-Level-Quota-Fenster, — = verifiziert kein
+Quota-Signal in der CLI, `?` = noch nicht gebaut/geprüft. Nie geraten (P1.5s
+„unbekannt statt geraten"-Regel).
 
 (Ehrlichkeitsklausel: Status wird erst nach bestandenen Contract-Tests auf „proven" gesetzt.)
 
