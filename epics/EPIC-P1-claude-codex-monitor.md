@@ -60,7 +60,7 @@ Session) und der Session-Tail mit drei Filter-Presets.
 - [x] **T1.6** Filter-Engine (`packages/pwa/src/SessionTail.tsx`) — die drei echten Presets aus §2/AC-P1-4 (**Lesen/Überwachen/Debuggen**), nicht die vier ad-hoc aus P0 ("Alle"/"Tool-Calls"/"Denken"). Default **Überwachen**: versteckt `thinking` UND `tool_result`-Payloads > 2 KB (gemessen via `payload.bytes`, wenn K5-geblobbt, sonst JSON-Größenschätzung). LocalStorage, gerätespezifisch, kein Server-Roundtrip. Visuell im echten Browser geprüft (Playwright): alle drei Presets zeigen die erwartete Teilmenge.
 - [x] **T1.7** Thinking-Rendering — gedimmt/kursiv (bestehendes `.event.thinking`-CSS), einklappbar (Default eingeklappt, zeigt nur die 200-Zeichen-Summary; ausgeklappt zeigt `payload.text`, falls der Adapter vollen Reasoning-Text mitschickt). In Überwachen ohnehin komplett ausgeblendet (T1.6) — Toggle wirkt praktisch nur in Debuggen.
 - [x] **T1.8** Tool-Call-Chips — Status `running`/`ok`/`error` (aus dem Vorhandensein und `isError` des korrelierten `tool_result`), bidirektionale Anker-Navigation (Scroll-to) zwischen `tool_use` und `tool_result` über die gemeinsame `id`/`toolUseId`, die beide echten Adapter (claude, codex) schon konsistent setzen. **Nebenfund:** der `dummy`-Referenzadapter setzte diese Korrelation gar nicht — als Vorlage für neue Adapter unvollständig und machte T1.8 mit ihm untestbar. Nachgezogen (`packages/adapter-dummy/src/index.ts`), ohne die K5-Riesenoutput-Testfixtur zu verändern (die bleibt bewusst unkorreliert, da sie keinen echten Tool-Aufruf-Zyklus simuliert).
-- [ ] **T1.9** Adapter-Heartbeat + Health-Endpoint + Red-Badge/Push bei Ausfall
+- [x] **T1.9** Adapter-Heartbeat (`SessionManager`, `packages/core/src/sessionmanager.ts`) — alle 30 s (`DEFAULT_HEARTBEAT_MS`, konfigurierbar für Tests) ein aktiver `adapter.status()`-Poll pro laufender Session, unabhängig vom passiven `WorkerProcess.onExit`-Pfad (der erkennt nur "Prozess ist weg", nicht "Prozess lebt, antwortet aber nicht mehr"). `down`/`broken` → `status="error"` + sichtbares `adapter.down`-System-Event (Detail, kein stilles Retry). Terminal-Sessions werden nicht erneut angefasst (kein doppeltes Event). Kein neuer Health-Endpunkt nötig — `/api/sessions`/`/api/sessions/:id` tragen den Live-Status schon, das rote Badge ist das bereits bestehende `.pill.error`-CSS (kein zweiter, redundanter Indikator). **Nicht umgesetzt: echte Push-Benachrichtigungen** (AC-P1-5 verlangt "Push-Meldung am Handy") — dafür existiert nirgends im Repo eine Web-Push-Infrastruktur (VAPID-Schlüsselpaar, Subscription-Speicherung, Service-Worker-`push`-Handler); das ist ein eigenständiges Feature, kein Nebenprodukt von T1.9, und bewusst zurückgestellt statt notdürftig nachgebaut.
 - [ ] **T1.10** K2-Lasttest: 30 Events/s über 10 min durch Dashboard + Tail, Lag < 200 ms
 - [ ] **T1.11** Kosten-Schätzung für codex (Token-Counts × eigene Preis-Tabelle; „unbekannt" statt geraten — R9.7-Regel)
 
@@ -75,8 +75,11 @@ Session) und der Session-Tail mit drei Filter-Presets.
   nachweisbar bei gedrosseltem Netz (3G-Throttling im Browser).
 - **AC-P1-4:** Filter „Überwachen" versteckt Thinking und tool_results > 2 KB; State überlebt
   Reload und ist gerätespezifisch (Desktop zeigt andere Filter als Handy).
-- **AC-P1-5:** claude-CLI-Prozess hart töten → Dashboard zeigt innerhalb 60 s
-  `adapter.down` rotes Badge + Push-Meldung am Handy.
+- **AC-P1-5: 🟡 teilweise.** Badge-Teil erfüllt: Heartbeat poll(t alle 30 s,
+  weit unter 60 s) `adapter.status()` und setzt bei `down`/`broken` sichtbar
+  `status=error` (rotes `.pill.error`) + `adapter.down`-Event (T1.9,
+  unit-getestet mit simuliertem Ausfall). Push-Teil offen — keine
+  Web-Push-Infrastruktur im Repo, siehe T1.9-Vermerk.
 - **AC-P1-6:** Anonymisierte Fixtures enthalten keine Secrets (grep-basierter
   Secret-Scanner im CI als Gate).
 

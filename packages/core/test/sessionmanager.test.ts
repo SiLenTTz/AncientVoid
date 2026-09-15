@@ -277,4 +277,52 @@ describe("SessionManager", () => {
       await manager.shutdown();
     }
   });
+
+  it("T1.9/AC-P1-5: heartbeat detects a down adapter (status=error, visible adapter.down event)", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    let healthy = true;
+    registry.register("heartbeat-test", () => ({
+      id: "heartbeat-test",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false }),
+      async start(_spec, ctx) {
+        return { sessionId: ctx.sessionId };
+      },
+      async steer() {
+        return { ok: true };
+      },
+      async status() {
+        return healthy ? { state: "healthy" as const } : { state: "down" as const, detail: "simulated crash" };
+      },
+      async stop() {},
+    }));
+    // A real-scale interval — the test drives runHeartbeat() directly
+    // instead of waiting out 30s.
+    const manager = new SessionManager(db, store, registry, new ProcessRunner(), 3_600_000);
+    try {
+      const record = await manager.create({ adapter: "heartbeat-test", project: dir });
+      await manager.runHeartbeat();
+      expect(manager.get(record.id)!.status).toBe("working"); // healthy — untouched
+
+      healthy = false;
+      await manager.runHeartbeat();
+
+      const after = manager.get(record.id)!;
+      expect(after.status).toBe("error");
+      const events = await manager.tail(record.id, 0);
+      const downEvent = events.find((e) => (e.payload as { kind?: string }).kind === "adapter.down");
+      expect(downEvent).toBeDefined();
+      expect((downEvent!.payload as { detail?: string }).detail).toBe("simulated crash");
+
+      // Once terminal, later ticks must not re-fire (no duplicate events,
+      // no illegal transition out of "error").
+      await manager.runHeartbeat();
+      const eventsAfter2 = await manager.tail(record.id, 0);
+      expect(eventsAfter2.filter((e) => (e.payload as { kind?: string }).kind === "adapter.down")).toHaveLength(1);
+    } finally {
+      await manager.shutdown();
+    }
+  });
 });

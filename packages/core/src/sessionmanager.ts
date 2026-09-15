@@ -79,6 +79,9 @@ const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   error: ["stopping", "stopped"],
 };
 
+/** T1.9: 30s default per EPIC-P1 §2 ("Heartbeat pro Adapter (30 s)"). */
+const DEFAULT_HEARTBEAT_MS = 30_000;
+
 export class SessionManager {
   private readonly live = new Map<string, LiveSession>();
 
@@ -86,12 +89,59 @@ export class SessionManager {
   private readonly store: EventStore;
   private readonly registry: AdapterRegistry;
   private readonly runner: WorkerRunner;
+  private readonly heartbeatTimer: NodeJS.Timeout;
+  private heartbeatRunning = false;
 
-  constructor(db: HubDatabase, store: EventStore, registry: AdapterRegistry, runner: WorkerRunner) {
+  constructor(
+    db: HubDatabase,
+    store: EventStore,
+    registry: AdapterRegistry,
+    runner: WorkerRunner,
+    heartbeatIntervalMs: number = DEFAULT_HEARTBEAT_MS,
+  ) {
     this.db = db;
     this.store = store;
     this.registry = registry;
     this.runner = runner;
+    // T1.9 (AC-P1-5): poll each live adapter's own status() on a timer,
+    // not just react to its worker process exiting. A hard-killed process
+    // already surfaces via WorkerProcess.onExit (see makeContext below),
+    // but "down" per the adapter's own health check (hung, degraded,
+    // unreachable) needs an active probe — that's what onExit can't see.
+    this.heartbeatTimer = setInterval(() => void this.runHeartbeat(), heartbeatIntervalMs);
+    this.heartbeatTimer.unref();
+  }
+
+  /** Exposed for tests — same logic the timer runs, without waiting out
+   * the real interval. */
+  async runHeartbeat(): Promise<void> {
+    if (this.heartbeatRunning) return; // don't overlap a slow previous tick
+    this.heartbeatRunning = true;
+    try {
+      for (const session of this.live.values()) {
+        if (!session.handle) continue;
+        const terminal = session.record.status === "stopped" || session.record.status === "error";
+        if (terminal) continue;
+        let report;
+        try {
+          report = await session.adapter.status(session.handle);
+        } catch (err) {
+          // The health check itself failing is exactly the kind of
+          // "unbekannter Ausfall" AGENTS.md rule 6 wants surfaced, not
+          // silently retried forever.
+          report = { state: "broken" as const, detail: err instanceof Error ? err.message : String(err) };
+        }
+        if (report.state === "down" || report.state === "broken") {
+          await this.setStatus(session, "error").catch(() => undefined);
+          await this.emitSystem(session, "adapter.down", {
+            state: report.state,
+            detail: report.detail ?? null,
+          });
+        }
+      }
+    } finally {
+      this.heartbeatRunning = false;
+    }
   }
 
   /** Subscribe to event batches of a session (server WS push). */
@@ -285,6 +335,7 @@ export class SessionManager {
   }
 
   async shutdown(): Promise<void> {
+    clearInterval(this.heartbeatTimer);
     for (const [id, session] of this.live) {
       if (session.record.status === "stopped" || session.record.status === "stopping") continue;
       await this.stop(id).catch(() => undefined);
