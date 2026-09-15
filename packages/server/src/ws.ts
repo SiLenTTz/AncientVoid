@@ -9,16 +9,28 @@ import {
 import type { SessionManager } from "@uacc/core";
 
 /**
+ * BUG-0007: a socket that can't drain fast enough (throttled network, not
+ * just an in-process producer/consumer mismatch) never fills the in-process
+ * `buffer` array — `socket.send()` returns immediately regardless of real
+ * transport speed. Verified via real Playwright + CDP network throttling:
+ * with a 20kbit/s downlink, hundreds of events vanished with `dropped`
+ * staying `false` throughout. `socket.bufferedAmount` (queued, unsent bytes)
+ * is the actual backpressure signal and must be checked too.
+ */
+const MAX_WS_BUFFERED_BYTES = 64 * 1024;
+
+/**
  * WS delta protocol (ADR-P0-4):
  *  - Server sends numbered event batches with a highWater seq.
  *  - Client detects gaps (highWater jumps) and requests {type:"resync", since}.
- *  - Drop-on-slow: per-socket buffer capped at MAX_WS_BUFFER (100). When a
- *    consumer can't keep up, older events are dropped and the next batch is
- *    flagged dropped:true — the client resyncs from the store. No backpressure
- *    lag, ever (K2).
+ *  - Drop-on-slow: per-socket buffer capped at MAX_WS_BUFFER (100) events OR
+ *    MAX_WS_BUFFERED_BYTES (64KB) unsent on the socket. Either condition
+ *    collapses the queue to the latest state and flags the next batch
+ *    dropped:true — the client resyncs from the store. No backpressure
+ *    lag, ever (K2), and no silent loss under a slow real network.
  */
-export function registerWs(app: FastifyInstance, sessions: SessionManager): void {
-  app.get("/api/events/:id/tail", { websocket: true }, (socket: WebSocket, req) => {
+export function createTailHandler(sessions: SessionManager) {
+  return (socket: WebSocket, req: { params: unknown }) => {
     const sessionId = (req.params as { id: string }).id;
     const send = (msg: WsServerMessage) => {
       if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(msg));
@@ -39,6 +51,16 @@ export function registerWs(app: FastifyInstance, sessions: SessionManager): void
       flushing = true;
       try {
         while (buffer.length > 0) {
+          if (socket.bufferedAmount > MAX_WS_BUFFERED_BYTES) {
+            // The socket already has more queued than it can drain — piling
+            // on more unsent bytes only grows server memory. Collapse to
+            // the latest state, flag it, and retry on the next flush
+            // (triggered by the next incoming event).
+            const last = buffer[buffer.length - 1]!;
+            buffer = [last];
+            dropped = true;
+            break;
+          }
           const batch = buffer;
           buffer = [];
           const last = batch[batch.length - 1]!;
@@ -118,5 +140,9 @@ export function registerWs(app: FastifyInstance, sessions: SessionManager): void
     });
 
     socket.on("close", () => unsubscribe());
-  });
+  };
+}
+
+export function registerWs(app: FastifyInstance, sessions: SessionManager): void {
+  app.get("/api/events/:id/tail", { websocket: true }, createTailHandler(sessions));
 }
