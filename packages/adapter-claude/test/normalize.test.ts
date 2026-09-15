@@ -46,6 +46,32 @@ describe("normalizeClaudeLine — real captured stream-json (claude 2.1.263)", (
     // NormalizedEvent schema), so it can't have passed that name through.
   });
 
+  it("ADR-0004: maps a real rate_limit_event into a structured usageQuota", () => {
+    const events = checkFixture(fixture("trivial-text.jsonl"), normalizeClaudeLine);
+    const rateLimitEvents = events.filter((e) => e.summary === "claude: rate-limit status update");
+    expect(rateLimitEvents).toHaveLength(1);
+    const quota = rateLimitEvents[0]!.usageQuota;
+    expect(quota).toBeDefined();
+    // Real fixture values (trivial-text.jsonl): five_hour 0.21, seven_day 0.14.
+    const fiveHour = quota!.windows.find((w) => w.id === "five_hour");
+    const sevenDay = quota!.windows.find((w) => w.id === "seven_day");
+    expect(fiveHour?.utilization).toBeCloseTo(0.21, 6);
+    expect(sevenDay?.utilization).toBeCloseTo(0.14, 6);
+    expect(fiveHour?.resetsAt).toBe(new Date(1789435200 * 1000).toISOString());
+    // Fixture's overageDisabledReason: "out_of_credits" -> not available.
+    expect(quota!.overageAvailable).toBe(false);
+    expect(quota!.overageBlockedReason).toBe("out_of_credits");
+  });
+
+  it("ADR-0004: no usageQuota when unifiedWindows is missing or malformed (never fabricated)", () => {
+    const events = normalizeClaudeLine({
+      type: "rate_limit_event",
+      rate_limit_info: { status: "allowed" },
+    });
+    expect(events).toHaveLength(1);
+    expect(events[0]!.usageQuota).toBeUndefined();
+  });
+
   it("never drops an unrecognized top-level type silently (fail loud)", () => {
     const events = normalizeClaudeLine({ type: "some_future_event_type", weird: true });
     expect(events).toHaveLength(1);

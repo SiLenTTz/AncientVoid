@@ -321,26 +321,26 @@ Komponente — und nicht zweimal derselbe Code.
   und explizit verworfen (Begründung im ADR: kein On-Demand-Weg bei beiden
   CLIs bzw. falscher semantischer Ort — `HealthReport` ist an ein
   `SessionHandle` gebunden, nicht an einen Account).
-- [ ] **T1.5-2** **Kontingent-Erfassung + `GET /api/adapters/:id/usage`.**
-  `packages/adapter-claude/src/normalize.ts:55-58` liest `rate_limit_event`
-  heute in ein unbeschriftetes System-Event; stattdessen die Felder aus §3.1
-  strukturiert herausziehen (`unifiedWindows.five_hour/seven_day` mit
-  `utilization` + `resetsAt`, `rateLimitType`, `status`, `overageStatus`,
-  `overageDisabledReason`, `isUsingOverage`) und über den in T1.5-1 gewählten
-  Weg an den Hub geben. Hub hält pro Adapter-Id den **letzten** Snapshot plus
-  `observedAt` und liefert ihn über einen neuen Endpunkt neben
-  `GET /api/adapters` (`packages/server/src/routes.ts:41-47`) aus. codex liefert
-  über denselben Endpunkt ein explizites „unbekannt" mit Begründung, nie ein
-  fehlendes Feld und nie 0 (R9.7 / T1.11-Muster). K5 beachten: der Snapshot ist
-  winzig, aber er darf das Event-Payload-Budget (≤ 4 KB) nicht durch rohes
-  Mitschleifen des gesamten `rate_limit_info` sprengen. Der Snapshot ist
-  bewusst **nicht** K7-persistiert (kein State, den man rekonstruieren müsste —
-  er wird beim nächsten Event ohnehin frisch geliefert); diese Entscheidung
-  gehört als Kommentar an den Code, damit AGENTS.md Regel 4 nicht später
-  fälschlich als verletzt gelesen wird. Fixture-getestet gegen einen echten
-  Capture mit `rate_limit_event` (falls die bestehenden Fixtures keinen
-  enthalten: neuen über `scripts/capture-adapter-fixture.mjs` aufzeichnen,
-  T1.4-Weg, anonymisiert).
+- [x] **T1.5-2** **Kontingent-Erfassung + `GET /api/adapters/:id/usage`.**
+  `packages/contracts/src/event.ts`: neue `UsageWindow`/`UsageQuota`-Typen +
+  optionales `usageQuota`-Feld auf `NormalizedEvent`/`EmittedEvent` (ADR-0004).
+  `packages/adapter-claude/src/normalize.ts` zieht `unifiedWindows` jetzt
+  strukturiert heraus (`normalizeUsageQuota()`), inkl. Unix-Sekunden→ISO
+  (`toIsoTimestamp()`) und `overageAvailable`/`overageBlockedReason` aus
+  `overageDisabledReason`/`isUsingOverage` — nie geraten, `undefined` wenn
+  beide Signale fehlen. `AdapterCapabilities.usage` ergänzt (claude `true`,
+  codex/dummy `false`). `packages/core/src/sessionmanager.ts`: neue
+  `usageByAdapter`-Map (adapter-id-Schlüssel), aktualisiert in `emitEvents()`,
+  **kein** Feld auf `SessionRecord`/SQLite — bewusst nicht K7-persistiert
+  (Kommentar am Code). Neuer Endpunkt `GET /api/adapters/:id/usage`
+  (`packages/server/src/routes.ts`) liefert `{adapterId, supported, quota,
+  observedAt}` — `supported` aus `capabilities().usage`, `quota`/`observedAt`
+  `null` solange keine Meldung vorliegt (nie 0 %). Getestet: real gegen die
+  bestehenden Fixtures (`trivial-text.jsonl` enthält bereits einen echten
+  `rate_limit_event`, kein neuer Capture nötig), SessionManager-Test beweist
+  „keine Summierung, keine Überschreibung über Sessions hinweg falsch"
+  (letzte Beobachtung gewinnt), Routen-Test für `supported:false`/`404`.
+  98/98 Tests grün.
 - [ ] **T1.5-3** **PWA: Budget raus, Kontingent rein.** Budget-Feld aus
   `CreateSession` entfernen (`packages/pwa/src/App.tsx:80`, `:92`, `:130-140`)
   — der Contract (`SessionSpec.budgetUsd`, `SessionRecord.budgetUsd`,

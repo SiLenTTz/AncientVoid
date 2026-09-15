@@ -14,6 +14,11 @@ export interface AdapterCapabilities {
   cost: boolean;
   /** Adapter accepts steering input mid-session. */
   steer: boolean;
+  /** Adapter can in principle report an account-level usage/quota snapshot
+   * (ADR-0004) — "can", not "every session sees one" (same honesty
+   * standard as `reasoning`/`cost`). codex: false, verified absent from
+   * its stream and CLI, not merely unimplemented. */
+  usage: boolean;
 }
 
 export type HealthState = "healthy" | "degraded" | "down" | "broken";

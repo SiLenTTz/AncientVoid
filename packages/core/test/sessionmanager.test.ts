@@ -246,7 +246,7 @@ describe("SessionManager", () => {
     registry.register("cost-test", () => ({
       id: "cost-test",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false }),
       async start(_spec, ctx) {
         ctx.emit({ type: "system", summary: "turn 1", payload: {}, costUsd: 0.01 });
         return { sessionId: ctx.sessionId };
@@ -278,6 +278,50 @@ describe("SessionManager", () => {
     }
   });
 
+  it("ADR-0004: getAdapterUsage is account-level (per adapter id, never summed, never on SessionRecord)", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    const quota1 = { windows: [{ id: "five_hour", utilization: 0.2, resetsAt: "2026-09-15T20:00:00.000Z" }] };
+    const quota2 = { windows: [{ id: "five_hour", utilization: 0.5, resetsAt: "2026-09-15T20:00:00.000Z" }] };
+    registry.register("usage-test", () => ({
+      id: "usage-test",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: true }),
+      async start(_spec, ctx) {
+        ctx.emit({ type: "system", summary: "quota update", payload: {}, usageQuota: quota1 });
+        return { sessionId: ctx.sessionId };
+      },
+      async steer(_handle, _input, ctx) {
+        ctx.emit({ type: "system", summary: "quota update", payload: {}, usageQuota: quota2 });
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" as const };
+      },
+      async stop() {},
+    }));
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      expect(manager.getAdapterUsage("usage-test")).toBeNull(); // no observation yet -> null, never 0
+
+      const record = await manager.create({ adapter: "usage-test", project: dir });
+      await waitFor(async () => manager.getAdapterUsage("usage-test") !== null);
+      expect(manager.getAdapterUsage("usage-test")!.quota).toEqual(quota1);
+      // Not a per-session field on SessionRecord — the snapshot lives only
+      // in the adapter-keyed cache.
+      expect((manager.get(record.id) as unknown as { usageQuota?: unknown }).usageQuota).toBeUndefined();
+
+      // A later observation on the SAME account (same adapter id) replaces
+      // the snapshot — it neither sums nor averages with the earlier one.
+      await manager.steer(record.id, { kind: "prompt", text: "go" });
+      await waitFor(async () => manager.getAdapterUsage("usage-test")!.quota.windows[0]!.utilization === 0.5);
+      expect(manager.getAdapterUsage("usage-test")!.quota).toEqual(quota2);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
   it("T1.9/AC-P1-5: heartbeat detects a down adapter (status=error, visible adapter.down event)", async () => {
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
@@ -286,7 +330,7 @@ describe("SessionManager", () => {
     registry.register("heartbeat-test", () => ({
       id: "heartbeat-test",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false }),
       async start(_spec, ctx) {
         return { sessionId: ctx.sessionId };
       },

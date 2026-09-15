@@ -55,7 +55,13 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     const adapter = createAdapter();
     expect(adapter.id).toBe("claude");
     expect(adapter.version).toMatch(/^\d+\.\d+\.\d+/);
-    expect(adapter.capabilities()).toEqual({ reasoning: true, tools: true, cost: true, steer: true });
+    expect(adapter.capabilities()).toEqual({
+      reasoning: true,
+      tools: true,
+      cost: true,
+      steer: true,
+      usage: true,
+    });
     // no recover() — claude sessions can't be reattached after a hub crash (P1 scope)
     expect(adapter.recover).toBeUndefined();
   });

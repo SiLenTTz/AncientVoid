@@ -110,7 +110,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     version: "0.1.0",
 
     capabilities(): AdapterCapabilities {
-      return { reasoning: true, tools: true, cost: true, steer: true };
+      // usage: true (ADR-0004) — claude's stream carries a real
+      // rate_limit_event with unifiedWindows utilization/resetsAt,
+      // verified against real captures (normalize.ts).
+      return { reasoning: true, tools: true, cost: true, steer: true, usage: true };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
