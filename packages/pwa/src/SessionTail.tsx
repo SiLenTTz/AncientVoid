@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { hubApi, getToken, type SessionRecord } from "./api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "./ws.ts";
+import { Composer } from "./Composer.tsx";
 
 /**
  * T1.6 filter engine — three presets per EPIC-P1 §2/§5 (AC-P1-4), not the
@@ -65,6 +66,32 @@ export function SessionTail({ session, onBack }: { session: SessionRecord; onBac
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const tailRef = useRef<HTMLDivElement>(null);
   const connRef = useRef<TailConnection | null>(null);
+
+  // T1.5-6: the PWA could watch and stop a session, but never reply to
+  // one — POST /api/sessions/:id/steer existed server-side and both real
+  // adapters implement it, nothing in the client ever called it.
+  const [steerSupported, setSteerSupported] = useState(false);
+  const [reply, setReply] = useState("");
+  const [replyBusy, setReplyBusy] = useState(false);
+  const [replyError, setReplyError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    hubApi
+      .adapters()
+      .then((adapters) => {
+        if (!alive) return;
+        const info = adapters.find((a) => a.id === session.adapter);
+        // Honest per-adapter check, not a blanket "always show a reply
+        // box": an adapter without capabilities.steer gets no reply field
+        // at all rather than one that would silently fail every time.
+        setSteerSupported(info?.capabilities.steer ?? false);
+      })
+      .catch(() => setSteerSupported(false));
+    return () => {
+      alive = false;
+    };
+  }, [session.adapter]);
 
   useEffect(() => {
     const base = window.location.origin;
@@ -139,6 +166,27 @@ export function SessionTail({ session, onBack }: { session: SessionRecord; onBac
     await hubApi.stopSession(session.id).catch(() => undefined);
   };
 
+  const sendReply = async () => {
+    if (!reply.trim()) return;
+    setReplyBusy(true);
+    setReplyError("");
+    try {
+      const ack = await hubApi.steer(session.id, { kind: "prompt", text: reply });
+      if (ack.ok) {
+        setReply("");
+      } else {
+        // A rejected steer (e.g. claude's "no thread_id captured yet") is
+        // shown, not swallowed — an AC-P1.5-7 requirement, and the same
+        // honesty standard the rest of this app already applies.
+        setReplyError(ack.detail ?? "Antwort wurde abgelehnt");
+      }
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Antwort fehlgeschlagen");
+    } finally {
+      setReplyBusy(false);
+    }
+  };
+
   return (
     <div>
       <div class="topbar">
@@ -164,29 +212,50 @@ export function SessionTail({ session, onBack }: { session: SessionRecord; onBac
         ))}
       </div>
 
-      <div ref={tailRef} style="overflow-y: auto; max-height: calc(100vh - 190px)">
-        {visible.length === 0 ? (
-          <div class="empty">keine Events im Filter</div>
-        ) : (
-          visible.map((e) => (
-            <EventRow
-              key={e.seq}
-              event={e}
-              expanded={expanded.has(e.seq)}
-              onToggleExpand={() => toggleExpanded(e.seq)}
-              toolResult={e.type === "tool_use" ? toolResultByToolId.get(toolIdOf(e) ?? "") : undefined}
-              onJump={jumpTo}
-            />
-          ))
-        )}
-      </div>
+      {(() => {
+        const showReply = status !== "stopped" && steerSupported;
+        return (
+          <div
+            ref={tailRef}
+            style={`overflow-y: auto; max-height: calc(100vh - ${showReply ? 300 : 190}px)`}
+          >
+            {visible.length === 0 ? (
+              <div class="empty">keine Events im Filter</div>
+            ) : (
+              visible.map((e) => (
+                <EventRow
+                  key={e.seq}
+                  event={e}
+                  expanded={expanded.has(e.seq)}
+                  onToggleExpand={() => toggleExpanded(e.seq)}
+                  toolResult={e.type === "tool_use" ? toolResultByToolId.get(toolIdOf(e) ?? "") : undefined}
+                  onJump={jumpTo}
+                />
+              ))
+            )}
+          </div>
+        );
+      })()}
 
-      <div class="bottom-actions">
-        {status !== "stopped" && (
-          <button class="btn danger" onClick={stop}>
-            Stop
-          </button>
+      <div class="bottom-actions bottom-actions-column">
+        {status !== "stopped" && steerSupported && (
+          <>
+            {replyError && <div class="reply-error">{replyError}</div>}
+            <Composer value={reply} onChange={setReply} placeholder="Antworten…" disabled={replyBusy} />
+          </>
         )}
+        <div class="row" style="justify-content: flex-end; gap: 8px">
+          {status !== "stopped" && steerSupported && (
+            <button class="btn primary" onClick={sendReply} disabled={replyBusy || !reply.trim()}>
+              {replyBusy ? "Sende…" : "Senden"}
+            </button>
+          )}
+          {status !== "stopped" && (
+            <button class="btn danger" onClick={stop}>
+              Stop
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

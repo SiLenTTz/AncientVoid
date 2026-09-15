@@ -400,18 +400,30 @@ Komponente — und nicht zweimal derselbe Code.
   zeigt real alle 7 gefundenen Repos mit ihren tatsächlichen Branches
   (`aSPARK (docs/metrics-third-machine)`, `custom-rag (dev)`, `mobile-hub
   (main)`, …) — Screenshot verifiziert, dark theme und Handy-Breite intakt.
-- [ ] **T1.5-6** **Prompt-Composer-Komponente + `hubApi.steer()`.** Eine
-  wiederverwendbare Eingabekomponente (neue Datei unter `packages/pwa/src/`),
-  eingesetzt an beiden Stellen aus §3.6: im Erstell-Formular und **neu** als
-  Antwortfeld in `packages/pwa/src/SessionTail.tsx`. Dafür `steer` in
-  `packages/pwa/src/api.ts` ergänzen (Ziel: `POST /api/sessions/:id/steer`,
-  Body entspricht `SteerInput` aus `packages/contracts/src/adapter.ts`).
-  Ehrliches Fehlerverhalten: Adapter ohne `capabilities().steer` bekommen kein
-  Antwortfeld angeboten; ein `ok:false`-Ack (z. B. claudes „Steer(resume) ohne
-  Prompt", T1.2) wird sichtbar gemeldet, nicht verschluckt. Die drei Ausgänge
-  („Senden", Mikrofon, „Verbessern") werden hier als Platzhalter angelegt und
-  in T1.5-7/T1.5-8/T1.5-10 gefüllt — diese Aufgabe ist allein schon deshalb
-  einzeln committierbar, weil sie die heutige Steer-Lücke schließt.
+- [x] **T1.5-6** **Prompt-Composer-Komponente + `hubApi.steer()`.** Neue
+  `packages/pwa/src/Composer.tsx`: Textfeld + Aktionsreihe, eingesetzt an
+  beiden Stellen aus §3.6 (Erstell-Formular in `App.tsx` **und** neu als
+  Antwortfeld in `SessionTail.tsx`). `hubApi.steer()` ergänzt
+  (`packages/pwa/src/api.ts`) — bewusst **nicht** über den generischen,
+  werfenden `api<T>()`-Helper geführt, weil ein abgelehnter Steer
+  (`{ok:false, detail}`, HTTP 422) sonst nur als nichtssagendes „422
+  Unprocessable Entity" ankäme statt mit dem echten `detail`-Text; beide
+  Fehlerformen (Ack-Ablehnung **und** Zod-Validierungsfehler `{error}`) auf
+  eine gemeinsame `Ack`-Form normalisiert. Ehrliches Verhalten umgesetzt:
+  `SessionTail` fragt `capabilities().steer` für den jeweiligen Adapter ab
+  und zeigt das Antwortfeld nur, wenn es wirklich unterstützt wird; ein
+  `ok:false` erscheint sichtbar als Fehlertext, wird nicht verschluckt.
+  Mikrofon- und „Verbessern"-Knopf sind sichtbare, deaktivierte Platzhalter
+  mit Tooltip auf T1.5-7/T1.5-8. **Layout-Fehler live gefunden und
+  behoben:** ein erster Versuch (separates `position: fixed`-Element für
+  den Composer) überlappte sichtbar die letzten Tail-Zeilen (Screenshot
+  vor dem Fix) — behoben durch Zusammenlegen von Composer und
+  Button-Reihe in einen gemeinsamen fixen Block
+  (`.bottom-actions-column`) mit angepasstem Scroll-Bereich. **Echter
+  Ende-zu-Ende-Beweis (AC-P1.5-7):** ein Folge-Prompt wurde über die
+  echte PWA-UI an eine laufende `claude`-Session gesendet — die reale
+  Antwort („CONFIRMED") erschien im Tail, Kosten korrekt verbucht
+  ($0.0058), Session blieb `working` (BUG-0008-Fix hält).
 - [ ] **T1.5-7** **Spracheingabe (Browser-STT-MVP).** Mikrofon-Knopf im
   Composer, Transkription über die native Browser-STT (§3.3), Ergebnis landet
   **im editierbaren Textfeld**, wird nie direkt abgesendet. Sichtbarer Hinweis,
@@ -515,7 +527,7 @@ Komponente — und nicht zweimal derselbe Code.
 - **AC-P1.5-6:** Eine Session lässt sich vom Handy **ohne Tippen eines Pfades**
   anlegen (Auswahl aus der Projektliste). Bei leerer/unkonfigurierter Liste
   bleibt der Hub bedienbar (Rückfall-Freitextfeld, BUG-0006-Lektion).
-- **AC-P1.5-7:** In einer laufenden `claude`-Session wird aus dem Tail heraus ein
+- **AC-P1.5-7: 🟢 erfüllt.** In einer laufenden `claude`-Session wird aus dem Tail heraus ein
   Folge-Prompt abgesetzt → Server antwortet mit `ok:true` auf
   `POST /api/sessions/:id/steer`, und die Antwort des Agenten erscheint im
   Tail. (Heute unmöglich: die PWA ruft `steer` nirgends auf.) Ein `ok:false`-Ack

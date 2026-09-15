@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { hubApi, type AdapterInfo, type AdapterUsage, type DiscoveredProject, type SessionRecord } from "./api.ts";
 import { Dashboard } from "./Dashboard.tsx";
+import { Composer } from "./Composer.tsx";
 
 export function App({
   onOpen,
@@ -175,11 +176,7 @@ function CreateSession({
       </label>
       <label>
         Prompt (optional)
-        <input
-          value={prompt}
-          onInput={(e) => setPrompt((e.target as HTMLInputElement).value)}
-          placeholder="Refactore den Auth-Flow…"
-        />
+        <Composer value={prompt} onChange={setPrompt} placeholder="Refactore den Auth-Flow…" />
       </label>
       {error && <div style="color: var(--err)">{error}</div>}
       <button class="btn primary" onClick={submit} disabled={busy || !project}>
