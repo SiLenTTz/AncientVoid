@@ -578,34 +578,44 @@ Komponente — und nicht zweimal derselbe Code.
 
 ## 5. Acceptance Criteria
 
-- **AC-P1.5-1:** Eine echte `claude`-Session vom Handy gestartet → spätestens
-  beim ersten `rate_limit_event` des Streams zeigt die PWA die Auslastung des
-  5-Stunden- **und** des 7-Tage-Fensters als Prozentwert plus den Reset-Zeitpunkt
-  in lokaler Zeit. Gegenprobe gegen die Rohzeile: angezeigter Prozentwert
-  entspricht `unifiedWindows.<fenster>.utilization × 100` mit ≤ 1 Prozentpunkt
-  Rundungsabweichung, angezeigte Reset-Zeit entspricht dem Unix-`resetsAt`.
-- **AC-P1.5-2:** Eine `codex`-Session zeigt an derselben Stelle wörtlich
+- **AC-P1.5-1: 🟡 teilweise — Wert real bestätigt, aber noch nicht „vom Handy
+  gestartet".** T1.5-3s Playwright-Lauf zeigt reale `unifiedWindows`-Werte
+  einer echten `claude`-Session (`5h 20% · reset 02:50 · 7d 36% · reset
+  10:00 · out_of_credits`), Prozentwert und Reset-Zeit direkt aus der
+  Rohzeile abgeleitet (keine Umrechnung dazwischen, die verfälschen könnte).
+  Was fehlt: dieselbe Session **vom Handy über Tailscale** gestartet, statt
+  von der Entwicklungsmaschine aus — das ist Teil des noch ausstehenden
+  Live-Phone-Tests (EPIC-DoD), nicht separat vorgezogen, um keinen
+  AC-P1-1-artigen 🟡-Ausgang zu wiederholen, ohne ihn zu benennen.
+- **AC-P1.5-2: 🟢 erfüllt.** Eine `codex`-Session zeigt an derselben Stelle wörtlich
   **„unbekannt"** mit abrufbarer Begründung — nie 0 %, nie 100 %, nie ein leeres
   Feld. Die CLI-Grenze (kein Quota-Event im `--json`-Stream, kein
   Quota-Subkommando) ist mit CLI-Version und Prüfdatum dokumentiert, analog zur
-  Quellenangabe in `packages/adapter-codex/src/pricing.ts` (T1.11).
-- **AC-P1.5-3:** Im Erstell-Formular der PWA existiert kein Budget-Eingabefeld
+  Quellenangabe in `packages/adapter-codex/src/pricing.ts` (T1.11). Beleg:
+  `Dashboard.tsx`s `UsageRow` (`supported:false` → „unbekannt (Adapter meldet
+  kein Kontingent)"), Routen-Test in `server.test.ts`.
+- **AC-P1.5-3: 🟢 erfüllt.** Im Erstell-Formular der PWA existiert kein Budget-Eingabefeld
   mehr (prüfbar per `grep -rn "budget" packages/pwa/src/ --ignore-case` → kein
   Treffer in einem Eingabe-Element). Gleichzeitig sind `SessionSpec.budgetUsd`
   und `SessionRecord.budgetUsd` in `packages/contracts/src/session.ts`
   unverändert und alle bestehenden Tests grün — die Entfernung ist eine
-  UI-Änderung, **kein** Contract-Bruch.
-- **AC-P1.5-4:** Mit `projectRoots: ["/mnt/omarchy_data/30_repos/arch/arbeitsbaeume"]`
+  UI-Änderung, **kein** Contract-Bruch. Beleg: T1.5-3s Playwright-Screenshot
+  (Create-Form ohne Budget-Feld).
+- **AC-P1.5-4: 🟢 erfüllt.** Mit `projectRoots: ["/mnt/omarchy_data/30_repos/arch/arbeitsbaeume"]`
   listet `GET /api/projects` genau die direkten Unterverzeichnisse mit `.git`
   (u. a. `mobile-hub`, `custom-rag`) — kein Nicht-Repo, kein Eintrag aus Tiefe 2,
   kein Eintrag außerhalb der Roots. Ein nicht existierender Root erzeugt eine
-  sichtbare Warnung statt einer stillen Leerliste.
-- **AC-P1.5-5:** Bei gesetzten `projectRoots` wird ein `POST /api/sessions` mit
+  sichtbare Warnung statt einer stillen Leerliste. Beleg: T1.5-4s echter
+  `curl`-Lauf gegen alle 7 echten Geschwister-Repos, `projects.test.ts` (9 Tests).
+- **AC-P1.5-5: 🟢 erfüllt.** Bei gesetzten `projectRoots` wird ein `POST /api/sessions` mit
   einem `project`-Pfad außerhalb der Roots mit 4xx abgelehnt; ein Symlink
   innerhalb eines Roots, der nach außen zeigt, ebenfalls. Beides als Test.
-- **AC-P1.5-6:** Eine Session lässt sich vom Handy **ohne Tippen eines Pfades**
+  Beleg: T1.5-4s echter `curl`-Versuch (422 real beobachtet), Symlink-Escape-
+  Testfall in `projects.test.ts`.
+- **AC-P1.5-6: 🟢 erfüllt.** Eine Session lässt sich vom Handy **ohne Tippen eines Pfades**
   anlegen (Auswahl aus der Projektliste). Bei leerer/unkonfigurierter Liste
-  bleibt der Hub bedienbar (Rückfall-Freitextfeld, BUG-0006-Lektion).
+  bleibt der Hub bedienbar (Rückfall-Freitextfeld, BUG-0006-Lektion). Beleg:
+  T1.5-5s Playwright-Screenshot (Dropdown mit 7 echten Repos + Branches).
 - **AC-P1.5-7: 🟢 erfüllt.** In einer laufenden `claude`-Session wird aus dem Tail heraus ein
   Folge-Prompt abgesetzt → Server antwortet mit `ok:true` auf
   `POST /api/sessions/:id/steer`, und die Antwort des Agenten erscheint im
