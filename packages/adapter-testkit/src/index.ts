@@ -213,7 +213,12 @@ export function assertFixtureEventsValid(events: readonly EmittedEvent[]): void 
  * callers can layer their own provider-specific assertions on top.
  */
 export function checkFixture(path: string, normalize: (line: unknown) => EmittedEvent[]): EmittedEvent[] {
-  const events = loadFixtureLines(path).flatMap(normalize);
+  // Not `.flatMap(normalize)`: Array.flatMap's callback signature is
+  // (item, index, array) — passing normalize directly hands a normalizer
+  // with an optional second parameter (e.g. adapter-codex's `model`) the
+  // line's numeric array index instead, silently. Wrapping in an arrow
+  // forwards exactly one argument, matching this function's own signature.
+  const events = loadFixtureLines(path).flatMap((line) => normalize(line));
   assertFixtureEventsValid(events);
   return events;
 }

@@ -1,4 +1,5 @@
 import type { EmittedEvent } from "@uacc/contracts";
+import { estimateCostUsd } from "./pricing.ts";
 
 /**
  * Maps one parsed line of `codex exec --json` output to zero or more
@@ -12,7 +13,7 @@ import type { EmittedEvent } from "@uacc/contracts";
  * `item.started`/`item.completed` with an `item.type`, `turn.completed`),
  * no content-block arrays. No native cost figure anywhere in `usage` —
  * matches EPIC-P1 §3's own note that codex needs its own price table
- * (T1.11), unlike claude's `total_cost_usd`.
+ * (T1.11, see pricing.ts), unlike claude's `total_cost_usd`.
  *
  * No `item.type: "reasoning"` was observed in any capture
  * (`reasoning_output_tokens` was 0 in all three) — codex clearly tracks
@@ -45,7 +46,7 @@ export function summarize(text: string, max = 200): string {
   return oneLine.length > max ? oneLine.slice(0, max - 1) + "…" : oneLine;
 }
 
-export function normalizeCodexLine(raw: unknown): EmittedEvent[] {
+export function normalizeCodexLine(raw: unknown, model?: string): EmittedEvent[] {
   if (typeof raw !== "object" || raw === null) {
     return [{ type: "system", summary: "codex: non-object stream-json line", payload: { raw: asString(raw) } }];
   }
@@ -64,20 +65,28 @@ export function normalizeCodexLine(raw: unknown): EmittedEvent[] {
       return [{ type: "system", summary: "codex: turn started", payload: {} }];
     case "turn.completed": {
       const usage = (line.usage ?? {}) as Record<string, unknown>;
+      const normalizedUsage = {
+        inputTokens: usage.input_tokens as number | undefined,
+        cachedInputTokens: usage.cached_input_tokens as number | undefined,
+        outputTokens: usage.output_tokens as number | undefined,
+        reasoningOutputTokens: usage.reasoning_output_tokens as number | undefined,
+      };
+      // No native cost in codex's own stream — unlike claude's
+      // total_cost_usd. T1.11: our own price table, keyed by the model the
+      // session actually requested (spec.model -> --model). costUsd stays
+      // unset (never a guess) when the session didn't request a model, or
+      // requested one pricing.ts doesn't have a rate for (R9.7-Regel).
+      const costUsd = estimateCostUsd(model, normalizedUsage);
       return [
         {
           type: "system",
           summary: "codex: turn complete",
+          ...(costUsd !== undefined ? { costUsd } : {}),
           payload: {
             kind: "codex.turn_complete",
-            // No native cost — unlike claude's total_cost_usd, codex
-            // reports only token counts (T1.11: own price table needed).
-            usage: {
-              inputTokens: usage.input_tokens,
-              cachedInputTokens: usage.cached_input_tokens,
-              outputTokens: usage.output_tokens,
-              reasoningOutputTokens: usage.reasoning_output_tokens,
-            },
+            usage: normalizedUsage,
+            model: model ?? null,
+            costEstimated: costUsd !== undefined,
           },
         },
       ];

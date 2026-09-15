@@ -53,6 +53,10 @@ interface SessionMeta {
   threadId?: string;
   healthy: boolean;
   degraded: boolean;
+  /** T1.11: the model this session requested via SessionSpec.model, if
+   * any — carried across resume()s so cost estimation stays consistent
+   * for the whole session, not just its first turn. */
+  model?: string | undefined;
 }
 
 export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapter {
@@ -60,7 +64,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const procs = new Map<string, WorkerProcess>();
   const sessions = new Map<string, SessionMeta>();
 
-  function buildInitialArgs(prompt: string): string[] {
+  function buildInitialArgs(prompt: string, model?: string): string[] {
     return [
       cfg.command,
       "exec",
@@ -69,15 +73,26 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       "--skip-git-repo-check",
       "--sandbox",
       cfg.sandbox,
+      ...(model ? ["--model", model] : []),
       ...cfg.extraArgs,
     ];
   }
 
-  function buildResumeArgs(threadId: string, prompt: string): string[] {
+  function buildResumeArgs(threadId: string, prompt: string, model?: string): string[] {
     // No --sandbox here: `codex exec resume` rejects it (real CLI, verified
     // 2026-09-15) — the resumed turn keeps whatever policy the thread
-    // started with.
-    return [cfg.command, "exec", "--json", "resume", threadId, prompt, "--skip-git-repo-check"];
+    // started with. --model IS accepted here (verified via `codex exec
+    // resume --help`, same CLI version), unlike --sandbox.
+    return [
+      cfg.command,
+      "exec",
+      "--json",
+      "resume",
+      threadId,
+      prompt,
+      "--skip-git-repo-check",
+      ...(model ? ["--model", model] : []),
+    ];
   }
 
   function attach(sessionId: string, proc: WorkerProcess, ctx: AdapterContext, meta: SessionMeta): void {
@@ -106,7 +121,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           const tid = (parsed as { thread_id?: unknown }).thread_id;
           if (typeof tid === "string") meta.threadId = tid;
         }
-        for (const event of normalizeCodexLine(parsed)) {
+        for (const event of normalizeCodexLine(parsed, meta.model)) {
           ctx.emit(event);
           if (isFailLoudFallback(event)) meta.degraded = true;
         }
@@ -166,20 +181,22 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     version: "0.1.0",
 
     capabilities(): AdapterCapabilities {
-      // cost: false — codex reports token usage (input/output/cached/
-      // reasoning) but no native $ figure anywhere in its stream (verified
-      // against the real CLI); a cost estimate needs T1.11's own price
-      // table, which doesn't exist yet. Claiming cost:true here would be
-      // exactly the "capabilities() that promise more than the code
-      // holds" anti-pattern docs/adapters.md warns against.
-      return { reasoning: true, tools: true, cost: false, steer: true };
+      // cost: true (T1.11) — codex reports token usage, and pricing.ts
+      // estimates a real $ figure from it whenever a session requests a
+      // model (spec.model -> --model) that pricing.ts has a rate for.
+      // Same honesty standard as reasoning:true above (claimed on the
+      // CLI's documented capability, not "every session will have a
+      // populated value"): a session that never sets spec.model, or sets
+      // one pricing.ts doesn't know, gets no costUsd on its events at all
+      // (R9.7 — unbekannt statt geraten, never a guess or a stale $0).
+      return { reasoning: true, tools: true, cost: true, steer: true };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
-      const meta: SessionMeta = { healthy: true, degraded: false };
+      const meta: SessionMeta = { healthy: true, degraded: false, model: spec.model };
       await checkVersion(ctx);
       const proc = await ctx.spawnWorker(
-        buildInitialArgs(spec.prompt ?? ""),
+        buildInitialArgs(spec.prompt ?? "", spec.model),
         spec.env ? { env: spec.env } : undefined,
       );
       attach(ctx.sessionId, proc, ctx, meta);
@@ -199,7 +216,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           if (!meta?.threadId) {
             return { ok: false, detail: "codex: no thread_id captured yet — cannot resume" };
           }
-          const proc = await ctx.spawnWorker(buildResumeArgs(meta.threadId, input.text));
+          const proc = await ctx.spawnWorker(buildResumeArgs(meta.threadId, input.text, meta.model));
           attach(handle.sessionId, proc, ctx, meta);
           return { ok: true };
         }
