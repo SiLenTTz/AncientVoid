@@ -280,3 +280,87 @@ describe("hub server — pwaDir resolution (BUG-0009)", () => {
     }
   });
 });
+
+describe("hub server — project auto-discovery (T1.5-4, AC-P1.5-4/5)", () => {
+  async function buildApp(projectRoots: string[]) {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-projects-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, {});
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    const tokens = new TokenService(db);
+    const token = tokens.issue("test-device").token;
+    const app = await createHubApp({
+      sessions,
+      tokens,
+      registry,
+      auth: { tokens, enforceTailnetIdentity: false },
+      projectRoots,
+    });
+    return { app, token, cleanup: () => rm(dir, { recursive: true, force: true }) };
+  }
+
+  it("GET /api/projects lists real repos under a configured root", async () => {
+    const root = await mkdtemp(join(tmpdir(), "uacc-projects-root-"));
+    const repo = join(root, "mobile-hub");
+    await import("node:fs/promises").then((fs) => fs.mkdir(join(repo, ".git"), { recursive: true }));
+    const { app, token, cleanup } = await buildApp([root]);
+    try {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/projects",
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { projects: { name: string; path: string }[]; warnings: string[] };
+      expect(body.warnings).toEqual([]);
+      expect(body.projects.map((p) => p.name)).toEqual(["mobile-hub"]);
+      expect(body.projects[0]!.path).toBe(repo);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("POST /api/sessions rejects a project path outside the configured roots", async () => {
+    const root = await mkdtemp(join(tmpdir(), "uacc-projects-root-"));
+    const outside = await mkdtemp(join(tmpdir(), "uacc-projects-outside-"));
+    const { app, token, cleanup } = await buildApp([root]);
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/sessions",
+        headers: { authorization: `Bearer ${token}` },
+        payload: { adapter: "dummy", project: outside },
+      });
+      expect(res.statusCode).toBe(422);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+      await rm(root, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("POST /api/sessions accepts a project path inside a configured root", async () => {
+    const root = await mkdtemp(join(tmpdir(), "uacc-projects-root-"));
+    const repo = join(root, "mobile-hub");
+    await import("node:fs/promises").then((fs) => fs.mkdir(repo, { recursive: true }));
+    const { app, token, cleanup } = await buildApp([root]);
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/sessions",
+        headers: { authorization: `Bearer ${token}` },
+        payload: { adapter: "dummy", project: repo },
+      });
+      expect(res.statusCode).toBe(201);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});

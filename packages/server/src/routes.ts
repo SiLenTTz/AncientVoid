@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { SessionManager, TokenService, AdapterRegistry } from "@uacc/core";
+import { discoverProjects, isProjectPathAllowed } from "@uacc/core";
 import { z } from "zod";
 
 const CreateSessionBody = z.object({
@@ -25,8 +26,10 @@ export function registerRoutes(
     sessions: SessionManager;
     tokens: TokenService;
     registry: AdapterRegistry;
+    projectRoots?: string[];
   },
 ): void {
+  const projectRoots = deps.projectRoots ?? [];
   app.get("/api/health", async () => ({
     ok: true,
     adapters: deps.registry.list().map((a) => ({
@@ -64,6 +67,15 @@ export function registerRoutes(
     };
   });
 
+  app.get("/api/projects", async () => {
+    // T1.5-4: fresh scan on every call (not cached at startup) — a repo
+    // cloned after the hub started should show up without a restart.
+    // Startup-time readability warnings are logged once in createHubApp();
+    // this response carries them again so a client can surface them too.
+    const { projects, warnings } = await discoverProjects(projectRoots);
+    return { projects, warnings };
+  });
+
   app.get("/api/sessions", async () => deps.sessions.list());
 
   app.get("/api/sessions/:id", async (req, reply) => {
@@ -77,6 +89,13 @@ export function registerRoutes(
     const parsed = CreateSessionBody.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid session spec", issues: parsed.error.issues });
+    }
+    // T1.5-4/AC-P1.5-5: a client (a phone on the tailnet) never gets to
+    // start a session outside the configured roots — ADR-0001's allowlist
+    // pattern ("never trust a client-supplied path at face value").
+    // Symlink escapes are resolved away, not just string-prefix-checked.
+    if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
     try {
       const record = await deps.sessions.create(parsed.data);

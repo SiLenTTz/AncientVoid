@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { hubApi, type AdapterInfo, type AdapterUsage, type SessionRecord } from "./api.ts";
+import { hubApi, type AdapterInfo, type AdapterUsage, type DiscoveredProject, type SessionRecord } from "./api.ts";
 import { Dashboard } from "./Dashboard.tsx";
 
 export function App({
@@ -88,6 +88,30 @@ function CreateSession({
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    hubApi
+      .projects()
+      .then((res) => {
+        if (!alive) return;
+        setProjects(res.projects);
+        // Preselect the first discovered project so "Starten" works
+        // without any typing when a picker is shown.
+        if (res.projects.length > 0) setProject((p) => p || res.projects[0]!.path);
+      })
+      .catch(() => {
+        // T1.5-5: an unreachable /api/projects must not make the form
+        // unusable — fall back to the free-text path exactly as if no
+        // projectRoots were configured (BUG-0006 lesson: onboarding paths
+        // must never become a dead end).
+        if (alive) setProjects([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const submit = async () => {
     setBusy(true);
@@ -124,12 +148,30 @@ function CreateSession({
         </select>
       </label>
       <label>
-        Projekt (Pfad)
-        <input
-          value={project}
-          onInput={(e) => setProject((e.target as HTMLInputElement).value)}
-          placeholder="/home/user/repo"
-        />
+        Projekt
+        {projects === null ? (
+          <input disabled placeholder="lade…" />
+        ) : projects.length > 0 ? (
+          <select value={project} onChange={(e) => setProject((e.target as HTMLSelectElement).value)}>
+            {projects.map((p) => (
+              <option key={p.path} value={p.path}>
+                {p.name}
+                {p.branch ? ` (${p.branch})` : ""}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <>
+            <input
+              value={project}
+              onInput={(e) => setProject((e.target as HTMLInputElement).value)}
+              placeholder="/home/user/repo"
+            />
+            <span class="dim" style="font-size: 11px">
+              keine Projekt-Wurzeln konfiguriert — siehe docs/configuration.md
+            </span>
+          </>
+        )}
       </label>
       <label>
         Prompt (optional)

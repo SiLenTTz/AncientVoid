@@ -362,30 +362,44 @@ Komponente — und nicht zweimal derselbe Code.
   claude-Session (`5h 20% · reset 02:50 · 7d 36% · reset 10:00 ·
   out_of_credits`) neben ehrlichem „unbekannt" für dummy/codex —
   Screenshots verifiziert, dark theme und Handy-Breite intakt.
-- [ ] **T1.5-4** **`projectRoots` + Repo-Scanner + `GET /api/projects`.** Neues
-  Feld in `HubConfig` (`packages/core/src/config.ts:21-39`, Default `[]` —
-  bestehende Configs bleiben gültig). Scanner: für jeden Root die direkten
-  Unterverzeichnisse (Tiefe 1), aufnehmen was ein `.git` enthält; je Treffer
-  stabile Id, Anzeigename, absoluter Pfad, optional Branch. Nicht existierende
-  oder nicht lesbare Roots → sichtbare Warnung beim Start, kein stiller
-  Leerzustand und kein Crash (Fail loud, AGENTS.md Regel 6 — vgl. BUG-0009,
-  `pwaDir` wurde genau so still verschluckt). Ergebnis über einen neuen Endpunkt
-  ausliefern. **Sicherheitsteil (nicht optional):** Ist `projectRoots` gesetzt,
-  lehnt `POST /api/sessions` (`packages/server/src/routes.ts:58-71`) ein
-  `project` außerhalb der Roots ab (422/400), inklusive Symlink-Escape —
-  Muster aus [ADR-0001](../docs/adr/0001-swarm-adapter-context.md)
-  („niemals ein Dateisystempfad im Request … Server löst gegen `roots` auf").
-  Beispielwert in `packages/server/hub.config.example.json` ergänzen.
-- [ ] **T1.5-5** **PWA: Projekt-Picker statt Freitext.** Das
-  `<input placeholder="/home/user/repo">` in
-  `packages/pwa/src/App.tsx:114-121` durch eine Auswahl aus `GET /api/projects`
-  ersetzen (`hubApi.projects()` in `packages/pwa/src/api.ts` ergänzen). Verhalten
-  bei leerer Liste (kein `projectRoots` konfiguriert): ehrlicher Hinweis
-  „keine Projekt-Wurzeln konfiguriert — siehe docs/configuration.md" **mit**
-  dem Freitextfeld als Rückfallebene, damit ein frisch aufgesetzter Hub nicht
-  unbedienbar wird (BUG-0006-Lektion: Onboarding-Pfade werden zu leicht
-  unerreichbar). Im echten Browser prüfen, nicht nur bauen (P1-Retro,
-  Erkenntnis 2).
+- [x] **T1.5-4** **`projectRoots` + Repo-Scanner + `GET /api/projects`.**
+  `projectRoots: string[]` (Default `[]`) in `HubConfig`
+  (`packages/core/src/config.ts`). Scanner (`packages/core/src/projects.ts`,
+  `discoverProjects()`): Tiefe 1, nimmt auf, was ein `.git` enthält (Datei
+  oder Verzeichnis — funktioniert auch für Git-Worktrees), liefert
+  absoluten Pfad (dient direkt als `SessionSpec.project`, keine separate
+  Id-Indirektion nötig), Anzeigename, Branch aus `.git/HEAD` (best effort,
+  `null` bei detached HEAD). Nicht existierende/nicht lesbare Roots landen
+  als Eintrag in `warnings[]` — geloggt einmal beim Hub-Start
+  (`createHubApp()`) und zusätzlich in jeder `/api/projects`-Antwort, kein
+  stiller Leerzustand (BUG-0009-Muster). **Sicherheitsteil umgesetzt:**
+  `isProjectPathAllowed()` löst Symlinks beidseitig auf (`fs.realpath`) und
+  prüft echte Pfad-Enthaltenheit — `POST /api/sessions` lehnt jeden Pfad
+  außerhalb der konfigurierten Roots mit 422 ab, inklusive Symlink-Escape
+  (ADR-0001-Muster). Leere `projectRoots` (Default) ändert das bisherige
+  Verhalten nicht (jeder Pfad erlaubt). `hub.config.example.json` mit
+  Beispiel/Doku-Kommentar ergänzt. Getestet: 9 Unit-Tests
+  (`packages/core/test/projects.test.ts`, inkl. echtem Symlink-Escape-Fall)
+  + 3 Routen-Tests (`packages/server/test/server.test.ts`: reale Discovery,
+  Ablehnung außerhalb, Annahme innerhalb). **Live gegen echte Repos
+  verifiziert:** `projectRoots: ["/mnt/.../arbeitsbaeume"]` fand alle 7
+  echten Geschwister-Repos mit ihren tatsächlichen aktuellen Branches; ein
+  echter `curl`-Versuch mit einem Pfad außerhalb wurde real mit 422
+  abgelehnt.
+- [x] **T1.5-5** **PWA: Projekt-Picker statt Freitext.** `CreateSession`
+  (`packages/pwa/src/App.tsx`) lädt `hubApi.projects()` beim Öffnen des
+  Formulars; bei ≥1 gefundenem Projekt ersetzt ein `<select>` (Anzeige
+  „Name (Branch)") das Freitextfeld, erstes Ergebnis vorausgewählt (kein
+  Tippen nötig). Bei leerer Liste (kein `projectRoots` konfiguriert, oder
+  `/api/projects` nicht erreichbar) bleibt das ursprüngliche Freitextfeld
+  als Rückfallebene, mit Hinweistext „keine Projekt-Wurzeln konfiguriert —
+  siehe docs/configuration.md" (BUG-0006-Lektion: Onboarding-Pfade dürfen
+  nie unerreichbar werden). **Echt im Browser geprüft** (Playwright, nicht
+  nur `vite build`, P1-Retro Erkenntnis 2): `hub.config.json` mit
+  `projectRoots` auf das echte Geschwister-Verzeichnis gesetzt, Dropdown
+  zeigt real alle 7 gefundenen Repos mit ihren tatsächlichen Branches
+  (`aSPARK (docs/metrics-third-machine)`, `custom-rag (dev)`, `mobile-hub
+  (main)`, …) — Screenshot verifiziert, dark theme und Handy-Breite intakt.
 - [ ] **T1.5-6** **Prompt-Composer-Komponente + `hubApi.steer()`.** Eine
   wiederverwendbare Eingabekomponente (neue Datei unter `packages/pwa/src/`),
   eingesetzt an beiden Stellen aus §3.6: im Erstell-Formular und **neu** als

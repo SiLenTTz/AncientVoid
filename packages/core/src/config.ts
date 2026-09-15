@@ -36,6 +36,12 @@ export const HubConfig = z.object({
   adapters: z.array(AdapterRegistration).default([]),
   /** Worker runner kind: "tmux" (default) | "process". */
   workerRunner: z.enum(["tmux", "process"]).default("tmux"),
+  /** T1.5-4: host paths to scan (depth 1) for git repos to offer as
+   * session projects — see @uacc/core's discoverProjects(). Empty means
+   * unconfigured: the PWA falls back to a free-text path (BUG-0006
+   * lesson — don't make a fresh hub unusable), and POST /api/sessions
+   * accepts any project path (pre-T1.5-4 behavior, unchanged). */
+  projectRoots: z.array(z.string()).default([]),
 });
 export type HubConfig = z.infer<typeof HubConfig>;
 

@@ -72,6 +72,7 @@ async function main(): Promise<void> {
       enforceTailnetIdentity: config.server.enforceTailnetIdentity,
     },
     ...(config.server.pwaDir ? { pwaDir: resolve(config.server.pwaDir) } : {}),
+    projectRoots: config.projectRoots.map((root) => resolve(root)),
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.UACC_EXPOSE === "1"
