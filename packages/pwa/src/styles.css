@@ -298,8 +298,16 @@ a {
   gap: 8px;
 }
 
-.composer-actions .btn {
+.composer-actions .btn:disabled {
   opacity: 0.5;
+}
+
+.composer-notice {
+  font-size: 11px;
+}
+
+.composer-notice.err {
+  color: var(--err);
 }
 
 .reply-error {
