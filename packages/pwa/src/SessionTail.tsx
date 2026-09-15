@@ -241,7 +241,14 @@ export function SessionTail({ session, onBack }: { session: SessionRecord; onBac
         {status !== "stopped" && steerSupported && (
           <>
             {replyError && <div class="reply-error">{replyError}</div>}
-            <Composer value={reply} onChange={setReply} placeholder="Antworten…" disabled={replyBusy} />
+            <Composer
+              value={reply}
+              onChange={setReply}
+              placeholder="Antworten…"
+              disabled={replyBusy}
+              adapter={session.adapter}
+              project={session.project}
+            />
           </>
         )}
         <div class="row" style="justify-content: flex-end; gap: 8px">

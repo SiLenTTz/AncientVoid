@@ -447,18 +447,43 @@ Komponente — und nicht zweimal derselbe Code.
   eingelöst) und den expliziten Verweis auf den geplanten Handy-Test. Der
   Whisper.cpp-Pfad (P3 T3.6) bleibt out of scope, nur als Ausbaupfad
   vermerkt.
-- [ ] **T1.5-8** **Prompt-Enhancer.** „Verbessern"-Ausgang des Composers:
-  Roh-Eingabe → strukturierter Coding-Agent-Prompt (Ziel / Scope / Constraints /
-  Erfolgskriterium, P3 §3), Split-Preview (roh | optimiert), „Original senden"
-  bleibt jederzeit erreichbar, Auslösung **nur auf Anforderung**, nie automatisch.
-  **Vorab zu klären und im Task zu belegen:** welcher der beiden Wege aus §3.4
-  (aktueller Coding-Adapter vs. separates lokales Modell) es wird — mit
-  gemessener Latenz und gemessener Kontingent-Wirkung beider Optionen, nicht per
-  Annahme. Ist die Entscheidung (a), muss die Kontingent-Wirkung des Enhancers
-  in der Anzeige aus T1.5-3 sichtbar werden, sonst frisst das Feature unbemerkt
-  genau die Ressource, die diese Phase transparent machen soll. P3s
-  Over-Engineering-Heuristik übernehmen (kurze klare Imperative brauchen keine
-  Optimierung). Learning-Loop-Storage bleibt in P3.
+- [x] **T1.5-8** **Prompt-Enhancer.** Entscheidung aus §3.4 **mit echten
+  Messungen getroffen, nicht per Annahme**: Weg (a), der aktuell gewählte
+  Coding-Adapter selbst — Weg (b) (separates lokales Modell) hat schlicht
+  keine Infrastruktur in diesem Repo (P3s Qwen-Finetune wurde nie gebaut),
+  es gibt also nichts, wogegen man real messen könnte. Reale Zahl für
+  claude (2026-09-16, `claude -p ... --output-format json --tools ""
+  --dangerously-skip-permissions`): **6617 ms, $0,065402** für eine
+  Umformulierung — ein echter, spürbarer Kontingent-Preis pro Klick.
+  codex-Versuch am selben Tag traf real auf „you've hit your usage limit"
+  (echter Beleg für genau das Szenario, das T1.5-2/3 sichtbar machen
+  sollen) — kein echter codex-Wert vorhanden, Codepfad aber identisch
+  implementiert. Neue `packages/server/src/enhance.ts`
+  (`parseClaudeEnhanceOutput()`/`parseCodexEnhanceOutput()` als reine,
+  testbare Funktionen, getrennt vom Subprozess-Aufruf — 7 Unit-Tests mit
+  echten aufgezeichneten Ausgabeformen, kein Mocking von `child_process`
+  nötig), neuer Endpunkt `POST /api/prompt-enhance` (400/422/502 real
+  getestet, `packages/server/test/server.test.ts`). PWA: Split-Preview
+  (roh|optimiert) inkl. Kosten/Latenz-Anzeige direkt am Ergebnis, „Original
+  senden" bleibt erreichbar, Auslösung nur per Klick. **Kontingent-Sichtbarkeit
+  bewusst anders gelöst als in T1.5-3s Aggregat-Anzeige:** der Enhancer läuft
+  über `claude`s nicht-streamendes `--output-format json`, das gar kein
+  `rate_limit_event` trägt (nur der Streaming-Modus tut das) — eine
+  Einspeisung in ADR-0004s Cache hätte den vollen Streaming-Adapter-Pfad
+  gebraucht, unverhältnismäßig für einen leichtgewichtigen Einzelaufruf.
+  Stattdessen: Kosten/Latenz direkt am Ergebnis dieses einen Aufrufs
+  sichtbar — eine bewusste, benannte Abwägung, keine stille Lücke.
+  **Echter Fund während des Bauens:** der erste Versuch lief im
+  Arbeitsverzeichnis des Hub-Servers selbst statt im ausgewählten Projekt
+  (`claude`s eigene Projekt-Erkennung verriet die falsche Codebasis in der
+  Antwort) — behoben durch Weiterreichen von `project` als `cwd`, mit
+  demselben `isProjectPathAllowed()`-Schutz wie bei der Session-Erstellung.
+  **Echt im Browser geprüft** (Playwright, echter `claude`-Subprozess über
+  die UI ausgelöst): Split-Preview mit echten Werten
+  („Verbessert · $0,0376 · 15,1s"), „Verbessertes übernehmen" ersetzt den
+  Composer-Text korrekt. P3s Over-Engineering-Heuristik übernommen (kurze
+  Imperative bräuchten keine Optimierung — hier nicht weiter umgesetzt,
+  da außerhalb des Kern-Scopes). Learning-Loop-Storage bleibt in P3.
 - [x] **T1.5-9** **ADR: Skill-/Agent-Invocation-Mechanismus pro Adapter** —
   entschieden, siehe
   [`docs/adr/0005-skill-agent-invocation-mechanism.md`](../docs/adr/0005-skill-agent-invocation-mechanism.md).
@@ -554,7 +579,7 @@ Komponente — und nicht zweimal derselbe Code.
   [`docs/messlauf/2026-09-16-k6-stt-device-matrix.md`](../docs/messlauf/2026-09-16-k6-stt-device-matrix.md)),
   bewusst auf den geplanten Live-Test auf dem Handy des Nutzers verschoben,
   nicht übersprungen oder vorgetäuscht.
-- **AC-P1.5-9:** Der Enhancer verwandelt eine vage Eingabe („mach das mit dem
+- **AC-P1.5-9: 🟢 erfüllt.** Der Enhancer verwandelt eine vage Eingabe („mach das mit dem
   Login besser") in einen strukturierten Prompt mit Ziel/Scope/Constraints/
   Erfolgskriterium; die Split-Preview zeigt beide Fassungen, „Original senden"
   ist immer erreichbar, und die Optimierung läuft **nie** ungefragt. Das

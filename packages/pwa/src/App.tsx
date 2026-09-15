@@ -176,7 +176,13 @@ function CreateSession({
       </label>
       <label>
         Prompt (optional)
-        <Composer value={prompt} onChange={setPrompt} placeholder="Refactore den Auth-Flow…" />
+        <Composer
+          value={prompt}
+          onChange={setPrompt}
+          placeholder="Refactore den Auth-Flow…"
+          adapter={adapter}
+          project={project}
+        />
       </label>
       {error && <div style="color: var(--err)">{error}</div>}
       <button class="btn primary" onClick={submit} disabled={busy || !project}>

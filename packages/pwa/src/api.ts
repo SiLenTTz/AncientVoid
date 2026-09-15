@@ -66,6 +66,14 @@ export interface Ack {
   detail?: string;
 }
 
+/** T1.5-8 — result of one prompt-enhance call. `costUsd` present only for
+ * adapters that report a real cost (claude); never guessed for codex. */
+export interface EnhanceResult {
+  enhanced: string;
+  costUsd?: number;
+  latencyMs: number;
+}
+
 const TOKEN_KEY = "uacc.token";
 
 export function getToken(): string {
@@ -103,6 +111,8 @@ export const hubApi = {
   adapters: () => api<AdapterInfo[]>("/api/adapters"),
   adapterUsage: (id: string) => api<AdapterUsage>(`/api/adapters/${id}/usage`),
   projects: () => api<ProjectDiscoveryResult>("/api/projects"),
+  enhancePrompt: (adapter: string, project: string, text: string) =>
+    api<EnhanceResult>("/api/prompt-enhance", { method: "POST", body: JSON.stringify({ adapter, project, text }) }),
   sessions: () => api<SessionRecord[]>("/api/sessions"),
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
   events: (id: string, afterSeq = 0, limit = 500) =>

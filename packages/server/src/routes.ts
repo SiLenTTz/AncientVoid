@@ -1,7 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import type { SessionManager, TokenService, AdapterRegistry } from "@uacc/core";
 import { discoverProjects, isProjectPathAllowed } from "@uacc/core";
+import { enhancePrompt } from "./enhance.ts";
 import { z } from "zod";
+
+const EnhancePromptBody = z.object({
+  adapter: z.string().min(1),
+  text: z.string().min(1),
+  project: z.string().min(1),
+});
 
 const CreateSessionBody = z.object({
   adapter: z.string().min(1),
@@ -65,6 +72,32 @@ export function registerRoutes(
       quota: snapshot?.quota ?? null,
       observedAt: snapshot?.observedAt ?? null,
     };
+  });
+
+  app.post("/api/prompt-enhance", async (req, reply) => {
+    // T1.5-8: never automatic, only on explicit request (this route is
+    // the "on request" — nothing else calls it). Real cost/latency come
+    // back to the caller so the UI can show what this click actually
+    // spent, per-call — see enhance.ts's own doc comment for why this
+    // isn't folded into ADR-0004's aggregate usage cache.
+    const parsed = EnhancePromptBody.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid enhance request", issues: parsed.error.issues });
+    }
+    // Same containment rule as session creation (T1.5-4) — the enhance
+    // call's cwd is this path (found necessary via a real test, see
+    // enhance.ts), so it needs the identical guard against an
+    // outside-the-roots path.
+    if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    try {
+      return await enhancePrompt(parsed.data.adapter, parsed.data.text, parsed.data.project);
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : "prompt enhancement failed",
+      });
+    }
   });
 
   app.get("/api/projects", async () => {
