@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { hubApi, type AdapterInfo, type SessionRecord } from "./api.ts";
+import { hubApi, type AdapterInfo, type AdapterUsage, type SessionRecord } from "./api.ts";
 import { Dashboard } from "./Dashboard.tsx";
 
 export function App({
@@ -11,6 +11,7 @@ export function App({
 }) {
   const [sessions, setSessions] = useState<SessionRecord[] | null>(null);
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
+  const [usage, setUsage] = useState<Record<string, AdapterUsage>>({});
   const [error, setError] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
@@ -23,6 +24,14 @@ export function App({
         setSessions(s);
         setAdapters(a);
         setError("");
+        // T1.5-3/ADR-0004: one usage snapshot per known adapter, not per
+        // session — fetched alongside the existing poll, not a second
+        // independent timer.
+        const usageEntries = await Promise.all(
+          a.map(async (adapter) => [adapter.id, await hubApi.adapterUsage(adapter.id)] as const),
+        );
+        if (!alive) return;
+        setUsage(Object.fromEntries(usageEntries));
       } catch (err) {
         if (alive) setError(err instanceof Error ? err.message : "load failed");
       }
@@ -59,7 +68,7 @@ export function App({
       {sessions === null ? (
         <div class="empty">lade…</div>
       ) : (
-        <Dashboard sessions={sessions} onOpen={onOpen} />
+        <Dashboard sessions={sessions} usage={usage} onOpen={onOpen} />
       )}
 
       <div class="bottom-actions" />
@@ -77,7 +86,6 @@ function CreateSession({
   const [adapter, setAdapter] = useState(adapters[0]?.id ?? "dummy");
   const [project, setProject] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [budget, setBudget] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -85,11 +93,15 @@ function CreateSession({
     setBusy(true);
     setError("");
     try {
+      // T1.5-3: no budgetUsd input — the user works exclusively with
+      // coding subscriptions, where a $ figure per session doesn't answer
+      // anything real (see the Kontingent display instead). The contract
+      // field itself is untouched (createSession still accepts it) for P2
+      // to build on for API-key-billed adapters.
       const rec = await hubApi.createSession({
         adapter,
         project,
         ...(prompt ? { prompt } : {}),
-        ...(budget ? { budgetUsd: Number(budget) } : {}),
       });
       onCreated(rec);
     } catch (err) {
@@ -125,17 +137,6 @@ function CreateSession({
           value={prompt}
           onInput={(e) => setPrompt((e.target as HTMLInputElement).value)}
           placeholder="Refactore den Auth-Flow…"
-        />
-      </label>
-      <label>
-        Budget USD (optional)
-        <input
-          type="number"
-          min="0"
-          step="0.5"
-          value={budget}
-          onInput={(e) => setBudget((e.target as HTMLInputElement).value)}
-          placeholder="5"
         />
       </label>
       {error && <div style="color: var(--err)">{error}</div>}

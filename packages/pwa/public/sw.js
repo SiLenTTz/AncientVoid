@@ -47,10 +47,15 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+// T1.5-3: the account-level usage/quota endpoint (ADR-0004) needs the same
+// offline tolerance as the session list — an adapter's usage doesn't
+// change per session, so a stale-but-labeled value is still useful.
+const CACHEABLE_API_PATTERNS = [/^\/api\/sessions$/, /^\/api\/adapters\/[^/]+\/usage$/];
+
 async function networkFirstApi(req, url) {
   try {
     const res = await fetch(req);
-    if (res.ok && url.pathname === "/api/sessions") {
+    if (res.ok && CACHEABLE_API_PATTERNS.some((p) => p.test(url.pathname))) {
       const copy = res.clone();
       caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
     }

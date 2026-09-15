@@ -1,5 +1,5 @@
 import { useMemo } from "preact/hooks";
-import type { SessionRecord } from "./api.ts";
+import type { AdapterUsage, SessionRecord } from "./api.ts";
 
 function formatUsd(n: number): string {
   if (n === 0) return "$0";
@@ -10,8 +10,24 @@ function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Known window ids get a German label; anything else (future adapters —
+ * zai, swarm, local-llm) shows its raw id rather than guessing a label. */
+const WINDOW_LABELS: Record<string, string> = {
+  five_hour: "5h",
+  seven_day: "7d",
+};
+
+function formatWindow(w: { id: string; utilization: number; resetsAt: string }): string {
+  const label = WINDOW_LABELS[w.id] ?? w.id;
+  const pct = Math.round(w.utilization * 100);
+  const reset = new Date(w.resetsAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  return `${label} ${pct}% · reset ${reset}`;
+}
+
 export interface DashboardProps {
   sessions: SessionRecord[];
+  /** ADR-0004: adapter id -> its latest account-level usage snapshot. */
+  usage: Record<string, AdapterUsage>;
   onOpen: (session: SessionRecord) => void;
 }
 
@@ -33,7 +49,7 @@ export interface DashboardProps {
  * (ok/warn/err/dim, see styles.css) rather than adding a second,
  * redundant status-color indicator next to it.
  */
-export function Dashboard({ sessions, onOpen }: DashboardProps) {
+export function Dashboard({ sessions, usage, onOpen }: DashboardProps) {
   const sorted = useMemo(
     () => [...sessions].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)),
     [sessions],
@@ -59,10 +75,6 @@ export function Dashboard({ sessions, onOpen }: DashboardProps) {
 
   const waitingCount = sessions.filter((s) => s.status === "waiting_approval").length;
 
-  if (sessions.length === 0) {
-    return <div class="empty">keine Sessions — lege eine an</div>;
-  }
-
   return (
     <div class="dashboard">
       <div class="dashboard-summary dim">
@@ -73,13 +85,49 @@ export function Dashboard({ sessions, onOpen }: DashboardProps) {
           </span>
         )}
       </div>
-      {byProject.map(([project, projectSessions]) => (
-        <div key={project} class="project-tile">
-          <div class="project-tile-header dim">{project.split("/").pop() ?? project}</div>
-          {projectSessions.map((s) => (
-            <SessionRow key={s.id} session={s} onOpen={onOpen} />
-          ))}
-        </div>
+      <UsageRow usage={usage} />
+      {sessions.length === 0 ? (
+        <div class="empty">keine Sessions — lege eine an</div>
+      ) : (
+        byProject.map(([project, projectSessions]) => (
+          <div key={project} class="project-tile">
+            <div class="project-tile-header dim">{project.split("/").pop() ?? project}</div>
+            {projectSessions.map((s) => (
+              <SessionRow key={s.id} session={s} onOpen={onOpen} />
+            ))}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+/**
+ * T1.5-3/ADR-0004: account-level Kontingent, not session-scoped — shown
+ * once per known adapter, always visible regardless of whether any
+ * session currently exists. `null` (no observation yet) reads as "noch
+ * keine Meldung", never as 0%; `supported:false` reads as an explicit,
+ * sourced "unbekannt" (R9.7), never a guess or an omitted row.
+ */
+function UsageRow({ usage }: { usage: Record<string, AdapterUsage> }) {
+  const entries = Object.values(usage);
+  if (entries.length === 0) return null;
+  return (
+    <div class="dashboard-summary dim" style="flex-wrap: wrap">
+      {entries.map((u) => (
+        <span key={u.adapterId}>
+          {u.adapterId}:{" "}
+          {!u.supported
+            ? "unbekannt (Adapter meldet kein Kontingent)"
+            : u.quota === null
+              ? "noch keine Meldung"
+              : [
+                  u.quota.windows.map(formatWindow).join(" · "),
+                  u.quota.overageAvailable === false
+                    ? ` · ${u.quota.overageBlockedReason ?? "kein Guthaben"}`
+                    : "",
+                ].join("")}
+        </span>
       ))}
     </div>
   );
