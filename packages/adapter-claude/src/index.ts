@@ -48,6 +48,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
   /** Wires a spawned claude process's stdout/stderr/exit into ctx.emit(). */
   function attach(sessionId: string, proc: WorkerProcess, ctx: AdapterContext, meta: SessionMeta): void {
+    // Reset per new process: a stale `healthy=false` from a *previous*
+    // one-shot turn's abnormal exit must not stick forever once a fresh
+    // process (this steer()'s resume) is actually running.
+    meta.healthy = true;
     procs.set(sessionId, proc);
     sessions.set(sessionId, meta);
 
@@ -82,15 +86,22 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     });
 
     proc.onExit((code) => {
-      meta.healthy = false;
       // Drop the dead process reference (procs), but keep `meta` — it
       // carries resumeSessionId, which the *next* steer(prompt) needs.
       // claude -p is one-shot: every turn's process exits by design, not
-      // just on error, so this fires on every normal turn too.
-      if (procs.get(sessionId) === proc) procs.delete(sessionId);
+      // just on error — a clean exit (code 0) means the turn finished
+      // normally and the session is simply idle between turns, NOT down.
+      // Only an abnormal exit means the adapter is actually unhealthy
+      // (BUG-0008: this used to set healthy=false unconditionally, so
+      // T1.9's heartbeat flagged status="error" + adapter.down after
+      // *every* successful turn — caught via a real end-to-end claude run,
+      // never by the heartbeat's own test, which used a synthetic adapter
+      // that never modeled one-shot-per-turn exit semantics).
       if (code !== 0 && code !== null) {
+        meta.healthy = false;
         ctx.emit({ type: "system", summary: `claude: process exited with code ${code}`, payload: { code } });
       }
+      if (procs.get(sessionId) === proc) procs.delete(sessionId);
     });
   }
 
