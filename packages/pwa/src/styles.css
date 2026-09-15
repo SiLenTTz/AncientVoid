@@ -310,6 +310,23 @@ a {
   color: var(--err);
 }
 
+/* T1.5-8 Prompt-Enhancer split-preview */
+.enhance-preview {
+  display: grid;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.enhance-preview-text {
+  font-size: 12px;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
 .reply-error {
   color: var(--err);
   font-size: 12px;
