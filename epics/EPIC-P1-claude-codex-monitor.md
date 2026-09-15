@@ -1,6 +1,6 @@
 # EPIC-P1 — Adapter claude + codex, Monitor-Dashboard, Chat-Tail mit Filtern
 
-**Status:** offen · **Phase:** P1 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** P0 grün
+**Status:** 🟡 mechanisch fertig, 3 ACs teilweise (siehe Retro) · **Phase:** P1 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** P0 grün
 **Ziel-Machines:** Omarchy (Prio 1), silenttz-server (Prio 2, gleiches Image)
 
 ---
@@ -105,3 +105,129 @@ Session) und der Session-Tail mit drei Filter-Presets.
 Alle ACs grün + beide Adapter als „proven" in der README-Matrix markiert + Kosten-Anzeige
 mit Quellenangabe (claude: nativ / codex: eigene Tabelle, Datum) + Fixture-Repo-Hygiene
 (Max-Größe, Anonymisierung dokumentiert).
+
+## Retro
+
+**Zeitraum:** T1.2 (`6c52763`) bis T1.11 (`3330af5`), 28 Commits im Bereich
+`fbb1844..3330af5` (davon ein Teil interleaved P0-Retro-Action-Items, die
+bereits im EPIC-P0-Retro verrechnet sind — hier nur die P1-Commits gezählt:
+T1.2, T1.3, T1.4, T1.5, T1.6/7/8, T1.9, T1.10 + BUG-0007, T1.11 = 12
+inhaltliche Commits + zugehörige Merge-Commits).
+
+### AK-Matrix
+
+**AC-P1-1:** 🟡 teilweise
+Beleg: `packages/adapter-claude/src/normalize.ts:105` (`total_cost_usd`-Extraktion),
+`packages/adapter-claude/test/normalize.test.ts` (`checkFixture()` gegen zwei
+echte `claude -p --output-format stream-json`-Captures, T1.2).
+Bemerkung: Die Mapping-Logik (Thinking/Tool-Calls/Kosten) ist gegen echte,
+historisch aufgezeichnete claude-Ausgabe geprüft. Der volle Weg „Task über
+Handy gestartet → echter claude-Prozess → Tail zeigt es live inkl.
+±10%-Kostenvergleich" wurde in dieser Phase **nie als Live-Lauf
+ausgeführt** — jeder Browser-Test in T1.5/T1.6/T1.10 lief gegen den
+`dummy`-Adapter, nie gegen einen echten `claude`-Prozess.
+
+**AC-P1-2:** 🟡 teilweise
+Beleg: `packages/pwa/src/SessionTail.tsx` (`EventRow` verzweigt ausschließlich
+über `event.type`, keine adapter-spezifische Verzweigung — bestätigt per
+`grep` über `packages/pwa/src/*.tsx`), `packages/adapter-codex/test/normalize.test.ts`
+(T1.3, ebenfalls fixture-geprüft).
+Bemerkung: Die UI-Genericity ist strukturell belegt (kein Code-Pfad
+unterscheidet nach Adapter-Id). Ein tatsächlicher Seite-an-Seite-Vergleich
+„derselbe Flow, claude vs. codex, keine UI-Änderung" wurde nie gefahren —
+die Aussage stützt sich auf Code-Inspektion, nicht auf einen ausgeführten
+Vergleichslauf.
+
+**AC-P1-3 (K2):** 🟢 erfüllt
+Beleg: T1.10, `docs/messlauf/2026-09-15-k2-frame-lag.md` (18140/18154
+Events gematcht, max 8ms — Budget 200ms), [BUG-0007](../bugs/bug-0007-ws-drop-on-slow-not-network-aware.md)
+(Fix + Regressionstest `packages/server/test/ws.test.ts`).
+Bemerkung: Beide Teile des ACs (Lag-Budget und Drop-on-slow unter echtem
+Netzwerk-Throttling) real gemessen bzw. gefixt und regressionsgetestet.
+
+**AC-P1-4:** 🟡 teilweise
+Beleg: `packages/pwa/src/SessionTail.tsx` (`FILTERS`-Array, `loadFilter()`/
+`localStorage`), Epic-Eintrag T1.6 („Visuell im echten Browser geprüft…
+alle drei Presets zeigen die erwartete Teilmenge").
+Bemerkung: Die Filterwirkung selbst (welche Events ein Preset zeigt/versteckt)
+wurde im echten Browser geprüft. Reload-Persistenz und Gerätespezifität
+sind durch die `localStorage`-Architektur strukturell gegeben (jede
+Browser-Instanz hat eigenen Storage), aber nie durch einen tatsächlichen
+Reload-Klick oder einen Zwei-Geräte-Vergleich beobachtet.
+
+**AC-P1-5:** 🟡 teilweise (bereits im T1.9-Eintrag selbst so vermerkt)
+Beleg: `packages/core/src/sessionmanager.ts` (Heartbeat, `DEFAULT_HEARTBEAT_MS`),
+`packages/core/test/sessionmanager.test.ts` (Heartbeat-Test mit simuliertem
+Ausfall).
+Bemerkung: Badge-Teil real unit-getestet. Push-Teil fehlt vollständig
+(keine Web-Push-Infrastruktur im Repo) — bewusst zurückgestellt, nicht
+übersehen.
+
+**AC-P1-6:** 🟡 teilweise
+Beleg: `scripts/capture-adapter-fixture.mjs` (verweigert Schreiben bei
+Sekret-Fund, T1.4), `.gitlab-ci.yml` (Stage `verify`: nur `typecheck`,
+`lint`, `test`, `loadtest` — kein eigener Secret-Scan-Schritt).
+Bemerkung: Der Scan existiert real, aber nur **zum Aufzeichnungszeitpunkt**
+einer neuen Fixture. Der AC-Wortlaut verlangt „im CI als Gate" — eine
+manuell editierte oder ohne das Capture-Skript hinzugefügte Fixture-Datei
+würde von der aktuellen Pipeline nicht abgefangen.
+
+### Erkenntnisse
+
+1. **Ground-Truth-Disziplin zahlte sich aus.** Echte CLI-Captures statt
+   Doku-Vermutung (T1.2/T1.3) fanden reale Abweichungen von der
+   ursprünglichen §3-Tabelle: claude trägt Content-Block-Arrays statt
+   flacher Typen, codex zeigte in keinem der drei Captures einen
+   `reasoning`-Item-Typ. Beleg: Kommentare in beiden `normalize.ts`-Dateien.
+2. **Echtes Browser-Testen fand reale Bugs, die reines `vite build` nie
+   gefunden hätte.** BUG-0006 (Onboarding komplett unerreichbar) und
+   BUG-0007 (Drop-on-slow reagiert nicht auf echtes Netzwerk-Throttling)
+   wurden beide über tatsächliche Playwright-Chromium-Läufe gefunden, nicht
+   über Code-Review. Beleg: `bugs/bug-0006-*.md`, `bugs/bug-0007-*.md`.
+3. **Premortem-Risiko 1 („Codex-Stream instabiler als angenommen") trat
+   nicht ein** — drei echte Captures reichten, der Degraded-Modus fing das
+   vorgesehene Sicherheitsnetz wie geplant ab, kein „halber Sprint
+   Parser-Rettung". Beleg: T1.3-Eintrag, keine entsprechenden Bug-Dateien.
+4. **Premortem-Risiko 2 („Thinking-Streams sind riesig") ist unverifiziert,
+   nicht „nicht eingetreten".** Kein einziger realer Capture enthielt
+   überhaupt einen Extended-Thinking-Trace (`normalize.ts`: „`thinking`-Mapping
+   unverifiziert"). Ob die geplante Mitigation („vollständig im Blob, UI
+   lädt on demand nach") unter echten Bedingungen funktioniert, ist damit
+   offen — es gibt schlicht noch keine Daten dazu.
+5. **Premortem-Risiko 3 („Steer/Resume bricht bei Tool-Use-Sessions") wurde
+   nur teilweise mitigiert.** Die geplante Resume-Matrix (idle-resume,
+   mid-tool-resume, post-approval-resume) wurde nicht gebaut — es existiert
+   genau ein Resume-Test (`packages/adapter-claude/test/adapter.test.ts`:
+   „steer(prompt) spawns a resumed process using the captured session_id"),
+   der dem idle-resume-Fall entspricht. Mid-tool- und
+   post-approval-Resume sind ungetestet.
+
+Premortem-Gesamtbild: 1 von 4 Risiken eindeutig nicht eingetreten (#1), 1
+nicht eingetreten (#4, Dashboard-Scope-Creep — jede Abweichung wurde
+explizit begründet, siehe T1.5-Eintrag „Bewusste Abweichung von §2"), 1
+unverifizierbar mangels Daten (#2), 1 nur teilweise mitigiert (#3).
+
+### Action Items
+
+- **AI-P1-1:** Mindestens einen echten End-to-End-Lauf mit `claude` UND
+  `codex` fahren (echter API-Call, über die PWA gestartet) und das Ergebnis
+  dokumentieren, um AC-P1-1/AC-P1-2 von 🟡 auf 🟢 zu heben — zurück als:
+  nächste Epic-Aufgabe (vor P2-Abschluss, da P2 auf denselben Adaptern
+  aufbaut).
+- **AI-P1-2:** Sekret-Scan als eigenständigen, wiederholten CI-Schritt in
+  `.gitlab-ci.yml` ergänzen (nicht nur Schreibzeitpunkt-Check in
+  `scripts/capture-adapter-fixture.mjs`), damit AC-P1-6 auch für manuell
+  hinzugefügte oder editierte Fixtures gilt — zurück als: nächste
+  Epic-Aufgabe.
+- **AI-P1-3:** Resume-Matrix (idle-resume, mid-tool-resume,
+  post-approval-resume) für `adapter-claude` nachbauen, wie im
+  Premortem-Risiko 3 vorgesehen — besonders relevant, sobald P2 Approvals
+  einführt und post-approval-resume erstmals ein echter Pfad wird — zurück
+  als: nächste Epic-Aufgabe (P2).
+- **AI-P1-4:** `SessionRecord.costUsd`s „teilweise unbekannt vs. tatsächlich
+  0"-Overload (T1.11s bekannte Grenze) auflösen, sobald P2s
+  Budget-Enforcement eine verlässliche Kostensumme braucht — zurück als:
+  ADR + nächste Epic-Aufgabe (P2).
+
+(BUG-0004, weiterhin offen, ist keine neue Erkenntnis dieser Retro — bereits
+mit eigener Frist „vor T3.x" versehen, hier nur zur Vollständigkeit erwähnt.)
