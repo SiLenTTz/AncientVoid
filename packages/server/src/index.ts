@@ -4,6 +4,7 @@ import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import type { SessionManager, TokenService, AdapterRegistry } from "@uacc/core";
+import { discoverProjects } from "@uacc/core";
 import { authHook, type AuthOptions } from "./auth.ts";
 import { registerRoutes } from "./routes.ts";
 import { registerWs } from "./ws.ts";
@@ -14,6 +15,8 @@ export interface HubAppDeps {
   registry: AdapterRegistry;
   auth: AuthOptions;
   pwaDir?: string;
+  /** T1.5-4: host paths to scan for git repos, offered as session projects. */
+  projectRoots?: string[];
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
@@ -24,7 +27,15 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
 
   app.addHook("onRequest", authHook(deps.auth));
 
-  registerRoutes(app, deps);
+  const projectRoots = deps.projectRoots ?? [];
+  if (projectRoots.length > 0) {
+    // BUG-0009's lesson applied here too: a misconfigured root must not
+    // silently degrade to an empty project list — warn at startup, once,
+    // with the exact path that failed.
+    const { warnings } = await discoverProjects(projectRoots);
+    for (const w of warnings) app.log.warn(w);
+  }
+  registerRoutes(app, { ...deps, projectRoots });
   registerWs(app, deps.sessions);
 
   if (deps.pwaDir) {

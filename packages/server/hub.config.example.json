@@ -1,7 +1,8 @@
 {
-  "$comment": "UACC hub config — copy to hub.config.json AT THE REPO ROOT (see README Quick Start) and run `node packages/server/src/main.ts` from there — pwaDir and dataDir below are relative to that CWD, not to this file's own location. hub.config.json is git-ignored; keep secrets out of the repo.",
+  "$comment": "UACC hub config — copy to hub.config.json AT THE REPO ROOT (see README Quick Start) and run `node packages/server/src/main.ts` from there — pwaDir, dataDir and projectRoots below are relative to that CWD, not to this file's own location. hub.config.json is git-ignored; keep secrets out of the repo. projectRoots (T1.5-4): host paths to scan (depth 1) for git repos, offered as session projects in the PWA instead of a free-text path — e.g. [\"/home/you/repos\"]. Empty means unconfigured: POST /api/sessions accepts any path, same as before this feature existed.",
   "dataDir": "./data",
   "workerRunner": "tmux",
+  "projectRoots": [],
   "server": {
     "host": "127.0.0.1",
     "port": 7373,

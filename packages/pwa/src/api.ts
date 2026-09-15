@@ -43,6 +43,18 @@ export interface AdapterUsage {
   observedAt: string | null;
 }
 
+/** T1.5-4 — a host-discovered git repo, offered as a session project. */
+export interface DiscoveredProject {
+  path: string;
+  name: string;
+  branch: string | null;
+}
+
+export interface ProjectDiscoveryResult {
+  projects: DiscoveredProject[];
+  warnings: string[];
+}
+
 const TOKEN_KEY = "uacc.token";
 
 export function getToken(): string {
@@ -79,6 +91,7 @@ export const hubApi = {
   health: () => api<{ ok: boolean; serverTime: string }>("/api/health"),
   adapters: () => api<AdapterInfo[]>("/api/adapters"),
   adapterUsage: (id: string) => api<AdapterUsage>(`/api/adapters/${id}/usage`),
+  projects: () => api<ProjectDiscoveryResult>("/api/projects"),
   sessions: () => api<SessionRecord[]>("/api/sessions"),
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
   events: (id: string, afterSeq = 0, limit = 500) =>
