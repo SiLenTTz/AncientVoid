@@ -74,9 +74,26 @@ Handy aus voll arbeitsfähig".
 - [ ] **T3.4** Adapter `copilot` best-effort + Permission-Prompt-Hook in Approval-Queue
 - [ ] **T3.5** Adapter `cursor-clip` mit Version-Detection, Broken-State, Steer-Umleitung
 - [ ] **T3.6** Whisper.cpp-Server-Anbindung + Domänen-Prompt + Latenz-Messung (K6)
+  — *Vermerk (P1.5):* Der Sprach-MVP wurde nach
+  [`EPIC-P1.5-control-center-ux.md`](EPIC-P1.5-control-center-ux.md) T1.5-7
+  vorgezogen, dort aber bewusst mit **Browser-STT zuerst** (Begründung: keine
+  Serverinfrastruktur nötig, umgeht Premortem-Risiko 1 dieser Phase). T3.6
+  bleibt bestehen als lokaler Ersatzpfad für Geräte/Browser ohne native STT und
+  als Antwort auf den Datenschutz-Einwand aus P1.5 §3.3.
 - [ ] **T3.7** Browser-STT-Fallback + Geräte-Fähigkeits-Matrix (welches Handy kann was)
+  — *Vermerk (P1.5):* vorgezogen und dort umgesetzt als
+  [`EPIC-P1.5`](EPIC-P1.5-control-center-ux.md) T1.5-7 (inkl.
+  Geräte-Fähigkeits-Matrix und K6-Messlauf). Hier nur noch historisch geführt;
+  offen bleibt in P3 allein die Rolle als *Fallback* gegenüber T3.6, nachdem
+  P1.5 die Reihenfolge umgekehrt hat.
 - [ ] **T3.8** Sprachsuche-Frontend (S5) + Projekt-Index-Service + Egress-CI-Test
 - [ ] **T3.9** Prompt-Composer (S6) mit Optimizer + Split-Preview + Learning-Loop-Storage
+  — *Vermerk (P1.5):* Composer + Optimizer + Split-Preview wurden nach
+  [`EPIC-P1.5`](EPIC-P1.5-control-center-ux.md) T1.5-6/T1.5-8 vorgezogen
+  (inkl. der dort offen geführten Frage, welches Modell die Umformulierung
+  ausführt, P1.5 §3.4). **In P3 verbleibt der Learning-Loop-Storage**
+  (verworfene/edierte Optimierungen → lokale JSONL-Sammlung → periodische
+  Optimizer-Prompt-Revision) — der ist in P1.5 ausdrücklich out of scope.
 - [ ] **T3.10** Sprach-Direktiven-Parser → Action-Mapping (stopp = write-Gate,
   Budget-Änderung = write-Gate mit Summary)
 - [ ] **T3.11** Adapter-Status-Matrix in README live aus `capabilities()` generieren
