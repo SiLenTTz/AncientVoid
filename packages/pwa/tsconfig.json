@@ -9,6 +9,7 @@
     "jsxImportSource": "preact",
     "types": ["vite/client"],
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "isolatedModules": true
   },
