@@ -61,7 +61,7 @@ Session) und der Session-Tail mit drei Filter-Presets.
 - [x] **T1.7** Thinking-Rendering — gedimmt/kursiv (bestehendes `.event.thinking`-CSS), einklappbar (Default eingeklappt, zeigt nur die 200-Zeichen-Summary; ausgeklappt zeigt `payload.text`, falls der Adapter vollen Reasoning-Text mitschickt). In Überwachen ohnehin komplett ausgeblendet (T1.6) — Toggle wirkt praktisch nur in Debuggen.
 - [x] **T1.8** Tool-Call-Chips — Status `running`/`ok`/`error` (aus dem Vorhandensein und `isError` des korrelierten `tool_result`), bidirektionale Anker-Navigation (Scroll-to) zwischen `tool_use` und `tool_result` über die gemeinsame `id`/`toolUseId`, die beide echten Adapter (claude, codex) schon konsistent setzen. **Nebenfund:** der `dummy`-Referenzadapter setzte diese Korrelation gar nicht — als Vorlage für neue Adapter unvollständig und machte T1.8 mit ihm untestbar. Nachgezogen (`packages/adapter-dummy/src/index.ts`), ohne die K5-Riesenoutput-Testfixtur zu verändern (die bleibt bewusst unkorreliert, da sie keinen echten Tool-Aufruf-Zyklus simuliert).
 - [x] **T1.9** Adapter-Heartbeat (`SessionManager`, `packages/core/src/sessionmanager.ts`) — alle 30 s (`DEFAULT_HEARTBEAT_MS`, konfigurierbar für Tests) ein aktiver `adapter.status()`-Poll pro laufender Session, unabhängig vom passiven `WorkerProcess.onExit`-Pfad (der erkennt nur "Prozess ist weg", nicht "Prozess lebt, antwortet aber nicht mehr"). `down`/`broken` → `status="error"` + sichtbares `adapter.down`-System-Event (Detail, kein stilles Retry). Terminal-Sessions werden nicht erneut angefasst (kein doppeltes Event). Kein neuer Health-Endpunkt nötig — `/api/sessions`/`/api/sessions/:id` tragen den Live-Status schon, das rote Badge ist das bereits bestehende `.pill.error`-CSS (kein zweiter, redundanter Indikator). **Nicht umgesetzt: echte Push-Benachrichtigungen** (AC-P1-5 verlangt "Push-Meldung am Handy") — dafür existiert nirgends im Repo eine Web-Push-Infrastruktur (VAPID-Schlüsselpaar, Subscription-Speicherung, Service-Worker-`push`-Handler); das ist ein eigenständiges Feature, kein Nebenprodukt von T1.9, und bewusst zurückgestellt statt notdürftig nachgebaut.
-- [ ] **T1.10** K2-Lasttest: 30 Events/s über 10 min durch Dashboard + Tail, Lag < 200 ms
+- [x] **T1.10** K2-Lasttest: 30 Events/s über 10 min durch Dashboard + Tail, Lag < 200 ms — echter Chromium (Playwright) rendert das T1.5-Dashboard + T1.6-Tail live gegen einen echten Hub-Server, `data-seq`-Attribut auf jeder gerenderten Event-Zeile ermöglicht Server-Emit→DOM-Render-Zeitstempel-Matching (`scripts/k2-frame-lag.mjs`). Ergebnis: 18140/18154 Events gematcht, median 3ms, p95 4ms, max 8ms — 0 über dem 200ms-Budget (Messlauf: `docs/messlauf/2026-09-15-k2-frame-lag.md`). **Zweiter AC-P1-3-Teil (Drop-on-slow unter gedrosseltem Netz) fand einen echten Bug**: `dropped:true` reagierte nie auf ein echtes gedrosseltes Netz (Playwright-CDP-Throttling, 20kbit/s), nur auf In-Process-Überlast — behoben und regressionsgetestet, siehe [BUG-0007](../bugs/bug-0007-ws-drop-on-slow-not-network-aware.md).
 - [ ] **T1.11** Kosten-Schätzung für codex (Token-Counts × eigene Preis-Tabelle; „unbekannt" statt geraten — R9.7-Regel)
 
 ## 5. Acceptance Criteria
@@ -71,8 +71,11 @@ Session) und der Session-Tail mit drei Filter-Presets.
   Dashboard sichtbar und plausibel (±10 % zur claude-eigenen `total_cost_usd`).
 - **AC-P1-2:** Gleicher Flow mit codex ohne einzige Zeile UI-Anpassung (Adapter-Abstraktion
   bewiesen).
-- **AC-P1-3 (K2):** 30 Events/s über 10 min → kein Frame-Lag > 200 ms, drop-on-slow greift
-  nachweisbar bei gedrosseltem Netz (3G-Throttling im Browser).
+- **AC-P1-3 (K2): 🟢 erfüllt.** 30 Events/s über 10 min → kein Frame-Lag > 200 ms
+  (18140/18154 gematcht, max 8ms, `docs/messlauf/2026-09-15-k2-frame-lag.md`);
+  drop-on-slow greift nachweisbar bei gedrosseltem Netz (3G-Throttling im
+  Browser) — erst nach Fix von BUG-0007 (`socket.bufferedAmount`-Prüfung
+  fehlte), siehe T1.10.
 - **AC-P1-4:** Filter „Überwachen" versteckt Thinking und tool_results > 2 KB; State überlebt
   Reload und ist gerätespezifisch (Desktop zeigt andere Filter als Handy).
 - **AC-P1-5: 🟡 teilweise.** Badge-Teil erfüllt: Heartbeat poll(t alle 30 s,
