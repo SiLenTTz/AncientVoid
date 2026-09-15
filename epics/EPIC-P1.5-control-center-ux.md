@@ -341,20 +341,27 @@ Komponente — und nicht zweimal derselbe Code.
   „keine Summierung, keine Überschreibung über Sessions hinweg falsch"
   (letzte Beobachtung gewinnt), Routen-Test für `supported:false`/`404`.
   98/98 Tests grün.
-- [ ] **T1.5-3** **PWA: Budget raus, Kontingent rein.** Budget-Feld aus
-  `CreateSession` entfernen (`packages/pwa/src/App.tsx:80`, `:92`, `:130-140`)
-  — der Contract (`SessionSpec.budgetUsd`, `SessionRecord.budgetUsd`,
-  `hubApi.createSession`s `budgetUsd`) bleibt **unverändert bestehen**, damit P2
-  darauf aufsetzen kann; entfernt wird nur die Eingabe. Dafür eine
-  Kontingent-Anzeige: pro Adapter die 5h- und 7d-Auslastung als Prozent, die
-  verbleibende Zeit bis `resetsAt` in lokaler Zeit, und bei aktivem Overage-Zustand
-  der Guthaben-Hinweis (`overageDisabledReason: "out_of_credits"` → „API-Guthaben
-  aufgebraucht"). Für Adapter ohne Datenlage wörtlich „unbekannt" mit
-  erklärendem Hinweis, warum (Adapter-CLI liefert es nicht) — nicht als Fehler,
-  nicht als 0 %. **K10:** Die Anzeige muss ihr eigenes Alter tragen
-  („Stand: HH:MM"), da sie im Offline-Fall aus dem Service-Worker-Cache kommt
-  (`packages/pwa/public/sw.js`, `X-UACC-Cached-At`) und sonst ein längst
-  überholtes Kontingent als aktuell ausgibt.
+- [x] **T1.5-3** **PWA: Budget raus, Kontingent rein.** Budget-Eingabefeld aus
+  `CreateSession` entfernt (`packages/pwa/src/App.tsx`) — Contract-Felder
+  (`SessionSpec.budgetUsd`, `SessionRecord.budgetUsd`, `hubApi.createSession`s
+  `budgetUsd`) unverändert, nur die Eingabe ist weg. Neue Kontingent-Zeile
+  im Dashboard (`UsageRow` in `packages/pwa/src/Dashboard.tsx`): pro
+  bekanntem Adapter entweder die Fenster-Auslastung (`5h X% · reset HH:MM ·
+  7d X% · reset HH:MM`, `resetsAt` in lokaler Zeit), oder bei aktivem
+  Overage-Block den Guthaben-Hinweis (`overageDisabledReason`), oder ein
+  explizites „unbekannt (Adapter meldet kein Kontingent)" für Adapter ohne
+  Datenlage (dummy, codex) — nie 0 %, nie eine leere Zeile. `App.tsx` holt
+  `hubApi.adapterUsage(id)` für jeden bekannten Adapter im selben Poll-Zyklus
+  wie Sessions/Adapter (kein zweiter Timer). **K10:** `packages/pwa/public/sw.js`
+  cached jetzt auch `/api/adapters/:id/usage` (bisher nur `/api/sessions`) —
+  die bereits bestehende globale „Daten vom … (offline)"-Anzeige
+  (`main.tsx`, `uacc:stale-data`) deckt die Kontingent-Zeile damit automatisch
+  mit ab, kein zweiter, redundanter Alters-Indikator nötig.
+  **Echt im Browser geprüft** (Playwright, nicht nur `vite build`): Create-Form
+  zeigt kein „Budget" mehr, Dashboard zeigt reale Werte einer echten
+  claude-Session (`5h 20% · reset 02:50 · 7d 36% · reset 10:00 ·
+  out_of_credits`) neben ehrlichem „unbekannt" für dummy/codex —
+  Screenshots verifiziert, dark theme und Handy-Breite intakt.
 - [ ] **T1.5-4** **`projectRoots` + Repo-Scanner + `GET /api/projects`.** Neues
   Feld in `HubConfig` (`packages/core/src/config.ts:21-39`, Default `[]` —
   bestehende Configs bleiben gültig). Scanner: für jeden Root die direkten

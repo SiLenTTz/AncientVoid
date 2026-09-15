@@ -19,6 +19,30 @@ export interface AdapterInfo {
   capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean };
 }
 
+/** ADR-0004 — account-level usage/quota window, e.g. claude's real
+ * "five_hour"/"seven_day". `id` is a free string, not an enum. */
+export interface UsageWindow {
+  id: string;
+  utilization: number;
+  resetsAt: string;
+}
+
+export interface UsageQuota {
+  windows: UsageWindow[];
+  overageAvailable?: boolean;
+  overageBlockedReason?: string;
+}
+
+export interface AdapterUsage {
+  adapterId: string;
+  /** Adapter-type capability (ADR-0004) — false means "verified absent for
+   * this adapter", never a guess. */
+  supported: boolean;
+  /** null: no observation yet (or unsupported) — never a stale/implied 0%. */
+  quota: UsageQuota | null;
+  observedAt: string | null;
+}
+
 const TOKEN_KEY = "uacc.token";
 
 export function getToken(): string {
@@ -54,6 +78,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export const hubApi = {
   health: () => api<{ ok: boolean; serverTime: string }>("/api/health"),
   adapters: () => api<AdapterInfo[]>("/api/adapters"),
+  adapterUsage: (id: string) => api<AdapterUsage>(`/api/adapters/${id}/usage`),
   sessions: () => api<SessionRecord[]>("/api/sessions"),
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
   events: (id: string, afterSeq = 0, limit = 500) =>
