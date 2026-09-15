@@ -65,7 +65,13 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     expect(adapter.version).toMatch(/^\d+\.\d+\.\d+/);
     // cost: true (T1.11) — codex has no native $ figure, but pricing.ts
     // estimates one from token counts when a priced model was requested.
-    expect(adapter.capabilities()).toEqual({ reasoning: true, tools: true, cost: true, steer: true });
+    expect(adapter.capabilities()).toEqual({
+      reasoning: true,
+      tools: true,
+      cost: true,
+      steer: true,
+      usage: false,
+    });
     expect(adapter.recover).toBeUndefined();
   });
 

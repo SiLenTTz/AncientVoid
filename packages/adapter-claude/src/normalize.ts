@@ -1,4 +1,4 @@
-import type { EmittedEvent } from "@uacc/contracts";
+import type { EmittedEvent, UsageQuota } from "@uacc/contracts";
 
 /**
  * Maps one parsed line of `claude --output-format stream-json` output to
@@ -10,9 +10,11 @@ import type { EmittedEvent } from "@uacc/contracts";
  * undersold the real shape (no `hook_started`/`hook_response`/
  * `rate_limit_event`; `assistant`/`user` carry content-block arrays, not
  * flat `tool_use`/`tool_result` top-level types). `thinking` content blocks
- * were NOT observed in either capture (no extended-thinking run) — that
- * branch is modeled on the public Messages API content-block shape and
- * needs confirming against a real fixture (T1.4) before being trusted.
+ * were NOT observed in either capture (no extended-thinking run) at T1.2
+ * time — since confirmed against a real extended-thinking capture
+ * (2026-09-15 live session): the block arrives with `thinking: ""` and an
+ * opaque `signature` (Anthropic redacts the reasoning text itself), so an
+ * empty `payload.text` there is correct real behavior, not a mapping gap.
  */
 
 interface ContentBlock {
@@ -41,6 +43,55 @@ function summarize(text: string, max = 200): string {
   return oneLine.length > max ? oneLine.slice(0, max - 1) + "…" : oneLine;
 }
 
+/** Unix seconds -> ISO-8601. Real `resetsAt` values are seconds, not ms
+ * (verified against real captures: 1789435200 is a 2026 date in seconds,
+ * not milliseconds). Falls back to passing a string through unchanged, in
+ * case a future CLI version switches to sending ISO directly. */
+function toIsoTimestamp(v: unknown): string | undefined {
+  if (typeof v === "number") return new Date(v * 1000).toISOString();
+  if (typeof v === "string" && v.length > 0) return v;
+  return undefined;
+}
+
+/**
+ * Maps claude's real `rate_limit_info.unifiedWindows` (ADR-0004) into the
+ * provider-neutral `UsageQuota` contract shape. Ground truth:
+ * `test/fixtures/*.jsonl` and a live 2026-09-15 capture — real shape is
+ * `{status, resetsAt, rateLimitType, overageStatus, overageDisabledReason,
+ * isUsingOverage, unifiedWindows: {<id>: {utilization, resetsAt}}}`.
+ * Returns undefined rather than a partial/guessed quota when the windows
+ * are missing or malformed — never fabricate a window.
+ */
+function normalizeUsageQuota(info: Record<string, unknown> | undefined): UsageQuota | undefined {
+  if (!info) return undefined;
+  const rawWindows = info.unifiedWindows;
+  if (typeof rawWindows !== "object" || rawWindows === null) return undefined;
+
+  const windows: UsageQuota["windows"] = [];
+  for (const [id, value] of Object.entries(rawWindows as Record<string, unknown>)) {
+    const w = value as Record<string, unknown>;
+    const utilization = w.utilization;
+    const resetsAt = toIsoTimestamp(w.resetsAt);
+    if (typeof utilization !== "number" || resetsAt === undefined) continue;
+    windows.push({ id, utilization, resetsAt });
+  }
+  if (windows.length === 0) return undefined;
+
+  const overageBlockedReason = typeof info.overageDisabledReason === "string" ? info.overageDisabledReason : undefined;
+  // overageDisabledReason present -> explicitly not available (matches the
+  // real observed "out_of_credits" case). isUsingOverage:true -> available
+  // (an account actively using it clearly has it). Neither signal ->
+  // undefined, never guessed.
+  const overageAvailable =
+    overageBlockedReason !== undefined ? false : info.isUsingOverage === true ? true : undefined;
+
+  return {
+    windows,
+    ...(overageAvailable !== undefined ? { overageAvailable } : {}),
+    ...(overageBlockedReason !== undefined ? { overageBlockedReason } : {}),
+  };
+}
+
 export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
   if (typeof raw !== "object" || raw === null) {
     return [
@@ -52,10 +103,18 @@ export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
   switch (line.type) {
     case "system":
       return [normalizeSystem(line)];
-    case "rate_limit_event":
+    case "rate_limit_event": {
+      const info = line.rate_limit_info as Record<string, unknown> | undefined;
+      const quota = normalizeUsageQuota(info);
       return [
-        { type: "system", summary: "claude: rate-limit status update", payload: { info: line.rate_limit_info } },
+        {
+          type: "system",
+          summary: "claude: rate-limit status update",
+          payload: { info },
+          ...(quota ? { usageQuota: quota } : {}),
+        },
       ];
+    }
     case "result":
       return [normalizeResult(line)];
     case "assistant":

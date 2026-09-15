@@ -46,6 +46,24 @@ export function registerRoutes(
     })),
   );
 
+  app.get("/api/adapters/:id/usage", async (req, reply) => {
+    // ADR-0004: account-level usage/quota, not session-scoped. `usage`
+    // reflects capabilities().usage — false means "verified absent for
+    // this adapter" (e.g. codex), never guessed as 0%. `snapshot` is null
+    // whenever this adapter hasn't emitted one yet, distinct from "0%
+    // used": a session that only just started may not have seen one.
+    const { id } = req.params as { id: string };
+    const registered = deps.registry.list().find((a) => a.id === id);
+    if (!registered) return reply.code(404).send({ error: "unknown adapter" });
+    const snapshot = deps.sessions.getAdapterUsage(id);
+    return {
+      adapterId: id,
+      supported: registered.capabilities.usage,
+      quota: snapshot?.quota ?? null,
+      observedAt: snapshot?.observedAt ?? null,
+    };
+  });
+
   app.get("/api/sessions", async () => deps.sessions.list());
 
   app.get("/api/sessions/:id", async (req, reply) => {

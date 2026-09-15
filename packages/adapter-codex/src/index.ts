@@ -199,7 +199,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // populated value"): a session that never sets spec.model, or sets
       // one pricing.ts doesn't know, gets no costUsd on its events at all
       // (R9.7 — unbekannt statt geraten, never a guess or a stale $0).
-      return { reasoning: true, tools: true, cost: true, steer: true };
+      //
+      // usage: false (ADR-0004) — verified absent, not merely
+      // unimplemented: no quota/rate-limit event exists anywhere in real
+      // `codex exec --json` captures, and neither `codex login status`
+      // nor `codex --help` expose any on-demand quota query under a
+      // ChatGPT-plan login.
+      return { reasoning: true, tools: true, cost: true, steer: true, usage: false };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

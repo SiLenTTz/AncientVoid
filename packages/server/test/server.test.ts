@@ -85,6 +85,26 @@ describe("hub server", () => {
     expect(res.statusCode).toBe(200);
   });
 
+  it("ADR-0004: GET /api/adapters/:id/usage reports supported+no-snapshot honestly for an adapter without usage", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/adapters/dummy/usage",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(200);
+    // dummy: capabilities().usage === false — never guessed as 0% or omitted.
+    expect(res.json()).toEqual({ adapterId: "dummy", supported: false, quota: null, observedAt: null });
+  });
+
+  it("GET /api/adapters/:id/usage 404s for an unregistered adapter id", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/adapters/does-not-exist/usage",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
   it("creates a session via POST /api/sessions", async () => {
     const res = await app.inject({
       method: "POST",

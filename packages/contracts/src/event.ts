@@ -28,6 +28,42 @@ export type EventType = (typeof EVENT_TYPES)[number];
  * The canonical, provider-neutral event. One JSONL line per event.
  * Payload must stay small (K5); large outputs are referenced via blobRef.
  */
+/**
+ * One rolling usage window an adapter-account is measured against, e.g.
+ * claude's real "five_hour"/"seven_day" rate-limit windows (ADR-0004).
+ * `id` is a free string, not an enum — future adapters (zai, swarm,
+ * local-llm) will have different windows (daily, monthly, a credit pool
+ * with no reset). The PWA translates known ids, shows unknown ones raw.
+ */
+export const UsageWindow = z.object({
+  id: z.string().min(1),
+  /** 0.0-1.0 — fraction of this window already consumed. */
+  utilization: z.number().min(0).max(1),
+  /** ISO-8601. Never omitted — a window without a reset time would
+   * silently read as "never expires", which is a claim, not an absence. */
+  resetsAt: z.string().min(1),
+});
+export type UsageWindow = z.infer<typeof UsageWindow>;
+
+/**
+ * Account-level usage/quota snapshot (ADR-0004). Carried on an event only
+ * because that's the sole way claude's CLI ever reveals it (no on-demand
+ * query exists) — the hub caches the latest one per adapter id, keyed by
+ * `Adapter.id`, NOT accumulated onto any SessionRecord (rate limits are
+ * shared across every session of that adapter-account, unlike costUsd).
+ */
+export const UsageQuota = z.object({
+  windows: z.array(UsageWindow).min(1),
+  /** Can the account keep going past its windows via paid overage?
+   * Answers the API-budget half of "when do I hit $0". Undefined means
+   * unknown, never implies "no". */
+  overageAvailable: z.boolean().optional(),
+  /** Human-readable reason overage is blocked, if known (e.g. the real
+   * observed "out_of_credits"). */
+  overageBlockedReason: z.string().optional(),
+});
+export type UsageQuota = z.infer<typeof UsageQuota>;
+
 export const NormalizedEvent = z.object({
   /** Monotonic per-session sequence number assigned by the hub. */
   seq: z.number().int().nonnegative(),
@@ -51,6 +87,8 @@ export const NormalizedEvent = z.object({
    * be the "capabilities() promises more than it holds" anti-pattern.
    */
   costUsd: z.number().nonnegative().optional(),
+  /** Optional account-level usage/quota snapshot (ADR-0004). See UsageQuota. */
+  usageQuota: UsageQuota.optional(),
 });
 export type NormalizedEvent = z.infer<typeof NormalizedEvent>;
 

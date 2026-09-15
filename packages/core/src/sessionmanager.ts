@@ -12,6 +12,7 @@ import type {
   SteerInput,
   Ack,
   WorkerRunner,
+  UsageQuota,
 } from "@uacc/contracts";
 import { SessionSpec as SessionSpecSchema } from "@uacc/contracts";
 import type { EventStore } from "./eventstore.ts";
@@ -82,8 +83,20 @@ const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
 /** T1.9: 30s default per EPIC-P1 §2 ("Heartbeat pro Adapter (30 s)"). */
 const DEFAULT_HEARTBEAT_MS = 30_000;
 
+/** Account-level usage/quota snapshot (ADR-0004) — keyed by adapter id,
+ * NOT session id: rate limits are shared across every session of that
+ * adapter-account, unlike SessionRecord.costUsd. Deliberately in-memory
+ * only, never K7-persisted — the next active session of that adapter
+ * delivers a fresh value on its first turn, and a value from before a hub
+ * restart could already be stale anyway. */
+export interface AdapterUsageSnapshot {
+  quota: UsageQuota;
+  observedAt: string;
+}
+
 export class SessionManager {
   private readonly live = new Map<string, LiveSession>();
+  private readonly usageByAdapter = new Map<string, AdapterUsageSnapshot>();
 
   private readonly db: HubDatabase;
   private readonly store: EventStore;
@@ -150,6 +163,13 @@ export class SessionManager {
     if (!s) return () => undefined;
     s.subscribers.add(cb);
     return () => s.subscribers.delete(cb);
+  }
+
+  /** ADR-0004: latest account-level usage/quota snapshot for an adapter,
+   * or null when this adapter has never emitted one (never guessed, never
+   * a stale 0 — "null" reads as "no observation yet", not "no usage"). */
+  getAdapterUsage(adapterId: string): AdapterUsageSnapshot | null {
+    return this.usageByAdapter.get(adapterId) ?? null;
   }
 
   list(): SessionRecord[] {
@@ -424,10 +444,21 @@ export class SessionManager {
       blobRef: e.blobRef ?? null,
       ...(e.tokensEst !== undefined ? { tokensEst: e.tokensEst } : {}),
       ...(e.costUsd !== undefined ? { costUsd: e.costUsd } : {}),
+      ...(e.usageQuota !== undefined ? { usageQuota: e.usageQuota } : {}),
     }));
     // ADR-0003: costUsd is per-event, not cumulative — the hub sums it.
     for (const e of events) {
       if (e.costUsd !== undefined) session.record.costUsd += e.costUsd;
+      // ADR-0004: usageQuota is account-level, NEVER summed and NEVER
+      // written onto SessionRecord — only the latest snapshot per adapter
+      // id, overwriting regardless of which session observed it (it's the
+      // same account state either way).
+      if (e.usageQuota !== undefined) {
+        this.usageByAdapter.set(session.record.adapter, {
+          quota: e.usageQuota,
+          observedAt: new Date().toISOString(),
+        });
+      }
     }
     session.record.updatedAt = new Date().toISOString();
     const enforced = await this.store.append(session.record.id, events);
