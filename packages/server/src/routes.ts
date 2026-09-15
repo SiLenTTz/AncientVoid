@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { SessionManager, TokenService, AdapterRegistry } from "@uacc/core";
-import { discoverProjects, isProjectPathAllowed } from "@uacc/core";
+import { discoverProjects, isProjectPathAllowed, scanProjectSkills } from "@uacc/core";
 import { enhancePrompt } from "./enhance.ts";
 import { z } from "zod";
 
@@ -98,6 +98,20 @@ export function registerRoutes(
         error: err instanceof Error ? err.message : "prompt enhancement failed",
       });
     }
+  });
+
+  app.get("/api/skills", async (req, reply) => {
+    // T1.5-10/ADR-0005: source is the target project itself, not a
+    // hub-wide registry (Nutzer-Rückfrage 1). Same containment guard as
+    // sessions/enhance — a phone client never gets to read arbitrary
+    // filesystem paths outside the configured roots.
+    const q = req.query as { project?: string };
+    if (!q.project) return reply.code(400).send({ error: "project query param required" });
+    if (!(await isProjectPathAllowed(q.project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    const items = await scanProjectSkills(q.project);
+    return { items };
   });
 
   app.get("/api/projects", async () => {

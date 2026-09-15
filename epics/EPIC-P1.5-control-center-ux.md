@@ -500,25 +500,62 @@ Komponente — und nicht zweimal derselbe Code.
   bestehende `SessionSpec.args` (adapterspezifischer Freiraum). Offen und im
   ADR benannt: ob `--agent` bei einem `steer(prompt)`-Resume noch wirkt,
   bleibt vor T1.5-10s Umsetzung empirisch zu klären.
-- [ ] **T1.5-10** **Skill-/Agent-Overlay.** Zwei Teile. (a) **Scanner**
-  (serverseitig, weil das Handy kein Dateisystem des Hosts sieht): liest für ein
-  Projekt `<projekt>/.claude/skills/*/SKILL.md` und
-  `<projekt>/.claude/agents/*.md`, extrahiert `name` + `description` aus dem
+- [x] **T1.5-10** **Skill-/Agent-Overlay.** Zwei Teile, beide gebaut und real
+  verifiziert. **(a) Scanner** (`packages/core/src/skills.ts`,
+  `scanProjectSkills()`): liest `<projekt>/.claude/skills/*/SKILL.md` und
+  `<projekt>/.claude/agents/*.md`, extrahiert `name`/`description` aus dem
   YAML-Frontmatter, ignoriert Verzeichnisse ohne `SKILL.md` (`_shared/`) und
-  lose Dateien (`README.md`, `skill-template.md`) — reale Gegebenheiten, §3.5.
-  Ausgeliefert z. B. als `GET /api/projects/:id/skills`. Projekt ohne `.claude/`
-  → leere Liste mit Hinweis, kein Fehler. (b) **Overlay-UI**: erscheint beim
-  „Senden mit …"-Ausgang des Composers, zeigt Skills/Agents mit Beschreibung,
-  die aktuelle Auswahl ist **immer sichtbar** (auch außerhalb des Overlays), der
-  zuletzt gewählte Eintrag ist **pro Projekt** vorbelegt (`localStorage`,
-  Muster `loadFilter()` aus `packages/pwa/src/SessionTail.tsx`), und „ohne
-  Skill senden" bleibt jederzeit möglich. Die tatsächliche Übergabe an die CLI
-  folgt exakt dem in T1.5-9 belegten Mechanismus; für Adapter ohne belegten
-  Mechanismus zeigt das Overlay **ehrlich „für diesen Adapter nicht verfügbar"**
-  statt Prompttext zu basteln, der vielleicht nichts bewirkt. Die getroffene
-  Auswahl muss nach dem Absenden im Tail nachvollziehbar sein (Chip am
-  user-Event oder System-Event) — sonst weiß niemand hinterher, womit gestartet
-  wurde.
+  lose Dateien (`README.md`, `skill-template.md`). Ausgeliefert als
+  `GET /api/skills?project=<pfad>` (`packages/server/src/routes.ts`), hinter
+  demselben `isProjectPathAllowed()`-Schutz wie Session-Erstellung/Enhancer.
+  Projekt ohne `.claude/` → leere Liste, kein Fehler (Testfall in
+  `packages/core/test/skills.test.ts`). **Echter Fund während des Bauens:**
+  ein Playwright-Screenshot der Overlay zeigte für `bug-report` die
+  Beschreibung als wörtliches `>-` statt echtem Text — der erste
+  zeilenbasierte Frontmatter-Parser kannte YAMLs gefaltetes Block-Scalar
+  (`description: >-` mit eingerückten Folgezeilen) nicht. Sweep über alle 14
+  echten Skill-/Agent-Dateien bestätigte: **nur `bug-report/SKILL.md`**
+  nutzt dieses Format, die anderen 13 einzeiliges `key: value`. Behoben in
+  `parseFrontmatter()` (erkennt `>`/`>-`/`|`/`|-`, sammelt eingerückte
+  Folgezeilen, faltet bzw. erhält Zeilenumbrüche); Regressionstest gegen die
+  echte Datei in `skills.test.ts` (`bug-report`s Beschreibung ≠ `">-"`, exakt
+  der reale Text) plus ein synthetischer Fall. Nach Fix per echtem
+  Server-Neustart + Playwright erneut geprüft: Overlay zeigt jetzt `bug-report`s
+  vollen Text (Screenshot `/tmp/uacc-pwa-verify/skill-overlay-open.png`).
+  **(b) Overlay-UI** (`packages/pwa/src/SkillOverlay.tsx`, `SkillPicker`):
+  Chip zeigt die aktuelle Auswahl **immer sichtbar** (auch bei geschlossenem
+  Overlay), öffnet auf Tap eine Liste aller Skills/Agents mit Beschreibung,
+  „Ohne Skill/Agent senden" bleibt jederzeit erreichbar. Zuletzt gewählter
+  Eintrag ist **pro Projekt** vorbelegt (`localStorage`-Key
+  `uacc.skill.<project>`, Muster wie `loadFilter()` in `SessionTail.tsx`) —
+  live per Playwright bestätigt: 14 Einträge sichtbar, Auswahl von `bugfix`
+  persistiert, Chip zeigt `Skill: bugfix`. Für `codex` (kein belegter
+  Mechanismus laut T1.5-9) zeigt der Picker ehrlich „für diesen Adapter nicht
+  verfügbar" statt eines wirkungslosen Overlays — eine bestehende Auswahl wird
+  beim Adapterwechsel weg von `claude` automatisch verworfen statt still
+  weiterzuwirken. Die tatsächliche Übergabe an die CLI folgt exakt dem in
+  T1.5-9 belegten Mechanismus (`SessionSpec.args` → `adapter-claude`s
+  `withSkill()`/`--agent`). **Nachvollziehbarkeit im Tail (AC-P1.5-12):**
+  `sessionmanager.ts`s `session.created`-System-Event trägt jetzt `args`; neu
+  in `packages/pwa/src/SessionTail.tsx` ein dediziertes Rendering für dieses
+  Event, das bei vorhandenem `args.skill`/`args.agent` ein Badge „Gestartet
+  mit Skill: …"/„Agent: …" zeigt. Real verifiziert: Session mit `dummy`-Adapter
+  und `args:{skill:"bugfix"}` über die echte HTTP-API angelegt, per Playwright
+  im Tail bestätigt — `#1 · system session.created · Gestartet mit Skill:
+  bugfix` erscheint sichtbar (Screenshot
+  `/tmp/uacc-pwa-verify/tail-skill-badge-scrolled.png`), kein Prompttext wurde
+  dabei umgeschrieben. **Bewusste Scope-Entscheidung:** der
+  Folge-Prompt-Composer in `SessionTail.tsx` (T1.5-6, `steer()`) bekommt
+  **keinen** eigenen Skill-Picker. Begründung: `--agent` wirkt laut ADR-0005
+  nachweislich nur beim initialen Spawn (nicht bei `--resume`), und
+  `SteerInput` hat schlicht keinen Kanal für eine neue Pro-Turn-Skill-Wahl —
+  ein Picker an dieser Stelle wäre entweder wirkungslose Dekoration oder
+  hätte einen neuen Contract-Pfad gebraucht, den kein AC verlangt. `claude`s
+  `steer()` wendet weiterhin automatisch den beim Start gewählten Skill erneut
+  an (`withSkill()` in `adapter-claude/src/index.ts`, aus T1.5-9), das war
+  bereits ausreichend. Gates nach Fix: `npm test` 134/134 grün, `npm run
+  lint`/`npm run typecheck` sauber, `npm -w @uacc/pwa run build`/`typecheck`
+  sauber.
 - [ ] **T1.5-11** **Registrierung & Erreichbarkeit** (DoD-Teil, nicht Kosmetik).
   Ein fertiges Feature, das nirgends registriert oder dokumentiert ist, zählt
   nicht als fertig: `projectRoots` in
@@ -585,21 +622,29 @@ Komponente — und nicht zweimal derselbe Code.
   ist immer erreichbar, und die Optimierung läuft **nie** ungefragt. Das
   gewählte Enhancer-Backend ist mit Messwerten (Latenz, Kontingent-Wirkung)
   begründet dokumentiert.
-- **AC-P1.5-10:** Für das Projekt `mobile-hub` listet das Overlay genau die real
+- **AC-P1.5-10: 🟢 erfüllt.** Für das Projekt `mobile-hub` listet das Overlay genau die real
   vorhandenen Einträge: **11 Skills** (aus `.claude/skills/*/SKILL.md`) und
   **3 Agents** (aus `.claude/agents/*.md`) — ohne `_shared/`, ohne
   `.claude/skills/README.md`, ohne `skill-template.md`. Ein Projekt ohne
-  `.claude/` liefert eine leere Liste mit Hinweis, keinen Fehler.
-- **AC-P1.5-11:** Nach einer Auswahl im Overlay ist derselbe Eintrag beim
+  `.claude/` liefert eine leere Liste mit Hinweis, keinen Fehler. Beleg:
+  `packages/core/test/skills.test.ts` (Real-Inventar-Test, 8/8 grün),
+  Playwright-Screenshot `skill-overlay-open.png` (14 Einträge live gerendert,
+  inkl. korrekt gefaltetem `bug-report`-Text).
+- **AC-P1.5-11: 🟢 erfüllt.** Nach einer Auswahl im Overlay ist derselbe Eintrag beim
   nächsten Öffnen **desselben** Projekts vorausgewählt und bei einem **anderen**
   Projekt nicht (Per-Projekt-Speicher, überlebt Reload). Die aktuelle Auswahl ist
   ohne Öffnen des Overlays sichtbar und lässt sich mit einer Interaktion ändern
-  oder abwählen.
-- **AC-P1.5-12:** Nach dem Absenden ist im Tail nachvollziehbar, mit welchem
+  oder abwählen. Beleg: `SkillOverlay.tsx` (`uacc.skill.<project>`-Key),
+  Playwright `skill-selected.png` (Chip zeigt „Skill: bugfix" nach Auswahl,
+  ohne Overlay sichtbar).
+- **AC-P1.5-12: 🟢 erfüllt.** Nach dem Absenden ist im Tail nachvollziehbar, mit welchem
   Skill/Agent gestartet wurde (Chip oder System-Event). Für einen Adapter, für
   den T1.5-9 keinen Mechanismus belegen konnte, zeigt das Overlay „für diesen
   Adapter nicht verfügbar" — und es wird nachweislich **kein** Prompttext
-  heimlich umgeschrieben.
+  heimlich umgeschrieben. Beleg: `SessionTail.tsx`s dediziertes
+  `session.created`-Rendering + `tail-skill-badge-scrolled.png` (Badge
+  „Gestartet mit Skill: bugfix" real im Tail sichtbar, echte Session über die
+  HTTP-API angelegt).
 - **AC-P1.5-13 (K2, Regression):** Die neuen Composer-/Overlay-/Kontingent-
   Elemente verschlechtern die in
   [`docs/messlauf/2026-09-15-k2-frame-lag.md`](../docs/messlauf/2026-09-15-k2-frame-lag.md)

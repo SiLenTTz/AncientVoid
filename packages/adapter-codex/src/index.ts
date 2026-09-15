@@ -210,6 +210,20 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
       const meta: SessionMeta = { healthy: true, degraded: false, model: spec.model };
+      // T1.5-10/ADR-0005: codex has no project-local skill/agent mechanism
+      // (`codex plugin list` is a global, project-independent marketplace,
+      // structurally unrelated to a target repo's own .claude/skills —
+      // verified against the real CLI). A requested skill/agent must be
+      // visibly ignored, never silently swallowed (AGENTS.md Regel 6) or
+      // turned into prompt text that might do nothing.
+      const requestedArgs = spec.args as { skill?: unknown; agent?: unknown } | undefined;
+      if (requestedArgs?.skill || requestedArgs?.agent) {
+        ctx.emit({
+          type: "system",
+          summary: "codex: skill/agent selection ignored — no project-local skill/agent mechanism exists for this adapter",
+          payload: { kind: "codex.skill_agent_ignored", requested: requestedArgs },
+        });
+      }
       await checkVersion(ctx);
       const proc = await ctx.spawnWorker(
         buildInitialArgs(spec.prompt ?? "", spec.model),

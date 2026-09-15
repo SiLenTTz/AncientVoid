@@ -151,6 +151,51 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     expect(spawnedCmds[1]).toContain("d154ee1b-a065-42dc-b523-c5810f077d2d"); // session_id from the fixture's system/init line
   });
 
+  it("T1.5-10: args.skill prefixes the prompt with /skill on the initial spawn, reapplied on steer", async () => {
+    const spawnedCmds: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawnedCmds.push(cmd);
+        return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
+      },
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start(
+      { adapter: "claude", project: "/tmp", prompt: "fix it", args: { skill: "bugfix" } },
+      ctx,
+    );
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+    expect(spawnedCmds[0]).toContain("/bugfix\n\nfix it");
+
+    await adapter.steer(handle, { kind: "prompt", text: "follow up" }, ctx);
+    // Reapplied on the resumed turn too — a skill choice is fixed for the
+    // whole session, not re-selectable per turn (ADR-0005).
+    expect(spawnedCmds[1]).toContain("/bugfix\n\nfollow up");
+  });
+
+  it("T1.5-10: args.agent appends --agent on the initial spawn only, never on a resume", async () => {
+    const spawnedCmds: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawnedCmds.push(cmd);
+        return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
+      },
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start(
+      { adapter: "claude", project: "/tmp", prompt: "go", args: { agent: "hub-dev" } },
+      ctx,
+    );
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+    expect(spawnedCmds[0]).toContain("--agent");
+    expect(spawnedCmds[0]).toContain("hub-dev");
+
+    await adapter.steer(handle, { kind: "prompt", text: "follow up" }, ctx);
+    // ADR-0005: whether --agent still does anything on --resume is
+    // unverified, so it's deliberately never re-added.
+    expect(spawnedCmds[1]).not.toContain("--agent");
+  });
+
   it("steer(resume) is an honest no, not a fake success", async () => {
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess("") });
     const adapter = createAdapter();

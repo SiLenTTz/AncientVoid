@@ -29,10 +29,33 @@ const ClaudeConfig = z.object({
 });
 type ClaudeConfig = z.infer<typeof ClaudeConfig>;
 
+/**
+ * T1.5-10/ADR-0005: `SessionSpec.args`' own adapter-specific free-form
+ * slot, validated here — no contract change needed. `skill` -> a
+ * `/name` prefix in the prompt text (verified live: works in `-p` mode,
+ * applies per-turn, so it's reapplied on every steer(prompt) too — see
+ * `meta.skill` below). `agent` -> the `--agent <name>` CLI flag (verified
+ * live: sets the whole session's persona) — deliberately only applied on
+ * the INITIAL spawn, never re-added on a `--resume`, since ADR-0005 left
+ * whether `--agent` still does anything on a resumed process explicitly
+ * unverified.
+ */
+const ClaudeSessionArgs = z
+  .object({
+    skill: z.string().min(1).optional(),
+    agent: z.string().min(1).optional(),
+  })
+  .optional();
+
 interface SessionMeta {
   resumeSessionId?: string;
   healthy: boolean;
   degraded: boolean;
+  /** Reapplied to every prompt (initial and steer) — a skill choice is
+   * fixed for the session's whole lifetime, not re-selectable per turn
+   * (no SteerInput channel carries one; ADR-0005 deliberately didn't add
+   * one). */
+  skill?: string | undefined;
 }
 
 export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapter {
@@ -40,10 +63,18 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const procs = new Map<string, WorkerProcess>();
   const sessions = new Map<string, SessionMeta>();
 
-  function buildArgs(prompt: string, resumeSessionId?: string): string[] {
+  /** `agent` is only ever passed on the initial (non-resume) spawn — see
+   * ClaudeSessionArgs' doc comment for why. `skill` is applied by the
+   * caller wrapping `prompt` before calling this (applies to every turn). */
+  function buildArgs(prompt: string, resumeSessionId?: string, agent?: string): string[] {
     const args = ["-p", prompt, "--output-format", "stream-json", "--verbose"];
     if (resumeSessionId) args.push("--resume", resumeSessionId);
+    if (agent && !resumeSessionId) args.push("--agent", agent);
     return [cfg.command, ...args, ...cfg.extraArgs];
+  }
+
+  function withSkill(prompt: string, skill: string | undefined): string {
+    return skill ? `/${skill}\n\n${prompt}` : prompt;
   }
 
   /** Wires a spawned claude process's stdout/stderr/exit into ctx.emit(). */
@@ -117,9 +148,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
-      const meta: SessionMeta = { healthy: true, degraded: false };
+      const args = ClaudeSessionArgs.safeParse(spec.args);
+      const skill = args.success ? args.data?.skill : undefined;
+      const agentPersona = args.success ? args.data?.agent : undefined;
+      const meta: SessionMeta = { healthy: true, degraded: false, skill };
       const proc = await ctx.spawnWorker(
-        buildArgs(spec.prompt ?? ""),
+        buildArgs(withSkill(spec.prompt ?? "", skill), undefined, agentPersona),
         spec.env ? { env: spec.env } : undefined,
       );
       attach(ctx.sessionId, proc, ctx, meta);
@@ -135,8 +169,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       switch (input.kind) {
         case "prompt": {
           // claude -p is one-shot per process — steering means spawning a
-          // fresh process resumed via --resume <session_id>.
-          const proc = await ctx.spawnWorker(buildArgs(input.text, meta?.resumeSessionId));
+          // fresh process resumed via --resume <session_id>. The
+          // session's skill (if any) is reapplied to every turn; --agent
+          // is deliberately NOT re-added here (see buildArgs' doc comment).
+          const proc = await ctx.spawnWorker(
+            buildArgs(withSkill(input.text, meta?.skill), meta?.resumeSessionId),
+          );
           attach(handle.sessionId, proc, ctx, meta ?? { healthy: true, degraded: false });
           return { ok: true };
         }

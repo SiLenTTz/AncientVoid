@@ -230,6 +230,10 @@ export class SessionManager {
       project: record.project,
       model: record.model,
       budgetUsd: record.budgetUsd,
+      // T1.5-10/AC-P1.5-12: whatever skill/agent was requested must stay
+      // traceable in the tail — nobody should have to guess afterwards
+      // what a session was actually started with.
+      args: parsed.args ?? null,
     });
     try {
       session.handle = await session.adapter.start(parsed, ctx);
