@@ -424,18 +424,29 @@ Komponente — und nicht zweimal derselbe Code.
   echte PWA-UI an eine laufende `claude`-Session gesendet — die reale
   Antwort („CONFIRMED") erschien im Tail, Kosten korrekt verbucht
   ($0.0058), Session blieb `working` (BUG-0008-Fix hält).
-- [ ] **T1.5-7** **Spracheingabe (Browser-STT-MVP).** Mikrofon-Knopf im
-  Composer, Transkription über die native Browser-STT (§3.3), Ergebnis landet
-  **im editierbaren Textfeld**, wird nie direkt abgesendet. Sichtbarer Hinweis,
-  wenn die Erkennung den Browser verlässt (Datenschutz-Ehrlichkeit, §3.3), und
-  ein sauberer Zustand für Browser ohne Unterstützung (Knopf deaktiviert +
-  Begründung, kein stiller No-Op). **K6:** Latenz Aufnahmeende → Transkript
-  messen und als `docs/messlauf/<datum>-k6-stt-latenz.md` dokumentieren
-  (Prüfstand, Datum, Commit — AI-P0-4-Lektion: keine Zahl ohne Messlauf).
-  Geräte-Fähigkeits-Matrix (welches getestete Gerät/Browser kann was)
-  dokumentieren — das ist T3.7s ursprünglicher Auftrag, hier eingelöst. Der
-  Whisper.cpp-Pfad (P3 T3.6) bleibt explizit **out of scope** dieser Aufgabe
-  und wird nur als Ausbaupfad vermerkt.
+- [x] **T1.5-7** **Spracheingabe (Browser-STT-MVP). 🟡 Code fertig, K6-Messung
+  bewusst auf den Handy-Test verschoben.** Neue `packages/pwa/src/speech.ts`
+  (`recognizeOnce()`, Web-Speech-API-Wrapper mit 10s-Timeout) + Mikrofon-Knopf
+  in `Composer.tsx`. Transkript landet immer im editierbaren Feld
+  (`onChange`), nie automatisch abgesendet. Sichtbarer Datenschutz-Hinweis
+  während des Zuhörens ("Cloud-Dienst des Browsers"), kein stilles
+  Aktivieren. Browser ohne API: deaktivierter Knopf mit Tooltip.
+  **Realer Fund, der den Timeout überhaupt nötig machte:** diese
+  Entwicklungsmaschine (Chromium 151, Arch-Paket statt echtem Google
+  Chrome) hat die `SpeechRecognition`-Konstruktoren, aber ein echter
+  `.start()`-Aufruf liefert nie ein Ergebnis (kein Google-API-Schlüssel in
+  Open-Source-Chromium-Builds) — ohne eigenen Timeout bliebe die UI für
+  immer im „höre zu…"-Zustand hängen. **Echt im Browser geprüft**
+  (Playwright, drei reale Szenarien mit Screenshots): Zuhören-Zustand mit
+  Hinweis, Timeout/Fehlerpfad (sichtbare Fehlermeldung statt Hängen),
+  deaktivierter Zustand ohne API. **K6-Messung selbst bewusst nicht
+  durchgeführt** — braucht eine echte Stimme an einem echten Mikrofon,
+  die von hier aus nicht erzeugt werden kann; siehe
+  [`docs/messlauf/2026-09-16-k6-stt-device-matrix.md`](../docs/messlauf/2026-09-16-k6-stt-device-matrix.md)
+  für die Geräte-Fähigkeits-Matrix (T3.7s ursprünglicher Auftrag, hier
+  eingelöst) und den expliziten Verweis auf den geplanten Handy-Test. Der
+  Whisper.cpp-Pfad (P3 T3.6) bleibt out of scope, nur als Ausbaupfad
+  vermerkt.
 - [ ] **T1.5-8** **Prompt-Enhancer.** „Verbessern"-Ausgang des Composers:
   Roh-Eingabe → strukturierter Coding-Agent-Prompt (Ziel / Scope / Constraints /
   Erfolgskriterium, P3 §3), Split-Preview (roh | optimiert), „Original senden"
@@ -532,11 +543,17 @@ Komponente — und nicht zweimal derselbe Code.
   `POST /api/sessions/:id/steer`, und die Antwort des Agenten erscheint im
   Tail. (Heute unmöglich: die PWA ruft `steer` nirgends auf.) Ein `ok:false`-Ack
   wird als sichtbare Fehlermeldung angezeigt, nicht verschluckt.
-- **AC-P1.5-8 (K6):** 20 Diktate aus einem fachbegriffslastigen Testsatz
-  (`git`, `diff`, `worktree`, `JSONL`, `tool_use`, `Codex`, `Claude`, `tmux`,
-  `MCP`) → Transkript in ≤ 1,5 s bei mindestens 90 % der Läufe, jedes Transkript
-  vor dem Absenden editierbar. Ergebnis als `docs/messlauf/`-Eintrag mit
-  Prüfstand, Gerät, Browser, Datum, Commit.
+- **AC-P1.5-8 (K6): 🟡 teilweise — Code fertig, Messung braucht das echte Handy.**
+  20 Diktate aus einem fachbegriffslastigen Testsatz (`git`, `diff`,
+  `worktree`, `JSONL`, `tool_use`, `Codex`, `Claude`, `tmux`, `MCP`) →
+  Transkript in ≤ 1,5 s bei mindestens 90 % der Läufe, jedes Transkript vor
+  dem Absenden editierbar (Editierbarkeit strukturell verifiziert, siehe
+  T1.5-7). Die eigentliche Latenz-/Erfolgsquoten-Messung braucht eine echte
+  Stimme an einem echten Mikrofon — nicht von dieser Entwicklungsmaschine
+  aus durchführbar (siehe
+  [`docs/messlauf/2026-09-16-k6-stt-device-matrix.md`](../docs/messlauf/2026-09-16-k6-stt-device-matrix.md)),
+  bewusst auf den geplanten Live-Test auf dem Handy des Nutzers verschoben,
+  nicht übersprungen oder vorgetäuscht.
 - **AC-P1.5-9:** Der Enhancer verwandelt eine vage Eingabe („mach das mit dem
   Login besser") in einen strukturierten Prompt mit Ziel/Scope/Constraints/
   Erfolgskriterium; die Split-Preview zeigt beide Fassungen, „Original senden"
