@@ -55,6 +55,17 @@ export interface ProjectDiscoveryResult {
   warnings: string[];
 }
 
+export type SteerInput =
+  | { kind: "prompt"; text: string }
+  | { kind: "stop" }
+  | { kind: "park" }
+  | { kind: "resume" };
+
+export interface Ack {
+  ok: boolean;
+  detail?: string;
+}
+
 const TOKEN_KEY = "uacc.token";
 
 export function getToken(): string {
@@ -111,4 +122,22 @@ export const hubApi = {
     }),
   stopSession: (id: string) =>
     api<{ ok: boolean }>(`/api/sessions/${id}/stop`, { method: "POST" }),
+  // T1.5-6: doesn't go through api<T>() — a rejected steer (e.g. "no
+  // thread_id captured yet") comes back as a 422 with a real, meaningful
+  // {ok:false, detail} body, and api<T>()'s generic !res.ok path would
+  // throw a bare "422 Unprocessable Entity" instead of surfacing that
+  // detail. Callers inspect ack.ok/ack.detail themselves.
+  steer: async (id: string, input: SteerInput): Promise<Ack> => {
+    const res = await fetch(`/api/sessions/${id}/steer`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify(input),
+    });
+    const body = (await res.json().catch(() => ({}))) as { ok?: boolean; detail?: string; error?: string };
+    // Two possible failure shapes from the server: a rejected Ack
+    // ({ok:false, detail}) or a validation error ({error}, e.g. empty
+    // text) — normalize both into one Ack so callers only check one thing.
+    if (typeof body.ok === "boolean") return { ok: body.ok, ...(body.detail ? { detail: body.detail } : {}) };
+    return { ok: false, detail: body.error ?? `${res.status} ${res.statusText}` };
+  },
 };

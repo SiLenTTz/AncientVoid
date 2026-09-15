@@ -276,6 +276,38 @@ a {
   font: inherit;
 }
 
+/* T1.5-6 Composer — shared prompt-entry surface */
+.composer {
+  display: grid;
+  gap: 6px;
+}
+
+.composer-input {
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  color: var(--fg);
+  border-radius: var(--radius);
+  padding: 10px;
+  font: inherit;
+  resize: vertical;
+  min-height: 44px;
+}
+
+.composer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.composer-actions .btn {
+  opacity: 0.5;
+}
+
+.reply-error {
+  color: var(--err);
+  font-size: 12px;
+  padding: 4px 0;
+}
+
 .empty {
   text-align: center;
   color: var(--fg-dim);
@@ -374,4 +406,13 @@ a {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+}
+
+/* T1.5-6: the reply composer stacks above the button row in one fixed
+ * block (not a second, separately-positioned fixed element — that
+ * overlapped the tail's last rows in practice, verified via a real
+ * screenshot before this fix). */
+.bottom-actions-column {
+  flex-direction: column;
+  align-items: stretch;
 }
