@@ -2,18 +2,21 @@ export interface SessionRecord {
   id: string;
   adapter: string;
   project: string;
+  worktreeSha: string | null;
   status: string;
   createdAt: string;
   model: string | null;
   budgetUsd: number | null;
   adapterVersion: string;
   lastSeq: number;
+  costUsd: number;
+  updatedAt: string;
 }
 
 export interface AdapterInfo {
   id: string;
   version: string;
-  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean };
+  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean };
 }
 
 const TOKEN_KEY = "uacc.token";
