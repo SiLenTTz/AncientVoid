@@ -63,8 +63,9 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     const adapter = createAdapter();
     expect(adapter.id).toBe("codex");
     expect(adapter.version).toMatch(/^\d+\.\d+\.\d+/);
-    // cost: false — codex has no native $ figure, only token counts.
-    expect(adapter.capabilities()).toEqual({ reasoning: true, tools: true, cost: false, steer: true });
+    // cost: true (T1.11) — codex has no native $ figure, but pricing.ts
+    // estimates one from token counts when a priced model was requested.
+    expect(adapter.capabilities()).toEqual({ reasoning: true, tools: true, cost: true, steer: true });
     expect(adapter.recover).toBeUndefined();
   });
 
@@ -135,6 +136,48 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     expect(spawnedCmds[1]).toContain("resume");
     expect(spawnedCmds[1]).toContain("01a0a1fe-76ee-7723-9478-911a17f22fcb"); // thread_id from the fixture
     expect(spawnedCmds[1]).not.toContain("--sandbox"); // real CLI rejects --sandbox on resume
+  });
+
+  it("T1.11: spec.model reaches the CLI as --model, on both the initial spawn and resume", async () => {
+    const spawnedCmds: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: withVersionHandshake((cmd) => {
+        spawnedCmds.push(cmd);
+        return fakeCodexProcess(loadFixture("trivial-text.jsonl"));
+      }),
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start(
+      { adapter: "codex", project: "/tmp", prompt: "first", model: "gpt-5.3-codex" },
+      ctx,
+    );
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete"));
+    expect(spawnedCmds[0]).toContain("--model");
+    expect(spawnedCmds[0]).toContain("gpt-5.3-codex");
+
+    // costUsd on the initial turn's event, from the requested model.
+    const firstTurn = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete");
+    expect(firstTurn?.costUsd).toBeGreaterThan(0);
+
+    await adapter.steer(handle, { kind: "prompt", text: "follow up" }, ctx);
+    expect(spawnedCmds[1]).toContain("--model");
+    expect(spawnedCmds[1]).toContain("gpt-5.3-codex");
+  });
+
+  it("T1.11: no spec.model means no --model flag and no costUsd (R9.7 — unbekannt statt geraten)", async () => {
+    const spawnedCmds: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: withVersionHandshake((cmd) => {
+        spawnedCmds.push(cmd);
+        return fakeCodexProcess(loadFixture("trivial-text.jsonl"));
+      }),
+    });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "codex", project: "/tmp", prompt: "first" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete"));
+    expect(spawnedCmds[0]).not.toContain("--model");
+    const turn = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete");
+    expect(turn?.costUsd).toBeUndefined();
   });
 
   it("steer(prompt) before any thread_id is captured is an honest no", async () => {

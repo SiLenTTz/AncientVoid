@@ -19,8 +19,29 @@ describe("normalizeCodexLine — real captured stream-json (codex-cli 0.153.4)",
 
     const turnComplete = events.find((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete");
     expect(turnComplete).toBeDefined();
-    // No cost field anywhere — codex reports tokens only (T1.11).
-    expect(JSON.stringify(turnComplete!.payload)).not.toContain("cost");
+    // No model requested (checkFixture never passes one) -> no price-table
+    // lookup possible -> costUsd stays unset, never guessed (T1.11, R9.7).
+    expect(turnComplete!.costUsd).toBeUndefined();
+    expect((turnComplete!.payload as { costEstimated?: boolean }).costEstimated).toBe(false);
+  });
+
+  it("T1.11: estimates costUsd from token usage when a priced model was requested", () => {
+    const events = checkFixture(fixture("trivial-text.jsonl"), (line) => normalizeCodexLine(line, "gpt-5.3-codex"));
+    const turnComplete = events.find((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete");
+    expect(turnComplete).toBeDefined();
+    // Fixture usage: input_tokens 15500, cached_input_tokens 11136,
+    // output_tokens 5. gpt-5.3-codex pricing (pricing.ts, sourced
+    // 2026-09-15): $1.75/$0.175/$14.00 per 1M (input/cached/output).
+    const expected = ((15500 - 11136) * 1.75 + 11136 * 0.175 + 5 * 14.0) / 1_000_000;
+    expect(turnComplete!.costUsd).toBeCloseTo(expected, 10);
+    expect((turnComplete!.payload as { costEstimated?: boolean }).costEstimated).toBe(true);
+  });
+
+  it("T1.11: an unpriced model still leaves costUsd unset (R9.7 — unbekannt statt geraten)", () => {
+    const events = checkFixture(fixture("trivial-text.jsonl"), (line) => normalizeCodexLine(line, "some-future-model"));
+    const turnComplete = events.find((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete");
+    expect(turnComplete!.costUsd).toBeUndefined();
+    expect((turnComplete!.payload as { costEstimated?: boolean }).costEstimated).toBe(false);
   });
 
   it("maps the tool-use fixture to tool_use + tool_result + assistant events", () => {
