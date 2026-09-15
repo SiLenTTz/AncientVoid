@@ -154,10 +154,18 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         });
         return;
       }
+      const payload: Record<string, unknown> = { n, type, adapter: "dummy" };
+      // TYPE_CYCLE always places tool_use immediately before tool_result
+      // (indices 3, 4) — correlate them the same way adapter-claude and
+      // adapter-codex do (payload.id / payload.toolUseId), so the dummy
+      // adapter stays a faithful template for T1.8's tool-call chip +
+      // anchor-nav UI, not just its own K5/K7/K8 test fixture.
+      if (type === "tool_use") payload.id = `dummy-tool-${n}`;
+      if (type === "tool_result") payload.toolUseId = `dummy-tool-${n - 1}`;
       ctx.emit({
         type,
         summary: `dummy ${type} #${n}`,
-        payload: { n, type, adapter: "dummy" },
+        payload,
         tokensEst: 10 + (n % 40),
       });
       if (cfg.autoStopAfterEvents > 0 && n >= cfg.autoStopAfterEvents) {
