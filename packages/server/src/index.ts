@@ -27,18 +27,31 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   registerRoutes(app, deps);
   registerWs(app, deps.sessions);
 
-  if (deps.pwaDir && existsSync(resolve(deps.pwaDir))) {
-    await app.register(fastifyStatic, {
-      root: resolve(deps.pwaDir),
-      prefix: "/",
-      decorateReply: true,
-    });
-    app.setNotFoundHandler(async (req, reply) => {
-      if (req.url.startsWith("/api/")) {
-        return reply.code(404).send({ error: "not found" });
-      }
-      return reply.sendFile("index.html");
-    });
+  if (deps.pwaDir) {
+    const resolvedPwaDir = resolve(deps.pwaDir);
+    if (existsSync(resolvedPwaDir)) {
+      await app.register(fastifyStatic, {
+        root: resolvedPwaDir,
+        prefix: "/",
+        decorateReply: true,
+      });
+      app.setNotFoundHandler(async (req, reply) => {
+        if (req.url.startsWith("/api/")) {
+          return reply.code(404).send({ error: "not found" });
+        }
+        return reply.sendFile("index.html");
+      });
+    } else {
+      // BUG-0009: this used to fail silently — configured but resolved to
+      // a directory that doesn't exist (e.g. a relative pwaDir combined
+      // with a different CWD than whoever wrote the config assumed), and
+      // every non-/api/ request just got a bare 404 with no clue why.
+      app.log.warn(
+        `pwaDir "${deps.pwaDir}" resolved to "${resolvedPwaDir}", which does not exist — ` +
+          "the PWA will not be served (only /api/* routes are registered). " +
+          "Check hub.config.json's pwaDir is relative to the directory main.ts is run from.",
+      );
+    }
   }
 
   return app;

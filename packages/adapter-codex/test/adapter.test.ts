@@ -25,7 +25,7 @@ function loadFixture(name: string): string {
  * calls onStdout() on it — a microtask can race ahead of that
  * registration, a macrotask can't (see adapter-claude/test/adapter.test.ts
  * for the failure this caused there first). */
-function fakeCodexProcess(content: string, chunkSize = content.length): WorkerProcess {
+function fakeCodexProcess(content: string, chunkSize = content.length, exitCode: number | null = 0): WorkerProcess {
   const stdoutCbs = new Set<(chunk: string) => void>();
   const exitCbs = new Set<(code: number | null) => void>();
   setTimeout(async () => {
@@ -34,7 +34,7 @@ function fakeCodexProcess(content: string, chunkSize = content.length): WorkerPr
       for (const cb of stdoutCbs) cb(chunk);
       await new Promise((r) => setTimeout(r, 0));
     }
-    for (const cb of exitCbs) cb(0);
+    for (const cb of exitCbs) cb(exitCode);
   }, 0);
   return {
     onStdout: (cb) => stdoutCbs.add(cb),
@@ -87,15 +87,58 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     expect(ctx.events.some((e) => e.type === "assistant")).toBe(true);
   });
 
-  it("status() reflects process exit", async () => {
+  it("BUG-0008: a clean one-shot exit (turn finished normally) stays healthy, never down", async () => {
+    // codex exec is one-shot per turn — every successful turn's process
+    // exits by design. Found via a real end-to-end codex run: the process
+    // exiting cleanly used to unconditionally flip status() to "down", so
+    // T1.9's heartbeat marked the session "error" seconds after it had
+    // actually finished successfully.
     const ctx = makeRecordingContext({
       spawnWorker: withVersionHandshake(() => fakeCodexProcess(loadFixture("trivial-text.jsonl"))),
     });
     const adapter = createAdapter();
     const handle = await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
 
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete"));
+    await new Promise((r) => setTimeout(r, 20));
     expect((await adapter.status(handle)).state).toBe("healthy");
+  });
+
+  it("BUG-0008: an abnormal exit (nonzero code) still correctly reports down", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: withVersionHandshake(() => fakeCodexProcess(loadFixture("trivial-text.jsonl"), undefined, 1)),
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
+
     let state = "healthy";
+    for (let i = 0; i < 100 && state !== "down"; i++) {
+      state = (await adapter.status(handle)).state;
+      if (state !== "down") await new Promise((r) => setTimeout(r, 10));
+    }
+    expect(state).toBe("down");
+  });
+
+  it("BUG-0008: an abnormal exit still reports down even if the session was earlier flagged degraded", async () => {
+    // Before the fix, `degraded` was checked ahead of `healthy` in
+    // status(), so a session that ever saw one unhandled event type would
+    // report "degraded" forever — masking a later real crash completely,
+    // and making it invisible to the heartbeat (which only acts on
+    // down/broken, never degraded).
+    const content =
+      '{"type":"thread.started","thread_id":"x"}\n{"type":"some_future_type"}\n';
+    const ctx = makeRecordingContext({
+      spawnWorker: withVersionHandshake(() => fakeCodexProcess(content, undefined, 1)),
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.summary.includes("unhandled stream-json type")));
+    // The degraded flag and the abnormal exit both land within the same
+    // couple of ticks here (tiny fixture, no real I/O) — too close to
+    // assert an interim "degraded" without a race. The point of this test
+    // is the end state: once the process has actually exited abnormally,
+    // status() must report "down", never stuck on "degraded" forever.
+    let state = "unknown";
     for (let i = 0; i < 100 && state !== "down"; i++) {
       state = (await adapter.status(handle)).state;
       if (state !== "down") await new Promise((r) => setTimeout(r, 10));

@@ -96,6 +96,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   function attach(sessionId: string, proc: WorkerProcess, ctx: AdapterContext, meta: SessionMeta): void {
+    // Reset per new process: a stale `healthy=false` from a *previous*
+    // one-shot turn's abnormal exit must not stick forever once a fresh
+    // process (this steer()'s resume) is actually running.
+    meta.healthy = true;
     procs.set(sessionId, proc);
     sessions.set(sessionId, meta);
 
@@ -133,11 +137,17 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     });
 
     proc.onExit((code) => {
-      meta.healthy = false;
-      if (procs.get(sessionId) === proc) procs.delete(sessionId);
+      // codex exec is one-shot per turn, like claude -p: every turn's
+      // process exits by design, not just on error. A clean exit (code 0)
+      // means the turn finished normally — the session is idle between
+      // turns, not down (BUG-0008: this used to set healthy=false
+      // unconditionally, so T1.9's heartbeat flagged status="error" +
+      // adapter.down after *every* successful turn).
       if (code !== 0 && code !== null) {
+        meta.healthy = false;
         ctx.emit({ type: "system", summary: `codex: process exited with code ${code}`, payload: { code } });
       }
+      if (procs.get(sessionId) === proc) procs.delete(sessionId);
     });
   }
 
@@ -237,10 +247,19 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     async status(handle: SessionHandle): Promise<HealthReport> {
       const meta = sessions.get(handle.sessionId);
       if (!meta) return { state: "down", detail: "no live process" };
+      // BUG-0008: `degraded` used to be checked before `healthy`, so once
+      // ANY unhandled event was ever seen, this permanently reported
+      // "degraded" for the rest of the session's life — masking a real
+      // subsequent abnormal exit behind a lesser label, and making it
+      // invisible to the heartbeat (packages/core/src/sessionmanager.ts's
+      // runHeartbeat only acts on "down"/"broken", never "degraded").
+      // `healthy` now takes priority: a genuinely dead/crashed process is
+      // reported "down" even if it was also degraded earlier.
+      if (!meta.healthy) return { state: "down", detail: "process exited abnormally", lastSeen: new Date().toISOString() };
       if (meta.degraded) {
         return { state: "degraded", detail: "unhandled stream-json event seen", lastSeen: new Date().toISOString() };
       }
-      return { state: meta.healthy ? "healthy" : "down", lastSeen: new Date().toISOString() };
+      return { state: "healthy", lastSeen: new Date().toISOString() };
     },
 
     async stop(handle: SessionHandle): Promise<void> {

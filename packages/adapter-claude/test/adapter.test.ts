@@ -25,7 +25,7 @@ function loadFixture(name: string): string {
 
 /** A WorkerProcess that replays fixed stdout content, chunked to test the
  * adapter's own NDJSON line-buffering across chunk boundaries. */
-function fakeClaudeProcess(content: string, chunkSize = content.length): WorkerProcess {
+function fakeClaudeProcess(content: string, chunkSize = content.length, exitCode: number | null = 0): WorkerProcess {
   const stdoutCbs = new Set<(chunk: string) => void>();
   const exitCbs = new Set<(code: number | null) => void>();
   // setTimeout, not queueMicrotask: a real child process can't produce
@@ -38,7 +38,7 @@ function fakeClaudeProcess(content: string, chunkSize = content.length): WorkerP
       for (const cb of stdoutCbs) cb(chunk);
       await new Promise((r) => setTimeout(r, 0));
     }
-    for (const cb of exitCbs) cb(0);
+    for (const cb of exitCbs) cb(exitCode);
   }, 0);
   return {
     onStdout: (cb) => stdoutCbs.add(cb),
@@ -79,14 +79,30 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     expect(ctx.events.some((e) => e.type === "assistant")).toBe(true);
   });
 
-  it("status() reflects process exit", async () => {
+  it("BUG-0008: a clean one-shot exit (turn finished normally) stays healthy, never down", async () => {
+    // claude -p is one-shot per turn — every successful turn's process
+    // exits by design. Found via a real end-to-end claude run: the
+    // process exiting cleanly used to unconditionally flip status() to
+    // "down", so T1.9's heartbeat marked the session "error" seconds
+    // after it had actually finished successfully.
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(loadFixture("trivial-text.jsonl")) });
     const adapter = createAdapter();
     const handle = await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
 
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+    // Give the process's exit callback (fires after the same macrotask
+    // queue) a chance to run before asserting nothing changed.
+    await new Promise((r) => setTimeout(r, 20));
     expect((await adapter.status(handle)).state).toBe("healthy");
-    // fakeClaudeProcess exits with code 0 once its content is drained.
-    // waitFor()'s predicate is synchronous only, so poll status() by hand.
+  });
+
+  it("BUG-0008: an abnormal exit (nonzero code) still correctly reports down", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: async () => fakeClaudeProcess(loadFixture("trivial-text.jsonl"), undefined, 1),
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
+
     let state = "healthy";
     for (let i = 0; i < 100 && state !== "down"; i++) {
       state = (await adapter.status(handle)).state;

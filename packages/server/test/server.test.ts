@@ -202,3 +202,61 @@ describe("hub server", () => {
     await resynced;
   });
 });
+
+describe("hub server — pwaDir resolution (BUG-0009)", () => {
+  async function buildApp(pwaDir?: string) {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-pwa-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, {});
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    const tokens = new TokenService(db);
+    const app = await createHubApp({
+      sessions,
+      tokens,
+      registry,
+      auth: { tokens, enforceTailnetIdentity: false },
+      ...(pwaDir ? { pwaDir } : {}),
+    });
+    return { app, cleanup: () => rm(dir, { recursive: true, force: true }) };
+  }
+
+  it("a pwaDir that doesn't resolve to an existing directory doesn't crash the app and still serves /api/*", async () => {
+    // Found via a real end-to-end run: the shipped hub.config.example.json
+    // had a pwaDir that resolved outside the repo when the README's own
+    // Quick Start was followed literally (cp to repo root, run from repo
+    // root) — this used to fail with zero log output, just a bare 404 on
+    // every non-/api/ request with no clue why.
+    const { app, cleanup } = await buildApp("./this-directory-does-not-exist");
+    try {
+      const health = await app.inject({ method: "GET", url: "/api/health" });
+      expect(health.statusCode).toBe(200);
+      const root = await app.inject({ method: "GET", url: "/" });
+      expect(root.statusCode).toBe(404);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
+
+  it("a valid pwaDir serves the SPA shell for non-/api/ routes", async () => {
+    const pwaDir = await mkdtemp(join(tmpdir(), "uacc-pwa-dist-"));
+    await import("node:fs/promises").then((fs) => fs.writeFile(join(pwaDir, "index.html"), "<!doctype html><title>uacc</title>"));
+    const { app, cleanup } = await buildApp(pwaDir);
+    try {
+      const root = await app.inject({ method: "GET", url: "/" });
+      expect(root.statusCode).toBe(200);
+      expect(root.body).toContain("uacc");
+      // SPA fallback: any non-/api/ path (client-side routing) serves the
+      // same shell, not a 404.
+      const spaRoute = await app.inject({ method: "GET", url: "/some/client/route" });
+      expect(spaRoute.statusCode).toBe(200);
+      expect(spaRoute.body).toContain("uacc");
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+      await rm(pwaDir, { recursive: true, force: true });
+    }
+  });
+});
