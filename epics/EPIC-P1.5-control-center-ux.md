@@ -307,20 +307,20 @@ Komponente — und nicht zweimal derselbe Code.
 > `T1.5.m` — sonst kollidiert die Notation optisch mit P1s bereits vergebenem
 > `T1.5` (Monitor-Dashboard).
 
-- [ ] **T1.5-1** **ADR: Account-Level-Usage-Modell** (Vorbedingung für T1.5-2,
-  kein Code vorher). Entscheiden und begründen: Wo lebt ein Kontingent-Snapshot,
-  der pro **Adapter-Account** gilt und nicht pro Session? Zu bewerten sind
-  mindestens: (a) neue optionale Adapter-Methode `usage?()`, (b) Erweiterung von
-  `HealthReport` (`packages/contracts/src/adapter.ts`) um einen optionalen
-  Usage-Teil — attraktiv, weil der Heartbeat aus T1.9 `status()` ohnehin alle
-  30 s pollt (`packages/core/src/sessionmanager.ts`), (c) ein reiner
-  Hub-Cache, der aus dem Event-Strom mitliest, ohne Contract-Änderung.
-  Pflichtinhalt des ADR: die Abgrenzung zu `SessionRecord.costUsd` (ADR-0003) und
-  eine ausdrückliche Aussage, warum das **kein** Session-Feld wird; dazu die
-  Frage, wie `AdapterCapabilities` das ehrlich abbildet (codex kann es nicht —
-  vgl. wie T1.11 `capabilities().cost` erst umgestellt hat, als die Fähigkeit
-  real vorhanden war). Ergebnis als `docs/adr/0004-*.md`, Status **entschieden**,
-  nicht „offen".
+- [x] **T1.5-1** **ADR: Account-Level-Usage-Modell** — entschieden, siehe
+  [`docs/adr/0004-account-level-usage-quota.md`](../docs/adr/0004-account-level-usage-quota.md):
+  ein hub-seitiger In-Memory-Cache pro Adapter-Id (Option c aus der Aufgabe),
+  gespeist über ein neues optionales `usageQuota`-Feld auf
+  `EmittedEvent`/`NormalizedEvent` (Muster von ADR-0003), **kein** Feld auf
+  `SessionRecord`, bewusst nicht K7-persistiert (Begründung im ADR).
+  `AdapterCapabilities` bekommt `usage: boolean` (claude: `true`, codex:
+  `false` — real gegen die CLIs geprüft: `claude auth status --json` und
+  `codex login status` bieten keinen On-Demand-Abfrageweg, nur das reale
+  `rate_limit_event` im claude-Stream liefert die Daten). Optionen (a) neue
+  Adapter-Methode `usage?()` und (b) `HealthReport`-Erweiterung wurden geprüft
+  und explizit verworfen (Begründung im ADR: kein On-Demand-Weg bei beiden
+  CLIs bzw. falscher semantischer Ort — `HealthReport` ist an ein
+  `SessionHandle` gebunden, nicht an einen Account).
 - [ ] **T1.5-2** **Kontingent-Erfassung + `GET /api/adapters/:id/usage`.**
   `packages/adapter-claude/src/normalize.ts:55-58` liest `rate_limit_event`
   heute in ein unbeschriftetes System-Event; stattdessen die Felder aus §3.1
@@ -415,19 +415,22 @@ Komponente — und nicht zweimal derselbe Code.
   genau die Ressource, die diese Phase transparent machen soll. P3s
   Over-Engineering-Heuristik übernehmen (kurze klare Imperative brauchen keine
   Optimierung). Learning-Loop-Storage bleibt in P3.
-- [ ] **T1.5-9** **ADR: Skill-/Agent-Invocation-Mechanismus pro Adapter**
-  (Vorbedingung für T1.5-10, kein Overlay-Code vorher). Gegen die **echten
-  CLIs** untersuchen (nicht gegen Doku-Erinnerung, T1.2/T1.3-Disziplin): Wie
-  wird ein in `.claude/skills/` bzw. `.claude/agents/` liegender Skill/Agent aus
-  einem nicht-interaktiven `claude -p`-Aufruf tatsächlich aktiviert — Präfix im
-  Prompttext, CLI-Flag, oder gar nicht? Und was ist bei codex das nächste reale
-  Gegenstück (das `plugin`-Subkommando? Profile? nichts?). Ergebnis als
-  `docs/adr/0005-*.md` mit: gefundenem Mechanismus je Adapter **oder** der
-  belegten Feststellung, dass es keinen gibt; Auswirkung auf den Adapter-Contract
-  (braucht es ein neues `SteerInput`-Feld oder ein Feld in `SessionSpec.args`,
-  das `packages/contracts/src/session.ts` bereits als adapterspezifischen
-  Freiraum vorsieht?); und der Konsequenz für die UI, wenn ein Adapter es nicht
-  kann. Ausdrücklich **kein** einheitlicher Mechanismus per Annahme.
+- [x] **T1.5-9** **ADR: Skill-/Agent-Invocation-Mechanismus pro Adapter** —
+  entschieden, siehe
+  [`docs/adr/0005-skill-agent-invocation-mechanism.md`](../docs/adr/0005-skill-agent-invocation-mechanism.md).
+  Gegen die echten CLIs verifiziert (nicht aus Doku-Erinnerung): claude hat
+  **zwei** echte, verschiedene Mechanismen — Skills über einen `/skill-name`-
+  Präfix im Prompttext (live getestet: `claude -p "/bugfix ..."` lädt die
+  Skill-Instruktionen nachweislich auch im nicht-interaktiven Modus), Agents
+  über das `--agent <name>`-CLI-Flag (live getestet:
+  `claude -p --agent hub-dev "..."` — die Antwort bestätigt selbst die
+  aktive Persona). codex hat **kein** Gegenstück (`codex plugin list` zeigt
+  ein global installiertes Marketplace-System, unabhängig vom Zielprojekt;
+  kein `--skill`/`--agent`-Flag, kein projekt-lokales Konzept). Kein neuer
+  Contract-Bruch nötig — beide Mechanismen laufen über das bereits
+  bestehende `SessionSpec.args` (adapterspezifischer Freiraum). Offen und im
+  ADR benannt: ob `--agent` bei einem `steer(prompt)`-Resume noch wirkt,
+  bleibt vor T1.5-10s Umsetzung empirisch zu klären.
 - [ ] **T1.5-10** **Skill-/Agent-Overlay.** Zwei Teile. (a) **Scanner**
   (serverseitig, weil das Handy kein Dateisystem des Hosts sieht): liest für ein
   Projekt `<projekt>/.claude/skills/*/SKILL.md` und
