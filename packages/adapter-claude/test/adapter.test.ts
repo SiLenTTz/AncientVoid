@@ -196,6 +196,26 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     expect(spawnedCmds[1]).not.toContain("--agent");
   });
 
+  it("T1.6-6: spec.model appends --model on the initial spawn only, never on a resume", async () => {
+    const spawnedCmds: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawnedCmds.push(cmd);
+        return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
+      },
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "go", model: "opus" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+    expect(spawnedCmds[0]).toContain("--model");
+    expect(spawnedCmds[0]).toContain("opus");
+
+    await adapter.steer(handle, { kind: "prompt", text: "follow up" }, ctx);
+    // Same reasoning as --agent: a resumed process already has its model
+    // fixed, never re-added on --resume.
+    expect(spawnedCmds[1]).not.toContain("--model");
+  });
+
   it("steer(resume) is an honest no, not a fake success", async () => {
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess("") });
     const adapter = createAdapter();

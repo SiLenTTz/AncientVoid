@@ -63,13 +63,17 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const procs = new Map<string, WorkerProcess>();
   const sessions = new Map<string, SessionMeta>();
 
-  /** `agent` is only ever passed on the initial (non-resume) spawn — see
-   * ClaudeSessionArgs' doc comment for why. `skill` is applied by the
-   * caller wrapping `prompt` before calling this (applies to every turn). */
-  function buildArgs(prompt: string, resumeSessionId?: string, agent?: string): string[] {
+  /** `agent`/`model` are only ever passed on the initial (non-resume)
+   * spawn — see ClaudeSessionArgs' doc comment for `agent`; `model` follows
+   * the same reasoning (T1.6-6: a resumed process already has its model
+   * fixed, `claude --resume` doesn't accept switching it mid-session).
+   * `skill` is applied by the caller wrapping `prompt` before calling this
+   * (applies to every turn). */
+  function buildArgs(prompt: string, resumeSessionId?: string, agent?: string, model?: string): string[] {
     const args = ["-p", prompt, "--output-format", "stream-json", "--verbose"];
     if (resumeSessionId) args.push("--resume", resumeSessionId);
     if (agent && !resumeSessionId) args.push("--agent", agent);
+    if (model && !resumeSessionId) args.push("--model", model);
     return [cfg.command, ...args, ...cfg.extraArgs];
   }
 
@@ -153,7 +157,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const agentPersona = args.success ? args.data?.agent : undefined;
       const meta: SessionMeta = { healthy: true, degraded: false, skill };
       const proc = await ctx.spawnWorker(
-        buildArgs(withSkill(spec.prompt ?? "", skill), undefined, agentPersona),
+        buildArgs(withSkill(spec.prompt ?? "", skill), undefined, agentPersona, spec.model),
         spec.env ? { env: spec.env } : undefined,
       );
       attach(ctx.sessionId, proc, ctx, meta);
