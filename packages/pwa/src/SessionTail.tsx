@@ -84,7 +84,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   // filter split above — it replaces the event list with a summary pane
   // instead of filtering it, so it needs its own bit of state rather than
   // being derived from `filter` like Chat/Verlauf are.
-  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht">(() =>
+  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff">(() =>
     loadFilter() === "lesen" ? "chat" : "verlauf",
   );
 
@@ -157,21 +157,24 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     return () => clearInterval(timer);
   }, [session.id]);
 
-  // T1.6-4: fetched only while Bericht is the open tab, not continuously —
-  // a report is a periodic-check thing, not a live stream.
+  // T1.6-4/T1.6-5: fetched only while Bericht or Diff is the open tab, not
+  // continuously — both are periodic-check views, not a live stream, and
+  // share the one /diff endpoint instead of each fetching it separately.
   const [diff, setDiff] = useState<SessionDiffResult | null>(null);
   const [usage, setUsage] = useState<AdapterUsage | null>(null);
   useEffect(() => {
-    if (activeTab !== "bericht") return;
+    if (activeTab !== "bericht" && activeTab !== "diff") return;
     let alive = true;
     hubApi
       .sessionDiff(session.id)
       .then((d) => alive && setDiff(d))
       .catch(() => alive && setDiff(null));
-    hubApi
-      .adapterUsage(session.adapter)
-      .then((u) => alive && setUsage(u))
-      .catch(() => alive && setUsage(null));
+    if (activeTab === "bericht") {
+      hubApi
+        .adapterUsage(session.adapter)
+        .then((u) => alive && setUsage(u))
+        .catch(() => alive && setUsage(null));
+    }
     return () => {
       alive = false;
     };
@@ -191,6 +194,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     setFilter(lastVerlaufFilter);
   };
   const showBerichtTab = () => setActiveTab("bericht");
+  const showDiffTab = () => setActiveTab("diff");
 
   useEffect(() => {
     tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
@@ -286,6 +290,8 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
             diff={diff}
             usage={usage}
           />
+        ) : activeTab === "diff" ? (
+          <DiffPane diff={diff} />
         ) : visible.length === 0 ? (
           <div class="empty">keine Events im Filter</div>
         ) : (
@@ -353,6 +359,9 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
           </button>
           <button class={activeTab === "bericht" ? "active" : ""} onClick={showBerichtTab}>
             Bericht
+          </button>
+          <button class={activeTab === "diff" ? "active" : ""} onClick={showDiffTab}>
+            Diff
           </button>
         </div>
         <GlobalDock active={null} onNavigate={onNavigate} />
@@ -438,6 +447,53 @@ function BerichtPane({
           <span class="v dim">nicht erfasst — kein Adapter meldet ein strukturiertes Test-Signal</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * T1.6-5 — deliberately the simplest possible diff view (EPIC-P1.6 §3.4):
+ * the raw `git diff HEAD` text from the shared /diff endpoint, colored
+ * line-by-line, all changed files concatenated in git's own order. No
+ * hunk compression, no function anchors, no per-file tab-switching — P2's
+ * real diff engine (T2.2/T2.3) is what actually solves K3, not this.
+ */
+function diffLineClass(line: string): string {
+  if (line.startsWith("+++") || line.startsWith("---")) return "diff-line-file";
+  if (line.startsWith("+")) return "diff-line-add";
+  if (line.startsWith("-")) return "diff-line-del";
+  if (line.startsWith("@@")) return "diff-line-hunk";
+  if (line.startsWith("diff --git")) return "diff-line-header";
+  return "diff-line-ctx";
+}
+
+function DiffPane({ diff }: { diff: SessionDiffResult | null }) {
+  if (diff === null) return <div class="empty">lädt …</div>;
+  if (diff.error) return <div class="empty">{diff.error}</div>;
+  return (
+    <div>
+      <div class="diff-files">
+        {diff.files.map((f) => (
+          <div key={f.path} class="diff-file-row">
+            <span class="mono">{f.path}</span>
+            {f.binary ? (
+              <span class="dim">binär</span>
+            ) : (
+              <span>
+                <span class="diff-add-count">+{f.additions}</span> <span class="diff-del-count">-{f.deletions}</span>
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      {diff.truncated && <div class="dim" style="margin: 8px 0">Diff gekürzt — vollständige Anzeige kommt mit P2.</div>}
+      <pre class="diff-code mono">
+        {diff.patch.split("\n").map((line, i) => (
+          <div key={i} class={diffLineClass(line)}>
+            {line}
+          </div>
+        ))}
+      </pre>
     </div>
   );
 }
