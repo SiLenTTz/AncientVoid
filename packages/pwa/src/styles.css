@@ -190,47 +190,89 @@ a {
   gap: 8px;
 }
 
-/* T1.6-8: status-glow — compositor-friendly (box-shadow only, no layout
- * property), sized/timed from the design-system's --glow-blur/--glow-dur
- * tokens (T1.6-1) so future styles can retune the feel without touching
- * this animation. Fully disabled under prefers-reduced-motion (K2 guard,
- * AC-P1.6-9) instead of just slowed down. */
+/* T1.6-8 (revised per live feedback): a light chases around the card's
+ * border instead of the whole card pulsing — a top-to-bottom sweeping bar
+ * read as "scanning a document", a traveling border ring reads as "this
+ * one is active" without competing with the text inside it.
+ *
+ * Compositor-only by construction: the conic-gradient itself is STATIC
+ * (defined once), the only animated property is `transform: rotate()` on
+ * a pseudo-element — no per-frame paint/mask recompute, same K2 budget as
+ * the old box-shadow pulse. `@property --uacc-glow-angle` registers the
+ * custom property as an interpolatable <angle> so the rotation is a smooth
+ * compositor animation, not a discrete jump. A static ambient glow
+ * (ordinary box-shadow, unanimated) sits behind it for a soft bloom. */
+@property --uacc-glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.session-card.st-working,
+.session-card.st-waiting {
+  position: relative;
+  isolation: isolate;
+}
+
 .session-card.st-working {
-  animation: uacc-glow-good var(--glow-dur) ease-in-out infinite;
+  box-shadow: 0 0 var(--glow-blur) -8px color-mix(in srgb, var(--ok) 55%, transparent);
 }
 
 .session-card.st-waiting {
-  animation: uacc-glow-warn calc(var(--glow-dur) * 0.6) ease-in-out infinite;
+  box-shadow: 0 0 var(--glow-blur) -8px color-mix(in srgb, var(--warn) 60%, transparent);
 }
 
-@keyframes uacc-glow-good {
-  0%,
-  100% {
-    box-shadow: 0 0 0 1px var(--bg-chip);
-  }
-  50% {
-    box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--ok) 60%, var(--bg-chip)),
-      0 0 var(--glow-blur) 1px color-mix(in srgb, var(--ok) 45%, transparent);
-  }
+.session-card.st-working::after,
+.session-card.st-waiting::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 2px;
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: uacc-border-chase var(--glow-dur) linear infinite;
 }
 
-@keyframes uacc-glow-warn {
-  0%,
-  100% {
-    box-shadow: 0 0 0 1px var(--bg-chip);
-  }
-  50% {
-    box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--warn) 65%, var(--bg-chip)),
-      0 0 var(--glow-blur) 2px color-mix(in srgb, var(--warn) 55%, transparent);
+.session-card.st-working::after {
+  background: conic-gradient(
+    from var(--uacc-glow-angle),
+    transparent 0deg,
+    transparent 270deg,
+    color-mix(in srgb, var(--ok) 85%, transparent) 320deg,
+    var(--ok) 340deg,
+    transparent 360deg
+  );
+}
+
+.session-card.st-waiting::after {
+  animation-duration: calc(var(--glow-dur) * 0.55);
+  background: conic-gradient(
+    from var(--uacc-glow-angle),
+    transparent 0deg,
+    transparent 250deg,
+    color-mix(in srgb, var(--warn) 85%, transparent) 310deg,
+    var(--warn) 335deg,
+    transparent 360deg
+  );
+}
+
+@keyframes uacc-border-chase {
+  to {
+    --uacc-glow-angle: 360deg;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .session-card.st-working,
-  .session-card.st-waiting {
+  .session-card.st-working::after,
+  .session-card.st-waiting::after {
     animation: none;
+    content: none;
   }
   .session-card.st-working {
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 45%, var(--bg-chip));
