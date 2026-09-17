@@ -26,6 +26,11 @@ describe("normalizeClaudeLine — real captured stream-json (claude 2.1.263)", (
     expect(resultEvents).toHaveLength(1);
     // ADR-0003: cost is a first-class event field, not buried in payload.
     expect(resultEvents[0]!.costUsd).toBeCloseTo(0.0454606, 6);
+    // ADR-0006: tokensEst = input_tokens (2) + output_tokens (4) from the
+    // same result line's real usage object — not a guess, not the cache
+    // token fields (which the fixture also carries but which don't count
+    // toward the billed input/output split).
+    expect(resultEvents[0]!.tokensEst).toBe(6);
   });
 
   it("maps the tool-use fixture to tool_use + tool_result + assistant events", () => {

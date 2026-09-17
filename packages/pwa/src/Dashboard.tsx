@@ -1,7 +1,7 @@
 import { useMemo } from "preact/hooks";
 import type { AdapterUsage, SessionRecord } from "./api.ts";
 
-function formatUsd(n: number): string {
+export function formatUsd(n: number): string {
   if (n === 0) return "$0";
   return n < 1 ? `$${n.toFixed(4)}` : `$${n.toFixed(2)}`;
 }
@@ -17,7 +17,7 @@ const WINDOW_LABELS: Record<string, string> = {
   seven_day: "7d",
 };
 
-function formatWindow(w: { id: string; utilization: number; resetsAt: string }): string {
+export function formatWindow(w: { id: string; utilization: number; resetsAt: string }): string {
   const label = WINDOW_LABELS[w.id] ?? w.id;
   const pct = Math.round(w.utilization * 100);
   const reset = new Date(w.resetsAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });

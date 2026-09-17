@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { hubApi, getToken, type SessionRecord } from "./api.ts";
+import { hubApi, getToken, type SessionRecord, type AdapterUsage, type SessionDiffResult } from "./api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "./ws.ts";
 import { Composer } from "./Composer.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
+import { formatUsd, formatWindow } from "./Dashboard.tsx";
 
 /**
  * T1.6 filter engine — three presets per EPIC-P1 §2/§5 (AC-P1-4), not the
@@ -79,12 +80,23 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     const stored = loadFilter();
     return stored === "lesen" ? "ueberwachen" : stored;
   });
-  const tab: "chat" | "verlauf" = filter === "lesen" ? "chat" : "verlauf";
+  // T1.6-4: Bericht is a third dock tab, orthogonal to the Chat/Verlauf
+  // filter split above — it replaces the event list with a summary pane
+  // instead of filtering it, so it needs its own bit of state rather than
+  // being derived from `filter` like Chat/Verlauf are.
+  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht">(() =>
+    loadFilter() === "lesen" ? "chat" : "verlauf",
+  );
 
   // T1.5-6: the PWA could watch and stop a session, but never reply to
   // one — POST /api/sessions/:id/steer existed server-side and both real
   // adapters implement it, nothing in the client ever called it.
   const [steerSupported, setSteerSupported] = useState(false);
+  // T1.6-4: claude's result line is the one real source for both costUsd
+  // and tokensEst (ADR-0006) — reusing capabilities().cost as the signal
+  // for "this adapter's Bericht numbers are real" avoids inventing a
+  // second capability flag for data that already arrives together.
+  const [reportNumbersReal, setReportNumbersReal] = useState(false);
   const [reply, setReply] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
   const [replyError, setReplyError] = useState("");
@@ -100,8 +112,12 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
         // box": an adapter without capabilities.steer gets no reply field
         // at all rather than one that would silently fail every time.
         setSteerSupported(info?.capabilities.steer ?? false);
+        setReportNumbersReal(info?.capabilities.cost ?? false);
       })
-      .catch(() => setSteerSupported(false));
+      .catch(() => {
+        setSteerSupported(false);
+        setReportNumbersReal(false);
+      });
     return () => {
       alive = false;
     };
@@ -124,11 +140,16 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     return () => connRef.current?.close();
   }, [session.id]);
 
+  // T1.6-4: extends the existing 3s status poll to also carry costUsd/
+  // tokensEst/updatedAt for the Bericht tab — not a second independent
+  // timer (same principle as T1.5-3's usage poll).
+  const [record, setRecord] = useState<SessionRecord>(session);
   useEffect(() => {
     const timer = setInterval(async () => {
       try {
         const rec = await hubApi.session(session.id);
         setStatus(rec.status);
+        setRecord(rec);
       } catch {
         // offline — keep last state
       }
@@ -136,13 +157,40 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     return () => clearInterval(timer);
   }, [session.id]);
 
+  // T1.6-4: fetched only while Bericht is the open tab, not continuously —
+  // a report is a periodic-check thing, not a live stream.
+  const [diff, setDiff] = useState<SessionDiffResult | null>(null);
+  const [usage, setUsage] = useState<AdapterUsage | null>(null);
+  useEffect(() => {
+    if (activeTab !== "bericht") return;
+    let alive = true;
+    hubApi
+      .sessionDiff(session.id)
+      .then((d) => alive && setDiff(d))
+      .catch(() => alive && setDiff(null));
+    hubApi
+      .adapterUsage(session.adapter)
+      .then((u) => alive && setUsage(u))
+      .catch(() => alive && setUsage(null));
+    return () => {
+      alive = false;
+    };
+  }, [activeTab, session.id, session.adapter]);
+
   useEffect(() => {
     localStorage.setItem("uacc.filter", filter);
     if (filter !== "lesen") setLastVerlaufFilter(filter);
   }, [filter]);
 
-  const showChatTab = () => setFilter("lesen");
-  const showVerlaufTab = () => setFilter(lastVerlaufFilter);
+  const showChatTab = () => {
+    setActiveTab("chat");
+    setFilter("lesen");
+  };
+  const showVerlaufTab = () => {
+    setActiveTab("verlauf");
+    setFilter(lastVerlaufFilter);
+  };
+  const showBerichtTab = () => setActiveTab("bericht");
 
   useEffect(() => {
     tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
@@ -208,7 +256,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   // T1.6-3/AC-P1.6-2: no back-arrow up top anymore — "Übersicht" in the
   // dock below is the one way back, reachable from anywhere with one tap.
   const showReply = status !== "stopped" && steerSupported;
-  const showVerlaufFilterBar = tab === "verlauf";
+  const showVerlaufFilterBar = activeTab === "verlauf";
 
   return (
     <div>
@@ -229,7 +277,16 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
         class="tail-scroll"
         style={`overflow-y: auto; max-height: calc(100vh - ${166 + (showVerlaufFilterBar ? 40 : 0) + (showReply ? 110 : 0)}px)`}
       >
-        {visible.length === 0 ? (
+        {activeTab === "bericht" ? (
+          <BerichtPane
+            record={record}
+            createdAt={session.createdAt}
+            status={status}
+            numbersReal={reportNumbersReal}
+            diff={diff}
+            usage={usage}
+          />
+        ) : visible.length === 0 ? (
           <div class="empty">keine Events im Filter</div>
         ) : (
           visible.map((e) => (
@@ -288,14 +345,98 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
           </div>
         )}
         <div class="subtabs-wrap">
-          <button class={tab === "chat" ? "active" : ""} onClick={showChatTab}>
+          <button class={activeTab === "chat" ? "active" : ""} onClick={showChatTab}>
             Chat
           </button>
-          <button class={tab === "verlauf" ? "active" : ""} onClick={showVerlaufTab}>
+          <button class={activeTab === "verlauf" ? "active" : ""} onClick={showVerlaufTab}>
             Verlauf
+          </button>
+          <button class={activeTab === "bericht" ? "active" : ""} onClick={showBerichtTab}>
+            Bericht
           </button>
         </div>
         <GlobalDock active={null} onNavigate={onNavigate} />
+      </div>
+    </div>
+  );
+}
+
+function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "n/a";
+  const totalSeconds = Math.round(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes} min ${seconds} s` : `${seconds} s`;
+}
+
+/**
+ * T1.6-4 — every row here has a named, real source (EPIC-P1.6 §3.3); "Tests"
+ * has none today (no adapter emits a structured pass/fail signal, only free
+ * text inside tool_result payloads) and says so instead of guessing (R9.7).
+ * Kontingent-Wirkung is deliberately the adapter's CURRENT account-wide
+ * snapshot, not a per-session before/after delta — computing a true delta
+ * needs a "usage at session start" capture that doesn't exist yet; showing
+ * the current snapshot honestly labeled beats a half-built delta.
+ */
+function BerichtPane({
+  record,
+  createdAt,
+  status,
+  numbersReal,
+  diff,
+  usage,
+}: {
+  record: SessionRecord;
+  createdAt: string;
+  status: string;
+  numbersReal: boolean;
+  diff: SessionDiffResult | null;
+  usage: AdapterUsage | null;
+}) {
+  const running = status !== "stopped" && status !== "error";
+  const durationMs = new Date(record.updatedAt).getTime() - new Date(createdAt).getTime();
+  const suffix = running ? " (bisher)" : "";
+  const filesChanged = diff ? (diff.error ? diff.error : `${diff.files.length}${suffix}`) : "lädt …";
+
+  return (
+    <div>
+      <span class={`status-chip ${running ? "pending" : "done"}`}>{running ? "● läuft" : "✓ abgeschlossen"}</span>
+      <div class="kv-list">
+        <div class="kv-row">
+          <span class="k">Dauer</span>
+          <span class="v num">
+            {formatDuration(durationMs)}
+            {suffix}
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Kosten</span>
+          <span class="v num">{numbersReal ? `${formatUsd(record.costUsd)}${suffix}` : "nicht erfasst"}</span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Tokens</span>
+          <span class="v num">
+            {numbersReal ? `${record.tokensEst.toLocaleString("de-DE")}${suffix}` : "nicht erfasst"}
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Kontingent (Adapter-weit)</span>
+          <span class="v num">
+            {!usage || !usage.supported
+              ? "unbekannt"
+              : usage.quota === null
+                ? "noch keine Meldung"
+                : usage.quota.windows.map(formatWindow).join(" · ")}
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Dateien geändert</span>
+          <span class="v num">{filesChanged}</span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Tests</span>
+          <span class="v dim">nicht erfasst — kein Adapter meldet ein strukturiertes Test-Signal</span>
+        </div>
       </div>
     </div>
   );
