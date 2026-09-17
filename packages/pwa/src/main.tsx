@@ -4,6 +4,7 @@ import { App } from "./App.tsx";
 import { SessionTail } from "./SessionTail.tsx";
 import { getToken, setToken, hubApi, type SessionRecord } from "./api.ts";
 import { applyTheme, getTheme } from "./theme.ts";
+import type { Page } from "./Dock.tsx";
 import "./styles.css";
 
 // T1.6-2: applied before the first render so a stored "light" preference
@@ -58,9 +59,9 @@ function TokenGate({ onReady }: { onReady: () => void }) {
 
 function Main() {
   const [ready, setReady] = useState(false);
-  const [route, setRoute] = useState<{ view: "list" } | { view: "tail"; session: SessionRecord }>({
-    view: "list",
-  });
+  const [route, setRoute] = useState<
+    { view: "list"; initialPage?: Page } | { view: "tail"; session: SessionRecord }
+  >({ view: "list" });
 
   useEffect(() => {
     // BUG-0006 (part 2): /api/health is deliberately open (tailnet
@@ -95,9 +96,13 @@ function Main() {
         <App
           onOpen={(session) => setRoute({ view: "tail", session })}
           ready={() => setReady(false)}
+          initialPage={route.initialPage}
         />
       ) : (
-        <SessionTail session={route.session} onBack={() => setRoute({ view: "list" })} />
+        // T1.6-3: one callback back into the list, optionally landing on a
+        // specific dock page — "Übersicht ist aus jedem Kontext heraus mit
+        // einem Tap erreichbar" applies to Neue Session/Einstellungen too.
+        <SessionTail session={route.session} onNavigate={(page) => setRoute({ view: "list", initialPage: page })} />
       )}
     </>
   );

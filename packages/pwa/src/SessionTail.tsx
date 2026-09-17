@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { hubApi, getToken, type SessionRecord } from "./api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "./ws.ts";
 import { Composer } from "./Composer.tsx";
+import { GlobalDock, type Page } from "./Dock.tsx";
 
 /**
  * T1.6 filter engine — three presets per EPIC-P1 §2/§5 (AC-P1-4), not the
@@ -58,7 +59,7 @@ function toolIdOf(e: NormalizedEvent): string | undefined {
   return undefined;
 }
 
-export function SessionTail({ session, onBack }: { session: SessionRecord; onBack: () => void }) {
+export function SessionTail({ session, onNavigate }: { session: SessionRecord; onNavigate: (page: Page) => void }) {
   const [events, setEvents] = useState<NormalizedEvent[]>([]);
   const [conn, setConn] = useState<"connecting" | "live" | "reconnecting" | "closed">("connecting");
   const [filter, setFilter] = useState<FilterPreset>(loadFilter);
@@ -66,6 +67,19 @@ export function SessionTail({ session, onBack }: { session: SessionRecord; onBac
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const tailRef = useRef<HTMLDivElement>(null);
   const connRef = useRef<TailConnection | null>(null);
+
+  // T1.6-3: Chat/Verlauf are the new dock sub-tabs — Chat is exactly the
+  // existing "lesen" preset, Verlauf is "ueberwachen"/"debuggen" with a
+  // small switcher inside it. `filter` stays the single source of truth
+  // (unchanged uacc.filter localStorage key, AC-P1.6-1) so a returning
+  // user's last preset — including which tab that implies — still loads
+  // correctly; lastVerlaufFilter only remembers which of the two Verlauf
+  // presets to restore when hopping back from Chat.
+  const [lastVerlaufFilter, setLastVerlaufFilter] = useState<Exclude<FilterPreset, "lesen">>(() => {
+    const stored = loadFilter();
+    return stored === "lesen" ? "ueberwachen" : stored;
+  });
+  const tab: "chat" | "verlauf" = filter === "lesen" ? "chat" : "verlauf";
 
   // T1.5-6: the PWA could watch and stop a session, but never reply to
   // one — POST /api/sessions/:id/steer existed server-side and both real
@@ -124,7 +138,11 @@ export function SessionTail({ session, onBack }: { session: SessionRecord; onBac
 
   useEffect(() => {
     localStorage.setItem("uacc.filter", filter);
+    if (filter !== "lesen") setLastVerlaufFilter(filter);
   }, [filter]);
+
+  const showChatTab = () => setFilter("lesen");
+  const showVerlaufTab = () => setFilter(lastVerlaufFilter);
 
   useEffect(() => {
     tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
@@ -187,12 +205,14 @@ export function SessionTail({ session, onBack }: { session: SessionRecord; onBac
     }
   };
 
+  // T1.6-3/AC-P1.6-2: no back-arrow up top anymore — "Übersicht" in the
+  // dock below is the one way back, reachable from anywhere with one tap.
+  const showReply = status !== "stopped" && steerSupported;
+  const showVerlaufFilterBar = tab === "verlauf";
+
   return (
     <div>
       <div class="topbar">
-        <button class="btn" onClick={onBack}>
-          ←
-        </button>
         <div style="flex: 1; min-width: 0">
           <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
             {session.project.split("/").pop()}
@@ -204,65 +224,78 @@ export function SessionTail({ session, onBack }: { session: SessionRecord; onBac
         <div class={`conn-dot ${conn}`} title={conn} />
       </div>
 
-      <div class="filter-bar">
-        {FILTERS.map((f) => (
-          <button key={f.id} class={`chip ${filter === f.id ? "active" : ""}`} onClick={() => setFilter(f.id)}>
-            {f.label}
-          </button>
-        ))}
+      <div
+        ref={tailRef}
+        class="tail-scroll"
+        style={`overflow-y: auto; max-height: calc(100vh - ${166 + (showVerlaufFilterBar ? 40 : 0) + (showReply ? 110 : 0)}px)`}
+      >
+        {visible.length === 0 ? (
+          <div class="empty">keine Events im Filter</div>
+        ) : (
+          visible.map((e) => (
+            <EventRow
+              key={e.seq}
+              event={e}
+              expanded={expanded.has(e.seq)}
+              onToggleExpand={() => toggleExpanded(e.seq)}
+              toolResult={e.type === "tool_use" ? toolResultByToolId.get(toolIdOf(e) ?? "") : undefined}
+              onJump={jumpTo}
+            />
+          ))
+        )}
       </div>
 
-      {(() => {
-        const showReply = status !== "stopped" && steerSupported;
-        return (
-          <div
-            ref={tailRef}
-            style={`overflow-y: auto; max-height: calc(100vh - ${showReply ? 300 : 190}px)`}
-          >
-            {visible.length === 0 ? (
-              <div class="empty">keine Events im Filter</div>
-            ) : (
-              visible.map((e) => (
-                <EventRow
-                  key={e.seq}
-                  event={e}
-                  expanded={expanded.has(e.seq)}
-                  onToggleExpand={() => toggleExpanded(e.seq)}
-                  toolResult={e.type === "tool_use" ? toolResultByToolId.get(toolIdOf(e) ?? "") : undefined}
-                  onJump={jumpTo}
+      <div class="dock-stack">
+        {(showReply || status !== "stopped") && (
+          <div class="dock-actions">
+            {showReply && (
+              <>
+                {replyError && <div class="reply-error">{replyError}</div>}
+                <Composer
+                  value={reply}
+                  onChange={setReply}
+                  placeholder="Antworten…"
+                  disabled={replyBusy}
+                  adapter={session.adapter}
+                  project={session.project}
                 />
-              ))
+              </>
             )}
+            <div class="row">
+              {showReply && (
+                <button class="btn primary" onClick={sendReply} disabled={replyBusy || !reply.trim()}>
+                  {replyBusy ? "Sende…" : "Senden"}
+                </button>
+              )}
+              {status !== "stopped" && (
+                <button class="btn danger" onClick={stop}>
+                  Stop
+                </button>
+              )}
+            </div>
           </div>
-        );
-      })()}
-
-      <div class="bottom-actions bottom-actions-column">
-        {status !== "stopped" && steerSupported && (
-          <>
-            {replyError && <div class="reply-error">{replyError}</div>}
-            <Composer
-              value={reply}
-              onChange={setReply}
-              placeholder="Antworten…"
-              disabled={replyBusy}
-              adapter={session.adapter}
-              project={session.project}
-            />
-          </>
         )}
-        <div class="row" style="justify-content: flex-end; gap: 8px">
-          {status !== "stopped" && steerSupported && (
-            <button class="btn primary" onClick={sendReply} disabled={replyBusy || !reply.trim()}>
-              {replyBusy ? "Sende…" : "Senden"}
-            </button>
-          )}
-          {status !== "stopped" && (
-            <button class="btn danger" onClick={stop}>
-              Stop
-            </button>
-          )}
+        {/* AC-P1.6-2: this sub-filter used to sit right under the topbar
+         * (top ~15% zone) — moved down here so every control, not just the
+         * dock/tabs, lives in the thumb zone. */}
+        {showVerlaufFilterBar && (
+          <div class="filter-bar dock-filter-bar">
+            {FILTERS.filter((f) => f.id !== "lesen").map((f) => (
+              <button key={f.id} class={`chip ${filter === f.id ? "active" : ""}`} onClick={() => setFilter(f.id)}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div class="subtabs-wrap">
+          <button class={tab === "chat" ? "active" : ""} onClick={showChatTab}>
+            Chat
+          </button>
+          <button class={tab === "verlauf" ? "active" : ""} onClick={showVerlaufTab}>
+            Verlauf
+          </button>
         </div>
+        <GlobalDock active={null} onNavigate={onNavigate} />
       </div>
     </div>
   );

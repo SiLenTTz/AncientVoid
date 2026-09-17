@@ -192,6 +192,12 @@ a {
   scrollbar-width: none;
 }
 
+/* T1.6-3: same chips, repositioned inside .dock-stack (AC-P1.6-2) */
+.dock-filter-bar {
+  padding: 8px 12px;
+  border-top: 1px solid var(--bg-chip);
+}
+
 .chip {
   flex: none;
   padding: 6px 12px;
@@ -442,28 +448,49 @@ a {
   cursor: pointer;
 }
 
-/* thumb zone: primary actions pinned to the bottom */
-.bottom-actions {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-  background: linear-gradient(transparent, var(--bg) 30%);
+/* T1.6-3: dock-actions replaces the old standalone .bottom-actions —
+ * folded into .dock-stack below instead of being its own separately fixed
+ * element (that pattern once overlapped the tail's last rows in practice,
+ * see the T1.5-6 history; a single fixed anchor avoids that class of bug
+ * by construction). */
+.dock-actions {
+  padding: 10px 12px 6px;
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  justify-content: flex-end;
 }
 
-/* T1.5-6: the reply composer stacks above the button row in one fixed
- * block (not a second, separately-positioned fixed element — that
- * overlapped the tail's last rows in practice, verified via a real
- * screenshot before this fix). */
-.bottom-actions-column {
-  flex-direction: column;
-  align-items: stretch;
+.dock-actions .row {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* T1.6-3: session sub-tabs (Chat/Verlauf), stacked directly above the
+ * global dock inside the same fixed .dock-stack. */
+.subtabs-wrap {
+  display: flex;
+  border-top: 1px solid var(--bg-chip);
+}
+
+.subtabs-wrap button {
+  flex: 1;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  padding: 10px 4px 9px;
+  color: var(--fg-dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  min-height: 44px;
+}
+
+.subtabs-wrap button.active {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* T1.5-10 skill/agent picker + overlay */
@@ -523,18 +550,24 @@ a {
   padding-bottom: 78px;
 }
 
-.dock {
+/* T1.6-3: .dock-stack is the single fixed anchor at the bottom — App.tsx
+ * puts only the GlobalDock inside it, SessionTail additionally stacks its
+ * reply/stop actions and Chat/Verlauf sub-tabs above the same dock. */
+.dock-stack {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   max-width: 680px;
   margin: 0 auto;
-  display: flex;
   background: var(--bg-elev);
+  z-index: 10;
+}
+
+.dock {
+  display: flex;
   border-top: 1px solid var(--bg-chip);
   padding-bottom: env(safe-area-inset-bottom);
-  z-index: 10;
 }
 
 .dock-item {
