@@ -16,6 +16,11 @@ function TokenGate({ onReady }: { onReady: () => void }) {
   const [token, setVal] = useState(getToken());
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
+  // Real find: a hidden, case-sensitive, hyphen-containing token typed on a
+  // phone keyboard is exactly the kind of input mobile autocorrect/
+  // autocapitalize silently mangles, and type="password" means the user
+  // can never see what actually landed in the field to catch it.
+  const [reveal, setReveal] = useState(false);
 
   const submit = async () => {
     setChecking(true);
@@ -42,12 +47,27 @@ function TokenGate({ onReady }: { onReady: () => void }) {
       </p>
       <label>
         Device-Token
-        <input
-          type="password"
-          value={token}
-          onInput={(e) => setVal((e.target as HTMLInputElement).value)}
-          placeholder="uacc-…"
-        />
+        <div style="display: flex; gap: 8px">
+          <input
+            type={reveal ? "text" : "password"}
+            value={token}
+            onInput={(e) => setVal((e.target as HTMLInputElement).value)}
+            placeholder="z. B. 00bYRN3zmTJJIsfneN4iZmOQKsJl5q-s"
+            autocapitalize="off"
+            autocorrect="off"
+            autocomplete="off"
+            spellcheck={false}
+            style="flex: 1"
+          />
+          <button
+            type="button"
+            class="btn"
+            onClick={() => setReveal((v) => !v)}
+            title={reveal ? "Token verbergen" : "Token anzeigen"}
+          >
+            {reveal ? "🙈" : "👁"}
+          </button>
+        </div>
       </label>
       {error && <div style="color: var(--err)">{error}</div>}
       <button class="btn primary" onClick={submit} disabled={checking}>
