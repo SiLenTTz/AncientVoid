@@ -215,9 +215,30 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   Modi über echte Session-Karten/Buttons/Pills, nicht nur den Root-Wert.
   Gates: `npm run lint`/`typecheck`, `npm -w @uacc/pwa run build`/
   `typecheck` grün.
-- [ ] **T1.6-2** Bottom-Dock-Navigation in `App.tsx` (ersetzt Top-Icon-
+- [x] **T1.6-2** Bottom-Dock-Navigation in `App.tsx` (ersetzt Top-Icon-
   Buttons) + neue Einstellungen-Seite (Dark/Light-Umschalter, Geräte-Token
-  wechseln, Tailscale-/Projekt-Wurzeln-Anzeige).
+  wechseln, Tailscale-/Projekt-Wurzeln-Anzeige). Neuer `page`-State
+  (`dashboard`/`new`/`settings`) ersetzt das alte `showCreate`-Boolean; die
+  Top-Leiste zeigt nur noch Marke + echten Verbindungs-Punkt (`.conn-dot`,
+  wiederverwendet aus `SessionTail`, aus dem bestehenden `error`-State
+  abgeleitet — kein erfundenes „immer grün"). **Echter Fund:** `[data-theme=
+  "light"]` existierte seit P0 in `styles.css`, war aber nie erreichbar —
+  `index.html` hatte `data-theme="dark"` fest verdrahtet, kein Toggle setzte
+  je etwas anderes. Neues `theme.ts` (`getTheme()`/`applyTheme()`,
+  `localStorage`) macht das jetzt real nutzbar, angewendet **vor** dem
+  ersten Render in `main.tsx` (kein Flash-of-wrong-theme). Einstellungen-
+  Seite zeigt ausschließlich echte Werte: `location.host` (kein erfundener
+  Tailscale-Text), `getToken()`-Vorhandensein, echte Projekt-Anzahl aus
+  `hubApi.projects()` — kein statischer Mockup-Platzhalterwert übernommen.
+  „Geräte-Token wechseln" führt die bisherige Gear-Icon-Funktion fort
+  (`ready`-Callback), nichts verloren. **Live gegen die echte PWA geprüft**
+  (Playwright, `t1.6-2-*.png`): AC-P1.6-2 automatisiert verifiziert — kein
+  interaktives Element mit Bounding-Box-Überlappung der obersten 126px
+  (390×844-Viewport) auf der Dashboard-Seite; Dock-Navigation zwischen
+  allen drei Seiten real angeklickt; Theme-Umschaltung real getestet
+  inklusive Persistenz über einen echten `page.reload()` hinweg (`light`
+  vor und nach Reload identisch). Gates: `npm test` 134/134,
+  `lint`/`typecheck`, PWA `build`/`typecheck` grün.
 - [ ] **T1.6-3** Session-Reiter Chat/Verlauf: `SessionTail` in gestapeltes
   Dock + zwei Reiter aufgeteilt, bestehende Presets/Fähigkeiten
    (Thinking-Collapse, Anchor-Jump, K5-Blob-Warnung, WS-Resync,
@@ -243,13 +264,19 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   (Thinking-Collapse, Tool-Anchor-Jump, K5-Blob-Warnung, WS-Gap-Resync,
   Reconnect-Backoff, Stale-Data-Badge, `loadFilter()`-Persistenz) funktioniert
   nach dem Umbau unverändert — Testfall pro Fähigkeit, nicht nur Sichtprüfung.
-- **AC-P1.6-2:** Kein interaktives Element (Nav, Reiter, Buttons, Composer,
-  Skill-Overlay, Enhancer) sitzt in den obersten ~15 % der Bildschirmhöhe —
-  geprüft per Playwright-Bounding-Box gegen die Viewport-Höhe am realen
-  Handy-Viewport (390×844).
-- **AC-P1.6-3:** `[data-theme="light"]` ist über die Einstellungen-Seite
-  erreichbar und ändert sichtbar Hintergrund-/Textfarben in der echten PWA
-  (nicht nur im Mockup) — vorher unerreichbarer Code wird real genutzt.
+- **AC-P1.6-2: 🟡 teilweise — Dashboard/Neue Session/Einstellungen erledigt,
+  Session-Reiter folgt mit T1.6-3.** Kein interaktives Element (Nav, Reiter,
+  Buttons, Composer, Skill-Overlay, Enhancer) sitzt in den obersten ~15 %
+  der Bildschirmhöhe — geprüft per Playwright-Bounding-Box gegen die
+  Viewport-Höhe am realen Handy-Viewport (390×844). Beleg für den bereits
+  fertigen Teil: automatisierte Prüfung in `check-t1.6-2-dock.mjs` findet
+  auf der Dashboard-Seite null Elemente mit Bounding-Box-Überlappung von
+  y<126px. Der Session-Reiter-Teil (`Reiter`) ist erst mit T1.6-3 fällig.
+- **AC-P1.6-3: 🟢 erfüllt.** `[data-theme="light"]` ist über die
+  Einstellungen-Seite erreichbar und ändert sichtbar Hintergrund-/
+  Textfarben in der echten PWA (nicht nur im Mockup) — vorher unerreichbarer
+  Code wird real genutzt. Beleg: `t1.6-2-settings-light.png`, Theme-
+  Persistenz über echten Reload verifiziert.
 - **AC-P1.6-4:** Bericht-Reiter zeigt für eine echte, abgeschlossene
   `claude`-Session reale Zahlen (Dauer, Kosten, Tokens, Kontingent-Delta,
   Dateien geändert) — Gegenprobe: jede Zahl lässt sich auf ein konkretes

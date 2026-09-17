@@ -180,6 +180,10 @@ a {
   font-size: 12px;
 }
 
+.mono {
+  font-family: var(--font-mono);
+}
+
 .filter-bar {
   display: flex;
   gap: 6px;
@@ -509,4 +513,65 @@ a {
 
 .skill-item.active {
   border-color: var(--accent);
+}
+
+/* T1.6-2: bottom-dock navigation — replaces the old top icon buttons.
+ * .app-page's bottom padding clears the fixed dock; scoped to App.tsx's
+ * own wrapper (not #app globally) so SessionTail's own fixed bottom block
+ * is unaffected until T1.6-3 unifies it. */
+.app-page {
+  padding-bottom: 78px;
+}
+
+.dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  background: var(--bg-elev);
+  border-top: 1px solid var(--bg-chip);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 10;
+}
+
+.dock-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 0 8px;
+  background: none;
+  border: none;
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.dock-item .ic {
+  font-size: 17px;
+}
+
+.dock-item.active {
+  color: var(--accent);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bg-chip);
+  font-size: 13px;
+}
+
+.settings-row:last-of-type {
+  border-bottom: none;
 }

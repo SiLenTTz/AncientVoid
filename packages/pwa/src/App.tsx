@@ -1,8 +1,11 @@
 import { useEffect, useState } from "preact/hooks";
-import { hubApi, type AdapterInfo, type AdapterUsage, type DiscoveredProject, type SessionRecord } from "./api.ts";
+import { hubApi, getToken, type AdapterInfo, type AdapterUsage, type DiscoveredProject, type SessionRecord } from "./api.ts";
 import { Dashboard } from "./Dashboard.tsx";
 import { Composer } from "./Composer.tsx";
 import { SkillPicker, loadSelectedSkill, type SelectedSkill } from "./SkillOverlay.tsx";
+import { applyTheme, getTheme, type Theme } from "./theme.ts";
+
+type Page = "dashboard" | "new" | "settings";
 
 export function App({
   onOpen,
@@ -15,7 +18,10 @@ export function App({
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
   const [usage, setUsage] = useState<Record<string, AdapterUsage>>({});
   const [error, setError] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
+  // T1.6-2: bottom-dock navigation replaces the top icon buttons ("Buttons
+  // oben sind sehr schlecht zu bedienen" — real ergonomics feedback from
+  // the mockup review). Settings didn't exist as a destination before.
+  const [page, setPage] = useState<Page>("dashboard");
 
   useEffect(() => {
     let alive = true;
@@ -47,33 +53,98 @@ export function App({
   }, []);
 
   return (
-    <div>
+    <div class="app-page">
       <div class="topbar">
         <h1>UACC</h1>
-        <div style="display: flex; gap: 8px">
-          <button class="btn" onClick={ready} title="Token wechseln">
-            ⚙
-          </button>
-          <button class="btn primary" onClick={() => setShowCreate((v) => !v)}>
-            + Session
-          </button>
-        </div>
+        {/* Real connection health, not a decorative always-green dot — same
+         * classes SessionTail already uses for its own WS status. */}
+        <span class={`conn-dot ${error ? "closed" : "live"}`} title={error ? error : "verbunden"} />
       </div>
 
       {error && <div class="card" style="color: var(--err)">{error}</div>}
 
-      {showCreate && <CreateSession adapters={adapters} onCreated={(s) => {
-        setShowCreate(false);
-        onOpen(s);
-      }} />}
-
-      {sessions === null ? (
-        <div class="empty">lade…</div>
-      ) : (
-        <Dashboard sessions={sessions} usage={usage} onOpen={onOpen} />
+      {page === "new" && (
+        <CreateSession
+          adapters={adapters}
+          onCreated={(s) => {
+            setPage("dashboard");
+            onOpen(s);
+          }}
+        />
       )}
 
-      <div class="bottom-actions" />
+      {page === "settings" && <Settings onSwitchToken={ready} />}
+
+      {page === "dashboard" &&
+        (sessions === null ? (
+          <div class="empty">lade…</div>
+        ) : (
+          <Dashboard sessions={sessions} usage={usage} onOpen={onOpen} />
+        ))}
+
+      <nav class="dock">
+        <button class={`dock-item ${page === "dashboard" ? "active" : ""}`} onClick={() => setPage("dashboard")}>
+          <span class="ic">▤</span>Übersicht
+        </button>
+        <button class={`dock-item ${page === "new" ? "active" : ""}`} onClick={() => setPage("new")}>
+          <span class="ic">＋</span>Neue Session
+        </button>
+        <button class={`dock-item ${page === "settings" ? "active" : ""}`} onClick={() => setPage("settings")}>
+          <span class="ic">⚙</span>Einstellungen
+        </button>
+      </nav>
+    </div>
+  );
+}
+
+function Settings({ onSwitchToken }: { onSwitchToken: () => void }) {
+  const [theme, setThemeState] = useState<Theme>(getTheme());
+  const [projectCount, setProjectCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    hubApi
+      .projects()
+      .then((res) => {
+        if (alive) setProjectCount(res.projects.length);
+      })
+      .catch(() => {
+        if (alive) setProjectCount(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const toggleTheme = () => {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    applyTheme(next);
+    setThemeState(next);
+  };
+
+  return (
+    <div class="card form-grid">
+      <div class="settings-row">
+        <span>Erscheinungsbild</span>
+        <button class="btn" onClick={toggleTheme}>
+          {theme === "dark" ? "☾ Dunkel" : "☀ Hell"}
+        </button>
+      </div>
+      <div class="settings-row">
+        <span>Erreichbar über</span>
+        <span class="mono dim">{location.host}</span>
+      </div>
+      <div class="settings-row">
+        <span>Geräte-Token</span>
+        <span class="dim">{getToken() ? "•••• aktiv" : "kein Token"}</span>
+      </div>
+      <div class="settings-row">
+        <span>Projekt-Wurzeln</span>
+        <span class="dim">{projectCount === null ? "n/a" : `${projectCount} Projekte gefunden`}</span>
+      </div>
+      <button class="btn" onClick={onSwitchToken}>
+        Geräte-Token wechseln
+      </button>
     </div>
   );
 }
