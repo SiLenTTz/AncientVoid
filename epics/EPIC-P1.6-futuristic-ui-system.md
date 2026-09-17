@@ -1,6 +1,6 @@
 # EPIC-P1.6 — Futuristisches UI-System: Bottom-Dock, Bericht, Design-System-Referenz
 
-**Status:** offen · **Phase:** P1.6 (zwischen P1.5 und P2 eingeschoben) · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** P1.5 funktional grün (siehe Vorbemerkung)
+**Status:** 🟡 alle 9 Aufgaben und alle 9 ACs grün — offen bleibt nur der gemeinsame Live-Handy-Test (siehe DoD) · **Phase:** P1.6 (zwischen P1.5 und P2 eingeschoben) · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** P1.5 funktional grün (siehe Vorbemerkung)
 
 ---
 
@@ -379,9 +379,29 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   `scrollbar-color` löst real zur Akzentfarbe auf (`getComputedStyle`
   bestätigt `color(srgb 1 0.6 0.24 / .55)`). Gates: `npm test` 142/142,
   `lint`/`typecheck`, PWA `build`/`typecheck` grün.
-- [ ] **T1.6-9** K2-Regressionslauf (`scripts/k2-frame-lag.mjs`) gegen den
-  fertigen Umbau + vollständige Migrations-Verifikation (keine der in §3.2
-  gelisteten bestehenden Fähigkeiten verloren).
+- [x] **T1.6-9** K2-Regressionslauf + vollständige Migrations-Verifikation.
+  **K2:** dritter Lauf dieser Session-Reihe (P1 → P1.5 → P1.6), 18131/18131
+  gematchte Events unter dem 200ms-Budget, Median stabil bei 4ms (Max 19ms
+  → 25ms, weiterhin nur 12,5 % des Budgets) —
+  [`docs/messlauf/2026-09-18-k2-frame-lag-p1.6-final.md`](../docs/messlauf/2026-09-18-k2-frame-lag-p1.6-final.md).
+  **Migrations-Verifikation (AC-P1.6-1):** alle sechs in §3.2 gelisteten
+  Fähigkeiten sind entweder real neu geprüft (Thinking-Collapse, Tool-
+  Anchor-Jump, `loadFilter()`-Persistenz — T1.6-3) oder per Code-
+  Unveränderung abgesichert (K5-Blob-Warnung, WS-Gap-Resync, Reconnect-
+  Backoff, Stale-Data-Badge — `EventRow()`/`ws.ts`/`connectTail()` seit
+  T1.6-3 byte-identisch, per `git diff origin/main -- packages/pwa/src/
+  ws.ts` erneut bestätigt: leerer Diff). **Zusätzlicher End-zu-Ende-
+  Rauchtest** über die gesamte in P1.6 gebaute Oberfläche in einem
+  einzigen Playwright-Lauf (`check-t1.6-9-full-smoke.mjs`, echter Login,
+  keine Mocks): Dashboard lädt, Neue Session mit Modell- **und**
+  Skill-Auswahl, Einstellungen inkl. Theme-Umschaltung, Voice-Sheet
+  öffnen/schließen, alle vier Session-Reiter (Chat/Verlauf/Bericht/Diff)
+  einzeln angetippt und korrekt als aktiv markiert, Navigation aus einer
+  Session zurück zum Dashboard — keine Konsolen-Fehler außer dem
+  erwarteten, bereits vor P1.6 bestehenden 401 beim initialen
+  Bereitschafts-Check vor der Anmeldung (BUG-0006-Muster, kein Fund).
+  Gates: `npm test` 142/142, `lint`/`typecheck`, PWA `build`/`typecheck`
+  grün.
 
 ## 5. Acceptance Criteria
 
@@ -440,10 +460,12 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   Mechanik) und zeigt sichtbar „Vorschau — Ausführung folgt", führt aber
   nachweislich **keine** Aktion aus, wenn ein Befehls-Beispiel angetippt wird.
   Beleg: `t1.6-7-voice-*.png`, echte `recognizeOnce()`-Fehlerpfad-Prüfung.
-- **AC-P1.6-8 (K2, Regression):** Der komplette Umbau (Dock, Glow,
+- **AC-P1.6-8 (K2, Regression): 🟢 erfüllt.** Der komplette Umbau (Dock, Glow,
   Scrollbars) verschlechtert die K2-Frame-Lag-Zahl aus
   `docs/messlauf/2026-09-16-k2-frame-lag-p1.5-regression.md` nicht —
-  weiterhin kein Frame-Lag > 200 ms.
+  weiterhin kein Frame-Lag > 200 ms. Beleg:
+  [`docs/messlauf/2026-09-18-k2-frame-lag-p1.6-final.md`](../docs/messlauf/2026-09-18-k2-frame-lag-p1.6-final.md) —
+  18131/18131 unter Budget, Median weiterhin 4ms.
 - **AC-P1.6-9: 🟢 erfüllt.** Alle Glow-/Scanline-Animationen verschwinden vollständig
   unter `prefers-reduced-motion: reduce` (kein Rest-Flackern), verifiziert
   per Playwright mit emuliertem `reduced-motion` gegen eine echte
