@@ -3,6 +3,7 @@ import { hubApi, getToken, type SessionRecord, type AdapterUsage, type SessionDi
 import { connectTail, type NormalizedEvent, type TailConnection } from "./ws.ts";
 import { Composer } from "./Composer.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
+import { VoiceSheet } from "./VoiceSheet.tsx";
 import { formatUsd, formatWindow } from "./Dashboard.tsx";
 
 /**
@@ -100,6 +101,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   const [reply, setReply] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
   const [replyError, setReplyError] = useState("");
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -364,8 +366,9 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
             Diff
           </button>
         </div>
-        <GlobalDock active={null} onNavigate={onNavigate} />
+        <GlobalDock active={null} onNavigate={onNavigate} onVoice={() => setVoiceOpen(true)} />
       </div>
+      <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} />
     </div>
   );
 }
