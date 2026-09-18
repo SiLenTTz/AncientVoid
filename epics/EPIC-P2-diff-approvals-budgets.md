@@ -320,19 +320,49 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
   Alle drei Gates sind über bestehende Kommandos ausführbar
   (`npm test`, `npm run messlauf:approve-latency`) — kein separates,
   neues CI-Tooling nötig.
-- [ ] **T2.10** Fail-closed-Review: jeder neue Code-Pfad, der externen State ändert, muss
-  durch eine Klasse — Checkliste im PR-Template
+- [x] **T2.10** Fail-closed-Review: jeder neue Code-Pfad, der externen State ändert, muss
+  durch eine Klasse — Checkliste im PR-Template.
+  [`.gitlab/merge_request_templates/Default.md`](../.gitlab/merge_request_templates/Default.md) —
+  GitLab wendet diese Datei automatisch auf jede neue MR an (kein
+  zusätzlicher Verdrahtungsschritt nötig, damit „erreichbar" per
+  epic-creation-Skill-Konvention). Enthält die Fail-closed-Checkliste
+  (Klassifizierung read/write/destructive oder benannte Ausnahme,
+  Fail-closed bei Timeout, Fail-loud-Regel, Contracts-ADR-Pflicht,
+  K7-Recovery, Secret-Scan) sowie die Future-Fragility-Sektion aus dem
+  `pr-review`-Skill, damit beide an derselben Stelle sichtbar sind, wenn
+  eine MR erstellt wird.
 
 ## 5. Acceptance Criteria
 
 - **AC-P2-1:** Session erzeugt 3 Commits in isoliertem Worktree → Diff-Ansicht zeigt 3
   Abschnitte, Basis ist exakt `base_sha`, Haupt-Repo bleibt unberührt.
+  🟡 **Teilweise**: Worktree-Isolation + exakter `base_sha` + „Haupt-Repo
+  unberührt" sind real erfüllt und getestet (T2.1: echte Commits in einem
+  Worktree ändern nachweislich nicht den Haupt-Checkout). **Offen:** die
+  Diff-Ansicht gruppiert nach **Datei** (T2.2/T2.3s Hunk-Karten), nicht
+  nach **Commit-Grenzen** — „3 Abschnitte" für 3 Commits ist nicht gebaut;
+  `getSessionDiff()` diff't `base_sha..Arbeitsverzeichnis` als Ganzes,
+  ohne die dazwischenliegenden Commit-Grenzen aufzulösen. Ehrlich als
+  Lücke geführt statt stillschweigend als erfüllt markiert.
 - **AC-P2-2 (K3):** Diff mit 2 MB Änderungen → initiale Payload ≤ 50 KB, Expand liefert
   Rest korrekt nach.
 - **AC-P2-3 (K1):** Biometrisches Approven eines force-push aus der Queue: Push →
   WebAuthn → Hub-Ack in < 5 s (95. Perzentil über 20 Messungen im Test).
 - **AC-P2-4:** Budget-Cap 1 $, Agent erreicht es → Session parked automatisch, Push am
   Handy, kein weiterer Provider-Call (verifiziert via Mock-Billing).
+  🟢 **Real erfüllt, nach einem gefundenen und behobenen Fail-closed-Bug**:
+  `parkFor()` änderte ursprünglich nur das Hub-eigene Status-Label — ein
+  frei laufender Adapter (echter CLI-Prozess, der weiterstreamt, oder
+  `adapter-dummy`s eigener Generator-Loop) lief unbeeindruckt weiter und
+  produzierte weiter Kosten (real reproduziert: `costUsd` stieg nach dem
+  Parken von 1.0 auf 6.0 in 600 ms). Behoben: jedes Parken (manuell,
+  Budget, Tages-Cap) sendet jetzt echt `SteerInput{kind:"park"}` an den
+  Adapter, bevor der Hub-Status wechselt; ein Budget-Top-up sendet
+  spiegelbildlich `{kind:"resume"}`. Regressionstest in
+  `sessionmanager.test.ts` beweist real: `costUsd` bleibt nach dem Parken
+  über mehrere weitere Timer-Ticks hinweg exakt gleich. „Push am Handy"
+  bleibt die bereits an anderer Stelle benannte ehrliche Lücke (kein
+  Push-Backend) — als sichtbares System-Event umgesetzt.
 - **AC-P2-5:** Destruktive Aktion ohne Begründung → 422 vom Server, kein Audit-Eintrag
   als „approved".
 - **AC-P2-6:** Approval-Timeout (60 s konfigurierbar) → Reject, fail-closed, Push-Info.

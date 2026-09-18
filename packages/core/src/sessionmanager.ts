@@ -514,6 +514,25 @@ export class SessionManager {
    * records WHY, so a later budget top-up knows whether it's the right
    * reason to auto-resume (see applyBudgetTopUp). */
   private async parkFor(session: LiveSession, reason: SessionRecord["parkReason"], actor?: string): Promise<void> {
+    // Real bug found live-testing T2.7: this used to only flip the hub's
+    // OWN status label — an adapter with any free-running work (a real
+    // CLI process still streaming, a generator loop like adapter-dummy's)
+    // kept right on going and kept right on costing money, since nothing
+    // ever told it to stop. "Fail-closed" requires actually reaching the
+    // adapter, not just relabeling it: SteerInput{kind:"park"} is the
+    // real, existing adapter-level pause mechanism (adapter-dummy already
+    // implements it) — every park (manual, budget, daily-cap) now uses it
+    // before the hub status changes underneath it.
+    if (session.handle) {
+      try {
+        await session.adapter.steer(session.handle, { kind: "park" }, this.makeContext(session));
+      } catch (err) {
+        await this.emitSystem(session, "session.park_signal_failed", {
+          reason,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
     session.record.parkReason = reason;
     await this.setStatus(session, "parked");
     await this.emitSystem(session, "session.parked", { reason, actor: actor ?? null });
@@ -566,6 +585,20 @@ export class SessionManager {
     if (session.record.status === "parked" && session.record.parkReason === "budget") {
       session.record.parkReason = null;
       await this.setStatus(session, "working");
+      // Mirrors parkFor()'s real adapter signal — a top-up that only
+      // flips the hub's own status back to "working" while the adapter
+      // itself is still internally paused (e.g. adapter-dummy's own
+      // steer(park) sets its generator loop's running flag false) would
+      // show a session that looks resumed but never actually continues.
+      if (session.handle) {
+        try {
+          await session.adapter.steer(session.handle, { kind: "resume" }, this.makeContext(session));
+        } catch (err) {
+          await this.emitSystem(session, "session.resume_signal_failed", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
       await this.emitSystem(session, "session.resumed_after_topup", { actor: actor ?? null });
     }
     return { ok: true };

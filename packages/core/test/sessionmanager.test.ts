@@ -634,4 +634,54 @@ describe("SessionManager", () => {
       await manager.shutdown();
     }
   });
+
+  it("T2.7 fail-closed regression: a budget park real-signals a free-running adapter to stop, not just the hub's own status label", async () => {
+    // Real bug found live-testing T2.7 (see parkFor()'s own doc comment):
+    // an adapter with an internal generator loop (a real CLI process
+    // still streaming, or adapter-dummy's own setInterval) kept right on
+    // running and right on costing money after a budget park, because
+    // nothing ever told IT to stop — only the hub's own status label
+    // changed. This adapter free-runs a costUsd-emitting timer exactly
+    // like that, and only stops when its own steer(park) is actually
+    // called.
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    let paused = false;
+    registry.register("free-running-budget-test", () => ({
+      id: "free-running-budget-test",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false }),
+      async start(_spec, ctx) {
+        const timer = setInterval(() => {
+          if (!paused) ctx.emit({ type: "system", summary: "tick", payload: {}, costUsd: 0.5 });
+        }, 30);
+        ctx.signal.addEventListener("abort", () => clearInterval(timer));
+        return { sessionId: ctx.sessionId };
+      },
+      async steer(_handle, input) {
+        if (input.kind === "park") paused = true;
+        if (input.kind === "resume") paused = false;
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" as const };
+      },
+      async stop() {},
+    }));
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "free-running-budget-test", project: dir, budgetUsd: 1.0 });
+      await waitFor(async () => manager.get(record.id)!.status === "parked");
+      const costAtPark = manager.get(record.id)!.costUsd;
+      await new Promise((r) => setTimeout(r, 200)); // several more timer ticks would have fired by now
+      expect(manager.get(record.id)!.costUsd).toBe(costAtPark); // real proof the adapter actually stopped, not just relabeled
+      expect(paused).toBe(true);
+
+      await manager.applyBudgetTopUp(record.id, 5.0);
+      expect(paused).toBe(false); // resume signal really reached the adapter too
+    } finally {
+      await manager.shutdown();
+    }
+  });
 });
