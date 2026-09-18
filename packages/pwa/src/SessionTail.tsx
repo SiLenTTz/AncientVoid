@@ -235,7 +235,16 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   };
 
   const stop = async () => {
-    await hubApi.stopSession(session.id).catch(() => undefined);
+    // Real bug found live-testing T3.10: this used to swallow every
+    // failure silently (`.catch(() => undefined)`) — the button could do
+    // nothing and the user would have no way to know. Now surfaces a real
+    // failure the same way a rejected reply already does.
+    try {
+      const ack = await hubApi.stopSession(session.id);
+      if (!ack.ok) setReplyError("Stop fehlgeschlagen.");
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Stop fehlgeschlagen.");
+    }
   };
 
   const sendReply = async () => {
@@ -313,18 +322,16 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
       <div class="dock-stack">
         {(showReply || status !== "stopped") && (
           <div class="dock-actions">
+            {replyError && <div class="reply-error">{replyError}</div>}
             {showReply && (
-              <>
-                {replyError && <div class="reply-error">{replyError}</div>}
-                <Composer
-                  value={reply}
-                  onChange={setReply}
-                  placeholder="Antworten…"
-                  disabled={replyBusy}
-                  adapter={session.adapter}
-                  project={session.project}
-                />
-              </>
+              <Composer
+                value={reply}
+                onChange={setReply}
+                placeholder="Antworten…"
+                disabled={replyBusy}
+                adapter={session.adapter}
+                project={session.project}
+              />
             )}
             <div class="row">
               {showReply && (
@@ -368,7 +375,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
         </div>
         <GlobalDock active={null} onNavigate={onNavigate} onVoice={() => setVoiceOpen(true)} />
       </div>
-      <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} />
+      <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} sessionId={session.id} />
     </div>
   );
 }
