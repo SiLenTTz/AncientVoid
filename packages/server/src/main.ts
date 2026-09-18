@@ -76,6 +76,7 @@ async function main(): Promise<void> {
     undefined,
     worktrees,
     config.requireStepApprovals ? approvals : undefined,
+    config.dailyCapUsd,
   );
 
   // K7: recover sessions from JSONL + snapshots before accepting traffic.

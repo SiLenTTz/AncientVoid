@@ -46,6 +46,9 @@ interface LiveSession {
    * at stop() time to know whether (and against which real repo) to
    * `git worktree remove`. */
   worktreeIsolated: boolean;
+  /** T2.7: true once the 80%-budget warning has fired for this session —
+   * prevents every subsequent cost-bearing event from re-emitting it. */
+  budgetWarned: boolean;
 }
 
 /** Raw SQLite row shape (snake_case) for the sessions table. */
@@ -63,6 +66,7 @@ interface SessionRow {
   cost_usd: number;
   updated_at: string;
   tokens_est: number;
+  park_reason: string | null;
 }
 
 function rowToRecord(row: SessionRow): SessionRecord {
@@ -80,6 +84,7 @@ function rowToRecord(row: SessionRow): SessionRecord {
     costUsd: row.cost_usd,
     updatedAt: row.updated_at,
     tokensEst: row.tokens_est,
+    parkReason: row.park_reason as SessionRecord["parkReason"],
   };
 }
 
@@ -127,6 +132,7 @@ export class SessionManager {
   private readonly runner: WorkerRunner;
   private readonly worktrees: WorktreeManager | undefined;
   private readonly approvals: ApprovalService | undefined;
+  private readonly dailyCapUsd: number | null;
   private readonly heartbeatTimer: NodeJS.Timeout;
   private heartbeatRunning = false;
 
@@ -144,6 +150,9 @@ export class SessionManager {
      * (forwarded to the adapter immediately, no approval gate). Every
      * existing call site predates this and stays unaffected. */
     approvals?: ApprovalService,
+    /** T2.7: hub-wide daily cost cap (EPIC-P2 §3) — omitted/null means no
+     * cap, the exact pre-T2.7 behavior. */
+    dailyCapUsd: number | null = null,
   ) {
     this.db = db;
     this.store = store;
@@ -151,6 +160,7 @@ export class SessionManager {
     this.runner = runner;
     this.worktrees = worktrees;
     this.approvals = approvals;
+    this.dailyCapUsd = dailyCapUsd;
     // T1.9 (AC-P1-5): poll each live adapter's own status() on a timer,
     // not just react to its worker process exiting. A hard-killed process
     // already surfaces via WorkerProcess.onExit (see makeContext below),
@@ -255,6 +265,7 @@ export class SessionManager {
       costUsd: 0,
       updatedAt: now,
       tokensEst: 0,
+      parkReason: null,
     };
     await this.store.initSession(record.id);
     this.persist(record);
@@ -267,6 +278,7 @@ export class SessionManager {
       subscribers: new Set(),
       workdir: record.project,
       worktreeIsolated: false,
+      budgetWarned: false,
     };
     this.live.set(record.id, session);
 
@@ -370,9 +382,49 @@ export class SessionManager {
     return ack;
   }
 
+  /** T2.7: pending budget top-ups, same "not applied until a real
+   * approval comes back" pattern as pendingSteers. */
+  private readonly pendingBudgetTopUps = new Map<string, { sessionId: string; newBudgetUsd: number }>();
+
+  /**
+   * Requests a budget change for a session — EPIC-P2 §3 lists "Budget-
+   * Änderung" as a write-class action requiring a reason. Applied
+   * immediately only when no ApprovalService is configured (same opt-in
+   * pattern as steer()); otherwise parked as a pending approval and only
+   * actually applied by applyApprovedBudgetTopUp() once approved.
+   */
+  async requestBudgetTopUp(sessionId: string, newBudgetUsd: number, reason?: string): Promise<Ack & { approvalId?: string }> {
+    const session = this.live.get(sessionId);
+    if (!session) return { ok: false, detail: "session not live" };
+    if (!this.approvals) {
+      await this.applyBudgetTopUp(sessionId, newBudgetUsd);
+      return { ok: true };
+    }
+    const req = this.approvals.create(
+      sessionId,
+      "write",
+      "budget.increase",
+      `Budget auf ${newBudgetUsd.toFixed(2)}$ erhöhen${reason ? ` (${reason})` : ""}`,
+      true, // ADR-0007: a budget change always requires a reason, unlike a plain steer prompt
+    );
+    this.pendingBudgetTopUps.set(req.id, { sessionId, newBudgetUsd });
+    await this.emitSystem(session, "session.budget_topup_pending_approval", { approvalId: req.id, newBudgetUsd });
+    return { ok: false, detail: `pending approval ${req.id}`, approvalId: req.id };
+  }
+
+  /** Called by the decide route once a `budget.increase` approval is
+   * genuinely approved — mirrors applyApprovedSteer. */
+  async applyApprovedBudgetTopUp(approvalId: string): Promise<Ack> {
+    const pending = this.pendingBudgetTopUps.get(approvalId);
+    if (!pending) return { ok: false, detail: "no pending budget top-up for this approval" };
+    this.pendingBudgetTopUps.delete(approvalId);
+    return this.applyBudgetTopUp(pending.sessionId, pending.newBudgetUsd);
+  }
+
   async stop(sessionId: string): Promise<Ack> {
     const session = this.live.get(sessionId);
     if (!session) return { ok: false, detail: "session not live" };
+    session.record.parkReason = null; // ADR-0008: leaving "parked" (if it was) for good, never a stale reason
     await this.setStatus(session, "stopping");
     session.abort.abort();
     try {
@@ -401,9 +453,92 @@ export class SessionManager {
   async park(sessionId: string): Promise<Ack> {
     const session = this.live.get(sessionId);
     if (!session) return { ok: false, detail: "session not live" };
-    await this.setStatus(session, "parked");
-    await this.emitSystem(session, "session.parked", {});
+    await this.parkFor(session, "manual");
     return { ok: true };
+  }
+
+  /** T2.7/ADR-0008: the one place any kind of park actually happens —
+   * records WHY, so a later budget top-up knows whether it's the right
+   * reason to auto-resume (see applyBudgetTopUp). */
+  private async parkFor(session: LiveSession, reason: SessionRecord["parkReason"]): Promise<void> {
+    session.record.parkReason = reason;
+    await this.setStatus(session, "parked");
+    await this.emitSystem(session, "session.parked", { reason });
+  }
+
+  /**
+   * T2.7 (EPIC-P2 §3 BudgetState): checked after every cost-bearing
+   * event. 80% -> a visible warning event (this hub has no real push
+   * infrastructure yet — "Push-Warnung" in the design doc is honestly
+   * represented here as a system event the PWA can surface, not an
+   * actual mobile push). 100% -> hard park, fail-closed (no further
+   * provider calls happen because the adapter is genuinely stopped, not
+   * merely marked). Warns at most once per session (`budgetWarned`)
+   * so every subsequent cost-bearing event doesn't re-spam it.
+   */
+  private async checkBudget(session: LiveSession): Promise<void> {
+    const budget = session.record.budgetUsd;
+    if (budget === null) return;
+    const terminal = session.record.status === "stopped" || session.record.status === "parked" || session.record.status === "error";
+    if (terminal) return;
+    if (session.record.costUsd >= budget) {
+      await this.emitSystem(session, "session.budget_exceeded", { costUsd: session.record.costUsd, budgetUsd: budget });
+      await this.parkFor(session, "budget");
+      return;
+    }
+    if (!session.budgetWarned && session.record.costUsd >= budget * 0.8) {
+      session.budgetWarned = true;
+      await this.emitSystem(session, "session.budget_warning", {
+        costUsd: session.record.costUsd,
+        budgetUsd: budget,
+        detail: "80% des Budgets verbraucht (kein echter Mobile-Push — dieser Hub hat keine Push-Infrastruktur, siehe EPIC-P2 T2.7)",
+      });
+    }
+  }
+
+  /**
+   * T2.7 top-up flow: only actually resumes a session that was parked
+   * FOR BUDGET (ADR-0008) — a manually parked or daily-cap-parked session
+   * is untouched by raising this one session's own budget. Returns a
+   * named failure rather than silently no-op'ing so a caller (the
+   * approval-decide route) can surface why nothing happened.
+   */
+  async applyBudgetTopUp(sessionId: string, newBudgetUsd: number): Promise<Ack> {
+    const session = this.live.get(sessionId);
+    if (!session) return { ok: false, detail: "session not live" };
+    session.record.budgetUsd = newBudgetUsd;
+    session.budgetWarned = false;
+    this.persist(session.record);
+    await this.emitSystem(session, "session.budget_topup", { newBudgetUsd });
+    if (session.record.status === "parked" && session.record.parkReason === "budget") {
+      session.record.parkReason = null;
+      await this.setStatus(session, "working");
+      await this.emitSystem(session, "session.resumed_after_topup", {});
+    }
+    return { ok: true };
+  }
+
+  /**
+   * T2.7 (EPIC-P2 §3 "Tages-Cap pro Rechner"): a hub-wide cap across every
+   * session created since 00:00 UTC today, independent of any single
+   * session's own budgetUsd — protection against a runaway/looping agent
+   * that a per-session cap wouldn't catch if it never had one set. Parks
+   * EVERY live, non-terminal session (there is no single "the" session to
+   * blame for a hub-wide cap) rather than silently continuing.
+   */
+  private async checkDailyCap(): Promise<void> {
+    if (this.dailyCapUsd === null) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const spentToday = this.list()
+      .filter((r) => r.createdAt.slice(0, 10) === today)
+      .reduce((sum, r) => sum + r.costUsd, 0);
+    if (spentToday < this.dailyCapUsd) return;
+    for (const session of this.live.values()) {
+      const terminal = session.record.status === "stopped" || session.record.status === "parked" || session.record.status === "error";
+      if (terminal) continue;
+      await this.emitSystem(session, "session.daily_cap_exceeded", { spentToday, dailyCapUsd: this.dailyCapUsd });
+      await this.parkFor(session, "daily_cap");
+    }
   }
 
   async tail(sessionId: string, afterSeq: number, limit?: number): Promise<NormalizedEvent[]> {
@@ -447,6 +582,12 @@ export class SessionManager {
         subscribers: new Set(),
         workdir,
         worktreeIsolated: workdir !== record.project,
+        // Not itself persisted (no JSONL/system-event replay here) — but
+        // honestly recomputable from the record's own real numbers, so a
+        // recovered session that was already past 80% before the crash
+        // doesn't spuriously re-fire the warning on its first post-
+        // recovery event.
+        budgetWarned: record.budgetUsd !== null && record.costUsd >= record.budgetUsd * 0.8,
       };
       this.live.set(record.id, session);
 
@@ -583,8 +724,12 @@ export class SessionManager {
       ...(e.usageQuota !== undefined ? { usageQuota: e.usageQuota } : {}),
     }));
     // ADR-0003: costUsd is per-event, not cumulative — the hub sums it.
+    let sawCost = false;
     for (const e of events) {
-      if (e.costUsd !== undefined) session.record.costUsd += e.costUsd;
+      if (e.costUsd !== undefined) {
+        session.record.costUsd += e.costUsd;
+        sawCost = true;
+      }
       // ADR-0006: same per-event/summed pattern as costUsd, applied to the
       // tokensEst field that already existed on the event contract but was
       // never aggregated onto the session record.
@@ -609,6 +754,17 @@ export class SessionManager {
       } catch {
         // a slow/broken subscriber never blocks the stream
       }
+    }
+    // T2.7: after this event's own subscriber notification, not before —
+    // checkBudget/checkDailyCap recurse back into this method for their
+    // own park/warning events, which must reach subscribers in their real
+    // temporal order (the event that crossed the threshold, then the park
+    // that followed), not the other way around. Safe against runaway
+    // recursion: a just-parked session is terminal and neither check
+    // re-fires for it.
+    if (sawCost) {
+      await this.checkBudget(session);
+      await this.checkDailyCap();
     }
   }
 
@@ -645,8 +801,8 @@ export class SessionManager {
   private persist(record: SessionRecord): void {
     this.db
       .prepare(
-        `INSERT INTO sessions (id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq, cost_usd, updated_at, tokens_est)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO sessions (id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq, cost_usd, updated_at, tokens_est, park_reason)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            status = excluded.status,
            model = excluded.model,
@@ -656,7 +812,8 @@ export class SessionManager {
            last_seq = excluded.last_seq,
            cost_usd = excluded.cost_usd,
            updated_at = excluded.updated_at,
-           tokens_est = excluded.tokens_est`,
+           tokens_est = excluded.tokens_est,
+           park_reason = excluded.park_reason`,
       )
       .run(
         record.id,
@@ -672,6 +829,7 @@ export class SessionManager {
         record.costUsd,
         record.updatedAt,
         record.tokensEst,
+        record.parkReason,
       );
   }
 }
