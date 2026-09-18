@@ -15,6 +15,7 @@ import {
   HubDatabase,
   SessionManager,
   TokenService,
+  WorktreeManager,
   loadConfig,
 } from "@uacc/core";
 import { TmuxRunner, ProcessRunner } from "@uacc/workers";
@@ -55,7 +56,12 @@ async function main(): Promise<void> {
     `[hub] adapters: ${registry.list().map((a) => `${a.id}@${a.adapter.version}`).join(", ") || "(none)"}`,
   );
 
-  const sessions = new SessionManager(db, store, registry, runner);
+  // T2.1: real per-session git worktree isolation (EPIC-P2). Projects that
+  // aren't a git repo fall back to running in-place — see
+  // WorktreeManager's own doc comment for why that's a named fallback, not
+  // a silent gap.
+  const worktrees = new WorktreeManager(resolve(dataDir, "worktrees"));
+  const sessions = new SessionManager(db, store, registry, runner, undefined, worktrees);
 
   // K7: recover sessions from JSONL + snapshots before accepting traffic.
   const recovery = await sessions.recoverAll();
