@@ -1,0 +1,110 @@
+# Sicherheit (T4.9, PRD §8)
+
+Diese Doku ist das OSS-facing Gegenstück zu PRD §8 und
+[`EPIC-P2`](../epics/EPIC-P2-diff-approvals-budgets.md)s Sicherheits-
+Walkthrough (§7 dort) — real gegen den umgesetzten Code geprüft, nicht nur
+behauptet. Jede Zeile unten verweist auf eine echte Datei/einen echten
+Test, keine Absichtserklärung ohne Beleg.
+
+## Bedrohungsmodell (PRD §8)
+
+### 1. Netz — kein öffentlicher Port
+
+`packages/server/src/main.ts` bindet standardmäßig `127.0.0.1`; ein
+öffentliches Binden erfordert das explizite `UACC_EXPOSE=1`-Opt-in. Der
+vorgesehene Zugriffsweg ist `tailscale serve`
+(`scripts/setup-tailscale-serve.sh`) — kein Reverse-Proxy, kein
+öffentlicher DNS-Eintrag. PWA-Auth: optional Tailnet-Identität
+(`enforceTailnetIdentity` + `Tailscale-User-Login`-Header,
+`packages/server/src/auth.ts`) + immer Device-Token
+(SHA-256-Hash in SQLite, Klartext nur einmal bei `hubctl token issue`
+gezeigt) + optional WebAuthn für destruktive Freigaben (T2.5).
+
+### 2. Approval-Klassen
+
+| Klasse | Gate | Real umgesetzt in |
+|---|---|---|
+| `read` | frei | jede GET-Route — kein Approval-Objekt entsteht |
+| `write` | Tipp-Bestätigung, Begründung optional | `ApprovalService.decide()`, HMAC-Signatur über den rohen Device-Token (ADR-0007) |
+| `destructive` | Biometrie (WebAuthn) + Pflicht-Begründung | `ApprovalService.decideBiometric()`, echtes `@simplewebauthn/server` |
+
+Fail-closed real erzwungen, nicht nur konventionell: ein abgelaufenes
+`pending` wird bei jedem Lesezugriff **vor** jeder anderen Aktion in
+`timed_out` aufgelöst (`ApprovalService.resolveIfExpired`), strukturell
+unmöglich zu umgehen. `destructive` kann **nur** über
+`decideBiometric()` genehmigt werden — der einfachere `write`-Pfad
+verweigert eine `destructive`-Anfrage hart, egal welche Begründung
+mitgeschickt wird.
+
+**Bekannte, benannte Lücke:** `SessionManager.create()`
+(Session-Start) ist trotz EPIC-P2 §3s Klassentabelle
+(„Session starten" als write-Beispiel) nie tatsächlich gegated worden —
+nur Steer-Prompt und Budget-Top-up sind es real. `@uacc/gateway-mcp`
+exponiert `session.create`/`stop`/`park` deshalb bewusst nicht (siehe
+dessen `operations.ts`), um diese Lücke nicht über eine neue Oberfläche
+zu vergrößern.
+
+### 3. Befehls-Allowlist — nie freie Shell vom Handy
+
+Kein Route-Handler in `packages/server/src/routes.ts` reicht
+client-geliefertes Freitext an `execFile`/`spawn` durch. `diff.ts`s
+`execFile`-Aufrufe nehmen ausschließlich serverseitig aufgelöste
+Pfade/Refs. Jeder Adapter-Prozess läuft über `ctx.spawnWorker` mit vom
+Adapter selbst konstruierten Argumenten; Client-Eingaben laufen vorher
+durch Zod-Schemas (`CreateSessionBody`, `SteerBody`,
+`OptimizerFeedbackBody`, …).
+
+### 4. Audit-Trail — wer-wann-was
+
+`SessionManager`s mutierende Methoden (`create`/`steer`/`stop`/`park`/
+`requestBudgetTopUp`/`applyApproved*`) nehmen einen `actor`-Parameter
+(das echte, `identify()`te Device-Token-Label des Aufrufers) und schreiben
+ihn in ihre System-Events (T2.8). Jede Freigabe-Entscheidung — genehmigt
+**oder abgelehnt** — landet zusätzlich als `session.approval_decided` auf
+dem Session-Tail selbst, nicht nur als Zeile in der separaten
+`approvals`-Tabelle.
+
+### 5. Prompt-Injection-Grenze — Agenten-Output ist Daten, nie Instruktion
+
+Kein `dangerouslySetInnerHTML`/`innerHTML` irgendwo in
+`packages/pwa/src/*.tsx` (real geprüft, nicht angenommen) — jeder
+Event-`payload`/`summary`-Wert läuft durch Preacts normales,
+auto-escapendes JSX-Rendering.
+
+### 6. Kosten-Governance
+
+Siehe „BudgetState" in [`architecture.md`](architecture.md) — Fail-closed
+real erzwungen seit dem in T2.10 gefundenen und behobenen Bug (ein
+geparkter, aber nicht real signalisierter Adapter produzierte nach dem
+Parken weiter Kosten).
+
+## Reale Funde dieser Session (Selbst-Review, keine externe Prüfung)
+
+Kein Ersatz für eine echte, unabhängige Red-Team-Session vor einem
+v0.1-Release (T4.10 bleibt dafür offen geführt) — aber zwei reale,
+sicherheitsrelevante Bugs wurden bereits gefunden und behoben:
+
+- **[BUG-0011](../bugs/bug-0011-stop-button-silently-broken.md)** —
+  der reale „Stop"-Button hat nie funktioniert (leerer Body + JSON-
+  Content-Type → echter 400, still verschluckt). Sicherheitsrelevant,
+  weil „eine außer Kontrolle geratene Session stoppen" eine Kernfunktion
+  der Kosten-/Sicherheits-Governance ist.
+- **Budget-Park-Fail-closed-Lücke** (EPIC-P2 T2.10) — ein geparkter
+  Adapter lief real weiter, bis `parkFor()` ein echtes
+  `SteerInput{kind:"park"}`-Signal bekam.
+
+Muster für beide: eine Aktion **sah** im Code korrekt aus (Statuswechsel,
+Fehlerpfad vorhanden), war aber nie gegen eine echte Zeremonie
+(Playwright-Browser-Test bzw. ein frei laufender Adapter) verifiziert
+worden. Empfehlung für ein echtes Red-Team: gezielt nach genau diesem
+Muster suchen — Code, der plausibel aussieht, aber nur gegen sich selbst
+getestet wurde, nie gegen eine echte, unabhängige Ausführung.
+
+## Was noch fehlt (ehrlich, nicht Teil dieser Session)
+
+- Externe/unabhängige Red-Team-Review vor einem echten Release (T4.10).
+- Lizenz-Entscheidung (T4.8) — rechtliche Frage, nicht hier autonom
+  entschieden.
+- `swarm`-Adapter: kein Code, da das reale Event-Vokabular nicht
+  auffindbar war (ADR-0001-Nachtrag) — ein spekulativer Adapter hätte ein
+  eigenes Risiko dargestellt (falsch kategorisierte Events).

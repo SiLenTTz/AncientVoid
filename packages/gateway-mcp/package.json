@@ -1,0 +1,25 @@
+{
+  "name": "@uacc/gateway-mcp",
+  "version": "0.1.0",
+  "description": "T4.6/T4.7 (EPIC-P4): MCP sidecar exposing the hub via 3 meta-tools (hub_search/hub_describe/hub_exec). Opt-in, never started by the hub itself — see src/main.ts's doc comment.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "devDependencies": {
+    "@uacc/core": "0.1.0",
+    "@uacc/server": "0.1.0",
+    "@uacc/workers": "0.1.0",
+    "@uacc/adapter-dummy": "0.1.0"
+  }
+}

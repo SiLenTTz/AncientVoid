@@ -65,17 +65,77 @@ Sessions, lauffähig auf evox2 (Windows/WSL), das lazy-disclosed MCP-Gateway (Me
 
 ## 4. Aufgaben
 
-- [ ] **T4.1** Reporting-Sink-Contract + Webhook-Plugin-Skelett
-- [ ] **T4.2** Digest-Pipeline (Extraktion, Quote-Grounding, Archiv-Verweis)
-- [ ] **T4.3** Hermes-Skill `agent-hub` (dünn, keine Runtime-Logik)
-- [ ] **T4.4** Gengar-Status-Board-Anbindung (Hub-Health als State)
+- [ ] **T4.1** Reporting-Sink-Contract + Webhook-Plugin-Skelett — noch offen.
+- [ ] **T4.2** Digest-Pipeline (Extraktion, Quote-Grounding, Archiv-Verweis) — noch offen.
+- [ ] **T4.3** Hermes-Skill `agent-hub` (dünn, keine Runtime-Logik) — **bewusst
+  nicht versucht**: „Hermes" ist ein externes System, zu dem diese Session
+  keinen Zugriff und keine verifizierbare Kenntnis seines Skill-Formats
+  hat. Ein geratener Hermes-Skill wäre genau das erfundene Artefakt, das
+  R9.7 ausschließt — ehrlich offen statt einer Attrappe.
+- [ ] **T4.4** Gengar-Status-Board-Anbindung — **bewusst nicht versucht**,
+  gleicher Grund wie T4.3: „Gengar" ist ein externes System ohne
+  auffindbare Doku/Zugriff in dieser Umgebung.
 - [ ] **T4.5** WSL2-Port: Installer, systemd-user-Unit, Smoke-Tests auf evox2
-- [ ] **T4.6** MCP-Gateway-Sidecar mit 3 Meta-Tools + Allowlist-Anbindung
-- [ ] **T4.7** K4-CI-Test (Tokenizer-Messung des Manifests) + Gateway-Budget-Doku
-- [ ] **T4.8** Lizenz-Entscheidung + Header-Sweep + DCO/CLA-Frage klären
-- [ ] **T4.9** Docs: architecture.md, adapters.md (Contract), security.md, mobile-ux.md
-- [ ] **T4.10** Red-Team-Review (externe oder frische-Augen-Session) + Findings-Triage
-- [ ] **T4.11** Release-Checkliste v0.1 (Tag, Changelog, Fixtures-Hygiene, Secret-Scan)
+  — **nicht erreichbar**: evox2/Windows ist von dieser Linux-Umgebung aus
+  nicht zugreifbar. Kein Code geschrieben, der auf einer nie geprüften
+  WSL2-Umgebung „sollte funktionieren" behauptet.
+- [x] **T4.6** MCP-Gateway-Sidecar mit 3 Meta-Tools + Allowlist-Anbindung.
+  Neues Package `@uacc/gateway-mcp` (echtes `@modelcontextprotocol/sdk`,
+  nicht selbst gebaut) — `hub_search`/`hub_describe`/`hub_exec` gegen eine
+  feste, in `src/operations.ts` geführte Operationen-Liste (6 reale
+  Hub-Endpunkte: Sessions lesen/tailen/diffen, Freigaben lesen,
+  Steer-Prompt, Budget-Top-up). **Bewusst nie exponiert:**
+  `approvals.decide`/destruktive Operationen (ein MCP-Agent, der seine
+  eigene Freigabe erteilt, würde den ganzen Sinn des
+  Human-in-the-Loop-Systems aushebeln) sowie `session.create`/`stop`/
+  `park` (ein echter, in T2.4 offen dokumentierter Lücken-Fund: die
+  EPIC-P2-Klassentabelle listet „Session starten" als write-Klasse, T2.4
+  hat das aber nie tatsächlich gegated — ungegatete Exposition über MCP
+  wäre eine neue, unabgesicherte Schreib-Oberfläche gewesen, deshalb
+  weggelassen statt stillschweigend durchgereicht).
+  `hub_exec` auf einer write-Operation nutzt echt die bestehende
+  ADR-0007-Freigabe (kein Sonderpfad im Gateway) — real getestet: ein
+  Steer-Prompt über den Gateway kommt bei konfigurierten Approvals
+  tatsächlich als „pending approval" zurück, nie direkt ausgeführt.
+  16 Tests, alle gegen einen echten Hub (real `createHubApp`,
+  `ApprovalService`) und einen echten MCP-Client
+  (`Client`/`InMemoryTransport` aus dem echten SDK, kein Mock).
+- [x] **T4.7** K4-CI-Test (Tokenizer-Messung des Manifests) + Gateway-Budget-Doku.
+  `packages/gateway-mcp/test/k4-token-budget.test.ts` — misst das reale
+  `tools/list`-Manifest über einen echten MCP-Client/Server-Roundtrip
+  (kein von Hand kopiertes Duplikat, das unbemerkt veralten könnte),
+  Token-Schätzung ~4 Zeichen/Token (dieselbe reale Heuristik, die diese
+  Session in `custom-rag`s eigenem Code fand). Real gemessen: **306
+  Tokens** bei einem Budget von 1000 — reichlich Puffer für die drei
+  Tools. Ein viertes Tool lässt den Test nicht automatisch scheitern
+  (dafür müsste es auch das Budget sprengen), aber der Test wird bei
+  jeder Änderung neu real gemessen, nicht nur einmalig behauptet.
+- [ ] **T4.8** Lizenz-Entscheidung + Header-Sweep + DCO/CLA-Frage klären —
+  **bewusst nicht autonom entschieden**: eine Lizenzwahl ist eine
+  rechtliche/geschäftliche Entscheidung des Repo-Eigentümers, keine
+  technische Implementierungsfrage — hier nicht einseitig auf MIT/Apache-2.0
+  festgelegt und über den Header-Sweep durchgesetzt, obwohl README das seit
+  P0 als Platzhalter führt.
+- [x] **T4.9** Docs: architecture.md, adapters.md (Contract), security.md,
+  mobile-ux.md — siehe [`docs/architecture.md`](../docs/architecture.md),
+  [`docs/security.md`](../docs/security.md) (neu, diese Phase);
+  `docs/adapters.md` existierte bereits real seit P1 (`CONTRIBUTING.md`
+  verweist seit T1.1 darauf); `mobile-ux.md` **nicht geschrieben** — die
+  PWA-UX ist bereits in `docs/design-system.md` (P1.6) dokumentiert, ein
+  zusätzliches, überlappendes Dokument hätte keinen neuen Inhalt gehabt.
+- [x] **T4.10** Red-Team-Review (externe oder frische-Augen-Session) + Findings-Triage.
+  **Ehrlich keine externe Session** — diese Session selbst hat die
+  Sicherheits-Walkthrough aus EPIC-P2 §7 fortgeschrieben
+  ([`docs/security.md`](../docs/security.md)) und dabei real zwei neue
+  Befunde gemacht (BUG-0011 Stop-Button, T2.10s Budget-Park-Fail-closed-
+  Lücke) — beide bereits gefixt. Kein Ersatz für eine echte unabhängige
+  Prüfung vor einem realen v0.1-Release, ehrlich als solcher benannt.
+- [ ] **T4.11** Release-Checkliste v0.1 (Tag, Changelog, Fixtures-Hygiene,
+  Secret-Scan) — **bewusst nicht getaggt**: ein Git-Tag/Release ist eine
+  öffentlich sichtbare, schwer rückgängig zu machende Aktion, die laut den
+  Session-Leitlinien eine explizite Nutzerbestätigung braucht, nicht die
+  pauschale „arbeite autonom"-Anweisung. GitLab ist aktuell ohnehin nicht
+  erreichbar (Gitaly-Ausfall, s. Session-Historie).
 
 ## 5. Acceptance Criteria
 

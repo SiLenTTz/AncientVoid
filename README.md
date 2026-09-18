@@ -5,9 +5,10 @@ Coding-Agenten auf allen eigenen Rechnern vom Handy aus überwachen, steuern
 und auditieren — über Tailscale, ohne öffentlichen Port, ohne Cloud.
 
 > Basis: PRD UACC v1.0 (12.09.2026) — siehe [`epics/`](./epics/).
-> Status: **P0 (Hub-Kern)** umgesetzt. Adapter `claude`/`codex` (P1),
-> Diff/Approvals/Budgets (P2), Sprach-Features + Adapter-Flotte (P3),
-> Brain/Windows/MCP-Gateway (P4) folgen.
+> Status: **P0–P2 grün**, P3 größtenteils umgesetzt (real infra-limitierte
+> Lücken ehrlich benannt: `swarm`, Sprachsuche/Qdrant), P4s MCP-Gateway
+> real umgesetzt und default-aus; evox2/Windows-Port, Brain-Digest und
+> OSS-Release bleiben offen (siehe [`epics/EPIC-P4-…`](epics/EPIC-P4-brain-windows-mcp-oss.md)).
 
 ## Modularität — das Kernversprechen
 
@@ -23,6 +24,7 @@ Alles ist über Verträge (Contracts) gesteckt, nichts ist im Hub hartverdrahtet
 | Daemon (REST/WS, Auth, PWA-Serving) | `@uacc/server` | — |
 | CLI-Referenzclient | `@uacc/hubctl` | — |
 | PWA (dark-first, offline-tolerant) | `@uacc/pwa` | — |
+| MCP-Gateway-Sidecar (T4.6, default **aus**) | `@uacc/gateway-mcp` | eigene Operationen — s. [dessen README](packages/gateway-mcp/README.md) |
 
 ### Eigene Endpunkte anbinden (der normale Weg, kein Fork nötig)
 
