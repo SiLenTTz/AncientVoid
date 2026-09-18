@@ -1,8 +1,53 @@
-# EPIC-P3 — Adapter-Flotte (swarm/zai/local-llm), cursor-clip, Sprachsuche & Prompt-Composer
+# EPIC-P3 — Adapter-Flotte (swarm/zai/local-llm/opencode/aider), cursor-clip, Sprachsuche & Prompt-Composer
 
 **Status:** offen · **Phase:** P3 · **Dauer:** 1,5 Agenten-Wochen · **Abhängigkeit:** P2 grün
 
 ---
+
+> **Vorbemerkung (2026-09-18): reale Bestandsaufnahme vor dem Bauen, zwei
+> ursprüngliche Annahmen widerlegt.** Auf ausdrücklichen Nutzerwunsch
+> („integriere auch weitere Tools wie deepseek harness, opencode, aider und
+> unseren swarm") wurde diese Phase vor der Umsetzung real gegen die
+> tatsächlich auf Omarchy laufenden Dienste geprüft, nicht nur gegen die
+> ursprüngliche PRD-Annahme:
+>
+> - **`opencode` ist real installiert** (`/home/silenttz/.local/share/mise/
+>   installs/opencode/latest/opencode`, v1.18.29) — ein echter, sofort
+>   nutzbarer One-Shot-Modus (`opencode run <prompt>`), real getestet in
+>   dieser Session. **Neu als T3.12 aufgenommen.**
+> - **`aider` ist nicht installiert**, wird per `uv tool install aider-chat`
+>   nachgerüstet. **Neu als T3.13 aufgenommen.**
+> - **„zai" gibt es nicht als lokalen Nemesis-Router auf :8788** — die
+>   ursprüngliche PRD-Annahme war falsch. Port 8788 gehört real zu einem
+>   komplett anderen, unabhängigen Dienst („Hive Gateway" für ein separates
+>   HiveOS-Projekt auf derselben Maschine — `{"openapi":"3.1.0","info":
+>   {"title":"Hive Gateway", ...}}`, real per `curl` geprüft). Der reale,
+>   tatsächlich funktionierende Zugang zu „zai" ist ein bereits
+>   konfigurierter **`opencode`-Provider** (`zai-coding-plan`, Modelle
+>   `glm-4.7` … `glm-5.3-highspeed`, real per `opencode run` gegen die
+>   echte API verifiziert — Antwort „ok" kam tatsächlich vom `glm-5.3`-
+>   Modell zurück). **T3.2 dahingehend korrigiert: kein eigener Zai-
+>   Adapter mit erfundenem Router — Zai-Zugriff läuft über T3.12s
+>   `adapter-opencode`.**
+> - **Port 8080/8000 sind ebenfalls andere, unabhängige Dienste**
+>   („SiLenT_Tz_KeyZ" bzw. „Pocket TTS" — real per `curl` geprüft, keine
+>   OpenAI-kompatible LLM-API). Es gibt **keinen** lokal laufenden
+>   llama.cpp-/Qwen-Server auf dieser Maschine zu diesem Zeitpunkt — T3.3
+>   bleibt strukturell gebaut (reused `examples/adapters/openai-compat/`),
+>   aber ehrlich als „unproven — keine reale lokale Instanz zum Prüfen
+>   vorhanden" markiert, nicht stillschweigend als getestet geführt.
+> - **DeepSeek** hat kein dediziertes CLI auf dieser Maschine und ist kein
+>   opencode-Provider hier. „Deepseek harness" wird ehrlich als das
+>   umgesetzt, was es technisch ist: ein OpenAI-API-kompatibler Endpunkt
+>   (`https://api.deepseek.com/v1`) — **neu als T3.14** über denselben
+>   `examples/adapters/openai-compat/`-Pfad wie T3.3, mit eigenem
+>   Konfigurationsbeispiel statt eines erfundenen eigenen Adapters.
+>
+> Diese Korrekturen ersetzen keine bereits gebaute Funktionalität — sie
+> verhindern, dass ein Adapter gegen den *falschen*, zufällig auf demselben
+> Port laufenden Dienst gebaut oder getestet wird (real ein Risiko: ohne
+> diese Prüfung hätte ein „zai"-Adapter Testverkehr an ein fremdes
+> HiveOS-Gateway geschickt).
 
 ## 1. Ziel
 
@@ -15,8 +60,11 @@ Handy aus voll arbeitsfähig".
 
 ### In
 - Adapter `swarm` (securesight-swarm Event-API: Event-Stream, Gate-Ergebnisse, Ladder-State)
-- Adapter `zai` (Nemesis-Router :8788; Normalisierung `reasoning_content` vs `content`)
-- Adapter `local-llm` (llama.cpp-Server-Streams, Qwen-Finetunes)
+- ~~Adapter `zai` (eigener Nemesis-Router)~~ **gestrichen, siehe Vorbemerkung** — Zai läuft über T3.12
+- Adapter `local-llm` (OpenAI-kompatibler Stream, Modell-Registry) — strukturell gebaut, unproven (keine reale Instanz)
+- Adapter `deepseek` (OpenAI-kompatibel gegen `api.deepseek.com`) — **neu, T3.14**
+- Adapter `opencode` (reales, installiertes CLI, One-Shot-Modus) — **neu, T3.12**
+- Adapter `aider` (per `uv tool install aider-chat` nachgerüstet) — **neu, T3.13**
 - Adapter `copilot` (best effort, --allow-all-tools; Status: unproven ehrlich markiert)
 - Adapter `cursor-clip` (read-only state.vscdb-Watcher, `may-break`-Banner, K9)
 - Entscheidung & Umsetzung OD-1: Browser-STT vs. serverseitiges Whisper.cpp
@@ -69,8 +117,16 @@ Handy aus voll arbeitsfähig".
   **Abhängigkeit:** `SteerInput` kennt bisher kein "approve/reject Gate X" —
   das Gate-Ergebnis-Mapping ist erst sauber lösbar, sobald P2 eine
   Approval-Queue-Abstraktion bereitstellt.
-- [ ] **T3.2** Adapter `zai` (Routing via Nemesis :8788, Reasoning-Normalisierung)
-- [ ] **T3.3** Adapter `local-llm` (Stream-Parsing, Modell-Registry: welches Modell läuft wo)
+- [x] **T3.2** ~~Adapter `zai`~~ **entfällt als eigener Adapter** — kein
+  lokaler Nemesis-Router existiert real (siehe Vorbemerkung). Zai-Zugriff
+  (Modelle `glm-4.7`…`glm-5.3-highspeed`, Provider `zai-coding-plan`)
+  läuft über T3.12s `adapter-opencode`, real verifiziert.
+- [ ] **T3.3** Adapter `local-llm` (OpenAI-kompatibler Stream, Modell-
+  Registry). Reuse von `examples/adapters/openai-compat/` statt Neubau.
+  **Ehrlich unproven:** keine reale lokale LLM-Instanz auf dieser Maschine
+  zum Zeitpunkt des Baus vorhanden (siehe Vorbemerkung) — Contract-Tests
+  gegen eine echte, aufgezeichnete OpenAI-kompatible Antwort (z. B. von
+  einem öffentlich erreichbaren kompatiblen Endpunkt), keine Live-Instanz.
 - [ ] **T3.4** Adapter `copilot` best-effort + Permission-Prompt-Hook in Approval-Queue
 - [ ] **T3.5** Adapter `cursor-clip` mit Version-Detection, Broken-State, Steer-Umleitung
 - [ ] **T3.6** Whisper.cpp-Server-Anbindung + Domänen-Prompt + Latenz-Messung (K6)
@@ -106,6 +162,45 @@ Handy aus voll arbeitsfähig".
   das Sheet selbst neu bauen.
 - [ ] **T3.11** Adapter-Status-Matrix in README live aus `capabilities()` generieren
   (Ehrlichkeitsklausel automatisieren — aSPARK-Lektion)
+- [x] **T3.12** Adapter `opencode` — real installiertes CLI (`opencode run
+  <prompt>`), One-Shot-Modus analog `claude -p`. Korrektur ggü. der
+  ursprünglichen Annahme oben: `opencode run --help` hat sehr wohl ein
+  reales `--format json`-Flag (kein Logzeilen-Parsing nötig) — echte
+  Fixtures unter `packages/adapter-opencode/test/fixtures/*.jsonl` (zwei
+  reale Captures: Trivial-Read, Tool-Error), Normalisierung in
+  `packages/adapter-opencode/src/normalize.ts`, 10/10 Tests grün. Nutzt
+  automatisch den real konfigurierten `zai-coding-plan`-Provider für
+  Zai/GLM-Zugriff (siehe Vorbemerkung) — keine separate Zai-Konfiguration
+  nötig. Live-Ende-zu-Ende gegen echten Hub + echten tmux-Worker +
+  echtes `opencode`/glm-5.3 verifiziert (Kosten-/Token-Summierung nach
+  ADR-0003/0006 funktioniert unverändert für einen dritten Adapter).
+- [x] **T3.13** Adapter `aider` — nachinstalliert via `uv tool install
+  aider-chat --with audioop-lts` (reales Python-3.13-Kompatibilitätsproblem:
+  `aider.voice` → `pydub` → `audioop`, seit PEP 594 aus der Stdlib entfernt —
+  ohne den `audioop-lts`-Shim bricht selbst `aider --version`). Reale
+  CLI-Form via `aider --help` geprüft: `--message`/`--yes-always`/
+  `--no-pretty`/`--no-stream`/`--no-git` sind real, aber es gibt **keinen**
+  JSON-/Strukturmodus — anders als claude/codex/opencode liefert aider nur
+  einen Text-Blob pro Turn, daher bewusst kein `normalize.ts`, sondern ein
+  einzelnes `assistant`-Event pro Turn (`packages/adapter-aider/src/index.ts`).
+  Realer, gefährlicher Fund: ohne konfiguriertes Modell startet aider
+  **keinen** Fehler, sondern einen interaktiven OpenRouter-OAuth-Flow und
+  wartet bis zu 5 Minuten auf einen Browser-Callback — deshalb verweigert
+  `start()` hier hart und sofort (`system`-Event `aider.missing_model`) ohne
+  `spec.model`, statt dieses Risiko einzugehen. Ehrlich unproven: kein
+  API-Key in dieser Umgebung vorhanden, also kein realer LLM-Turn
+  aufgezeichnet — 6/6 Tests gegen einen synthetischen Stream, nicht gegen
+  eine echte Aufnahme (siehe README-Matrix-Vermerk „unproven").
+- [ ] **T3.14** Konfigurationsbeispiel „DeepSeek" über den bestehenden
+  `examples/adapters/openai-compat/`-Adapter (`baseUrl:
+  "https://api.deepseek.com/v1"`, `model: "deepseek-chat"` o. ä.) statt
+  eines eigenen Adapters — DeepSeek ist OpenAI-API-kompatibel, ein
+  zweiter Adapter für dasselbe Protokoll wäre unnötige Vervielfachung
+  (dieselbe Begründung wie T1.1s Verzicht auf eine gemeinsame
+  Adapter-Bibliothek bei nur zwei echten Adaptern, umgekehrt angewandt:
+  hier *ist* schon eine gemeinsame Lösung da, sie muss nur konfiguriert
+  werden). Erfordert einen echten API-Key zur Live-Prüfung — ohne Key
+  strukturell vollständig, aber ehrlich „unproven" bis ein Key vorliegt.
 
 ## 5. Acceptance Criteria
 

@@ -13,6 +13,8 @@
     "packages/adapter-dummy/src",
     "packages/adapter-claude/src",
     "packages/adapter-codex/src",
+    "packages/adapter-opencode/src",
+    "packages/adapter-aider/src",
     "packages/adapter-testkit/src",
     "packages/server/src",
     "packages/hubctl/src",
