@@ -206,6 +206,15 @@ export class SessionManager {
     return row ? rowToRecord(row) : undefined;
   }
 
+  /** T2.2: the real, live working directory for a session — the worktree
+   * path when T2.1 isolation succeeded, else `record.project`. Used by the
+   * diff engine so it diffs where the session's changes actually are,
+   * not always the raw project path. Undefined only for a session id the
+   * manager has never seen (never created, never recovered). */
+  workdirOf(sessionId: string): string | undefined {
+    return this.live.get(sessionId)?.workdir;
+  }
+
   require(sessionId: string): SessionRecord {
     const rec = this.get(sessionId);
     if (!rec) throw new Error(`unknown session ${sessionId}`);

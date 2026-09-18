@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { getSessionDiff } from "../src/diff.ts";
+import { getSessionDiff, getSessionFileHunks } from "../src/diff.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -37,10 +37,14 @@ describe("getSessionDiff — real git repo, no mocking", () => {
     try {
       await writeFile(join(dir, "a.txt"), "line1\nchanged\nline3\n");
       const result = await getSessionDiff(dir);
-      expect(result.files).toEqual([{ path: "a.txt", additions: 2, deletions: 1, binary: false }]);
+      expect(result.files).toMatchObject([{ path: "a.txt", additions: 2, deletions: 1, binary: false }]);
+      expect(result.files[0]!.hunks).toHaveLength(1);
+      expect(result.files[0]!.hunks[0]!.body).toContain("-line2");
+      expect(result.files[0]!.hunks[0]!.body).toContain("+changed");
       expect(result.patch).toContain("-line2");
       expect(result.patch).toContain("+changed");
       expect(result.truncated).toBe(false);
+      expect(result.baseRef).toBe("HEAD");
       expect(result.error).toBeUndefined();
     } finally {
       await cleanup();
@@ -53,7 +57,7 @@ describe("getSessionDiff — real git repo, no mocking", () => {
       await writeFile(join(dir, "b.txt"), "new file\n");
       await execFileAsync("git", ["-C", dir, "add", "b.txt"]);
       const result = await getSessionDiff(dir);
-      expect(result.files).toEqual([{ path: "b.txt", additions: 1, deletions: 0, binary: false }]);
+      expect(result.files).toMatchObject([{ path: "b.txt", additions: 1, deletions: 0, binary: false }]);
     } finally {
       await cleanup();
     }
@@ -65,6 +69,94 @@ describe("getSessionDiff — real git repo, no mocking", () => {
       const result = await getSessionDiff(dir);
       expect(result.files).toEqual([]);
       expect(result.error).toMatch(/git diff fehlgeschlagen/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("T2.2: diffs against a real base_sha (a worktree's actual base), not just HEAD — sees a committed change too", async () => {
+    const { dir, cleanup } = await initRepo();
+    try {
+      const { stdout: baseSha } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: dir });
+      // Commit a real change on top of base — `git diff HEAD` would show
+      // nothing (working tree matches the new HEAD); diffing against the
+      // real base_sha must still show it, exactly as T2.1's worktree base
+      // requires.
+      await writeFile(join(dir, "a.txt"), "line1\ncommitted change\n");
+      await execFileAsync("git", ["-C", dir, "commit", "-aqm", "second"]);
+
+      const againstHead = await getSessionDiff(dir);
+      expect(againstHead.error).toMatch(/keine Änderungen/);
+
+      const againstBase = await getSessionDiff(dir, baseSha.trim());
+      expect(againstBase.baseRef).toBe(baseSha.trim());
+      expect(againstBase.files).toMatchObject([{ path: "a.txt" }]);
+      expect(againstBase.patch).toContain("+committed change");
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it("T2.2: extracts git's own real function-context as the hunk's function anchor", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-diff-fn-"));
+    try {
+      await execFileAsync("git", ["init", "-q", dir]);
+      await execFileAsync("git", ["-C", dir, "config", "user.email", "t@e.com"]);
+      await execFileAsync("git", ["-C", dir, "config", "user.name", "T"]);
+      // Enough lines between the def and the changed line that git's
+      // default 3-line hunk context doesn't reach back past
+      // "def target_function():" into the preceding function — otherwise
+      // git's own heuristic (correctly) reports the nearer preceding def
+      // instead (real behavior, confirmed by hand against real git before
+      // fixing this test).
+      const before = [
+        "def existing():",
+        "    pass",
+        "",
+        "def target_function():",
+        "    a = 1",
+        "    b = 2",
+        "    c = 3",
+        "    return a + b + c",
+        "",
+      ].join("\n");
+      await writeFile(join(dir, "m.py"), before);
+      await execFileAsync("git", ["-C", dir, "add", "m.py"]);
+      await execFileAsync("git", ["-C", dir, "commit", "-q", "-m", "init"]);
+      const after = before.replace("return a + b + c", "return a + b + c + 1");
+      await writeFile(join(dir, "m.py"), after);
+
+      const result = await getSessionDiff(dir);
+      const hunk = result.files[0]!.hunks[0]!;
+      // Real git built-in Python funcname heuristic — not hand-rolled here.
+      expect(hunk.functionContext).toBe("def target_function():");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("T2.2 (K3): a diff over the 50 KB threshold collapses hunk bodies to a preview; expand-on-tap fetches the full hunk", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-diff-k3-"));
+    try {
+      await execFileAsync("git", ["init", "-q", dir]);
+      await execFileAsync("git", ["-C", dir, "config", "user.email", "t@e.com"]);
+      await execFileAsync("git", ["-C", dir, "config", "user.name", "T"]);
+      const bigBefore = Array.from({ length: 4000 }, (_, i) => `line ${i}`).join("\n") + "\n";
+      await writeFile(join(dir, "big.txt"), bigBefore);
+      await execFileAsync("git", ["-C", dir, "add", "big.txt"]);
+      await execFileAsync("git", ["-C", dir, "commit", "-q", "-m", "init"]);
+      const bigAfter = Array.from({ length: 4000 }, (_, i) => `line ${i} changed`).join("\n") + "\n";
+      await writeFile(join(dir, "big.txt"), bigAfter);
+
+      const result = await getSessionDiff(dir);
+      expect(result.truncated).toBe(true);
+      const hunk = result.files[0]!.hunks[0]!;
+      expect(hunk.collapsed).toBe(true);
+      expect(hunk.body.split("\n").length).toBeLessThanOrEqual(3);
+
+      const full = await getSessionFileHunks(dir, "big.txt");
+      expect(full[0]!.collapsed).toBe(false);
+      expect(full[0]!.body.split("\n").length).toBeGreaterThan(3);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
