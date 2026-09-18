@@ -6,6 +6,7 @@ import { SkillPicker, loadSelectedSkill, type SelectedSkill } from "./SkillOverl
 import { applyTheme, getTheme, type Theme } from "./theme.ts";
 import { GlobalDock, type Page } from "./Dock.tsx";
 import { VoiceSheet } from "./VoiceSheet.tsx";
+import { ApprovalQueuePane } from "./Approvals.tsx";
 
 export function App({
   onOpen,
@@ -27,6 +28,11 @@ export function App({
   // "settings" instead of always landing back on the dashboard.
   const [page, setPage] = useState<Page>(initialPage ?? "dashboard");
   const [voiceOpen, setVoiceOpen] = useState(false);
+  // T2.6: pending-approval count for the Dashboard banner. A 501 (no
+  // ApprovalService configured on this hub) is a real, common state, not
+  // an error to surface — same "feature genuinely absent" handling as
+  // Approvals.tsx itself.
+  const [pendingApprovals, setPendingApprovals] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -37,6 +43,10 @@ export function App({
         setSessions(s);
         setAdapters(a);
         setError("");
+        hubApi
+          .approvals("pending")
+          .then((pending) => alive && setPendingApprovals(pending.length))
+          .catch(() => alive && setPendingApprovals(0));
         // T1.5-3/ADR-0004: one usage snapshot per known adapter, not per
         // session — fetched alongside the existing poll, not a second
         // independent timer.
@@ -80,11 +90,19 @@ export function App({
 
       {page === "settings" && <Settings onSwitchToken={ready} />}
 
+      {page === "approvals" && <ApprovalQueuePane />}
+
       {page === "dashboard" &&
         (sessions === null ? (
           <div class="empty">lade…</div>
         ) : (
-          <Dashboard sessions={sessions} usage={usage} onOpen={onOpen} />
+          <Dashboard
+            sessions={sessions}
+            usage={usage}
+            onOpen={onOpen}
+            pendingApprovals={pendingApprovals}
+            onOpenApprovals={() => setPage("approvals")}
+          />
         ))}
 
       <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} />

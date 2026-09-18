@@ -17,6 +17,28 @@ export interface SessionRecord {
   tokensEst: number;
 }
 
+/** T2.4/ADR-0007 — mirrors `@uacc/contracts`'s ApprovalRequest, same
+ * duplication convention this file already uses for SessionRecord etc.
+ * `read`-class never appears here — it's free and never queued. */
+export type ApprovalClass = "read" | "write" | "destructive";
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "timed_out";
+
+export interface ApprovalRequest {
+  id: string;
+  sessionId: string;
+  class: ApprovalClass;
+  action: string;
+  summary: string;
+  createdAt: string;
+  timeoutAt: string;
+  status: ApprovalStatus;
+  reasonRequired: boolean;
+  reason: string | null;
+  decidedAt: string | null;
+  decidedByLabel: string | null;
+  signature: string | null;
+}
+
 /** T2.2: one structured hunk — `functionContext` is git's own real
  * function/section-context heuristic (absent for some hunks/languages,
  * never guessed when missing). `collapsed` means `body` is a short
@@ -168,6 +190,16 @@ export const hubApi = {
   sessions: () => api<SessionRecord[]>("/api/sessions"),
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
   sessionDiff: (id: string) => api<SessionDiffResult>(`/api/sessions/${id}/diff`),
+  /** T2.4/T2.6: the approval queue. 501 (approvals not configured on this
+   * hub) is treated as "no queue" by callers, not a hard error — see
+   * Approvals.tsx. */
+  approvals: (status?: ApprovalStatus) =>
+    api<ApprovalRequest[]>(`/api/approvals${status ? `?status=${status}` : ""}`),
+  decideApproval: (id: string, decision: "approve" | "reject", reason?: string) =>
+    api<ApprovalRequest>(`/api/approvals/${id}/decide`, {
+      method: "POST",
+      body: JSON.stringify({ decision, ...(reason ? { reason } : {}) }),
+    }),
   /** T2.2 expand-on-tap: full hunks for one file, after /diff collapsed them under K3. */
   sessionDiffHunk: (id: string, path: string) =>
     api<{ path: string; hunks: DiffHunk[] }>(`/api/sessions/${id}/diff/hunk?path=${encodeURIComponent(path)}`),

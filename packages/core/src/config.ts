@@ -42,6 +42,14 @@ export const HubConfig = z.object({
    * lesson — don't make a fresh hub unusable), and POST /api/sessions
    * accepts any project path (pre-T1.5-4 behavior, unchanged). */
   projectRoots: z.array(z.string()).default([]),
+  /** T2.4 (EPIC-P2 §3): gate every steer(prompt) behind the write-class
+   * approval queue instead of forwarding it immediately. Defaults to
+   * `false` — the service and its REST routes/PWA page are always real
+   * and reachable regardless, but flipping the hub's core chat
+   * interaction into a two-step approve-then-send flow is a deliberate
+   * operator choice, not a silent default change to how every existing
+   * session already behaves. */
+  requireStepApprovals: z.boolean().default(false),
 });
 export type HubConfig = z.infer<typeof HubConfig>;
 

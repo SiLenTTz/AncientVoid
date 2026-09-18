@@ -126,10 +126,56 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
   Test-Framework eingeführt — diese Repo-Konvention verifiziert PWA-
   Änderungen bisher durchgängig per Playwright-Live-Check, nicht per
   Unit-Test (siehe z. B. T1.6-8s Glow-Verifikation).
-- [ ] **T2.4** Approval-Service: Klassen-Engine, Signatur, Timeout-Handling (Timeout =
-  Reject, fail-closed), Begründungs-Pflicht-Validierung
+- [x] **T2.4** Approval-Service: Klassen-Engine, Signatur, Timeout-Handling (Timeout =
+  Reject, fail-closed), Begründungs-Pflicht-Validierung. Neuer Contract
+  `packages/contracts/src/approval.ts` (ADR-0007), `ApprovalService`
+  (`packages/core/src/approvals.ts`) + `approvals`-Tabelle (Migration 4).
+  Signatur ist real, nur ehrlich eingeschränkt: `HMAC-SHA256(roher
+  Device-Token, kanonisches Entscheidungs-Payload)` statt eines
+  Bool-Flags — der rohe Token existiert nur im Request-Speicher des
+  Decide-Aufrufs, nie persistiert (siehe ADR-0007 für die Begründung,
+  warum das kein Behelfs-Downgrade ist). `destructive`-Entscheidungen
+  werden **hart verweigert** (nicht simuliert), bis T2.5 eine echte
+  WebAuthn-Assertion liefert. Timeout ist strukturell fail-closed: jeder
+  Lesezugriff löst einen überfälligen `pending`-Eintrag zuerst in
+  `timed_out` auf, bevor er zurückgegeben wird — kein Hintergrund-Timer
+  nötig, kein Fenster, in dem „eigentlich abgelaufen" noch als "pending"
+  sichtbar wäre. Real verdrahtet in `SessionManager.steer()`: ein
+  `kind: "prompt"`-Steer wird bei konfiguriertem `ApprovalService` als
+  `write`-Approval geparkt statt sofort weitergeleitet;
+  `applyApprovedSteer()` leitet ihn erst nach echter Genehmigung weiter
+  (von der Decide-Route aufgerufen). **Opt-in** über
+  `hub.config.json`s neues `requireStepApprovals` (Default `false`) —
+  die Queue/Routen sind immer real erreichbar, aber das Gate selbst
+  ändert die Kern-Chat-Interaktion jeder bestehenden Session, deshalb
+  bewusst kein stiller Default-Wechsel (gleiche Begründung wie T2.1s
+  optionaler `worktrees`-Parameter). 11 Tests
+  (`packages/core/test/approvals.test.ts`) + 5 reale Server-Tests
+  (`packages/server/test/server.test.ts`, echter Ende-zu-Ende-Fluss:
+  Steer geparkt → Queue zeigt Eintrag → Freigabe mit echter Signatur →
+  Adapter empfängt den Prompt wirklich erst danach; Ablehnung verworfen;
+  destruktiv 422).
 - [ ] **T2.5** WebAuthn-Registrierung + Gate-UI am Handy (Biometrie-Prompt)
-- [ ] **T2.6** Approval-Queue (S4) mit Zeit-schleifen-Gruppierung und Risiko-Badges
+  — noch offen; `destructive` bleibt bis dahin bewusst gesperrt (siehe T2.4).
+- [x] **T2.6** Approval-Queue (S4) mit Zeit-schleifen-Gruppierung und Risiko-Badges.
+  `packages/pwa/src/Approvals.tsx` (`ApprovalQueuePane`) — neue Seite
+  (`Page = "approvals"`), erreichbar über ein Banner auf dem Dashboard
+  (`N Freigabe(n) warten auf dich`), **nicht** über einen fünften
+  Dock-Slot (die vier Dock-Plätze entsprechen exakt dem T1.6-Mockup,
+  EPIC-P2 hat nie einen fünften verlangt). Zeit-Gruppierung: „Wartet auf
+  dich" (pending, mit Live-Countdown bis Timeout) / „Kürzlich
+  entschieden" (< 10 Min) / „Älter". Risiko-Badges nach Klasse
+  (Bestätigung=warn-Farbe, destruktiv=err-Farbe + Hinweistext „erfordert
+  WebAuthn, noch nicht verfügbar" statt eines Buttons, der ohnehin immer
+  422 zurückgäbe). Begründungsfeld erscheint nur, wenn
+  `reasonRequired` real gesetzt ist; „Freigeben" bleibt disabled, bis
+  eine Begründung eingetragen ist. **Live gegen den echten Hub mit
+  `requireStepApprovals: true` verifiziert** (Playwright, kein Mock):
+  Screenshot zeigt das echte Banner, die echte Queue-Karte mit
+  Countdown, und nach Tap auf „Freigeben" den echten „approved"-Zustand
+  mit Geräte-Label und Signatur-Häkchen — sowie über die Events-API
+  bestätigt, dass der Prompt den Adapter erst nach diesem Klick
+  tatsächlich erreicht hat.
 - [ ] **T2.7** BudgetState-Service + Park-Mechanik + Top-up-Flow + Tages-Cap
 - [ ] **T2.8** Audit-Events für alle Pfade (incl. verweigerter Aktionen)
 - [ ] **T2.9** CI-Gate-Harness: K1 via Headless-Browser-Simulation, K3 via Fixture-Repo mit

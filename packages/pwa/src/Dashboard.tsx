@@ -29,6 +29,11 @@ export interface DashboardProps {
   /** ADR-0004: adapter id -> its latest account-level usage snapshot. */
   usage: Record<string, AdapterUsage>;
   onOpen: (session: SessionRecord) => void;
+  /** T2.6: pending approval-queue count (0 on a hub without approvals
+   * configured — not distinguished from "genuinely zero pending" here,
+   * since either way there's nothing for the banner to show). */
+  pendingApprovals?: number;
+  onOpenApprovals?: () => void;
 }
 
 /**
@@ -49,7 +54,7 @@ export interface DashboardProps {
  * (ok/warn/err/dim, see styles.css) rather than adding a second,
  * redundant status-color indicator next to it.
  */
-export function Dashboard({ sessions, usage, onOpen }: DashboardProps) {
+export function Dashboard({ sessions, usage, onOpen, pendingApprovals = 0, onOpenApprovals }: DashboardProps) {
   const sorted = useMemo(
     () => [...sessions].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)),
     [sessions],
@@ -77,6 +82,11 @@ export function Dashboard({ sessions, usage, onOpen }: DashboardProps) {
 
   return (
     <div class="dashboard">
+      {pendingApprovals > 0 && onOpenApprovals && (
+        <button class="approval-banner" onClick={onOpenApprovals}>
+          ⚠ {pendingApprovals} {pendingApprovals === 1 ? "Freigabe wartet" : "Freigaben warten"} auf dich
+        </button>
+      )}
       <div class="dashboard-summary dim">
         <span>Heute: {formatUsd(todayTotalUsd)}</span>
         {waitingCount > 0 && (

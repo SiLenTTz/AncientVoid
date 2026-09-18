@@ -64,6 +64,29 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE sessions ADD COLUMN tokens_est INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    id: 4,
+    name: "approval-queue",
+    sql: `
+      CREATE TABLE IF NOT EXISTS approvals (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        class TEXT NOT NULL,
+        action TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        timeout_at TEXT NOT NULL,
+        status TEXT NOT NULL,
+        reason_required INTEGER NOT NULL DEFAULT 0,
+        reason TEXT,
+        decided_at TEXT,
+        decided_by_label TEXT,
+        signature TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals(status);
+      CREATE INDEX IF NOT EXISTS idx_approvals_session ON approvals(session_id);
+    `,
+  },
 ];
 
 export class HubDatabase {

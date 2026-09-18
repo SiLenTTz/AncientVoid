@@ -1,8 +1,10 @@
 import type { FastifyInstance } from "fastify";
-import type { SessionManager, TokenService, AdapterRegistry } from "@uacc/core";
+import type { SessionManager, TokenService, AdapterRegistry, ApprovalService } from "@uacc/core";
 import { discoverProjects, isProjectPathAllowed, scanProjectSkills } from "@uacc/core";
 import { enhancePrompt } from "./enhance.ts";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
+import { extractToken } from "./auth.ts";
+import { DecideApprovalInput, ApprovalStatus } from "@uacc/contracts";
 import { z } from "zod";
 
 const EnhancePromptBody = z.object({
@@ -35,6 +37,10 @@ export function registerRoutes(
     tokens: TokenService;
     registry: AdapterRegistry;
     projectRoots?: string[];
+    /** T2.4/EPIC-P2: optional, like SessionManager's worktrees/approvals
+     * wiring — a hub without an ApprovalService configured just doesn't
+     * expose the queue routes (501, not a crash). */
+    approvals?: ApprovalService;
   },
 ): void {
   const projectRoots = deps.projectRoots ?? [];
@@ -235,5 +241,49 @@ export function registerRoutes(
     const { label } = req.params as { label: string };
     const revoked = deps.tokens.revoke(label);
     return { revoked };
+  });
+
+  // T2.4/T2.6 (EPIC-P2 §3 "Approval-Queue"): a hub that hasn't configured
+  // an ApprovalService yet doesn't get these routes — a real 501, not a
+  // silently missing feature the PWA would otherwise 404 into.
+  app.get("/api/approvals", async (req, reply) => {
+    if (!deps.approvals) return reply.code(501).send({ error: "approval queue not configured" });
+    const q = req.query as { status?: string };
+    const status = ApprovalStatus.safeParse(q.status);
+    return deps.approvals.list(status.success ? status.data : undefined);
+  });
+
+  app.get("/api/approvals/:id", async (req, reply) => {
+    if (!deps.approvals) return reply.code(501).send({ error: "approval queue not configured" });
+    const { id } = req.params as { id: string };
+    const found = deps.approvals.get(id);
+    if (!found) return reply.code(404).send({ error: "unknown approval" });
+    return found;
+  });
+
+  app.post("/api/approvals/:id/decide", async (req, reply) => {
+    if (!deps.approvals) return reply.code(501).send({ error: "approval queue not configured" });
+    const { id } = req.params as { id: string };
+    const parsed = DecideApprovalInput.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid decision" });
+    // AC-P2-5/ADR-0007: the signature proves possession of THIS caller's
+    // already-verified bearer token — never the session-record's own
+    // project path or anything client-supplied, so there is no way to
+    // "sign" a decision without the credential authHook already required.
+    const rawToken = extractToken(req);
+    if (!rawToken) return reply.code(401).send({ error: "missing device token" });
+    const identity = deps.tokens.identify(rawToken);
+    if (!identity) return reply.code(401).send({ error: "invalid device token" });
+    const result = deps.approvals.decide(id, parsed.data.decision, rawToken, identity.label, parsed.data.reason);
+    if (!result.ok) return reply.code(422).send(result);
+    // T2.4's ADR-0007 integration point: an approved write-class steer
+    // gets actually applied now — see SessionManager.applyApprovedSteer's
+    // own doc comment for why this is the one place that call happens.
+    if (result.request!.status === "approved" && result.request!.action === "steer.prompt") {
+      await deps.sessions.applyApprovedSteer(result.request!.id).catch((err) => {
+        req.log.error({ err }, "applyApprovedSteer failed after a real approval");
+      });
+    }
+    return result.request;
   });
 }
