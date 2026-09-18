@@ -1,9 +1,10 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import fc from "fast-check";
 import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventStore } from "../src/eventstore.ts";
-import type { NormalizedEvent } from "@uacc/contracts";
+import { EVENT_TYPES, type NormalizedEvent } from "@uacc/contracts";
 
 function ev(seq: number, payload: Record<string, unknown> = {}): NormalizedEvent {
   return {
@@ -55,6 +56,45 @@ describe("EventStore", () => {
     // Blob is retrievable and byte-identical (AC-P0-2).
     const blob = await store.readBlob("s1", enforced!.blobRef!.slice("sha256:".length));
     expect(JSON.parse(blob.toString())).toEqual(huge);
+  });
+
+  it("T2.9 (K5 property test): every real event type stays ≤4KB on disk, blob round-trips byte-identical, regardless of payload shape/size", async () => {
+    // "über alle Event-Typen" — EVENT_TYPES from @uacc/contracts, not a
+    // hand-picked subset, so a ninth type added later is covered for
+    // free. fast-check explores payload shape/size per type; each run
+    // gets its own session so seq/offloading from one run can't leak
+    // into another's assertions.
+    let n = 0;
+    await fc.assert(
+      fc.asyncProperty(
+        fc.constantFrom(...EVENT_TYPES),
+        fc.oneof(
+          fc.dictionary(fc.string(), fc.string({ maxLength: 200 })),
+          fc.record({ data: fc.string({ minLength: 0, maxLength: 20_000 }) }),
+          fc.array(fc.string({ maxLength: 500 }), { maxLength: 50 }).map((items) => ({ items })),
+        ),
+        async (type, payload) => {
+          const sessionId = `k5-prop-${n++}`;
+          await store.initSession(sessionId);
+          const [enforced] = await store.append(sessionId, [
+            { seq: 1, ts: new Date().toISOString(), sessionId, type, summary: `prop ${type}`, payload, blobRef: null },
+          ]);
+          await store.flush(sessionId);
+          const line = (await readFile(join(dir, "sessions", sessionId, "events.jsonl"), "utf8")).trim();
+          expect(line.length).toBeLessThan(4096);
+          const serializedPayloadBytes = Buffer.byteLength(JSON.stringify(payload), "utf8");
+          if (serializedPayloadBytes > 4096) {
+            expect(enforced!.blobRef).toMatch(/^sha256:[a-f0-9]{64}$/);
+            const blob = await store.readBlob(sessionId, enforced!.blobRef!.slice("sha256:".length));
+            expect(JSON.parse(blob.toString())).toEqual(payload);
+          } else {
+            expect(enforced!.blobRef).toBeNull();
+            expect(enforced!.payload).toEqual(payload);
+          }
+        },
+      ),
+      { numRuns: 50 },
+    );
   });
 
   it("tails after a seq", async () => {

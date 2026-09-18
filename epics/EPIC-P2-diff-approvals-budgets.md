@@ -287,8 +287,39 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
   inkl. Default `null`, 1 in `server.test.ts` für den
   `session.approval_decided`-Nachweis bei Ablehnung, plus die bereits
   bestehenden Freigabe-Tests decken den genehmigten Pfad ab).
-- [ ] **T2.9** CI-Gate-Harness: K1 via Headless-Browser-Simulation, K3 via Fixture-Repo mit
-  Riesen-Diff, K5 via Property-Test über alle Event-Typen
+- [x] **T2.9** CI-Gate-Harness: K1 via Headless-Browser-Simulation, K3 via Fixture-Repo mit
+  Riesen-Diff, K5 via Property-Test über alle Event-Typen.
+  - **K1/AC-P2-3** (`scripts/messlauf-approve-latency.mjs`,
+    `npm run messlauf:approve-latency`): echte Chromium-Session
+    (System-Chromium via Playwright) mit echtem CDP-„virtual authenticator"
+    (kein JS-Mock von `navigator.credentials`), echter Hub-Prozess, 20 echte
+    Freigabe-Zeremonien gemessen. **Real durchgeführt und abgelegt**:
+    [`docs/messlauf/2026-09-18-k1-approve-latency.md`](../docs/messlauf/2026-09-18-k1-approve-latency.md)
+    — p95 20 ms (Grenze 5000 ms), inkl. „Was das nicht sagt"
+    (kein echtes Netzwerk, kein echter Finger-/PIN-Prompt, kein echter
+    Mobile-Push — dieser Hub hat keine Push-Infrastruktur).
+  - **K3/AC-P2-2** (`packages/server/test/diff.test.ts`, neuer Test): ein
+    echtes ~2-MB-Diff über vier Dateien, `JSON.stringify()`-Größe der
+    tatsächlichen Antwort real gemessen und auf ≤ 50 KB geprüft — dabei
+    einen **echten, ernsten Bug in T2.2s eigener Implementierung
+    gefunden und behoben**: `parseHunks()` ließ ein internes
+    `bodyLines`-Akkumulator-Feld über den Objekt-Spread in jeden
+    zurückgegebenen Hunk durchsickern; `collapseForK3()` überschrieb nur
+    `body`/`collapsed`, nie dieses Schattenfeld — jeder „kollabierte" Hunk
+    hatte weiterhin seinen vollen, unkollabierten Inhalt im tatsächlich
+    serialisierten JSON, K3 war für jede wirklich große Diff bislang
+    wirkungslos, obwohl jeder bisherige Test (der nur `hunk.body`/
+    `hunk.collapsed` direkt prüfte) grün war. Behoben durch explizite
+    Objekterstellung ohne Spread des internen Akkumulators.
+  - **K5** (`packages/core/test/eventstore.test.ts`, neuer Test, echtes
+    `fast-check`-Property-Testing, `numRuns: 50`): iteriert über
+    `EVENT_TYPES` aus `@uacc/contracts` (alle acht echten Typen, nicht
+    eine Hand-Auswahl) × zufällig geformte/große Payloads, prüft für
+    jede Kombination die reale JSONL-Zeilengröße (< 4096 Byte) und
+    Blob-Auslagerung/-Rückgewinnung.
+  Alle drei Gates sind über bestehende Kommandos ausführbar
+  (`npm test`, `npm run messlauf:approve-latency`) — kein separates,
+  neues CI-Tooling nötig.
 - [ ] **T2.10** Fail-closed-Review: jeder neue Code-Pfad, der externen State ändert, muss
   durch eine Klasse — Checkliste im PR-Template
 

@@ -53,4 +53,15 @@ export default tseslint.config(
       },
     },
   },
+  {
+    // Same reasoning as scripts/k2-frame-lag.mjs above.
+    files: ["scripts/messlauf-approve-latency.mjs"],
+    languageOptions: {
+      globals: {
+        window: "readonly",
+        fetch: "readonly",
+        localStorage: "readonly",
+      },
+    },
+  },
 );
