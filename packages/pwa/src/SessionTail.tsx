@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { hubApi, getToken, type SessionRecord, type AdapterUsage, type SessionDiffResult } from "./api.ts";
+import { hubApi, getToken, type SessionRecord, type AdapterUsage, type SessionDiffResult, type DiffHunk } from "./api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "./ws.ts";
 import { Composer } from "./Composer.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
@@ -293,7 +293,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
             usage={usage}
           />
         ) : activeTab === "diff" ? (
-          <DiffPane diff={diff} />
+          <DiffPane diff={diff} sessionId={session.id} />
         ) : visible.length === 0 ? (
           <div class="empty">keine Events im Filter</div>
         ) : (
@@ -455,11 +455,10 @@ function BerichtPane({
 }
 
 /**
- * T1.6-5 — deliberately the simplest possible diff view (EPIC-P1.6 §3.4):
- * the raw `git diff HEAD` text from the shared /diff endpoint, colored
- * line-by-line, all changed files concatenated in git's own order. No
- * hunk compression, no function anchors, no per-file tab-switching — P2's
- * real diff engine (T2.2/T2.3) is what actually solves K3, not this.
+ * T1.6-5 → T2.3 (EPIC-P2 §4): per-file hunk cards, replacing the raw
+ * concatenated-patch view. Each hunk shows git's own real function-context
+ * anchor (T2.2) and, once collapsed under K3, a tap-to-expand button that
+ * fetches the full hunk via GET /api/sessions/:id/diff/hunk.
  */
 function diffLineClass(line: string): string {
   if (line.startsWith("+++") || line.startsWith("---")) return "diff-line-file";
@@ -470,7 +469,113 @@ function diffLineClass(line: string): string {
   return "diff-line-ctx";
 }
 
-function DiffPane({ diff }: { diff: SessionDiffResult | null }) {
+interface SplitCell {
+  type: "ctx" | "add" | "del" | "empty";
+  text: string;
+}
+interface SplitRow {
+  left: SplitCell;
+  right: SplitCell;
+}
+
+/**
+ * Unified hunk body → side-by-side rows (T2.3 "Querformat side-by-side").
+ * Classic run-pairing: consecutive `-` lines are paired against the
+ * consecutive `+` lines that follow them, index by index, empty cells
+ * filling whichever side ran out first; a context line flushes any
+ * pending run and appears on both sides unchanged.
+ */
+function pairHunkLines(body: string): SplitRow[] {
+  const rows: SplitRow[] = [];
+  let delBuf: string[] = [];
+  let addBuf: string[] = [];
+  const flush = () => {
+    const n = Math.max(delBuf.length, addBuf.length);
+    for (let i = 0; i < n; i++) {
+      rows.push({
+        left: i < delBuf.length ? { type: "del", text: delBuf[i]! } : { type: "empty", text: "" },
+        right: i < addBuf.length ? { type: "add", text: addBuf[i]! } : { type: "empty", text: "" },
+      });
+    }
+    delBuf = [];
+    addBuf = [];
+  };
+  for (const line of body.split("\n")) {
+    if (line.startsWith("-")) delBuf.push(line.slice(1));
+    else if (line.startsWith("+")) addBuf.push(line.slice(1));
+    else if (line.startsWith("\\")) continue; // "\ No newline at end of file"
+    else {
+      flush();
+      const text = line.startsWith(" ") ? line.slice(1) : line;
+      rows.push({ left: { type: "ctx", text }, right: { type: "ctx", text } });
+    }
+  }
+  flush();
+  return rows;
+}
+
+function HunkCard({
+  sessionId,
+  path,
+  hunk,
+  index,
+}: {
+  sessionId: string;
+  path: string;
+  hunk: DiffHunk;
+  index: number;
+}) {
+  const [expanded, setExpanded] = useState<DiffHunk | null>(null);
+  const [loading, setLoading] = useState(false);
+  const active = expanded ?? hunk;
+  const rows = useMemo(() => pairHunkLines(active.body), [active.body]);
+
+  const onExpand = async () => {
+    setLoading(true);
+    try {
+      const res = await hubApi.sessionDiffHunk(sessionId, path);
+      const full = res.hunks[index];
+      if (full) setExpanded(full);
+    } catch {
+      // stays collapsed — a failed expand is a no-op, not a crash
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div class="hunk-card">
+      <div class="hunk-card-header mono">
+        <span class="hunk-range">
+          -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines}
+        </span>
+        <span class="hunk-fn">{active.functionContext ?? "—"}</span>
+        {active.collapsed && (
+          <button class="hunk-expand-btn" onClick={onExpand} disabled={loading}>
+            {loading ? "lädt …" : "ganzer Hunk"}
+          </button>
+        )}
+      </div>
+      <div class="hunk-body-unified mono">
+        {active.body.split("\n").map((line, i) => (
+          <div key={i} class={diffLineClass(line)}>
+            {line}
+          </div>
+        ))}
+      </div>
+      <div class="hunk-body-split mono">
+        {rows.map((row, i) => (
+          <div class="hunk-split-row" key={i}>
+            <span class={`hunk-split-cell ${row.left.type}`}>{row.left.text}</span>
+            <span class={`hunk-split-cell ${row.right.type}`}>{row.right.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DiffPane({ diff, sessionId }: { diff: SessionDiffResult | null; sessionId: string }) {
   if (diff === null) return <div class="empty">lädt …</div>;
   if (diff.error) return <div class="empty">{diff.error}</div>;
   return (
@@ -489,14 +594,21 @@ function DiffPane({ diff }: { diff: SessionDiffResult | null }) {
           </div>
         ))}
       </div>
-      {diff.truncated && <div class="dim" style="margin: 8px 0">Diff gekürzt — vollständige Anzeige kommt mit P2.</div>}
-      <pre class="diff-code mono">
-        {diff.patch.split("\n").map((line, i) => (
-          <div key={i} class={diffLineClass(line)}>
-            {line}
+      {diff.truncated && (
+        <div class="dim" style="margin: 8px 0">
+          Große Hunks gekürzt — „ganzer Hunk" antippen, um einen einzelnen vollständig zu laden.
+        </div>
+      )}
+      {diff.files.map((f) =>
+        f.binary || f.hunks.length === 0 ? null : (
+          <div key={f.path} class="diff-file-group">
+            <div class="diff-file-heading mono">{f.path}</div>
+            {f.hunks.map((h, i) => (
+              <HunkCard key={`${f.path}:${i}`} sessionId={sessionId} path={f.path} hunk={h} index={i} />
+            ))}
           </div>
-        ))}
-      </pre>
+        ),
+      )}
     </div>
   );
 }

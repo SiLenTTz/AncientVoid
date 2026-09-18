@@ -106,9 +106,26 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
   ein echter > 50 KB-Diff, der das Kollabieren real auslöst). PWA-Typen
   (`packages/pwa/src/api.ts`) um `DiffHunk`/`baseRef`/`sessionDiffHunk()`
   erweitert — die tatsächliche Hunk-Karten-UI ist T2.3.
-- [ ] **T2.3** Diff-UI (S3): Hunk-Karten, Tap-Expand, Querformat side-by-side.
-  Baut auf dem rohen Diff-Reiter aus P1.6 (T1.6-5) auf und hält sich an
-  [`docs/design-system.md`](../docs/design-system.md) statt neuer Hex-Werte.
+- [x] **T2.3** Diff-UI (S3): Hunk-Karten, Tap-Expand, Querformat side-by-side.
+  Baut auf dem rohen Diff-Reiter aus P1.6 (T1.6-5) auf, ersetzt ihn durch
+  echte Hunk-Karten pro Datei (`packages/pwa/src/SessionTail.tsx`,
+  `HunkCard`/`DiffPane`) — Funktions-Anker aus T2.2 sichtbar im
+  Karten-Header, kollabierte Hunks zeigen einen „ganzer Hunk"-Button, der
+  `GET /api/sessions/:id/diff/hunk` real nachlädt. Querformat side-by-side:
+  reines CSS (`@media (orientation: landscape) and (min-width: 640px)`),
+  unified-Diff clientseitig in Links/Rechts-Zeilenpaare zerlegt
+  (`pairHunkLines`, klassisches Lauf-Paarungsverfahren: aufeinanderfolgende
+  `-`-Zeilen gegen aufeinanderfolgende `+`-Zeilen index-weise gepaart).
+  Hält sich an bestehende Design-Tokens (`--ok`/`--err`/`--bg-elev`/
+  `--radius` etc.) statt neuer Hex-Werte. **Live gegen den echten Hub
+  verifiziert** (Playwright, kein Mock): echte Session mit einem > 50 KB-
+  Diff in einem echten T2.1-Worktree erzeugt, Screenshots zeigen (1) den
+  kollabierten Hunk im Portrait-Modus, (2) den vollständig geladenen Hunk
+  nach Tap auf „ganzer Hunk", (3) denselben Hunk im Querformat als echtes
+  Zwei-Spalten-Layout (rot/grün korrekt Seite an Seite). Kein PWA-eigenes
+  Test-Framework eingeführt — diese Repo-Konvention verifiziert PWA-
+  Änderungen bisher durchgängig per Playwright-Live-Check, nicht per
+  Unit-Test (siehe z. B. T1.6-8s Glow-Verifikation).
 - [ ] **T2.4** Approval-Service: Klassen-Engine, Signatur, Timeout-Handling (Timeout =
   Reject, fail-closed), Begründungs-Pflicht-Validierung
 - [ ] **T2.5** WebAuthn-Registrierung + Gate-UI am Handy (Biometrie-Prompt)
