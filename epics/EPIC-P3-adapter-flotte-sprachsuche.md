@@ -155,13 +155,26 @@ Handy aus voll arbeitsfähig".
 - [ ] **T3.8** Sprachsuche-Frontend (S5) + Projekt-Index-Service + Egress-CI-Test.
   Hält sich an [`docs/design-system.md`](../docs/design-system.md) (P1.6) statt
   neuer Hex-Werte/Komponenten-Muster.
-- [ ] **T3.9** Prompt-Composer (S6) mit Optimizer + Split-Preview + Learning-Loop-Storage
+- [x] **T3.9** Prompt-Composer (S6) mit Optimizer + Split-Preview + Learning-Loop-Storage
   — *Vermerk (P1.5):* Composer + Optimizer + Split-Preview wurden nach
   [`EPIC-P1.5`](EPIC-P1.5-control-center-ux.md) T1.5-6/T1.5-8 vorgezogen
   (inkl. der dort offen geführten Frage, welches Modell die Umformulierung
-  ausführt, P1.5 §3.4). **In P3 verbleibt der Learning-Loop-Storage**
-  (verworfene/edierte Optimierungen → lokale JSONL-Sammlung → periodische
-  Optimizer-Prompt-Revision) — der ist in P1.5 ausdrücklich out of scope.
+  ausführt, P1.5 §3.4). **Learning-Loop-Storage jetzt umgesetzt** (die
+  Hälfte, die P1.5 ausdrücklich offen ließ):
+  `packages/server/src/prompt-optimizer-feedback.ts` — echtes lokales
+  JSONL-Append (`POST /api/prompt-optimizer/feedback`, aus
+  `Composer.tsx`s `acceptEnhanced()`/`keepOriginal()` aufgerufen, ein
+  Eintrag pro gezeigtem Vorschlag). „Niemals Cloud, niemals Telemetrie"
+  real erfüllt: reines lokales Datei-Append, kein Netzwerk-Call. Optional
+  wie Approvals/WebAuthn (501 ohne konfiguriertes `dataDir`, kein Absturz).
+  6 neue Tests (3 Storage-Modul, 2 Route, plus Bestand). **Ehrlich nicht
+  gebaut: die „periodische Optimizer-Prompt-Revision"** — das eigentliche
+  Lesen der JSONL-Sammlung und Anpassen von `enhance.ts`s `INSTRUCTION`
+  ist eine echte Algorithmus-/Produktentscheidung (welches Muster gilt
+  als revisionswürdig? wie oft? automatisch oder zur Prüfung
+  vorgeschlagen?), die hier nicht erfunden wird — die Sammlung existiert
+  jetzt real als Rohmaterial für diese Entscheidung, ist aber selbst
+  noch nicht „fertig" im Sinne von T3.9s vollem Wortlaut.
 - [ ] **T3.10** Sprach-Direktiven-Parser → Action-Mapping (stopp = write-Gate,
   Budget-Änderung = write-Gate mit Summary)
   — *Vermerk (P1.6):* Das globale Sprachbefehl-Sheet (Transkription, Voice-

@@ -24,6 +24,10 @@ export interface HubAppDeps {
   /** T2.5: optional — omitting it disables the /api/webauthn/* and
    * /api/approvals/:id/webauthn/* routes (501, not a crash). */
   webauthn?: { store: WebAuthnStore; config: WebAuthnConfig };
+  /** T3.9: local-only storage root for the prompt-optimizer learning-loop
+   * feedback file. Omitting it disables POST /api/prompt-optimizer/
+   * feedback (501) — same optional pattern as approvals/webauthn above. */
+  dataDir?: string;
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {

@@ -5,6 +5,7 @@ import { enhancePrompt } from "./enhance.ts";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { extractToken } from "./auth.ts";
 import { createWebAuthnRoutes, type WebAuthnConfig } from "./webauthn.ts";
+import { appendOptimizerFeedback } from "./prompt-optimizer-feedback.ts";
 import { DecideApprovalInput, ApprovalStatus } from "@uacc/contracts";
 import { z } from "zod";
 
@@ -12,6 +13,16 @@ const EnhancePromptBody = z.object({
   adapter: z.string().min(1),
   text: z.string().min(1),
   project: z.string().min(1),
+});
+
+const OptimizerFeedbackBody = z.object({
+  adapter: z.string().min(1),
+  project: z.string().min(1),
+  original: z.string().min(1),
+  enhanced: z.string().min(1),
+  decision: z.enum(["accepted", "rejected"]),
+  costUsd: z.number().optional(),
+  latencyMs: z.number(),
 });
 
 const CreateSessionBody = z.object({
@@ -45,6 +56,9 @@ export function registerRoutes(
     /** T2.5: optional — a hub without WebAuthn configured doesn't expose
      * the passkey routes (501), same pattern as approvals above. */
     webauthn?: { store: WebAuthnStore; config: WebAuthnConfig };
+    /** T3.9: optional — omitting it disables POST /api/prompt-optimizer/
+     * feedback (501), same pattern as above. */
+    dataDir?: string;
   },
 ): void {
   const projectRoots = deps.projectRoots ?? [];
@@ -119,6 +133,19 @@ export function registerRoutes(
         error: err instanceof Error ? err.message : "prompt enhancement failed",
       });
     }
+  });
+
+  app.post("/api/prompt-optimizer/feedback", async (req, reply) => {
+    // T3.9 (EPIC-P3 §3 Learning-Loop): fire-and-forget from the PWA's own
+    // Composer, once per shown suggestion (accepted or discarded) — a
+    // plain local JSONL append, never sent anywhere else ("niemals Cloud,
+    // niemals Telemetrie").
+    if (!deps.dataDir) return reply.code(501).send({ error: "prompt-optimizer feedback storage not configured" });
+    const parsed = OptimizerFeedbackBody.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid feedback body", issues: parsed.error.issues });
+    const { costUsd, ...rest } = parsed.data;
+    await appendOptimizerFeedback(deps.dataDir, { ...rest, ...(costUsd !== undefined ? { costUsd } : {}) });
+    return { ok: true };
   });
 
   app.get("/api/skills", async (req, reply) => {
