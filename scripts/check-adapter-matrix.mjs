@@ -18,8 +18,8 @@
  *
  * Adapters reached through the shared openai-compat example (local-llm,
  * deepseek) share one factory whose capabilities don't vary per config,
- * and `swarm`/`copilot`/`cursor-clip`/`zai` have no package to import at
- * all — all skipped, named explicitly in the output, not silently ignored.
+ * and `swarm`/`zai` have no package to import at all — all skipped, named
+ * explicitly in the output, not silently ignored.
  *
  *   npm run check:adapter-matrix
  */
@@ -37,8 +37,9 @@ const CHECKED = [
   { id: "opencode", modulePath: "../packages/adapter-opencode/src/index.ts" },
   { id: "aider", modulePath: "../packages/adapter-aider/src/index.ts" },
   { id: "copilot", modulePath: "../packages/adapter-copilot/src/index.ts" },
+  { id: "cursor-clip", modulePath: "../packages/adapter-cursor-clip/src/index.ts" },
 ];
-const SKIPPED = ["swarm", "zai", "local-llm", "deepseek", "cursor-clip"];
+const SKIPPED = ["swarm", "zai", "local-llm", "deepseek"];
 
 const SYMBOL_TO_BOOL = { "✓": true, "—": false };
 
