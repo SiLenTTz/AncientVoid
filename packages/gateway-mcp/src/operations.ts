@@ -38,7 +38,22 @@ export interface Operation {
   request(args: Record<string, unknown>): { method: "GET" | "POST"; path: string; body?: unknown };
 }
 
-const SessionIdArgs = z.object({ sessionId: z.string().min(1) });
+/**
+ * BUG (H-1, independent red-team review, 2026-09-18, T4.10): `sessionId`
+ * was only `z.string().min(1)` and got interpolated raw into a path
+ * template (e.g. `` `/api/sessions/${sessionId}/steer` ``), then handed
+ * to `fetch()`. A crafted id like `"abc-123/stop?"` makes the WHATWG URL
+ * parser split the string at the `?`, silently turning a `steer_prompt`
+ * call into `POST /api/sessions/abc-123/stop` — reproduced live with
+ * `new URL(...)`. Real session ids are ALWAYS `randomUUID()` (never
+ * client-supplied — `packages/core/src/sessionmanager.ts`'s `create()`),
+ * so `.uuid()` both closes the hole and matches the only legitimate
+ * shape. `encodeURIComponent()` at every interpolation site below is
+ * defense in depth for any *future* operation that doesn't happen to be
+ * UUID-shaped — the review's own point that this string-concatenation
+ * pattern would keep recurring otherwise.
+ */
+const SessionIdArgs = z.object({ sessionId: z.string().uuid() });
 
 export const OPERATIONS: Operation[] = [
   {
@@ -53,7 +68,7 @@ export const OPERATIONS: Operation[] = [
     class: "read",
     description: "Get one session's full record by id.",
     argsSchema: SessionIdArgs,
-    request: (args) => ({ method: "GET", path: `/api/sessions/${SessionIdArgs.parse(args).sessionId}` }),
+    request: (args) => ({ method: "GET", path: `/api/sessions/${encodeURIComponent(SessionIdArgs.parse(args).sessionId)}` }),
   },
   {
     id: "sessions.tail",
@@ -62,7 +77,7 @@ export const OPERATIONS: Operation[] = [
     argsSchema: SessionIdArgs.extend({ afterSeq: z.number().int().nonnegative().default(0) }),
     request: (args) => {
       const a = SessionIdArgs.extend({ afterSeq: z.number().int().nonnegative().default(0) }).parse(args);
-      return { method: "GET", path: `/api/sessions/${a.sessionId}/events?afterSeq=${a.afterSeq}` };
+      return { method: "GET", path: `/api/sessions/${encodeURIComponent(a.sessionId)}/events?afterSeq=${a.afterSeq}` };
     },
   },
   {
@@ -70,7 +85,7 @@ export const OPERATIONS: Operation[] = [
     class: "read",
     description: "Get the structured diff (hunks, function anchors) of a session's changes so far.",
     argsSchema: SessionIdArgs,
-    request: (args) => ({ method: "GET", path: `/api/sessions/${SessionIdArgs.parse(args).sessionId}/diff` }),
+    request: (args) => ({ method: "GET", path: `/api/sessions/${encodeURIComponent(SessionIdArgs.parse(args).sessionId)}/diff` }),
   },
   {
     id: "approvals.list",
@@ -90,7 +105,7 @@ export const OPERATIONS: Operation[] = [
     argsSchema: SessionIdArgs.extend({ text: z.string().min(1) }),
     request: (args) => {
       const a = SessionIdArgs.extend({ text: z.string().min(1) }).parse(args);
-      return { method: "POST", path: `/api/sessions/${a.sessionId}/steer`, body: { kind: "prompt", text: a.text } };
+      return { method: "POST", path: `/api/sessions/${encodeURIComponent(a.sessionId)}/steer`, body: { kind: "prompt", text: a.text } };
     },
   },
   {
@@ -103,7 +118,7 @@ export const OPERATIONS: Operation[] = [
       const a = SessionIdArgs.extend({ budgetUsd: z.number().positive(), reason: z.string().min(1).optional() }).parse(args);
       return {
         method: "POST",
-        path: `/api/sessions/${a.sessionId}/budget`,
+        path: `/api/sessions/${encodeURIComponent(a.sessionId)}/budget`,
         body: { budgetUsd: a.budgetUsd, ...(a.reason ? { reason: a.reason } : {}) },
       };
     },

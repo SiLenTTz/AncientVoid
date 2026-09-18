@@ -18,6 +18,15 @@ export type DigestLessonKind = (typeof DIGEST_LESSON_KINDS)[number];
  * do that honestly; see ADR-0009). `eventSeq` is the whole point: a
  * consumer can always trace a lesson back to the exact real events that
  * produced it. */
+/**
+ * `text` is copied verbatim from a real event's `summary` — which can
+ * ultimately originate from an untrusted CLI subprocess's own output
+ * (I-1, red-team review, 2026-09-18, T4.10). It reaches a sink as inert
+ * JSON, never templated or eval'd by the hub itself — but a sink that
+ * feeds `lessons[].text` back into another LLM without labeling it as
+ * untrusted agent output would be reintroducing prompt injection on the
+ * consumer's own side, not the hub's. Render/forward it as data.
+ */
 export const DigestLesson = z.object({
   kind: DigestLessonKind,
   text: z.string().min(1),
