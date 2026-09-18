@@ -56,6 +56,12 @@ export const SessionRecord = z.object({
   /** ISO-8601 timestamp of the last persisted change to this session
    * (status change or event) — T1.5's "zuletzt aktiv" sort key. */
   updatedAt: z.string().min(1),
+  /** T2.7/ADR-0008: why a "parked" session is paused — null for every
+   * other status, or for a manually parked session that predates this
+   * field. Distinguishes a manual park() from an automatic budget/
+   * daily-cap park so a budget top-up never auto-resumes a session that
+   * was parked for an unrelated reason. */
+  parkReason: z.enum(["manual", "budget", "daily_cap"]).nullable().default(null),
 });
 export type SessionRecord = z.infer<typeof SessionRecord>;
 

@@ -856,3 +856,110 @@ describe("hub server — WebAuthn routes (T2.5)", () => {
     }
   });
 });
+
+describe("hub server — budget top-up (T2.7)", () => {
+  async function buildApp(withApprovals: boolean) {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-budget-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, {});
+    const approvals = withApprovals ? new ApprovalService(db, 60_000) : undefined;
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner(), undefined, undefined, approvals);
+    const tokens = new TokenService(db);
+    const app = await createHubApp({
+      sessions,
+      tokens,
+      registry,
+      auth: { tokens, enforceTailnetIdentity: false },
+      ...(approvals ? { approvals } : {}),
+    });
+    return { app, tokens, cleanup: () => rm(dir, { recursive: true, force: true }) };
+  }
+
+  it("without approvals configured, applies a budget change immediately", async () => {
+    const { app, tokens, cleanup } = await buildApp(false);
+    try {
+      const deviceToken = tokens.issue("d").token;
+      const created = await app.inject({
+        method: "POST",
+        url: "/api/sessions",
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { adapter: "dummy", project: "/tmp", budgetUsd: 1 },
+      });
+      const { id } = created.json() as { id: string };
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/sessions/${id}/budget`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { budgetUsd: 10 },
+      });
+      expect(res.statusCode).toBe(200);
+      const session = await app.inject({
+        method: "GET",
+        url: `/api/sessions/${id}`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+      });
+      expect((session.json() as { budgetUsd: number }).budgetUsd).toBe(10);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
+
+  it("with approvals configured, requires a reason and only applies after real approval", async () => {
+    const { app, tokens, cleanup } = await buildApp(true);
+    try {
+      const deviceToken = tokens.issue("d").token;
+      const created = await app.inject({
+        method: "POST",
+        url: "/api/sessions",
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { adapter: "dummy", project: "/tmp", budgetUsd: 1 },
+      });
+      const { id } = created.json() as { id: string };
+      const request = await app.inject({
+        method: "POST",
+        url: `/api/sessions/${id}/budget`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { budgetUsd: 10 },
+      });
+      expect(request.statusCode).toBe(422); // pending, not applied yet
+      const pending = (
+        await app.inject({
+          method: "GET",
+          url: "/api/approvals?status=pending",
+          headers: { authorization: `Bearer ${deviceToken}` },
+        })
+      ).json() as { id: string; reasonRequired: boolean; action: string }[];
+      expect(pending[0]!.action).toBe("budget.increase");
+      expect(pending[0]!.reasonRequired).toBe(true);
+
+      const withoutReason = await app.inject({
+        method: "POST",
+        url: `/api/approvals/${pending[0]!.id}/decide`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { decision: "approve" },
+      });
+      expect(withoutReason.statusCode).toBe(422); // AC-P2-5: no reason, no approval
+
+      const decide = await app.inject({
+        method: "POST",
+        url: `/api/approvals/${pending[0]!.id}/decide`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { decision: "approve", reason: "mehr Budget für Debugging" },
+      });
+      expect(decide.statusCode).toBe(200);
+
+      const session = await app.inject({
+        method: "GET",
+        url: `/api/sessions/${id}`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+      });
+      expect((session.json() as { budgetUsd: number }).budgetUsd).toBe(10);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
+});

@@ -63,6 +63,11 @@ export const HubConfig = z.object({
       origin: z.string().default("http://localhost:7373"),
     })
     .default({}),
+  /** T2.7 (EPIC-P2 §3 "Tages-Cap pro Rechner"): sum of every session's
+   * costUsd created since 00:00 UTC today, hub-wide, not per session —
+   * protection against a runaway/looping agent regardless of any single
+   * session's own budgetUsd. `null` (default) means no cap configured. */
+  dailyCapUsd: z.number().positive().nullable().default(null),
 });
 export type HubConfig = z.infer<typeof HubConfig>;
 

@@ -281,15 +281,32 @@ export function registerRoutes(
     if (!identity) return reply.code(401).send({ error: "invalid device token" });
     const result = deps.approvals.decide(id, parsed.data.decision, rawToken, identity.label, parsed.data.reason);
     if (!result.ok) return reply.code(422).send(result);
-    // T2.4's ADR-0007 integration point: an approved write-class steer
-    // gets actually applied now — see SessionManager.applyApprovedSteer's
-    // own doc comment for why this is the one place that call happens.
+    // T2.4/T2.7's ADR-0007 integration point: an approved write-class
+    // steer or budget top-up gets actually applied now — see
+    // SessionManager.applyApprovedSteer/applyApprovedBudgetTopUp's own
+    // doc comments for why this is the one place either call happens.
     if (result.request!.status === "approved" && result.request!.action === "steer.prompt") {
       await deps.sessions.applyApprovedSteer(result.request!.id).catch((err) => {
         req.log.error({ err }, "applyApprovedSteer failed after a real approval");
       });
+    } else if (result.request!.status === "approved" && result.request!.action === "budget.increase") {
+      await deps.sessions.applyApprovedBudgetTopUp(result.request!.id).catch((err) => {
+        req.log.error({ err }, "applyApprovedBudgetTopUp failed after a real approval");
+      });
     }
     return result.request;
+  });
+
+  app.post("/api/sessions/:id/budget", async (req, reply) => {
+    // T2.7 (EPIC-P2 §3 "Budget-Top-up (write-Klasse)"). Same shape as
+    // /steer: 422 (not 200) when it's parked pending approval, since
+    // ack.ok is false in that case too — the client already knows how to
+    // handle that from the steer route.
+    const { id } = req.params as { id: string };
+    const body = z.object({ budgetUsd: z.number().positive(), reason: z.string().min(1).optional() }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: "invalid budget" });
+    const ack = await deps.sessions.requestBudgetTopUp(id, body.data.budgetUsd, body.data.reason);
+    return ack.ok ? ack : reply.code(422).send(ack);
   });
 
   // T2.5 (EPIC-P2 §3): WebAuthn passkey registration + the biometric

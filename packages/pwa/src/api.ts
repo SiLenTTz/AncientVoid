@@ -15,6 +15,9 @@ export interface SessionRecord {
    * it (claude); 0 means "unreported", not "confirmed zero" (same caveat
    * as costUsd). */
   tokensEst: number;
+  /** T2.7/ADR-0008: why a "parked" session is paused — null otherwise, or
+   * for a manually parked session that predates this field. */
+  parkReason: "manual" | "budget" | "daily_cap" | null;
 }
 
 /** T2.4/ADR-0007 — mirrors `@uacc/contracts`'s ApprovalRequest, same
@@ -195,6 +198,15 @@ export const hubApi = {
    * Approvals.tsx. */
   approvals: (status?: ApprovalStatus) =>
     api<ApprovalRequest[]>(`/api/approvals${status ? `?status=${status}` : ""}`),
+  /** T2.7: request a higher budget for a parked-for-budget session.
+   * Applied immediately (200) if this hub has no approvals configured,
+   * otherwise parked pending a write-class approval (422, same
+   * ack.ok===false shape as /steer). */
+  requestBudgetTopUp: (id: string, budgetUsd: number, reason?: string) =>
+    api<{ ok: boolean; detail?: string }>(`/api/sessions/${id}/budget`, {
+      method: "POST",
+      body: JSON.stringify({ budgetUsd, ...(reason ? { reason } : {}) }),
+    }),
   decideApproval: (id: string, decision: "approve" | "reject", reason?: string) =>
     api<ApprovalRequest>(`/api/approvals/${id}/decide`, {
       method: "POST",

@@ -106,6 +106,13 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 6,
+    name: "session-park-reason",
+    sql: `
+      ALTER TABLE sessions ADD COLUMN park_reason TEXT;
+    `,
+  },
 ];
 
 export class HubDatabase {

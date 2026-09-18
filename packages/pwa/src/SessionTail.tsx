@@ -390,6 +390,57 @@ function formatDuration(ms: number): string {
  * needs a "usage at session start" capture that doesn't exist yet; showing
  * the current snapshot honestly labeled beats a half-built delta.
  */
+/**
+ * T2.7 (EPIC-P2 §3 "Budget-Top-up (write-Klasse)") — shown only on a
+ * session parked FOR BUDGET (ADR-0008's parkReason, never a manual park).
+ * Success message differs depending on whether this hub gates it behind
+ * an approval (still pending) or applied it immediately.
+ */
+function BudgetTopUp({ sessionId, currentBudgetUsd }: { sessionId: string; currentBudgetUsd: number | null }) {
+  const [amount, setAmount] = useState(String(((currentBudgetUsd ?? 1) * 2).toFixed(2)));
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const submit = async () => {
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      await hubApi.requestBudgetTopUp(sessionId, value);
+      setMessage("Budget erhöht — Session läuft weiter.");
+    } catch (err) {
+      // A pending-approval response (422) throws here (see api.ts) — the
+      // exact reason is still worth showing even though it's a real
+      // request that succeeded in queuing, not a failure.
+      setMessage(err instanceof Error ? err.message : "fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div class="card" style="margin: 10px 0; display: grid; gap: 8px">
+      <div>Session wegen Budget pausiert.</div>
+      <div style="display: flex; gap: 8px; align-items: center">
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          value={amount}
+          onInput={(e) => setAmount((e.target as HTMLInputElement).value)}
+          style="width: 100px"
+        />
+        <span>$ neues Budget</span>
+      </div>
+      <button class="btn primary" onClick={submit} disabled={busy}>
+        {busy ? "…" : "Budget erhöhen"}
+      </button>
+      {message && <div class="dim" style="font-size: 12px">{message}</div>}
+    </div>
+  );
+}
+
 function BerichtPane({
   record,
   createdAt,
@@ -413,6 +464,7 @@ function BerichtPane({
   return (
     <div>
       <span class={`status-chip ${running ? "pending" : "done"}`}>{running ? "● läuft" : "✓ abgeschlossen"}</span>
+      {status === "parked" && record.parkReason === "budget" && <BudgetTopUp sessionId={record.id} currentBudgetUsd={record.budgetUsd} />}
       <div class="kv-list">
         <div class="kv-row">
           <span class="k">Dauer</span>

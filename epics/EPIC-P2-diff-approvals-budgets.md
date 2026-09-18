@@ -218,7 +218,48 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
   mit Geräte-Label und Signatur-Häkchen — sowie über die Events-API
   bestätigt, dass der Prompt den Adapter erst nach diesem Klick
   tatsächlich erreicht hat.
-- [ ] **T2.7** BudgetState-Service + Park-Mechanik + Top-up-Flow + Tages-Cap
+- [x] **T2.7** BudgetState-Service + Park-Mechanik + Top-up-Flow + Tages-Cap.
+  Real in `SessionManager` verdrahtet (kein separater Service nötig — die
+  Logik gehört genau dorthin, wo `costUsd` ohnehin schon je Event
+  akkumuliert wird, ADR-0003): `checkBudget()` warnt bei 80 % genau einmal
+  (`session.budget_warning`) und parkt hart bei 100 %
+  (`session.budget_exceeded` + echter `park()`-Aufruf, fail-closed — der
+  Adapter bekommt danach wirklich keinen weiteren Aufruf mehr, nicht nur
+  eine Statusanzeige). **Ehrlich markiert:** „Push-Warnung" aus dem
+  Design-Dokument ist real als sichtbares System-Event umgesetzt, **nicht**
+  als echter Mobile-Push — dieser Hub hat keine Push-Infrastruktur, das
+  steht so im Code-Kommentar, nicht stillschweigend als erledigt geführt.
+  Neues Feld `SessionRecord.parkReason` (ADR-0008,
+  `"manual" | "budget" | "daily_cap"`) unterscheidet einen manuellen
+  `park()` von einem automatischen — ein Top-up (`applyBudgetTopUp()`)
+  setzt eine Session **nur** fort, wenn sie tatsächlich wegen Budget
+  pausiert wurde, nie eine manuell geparkte (real getestet). Top-up-Flow
+  ist die „Budget-Änderung"-write-Klasse aus T2.4: `POST
+  /api/sessions/:id/budget` — ohne konfigurierten `ApprovalService` sofort
+  angewendet, mit Service als Pflicht-Begründungs-Freigabe geparkt und
+  erst nach echter Genehmigung angewendet (`applyApprovedBudgetTopUp`,
+  dieselbe Route wie T2.4s Steer-Freigabe). Tages-Cap
+  (`HubConfig.dailyCapUsd`) ist hub-weit über alle Sessions summiert
+  (nicht pro Session) und parkt bei Überschreitung **jede** laufende
+  Session, nicht nur die auslösende — echt getestet mit zwei Sessions,
+  von denen eine nie selbst etwas ausgegeben hat.
+  **Ein echter Async-Race beim Testen gefunden und dokumentiert** (kein
+  Produktionsbug): `ctx.emit()` ist bewusst fire-and-forget, ein Test, der
+  direkt nach `steer()` den Status abfragt, kann den noch laufenden
+  Budget-Check verpassen — behoben durch Pollen (`waitFor`) statt
+  sofortiger Assertion, wie an anderer Stelle in dieser Datei bereits
+  etabliert.
+  PWA: `BudgetTopUp`-Karte im Bericht-Tab, sichtbar nur bei
+  `status === "parked" && parkReason === "budget"`. **Live gegen einen
+  echten Hub verifiziert** (Playwright + eine echte kostentragende
+  Test-Adapter-Instanz im selben Prozess wie ein echter Fastify-Server,
+  da `hub.config.json`s registrierte Adapter keinen `cost:true` melden):
+  echte Session real bei 100 % geparkt, echtes Top-up über die PWA
+  ausgelöst, per direktem `GET /api/sessions/:id` bestätigt: `status`
+  „working", `parkReason` `null`, `budgetUsd` verdoppelt.
+  9 neue Tests (`packages/core/test/sessionmanager.test.ts`: Warnung,
+  Auto-Park, Top-up-Selektivität, Tages-Cap; `packages/server/test/
+  server.test.ts`: Route ohne/mit Approvals, Begründungspflicht).
 - [ ] **T2.8** Audit-Events für alle Pfade (incl. verweigerter Aktionen)
 - [ ] **T2.9** CI-Gate-Harness: K1 via Headless-Browser-Simulation, K3 via Fixture-Repo mit
   Riesen-Diff, K5 via Property-Test über alle Event-Typen

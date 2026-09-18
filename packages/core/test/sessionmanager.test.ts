@@ -483,4 +483,124 @@ describe("SessionManager", () => {
       await rm(worktreesOut, { recursive: true, force: true });
     }
   });
+
+  // T2.7 (EPIC-P2 §3 BudgetState): a controllable costUsd-bearing adapter,
+  // same reasoning as the ADR-0003/0006 tests above — the dummy adapter
+  // has no cost capability. `steer(prompt)` emits whatever amount the
+  // prompt text parses to as a number, letting each test drive the
+  // session's costUsd to an exact figure.
+  function registerBudgetAdapter(registry: AdapterRegistry) {
+    registry.register("budget-test", () => ({
+      id: "budget-test",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false }),
+      async start(_spec, ctx) {
+        return { sessionId: ctx.sessionId };
+      },
+      async steer(_handle, input, ctx) {
+        if (input.kind === "prompt") ctx.emit({ type: "system", summary: "spend", payload: {}, costUsd: Number(input.text) });
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" as const };
+      },
+      async stop() {},
+    }));
+  }
+
+  it("T2.7: warns once at 80% of budget, never re-fires on later events", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registerBudgetAdapter(registry);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "budget-test", project: dir, budgetUsd: 1.0 });
+      await manager.steer(record.id, { kind: "prompt", text: "0.85" }); // crosses 80%
+      await waitFor(async () => (await manager.tail(record.id, 0)).some((e) => (e.payload as { kind?: string }).kind === "session.budget_warning"));
+      await manager.steer(record.id, { kind: "prompt", text: "0.01" }); // another cost-bearing event, still under 100%
+      await waitFor(async () => manager.get(record.id)!.costUsd >= 0.86);
+      const events = await manager.tail(record.id, 0);
+      const warnings = events.filter((e) => (e.payload as { kind?: string }).kind === "session.budget_warning");
+      expect(warnings).toHaveLength(1); // fired once, not again on the second event
+      expect(manager.get(record.id)!.status).toBe("working"); // not parked yet
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("T2.7: auto-parks at 100% of budget, fail-closed — records why via parkReason", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registerBudgetAdapter(registry);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "budget-test", project: dir, budgetUsd: 1.0 });
+      await manager.steer(record.id, { kind: "prompt", text: "1.0" });
+      // ctx.emit() is fire-and-forget (documented SessionManager behavior) —
+      // the cost event, and the budget check it triggers, can still be
+      // in flight after steer() itself resolves. Poll instead of asserting
+      // immediately after the await, same reasoning as this file's other
+      // adapter-driven async tests.
+      await waitFor(async () => manager.get(record.id)!.status === "parked");
+      const after = manager.get(record.id)!;
+      expect(after.status).toBe("parked");
+      expect(after.parkReason).toBe("budget");
+      const events = await manager.tail(record.id, 0);
+      expect(events.some((e) => (e.payload as { kind?: string }).kind === "session.budget_exceeded")).toBe(true);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("T2.7: budget top-up resumes a session parked FOR BUDGET, but never one parked manually", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registerBudgetAdapter(registry);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const budgetParked = await manager.create({ adapter: "budget-test", project: dir, budgetUsd: 1.0 });
+      await manager.steer(budgetParked.id, { kind: "prompt", text: "1.0" });
+      await waitFor(async () => manager.get(budgetParked.id)!.status === "parked");
+
+      const topUp = await manager.applyBudgetTopUp(budgetParked.id, 5.0);
+      expect(topUp.ok).toBe(true);
+      const resumed = manager.get(budgetParked.id)!;
+      expect(resumed.status).toBe("working");
+      expect(resumed.parkReason).toBeNull();
+      expect(resumed.budgetUsd).toBe(5.0);
+
+      const manuallyParked = await manager.create({ adapter: "budget-test", project: dir, budgetUsd: 1.0 });
+      await manager.park(manuallyParked.id);
+      expect(manager.get(manuallyParked.id)!.parkReason).toBe("manual");
+      await manager.applyBudgetTopUp(manuallyParked.id, 5.0);
+      // still parked — a manual park is never auto-resumed by a top-up
+      expect(manager.get(manuallyParked.id)!.status).toBe("parked");
+      expect(manager.get(manuallyParked.id)!.parkReason).toBe("manual");
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("T2.7: a hub-wide daily cap parks every live session, not just the one that crossed it", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registerBudgetAdapter(registry);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner(), undefined, undefined, undefined, 1.0);
+    try {
+      const a = await manager.create({ adapter: "budget-test", project: dir });
+      const b = await manager.create({ adapter: "budget-test", project: dir });
+      await manager.steer(a.id, { kind: "prompt", text: "1.0" }); // a alone crosses the hub-wide 1.0 daily cap
+      await waitFor(async () => manager.get(a.id)!.status === "parked");
+      expect(manager.get(a.id)!.status).toBe("parked");
+      expect(manager.get(a.id)!.parkReason).toBe("daily_cap");
+      expect(manager.get(b.id)!.status).toBe("parked"); // b never spent anything, still parked
+      expect(manager.get(b.id)!.parkReason).toBe("daily_cap");
+    } finally {
+      await manager.shutdown();
+    }
+  });
 });
