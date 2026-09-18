@@ -69,3 +69,8 @@ sich bewegen.
 - Conventional Commments (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`).
 - Ein Thema pro PR; Contract-Änderungen getrennt von Implementierungen.
 - CI (GitLab) führt `test`, `lint`, `typecheck` aus — grün vor Merge.
+- **Merge passiert ausschließlich über die GitLab-MR** (`glab mr merge` oder
+  UI-Klick), nie über ein lokales `git merge` von einem Feature-Branch nach
+  `main` — auch nicht, wenn der Remote gerade nicht erreichbar ist. Details
+  und die Kadenz (wann committen/pushen/MR öffnen): Skill
+  [`.claude/skills/git-workflow/SKILL.md`](.claude/skills/git-workflow/SKILL.md).
