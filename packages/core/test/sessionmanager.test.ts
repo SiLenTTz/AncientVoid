@@ -685,3 +685,84 @@ describe("SessionManager", () => {
     }
   });
 });
+
+/** T4.1/ADR-0009: reportingSinks wiring. Separate describe block — these
+ * tests care about stop()'s digest dispatch, not general lifecycle. */
+describe("SessionManager — reporting sink dispatch (T4.1, ADR-0009)", () => {
+  let dir: string;
+
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), "uacc-sm-digest-"));
+  });
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("stop() calls every configured sink with a real, quote-grounded SessionSummary", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 1 });
+    const received: unknown[] = [];
+    const sink = async (summary: unknown) => {
+      received.push(summary);
+    };
+    const manager = new SessionManager(db, store, registry, new ProcessRunner(), undefined, undefined, undefined, null, [sink]);
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      await manager.stop(record.id);
+      await waitFor(async () => received.length === 1);
+      const summary = received[0] as { sessionId: string; archiveRef: string; lessons: { text: string }[] };
+      expect(summary.sessionId).toBe(record.id);
+      expect(summary.archiveRef).toBe(`sessions/${record.id}/events.jsonl`);
+      // "session.created"/"session.started" aren't digest-worthy (see
+      // digest.test.ts) but "session.stopped" itself isn't either — real
+      // proof this is rule-based extraction, not "every event is a lesson".
+      expect(summary.lessons.length).toBe(0);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("a throwing sink never breaks stop() — the error becomes a visible system event instead", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 1 });
+    const badSink = async () => {
+      throw new Error("webhook unreachable");
+    };
+    const manager = new SessionManager(db, store, registry, new ProcessRunner(), undefined, undefined, undefined, null, [badSink]);
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      const ack = await manager.stop(record.id);
+      expect(ack.ok).toBe(true); // stop() itself must succeed regardless
+      await waitFor(async () => {
+        const events = await manager.tail(record.id, 0);
+        return events.some((e) => (e.payload as { kind?: string }).kind === "session.digest_sink_failed");
+      });
+      const events = await manager.tail(record.id, 0);
+      const failure = events.find((e) => (e.payload as { kind?: string }).kind === "session.digest_sink_failed");
+      expect((failure!.payload as { error?: string }).error).toContain("webhook unreachable");
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("an empty reportingSinks array (the default) never touches the store — exact pre-T4.1 behavior", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 1 });
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      await manager.stop(record.id);
+      await new Promise((r) => setTimeout(r, 50));
+      const events = await manager.tail(record.id, 0);
+      expect(events.some((e) => (e.payload as { kind?: string }).kind?.startsWith("session.digest"))).toBe(false);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+});

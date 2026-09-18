@@ -19,6 +19,7 @@ import {
   WebAuthnStore,
   WorktreeManager,
   loadConfig,
+  loadReportingSinks,
 } from "@uacc/core";
 import { TmuxRunner, ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummyAdapter } from "@uacc/adapter-dummy";
@@ -68,6 +69,13 @@ async function main(): Promise<void> {
   // actually gates steer(prompt) behind it) — see HubConfig's own doc
   // comment for why the gate itself defaults off.
   const approvals = new ApprovalService(db);
+  // T4.1/ADR-0009: empty by default (HubConfig.reportingSinks.default([])) —
+  // no digests, no new network egress unless an operator explicitly
+  // configures a sink module.
+  const reportingSinks = await loadReportingSinks(config.reportingSinks, configPath);
+  if (reportingSinks.length > 0) {
+    console.log(`[hub] reporting sinks: ${reportingSinks.length} configured`);
+  }
   const sessions = new SessionManager(
     db,
     store,
@@ -77,6 +85,7 @@ async function main(): Promise<void> {
     worktrees,
     config.requireStepApprovals ? approvals : undefined,
     config.dailyCapUsd,
+    reportingSinks,
   );
 
   // K7: recover sessions from JSONL + snapshots before accepting traffic.

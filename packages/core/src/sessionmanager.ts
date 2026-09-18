@@ -13,6 +13,7 @@ import type {
   Ack,
   WorkerRunner,
   UsageQuota,
+  ReportingSink,
 } from "@uacc/contracts";
 import { SessionSpec as SessionSpecSchema } from "@uacc/contracts";
 import type { EventStore } from "./eventstore.ts";
@@ -20,6 +21,7 @@ import type { AdapterRegistry } from "./registry.ts";
 import type { HubDatabase } from "./db.ts";
 import type { WorktreeManager } from "./worktree.ts";
 import type { ApprovalService } from "./approvals.ts";
+import { buildSessionSummary } from "./digest.ts";
 
 /**
  * Session lifecycle manager.
@@ -133,6 +135,7 @@ export class SessionManager {
   private readonly worktrees: WorktreeManager | undefined;
   private readonly approvals: ApprovalService | undefined;
   private readonly dailyCapUsd: number | null;
+  private readonly reportingSinks: ReportingSink[];
   private readonly heartbeatTimer: NodeJS.Timeout;
   private heartbeatRunning = false;
 
@@ -153,6 +156,11 @@ export class SessionManager {
     /** T2.7: hub-wide daily cost cap (EPIC-P2 §3) — omitted/null means no
      * cap, the exact pre-T2.7 behavior. */
     dailyCapUsd: number | null = null,
+    /** T4.1/ADR-0009: fire-and-forget digest consumers, called once per
+     * completed session. Empty array (default) is the exact pre-T4.1
+     * behavior — no digests, no new network egress unless explicitly
+     * configured (same "default off" principle as the MCP gateway, OD-2). */
+    reportingSinks: ReportingSink[] = [],
   ) {
     this.db = db;
     this.store = store;
@@ -161,6 +169,7 @@ export class SessionManager {
     this.worktrees = worktrees;
     this.approvals = approvals;
     this.dailyCapUsd = dailyCapUsd;
+    this.reportingSinks = reportingSinks;
     // T1.9 (AC-P1-5): poll each live adapter's own status() on a timer,
     // not just react to its worker process exiting. A hard-killed process
     // already surfaces via WorkerProcess.onExit (see makeContext below),
@@ -499,8 +508,31 @@ export class SessionManager {
       }
       await this.setStatus(session, "stopped");
       await this.emitSystem(session, "session.stopped", { actor: actor ?? null });
+      this.dispatchDigest(session);
     }
     return { ok: true };
+  }
+
+  /** ADR-0009: fire-and-forget, best-effort. A throwing/rejecting sink
+   * must never affect the (already-returned) stop() result — errors are
+   * caught per-sink and surfaced as a real system event instead of a
+   * silent drop (AGENTS.md Regel 6 "fail loud"). */
+  private dispatchDigest(session: LiveSession): void {
+    if (this.reportingSinks.length === 0) return;
+    void (async () => {
+      await this.store.flush(session.record.id);
+      const events = await this.store.replay(session.record.id);
+      const summary = buildSessionSummary(session.record, events);
+      for (const sink of this.reportingSinks) {
+        try {
+          await sink(summary);
+        } catch (err) {
+          await this.emitSystem(session, "session.digest_sink_failed", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    })();
   }
 
   async park(sessionId: string, actor?: string): Promise<Ack> {

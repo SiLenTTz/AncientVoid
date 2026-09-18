@@ -65,8 +65,36 @@ Sessions, lauffähig auf evox2 (Windows/WSL), das lazy-disclosed MCP-Gateway (Me
 
 ## 4. Aufgaben
 
-- [ ] **T4.1** Reporting-Sink-Contract + Webhook-Plugin-Skelett — noch offen.
-- [ ] **T4.2** Digest-Pipeline (Extraktion, Quote-Grounding, Archiv-Verweis) — noch offen.
+- [x] **T4.1** Reporting-Sink-Contract + Webhook-Plugin-Skelett —
+  [ADR-0009](../docs/adr/0009-reporting-sink-contract.md). Contract
+  (`ReportingSink = (SessionSummary) => void|Promise<void>`) in
+  `packages/contracts/src/reporting.ts`; Referenz-Plugin (Webhook, POST der
+  Summary als JSON, kein Retry) in `examples/reporting-sinks/webhook/` —
+  bewusst ein Beispiel, kein Kern-Bestandteil (Brain-Grenze §3). Geladen
+  über dieselbe Modul-Auflösung wie Adapter (`resolveAdapterModule()`),
+  neues `HubConfig.reportingSinks` (Default: leeres Array, kein neuer
+  Netzwerk-Egress ohne explizite Konfiguration, gleiches Prinzip wie das
+  MCP-Gateway OD-2). Live-verifiziert: echter Hub, echter lokaler
+  HTTP-Receiver, echte Session erstellt/gestoppt, echter POST mit echtem
+  JSON-Payload angekommen.
+- [x] **T4.2** Digest-Pipeline (Extraktion, Quote-Grounding, Archiv-Verweis) —
+  `packages/core/src/digest.ts`, `buildSessionSummary()`. **Regelbasiert,
+  nicht LLM-zusammengefasst** (dieses Repo hat keine eingebaute
+  Sprachmodell-Fähigkeit — eine vorgetäuschte Zusammenfassung wäre
+  R9.7-Bruch): `gate`-Events → `decision`, `error`-Events → `failure`,
+  ausgewählte reale `SessionManager`-eigene System-Event-Kinds
+  (`session.approval_decided` → `approval`, `session.budget_exceeded`/
+  `session.daily_cap_exceeded`/`session.budget_warning` → `budget`,
+  `session.worktree_failed`/`session.start_failed`/`session.recovery_failed`/
+  `adapter.down` → `failure`, `session.parked` → `decision`) — jede Lesson
+  zitiert die echte(n) Event-Sequenznummer(n) (`eventSeq`). `archiveRef`
+  zeigt auf `EventStore`s echten Pfad (`sessions/<id>/events.jsonl`), nie
+  Volltext. Aufruf in `SessionManager.stop()` nach dem echten
+  `session.stopped`-Event, fire-and-forget pro Sink — ein werfender Sink
+  erzeugt ein sichtbares `session.digest_sink_failed`-Event statt den
+  Stop-Pfad zu beeinflussen (real getestet). 11 neue Tests
+  (`packages/core/test/digest.test.ts` + 3 Wiring-Tests in
+  `sessionmanager.test.ts`), plus die Live-Verifikation aus T4.1.
 - [ ] **T4.3** Hermes-Skill `agent-hub` (dünn, keine Runtime-Logik) — **bewusst
   nicht versucht**: „Hermes" ist ein externes System, zu dem diese Session
   keinen Zugriff und keine verifizierbare Kenntnis seines Skill-Formats
