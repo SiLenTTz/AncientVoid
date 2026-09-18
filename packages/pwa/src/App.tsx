@@ -158,6 +158,15 @@ function CreateSession({
   const [busy, setBusy] = useState(false);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
   const [skill, setSkill] = useState<SelectedSkill | null>(null);
+  // T1.6-6: SessionSpec.model existed in the contract (and the PWA client
+  // type) since P0 but nothing ever set it and adapter-claude never read
+  // it — a real dead field, closed end to end now. Only claude has a
+  // verified --model flag (adapter-claude/src/index.ts); other adapters
+  // get no picker rather than a chip that silently does nothing.
+  const [model, setModel] = useState<string | null>(null);
+  useEffect(() => {
+    setModel(adapter === "claude" ? "sonnet" : null);
+  }, [adapter]);
 
   useEffect(() => {
     let alive = true;
@@ -202,6 +211,7 @@ function CreateSession({
         adapter,
         project,
         ...(prompt ? { prompt } : {}),
+        ...(model ? { model } : {}),
         ...(skill ? { args: { [skill.kind]: skill.name } } : {}),
       });
       onCreated(rec);
@@ -224,6 +234,23 @@ function CreateSession({
           ))}
         </select>
       </label>
+      {model !== null && (
+        <label>
+          Modell
+          <div class="choice-row">
+            <button
+              type="button"
+              class={`choice ${model === "sonnet" ? "active" : ""}`}
+              onClick={() => setModel("sonnet")}
+            >
+              Sonnet 5
+            </button>
+            <button type="button" class={`choice ${model === "opus" ? "active" : ""}`} onClick={() => setModel("opus")}>
+              Opus 5
+            </button>
+          </div>
+        </label>
+      )}
       <label>
         Projekt
         {projects === null ? (

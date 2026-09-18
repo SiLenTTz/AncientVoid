@@ -323,8 +323,23 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   tatsächlich geschriebenen Inhalt inkl. Farb-Kodierung (Screenshot
   `t1.6-5-diff-real.png`). Gates: `npm test` 141/141, `lint`/`typecheck`,
   PWA `build`/`typecheck` grün.
-- [ ] **T1.6-6** Modell-Auswahl end-to-end (`App.tsx`-Chips → `SessionSpec.
-  model` → `adapter-claude`s `--model`-Flag), Tests für beide Enden.
+- [x] **T1.6-6** Modell-Auswahl end-to-end. `SessionSpec.model` existierte
+  bereits seit P0 im Contract und im PWA-Client-Typ, wurde aber nirgends
+  gesetzt und von `adapter-claude` nie gelesen — dritter „totes
+  Contract-Feld"-Fund dieser Phase (nach `tokensEst` in T1.6-4 und dem
+  Muster, das schon in P1.5 mit `SessionSpec.args` auffiel).
+  `App.tsx`s `CreateSession` zeigt die Chips **nur für `claude`** (kein
+  wirkungsloser Chip für Adapter ohne verifizierten Mechanismus, gleiche
+  Ehrlichkeitsregel wie beim Skill-Overlay); `adapter-claude`s
+  `buildArgs()` hängt `--model <wert>` an, **nur beim initialen Spawn**
+  (dieselbe Begründung wie bei `--agent`: ein `--resume`-Prozess hat sein
+  Modell bereits fixiert). Neuer Test in `adapter.test.ts` (11 statt 10).
+  **Live gegen einen echten, tatsächlich gestarteten `claude`-Prozess
+  geprüft** (nicht nur die UI-Auswahl): `ps aux` zeigt nach einer Session
+  mit `model:"opus"` real `claude -p 'Say ok' … --model opus …` als
+  laufenden Prozess — vor einem Server-Neustart fehlschlug genau das (der
+  Server lief noch mit dem alten Code), danach real bestätigt. Gates:
+  `npm test` 142/142, `lint`/`typecheck`, PWA `build`/`typecheck` grün.
 - [ ] **T1.6-7** Globales Sprachbefehl-Sheet (Voice-Dock-Eintrag):
   Transkript-Vorschau ohne Ausführung, sichtbarer Verweis auf P3 T3.10.
 - [ ] **T1.6-8** Linsenartige Scrollbars + Status-Glow-Animationen
@@ -382,7 +397,7 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   gegen ein Fixture-Repo mit bekanntem Diff verifiziert (`diff.test.ts`,
   4 Tests) und live gegen ein echtes Testrepo mit zwei echten Dateien
   (`t1.6-5-diff-real.png`).
-- **AC-P1.6-6:** Eine Session lässt sich mit `model: "opus"` starten, und
+- **AC-P1.6-6: 🟢 erfüllt.** Eine Session lässt sich mit `model: "opus"` starten, und
   der tatsächlich gestartete `claude`-Prozess erhält `--model opus` —
   verifiziert gegen den echten Subprozess-Aufruf (wie T1.5-9s
   Skill-/Agent-Verifikation), nicht nur gegen die UI-Auswahl.
