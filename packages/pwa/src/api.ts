@@ -264,8 +264,15 @@ export const hubApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  // Real, serious bug found live-testing T3.10's voice-stop directive:
+  // this sent no body at all, but api()'s content-type: application/json
+  // header is unconditional — Fastify rejects that combination with a
+  // real 400 (FST_ERR_CTP_EMPTY_JSON_BODY). The UI's own "Stop" button
+  // (SessionTail.tsx) calls this exact function and swallows the error
+  // via `.catch(() => undefined)`, so the button has been silently doing
+  // nothing this whole time — confirmed live via curl before assuming.
   stopSession: (id: string) =>
-    api<{ ok: boolean }>(`/api/sessions/${id}/stop`, { method: "POST" }),
+    api<{ ok: boolean }>(`/api/sessions/${id}/stop`, { method: "POST", body: "{}" }),
   // T1.5-6: doesn't go through api<T>() — a rejected steer (e.g. "no
   // thread_id captured yet") comes back as a 422 with a real, meaningful
   // {ok:false, detail} body, and api<T>()'s generic !res.ok path would

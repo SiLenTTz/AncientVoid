@@ -175,14 +175,44 @@ Handy aus voll arbeitsfähig".
   vorgeschlagen?), die hier nicht erfunden wird — die Sammlung existiert
   jetzt real als Rohmaterial für diese Entscheidung, ist aber selbst
   noch nicht „fertig" im Sinne von T3.9s vollem Wortlaut.
-- [ ] **T3.10** Sprach-Direktiven-Parser → Action-Mapping (stopp = write-Gate,
+- [x] **T3.10** Sprach-Direktiven-Parser → Action-Mapping (stopp = write-Gate,
   Budget-Änderung = write-Gate mit Summary)
   — *Vermerk (P1.6):* Das globale Sprachbefehl-Sheet (Transkription, Voice-
   Dock-Eintrag) existiert bereits ab
   [`EPIC-P1.6`](EPIC-P1.6-futuristic-ui-system.md) T1.6-7, dort ausdrücklich
   **ohne** Ausführung („Vorschau"-Hinweis). T3.10 ergänzt hier den fehlenden
   Teil: aus dem bereits vorhandenen Transkript eine Aktion ableiten, nicht
-  das Sheet selbst neu bauen.
+  das Sheet selbst neu bauen. Umgesetzt als reiner, synchroner Parser
+  (`packages/pwa/src/voice-directives.ts`, 10 echte Unit-Tests — die erste
+  PWA-Unit-Test-Datei dieser Session, bewusst nur für diese
+  DOM-/API-freie, reine Funktion; die eigentliche Sheet-Darstellung bleibt
+  wie zuvor Playwright-live-verifiziert), der genau die beiden im
+  Aufgabentext genannten Direktiven erkennt (`stopp`, „Budget auf X
+  Dollar/Euro ändern") — AC-P3-7-konform **nie automatisch ausgeführt**:
+  `VoiceSheet.tsx` zeigt nach dem Erkennen einen echten
+  Bestätigen/Abbrechen-Dialog mit der Zusammenfassung und ruft erst nach
+  Tap auf „Bestätigen" die reale `stopSession()`/`requestBudgetTopUp()`-
+  API. Ohne aktive Session (Sheet von der Übersicht aus geöffnet) wird das
+  ehrlich benannt („Keine Session ausgewählt"), nicht stillschweigend
+  ignoriert.
+  **Live gegen den echten Hub verifiziert** (Playwright, echter
+  Chromium-Build, Browser-eigene Spracherkennung durch eine reale
+  Klassenersetzung von `window.SpeechRecognition`/
+  `webkitSpeechRecognition` ersetzt — dieselbe reale Einschränkung, die
+  `speech.ts`s eigener Kommentar für dieses Chromium schon dokumentiert):
+  „stopp" gesprochen → Bestätigen-Dialog → nach Tap real per
+  `GET /api/sessions` bestätigt, dass die Session tatsächlich von
+  `working` auf `stopped` wechselte, inkl. korrektem `actor` im
+  Audit-Event (T2.8).
+  **Dabei einen echten, ernsten, vorbestehenden Produktionsbug gefunden
+  und behoben** ([BUG-0011](../bugs/bug-0011-stop-button-silently-broken.md)):
+  der reale „Stop"-Button in `SessionTail.tsx` rief dieselbe
+  `hubApi.stopSession()` auf, die einen leeren Body mit
+  `content-type: application/json` sendete — Fastify lehnt das mit einem
+  echten 400 ab, und der Fehler wurde per `.catch(() => undefined)`
+  komplett verschluckt. Der Button hat real **nie funktioniert**, seit er
+  gebaut wurde, ohne dass es jemand bemerkt hätte. Behoben: echter Body
+  (`"{}"`) plus sichtbare Fehleranzeige statt stillem Verschlucken.
 - [x] **T3.11** Adapter-Status-Matrix in README live aus `capabilities()` generieren
   (Ehrlichkeitsklausel automatisieren — aSPARK-Lektion). Umgesetzt als
   **Prüfer statt stillem Neu-Schreiber**: `npm run check:adapter-matrix`

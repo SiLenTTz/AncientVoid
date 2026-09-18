@@ -1,35 +1,59 @@
 import { useEffect, useState } from "preact/hooks";
 import { recognizeOnce, speechRecognitionSupported, type SpeechResult } from "./speech.ts";
+import { parseVoiceDirective, type VoiceDirective } from "./voice-directives.ts";
+import { hubApi } from "./api.ts";
 
 /**
- * T1.6-7 — global voice-command entry point (Voice dock item). Reuses
- * T1.5-7's recognizeOnce() as-is (same Web Speech API call, same 10s
- * timeout for a browser that never fires a callback — see speech.ts's own
- * doc comment for why that guard exists).
+ * T1.6-7 → T3.10 — global voice-command entry point (Voice dock item).
+ * Reuses T1.5-7's recognizeOnce() as-is (same Web Speech API call, same
+ * 10s timeout for a browser that never fires a callback — see speech.ts's
+ * own doc comment for why that guard exists).
  *
- * Deliberately transcription-only: this sheet shows what was heard and
- * stops there. Turning a transcript into an actual action (navigate to a
- * project, start a session, read back the quota) is EPIC-P3's T3.10
- * (Sprach-Direktiven-Parser) — building a fake "executed!" toast here
- * would suggest a capability that doesn't exist yet (Premortem 5).
+ * T1.6-7 was deliberately transcription-only ("building a fake 'executed!'
+ * toast here would suggest a capability that doesn't exist yet"). T3.10
+ * (voice-directives.ts) is that missing execution half, but only for the
+ * two directives EPIC-P3 §4 names by example (stop, budget change) — and
+ * AC-P3-7 requires a real write-Gate confirm step, never silent execution:
+ * a directive is parsed, shown back with its summary, and only actually
+ * sent to the hub after an explicit tap.
  */
 const EXAMPLE_COMMANDS = ["Zeig mir mobile-hub", "Neue Session mit Codex starten", "Wie ist mein Kontingent?"];
 
-export function VoiceSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function VoiceSheet({
+  open,
+  onClose,
+  sessionId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** T3.10: only a directive scoped to one session (stop/budget) can be
+   * confirmed and executed — undefined (opened from the Dashboard, not a
+   * session) is a real, honestly-shown limitation, not a silent no-op. */
+  sessionId?: string;
+}) {
   const [state, setState] = useState<"idle" | "listening" | "done">("idle");
   const [result, setResult] = useState<SpeechResult | null>(null);
   const [pickedExample, setPickedExample] = useState<string | null>(null);
+  const [directive, setDirective] = useState<VoiceDirective | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [actionResult, setActionResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setState("listening");
     setResult(null);
     setPickedExample(null);
+    setDirective(null);
+    setActionResult(null);
     let alive = true;
     recognizeOnce().then((r) => {
       if (!alive) return;
       setResult(r);
       setState("done");
+      if (r.ok) {
+        const parsed = parseVoiceDirective(r.text);
+        if (parsed.kind !== "unrecognized") setDirective(parsed);
+      }
     });
     return () => {
       alive = false;
@@ -39,6 +63,27 @@ export function VoiceSheet({ open, onClose }: { open: boolean; onClose: () => vo
   if (!open) return null;
 
   const supported = speechRecognitionSupported();
+
+  const confirmDirective = async () => {
+    if (!directive || directive.kind === "unrecognized" || !sessionId) return;
+    setBusy(true);
+    try {
+      if (directive.kind === "stop") {
+        await hubApi.stopSession(sessionId);
+        setActionResult("Session gestoppt.");
+      } else if (directive.kind === "budget") {
+        const ack = await hubApi.requestBudgetTopUp(sessionId, directive.amountUsd);
+        setActionResult(
+          ack.ok ? "Budget geändert." : `Zur Freigabe eingereicht (${ack.detail ?? "wartet auf Bestätigung"}).`,
+        );
+      }
+    } catch (err) {
+      setActionResult(err instanceof Error ? err.message : "Aktion fehlgeschlagen");
+    } finally {
+      setBusy(false);
+      setDirective(null);
+    }
+  };
 
   return (
     <div class="overlay-backdrop" onClick={onClose}>
@@ -75,7 +120,28 @@ export function VoiceSheet({ open, onClose }: { open: boolean; onClose: () => vo
                         : "Erkennung fehlgeschlagen."}
                 </p>
               ))}
-            <span class="preview-tag">Vorschau — Ausführung folgt (P3)</span>
+
+            {directive && directive.kind !== "unrecognized" && !actionResult && (
+              <div class="card" style="margin-top: 10px; display: grid; gap: 8px">
+                <div>{directive.summary}?</div>
+                {!sessionId ? (
+                  <div class="dim" style="font-size: 12px">
+                    Keine Session ausgewählt — aus einer laufenden Session heraus sprechen, um dies auszuführen.
+                  </div>
+                ) : (
+                  <div class="row" style="gap: 8px">
+                    <button class="btn primary" onClick={confirmDirective} disabled={busy}>
+                      {busy ? "…" : "Bestätigen"}
+                    </button>
+                    <button class="btn" onClick={() => setDirective(null)} disabled={busy}>
+                      Abbrechen
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {actionResult && <p class="voice-example">{actionResult}</p>}
+            {!directive && !actionResult && <span class="preview-tag">Vorschau — nur „stopp"/„Budget …" werden ausgeführt (T3.10)</span>}
           </>
         )}
         <div class="label" style="margin: 14px 0 6px">
