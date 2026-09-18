@@ -739,6 +739,17 @@ describe("hub server — approval queue, real end-to-end (T2.4/T2.6, ADR-0007)",
         headers: { authorization: `Bearer ${deviceToken}` },
       });
       expect(JSON.stringify(events.json())).not.toContain("delete everything");
+
+      // T2.8: the rejection itself is a real audit event on the SESSION's
+      // own tail, not only a row in the separate approvals table — a
+      // reviewer reading just this session's history must be able to see
+      // that a prompt was requested and denied, and by whom.
+      const decided = (events.json() as { payload: { kind?: string; status?: string; actor?: string } }[]).find(
+        (e) => e.payload.kind === "session.approval_decided",
+      );
+      expect(decided).toBeDefined();
+      expect(decided!.payload.status).toBe("rejected");
+      expect(decided!.payload.actor).toBe("reviewer-phone");
     } finally {
       await app.close().catch(() => undefined);
       await cleanup();

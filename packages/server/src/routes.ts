@@ -49,6 +49,15 @@ export function registerRoutes(
 ): void {
   const projectRoots = deps.projectRoots ?? [];
   const webauthnRoutes = deps.webauthn ? createWebAuthnRoutes(deps.webauthn.store, deps.webauthn.config) : null;
+  // T2.8 (EPIC-P2 §2 audit trail "wer-wann-was"): the caller's own device
+  // label, identify()d fresh from its already-authHook-verified bearer
+  // token on every call — never trusted from anything client-supplied.
+  function callerLabel(req: FastifyRequest): string | null {
+    const raw = extractToken(req);
+    if (!raw) return null;
+    return deps.tokens.identify(raw)?.label ?? null;
+  }
+
   app.get("/api/health", async () => ({
     ok: true,
     adapters: deps.registry.list().map((a) => ({
@@ -157,7 +166,7 @@ export function registerRoutes(
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
     try {
-      const record = await deps.sessions.create(parsed.data);
+      const record = await deps.sessions.create(parsed.data, callerLabel(req) ?? undefined);
       return reply.code(201).send(record);
     } catch (err) {
       return reply.code(422).send({
@@ -224,13 +233,13 @@ export function registerRoutes(
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid steer input" });
     }
-    const ack = await deps.sessions.steer(id, parsed.data);
+    const ack = await deps.sessions.steer(id, parsed.data, callerLabel(req) ?? undefined);
     return ack.ok ? ack : reply.code(422).send(ack);
   });
 
   app.post("/api/sessions/:id/stop", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const ack = await deps.sessions.stop(id);
+    const ack = await deps.sessions.stop(id, callerLabel(req) ?? undefined);
     return ack.ok ? ack : reply.code(422).send(ack);
   });
 
@@ -281,16 +290,25 @@ export function registerRoutes(
     if (!identity) return reply.code(401).send({ error: "invalid device token" });
     const result = deps.approvals.decide(id, parsed.data.decision, rawToken, identity.label, parsed.data.reason);
     if (!result.ok) return reply.code(422).send(result);
+    // T2.8: every genuine decision (approved OR rejected) is recorded
+    // onto the session's own tail, not just the separate approvals table
+    // — a reviewer reading one session's history must see that an action
+    // was requested and denied, not just its silent absence.
+    await deps.sessions
+      .recordApprovalDecision(result.request!.sessionId, result.request!.id, result.request!.action, result.request!.status as "approved" | "rejected", identity.label)
+      .catch((err) => {
+        req.log.error({ err }, "recordApprovalDecision failed after a real decision");
+      });
     // T2.4/T2.7's ADR-0007 integration point: an approved write-class
     // steer or budget top-up gets actually applied now — see
     // SessionManager.applyApprovedSteer/applyApprovedBudgetTopUp's own
     // doc comments for why this is the one place either call happens.
     if (result.request!.status === "approved" && result.request!.action === "steer.prompt") {
-      await deps.sessions.applyApprovedSteer(result.request!.id).catch((err) => {
+      await deps.sessions.applyApprovedSteer(result.request!.id, identity.label).catch((err) => {
         req.log.error({ err }, "applyApprovedSteer failed after a real approval");
       });
     } else if (result.request!.status === "approved" && result.request!.action === "budget.increase") {
-      await deps.sessions.applyApprovedBudgetTopUp(result.request!.id).catch((err) => {
+      await deps.sessions.applyApprovedBudgetTopUp(result.request!.id, identity.label).catch((err) => {
         req.log.error({ err }, "applyApprovedBudgetTopUp failed after a real approval");
       });
     }
@@ -305,7 +323,7 @@ export function registerRoutes(
     const { id } = req.params as { id: string };
     const body = z.object({ budgetUsd: z.number().positive(), reason: z.string().min(1).optional() }).safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: "invalid budget" });
-    const ack = await deps.sessions.requestBudgetTopUp(id, body.data.budgetUsd, body.data.reason);
+    const ack = await deps.sessions.requestBudgetTopUp(id, body.data.budgetUsd, body.data.reason, callerLabel(req) ?? undefined);
     return ack.ok ? ack : reply.code(422).send(ack);
   });
 
@@ -314,12 +332,6 @@ export function registerRoutes(
   // caller's own bearer device token (identify()d fresh each call) — a
   // device can only ever register/use a passkey for itself, never for
   // another device's label.
-  function callerLabel(req: FastifyRequest): string | null {
-    const raw = extractToken(req);
-    if (!raw) return null;
-    return deps.tokens.identify(raw)?.label ?? null;
-  }
-
   app.get("/api/webauthn/status", async (req, reply) => {
     if (!webauthnRoutes) return reply.code(501).send({ error: "webauthn not configured" });
     const label = callerLabel(req);
@@ -367,6 +379,14 @@ export function registerRoutes(
     if (!verified.ok) return reply.code(422).send(verified);
     const result = deps.approvals.decideBiometric(id, parsed.data.decision, verified.fingerprint, label, parsed.data.reason);
     if (!result.ok) return reply.code(422).send(result);
+    // T2.8: same audit requirement as the write-class decide route above —
+    // a destructive decision (approved or rejected) belongs on the
+    // session's own tail too.
+    await deps.sessions
+      .recordApprovalDecision(result.request!.sessionId, result.request!.id, result.request!.action, result.request!.status as "approved" | "rejected", label)
+      .catch((err) => {
+        req.log.error({ err }, "recordApprovalDecision failed after a real biometric decision");
+      });
     return result.request;
   });
 }

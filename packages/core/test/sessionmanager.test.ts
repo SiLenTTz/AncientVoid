@@ -91,6 +91,37 @@ describe("SessionManager", () => {
     }
   });
 
+  it("T2.8: threads the calling device's identity ('actor') onto session.created/session.steer/session.stopped", async () => {
+    const { manager } = makeManager(dir, { eventsPerSecond: 10 });
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir }, "pixel-9");
+      await manager.steer(record.id, { kind: "resume" }, "pixel-9"); // dummy handles "resume" itself; still audited
+      const ack = await manager.stop(record.id, "pixel-9");
+      expect(ack.ok).toBe(true);
+      const events = await manager.tail(record.id, 0);
+      const created = events.find((e) => (e.payload as { kind?: string }).kind === "session.created");
+      const steered = events.find((e) => (e.payload as { kind?: string }).kind === "session.steer");
+      const stopped = events.find((e) => (e.payload as { kind?: string }).kind === "session.stopped");
+      expect((created!.payload as { actor?: string }).actor).toBe("pixel-9");
+      expect((steered!.payload as { actor?: string }).actor).toBe("pixel-9");
+      expect((stopped!.payload as { actor?: string }).actor).toBe("pixel-9");
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("T2.8: actor is null when the caller omits it — every pre-T2.8 call site, honestly, not guessed", async () => {
+    const { manager } = makeManager(dir, { eventsPerSecond: 10 });
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      const events = await manager.tail(record.id, 0);
+      const created = events.find((e) => (e.payload as { kind?: string }).kind === "session.created");
+      expect((created!.payload as { actor?: string | null }).actor).toBeNull();
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
   it("steer prompts flow through the adapter", async () => {
     const { manager } = makeManager(dir, { eventsPerSecond: 5 });
     try {
