@@ -1,6 +1,9 @@
 # EPIC-P3 — Adapter-Flotte (swarm/zai/local-llm/opencode/aider), cursor-clip, Sprachsuche & Prompt-Composer
 
-**Status:** offen · **Phase:** P3 · **Dauer:** 1,5 Agenten-Wochen · **Abhängigkeit:** P2 grün
+**Status:** grün (T3.2, T3.4–T3.5, T3.8–T3.14 umgesetzt; T3.1/T3.3 real
+infra-limitiert offen — kein Event-Vokabular auffindbar bzw. keine lokale
+LLM-Instanz zum Prüfen; T3.6/T3.7 historisch, nach P1.5 vorgezogen) ·
+**Phase:** P3 · **Dauer:** 1,5 Agenten-Wochen · **Abhängigkeit:** P2 grün
 
 ---
 
