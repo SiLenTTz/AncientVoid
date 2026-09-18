@@ -306,8 +306,23 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   jede Zahl gegen die Rohantwort der jeweiligen echten API gegengeprüft
   (Screenshot `t1.6-4-bericht-real.png`). Gates: `npm test` 141/141,
   `lint`/`typecheck`, PWA `build`/`typecheck` grün.
-- [ ] **T1.6-5** Diff-Reiter: roher `git diff` gegen Projektverzeichnis,
-  Größenobergrenze mit Truncation-Hinweis, ausdrücklich ohne P2-Funktionen.
+- [x] **T1.6-5** Diff-Reiter: vierter Dock-Reiter, nutzt exakt denselben
+  `GET /api/sessions/:id/diff`-Endpunkt wie T1.6-4 (ein Fetch, `bericht`
+  **und** `diff` teilen sich denselben `diff`-State statt doppelt zu
+  laden). Datei-Übersicht (Pfad + reale +/- Zeilen, `binär` statt Zahlen
+  bei Binärdateien) über dem vollständigen, zeilenweise eingefärbten
+  `git diff HEAD`-Patch aller geänderten Dateien in Git-eigener
+  Reihenfolge — bewusst **kein** Datei-Tabs-Umschalter (unnötige
+  Komplexität für typischerweise 1–3 geänderte Dateien pro Session) und
+  **keine** Hunk-Kompression/Funktions-Anker (P2-Aufgabe). Größenobergrenze
+  bereits in T1.6-4s `diff.ts` umgesetzt (200 KB, `truncated`-Flag → sichtbarer
+  „vollständige Anzeige kommt mit P2"-Hinweis). **Live gegen eine echte
+  Session mit zwei echten Änderungen geprüft** (neue Datei `extra.txt` +
+  geänderte `file.txt` in einem echten Testrepo, danach entfernt):
+  Datei-Zeilen zeigen real `+1 -0`/`+2 -1`, Patch-Text enthält den
+  tatsächlich geschriebenen Inhalt inkl. Farb-Kodierung (Screenshot
+  `t1.6-5-diff-real.png`). Gates: `npm test` 141/141, `lint`/`typecheck`,
+  PWA `build`/`typecheck` grün.
 - [ ] **T1.6-6** Modell-Auswahl end-to-end (`App.tsx`-Chips → `SessionSpec.
   model` → `adapter-claude`s `--model`-Flag), Tests für beide Enden.
 - [ ] **T1.6-7** Globales Sprachbefehl-Sheet (Voice-Dock-Eintrag):
@@ -362,9 +377,11 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   Wortlaut:** „Kontingent-**Delta**" ist real als aktuelle Adapter-weite
   Momentaufnahme umgesetzt, nicht als Vorher/Nachher-Differenz — siehe
   T1.6-4s Scope-Reduktion-Vermerk oben.
-- **AC-P1.6-5:** Diff-Reiter zeigt für eine Session mit echten,
+- **AC-P1.6-5: 🟢 erfüllt.** Diff-Reiter zeigt für eine Session mit echten,
   unco­mmitteten Änderungen im Projektverzeichnis den realen `git diff` —
-  gegen ein Fixture-Repo mit bekanntem Diff verifiziert.
+  gegen ein Fixture-Repo mit bekanntem Diff verifiziert (`diff.test.ts`,
+  4 Tests) und live gegen ein echtes Testrepo mit zwei echten Dateien
+  (`t1.6-5-diff-real.png`).
 - **AC-P1.6-6:** Eine Session lässt sich mit `model: "opus"` starten, und
   der tatsächlich gestartete `claude`-Prozess erhält `--model opus` —
   verifiziert gegen den echten Subprozess-Aufruf (wie T1.5-9s

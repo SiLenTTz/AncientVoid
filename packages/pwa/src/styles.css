@@ -658,3 +658,81 @@ a {
 .kv-row .v {
   font-weight: 600;
 }
+
+/* T1.6-5: Diff tab */
+.diff-files {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.diff-file-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  font-size: 12.5px;
+}
+
+.diff-add-count {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.diff-del-count {
+  color: var(--err);
+  font-weight: 700;
+}
+
+.diff-code {
+  font-size: 12px;
+  line-height: 1.6;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  background: var(--bg-elev);
+  padding: 8px 0;
+  margin: 0;
+  white-space: pre;
+}
+
+.diff-line-add,
+.diff-line-del,
+.diff-line-ctx,
+.diff-line-hunk,
+.diff-line-header,
+.diff-line-file {
+  padding: 0 10px;
+}
+
+.diff-line-add {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--fg);
+}
+
+.diff-line-del {
+  background: color-mix(in srgb, var(--err) 14%, transparent);
+  color: var(--fg);
+}
+
+.diff-line-hunk {
+  color: var(--fg-dim);
+  background: var(--bg-chip);
+}
+
+.diff-line-header {
+  color: var(--fg-faint);
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.diff-line-file {
+  color: var(--fg-faint);
+}
+
+.diff-line-ctx {
+  color: var(--fg-dim);
+}
