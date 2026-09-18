@@ -3,7 +3,8 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { SessionManager, TokenService, AdapterRegistry, ApprovalService } from "@uacc/core";
+import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore } from "@uacc/core";
+import type { WebAuthnConfig } from "./webauthn.ts";
 import { discoverProjects } from "@uacc/core";
 import { authHook, type AuthOptions } from "./auth.ts";
 import { registerRoutes } from "./routes.ts";
@@ -20,6 +21,9 @@ export interface HubAppDeps {
   /** T2.4: optional, mirrors SessionManager's own optional approvals —
    * omitting it disables the /api/approvals routes (501), not a crash. */
   approvals?: ApprovalService;
+  /** T2.5: optional — omitting it disables the /api/webauthn/* and
+   * /api/approvals/:id/webauthn/* routes (501, not a crash). */
+  webauthn?: { store: WebAuthnStore; config: WebAuthnConfig };
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {

@@ -155,8 +155,50 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
   Steer geparkt → Queue zeigt Eintrag → Freigabe mit echter Signatur →
   Adapter empfängt den Prompt wirklich erst danach; Ablehnung verworfen;
   destruktiv 422).
-- [ ] **T2.5** WebAuthn-Registrierung + Gate-UI am Handy (Biometrie-Prompt)
-  — noch offen; `destructive` bleibt bis dahin bewusst gesperrt (siehe T2.4).
+- [x] **T2.5** WebAuthn-Registrierung + Gate-UI am Handy (Biometrie-Prompt).
+  Server nutzt `@simplewebauthn/server` (nicht selbst gebaute CBOR/COSE/
+  Signatur-Prüfung — bei Krypto-Korrektheit ist eine etablierte,
+  geprüfte Bibliothek die richtige Wahl, kein Bastel-Risiko). Neue
+  Tabellen `webauthn_credentials`/`webauthn_challenges` (Migration 5),
+  `WebAuthnStore` (`packages/core/src/webauthn-store.ts`, reine
+  Persistenz) + `packages/server/src/webauthn.ts` (die eigentliche
+  Registrierungs-/Assertion-Prüfung, rpId/Origin aus `HubConfig.webauthn`
+  — Defaults sind ausdrücklich nur für `localhost`, eine echte
+  Tailscale-Bereitstellung **muss** `rpId`/`origin` auf den echten
+  MagicDNS-Hostnamen setzen, sonst schlägt jede echte Prüfung fehl (das
+  ist WebAuthns Phishing-Schutz, keine Formalität). Neue Routen:
+  `GET /api/webauthn/status`, `POST /api/webauthn/register/{options,verify}`,
+  `POST /api/approvals/:id/webauthn/{assert-options,decide}` — alle
+  optional (501 ohne Konfiguration, wie T2.4s Approval-Routen).
+  `ApprovalService.decideBiometric()` ist der **einzige** Pfad, der eine
+  `destructive`-Freigabe tatsächlich erteilen kann; er verifiziert selbst
+  nichts kryptographisch, sondern verweigert nur die falsche Klasse — die
+  echte Prüfung ist bereits in der Route passiert, bevor er aufgerufen
+  wird. PWA: „Passkey registrieren" in Einstellungen
+  (`@simplewebauthn/browser`s `startRegistration`), „🔒 Mit Passkey
+  freigeben" auf der destruktiven Queue-Karte (`startAuthentication`) —
+  ersetzt den bisherigen Hinweistext aus T2.6.
+  **Live gegen den echten Hub mit echtem Chromium-WebAuthn-Stack
+  verifiziert** (Playwright + CDP `WebAuthn.addVirtualAuthenticator` —
+  ein echter virtueller Authenticator in Chromium selbst, kein
+  JS-Level-Mock): Passkey real registriert, eine echte destruktive
+  Freigabe (direkt gegen dieselbe SQLite-Datei angelegt, da noch keine
+  Route eine destruktive Aktion auslöst) über die echte Biometrie-
+  Zeremonie auf `approved` gebracht, inkl. echtem Signatur-Fingerabdruck
+  und Begründung — per `GET /api/approvals/:id` gegengeprüft, nicht nur
+  am Screenshot behauptet. Dabei einen echten Client-Bug gefunden und
+  behoben: Fastifys JSON-Body-Parser lehnt einen leeren Body bei
+  gesetztem `content-type: application/json` ab (`FST_ERR_CTP_EMPTY_
+  JSON_BODY`) — die beiden Options-Routen ohne Payload senden jetzt
+  explizit `"{}"`.
+  **Ehrlich unproven bleibt automatisiert:** die eigentliche Krypto-
+  Zeremonie (Attestation/Assertion) lässt sich nicht sinnvoll in einem
+  reinen vitest-Unittest ohne echten Browser/Authenticator abbilden, ohne
+  Krypto-Bytes zu erfinden — genau das vermeidet diese Session konsequent.
+  3 neue vitest-Tests decken das ab, was ohne echte Zeremonie ehrlich
+  prüfbar ist (Options-Form, „kein Credential registriert"-Verweigerung,
+  Status-Endpunkt); die eigentliche Ende-zu-Ende-Kryptoprüfung ist die
+  Playwright-Live-Verifikation oben, nicht Teil der CI-Testsuite.
 - [x] **T2.6** Approval-Queue (S4) mit Zeit-schleifen-Gruppierung und Risiko-Badges.
   `packages/pwa/src/Approvals.tsx` (`ApprovalQueuePane`) — neue Seite
   (`Page = "approvals"`), erreichbar über ein Banner auf dem Dashboard

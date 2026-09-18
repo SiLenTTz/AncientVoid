@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
 import { WebSocket } from "ws";
-import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService, ApprovalService } from "@uacc/core";
+import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService, ApprovalService, WebAuthnStore } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
 import { createHubApp } from "../src/index.ts";
@@ -71,6 +71,15 @@ describe("hub server", () => {
     const res = await app.inject({
       method: "GET",
       url: "/api/approvals",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(501);
+  });
+
+  it("T2.5: /api/webauthn/status answers a real 501 when webauthn isn't configured", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/webauthn/status",
       headers: { authorization: `Bearer ${token}` },
     });
     expect(res.statusCode).toBe(501);
@@ -749,6 +758,98 @@ describe("hub server — approval queue, real end-to-end (T2.4/T2.6, ADR-0007)",
       });
       expect(decide.statusCode).toBe(422);
       expect(JSON.stringify(decide.json())).toMatch(/WebAuthn/);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
+});
+
+describe("hub server — WebAuthn routes (T2.5)", () => {
+  // Real cryptographic ceremonies (attestation/assertion) need an actual
+  // browser + authenticator — verified live with Playwright's CDP virtual
+  // authenticator against a real running hub (see EPIC-P2's T2.5 evidence),
+  // not fabricated here. These tests cover the parts that don't require a
+  // real ceremony: option-generation shape, and refusing to proceed
+  // without a registered credential.
+  async function buildApp() {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-webauthn-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, {});
+    const approvals = new ApprovalService(db, 60_000);
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    const tokens = new TokenService(db);
+    const webauthnStore = new WebAuthnStore(db);
+    const app = await createHubApp({
+      sessions,
+      tokens,
+      registry,
+      auth: { tokens, enforceTailnetIdentity: false },
+      approvals,
+      webauthn: { store: webauthnStore, config: { rpId: "localhost", rpName: "UACC test", origin: "http://localhost" } },
+    });
+    return { app, tokens, cleanup: () => rm(dir, { recursive: true, force: true }) };
+  }
+
+  it("register/options returns a real PublicKeyCredentialCreationOptionsJSON shape", async () => {
+    const { app, tokens, cleanup } = await buildApp();
+    try {
+      const deviceToken = tokens.issue("phone-a").token;
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/webauthn/register/options",
+        headers: { authorization: `Bearer ${deviceToken}` },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { rp: { id: string; name: string }; user: { name: string }; challenge: string };
+      expect(body.rp.id).toBe("localhost");
+      expect(body.user.name).toBe("phone-a");
+      expect(typeof body.challenge).toBe("string");
+      expect(body.challenge.length).toBeGreaterThan(10);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
+
+  it("assert-options refuses with a named reason when no passkey is registered for this device yet", async () => {
+    const { app, tokens, cleanup } = await buildApp();
+    try {
+      const deviceToken = tokens.issue("phone-b").token;
+      const created = await app.inject({
+        method: "POST",
+        url: "/api/sessions",
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { adapter: "dummy", project: "/tmp" },
+      });
+      const { id: sessionId } = created.json() as { id: string };
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/approvals/does-not-matter/webauthn/assert-options`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+      });
+      expect(res.statusCode).toBe(422);
+      expect(JSON.stringify(res.json())).toMatch(/no passkey registered/);
+      void sessionId;
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
+
+  it("status reflects whether the caller's own device has a registered credential", async () => {
+    const { app, tokens, cleanup } = await buildApp();
+    try {
+      const deviceToken = tokens.issue("phone-c").token;
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/webauthn/status",
+        headers: { authorization: `Bearer ${deviceToken}` },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ registered: false });
     } finally {
       await app.close().catch(() => undefined);
       await cleanup();

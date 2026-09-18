@@ -16,6 +16,7 @@ import {
   HubDatabase,
   SessionManager,
   TokenService,
+  WebAuthnStore,
   WorktreeManager,
   loadConfig,
 } from "@uacc/core";
@@ -94,6 +95,10 @@ async function main(): Promise<void> {
     ...(config.server.pwaDir ? { pwaDir: resolve(config.server.pwaDir) } : {}),
     projectRoots: config.projectRoots.map((root) => resolve(root)),
     approvals,
+    // T2.5: always real and reachable, same reasoning as `approvals`
+    // above — see HubConfig.webauthn's doc comment for why the shipped
+    // rpId/origin defaults only work for local dev.
+    webauthn: { store: new WebAuthnStore(db), config: config.webauthn },
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.UACC_EXPOSE === "1"

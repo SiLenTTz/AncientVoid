@@ -87,6 +87,25 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_approvals_session ON approvals(session_id);
     `,
   },
+  {
+    id: 5,
+    name: "webauthn-credentials",
+    sql: `
+      CREATE TABLE IF NOT EXISTS webauthn_credentials (
+        device_label TEXT PRIMARY KEY,
+        credential_id TEXT NOT NULL,
+        public_key TEXT NOT NULL,
+        counter INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS webauthn_challenges (
+        device_label TEXT PRIMARY KEY,
+        challenge TEXT NOT NULL,
+        purpose TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {
