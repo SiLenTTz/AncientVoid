@@ -3,7 +3,13 @@ import { useEffect, useState } from "preact/hooks";
 import { App } from "./App.tsx";
 import { SessionTail } from "./SessionTail.tsx";
 import { getToken, setToken, hubApi, type SessionRecord } from "./api.ts";
+import { applyTheme, getTheme } from "./theme.ts";
 import "./styles.css";
+
+// T1.6-2: applied before the first render so a stored "light" preference
+// never flashes dark first — index.html's data-theme="dark" was previously
+// the only value that ever existed.
+applyTheme(getTheme());
 
 function TokenGate({ onReady }: { onReady: () => void }) {
   const [token, setVal] = useState(getToken());
