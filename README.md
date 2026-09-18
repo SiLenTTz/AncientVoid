@@ -5,10 +5,14 @@ Coding-Agenten auf allen eigenen Rechnern vom Handy aus überwachen, steuern
 und auditieren — über Tailscale, ohne öffentlichen Port, ohne Cloud.
 
 > Basis: PRD UACC v1.0 (12.09.2026) — siehe [`epics/`](./epics/).
-> Status: **P0–P2 grün**, P3 größtenteils umgesetzt (real infra-limitierte
-> Lücken ehrlich benannt: `swarm`, Sprachsuche/Qdrant), P4s MCP-Gateway
-> real umgesetzt und default-aus; evox2/Windows-Port, Brain-Digest und
-> OSS-Release bleiben offen (siehe [`epics/EPIC-P4-…`](epics/EPIC-P4-brain-windows-mcp-oss.md)).
+> Status: **P0–P3 grün** (`swarm` ehrlich als real infra-limitierte Lücke
+> benannt — kein Event-Vokabular auffindbar; Sprachsuche real umgesetzt
+> über `qmd`, durchsucht Markdown-Dokumentation, nicht Quellcode — siehe
+> [`EPIC-P3`](epics/EPIC-P3-adapter-flotte-sprachsuche.md) T3.8), P4s
+> MCP-Gateway und Brain-Digest-Contract real umgesetzt und default-aus,
+> Red-Team-Review durch eine echte unabhängige Fresh-Context-Session
+> (zwei reale Funde, beide gefixt); evox2/Windows-Port und OSS-Release
+> bleiben offen (siehe [`epics/EPIC-P4-…`](epics/EPIC-P4-brain-windows-mcp-oss.md)).
 
 ## Modularität — das Kernversprechen
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { mkdtemp, rm, readFile } from "node:fs/promises";
+import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
@@ -8,6 +8,7 @@ import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService,
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
 import { createHubApp } from "../src/index.ts";
+import { isQmdAvailable, removeIndex } from "../src/search.ts";
 
 describe("hub server", () => {
   let dir: string;
@@ -1041,5 +1042,96 @@ describe("hub server — POST /api/prompt-optimizer/feedback (T3.9)", () => {
       await rm(dir, { recursive: true, force: true });
       await rm(dataDir, { recursive: true, force: true });
     }
+  });
+});
+
+// T3.8: real HTTP routes, real `qmd`, gated the same way as
+// packages/server/test/search.test.ts's own tests — see that file's doc
+// comment for why (an unusual, not-guaranteed-installed dependency).
+const hasQmd = await isQmdAvailable();
+const itQmd = hasQmd ? it : it.skip;
+
+describe("hub server — /api/search* routes (T3.8)", () => {
+  let dir: string;
+  let app: FastifyInstance;
+  let token: string;
+
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), "uacc-srv-search-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    const tokens = new TokenService(db);
+    token = tokens.issue("test-device").token;
+    app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false } });
+  });
+
+  afterAll(async () => {
+    await app.close().catch(() => undefined);
+    await removeIndex(dir).catch(() => undefined);
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("rejects a missing project param with 400, not a crash", async () => {
+    const res = await app.inject({ method: "GET", url: "/api/search?q=x", headers: { authorization: `Bearer ${token}` } });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("/api/search/status reports a real, never-indexed project honestly", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/search/status?project=${encodeURIComponent(dir)}`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.indexed).toBe(false);
+  });
+
+  itQmd(
+    "a search on a never-indexed project starts real indexing (202) and later serves real results (200)",
+    async () => {
+      await writeFile(join(dir, "note.md"), "the launch code is banana-quasar-77", "utf8");
+      const first = await app.inject({
+        method: "GET",
+        url: `/api/search?project=${encodeURIComponent(dir)}&q=launch+code`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(first.statusCode).toBe(202);
+      expect(first.json()).toEqual({ status: "indexing", results: [] });
+
+      // Real embedding of one tiny file — bounded, not instant.
+      await new Promise((r) => setTimeout(r, 8000));
+
+      const second = await app.inject({
+        method: "GET",
+        url: `/api/search?project=${encodeURIComponent(dir)}&q=launch+code+banana`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(second.statusCode).toBe(200);
+      const body = second.json();
+      expect(body.status).toBe("ready");
+      expect(body.results.some((r: { file: string }) => r.file === "note.md")).toBe(true);
+    },
+    30_000,
+  );
+
+  it("/api/search/file reads a real file and rejects a path outside the project", async () => {
+    await writeFile(join(dir, "hello.txt"), "hi there", "utf8");
+    const ok = await app.inject({
+      method: "GET",
+      url: `/api/search/file?project=${encodeURIComponent(dir)}&path=hello.txt`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().content).toBe("hi there");
+
+    const escape = await app.inject({
+      method: "GET",
+      url: `/api/search/file?project=${encodeURIComponent(dir)}&path=${encodeURIComponent("../../etc/passwd")}`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(escape.statusCode).toBe(404);
   });
 });

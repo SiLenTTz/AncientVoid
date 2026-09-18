@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",
+    "highlight.js": "^11.12.0",
     "preact": "^10.24.3"
   },
   "devDependencies": {

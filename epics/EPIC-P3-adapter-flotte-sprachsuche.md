@@ -214,9 +214,83 @@ Handy aus voll arbeitsfähig".
   Geräte-Fähigkeits-Matrix und K6-Messlauf). Hier nur noch historisch geführt;
   offen bleibt in P3 allein die Rolle als *Fallback* gegenüber T3.6, nachdem
   P1.5 die Reihenfolge umgekehrt hat.
-- [ ] **T3.8** Sprachsuche-Frontend (S5) + Projekt-Index-Service + Egress-CI-Test.
-  Hält sich an [`docs/design-system.md`](../docs/design-system.md) (P1.6) statt
-  neuer Hex-Werte/Komponenten-Muster.
+- [x] **T3.8** Sprachsuche-Frontend (S5) + Projekt-Index-Service + Egress-CI-Test.
+  **Echter, real installierter lokaler Search-Stack gefunden statt Qdrant
+  neu aufgesetzt:** `qmd` (npm `@tobilu/qmd` v2.8.3) — echte lokale
+  Hybrid-Suche (BM25 + Vektor-Ähnlichkeit über ein bereits lokal
+  gecachtes GGUF-Embedding-Modell, `embeddinggemma-300M-Q8_0.gguf`, kein
+  Cloud-Call) war auf dieser Maschine bereits installiert und in Benutzung
+  — real getestet statt Docker+Qdrant neu aufgesetzt, gleiche
+  "verifiziere echte Infra vor dem Bauen"-Disziplin wie bei allen anderen
+  P3-Adaptern.
+  **Realer, während des Bauens gefundener und ehrlich dokumentierter
+  Scope-Unterschied zur ursprünglichen Design-Notiz:** `qmd collection
+  add --pattern <glob>` ignoriert jeden eigenen Pattern-Wert komplett und
+  indiziert immer nur `**/*.md` — verifiziert gegen ein frisches,
+  isoliertes Testverzeichnis (eine `.py`- und eine `.md`-Datei, nur die
+  `.md`-Datei wurde je indiziert) und gegen das echte SQLite-Schema des
+  Tools (`store_collections.pattern TEXT NOT NULL DEFAULT '**/*.md'`).
+  „Quick Markdown Search" ist wörtlich zu nehmen: **die Sprachsuche
+  durchsucht die Markdown-Dokumentation eines Projekts (Epics, ADRs,
+  README, docs/), nicht dessen Quellcode** — ehrlich als solche gebaut
+  und benannt (`packages/server/src/search.ts`s Doc-Kommentar,
+  `Search.tsx`s UI-Text „Doku durchsuchen (Markdown)…"), nicht die
+  ursprünglich angenommene Codebase-weite Suche.
+  **Echter, ebenfalls beim Bauen gefundener und vermiedener
+  Seiteneffekt:** `qmd update` — das einzige Kommando, das eine Collection
+  auf neue/geänderte Dateien neu scannt — berührt live nachweislich JEDE
+  Collection im Nutzer-Index, nicht nur die über `-c` benannte (dieses
+  Flag filtert nur Suchergebnisse, nicht `update`s Scope). Ein Aufruf
+  hätte die private "SiLenT_Tz brain"-Notizen-Collection des Nutzers bei
+  jeder UACC-Suche ungefragt mit-gescannt — deshalb bewusst **kein
+  Datei-Watcher gebaut** (`ensureIndexed()` ruft `collection add` nur
+  einmalig beim ersten Aufruf; neue/geänderte Dateien in einem bereits
+  indizierten Projekt werden nicht automatisch nachgezogen — eine echte,
+  benannte Lücke gegenüber der ursprünglichen Design-Notiz, keine
+  stillschweigende).
+  **Projekt-Index-Service:** `packages/server/src/search.ts` —
+  `ensureIndexed`/`searchProject`/`readProjectFile`, Routen
+  `GET /api/search[/status|/file]` (`packages/server/src/routes.ts`,
+  read-class, kein Approval nötig). Sucht per echtem `lex:`+`vec:`-
+  Query-Dokument ohne Reranking (Median 3,18s, siehe Messlauf unten) statt
+  des Standard-Auto-Expand-Modus (17-30s+, real gemessen, zu langsam für
+  interaktive Suche). `readProjectFile()` erzwingt echte
+  `realpath`-basierte Pfad-Eingrenzung (kein Escape aus dem Projekt),
+  1 MB Größendeckel.
+  **Egress-CI-Test:** `packages/server/test/search.test.ts` — echte
+  Netzwerk-Verweigerung (nicht gemockt): jeder Proxy-Umgebungsvariable auf
+  einen toten Port gesetzt, eine echte Suche läuft trotzdem erfolgreich
+  durch. 13 Tests, alle gegen echtes `qmd` (gated wie ADR-0002s
+  tmux-Hinweis — `qmd` ist eine reale, aber unübliche externe
+  Abhängigkeit, Tests überspringen statt zu scheitern, wenn es fehlt).
+  **Frontend:** `packages/pwa/src/Search.tsx`, neuer "Suche"-Tab in
+  `SessionTail.tsx` (5. Sub-Tab neben Chat/Verlauf/Bericht/Diff — additiv,
+  keine Verletzung von `Dock.tsx`s "4 feste Slots"-Regel, die betrifft nur
+  die globale Bottom-Nav, nicht die Session-Sub-Tabs). Datei-Viewer mit
+  echtem Syntax-Highlighting (`highlight.js`, "core"-Build, nur
+  `markdown` registriert — die anderen Sprachen wären toter Code, da jedes
+  echte Suchergebnis eine `.md`-Datei ist). **Echter, beim Bauen
+  gefundener Bug korrigiert:** zeilenweises Highlighting verlor
+  Block-Kontext (eine einzelne `def foo():`-Zeile wurde als Markdown-
+  *Emphasis* um den Unterstrich fehlinterpretiert) — behoben durch
+  Highlighting der gesamten Datei in einem Aufruf, gerendert als EIN
+  `<pre><code>`-Block, mit einer separaten, rein positionalen
+  Zeilennummern-Spalte statt zeilenweise aufgespaltener Spans. **Weiterer
+  echter Fund:** highlight.js' Markdown-Grammatik delegiert NICHT an die
+  Subsprache eines ` ```python `-Fences (gegen "core"-Build UND
+  vollständiges `highlight.js`-Bundle geprüft, identisches Ergebnis) — ein
+  Fence bekommt nur ein generisches `hljs-code`-Highlighting, echte
+  Markdown-Struktur-Tokens (Überschriften, Fett/Kursiv, Listen, Links)
+  funktionieren dagegen real und sind auf bestehende Design-Tokens
+  gemappt (kein neuer Hex-Wert). **Eine bewusste, geprüfte Ausnahme von
+  „kein `dangerouslySetInnerHTML`"** (docs/security.md §5 jetzt explizit
+  benannt) — live verifiziert, dass highlight.js Quelltext selbst
+  escaped, bevor es eigene `<span>`-Tags einfügt.
+  Live end-to-end mit echtem Hub, echtem Playwright/Chromium-Browser,
+  echter Suche/echtem Datei-Viewer verifiziert (Screenshots geprüft:
+  Ergebnis-Karte, Datei-Viewer mit Zeilennummern, Ziel-Zeile hervorgehoben,
+  echtes Highlighting sichtbar).
+  Messlauf: [`docs/messlauf/2026-09-18-search-latency.md`](../docs/messlauf/2026-09-18-search-latency.md).
 - [x] **T3.9** Prompt-Composer (S6) mit Optimizer + Split-Preview + Learning-Loop-Storage
   — *Vermerk (P1.5):* Composer + Optimizer + Split-Preview wurden nach
   [`EPIC-P1.5`](EPIC-P1.5-control-center-ux.md) T1.5-6/T1.5-8 vorgezogen
