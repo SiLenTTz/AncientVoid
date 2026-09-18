@@ -36,6 +36,17 @@ async function main(): Promise<void> {
   const dataDir = resolve(config.dataDir);
   mkdirSync(dataDir, { recursive: true });
 
+  // M-2 (red-team review, 2026-09-18, T4.10): an empty projectRoots is a
+  // real, honestly-documented default (isProjectPathAllowed() then
+  // accepts any path — packages/core/src/projects.ts), but it was silent
+  // at startup, unlike every other security-relevant default this hub
+  // already warns about (UACC_EXPOSE, WebAuthn's localhost-only rpId).
+  if (config.projectRoots.length === 0) {
+    console.warn(
+      "[hub] projectRoots is empty — any authenticated device can start a session against ANY filesystem path the hub process can read. Set projectRoots in hub.config.json to restrict this.",
+    );
+  }
+
   const db = new HubDatabase(resolve(dataDir, "hub.db"));
   const store = new EventStore(dataDir);
   const tokens = new TokenService(db);

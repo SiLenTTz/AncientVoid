@@ -14,6 +14,18 @@ export const SESSION_STATUSES = [
 export const SessionStatus = z.enum(SESSION_STATUSES);
 export type SessionStatus = (typeof SESSION_STATUSES)[number];
 
+/**
+ * A POSIX-legal env var name — the same pattern `TmuxRunner.spawn()`
+ * (`packages/workers/src/tmux.ts`) enforces as its own last line of
+ * defense against shell injection (a red-team review, 2026-09-18, found
+ * an unvalidated env KEY reaching an interpolated shell command string —
+ * `X=$(evil)` as a "key" ran the command). Validating it here too rejects
+ * the same bad input early (a clean 400 at session creation) instead of
+ * only late (a confusing session.start_failed deep inside the runner) —
+ * defense in depth, not a replacement for the runner's own check.
+ */
+export const ENV_VAR_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
 /** Adapter-neutral session creation request (API body / hubctl input). */
 export const SessionSpec = z.object({
   /** Registered adapter id (e.g. "dummy", "claude", "codex"). */
@@ -27,7 +39,7 @@ export const SessionSpec = z.object({
   /** Hard budget cap in USD (enforced from P2; stored from P0). */
   budgetUsd: z.number().positive().nullable().optional(),
   /** Additional env vars for the session worker. */
-  env: z.record(z.string()).optional(),
+  env: z.record(z.string().regex(ENV_VAR_NAME), z.string()).optional(),
   /** Adapter-specific free-form arguments, validated by the adapter itself. */
   args: z.record(z.unknown()).optional(),
 });

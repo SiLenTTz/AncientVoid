@@ -6,7 +6,7 @@ import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { extractToken } from "./auth.ts";
 import { createWebAuthnRoutes, type WebAuthnConfig } from "./webauthn.ts";
 import { appendOptimizerFeedback } from "./prompt-optimizer-feedback.ts";
-import { DecideApprovalInput, ApprovalStatus } from "@uacc/contracts";
+import { DecideApprovalInput, ApprovalStatus, ENV_VAR_NAME } from "@uacc/contracts";
 import { z } from "zod";
 
 const EnhancePromptBody = z.object({
@@ -31,7 +31,11 @@ const CreateSessionBody = z.object({
   prompt: z.string().optional(),
   model: z.string().optional(),
   budgetUsd: z.number().positive().nullable().optional(),
-  env: z.record(z.string()).optional(),
+  // ENV_VAR_NAME (@uacc/contracts): rejects a malicious env KEY here,
+  // early, with a clean 400 — see SessionSpec's own doc comment and
+  // TmuxRunner.spawn()'s matching runtime guard (defense in depth, same
+  // pattern, same regex, single source of truth).
+  env: z.record(z.string().regex(ENV_VAR_NAME), z.string()).optional(),
   args: z.record(z.unknown()).optional(),
 });
 

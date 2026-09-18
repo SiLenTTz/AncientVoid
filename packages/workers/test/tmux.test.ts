@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TmuxRunner, TMUX_PREFIX } from "../src/tmux.ts";
@@ -18,6 +18,64 @@ describe("TmuxRunner", () => {
   afterAll(async () => {
     await runner.reapOrphans([]).catch(() => undefined);
     await rm(dir, { recursive: true, force: true });
+  });
+
+  // C-1 (red-team review, 2026-09-18, T4.10): an unvalidated env KEY was
+  // interpolated straight into a shell command string. Runs without
+  // itTmux — spawn() now rejects before ever touching tmux, so this must
+  // hold even on a machine without tmux installed.
+  it("rejects a shell-metacharacter env key instead of building an injectable command (C-1 fix)", async () => {
+    const sentinel = join(dir, "pwned");
+    await expect(
+      runner.spawn({
+        name: "test-injection",
+        cwd: dir,
+        cmd: ["true"],
+        env: { [`X=$(touch ${sentinel})`]: "y" },
+      }),
+    ).rejects.toThrow(/invalid environment variable name/);
+    await expect(stat(sentinel)).rejects.toThrow(); // never created — proves the command substitution never ran
+  });
+
+  it("accepts a legal env var name and rejects other illegal shapes without touching tmux", async () => {
+    await expect(runner.spawn({ name: "t", cwd: dir, cmd: ["true"], env: { "1BAD": "y" } })).rejects.toThrow(
+      /invalid environment variable name/,
+    );
+    await expect(runner.spawn({ name: "t", cwd: dir, cmd: ["true"], env: { "BAD KEY": "y" } })).rejects.toThrow(
+      /invalid environment variable name/,
+    );
+  });
+
+  itTmux("passes a legal env var through to the real spawned process", async () => {
+    const proc = await runner.spawn({
+      name: "test-env",
+      cwd: dir,
+      cmd: ["bash", "-c", "echo $GREETING"],
+      env: { GREETING: "hello world" },
+    });
+    const lines: string[] = [];
+    proc.onStdout((chunk) => {
+      for (const l of chunk.split("\n")) if (l.trim()) lines.push(l.trim());
+    });
+    await proc.exited();
+    await new Promise((r) => setTimeout(r, 600));
+    expect(lines).toEqual(["hello world"]);
+  });
+
+  itTmux("preserves a single quote in an env value instead of silently deleting it (value-quoting fix)", async () => {
+    const proc = await runner.spawn({
+      name: "test-env-quote",
+      cwd: dir,
+      cmd: ["bash", "-c", "echo $MSG"],
+      env: { MSG: "it's a test" },
+    });
+    const lines: string[] = [];
+    proc.onStdout((chunk) => {
+      for (const l of chunk.split("\n")) if (l.trim()) lines.push(l.trim());
+    });
+    await proc.exited();
+    await new Promise((r) => setTimeout(r, 600));
+    expect(lines).toEqual(["it's a test"]);
   });
 
   itTmux("spawns a command and streams stdout lines", async () => {

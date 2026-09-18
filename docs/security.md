@@ -54,6 +54,14 @@ Adapter selbst konstruierten Argumenten; Client-Eingaben laufen vorher
 durch Zod-Schemas (`CreateSessionBody`, `SteerBody`,
 `OptimizerFeedbackBody`, …).
 
+**Korrektur (2026-09-18, BUG-0012):** diese Behauptung war für `cmd`-Argv
+richtig, aber unvollständig — `SessionSpec.env`s **Schlüssel** liefen bis
+zu diesem Fund komplett ungeprüft in `TmuxRunner.spawn()`s Shell-String
+ein, ein reales, live reproduziertes RCE. Jetzt geschlossen:
+`ENV_VAR_NAME`-Schema (`@uacc/contracts`) an der API-Grenze plus
+`SAFE_ENV_KEY`-Validierung direkt in `TmuxRunner` selbst — siehe
+[BUG-0012](../bugs/bug-0012-tmux-env-key-shell-injection.md).
+
 ### 4. Audit-Trail — wer-wann-was
 
 `SessionManager`s mutierende Methoden (`create`/`steer`/`stop`/`park`/
@@ -78,11 +86,29 @@ real erzwungen seit dem in T2.10 gefundenen und behobenen Bug (ein
 geparkter, aber nicht real signalisierter Adapter produzierte nach dem
 Parken weiter Kosten).
 
-## Reale Funde dieser Session (Selbst-Review, keine externe Prüfung)
+## Reale Funde
 
-Kein Ersatz für eine echte, unabhängige Red-Team-Session vor einem
-v0.1-Release (T4.10 bleibt dafür offen geführt) — aber zwei reale,
-sicherheitsrelevante Bugs wurden bereits gefunden und behoben:
+**Aus dem unabhängigen Fresh-Context-Red-Team-Review (2026-09-18, T4.10)**
+— null Vorwissen über dieses Repo, gegen den realen Code geprüft:
+
+- **[BUG-0012](../bugs/bug-0012-tmux-env-key-shell-injection.md) (Kritisch)** —
+  `TmuxRunner.spawn()` interpolierte `env`-Schlüssel ungeprüft in einen
+  Shell-String; live reproduziert als echte Command-Substitution-RCE über
+  ein client-erreichbares Feld (`SessionSpec.env`). Gefixt.
+- **[BUG-0013](../bugs/bug-0013-mcp-gateway-sessionid-route-confusion.md) (Hoch)** —
+  MCP-Gateway interpolierte `sessionId` ungeprüft in Pfad-Templates; ein
+  `?` im Wert brach real aus dem Pfad aus (`new URL()` verifiziert) und
+  lenkte z. B. `steer_prompt` auf `session.stop` um. Gefixt (`.uuid()` +
+  `encodeURIComponent()`).
+
+Volle Befunde inkl. geprüfter-und-bestätigt-sicherer Bereiche (WebAuthn,
+SQL-Parametrisierung, Worktree-Isolation, PWA-Injektionsoberfläche,
+`adapter-cursor-clip`) in der Session-Historie; Zusammenfassung in
+[`epics/EPIC-P4-brain-windows-mcp-oss.md`](../epics/EPIC-P4-brain-windows-mcp-oss.md)s
+T4.10-Eintrag.
+
+**Aus der vorangegangenen Selbst-Review derselben Session** (kein Ersatz
+für eine unabhängige Prüfung, aber real gefunden und behoben):
 
 - **[BUG-0011](../bugs/bug-0011-stop-button-silently-broken.md)** —
   der reale „Stop"-Button hat nie funktioniert (leerer Body + JSON-
@@ -93,16 +119,8 @@ sicherheitsrelevante Bugs wurden bereits gefunden und behoben:
   Adapter lief real weiter, bis `parkFor()` ein echtes
   `SteerInput{kind:"park"}`-Signal bekam.
 
-Muster für beide: eine Aktion **sah** im Code korrekt aus (Statuswechsel,
-Fehlerpfad vorhanden), war aber nie gegen eine echte Zeremonie
-(Playwright-Browser-Test bzw. ein frei laufender Adapter) verifiziert
-worden. Empfehlung für ein echtes Red-Team: gezielt nach genau diesem
-Muster suchen — Code, der plausibel aussieht, aber nur gegen sich selbst
-getestet wurde, nie gegen eine echte, unabhängige Ausführung.
-
 ## Was noch fehlt (ehrlich, nicht Teil dieser Session)
 
-- Externe/unabhängige Red-Team-Review vor einem echten Release (T4.10).
 - Lizenz-Entscheidung (T4.8) — rechtliche Frage, nicht hier autonom
   entschieden.
 - `swarm`-Adapter: kein Code, da das reale Event-Vokabular nicht

@@ -152,12 +152,49 @@ Sessions, lauffähig auf evox2 (Windows/WSL), das lazy-disclosed MCP-Gateway (Me
   PWA-UX ist bereits in `docs/design-system.md` (P1.6) dokumentiert, ein
   zusätzliches, überlappendes Dokument hätte keinen neuen Inhalt gehabt.
 - [x] **T4.10** Red-Team-Review (externe oder frische-Augen-Session) + Findings-Triage.
-  **Ehrlich keine externe Session** — diese Session selbst hat die
-  Sicherheits-Walkthrough aus EPIC-P2 §7 fortgeschrieben
-  ([`docs/security.md`](../docs/security.md)) und dabei real zwei neue
-  Befunde gemacht (BUG-0011 Stop-Button, T2.10s Budget-Park-Fail-closed-
-  Lücke) — beide bereits gefixt. Kein Ersatz für eine echte unabhängige
-  Prüfung vor einem realen v0.1-Release, ehrlich als solcher benannt.
+  **Nachtrag (2026-09-18): jetzt eine echte frische-Augen-Session.** Die
+  ursprüngliche Selbstprüfung (siehe Historie unten) wurde durch einen
+  echten, unabhängigen Fresh-Context-Subagenten ersetzt — null
+  Vorwissen über dieses Repo, eigenständig gegen den realen Code geprüft,
+  nicht gegen die eigenen Doku-Behauptungen. Ergebnis: **zwei echte,
+  reproduzierte Befunde, beide sofort gefixt**, plus mehrere geprüfte-und-
+  bestätigt-sichere Bereiche (WebAuthn, SQL-Parametrisierung, Worktree-
+  Isolation, PWA-Injektionsoberfläche, `adapter-cursor-clip`).
+  - **BUG-0012 (S1, Kritisch):** `TmuxRunner.spawn()` interpolierte
+    `spec.env`-**Keys** ungeprüft in einen Shell-String — ein client-
+    erreichbares Feld (`SessionSpec.env`), live reproduziert als echte
+    Shell-Injection (Command-Substitution im "Schlüssel" legte real eine
+    Datei an). Gefixt: `SAFE_ENV_KEY`-Validierung vor jeder I/O in
+    `TmuxRunner` selbst, plus ein `ENV_VAR_NAME`-Schema in
+    `@uacc/contracts` als frühe 400-Ablehnung an der API-Grenze
+    (Defense in depth, eine Quelle für beide). Value-Quotierung im
+    selben Fund korrigiert (löschte vorher still eingebettete `'`
+    statt sie zu escapen). 4 neue Tests, echter `tmux`-Pane, kein Mock.
+  - **BUG-0013 (S2, Hoch):** MCP-Gateway (`operations.ts`) interpolierte
+    `sessionId` ungeprüft in Pfad-Templates vor `fetch()` — ein
+    präparierter Wert mit `?` brach aus dem Pfad in die Query-Zeile aus
+    (`new URL()` live verifiziert) und lenkte z. B. einen
+    `steer_prompt`-Aufruf real auf `POST /api/sessions/<id>/stop` um —
+    genau die Route, die `operations.ts`s eigener Kommentar als bewusst
+    nicht exponiert auflistet. Gefixt: `SessionIdArgs` verlangt jetzt
+    `.uuid()` (echte Session-IDs sind immer `randomUUID()`, nie
+    client-geliefert) plus `encodeURIComponent()` an jeder
+    Interpolationsstelle als Schutz für künftige, nicht-UUID-förmige
+    Operationen.
+  - M-2 (fehlende Startup-Warnung bei leerem `projectRoots`) und ein
+    I-1-Hinweis (Digest-Lessons als rohe Agent-Ausgabe, inert aber
+    dokumentationswürdig) ebenfalls direkt behoben/ergänzt.
+  - Volle Befunde, Beweise und die abschließende Gesamteinschätzung:
+    siehe Bug-Dateien [BUG-0012](../bugs/bug-0012-tmux-env-key-shell-injection.md)/
+    [BUG-0013](../bugs/bug-0013-mcp-gateway-sessionid-route-confusion.md).
+  - **Historie (ursprüngliche, ehrlich benannte Lücke, jetzt geschlossen):**
+    die erste Fassung dieses Punkts war eine Selbstprüfung derselben
+    Session, die die Sicherheits-Walkthrough aus EPIC-P2 §7 fortschrieb
+    ([`docs/security.md`](../docs/security.md)) und dabei zwei Befunde
+    machte (BUG-0011 Stop-Button, T2.10s Budget-Park-Fail-closed-Lücke) —
+    beide bereits gefixt, aber ausdrücklich **kein Ersatz** für eine
+    echte unabhängige Prüfung genannt. Diese Lücke ist mit dem obigen
+    Fresh-Context-Review jetzt real geschlossen.
 - [ ] **T4.11** Release-Checkliste v0.1 (Tag, Changelog, Fixtures-Hygiene,
   Secret-Scan) — **bewusst nicht getaggt**: ein Git-Tag/Release ist eine
   öffentlich sichtbare, schwer rückgängig zu machende Aktion, die laut den
