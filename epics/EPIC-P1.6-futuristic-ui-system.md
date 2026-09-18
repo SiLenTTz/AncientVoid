@@ -359,8 +359,26 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   meldet „no-speech" mit der Fake-Audio-Quelle) zeigt korrekt „Nichts
   gehört." (`t1.6-7-voice-timeout.png`). Gates: `npm test` 142/142,
   `lint`/`typecheck`, PWA `build`/`typecheck` grün.
-- [ ] **T1.6-8** Linsenartige Scrollbars + Status-Glow-Animationen
-  (`prefers-reduced-motion`-sicher, reines CSS).
+- [x] **T1.6-8** Linsenartige Scrollbars (dünn, abgerundet, `--accent`-
+  eingefärbt, transparente Spur) auf jeder echten Scroll-Fläche der App
+  (`html`/`body`-Hauptseite, `.tail-scroll`, `.overlay-sheet`,
+  `.diff-code`, `.enhance-preview-text`) via `scrollbar-color` (Firefox-
+  Engine) + `::-webkit-scrollbar*`. Status-Glow auf `.session-card`:
+  `st-working` (sanftes Grün-Pulsieren, `--glow-dur`) und `st-waiting`
+  (dringlicheres Gelb-Pulsieren, 0,6×`--glow-dur`) — beide ausschließlich
+  `box-shadow`-Animationen (compositor-freundlich, kein Reflow), Werte aus
+  T1.6-1s `--glow-blur`/`--glow-dur`-Tokens, nicht neu erfunden.
+  `prefers-reduced-motion: reduce` schaltet beide Animationen komplett ab
+  (nicht nur langsamer) und ersetzt sie durch einen statischen Rand in der
+  jeweiligen Statusfarbe. **Live geprüft** (Playwright, echte Sessions):
+  `getComputedStyle(...).animationName` einer echten `working`-Session-
+  Karte liefert real `uacc-glow-good` mit `animationDuration: 1.6s`
+  (`t1.6-8-dashboard-glow-active.png`, sichtbarer grüner Ring bei
+  Zwischenstand der Pulsierung); unter emuliertem
+  `prefers-reduced-motion: reduce` liefert dieselbe Prüfung real `none`.
+  `scrollbar-color` löst real zur Akzentfarbe auf (`getComputedStyle`
+  bestätigt `color(srgb 1 0.6 0.24 / .55)`). Gates: `npm test` 142/142,
+  `lint`/`typecheck`, PWA `build`/`typecheck` grün.
 - [ ] **T1.6-9** K2-Regressionslauf (`scripts/k2-frame-lag.mjs`) gegen den
   fertigen Umbau + vollständige Migrations-Verifikation (keine der in §3.2
   gelisteten bestehenden Fähigkeiten verloren).
@@ -426,9 +444,10 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   Scrollbars) verschlechtert die K2-Frame-Lag-Zahl aus
   `docs/messlauf/2026-09-16-k2-frame-lag-p1.5-regression.md` nicht —
   weiterhin kein Frame-Lag > 200 ms.
-- **AC-P1.6-9:** Alle Glow-/Scanline-Animationen verschwinden vollständig
+- **AC-P1.6-9: 🟢 erfüllt.** Alle Glow-/Scanline-Animationen verschwinden vollständig
   unter `prefers-reduced-motion: reduce` (kein Rest-Flackern), verifiziert
-  per Playwright mit emuliertem `reduced-motion`.
+  per Playwright mit emuliertem `reduced-motion` gegen eine echte
+  `working`-Session (`animationName` real `none` statt `uacc-glow-good`).
 
 ## 6. Premortem
 

@@ -135,8 +135,12 @@ function UsageRow({ usage }: { usage: Record<string, AdapterUsage> }) {
 
 function SessionRow({ session, onOpen }: { session: SessionRecord; onOpen: (s: SessionRecord) => void }) {
   const waiting = session.status === "waiting_approval";
+  // T1.6-8: glow is a status signal, not decoration — only "working" (needs
+  // no attention, just in progress) and "waiting_approval" (does need
+  // attention, faster pulse) get one; stopped/idle/error cards stay flat.
+  const glow = session.status === "working" ? "st-working" : waiting ? "st-waiting" : "";
   return (
-    <button class="card session-card btn" onClick={() => onOpen(session)}>
+    <button class={`card session-card btn ${glow}`} onClick={() => onOpen(session)}>
       <div class="row">
         <strong>{session.adapter}</strong>
         <span class={`pill ${session.status}`}>{session.status}</span>

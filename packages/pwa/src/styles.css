@@ -59,6 +59,57 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* T1.6-8: lens-style scrollbars — thin, rounded, accent-tinted, on every
+ * real scroll surface in the app (main page scroll, the session tail,
+ * bottom sheets, the diff view) instead of the platform default. */
+html,
+body,
+.tail-scroll,
+.overlay-sheet,
+.diff-code,
+.enhance-preview-text {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.tail-scroll::-webkit-scrollbar,
+.overlay-sheet::-webkit-scrollbar,
+.diff-code::-webkit-scrollbar,
+.enhance-preview-text::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+.tail-scroll::-webkit-scrollbar-track,
+.overlay-sheet::-webkit-scrollbar-track,
+.diff-code::-webkit-scrollbar-track,
+.enhance-preview-text::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+.tail-scroll::-webkit-scrollbar-thumb,
+.overlay-sheet::-webkit-scrollbar-thumb,
+.diff-code::-webkit-scrollbar-thumb,
+.enhance-preview-text::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+.tail-scroll::-webkit-scrollbar-thumb:hover,
+.diff-code::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--accent) 78%, transparent);
+}
+
 #app {
   max-width: 680px;
   margin: 0 auto;
@@ -137,6 +188,56 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+/* T1.6-8: status-glow — compositor-friendly (box-shadow only, no layout
+ * property), sized/timed from the design-system's --glow-blur/--glow-dur
+ * tokens (T1.6-1) so future styles can retune the feel without touching
+ * this animation. Fully disabled under prefers-reduced-motion (K2 guard,
+ * AC-P1.6-9) instead of just slowed down. */
+.session-card.st-working {
+  animation: uacc-glow-good var(--glow-dur) ease-in-out infinite;
+}
+
+.session-card.st-waiting {
+  animation: uacc-glow-warn calc(var(--glow-dur) * 0.6) ease-in-out infinite;
+}
+
+@keyframes uacc-glow-good {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px var(--bg-chip);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--ok) 60%, var(--bg-chip)),
+      0 0 var(--glow-blur) 1px color-mix(in srgb, var(--ok) 45%, transparent);
+  }
+}
+
+@keyframes uacc-glow-warn {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px var(--bg-chip);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--warn) 65%, var(--bg-chip)),
+      0 0 var(--glow-blur) 2px color-mix(in srgb, var(--warn) 55%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-card.st-working,
+  .session-card.st-waiting {
+    animation: none;
+  }
+  .session-card.st-working {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 45%, var(--bg-chip));
+  }
+  .session-card.st-waiting {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn) 55%, var(--bg-chip));
+  }
 }
 
 .pill {
