@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createHash } from "node:crypto";
 import { realpath, readFile, stat } from "node:fs/promises";
-import { join, sep } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 /**
  * T3.8 (EPIC-P3 §3 "Sprachsuche") — Projekt-Index-Service.
@@ -46,6 +46,20 @@ import { join, sep } from "node:path";
  * real mechanism available for it has a worse side effect than the
  * feature it would add. A project can be re-indexed from scratch by
  * removing its collection (`removeIndex`) and searching again.
+ *
+ * BUG-0014, found live (2026-09-18) running this hub against its own
+ * repo (`hub.config.json`'s `dataDir` nested inside a `projectRoots`
+ * entry — a real, ordinary dev setup, not a contrived edge case): every
+ * git worktree under `dataDir/worktrees/<sessionId>/` (T2.1) is a full
+ * checkout, so it carries its own copy of every real markdown file —
+ * README, CONTRIBUTING, every doc — and `qmd` indexed those copies right
+ * alongside the originals, real duplicate hits in every search. Checked
+ * for a real fix at the source: `qmd` has no `--exclude`/`--ignore` flag
+ * (grepped its own bundled skill docs — nothing) and does NOT honor
+ * `.gitignore` (`data/` is gitignored in this repo; `qmd ls` still showed
+ * every worktree file indexed). So `searchProject()` filters `dataDir`
+ * out of qmd's own results after the fact — the only place left to fix
+ * this without reaching into qmd's internals.
  */
 
 const execFileAsync = promisify(execFile);
@@ -148,14 +162,42 @@ export async function ensureIndexed(projectPath: string): Promise<void> {
   await execFileAsync("qmd", ["embed", "-c", name, "--timeout", "10"], { maxBuffer: 16 * 1024 * 1024 });
 }
 
+/** True when `relFile` (already `./`-stripped, forward-slash-separated)
+ * lies inside one of `excludeRelDirs` — an exact segment match, so
+ * excluding `"data"` correctly leaves a real `data-model.md` alone. */
+function isUnderExcludedDir(relFile: string, excludeRelDirs: readonly string[]): boolean {
+  return excludeRelDirs.some((dir) => relFile === dir || relFile.startsWith(`${dir}/`));
+}
+
+/** BUG-0014: dataDir's path relative to the project, when it's actually
+ * nested inside it (the common case that triggers the worktree-duplicate
+ * bug — see this file's top doc comment) — undefined (no exclusion)
+ * otherwise, never a guess. */
+export function relativeDataDir(projectPath: string, dataDir: string): string | undefined {
+  const rel = relative(resolve(projectPath), resolve(dataDir));
+  if (rel === "" || rel.startsWith("..") || isAbsolute(rel)) return undefined;
+  return rel;
+}
+
 /** Real, verified: an explicit `lex:`+`vec:` typed query document takes
  * the hybrid (keyword + semantic) path without qmd's own auto-expansion
  * step (which is what makes plain `qmd query <text>` take 17-30s+ — see
  * this file's doc comment). `--no-rerank` skips the LLM reranker for the
- * same reason. */
-export async function searchProject(projectPath: string, query: string, limit = 5): Promise<SearchResult[]> {
+ * same reason.
+ *
+ * `excludeRelDirs` (BUG-0014): project-relative dirs to drop from qmd's
+ * own results — real requirement since qmd has neither an ignore flag
+ * nor .gitignore awareness (see top doc comment). Requests more raw hits
+ * than `limit` from qmd so filtering some out still leaves a full page. */
+export async function searchProject(
+  projectPath: string,
+  query: string,
+  limit = 5,
+  excludeRelDirs: readonly string[] = [],
+): Promise<SearchResult[]> {
   const name = collectionNameFor(projectPath);
   const doc = `lex: ${query}\nvec: ${query}`;
+  const rawLimit = excludeRelDirs.length > 0 ? Math.max(limit * 4, 20) : limit;
   let stdout: string;
   try {
     // Real, verified (qmd --help): `--full-path` renders `./`-prefixed
@@ -163,7 +205,7 @@ export async function searchProject(projectPath: string, query: string, limit = 
     // directory or every result comes back as an unrelated absolute path.
     ({ stdout } = await execFileAsync(
       "qmd",
-      ["query", doc, "-c", name, "--format", "json", "-n", String(limit), "--full-path", "--no-rerank"],
+      ["query", doc, "-c", name, "--format", "json", "-n", String(rawLimit), "--full-path", "--no-rerank"],
       { cwd: projectPath, maxBuffer: 16 * 1024 * 1024 },
     ));
   } catch (err) {
@@ -187,13 +229,16 @@ export async function searchProject(projectPath: string, query: string, limit = 
   const results: SearchResult[] = [];
   for (const raw of parsed as QmdQueryHit[]) {
     if (typeof raw.file !== "string" || typeof raw.line !== "number") continue;
+    const file = raw.file.startsWith("./") ? raw.file.slice(2) : raw.file;
+    if (isUnderExcludedDir(file, excludeRelDirs)) continue;
     results.push({
-      file: raw.file.startsWith("./") ? raw.file.slice(2) : raw.file,
+      file,
       line: raw.line,
       title: typeof raw.title === "string" ? raw.title : raw.file,
       snippet: typeof raw.snippet === "string" ? raw.snippet : "",
       score: typeof raw.score === "number" ? raw.score : 0,
     });
+    if (results.length >= limit) break;
   }
   return results;
 }

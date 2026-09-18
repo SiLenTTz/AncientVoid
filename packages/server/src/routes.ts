@@ -6,7 +6,7 @@ import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { extractToken } from "./auth.ts";
 import { createWebAuthnRoutes, type WebAuthnConfig } from "./webauthn.ts";
 import { appendOptimizerFeedback } from "./prompt-optimizer-feedback.ts";
-import { ensureIndexed, indexStatus, isQmdAvailable, readProjectFile, searchProject } from "./search.ts";
+import { ensureIndexed, indexStatus, isQmdAvailable, readProjectFile, relativeDataDir, searchProject } from "./search.ts";
 import { DecideApprovalInput, ApprovalStatus, ENV_VAR_NAME } from "@uacc/contracts";
 import { z } from "zod";
 
@@ -457,7 +457,11 @@ export function registerRoutes(
       return reply.code(202).send({ status: "indexing", results: [] });
     }
     try {
-      const results = await searchProject(project, q);
+      // BUG-0014: exclude the hub's own dataDir (worktree copies of every
+      // real markdown file) when it happens to live inside the searched
+      // project — a real, ordinary setup, not a contrived edge case.
+      const excludeRelDirs = deps.dataDir ? [relativeDataDir(project, deps.dataDir)].filter((d): d is string => d !== undefined) : [];
+      const results = await searchProject(project, q, 5, excludeRelDirs);
       return { status: "ready", results };
     } catch (err) {
       return reply.code(500).send({ error: err instanceof Error ? err.message : "search failed" });
