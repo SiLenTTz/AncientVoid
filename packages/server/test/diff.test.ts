@@ -161,4 +161,47 @@ describe("getSessionDiff — real git repo, no mocking", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it("T2.9 (K3 gate, AC-P2-2): a real 2 MB diff keeps the initial response ≤ 50 KB; expand-on-tap still delivers the rest correctly", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-diff-k3-gate-"));
+    try {
+      await execFileAsync("git", ["init", "-q", dir]);
+      await execFileAsync("git", ["-C", dir, "config", "user.email", "t@e.com"]);
+      await execFileAsync("git", ["-C", dir, "config", "user.name", "T"]);
+      // A real ~2 MB changeset across several files — not one contrived
+      // giant hunk, so this also exercises collapsing across multiple
+      // files/hunks at once, not just a single one.
+      const lineCount = 15_000; // ~2 MB across 4 files at this line length
+      for (let f = 0; f < 4; f++) {
+        const before = Array.from({ length: lineCount }, (_, i) => `file${f} line ${i} original content padding`).join("\n") + "\n";
+        await writeFile(join(dir, `f${f}.txt`), before);
+      }
+      await execFileAsync("git", ["-C", dir, "add", "."]);
+      await execFileAsync("git", ["-C", dir, "commit", "-q", "-m", "init"]);
+      let totalRawDiffBytes = 0;
+      for (let f = 0; f < 4; f++) {
+        const after = Array.from({ length: lineCount }, (_, i) => `file${f} line ${i} CHANGED content padding`).join("\n") + "\n";
+        await writeFile(join(dir, `f${f}.txt`), after);
+      }
+      const { stdout: rawPatch } = await execFileAsync("git", ["-C", dir, "diff", "HEAD"], { maxBuffer: 16 * 1024 * 1024 });
+      totalRawDiffBytes = Buffer.byteLength(rawPatch, "utf8");
+      expect(totalRawDiffBytes).toBeGreaterThan(2 * 1024 * 1024); // confirms this really is a ~2 MB+ diff, not a guess
+
+      const result = await getSessionDiff(dir);
+      expect(result.truncated).toBe(true);
+      expect(result.files).toHaveLength(4);
+      for (const f of result.files) expect(f.hunks.every((h) => h.collapsed)).toBe(true);
+
+      const responseBytes = Buffer.byteLength(JSON.stringify(result), "utf8");
+      expect(responseBytes).toBeLessThanOrEqual(50_000); // AC-P2-2: initiale Payload ≤ 50 KB
+
+      // Expand-on-tap still delivers the real full content afterward.
+      const full = await getSessionFileHunks(dir, "f0.txt");
+      expect(full.length).toBeGreaterThan(0);
+      expect(full.every((h) => !h.collapsed)).toBe(true);
+      expect(full[0]!.body).toContain("CHANGED");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });

@@ -65,32 +65,53 @@ export interface SessionDiffResult {
 
 const HUNK_HEADER_RE = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@ ?(.*)$/;
 
-/** Splits one file's raw `git diff` body into structured hunks. */
+/**
+ * Splits one file's raw `git diff` body into structured hunks.
+ *
+ * Real bug found by T2.9's own K3 payload-size gate test: an earlier
+ * version of this function accumulated each hunk's lines in a working
+ * `bodyLines: string[]` field on the same object that got pushed into the
+ * result (`{ ...current, body: current.bodyLines.join("\n") }`) — the
+ * spread carried `bodyLines` along for the ride, an internal accumulator
+ * silently surviving into every returned `DiffHunk`. `collapseForK3()`
+ * only ever overwrote `body`/`collapsed`, never touching this stray
+ * field, so a "collapsed" hunk's `body` looked correctly tiny to any code
+ * checking that field directly (every test did, until now) while
+ * `JSON.stringify()` — what actually crosses the wire — still serialized
+ * the full uncollapsed `bodyLines` array underneath it. K3's whole
+ * point (bounding the real response size) was silently defeated for
+ * every large diff. Fixed by building each hunk as its own explicit
+ * object, with the accumulator kept in a separate local array that never
+ * touches the returned shape.
+ */
 function parseHunks(fileDiff: string): DiffHunk[] {
   const lines = fileDiff.split("\n");
   const hunks: DiffHunk[] = [];
-  let current: (DiffHunk & { bodyLines: string[] }) | null = null;
+  let currentMeta: Omit<DiffHunk, "body"> | null = null;
+  let currentLines: string[] = [];
+  const flush = () => {
+    if (currentMeta) hunks.push({ ...currentMeta, body: currentLines.join("\n") });
+  };
   for (const line of lines) {
     const m = HUNK_HEADER_RE.exec(line);
     if (m) {
-      if (current) hunks.push({ ...current, body: current.bodyLines.join("\n") });
+      flush();
       const [, oldStart, oldLines, newStart, newLines, ctx] = m;
-      current = {
+      currentMeta = {
         header: line,
         functionContext: ctx && ctx.trim().length > 0 ? ctx.trim() : null,
         oldStart: Number(oldStart),
         oldLines: oldLines !== undefined ? Number(oldLines) : 1,
         newStart: Number(newStart),
         newLines: newLines !== undefined ? Number(newLines) : 1,
-        body: "",
-        bodyLines: [],
         collapsed: false,
       };
-    } else if (current) {
-      current.bodyLines.push(line);
+      currentLines = [];
+    } else if (currentMeta) {
+      currentLines.push(line);
     }
   }
-  if (current) hunks.push({ ...current, body: current.bodyLines.join("\n") });
+  flush();
   return hunks;
 }
 
@@ -175,9 +196,19 @@ export async function getSessionDiff(projectPath: string, worktreeBaseSha?: stri
       return { ...f, hunks: overK3 ? collapseForK3(hunks) : hunks };
     });
     const truncatedPatch = totalBytes > MAX_PATCH_BYTES;
+    // T2.9/AC-P2-2 real gap found while building the K3 gate test: `patch`
+    // used to stay capped at MAX_PATCH_BYTES (200 KB) independently of
+    // `overK3`'s 3-line hunk collapse — for a genuinely huge diff the
+    // *response* could still land near 200 KB even though every hunk in
+    // `files` was already collapsed, defeating AC-P2-2's "initial payload
+    // ≤ 50 KB" entirely. Nothing in the PWA reads `.patch` since T2.3
+    // moved rendering onto the structured `hunks` (verified: no
+    // `packages/pwa/src/*.tsx` references `.patch`), so once hunks are
+    // already collapsed there is nothing left for the raw text to usefully
+    // carry — it's dropped instead of independently truncated.
     return {
       files,
-      patch: truncatedPatch ? patch.slice(0, MAX_PATCH_BYTES) : patch,
+      patch: overK3 ? "" : truncatedPatch ? patch.slice(0, MAX_PATCH_BYTES) : patch,
       truncated: truncatedPatch || overK3,
       baseRef,
     };
