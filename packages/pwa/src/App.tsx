@@ -4,15 +4,16 @@ import { Dashboard } from "./Dashboard.tsx";
 import { Composer } from "./Composer.tsx";
 import { SkillPicker, loadSelectedSkill, type SelectedSkill } from "./SkillOverlay.tsx";
 import { applyTheme, getTheme, type Theme } from "./theme.ts";
-
-type Page = "dashboard" | "new" | "settings";
+import { GlobalDock, type Page } from "./Dock.tsx";
 
 export function App({
   onOpen,
   ready,
+  initialPage,
 }: {
   onOpen: (session: SessionRecord) => void;
   ready: () => void;
+  initialPage?: Page;
 }) {
   const [sessions, setSessions] = useState<SessionRecord[] | null>(null);
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
@@ -21,7 +22,9 @@ export function App({
   // T1.6-2: bottom-dock navigation replaces the top icon buttons ("Buttons
   // oben sind sehr schlecht zu bedienen" — real ergonomics feedback from
   // the mockup review). Settings didn't exist as a destination before.
-  const [page, setPage] = useState<Page>("dashboard");
+  // T1.6-3: initialPage lets SessionTail's dock jump straight to "new" or
+  // "settings" instead of always landing back on the dashboard.
+  const [page, setPage] = useState<Page>(initialPage ?? "dashboard");
 
   useEffect(() => {
     let alive = true;
@@ -82,17 +85,9 @@ export function App({
           <Dashboard sessions={sessions} usage={usage} onOpen={onOpen} />
         ))}
 
-      <nav class="dock">
-        <button class={`dock-item ${page === "dashboard" ? "active" : ""}`} onClick={() => setPage("dashboard")}>
-          <span class="ic">▤</span>Übersicht
-        </button>
-        <button class={`dock-item ${page === "new" ? "active" : ""}`} onClick={() => setPage("new")}>
-          <span class="ic">＋</span>Neue Session
-        </button>
-        <button class={`dock-item ${page === "settings" ? "active" : ""}`} onClick={() => setPage("settings")}>
-          <span class="ic">⚙</span>Einstellungen
-        </button>
-      </nav>
+      <div class="dock-stack">
+        <GlobalDock active={page} onNavigate={setPage} />
+      </div>
     </div>
   );
 }

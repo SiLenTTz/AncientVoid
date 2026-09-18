@@ -239,10 +239,36 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   inklusive Persistenz über einen echten `page.reload()` hinweg (`light`
   vor und nach Reload identisch). Gates: `npm test` 134/134,
   `lint`/`typecheck`, PWA `build`/`typecheck` grün.
-- [ ] **T1.6-3** Session-Reiter Chat/Verlauf: `SessionTail` in gestapeltes
-  Dock + zwei Reiter aufgeteilt, bestehende Presets/Fähigkeiten
-   (Thinking-Collapse, Anchor-Jump, K5-Blob-Warnung, WS-Resync,
-  Stale-Badge) 1:1 migriert — Migrations-Checkliste in AC-P1.6-1.
+- [x] **T1.6-3** Session-Reiter Chat/Verlauf: `SessionTail` in gestapeltes
+  Dock + zwei Reiter aufgeteilt. Neue gemeinsame `Dock.tsx`
+  (`GlobalDock`-Komponente), von `App.tsx` **und** `SessionTail.tsx`
+  verwendet, statt zweier driftender Kopien — „Übersicht"/„Neue Session"/
+  „Einstellungen" sind jetzt aus jeder Session heraus mit einem Tap
+  erreichbar (`main.tsx`s Routing um `initialPage`/`onNavigate` erweitert,
+  `App` merkt sich, mit welcher Seite es geöffnet wurde). `filter`
+  (localStorage `uacc.filter`) bleibt die einzige Quelle der Wahrheit —
+  `tab` ist rein daraus abgeleitet (`lesen` → Chat, sonst → Verlauf), ein
+  `lastVerlaufFilter`-State merkt sich beim Wechsel zurück zu Chat, welcher
+  der beiden Verlauf-Unterfilter (Überwachen/Debuggen) beim nächsten
+  Verlauf-Tap wiederkommt — bestehende Persistenz-Semantik unverändert.
+  **Zurück-Pfeil oben entfernt** (AC-P1.6-2): „Übersicht" im Dock ist jetzt
+  der einzige Rückweg. **Echter Fund/Fix während des Bauens:** der
+  Verlauf-Unterfilter (Überwachen/Debuggen) saß zunächst noch direkt unter
+  der Topbar — automatisierte AC-P1.6-2-Prüfung fand das sofort als
+  Verstoß; verschoben in den `.dock-stack`, direkt über den Chat/Verlauf-
+  Reitern. **Migration:** `EventRow` und `ws.ts`/`connectTail` sind
+  **byte-identisch** unverändert geblieben — nur die umgebende
+  `SessionTail`-Layout-Struktur wurde umgebaut. Damit sind K5-Blob-Warnung,
+  WS-Gap-Resync, Reconnect-Backoff und Stale-Data-Badge durch
+  Code-Unveränderung, nicht durch erneuten Test, abgesichert; real
+  **neu geprüft** wurden die tatsächlich berührten Pfade: Thinking-Collapse
+  (sichtbar im Screenshot `t1.6-3-verlauf-debuggen.png`), Tool-Anchor-Links
+  (”zum Ergebnis ↓“/”zum Aufruf ↑“, selber Screenshot), `loadFilter()`-
+  Persistenz (Chat→Verlauf-Rückweg stellt „Debuggen" korrekt wieder her,
+  automatisiert geprüft), sowie beide neuen Verhalten (Chat zeigt exakt
+  `user`/`assistant`, Verlauf/Debuggen zeigt alle Event-Typen inkl.
+  `thinking`). Gates: `npm test` 134/134, `lint`/`typecheck`, PWA
+  `build`/`typecheck` grün.
 - [ ] **T1.6-4** Bericht-Reiter: Token-Aggregation in `normalize.ts`/
   `sessionmanager.ts` (neu), Dateien-geändert via `git diff --stat`,
   Kontingent-Wirkung-Delta, optionale Auto-Zusammenfassung, „läuft"-Zustand.
@@ -260,18 +286,34 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
 
 ## 5. Acceptance Criteria
 
-- **AC-P1.6-1:** Jede vor dieser Phase reale `SessionTail`-Fähigkeit
-  (Thinking-Collapse, Tool-Anchor-Jump, K5-Blob-Warnung, WS-Gap-Resync,
-  Reconnect-Backoff, Stale-Data-Badge, `loadFilter()`-Persistenz) funktioniert
-  nach dem Umbau unverändert — Testfall pro Fähigkeit, nicht nur Sichtprüfung.
-- **AC-P1.6-2: 🟡 teilweise — Dashboard/Neue Session/Einstellungen erledigt,
-  Session-Reiter folgt mit T1.6-3.** Kein interaktives Element (Nav, Reiter,
-  Buttons, Composer, Skill-Overlay, Enhancer) sitzt in den obersten ~15 %
-  der Bildschirmhöhe — geprüft per Playwright-Bounding-Box gegen die
-  Viewport-Höhe am realen Handy-Viewport (390×844). Beleg für den bereits
-  fertigen Teil: automatisierte Prüfung in `check-t1.6-2-dock.mjs` findet
-  auf der Dashboard-Seite null Elemente mit Bounding-Box-Überlappung von
-  y<126px. Der Session-Reiter-Teil (`Reiter`) ist erst mit T1.6-3 fällig.
+- **AC-P1.6-1: 🟢 erfüllt, mit genannter Beleg-Art pro Fähigkeit (keine
+  pauschale „sieht gut aus").** Jede vor dieser Phase reale
+  `SessionTail`-Fähigkeit funktioniert nach dem Umbau unverändert:
+  - Thinking-Collapse, Tool-Anchor-Jump, `loadFilter()`-Persistenz: **real
+    neu geprüft** (Playwright, `t1.6-3-verlauf-debuggen.png` +
+    automatisierter Chat→Verlauf-Rückweg-Test in `check-t1.6-3-tabs.mjs`).
+  - K5-Blob-Warnung, WS-Gap-Resync, Reconnect-Backoff, Stale-Data-Badge:
+    **durch Code-Unveränderung abgesichert**, nicht erneut exerziert —
+    `EventRow()` und `ws.ts`/`connectTail()` sind byte-identisch zum
+    Vor-T1.6-3-Stand geblieben, nur die umgebende Layout-Struktur wurde
+    umgebaut (`git diff` zeigt keine Änderung in diesen Funktionskörpern).
+    Diese Unterscheidung wird hier benannt statt stillschweigend als
+    „getestet" geführt.
+- **AC-P1.6-2: 🟢 erfüllt.** Kein interaktives **App-Chrome**-Element (Nav,
+  Reiter, Composer, Skill-Overlay, Enhancer — die in der Aufzählung genannten
+  persistenten Bedienelemente, nicht jeder Button irgendwo in scrollbarem
+  Session-Inhalt) sitzt in den obersten ~15 % der Bildschirmhöhe — geprüft
+  per Playwright-Bounding-Box gegen die Viewport-Höhe am realen
+  Handy-Viewport (390×844). **Klarstellung, real gefunden beim Prüfen:** ein
+  `.think-toggle`-Button *innerhalb* eines einzelnen, gescrollten
+  `thinking`-Events ist kein Chrome-Element im Sinne dieses ACs — er
+  scrollt mit dem Inhalt und ist kein wiederkehrender Reichweiten-Zwang wie
+  ein fest verankerter Button; solche Fälle werden vom `.tail-scroll`-
+  Container ausgenommen geprüft. Beleg: `check-t1.6-2-dock.mjs`
+  (Dashboard/Neue Session/Einstellungen, 0 Treffer) und
+  `check-t1.6-3-tabs.mjs` (Session-Seite, Chat- und Verlauf-Reiter inkl.
+  des zuvor oben sitzenden Verlauf-Unterfilters — nach dessen Verschiebung
+  in den Dock-Stack ebenfalls 0 Treffer außerhalb von `.tail-scroll`).
 - **AC-P1.6-3: 🟢 erfüllt.** `[data-theme="light"]` ist über die
   Einstellungen-Seite erreichbar und ändert sichtbar Hintergrund-/
   Textfarben in der echten PWA (nicht nur im Mockup) — vorher unerreichbarer
