@@ -39,6 +39,36 @@ const results = await runContractTests(createAdapter);
 assertContractGreen(results);
 ```
 
+## Beispiel: DeepSeek (T3.14)
+
+DeepSeek braucht **keinen eigenen Adapter** — die API ist laut DeepSeeks
+eigener Dokumentation OpenAI-kompatibel, derselbe `adapter.ts` reicht, nur
+mit anderer Config:
+
+```json
+{
+  "adapters": [
+    {
+      "id": "deepseek",
+      "module": "./examples/adapters/openai-compat/adapter.ts",
+      "config": {
+        "baseUrl": "https://api.deepseek.com/v1",
+        "model": "deepseek-chat",
+        "apiKeyEnv": "DEEPSEEK_API_KEY"
+      }
+    }
+  ]
+}
+```
+
+**Ehrlich unproven:** In dieser Umgebung liegt kein `DEEPSEEK_API_KEY` vor,
+also wurde nie ein echter Request gegen `api.deepseek.com` gefahren — Adresse
+und Modellname sind aus DeepSeeks öffentlicher API-Doku übernommen, nicht
+live verifiziert. Ohne Key läuft `runCompletion()` real gegen den Endpunkt,
+bekommt aber einen echten `401`, der als `error`-Event sichtbar wird (kein
+stiller Fehlschlag) — sobald ein Key vorliegt, ist die Prüfung ein reiner
+Config-Wert, kein Codepfad, der noch fehlt.
+
 ## Regeln
 
 - Nur `@uacc/contracts` importieren — alles andere kommt über `AdapterContext`.

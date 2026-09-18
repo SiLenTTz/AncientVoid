@@ -191,16 +191,24 @@ Handy aus voll arbeitsfähig".
   API-Key in dieser Umgebung vorhanden, also kein realer LLM-Turn
   aufgezeichnet — 6/6 Tests gegen einen synthetischen Stream, nicht gegen
   eine echte Aufnahme (siehe README-Matrix-Vermerk „unproven").
-- [ ] **T3.14** Konfigurationsbeispiel „DeepSeek" über den bestehenden
+- [x] **T3.14** Konfigurationsbeispiel „DeepSeek" über den bestehenden
   `examples/adapters/openai-compat/`-Adapter (`baseUrl:
-  "https://api.deepseek.com/v1"`, `model: "deepseek-chat"` o. ä.) statt
-  eines eigenen Adapters — DeepSeek ist OpenAI-API-kompatibel, ein
-  zweiter Adapter für dasselbe Protokoll wäre unnötige Vervielfachung
+  "https://api.deepseek.com/v1"`, `model: "deepseek-chat"`) statt eines
+  eigenen Adapters — DeepSeek ist laut eigener Doku OpenAI-API-kompatibel,
+  ein zweiter Adapter für dasselbe Protokoll wäre unnötige Vervielfachung
   (dieselbe Begründung wie T1.1s Verzicht auf eine gemeinsame
-  Adapter-Bibliothek bei nur zwei echten Adaptern, umgekehrt angewandt:
-  hier *ist* schon eine gemeinsame Lösung da, sie muss nur konfiguriert
-  werden). Erfordert einen echten API-Key zur Live-Prüfung — ohne Key
-  strukturell vollständig, aber ehrlich „unproven" bis ein Key vorliegt.
+  Adapter-Bibliothek, umgekehrt angewandt: hier *ist* schon eine
+  gemeinsame Lösung da). Dokumentiert in
+  `examples/adapters/openai-compat/README.md` und real ins lokale
+  `hub.config.json` eingetragen (Erreichbarkeit, nicht nur Doku) — Hub
+  gegen eine Scratch-Config gestartet, Log real bestätigt: `[hub]
+  adapters: …, deepseek@0.1.0`, alle sechs Adapter laden ohne Fehler.
+  Ehrlich unproven bleibt nur der eigentliche LLM-Call: kein
+  `DEEPSEEK_API_KEY` in dieser Umgebung vorhanden, also nie ein echter
+  Request gegen `api.deepseek.com` gefahren — Endpunkt/Modellname aus
+  DeepSeeks öffentlicher API-Doku, nicht live verifiziert. Ohne Key
+  liefert `runCompletion()` einen echten HTTP-Fehlerstatus als sichtbares
+  `error`-Event, keinen stillen Fehlschlag.
 
 ## 5. Acceptance Criteria
 
