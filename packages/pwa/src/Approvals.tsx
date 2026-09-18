@@ -1,5 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { hubApi, type ApprovalRequest } from "./api.ts";
+import { startAuthentication } from "@simplewebauthn/browser";
+import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
 
 /**
  * T2.6 (EPIC-P2 §4 "Approval-Queue (S4) mit Zeit-schleifen-Gruppierung und
@@ -41,6 +43,23 @@ function ApprovalCard({ req, onDecided }: { req: ApprovalRequest; onDecided: () 
     }
   };
 
+  // T2.5: the real biometric path for destructive approvals — a fresh
+  // WebAuthn assertion ceremony per decision, never a cached/reused one.
+  const decideBiometric = async (decision: "approve" | "reject") => {
+    setBusy(true);
+    setError("");
+    try {
+      const options = (await hubApi.webauthnAssertOptions(req.id)) as PublicKeyCredentialRequestOptionsJSON;
+      const assertion = await startAuthentication({ optionsJSON: options });
+      await hubApi.decideApprovalBiometric(req.id, decision, assertion, reason || undefined);
+      onDecided();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Biometrische Freigabe fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div class="card approval-card">
       <div class="approval-card-head">
@@ -53,13 +72,7 @@ function ApprovalCard({ req, onDecided }: { req: ApprovalRequest; onDecided: () 
         Session {req.sessionId.slice(0, 8)} · {req.action}
       </div>
 
-      {pending && destructive && (
-        <div class="dim" style="font-size: 12px; margin-top: 6px">
-          Erfordert WebAuthn-Biometrie (T2.5) — noch nicht verfügbar, kann hier noch nicht entschieden werden.
-        </div>
-      )}
-
-      {pending && !destructive && (
+      {pending && (
         <>
           {req.reasonRequired && (
             <textarea
@@ -71,16 +84,33 @@ function ApprovalCard({ req, onDecided }: { req: ApprovalRequest; onDecided: () 
           )}
           {error && <div style="color: var(--err); font-size: 12px">{error}</div>}
           <div class="approval-actions">
-            <button
-              class="btn primary"
-              disabled={busy || (req.reasonRequired && !reason.trim())}
-              onClick={() => decide("approve")}
-            >
-              Freigeben
-            </button>
-            <button class="btn danger" disabled={busy} onClick={() => decide("reject")}>
-              Ablehnen
-            </button>
+            {destructive ? (
+              <>
+                <button
+                  class="btn primary"
+                  disabled={busy || (req.reasonRequired && !reason.trim())}
+                  onClick={() => decideBiometric("approve")}
+                >
+                  🔒 Mit Passkey freigeben
+                </button>
+                <button class="btn danger" disabled={busy} onClick={() => decideBiometric("reject")}>
+                  Ablehnen
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  class="btn primary"
+                  disabled={busy || (req.reasonRequired && !reason.trim())}
+                  onClick={() => decide("approve")}
+                >
+                  Freigeben
+                </button>
+                <button class="btn danger" disabled={busy} onClick={() => decide("reject")}>
+                  Ablehnen
+                </button>
+              </>
+            )}
           </div>
         </>
       )}

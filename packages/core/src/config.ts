@@ -50,6 +50,19 @@ export const HubConfig = z.object({
    * operator choice, not a silent default change to how every existing
    * session already behaves. */
   requireStepApprovals: z.boolean().default(false),
+  /** T2.5: WebAuthn relying-party identity for destructive approvals.
+   * Defaults suit local dev only (`localhost` origin) — a real Tailscale
+   * deployment MUST override `rpId`/`origin` to the actual MagicDNS
+   * hostname (e.g. "my-machine.tailXXXX.ts.net"), or every real
+   * registration/assertion will fail its origin check (by design: that
+   * check is what WebAuthn phishing-resistance depends on). */
+  webauthn: z
+    .object({
+      rpId: z.string().default("localhost"),
+      rpName: z.string().default("UACC"),
+      origin: z.string().default("http://localhost:7373"),
+    })
+    .default({}),
 });
 export type HubConfig = z.infer<typeof HubConfig>;
 

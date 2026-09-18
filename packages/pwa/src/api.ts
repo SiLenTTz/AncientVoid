@@ -200,6 +200,25 @@ export const hubApi = {
       method: "POST",
       body: JSON.stringify({ decision, ...(reason ? { reason } : {}) }),
     }),
+  /** T2.5: WebAuthn passkey registration + the biometric decide path for
+   * `destructive` approvals. 501 (webauthn not configured) is a real,
+   * common state — same "feature genuinely absent" handling as the
+   * approval queue's own 501. */
+  webauthnStatus: () => api<{ registered: boolean }>("/api/webauthn/status"),
+  // Fastify's JSON body parser rejects a POST with the JSON content-type
+  // header (set unconditionally by api() below) but a truly empty body —
+  // real bug found live-testing this against the actual server — so
+  // these two no-payload POSTs send an explicit empty object instead.
+  webauthnRegisterOptions: () => api<unknown>("/api/webauthn/register/options", { method: "POST", body: "{}" }),
+  webauthnRegisterVerify: (response: unknown) =>
+    api<{ ok: boolean }>("/api/webauthn/register/verify", { method: "POST", body: JSON.stringify(response) }),
+  webauthnAssertOptions: (approvalId: string) =>
+    api<unknown>(`/api/approvals/${approvalId}/webauthn/assert-options`, { method: "POST", body: "{}" }),
+  decideApprovalBiometric: (approvalId: string, decision: "approve" | "reject", response: unknown, reason?: string) =>
+    api<ApprovalRequest>(`/api/approvals/${approvalId}/webauthn/decide`, {
+      method: "POST",
+      body: JSON.stringify({ decision, response, ...(reason ? { reason } : {}) }),
+    }),
   /** T2.2 expand-on-tap: full hunks for one file, after /diff collapsed them under K3. */
   sessionDiffHunk: (id: string, path: string) =>
     api<{ path: string; hunks: DiffHunk[] }>(`/api/sessions/${id}/diff/hunk?path=${encodeURIComponent(path)}`),

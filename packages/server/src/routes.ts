@@ -1,9 +1,10 @@
-import type { FastifyInstance } from "fastify";
-import type { SessionManager, TokenService, AdapterRegistry, ApprovalService } from "@uacc/core";
+import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore } from "@uacc/core";
 import { discoverProjects, isProjectPathAllowed, scanProjectSkills } from "@uacc/core";
 import { enhancePrompt } from "./enhance.ts";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { extractToken } from "./auth.ts";
+import { createWebAuthnRoutes, type WebAuthnConfig } from "./webauthn.ts";
 import { DecideApprovalInput, ApprovalStatus } from "@uacc/contracts";
 import { z } from "zod";
 
@@ -41,9 +42,13 @@ export function registerRoutes(
      * wiring — a hub without an ApprovalService configured just doesn't
      * expose the queue routes (501, not a crash). */
     approvals?: ApprovalService;
+    /** T2.5: optional — a hub without WebAuthn configured doesn't expose
+     * the passkey routes (501), same pattern as approvals above. */
+    webauthn?: { store: WebAuthnStore; config: WebAuthnConfig };
   },
 ): void {
   const projectRoots = deps.projectRoots ?? [];
+  const webauthnRoutes = deps.webauthn ? createWebAuthnRoutes(deps.webauthn.store, deps.webauthn.config) : null;
   app.get("/api/health", async () => ({
     ok: true,
     adapters: deps.registry.list().map((a) => ({
@@ -284,6 +289,67 @@ export function registerRoutes(
         req.log.error({ err }, "applyApprovedSteer failed after a real approval");
       });
     }
+    return result.request;
+  });
+
+  // T2.5 (EPIC-P2 §3): WebAuthn passkey registration + the biometric
+  // decide path for `destructive` approvals. Identity is always the
+  // caller's own bearer device token (identify()d fresh each call) — a
+  // device can only ever register/use a passkey for itself, never for
+  // another device's label.
+  function callerLabel(req: FastifyRequest): string | null {
+    const raw = extractToken(req);
+    if (!raw) return null;
+    return deps.tokens.identify(raw)?.label ?? null;
+  }
+
+  app.get("/api/webauthn/status", async (req, reply) => {
+    if (!webauthnRoutes) return reply.code(501).send({ error: "webauthn not configured" });
+    const label = callerLabel(req);
+    if (!label) return reply.code(401).send({ error: "invalid device token" });
+    return { registered: deps.webauthn!.store.getCredential(label) !== undefined };
+  });
+
+  app.post("/api/webauthn/register/options", async (req, reply) => {
+    if (!webauthnRoutes) return reply.code(501).send({ error: "webauthn not configured" });
+    const label = callerLabel(req);
+    if (!label) return reply.code(401).send({ error: "invalid device token" });
+    return webauthnRoutes.registerOptions(label);
+  });
+
+  app.post("/api/webauthn/register/verify", async (req, reply) => {
+    if (!webauthnRoutes) return reply.code(501).send({ error: "webauthn not configured" });
+    const label = callerLabel(req);
+    if (!label) return reply.code(401).send({ error: "invalid device token" });
+    const result = await webauthnRoutes.registerVerify(label, req.body as never);
+    return result.ok ? result : reply.code(422).send(result);
+  });
+
+  app.post("/api/approvals/:id/webauthn/assert-options", async (req, reply) => {
+    if (!webauthnRoutes) return reply.code(501).send({ error: "webauthn not configured" });
+    const label = callerLabel(req);
+    if (!label) return reply.code(401).send({ error: "invalid device token" });
+    const result = await webauthnRoutes.assertOptions(label);
+    return result.ok ? result.options : reply.code(422).send(result);
+  });
+
+  const DecideBiometricBody = z.object({
+    decision: z.enum(["approve", "reject"]),
+    reason: z.string().min(1).optional(),
+    response: z.record(z.unknown()),
+  });
+
+  app.post("/api/approvals/:id/webauthn/decide", async (req, reply) => {
+    if (!webauthnRoutes || !deps.approvals) return reply.code(501).send({ error: "webauthn/approvals not configured" });
+    const { id } = req.params as { id: string };
+    const label = callerLabel(req);
+    if (!label) return reply.code(401).send({ error: "invalid device token" });
+    const parsed = DecideBiometricBody.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid biometric decision body" });
+    const verified = await webauthnRoutes.assertVerify(label, parsed.data.response as never);
+    if (!verified.ok) return reply.code(422).send(verified);
+    const result = deps.approvals.decideBiometric(id, parsed.data.decision, verified.fingerprint, label, parsed.data.reason);
+    if (!result.ok) return reply.code(422).send(result);
     return result.request;
   });
 }

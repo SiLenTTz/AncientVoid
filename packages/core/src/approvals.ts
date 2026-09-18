@@ -159,10 +159,12 @@ export class ApprovalService {
   }
 
   /**
-   * `rawDeviceToken` is the caller's already-auth-verified bearer token —
-   * never persisted, used only as HMAC key material for this one call
-   * (ADR-0007). `destructive` is refused outright: no real signature
-   * mechanism for it exists before T2.5's WebAuthn assertion.
+   * The `write`-class decision path (ADR-0007). `rawDeviceToken` is the
+   * caller's already-auth-verified bearer token — never persisted, used
+   * only as HMAC key material for this one call. `destructive` is
+   * refused outright here: decideBiometric() (T2.5) is the only path
+   * that can ever approve one, and only after a real, already-verified
+   * WebAuthn assertion — never this weaker bearer-token HMAC.
    */
   decide(
     id: string,
@@ -193,6 +195,44 @@ export class ApprovalService {
         "UPDATE approvals SET status = ?, reason = ?, decided_at = ?, decided_by_label = ?, signature = ? WHERE id = ?",
       )
       .run(status, finalReason, decidedAt, deviceLabel, signature, id);
+    return { ok: true, request: this.get(id)! };
+  }
+
+  /**
+   * T2.5: the ONLY path that can approve/reject a `destructive` request.
+   * `verifiedAssertionFingerprint` must already be the output of a real,
+   * successfully verified WebAuthn assertion (packages/server/src/
+   * webauthn.ts) — this method does no cryptographic verification itself,
+   * it only refuses to run against the wrong class and records what was
+   * already proven. Reason is always required for destructive (set at
+   * create() time), enforced the same way as the write path.
+   */
+  decideBiometric(
+    id: string,
+    decision: "approve" | "reject",
+    verifiedAssertionFingerprint: string,
+    deviceLabel: string,
+    reason?: string,
+  ): DecideResult {
+    const current = this.get(id);
+    if (!current) return { ok: false, detail: "unknown approval" };
+    if (current.status !== "pending") {
+      return { ok: false, detail: `already ${current.status}`, request: current };
+    }
+    if (current.class !== "destructive") {
+      return { ok: false, detail: "decideBiometric() is only for destructive approvals — use decide()", request: current };
+    }
+    if (decision === "approve" && current.reasonRequired && !reason?.trim()) {
+      return { ok: false, detail: "reason required for this approval", request: current };
+    }
+    const decidedAt = new Date().toISOString();
+    const status: ApprovalStatus = decision === "approve" ? "approved" : "rejected";
+    const finalReason = reason?.trim() ? reason.trim() : null;
+    this.db
+      .prepare(
+        "UPDATE approvals SET status = ?, reason = ?, decided_at = ?, decided_by_label = ?, signature = ? WHERE id = ?",
+      )
+      .run(status, finalReason, decidedAt, deviceLabel, verifiedAssertionFingerprint, id);
     return { ok: true, request: this.get(id)! };
   }
 }
