@@ -17,20 +17,40 @@ export interface SessionRecord {
   tokensEst: number;
 }
 
-/** T1.6-4/T1.6-5 — shared by the Bericht tab's file count and the Diff
- * tab's patch view. `error` names a real reason (no git repo, no changes)
- * rather than a silently empty result. */
+/** T2.2: one structured hunk — `functionContext` is git's own real
+ * function/section-context heuristic (absent for some hunks/languages,
+ * never guessed when missing). `collapsed` means `body` is a short
+ * preview under K3, not the full hunk — fetch the rest via
+ * `hubApi.sessionDiffHunk()`. */
+export interface DiffHunk {
+  header: string;
+  functionContext: string | null;
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  body: string;
+  collapsed: boolean;
+}
+
+/** T1.6-4/T1.6-5 → T2.2 — shared by the Bericht tab's file count and the
+ * Diff tab's patch view. `error` names a real reason (no git repo, no
+ * changes) rather than a silently empty result. */
 export interface SessionDiffFile {
   path: string;
   additions: number;
   deletions: number;
   binary: boolean;
+  hunks: DiffHunk[];
 }
 
 export interface SessionDiffResult {
   files: SessionDiffFile[];
   patch: string;
   truncated: boolean;
+  /** T2.2: the real ref this diff was computed against — the session's
+   * worktree base_sha (T2.1) when isolated, else the literal "HEAD". */
+  baseRef: string;
   error?: string;
 }
 
@@ -148,6 +168,9 @@ export const hubApi = {
   sessions: () => api<SessionRecord[]>("/api/sessions"),
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
   sessionDiff: (id: string) => api<SessionDiffResult>(`/api/sessions/${id}/diff`),
+  /** T2.2 expand-on-tap: full hunks for one file, after /diff collapsed them under K3. */
+  sessionDiffHunk: (id: string, path: string) =>
+    api<{ path: string; hunks: DiffHunk[] }>(`/api/sessions/${id}/diff/hunk?path=${encodeURIComponent(path)}`),
   events: (id: string, afterSeq = 0, limit = 500) =>
     api<{ seq: number; type: string; summary: string; ts: string; payload: unknown; blobRef: string | null }[]>(
       `/api/sessions/${id}/events?afterSeq=${afterSeq}&limit=${limit}`,

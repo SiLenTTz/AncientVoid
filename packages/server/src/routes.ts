@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { SessionManager, TokenService, AdapterRegistry } from "@uacc/core";
 import { discoverProjects, isProjectPathAllowed, scanProjectSkills } from "@uacc/core";
 import { enhancePrompt } from "./enhance.ts";
-import { getSessionDiff } from "./diff.ts";
+import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { z } from "zod";
 
 const EnhancePromptBody = z.object({
@@ -169,10 +169,31 @@ export function registerRoutes(
     // at session-creation time — no client-supplied path here, so no
     // second isProjectPathAllowed() call is needed (unlike /api/skills or
     // /api/prompt-enhance, which take project fresh from the request body).
+    // T2.2: diff the session's real live workdir (the T2.1 worktree when
+    // isolation succeeded) against its real base_sha, not always the raw
+    // project path against HEAD.
     const { id } = req.params as { id: string };
     const session = deps.sessions.get(id);
     if (!session) return reply.code(404).send({ error: "unknown session" });
-    return getSessionDiff(session.project);
+    const workdir = deps.sessions.workdirOf(id) ?? session.project;
+    return getSessionDiff(workdir, session.worktreeSha);
+  });
+
+  app.get("/api/sessions/:id/diff/hunk", async (req, reply) => {
+    // T2.2 expand-on-tap: re-fetch one file's hunks in full after the main
+    // /diff response collapsed them under K3. Same trust boundary as
+    // /diff above (session.project/workdir are already vetted; `path` is
+    // only ever passed to `execFile` with an argument array, never a
+    // shell, so it cannot inject a command — it can only ask git about a
+    // path that doesn't exist, which git reports as an empty result).
+    const { id } = req.params as { id: string };
+    const q = req.query as { path?: string };
+    if (!q.path || q.path.includes("..")) return reply.code(400).send({ error: "invalid path" });
+    const session = deps.sessions.get(id);
+    if (!session) return reply.code(404).send({ error: "unknown session" });
+    const workdir = deps.sessions.workdirOf(id) ?? session.project;
+    const hunks = await getSessionFileHunks(workdir, q.path, session.worktreeSha);
+    return { path: q.path, hunks };
   });
 
   app.get("/api/sessions/:id/blobs/:hash", async (req, reply) => {

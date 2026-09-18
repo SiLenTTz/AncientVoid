@@ -259,7 +259,7 @@ describe("hub server", () => {
     });
     expect(res.statusCode).toBe(200);
     const body = res.json() as { files: { path: string; additions: number }[]; patch: string };
-    expect(body.files).toEqual([{ path: "a.txt", additions: 1, deletions: 0, binary: false }]);
+    expect(body.files).toMatchObject([{ path: "a.txt", additions: 1, deletions: 0, binary: false }]);
     expect(body.patch).toContain("+two");
     await rm(repo, { recursive: true, force: true });
   });

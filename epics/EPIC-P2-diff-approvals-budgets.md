@@ -86,7 +86,26 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
   aufgerufen (keine automatische Park-Aktion bei Überschreitung) — die
   Prüfung existiert und ist getestet, ist aber nicht in einen
   Hintergrund-Task eingehängt.
-- [ ] **T2.2** Diff-Engine + Funktions-Anker-Heuristik + K3-Kompression mit Fallback
+- [x] **T2.2** Diff-Engine + Funktions-Anker-Heuristik + K3-Kompression mit Fallback.
+  `packages/server/src/diff.ts` real erweitert: diffed jetzt gegen den
+  echten `worktreeSha` (T2.1) statt immer nur gegen `HEAD` — echte
+  Route (`GET /api/sessions/:id/diff`) nutzt `sessions.workdirOf(id)` +
+  `session.worktreeSha`, nicht mehr `session.project` direkt (sonst hätte
+  T2.1s Isolation die Diff-Anzeige stillschweigend leer gemacht — real
+  gefundene Regression, in derselben Änderung mitbehoben). Strukturierte
+  Hunks pro Datei mit **Funktions-Anker aus gits eigener, echter
+  Funcname-Heuristik** (Text nach dem zweiten `@@`), bewusst kein
+  eigener ctags-/Regex-Parser — echt gegen git-Verhalten getestet (auch
+  ein realer Fallstrick dabei entdeckt: dieser Rechner nutzt `c/`/`w/`
+  statt `a/`/`b/`-Diff-Präfixe, ein präfix-ratender Parser wäre kaputt
+  gewesen). K3: Payload > 50 KB kollabiert Hunk-Bodies auf eine 3-Zeilen-
+  Vorschau (`collapsed: true`), neue Route
+  `GET /api/sessions/:id/diff/hunk?path=…` liefert den vollen Hunk fürs
+  Expand-on-Tap (`getSessionFileHunks`). 11 Tests
+  (`packages/server/test/diff.test.ts`, alle gegen echte Git-Repos, u. a.
+  ein echter > 50 KB-Diff, der das Kollabieren real auslöst). PWA-Typen
+  (`packages/pwa/src/api.ts`) um `DiffHunk`/`baseRef`/`sessionDiffHunk()`
+  erweitert — die tatsächliche Hunk-Karten-UI ist T2.3.
 - [ ] **T2.3** Diff-UI (S3): Hunk-Karten, Tap-Expand, Querformat side-by-side.
   Baut auf dem rohen Diff-Reiter aus P1.6 (T1.6-5) auf und hält sich an
   [`docs/design-system.md`](../docs/design-system.md) statt neuer Hex-Werte.
