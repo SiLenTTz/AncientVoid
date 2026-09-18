@@ -49,12 +49,15 @@ Ollama, vLLM). Anleitung: [`CONTRIBUTING.md`](./CONTRIBUTING.md) und
 | Adapter | Typ | Reasoning | Tools | Cost | Steer | Kontingent | Status | Phase |
 |---|---|---|---|---|---|---|---|---|
 | `dummy` | synthetisch | ✓ | ✓ | — | ✓ | — | proven | P0 |
-| `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | ✓ | unproven | P1 |
-| `codex` | CLI (exec JSON) | ✓ | ✓ | ~ | ✓ | — | unproven | P1 |
+| `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | ✓ | proven | P1 |
+| `codex` | CLI (exec JSON) | ✓ | ✓ | ~ | ✓ | — | proven | P1 |
+| `opencode` | CLI (`--format json`) | ✓ | ✓ | ✓ | ✓ | — | proven | P3 |
 | `copilot` | CLI + SDK | ~ | ✓ | ~ | ~ | ? | unproven | P3 |
-| `swarm` | eigene Event-API | ✓ | ✓ | ✓ | ✓ | ? | geplant | P3 |
-| `zai` | API-Router :8788 | ✓ | ✓ | ~ | ✓ | ? | geplant | P3 |
-| `local-llm` | OpenAI-kompatibel | ✓ | — | — | ✓ | — | Vorlage bereit | P3 |
+| `swarm` | custom-rag Coding-Swarm REST | ✓ | ✓ | ✓ | ✓ | ? | geplant (Spec real, keine Live-Instanz) | P3 |
+| ~~`zai`~~ | — | — | — | — | — | — | **entfällt** — real läuft über `opencode` (Provider `zai-coding-plan`) | P3 |
+| `local-llm` | OpenAI-kompatibel | ✓ | — | — | ✓ | — | Vorlage bereit (keine lokale Instanz zum Prüfen) | P3 |
+| `deepseek` | OpenAI-kompatibel (`api.deepseek.com`) | ✓ | — | — | ✓ | — | Vorlage bereit (kein API-Key zum Prüfen) | P3 |
+| `aider` | CLI (`--message`, Plaintext) | — | ✓ | — | ✓ | — | strukturell gebaut, unproven (kein API-Key/kein realer LLM-Turn hier möglich) | P3 |
 | `cursor-clip` | state.vscdb (read-only) | ~ | — | — | **nein** | — | may-break | P3 |
 
 Kontingent (`capabilities().usage`, [ADR-0004](docs/adr/0004-account-level-usage-quota.md)):
