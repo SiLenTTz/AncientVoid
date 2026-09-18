@@ -1,6 +1,7 @@
 # EPIC-P2 — Diff-Ansicht, Approval-Gates, Budgets, Messlatten im CI
 
-**Status:** offen · **Phase:** P2 · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** P1 grün
+**Status:** grün (T2.1–T2.10 umgesetzt, AC-P2-1 mit benannter Teillücke —
+siehe §5) · **Phase:** P2 · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** P1 grün
 
 ---
 
@@ -385,3 +386,46 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
 
 Alle ACs + CI-Gates grün und blockierend + PR-Template mit Fail-closed-Checkliste aktiv +
 Sicherheits-Walkthrough dokumentiert (Bedrohungsliste aus PRD §8 abgehakt).
+
+### Sicherheits-Walkthrough (PRD §8, Stand Ende P2)
+
+1. **Netz — Kein öffentlicher Port, Tailscale-only.** 🟢 `packages/server/
+   src/main.ts` bindet standardmäßig `127.0.0.1`, öffentliches Binden nur
+   über das explizite `UACC_EXPOSE=1`-Opt-in (seit P0, unverändert). PWA-
+   Auth: Tailnet-Identität (`enforceTailnetIdentity` + `TAILSCALE_LOGIN_
+   HEADER`-Prüfung in `auth.ts`) + Device-Token (`TokenService`) + optional
+   WebAuthn (T2.5, real, diese Phase).
+2. **Approval-Klassen (read frei / write bestätigungspflichtig / destruktiv
+   biometrisch + Begründungsfeld + Audit-Log).** 🟢 T2.4 (Klassen-Engine,
+   Signatur, Timeout fail-closed), T2.5 (echte WebAuthn-Biometrie für
+   `destructive`), T2.8 (jede Entscheidung — genehmigt oder abgelehnt — auf
+   dem Session-Tail). Alle drei real Ende-zu-Ende getestet (Playwright +
+   echter virtueller Authenticator für die Biometrie-Klasse).
+3. **Befehls-Allowlist — nie freie Shell vom Handy.** 🟢 Geprüft: keine
+   Route in `packages/server/src/routes.ts` reicht client-geliefertes
+   Freitext an `execFile`/`spawn` durch — `diff.ts`s `execFile`-Aufrufe
+   nehmen ausschließlich serverseitig aufgelöste Pfade/Refs, nie rohen
+   Client-Text; jeder Adapter-Aufruf läuft über `ctx.spawnWorker` mit vom
+   Adapter selbst konstruierten Argumenten, validiert durch
+   `SessionSpec`/`SteerInput`-Zod-Schemas (`CreateSessionBody`,
+   `SteerBody`).
+4. **Audit — jede Handy-Aktion im Session-JSONL (wer-wann-was).** 🟢 T2.8,
+   diese Phase: `actor` durchgereicht durch alle mutierenden Pfade,
+   `session.approval_decided` für jede Freigabe-Entscheidung inkl.
+   Ablehnung. Ehrliche Grenze: `read`-Aktionen (Suche, Diff ansehen, Tail
+   lesen) sind laut Design bewusst frei/unauditiert — Audit deckt
+   Aktionen ab, nicht Lesezugriffe.
+5. **Prompt-Injection-Grenze — Agenten-Output ist Daten, nie Instruktion.**
+   🟢 Geprüft: kein `dangerouslySetInnerHTML`/`innerHTML` irgendwo in
+   `packages/pwa/src/*.tsx` — jeder Event-`payload`/`summary`-Wert
+   durchläuft Preacts normales (auto-escapendes) JSX-Rendering, nie rohes
+   HTML.
+6. **Kosten-Governance — BudgetState pro Session/Tag, Überschreitung parkt
+   statt still weiterzulaufen.** 🟢 T2.7, **nach einem in dieser Phase
+   selbst gefundenen und behobenen Fail-closed-Bug** (`parkFor()` signalte
+   den Adapter ursprünglich nicht real, siehe T2.10-Commit) — jetzt real
+   fail-closed getestet (Regressionstest: `costUsd` bewegt sich nach dem
+   Parken nachweislich nicht mehr).
+
+**Ergebnis:** 6/6 Punkte real erfüllt und mit Beleg (Test, Datei:Zeile oder
+Messlauf) unterlegt — keiner nur behauptet.
