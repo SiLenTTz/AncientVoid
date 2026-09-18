@@ -21,6 +21,7 @@
     "loadtest": "node scripts/loadtest.mjs",
     "messlauf:hubctl-latency": "node scripts/messlauf-hubctl-latency.mjs",
     "messlauf:approve-latency": "node scripts/messlauf-approve-latency.mjs",
+    "check:adapter-matrix": "node scripts/check-adapter-matrix.mjs",
     "hubctl": "node packages/hubctl/src/cli.ts"
   },
   "devDependencies": {
