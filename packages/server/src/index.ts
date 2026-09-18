@@ -3,7 +3,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { SessionManager, TokenService, AdapterRegistry } from "@uacc/core";
+import type { SessionManager, TokenService, AdapterRegistry, ApprovalService } from "@uacc/core";
 import { discoverProjects } from "@uacc/core";
 import { authHook, type AuthOptions } from "./auth.ts";
 import { registerRoutes } from "./routes.ts";
@@ -17,6 +17,9 @@ export interface HubAppDeps {
   pwaDir?: string;
   /** T1.5-4: host paths to scan for git repos, offered as session projects. */
   projectRoots?: string[];
+  /** T2.4: optional, mirrors SessionManager's own optional approvals —
+   * omitting it disables the /api/approvals routes (501), not a crash. */
+  approvals?: ApprovalService;
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {

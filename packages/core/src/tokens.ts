@@ -35,6 +35,17 @@ export class TokenService {
     return true;
   }
 
+  /** T2.4: like `verify()`, but returns the matched token's label instead
+   * of a bare boolean — used to attribute an approval decision to a real
+   * device (`ApprovalRequest.decidedByLabel`) without ever persisting the
+   * raw token itself. */
+  identify(token: string): { label: string } | null {
+    const row = this.db
+      .prepare("SELECT label FROM device_tokens WHERE token_hash = ?")
+      .get(hashToken(token)) as { label: string } | undefined;
+    return row ?? null;
+  }
+
   list(): { label: string; createdAt: string; lastUsedAt: string | null }[] {
     return this.db
       .prepare("SELECT label, created_at, last_used_at FROM device_tokens ORDER BY created_at")

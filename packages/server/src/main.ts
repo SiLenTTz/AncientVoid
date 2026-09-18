@@ -11,6 +11,7 @@ import { resolve } from "node:path";
 import type { WorkerRunner } from "@uacc/contracts";
 import {
   AdapterRegistry,
+  ApprovalService,
   EventStore,
   HubDatabase,
   SessionManager,
@@ -61,7 +62,20 @@ async function main(): Promise<void> {
   // WorktreeManager's own doc comment for why that's a named fallback, not
   // a silent gap.
   const worktrees = new WorktreeManager(resolve(dataDir, "worktrees"));
-  const sessions = new SessionManager(db, store, registry, runner, undefined, worktrees);
+  // T2.4: the queue + its REST routes are always real and reachable
+  // (config.requireStepApprovals only controls whether SessionManager
+  // actually gates steer(prompt) behind it) — see HubConfig's own doc
+  // comment for why the gate itself defaults off.
+  const approvals = new ApprovalService(db);
+  const sessions = new SessionManager(
+    db,
+    store,
+    registry,
+    runner,
+    undefined,
+    worktrees,
+    config.requireStepApprovals ? approvals : undefined,
+  );
 
   // K7: recover sessions from JSONL + snapshots before accepting traffic.
   const recovery = await sessions.recoverAll();
@@ -79,6 +93,7 @@ async function main(): Promise<void> {
     },
     ...(config.server.pwaDir ? { pwaDir: resolve(config.server.pwaDir) } : {}),
     projectRoots: config.projectRoots.map((root) => resolve(root)),
+    approvals,
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.UACC_EXPOSE === "1"

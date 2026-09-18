@@ -19,6 +19,7 @@ import type { EventStore } from "./eventstore.ts";
 import type { AdapterRegistry } from "./registry.ts";
 import type { HubDatabase } from "./db.ts";
 import type { WorktreeManager } from "./worktree.ts";
+import type { ApprovalService } from "./approvals.ts";
 
 /**
  * Session lifecycle manager.
@@ -110,12 +111,22 @@ export interface AdapterUsageSnapshot {
 export class SessionManager {
   private readonly live = new Map<string, LiveSession>();
   private readonly usageByAdapter = new Map<string, AdapterUsageSnapshot>();
+  /** T2.4: steer inputs parked behind a pending write-class approval,
+   * keyed by ApprovalRequest.id — applied for real only once the decide
+   * route reports a genuine "approved" (see applyApprovedSteer). Not
+   * K7-persisted: a hub crash while an approval is still pending loses
+   * the queued prompt along with it, same as any other in-flight,
+   * not-yet-applied user action would be — the ApprovalRequest itself
+   * (in SQLite) still shows what was asked for, it just can no longer be
+   * carried out after a restart. Documented here, not silently assumed. */
+  private readonly pendingSteers = new Map<string, { sessionId: string; input: SteerInput }>();
 
   private readonly db: HubDatabase;
   private readonly store: EventStore;
   private readonly registry: AdapterRegistry;
   private readonly runner: WorkerRunner;
   private readonly worktrees: WorktreeManager | undefined;
+  private readonly approvals: ApprovalService | undefined;
   private readonly heartbeatTimer: NodeJS.Timeout;
   private heartbeatRunning = false;
 
@@ -129,12 +140,17 @@ export class SessionManager {
      * using a non-git temp dir as `project`) keeps the exact pre-P2
      * behavior: sessions run directly in `record.project`, no isolation. */
     worktrees?: WorktreeManager,
+    /** T2.4: optional — omitting it keeps steer()'s exact pre-P2 behavior
+     * (forwarded to the adapter immediately, no approval gate). Every
+     * existing call site predates this and stays unaffected. */
+    approvals?: ApprovalService,
   ) {
     this.db = db;
     this.store = store;
     this.registry = registry;
     this.runner = runner;
     this.worktrees = worktrees;
+    this.approvals = approvals;
     // T1.9 (AC-P1-5): poll each live adapter's own status() on a timer,
     // not just react to its worker process exiting. A hard-killed process
     // already surfaces via WorkerProcess.onExit (see makeContext below),
@@ -313,8 +329,44 @@ export class SessionManager {
     const session = this.live.get(sessionId);
     if (!session || !session.handle) return { ok: false, detail: "session not live" };
     if (input.kind === "stop") return this.stop(sessionId);
+    // T2.4/ADR-0007: "Steer-Prompt" is explicitly a write-class action
+    // (EPIC-P2 §3 table) once an ApprovalService is configured — parked,
+    // not forwarded, until a real approval decision comes back through
+    // applyApprovedSteer(). `stop`/`park`/`resume` stay ungated: EPIC-P2's
+    // class table lists commit/session-start/steer-prompt as the
+    // write-class examples, not "make the agent stop".
+    if (this.approvals && input.kind === "prompt") {
+      const req = this.approvals.create(
+        sessionId,
+        "write",
+        "steer.prompt",
+        `Prompt an ${session.record.adapter} senden: "${input.text.slice(0, 160)}"`,
+      );
+      this.pendingSteers.set(req.id, { sessionId, input });
+      await this.emitSystem(session, "session.steer_pending_approval", { approvalId: req.id });
+      return { ok: false, detail: `pending approval ${req.id}` };
+    }
     const ack = await session.adapter.steer(session.handle, input, this.makeContext(session));
     await this.emitSystem(session, "session.steer", { kind: input.kind, ok: ack.ok });
+    return ack;
+  }
+
+  /**
+   * T2.4: the one place a write-class steer actually reaches the adapter
+   * once approved — called by the /api/approvals/:id/decide route right
+   * after ApprovalService.decide() reports a genuine "approved" (never
+   * called speculatively, never called for a rejection). A missing entry
+   * (unknown approvalId, or the session ended while the approval sat
+   * pending) is a real, nameable outcome, not a crash.
+   */
+  async applyApprovedSteer(approvalId: string): Promise<Ack> {
+    const pending = this.pendingSteers.get(approvalId);
+    if (!pending) return { ok: false, detail: "no pending steer for this approval" };
+    this.pendingSteers.delete(approvalId);
+    const session = this.live.get(pending.sessionId);
+    if (!session || !session.handle) return { ok: false, detail: "session not live" };
+    const ack = await session.adapter.steer(session.handle, pending.input, this.makeContext(session));
+    await this.emitSystem(session, "session.steer", { kind: pending.input.kind, ok: ack.ok, approvalId });
     return ack;
   }
 

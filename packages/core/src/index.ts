@@ -8,6 +8,7 @@ export {
 export { scanProjectSkills, type SkillOrAgent } from "./skills.ts";
 export { SessionManager, hashToken, type AdapterUsageSnapshot } from "./sessionmanager.ts";
 export { WorktreeManager } from "./worktree.ts";
+export { ApprovalService, type DecideResult } from "./approvals.ts";
 export { AdapterRegistry, type RegisteredAdapter } from "./registry.ts";
 export { HubDatabase, MIGRATIONS, type Migration } from "./db.ts";
 export { TokenService, type IssuedToken } from "./tokens.ts";

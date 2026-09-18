@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
 import { WebSocket } from "ws";
-import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService } from "@uacc/core";
+import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService, ApprovalService } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
 import { createHubApp } from "../src/index.ts";
@@ -65,6 +65,15 @@ describe("hub server", () => {
   it("still gates every /api/ path, including ones added after auth.ts's exemption list", async () => {
     const res = await app.inject({ method: "GET", url: "/api/sessions/does-not-exist/events" });
     expect(res.statusCode).toBe(401);
+  });
+
+  it("T2.4: /api/approvals answers a real 501 when no ApprovalService is configured, not a crash or a 404", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/approvals",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(501);
   });
 
   it("rejects invalid tokens (401)", async () => {
@@ -552,6 +561,197 @@ describe("hub server — GET /api/skills (T1.5-10)", () => {
       await app.close().catch(() => undefined);
       await cleanup();
       await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("hub server — approval queue, real end-to-end (T2.4/T2.6, ADR-0007)", () => {
+  async function buildApp() {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-approvals-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, {});
+    const approvals = new ApprovalService(db, 60_000);
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner(), undefined, undefined, approvals);
+    const tokens = new TokenService(db);
+    const app = await createHubApp({
+      sessions,
+      tokens,
+      registry,
+      auth: { tokens, enforceTailnetIdentity: false },
+      approvals,
+    });
+    return { app, tokens, approvals, cleanup: () => rm(dir, { recursive: true, force: true }) };
+  }
+
+  it("a steer(prompt) is parked as a pending write-class approval instead of reaching the adapter immediately", async () => {
+    const { app, tokens, cleanup } = await buildApp();
+    try {
+      const deviceToken = tokens.issue("reviewer-phone").token;
+      const created = await app.inject({
+        method: "POST",
+        url: "/api/sessions",
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { adapter: "dummy", project: "/tmp" },
+      });
+      const { id: sessionId } = created.json() as { id: string };
+
+      const steer = await app.inject({
+        method: "POST",
+        url: `/api/sessions/${sessionId}/steer`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { kind: "prompt", text: "refactor the auth flow" },
+      });
+      expect(steer.statusCode).toBe(422); // ack.ok === false, same as any other rejected steer
+      expect((steer.json() as { detail?: string }).detail).toMatch(/pending approval/);
+
+      const list = await app.inject({
+        method: "GET",
+        url: "/api/approvals?status=pending",
+        headers: { authorization: `Bearer ${deviceToken}` },
+      });
+      const pending = list.json() as { id: string; class: string; action: string; sessionId: string }[];
+      expect(pending).toHaveLength(1);
+      expect(pending[0]!.class).toBe("write");
+      expect(pending[0]!.action).toBe("steer.prompt");
+      expect(pending[0]!.sessionId).toBe(sessionId);
+
+      // Not yet applied — the adapter never saw the prompt.
+      const eventsBefore = await app.inject({
+        method: "GET",
+        url: `/api/sessions/${sessionId}/events`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+      });
+      expect(JSON.stringify(eventsBefore.json())).not.toContain("refactor the auth flow");
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
+
+  it("approving the pending request really forwards the prompt to the adapter, signed by the approving device", async () => {
+    const { app, tokens, cleanup } = await buildApp();
+    try {
+      const creatorToken = tokens.issue("reviewer-phone").token;
+      const approverToken = tokens.issue("second-device").token;
+      const created = await app.inject({
+        method: "POST",
+        url: "/api/sessions",
+        headers: { authorization: `Bearer ${creatorToken}` },
+        payload: { adapter: "dummy", project: "/tmp" },
+      });
+      const { id: sessionId } = created.json() as { id: string };
+      await app.inject({
+        method: "POST",
+        url: `/api/sessions/${sessionId}/steer`,
+        headers: { authorization: `Bearer ${creatorToken}` },
+        payload: { kind: "prompt", text: "refactor the auth flow" },
+      });
+      const pendingList = (
+        await app.inject({
+          method: "GET",
+          url: "/api/approvals?status=pending",
+          headers: { authorization: `Bearer ${creatorToken}` },
+        })
+      ).json() as { id: string }[];
+      const approvalId = pendingList[0]!.id;
+
+      const decide = await app.inject({
+        method: "POST",
+        url: `/api/approvals/${approvalId}/decide`,
+        headers: { authorization: `Bearer ${approverToken}` },
+        payload: { decision: "approve" },
+      });
+      expect(decide.statusCode).toBe(200);
+      const decided = decide.json() as { status: string; decidedByLabel: string; signature: string | null };
+      expect(decided.status).toBe("approved");
+      expect(decided.decidedByLabel).toBe("second-device"); // real device attribution, not the creator
+      expect(decided.signature).not.toBeNull();
+
+      // Real proof the adapter actually received it now (dummy emits a
+      // "user" event echoing the steered text — see adapter-dummy/src/index.ts).
+      let sawIt = false;
+      for (let i = 0; i < 40 && !sawIt; i++) {
+        const events = await app.inject({
+          method: "GET",
+          url: `/api/sessions/${sessionId}/events`,
+          headers: { authorization: `Bearer ${creatorToken}` },
+        });
+        sawIt = JSON.stringify(events.json()).includes("refactor the auth flow");
+        if (!sawIt) await new Promise((r) => setTimeout(r, 25));
+      }
+      expect(sawIt).toBe(true);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
+
+  it("rejecting the pending request never forwards the prompt", async () => {
+    const { app, tokens, cleanup } = await buildApp();
+    try {
+      const deviceToken = tokens.issue("reviewer-phone").token;
+      const created = await app.inject({
+        method: "POST",
+        url: "/api/sessions",
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { adapter: "dummy", project: "/tmp" },
+      });
+      const { id: sessionId } = created.json() as { id: string };
+      await app.inject({
+        method: "POST",
+        url: `/api/sessions/${sessionId}/steer`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { kind: "prompt", text: "delete everything" },
+      });
+      const approvalId = (
+        (
+          await app.inject({
+            method: "GET",
+            url: "/api/approvals?status=pending",
+            headers: { authorization: `Bearer ${deviceToken}` },
+          })
+        ).json() as { id: string }[]
+      )[0]!.id;
+
+      const decide = await app.inject({
+        method: "POST",
+        url: `/api/approvals/${approvalId}/decide`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { decision: "reject", reason: "not now" },
+      });
+      expect((decide.json() as { status: string }).status).toBe("rejected");
+
+      await new Promise((r) => setTimeout(r, 100));
+      const events = await app.inject({
+        method: "GET",
+        url: `/api/sessions/${sessionId}/events`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+      });
+      expect(JSON.stringify(events.json())).not.toContain("delete everything");
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
+
+  it("AC-P2-5-adjacent: a destructive approval is refused with 422 through the real route, never silently approved", async () => {
+    const { app, tokens, approvals, cleanup } = await buildApp();
+    try {
+      const deviceToken = tokens.issue("reviewer-phone").token;
+      const req = approvals.create("some-session", "destructive", "force-push", "force-push origin main");
+      const decide = await app.inject({
+        method: "POST",
+        url: `/api/approvals/${req.id}/decide`,
+        headers: { authorization: `Bearer ${deviceToken}` },
+        payload: { decision: "approve", reason: "CI is broken" },
+      });
+      expect(decide.statusCode).toBe(422);
+      expect(JSON.stringify(decide.json())).toMatch(/WebAuthn/);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
     }
   });
 });

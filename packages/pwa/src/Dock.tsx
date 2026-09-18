@@ -1,4 +1,10 @@
-export type Page = "dashboard" | "new" | "settings";
+// T2.6: "approvals" is a real destination (App.tsx renders ApprovalQueuePane
+// for it) reached from the Dashboard's pending-approvals banner, not from
+// the dock — the dock's four slots already match the T1.6 mockup exactly,
+// and EPIC-P2 never asked for a fifth. `active` simply never highlights any
+// dock button while this page is open (same as `active === null` inside a
+// session tail).
+export type Page = "dashboard" | "new" | "settings" | "approvals";
 
 /**
  * T1.6-2/3: the one global bottom-nav row, shared by App.tsx (as the whole
