@@ -363,21 +363,31 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   eingefärbt, transparente Spur) auf jeder echten Scroll-Fläche der App
   (`html`/`body`-Hauptseite, `.tail-scroll`, `.overlay-sheet`,
   `.diff-code`, `.enhance-preview-text`) via `scrollbar-color` (Firefox-
-  Engine) + `::-webkit-scrollbar*`. Status-Glow auf `.session-card`:
-  `st-working` (sanftes Grün-Pulsieren, `--glow-dur`) und `st-waiting`
-  (dringlicheres Gelb-Pulsieren, 0,6×`--glow-dur`) — beide ausschließlich
-  `box-shadow`-Animationen (compositor-freundlich, kein Reflow), Werte aus
-  T1.6-1s `--glow-blur`/`--glow-dur`-Tokens, nicht neu erfunden.
-  `prefers-reduced-motion: reduce` schaltet beide Animationen komplett ab
-  (nicht nur langsamer) und ersetzt sie durch einen statischen Rand in der
-  jeweiligen Statusfarbe. **Live geprüft** (Playwright, echte Sessions):
-  `getComputedStyle(...).animationName` einer echten `working`-Session-
-  Karte liefert real `uacc-glow-good` mit `animationDuration: 1.6s`
-  (`t1.6-8-dashboard-glow-active.png`, sichtbarer grüner Ring bei
-  Zwischenstand der Pulsierung); unter emuliertem
-  `prefers-reduced-motion: reduce` liefert dieselbe Prüfung real `none`.
-  `scrollbar-color` löst real zur Akzentfarbe auf (`getComputedStyle`
-  bestätigt `color(srgb 1 0.6 0.24 / .55)`). Gates: `npm test` 142/142,
+  Engine) + `::-webkit-scrollbar*`. Status-Glow auf `.session-card`.
+  **Überarbeitet nach echtem Live-Feedback am fertigen Handy-Test:** die
+  erste Fassung war ein pulsierender `box-shadow` um die ganze Karte
+  (`uacc-glow-good`/`-warn`) — auf Wunsch ersetzt durch ein Licht, das
+  tatsächlich am Kartenrand entlangläuft (`uacc-border-chase`), statt
+  gleichmäßig zu pulsieren. Umgesetzt als rotierendes `::after` mit
+  **statischem** `conic-gradient` (nicht animiert) und `-webkit-mask`/
+  `mask-composite: exclude`, um nur den Rand sichtbar zu machen — die
+  **einzige** animierte Eigenschaft ist eine `@property --uacc-glow-angle`
+  (registriert als `<angle>` für weiche Interpolation), rotiert über
+  `transform`-äquivalente Compositor-Arbeit, kein Paint/Mask-Neuaufbau pro
+  Frame (derselbe K2-Maßstab wie die vorige Pulsieren-Fassung). Ein
+  statischer, unanimierter Ambient-`box-shadow` sorgt zusätzlich für
+  weiches Bloom dahinter. `st-working` (Grün, `--glow-dur`) und
+  `st-waiting` (Gelb, 0,55×`--glow-dur`, dringlicher). `prefers-reduced-
+  motion: reduce` entfernt das `::after` komplett (`content:none`) statt
+  es nur zu verlangsamen, und ersetzt es durch einen statischen Rand.
+  **Live geprüft** (Playwright, echte `working`-Session): zwei
+  Screenshots im zeitlichen Abstand zeigen den hellen Bogen sichtbar an
+  unterschiedlichen Rand-Positionen (`border-chase-1.png` oben-links,
+  `border-chase-2.png` unten) — es läuft tatsächlich um die Karte, kein
+  statischer Effekt; `getComputedStyle(...,"::after")` bestätigt real
+  `animationName: uacc-border-chase`; unter emuliertem `reduced-motion`
+  liefert dieselbe Prüfung real `content:"none"`. `scrollbar-color` löst
+  weiterhin real zur Akzentfarbe auf. Gates: `npm test` 142/142,
   `lint`/`typecheck`, PWA `build`/`typecheck` grün.
 - [x] **T1.6-9** K2-Regressionslauf + vollständige Migrations-Verifikation.
   **K2:** dritter Lauf dieser Session-Reihe (P1 → P1.5 → P1.6), 18131/18131
