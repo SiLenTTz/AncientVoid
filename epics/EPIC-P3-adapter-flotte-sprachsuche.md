@@ -114,9 +114,19 @@ Handy aus voll arbeitsfähig".
 - [ ] **T3.1** Adapter `swarm` inkl. Gate-Ergebnis-Mapping auf Approval-Queue.
   Kontext (WorkItem-Felder, Event-/Live-Bus-Format, Allowlist-Sicherheitsmuster):
   [`docs/adr/0001-swarm-adapter-context.md`](../docs/adr/0001-swarm-adapter-context.md).
-  **Abhängigkeit:** `SteerInput` kennt bisher kein "approve/reject Gate X" —
-  das Gate-Ergebnis-Mapping ist erst sauber lösbar, sobald P2 eine
-  Approval-Queue-Abstraktion bereitstellt.
+  Die ursprüngliche **Abhängigkeit ist aufgelöst**: P2 (T2.4/T2.5) liefert
+  jetzt eine echte Approval-Queue-Abstraktion. **Trotzdem noch nicht
+  gebaut** — real gegen `custom-rag` erneut geprüft (2026-09-18, siehe
+  ADR-0001-Nachtrag): die Struktur existiert, ist aber an mehreren Stellen
+  seit der ursprünglichen ADR-Notiz weitergezogen (reale Pfade, reale
+  Freigabe-Route `/decisions` statt `/decide`, `Depends(require_admin)`
+  auf jeder Route — ein eigenes, hier nicht vorhandenes Admin-Credential
+  nötig). Vor allem: das reale `RunEvent.kind`-Vokabular war in der für
+  diese Session verfügbaren Zeit nicht auffindbar — ein Normalizer ohne
+  diese echten Werte wäre ein geratenes Mapping (R9.7-Verstoß), das
+  reale Events später still falsch kategorisieren würde. Realer,
+  korrigierter Fahrplan für den nächsten Versuch steht im
+  ADR-0001-Nachtrag.
 - [x] **T3.2** ~~Adapter `zai`~~ **entfällt als eigener Adapter** — kein
   lokaler Nemesis-Router existiert real (siehe Vorbemerkung). Zai-Zugriff
   (Modelle `glm-4.7`…`glm-5.3-highspeed`, Provider `zai-coding-plan`)

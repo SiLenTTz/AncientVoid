@@ -100,3 +100,52 @@ T3.1 ist damit nicht unabhängig von P2 umsetzbar — siehe Vermerk in
   oder als zwei Teilschritte geplant werden: (1) Event-Mapping ohne
   Steer-Erweiterung, (2) Approval-Integration nach P2.
 - Vor Umsetzung: Pfade in `custom-rag` erneut verifizieren (Fragilität oben).
+
+## Nachtrag (2026-09-18): Pfade real gegengeprüft, echte Abweichungen gefunden
+
+P2 ist jetzt grün (`EPIC-P2-diff-approvals-budgets.md`, T2.4/T2.5s
+Approval-Service) — die oben genannte Blockade ist strukturell aufgelöst.
+Vor dem eigentlichen Bau wurde `custom-rag` wie oben gefordert erneut
+geprüft. Ergebnis: **die Fragilität hat sich bereits ausgewirkt**, die
+Struktur ist real, aber an mehreren Stellen anders als hier notiert:
+
+- `WorkItem`/`GateResult`/`RunStatus` liegen real in `domain/contracts.py`
+  bzw. `domain/enums.py`, **nicht** in `domain/schemas.py` (diese Datei
+  existiert, enthält aber nur generische Token-/Schema-Registry-Hilfen).
+- `RunEvent{seq, kind, at, node, payload}` ist real, liegt aber in
+  `presentation/cockpit_schemas.py`, nicht in `application/live_bus.py`.
+- Der reale Router-Prefix ist `/v2/swarm` (`presentation/routes.py`), die
+  Cockpit-Routen werden **programmatisch** registriert
+  (`register_cockpit(router)` in `cockpit_routes.py`), nicht per
+  `@router.get(...)`-Dekorator — u. a. deshalb liefert ein einfaches
+  Dekorator-Grep keine Trefferliste.
+- Die reale Freigabe-Route ist `POST /v2/swarm/runs/{run_id}/decisions`
+  (Body `RunDecision{action: approve|reject|override, reason, gate}`,
+  `override` erzwingt real eine nicht-leere `reason` per Pydantic-
+  Validator) — **nicht** `/decide` wie oben vermerkt.
+- `RunSubmission` ist real bestätigt:
+  `{allowlist_key, goal, origin="cockpit", origin_ref, task_class=
+  "scoped_bugfix", auto_approve_level="assisted", dry_run, context_keys[]}`
+  — kein Dateisystempfad, wie oben beschrieben.
+- Jede Cockpit-Route verlangt real `Depends(require_admin)` — der Adapter
+  bräuchte ein **eigenes, separates Credential** für `custom-rag`s
+  Admin-Auth, das UACC nicht besitzt und das hier nicht erfunden wird.
+- **Real nicht auffindbar in der verfügbaren Zeit:** das konkrete
+  Vokabular der `RunEvent.kind`-Werte (wie z. B. „plan_created" oder
+  „edit_applied" tatsächlich heißen) — die Events werden aus einem
+  internen Record-Format gelesen (`read_event_records`), dessen
+  Konstruktionsstellen ein einfaches Grep nicht zuverlässig findet, und
+  eine tiefere Analyse von `custom-rag`s eigener Codebasis sprengt den
+  Rahmen dieser Session.
+
+**Konsequenz für T3.1:** Ein Normalizer, der `RunEvent.kind`-Werte auf
+UACCs `EVENT_TYPES` abbildet, ohne die echten Werte zu kennen, wäre
+genau das geratene Mapping, das R9.7 ausschließt — eine falsche Zuordnung
+würde reale Swarm-Events später still falsch kategorisieren. T3.1 bleibt
+deshalb bewusst **nicht implementiert**, mit einem jetzt korrigierten,
+realen Fahrplan für den nächsten Versuch: (1) `custom-rag`s
+Event-Konstruktionsstellen gezielt aufsuchen (voraussichtlich in
+`application/`, wo `read_event_records` seine Quelle liest) für das
+echte `kind`-Vokabular, (2) ein Admin-Credential für die Cockpit-API
+beschaffen/konfigurieren, (3) danach normalizer + adapter wie ursprünglich
+geplant bauen. Kein Adapter-Code wurde für dieses Vokabular geraten.
