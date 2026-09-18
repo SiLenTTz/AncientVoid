@@ -193,10 +193,28 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
 
 ## 4. Aufgaben
 
-- [ ] **T1.6-1** Design-System-Fundament: CSS-Custom-Property-Tokens der
+- [x] **T1.6-1** Design-System-Fundament: CSS-Custom-Property-Tokens der
   „Futuristisch"-Mockup-Variante nach `packages/pwa/src/styles.css`
   übertragen (benannte Tokens, keine Copy-Paste-Hex-Werte pro Komponente);
-  `docs/design-system.md` anlegen.
+  `docs/design-system.md` angelegt. Bewusst dieselben Token-**Namen** wie
+  seit P0 (`--bg`/`--bg-elev`/`--bg-chip`/`--fg`/`--fg-dim`/`--accent`/
+  `--ok`/`--warn`/`--err`/`--radius`) — nur neue Werte, sodass jede
+  bestehende Komponente sich automatisch re-themt, ohne angefasst zu
+  werden; dazu neue Tokens (`--fg-faint`, `--accent-ink`, `--radius-sm/-lg`,
+  `--shadow-elev`, `--glow-blur`/`--glow-dur`, `--font-display`,
+  `--font-mono`, `--tracking-label`) für T1.6-2/3/8. `--font-mono` lädt
+  jetzt tatsächlich JetBrains Mono (`packages/pwa/index.html`) — vorher nur
+  als Fallback-**Name** im Font-Stack genannt, nie als Webfont geladen
+  (echter Fund). **Live gegen die echte PWA geprüft** (nicht nur den
+  Mockup): Server neu gebaut (`npm -w @uacc/pwa run build`), echte Session
+  mit frischem Device-Token über Playwright geöffnet — `body`-Hintergrund
+  real `rgb(8, 9, 11)` (= `#08090b`), `.topbar h1` real mit
+  `font-family: Orbitron, …` gerendert (Screenshot
+  `t1.6-1-real-app-dark.png`); `[data-theme="light"]` real umgeschaltet
+  und ebenfalls korrekt (Screenshot `t1.6-1-real-app-light.png`) — beide
+  Modi über echte Session-Karten/Buttons/Pills, nicht nur den Root-Wert.
+  Gates: `npm run lint`/`typecheck`, `npm -w @uacc/pwa run build`/
+  `typecheck` grün.
 - [ ] **T1.6-2** Bottom-Dock-Navigation in `App.tsx` (ersetzt Top-Icon-
   Buttons) + neue Einstellungen-Seite (Dark/Light-Umschalter, Geräte-Token
   wechseln, Tailscale-/Projekt-Wurzeln-Anzeige).

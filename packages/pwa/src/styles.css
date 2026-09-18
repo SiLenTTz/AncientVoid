@@ -1,27 +1,45 @@
 :root {
-  --bg: #0b0e14;
-  --bg-elev: #11151f;
-  --bg-chip: #1a2030;
-  --fg: #c0caf5;
-  --fg-dim: #565f89;
-  --accent: #7aa2f7;
-  --ok: #9ece6a;
-  --warn: #e0af68;
-  --err: #f7768e;
-  --radius: 10px;
+  /* T1.6-1 — futuristic design-system tokens, see docs/design-system.md.
+   * Same token names as before (P0) so every existing component re-themes
+   * without edits; --radius-sm/-lg, --shadow-elev, --glow-*, --font-*,
+   * --fg-faint and --tracking-label are new, added for T1.6-2/3/8 to
+   * consume as the reskin reaches each component. */
+  --bg: #08090b;
+  --bg-elev: #121316;
+  --bg-chip: #21252c;
+  --fg: #eef1f5;
+  --fg-dim: #8d95a3;
+  --fg-faint: #585f6c;
+  --accent: #ff9a3c;
+  --accent-ink: #1a0a00;
+  --ok: #4fe0ab;
+  --warn: #ffcf5c;
+  --err: #ff5c6a;
+  --radius: 7px;
+  --radius-sm: 4px;
+  --radius-lg: 14px;
+  --shadow-elev: 0 0 0 1px var(--bg-chip), 0 10px 26px -14px rgba(0, 0, 0, 0.7);
+  --glow-blur: 20px;
+  --glow-dur: 1.6s;
+  --font-display: "Orbitron", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace;
+  --tracking-label: 0.1em;
   color-scheme: dark;
 }
 
 [data-theme="light"] {
-  --bg: #f4f5fa;
+  --bg: #eef0f6;
   --bg-elev: #ffffff;
-  --bg-chip: #e8eaf2;
-  --fg: #2c3048;
-  --fg-dim: #7a7f9a;
-  --accent: #3d5a98;
-  --ok: #4c7a2e;
-  --warn: #9a6b1f;
-  --err: #b34a5e;
+  --bg-chip: #d7dae5;
+  --fg: #0d1016;
+  --fg-dim: #565d6e;
+  --fg-faint: #9ba0af;
+  --accent: #d9601a;
+  --accent-ink: #fff4ec;
+  --ok: #158c62;
+  --warn: #9a6a06;
+  --err: #c72d3d;
+  --shadow-elev: 0 0 0 1px var(--bg-chip), 0 14px 28px -18px rgba(20, 20, 40, 0.2);
   color-scheme: light;
 }
 
@@ -35,7 +53,7 @@ body {
   padding: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: ui-monospace, "JetBrains Mono", "Fira Code", system-ui, sans-serif;
+  font-family: var(--font-mono);
   font-size: 14px;
   line-height: 1.45;
   -webkit-tap-highlight-color: transparent;
@@ -65,9 +83,11 @@ a {
 }
 
 .topbar h1 {
+  font-family: var(--font-display);
   font-size: 15px;
+  font-weight: 700;
   margin: 0;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-label);
 }
 
 .btn {
