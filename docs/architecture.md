@@ -1,7 +1,9 @@
-# Architektur (P0)
+# Architektur (P0–P4)
 
-Basis: PRD §4 und `epics/EPIC-P0-hub-kern.md`. Diese Doku beschreibt den
-umgesetzten Stand; Abweichungen = ADR-Pflicht.
+Basis: PRD §4 und `epics/EPIC-P0-hub-kern.md` bis `EPIC-P4-…`. Diese Doku
+beschreibt den umgesetzten Stand; Abweichungen = ADR-Pflicht. Ursprünglich
+nur P0 — die Abschnitte „P1–P4-Erweiterungen" unten fassen zusammen, was
+seitdem real dazugekommen ist, ohne den P0-Grundriss oben neu zu schreiben.
 
 ## Topologie
 
@@ -114,6 +116,81 @@ Regeln:
   wird genau einmal bei `token issue` gezeigt.
 - `config` (key, value) · `_migrations` (Runner: `BEGIN/COMMIT` pro Migration).
 
+## P1–P4-Erweiterungen (Zusammenfassung, Details in den jeweiligen Epics/ADRs)
+
+### Adapter-Flotte (P1/P3)
+
+`claude`/`codex` (P1, CLI-Streams normalisiert), `opencode`/`aider` (P3,
+reale CLIs — `aider` ohne Strukturformat, ein `assistant`-Event pro Turn),
+`deepseek`/`local-llm` (P3, über den generischen
+`examples/adapters/openai-compat/`-Adapter konfiguriert, kein eigenes
+Package). `swarm` bleibt real unimplementiert — siehe
+[ADR-0001](adr/0001-swarm-adapter-context.md)s Nachtrag: die reale
+`custom-rag`-API ist seit der ursprünglichen Notiz weitergezogen, und das
+reale Event-`kind`-Vokabular war in der verfügbaren Zeit nicht auffindbar
+— kein geratenes Mapping gebaut. Aktueller, generierter Stand aller
+Adapter-Fähigkeiten: `npm run check:adapter-matrix` (T3.11) gegen die
+README-Tabelle.
+
+### Worktree-Isolation & Diff-Engine (P2, T2.1/T2.2)
+
+Jede Session mit einem echten Git-Projekt bekommt ein eigenes
+`git worktree` auf einem `uacc/<sessionId>`-Branch, gepinnt an den echten
+`base_sha` (`@uacc/core`s `WorktreeManager`) — `SessionRecord.worktreeSha`
+trägt diesen Wert, `AdapterContext.workdir`/`spawnWorker`'s `cwd` zeigen
+auf den Worktree, nicht mehr auf den rohen Projektpfad. Ein Nicht-Git-Pfad
+ist ein ehrlicher, sichtbarer Fallback (`session.no_worktree_isolation`),
+kein stiller Bruch. Die Diff-Engine (`packages/server/src/diff.ts`) diff't
+gegen diesen echten `base_sha`, liefert strukturierte Hunks mit gits
+eigener Funktions-Anker-Heuristik, und kollabiert Hunk-Bodies unter K3
+(> 50 KB) — real gemessen `< 50 KB` für eine echte ~2-MB-Diff (T2.9).
+**Offene, benannte Lücke:** die Diff-Ansicht gruppiert nach Datei, nicht
+nach Commit-Grenzen (AC-P2-1 nur teilweise erfüllt, siehe EPIC-P2 §5).
+
+### Approval-System (P2, T2.4/T2.5/T2.8, ADR-0007/ADR-0008)
+
+Drei Klassen (`read` frei, `write` Tipp-Bestätigung, `destructive`
+WebAuthn-Biometrie) über `ApprovalService` (`packages/core/src/
+approvals.ts`) + `WebAuthnStore`/`packages/server/src/webauthn.ts` (echtes
+`@simplewebauthn/server`, keine eigene Krypto). `SessionManager.steer()`
+parkt ein `prompt`-Steer als `write`-Approval, sobald ein
+`ApprovalService` konfiguriert ist (`hub.config.json`s
+`requireStepApprovals`, Default **aus** — die Kern-Chat-Interaktion ändert
+sich nur nach bewusstem Opt-in). `destructive`-Entscheidungen laufen
+ausschließlich über eine echte, verifizierte WebAuthn-Assertion
+(`ApprovalService.decideBiometric()`), nie über den einfachen
+HMAC-Signatur-Pfad der `write`-Klasse. Jede Entscheidung — genehmigt oder
+abgelehnt — landet als `session.approval_decided` auf dem Session-Tail
+(T2.8, „wer-wann-was").
+
+### BudgetState (P2, T2.7, ADR-0008)
+
+`SessionManager` warnt bei 80 % Budget (`session.budget_warning`, kein
+echter Mobile-Push — keine Push-Infrastruktur vorhanden, ehrlich als
+System-Event geführt) und parkt hart bei 100 %
+(`session.budget_exceeded`). **Fail-closed real erzwungen**: `parkFor()`
+sendet ein echtes `SteerInput{kind:"park"}` an den Adapter, bevor der
+Hub-Status wechselt — ein früherer Fund zeigte, dass ein frei laufender
+Adapter (z. B. ein echter CLI-Prozess) ohne dieses Signal einfach
+weiterlief und weiter Kosten produzierte. `SessionRecord.parkReason`
+(`"manual" | "budget" | "daily_cap"`) unterscheidet, ob ein
+Budget-Top-up eine Session automatisch fortsetzen darf. Ein hub-weiter
+Tages-Cap (`HubConfig.dailyCapUsd`) parkt bei Überschreitung jede laufende
+Session, nicht nur die auslösende.
+
+### MCP-Gateway-Sidecar (P4, T4.6/T4.7)
+
+`@uacc/gateway-mcp` — ein separater, **nie vom Hub selbst gestarteter**
+Prozess (`packages/server/src/main.ts` importiert ihn nicht, AC-P4-5:
+default aus). Exponiert genau drei Meta-Tools (`hub_search`/
+`hub_describe`/`hub_exec`, echtes `@modelcontextprotocol/sdk`) gegen eine
+feste Operationen-Liste (`packages/gateway-mcp/src/operations.ts`) —
+bewusst ohne `approvals.decide` und ohne Session-`create`/`stop`/`park`
+(siehe dessen eigener Doku-Kommentar). `hub_exec` auf einer
+`write`-Operation nutzt echt dieselbe ADR-0007-Freigabe wie jeder andere
+Client, kein Sonderpfad. K4 (statische Manifest-Größe < 1000 Tokens) real
+gemessen: 306 Tokens.
+
 ## Entscheidungs-Log (ADR-Kurzform)
 
 | ADR | Entscheidung | Warum |
@@ -126,5 +203,9 @@ Regeln:
 | P0-6 | `node:sqlite` statt better-sqlite3 | keine native Dependency, Node ≥ 22.5 |
 | [0004](adr/0004-account-level-usage-quota.md) | Kontingent ist Account-, nicht Session-Zustand | ein `claude`-Limit gilt fürs ganze Konto, nicht pro Session — Summieren wäre falsch |
 | [0005](adr/0005-skill-agent-invocation-mechanism.md) | Skill/Agent-Übergabe pro Adapter verifiziert statt angenommen | `claude` hat zwei echte Mechanismen (`/skill`-Präfix, `--agent`-Flag), `codex` keinen — beide laufen über `SessionSpec.args`, kein Contract-Bruch |
+| [0003](adr/0003-event-cost-field.md) | `costUsd` optional auf `EmittedEvent`/`NormalizedEvent` | providerneutrale Kosten-Summierung ohne Adapter-Interna zu kennen |
+| [0006](adr/0006-session-tokens-est-aggregation.md) | `tokensEst` nach demselben Muster wie `costUsd` | dasselbe Summierungs-Bedürfnis, ein zweites Mal auftauchend |
+| [0007](adr/0007-approval-service-contract.md) | Approval-Signatur ist ein HMAC über den rohen Device-Token (write), nie eine Bool-Attrappe | ADR-0007 begründet, warum das kein Behelfs-Downgrade ist, bis T2.5s WebAuthn für `destructive` übernimmt |
+| [0008](adr/0008-session-park-reason.md) | `SessionRecord.parkReason` unterscheidet manuell/budget/Tages-Cap | ein Budget-Top-up darf nur eine wegen Budget geparkte Session automatisch fortsetzen |
 
 Neue Architekturentscheidungen: `docs/adr/` + PR.

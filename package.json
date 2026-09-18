@@ -18,6 +18,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -p . --noEmit",
     "dev:server": "node --watch packages/server/src/main.ts",
+    "gateway-mcp": "node packages/gateway-mcp/src/main.ts",
     "loadtest": "node scripts/loadtest.mjs",
     "messlauf:hubctl-latency": "node scripts/messlauf-hubctl-latency.mjs",
     "messlauf:approve-latency": "node scripts/messlauf-approve-latency.mjs",

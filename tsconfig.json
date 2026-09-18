@@ -15,6 +15,7 @@
     "packages/adapter-codex/src",
     "packages/adapter-opencode/src",
     "packages/adapter-aider/src",
+    "packages/gateway-mcp/src",
     "packages/adapter-testkit/src",
     "packages/server/src",
     "packages/hubctl/src",
