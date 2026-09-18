@@ -74,10 +74,19 @@ dem Session-Tail selbst, nicht nur als Zeile in der separaten
 
 ### 5. Prompt-Injection-Grenze — Agenten-Output ist Daten, nie Instruktion
 
-Kein `dangerouslySetInnerHTML`/`innerHTML` irgendwo in
-`packages/pwa/src/*.tsx` (real geprüft, nicht angenommen) — jeder
-Event-`payload`/`summary`-Wert läuft durch Preacts normales,
-auto-escapendes JSX-Rendering.
+Kein `dangerouslySetInnerHTML`/`innerHTML` für Agenten-Output irgendwo in
+`packages/pwa/src/*.tsx` — jeder Event-`payload`/`summary`-Wert läuft
+durch Preacts normales, auto-escapendes JSX-Rendering.
+
+**Eine bewusste, geprüfte Ausnahme (T3.8, `Search.tsx`s Datei-Viewer):**
+Syntax-Highlighting einer echten Projektdatei (nicht Agenten-Output)
+nutzt `highlight.js`, dessen Ausgabe per `dangerouslySetInnerHTML`
+gerendert wird — live verifiziert, dass `highlight.js` den Quelltext
+selbst escaped, bevor es eigene `<span>`-Tags einfügt (ein `<script>` im
+Dateiinhalt kommt als `&lt;script&gt;` heraus, nie als echtes Tag). Diese
+Ausnahme betrifft Dateiinhalt aus `readProjectFile()`, nie ein
+Event-`payload`/`summary` — die Grenze oben bleibt für Agenten-Output
+unverändert bestehen.
 
 ### 6. Kosten-Governance
 

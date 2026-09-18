@@ -5,6 +5,7 @@ import { Composer } from "./Composer.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
 import { VoiceSheet } from "./VoiceSheet.tsx";
 import { formatUsd, formatWindow } from "./Dashboard.tsx";
+import { SearchPane } from "./Search.tsx";
 
 /**
  * T1.6 filter engine — three presets per EPIC-P1 §2/§5 (AC-P1-4), not the
@@ -85,7 +86,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   // filter split above — it replaces the event list with a summary pane
   // instead of filtering it, so it needs its own bit of state rather than
   // being derived from `filter` like Chat/Verlauf are.
-  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff">(() =>
+  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "suche">(() =>
     loadFilter() === "lesen" ? "chat" : "verlauf",
   );
 
@@ -197,6 +198,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   };
   const showBerichtTab = () => setActiveTab("bericht");
   const showDiffTab = () => setActiveTab("diff");
+  const showSucheTab = () => setActiveTab("suche");
 
   useEffect(() => {
     tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
@@ -303,6 +305,8 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
           />
         ) : activeTab === "diff" ? (
           <DiffPane diff={diff} sessionId={session.id} />
+        ) : activeTab === "suche" ? (
+          <SearchPane project={session.project} />
         ) : visible.length === 0 ? (
           <div class="empty">keine Events im Filter</div>
         ) : (
@@ -371,6 +375,9 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
           </button>
           <button class={activeTab === "diff" ? "active" : ""} onClick={showDiffTab}>
             Diff
+          </button>
+          <button class={activeTab === "suche" ? "active" : ""} onClick={showSucheTab}>
+            Suche
           </button>
         </div>
         <GlobalDock active={null} onNavigate={onNavigate} onVoice={() => setVoiceOpen(true)} />

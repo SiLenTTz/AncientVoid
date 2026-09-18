@@ -42,6 +42,32 @@ export interface ApprovalRequest {
   signature: string | null;
 }
 
+/** T3.8: one real qmd hit — `file` is relative to `project`, `line` is
+ * the real anchor `qmd get`/a file viewer can jump to. */
+export interface SearchResult {
+  file: string;
+  line: number;
+  title: string;
+  snippet: string;
+  score: number;
+}
+
+export interface SearchStatus {
+  qmdAvailable: boolean;
+  indexed: boolean;
+}
+
+export interface SearchResponse {
+  status: "indexing" | "ready";
+  results: SearchResult[];
+}
+
+export interface ProjectFile {
+  path: string;
+  content: string;
+  lineCount: number;
+}
+
 /** T2.2: one structured hunk — `functionContext` is git's own real
  * function/section-context heuristic (absent for some hunks/languages,
  * never guessed when missing). `collapsed` means `body` is a short
@@ -207,6 +233,14 @@ export const hubApi = {
   sessions: () => api<SessionRecord[]>("/api/sessions"),
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
   sessionDiff: (id: string) => api<SessionDiffResult>(`/api/sessions/${id}/diff`),
+  /** T3.8: real qmd-backed project search. A 501 (qmd not installed on
+   * this host) is a real, expected state for a fresh/minimal deployment —
+   * callers show it as "Suche nicht verfügbar", not a hard error. */
+  searchStatus: (project: string) => api<SearchStatus>(`/api/search/status?project=${encodeURIComponent(project)}`),
+  search: (project: string, q: string) =>
+    api<SearchResponse>(`/api/search?project=${encodeURIComponent(project)}&q=${encodeURIComponent(q)}`),
+  searchFile: (project: string, path: string) =>
+    api<ProjectFile>(`/api/search/file?project=${encodeURIComponent(project)}&path=${encodeURIComponent(path)}`),
   /** T2.4/T2.6: the approval queue. 501 (approvals not configured on this
    * hub) is treated as "no queue" by callers, not a hard error — see
    * Approvals.tsx. */
