@@ -86,7 +86,9 @@ Handy aus voll arbeitsfähig".
   Geräte-Fähigkeits-Matrix und K6-Messlauf). Hier nur noch historisch geführt;
   offen bleibt in P3 allein die Rolle als *Fallback* gegenüber T3.6, nachdem
   P1.5 die Reihenfolge umgekehrt hat.
-- [ ] **T3.8** Sprachsuche-Frontend (S5) + Projekt-Index-Service + Egress-CI-Test
+- [ ] **T3.8** Sprachsuche-Frontend (S5) + Projekt-Index-Service + Egress-CI-Test.
+  Hält sich an [`docs/design-system.md`](../docs/design-system.md) (P1.6) statt
+  neuer Hex-Werte/Komponenten-Muster.
 - [ ] **T3.9** Prompt-Composer (S6) mit Optimizer + Split-Preview + Learning-Loop-Storage
   — *Vermerk (P1.5):* Composer + Optimizer + Split-Preview wurden nach
   [`EPIC-P1.5`](EPIC-P1.5-control-center-ux.md) T1.5-6/T1.5-8 vorgezogen
@@ -96,6 +98,12 @@ Handy aus voll arbeitsfähig".
   Optimizer-Prompt-Revision) — der ist in P1.5 ausdrücklich out of scope.
 - [ ] **T3.10** Sprach-Direktiven-Parser → Action-Mapping (stopp = write-Gate,
   Budget-Änderung = write-Gate mit Summary)
+  — *Vermerk (P1.6):* Das globale Sprachbefehl-Sheet (Transkription, Voice-
+  Dock-Eintrag) existiert bereits ab
+  [`EPIC-P1.6`](EPIC-P1.6-futuristic-ui-system.md) T1.6-7, dort ausdrücklich
+  **ohne** Ausführung („Vorschau"-Hinweis). T3.10 ergänzt hier den fehlenden
+  Teil: aus dem bereits vorhandenen Transkript eine Aktion ableiten, nicht
+  das Sheet selbst neu bauen.
 - [ ] **T3.11** Adapter-Status-Matrix in README live aus `capabilities()` generieren
   (Ehrlichkeitsklausel automatisieren — aSPARK-Lektion)
 

@@ -10,13 +10,14 @@
 | EPIC-P0-hub-kern.md | P0 | Hub-Kern: Sessions, EventStore, tmux-Worker, Tailscale-serve, PWA-Gerüst | 1 |
 | EPIC-P1-claude-codex-monitor.md | P1 | Adapter claude + codex, Monitor-Dashboard, Chat-Tail mit Filtern | 1–1,5 |
 | EPIC-P1.5-control-center-ux.md | P1.5 | Kontingent statt Budget, Projekt-Autoerkennung, Sprach-Composer, Skill-Overlay | 1–1,5 |
+| EPIC-P1.6-futuristic-ui-system.md | P1.6 | Futuristisches UI-System: Bottom-Dock, Bericht-Ansicht, Design-System-Referenz | 1 |
 | EPIC-P2-diff-approvals-budgets.md | P2 | Diff-Ansicht, Approval-Gates, Budgets, Messlatten im CI | 1 |
 | EPIC-P3-adapter-flotte-sprachsuche.md | P3 | swarm/zai/local-llm-Adapter, cursor-clip, Sprachsuche + Prompt-Composer | 1,5 |
 | EPIC-P4-brain-windows-mcp-oss.md | P4 | Brain-Digest-Skill, evox2/Windows, MCP-Gateway, OSS-Aufbereitung | 1–2 |
 
 ## Reihenfolge & Gating
 
-Reihenfolge: **P0 → P1 → P1.5 → P2 → P3 → P4.**
+Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4.**
 
 Jedes Epic endet mit messbarem Exit-Kriterium. Das folgende Epic startet erst,
 wenn alle Exit-Kriterien des Vorgängers grün sind (Eval-Frage-Regel aus PRD §9.1.6).
@@ -31,6 +32,18 @@ schafft als Diff-/Approval-UI. P3s T3.6/T3.7/T3.9 (Sprache, Prompt-Composer)
 sind dabei anteilig nach P1.5 vorgezogen; P2, P3 und P4 bleiben inhaltlich
 unverändert. Begründung im Detail: Vorbemerkung in
 [`EPIC-P1.5-control-center-ux.md`](EPIC-P1.5-control-center-ux.md).
+
+**Ausnahme P1.6 — zweite Umpriorisierung nach demselben Muster:** P1.5s
+formale DoD-Zeile (ein echter Live-Handy-Lauf) steht noch aus, aber der
+Nutzer hat die P1.5-Oberfläche nach dem ersten Blick abgelehnt und über
+einen eigenen Mockup-Vergleich durch eine neue Informationsarchitektur samt
+„Futuristisch"-Bedienrahmen ersetzt haben wollen — den ausstehenden
+Live-Test jetzt mit der bereits verworfenen Oberfläche zu machen wäre
+verschwendete Zeit. P1.6 baut **keine neuen fachlichen Funktionen**, nur den
+Bedienrahmen für die in P1.5 bereits gebauten; danach folgt ein gemeinsamer
+Live-Handy-Test, der P1.5s und P1.6s offene Punkte gemeinsam abschließt.
+Begründung im Detail: Vorbemerkung in
+[`EPIC-P1.6-futuristic-ui-system.md`](EPIC-P1.6-futuristic-ui-system.md).
 
 ## Referenz-Messlatten (aus PRD §9)
 

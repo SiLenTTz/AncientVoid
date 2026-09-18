@@ -63,7 +63,9 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
 - [ ] **T2.1** Worktree-Manager in SessionManager (create/cleanup, Konflikt-Strategie,
   Disk-Quota pro Worktree)
 - [ ] **T2.2** Diff-Engine + Funktions-Anker-Heuristik + K3-Kompression mit Fallback
-- [ ] **T2.3** Diff-UI (S3): Hunk-Karten, Tap-Expand, Querformat side-by-side
+- [ ] **T2.3** Diff-UI (S3): Hunk-Karten, Tap-Expand, Querformat side-by-side.
+  Baut auf dem rohen Diff-Reiter aus P1.6 (T1.6-5) auf und hält sich an
+  [`docs/design-system.md`](../docs/design-system.md) statt neuer Hex-Werte.
 - [ ] **T2.4** Approval-Service: Klassen-Engine, Signatur, Timeout-Handling (Timeout =
   Reject, fail-closed), Begründungs-Pflicht-Validierung
 - [ ] **T2.5** WebAuthn-Registrierung + Gate-UI am Handy (Biometrie-Prompt)
