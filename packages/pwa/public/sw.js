@@ -4,7 +4,7 @@
  * with an X-UACC-Cached-At timestamp so the UI can badge "Daten vom <ts>".
  * Versioned cache — hard-bust by bumping CACHE_VERSION on deploy.
  */
-const CACHE_VERSION = "uacc-v1";
+const CACHE_VERSION = "uacc-v2";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -31,21 +31,33 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(req).then(
-        (hit) =>
-          hit ||
-          fetch(req).then((res) => {
-            if (res.ok) {
-              const copy = res.clone();
-              caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
-            }
-            return res;
-          }),
-      ),
-    );
+    // Real bug, found via a live report ("UI shows old colors/layout after
+    // a rebuild"): this used to be cache-first (`caches.match(req).then(hit
+    // => hit || fetch(...))`), so once the app shell (/, /index.html, the
+    // hashed JS/CSS bundle) was cached once, a phone would NEVER see a
+    // newer build again — every subsequent load served the frozen-in-time
+    // cache, silently, forever, regardless of how many times the PWA was
+    // rebuilt. Network-first (mirroring networkFirstApi below) fixes that:
+    // the shell only falls back to cache when actually offline, which is
+    // K10's real purpose, not "prefer stale over fresh while online".
+    event.respondWith(networkFirstShell(req));
   }
 });
+
+async function networkFirstShell(req) {
+  try {
+    const res = await fetch(req);
+    if (res.ok) {
+      const copy = res.clone();
+      caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
+    }
+    return res;
+  } catch {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    throw new Error("offline and nothing cached for " + req.url);
+  }
+}
 
 // T1.5-3: the account-level usage/quota endpoint (ADR-0004) needs the same
 // offline tolerance as the session list — an adapter's usage doesn't
