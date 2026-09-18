@@ -137,7 +137,27 @@ Handy aus voll arbeitsfähig".
   zum Zeitpunkt des Baus vorhanden (siehe Vorbemerkung) — Contract-Tests
   gegen eine echte, aufgezeichnete OpenAI-kompatible Antwort (z. B. von
   einem öffentlich erreichbaren kompatiblen Endpunkt), keine Live-Instanz.
-- [ ] **T3.4** Adapter `copilot` best-effort + Permission-Prompt-Hook in Approval-Queue
+- [x] **T3.4** Adapter `copilot` — `packages/adapter-copilot`, echt verifiziert:
+  GitHub Copilot CLI 1.0.86 ist auf dieser Maschine real installiert und
+  bereits authentifiziert (kein Login-Flow nötig); drei echte, anonymisierte
+  `copilot -p ... --output-format json --allow-all-tools`-Captures
+  (`test/fixtures/`: trivialer Turn, echter `view`-Tool-Erfolg, echter
+  `view`-Tool-Fehlschlag mit `success:false`/`error:{message,code}`) sind
+  Ground Truth für `normalize.ts`. `-r <sessionId>` (echtes Resume, live
+  gegengeprüft: die Session merkt sich den Kontext) treibt `steer(prompt)`.
+  **"Permission-Prompt-Hook in Approval-Queue" bewusst nicht als
+  copilot-eigener Mechanismus gebaut** — `--allow-all-tools` überspringt
+  Copilots eigenen interaktiven Prompt (sonst Hang ohne TTY, wie bei
+  `adapter-claude`s `--dangerously-skip-permissions`), und das echte Gate
+  ist bereits [ADR-0007](../docs/adr/0007-approval-service-contract.md)s
+  adapterübergreifendes Approval-System (T2.4/T2.5) — ein zweiter,
+  copilot-spezifischer Hook wäre redundant zu diesem bereits bestehenden,
+  einheitlichen Pfad. `capabilities()`: `{reasoning:false, tools:true,
+  cost:false, steer:true, usage:false}` — real, nicht geraten: kein
+  Dollar-Betrag irgendwo im Capture (nur eine "Premium-Requests"-Zählung),
+  kein Utilization/`resetsAt`-Quotenfenster (ADR-0004-Form) im
+  `session.usage_checkpoint`. In `hub.config.json` registriert, README-Matrix
+  aktualisiert (`unproven` → `proven`).
 - [ ] **T3.5** Adapter `cursor-clip` mit Version-Detection, Broken-State, Steer-Umleitung
 - [ ] **T3.6** Whisper.cpp-Server-Anbindung + Domänen-Prompt + Latenz-Messung (K6)
   — *Vermerk (P1.5):* Der Sprach-MVP wurde nach
