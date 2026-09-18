@@ -16,6 +16,7 @@
     "packages/adapter-opencode/src",
     "packages/adapter-aider/src",
     "packages/adapter-copilot/src",
+    "packages/adapter-cursor-clip/src",
     "packages/gateway-mcp/src",
     "packages/adapter-testkit/src",
     "packages/server/src",

@@ -60,7 +60,7 @@ Ollama, vLLM). Anleitung: [`CONTRIBUTING.md`](./CONTRIBUTING.md) und
 | `local-llm` | OpenAI-kompatibel | ✓ | — | — | ✓ | — | Vorlage bereit (keine lokale Instanz zum Prüfen) | P3 |
 | `deepseek` | OpenAI-kompatibel (`api.deepseek.com`) | ✓ | — | — | ✓ | — | Vorlage bereit (kein API-Key zum Prüfen) | P3 |
 | `aider` | CLI (`--message`, Plaintext) | — | ✓ | — | ✓ | — | strukturell gebaut, unproven (kein API-Key/kein realer LLM-Turn hier möglich) | P3 |
-| `cursor-clip` | state.vscdb (read-only) | ~ | — | — | **nein** | — | may-break | P3 |
+| `cursor-clip` | state.vscdb (read-only) | ✓ | ✓ | — | **nein** | — | proven (echte, live laufende Cursor-Installation auf dieser Maschine, echte SQLite-Reads gegen ihre aktive WAL-Datenbank) — may-break by design (K9) | P3 |
 
 Kontingent (`capabilities().usage`, [ADR-0004](docs/adr/0004-account-level-usage-quota.md)):
 ✓ = liefert real ein Account-Level-Quota-Fenster, — = verifiziert kein

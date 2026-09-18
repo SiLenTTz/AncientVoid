@@ -158,7 +158,49 @@ Handy aus voll arbeitsfähig".
   kein Utilization/`resetsAt`-Quotenfenster (ADR-0004-Form) im
   `session.usage_checkpoint`. In `hub.config.json` registriert, README-Matrix
   aktualisiert (`unproven` → `proven`).
-- [ ] **T3.5** Adapter `cursor-clip` mit Version-Detection, Broken-State, Steer-Umleitung
+- [x] **T3.5** Adapter `cursor-clip` — `packages/adapter-cursor-clip`, echt
+  verifiziert gegen eine reale, aktiv genutzte Cursor-Installation auf
+  dieser Maschine (`~/.config/Cursor/User/globalStorage/state.vscdb`,
+  SQLite/WAL, mehrere tausend echte Zeilen inspiziert, 2026-09-18). Reales
+  Schema als Ground Truth (siehe Doc-Kommentare in `normalize.ts`/
+  `workspace.ts`): `composerData:<id>` trägt die einzige verlässliche
+  Ordnungsquelle (`fullConversationHeadersOnly`), einzelne Nachrichten
+  liegen separat unter `bubbleId:<composerId>:<bubbleId>`, `type` 1=User/
+  2=Assistant, `toolFormerData` (`completed`/`error`/`loading`/`cancelled`)
+  ist echte Tool-Call-Quelle. `spec.project` (nicht `ctx.workdir`!) wird
+  über `workspaceStorage/*/workspace.json`s echtes `{"folder":"file://…"}`
+  auf die Cursor-Workspace-ID abgebildet.
+  **Version-Detection:** Bubbles tragen ein echtes `_v`-Feld (beobachteter
+  Wert: 3) — ein unbekannter Wert wird nie interpretiert, nur als
+  `system`-Event sichtbar gemeldet (K9).
+  **Broken-State:** `PRAGMA table_info`/Tabellen-Check bei jedem `start()`
+  und (mit Cache, nicht auf jedem Tick neu gemeldet) bei jedem Poll —
+  ein fehlendes Feld/eine fehlende Tabelle setzt `status()` sofort auf
+  `broken`, nicht erst nach 60s.
+  **Steer-Umleitung:** `steer()` gibt für `prompt` ehrlich `{ok:false}`
+  zurück (read-only, kann Cursor nicht ansteuern); `park`/`resume` pausieren/
+  reaktivieren echt den Poller, `stop` beendet ihn endgültig — real getestet
+  inkl. "kein Event mehr nach stop() trotz weiterer echter Schreibzugriffe".
+  **Echter, verifizierter Showstopper vermieden:** `immutable=1` (von den
+  Design-Notizen oben als "wo möglich" vorgeschlagen) wurde **bewusst NICHT
+  verwendet** — ein echter Test mit `node:sqlite` gegen eine selbst gebaute
+  WAL-Datenbank zeigte, dass eine `immutable=1`-Verbindung nicht einmal ein
+  Schema sieht, das Sekunden zuvor in derselben Datei angelegt wurde
+  (SQLite liest im Immutable-Modus die WAL-Datei gar nicht erst) — hätte
+  das den Adapter für jede neue Cursor-Aktivität blind gemacht, das exakte
+  Gegenteil vom Zweck dieses Adapters. Stattdessen: `?mode=ro` ohne
+  Immutable-Flag, Verbindung pro Poll-Tick neu geöffnet (Belege in
+  `workspace.ts`s Doc-Kommentar).
+  21 Tests, davon 9 gegen eine ECHTE, zur Testzeit gebaute SQLite-Datenbank
+  mit dem realen Schema (nicht nur JSON-Fixtures) — inkl. eines echten
+  Schreibers, der während des laufenden Pollers neue Zeilen einfügt.
+  Live-verifiziert gegen die tatsächliche, aktive Cursor-Datenbank dieser
+  Maschine (read-only, keine Schreibzugriffe) — korrektes Auffinden der
+  richtigen Konversation für dieses Repo, korrekte `thinking`/`tool_use`/
+  `tool_result`/`assistant`-Dekodierung realer, aktueller Inhalte.
+  Fixture-**Inhalt** ist bewusst synthetisch (echte Cursor-Chat-Historie
+  ist private Nutzerdaten, gehört nicht in dieses Repo) — das Schema selbst
+  ist real. In `hub.config.json` registriert, README-Matrix aktualisiert.
 - [ ] **T3.6** Whisper.cpp-Server-Anbindung + Domänen-Prompt + Latenz-Messung (K6)
   — *Vermerk (P1.5):* Der Sprach-MVP wurde nach
   [`EPIC-P1.5-control-center-ux.md`](EPIC-P1.5-control-center-ux.md) T1.5-7
