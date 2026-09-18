@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AdapterFactory } from "@uacc/contracts";
+import type { AdapterFactory, ReportingSink } from "@uacc/contracts";
 
 export const AdapterRegistration = z.object({
   /** Adapter id as referenced by SessionSpec.adapter. */
@@ -17,6 +17,18 @@ export const AdapterRegistration = z.object({
   enabled: z.boolean().default(true),
 });
 export type AdapterRegistration = z.infer<typeof AdapterRegistration>;
+
+/** T4.1/ADR-0009: same module-specifier shape as AdapterRegistration
+ * (package name / relative / absolute path), resolved through the same
+ * resolveAdapterModule() — but the module exports `createSink(config?) =>
+ * ReportingSink` instead of `createAdapter`. No `id`: sinks are never
+ * looked up by name at runtime, only iterated. */
+export const ReportingSinkRegistration = z.object({
+  module: z.string().min(1),
+  config: z.record(z.unknown()).optional(),
+  enabled: z.boolean().default(true),
+});
+export type ReportingSinkRegistration = z.infer<typeof ReportingSinkRegistration>;
 
 export const HubConfig = z.object({
   dataDir: z.string().default("./data"),
@@ -68,6 +80,11 @@ export const HubConfig = z.object({
    * protection against a runaway/looping agent regardless of any single
    * session's own budgetUsd. `null` (default) means no cap configured. */
   dailyCapUsd: z.number().positive().nullable().default(null),
+  /** T4.1 (EPIC-P4 §3 "Brain-Digest") / ADR-0009: fire-and-forget digest
+   * consumers, one call per completed session. Empty by default — no
+   * digests, no new network egress unless explicitly configured (same
+   * "default off" principle as the MCP gateway, OD-2). */
+  reportingSinks: z.array(ReportingSinkRegistration).default([]),
 });
 export type HubConfig = z.infer<typeof HubConfig>;
 
@@ -114,3 +131,26 @@ export async function resolveAdapterModule(
 
 /** Built-in adapter factories shipped with the hub (wired by the server entry). */
 export type BuiltinAdapters = Map<string, AdapterFactory>;
+
+/** T4.1: loads every enabled reporting-sink module and calls its
+ * `createSink(config?)` factory. A misbehaving sink module fails loud at
+ * startup (same as a misconfigured adapter) rather than silently
+ * producing zero sinks — the operator explicitly opted into this via
+ * config, so a typo'd module path should be visible immediately, not
+ * discovered later as "digests never arrive". */
+export async function loadReportingSinks(
+  registrations: ReportingSinkRegistration[],
+  configPath: string,
+): Promise<ReportingSink[]> {
+  const sinks: ReportingSink[] = [];
+  for (const reg of registrations) {
+    if (!reg.enabled) continue;
+    const spec = await resolveAdapterModule(reg.module, configPath);
+    const mod = (await import(spec)) as { createSink?: (config?: Record<string, unknown>) => ReportingSink };
+    if (typeof mod.createSink !== "function") {
+      throw new Error(`reporting sink module "${reg.module}" does not export createSink(config?) => ReportingSink`);
+    }
+    sinks.push(mod.createSink(reg.config));
+  }
+  return sinks;
+}

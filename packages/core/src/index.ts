@@ -1,4 +1,5 @@
 export { EventStore } from "./eventstore.ts";
+export { buildSessionSummary, archiveRefFor } from "./digest.ts";
 export {
   discoverProjects,
   isProjectPathAllowed,
@@ -16,9 +17,11 @@ export { TokenService, type IssuedToken } from "./tokens.ts";
 export {
   HubConfig,
   AdapterRegistration,
+  ReportingSinkRegistration,
   DEFAULT_CONFIG,
   loadConfig,
   resolveAdapterModule,
+  loadReportingSinks,
   type LoadedConfig,
   type BuiltinAdapters,
 } from "./config.ts";
