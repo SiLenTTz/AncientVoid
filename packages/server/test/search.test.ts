@@ -9,6 +9,7 @@ import {
   ensureIndexed,
   searchProject,
   readProjectFile,
+  relativeDataDir,
   removeIndex,
 } from "../src/search.ts";
 
@@ -109,6 +110,52 @@ describe("ensureIndexed + searchProject — real qmd, real local embedding model
     projects.pop(); // never indexed — nothing to remove
     const results = await searchProject(dir, "anything");
     expect(results).toEqual([]);
+  });
+
+  // BUG-0014: found running this hub against its own repo — a git
+  // worktree (T2.1) nested under a project's own `dataDir` duplicates
+  // every real markdown file, and qmd (no --exclude/--ignore, doesn't
+  // honor .gitignore — see search.ts's top doc comment) indexes the
+  // duplicate right alongside the original.
+  itQmd(
+    "excludeRelDirs drops worktree-duplicate hits that would otherwise appear",
+    async () => {
+      const dir = await makeTestProject({
+        "guide.md": "# Deploy guide\n\nThe pineapple-cipher rotates every deploy.",
+        "data/worktrees/session-1/guide.md": "# Deploy guide\n\nThe pineapple-cipher rotates every deploy.",
+      });
+      await ensureIndexed(dir);
+
+      const unfiltered = await searchProject(dir, "pineapple cipher deploy guide", 10);
+      expect(unfiltered.some((r) => r.file.startsWith("data/"))).toBe(true); // real duplicate, proves the bug is real
+
+      const filtered = await searchProject(dir, "pineapple cipher deploy guide", 10, ["data"]);
+      expect(filtered.some((r) => r.file.startsWith("data/"))).toBe(false);
+      expect(filtered.some((r) => r.file === "guide.md")).toBe(true); // the real file still comes through
+    },
+    120_000,
+  );
+});
+
+describe("relativeDataDir — BUG-0014's exclusion-path computation", () => {
+  it("returns the relative path when dataDir is nested inside the project", () => {
+    expect(relativeDataDir("/home/x/project", "/home/x/project/data")).toBe("data");
+    expect(relativeDataDir("/home/x/project", "/home/x/project/var/data")).toBe("var/data");
+  });
+
+  it("returns undefined when dataDir is outside the project — never excludes the wrong thing", () => {
+    expect(relativeDataDir("/home/x/project", "/home/x/other/data")).toBeUndefined();
+    expect(relativeDataDir("/home/x/project", "/var/lib/uacc/data")).toBeUndefined();
+  });
+
+  it("returns undefined when dataDir IS the project itself — excluding '.' would drop everything", () => {
+    expect(relativeDataDir("/home/x/project", "/home/x/project")).toBeUndefined();
+  });
+
+  it("does not confuse a sibling directory that merely shares a prefix", () => {
+    // "/home/x/project-data" is NOT inside "/home/x/project" — a naive
+    // string-prefix check without path.relative() would get this wrong.
+    expect(relativeDataDir("/home/x/project", "/home/x/project-data")).toBeUndefined();
   });
 });
 
