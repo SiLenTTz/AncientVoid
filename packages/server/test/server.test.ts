@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
@@ -971,6 +971,75 @@ describe("hub server — budget top-up (T2.7)", () => {
     } finally {
       await app.close().catch(() => undefined);
       await cleanup();
+    }
+  });
+});
+
+describe("hub server — POST /api/prompt-optimizer/feedback (T3.9)", () => {
+  it("501s when no dataDir is configured", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-optfb-501-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, {});
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    const tokens = new TokenService(db);
+    const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false } });
+    try {
+      const token = tokens.issue("d").token;
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/prompt-optimizer/feedback",
+        headers: { authorization: `Bearer ${token}` },
+        payload: { adapter: "claude", project: "/tmp", original: "x", enhanced: "y", decision: "accepted", latencyMs: 1 },
+      });
+      expect(res.statusCode).toBe(501);
+    } finally {
+      await app.close().catch(() => undefined);
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("really writes a local JSONL entry when dataDir is configured — real file, no mock", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-optfb-"));
+    const dataDir = await mkdtemp(join(tmpdir(), "uacc-srv-optfb-data-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, {});
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    const tokens = new TokenService(db);
+    const app = await createHubApp({
+      sessions,
+      tokens,
+      registry,
+      auth: { tokens, enforceTailnetIdentity: false },
+      dataDir,
+    });
+    try {
+      const token = tokens.issue("d").token;
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/prompt-optimizer/feedback",
+        headers: { authorization: `Bearer ${token}` },
+        payload: {
+          adapter: "claude",
+          project: "/tmp",
+          original: "mach das besser",
+          enhanced: "Ziel: ...",
+          decision: "rejected",
+          latencyMs: 3000,
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      const raw = await readFile(join(dataDir, "prompt-optimizer-feedback.jsonl"), "utf8");
+      const entry = JSON.parse(raw.trim());
+      expect(entry.decision).toBe("rejected");
+      expect(entry.original).toBe("mach das besser");
+    } finally {
+      await app.close().catch(() => undefined);
+      await rm(dir, { recursive: true, force: true });
+      await rm(dataDir, { recursive: true, force: true });
     }
   });
 });

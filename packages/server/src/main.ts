@@ -96,6 +96,7 @@ async function main(): Promise<void> {
     ...(config.server.pwaDir ? { pwaDir: resolve(config.server.pwaDir) } : {}),
     projectRoots: config.projectRoots.map((root) => resolve(root)),
     approvals,
+    dataDir,
     // T2.5: always real and reachable, same reasoning as `approvals`
     // above — see HubConfig.webauthn's doc comment for why the shipped
     // rpId/origin defaults only work for local dev.

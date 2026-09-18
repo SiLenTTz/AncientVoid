@@ -190,6 +190,20 @@ export const hubApi = {
   skills: (project: string) => api<{ items: SkillOrAgent[] }>(`/api/skills?project=${encodeURIComponent(project)}`),
   enhancePrompt: (adapter: string, project: string, text: string) =>
     api<EnhanceResult>("/api/prompt-enhance", { method: "POST", body: JSON.stringify({ adapter, project, text }) }),
+  /** T3.9 (Learning-Loop, lokal, "niemals Cloud, niemals Telemetrie"): one
+   * call per shown optimizer suggestion, whichever way the user decides.
+   * 501 (no dataDir configured) is swallowed by the caller — this is a
+   * best-effort local log, never something a user's send action should
+   * wait on or fail over. */
+  recordOptimizerFeedback: (entry: {
+    adapter: string;
+    project: string;
+    original: string;
+    enhanced: string;
+    decision: "accepted" | "rejected";
+    costUsd?: number;
+    latencyMs: number;
+  }) => api<{ ok: boolean }>("/api/prompt-optimizer/feedback", { method: "POST", body: JSON.stringify(entry) }),
   sessions: () => api<SessionRecord[]>("/api/sessions"),
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
   sessionDiff: (id: string) => api<SessionDiffResult>(`/api/sessions/${id}/diff`),

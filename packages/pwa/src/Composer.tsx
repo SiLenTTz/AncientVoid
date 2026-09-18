@@ -84,12 +84,32 @@ export function Composer({
     }
   };
 
+  // T3.9: best-effort, never blocks the actual accept/reject action on
+  // network success — a failed feedback write is a missed data point for
+  // a future optimizer revision, not a reason to disrupt the user's flow.
+  const logFeedback = (decision: "accepted" | "rejected") => {
+    if (!preview) return;
+    hubApi
+      .recordOptimizerFeedback({
+        adapter,
+        project,
+        original: preview.original,
+        enhanced: preview.enhanced,
+        decision,
+        ...(preview.costUsd !== undefined ? { costUsd: preview.costUsd } : {}),
+        latencyMs: preview.latencyMs,
+      })
+      .catch(() => undefined);
+  };
+
   const acceptEnhanced = () => {
+    logFeedback("accepted");
     if (preview) onChange(preview.enhanced);
     setPreview(null);
   };
 
   const keepOriginal = () => {
+    logFeedback("rejected");
     setPreview(null);
   };
 
