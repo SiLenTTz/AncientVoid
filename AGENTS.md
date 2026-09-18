@@ -71,14 +71,18 @@ sie duplizieren nichts hier, sie wenden es an. Index: `.claude/skills/README.md`
 - Defekt: Skill `bugfix` (Reproduce → Fix → Re-verify → Finalize). Handoff an `pr-review`.
 - Neuer Bug ohne Fix: Skill `bug-report` → `bugs/bug-NNNN-slug.md`.
 - Vor jedem MR: Skill `gates` (= `npm test && npm run lint && npm run typecheck`, betroffene Packages) und danach `pr-review` (6 Dimensionen inkl. Future-Fragility: Contract-Bruch, K5/K7-Verletzung, Adapter-Isolation).
-- Commit/Branch/MR: Skill `git-workflow` — inkl. **fester Kadenz**: Task-Abschluss → commit; Bugfix- oder Epic-Abschluss → commit + push + MR (Solo-Projekt: Self-Merge zulässig, MR bleibt Pflicht-Log). Kein Force-Push, kein Commit auf `main` außerhalb der dokumentierten Bootstrap-Ausnahme.
+- Commit/Branch/MR: Skill `git-workflow` — inkl. **fester Kadenz**: Task-Abschluss → commit; Bugfix- oder Epic-Abschluss → commit + push + MR (Solo-Projekt: Self-Merge der eigenen MR zulässig, MR bleibt Pflicht-Log). Kein Force-Push, kein Commit auf `main` außerhalb der dokumentierten Bootstrap-Ausnahme. **Der Merge selbst passiert ausschließlich über `glab mr merge`/GitLab-UI — nie über ein lokales `git merge` von einem Feature-Branch nach `main`, auch nicht als Notlösung wenn der Remote gerade nicht erreichbar ist** (dann bleibt der Branch offen und ungelöscht, bis gepusht/gemerged werden kann — siehe `git-workflow`s Regel dazu, real nötig geworden am 2026-09-18).
 - Neue Phase: Skill `epic-creation` bzw. Agent `epic-planner` — Vorbild `epics/EPIC-P3-adapter-flotte-sprachsuche.md`, Premortem nie überspringen.
 - Architekturfragen/Schichten: Skill `architecture-best-practices`.
 - Diff wirkt überkonstruiert: Skill `ponytail-review` (Tags `delete`/`stdlib`/`native`/`yagni`/`shrink`, Invarianten via `_shared/uacc-protected-invariants.md`).
 
-Kein Branch ohne Anweisung, kein Self-Merge, kein `--no-verify`-Äquivalent
-(es gibt aktuell keine lokalen Git-Hooks — die drei Kommandos oben sind die
-einzige Prüfung).
+Kein Branch für nicht angewiesene Arbeit (unter einer stehenden
+Autonomie-Anweisung für eine Aufgabe/ein Epic ist ein Branch **pro
+Aufgabe** davon gedeckt, siehe `git-workflow`). Self-Merge der eigenen MR
+ist zulässig (Solo-Projekt) — was **nicht** zulässig ist: die MR selbst zu
+überspringen und stattdessen lokal nach `main` zu mergen. Kein
+`--no-verify`-Äquivalent (es gibt aktuell keine lokalen Git-Hooks — die
+drei Kommandos oben sind die einzige Prüfung).
 
 Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder
 `epics/` für Epics. ADRs nach `docs/adr/NNNN-*.md`. Kein `*-STATUS.md`/
