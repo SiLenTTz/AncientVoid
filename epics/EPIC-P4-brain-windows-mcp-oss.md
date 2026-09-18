@@ -1,6 +1,13 @@
 # EPIC-P4 — Brain-Integration, evox2/Windows, MCP-Gateway, OSS-Aufbereitung
 
-**Status:** offen · **Phase:** P4 · **Dauer:** 1–2 Agenten-Wochen · **Abhängigkeit:** P3 grün
+**Status:** grün für alles, was ohne externen Zugriff/Entscheidung
+autonom umsetzbar war (T4.1/T4.2/T4.6/T4.7/T4.9/T4.10). Fünf Punkte bleiben
+bewusst offen, alle mit benanntem Grund außerhalb dieser Session's
+Reichweite: T4.3/T4.4 (externe Systeme, kein Zugriff), T4.5 (kein
+evox2/WSL2-Maschinenzugriff), T4.8 (Lizenz — Rechts-/Geschäftsentscheidung),
+T4.11 (Git-Tag — öffentliche, schwer rückgängig zu machende Aktion, braucht
+explizite Nutzerbestätigung). · **Phase:** P4 · **Dauer:** 1–2
+Agenten-Wochen · **Abhängigkeit:** P3 grün
 
 ---
 
