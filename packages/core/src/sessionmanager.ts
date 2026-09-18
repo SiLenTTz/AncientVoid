@@ -18,6 +18,7 @@ import { SessionSpec as SessionSpecSchema } from "@uacc/contracts";
 import type { EventStore } from "./eventstore.ts";
 import type { AdapterRegistry } from "./registry.ts";
 import type { HubDatabase } from "./db.ts";
+import type { WorktreeManager } from "./worktree.ts";
 
 /**
  * Session lifecycle manager.
@@ -34,6 +35,16 @@ interface LiveSession {
   handle: SessionHandle | null;
   abort: AbortController;
   subscribers: Set<(events: NormalizedEvent[]) => void>;
+  /** T2.1: real per-session working directory — the worktree path when
+   * isolation succeeded, else the raw `record.project` (honest fallback,
+   * see WorktreeManager's doc comment). Adapters only ever see this via
+   * AdapterContext.workdir/spawnWorker cwd, never `record.project`
+   * directly, once a session is live. */
+  workdir: string;
+  /** Set only when this session actually got worktree isolation — needed
+   * at stop() time to know whether (and against which real repo) to
+   * `git worktree remove`. */
+  worktreeIsolated: boolean;
 }
 
 /** Raw SQLite row shape (snake_case) for the sessions table. */
@@ -104,6 +115,7 @@ export class SessionManager {
   private readonly store: EventStore;
   private readonly registry: AdapterRegistry;
   private readonly runner: WorkerRunner;
+  private readonly worktrees: WorktreeManager | undefined;
   private readonly heartbeatTimer: NodeJS.Timeout;
   private heartbeatRunning = false;
 
@@ -113,11 +125,16 @@ export class SessionManager {
     registry: AdapterRegistry,
     runner: WorkerRunner,
     heartbeatIntervalMs: number = DEFAULT_HEARTBEAT_MS,
+    /** T2.1: optional — omitting it (every pre-P2 call site, every test
+     * using a non-git temp dir as `project`) keeps the exact pre-P2
+     * behavior: sessions run directly in `record.project`, no isolation. */
+    worktrees?: WorktreeManager,
   ) {
     this.db = db;
     this.store = store;
     this.registry = registry;
     this.runner = runner;
+    this.worktrees = worktrees;
     // T1.9 (AC-P1-5): poll each live adapter's own status() on a timer,
     // not just react to its worker process exiting. A hard-killed process
     // already surfaces via WorkerProcess.onExit (see makeContext below),
@@ -223,14 +240,43 @@ export class SessionManager {
       handle: null,
       abort: new AbortController(),
       subscribers: new Set(),
+      workdir: record.project,
+      worktreeIsolated: false,
     };
     this.live.set(record.id, session);
+
+    // T2.1: attempt real worktree isolation before anything else touches
+    // the filesystem. A non-git `project` (dummy-adapter tests, or a
+    // genuinely non-git project directory) is a real, honest fallback —
+    // not an error — surfaced as its own system event rather than silently
+    // running unisolated (AGENTS.md Regel 6).
+    if (this.worktrees) {
+      try {
+        const created = await this.worktrees.create(record.id, record.project);
+        if (created) {
+          session.workdir = created.path;
+          session.worktreeIsolated = true;
+          record.worktreeSha = created.baseSha;
+          this.persist(record);
+        }
+      } catch (err) {
+        await this.emitSystem(session, "session.worktree_failed", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    if (!session.worktreeIsolated) {
+      await this.emitSystem(session, "session.no_worktree_isolation", {
+        reason: this.worktrees ? "project is not a git repo" : "worktree isolation not configured",
+      });
+    }
 
     const ctx = this.makeContext(session);
     await this.emitSystem(session, "session.created", {
       adapter: record.adapter,
       adapterVersion: record.adapterVersion,
       project: record.project,
+      workdir: session.workdir,
       model: record.model,
       budgetUsd: record.budgetUsd,
       // T1.5-10/AC-P1.5-12: whatever skill/agent was requested must stay
@@ -271,6 +317,20 @@ export class SessionManager {
     try {
       if (session.handle) await session.adapter.stop(session.handle, this.makeContext(session));
     } finally {
+      // T2.1: clean up the isolated worktree once the adapter is done with
+      // it. Best-effort and non-fatal to the stop path — a worktree that
+      // fails to remove (e.g. a still-open fd from a slow-to-exit worker)
+      // is a disk-hygiene problem to surface, not a reason to leave the
+      // session stuck in "stopping".
+      if (session.worktreeIsolated && this.worktrees) {
+        try {
+          await this.worktrees.remove(session.record.id, session.record.project);
+        } catch (err) {
+          await this.emitSystem(session, "session.worktree_cleanup_failed", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
       await this.setStatus(session, "stopped");
       await this.emitSystem(session, "session.stopped", {});
     }
@@ -312,12 +372,20 @@ export class SessionManager {
       const events = await this.store.replay(record.id);
       const lastSeq = events.length > 0 ? events[events.length - 1]!.seq : 0;
       const registered = this.registry.get(record.adapter);
+      // T2.1: a session that had real worktree isolation before the crash
+      // gets the same deterministic path back — the worktree itself is
+      // still on disk (only the hub process died), so this is a real
+      // re-attach, not a re-creation.
+      const workdir =
+        record.worktreeSha !== null && this.worktrees ? this.worktrees.pathFor(record.id) : record.project;
       const session: LiveSession = {
         record: { ...record, lastSeq },
         adapter: registered?.adapter ?? null as unknown as Adapter,
         handle: null,
         abort: new AbortController(),
         subscribers: new Set(),
+        workdir,
+        worktreeIsolated: workdir !== record.project,
       };
       this.live.set(record.id, session);
 
@@ -374,7 +442,7 @@ export class SessionManager {
     return {
       sessionId: session.record.id,
       signal: session.abort.signal,
-      workdir: session.record.project,
+      workdir: session.workdir,
       log: (level, msg, extra) => {
         const line = `[adapter:${session.record.adapter}] ${msg}`;
         if (level === "error") console.error(line, extra ?? "");
@@ -390,7 +458,7 @@ export class SessionManager {
       spawnWorker: async (cmd, opts) => {
         return this.runner.spawn({
           name: session.record.id,
-          cwd: session.record.project,
+          cwd: session.workdir,
           cmd,
           ...(opts?.env !== undefined ? { env: opts.env } : {}),
           ...(opts?.cols !== undefined ? { cols: opts.cols } : {}),

@@ -60,8 +60,32 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
 
 ## 4. Aufgaben
 
-- [ ] **T2.1** Worktree-Manager in SessionManager (create/cleanup, Konflikt-Strategie,
-  Disk-Quota pro Worktree)
+- [x] **T2.1** Worktree-Manager in SessionManager (create/cleanup, Konflikt-Strategie,
+  Disk-Quota pro Worktree). `packages/core/src/worktree.ts` — echtes
+  `git worktree add -b uacc/<sessionId> <path> <baseSha>` gegen ein reales
+  Test-Repo (kein Mock), Branch pro Session als Konflikt-Strategie
+  (eindeutige Session-UUID → nie kollidierende Branch-/Verzeichnisnamen).
+  In `SessionManager.create()`/`stop()` verdrahtet: `AdapterContext.workdir`
+  und `spawnWorker`'s `cwd` zeigen ab jetzt auf den Worktree-Pfad, nicht
+  mehr auf `record.project` direkt; `record.worktreeSha` wird mit der
+  echten HEAD-sha befüllt. Nicht-Git-Projekte (z. B. alle bisherigen
+  Dummy-Tests) sind ein **ehrlicher, sichtbarer Fallback**
+  (`session.no_worktree_isolation`-Event), kein stiller Bruch — bestehende
+  167 Tests bleiben grün, weil `worktrees` ein optionaler Konstruktor-
+  Parameter ist (Default: altes Verhalten). K7-Recovery rekonstruiert den
+  deterministischen Worktree-Pfad (`WorktreeManager.pathFor`) statt neu
+  anzulegen. **Disk-Quota ehrlich als Soft-Check umgesetzt**, nicht als
+  OS-Quota: `du -sb` + `exceedsQuota(path, maxBytes)` — diese Umgebung hat
+  keine xfs/btrfs-Projekt-Quotas ohne root, ein hartes Filesystem-Cap ist
+  hier nicht erreichbar; das ist im Code-Kommentar so benannt, nicht
+  stillschweigend als „Quota" verkauft. 9 neue Tests (7 in
+  `packages/core/test/worktree.test.ts` gegen ein echtes Repo, 2 in
+  `sessionmanager.test.ts` für die Verdrahtung inkl. echtem Cleanup-Beweis
+  nach `stop()`), real im Hub verdrahtet (`packages/server/src/main.ts`).
+  **Noch offen:** `exceedsQuota` wird aktuell nirgends periodisch
+  aufgerufen (keine automatische Park-Aktion bei Überschreitung) — die
+  Prüfung existiert und ist getestet, ist aber nicht in einen
+  Hintergrund-Task eingehängt.
 - [ ] **T2.2** Diff-Engine + Funktions-Anker-Heuristik + K3-Kompression mit Fallback
 - [ ] **T2.3** Diff-UI (S3): Hunk-Karten, Tap-Expand, Querformat side-by-side.
   Baut auf dem rohen Diff-Reiter aus P1.6 (T1.6-5) auf und hält sich an

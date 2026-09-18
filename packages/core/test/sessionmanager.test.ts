@@ -1,13 +1,19 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { mkdtemp, rm } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventStore } from "../src/eventstore.ts";
 import { SessionManager } from "../src/sessionmanager.ts";
 import { AdapterRegistry } from "../src/registry.ts";
 import { HubDatabase } from "../src/db.ts";
+import { WorktreeManager } from "../src/worktree.ts";
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+
+const execFileAsync = promisify(execFile);
 
 function makeManager(dir: string, dummyConfig?: Record<string, unknown>, dbFile?: string) {
   const db = new HubDatabase(dbFile ? join(dir, dbFile) : ":memory:");
@@ -402,6 +408,79 @@ describe("SessionManager", () => {
       expect(eventsAfter2.filter((e) => (e.payload as { kind?: string }).kind === "adapter.down")).toHaveLength(1);
     } finally {
       await manager.shutdown();
+    }
+  });
+
+  it("T2.1: a git-repo project gets real worktree isolation — commits land off the main checkout, cleaned up on stop", async () => {
+    const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-wtrepo-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-wtout-"));
+    await execFileAsync("git", ["-C", repoDir, "init", "-q", "-b", "main"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@uacc.local"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "uacc test"]);
+    await writeFile(join(repoDir, "a.txt"), "hi\n");
+    await execFileAsync("git", ["-C", repoDir, "add", "a.txt"]);
+    await execFileAsync("git", ["-C", repoDir, "commit", "-q", "-m", "initial"]);
+    const { stdout: headSha } = await execFileAsync("git", ["-C", repoDir, "rev-parse", "HEAD"]);
+
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    let seenWorkdir = "";
+    registry.register("wt-test", () => ({
+      id: "wt-test",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false }),
+      async start(_spec, ctx) {
+        seenWorkdir = ctx.workdir;
+        return { sessionId: ctx.sessionId };
+      },
+      async steer() {
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" as const };
+      },
+      async stop() {},
+    }));
+    const worktrees = new WorktreeManager(worktreesOut);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner(), undefined, worktrees);
+    try {
+      const record = await manager.create({ adapter: "wt-test", project: repoDir });
+      const wtPath = worktrees.pathFor(record.id);
+      expect(seenWorkdir).toBe(wtPath); // adapter really saw the worktree, not repoDir
+      expect(existsSync(wtPath)).toBe(true);
+      expect(manager.get(record.id)!.worktreeSha).toBe(headSha.trim());
+
+      const events = await manager.tail(record.id, 0);
+      const kinds = events.map((e) => (e.payload as { kind?: string }).kind);
+      expect(kinds).not.toContain("session.no_worktree_isolation");
+
+      await manager.stop(record.id);
+      expect(existsSync(wtPath)).toBe(false); // real cleanup, not just marked stopped
+    } finally {
+      await manager.shutdown();
+      await rm(repoDir, { recursive: true, force: true });
+      await rm(worktreesOut, { recursive: true, force: true });
+    }
+  });
+
+  it("T2.1: a non-git project honestly falls back — no isolation, no crash, event says why", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, { eventsPerSecond: 5, autoStopAfterEvents: 1 });
+    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-wtout-nongit-"));
+    const worktrees = new WorktreeManager(worktreesOut);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner(), undefined, worktrees);
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir }); // `dir` is not a git repo
+      expect(manager.get(record.id)!.worktreeSha).toBeNull();
+      const events = await manager.tail(record.id, 0);
+      const kinds = events.map((e) => (e.payload as { kind?: string }).kind);
+      expect(kinds).toContain("session.no_worktree_isolation");
+    } finally {
+      await manager.shutdown();
+      await rm(worktreesOut, { recursive: true, force: true });
     }
   });
 });
