@@ -5,6 +5,7 @@ import { Composer } from "./Composer.tsx";
 import { SkillPicker, loadSelectedSkill, type SelectedSkill } from "./SkillOverlay.tsx";
 import { applyTheme, getTheme, type Theme } from "./theme.ts";
 import { GlobalDock, type Page } from "./Dock.tsx";
+import { VoiceSheet } from "./VoiceSheet.tsx";
 
 export function App({
   onOpen,
@@ -25,6 +26,7 @@ export function App({
   // T1.6-3: initialPage lets SessionTail's dock jump straight to "new" or
   // "settings" instead of always landing back on the dashboard.
   const [page, setPage] = useState<Page>(initialPage ?? "dashboard");
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -85,8 +87,10 @@ export function App({
           <Dashboard sessions={sessions} usage={usage} onOpen={onOpen} />
         ))}
 
+      <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} />
+
       <div class="dock-stack">
-        <GlobalDock active={page} onNavigate={setPage} />
+        <GlobalDock active={page} onNavigate={setPage} onVoice={() => setVoiceOpen(true)} />
       </div>
     </div>
   );

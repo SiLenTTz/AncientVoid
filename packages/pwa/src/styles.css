@@ -566,6 +566,89 @@ a {
   border-color: var(--accent);
 }
 
+/* T1.6-7: global voice-command sheet */
+.chip.subtle {
+  color: var(--fg-dim);
+  font-weight: 500;
+}
+
+.voice-example-chip {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 6px;
+}
+
+.voice-orb-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+.voice-orb {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  position: relative;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 85%, white), var(--accent) 70%);
+}
+
+.voice-orb.listening::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  animation: voice-pulse 1.6s ease-out infinite;
+}
+
+@keyframes voice-pulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-orb.listening::before {
+    animation: none;
+    opacity: 0.35;
+  }
+}
+
+.voice-state {
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  margin: 4px 0 2px;
+}
+
+.voice-example {
+  text-align: center;
+  color: var(--fg-dim);
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+
+.preview-tag {
+  display: block;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-dim);
+  border: 1px dashed var(--fg-dim);
+  border-radius: 999px;
+  padding: 3px 8px;
+  margin: 0 auto 10px;
+  width: fit-content;
+}
+
 /* T1.6-2: bottom-dock navigation — replaces the old top icon buttons.
  * .app-page's bottom padding clears the fixed dock; scoped to App.tsx's
  * own wrapper (not #app globally) so SessionTail's own fixed bottom block

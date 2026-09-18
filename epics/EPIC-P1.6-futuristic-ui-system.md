@@ -340,8 +340,25 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   laufenden Prozess — vor einem Server-Neustart fehlschlug genau das (der
   Server lief noch mit dem alten Code), danach real bestätigt. Gates:
   `npm test` 142/142, `lint`/`typecheck`, PWA `build`/`typecheck` grün.
-- [ ] **T1.6-7** Globales Sprachbefehl-Sheet (Voice-Dock-Eintrag):
-  Transkript-Vorschau ohne Ausführung, sichtbarer Verweis auf P3 T3.10.
+- [x] **T1.6-7** Globales Sprachbefehl-Sheet. Neue `VoiceSheet.tsx`,
+  vierter `GlobalDock`-Eintrag (`Dock.tsx` um `onVoice`-Callback erweitert
+  — bewusst kein `Page`-Wert, da es ein Overlay über der aktuellen Seite
+  ist, kein eigenes Ziel). Ruft `recognizeOnce()` **unverändert** aus
+  T1.5-7 auf (keine zweite Spracherkennungs-Implementierung). Zeigt real
+  „Ich höre zu …" während der Erkennung, das echte Transkript oder einen
+  ehrlichen Fehlergrund (Zeitüberschreitung/kein Mikrofon-Zugriff/nichts
+  gehört) danach, sichtbar `Vorschau — Ausführung folgt (P3)`. Beispiel-
+  Befehle sind antippbar, lösen aber nachweislich **keine** Aktion aus —
+  nur ein Hinweistext „Noch keine Ausführung". **Live geprüft** (Playwright
+  mit `--use-fake-ui-for-media-stream` + echter Mikrofon-Berechtigung,
+  nicht nur Sichtprüfung): Sheet öffnet mit pulsierendem Orb im
+  „Ich höre zu"-Zustand (`t1.6-7-voice-listening.png`), ein angetippter
+  Beispiel-Befehl führt nachweislich zu keiner Navigation (Dashboard-Inhalt
+  bleibt sichtbar dahinter, `t1.6-7-voice-example-picked.png`), Backdrop-
+  Klick schließt das Sheet, und der reale Fehlerpfad (`recognizeOnce()`
+  meldet „no-speech" mit der Fake-Audio-Quelle) zeigt korrekt „Nichts
+  gehört." (`t1.6-7-voice-timeout.png`). Gates: `npm test` 142/142,
+  `lint`/`typecheck`, PWA `build`/`typecheck` grün.
 - [ ] **T1.6-8** Linsenartige Scrollbars + Status-Glow-Animationen
   (`prefers-reduced-motion`-sicher, reines CSS).
 - [ ] **T1.6-9** K2-Regressionslauf (`scripts/k2-frame-lag.mjs`) gegen den
@@ -401,9 +418,10 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   der tatsächlich gestartete `claude`-Prozess erhält `--model opus` —
   verifiziert gegen den echten Subprozess-Aufruf (wie T1.5-9s
   Skill-/Agent-Verifikation), nicht nur gegen die UI-Auswahl.
-- **AC-P1.6-7:** Voice-Sheet transkribiert real (wiederverwendete T1.5-7-
+- **AC-P1.6-7: 🟢 erfüllt.** Voice-Sheet transkribiert real (wiederverwendete T1.5-7-
   Mechanik) und zeigt sichtbar „Vorschau — Ausführung folgt", führt aber
   nachweislich **keine** Aktion aus, wenn ein Befehls-Beispiel angetippt wird.
+  Beleg: `t1.6-7-voice-*.png`, echte `recognizeOnce()`-Fehlerpfad-Prüfung.
 - **AC-P1.6-8 (K2, Regression):** Der komplette Umbau (Dock, Glow,
   Scrollbars) verschlechtert die K2-Frame-Lag-Zahl aus
   `docs/messlauf/2026-09-16-k2-frame-lag-p1.5-regression.md` nicht —
