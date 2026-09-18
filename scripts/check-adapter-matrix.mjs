@@ -36,8 +36,9 @@ const CHECKED = [
   { id: "codex", modulePath: "../packages/adapter-codex/src/index.ts" },
   { id: "opencode", modulePath: "../packages/adapter-opencode/src/index.ts" },
   { id: "aider", modulePath: "../packages/adapter-aider/src/index.ts" },
+  { id: "copilot", modulePath: "../packages/adapter-copilot/src/index.ts" },
 ];
-const SKIPPED = ["copilot", "swarm", "zai", "local-llm", "deepseek", "cursor-clip"];
+const SKIPPED = ["swarm", "zai", "local-llm", "deepseek", "cursor-clip"];
 
 const SYMBOL_TO_BOOL = { "✓": true, "—": false };
 
