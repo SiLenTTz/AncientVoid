@@ -11,6 +11,27 @@ export interface SessionRecord {
   lastSeq: number;
   costUsd: number;
   updatedAt: string;
+  /** ADR-0006 — summed from real per-event usage where an adapter reports
+   * it (claude); 0 means "unreported", not "confirmed zero" (same caveat
+   * as costUsd). */
+  tokensEst: number;
+}
+
+/** T1.6-4/T1.6-5 — shared by the Bericht tab's file count and the Diff
+ * tab's patch view. `error` names a real reason (no git repo, no changes)
+ * rather than a silently empty result. */
+export interface SessionDiffFile {
+  path: string;
+  additions: number;
+  deletions: number;
+  binary: boolean;
+}
+
+export interface SessionDiffResult {
+  files: SessionDiffFile[];
+  patch: string;
+  truncated: boolean;
+  error?: string;
 }
 
 export interface AdapterInfo {
@@ -126,6 +147,7 @@ export const hubApi = {
     api<EnhanceResult>("/api/prompt-enhance", { method: "POST", body: JSON.stringify({ adapter, project, text }) }),
   sessions: () => api<SessionRecord[]>("/api/sessions"),
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
+  sessionDiff: (id: string) => api<SessionDiffResult>(`/api/sessions/${id}/diff`),
   events: (id: string, afterSeq = 0, limit = 500) =>
     api<{ seq: number; type: string; summary: string; ts: string; payload: unknown; blobRef: string | null }[]>(
       `/api/sessions/${id}/events?afterSeq=${afterSeq}&limit=${limit}`,

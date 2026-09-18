@@ -221,6 +221,48 @@ describe("hub server", () => {
     });
     await resynced;
   });
+
+  it("404s GET /api/sessions/:id/diff for an unknown session", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/sessions/nope/diff",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("GET /api/sessions/:id/diff returns a real diff for a session in a real git repo (T1.6-4/5)", async () => {
+    const { mkdtemp: mkdtempFs, writeFile } = await import("node:fs/promises");
+    const { execFile } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const execFileAsync = promisify(execFile);
+    const repo = await mkdtempFs(join(tmpdir(), "uacc-diff-repo-"));
+    await execFileAsync("git", ["init", "-q", repo]);
+    await execFileAsync("git", ["-C", repo, "config", "user.email", "test@example.com"]);
+    await execFileAsync("git", ["-C", repo, "config", "user.name", "Test"]);
+    await writeFile(join(repo, "a.txt"), "one\n");
+    await execFileAsync("git", ["-C", repo, "add", "a.txt"]);
+    await execFileAsync("git", ["-C", repo, "commit", "-q", "-m", "init"]);
+    await writeFile(join(repo, "a.txt"), "one\ntwo\n");
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/sessions",
+      headers: { authorization: `Bearer ${token}` },
+      payload: { adapter: "dummy", project: repo },
+    });
+    const { id } = created.json() as { id: string };
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/sessions/${id}/diff`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { files: { path: string; additions: number }[]; patch: string };
+    expect(body.files).toEqual([{ path: "a.txt", additions: 1, deletions: 0, binary: false }]);
+    expect(body.patch).toContain("+two");
+    await rm(repo, { recursive: true, force: true });
+  });
 });
 
 describe("hub server — pwaDir resolution (BUG-0009)", () => {

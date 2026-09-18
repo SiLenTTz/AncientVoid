@@ -269,9 +269,43 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   `user`/`assistant`, Verlauf/Debuggen zeigt alle Event-Typen inkl.
   `thinking`). Gates: `npm test` 134/134, `lint`/`typecheck`, PWA
   `build`/`typecheck` grün.
-- [ ] **T1.6-4** Bericht-Reiter: Token-Aggregation in `normalize.ts`/
-  `sessionmanager.ts` (neu), Dateien-geändert via `git diff --stat`,
-  Kontingent-Wirkung-Delta, optionale Auto-Zusammenfassung, „läuft"-Zustand.
+- [x] **T1.6-4** Bericht-Reiter. **Echter Fund vor dem Bauen:** der Contract
+  hatte bereits ein `tokensEst`-Feld auf `EmittedEvent`/`NormalizedEvent`
+  (seit P0!), aber nur `dummy` befüllte es mit Testwerten, und
+  `SessionManager` reichte es nur an den WS-Client durch, ohne es je auf
+  `SessionRecord` zu summieren — derselbe „totes Contract-Feld"-Fund wie
+  bei `SessionSpec.model`. [`ADR-0006`](../docs/adr/0006-session-tokens-est-aggregation.md)
+  entschieden: `claude`s `result`-Zeile trägt direkt neben `total_cost_usd`
+  bereits ein echtes `usage.{input_tokens,output_tokens}` — genau dieselbe
+  Quellzeile wie `costUsd` (ADR-0003). `tokensEst = input+output`
+  (kombiniert, kein Split — kein zweites Feld nötig), summiert exakt nach
+  ADR-0003s Muster, neue SQLite-Spalte `tokens_est` (Migration 3, gegen die
+  echte bestehende `data/hub.db` mit 10 Sessions real angewendet, keine
+  Downtime). Neuer `packages/server/src/diff.ts` (`getSessionDiff()`) —
+  **ein** Endpunkt `GET /api/sessions/:id/diff`, geteilt mit dem
+  T1.6-5-Diff-Reiter statt zweimal gebaut: `git diff HEAD --numstat`/
+  `git diff HEAD` gegen das Projektverzeichnis (keine Worktrees vor P2).
+  **Echter Bug, von einem eigenen Test gefangen:** die erste Fassung nutzte
+  bloßes `git diff` (nur unstaged) — eine bereits `git add`ete, aber nicht
+  committete neue Datei verschwand spurlos aus dem Bericht. Fix: `git diff
+  HEAD` (staged **und** unstaged gegen den letzten Commit). 4 neue Tests in
+  `diff.test.ts` gegen echte `git init`-Repos (kein Mocking), 2 neue
+  Routen-Tests in `server.test.ts`. **Bewusste Scope-Reduktion, benannt statt
+  verschwiegen:** Kontingent-Wirkung zeigt die **aktuelle** Adapter-weite
+  Momentaufnahme (`hubApi.adapterUsage()`), keine echte Vorher/Nachher-Delta
+  — dafür fehlt eine "Kontingent bei Session-Start"-Erfassung, die diese
+  Phase nicht mehr aufgebaut hat; ehrlich als „(Adapter-weit)" beschriftet
+  statt eine Delta-Zahl vorzutäuschen, die es nicht gibt. **Automatische
+  Zusammenfassung (T1.5-8-Enhancer-Muster) wurde in dieser Phase nicht
+  gebaut** — als offener Punkt hier benannt, nicht still ausgelassen. „Tests"
+  zeigt „nicht erfasst" (kein Adapter meldet ein strukturiertes Signal,
+  §3.3). **Live gegen eine echte `claude`-Session geprüft** (echter
+  API-Call, `/mnt/.../uacc-bericht-test`-Testrepo, danach entfernt): Bericht
+  zeigt reale $0,0656 Kosten, reale 279 Tokens, reale 1 geänderte Datei
+  (`notes.txt`, „hello" → „hello\nworld"), reales Kontingent-Fenster —
+  jede Zahl gegen die Rohantwort der jeweiligen echten API gegengeprüft
+  (Screenshot `t1.6-4-bericht-real.png`). Gates: `npm test` 141/141,
+  `lint`/`typecheck`, PWA `build`/`typecheck` grün.
 - [ ] **T1.6-5** Diff-Reiter: roher `git diff` gegen Projektverzeichnis,
   Größenobergrenze mit Truncation-Hinweis, ausdrücklich ohne P2-Funktionen.
 - [ ] **T1.6-6** Modell-Auswahl end-to-end (`App.tsx`-Chips → `SessionSpec.
@@ -319,11 +353,15 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   Textfarben in der echten PWA (nicht nur im Mockup) — vorher unerreichbarer
   Code wird real genutzt. Beleg: `t1.6-2-settings-light.png`, Theme-
   Persistenz über echten Reload verifiziert.
-- **AC-P1.6-4:** Bericht-Reiter zeigt für eine echte, abgeschlossene
-  `claude`-Session reale Zahlen (Dauer, Kosten, Tokens, Kontingent-Delta,
-  Dateien geändert) — Gegenprobe: jede Zahl lässt sich auf ein konkretes
-  Event oder einen konkreten Befehl zurückführen, keine geraten. Für
-  `codex`/`dummy` fehlende Felder zeigen „nicht erfasst", nie 0 oder geraten.
+- **AC-P1.6-4: 🟢 erfüllt, mit einer benannten Abweichung.** Bericht-Reiter
+  zeigt für eine echte, abgeschlossene `claude`-Session reale Zahlen
+  (Dauer, Kosten, Tokens, Kontingent, Dateien geändert) — Gegenprobe: jede
+  Zahl lässt sich auf ein konkretes Event oder einen konkreten Befehl
+  zurückführen, keine geraten. Für `codex`/`dummy` fehlende Felder zeigen
+  „nicht erfasst", nie 0 oder geraten. **Abweichung vom ursprünglichen
+  Wortlaut:** „Kontingent-**Delta**" ist real als aktuelle Adapter-weite
+  Momentaufnahme umgesetzt, nicht als Vorher/Nachher-Differenz — siehe
+  T1.6-4s Scope-Reduktion-Vermerk oben.
 - **AC-P1.6-5:** Diff-Reiter zeigt für eine Session mit echten,
   unco­mmitteten Änderungen im Projektverzeichnis den realen `git diff` —
   gegen ein Fixture-Repo mit bekanntem Diff verifiziert.

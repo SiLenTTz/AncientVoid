@@ -50,6 +50,9 @@ export const SessionRecord = z.object({
    * never report a native cost (e.g. codex, T1.3) — "0" here means
    * "nothing billed via this field," not "confirmed free." */
   costUsd: z.number().nonnegative().default(0),
+  /** Sum of every event's tokensEst so far (ADR-0006) — same "0 means
+   * unreported, not confirmed zero" caveat as costUsd. */
+  tokensEst: z.number().nonnegative().default(0),
   /** ISO-8601 timestamp of the last persisted change to this session
    * (status change or event) — T1.5's "zuletzt aktiv" sort key. */
   updatedAt: z.string().min(1),

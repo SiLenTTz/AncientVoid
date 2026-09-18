@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { SessionManager, TokenService, AdapterRegistry } from "@uacc/core";
 import { discoverProjects, isProjectPathAllowed, scanProjectSkills } from "@uacc/core";
 import { enhancePrompt } from "./enhance.ts";
+import { getSessionDiff } from "./diff.ts";
 import { z } from "zod";
 
 const EnhancePromptBody = z.object({
@@ -161,6 +162,17 @@ export function registerRoutes(
     const limit = Math.min(Number(q.limit ?? 500), 2000);
     if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
     return deps.sessions.tail(id, Number.isFinite(afterSeq) ? afterSeq : 0, limit);
+  });
+
+  app.get("/api/sessions/:id/diff", async (req, reply) => {
+    // T1.6-4/T1.6-5: session.project already passed the containment check
+    // at session-creation time — no client-supplied path here, so no
+    // second isProjectPathAllowed() call is needed (unlike /api/skills or
+    // /api/prompt-enhance, which take project fresh from the request body).
+    const { id } = req.params as { id: string };
+    const session = deps.sessions.get(id);
+    if (!session) return reply.code(404).send({ error: "unknown session" });
+    return getSessionDiff(session.project);
   });
 
   app.get("/api/sessions/:id/blobs/:hash", async (req, reply) => {

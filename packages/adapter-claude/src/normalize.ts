@@ -164,6 +164,13 @@ function normalizeResult(line: Record<string, unknown>): EmittedEvent {
   const costUsd = typeof line.total_cost_usd === "number" ? line.total_cost_usd : undefined;
   const isError = line.is_error === true;
   const costSuffix = costUsd !== undefined ? ` — $${costUsd.toFixed(4)}` : "";
+  // ADR-0006: the same result line already carries a cumulative `usage`
+  // object (input_tokens/output_tokens) right next to total_cost_usd —
+  // one combined number, not a second in/out split field.
+  const usage = line.usage as Record<string, unknown> | undefined;
+  const inputTokens = typeof usage?.input_tokens === "number" ? usage.input_tokens : undefined;
+  const outputTokens = typeof usage?.output_tokens === "number" ? usage.output_tokens : undefined;
+  const tokensEst = inputTokens !== undefined && outputTokens !== undefined ? inputTokens + outputTokens : undefined;
   return {
     type: "system",
     summary: `claude: turn complete${isError ? " (error)" : ""}${costSuffix}`,
@@ -177,6 +184,7 @@ function normalizeResult(line: Record<string, unknown>): EmittedEvent {
     // ADR-0003: costUsd is a first-class, provider-neutral contract field
     // now — no longer duplicated into payload.totalCostUsd.
     ...(costUsd !== undefined ? { costUsd } : {}),
+    ...(tokensEst !== undefined ? { tokensEst } : {}),
   };
 }
 

@@ -57,6 +57,13 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_sessions_updated_at ON sessions(updated_at);
     `,
   },
+  {
+    id: 3,
+    name: "sessions-tokens-est",
+    sql: `
+      ALTER TABLE sessions ADD COLUMN tokens_est INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];
 
 export class HubDatabase {

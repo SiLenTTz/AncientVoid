@@ -50,6 +50,7 @@ interface SessionRow {
   last_seq: number;
   cost_usd: number;
   updated_at: string;
+  tokens_est: number;
 }
 
 function rowToRecord(row: SessionRow): SessionRecord {
@@ -66,6 +67,7 @@ function rowToRecord(row: SessionRow): SessionRecord {
     lastSeq: row.last_seq,
     costUsd: row.cost_usd,
     updatedAt: row.updated_at,
+    tokensEst: row.tokens_est,
   };
 }
 
@@ -210,6 +212,7 @@ export class SessionManager {
       lastSeq: 0,
       costUsd: 0,
       updatedAt: now,
+      tokensEst: 0,
     };
     await this.store.initSession(record.id);
     this.persist(record);
@@ -453,6 +456,10 @@ export class SessionManager {
     // ADR-0003: costUsd is per-event, not cumulative — the hub sums it.
     for (const e of events) {
       if (e.costUsd !== undefined) session.record.costUsd += e.costUsd;
+      // ADR-0006: same per-event/summed pattern as costUsd, applied to the
+      // tokensEst field that already existed on the event contract but was
+      // never aggregated onto the session record.
+      if (e.tokensEst !== undefined) session.record.tokensEst += e.tokensEst;
       // ADR-0004: usageQuota is account-level, NEVER summed and NEVER
       // written onto SessionRecord — only the latest snapshot per adapter
       // id, overwriting regardless of which session observed it (it's the
@@ -509,8 +516,8 @@ export class SessionManager {
   private persist(record: SessionRecord): void {
     this.db
       .prepare(
-        `INSERT INTO sessions (id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq, cost_usd, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO sessions (id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq, cost_usd, updated_at, tokens_est)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            status = excluded.status,
            model = excluded.model,
@@ -519,7 +526,8 @@ export class SessionManager {
            adapter_version = excluded.adapter_version,
            last_seq = excluded.last_seq,
            cost_usd = excluded.cost_usd,
-           updated_at = excluded.updated_at`,
+           updated_at = excluded.updated_at,
+           tokens_est = excluded.tokens_est`,
       )
       .run(
         record.id,
@@ -534,6 +542,7 @@ export class SessionManager {
         record.lastSeq,
         record.costUsd,
         record.updatedAt,
+        record.tokensEst,
       );
   }
 }

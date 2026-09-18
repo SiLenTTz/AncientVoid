@@ -278,6 +278,41 @@ describe("SessionManager", () => {
     }
   });
 
+  it("ADR-0006: accumulates tokensEst across events, same summed-not-overwritten pattern as costUsd", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("tokens-test", () => ({
+      id: "tokens-test",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false }),
+      async start(_spec, ctx) {
+        ctx.emit({ type: "system", summary: "turn 1", payload: {}, tokensEst: 10 });
+        return { sessionId: ctx.sessionId };
+      },
+      async steer(handle, input, ctx) {
+        if (input.kind === "prompt") ctx.emit({ type: "system", summary: "turn 2", payload: {}, tokensEst: 25 });
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" as const };
+      },
+      async stop() {},
+    }));
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "tokens-test", project: dir });
+      await waitFor(async () => (await manager.tail(record.id, 0)).some((e) => e.tokensEst === 10));
+      await manager.steer(record.id, { kind: "prompt", text: "go" });
+      await waitFor(async () => (await manager.tail(record.id, 0)).some((e) => e.tokensEst === 25));
+
+      const after = manager.get(record.id)!;
+      expect(after.tokensEst).toBe(35); // 10 + 25, summed not overwritten
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
   it("ADR-0004: getAdapterUsage is account-level (per adapter id, never summed, never on SessionRecord)", async () => {
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
