@@ -260,7 +260,33 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
   9 neue Tests (`packages/core/test/sessionmanager.test.ts`: Warnung,
   Auto-Park, Top-up-Selektivität, Tages-Cap; `packages/server/test/
   server.test.ts`: Route ohne/mit Approvals, Begründungspflicht).
-- [ ] **T2.8** Audit-Events für alle Pfade (incl. verweigerter Aktionen)
+- [x] **T2.8** Audit-Events für alle Pfade (incl. verweigerter Aktionen).
+  „wer-wann-was": ein neuer optionaler `actor`-Parameter (das echte,
+  `identify()`te Geräte-Token-Label des Aufrufers, nie roh) ist jetzt
+  durch `create()`/`steer()`/`stop()`/`park()`/`requestBudgetTopUp()`/
+  `applyApprovedSteer()`/`applyApprovedBudgetTopUp()` durchgereicht und
+  landet in den jeweiligen System-Events (`session.created`,
+  `session.steer`, `session.stopped`, `session.parked`,
+  `session.budget_topup`, …) — `null`, wenn kein Aufrufer bekannt ist
+  (jeder Alt-Aufrufer/Test), nie geraten. **Verweigerte Aktionen:** neue
+  `SessionManager.recordApprovalDecision()` schreibt jede
+  Freigabe-Entscheidung — genehmigt **oder abgelehnt**, write wie
+  destruktiv — als `session.approval_decided`-Event auf den eigenen
+  Session-Tail, nicht nur als Zeile in der separaten `approvals`-Tabelle;
+  vorher war eine Ablehnung aus der Session-Historie heraus unsichtbar.
+  **Echten, vorbestehenden Bug beim Testen dieser Änderung gefunden und
+  behoben** (nicht durch T2.8 eingeführt, aber durch T2.8s eigenen
+  Audit-Test erstmals sichtbar geworden): `emitSystem()` baut
+  `{kind, ...payload}`, wo `kind` der Event-Art-String ist
+  („session.steer") — ein Payload-Feld, das seit T2.4 selbst `kind` hieß
+  (der Steer-Input-Art, z. B. „resume"), hat dieses Feld beim Spreaden
+  stillschweigend überschrieben. Jedes `resume`/`park`-Steer-Audit-Event
+  trug seitdem fälschlich `payload.kind === "resume"` statt
+  `"session.steer"` — behoben durch Umbenennung auf `steerKind`.
+  4 neue Tests (2 in `sessionmanager.test.ts` für Actor-Durchreichung
+  inkl. Default `null`, 1 in `server.test.ts` für den
+  `session.approval_decided`-Nachweis bei Ablehnung, plus die bereits
+  bestehenden Freigabe-Tests decken den genehmigten Pfad ab).
 - [ ] **T2.9** CI-Gate-Harness: K1 via Headless-Browser-Simulation, K3 via Fixture-Repo mit
   Riesen-Diff, K5 via Property-Test über alle Event-Typen
 - [ ] **T2.10** Fail-closed-Review: jeder neue Code-Pfad, der externen State ändert, muss

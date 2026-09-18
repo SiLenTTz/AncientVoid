@@ -247,7 +247,17 @@ export class SessionManager {
     return rec;
   }
 
-  async create(spec: unknown): Promise<SessionRecord> {
+  /**
+   * T2.8 (EPIC-P2 §2 "Audit-Trail: jede Handy-Aktion als Event im
+   * Session-JSONL (wer-wann-was)"): `actor` is the calling device's own
+   * token label (identify()d by the route, never the raw token) —
+   * threaded through into the relevant system events below so a
+   * session's own tail answers "wer" without cross-referencing the
+   * approvals table or server logs. `undefined` (every pre-T2.8 call
+   * site, every test) renders as `actor: null` — "no caller identity
+   * available", not "system" or a guess.
+   */
+  async create(spec: unknown, actor?: string): Promise<SessionRecord> {
     const parsed = SessionSpecSchema.parse(spec);
     const registered = this.registry.require(parsed.adapter);
     const now = new Date().toISOString();
@@ -320,6 +330,7 @@ export class SessionManager {
       // traceable in the tail — nobody should have to guess afterwards
       // what a session was actually started with.
       args: parsed.args ?? null,
+      actor: actor ?? null,
     });
     try {
       session.handle = await session.adapter.start(parsed, ctx);
@@ -337,10 +348,10 @@ export class SessionManager {
     return { ...record };
   }
 
-  async steer(sessionId: string, input: SteerInput): Promise<Ack> {
+  async steer(sessionId: string, input: SteerInput, actor?: string): Promise<Ack> {
     const session = this.live.get(sessionId);
     if (!session || !session.handle) return { ok: false, detail: "session not live" };
-    if (input.kind === "stop") return this.stop(sessionId);
+    if (input.kind === "stop") return this.stop(sessionId, actor);
     // T2.4/ADR-0007: "Steer-Prompt" is explicitly a write-class action
     // (EPIC-P2 §3 table) once an ApprovalService is configured — parked,
     // not forwarded, until a real approval decision comes back through
@@ -355,11 +366,18 @@ export class SessionManager {
         `Prompt an ${session.record.adapter} senden: "${input.text.slice(0, 160)}"`,
       );
       this.pendingSteers.set(req.id, { sessionId, input });
-      await this.emitSystem(session, "session.steer_pending_approval", { approvalId: req.id });
+      await this.emitSystem(session, "session.steer_pending_approval", { approvalId: req.id, actor: actor ?? null });
       return { ok: false, detail: `pending approval ${req.id}` };
     }
     const ack = await session.adapter.steer(session.handle, input, this.makeContext(session));
-    await this.emitSystem(session, "session.steer", { kind: input.kind, ok: ack.ok });
+    // BUG found via T2.8's own audit test: emitSystem() builds
+    // `{ kind, ...payload }`, where `kind` is this call's own event-kind
+    // string ("session.steer") — a payload field ALSO named `kind` (the
+    // steer input's kind, e.g. "resume") silently overwrote it, so every
+    // non-"prompt" steer's audit event had payload.kind === "resume"/
+    // "park" instead of "session.steer" ever since T2.4 introduced this
+    // call. Named `steerKind` here to never collide again.
+    await this.emitSystem(session, "session.steer", { steerKind: input.kind, ok: ack.ok, actor: actor ?? null });
     return ack;
   }
 
@@ -371,14 +389,19 @@ export class SessionManager {
    * (unknown approvalId, or the session ended while the approval sat
    * pending) is a real, nameable outcome, not a crash.
    */
-  async applyApprovedSteer(approvalId: string): Promise<Ack> {
+  async applyApprovedSteer(approvalId: string, decidedByLabel?: string): Promise<Ack> {
     const pending = this.pendingSteers.get(approvalId);
     if (!pending) return { ok: false, detail: "no pending steer for this approval" };
     this.pendingSteers.delete(approvalId);
     const session = this.live.get(pending.sessionId);
     if (!session || !session.handle) return { ok: false, detail: "session not live" };
     const ack = await session.adapter.steer(session.handle, pending.input, this.makeContext(session));
-    await this.emitSystem(session, "session.steer", { kind: pending.input.kind, ok: ack.ok, approvalId });
+    await this.emitSystem(session, "session.steer", {
+      steerKind: pending.input.kind,
+      ok: ack.ok,
+      approvalId,
+      actor: decidedByLabel ?? null,
+    });
     return ack;
   }
 
@@ -393,11 +416,16 @@ export class SessionManager {
    * pattern as steer()); otherwise parked as a pending approval and only
    * actually applied by applyApprovedBudgetTopUp() once approved.
    */
-  async requestBudgetTopUp(sessionId: string, newBudgetUsd: number, reason?: string): Promise<Ack & { approvalId?: string }> {
+  async requestBudgetTopUp(
+    sessionId: string,
+    newBudgetUsd: number,
+    reason?: string,
+    actor?: string,
+  ): Promise<Ack & { approvalId?: string }> {
     const session = this.live.get(sessionId);
     if (!session) return { ok: false, detail: "session not live" };
     if (!this.approvals) {
-      await this.applyBudgetTopUp(sessionId, newBudgetUsd);
+      await this.applyBudgetTopUp(sessionId, newBudgetUsd, actor);
       return { ok: true };
     }
     const req = this.approvals.create(
@@ -408,20 +436,45 @@ export class SessionManager {
       true, // ADR-0007: a budget change always requires a reason, unlike a plain steer prompt
     );
     this.pendingBudgetTopUps.set(req.id, { sessionId, newBudgetUsd });
-    await this.emitSystem(session, "session.budget_topup_pending_approval", { approvalId: req.id, newBudgetUsd });
+    await this.emitSystem(session, "session.budget_topup_pending_approval", {
+      approvalId: req.id,
+      newBudgetUsd,
+      actor: actor ?? null,
+    });
     return { ok: false, detail: `pending approval ${req.id}`, approvalId: req.id };
+  }
+
+  /**
+   * T2.8 (EPIC-P2 §2 "Audit-Trail … inkl. verweigerter Aktionen"): unlike
+   * applyApprovedSteer/applyApprovedBudgetTopUp (which only ever run on a
+   * genuine approval), this records EVERY decision — approved or
+   * rejected, write or destructive — onto the session's own tail. Without
+   * this, a rejected request only ever showed up in the separate
+   * approvals table; a reviewer reading one session's history alone
+   * couldn't see that an action was even requested and denied.
+   */
+  async recordApprovalDecision(
+    sessionId: string,
+    approvalId: string,
+    action: string,
+    status: "approved" | "rejected",
+    decidedByLabel: string,
+  ): Promise<void> {
+    const session = this.live.get(sessionId);
+    if (!session) return; // session ended while the approval sat pending — nothing to record onto
+    await this.emitSystem(session, "session.approval_decided", { approvalId, action, status, actor: decidedByLabel });
   }
 
   /** Called by the decide route once a `budget.increase` approval is
    * genuinely approved — mirrors applyApprovedSteer. */
-  async applyApprovedBudgetTopUp(approvalId: string): Promise<Ack> {
+  async applyApprovedBudgetTopUp(approvalId: string, decidedByLabel?: string): Promise<Ack> {
     const pending = this.pendingBudgetTopUps.get(approvalId);
     if (!pending) return { ok: false, detail: "no pending budget top-up for this approval" };
     this.pendingBudgetTopUps.delete(approvalId);
-    return this.applyBudgetTopUp(pending.sessionId, pending.newBudgetUsd);
+    return this.applyBudgetTopUp(pending.sessionId, pending.newBudgetUsd, decidedByLabel);
   }
 
-  async stop(sessionId: string): Promise<Ack> {
+  async stop(sessionId: string, actor?: string): Promise<Ack> {
     const session = this.live.get(sessionId);
     if (!session) return { ok: false, detail: "session not live" };
     session.record.parkReason = null; // ADR-0008: leaving "parked" (if it was) for good, never a stale reason
@@ -445,25 +498,25 @@ export class SessionManager {
         }
       }
       await this.setStatus(session, "stopped");
-      await this.emitSystem(session, "session.stopped", {});
+      await this.emitSystem(session, "session.stopped", { actor: actor ?? null });
     }
     return { ok: true };
   }
 
-  async park(sessionId: string): Promise<Ack> {
+  async park(sessionId: string, actor?: string): Promise<Ack> {
     const session = this.live.get(sessionId);
     if (!session) return { ok: false, detail: "session not live" };
-    await this.parkFor(session, "manual");
+    await this.parkFor(session, "manual", actor);
     return { ok: true };
   }
 
   /** T2.7/ADR-0008: the one place any kind of park actually happens —
    * records WHY, so a later budget top-up knows whether it's the right
    * reason to auto-resume (see applyBudgetTopUp). */
-  private async parkFor(session: LiveSession, reason: SessionRecord["parkReason"]): Promise<void> {
+  private async parkFor(session: LiveSession, reason: SessionRecord["parkReason"], actor?: string): Promise<void> {
     session.record.parkReason = reason;
     await this.setStatus(session, "parked");
-    await this.emitSystem(session, "session.parked", { reason });
+    await this.emitSystem(session, "session.parked", { reason, actor: actor ?? null });
   }
 
   /**
@@ -503,17 +556,17 @@ export class SessionManager {
    * named failure rather than silently no-op'ing so a caller (the
    * approval-decide route) can surface why nothing happened.
    */
-  async applyBudgetTopUp(sessionId: string, newBudgetUsd: number): Promise<Ack> {
+  async applyBudgetTopUp(sessionId: string, newBudgetUsd: number, actor?: string): Promise<Ack> {
     const session = this.live.get(sessionId);
     if (!session) return { ok: false, detail: "session not live" };
     session.record.budgetUsd = newBudgetUsd;
     session.budgetWarned = false;
     this.persist(session.record);
-    await this.emitSystem(session, "session.budget_topup", { newBudgetUsd });
+    await this.emitSystem(session, "session.budget_topup", { newBudgetUsd, actor: actor ?? null });
     if (session.record.status === "parked" && session.record.parkReason === "budget") {
       session.record.parkReason = null;
       await this.setStatus(session, "working");
-      await this.emitSystem(session, "session.resumed_after_topup", {});
+      await this.emitSystem(session, "session.resumed_after_topup", { actor: actor ?? null });
     }
     return { ok: true };
   }
