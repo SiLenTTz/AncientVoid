@@ -66,6 +66,11 @@ Quota-Signal in der CLI, `?` = noch nicht gebaut/geprüft. Nie geraten (P1.5s
 „unbekannt statt geraten"-Regel).
 
 (Ehrlichkeitsklausel: Status wird erst nach bestandenen Contract-Tests auf „proven" gesetzt.)
+Die Spalten Reasoning/Tools/Cost/Steer/Kontingent sind gegen jedes Adapters
+echten `capabilities()`-Rückgabewert automatisiert geprüft (T3.11):
+`npm run check:adapter-matrix` ([`scripts/check-adapter-matrix.mjs`](scripts/check-adapter-matrix.mjs)).
+Status/Phase bleiben bewusst manuell — das sind Belege (Tests, Messläufe),
+kein reiner Funktionsaufruf.
 
 ## Quick Start
 

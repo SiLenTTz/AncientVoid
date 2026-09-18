@@ -170,8 +170,22 @@ Handy aus voll arbeitsfähig".
   **ohne** Ausführung („Vorschau"-Hinweis). T3.10 ergänzt hier den fehlenden
   Teil: aus dem bereits vorhandenen Transkript eine Aktion ableiten, nicht
   das Sheet selbst neu bauen.
-- [ ] **T3.11** Adapter-Status-Matrix in README live aus `capabilities()` generieren
-  (Ehrlichkeitsklausel automatisieren — aSPARK-Lektion)
+- [x] **T3.11** Adapter-Status-Matrix in README live aus `capabilities()` generieren
+  (Ehrlichkeitsklausel automatisieren — aSPARK-Lektion). Umgesetzt als
+  **Prüfer statt stillem Neu-Schreiber**: `npm run check:adapter-matrix`
+  (`scripts/check-adapter-matrix.mjs`) ruft für jeden Adapter mit eigenem
+  Package (`dummy`/`claude`/`codex`/`opencode`/`aider`) real
+  `createAdapter().capabilities()` auf und vergleicht das Ergebnis
+  Spalte für Spalte gegen die tatsächlichen ✓/—-Symbole in der
+  README-Tabelle — real getestet, dass es eine absichtlich eingebaute
+  Abweichung auch tatsächlich findet. Bewusst **kein** blinder
+  Neu-Schreiber der Status-/Phase-Spalten: die sind editorielle,
+  belegpflichtige Aussagen (Tests, Messläufe), kein reiner
+  Funktionsaufruf — ein Skript, das sie automatisch auf „proven" setzen
+  würde, würde genau die Ehrlichkeitsklausel unterlaufen, die es
+  eigentlich automatisieren soll. `copilot`/`swarm`/`zai`/`local-llm`/
+  `deepseek`/`cursor-clip` sind ohne eigenes Package/mit geteilter
+  Factory benannt übersprungen, nicht stillschweigend ignoriert.
 - [x] **T3.12** Adapter `opencode` — real installiertes CLI (`opencode run
   <prompt>`), One-Shot-Modus analog `claude -p`. Korrektur ggü. der
   ursprünglichen Annahme oben: `opencode run --help` hat sehr wohl ein
