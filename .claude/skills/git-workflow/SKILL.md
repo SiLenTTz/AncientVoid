@@ -120,9 +120,15 @@ Subject ≤ ~72 Zeichen, Imperativ, Scope = Package/Bereich. Keine Secrets.
 
 ```bash
 git push -u origin feat/adapter-local-llm
-glab mr create --title "feat(adapter-local-llm): stream parsing" --description-file mr-desc.md
-glab mr merge <mr-number>   # Self-Merge zulässig (Solo-Projekt, siehe Kadenz oben)
+glab mr create --title "feat(adapter-local-llm): stream parsing" --description "$(cat mr-desc.md)"
+glab mr merge <mr-number> --yes   # Self-Merge zulässig (Solo-Projekt, siehe Kadenz oben)
 ```
+
+**Real, live geprüft (2026-09-18):** `glab mr create` hat kein
+`--description-file` — der echte Flag ist `-d`/`--description` und nimmt
+den Text direkt (nicht einen Dateipfad); `$(cat mr-desc.md)` liefert den
+Inhalt einer vorbereiteten Beschreibungsdatei trotzdem sauber ein.
+`glab mr merge` ohne `--yes` fragt interaktiv nach.
 
 Body: Warum, Testplan, Link Issue. Die MR bleibt trotzdem Pflicht als
 Log-Eintrag — der Merge-Klick/`glab mr merge` ist der **einzige** Weg, wie
