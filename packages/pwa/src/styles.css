@@ -819,6 +819,13 @@ a {
   border-radius: 50%;
   position: relative;
   background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 85%, white), var(--accent) 70%);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.voice-orb:disabled {
+  cursor: default;
 }
 
 .voice-orb.listening::before {

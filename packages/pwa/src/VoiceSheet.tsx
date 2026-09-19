@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { recognizeOnce, speechRecognitionSupported, type SpeechResult } from "./speech.ts";
 import { parseVoiceDirective, type VoiceDirective } from "./voice-directives.ts";
 import { hubApi } from "./api.ts";
@@ -16,6 +16,18 @@ import { hubApi } from "./api.ts";
  * AC-P3-7 requires a real write-Gate confirm step, never silent execution:
  * a directive is parsed, shown back with its summary, and only actually
  * sent to the hub after an explicit tap.
+ *
+ * BUG (found live, 2026-09-19, real device): recognition used to
+ * auto-start in a `useEffect` reacting to `open` — one render tick after
+ * the dock's own tap already returned control to the browser's event
+ * loop. Mobile browsers (documented WebKit/Blink behavior — mic/speech
+ * APIs require `.start()` to run inside the SAME synchronous call stack
+ * as the triggering user gesture) then silently refuse to even show the
+ * permission prompt: no error, no prompt, nothing — exactly "nix passiert
+ * einfach". Fixed by requiring an explicit "Tippen zum Sprechen" tap
+ * *inside the open sheet*, whose onClick calls recognizeOnce() directly —
+ * that tap is its own fresh, synchronous user gesture. Not verified on an
+ * actual phone from here (no device access) — needs a real retest.
  */
 const EXAMPLE_COMMANDS = ["Zeig mir mobile-hub", "Neue Session mit Codex starten", "Wie ist mein Kontingent?"];
 
@@ -37,17 +49,33 @@ export function VoiceSheet({
   const [directive, setDirective] = useState<VoiceDirective | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionResult, setActionResult] = useState<string | null>(null);
+  const alive = useRef(true);
 
   useEffect(() => {
+    alive.current = true;
     if (!open) return;
-    setState("listening");
+    // Reset to the idle "tap to speak" state on every open — never
+    // auto-starts recognition (see this file's own doc comment for why).
+    setState("idle");
     setResult(null);
     setPickedExample(null);
     setDirective(null);
     setActionResult(null);
-    let alive = true;
+    return () => {
+      alive.current = false;
+    };
+  }, [open]);
+
+  // Called directly from a button's onClick — must stay synchronous up to
+  // the recognizeOnce() call itself for the real reason in this file's
+  // top doc comment. Do not move this into a useEffect.
+  const startListening = () => {
+    setState("listening");
+    setResult(null);
+    setDirective(null);
+    setActionResult(null);
     recognizeOnce().then((r) => {
-      if (!alive) return;
+      if (!alive.current) return;
       setResult(r);
       setState("done");
       if (r.ok) {
@@ -55,10 +83,7 @@ export function VoiceSheet({
         if (parsed.kind !== "unrecognized") setDirective(parsed);
       }
     });
-    return () => {
-      alive = false;
-    };
-  }, [open]);
+  };
 
   if (!open) return null;
 
@@ -101,10 +126,22 @@ export function VoiceSheet({
         ) : (
           <>
             <div class="voice-orb-wrap">
-              <div class={`voice-orb ${state === "listening" ? "listening" : ""}`} />
+              <button
+                type="button"
+                class={`voice-orb ${state === "listening" ? "listening" : ""}`}
+                onClick={state === "listening" ? undefined : startListening}
+                disabled={state === "listening"}
+                title={state === "idle" ? "Tippen zum Sprechen" : "Nochmal"}
+              />
             </div>
             <p class="voice-state">
-              {state === "listening" ? "Ich höre zu …" : result?.ok ? "Erkannt" : "Nicht erkannt"}
+              {state === "idle"
+                ? "Tippen zum Sprechen"
+                : state === "listening"
+                  ? "Ich höre zu …"
+                  : result?.ok
+                    ? "Erkannt"
+                    : "Nicht erkannt"}
             </p>
             {result &&
               (result.ok ? (
