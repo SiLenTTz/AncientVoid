@@ -22,13 +22,17 @@ import {
   loadReportingSinks,
 } from "@uacc/core";
 import { TmuxRunner, ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummyAdapter } from "@uacc/adapter-dummy";
 import type { AdapterFactory } from "@uacc/contracts";
 import { createHubApp } from "./index.ts";
 
-const BUILTIN_ADAPTERS: Record<string, AdapterFactory> = {
-  dummy: createDummyAdapter,
-};
+// `dummy` used to be hardcoded here, always visible in every real hub's
+// adapter list/status rows regardless of whether anyone wanted it — real
+// user feedback (2026-09-19): looks like test clutter next to genuine
+// providers. It's a completely normal adapter otherwise (@uacc/adapter-dummy,
+// same registration path as claude/codex/etc.) — add it to
+// hub.config.json's own `adapters` array, same as any other adapter, when
+// you actually want it for local testing.
+const BUILTIN_ADAPTERS: Record<string, AdapterFactory> = {};
 
 async function main(): Promise<void> {
   const configPath = resolve(process.env.UACC_CONFIG ?? "hub.config.json");
