@@ -1,10 +1,12 @@
-// T2.6: "approvals" is a real destination (App.tsx renders ApprovalQueuePane
-// for it) reached from the Dashboard's pending-approvals banner, not from
-// the dock — the dock's four slots already match the T1.6 mockup exactly,
-// and EPIC-P2 never asked for a fifth. `active` simply never highlights any
-// dock button while this page is open (same as `active === null` inside a
-// session tail).
-export type Page = "dashboard" | "new" | "settings" | "approvals";
+// T2.6/T1.6-status: "approvals" and "status" are real destinations
+// (App.tsx renders ApprovalQueuePane/StatusPage for them) reached
+// contextually — from the Dashboard's pending-approvals banner, and from
+// a header link next to the connection dot — not from the dock. The
+// dock's four slots already match the T1.6 mockup exactly, and neither
+// EPIC-P2 nor this UI cleanup asked for a fifth. `active` simply never
+// highlights any dock button while either page is open (same as
+// `active === null` inside a session tail).
+export type Page = "dashboard" | "new" | "settings" | "approvals" | "status";
 
 /**
  * T1.6-2/3: the one global bottom-nav row, shared by App.tsx (as the whole
