@@ -1,5 +1,5 @@
 import { useMemo } from "preact/hooks";
-import type { AdapterUsage, SessionRecord } from "./api.ts";
+import type { SessionRecord } from "./api.ts";
 
 export function formatUsd(n: number): string {
   if (n === 0) return "$0";
@@ -26,8 +26,6 @@ export function formatWindow(w: { id: string; utilization: number; resetsAt: str
 
 export interface DashboardProps {
   sessions: SessionRecord[];
-  /** ADR-0004: adapter id -> its latest account-level usage snapshot. */
-  usage: Record<string, AdapterUsage>;
   onOpen: (session: SessionRecord) => void;
   /** T2.6: pending approval-queue count (0 on a hub without approvals
    * configured — not distinguished from "genuinely zero pending" here,
@@ -54,7 +52,7 @@ export interface DashboardProps {
  * (ok/warn/err/dim, see styles.css) rather than adding a second,
  * redundant status-color indicator next to it.
  */
-export function Dashboard({ sessions, usage, onOpen, pendingApprovals = 0, onOpenApprovals }: DashboardProps) {
+export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprovals }: DashboardProps) {
   const sorted = useMemo(
     () => [...sessions].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)),
     [sessions],
@@ -95,7 +93,6 @@ export function Dashboard({ sessions, usage, onOpen, pendingApprovals = 0, onOpe
           </span>
         )}
       </div>
-      <UsageRow usage={usage} />
       {sessions.length === 0 ? (
         <div class="empty">keine Sessions — lege eine an</div>
       ) : (
@@ -112,36 +109,6 @@ export function Dashboard({ sessions, usage, onOpen, pendingApprovals = 0, onOpe
   );
 }
 
-/**
- * T1.5-3/ADR-0004: account-level Kontingent, not session-scoped — shown
- * once per known adapter, always visible regardless of whether any
- * session currently exists. `null` (no observation yet) reads as "noch
- * keine Meldung", never as 0%; `supported:false` reads as an explicit,
- * sourced "unbekannt" (R9.7), never a guess or an omitted row.
- */
-function UsageRow({ usage }: { usage: Record<string, AdapterUsage> }) {
-  const entries = Object.values(usage);
-  if (entries.length === 0) return null;
-  return (
-    <div class="dashboard-summary dim" style="flex-wrap: wrap">
-      {entries.map((u) => (
-        <span key={u.adapterId}>
-          {u.adapterId}:{" "}
-          {!u.supported
-            ? "unbekannt (Adapter meldet kein Kontingent)"
-            : u.quota === null
-              ? "noch keine Meldung"
-              : [
-                  u.quota.windows.map(formatWindow).join(" · "),
-                  u.quota.overageAvailable === false
-                    ? ` · ${u.quota.overageBlockedReason ?? "kein Guthaben"}`
-                    : "",
-                ].join("")}
-        </span>
-      ))}
-    </div>
-  );
-}
 
 function SessionRow({ session, onOpen }: { session: SessionRecord; onOpen: (s: SessionRecord) => void }) {
   const waiting = session.status === "waiting_approval";

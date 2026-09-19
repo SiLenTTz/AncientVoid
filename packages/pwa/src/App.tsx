@@ -7,6 +7,7 @@ import { applyTheme, getTheme, type Theme } from "./theme.ts";
 import { GlobalDock, type Page } from "./Dock.tsx";
 import { VoiceSheet } from "./VoiceSheet.tsx";
 import { ApprovalQueuePane } from "./Approvals.tsx";
+import { StatusPage } from "./StatusPage.tsx";
 import { startRegistration } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/browser";
 
@@ -73,9 +74,18 @@ export function App({
     <div class="app-page">
       <div class="topbar">
         <h1>UACC</h1>
-        {/* Real connection health, not a decorative always-green dot — same
-         * classes SessionTail already uses for its own WS status. */}
-        <span class={`conn-dot ${error ? "closed" : "live"}`} title={error ? error : "verbunden"} />
+        <div style="display: flex; gap: 10px; align-items: center">
+          {/* Real user feedback (2026-09-19): provider/quota detail used to
+           * sit inline on the Dashboard, dominating small screens before
+           * any session ever showed — moved to its own page, reached from
+           * here. */}
+          <button class="link-btn" onClick={() => setPage("status")} title="Provider-Status">
+            Status
+          </button>
+          {/* Real connection health, not a decorative always-green dot — same
+           * classes SessionTail already uses for its own WS status. */}
+          <span class={`conn-dot ${error ? "closed" : "live"}`} title={error ? error : "verbunden"} />
+        </div>
       </div>
 
       {error && <div class="card" style="color: var(--err)">{error}</div>}
@@ -94,13 +104,14 @@ export function App({
 
       {page === "approvals" && <ApprovalQueuePane />}
 
+      {page === "status" && <StatusPage adapters={adapters} usage={usage} />}
+
       {page === "dashboard" &&
         (sessions === null ? (
           <div class="empty">lade…</div>
         ) : (
           <Dashboard
             sessions={sessions}
-            usage={usage}
             onOpen={onOpen}
             pendingApprovals={pendingApprovals}
             onOpenApprovals={() => setPage("approvals")}

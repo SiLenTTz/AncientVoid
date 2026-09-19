@@ -1376,3 +1376,27 @@ a {
   color: var(--accent);
   text-decoration: underline;
 }
+
+/* Real user feedback (2026-09-19): provider/quota detail moved off the
+ * Dashboard onto its own page — see StatusPage.tsx. */
+.status-page {
+  display: grid;
+  gap: 10px;
+}
+
+.provider-card {
+  display: grid;
+  gap: 8px;
+}
+
+.provider-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.provider-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
