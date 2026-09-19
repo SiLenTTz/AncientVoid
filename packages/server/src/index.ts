@@ -28,6 +28,14 @@ export interface HubAppDeps {
    * feedback file. Omitting it disables POST /api/prompt-optimizer/
    * feedback (501) — same optional pattern as approvals/webauthn above. */
   dataDir?: string;
+  /** Real user request (2026-09-19): "same session on the phone and my
+   * desktop terminal" — already true today for every tmux-backed worker
+   * (ADR-P0-3: workers run in tmux specifically so they're attachable),
+   * just never surfaced. `WorkerRunner.kind` ("tmux" | "process") decides
+   * whether `GET /api/sessions[/:id]` includes a real `attachCmd` —
+   * omitting it (or a non-tmux runner) simply omits the field, never a
+   * fabricated command for a runner that has no attachable pane. */
+  workerRunnerKind?: string;
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {

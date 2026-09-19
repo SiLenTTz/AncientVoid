@@ -516,6 +516,55 @@ function BerichtPane({
           <span class="v dim">nicht erfasst — kein Adapter meldet ein strukturiertes Test-Signal</span>
         </div>
       </div>
+      {record.attachCmd && <AttachCmdRow cmd={record.attachCmd} />}
+    </div>
+  );
+}
+
+/**
+ * Real user request (2026-09-19): "same session on the phone and my
+ * desktop terminal" — this genuinely is the same worker process, not a
+ * copy; typing in the attached tmux pane and watching it here (or vice
+ * versa) both observe/drive the one real thing.
+ *
+ * Real, found-live caveat: for a one-shot/turn-based adapter (claude,
+ * codex, opencode, copilot — a new CLI process per turn, not one
+ * long-lived process for the whole session), the real tmux pane only
+ * exists WHILE a turn is actively running; `TmuxRunner` cleans it up the
+ * moment that turn's process exits (verified live: a session sat
+ * "working" — genuinely waiting for the next prompt, not broken — with
+ * no real tmux session left at all seconds after its last turn
+ * finished). The command shown here is always real, correct syntax; it's
+ * only actually attachable in that window. `tmux attach`'s own "session
+ * not found" is an honest, self-explanatory outcome in that case — not a
+ * fabricated promise, just said plainly rather than pretending it
+ * always works.
+ */
+function AttachCmdRow({ cmd }: { cmd: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(cmd);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard API unavailable (e.g. insecure context) — the command
+      // is still shown and selectable by hand, never a dead end.
+    }
+  };
+  return (
+    <div class="card attach-cmd-card">
+      <div class="dim" style="font-size: 12px; margin-bottom: 6px">
+        Am Desktop weiterarbeiten — dieselbe Session, nicht eine Kopie. Funktioniert
+        sicher, während der Agent gerade aktiv einen Zug ausführt; dazwischen evtl.
+        „session not found", falls gerade kein Prozess läuft:
+      </div>
+      <div class="attach-cmd-row">
+        <code class="mono">{cmd}</code>
+        <button class="btn" onClick={copy}>
+          {copied ? "Kopiert" : "Kopieren"}
+        </button>
+      </div>
     </div>
   );
 }

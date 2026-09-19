@@ -1400,3 +1400,18 @@ a {
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* Real user request (2026-09-19): same session on desktop and phone via
+ * the worker's own real tmux pane — see SessionTail.tsx's AttachCmdRow. */
+.attach-cmd-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.attach-cmd-row code {
+  flex: 1;
+  font-size: 12px;
+  white-space: nowrap;
+}
