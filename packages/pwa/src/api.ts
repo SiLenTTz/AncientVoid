@@ -18,6 +18,11 @@ export interface SessionRecord {
   /** T2.7/ADR-0008: why a "parked" session is paused — null otherwise, or
    * for a manually parked session that predates this field. */
   parkReason: "manual" | "budget" | "daily_cap" | null;
+  /** Real user request (2026-09-19): continue the exact same worker from
+   * a desktop terminal. Present only for a genuinely live session on a
+   * genuinely tmux-backed hub (see routes.ts's withAttachCmd) — absent
+   * otherwise, never a fabricated command. */
+  attachCmd?: string;
 }
 
 /** T2.4/ADR-0007 — mirrors `@uacc/contracts`'s ApprovalRequest, same

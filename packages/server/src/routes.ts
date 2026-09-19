@@ -8,7 +8,9 @@ import { createWebAuthnRoutes, type WebAuthnConfig } from "./webauthn.ts";
 import { appendOptimizerFeedback } from "./prompt-optimizer-feedback.ts";
 import { ensureIndexed, indexStatus, isQmdAvailable, readProjectFile, relativeDataDir, searchProject } from "./search.ts";
 import { DecideApprovalInput, ApprovalStatus, ENV_VAR_NAME } from "@uacc/contracts";
+import { TMUX_PREFIX } from "@uacc/workers";
 import { z } from "zod";
+import type { SessionRecord } from "@uacc/contracts";
 
 const EnhancePromptBody = z.object({
   adapter: z.string().min(1),
@@ -64,6 +66,10 @@ export function registerRoutes(
     /** T3.9: optional — omitting it disables POST /api/prompt-optimizer/
      * feedback (501), same pattern as above. */
     dataDir?: string;
+    /** Real user request (2026-09-19): surfaces a real `tmux attach`
+     * command on a session when the worker runner is genuinely tmux —
+     * see HubAppDeps's own doc comment for the full reasoning. */
+    workerRunnerKind?: string;
   },
 ): void {
   const projectRoots = deps.projectRoots ?? [];
@@ -79,6 +85,32 @@ export function registerRoutes(
     const raw = extractToken(req);
     if (!raw) return null;
     return deps.tokens.identify(raw)?.label ?? null;
+  }
+
+  // Real user request (2026-09-19): "same session on the phone and my
+  // desktop terminal". Already true today — SessionManager.makeContext()
+  // always names the worker after the real session id (sessionmanager.ts),
+  // so the tmux pane name is deterministic and never needs plumbing
+  // through SessionHandle/adapters. Only shown for a genuinely live
+  // session on a genuinely tmux-backed hub — a stopped session's pane is
+  // gone, and a `process`-runner hub has no pane to attach to at all.
+  //
+  // Real, found-live caveat this session-status check does NOT capture:
+  // a turn-based adapter (claude/codex/opencode/copilot spawn a fresh CLI
+  // process per turn, not one long-lived process) only has a real pane
+  // WHILE a turn is actively running — `status: "working"` can genuinely
+  // mean "waiting for the next prompt, no process alive right now"
+  // between turns. Tracking real-time pane liveness per session would
+  // need either polling tmux on every list/get call (real latency cost)
+  // or new adapter-level plumbing (WorkerProcess already dismisses its
+  // internal proc map entry on exit, but that's never surfaced past the
+  // adapter) — not done here. The command is always real, correct syntax;
+  // PWA copy (SessionTail.tsx's AttachCmdRow) says plainly that it only
+  // works while a turn is actually in flight, rather than overclaiming.
+  const LIVE_STATUSES = new Set<SessionRecord["status"]>(["idle", "starting", "working", "waiting_approval", "parked"]);
+  function withAttachCmd<T extends SessionRecord>(session: T): T & { attachCmd?: string } {
+    if (deps.workerRunnerKind !== "tmux" || !LIVE_STATUSES.has(session.status)) return session;
+    return { ...session, attachCmd: `tmux attach -t ${TMUX_PREFIX}${session.id}` };
   }
 
   app.get("/api/health", async () => ({
@@ -180,13 +212,13 @@ export function registerRoutes(
     return { projects, warnings };
   });
 
-  app.get("/api/sessions", async () => deps.sessions.list());
+  app.get("/api/sessions", async () => deps.sessions.list().map(withAttachCmd));
 
   app.get("/api/sessions/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
     const session = deps.sessions.get(id);
     if (!session) return reply.code(404).send({ error: "unknown session" });
-    return session;
+    return withAttachCmd(session);
   });
 
   app.post("/api/sessions", async (req, reply) => {

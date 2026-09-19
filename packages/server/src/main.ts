@@ -121,6 +121,7 @@ async function main(): Promise<void> {
     projectRoots: config.projectRoots.map((root) => resolve(root)),
     approvals,
     dataDir,
+    workerRunnerKind: runner.kind,
     // T2.5: always real and reachable, same reasoning as `approvals`
     // above — see HubConfig.webauthn's doc comment for why the shipped
     // rpId/origin defaults only work for local dev.

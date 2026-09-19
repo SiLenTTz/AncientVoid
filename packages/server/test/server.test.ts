@@ -1135,3 +1135,62 @@ describe("hub server — /api/search* routes (T3.8)", () => {
     expect(escape.statusCode).toBe(404);
   });
 });
+
+describe("hub server — session attachCmd (real user request 2026-09-19: same session on desktop + phone)", () => {
+  it("omits attachCmd when the hub isn't tmux-backed — the default test setup (ProcessRunner)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-attach-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 1 });
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    const tokens = new TokenService(db);
+    const token = tokens.issue("t").token;
+    // workerRunnerKind omitted — exactly what main.ts passes for a real
+    // ProcessRunner fallback (runner.kind === "process").
+    const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false } });
+    try {
+      const record = await sessions.create({ adapter: "dummy", project: dir });
+      const res = await app.inject({ method: "GET", url: `/api/sessions/${record.id}`, headers: { authorization: `Bearer ${token}` } });
+      expect(res.json().attachCmd).toBeUndefined();
+    } finally {
+      await app.close().catch(() => undefined);
+      await sessions.shutdown().catch(() => undefined);
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("includes the real tmux attach command for a live session when workerRunnerKind is tmux", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-attach-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 1 });
+    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    const tokens = new TokenService(db);
+    const token = tokens.issue("t").token;
+    // The route only checks the string flag — deliberately decoupled from
+    // which real WorkerRunner instance is running the session (ADR-0002:
+    // tmux isn't guaranteed present in CI, but this route's own logic is
+    // testable without it).
+    const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, workerRunnerKind: "tmux" });
+    try {
+      const record = await sessions.create({ adapter: "dummy", project: dir });
+      const res = await app.inject({ method: "GET", url: `/api/sessions/${record.id}`, headers: { authorization: `Bearer ${token}` } });
+      expect(res.json().attachCmd).toBe(`tmux attach -t uacc-${record.id}`);
+
+      const list = await app.inject({ method: "GET", url: "/api/sessions", headers: { authorization: `Bearer ${token}` } });
+      expect(list.json()[0].attachCmd).toBe(`tmux attach -t uacc-${record.id}`);
+
+      await sessions.stop(record.id);
+      const afterStop = await app.inject({ method: "GET", url: `/api/sessions/${record.id}`, headers: { authorization: `Bearer ${token}` } });
+      // A stopped session's real tmux pane is gone (TmuxRunner kills it on
+      // stop) — showing an attach command for it would point at nothing.
+      expect(afterStop.json().attachCmd).toBeUndefined();
+    } finally {
+      await app.close().catch(() => undefined);
+      await sessions.shutdown().catch(() => undefined);
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});

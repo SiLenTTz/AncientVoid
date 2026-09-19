@@ -8,6 +8,13 @@ export default tseslint.config(
       "**/dist/**",
       "**/node_modules/**",
       "packages/pwa/**",
+      // Real bug found live (2026-09-19): `data/` (dataDir, gitignored —
+      // SQLite, JSONL, worker logs, and every session's T2.1 git worktree,
+      // itself a full checkout of this whole repo) was never excluded, so
+      // `npm run lint` re-linted an in-progress worktree's own copy of
+      // scripts/*.mjs as if it were real source, real spurious
+      // "process is not defined" errors and all.
+      "data/**",
     ],
   },
   js.configs.recommended,
