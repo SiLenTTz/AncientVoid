@@ -144,19 +144,29 @@ Sprachwechseln und unkalibrierten Konfidenzen. Für deutsche Hub-Befehle
 liegt kein eigener Nachweis vor; Confidence allein erlaubt keine riskante
 Aktion. [Benchmarkbericht](https://github.com/NandhaKishorM/laya/blob/main/BENCHMARKS.md).
 
-**Architekturempfehlung (eigene Ableitung):** Laya optional hinter einer
-kleinen Intent-Schnittstelle testen. Erst vordefinierte Aktionen erkennen,
-dann Host/Session/Parameter getrennt validieren. Regeln als Vergleich;
-komplexe Formulierungen über einen konfigurierten lokalen LLM-Planer.
-Kein Python/GPU-Dienst als Voraussetzung für normales Chatten oder Stoppen.
+**Architekturempfehlung (eigene Ableitung):** Ja, eine kleine lokale
+Audio-Pipeline ergibt Sinn — aber als zwei getrennte Modelle. Als Startkandidat
+kommt ein vorgewärmtes, mehrsprachiges `whisper.cpp`-`base`-Modell in Frage:
+es transkribiert deutschsprachige Coding-Begriffe lokal. Danach bekommt Laya
+ausschließlich das finale, editierbare Transkript und klassifiziert die Absicht.
+`tiny` bleibt ein zu messender Latenz-Kandidat, wird wegen der erwartbar
+schwächeren Fachbegriff-Erkennung aber nicht zur vorab versprochenen
+Standardwahl. Die endgültige Auswahl entscheidet der P10-Messlauf auf den
+Zielhosts; kein Modell wird durch diese Planung installiert.
+
+Laya bleibt optional hinter einer kleinen Intent-Schnittstelle: zuerst
+vordefinierte Aktionen erkennen, dann Host/Session/Parameter getrennt
+validieren. Regeln dienen als Vergleich; komplexe Formulierungen gehen an einen
+konfigurierten lokalen LLM-Planer. Kein Python-/GPU-Dienst wird Voraussetzung
+für normales Chatten oder Stoppen.
 
 ```text
-Mikrofon → VAD + lokale Streaming-STT → editierbarer Text
-                                      ├→ Diktat ins ausgewählte Feld
-                                      └→ Intent (Regeln / optional Laya / LLM)
-                                          → validierter Aktionsplan
-                                          → Policy + ggf. echte Freigabe
-                                          → Hub/Companion → sichtbares Ergebnis
+Mikrofon → VAD + whisper.cpp base (lokale Streaming-STT) → editierbarer Text
+                                                        ├→ Diktat ins ausgewählte Feld
+                                                        └→ Intent (Regeln / optional Laya / LLM)
+                                                            → validierter Aktionsplan
+                                                            → Policy + ggf. echte Freigabe
+                                                            → Hub/Companion → sichtbares Ergebnis
 ```
 
 Whisper.cpp ist ein geeigneter zu messender Kandidat für lokale STT;
