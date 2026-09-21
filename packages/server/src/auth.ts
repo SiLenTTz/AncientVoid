@@ -32,8 +32,10 @@ export function checkAuth(req: FastifyRequest, opts: AuthOptions): { ok: true } 
 
 export function authHook(opts: AuthOptions) {
   return async (req: FastifyRequest, reply: FastifyReply) => {
-    // health stays open for tailnet monitoring
-    if (req.url === "/api/health") return;
+    // health/ready stay open for tailnet and process probes (ADR-0010).
+    // Strip the query string — `/api/health?foo` must not fall through to 401.
+    const path = req.url.split("?")[0] ?? req.url;
+    if (path === "/api/health" || path === "/api/ready") return;
     // BUG-0006: everything, including the static PWA shell (index.html,
     // its JS/CSS bundle, manifest, service worker), used to require a
     // device token — but a real browser only carries a URL's ?token= on

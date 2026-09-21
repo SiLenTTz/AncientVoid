@@ -24,6 +24,7 @@
     "packages/hubctl/src",
     "packages/*/test",
     "scripts",
+    "e2e",
     "vitest.config.ts",
     "eslint.config.mjs"
   ],

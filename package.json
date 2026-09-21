@@ -15,6 +15,7 @@
     "build": "tsc -p . --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "vitest run e2e",
     "lint": "eslint .",
     "typecheck": "tsc -p . --noEmit",
     "dev:server": "node --watch packages/server/src/main.ts",

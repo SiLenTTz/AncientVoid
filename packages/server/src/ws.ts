@@ -7,6 +7,7 @@ import {
   type WsServerMessage,
 } from "@uacc/contracts";
 import type { SessionManager } from "@uacc/core";
+import type { HubMetrics } from "@uacc/contracts";
 
 /**
  * BUG-0007: a socket that can't drain fast enough (throttled network, not
@@ -29,8 +30,9 @@ const MAX_WS_BUFFERED_BYTES = 64 * 1024;
  *    dropped:true — the client resyncs from the store. No backpressure
  *    lag, ever (K2), and no silent loss under a slow real network.
  */
-export function createTailHandler(sessions: SessionManager) {
+export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics) {
   return (socket: WebSocket, req: { params: unknown }) => {
+    metrics?.inc("ws_connects");
     const sessionId = (req.params as { id: string }).id;
     const send = (msg: WsServerMessage) => {
       if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(msg));
@@ -59,6 +61,7 @@ export function createTailHandler(sessions: SessionManager) {
             const last = buffer[buffer.length - 1]!;
             buffer = [last];
             dropped = true;
+            metrics?.inc("ws_drops");
             break;
           }
           const batch = buffer;
@@ -85,6 +88,7 @@ export function createTailHandler(sessions: SessionManager) {
         // Drop oldest to keep the newest MAX_WS_BUFFER events; flag consumer.
         buffer = [...buffer, ...events].slice(-MAX_WS_BUFFER);
         dropped = true;
+        metrics?.inc("ws_drops");
       } else {
         buffer.push(...events);
       }
@@ -136,13 +140,20 @@ export function createTailHandler(sessions: SessionManager) {
         case "ping":
           send({ type: "pong" });
           break;
+        default: {
+          const _exhaustive: never = parsed;
+          send({ type: "error", message: `unhandled message type: ${String(_exhaustive)}` });
+        }
       }
     });
 
-    socket.on("close", () => unsubscribe());
+    socket.on("close", () => {
+      metrics?.inc("ws_disconnects");
+      unsubscribe();
+    });
   };
 }
 
-export function registerWs(app: FastifyInstance, sessions: SessionManager): void {
-  app.get("/api/events/:id/tail", { websocket: true }, createTailHandler(sessions));
+export function registerWs(app: FastifyInstance, sessions: SessionManager, metrics?: HubMetrics): void {
+  app.get("/api/events/:id/tail", { websocket: true }, createTailHandler(sessions, metrics));
 }

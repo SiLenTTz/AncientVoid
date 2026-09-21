@@ -66,15 +66,17 @@ class FileTailer {
   }
 
   async start(): Promise<void> {
-    try {
-      const st = await stat(this.path);
-      this.offset = st.size;
-    } catch {
-      this.offset = 0;
-    }
+    // Always read from byte 0. Seeking to EOF (the previous behaviour)
+    // dropped every line a short command had already written — the env
+    // pass-through test (`echo $GREETING`) finished before start() ran
+    // and then waited 600 ms on an empty buffer (found while P4.5 ran
+    // the existing suite; same class of race P12 T12.2 called "tmux
+    // unreliability").
+    this.offset = 0;
     this.watcher = watch(this.path, { persistent: false }, () => void this.pump());
     this.pollTimer = setInterval(() => void this.pump(), 250);
     this.pollTimer.unref();
+    await this.pump();
   }
 
   private async pump(): Promise<void> {
@@ -193,7 +195,6 @@ export class TmuxRunner implements WorkerRunner {
 
     const pid = await this.panePid(full);
     const tailer = new FileTailer(logPath);
-    await tailer.start();
     let exited = false;
     let exitCode: number | null = null;
     const exitCbs = new Set<(code: number | null) => void>();
@@ -201,6 +202,15 @@ export class TmuxRunner implements WorkerRunner {
       exitCbs.add((code) => resolve({ code }));
     });
     const stdoutCbs = new Set<(chunk: string) => void>();
+    const stdoutReplay: string[] = [];
+
+    tailer.onLine((line) => {
+      if (line.includes("__UACC_EXIT__")) return;
+      const chunk = `${line}\n`;
+      if (stdoutCbs.size === 0) stdoutReplay.push(chunk);
+      else for (const cb of stdoutCbs) cb(chunk);
+    });
+    await tailer.start();
 
     const checkExit = setInterval(async () => {
       if (exited) return;
@@ -228,15 +238,14 @@ export class TmuxRunner implements WorkerRunner {
       await execTmux(["kill-session", "-t", full]).catch(() => undefined);
     }, 200);
 
-    tailer.onLine((line) => {
-      if (line.includes("__UACC_EXIT__")) return;
-      for (const cb of stdoutCbs) cb(line + "\n");
-    });
-
     return {
       ...(pid !== undefined ? { pid } : {}),
       attachCmd: `tmux attach -t ${full}`,
-      onStdout: (cb) => stdoutCbs.add(cb),
+      onStdout: (cb) => {
+        stdoutCbs.add(cb);
+        for (const chunk of stdoutReplay) cb(chunk);
+        stdoutReplay.length = 0;
+      },
       onStderr: (_cb) => {
         // stdout/stderr are interleaved in the pane capture
       },

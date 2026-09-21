@@ -42,7 +42,7 @@ nicht aus dem Nenner entfernt. Ohne Zugriff echte Aufgabe blockiert lassen.
 ## 4. Aufgaben
 
 - [ ] **T12.1 — Installation und Update.** Dokumentierter Fresh-Clone→Pairing→Session-Flow, Services/Doctor, Abhängigkeiten und reversible Migrationen, kompatible PWA-/API-Versionen. K7/K9/K10.
-- [ ] **T12.2 — Tests und Messlatten schließen.** BUG-0004 und beobachtete tmux-Test-Unzuverlässigkeit mit deterministischen Checks behandeln; alle K1–K10, echter K4-Tokenizer, Hardware-Messungen und Secret-Scan im passenden CI-/Gerätepfad. K1–K10.
+- [ ] **T12.2 — Tests und Messlatten schließen.** Die Pyramide (Unit/Integration/E2E, Skill `write-tests`, Health/Metrics) kommt aus P4.5 — hier nicht neu bauen. BUG-0004 und beobachtete tmux-Test-Unzuverlässigkeit mit deterministischen Checks behandeln; alle K1–K10, echter K4-Tokenizer, Hardware-Messungen und Secret-Scan im passenden CI-/Gerätepfad. K1–K10.
 - [ ] **T12.3 — Backup, Restore und Retention.** Vollständiges Backup/Restore inkl. Attachments, Drafts, Pending-Aktionen und Flotten-Metadaten; Disk-full/Blob-GC und Revoke prüfen. K5/K7/K10.
 - [ ] **T12.4 — Abnahme aller Zielkombinationen.** Matrix von P5/P7/P11 live ausführen; Smartphone über WAN, PC↔Handy↔PC, Voice/AI/Freigaben/Suche/Dateien; nicht nur Loopback und Fixtures. K1–K10.
 - [ ] **T12.5 — Dauerlauf und Übergabe.** 24 h mit ≥ 20 Sessions, Netz-/Hub-/Modell-Ausfälle, Ressourcenentwicklung; Runbook, bekannte Grenzen, Installationsversuch durch frischen Nutzerkontext und offene P4-Integrationsevidenz prüfen. K2/K7/K8/K9/K10.

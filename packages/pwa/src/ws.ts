@@ -1,3 +1,5 @@
+import { shouldResync } from "./ws-protocol.ts";
+
 /**
  * WS delta-protocol client (counterpart of packages/server/src/ws.ts).
  * Tracks seq per session, detects gaps, resyncs from the store.
@@ -52,9 +54,8 @@ export function connectTail(opts: TailOptions): TailConnection {
           | { type: "pong" };
         if (data.type === "events") {
           const incoming = data.events;
-          const expected = lastSeq + 1;
           const first = incoming[0];
-          if (first && first.seq > expected || data.dropped) {
+          if (shouldResync(lastSeq, first?.seq, data.dropped)) {
             // Gap or dropped batch — resync from last known seq.
             socket?.send(JSON.stringify({ type: "resync", since: lastSeq }));
             return;

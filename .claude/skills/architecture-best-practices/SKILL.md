@@ -97,6 +97,7 @@ dafür ist [`ponytail-review`](../ponytail-review/SKILL.md).
 
 ### Testing
 
+Rezept und Dateilagen: [`write-tests`](../write-tests/SKILL.md).
 - vitest (forks pool), Contract-Tests via `@uacc/adapter-testkit`.
 - Neuer Bug: Test zuerst, rot ohne Fix, grün mit Fix.
 - **Ein Test, der beim ersten Lauf sofort grün ist, hat nichts bewiesen.**

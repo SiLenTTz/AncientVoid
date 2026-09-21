@@ -1,6 +1,6 @@
 # EPIC-P5 — Session-Discovery, PC↔Handy-Handoff und Recovery
 
-**Status:** Planungsentwurf, Umsetzung blockiert · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4 vollständig grün; G0 aus dem Audit geschlossen.
+**Status:** Planungsentwurf, Umsetzung blockiert · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:

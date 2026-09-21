@@ -1,4 +1,4 @@
-# UACC — Epic-Paket (P0–P4 und Planungsentwürfe P5–P12)
+# UACC — Epic-Paket (P0–P4.5 und Planungsentwürfe P5–P12)
 
 **Erstellt:** 12.09.2026 · **Basis:** PRD UACC v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
@@ -21,6 +21,7 @@ blockiert K10. Historische grüne Überschriften sind keine Vollumfang-Freigabe.
 | EPIC-P2-diff-approvals-budgets.md | P2 | Diff-Ansicht, Approval-Gates, Budgets, Messlatten im CI | 1 |
 | EPIC-P3-adapter-flotte-sprachsuche.md | P3 | swarm/zai/local-llm-Adapter, cursor-clip, Sprachsuche + Prompt-Composer | 1,5 |
 | EPIC-P4-brain-windows-mcp-oss.md | P4 | Brain-Digest-Skill, evox2/Windows, MCP-Gateway, OSS-Aufbereitung | 1–2 |
+| [EPIC-P4.5-testing-observability.md](EPIC-P4.5-testing-observability.md) | P4.5 | Testpyramide, write-tests-Skill, strukturiertes Logging, Health/Ready/Metrics | 0,5–1 |
 
 ## Vollständige Fernsteuerung — Planungsentwürfe vom 2026-09-21
 
@@ -33,7 +34,7 @@ ohne ADR bei späterer Implementierung. Schätzungen ohne G0-Restarbeit.
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
-| [P5 — Session-Discovery, Handoff, Recovery](EPIC-P5-session-discovery-handoff-recovery.md) | dieselbe Session PC↔Handy, auch nach Neustart | P4/G0 grün | 2–4 |
+| [P5 — Session-Discovery, Handoff, Recovery](EPIC-P5-session-discovery-handoff-recovery.md) | dieselbe Session PC↔Handy, auch nach Neustart | P4.5 grün; P4-externe Restpunkte bleiben offen | 2–4 |
 | [P6 — Multi-Host-Flotte](EPIC-P6-multi-host-fleet.md) | alle eigenen Rechner in einer Oberfläche | P5 grün | 1–2 |
 | [P7 — Harness-/Tool-Parität](EPIC-P7-harness-tool-parity.md) | echte Rückfragen/Freigaben, Anhänge und Tools | P6 grün | 2–4 |
 | [P8 — Mobiler Arbeitsplatz](EPIC-P8-mobile-workspace-ux.md) | einfache UI, Inbox, Entwürfe, Push/Offline | P7 grün | 1–2 |
@@ -49,7 +50,7 @@ kein bestätigter zusätzlicher Zielhost.
 
 ## Reihenfolge & Gating
 
-Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → P9 → P10 → P11 → P12.**
+Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4 → P4.5 → P5 → P6 → P7 → P8 → P9 → P10 → P11 → P12.**
 
 Jedes Epic endet mit messbarem Exit-Kriterium. Das folgende Epic startet erst,
 wenn alle Exit-Kriterien des Vorgängers grün sind (Eval-Frage-Regel aus PRD §9.1.6).
@@ -64,6 +65,13 @@ schafft als Diff-/Approval-UI. P3s T3.6/T3.7/T3.9 (Sprache, Prompt-Composer)
 sind dabei anteilig nach P1.5 vorgezogen; P2, P3 und P4 bleiben inhaltlich
 unverändert. Begründung im Detail: Vorbemerkung in
 [`EPIC-P1.5-control-center-ux.md`](EPIC-P1.5-control-center-ux.md).
+
+**Ausnahme P4.5 — dritte Umpriorisierung (2026-09-21):** P5–P12 waren als
+Planungsentwürfe hinter vollständig grünem P4/G0 gesperrt. Der Nutzer hat
+ausdrücklich angeordnet, zuerst Testing/Logging/Monitoring zu bauen und erst
+dann P5–P12 nacheinander umzusetzen. P4s externe Restpunkte (T4.3/T4.4/T4.5/
+T4.8/T4.11) bleiben offen und blockieren P4.5 nicht. Begründung:
+[`EPIC-P4.5-testing-observability.md`](EPIC-P4.5-testing-observability.md).
 
 **Ausnahme P1.6 — zweite Umpriorisierung nach demselben Muster:** P1.5s
 formale DoD-Zeile (ein echter Live-Handy-Lauf) steht noch aus, aber der

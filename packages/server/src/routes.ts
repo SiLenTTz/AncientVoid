@@ -1,5 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore } from "@uacc/core";
+import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore } from "@uacc/core";
+import { collectHealth } from "@uacc/core";
+import type { HubMetrics } from "@uacc/contracts";
 import { discoverProjects, isProjectPathAllowed, scanProjectSkills } from "@uacc/core";
 import { enhancePrompt } from "./enhance.ts";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
@@ -70,6 +72,9 @@ export function registerRoutes(
      * command on a session when the worker runner is genuinely tmux —
      * see HubAppDeps's own doc comment for the full reasoning. */
     workerRunnerKind?: string;
+    store?: HealthStore;
+    metrics?: HubMetrics;
+    startedAt?: number;
   },
 ): void {
   const projectRoots = deps.projectRoots ?? [];
@@ -113,16 +118,40 @@ export function registerRoutes(
     return { ...session, attachCmd: `tmux attach -t ${TMUX_PREFIX}${session.id}` };
   }
 
-  app.get("/api/health", async () => ({
-    ok: true,
-    adapters: deps.registry.list().map((a) => ({
-      id: a.id,
-      version: a.adapter.version,
-      capabilities: a.capabilities,
-      module: a.module,
-    })),
-    serverTime: new Date().toISOString(),
-  }));
+  const startedAt = deps.startedAt ?? Date.now();
+
+  app.get("/api/health", async () =>
+    collectHealth({
+      startedAt,
+      sessions: deps.sessions,
+      registry: deps.registry,
+      ...(deps.store ? { store: deps.store } : {}),
+    }),
+  );
+
+  app.get("/api/ready", async (_req, reply) => {
+    const report = await collectHealth({
+      startedAt,
+      sessions: deps.sessions,
+      registry: deps.registry,
+      ...(deps.store ? { store: deps.store } : {}),
+    });
+    if (!report.ok) return reply.code(503).send(report);
+    return report;
+  });
+
+  app.get("/api/metrics", async () => {
+    const snapshot = deps.metrics?.snapshot() ?? { ts: new Date().toISOString(), counters: {}, gauges: {} };
+    const counts = deps.sessions.sessionCounts();
+    return {
+      ...snapshot,
+      gauges: {
+        ...snapshot.gauges,
+        sessions_live: counts.live,
+        sessions_total: counts.total,
+      },
+    };
+  });
 
   app.get("/api/adapters", async () =>
     deps.registry.list().map((a) => ({

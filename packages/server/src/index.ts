@@ -3,7 +3,9 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore } from "@uacc/core";
+import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore } from "@uacc/core";
+import type { HubMetrics } from "@uacc/contracts";
+import { REDACT_LOG_KEYS } from "@uacc/contracts";
 import type { WebAuthnConfig } from "./webauthn.ts";
 import { discoverProjects } from "@uacc/core";
 import { authHook, type AuthOptions } from "./auth.ts";
@@ -36,11 +38,24 @@ export interface HubAppDeps {
    * omitting it (or a non-tmux runner) simply omits the field, never a
    * fabricated command for a runner that has no attachable pane. */
   workerRunnerKind?: string;
+  /** ADR-0010: EventStore probe for /api/health and /api/ready. */
+  store?: HealthStore;
+  metrics?: HubMetrics;
+  startedAt?: number;
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: { level: process.env.UACC_LOG ?? "info" },
+    logger: {
+      level: process.env.UACC_LOG ?? "info",
+      redact: {
+        paths: [
+          "req.headers.authorization",
+          "req.headers.cookie",
+          ...REDACT_LOG_KEYS.map((key) => `*.${key}`),
+        ],
+      },
+    },
   });
   await app.register(fastifyWebsocket);
 
@@ -55,7 +70,7 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
     for (const w of warnings) app.log.warn(w);
   }
   registerRoutes(app, { ...deps, projectRoots });
-  registerWs(app, deps.sessions);
+  registerWs(app, deps.sessions, deps.metrics);
 
   if (deps.pwaDir) {
     const resolvedPwaDir = resolve(deps.pwaDir);

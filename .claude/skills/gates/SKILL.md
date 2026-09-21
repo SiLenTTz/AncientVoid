@@ -24,14 +24,16 @@ Dann nur die Spalten fahren, die betroffen sind.
 |---|---|
 | `packages/contracts/**` | alles (Contract-Änderung propagiert in jedes Package) + ADR-Pflicht (`AGENTS.md` Regel 1) |
 | `packages/adapter-*/**` | `npm test -w <package>` + `@uacc/adapter-testkit`-Contract-Suite |
-| `packages/pwa/**` | `npm -w @uacc/pwa run build` + `npm run typecheck` |
+| `packages/pwa/**` | `npm -w @uacc/pwa run build` + `npm run typecheck` + `npm run test:e2e` wenn Browser da |
+| `e2e/**` | `npm run test:e2e` (skippt sichtbar ohne Chromium) |
 | `packages/server/**`, `packages/core/**`, `packages/workers/**` | `npm test` + `npm run loadtest` bei State-/EventStore-Änderungen (K5/K7/K8) |
 | `*.md` | kein Gate |
 
 ## Die Kommandos
 
 ```bash
-npm test                 # vitest (alle Packages, forks pool)
+npm test                 # vitest (packages/*/test + e2e; E2E skippt ohne Chromium)
+npm run test:e2e          # nur e2e/
 npm run lint              # eslint .
 npm run typecheck         # tsc -p . --noEmit
 npm run loadtest          # K8: 20 Sessions × 30 ev/s
