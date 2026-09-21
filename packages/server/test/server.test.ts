@@ -1163,22 +1163,32 @@ describe("hub server — session attachCmd (real user request 2026-09-19: same s
     }
   });
 
-  it("includes the real tmux attach command for a live session when workerRunnerKind is tmux", async () => {
+  it("includes the real tmux attach command only when the runner lists a live worker", async () => {
     const dir = await mkdtemp(join(tmpdir(), "uacc-srv-attach-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 1 });
-    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    const listed = new Set<string>();
+    const runner = new ProcessRunner();
+    const sessions = new SessionManager(db, store, registry, {
+      kind: "process",
+      isAvailable: () => runner.isAvailable(),
+      spawn: (spec) => runner.spawn(spec),
+      list: async () => [...listed].map((name) => ({ name, fullName: `uacc-${name}` })),
+      killByName: async () => undefined,
+      reapOrphans: async () => [],
+    });
     const tokens = new TokenService(db);
     const token = tokens.issue("t").token;
-    // The route only checks the string flag — deliberately decoupled from
-    // which real WorkerRunner instance is running the session (ADR-0002:
-    // tmux isn't guaranteed present in CI, but this route's own logic is
-    // testable without it).
+    // ADR-0011: the tmux flag alone is not a pane. CI often has no tmux
+    // (ADR-0002), so the route asks the runner whether this session is listed.
     const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, workerRunnerKind: "tmux" });
     try {
       const record = await sessions.create({ adapter: "dummy", project: dir });
+      const hidden = await app.inject({ method: "GET", url: `/api/sessions/${record.id}`, headers: { authorization: `Bearer ${token}` } });
+      expect(hidden.json().attachCmd).toBeUndefined();
+      listed.add(record.id);
       const res = await app.inject({ method: "GET", url: `/api/sessions/${record.id}`, headers: { authorization: `Bearer ${token}` } });
       expect(res.json().attachCmd).toBe(`tmux attach -t uacc-${record.id}`);
 

@@ -44,12 +44,19 @@ const CreateSessionBody = z.object({
   args: z.record(z.unknown()).optional(),
 });
 
-const SteerBody = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("prompt"), text: z.string().min(1) }),
-  z.object({ kind: z.literal("stop") }),
-  z.object({ kind: z.literal("park") }),
-  z.object({ kind: z.literal("resume") }),
-]);
+const SteerBody = z.intersection(
+  z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("prompt"), text: z.string().min(1) }),
+    z.object({ kind: z.literal("stop") }),
+    z.object({ kind: z.literal("park") }),
+    z.object({ kind: z.literal("resume") }),
+  ]),
+  z.object({
+    inputId: z.string().min(1).optional(),
+    revision: z.number().int().nonnegative().optional(),
+    clientId: z.string().min(1).optional(),
+  }),
+);
 
 export function registerRoutes(
   app: FastifyInstance,
@@ -112,9 +119,9 @@ export function registerRoutes(
   // adapter) — not done here. The command is always real, correct syntax;
   // PWA copy (SessionTail.tsx's AttachCmdRow) says plainly that it only
   // works while a turn is actually in flight, rather than overclaiming.
-  const LIVE_STATUSES = new Set<SessionRecord["status"]>(["idle", "starting", "working", "waiting_approval", "parked"]);
-  function withAttachCmd<T extends SessionRecord>(session: T): T & { attachCmd?: string } {
-    if (deps.workerRunnerKind !== "tmux" || !LIVE_STATUSES.has(session.status)) return session;
+  async function withAttachCmd<T extends SessionRecord>(session: T): Promise<T & { attachCmd?: string }> {
+    if (deps.workerRunnerKind !== "tmux" || session.status !== "working") return session;
+    if (!(await deps.sessions.hasLiveWorker(session.id))) return session;
     return { ...session, attachCmd: `tmux attach -t ${TMUX_PREFIX}${session.id}` };
   }
 
@@ -241,7 +248,14 @@ export function registerRoutes(
     return { projects, warnings };
   });
 
-  app.get("/api/sessions", async () => deps.sessions.list().map(withAttachCmd));
+  app.get("/api/sessions", async () => Promise.all(deps.sessions.list().map((session) => withAttachCmd(session))));
+
+  app.get("/api/discovery", async (req) => {
+    const q = req.query as { cursor?: string; limit?: string };
+    const cursor = Number(q.cursor ?? 0);
+    const limit = Number(q.limit ?? 50);
+    return deps.sessions.discover([], Number.isFinite(cursor) ? cursor : 0, Number.isFinite(limit) ? limit : 50);
+  });
 
   app.get("/api/sessions/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
@@ -330,7 +344,12 @@ export function registerRoutes(
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid steer input" });
     }
-    const ack = await deps.sessions.steer(id, parsed.data, callerLabel(req) ?? undefined);
+    const { inputId, revision, clientId, ...input } = parsed.data;
+    const ack = await deps.sessions.steer(id, input, callerLabel(req) ?? undefined, {
+      ...(inputId !== undefined ? { inputId } : {}),
+      ...(revision !== undefined ? { revision } : {}),
+      ...(clientId !== undefined ? { clientId } : {}),
+    });
     return ack.ok ? ack : reply.code(422).send(ack);
   });
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { App } from "./App.tsx";
 import { SessionTail } from "./SessionTail.tsx";
 import { getToken, setToken, hubApi, type SessionRecord } from "./api.ts";
+import { parseAppHash, sessionHash } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import type { Page } from "./Dock.tsx";
 import "./styles.css";
@@ -101,6 +102,24 @@ function Main() {
     return () => document.removeEventListener("uacc:stale-data", onStale);
   }, []);
 
+  useEffect(() => {
+    if (!ready) return;
+    const openFromHash = () => {
+      const parsed = parseAppHash(location.hash);
+      if (parsed.view !== "tail") {
+        setRoute({ view: "list" });
+        return;
+      }
+      hubApi
+        .session(parsed.sessionId)
+        .then((session) => setRoute({ view: "tail", session }))
+        .catch(() => setRoute({ view: "list" }));
+    };
+    openFromHash();
+    window.addEventListener("hashchange", openFromHash);
+    return () => window.removeEventListener("hashchange", openFromHash);
+  }, [ready]);
+
   const [staleAt, setStaleAt] = useState<Date | null>(null);
 
   if (!ready) return <TokenGate onReady={() => setReady(true)} />;
@@ -114,7 +133,10 @@ function Main() {
       )}
       {route.view === "list" ? (
         <App
-          onOpen={(session) => setRoute({ view: "tail", session })}
+          onOpen={(session) => {
+            location.hash = sessionHash(session.id);
+            setRoute({ view: "tail", session });
+          }}
           ready={() => setReady(false)}
           initialPage={route.initialPage}
         />

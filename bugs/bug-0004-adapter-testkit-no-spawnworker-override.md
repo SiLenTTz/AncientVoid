@@ -1,7 +1,7 @@
 ---
 id: BUG-0004
 slug: adapter-testkit-no-spawnworker-override
-status: open
+status: fixed
 severity: S2
 area: core
 instance: dev
@@ -92,11 +92,8 @@ nutzt diese Möglichkeit nicht).
 
 - [x] Datei im Index [`README.md`](README.md)
 - [ ] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` — **offen gelassen**, kein Fix in diesem Lauf. Sinnvoller
-      Ansatz für später: `ContractTestOptions` um ein optionales
-      `spawnWorker`-Feld erweitern (Default: ein simpler Echo-Prozess-Mock
-      statt eines werfenden Stubs), oder `runContractTests()` einen
-      `ctx`-Override-Parameter geben.
+- [x] `bugfix` — P5 T5.6: `ContractTestOptions.spawnWorker`. Default wirft
+      weiter (Fail loud). Beweis: `packages/adapter-testkit/test/spawn-override.test.ts`.
 
 **Update (T1.3):** wie vorhergesagt betroffen — `adapter-codex` musste
 dieselbe Umgehung bauen (`packages/adapter-codex/test/adapter.test.ts`,

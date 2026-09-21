@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import type { NormalizedEvent, SessionRecord } from "@uacc/contracts";
+import { SessionRecord, type NormalizedEvent } from "@uacc/contracts";
 import { buildSessionSummary, archiveRefFor } from "../src/digest.ts";
 
 function record(overrides?: Partial<SessionRecord>): SessionRecord {
-  return {
+  return SessionRecord.parse({
     id: "s1",
     adapter: "claude",
     project: "/tmp/project",
@@ -19,7 +19,7 @@ function record(overrides?: Partial<SessionRecord>): SessionRecord {
     updatedAt: "2026-09-18T00:10:00.000Z",
     parkReason: null,
     ...overrides,
-  };
+  });
 }
 
 function ev(seq: number, overrides: Partial<NormalizedEvent>): NormalizedEvent {

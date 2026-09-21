@@ -113,6 +113,30 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE sessions ADD COLUMN park_reason TEXT;
     `,
   },
+  {
+    id: 7,
+    name: "session-identity",
+    sql: `
+      ALTER TABLE sessions ADD COLUMN control_mode TEXT NOT NULL DEFAULT 'managed';
+      ALTER TABLE sessions ADD COLUMN harness TEXT NOT NULL DEFAULT 'cli';
+      ALTER TABLE sessions ADD COLUMN host_id TEXT NOT NULL DEFAULT 'local';
+      ALTER TABLE sessions ADD COLUMN native_session_id TEXT;
+      ALTER TABLE sessions ADD COLUMN resume_version INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE sessions ADD COLUMN log_offset INTEGER;
+      ALTER TABLE sessions ADD COLUMN parent_session_id TEXT;
+      ALTER TABLE sessions ADD COLUMN observed_at TEXT;
+      ALTER TABLE sessions ADD COLUMN fork INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE sessions ADD COLUMN input_revision INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE sessions ADD COLUMN writer_client TEXT;
+      ALTER TABLE sessions ADD COLUMN writer_lease_until TEXT;
+      CREATE TABLE IF NOT EXISTS session_inputs (
+        session_id TEXT NOT NULL,
+        input_id TEXT NOT NULL,
+        applied_at TEXT NOT NULL,
+        PRIMARY KEY (session_id, input_id)
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

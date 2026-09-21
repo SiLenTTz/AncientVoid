@@ -11,6 +11,7 @@ export { SessionManager, hashToken, type AdapterUsageSnapshot, type SessionManag
 export { createJsonLogger, createConsoleLogger, redactFields } from "./logger.ts";
 export { InMemoryMetrics } from "./metrics.ts";
 export { collectHealth, type HealthDeps, type HealthStore } from "./health.ts";
+export { dedupeDiscovered, pageDiscovered } from "./discovery.ts";
 export { WorktreeManager } from "./worktree.ts";
 export { ApprovalService, type DecideResult } from "./approvals.ts";
 export { WebAuthnStore, type StoredCredential } from "./webauthn-store.ts";

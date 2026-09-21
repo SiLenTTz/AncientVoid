@@ -70,6 +70,9 @@ export interface ContractTestOptions {
   config?: Record<string, unknown>;
   /** Skip recover test (adapters without recover()). */
   skipRecover?: boolean;
+  /** BUG-0004: adapters that call ctx.spawnWorker need a mock. The default
+   * still throws so a missing override stays loud. */
+  spawnWorker?: AdapterContext["spawnWorker"];
 }
 
 /**
@@ -105,7 +108,7 @@ export async function runContractTests(
     }
   });
 
-  const ctx = makeRecordingContext();
+  const ctx = makeRecordingContext(opts.spawnWorker ? { spawnWorker: opts.spawnWorker } : {});
   const spec: SessionSpec = {
     adapter: adapter.id,
     project: process.cwd(),
