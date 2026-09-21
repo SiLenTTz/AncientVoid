@@ -16,8 +16,10 @@ import type {
   WorkerRunner,
   UsageQuota,
   ReportingSink,
+  DiscoverySource,
+  DiscoveredSession,
 } from "@uacc/contracts";
-import { SessionSpec as SessionSpecSchema } from "@uacc/contracts";
+import { DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, unsupportedResume } from "@uacc/contracts";
 import type { EventStore } from "./eventstore.ts";
 import type { AdapterRegistry } from "./registry.ts";
 import type { HubDatabase } from "./db.ts";
@@ -25,6 +27,15 @@ import type { WorktreeManager } from "./worktree.ts";
 import type { ApprovalService } from "./approvals.ts";
 import { buildSessionSummary } from "./digest.ts";
 import { createConsoleLogger } from "./logger.ts";
+import { dedupeDiscovered, pageDiscovered } from "./discovery.ts";
+
+const WRITER_LEASE_MS = 30_000;
+
+export interface SteerMeta {
+  inputId?: string;
+  revision?: number;
+  clientId?: string;
+}
 
 export interface SessionManagerObservability {
   logger?: HubLogger;
@@ -77,6 +88,18 @@ interface SessionRow {
   updated_at: string;
   tokens_est: number;
   park_reason: string | null;
+  control_mode: string;
+  harness: string;
+  host_id: string;
+  native_session_id: string | null;
+  resume_version: number;
+  log_offset: number | null;
+  parent_session_id: string | null;
+  observed_at: string | null;
+  fork: number;
+  input_revision: number;
+  writer_client: string | null;
+  writer_lease_until: string | null;
 }
 
 function rowToRecord(row: SessionRow): SessionRecord {
@@ -95,6 +118,18 @@ function rowToRecord(row: SessionRow): SessionRecord {
     updatedAt: row.updated_at,
     tokensEst: row.tokens_est,
     parkReason: row.park_reason as SessionRecord["parkReason"],
+    controlMode: row.control_mode as SessionRecord["controlMode"],
+    harness: row.harness as SessionRecord["harness"],
+    hostId: row.host_id,
+    nativeSessionId: row.native_session_id,
+    resumeVersion: row.resume_version,
+    logOffset: row.log_offset,
+    parentSessionId: row.parent_session_id,
+    observedAt: row.observed_at,
+    fork: row.fork === 1,
+    inputRevision: row.input_revision,
+    writerClient: row.writer_client,
+    writerLeaseUntil: row.writer_lease_until,
   };
 }
 
@@ -256,6 +291,26 @@ export class SessionManager {
     return { live: this.live.size, total: records.length, byStatus };
   }
 
+  /**
+   * Hub rows plus external sources, deduped, paged. Unknown resume versions
+   * stay in the list with unsupportedResume (K9), they are not dropped.
+   */
+  async discover(
+    sources: readonly DiscoverySource[] = [],
+    cursor = 0,
+    limit = 50,
+  ): Promise<{ items: DiscoveredSession[]; nextCursor: number | null }> {
+    const external: DiscoveredSession[] = [];
+    for (const source of sources) external.push(...(await source.list()));
+    const merged = dedupeDiscovered([...this.list().map((record) => this.toDiscovered(record)), ...external]);
+    return pageDiscovered(merged, cursor, limit);
+  }
+
+  async hasLiveWorker(sessionId: string): Promise<boolean> {
+    const workers = await this.runner.list();
+    return workers.some((worker) => worker.name === sessionId);
+  }
+
   get(sessionId: string): SessionRecord | undefined {
     const row = this.db
       .prepare("SELECT * FROM sessions WHERE id = ?")
@@ -307,6 +362,18 @@ export class SessionManager {
       updatedAt: now,
       tokensEst: 0,
       parkReason: null,
+      controlMode: "managed",
+      harness: "cli",
+      hostId: DEFAULT_HOST_ID,
+      nativeSessionId: null,
+      resumeVersion: RESUME_SCHEMA_VERSION,
+      logOffset: null,
+      parentSessionId: null,
+      observedAt: null,
+      fork: false,
+      inputRevision: 0,
+      writerClient: null,
+      writerLeaseUntil: null,
     };
     await this.store.initSession(record.id);
     this.persist(record);
@@ -384,9 +451,24 @@ export class SessionManager {
     return { ...record };
   }
 
-  async steer(sessionId: string, input: SteerInput, actor?: string): Promise<Ack> {
+  async steer(sessionId: string, input: SteerInput, actor?: string, meta?: SteerMeta): Promise<Ack> {
     const session = this.live.get(sessionId);
     if (!session || !session.handle) return { ok: false, detail: "session not live" };
+    if (meta?.inputId && this.hasSeenInput(sessionId, meta.inputId)) {
+      return { ok: true, detail: "duplicate input ignored" };
+    }
+    if (meta?.revision !== undefined && meta.revision !== session.record.inputRevision) {
+      return { ok: false, detail: "revision conflict" };
+    }
+    const leaseUntil = session.record.writerLeaseUntil ? Date.parse(session.record.writerLeaseUntil) : 0;
+    if (
+      meta?.clientId &&
+      session.record.writerClient &&
+      session.record.writerClient !== meta.clientId &&
+      leaseUntil > Date.now()
+    ) {
+      return { ok: false, detail: "writer lease held" };
+    }
     if (input.kind === "stop") return this.stop(sessionId, actor);
     // T2.4/ADR-0007: "Steer-Prompt" is explicitly a write-class action
     // (EPIC-P2 §3 table) once an ApprovalService is configured — parked,
@@ -414,6 +496,7 @@ export class SessionManager {
     // "park" instead of "session.steer" ever since T2.4 introduced this
     // call. Named `steerKind` here to never collide again.
     await this.emitSystem(session, "session.steer", { steerKind: input.kind, ok: ack.ok, actor: actor ?? null });
+    if (ack.ok) this.commitSteerMeta(session, meta);
     return ack;
   }
 
@@ -700,12 +783,13 @@ export class SessionManager {
    * K7 crash recovery: restore every persisted session.
    * Identical status/event-count after `kill -9`, restore < 3 s.
    */
-  async recoverAll(): Promise<{ recovered: number; failed: number; reaped: string[] }> {
+  async recoverAll(): Promise<{ recovered: number; failed: number; reaped: string[]; uncontrolled: number }> {
     const t0 = performance.now();
     const persisted = this.list();
     const keepWorkers: string[] = [];
     let recovered = 0;
     let failed = 0;
+    let uncontrolled = 0;
 
     for (const record of persisted) {
       if (record.status === "stopped") {
@@ -754,11 +838,23 @@ export class SessionManager {
             this.makeContext(session),
           );
           session.handle = handle;
-          if (handle?.pid) keepWorkers.push(`${record.id}`);
+          if (handle) keepWorkers.push(record.id);
+        }
+        if (!session.handle) {
+          session.record.controlMode = "observed";
+          this.persist(session.record);
+          await this.emitSystem(session, "session.recovered", {
+            events: events.length,
+            lastSeq,
+            controllable: false,
+          });
+          uncontrolled++;
+          continue;
         }
         await this.emitSystem(session, "session.recovered", {
           events: events.length,
           lastSeq,
+          controllable: true,
         });
         recovered++;
       } catch (err) {
@@ -776,7 +872,7 @@ export class SessionManager {
     if (elapsed > 3000) {
       this.logger.warn("recovery exceeded K7 budget", { elapsedMs: Math.round(elapsed), budgetMs: 3000 });
     }
-    return { recovered, failed, reaped };
+    return { recovered, failed, reaped, uncontrolled };
   }
 
   async shutdown(): Promise<void> {
@@ -938,6 +1034,10 @@ export class SessionManager {
       lastSeq: session.record.lastSeq,
       adapterVersion: session.record.adapterVersion,
       savedAt: new Date().toISOString(),
+      controlMode: session.record.controlMode,
+      nativeSessionId: session.record.nativeSessionId,
+      resumeVersion: session.record.resumeVersion,
+      inputRevision: session.record.inputRevision,
     };
   }
 
@@ -957,8 +1057,12 @@ export class SessionManager {
   private persist(record: SessionRecord): void {
     this.db
       .prepare(
-        `INSERT INTO sessions (id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq, cost_usd, updated_at, tokens_est, park_reason)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO sessions (
+           id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq,
+           cost_usd, updated_at, tokens_est, park_reason, control_mode, harness, host_id, native_session_id,
+           resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            status = excluded.status,
            model = excluded.model,
@@ -969,7 +1073,19 @@ export class SessionManager {
            cost_usd = excluded.cost_usd,
            updated_at = excluded.updated_at,
            tokens_est = excluded.tokens_est,
-           park_reason = excluded.park_reason`,
+           park_reason = excluded.park_reason,
+           control_mode = excluded.control_mode,
+           harness = excluded.harness,
+           host_id = excluded.host_id,
+           native_session_id = excluded.native_session_id,
+           resume_version = excluded.resume_version,
+           log_offset = excluded.log_offset,
+           parent_session_id = excluded.parent_session_id,
+           observed_at = excluded.observed_at,
+           fork = excluded.fork,
+           input_revision = excluded.input_revision,
+           writer_client = excluded.writer_client,
+           writer_lease_until = excluded.writer_lease_until`,
       )
       .run(
         record.id,
@@ -986,7 +1102,56 @@ export class SessionManager {
         record.updatedAt,
         record.tokensEst,
         record.parkReason,
+        record.controlMode,
+        record.harness,
+        record.hostId,
+        record.nativeSessionId,
+        record.resumeVersion,
+        record.logOffset,
+        record.parentSessionId,
+        record.observedAt,
+        record.fork ? 1 : 0,
+        record.inputRevision,
+        record.writerClient,
+        record.writerLeaseUntil,
       );
+  }
+
+  private toDiscovered(record: SessionRecord): DiscoveredSession {
+    return {
+      hubSessionId: record.id,
+      project: record.project,
+      adapter: record.adapter,
+      status: record.status,
+      controlMode: unsupportedResume(record.resumeVersion) ? "observed" : record.controlMode,
+      harness: record.harness,
+      hostId: record.hostId,
+      nativeSessionId: record.nativeSessionId,
+      resumeVersion: record.resumeVersion,
+      observedAt: record.observedAt ?? record.updatedAt,
+      unsupportedResume: unsupportedResume(record.resumeVersion),
+      fork: record.fork,
+    };
+  }
+
+  private hasSeenInput(sessionId: string, inputId: string): boolean {
+    const row = this.db
+      .prepare("SELECT input_id FROM session_inputs WHERE session_id = ? AND input_id = ?")
+      .get(sessionId, inputId) as { input_id: string } | undefined;
+    return row !== undefined;
+  }
+
+  private commitSteerMeta(session: LiveSession, meta: SteerMeta | undefined): void {
+    session.record.inputRevision += 1;
+    if (meta?.clientId) {
+      session.record.writerClient = meta.clientId;
+      session.record.writerLeaseUntil = new Date(Date.now() + WRITER_LEASE_MS).toISOString();
+    }
+    this.persist(session.record);
+    if (!meta?.inputId) return;
+    this.db
+      .prepare("INSERT OR IGNORE INTO session_inputs (session_id, input_id, applied_at) VALUES (?, ?, ?)")
+      .run(session.record.id, meta.inputId, new Date().toISOString());
   }
 }
 

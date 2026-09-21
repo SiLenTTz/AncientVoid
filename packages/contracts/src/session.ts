@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CONTROL_MODES, DEFAULT_HOST_ID, HARNESS_TARGETS, RESUME_SCHEMA_VERSION } from "./identity.ts";
 
 export const SESSION_STATUSES = [
   "idle",
@@ -74,6 +75,19 @@ export const SessionRecord = z.object({
    * daily-cap park so a budget top-up never auto-resumes a session that
    * was parked for an unrelated reason. */
   parkReason: z.enum(["manual", "budget", "daily_cap"]).nullable().default(null),
+  /** ADR-0011. Defaults keep every pre-P5 row and caller valid. */
+  controlMode: z.enum(CONTROL_MODES).default("managed"),
+  harness: z.enum(HARNESS_TARGETS).default("cli"),
+  hostId: z.string().min(1).default(DEFAULT_HOST_ID),
+  nativeSessionId: z.string().nullable().default(null),
+  resumeVersion: z.number().int().nonnegative().default(RESUME_SCHEMA_VERSION),
+  logOffset: z.number().int().nonnegative().nullable().default(null),
+  parentSessionId: z.string().nullable().default(null),
+  observedAt: z.string().nullable().default(null),
+  fork: z.boolean().default(false),
+  inputRevision: z.number().int().nonnegative().default(0),
+  writerClient: z.string().nullable().default(null),
+  writerLeaseUntil: z.string().nullable().default(null),
 });
 export type SessionRecord = z.infer<typeof SessionRecord>;
 
@@ -87,4 +101,8 @@ export interface SessionSnapshot {
   lastSeq: number;
   adapterVersion: string;
   savedAt: string;
+  controlMode: string;
+  nativeSessionId: string | null;
+  resumeVersion: number;
+  inputRevision: number;
 }

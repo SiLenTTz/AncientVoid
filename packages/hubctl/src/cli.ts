@@ -47,6 +47,7 @@ Usage:
   hubctl health
   hubctl adapters
   hubctl sessions
+  hubctl discover
   hubctl show <sessionId>
   hubctl events <sessionId> [afterSeq]
   hubctl tail <sessionId> [-f]
@@ -152,6 +153,18 @@ async function main(): Promise<void> {
       const sessions = await api<SessionRow[]>("/api/sessions");
       if (sessions.length === 0) console.log("(no sessions)");
       for (const s of sessions) printSession(s);
+      break;
+    }
+    case "discover": {
+      const page = await api<{
+        items: { hubSessionId: string | null; adapter: string; status: string; nativeSessionId: string | null; unsupportedResume: boolean; fork: boolean }[];
+      }>("/api/discovery?limit=50");
+      if (page.items.length === 0) console.log("(no sessions)");
+      for (const item of page.items) {
+        const id = item.hubSessionId ?? item.nativeSessionId ?? "?";
+        const flags = [item.unsupportedResume ? "unsupported-resume" : "", item.fork ? "fork" : ""].filter(Boolean).join(",");
+        console.log(`${id}  ${item.status.padEnd(18)} ${item.adapter}${flags ? `  [${flags}]` : ""}`);
+      }
       break;
     }
     case "show": {

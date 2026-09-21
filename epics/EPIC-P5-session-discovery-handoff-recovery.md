@@ -1,6 +1,6 @@
 # EPIC-P5 — Session-Discovery, PC↔Handy-Handoff und Recovery
 
-**Status:** Planungsentwurf, Umsetzung blockiert · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
+**Status:** teilweise — Identität, Discovery, Lease, ehrliches Recovery und Deep-Link sind im Code (ADR-0011). AC-P5-2 (echte PC↔Handy↔Provider-Zyklen) bleibt blockiert, solange kein Gerät und kein Live-Harness-Lauf vorliegt. · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:
@@ -73,3 +73,23 @@ nachgewiesen. Jede Funktion in Config, API/CLI und passender UI tatsächlich
 registriert/erreichbar; Capability-/Support-Matrix ehrlich aktualisiert.
 Premortem im Abschlussreview gegenprüfen, offene Pflicht-ACs blockieren Abschluss.
 Commit/MR gemäß Repo-Workflow; kein lokaler Merge nach main.
+
+## 8. Stand dieses Schnitts (2026-09-21)
+
+Umgesetzt und getestet, ohne die offenen ACs grün zu färben:
+
+- ADR-0011, Migrationsspalten, `GET /api/discovery`, `hubctl discover`.
+- Dedup über Host/Adapter/native Id; unbekannte `resumeVersion` bleibt sichtbar (`unsupportedResume`).
+- `inputId` / `revision` / Writer-Lease (30 s).
+- `recoverAll` ohne Handle setzt `observed` und zählt nicht als recovered; adoptierte Handles stehen in `keepWorkers`.
+- Hash `#/sessions/<id>` öffnet dieselbe Session nach Reload.
+- `attachCmd` nur bei tmux + `working` + gelistetem Worker.
+- BUG-0004: `runContractTests({ spawnWorker })`.
+
+Offen, blockiert den Epic-Abschluss:
+
+- **AC-P5-2:** drei echte PC→Handy→PC-Zyklen je Pflicht-Harness. Hier kein Handy und kein Live-Provider-Lauf.
+- **T5.1:** keine Versions-Probes gegen installierte CLIs in diesem Schnitt.
+- **T5.3:** kein read-only Scan von CLI-/IDE-Dateien, nur Hub-Records plus injizierbare `DiscoverySource`.
+- **T5.4:** keine native Übernahme.
+- **T5.6:** kein Kill-9 gegen echte Provider-Worker.

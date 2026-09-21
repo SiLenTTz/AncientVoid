@@ -89,4 +89,20 @@ describe("PWA token gate (T4.5-5 / AC-P4.5-4)", () => {
     await page.getByRole("heading", { name: "UACC", exact: true }).waitFor();
     expect(await page.getByRole("heading", { name: "UACC", exact: true }).count()).toBe(1);
   });
+
+  itE2e("reopens the same session from its hash link", async () => {
+    if (!page) throw new Error("page not started");
+    const created = await page.evaluate(async (deviceToken) => {
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${deviceToken}` },
+        body: JSON.stringify({ adapter: "dummy", project: "/tmp/e2e-project" }),
+      });
+      return (await res.json()) as { id?: string };
+    }, token);
+    if (!created.id) throw new Error("session was not created");
+    await page.goto(`${origin}/#/sessions/${created.id}`);
+    await page.getByText(/^dummy ·/).waitFor();
+    expect(page.url()).toContain(`#/sessions/${created.id}`);
+  });
 });
