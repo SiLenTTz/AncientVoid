@@ -43,6 +43,14 @@ export class EventStore {
     this.dataDir = dataDir;
   }
 
+  /**
+   * Readiness probe (ADR-0010): the sessions root must be creatable.
+   * Does not write a fake session or touch JSONL.
+   */
+  async probe(): Promise<void> {
+    await mkdir(join(this.dataDir, "sessions"), { recursive: true });
+  }
+
   sessionDir(sessionId: string): string {
     return join(this.dataDir, "sessions", sessionId);
   }

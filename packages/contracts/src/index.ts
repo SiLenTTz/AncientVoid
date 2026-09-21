@@ -5,3 +5,4 @@ export * from "./worker.ts";
 export * from "./wire.ts";
 export * from "./approval.ts";
 export * from "./reporting.ts";
+export * from "./observability.ts";

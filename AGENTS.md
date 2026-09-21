@@ -3,9 +3,9 @@
 ## Was das ist
 
 UACC (`mobile-hub`): local-first Hub, um Coding-Agenten vom Handy zu
-überwachen/steuern. Basis-Dokumente: `epics/` (PRD + Epics P0–P4) — **lesen,
-bevor Features gebaut werden.** Epic-Gating: P(n) startet erst, wenn die
-Exit-Kriterien von P(n-1) grün sind.
+überwachen/steuern. Basis-Dokumente: `epics/` (PRD + Epics P0–P4.5, Planungsentwürfe P5–P12) —
+**lesen, bevor Features gebaut werden.** Epic-Gating: P(n) startet erst,
+wenn die Exit-Kriterien von P(n-1) grün sind.
 
 ## Architektur-Regeln (nicht verhandelbar)
 
@@ -39,7 +39,8 @@ Exit-Kriterien von P(n-1) grün sind.
 ## Kommandos
 
 ```bash
-npm test                 # vitest (alle Packages)
+npm test                 # vitest (Unit/Integration + E2E; E2E skippt ohne Chromium)
+npm run test:e2e         # nur e2e/
 npm run lint             # eslint
 npm run typecheck        # tsc --noEmit
 npm run loadtest         # K8: 20 Sessions × 30 ev/s
@@ -50,7 +51,13 @@ Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
 
 ## Testing
 
+- Rezept für Agenten: Skill [`write-tests`](.claude/skills/write-tests/SKILL.md)
+  (Unit / Integration / E2E, rot-dann-grün, Skip-Muster).
 - Unit/Contract-Tests in `packages/*/test/*.test.ts` (vitest, forks pool).
+- Neue Integrations-Tests: `*.integration.test.ts` (Vorbild:
+  `packages/server/test/server.test.ts`).
+- E2E in `e2e/` (Playwright Chromium). Fehlt der Browser, skippt der Test
+  sichtbar — analog tmux / ADR-0002. Nicht als Pass zählen.
 - Adapter bekommen die Suite aus `@uacc/adapter-testkit` — grün =
   hub-integrierbar.
 - tmux-Tests skipped automatisch, wenn tmux fehlt.
@@ -73,6 +80,7 @@ sie duplizieren nichts hier, sie wenden es an. Index: `.claude/skills/README.md`
 - Vor jedem MR: Skill `gates` (= `npm test && npm run lint && npm run typecheck`, betroffene Packages) und danach `pr-review` (6 Dimensionen inkl. Future-Fragility: Contract-Bruch, K5/K7-Verletzung, Adapter-Isolation).
 - Commit/Branch/MR: Skill `git-workflow` — inkl. **fester Kadenz**: Task-Abschluss → commit; Bugfix- oder Epic-Abschluss → commit + push + MR (Solo-Projekt: Self-Merge der eigenen MR zulässig, MR bleibt Pflicht-Log). Kein Force-Push, kein Commit auf `main` außerhalb der dokumentierten Bootstrap-Ausnahme. **Der Merge selbst passiert ausschließlich über `glab mr merge`/GitLab-UI — nie über ein lokales `git merge` von einem Feature-Branch nach `main`, auch nicht als Notlösung wenn der Remote gerade nicht erreichbar ist** (dann bleibt der Branch offen und ungelöscht, bis gepusht/gemerged werden kann — siehe `git-workflow`s Regel dazu, real nötig geworden am 2026-09-18).
 - Neue Phase: Skill `epic-creation` bzw. Agent `epic-planner` — Vorbild `epics/EPIC-P3-adapter-flotte-sprachsuche.md`, Premortem nie überspringen.
+- Tests schreiben: Skill `write-tests`.
 - Architekturfragen/Schichten: Skill `architecture-best-practices`.
 - Diff wirkt überkonstruiert: Skill `ponytail-review` (Tags `delete`/`stdlib`/`native`/`yagni`/`shrink`, Invarianten via `_shared/uacc-protected-invariants.md`).
 

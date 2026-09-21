@@ -25,6 +25,7 @@
 | [`pr-review`](pr-review/SKILL.md) | 6-Dimensionen-Gate-Review inkl. Future-Fragility | MR review, Merge-Freigabe, structured review | reines Lint bleibt `gates` |
 | [`ponytail-review`](ponytail-review/SKILL.md) | Diff-Advisory, Tags `delete/stdlib/native/yagni/shrink` | Diff vereinfachen, Komplexität, YAGNI | read-only, keine Edits |
 | [`architecture-best-practices`](architecture-best-practices/SKILL.md) | UACC-Pipeline, Modultiefe, Testing-Standard | Architektur, Schichten, Anti-Pattern | Referenz, kein Workflow |
+| [`write-tests`](write-tests/SKILL.md) | Unit-/Integrations-/E2E-Rezept für dieses Repo | neuen Test, Coverage, Playwright, rot-dann-grün | Gates fahren bleibt `gates` |
 | [`concept-phase`](concept-phase/SKILL.md) | Aufgabe in vertikale Slices (6 Dimensionen) | Aufgabe slicen, Scoping, Edges | `epic-creation` für neue Phasen |
 | [`epic-creation`](epic-creation/SKILL.md) | Neue `EPIC-Pn`-Datei nach 7-Abschnitt-Schema | „neues Epic", „P5 planen" | Phasen-Ebene; Feinschnitt → `concept-phase` |
 | [`messlauf`](messlauf/SKILL.md) | Messlauf gegen K1–K10 fahren und ablegen | Benchmark, Durchsatz, Latenz, Messzahl zitieren | Ablage unter `docs/messlauf/` |
@@ -36,11 +37,12 @@ die `ponytail-review` nicht wegoptimieren darf:
 
 ## Bewusst nicht übernommen
 
-`product-wiki`, `browser-e2e`, `installer-hygiene`, `ui-schicht`,
+`product-wiki`, `installer-hygiene`, `ui-schicht`,
 `ponytail-audit`, `ponytail-debt`, `docs-hygiene` (als eigener Skill) — jeweils
-weil die vorausgesetzte Infrastruktur (Playwright-Suite, Produkt-Wiki,
-Installer-Wizard, Markdown-Lint-Tooling, Debt-Bestand) in diesem Repo noch
-nicht existiert. Nachziehen, sobald der Bedarf real ist, nicht vorab
+weil die vorausgesetzte Infrastruktur (Produkt-Wiki, Installer-Wizard,
+Markdown-Lint-Tooling, Debt-Bestand) in diesem Repo noch nicht existiert.
+`browser-e2e` ist durch [`write-tests`](write-tests/SKILL.md) + `e2e/` ersetzt
+(P4.5). Nachziehen der übrigen, sobald der Bedarf real ist, nicht vorab
 ([`AGENTS.md`](../../AGENTS.md) Regel 5, "Kein Scope-Creep").
 
 ## Agenten

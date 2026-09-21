@@ -7,7 +7,10 @@ export {
   type ProjectDiscoveryResult,
 } from "./projects.ts";
 export { scanProjectSkills, type SkillOrAgent } from "./skills.ts";
-export { SessionManager, hashToken, type AdapterUsageSnapshot } from "./sessionmanager.ts";
+export { SessionManager, hashToken, type AdapterUsageSnapshot, type SessionManagerObservability } from "./sessionmanager.ts";
+export { createJsonLogger, createConsoleLogger, redactFields } from "./logger.ts";
+export { InMemoryMetrics } from "./metrics.ts";
+export { collectHealth, type HealthDeps, type HealthStore } from "./health.ts";
 export { WorktreeManager } from "./worktree.ts";
 export { ApprovalService, type DecideResult } from "./approvals.ts";
 export { WebAuthnStore, type StoredCredential } from "./webauthn-store.ts";

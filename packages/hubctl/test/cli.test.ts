@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildWsUrl } from "../src/cli.ts";
+import { buildWsUrl, formatHealth } from "../src/cli.ts";
 
 /**
  * BUG-0005: `followWs()` built its WS URL with `BASE.replace(/^https?/, "")`
@@ -32,5 +32,28 @@ describe("buildWsUrl", () => {
 
   it("produces a URL the WHATWG URL parser accepts", () => {
     expect(() => new URL(buildWsUrl("http://127.0.0.1:7373", "tok", "sess-1"))).not.toThrow();
+  });
+});
+
+describe("formatHealth (T4.5-6)", () => {
+  it("prints status, session counts and checks when present", () => {
+    expect(
+      formatHealth({
+        ok: true,
+        status: "ok",
+        adapters: [{ id: "dummy", version: "0.1.0" }],
+        checks: { database: { ok: true }, eventStore: { ok: true } },
+        sessions: { live: 1, total: 2 },
+      }),
+    ).toEqual([
+      "ok: true  status=ok",
+      "  sessions live=1 total=2",
+      "  checks db=ok store=ok",
+      "  adapter dummy@0.1.0",
+    ]);
+  });
+
+  it("still works with the pre-P4.5 {ok, adapters} payload", () => {
+    expect(formatHealth({ ok: true, adapters: [] })).toEqual(["ok: true"]);
   });
 });

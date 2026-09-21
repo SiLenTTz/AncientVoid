@@ -30,6 +30,7 @@ describe("hub server", () => {
       tokens,
       registry,
       auth: { tokens, enforceTailnetIdentity: false },
+      store,
     });
     await app.listen({ port: 0, host: "127.0.0.1" });
     baseUrl = `http://127.0.0.1:${(app.server.address() as { port: number }).port}`;
@@ -44,6 +45,8 @@ describe("hub server", () => {
     const res = await app.inject({ method: "GET", url: "/api/health" });
     expect(res.statusCode).toBe(200);
     expect(res.json().ok).toBe(true);
+    expect(res.json().status).toBe("ok");
+    expect(res.json().checks.database.ok).toBe(true);
   });
 
   it("rejects requests without device token (401)", async () => {

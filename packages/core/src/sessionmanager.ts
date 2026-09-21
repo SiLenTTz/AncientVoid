@@ -4,6 +4,8 @@ import type {
   AdapterContext,
   BlobRef,
   EmittedEvent,
+  HubLogger,
+  HubMetrics,
   NormalizedEvent,
   SessionHandle,
   SessionRecord,
@@ -22,6 +24,12 @@ import type { HubDatabase } from "./db.ts";
 import type { WorktreeManager } from "./worktree.ts";
 import type { ApprovalService } from "./approvals.ts";
 import { buildSessionSummary } from "./digest.ts";
+import { createConsoleLogger } from "./logger.ts";
+
+export interface SessionManagerObservability {
+  logger?: HubLogger;
+  metrics?: HubMetrics;
+}
 
 /**
  * Session lifecycle manager.
@@ -136,6 +144,8 @@ export class SessionManager {
   private readonly approvals: ApprovalService | undefined;
   private readonly dailyCapUsd: number | null;
   private readonly reportingSinks: ReportingSink[];
+  private readonly logger: HubLogger;
+  private readonly metrics: HubMetrics | undefined;
   private readonly heartbeatTimer: NodeJS.Timeout;
   private heartbeatRunning = false;
 
@@ -161,6 +171,7 @@ export class SessionManager {
      * behavior — no digests, no new network egress unless explicitly
      * configured (same "default off" principle as the MCP gateway, OD-2). */
     reportingSinks: ReportingSink[] = [],
+    observability: SessionManagerObservability = {},
   ) {
     this.db = db;
     this.store = store;
@@ -170,6 +181,8 @@ export class SessionManager {
     this.approvals = approvals;
     this.dailyCapUsd = dailyCapUsd;
     this.reportingSinks = reportingSinks;
+    this.logger = observability.logger ?? createConsoleLogger();
+    this.metrics = observability.metrics;
     // T1.9 (AC-P1-5): poll each live adapter's own status() on a timer,
     // not just react to its worker process exiting. A hard-killed process
     // already surfaces via WorkerProcess.onExit (see makeContext below),
@@ -232,6 +245,15 @@ export class SessionManager {
         .prepare("SELECT * FROM sessions ORDER BY created_at DESC")
         .all() as unknown as SessionRow[]
     ).map(rowToRecord);
+  }
+
+  sessionCounts(): { live: number; total: number; byStatus: Record<string, number> } {
+    const records = this.list();
+    const byStatus: Record<string, number> = {};
+    for (const record of records) {
+      byStatus[record.status] = (byStatus[record.status] ?? 0) + 1;
+    }
+    return { live: this.live.size, total: records.length, byStatus };
   }
 
   get(sessionId: string): SessionRecord | undefined {
@@ -347,6 +369,11 @@ export class SessionManager {
       await this.emitSystem(session, "session.started", {
         pid: session.handle.pid ?? null,
         capabilities: registered.capabilities,
+      });
+      this.metrics?.inc("sessions_started");
+      this.logger.info("session started", {
+        sessionId: record.id,
+        adapter: record.adapter,
       });
     } catch (err) {
       await this.setStatus(session, "error");
@@ -508,6 +535,8 @@ export class SessionManager {
       }
       await this.setStatus(session, "stopped");
       await this.emitSystem(session, "session.stopped", { actor: actor ?? null });
+      this.metrics?.inc("sessions_stopped");
+      this.logger.info("session stopped", { sessionId, adapter: session.record.adapter });
       this.dispatchDigest(session);
     }
     return { ok: true };
@@ -743,8 +772,9 @@ export class SessionManager {
 
     const reaped = await this.runner.reapOrphans(keepWorkers).catch(() => []);
     const elapsed = performance.now() - t0;
+    this.metrics?.gauge("recovery_ms", elapsed);
     if (elapsed > 3000) {
-      console.warn(`[session-manager] recovery took ${elapsed.toFixed(0)} ms (> 3000 ms budget, K7)`);
+      this.logger.warn("recovery exceeded K7 budget", { elapsedMs: Math.round(elapsed), budgetMs: 3000 });
     }
     return { recovered, failed, reaped };
   }
@@ -764,10 +794,11 @@ export class SessionManager {
       signal: session.abort.signal,
       workdir: session.workdir,
       log: (level, msg, extra) => {
-        const line = `[adapter:${session.record.adapter}] ${msg}`;
-        if (level === "error") console.error(line, extra ?? "");
-        else if (level === "warn") console.warn(line, extra ?? "");
-        else console.log(line, extra ?? "");
+        const logger = this.logger.child({
+          adapter: session.record.adapter,
+          sessionId: session.record.id,
+        });
+        logger[level](msg, extra);
       },
       emit: (event: EmittedEvent) => {
         void this.emitEvents(session, [event]).catch((err) => this.handleEmitFailure(session, event, err));
@@ -805,14 +836,17 @@ export class SessionManager {
    */
   private async handleEmitFailure(session: LiveSession, failedEvent: EmittedEvent, err: unknown): Promise<void> {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[session:${session.record.id}] event append failed:`, message);
+    this.logger.error("event append failed", { sessionId: session.record.id, err: message });
 
     try {
       await this.setStatus(session, "error");
     } catch (statusErr) {
       // Late emission after shutdown/cleanup (session already "stopped",
       // no transition to "error" allowed) must never crash the daemon.
-      console.error(`[session:${session.record.id}] could not persist error status:`, statusErr);
+      this.logger.error("could not persist error status", {
+        sessionId: session.record.id,
+        err: statusErr instanceof Error ? statusErr.message : String(statusErr),
+      });
     }
 
     try {
@@ -824,7 +858,10 @@ export class SessionManager {
         },
       ]);
     } catch (retryErr) {
-      console.error(`[session:${session.record.id}] could not surface append failure as an event either:`, retryErr);
+      this.logger.error("could not surface append failure as an event", {
+        sessionId: session.record.id,
+        err: retryErr instanceof Error ? retryErr.message : String(retryErr),
+      });
     }
   }
 
@@ -865,6 +902,7 @@ export class SessionManager {
     }
     session.record.updatedAt = new Date().toISOString();
     const enforced = await this.store.append(session.record.id, events);
+    this.metrics?.inc("events_appended", enforced.length);
     this.persist(session.record);
     for (const sub of session.subscribers) {
       try {

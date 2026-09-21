@@ -20,6 +20,26 @@ export function buildWsUrl(base: string, token: string, sessionId: string): stri
   return url;
 }
 
+/** Exported so additive /api/health fields stay printed (ADR-0010) instead
+ * of being silently ignored by the reference client. */
+export function formatHealth(h: {
+  ok: boolean;
+  status?: string;
+  adapters: { id: string; version: string }[];
+  checks?: { database?: { ok: boolean }; eventStore?: { ok: boolean } };
+  sessions?: { live: number; total: number };
+}): string[] {
+  const lines = [`ok: ${h.ok}${h.status ? `  status=${h.status}` : ""}`];
+  if (h.sessions) lines.push(`  sessions live=${h.sessions.live} total=${h.sessions.total}`);
+  if (h.checks) {
+    const db = h.checks.database?.ok ? "ok" : "fail";
+    const store = h.checks.eventStore?.ok ? "ok" : "fail";
+    lines.push(`  checks db=${db} store=${store}`);
+  }
+  for (const a of h.adapters) lines.push(`  adapter ${a.id}@${a.version}`);
+  return lines;
+}
+
 function usage(): never {
   console.log(`hubctl — UACC reference client
 
@@ -105,9 +125,14 @@ async function main(): Promise<void> {
   const [cmd, ...args] = process.argv.slice(2);
   switch (cmd) {
     case "health": {
-      const h = await api<{ ok: boolean; adapters: { id: string; version: string }[] }>("/api/health");
-      console.log(`ok: ${h.ok}`);
-      for (const a of h.adapters) console.log(`  adapter ${a.id}@${a.version}`);
+      const h = await api<{
+        ok: boolean;
+        status?: string;
+        adapters: { id: string; version: string }[];
+        checks?: { database?: { ok: boolean }; eventStore?: { ok: boolean } };
+        sessions?: { live: number; total: number };
+      }>("/api/health");
+      for (const line of formatHealth(h)) console.log(line);
       break;
     }
     case "adapters": {

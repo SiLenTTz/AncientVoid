@@ -18,6 +18,8 @@ import {
   TokenService,
   WebAuthnStore,
   WorktreeManager,
+  createJsonLogger,
+  InMemoryMetrics,
   loadConfig,
   loadReportingSinks,
 } from "@uacc/core";
@@ -45,9 +47,13 @@ async function main(): Promise<void> {
   // accepts any path — packages/core/src/projects.ts), but it was silent
   // at startup, unlike every other security-relevant default this hub
   // already warns about (UACC_EXPOSE, WebAuthn's localhost-only rpId).
+  const logger = createJsonLogger({ fields: { service: "uacc-hub" } });
+  const metrics = new InMemoryMetrics();
+  const startedAt = Date.now();
+
   if (config.projectRoots.length === 0) {
-    console.warn(
-      "[hub] projectRoots is empty — any authenticated device can start a session against ANY filesystem path the hub process can read. Set projectRoots in hub.config.json to restrict this.",
+    logger.warn(
+      "projectRoots is empty — any authenticated device can start a session against ANY filesystem path the hub process can read. Set projectRoots in hub.config.json to restrict this.",
     );
   }
 
@@ -58,7 +64,7 @@ async function main(): Promise<void> {
   // Worker runner: tmux when available, process fallback otherwise.
   let runner: WorkerRunner = new TmuxRunner(resolve(dataDir, "workers"));
   if (!(await runner.isAvailable())) {
-    console.warn("[hub] tmux not available — falling back to process runner (no attach, no survival across restarts)");
+    logger.warn("tmux not available — falling back to process runner (no attach, no survival across restarts)");
     runner = new ProcessRunner();
   }
 
@@ -70,9 +76,9 @@ async function main(): Promise<void> {
   if (config.adapters.length > 0) {
     await registry.loadAll(config.adapters, configPath);
   }
-  console.log(
-    `[hub] adapters: ${registry.list().map((a) => `${a.id}@${a.adapter.version}`).join(", ") || "(none)"}`,
-  );
+  logger.info("adapters loaded", {
+    adapters: registry.list().map((a) => `${a.id}@${a.adapter.version}`).join(", ") || "(none)",
+  });
 
   // T2.1: real per-session git worktree isolation (EPIC-P2). Projects that
   // aren't a git repo fall back to running in-place — see
@@ -89,7 +95,7 @@ async function main(): Promise<void> {
   // configures a sink module.
   const reportingSinks = await loadReportingSinks(config.reportingSinks, configPath);
   if (reportingSinks.length > 0) {
-    console.log(`[hub] reporting sinks: ${reportingSinks.length} configured`);
+    logger.info("reporting sinks configured", { count: reportingSinks.length });
   }
   const sessions = new SessionManager(
     db,
@@ -101,13 +107,16 @@ async function main(): Promise<void> {
     config.requireStepApprovals ? approvals : undefined,
     config.dailyCapUsd,
     reportingSinks,
+    { logger: logger.child({ component: "sessions" }), metrics },
   );
 
   // K7: recover sessions from JSONL + snapshots before accepting traffic.
   const recovery = await sessions.recoverAll();
-  console.log(
-    `[hub] recovery: ${recovery.recovered} ok, ${recovery.failed} failed, ${recovery.reaped.length} workers reaped`,
-  );
+  logger.info("recovery finished", {
+    recovered: recovery.recovered,
+    failed: recovery.failed,
+    reaped: recovery.reaped.length,
+  });
 
   const app = await createHubApp({
     sessions,
@@ -122,6 +131,9 @@ async function main(): Promise<void> {
     approvals,
     dataDir,
     workerRunnerKind: runner.kind,
+    store,
+    metrics,
+    startedAt,
     // T2.5: always real and reachable, same reasoning as `approvals`
     // above — see HubConfig.webauthn's doc comment for why the shipped
     // rpId/origin defaults only work for local dev.
@@ -132,13 +144,13 @@ async function main(): Promise<void> {
     ? "0.0.0.0"
     : config.server.host;
   await app.listen({ port: config.server.port, host: listen });
-  console.log(`[hub] listening on http://${config.server.host}:${config.server.port} (data: ${dataDir})`);
+  logger.info("listening", { host: config.server.host, port: config.server.port, dataDir });
   if (config.server.host === "127.0.0.1" && !process.env.UACC_EXPOSE) {
-    console.log("[hub] bound to loopback — expose via `tailscale serve`, never via public bind");
+    logger.info("bound to loopback — expose via tailscale serve, never via public bind");
   }
 
   const shutdown = async (sig: string) => {
-    console.log(`[hub] ${sig} — shutting down`);
+    logger.info("shutting down", { signal: sig });
     await sessions.shutdown().catch(() => undefined);
     await app.close().catch(() => undefined);
     db.close();
@@ -149,6 +161,8 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error("[hub] fatal:", err);
+  createJsonLogger({ fields: { service: "uacc-hub" } }).error("fatal", {
+    err: err instanceof Error ? err.message : String(err),
+  });
   process.exit(1);
 });
