@@ -19,6 +19,7 @@ function item(partial: Partial<DiscoveredSession> & Pick<DiscoveredSession, "ada
     observedAt: "2026-09-21T00:00:00.000Z",
     unsupportedResume: false,
     fork: false,
+    parentSessionId: null,
     ...partial,
   };
 }

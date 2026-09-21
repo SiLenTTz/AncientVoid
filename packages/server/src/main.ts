@@ -6,9 +6,9 @@
  *
  * Boot order (P0): config → db → adapters → recovery (K7) → HTTP/WS → PWA.
  */
-import { mkdirSync } from "node:fs";
+import { mkdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { WorkerRunner } from "@uacc/contracts";
+import type { WorkerRunner, DiscoverySource } from "@uacc/contracts";
 import {
   AdapterRegistry,
   ApprovalService,
@@ -22,6 +22,11 @@ import {
   InMemoryMetrics,
   loadConfig,
   loadReportingSinks,
+  claudeDiscoverySource,
+  cursorDiscoverySource,
+  defaultClaudeDir,
+  defaultCursorUserDir,
+  type HubConfig,
 } from "@uacc/core";
 import { TmuxRunner, ProcessRunner } from "@uacc/workers";
 import type { AdapterFactory } from "@uacc/contracts";
@@ -35,6 +40,15 @@ import { createHubApp } from "./index.ts";
 // hub.config.json's own `adapters` array, same as any other adapter, when
 // you actually want it for local testing.
 const BUILTIN_ADAPTERS: Record<string, AdapterFactory> = {};
+
+function discoverySources(config: HubConfig): DiscoverySource[] {
+  const sources: DiscoverySource[] = [];
+  const claudeDir = config.discovery.claudeDir ? resolve(config.discovery.claudeDir) : defaultClaudeDir();
+  const cursorUserDir = config.discovery.cursorUserDir ? resolve(config.discovery.cursorUserDir) : defaultCursorUserDir();
+  if (config.discovery.claudeDir || existsSync(claudeDir)) sources.push(claudeDiscoverySource(claudeDir));
+  if (config.discovery.cursorUserDir || existsSync(cursorUserDir)) sources.push(cursorDiscoverySource(cursorUserDir));
+  return sources;
+}
 
 async function main(): Promise<void> {
   const configPath = resolve(process.env.UACC_CONFIG ?? "hub.config.json");
@@ -138,6 +152,7 @@ async function main(): Promise<void> {
     // above — see HubConfig.webauthn's doc comment for why the shipped
     // rpId/origin defaults only work for local dev.
     webauthn: { store: new WebAuthnStore(db), config: config.webauthn },
+    discoverySources: discoverySources(config),
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.UACC_EXPOSE === "1"

@@ -1,6 +1,6 @@
 # EPIC-P5 — Session-Discovery, PC↔Handy-Handoff und Recovery
 
-**Status:** teilweise — Identität, Discovery, Lease, ehrliches Recovery und Deep-Link sind im Code (ADR-0011). AC-P5-2 (echte PC↔Handy↔Provider-Zyklen) bleibt blockiert, solange kein Gerät und kein Live-Harness-Lauf vorliegt. · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
+**Status:** teilweise — Inventar und read-only Scan sind im Code (ADR-0012). AC-P5-2 bleibt blockiert, solange kein echter PC↔Handy↔Provider-Lauf vorliegt. · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:
@@ -41,9 +41,9 @@ Blocker mit Evidenz, keine implizite Genehmigung für DB-Schreibzugriffe.
 
 ## 4. Aufgaben
 
-- [ ] **T5.1 — Pflichtinventar und ADR.** Zielmatrix aus Audit §4 vervollständigen; je Harness unterstützte Version und native Discovery-/Resume-Schnittstelle mit tatsächlichen Probes belegen. Capability-Contract erweitern; WIP Claude-Clip übernehmen erst nach eigener grüner MR. PRD G1; K7/K9.
-- [ ] **T5.2 — Persistente Session-Identität.** Provider-Resume-Daten und Lifecycle-Übergänge in Contracts, JSONL und Snapshot ablegen; bestehende Records migrieren; unbekannte Resume-Version sichtbar ablehnen. K5/K7.
-- [ ] **T5.3 — Discovery und Deduplizierung.** Alle Sessions konfigurierter Provider-Quellen erfassen, nach Host/Provider/native ID deduplizieren; Subagent-Elternbezug vorbereiten; CLI/IDE-Quellen read-only scannen. K5/K8/K9.
+- [x] **T5.1 — Pflichtinventar und ADR.** Zielmatrix aus Audit §4 vervollständigen; je Harness unterstützte Version und native Discovery-/Resume-Schnittstelle mit tatsächlichen Probes belegen. Capability-Contract erweitern; WIP Claude-Clip übernehmen erst nach eigener grüner MR. PRD G1; K7/K9. Stand 2026-09-22: `GET /api/inventory` probed die Katalog-Binaries und lässt die Zelle ehrlich (`verified` nur für die belegten Read-only-Layouts, Resume der CLIs `implemented-unverified`). Claude-Clip war bereits in !40 gemerged.
+- [x] **T5.2 — Persistente Session-Identität.** Provider-Resume-Daten und Lifecycle-Übergänge in Contracts, JSONL und Snapshot ablegen; bestehende Records migrieren; unbekannte Resume-Version sichtbar ablehnen. K5/K7.
+- [x] **T5.3 — Discovery und Deduplizierung.** Alle Sessions konfigurierter Provider-Quellen erfassen, nach Host/Provider/native ID deduplizieren; Subagent-Elternbezug vorbereiten; CLI/IDE-Quellen read-only scannen. K5/K8/K9. Stand 2026-09-22: Claude-`*.jsonl` und Cursor-`composerHeaders` werden read-only gemischt; `parentSessionId` für Subagent-Dateien und eine vorhandene Parent-Spalte. Codex/OpenCode/Copilot/Aider ohne belegtes Dateilayout bleiben `missing`.
 - [ ] **T5.4 — Echte Übernahme.** Für jeden verpflichtenden Harness PC→Handy→PC implementieren; laufender Turn und Turn-Pause getrennt; gleicher Kontext/Worktree. Native Resume bevorzugen; Fork/monitor-only korrekt beschriften. K2/K7.
 - [ ] **T5.5 — Writer-Koordination und Clients.** Lease/Revision, Input-ID, sichere Retry-Semantik, Native-Open-/Copy-Link und Web-Deep-Link verbinden; reale Pane-Verfügbarkeit; kein doppeltes Absenden bei zwei Clients. K7/K10.
 - [ ] **T5.6 — Recovery und Ausfallbeweis.** recoverAll darf ohne nutzbares Handle nicht kontrollierbare Wiederherstellung behaupten; adoptierte Worker nicht als Orphans töten; Adapter-Testkit-Lücke BUG-0004 schließen/verifizieren; Crash-Tests gegen echte Worker inkl. Log-Tail und ausstehender Eingabe. K2/K5/K7/K8.
@@ -74,22 +74,19 @@ registriert/erreichbar; Capability-/Support-Matrix ehrlich aktualisiert.
 Premortem im Abschlussreview gegenprüfen, offene Pflicht-ACs blockieren Abschluss.
 Commit/MR gemäß Repo-Workflow; kein lokaler Merge nach main.
 
-## 8. Stand dieses Schnitts (2026-09-21)
+## 8. Stand dieses Schnitts (2026-09-22)
 
 Umgesetzt und getestet, ohne die offenen ACs grün zu färben:
 
-- ADR-0011, Migrationsspalten, `GET /api/discovery`, `hubctl discover`.
-- Dedup über Host/Adapter/native Id; unbekannte `resumeVersion` bleibt sichtbar (`unsupportedResume`).
-- `inputId` / `revision` / Writer-Lease (30 s).
-- `recoverAll` ohne Handle setzt `observed` und zählt nicht als recovered; adoptierte Handles stehen in `keepWorkers`.
-- Hash `#/sessions/<id>` öffnet dieselbe Session nach Reload.
-- `attachCmd` nur bei tmux + `working` + gelistetem Worker.
-- BUG-0004: `runContractTests({ spawnWorker })`.
+- ADR-0011 und ADR-0012. `GET /api/inventory` plus `hubctl inventory`.
+- `nativeDiscovery` / `nativeResume` an den Adapter-Capabilities.
+- Read-only Scan: Claude-Transcripts (inkl. `subagents/` → `parentSessionId`) und Cursor-`composerHeaders`, gemischt in `GET /api/discovery`.
+- Unbekanntes Datei- oder Schema-Format bleibt `unsupported-format`.
+- Dedup, Lease, ehrliches Recovery, Hash-Route, `attachCmd`, BUG-0004 wie im Schnitt davor.
 
 Offen, blockiert den Epic-Abschluss:
 
-- **AC-P5-2:** drei echte PC→Handy→PC-Zyklen je Pflicht-Harness. Hier kein Handy und kein Live-Provider-Lauf.
-- **T5.1:** keine Versions-Probes gegen installierte CLIs in diesem Schnitt.
-- **T5.3:** kein read-only Scan von CLI-/IDE-Dateien, nur Hub-Records plus injizierbare `DiscoverySource`.
+- **AC-P5-2:** drei echte PC→Handy→PC-Zyklen je Pflicht-Harness.
 - **T5.4:** keine native Übernahme.
 - **T5.6:** kein Kill-9 gegen echte Provider-Worker.
+- Resume-Zellen von Claude/Codex/OpenCode/Copilot bleiben `implemented-unverified`.

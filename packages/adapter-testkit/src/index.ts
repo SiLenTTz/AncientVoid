@@ -106,6 +106,12 @@ export async function runContractTests(
     for (const key of ["reasoning", "tools", "cost", "steer"] as const) {
       if (typeof caps[key] !== "boolean") throw new Error(`capabilities.${key} must be boolean`);
     }
+    if (caps.nativeDiscovery !== "read-only" && caps.nativeDiscovery !== "none") {
+      throw new Error("capabilities.nativeDiscovery must be read-only or none");
+    }
+    if (caps.nativeResume !== "native" && caps.nativeResume !== "none") {
+      throw new Error("capabilities.nativeResume must be native or none");
+    }
   });
 
   const ctx = makeRecordingContext(opts.spawnWorker ? { spawnWorker: opts.spawnWorker } : {});

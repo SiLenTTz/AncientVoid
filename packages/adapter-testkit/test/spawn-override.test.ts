@@ -6,7 +6,7 @@ function spawnAdapter(): Adapter {
   return {
     id: "spawny",
     version: "1.0.0",
-    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false }),
+    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
     async start(_spec, ctx) {
       await ctx.spawnWorker(["echo", "hi"]);
       ctx.emit({ type: "system", summary: "started", payload: {} });

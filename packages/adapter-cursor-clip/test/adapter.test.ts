@@ -101,7 +101,7 @@ describe("cursor-clip adapter — real SQLite schema, real live-tail behavior", 
   it("identity + capabilities are honest (read-only: steer:false)", () => {
     const adapter = createAdapter();
     expect(adapter.id).toBe("cursor-clip");
-    expect(adapter.capabilities()).toEqual({ reasoning: true, tools: true, cost: false, steer: false, usage: false });
+    expect(adapter.capabilities()).toEqual({ reasoning: true, tools: true, cost: false, steer: false, usage: false, nativeDiscovery: "read-only", nativeResume: "none" });
   });
 
   it("start() resolves the workspace from spec.project, seeds recent bubbles, and follows new ones live", async () => {

@@ -1,8 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore } from "@uacc/core";
-import { collectHealth } from "@uacc/core";
-import type { HubMetrics } from "@uacc/contracts";
-import { discoverProjects, isProjectPathAllowed, scanProjectSkills } from "@uacc/core";
+import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import { collectHealth, probeHarnesses, HARNESS_CATALOG, spawnProbeRunner, discoverProjects, isProjectPathAllowed, scanProjectSkills } from "@uacc/core";
 import { enhancePrompt } from "./enhance.ts";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { extractToken } from "./auth.ts";
@@ -10,9 +8,9 @@ import { createWebAuthnRoutes, type WebAuthnConfig } from "./webauthn.ts";
 import { appendOptimizerFeedback } from "./prompt-optimizer-feedback.ts";
 import { ensureIndexed, indexStatus, isQmdAvailable, readProjectFile, relativeDataDir, searchProject } from "./search.ts";
 import { DecideApprovalInput, ApprovalStatus, ENV_VAR_NAME } from "@uacc/contracts";
+import type { HubMetrics, DiscoverySource, SessionRecord } from "@uacc/contracts";
 import { TMUX_PREFIX } from "@uacc/workers";
 import { z } from "zod";
-import type { SessionRecord } from "@uacc/contracts";
 
 const EnhancePromptBody = z.object({
   adapter: z.string().min(1),
@@ -82,6 +80,10 @@ export function registerRoutes(
     store?: HealthStore;
     metrics?: HubMetrics;
     startedAt?: number;
+    /** ADR-0012: external read-only session sources mixed into GET /api/discovery. */
+    discoverySources?: DiscoverySource[];
+    /** Injected in tests. Production uses spawnProbeRunner. */
+    probeRunner?: ProbeRunner;
   },
 ): void {
   const projectRoots = deps.projectRoots ?? [];
@@ -254,7 +256,12 @@ export function registerRoutes(
     const q = req.query as { cursor?: string; limit?: string };
     const cursor = Number(q.cursor ?? 0);
     const limit = Number(q.limit ?? 50);
-    return deps.sessions.discover([], Number.isFinite(cursor) ? cursor : 0, Number.isFinite(limit) ? limit : 50);
+    return deps.sessions.discover(deps.discoverySources ?? [], Number.isFinite(cursor) ? cursor : 0, Number.isFinite(limit) ? limit : 50);
+  });
+
+  app.get("/api/inventory", async () => {
+    const items = await probeHarnesses(HARNESS_CATALOG, deps.probeRunner ?? spawnProbeRunner());
+    return { items };
   });
 
   app.get("/api/sessions/:id", async (req, reply) => {

@@ -85,6 +85,18 @@ export const HubConfig = z.object({
    * digests, no new network egress unless explicitly configured (same
    * "default off" principle as the MCP gateway, OD-2). */
   reportingSinks: z.array(ReportingSinkRegistration).default([]),
+  /**
+   * T5.3 / ADR-0012: optional overrides for read-only session scans.
+   * Omitted paths use ~/.claude and the Cursor user dir when those
+   * directories exist. A set path that is missing stays visible as
+   * unsupported-format instead of being skipped.
+   */
+  discovery: z
+    .object({
+      claudeDir: z.string().min(1).optional(),
+      cursorUserDir: z.string().min(1).optional(),
+    })
+    .default({}),
 });
 export type HubConfig = z.infer<typeof HubConfig>;
 

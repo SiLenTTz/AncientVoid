@@ -12,6 +12,15 @@ export { createJsonLogger, createConsoleLogger, redactFields } from "./logger.ts
 export { InMemoryMetrics } from "./metrics.ts";
 export { collectHealth, type HealthDeps, type HealthStore } from "./health.ts";
 export { dedupeDiscovered, pageDiscovered } from "./discovery.ts";
+export { HARNESS_CATALOG, probeHarnesses, spawnProbeRunner, type ProbeRunner, type ProbeRun } from "./inventory.ts";
+export {
+  claudeDiscoverySource,
+  cursorDiscoverySource,
+  defaultClaudeDir,
+  defaultCursorUserDir,
+  scanClaudeSessions,
+  scanCursorComposers,
+} from "./sources.ts";
 export { WorktreeManager } from "./worktree.ts";
 export { ApprovalService, type DecideResult } from "./approvals.ts";
 export { WebAuthnStore, type StoredCredential } from "./webauthn-store.ts";

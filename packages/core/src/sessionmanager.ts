@@ -1131,6 +1131,7 @@ export class SessionManager {
       observedAt: record.observedAt ?? record.updatedAt,
       unsupportedResume: unsupportedResume(record.resumeVersion),
       fork: record.fork,
+      parentSessionId: record.parentSessionId,
     };
   }
 

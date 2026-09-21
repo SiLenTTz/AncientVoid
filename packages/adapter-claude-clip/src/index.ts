@@ -137,7 +137,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // record was observed anywhere in this transcript format (R9.7 —
       // unbekannt statt geraten, same reasoning as cursor-clip's own
       // capabilities() comment).
-      return { reasoning: true, tools: true, cost: false, steer: false, usage: false };
+      return { reasoning: true, tools: true, cost: false, steer: false, usage: false, nativeDiscovery: "read-only", nativeResume: "none" };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

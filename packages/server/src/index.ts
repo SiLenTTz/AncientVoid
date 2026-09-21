@@ -3,11 +3,11 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore } from "@uacc/core";
-import type { HubMetrics } from "@uacc/contracts";
+import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import { discoverProjects } from "@uacc/core";
+import type { HubMetrics, DiscoverySource } from "@uacc/contracts";
 import { REDACT_LOG_KEYS } from "@uacc/contracts";
 import type { WebAuthnConfig } from "./webauthn.ts";
-import { discoverProjects } from "@uacc/core";
 import { authHook, type AuthOptions } from "./auth.ts";
 import { registerRoutes } from "./routes.ts";
 import { registerWs } from "./ws.ts";
@@ -42,6 +42,8 @@ export interface HubAppDeps {
   store?: HealthStore;
   metrics?: HubMetrics;
   startedAt?: number;
+  discoverySources?: DiscoverySource[];
+  probeRunner?: ProbeRunner;
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
