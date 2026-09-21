@@ -10,7 +10,7 @@ export function createAdapter(config) {
   return {
     id: "custom-endpoint",
     version: "0.0.1",
-    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false }),
+    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
     async start(spec, ctx) { ctx.emit({ type: "system", summary: "custom started", payload: {} }); return { sessionId: ctx.sessionId }; },
     async steer() { return { ok: true }; },
     async status() { return { state: "healthy" }; },

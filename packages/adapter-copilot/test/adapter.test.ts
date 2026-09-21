@@ -47,6 +47,8 @@ describe("copilot adapter — lifecycle against real captured streams", () => {
       cost: false,
       steer: true,
       usage: false,
+      nativeDiscovery: "none",
+      nativeResume: "native",
     });
   });
 

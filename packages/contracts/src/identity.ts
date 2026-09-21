@@ -27,6 +27,8 @@ export interface DiscoveredSession {
   observedAt: string;
   unsupportedResume: boolean;
   fork: boolean;
+  /** Set for a subagent transcript whose parent session id is known. */
+  parentSessionId: string | null;
 }
 
 export interface DiscoverySource {

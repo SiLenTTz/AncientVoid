@@ -135,7 +135,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // usage: false — session.usage_checkpoint has no fraction-of-quota +
       // resetsAt (ADR-0004's UsageQuota shape), only cumulative raw
       // counters — R9.7, not guessed into the wrong shape.
-      return { reasoning: false, tools: true, cost: false, steer: true, usage: false };
+      return { reasoning: false, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native" };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

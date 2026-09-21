@@ -133,7 +133,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // usage: false — no account-level rate-limit/quota signal observed
       // anywhere in the real capture (unlike claude's rate_limit_event);
       // R9.7, not guessed.
-      return { reasoning: true, tools: true, cost: true, steer: true, usage: false };
+      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native" };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

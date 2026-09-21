@@ -48,6 +48,7 @@ Usage:
   hubctl adapters
   hubctl sessions
   hubctl discover
+  hubctl inventory
   hubctl show <sessionId>
   hubctl events <sessionId> [afterSeq]
   hubctl tail <sessionId> [-f]
@@ -157,13 +158,24 @@ async function main(): Promise<void> {
     }
     case "discover": {
       const page = await api<{
-        items: { hubSessionId: string | null; adapter: string; status: string; nativeSessionId: string | null; unsupportedResume: boolean; fork: boolean }[];
+        items: { hubSessionId: string | null; adapter: string; status: string; nativeSessionId: string | null; unsupportedResume: boolean; fork: boolean; parentSessionId: string | null }[];
       }>("/api/discovery?limit=50");
       if (page.items.length === 0) console.log("(no sessions)");
       for (const item of page.items) {
         const id = item.hubSessionId ?? item.nativeSessionId ?? "?";
-        const flags = [item.unsupportedResume ? "unsupported-resume" : "", item.fork ? "fork" : ""].filter(Boolean).join(",");
+        const flags = [
+          item.unsupportedResume ? "unsupported-resume" : "",
+          item.fork ? "fork" : "",
+          item.parentSessionId ? `parent=${item.parentSessionId}` : "",
+        ].filter(Boolean).join(",");
         console.log(`${id}  ${item.status.padEnd(18)} ${item.adapter}${flags ? `  [${flags}]` : ""}`);
+      }
+      break;
+    }
+    case "inventory": {
+      const page = await api<{ items: { id: string; version: string | null; discovery: string; resume: string }[] }>("/api/inventory");
+      for (const item of page.items) {
+        console.log(`${item.id.padEnd(10)} ${(item.version ?? "absent").padEnd(16)} discovery=${item.discovery} resume=${item.resume}`);
       }
       break;
     }

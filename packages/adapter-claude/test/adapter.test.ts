@@ -61,6 +61,8 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
       cost: true,
       steer: true,
       usage: true,
+      nativeDiscovery: "none",
+      nativeResume: "native",
     });
     // no recover() — claude sessions can't be reattached after a hub crash (P1 scope)
     expect(adapter.recover).toBeUndefined();

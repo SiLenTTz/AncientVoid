@@ -1,4 +1,5 @@
 import type { BlobRef, EmittedEvent } from "./event.ts";
+import type { NativeDiscovery, NativeResume } from "./inventory.ts";
 import type { SessionSpec } from "./session.ts";
 
 /**
@@ -19,6 +20,10 @@ export interface AdapterCapabilities {
    * standard as `reasoning`/`cost`). codex: false, verified absent from
    * its stream and CLI, not merely unimplemented. */
   usage: boolean;
+  /** Sessions this process did not start. `read-only` only if the adapter scans without writing. */
+  nativeDiscovery: NativeDiscovery;
+  /** `native` only if steer/start reuses a provider session id. */
+  nativeResume: NativeResume;
 }
 
 export type HealthState = "healthy" | "degraded" | "down" | "broken";

@@ -39,6 +39,8 @@ describe("aider adapter — lifecycle against a synthetic (unverified-happy-path
       cost: false,
       steer: true,
       usage: false,
+      nativeDiscovery: "none",
+      nativeResume: "none",
     });
   });
 

@@ -146,7 +146,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // context-window fill level, not ADR-0004's account-level
       // utilization+resetsAt shape; forcing it into UsageQuota would
       // fabricate a reset time that doesn't exist (R9.7).
-      return { reasoning: true, tools: true, cost: false, steer: false, usage: false };
+      return { reasoning: true, tools: true, cost: false, steer: false, usage: false, nativeDiscovery: "read-only", nativeResume: "none" };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

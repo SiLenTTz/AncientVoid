@@ -113,7 +113,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     capabilities(): AdapterCapabilities {
       // cost/usage: false — no structured signal for either was ever
       // observed (see doc comment point 4), not guessed as present.
-      return { reasoning: false, tools: true, cost: false, steer: true, usage: false };
+      return { reasoning: false, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none" };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

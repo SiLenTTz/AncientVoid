@@ -205,7 +205,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // `codex exec --json` captures, and neither `codex login status`
       // nor `codex --help` expose any on-demand quota query under a
       // ChatGPT-plan login.
-      return { reasoning: true, tools: true, cost: true, steer: true, usage: false };
+      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native" };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

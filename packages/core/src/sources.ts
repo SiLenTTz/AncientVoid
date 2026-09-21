@@ -1,0 +1,232 @@
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  DEFAULT_HOST_ID,
+  type DiscoveredSession,
+  type DiscoverySource,
+} from "@uacc/contracts";
+
+/**
+ * Claude Code layout verified in adapter-claude-clip (Linux, 2026-09-19).
+ * The project directory name is not reversed into a filesystem path:
+ * `-` from `/` and a literal `-` are ambiguous. Callers must not treat
+ * `project` as a cwd.
+ */
+export function defaultClaudeDir(): string {
+  const home = process.env.HOME ?? process.env.USERPROFILE ?? "";
+  return join(home, ".claude");
+}
+
+/** Cursor user dir, same Linux default as adapter-cursor-clip. */
+export function defaultCursorUserDir(): string {
+  const home = process.env.HOME ?? process.env.USERPROFILE ?? "";
+  if (process.platform === "darwin") return join(home, "Library", "Application Support", "Cursor", "User");
+  if (process.platform === "win32") return join(process.env.APPDATA ?? join(home, "AppData", "Roaming"), "Cursor", "User");
+  return join(home, ".config", "Cursor", "User");
+}
+
+function observed(mtimeMs: number, fallback: string): string {
+  const date = new Date(mtimeMs);
+  return Number.isNaN(date.getTime()) ? fallback : date.toISOString();
+}
+
+function claudeItem(
+  project: string,
+  nativeSessionId: string | null,
+  observedAt: string,
+  parentSessionId: string | null,
+  status: string,
+): DiscoveredSession {
+  const unsupported = status === "unsupported-format";
+  return {
+    hubSessionId: null,
+    project,
+    adapter: "claude",
+    status,
+    controlMode: "observed",
+    harness: "cli",
+    hostId: DEFAULT_HOST_ID,
+    nativeSessionId,
+    resumeVersion: unsupported ? 0 : 1,
+    observedAt,
+    unsupportedResume: unsupported,
+    fork: false,
+    parentSessionId,
+  };
+}
+
+export function scanClaudeSessions(claudeDir: string, now = new Date().toISOString()): DiscoveredSession[] {
+  if (!existsSync(claudeDir)) {
+    return [claudeItem(claudeDir, "unknown:missing-dir", now, null, "unsupported-format")];
+  }
+  const projects = join(claudeDir, "projects");
+  if (!existsSync(projects)) return [];
+  let projectNames: string[];
+  try {
+    projectNames = readdirSync(projects);
+  } catch {
+    return [claudeItem(projects, "unknown:unreadable", now, null, "unsupported-format")];
+  }
+  const out: DiscoveredSession[] = [];
+  for (const projectName of projectNames) {
+    const projectDir = join(projects, projectName);
+    let entries: string[];
+    try {
+      if (!statSync(projectDir).isDirectory()) continue;
+      entries = readdirSync(projectDir);
+    } catch {
+      out.push(claudeItem(projectName, `unknown:${projectName}`, now, null, "unsupported-format"));
+      continue;
+    }
+    for (const name of entries) {
+      if (name === "memory") continue;
+      const path = join(projectDir, name);
+      let st;
+      try {
+        st = statSync(path);
+      } catch {
+        continue;
+      }
+      const at = observed(st.mtimeMs, now);
+      if (st.isFile() && name.endsWith(".jsonl")) {
+        out.push(claudeItem(projectName, name.slice(0, -".jsonl".length), at, null, "observed"));
+        continue;
+      }
+      if (st.isFile()) {
+        out.push(claudeItem(projectName, `unknown:${name}`, at, null, "unsupported-format"));
+        continue;
+      }
+      if (!st.isDirectory()) continue;
+      const sub = join(path, "subagents");
+      let agents: string[] = [];
+      if (existsSync(sub)) {
+        try {
+          agents = readdirSync(sub).filter((agent) => agent.endsWith(".jsonl"));
+        } catch {
+          agents = [];
+        }
+      }
+      if (agents.length > 0) {
+        for (const agent of agents) {
+          const agentPath = join(sub, agent);
+          let agentStat;
+          try {
+            agentStat = statSync(agentPath);
+          } catch {
+            continue;
+          }
+          if (!agentStat.isFile()) continue;
+          out.push(
+            claudeItem(projectName, agent.slice(0, -".jsonl".length), observed(agentStat.mtimeMs, now), name, "observed"),
+          );
+        }
+        continue;
+      }
+      if (!existsSync(join(projectDir, `${name}.jsonl`))) {
+        out.push(claudeItem(projectName, `unknown:${name}`, at, null, "unsupported-format"));
+      }
+    }
+  }
+  return out;
+}
+
+function cursorItem(
+  project: string,
+  nativeSessionId: string | null,
+  observedAt: string,
+  parentSessionId: string | null,
+  status: string,
+): DiscoveredSession {
+  const unsupported = status === "unsupported-format";
+  return {
+    hubSessionId: null,
+    project,
+    adapter: "cursor-clip",
+    status,
+    controlMode: "observed",
+    harness: "ide",
+    hostId: DEFAULT_HOST_ID,
+    nativeSessionId,
+    resumeVersion: unsupported ? 0 : 1,
+    observedAt,
+    unsupportedResume: unsupported,
+    fork: false,
+    parentSessionId,
+  };
+}
+
+function workspaceFolder(userDir: string, workspaceId: string): string {
+  const meta = join(userDir, "workspaceStorage", workspaceId, "workspace.json");
+  if (!existsSync(meta)) return workspaceId;
+  try {
+    const parsed = JSON.parse(readFileSync(meta, "utf8")) as { folder?: string };
+    if (typeof parsed.folder === "string" && parsed.folder.startsWith("file:")) return fileURLToPath(parsed.folder);
+  } catch {
+    return workspaceId;
+  }
+  return workspaceId;
+}
+
+export function scanCursorComposers(userDir: string, now = new Date().toISOString()): DiscoveredSession[] {
+  const dbPath = join(userDir, "globalStorage", "state.vscdb");
+  if (!existsSync(dbPath)) return [];
+  let db: DatabaseSync;
+  try {
+    db = new DatabaseSync(`file:${dbPath}?mode=ro`, { readOnly: true });
+  } catch {
+    return [cursorItem(userDir, "unknown:unreadable-db", now, null, "unsupported-format")];
+  }
+  try {
+    const tables = new Set(
+      db
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .all()
+        .map((row) => (row as { name: string }).name),
+    );
+    if (!tables.has("composerHeaders")) return [cursorItem(userDir, "unknown:schema", now, null, "unsupported-format")];
+    const columns = new Set(
+      db
+        .prepare("PRAGMA table_info(composerHeaders)")
+        .all()
+        .map((row) => (row as { name: string }).name),
+    );
+    for (const required of ["composerId", "workspaceId", "lastUpdatedAt", "isSubagent"]) {
+      if (!columns.has(required)) return [cursorItem(userDir, "unknown:schema", now, null, "unsupported-format")];
+    }
+    const parentColumn = ["parentComposerId", "parentId"].find((name) => columns.has(name));
+    const sql = `SELECT composerId, workspaceId, lastUpdatedAt, isSubagent${parentColumn ? `, ${parentColumn} AS parentId` : ""} FROM composerHeaders`;
+    const rows = db.prepare(sql).all() as {
+      composerId?: string;
+      workspaceId?: string;
+      lastUpdatedAt?: number | string;
+      isSubagent?: number;
+      parentId?: string | null;
+    }[];
+    return rows.flatMap((row) => {
+      if (!row.composerId) return [];
+      const updated =
+        typeof row.lastUpdatedAt === "number"
+          ? observed(row.lastUpdatedAt, now)
+          : typeof row.lastUpdatedAt === "string"
+            ? row.lastUpdatedAt
+            : now;
+      const project = row.workspaceId ? workspaceFolder(userDir, row.workspaceId) : userDir;
+      const parent = parentColumn && row.parentId ? row.parentId : null;
+      return [cursorItem(project, row.composerId, updated, parent, row.isSubagent ? "subagent" : "observed")];
+    });
+  } catch {
+    return [cursorItem(userDir, "unknown:schema", now, null, "unsupported-format")];
+  } finally {
+    db.close();
+  }
+}
+
+export function claudeDiscoverySource(claudeDir: string): DiscoverySource {
+  return { id: "claude-projects", list: async () => scanClaudeSessions(claudeDir) };
+}
+
+export function cursorDiscoverySource(userDir: string): DiscoverySource {
+  return { id: "cursor-composers", list: async () => scanCursorComposers(userDir) };
+}

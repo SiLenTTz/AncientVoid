@@ -71,6 +71,8 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
       cost: true,
       steer: true,
       usage: false,
+      nativeDiscovery: "none",
+      nativeResume: "native",
     });
     expect(adapter.recover).toBeUndefined();
   });
