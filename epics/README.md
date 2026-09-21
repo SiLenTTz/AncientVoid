@@ -1,7 +1,14 @@
-# UACC — Epic-Paket (P0–P4)
+# UACC — Epic-Paket (P0–P4 und Planungsentwürfe P5–P12)
 
 **Erstellt:** 12.09.2026 · **Basis:** PRD UACC v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
+
+**Bestandsaufnahme 2026-09-21:** [Audit mit Code-Evidenz, UI-Sichtung und
+Laya-Bewertung](../docs/remote-control-audit-2026-09-21.md). „Implementiert“
+ist nicht gleich „Exit-Kriterien grün“: P0/P1/P1.5/P1.6 haben offene reale
+Abnahmen; P2/P3 dokumentierte Teillücken; P4 externe und Release-Restarbeit.
+Der Offline-Reload-Fehler [BUG-0015](../bugs/bug-0015-offline-reload-token-gate.md)
+blockiert K10. Historische grüne Überschriften sind keine Vollumfang-Freigabe.
 
 ## Enthaltene Epics
 
@@ -15,9 +22,34 @@
 | EPIC-P3-adapter-flotte-sprachsuche.md | P3 | swarm/zai/local-llm-Adapter, cursor-clip, Sprachsuche + Prompt-Composer | 1,5 |
 | EPIC-P4-brain-windows-mcp-oss.md | P4 | Brain-Digest-Skill, evox2/Windows, MCP-Gateway, OSS-Aufbereitung | 1–2 |
 
+## Vollständige Fernsteuerung — Planungsentwürfe vom 2026-09-21
+
+Alle folgenden Epics sind **offen / Umsetzung blockiert**. Der ausdrückliche
+Auftrag, für sämtliche Lücken Epics zu schreiben, erlaubt ihre Planung vor
+Abschluss der Vorgänger; er hebt kein Umsetzungs-Gate auf. Bestehende Restarbeit
+bleibt unter ihren ursprünglichen Task-/AC-IDs (Zuordnung: Audit §7, Gate G0).
+Kein zweites Häkchen für bereits umgesetzte Funktionen, keine neue Architektur
+ohne ADR bei späterer Implementierung. Schätzungen ohne G0-Restarbeit.
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P5 — Session-Discovery, Handoff, Recovery](EPIC-P5-session-discovery-handoff-recovery.md) | dieselbe Session PC↔Handy, auch nach Neustart | P4/G0 grün | 2–4 |
+| [P6 — Multi-Host-Flotte](EPIC-P6-multi-host-fleet.md) | alle eigenen Rechner in einer Oberfläche | P5 grün | 1–2 |
+| [P7 — Harness-/Tool-Parität](EPIC-P7-harness-tool-parity.md) | echte Rückfragen/Freigaben, Anhänge und Tools | P6 grün | 2–4 |
+| [P8 — Mobiler Arbeitsplatz](EPIC-P8-mobile-workspace-ux.md) | einfache UI, Inbox, Entwürfe, Push/Offline | P7 grün | 1–2 |
+| [P9 — AI-Steuerung und Eingaben](EPIC-P9-ai-command-input.md) | jeder Hub-Flow per natürlicher Sprache/Text | P8 grün | 1–2 |
+| [P10 — Echtzeit-Sprache und Laya](EPIC-P10-realtime-voice-laya.md) | lokale Streaming-STT, gemessene Laya-Entscheidung | P9 grün | 1–3 |
+| [P11 — Desktop-Companion](EPIC-P11-desktop-companion.md) | systemweite Eingabe und definierte GUI-Flows | P10 grün | 2–4 |
+| [P12 — Betriebsreife](EPIC-P12-operational-readiness.md) | Installation/Restore/Dauerlauf und volle Zielmatrix | P11 grün | 1–2 |
+
+„Alle / 100 %“ bezieht sich auf die Pflichtmatrix aus Audit §4. Eine unbekannte
+oder technisch blockierte Fähigkeit verhindert diesen Claim; Monitor-only und
+Kontext-Fork zählen nicht als native 1:1-Steuerung. Mac ist bisher Demo-Kontext,
+kein bestätigter zusätzlicher Zielhost.
+
 ## Reihenfolge & Gating
 
-Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4.**
+Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → P9 → P10 → P11 → P12.**
 
 Jedes Epic endet mit messbarem Exit-Kriterium. Das folgende Epic startet erst,
 wenn alle Exit-Kriterien des Vorgängers grün sind (Eval-Frage-Regel aus PRD §9.1.6).

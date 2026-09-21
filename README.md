@@ -5,14 +5,14 @@ Coding-Agenten auf allen eigenen Rechnern vom Handy aus überwachen, steuern
 und auditieren — über Tailscale, ohne öffentlichen Port, ohne Cloud.
 
 > Basis: PRD UACC v1.0 (12.09.2026) — siehe [`epics/`](./epics/).
-> Status: **P0–P3 grün** (`swarm` ehrlich als real infra-limitierte Lücke
-> benannt — kein Event-Vokabular auffindbar; Sprachsuche real umgesetzt
-> über `qmd`, durchsucht Markdown-Dokumentation, nicht Quellcode — siehe
-> [`EPIC-P3`](epics/EPIC-P3-adapter-flotte-sprachsuche.md) T3.8), P4s
-> MCP-Gateway und Brain-Digest-Contract real umgesetzt und default-aus,
-> Red-Team-Review durch eine echte unabhängige Fresh-Context-Session
-> (zwei reale Funde, beide gefixt); evox2/Windows-Port und OSS-Release
-> bleiben offen (siehe [`epics/EPIC-P4-…`](epics/EPIC-P4-brain-windows-mcp-oss.md)).
+> Status (Audit 2026-09-21): **Hub-Kern und große Teile von P0–P4 implementiert,
+> Produkt-Gates noch offen.** Echte Handy-/Offline-/Push-Abnahmen, Swarm,
+> lokale Sprachpipeline, WSL und P4-Integrations-/Release-Aufgaben sind nicht
+> vollständig abgeschlossen. Die Markdown-Suche über `qmd` ist keine allgemeine
+> Quellcodesuche. MCP-Gateway und Reporting-Sink existieren, die vollständige
+> PC↔Handy-Session-Übernahme und Multi-Host-Steuerung noch nicht.
+> Siehe [Bestandsaufnahme mit Evidenz und UI-/Laya-Bewertung](docs/remote-control-audit-2026-09-21.md)
+> und [Planungs-Epics P5–P12](epics/README.md). Diese sind geplant, nicht umgesetzt.
 
 ## Modularität — das Kernversprechen
 
@@ -83,7 +83,7 @@ kein reiner Funktionsaufruf.
 ```bash
 node --version          # >= 22.5 (node:sqlite); entwickelt unter Node 26
 npm install
-npm test                # 36 Tests inkl. Contract-, K5-, K7-Suiten
+npm test                # alle Packages inkl. Contract-, K5-, K7-Suiten
 npm run lint && npm run typecheck
 
 # Hub starten

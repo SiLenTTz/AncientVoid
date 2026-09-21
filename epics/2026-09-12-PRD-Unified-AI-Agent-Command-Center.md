@@ -10,6 +10,15 @@
 
 ## 0. Über dieses Dokument
 
+**Planungserweiterung 2026-09-21:** Der neue Nutzerauftrag verlangt zusätzlich
+vollständige externe Session-Discovery, echte PC↔Handy-Kontinuität, AI für alle
+Eingaben sowie die Prüfung systemweiter Sprach-/Desktop-Steuerung.
+[Audit und Zielmatrix](../docs/remote-control-audit-2026-09-21.md) und
+[P5–P12](README.md) beschreiben diese Erweiterung. Das ursprüngliche
+Supervisions-Nichtziel in §1.3 und Cursor-read-only in §5 beschreiben den
+bisherigen Scope; P11 plant eine explizite Erweiterung, keine bereits
+verfügbare Fähigkeit. Bestehende Messlatten und Umsetzungsgates bleiben bestehen.
+
 Dieses PRD konsolidiert die Machbarkeitsstudie vom 11.09.2026 mit einer kritischen MCP-vs.-CLI-Recherche (zusammengefasst in Abschnitt 3) zu einem umsetzungsfähigen Produktdokument. Es ersetzt keine Engineering-Spezifikation, definiert aber alle Produktfunktions- und Architekturentscheidungen, die Messlatten und das Provider-Mapping.
 
 **Drei wesentliche Korrekturen gegenüber dem Vorbericht:**
