@@ -38,6 +38,7 @@ const CHECKED = [
   { id: "aider", modulePath: "../packages/adapter-aider/src/index.ts" },
   { id: "copilot", modulePath: "../packages/adapter-copilot/src/index.ts" },
   { id: "cursor-clip", modulePath: "../packages/adapter-cursor-clip/src/index.ts" },
+  { id: "claude-clip", modulePath: "../packages/adapter-claude-clip/src/index.ts" },
 ];
 const SKIPPED = ["swarm", "zai", "local-llm", "deepseek"];
 
