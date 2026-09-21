@@ -23,6 +23,16 @@
       }
     },
     {
+      "$comment": "Read-only observer for Claude Code sessions started outside UACC. Enable only on a host with the matching ~/.claude/projects transcript store; it never sends prompts to Claude Code.",
+      "id": "claude-clip",
+      "module": "@uacc/adapter-claude-clip",
+      "enabled": false,
+      "config": {
+        "pollIntervalMs": 1500,
+        "seedLines": 30
+      }
+    },
+    {
       "id": "my-custom-endpoint",
       "module": "./adapters/my-provider/index.ts",
       "enabled": false,

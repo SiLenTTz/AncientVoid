@@ -17,6 +17,7 @@
     "packages/adapter-aider/src",
     "packages/adapter-copilot/src",
     "packages/adapter-cursor-clip/src",
+    "packages/adapter-claude-clip/src",
     "packages/gateway-mcp/src",
     "packages/adapter-testkit/src",
     "packages/server/src",

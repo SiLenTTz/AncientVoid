@@ -415,6 +415,23 @@ Handy aus voll arbeitsfähig".
   DeepSeeks öffentlicher API-Doku, nicht live verifiziert. Ohne Key
   liefert `runCompletion()` einen echten HTTP-Fehlerstatus als sichtbares
   `error`-Event, keinen stillen Fehlschlag.
+- [x] **T3.15** Adapter `claude-clip` — `packages/adapter-claude-clip`
+  beobachtet eine externe Claude-Code-Session read-only über ihr reales
+  `~/.claude/projects/<sanitized-cwd>/<sessionId>.jsonl`-Transcript. Es
+  verwendet absichtlich `spec.project`, nicht das isolierte Hub-Worktree;
+  sonst würde der Beobachter das Transcript einer unabhängig gestarteten
+  Desktop-Session nicht finden. Start seedet höchstens 30 aktuelle Zeilen
+  und folgt danach nur neuen vollständigen JSONL-Zeilen; eine Teilzeile wird
+  nicht vorzeitig oder doppelt emittiert. Unbekannte Zeilen und Blöcke sind
+  sichtbare System-Events, internes Claude-Bookkeeping wird nur für die
+  real bekannten Typen still übersprungen. Der Adapter sendet niemals Text
+  in Claude Code; `prompt` wird ehrlich abgelehnt, `park`/`resume` steuern
+  allein den lokalen Poller. Das lokale Config-Beispiel ist default-aus,
+  die README-Matrix und `npm run check:adapter-matrix` enthalten die echte
+  Capability. Getestet gegen eine synthetische Reproduktion des realen
+  Linux-Dateilayouts mit echtem Mid-Poll-Append, Teilzeile, Session-Auswahl,
+  Seed-Grenze und Stop. Externe Discovery, native Übernahme und vollständige
+  K7-Recovery sind bewusst nicht behauptet; sie bleiben P5.
 
 ## 5. Acceptance Criteria
 
