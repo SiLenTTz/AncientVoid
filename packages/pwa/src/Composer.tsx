@@ -1,4 +1,5 @@
 import { useState } from "preact/hooks";
+import type { ComponentChildren } from "preact";
 import { recognizeOnce, speechRecognitionSupported } from "./speech.ts";
 import { hubApi } from "./api.ts";
 
@@ -22,6 +23,7 @@ export function Composer({
   disabled,
   adapter,
   project,
+  extraActions,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -35,6 +37,8 @@ export function Composer({
    * it, the rewrite reflected the hub server's own repo, not whatever
    * project the user actually selected. */
   project: string;
+  /** Session reply puts Senden and Stop in the same row as Voice and Verbessern. */
+  extraActions?: ComponentChildren;
 }) {
   const supported = speechRecognitionSupported();
   const [listening, setListening] = useState(false);
@@ -164,7 +168,7 @@ export function Composer({
           disabled={disabled || !supported || listening}
           title={supported ? "Spracheingabe" : "Browser unterstützt keine Spracherkennung"}
         >
-          {listening ? "🔴" : "🎤"}
+          {listening ? "hört…" : "Voice"}
         </button>
         <button
           class="btn"
@@ -173,8 +177,9 @@ export function Composer({
           disabled={disabled || !enhanceSupported || enhancing || !value.trim()}
           title={enhanceSupported ? "Prompt verbessern (kostet echtes Kontingent)" : "Für diesen Adapter nicht verfügbar"}
         >
-          {enhancing ? "✨ …" : "✨ Verbessern"}
+          {enhancing ? "✨ …" : "Verbessern"}
         </button>
+        {extraActions}
       </div>
     </div>
   );

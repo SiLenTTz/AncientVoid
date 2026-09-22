@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { hubApi, getToken, type SessionRecord, type AdapterUsage, type SessionDiffResult, type DiffHunk } from "./api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "./ws.ts";
 import { Composer } from "./Composer.tsx";
+import { visibleEventText } from "./event-text.ts";
 import { GlobalDock, type Page } from "./Dock.tsx";
 import { VoiceSheet } from "./VoiceSheet.tsx";
 import { formatUsd, formatWindow } from "./Dashboard.tsx";
@@ -103,6 +104,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   const [replyBusy, setReplyBusy] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [archived, setArchived] = useState(session.archived === true);
 
   useEffect(() => {
     let alive = true;
@@ -236,6 +238,16 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
+  const toggleArchive = async () => {
+    const next = !archived;
+    try {
+      const updated = await hubApi.setArchived(session.id, next);
+      setArchived(updated.archived === true);
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Archivieren fehlgeschlagen.");
+    }
+  };
+
   const stop = async () => {
     // Real bug found live-testing T3.10: this used to swallow every
     // failure silently (`.catch(() => undefined)`) — the button could do
@@ -286,6 +298,9 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
             {session.adapter} · <span class={`pill ${status}`}>{status}</span>
           </div>
         </div>
+        <button class="btn" type="button" onClick={toggleArchive}>
+          {archived ? "Zurückholen" : "Archivieren"}
+        </button>
         <div class={`conn-dot ${conn}`} title={conn} />
       </div>
 
@@ -335,20 +350,27 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
                 disabled={replyBusy}
                 adapter={session.adapter}
                 project={session.project}
+                extraActions={
+                  <>
+                    <button class="btn primary" onClick={sendReply} disabled={replyBusy || !reply.trim()}>
+                      {replyBusy ? "Sende…" : "Senden"}
+                    </button>
+                    {status !== "stopped" && (
+                      <button class="btn danger" onClick={stop}>
+                        Stop
+                      </button>
+                    )}
+                  </>
+                }
               />
             )}
-            <div class="row">
-              {showReply && (
-                <button class="btn primary" onClick={sendReply} disabled={replyBusy || !reply.trim()}>
-                  {replyBusy ? "Sende…" : "Senden"}
-                </button>
-              )}
-              {status !== "stopped" && (
+            {!showReply && status !== "stopped" && (
+              <div class="composer-actions">
                 <button class="btn danger" onClick={stop}>
                   Stop
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
         {/* AC-P1.6-2: this sub-filter used to sit right under the topbar
@@ -849,7 +871,7 @@ function EventRow({
         </span>
         <span>{time}</span>
       </div>
-      <div class="summary">{event.summary}</div>
+      <div class="summary prose">{visibleEventText(event)}</div>
     </div>
   );
 }

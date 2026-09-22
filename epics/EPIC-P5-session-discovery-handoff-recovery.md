@@ -90,3 +90,11 @@ Offen, blockiert den Epic-Abschluss:
 - **T5.4:** keine native Übernahme.
 - **T5.6:** kein Kill-9 gegen echte Provider-Worker.
 - Resume-Zellen von Claude/Codex/OpenCode/Copilot bleiben `implemented-unverified`.
+
+## 9. UI nach dem ersten Claude-Lauf (2026-09-22)
+
+Der Lauf auf `tetris-reloaded` war steuerbar. Drei Anpassungen danach:
+
+- Chat zeigt bei `assistant`/`user` den vollen `payload.text`. Die Zusammenfassung ist auf 200 Zeichen gekappt; die Abschlussnachricht mit der Browser-URL (1611 Zeichen, Event 411) war dadurch im Chat abgeschnitten, im Event aber vollständig. Die kurzen Zeilen `#64`, `#75`, `#82` („Jetzt das Neon-Styling:“ und die beiden folgenden Vorspanne) sind vollständig; der Rest des Schritts liegt als `tool_use`/`tool_result` im Verlauf.
+- Voice, Verbessern, Senden und Stop stehen in einer Zeile.
+- `archived` (Migration 8, `POST /api/sessions/:id/archive`) nimmt einen Lauf aus der Übersicht. Der Chip „Archiv“ holt ihn zurück. Der Lauf und seine Events bleiben.

@@ -23,6 +23,8 @@ export interface SessionRecord {
    * genuinely tmux-backed hub (see routes.ts's withAttachCmd) — absent
    * otherwise, never a fabricated command. */
   attachCmd?: string;
+  /** Hidden from the overview until the Archiv chip is on. */
+  archived?: boolean;
 }
 
 /** T2.4/ADR-0007 — mirrors `@uacc/contracts`'s ApprovalRequest, same
@@ -312,6 +314,11 @@ export const hubApi = {
   // nothing this whole time — confirmed live via curl before assuming.
   stopSession: (id: string) =>
     api<{ ok: boolean }>(`/api/sessions/${id}/stop`, { method: "POST", body: "{}" }),
+  setArchived: (id: string, archived: boolean) =>
+    api<SessionRecord>(`/api/sessions/${id}/archive`, {
+      method: "POST",
+      body: JSON.stringify({ archived }),
+    }),
   // T1.5-6: doesn't go through api<T>() — a rejected steer (e.g. "no
   // thread_id captured yet") comes back as a 422 with a real, meaningful
   // {ok:false, detail} body, and api<T>()'s generic !res.ok path would
