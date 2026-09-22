@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { parseClaudeEnhanceOutput, parseCodexEnhanceOutput } from "../src/enhance.ts";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseClaudeEnhanceOutput, parseCodexEnhanceOutput, parseOpencodeEnhanceOutput } from "../src/enhance.ts";
 
 describe("parseClaudeEnhanceOutput (T1.5-8)", () => {
   it("extracts the rewritten prompt and real cost from claude's --output-format json blob", () => {
@@ -67,5 +70,25 @@ describe("parseCodexEnhanceOutput (T1.5-8)", () => {
   it("returns an empty string when no agent_message item ever appears", () => {
     const parsed = parseCodexEnhanceOutput(JSON.stringify({ type: "turn.completed", usage: {} }));
     expect(parsed.enhanced).toBe("");
+  });
+});
+
+describe("parseOpencodeEnhanceOutput", () => {
+  it("extracts the text part and sums real step costs from a captured opencode stream", () => {
+    const fixture = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../adapter-opencode/test/fixtures/trivial-read.jsonl"),
+      "utf8",
+    );
+    const parsed = parseOpencodeEnhanceOutput(fixture);
+    expect(parsed.enhanced).toContain("hello");
+    expect(parsed.costUsd).toBe(0);
+  });
+
+  it("ignores non-JSON lines and omits cost when no step_finish reports one", () => {
+    const parsed = parseOpencodeEnhanceOutput(
+      ["noise", JSON.stringify({ type: "text", part: { text: "Ziel: x" } })].join("\n"),
+    );
+    expect(parsed.enhanced).toBe("Ziel: x");
+    expect(parsed.costUsd).toBeUndefined();
   });
 });

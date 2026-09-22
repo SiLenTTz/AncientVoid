@@ -4,10 +4,10 @@ import { recognizeOnce, speechRecognitionSupported } from "./speech.ts";
 import { hubApi, type PromptRecommendation } from "./api.ts";
 import { saveSelectedSkill, saveSelectedWorkflow } from "./SkillOverlay.tsx";
 
-/** T1.5-8: enhance.ts only has a real implementation for these two —
+/** T1.5-8: enhance.ts only has a real implementation for these adapters —
  * never offer the button for an adapter it can't actually enhance for
  * (dummy has no LLM behind it at all). */
-const ENHANCE_SUPPORTED_ADAPTERS = new Set(["claude", "codex"]);
+const ENHANCE_SUPPORTED_ADAPTERS = new Set(["claude", "codex", "opencode"]);
 
 /**
  * T1.5-6 — the shared prompt-entry surface, used both when creating a
