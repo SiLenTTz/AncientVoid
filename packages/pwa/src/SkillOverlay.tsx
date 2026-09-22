@@ -32,9 +32,22 @@ export function loadSelectedSkill(project: string): SelectedSkill | null {
   }
 }
 
-function saveSelectedSkill(project: string, selection: SelectedSkill | null): void {
+export function saveSelectedSkill(project: string, selection: SelectedSkill | null): void {
   if (selection) localStorage.setItem(storageKey(project), JSON.stringify(selection));
   else localStorage.removeItem(storageKey(project));
+}
+
+function workflowKey(project: string): string {
+  return `uacc.workflow.${project}`;
+}
+
+export function loadSelectedWorkflow(project: string): string | null {
+  return localStorage.getItem(workflowKey(project));
+}
+
+export function saveSelectedWorkflow(project: string, name: string | null): void {
+  if (name) localStorage.setItem(workflowKey(project), name);
+  else localStorage.removeItem(workflowKey(project));
 }
 
 /**
@@ -124,7 +137,9 @@ export function SkillPicker({
               <div class="dim">Keine Skills/Agents in diesem Projekt gefunden.</div>
             ) : (
               <div class="skill-list">
-                {items?.map((item) => (
+                {items
+                  ?.filter((item) => item.kind === "skill" || item.kind === "agent")
+                  .map((item) => (
                   <button
                     key={`${item.kind}:${item.name}`}
                     type="button"

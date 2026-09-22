@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
-import { collectHealth, probeHarnesses, HARNESS_CATALOG, spawnProbeRunner, discoverProjects, isProjectPathAllowed, scanProjectSkills } from "@uacc/core";
+import { collectHealth, probeHarnesses, HARNESS_CATALOG, spawnProbeRunner, discoverProjects, isProjectPathAllowed, scanProjectSkills, recommendForPrompt, writeProjectArtifact } from "@uacc/core";
 import { enhancePrompt } from "./enhance.ts";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { extractToken } from "./auth.ts";
@@ -239,6 +239,41 @@ export function registerRoutes(
     }
     const items = await scanProjectSkills(q.project);
     return { items };
+  });
+
+  app.post("/api/prompt-recommendation", async (req, reply) => {
+    const parsed = z.object({ project: z.string().min(1), text: z.string().min(1).max(8000) }).safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid recommendation request" });
+    if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    const items = await scanProjectSkills(parsed.data.project);
+    return recommendForPrompt(parsed.data.text, items);
+  });
+
+  app.post("/api/skills", async (req, reply) => {
+    const parsed = z
+      .object({
+        project: z.string().min(1),
+        kind: z.enum(["skill", "agent", "workflow"]),
+        name: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+        description: z.string().min(1).max(500),
+        draft: z.string().min(1).max(8000),
+      })
+      .safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid artifact" });
+    if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    try {
+      const written = await writeProjectArtifact(parsed.data.project, parsed.data);
+      return reply.code(201).send(written);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "artifact write failed";
+      if (message === "artifact already exists") return reply.code(409).send({ error: message });
+      if (message === "invalid artifact name" || message === "draft too large") return reply.code(400).send({ error: message });
+      throw err;
+    }
   });
 
   app.get("/api/projects", async () => {

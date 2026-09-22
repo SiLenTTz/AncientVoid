@@ -2,7 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { hubApi, getToken, type AdapterInfo, type AdapterUsage, type DiscoveredProject, type SessionRecord } from "./api.ts";
 import { Dashboard } from "./Dashboard.tsx";
 import { Composer } from "./Composer.tsx";
-import { SkillPicker, loadSelectedSkill, type SelectedSkill } from "./SkillOverlay.tsx";
+import { SkillPicker, loadSelectedSkill, loadSelectedWorkflow, type SelectedSkill } from "./SkillOverlay.tsx";
 import { applyTheme, getTheme, type Theme } from "./theme.ts";
 import { GlobalDock, type Page } from "./Dock.tsx";
 import { VoiceSheet } from "./VoiceSheet.tsx";
@@ -271,6 +271,14 @@ function CreateSession({
     setSkill(project ? loadSelectedSkill(project) : null);
   }, [project]);
 
+  const withWorkflow = (text: string): string => {
+    if (skill || !project) return text;
+    const name = loadSelectedWorkflow(project);
+    if (!name) return text;
+    const line = `Workflow: ${name}\n\n`;
+    return text.startsWith(line) ? text : `${line}${text}`;
+  };
+
   const submit = async () => {
     setBusy(true);
     setError("");
@@ -283,7 +291,7 @@ function CreateSession({
       const rec = await hubApi.createSession({
         adapter,
         project,
-        ...(prompt ? { prompt } : {}),
+        ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
         ...(model ? { model } : {}),
         ...(skill ? { args: { [skill.kind]: skill.name } } : {}),
       });
@@ -358,6 +366,7 @@ function CreateSession({
           placeholder="Refactore den Auth-Flow…"
           adapter={adapter}
           project={project}
+          onUseRecommendation={(item) => setSkill(item)}
         />
       </label>
       {error && <div style="color: var(--err)">{error}</div>}

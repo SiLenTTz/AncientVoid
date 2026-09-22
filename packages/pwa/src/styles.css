@@ -547,6 +547,19 @@ a {
   overflow-y: auto;
 }
 
+.recommend-card {
+  display: grid;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.recommend-card .row .btn {
+  flex: 1;
+}
+
 .reply-error {
   color: var(--err);
   font-size: 12px;

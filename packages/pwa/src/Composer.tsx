@@ -1,7 +1,8 @@
 import { useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import { recognizeOnce, speechRecognitionSupported } from "./speech.ts";
-import { hubApi } from "./api.ts";
+import { hubApi, type PromptRecommendation } from "./api.ts";
+import { saveSelectedSkill, saveSelectedWorkflow } from "./SkillOverlay.tsx";
 
 /** T1.5-8: enhance.ts only has a real implementation for these two —
  * never offer the button for an adapter it can't actually enhance for
@@ -24,6 +25,7 @@ export function Composer({
   adapter,
   project,
   extraActions,
+  onUseRecommendation,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -39,6 +41,9 @@ export function Composer({
   project: string;
   /** Session reply puts Senden and Stop in the same row as Voice and Verbessern. */
   extraActions?: ComponentChildren;
+  /** New-session form applies a skill/agent through SessionSpec.args.
+   * A reply has no such args, so the composer puts the name in the text. */
+  onUseRecommendation?: (item: { kind: "skill" | "agent"; name: string }) => void;
 }) {
   const supported = speechRecognitionSupported();
   const [listening, setListening] = useState(false);
@@ -50,6 +55,9 @@ export function Composer({
   const [preview, setPreview] = useState<{ original: string; enhanced: string; costUsd?: number; latencyMs: number } | null>(
     null,
   );
+  const [recommendation, setRecommendation] = useState<PromptRecommendation | null>(null);
+  const [recommendError, setRecommendError] = useState("");
+  const [recommendBusy, setRecommendBusy] = useState(false);
 
   const toggleMic = async () => {
     if (listening) return; // recognizeOnce already runs to completion/timeout
@@ -75,12 +83,19 @@ export function Composer({
   const enhance = async () => {
     if (!value.trim()) return;
     setEnhanceError("");
+    setRecommendError("");
     setEnhancing(true);
     try {
       // T1.5-8: only on explicit request, never automatic — this is the
       // one and only call site.
       const result = await hubApi.enhancePrompt(adapter, project, value);
       setPreview({ original: value, enhanced: result.enhanced, costUsd: result.costUsd, latencyMs: result.latencyMs });
+      setRecommendation(null);
+      try {
+        setRecommendation(await hubApi.recommendPrompt(project, result.enhanced));
+      } catch (err) {
+        setRecommendError(err instanceof Error ? err.message : "Empfehlung fehlgeschlagen");
+      }
     } catch (err) {
       setEnhanceError(err instanceof Error ? err.message : "Verbessern fehlgeschlagen");
     } finally {
@@ -115,7 +130,65 @@ export function Composer({
   const keepOriginal = () => {
     logFeedback("rejected");
     setPreview(null);
+    setRecommendation(null);
   };
+
+  const applyRecommendation = async (persist: boolean) => {
+    if (!recommendation) return;
+    setRecommendError("");
+    setRecommendBusy(true);
+    try {
+      if (recommendation.mode === "create") {
+        if (!recommendation.draft) throw new Error("Vorschlag hat keinen Entwurf");
+        await hubApi.saveArtifact({
+          project,
+          kind: recommendation.kind,
+          name: recommendation.name,
+          description: recommendation.description,
+          draft: recommendation.draft,
+        });
+      }
+      const base = preview?.enhanced ?? value;
+      if (
+        onUseRecommendation &&
+        adapter === "claude" &&
+        (recommendation.kind === "skill" || recommendation.kind === "agent")
+      ) {
+        onChange(base);
+        onUseRecommendation({ kind: recommendation.kind, name: recommendation.name });
+        if (persist) saveSelectedSkill(project, { kind: recommendation.kind, name: recommendation.name });
+      } else {
+        const line =
+          recommendation.kind === "skill"
+            ? `/${recommendation.name}\n\n`
+            : recommendation.kind === "agent"
+              ? `Agent: ${recommendation.name}\n\n`
+              : `Workflow: ${recommendation.name}\n\n`;
+        onChange(base.startsWith(line) ? base : `${line}${base}`);
+        if (persist && (recommendation.kind === "skill" || recommendation.kind === "agent")) {
+          saveSelectedSkill(project, { kind: recommendation.kind, name: recommendation.name });
+        }
+        if (persist && recommendation.kind === "workflow") saveSelectedWorkflow(project, recommendation.name);
+      }
+      if (preview) logFeedback("accepted");
+      setPreview(null);
+      setRecommendation(null);
+    } catch (err) {
+      setRecommendError(err instanceof Error ? err.message : "Empfehlung fehlgeschlagen");
+    } finally {
+      setRecommendBusy(false);
+    }
+  };
+
+  const kindLabel = recommendation?.kind === "agent" ? "Agent" : recommendation?.kind === "workflow" ? "Workflow" : "Skill";
+  const recommendNote =
+    recommendation?.kind === "workflow"
+      ? "Workflows haben keinen Adapter-Aufruf. Der Name kommt in den Prompt."
+      : adapter !== "claude"
+        ? "Dieser Adapter übernimmt den Eintrag nicht direkt. Der Name kommt in den Prompt."
+        : recommendation?.mode === "create"
+          ? "Nutzen legt die Datei an und nimmt sie für diesen Prompt. Speichern merkt sie als Standard."
+          : "Nutzen gilt für diesen Prompt. Speichern merkt sie als Standard für das Projekt.";
 
   return (
     <div class="composer">
@@ -134,6 +207,7 @@ export function Composer({
       )}
       {micError && <div class="composer-notice err">{micError}</div>}
       {enhanceError && <div class="composer-notice err">{enhanceError}</div>}
+      {recommendError && !recommendation && <div class="composer-notice err">{recommendError}</div>}
 
       {preview && (
         <div class="enhance-preview">
@@ -155,6 +229,30 @@ export function Composer({
             </button>
             <button class="btn primary" type="button" onClick={acceptEnhanced}>
               Verbessertes übernehmen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {recommendation && (
+        <div class="recommend-card">
+          <div class="dim" style="font-size: 11px">
+            {recommendation.mode === "match" ? `Empfehlung · ${kindLabel}` : `Vorschlag · ${kindLabel} anlegen`}
+          </div>
+          <strong>{recommendation.name}</strong>
+          <div class="dim" style="font-size: 12px">{recommendation.description}</div>
+          <div class="dim" style="font-size: 11px">{recommendation.reason}</div>
+          <div class="dim" style="font-size: 11px">{recommendNote}</div>
+          {recommendError && <div class="composer-notice err">{recommendError}</div>}
+          <div class="row">
+            <button class="btn" type="button" disabled={recommendBusy} onClick={() => setRecommendation(null)}>
+              Verwerfen
+            </button>
+            <button class="btn" type="button" disabled={recommendBusy} onClick={() => void applyRecommendation(false)}>
+              Nutzen
+            </button>
+            <button class="btn primary" type="button" disabled={recommendBusy} onClick={() => void applyRecommendation(true)}>
+              Speichern
             </button>
           </div>
         </div>

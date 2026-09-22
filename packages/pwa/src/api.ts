@@ -154,14 +154,23 @@ export interface ProjectDiscoveryResult {
   warnings: string[];
 }
 
-/** T1.5-10/ADR-0005 — a skill or agent discovered in the target project's
- * own .claude/skills or .claude/agents. `kind: "workflow"` is reserved in
- * the data model but never produced by the scanner (no verified
- * convention exists for it, see EPIC-P1.5 §3.5). */
+/** T1.5-10/ADR-0005 — a skill, agent, or workflow discovered in the target
+ * project's `.claude/skills`, `.claude/agents`, or `.claude/workflows`.
+ * Workflows have no adapter invocation (ADR-0005); the UI puts the name
+ * in the prompt instead. */
 export interface SkillOrAgent {
   kind: "skill" | "agent" | "workflow";
   name: string;
   description: string;
+}
+
+export interface PromptRecommendation {
+  mode: "match" | "create";
+  kind: "skill" | "agent" | "workflow";
+  name: string;
+  description: string;
+  reason: string;
+  draft: string | null;
 }
 
 export type SteerInput =
@@ -221,6 +230,10 @@ export const hubApi = {
   adapterUsage: (id: string) => api<AdapterUsage>(`/api/adapters/${id}/usage`),
   projects: () => api<ProjectDiscoveryResult>("/api/projects"),
   skills: (project: string) => api<{ items: SkillOrAgent[] }>(`/api/skills?project=${encodeURIComponent(project)}`),
+  recommendPrompt: (project: string, text: string) =>
+    api<PromptRecommendation>("/api/prompt-recommendation", { method: "POST", body: JSON.stringify({ project, text }) }),
+  saveArtifact: (body: { project: string; kind: PromptRecommendation["kind"]; name: string; description: string; draft: string }) =>
+    api<{ path: string }>("/api/skills", { method: "POST", body: JSON.stringify(body) }),
   enhancePrompt: (adapter: string, project: string, text: string) =>
     api<EnhanceResult>("/api/prompt-enhance", { method: "POST", body: JSON.stringify({ adapter, project, text }) }),
   /** T3.9 (Learning-Loop, lokal, "niemals Cloud, niemals Telemetrie"): one

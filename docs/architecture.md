@@ -90,8 +90,11 @@ Regeln:
   EPIC-P1.5 §3.4), läuft mit `cwd` im Zielprojekt, hinter demselben
   Containment-Schutz wie Session-Erstellung.
 - **T1.5-10/ADR-0005:** `GET /api/skills?project=<pfad>` — Skills/Agents aus
-  `<projekt>/.claude/skills/` + `.claude/agents/` (`@uacc/core`s
-  `scanProjectSkills()`), gleicher Containment-Schutz.
+  `<projekt>/.claude/skills/` + `.claude/agents/` plus Workflows aus
+  `.claude/workflows/` (`scanProjectSkills()`), gleicher Containment-Schutz.
+  `POST /api/prompt-recommendation` wählt danach einen Treffer oder einen
+  Entwurf, ohne zweiten Modellaufruf. `POST /api/skills` legt die Datei an
+  und überschreibt nichts.
 - Auth-Hook: Device-Token (Bearer/Query), optional Tailnet-Identitätszwang
   (`Tailscale-User-Login`-Header). `/api/health` bleibt offen.
 - **WS-Delta-Protokoll (ADR-P0-4):** `hello{lastSeq}` → nummerierte
