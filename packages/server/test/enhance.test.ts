@@ -2,7 +2,12 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseClaudeEnhanceOutput, parseCodexEnhanceOutput, parseOpencodeEnhanceOutput } from "../src/enhance.ts";
+import {
+  opencodeEnhanceArgs,
+  parseClaudeEnhanceOutput,
+  parseCodexEnhanceOutput,
+  parseOpencodeEnhanceOutput,
+} from "../src/enhance.ts";
 
 describe("parseClaudeEnhanceOutput (T1.5-8)", () => {
   it("extracts the rewritten prompt and real cost from claude's --output-format json blob", () => {
@@ -70,6 +75,17 @@ describe("parseCodexEnhanceOutput (T1.5-8)", () => {
   it("returns an empty string when no agent_message item ever appears", () => {
     const parsed = parseCodexEnhanceOutput(JSON.stringify({ type: "turn.completed", usage: {} }));
     expect(parsed.enhanced).toBe("");
+  });
+});
+
+describe("opencodeEnhanceArgs", () => {
+  it("puts the flags before the multiline prompt so the CLI cannot swallow them", () => {
+    const args = opencodeEnhanceArgs("mach das spiel neon");
+    const sep = args.indexOf("--");
+    expect(args.slice(0, sep)).toEqual(["run", "--format", "json", "--auto", "--agent", "plan"]);
+    expect(args[sep + 1]).toContain("\n");
+    expect(args[sep + 1]?.endsWith("mach das spiel neon")).toBe(true);
+    expect(args.slice(sep + 2)).toEqual([]);
   });
 });
 

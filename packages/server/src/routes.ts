@@ -1,6 +1,7 @@
+import { resolve, sep } from "node:path";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
-import { collectHealth, probeHarnesses, HARNESS_CATALOG, spawnProbeRunner, discoverProjects, isProjectPathAllowed, scanProjectSkills, recommendForPrompt, writeProjectArtifact } from "@uacc/core";
+import { collectHealth, probeHarnesses, HARNESS_CATALOG, spawnProbeRunner, discoverProjects, isProjectPathAllowed, scanProjectSkills, recommendForPrompt, writeProjectArtifact, ensureBaseSkills } from "@uacc/core";
 import { enhancePrompt } from "./enhance.ts";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { extractToken } from "./auth.ts";
@@ -87,6 +88,16 @@ export function registerRoutes(
   },
 ): void {
   const projectRoots = deps.projectRoots ?? [];
+
+  async function skillsFor(project: string) {
+    const projectPath = resolve(project);
+    const root = projectRoots
+      .map((entry) => resolve(entry))
+      .filter((entry) => projectPath === entry || projectPath.startsWith(entry + sep))
+      .sort((a, b) => b.length - a.length)[0];
+    if (root) await ensureBaseSkills(root);
+    return scanProjectSkills(project, root && root !== projectPath ? { baseRoot: root } : undefined);
+  }
   const webauthnRoutes = deps.webauthn ? createWebAuthnRoutes(deps.webauthn.store, deps.webauthn.config) : null;
   // T3.8: dedup concurrent ensureIndexed() calls for the same project — a
   // first-time index can take real minutes; without this, rapid repeated
@@ -237,8 +248,7 @@ export function registerRoutes(
     if (!(await isProjectPathAllowed(q.project, projectRoots))) {
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
-    const items = await scanProjectSkills(q.project);
-    return { items };
+    return { items: await skillsFor(q.project) };
   });
 
   app.post("/api/prompt-recommendation", async (req, reply) => {
@@ -247,8 +257,7 @@ export function registerRoutes(
     if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
-    const items = await scanProjectSkills(parsed.data.project);
-    return recommendForPrompt(parsed.data.text, items);
+    return recommendForPrompt(parsed.data.text, await skillsFor(parsed.data.project));
   });
 
   app.post("/api/skills", async (req, reply) => {

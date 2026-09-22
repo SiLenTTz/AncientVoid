@@ -15,6 +15,10 @@ export interface SkillOrAgent {
   kind: "skill" | "agent" | "workflow";
   name: string;
   description: string;
+  /** Other skill names this one specializes. Empty means it stands alone. */
+  extends?: string[];
+  /** `base` lives next to every project. Omitted means the skill is in the project. */
+  layer?: "base" | "project";
 }
 
 /**
@@ -27,22 +31,34 @@ export interface SkillOrAgent {
  * lines, so that one shape is handled explicitly below rather than adding a
  * full YAML parser for a single file.
  */
-function parseFrontmatter(content: string): { name?: string; description?: string } | null {
+function unquote(value: string): string {
+  if (value.length >= 2 && ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+function parseFrontmatter(content: string): { name?: string; description?: string; extends?: string[] } | null {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return null;
   const block = match[1]!;
   const lines = block.split(/\r?\n/);
-  const result: { name?: string; description?: string } = {};
+  const result: { name?: string; description?: string; extends?: string[] } = {};
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
     const nameMatch = line.match(/^name:\s*(.*)$/);
-    if (nameMatch) result.name = nameMatch[1]!.trim();
+    if (nameMatch) result.name = unquote(nameMatch[1]!.trim());
+    const extendsMatch = line.match(/^extends:\s*(.*)$/);
+    if (extendsMatch) {
+      const names = extendsMatch[1]!.split(",").map((part) => unquote(part.trim())).filter((part) => part.length > 0);
+      if (names.length > 0) result.extends = names;
+    }
     const descMatch = line.match(/^description:\s*(.*)$/);
     if (!descMatch) continue;
     const rest = descMatch[1]!.trim();
     const blockScalar = rest.match(/^([|>])([+-]?)$/);
     if (!blockScalar) {
-      result.description = rest;
+      result.description = unquote(rest);
       continue;
     }
     // Folded (">") joins continuation lines with spaces; literal ("|")
@@ -61,7 +77,7 @@ function parseFrontmatter(content: string): { name?: string; description?: strin
   return result;
 }
 
-async function readFrontmatter(filePath: string): Promise<{ name?: string; description?: string } | null> {
+async function readFrontmatter(filePath: string): Promise<{ name?: string; description?: string; extends?: string[] } | null> {
   try {
     return parseFrontmatter(await readFile(filePath, "utf8"));
   } catch {
@@ -76,7 +92,22 @@ async function readFrontmatter(filePath: string): Promise<{ name?: string; descr
  * error — matches this project's own "no .claude, no skills" reality for
  * most target repos, not a misconfiguration.
  */
-export async function scanProjectSkills(projectPath: string): Promise<SkillOrAgent[]> {
+function withExtends(
+  item: { kind: SkillOrAgent["kind"]; name: string; description: string },
+  meta: { extends?: string[] },
+  layer?: SkillOrAgent["layer"],
+): SkillOrAgent {
+  return {
+    ...item,
+    ...(meta.extends && meta.extends.length > 0 ? { extends: meta.extends } : {}),
+    ...(layer === "base" ? { layer } : {}),
+  };
+}
+
+export async function scanProjectSkills(
+  projectPath: string,
+  options?: { baseRoot?: string },
+): Promise<SkillOrAgent[]> {
   const items: SkillOrAgent[] = [];
 
   try {
@@ -92,7 +123,7 @@ export async function scanProjectSkills(projectPath: string): Promise<SkillOrAge
       if (!entry.isDirectory()) continue;
       const meta = await readFrontmatter(join(skillsDir, entry.name, "SKILL.md"));
       if (!meta) continue;
-      items.push({ kind: "skill", name: meta.name ?? entry.name, description: meta.description ?? "" });
+      items.push(withExtends({ kind: "skill", name: meta.name ?? entry.name, description: meta.description ?? "" }, meta));
     }
   } catch {
     // no .claude/skills directory — not an error, just nothing to offer.
@@ -126,6 +157,28 @@ export async function scanProjectSkills(projectPath: string): Promise<SkillOrAge
     }
   } catch {
     // no .claude/workflows directory — not an error.
+  }
+
+  const baseRoot = options?.baseRoot;
+  if (baseRoot && resolve(baseRoot) !== resolve(projectPath)) {
+    try {
+      const skillsDir = join(baseRoot, ".claude", "skills");
+      const entries = await readdir(skillsDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const meta = await readFrontmatter(join(skillsDir, entry.name, "SKILL.md"));
+        if (!meta) continue;
+        items.push(
+          withExtends(
+            { kind: "skill", name: meta.name ?? entry.name, description: meta.description ?? "" },
+            meta,
+            "base",
+          ),
+        );
+      }
+    } catch {
+      // no base catalog yet
+    }
   }
 
   return items;
@@ -166,6 +219,10 @@ export interface PromptRecommendation {
   draft: string | null;
 }
 
+function layerRank(item: SkillOrAgent): number {
+  return item.layer === "base" ? 1 : 0;
+}
+
 function kindRank(kind: SkillOrAgent["kind"]): number {
   if (kind === "skill") return 0;
   if (kind === "agent") return 1;
@@ -182,6 +239,37 @@ function proposeKind(text: string): SkillOrAgent["kind"] {
 function oneLine(value: string, max: number): string {
   const line = value.replace(/\s+/g, " ").trim();
   return line.length <= max ? line : `${line.slice(0, max - 1).trimEnd()}…`;
+}
+
+function uniqueName(source: string, items: readonly SkillOrAgent[]): string {
+  let name = slugify(tokens(source).slice(0, 4).join(" "));
+  const taken = new Set(items.map((item) => item.name));
+  if (taken.has(name)) {
+    let n = 2;
+    while (taken.has(`${name}-${n}`)) n += 1;
+    name = `${name}-${n}`;
+  }
+  return name;
+}
+
+function promptDelta(text: string): string {
+  const ziel = text.match(/Ziel:?\s*([\s\S]*?)(?:\n\s*\n|\nScope\b|$)/i);
+  return oneLine((ziel?.[1] ?? text.split("\n")[0] ?? text).trim(), 400);
+}
+
+function extendBase(base: SkillOrAgent, text: string, items: readonly SkillOrAgent[]): PromptRecommendation {
+  const delta = promptDelta(text);
+  const name = uniqueName(delta, items);
+  const description = oneLine(delta, 180);
+  const quoted = description.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+  return {
+    mode: "create",
+    kind: "skill",
+    name,
+    description,
+    reason: `Erweitert den Base-Skill ${base.name}. Nur die Abweichung wird im Projekt angelegt.`,
+    draft: `---\nname: ${name}\ndescription: "${quoted}"\nextends: ${base.name}\n---\n\n# Skill: ${name}\n\nErweitert \`${base.name}\`. Die gemeinsame Form bleibt im Base-Skill. Hier steht nur die Abweichung.\n\n## Abweichung\n\n${delta}\n`,
+  };
 }
 
 function draftFor(kind: SkillOrAgent["kind"], name: string, description: string, text: string): string {
@@ -224,10 +312,16 @@ export function recommendForPrompt(text: string, items: readonly SkillOrAgent[])
       return { item, score, hits: [...new Set(hits)] };
     })
     .filter((row) => row.score >= 3)
-    .sort((a, b) => b.score - a.score || kindRank(a.item.kind) - kindRank(b.item.kind) || a.item.name.localeCompare(b.item.name));
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        layerRank(a.item) - layerRank(b.item) ||
+        kindRank(a.item.kind) - kindRank(b.item.kind) ||
+        a.item.name.localeCompare(b.item.name),
+    );
 
   const best = ranked[0];
-  if (best) {
+  if (best && best.item.layer !== "base") {
     const shown = best.hits.slice(0, 3).join(", ");
     return {
       mode: "match",
@@ -238,6 +332,12 @@ export function recommendForPrompt(text: string, items: readonly SkillOrAgent[])
       draft: null,
     };
   }
+
+  if (best?.item.layer === "base" && best.item.kind === "skill") {
+    return extendBase(best.item, text, items);
+  }
+  const task = items.find((item) => item.layer === "base" && item.kind === "skill" && item.name === "task");
+  if (task && proposeKind(text) === "skill") return extendBase(task, text, items);
 
   const kind = proposeKind(text);
   const ziel = text.match(/Ziel:\s*(.+)/i);
@@ -296,4 +396,97 @@ export async function writeProjectArtifact(
     throw err;
   }
   return { path: relative };
+}
+
+export interface ResolvedSkillChain {
+  /** Ancestor first, selected skill last. */
+  names: string[];
+  /** Prompt text. Events keep the names only — this body must stay out of them. */
+  block: string;
+}
+
+const CHAIN_BLOCK_MAX = 12_000;
+
+function bodyAfterFrontmatter(content: string): string {
+  const match = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/);
+  return (match ? content.slice(match[0].length) : content).trim();
+}
+
+/** Nearest ancestor of the project that already has a skill catalog. */
+async function findSkillCatalogRoot(projectPath: string): Promise<string | undefined> {
+  let dir = dirname(resolve(projectPath));
+  while (true) {
+    try {
+      await readdir(join(dir, ".claude", "skills"));
+      return dir;
+    } catch {
+      const parent = dirname(dir);
+      if (parent === dir) return undefined;
+      dir = parent;
+    }
+  }
+}
+
+async function readSkillMarkdown(root: string, name: string): Promise<string | null> {
+  try {
+    return await readFile(join(root, ".claude", "skills", name, "SKILL.md"), "utf8");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Loads a skill and its `extends` parents. The project file wins over the
+ * catalog. A missing selected skill returns null so the caller can fail
+ * loudly. A missing parent stays in the block as `fehlt:` and does not
+ * abort the rest of the chain. Cycles are cut.
+ */
+export async function resolveSkillChain(projectPath: string, skillName: string): Promise<ResolvedSkillChain | null> {
+  const project = resolve(projectPath);
+  const baseRoot = await findSkillCatalogRoot(project);
+  const cache = new Map<string, { extends: string[]; body: string | null }>();
+
+  async function readNode(name: string): Promise<{ extends: string[]; body: string | null }> {
+    const cached = cache.get(name);
+    if (cached) return cached;
+    const local = await readSkillMarkdown(project, name);
+    const raw = local ?? (baseRoot ? await readSkillMarkdown(baseRoot, name) : null);
+    const meta = raw ? parseFrontmatter(raw) : null;
+    const node = { extends: meta?.extends ?? [], body: raw ? bodyAfterFrontmatter(raw) : null };
+    cache.set(name, node);
+    return node;
+  }
+
+  const names: string[] = [];
+  const sections: string[] = [];
+  const missing: string[] = [];
+  const placed = new Set<string>();
+
+  async function visit(name: string, stack: string[]): Promise<void> {
+    if (placed.has(name) || stack.includes(name)) return;
+    const node = await readNode(name);
+    const next = [...stack, name];
+    for (const parent of node.extends) await visit(parent, next);
+    if (placed.has(name)) return;
+    placed.add(name);
+    if (node.body === null) {
+      missing.push(name);
+      return;
+    }
+    names.push(name);
+    sections.push(`### ${name}\n${node.body}`);
+  }
+
+  await visit(skillName, []);
+  if (!names.includes(skillName)) return null;
+
+  const gap = missing.length > 0 ? `\nfehlt: ${missing.join(", ")}` : "";
+  let block = `Skill-Kette: ${names.join(" → ")}${gap}\n\n${sections.join("\n\n")}`;
+  if (block.length > CHAIN_BLOCK_MAX) block = `${block.slice(0, CHAIN_BLOCK_MAX)}\n\n[Skill-Kette gekürzt]`;
+  return { names, block };
+}
+
+export function withSkillChain(prompt: string, block: string): string {
+  if (prompt.startsWith("Skill-Kette:")) return prompt;
+  return prompt.length > 0 ? `${block}\n\n---\n${prompt}` : block;
 }

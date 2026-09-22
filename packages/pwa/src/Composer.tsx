@@ -248,11 +248,23 @@ export function Composer({
             <button class="btn" type="button" disabled={recommendBusy} onClick={() => setRecommendation(null)}>
               Verwerfen
             </button>
-            <button class="btn" type="button" disabled={recommendBusy} onClick={() => void applyRecommendation(false)}>
-              Nutzen
+            <button
+              class={recommendBusy ? "btn busy" : "btn"}
+              type="button"
+              aria-busy={recommendBusy}
+              disabled={recommendBusy}
+              onClick={() => void applyRecommendation(false)}
+            >
+              {recommendBusy ? "lädt…" : "Nutzen"}
             </button>
-            <button class="btn primary" type="button" disabled={recommendBusy} onClick={() => void applyRecommendation(true)}>
-              Speichern
+            <button
+              class={recommendBusy ? "btn primary busy" : "btn primary"}
+              type="button"
+              aria-busy={recommendBusy}
+              disabled={recommendBusy}
+              onClick={() => void applyRecommendation(true)}
+            >
+              {recommendBusy ? "lädt…" : "Speichern"}
             </button>
           </div>
         </div>
@@ -260,22 +272,24 @@ export function Composer({
 
       <div class="composer-actions">
         <button
-          class="btn"
+          class={listening ? "btn busy" : "btn"}
           type="button"
+          aria-busy={listening}
           onClick={toggleMic}
           disabled={disabled || !supported || listening}
           title={supported ? "Spracheingabe" : "Browser unterstützt keine Spracherkennung"}
         >
-          {listening ? "hört…" : "Voice"}
+          {listening ? "lädt…" : "Voice"}
         </button>
         <button
-          class="btn"
+          class={enhancing ? "btn busy" : "btn"}
           type="button"
+          aria-busy={enhancing}
           onClick={enhance}
           disabled={disabled || !enhanceSupported || enhancing || !value.trim()}
           title={enhanceSupported ? "Prompt verbessern (kostet echtes Kontingent)" : "Für diesen Adapter nicht verfügbar"}
         >
-          {enhancing ? "✨ …" : "Verbessern"}
+          {enhancing ? "lädt…" : "Verbessern"}
         </button>
         {extraActions}
       </div>

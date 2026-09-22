@@ -246,6 +246,22 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     expect((ignored?.payload as { requested?: unknown }).requested).toEqual({ skill: "bugfix" });
   });
 
+  it("a hub-resolved skillChain is not reported as ignored", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: withVersionHandshake((cmd) => {
+        expect(cmd.join(" ")).toContain("first");
+        return fakeCodexProcess(loadFixture("trivial-text.jsonl"));
+      }),
+    });
+    const adapter = createAdapter();
+    await adapter.start(
+      { adapter: "codex", project: "/tmp", prompt: "first", args: { skill: "neon", skillChain: ["task", "neon"] } },
+      ctx,
+    );
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete"));
+    expect(ctx.events.some((e) => e.summary.includes("skill/agent selection ignored"))).toBe(false);
+  });
+
   it("steer(prompt) before any thread_id is captured is an honest no", async () => {
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeCodexProcess("") });
     const adapter = createAdapter();

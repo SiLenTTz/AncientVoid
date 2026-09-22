@@ -167,8 +167,8 @@ export function VoiceSheet({
                   </div>
                 ) : (
                   <div class="row" style="gap: 8px">
-                    <button class="btn primary" onClick={confirmDirective} disabled={busy}>
-                      {busy ? "…" : "Bestätigen"}
+                    <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={confirmDirective} disabled={busy}>
+                      {busy ? "lädt…" : "Bestätigen"}
                     </button>
                     <button class="btn" onClick={() => setDirective(null)} disabled={busy}>
                       Abbrechen

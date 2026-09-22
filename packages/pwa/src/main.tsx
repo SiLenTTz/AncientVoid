@@ -71,8 +71,8 @@ function TokenGate({ onReady }: { onReady: () => void }) {
         </div>
       </label>
       {error && <div style="color: var(--err)">{error}</div>}
-      <button class="btn primary" onClick={submit} disabled={checking}>
-        {checking ? "Prüfe…" : "Verbinden"}
+      <button class={checking ? "btn primary busy" : "btn primary"} aria-busy={checking} onClick={submit} disabled={checking}>
+        {checking ? "lädt…" : "Verbinden"}
       </button>
     </div>
   );

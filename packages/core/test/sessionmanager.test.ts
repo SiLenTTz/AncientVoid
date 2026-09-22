@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -761,6 +761,103 @@ describe("SessionManager — reporting sink dispatch (T4.1, ADR-0009)", () => {
       await new Promise((r) => setTimeout(r, 50));
       const events = await manager.tail(record.id, 0);
       expect(events.some((e) => (e.payload as { kind?: string }).kind?.startsWith("session.digest"))).toBe(false);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("T5.10: puts the extends chain in the prompt and reapplies it after recovery", async () => {
+    const root = await mkdtemp(join(dir, "chain-"));
+    const project = join(root, "proj");
+    await mkdir(join(root, ".claude", "skills", "task"), { recursive: true });
+    await writeFile(join(root, ".claude", "skills", "task", "SKILL.md"), "---\nname: task\ndescription: form\n---\nFORM\n");
+    await mkdir(join(project, ".claude", "skills", "neon"), { recursive: true });
+    await writeFile(
+      join(project, ".claude", "skills", "neon", "SKILL.md"),
+      "---\nname: neon\ndescription: look\nextends: task\n---\nDELTA\n",
+    );
+
+    const seen: string[] = [];
+    const open = (dbName: string) => {
+      const db = new HubDatabase(join(dir, dbName));
+      const store = new EventStore(dir);
+      const registry = new AdapterRegistry();
+      registry.register(
+        "dummy",
+        (config) => {
+          const inner = createDummy(config);
+          return {
+            ...inner,
+            start: async (spec, ctx) => {
+              seen.push(spec.prompt ?? "");
+              return inner.start(spec, ctx);
+            },
+          };
+        },
+        { eventsPerSecond: 1, autoStopAfterEvents: 1 },
+      );
+      return { manager: new SessionManager(db, store, registry, new ProcessRunner()), store };
+    };
+
+    const first = open("chain.db");
+    let secondManager: SessionManager | undefined;
+    try {
+      const record = await first.manager.create({
+        adapter: "dummy",
+        project,
+        prompt: "hello",
+        args: { skill: "neon" },
+      });
+      expect(seen[0]).toContain("FORM");
+      expect(seen[0]).toContain("DELTA");
+      expect(seen[0]?.indexOf("FORM")).toBeLessThan(seen[0]?.indexOf("DELTA") ?? -1);
+      expect(seen[0]?.endsWith("hello")).toBe(true);
+      await waitFor(async () => {
+        const events = await first.manager.tail(record.id, 0);
+        return events.some((e) => e.summary === "dummy: auto-stop reached");
+      });
+      const created = (await first.manager.tail(record.id, 0)).find(
+        (e) => (e.payload as { kind?: string }).kind === "session.created",
+      );
+      expect((created?.payload as { args?: { skillChain?: string[] } }).args?.skillChain).toEqual(["task", "neon"]);
+      const chainEvent = (await first.manager.tail(record.id, 0)).find(
+        (e) => (e.payload as { kind?: string }).kind === "session.skill_chain",
+      );
+      expect(chainEvent?.summary).toBe("Skills task → neon");
+      expect(JSON.stringify(chainEvent?.payload)).not.toContain("FORM");
+      await first.store.flush();
+
+      const second = open("chain.db");
+      secondManager = second.manager;
+      await second.manager.recoverAll();
+      const ack = await second.manager.steer(record.id, { kind: "prompt", text: "again" });
+      expect(ack.ok).toBe(true);
+      const steered = (await second.manager.tail(record.id, 0)).find(
+        (e) => e.type === "user" && (e.payload as { text?: string }).text?.includes("again"),
+      );
+      const text = (steered?.payload as { text?: string }).text ?? "";
+      expect(text).toContain("FORM");
+      expect(text).toContain("DELTA");
+      expect(text.endsWith("again")).toBe(true);
+    } finally {
+      await secondManager?.shutdown();
+    }
+  });
+
+  it("continues a stopped session using the provider id from the worker log", async () => {
+    const { manager } = makeManager(dir, { eventsPerSecond: 1, autoStopAfterEvents: 1 });
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir, prompt: "first" });
+      await manager.stop(record.id);
+      expect(manager.get(record.id)?.status).toBe("stopped");
+      await mkdir(join(dir, "workers"), { recursive: true });
+      await writeFile(join(dir, "workers", `uacc-${record.id}.log`), '{"sessionID":"ses_kept"}\n');
+      const ack = await manager.steer(record.id, { kind: "prompt", text: "weiter" });
+      expect(ack.ok).toBe(true);
+      expect(manager.get(record.id)?.status).toBe("working");
+      expect(manager.get(record.id)?.nativeSessionId).toBe("ses_kept");
+      const events = await manager.tail(record.id, 0);
+      expect(events.some((e) => (e.payload as { kind?: string }).kind === "session.continued")).toBe(true);
     } finally {
       await manager.shutdown();
     }

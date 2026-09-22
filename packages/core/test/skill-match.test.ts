@@ -32,6 +32,29 @@ describe("recommendForPrompt", () => {
     expect(rec.draft).toContain("Neon-Tetris");
   });
 
+  it("extends a base skill instead of copying the whole prompt into a new file", () => {
+    const task: SkillOrAgent = {
+      kind: "skill",
+      name: "task",
+      description: "Gemeinsame Form jeder Aufgabe",
+      layer: "base",
+    };
+    const rec = recommendForPrompt("Baue ein Neon-Tetris mit Punkteanzeige und Glow", [task]);
+    expect(rec.mode).toBe("create");
+    expect(rec.draft).toContain("extends: task");
+    expect(rec.draft).toContain("## Abweichung");
+    expect(rec.draft).not.toContain("Constraints");
+    expect(rec.reason).toContain("task");
+  });
+
+  it("keeps a matching project skill ahead of a base skill", () => {
+    const rec = recommendForPrompt("Bitte den Defekt im Login reproduzieren und fixen", [
+      { kind: "skill", name: "task", description: "Defekt und Form", layer: "base" },
+      bugfix,
+    ]);
+    expect(rec).toMatchObject({ mode: "match", name: "bugfix" });
+  });
+
   it("proposes an agent or a workflow when the prompt asks for one", () => {
     expect(recommendForPrompt("Baue einen Agent der Reviews macht", []).kind).toBe("agent");
     expect(recommendForPrompt("Beschreibe den Release-Ablauf als Workflow", []).kind).toBe("workflow");

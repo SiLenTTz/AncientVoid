@@ -87,27 +87,29 @@ function ApprovalCard({ req, onDecided }: { req: ApprovalRequest; onDecided: () 
             {destructive ? (
               <>
                 <button
-                  class="btn primary"
+                  class={busy ? "btn primary busy" : "btn primary"}
+                  aria-busy={busy}
                   disabled={busy || (req.reasonRequired && !reason.trim())}
                   onClick={() => decideBiometric("approve")}
                 >
-                  🔒 Mit Passkey freigeben
+                  {busy ? "lädt…" : "🔒 Mit Passkey freigeben"}
                 </button>
-                <button class="btn danger" disabled={busy} onClick={() => decideBiometric("reject")}>
-                  Ablehnen
+                <button class={busy ? "btn danger busy" : "btn danger"} aria-busy={busy} disabled={busy} onClick={() => decideBiometric("reject")}>
+                  {busy ? "lädt…" : "Ablehnen"}
                 </button>
               </>
             ) : (
               <>
                 <button
-                  class="btn primary"
+                  class={busy ? "btn primary busy" : "btn primary"}
+                  aria-busy={busy}
                   disabled={busy || (req.reasonRequired && !reason.trim())}
                   onClick={() => decide("approve")}
                 >
-                  Freigeben
+                  {busy ? "lädt…" : "Freigeben"}
                 </button>
-                <button class="btn danger" disabled={busy} onClick={() => decide("reject")}>
-                  Ablehnen
+                <button class={busy ? "btn danger busy" : "btn danger"} aria-busy={busy} disabled={busy} onClick={() => decide("reject")}>
+                  {busy ? "lädt…" : "Ablehnen"}
                 </button>
               </>
             )}

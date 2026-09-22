@@ -34,6 +34,16 @@ describe("normalizeOpencodeLine — real captured `opencode run --format json` (
     expect(finishes[1]!.tokensEst).toBe(7505);
   });
 
+  it("says when a step hit the length limit after a thinking-only turn", () => {
+    const events = normalizeOpencodeLine({
+      type: "step_finish",
+      part: { type: "step-finish", reason: "length", tokens: { total: 39853, reasoning: 31929 }, cost: 0 },
+    });
+    expect(events[0]?.summary).toContain("Längenlimit");
+    expect(events[0]?.summary).toContain("31929");
+    expect(events[0]?.payload).toMatchObject({ kind: "opencode.step_finish", reason: "length" });
+  });
+
   it("maps a real tool error to tool_result with isError:true, not a swallowed failure", () => {
     const events = checkFixture(fixture("tool-error.jsonl"), normalizeOpencodeLine);
     const toolResult = events.find((e) => e.type === "tool_result");
@@ -44,6 +54,15 @@ describe("normalizeOpencodeLine — real captured `opencode run --format json` (
     // normal assistant event, not swallowed either
     const assistant = events.find((e) => e.type === "assistant");
     expect(assistant?.summary).toContain("failed");
+  });
+
+  it("maps a finished reasoning part to a thinking event", () => {
+    const events = normalizeOpencodeLine({
+      type: "reasoning",
+      part: { type: "reasoning", text: "Erst die Datei lesen, dann den Rahmen neon färben." },
+    });
+    expect(events[0]?.type).toBe("thinking");
+    expect(events[0]?.payload).toMatchObject({ text: "Erst die Datei lesen, dann den Rahmen neon färben." });
   });
 
   it("fails loud on an unrecognized event type instead of dropping it", () => {

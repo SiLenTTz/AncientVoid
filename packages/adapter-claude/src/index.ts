@@ -44,6 +44,7 @@ const ClaudeSessionArgs = z
   .object({
     skill: z.string().min(1).optional(),
     agent: z.string().min(1).optional(),
+    resumeSessionId: z.string().min(1).optional(),
   })
   .optional();
 
@@ -110,7 +111,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         }
         if (parsed && typeof parsed === "object" && "session_id" in parsed) {
           const sid = (parsed as { session_id?: unknown }).session_id;
-          if (typeof sid === "string") meta.resumeSessionId = sid;
+          if (typeof sid === "string" && sid !== meta.resumeSessionId) {
+            meta.resumeSessionId = sid;
+            ctx.emit({
+              type: "system",
+              summary: `Claude · Session ${sid}`,
+              payload: { kind: "claude.native_session", nativeSessionId: sid },
+            });
+          }
         }
         for (const event of normalizeClaudeLine(parsed)) ctx.emit(event);
       }
@@ -155,9 +163,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const args = ClaudeSessionArgs.safeParse(spec.args);
       const skill = args.success ? args.data?.skill : undefined;
       const agentPersona = args.success ? args.data?.agent : undefined;
-      const meta: SessionMeta = { healthy: true, degraded: false, skill };
+      const resumeSessionId = args.success ? args.data?.resumeSessionId : undefined;
+      const meta: SessionMeta = { healthy: true, degraded: false, skill, ...(resumeSessionId ? { resumeSessionId } : {}) };
       const proc = await ctx.spawnWorker(
-        buildArgs(withSkill(spec.prompt ?? "", skill), undefined, agentPersona, spec.model),
+        buildArgs(withSkill(spec.prompt ?? "", skill), resumeSessionId, agentPersona, spec.model),
         spec.env ? { env: spec.env } : undefined,
       );
       attach(ctx.sessionId, proc, ctx, meta);

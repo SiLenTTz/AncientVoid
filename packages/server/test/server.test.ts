@@ -569,7 +569,19 @@ describe("hub server — GET /api/skills (T1.5-10)", () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(res.statusCode).toBe(200);
-      expect(res.json()).toEqual({ items: [{ kind: "skill", name: "demo", description: "a demo skill" }] });
+      const body = res.json() as { items: { kind: string; name: string; layer?: string }[] };
+      expect(body.items).toEqual(
+        expect.arrayContaining([
+          { kind: "skill", name: "demo", description: "a demo skill" },
+          expect.objectContaining({ kind: "skill", name: "task", layer: "base" }),
+        ]),
+      );
+      expect(body.items.filter((item) => item.layer === "base").map((item) => item.name).sort()).toEqual([
+        "change",
+        "investigate",
+        "review",
+        "task",
+      ]);
     } finally {
       await app.close().catch(() => undefined);
       await cleanup();

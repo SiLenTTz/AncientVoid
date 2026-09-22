@@ -214,14 +214,19 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // (`codex plugin list` is a global, project-independent marketplace,
       // structurally unrelated to a target repo's own .claude/skills —
       // verified against the real CLI). A requested skill/agent must be
-      // visibly ignored, never silently swallowed (AGENTS.md Regel 6) or
-      // turned into prompt text that might do nothing.
-      const requestedArgs = spec.args as { skill?: unknown; agent?: unknown } | undefined;
-      if (requestedArgs?.skill || requestedArgs?.agent) {
+      // visibly ignored, never silently swallowed (AGENTS.md Regel 6).
+      // A hub-resolved skillChain is already in the prompt, so that skill
+      // is not reported as ignored.
+      const requestedArgs = spec.args as { skill?: unknown; agent?: unknown; skillChain?: unknown } | undefined;
+      const chainApplied = Array.isArray(requestedArgs?.skillChain) && requestedArgs.skillChain.length > 0;
+      const ignored: { skill?: unknown; agent?: unknown } = {};
+      if (requestedArgs?.agent) ignored.agent = requestedArgs.agent;
+      if (requestedArgs?.skill && !chainApplied) ignored.skill = requestedArgs.skill;
+      if (ignored.skill !== undefined || ignored.agent !== undefined) {
         ctx.emit({
           type: "system",
           summary: "codex: skill/agent selection ignored — no project-local skill/agent mechanism exists for this adapter",
-          payload: { kind: "codex.skill_agent_ignored", requested: requestedArgs },
+          payload: { kind: "codex.skill_agent_ignored", requested: ignored },
         });
       }
       await checkVersion(ctx);

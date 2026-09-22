@@ -1,4 +1,7 @@
 import { randomUUID, createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type {
   Adapter,
   AdapterContext,
@@ -28,6 +31,7 @@ import type { ApprovalService } from "./approvals.ts";
 import { buildSessionSummary } from "./digest.ts";
 import { createConsoleLogger } from "./logger.ts";
 import { dedupeDiscovered, pageDiscovered } from "./discovery.ts";
+import { resolveSkillChain, withSkillChain } from "./skills.ts";
 
 const WRITER_LEASE_MS = 30_000;
 
@@ -70,6 +74,41 @@ interface LiveSession {
   /** T2.7: true once the 80%-budget warning has fired for this session —
    * prevents every subsequent cost-bearing event from re-emitting it. */
   budgetWarned: boolean;
+  /** Selected skill, so a later steer reloads the same extends chain. */
+  skillName?: string;
+}
+
+function readSkillName(args: Record<string, unknown> | undefined): string | undefined {
+  const skill = args?.skill;
+  return typeof skill === "string" && skill.length > 0 ? skill : undefined;
+}
+
+function skillNameFromEvents(events: readonly NormalizedEvent[]): string | undefined {
+  for (const event of events) {
+    const payload = event.payload as { kind?: unknown; args?: unknown };
+    if (payload.kind !== "session.created" || !payload.args || typeof payload.args !== "object") continue;
+    return readSkillName(payload.args as Record<string, unknown>);
+  }
+  return undefined;
+}
+
+function nativeIdFromEvents(events: readonly NormalizedEvent[]): string | undefined {
+  let found: string | undefined;
+  for (const event of events) {
+    const native = (event.payload as { nativeSessionId?: unknown }).nativeSessionId;
+    if (typeof native === "string" && native.length > 0) found = native;
+  }
+  return found;
+}
+
+async function nativeIdFromWorkerLog(dataDir: string, sessionId: string): Promise<string | undefined> {
+  try {
+    const text = await readFile(join(dataDir, "workers", `uacc-${sessionId}.log`), "utf8");
+    const ids = [...text.matchAll(/"session(?:ID|_id)"\s*:\s*"([^"]+)"/g)];
+    return ids.at(-1)?.[1];
+  } catch {
+    return undefined;
+  }
 }
 
 /** Raw SQLite row shape (snake_case) for the sessions table. */
@@ -142,7 +181,7 @@ const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   waiting_approval: ["working", "parked", "stopping", "stopped", "error"],
   parked: ["working", "stopping", "stopped", "error"],
   stopping: ["stopped", "error"],
-  stopped: [],
+  stopped: ["working"],
   error: ["stopping", "stopped"],
 };
 
@@ -430,6 +469,26 @@ export class SessionManager {
     }
 
     const ctx = this.makeContext(session);
+    const skillName = readSkillName(parsed.args);
+    let startSpec = parsed;
+    if (skillName) {
+      session.skillName = skillName;
+      const chain = await resolveSkillChain(parsed.project, skillName);
+      if (chain) {
+        startSpec = {
+          ...parsed,
+          ...(parsed.prompt !== undefined ? { prompt: withSkillChain(parsed.prompt, chain.block) } : {}),
+          args: { ...parsed.args, skillChain: chain.names },
+        };
+        await this.emitEvents(session, [
+          {
+            type: "system",
+            summary: `Skills ${chain.names.join(" → ")}`,
+            payload: { kind: "session.skill_chain", names: chain.names },
+          },
+        ]);
+      }
+    }
     await this.emitSystem(session, "session.created", {
       adapter: record.adapter,
       adapterVersion: record.adapterVersion,
@@ -439,12 +498,13 @@ export class SessionManager {
       budgetUsd: record.budgetUsd,
       // T1.5-10/AC-P1.5-12: whatever skill/agent was requested must stay
       // traceable in the tail — nobody should have to guess afterwards
-      // what a session was actually started with.
-      args: parsed.args ?? null,
+      // what a session was actually started with. skillChain is names
+      // only; the skill bodies ride in the prompt, not this event.
+      args: startSpec.args ?? null,
       actor: actor ?? null,
     });
     try {
-      session.handle = await session.adapter.start(parsed, ctx);
+      session.handle = await session.adapter.start(startSpec, ctx);
       await this.setStatus(session, "working");
       await this.emitSystem(session, "session.started", {
         pid: session.handle.pid ?? null,
@@ -464,9 +524,116 @@ export class SessionManager {
     return { ...record };
   }
 
+  private stoppedShell(record: SessionRecord, events: readonly NormalizedEvent[]): LiveSession {
+    const registered = this.registry.get(record.adapter);
+    const isolated =
+      record.worktreeSha !== null && this.worktrees !== undefined && existsSync(this.worktrees.pathFor(record.id));
+    const workdir = isolated && this.worktrees ? this.worktrees.pathFor(record.id) : record.project;
+    const skill = skillNameFromEvents(events);
+    const native = record.nativeSessionId ?? nativeIdFromEvents(events);
+    if (native) record.nativeSessionId = native;
+    return {
+      record,
+      adapter: registered?.adapter ?? (null as unknown as Adapter),
+      handle: null,
+      abort: new AbortController(),
+      subscribers: new Set(),
+      workdir,
+      worktreeIsolated: isolated,
+      ...(skill ? { skillName: skill } : {}),
+      budgetWarned: record.budgetUsd !== null && record.costUsd >= record.budgetUsd * 0.8,
+    };
+  }
+
+  private async promptWithSkill(session: LiveSession, text: string): Promise<string> {
+    if (!session.skillName) return text;
+    const chain = await resolveSkillChain(session.record.project, session.skillName);
+    if (!chain) {
+      await this.emitSystem(session, "session.skill_chain_missing", { skill: session.skillName });
+      return text;
+    }
+    return withSkillChain(text, chain.block);
+  }
+
+  /** A stopped run keeps its provider session id. A new prompt spawns the CLI again. */
+  private async continueStopped(
+    session: LiveSession,
+    input: Extract<SteerInput, { kind: "prompt" }>,
+    actor?: string,
+  ): Promise<Ack> {
+    session.abort = new AbortController();
+    if (!session.skillName || !session.record.nativeSessionId) {
+      const events = await this.store.replay(session.record.id);
+      if (!session.skillName) {
+        const skill = skillNameFromEvents(events);
+        if (skill) session.skillName = skill;
+      }
+      if (!session.record.nativeSessionId) {
+        const native = nativeIdFromEvents(events) ?? (await nativeIdFromWorkerLog(this.store.directory(), session.record.id));
+        if (native) session.record.nativeSessionId = native;
+      }
+    }
+    if (this.worktrees && !existsSync(session.workdir)) {
+      try {
+        const created = await this.worktrees.create(session.record.id, session.record.project);
+        if (created) {
+          session.workdir = created.path;
+          session.worktreeIsolated = true;
+          session.record.worktreeSha = created.baseSha;
+        } else {
+          session.workdir = session.record.project;
+          session.worktreeIsolated = false;
+        }
+      } catch (err) {
+        session.workdir = session.record.project;
+        session.worktreeIsolated = false;
+        await this.emitSystem(session, "session.worktree_failed", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    const text = await this.promptWithSkill(session, input.text);
+    await this.setStatus(session, "working");
+    const native = session.record.nativeSessionId;
+    if (!native) {
+      await this.emitSystem(session, "session.resume_without_native_id", {
+        detail: "Provider-Session unbekannt, der Prompt startet einen neuen Lauf",
+      });
+    }
+    try {
+      session.handle = await session.adapter.start(
+        {
+          adapter: session.record.adapter,
+          project: session.record.project,
+          prompt: text,
+          ...(session.record.model ? { model: session.record.model } : {}),
+          args: {
+            ...(session.skillName ? { skill: session.skillName } : {}),
+            ...(native ? { resumeSessionId: native } : {}),
+          },
+        },
+        this.makeContext(session),
+      );
+      await this.emitSystem(session, "session.continued", { actor: actor ?? null, nativeSessionId: native });
+      return { ok: true };
+    } catch (err) {
+      await this.setStatus(session, "error");
+      await this.emitSystem(session, "session.start_failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return { ok: false, detail: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
   async steer(sessionId: string, input: SteerInput, actor?: string, meta?: SteerMeta): Promise<Ack> {
-    const session = this.live.get(sessionId);
-    if (!session || !session.handle) return { ok: false, detail: "session not live" };
+    let session = this.live.get(sessionId);
+    if (!session) {
+      const record = this.get(sessionId);
+      if (!record || record.status !== "stopped") return { ok: false, detail: "session not live" };
+      session = this.stoppedShell(record, await this.store.replay(sessionId));
+      this.live.set(sessionId, session);
+    }
+    if (!session.handle && input.kind !== "prompt") return { ok: false, detail: "session not live" };
     if (meta?.inputId && this.hasSeenInput(sessionId, meta.inputId)) {
       return { ok: true, detail: "duplicate input ignored" };
     }
@@ -482,7 +649,15 @@ export class SessionManager {
     ) {
       return { ok: false, detail: "writer lease held" };
     }
-    if (input.kind === "stop") return this.stop(sessionId, actor);
+    if (input.kind === "stop") {
+      if (session.record.status === "stopped") return { ok: true };
+      return this.stop(sessionId, actor);
+    }
+    let delivered = input;
+    const reopening = input.kind === "prompt" && (session.record.status === "stopped" || !session.handle);
+    if (input.kind === "prompt" && session.skillName && !reopening) {
+      delivered = { ...input, text: await this.promptWithSkill(session, input.text) };
+    }
     // T2.4/ADR-0007: "Steer-Prompt" is explicitly a write-class action
     // (EPIC-P2 §3 table) once an ApprovalService is configured — parked,
     // not forwarded, until a real approval decision comes back through
@@ -496,11 +671,12 @@ export class SessionManager {
         "steer.prompt",
         `Prompt an ${session.record.adapter} senden: "${input.text.slice(0, 160)}"`,
       );
-      this.pendingSteers.set(req.id, { sessionId, input });
+      this.pendingSteers.set(req.id, { sessionId, input: delivered });
       await this.emitSystem(session, "session.steer_pending_approval", { approvalId: req.id, actor: actor ?? null });
       return { ok: false, detail: `pending approval ${req.id}` };
     }
-    const ack = await session.adapter.steer(session.handle, input, this.makeContext(session));
+    if (reopening && delivered.kind === "prompt") return this.continueStopped(session, delivered, actor);
+    const ack = await session.adapter.steer(session.handle!, delivered, this.makeContext(session));
     // BUG found via T2.8's own audit test: emitSystem() builds
     // `{ kind, ...payload }`, where `kind` is this call's own event-kind
     // string ("session.steer") — a payload field ALSO named `kind` (the
@@ -526,7 +702,11 @@ export class SessionManager {
     if (!pending) return { ok: false, detail: "no pending steer for this approval" };
     this.pendingSteers.delete(approvalId);
     const session = this.live.get(pending.sessionId);
-    if (!session || !session.handle) return { ok: false, detail: "session not live" };
+    if (!session) return { ok: false, detail: "session not live" };
+    if (pending.input.kind === "prompt" && (session.record.status === "stopped" || !session.handle)) {
+      return this.continueStopped(session, pending.input, decidedByLabel);
+    }
+    if (!session.handle) return { ok: false, detail: "session not live" };
     const ack = await session.adapter.steer(session.handle, pending.input, this.makeContext(session));
     await this.emitSystem(session, "session.steer", {
       steerKind: pending.input.kind,
@@ -806,6 +986,10 @@ export class SessionManager {
 
     for (const record of persisted) {
       if (record.status === "stopped") {
+        const events = await this.store.replay(record.id);
+        const session = this.stoppedShell(record, events);
+        this.live.set(record.id, session);
+        if (session.record.nativeSessionId) this.persist(session.record);
         recovered++;
         continue;
       }
@@ -818,6 +1002,7 @@ export class SessionManager {
       // re-attach, not a re-creation.
       const workdir =
         record.worktreeSha !== null && this.worktrees ? this.worktrees.pathFor(record.id) : record.project;
+      const recoveredSkill = skillNameFromEvents(events);
       const session: LiveSession = {
         record: { ...record, lastSeq },
         adapter: registered?.adapter ?? null as unknown as Adapter,
@@ -826,6 +1011,7 @@ export class SessionManager {
         subscribers: new Set(),
         workdir,
         worktreeIsolated: workdir !== record.project,
+        ...(recoveredSkill ? { skillName: recoveredSkill } : {}),
         // Not itself persisted (no JSONL/system-event replay here) — but
         // honestly recomputable from the record's own real numbers, so a
         // recovered session that was already past 80% before the crash
@@ -998,6 +1184,8 @@ export class SessionManager {
       // tokensEst field that already existed on the event contract but was
       // never aggregated onto the session record.
       if (e.tokensEst !== undefined) session.record.tokensEst += e.tokensEst;
+      const native = (e.payload as { nativeSessionId?: unknown }).nativeSessionId;
+      if (typeof native === "string" && native.length > 0) session.record.nativeSessionId = native;
       // ADR-0004: usageQuota is account-level, NEVER summed and NEVER
       // written onto SessionRecord — only the latest snapshot per adapter
       // id, overwriting regardless of which session observed it (it's the

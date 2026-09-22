@@ -58,7 +58,13 @@ export function normalizeOpencodeLine(raw: unknown): EmittedEvent[] {
 
   switch (line.type) {
     case "step_start":
-      return [{ type: "system", summary: "opencode: step start", payload: { kind: "opencode.step_start" } }];
+      return [{ type: "system", summary: "OpenCode denkt…", payload: { kind: "opencode.step_start" } }];
+
+    case "reasoning": {
+      const text = part?.text ?? "";
+      if (!text) return [{ type: "system", summary: "opencode: reasoning line without text", payload: {} }];
+      return [{ type: "thinking", summary: asString(text), payload: { text } }];
+    }
 
     case "tool_use": {
       if (!part || part.type !== "tool" || !part.callID) {
@@ -101,14 +107,25 @@ export function normalizeOpencodeLine(raw: unknown): EmittedEvent[] {
     }
 
     case "step_finish": {
-      const p = part as Part & { tokens?: { total?: number }; cost?: number; reason?: string };
+      const p = part as Part & {
+        tokens?: { total?: number; reasoning?: number };
+        cost?: number;
+        reason?: string;
+      };
       const costUsd = typeof p.cost === "number" ? p.cost : undefined;
       const tokensEst = typeof p.tokens?.total === "number" ? p.tokens.total : undefined;
+      const reasoning = typeof p.tokens?.reasoning === "number" ? p.tokens.reasoning : undefined;
+      const summary =
+        p.reason === "length"
+          ? reasoning !== undefined
+            ? `OpenCode hat am Längenlimit aufgehört. ${reasoning} Tokens gingen ins Denken, ohne sichtbare Antwort.`
+            : "OpenCode hat am Längenlimit aufgehört, ohne sichtbare Antwort."
+          : `opencode: step finish (${p.reason ?? "unknown"})`;
       return [
         {
           type: "system",
-          summary: `opencode: step finish (${p.reason ?? "unknown"})`,
-          payload: { kind: "opencode.step_finish", reason: p.reason },
+          summary,
+          payload: { kind: "opencode.step_finish", reason: p.reason, ...(reasoning !== undefined ? { reasoning } : {}) },
           ...(costUsd !== undefined ? { costUsd } : {}),
           ...(tokensEst !== undefined ? { tokensEst } : {}),
         },

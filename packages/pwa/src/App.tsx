@@ -204,8 +204,13 @@ function Settings({ onSwitchToken }: { onSwitchToken: () => void }) {
         ) : passkey === true ? (
           <span class="dim">✓ registriert</span>
         ) : (
-          <button class="btn" onClick={registerPasskey} disabled={passkeyBusy}>
-            {passkeyBusy ? "…" : "Passkey registrieren"}
+          <button
+            class={passkeyBusy ? "btn busy" : "btn"}
+            aria-busy={passkeyBusy}
+            onClick={registerPasskey}
+            disabled={passkeyBusy}
+          >
+            {passkeyBusy ? "lädt…" : "Passkey registrieren"}
           </button>
         )}
       </div>
@@ -371,8 +376,8 @@ function CreateSession({
       </label>
       {error && <div style="color: var(--err)">{error}</div>}
       <SkillPicker project={project} adapter={adapter} selection={skill} onChange={setSkill} />
-      <button class="btn primary" onClick={submit} disabled={busy || !project}>
-        {busy ? "Starte…" : "Starten"}
+      <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy || !project}>
+        {busy ? "lädt…" : "Starten"}
       </button>
     </div>
   );

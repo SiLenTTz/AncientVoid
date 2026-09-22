@@ -66,6 +66,21 @@ describe("opencode adapter — lifecycle against a real captured stream", () => 
     expect(spawnedCmds[0]).toContain("json");
   });
 
+  it("passes the configured model and announces it before the process answers", async () => {
+    const spawnedCmds: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawnedCmds.push(cmd);
+        return fakeOpencodeProcess(loadFixture("trivial-read.jsonl"));
+      },
+    });
+    const adapter = createAdapter({ model: "zai-coding-plan/glm-5.3" });
+    await adapter.start({ adapter: "opencode", project: "/tmp", prompt: "read a.txt" }, ctx);
+    expect(spawnedCmds[0]).toContain("--model");
+    expect(spawnedCmds[0]).toContain("zai-coding-plan/glm-5.3");
+    expect(ctx.events.some((event) => event.summary === "OpenCode · zai-coding-plan/glm-5.3")).toBe(true);
+  });
+
   it("steer(prompt) continues via --session <id> captured from the real sessionID field", async () => {
     const spawnedCmds: string[][] = [];
     const ctx = makeRecordingContext({
@@ -119,6 +134,43 @@ describe("opencode adapter — lifecycle against a real captured stream", () => 
     const ignored = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "opencode.skill_ignored");
     expect(ignored).toBeDefined();
     expect((ignored!.payload as { requested?: string }).requested).toBe("bugfix");
+  });
+
+  it("a hub-resolved skillChain is not reported as ignored", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        expect(cmd).toContain("go");
+        return fakeOpencodeProcess(loadFixture("trivial-read.jsonl"));
+      },
+    });
+    const adapter = createAdapter();
+    await adapter.start(
+      { adapter: "opencode", project: "/tmp", prompt: "go", args: { skill: "neon", skillChain: ["task", "neon"] } },
+      ctx,
+    );
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "opencode.skill_ignored")).toBe(false);
+  });
+
+  it("resumeSessionId continues the same OpenCode session", async () => {
+    const spawnedCmds: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawnedCmds.push(cmd);
+        return fakeOpencodeProcess(loadFixture("trivial-read.jsonl"));
+      },
+    });
+    const adapter = createAdapter();
+    await adapter.start(
+      { adapter: "opencode", project: "/tmp", prompt: "weiter", args: { resumeSessionId: "ses_abc" } },
+      ctx,
+    );
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    expect(spawnedCmds[0]).toContain("--session");
+    expect(spawnedCmds[0]).toContain("ses_abc");
+    expect(ctx.events.some((e) => (e.payload as { nativeSessionId?: string }).nativeSessionId === "ses_f4e417746ffeHpklpqLT8XojKI")).toBe(
+      true,
+    );
   });
 
   it("a non-zero exit sets status down; a clean one-shot exit does not", async () => {

@@ -43,6 +43,11 @@ export class EventStore {
     this.dataDir = dataDir;
   }
 
+  /** Root that also holds `workers/` logs next to the session JSONL. */
+  directory(): string {
+    return this.dataDir;
+  }
+
   /**
    * Readiness probe (ADR-0010): the sessions root must be creatable.
    * Does not write a fake session or touch JSONL.
