@@ -137,6 +137,11 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 8,
+    name: "session-archived",
+    sql: `ALTER TABLE sessions ADD COLUMN archived INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];
 
 export class HubDatabase {

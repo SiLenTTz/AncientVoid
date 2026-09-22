@@ -100,6 +100,7 @@ interface SessionRow {
   input_revision: number;
   writer_client: string | null;
   writer_lease_until: string | null;
+  archived: number;
 }
 
 function rowToRecord(row: SessionRow): SessionRecord {
@@ -130,6 +131,7 @@ function rowToRecord(row: SessionRow): SessionRecord {
     inputRevision: row.input_revision,
     writerClient: row.writer_client,
     writerLeaseUntil: row.writer_lease_until,
+    archived: row.archived === 1,
   };
 }
 
@@ -333,6 +335,16 @@ export class SessionManager {
     return rec;
   }
 
+  /** Hide or restore a session in the overview. Does not stop the worker. */
+  setArchived(sessionId: string, archived: boolean): SessionRecord {
+    const live = this.live.get(sessionId);
+    const record = live?.record ?? this.require(sessionId);
+    record.archived = archived;
+    record.updatedAt = new Date().toISOString();
+    this.persist(record);
+    return record;
+  }
+
   /**
    * T2.8 (EPIC-P2 §2 "Audit-Trail: jede Handy-Aktion als Event im
    * Session-JSONL (wer-wann-was)"): `actor` is the calling device's own
@@ -374,6 +386,7 @@ export class SessionManager {
       inputRevision: 0,
       writerClient: null,
       writerLeaseUntil: null,
+      archived: false,
     };
     await this.store.initSession(record.id);
     this.persist(record);
@@ -1060,9 +1073,10 @@ export class SessionManager {
         `INSERT INTO sessions (
            id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq,
            cost_usd, updated_at, tokens_est, park_reason, control_mode, harness, host_id, native_session_id,
-           resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until
+           resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until,
+           archived
          )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            status = excluded.status,
            model = excluded.model,
@@ -1085,7 +1099,8 @@ export class SessionManager {
            fork = excluded.fork,
            input_revision = excluded.input_revision,
            writer_client = excluded.writer_client,
-           writer_lease_until = excluded.writer_lease_until`,
+           writer_lease_until = excluded.writer_lease_until,
+           archived = excluded.archived`,
       )
       .run(
         record.id,
@@ -1114,6 +1129,7 @@ export class SessionManager {
         record.inputRevision,
         record.writerClient,
         record.writerLeaseUntil,
+        record.archived ? 1 : 0,
       );
   }
 

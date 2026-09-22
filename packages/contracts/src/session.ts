@@ -88,6 +88,8 @@ export const SessionRecord = z.object({
   inputRevision: z.number().int().nonnegative().default(0),
   writerClient: z.string().nullable().default(null),
   writerLeaseUntil: z.string().nullable().default(null),
+  /** Hidden from the overview list. The session and its events stay. */
+  archived: z.boolean().default(false),
 });
 export type SessionRecord = z.infer<typeof SessionRecord>;
 

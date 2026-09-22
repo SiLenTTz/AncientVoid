@@ -1,5 +1,7 @@
-import { useMemo } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import type { SessionRecord } from "./api.ts";
+import { hubApi } from "./api.ts";
+import { sessionsForOverview } from "./session-list.ts";
 
 export function formatUsd(n: number): string {
   if (n === 0) return "$0";
@@ -53,9 +55,17 @@ export interface DashboardProps {
  * redundant status-color indicator next to it.
  */
 export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprovals }: DashboardProps) {
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedOverride, setArchivedOverride] = useState<Record<string, boolean>>({});
+  const [archiveError, setArchiveError] = useState("");
+  const withArchive = useMemo(
+    () => sessions.map((session) => (session.id in archivedOverride ? { ...session, archived: archivedOverride[session.id] } : session)),
+    [sessions, archivedOverride],
+  );
+  const visible = useMemo(() => sessionsForOverview(withArchive, showArchived), [withArchive, showArchived]);
   const sorted = useMemo(
-    () => [...sessions].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)),
-    [sessions],
+    () => [...visible].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)),
+    [visible],
   );
 
   const byProject = useMemo(() => {
@@ -77,6 +87,18 @@ export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprov
   }, [sessions]);
 
   const waitingCount = sessions.filter((s) => s.status === "waiting_approval").length;
+  const archivedCount = withArchive.filter((s) => s.archived === true).length;
+
+  const archive = async (session: SessionRecord) => {
+    const next = session.archived !== true;
+    try {
+      await hubApi.setArchived(session.id, next);
+      setArchivedOverride((prev) => ({ ...prev, [session.id]: next }));
+      setArchiveError("");
+    } catch (err) {
+      setArchiveError(err instanceof Error ? err.message : "Archivieren fehlgeschlagen.");
+    }
+  };
 
   return (
     <div class="dashboard">
@@ -85,22 +107,26 @@ export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprov
           ⚠ {pendingApprovals} {pendingApprovals === 1 ? "Freigabe wartet" : "Freigaben warten"} auf dich
         </button>
       )}
+      {archiveError && <div class="reply-error">{archiveError}</div>}
       <div class="dashboard-summary dim">
         <span>Heute: {formatUsd(todayTotalUsd)}</span>
+        <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => setShowArchived((on) => !on)}>
+          {showArchived ? "Aktive" : `Archiv${archivedCount > 0 ? ` (${archivedCount})` : ""}`}
+        </button>
         {waitingCount > 0 && (
           <span class="badge waiting">
             {waitingCount} {waitingCount === 1 ? "wartet" : "warten"} auf dich
           </span>
         )}
       </div>
-      {sessions.length === 0 ? (
-        <div class="empty">keine Sessions — lege eine an</div>
+      {sorted.length === 0 ? (
+        <div class="empty">{showArchived ? "nichts archiviert" : "keine Sessions — lege eine an"}</div>
       ) : (
         byProject.map(([project, projectSessions]) => (
           <div key={project} class="project-tile">
             <div class="project-tile-header dim">{project.split("/").pop() ?? project}</div>
             {projectSessions.map((s) => (
-              <SessionRow key={s.id} session={s} onOpen={onOpen} />
+              <SessionRow key={s.id} session={s} onOpen={onOpen} onArchive={archive} />
             ))}
           </div>
         ))
@@ -110,25 +136,35 @@ export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprov
 }
 
 
-function SessionRow({ session, onOpen }: { session: SessionRecord; onOpen: (s: SessionRecord) => void }) {
+function SessionRow({
+  session,
+  onOpen,
+  onArchive,
+}: {
+  session: SessionRecord;
+  onOpen: (s: SessionRecord) => void;
+  onArchive: (s: SessionRecord) => void;
+}) {
   const waiting = session.status === "waiting_approval";
-  // T1.6-8: glow is a status signal, not decoration — only "working" (needs
-  // no attention, just in progress) and "waiting_approval" (does need
-  // attention, faster pulse) get one; stopped/idle/error cards stay flat.
   const glow = session.status === "working" ? "st-working" : waiting ? "st-waiting" : "";
   return (
-    <button class={`card session-card btn ${glow}`} onClick={() => onOpen(session)}>
-      <div class="row">
-        <strong>{session.adapter}</strong>
-        <span class={`pill ${session.status}`}>{session.status}</span>
-      </div>
-      <div class="row dim">
-        <span>
-          {session.model ?? "n/a"} · #{session.lastSeq}
-        </span>
-        <span>{session.costUsd > 0 ? formatUsd(session.costUsd) : ""}</span>
-      </div>
-      {waiting && <span class="badge waiting">wartet auf dich</span>}
-    </button>
+    <div class={`card session-card ${glow}`}>
+      <button class="session-open" type="button" onClick={() => onOpen(session)}>
+        <div class="row">
+          <strong>{session.adapter}</strong>
+          <span class={`pill ${session.status}`}>{session.status}</span>
+        </div>
+        <div class="row dim">
+          <span>
+            {session.model ?? "n/a"} · #{session.lastSeq}
+          </span>
+          <span>{session.costUsd > 0 ? formatUsd(session.costUsd) : ""}</span>
+        </div>
+        {waiting && <span class="badge waiting">wartet auf dich</span>}
+      </button>
+      <button class="link-btn" type="button" onClick={() => void onArchive(session)}>
+        {session.archived ? "Zurückholen" : "Archivieren"}
+      </button>
+    </div>
   );
 }

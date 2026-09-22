@@ -180,6 +180,17 @@ a {
   display: block;
   width: 100%;
   text-align: left;
+}
+
+.session-open {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
   cursor: pointer;
 }
 
@@ -423,6 +434,10 @@ a {
   overflow-wrap: anywhere;
 }
 
+.event .summary.prose {
+  white-space: pre-wrap;
+}
+
 .badge-stale {
   background: color-mix(in srgb, var(--warn) 20%, transparent);
   color: var(--warn);
@@ -492,7 +507,15 @@ a {
 
 .composer-actions {
   display: flex;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.composer-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 9px 6px;
+  font-size: 13px;
 }
 
 .composer-actions .btn:disabled {
@@ -541,6 +564,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 10px 2px 4px;
   font-size: 12px;
