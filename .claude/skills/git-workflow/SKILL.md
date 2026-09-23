@@ -1,6 +1,6 @@
 ---
 name: git-workflow
-description: Conventional Commits, Branch-Naming feat/fix/docs (ein Branch pro Aufgabe), GitLab-MR via glab, Co-Author-Trailer. Aktiv bei commit, branch, PR/MR anlegen. Merge NUR über glab mr merge/GitLab-UI, nie lokal per git merge nach main. Never force-push, never commit auf main.
+description: Commit-Notation (Arlo, docs/commit-notation.md), Branch-Naming feat/fix/docs (ein Branch pro Aufgabe), GitLab-MR via glab, Co-Author-Trailer. Aktiv bei commit, branch, PR/MR anlegen. Merge NUR über glab mr merge/GitLab-UI, nie lokal per git merge nach main. Never force-push, never commit auf main.
 ---
 
 # Skill: git-workflow
@@ -15,13 +15,17 @@ ausführbare Form; `CONTRIBUTING.md` bleibt die Regelquelle.
 
 ## Wann benutzen (Trigger)
 
-- commit, branch anlegen, MR öffnen, Conventional Commit, Co-Author.
+- commit, branch anlegen, MR öffnen, Commit-Notation, Co-Author.
 
 **Nicht:** Epic-Struktur (`epic-creation`); Bugfix-Ablauf (`bugfix`).
 
 ## Hard Rules
 
-- ✅ Conventional Commits: `feat|fix|docs|refactor|perf|test|chore|ci`.
+- ✅ Commit-Notation `<Risiko> <Absicht> <bereich>: <Satz>` —
+  [`docs/commit-notation.md`](../../../docs/commit-notation.md). Risiko ehrlich
+  nach Beleg: `^` nur mit grünem Gate **und** Tests, die das geänderte
+  Verhalten abdecken; nur live belegt → `!`; Zwischenstand → `@` (nie als
+  MR-Titel). Eine Verhaltensänderung pro Commit.
 - ✅ Branch: `feat/<scope>-<slug>` · `fix/<problem>` · `docs/<scope>` — real
   Konvention aus diesem Repo, granular pro Aufgabe: `feat/p2-t2.5-webauthn`,
   `fix/k7-recovery-race-under-load`, `docs/epic-p0-retro`. Ein
@@ -98,29 +102,29 @@ Anweisung gedeckt.
 ### 2. Pre-Commit Checks
 
 Dieselben Gates wie [`gates`](../gates/SKILL.md): `npm test && npm run lint
-&& npm run typecheck`. Es gibt kein lokales Git-Hook-System in diesem
-Repo (kein `pre-commit`) — die drei Kommandos oben sind die einzige Prüfung
-vor dem Commit, die CI (`.gitlab-ci.yml`) wiederholt sie danach.
+&& npm run typecheck`. Einziger lokaler Hook ist `.githooks/commit-msg`
+(Commit-Notation, von `npm install` eingerichtet); `npm run gate` prüft
+zusätzlich alle Commits des Branches (`check:commits`).
 
 ### 3. Commit
 
 ```text
-feat(adapter-local-llm): stream parsing for llama.cpp server
+^ F adapter-local-llm: Stream des llama.cpp-Servers lesen
 
-fix(eventstore): survive hard restart without losing tail events
+^ B eventstore: harter Neustart verliert keine Tail-Events (BUG-0003)
 
-docs(adr): swarm adapter context and steer/approval gap
+. d adr: Kontext für den Swarm-Adapter
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 ```
 
-Subject ≤ ~72 Zeichen, Imperativ, Scope = Package/Bereich. Keine Secrets.
+Zusammenfassung ≤ 100 Zeichen, Bereich = Paket/Modul. Keine Secrets.
 
 ### 4. MR (GitLab) — push, öffnen, mergen, in dieser Reihenfolge
 
 ```bash
 git push -u origin feat/adapter-local-llm
-glab mr create --title "feat(adapter-local-llm): stream parsing" --description "$(cat mr-desc.md)"
+glab mr create --title "^ F adapter-local-llm: Stream des llama.cpp-Servers lesen" --description "$(cat mr-desc.md)"
 glab mr merge <mr-number> --yes   # Self-Merge zulässig (Solo-Projekt, siehe Kadenz oben)
 ```
 

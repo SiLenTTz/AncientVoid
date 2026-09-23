@@ -52,6 +52,7 @@ Markdown-Suche; Indexpfade und Host-/Worktree-Grenzen erhalten eindeutige Anker.
 - [ ] **T7.5 — Harness-Parität und Anhänge.** Swarm-Gates/Kinder, Aider/DeepSeek/local-llm live abnehmen; Bilder/Dateien/mehrzeilige Antworten pro echter Capability, ohne große Event-Payloads; kein Steuerbutton für Observer. K3/K5/K7/K9.
 - [ ] **T7.6 — Dateien, Quellcode und Arbeitsresultate.** Lokale Code-Suche und Dateiviewer mit Zeilenankern, Diff-Verweis, Worktree-Identität; registrierte Test/Git/Tool-Aktionen mit Schemas, Ausführungsstatus und Policy. K3/K5; PRD §6.2/§8.
 - [ ] **T7.7 — Ehrliche Messwerte.** Token-Erfassung von Kostenfähigkeit entkoppeln, unknown/partial/estimated/native, Account-Quota und Session-Nutzung unterscheiden; ADR für betroffene Contracts und bestehende ADR-0006-Annahmen. K5/K7; PRD §9/R9.7.
+- [ ] **T7.9 — System-1-Gatekeeper für Tool-Freigaben (Laya-Prinzip).** Lokales Modell (llama.cpp auf evox2, T7.5) bewertet jede Tool-Anfrage aus T7.2 feldweise mit Enum-Grammatik und Logprobs: `tool_risk` (READ_ONLY/LOCAL_WRITE/DESTRUCTIVE/EXFILTRATION) und `security_gate` (CLEAN/WARNING/CRITICAL_BLOCK). Ergebnis als Badge auf der Freigabe-Karte; `CRITICAL_BLOCK` stuft auf `destructive` (Passkey) hoch. Fail-closed-Schwellen im Code, Prompt auf UACC-Regeln (ADR-0007, Worktree-Grenzen, Secrets) umgeschrieben, Kalibrierung auf eigenen Tool-Anfragen. Verschärft nur, gibt **nie** frei. Sprach-Intents bleiben in P10.
 - [x] **T7.8 — Nachgebauter `claude`-CLI im E2E-Gate (AI-P5-3).** stream-json wie `adapter-claude/normalize.ts` erwartet; entsperrt den Skill-Picker-Test (`fixme`) und prüft den Claude-Fehlerpfad (ADR-0015) im Browser. Stand 2026-09-23: `e2e/support/bin/claude` (Formen aus den echten 2.1.280-Captures, Schlüsselwörter WERKZEUG/FEHLER/LANGSAM), im Test-Hub registriert; Skill-Picker-Test statt `fixme`, Tool-Aufruf und Fehlerpfad im Browser (`harness.spec.ts`). Skill-Picker richtet sich nach `features` (ADR-0018).
 
 ## 5. Acceptance Criteria
@@ -61,6 +62,7 @@ Markdown-Suche; Indexpfade und Host-/Worktree-Grenzen erhalten eindeutige Anker.
 - **AC-P7-3 (K7):** Crash vor Entscheidung, nach Entscheidung und während Dispatch: keine verlorene Anfrage, kein blind doppelter Side-Effect, ungewisser Zustand sichtbar.
 - **AC-P7-4:** Mindestens Text, Bild und Datei durch den jeweils fähigen Harness; ungeeigneter Provider gibt verständlichen Fehler vor Upload/Dispatch. Alle Event-Payloads ≤ 4 KB.
 - **AC-P7-5:** MCP hat weiterhin drei Meta-Tools und < 1.000 statische Tokens mit benanntem Tokenizer; Agent kann seine eigene Approval nicht bestätigen.
+- **AC-P7-7 (T7.9):** Der Gatekeeper bewertet reale Tool-Anfragen lokal (kein Egress), jedes Feld nur mit einem erlaubten Wert; Unsicherheit oder Ausfall führt zur strengeren Stufe; keine Anfrage wird durch ihn freigegeben; Trefferquote und Latenz auf einem gelabelten Satz eigener Anfragen im Messlauf belegt.
 - **AC-P7-6:** Bekannte Funktion in .ts und .py durch lokale Suche mit korrektem Zeilenanker auffindbar; kein Such-Egress. Fehlende Kosten/Tokens erscheinen nie als bestätigte Null.
 
 ## 6. Premortem

@@ -66,7 +66,11 @@ sich bewegen.
 
 ## Commits / PRs
 
-- Conventional Commments (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`).
+- **Commit-Notation** (Arlo): `<Risiko> <Absicht> <bereich>: <Satz>`, z. B.
+  `^ F pwa: Einladung als QR-Code`. Risiko `.`/`^`/`!`/`@`, Absicht
+  `F B r d t e a m` — Kriterien in [`docs/commit-notation.md`](docs/commit-notation.md).
+  Der `commit-msg`-Hook (`npm install` richtet ihn ein) und `npm run
+  check:commits` im Gate prüfen das. Gilt auch für MR-Titel.
 - Ein Thema pro PR; Contract-Änderungen getrennt von Implementierungen.
 - CI (GitLab) führt `test`, `lint`, `typecheck` aus — grün vor Merge.
 - **Merge passiert ausschließlich über die GitLab-MR** (`glab mr merge` oder

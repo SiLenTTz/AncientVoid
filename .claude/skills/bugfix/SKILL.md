@@ -66,7 +66,7 @@ Fehlt die Datei unter `bugs/`: zuerst [`bug-report`](../bug-report/SKILL.md).
 ### 4. Finalize
 
 1. Branch nur auf Anweisung: `fix/<slug>` (`git-workflow`).
-2. Conventional Commit `fix(<scope>): …`.
+2. Commit `^ B <bereich>: … (BUG-NNNN)` nach `docs/commit-notation.md` (`!` wenn nur live belegt).
 3. MR: `glab mr create --description-file <datei>` mit Repro, Root-cause, Test, Gates.
 4. **Handoff an [`pr-review`](../pr-review/SKILL.md).** Nicht selbst mergen.
 
