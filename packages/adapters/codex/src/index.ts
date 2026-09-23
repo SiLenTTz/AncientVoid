@@ -12,6 +12,7 @@ import type {
   WorkerProcess,
 } from "@uacc/contracts";
 import { normalizeCodexLine, summarize } from "./normalize.ts";
+import { createAppServerAdapter } from "./app-server.ts";
 
 /**
  * codex adapter (P1, T1.3). Spawns the real CLI via ctx.spawnWorker (never
@@ -37,6 +38,12 @@ const CodexConfig = z.object({
   sandbox: z.enum(["read-only", "workspace-write", "danger-full-access"]).default("workspace-write"),
   extraArgs: z.array(z.string()).default([]),
   expectedVersion: z.string().optional(),
+  /** T7.2: "app-server" — one persistent `codex app-server` per session with
+   * native approvals, questions, model catalog and quota (ADR-0018 §3).
+   * "exec" — one `codex exec` per turn, tools only sandboxed. */
+  mode: z.enum(["exec", "app-server"]).default("app-server"),
+  /** app-server only: when codex asks before a command or file change. */
+  approvalPolicy: z.enum(["untrusted", "on-request", "never"]).default("untrusted"),
 });
 type CodexConfig = z.infer<typeof CodexConfig>;
 
@@ -61,6 +68,7 @@ interface SessionMeta {
 
 export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapter {
   const cfg: CodexConfig = CodexConfig.parse(config ?? {});
+  if (cfg.mode === "app-server") return createAppServerAdapter(cfg);
   const procs = new Map<string, WorkerProcess>();
   const sessions = new Map<string, SessionMeta>();
 

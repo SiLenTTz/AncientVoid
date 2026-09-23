@@ -126,3 +126,36 @@ test.describe("ACP-Harness (T7.2)", () => {
     });
   });
 });
+
+test.describe("Codex app-server (T7.2)", () => {
+  test("Modellkatalog aus model/list, Befehl fragt vorher, Kontingent sichtbar", async ({ app, hub }) => {
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Adapter").selectOption("codex");
+    await expect(app.getByLabel("Modell").locator("option")).toHaveText(["Standard des Harness", "GPT-6-Astra", "GPT-5.3-Codex"]);
+    await app.getByLabel("Modell").selectOption("gpt-6-astra");
+    await app.getByPlaceholder("Refactore den Auth-Flow…").fill("Bitte WERKZEUG");
+    await app.getByRole("button", { name: "Starten" }).click();
+    await app.getByRole("button", { name: "Chat" }).click();
+    const card = app.locator(".session-approvals .approval-card");
+    await expect(card.locator(".tool-input")).toHaveText("echo hallo-codex");
+    await card.getByRole("button", { name: "Erlauben" }).click();
+    await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · Codex · Ausgabe hallo-codex \(accept\)/)).toBeVisible();
+    await expect(app.locator(".topbar .pill")).toHaveText("idle");
+    await app.goto(hub.origin);
+    await app.getByRole("button", { name: "Status" }).click();
+    // ADR-0004 Nachtrag: codex quota from account/rateLimits — 12 % of 5 h used
+    await expect(app.locator(".provider-card").filter({ hasText: "codex" })).toContainText(/5 ?h[^0-9]*12/);
+  });
+
+  test("eine Codex-Rückfrage wird am Handy beantwortet", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "codex", prompt: "FRAGE" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const card = app.locator(".session-approvals .approval-card");
+    await expect(card.locator(".question-text")).toHaveText("Welche Farbe?");
+    await card.getByRole("button", { name: "Rot" }).click();
+    await card.getByRole("button", { name: "Antworten" }).click();
+    await expect(app.getByText(/Gewählt: Rot/)).toBeVisible();
+  });
+});
+

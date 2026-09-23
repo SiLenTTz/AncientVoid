@@ -60,7 +60,7 @@ function withVersionHandshake(
 
 describe("codex adapter — lifecycle against a real captured stream", () => {
   it("identity + capabilities are honest", () => {
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     expect(adapter.id).toBe("codex");
     expect(adapter.version).toMatch(/^\d+\.\d+\.\d+/);
     // cost: true (T1.11) — codex has no native $ figure, but pricing.ts
@@ -75,14 +75,14 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
       nativeResume: "native",
     });
     expect(adapter.capabilities().features).toMatchObject({ followUp: true, toolGate: "sandbox", questions: false });
-    expect(createAdapter({ sandbox: "danger-full-access" }).capabilities().features.toolGate).toBe("bypass");
+    expect(createAdapter({ mode: "exec", sandbox: "danger-full-access" }).capabilities().features.toolGate).toBe("bypass");
     expect(typeof adapter.recover).toBe("function"); // ADR-0014
   });
 
   it("start() emits schema-valid events from a chunked, split-mid-line stream", async () => {
     const content = loadFixture("tool-use.jsonl");
     const ctx = makeRecordingContext({ spawnWorker: withVersionHandshake(() => fakeCodexProcess(content, 29)) });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
 
     const handle = await adapter.start({ adapter: "codex", project: "/tmp", prompt: "run echo" }, ctx);
     expect(handle.sessionId).toBe(ctx.sessionId);
@@ -106,7 +106,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     const ctx = makeRecordingContext({
       spawnWorker: withVersionHandshake(() => fakeCodexProcess(loadFixture("trivial-text.jsonl"))),
     });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     const handle = await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
 
     await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete"));
@@ -118,7 +118,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     const ctx = makeRecordingContext({
       spawnWorker: withVersionHandshake(() => fakeCodexProcess(loadFixture("trivial-text.jsonl"), undefined, 1)),
     });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     const handle = await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
 
     let state = "healthy";
@@ -140,7 +140,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     const ctx = makeRecordingContext({
       spawnWorker: withVersionHandshake(() => fakeCodexProcess(content, undefined, 1)),
     });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     const handle = await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
     await waitFor(() => ctx.events.some((e) => e.summary.includes("unhandled stream-json type")));
     // The degraded flag and the abnormal exit both land within the same
@@ -164,7 +164,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
         return { ...proc, kill: async () => { killed = true; } };
       }),
     });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     const handle = await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
     await adapter.stop(handle, ctx);
     expect(killed).toBe(true);
@@ -179,7 +179,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
         return fakeCodexProcess(loadFixture("trivial-text.jsonl"));
       }),
     });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     const handle = await adapter.start({ adapter: "codex", project: "/tmp", prompt: "first" }, ctx);
     await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete"));
 
@@ -199,7 +199,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
         return fakeCodexProcess(loadFixture("trivial-text.jsonl"));
       }),
     });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     const handle = await adapter.start(
       { adapter: "codex", project: "/tmp", prompt: "first", model: "gpt-5.3-codex" },
       ctx,
@@ -225,7 +225,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
         return fakeCodexProcess(loadFixture("trivial-text.jsonl"));
       }),
     });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     await adapter.start({ adapter: "codex", project: "/tmp", prompt: "first" }, ctx);
     await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "codex.turn_complete"));
     expect(spawnedCmds[0]).not.toContain("--model");
@@ -237,7 +237,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     const ctx = makeRecordingContext({
       spawnWorker: withVersionHandshake(() => fakeCodexProcess(loadFixture("trivial-text.jsonl"))),
     });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     await adapter.start(
       { adapter: "codex", project: "/tmp", prompt: "first", args: { skill: "bugfix" } },
       ctx,
@@ -255,7 +255,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
         return fakeCodexProcess(loadFixture("trivial-text.jsonl"));
       }),
     });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     await adapter.start(
       { adapter: "codex", project: "/tmp", prompt: "first", args: { skill: "neon", skillChain: ["task", "neon"] } },
       ctx,
@@ -266,7 +266,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
 
   it("steer(prompt) before any thread_id is captured is an honest no", async () => {
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeCodexProcess("") });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     const handle = await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
     const ack = await adapter.steer(handle, { kind: "prompt", text: "too soon" }, ctx);
     expect(ack.ok).toBe(false);
@@ -274,7 +274,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
 
   it("steer(resume) is an honest no, not a fake success", async () => {
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeCodexProcess("") });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     const handle = await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
     const ack = await adapter.steer(handle, { kind: "resume" }, ctx);
     expect(ack.ok).toBe(false);
@@ -284,7 +284,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     const mismatchCtx = makeRecordingContext({
       spawnWorker: withVersionHandshake(() => fakeCodexProcess("")),
     });
-    const mismatchAdapter = createAdapter({ expectedVersion: "9.9.9" });
+    const mismatchAdapter = createAdapter({ mode: "exec", expectedVersion: "9.9.9" });
     await mismatchAdapter.start({ adapter: "codex", project: "/tmp" }, mismatchCtx);
     const mismatchEvent = mismatchCtx.events.find(
       (e) => (e.payload as { kind?: string }).kind === "codex.version_handshake",
@@ -295,7 +295,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     const matchCtx = makeRecordingContext({
       spawnWorker: withVersionHandshake(() => fakeCodexProcess("")),
     });
-    const matchAdapter = createAdapter({ expectedVersion: "0.153" });
+    const matchAdapter = createAdapter({ mode: "exec", expectedVersion: "0.153" });
     // Must not throw/abort even on mismatch above, and must resolve to a
     // healthy session when the version does match.
     const handle = await matchAdapter.start({ adapter: "codex", project: "/tmp" }, matchCtx);
@@ -307,7 +307,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
   it("an unhandled event type flips status() to degraded", async () => {
     const content = '{"type":"thread.started","thread_id":"x"}\n{"type":"some_future_type"}\n';
     const ctx = makeRecordingContext({ spawnWorker: withVersionHandshake(() => fakeCodexProcess(content)) });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     const handle = await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
     await waitFor(() => ctx.events.some((e) => e.summary.includes("unhandled stream-json type")));
     expect((await adapter.status(handle)).state).toBe("degraded");
@@ -316,13 +316,13 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
   it("a malformed JSON line becomes a visible system event, not a crash", async () => {
     const content = '{"type":"thread.started","thread_id":"x"}\n{not json\n';
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeCodexProcess(content) });
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
     await waitFor(() => ctx.events.some((e) => e.summary.includes("non-JSON stdout line")));
   });
 
   it("ADR-0014: recover() without a surviving worker resumes the recorded thread on the next prompt", async () => {
-    const adapter = createAdapter();
+    const adapter = createAdapter({ mode: "exec" });
     expect(await adapter.recover!("s1", 0, makeRecordingContext({ adoptWorker: async () => null, nativeSessionId: null }))).toBeNull();
     const spawned: string[][] = [];
     const ctx = makeRecordingContext({

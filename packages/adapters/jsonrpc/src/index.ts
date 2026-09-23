@@ -1,5 +1,6 @@
 /**
- * JSON-RPC 2.0 over newline-delimited stdio — the ACP transport. The agent
+ * JSON-RPC 2.0 over newline-delimited stdio — the transport of ACP agents
+ * and `codex app-server`. The agent
  * writes responses, notifications and its own requests (permission) to
  * stdout; we write to its stdin. A tmux pane may add `\r`; lines that are
  * not JSON (agent logs on the same pane) are handed to `onNoise`.
@@ -21,7 +22,7 @@ export class RpcError extends Error {
   }
 }
 
-export class AcpConnection {
+export class JsonRpcConnection {
   private nextId = 1;
   private buffer = "";
   private readonly pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();

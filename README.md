@@ -58,7 +58,7 @@ Welche Funktion jeder Harness wirklich hat (Folgeprompt, Anhalten, Tool-Freigabe
 |---|---|---|---|---|---|---|---|---|
 | `dummy` | synthetisch | ✓ | ✓ | — | ✓ | — | proven | P0 |
 | `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | ✓ | proven | P1 |
-| `codex` | CLI (exec JSON) | ✓ | ✓ | ~ | ✓ | — | proven | P1 |
+| `codex` | CLI (`app-server` JSON-RPC, früher `exec`) | ✓ | ✓ | ~ | ✓ | ✓ | proven | P1 |
 | `opencode` | CLI (`--format json`) | ✓ | ✓ | ✓ | ✓ | — | proven | P3 |
 | `copilot` | CLI (`--output-format json`) | — | ✓ | — | ✓ | — | proven (echte, authentifizierte GitHub-Copilot-CLI 1.0.86 auf dieser Maschine, echte Live-Captures inkl. Tool-Erfolg/-Fehler) | P3 |
 | `swarm` | custom-rag Coding-Swarm REST | ✓ | ✓ | ✓ | ✓ | ? | geplant (Spec real, keine Live-Instanz) | P3 |
