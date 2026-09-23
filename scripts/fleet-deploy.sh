@@ -23,11 +23,13 @@ if ! git diff --quiet HEAD; then
   echo "uncommitted changes — deploy only committed code" >&2
   exit 1
 fi
-[ -f packages/pwa/dist/index.html ] || npm -w @uacc/pwa run build
+[ -f apps/pwa/dist/index.html ] || npm -w @uacc/pwa run build
 
 echo "== code $(git rev-parse --short HEAD) → $target:~/mobile-hub"
-git archive --format=tar HEAD | ssh "$target" 'mkdir -p ~/mobile-hub && tar -x -C ~/mobile-hub'
-tar -c -C packages/pwa dist | ssh "$target" 'mkdir -p ~/mobile-hub/packages/pwa && rm -rf ~/mobile-hub/packages/pwa/dist && tar -x -C ~/mobile-hub/packages/pwa'
+# Code dirs are replaced, not merged: files moved away in the repo must not
+# linger as stale workspaces (ADR-0020 moved packages/server to apps/hub).
+git archive --format=tar HEAD | ssh "$target" 'mkdir -p ~/mobile-hub && rm -rf ~/mobile-hub/apps ~/mobile-hub/packages && tar -x -C ~/mobile-hub'
+tar -c -C apps/pwa dist | ssh "$target" 'mkdir -p ~/mobile-hub/apps/pwa && rm -rf ~/mobile-hub/apps/pwa/dist && tar -x -C ~/mobile-hub/apps/pwa'
 
 echo "== dependencies"
 ssh "$target" 'cd ~/mobile-hub && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci --no-audit --no-fund --loglevel=error'
@@ -43,6 +45,8 @@ host_id="$(dec "$1")"; tailnet_ip="$(dec "$2")"; project_root="$(dec "$3")"; ada
 config="$HOME/.config/uacc/hub.config.json"
 mkdir -p "$HOME/.config/uacc" "$HOME/.local/share/uacc" "$HOME/.config/systemd/user" "$project_root"
 chmod 700 "$HOME/.local/share/uacc"
+# ADR-0020: configs written before the move point pwaDir at packages/pwa.
+[ -f "$config" ] && sed -i 's#/mobile-hub/packages/pwa/dist#/mobile-hub/apps/pwa/dist#' "$config"
 if [ ! -f "$config" ]; then
   cat > "$config" <<JSON
 {
@@ -50,7 +54,7 @@ if [ ! -f "$config" ]; then
   "dataDir": "$HOME/.local/share/uacc",
   "workerRunner": "tmux",
   "projectRoots": ["$project_root"],
-  "server": { "host": "$tailnet_ip", "port": 7373, "pwaDir": "$HOME/mobile-hub/packages/pwa/dist" },
+  "server": { "host": "$tailnet_ip", "port": 7373, "pwaDir": "$HOME/mobile-hub/apps/pwa/dist" },
   "adapters": $adapters
 }
 JSON
@@ -67,7 +71,7 @@ After=network-online.target
 WorkingDirectory=%h/mobile-hub
 Environment=UACC_CONFIG=%h/.config/uacc/hub.config.json
 Environment=PATH=%h/.local/share/mise/shims:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=$(command -v node) packages/server/src/main.ts
+ExecStart=$(command -v node) apps/hub/src/main.ts
 Restart=on-failure
 RestartSec=3
 

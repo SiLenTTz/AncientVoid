@@ -1,0 +1,135 @@
+import type { SessionRecord } from "@uacc/contracts";
+import type { HubDatabase } from "../../platform/index.ts";
+
+/** Raw SQLite row shape (snake_case) for the sessions table. */
+export interface SessionRow {
+  id: string;
+  adapter: string;
+  project: string;
+  worktree_sha: string | null;
+  model: string | null;
+  status: string;
+  created_at: string;
+  budget_usd: number | null;
+  adapter_version: string;
+  last_seq: number;
+  cost_usd: number;
+  updated_at: string;
+  tokens_est: number;
+  park_reason: string | null;
+  control_mode: string;
+  harness: string;
+  host_id: string;
+  native_session_id: string | null;
+  resume_version: number;
+  log_offset: number | null;
+  parent_session_id: string | null;
+  observed_at: string | null;
+  fork: number;
+  input_revision: number;
+  writer_client: string | null;
+  writer_lease_until: string | null;
+  archived: number;
+  title: string | null;
+}
+
+export function rowToRecord(row: SessionRow): SessionRecord {
+  return {
+    id: row.id,
+    adapter: row.adapter,
+    project: row.project,
+    worktreeSha: row.worktree_sha,
+    model: row.model,
+    status: row.status as SessionRecord["status"],
+    createdAt: row.created_at,
+    budgetUsd: row.budget_usd,
+    adapterVersion: row.adapter_version,
+    lastSeq: row.last_seq,
+    costUsd: row.cost_usd,
+    updatedAt: row.updated_at,
+    tokensEst: row.tokens_est,
+    parkReason: row.park_reason as SessionRecord["parkReason"],
+    controlMode: row.control_mode as SessionRecord["controlMode"],
+    harness: row.harness as SessionRecord["harness"],
+    hostId: row.host_id,
+    nativeSessionId: row.native_session_id,
+    resumeVersion: row.resume_version,
+    logOffset: row.log_offset,
+    parentSessionId: row.parent_session_id,
+    observedAt: row.observed_at,
+    fork: row.fork === 1,
+    inputRevision: row.input_revision,
+    writerClient: row.writer_client,
+    writerLeaseUntil: row.writer_lease_until,
+    archived: row.archived === 1,
+    title: row.title ?? null,
+  };
+}
+
+export function persistRecord(db: HubDatabase, record: SessionRecord): void {
+  db
+    .prepare(
+      `INSERT INTO sessions (
+         id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq,
+         cost_usd, updated_at, tokens_est, park_reason, control_mode, harness, host_id, native_session_id,
+         resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until,
+         archived, title
+       )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         status = excluded.status,
+         model = excluded.model,
+         worktree_sha = excluded.worktree_sha,
+         budget_usd = excluded.budget_usd,
+         adapter_version = excluded.adapter_version,
+         last_seq = excluded.last_seq,
+         cost_usd = excluded.cost_usd,
+         updated_at = excluded.updated_at,
+         tokens_est = excluded.tokens_est,
+         park_reason = excluded.park_reason,
+         control_mode = excluded.control_mode,
+         harness = excluded.harness,
+         host_id = excluded.host_id,
+         native_session_id = excluded.native_session_id,
+         resume_version = excluded.resume_version,
+         log_offset = excluded.log_offset,
+         parent_session_id = excluded.parent_session_id,
+         observed_at = excluded.observed_at,
+         fork = excluded.fork,
+         input_revision = excluded.input_revision,
+         writer_client = excluded.writer_client,
+         writer_lease_until = excluded.writer_lease_until,
+         archived = excluded.archived,
+         title = excluded.title`,
+    )
+    .run(
+      record.id,
+      record.adapter,
+      record.project,
+      record.worktreeSha,
+      record.model,
+      record.status,
+      record.createdAt,
+      record.budgetUsd,
+      record.adapterVersion,
+      record.lastSeq,
+      record.costUsd,
+      record.updatedAt,
+      record.tokensEst,
+      record.parkReason,
+      record.controlMode,
+      record.harness,
+      record.hostId,
+      record.nativeSessionId,
+      record.resumeVersion,
+      record.logOffset,
+      record.parentSessionId,
+      record.observedAt,
+      record.fork ? 1 : 0,
+      record.inputRevision,
+      record.writerClient,
+      record.writerLeaseUntil,
+      record.archived ? 1 : 0,
+      record.title,
+    );
+}

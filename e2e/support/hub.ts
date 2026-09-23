@@ -54,7 +54,7 @@ function makeProject(root: string, name: string, readme: string, extra: Record<s
 }
 
 /**
- * One real hub process (packages/server/src/main.ts) on its own data dir,
+ * One real hub process (apps/hub/src/main.ts) on its own data dir,
  * port, projects, token and — for the tmux runner — its own tmux server.
  * Provider CLIs are the stand-ins in e2e/support/bin; nothing reaches a
  * cloud provider or the user's own hub, tmux sessions, qmd index or
@@ -113,7 +113,7 @@ export class TestHub {
       workerRunner: this.options.runner ?? "process",
       projectRoots: [this.projectsDir],
       requireStepApprovals: this.options.requireStepApprovals ?? false,
-      server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "packages/pwa/dist") },
+      server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
       discovery: { claudeDir: join(this.root, "claude"), cursorUserDir: join(this.root, "cursor") },
       adapters: [
         {
@@ -141,7 +141,7 @@ export class TestHub {
     mkdirSync(this.dataDir, { recursive: true });
     const out = execFileSync(
       process.execPath,
-      [join(repoRoot, "packages/hubctl/src/cli.ts"), "token", "issue", "e2e", "--db", join(this.dataDir, "hub.db")],
+      [join(repoRoot, "apps/hubctl/src/cli.ts"), "token", "issue", "e2e", "--db", join(this.dataDir, "hub.db")],
       { cwd: repoRoot, encoding: "utf8" },
     );
     const token = out.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("token for"));
@@ -160,7 +160,7 @@ export class TestHub {
     };
     delete env.TMUX;
     const log = createWriteStream(this.logPath, { flags: "a" });
-    const child = spawn(process.execPath, [join(repoRoot, "packages/server/src/main.ts")], {
+    const child = spawn(process.execPath, [join(repoRoot, "apps/hub/src/main.ts")], {
       cwd: repoRoot,
       env,
       stdio: ["ignore", "pipe", "pipe"],

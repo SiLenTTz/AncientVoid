@@ -1,0 +1,18 @@
+/* Global stylesheet, split by topic (ADR-0020). The order below IS the
+ * cascade order of the former styles.css — keep it when adding a file. */
+@import "./01-base.css";
+@import "./02-layout.css";
+@import "./03-session-cards.css";
+@import "./04-chips-and-forms.css";
+@import "./05-composer.css";
+@import "./06-overview.css";
+@import "./07-approvals.css";
+@import "./08-session-events.css";
+@import "./09-skill-picker.css";
+@import "./10-voice-and-dock.css";
+@import "./11-report-and-diff.css";
+@import "./12-search.css";
+@import "./13-status-and-inventory.css";
+@import "./14-notifications.css";
+@import "./15-run-strip.css";
+@import "./16-fleet.css";

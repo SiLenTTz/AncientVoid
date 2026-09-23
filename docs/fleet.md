@@ -24,7 +24,7 @@ scripts/fleet-deploy.sh <user>@<name>.<tailnet>.ts.net <host-id> <tailnet-ip> <p
 
 ## Koppeln
 
-1. Auf dem neuen Rechner: `cd ~/mobile-hub && node packages/hubctl/src/cli.ts fleet invite --db ~/.local/share/uacc/hub.db`
+1. Auf dem neuen Rechner: `cd ~/mobile-hub && node apps/hubctl/src/cli.ts fleet invite --db ~/.local/share/uacc/hub.db`
    (oder dessen PWA → Einstellungen → „Einladungscode erzeugen“).
 2. In der PWA des Heim-Hubs → Einstellungen → „Host hinzufügen“:
    Adresse `http://<name>.<tailnet>.ts.net:7373`, Code eingeben.
@@ -51,7 +51,7 @@ Session; laufende Züge werden übernommen (ADR-0014).
 - Heim-PWA → Einstellungen → Host „Entfernen“: vergisst den Host und
   widerruft das Token dort.
 - Nur sperren, auf dem anderen Rechner:
-  `node packages/hubctl/src/cli.ts token revoke fleet:<heim-host-id> --db ~/.local/share/uacc/hub.db`
+  `node apps/hubctl/src/cli.ts token revoke fleet:<heim-host-id> --db ~/.local/share/uacc/hub.db`
   — neue Anfragen sofort abgelehnt, offene Streams binnen 5 s beendet.
 - Dienst entfernen: `systemctl --user disable --now uacc-hub`.
 

@@ -71,7 +71,7 @@ Merge-Konflikt gegen `origin/main` ist Blocker.
 | 0 Requirements (blocking) | Jedes AC ↔ Code oder Test | Issue/Epic-Task vs. Diff-Matrix |
 | A Tests | betroffene Packages | `npm test` |
 | B Lint/Types | ESLint + tsc | `npm run lint && npm run typecheck` |
-| C PWA-Build | nur bei `packages/pwa/**` | `npm -w @uacc/pwa run build` |
+| C PWA-Build | nur bei `apps/pwa/**` | `npm -w @uacc/pwa run build` |
 | D Architektur | Contract-/AdapterContext-Grenzen, Invarianten | Diff + `_shared/uacc-protected-invariants.md`; optional `ponytail-review` |
 
 #### Gate E — Sekret- und Injektionsscan auf den **hinzugefügten** Zeilen
@@ -81,7 +81,7 @@ Nur `^+`-Zeilen prüfen — der Bestand ist nicht Gegenstand dieses MRs:
 ```bash
 D="git diff origin/main...HEAD"
 $D | grep "^+" | grep -inE "(api_key|secret|password|token|passwd)[\"' ]*[:=][\"' ]*[^\"' ]{6,}"
-$D | grep "^+" | grep -nE "child_process\.(exec|spawn)\(" -- packages/adapter-*/src
+$D | grep "^+" | grep -nE "child_process\.(exec|spawn)\(" -- packages/adapters/*/src
 $D | grep "^+" | grep -nE "\beval\(|\bnew Function\("
 ```
 

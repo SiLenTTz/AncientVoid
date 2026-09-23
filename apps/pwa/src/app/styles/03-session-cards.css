@@ -1,0 +1,191 @@
+/* T1.6-8 (revised per live feedback): a light chases around the card's
+ * border instead of the whole card pulsing — a top-to-bottom sweeping bar
+ * read as "scanning a document", a traveling border ring reads as "this
+ * one is active" without competing with the text inside it.
+ *
+ * Compositor-only by construction: the conic-gradient itself is STATIC
+ * (defined once), the only animated property is `transform: rotate()` on
+ * a pseudo-element — no per-frame paint/mask recompute, same K2 budget as
+ * the old box-shadow pulse. `@property --uacc-glow-angle` registers the
+ * custom property as an interpolatable <angle> so the rotation is a smooth
+ * compositor animation, not a discrete jump. A static ambient glow
+ * (ordinary box-shadow, unanimated) sits behind it for a soft bloom. */
+@property --uacc-glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.session-card.st-working,
+.session-card.st-waiting {
+  position: relative;
+  isolation: isolate;
+}
+
+.session-card.st-working {
+  box-shadow: 0 0 var(--glow-blur) -8px color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.session-card.st-waiting {
+  box-shadow: 0 0 var(--glow-blur) -8px color-mix(in srgb, var(--warn) 60%, transparent);
+}
+
+.session-card.st-working::after,
+.session-card.st-waiting::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 2px;
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: uacc-border-chase var(--glow-dur) linear infinite;
+}
+
+.session-card.st-working::after {
+  background: conic-gradient(
+    from var(--uacc-glow-angle),
+    transparent 0deg,
+    transparent 270deg,
+    color-mix(in srgb, var(--ok) 85%, transparent) 320deg,
+    var(--ok) 340deg,
+    transparent 360deg
+  );
+}
+
+.session-card.st-waiting::after {
+  animation-duration: calc(var(--glow-dur) * 0.55);
+  background: conic-gradient(
+    from var(--uacc-glow-angle),
+    transparent 0deg,
+    transparent 250deg,
+    color-mix(in srgb, var(--warn) 85%, transparent) 310deg,
+    var(--warn) 335deg,
+    transparent 360deg
+  );
+}
+
+@keyframes uacc-border-chase {
+  to {
+    --uacc-glow-angle: 360deg;
+  }
+}
+
+/* Same traveling border as a working session card, on the control that is
+ * actually in flight (Verbessern, Senden, Starten, …). Disabled buttons
+ * otherwise only drop to 50% opacity, which reads as "broken" for as long
+ * as the call takes. */
+.btn.busy,
+.hunk-expand-btn.busy {
+  position: relative;
+  isolation: isolate;
+  opacity: 1;
+  cursor: progress;
+}
+
+.composer-actions .btn.busy:disabled {
+  opacity: 1;
+}
+
+.btn.busy::after,
+.hunk-expand-btn.busy::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 2px;
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: uacc-border-chase var(--glow-dur) linear infinite;
+  background: conic-gradient(
+    from var(--uacc-glow-angle),
+    transparent 0deg,
+    transparent 270deg,
+    color-mix(in srgb, var(--accent) 85%, transparent) 320deg,
+    var(--accent) 340deg,
+    transparent 360deg
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-card.st-working::after,
+  .session-card.st-waiting::after,
+  .btn.busy::after,
+  .hunk-expand-btn.busy::after {
+    animation: none;
+    content: none;
+  }
+  .btn.busy,
+  .hunk-expand-btn.busy {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, var(--bg-chip));
+  }
+  .session-card.st-working {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 45%, var(--bg-chip));
+  }
+  .session-card.st-waiting {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn) 55%, var(--bg-chip));
+  }
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.pill.working {
+  background: color-mix(in srgb, var(--ok) 18%, transparent);
+  color: var(--ok);
+}
+.pill.idle,
+.pill.starting {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+.pill.waiting_approval {
+  background: color-mix(in srgb, var(--warn) 22%, transparent);
+  color: var(--warn);
+}
+.pill.error,
+.pill.stopping {
+  background: color-mix(in srgb, var(--err) 20%, transparent);
+  color: var(--err);
+}
+.pill.parked {
+  background: color-mix(in srgb, var(--fg-dim) 25%, transparent);
+  color: var(--fg-dim);
+}
+.pill.stopped {
+  background: color-mix(in srgb, var(--fg-dim) 15%, transparent);
+  color: var(--fg-dim);
+}
+
+.dim {
+  color: var(--fg-dim);
+  font-size: 12px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 0;
+  scrollbar-width: none;
+}

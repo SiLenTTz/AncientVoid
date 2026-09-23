@@ -12,7 +12,7 @@ start() {
     exit 0
   fi
   UACC_CONFIG="${UACC_CONFIG:-./hub.config.json}" \
-    setsid node packages/server/src/main.ts >>"$LOG" 2>&1 < /dev/null &
+    setsid node apps/hub/src/main.ts >>"$LOG" 2>&1 < /dev/null &
   local pid=$!
   echo "$pid" > "$PIDFILE"
   sleep 1.5

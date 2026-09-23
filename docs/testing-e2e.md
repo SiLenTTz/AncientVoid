@@ -11,8 +11,8 @@ grün sind (siehe [`epics/README.md`](../epics/README.md), Gating).
 
 | Teil | Im Gate | Warum |
 |---|---|---|
-| Hub | echter Prozess `packages/server/src/main.ts`, eigene Konfig | derselbe Boot-Pfad wie in Produktion (Config → DB → Adapter → Recovery → HTTP/WS) |
-| PWA | frischer Build aus `packages/pwa/dist`, Chromium | `globalSetup` baut vor jedem Lauf neu, nie ein altes Bundle |
+| Hub | echter Prozess `apps/hub/src/main.ts`, eigene Konfig | derselbe Boot-Pfad wie in Produktion (Config → DB → Adapter → Recovery → HTTP/WS) |
+| PWA | frischer Build aus `apps/pwa/dist`, Chromium | `globalSetup` baut vor jedem Lauf neu, nie ein altes Bundle |
 | Adapter | echte `@uacc/adapter-dummy` und `@uacc/adapter-opencode` | Adapter-, Worker- und Resume-Code läuft unverändert |
 | Worker | `ProcessRunner`, pro Test umschaltbar auf `TmuxRunner` | tmux läuft auf einem **eigenen** tmux-Server (`TMUX_TMPDIR`) |
 | Provider-CLI | [`e2e/support/bin/opencode`](../e2e/support/bin/opencode) | spricht dasselbe `run --format json`-Protokoll, ohne Cloud und Kosten |

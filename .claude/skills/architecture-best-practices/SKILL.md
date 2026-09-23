@@ -29,6 +29,13 @@ bezahlt sind. Kein Workflow; eine Referenz, die andere Skills anwenden.
 - ✅ EventStore-Pipeline nicht in einer Funktion mit Adapter-Logik mischen.
 - ❌ Hard-coded Session-/Event-Limits außerhalb der Contracts-Konstanten
   (`MAX_EVENT_PAYLOAD_BYTES` etc.).
+- ✅ Struktur nach [ADR-0020](../../../docs/adr/0020-modular-monolith-structure.md):
+  Code nach Fach in Module, jedes Modul mit `index.ts` als einziger
+  Schnittstelle; `platform/` darunter, `contracts` für sich. Neue Datei:
+  erst das Modul bestimmen, dann dort ablegen — nie eine neue flache Datei
+  auf Paketebene. `npm run check:arch` muss grün bleiben.
+- ❌ Dateien über ~400 Zeilen wachsen lassen: vorher nach Verantwortung
+  teilen (Vorbild: `SessionTail.tsx` → EventRow, DiffPane, ReportPane …).
 
 ## Phasen/Prozess
 
@@ -37,8 +44,8 @@ bezahlt sind. Kein Workflow; eine Referenz, die andere Skills anwenden.
 ```text
 Adapter.start(spec, ctx) → ctx.emit(EmittedEvent)
   → EventStore (seq/ts/sessionId zuweisen, K5 erzwingen, JSONL+Snapshot)
-  → WS/SSE-Transport (packages/server)
-  → PWA-Projektion (packages/pwa)
+  → WS/SSE-Transport (apps/hub)
+  → PWA-Projektion (apps/pwa)
 ```
 
 Jede Stufe hat einen Vertrag. Ein Adapter, der EventStore-Internas kennt,

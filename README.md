@@ -28,7 +28,7 @@ Alles ist über Verträge (Contracts) gesteckt, nichts ist im Hub hartverdrahtet
 | Daemon (REST/WS, Auth, PWA-Serving) | `@uacc/server` | — |
 | CLI-Referenzclient | `@uacc/hubctl` | — |
 | PWA (dark-first, offline-tolerant) | `@uacc/pwa` | — |
-| MCP-Gateway-Sidecar (T4.6, default **aus**) | `@uacc/gateway-mcp` | eigene Operationen — s. [dessen README](packages/gateway-mcp/README.md) |
+| MCP-Gateway-Sidecar (T4.6, default **aus**) | `@uacc/gateway-mcp` | eigene Operationen — s. [dessen README](apps/gateway-mcp/README.md) |
 
 ### Eigene Endpunkte anbinden (der normale Weg, kein Fork nötig)
 
@@ -90,15 +90,15 @@ npm test                # alle Packages inkl. Contract-, K5-, K7-Suiten
 npm run lint && npm run typecheck
 
 # Hub starten
-cp packages/server/hub.config.example.json hub.config.json
-node packages/server/src/main.ts            # lauscht auf 127.0.0.1:7373
+cp apps/hub/hub.config.example.json hub.config.json
+node apps/hub/src/main.ts            # lauscht auf 127.0.0.1:7373
 
 # Device-Token ausstellen (einmalig sichtbar)
-node packages/hubctl/src/cli.ts token issue "pixel-9" --db data/hub.db
+node apps/hubctl/src/cli.ts token issue "pixel-9" --db data/hub.db
 
 # Session erzeugen / tailen
-UACC_TOKEN=<token> node packages/hubctl/src/cli.ts sessions
-UACC_TOKEN=<token> node packages/hubctl/src/cli.ts tail <sessionId> -f
+UACC_TOKEN=<token> node apps/hubctl/src/cli.ts sessions
+UACC_TOKEN=<token> node apps/hubctl/src/cli.ts tail <sessionId> -f
 
 # PWA bauen (wird vom Hub unter / ausgeliefert, sobald gebaut)
 npm -w @uacc/pwa run build

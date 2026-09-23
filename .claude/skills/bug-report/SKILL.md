@@ -53,10 +53,10 @@ Datei: `bugs/bug-NNNN-slug.md` aus [`bugs/template.md`](../../../bugs/template.m
 
 Zwei mögliche Wege, je nachdem wo das Symptom sitzt:
 
-- **PWA (Browser):** Hub lokal starten (`node packages/server/src/main.ts`),
+- **PWA (Browser):** Hub lokal starten (`node apps/hub/src/main.ts`),
   PWA bauen/öffnen, den Weg klicken. Nach dem Fehlverhalten: Konsole,
   Netzwerk-Tab, Screenshot nur bei Layout-Bugs (nicht committen).
-- **`hubctl` (CLI):** `UACC_TOKEN=<token> node packages/hubctl/src/cli.ts
+- **`hubctl` (CLI):** `UACC_TOKEN=<token> node apps/hubctl/src/cli.ts
   sessions` / `tail <sessionId> -f` — Repro über Kommandozeile, Output
   zitieren.
 

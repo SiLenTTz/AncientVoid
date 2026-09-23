@@ -20,7 +20,7 @@ Historie):
    (Bedienung nur unten, linsenartige Scrollbars, Sprachsteuerung überall,
    Status-Glow) → Nutzerwahl: **Futuristisch**.
 
-## Farb-Tokens (`packages/pwa/src/styles.css`)
+## Farb-Tokens (`apps/pwa/src/app/styles/`)
 
 Dieselben Variablennamen wie seit P0 — nur die Werte sind neu, jede
 bestehende Komponente re-themt sich automatisch.
@@ -49,7 +49,7 @@ Kontingent-Balken und Primär-Buttons nutzen `--accent`, Session-Status nutzt
 | Token | Wert | Einsatz |
 |---|---|---|
 | `--font-display` | `"Orbitron", system-ui, sans-serif` | Marke, Seiten-/Session-Überschriften — HUD-Charakter, sparsam einsetzen |
-| `--font-mono` | `"JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace` | Fließtext **und** Daten — dieses Projekt war seit P0 monospace-first, T1.6-1 lädt die bisher nur als Fallback-Name genannte Schrift jetzt tatsächlich (`packages/pwa/index.html`) |
+| `--font-mono` | `"JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace` | Fließtext **und** Daten — dieses Projekt war seit P0 monospace-first, T1.6-1 lädt die bisher nur als Fallback-Name genannte Schrift jetzt tatsächlich (`apps/pwa/index.html`) |
 | `--tracking-label` | `0.1em` | Großbuchstaben-Labels (Status-Badges, Reiter) |
 
 Geladen über Google Fonts (`fonts.googleapis.com`/`fonts.gstatic.com`, per
@@ -84,7 +84,7 @@ Scanline über arbeitenden Karten, Orbitron-Headings.
 
 - **P2 (T2.3, Diff-UI):** Hunk-Karten nutzen `--bg-elev`/`--bg-chip`/
   `--radius`, Diff-Add/Del-Farben werden aus `--ok`/`--err` mit
-  `color-mix()` abgeleitet (Muster: `packages/pwa/src/styles.css`, siehe
+  `color-mix()` abgeleitet (Muster: `apps/pwa/src/app/styles/`, siehe
   bestehende `.pill.*`-Regeln) — keine neuen Grün-/Rot-Werte.
 - **P3 (T3.8, Sprachsuche):** Ergebnisliste/Datei-Viewer übernehmen
   `--font-mono` für Code-Snippets, `--accent` für Zeilen-Anker-Highlights.

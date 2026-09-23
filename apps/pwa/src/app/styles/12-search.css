@@ -1,0 +1,201 @@
+/* T3.8 — Sprachsuche (project search + file viewer) */
+
+.search-pane {
+  display: grid;
+  gap: 10px;
+}
+
+.search-form {
+  display: flex;
+  gap: 8px;
+}
+
+.search-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  color: var(--fg);
+  border-radius: var(--radius);
+  padding: 10px;
+  font: inherit;
+  min-height: 44px;
+}
+
+.search-status {
+  font-size: 12px;
+}
+
+.search-results {
+  display: grid;
+  gap: 8px;
+}
+
+.search-result-card {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.search-result-card:active {
+  transform: scale(0.99);
+}
+
+.search-result-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.search-result-file {
+  color: var(--accent);
+}
+
+.search-result-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.search-result-snippet {
+  font-size: 11.5px;
+  color: var(--fg-dim);
+  white-space: pre-wrap;
+  max-height: 96px;
+  overflow: hidden;
+  margin: 0;
+}
+
+.file-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+  z-index: 50;
+}
+
+.file-viewer {
+  background: var(--bg-elev);
+  border-top: 1px solid var(--bg-chip);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  width: 100%;
+  max-height: 85vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.file-viewer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bg-chip);
+}
+
+.file-viewer-body {
+  overflow: auto;
+  padding: 6px 0;
+  position: relative;
+}
+
+/* One continuous <pre><code> block (not per-line spans) so highlight.js
+ * keeps real cross-line context (a fenced code block inside a markdown
+ * file, a multi-line string) — see Search.tsx's FileViewer doc comment.
+ * Line numbers are a separate, purely positional gutter column that
+ * never needs to know where a token's HTML span starts or ends. */
+.file-code-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  padding: 0 12px;
+}
+
+.file-gutter {
+  color: var(--fg-faint);
+  text-align: right;
+  user-select: none;
+}
+
+.file-gutter-row {
+  font-size: 12px;
+  line-height: 19px;
+}
+
+.file-code {
+  margin: 0;
+  font-size: 12px;
+  line-height: 19px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.file-target-bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 19px;
+  background: var(--bg-chip);
+  pointer-events: none;
+}
+
+/* highlight.js token mapping onto this project's own design tokens
+ * (docs/design-system.md) — no new hex values, no imported theme file. */
+.hljs-keyword,
+.hljs-built_in {
+  color: var(--accent);
+}
+.hljs-string,
+.hljs-title.function_ {
+  color: var(--ok);
+}
+.hljs-comment {
+  color: var(--fg-faint);
+  font-style: italic;
+}
+.hljs-number,
+.hljs-literal {
+  color: var(--warn);
+}
+.hljs-attr,
+.hljs-property {
+  color: var(--fg-dim);
+}
+/* Real, verified (T3.8): highlight.js's markdown grammar does NOT
+ * sub-highlight a fenced block's embedded language even with every
+ * relevant sub-language registered (tested against both the "core" build
+ * and the full `highlight.js` bundle — same result either way) — a
+ * fence renders as one plain `hljs-code` span, not per-token Python/TS
+ * colors. Real, useful markdown-level tokens (headings, emphasis, lists,
+ * quotes, links) DO work and are mapped below — the dominant content
+ * this feature actually returns (qmd only indexes markdown files, see
+ * search.ts). */
+.hljs-section {
+  color: var(--accent);
+  font-weight: 700;
+}
+.hljs-strong {
+  font-weight: 700;
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-bullet,
+.hljs-quote {
+  color: var(--fg-dim);
+}
+.hljs-code {
+  color: var(--ok);
+}
+.hljs-link {
+  color: var(--accent);
+  text-decoration: underline;
+}

@@ -23,12 +23,12 @@ Dann nur die Spalten fahren, die betroffen sind.
 | Geändert | Zu fahren |
 |---|---|
 | `packages/contracts/**` | alles (Contract-Änderung propagiert in jedes Package) + ADR-Pflicht (`AGENTS.md` Regel 1) |
-| `packages/adapter-*/**` | `npm test -w <package>` + `@uacc/adapter-testkit`-Contract-Suite |
-| `packages/pwa/**` | `npm -w @uacc/pwa run build` + `npm run typecheck` + `npm run test:e2e` |
+| `packages/adapters/*/**` | `npm test -w <package>` + `@uacc/adapter-testkit`-Contract-Suite |
+| `apps/pwa/**` | `npm -w @uacc/pwa run build` + `npm run typecheck` + `npm run test:e2e` |
 | `e2e/**` | `npm run test:e2e` (scheitert laut ohne Chromium: `npx playwright install chromium`) |
-| `packages/server/src/routes.ts`, `packages/core/src/sessionmanager.ts`, `packages/adapter-*` | zusätzlich `npm run test:e2e` |
+| `apps/hub/src/modules/*`, `packages/core/src/modules/sessions/*`, `packages/adapters/*` | zusätzlich `npm run test:e2e` |
 | Epic- oder Bugfix-MR | `npm run gate` (alles, inkl. E2E) |
-| `packages/server/**`, `packages/core/**`, `packages/workers/**` | `npm test` + `npm run loadtest` bei State-/EventStore-Änderungen (K5/K7/K8) |
+| `apps/hub/**`, `packages/core/**`, `packages/workers/**` | `npm test` + `npm run loadtest` bei State-/EventStore-Änderungen (K5/K7/K8) |
 | `*.md` | kein Gate |
 
 ## Die Kommandos

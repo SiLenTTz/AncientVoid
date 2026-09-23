@@ -26,7 +26,7 @@ dieser Session.
 ## Belege je Zeile
 
 - **claude:** Folgeprompt/Anhalten über `--resume` bzw. Prozessende:
-  `packages/adapter-claude/test/adapter.test.ts` gegen echte Captures
+  `packages/adapters/claude/test/adapter.test.ts` gegen echte Captures
   (`test/fixtures/*.jsonl`), E2E `session.spec.ts`. Modellwahl: Kürzel aus
   `claude --help` (2.1.280). Agent: `--agent` (ADR-0005). Tool-Gate
   `allowlist`: ohne Skip-Flag lehnt `claude -p` jedes Tool ab, das fragen

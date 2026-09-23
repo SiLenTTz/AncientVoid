@@ -25,7 +25,7 @@ const HOSTS = {
   "silenttz-server": { ssh: "silenttz@silenttz-server.tail6d2826.ts.net", project: "/home/silenttz/uacc-alpha" },
   evox2: { ssh: "securesight@evox2-securesight.tail6d2826.ts.net", project: "/home/securesight/uacc-projects/uacc-alpha" },
 };
-const REMOTE_HUBCTL = "cd ~/mobile-hub && node packages/hubctl/src/cli.ts";
+const REMOTE_HUBCTL = "cd ~/mobile-hub && node apps/hubctl/src/cli.ts";
 const REMOTE_DB = "--db ~/.local/share/uacc/hub.db";
 
 function api(path, init = {}) {

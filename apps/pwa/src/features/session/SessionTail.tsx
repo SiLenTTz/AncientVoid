@@ -1,0 +1,487 @@
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { ApiContext } from "../../shared/api-context.ts";
+import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult } from "../../shared/api.ts";
+import { connectTail, type NormalizedEvent, type TailConnection } from "../../shared/ws.ts";
+import { Composer } from "../composer/Composer.tsx";
+import { GlobalDock, type Page } from "../../app/Dock.tsx";
+import { VoiceSheet } from "../voice/VoiceSheet.tsx";
+import { SearchPane } from "../search/Search.tsx";
+import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
+import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
+import { EventRow } from "./EventRow.tsx";
+import { DiffPane } from "./DiffPane.tsx";
+import { ReportPane } from "./ReportPane.tsx";
+
+export function SessionTail({ session, onNavigate }: { session: SessionRecord; onNavigate: (page: Page) => void }) {
+  // EPIC-P6: every call of this view goes to the session's own host.
+  const api = useMemo(() => hostApi(session.hostId), [session.hostId]);
+  const [events, setEvents] = useState<NormalizedEvent[]>([]);
+  const [conn, setConn] = useState<"connecting" | "live" | "reconnecting" | "closed">("connecting");
+  const [filter, setFilter] = useState<FilterPreset>(loadFilter);
+  const [status, setStatus] = useState(session.status);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const tailRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+  // The tail ends exactly where the fixed controls start — measured, not
+  // guessed: a taller composer (draft, recommendation, error) used to cover
+  // the last message.
+  const [tailMaxHeight, setTailMaxHeight] = useState<number | null>(null);
+  const [controlsHidden, setControlsHidden] = useState(() => localStorage.getItem("uacc.controlsHidden") === "1");
+  const connRef = useRef<TailConnection | null>(null);
+
+  // T1.6-3: Chat/Verlauf are the new dock sub-tabs — Chat is exactly the
+  // existing "lesen" preset, Verlauf is "ueberwachen"/"debuggen" with a
+  // small switcher inside it. `filter` stays the single source of truth
+  // (unchanged uacc.filter localStorage key, AC-P1.6-1) so a returning
+  // user's last preset — including which tab that implies — still loads
+  // correctly; lastVerlaufFilter only remembers which of the two Verlauf
+  // presets to restore when hopping back from Chat.
+  const [lastVerlaufFilter, setLastVerlaufFilter] = useState<Exclude<FilterPreset, "lesen">>(() => {
+    const stored = loadFilter();
+    return stored === "lesen" ? "ueberwachen" : stored;
+  });
+  // T1.6-4: Bericht is a third dock tab, orthogonal to the Chat/Verlauf
+  // filter split above — it replaces the event list with a summary pane
+  // instead of filtering it, so it needs its own bit of state rather than
+  // being derived from `filter` like Chat/Verlauf are.
+  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "suche">(() =>
+    loadFilter() === "lesen" ? "chat" : "verlauf",
+  );
+
+  // T1.5-6: the PWA could watch and stop a session, but never reply to
+  // one — POST /api/sessions/:id/steer existed server-side and both real
+  // adapters implement it, nothing in the client ever called it.
+  const [steerSupported, setSteerSupported] = useState(false);
+  // T1.6-4: claude's result line is the one real source for both costUsd
+  // and tokensEst (ADR-0006) — reusing capabilities().cost as the signal
+  // for "this adapter's Bericht numbers are real" avoids inventing a
+  // second capability flag for data that already arrives together.
+  const [reportNumbersReal, setReportNumbersReal] = useState(false);
+  const [reply, setReply] = useState("");
+  const [replyBusy, setReplyBusy] = useState(false);
+  const [replyError, setReplyError] = useState("");
+  // Same text sent again after a failure keeps its input id (BUG-0016).
+  const pendingInput = useRef<{ text: string; id: string } | null>(null);
+  // T5.5: another device holds the writer lease — offer to take it over.
+  const [leaseHeld, setLeaseHeld] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [archived, setArchived] = useState(session.archived === true);
+
+  useEffect(() => {
+    let alive = true;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const load = () =>
+      api
+        .adapters()
+        .then((adapters) => {
+          if (!alive) return;
+          const info = adapters.find((a) => a.id === session.adapter);
+          // Honest per-adapter check, not a blanket "always show a reply
+          // box": an adapter without capabilities.steer gets no reply field
+          // at all rather than one that would silently fail every time.
+          setSteerSupported(info?.capabilities.features?.followUp ?? info?.capabilities.steer ?? false);
+          setReportNumbersReal(info?.capabilities.cost ?? false);
+        })
+        .catch(() => {
+          if (!alive) return;
+          setSteerSupported(false);
+          setReportNumbersReal(false);
+          // BUG-0022: the hub was unreachable while opening — ask again
+          // instead of hiding the reply field until a reload.
+          retry = setTimeout(() => void load(), 3000);
+        });
+    void load();
+    return () => {
+      alive = false;
+      clearTimeout(retry);
+    };
+  }, [session.adapter]);
+
+  useEffect(() => {
+    const base = window.location.origin;
+    connRef.current = connectTail({
+      url: base,
+      token: getToken(),
+      sessionId: session.id,
+      hostId: remoteHost(session.hostId),
+      onEvents: (incoming) => {
+        setEvents((prev) => {
+          const merged = [...prev, ...incoming];
+          return merged.length > 500 ? merged.slice(-500) : merged;
+        });
+      },
+      onState: setConn,
+    });
+    return () => connRef.current?.close();
+  }, [session.id]);
+
+  // T1.6-4: extends the existing 3s status poll to also carry costUsd/
+  // tokensEst/updatedAt for the Bericht tab — not a second independent
+  // timer (same principle as T1.5-3's usage poll).
+  const [record, setRecord] = useState<SessionRecord>(session);
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const rec = await api.session(session.id);
+        setStatus(rec.status);
+        setRecord(rec);
+      } catch {
+        // offline — keep last state
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [session.id]);
+
+  // T1.6-4/T1.6-5: fetched only while Bericht or Diff is the open tab, not
+  // continuously — both are periodic-check views, not a live stream, and
+  // share the one /diff endpoint instead of each fetching it separately.
+  const [diff, setDiff] = useState<SessionDiffResult | null>(null);
+  const [usage, setUsage] = useState<AdapterUsage | null>(null);
+  useEffect(() => {
+    if (activeTab !== "bericht" && activeTab !== "diff") return;
+    let alive = true;
+    api
+      .sessionDiff(session.id)
+      .then((d) => alive && setDiff(d))
+      .catch(() => alive && setDiff(null));
+    if (activeTab === "bericht") {
+      api
+        .adapterUsage(session.adapter)
+        .then((u) => alive && setUsage(u))
+        .catch(() => alive && setUsage(null));
+    }
+    return () => {
+      alive = false;
+    };
+  }, [activeTab, session.id, session.adapter]);
+
+  useEffect(() => {
+    localStorage.setItem("uacc.filter", filter);
+    if (filter !== "lesen") setLastVerlaufFilter(filter);
+  }, [filter]);
+
+  const showChatTab = () => {
+    setActiveTab("chat");
+    setFilter("lesen");
+  };
+  const showVerlaufTab = () => {
+    setActiveTab("verlauf");
+    setFilter(lastVerlaufFilter);
+  };
+  const showBerichtTab = () => setActiveTab("bericht");
+  const showDiffTab = () => setActiveTab("diff");
+  const showSucheTab = () => setActiveTab("suche");
+
+  useEffect(() => {
+    tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
+  }, [events]);
+
+  useEffect(() => {
+    const measure = () => {
+      const tail = tailRef.current;
+      const dock = dockRef.current;
+      if (!tail || !dock) return;
+      const available = window.innerHeight - tail.getBoundingClientRect().top - dock.getBoundingClientRect().height - 8;
+      setTailMaxHeight(Math.max(120, Math.floor(available)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (dockRef.current) observer.observe(dockRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  // Run strip: progress of the current turn and the provider's quota.
+  const [now, setNow] = useState(Date.now());
+  const [quotaUsage, setQuotaUsage] = useState<AdapterUsage | null>(null);
+  useEffect(() => {
+    if (status !== "working") return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [status]);
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      api
+        .adapterUsage(session.adapter)
+        .then((u) => alive && setQuotaUsage(u))
+        .catch(() => undefined);
+    void load();
+    const timer = setInterval(() => void load(), 15_000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [session.adapter]);
+  const progress = runProgress(events, status, now);
+  const quota = quotaSummary(quotaUsage, events);
+
+  const toggleControls = () => {
+    setControlsHidden((hidden) => {
+      localStorage.setItem("uacc.controlsHidden", hidden ? "0" : "1");
+      return !hidden;
+    });
+  };
+
+  const visible = useMemo(() => {
+    const preset = FILTERS.find((f) => f.id === filter)!;
+    return events.filter(preset.keep);
+  }, [events, filter]);
+
+  // T1.8: tool_use <-> tool_result status + anchor navigation, built from
+  // the full (unfiltered) stream so a match isn't missed just because one
+  // side got filtered out under the current preset.
+  const toolResultByToolId = useMemo(() => {
+    const map = new Map<string, NormalizedEvent>();
+    for (const e of events) {
+      if (e.type === "tool_result") {
+        const id = toolIdOf(e);
+        if (id) map.set(id, e);
+      }
+    }
+    return map;
+  }, [events]);
+
+  const toggleExpanded = (seq: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(seq)) next.delete(seq);
+      else next.add(seq);
+      return next;
+    });
+  };
+
+  const jumpTo = (anchor: string) => {
+    document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const toggleArchive = async () => {
+    const next = !archived;
+    try {
+      const updated = await api.setArchived(session.id, next);
+      setArchived(updated.archived === true);
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Archivieren fehlgeschlagen.");
+    }
+  };
+
+  const stop = async () => {
+    // Real bug found live-testing T3.10: this used to swallow every
+    // failure silently (`.catch(() => undefined)`) — the button could do
+    // nothing and the user would have no way to know. Now surfaces a real
+    // failure the same way a rejected reply already does.
+    try {
+      const ack = await api.stopSession(session.id);
+      if (!ack.ok) setReplyError("Stop fehlgeschlagen.");
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Stop fehlgeschlagen.");
+    }
+  };
+
+  const sendReply = async (takeover = false) => {
+    if (!reply.trim()) return;
+    setReplyBusy(true);
+    setReplyError("");
+    setLeaseHeld(false);
+    try {
+      if (pendingInput.current?.text !== reply) pendingInput.current = { text: reply, id: newInputId() };
+      const ack = await api.steer(session.id, { kind: "prompt", text: reply }, pendingInput.current.id, takeover);
+      if (ack.ok) {
+        pendingInput.current = null;
+        setReply("");
+      } else {
+        setLeaseHeld(ack.detail === "writer lease held");
+        // A rejected steer (e.g. claude's "no thread_id captured yet") is
+        // shown, not swallowed — an AC-P1.5-7 requirement, and the same
+        // honesty standard the rest of this app already applies.
+        if (ack.detail === "revision conflict") pendingInput.current = null;
+        setReplyError(steerRejectText(ack.detail));
+      }
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Antwort fehlgeschlagen");
+    } finally {
+      setReplyBusy(false);
+    }
+  };
+
+  // T1.6-3/AC-P1.6-2: no back-arrow up top anymore — "Übersicht" in the
+  // dock below is the one way back, reachable from anywhere with one tap.
+  const showReply = steerSupported;
+  const modelLabel =
+    session.model ??
+    [...events].reverse().find((event) => (event.payload as { kind?: unknown }).kind === "opencode.model")?.payload.model;
+  const shownModel = typeof modelLabel === "string" ? modelLabel : null;
+  const showVerlaufFilterBar = activeTab === "verlauf";
+
+  return (
+    <ApiContext.Provider value={api}>
+    <div>
+      <div class="topbar">
+        <div style="flex: 1; min-width: 0">
+          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+            {session.project.split("/").pop()}
+          </div>
+          <div class="dim">
+            {session.adapter}
+            {shownModel ? ` · ${shownModel}` : ""} · <span class={`pill ${status}`}>{status}</span>
+          </div>
+        </div>
+        <button class="btn" type="button" onClick={toggleArchive}>
+          {archived ? "Zurückholen" : "Archivieren"}
+        </button>
+        <div class={`conn-dot ${conn}`} title={conn} />
+      </div>
+
+      <div class="run-strip">
+        {progress &&
+          (progress.percent !== null ? (
+            <div class="run-progress" title="aus der To-do-Liste des Agenten">
+              <div class="run-bar">
+                <span style={`width: ${progress.percent}%`} />
+              </div>
+              <span>
+                {progress.done}/{progress.total} Aufgaben · {progress.percent} %
+                {progress.etaMs !== null ? ` · noch ca. ${formatMinutes(progress.etaMs)}` : ""}
+              </span>
+            </div>
+          ) : (
+            <div class="run-progress dim">läuft seit {formatMinutes(progress.elapsedMs)} · ohne Plan kein Fortschritt messbar</div>
+          ))}
+        <div class={`run-quota ${quota.level}`}>{quota.text}</div>
+      </div>
+
+      <div
+        ref={tailRef}
+        class="tail-scroll"
+        style={`overflow-y: auto; max-height: ${tailMaxHeight !== null ? `${tailMaxHeight}px` : "60vh"}`}
+      >
+        {activeTab === "bericht" ? (
+          <ReportPane
+            record={record}
+            createdAt={session.createdAt}
+            status={status}
+            numbersReal={reportNumbersReal}
+            diff={diff}
+            usage={usage}
+          />
+        ) : activeTab === "diff" ? (
+          <DiffPane diff={diff} sessionId={session.id} />
+        ) : activeTab === "suche" ? (
+          <SearchPane project={session.project} />
+        ) : visible.length === 0 ? (
+          <div class="empty">
+            {status === "working" || status === "starting"
+              ? `lädt…${shownModel ? ` · ${shownModel}` : ""}`
+              : "keine Nachrichten"}
+          </div>
+        ) : (
+          visible.map((e) => (
+            <EventRow
+              key={e.seq}
+              event={e}
+              expanded={expanded.has(e.seq)}
+              onToggleExpand={() => toggleExpanded(e.seq)}
+              toolResult={e.type === "tool_use" ? toolResultByToolId.get(toolIdOf(e) ?? "") : undefined}
+              onJump={jumpTo}
+            />
+          ))
+        )}
+      </div>
+
+      <div class="dock-stack" ref={dockRef}>
+        <button
+          class="dock-toggle"
+          type="button"
+          aria-label={controlsHidden ? "Steuerung einblenden" : "Steuerung ausblenden"}
+          aria-expanded={!controlsHidden}
+          onClick={toggleControls}
+        >
+          {controlsHidden ? "▴" : "▾"}
+        </button>
+        {!controlsHidden && (showReply || status !== "stopped") && (
+          <div class="dock-actions">
+            {replyError && (
+              <div class="reply-error">
+                {replyError}
+                {leaseHeld && (
+                  <button class="btn" type="button" onClick={() => void sendReply(true)} disabled={replyBusy}>
+                    Übernehmen
+                  </button>
+                )}
+              </div>
+            )}
+            {showReply && (
+              <Composer
+                value={reply}
+                onChange={setReply}
+                placeholder="Antworten…"
+                disabled={replyBusy}
+                adapter={session.adapter}
+                project={session.project}
+                extraActions={
+                  <>
+                    <button
+                      class={replyBusy ? "btn primary busy" : "btn primary"}
+                      aria-busy={replyBusy}
+                      onClick={() => void sendReply()}
+                      disabled={replyBusy || !reply.trim()}
+                    >
+                      {replyBusy ? "lädt…" : status === "stopped" ? "Weiter" : "Senden"}
+                    </button>
+                    {status !== "stopped" && (
+                      <button class="btn danger" onClick={stop}>
+                        Stop
+                      </button>
+                    )}
+                  </>
+                }
+              />
+            )}
+            {!showReply && status !== "stopped" && (
+              <div class="composer-actions">
+                <button class="btn danger" onClick={stop}>
+                  Stop
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {/* AC-P1.6-2: this sub-filter used to sit right under the topbar
+         * (top ~15% zone) — moved down here so every control, not just the
+         * dock/tabs, lives in the thumb zone. */}
+        {!controlsHidden && showVerlaufFilterBar && (
+          <div class="filter-bar dock-filter-bar">
+            {FILTERS.filter((f) => f.id !== "lesen").map((f) => (
+              <button key={f.id} class={`chip ${filter === f.id ? "active" : ""}`} onClick={() => setFilter(f.id)}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div class="subtabs-wrap">
+          <button class={activeTab === "chat" ? "active" : ""} onClick={showChatTab}>
+            Chat
+          </button>
+          <button class={activeTab === "verlauf" ? "active" : ""} onClick={showVerlaufTab}>
+            Verlauf
+          </button>
+          <button class={activeTab === "bericht" ? "active" : ""} onClick={showBerichtTab}>
+            Bericht
+          </button>
+          <button class={activeTab === "diff" ? "active" : ""} onClick={showDiffTab}>
+            Diff
+          </button>
+          <button class={activeTab === "suche" ? "active" : ""} onClick={showSucheTab}>
+            Suche
+          </button>
+        </div>
+        <GlobalDock active={null} onNavigate={onNavigate} onVoice={() => setVoiceOpen(true)} />
+      </div>
+      <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} sessionId={session.id} />
+    </div>
+    </ApiContext.Provider>
+  );
+}

@@ -10,13 +10,13 @@ Test, keine Absichtserklärung ohne Beleg.
 
 ### 1. Netz — kein öffentlicher Port
 
-`packages/server/src/main.ts` bindet standardmäßig `127.0.0.1`; ein
+`apps/hub/src/main.ts` bindet standardmäßig `127.0.0.1`; ein
 öffentliches Binden erfordert das explizite `UACC_EXPOSE=1`-Opt-in. Der
 vorgesehene Zugriffsweg ist `tailscale serve`
 (`scripts/setup-tailscale-serve.sh`) — kein Reverse-Proxy, kein
 öffentlicher DNS-Eintrag. PWA-Auth: optional Tailnet-Identität
 (`enforceTailnetIdentity` + `Tailscale-User-Login`-Header,
-`packages/server/src/auth.ts`) + immer Device-Token
+`apps/hub/src/auth.ts`) + immer Device-Token
 (SHA-256-Hash in SQLite, Klartext nur einmal bei `hubctl token issue`
 gezeigt) + optional WebAuthn für destruktive Freigaben (T2.5).
 
@@ -46,7 +46,7 @@ zu vergrößern.
 
 ### 3. Befehls-Allowlist — nie freie Shell vom Handy
 
-Kein Route-Handler in `packages/server/src/routes.ts` reicht
+Kein Route-Handler in `apps/hub/src/modules/*/*.routes.ts` reicht
 client-geliefertes Freitext an `execFile`/`spawn` durch. `diff.ts`s
 `execFile`-Aufrufe nehmen ausschließlich serverseitig aufgelöste
 Pfade/Refs. Jeder Adapter-Prozess läuft über `ctx.spawnWorker` mit vom
@@ -75,7 +75,7 @@ dem Session-Tail selbst, nicht nur als Zeile in der separaten
 ### 5. Prompt-Injection-Grenze — Agenten-Output ist Daten, nie Instruktion
 
 Kein `dangerouslySetInnerHTML`/`innerHTML` für Agenten-Output irgendwo in
-`packages/pwa/src/*.tsx` — jeder Event-`payload`/`summary`-Wert läuft
+`apps/pwa/src/*.tsx` — jeder Event-`payload`/`summary`-Wert läuft
 durch Preacts normales, auto-escapendes JSX-Rendering.
 
 **Eine bewusste, geprüfte Ausnahme (T3.8, `Search.tsx`s Datei-Viewer):**
