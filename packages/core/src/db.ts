@@ -162,6 +162,26 @@ export const MIGRATIONS: Migration[] = [
     name: "session-title",
     sql: `ALTER TABLE sessions ADD COLUMN title TEXT;`,
   },
+  {
+    id: 11,
+    name: "fleet",
+    sql: `
+      CREATE TABLE fleet_invites (
+        code_hash TEXT PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        used_at TEXT,
+        used_by TEXT
+      );
+      CREATE TABLE fleet_peers (
+        host_id TEXT PRIMARY KEY,
+        url TEXT NOT NULL,
+        token TEXT NOT NULL,
+        protocol_version INTEGER NOT NULL,
+        paired_at TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

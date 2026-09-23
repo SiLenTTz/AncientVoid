@@ -7,7 +7,7 @@ import {
   type NormalizedEvent,
   type WsServerMessage,
 } from "@uacc/contracts";
-import type { SessionManager } from "@uacc/core";
+import type { SessionManager, TokenService } from "@uacc/core";
 import type { HubMetrics } from "@uacc/contracts";
 
 /**
@@ -31,9 +31,20 @@ const MAX_WS_BUFFERED_BYTES = 64 * 1024;
  *    dropped:true — the client resyncs from the store. No backpressure
  *    lag, ever (K2), and no silent loss under a slow real network.
  */
-export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics) {
-  return (socket: WebSocket, req: { params: unknown }) => {
+/** ADR-0017: an open stream stops within this time after its token is revoked. */
+const TOKEN_RECHECK_MS = 2000;
+
+export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics, tokens?: TokenService) {
+  return (socket: WebSocket, req: { params: unknown; query?: unknown }) => {
     metrics?.inc("ws_connects");
+    const raw = (req.query as { token?: unknown } | undefined)?.token;
+    const recheck =
+      tokens && typeof raw === "string"
+        ? setInterval(() => {
+            if (!tokens.identify(raw)) socket.close(4401, "token revoked");
+          }, TOKEN_RECHECK_MS)
+        : undefined;
+    socket.on("close", () => clearInterval(recheck));
     const sessionId = (req.params as { id: string }).id;
     const send = (msg: WsServerMessage) => {
       if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(msg));
@@ -170,6 +181,6 @@ export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics
   };
 }
 
-export function registerWs(app: FastifyInstance, sessions: SessionManager, metrics?: HubMetrics): void {
-  app.get("/api/events/:id/tail", { websocket: true }, createTailHandler(sessions, metrics));
+export function registerWs(app: FastifyInstance, sessions: SessionManager, metrics?: HubMetrics, tokens?: TokenService): void {
+  app.get("/api/events/:id/tail", { websocket: true }, createTailHandler(sessions, metrics, tokens));
 }

@@ -27,3 +27,25 @@ export function toHostId(name: string): string {
     .slice(0, 63);
   return slug.length > 0 ? slug : "hub";
 }
+
+/** Token labels of hubs paired with this one: `fleet:<home hostId>`. */
+export const FLEET_TOKEN_PREFIX = "fleet:";
+
+/**
+ * The only paths a fleet token may use on a peer, and the only ones a home
+ * hub forwards (ADR-0017). Never: tokens, WebAuthn, metrics, fleet admin.
+ */
+const FLEET_ROUTABLE = /^\/api\/(sessions|events|adapters|approvals|discovery|inventory|notifications|projects|search|skills|prompt-enhance|prompt-recommendation|prompt-optimizer)(\/|$)/;
+
+export function isFleetRoutable(path: string): boolean {
+  const bare = path.split("?")[0] ?? path;
+  return FLEET_ROUTABLE.test(bare) && !bare.includes("/webauthn");
+}
+
+/** A paired hub as the home hub shows it — never with its token. */
+export interface FleetPeerView {
+  hostId: string;
+  url: string;
+  protocolVersion: number;
+  pairedAt: string;
+}

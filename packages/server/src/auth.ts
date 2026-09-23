@@ -1,3 +1,4 @@
+import { FLEET_TOKEN_PREFIX, isFleetRoutable } from "@uacc/contracts";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import type { TokenService } from "@uacc/core";
 
@@ -27,6 +28,12 @@ export function checkAuth(req: FastifyRequest, opts: AuthOptions): { ok: true } 
   const token = extractToken(req);
   if (!token) return { ok: false, status: 401, reason: "missing device token" };
   if (!opts.tokens.verify(token)) return { ok: false, status: 401, reason: "invalid device token" };
+  // ADR-0017: a hub's fleet token only reaches what a home hub may forward.
+  const label = opts.tokens.identify(token)?.label ?? "";
+  const path = req.url.split("?")[0] ?? req.url;
+  if (label.startsWith(FLEET_TOKEN_PREFIX) && !isFleetRoutable(path) && path !== "/api/fleet/pairing") {
+    return { ok: false, status: 403, reason: "fleet token not allowed here" };
+  }
   return { ok: true };
 }
 
@@ -36,7 +43,8 @@ export function authHook(opts: AuthOptions) {
     // Strip the query string — `/api/health?foo` must not fall through to 401.
     const path = req.url.split("?")[0] ?? req.url;
     // ADR-0017: hello tells other hubs who this is; no data, no token needed.
-    if (path === "/api/health" || path === "/api/ready" || path === "/api/fleet/hello") return;
+    // Pairing is guarded by its one-time code, not a device token.
+    if (path === "/api/health" || path === "/api/ready" || path === "/api/fleet/hello" || path === "/api/fleet/pair") return;
     // BUG-0006: everything, including the static PWA shell (index.html,
     // its JS/CSS bundle, manifest, service worker), used to require a
     // device token — but a real browser only carries a URL's ?token= on
