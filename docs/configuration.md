@@ -7,7 +7,7 @@ git-ignored — keine Secrets committen.
 ```jsonc
 {
   "dataDir": "./data",                    // SQLite, JSONL, Blobs, Worker-Logs
-  "workerRunner": "tmux",                 // "tmux" | "process" (Fallback)
+  "workerRunner": "tmux",                 // "tmux" (Fallback auf "process", wenn tmux fehlt) | "process"
   "projectRoots": [],                     // T1.5-4: Host-Pfade, deren direkte
                                            // Unterverzeichnisse mit .git als
                                            // Session-Projekte angeboten werden
