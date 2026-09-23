@@ -33,7 +33,7 @@ describe("aider adapter — lifecycle against a synthetic (unverified-happy-path
     const adapter = createAdapter();
     expect(adapter.id).toBe("aider");
     expect(adapter.version).toMatch(/^\d+\.\d+\.\d+/);
-    expect(adapter.capabilities()).toEqual({
+    expect(adapter.capabilities()).toMatchObject({
       reasoning: false,
       tools: true,
       cost: false,
@@ -42,6 +42,8 @@ describe("aider adapter — lifecycle against a synthetic (unverified-happy-path
       nativeDiscovery: "none",
       nativeResume: "none",
     });
+    // follow-up prompts are not wired (steer(prompt) refuses) — say so.
+    expect(adapter.capabilities().features).toMatchObject({ followUp: false, interrupt: true, toolGate: "bypass" });
   });
 
   it("start() refuses to spawn without spec.model — real no-model behavior is a 5-minute OAuth hang, never risked here", async () => {

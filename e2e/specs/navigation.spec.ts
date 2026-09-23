@@ -16,7 +16,11 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
     const dummy = app.locator(".provider-card").filter({ hasText: "dummy" });
     await expect(opencode).toContainText("v0.1.0");
     await expect(opencode.getByText("Kosten")).toBeVisible();
-    await expect(opencode.getByText("Steer")).toBeVisible();
+    // ADR-0018: functions one by one, and how tools are released.
+    await expect(opencode.getByText("Folgeprompt")).toBeVisible();
+    await expect(opencode.getByText("Modellwahl")).toBeVisible();
+    await expect(opencode.locator(".tool-gate")).toHaveText("feste Tool-Liste, ohne Nachfrage");
+    await expect(dummy.locator(".tool-gate")).toHaveText("keine Tools");
     await expect(dummy.getByText("Kosten")).toHaveCount(0);
     await expect(dummy).toContainText("Kein Kontingent-Signal");
   });

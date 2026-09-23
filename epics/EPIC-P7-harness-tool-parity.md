@@ -1,6 +1,6 @@
 # EPIC-P7 — Harness- und Tool-Parität mit echten Freigaben
 
-**Status:** Planungsentwurf, Umsetzung blockiert · **Phase:** P7 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P6 grün; ursprüngliche P3-Adapterzusagen abgeschlossen.
+**Status:** in Arbeit seit 2026-09-23 (P6 abgeschlossen, siehe dessen Retro) · **Phase:** P7 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P6 grün; ursprüngliche P3-Adapterzusagen abgeschlossen.
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:
@@ -45,7 +45,7 @@ Markdown-Suche; Indexpfade und Host-/Worktree-Grenzen erhalten eindeutige Anker.
 
 ## 4. Aufgaben
 
-- [ ] **T7.1 — Capability-Matrix und ADR.** Pflichtmatrix je realer Provider-Version implementieren, Modellkatalog/Account/Skill pro Harness; unbekannte Funktionen ehrlich sperren. K5/K9.
+- [x] **T7.1 — Capability-Matrix und ADR.** Pflichtmatrix je realer Provider-Version implementieren, Modellkatalog/Account/Skill pro Harness; unbekannte Funktionen ehrlich sperren. K5/K9. Stand 2026-09-23: [ADR-0018](../docs/adr/0018-harness-features-and-native-gates.md), `features` je Adapter aus der Konfiguration berechnet, Server lehnt Modell/Agent/Folgeprompt/Park mit Grund ab (`features.test.ts`), Modellkatalog `/api/adapters/:id/models` (claude-Kürzel, `opencode models`), [`docs/harness-matrix.md`](../docs/harness-matrix.md) von `check:adapter-matrix` im Gate geprüft, PWA zeigt Funktionen und warnt bei `bypass` (E2E `harness.spec.ts`, `navigation.spec.ts`).
 - [ ] **T7.2 — Native Rückfragen und Tool-Freigaben.** Tool-Call-ID, Optionen, Auswirkung und Antwortkanal an Freigaben binden; nicht nur Hub-Prompts gaten; echte Erlauben/Ablehnen/Timeout-Roundtrips. K1/K5/K7.
 - [ ] **T7.3 — Dauerhafte Aktionsausführung.** Pending-Steer/Top-up aus RAM in rekonstruierbaren Zustand bringen, Approval-Hash/Revision, Outcome, Idempotenz und Crash-Abgleich. K5/K7.
 - [ ] **T7.4 — Gemeinsame Policy und MCP.** Alle registrierten Operationen nach Akteur/Capability freigeben; Start/Stop/Park erst danach exponieren; drei Meta-Tools beibehalten, echter Referenz-Tokenizer für K4 statt reiner Zeichenheuristik. K1/K4/K7.

@@ -145,7 +145,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
           // Honest per-adapter check, not a blanket "always show a reply
           // box": an adapter without capabilities.steer gets no reply field
           // at all rather than one that would silently fail every time.
-          setSteerSupported(info?.capabilities.steer ?? false);
+          setSteerSupported(info?.capabilities.features?.followUp ?? info?.capabilities.steer ?? false);
           setReportNumbersReal(info?.capabilities.cost ?? false);
         })
         .catch(() => {

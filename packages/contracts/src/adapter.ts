@@ -2,6 +2,60 @@ import type { BlobRef, EmittedEvent } from "./event.ts";
 import type { NativeDiscovery, NativeResume } from "./inventory.ts";
 import type { SessionSpec } from "./session.ts";
 
+/** ADR-0018: how a harness's tool calls are released. Ordered from the
+ * strongest to the weakest guarantee; only `native` asks per call. */
+export const TOOL_GATES = ["native", "sandbox", "allowlist", "bypass", "none"] as const;
+export type ToolGate = (typeof TOOL_GATES)[number];
+
+/**
+ * ADR-0018: what a session of this adapter really accepts, per function —
+ * replaces reading everything off `steer`. Computed from the adapter's
+ * configuration (e.g. claude with --dangerously-skip-permissions is
+ * `toolGate: "bypass"`). The server refuses what is `false` here.
+ */
+export interface HarnessFeatures {
+  /** A new prompt after a turn. */
+  followUp: boolean;
+  /** Stop the running turn, keep the session continuable (`park`). */
+  interrupt: boolean;
+  toolGate: ToolGate;
+  /** The provider asks typed questions the phone can answer. */
+  questions: boolean;
+  /** Model choosable when starting. */
+  modelChoice: "start" | "none";
+  skills: boolean;
+  agents: boolean;
+  /** Attachments to a prompt (T7.5). */
+  images: boolean;
+  files: boolean;
+  /** Continue as a branch with the context so far. */
+  contextFork: boolean;
+}
+
+/** ADR-0018: a harness that accepts follow-ups and can be stopped, and
+ * nothing else — the starting point for adapters and test doubles. */
+export function basicFeatures(overrides: Partial<HarnessFeatures> = {}): HarnessFeatures {
+  return {
+    followUp: true,
+    interrupt: true,
+    toolGate: "none",
+    questions: false,
+    modelChoice: "none",
+    skills: false,
+    agents: false,
+    images: false,
+    files: false,
+    contextFork: false,
+    ...overrides,
+  };
+}
+
+/** ADR-0018: one entry of an adapter's model catalog. */
+export interface ModelOption {
+  id: string;
+  label?: string;
+}
+
 /**
  * What an adapter can do. Surfaced in dashboards, README matrix and the
  * MCP gateway catalog. Be honest — capabilities are promises (aSPARK lesson).
@@ -24,6 +78,9 @@ export interface AdapterCapabilities {
   nativeDiscovery: NativeDiscovery;
   /** `native` only if steer/start reuses a provider session id. */
   nativeResume: NativeResume;
+  /** ADR-0018: the per-function matrix. `steer` stays as the short form
+   * (`followUp || interrupt`). */
+  features: HarnessFeatures;
 }
 
 export type HealthState = "healthy" | "degraded" | "down" | "broken";
@@ -133,6 +190,8 @@ export interface Adapter {
   /** Semver of the adapter itself. */
   readonly version: string;
   capabilities(): AdapterCapabilities;
+  /** ADR-0018, optional: models a session can start with. */
+  models?(): Promise<ModelOption[]>;
   start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle>;
   steer(handle: SessionHandle, input: SteerInput, ctx: AdapterContext): Promise<Ack>;
   status(handle: SessionHandle): Promise<HealthReport>;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import { TOOL_GATE_LABEL, featureChips } from "./features.ts";
 import { hubApi, type AdapterInfo, type AdapterUsage, type HarnessInventoryEntry } from "./api.ts";
 import { formatWindow } from "./Dashboard.tsx";
 
@@ -85,12 +86,15 @@ function ProviderCard({ adapter, usage }: { adapter: AdapterInfo; usage?: Adapte
         <span class="dim">v{adapter.version}</span>
       </div>
       <div class="provider-card-chips">
+        {featureChips(caps.features).map((label) => (
+          <span key={label} class="chip subtle">
+            {label}
+          </span>
+        ))}
         {caps.reasoning && <span class="chip subtle">Reasoning</span>}
-        {caps.tools && <span class="chip subtle">Tools</span>}
         {caps.cost && <span class="chip subtle">Kosten</span>}
-        {caps.steer && <span class="chip subtle">Steer</span>}
-        {!caps.reasoning && !caps.tools && !caps.cost && !caps.steer && <span class="dim">keine besonderen Fähigkeiten gemeldet</span>}
       </div>
+      <div class={caps.features.toolGate === "bypass" ? "tool-gate warn" : "tool-gate dim"}>{TOOL_GATE_LABEL[caps.features.toolGate]}</div>
       <div class="dim">{quotaLine(usage)}</div>
     </div>
   );

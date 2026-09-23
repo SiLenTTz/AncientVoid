@@ -52,6 +52,8 @@ Ollama, vLLM). Anleitung: [`CONTRIBUTING.md`](./CONTRIBUTING.md) und
 
 ### Adapter-Status-Matrix
 
+Welche Funktion jeder Harness wirklich hat (Folgeprompt, Anhalten, Tool-Freigabe, Rückfragen, Modellwahl, Anhänge): [`docs/harness-matrix.md`](docs/harness-matrix.md) (ADR-0018).
+
 | Adapter | Typ | Reasoning | Tools | Cost | Steer | Kontingent | Status | Phase |
 |---|---|---|---|---|---|---|---|---|
 | `dummy` | synthetisch | ✓ | ✓ | — | ✓ | — | proven | P0 |

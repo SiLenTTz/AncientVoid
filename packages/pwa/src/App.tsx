@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { hubApi, hostApi, getToken, type AdapterInfo, type AdapterUsage, type DiscoveredProject, type FleetHost, type SessionRecord } from "./api.ts";
+import { hubApi, hostApi, getToken, type AdapterInfo, type AdapterUsage, type DiscoveredProject, type FleetHost, type ModelOption, type SessionRecord } from "./api.ts";
 import { ApiContext } from "./api-context.ts";
 import { Dashboard } from "./Dashboard.tsx";
 import { Composer } from "./Composer.tsx";
@@ -272,15 +272,25 @@ function CreateSession({
   const [busy, setBusy] = useState(false);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
   const [skill, setSkill] = useState<SelectedSkill | null>(null);
-  // T1.6-6: SessionSpec.model existed in the contract (and the PWA client
-  // type) since P0 but nothing ever set it and adapter-claude never read
-  // it — a real dead field, closed end to end now. Only claude has a
-  // verified --model flag (adapter-claude/src/index.ts); other adapters
-  // get no picker rather than a chip that silently does nothing.
-  const [model, setModel] = useState<string | null>(null);
+  // ADR-0018: a model picker only where the harness takes one at start,
+  // filled from its catalog when it has one, else free text.
+  const features = adapters.find((a) => a.id === adapter)?.capabilities.features;
+  const modelChoice = features?.modelChoice === "start";
+  const [model, setModel] = useState("");
+  const [catalog, setCatalog] = useState<ModelOption[] | null>(null);
   useEffect(() => {
-    setModel(adapter === "claude" ? "sonnet" : null);
-  }, [adapter]);
+    setModel("");
+    setCatalog(null);
+    if (!modelChoice) return;
+    let alive = true;
+    api
+      .adapterModels(adapter)
+      .then((res) => alive && setCatalog(res.models))
+      .catch(() => alive && setCatalog(null));
+    return () => {
+      alive = false;
+    };
+  }, [adapter, modelChoice, api]);
 
   useEffect(() => {
     let alive = true;
@@ -335,7 +345,7 @@ function CreateSession({
         adapter,
         project,
         ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
-        ...(model ? { model } : {}),
+        ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
         ...(skill ? { args: { [skill.kind]: skill.name } } : {}),
       });
       onCreated(rec);
@@ -367,26 +377,37 @@ function CreateSession({
         <select value={adapter} onChange={(e) => setAdapter((e.target as HTMLSelectElement).value)}>
           {adapters.map((a) => (
             <option key={a.id} value={a.id}>
-              {a.id} ({a.capabilities.steer ? "steer" : "mono"})
+              {a.id}
+              {a.capabilities.features && !a.capabilities.features.followUp ? " (nur beobachten)" : ""}
             </option>
           ))}
         </select>
       </label>
-      {model !== null && (
+      {features?.toolGate === "bypass" && (
+        <div class="tool-gate warn">{adapter}: Tools laufen ungefragt, ohne Rückfrage an dich.</div>
+      )}
+      {modelChoice && (
         <label>
           Modell
-          <div class="choice-row">
-            <button
-              type="button"
-              class={`choice ${model === "sonnet" ? "active" : ""}`}
-              onClick={() => setModel("sonnet")}
-            >
-              Sonnet 5
-            </button>
-            <button type="button" class={`choice ${model === "opus" ? "active" : ""}`} onClick={() => setModel("opus")}>
-              Opus 5
-            </button>
-          </div>
+          {catalog && catalog.length > 0 ? (
+            <select value={model} onChange={(e) => setModel((e.target as HTMLSelectElement).value)}>
+              <option value="">Standard des Harness</option>
+              {catalog.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label ?? m.id}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              value={model}
+              onInput={(e) => setModel((e.target as HTMLInputElement).value)}
+              placeholder="Standard des Harness"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck={false}
+            />
+          )}
         </label>
       )}
       <label>

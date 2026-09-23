@@ -209,7 +209,20 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // `codex exec --json` captures, and neither `codex login status`
       // nor `codex --help` expose any on-demand quota query under a
       // ChatGPT-plan login.
-      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native" };
+      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native", features: {
+          followUp: true,
+          interrupt: true,
+          // ADR-0018: codex exec never asks — tools run inside its sandbox.
+          toolGate:
+            cfg.sandbox === "danger-full-access" || cfg.extraArgs.includes("--dangerously-bypass-approvals-and-sandbox") ? "bypass" : "sandbox",
+          questions: false,
+          modelChoice: "start",
+          skills: false,
+          agents: false,
+          images: false,
+          files: false,
+          contextFork: false,
+        } };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

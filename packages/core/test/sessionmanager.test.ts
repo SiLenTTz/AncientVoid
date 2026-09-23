@@ -1,3 +1,4 @@
+import { basicFeatures } from "@uacc/contracts";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -283,7 +284,7 @@ describe("SessionManager", () => {
     registry.register("cost-test", () => ({
       id: "cost-test",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
       async start(_spec, ctx) {
         ctx.emit({ type: "system", summary: "turn 1", payload: {}, costUsd: 0.01 });
         return { sessionId: ctx.sessionId };
@@ -322,7 +323,7 @@ describe("SessionManager", () => {
     registry.register("tokens-test", () => ({
       id: "tokens-test",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
       async start(_spec, ctx) {
         ctx.emit({ type: "system", summary: "turn 1", payload: {}, tokensEst: 10 });
         return { sessionId: ctx.sessionId };
@@ -359,7 +360,7 @@ describe("SessionManager", () => {
     registry.register("usage-test", () => ({
       id: "usage-test",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: true, nativeDiscovery: "none", nativeResume: "none" }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: true, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
       async start(_spec, ctx) {
         ctx.emit({ type: "system", summary: "quota update", payload: {}, usageQuota: quota1 });
         return { sessionId: ctx.sessionId };
@@ -402,7 +403,7 @@ describe("SessionManager", () => {
     registry.register("heartbeat-test", () => ({
       id: "heartbeat-test",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: false, interrupt: false }) }),
       async start(_spec, ctx) {
         return { sessionId: ctx.sessionId };
       },
@@ -460,7 +461,7 @@ describe("SessionManager", () => {
     registry.register("wt-test", () => ({
       id: "wt-test",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: false, interrupt: false }) }),
       async start(_spec, ctx) {
         seenWorkdir = ctx.workdir;
         return { sessionId: ctx.sessionId };
@@ -511,7 +512,7 @@ describe("SessionManager", () => {
     registry.register("wt-keep", () => ({
       id: "wt-keep",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
       async start(_spec, ctx) {
         workdirs.push(ctx.workdir);
         return { sessionId: ctx.sessionId };
@@ -590,7 +591,7 @@ describe("SessionManager", () => {
     registry.register("budget-test", () => ({
       id: "budget-test",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
       async start(_spec, ctx) {
         return { sessionId: ctx.sessionId };
       },
@@ -718,7 +719,7 @@ describe("SessionManager", () => {
     registry.register("free-running-budget-test", () => ({
       id: "free-running-budget-test",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
       async start(_spec, ctx) {
         const timer = setInterval(() => {
           if (!paused) ctx.emit({ type: "system", summary: "tick", payload: {}, costUsd: 0.5 });

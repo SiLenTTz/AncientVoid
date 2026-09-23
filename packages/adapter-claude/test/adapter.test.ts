@@ -55,7 +55,7 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     const adapter = createAdapter();
     expect(adapter.id).toBe("claude");
     expect(adapter.version).toMatch(/^\d+\.\d+\.\d+/);
-    expect(adapter.capabilities()).toEqual({
+    expect(adapter.capabilities()).toMatchObject({
       reasoning: true,
       tools: true,
       cost: true,
@@ -64,6 +64,10 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
       nativeDiscovery: "none",
       nativeResume: "native",
     });
+    expect(adapter.capabilities().features).toMatchObject({ followUp: true, interrupt: true, toolGate: "allowlist", skills: true, agents: true, modelChoice: "start" });
+    // ADR-0018: the flag the live hub runs with means every tool runs unasked.
+    expect(createAdapter({ extraArgs: ["--dangerously-skip-permissions"] }).capabilities().features.toolGate).toBe("bypass");
+    expect(createAdapter({ extraArgs: ["--permission-mode", "bypassPermissions"] }).capabilities().features.toolGate).toBe("bypass");
     // ADR-0014: recover() adopts a surviving turn or resumes natively.
     expect(typeof adapter.recover).toBe("function");
   });

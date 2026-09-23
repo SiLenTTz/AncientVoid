@@ -41,7 +41,7 @@ describe("copilot adapter — lifecycle against real captured streams", () => {
     const adapter = createAdapter();
     expect(adapter.id).toBe("copilot");
     expect(adapter.version).toMatch(/^\d+\.\d+\.\d+/);
-    expect(adapter.capabilities()).toEqual({
+    expect(adapter.capabilities()).toMatchObject({
       reasoning: false,
       tools: true,
       cost: false,
@@ -50,6 +50,7 @@ describe("copilot adapter — lifecycle against real captured streams", () => {
       nativeDiscovery: "none",
       nativeResume: "native",
     });
+    expect(adapter.capabilities().features).toMatchObject({ followUp: true, toolGate: "bypass" });
   });
 
   it("start() spawns `copilot -p <prompt> --output-format json --allow-all-tools` and emits schema-valid events", async () => {
