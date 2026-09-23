@@ -1,4 +1,4 @@
-import type { EmittedEvent } from "./event.ts";
+import type { EmittedEvent } from "../sessions/event.ts";
 
 /**
  * ADR-0015: provider failures in words a user can act on. Pure text

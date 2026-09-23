@@ -1,6 +1,6 @@
-import type { BlobRef, EmittedEvent } from "./event.ts";
+import type { BlobRef, EmittedEvent } from "../sessions/event.ts";
 import type { NativeDiscovery, NativeResume } from "./inventory.ts";
-import type { SessionSpec } from "./session.ts";
+import type { SessionSpec } from "../sessions/session.ts";
 
 /** ADR-0018: how a harness's tool calls are released. Ordered from the
  * strongest to the weakest guarantee; only `native` asks per call. */

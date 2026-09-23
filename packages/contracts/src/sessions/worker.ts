@@ -1,4 +1,4 @@
-import type { WorkerProcess } from "./adapter.ts";
+import type { WorkerProcess } from "../harness/adapter.ts";
 
 /**
  * Worker runner abstraction (ADR-P0-3 + premortem #2): tmux is the default,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyProviderError, providerErrorEvent } from "../src/provider-error.ts";
+import { classifyProviderError, providerErrorEvent } from "../../src/harness/provider-error.ts";
 
 describe("classifyProviderError (ADR-0015)", () => {
   it("reads z.ai's usage-limit text with window and reset time", () => {

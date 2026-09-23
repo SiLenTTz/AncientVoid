@@ -1,4 +1,4 @@
-import type { HarnessTarget } from "./identity.ts";
+import type { HarnessTarget } from "../sessions/identity.ts";
 
 /**
  * Audit §4 states. A fallback must not be recorded as verified.
