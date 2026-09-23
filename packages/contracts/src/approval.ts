@@ -37,6 +37,10 @@ export const ApprovalRequest = z.object({
    * (T2.5). Null while `pending`. See ADR-0007 for why this isn't a
    * dressed-up boolean. */
   signature: z.string().nullable(),
+  /** T7.3: sha256 of the exact arguments this approval releases (the
+   * pending operation's payload) — part of the signed decision. Null for
+   * approvals without an operation. */
+  payloadHash: z.string().nullable().optional(),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequest>;
 

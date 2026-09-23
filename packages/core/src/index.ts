@@ -33,6 +33,7 @@ export {
 } from "./sources.ts";
 export { WorktreeManager } from "./worktree.ts";
 export { ApprovalService, type DecideResult } from "./approvals.ts";
+export { OperationStore, payloadHash } from "./operations.ts";
 export { WebAuthnStore, type StoredCredential } from "./webauthn-store.ts";
 export { AdapterRegistry, type RegisteredAdapter } from "./registry.ts";
 export { HubDatabase, MIGRATIONS, type Migration } from "./db.ts";

@@ -514,7 +514,11 @@ export function registerRoutes(
     if (!deps.approvals) return reply.code(501).send({ error: "approval queue not configured" });
     const q = req.query as { status?: string };
     const status = ApprovalStatus.safeParse(q.status);
-    return deps.approvals.list(status.success ? status.data : undefined);
+    // T7.3: what the decision released, and what became of it.
+    return deps.approvals.list(status.success ? status.data : undefined).map((r) => {
+      const op = deps.sessions.operation(r.id);
+      return op ? { ...r, operation: { state: op.state, outcome: op.outcome } } : r;
+    });
   });
 
   app.get("/api/approvals/:id", async (req, reply) => {

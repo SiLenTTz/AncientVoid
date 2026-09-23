@@ -182,6 +182,27 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 12,
+    name: "pending-operations",
+    sql: `
+      CREATE TABLE operations (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        payload_hash TEXT NOT NULL,
+        revision INTEGER NOT NULL,
+        actor TEXT,
+        state TEXT NOT NULL,
+        outcome TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE INDEX idx_operations_state ON operations(state);
+      ALTER TABLE approvals ADD COLUMN payload_hash TEXT;
+    `,
+  },
 ];
 
 export class HubDatabase {

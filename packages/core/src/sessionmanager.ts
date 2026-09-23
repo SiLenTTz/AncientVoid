@@ -23,6 +23,7 @@ import type {
   DiscoverySource,
   DiscoveredSession,
   HubNotification,
+  PendingOperation,
 } from "@uacc/contracts";
 import { DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, unsupportedResume } from "@uacc/contracts";
 import type { EventStore } from "./eventstore.ts";
@@ -30,6 +31,7 @@ import type { AdapterRegistry } from "./registry.ts";
 import type { HubDatabase } from "./db.ts";
 import type { WorktreeManager } from "./worktree.ts";
 import { refuseSpec, refuseSteer } from "./features.ts";
+import { OperationStore } from "./operations.ts";
 import type { ApprovalService } from "./approvals.ts";
 import { buildSessionSummary } from "./digest.ts";
 import { createConsoleLogger } from "./logger.ts";
@@ -233,15 +235,10 @@ export interface AdapterUsageSnapshot {
 export class SessionManager {
   private readonly live = new Map<string, LiveSession>();
   private readonly usageByAdapter = new Map<string, AdapterUsageSnapshot>();
-  /** T2.4: steer inputs parked behind a pending write-class approval,
-   * keyed by ApprovalRequest.id — applied for real only once the decide
-   * route reports a genuine "approved" (see applyApprovedSteer). Not
-   * K7-persisted: a hub crash while an approval is still pending loses
-   * the queued prompt along with it, same as any other in-flight,
-   * not-yet-applied user action would be — the ApprovalRequest itself
-   * (in SQLite) still shows what was asked for, it just can no longer be
-   * carried out after a restart. Documented here, not silently assumed. */
-  private readonly pendingSteers = new Map<string, { sessionId: string; input: SteerInput; typed?: string }>();
+  /** T7.3: steer prompts and budget top-ups parked behind an approval,
+   * keyed by ApprovalRequest.id, persisted with their exact arguments —
+   * a hub crash no longer loses them (was RAM-only until P7). */
+  private readonly operations: OperationStore;
   /** ADR-0015: when the last provider.error per session was reported. */
   private readonly lastProviderError = new Map<string, number>();
   /** Tail of the per-session steer chain (see steer()). */
@@ -290,6 +287,7 @@ export class SessionManager {
     this.runner = runner;
     this.worktrees = worktrees;
     this.approvals = approvals;
+    this.operations = new OperationStore(db);
     this.dailyCapUsd = dailyCapUsd;
     this.reportingSinks = reportingSinks;
     this.logger = observability.logger ?? createConsoleLogger();
@@ -740,7 +738,7 @@ export class SessionManager {
         "steer.prompt",
         `Prompt an ${session.record.adapter} senden: "${input.text.slice(0, 160)}"`,
       );
-      this.pendingSteers.set(req.id, { sessionId, input: delivered, typed: input.text });
+      this.operations.create(req.id, sessionId, "steer.prompt", { input: delivered, typed: input.text }, session.record.inputRevision, actor ?? null);
       await this.emitSystem(session, "session.steer_pending_approval", { approvalId: req.id, actor: actor ?? null });
       return { ok: false, detail: `pending approval ${req.id}` };
     }
@@ -865,29 +863,64 @@ export class SessionManager {
    * pending) is a real, nameable outcome, not a crash.
    */
   async applyApprovedSteer(approvalId: string, decidedByLabel?: string): Promise<Ack> {
-    const pending = this.pendingSteers.get(approvalId);
-    if (!pending) return { ok: false, detail: "no pending steer for this approval" };
-    this.pendingSteers.delete(approvalId);
-    const session = this.live.get(pending.sessionId);
-    if (!session) return { ok: false, detail: "session not live" };
-    if (pending.input.kind === "prompt") await this.emitPrompt(session, pending.typed ?? pending.input.text, decidedByLabel);
-    if (pending.input.kind === "prompt" && (session.record.status === "stopped" || !session.handle)) {
-      return this.continueStopped(session, pending.input, decidedByLabel);
+    const op = this.operations.get(approvalId);
+    if (!op || op.kind !== "steer.prompt") return { ok: false, detail: "no pending steer for this approval" };
+    return this.dispatchOperation(op, decidedByLabel);
+  }
+
+  /**
+   * T7.3: runs an approved operation at most once. `pending → dispatching`
+   * is one conditional UPDATE, so a second caller (a retried decide, the
+   * catch-up after a restart) finds it taken. Arguments are checked
+   * against the approved hash right before running.
+   */
+  private async dispatchOperation(op: PendingOperation, decidedByLabel?: string): Promise<Ack> {
+    const session = this.live.get(op.sessionId);
+    if (!session) {
+      this.operations.transition(op.id, ["pending"], "failed", "Die Session ist nicht mehr aktiv.");
+      return { ok: false, detail: "session not live" };
+    }
+    if (!this.operations.intact(op)) {
+      this.operations.transition(op.id, ["pending"], "failed", "Die Argumente weichen von der Freigabe ab.");
+      await this.emitSystem(session, "operation.rejected_changed", { operationId: op.id, kind: op.kind });
+      return { ok: false, detail: "operation arguments changed after approval" };
+    }
+    if (!this.operations.transition(op.id, ["pending"], "dispatching")) {
+      return { ok: false, detail: `operation already ${this.operations.get(op.id)?.state ?? "gone"}` };
+    }
+    let ack: Ack;
+    try {
+      if (op.kind === "steer.prompt") {
+        const { input, typed } = op.payload as { input: SteerInput; typed?: string };
+        ack = await this.runApprovedSteer(session, input, typed, op.id, decidedByLabel);
+      } else if (op.kind === "budget.increase") {
+        const { newBudgetUsd } = op.payload as { newBudgetUsd: number };
+        ack = await this.applyBudgetTopUp(op.sessionId, newBudgetUsd, decidedByLabel);
+      } else {
+        ack = { ok: false, detail: `no dispatcher for ${op.kind}` };
+      }
+    } catch (err) {
+      ack = { ok: false, detail: err instanceof Error ? err.message : String(err) };
+    }
+    this.operations.transition(op.id, ["dispatching"], ack.ok ? "done" : "failed", ack.ok ? "ausgeführt" : (ack.detail ?? "fehlgeschlagen"));
+    return ack;
+  }
+
+  private async runApprovedSteer(session: LiveSession, input: SteerInput, typed: string | undefined, approvalId: string, decidedByLabel?: string): Promise<Ack> {
+    if (input.kind === "prompt") await this.emitPrompt(session, typed ?? input.text, decidedByLabel);
+    if (input.kind === "prompt" && (session.record.status === "stopped" || !session.handle)) {
+      return this.continueStopped(session, input, decidedByLabel);
     }
     if (!session.handle) return { ok: false, detail: "session not live" };
-    const ack = await session.adapter.steer(session.handle, pending.input, this.makeContext(session));
+    const ack = await session.adapter.steer(session.handle, input, this.makeContext(session));
     await this.emitSystem(session, "session.steer", {
-      steerKind: pending.input.kind,
+      steerKind: input.kind,
       ok: ack.ok,
       approvalId,
       actor: decidedByLabel ?? null,
     });
     return ack;
   }
-
-  /** T2.7: pending budget top-ups, same "not applied until a real
-   * approval comes back" pattern as pendingSteers. */
-  private readonly pendingBudgetTopUps = new Map<string, { sessionId: string; newBudgetUsd: number }>();
 
   /**
    * Requests a budget change for a session — EPIC-P2 §3 lists "Budget-
@@ -915,7 +948,7 @@ export class SessionManager {
       `Budget auf ${newBudgetUsd.toFixed(2)}$ erhöhen${reason ? ` (${reason})` : ""}`,
       true, // ADR-0007: a budget change always requires a reason, unlike a plain steer prompt
     );
-    this.pendingBudgetTopUps.set(req.id, { sessionId, newBudgetUsd });
+    this.operations.create(req.id, sessionId, "budget.increase", { newBudgetUsd, reason: reason ?? null }, session.record.inputRevision, actor ?? null);
     await this.emitSystem(session, "session.budget_topup_pending_approval", {
       approvalId: req.id,
       newBudgetUsd,
@@ -940,6 +973,7 @@ export class SessionManager {
     status: "approved" | "rejected",
     decidedByLabel: string,
   ): Promise<void> {
+    if (status === "rejected") this.operations.transition(approvalId, ["pending"], "rejected", `abgelehnt von ${decidedByLabel}`);
     const session = this.live.get(sessionId);
     if (!session) return; // session ended while the approval sat pending — nothing to record onto
     await this.emitSystem(session, "session.approval_decided", { approvalId, action, status, actor: decidedByLabel });
@@ -948,10 +982,9 @@ export class SessionManager {
   /** Called by the decide route once a `budget.increase` approval is
    * genuinely approved — mirrors applyApprovedSteer. */
   async applyApprovedBudgetTopUp(approvalId: string, decidedByLabel?: string): Promise<Ack> {
-    const pending = this.pendingBudgetTopUps.get(approvalId);
-    if (!pending) return { ok: false, detail: "no pending budget top-up for this approval" };
-    this.pendingBudgetTopUps.delete(approvalId);
-    return this.applyBudgetTopUp(pending.sessionId, pending.newBudgetUsd, decidedByLabel);
+    const op = this.operations.get(approvalId);
+    if (!op || op.kind !== "budget.increase") return { ok: false, detail: "no pending budget top-up for this approval" };
+    return this.dispatchOperation(op, decidedByLabel);
   }
 
   async stop(sessionId: string, actor?: string): Promise<Ack> {
@@ -1243,6 +1276,7 @@ export class SessionManager {
       }
     }
 
+    await this.reconcileOperations();
     const reaped = await this.runner.reapOrphans(keepWorkers).catch(() => []);
     const elapsed = performance.now() - t0;
     this.metrics?.gauge("recovery_ms", elapsed);
@@ -1250,6 +1284,48 @@ export class SessionManager {
       this.logger.warn("recovery exceeded K7 budget", { elapsedMs: Math.round(elapsed), budgetMs: 3000 });
     }
     return { recovered, failed, reaped, uncontrolled };
+  }
+
+  /**
+   * T7.3 / AC-P7-3, after a restart:
+   * - still undecided → stays pending, decidable as before;
+   * - decided "approved" but never started (crash between decision and
+   *   dispatch) → runs now, once;
+   * - rejected/timed out meanwhile → recorded so;
+   * - was running when the hub died → `uncertain`, visible, never re-run:
+   *   whether the provider already acted is unknown.
+   */
+  private async reconcileOperations(): Promise<void> {
+    for (const op of this.operations.list(["dispatching"])) {
+      this.operations.transition(op.id, ["dispatching"], "uncertain", "Der Hub wurde während der Ausführung neu gestartet. Ob sie ankam, ist unklar.");
+      const session = this.live.get(op.sessionId);
+      if (session) await this.emitSystem(session, "operation.uncertain", { operationId: op.id, operationKind: op.kind });
+    }
+    if (!this.approvals) return;
+    for (const op of this.operations.list(["pending"])) {
+      const decision = this.approvals.get(op.id);
+      if (!decision) continue;
+      if (decision.status === "approved") {
+        const session = this.live.get(op.sessionId);
+        if (session) await this.emitSystem(session, "operation.resumed", { operationId: op.id, operationKind: op.kind });
+        await this.dispatchOperation(op, decision.decidedByLabel ?? undefined).catch(() => undefined);
+      } else if (decision.status === "rejected" || decision.status === "timed_out") {
+        this.operations.transition(op.id, ["pending"], decision.status);
+      }
+    }
+  }
+
+  /** T7.3: an action's current state, for the approval card and the API. */
+  operation(id: string): PendingOperation | undefined {
+    const op = this.operations.get(id);
+    if (op?.state === "pending" && this.approvals) {
+      const status = this.approvals.get(id)?.status;
+      if (status === "rejected" || status === "timed_out") {
+        this.operations.transition(id, ["pending"], status);
+        return this.operations.get(id);
+      }
+    }
+    return op;
   }
 
   /**
