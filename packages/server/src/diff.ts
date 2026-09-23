@@ -169,6 +169,52 @@ async function realGitDiff(
     timeout: 5000,
     maxBuffer: 8 * 1024 * 1024,
   });
+  const untracked = await untrackedDiff(projectPath, pathArgs);
+  return { numstat: numstat + untracked.numstat, patch: patch + untracked.patch };
+}
+
+/** Untracked files beyond this count are left out of the diff. */
+const MAX_UNTRACKED_FILES = 200;
+
+/** `git diff --no-index` exits 1 when the files differ — that is its
+ * success case, with the diff on stdout. */
+async function noIndexDiff(projectPath: string, args: string[]): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync("git", ["-C", projectPath, "diff", "--no-index", ...args], {
+      timeout: 5000,
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    return stdout;
+  } catch (err) {
+    const failure = err as { code?: unknown; stdout?: unknown };
+    if (failure.code === 1 && typeof failure.stdout === "string") return failure.stdout;
+    throw err;
+  }
+}
+
+/**
+ * BUG-0020: `git diff <base>` ignores files nobody staged — exactly what an
+ * agent leaves behind when it creates a file. Each untracked, not ignored
+ * file is diffed against /dev/null and appended in the same numstat/patch
+ * shape as the tracked diff (fixed a/ b/ prefixes, whatever the user's
+ * diff.mnemonicPrefix says).
+ */
+async function untrackedDiff(projectPath: string, pathArgs: string[]): Promise<{ numstat: string; patch: string }> {
+  const { stdout } = await execFileAsync(
+    "git",
+    ["-C", projectPath, "ls-files", "--others", "--exclude-standard", "-z", ...pathArgs],
+    { timeout: 5000, maxBuffer: 4 * 1024 * 1024 },
+  );
+  const files = stdout.split("\0").filter(Boolean).slice(0, MAX_UNTRACKED_FILES);
+  let numstat = "";
+  let patch = "";
+  for (const file of files) {
+    const stat = await noIndexDiff(projectPath, ["--numstat", "--", "/dev/null", file]);
+    const [add = "0", del = "0"] = stat.split("\t");
+    numstat += `${add}\t${del}\t${file}\n`;
+    const body = await noIndexDiff(projectPath, ["--src-prefix=a/", "--dst-prefix=b/", "--", "/dev/null", file]);
+    patch += body.replace(/^diff --git .*$/m, `diff --git a/${file} b/${file}`);
+  }
   return { numstat, patch };
 }
 
