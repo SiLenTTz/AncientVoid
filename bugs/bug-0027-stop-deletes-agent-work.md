@@ -58,3 +58,23 @@ Entfernen.
 - [x] Datei im Index [`README.md`](README.md)
 - [ ] GitLab-Issue
 - [x] `bugfix`
+
+## Vorfall beim Einspielen (2026-09-23, 14:17)
+
+Der Fix wurde gemerged, der Hub danach mit `scripts/hub.sh stop` neu
+gestartet. SIGTERM löst `sessions.shutdown()` aus, das jede nicht gestoppte
+Session stoppt — ausgeführt vom **alten** Prozess, also noch mit dem Bug. Der
+Worktree von Session 821b0ec8 (tetris-reloaded, `index.html` 27 552 B,
+`README.md` geändert, nichts committet) wurde gelöscht.
+
+**Wiederhergestellt** aus OpenCodes eigenem Snapshot-Repo
+(`~/.local/share/opencode/snapshot/3f1fe4d…/cde1247…`, Tree `843cde6`, letzter
+Stand des Laufs): Worktree und Branch `uacc/821b0ec8…` am alten Ort neu
+angelegt, Dateien byte-identisch zurückgeschrieben (SHA-1 geprüft), README
+zusätzlich gegen das letzte `write`-Event (seq 97) im Hub-Verlauf verglichen.
+Git-Status wie vorher: ` M README.md`, `?? index.html`.
+
+**Lehre:** Ein Fix gegen Datenverlust im Stop-Pfad darf nicht per sauberem
+Herunterfahren eingespielt werden, solange der alte Prozess läuft. Dafür
+`kill -9 $(cat /tmp/uacc-hub.pid)` und dann `scripts/hub.sh start` — der Hub
+übernimmt laufende tmux-Züge (ADR-0014), ohne Stop-Pfad.
