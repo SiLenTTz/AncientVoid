@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, signIn } from "../support/fixtures.ts";
 import { TestHub } from "../support/hub.ts";
 
 test.describe("Flotte (EPIC-P6)", () => {
@@ -49,6 +49,51 @@ test.describe("Flotte (EPIC-P6)", () => {
     await app.getByRole("button", { name: "Einladungscode erzeugen" }).click();
     await expect(app.locator(".fleet-invite code")).toHaveText(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
     await expect(app.locator(".fleet-invite")).toContainText("einmalig");
+  });
+
+  test("AI-P6-2: Einladung als QR-Code auf dem anderen Hub, mit der Kamera scannen und verbinden", async ({ app, context }) => {
+    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    try {
+      const other = await context.newPage();
+      await signIn(other, peer);
+      await other.goto(peer.origin);
+      await other.getByRole("button", { name: "Einstellungen" }).click();
+      await other.getByRole("button", { name: "Einladungscode erzeugen" }).click();
+      await expect(other.locator(".fleet-invite-origin")).toContainText(peer.origin);
+      const qr = await other.locator("img.fleet-qr").getAttribute("src");
+      expect(qr).toMatch(/^data:image\//);
+      await other.close();
+
+      // The phone's camera, pointed at the other hub's screen.
+      // Browser code as a string: the e2e tsconfig has no DOM types.
+      await app.evaluate(`
+        navigator.mediaDevices.getUserMedia = async () => {
+          const img = new Image();
+          img.src = ${JSON.stringify(qr)};
+          await img.decode();
+          const canvas = document.createElement("canvas");
+          canvas.width = canvas.height = 480;
+          const ctx = canvas.getContext("2d");
+          const paint = () => {
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 0, 480, 480);
+            ctx.drawImage(img, 60, 60, 360, 360);
+          };
+          paint();
+          setInterval(paint, 100);
+          return canvas.captureStream(10);
+        };
+      `);
+      await app.getByRole("button", { name: "Einstellungen" }).click();
+      await app.getByRole("button", { name: "QR-Code scannen" }).click();
+      await expect(app.getByLabel("Host hinzufügen — Adresse")).toHaveValue(peer.origin);
+      await expect(app.getByLabel("Einladungscode vom anderen Hub")).toHaveValue(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+      await expect(app.locator(".fleet-scanner")).toHaveCount(0);
+      await app.getByRole("button", { name: "Host verbinden" }).click();
+      await expect(app.locator(".fleet-message.ok")).toHaveText("Verbunden mit silenttz-server.");
+    } finally {
+      await peer.stop();
+    }
   });
 
   async function pair(home: TestHub, peer: TestHub): Promise<void> {

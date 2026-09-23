@@ -111,7 +111,7 @@ BUG-0028 (Tokens im Request-Log), behoben. Gate: `npm run gate` grün
 | ID | Maßnahme | zurück als |
 |---|---|---|
 | AI-P6-1 | WSL-Host in die Flotte aufnehmen (z. B. bmax), Abnahme AC-P6-5 WSL-Teil und Premortem 4 | EPIC-P12 T12.4 |
-| AI-P6-2 | QR-Code für den Einladungscode (Handy scannt statt tippt) | EPIC-P8 T8.1 |
+| AI-P6-2 | QR-Code für den Einladungscode (Handy scannt statt tippt) | ✅ erledigt 2026-09-23 (`InviteQr.tsx`, E2E „AI-P6-2 … scannen und verbinden“) |
 | AI-P6-3 | Last über die Weiterleitung (K8, 30 ev/s × Sessions über zwei Hosts) | EPIC-P12 T12.2 |
-| AI-P6-4 | Vorhandene Tokens rotieren und `/tmp/uacc-hub.log` leeren (BUG-0028) — vor der Veröffentlichung | EPIC-P4 T4.8 (OSS-Aufbereitung) |
+| AI-P6-4 | Vorhandene Tokens rotieren und `/tmp/uacc-hub.log` leeren (BUG-0028) — vor der Veröffentlichung | EPIC-P12 T12.7 |
 

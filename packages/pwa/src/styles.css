@@ -1765,6 +1765,29 @@ a {
   align-items: baseline;
   flex-wrap: wrap;
 }
+.fleet-qr {
+  flex-basis: 100%;
+  width: min(220px, 70vw);
+  height: auto;
+  max-width: 100%;
+  image-rendering: pixelated;
+  border-radius: 8px;
+}
+.fleet-invite-origin {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.fleet-scanner {
+  display: grid;
+  gap: 8px;
+}
+.fleet-scanner-video {
+  width: 100%;
+  max-height: 50vh;
+  border-radius: 8px;
+  background: #000;
+  object-fit: cover;
+}
 .fleet-invite code {
   font-size: 18px;
   letter-spacing: 0.08em;
