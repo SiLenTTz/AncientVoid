@@ -74,10 +74,22 @@ Echter `@uacc/adapter-opencode`, TmuxRunner, nachgebauter CLI
 **Urteil:** bestanden. Der laufende Zug wird übernommen, seine Ausgabe kommt
 einmal an, der nächste Prompt setzt dieselbe Provider-Session fort.
 
+## Wiederholung auf dem Abnahmestand (`6cbcfdd`, mit ADR-0013/0014)
+
+Gleiche Kommandos, gleiche Maschine, gleicher Tag.
+
+| Lauf | Ergebnis |
+|---|---|
+| discovery | 21 Einträge, 0 Duplikate; warm Median 1 ms (max 3); kalt Median 423 ms (max 426) |
+| recovery (Dummy) | `recovery_ms` Median 37 ms (min 30, max 43); Kill → ready Median 411 ms (max 511); 0/200 Abweichungen, 0/200 nicht steuerbar, 0/10 Steer-Fehler |
+| recovery-provider (OpenCode, tmux) | `recovery_ms` Median 96 ms (min 46, max 134); 0/50 verlorene Antworten, 0/25 doppelte Ausgabe, 0/25 nicht steuerbar, 0/25 fremde Provider-Session |
+
+Alle drei bestanden.
+
 ## Was das nicht sagt
 
-- **AC-P5-1 „angezeigt“ ist nicht erfüllt:** Die PWA hat keine Ansicht für
-  `GET /api/discovery`. Gemessen ist die API, nicht die Oberfläche.
+- AC-P5-1 misst hier die API. Die Anzeige in der PWA („Gefunden“) prüft
+  das E2E-Gate (`discovery.spec.ts`: 20 Sessions binnen 10 s).
 - Die externen Sessions sind Claude-Dateien im erwarteten Layout.
   Codex/OpenCode/Copilot/Aider haben weiter keine belegte Discovery
   (`missing` in `GET /api/inventory`).

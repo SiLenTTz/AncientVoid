@@ -1,6 +1,6 @@
 # EPIC-P5 — Session-Discovery, PC↔Handy-Handoff und Recovery
 
-**Status:** teilweise — Inventar, Scan, Lease mit Übernahme und E2E-Gate sind im Code (ADR-0011/0012, Stand §11). Offen: Discovery-Ansicht (AC-P5-1), Zug-Status und echte Provider-Läufe (T5.4/AC-P5-2), `recover()` für echte Provider (T5.6/AC-P5-3). · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
+**Status:** bereit zur Abnahme — alle Aufgaben umgesetzt und im E2E-Gate (Stand §12). Offen ist nur der manuelle Lauf AC-P5-2 mit echten Providern und Geräten (Checkliste §12.4); danach Retro und Abschluss. · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:
@@ -44,9 +44,9 @@ Blocker mit Evidenz, keine implizite Genehmigung für DB-Schreibzugriffe.
 - [x] **T5.1 — Pflichtinventar und ADR.** Zielmatrix aus Audit §4 vervollständigen; je Harness unterstützte Version und native Discovery-/Resume-Schnittstelle mit tatsächlichen Probes belegen. Capability-Contract erweitern; WIP Claude-Clip übernehmen erst nach eigener grüner MR. PRD G1; K7/K9. Stand 2026-09-22: `GET /api/inventory` probed die Katalog-Binaries und lässt die Zelle ehrlich (`verified` nur für die belegten Read-only-Layouts, Resume der CLIs `implemented-unverified`). Claude-Clip war bereits in !40 gemerged.
 - [x] **T5.2 — Persistente Session-Identität.** Provider-Resume-Daten und Lifecycle-Übergänge in Contracts, JSONL und Snapshot ablegen; bestehende Records migrieren; unbekannte Resume-Version sichtbar ablehnen. K5/K7.
 - [x] **T5.3 — Discovery und Deduplizierung.** Alle Sessions konfigurierter Provider-Quellen erfassen, nach Host/Provider/native ID deduplizieren; Subagent-Elternbezug vorbereiten; CLI/IDE-Quellen read-only scannen. K5/K8/K9. Stand 2026-09-22: Claude-`*.jsonl` und Cursor-`composerHeaders` werden read-only gemischt; `parentSessionId` für Subagent-Dateien und eine vorhandene Parent-Spalte. Codex/OpenCode/Copilot/Aider ohne belegtes Dateilayout bleiben `missing`.
-- [ ] **T5.4 — Echte Übernahme.** Für jeden verpflichtenden Harness PC→Handy→PC implementieren; laufender Turn und Turn-Pause getrennt; gleicher Kontext/Worktree. Native Resume bevorzugen; Fork/monitor-only korrekt beschriften. K2/K7.
-- [ ] **T5.5 — Writer-Koordination und Clients.** Lease/Revision, Input-ID, sichere Retry-Semantik, Native-Open-/Copy-Link und Web-Deep-Link verbinden; reale Pane-Verfügbarkeit; kein doppeltes Absenden bei zwei Clients. K7/K10. Stand 2026-09-23: Lease, Revision, Input-ID, Retry, Übernahme, Deep-Link, Copy-Attach und Pane-Prüfung erledigt und im E2E-Gate. Offen nur der Native-Open-Link (Provider-App/IDE öffnen).
-- [ ] **T5.6 — Recovery und Ausfallbeweis.** recoverAll darf ohne nutzbares Handle nicht kontrollierbare Wiederherstellung behaupten; adoptierte Worker nicht als Orphans töten; Adapter-Testkit-Lücke BUG-0004 schließen/verifizieren; Crash-Tests gegen echte Worker inkl. Log-Tail und ausstehender Eingabe. K2/K5/K7/K8.
+- [x] **T5.4 — Echte Übernahme.** Für jeden verpflichtenden Harness PC→Handy→PC implementieren; laufender Turn und Turn-Pause getrennt; gleicher Kontext/Worktree. Native Resume bevorzugen; Fork/monitor-only korrekt beschriften. K2/K7. Stand 2026-09-23: Zug-Status `working`/`idle` aus dem Worker-Lebenszyklus (ADR-0013), Weiter/Übernahme mit derselben nativen ID (E2E `handoff.spec.ts`). Abnahme mit echten CLIs: §12.4.
+- [x] **T5.5 — Writer-Koordination und Clients.** Lease/Revision, Input-ID, sichere Retry-Semantik, Native-Open-/Copy-Link und Web-Deep-Link verbinden; reale Pane-Verfügbarkeit; kein doppeltes Absenden bei zwei Clients. K7/K10. Stand 2026-09-23: Lease, Revision, Input-ID, Retry, Übernahme, Deep-Link, Copy-Attach und Pane-Prüfung erledigt und im E2E-Gate. Native-Open-Befehl je CLI plus Web-Link im Bericht (ADR-0012 Nachtrag).
+- [x] **T5.6 — Recovery und Ausfallbeweis.** recoverAll darf ohne nutzbares Handle nicht kontrollierbare Wiederherstellung behaupten; adoptierte Worker nicht als Orphans töten; Adapter-Testkit-Lücke BUG-0004 schließen/verifizieren; Crash-Tests gegen echte Worker inkl. Log-Tail und ausstehender Eingabe. K2/K5/K7/K8. Stand 2026-09-23: tmux-Worker werden übernommen und ab der letzten ausgelieferten Zeile weitergelesen, `recover()` in claude/codex/opencode/copilot (ADR-0014); Reaping nur eigener Worker (BUG-0019); Kill -9 gegen den echten OpenCode-Adapter im Messlauf.
 
 ## 5. Acceptance Criteria
 
@@ -161,4 +161,55 @@ steuerbar — für den Dummy-Adapter.
 5. **Manuelle Abnahme AC-P5-2** mit echten Providern und Geräten.
 6. Kleinere Befunde: [BUG-0022](../bugs/bug-0022-reply-box-missing-after-offline-open.md),
    [BUG-0015](../bugs/bug-0015-offline-reload-token-gate.md) (K10, P8).
+
+## 12. Stand 2026-09-23 (2) — bereit zur Abnahme
+
+### Umgesetzt seit §11
+
+| Punkt | Umsetzung | Beleg |
+|---|---|---|
+| T5.4 Zug-Status | Hub zählt Worker je Session: neuer Worker → `working`, letzter sauberer Exit → `idle` + `session.turn_end` | ADR-0013, `turn-state.test.ts`, E2E „der Status trennt …“ |
+| T5.6 Recovery echter Provider | `WorkerRunner.adopt`, `ctx.adoptWorker`/`ctx.nativeSessionId`, `recover()` in 4 Adaptern | ADR-0014, Adapter-Tests, E2E `recovery.spec.ts`, Messlauf `recovery-provider` |
+| AC-P5-1 Anzeige | Seite „Gefunden“ (Übersicht) + Harness-Inventar (Status) | E2E `discovery.spec.ts`: 20 Sessions binnen 10 s |
+| T5.5 Native-Open | `openCmd` zwischen Zügen, Web-Link, beide kopierbar | ADR-0012 Nachtrag, `native-open.test.ts`, E2E `deeplink.spec.ts` |
+| Bugs | BUG-0022 (Antwortfeld nach Offline-Öffnen), BUG-0023 (doppelte Events nach Resync), BUG-0024 (Link-Wechsel mischt Verläufe) | je Test rot ohne Fix |
+
+### Acceptance Criteria
+
+| AC | Stand | Beleg |
+|---|---|---|
+| AC-P5-1 | grün | Messlauf (API) und E2E (Oberfläche, 20 Sessions < 10 s, 0 Duplikate, unbekanntes Format sichtbar) |
+| AC-P5-2 | automatisiert grün, **manuell offen** | `handoff.spec.ts` (live und nach Stop, gleiche native ID und CWD, kein Doppelzug); Checkliste §12.4 |
+| AC-P5-3 | grün | Messlauf Dummy und OpenCode-Adapter unter tmux; E2E Übernahme eines laufenden Zugs |
+| AC-P5-4 | grün | `steer-reopen.test.ts`, `steer-lease.test.ts`, E2E Doppeltipp, zwei Geräte, Übernahme |
+| AC-P5-5 | grün | `deeplink.spec.ts`: Reload, Link-Wechsel, Attach nur mit lebendem Worker, kein Terminal-Befehl während eines Zugs |
+
+### Bekannte Grenzen (kein Abschluss-Blocker)
+
+- Cursor hat kein natives Resume, Aider keine Session-ID: beide Zellen
+  bleiben `missing`/blockiert, wie AC-P5-2 es verlangt.
+- ProcessRunner übernimmt keine laufenden Züge (nur tmux, Standard).
+- E2E-`fixme`: Skill-Picker (braucht nachgebauten `claude`-CLI), BUG-0015
+  Offline-Neuladen (K10, P8).
+- Pipeline: GitLab-CI-Kontingent erschöpft (`ci_quota_exceeded`); der Job
+  `e2e` ist noch nie in GitLab gelaufen. Lokal ist `npm run gate` grün.
+
+### 12.4 Checkliste manueller Handtest (AC-P5-2)
+
+Voraussetzung: echter Hub (`hub.config.json`, tmux), PC-Browser und Handy
+per Tailscale, je Harness ein Test-Repo. Pro Harness **Claude Code, Codex,
+OpenCode, Copilot CLI** drei Zyklen PC → Handy → PC:
+
+| Zyklus | Ablauf | Prüfen |
+|---|---|---|
+| 1 laufend | am PC starten, während der Zug läuft am Handy öffnen, nach dem Zug am Handy weiterschreiben, am PC „Übernehmen“ | gleiche native ID im Bericht (`openCmd`), gleicher Worktree, keine doppelte Antwort |
+| 2 zwischen Zügen | Status `idle` abwarten, Handy schreibt, PC schreibt | Status wechselt `working` → `idle`, Kontext des vorherigen Zugs ist bekannt (Rückfrage „was habe ich eben gesagt?“) |
+| 3 wartend + Neustart | `requireStepApprovals: true`, Antwort am Handy → Freigabe offen, Hub neu starten (`kill -9`), Freigabe am PC geben | nach Neustart steuerbar, Zug läuft einmal, dieselbe Provider-Session |
+
+Zusätzlich je Harness einmal: `openCmd` im Terminal am PC ausführen und
+prüfen, dass die CLI dieselbe Unterhaltung zeigt.
+
+Ergebnis je Zelle hier eintragen. Danach in `packages/core/src/inventory.ts`
+die Resume-Zellen der geprüften CLIs auf `verified` setzen (mit Datum und
+Beleg in `evidence`), Retro schreiben, P5 schließen.
 
