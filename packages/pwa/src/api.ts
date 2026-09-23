@@ -112,6 +112,37 @@ export interface SessionDiffResult {
   error?: string;
 }
 
+/** ADR-0011 — one session found by the hub or a read-only provider scan. */
+export interface DiscoveredSession {
+  hubSessionId: string | null;
+  project: string;
+  adapter: string;
+  status: string;
+  controlMode: "observed" | "managed" | "controllable";
+  harness: string;
+  hostId: string;
+  nativeSessionId: string | null;
+  observedAt: string;
+  unsupportedResume: boolean;
+  fork: boolean;
+  parentSessionId: string | null;
+}
+
+export interface DiscoveryPage {
+  items: DiscoveredSession[];
+  nextCursor: number | null;
+}
+
+/** ADR-0012 — probed harness with its honest support cells. */
+export interface HarnessInventoryEntry {
+  id: string;
+  harness: string;
+  version: string | null;
+  discovery: "verified" | "implemented-unverified" | "missing" | "blocked";
+  resume: "verified" | "implemented-unverified" | "missing" | "blocked";
+  evidence: string;
+}
+
 export interface AdapterInfo {
   id: string;
   version: string;
@@ -284,6 +315,8 @@ export const hubApi = {
   }) => api<{ ok: boolean }>("/api/prompt-optimizer/feedback", { method: "POST", body: JSON.stringify(entry) }),
   sessions: () => api<SessionRecord[]>("/api/sessions"),
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
+  discovery: (cursor = 0, limit = 50) => api<DiscoveryPage>(`/api/discovery?cursor=${cursor}&limit=${limit}`),
+  inventory: () => api<{ items: HarnessInventoryEntry[] }>("/api/inventory"),
   sessionDiff: (id: string) => api<SessionDiffResult>(`/api/sessions/${id}/diff`),
   /** T3.8: real qmd-backed project search. A 501 (qmd not installed on
    * this host) is a real, expected state for a fresh/minimal deployment —

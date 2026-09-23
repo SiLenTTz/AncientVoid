@@ -1,4 +1,5 @@
-import type { AdapterInfo, AdapterUsage } from "./api.ts";
+import { useEffect, useState } from "preact/hooks";
+import { hubApi, type AdapterInfo, type AdapterUsage, type HarnessInventoryEntry } from "./api.ts";
 import { formatWindow } from "./Dashboard.tsx";
 
 /**
@@ -17,6 +18,60 @@ export function StatusPage({ adapters, usage }: { adapters: AdapterInfo[]; usage
       {adapters.map((a) => (
         <ProviderCard key={a.id} adapter={a} usage={usage[a.id]} />
       ))}
+      <InventoryCard />
+    </div>
+  );
+}
+
+const SUPPORT_LABEL: Record<HarnessInventoryEntry["discovery"], string> = {
+  verified: "belegt",
+  "implemented-unverified": "gebaut, unbelegt",
+  missing: "fehlt",
+  blocked: "blockiert",
+};
+
+/** T5.1 / ADR-0012: which harness is installed and what the hub can honestly
+ * do with it — probed versions, never guessed. */
+function InventoryCard() {
+  const [items, setItems] = useState<HarnessInventoryEntry[] | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    hubApi
+      .inventory()
+      .then((res) => setItems(res.items))
+      .catch((err) => setError(err instanceof Error ? err.message : "Inventar nicht erreichbar"));
+  }, []);
+  return (
+    <div class="card inventory-card">
+      <div class="provider-card-head">
+        <strong>Harness-Inventar</strong>
+      </div>
+      {error && <div class="dim">{error}</div>}
+      {!items && !error && <div class="dim">lädt …</div>}
+      {items && (
+        <div class="table-scroll">
+          <table class="inventory-table">
+            <thead>
+              <tr>
+                <th>Harness</th>
+                <th>Version</th>
+                <th>Discovery</th>
+                <th>Resume</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} title={item.evidence}>
+                  <td>{item.id}</td>
+                  <td class="mono">{item.version ?? "nicht installiert"}</td>
+                  <td class={`support ${item.discovery}`}>{SUPPORT_LABEL[item.discovery]}</td>
+                  <td class={`support ${item.resume}`}>{SUPPORT_LABEL[item.resume]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@
 // EPIC-P2 nor this UI cleanup asked for a fifth. `active` simply never
 // highlights any dock button while either page is open (same as
 // `active === null` inside a session tail).
-export type Page = "dashboard" | "new" | "settings" | "approvals" | "status";
+export type Page = "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery";
 
 /**
  * T1.6-2/3: the one global bottom-nav row, shared by App.tsx (as the whole
