@@ -1565,3 +1565,10 @@ a {
   min-height: 24px;
   cursor: pointer;
 }
+
+/* The user's own inputs (session.prompt): right-aligned bubble. */
+.event.user.own {
+  margin-left: 12%;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-elev));
+}

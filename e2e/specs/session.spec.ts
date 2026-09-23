@@ -22,6 +22,24 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     expect(record?.adapter).toBe("opencode");
   });
 
+  test("Startprompt und eigene Antworten stehen im Chat, in Reihenfolge @desktop", async ({ app, hub }) => {
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Adapter").selectOption("opencode");
+    await app.getByPlaceholder("Refactore den Auth-Flow…").fill("Mein Startprompt");
+    await app.getByRole("button", { name: "Starten" }).click();
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.getByText(/Antwort auf: Mein Startprompt/)).toBeVisible();
+    const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
+    await app.getByPlaceholder("Antworten…").fill("Meine Rückfrage");
+    await app.getByRole("button", { name: "Senden" }).click();
+    await expect(app.getByText(/Antwort auf: Meine Rückfrage/)).toBeVisible();
+    const chat = await app.locator(".event.user, .event.assistant").allTextContents();
+    const order = chat.map((t) => (t.includes("Antwort auf") ? "llm" : t.includes("Mein Startprompt") ? "start" : t.includes("Meine Rückfrage") ? "reply" : "?"));
+    expect(order).toEqual(["start", "llm", "reply", "llm"]);
+    await expect(app.locator(".event.user").first()).toContainText("Du");
+  });
+
   test("die Übersicht gruppiert nach Projekt und öffnet eine Session", async ({ app, hub }) => {
     await hub.createSession({ adapter: "dummy" });
     await hub.createSession({ adapter: "dummy", project: hub.beta });

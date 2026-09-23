@@ -12,9 +12,11 @@ describe("normalizeCopilotLine — real captured `copilot --output-format json` 
   it("maps a trivial no-tool-use turn to a single assistant event plus housekeeping, real events only", () => {
     const events = checkFixture(fixture("trivial-say-ok.jsonl"), normalizeCopilotLine);
 
-    const user = events.filter((e) => e.type === "user");
-    expect(user).toHaveLength(1);
-    expect(user[0]!.summary).toBe("say ok");
+    // The prompt echo stays out of the chat; the hub records the prompt.
+    expect(events.filter((e) => e.type === "user")).toHaveLength(0);
+    const echo = events.filter((e) => (e.payload as { kind?: string }).kind === "copilot.user_echo");
+    expect(echo).toHaveLength(1);
+    expect((echo[0]!.payload as { text?: string }).text).toBe("say ok");
 
     const assistant = events.filter((e) => e.type === "assistant");
     expect(assistant).toHaveLength(1);

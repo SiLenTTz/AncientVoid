@@ -72,8 +72,10 @@ export function normalizeCopilotLine(raw: unknown): EmittedEvent[] {
 
   switch (line.type) {
     case "user.message": {
+      // Copilot echoes the prompt it got. The hub already shows the user's
+      // own text (session.prompt), so this stays out of the chat.
       const content = typeof data.content === "string" ? data.content : "";
-      return [{ type: "user", summary: asString(content), payload: { text: content } }];
+      return [{ type: "system", summary: `copilot: prompt received (${content.length} chars)`, payload: { kind: "copilot.user_echo", text: content } }];
     }
 
     case "assistant.turn_start":
