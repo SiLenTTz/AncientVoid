@@ -34,3 +34,7 @@ packages/pwa/dist/
 .vscode/
 *.swp
 .DS_Store
+
+# Playwright E2E gate output
+playwright-report/
+test-results/

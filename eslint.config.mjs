@@ -8,6 +8,9 @@ export default tseslint.config(
       "**/dist/**",
       "**/node_modules/**",
       "packages/pwa/**",
+      // Playwright E2E gate output (HTML report bundles, traces).
+      "playwright-report/**",
+      "test-results/**",
       // Real bug found live (2026-09-19): `data/` (dataDir, gitignored —
       // SQLite, JSONL, worker logs, and every session's T2.1 git worktree,
       // itself a full checkout of this whole repo) was never excluded, so

@@ -1,0 +1,261 @@
+import { spawn, execFileSync, type ChildProcess } from "node:child_process";
+import { request } from "node:http";
+import { createWriteStream, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createServer } from "node:net";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+
+export const repoRoot = resolve(import.meta.dirname, "../..");
+const binDir = resolve(import.meta.dirname, "bin");
+
+export interface HubOptions {
+  /** "process" (default) or "tmux" — the tmux runner gets a private tmux server. */
+  runner?: "process" | "tmux";
+  /** Park steer prompts behind the approval queue (T2.4). */
+  requireStepApprovals?: boolean;
+  /** Dummy adapter: events per turn before it stops generating (0 = endless). */
+  dummyAutoStop?: number;
+}
+
+export interface ApiResult<T> {
+  status: number;
+  body: T;
+}
+
+function freePort(): Promise<number> {
+  return new Promise((resolvePort, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const port = (server.address() as { port: number }).port;
+      server.close(() => resolvePort(port));
+    });
+  });
+}
+
+function git(cwd: string, ...args: string[]): void {
+  execFileSync("git", args, { cwd, stdio: "ignore" });
+}
+
+function makeProject(root: string, name: string, readme: string, extra: Record<string, string> = {}): string {
+  const dir = join(root, name);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "README.md"), readme);
+  for (const [path, content] of Object.entries(extra)) {
+    mkdirSync(join(dir, path, ".."), { recursive: true });
+    writeFileSync(join(dir, path), content);
+  }
+  git(dir, "init", "-q", "-b", "main");
+  git(dir, "-c", "user.email=e2e@uacc.local", "-c", "user.name=e2e", "add", "-A");
+  git(dir, "-c", "user.email=e2e@uacc.local", "-c", "user.name=e2e", "commit", "-q", "-m", "init");
+  return dir;
+}
+
+/**
+ * One real hub process (packages/server/src/main.ts) on its own data dir,
+ * port, projects, token and — for the tmux runner — its own tmux server.
+ * Provider CLIs are the stand-ins in e2e/support/bin; nothing reaches a
+ * cloud provider or the user's own hub, tmux sessions, qmd index or
+ * ~/.claude.
+ */
+export class TestHub {
+  readonly root: string;
+  readonly dataDir: string;
+  readonly projectsDir: string;
+  readonly alpha: string;
+  readonly beta: string;
+  readonly logPath: string;
+  token = "";
+  port = 0;
+  private child: ChildProcess | undefined;
+  private readonly tmuxDir: string;
+  private readonly configPath: string;
+  private readonly options: HubOptions;
+
+  private constructor(options: HubOptions) {
+    this.options = options;
+    // Short prefix: tmux socket paths are limited to ~100 bytes.
+    this.root = mkdtempSync(join(tmpdir(), "uacc-e2e-"));
+    this.dataDir = join(this.root, "data");
+    this.projectsDir = join(this.root, "projects");
+    this.tmuxDir = join(this.root, "tmux");
+    this.logPath = join(this.root, "hub.log");
+    this.configPath = join(this.root, "hub.config.json");
+    mkdirSync(this.tmuxDir, { recursive: true });
+    mkdirSync(join(this.root, "claude", "projects"), { recursive: true });
+    mkdirSync(join(this.root, "cursor"), { recursive: true });
+    this.alpha = makeProject(this.projectsDir, "alpha", "# Alpha\n\nDas Handbuch beschreibt den Handoff zwischen PC und Handy.\n", {
+      ".claude/skills/neon/SKILL.md":
+        "---\nname: neon\ndescription: Neon-Styling für die Oberfläche\nextends: task\n---\nNutze Neonfarben.\n",
+    });
+    this.beta = makeProject(this.projectsDir, "beta", "# Beta\n\nZweites Projekt.\n");
+  }
+
+  static async start(options: HubOptions = {}): Promise<TestHub> {
+    const hub = new TestHub(options);
+    hub.port = await freePort();
+    hub.writeConfig();
+    hub.issueToken();
+    await hub.boot();
+    return hub;
+  }
+
+  get origin(): string {
+    return `http://127.0.0.1:${this.port}`;
+  }
+
+  private writeConfig(): void {
+    const config = {
+      dataDir: this.dataDir,
+      workerRunner: this.options.runner ?? "process",
+      projectRoots: [this.projectsDir],
+      requireStepApprovals: this.options.requireStepApprovals ?? false,
+      server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "packages/pwa/dist") },
+      discovery: { claudeDir: join(this.root, "claude"), cursorUserDir: join(this.root, "cursor") },
+      adapters: [
+        {
+          id: "dummy",
+          module: "@uacc/adapter-dummy",
+          config: { eventsPerSecond: 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
+        },
+        {
+          id: "opencode",
+          module: "@uacc/adapter-opencode",
+          config: { command: join(binDir, "opencode"), model: "e2e/fake-model" },
+        },
+      ],
+    };
+    writeFileSync(this.configPath, JSON.stringify(config, null, 2));
+  }
+
+  private issueToken(): void {
+    mkdirSync(this.dataDir, { recursive: true });
+    const out = execFileSync(
+      process.execPath,
+      [join(repoRoot, "packages/hubctl/src/cli.ts"), "token", "issue", "e2e", "--db", join(this.dataDir, "hub.db")],
+      { cwd: repoRoot, encoding: "utf8" },
+    );
+    const token = out.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("token for"));
+    if (!token) throw new Error(`hubctl token issue gave no token:\n${out}`);
+    this.token = token;
+  }
+
+  private async boot(): Promise<void> {
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      UACC_CONFIG: this.configPath,
+      UACC_LOG: "warn",
+      PATH: `${binDir}:${process.env.PATH ?? ""}`,
+      TMUX_TMPDIR: this.tmuxDir,
+      QMD_E2E_STATE: join(this.root, "qmd-state.json"),
+    };
+    delete env.TMUX;
+    const log = createWriteStream(this.logPath, { flags: "a" });
+    const child = spawn(process.execPath, [join(repoRoot, "packages/server/src/main.ts")], {
+      cwd: repoRoot,
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    child.stdout?.pipe(log);
+    child.stderr?.pipe(log);
+    this.child = child;
+    const deadline = Date.now() + 20_000;
+    while (Date.now() < deadline) {
+      if (child.exitCode !== null) throw new Error(`hub exited with ${child.exitCode}, see ${this.logPath}`);
+      try {
+        const res = await this.api("/api/ready");
+        if (res.status === 200) return;
+      } catch {
+        // not listening yet
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    throw new Error(`hub not ready within 20 s, see ${this.logPath}`);
+  }
+
+  /** Hard kill (K7 drill) or clean stop. */
+  async kill(signal: NodeJS.Signals = "SIGKILL"): Promise<void> {
+    const child = this.child;
+    if (!child || child.exitCode !== null) return;
+    const exited = new Promise((r) => child.once("exit", r));
+    child.kill(signal);
+    await exited;
+    this.child = undefined;
+  }
+
+  /** Same data dir, port and token — what a phone sees after a hub crash. */
+  async restart(signal: NodeJS.Signals = "SIGKILL"): Promise<number> {
+    await this.kill(signal);
+    const t0 = Date.now();
+    await this.boot();
+    return Date.now() - t0;
+  }
+
+  async stop(): Promise<void> {
+    await this.kill("SIGTERM");
+    try {
+      execFileSync("tmux", ["kill-server"], { env: { ...process.env, TMUX_TMPDIR: this.tmuxDir, TMUX: "" }, stdio: "ignore" });
+    } catch {
+      // no tmux server was started
+    }
+    rmSync(this.root, { recursive: true, force: true });
+  }
+
+  /** node:http without keep-alive: Node 26's fetch (undici 8.9) stalls for
+   * seconds when it reuses an idle keep-alive socket — even against a bare
+   * http.createServer. The browser and hubctl are not affected. */
+  api<T = unknown>(path: string, init: { method?: string; body?: unknown } = {}): Promise<ApiResult<T>> {
+    const payload = init.body === undefined ? undefined : JSON.stringify(init.body);
+    return new Promise((resolveApi, reject) => {
+      const req = request(
+        `${this.origin}${path}`,
+        {
+          method: init.method ?? (payload === undefined ? "GET" : "POST"),
+          agent: false,
+          headers: {
+            authorization: `Bearer ${this.token}`,
+            ...(payload === undefined ? {} : { "content-type": "application/json", "content-length": Buffer.byteLength(payload) }),
+          },
+        },
+        (res) => {
+          let text = "";
+          res.setEncoding("utf8");
+          res.on("data", (chunk: string) => (text += chunk));
+          res.on("end", () => resolveApi({ status: res.statusCode ?? 0, body: (text ? JSON.parse(text) : null) as T }));
+        },
+      );
+      req.on("error", reject);
+      if (payload !== undefined) req.write(payload);
+      req.end();
+    });
+  }
+
+  /** Session ids created through the API, newest first. */
+  async sessions(): Promise<{ id: string; adapter: string; status: string; nativeSessionId: string | null }[]> {
+    return (await this.api<{ id: string; adapter: string; status: string; nativeSessionId: string | null }[]>("/api/sessions")).body;
+  }
+
+  async createSession(spec: { adapter: string; project?: string; prompt?: string; args?: Record<string, unknown>; budgetUsd?: number }): Promise<string> {
+    const res = await this.api<{ id?: string; error?: string }>("/api/sessions", {
+      body: { project: this.alpha, ...spec },
+    });
+    if (res.status !== 201 || !res.body.id) throw new Error(`create failed: ${res.status} ${JSON.stringify(res.body)}`);
+    return res.body.id;
+  }
+
+  async events(sessionId: string): Promise<{ seq: number; type: string; summary: string; payload: Record<string, unknown> }[]> {
+    return (await this.api<{ seq: number; type: string; summary: string; payload: Record<string, unknown> }[]>(
+      `/api/sessions/${sessionId}/events?limit=2000`,
+    )).body;
+  }
+
+  /** Poll until `check` is true — no fixed sleeps (write-tests rule). */
+  async until(check: () => Promise<boolean>, what: string, timeoutMs = 15_000): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (await check()) return;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    throw new Error(`timed out waiting for: ${what}`);
+  }
+}
