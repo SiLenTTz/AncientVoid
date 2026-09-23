@@ -1,4 +1,4 @@
-import { shouldResync } from "./ws-protocol.ts";
+import { newEvents, shouldResync } from "./ws-protocol.ts";
 
 /**
  * WS delta-protocol client (counterpart of packages/server/src/ws.ts).
@@ -53,7 +53,7 @@ export function connectTail(opts: TailOptions): TailConnection {
           | { type: "error"; message: string }
           | { type: "pong" };
         if (data.type === "events") {
-          const incoming = data.events;
+          const incoming = newEvents(lastSeq, data.events);
           const first = incoming[0];
           if (shouldResync(lastSeq, first?.seq, data.dropped)) {
             // Gap or dropped batch — resync from last known seq.
@@ -61,7 +61,7 @@ export function connectTail(opts: TailOptions): TailConnection {
             return;
           }
           if (incoming.length > 0) {
-            lastSeq = data.highWater;
+            lastSeq = incoming[incoming.length - 1]!.seq;
             opts.onState("live");
             opts.onEvents(incoming);
           }

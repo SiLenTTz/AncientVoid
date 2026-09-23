@@ -8,3 +8,9 @@ export function shouldResync(
   if (firstIncomingSeq === undefined) return false;
   return firstIncomingSeq > lastSeq + 1;
 }
+
+/** BUG-0023: the hub delivers at least once — a `hello` replay can overlap
+ * with live pushes. Anything at or below `lastSeq` is already on screen. */
+export function newEvents<T extends { seq: number }>(lastSeq: number, incoming: readonly T[]): T[] {
+  return incoming.filter((event) => event.seq > lastSeq);
+}
