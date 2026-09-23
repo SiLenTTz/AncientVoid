@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { open, readFile, stat, mkdir, rm } from "node:fs/promises";
 import { watch } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@uacc/contracts";
 
 export const TMUX_PREFIX = "uacc-";
@@ -124,9 +125,16 @@ export class TmuxRunner implements WorkerRunner {
   readonly kind = "tmux";
 
   private readonly logDir: string;
+  /** BUG-0019: every hub shares the user's default tmux server. A worker
+   * carries its owner as the session option `@uacc_owner`; list() and
+   * reapOrphans() only see the workers of this runner, so a second hub
+   * (tests, E2E, another data dir) never kills a live worker it does not
+   * own. Workers without the option are foreign too. */
+  readonly owner: string;
 
-  constructor(logDir: string) {
+  constructor(logDir: string, owner?: string) {
     this.logDir = logDir;
+    this.owner = owner ?? createHash("sha256").update(resolve(logDir)).digest("hex").slice(0, 16);
   }
 
   private fullName(name: string): string {
@@ -182,6 +190,7 @@ export class TmuxRunner implements WorkerRunner {
       throw new Error(`tmux spawn failed: ${res.stderr.trim()}`);
     }
     try {
+      await execTmux(["set-option", "-t", full, "@uacc_owner", this.owner]);
       // 2. Keep the pane after exit so pipe-pane can flush the tail reliably.
       await execTmux(["set-option", "-t", full, "remain-on-exit", "on"]);
       // 3. Capture pane output (stdout+stderr interleaved) into the log file.
@@ -280,14 +289,18 @@ export class TmuxRunner implements WorkerRunner {
   }
 
   async list(): Promise<WorkerInfo[]> {
-    const res = await execTmux(["list-sessions", "-F", "#{session_name}\t#{pane_pid}\t#{session_created}"]).catch(() => null);
+    const res = await execTmux([
+      "list-sessions",
+      "-F",
+      "#{session_name}\t#{pane_pid}\t#{session_created}\t#{@uacc_owner}",
+    ]).catch(() => null);
     if (!res || res.code !== 0) return [];
     return res.stdout
       .trim()
       .split("\n")
-      .filter((l) => l.startsWith(TMUX_PREFIX))
-      .map((l) => {
-        const [name, pid, created] = l.split("\t");
+      .map((l) => l.split("\t"))
+      .filter(([name, , , owner]) => name?.startsWith(TMUX_PREFIX) && owner === this.owner)
+      .map(([name, pid, created]) => {
         const pidNum = pid ? Number(pid) : NaN;
         const createdNum = created ? Number(created) * 1000 : NaN;
         return {
