@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
@@ -50,12 +50,30 @@ export interface HubAppDeps {
   hostId?: string;
   /** EPIC-P6: invites and paired peers (default: in the token database). */
   fleet?: FleetStore;
+  /** Tests only: where the request log goes (default stdout). */
+  logStream?: { write(message: string): void };
+}
+
+/** Masks credentials carried in a URL's query string. */
+export function redactUrl(url: string): string {
+  return url.replace(/([?&](?:token|access_token)=)[^&#]*/gi, "$1[redacted]");
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
       level: process.env.UACC_LOG ?? "info",
+      ...(deps.logStream ? { stream: deps.logStream } : {}),
+      // BUG-0028: WebSocket clients authenticate with ?token= — the default
+      // request serializer logged it verbatim.
+      serializers: {
+        req: (req: FastifyRequest) => ({
+          method: req.method,
+          url: redactUrl(req.url ?? ""),
+          host: req.hostname,
+          remoteAddress: req.ip,
+        }),
+      },
       redact: {
         paths: [
           "req.headers.authorization",
