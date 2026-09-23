@@ -788,6 +788,32 @@ export class SessionManager {
     }
   }
 
+  /**
+   * "Ins Projekt übernehmen": the session's worktree work lands in the
+   * project checkout as one merge. Only between turns — never while an
+   * agent may still write.
+   */
+  async applyToProject(
+    sessionId: string,
+    actor?: string,
+  ): Promise<{ ok: true; into: string; commit: string; files: number } | { ok: false; detail: string }> {
+    const record = this.get(sessionId);
+    if (!record) return { ok: false, detail: "Session unbekannt." };
+    if (record.status === "working" || record.status === "starting") {
+      return { ok: false, detail: "Die Session arbeitet gerade. Bitte warten, bis der Zug fertig ist." };
+    }
+    const session = this.openStopped(sessionId) ?? this.live.get(sessionId);
+    if (!this.worktrees || record.worktreeSha === null || !existsSync(this.worktrees.pathFor(sessionId)) || !session) {
+      return { ok: false, detail: "Diese Session arbeitet direkt im Projektordner, es gibt nichts zu übernehmen." };
+    }
+    const message = `UACC: ${record.title ?? `Session ${sessionId.slice(0, 8)}`}`;
+    const result = await this.worktrees.apply(sessionId, record.project, message);
+    if (result.ok) {
+      await this.emitSystem(session, "session.applied", { into: result.into, commit: result.commit, files: result.files, actor: actor ?? null });
+    }
+    return result;
+  }
+
   /** Newest first. With `afterId`, only newer ones (polling). */
   notifications(afterId = 0, limit = 50): { items: HubNotification[]; lastId: number } {
     const rows = this.db
@@ -939,7 +965,7 @@ export class SessionManager {
       // reason to leave the session stuck in "stopping".
       if (session.worktreeIsolated && this.worktrees) {
         try {
-          if (await this.worktrees.hasWork(session.record.id, session.record.worktreeSha)) {
+          if (await this.worktrees.hasWork(session.record.id, session.record.worktreeSha, session.record.project)) {
             await this.emitSystem(session, "session.worktree_kept", {
               path: this.worktrees.pathFor(session.record.id),
               branch: this.worktrees.branchFor(session.record.id),

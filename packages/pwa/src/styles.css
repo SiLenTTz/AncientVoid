@@ -1737,3 +1737,19 @@ a {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.apply-btn {
+  margin-top: 8px;
+}
+.apply-confirm {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.apply-result {
+  margin-top: 6px;
+  font-size: 12px;
+}
+.apply-result.ok {
+  color: var(--ok);
+}

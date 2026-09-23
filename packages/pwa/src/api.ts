@@ -409,6 +409,21 @@ export const hubApi = {
   // (SessionTail.tsx) calls this exact function and swallows the error
   // via `.catch(() => undefined)`, so the button has been silently doing
   // nothing this whole time — confirmed live via curl before assuming.
+  /** Commit the session worktree and merge it into the project checkout. */
+  applyToProject: async (id: string): Promise<{ ok: boolean; into?: string; commit?: string; files?: number; detail?: string }> => {
+    const res = await fetch(`/api/sessions/${id}/apply`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
+      body: "{}",
+    });
+    return (await res.json().catch(() => ({ ok: false, detail: `${res.status} ${res.statusText}` }))) as {
+      ok: boolean;
+      into?: string;
+      commit?: string;
+      files?: number;
+      detail?: string;
+    };
+  },
   stopSession: (id: string) =>
     api<{ ok: boolean }>(`/api/sessions/${id}/stop`, { method: "POST", body: "{}" }),
   setArchived: (id: string, archived: boolean) =>

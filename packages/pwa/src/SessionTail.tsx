@@ -676,7 +676,7 @@ function BerichtPane({
         </div>
       </div>
       {record.attachCmd && <AttachCmdRow cmd={record.attachCmd} />}
-      {record.worktree && <WorktreeCard worktree={record.worktree} project={record.project} />}
+      {record.worktree && <WorktreeCard sessionId={record.id} status={status} worktree={record.worktree} project={record.project} />}
       <ContinueCard openCmd={record.openCmd} />
     </div>
   );
@@ -723,7 +723,38 @@ function CopyButton({ text }: { text: string }) {
 
 /** Changes of an isolated session are in its worktree, not the project
  * folder the editor shows — say so, and how to open it. */
-function WorktreeCard({ worktree, project }: { worktree: { path: string; branch: string }; project: string }) {
+function WorktreeCard({
+  sessionId,
+  status,
+  worktree,
+  project,
+}: {
+  sessionId: string;
+  status: string;
+  worktree: { path: string; branch: string };
+  project: string;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const running = status === "working" || status === "starting";
+  const projectName = project.split("/").pop() ?? project;
+  const apply = async () => {
+    setBusy(true);
+    try {
+      const r = await hubApi.applyToProject(sessionId);
+      setResult(
+        r.ok
+          ? { ok: true, text: `Übernommen: ${r.files} Datei(en) nach ${r.into} (${r.commit}).` }
+          : { ok: false, text: r.detail ?? "Übernehmen fehlgeschlagen." },
+      );
+    } catch (err) {
+      setResult({ ok: false, text: err instanceof Error ? err.message : "Übernehmen fehlgeschlagen." });
+    } finally {
+      setBusy(false);
+      setConfirming(false);
+    }
+  };
   const openInEditor = `code ${/^[\w./=@%^+:-]+$/.test(worktree.path) ? worktree.path : `'${worktree.path.replaceAll("'", `'\\''`)}'`}`;
   return (
     <div class="card worktree-card">
@@ -739,6 +770,35 @@ function WorktreeCard({ worktree, project }: { worktree: { path: string; branch:
         <code class="mono worktree-open">{openInEditor}</code>
         <CopyButton text={openInEditor} />
       </div>
+      {confirming ? (
+        <div class="apply-confirm">
+          <div class="dim" style="font-size: 12px">
+            Committet alle Änderungen auf {worktree.branch} und merged sie in den ausgecheckten Branch von {projectName}.
+          </div>
+          <div class="row" style="gap: 8px">
+            <button class={busy ? "btn primary busy" : "btn primary"} type="button" disabled={busy} onClick={() => void apply()}>
+              {busy ? "lädt…" : "Jetzt übernehmen"}
+            </button>
+            <button class="btn" type="button" disabled={busy} onClick={() => setConfirming(false)}>
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          class="btn apply-btn"
+          type="button"
+          disabled={running}
+          title={running ? "Erst nach dem laufenden Zug" : undefined}
+          onClick={() => {
+            setResult(null);
+            setConfirming(true);
+          }}
+        >
+          Ins Projekt übernehmen
+        </button>
+      )}
+      {result && <div class={result.ok ? "apply-result ok" : "apply-result reply-error"}>{result.text}</div>}
     </div>
   );
 }
