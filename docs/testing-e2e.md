@@ -36,6 +36,7 @@ startet in etwa einer Sekunde.
 | `GROSS` | Tool-Ergebnis über 2 KB |
 | `DATEI` | legt `e2e-change.txt` im Arbeitsverzeichnis an |
 | `WARTE<n>` | antwortet erst nach n Sekunden (Zug überlebt einen Hub-Kill) |
+| `PLAN` | To-do-Liste über `todowrite`, 1 von 4 erledigt (Fortschritt/ETA) |
 | `KONTINGENT` | z.ai-Fehler „Usage limit reached for 5 hour … reset at …“, Exit 1 |
 | `SERVERFEHLER` | OpenCodes „UnknownError: Unexpected server error“ (echte Zeile vom 2026-09-23), Exit 1 |
 | `--session <id>` | setzt die Session fort, Antwort endet auf `(fortgesetzt)` |
@@ -92,6 +93,9 @@ Fehlt Chromium, scheitert der Lauf laut. Es gibt kein stilles Überspringen.
 | Neustart | `recovery` | Kill -9 mit exakter Event-Sequenz, gestoppte Session nach Neustart, Fortsetzen nach Kill zwischen Zügen, Übernahme eines laufenden Zugs unter tmux |
 | Gefunden, Inventar | `discovery` | 20 Sessions binnen 10 s (AC-P5-1), Dedup, Subagent, unbekanntes Format, „Mehr laden“, Harness-Inventar |
 | Links, Attach, Native-Open | `deeplink` | Deep-Link nach Reload, unbekannter Link, Attach nur mit laufendem tmux-Worker, Terminal-Befehl nur zwischen Zügen, Kopieren in die Zwischenablage |
+| Layout | `layout` | letzte Nachricht nie unter der Steuerung, Steuerung aus-/einblendbar |
+| Meldungen | `notifications` | Kontingent/Serverfehler als rote Karte oben rechts und im Chat, Weiter nach Fehler, Zug fertig, Glocke, Hub weg/wieder da |
+| Fortschritt | `progress` | Plan-Fortschritt mit Restzeit, ohne Plan nur Laufzeit, Kontingent-Zeile |
 | Arbeitsplatz | `workspace` | Archiv, Freigaben (ja/nein), Budget, Verbessern, Empfehlung, Skill-Kette, Diktat, Sprachbefehl „stopp“ |
 
 ### Bewusst offen (`test.fixme`)

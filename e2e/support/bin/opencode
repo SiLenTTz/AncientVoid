@@ -11,6 +11,7 @@
 //   GROSS    a tool result above the 2 KB chat threshold
 //   DATEI    write e2e-change.txt into the working directory (diff tab)
 //   WARTE<n> answer only after n seconds (a turn that outlives a hub kill)
+//   PLAN     writes a todo list (1 of 4 done) like opencode's todowrite
 //   KONTINGENT   z.ai usage-limit error line, exit 1
 //   SERVERFEHLER opencode's opaque UnknownError line (real, 2026-09-23), exit 1
 import { writeFileSync } from "node:fs";
@@ -63,6 +64,10 @@ emit({
   sessionID: sid,
   part: { type: "tool", tool: "read", callID: "call_read_1", state: { status: "completed", input: { filePath: "README.md" }, output } },
 });
+if (has("PLAN")) {
+  const todos = ["Lesen", "Ändern", "Testen", "Aufräumen"].map((content, i) => ({ id: `t${i}`, content, status: i === 0 ? "completed" : i === 1 ? "in_progress" : "pending", priority: "medium" }));
+  emit({ type: "tool_use", sessionID: sid, part: { type: "tool", tool: "todowrite", callID: "call_todo_1", state: { status: "completed", input: { todos }, output: "ok" } } });
+}
 if (has("KONTINGENT") || has("SERVERFEHLER")) {
   const data = has("KONTINGENT")
     ? { message: "Usage limit reached for 5 hour. Your limit will reset at 2026-09-23 15:00:00" }
