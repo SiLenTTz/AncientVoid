@@ -211,6 +211,8 @@ export class SessionManager {
    * (in SQLite) still shows what was asked for, it just can no longer be
    * carried out after a restart. Documented here, not silently assumed. */
   private readonly pendingSteers = new Map<string, { sessionId: string; input: SteerInput }>();
+  /** Tail of the per-session steer chain (see steer()). */
+  private readonly steerQueue = new Map<string, Promise<void>>();
 
   private readonly db: HubDatabase;
   private readonly store: EventStore;
@@ -625,7 +627,24 @@ export class SessionManager {
     }
   }
 
-  async steer(sessionId: string, input: SteerInput, actor?: string, meta?: SteerMeta): Promise<Ack> {
+  /** Steers of one session run one after another. Input-id, revision and
+   * lease checks only hold if no second steer passes them while the first
+   * is still awaiting (BUG-0017: two clients reopened a stopped run twice). */
+  steer(sessionId: string, input: SteerInput, actor?: string, meta?: SteerMeta): Promise<Ack> {
+    const previous = this.steerQueue.get(sessionId) ?? Promise.resolve();
+    const run = previous.then(() => this.steerNow(sessionId, input, actor, meta));
+    const settled = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.steerQueue.set(sessionId, settled);
+    void settled.then(() => {
+      if (this.steerQueue.get(sessionId) === settled) this.steerQueue.delete(sessionId);
+    });
+    return run;
+  }
+
+  private async steerNow(sessionId: string, input: SteerInput, actor?: string, meta?: SteerMeta): Promise<Ack> {
     let session = this.live.get(sessionId);
     if (!session) {
       const record = this.get(sessionId);
@@ -675,7 +694,13 @@ export class SessionManager {
       await this.emitSystem(session, "session.steer_pending_approval", { approvalId: req.id, actor: actor ?? null });
       return { ok: false, detail: `pending approval ${req.id}` };
     }
-    if (reopening && delivered.kind === "prompt") return this.continueStopped(session, delivered, actor);
+    if (reopening && delivered.kind === "prompt") {
+      // BUG-0016: the reopen is a steer like any other — without the
+      // commit, a retried input id started the provider a second time.
+      const reopened = await this.continueStopped(session, delivered, actor);
+      if (reopened.ok) this.commitSteerMeta(session, meta);
+      return reopened;
+    }
     const ack = await session.adapter.steer(session.handle!, delivered, this.makeContext(session));
     // BUG found via T2.8's own audit test: emitSystem() builds
     // `{ kind, ...payload }`, where `kind` is this call's own event-kind

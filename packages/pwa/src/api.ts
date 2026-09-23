@@ -202,6 +202,38 @@ export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
+const CLIENT_KEY = "uacc.clientId";
+
+function randomId(): string {
+  return typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+/** One id per device. The hub leases a session to the device that wrote
+ * last, so phone and desktop cannot both start a turn (AC-P5-4). */
+export function clientId(): string {
+  let id = localStorage.getItem(CLIENT_KEY);
+  if (!id) {
+    id = randomId();
+    localStorage.setItem(CLIENT_KEY, id);
+  }
+  return id;
+}
+
+/** A fresh id for one send. A retry of the same send reuses it, so the
+ * hub runs it once. */
+export function newInputId(): string {
+  return randomId();
+}
+
+/** Server ack details that mean "someone else holds the session". */
+export function steerRejectText(detail: string | undefined): string {
+  if (detail === "writer lease held") return "Ein anderes Gerät schreibt gerade in diese Session. Kurz warten und erneut senden.";
+  if (detail === "revision conflict") return "Die Session hat sich inzwischen geändert. Bitte erneut senden.";
+  return detail ?? "Antwort wurde abgelehnt";
+}
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -337,11 +369,11 @@ export const hubApi = {
   // {ok:false, detail} body, and api<T>()'s generic !res.ok path would
   // throw a bare "422 Unprocessable Entity" instead of surfacing that
   // detail. Callers inspect ack.ok/ack.detail themselves.
-  steer: async (id: string, input: SteerInput): Promise<Ack> => {
+  steer: async (id: string, input: SteerInput, inputId?: string): Promise<Ack> => {
     const res = await fetch(`/api/sessions/${id}/steer`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify(input),
+      body: JSON.stringify({ ...input, clientId: clientId(), ...(inputId ? { inputId } : {}) }),
     });
     const body = (await res.json().catch(() => ({}))) as { ok?: boolean; detail?: string; error?: string };
     // Two possible failure shapes from the server: a rejected Ack
