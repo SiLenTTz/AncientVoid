@@ -1,0 +1,9 @@
+
+# <Risiko> <Absicht> <bereich>: <was sich ändert>
+#   ^ F pwa: Einladung als QR-Code anzeigen
+#
+# Risiko   . beweisbar sicher  ^ Gate grün + Tests decken es ab
+#          ! Gate grün, Verhalten teils nur live belegt  @ Zwischenstand
+# Absicht  F Feature  B Bugfix  (groß = Verhalten ändert sich)
+#          r Refactoring  d Doku  t Tests  e Tooling  a automatisch  m Merge
+# Details: docs/commit-notation.md

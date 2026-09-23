@@ -82,6 +82,7 @@ sie duplizieren nichts hier, sie wenden es an. Index: `.claude/skills/README.md`
 - Defekt: Skill `bugfix` (Reproduce → Fix → Re-verify → Finalize). Handoff an `pr-review`.
 - Neuer Bug ohne Fix: Skill `bug-report` → `bugs/bug-NNNN-slug.md`.
 - Vor jedem MR: Skill `gates` (= `npm test && npm run lint && npm run typecheck`, betroffene Packages; bei UI-/Ablauf-Änderungen plus `npm run test:e2e`, vor Epic-Abschluss `npm run gate`) und danach `pr-review` (6 Dimensionen inkl. Future-Fragility: Contract-Bruch, K5/K7-Verletzung, Adapter-Isolation).
+- Commit-Zusammenfassung und MR-Titel: **Commit-Notation** `<Risiko> <Absicht> <bereich>: <Satz>` (`^ F pwa: …`, `. d adr: …`, `! B core: …`) nach [`docs/commit-notation.md`](docs/commit-notation.md) — Risiko nach belegtem Gate/Testumfang, eine Verhaltensänderung pro Commit, MR-Titel nie `@`. Hook `.githooks/commit-msg` und `npm run check:commits` prüfen es.
 - Commit/Branch/MR: Skill `git-workflow` — inkl. **fester Kadenz**: Task-Abschluss → commit; Bugfix- oder Epic-Abschluss → commit + push + MR (Solo-Projekt: Self-Merge der eigenen MR zulässig, MR bleibt Pflicht-Log). Kein Force-Push, kein Commit auf `main` außerhalb der dokumentierten Bootstrap-Ausnahme. **Der Merge selbst passiert ausschließlich über `glab mr merge`/GitLab-UI — nie über ein lokales `git merge` von einem Feature-Branch nach `main`, auch nicht als Notlösung wenn der Remote gerade nicht erreichbar ist** (dann bleibt der Branch offen und ungelöscht, bis gepusht/gemerged werden kann — siehe `git-workflow`s Regel dazu, real nötig geworden am 2026-09-18).
 - Neue Phase: Skill `epic-creation` bzw. Agent `epic-planner` — Vorbild `epics/EPIC-P3-adapter-flotte-sprachsuche.md`, Premortem nie überspringen.
 - Tests schreiben: Skill `write-tests`.
@@ -93,8 +94,8 @@ Autonomie-Anweisung für eine Aufgabe/ein Epic ist ein Branch **pro
 Aufgabe** davon gedeckt, siehe `git-workflow`). Self-Merge der eigenen MR
 ist zulässig (Solo-Projekt) — was **nicht** zulässig ist: die MR selbst zu
 überspringen und stattdessen lokal nach `main` zu mergen. Kein
-`--no-verify`-Äquivalent (es gibt aktuell keine lokalen Git-Hooks — die
-drei Kommandos oben sind die einzige Prüfung).
+`--no-verify`-Äquivalent (der `commit-msg`-Hook prüft die Commit-Notation;
+Tests, Lint und Typecheck laufen über die drei Kommandos oben bzw. das Gate).
 
 Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder
 `epics/` für Epics. ADRs nach `docs/adr/NNNN-*.md`. Kein `*-STATUS.md`/
