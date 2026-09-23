@@ -126,6 +126,12 @@ export class TestHub {
           module: "@uacc/adapter-opencode",
           config: { command: join(binDir, "opencode"), model: "e2e/fake-model" },
         },
+        {
+          // T7.8: a stand-in claude CLI with the real stream-json shapes.
+          id: "claude",
+          module: "@uacc/adapter-claude",
+          config: { command: join(binDir, "claude") },
+        },
       ],
     };
     writeFileSync(this.configPath, JSON.stringify(config, null, 2));

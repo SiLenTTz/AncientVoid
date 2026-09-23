@@ -2,12 +2,6 @@ import { useEffect, useState } from "preact/hooks";
 import { useApi } from "./api-context.ts";
 import { type SkillOrAgent } from "./api.ts";
 
-/** T1.5-10/ADR-0005: only claude has a verified skill/agent invocation
- * mechanism (`/name` prefix, `--agent` flag). codex fails loud instead of
- * silently ignoring a selection (adapter-codex/src/index.ts), but the
- * overlay itself is honest up front and doesn't even offer the picker
- * for an adapter with no real mechanism (AC-P1.5-12). */
-const SKILL_INVOCATION_SUPPORTED_ADAPTERS = new Set(["claude"]);
 
 export interface SelectedSkill {
   kind: "skill" | "agent";
@@ -60,12 +54,15 @@ export function saveSelectedWorkflow(project: string, name: string | null): void
  */
 export function SkillPicker({
   project,
-  adapter,
+  supported,
   selection,
   onChange,
 }: {
   project: string;
-  adapter: string;
+  /** ADR-0018: the harness takes skills or agents (features). Without,
+   * the overlay says so up front instead of offering a dead picker
+   * (AC-P1.5-12). */
+  supported: boolean;
   selection: SelectedSkill | null;
   onChange: (s: SelectedSkill | null) => void;
 }) {
@@ -73,7 +70,6 @@ export function SkillPicker({
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<SkillOrAgent[] | null>(null);
   const [error, setError] = useState("");
-  const supported = SKILL_INVOCATION_SUPPORTED_ADAPTERS.has(adapter);
 
   // A selection made for a different adapter (e.g. an "agent" chosen
   // while claude was picked, then the user switches to codex) must not

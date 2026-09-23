@@ -448,7 +448,7 @@ function CreateSession({
         />
       </label>
       {error && <div style="color: var(--err)">{error}</div>}
-      <SkillPicker project={project} adapter={adapter} selection={skill} onChange={setSkill} />
+      <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />
       <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy || !project}>
         {busy ? "lädt…" : "Starten"}
       </button>
