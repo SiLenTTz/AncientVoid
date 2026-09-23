@@ -51,6 +51,29 @@ describe("getSessionDiff — real git repo, no mocking", () => {
     }
   });
 
+  it("BUG-0020: reports a new file the agent never staged", async () => {
+    const { dir, cleanup } = await initRepo();
+    try {
+      await execFileAsync("git", ["-C", dir, "config", "diff.mnemonicPrefix", "true"]);
+      await writeFile(join(dir, ".gitignore"), "ignored.log\n");
+      await execFileAsync("git", ["-C", dir, "add", ".gitignore"]);
+      await execFileAsync("git", ["-C", dir, "commit", "-q", "-m", "ignore"]);
+      await writeFile(join(dir, "a.txt"), "line1\nchanged\n");
+      await writeFile(join(dir, "neu.txt"), "eins\nzwei\n");
+      await writeFile(join(dir, "ignored.log"), "noise\n");
+      const result = await getSessionDiff(dir);
+      expect(result.error).toBeUndefined();
+      expect(result.files.map((f) => f.path)).toEqual(["a.txt", "neu.txt"]);
+      expect(result.files[1]).toMatchObject({ additions: 2, deletions: 0, binary: false });
+      expect(result.files[1]!.hunks[0]!.body).toContain("+zwei");
+      expect(result.files[0]!.hunks[0]!.body).toContain("+changed");
+      const hunks = await getSessionFileHunks(dir, "neu.txt");
+      expect(hunks[0]?.body).toContain("+eins");
+    } finally {
+      await cleanup();
+    }
+  });
+
   it("reports a new untracked-but-added file", async () => {
     const { dir, cleanup } = await initRepo();
     try {
