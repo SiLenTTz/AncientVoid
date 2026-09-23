@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { EmittedEvent, type Adapter, type AdapterContext, type SessionSpec } from "@uacc/contracts";
+import { EmittedEvent, TOOL_GATES, type Adapter, type AdapterContext, type SessionSpec } from "@uacc/contracts";
 
 /**
  * Adapter test kit — the hub's contract, executable.
@@ -112,6 +112,16 @@ export async function runContractTests(
     if (caps.nativeResume !== "native" && caps.nativeResume !== "none") {
       throw new Error("capabilities.nativeResume must be native or none");
     }
+    // ADR-0018: the per-function matrix, and no promise the tools can't keep.
+    const f = caps.features;
+    if (!f) throw new Error("capabilities.features missing (ADR-0018)");
+    for (const key of ["followUp", "interrupt", "questions", "skills", "agents", "images", "files", "contextFork"] as const) {
+      if (typeof f[key] !== "boolean") throw new Error(`capabilities.features.${key} must be boolean`);
+    }
+    if (!TOOL_GATES.includes(f.toolGate)) throw new Error(`capabilities.features.toolGate must be one of ${TOOL_GATES.join(", ")}`);
+    if (f.modelChoice !== "start" && f.modelChoice !== "none") throw new Error("capabilities.features.modelChoice must be start or none");
+    if (caps.steer !== (f.followUp || f.interrupt)) throw new Error("capabilities.steer must equal features.followUp || features.interrupt");
+    if (!caps.tools && f.toolGate !== "none") throw new Error("an adapter without tools has toolGate none");
   });
 
   const ctx = makeRecordingContext(opts.spawnWorker ? { spawnWorker: opts.spawnWorker } : {});

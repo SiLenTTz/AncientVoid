@@ -41,6 +41,9 @@ describe("AdapterRegistry", () => {
     const found = registry.require("custom");
     expect(found.adapter.id).toBe("custom-endpoint");
     expect(found.capabilities.steer).toBe(false);
+    // ADR-0018: an adapter written before `features` gets the cautious
+    // reading — no follow-up, and tools (if any) as if they ran unasked.
+    expect(found.capabilities.features).toMatchObject({ followUp: false, interrupt: false, toolGate: "none", questions: false });
   });
 
   it("fails loudly on modules without createAdapter export", async () => {

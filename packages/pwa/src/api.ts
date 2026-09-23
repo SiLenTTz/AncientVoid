@@ -188,10 +188,30 @@ export interface HarnessInventoryEntry {
   evidence: string;
 }
 
+/** ADR-0018 — mirrors `@uacc/contracts`'s HarnessFeatures. */
+export type ToolGate = "native" | "sandbox" | "allowlist" | "bypass" | "none";
+export interface HarnessFeatures {
+  followUp: boolean;
+  interrupt: boolean;
+  toolGate: ToolGate;
+  questions: boolean;
+  modelChoice: "start" | "none";
+  skills: boolean;
+  agents: boolean;
+  images: boolean;
+  files: boolean;
+  contextFork: boolean;
+}
+
 export interface AdapterInfo {
   id: string;
   version: string;
-  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean };
+  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; features: HarnessFeatures };
+}
+
+export interface ModelOption {
+  id: string;
+  label?: string;
 }
 
 /** ADR-0004 — account-level usage/quota window, e.g. claude's real
@@ -337,6 +357,8 @@ function createHubApi(P: (path: string) => string) {
   return {
   health: () => api<{ ok: boolean; serverTime: string }>(P("/api/health")),
   adapters: () => api<AdapterInfo[]>(P("/api/adapters")),
+  /** ADR-0018: null when the adapter has no catalog (free text then). */
+  adapterModels: (id: string) => api<{ models: ModelOption[] | null }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
   adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
   projects: () => api<ProjectDiscoveryResult>(P("/api/projects")),
   skills: (project: string) => api<{ items: SkillOrAgent[] }>(P(`/api/skills?project=${encodeURIComponent(project)}`)),

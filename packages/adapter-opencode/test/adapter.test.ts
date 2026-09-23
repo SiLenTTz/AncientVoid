@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { WorkerProcess } from "@uacc/contracts";
 import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
-import { createAdapter } from "../src/index.ts";
+import { createAdapter, parseModelList } from "../src/index.ts";
 
 // Same testkit gap as adapter-claude/adapter-codex (see their test files'
 // doc comments): runContractTests() can't exercise a real spawnWorker
@@ -38,7 +38,7 @@ describe("opencode adapter — lifecycle against a real captured stream", () => 
     const adapter = createAdapter();
     expect(adapter.id).toBe("opencode");
     expect(adapter.version).toMatch(/^\d+\.\d+\.\d+/);
-    expect(adapter.capabilities()).toEqual({
+    expect(adapter.capabilities()).toMatchObject({
       reasoning: true,
       tools: true,
       cost: true,
@@ -47,6 +47,8 @@ describe("opencode adapter — lifecycle against a real captured stream", () => 
       nativeDiscovery: "none",
       nativeResume: "native",
     });
+    expect(adapter.capabilities().features).toMatchObject({ followUp: true, toolGate: "allowlist", agents: true });
+    expect(createAdapter({ extraArgs: ["--auto"] }).capabilities().features.toolGate).toBe("bypass");
   });
 
   it("start() spawns `opencode run <prompt> --format json` and emits schema-valid events", async () => {
@@ -220,5 +222,14 @@ describe("opencode adapter — lifecycle against a real captured stream", () => 
     const handle = await adapter.recover!("s1", 0, ctx);
     expect((await adapter.steer(handle!, { kind: "prompt", text: "weiter" }, ctx)).ok).toBe(true);
     expect(spawned[0]).toEqual(expect.arrayContaining(["--session", "ses_before"]));
+  });
+});
+
+describe("opencode model catalog (ADR-0018)", () => {
+  it("reads provider/model lines and skips everything else", () => {
+    expect(parseModelList("opencode/big-pickle\nzai-coding-plan/glm-5.3\n\nWarning: something\n")).toEqual([
+      { id: "opencode/big-pickle" },
+      { id: "zai-coding-plan/glm-5.3" },
+    ]);
   });
 });

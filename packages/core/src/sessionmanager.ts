@@ -29,6 +29,7 @@ import type { EventStore } from "./eventstore.ts";
 import type { AdapterRegistry } from "./registry.ts";
 import type { HubDatabase } from "./db.ts";
 import type { WorktreeManager } from "./worktree.ts";
+import { refuseSpec, refuseSteer } from "./features.ts";
 import type { ApprovalService } from "./approvals.ts";
 import { buildSessionSummary } from "./digest.ts";
 import { createConsoleLogger } from "./logger.ts";
@@ -438,6 +439,8 @@ export class SessionManager {
   async create(spec: unknown, actor?: string): Promise<SessionRecord> {
     const parsed = SessionSpecSchema.parse(spec);
     const registered = this.registry.require(parsed.adapter);
+    const refused = refuseSpec(registered.capabilities.features, parsed.adapter, parsed);
+    if (refused) throw new Error(refused);
     const now = new Date().toISOString();
     const record: SessionRecord = {
       id: randomUUID(),
@@ -712,6 +715,9 @@ export class SessionManager {
         ? session.record.writerClient
         : null;
     if (foreignWriter && !meta?.takeover) return { ok: false, detail: "writer lease held" };
+    const features = this.registry.get(session.record.adapter)?.capabilities.features;
+    const refused = features ? refuseSteer(features, session.record.adapter, input) : null;
+    if (refused) return { ok: false, detail: refused };
     if (input.kind === "stop") {
       if (session.record.status === "stopped") return { ok: true };
       return this.stop(sessionId, actor);

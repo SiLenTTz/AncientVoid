@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Adapter } from "@uacc/contracts";
+import { basicFeatures } from "@uacc/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../src/index.ts";
 import { ProcessRunner } from "@uacc/workers";
 
@@ -13,7 +14,7 @@ function oneProcessPerTurn(): Adapter {
   return {
     id: "turns",
     version: "0.0.1",
-    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
+    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
     async start(spec, ctx) {
       await spawnTurn(ctx, spec.prompt ?? "");
       return { sessionId: ctx.sessionId };

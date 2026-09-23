@@ -9,7 +9,7 @@ import { createWebAuthnRoutes, type WebAuthnConfig } from "./webauthn.ts";
 import { appendOptimizerFeedback } from "./prompt-optimizer-feedback.ts";
 import { ensureIndexed, indexStatus, isQmdAvailable, readProjectFile, relativeDataDir, searchProject } from "./search.ts";
 import { DecideApprovalInput, ApprovalStatus, ENV_VAR_NAME, DEFAULT_HOST_ID, FLEET_PROTOCOL_VERSION } from "@uacc/contracts";
-import type { HubMetrics, DiscoverySource, SessionRecord, FleetHello } from "@uacc/contracts";
+import type { HubMetrics, ModelOption, DiscoverySource, SessionRecord, FleetHello } from "@uacc/contracts";
 
 /** Reported to other hubs in /api/fleet/hello. */
 const HUB_VERSION = "0.1.0";
@@ -209,6 +209,26 @@ export function registerRoutes(
       capabilities: a.capabilities,
     })),
   );
+
+  // ADR-0018: an adapter's model catalog. `models: null` means it has
+  // none (the PWA then offers free text). Cached, a listing can take seconds.
+  const modelCache = new Map<string, { at: number; models: ModelOption[] | null }>();
+  app.get("/api/adapters/:id/models", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const registered = deps.registry.get(id);
+    if (!registered) return reply.code(404).send({ error: "unknown adapter" });
+    const cached = modelCache.get(id);
+    if (cached && Date.now() - cached.at < 10 * 60_000) return { adapterId: id, models: cached.models };
+    let models: ModelOption[] | null = null;
+    try {
+      models = registered.adapter.models ? await registered.adapter.models() : null;
+    } catch (err) {
+      req.log.warn({ adapter: id, err: err instanceof Error ? err.message : String(err) }, "model catalog failed");
+      return { adapterId: id, models: null };
+    }
+    modelCache.set(id, { at: Date.now(), models });
+    return { adapterId: id, models };
+  });
 
   app.get("/api/adapters/:id/usage", async (req, reply) => {
     // ADR-0004: account-level usage/quota, not session-scoped. `usage`

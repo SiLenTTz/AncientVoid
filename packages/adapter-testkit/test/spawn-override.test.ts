@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Adapter, WorkerProcess } from "@uacc/contracts";
+import { basicFeatures } from "@uacc/contracts";
 import { runContractTests } from "../src/index.ts";
 
 function spawnAdapter(): Adapter {
   return {
     id: "spawny",
     version: "1.0.0",
-    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
+    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: false, interrupt: false }) }),
     async start(_spec, ctx) {
       await ctx.spawnWorker(["echo", "hi"]);
       ctx.emit({ type: "system", summary: "started", payload: {} });

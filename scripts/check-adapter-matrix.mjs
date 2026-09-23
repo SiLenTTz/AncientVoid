@@ -99,7 +99,36 @@ for (const { id, modulePath } of CHECKED) {
   }
 }
 
-console.log(`checked ${CHECKED.length} adapters with real capabilities() calls against README.md`);
+// ADR-0018: docs/harness-matrix.md — the per-function matrix, same rule.
+const FEATURE_COLUMNS = ["followUp", "interrupt", "toolGate", "questions", "modelChoice", "agents", "images", "files", "contextFork"];
+const matrix = await readFile(join(repoRoot, "docs", "harness-matrix.md"), "utf8");
+const block = matrix.split("<!-- harness-matrix:start -->")[1]?.split("<!-- harness-matrix:end -->")[0] ?? "";
+const featureRows = new Map();
+for (const line of block.split("\n")) {
+  if (!line.startsWith("|") || line.startsWith("|---") || line.includes("Folgeprompt")) continue;
+  const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+  featureRows.set(cells[0], cells.slice(2));
+}
+for (const { id, modulePath } of CHECKED) {
+  const cells = featureRows.get(id);
+  if (!cells) {
+    console.error(`FAIL: no docs/harness-matrix.md row for adapter "${id}"`);
+    mismatches++;
+    continue;
+  }
+  const { createAdapter } = await import(modulePath);
+  const f = createAdapter().capabilities().features;
+  FEATURE_COLUMNS.forEach((key, i) => {
+    const real = key === "toolGate" ? f.toolGate : key === "modelChoice" ? f.modelChoice === "start" : f[key];
+    const claimed = key === "toolGate" ? cells[i] : SYMBOL_TO_BOOL[cells[i]];
+    if (claimed !== real) {
+      console.error(`FAIL: ${id}.features.${key} = ${real}, but docs/harness-matrix.md says "${cells[i]}"`);
+      mismatches++;
+    }
+  });
+}
+
+console.log(`checked ${CHECKED.length} adapters with real capabilities() calls against README.md and docs/harness-matrix.md`);
 console.log(`skipped (no dedicated package / shared factory): ${SKIPPED.join(", ")}`);
 
 if (mismatches > 0) {

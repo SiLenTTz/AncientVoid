@@ -5,6 +5,7 @@ import type {
   AdapterContext,
   Ack,
   HealthReport,
+  ModelOption,
   SessionHandle,
   SessionSpec,
   SteerInput,
@@ -57,6 +58,16 @@ interface SessionMeta {
    * (no SteerInput channel carries one; ADR-0005 deliberately didn't add
    * one). */
   skill?: string | undefined;
+}
+
+/** ADR-0018: flags with which claude runs every tool unasked. */
+function bypassesPermissions(args: readonly string[]): boolean {
+  const mode = args.indexOf("--permission-mode");
+  return (
+    args.includes("--dangerously-skip-permissions") ||
+    args.includes("--allow-dangerously-skip-permissions") ||
+    (mode >= 0 && args[mode + 1] === "bypassPermissions")
+  );
 }
 
 export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapter {
@@ -156,7 +167,40 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // usage: true (ADR-0004) — claude's stream carries a real
       // rate_limit_event with unifiedWindows utilization/resetsAt,
       // verified against real captures (normalize.ts).
-      return { reasoning: true, tools: true, cost: true, steer: true, usage: true, nativeDiscovery: "none", nativeResume: "native" };
+      return {
+        reasoning: true,
+        tools: true,
+        cost: true,
+        steer: true,
+        usage: true,
+        nativeDiscovery: "none",
+        nativeResume: "native",
+        // ADR-0018. Without the skip flag, `claude -p` denies every tool that
+        // would ask — a fixed list (settings/--allowedTools), nobody asked.
+        features: {
+          followUp: true,
+          interrupt: true,
+          toolGate: bypassesPermissions(cfg.extraArgs) ? "bypass" : "allowlist",
+          questions: false,
+          modelChoice: "start",
+          skills: true,
+          agents: true,
+          images: false,
+          files: false,
+          contextFork: false,
+        },
+      };
+    },
+
+    /** ADR-0018: the aliases `claude --help` names (2.1.280) — each
+     * resolves to the latest model of that line. */
+    async models(): Promise<ModelOption[]> {
+      return [
+        { id: "fable", label: "Fable" },
+        { id: "opus", label: "Opus" },
+        { id: "sonnet", label: "Sonnet" },
+        { id: "haiku", label: "Haiku" },
+      ];
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

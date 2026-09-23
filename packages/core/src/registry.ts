@@ -1,5 +1,5 @@
-import type { Adapter, AdapterFactory } from "@uacc/contracts";
-import { isValidAdapterFactory } from "@uacc/contracts";
+import type { Adapter, AdapterCapabilities, AdapterFactory } from "@uacc/contracts";
+import { basicFeatures, isValidAdapterFactory } from "@uacc/contracts";
 import { resolveAdapterModule, type AdapterRegistration } from "./config.ts";
 
 /**
@@ -20,6 +20,16 @@ export interface RegisteredAdapter {
   capabilities: ReturnType<Adapter["capabilities"]>;
 }
 
+/** ADR-0018: adapters written before `features` existed get the cautious
+ * reading — follow-up only if they steer, tools as if they ran unasked. */
+function withFeatures(caps: AdapterCapabilities): AdapterCapabilities {
+  if ((caps as Partial<AdapterCapabilities>).features) return caps;
+  return {
+    ...caps,
+    features: basicFeatures({ followUp: caps.steer, interrupt: caps.steer, toolGate: caps.tools ? "bypass" : "none" }),
+  };
+}
+
 export class AdapterRegistry {
   private readonly adapters = new Map<string, RegisteredAdapter>();
 
@@ -30,7 +40,7 @@ export class AdapterRegistry {
       id,
       module,
       adapter,
-      capabilities: adapter.capabilities(),
+      capabilities: withFeatures(adapter.capabilities()),
     });
   }
 

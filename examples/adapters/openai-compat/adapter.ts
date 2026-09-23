@@ -134,7 +134,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     version: "0.1.0",
 
     capabilities(): AdapterCapabilities {
-      return { reasoning: true, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none" };
+      return { reasoning: true, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: { followUp: true, interrupt: false, toolGate: "none", questions: false, modelChoice: "none", skills: false, agents: false, images: false, files: false, contextFork: false } };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

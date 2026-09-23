@@ -49,4 +49,5 @@ export {
   type BuiltinAdapters,
 } from "./config.ts";
 export { notificationFor, type NotificationDraft } from "./notifications.ts";
+export { refuseSpec, refuseSteer } from "./features.ts";
 export { FleetStore, peerView, normalizeCode, type FleetPeer } from "./fleet.ts";

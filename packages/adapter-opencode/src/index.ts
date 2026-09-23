@@ -5,12 +5,26 @@ import type {
   AdapterContext,
   Ack,
   HealthReport,
+  ModelOption,
   SessionHandle,
   SessionSpec,
   SteerInput,
   WorkerProcess,
 } from "@uacc/contracts";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { normalizeOpencodeLine } from "./normalize.ts";
+
+const run = promisify(execFile);
+
+/** `opencode models` prints one `provider/model` per line. */
+export function parseModelList(stdout: string): ModelOption[] {
+  return stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^[\w.-]+\/\S+$/.test(line))
+    .map((id) => ({ id }));
+}
 
 /**
  * opencode adapter (P3, T3.12). Spawns the real, installed `opencode run`
@@ -145,7 +159,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // usage: false — no account-level rate-limit/quota signal observed
       // anywhere in the real capture (unlike claude's rate_limit_event);
       // R9.7, not guessed.
-      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native" };
+      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native", features: { followUp: true, interrupt: true, toolGate: cfg.extraArgs.includes("--auto") ? "bypass" : "allowlist", questions: false, modelChoice: "start", skills: true, agents: true, images: false, files: false, contextFork: false } };
+    },
+
+    /** ADR-0018: `opencode models` lists every model the configured
+     * providers offer (read-only listing, not a worker). */
+    async models(): Promise<ModelOption[]> {
+      const { stdout } = await run(cfg.command, ["models"], { timeout: 20_000, maxBuffer: 1024 * 1024 });
+      return parseModelList(stdout);
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

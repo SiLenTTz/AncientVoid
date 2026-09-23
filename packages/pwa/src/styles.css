@@ -1505,6 +1505,14 @@ a {
   gap: 6px;
 }
 
+/* ADR-0018: how tools are released — a warning when they run unasked. */
+.tool-gate {
+  font-size: 12px;
+}
+.tool-gate.warn {
+  color: var(--warn);
+}
+
 /* Real user request (2026-09-19): same session on desktop and phone via
  * the worker's own real tmux pane — see SessionTail.tsx's AttachCmdRow. */
 .attach-cmd-row {

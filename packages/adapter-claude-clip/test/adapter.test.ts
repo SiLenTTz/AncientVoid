@@ -51,7 +51,8 @@ describe("claude-clip adapter — real transcript layout, real live-tail behavio
   it("identity + capabilities are honest (read-only: steer:false, no cost/usage record in this format)", () => {
     const adapter = createAdapter();
     expect(adapter.id).toBe("claude-clip");
-    expect(adapter.capabilities()).toEqual({ reasoning: true, tools: true, cost: false, steer: false, usage: false, nativeDiscovery: "read-only", nativeResume: "none" });
+    expect(adapter.capabilities()).toMatchObject({ reasoning: true, tools: true, cost: false, steer: false, usage: false, nativeDiscovery: "read-only", nativeResume: "none" });
+    expect(adapter.capabilities().features).toMatchObject({ followUp: false, interrupt: false, toolGate: "none" });
   });
 
   it("start() finds the most recent transcript for spec.project, seeds it, and follows new lines live", async () => {
