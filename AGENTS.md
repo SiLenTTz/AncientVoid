@@ -39,15 +39,19 @@ wenn die Exit-Kriterien von P(n-1) grün sind.
 ## Kommandos
 
 ```bash
-npm test                 # vitest (Unit/Integration + E2E; E2E skippt ohne Chromium)
-npm run test:e2e         # nur e2e/
+npm test                 # vitest (Unit/Integration)
+npm run test:e2e         # Playwright-E2E-Gate gegen einen echten Hub (docs/testing-e2e.md)
 npm run lint             # eslint
 npm run typecheck        # tsc --noEmit
+npm run gate             # typecheck + lint + test + test:e2e
 npm run loadtest         # K8: 20 Sessions × 30 ev/s
 npm -w @uacc/pwa run build
 ```
 
 Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
+Bei Änderungen an PWA, Server-Routen, SessionManager oder Adaptern zusätzlich
+`npm run test:e2e`. Vor Bugfix-/Epic-MRs immer `npm run gate`. Neue
+UI-Funktion oder neuer Ablauf = neuer oder erweiterter Spec in `e2e/specs/`.
 
 ## Testing
 
@@ -77,7 +81,7 @@ sie duplizieren nichts hier, sie wenden es an. Index: `.claude/skills/README.md`
 
 - Defekt: Skill `bugfix` (Reproduce → Fix → Re-verify → Finalize). Handoff an `pr-review`.
 - Neuer Bug ohne Fix: Skill `bug-report` → `bugs/bug-NNNN-slug.md`.
-- Vor jedem MR: Skill `gates` (= `npm test && npm run lint && npm run typecheck`, betroffene Packages) und danach `pr-review` (6 Dimensionen inkl. Future-Fragility: Contract-Bruch, K5/K7-Verletzung, Adapter-Isolation).
+- Vor jedem MR: Skill `gates` (= `npm test && npm run lint && npm run typecheck`, betroffene Packages; bei UI-/Ablauf-Änderungen plus `npm run test:e2e`, vor Epic-Abschluss `npm run gate`) und danach `pr-review` (6 Dimensionen inkl. Future-Fragility: Contract-Bruch, K5/K7-Verletzung, Adapter-Isolation).
 - Commit/Branch/MR: Skill `git-workflow` — inkl. **fester Kadenz**: Task-Abschluss → commit; Bugfix- oder Epic-Abschluss → commit + push + MR (Solo-Projekt: Self-Merge der eigenen MR zulässig, MR bleibt Pflicht-Log). Kein Force-Push, kein Commit auf `main` außerhalb der dokumentierten Bootstrap-Ausnahme. **Der Merge selbst passiert ausschließlich über `glab mr merge`/GitLab-UI — nie über ein lokales `git merge` von einem Feature-Branch nach `main`, auch nicht als Notlösung wenn der Remote gerade nicht erreichbar ist** (dann bleibt der Branch offen und ungelöscht, bis gepusht/gemerged werden kann — siehe `git-workflow`s Regel dazu, real nötig geworden am 2026-09-18).
 - Neue Phase: Skill `epic-creation` bzw. Agent `epic-planner` — Vorbild `epics/EPIC-P3-adapter-flotte-sprachsuche.md`, Premortem nie überspringen.
 - Tests schreiben: Skill `write-tests`.

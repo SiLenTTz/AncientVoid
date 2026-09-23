@@ -1,0 +1,83 @@
+#!/usr/bin/env node
+// E2E stand-in for the OpenCode CLI. Speaks the same `run --format json`
+// line protocol as the real binary (see adapter-opencode/normalize.ts and
+// server/enhance.ts), so the real adapter, worker runner and enhance route
+// run unchanged — without cloud egress or cost.
+//
+// Keywords in the prompt pick a behaviour:
+//   LANGSAM  keep the turn open for 60 s (stop, attach, kill tests)
+//   FEHLER   exit 3 with a stderr line
+//   LIMIT    end at the length limit, reasoning only, no answer
+//   GROSS    a tool result above the 2 KB chat threshold
+//   DATEI    write e2e-change.txt into the working directory (diff tab)
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const argv = process.argv.slice(2);
+if (argv[0] === "--version") {
+  console.log("1.2.3-e2e");
+  process.exit(0);
+}
+if (argv[0] !== "run") {
+  console.error(`fake opencode: unsupported command ${argv.join(" ")}`);
+  process.exit(2);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const emit = (line) => process.stdout.write(`${JSON.stringify(line)}\n`);
+const flag = (name) => {
+  const i = argv.indexOf(name);
+  return i >= 0 ? argv[i + 1] : undefined;
+};
+
+const dashDash = argv.indexOf("--");
+if (dashDash >= 0 && flag("--agent") === "plan") {
+  // Prompt optimizer one-shot (enhance.ts opencodeEnhanceArgs).
+  const raw = argv[dashDash + 1].split("\n---\n").pop().trim();
+  const sid = "ses_e2e_enhance";
+  emit({ type: "step_start", sessionID: sid, part: {} });
+  emit({
+    type: "text",
+    sessionID: sid,
+    part: { text: `Ziel: ${raw}\nScope: nur das genannte Projekt\nConstraints: keine neuen Abhängigkeiten\nErfolgskriterium: Tests grün` },
+  });
+  emit({ type: "step_finish", sessionID: sid, part: { reason: "stop", cost: 0.0004, tokens: { total: 90 } } });
+  process.exit(0);
+}
+
+const prompt = argv[1] ?? "";
+const resumed = flag("--session");
+const sid = resumed ?? `ses_e2e_${Math.random().toString(36).slice(2, 10)}`;
+const has = (word) => prompt.includes(word);
+
+emit({ type: "step_start", sessionID: sid, part: {} });
+await sleep(120);
+emit({ type: "reasoning", sessionID: sid, part: { text: "Ich lese zuerst die README." } });
+await sleep(120);
+const output = has("GROSS") ? "x".repeat(5000) : "# Alpha";
+emit({
+  type: "tool_use",
+  sessionID: sid,
+  part: { type: "tool", tool: "read", callID: "call_read_1", state: { status: "completed", input: { filePath: "README.md" }, output } },
+});
+if (has("FEHLER")) {
+  console.error("fake opencode: simulated provider failure");
+  process.exit(3);
+}
+if (has("DATEI")) writeFileSync(join(process.cwd(), "e2e-change.txt"), "geändert durch E2E\n");
+if (has("LANGSAM")) {
+  process.on("SIGTERM", () => process.exit(143));
+  process.on("SIGINT", () => process.exit(130));
+  await sleep(60_000);
+}
+await sleep(120);
+if (has("LIMIT")) {
+  emit({ type: "step_finish", sessionID: sid, part: { reason: "length", cost: 0.001, tokens: { total: 4000, reasoning: 3900 } } });
+  process.exit(0);
+}
+emit({
+  type: "text",
+  sessionID: sid,
+  part: { text: `Antwort auf: ${prompt.split("\n").pop()} · Session ${sid}${resumed ? " (fortgesetzt)" : ""} · cwd ${process.cwd()}` },
+});
+emit({ type: "step_finish", sessionID: sid, part: { reason: "stop", cost: 0.0012, tokens: { total: 321 } } });

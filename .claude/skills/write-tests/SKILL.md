@@ -40,8 +40,8 @@ für den Test).
 - ❌ Kein `setTimeout` als einziges Synchronisationsmittel (fragil in
   diesem Repo). Auf Event, Promise, WS-Frame oder explizites Signal warten.
 - ❌ Kein Cloud-Egress im Test. Provider-Streams sind Fixtures.
-- ❌ E2E ohne Browser nicht als Pass zählen — `it.skip` / `describe.skip`
-  analog tmux (`ADR-0002`).
+- ❌ E2E ohne Browser nie als Pass zählen — Playwright scheitert dann laut,
+  und genau so soll es bleiben.
 - ❌ Keine Parameter-Properties, Enums, Namespaces (strip-types).
 
 ## Phasen/Prozess
@@ -52,7 +52,7 @@ für den Test).
 |---|---|---|
 | Reine Funktion, Contract, Redaction, Parser? | Unit | `packages/<pkg>/test/<name>.test.ts` |
 | Mehrere Module + echter Hub/DB/EventStore? | Integration | `packages/<pkg>/test/<name>.integration.test.ts` oder bestehender `server.test.ts` / `hub-exec-integration.test.ts` |
-| Browser, TokenGate, Dashboard, echter Roundtrip? | E2E | `e2e/<name>.test.ts` |
+| Browser, UI-Ablauf, echter Hub-Roundtrip? | E2E | `e2e/specs/<bereich>.spec.ts` |
 | Neuer Adapter hub-integrierbar? | Contract | `runAdapterContract(adapter)` aus `@uacc/adapter-testkit` |
 
 Bestehende Dateien (`server.test.ts`, `sessionmanager.test.ts`) nicht
@@ -90,24 +90,24 @@ Auth: Token über `TokenService.issue("label")`. `/api/health` und
 
 ### 4. E2E
 
+Playwright-Gate, Anleitung und Abdeckungstabelle:
+[`docs/testing-e2e.md`](../../../docs/testing-e2e.md).
+
 ```bash
 npx playwright install chromium   # einmalig, lokal
-npm run test:e2e                  # explizit
-npm test                          # Unit+Integration; E2E skippt ohne Browser
+npm run test:e2e                  # ganze Suite (mobile + desktop)
+npx playwright test e2e/specs/<bereich>.spec.ts --project=mobile
+npx playwright test --repeat-each=3   # vor dem Commit neuer Specs
 ```
 
-Rezept: PWA bauen (`npm -w @uacc/pwa run build`), Hub mit `pwaDir` auf
-`packages/pwa/dist`, Dummy-Adapter, echtes Token. Chromium öffnet die
-Origin, sieht TokenGate, gibt Token ein, sieht „UACC".
+Rezept: `test`/`expect` aus `e2e/support/fixtures.ts`. Fixture `app` =
+angemeldeter Browser auf der Übersicht, `hub` = eigener echter Hub-Prozess
+mit nachgebauten Provider-CLIs (`e2e/support/bin/`). Vorbedingungen per
+`hub.createSession()`/`hub.api()`, das Geprüfte per Klick in der UI. Warten
+über `expect(...)`/`hub.until(...)`.
 
-```ts
-const browserAvailable = await chromium.launch()
-  .then((b) => { void b.close(); return true; })
-  .catch(() => false);
-const itE2e = browserAvailable ? it : it.skip;
-```
-
-Kein `itE2e` durch `it` ersetzen, nur damit CI „grün" aussieht.
+Fehlt Chromium, scheitert der Lauf laut. Eine bekannte Lücke ist
+`test.fixme("<Bug/Task>: …")`, kein gelöschter oder abgeschwächter Test.
 
 ### 5. Adapter
 
@@ -125,7 +125,7 @@ gegen anonymisierte Fixtures, nie gegen Live-Cloud.
 ### 6. Laufen lassen
 
 ```bash
-npm test                         # vitest: packages/*/test + e2e (skip ok)
+npm test                         # vitest: packages/*/test
 npm test -- packages/core/test/logger.test.ts
 npm run test:e2e
 npm run lint && npm run typecheck
@@ -141,7 +141,7 @@ Schicht: unit | integration | e2e | contract
 Datei: <pfad>
 Naht: <Funktion / createHubApp / AdapterContext / Chromium>
 Rot ohne Fix: <ja, reproduziert | nein — STOP>
-Skip-Bedingung: <keine | kein Chromium | kein tmux>
+Skip-Bedingung: <keine | kein tmux> (E2E: keine)
 ```
 
 ## Determinismus-Checkliste
@@ -150,7 +150,7 @@ Skip-Bedingung: <keine | kein Chromium | kein tmux>
 - [ ] Test wäre ohne das behauptete Verhalten rot.
 - [ ] Kein Timing-`setTimeout` als einzige Wartebedingung.
 - [ ] Kein Klartext-Token in Logs/Fixtures.
-- [ ] E2E skippt sichtbar, wenn der Browser fehlt.
+- [ ] Neuer E2E-Spec lief mit `--repeat-each=3` grün.
 
 ## Verweise
 

@@ -75,8 +75,10 @@ async function main(): Promise<void> {
   const store = new EventStore(dataDir);
   const tokens = new TokenService(db);
 
-  // Worker runner: tmux when available, process fallback otherwise.
-  let runner: WorkerRunner = new TmuxRunner(resolve(dataDir, "workers"));
+  // Worker runner: config.workerRunner, with a process fallback when tmux
+  // is asked for but missing.
+  let runner: WorkerRunner =
+    config.workerRunner === "process" ? new ProcessRunner() : new TmuxRunner(resolve(dataDir, "workers"));
   if (!(await runner.isAvailable())) {
     logger.warn("tmux not available — falling back to process runner (no attach, no survival across restarts)");
     runner = new ProcessRunner();

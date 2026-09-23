@@ -15,7 +15,7 @@
     "build": "tsc -p . --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "vitest run e2e",
+    "test:e2e": "playwright test",
     "lint": "eslint .",
     "typecheck": "tsc -p . --noEmit",
     "dev:server": "node --watch packages/server/src/main.ts",
@@ -24,10 +24,12 @@
     "messlauf:hubctl-latency": "node scripts/messlauf-hubctl-latency.mjs",
     "messlauf:approve-latency": "node scripts/messlauf-approve-latency.mjs",
     "check:adapter-matrix": "node scripts/check-adapter-matrix.mjs",
-    "hubctl": "node packages/hubctl/src/cli.ts"
+    "hubctl": "node packages/hubctl/src/cli.ts",
+    "gate": "npm run typecheck && npm run lint && npm test && npm run test:e2e"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
+    "@playwright/test": "1.63.0",
     "@types/node": "^22.9.0",
     "@types/ws": "^8.18.1",
     "eslint": "^9.14.0",

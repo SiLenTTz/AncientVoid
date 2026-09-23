@@ -26,6 +26,7 @@
     "scripts",
     "e2e",
     "vitest.config.ts",
+    "playwright.config.ts",
     "eslint.config.mjs"
   ],
   "exclude": ["packages/pwa"]
