@@ -1,6 +1,6 @@
 # EPIC-P5 — Session-Discovery, PC↔Handy-Handoff und Recovery
 
-**Status:** teilweise — Inventar und read-only Scan sind im Code (ADR-0012). AC-P5-2 bleibt blockiert, solange kein echter PC↔Handy↔Provider-Lauf vorliegt. · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
+**Status:** teilweise — Inventar, Scan, Lease mit Übernahme und E2E-Gate sind im Code (ADR-0011/0012, Stand §11). Offen: Discovery-Ansicht (AC-P5-1), Zug-Status und echte Provider-Läufe (T5.4/AC-P5-2), `recover()` für echte Provider (T5.6/AC-P5-3). · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:
@@ -45,7 +45,7 @@ Blocker mit Evidenz, keine implizite Genehmigung für DB-Schreibzugriffe.
 - [x] **T5.2 — Persistente Session-Identität.** Provider-Resume-Daten und Lifecycle-Übergänge in Contracts, JSONL und Snapshot ablegen; bestehende Records migrieren; unbekannte Resume-Version sichtbar ablehnen. K5/K7.
 - [x] **T5.3 — Discovery und Deduplizierung.** Alle Sessions konfigurierter Provider-Quellen erfassen, nach Host/Provider/native ID deduplizieren; Subagent-Elternbezug vorbereiten; CLI/IDE-Quellen read-only scannen. K5/K8/K9. Stand 2026-09-22: Claude-`*.jsonl` und Cursor-`composerHeaders` werden read-only gemischt; `parentSessionId` für Subagent-Dateien und eine vorhandene Parent-Spalte. Codex/OpenCode/Copilot/Aider ohne belegtes Dateilayout bleiben `missing`.
 - [ ] **T5.4 — Echte Übernahme.** Für jeden verpflichtenden Harness PC→Handy→PC implementieren; laufender Turn und Turn-Pause getrennt; gleicher Kontext/Worktree. Native Resume bevorzugen; Fork/monitor-only korrekt beschriften. K2/K7.
-- [ ] **T5.5 — Writer-Koordination und Clients.** Lease/Revision, Input-ID, sichere Retry-Semantik, Native-Open-/Copy-Link und Web-Deep-Link verbinden; reale Pane-Verfügbarkeit; kein doppeltes Absenden bei zwei Clients. K7/K10.
+- [ ] **T5.5 — Writer-Koordination und Clients.** Lease/Revision, Input-ID, sichere Retry-Semantik, Native-Open-/Copy-Link und Web-Deep-Link verbinden; reale Pane-Verfügbarkeit; kein doppeltes Absenden bei zwei Clients. K7/K10. Stand 2026-09-23: Lease, Revision, Input-ID, Retry, Übernahme, Deep-Link, Copy-Attach und Pane-Prüfung erledigt und im E2E-Gate. Offen nur der Native-Open-Link (Provider-App/IDE öffnen).
 - [ ] **T5.6 — Recovery und Ausfallbeweis.** recoverAll darf ohne nutzbares Handle nicht kontrollierbare Wiederherstellung behaupten; adoptierte Worker nicht als Orphans töten; Adapter-Testkit-Lücke BUG-0004 schließen/verifizieren; Crash-Tests gegen echte Worker inkl. Log-Tail und ausstehender Eingabe. K2/K5/K7/K8.
 
 ## 5. Acceptance Criteria
@@ -108,3 +108,57 @@ Die Empfehlung hat bisher ein ganzes Prompt in eine neue Datei kopiert. Sinnvoll
 - [x] **T5.8 — Empfehlung erweitert statt zu kopieren.** Trifft ein Projekt-Skill, bleibt es ein Treffer. Trifft nur ein Base-Skill oder keiner, legt der Entwurf einen Projekt-Skill an, der den passenden Base-Skill erweitert, und enthält nur die Abweichung.
 - [x] **T5.9 — Modell und Stillstand sichtbar.** Die Session zeigt das Modell (`zai-coding-plan/glm-5.3`, belegt am Lauf vom 2026-09-22). Ein Schritt, der nur denkt und am Längenlimit endet, erscheint im Chat, nicht nur im Verlauf.
 - [x] **T5.10 — Kette ausführen.** Ein gewählter Projekt-Skill lädt die `extends`-Kette (Vorfahren zuerst, Zyklen abgeschnitten) und legt den Text in den Prompt. Das Event `session.skill_chain` trägt nur die Namen. Ein Skill ohne auflösbare Datei bleibt sichtbar ignoriert. Steer lädt die Kette erneut.
+
+## 11. Stand 2026-09-23 — Analyse, Bugfixes, E2E-Gate, Messläufe
+
+### Behoben (je mit Test, der ohne Fix rot war)
+
+| Bug | Wirkung |
+|---|---|
+| [BUG-0016](../bugs/bug-0016-reopen-ignores-input-id.md) | Wiederholte Eingabe startete eine gestoppte Session zweimal |
+| [BUG-0017](../bugs/bug-0017-concurrent-reopen-double-run.md) | Zwei Geräte starteten zwei Läufe; die PWA schickte keine Input-/Client-ID |
+| [BUG-0018](../bugs/bug-0018-recovery-replays-stopped-sessions.md) | Hub-Start las jede gestoppte Session komplett ein (K7 wuchs mit dem Verlauf) |
+| [BUG-0019](../bugs/bug-0019-tmux-reap-kills-foreign-workers.md) | `npm test` und jeder zweite Hub töteten die tmux-Worker des laufenden Hubs |
+| [BUG-0020](../bugs/bug-0020-diff-hides-new-files.md) | Diff und Bericht zeigten keine neu angelegten Dateien |
+| [BUG-0021](../bugs/bug-0021-skill-chain-misses-base-catalog.md) | Skill-Kette hing davon ab, ob vorher die Skill-Liste offen war |
+
+Dazu: `workerRunner` aus der Konfiguration wirkt jetzt (war toter Schalter),
+T5.5 „Übernehmen“ (ADR-0011 Nachtrag), gestoppte Sessions laden beim Öffnen.
+
+### E2E-Gate
+
+[`docs/testing-e2e.md`](../docs/testing-e2e.md): 58 Testläufe, 48 im
+Mobile-Projekt (Pixel 7) und 10 im Desktop-Projekt, jeder gegen einen eigenen
+echten Hub-Prozess. 53 laufen grün, 3 sind `fixme` mit Task-/Bug-ID, die 2
+Handoff-Tests laufen nur im Desktop-Projekt. Blockierender Pipeline-Job `e2e`, lokal `npm run gate`. Neue
+Regel im [Epic-Index](README.md): kein Epic-Abschluss ohne grünes Gate.
+
+### Messläufe
+
+[`docs/messlauf/2026-09-23-p5-discovery-recovery.md`](../docs/messlauf/2026-09-23-p5-discovery-recovery.md):
+Discovery 21 Einträge ohne Duplikat, kalt 420 ms (Median). Recovery nach
+`kill -9` 37 ms (Median `recovery_ms`), 0 Abweichungen, alle Sessions wieder
+steuerbar — für den Dummy-Adapter.
+
+### Acceptance Criteria
+
+| AC | Stand | Beleg / was fehlt |
+|---|---|---|
+| AC-P5-1 | API grün, UI offen | Messlauf grün. Die PWA hat keine Discovery-Ansicht. |
+| AC-P5-2 | automatisiert grün, manuell offen | `handoff.spec.ts` (gleiche native ID und CWD, kein Doppelzug). Drei echte Zyklen je Pflicht-Harness stehen aus. Zug-Status fehlt (siehe T5.4). |
+| AC-P5-3 | Dummy grün, echte Provider rot | Messlauf und `recovery.spec.ts`. Kein `recover()` in claude/codex/opencode/copilot; deren laufender Zug ist nach dem Kill nicht steuerbar, der Worker wird geräumt. |
+| AC-P5-4 | grün | `steer-reopen.test.ts`, `steer-lease.test.ts`, E2E Doppeltipp und zwei Geräte |
+| AC-P5-5 | grün | `deeplink.spec.ts` (Reload, Attach nur mit lebendem tmux-Worker) |
+
+### Offen vor dem Abschluss
+
+1. **T5.4 Zug-Status.** Kein Codepfad setzt `idle`. Eine OpenCode- oder
+   Claude-Session bleibt nach einem fertigen Zug `working`. Braucht ein
+   Zugende-Signal im Adapter-Vertrag (ADR).
+2. **T5.6 `recover()` für echte Provider** und Kill -9 gegen echte Worker.
+3. **Discovery-Ansicht in der PWA** (AC-P5-1 „angezeigt“) samt E2E-Spec.
+4. **Native-Open-Link** (T5.5-Rest).
+5. **Manuelle Abnahme AC-P5-2** mit echten Providern und Geräten.
+6. Kleinere Befunde: [BUG-0022](../bugs/bug-0022-reply-box-missing-after-offline-open.md),
+   [BUG-0015](../bugs/bug-0015-offline-reload-token-gate.md) (K10, P8).
+

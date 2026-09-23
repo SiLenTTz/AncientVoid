@@ -23,6 +23,8 @@
     "loadtest": "node scripts/loadtest.mjs",
     "messlauf:hubctl-latency": "node scripts/messlauf-hubctl-latency.mjs",
     "messlauf:approve-latency": "node scripts/messlauf-approve-latency.mjs",
+    "messlauf:p5-discovery": "node scripts/messlauf-p5.mjs discovery",
+    "messlauf:p5-recovery": "node scripts/messlauf-p5.mjs recovery",
     "check:adapter-matrix": "node scripts/check-adapter-matrix.mjs",
     "hubctl": "node packages/hubctl/src/cli.ts",
     "gate": "npm run typecheck && npm run lint && npm test && npm run test:e2e"
