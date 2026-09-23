@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { WebSocket } from "ws";
 import {
   MAX_WS_BUFFER,
+  WS_HISTORY_EVENTS,
   WsClientMessage,
   type NormalizedEvent,
   type WsServerMessage,
@@ -47,9 +48,11 @@ export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics
     let dropped = false;
     let buffer: NormalizedEvent[] = [];
     let flushing = false;
+    // While history is being sent, live events wait in `buffer`.
+    let replaying = false;
 
     const flush = async () => {
-      if (flushing || buffer.length === 0) return;
+      if (flushing || replaying || buffer.length === 0) return;
       flushing = true;
       try {
         while (buffer.length > 0) {
@@ -95,6 +98,35 @@ export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics
       void flush();
     });
 
+    /** Sends every stored event after `from` in pages, then lets the live
+     * buffer (minus what the pages already covered) go out. */
+    const replay = async (from: number, baseline: boolean): Promise<number> => {
+      replaying = true;
+      let since = from;
+      try {
+        for (let first = true; ; first = false) {
+          const page = await sessions.tail(sessionId, since, MAX_WS_BUFFER);
+          if (page.length === 0) break;
+          since = page[page.length - 1]!.seq;
+          send({
+            type: "events",
+            sessionId,
+            events: page,
+            highWater: since,
+            dropped: false,
+            ...(first && baseline ? { baseline: true } : {}),
+          });
+          if (page.length < MAX_WS_BUFFER) break;
+        }
+      } finally {
+        replaying = false;
+      }
+      buffer = buffer.filter((event) => event.seq > since);
+      dropped = false;
+      void flush();
+      return since;
+    };
+
     socket.on("message", async (raw: Buffer) => {
       let parsed: WsClientMessage | null = null;
       try {
@@ -106,35 +138,19 @@ export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics
       if (!parsed) return;
       switch (parsed.type) {
         case "hello": {
-          if (parsed.lastSeq === 0) {
-            const events = await sessions.tail(sessionId, 0, MAX_WS_BUFFER);
-            if (events.length > 0) {
-              buffer = events;
-              void flush();
-            } else {
-              send({
-                type: "welcome",
-                sessionId,
-                lastSeq: 0,
-                serverTime: new Date().toISOString(),
-              });
-            }
-          } else {
-            // Client knows up to lastSeq — anything missed is fetched via resync.
-            send({
-              type: "welcome",
-              sessionId,
-              lastSeq: parsed.lastSeq,
-              serverTime: new Date().toISOString(),
-            });
+          // BUG-0026: one page used to be all a view ever got — the oldest
+          // 100 events, never the end. Now: the newest WS_HISTORY_EVENTS
+          // (or everything after the client's lastSeq), page by page.
+          const last = sessions.get(sessionId)?.lastSeq ?? 0;
+          const from = parsed.lastSeq === 0 ? Math.max(0, last - WS_HISTORY_EVENTS) : parsed.lastSeq;
+          const reached = await replay(from, parsed.lastSeq === 0 && from > 0);
+          if (reached === from) {
+            send({ type: "welcome", sessionId, lastSeq: from, serverTime: new Date().toISOString() });
           }
           break;
         }
         case "resync": {
-          const events = await sessions.tail(sessionId, parsed.since, MAX_WS_BUFFER);
-          buffer = events;
-          dropped = false;
-          void flush();
+          await replay(parsed.since, false);
           break;
         }
         case "ping":

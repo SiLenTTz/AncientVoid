@@ -49,5 +49,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0023](bug-0023-chat-duplicates-overlapping-batches.md) | Chat zeigt Events doppelt nach Resync oder Replay | fixed | S2 | pwa | — |
 | [BUG-0024](bug-0024-session-link-mixes-histories.md) | Ein Link auf eine andere Session mischt beide Verläufe | fixed | S2 | pwa | — |
 | [BUG-0025](bug-0025-tmux-kill-never-reports-exit.md) | Ein per Kill beendeter tmux-Worker meldet nie sein Ende | fixed | S2 | workers | — |
+| [BUG-0026](bug-0026-tail-opens-with-oldest-100.md) | Eine geöffnete Session zeigt nur ihre ersten 100 Events | fixed | S1 | server, pwa | — |
 
-Die nächste freie Nummer ist **0026**.
+Die nächste freie Nummer ist **0027**.

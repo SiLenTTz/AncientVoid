@@ -9,6 +9,9 @@ import { NormalizedEvent } from "./event.ts";
 export const WS_PROTOCOL_VERSION = 1;
 
 export const MAX_WS_BUFFER = 100;
+/** BUG-0026: history sent when a view opens — the newest this many events,
+ * in pages of MAX_WS_BUFFER (the PWA keeps 500). */
+export const WS_HISTORY_EVENTS = 500;
 
 /** Client → server. */
 export const WsClientMessage = z.discriminatedUnion("type", [
@@ -41,6 +44,9 @@ export const WsServerMessage = z.discriminatedUnion("type", [
     highWater: z.number().int().nonnegative(),
     /** true if events were dropped for a slow consumer → client must resync. */
     dropped: z.boolean().default(false),
+    /** BUG-0026: first page of an opening view that starts after seq 1 —
+     * not a gap, the client takes it as its starting point. */
+    baseline: z.boolean().optional(),
   }),
   z.object({
     type: z.literal("snapshot"),
