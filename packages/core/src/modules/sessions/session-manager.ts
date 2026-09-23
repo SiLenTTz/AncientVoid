@@ -1,30 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import type {
-  Adapter,
-  AdapterContext,
-  BlobRef,
-  EmittedEvent,
-  HubLogger,
-  HubMetrics,
-  NormalizedEvent,
-  SessionHandle,
-  SessionRecord,
-  SessionSnapshot,
-  SessionStatus,
-  SteerInput,
-  Ack,
-  WorkerProcess,
-  WorkerRunner,
-  UsageQuota,
-  ReportingSink,
-  DiscoverySource,
-  DiscoveredSession,
-  HubNotification,
-  PendingOperation,
-} from "@uacc/contracts";
+import type { Adapter, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation } from "@uacc/contracts";
 import { DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, unsupportedResume } from "@uacc/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
@@ -32,194 +8,21 @@ import type { HubDatabase } from "../../platform/index.ts";
 import type { WorktreeManager } from "../workspace/index.ts";
 import { refuseSpec, refuseSteer } from "../harness/index.ts";
 import { OperationStore } from "../approvals/index.ts";
+import { ApprovalFlow } from "./approval-flow.ts";
+import { BudgetGuard } from "./budget-guard.ts";
 import type { ApprovalService } from "../approvals/index.ts";
 import { buildSessionSummary } from "../reporting/index.ts";
 import { createConsoleLogger } from "../../platform/index.ts";
 import { dedupeDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
 import { notificationFor } from "../notifications/index.ts";
-
-const WRITER_LEASE_MS = 30_000;
-
-export interface SteerMeta {
-  inputId?: string;
-  revision?: number;
-  clientId?: string;
-  /** T5.5: take the writer lease from another device on purpose. Input-id
-   * and revision checks still apply. */
-  takeover?: boolean;
-}
+import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS } from "./session-state.ts";
+import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 
 export interface SessionManagerObservability {
   logger?: HubLogger;
   metrics?: HubMetrics;
 }
-
-/**
- * Session lifecycle manager.
- *
- * - Sessions are first-class objects persisted in SQLite + JSONL.
- * - Every state change is emitted as a system event (auditable).
- * - K7 crash recovery: replay JSONL + snapshot + optional adapter.recover().
- * - Adapters only ever see AdapterContext — never hub internals.
- */
-
-interface LiveSession {
-  record: SessionRecord;
-  adapter: Adapter;
-  handle: SessionHandle | null;
-  abort: AbortController;
-  subscribers: Set<(events: NormalizedEvent[]) => void>;
-  /** T2.1: real per-session working directory — the worktree path when
-   * isolation succeeded, else the raw `record.project` (honest fallback,
-   * see WorktreeManager's doc comment). Adapters only ever see this via
-   * AdapterContext.workdir/spawnWorker cwd, never `record.project`
-   * directly, once a session is live. */
-  workdir: string;
-  /** Set only when this session actually got worktree isolation — needed
-   * at stop() time to know whether (and against which real repo) to
-   * `git worktree remove`. */
-  worktreeIsolated: boolean;
-  /** T2.7: true once the 80%-budget warning has fired for this session —
-   * prevents every subsequent cost-bearing event from re-emitting it. */
-  budgetWarned: boolean;
-  /** Selected skill, so a later steer reloads the same extends chain. */
-  skillName?: string;
-  /** T5.4: provider workers of this session that have not exited yet. */
-  activeWorkers?: number;
-  /** T5.6: result of ctx.adoptWorker() during recover(), if it was asked. */
-  adopted?: boolean;
-}
-
-/** A turn counts as over only if no new worker starts within this window —
- * some adapters run a short probe (`--version`) right before the turn. */
-const TURN_END_SETTLE_MS = 250;
-
-/** Overview title: the first line that says something, without the
- * prefixes the composer adds (Workflow:, /skill, Agent:, Ziel:). */
-export function sessionTitle(prompt: string): string | null {
-  const line = prompt
-    .split("\n")
-    .map((l) => l.trim())
-    .find((l) => l.length > 0 && !/^(workflow|agent):\s/i.test(l) && !/^\/[\w-]+$/.test(l));
-  if (!line) return null;
-  const text = line.replace(/^(ziel|goal):\s*/i, "");
-  return text.length > 80 ? `${text.slice(0, 79).trimEnd()}…` : text;
-}
-
-function readSkillName(args: Record<string, unknown> | undefined): string | undefined {
-  const skill = args?.skill;
-  return typeof skill === "string" && skill.length > 0 ? skill : undefined;
-}
-
-function skillNameFromEvents(events: readonly NormalizedEvent[]): string | undefined {
-  for (const event of events) {
-    const payload = event.payload as { kind?: unknown; args?: unknown };
-    if (payload.kind !== "session.created" || !payload.args || typeof payload.args !== "object") continue;
-    return readSkillName(payload.args as Record<string, unknown>);
-  }
-  return undefined;
-}
-
-function nativeIdFromEvents(events: readonly NormalizedEvent[]): string | undefined {
-  let found: string | undefined;
-  for (const event of events) {
-    const native = (event.payload as { nativeSessionId?: unknown }).nativeSessionId;
-    if (typeof native === "string" && native.length > 0) found = native;
-  }
-  return found;
-}
-
-async function nativeIdFromWorkerLog(dataDir: string, sessionId: string): Promise<string | undefined> {
-  try {
-    const text = await readFile(join(dataDir, "workers", `uacc-${sessionId}.log`), "utf8");
-    const ids = [...text.matchAll(/"session(?:ID|_id)"\s*:\s*"([^"]+)"/g)];
-    return ids.at(-1)?.[1];
-  } catch {
-    return undefined;
-  }
-}
-
-/** Raw SQLite row shape (snake_case) for the sessions table. */
-interface SessionRow {
-  id: string;
-  adapter: string;
-  project: string;
-  worktree_sha: string | null;
-  model: string | null;
-  status: string;
-  created_at: string;
-  budget_usd: number | null;
-  adapter_version: string;
-  last_seq: number;
-  cost_usd: number;
-  updated_at: string;
-  tokens_est: number;
-  park_reason: string | null;
-  control_mode: string;
-  harness: string;
-  host_id: string;
-  native_session_id: string | null;
-  resume_version: number;
-  log_offset: number | null;
-  parent_session_id: string | null;
-  observed_at: string | null;
-  fork: number;
-  input_revision: number;
-  writer_client: string | null;
-  writer_lease_until: string | null;
-  archived: number;
-  title: string | null;
-}
-
-function rowToRecord(row: SessionRow): SessionRecord {
-  return {
-    id: row.id,
-    adapter: row.adapter,
-    project: row.project,
-    worktreeSha: row.worktree_sha,
-    model: row.model,
-    status: row.status as SessionRecord["status"],
-    createdAt: row.created_at,
-    budgetUsd: row.budget_usd,
-    adapterVersion: row.adapter_version,
-    lastSeq: row.last_seq,
-    costUsd: row.cost_usd,
-    updatedAt: row.updated_at,
-    tokensEst: row.tokens_est,
-    parkReason: row.park_reason as SessionRecord["parkReason"],
-    controlMode: row.control_mode as SessionRecord["controlMode"],
-    harness: row.harness as SessionRecord["harness"],
-    hostId: row.host_id,
-    nativeSessionId: row.native_session_id,
-    resumeVersion: row.resume_version,
-    logOffset: row.log_offset,
-    parentSessionId: row.parent_session_id,
-    observedAt: row.observed_at,
-    fork: row.fork === 1,
-    inputRevision: row.input_revision,
-    writerClient: row.writer_client,
-    writerLeaseUntil: row.writer_lease_until,
-    archived: row.archived === 1,
-    title: row.title ?? null,
-  };
-}
-
-const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
-  idle: ["working", "waiting_approval", "parked", "stopping", "stopped", "error"],
-  starting: ["working", "idle", "waiting_approval", "error", "stopping", "stopped"],
-  working: ["idle", "waiting_approval", "parked", "stopping", "stopped", "error"],
-  waiting_approval: ["working", "parked", "stopping", "stopped", "error"],
-  parked: ["working", "stopping", "stopped", "error"],
-  stopping: ["stopped", "error"],
-  stopped: ["working"],
-  // ADR-0015: a failed turn (quota, rate limit, provider outage) is not a
-  // dead session — the next prompt may start a new turn.
-  error: ["stopping", "stopped", "working"],
-};
-
-/** T1.9: 30s default per EPIC-P1 §2 ("Heartbeat pro Adapter (30 s)"). */
-const DEFAULT_HEARTBEAT_MS = 30_000;
 
 /** Account-level usage/quota snapshot (ADR-0004) — keyed by adapter id,
  * NOT session id: rate limits are shared across every session of that
@@ -232,13 +35,21 @@ export interface AdapterUsageSnapshot {
   observedAt: string;
 }
 
+/**
+ * Session lifecycle manager.
+ *
+ * - Sessions are first-class objects persisted in SQLite + JSONL.
+ * - Every state change is emitted as a system event (auditable).
+ * - K7 crash recovery: replay JSONL + snapshot + optional adapter.recover().
+ * - Adapters only ever see AdapterContext — never hub internals.
+ */
 export class SessionManager {
   private readonly live = new Map<string, LiveSession>();
   private readonly usageByAdapter = new Map<string, AdapterUsageSnapshot>();
-  /** T7.3: steer prompts and budget top-ups parked behind an approval,
-   * keyed by ApprovalRequest.id, persisted with their exact arguments —
-   * a hub crash no longer loses them (was RAM-only until P7). */
-  private readonly operations: OperationStore;
+  /** ADR-0019: approval-gated prompts and budget top-ups. */
+  private readonly flow: ApprovalFlow;
+  /** T2.7: budget and daily cap. */
+  private readonly budget: BudgetGuard;
   /** ADR-0015: when the last provider.error per session was reported. */
   private readonly lastProviderError = new Map<string, number>();
   /** Tail of the per-session steer chain (see steer()). */
@@ -249,8 +60,6 @@ export class SessionManager {
   private readonly registry: AdapterRegistry;
   private readonly runner: WorkerRunner;
   private readonly worktrees: WorktreeManager | undefined;
-  private readonly approvals: ApprovalService | undefined;
-  private readonly dailyCapUsd: number | null;
   private readonly reportingSinks: ReportingSink[];
   private readonly logger: HubLogger;
   private readonly metrics: HubMetrics | undefined;
@@ -286,9 +95,31 @@ export class SessionManager {
     this.registry = registry;
     this.runner = runner;
     this.worktrees = worktrees;
-    this.approvals = approvals;
-    this.operations = new OperationStore(db);
-    this.dailyCapUsd = dailyCapUsd;
+    this.budget = new BudgetGuard(
+      {
+        session: (id) => this.live.get(id),
+        sessions: () => this.live.values(),
+        records: () => this.list(),
+        emitSystem: (session, kind, payload) => this.emitSystem(session, kind, payload),
+        park: (session, reason, actor) => this.parkFor(session, reason, actor),
+        setStatus: (session, status) => this.setStatus(session, status),
+        context: (session) => this.makeContext(session),
+        persist: (record) => this.persist(record),
+      },
+      dailyCapUsd,
+    );
+    this.flow = new ApprovalFlow(
+      {
+        session: (id) => this.live.get(id),
+        emitSystem: (session, kind, payload) => this.emitSystem(session, kind, payload),
+        emitPrompt: (session, text, actor) => this.emitPrompt(session, text, actor),
+        continueStopped: (session, input, actor) => this.continueStopped(session, input, actor),
+        context: (session) => this.makeContext(session),
+        applyBudgetTopUp: (sessionId, usd, actor) => this.applyBudgetTopUp(sessionId, usd, actor),
+      },
+      approvals,
+      new OperationStore(db),
+    );
     this.reportingSinks = reportingSinks;
     this.logger = observability.logger ?? createConsoleLogger();
     this.metrics = observability.metrics;
@@ -725,23 +556,8 @@ export class SessionManager {
     if (input.kind === "prompt" && session.skillName && !reopening) {
       delivered = { ...input, text: await this.promptWithSkill(session, input.text) };
     }
-    // T2.4/ADR-0007: "Steer-Prompt" is explicitly a write-class action
-    // (EPIC-P2 §3 table) once an ApprovalService is configured — parked,
-    // not forwarded, until a real approval decision comes back through
-    // applyApprovedSteer(). `stop`/`park`/`resume` stay ungated: EPIC-P2's
-    // class table lists commit/session-start/steer-prompt as the
-    // write-class examples, not "make the agent stop".
-    if (this.approvals && input.kind === "prompt") {
-      const req = this.approvals.create(
-        sessionId,
-        "write",
-        "steer.prompt",
-        `Prompt an ${session.record.adapter} senden: "${input.text.slice(0, 160)}"`,
-      );
-      this.operations.create(req.id, sessionId, "steer.prompt", { input: delivered, typed: input.text }, session.record.inputRevision, actor ?? null);
-      await this.emitSystem(session, "session.steer_pending_approval", { approvalId: req.id, actor: actor ?? null });
-      return { ok: false, detail: `pending approval ${req.id}` };
-    }
+    const gated = await this.flow.gateSteer(session, input, delivered, actor);
+    if (gated) return gated;
     if (input.kind === "prompt") await this.emitPrompt(session, input.text, actor);
     if (reopening && delivered.kind === "prompt") {
       // BUG-0016: the reopen is a steer like any other — without the
@@ -854,137 +670,42 @@ export class SessionManager {
     }
   }
 
-  /**
-   * T2.4: the one place a write-class steer actually reaches the adapter
-   * once approved — called by the /api/approvals/:id/decide route right
-   * after ApprovalService.decide() reports a genuine "approved" (never
-   * called speculatively, never called for a rejection). A missing entry
-   * (unknown approvalId, or the session ended while the approval sat
-   * pending) is a real, nameable outcome, not a crash.
-   */
-  async applyApprovedSteer(approvalId: string, decidedByLabel?: string): Promise<Ack> {
-    const op = this.operations.get(approvalId);
-    if (!op || op.kind !== "steer.prompt") return { ok: false, detail: "no pending steer for this approval" };
-    return this.dispatchOperation(op, decidedByLabel);
+
+
+
+
+
+
+
+
+
+
+
+
+  /** ADR-0019: see ApprovalFlow. */
+  applyApprovedSteer(approvalId: string, decidedByLabel?: string): Promise<Ack> {
+    return this.flow.applyApprovedSteer(approvalId, decidedByLabel);
   }
 
-  /**
-   * T7.3: runs an approved operation at most once. `pending → dispatching`
-   * is one conditional UPDATE, so a second caller (a retried decide, the
-   * catch-up after a restart) finds it taken. Arguments are checked
-   * against the approved hash right before running.
-   */
-  private async dispatchOperation(op: PendingOperation, decidedByLabel?: string): Promise<Ack> {
-    const session = this.live.get(op.sessionId);
-    if (!session) {
-      this.operations.transition(op.id, ["pending"], "failed", "Die Session ist nicht mehr aktiv.");
-      return { ok: false, detail: "session not live" };
-    }
-    if (!this.operations.intact(op)) {
-      this.operations.transition(op.id, ["pending"], "failed", "Die Argumente weichen von der Freigabe ab.");
-      await this.emitSystem(session, "operation.rejected_changed", { operationId: op.id, kind: op.kind });
-      return { ok: false, detail: "operation arguments changed after approval" };
-    }
-    if (!this.operations.transition(op.id, ["pending"], "dispatching")) {
-      return { ok: false, detail: `operation already ${this.operations.get(op.id)?.state ?? "gone"}` };
-    }
-    let ack: Ack;
-    try {
-      if (op.kind === "steer.prompt") {
-        const { input, typed } = op.payload as { input: SteerInput; typed?: string };
-        ack = await this.runApprovedSteer(session, input, typed, op.id, decidedByLabel);
-      } else if (op.kind === "budget.increase") {
-        const { newBudgetUsd } = op.payload as { newBudgetUsd: number };
-        ack = await this.applyBudgetTopUp(op.sessionId, newBudgetUsd, decidedByLabel);
-      } else {
-        ack = { ok: false, detail: `no dispatcher for ${op.kind}` };
-      }
-    } catch (err) {
-      ack = { ok: false, detail: err instanceof Error ? err.message : String(err) };
-    }
-    this.operations.transition(op.id, ["dispatching"], ack.ok ? "done" : "failed", ack.ok ? "ausgeführt" : (ack.detail ?? "fehlgeschlagen"));
-    return ack;
+  requestBudgetTopUp(sessionId: string, newBudgetUsd: number, reason?: string, actor?: string): Promise<Ack & { approvalId?: string }> {
+    return this.flow.requestBudgetTopUp(sessionId, newBudgetUsd, reason, actor);
   }
 
-  private async runApprovedSteer(session: LiveSession, input: SteerInput, typed: string | undefined, approvalId: string, decidedByLabel?: string): Promise<Ack> {
-    if (input.kind === "prompt") await this.emitPrompt(session, typed ?? input.text, decidedByLabel);
-    if (input.kind === "prompt" && (session.record.status === "stopped" || !session.handle)) {
-      return this.continueStopped(session, input, decidedByLabel);
-    }
-    if (!session.handle) return { ok: false, detail: "session not live" };
-    const ack = await session.adapter.steer(session.handle, input, this.makeContext(session));
-    await this.emitSystem(session, "session.steer", {
-      steerKind: input.kind,
-      ok: ack.ok,
-      approvalId,
-      actor: decidedByLabel ?? null,
-    });
-    return ack;
+  recordApprovalDecision(sessionId: string, approvalId: string, action: string, status: "approved" | "rejected", decidedByLabel: string): Promise<void> {
+    return this.flow.recordApprovalDecision(sessionId, approvalId, action, status, decidedByLabel);
   }
 
-  /**
-   * Requests a budget change for a session — EPIC-P2 §3 lists "Budget-
-   * Änderung" as a write-class action requiring a reason. Applied
-   * immediately only when no ApprovalService is configured (same opt-in
-   * pattern as steer()); otherwise parked as a pending approval and only
-   * actually applied by applyApprovedBudgetTopUp() once approved.
-   */
-  async requestBudgetTopUp(
-    sessionId: string,
-    newBudgetUsd: number,
-    reason?: string,
-    actor?: string,
-  ): Promise<Ack & { approvalId?: string }> {
-    const session = this.live.get(sessionId);
-    if (!session) return { ok: false, detail: "session not live" };
-    if (!this.approvals) {
-      await this.applyBudgetTopUp(sessionId, newBudgetUsd, actor);
-      return { ok: true };
-    }
-    const req = this.approvals.create(
-      sessionId,
-      "write",
-      "budget.increase",
-      `Budget auf ${newBudgetUsd.toFixed(2)}$ erhöhen${reason ? ` (${reason})` : ""}`,
-      true, // ADR-0007: a budget change always requires a reason, unlike a plain steer prompt
-    );
-    this.operations.create(req.id, sessionId, "budget.increase", { newBudgetUsd, reason: reason ?? null }, session.record.inputRevision, actor ?? null);
-    await this.emitSystem(session, "session.budget_topup_pending_approval", {
-      approvalId: req.id,
-      newBudgetUsd,
-      actor: actor ?? null,
-    });
-    return { ok: false, detail: `pending approval ${req.id}`, approvalId: req.id };
+  applyApprovedBudgetTopUp(approvalId: string, decidedByLabel?: string): Promise<Ack> {
+    return this.flow.applyApprovedBudgetTopUp(approvalId, decidedByLabel);
   }
 
-  /**
-   * T2.8 (EPIC-P2 §2 "Audit-Trail … inkl. verweigerter Aktionen"): unlike
-   * applyApprovedSteer/applyApprovedBudgetTopUp (which only ever run on a
-   * genuine approval), this records EVERY decision — approved or
-   * rejected, write or destructive — onto the session's own tail. Without
-   * this, a rejected request only ever showed up in the separate
-   * approvals table; a reviewer reading one session's history alone
-   * couldn't see that an action was even requested and denied.
-   */
-  async recordApprovalDecision(
-    sessionId: string,
-    approvalId: string,
-    action: string,
-    status: "approved" | "rejected",
-    decidedByLabel: string,
-  ): Promise<void> {
-    if (status === "rejected") this.operations.transition(approvalId, ["pending"], "rejected", `abgelehnt von ${decidedByLabel}`);
-    const session = this.live.get(sessionId);
-    if (!session) return; // session ended while the approval sat pending — nothing to record onto
-    await this.emitSystem(session, "session.approval_decided", { approvalId, action, status, actor: decidedByLabel });
+  operation(id: string): PendingOperation | undefined {
+    return this.flow.operation(id);
   }
 
-  /** Called by the decide route once a `budget.increase` approval is
-   * genuinely approved — mirrors applyApprovedSteer. */
-  async applyApprovedBudgetTopUp(approvalId: string, decidedByLabel?: string): Promise<Ack> {
-    const op = this.operations.get(approvalId);
-    if (!op || op.kind !== "budget.increase") return { ok: false, detail: "no pending budget top-up for this approval" };
-    return this.dispatchOperation(op, decidedByLabel);
+  /** T2.7: see BudgetGuard. */
+  applyBudgetTopUp(sessionId: string, newBudgetUsd: number, actor?: string): Promise<Ack> {
+    return this.budget.applyBudgetTopUp(sessionId, newBudgetUsd, actor);
   }
 
   async stop(sessionId: string, actor?: string): Promise<Ack> {
@@ -1084,94 +805,11 @@ export class SessionManager {
     await this.emitSystem(session, "session.parked", { reason, actor: actor ?? null });
   }
 
-  /**
-   * T2.7 (EPIC-P2 §3 BudgetState): checked after every cost-bearing
-   * event. 80% -> a visible warning event (this hub has no real push
-   * infrastructure yet — "Push-Warnung" in the design doc is honestly
-   * represented here as a system event the PWA can surface, not an
-   * actual mobile push). 100% -> hard park, fail-closed (no further
-   * provider calls happen because the adapter is genuinely stopped, not
-   * merely marked). Warns at most once per session (`budgetWarned`)
-   * so every subsequent cost-bearing event doesn't re-spam it.
-   */
-  private async checkBudget(session: LiveSession): Promise<void> {
-    const budget = session.record.budgetUsd;
-    if (budget === null) return;
-    const terminal = session.record.status === "stopped" || session.record.status === "parked" || session.record.status === "error";
-    if (terminal) return;
-    if (session.record.costUsd >= budget) {
-      await this.emitSystem(session, "session.budget_exceeded", { costUsd: session.record.costUsd, budgetUsd: budget });
-      await this.parkFor(session, "budget");
-      return;
-    }
-    if (!session.budgetWarned && session.record.costUsd >= budget * 0.8) {
-      session.budgetWarned = true;
-      await this.emitSystem(session, "session.budget_warning", {
-        costUsd: session.record.costUsd,
-        budgetUsd: budget,
-        detail: "80% des Budgets verbraucht (kein echter Mobile-Push — dieser Hub hat keine Push-Infrastruktur, siehe EPIC-P2 T2.7)",
-      });
-    }
-  }
 
-  /**
-   * T2.7 top-up flow: only actually resumes a session that was parked
-   * FOR BUDGET (ADR-0008) — a manually parked or daily-cap-parked session
-   * is untouched by raising this one session's own budget. Returns a
-   * named failure rather than silently no-op'ing so a caller (the
-   * approval-decide route) can surface why nothing happened.
-   */
-  async applyBudgetTopUp(sessionId: string, newBudgetUsd: number, actor?: string): Promise<Ack> {
-    const session = this.live.get(sessionId);
-    if (!session) return { ok: false, detail: "session not live" };
-    session.record.budgetUsd = newBudgetUsd;
-    session.budgetWarned = false;
-    this.persist(session.record);
-    await this.emitSystem(session, "session.budget_topup", { newBudgetUsd, actor: actor ?? null });
-    if (session.record.status === "parked" && session.record.parkReason === "budget") {
-      session.record.parkReason = null;
-      await this.setStatus(session, "working");
-      // Mirrors parkFor()'s real adapter signal — a top-up that only
-      // flips the hub's own status back to "working" while the adapter
-      // itself is still internally paused (e.g. adapter-dummy's own
-      // steer(park) sets its generator loop's running flag false) would
-      // show a session that looks resumed but never actually continues.
-      if (session.handle) {
-        try {
-          await session.adapter.steer(session.handle, { kind: "resume" }, this.makeContext(session));
-        } catch (err) {
-          await this.emitSystem(session, "session.resume_signal_failed", {
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      }
-      await this.emitSystem(session, "session.resumed_after_topup", { actor: actor ?? null });
-    }
-    return { ok: true };
-  }
 
-  /**
-   * T2.7 (EPIC-P2 §3 "Tages-Cap pro Rechner"): a hub-wide cap across every
-   * session created since 00:00 UTC today, independent of any single
-   * session's own budgetUsd — protection against a runaway/looping agent
-   * that a per-session cap wouldn't catch if it never had one set. Parks
-   * EVERY live, non-terminal session (there is no single "the" session to
-   * blame for a hub-wide cap) rather than silently continuing.
-   */
-  private async checkDailyCap(): Promise<void> {
-    if (this.dailyCapUsd === null) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const spentToday = this.list()
-      .filter((r) => r.createdAt.slice(0, 10) === today)
-      .reduce((sum, r) => sum + r.costUsd, 0);
-    if (spentToday < this.dailyCapUsd) return;
-    for (const session of this.live.values()) {
-      const terminal = session.record.status === "stopped" || session.record.status === "parked" || session.record.status === "error";
-      if (terminal) continue;
-      await this.emitSystem(session, "session.daily_cap_exceeded", { spentToday, dailyCapUsd: this.dailyCapUsd });
-      await this.parkFor(session, "daily_cap");
-    }
-  }
+
+
+
 
   async tail(sessionId: string, afterSeq: number, limit?: number): Promise<NormalizedEvent[]> {
     return this.store.tail(sessionId, afterSeq, limit);
@@ -1276,7 +914,7 @@ export class SessionManager {
       }
     }
 
-    await this.reconcileOperations();
+    await this.flow.reconcile();
     const reaped = await this.runner.reapOrphans(keepWorkers).catch(() => []);
     const elapsed = performance.now() - t0;
     this.metrics?.gauge("recovery_ms", elapsed);
@@ -1286,47 +924,9 @@ export class SessionManager {
     return { recovered, failed, reaped, uncontrolled };
   }
 
-  /**
-   * T7.3 / AC-P7-3, after a restart:
-   * - still undecided → stays pending, decidable as before;
-   * - decided "approved" but never started (crash between decision and
-   *   dispatch) → runs now, once;
-   * - rejected/timed out meanwhile → recorded so;
-   * - was running when the hub died → `uncertain`, visible, never re-run:
-   *   whether the provider already acted is unknown.
-   */
-  private async reconcileOperations(): Promise<void> {
-    for (const op of this.operations.list(["dispatching"])) {
-      this.operations.transition(op.id, ["dispatching"], "uncertain", "Der Hub wurde während der Ausführung neu gestartet. Ob sie ankam, ist unklar.");
-      const session = this.live.get(op.sessionId);
-      if (session) await this.emitSystem(session, "operation.uncertain", { operationId: op.id, operationKind: op.kind });
-    }
-    if (!this.approvals) return;
-    for (const op of this.operations.list(["pending"])) {
-      const decision = this.approvals.get(op.id);
-      if (!decision) continue;
-      if (decision.status === "approved") {
-        const session = this.live.get(op.sessionId);
-        if (session) await this.emitSystem(session, "operation.resumed", { operationId: op.id, operationKind: op.kind });
-        await this.dispatchOperation(op, decision.decidedByLabel ?? undefined).catch(() => undefined);
-      } else if (decision.status === "rejected" || decision.status === "timed_out") {
-        this.operations.transition(op.id, ["pending"], decision.status);
-      }
-    }
-  }
 
-  /** T7.3: an action's current state, for the approval card and the API. */
-  operation(id: string): PendingOperation | undefined {
-    const op = this.operations.get(id);
-    if (op?.state === "pending" && this.approvals) {
-      const status = this.approvals.get(id)?.status;
-      if (status === "rejected" || status === "timed_out") {
-        this.operations.transition(id, ["pending"], status);
-        return this.operations.get(id);
-      }
-    }
-    return op;
-  }
+
+
 
   /**
    * `keepWorkers`: a planned restart with a runner whose workers outlive
@@ -1492,8 +1092,8 @@ export class SessionManager {
     // recursion: a just-parked session is terminal and neither check
     // re-fires for it.
     if (sawCost) {
-      await this.checkBudget(session);
-      await this.checkDailyCap();
+      await this.budget.check(session);
+      await this.budget.checkDailyCap();
     }
   }
 
@@ -1553,72 +1153,9 @@ export class SessionManager {
   }
 
   private persist(record: SessionRecord): void {
-    this.db
-      .prepare(
-        `INSERT INTO sessions (
-           id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq,
-           cost_usd, updated_at, tokens_est, park_reason, control_mode, harness, host_id, native_session_id,
-           resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until,
-           archived, title
-         )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET
-           status = excluded.status,
-           model = excluded.model,
-           worktree_sha = excluded.worktree_sha,
-           budget_usd = excluded.budget_usd,
-           adapter_version = excluded.adapter_version,
-           last_seq = excluded.last_seq,
-           cost_usd = excluded.cost_usd,
-           updated_at = excluded.updated_at,
-           tokens_est = excluded.tokens_est,
-           park_reason = excluded.park_reason,
-           control_mode = excluded.control_mode,
-           harness = excluded.harness,
-           host_id = excluded.host_id,
-           native_session_id = excluded.native_session_id,
-           resume_version = excluded.resume_version,
-           log_offset = excluded.log_offset,
-           parent_session_id = excluded.parent_session_id,
-           observed_at = excluded.observed_at,
-           fork = excluded.fork,
-           input_revision = excluded.input_revision,
-           writer_client = excluded.writer_client,
-           writer_lease_until = excluded.writer_lease_until,
-           archived = excluded.archived,
-           title = excluded.title`,
-      )
-      .run(
-        record.id,
-        record.adapter,
-        record.project,
-        record.worktreeSha,
-        record.model,
-        record.status,
-        record.createdAt,
-        record.budgetUsd,
-        record.adapterVersion,
-        record.lastSeq,
-        record.costUsd,
-        record.updatedAt,
-        record.tokensEst,
-        record.parkReason,
-        record.controlMode,
-        record.harness,
-        record.hostId,
-        record.nativeSessionId,
-        record.resumeVersion,
-        record.logOffset,
-        record.parentSessionId,
-        record.observedAt,
-        record.fork ? 1 : 0,
-        record.inputRevision,
-        record.writerClient,
-        record.writerLeaseUntil,
-        record.archived ? 1 : 0,
-        record.title,
-      );
+    persistRecord(this.db, record);
   }
+
 
   private toDiscovered(record: SessionRecord): DiscoveredSession {
     return {
@@ -1658,4 +1195,3 @@ export class SessionManager {
       .run(session.record.id, meta.inputId, new Date().toISOString());
   }
 }
-
