@@ -89,6 +89,8 @@ test.describe("Composer: Verbessern, Empfehlung, Skills (T3.9, T5.7–T5.10)", (
     await expect(preview).toContainText("$0.0004");
     await app.getByRole("button", { name: "Verbessertes übernehmen" }).click();
     await expect(prompt).toHaveValue(/^Ziel: mach die login seite schneller\nScope:/);
+    // A one-off prompt gets no skill suggestion (no draft that just copies it).
+    await expect(app.locator(".recommend-card")).toHaveCount(0);
   });
 
   test("„Original senden“ behält den eigenen Text", async ({ app }) => {

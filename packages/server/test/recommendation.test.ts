@@ -41,11 +41,20 @@ describe("prompt recommendation", () => {
 
       const empty = join(root, "empty");
       await mkdir(empty);
-      const created = await app.inject({
+      const oneOff = await app.inject({
         method: "POST",
         url: "/api/prompt-recommendation",
         headers,
         payload: { project: empty, text: "Baue ein Neon-Tetris" },
+      });
+      expect(oneOff.statusCode).toBe(200);
+      expect(oneOff.json()).toBeNull();
+
+      const created = await app.inject({
+        method: "POST",
+        url: "/api/prompt-recommendation",
+        headers,
+        payload: { project: empty, text: "Lege einen Skill für Neon-Tetris-Levels an" },
       });
       expect(created.statusCode).toBe(200);
       const body = created.json() as { mode: string; name: string; draft: string; description: string; kind: string };

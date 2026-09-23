@@ -263,7 +263,9 @@ export function registerRoutes(
     if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
-    return recommendForPrompt(parsed.data.text, await skillsFor(parsed.data.project));
+    // null = nothing worth suggesting; sent as JSON so clients can tell.
+    const recommendation = recommendForPrompt(parsed.data.text, await skillsFor(parsed.data.project));
+    return reply.type("application/json").send(JSON.stringify(recommendation));
   });
 
   app.post("/api/skills", async (req, reply) => {
