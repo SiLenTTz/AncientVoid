@@ -625,7 +625,8 @@ describe("SessionManager", () => {
       const a = await manager.create({ adapter: "budget-test", project: dir });
       const b = await manager.create({ adapter: "budget-test", project: dir });
       await manager.steer(a.id, { kind: "prompt", text: "1.0" }); // a alone crosses the hub-wide 1.0 daily cap
-      await waitFor(async () => manager.get(a.id)!.status === "parked");
+      // checkDailyCap parks one session after the other — wait for both.
+      await waitFor(async () => manager.get(a.id)!.status === "parked" && manager.get(b.id)!.status === "parked");
       expect(manager.get(a.id)!.status).toBe("parked");
       expect(manager.get(a.id)!.parkReason).toBe("daily_cap");
       expect(manager.get(b.id)!.status).toBe("parked"); // b never spent anything, still parked
