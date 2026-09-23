@@ -676,6 +676,7 @@ function BerichtPane({
         </div>
       </div>
       {record.attachCmd && <AttachCmdRow cmd={record.attachCmd} />}
+      {record.worktree && <WorktreeCard worktree={record.worktree} project={record.project} />}
       <ContinueCard openCmd={record.openCmd} />
     </div>
   );
@@ -717,6 +718,28 @@ function CopyButton({ text }: { text: string }) {
     <button class="btn" type="button" onClick={() => void copy()}>
       {state === "copied" ? "Kopiert" : state === "failed" ? "Bitte markieren" : "Kopieren"}
     </button>
+  );
+}
+
+/** Changes of an isolated session are in its worktree, not the project
+ * folder the editor shows — say so, and how to open it. */
+function WorktreeCard({ worktree, project }: { worktree: { path: string; branch: string }; project: string }) {
+  const openInEditor = `code ${/^[\w./=@%^+:-]+$/.test(worktree.path) ? worktree.path : `'${worktree.path.replaceAll("'", `'\\''`)}'`}`;
+  return (
+    <div class="card worktree-card">
+      <div class="dim" style="font-size: 12px; margin-bottom: 6px">
+        Die Änderungen dieser Session liegen in einem eigenen Git-Worktree, nicht in {project.split("/").pop()}.
+        Branch <span class="mono">{worktree.branch}</span>.
+      </div>
+      <div class="attach-cmd-row">
+        <code class="mono worktree-path">{worktree.path}</code>
+        <CopyButton text={worktree.path} />
+      </div>
+      <div class="attach-cmd-row" style="margin-top: 6px">
+        <code class="mono worktree-open">{openInEditor}</code>
+        <CopyButton text={openInEditor} />
+      </div>
+    </div>
   );
 }
 
