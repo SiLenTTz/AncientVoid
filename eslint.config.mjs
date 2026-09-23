@@ -8,6 +8,8 @@ export default tseslint.config(
       "**/dist/**",
       "**/node_modules/**",
       "apps/pwa/**",
+      // CommonJS config read by dependency-cruiser (ADR-0020).
+      ".dependency-cruiser.cjs",
       // Playwright E2E gate output (HTML report bundles, traces).
       "playwright-report/**",
       "test-results/**",

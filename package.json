@@ -30,15 +30,17 @@
     "messlauf:p5-recovery-provider": "node scripts/messlauf-p5.mjs recovery-provider --runs 5",
     "check:adapter-matrix": "node scripts/check-adapter-matrix.mjs",
     "check:commits": "node scripts/check-commits.mjs",
+    "check:arch": "depcruise apps packages --config .dependency-cruiser.cjs",
     "prepare": "node scripts/setup-git.mjs",
     "hubctl": "node apps/hubctl/src/cli.ts",
-    "gate": "npm run typecheck && npm run lint && npm run check:commits && npm run check:adapter-matrix && npm test && npm run test:e2e"
+    "gate": "npm run typecheck && npm run lint && npm run check:commits && npm run check:arch && npm run check:adapter-matrix && npm test && npm run test:e2e"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
     "@playwright/test": "1.63.0",
     "@types/node": "^22.9.0",
     "@types/ws": "^8.18.1",
+    "dependency-cruiser": "^18.4.0",
     "eslint": "^9.14.0",
     "eslint-plugin-n": "^17.14.0",
     "playwright": "^1.63.0",
