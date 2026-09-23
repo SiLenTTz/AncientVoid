@@ -62,14 +62,65 @@ export class WorktreeManager {
     return this.pathFor(sessionId);
   }
 
-  /** BUG-0027: uncommitted changes or commits since the session's base. */
-  async hasWork(sessionId: string, baseSha: string | null): Promise<boolean> {
+  /** BUG-0027: uncommitted changes or commits since the session's base that
+   * the project does not have yet. */
+  async hasWork(sessionId: string, baseSha: string | null, projectPath?: string): Promise<boolean> {
     const path = this.worktreePath(sessionId);
     const { stdout: status } = await execFileAsync("git", ["-C", path, "status", "--porcelain"]);
     if (status.trim() !== "") return true;
     if (!baseSha) return false;
+    if (projectPath) {
+      const { stdout: head } = await execFileAsync("git", ["-C", path, "rev-parse", "HEAD"]);
+      const merged = await execFileAsync("git", ["-C", projectPath, "merge-base", "--is-ancestor", head.trim(), "HEAD"])
+        .then(() => true)
+        .catch(() => false);
+      if (merged) return false;
+    }
     const { stdout: ahead } = await execFileAsync("git", ["-C", path, "rev-list", "--count", `${baseSha}..HEAD`]);
     return Number(ahead.trim()) > 0;
+  }
+
+  /**
+   * Commits everything in the session's worktree on its branch and merges
+   * the branch into whatever the project has checked out. Refuses a dirty
+   * project folder and aborts a conflicting merge — the user's checkout is
+   * never left half-merged.
+   */
+  async apply(
+    sessionId: string,
+    projectPath: string,
+    message: string,
+  ): Promise<{ ok: true; into: string; commit: string; files: number } | { ok: false; detail: string }> {
+    const path = this.worktreePath(sessionId);
+    const branch = this.branchName(sessionId);
+    const git = (cwd: string, ...args: string[]) => execFileAsync("git", ["-C", cwd, ...args]);
+    const { stdout: dirty } = await git(projectPath, "status", "--porcelain");
+    if (dirty.trim() !== "") {
+      const files = dirty.trim().split("\n").map((line) => line.slice(3)).slice(0, 5).join(", ");
+      return { ok: false, detail: `Dein Projektordner hat ungesicherte Änderungen (${files}). Bitte erst committen oder verwerfen.` };
+    }
+    const into = await git(projectPath, "symbolic-ref", "--short", "HEAD").then((r) => r.stdout.trim()).catch(() => "");
+    if (!into) return { ok: false, detail: "Im Projektordner ist kein Branch ausgecheckt (detached HEAD)." };
+
+    await git(path, "add", "-A");
+    const staged = await git(path, "diff", "--cached", "--quiet").then(() => false).catch(() => true);
+    if (staged) {
+      const identity = await git(path, "config", "user.email").then(() => [] as string[]).catch(() => ["-c", "user.name=UACC Hub", "-c", "user.email=hub@uacc.local"]);
+      await execFileAsync("git", ["-C", path, ...identity, "commit", "-q", "-m", message]);
+    }
+    const { stdout: pending } = await git(projectPath, "log", "--format=%H", `HEAD..${branch}`);
+    if (pending.trim() === "") return { ok: false, detail: "Keine Änderungen zum Übernehmen." };
+    const { stdout: changed } = await git(projectPath, "diff", "--name-only", `HEAD...${branch}`);
+    try {
+      await git(projectPath, "merge", "--no-ff", "-m", message, branch);
+    } catch {
+      const { stdout: conflicts } = await git(projectPath, "diff", "--name-only", "--diff-filter=U").catch(() => ({ stdout: "" }));
+      await git(projectPath, "merge", "--abort").catch(() => undefined);
+      const names = conflicts.trim().split("\n").filter(Boolean).join(", ");
+      return { ok: false, detail: `Konflikt beim Übernehmen${names ? ` in ${names}` : ""}. Nichts wurde geändert.` };
+    }
+    const { stdout: commit } = await git(projectPath, "rev-parse", "--short", "HEAD");
+    return { ok: true, into, commit: commit.trim(), files: changed.trim().split("\n").filter(Boolean).length };
   }
 
   branchFor(sessionId: string): string {

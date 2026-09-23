@@ -46,6 +46,8 @@ export function notificationFor(event: NormalizedEvent, ctx: NotificationContext
     case "session.budget_exceeded":
     case "session.daily_cap_exceeded":
       return { level: "warning", title: `${where} · Budget erreicht, pausiert`, detail: null, kind };
+    case "session.applied":
+      return { level: "success", title: `${where} · ins Projekt übernommen`, detail: `${String(payload.files)} Datei(en) nach ${String(payload.into)} (${String(payload.commit)})`, kind };
     case "session.writer_takeover":
       return { level: "info", title: `${where} · Gerät übernommen`, detail: `Schreibt jetzt: ${String(payload.to)}`, kind };
     case "session.recovered":

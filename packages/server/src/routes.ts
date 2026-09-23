@@ -431,6 +431,15 @@ export function registerRoutes(
     return ack.ok ? ack : reply.code(422).send(ack);
   });
 
+  // "Ins Projekt übernehmen": commit the session worktree and merge it
+  // into the project checkout. 409 with a reason the user can act on.
+  app.post("/api/sessions/:id/apply", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ ok: false, detail: "unknown session" });
+    const result = await deps.sessions.applyToProject(id, callerLabel(req) ?? undefined);
+    return result.ok ? result : reply.code(409).send(result);
+  });
+
   app.post("/api/sessions/:id/stop", async (req, reply) => {
     const { id } = req.params as { id: string };
     const ack = await deps.sessions.stop(id, callerLabel(req) ?? undefined);

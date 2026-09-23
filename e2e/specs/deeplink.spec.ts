@@ -84,4 +84,26 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     const { existsSync } = await import("node:fs");
     expect(existsSync(`${workdir}/e2e-change.txt`), "the agent's file survived Stop (BUG-0027)").toBe(true);
   });
+
+  test("„Ins Projekt übernehmen“ bringt die Arbeit der Session in den Projektordner", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
+    const { existsSync, readFileSync } = await import("node:fs");
+    const { execFileSync } = await import("node:child_process");
+    expect(existsSync(`${hub.alpha}/e2e-change.txt`)).toBe(false);
+
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Bericht" }).click();
+    await app.getByRole("button", { name: "Ins Projekt übernehmen" }).click();
+    await expect(app.locator(".apply-confirm")).toContainText("in den ausgecheckten Branch von alpha");
+    await app.getByRole("button", { name: "Jetzt übernehmen" }).click();
+    await expect(app.locator(".apply-result.ok")).toContainText("nach main");
+    expect(readFileSync(`${hub.alpha}/e2e-change.txt`, "utf8")).toContain("geändert durch E2E");
+    expect(execFileSync("git", ["-C", hub.alpha, "log", "--format=%s", "-1"], { encoding: "utf8" })).toContain("UACC: Lege eine DATEI an");
+    await expect(app.locator(".toast.success").filter({ hasText: "ins Projekt übernommen" })).toBeVisible();
+
+    await app.getByRole("button", { name: "Ins Projekt übernehmen" }).click();
+    await app.getByRole("button", { name: "Jetzt übernehmen" }).click();
+    await expect(app.locator(".apply-result.reply-error")).toHaveText("Keine Änderungen zum Übernehmen.");
+  });
 });
