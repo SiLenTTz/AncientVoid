@@ -42,5 +42,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0016](bug-0016-reopen-ignores-input-id.md) | Wiederholte Eingabe startet eine gestoppte Session zweimal | fixed | S1 | core | — |
 | [BUG-0017](bug-0017-concurrent-reopen-double-run.md) | Handy und PC öffnen eine gestoppte Session gleichzeitig: zwei Läufe | fixed | S1 | core, pwa | — |
 | [BUG-0018](bug-0018-recovery-replays-stopped-sessions.md) | Hub-Start liest den Verlauf jeder gestoppten Session ein (K7) | fixed | S2 | core | — |
+| [BUG-0019](bug-0019-tmux-reap-kills-foreign-workers.md) | Ein zweiter Hub oder `npm test` tötet die tmux-Worker des laufenden Hubs | fixed | S1 | workers | — |
 
-Die nächste freie Nummer ist **0019**.
+Die nächste freie Nummer ist **0020**.

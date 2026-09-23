@@ -119,6 +119,21 @@ describe("TmuxRunner", () => {
     expect(reaped2).toContain(`${TMUX_PREFIX}test-orphan`);
   });
 
+  itTmux("BUG-0019: never reaps a worker another hub owns", async () => {
+    const otherDir = await mkdtemp(join(tmpdir(), "uacc-tmux-other-"));
+    const other = new TmuxRunner(join(otherDir, "logs"));
+    try {
+      await other.spawn({ name: "test-foreign", cwd: otherDir, cmd: ["bash", "-c", "sleep 30"] });
+      expect((await runner.list()).some((w) => w.name === "test-foreign")).toBe(false);
+      const reaped = await runner.reapOrphans([]);
+      expect(reaped).not.toContain(`${TMUX_PREFIX}test-foreign`);
+      expect((await other.list()).some((w) => w.name === "test-foreign")).toBe(true);
+    } finally {
+      await other.reapOrphans([]).catch(() => undefined);
+      await rm(otherDir, { recursive: true, force: true });
+    }
+  });
+
   itTmux("kill terminates a worker", async () => {
     const proc = await runner.spawn({
       name: "test-kill",
