@@ -145,7 +145,7 @@ Sessions, lauffähig auf evox2 (Windows/WSL), das lazy-disclosed MCP-Gateway (Me
   Tools. Ein viertes Tool lässt den Test nicht automatisch scheitern
   (dafür müsste es auch das Budget sprengen), aber der Test wird bei
   jeder Änderung neu real gemessen, nicht nur einmalig behauptet.
-- [ ] **T4.8** Lizenz-Entscheidung + Header-Sweep + DCO/CLA-Frage klären —
+- [ ] **T4.8** Lizenz-Entscheidung + Header-Sweep + DCO/CLA-Frage klären — **AI-P6-4 (vor der Veröffentlichung):** alle Geräte-Tokens rotieren und `/tmp/uacc-hub.log` leeren (BUG-0028).
   **bewusst nicht autonom entschieden**: eine Lizenzwahl ist eine
   rechtliche/geschäftliche Entscheidung des Repo-Eigentümers, keine
   technische Implementierungsfrage — hier nicht einseitig auf MIT/Apache-2.0
