@@ -33,6 +33,12 @@ leben in Adapter-Maps und überleben keinen Neustart als Steuer-Handle.
    aus. Optionales `revision` muss der aktuellen `inputRevision` entsprechen,
    sonst `revision conflict`. Optionales `clientId` hält 30 s eine
    Writer-Lease; ein anderer Client bekommt `writer lease held`.
+   **Nachtrag 2026-09-23 (T5.5):** `takeover: true` übernimmt die Lease
+   bewusst. `inputId` und `revision` gelten weiter, die Übergabe steht als
+   `session.writer_takeover { from, to, actor }` im Verlauf. Die PWA bietet
+   „Übernehmen“ erst nach einem `writer lease held` an, nie automatisch.
+   Die Steers einer Session laufen nacheinander (BUG-0017), damit kein
+   zweiter Aufruf Lease und Revision während eines laufenden Steers prüft.
 5. **Recovery.** Eine nicht gestoppte Session ohne Handle nach `recover()`
    wird `observed` und zählt nicht als recovered. `keepWorkers` enthält
    nur Sessions mit Handle, damit Reaping sie nicht wegräumt.

@@ -33,7 +33,7 @@ async function send(page: Page, text: string): Promise<void> {
 test.describe("Handoff PC ↔ Handy (AC-P5-2) @desktop", () => {
   test.skip(({ isMobile }) => isMobile, "drives both form factors itself; runs in the desktop project");
 
-  test.fixme("PC → Handy → PC während die Session lebt", async ({ browser, hub }) => {
+  test("PC → Handy → PC während die Session lebt", async ({ browser, hub }) => {
     const pc = await device(browser, hub, "pc");
     await pc.goto(hub.origin);
     await pc.getByRole("button", { name: "Neue Session" }).click();
@@ -69,7 +69,7 @@ test.describe("Handoff PC ↔ Handy (AC-P5-2) @desktop", () => {
     expect(new Set(all.map((t) => t.cwd)).size, "one working directory").toBe(1);
   });
 
-  test.fixme("PC stoppt, das Handy macht weiter, der PC übernimmt wieder", async ({ browser, hub }) => {
+  test("PC stoppt, das Handy macht weiter, der PC übernimmt wieder", async ({ browser, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Zug 1 am PC" });
     await hub.until(async () => turns(await hub.events(id)).length === 1, "first turn");
     const pc = await device(browser, hub, "pc");

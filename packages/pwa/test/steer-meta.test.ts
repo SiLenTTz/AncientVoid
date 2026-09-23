@@ -23,6 +23,19 @@ describe("steer meta from the PWA (AC-P5-4)", () => {
     expect(bodies[1]?.clientId).toBe(bodies[0]?.clientId);
   });
 
+  it("T5.5: a takeover is sent only when asked for", async () => {
+    vi.stubGlobal("localStorage", { getItem: () => "dev-1", setItem: () => undefined, removeItem: () => undefined });
+    const bodies: Record<string, unknown>[] = [];
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)) as Record<string, unknown>);
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    });
+    await hubApi.steer("s1", { kind: "prompt", text: "a" }, "in-1");
+    await hubApi.steer("s1", { kind: "prompt", text: "a" }, "in-1", true);
+    expect(bodies[0]).not.toHaveProperty("takeover");
+    expect(bodies[1]).toMatchObject({ inputId: "in-1", clientId: "dev-1", takeover: true });
+  });
+
   it("explains a lease or revision conflict instead of the raw code", () => {
     expect(steerRejectText("writer lease held")).toMatch(/anderes Gerät/);
     expect(steerRejectText("revision conflict")).toMatch(/erneut senden/);

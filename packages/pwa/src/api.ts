@@ -229,7 +229,7 @@ export function newInputId(): string {
 
 /** Server ack details that mean "someone else holds the session". */
 export function steerRejectText(detail: string | undefined): string {
-  if (detail === "writer lease held") return "Ein anderes Gerät schreibt gerade in diese Session. Kurz warten und erneut senden.";
+  if (detail === "writer lease held") return "Ein anderes Gerät schreibt gerade in diese Session. Warten oder übernehmen.";
   if (detail === "revision conflict") return "Die Session hat sich inzwischen geändert. Bitte erneut senden.";
   return detail ?? "Antwort wurde abgelehnt";
 }
@@ -369,11 +369,12 @@ export const hubApi = {
   // {ok:false, detail} body, and api<T>()'s generic !res.ok path would
   // throw a bare "422 Unprocessable Entity" instead of surfacing that
   // detail. Callers inspect ack.ok/ack.detail themselves.
-  steer: async (id: string, input: SteerInput, inputId?: string): Promise<Ack> => {
+  /** `takeover` moves the writer lease to this device on purpose (T5.5). */
+  steer: async (id: string, input: SteerInput, inputId?: string, takeover = false): Promise<Ack> => {
     const res = await fetch(`/api/sessions/${id}/steer`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ ...input, clientId: clientId(), ...(inputId ? { inputId } : {}) }),
+      body: JSON.stringify({ ...input, clientId: clientId(), ...(inputId ? { inputId } : {}), ...(takeover ? { takeover } : {}) }),
     });
     const body = (await res.json().catch(() => ({}))) as { ok?: boolean; detail?: string; error?: string };
     // Two possible failure shapes from the server: a rejected Ack

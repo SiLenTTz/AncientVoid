@@ -39,6 +39,9 @@ export interface SteerMeta {
   inputId?: string;
   revision?: number;
   clientId?: string;
+  /** T5.5: take the writer lease from another device on purpose. Input-id
+   * and revision checks still apply. */
+  takeover?: boolean;
 }
 
 export interface SessionManagerObservability {
@@ -666,14 +669,11 @@ export class SessionManager {
       return { ok: false, detail: "revision conflict" };
     }
     const leaseUntil = session.record.writerLeaseUntil ? Date.parse(session.record.writerLeaseUntil) : 0;
-    if (
-      meta?.clientId &&
-      session.record.writerClient &&
-      session.record.writerClient !== meta.clientId &&
-      leaseUntil > Date.now()
-    ) {
-      return { ok: false, detail: "writer lease held" };
-    }
+    const foreignWriter =
+      meta?.clientId && session.record.writerClient && session.record.writerClient !== meta.clientId && leaseUntil > Date.now()
+        ? session.record.writerClient
+        : null;
+    if (foreignWriter && !meta?.takeover) return { ok: false, detail: "writer lease held" };
     if (input.kind === "stop") {
       if (session.record.status === "stopped") return { ok: true };
       return this.stop(sessionId, actor);
@@ -704,7 +704,7 @@ export class SessionManager {
       // BUG-0016: the reopen is a steer like any other — without the
       // commit, a retried input id started the provider a second time.
       const reopened = await this.continueStopped(session, delivered, actor);
-      if (reopened.ok) this.commitSteerMeta(session, meta);
+      if (reopened.ok) await this.commitSteer(session, meta, foreignWriter, actor);
       return reopened;
     }
     const ack = await session.adapter.steer(session.handle!, delivered, this.makeContext(session));
@@ -716,8 +716,16 @@ export class SessionManager {
     // "park" instead of "session.steer" ever since T2.4 introduced this
     // call. Named `steerKind` here to never collide again.
     await this.emitSystem(session, "session.steer", { steerKind: input.kind, ok: ack.ok, actor: actor ?? null });
-    if (ack.ok) this.commitSteerMeta(session, meta);
+    if (ack.ok) await this.commitSteer(session, meta, foreignWriter, actor);
     return ack;
+  }
+
+  /** Records a delivered steer and, for a takeover, who handed over to whom. */
+  private async commitSteer(session: LiveSession, meta: SteerMeta | undefined, foreignWriter: string | null, actor?: string): Promise<void> {
+    this.commitSteerMeta(session, meta);
+    if (foreignWriter && meta?.clientId) {
+      await this.emitSystem(session, "session.writer_takeover", { from: foreignWriter, to: meta.clientId, actor: actor ?? null });
+    }
   }
 
   /**

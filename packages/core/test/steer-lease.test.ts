@@ -53,6 +53,47 @@ describe("steer idempotency and recovery honesty (AC-P5-3 / AC-P5-4)", () => {
     }
   });
 
+  it("T5.5: an explicit takeover moves the lease to the new device, once", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-takeover-"));
+    const db = new HubDatabase(":memory:");
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, { eventsPerSecond: 5, autoStopAfterEvents: 0 });
+    const manager = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      expect((await manager.steer(record.id, { kind: "prompt", text: "vom Handy" }, "phone", { inputId: "p-1", clientId: "phone" })).ok).toBe(true);
+      const blocked = await manager.steer(record.id, { kind: "prompt", text: "vom PC" }, "pc", { inputId: "d-1", clientId: "desktop" });
+      expect(blocked).toEqual({ ok: false, detail: "writer lease held" });
+
+      const taken = await manager.steer(record.id, { kind: "prompt", text: "vom PC" }, "pc", {
+        inputId: "d-1",
+        clientId: "desktop",
+        takeover: true,
+      });
+      expect(taken.ok).toBe(true);
+      expect(manager.get(record.id)?.writerClient).toBe("desktop");
+      const again = await manager.steer(record.id, { kind: "prompt", text: "vom PC" }, "pc", {
+        inputId: "d-1",
+        clientId: "desktop",
+        takeover: true,
+      });
+      expect(again).toEqual({ ok: true, detail: "duplicate input ignored" });
+
+      const back = await manager.steer(record.id, { kind: "prompt", text: "wieder Handy" }, "phone", { inputId: "p-2", clientId: "phone" });
+      expect(back).toEqual({ ok: false, detail: "writer lease held" });
+      const events = await manager.tail(record.id, 0);
+      const takeover = events.filter((e) => (e.payload as { kind?: string }).kind === "session.writer_takeover");
+      expect(takeover.map((e) => e.payload)).toEqual([
+        expect.objectContaining({ from: "phone", to: "desktop", actor: "pc" }),
+      ]);
+      expect(events.filter((e) => e.type === "user" && (e.payload as { text?: string }).text === "vom PC")).toHaveLength(1);
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("does not call a session controllable when recover() returns null", async () => {
     const dir = await mkdtemp(join(tmpdir(), "uacc-rec-"));
     const dbFile = join(dir, "hub.db");
