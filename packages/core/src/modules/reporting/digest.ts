@@ -10,7 +10,7 @@ import type { DigestLesson, DigestLessonKind, NormalizedEvent, SessionRecord, Se
  */
 
 /** Real `payload.kind` strings SessionManager itself already emits
- * (`emitSystem()`, grep-verified against sessionmanager.ts) — mapped to a
+ * (`emitSystem()`, grep-verified against session-manager.ts) — mapped to a
  * DigestLessonKind. Anything not in this list is real telemetry but not
  * digest-worthy (e.g. "session.created", "session.steer" — routine, not a
  * decision or a failure). */

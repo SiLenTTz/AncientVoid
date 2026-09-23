@@ -46,7 +46,7 @@ zu vergrößern.
 
 ### 3. Befehls-Allowlist — nie freie Shell vom Handy
 
-Kein Route-Handler in `apps/hub/src/routes.ts` reicht
+Kein Route-Handler in `apps/hub/src/modules/*/*.routes.ts` reicht
 client-geliefertes Freitext an `execFile`/`spawn` durch. `diff.ts`s
 `execFile`-Aufrufe nehmen ausschließlich serverseitig aufgelöste
 Pfade/Refs. Jeder Adapter-Prozess läuft über `ctx.spawnWorker` mit vom

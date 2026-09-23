@@ -28,7 +28,7 @@ import { defaultClaudeDir, findMostRecentSessionFile, findProjectDir, findSessio
  * sehen wie im jeweiligen Tool auf dem Desktop" — this is option 2 of that
  * ask (observing a session that was started independently in the user's
  * own terminal, not via the hub), alongside the already-shipped tmux
- * `attachCmd` (option 1, `apps/hub/src/routes.ts`'s `withAttachCmd`)
+ * `attachCmd` (option 1, `apps/hub/src/route-context.ts`'s `withAttachCmd`)
  * for hub-spawned sessions.
  *
  * IMPORTANT: uses `spec.project` (the raw request field), never

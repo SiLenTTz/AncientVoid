@@ -20,7 +20,7 @@ Historie):
    (Bedienung nur unten, linsenartige Scrollbars, Sprachsteuerung überall,
    Status-Glow) → Nutzerwahl: **Futuristisch**.
 
-## Farb-Tokens (`apps/pwa/src/styles.css`)
+## Farb-Tokens (`apps/pwa/src/app/styles/`)
 
 Dieselben Variablennamen wie seit P0 — nur die Werte sind neu, jede
 bestehende Komponente re-themt sich automatisch.
@@ -84,7 +84,7 @@ Scanline über arbeitenden Karten, Orbitron-Headings.
 
 - **P2 (T2.3, Diff-UI):** Hunk-Karten nutzen `--bg-elev`/`--bg-chip`/
   `--radius`, Diff-Add/Del-Farben werden aus `--ok`/`--err` mit
-  `color-mix()` abgeleitet (Muster: `apps/pwa/src/styles.css`, siehe
+  `color-mix()` abgeleitet (Muster: `apps/pwa/src/app/styles/`, siehe
   bestehende `.pill.*`-Regeln) — keine neuen Grün-/Rot-Werte.
 - **P3 (T3.8, Sprachsuche):** Ergebnisliste/Datei-Viewer übernehmen
   `--font-mono` für Code-Snippets, `--accent` für Zeilen-Anker-Highlights.

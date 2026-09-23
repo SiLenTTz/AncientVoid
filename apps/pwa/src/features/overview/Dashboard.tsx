@@ -55,7 +55,7 @@ export interface DashboardProps {
  * caller).
  *
  * Traffic-light: reuses the existing `.pill.<status>` color coding
- * (ok/warn/err/dim, see styles.css) rather than adding a second,
+ * (ok/warn/err/dim, see app/styles/) rather than adding a second,
  * redundant status-color indicator next to it.
  */
 const HOST_STATE_LABEL: Record<FleetHost["state"], string> = {

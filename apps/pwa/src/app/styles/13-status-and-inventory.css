@@ -31,7 +31,7 @@
 }
 
 /* Real user request (2026-09-19): same session on desktop and phone via
- * the worker's own real tmux pane — see SessionTail.tsx's AttachCmdRow. */
+ * the worker's own real tmux pane — see HostCommands.tsx's AttachCmdRow. */
 .attach-cmd-row {
   display: flex;
   align-items: center;

@@ -26,7 +26,7 @@ Dann nur die Spalten fahren, die betroffen sind.
 | `packages/adapters/*/**` | `npm test -w <package>` + `@uacc/adapter-testkit`-Contract-Suite |
 | `apps/pwa/**` | `npm -w @uacc/pwa run build` + `npm run typecheck` + `npm run test:e2e` |
 | `e2e/**` | `npm run test:e2e` (scheitert laut ohne Chromium: `npx playwright install chromium`) |
-| `apps/hub/src/routes.ts`, `packages/core/src/sessionmanager.ts`, `packages/adapters/*` | zusätzlich `npm run test:e2e` |
+| `apps/hub/src/modules/*`, `packages/core/src/modules/sessions/*`, `packages/adapters/*` | zusätzlich `npm run test:e2e` |
 | Epic- oder Bugfix-MR | `npm run gate` (alles, inkl. E2E) |
 | `apps/hub/**`, `packages/core/**`, `packages/workers/**` | `npm test` + `npm run loadtest` bei State-/EventStore-Änderungen (K5/K7/K8) |
 | `*.md` | kein Gate |

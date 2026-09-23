@@ -46,7 +46,7 @@ export interface Operation {
  * parser split the string at the `?`, silently turning a `steer_prompt`
  * call into `POST /api/sessions/abc-123/stop` — reproduced live with
  * `new URL(...)`. Real session ids are ALWAYS `randomUUID()` (never
- * client-supplied — `packages/core/src/sessionmanager.ts`'s `create()`),
+ * client-supplied — `packages/core/src/modules/sessions/session-manager.ts`'s `create()`),
  * so `.uuid()` both closes the hole and matches the only legitimate
  * shape. `encodeURIComponent()` at every interpolation site below is
  * defense in depth for any *future* operation that doesn't happen to be

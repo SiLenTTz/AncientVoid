@@ -293,7 +293,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // ANY unhandled event was ever seen, this permanently reported
       // "degraded" for the rest of the session's life — masking a real
       // subsequent abnormal exit behind a lesser label, and making it
-      // invisible to the heartbeat (packages/core/src/sessionmanager.ts's
+      // invisible to the heartbeat (packages/core/src/modules/sessions/session-manager.ts's
       // runHeartbeat only acts on "down"/"broken", never "degraded").
       // `healthy` now takes priority: a genuinely dead/crashed process is
       // reported "down" even if it was also degraded earlier.

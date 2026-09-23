@@ -3,7 +3,7 @@ const THEME_KEY = "uacc.theme";
 export type Theme = "dark" | "light";
 
 /**
- * T1.6-2: `[data-theme="light"]` has existed in styles.css since P0 but was
+ * T1.6-2: `[data-theme="light"]` has existed in app/styles/ since P0 but was
  * unreachable — index.html hardcoded `data-theme="dark"` on `<html>` and
  * nothing ever changed it. This is the first real read/write path.
  */

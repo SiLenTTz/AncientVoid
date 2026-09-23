@@ -248,7 +248,7 @@ describe("SessionManager", () => {
       const { recovered } = await second.manager.recoverAll();
       const elapsedMs = performance.now() - t0;
 
-      // AC-P0-1 as a real assertion, not the console.warn sessionmanager.ts
+      // AC-P0-1 as a real assertion, not the console.warn session-manager.ts
       // itself falls back to — a restore that's merely logged as slow was
       // never actually gated on the "< 3 s" requirement.
       expect(recovered).toBeGreaterThanOrEqual(SESSION_COUNT);

@@ -80,7 +80,7 @@ export function createRouteContext(deps: RouteDeps) {
 
   // Real user request (2026-09-19): "same session on the phone and my
   // desktop terminal". Already true today — SessionManager.makeContext()
-  // always names the worker after the real session id (sessionmanager.ts),
+  // always names the worker after the real session id (session-manager.ts),
   // so the tmux pane name is deterministic and never needs plumbing
   // through SessionHandle/adapters. Only shown for a genuinely live
   // session on a genuinely tmux-backed hub — a stopped session's pane is

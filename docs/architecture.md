@@ -18,13 +18,40 @@ Handy (PWA) ── Tailscale serve (HTTPS, keine öffentlichen Ports) ──> Hu
                                                                     events.jsonl · snapshot.json · blobs/
 ```
 
+## Code-Struktur (ADR-0020)
+
+Modularer Monolith, nach Fach geschnitten. Jedes Modul hat eine `index.ts`
+als einzige Schnittstelle; `npm run check:arch` (im Gate) prüft die Grenzen.
+
+```
+apps/                            lauffähige Programme
+  hub/src/        (@uacc/hub)    app.ts, routes.ts, route-context.ts,
+                                 modules/<modul>/<modul>.routes.ts + Dienste, platform/
+  pwa/src/        (@uacc/pwa)    app/ (Rahmen, Styles), features/<feature>/, shared/
+  hubctl/  gateway-mcp/
+packages/                        Bibliotheken
+  contracts/src/<modul>/         Verträge
+  core/src/modules/<modul>/      sessions, approvals, harness, workspace, discovery,
+                                 skills, notifications, identity, fleet, reporting,
+                                 observability
+  core/src/platform/             db, eventstore, config, logger, metrics
+  workers/                       WorkerRunner (tmux, process)
+  adapters/<name>/               claude, codex, opencode, copilot, aider, dummy, …, testkit
+```
+
+Neuer Code: erst das Modul bestimmen, dann dort ablegen. Innerhalb eines
+Moduls teilen sich große Klassen nach Verantwortung auf (Beispiel
+`core/modules/sessions`: `session-manager.ts` orchestriert,
+`approval-flow.ts` und `budget-guard.ts` sehen ihn nur über eine schmale
+Host-Schnittstelle).
+
 ## Pakete & Abhängigkeitsrichtung
 
 ```
-@uacc/contracts   ← @uacc/core ← @uacc/server → PWA (nur HTTP/WS)
+@uacc/contracts   ← @uacc/core ← @uacc/hub → PWA (nur HTTP/WS)
        ↑              ↑
        ├── @uacc/workers (WorkerRunner-Implementierungen)
-       ├── @uacc/adapter-dummy (Referenz-Adapter)
+       ├── @uacc/adapter-* (packages/adapters/<name>)
        └── @uacc/adapter-testkit (Contract-Suite für Fremd-Adapter)
 ```
 
@@ -72,7 +99,7 @@ Regeln:
 - `ProcessRunner` (Fallback ohne tmux): plain child_process, kein
   Restart-Überleben — explizit dokumentierter Trade-off.
 
-### Server (`@uacc/server`)
+### Hub (`@uacc/hub`, `apps/hub`)
 
 - Fastify, REST (`/api/health`, `/api/adapters`, `/api/sessions*`,
   `/api/tokens*`) + WS `/api/events/:id/tail`.
@@ -143,7 +170,7 @@ Jede Session mit einem echten Git-Projekt bekommt ein eigenes
 trägt diesen Wert, `AdapterContext.workdir`/`spawnWorker`'s `cwd` zeigen
 auf den Worktree, nicht mehr auf den rohen Projektpfad. Ein Nicht-Git-Pfad
 ist ein ehrlicher, sichtbarer Fallback (`session.no_worktree_isolation`),
-kein stiller Bruch. Die Diff-Engine (`apps/hub/src/diff.ts`) diff't
+kein stiller Bruch. Die Diff-Engine (`apps/hub/src/modules/sessions/diff.ts`) diff't
 gegen diesen echten `base_sha`, liefert strukturierte Hunks mit gits
 eigener Funktions-Anker-Heuristik, und kollabiert Hunk-Bodies unter K3
 (> 50 KB) — real gemessen `< 50 KB` für eine echte ~2-MB-Diff (T2.9).
@@ -154,7 +181,7 @@ nach Commit-Grenzen (AC-P2-1 nur teilweise erfüllt, siehe EPIC-P2 §5).
 
 Drei Klassen (`read` frei, `write` Tipp-Bestätigung, `destructive`
 WebAuthn-Biometrie) über `ApprovalService` (`packages/core/src/
-approvals.ts`) + `WebAuthnStore`/`apps/hub/src/webauthn.ts` (echtes
+modules/approvals/approvals.ts`) + `WebAuthnStore`/`apps/hub/src/modules/identity/webauthn.ts` (echtes
 `@simplewebauthn/server`, keine eigene Krypto). `SessionManager.steer()`
 parkt ein `prompt`-Steer als `write`-Approval, sobald ein
 `ApprovalService` konfiguriert ist (`hub.config.json`s

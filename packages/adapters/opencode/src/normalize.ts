@@ -13,7 +13,7 @@ import { providerErrorEvent, type EmittedEvent } from "@uacc/contracts";
  * emits both the `tool_use` and (when the call has already settled) its
  * paired `tool_result` from that one real event, using the same
  * `payload.id`/`payload.toolUseId` correlation the PWA's tool-anchor-jump
- * logic already expects generically (SessionTail.tsx's toolIdOf()).
+ * logic already expects generically (event-filter.ts's toolIdOf()).
  *
  * `step_finish` carries per-step (not cumulative) `tokens.total` and
  * `cost` — real, always-present fields (this provider genuinely reports

@@ -13,7 +13,7 @@ import markdown from "highlight.js/lib/languages/markdown";
 // this is built against (real measured latency in
 // docs/messlauf/2026-09-18-search-latency.md: ~3s for a real hybrid
 // query, not instant — this UI shows a real "läuft…" state, never a
-// live-as-you-type suggest list). Design tokens only from styles.css
+// live-as-you-type suggest list). Design tokens only from app/styles/
 // (docs/design-system.md, P1.6) — no new hex values, including the
 // highlight.js theme below, which maps tokens to the existing
 // --fg/--accent/--ok/--fg-faint custom properties instead of importing a
@@ -154,7 +154,7 @@ export function SearchPane({ project }: { project: string }) {
   );
 }
 
-// Must match .file-gutter-row/.file-code's line-height in styles.css —
+// Must match .file-gutter-row/.file-code's line-height in app/styles/ —
 // a fixed px value (not "1.5em") so the target-line overlay and the
 // scroll-to-line math below can compute exact pixel offsets.
 const CODE_LINE_HEIGHT_PX = 19;
@@ -204,7 +204,7 @@ function FileViewer({ project, path, line, onClose }: { project: string; path: s
   // a ```python fence renders as one plain `hljs-code` span, not
   // per-token Python colors. Markdown's own structural tokens (headings,
   // emphasis, lists, links, inline code) DO highlight correctly and are
-  // mapped in styles.css — the dominant content this feature actually
+  // mapped in app/styles/ — the dominant content this feature actually
   // returns, since qmd only ever indexes `**/*.md` (see search.ts).
   const highlighted = file ? (lang && hljs.getLanguage(lang) ? hljs.highlight(file.content, { language: lang }).value : escapeHtml(file.content)) : "";
 

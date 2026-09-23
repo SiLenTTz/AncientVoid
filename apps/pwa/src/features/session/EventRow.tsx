@@ -70,7 +70,7 @@ export function EventRow({
   const toolId = toolIdOf(event);
 
   if (event.type === "thinking") {
-    // T1.7: dimmed/italic (styles.css .event.thinking), collapsible —
+    // T1.7: dimmed/italic (app/styles/ .event.thinking), collapsible —
     // collapsed shows only the (already <=200 char) summary; expanded
     // shows the adapter's full reasoning text, when it sent one.
     return (
@@ -140,7 +140,7 @@ export function EventRow({
   }
 
   // AC-P1.5-12: whatever skill/agent a session was started with must be
-  // traceable in the tail — sessionmanager.ts stashes it on the
+  // traceable in the tail — session-manager.ts stashes it on the
   // session.created system event's payload.args (T1.5-10).
   if (event.type === "system" && (event.payload as { kind?: unknown }).kind === "session.created") {
     const args = (event.payload as { args?: { skill?: string; agent?: string } | null }).args;
