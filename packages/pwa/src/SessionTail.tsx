@@ -682,9 +682,11 @@ function BerichtPane({
           <span class="v dim">nicht erfasst — kein Adapter meldet ein strukturiertes Test-Signal</span>
         </div>
       </div>
-      {record.attachCmd && <AttachCmdRow cmd={record.attachCmd} />}
-      {record.worktree && <WorktreeCard sessionId={record.id} status={status} worktree={record.worktree} project={record.project} />}
-      <ContinueCard openCmd={record.openCmd} />
+      {record.attachCmd && <AttachCmdRow cmd={onHost(record.attachCmd, remoteHost(record.hostId))} />}
+      {record.worktree && (
+        <WorktreeCard sessionId={record.id} status={status} worktree={record.worktree} project={record.project} host={remoteHost(record.hostId)} />
+      )}
+      <ContinueCard openCmd={record.openCmd ? onHost(record.openCmd, remoteHost(record.hostId)) : undefined} host={remoteHost(record.hostId)} />
     </div>
   );
 }
@@ -728,6 +730,16 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+function shellQuote(value: string): string {
+  return /^[\w./=@%^+:-]+$/.test(value) ? value : `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
+/** EPIC-P6 T6.6: a command for another host of the fleet runs there, via SSH
+ * with the host id as name (the tailnet name of that machine). */
+export function onHost(command: string, host: string | null): string {
+  return host ? `ssh -t ${host} ${shellQuote(command)}` : command;
+}
+
 /** Changes of an isolated session are in its worktree, not the project
  * folder the editor shows — say so, and how to open it. */
 function WorktreeCard({
@@ -735,11 +747,13 @@ function WorktreeCard({
   status,
   worktree,
   project,
+  host = null,
 }: {
   sessionId: string;
   status: string;
   worktree: { path: string; branch: string };
   project: string;
+  host?: string | null;
 }) {
   const api = useApi();
   const [confirming, setConfirming] = useState(false);
@@ -763,11 +777,11 @@ function WorktreeCard({
       setConfirming(false);
     }
   };
-  const openInEditor = `code ${/^[\w./=@%^+:-]+$/.test(worktree.path) ? worktree.path : `'${worktree.path.replaceAll("'", `'\\''`)}'`}`;
+  const openInEditor = host ? `code --remote ssh-remote+${host} ${shellQuote(worktree.path)}` : `code ${shellQuote(worktree.path)}`;
   return (
     <div class="card worktree-card">
       <div class="dim" style="font-size: 12px; margin-bottom: 6px">
-        Die Änderungen dieser Session liegen in einem eigenen Git-Worktree, nicht in {project.split("/").pop()}.
+        Die Änderungen dieser Session liegen in einem eigenen Git-Worktree{host ? ` auf ${host}` : ""}, nicht in {project.split("/").pop()}.
         Branch <span class="mono">{worktree.branch}</span>.
       </div>
       <div class="attach-cmd-row">
@@ -817,7 +831,7 @@ function WorktreeCard({
  * session on the PC. The hub hides the command while a turn runs, so hub
  * and terminal never write at the same time.
  */
-function ContinueCard({ openCmd }: { openCmd?: string | undefined }) {
+function ContinueCard({ openCmd, host = null }: { openCmd?: string | undefined; host?: string | null }) {
   const link = typeof location === "undefined" ? "" : location.href;
   return (
     <div class="card continue-card">
@@ -829,7 +843,7 @@ function ContinueCard({ openCmd }: { openCmd?: string | undefined }) {
       {openCmd ? (
         <>
           <div class="dim" style="font-size: 12px; margin: 8px 0 6px">
-            Im Terminal am PC, dieselbe Provider-Session. Solange sie dort läuft, hier nichts senden.
+            {host ? `Im Terminal, per SSH auf ${host}` : "Im Terminal am PC"}, dieselbe Provider-Session. Solange sie dort läuft, hier nichts senden.
           </div>
           <div class="attach-cmd-row">
             <code class="mono continue-open">{openCmd}</code>

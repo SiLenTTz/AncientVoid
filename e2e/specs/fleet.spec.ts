@@ -144,4 +144,36 @@ test.describe("Flotte (EPIC-P6)", () => {
       await peer.stop();
     }
   });
+
+  test("T6.6: Meldungen, Befehle und Übernehmen gehören zum Host der Session", async ({ app, hub }) => {
+    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    try {
+      await pair(hub, peer);
+      // The bell has taken its first look at the server: from now on its
+      // notifications arrive as toasts.
+      const firstLook = app.waitForResponse(/\/api\/hosts\/silenttz-server\/notifications/);
+      await app.reload();
+      await firstLook;
+      const remote = await peer.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an" });
+
+      const toast = app.locator(".toast.success").filter({ hasText: "silenttz-server · alpha · Zug fertig" });
+      await expect(toast).toBeVisible({ timeout: 15_000 });
+      await toast.locator(".toast-body").click();
+      await expect(app).toHaveURL(new RegExp(`#/hosts/silenttz-server/sessions/${remote}`));
+
+      await app.getByRole("button", { name: "Bericht" }).click();
+      await expect(app.locator(".continue-open")).toHaveText(/^ssh -t silenttz-server 'cd .* && opencode --session ses_e2e_\w+'$/);
+      await expect(app.locator(".worktree-card")).toContainText("auf silenttz-server");
+      await expect(app.locator(".worktree-open")).toHaveText(/^code --remote ssh-remote\+silenttz-server /);
+
+      await app.getByRole("button", { name: "Ins Projekt übernehmen" }).click();
+      await app.getByRole("button", { name: "Jetzt übernehmen" }).click();
+      await expect(app.locator(".apply-result.ok")).toContainText("nach main");
+      const { existsSync } = await import("node:fs");
+      expect(existsSync(`${peer.alpha}/e2e-change.txt`), "applied on the session's host").toBe(true);
+      expect(existsSync(`${hub.alpha}/e2e-change.txt`), "not on this hub").toBe(false);
+    } finally {
+      await peer.stop();
+    }
+  });
 });
