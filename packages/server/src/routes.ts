@@ -89,14 +89,22 @@ export function registerRoutes(
 ): void {
   const projectRoots = deps.projectRoots ?? [];
 
-  async function skillsFor(project: string) {
+  /** The configured root a project lives under, with its base skill
+   * catalog in place. BUG-0021: a session started with a skill before
+   * anyone listed skills found no catalog and ran a shorter extends chain. */
+  async function catalogRootFor(project: string): Promise<string | undefined> {
     const projectPath = resolve(project);
     const root = projectRoots
       .map((entry) => resolve(entry))
       .filter((entry) => projectPath === entry || projectPath.startsWith(entry + sep))
       .sort((a, b) => b.length - a.length)[0];
     if (root) await ensureBaseSkills(root);
-    return scanProjectSkills(project, root && root !== projectPath ? { baseRoot: root } : undefined);
+    return root;
+  }
+
+  async function skillsFor(project: string) {
+    const root = await catalogRootFor(project);
+    return scanProjectSkills(project, root && root !== resolve(project) ? { baseRoot: root } : undefined);
   }
   const webauthnRoutes = deps.webauthn ? createWebAuthnRoutes(deps.webauthn.store, deps.webauthn.config) : null;
   // T3.8: dedup concurrent ensureIndexed() calls for the same project — a
@@ -328,6 +336,7 @@ export function registerRoutes(
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
     try {
+      await catalogRootFor(parsed.data.project);
       const record = await deps.sessions.create(parsed.data, callerLabel(req) ?? undefined);
       return reply.code(201).send(record);
     } catch (err) {
