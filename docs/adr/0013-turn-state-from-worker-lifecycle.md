@@ -36,3 +36,19 @@ Alle CLI-Adapter starten **einen Prozess pro Zug** und nur über
 - Ein Adapter, der künftig einen dauerhaft laufenden Prozess nutzt
   (interaktiver Modus), braucht ein eigenes Zugende-Signal. Dann wird diese
   ADR erweitert, nicht umgangen.
+
+## Nachtrag 2026-09-24 — dauerhafte Agent-Prozesse (T7.2)
+
+ACP-Harnesses (copilot `--acp`, opencode `acp`, dsh `--profile acp`)
+bedienen viele Züge mit **einem** Prozess. Dafür, wie oben angekündigt:
+
+- `SpawnOptions.persistent`: Ein solcher Worker zählt nicht als Zug
+  (`trackTurn` übergeht ihn, auch bei `adoptWorker({ persistent: true })`).
+- `ctx.turn("working" | "idle")`: Der Adapter meldet Zugbeginn und -ende;
+  der SessionManager setzt `working`/`idle` und schreibt `session.turn_end`
+  wie beim Prozessende.
+- `SpawnOptions.stdin: "pipe"` / `WorkerSpec.stdin`: ein echter stdin-Strom.
+  Der tmux-Runner liest ihn aus einer FIFO, die die Pane selbst lesend und
+  schreibend offen hält (`exec 3<>fifo`); ein Hub-Neustart erzeugt kein EOF,
+  der nächste Hub schreibt weiter (Test `tmux.test.ts` „pipe mode“, E2E
+  „ACP-Agent übernommen nach SIGKILL“).

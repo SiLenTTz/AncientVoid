@@ -1,0 +1,18 @@
+{
+  "name": "@uacc/adapter-acp",
+  "version": "0.1.0",
+  "description": "ACP adapter (T7.2, ADR-0018): any Agent Client Protocol harness (copilot --acp, opencode acp, DeepSeek dsh --profile acp) as a persistent worker with native tool permissions.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@uacc/contracts": "0.1.0",
+    "zod": "^3.23.8"
+  }
+}

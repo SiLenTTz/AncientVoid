@@ -21,6 +21,9 @@ dieser Session.
 | cursor-clip | Cursor state.vscdb | — | — | none | — | — | — | — | — | — |
 | claude-clip | Transcript JSONL | — | — | none | — | — | — | — | — | — |
 | dummy | — | ✓ | ✓ | none | — | — | — | — | — | — |
+| acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | — | — | — | — | — |
+| acp · opencode | 1.18.32 `acp` | ✓ | ✓ | native | — | — | — | — | — | — |
+| acp · dsh | 0.1.5-rc.3 `--profile acp` | ✓ | ✓ | native | — | — | — | — | — | — |
 <!-- harness-matrix:end -->
 
 ## Belege je Zeile
@@ -46,6 +49,15 @@ dieser Session.
   (`test/fixtures/tool-*.jsonl`).
 - **aider:** Folgeprompt nicht verdrahtet (`steer(prompt)` lehnt ab), `--yes-always`.
 - **cursor-clip / claude-clip:** nur lesend, siehe jeweilige Adapter-Tests.
+- **acp (T7.2):** ein Adapter für jeden Agent-Client-Protocol-Harness,
+  dauerhafter Agent-Prozess (tmux-Pipe-Modus), `session/request_permission` →
+  Handy, nie „immer erlauben“. Belege: `packages/adapters/acp/test/*`
+  (echter Agent-Prozess, Vertrags-Suite), E2E `harness.spec.ts` (Freigabe,
+  Übernahme nach SIGKILL), Live-Messlauf `scripts/messlauf-p7.mjs acp-gate`:
+  **copilot 1.0.88** und **opencode 1.18.32** — Erlauben schreibt die Datei,
+  Ablehnen verhindert sie (2026-09-24). Das opencode-Preset setzt
+  `permission: ask` für edit/bash/webfetch, sonst würde opencode ungefragt
+  ausführen. **dsh:** Abnahme mit lokalem Modell in T7.5.
 
 ## Live-Konfiguration auf omarchy (Stand 2026-09-23)
 

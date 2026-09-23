@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { ToolPermissionPoll, ToolPermissionRequest, Adapter, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation } from "@uacc/contracts";
+import type { ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation } from "@uacc/contracts";
 import { DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, unsupportedResume } from "@uacc/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
@@ -1009,20 +1009,27 @@ export class SessionManager {
           ...(opts?.env !== undefined ? { env: opts.env } : {}),
           ...(opts?.cols !== undefined ? { cols: opts.cols } : {}),
           ...(opts?.rows !== undefined ? { rows: opts.rows } : {}),
+          ...(opts?.stdin !== undefined ? { stdin: opts.stdin } : {}),
         });
-        await this.trackTurn(session, proc);
+        // ADR-0013 Nachtrag: a persistent agent is not a turn — the adapter
+        // reports turns through ctx.turn().
+        if (!opts?.persistent) await this.trackTurn(session, proc);
         return proc;
       },
-      adoptWorker: async () => {
+      adoptWorker: async (opts) => {
         const proc = (await this.runner.adopt?.(session.record.id)) ?? null;
         session.adopted = proc !== null;
-        if (proc) await this.trackTurn(session, proc);
+        if (proc && !opts?.persistent) await this.trackTurn(session, proc);
         return proc;
+      },
+      turn: (state) => {
+        void this.adapterTurn(session, state).catch((err) => this.logger.warn("turn state not recorded", { sessionId: session.record.id, err: String(err) }));
       },
       get nativeSessionId() {
         return session.record.nativeSessionId;
       },
       ...(this.tools?.bridge ? { permissionBridge: () => this.tools!.bridge!(session.record.id) } : {}),
+      ...(this.tools ? { requestToolPermission: (req: ToolPermissionRequest) => this.awaitToolPermission(session, req) } : {}),
     };
   }
 
@@ -1161,6 +1168,31 @@ export class SessionManager {
    * session `working`; the last one exiting cleanly makes it `idle` (between
    * turns). A failed exit leaves the status to the adapter/heartbeat path.
    */
+  /** ADR-0013 Nachtrag: turns reported by an adapter with a persistent worker. */
+  private async adapterTurn(session: LiveSession, state: "working" | "idle"): Promise<void> {
+    if (state === "working") {
+      if (session.record.status === "idle" || session.record.status === "error") await this.setStatus(session, "working");
+      return;
+    }
+    if (session.record.status !== "working") return;
+    await this.setStatus(session, "idle");
+    await this.emitSystem(session, "session.turn_end", { code: 0 });
+  }
+
+  /** T7.2: an in-process adapter waits for the phone's decision. */
+  private async awaitToolPermission(session: LiveSession, req: ToolPermissionRequest): Promise<ToolPermissionAnswer> {
+    const tools = this.tools!;
+    const asked = await tools.request(session.record.id, req);
+    if (!asked.ok) return { behavior: "deny", message: `Freigabe nicht möglich (${asked.detail}) — nicht ausgeführt.` };
+    for (;;) {
+      if (session.abort.signal.aborted) return { behavior: "deny", message: "Session beendet — nicht ausgeführt." };
+      const poll = await tools.poll(session.record.id, asked.id);
+      if (!poll) return { behavior: "deny", message: "Anfrage nicht mehr bekannt — nicht ausgeführt." };
+      if (poll.state === "answered") return poll.answer;
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  }
+
   private async trackTurn(session: LiveSession, proc: WorkerProcess): Promise<void> {
     session.activeWorkers = (session.activeWorkers ?? 0) + 1;
     if (session.record.status === "idle" || session.record.status === "error") await this.setStatus(session, "working");

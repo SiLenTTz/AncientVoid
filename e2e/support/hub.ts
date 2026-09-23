@@ -132,6 +132,12 @@ export class TestHub {
           module: "@uacc/adapter-claude",
           config: { command: join(binDir, "claude") },
         },
+        {
+          // T7.2: an ACP harness (stand-in agent, real protocol).
+          id: "acp",
+          module: "@uacc/adapter-acp",
+          config: { command: [join(binDir, "acp-agent")], label: "ACP-Agent" },
+        },
       ],
     };
     writeFileSync(this.configPath, JSON.stringify(config, null, 2));

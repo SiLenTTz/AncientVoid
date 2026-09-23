@@ -46,6 +46,31 @@ function execTmux(args: string[], opts: { cwd?: string } = {}): Promise<{ code: 
   });
 }
 
+/** T7.2: the FIFO a pipe-mode worker reads its stdin from. */
+function stdinPath(logPath: string): string {
+  return `${logPath}.in`;
+}
+
+/** Writes in order into the worker's stdin FIFO. The pane keeps a reader
+ * open, so opening for write never blocks. The handle must be closed when
+ * the worker ends — Node 26 treats a handle left to GC as an error. */
+function pipeWriter(fifo: string): { write: (data: string) => void; close: () => void } {
+  const handle = open(fifo, "w");
+  let chain: Promise<unknown> = handle;
+  let closed = false;
+  return {
+    write: (data) => {
+      if (closed) return;
+      chain = chain.then(() => handle).then((fh) => fh.write(data)).catch(() => undefined);
+    },
+    close: () => {
+      if (closed) return;
+      closed = true;
+      chain = chain.then(() => handle).then((fh) => fh.close()).catch(() => undefined);
+    },
+  };
+}
+
 function offsetPath(logPath: string): string {
   return `${logPath}.offset`;
 }
@@ -176,6 +201,7 @@ export class TmuxRunner implements WorkerRunner {
     await execTmux(["kill-session", "-t", full]).catch(() => undefined);
     await rm(logPath, { force: true });
     await rm(offsetPath(logPath), { force: true });
+    await rm(stdinPath(logPath), { force: true });
 
     const cmdLine = spec.cmd
       .map((a) => (/^[\w./=@%^+:-]+$/.test(a) ? a : shellQuote(a)))
@@ -183,7 +209,17 @@ export class TmuxRunner implements WorkerRunner {
     const envPrefix = Object.entries(spec.env ?? {})
       .map(([k, v]) => `${k}=${shellQuote(v)}`)
       .join(" ");
-    const shellCmd = `env ${envPrefix} ${cmdLine}; echo "__UACC_EXIT__$?"`;
+    let shellCmd = `env ${envPrefix} ${cmdLine}; echo "__UACC_EXIT__$?"`;
+    if (spec.stdin === "pipe") {
+      // T7.2: stdin from a FIFO the pane itself holds open read-write (fd 3):
+      // writers (this hub, the next one after a restart) come and go without
+      // the worker ever seeing EOF, and nothing is echoed or cut at the
+      // terminal's 4 KB line limit. POSIX sh, whatever the user's shell is.
+      const fifo = stdinPath(logPath);
+      const res = await new Promise<number>((done) => spawn("mkfifo", ["-m", "600", fifo]).on("exit", (code) => done(code ?? 1)));
+      if (res !== 0) throw new Error(`tmux spawn failed: mkfifo ${fifo}`);
+      shellCmd = `sh -c ${shellQuote(`exec 3<>${shellQuote(fifo)}; env ${envPrefix} ${cmdLine} <&3; echo "__UACC_EXIT__$?"`)}`;
+    }
 
     // 1. Create the session with a placeholder — so options can be applied
     //    BEFORE the real command runs (no remain-on-exit race for short cmds).
@@ -216,7 +252,7 @@ export class TmuxRunner implements WorkerRunner {
       throw err;
     }
 
-    return this.track(full, logPath, 0);
+    return this.track(full, logPath, 0, spec.stdin === "pipe");
   }
 
   /**
@@ -229,10 +265,15 @@ export class TmuxRunner implements WorkerRunner {
     if (!(await this.list()).some((worker) => worker.fullName === full)) return null;
     const logPath = join(this.logDir, `${full}.log`);
     const saved = Number(await readFile(offsetPath(logPath), "utf8").catch(() => "0"));
-    return this.track(full, logPath, Number.isFinite(saved) && saved > 0 ? saved : 0);
+    const piped = await stat(stdinPath(logPath)).then(
+      (s) => s.isFIFO(),
+      () => false,
+    );
+    return this.track(full, logPath, Number.isFinite(saved) && saved > 0 ? saved : 0, piped);
   }
 
-  private async track(full: string, logPath: string, startOffset: number): Promise<WorkerProcess> {
+  private async track(full: string, logPath: string, startOffset: number, piped = false): Promise<WorkerProcess> {
+    const pipe = piped ? pipeWriter(stdinPath(logPath)) : null;
     const pid = await this.panePid(full);
     const tailer = new FileTailer(logPath, startOffset);
     let exited = false;
@@ -273,6 +314,7 @@ export class TmuxRunner implements WorkerRunner {
         await new Promise((r) => setTimeout(r, 150));
       }
       tailer.stop();
+      pipe?.close();
       for (const cb of exitCbs) cb(exitCode);
       // Clean up the remained pane — the log file keeps the evidence.
       await execTmux(["kill-session", "-t", full]).catch(() => undefined);
@@ -290,9 +332,7 @@ export class TmuxRunner implements WorkerRunner {
         // stdout/stderr are interleaved in the pane capture
       },
       onExit: (cb) => exitCbs.add(cb),
-      write: (data) => {
-        void execTmux(["send-keys", "-t", full, "-l", data]);
-      },
+      write: pipe ? pipe.write : (data) => void execTmux(["send-keys", "-t", full, "-l", data]),
       kill: async (signal) => {
         if (signal === "SIGKILL") await execTmux(["kill-session", "-t", full]);
         else {

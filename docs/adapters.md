@@ -29,6 +29,25 @@ Hub-Crash (K7). Ohne `recover` gilt eine Session nach Crash als `error`
 | `ctx.log(level, msg)` | Diagnose | geht in Hub-Log, nie in den Event-Stream |
 | `ctx.signal` | Stop/Park | muss jeden laufenden Fetch/Stream sofort abbrechen |
 | `ctx.workdir` | Arbeitsverzeichnis | Projekt bzw. (ab P2) Worktree |
+| `ctx.spawnWorker(cmd, { stdin: "pipe", persistent: true })` | dauerhafter Agent (JSON-RPC über stdio) | Züge dann selbst mit `ctx.turn("working"/"idle")` melden (ADR-0013 Nachtrag) |
+| `ctx.requestToolPermission(req)` | vor einem Tool fragen (T7.2) | Antwort `deny` heißt: nicht ausführen; nie selbst „immer erlauben“ |
+| `ctx.permissionBridge()` | MCP-Brücke für CLIs, die per MCP fragen (claude `--permission-prompt-tool`) | Token darin nie loggen |
+
+### ACP-Harnesses ohne eigenen Code
+
+Jeder Agent, der das Agent Client Protocol spricht, läuft über
+`@uacc/adapter-acp` — nur Konfiguration:
+
+```json
+{ "id": "copilot-acp", "module": "@uacc/adapter-acp", "config": { "preset": "copilot" } }
+{ "id": "opencode-acp", "module": "@uacc/adapter-acp", "config": { "preset": "opencode" } }
+{ "id": "dsh", "module": "@uacc/adapter-acp", "config": { "preset": "dsh" } }
+{ "id": "mein-agent", "module": "@uacc/adapter-acp", "config": { "command": ["mein-agent", "--acp"], "label": "Mein Agent" } }
+```
+
+Tool-Freigaben kommen als `session/request_permission` aufs Handy. Ob ein
+Agent überhaupt fragt, ist seine Einstellung — das opencode-Preset setzt dafür
+`permission: ask`; andere Agenten in `docs/harness-matrix.md` prüfen.
 
 ## NormalizedEvent — die gemeinsame Sprache
 
