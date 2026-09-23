@@ -1203,8 +1203,18 @@ export class SessionManager {
     return { recovered, failed, reaped, uncontrolled };
   }
 
-  async shutdown(): Promise<void> {
+  /**
+   * `keepWorkers`: a planned restart with a runner whose workers outlive
+   * the hub (tmux). Sessions keep their status and running turns go on;
+   * the next start adopts them like after a crash (ADR-0014). Without it,
+   * every session is stopped — workers that die with the hub.
+   */
+  async shutdown(options: { keepWorkers?: boolean } = {}): Promise<void> {
     clearInterval(this.heartbeatTimer);
+    if (options.keepWorkers) {
+      await this.store.flush();
+      return;
+    }
     for (const [id, session] of this.live) {
       if (session.record.status === "stopped" || session.record.status === "stopping") continue;
       await this.stop(id).catch(() => undefined);
