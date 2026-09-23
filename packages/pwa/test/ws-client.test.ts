@@ -34,4 +34,16 @@ describe("connectTail delivers each event once (BUG-0023)", () => {
     expect(seen).toEqual([1, 2, 3, 4, 5]);
     tail.close();
   });
+
+  it("BUG-0026: takes a baseline page as its start instead of resyncing", () => {
+    vi.stubGlobal("WebSocket", FakeSocket);
+    const seen: number[] = [];
+    const tail = connectTail({ url: "http://hub", token: "t", sessionId: "s", onEvents: (e) => seen.push(...e.map((x) => x.seq)), onState: () => undefined });
+    FakeSocket.last!.onopen?.();
+    FakeSocket.last!.push([401, 402, 403], { baseline: true });
+    FakeSocket.last!.push([404]);
+    expect(seen).toEqual([401, 402, 403, 404]);
+    expect(FakeSocket.last!.sent.some((m) => m.includes("resync"))).toBe(false);
+    tail.close();
+  });
 });

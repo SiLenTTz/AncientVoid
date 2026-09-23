@@ -48,11 +48,13 @@ export function connectTail(opts: TailOptions): TailConnection {
     socket.onmessage = (msg) => {
       try {
         const data = JSON.parse(String(msg.data)) as
-          | { type: "events"; events: NormalizedEvent[]; highWater: number; dropped: boolean }
+          | { type: "events"; events: NormalizedEvent[]; highWater: number; dropped: boolean; baseline?: boolean }
           | { type: "welcome"; lastSeq: number }
           | { type: "error"; message: string }
           | { type: "pong" };
         if (data.type === "events") {
+          // BUG-0026: an opening view starts at the newest history page.
+          if (data.baseline && lastSeq === 0 && data.events[0]) lastSeq = data.events[0].seq - 1;
           const incoming = newEvents(lastSeq, data.events);
           const first = incoming[0];
           if (shouldResync(lastSeq, first?.seq, data.dropped)) {

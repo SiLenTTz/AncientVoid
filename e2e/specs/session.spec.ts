@@ -67,6 +67,21 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(app.locator(".event.tool_result")).toHaveCount(1);
   });
 
+  test.describe("lange Session", () => {
+    test.use({ hubOptions: { dummyAutoStop: 160 } });
+
+    test("beim Öffnen steht das Ende da, nicht nur die ersten 100 Events (BUG-0026) @desktop", async ({ app, hub }) => {
+      const id = await hub.createSession({ adapter: "dummy" });
+      await hub.until(async () => (await hub.events(id)).some((e) => e.summary === "dummy: auto-stop reached"), "dummy done", 20_000);
+      await app.goto(`${hub.origin}/#/sessions/${id}`);
+      await app.getByRole("button", { name: "Verlauf" }).click();
+      await app.getByRole("button", { name: "Debuggen" }).click();
+      await expect(app.getByText("dummy: auto-stop reached")).toBeVisible();
+      const last = (await hub.events(id)).at(-1)!.seq;
+      await expect(app.locator(`.event[data-seq="${last}"]`)).toHaveCount(1);
+    });
+  });
+
   test("jedes Event erscheint genau einmal, auch beim Öffnen mitten im Lauf (BUG-0023)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
