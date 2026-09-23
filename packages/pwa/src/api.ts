@@ -23,6 +23,9 @@ export interface SessionRecord {
    * genuinely tmux-backed hub (see routes.ts's withAttachCmd) — absent
    * otherwise, never a fabricated command. */
   attachCmd?: string;
+  /** T5.5: terminal command that opens this provider session natively on
+   * the PC; only present between turns and when the native id is known. */
+  openCmd?: string;
   /** Hidden from the overview until the Archiv chip is on. */
   archived?: boolean;
 }

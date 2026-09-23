@@ -1,7 +1,7 @@
 import { resolve, sep } from "node:path";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
-import { collectHealth, probeHarnesses, HARNESS_CATALOG, spawnProbeRunner, discoverProjects, isProjectPathAllowed, scanProjectSkills, recommendForPrompt, writeProjectArtifact, ensureBaseSkills } from "@uacc/core";
+import { collectHealth, probeHarnesses, HARNESS_CATALOG, nativeOpenCommand, spawnProbeRunner, discoverProjects, isProjectPathAllowed, scanProjectSkills, recommendForPrompt, writeProjectArtifact, ensureBaseSkills } from "@uacc/core";
 import { enhancePrompt } from "./enhance.ts";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { extractToken } from "./auth.ts";
@@ -129,22 +129,19 @@ export function registerRoutes(
   // session on a genuinely tmux-backed hub — a stopped session's pane is
   // gone, and a `process`-runner hub has no pane to attach to at all.
   //
-  // Real, found-live caveat this session-status check does NOT capture:
-  // a turn-based adapter (claude/codex/opencode/copilot spawn a fresh CLI
-  // process per turn, not one long-lived process) only has a real pane
-  // WHILE a turn is actively running — `status: "working"` can genuinely
-  // mean "waiting for the next prompt, no process alive right now"
-  // between turns. Tracking real-time pane liveness per session would
-  // need either polling tmux on every list/get call (real latency cost)
-  // or new adapter-level plumbing (WorkerProcess already dismisses its
-  // internal proc map entry on exit, but that's never surfaced past the
-  // adapter) — not done here. The command is always real, correct syntax;
-  // PWA copy (SessionTail.tsx's AttachCmdRow) says plainly that it only
-  // works while a turn is actually in flight, rather than overclaiming.
-  async function withAttachCmd<T extends SessionRecord>(session: T): Promise<T & { attachCmd?: string }> {
-    if (deps.workerRunnerKind !== "tmux" || session.status !== "working") return session;
-    if (!(await deps.sessions.hasLiveWorker(session.id))) return session;
-    return { ...session, attachCmd: `tmux attach -t ${TMUX_PREFIX}${session.id}` };
+  // Since ADR-0013 a session between turns is `idle`, so `working` really
+  // means a turn — and its pane — is running.
+  async function withAttachCmd<T extends SessionRecord>(session: T): Promise<T & { attachCmd?: string; openCmd?: string }> {
+    // T5.5: open the same provider session in its own terminal UI — only
+    // while no turn runs here, so hub and terminal never write at once.
+    const idle = session.status !== "working" && session.status !== "starting";
+    const openCmd = idle
+      ? nativeOpenCommand(session.adapter, session.nativeSessionId, deps.sessions.workdirOf(session.id) ?? session.project)
+      : null;
+    const withOpen = openCmd ? { ...session, openCmd } : session;
+    if (deps.workerRunnerKind !== "tmux" || session.status !== "working") return withOpen;
+    if (!(await deps.sessions.hasLiveWorker(session.id))) return withOpen;
+    return { ...withOpen, attachCmd: `tmux attach -t ${TMUX_PREFIX}${session.id}` };
   }
 
   const startedAt = deps.startedAt ?? Date.now();

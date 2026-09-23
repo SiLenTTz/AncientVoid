@@ -379,7 +379,14 @@ export class SessionManager {
    * not always the raw project path. Undefined only for a session id the
    * manager has never seen (never created, never recovered). */
   workdirOf(sessionId: string): string | undefined {
-    return this.live.get(sessionId)?.workdir;
+    const live = this.live.get(sessionId);
+    if (live) return live.workdir;
+    // Stopped sessions load only when opened (BUG-0018) — their worktree is
+    // still the place the session worked in.
+    const record = this.get(sessionId);
+    if (!record) return undefined;
+    const worktree = record.worktreeSha !== null && this.worktrees ? this.worktrees.pathFor(sessionId) : null;
+    return worktree && existsSync(worktree) ? worktree : record.project;
   }
 
   require(sessionId: string): SessionRecord {

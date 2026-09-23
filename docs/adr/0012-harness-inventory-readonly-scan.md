@@ -36,3 +36,13 @@ oder eine native Id fortsetzt.
   einen echten Handoff belegt.
 - Codex, OpenCode, Copilot und Aider haben hier kein verifiziertes
   Dateilayout; dafür gibt es keinen Scanner.
+
+## Nachtrag 2026-09-23 — Native-Open (T5.5)
+
+Der Katalog trägt je CLI `openArgs`: `claude --resume {id}`, `codex resume {id}`,
+`opencode --session {id}`, `copilot --resume {id}` (gegen `--help` der
+installierten CLIs geprüft). `nativeOpenCommand()` baut daraus
+`cd <workdir> && …` mit Shell-Quoting. Der Server liefert ihn als `openCmd`
+nur, wenn die Provider-ID bekannt ist und kein Zug läuft (`working`/
+`starting` ausgeschlossen), damit Hub und Terminal nicht gleichzeitig
+schreiben. Die PWA zeigt ihn mit dem Web-Link der Session im Bericht.

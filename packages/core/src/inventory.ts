@@ -13,6 +13,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     harness: "cli",
     command: "claude",
     args: ["--version"],
+    openArgs: ["--resume", "{id}"],
     discovery: "verified",
     resume: "implemented-unverified",
     evidence:
@@ -23,6 +24,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     harness: "cli",
     command: "codex",
     args: ["--version"],
+    openArgs: ["resume", "{id}"],
     discovery: "missing",
     resume: "implemented-unverified",
     evidence: "No verified on-disk discovery layout. Adapter continues a captured thread via codex exec resume.",
@@ -32,6 +34,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     harness: "cli",
     command: "opencode",
     args: ["--version"],
+    openArgs: ["--session", "{id}"],
     discovery: "missing",
     resume: "implemented-unverified",
     evidence: "No verified external session scan. Adapter passes --session on a later prompt.",
@@ -41,6 +44,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     harness: "cli",
     command: "copilot",
     args: ["--version"],
+    openArgs: ["--resume", "{id}"],
     discovery: "missing",
     resume: "implemented-unverified",
     evidence: "No verified external session scan. Adapter passes -r with a captured session id.",
@@ -148,4 +152,21 @@ export async function probeHarnesses(
       evidence: `${entry.evidence} ${note}`,
     };
   });
+}
+
+function shellQuote(value: string): string {
+  return /^[\w./=@%^+:-]+$/.test(value) ? value : `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
+/**
+ * T5.5: the terminal command that opens this same provider session on the
+ * PC (verified against the CLIs' own --help, 2026-09-23). Null when the
+ * harness has no native open or no native id is known.
+ */
+export function nativeOpenCommand(adapterId: string, nativeSessionId: string | null, workdir: string): string | null {
+  if (!nativeSessionId) return null;
+  const entry = HARNESS_CATALOG.find((item) => item.id === adapterId);
+  if (!entry?.command || !entry.openArgs) return null;
+  const args = entry.openArgs.map((arg) => (arg === "{id}" ? nativeSessionId : arg));
+  return `cd ${shellQuote(workdir)} && ${[entry.command, ...args].map(shellQuote).join(" ")}`;
 }

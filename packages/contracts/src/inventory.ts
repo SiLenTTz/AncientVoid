@@ -24,6 +24,9 @@ export interface HarnessCatalogEntry {
   discovery: SupportState;
   resume: SupportState;
   evidence: string;
+  /** T5.5: arguments that continue a native session in this harness's own
+   * terminal UI; `{id}` stands for the native session id. */
+  openArgs?: readonly string[];
 }
 
 export interface HarnessInventoryEntry {

@@ -89,7 +89,7 @@ Fehlt Chromium, scheitert der Lauf laut. Es gibt kein stilles Überspringen.
 | Handoff | `handoff` | PC → Handy → PC (live und nach Stop), gleiche native ID und gleiches Arbeitsverzeichnis |
 | Neustart | `recovery` | Kill -9 mit exakter Event-Sequenz, gestoppte Session nach Neustart, Fortsetzen nach Kill zwischen Zügen, Übernahme eines laufenden Zugs unter tmux |
 | Gefunden, Inventar | `discovery` | 20 Sessions binnen 10 s (AC-P5-1), Dedup, Subagent, unbekanntes Format, „Mehr laden“, Harness-Inventar |
-| Links, Attach | `deeplink` | Deep-Link nach Reload, unbekannter Link, Attach nur mit laufendem tmux-Worker |
+| Links, Attach, Native-Open | `deeplink` | Deep-Link nach Reload, unbekannter Link, Attach nur mit laufendem tmux-Worker, Terminal-Befehl nur zwischen Zügen, Kopieren in die Zwischenablage |
 | Arbeitsplatz | `workspace` | Archiv, Freigaben (ja/nein), Budget, Verbessern, Empfehlung, Skill-Kette, Diktat, Sprachbefehl „stopp“ |
 
 ### Bewusst offen (`test.fixme`)
