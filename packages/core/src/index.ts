@@ -22,7 +22,7 @@ export { createJsonLogger, createConsoleLogger, redactFields } from "./logger.ts
 export { InMemoryMetrics } from "./metrics.ts";
 export { collectHealth, type HealthDeps, type HealthStore } from "./health.ts";
 export { dedupeDiscovered, pageDiscovered } from "./discovery.ts";
-export { HARNESS_CATALOG, probeHarnesses, spawnProbeRunner, type ProbeRunner, type ProbeRun } from "./inventory.ts";
+export { HARNESS_CATALOG, nativeOpenCommand, probeHarnesses, spawnProbeRunner, type ProbeRunner, type ProbeRun } from "./inventory.ts";
 export {
   claudeDiscoverySource,
   cursorDiscoverySource,

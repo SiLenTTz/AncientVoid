@@ -583,6 +583,7 @@ function BerichtPane({
         </div>
       </div>
       {record.attachCmd && <AttachCmdRow cmd={record.attachCmd} />}
+      <ContinueCard openCmd={record.openCmd} />
     </div>
   );
 }
@@ -606,6 +607,60 @@ function BerichtPane({
  * fabricated promise, just said plainly rather than pretending it
  * always works.
  */
+/** Copy button that says whether the copy really happened. */
+function CopyButton({ text }: { text: string }) {
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setState("copied");
+    } catch {
+      // Clipboard needs a secure context; the text stays selectable.
+      setState("failed");
+    }
+    setTimeout(() => setState("idle"), 1500);
+  };
+  return (
+    <button class="btn" type="button" onClick={() => void copy()}>
+      {state === "copied" ? "Kopiert" : state === "failed" ? "Bitte markieren" : "Kopieren"}
+    </button>
+  );
+}
+
+/**
+ * T5.5: continue elsewhere — the web link to this very session (AC-P5-5)
+ * and, between turns, the native terminal command for the same provider
+ * session on the PC. The hub hides the command while a turn runs, so hub
+ * and terminal never write at the same time.
+ */
+function ContinueCard({ openCmd }: { openCmd?: string | undefined }) {
+  const link = typeof location === "undefined" ? "" : location.href;
+  return (
+    <div class="card continue-card">
+      <div class="dim" style="font-size: 12px; margin-bottom: 6px">Weiterarbeiten auf einem anderen Gerät</div>
+      <div class="attach-cmd-row">
+        <code class="mono continue-link">{link}</code>
+        <CopyButton text={link} />
+      </div>
+      {openCmd ? (
+        <>
+          <div class="dim" style="font-size: 12px; margin: 8px 0 6px">
+            Im Terminal am PC, dieselbe Provider-Session. Solange sie dort läuft, hier nichts senden.
+          </div>
+          <div class="attach-cmd-row">
+            <code class="mono continue-open">{openCmd}</code>
+            <CopyButton text={openCmd} />
+          </div>
+        </>
+      ) : (
+        <div class="dim continue-none" style="font-size: 11px; margin-top: 6px">
+          Terminal-Befehl erscheint zwischen zwei Zügen, sobald die Provider-Session bekannt ist.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AttachCmdRow({ cmd }: { cmd: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
