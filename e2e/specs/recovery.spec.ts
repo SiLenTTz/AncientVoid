@@ -49,14 +49,44 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
     await expect(app.getByText(/Antwort auf: Nach dem Neustart .*\(fortgesetzt\)/)).toBeVisible();
   });
 
-  test("ein OpenCode-Zug, der beim Kill lief, wird ehrlich als nicht steuerbar gemeldet", async ({ hub }) => {
-    const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite LANGSAM" });
-    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "tool_use"), "turn running");
-    await hub.restart();
+  test("nach einem Kill zwischen zwei Zügen geht es mit derselben Provider-Session weiter (T5.6)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Vor dem Kill" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
+    const native = (await hub.api<{ nativeSessionId: string }>(`/api/sessions/${id}`)).body.nativeSessionId;
+    await hub.restart("SIGKILL");
     const recovered = (await hub.events(id)).find((e) => e.payload.kind === "session.recovered");
-    expect(recovered?.payload.controllable).toBe(false);
-    expect((await hub.api<{ controlMode: string }>(`/api/sessions/${id}`)).body.controlMode).toBe("observed");
+    expect(recovered?.payload.controllable).toBe(true);
+
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.locator(".topbar .pill")).toHaveText("idle");
+    await app.getByRole("button", { name: "Chat" }).click();
+    await app.getByPlaceholder("Antworten…").fill("Nach dem Kill");
+    await app.getByRole("button", { name: "Senden" }).click();
+    await expect(app.getByText(new RegExp(`Antwort auf: Nach dem Kill · Session ${native} \\(fortgesetzt\\)`))).toBeVisible();
   });
 
-  test.fixme("AC-P5-3: ein überlebender Provider-Worker ist nach dem Kill wieder steuerbar (T5.6, kein recover() in claude/codex/opencode/copilot)", async () => {});
+  test.describe("mit tmux-Worker", () => {
+    test.use({ hubOptions: { runner: "tmux" } });
+
+    test("ein Zug, der den Kill überlebt, wird übernommen und läuft sichtbar zu Ende (AC-P5-3) @desktop", async ({ app, hub }) => {
+      const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite WARTE3" });
+      await hub.until(async () => (await hub.events(id)).some((e) => e.type === "tool_use"), "turn running");
+      const before = await hub.events(id);
+      await hub.restart("SIGKILL");
+
+      await app.goto(`${hub.origin}/#/sessions/${id}`);
+      await app.getByRole("button", { name: "Chat" }).click();
+      await expect(app.getByText(/Antwort auf: Arbeite WARTE3/)).toBeVisible({ timeout: 15_000 });
+      await expect(app.locator(".topbar .pill")).toHaveText("idle");
+
+      const after = await hub.events(id);
+      expect(after.slice(0, before.length).map((e) => e.summary)).toEqual(before.map((e) => e.summary));
+      expect(after.filter((e) => e.type === "tool_use"), "no replayed output").toHaveLength(1);
+      expect(after.find((e) => e.payload.kind === "session.recovered")?.payload.controllable).toBe(true);
+
+      await app.getByPlaceholder("Antworten…").fill("Und weiter");
+      await app.getByRole("button", { name: "Senden" }).click();
+      await expect(app.getByText(/Antwort auf: Und weiter .*\(fortgesetzt\)/)).toBeVisible();
+    });
+  });
 });

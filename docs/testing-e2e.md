@@ -35,6 +35,7 @@ startet in etwa einer Sekunde.
 | `LIMIT` | Ende am Längenlimit, nur Denken |
 | `GROSS` | Tool-Ergebnis über 2 KB |
 | `DATEI` | legt `e2e-change.txt` im Arbeitsverzeichnis an |
+| `WARTE<n>` | antwortet erst nach n Sekunden (Zug überlebt einen Hub-Kill) |
 | `--session <id>` | setzt die Session fort, Antwort endet auf `(fortgesetzt)` |
 | `--agent plan --` | Prompt-Optimierer für „Verbessern“ |
 
@@ -86,7 +87,7 @@ Fehlt Chromium, scheitert der Lauf laut. Es gibt kein stilles Überspringen.
 | Sessions | `session` | Anlegen per UI, Gruppierung, Verlauf-Filter, Karten, Längenlimit, Bericht, Diff, Suche, Provider-Absturz |
 | Steuern | `steer` | Antwort, Stop, Weiter mit derselben Provider-Session, Doppeltipp, zwei Geräte, abgelehnte Antwort |
 | Handoff | `handoff` | PC → Handy → PC (live und nach Stop), gleiche native ID und gleiches Arbeitsverzeichnis |
-| Neustart | `recovery` | Kill -9 mit exakter Event-Sequenz, gestoppte Session nach Neustart, ehrlich nicht steuerbarer Zug |
+| Neustart | `recovery` | Kill -9 mit exakter Event-Sequenz, gestoppte Session nach Neustart, Fortsetzen nach Kill zwischen Zügen, Übernahme eines laufenden Zugs unter tmux |
 | Links, Attach | `deeplink` | Deep-Link nach Reload, unbekannter Link, Attach nur mit laufendem tmux-Worker |
 | Arbeitsplatz | `workspace` | Archiv, Freigaben (ja/nein), Budget, Verbessern, Empfehlung, Skill-Kette, Diktat, Sprachbefehl „stopp“ |
 
@@ -94,7 +95,6 @@ Fehlt Chromium, scheitert der Lauf laut. Es gibt kein stilles Überspringen.
 
 | Test | Grund |
 |---|---|
-| Überlebender Provider-Worker nach Kill steuerbar | T5.6: kein `recover()` in claude/codex/opencode/copilot |
 | Skill-Picker-Overlay | nur für Claude freigeschaltet, braucht einen nachgebauten `claude`-CLI |
 | Offline-Neuladen | BUG-0015 (K10) |
 

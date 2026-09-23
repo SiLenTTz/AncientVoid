@@ -34,4 +34,8 @@ export interface WorkerRunner {
   killByName(fullName: string, signal?: "SIGTERM" | "SIGKILL"): Promise<void>;
   /** Kill everything with our prefix that is not in `keep` (orphan reaping at daemon start). */
   reapOrphans(keep: readonly string[]): Promise<string[]>;
+  /** ADR-0014: take over a still running worker of this runner after a hub
+   * restart; output resumes after the last delivered line. Runners whose
+   * workers die with the hub (process) leave this out. */
+  adopt?(name: string): Promise<WorkerProcess | null>;
 }

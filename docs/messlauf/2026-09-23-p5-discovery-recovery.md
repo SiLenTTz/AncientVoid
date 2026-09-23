@@ -53,6 +53,27 @@ lesen, `kill -9`, Neustart, vergleichen, eine Session per Steer ansprechen.
 gestoppten Sessions kosten beim Start nichts mehr (BUG-0018: sie werden erst
 beim Öffnen geladen).
 
+## AC-P5-3 mit Provider-Adapter (Nachtrag, T5.6 / ADR-0014)
+
+```bash
+node scripts/messlauf-p5.mjs recovery-provider --runs 5
+```
+
+Echter `@uacc/adapter-opencode`, TmuxRunner, nachgebauter CLI
+(`e2e/support/bin/opencode`). Pro Lauf 5 Sessions, deren Zug beim
+`kill -9` noch läuft (`WARTE2`); nach dem Neustart je ein weiterer Prompt.
+
+| Ergebnis | Wert |
+|---|---|
+| `recovery_ms` | n=5, min 54, Median 88, p95 133, max 133 ms |
+| Verlorene Antworten | 0 von 50 |
+| Doppelt ausgegebene Zug-Teile | 0 von 25 |
+| Nicht steuerbar nach Neustart | 0 von 25 |
+| Fortsetzung in anderer Provider-Session | 0 von 25 |
+
+**Urteil:** bestanden. Der laufende Zug wird übernommen, seine Ausgabe kommt
+einmal an, der nächste Prompt setzt dieselbe Provider-Session fort.
+
 ## Was das nicht sagt
 
 - **AC-P5-1 „angezeigt“ ist nicht erfüllt:** Die PWA hat keine Ansicht für
@@ -60,11 +81,10 @@ beim Öffnen geladen).
 - Die externen Sessions sind Claude-Dateien im erwarteten Layout.
   Codex/OpenCode/Copilot/Aider haben weiter keine belegte Discovery
   (`missing` in `GET /api/inventory`).
-- **AC-P5-3 gilt hier nur für den Dummy.** claude, codex, opencode und
-  copilot haben kein `recover()`. Ein laufender Zug ist nach dem Kill ehrlich
-  „nicht steuerbar“ (E2E `recovery.spec.ts`), und sein tmux-Worker wird
-  beim Start weggeräumt. Der Teil „überlebender Worker erneut steuerbar“ ist
-  für echte Provider offen (T5.6).
+- Der Provider-Lauf nutzt den echten OpenCode-Adapter mit nachgebautem CLI.
+  claude, codex und copilot haben dieselbe `recover()`-Logik mit Unit-Tests,
+  aber keinen eigenen Messlauf. Echte Provider-CLIs sind Teil der manuellen
+  Abnahme (AC-P5-2/AC-P5-3).
 - Provider-Netzzeit ist nicht enthalten (kein Provider im Lauf).
 - Ein Lauf auf einem Rechner. Keine Aussage über langsamere Hosts (Pi,
   Windows).

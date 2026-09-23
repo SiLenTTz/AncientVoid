@@ -64,8 +64,8 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
       nativeDiscovery: "none",
       nativeResume: "native",
     });
-    // no recover() — claude sessions can't be reattached after a hub crash (P1 scope)
-    expect(adapter.recover).toBeUndefined();
+    // ADR-0014: recover() adopts a surviving turn or resumes natively.
+    expect(typeof adapter.recover).toBe("function");
   });
 
   it("start() emits schema-valid events from a chunked, split-mid-line stream", async () => {
@@ -232,5 +232,23 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     const adapter = createAdapter();
     await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
     await waitFor(() => ctx.events.some((e) => e.summary.includes("non-JSON stdout line")));
+  });
+
+  it("ADR-0014: recover() without a surviving worker resumes the recorded session on the next prompt", async () => {
+    const adapter = createAdapter();
+    expect(await adapter.recover!("s1", 0, makeRecordingContext({ adoptWorker: async () => null, nativeSessionId: null }))).toBeNull();
+    const spawned: string[][] = [];
+    const ctx = makeRecordingContext({
+      adoptWorker: async () => null,
+      nativeSessionId: "native-1",
+      spawnWorker: async (cmd) => {
+        spawned.push(cmd);
+        return fakeClaudeProcess("");
+      },
+    });
+    const handle = await adapter.recover!("s1", 0, ctx);
+    expect(handle).toEqual({ sessionId: "s1" });
+    expect((await adapter.steer(handle!, { kind: "prompt", text: "weiter" }, ctx)).ok).toBe(true);
+    expect(spawned[0]).toEqual(expect.arrayContaining(["--resume", "native-1"]));
   });
 });

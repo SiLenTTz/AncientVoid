@@ -4,7 +4,8 @@
  * packages/server/src/main.ts, own data dir, fake provider CLIs).
  *
  *   node scripts/messlauf-p5.mjs discovery [--runs 10]   # AC-P5-1 (K9)
- *   node scripts/messlauf-p5.mjs recovery  [--runs 10]   # AC-P5-3 (K7)
+ *   node scripts/messlauf-p5.mjs recovery  [--runs 10]   # AC-P5-3 (K7), dummy
+ *   node scripts/messlauf-p5.mjs recovery-provider [--runs 5]  # AC-P5-3, opencode under tmux
  *
  * Prints raw numbers and a verdict. The record of a run lives under
  * docs/messlauf/ (messlauf skill), this script alone is not the record.
@@ -133,9 +134,61 @@ async function recovery() {
   }
 }
 
-const ok = mode === "discovery" ? await discovery() : mode === "recovery" ? await recovery() : null;
+async function recoveryProvider() {
+  // Real adapter-opencode + tmux runner, fake CLI: each turn outlives the kill.
+  const hub = await TestHub.start({ runner: "tmux" });
+  try {
+    const recoveryMs = [];
+    let lostAnswers = 0;
+    let duplicateOutput = 0;
+    let uncontrolled = 0;
+    let foreignResume = 0;
+    const SESSIONS = 5;
+    for (let r = 0; r < RUNS; r++) {
+      const ids = [];
+      for (let i = 0; i < SESSIONS; i++) ids.push(await hub.createSession({ adapter: "opencode", prompt: `Lauf ${r}.${i} WARTE2` }));
+      await hub.until(async () => {
+        for (const id of ids) if (!(await hub.events(id)).some((e) => e.type === "tool_use")) return false;
+        return true;
+      }, "all turns running");
+      await hub.restart("SIGKILL");
+      recoveryMs.push(Math.round((await hub.api("/api/metrics")).body.gauges.recovery_ms));
+      for (const id of ids) {
+        const done = async () => (await hub.events(id)).some((e) => e.type === "assistant");
+        await hub.until(done, `answer ${id}`, 10_000).catch(() => lostAnswers++);
+        const events = await hub.events(id);
+        if (events.filter((e) => e.type === "tool_use").length !== 1) duplicateOutput++;
+        if (events.find((e) => e.payload.kind === "session.recovered")?.payload.controllable !== true) uncontrolled++;
+        const native = (await hub.api(`/api/sessions/${id}`)).body.nativeSessionId;
+        await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "danach" } });
+        await hub.until(async () => (await hub.events(id)).filter((e) => e.type === "assistant").length === 2, `second answer ${id}`, 10_000).catch(() => lostAnswers++);
+        const second = (await hub.events(id)).filter((e) => e.type === "assistant").at(-1);
+        if (!String(second?.payload.text).includes(`Session ${native} (fortgesetzt)`)) foreignResume++;
+      }
+    }
+    const rec = stats(recoveryMs);
+    console.log("AC-P5-3 recovery with a provider adapter (opencode, tmux, turn running during kill -9)");
+    console.log(`  setup: ${SESSIONS} sessions per run, each turn still running when the hub is killed`);
+    console.log("  hub recovery_ms:", fmt(rec));
+    console.log(`  lost answers: ${lostAnswers} · replayed output: ${duplicateOutput} · not controllable: ${uncontrolled} · resumed a different provider session: ${foreignResume}`);
+    const ok = rec.max < 3000 && lostAnswers === 0 && duplicateOutput === 0 && uncontrolled === 0 && foreignResume === 0;
+    console.log(`  verdict: ${ok ? "PASS" : "FAIL"} (adopted turn finishes, output once, same provider session afterwards)`);
+    return ok;
+  } finally {
+    await hub.stop();
+  }
+}
+
+const ok =
+  mode === "discovery"
+    ? await discovery()
+    : mode === "recovery"
+      ? await recovery()
+      : mode === "recovery-provider"
+        ? await recoveryProvider()
+        : null;
 if (ok === null) {
-  console.error("usage: node scripts/messlauf-p5.mjs discovery|recovery [--runs N]");
+  console.error("usage: node scripts/messlauf-p5.mjs discovery|recovery|recovery-provider [--runs N]");
   process.exit(2);
 }
 process.exit(ok ? 0 : 1);

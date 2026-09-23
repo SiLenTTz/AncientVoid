@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { open, readFile, stat, mkdir, rm } from "node:fs/promises";
+import { open, readFile, stat, mkdir, rm, writeFile } from "node:fs/promises";
 import { watch } from "node:fs";
 import { join, resolve } from "node:path";
 import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@uacc/contracts";
@@ -46,6 +46,10 @@ function execTmux(args: string[], opts: { cwd?: string } = {}): Promise<{ code: 
   });
 }
 
+function offsetPath(logPath: string): string {
+  return `${logPath}.offset`;
+}
+
 /** Tail a file line by line; used to stream pane output captured via pipe-pane. */
 class FileTailer {
   private offset = 0;
@@ -57,9 +61,13 @@ class FileTailer {
   private pollTimer?: NodeJS.Timeout;
 
   private readonly path: string;
+  private readonly startOffset: number;
 
-  constructor(path: string) {
+  /** `startOffset` > 0 resumes an adopted worker (T5.6) where the previous
+   * hub stopped delivering lines. */
+  constructor(path: string, startOffset = 0) {
     this.path = path;
+    this.startOffset = startOffset;
   }
 
   onLine(cb: (line: string) => void): void {
@@ -73,7 +81,7 @@ class FileTailer {
     // and then waited 600 ms on an empty buffer (found while P4.5 ran
     // the existing suite; same class of race P12 T12.2 called "tmux
     // unreliability").
-    this.offset = 0;
+    this.offset = this.startOffset;
     this.watcher = watch(this.path, { persistent: false }, () => void this.pump());
     this.pollTimer = setInterval(() => void this.pump(), 250);
     this.pollTimer.unref();
@@ -97,6 +105,11 @@ class FileTailer {
           this.buffer = lines.pop() ?? "";
           for (const line of lines) {
             for (const cb of this.listeners) cb(line);
+          }
+          // T5.6: bytes of complete, delivered lines — where an adopting
+          // hub continues after a crash.
+          if (lines.length > 0) {
+            await writeFile(offsetPath(this.path), String(this.offset - Buffer.byteLength(this.buffer, "utf8")));
           }
         } finally {
           await fh.close();
@@ -162,6 +175,7 @@ export class TmuxRunner implements WorkerRunner {
     // Clean any stale session/log from a previous run with the same name.
     await execTmux(["kill-session", "-t", full]).catch(() => undefined);
     await rm(logPath, { force: true });
+    await rm(offsetPath(logPath), { force: true });
 
     const cmdLine = spec.cmd
       .map((a) => (/^[\w./=@%^+:-]+$/.test(a) ? a : shellQuote(a)))
@@ -202,8 +216,25 @@ export class TmuxRunner implements WorkerRunner {
       throw err;
     }
 
+    return this.track(full, logPath, 0);
+  }
+
+  /**
+   * T5.6 / ADR-0014: take over a worker this runner owns that survived a hub
+   * restart. Output continues after the last line the previous hub
+   * delivered. Null when there is no such worker.
+   */
+  async adopt(name: string): Promise<WorkerProcess | null> {
+    const full = this.fullName(name);
+    if (!(await this.list()).some((worker) => worker.fullName === full)) return null;
+    const logPath = join(this.logDir, `${full}.log`);
+    const saved = Number(await readFile(offsetPath(logPath), "utf8").catch(() => "0"));
+    return this.track(full, logPath, Number.isFinite(saved) && saved > 0 ? saved : 0);
+  }
+
+  private async track(full: string, logPath: string, startOffset: number): Promise<WorkerProcess> {
     const pid = await this.panePid(full);
-    const tailer = new FileTailer(logPath);
+    const tailer = new FileTailer(logPath, startOffset);
     let exited = false;
     let exitCode: number | null = null;
     const exitCbs = new Set<(code: number | null) => void>();

@@ -112,6 +112,13 @@ export interface AdapterContext {
   signal: AbortSignal;
   /** Absolute working directory for this session (worktree path from P2). */
   workdir: string;
+  /** ADR-0014, only inside `recover()`: the worker that survived the hub
+   * restart for this session, or null. Its output continues after the last
+   * line the previous hub delivered. */
+  adoptWorker?(): Promise<WorkerProcess | null>;
+  /** ADR-0014: the provider's own session id as the hub last recorded it
+   * (null when none was captured yet) — what `recover()` resumes with. */
+  readonly nativeSessionId?: string | null;
 }
 
 /**

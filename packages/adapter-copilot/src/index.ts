@@ -100,7 +100,15 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           continue;
         }
         const resultSessionId = extractResultSessionId(parsed);
-        if (resultSessionId) meta.resumeSessionId = resultSessionId;
+        if (resultSessionId && resultSessionId !== meta.resumeSessionId) {
+          meta.resumeSessionId = resultSessionId;
+          // ADR-0014: the hub records the id so recover() can resume.
+          ctx.emit({
+            type: "system",
+            summary: `Copilot · Session ${resultSessionId}`,
+            payload: { kind: "copilot.native_session", nativeSessionId: resultSessionId },
+          });
+        }
         for (const event of normalizeCopilotLine(parsed)) ctx.emit(event);
       }
     });
@@ -178,6 +186,18 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const meta = sessions.get(handle.sessionId);
       if (!meta) return { state: "down", detail: "no live process" };
       return { state: meta.healthy ? "healthy" : "down", lastSeen: new Date().toISOString() };
+    },
+
+    /** ADR-0014: after a hub restart, take over the turn that is still
+     * running, or continue natively with the next prompt. */
+    async recover(sessionId: string, _lastSeq: number, ctx: AdapterContext): Promise<SessionHandle | null> {
+      const native = ctx.nativeSessionId ?? undefined;
+      const proc = (await ctx.adoptWorker?.()) ?? null;
+      if (!proc && !native) return null;
+      const meta: SessionMeta = { healthy: true, ...(native ? { resumeSessionId: native } : {}) };
+      if (proc) attach(sessionId, proc, ctx, meta);
+      else sessions.set(sessionId, meta);
+      return { sessionId, ...(proc?.pid !== undefined ? { pid: proc.pid } : {}) };
     },
 
     async stop(handle: SessionHandle): Promise<void> {
