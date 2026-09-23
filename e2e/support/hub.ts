@@ -15,6 +15,8 @@ export interface HubOptions {
   requireStepApprovals?: boolean;
   /** Dummy adapter: events per turn before it stops generating (0 = endless). */
   dummyAutoStop?: number;
+  /** EPIC-P6: this hub's host id in the fleet. */
+  hostId?: string;
 }
 
 export interface ApiResult<T> {
@@ -107,6 +109,7 @@ export class TestHub {
   private writeConfig(): void {
     const config = {
       dataDir: this.dataDir,
+      ...(this.options.hostId ? { hostId: this.options.hostId } : {}),
       workerRunner: this.options.runner ?? "process",
       projectRoots: [this.projectsDir],
       requireStepApprovals: this.options.requireStepApprovals ?? false,

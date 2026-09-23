@@ -44,6 +44,8 @@ export interface HubAppDeps {
   startedAt?: number;
   discoverySources?: DiscoverySource[];
   probeRunner?: ProbeRunner;
+  /** EPIC-P6: this hub's host id in the fleet (default "local"). */
+  hostId?: string;
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {

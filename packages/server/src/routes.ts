@@ -8,8 +8,11 @@ import { extractToken } from "./auth.ts";
 import { createWebAuthnRoutes, type WebAuthnConfig } from "./webauthn.ts";
 import { appendOptimizerFeedback } from "./prompt-optimizer-feedback.ts";
 import { ensureIndexed, indexStatus, isQmdAvailable, readProjectFile, relativeDataDir, searchProject } from "./search.ts";
-import { DecideApprovalInput, ApprovalStatus, ENV_VAR_NAME } from "@uacc/contracts";
-import type { HubMetrics, DiscoverySource, SessionRecord } from "@uacc/contracts";
+import { DecideApprovalInput, ApprovalStatus, ENV_VAR_NAME, DEFAULT_HOST_ID, FLEET_PROTOCOL_VERSION } from "@uacc/contracts";
+import type { HubMetrics, DiscoverySource, SessionRecord, FleetHello } from "@uacc/contracts";
+
+/** Reported to other hubs in /api/fleet/hello. */
+const HUB_VERSION = "0.1.0";
 import { TMUX_PREFIX } from "@uacc/workers";
 import { z } from "zod";
 
@@ -86,6 +89,8 @@ export function registerRoutes(
     discoverySources?: DiscoverySource[];
     /** Injected in tests. Production uses spawnProbeRunner. */
     probeRunner?: ProbeRunner;
+    /** EPIC-P6: this hub's host id in the fleet. */
+    hostId?: string;
   },
 ): void {
   const projectRoots = deps.projectRoots ?? [];
@@ -147,13 +152,22 @@ export function registerRoutes(
       session.worktreeSha !== null && workdir && workdir !== session.project
         ? { path: workdir, branch: `uacc/${session.id}` }
         : null;
-    const withOpen = { ...session, ...(openCmd ? { openCmd } : {}), ...(worktree ? { worktree } : {}) };
+    // ADR-0017: every session of this hub carries this hub's host id.
+    const withOpen = { ...session, hostId, ...(openCmd ? { openCmd } : {}), ...(worktree ? { worktree } : {}) };
     if (deps.workerRunnerKind !== "tmux" || session.status !== "working") return withOpen;
     if (!(await deps.sessions.hasLiveWorker(session.id))) return withOpen;
     return { ...withOpen, attachCmd: `tmux attach -t ${TMUX_PREFIX}${session.id}` };
   }
 
   const startedAt = deps.startedAt ?? Date.now();
+  const hostId = deps.hostId ?? DEFAULT_HOST_ID;
+
+  app.get("/api/fleet/hello", async (): Promise<FleetHello> => ({
+    hostId,
+    protocolVersion: FLEET_PROTOCOL_VERSION,
+    hubVersion: HUB_VERSION,
+    serverTime: new Date().toISOString(),
+  }));
 
   app.get("/api/health", async () =>
     collectHealth({

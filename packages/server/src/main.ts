@@ -7,6 +7,8 @@
  * Boot order (P0): config → db → adapters → recovery (K7) → HTTP/WS → PWA.
  */
 import { mkdirSync, existsSync } from "node:fs";
+import { hostname } from "node:os";
+import { toHostId } from "@uacc/contracts";
 import { resolve } from "node:path";
 import type { WorkerRunner, DiscoverySource } from "@uacc/contracts";
 import {
@@ -155,6 +157,7 @@ async function main(): Promise<void> {
     // rpId/origin defaults only work for local dev.
     webauthn: { store: new WebAuthnStore(db), config: config.webauthn },
     discoverySources: discoverySources(config),
+    hostId: config.hostId ?? toHostId(hostname()),
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.UACC_EXPOSE === "1"
