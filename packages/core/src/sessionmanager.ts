@@ -16,6 +16,7 @@ import type {
   SessionStatus,
   SteerInput,
   Ack,
+  WorkerProcess,
   WorkerRunner,
   UsageQuota,
   ReportingSink,
@@ -79,7 +80,13 @@ interface LiveSession {
   budgetWarned: boolean;
   /** Selected skill, so a later steer reloads the same extends chain. */
   skillName?: string;
+  /** T5.4: provider workers of this session that have not exited yet. */
+  activeWorkers?: number;
 }
+
+/** A turn counts as over only if no new worker starts within this window —
+ * some adapters run a short probe (`--version`) right before the turn. */
+const TURN_END_SETTLE_MS = 250;
 
 function readSkillName(args: Record<string, unknown> | undefined): string | undefined {
   const skill = args?.skill;
@@ -1139,7 +1146,7 @@ export class SessionManager {
         return this.store.writeBlob(session.record.id, data);
       },
       spawnWorker: async (cmd, opts) => {
-        return this.runner.spawn({
+        const proc = await this.runner.spawn({
           name: session.record.id,
           cwd: session.workdir,
           cmd,
@@ -1147,6 +1154,8 @@ export class SessionManager {
           ...(opts?.cols !== undefined ? { cols: opts.cols } : {}),
           ...(opts?.rows !== undefined ? { rows: opts.rows } : {}),
         });
+        await this.trackTurn(session, proc);
+        return proc;
       },
     };
   }
@@ -1277,6 +1286,27 @@ export class SessionManager {
       resumeVersion: session.record.resumeVersion,
       inputRevision: session.record.inputRevision,
     };
+  }
+
+  /**
+   * T5.4 / ADR-0013: every CLI adapter runs one worker process per turn, and
+   * every worker is spawned through this context. A new worker makes the
+   * session `working`; the last one exiting cleanly makes it `idle` (between
+   * turns). A failed exit leaves the status to the adapter/heartbeat path.
+   */
+  private async trackTurn(session: LiveSession, proc: WorkerProcess): Promise<void> {
+    session.activeWorkers = (session.activeWorkers ?? 0) + 1;
+    if (session.record.status === "idle") await this.setStatus(session, "working");
+    proc.onExit((code) => {
+      session.activeWorkers = Math.max(0, (session.activeWorkers ?? 1) - 1);
+      if (code !== 0) return;
+      setTimeout(() => {
+        if ((session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
+        void this.setStatus(session, "idle")
+          .then(() => this.emitSystem(session, "session.turn_end", { code }))
+          .catch((err) => this.logger.warn("turn end not recorded", { sessionId: session.record.id, err: String(err) }));
+      }, TURN_END_SETTLE_MS).unref();
+    });
   }
 
   private async setStatus(session: LiveSession, status: SessionStatus): Promise<void> {

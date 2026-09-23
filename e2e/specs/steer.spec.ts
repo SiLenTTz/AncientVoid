@@ -33,7 +33,7 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     await app.getByPlaceholder("Antworten…").fill("Nach dem Stopp");
     await app.getByRole("button", { name: "Weiter" }).click();
     await expect(app.getByText(/Antwort auf: Nach dem Stopp · Session ses_e2e_\w+ \(fortgesetzt\)/)).toBeVisible();
-    await expect(statusPill(app)).toHaveText("working");
+    await expect(statusPill(app)).toHaveText("idle");
     const [record] = await hub.sessions();
     const first = (await hub.events(id)).find((e) => e.type === "assistant");
     expect(String(first?.payload.text)).toContain(record!.nativeSessionId!);
@@ -89,5 +89,19 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     await app.getByPlaceholder("Antworten…").fill("Hub ist weg");
     await app.getByRole("button", { name: /Senden|Weiter/ }).click();
     await expect(app.locator(".reply-error")).toBeVisible();
+  });
+
+  test("der Status trennt laufenden Zug und Pause zwischen Zügen (T5.4) @desktop", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Erster Zug" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(statusPill(app)).toHaveText("idle");
+    await app.getByPlaceholder("Antworten…").fill("Arbeite LANGSAM");
+    await app.getByRole("button", { name: "Senden" }).click();
+    await expect(statusPill(app)).toHaveText("working");
+    await expect(app.locator(".session-card")).toHaveCount(0);
+    await app.getByRole("button", { name: "Stop" }).click();
+    await expect(statusPill(app)).toHaveText("stopped");
+    const ends = (await hub.events(id)).filter((e) => e.payload.kind === "session.turn_end");
+    expect(ends).toHaveLength(1);
   });
 });
