@@ -40,6 +40,12 @@ const CHECKED = [
   { id: "cursor-clip", modulePath: "../packages/adapters/cursor-clip/src/index.ts" },
   { id: "claude-clip", modulePath: "../packages/adapters/claude-clip/src/index.ts" },
 ];
+/** ADR-0018: one adapter module, several harnesses — checked per config. */
+const CHECKED_CONFIGS = [
+  { id: "acp · copilot", modulePath: "../packages/adapters/acp/src/index.ts", config: { preset: "copilot" } },
+  { id: "acp · opencode", modulePath: "../packages/adapters/acp/src/index.ts", config: { preset: "opencode" } },
+  { id: "acp · dsh", modulePath: "../packages/adapters/acp/src/index.ts", config: { preset: "dsh" } },
+];
 const SKIPPED = ["swarm", "zai", "local-llm", "deepseek"];
 
 const SYMBOL_TO_BOOL = { "✓": true, "—": false };
@@ -109,7 +115,7 @@ for (const line of block.split("\n")) {
   const cells = line.split("|").slice(1, -1).map((c) => c.trim());
   featureRows.set(cells[0], cells.slice(2));
 }
-for (const { id, modulePath } of CHECKED) {
+for (const { id, modulePath, config } of [...CHECKED, ...CHECKED_CONFIGS]) {
   const cells = featureRows.get(id);
   if (!cells) {
     console.error(`FAIL: no docs/harness-matrix.md row for adapter "${id}"`);
@@ -117,7 +123,7 @@ for (const { id, modulePath } of CHECKED) {
     continue;
   }
   const { createAdapter } = await import(modulePath);
-  const f = createAdapter().capabilities().features;
+  const f = createAdapter(config).capabilities().features;
   FEATURE_COLUMNS.forEach((key, i) => {
     const real = key === "toolGate" ? f.toolGate : key === "modelChoice" ? f.modelChoice === "start" : f[key];
     const claimed = key === "toolGate" ? cells[i] : SYMBOL_TO_BOOL[cells[i]];

@@ -1,6 +1,7 @@
 import type { BlobRef, EmittedEvent } from "../sessions/event.ts";
 import type { NativeDiscovery, NativeResume } from "./inventory.ts";
 import type { SessionSpec } from "../sessions/session.ts";
+import type { ToolPermissionAnswer, ToolPermissionRequest } from "../approvals/tool-permission.ts";
 
 /** ADR-0018: how a harness's tool calls are released. Ordered from the
  * strongest to the weakest guarantee; only `native` asks per call. */
@@ -148,6 +149,11 @@ export interface SpawnOptions {
   rows?: number;
   /** Name hint for the worker (defaults to session id). */
   name?: string;
+  /** T7.2: a real stdin stream (JSON-RPC over stdio, e.g. ACP). */
+  stdin?: "tty" | "pipe";
+  /** ADR-0013 Nachtrag: a long-lived agent process that serves many turns.
+   * It does not count as a turn; the adapter reports turns with ctx.turn(). */
+  persistent?: boolean;
 }
 
 /**
@@ -172,7 +178,7 @@ export interface AdapterContext {
   /** ADR-0014, only inside `recover()`: the worker that survived the hub
    * restart for this session, or null. Its output continues after the last
    * line the previous hub delivered. */
-  adoptWorker?(): Promise<WorkerProcess | null>;
+  adoptWorker?(opts?: { persistent?: boolean }): Promise<WorkerProcess | null>;
   /** ADR-0014: the provider's own session id as the hub last recorded it
    * (null when none was captured yet) — what `recover()` resumes with. */
   readonly nativeSessionId?: string | null;
@@ -180,6 +186,13 @@ export interface AdapterContext {
    * bridge for this session, and the tool name to pass as
    * `--permission-prompt-tool`. Absent when the hub offers no bridge. */
   permissionBridge?(): Promise<{ mcpConfigPath: string; toolName: string }>;
+  /** T7.2: an in-process adapter asks before a tool runs (ACP
+   * request_permission). Resolves once the phone decided or the request
+   * timed out — "deny" means: do not run it. Absent: no hub gate. */
+  requestToolPermission?(req: ToolPermissionRequest): Promise<ToolPermissionAnswer>;
+  /** ADR-0013 Nachtrag: turn start/end for adapters with a persistent
+   * worker (they don't end a process per turn). */
+  turn?(state: "working" | "idle"): void;
 }
 
 /**

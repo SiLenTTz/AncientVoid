@@ -3,6 +3,7 @@
  * Messlauf EPIC-P7 against real provider CLIs on this machine.
  *
  *   node scripts/messlauf-p7.mjs claude-gate
+ *   node scripts/messlauf-p7.mjs acp-gate <preset> [adapter-config-json]
  *
  * Boots its own hub (own data dir and port, real adapters, no skip flags),
  * drives it over the HTTP API the way the phone does and checks the real
@@ -69,8 +70,8 @@ async function bootHub(adapters) {
 }
 
 /** `further`: decision for any later request in the same turn (null: leave it). */
-async function runClaude(hub, prompt, decide, further = null) {
-  const created = await http("POST", "/api/sessions", hub.token, { adapter: "claude", project: hub.project, prompt });
+async function runClaude(hub, prompt, decide, further = null, adapter = "claude") {
+  const created = await http("POST", "/api/sessions", hub.token, { adapter, project: hub.project, prompt });
   if (created.status !== 201) throw new Error(`create: ${created.status} ${JSON.stringify(created.body)}`);
   const id = created.body.id;
   const t0 = Date.now();
@@ -128,7 +129,26 @@ if (step === "claude-gate") {
   console.log(JSON.stringify({ step, claudeVersion, date: new Date().toISOString(), results }, null, 2));
   console.log(results.every((r) => r.pass) ? "PASS" : "FAIL");
   process.exit(results.every((r) => r.pass) ? 0 : 1);
+} else if (step === "acp-gate") {
+  const preset = process.argv[3];
+  const extra = process.argv[4] ? JSON.parse(process.argv[4]) : {};
+  const hub = await bootHub([{ id: "agent", module: "@uacc/adapter-acp", config: { preset, ...extra } }]);
+  const results = [];
+  const t0 = Date.now();
+  try {
+    const allow = await runClaude(hub, "Run exactly this shell command with your shell/terminal tool: echo live-ok > erlaubt.txt — nothing else.", () => ({ decision: "approve" }), { decision: "approve" }, "agent");
+    const allowed = existsSync(join(allow.workdir, "erlaubt.txt")) ? readFileSync(join(allow.workdir, "erlaubt.txt"), "utf8").trim() : null;
+    results.push({ case: "allow", tool: allow.pending.tool?.name, input: allow.pending.tool?.input?.slice(0, 200), askedAfterMs: allow.askedAfterMs, statusWhileAsking: allow.statusWhileAsking, followUps: allow.followUps, fileContent: allowed, pass: allowed === "live-ok" });
+    const deny = await runClaude(hub, "Run exactly this shell command with your shell/terminal tool: touch verboten.txt — nothing else. If it is rejected, do not retry and do not work around it.", () => ({ decision: "reject", reason: "Messlauf: ablehnen" }), { decision: "reject", reason: "Messlauf: ablehnen" }, "agent");
+    const denied = existsSync(join(deny.workdir, "verboten.txt"));
+    results.push({ case: "deny", tool: deny.pending.tool?.name, fileExists: denied, followUps: deny.followUps, pass: !denied });
+  } finally {
+    hub.stop();
+  }
+  console.log(JSON.stringify({ step, preset, date: new Date().toISOString(), durationMs: Date.now() - t0, results }, null, 2));
+  console.log(results.every((r) => r.pass) ? "PASS" : "FAIL");
+  process.exit(results.every((r) => r.pass) ? 0 : 1);
 } else {
-  console.error("usage: messlauf-p7.mjs claude-gate");
+  console.error("usage: messlauf-p7.mjs claude-gate | acp-gate <preset> [config-json]");
   process.exit(2);
 }

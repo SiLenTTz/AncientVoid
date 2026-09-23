@@ -89,3 +89,40 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(app.getByText("keine offenen Freigaben")).toBeVisible();
   });
 });
+
+test.describe("ACP-Harness (T7.2)", () => {
+  test("ein ACP-Agent fragt vor dem Tool, „Erlauben“ gibt genau diesen Aufruf frei", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "Bitte WERKZEUG" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const card = app.locator(".session-approvals .approval-card");
+    await expect(card.locator(".tool-input")).toHaveText("echo hallo-acp");
+    await expect(app.locator(".topbar .pill")).toHaveText("waiting_approval");
+    await card.getByRole("button", { name: "Erlauben" }).click();
+    await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · ACP · Ausgabe hallo-acp \(allow-once\)/)).toBeVisible();
+    await expect(app.locator(".topbar .pill")).toHaveText("idle");
+    await app.getByPlaceholder("Antworten…").fill("Noch eine Frage");
+    await app.getByRole("button", { name: "Senden" }).click();
+    await expect(app.getByText(/Antwort auf: Noch eine Frage · ACP/)).toBeVisible();
+  });
+
+  test.describe("mit tmux-Workern", () => {
+    test.use({ hubOptions: { runner: "tmux" } });
+
+    test("nach einem harten Hub-Absturz wird der ACP-Agent übernommen und nimmt weiter Prompts", async ({ app, hub }) => {
+      const id = await hub.createSession({ adapter: "acp", prompt: "Erster Zug" });
+      await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "first answer");
+      const pidBefore = (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status;
+      expect(pidBefore).toBe("idle");
+      await hub.restart();
+      await hub.until(async () => (await hub.events(id)).some((e) => e.payload.kind === "session.recovered"), "recovered");
+      await app.goto(`${hub.origin}/#/sessions/${id}`);
+      await app.getByRole("button", { name: "Chat" }).click();
+      await app.getByPlaceholder("Antworten…").fill("Nach dem Absturz");
+      await app.getByRole("button", { name: "Senden" }).click();
+      await expect(app.getByText(/Antwort auf: Nach dem Absturz · ACP/)).toBeVisible();
+      const started = (await hub.events(id)).filter((e) => e.payload.kind === "acp.native_session");
+      expect(started, "same agent session, no new one").toHaveLength(1);
+    });
+  });
+});

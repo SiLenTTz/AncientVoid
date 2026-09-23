@@ -13,6 +13,9 @@ export interface WorkerSpec {
   env?: Record<string, string>;
   cols?: number;
   rows?: number;
+  /** T7.2: "pipe" gives the worker a real stdin stream (JSON-RPC agents
+   * such as ACP). Default "tty": input arrives as typed keys. */
+  stdin?: "tty" | "pipe";
 }
 
 export interface WorkerInfo {

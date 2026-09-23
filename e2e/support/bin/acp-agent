@@ -1,0 +1,101 @@
+#!/usr/bin/env node
+// Stand-in ACP agent (T7.2): JSON-RPC 2.0 over stdio, Agent Client Protocol
+// v1 as in @agentclientprotocol/sdk 1.5.0 — initialize, session/new,
+// session/load, session/prompt, session/cancel, and session/request_permission
+// back to the client before a tool runs.
+//
+// Keywords in the prompt:
+//   WERKZEUG  one "execute" tool call (echo hallo-acp), asked first
+//   PLAN      a plan with 1 of 3 entries done
+//   LANGSAM   the turn runs until cancelled (or 60 s)
+//   FEHLER    the prompt fails with a rate-limit error
+import { randomUUID } from "node:crypto";
+
+let buffer = "";
+let nextId = 1000;
+const waiting = new Map();
+const cancelled = new Set();
+const send = (msg) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...msg })}\n`);
+const update = (sessionId, u) => send({ method: "session/update", params: { sessionId, update: u } });
+const ask = (method, params) =>
+  new Promise((resolve) => {
+    const id = nextId++;
+    waiting.set(id, resolve);
+    send({ id, method, params });
+  });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function prompt(id, { sessionId, prompt: blocks }) {
+  const text = blocks.map((b) => (b.type === "text" ? b.text : `[${b.type}]`)).join(" ");
+  if (text.includes("FEHLER")) return send({ id, error: { code: -32000, message: "Rate limit exceeded (429) — slow down" } });
+  update(sessionId, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "Ich überlege" } });
+  update(sessionId, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: " kurz." } });
+  let tail = "";
+  if (text.includes("PLAN")) {
+    update(sessionId, { sessionUpdate: "plan", entries: [{ content: "Lesen", status: "completed", priority: "high" }, { content: "Ändern", status: "in_progress", priority: "high" }, { content: "Testen", status: "pending", priority: "medium" }] });
+  }
+  if (text.includes("WERKZEUG")) {
+    const toolCallId = `call_${randomUUID().slice(0, 8)}`;
+    const call = { toolCallId, title: "echo hallo-acp", kind: "execute", rawInput: { command: "echo hallo-acp" } };
+    update(sessionId, { sessionUpdate: "tool_call", ...call, status: "pending" });
+    const answer = await ask("session/request_permission", {
+      sessionId,
+      toolCall: call,
+      options: [
+        { optionId: "allow-once", name: "Erlauben", kind: "allow_once" },
+        { optionId: "allow-always", name: "Immer erlauben", kind: "allow_always" },
+        { optionId: "reject-once", name: "Ablehnen", kind: "reject_once" },
+      ],
+    });
+    const allowed = answer?.outcome?.outcome === "selected" && answer.outcome.optionId.startsWith("allow");
+    update(sessionId, {
+      sessionUpdate: "tool_call_update",
+      toolCallId,
+      status: allowed ? "completed" : "failed",
+      content: [{ type: "content", content: { type: "text", text: allowed ? "hallo-acp" : "vom Menschen abgelehnt" } }],
+    });
+    tail = allowed ? ` · Ausgabe hallo-acp (${answer.outcome.optionId})` : " · nicht ausgeführt";
+  }
+  if (text.includes("LANGSAM")) {
+    for (let i = 0; i < 600 && !cancelled.has(sessionId); i++) await sleep(100);
+    if (cancelled.delete(sessionId)) return send({ id, result: { stopReason: "cancelled" } });
+  }
+  const reply = `Antwort auf: ${text.split("\n").pop()} · ACP${tail}`;
+  for (const part of [reply.slice(0, 10), reply.slice(10, 25), reply.slice(25)]) update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: part } });
+  send({ id, result: { stopReason: "end_turn", usage: { totalTokens: 42, inputTokens: 30, outputTokens: 12 } } });
+}
+
+function handle(msg) {
+  if (msg.method === undefined) {
+    const resolve = waiting.get(msg.id);
+    waiting.delete(msg.id);
+    return resolve?.(msg.result);
+  }
+  const { id, method, params } = msg;
+  switch (method) {
+    case "initialize":
+      return send({ id, result: { protocolVersion: 1, agentCapabilities: { loadSession: true, promptCapabilities: { image: true } }, agentInfo: { name: "fake-acp", version: "1.0.0" } } });
+    case "session/new":
+      return send({ id, result: { sessionId: `acp_${randomUUID().slice(0, 12)}` } });
+    case "session/load":
+      return send({ id, result: null });
+    case "session/prompt":
+      return void prompt(id, params);
+    case "session/cancel":
+      return void cancelled.add(params.sessionId);
+    default:
+      if (id !== undefined) send({ id, error: { code: -32601, message: `unknown method ${method}` } });
+  }
+}
+
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => {
+  buffer += chunk;
+  let nl;
+  while ((nl = buffer.indexOf("\n")) >= 0) {
+    const line = buffer.slice(0, nl).trim();
+    buffer = buffer.slice(nl + 1);
+    if (line) handle(JSON.parse(line));
+  }
+});
+process.stdin.on("end", () => process.exit(0));

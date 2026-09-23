@@ -182,4 +182,35 @@ describe("TmuxRunner", () => {
     const workers = await runner.list();
     expect(workers.some((w) => w.name === "test-kill")).toBe(false);
   });
+
+  // T7.2: JSON-RPC agents (ACP) need a real stdin — no echo, no 4 KB line
+  // cut, and a hub restart must not close it.
+  itTmux("pipe mode: long lines arrive whole, nothing is echoed, a new writer after adopt still reaches the worker", async () => {
+    const echo = "process.stdin.setEncoding('utf8');let b='';process.stdin.on('data',d=>{b+=d;let i;while((i=b.indexOf('\\n'))>=0){const l=b.slice(0,i);b=b.slice(i+1);console.log('len='+l.length+' tail='+l.slice(-5));if(l==='quit')process.exit(0);}})";
+    const proc = await runner.spawn({ name: "test-pipe", cwd: dir, cmd: [process.execPath, "-e", echo], stdin: "pipe" });
+    const lines: string[] = [];
+    proc.onStdout((c) => lines.push(...c.split("\n").map((l) => l.trim()).filter(Boolean)));
+    const long = "x".repeat(10_000) + "ENDE1";
+    proc.write(long + "\n");
+    await waitUntil(() => lines.some((l) => l === "len=10005 tail=ENDE1"));
+    expect(lines.some((l) => l.includes("xxxxxxxxxx"))).toBe(false); // no echo of the input
+    // the hub restarts: a second runner adopts the pane and writes on
+    const next = new TmuxRunner(join(dir, "logs"));
+    const adopted = await next.adopt("test-pipe");
+    expect(adopted).not.toBeNull();
+    const after: string[] = [];
+    adopted!.onStdout((c) => after.push(...c.split("\n").map((l) => l.trim()).filter(Boolean)));
+    adopted!.write("zweiter\n");
+    await waitUntil(() => after.some((l) => l === "len=7 tail=eiter"));
+    adopted!.write("quit\n");
+    expect((await adopted!.exited()).code).toBe(0);
+  });
 });
+
+async function waitUntil(check: () => boolean, timeoutMs = 10_000): Promise<void> {
+  const t0 = Date.now();
+  while (!check()) {
+    if (Date.now() - t0 > timeoutMs) throw new Error("waitUntil: timed out");
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
