@@ -29,6 +29,14 @@ scripts/fleet-deploy.sh <user>@<name>.<tailnet>.ts.net <host-id> <tailnet-ip> <p
 2. In der PWA des Heim-Hubs → Einstellungen → „Host hinzufügen“:
    Adresse `http://<name>.<tailnet>.ts.net:7373`, Code eingeben.
 
+**Mit dem Handy (QR-Code):** In der PWA des neuen Rechners „Einladungscode
+erzeugen“ — neben dem Code erscheint ein QR-Code mit Adresse und Code. In der
+PWA des Heim-Hubs am Handy „QR-Code scannen“, Kamera auf den Bildschirm
+halten: beide Felder sind ausgefüllt, dann „Host verbinden“. Die Kamera
+braucht HTTPS (Heim-Hub über `tailscale serve`). Der QR-Code enthält die
+Adresse, unter der die PWA des neuen Rechners gerade geöffnet ist — also diese
+über die Tailnet-Adresse öffnen, nicht über `localhost`.
+
 Der Code gilt 10 Minuten und einmal. Das Token, das der Heim-Hub dabei
 bekommt, heißt auf dem anderen Hub `fleet:<heim-host-id>` und darf nur
 Sessions, Events, Projekte, Skills, Suche, Freigaben und Meldungen erreichen.

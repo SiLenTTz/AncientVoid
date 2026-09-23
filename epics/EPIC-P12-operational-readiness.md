@@ -47,6 +47,7 @@ nicht aus dem Nenner entfernt. Ohne Zugriff echte Aufgabe blockiert lassen.
 - [ ] **T12.4 — Abnahme aller Zielkombinationen.** Matrix von P5/P7/P11 live ausführen; Smartphone über WAN, PC↔Handy↔PC, Voice/AI/Freigaben/Suche/Dateien; nicht nur Loopback und Fixtures. K1–K10. Enthält AI-P5-1: Handläufe für Claude Code, Codex, Copilot nach EPIC-P5 §12.4, danach deren Resume-Zelle `verified`. **AI-P6-1:** einen WSL-Host (z. B. bmax) in die Flotte aufnehmen und damit den WSL-Teil von AC-P6-5 und Premortem 4 aus P6 abnehmen.
 - [ ] **T12.5 — Dauerlauf und Übergabe.** 24 h mit ≥ 20 Sessions, Netz-/Hub-/Modell-Ausfälle, Ressourcenentwicklung; Runbook, bekannte Grenzen, Installationsversuch durch frischen Nutzerkontext und offene P4-Integrationsevidenz prüfen. K2/K7/K8/K9/K10.
 - [ ] **T12.6 — Remote-Gate wiederherstellen (AI-P5-2).** GitLab-CI scheitert mit `ci_quota_exceeded`; der blockierende Job `e2e` lief nie remote. Runner oder Kontingent klären, oder das lokale `npm run gate` samt Beleg im MR als offizielles Gate festschreiben.
+- [ ] **T12.7 — Vor der Veröffentlichung: Geheimnisse aufräumen (AI-P6-4).** Alle Geräte- und Fleet-Tokens rotieren, `/tmp/uacc-hub.log` und ältere Request-Logs leeren, in denen vor BUG-0028 Tokens standen; danach `git log`/Repo auf Geheimnisse prüfen. Erst dann das Repo public schalten.
 
 ## 5. Acceptance Criteria
 

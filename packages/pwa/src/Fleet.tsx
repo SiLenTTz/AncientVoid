@@ -1,5 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { hubApi, type FleetPeer } from "./api.ts";
+import { InviteQr, QrScanner } from "./InviteQr.tsx";
+import { pairLink, parsePairLink } from "./pair-link.ts";
 
 /**
  * T6.2 / ADR-0017: pair this hub with others. On the other hub, create a
@@ -14,6 +16,7 @@ export function FleetSettings() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
 
   const reload = () =>
     hubApi
@@ -51,6 +54,18 @@ export function FleetSettings() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const onScan = (text: string) => {
+    setScanning(false);
+    const link = parsePairLink(text);
+    if (!link) {
+      setMessage({ ok: false, text: "Das ist kein UACC-Einladungscode." });
+      return;
+    }
+    setUrl(link.url);
+    setCode(link.code);
+    setMessage({ ok: true, text: `Einladung von ${link.url} gelesen — jetzt verbinden.` });
   };
 
   const removePeer = async (hostId: string) => {
@@ -96,6 +111,10 @@ export function FleetSettings() {
         </div>
       )}
 
+      <button class="btn" type="button" onClick={() => { setMessage(null); setScanning((v) => !v); }}>
+        {scanning ? "Kamera schließen" : "QR-Code scannen"}
+      </button>
+      {scanning && <QrScanner onResult={onScan} onClose={() => setScanning(false)} />}
       <label>
         Host hinzufügen — Adresse
         <input value={url} onInput={(e) => setUrl((e.target as HTMLInputElement).value)} placeholder="https://silenttz-server.<tailnet>.ts.net" autocapitalize="off" autocorrect="off" spellcheck={false} />
@@ -117,9 +136,14 @@ export function FleetSettings() {
       </div>
       {invite && (
         <div class="fleet-invite">
+          <InviteQr text={pairLink(location.origin, invite.code)} />
           <code class="mono">{invite.code}</code>
           <span class="dim">
             einmalig, gültig bis {new Date(invite.expiresAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+          </span>
+          <span class="dim fleet-invite-origin">
+            Adresse im QR-Code: <span class="mono">{location.origin}</span>
+            {/^https?:\/\/(localhost|127\.|\[::1\])/.test(location.origin) && " — nur auf diesem Rechner erreichbar; für den QR-Code den Hub über seine Tailnet-Adresse öffnen."}
           </span>
         </div>
       )}
