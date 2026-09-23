@@ -104,4 +104,20 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     const ends = (await hub.events(id)).filter((e) => e.payload.kind === "session.turn_end");
     expect(ends).toHaveLength(1);
   });
+
+  test("das Antwortfeld kommt zurück, wenn der Hub beim Öffnen kurz weg war (BUG-0022)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
+    // The first /api/adapters call is the sign-in check; the next ones come
+    // from the session view. Those fail until the "network" is back.
+    let calls = 0;
+    let offline = true;
+    await app.route("**/api/adapters", (route) => (++calls > 1 && offline ? route.abort() : route.continue()));
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.reload();
+    await expect(app.locator(".topbar")).toContainText("opencode");
+    await expect(app.getByPlaceholder("Antworten…")).toHaveCount(0);
+    offline = false;
+    await expect(app.getByPlaceholder("Antworten…")).toBeVisible({ timeout: 8_000 });
+  });
 });
