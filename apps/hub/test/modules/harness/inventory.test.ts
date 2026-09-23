@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventStore, HubDatabase, SessionManager, TokenService, AdapterRegistry, claudeDiscoverySource } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
-import { createHubApp } from "../src/index.ts";
+import { createHubApp } from "../../../src/app.ts";
 
 describe("GET /api/inventory and discovery sources", () => {
   it("returns probed cells without calling a real binary, and lists a scanned transcript", async () => {

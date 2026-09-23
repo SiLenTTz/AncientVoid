@@ -5,7 +5,7 @@ import WebSocket from "ws";
 import type { FleetStore, SessionManager, TokenService } from "@uacc/core";
 import type { HubMetrics } from "@uacc/contracts";
 import { isFleetRoutable } from "@uacc/contracts";
-import { createTailHandler } from "./ws.ts";
+import { createTailHandler } from "../sessions/ws.ts";
 
 const FORWARD_TIMEOUT_MS = 10_000;
 const MAX_FORWARD_BYTES = 16 * 1024 * 1024;

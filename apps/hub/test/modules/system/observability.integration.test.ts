@@ -6,7 +6,7 @@ import type { FastifyInstance } from "fastify";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry, TokenService, InMemoryMetrics } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { createHubApp } from "../src/index.ts";
+import { createHubApp } from "../../../src/app.ts";
 
 describe("observability endpoints (T4.5-4 / AC-P4.5-2)", () => {
   let dir: string;

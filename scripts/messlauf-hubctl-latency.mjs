@@ -39,7 +39,7 @@ const { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService }
 );
 const { ProcessRunner } = await import("../packages/workers/src/process.ts");
 const { createAdapter } = await import("../packages/adapters/dummy/src/index.ts");
-const { createHubApp } = await import("../apps/hub/src/index.ts");
+const { createHubApp } = await import("../apps/hub/src/app.ts");
 
 const dir = await mkdtemp(join(tmpdir(), "uacc-messlauf-"));
 const db = new HubDatabase(":memory:");

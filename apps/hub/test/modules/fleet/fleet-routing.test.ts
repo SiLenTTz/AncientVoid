@@ -7,7 +7,7 @@ import type { FastifyInstance } from "fastify";
 import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { createHubApp } from "../src/index.ts";
+import { createHubApp } from "../../../src/app.ts";
 
 interface Hub {
   app: FastifyInstance;

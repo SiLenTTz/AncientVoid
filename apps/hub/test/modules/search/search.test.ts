@@ -11,7 +11,7 @@ import {
   readProjectFile,
   relativeDataDir,
   removeIndex,
-} from "../src/search.ts";
+} from "../../../src/modules/search/search.ts";
 
 /**
  * T3.8 (EPIC-P3 §3 "Sprachsuche"). Like ADR-0002's tmux caveat, `qmd`

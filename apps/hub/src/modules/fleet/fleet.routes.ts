@@ -3,8 +3,8 @@ import { z } from "zod";
 import type { FleetStore, TokenService } from "@uacc/core";
 import { peerView } from "@uacc/core";
 import { FLEET_PROTOCOL_VERSION, FLEET_TOKEN_PREFIX, HOST_ID_PATTERN, type FleetHello, type FleetHostView, type SessionRecord } from "@uacc/contracts";
-import { extractToken } from "./auth.ts";
-import { httpJson } from "./http-json.ts";
+import { extractToken } from "../../platform/auth.ts";
+import { httpJson } from "../../platform/http-json.ts";
 
 /** How long the overview waits for each peer. */
 const SYNC_TIMEOUT_MS = 3000;

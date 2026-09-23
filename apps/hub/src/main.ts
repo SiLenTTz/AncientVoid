@@ -32,7 +32,7 @@ import {
 } from "@uacc/core";
 import { TmuxRunner, ProcessRunner } from "@uacc/workers";
 import type { AdapterFactory } from "@uacc/contracts";
-import { createHubApp } from "./index.ts";
+import { createHubApp } from "./app.ts";
 
 // `dummy` used to be hardcoded here, always visible in every real hub's
 // adapter list/status rows regardless of whether anyone wanted it — real

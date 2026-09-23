@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { createHubApp } from "../src/index.ts";
+import { createHubApp } from "../../../src/app.ts";
 
 describe("skill chain on session start (BUG-0021, T5.10)", () => {
   it("loads the base catalog even when nobody listed skills before", async () => {

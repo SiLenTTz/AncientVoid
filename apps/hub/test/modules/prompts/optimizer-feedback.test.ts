@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { appendOptimizerFeedback, readOptimizerFeedback } from "../src/prompt-optimizer-feedback.ts";
+import { appendOptimizerFeedback, readOptimizerFeedback } from "../../../src/modules/prompts/optimizer-feedback.ts";
 
 describe("prompt-optimizer feedback storage (T3.9 Learning-Loop) — real file I/O, no mocking", () => {
   let dir: string;

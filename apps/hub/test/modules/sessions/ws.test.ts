@@ -6,7 +6,7 @@ import type { WebSocket } from "ws";
 import { EventStore, SessionManager, AdapterRegistry, HubDatabase } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { createTailHandler } from "../src/ws.ts";
+import { createTailHandler } from "../../../src/modules/sessions/ws.ts";
 
 /**
  * BUG-0007 regression: a real Playwright + CDP-throttled run proved

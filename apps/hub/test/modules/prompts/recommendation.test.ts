@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
-import { createHubApp } from "../src/index.ts";
+import { createHubApp } from "../../../src/app.ts";
 
 describe("prompt recommendation", () => {
   it("matches a project skill, proposes a file when nothing fits, and writes it once", async () => {

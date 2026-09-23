@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { getSessionDiff, getSessionFileHunks } from "../src/diff.ts";
+import { getSessionDiff, getSessionFileHunks } from "../../../src/modules/sessions/diff.ts";
 
 const execFileAsync = promisify(execFile);
 

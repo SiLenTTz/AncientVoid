@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { Writable } from "node:stream";
 import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
-import { createHubApp, redactUrl } from "../src/index.ts";
+import { createHubApp, redactUrl } from "../../src/app.ts";
 
 describe("no credentials in logs (BUG-0028, AC-P6-2)", () => {
   it("masks token query parameters", () => {

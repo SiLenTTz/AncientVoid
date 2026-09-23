@@ -7,7 +7,7 @@ import { FLEET_PROTOCOL_VERSION } from "@uacc/contracts";
 import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { createHubApp } from "../src/index.ts";
+import { createHubApp } from "../../../src/app.ts";
 
 describe("fleet identity (T6.1, ADR-0017)", () => {
   let dir: string;

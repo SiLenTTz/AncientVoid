@@ -7,8 +7,8 @@ import { WebSocket } from "ws";
 import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService, ApprovalService, WebAuthnStore } from "@uacc/core";
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { createHubApp } from "../src/index.ts";
-import { isQmdAvailable, removeIndex } from "../src/search.ts";
+import { createHubApp } from "../src/app.ts";
+import { isQmdAvailable, removeIndex } from "../src/modules/search/search.ts";
 
 describe("hub server", () => {
   let dir: string;

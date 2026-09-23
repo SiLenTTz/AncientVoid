@@ -7,7 +7,7 @@ import {
   parseClaudeEnhanceOutput,
   parseCodexEnhanceOutput,
   parseOpencodeEnhanceOutput,
-} from "../src/enhance.ts";
+} from "../../../src/modules/prompts/enhance.ts";
 
 describe("parseClaudeEnhanceOutput (T1.5-8)", () => {
   it("extracts the rewritten prompt and real cost from claude's --output-format json blob", () => {
@@ -92,7 +92,7 @@ describe("opencodeEnhanceArgs", () => {
 describe("parseOpencodeEnhanceOutput", () => {
   it("extracts the text part and sums real step costs from a captured opencode stream", () => {
     const fixture = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../../../packages/adapters/opencode/test/fixtures/trivial-read.jsonl"),
+      join(dirname(fileURLToPath(import.meta.url)), "../../../../../packages/adapters/opencode/test/fixtures/trivial-read.jsonl"),
       "utf8",
     );
     const parsed = parseOpencodeEnhanceOutput(fixture);

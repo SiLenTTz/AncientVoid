@@ -27,7 +27,12 @@ Code wird nach Fachthema geordnet, nicht nach Technik. Jedes Modul hat eine
 
 ```text
 apps/                       lauffähige Programme (treibende Adapter)
-  hub/                      HTTP/WS-Server: src/http/<modul>.routes.ts, src/ws/, src/platform/
+  hub/src/                  HTTP/WS-Server
+    app.ts, routes.ts       Zusammensetzung (createHubApp, alle Modul-Routen)
+    route-context.ts        Abhängigkeiten + gemeinsame Helfer der Routen
+    modules/<modul>/        <modul>.routes.ts + Dienste des Moduls (diff, ws,
+                            enhance, search, webauthn, fleet-proxy …)
+    platform/               auth, http-json
   pwa/                      src/app/, src/features/<feature>/, src/shared/
   hubctl/  gateway-mcp/
 packages/                   Bibliotheken
