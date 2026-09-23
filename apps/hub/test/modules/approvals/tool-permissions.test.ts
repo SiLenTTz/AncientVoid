@@ -91,6 +91,10 @@ describe("native tool permissions (T7.2)", () => {
     const answered = await call("GET", `/api/sessions/${sessionId}/tool-permissions/${id}`, bridgeToken);
     expect(answered.body.answer).toEqual({ behavior: "deny", message: "Abgelehnt von pixel: kein Force-Push. Nicht ausführen." });
     expect(sessions.operation(id)?.state).toBe("rejected");
+    // the provider got its answer and works on — the session must not hang in waiting_approval
+    expect(sessions.get(sessionId)?.status).toBe("working");
+    const tail = (await sessions.tail(sessionId, 0, 500)).map((e) => (e.payload as { kind?: string }).kind);
+    expect(tail).toContain("tool.permission_answered");
   });
 
   it("a provider question needs an answer, which goes back with the input", async () => {

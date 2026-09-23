@@ -66,6 +66,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     const results = (await hub.events(id)).filter((e) => e.type === "tool_result");
     expect(results).toHaveLength(1);
     expect(results[0]!.payload.isError).toBe(true);
+    await expect(app.locator(".topbar .pill")).toHaveText("idle");
   });
 
   test("T7.2: eine Rückfrage von Claude am Handy beantworten", async ({ app, hub }) => {

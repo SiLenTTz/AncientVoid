@@ -163,7 +163,12 @@ export class ApprovalFlow {
     status: "approved" | "rejected",
     decidedByLabel: string,
   ): Promise<void> {
-    if (status === "rejected") this.operations.transition(approvalId, ["pending"], "rejected", `abgelehnt von ${decidedByLabel}`);
+    // A tool request (T7.2) is settled when its answer reaches the provider
+    // (ToolPermissions.poll), not here — that is where the session goes back
+    // to work.
+    if (status === "rejected" && this.operations.get(approvalId)?.kind !== "tool.permission") {
+      this.operations.transition(approvalId, ["pending"], "rejected", `abgelehnt von ${decidedByLabel}`);
+    }
     const session = this.host.session(sessionId);
     if (!session) return; // session ended while the approval sat pending — nothing to record onto
     await this.host.emitSystem(session, "session.approval_decided", { approvalId, action, status, actor: decidedByLabel });
