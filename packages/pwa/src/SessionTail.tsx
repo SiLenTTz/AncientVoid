@@ -7,6 +7,7 @@ import { GlobalDock, type Page } from "./Dock.tsx";
 import { VoiceSheet } from "./VoiceSheet.tsx";
 import { formatUsd, formatWindow } from "./Dashboard.tsx";
 import { SearchPane } from "./Search.tsx";
+import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
 
 /**
  * T1.6 filter engine — three presets per EPIC-P1 §2/§5 (AC-P1-4), not the
@@ -255,6 +256,31 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     };
   }, []);
 
+  // Run strip: progress of the current turn and the provider's quota.
+  const [now, setNow] = useState(Date.now());
+  const [quotaUsage, setQuotaUsage] = useState<AdapterUsage | null>(null);
+  useEffect(() => {
+    if (status !== "working") return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [status]);
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      hubApi
+        .adapterUsage(session.adapter)
+        .then((u) => alive && setQuotaUsage(u))
+        .catch(() => undefined);
+    void load();
+    const timer = setInterval(() => void load(), 15_000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [session.adapter]);
+  const progress = runProgress(events, status, now);
+  const quota = quotaSummary(quotaUsage, events);
+
   const toggleControls = () => {
     setControlsHidden((hidden) => {
       localStorage.setItem("uacc.controlsHidden", hidden ? "0" : "1");
@@ -368,6 +394,24 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
           {archived ? "Zurückholen" : "Archivieren"}
         </button>
         <div class={`conn-dot ${conn}`} title={conn} />
+      </div>
+
+      <div class="run-strip">
+        {progress &&
+          (progress.percent !== null ? (
+            <div class="run-progress" title="aus der To-do-Liste des Agenten">
+              <div class="run-bar">
+                <span style={`width: ${progress.percent}%`} />
+              </div>
+              <span>
+                {progress.done}/{progress.total} Aufgaben · {progress.percent} %
+                {progress.etaMs !== null ? ` · noch ca. ${formatMinutes(progress.etaMs)}` : ""}
+              </span>
+            </div>
+          ) : (
+            <div class="run-progress dim">läuft seit {formatMinutes(progress.elapsedMs)} · ohne Plan kein Fortschritt messbar</div>
+          ))}
+        <div class={`run-quota ${quota.level}`}>{quota.text}</div>
       </div>
 
       <div
