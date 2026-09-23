@@ -10,10 +10,7 @@ const review: SkillOrAgent = { kind: "skill", name: "pr-review", description: "M
 describe("recommendForPrompt", () => {
   it("picks the skill whose description shares the prompt's words", () => {
     const rec = recommendForPrompt("Bitte den Defekt im Login reproduzieren und fixen", [review, bugfix]);
-    expect(rec.mode).toBe("match");
-    expect(rec.kind).toBe("skill");
-    expect(rec.name).toBe("bugfix");
-    expect(rec.draft).toBeNull();
+    expect(rec).toMatchObject({ mode: "match", kind: "skill", name: "bugfix", draft: null });
   });
 
   it("matches a workflow file when its name is in the prompt", () => {
@@ -23,28 +20,33 @@ describe("recommendForPrompt", () => {
     expect(rec).toMatchObject({ mode: "match", kind: "workflow", name: "release" });
   });
 
-  it("proposes a new skill when nothing in the project fits", () => {
-    const rec = recommendForPrompt("Baue ein Neon-Tetris mit Punkteanzeige", []);
-    expect(rec.mode).toBe("create");
-    expect(rec.kind).toBe("skill");
-    expect(rec.name).toBe("baue-neon-tetris-punkteanzeige");
-    expect(rec.draft).toContain("name: baue-neon-tetris-punkteanzeige");
-    expect(rec.draft).toContain("Neon-Tetris");
+  const base = (name: string, description: string): SkillOrAgent => ({ kind: "skill", name, description, layer: "base" });
+  const bases = [
+    base("task", "Gemeinsame Form jeder Aufgabe: Ziel, Scope, Constraints, Erfolgskriterium."),
+    base("investigate", "Ursache lesen und belegen, ohne Dateien zu ändern."),
+    base("change", "Eine abgegrenzte Änderung mit Test, der das Erfolgskriterium prüft."),
+    base("review", "Vorhandene Änderung prüfen, ohne selbst zu schreiben."),
+  ];
+  const enhanced = (goal: string) =>
+    `Ziel: ${goal}\nScope: nur das genannte Projekt\nConstraints: keine neuen Abhängigkeiten\nErfolgskriterium: Tests grün`;
+
+  it("never turns a one-off prompt into a skill draft", () => {
+    expect(recommendForPrompt("Baue ein Neon-Tetris mit Punkteanzeige", [])).toBeNull();
+    expect(recommendForPrompt("Baue ein Neon-Tetris mit Punkteanzeige und Glow", bases)).toBeNull();
   });
 
-  it("extends a base skill instead of copying the whole prompt into a new file", () => {
-    const task: SkillOrAgent = {
-      kind: "skill",
-      name: "task",
-      description: "Gemeinsame Form jeder Aufgabe",
-      layer: "base",
-    };
-    const rec = recommendForPrompt("Baue ein Neon-Tetris mit Punkteanzeige und Glow", [task]);
-    expect(rec.mode).toBe("create");
-    expect(rec.draft).toContain("extends: task");
-    expect(rec.draft).toContain("## Abweichung");
-    expect(rec.draft).not.toContain("Constraints");
-    expect(rec.reason).toContain("task");
+  it("ignores the headings every enhanced prompt carries", () => {
+    expect(recommendForPrompt(enhanced("Mach die Login-Seite schneller"), bases)).toBeNull();
+    expect(recommendForPrompt(enhanced("Farben der Startseite anpassen"), [bugfix, review, ...bases])).toBeNull();
+  });
+
+  it("needs more than one shared word", () => {
+    expect(recommendForPrompt("Bitte ein review der Datei", [review])).toBeNull();
+  });
+
+  it("recommends a base skill as it is when it clearly fits", () => {
+    const rec = recommendForPrompt(enhanced("Ursache für den Absturz lesen und belegen"), bases);
+    expect(rec).toMatchObject({ mode: "match", name: "investigate", draft: null });
   });
 
   it("keeps a matching project skill ahead of a base skill", () => {
@@ -55,9 +57,12 @@ describe("recommendForPrompt", () => {
     expect(rec).toMatchObject({ mode: "match", name: "bugfix" });
   });
 
-  it("proposes an agent or a workflow when the prompt asks for one", () => {
-    expect(recommendForPrompt("Baue einen Agent der Reviews macht", []).kind).toBe("agent");
-    expect(recommendForPrompt("Beschreibe den Release-Ablauf als Workflow", []).kind).toBe("workflow");
+  it("proposes a new skill, agent or workflow only when the prompt asks for one", () => {
+    expect(recommendForPrompt("Baue einen Agent der Reviews macht", [])).toMatchObject({ mode: "create", kind: "agent" });
+    expect(recommendForPrompt("Beschreibe den Release-Ablauf als Workflow", [])).toMatchObject({ mode: "create", kind: "workflow" });
+    const skill = recommendForPrompt(enhanced("Lege einen Skill für Changelog-Einträge an"), bases);
+    expect(skill).toMatchObject({ mode: "create", kind: "skill", name: "changelog-eintraege" });
+    expect(skill?.draft).toContain("extends: task");
   });
 });
 

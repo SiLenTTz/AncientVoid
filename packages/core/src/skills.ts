@@ -185,7 +185,7 @@ export async function scanProjectSkills(
 }
 
 const STOP = new Set(
-  "und oder der die das ein eine fuer mit auf ist sind nicht wenn dann nach vor dem des zum zur von als auch nur dass sich wir ich du es im zu am an so wie bei aus ueber unter den einen einem einer bitte noch schon kann soll sollte wird werden dieser diese dieses aber the and for with this that from into your you are was were has have been not but eintrag projekt".split(
+  "und oder der die das ein eine fuer mit auf ist sind nicht wenn dann nach vor dem des zum zur von als auch nur dass sich wir ich du es im zu am an so wie bei aus ueber unter den einen einem einer bitte noch schon kann soll sollte wird werden dieser diese dieses aber the and for with this that from into your you are was were has have been not but eintrag projekt ziel scope constraints erfolgskriterium aufgabe".split(
     " ",
   ),
 );
@@ -229,6 +229,16 @@ function kindRank(kind: SkillOrAgent["kind"]): number {
   return 2;
 }
 
+/** Only an explicit request creates something new — a one-off prompt is not
+ * a skill (user feedback 2026-09-23: drafts were just the prompt again). */
+function asksForArtifact(text: string): boolean {
+  const folded = fold(text);
+  return (
+    /\b(skill|agent|workflow|arbeitsablauf)\b/.test(folded) &&
+    /\b(lege|leg|anlegen|erstelle|erstell|erstellen|baue|bau|bauen|schreibe|schreib|beschreibe|definiere|neuen?|create|add|make)\b/.test(folded)
+  );
+}
+
 function proposeKind(text: string): SkillOrAgent["kind"] {
   const folded = fold(text);
   if (/\bworkflow\b|\barbeitsablauf\b|\bablauf\b/.test(folded)) return "workflow";
@@ -241,8 +251,17 @@ function oneLine(value: string, max: number): string {
   return line.length <= max ? line : `${line.slice(0, max - 1).trimEnd()}…`;
 }
 
+/** Words that ask for the artifact, not what it is about. */
+const REQUEST_WORDS = new Set(
+  "lege leg anlegen erstelle erstell erstellen baue bau bauen schreibe schreib beschreibe definiere neuen neue skill agent workflow arbeitsablauf create add make".split(" "),
+);
+
+function nameTokens(source: string): string[] {
+  return tokens(source).filter((token) => !REQUEST_WORDS.has(token)).slice(0, 4);
+}
+
 function uniqueName(source: string, items: readonly SkillOrAgent[]): string {
-  let name = slugify(tokens(source).slice(0, 4).join(" "));
+  let name = slugify(nameTokens(source).join(" "));
   const taken = new Set(items.map((item) => item.name));
   if (taken.has(name)) {
     let n = 2;
@@ -283,7 +302,13 @@ function draftFor(kind: SkillOrAgent["kind"], name: string, description: string,
  * shares words with the prompt. Otherwise proposes a new file. No model
  * call — the enhance step already spent the quota.
  */
-export function recommendForPrompt(text: string, items: readonly SkillOrAgent[]): PromptRecommendation {
+/**
+ * A recommendation only when it makes sense: an existing skill, agent or
+ * workflow with clear evidence (its name in the prompt, or at least two
+ * distinct words from name and description), or a new one when the prompt
+ * explicitly asks for it. Otherwise null — no draft built from the prompt.
+ */
+export function recommendForPrompt(text: string, items: readonly SkillOrAgent[]): PromptRecommendation | null {
   const folded = fold(text);
   const textTokens = tokens(text);
   const ranked = items
@@ -293,7 +318,8 @@ export function recommendForPrompt(text: string, items: readonly SkillOrAgent[])
       const described = new Set(tokens(`${item.name} ${item.description}`));
       const hits: string[] = [];
       let score = 0;
-      if (name.length >= 3 && folded.includes(name)) {
+      const named = name.length >= 3 && new RegExp(`(^|[^a-z0-9])${name.replace(/[^a-z0-9]/g, "[^a-z0-9]?")}([^a-z0-9]|$)`).test(folded);
+      if (named) {
         score += 5;
         hits.push(item.name);
       }
@@ -309,9 +335,15 @@ export function recommendForPrompt(text: string, items: readonly SkillOrAgent[])
           hits.push(token);
         }
       }
-      return { item, score, hits: [...new Set(hits)] };
+      // Long enhanced prompts share stray words with any description. Without
+      // the name: three distinct shared words, or two that cover at least
+      // half of a short description.
+      const descriptionWords = [...described].filter((token) => !nameParts.includes(token));
+      const covered = descriptionWords.filter((token) => textTokens.includes(token)).length;
+      const coverage = descriptionWords.length > 0 ? covered / descriptionWords.length : 0;
+      return { item, score, hits: [...new Set(hits)], named, coverage };
     })
-    .filter((row) => row.score >= 3)
+    .filter((row) => row.named || row.hits.length >= 3 || (row.hits.length >= 2 && row.coverage >= 0.5))
     .sort(
       (a, b) =>
         b.score - a.score ||
@@ -333,16 +365,25 @@ export function recommendForPrompt(text: string, items: readonly SkillOrAgent[])
     };
   }
 
-  if (best?.item.layer === "base" && best.item.kind === "skill") {
-    return extendBase(best.item, text, items);
+  if (best && !asksForArtifact(text)) {
+    const shown = best.hits.slice(0, 3).join(", ");
+    return {
+      mode: "match",
+      kind: best.item.kind,
+      name: best.item.name,
+      description: best.item.description,
+      reason: `Basis-Skill, trifft ${shown}.`,
+      draft: null,
+    };
   }
-  const task = items.find((item) => item.layer === "base" && item.kind === "skill" && item.name === "task");
-  if (task && proposeKind(text) === "skill") return extendBase(task, text, items);
 
+  if (!asksForArtifact(text)) return null;
   const kind = proposeKind(text);
+  const task = items.find((item) => item.layer === "base" && item.kind === "skill" && item.name === "task");
+  if (task && kind === "skill") return extendBase(task, text, items);
   const ziel = text.match(/Ziel:\s*(.+)/i);
   const source = (ziel?.[1] ?? text).split("\n")[0] ?? text;
-  let name = slugify(tokens(source).slice(0, 4).join(" "));
+  let name = slugify(nameTokens(source).join(" "));
   const taken = new Set(items.map((item) => item.name));
   if (taken.has(name)) {
     let n = 2;
@@ -355,7 +396,7 @@ export function recommendForPrompt(text: string, items: readonly SkillOrAgent[])
     kind,
     name,
     description,
-    reason: "Kein Skill, Agent oder Workflow im Projekt passt.",
+    reason: "Der Prompt bittet darum, das anzulegen.",
     draft: draftFor(kind, name, description, text),
   };
 }

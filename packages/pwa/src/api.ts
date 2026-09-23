@@ -308,7 +308,7 @@ export const hubApi = {
   projects: () => api<ProjectDiscoveryResult>("/api/projects"),
   skills: (project: string) => api<{ items: SkillOrAgent[] }>(`/api/skills?project=${encodeURIComponent(project)}`),
   recommendPrompt: (project: string, text: string) =>
-    api<PromptRecommendation>("/api/prompt-recommendation", { method: "POST", body: JSON.stringify({ project, text }) }),
+    api<PromptRecommendation | null>("/api/prompt-recommendation", { method: "POST", body: JSON.stringify({ project, text }) }),
   saveArtifact: (body: { project: string; kind: PromptRecommendation["kind"]; name: string; description: string; draft: string }) =>
     api<{ path: string }>("/api/skills", { method: "POST", body: JSON.stringify(body) }),
   enhancePrompt: (adapter: string, project: string, text: string) =>
