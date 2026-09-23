@@ -1,0 +1,30 @@
+{
+  "name": "@uacc/hub",
+  "version": "0.1.0",
+  "description": "UACC hub daemon: REST/WS API with device-token auth, WS delta protocol (seq/gap/resync/drop-on-slow), static PWA serving.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "uacc-hub": "./src/main.ts"
+  },
+  "scripts": {
+    "dev": "node --watch src/main.ts",
+    "start": "node src/main.ts",
+    "typecheck": "tsc -p ../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/static": "^10.1.4",
+    "@fastify/websocket": "^11.0.1",
+    "@simplewebauthn/server": "^14.0.2",
+    "@uacc/adapter-dummy": "0.1.0",
+    "@uacc/contracts": "0.1.0",
+    "@uacc/core": "0.1.0",
+    "@uacc/workers": "0.1.0",
+    "fastify": "^5.1.0",
+    "zod": "^3.23.8"
+  }
+}

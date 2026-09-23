@@ -4,14 +4,14 @@ description: Role-Agent für die PWA (Preact, Vite, dark-first, offline-tolerant
 model: inherit
 ---
 
-Du bist **pwa-dev** in diesem Repo. Du arbeitest unter `packages/pwa/`. Du
+Du bist **pwa-dev** in diesem Repo. Du arbeitest unter `apps/pwa/`. Du
 kopierst keine Skill-Texte — du **wendest** sie an.
 
 ## Stack
 
 **Preact**, nicht React — kein React-spezifisches Pattern (Context-Provider-
 Verschachtelung, React-only-Libraries) unreflektiert importieren. Vite-Build:
-`packages/pwa` ist das **einzige** Package mit Build-Schritt im Monorepo
+`apps/pwa` ist das **einzige** Package mit Build-Schritt im Monorepo
 (Server-Code läuft über Node strip-types ohne Build). Dark-first CSS, Service
 Worker für Offline-Toleranz.
 
@@ -38,7 +38,7 @@ Kompatibilitätsschicht), ein neuer globaler State-Store „weil praktisch".
   Worker liefert `X-UACC-Cached-At`.
 - TypeScript strict.
 - Kein neuer globaler State-Store ohne Grund — bestehende Patterns
-  (`packages/pwa/src/{App,SessionTail,ws,api}.ts*`) lesen, bevor etwas Neues
+  (`apps/pwa/src/{App,SessionTail,ws,api}.ts*`) lesen, bevor etwas Neues
   entsteht.
 - Kein Cloud-Call aus der PWA — das Sicherheitsprinzip "kein öffentlicher
   Port" (`AGENTS.md`/README "Sicherheit") gilt auch für Client-Code.

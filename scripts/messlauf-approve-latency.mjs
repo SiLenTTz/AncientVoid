@@ -50,8 +50,8 @@ const CHROMIUM_PATH = "/usr/bin/chromium";
 const { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService, ApprovalService, WebAuthnStore } =
   await import("../packages/core/src/index.ts");
 const { ProcessRunner } = await import("../packages/workers/src/process.ts");
-const { createAdapter } = await import("../packages/adapter-dummy/src/index.ts");
-const { createHubApp } = await import("../packages/server/src/index.ts");
+const { createAdapter } = await import("../packages/adapters/dummy/src/index.ts");
+const { createHubApp } = await import("../apps/hub/src/index.ts");
 
 const dir = await mkdtemp(join(tmpdir(), "uacc-messlauf-approve-"));
 const db = new HubDatabase(":memory:");
@@ -73,7 +73,7 @@ const app = await createHubApp({
   auth: { tokens, enforceTailnetIdentity: false },
   approvals,
   webauthn: { store: webauthnStore, config: { rpId: "localhost", rpName: "UACC messlauf", origin: ORIGIN } },
-  pwaDir: resolve(repoRoot, "packages/pwa/dist"),
+  pwaDir: resolve(repoRoot, "apps/pwa/dist"),
 });
 await app.listen({ port: PORT, host: "127.0.0.1" });
 console.log(`hub listening on ${ORIGIN}`);
@@ -100,7 +100,7 @@ await page.goto(ORIGIN);
 await page.evaluate((t) => localStorage.setItem("uacc.token", t), token);
 await page.reload();
 await page.waitForTimeout(500);
-// Local UMD bundle (already a real dependency of packages/pwa, same
+// Local UMD bundle (already a real dependency of apps/pwa, same
 // library version the shipped app uses) — no network call from inside
 // the measured browser context.
 await page.addScriptTag({

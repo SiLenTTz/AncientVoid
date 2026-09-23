@@ -9,7 +9,9 @@
     "node": ">=22.5.0"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/adapters/*",
+    "apps/*"
   ],
   "scripts": {
     "build": "tsc -p . --noEmit",
@@ -18,8 +20,8 @@
     "test:e2e": "playwright test",
     "lint": "eslint .",
     "typecheck": "tsc -p . --noEmit",
-    "dev:server": "node --watch packages/server/src/main.ts",
-    "gateway-mcp": "node packages/gateway-mcp/src/main.ts",
+    "dev:server": "node --watch apps/hub/src/main.ts",
+    "gateway-mcp": "node apps/gateway-mcp/src/main.ts",
     "loadtest": "node scripts/loadtest.mjs",
     "messlauf:hubctl-latency": "node scripts/messlauf-hubctl-latency.mjs",
     "messlauf:approve-latency": "node scripts/messlauf-approve-latency.mjs",
@@ -29,7 +31,7 @@
     "check:adapter-matrix": "node scripts/check-adapter-matrix.mjs",
     "check:commits": "node scripts/check-commits.mjs",
     "prepare": "node scripts/setup-git.mjs",
-    "hubctl": "node packages/hubctl/src/cli.ts",
+    "hubctl": "node apps/hubctl/src/cli.ts",
     "gate": "npm run typecheck && npm run lint && npm run check:commits && npm run check:adapter-matrix && npm test && npm run test:e2e"
   },
   "devDependencies": {
@@ -42,6 +44,7 @@
     "playwright": "^1.63.0",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.15.0",
+    "vite": "^5.4.21",
     "vitest": "^3.2.7"
   },
   "allowScripts": {

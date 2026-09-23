@@ -31,14 +31,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..");
 
 const CHECKED = [
-  { id: "dummy", modulePath: "../packages/adapter-dummy/src/index.ts" },
-  { id: "claude", modulePath: "../packages/adapter-claude/src/index.ts" },
-  { id: "codex", modulePath: "../packages/adapter-codex/src/index.ts" },
-  { id: "opencode", modulePath: "../packages/adapter-opencode/src/index.ts" },
-  { id: "aider", modulePath: "../packages/adapter-aider/src/index.ts" },
-  { id: "copilot", modulePath: "../packages/adapter-copilot/src/index.ts" },
-  { id: "cursor-clip", modulePath: "../packages/adapter-cursor-clip/src/index.ts" },
-  { id: "claude-clip", modulePath: "../packages/adapter-claude-clip/src/index.ts" },
+  { id: "dummy", modulePath: "../packages/adapters/dummy/src/index.ts" },
+  { id: "claude", modulePath: "../packages/adapters/claude/src/index.ts" },
+  { id: "codex", modulePath: "../packages/adapters/codex/src/index.ts" },
+  { id: "opencode", modulePath: "../packages/adapters/opencode/src/index.ts" },
+  { id: "aider", modulePath: "../packages/adapters/aider/src/index.ts" },
+  { id: "copilot", modulePath: "../packages/adapters/copilot/src/index.ts" },
+  { id: "cursor-clip", modulePath: "../packages/adapters/cursor-clip/src/index.ts" },
+  { id: "claude-clip", modulePath: "../packages/adapters/claude-clip/src/index.ts" },
 ];
 const SKIPPED = ["swarm", "zai", "local-llm", "deepseek"];
 

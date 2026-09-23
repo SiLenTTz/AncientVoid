@@ -37,8 +37,8 @@ const { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService }
   join(repoRoot, "packages/core/src/index.ts")
 );
 const { ProcessRunner } = await import(join(repoRoot, "packages/workers/src/process.ts"));
-const { createAdapter } = await import(join(repoRoot, "packages/adapter-dummy/src/index.ts"));
-const { createHubApp } = await import(join(repoRoot, "packages/server/src/index.ts"));
+const { createAdapter } = await import(join(repoRoot, "packages/adapters/dummy/src/index.ts"));
+const { createHubApp } = await import(join(repoRoot, "apps/hub/src/index.ts"));
 
 const dir = await mkdtemp(join(tmpdir(), "uacc-k2-"));
 const db = new HubDatabase(":memory:");
@@ -54,7 +54,7 @@ const app = await createHubApp({
   tokens,
   registry,
   auth: { tokens, enforceTailnetIdentity: false },
-  pwaDir: join(repoRoot, "packages/pwa/dist"),
+  pwaDir: join(repoRoot, "apps/pwa/dist"),
 });
 await app.listen({ port: 0, host: "127.0.0.1" });
 const { port } = app.server.address();

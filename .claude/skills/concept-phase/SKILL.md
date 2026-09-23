@@ -37,7 +37,7 @@ Phase.
 
 1. **Read** — die Aufgaben-Zeile im `EPIC-Pn` wörtlich, plus AC, die dazu gehören.
 2. **Map Code** — bestehende Pfade: `packages/contracts` → `packages/core`
-   → `packages/server` → `packages/pwa` (nicht raten, lesen).
+   → `apps/hub` → `apps/pwa` (nicht raten, lesen).
 3. **Research** — verwandte ADRs, `docs/adapters.md`, Invarianten.
 4. **Ask** — nur was nach 1–3 wirklich offen ist, aber vollständig und vor
    dem ersten Slice. Wer ohne Antwort weitermacht, schreibt die gewählte

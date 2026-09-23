@@ -46,14 +46,14 @@ Beispiel: [`examples/adapters/openai-compat/`](./examples/adapters/openai-compat
 | Adapter beisteuern (npm-Paket `uacc-adapter-*`) | `docs/adapters.md` |
 | Adapter-Verhalten verändern/erweitern | `packages/contracts/src/adapter.ts` + ADR |
 | Anderen Worker-Runner (z. B. WSL, remote) | `packages/workers/` (`WorkerRunner`-Interface) |
-| Frontend | `packages/pwa/` (Preact, bewusst klein) |
+| Frontend | `apps/pwa/` (Preact, bewusst klein) |
 | Doku/Epics | `docs/`, `epics/` |
 
 ## Verpflichtend für jeden Beitrag
 
 1. `npm test && npm run lint && npm run typecheck` — grün.
 2. Adapter: Contract-Suite aus `@uacc/adapter-testkit` grün (siehe
-   `packages/adapter-dummy/test/contract.test.ts` als Vorlage).
+   `packages/adapters/dummy/test/contract.test.ts` als Vorlage).
 3. Keine Secrets, keine Roh-Logs. `data/` bleibt git-ignored.
 4. Neue Komponenten brauchen Contract-Bezug (AGENTS.md, Regel 1 & 5).
 5. Conventions aus `AGENTS.md` gelten für Menschen und Agenten gleichermaßen.

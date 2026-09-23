@@ -7,27 +7,20 @@
     "types": ["node"]
   },
   "include": [
-    "packages/contracts/src",
-    "packages/core/src",
-    "packages/workers/src",
-    "packages/adapter-dummy/src",
-    "packages/adapter-claude/src",
-    "packages/adapter-codex/src",
-    "packages/adapter-opencode/src",
-    "packages/adapter-aider/src",
-    "packages/adapter-copilot/src",
-    "packages/adapter-cursor-clip/src",
-    "packages/adapter-claude-clip/src",
-    "packages/gateway-mcp/src",
-    "packages/adapter-testkit/src",
-    "packages/server/src",
-    "packages/hubctl/src",
+    "packages/*/src",
     "packages/*/test",
+    "packages/adapters/*/src",
+    "packages/adapters/*/test",
+    "apps/hub/src",
+    "apps/hub/test",
+    "apps/hubctl/src",
+    "apps/gateway-mcp/src",
+    "apps/gateway-mcp/test",
     "scripts",
     "e2e",
     "vitest.config.ts",
     "playwright.config.ts",
     "eslint.config.mjs"
   ],
-  "exclude": ["packages/pwa"]
+  "exclude": ["apps/pwa"]
 }

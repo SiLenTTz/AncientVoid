@@ -59,7 +59,7 @@ UI-Funktion oder neuer Ablauf = neuer oder erweiterter Spec in `e2e/specs/`.
   (Unit / Integration / E2E, rot-dann-grün, Skip-Muster).
 - Unit/Contract-Tests in `packages/*/test/*.test.ts` (vitest, forks pool).
 - Neue Integrations-Tests: `*.integration.test.ts` (Vorbild:
-  `packages/server/test/server.test.ts`).
+  `apps/hub/test/server.test.ts`).
 - E2E in `e2e/` (Playwright Chromium). Fehlt der Browser, skippt der Test
   sichtbar — analog tmux / ADR-0002. Nicht als Pass zählen.
 - Adapter bekommen die Suite aus `@uacc/adapter-testkit` — grün =

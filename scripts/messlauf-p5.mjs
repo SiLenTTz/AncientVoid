@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Messlauf EPIC-P5 against a real hub process (the E2E gate's TestHub:
- * packages/server/src/main.ts, own data dir, fake provider CLIs).
+ * apps/hub/src/main.ts, own data dir, fake provider CLIs).
  *
  *   node scripts/messlauf-p5.mjs discovery [--runs 10]   # AC-P5-1 (K9)
  *   node scripts/messlauf-p5.mjs recovery  [--runs 10]   # AC-P5-3 (K7), dummy

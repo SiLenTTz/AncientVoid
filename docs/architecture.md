@@ -143,7 +143,7 @@ Jede Session mit einem echten Git-Projekt bekommt ein eigenes
 trägt diesen Wert, `AdapterContext.workdir`/`spawnWorker`'s `cwd` zeigen
 auf den Worktree, nicht mehr auf den rohen Projektpfad. Ein Nicht-Git-Pfad
 ist ein ehrlicher, sichtbarer Fallback (`session.no_worktree_isolation`),
-kein stiller Bruch. Die Diff-Engine (`packages/server/src/diff.ts`) diff't
+kein stiller Bruch. Die Diff-Engine (`apps/hub/src/diff.ts`) diff't
 gegen diesen echten `base_sha`, liefert strukturierte Hunks mit gits
 eigener Funktions-Anker-Heuristik, und kollabiert Hunk-Bodies unter K3
 (> 50 KB) — real gemessen `< 50 KB` für eine echte ~2-MB-Diff (T2.9).
@@ -154,7 +154,7 @@ nach Commit-Grenzen (AC-P2-1 nur teilweise erfüllt, siehe EPIC-P2 §5).
 
 Drei Klassen (`read` frei, `write` Tipp-Bestätigung, `destructive`
 WebAuthn-Biometrie) über `ApprovalService` (`packages/core/src/
-approvals.ts`) + `WebAuthnStore`/`packages/server/src/webauthn.ts` (echtes
+approvals.ts`) + `WebAuthnStore`/`apps/hub/src/webauthn.ts` (echtes
 `@simplewebauthn/server`, keine eigene Krypto). `SessionManager.steer()`
 parkt ein `prompt`-Steer als `write`-Approval, sobald ein
 `ApprovalService` konfiguriert ist (`hub.config.json`s
@@ -184,10 +184,10 @@ Session, nicht nur die auslösende.
 ### MCP-Gateway-Sidecar (P4, T4.6/T4.7)
 
 `@uacc/gateway-mcp` — ein separater, **nie vom Hub selbst gestarteter**
-Prozess (`packages/server/src/main.ts` importiert ihn nicht, AC-P4-5:
+Prozess (`apps/hub/src/main.ts` importiert ihn nicht, AC-P4-5:
 default aus). Exponiert genau drei Meta-Tools (`hub_search`/
 `hub_describe`/`hub_exec`, echtes `@modelcontextprotocol/sdk`) gegen eine
-feste Operationen-Liste (`packages/gateway-mcp/src/operations.ts`) —
+feste Operationen-Liste (`apps/gateway-mcp/src/operations.ts`) —
 bewusst ohne `approvals.decide` und ohne Session-`create`/`stop`/`park`
 (siehe dessen eigener Doku-Kommentar). `hub_exec` auf einer
 `write`-Operation nutzt echt dieselbe ADR-0007-Freigabe wie jeder andere

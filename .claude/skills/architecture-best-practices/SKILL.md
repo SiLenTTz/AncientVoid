@@ -37,8 +37,8 @@ bezahlt sind. Kein Workflow; eine Referenz, die andere Skills anwenden.
 ```text
 Adapter.start(spec, ctx) → ctx.emit(EmittedEvent)
   → EventStore (seq/ts/sessionId zuweisen, K5 erzwingen, JSONL+Snapshot)
-  → WS/SSE-Transport (packages/server)
-  → PWA-Projektion (packages/pwa)
+  → WS/SSE-Transport (apps/hub)
+  → PWA-Projektion (apps/pwa)
 ```
 
 Jede Stufe hat einen Vertrag. Ein Adapter, der EventStore-Internas kennt,

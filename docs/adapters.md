@@ -62,7 +62,7 @@ echten, unterschiedlichen `claude`-Mechanismen). Ein Adapter ohne
 verifizierten Mechanismus **ignoriert** `args.skill`/`args.agent` nicht
 still — er emittiert ein sichtbares `system`-Event, das die Wahl als
 wirkungslos meldet (Fail loud, `AGENTS.md` Regel 6), siehe
-`packages/adapter-codex/src/index.ts`.
+`packages/adapters/codex/src/index.ts`.
 
 ## Config-Validierung
 
@@ -93,8 +93,8 @@ deinen Adapter laden — ohne dass der Hub dich kennt.
 > wirft dort immer. Betrifft jeden echten (nicht-synthetischen) Adapter.
 > Workaround, bis das behoben ist: eigene Lifecycle-Tests direkt auf
 > `makeRecordingContext({ spawnWorker: ... })` — siehe
-> `packages/adapter-claude/test/adapter.test.ts` oder
-> `packages/adapter-codex/test/adapter.test.ts` als Vorlage.
+> `packages/adapters/claude/test/adapter.test.ts` oder
+> `packages/adapters/codex/test/adapter.test.ts` als Vorlage.
 
 ## Fixtures aufzeichnen (T1.4)
 

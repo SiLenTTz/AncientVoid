@@ -7,7 +7,7 @@ export default tseslint.config(
     ignores: [
       "**/dist/**",
       "**/node_modules/**",
-      "packages/pwa/**",
+      "apps/pwa/**",
       // Playwright E2E gate output (HTML report bundles, traces).
       "playwright-report/**",
       "test-results/**",

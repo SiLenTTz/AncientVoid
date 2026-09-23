@@ -44,7 +44,7 @@ Fehlt die Datei unter `bugs/`: zuerst [`bug-report`](../bug-report/SKILL.md).
    Fehlt die Datei → Skill `bug-report`. Acceptance und beobachtetes vs.
    erwartetes Verhalten festhalten.
 2. Repro über die betroffene Testdatei (`packages/*/test/*.test.ts`), über
-   `hubctl` (`node packages/hubctl/src/cli.ts sessions` /`tail`) oder über die
+   `hubctl` (`node apps/hubctl/src/cli.ts sessions` /`tail`) oder über die
    PWA im Browser — je nachdem, wo das Symptom auftritt.
 3. Repro **sehen**: Testfehlschlag, Log-Zeile, Event im Tail. Ohne
    Beobachtung kein Fix.

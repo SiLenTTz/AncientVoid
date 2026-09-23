@@ -4,7 +4,7 @@ import type { HubDatabase } from "../../platform/index.ts";
  * T2.5: pure persistence for WebAuthn credentials/challenges — no crypto
  * here. Verification (attestation/assertion parsing, signature checks)
  * needs the real HTTP request's rpId/origin, which is a server-package
- * concern (@simplewebauthn/server lives in packages/server); this store
+ * concern (@simplewebauthn/server lives in apps/hub); this store
  * only ever sees already-verified data or opaque challenge strings.
  */
 

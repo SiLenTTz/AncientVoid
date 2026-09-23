@@ -205,7 +205,7 @@ export class ApprovalService {
   /**
    * T2.5: the ONLY path that can approve/reject a `destructive` request.
    * `verifiedAssertionFingerprint` must already be the output of a real,
-   * successfully verified WebAuthn assertion (packages/server/src/
+   * successfully verified WebAuthn assertion (apps/hub/src/
    * webauthn.ts) — this method does no cryptographic verification itself,
    * it only refuses to run against the wrong class and records what was
    * already proven. Reason is always required for destructive (set at

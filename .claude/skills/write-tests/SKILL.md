@@ -78,7 +78,7 @@ PWA-DOM (`localStorage`, `document`) vor dem Import stubben — ESM hoistet
 
 ### 3. Integration
 
-Vorbild: `packages/server/test/server.test.ts`.
+Vorbild: `apps/hub/test/server.test.ts`.
 
 1. `mkdtemp` für EventStore, `HubDatabase(":memory:")`.
 2. `AdapterRegistry` + `createDummy`, `SessionManager` + `ProcessRunner`.

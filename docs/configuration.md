@@ -1,7 +1,7 @@
 # Konfiguration
 
 Der Hub liest `UACC_CONFIG` (Pfad) oder standardmäßig `./hub.config.json`.
-Vorlage: `packages/server/hub.config.example.json`. Die eigene Config ist
+Vorlage: `apps/hub/hub.config.example.json`. Die eigene Config ist
 git-ignored — keine Secrets committen.
 
 ```jsonc
@@ -50,9 +50,9 @@ Freitextfeld für den Projektpfad zurück, kein Endpunkt lehnt dann etwas ab.
 ## Device-Tokens
 
 ```bash
-node packages/hubctl/src/cli.ts token issue "pixel-9" --db data/hub.db
-node packages/hubctl/src/cli.ts token list --db data/hub.db
-node packages/hubctl/src/cli.ts token revoke "pixel-9" --db data/hub.db
+node apps/hubctl/src/cli.ts token issue "pixel-9" --db data/hub.db
+node apps/hubctl/src/cli.ts token list --db data/hub.db
+node apps/hubctl/src/cli.ts token revoke "pixel-9" --db data/hub.db
 ```
 
 Plaintext-Token nur einmal sichtbar; in der DB liegt der SHA-256-Hash.

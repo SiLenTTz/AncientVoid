@@ -5,11 +5,11 @@
  *
  *   node scripts/capture-adapter-fixture.mjs --out <path> -- <command> [args...]
  *
- * Example (see packages/adapter-claude/test/fixtures/ for the results of
+ * Example (see packages/adapters/claude/test/fixtures/ for the results of
  * exactly this invocation style):
  *
  *   node scripts/capture-adapter-fixture.mjs \
- *     --out packages/adapter-claude/test/fixtures/new-case.jsonl \
+ *     --out packages/adapters/claude/test/fixtures/new-case.jsonl \
  *     -- claude -p "Reply with exactly: ok" --output-format stream-json --verbose
  *
  * Per AGENTS.md ("Fixtures für echte CLI-Streams (P1): aufgezeichnet,

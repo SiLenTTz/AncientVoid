@@ -27,7 +27,7 @@ coverage/
 *.log
 
 # pwa build output served by server from source in dev
-packages/pwa/dist/
+apps/pwa/dist/
 
 # editors
 .idea/

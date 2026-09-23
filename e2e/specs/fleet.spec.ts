@@ -183,7 +183,7 @@ test.describe("Flotte (EPIC-P6)", () => {
       await app.reload();
       await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
       const { execFileSync } = await import("node:child_process");
-      execFileSync(process.execPath, ["packages/hubctl/src/cli.ts", "token", "revoke", "fleet:omarchy", "--db", `${peer.dataDir}/hub.db`]);
+      execFileSync(process.execPath, ["apps/hubctl/src/cli.ts", "token", "revoke", "fleet:omarchy", "--db", `${peer.dataDir}/hub.db`]);
       await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("Zugriff entzogen", { timeout: 15_000 });
     } finally {
       await peer.stop();

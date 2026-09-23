@@ -56,7 +56,7 @@ Checkliste vor "fertig":
 
 ## Out of scope
 
-`packages/pwa/**`, Service Worker, CSS — das ist `pwa-dev`.
+`apps/pwa/**`, Service Worker, CSS — das ist `pwa-dev`.
 
 ## Verweise
 

@@ -38,8 +38,8 @@ const { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService }
   "../packages/core/src/index.ts"
 );
 const { ProcessRunner } = await import("../packages/workers/src/process.ts");
-const { createAdapter } = await import("../packages/adapter-dummy/src/index.ts");
-const { createHubApp } = await import("../packages/server/src/index.ts");
+const { createAdapter } = await import("../packages/adapters/dummy/src/index.ts");
+const { createHubApp } = await import("../apps/hub/src/index.ts");
 
 const dir = await mkdtemp(join(tmpdir(), "uacc-messlauf-"));
 const db = new HubDatabase(":memory:");
@@ -68,7 +68,7 @@ sessions.subscribe(record.id, (events) => {
 });
 
 // The real hubctl CLI, real WS transport — this is t1.
-const hubctl = spawn(process.execPath, [join(repoRoot, "packages/hubctl/src/cli.ts"), "tail", record.id, "-f"], {
+const hubctl = spawn(process.execPath, [join(repoRoot, "apps/hubctl/src/cli.ts"), "tail", record.id, "-f"], {
   cwd: repoRoot,
   env: { ...process.env, UACC_URL: baseUrl, UACC_TOKEN: token },
 });
