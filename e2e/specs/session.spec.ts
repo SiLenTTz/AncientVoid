@@ -49,6 +49,27 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(app.locator(".event.tool_result")).toHaveCount(1);
   });
 
+  test("jedes Event erscheint genau einmal, auch beim Öffnen mitten im Lauf (BUG-0023)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Verlauf" }).click();
+    await app.getByRole("button", { name: "Debuggen" }).click();
+    await hub.until(async () => (await hub.events(id)).some((e) => e.summary === "dummy: auto-stop reached"), "dummy done");
+    const api = (await hub.events(id)).map((e) => e.seq);
+    await expect.poll(() => app.locator(".event[data-seq]").evaluateAll((els) => els.map((el) => Number(el.getAttribute("data-seq"))))).toEqual(api);
+  });
+
+  test("ein Link auf eine andere Session zeigt nur deren Verlauf (BUG-0024)", async ({ app, hub }) => {
+    const first = await hub.createSession({ adapter: "opencode", prompt: "Erste Session" });
+    const second = await hub.createSession({ adapter: "opencode", prompt: "Zweite Session" });
+    await app.goto(`${hub.origin}/#/sessions/${first}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.getByText(/Antwort auf: Erste Session/)).toBeVisible();
+    await app.evaluate((id) => ((globalThis as unknown as { location: { hash: string } }).location.hash = `#/sessions/${id}`), second);
+    await expect(app.getByText(/Antwort auf: Zweite Session/)).toBeVisible();
+    await expect(app.getByText(/Antwort auf: Erste Session/)).toHaveCount(0);
+  });
+
   test("eine Karte klappt beim Antippen auf und zeigt Details", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "assistant reply");

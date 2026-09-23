@@ -144,7 +144,13 @@ function Main() {
         // T1.6-3: one callback back into the list, optionally landing on a
         // specific dock page — "Übersicht ist aus jedem Kontext heraus mit
         // einem Tap erreichbar" applies to Neue Session/Einstellungen too.
-        <SessionTail session={route.session} onNavigate={(page) => setRoute({ view: "list", initialPage: page })} />
+        // BUG-0024: keyed by id — a link from one session to another must
+        // not keep the first session's events, filter or reply draft.
+        <SessionTail
+          key={route.session.id}
+          session={route.session}
+          onNavigate={(page) => setRoute({ view: "list", initialPage: page })}
+        />
       )}
     </>
   );
