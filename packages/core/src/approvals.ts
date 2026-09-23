@@ -26,6 +26,7 @@ interface ApprovalRow {
   decided_at: string | null;
   decided_by_label: string | null;
   signature: string | null;
+  payload_hash?: string | null;
 }
 
 function rowToRequest(row: ApprovalRow): ApprovalRequest {
@@ -43,6 +44,7 @@ function rowToRequest(row: ApprovalRow): ApprovalRequest {
     decidedAt: row.decided_at,
     decidedByLabel: row.decided_by_label,
     signature: row.signature,
+    payloadHash: row.payload_hash ?? null,
   };
 }
 
@@ -154,8 +156,10 @@ export class ApprovalService {
     return swept;
   }
 
-  private static canonicalPayload(id: string, sessionId: string, decision: string, reason: string | null, decidedAt: string): string {
-    return JSON.stringify({ id, sessionId, decision, reason, decidedAt });
+  /** T7.3: the signature also covers the hash of the released arguments —
+   * a later change to them no longer matches the decision. */
+  private static canonicalPayload(id: string, sessionId: string, decision: string, reason: string | null, decidedAt: string, payloadHash: string | null): string {
+    return JSON.stringify({ id, sessionId, decision, reason, decidedAt, ...(payloadHash ? { payloadHash } : {}) });
   }
 
   /**
@@ -188,7 +192,7 @@ export class ApprovalService {
     const status: ApprovalStatus = decision === "approve" ? "approved" : "rejected";
     const finalReason = reason?.trim() ? reason.trim() : null;
     const signature = createHmac("sha256", rawDeviceToken)
-      .update(ApprovalService.canonicalPayload(id, current.sessionId, decision, finalReason, decidedAt))
+      .update(ApprovalService.canonicalPayload(id, current.sessionId, decision, finalReason, decidedAt, current.payloadHash ?? null))
       .digest("hex");
     this.db
       .prepare(

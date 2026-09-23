@@ -3,6 +3,14 @@ import { hubApi, type ApprovalRequest } from "./api.ts";
 import { startAuthentication } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
 
+/** T7.3: what happened after the decision, in words. */
+const OPERATION_LABEL: Partial<Record<NonNullable<ApprovalRequest["operation"]>["state"], string>> = {
+  dispatching: "wird ausgeführt",
+  done: "ausgeführt",
+  failed: "nicht ausgeführt",
+  uncertain: "Ausführung ungewiss",
+};
+
 /**
  * T2.6 (EPIC-P2 §4 "Approval-Queue (S4) mit Zeit-schleifen-Gruppierung und
  * Risiko-Badges"): a global inbox for every pending write/destructive
@@ -121,6 +129,12 @@ function ApprovalCard({ req, onDecided }: { req: ApprovalRequest; onDecided: () 
       {!pending && req.decidedByLabel && (
         <div class="dim" style="font-size: 11px">
           entschieden von {req.decidedByLabel} · signiert {req.signature ? "✓" : "—"}
+        </div>
+      )}
+      {!pending && req.operation && OPERATION_LABEL[req.operation.state] && (
+        <div class={`approval-outcome ${req.operation.state}`}>
+          {OPERATION_LABEL[req.operation.state]}
+          {req.operation.state !== "done" && req.operation.outcome ? ` — ${req.operation.outcome}` : ""}
         </div>
       )}
     </div>

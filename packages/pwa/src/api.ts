@@ -56,6 +56,8 @@ export interface ApprovalRequest {
   decidedAt: string | null;
   decidedByLabel: string | null;
   signature: string | null;
+  /** T7.3: what the decision released and what became of it. */
+  operation?: { state: "pending" | "rejected" | "timed_out" | "dispatching" | "done" | "failed" | "uncertain"; outcome: string | null };
 }
 
 /** T3.8: one real qmd hit — `file` is relative to `project`, `line` is

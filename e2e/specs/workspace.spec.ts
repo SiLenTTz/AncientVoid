@@ -48,6 +48,26 @@ test.describe("Freigaben (T2.4, T2.6)", () => {
     await expect(app.getByText("keine offenen Freigaben")).toBeVisible();
   });
 
+  test("eine wartende Freigabe übersteht einen Hub-Absturz und läuft danach genau einmal (T7.3)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "first answer");
+    await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "Nach dem Absturz" } });
+    await hub.restart(); // SIGKILL — before T7.3 the queued prompt died with the process
+    await app.reload();
+    await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();
+    const approval = app.locator(".approval-card").filter({ hasText: "Nach dem Absturz" });
+    const reason = approval.getByPlaceholder("Begründung (Pflicht)…");
+    if (await reason.count()) await reason.fill("passt");
+    await approval.getByRole("button", { name: "Freigeben" }).click();
+    await expect(approval.locator(".approval-outcome")).toHaveText("ausgeführt");
+    await hub.until(
+      async () => (await hub.events(id)).some((e) => e.type === "assistant" && String(e.payload.text).includes("Nach dem Absturz")),
+      "approved prompt answered",
+    );
+    const answers = (await hub.events(id)).filter((e) => e.type === "assistant" && String(e.payload.text).includes("Nach dem Absturz"));
+    expect(answers).toHaveLength(1);
+  });
+
   test("„Ablehnen“ verwirft die Antwort", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "first answer");

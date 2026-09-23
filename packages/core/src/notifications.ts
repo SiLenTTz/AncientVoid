@@ -50,6 +50,15 @@ export function notificationFor(event: NormalizedEvent, ctx: NotificationContext
       return { level: "success", title: `${where} · ins Projekt übernommen`, detail: `${String(payload.files)} Datei(en) nach ${String(payload.into)} (${String(payload.commit)})`, kind };
     case "session.writer_takeover":
       return { level: "info", title: `${where} · Gerät übernommen`, detail: `Schreibt jetzt: ${String(payload.to)}`, kind };
+    case "operation.uncertain":
+      return {
+        level: "warning",
+        title: `${where} · Ausführung ungewiss`,
+        detail: "Der Hub startete neu, während eine freigegebene Aktion lief. Ob sie ankam, ist unklar — bitte im Verlauf prüfen, sie wird nicht wiederholt.",
+        kind,
+      };
+    case "operation.rejected_changed":
+      return { level: "error", title: `${where} · Aktion nicht ausgeführt`, detail: "Die Argumente weichen von der Freigabe ab.", kind };
     case "session.recovered":
       return payload.controllable === false
         ? { level: "warning", title: `${where} · nach Neustart nicht steuerbar`, detail: "Die Session ist nur noch lesbar.", kind }

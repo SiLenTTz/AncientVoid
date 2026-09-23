@@ -4,6 +4,7 @@ export * from "./adapter.ts";
 export * from "./worker.ts";
 export * from "./wire.ts";
 export * from "./approval.ts";
+export * from "./operation.ts";
 export * from "./reporting.ts";
 export * from "./observability.ts";
 export * from "./identity.ts";
