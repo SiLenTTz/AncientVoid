@@ -222,7 +222,7 @@ export class SessionManager {
    * not-yet-applied user action would be — the ApprovalRequest itself
    * (in SQLite) still shows what was asked for, it just can no longer be
    * carried out after a restart. Documented here, not silently assumed. */
-  private readonly pendingSteers = new Map<string, { sessionId: string; input: SteerInput }>();
+  private readonly pendingSteers = new Map<string, { sessionId: string; input: SteerInput; typed?: string }>();
   /** Tail of the per-session steer chain (see steer()). */
   private readonly steerQueue = new Map<string, Promise<void>>();
 
@@ -524,6 +524,7 @@ export class SessionManager {
       args: startSpec.args ?? null,
       actor: actor ?? null,
     });
+    if (parsed.prompt) await this.emitPrompt(session, parsed.prompt, actor);
     try {
       session.handle = await session.adapter.start(startSpec, ctx);
       await this.setStatus(session, "working");
@@ -712,10 +713,11 @@ export class SessionManager {
         "steer.prompt",
         `Prompt an ${session.record.adapter} senden: "${input.text.slice(0, 160)}"`,
       );
-      this.pendingSteers.set(req.id, { sessionId, input: delivered });
+      this.pendingSteers.set(req.id, { sessionId, input: delivered, typed: input.text });
       await this.emitSystem(session, "session.steer_pending_approval", { approvalId: req.id, actor: actor ?? null });
       return { ok: false, detail: `pending approval ${req.id}` };
     }
+    if (input.kind === "prompt") await this.emitPrompt(session, input.text, actor);
     if (reopening && delivered.kind === "prompt") {
       // BUG-0016: the reopen is a steer like any other — without the
       // commit, a retried input id started the provider a second time.
@@ -734,6 +736,15 @@ export class SessionManager {
     await this.emitSystem(session, "session.steer", { steerKind: input.kind, ok: ack.ok, actor: actor ?? null });
     if (ack.ok) await this.commitSteer(session, meta, foreignWriter, actor);
     return ack;
+  }
+
+  /** The user's own input as a chat message — as typed, without the skill
+   * chain the hub puts in front for the provider. The hub is the one source
+   * for these; adapters no longer echo prompts as `user` events. */
+  private async emitPrompt(session: LiveSession, text: string, actor?: string): Promise<void> {
+    await this.emitEvents(session, [
+      { type: "user", summary: text.slice(0, 200), payload: { kind: "session.prompt", text, actor: actor ?? null } },
+    ]);
   }
 
   /** Records a delivered steer and, for a takeover, who handed over to whom. */
@@ -758,6 +769,7 @@ export class SessionManager {
     this.pendingSteers.delete(approvalId);
     const session = this.live.get(pending.sessionId);
     if (!session) return { ok: false, detail: "session not live" };
+    if (pending.input.kind === "prompt") await this.emitPrompt(session, pending.typed ?? pending.input.text, decidedByLabel);
     if (pending.input.kind === "prompt" && (session.record.status === "stopped" || !session.handle)) {
       return this.continueStopped(session, pending.input, decidedByLabel);
     }

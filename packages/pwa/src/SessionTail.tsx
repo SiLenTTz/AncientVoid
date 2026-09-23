@@ -1056,11 +1056,14 @@ function EventRow({
     );
   }
 
+  // The hub's own record of what the user typed (session.prompt).
+  const prompt = event.type === "user" && (event.payload as { kind?: unknown }).kind === "session.prompt";
+  const device = prompt ? (event.payload as { actor?: unknown }).actor : null;
   return (
-    <div class={`event ${event.type}${expanded ? " expanded" : ""}`} data-seq={event.seq} onClick={(ev) => onCardClick(ev, onToggleExpand)}>
+    <div class={`event ${event.type}${prompt ? " own" : ""}${expanded ? " expanded" : ""}`} data-seq={event.seq} onClick={(ev) => onCardClick(ev, onToggleExpand)}>
       <div class="meta">
         <span>
-          #{event.seq} · {event.type}
+          {prompt ? `Du${typeof device === "string" && device ? ` · ${device}` : ""}` : `#${event.seq} · ${event.type}`}
           {blobNote}
         </span>
         <span>{time}</span>

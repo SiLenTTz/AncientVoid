@@ -82,10 +82,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       if (!h) return { ok: false, detail: "unknown handle" };
       switch (input.kind) {
         case "prompt":
+          // The hub records the user's prompt itself; this only shows what
+          // reached the adapter (including a skill chain in front).
           ctx.emit({
-            type: "user",
+            type: "system",
             summary: `steer: ${input.text.slice(0, 120)}`,
-            payload: { text: input.text },
+            payload: { kind: "dummy.prompt", text: input.text },
           });
           return { ok: true };
         case "resume":

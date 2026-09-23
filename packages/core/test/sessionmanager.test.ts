@@ -833,8 +833,9 @@ describe("SessionManager — reporting sink dispatch (T4.1, ADR-0009)", () => {
       await second.manager.recoverAll();
       const ack = await second.manager.steer(record.id, { kind: "prompt", text: "again" });
       expect(ack.ok).toBe(true);
+      // What reached the adapter (dummy.prompt), not the chat message.
       const steered = (await second.manager.tail(record.id, 0)).find(
-        (e) => e.type === "user" && (e.payload as { text?: string }).text?.includes("again"),
+        (e) => (e.payload as { kind?: string }).kind === "dummy.prompt",
       );
       const text = (steered?.payload as { text?: string }).text ?? "";
       expect(text).toContain("FORM");

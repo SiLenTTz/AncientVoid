@@ -28,7 +28,7 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
 
       await app.getByPlaceholder("Antworten…").fill("nach dem Neustart");
       await app.getByRole("button", { name: "Senden" }).click();
-      await hub.until(async () => (await hub.events(id)).some((e) => e.summary === "steer: nach dem Neustart"), "steer after restart");
+      await hub.until(async () => (await hub.events(id)).some((e) => e.type === "user" && e.payload.text === "nach dem Neustart"), "steer after restart");
     });
   });
 
