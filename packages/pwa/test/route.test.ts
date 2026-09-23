@@ -24,3 +24,4 @@ describe("host-qualified session links (EPIC-P6)", () => {
     expect(parseAppHash("#/sessions/abc")).toEqual({ view: "tail", sessionId: "abc" });
   });
 });
+

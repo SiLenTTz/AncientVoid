@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { hubApi, type HubNotification } from "./api.ts";
+import { hubApi, hostApi, type HubNotification } from "./api.ts";
 import { sessionHash } from "./route.ts";
 
 const READ_KEY = "uacc.notifications.readUpTo";
+/** EPIC-P6: read marks of other hosts, { hostId: lastReadId }. */
+const PEER_READ_KEY = "uacc.notifications.readByHost";
 const POLL_MS = 4000;
+const PEERS_REFRESH_MS = 60_000;
 /** Errors stay longer — they usually need an action. */
 const TOAST_MS: Record<HubNotification["level"], number> = { error: 12_000, warning: 8000, success: 5000, info: 5000 };
 
@@ -13,10 +16,26 @@ interface Toast {
   title: string;
   detail: string | null;
   sessionId: string | null;
+  hostId: string | null;
 }
 
-function readUpTo(): number {
-  return Number(localStorage.getItem(READ_KEY) ?? 0) || 0;
+/** A notification with the host it came from (null = this hub). */
+type FleetNotification = HubNotification & { hostId: string | null; key: string };
+
+function readMarks(): Record<string, number> {
+  let peers: Record<string, number> = {};
+  try {
+    peers = JSON.parse(localStorage.getItem(PEER_READ_KEY) ?? "{}") as Record<string, number>;
+  } catch {
+    peers = {};
+  }
+  return { ...peers, "": Number(localStorage.getItem(READ_KEY) ?? 0) || 0 };
+}
+
+function saveReadMarks(marks: Record<string, number>): void {
+  const { "": local = 0, ...peers } = marks;
+  localStorage.setItem(READ_KEY, String(local));
+  localStorage.setItem(PEER_READ_KEY, JSON.stringify(peers));
 }
 
 export function timeAgo(iso: string, now = Date.now()): string {
@@ -33,11 +52,13 @@ export function timeAgo(iso: string, now = Date.now()): string {
  * so opening the app never replays old toasts.
  */
 export function NotificationCenter() {
-  const [items, setItems] = useState<HubNotification[]>([]);
+  const [items, setItems] = useState<FleetNotification[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [open, setOpen] = useState(false);
-  const [read, setRead] = useState(readUpTo);
-  const lastId = useRef<number | null>(null);
+  const [read, setRead] = useState(readMarks);
+  // Per host (key "" = this hub): newest id seen; null = not loaded yet.
+  const lastIds = useRef<Record<string, number | null>>({});
+  const peers = useRef<string[]>([]);
   const failures = useRef(0);
 
   const toast = (t: Toast) => {
@@ -45,47 +66,79 @@ export function NotificationCenter() {
     setTimeout(() => setToasts((prev) => prev.filter((x) => x.key !== t.key)), TOAST_MS[t.level]);
   };
 
+  const take = (hostId: string | null, page: { items: HubNotification[]; lastId: number }) => {
+    const key = hostId ?? "";
+    const known = lastIds.current[key] ?? null;
+    const stamped = page.items.map((n) => ({
+      ...n,
+      hostId,
+      key: `${key}#${n.id}`,
+      title: hostId ? `${hostId} · ${n.title}` : n.title,
+    }));
+    if (known !== null) {
+      for (const n of [...stamped].reverse()) toast({ key: n.key, level: n.level, title: n.title, detail: n.detail, sessionId: n.sessionId, hostId });
+    }
+    if (stamped.length > 0) {
+      setItems((prev) => [...stamped, ...prev].sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1)).slice(0, 100));
+    }
+    lastIds.current[key] = Math.max(known ?? 0, page.lastId);
+  };
+
   useEffect(() => {
     let alive = true;
+    const loadPeers = () =>
+      hubApi
+        .fleetPeers()
+        .then((list) => (peers.current = list.map((p) => p.hostId)))
+        .catch(() => undefined);
     const poll = async () => {
       try {
-        const page = await hubApi.notifications(lastId.current ?? 0);
+        const page = await hubApi.notifications(lastIds.current[""] ?? 0);
         if (!alive) return;
-        if (failures.current >= 2) toast({ key: `hub-${Date.now()}`, level: "success", title: "Verbindung zum Hub wieder da", detail: null, sessionId: null });
+        if (failures.current >= 2) toast({ key: `hub-${Date.now()}`, level: "success", title: "Verbindung zum Hub wieder da", detail: null, sessionId: null, hostId: null });
         failures.current = 0;
-        if (lastId.current !== null) for (const n of [...page.items].reverse()) toast({ key: `n-${n.id}`, level: n.level, title: n.title, detail: n.detail, sessionId: n.sessionId });
-        if (page.items.length > 0) setItems((prev) => [...page.items, ...prev].slice(0, 100));
-        lastId.current = Math.max(lastId.current ?? 0, page.lastId);
+        take(null, page);
       } catch {
         if (!alive) return;
         failures.current += 1;
         if (failures.current === 2) {
-          toast({ key: `hub-${Date.now()}`, level: "warning", title: "Hub nicht erreichbar", detail: "Neue Meldungen kommen, sobald er wieder antwortet.", sessionId: null });
+          toast({ key: `hub-${Date.now()}`, level: "warning", title: "Hub nicht erreichbar", detail: "Neue Meldungen kommen, sobald er wieder antwortet.", sessionId: null, hostId: null });
         }
       }
+      // EPIC-P6 T6.6: other hosts' notifications through this hub. A host
+      // that is away stays quiet here — the overview shows its state.
+      await Promise.all(
+        peers.current.map((hostId) =>
+          hostApi(hostId)
+            .notifications(lastIds.current[hostId] ?? 0)
+            .then((page) => alive && take(hostId, page))
+            .catch(() => undefined),
+        ),
+      );
     };
-    void poll();
+    void loadPeers().then(() => poll());
     const timer = setInterval(() => void poll(), POLL_MS);
+    const peerTimer = setInterval(() => void loadPeers(), PEERS_REFRESH_MS);
     return () => {
       alive = false;
       clearInterval(timer);
+      clearInterval(peerTimer);
     };
   }, []);
 
-  const unread = items.filter((n) => n.id > read).length;
+  const unread = items.filter((n) => n.id > (read[n.hostId ?? ""] ?? 0)).length;
 
   const openPanel = () => {
     setOpen((was) => !was);
-    const top = items[0]?.id ?? 0;
-    if (top > read) {
-      localStorage.setItem(READ_KEY, String(top));
-      setRead(top);
-    }
+    const marks = { ...read };
+    for (const n of items) marks[n.hostId ?? ""] = Math.max(marks[n.hostId ?? ""] ?? 0, n.id);
+    saveReadMarks(marks);
+    setRead(marks);
   };
 
-  const goTo = (sessionId: string | null) => {
+  const goTo = (sessionId: string | null, hostId: string | null) => {
     setOpen(false);
-    if (sessionId) location.hash = sessionHash(sessionId);
+    if (sessionId) location.hash = sessionHash(sessionId, hostId);
   };
 
   return (
@@ -101,7 +154,7 @@ export function NotificationCenter() {
       <div class="toast-stack" role="status" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.key} class={`toast ${t.level}`}>
-            <button class="toast-body" type="button" onClick={() => goTo(t.sessionId)}>
+            <button class="toast-body" type="button" onClick={() => goTo(t.sessionId, t.hostId)}>
               <strong>{t.title}</strong>
               {t.detail && <span>{t.detail}</span>}
             </button>
@@ -123,7 +176,7 @@ export function NotificationCenter() {
             <div class="empty">noch keine Meldungen</div>
           ) : (
             items.map((n) => (
-              <button key={n.id} class={`notif-item ${n.level}`} type="button" onClick={() => goTo(n.sessionId)}>
+              <button key={n.key} class={`notif-item ${n.level}`} type="button" onClick={() => goTo(n.sessionId, n.hostId)}>
                 <span class="notif-item-title">{n.title}</span>
                 {n.detail && <span class="notif-item-detail">{n.detail}</span>}
                 <span class="notif-item-time">{timeAgo(n.createdAt)}</span>
