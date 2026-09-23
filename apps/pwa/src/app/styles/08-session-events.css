@@ -1,0 +1,89 @@
+/* T1.7 thinking collapse toggle */
+.think-toggle {
+  background: none;
+  border: none;
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+/* T1.8 tool-call status + anchor nav */
+.tool-status {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tool-status.running {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.tool-status.ok {
+  background: color-mix(in srgb, var(--ok) 18%, transparent);
+  color: var(--ok);
+}
+
+.tool-status.error {
+  background: color-mix(in srgb, var(--err) 20%, transparent);
+  color: var(--err);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 11px;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* T1.6-3: dock-actions replaces the old standalone .bottom-actions —
+ * folded into .dock-stack below instead of being its own separately fixed
+ * element (that pattern once overlapped the tail's last rows in practice,
+ * see the T1.5-6 history; a single fixed anchor avoids that class of bug
+ * by construction). */
+.dock-actions {
+  padding: 10px 12px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dock-actions .row {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* T1.6-3: session sub-tabs (Chat/Verlauf), stacked directly above the
+ * global dock inside the same fixed .dock-stack. */
+.subtabs-wrap {
+  display: flex;
+  border-top: 1px solid var(--bg-chip);
+}
+
+.subtabs-wrap button {
+  flex: 1;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  padding: 10px 4px 9px;
+  color: var(--fg-dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  min-height: 44px;
+}
+
+.subtabs-wrap button.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}

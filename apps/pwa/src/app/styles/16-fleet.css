@@ -1,0 +1,69 @@
+/* EPIC-P6 fleet settings */
+.fleet-peers {
+  display: grid;
+  gap: 6px;
+}
+.fleet-invite {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.fleet-qr {
+  flex-basis: 100%;
+  width: min(220px, 70vw);
+  height: auto;
+  max-width: 100%;
+  image-rendering: pixelated;
+  border-radius: 8px;
+}
+.fleet-invite-origin {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.fleet-scanner {
+  display: grid;
+  gap: 8px;
+}
+.fleet-scanner-video {
+  width: 100%;
+  max-height: 50vh;
+  border-radius: 8px;
+  background: #000;
+  object-fit: cover;
+}
+.fleet-invite code {
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+.fleet-message.ok {
+  color: var(--ok);
+}
+
+/* EPIC-P6 fleet: host strip on the overview */
+.fleet-hosts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+.host-chip.stale,
+.host-chip.unauthorized {
+  color: var(--warn);
+}
+.host-chip.offline,
+.host-chip.incompatible {
+  color: var(--err);
+}
+
+/* T7.3: outcome of an approved action */
+.approval-outcome {
+  font-size: 12px;
+  margin-top: 4px;
+}
+.approval-outcome.failed {
+  color: var(--err);
+}
+.approval-outcome.uncertain {
+  color: var(--warn);
+}

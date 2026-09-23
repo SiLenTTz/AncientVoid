@@ -1,0 +1,84 @@
+/* T2.6: approval queue */
+.approval-banner {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: color-mix(in srgb, var(--warn) 16%, var(--bg-elev));
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 700;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.approval-group-heading {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--fg-faint);
+  margin: 16px 0 8px;
+}
+
+.approval-card {
+  margin-bottom: 10px;
+}
+
+.approval-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.approval-countdown {
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+.badge.risk-write {
+  background: color-mix(in srgb, var(--warn) 22%, transparent);
+  color: var(--warn);
+}
+
+.badge.risk-destructive {
+  background: color-mix(in srgb, var(--err) 22%, transparent);
+  color: var(--err);
+}
+
+.badge.status-approved {
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+  color: var(--ok);
+}
+
+.badge.status-rejected,
+.badge.status-timed_out {
+  background: color-mix(in srgb, var(--fg-faint) 22%, transparent);
+  color: var(--fg-dim);
+}
+
+.approval-summary {
+  font-size: 13px;
+}
+
+.approval-reason {
+  width: 100%;
+  margin-top: 8px;
+  min-height: 44px;
+  background: var(--bg-chip);
+  color: var(--fg);
+  border: 1px solid var(--fg-dim);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font: inherit;
+  resize: vertical;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}

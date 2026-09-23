@@ -1,0 +1,82 @@
+import { remoteHost, type SessionRecord, type AdapterUsage, type SessionDiffResult } from "../../shared/api.ts";
+import { formatUsd, formatWindow } from "../overview/Dashboard.tsx";
+import { BudgetTopUp } from "./BudgetTopUp.tsx";
+import { onHost, WorktreeCard, ContinueCard, AttachCmdRow } from "./HostCommands.tsx";
+
+export function ReportPane({
+  record,
+  createdAt,
+  status,
+  numbersReal,
+  diff,
+  usage,
+}: {
+  record: SessionRecord;
+  createdAt: string;
+  status: string;
+  numbersReal: boolean;
+  diff: SessionDiffResult | null;
+  usage: AdapterUsage | null;
+}) {
+  const running = status !== "stopped" && status !== "error";
+  const durationMs = new Date(record.updatedAt).getTime() - new Date(createdAt).getTime();
+  const suffix = running ? " (bisher)" : "";
+  const filesChanged = diff ? (diff.error ? diff.error : `${diff.files.length}${suffix}`) : "lädt …";
+
+  return (
+    <div>
+      <span class={`status-chip ${running ? "pending" : "done"}`}>{running ? "● läuft" : "✓ abgeschlossen"}</span>
+      {status === "parked" && record.parkReason === "budget" && <BudgetTopUp sessionId={record.id} currentBudgetUsd={record.budgetUsd} />}
+      <div class="kv-list">
+        <div class="kv-row">
+          <span class="k">Dauer</span>
+          <span class="v num">
+            {formatDuration(durationMs)}
+            {suffix}
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Kosten</span>
+          <span class="v num">{numbersReal ? `${formatUsd(record.costUsd)}${suffix}` : "nicht erfasst"}</span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Tokens</span>
+          <span class="v num">
+            {numbersReal ? `${record.tokensEst.toLocaleString("de-DE")}${suffix}` : "nicht erfasst"}
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Kontingent (Adapter-weit)</span>
+          <span class="v num">
+            {!usage || !usage.supported
+              ? "unbekannt"
+              : usage.quota === null
+                ? "noch keine Meldung"
+                : usage.quota.windows.map(formatWindow).join(" · ")}
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Dateien geändert</span>
+          <span class="v num">{filesChanged}</span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Tests</span>
+          <span class="v dim">nicht erfasst — kein Adapter meldet ein strukturiertes Test-Signal</span>
+        </div>
+      </div>
+      {record.attachCmd && <AttachCmdRow cmd={onHost(record.attachCmd, remoteHost(record.hostId))} />}
+      {record.worktree && (
+        <WorktreeCard sessionId={record.id} status={status} worktree={record.worktree} project={record.project} host={remoteHost(record.hostId)} />
+      )}
+      <ContinueCard openCmd={record.openCmd ? onHost(record.openCmd, remoteHost(record.hostId)) : undefined} host={remoteHost(record.hostId)} />
+    </div>
+  );
+}
+
+function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "n/a";
+  const totalSeconds = Math.round(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes} min ${seconds} s` : `${seconds} s`;
+}

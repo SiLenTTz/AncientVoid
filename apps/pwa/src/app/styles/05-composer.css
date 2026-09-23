@@ -1,0 +1,83 @@
+/* T1.5-6 Composer — shared prompt-entry surface */
+.composer {
+  display: grid;
+  gap: 6px;
+}
+
+.composer-input {
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  color: var(--fg);
+  border-radius: var(--radius);
+  padding: 10px;
+  font: inherit;
+  resize: vertical;
+  min-height: 44px;
+}
+
+.composer-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.composer-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 9px 6px;
+  font-size: 13px;
+}
+
+.composer-actions .btn:disabled {
+  opacity: 0.5;
+}
+
+.composer-notice {
+  font-size: 11px;
+}
+
+.composer-notice.err {
+  color: var(--err);
+}
+
+/* T1.5-8 Prompt-Enhancer split-preview */
+.enhance-preview {
+  display: grid;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.enhance-preview-text {
+  font-size: 12px;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.recommend-card {
+  display: grid;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.recommend-card .row .btn {
+  flex: 1;
+}
+
+.reply-error {
+  color: var(--err);
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.empty {
+  text-align: center;
+  color: var(--fg-dim);
+  padding: 40px 0;
+}
