@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# EPIC-P6 T6.5: install or update a UACC hub on another machine of the fleet.
+#
+#   scripts/fleet-deploy.sh <ssh-target> <host-id> <tailnet-ip> <project-root> [adapters-json]
+#
+# - Code: `git archive HEAD` of this checkout → ~/mobile-hub, plus the built PWA.
+# - Config: ~/.config/uacc/hub.config.json, written only if it does not exist.
+# - Data: ~/.local/share/uacc. Service: systemd --user unit uacc-hub (needs linger).
+# - Listens only on the tailnet IP (port 7373): reachable in the tailnet,
+#   not on the LAN or the internet. No sudo.
+#
+# adapters-json defaults to [] (a hub for discovery/monitoring only).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+target="${1:?ssh target, e.g. silenttz@silenttz-server}"
+host_id="${2:?host id, e.g. silenttz-server}"
+tailnet_ip="${3:?tailnet ip of that machine}"
+project_root="${4:?project root on that machine}"
+adapters="${5:-[]}"
+
+if ! git diff --quiet HEAD; then
+  echo "uncommitted changes — deploy only committed code" >&2
+  exit 1
+fi
+[ -f packages/pwa/dist/index.html ] || npm -w @uacc/pwa run build
+
+echo "== code $(git rev-parse --short HEAD) → $target:~/mobile-hub"
+git archive --format=tar HEAD | ssh "$target" 'mkdir -p ~/mobile-hub && tar -x -C ~/mobile-hub'
+tar -c -C packages/pwa dist | ssh "$target" 'mkdir -p ~/mobile-hub/packages/pwa && rm -rf ~/mobile-hub/packages/pwa/dist && tar -x -C ~/mobile-hub/packages/pwa'
+
+echo "== dependencies"
+ssh "$target" 'cd ~/mobile-hub && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci --no-audit --no-fund --loglevel=error'
+
+echo "== config and service"
+# ssh re-joins arguments into one remote command line (quotes in the JSON
+# would get lost) — pass them base64-encoded.
+enc() { printf '%s' "$1" | base64 -w0; }
+ssh "$target" bash -s -- "$(enc "$host_id")" "$(enc "$tailnet_ip")" "$(enc "$project_root")" "$(enc "$adapters")" <<'REMOTE'
+set -euo pipefail
+dec() { printf '%s' "$1" | base64 -d; }
+host_id="$(dec "$1")"; tailnet_ip="$(dec "$2")"; project_root="$(dec "$3")"; adapters="$(dec "$4")"
+config="$HOME/.config/uacc/hub.config.json"
+mkdir -p "$HOME/.config/uacc" "$HOME/.local/share/uacc" "$HOME/.config/systemd/user" "$project_root"
+chmod 700 "$HOME/.local/share/uacc"
+if [ ! -f "$config" ]; then
+  cat > "$config" <<JSON
+{
+  "hostId": "$host_id",
+  "dataDir": "$HOME/.local/share/uacc",
+  "workerRunner": "tmux",
+  "projectRoots": ["$project_root"],
+  "server": { "host": "$tailnet_ip", "port": 7373, "pwaDir": "$HOME/mobile-hub/packages/pwa/dist" },
+  "adapters": $adapters
+}
+JSON
+  echo "config written: $config"
+else
+  echo "config kept: $config"
+fi
+cat > "$HOME/.config/systemd/user/uacc-hub.service" <<UNIT
+[Unit]
+Description=UACC hub ($host_id)
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/mobile-hub
+Environment=UACC_CONFIG=%h/.config/uacc/hub.config.json
+Environment=PATH=%h/.local/share/mise/shims:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=$(command -v node) packages/server/src/main.ts
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+UNIT
+systemctl --user daemon-reload
+systemctl --user enable uacc-hub.service >/dev/null
+systemctl --user restart uacc-hub.service
+REMOTE
+
+echo "== health over the tailnet"
+for _ in $(seq 1 30); do
+  if curl -fsS "http://$tailnet_ip:7373/api/fleet/hello" 2>/dev/null; then echo; exit 0; fi
+  sleep 1
+done
+echo "hub on $host_id did not answer — journalctl --user -u uacc-hub on the host" >&2
+exit 1

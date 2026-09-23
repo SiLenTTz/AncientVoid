@@ -1,6 +1,6 @@
 # EPIC-P6 — Mehrere Rechner in einer Flotte
 
-**Status:** in Arbeit seit 2026-09-23 (P5 abgeschlossen, siehe dessen Retro) · **Phase:** P6 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P5 grün; WSL-Abnahme aus P4 vorhanden.
+**Status:** abgeschlossen 2026-09-23 (Retro unten) — WSL-Teil von AC-P6-5 unbelegt, kein WSL-Host in der Flotte (AI-P6-1) · **Phase:** P6 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P5 grün; WSL-Abnahme aus P4 vorhanden.
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:
@@ -43,7 +43,7 @@ K5/K8; für eine einzelne Aktion zählt die Wahrheit des zuständigen Hubs.
 - [x] **T6.3 — Flottenübersicht.** Host-/Projekt-/Session-Ansicht, globale Braucht-dich-Queue, Teilfehler und letzte Synchronisierung pro Host. K1/K2/K8/K10. Stand 2026-09-23: `GET /api/fleet` (parallel, 3 s), Host-Leiste mit Zustand und Stand-Zeit, Gruppierung Host · Projekt, „wartet auf dich“ über alle Hosts, neue Session auf gewähltem Host; `fleet-aggregate.test.ts`, E2E `fleet.spec.ts`.
 - [x] **T6.4 — Hostgebundene Aktionen.** Start/Handoff/Steer/Freigabe über genau den ausgewählten Hub routen; Idempotenz aus P5 und Version-Konflikte testen. K1/K7. Stand 2026-09-23: `/api/hosts/<id>/…` inkl. Event-Stream (Positivliste, kein Traversal), Input-ID Ende-zu-Ende, inkompatibles Protokoll abgewiesen; PWA-Links `#/hosts/<id>/sessions/<sid>`; `fleet-routing.test.ts`, E2E. BUG-0028 (Tokens im Log) nebenbei behoben.
 - [x] **T6.6 — Hostgebundene Nebenpfade (AI-P5-5).** Worktree-Pfad, `openCmd`, tmux-Attach, „Ins Projekt übernehmen“ und Benachrichtigungen tragen die Host-ID und werden nur auf dem eigenen Host ausgeführt bzw. angezeigt. Stand 2026-09-23: Glocke sammelt Meldungen aller Hosts (Präfix, Lese-Stand je Host), Befehle fremder Sessions als `ssh -t <host> …` / `code --remote ssh-remote+<host>`, Übernehmen auf dem Session-Host; E2E `fleet.spec.ts` „T6.6“.
-- [ ] **T6.5 — Drei-Host-Betrieb.** P4-WSL-Installer verwenden; Omarchy, silenttz-server, evox2 konfigurieren und reale WAN-/Ausfallmessung dokumentieren; Host-Wiederanmeldung ohne Dubletten. K2/K7/K8/K10.
+- [x] **T6.5 — Drei-Host-Betrieb.** P4-WSL-Installer verwenden; Omarchy, silenttz-server, evox2 konfigurieren und reale WAN-/Ausfallmessung dokumentieren; Host-Wiederanmeldung ohne Dubletten. K2/K7/K8/K10. Stand 2026-09-23: `scripts/fleet-deploy.sh` (systemd `--user`, nur Tailnet-IP), drei Hosts gekoppelt, Messlauf [`2026-09-23-p6-fleet`](../docs/messlauf/2026-09-23-p6-fleet.md) alle Schritte bestanden, Betrieb in [`docs/fleet.md`](../docs/fleet.md). evox2 ist natives Linux, kein WSL.
 
 ## 5. Acceptance Criteria
 
@@ -70,3 +70,48 @@ nachgewiesen. Jede Funktion in Config, API/CLI und passender UI tatsächlich
 registriert/erreichbar; Capability-/Support-Matrix ehrlich aktualisiert.
 Premortem im Abschlussreview gegenprüfen, offene Pflicht-ACs blockieren Abschluss.
 Commit/MR gemäß Repo-Workflow; kein lokaler Merge nach main.
+
+## Retro (2026-09-23)
+
+**Zeitraum:** 2026-09-23 · **Commits:** 6 (ohne Merges) · **Bugs:**
+BUG-0028 (Tokens im Request-Log), behoben. Gate: `npm run gate` grün
+(vitest 473, E2E 102); Live-Messlauf auf drei Hosts.
+
+### AK-Matrix
+
+| AC | Bewertung | Beleg | Bemerkung |
+|---|---|---|---|
+| AC-P6-1 | 🟢 erfüllt | Messlauf `sessions`; E2E `fleet.spec.ts` „beide Hosts in einer Übersicht“ | 20 Sessions auf drei Hosts, je ≥ 2, 0 Duplikate, gleichnamiges Projekt getrennt |
+| AC-P6-2 | 🟢 erfüllt | Messlauf `routing` + `logs`; `fleet-routing.test.ts`; `log-redaction.test.ts` | 20/20 beim adressierten Host, keine Tokens in Logs/URLs (BUG-0028) |
+| AC-P6-3 | 🟢 erfüllt | Messlauf `outage` (5 min); E2E „ein Host fällt aus“ | andere Hosts bedienbar, Stand mit Original-Zeit, keine verlorenen Events, kein Doppel-Dispatch |
+| AC-P6-4 | 🟢 erfüllt | Messlauf `revoke`; `fleet-pairing.test.ts` | Stream < 5 s (2,0 s) zu, Peer ohne Heim-Hub bedienbar |
+| AC-P6-5 | 🟡 teilweise | Messlauf `incompatible`, Tailnet-Betrieb, K1 15 ms Median | Tailnet, K1 und Abweisung belegt; **WSL** unbelegt — kein WSL-Host in der Flotte → AI-P6-1 |
+
+**Summe:** 4 🟢 / 1 🟡 / 0 🔴 / 0 ⚪
+
+### Premortem
+
+| Risiko | Eingetreten? | Beleg |
+|---|---|---|
+| 1. Zentrale Übersicht wird Ausfallpunkt | nein | Messlauf `revoke`: evox2 bei gestopptem Heim-Hub bedienbar; jeder Hub hat seine PWA |
+| 2. Falscher Host bei gleichem Projektnamen | nein | `uacc-alpha` auf zwei Hosts getrennt; Eingaben 20/20 richtig |
+| 3. Netzausfall tarnt sich als Providerfehler | nein | Host-Zustände (offline/veraltet) getrennt von `provider.error` (ADR-0015) |
+| 4. WSL-Neustart ändert Erreichbarkeit | nicht prüfbar | kein WSL-Host; Wiederanmeldung nach Neustart für Linux belegt (584 ms) |
+
+### Erkenntnisse
+
+1. **Heim-Hub als Aggregator hat getragen** — kein CORS, kein Peer-Token im Browser, und die PWA brauchte nur eine Host-Schicht (API-Kontext), keine zweite App (ADR-0017, `api-context.ts`).
+2. **Namen im Heimnetz sind nicht die Tailnet-Namen** — `silenttz-server` löste über die Fritzbox ins LAN auf, der Hub lauscht nur auf der Tailnet-IP; Peers werden mit `<name>.<tailnet>.ts.net` gekoppelt (`docs/fleet.md`).
+3. **Deploy-Skripte brauchen dieselbe Prüfung wie Code** — `ssh … bash -s -- <json>` verlor die Anführungszeichen; der Hub startete nicht. Behoben mit base64-Argumenten; das Skript prüft jetzt die Erreichbarkeit selbst.
+4. **Credentials in URLs sind ein Log-Risiko** — erst die AC-Prüfung „keine Credentials im Log“ fand 14 echte Tokens (BUG-0028).
+5. **Echte Rechner decken Annahmen auf** — „evox2/WSL“ ist natives Arch; der Plan ging von WSL aus.
+
+### Action Items
+
+| ID | Maßnahme | zurück als |
+|---|---|---|
+| AI-P6-1 | WSL-Host in die Flotte aufnehmen (z. B. bmax), Abnahme AC-P6-5 WSL-Teil und Premortem 4 | EPIC-P12 T12.4 |
+| AI-P6-2 | QR-Code für den Einladungscode (Handy scannt statt tippt) | EPIC-P8 T8.1 |
+| AI-P6-3 | Last über die Weiterleitung (K8, 30 ev/s × Sessions über zwei Hosts) | EPIC-P12 T12.2 |
+| AI-P6-4 | Vorhandene Tokens rotieren und `/tmp/uacc-hub.log` leeren (BUG-0028) — vor der Veröffentlichung | EPIC-P4 T4.8 (OSS-Aufbereitung) |
+
