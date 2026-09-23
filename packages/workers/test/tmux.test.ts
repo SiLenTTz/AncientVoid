@@ -158,6 +158,18 @@ describe("TmuxRunner", () => {
     expect(await restarted.adopt("gibt-es-nicht")).toBeNull();
   });
 
+  itTmux("BUG-0025: a killed worker reports its exit while other sessions keep the server alive", async () => {
+    const keeper = await runner.spawn({ name: "test-keeper", cwd: dir, cmd: ["bash", "-c", "sleep 30"] });
+    try {
+      const proc = await runner.spawn({ name: "test-killed", cwd: dir, cmd: ["bash", "-c", "sleep 30"] });
+      await proc.kill("SIGKILL");
+      const outcome = await Promise.race([proc.exited().then(() => "exited"), new Promise((r) => setTimeout(() => r("hung"), 5000))]);
+      expect(outcome).toBe("exited");
+    } finally {
+      await keeper.kill("SIGKILL");
+    }
+  });
+
   itTmux("kill terminates a worker", async () => {
     const proc = await runner.spawn({
       name: "test-kill",
