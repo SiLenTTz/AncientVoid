@@ -12,6 +12,7 @@ import { authHook, type AuthOptions } from "./auth.ts";
 import { registerRoutes } from "./routes.ts";
 import { registerWs } from "./ws.ts";
 import { registerFleetRoutes } from "./fleet.ts";
+import { registerFleetProxy } from "./fleet-proxy.ts";
 
 export interface HubAppDeps {
   sessions: SessionManager;
@@ -77,11 +78,10 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
     for (const w of warnings) app.log.warn(w);
   }
   registerRoutes(app, { ...deps, projectRoots });
-  registerFleetRoutes(app, {
-    fleet: deps.fleet ?? new FleetStore(deps.tokens.database, deps.tokens),
-    tokens: deps.tokens,
-    hostId: deps.hostId ?? DEFAULT_HOST_ID,
-  });
+  const fleet = deps.fleet ?? new FleetStore(deps.tokens.database, deps.tokens);
+  const hostId = deps.hostId ?? DEFAULT_HOST_ID;
+  registerFleetRoutes(app, { fleet, tokens: deps.tokens, hostId });
+  registerFleetProxy(app, { fleet, hostId, sessions: deps.sessions, tokens: deps.tokens, ...(deps.metrics ? { metrics: deps.metrics } : {}) });
   registerWs(app, deps.sessions, deps.metrics, deps.tokens);
 
   if (deps.pwaDir) {

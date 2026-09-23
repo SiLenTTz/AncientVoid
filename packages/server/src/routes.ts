@@ -369,7 +369,7 @@ export function registerRoutes(
     try {
       await catalogRootFor(parsed.data.project);
       const record = await deps.sessions.create(parsed.data, callerLabel(req) ?? undefined);
-      return reply.code(201).send(record);
+      return reply.code(201).send({ ...record, hostId });
     } catch (err) {
       return reply.code(422).send({
         error: err instanceof Error ? err.message : "session creation failed",
@@ -465,7 +465,7 @@ export function registerRoutes(
     const body = z.object({ archived: z.boolean() }).safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: "archived boolean required" });
     try {
-      return deps.sessions.setArchived(id, body.data.archived);
+      return { ...deps.sessions.setArchived(id, body.data.archived), hostId };
     } catch (err) {
       const message = err instanceof Error ? err.message : "archive failed";
       if (message.startsWith("unknown session")) return reply.code(404).send({ error: message });
