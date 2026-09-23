@@ -99,4 +99,24 @@ describe("turn state (T5.4)", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it("a planned shutdown that keeps workers leaves sessions as they are", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-turns-"));
+    const db = new HubDatabase(":memory:");
+    const registry = new AdapterRegistry();
+    let stops = 0;
+    registry.register("turns", () => ({ ...oneProcessPerTurn(), stop: async () => void stops++ }));
+    const manager = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "turns", project: dir, prompt: "eins" });
+      expect(manager.get(record.id)?.status).toBe("working");
+      await manager.shutdown({ keepWorkers: true });
+      expect(manager.get(record.id)?.status).toBe("working");
+      expect(stops).toBe(0);
+      expect((await manager.tail(record.id, 0)).some((e) => (e.payload as { kind?: string }).kind === "session.stopped")).toBe(false);
+    } finally {
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });

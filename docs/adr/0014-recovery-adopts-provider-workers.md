@@ -48,3 +48,12 @@ CLIs kann per nativer Session-ID fortsetzen.
 - aider hat keine native Session-ID und bleibt ohne `recover()`.
 - Claude: ein per `--agent` gewählter Agent wird nach dem Neustart nicht
   erneut übergeben; die Skill-Kette des Hubs (T5.10) schon.
+
+## Nachtrag 2026-09-23 — geplanter Neustart
+
+Ein SIGTERM/SIGINT (`scripts/hub.sh stop`) stoppt mit tmux-Runner keine
+Session mehr: `shutdown({ keepWorkers: true })` schreibt nur den EventStore
+weg. Status und laufende Züge bleiben, der nächste Start übernimmt sie wie
+nach einem Absturz. Mit ProcessRunner enden die Worker mit dem Hub; dort
+werden Sessions weiter gestoppt, ihre Worktrees mit Arbeit bleiben
+(BUG-0027).

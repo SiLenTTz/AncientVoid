@@ -168,7 +168,11 @@ async function main(): Promise<void> {
 
   const shutdown = async (sig: string) => {
     logger.info("shutting down", { signal: sig });
-    await sessions.shutdown().catch(() => undefined);
+    // tmux workers outlive the hub: a planned restart keeps them running and
+    // the next start takes them over instead of stopping every session.
+    const keepWorkers = runner.kind === "tmux";
+    logger.info("stopping hub", { keepWorkers });
+    await sessions.shutdown({ keepWorkers }).catch(() => undefined);
     await app.close().catch(() => undefined);
     db.close();
     process.exit(0);

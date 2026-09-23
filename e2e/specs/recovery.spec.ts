@@ -49,6 +49,16 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
     await expect(app.getByText(/Antwort auf: Nach dem Neustart .*\(fortgesetzt\)/)).toBeVisible();
   });
 
+  test("ohne tmux stoppt ein geplanter Neustart die Sessions, verliert aber keine Arbeit (BUG-0027)", async ({ hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
+    const workdir = String((await hub.events(id)).find((e) => e.payload.kind === "session.created")?.payload.workdir);
+    await hub.restart("SIGTERM");
+    expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("stopped");
+    const { existsSync } = await import("node:fs");
+    expect(existsSync(`${workdir}/e2e-change.txt`)).toBe(true);
+  });
+
   test("nach einem Kill zwischen zwei Zügen geht es mit derselben Provider-Session weiter (T5.6)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Vor dem Kill" });
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
@@ -67,6 +77,26 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
 
   test.describe("mit tmux-Worker", () => {
     test.use({ hubOptions: { runner: "tmux" } });
+
+    test("ein geplanter Neustart stoppt nichts: der Zug läuft weiter, die Arbeit bleibt @desktop", async ({ app, hub }) => {
+      const id = await hub.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an WARTE3" });
+      await hub.until(async () => (await hub.events(id)).some((e) => e.type === "tool_use"), "turn running");
+      const workdir = String((await hub.events(id)).find((e) => e.payload.kind === "session.created")?.payload.workdir);
+      await hub.restart("SIGTERM");
+
+      await app.goto(`${hub.origin}/#/sessions/${id}`);
+      await app.getByRole("button", { name: "Chat" }).click();
+      await expect(app.getByText(/Antwort auf: Lege eine DATEI an WARTE3/)).toBeVisible({ timeout: 15_000 });
+      await expect(app.locator(".topbar .pill")).toHaveText("idle");
+      const events = await hub.events(id);
+      expect(events.some((e) => e.payload.kind === "session.stopped"), "planned restart stops nothing").toBe(false);
+      const { existsSync } = await import("node:fs");
+      expect(existsSync(`${workdir}/e2e-change.txt`)).toBe(true);
+
+      await app.getByPlaceholder("Antworten…").fill("Nach dem Neustart");
+      await app.getByRole("button", { name: "Senden" }).click();
+      await expect(app.getByText(/Antwort auf: Nach dem Neustart .*\(fortgesetzt\)/)).toBeVisible();
+    });
 
     test("ein Zug, der den Kill überlebt, wird übernommen und läuft sichtbar zu Ende (AC-P5-3) @desktop", async ({ app, hub }) => {
       const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite WARTE3" });
