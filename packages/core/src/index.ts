@@ -6,7 +6,17 @@ export {
   type DiscoveredProject,
   type ProjectDiscoveryResult,
 } from "./projects.ts";
-export { scanProjectSkills, type SkillOrAgent } from "./skills.ts";
+export {
+  scanProjectSkills,
+  recommendForPrompt,
+  writeProjectArtifact,
+  resolveSkillChain,
+  withSkillChain,
+  type SkillOrAgent,
+  type PromptRecommendation,
+  type ResolvedSkillChain,
+} from "./skills.ts";
+export { ensureBaseSkills } from "./base-skills.ts";
 export { SessionManager, hashToken, type AdapterUsageSnapshot, type SessionManagerObservability } from "./sessionmanager.ts";
 export { createJsonLogger, createConsoleLogger, redactFields } from "./logger.ts";
 export { InMemoryMetrics } from "./metrics.ts";

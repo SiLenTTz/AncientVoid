@@ -98,3 +98,13 @@ Der Lauf auf `tetris-reloaded` war steuerbar. Drei Anpassungen danach:
 - Chat zeigt bei `assistant`/`user` den vollen `payload.text`. Die Zusammenfassung ist auf 200 Zeichen gekappt; die Abschlussnachricht mit der Browser-URL (1611 Zeichen, Event 411) war dadurch im Chat abgeschnitten, im Event aber vollständig. Die kurzen Zeilen `#64`, `#75`, `#82` („Jetzt das Neon-Styling:“ und die beiden folgenden Vorspanne) sind vollständig; der Rest des Schritts liegt als `tool_use`/`tool_result` im Verlauf.
 - Voice, Verbessern, Senden und Stop stehen in einer Zeile.
 - `archived` (Migration 8, `POST /api/sessions/:id/archive`) nimmt einen Lauf aus der Übersicht. Der Chip „Archiv“ holt ihn zurück. Der Lauf und seine Events bleiben.
+- Nach „Verbessern“ schlägt der Hub einen Skill, Agent oder Workflow aus dem Projekt vor. Passt keiner, kommt ein Entwurf. Verwerfen lässt ihn liegen, Nutzen nimmt ihn für diesen Prompt, Speichern merkt ihn als Standard und legt die Datei an, wenn sie neu ist.
+
+## 10. Skill-Baum (2026-09-22, Nutzerauftrag)
+
+Die Empfehlung hat bisher ein ganzes Prompt in eine neue Datei kopiert. Sinnvoller ist ein kleiner Baum: allgemeine Formen liegen dort, wo alle Projekte liegen, und ein Projekt-Skill erweitert genau eine davon. Das ist Vererbung, kein freies Netz. Offen bleibt, den Baum zur Laufzeit in den Adapter-Aufruf zu falten — OpenCode ignoriert eine Skill-Auswahl heute noch sichtbar.
+
+- [x] **T5.7 — Base-Katalog.** Unter der Projektwurzel `.claude/skills/` liegen `task`, `investigate`, `change`, `review`. `task` ist die Form. Die anderen nennen `extends: task`. Vorhandene Dateien werden nicht überschrieben.
+- [x] **T5.8 — Empfehlung erweitert statt zu kopieren.** Trifft ein Projekt-Skill, bleibt es ein Treffer. Trifft nur ein Base-Skill oder keiner, legt der Entwurf einen Projekt-Skill an, der den passenden Base-Skill erweitert, und enthält nur die Abweichung.
+- [x] **T5.9 — Modell und Stillstand sichtbar.** Die Session zeigt das Modell (`zai-coding-plan/glm-5.3`, belegt am Lauf vom 2026-09-22). Ein Schritt, der nur denkt und am Längenlimit endet, erscheint im Chat, nicht nur im Verlauf.
+- [x] **T5.10 — Kette ausführen.** Ein gewählter Projekt-Skill lädt die `extends`-Kette (Vorfahren zuerst, Zyklen abgeschnitten) und legt den Text in den Prompt. Das Event `session.skill_chain` trägt nur die Namen. Ein Skill ohne auflösbare Datei bleibt sichtbar ignoriert. Steer lädt die Kette erneut.

@@ -115,8 +115,13 @@ export function SearchPane({ project }: { project: string }) {
           value={query}
           onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
         />
-        <button class="btn primary" type="submit" disabled={!query.trim() || status === "searching" || status === "indexing"}>
-          Suchen
+        <button
+          class={status === "searching" || status === "indexing" ? "btn primary busy" : "btn primary"}
+          type="submit"
+          aria-busy={status === "searching" || status === "indexing"}
+          disabled={!query.trim() || status === "searching" || status === "indexing"}
+        >
+          {status === "searching" || status === "indexing" ? "lädt…" : "Suchen"}
         </button>
       </form>
 

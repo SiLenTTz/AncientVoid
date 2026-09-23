@@ -37,6 +37,19 @@ const execFileAsync = promisify(execFile);
  * CLI, same one-shot pattern) and ready to verify once quota is
  * available; per R9.7, no cost is invented for codex regardless (it has
  * no native cost figure at all, T1.11).
+ *
+ * opencode: same one-shot shape as the adapter fixtures
+ * (`opencode run --format json --auto`, 1.18.29), plus `--agent plan`.
+ * The plan agent denies `edit`, so this call rewrites the prompt and
+ * does not patch the project. `--auto` answers any remaining permission
+ * prompt so the call cannot sit until the timeout. `step_finish.cost`
+ * is a real figure, including a genuine 0 on a subscription plan.
+ *
+ * Flags have to come before `--` and the prompt, and stdin has to be
+ * closed. A live call on 2026-09-22 left stdin open (execFile's pipe)
+ * and opencode sat after init until SIGTERM, empty stdout, 120s. The
+ * same argv with `child.stdin.end()` returned a rewrite in about 9s
+ * inside a real project.
  */
 
 const INSTRUCTION =
@@ -45,12 +58,15 @@ const INSTRUCTION =
 export interface EnhanceResult {
   enhanced: string;
   /** Real cost of this one call, when the adapter reports one (claude
-   * does; codex doesn't — R9.7, never guessed). */
+   * and opencode do, opencode may report a genuine 0; codex doesn't — R9.7, never guessed). */
   costUsd?: number;
   latencyMs: number;
 }
 
 const TIMEOUT_MS = 30_000;
+/** Headroom for a slow model. A correct invocation returns in well under
+ * this; the old 30s budget was killing the hung argv shape above. */
+const OPENCODE_TIMEOUT_MS = 120_000;
 const MAX_BUFFER = 1024 * 1024;
 
 /**
@@ -85,6 +101,27 @@ export function parseCodexEnhanceOutput(stdout: string): Omit<EnhanceResult, "la
   return { enhanced: enhanced.trim() };
 }
 
+export function parseOpencodeEnhanceOutput(stdout: string): Omit<EnhanceResult, "latencyMs"> {
+  let enhanced = "";
+  let costUsd: number | undefined;
+  for (const line of stdout.split("\n")) {
+    if (!line.trim()) continue;
+    let obj: { type?: string; part?: { text?: string; cost?: number } };
+    try {
+      obj = JSON.parse(line) as { type?: string; part?: { text?: string; cost?: number } };
+    } catch {
+      continue;
+    }
+    if (obj.type === "text" && typeof obj.part?.text === "string" && obj.part.text.trim()) {
+      enhanced = enhanced ? `${enhanced}\n${obj.part.text}` : obj.part.text;
+    }
+    if (obj.type === "step_finish" && typeof obj.part?.cost === "number") {
+      costUsd = (costUsd ?? 0) + obj.part.cost;
+    }
+  }
+  return { enhanced: enhanced.trim(), ...(costUsd !== undefined ? { costUsd } : {}) };
+}
+
 async function enhanceViaClaude(rawText: string, cwd: string): Promise<EnhanceResult> {
   const start = Date.now();
   const { stdout } = await execFileAsync(
@@ -113,6 +150,59 @@ async function enhanceViaCodex(rawText: string, cwd: string): Promise<EnhanceRes
   return { ...parseCodexEnhanceOutput(stdout), latencyMs: Date.now() - start };
 }
 
+/** Argv for the one-shot. Exported so a test can lock the flag order. */
+export function opencodeEnhanceArgs(rawText: string): string[] {
+  return ["run", "--format", "json", "--auto", "--agent", "plan", "--", `${INSTRUCTION}\n\n---\n${rawText}`];
+}
+
+function enhanceFailure(adapter: string, err: unknown): Error {
+  const failure = err as { killed?: boolean; signal?: string; stderr?: unknown; message?: string };
+  const stderr = typeof failure.stderr === "string" ? failure.stderr.trim().slice(0, 300) : "";
+  if (failure.killed || failure.signal === "SIGTERM") {
+    return new Error(
+      stderr
+        ? `${adapter} hat nicht rechtzeitig geantwortet. ${stderr}`
+        : `${adapter} hat nicht rechtzeitig geantwortet.`,
+    );
+  }
+  if (stderr) return new Error(stderr);
+  if (err instanceof Error && err.message && !err.message.startsWith("Command failed:")) return err;
+  return new Error(`${adapter}: Prompt verbessern fehlgeschlagen.`);
+}
+
+async function enhanceViaOpencode(rawText: string, cwd: string): Promise<EnhanceResult> {
+  const start = Date.now();
+  let stdout: string;
+  try {
+    stdout = await new Promise<string>((resolve, reject) => {
+      const child = execFile(
+        "opencode",
+        opencodeEnhanceArgs(rawText),
+        { timeout: OPENCODE_TIMEOUT_MS, maxBuffer: MAX_BUFFER, cwd },
+        (err, out, stderr) => {
+          if (err) {
+            const failure = err as { stderr?: string };
+            if (typeof stderr === "string" && stderr.trim()) failure.stderr = stderr;
+            reject(err);
+            return;
+          }
+          resolve(out);
+        },
+      );
+      // execFile leaves stdin open. opencode then waits on that pipe after
+      // init and never creates a session (empty stdout until the timeout).
+      // Closing it is the difference between a ~9s rewrite and a 120s kill.
+      // `stdio: "ignore"` does not stick — execFile still hands us a stdin stream.
+      child.stdin?.end();
+    });
+  } catch (err) {
+    throw enhanceFailure("OpenCode", err);
+  }
+  const parsed = parseOpencodeEnhanceOutput(stdout);
+  if (!parsed.enhanced) throw new Error("OpenCode hat keinen umgeschriebenen Prompt geliefert.");
+  return { ...parsed, latencyMs: Date.now() - start };
+}
+
 /**
  * `project` sets the CLI's cwd — found necessary via a real end-to-end
  * test: without it, the call ran in the *hub server's own* working
@@ -125,5 +215,6 @@ async function enhanceViaCodex(rawText: string, cwd: string): Promise<EnhanceRes
 export async function enhancePrompt(adapterId: string, rawText: string, project: string): Promise<EnhanceResult> {
   if (adapterId === "claude") return enhanceViaClaude(rawText, project);
   if (adapterId === "codex") return enhanceViaCodex(rawText, project);
+  if (adapterId === "opencode") return enhanceViaOpencode(rawText, project);
   throw new Error(`enhancePrompt: no enhancer wired up for adapter "${adapterId}"`);
 }

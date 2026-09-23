@@ -36,21 +36,26 @@ import { normalizeOpencodeLine } from "./normalize.ts";
 const OpencodeConfig = z.object({
   command: z.string().min(1).default("opencode"),
   extraArgs: z.array(z.string()).default([]),
+  /** Passed as `--model` when the session does not name one. The live
+   * default observed 2026-09-22 was `zai-coding-plan/glm-5.3`. */
+  model: z.string().min(1).optional(),
 });
 type OpencodeConfig = z.infer<typeof OpencodeConfig>;
 
 /**
  * opencode has a real, verified `--agent <name>` flag (`opencode run
  * --help`) — directly analogous to claude's --agent. It has no equivalent
- * of claude's `/skill-name` prompt-prefix convention (no evidence found);
- * a requested `skill` is visibly ignored (AGENTS.md Regel 6), never
- * silently dropped or turned into prompt text that might do nothing —
- * same fail-loud pattern as adapter-codex's skill/agent handling.
+ * of claude's `/skill-name` prompt-prefix convention (no evidence found).
+ * The hub resolves an `extends` chain and puts that text in the prompt
+ * (`skillChain` is the names only). A bare `skill` without that chain is
+ * visibly ignored (AGENTS.md Regel 6), never silently dropped.
  */
 const OpencodeSessionArgs = z
   .object({
     agent: z.string().min(1).optional(),
     skill: z.string().min(1).optional(),
+    skillChain: z.array(z.string().min(1)).max(16).optional(),
+    resumeSessionId: z.string().min(1).optional(),
   })
   .optional();
 
@@ -101,7 +106,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         }
         if (parsed && typeof parsed === "object" && "sessionID" in parsed) {
           const sid = (parsed as { sessionID?: unknown }).sessionID;
-          if (typeof sid === "string") meta.resumeSessionId = sid;
+          if (typeof sid === "string" && sid !== meta.resumeSessionId) {
+            meta.resumeSessionId = sid;
+            ctx.emit({
+              type: "system",
+              summary: `OpenCode · Session ${sid}`,
+              payload: { kind: "opencode.native_session", nativeSessionId: sid },
+            });
+          }
         }
         for (const event of normalizeOpencodeLine(parsed)) ctx.emit(event);
       }
@@ -140,16 +152,26 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const args = OpencodeSessionArgs.safeParse(spec.args);
       const agent = args.success ? args.data?.agent : undefined;
       const skill = args.success ? args.data?.skill : undefined;
-      if (skill) {
+      const chain = args.success ? (args.data?.skillChain ?? []) : [];
+      const resumeSessionId = args.success ? args.data?.resumeSessionId : undefined;
+      if (chain.length === 0 && skill) {
         ctx.emit({
           type: "system",
           summary: "opencode: skill selection ignored — no project-local skill mechanism verified for this adapter",
           payload: { kind: "opencode.skill_ignored", requested: skill },
         });
       }
-      const meta: SessionMeta = { healthy: true };
+      const meta: SessionMeta = { healthy: true, ...(resumeSessionId ? { resumeSessionId } : {}) };
+      const model = spec.model ?? cfg.model;
+      if (model) {
+        ctx.emit({
+          type: "system",
+          summary: `OpenCode · ${model}`,
+          payload: { kind: "opencode.model", model },
+        });
+      }
       const proc = await ctx.spawnWorker(
-        buildArgs(spec.prompt ?? "", undefined, agent, spec.model),
+        buildArgs(spec.prompt ?? "", resumeSessionId, agent, model),
         spec.env ? { env: spec.env } : undefined,
       );
       attach(ctx.sessionId, proc, ctx, meta);

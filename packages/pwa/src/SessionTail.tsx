@@ -11,7 +11,7 @@ import { SearchPane } from "./Search.tsx";
 /**
  * T1.6 filter engine — three presets per EPIC-P1 §2/§5 (AC-P1-4), not the
  * four ad-hoc ones P0 shipped ("Alle"/"Lesen"/"Tool-Calls"/"Denken").
- * "Überwachen" is the default: hides thinking entirely and hides large
+ * "Überwachen" is the default: hides large
  * tool_result payloads (AC-P1-4's ">2KB" — measured from EventStore's own
  * K5 byte count when the event was blob-offloaded, else a JSON-size
  * estimate, since the wire event doesn't carry an explicit byte count
@@ -35,12 +35,24 @@ function isLargeToolResult(e: NormalizedEvent): boolean {
   return e.type === "tool_result" && payloadByteEstimate(e) > LARGE_TOOL_RESULT_BYTES;
 }
 
+function showInChat(event: NormalizedEvent): boolean {
+  if (event.type === "assistant" || event.type === "user" || event.type === "thinking") return true;
+  if (event.type !== "system") return false;
+  const payload = event.payload as { kind?: unknown; reason?: unknown };
+  return (
+    payload.kind === "opencode.model" ||
+    payload.kind === "opencode.step_start" ||
+    payload.kind === "session.skill_chain" ||
+    (payload.kind === "opencode.step_finish" && payload.reason === "length")
+  );
+}
+
 const FILTERS: { id: FilterPreset; label: string; keep: (e: NormalizedEvent) => boolean }[] = [
-  { id: "lesen", label: "Lesen", keep: (e) => e.type === "assistant" || e.type === "user" },
+  { id: "lesen", label: "Lesen", keep: showInChat },
   {
     id: "ueberwachen",
     label: "Überwachen",
-    keep: (e) => e.type !== "thinking" && !isLargeToolResult(e),
+    keep: (e) => !isLargeToolResult(e),
   },
   { id: "debuggen", label: "Debuggen", keep: () => true },
 ];
@@ -284,7 +296,11 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
 
   // T1.6-3/AC-P1.6-2: no back-arrow up top anymore — "Übersicht" in the
   // dock below is the one way back, reachable from anywhere with one tap.
-  const showReply = status !== "stopped" && steerSupported;
+  const showReply = steerSupported;
+  const modelLabel =
+    session.model ??
+    [...events].reverse().find((event) => (event.payload as { kind?: unknown }).kind === "opencode.model")?.payload.model;
+  const shownModel = typeof modelLabel === "string" ? modelLabel : null;
   const showVerlaufFilterBar = activeTab === "verlauf";
 
   return (
@@ -295,7 +311,8 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
             {session.project.split("/").pop()}
           </div>
           <div class="dim">
-            {session.adapter} · <span class={`pill ${status}`}>{status}</span>
+            {session.adapter}
+            {shownModel ? ` · ${shownModel}` : ""} · <span class={`pill ${status}`}>{status}</span>
           </div>
         </div>
         <button class="btn" type="button" onClick={toggleArchive}>
@@ -323,7 +340,11 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
         ) : activeTab === "suche" ? (
           <SearchPane project={session.project} />
         ) : visible.length === 0 ? (
-          <div class="empty">keine Events im Filter</div>
+          <div class="empty">
+            {status === "working" || status === "starting"
+              ? `lädt…${shownModel ? ` · ${shownModel}` : ""}`
+              : "keine Nachrichten"}
+          </div>
         ) : (
           visible.map((e) => (
             <EventRow
@@ -352,8 +373,13 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
                 project={session.project}
                 extraActions={
                   <>
-                    <button class="btn primary" onClick={sendReply} disabled={replyBusy || !reply.trim()}>
-                      {replyBusy ? "Sende…" : "Senden"}
+                    <button
+                      class={replyBusy ? "btn primary busy" : "btn primary"}
+                      aria-busy={replyBusy}
+                      onClick={sendReply}
+                      disabled={replyBusy || !reply.trim()}
+                    >
+                      {replyBusy ? "lädt…" : status === "stopped" ? "Weiter" : "Senden"}
                     </button>
                     {status !== "stopped" && (
                       <button class="btn danger" onClick={stop}>
@@ -469,8 +495,8 @@ function BudgetTopUp({ sessionId, currentBudgetUsd }: { sessionId: string; curre
         />
         <span>$ neues Budget</span>
       </div>
-      <button class="btn primary" onClick={submit} disabled={busy}>
-        {busy ? "…" : "Budget erhöhen"}
+      <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy}>
+        {busy ? "lädt…" : "Budget erhöhen"}
       </button>
       {message && <div class="dim" style="font-size: 12px">{message}</div>}
     </div>
@@ -688,8 +714,8 @@ function HunkCard({
         </span>
         <span class="hunk-fn">{active.functionContext ?? "—"}</span>
         {active.collapsed && (
-          <button class="hunk-expand-btn" onClick={onExpand} disabled={loading}>
-            {loading ? "lädt …" : "ganzer Hunk"}
+          <button class={loading ? "hunk-expand-btn busy" : "hunk-expand-btn"} aria-busy={loading} onClick={onExpand} disabled={loading}>
+            {loading ? "lädt…" : "ganzer Hunk"}
           </button>
         )}
       </div>
@@ -754,6 +780,48 @@ function toolAnchor(toolId: string, side: "use" | "result"): string {
   return `tool-${side}-${toolId}`;
 }
 
+function eventDetail(event: NormalizedEvent): string {
+  const payload = event.payload;
+  for (const key of ["text", "output", "error"] as const) {
+    const value = payload[key];
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+  try {
+    return JSON.stringify(payload, null, 2);
+  } catch {
+    return event.summary;
+  }
+}
+
+function EventDetail({ event }: { event: NormalizedEvent }) {
+  const [blob, setBlob] = useState<string | null>(null);
+  useEffect(() => {
+    if (!event.blobRef) return;
+    const hash = event.blobRef.replace(/^sha256:/, "");
+    let alive = true;
+    fetch(`/api/sessions/${event.sessionId}/blobs/${hash}`, {
+      headers: { authorization: `Bearer ${getToken()}` },
+    })
+      .then((res) => (res.ok ? res.text() : Promise.reject(new Error("blob"))))
+      .then((text) => {
+        if (alive) setBlob(text);
+      })
+      .catch(() => {
+        if (alive) setBlob("Details konnten nicht geladen werden.");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [event.blobRef, event.sessionId]);
+  return <pre class="event-detail">{blob ?? eventDetail(event)}</pre>;
+}
+
+function onCardClick(ev: { target: EventTarget | null }, toggle: () => void) {
+  const target = ev.target as HTMLElement | null;
+  if (target?.closest("button, a")) return;
+  toggle();
+}
+
 function EventRow({
   event,
   expanded,
@@ -777,20 +845,17 @@ function EventRow({
     // T1.7: dimmed/italic (styles.css .event.thinking), collapsible —
     // collapsed shows only the (already <=200 char) summary; expanded
     // shows the adapter's full reasoning text, when it sent one.
-    const fullText = typeof event.payload.text === "string" ? event.payload.text : undefined;
     return (
-      <div class="event thinking" data-seq={event.seq}>
+      <div class={`event thinking${expanded ? " expanded" : ""}`} data-seq={event.seq} onClick={(ev) => onCardClick(ev, onToggleExpand)}>
         <div class="meta">
           <span>
-            #{event.seq} · thinking
+            {expanded ? "▾" : "▸"} #{event.seq} · thinking
             {blobNote}
           </span>
           <span>{time}</span>
         </div>
-        <button class="think-toggle" onClick={onToggleExpand}>
-          {expanded ? "▾" : "▸"} {expanded ? "einklappen" : "ausklappen"}
-        </button>
-        <div class="summary">{expanded && fullText ? fullText : event.summary}</div>
+        <div class="summary">{event.summary}</div>
+        {expanded && <EventDetail event={event} />}
       </div>
     );
   }
@@ -798,7 +863,7 @@ function EventRow({
   if (event.type === "tool_use" && toolId) {
     const state: "running" | "ok" | "error" = !toolResult ? "running" : toolResult.payload.isError ? "error" : "ok";
     return (
-      <div id={toolAnchor(toolId, "use")} class="event tool_use" data-seq={event.seq}>
+      <div id={toolAnchor(toolId, "use")} class={`event tool_use${expanded ? " expanded" : ""}`} data-seq={event.seq} onClick={(ev) => onCardClick(ev, onToggleExpand)}>
         <div class="meta">
           <span>
             #{event.seq} · tool_use
@@ -815,13 +880,19 @@ function EventRow({
           )}
         </div>
         <div class="summary">{event.summary}</div>
+        {expanded && <EventDetail event={event} />}
       </div>
     );
   }
 
   if (event.type === "tool_result" && toolId) {
     return (
-      <div id={toolAnchor(toolId, "result")} class="event tool_result" data-seq={event.seq}>
+      <div
+        id={toolAnchor(toolId, "result")}
+        class={`event tool_result${expanded ? " expanded" : ""}`}
+        data-seq={event.seq}
+        onClick={(ev) => onCardClick(ev, onToggleExpand)}
+      >
         <div class="meta">
           <span>
             #{event.seq} · tool_result
@@ -835,6 +906,7 @@ function EventRow({
           </button>
         </div>
         <div class="summary">{event.summary}</div>
+        {expanded && <EventDetail event={event} />}
       </div>
     );
   }
@@ -846,7 +918,7 @@ function EventRow({
     const args = (event.payload as { args?: { skill?: string; agent?: string } | null }).args;
     const skillNote = args?.skill ? `Skill: ${args.skill}` : args?.agent ? `Agent: ${args.agent}` : null;
     return (
-      <div class="event system" data-seq={event.seq}>
+      <div class={`event system${expanded ? " expanded" : ""}`} data-seq={event.seq} onClick={(ev) => onCardClick(ev, onToggleExpand)}>
         <div class="meta">
           <span>
             #{event.seq} · {event.type}
@@ -858,12 +930,13 @@ function EventRow({
           {event.summary}
           {skillNote && <span class="badge waiting"> · Gestartet mit {skillNote}</span>}
         </div>
+        {expanded && <EventDetail event={event} />}
       </div>
     );
   }
 
   return (
-    <div class={`event ${event.type}`} data-seq={event.seq}>
+    <div class={`event ${event.type}${expanded ? " expanded" : ""}`} data-seq={event.seq} onClick={(ev) => onCardClick(ev, onToggleExpand)}>
       <div class="meta">
         <span>
           #{event.seq} · {event.type}
@@ -872,6 +945,7 @@ function EventRow({
         <span>{time}</span>
       </div>
       <div class="summary prose">{visibleEventText(event)}</div>
+      {expanded && <EventDetail event={event} />}
     </div>
   );
 }
