@@ -121,10 +121,12 @@ test.describe("Composer: Verbessern, Empfehlung, Skills (T3.9, T5.7–T5.10)", (
     await expect(prompt).toHaveValue(new RegExp(`^/${name}\\n\\n`));
   });
 
-  test("Skills gibt es nur für Adapter mit Skill-Aufruf", async ({ app }) => {
+  test("Skills gibt es nur für Adapter mit Skill- oder Agent-Aufruf (ADR-0018)", async ({ app }) => {
     await app.getByRole("button", { name: "Neue Session" }).click();
-    await app.getByLabel("Adapter").selectOption("opencode");
+    await app.getByLabel("Adapter").selectOption("dummy");
     await expect(app.getByText("Skills/Agents: für diesen Adapter nicht verfügbar")).toBeVisible();
+    await app.getByLabel("Adapter").selectOption("opencode");
+    await expect(app.getByRole("button", { name: "+ Skill/Agent" })).toBeVisible();
   });
 
   test("ein Projekt-Skill lädt seine extends-Kette und zeigt sie im Chat (T5.10)", async ({ app, hub }) => {
@@ -135,7 +137,23 @@ test.describe("Composer: Verbessern, Empfehlung, Skills (T3.9, T5.7–T5.10)", (
     await expect(app.getByText(/Antwort auf: Mach es bunt/)).toBeVisible();
   });
 
-  test.fixme("Skill-Picker-Overlay für Claude (braucht einen nachgebauten claude-CLI im E2E-PATH)", async () => {});
+  test("Skill-Picker-Overlay für Claude: Skill wählen, starten, Kette im Chat (T7.8)", async ({ app, hub }) => {
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Adapter").selectOption("claude");
+    await app.getByRole("button", { name: "+ Skill/Agent" }).click();
+    const sheet = app.locator(".overlay-sheet");
+    await expect(sheet.getByText("Senden mit …")).toBeVisible();
+    await sheet.getByRole("button", { name: /neon/ }).click();
+    await expect(app.getByRole("button", { name: "Skill: neon" })).toBeVisible();
+    await app.getByPlaceholder("Refactore den Auth-Flow…").fill("Mach es bunt");
+    await app.getByRole("button", { name: "Starten" }).click();
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.getByText("Skills task → neon")).toBeVisible();
+    await expect(app.getByText(/Antwort auf: Mach es bunt · Claude/)).toBeVisible();
+    const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
+    const created = (await hub.events(id)).find((e) => e.payload.kind === "session.created");
+    expect(created?.payload.args).toMatchObject({ skill: "neon", skillChain: ["task", "neon"] });
+  });
 });
 
 test.describe("Sprache (T1.5, T3.10)", () => {

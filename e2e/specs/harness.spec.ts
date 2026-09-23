@@ -24,3 +24,29 @@ test.describe("Harness-Parität (EPIC-P7)", () => {
     expect(await hub.sessions()).toHaveLength(0);
   });
 });
+
+test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
+  test("ein Claude-Tool-Aufruf und die Antwort erscheinen im Chat, mit Kosten", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · Claude/)).toBeVisible();
+    await app.getByRole("button", { name: "Verlauf" }).click();
+    await expect(app.locator(".event.tool_use")).toHaveCount(1);
+    await expect(app.locator(".event.tool_use")).toContainText("echo hallo-uacc");
+    await hub.until(async () => (await hub.api<{ costUsd: number }>(`/api/sessions/${id}`)).body.costUsd > 0, "cost");
+  });
+
+  test("ein Claude-Fehler kommt als lesbare Meldung, der nächste Prompt läuft wieder (ADR-0015)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "claude", prompt: "Bitte FEHLER" });
+    const toast = app.locator(".toast.error").filter({ hasText: "Serverfehler beim Provider" });
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText("überlastet");
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.locator(".event.provider-error")).toContainText("claude: Serverfehler beim Provider");
+    await app.getByPlaceholder("Antworten…").fill("Jetzt wieder");
+    await app.getByRole("button", { name: /^(Senden|Weiter)$/ }).click();
+    await expect(app.getByText(/Antwort auf: Jetzt wieder · Claude/)).toBeVisible();
+  });
+});

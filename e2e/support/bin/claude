@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+// E2E stand-in for the Claude Code CLI (T7.8, AI-P5-3). Speaks
+// `claude -p <prompt> --output-format stream-json --verbose` the way the
+// real 2.1.280 does (shapes from adapter-claude/test/fixtures), so the real
+// adapter, worker runner and normalizer run unchanged — no cloud, no cost.
+//
+// Keywords in the prompt pick a behaviour:
+//   WERKZEUG  one Bash tool call (echo) with its result, then the answer
+//   FEHLER    a failed turn: result is_error with an overloaded API error, exit 1
+//   LANGSAM   keep the turn open for 60 s
+import { randomUUID } from "node:crypto";
+
+const argv = process.argv.slice(2);
+if (argv[0] === "--version") {
+  console.log("2.1.280 (Claude Code)");
+  process.exit(0);
+}
+const flag = (name) => {
+  const i = argv.indexOf(name);
+  return i >= 0 ? argv[i + 1] : undefined;
+};
+const prompt = flag("-p");
+if (prompt === undefined || flag("--output-format") !== "stream-json") {
+  console.error(`fake claude: unsupported call ${argv.join(" ")}`);
+  process.exit(2);
+}
+
+const sessionId = flag("--resume") ?? randomUUID();
+const model = flag("--model") ?? "claude-sonnet-5";
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const emit = (line) => process.stdout.write(`${JSON.stringify(line)}\n`);
+const assistant = (content) =>
+  emit({ type: "assistant", message: { model, id: `msg_${randomUUID()}`, type: "message", role: "assistant", content }, session_id: sessionId });
+
+emit({ type: "system", subtype: "init", cwd: process.cwd(), session_id: sessionId, tools: ["Bash", "Read", "Edit"], model, claude_code_version: "2.1.280" });
+await sleep(50);
+
+if (prompt.includes("LANGSAM")) await sleep(60_000);
+
+if (prompt.includes("FEHLER")) {
+  const message = 'API Error: 529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}';
+  assistant([{ type: "text", text: message }]);
+  emit({ type: "result", subtype: "success", is_error: true, result: message, session_id: sessionId, num_turns: 1, duration_ms: 120, total_cost_usd: 0, usage: { input_tokens: 0, output_tokens: 0 } });
+  process.exit(1);
+}
+
+if (prompt.includes("WERKZEUG")) {
+  const id = `toolu_${randomUUID().replace(/-/g, "").slice(0, 24)}`;
+  assistant([{ type: "tool_use", id, name: "Bash", input: { command: "echo hallo-uacc", description: "Echo test string" } }]);
+  emit({ type: "user", message: { role: "user", content: [{ tool_use_id: id, type: "tool_result", content: "hallo-uacc", is_error: false }] }, session_id: sessionId });
+}
+
+const text = `Antwort auf: ${prompt.split("\n").pop()} · Claude ${model}`;
+assistant([{ type: "text", text }]);
+emit({
+  type: "result",
+  subtype: "success",
+  is_error: false,
+  result: text,
+  session_id: sessionId,
+  num_turns: 1,
+  duration_ms: 300,
+  total_cost_usd: 0.0123,
+  usage: { input_tokens: 120, output_tokens: 30 },
+});
