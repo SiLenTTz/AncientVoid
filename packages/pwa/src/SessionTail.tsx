@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { hubApi, getToken, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type DiffHunk } from "./api.ts";
+import { ApiContext, useApi } from "./api-context.ts";
+import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type DiffHunk } from "./api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "./ws.ts";
 import { Composer } from "./Composer.tsx";
 import { visibleEventText } from "./event-text.ts";
@@ -78,6 +79,8 @@ function toolIdOf(e: NormalizedEvent): string | undefined {
 }
 
 export function SessionTail({ session, onNavigate }: { session: SessionRecord; onNavigate: (page: Page) => void }) {
+  // EPIC-P6: every call of this view goes to the session's own host.
+  const api = useMemo(() => hostApi(session.hostId), [session.hostId]);
   const [events, setEvents] = useState<NormalizedEvent[]>([]);
   const [conn, setConn] = useState<"connecting" | "live" | "reconnecting" | "closed">("connecting");
   const [filter, setFilter] = useState<FilterPreset>(loadFilter);
@@ -134,7 +137,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     let alive = true;
     let retry: ReturnType<typeof setTimeout> | undefined;
     const load = () =>
-      hubApi
+      api
         .adapters()
         .then((adapters) => {
           if (!alive) return;
@@ -166,6 +169,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
       url: base,
       token: getToken(),
       sessionId: session.id,
+      hostId: remoteHost(session.hostId),
       onEvents: (incoming) => {
         setEvents((prev) => {
           const merged = [...prev, ...incoming];
@@ -184,7 +188,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   useEffect(() => {
     const timer = setInterval(async () => {
       try {
-        const rec = await hubApi.session(session.id);
+        const rec = await api.session(session.id);
         setStatus(rec.status);
         setRecord(rec);
       } catch {
@@ -202,12 +206,12 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   useEffect(() => {
     if (activeTab !== "bericht" && activeTab !== "diff") return;
     let alive = true;
-    hubApi
+    api
       .sessionDiff(session.id)
       .then((d) => alive && setDiff(d))
       .catch(() => alive && setDiff(null));
     if (activeTab === "bericht") {
-      hubApi
+      api
         .adapterUsage(session.adapter)
         .then((u) => alive && setUsage(u))
         .catch(() => alive && setUsage(null));
@@ -267,7 +271,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   useEffect(() => {
     let alive = true;
     const load = () =>
-      hubApi
+      api
         .adapterUsage(session.adapter)
         .then((u) => alive && setQuotaUsage(u))
         .catch(() => undefined);
@@ -323,7 +327,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   const toggleArchive = async () => {
     const next = !archived;
     try {
-      const updated = await hubApi.setArchived(session.id, next);
+      const updated = await api.setArchived(session.id, next);
       setArchived(updated.archived === true);
     } catch (err) {
       setReplyError(err instanceof Error ? err.message : "Archivieren fehlgeschlagen.");
@@ -336,7 +340,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     // nothing and the user would have no way to know. Now surfaces a real
     // failure the same way a rejected reply already does.
     try {
-      const ack = await hubApi.stopSession(session.id);
+      const ack = await api.stopSession(session.id);
       if (!ack.ok) setReplyError("Stop fehlgeschlagen.");
     } catch (err) {
       setReplyError(err instanceof Error ? err.message : "Stop fehlgeschlagen.");
@@ -350,7 +354,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     setLeaseHeld(false);
     try {
       if (pendingInput.current?.text !== reply) pendingInput.current = { text: reply, id: newInputId() };
-      const ack = await hubApi.steer(session.id, { kind: "prompt", text: reply }, pendingInput.current.id, takeover);
+      const ack = await api.steer(session.id, { kind: "prompt", text: reply }, pendingInput.current.id, takeover);
       if (ack.ok) {
         pendingInput.current = null;
         setReply("");
@@ -379,6 +383,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   const showVerlaufFilterBar = activeTab === "verlauf";
 
   return (
+    <ApiContext.Provider value={api}>
     <div>
       <div class="topbar">
         <div style="flex: 1; min-width: 0">
@@ -543,6 +548,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
       </div>
       <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} sessionId={session.id} />
     </div>
+    </ApiContext.Provider>
   );
 }
 
@@ -570,6 +576,7 @@ function formatDuration(ms: number): string {
  * an approval (still pending) or applied it immediately.
  */
 function BudgetTopUp({ sessionId, currentBudgetUsd }: { sessionId: string; currentBudgetUsd: number | null }) {
+  const api = useApi();
   const [amount, setAmount] = useState(String(((currentBudgetUsd ?? 1) * 2).toFixed(2)));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -580,7 +587,7 @@ function BudgetTopUp({ sessionId, currentBudgetUsd }: { sessionId: string; curre
     setBusy(true);
     setMessage("");
     try {
-      await hubApi.requestBudgetTopUp(sessionId, value);
+      await api.requestBudgetTopUp(sessionId, value);
       setMessage("Budget erhöht — Session läuft weiter.");
     } catch (err) {
       // A pending-approval response (422) throws here (see api.ts) — the
@@ -734,6 +741,7 @@ function WorktreeCard({
   worktree: { path: string; branch: string };
   project: string;
 }) {
+  const api = useApi();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
@@ -742,7 +750,7 @@ function WorktreeCard({
   const apply = async () => {
     setBusy(true);
     try {
-      const r = await hubApi.applyToProject(sessionId);
+      const r = await api.applyToProject(sessionId);
       setResult(
         r.ok
           ? { ok: true, text: `Übernommen: ${r.files} Datei(en) nach ${r.into} (${r.commit}).` }
@@ -937,6 +945,7 @@ function HunkCard({
   hunk: DiffHunk;
   index: number;
 }) {
+  const api = useApi();
   const [expanded, setExpanded] = useState<DiffHunk | null>(null);
   const [loading, setLoading] = useState(false);
   const active = expanded ?? hunk;
@@ -945,7 +954,7 @@ function HunkCard({
   const onExpand = async () => {
     setLoading(true);
     try {
-      const res = await hubApi.sessionDiffHunk(sessionId, path);
+      const res = await api.sessionDiffHunk(sessionId, path);
       const full = res.hunks[index];
       if (full) setExpanded(full);
     } catch {

@@ -50,4 +50,98 @@ test.describe("Flotte (EPIC-P6)", () => {
     await expect(app.locator(".fleet-invite code")).toHaveText(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
     await expect(app.locator(".fleet-invite")).toContainText("einmalig");
   });
+
+  async function pair(home: TestHub, peer: TestHub): Promise<void> {
+    const invite = await peer.api<{ code: string }>("/api/fleet/invites", { body: {} });
+    const res = await home.api("/api/fleet/peers", { body: { url: peer.origin, code: invite.body.code } });
+    expect(res.status).toBe(201);
+  }
+
+  test("T6.3/T6.4: beide Hosts in einer Übersicht, Aktionen landen beim richtigen Host @desktop", async ({ app, hub }) => {
+    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    try {
+      await pair(hub, peer);
+      const local = await hub.createSession({ adapter: "opencode", prompt: "Lokal am PC" });
+      const remote = await peer.createSession({ adapter: "opencode", prompt: "Auf dem Server" });
+      await peer.until(async () => (await peer.api<{ status: string }>(`/api/sessions/${remote}`)).body.status === "idle", "remote idle");
+
+      await app.reload();
+      await expect(app.locator(".host-chip").filter({ hasText: "omarchy" })).toContainText("verbunden");
+      await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
+      await expect(app.locator(".project-tile-header").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
+      await expect(app.locator(".project-tile-header").filter({ hasText: "omarchy · alpha" })).toBeVisible();
+
+      await app.locator(".project-tile").filter({ hasText: "silenttz-server · alpha" }).locator(".session-open").click();
+      await expect(app).toHaveURL(new RegExp(`#/hosts/silenttz-server/sessions/${remote}`));
+      await app.getByRole("button", { name: "Chat" }).click();
+      await expect(app.getByText(/Antwort auf: Auf dem Server/)).toBeVisible();
+      await app.getByPlaceholder("Antworten…").fill("Vom Handy an den Server");
+      await app.getByRole("button", { name: "Senden" }).click();
+      await expect(app.getByText(/Antwort auf: Vom Handy an den Server .*\(fortgesetzt\)|Antwort auf: Vom Handy an den Server/)).toBeVisible();
+      const remoteEvents = await peer.events(remote);
+      expect(remoteEvents.some((e) => e.type === "user" && e.payload.text === "Vom Handy an den Server")).toBe(true);
+      const localEvents = await hub.events(local);
+      expect(localEvents.some((e) => e.payload.text === "Vom Handy an den Server")).toBe(false);
+    } finally {
+      await peer.stop();
+    }
+  });
+
+  test("T6.3: neue Session auf dem gewählten Host starten", async ({ app, hub }) => {
+    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    try {
+      await pair(hub, peer);
+      await app.reload();
+      await app.getByRole("button", { name: "Neue Session" }).click();
+      await app.getByLabel("Host").selectOption("silenttz-server");
+      await app.getByLabel("Adapter").selectOption("opencode");
+      await expect(app.getByLabel("Projekt")).toContainText("alpha (main)");
+      await app.getByPlaceholder("Refactore den Auth-Flow…").fill("Auf dem Server starten");
+      await app.getByRole("button", { name: "Starten" }).click();
+      await expect(app).toHaveURL(/#\/hosts\/silenttz-server\/sessions\//);
+      const id = decodeURIComponent(app.url().split("/sessions/")[1]!);
+      expect((await peer.api(`/api/sessions/${id}`)).status).toBe(200);
+      expect((await hub.api(`/api/sessions/${id}`)).status).toBe(404);
+    } finally {
+      await peer.stop();
+    }
+  });
+
+  test("T6.3/AC-P6-3: ein Host fällt aus — die anderen bleiben bedienbar, sein Stand bleibt sichtbar", async ({ app, hub }) => {
+    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    try {
+      await pair(hub, peer);
+      await peer.createSession({ adapter: "dummy" });
+      const local = await hub.createSession({ adapter: "opencode", prompt: "Lokal" });
+      await app.reload();
+      await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
+      await peer.kill("SIGKILL");
+      await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText(/veraltet · Stand \d\d:\d\d/, { timeout: 15_000 });
+      await expect(app.locator(".project-tile-header").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
+
+      await app.locator(".project-tile").filter({ hasText: "omarchy · alpha" }).locator(".session-open").click();
+      await app.getByRole("button", { name: "Chat" }).click();
+      await expect(app.getByText(/Antwort auf: Lokal/)).toBeVisible();
+      await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${local}`)).body.status === "idle", "idle");
+      await app.getByPlaceholder("Antworten…").fill("Trotzdem weiter");
+      await app.getByRole("button", { name: "Senden" }).click();
+      await expect(app.getByText(/Antwort auf: Trotzdem weiter/)).toBeVisible();
+    } finally {
+      await peer.stop();
+    }
+  });
+
+  test("T6.2/AC-P6-4: widerrufene Kopplung wird in der Übersicht benannt", async ({ app, hub }) => {
+    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    try {
+      await pair(hub, peer);
+      await app.reload();
+      await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
+      const { execFileSync } = await import("node:child_process");
+      execFileSync(process.execPath, ["packages/hubctl/src/cli.ts", "token", "revoke", "fleet:omarchy", "--db", `${peer.dataDir}/hub.db`]);
+      await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("Zugriff entzogen", { timeout: 15_000 });
+    } finally {
+      await peer.stop();
+    }
+  });
 });

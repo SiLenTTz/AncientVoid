@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { hubApi, type ProjectFile, type SearchResult } from "./api.ts";
+import { useApi } from "./api-context.ts";
+import { type ProjectFile, type SearchResult } from "./api.ts";
 import hljs from "highlight.js/lib/core";
 import markdown from "highlight.js/lib/languages/markdown";
 
@@ -41,6 +42,7 @@ function languageFor(path: string): string | undefined {
 }
 
 export function SearchPane({ project }: { project: string }) {
+  const api = useApi();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"idle" | "indexing" | "searching" | "ready" | "unavailable" | "error">("idle");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -49,7 +51,7 @@ export function SearchPane({ project }: { project: string }) {
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   useEffect(() => {
-    hubApi
+    api
       .searchStatus(project)
       .then((s) => {
         if (!s.qmdAvailable) setStatus("unavailable");
@@ -64,7 +66,7 @@ export function SearchPane({ project }: { project: string }) {
     setErrorMsg("");
     setStatus("searching");
     try {
-      const res = await hubApi.search(project, q);
+      const res = await api.search(project, q);
       if (res.status === "indexing") {
         setStatus("indexing");
         // First-time index build can take real minutes (see search.ts's
@@ -72,7 +74,7 @@ export function SearchPane({ project }: { project: string }) {
         if (pollRef.current) clearInterval(pollRef.current);
         pollRef.current = setInterval(async () => {
           try {
-            const retry = await hubApi.search(project, q);
+            const retry = await api.search(project, q);
             if (retry.status === "ready") {
               clearInterval(pollRef.current);
               setResults(retry.results);
@@ -158,13 +160,14 @@ export function SearchPane({ project }: { project: string }) {
 const CODE_LINE_HEIGHT_PX = 19;
 
 function FileViewer({ project, path, line, onClose }: { project: string; path: string; line: number; onClose: () => void }) {
+  const api = useApi();
   const [file, setFile] = useState<ProjectFile | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     ensureLanguages();
     let alive = true;
-    hubApi
+    api
       .searchFile(project, path)
       .then((f) => alive && setFile(f))
       .catch((err) => alive && setError(err instanceof Error ? err.message : "Datei konnte nicht geladen werden"));

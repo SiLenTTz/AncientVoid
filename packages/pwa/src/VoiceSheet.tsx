@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { useApi } from "./api-context.ts";
 import { recognizeOnce, speechRecognitionSupported, type SpeechResult } from "./speech.ts";
 import { parseVoiceDirective, type VoiceDirective } from "./voice-directives.ts";
-import { hubApi } from "./api.ts";
 
 /**
  * T1.6-7 → T3.10 — global voice-command entry point (Voice dock item).
@@ -43,6 +43,7 @@ export function VoiceSheet({
    * session) is a real, honestly-shown limitation, not a silent no-op. */
   sessionId?: string;
 }) {
+  const api = useApi();
   const [state, setState] = useState<"idle" | "listening" | "done">("idle");
   const [result, setResult] = useState<SpeechResult | null>(null);
   const [pickedExample, setPickedExample] = useState<string | null>(null);
@@ -94,10 +95,10 @@ export function VoiceSheet({
     setBusy(true);
     try {
       if (directive.kind === "stop") {
-        await hubApi.stopSession(sessionId);
+        await api.stopSession(sessionId);
         setActionResult("Session gestoppt.");
       } else if (directive.kind === "budget") {
-        const ack = await hubApi.requestBudgetTopUp(sessionId, directive.amountUsd);
+        const ack = await api.requestBudgetTopUp(sessionId, directive.amountUsd);
         setActionResult(
           ack.ok ? "Budget geändert." : `Zur Freigabe eingereicht (${ack.detail ?? "wartet auf Bestätigung"}).`,
         );

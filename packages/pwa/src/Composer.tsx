@@ -1,7 +1,8 @@
 import { useState } from "preact/hooks";
+import { useApi } from "./api-context.ts";
 import type { ComponentChildren } from "preact";
 import { recognizeOnce, speechRecognitionSupported } from "./speech.ts";
-import { hubApi, type PromptRecommendation } from "./api.ts";
+import { type PromptRecommendation } from "./api.ts";
 import { saveSelectedSkill, saveSelectedWorkflow } from "./SkillOverlay.tsx";
 
 /** T1.5-8: enhance.ts only has a real implementation for these adapters —
@@ -45,6 +46,7 @@ export function Composer({
    * A reply has no such args, so the composer puts the name in the text. */
   onUseRecommendation?: (item: { kind: "skill" | "agent"; name: string }) => void;
 }) {
+  const api = useApi();
   const supported = speechRecognitionSupported();
   const [listening, setListening] = useState(false);
   const [micError, setMicError] = useState("");
@@ -88,11 +90,11 @@ export function Composer({
     try {
       // T1.5-8: only on explicit request, never automatic — this is the
       // one and only call site.
-      const result = await hubApi.enhancePrompt(adapter, project, value);
+      const result = await api.enhancePrompt(adapter, project, value);
       setPreview({ original: value, enhanced: result.enhanced, costUsd: result.costUsd, latencyMs: result.latencyMs });
       setRecommendation(null);
       try {
-        setRecommendation(await hubApi.recommendPrompt(project, result.enhanced));
+        setRecommendation(await api.recommendPrompt(project, result.enhanced));
       } catch (err) {
         setRecommendError(err instanceof Error ? err.message : "Empfehlung fehlgeschlagen");
       }
@@ -108,7 +110,7 @@ export function Composer({
   // a future optimizer revision, not a reason to disrupt the user's flow.
   const logFeedback = (decision: "accepted" | "rejected") => {
     if (!preview) return;
-    hubApi
+    api
       .recordOptimizerFeedback({
         adapter,
         project,
@@ -140,7 +142,7 @@ export function Composer({
     try {
       if (recommendation.mode === "create") {
         if (!recommendation.draft) throw new Error("Vorschlag hat keinen Entwurf");
-        await hubApi.saveArtifact({
+        await api.saveArtifact({
           project,
           kind: recommendation.kind,
           name: recommendation.name,

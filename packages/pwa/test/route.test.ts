@@ -12,3 +12,15 @@ describe("session hash route (AC-P5-5)", () => {
     expect(parseAppHash("#/settings")).toEqual({ view: "list" });
   });
 });
+
+describe("host-qualified session links (EPIC-P6)", () => {
+  it("round-trips host and session", () => {
+    const hash = sessionHash("abc", "silenttz-server");
+    expect(hash).toBe("#/hosts/silenttz-server/sessions/abc");
+    expect(parseAppHash(hash)).toEqual({ view: "tail", hostId: "silenttz-server", sessionId: "abc" });
+  });
+
+  it("keeps old links without a host working", () => {
+    expect(parseAppHash("#/sessions/abc")).toEqual({ view: "tail", sessionId: "abc" });
+  });
+});

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
-import { hubApi, type SkillOrAgent } from "./api.ts";
+import { useApi } from "./api-context.ts";
+import { type SkillOrAgent } from "./api.ts";
 
 /** T1.5-10/ADR-0005: only claude has a verified skill/agent invocation
  * mechanism (`/name` prefix, `--agent` flag). codex fails loud instead of
@@ -68,6 +69,7 @@ export function SkillPicker({
   selection: SelectedSkill | null;
   onChange: (s: SelectedSkill | null) => void;
 }) {
+  const api = useApi();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<SkillOrAgent[] | null>(null);
   const [error, setError] = useState("");
@@ -86,7 +88,7 @@ export function SkillPicker({
     setError("");
     setOpen(true);
     if (items === null) {
-      hubApi
+      api
         .skills(project)
         .then((res) => setItems(res.items))
         .catch((err) => setError(err instanceof Error ? err.message : "Skills konnten nicht geladen werden"));

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "preact/hooks";
-import { hubApi, getToken, type AdapterInfo, type AdapterUsage, type DiscoveredProject, type SessionRecord } from "./api.ts";
+import { useEffect, useMemo, useState } from "preact/hooks";
+import { hubApi, hostApi, getToken, type AdapterInfo, type AdapterUsage, type DiscoveredProject, type FleetHost, type SessionRecord } from "./api.ts";
+import { ApiContext } from "./api-context.ts";
 import { Dashboard } from "./Dashboard.tsx";
 import { Composer } from "./Composer.tsx";
 import { SkillPicker, loadSelectedSkill, loadSelectedWorkflow, type SelectedSkill } from "./SkillOverlay.tsx";
@@ -23,6 +24,8 @@ export function App({
   initialPage?: Page;
 }) {
   const [sessions, setSessions] = useState<SessionRecord[] | null>(null);
+  // EPIC-P6: hosts of the fleet (just this hub when nothing is paired).
+  const [hosts, setHosts] = useState<FleetHost[]>([]);
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
   const [usage, setUsage] = useState<Record<string, AdapterUsage>>({});
   const [error, setError] = useState("");
@@ -43,9 +46,14 @@ export function App({
     let alive = true;
     const tick = async () => {
       try {
-        const [s, a] = await Promise.all([hubApi.sessions(), hubApi.adapters()]);
+        const [fleet, a] = await Promise.all([
+          // An older hub has no /api/fleet — its own list is the whole fleet.
+          hubApi.fleet().catch(async () => ({ self: "", hosts: [] as FleetHost[], sessions: await hubApi.sessions() })),
+          hubApi.adapters(),
+        ]);
         if (!alive) return;
-        setSessions(s);
+        setSessions(fleet.sessions);
+        setHosts(fleet.hosts);
         setAdapters(a);
         setError("");
         hubApi
@@ -95,6 +103,7 @@ export function App({
       {page === "new" && (
         <CreateSession
           adapters={adapters}
+          hosts={hosts}
           onCreated={(s) => {
             setPage("dashboard");
             onOpen(s);
@@ -121,6 +130,7 @@ export function App({
         ) : (
           <Dashboard
             sessions={sessions}
+            hosts={hosts}
             onOpen={onOpen}
             pendingApprovals={pendingApprovals}
             onOpenApprovals={() => setPage("approvals")}
@@ -233,13 +243,29 @@ function Settings({ onSwitchToken }: { onSwitchToken: () => void }) {
 }
 
 function CreateSession({
-  adapters,
+  adapters: localAdapters,
+  hosts,
   onCreated,
 }: {
   adapters: AdapterInfo[];
+  hosts: FleetHost[];
   onCreated: (s: SessionRecord) => void;
 }) {
+  // EPIC-P6: a session starts on exactly the chosen host.
+  const selfHost = hosts.find((h) => h.self)?.hostId ?? null;
+  const [host, setHost] = useState<string | null>(selfHost);
+  const remote = host !== null && host !== selfHost;
+  const api = useMemo(() => (remote ? hostApi(host) : hubApi), [host, remote]);
+  const [remoteAdapters, setRemoteAdapters] = useState<AdapterInfo[]>([]);
+  const adapters = remote ? remoteAdapters : localAdapters;
+  useEffect(() => {
+    if (!remote) return;
+    api.adapters().then(setRemoteAdapters).catch(() => setRemoteAdapters([]));
+  }, [api, remote]);
   const [adapter, setAdapter] = useState(adapters[0]?.id ?? "dummy");
+  useEffect(() => {
+    if (adapters.length > 0 && !adapters.some((a) => a.id === adapter)) setAdapter(adapters[0]!.id);
+  }, [adapters]);
   const [project, setProject] = useState("");
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState("");
@@ -258,7 +284,9 @@ function CreateSession({
 
   useEffect(() => {
     let alive = true;
-    hubApi
+    setProjects(null);
+    setProject("");
+    api
       .projects()
       .then((res) => {
         if (!alive) return;
@@ -277,7 +305,7 @@ function CreateSession({
     return () => {
       alive = false;
     };
-  }, []);
+  }, [api]);
 
   // T1.5-10: the last skill/agent chosen FOR THIS PROJECT is always the
   // default (user's own requirement — "so dass man nicht immer auswählen
@@ -303,7 +331,7 @@ function CreateSession({
       // anything real (see the Kontingent display instead). The contract
       // field itself is untouched (createSession still accepts it) for P2
       // to build on for API-key-billed adapters.
-      const rec = await hubApi.createSession({
+      const rec = await api.createSession({
         adapter,
         project,
         ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
@@ -319,7 +347,21 @@ function CreateSession({
   };
 
   return (
+    <ApiContext.Provider value={api}>
     <div class="card form-grid">
+      {hosts.length > 1 && (
+        <label>
+          Host
+          <select value={host ?? ""} onChange={(e) => setHost((e.target as HTMLSelectElement).value)}>
+            {hosts.map((h) => (
+              <option key={h.hostId} value={h.hostId} disabled={h.state !== "reachable"}>
+                {h.hostId}
+                {h.self ? " (dieser)" : h.state !== "reachable" ? ` (${h.state})` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label>
         Adapter
         <select value={adapter} onChange={(e) => setAdapter((e.target as HTMLSelectElement).value)}>
@@ -390,5 +432,6 @@ function CreateSession({
         {busy ? "lädt…" : "Starten"}
       </button>
     </div>
+    </ApiContext.Provider>
   );
 }
