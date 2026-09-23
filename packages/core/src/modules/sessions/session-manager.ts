@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { Adapter, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation } from "@uacc/contracts";
+import type { ToolPermissionPoll, ToolPermissionRequest, Adapter, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation } from "@uacc/contracts";
 import { DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, unsupportedResume } from "@uacc/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
@@ -10,6 +10,7 @@ import { refuseSpec, refuseSteer } from "../harness/index.ts";
 import { OperationStore } from "../approvals/index.ts";
 import { ApprovalFlow } from "./approval-flow.ts";
 import { BudgetGuard } from "./budget-guard.ts";
+import { ToolPermissions, type ToolGate } from "./tool-permissions.ts";
 import type { ApprovalService } from "../approvals/index.ts";
 import { buildSessionSummary } from "../reporting/index.ts";
 import { createConsoleLogger } from "../../platform/index.ts";
@@ -48,6 +49,10 @@ export class SessionManager {
   private readonly usageByAdapter = new Map<string, AdapterUsageSnapshot>();
   /** ADR-0019: approval-gated prompts and budget top-ups. */
   private readonly flow: ApprovalFlow;
+  /** ADR-0019: shared by the approval flow and tool permissions. */
+  private readonly operationStore: OperationStore;
+  /** T7.2: set by the server (enableToolPermissions). */
+  private tools: ToolPermissions | undefined;
   /** T2.7: budget and daily cap. */
   private readonly budget: BudgetGuard;
   /** ADR-0015: when the last provider.error per session was reported. */
@@ -95,6 +100,7 @@ export class SessionManager {
     this.registry = registry;
     this.runner = runner;
     this.worktrees = worktrees;
+    this.operationStore = new OperationStore(db);
     this.budget = new BudgetGuard(
       {
         session: (id) => this.live.get(id),
@@ -118,7 +124,7 @@ export class SessionManager {
         applyBudgetTopUp: (sessionId, usd, actor) => this.applyBudgetTopUp(sessionId, usd, actor),
       },
       approvals,
-      new OperationStore(db),
+      this.operationStore,
     );
     this.reportingSinks = reportingSinks;
     this.logger = observability.logger ?? createConsoleLogger();
@@ -703,6 +709,36 @@ export class SessionManager {
     return this.flow.operation(id);
   }
 
+  /**
+   * T7.2 / ADR-0018 §3: native tool permissions. The server wires the
+   * approval service (always, independent of `requireStepApprovals`) and
+   * the bridge that lets a provider ask.
+   */
+  enableToolPermissions(gate: ToolGate): void {
+    this.tools = new ToolPermissions(
+      {
+        session: (id) => this.live.get(id),
+        setStatus: (session, status) => this.setStatus(session, status),
+        emitEvents: (session, events) => this.emitEvents(session, events),
+      },
+      this.operationStore,
+      gate,
+    );
+  }
+
+  /** T7.2: see ToolPermissions. */
+  requestToolPermission(sessionId: string, req: ToolPermissionRequest): Promise<{ ok: true; id: string } | { ok: false; detail: string }> {
+    return this.tools ? this.tools.request(sessionId, req) : Promise.resolve({ ok: false, detail: "tool permissions not enabled" });
+  }
+
+  answerToolQuestion(id: string, answers: Record<string, string>): boolean {
+    return this.tools?.answerQuestion(id, answers) ?? false;
+  }
+
+  pollToolPermission(sessionId: string, id: string): Promise<ToolPermissionPoll | undefined> {
+    return this.tools ? this.tools.poll(sessionId, id) : Promise.resolve(undefined);
+  }
+
   /** T2.7: see BudgetGuard. */
   applyBudgetTopUp(sessionId: string, newBudgetUsd: number, actor?: string): Promise<Ack> {
     return this.budget.applyBudgetTopUp(sessionId, newBudgetUsd, actor);
@@ -986,6 +1022,7 @@ export class SessionManager {
       get nativeSessionId() {
         return session.record.nativeSessionId;
       },
+      ...(this.tools?.bridge ? { permissionBridge: () => this.tools!.bridge!(session.record.id) } : {}),
     };
   }
 

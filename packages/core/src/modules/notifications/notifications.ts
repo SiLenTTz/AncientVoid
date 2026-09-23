@@ -41,6 +41,13 @@ export function notificationFor(event: NormalizedEvent, ctx: NotificationContext
         : { level: "error", title: `${where} · ${ctx.adapter} antwortet nicht`, detail: text(payload.detail), kind };
     case "session.turn_end":
       return { level: "success", title: `${where} · Zug fertig`, detail: `${ctx.adapter} wartet auf den nächsten Prompt.`, kind };
+    case "tool.permission_requested":
+      return {
+        level: "warning",
+        title: `${where} · ${payload.question === true ? "Rückfrage" : "Freigabe nötig"}`,
+        detail: event.summary,
+        kind,
+      };
     case "session.steer_pending_approval":
       return { level: "warning", title: `${where} · Freigabe nötig`, detail: "Eine Antwort wartet in den Freigaben.", kind };
     case "session.budget_exceeded":

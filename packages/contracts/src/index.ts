@@ -5,6 +5,7 @@ export * from "./sessions/worker.ts";
 export * from "./sessions/wire.ts";
 export * from "./approvals/approval.ts";
 export * from "./approvals/operation.ts";
+export * from "./approvals/tool-permission.ts";
 export * from "./reporting/reporting.ts";
 export * from "./observability/observability.ts";
 export * from "./sessions/identity.ts";

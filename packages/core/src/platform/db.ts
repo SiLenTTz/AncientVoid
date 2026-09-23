@@ -203,6 +203,13 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE approvals ADD COLUMN payload_hash TEXT;
     `,
   },
+  {
+    id: 13,
+    name: "operation-response",
+    // T7.2: what the human answered (e.g. to a provider question) — kept
+    // apart from the immutable, hashed payload.
+    sql: `ALTER TABLE operations ADD COLUMN response TEXT;`,
+  },
 ];
 
 export class HubDatabase {

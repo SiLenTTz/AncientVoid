@@ -18,7 +18,18 @@ export function registerApprovalsRoutes(app: FastifyInstance, ctx: RouteContext)
     // T7.3: what the decision released, and what became of it.
     return deps.approvals.list(status.success ? status.data : undefined).map((r) => {
       const op = deps.sessions.operation(r.id);
-      return op ? { ...r, operation: { state: op.state, outcome: op.outcome } } : r;
+      if (!op) return r;
+      const operation = { state: op.state, outcome: op.outcome };
+      if (op.kind !== "tool.permission") return { ...r, operation };
+      // T7.2: what the provider wants to run, or what it asks.
+      const { toolName, input } = op.payload as { toolName: string; input: Record<string, unknown> };
+      const questions = Array.isArray(input.questions) ? input.questions : undefined;
+      const shown = JSON.stringify(input);
+      return {
+        ...r,
+        operation,
+        tool: { name: toolName, input: shown.length > 2000 ? `${shown.slice(0, 1999)}…` : shown, ...(questions ? { questions } : {}) },
+      };
     });
   });
 
@@ -45,6 +56,13 @@ export function registerApprovalsRoutes(app: FastifyInstance, ctx: RouteContext)
     if (!rawToken) return reply.code(401).send({ error: "missing device token" });
     const identity = deps.tokens.identify(rawToken);
     if (!identity) return reply.code(401).send({ error: "invalid device token" });
+    // T7.2: a provider question needs its answer before it can be released.
+    const pendingRequest = deps.approvals.get(id);
+    if (pendingRequest?.action === "tool.question" && parsed.data.decision === "approve") {
+      const answers = parsed.data.answers ?? {};
+      if (Object.keys(answers).length === 0) return reply.code(422).send({ ok: false, detail: "Antwort fehlt." });
+      if (!deps.sessions.answerToolQuestion(id, answers)) return reply.code(422).send({ ok: false, detail: "Rückfrage ist nicht mehr offen." });
+    }
     const result = deps.approvals.decide(id, parsed.data.decision, rawToken, identity.label, parsed.data.reason);
     if (!result.ok) return reply.code(422).send(result);
     // T2.8: every genuine decision (approved OR rejected) is recorded

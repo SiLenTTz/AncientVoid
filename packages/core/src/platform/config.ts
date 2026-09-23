@@ -65,6 +65,9 @@ export const HubConfig = z.object({
    * operator choice, not a silent default change to how every existing
    * session already behaves. */
   requireStepApprovals: z.boolean().default(false),
+  /** T7.2: how long a provider's tool request or question waits for the
+   * phone before it is denied (never run on timeout). */
+  toolApprovalTimeoutMs: z.number().int().min(10_000).default(10 * 60_000),
   /** T2.5: WebAuthn relying-party identity for destructive approvals.
    * Defaults suit local dev only (`localhost` origin) — a real Tailscale
    * deployment MUST override `rpId`/`origin` to the actual MagicDNS

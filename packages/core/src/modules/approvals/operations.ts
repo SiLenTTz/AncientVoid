@@ -98,6 +98,24 @@ export class OperationStore {
     return Number(res.changes) === 1;
   }
 
+  /** T7.2: the human's answer, stored next to (not inside) the payload. */
+  setResponse(id: string, response: unknown): void {
+    this.db.prepare("UPDATE operations SET response = ? WHERE id = ?").run(JSON.stringify(response), id);
+  }
+
+  response(id: string): unknown {
+    const row = this.db.prepare("SELECT response FROM operations WHERE id = ?").get(id) as { response: string | null } | undefined;
+    return row?.response ? (JSON.parse(row.response) as unknown) : null;
+  }
+
+  /** T7.2: the request a provider already made for this tool call. */
+  findToolRequest(sessionId: string, toolUseId: string): PendingOperation | undefined {
+    const row = this.db
+      .prepare("SELECT * FROM operations WHERE session_id = ? AND kind = 'tool.permission' AND json_extract(payload, '$.toolUseId') = ?")
+      .get(sessionId, toolUseId) as unknown as OperationRow | undefined;
+    return row ? toOperation(row) : undefined;
+  }
+
   /** The arguments about to run are still the ones that were approved. */
   intact(op: PendingOperation): boolean {
     const approved = this.db.prepare("SELECT payload_hash FROM approvals WHERE id = ?").get(op.id) as { payload_hash: string | null } | undefined;

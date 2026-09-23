@@ -93,7 +93,8 @@ export const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   idle: ["working", "waiting_approval", "parked", "stopping", "stopped", "error"],
   starting: ["working", "idle", "waiting_approval", "error", "stopping", "stopped"],
   working: ["idle", "waiting_approval", "parked", "stopping", "stopped", "error"],
-  waiting_approval: ["working", "parked", "stopping", "stopped", "error"],
+  // T7.2: a provider process may still end while a tool request waits.
+  waiting_approval: ["working", "idle", "parked", "stopping", "stopped", "error"],
   parked: ["working", "stopping", "stopped", "error"],
   stopping: ["stopped", "error"],
   stopped: ["working"],

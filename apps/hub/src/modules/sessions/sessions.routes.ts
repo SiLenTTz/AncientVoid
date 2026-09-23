@@ -1,3 +1,4 @@
+import { ToolPermissionRequest } from "@uacc/contracts";
 import type { FastifyInstance } from "fastify";
 import { isProjectPathAllowed } from "@uacc/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
@@ -128,6 +129,29 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     }
   });
 
+
+  // T7.2 / ADR-0018 §3: a provider asks before a tool runs (called by the
+  // permission bridge with its session-bound token). Answer by polling:
+  // survives a hub restart, and no HTTP request is held for minutes.
+  app.post("/api/sessions/:id/tool-permissions", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const parsed = ToolPermissionRequest.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid tool permission request" });
+    const res = await deps.sessions.requestToolPermission(id, parsed.data);
+    return res.ok ? reply.code(201).send({ id: res.id }) : reply.code(422).send({ error: res.detail });
+  });
+
+  app.get("/api/sessions/:id/tool-permissions/:pid", async (req, reply) => {
+    const { id, pid } = req.params as { id: string; pid: string };
+    const waitMs = Math.min(Math.max(Number((req.query as { waitMs?: string }).waitMs ?? 0) || 0, 0), 25_000);
+    const deadline = Date.now() + waitMs;
+    for (;;) {
+      const poll = await deps.sessions.pollToolPermission(id, pid);
+      if (!poll) return reply.code(404).send({ error: "unknown tool permission request" });
+      if (poll.state === "answered" || Date.now() >= deadline) return poll;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  });
 
   app.post("/api/sessions/:id/steer", async (req, reply) => {
     const { id } = req.params as { id: string };

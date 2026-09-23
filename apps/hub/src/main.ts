@@ -33,6 +33,7 @@ import {
 import { TmuxRunner, ProcessRunner } from "@uacc/workers";
 import type { AdapterFactory } from "@uacc/contracts";
 import { createHubApp } from "./app.ts";
+import { createPermissionBridge } from "./modules/approvals/permission-bridge.ts";
 
 // `dummy` used to be hardcoded here, always visible in every real hub's
 // adapter list/status rows regardless of whether anyone wanted it — real
@@ -127,6 +128,15 @@ async function main(): Promise<void> {
     reportingSinks,
     { logger: logger.child({ component: "sessions" }), metrics },
   );
+
+  // T7.2 / ADR-0018 §3: providers ask before a tool runs — always through
+  // the approval queue, independent of requireStepApprovals.
+  const loopHost = config.server.host === "0.0.0.0" ? "127.0.0.1" : config.server.host;
+  sessions.enableToolPermissions({
+    approvals,
+    timeoutMs: config.toolApprovalTimeoutMs,
+    bridge: createPermissionBridge({ tokens, hubUrl: `http://${loopHost}:${config.server.port}`, dir: resolve(dataDir, "bridges") }),
+  });
 
   // K7: recover sessions from JSONL + snapshots before accepting traffic.
   const recovery = await sessions.recoverAll();

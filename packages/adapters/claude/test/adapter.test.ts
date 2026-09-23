@@ -64,7 +64,8 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
       nativeDiscovery: "none",
       nativeResume: "native",
     });
-    expect(adapter.capabilities().features).toMatchObject({ followUp: true, interrupt: true, toolGate: "allowlist", skills: true, agents: true, modelChoice: "start" });
+    expect(adapter.capabilities().features).toMatchObject({ followUp: true, interrupt: true, toolGate: "native", questions: true, skills: true, agents: true, modelChoice: "start" });
+    expect(createAdapter({ permissionPrompts: "off" }).capabilities().features).toMatchObject({ toolGate: "allowlist", questions: false });
     // ADR-0018: the flag the live hub runs with means every tool runs unasked.
     expect(createAdapter({ extraArgs: ["--dangerously-skip-permissions"] }).capabilities().features.toolGate).toBe("bypass");
     expect(createAdapter({ extraArgs: ["--permission-mode", "bypassPermissions"] }).capabilities().features.toolGate).toBe("bypass");
@@ -254,5 +255,35 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     expect(handle).toEqual({ sessionId: "s1" });
     expect((await adapter.steer(handle!, { kind: "prompt", text: "weiter" }, ctx)).ok).toBe(true);
     expect(spawned[0]).toEqual(expect.arrayContaining(["--resume", "native-1"]));
+  });
+
+  it("ADR-0018 §3: asks the hub through the permission bridge, with a long MCP tool timeout", async () => {
+    const calls: { cmd: string[]; env?: Record<string, string> }[] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd, opts) => {
+        calls.push({ cmd, ...(opts?.env ? { env: opts.env } : {}) });
+        return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
+      },
+      permissionBridge: async () => ({ mcpConfigPath: "/data/bridges/s.mcp.json", toolName: "mcp__uacc__permission" }),
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "hallo" }, ctx);
+    await adapter.steer(handle, { kind: "prompt", text: "weiter" }, ctx);
+    for (const call of calls) {
+      expect(call.cmd.join(" ")).toContain("--mcp-config /data/bridges/s.mcp.json --permission-prompt-tool mcp__uacc__permission");
+      expect(call.env?.MCP_TOOL_TIMEOUT).toBe("3600000");
+    }
+    expect(calls).toHaveLength(2);
+
+    const bypass = createAdapter({ extraArgs: ["--dangerously-skip-permissions"] });
+    calls.length = 0;
+    await bypass.start({ adapter: "claude", project: "/tmp", prompt: "hallo" }, ctx);
+    expect(calls[0]!.cmd).not.toContain("--permission-prompt-tool");
+  });
+
+  it("says so in the tail when the hub offers no bridge", async () => {
+    const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(loadFixture("trivial-text.jsonl")) });
+    await createAdapter().start({ adapter: "claude", project: "/tmp", prompt: "hallo" }, ctx);
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.no_permission_bridge")).toBe(true);
   });
 });

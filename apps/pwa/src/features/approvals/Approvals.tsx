@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { hubApi, type ApprovalRequest } from "../../shared/api.ts";
+import { hubApi, type ApprovalRequest, type HubApi, type ToolQuestion } from "../../shared/api.ts";
 import { startAuthentication } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
 
@@ -31,18 +31,82 @@ function riskBadge(cls: ApprovalRequest["class"]) {
   return <span class="badge risk-write">Bestätigung</span>;
 }
 
-function ApprovalCard({ req, onDecided }: { req: ApprovalRequest; onDecided: () => void }) {
+/** T7.2: the arguments a provider wants to run, readable. */
+function toolInputText(raw: string): string {
+  try {
+    const input = JSON.parse(raw) as Record<string, unknown>;
+    if (typeof input.command === "string") return input.command;
+    if (typeof input.file_path === "string") return input.file_path;
+    return JSON.stringify(input, null, 2);
+  } catch {
+    return raw;
+  }
+}
+
+/** T7.2: a provider question — pick an option (or several), or answer freely. */
+function QuestionForm({ questions, busy, onAnswer, onReject }: { questions: ToolQuestion[]; busy: boolean; onAnswer: (answers: Record<string, string>) => void; onReject: () => void }) {
+  const [picked, setPicked] = useState<Record<string, string[]>>({});
+  const [free, setFree] = useState<Record<string, string>>({});
+  const toggle = (q: ToolQuestion, label: string) =>
+    setPicked((prev) => {
+      const now = prev[q.question] ?? [];
+      const next = q.multiSelect ? (now.includes(label) ? now.filter((l) => l !== label) : [...now, label]) : [label];
+      return { ...prev, [q.question]: next };
+    });
+  const answers = Object.fromEntries(
+    questions.map((q) => [q.question, free[q.question]?.trim() || (picked[q.question] ?? []).join(", ")]),
+  );
+  const complete = questions.every((q) => answers[q.question]);
+  return (
+    <div class="question-form">
+      {questions.map((q) => (
+        <div key={q.question} class="question">
+          <div class="question-text">{q.question}</div>
+          <div class="choice-row">
+            {q.options.map((o) => (
+              <button
+                key={o.label}
+                type="button"
+                class={`choice ${(picked[q.question] ?? []).includes(o.label) ? "active" : ""}`}
+                title={o.description}
+                onClick={() => toggle(q, o.label)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <input
+            class="question-free"
+            placeholder="Eigene Antwort…"
+            value={free[q.question] ?? ""}
+            onInput={(e) => setFree((prev) => ({ ...prev, [q.question]: (e.target as HTMLInputElement).value }))}
+          />
+        </div>
+      ))}
+      <div class="approval-actions">
+        <button class={busy ? "btn primary busy" : "btn primary"} disabled={busy || !complete} onClick={() => onAnswer(answers)}>
+          {busy ? "lädt…" : "Antworten"}
+        </button>
+        <button class="btn danger" disabled={busy} onClick={onReject}>
+          Ablehnen
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRequest; onDecided: () => void; api?: HubApi }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const pending = req.status === "pending";
   const destructive = req.class === "destructive";
 
-  const decide = async (decision: "approve" | "reject") => {
+  const decide = async (decision: "approve" | "reject", answers?: Record<string, string>) => {
     setBusy(true);
     setError("");
     try {
-      await hubApi.decideApproval(req.id, decision, reason || undefined);
+      await api.decideApproval(req.id, decision, reason || undefined, answers);
       onDecided();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Entscheidung fehlgeschlagen");
@@ -57,9 +121,9 @@ function ApprovalCard({ req, onDecided }: { req: ApprovalRequest; onDecided: () 
     setBusy(true);
     setError("");
     try {
-      const options = (await hubApi.webauthnAssertOptions(req.id)) as PublicKeyCredentialRequestOptionsJSON;
+      const options = (await api.webauthnAssertOptions(req.id)) as PublicKeyCredentialRequestOptionsJSON;
       const assertion = await startAuthentication({ optionsJSON: options });
-      await hubApi.decideApprovalBiometric(req.id, decision, assertion, reason || undefined);
+      await api.decideApprovalBiometric(req.id, decision, assertion, reason || undefined);
       onDecided();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Biometrische Freigabe fehlgeschlagen");
@@ -75,12 +139,27 @@ function ApprovalCard({ req, onDecided }: { req: ApprovalRequest; onDecided: () 
         {pending && <span class="approval-countdown mono">läuft ab in {secondsLeft(req.timeoutAt)}s</span>}
         {!pending && <span class={`badge status-${req.status}`}>{req.status}</span>}
       </div>
-      <div class="approval-summary">{req.summary}</div>
+      {req.tool && !req.tool.questions ? (
+        <>
+          <div class="approval-summary">
+            <span class="badge tool-badge">{req.tool.name}</span> möchte ausführen:
+          </div>
+          <pre class="tool-input mono">{toolInputText(req.tool.input)}</pre>
+        </>
+      ) : (
+        <div class="approval-summary">{req.summary}</div>
+      )}
       <div class="dim" style="font-size: 11px">
         Session {req.sessionId.slice(0, 8)} · {req.action}
       </div>
 
-      {pending && (
+      {pending && req.tool?.questions && (
+        <>
+          {error && <div style="color: var(--err); font-size: 12px">{error}</div>}
+          <QuestionForm questions={req.tool.questions} busy={busy} onAnswer={(answers) => void decide("approve", answers)} onReject={() => void decide("reject")} />
+        </>
+      )}
+      {pending && !req.tool?.questions && (
         <>
           {req.reasonRequired && (
             <textarea
@@ -114,7 +193,7 @@ function ApprovalCard({ req, onDecided }: { req: ApprovalRequest; onDecided: () 
                   disabled={busy || (req.reasonRequired && !reason.trim())}
                   onClick={() => decide("approve")}
                 >
-                  {busy ? "lädt…" : "Freigeben"}
+                  {busy ? "lädt…" : req.tool ? "Erlauben" : "Freigeben"}
                 </button>
                 <button class={busy ? "btn danger busy" : "btn danger"} aria-busy={busy} disabled={busy} onClick={() => decide("reject")}>
                   {busy ? "lädt…" : "Ablehnen"}

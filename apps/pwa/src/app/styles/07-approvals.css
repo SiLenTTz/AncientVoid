@@ -82,3 +82,38 @@
   gap: 8px;
   margin-top: 8px;
 }
+
+/* T7.2: a provider's tool request and questions */
+.tool-input {
+  max-height: 30vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--bg-chip);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  font-size: 12px;
+  margin: 6px 0;
+}
+.tool-badge {
+  margin-right: 6px;
+}
+.question-form {
+  display: grid;
+  gap: 10px;
+}
+.question-text {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.question-free {
+  width: 100%;
+  margin-top: 6px;
+}
+.session-approvals {
+  display: grid;
+  gap: 8px;
+  max-height: 55vh;
+  overflow: auto;
+  margin-bottom: 8px;
+}

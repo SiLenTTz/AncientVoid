@@ -1,4 +1,4 @@
-import { FLEET_TOKEN_PREFIX, isFleetRoutable } from "@uacc/contracts";
+import { BRIDGE_TOKEN_PREFIX, FLEET_TOKEN_PREFIX, bridgeTokenAllows, isFleetRoutable } from "@uacc/contracts";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import type { TokenService } from "@uacc/core";
 
@@ -22,10 +22,14 @@ export function extractToken(req: FastifyRequest): string | null {
 }
 
 export function checkAuth(req: FastifyRequest, opts: AuthOptions): { ok: true } | { ok: false; status: number; reason: string } {
-  if (opts.enforceTailnetIdentity && !req.headers[TAILSCALE_LOGIN_HEADER]) {
+  const token = extractToken(req);
+  // T7.2: the permission bridge runs on this machine and talks to the hub
+  // directly, not through tailscale serve.
+  const bridgeOnLoopback =
+    token !== null && (opts.tokens.identify(token)?.label ?? "").startsWith(BRIDGE_TOKEN_PREFIX) && /^(127\.|::1$|::ffff:127\.)/.test(req.ip);
+  if (opts.enforceTailnetIdentity && !req.headers[TAILSCALE_LOGIN_HEADER] && !bridgeOnLoopback) {
     return { ok: false, status: 401, reason: "missing tailnet identity (serve via tailscale)" };
   }
-  const token = extractToken(req);
   if (!token) return { ok: false, status: 401, reason: "missing device token" };
   if (!opts.tokens.verify(token)) return { ok: false, status: 401, reason: "invalid device token" };
   // ADR-0017: a hub's fleet token only reaches what a home hub may forward.
@@ -33,6 +37,11 @@ export function checkAuth(req: FastifyRequest, opts: AuthOptions): { ok: true } 
   const path = req.url.split("?")[0] ?? req.url;
   if (label.startsWith(FLEET_TOKEN_PREFIX) && !isFleetRoutable(path) && path !== "/api/fleet/pairing") {
     return { ok: false, status: 403, reason: "fleet token not allowed here" };
+  }
+  // T7.2: the permission bridge may ask and wait for its own session only —
+  // never decide, never read anything else.
+  if (label.startsWith(BRIDGE_TOKEN_PREFIX) && !bridgeTokenAllows(label, path)) {
+    return { ok: false, status: 403, reason: "bridge token not allowed here" };
   }
   return { ok: true };
 }
