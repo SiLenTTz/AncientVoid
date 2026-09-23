@@ -188,3 +188,13 @@ null }` — `null` heißt „noch keine Meldung von diesem Adapter", nicht 0 %
 - Ein Adapter, der `usageQuota` fälscht oder übertreibt, verfälscht die
   Anzeige — dieselbe bereits akzeptierte Angriffsflächen-Einschätzung wie
   bei `costUsd` (ADR-0003, Adapter-Output ist Daten, nie Instruktion).
+
+## Nachtrag 2026-09-24 — codex liefert doch ein Kontingent (T7.2)
+
+„codex: verifiziert nicht vorhanden“ galt für `codex exec`. `codex app-server`
+(0.156.1) beantwortet `account/rateLimits/read` und meldet
+`account/rateLimits/updated`: ein 5-Stunden- (`primary`, 300 min) und ein
+7-Tage-Fenster (`secondary`, 10080 min) mit `usedPercent` und `resetsAt`.
+Im Standardmodus `app-server` ist `capabilities().usage` deshalb `true`; die
+Fenster werden zu `five_hour`/`seven_day` (`app-server-events.ts quotaOf`,
+ohne Reset-Zeit kein Fenster).

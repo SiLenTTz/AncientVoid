@@ -12,7 +12,7 @@ import {
   type SteerInput,
   type WorkerProcess,
 } from "@uacc/contracts";
-import { AcpConnection, RpcError } from "./rpc.ts";
+import { JsonRpcConnection as AcpConnection, RpcError } from "@uacc/adapter-jsonrpc";
 import { UpdateMapper, type SessionUpdate } from "./normalize.ts";
 
 /**

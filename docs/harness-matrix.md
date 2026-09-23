@@ -14,7 +14,7 @@ dieser Session.
 | Adapter | geprüfte CLI | Folgeprompt | Anhalten | Tool-Gate | Rückfragen | Modellwahl | Agenten | Bilder | Dateien | Abzweig |
 |---|---|---|---|---|---|---|---|---|---|---|
 | claude | 2.1.280 | ✓ | ✓ | native | ✓ | ✓ | ✓ | — | — | — |
-| codex | 0.156.1 | ✓ | ✓ | sandbox | — | ✓ | — | — | — | — |
+| codex | 0.156.1 `app-server` | ✓ | ✓ | native | ✓ | ✓ | — | — | — | — |
 | opencode | 1.18.32 | ✓ | ✓ | allowlist | — | ✓ | ✓ | — | — | — |
 | copilot | 1.0.88 | ✓ | ✓ | bypass | — | ✓ | ✓ | — | — | — |
 | aider | 0.86.2 | — | ✓ | bypass | — | ✓ | — | — | — | — |
@@ -38,9 +38,15 @@ dieser Session.
   `apps/gateway-mcp/test/permission.test.ts`, E2E `harness.spec.ts` (Erlauben,
   Ablehnen, Rückfrage). `permissionPrompts: "off"` → `allowlist`,
   `--dangerously-skip-permissions` → `bypass`.
-- **codex:** `codex exec resume` für Folgeprompts (`test/fixtures/resume.jsonl`).
-  `exec` fragt nie; Tools laufen in `workspace-write`. `danger-full-access`
-  macht daraus `bypass`.
+- **codex:** Standard ist seit T7.2 `mode: "app-server"` — ein dauerhafter
+  `codex app-server` je Session: Befehle und Dateiänderungen fragen vorher
+  (`approvalPolicy: "untrusted"`, nie „für die Session erlauben“), Rückfragen
+  (`request_user_input`), Modellkatalog (`model/list`), Kontingent
+  (`account/rateLimits`, 5 h und 7 Tage). Belege: `test/app-server.test.ts`
+  (nachgebauter app-server, echtes v2-Protokoll), Live-Messlauf
+  `scripts/messlauf-p7.mjs codex-gate` mit codex-cli 0.156.1 — Erlauben schreibt
+  die Datei, Ablehnen verhindert sie (2026-09-24). `mode: "exec"` bleibt:
+  ein Prozess pro Zug, fragt nie, Tools in `workspace-write` (`sandbox`).
 - **opencode:** `--session` für Folgeprompts (`test/fixtures/*.jsonl`), `--agent`,
   Modellkatalog `opencode models` (15 Modelle am 2026-09-23). `opencode run`
   lehnt `ask` automatisch ab, niemand wird gefragt (Live-Versuch 2026-09-23).

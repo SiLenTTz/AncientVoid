@@ -1,0 +1,113 @@
+#!/usr/bin/env node
+// Stand-in `codex app-server` (T7.2): JSON-RPC over stdio in the v2
+// protocol of codex-cli 0.156.1 (schema: `codex app-server
+// generate-json-schema`). initialize, model/list, account/rateLimits/read,
+// thread/start|resume, turn/start|interrupt|steer, and the server's own
+// approval and user-input requests.
+//
+// Keywords in the prompt:
+//   WERKZEUG  a shell command that asks first (item/commandExecution/requestApproval)
+//   FRAGE     a question (item/tool/requestUserInput, Rot/Grün)
+//   LANGSAM   the turn runs until interrupted
+import { randomUUID } from "node:crypto";
+
+if (process.argv[2] === "--version") {
+  console.log("codex-cli 0.156.1");
+  process.exit(0);
+}
+if (process.argv[2] !== "app-server") {
+  console.error(`fake codex: unsupported ${process.argv.slice(2).join(" ")}`);
+  process.exit(2);
+}
+
+let buffer = "";
+let nextId = 5000;
+const waiting = new Map();
+const interrupted = new Set();
+const send = (msg) => process.stdout.write(`${JSON.stringify(msg)}\n`);
+const notify = (method, params) => send({ method, params });
+const ask = (method, params) => new Promise((resolve) => {
+  const id = nextId++;
+  waiting.set(id, resolve);
+  send({ id, method, params });
+});
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function turn(threadId, turnId, text) {
+  notify("turn/started", { threadId, turn: { id: turnId, status: "inProgress", items: [] } });
+  notify("turn/plan/updated", { threadId, turnId, plan: [{ step: "Lesen", status: "completed" }, { step: "Antworten", status: "inProgress" }] });
+  let tail = "";
+  if (text.includes("WERKZEUG")) {
+    const itemId = `item_${randomUUID().slice(0, 8)}`;
+    const item = { type: "commandExecution", id: itemId, command: "echo hallo-codex", cwd: process.cwd(), status: "inProgress", commandActions: [] };
+    notify("item/started", { threadId, turnId, item });
+    const answer = await ask("item/commandExecution/requestApproval", { threadId, turnId, itemId, command: item.command, cwd: item.cwd, startedAtMs: Date.now() });
+    const ok = answer?.decision === "accept";
+    notify("item/completed", { threadId, turnId, completedAtMs: Date.now(), item: { ...item, status: ok ? "completed" : "declined", exitCode: ok ? 0 : null, aggregatedOutput: ok ? "hallo-codex\n" : null } });
+    tail = ok ? ` · Ausgabe hallo-codex (${answer.decision})` : ` · nicht ausgeführt (${answer?.decision})`;
+  }
+  if (text.includes("FRAGE")) {
+    const itemId = `item_${randomUUID().slice(0, 8)}`;
+    const answer = await ask("item/tool/requestUserInput", { threadId, turnId, itemId, isBlocking: true, questions: [{ id: "farbe", header: "Logo", question: "Welche Farbe?", options: [{ label: "Rot", description: "warm" }, { label: "Grün", description: "frisch" }] }] });
+    tail = ` · Gewählt: ${answer?.answers?.farbe?.answers?.[0] ?? "nichts"}`;
+  }
+  if (text.includes("LANGSAM")) {
+    for (let i = 0; i < 600 && !interrupted.has(turnId); i++) await sleep(100);
+    if (interrupted.has(turnId)) {
+      notify("turn/completed", { threadId, turn: { id: turnId, status: "interrupted", items: [] } });
+      return;
+    }
+  }
+  notify("item/completed", { threadId, turnId, completedAtMs: Date.now(), item: { type: "reasoning", id: randomUUID(), summary: ["Kurz überlegt."], content: [] } });
+  notify("item/completed", { threadId, turnId, completedAtMs: Date.now(), item: { type: "agentMessage", id: randomUUID(), text: `Antwort auf: ${text} · Codex${tail}` } });
+  notify("thread/tokenUsage/updated", { threadId, turnId, tokenUsage: { last: { inputTokens: 100, cachedInputTokens: 0, outputTokens: 20, reasoningOutputTokens: 0, totalTokens: 120 }, total: { inputTokens: 100, cachedInputTokens: 0, outputTokens: 20, reasoningOutputTokens: 0, totalTokens: 120 } } });
+  notify("turn/completed", { threadId, turn: { id: turnId, status: "completed", items: [] } });
+}
+
+function handle(msg) {
+  if (msg.method === undefined) {
+    const resolve = waiting.get(msg.id);
+    waiting.delete(msg.id);
+    return resolve?.(msg.result);
+  }
+  const { id, method, params } = msg;
+  switch (method) {
+    case "initialize":
+      return send({ id, result: { userAgent: "fake-codex/0.156.1", codexHome: "/tmp", platformFamily: "unix", platformOs: "linux" } });
+    case "initialized":
+      return;
+    case "model/list":
+      return send({ id, result: { data: [{ id: "gpt-6-astra", displayName: "GPT-6-Astra", hidden: false }, { id: "gpt-5.3-codex", displayName: "GPT-5.3-Codex", hidden: false }, { id: "intern", hidden: true }] } });
+    case "account/rateLimits/read":
+      send({ id, result: { rateLimits: { primary: { usedPercent: 12, windowDurationMins: 300, resetsAt: 1790225177 }, secondary: { usedPercent: 40, windowDurationMins: 10080, resetsAt: 1790626233 } } } });
+      return notify("account/rateLimits/updated", { rateLimits: { primary: { usedPercent: 12, windowDurationMins: 300, resetsAt: 1790225177 }, secondary: { usedPercent: 40, windowDurationMins: 10080, resetsAt: 1790626233 } } });
+    case "thread/start":
+      return send({ id, result: { thread: { id: `thr_${randomUUID().slice(0, 12)}` }, model: params?.model ?? "gpt-6-astra", modelProvider: "openai", cwd: params?.cwd, approvalPolicy: params?.approvalPolicy, sandbox: params?.sandbox, approvalsReviewer: "user" } });
+    case "thread/resume":
+      return send({ id, result: { thread: { id: params.threadId } } });
+    case "turn/start": {
+      const turnId = `turn_${randomUUID().slice(0, 8)}`;
+      send({ id, result: { turn: { id: turnId, status: "inProgress", items: [] } } });
+      return void turn(params.threadId, turnId, params.input.map((i) => i.text ?? "").join(" "));
+    }
+    case "turn/interrupt":
+      interrupted.add(params.turnId);
+      return send({ id, result: {} });
+    case "turn/steer":
+      return send({ id, result: {} });
+    default:
+      if (id !== undefined) send({ id, error: { code: -32601, message: `unknown method ${method}` } });
+  }
+}
+
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => {
+  buffer += chunk;
+  let nl;
+  while ((nl = buffer.indexOf("\n")) >= 0) {
+    const line = buffer.slice(0, nl).trim();
+    buffer = buffer.slice(nl + 1);
+    if (line) handle(JSON.parse(line));
+  }
+});
+process.stdin.on("end", () => process.exit(0));

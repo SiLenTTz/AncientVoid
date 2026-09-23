@@ -133,6 +133,12 @@ export class TestHub {
           config: { command: join(binDir, "claude") },
         },
         {
+          // T7.2: codex in app-server mode (stand-in, real v2 protocol).
+          id: "codex",
+          module: "@uacc/adapter-codex",
+          config: { command: join(binDir, "codex") },
+        },
+        {
           // T7.2: an ACP harness (stand-in agent, real protocol).
           id: "acp",
           module: "@uacc/adapter-acp",

@@ -129,10 +129,14 @@ if (step === "claude-gate") {
   console.log(JSON.stringify({ step, claudeVersion, date: new Date().toISOString(), results }, null, 2));
   console.log(results.every((r) => r.pass) ? "PASS" : "FAIL");
   process.exit(results.every((r) => r.pass) ? 0 : 1);
-} else if (step === "acp-gate") {
-  const preset = process.argv[3];
-  const extra = process.argv[4] ? JSON.parse(process.argv[4]) : {};
-  const hub = await bootHub([{ id: "agent", module: "@uacc/adapter-acp", config: { preset, ...extra } }]);
+} else if (step === "acp-gate" || step === "codex-gate") {
+  const preset = step === "codex-gate" ? "codex app-server" : process.argv[3];
+  const extra = process.argv[step === "codex-gate" ? 3 : 4] ? JSON.parse(process.argv[step === "codex-gate" ? 3 : 4]) : {};
+  const hub = await bootHub([
+    step === "codex-gate"
+      ? { id: "agent", module: "@uacc/adapter-codex", config: { mode: "app-server", ...extra } }
+      : { id: "agent", module: "@uacc/adapter-acp", config: { preset, ...extra } },
+  ]);
   const results = [];
   const t0 = Date.now();
   try {
@@ -149,6 +153,6 @@ if (step === "claude-gate") {
   console.log(results.every((r) => r.pass) ? "PASS" : "FAIL");
   process.exit(results.every((r) => r.pass) ? 0 : 1);
 } else {
-  console.error("usage: messlauf-p7.mjs claude-gate | acp-gate <preset> [config-json]");
+  console.error("usage: messlauf-p7.mjs claude-gate | acp-gate <preset> [config-json] | codex-gate [config-json]");
   process.exit(2);
 }

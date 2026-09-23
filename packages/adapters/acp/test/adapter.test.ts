@@ -5,7 +5,7 @@ import type { AdapterContext, EmittedEvent, ToolPermissionRequest } from "@uacc/
 import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
 import { ProcessRunner } from "@uacc/workers";
 import { ACP_PRESETS, createAdapter } from "../src/index.ts";
-import { AcpConnection } from "../src/rpc.ts";
+import { JsonRpcConnection as AcpConnection } from "@uacc/adapter-jsonrpc";
 import { UpdateMapper } from "../src/normalize.ts";
 
 const agent = fileURLToPath(new URL("../../../../e2e/support/bin/acp-agent", import.meta.url));

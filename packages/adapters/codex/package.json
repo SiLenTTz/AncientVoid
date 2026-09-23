@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@uacc/adapter-jsonrpc": "0.1.0",
     "@uacc/contracts": "0.1.0",
     "zod": "^3.23.8"
   }
