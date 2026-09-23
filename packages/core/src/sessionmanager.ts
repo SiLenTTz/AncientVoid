@@ -304,7 +304,7 @@ export class SessionManager {
 
   /** Subscribe to event batches of a session (server WS push). */
   subscribe(sessionId: string, cb: (events: NormalizedEvent[]) => void): () => void {
-    const s = this.live.get(sessionId);
+    const s = this.openStopped(sessionId);
     if (!s) return () => undefined;
     s.subscribers.add(cb);
     return () => s.subscribers.delete(cb);
@@ -526,25 +526,32 @@ export class SessionManager {
     return { ...record };
   }
 
-  private stoppedShell(record: SessionRecord, events: readonly NormalizedEvent[]): LiveSession {
+  /** BUG-0018: a stopped session enters `live` only once someone opens it
+   * (tail subscription or steer), never at recovery. The shell is cheap:
+   * skill and provider id are read from the log only when the run
+   * actually continues (continueStopped). */
+  private openStopped(sessionId: string): LiveSession | undefined {
+    const existing = this.live.get(sessionId);
+    if (existing) return existing;
+    const record = this.get(sessionId);
+    if (!record || record.status !== "stopped") return undefined;
     const registered = this.registry.get(record.adapter);
+    if (!registered) return undefined;
     const isolated =
       record.worktreeSha !== null && this.worktrees !== undefined && existsSync(this.worktrees.pathFor(record.id));
     const workdir = isolated && this.worktrees ? this.worktrees.pathFor(record.id) : record.project;
-    const skill = skillNameFromEvents(events);
-    const native = record.nativeSessionId ?? nativeIdFromEvents(events);
-    if (native) record.nativeSessionId = native;
-    return {
+    const session: LiveSession = {
       record,
-      adapter: registered?.adapter ?? (null as unknown as Adapter),
+      adapter: registered.adapter,
       handle: null,
       abort: new AbortController(),
       subscribers: new Set(),
       workdir,
       worktreeIsolated: isolated,
-      ...(skill ? { skillName: skill } : {}),
       budgetWarned: record.budgetUsd !== null && record.costUsd >= record.budgetUsd * 0.8,
     };
+    this.live.set(sessionId, session);
+    return session;
   }
 
   private async promptWithSkill(session: LiveSession, text: string): Promise<string> {
@@ -645,12 +652,11 @@ export class SessionManager {
   }
 
   private async steerNow(sessionId: string, input: SteerInput, actor?: string, meta?: SteerMeta): Promise<Ack> {
-    let session = this.live.get(sessionId);
+    const session = this.openStopped(sessionId);
     if (!session) {
       const record = this.get(sessionId);
-      if (!record || record.status !== "stopped") return { ok: false, detail: "session not live" };
-      session = this.stoppedShell(record, await this.store.replay(sessionId));
-      this.live.set(sessionId, session);
+      if (record?.status === "stopped") return { ok: false, detail: `adapter "${record.adapter}" not registered` };
+      return { ok: false, detail: "session not live" };
     }
     if (!session.handle && input.kind !== "prompt") return { ok: false, detail: "session not live" };
     if (meta?.inputId && this.hasSeenInput(sessionId, meta.inputId)) {
@@ -1011,10 +1017,8 @@ export class SessionManager {
 
     for (const record of persisted) {
       if (record.status === "stopped") {
-        const events = await this.store.replay(record.id);
-        const session = this.stoppedShell(record, events);
-        this.live.set(record.id, session);
-        if (session.record.nativeSessionId) this.persist(session.record);
+        // Loaded when opened (openStopped), so recovery time does not grow
+        // with the history of finished runs.
         recovered++;
         continue;
       }
