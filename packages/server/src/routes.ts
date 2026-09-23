@@ -131,14 +131,23 @@ export function registerRoutes(
   //
   // Since ADR-0013 a session between turns is `idle`, so `working` really
   // means a turn — and its pane — is running.
-  async function withAttachCmd<T extends SessionRecord>(session: T): Promise<T & { attachCmd?: string; openCmd?: string }> {
+  async function withAttachCmd<T extends SessionRecord>(
+    session: T,
+  ): Promise<T & { attachCmd?: string; openCmd?: string; worktree?: { path: string; branch: string } }> {
     // T5.5: open the same provider session in its own terminal UI — only
     // while no turn runs here, so hub and terminal never write at once.
     const idle = session.status !== "working" && session.status !== "starting";
     const openCmd = idle
       ? nativeOpenCommand(session.adapter, session.nativeSessionId, deps.sessions.workdirOf(session.id) ?? session.project)
       : null;
-    const withOpen = openCmd ? { ...session, openCmd } : session;
+    // Where the session's files really are — its own worktree, not the
+    // project checkout the user has open in the editor.
+    const workdir = deps.sessions.workdirOf(session.id);
+    const worktree =
+      session.worktreeSha !== null && workdir && workdir !== session.project
+        ? { path: workdir, branch: `uacc/${session.id}` }
+        : null;
+    const withOpen = { ...session, ...(openCmd ? { openCmd } : {}), ...(worktree ? { worktree } : {}) };
     if (deps.workerRunnerKind !== "tmux" || session.status !== "working") return withOpen;
     if (!(await deps.sessions.hasLiveWorker(session.id))) return withOpen;
     return { ...withOpen, attachCmd: `tmux attach -t ${TMUX_PREFIX}${session.id}` };
