@@ -9,6 +9,7 @@ import { VoiceSheet } from "./VoiceSheet.tsx";
 import { ApprovalQueuePane } from "./Approvals.tsx";
 import { StatusPage } from "./StatusPage.tsx";
 import { DiscoveryPane } from "./Discovery.tsx";
+import { FleetSettings } from "./Fleet.tsx";
 import { startRegistration } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/browser";
 
@@ -101,7 +102,12 @@ export function App({
         />
       )}
 
-      {page === "settings" && <Settings onSwitchToken={ready} />}
+      {page === "settings" && (
+        <>
+          <Settings onSwitchToken={ready} />
+          <FleetSettings />
+        </>
+      )}
 
       {page === "approvals" && <ApprovalQueuePane />}
 

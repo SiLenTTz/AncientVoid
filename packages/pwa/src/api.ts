@@ -119,6 +119,14 @@ export interface SessionDiffResult {
   error?: string;
 }
 
+/** ADR-0017 — a paired hub (never with its token). */
+export interface FleetPeer {
+  hostId: string;
+  url: string;
+  protocolVersion: number;
+  pairedAt: string;
+}
+
 /** ADR-0015 — cross-session notification from the hub. */
 export interface HubNotification {
   id: number;
@@ -335,6 +343,14 @@ export const hubApi = {
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
   discovery: (cursor = 0, limit = 50) => api<DiscoveryPage>(`/api/discovery?cursor=${cursor}&limit=${limit}`),
   inventory: () => api<{ items: HarnessInventoryEntry[] }>("/api/inventory"),
+  fleetHello: () => api<{ hostId: string; protocolVersion: number }>("/api/fleet/hello"),
+  fleetInvite: () => api<{ code: string; expiresAt: string }>("/api/fleet/invites", { method: "POST", body: "{}" }),
+  fleetPeers: () => api<FleetPeer[]>("/api/fleet/peers"),
+  fleetAddPeer: (url: string, code: string) =>
+    api<FleetPeer>("/api/fleet/peers", { method: "POST", body: JSON.stringify({ url, code }) }),
+  // Body "{}": Fastify rejects an empty body with a JSON content type (BUG-0011).
+  fleetRemovePeer: (hostId: string) =>
+    api<{ ok: boolean }>(`/api/fleet/peers/${encodeURIComponent(hostId)}`, { method: "DELETE", body: "{}" }),
   notifications: (after = 0) => api<{ items: HubNotification[]; lastId: number }>(`/api/notifications?after=${after}`),
   sessionDiff: (id: string) => api<SessionDiffResult>(`/api/sessions/${id}/diff`),
   /** T3.8: real qmd-backed project search. A 501 (qmd not installed on

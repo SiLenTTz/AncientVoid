@@ -4,13 +4,14 @@ import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
-import { discoverProjects } from "@uacc/core";
+import { discoverProjects, FleetStore } from "@uacc/core";
 import type { HubMetrics, DiscoverySource } from "@uacc/contracts";
-import { REDACT_LOG_KEYS } from "@uacc/contracts";
+import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@uacc/contracts";
 import type { WebAuthnConfig } from "./webauthn.ts";
 import { authHook, type AuthOptions } from "./auth.ts";
 import { registerRoutes } from "./routes.ts";
 import { registerWs } from "./ws.ts";
+import { registerFleetRoutes } from "./fleet.ts";
 
 export interface HubAppDeps {
   sessions: SessionManager;
@@ -46,6 +47,8 @@ export interface HubAppDeps {
   probeRunner?: ProbeRunner;
   /** EPIC-P6: this hub's host id in the fleet (default "local"). */
   hostId?: string;
+  /** EPIC-P6: invites and paired peers (default: in the token database). */
+  fleet?: FleetStore;
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
@@ -74,7 +77,12 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
     for (const w of warnings) app.log.warn(w);
   }
   registerRoutes(app, { ...deps, projectRoots });
-  registerWs(app, deps.sessions, deps.metrics);
+  registerFleetRoutes(app, {
+    fleet: deps.fleet ?? new FleetStore(deps.tokens.database, deps.tokens),
+    tokens: deps.tokens,
+    hostId: deps.hostId ?? DEFAULT_HOST_ID,
+  });
+  registerWs(app, deps.sessions, deps.metrics, deps.tokens);
 
   if (deps.pwaDir) {
     const resolvedPwaDir = resolve(deps.pwaDir);

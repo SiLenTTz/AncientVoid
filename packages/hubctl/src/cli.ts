@@ -55,6 +55,8 @@ Usage:
   hubctl token issue <label> [--db <hub.db>]
   hubctl token list [--db <hub.db>]
   hubctl token revoke <label> [--db <hub.db>]
+  hubctl fleet invite [--db <hub.db>]     one-time code for another hub to pair (10 min)
+  hubctl fleet peers [--db <hub.db>]      hubs this one is paired with
 
 Env:
   UACC_URL   hub base url (default http://127.0.0.1:7373)
@@ -222,6 +224,24 @@ async function main(): Promise<void> {
         const { TokenService, HubDatabase } = await import("@uacc/core");
         const tokens = new TokenService(new HubDatabase(dbPath));
         console.log(`revoked: ${tokens.revoke(label)}`);
+      } else {
+        usage();
+      }
+      break;
+    }
+    case "fleet": {
+      // EPIC-P6 T6.2: pairing from a server shell, no browser needed.
+      const sub = args[0] ?? usage();
+      const dbIdx = args.indexOf("--db");
+      const dbPath = dbIdx >= 0 ? (args[dbIdx + 1] ?? "data/hub.db") : "data/hub.db";
+      const { TokenService, HubDatabase, FleetStore } = await import("@uacc/core");
+      const db = new HubDatabase(dbPath);
+      const fleet = new FleetStore(db, new TokenService(db));
+      if (sub === "invite") {
+        const invite = fleet.createInvite();
+        console.log(`pairing code (valid until ${invite.expiresAt}, one use):\n  ${invite.code}`);
+      } else if (sub === "peers") {
+        for (const p of fleet.peers()) console.log(`${p.hostId}  ${p.url}  paired=${p.pairedAt}`);
       } else {
         usage();
       }

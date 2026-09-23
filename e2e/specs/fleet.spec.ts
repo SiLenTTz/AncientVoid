@@ -17,4 +17,37 @@ test.describe("Flotte (EPIC-P6)", () => {
       await peer.stop();
     }
   });
+
+  test("T6.2: Host per Einladungscode verbinden, anzeigen und wieder entfernen @desktop", async ({ app }) => {
+    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    try {
+      await app.getByRole("button", { name: "Einstellungen" }).click();
+      await expect(app.locator(".fleet-self")).toHaveText("omarchy");
+      const invite = await peer.api<{ code: string }>("/api/fleet/invites", { body: {} });
+      await app.getByLabel("Host hinzufügen — Adresse").fill(peer.origin);
+      await app.getByLabel("Einladungscode vom anderen Hub").fill(invite.body.code.toLowerCase());
+      await app.getByRole("button", { name: "Host verbinden" }).click();
+      await expect(app.locator(".fleet-message.ok")).toHaveText("Verbunden mit silenttz-server.");
+      await expect(app.locator(".fleet-peer")).toContainText("silenttz-server");
+      await expect(app.locator(".fleet-peer")).toContainText(peer.origin);
+
+      await app.getByLabel("Einladungscode vom anderen Hub").fill(invite.body.code);
+      await app.getByLabel("Host hinzufügen — Adresse").fill(peer.origin);
+      await app.getByRole("button", { name: "Host verbinden" }).click();
+      await expect(app.locator(".fleet-message.reply-error")).toContainText("code already used");
+
+      await app.locator(".fleet-peer").getByRole("button", { name: "Entfernen" }).click();
+      await app.getByRole("button", { name: "Wirklich entfernen" }).click();
+      await expect(app.locator(".fleet-peer")).toHaveCount(0);
+    } finally {
+      await peer.stop();
+    }
+  });
+
+  test("T6.2: auf dem anderen Hub einen Einladungscode erzeugen", async ({ app }) => {
+    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await app.getByRole("button", { name: "Einladungscode erzeugen" }).click();
+    await expect(app.locator(".fleet-invite code")).toHaveText(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    await expect(app.locator(".fleet-invite")).toContainText("einmalig");
+  });
 });

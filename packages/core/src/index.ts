@@ -49,3 +49,4 @@ export {
   type BuiltinAdapters,
 } from "./config.ts";
 export { notificationFor, type NotificationDraft } from "./notifications.ts";
+export { FleetStore, peerView, normalizeCode, type FleetPeer } from "./fleet.ts";

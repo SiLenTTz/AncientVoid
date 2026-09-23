@@ -10,6 +10,11 @@ export interface IssuedToken {
 export class TokenService {
   private readonly db: HubDatabase;
 
+  /** The database this service lives in (fleet invites share it). */
+  get database(): HubDatabase {
+    return this.db;
+  }
+
   constructor(db: HubDatabase) {
     this.db = db;
   }
