@@ -1,6 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
-import type { SessionRecord } from "./api.ts";
-import { hubApi } from "./api.ts";
+import type { FleetHost, SessionRecord } from "./api.ts";
+import { hostApi } from "./api.ts";
 import { sessionsForOverview } from "./session-list.ts";
 
 export function formatUsd(n: number): string {
@@ -28,6 +28,8 @@ export function formatWindow(w: { id: string; utilization: number; resetsAt: str
 
 export interface DashboardProps {
   sessions: SessionRecord[];
+  /** EPIC-P6: the fleet's hosts; more than one groups the overview by host. */
+  hosts?: FleetHost[];
   onOpen: (session: SessionRecord) => void;
   /** T2.6: pending approval-queue count (0 on a hub without approvals
    * configured — not distinguished from "genuinely zero pending" here,
@@ -56,7 +58,20 @@ export interface DashboardProps {
  * (ok/warn/err/dim, see styles.css) rather than adding a second,
  * redundant status-color indicator next to it.
  */
-export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprovals, onOpenDiscovery }: DashboardProps) {
+const HOST_STATE_LABEL: Record<FleetHost["state"], string> = {
+  reachable: "verbunden",
+  stale: "veraltet",
+  offline: "offline",
+  incompatible: "inkompatibel",
+  unauthorized: "Zugriff entzogen",
+};
+
+function projectName(project: string): string {
+  return project.split("/").filter(Boolean).pop() ?? project;
+}
+
+export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, onOpenApprovals, onOpenDiscovery }: DashboardProps) {
+  const fleet = hosts.length > 1;
   const [showArchived, setShowArchived] = useState(false);
   const [archivedOverride, setArchivedOverride] = useState<Record<string, boolean>>({});
   const [archiveError, setArchiveError] = useState("");
@@ -71,11 +86,13 @@ export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprov
   );
 
   const byProject = useMemo(() => {
+    // EPIC-P6: host + project — project names are not unique across hosts.
     const map = new Map<string, SessionRecord[]>();
     for (const s of sorted) {
-      const list = map.get(s.project) ?? [];
+      const key = fleet ? `${s.hostId ?? ""}\u0000${s.project}` : s.project;
+      const list = map.get(key) ?? [];
       list.push(s);
-      map.set(s.project, list);
+      map.set(key, list);
     }
     // Projects ordered by their most-recently-active session (sorted already).
     return [...map.entries()];
@@ -94,7 +111,7 @@ export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprov
   const archive = async (session: SessionRecord) => {
     const next = session.archived !== true;
     try {
-      await hubApi.setArchived(session.id, next);
+      await hostApi(session.hostId).setArchived(session.id, next);
       setArchivedOverride((prev) => ({ ...prev, [session.id]: next }));
       setArchiveError("");
     } catch (err) {
@@ -126,12 +143,27 @@ export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprov
           </span>
         )}
       </div>
+      {fleet && (
+        <div class="fleet-hosts">
+          {hosts.map((h) => (
+            <span key={h.hostId} class={`chip subtle host-chip ${h.state}`} title={h.detail ?? undefined}>
+              {h.hostId} · {HOST_STATE_LABEL[h.state]}
+              {h.state !== "reachable" && h.lastSyncAt
+                ? ` · Stand ${new Date(h.lastSyncAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`
+                : ""}
+            </span>
+          ))}
+        </div>
+      )}
       {sorted.length === 0 ? (
         <div class="empty">{showArchived ? "nichts archiviert" : "keine Sessions — lege eine an"}</div>
       ) : (
-        byProject.map(([project, projectSessions]) => (
-          <div key={project} class="project-tile">
-            <div class="project-tile-header dim">{project.split("/").pop() ?? project}</div>
+        byProject.map(([key, projectSessions]) => (
+          <div key={key} class="project-tile">
+            <div class="project-tile-header dim">
+              {fleet ? `${projectSessions[0]?.hostId ?? "?"} · ` : ""}
+              {projectName(projectSessions[0]?.project ?? key)}
+            </div>
             {projectSessions.map((s) => (
               <SessionRow key={s.id} session={s} onOpen={onOpen} onArchive={archive} />
             ))}

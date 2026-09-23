@@ -2,9 +2,12 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { FleetStore, TokenService } from "@uacc/core";
 import { peerView } from "@uacc/core";
-import { FLEET_PROTOCOL_VERSION, FLEET_TOKEN_PREFIX, HOST_ID_PATTERN, type FleetHello } from "@uacc/contracts";
+import { FLEET_PROTOCOL_VERSION, FLEET_TOKEN_PREFIX, HOST_ID_PATTERN, type FleetHello, type FleetHostView, type SessionRecord } from "@uacc/contracts";
 import { extractToken } from "./auth.ts";
 import { httpJson } from "./http-json.ts";
+
+/** How long the overview waits for each peer. */
+const SYNC_TIMEOUT_MS = 3000;
 
 /** Wrong codes per minute before /api/fleet/pair answers 429. */
 const PAIR_ATTEMPTS_PER_MINUTE = 10;
@@ -74,6 +77,49 @@ export function registerFleetRoutes(app: FastifyInstance, deps: { fleet: FleetSt
   });
 
   app.get("/api/fleet/peers", async () => deps.fleet.peers().map(peerView));
+
+  // T6.3: last good session list per peer, shown with its own time when the
+  // peer is away (AC-P6-3).
+  const lastGood = new Map<string, { sessions: SessionRecord[]; syncedAt: string }>();
+
+  app.get("/api/fleet", async (req) => {
+    const ownRes = await app.inject({ method: "GET", url: "/api/sessions", headers: { authorization: String(req.headers.authorization ?? "") } });
+    const own = ownRes.statusCode === 200 ? (ownRes.json() as SessionRecord[]) : [];
+    const now = new Date().toISOString();
+    const hosts: FleetHostView[] = [{ hostId: deps.hostId, self: true, url: null, state: "reachable", lastSyncAt: now, detail: null, sessions: own.length }];
+    const sessions: SessionRecord[] = [...own];
+    const results = await Promise.all(
+      deps.fleet.peers().map(async (peer) => {
+        const cached = lastGood.get(peer.hostId);
+        const away = (state: FleetHostView["state"], detail: string): { host: FleetHostView; sessions: SessionRecord[] } => ({
+          host: { hostId: peer.hostId, self: false, url: peer.url, state: cached && state === "offline" ? "stale" : state, lastSyncAt: cached?.syncedAt ?? null, detail, sessions: cached?.sessions.length ?? 0 },
+          sessions: state === "offline" ? (cached?.sessions ?? []) : [],
+        });
+        try {
+          const [hello, list] = await Promise.all([
+            httpJson<FleetHello>(`${peer.url}/api/fleet/hello`, { timeoutMs: SYNC_TIMEOUT_MS }),
+            httpJson<SessionRecord[]>(`${peer.url}/api/sessions`, { token: peer.token, timeoutMs: SYNC_TIMEOUT_MS }),
+          ]);
+          if (hello.body?.protocolVersion !== FLEET_PROTOCOL_VERSION) {
+            return away("incompatible", `Protokoll ${String(hello.body?.protocolVersion)} statt ${FLEET_PROTOCOL_VERSION}`);
+          }
+          if (list.status === 401 || list.status === 403) return away("unauthorized", "Kopplung auf dem Host widerrufen");
+          if (list.status !== 200 || !Array.isArray(list.body)) return away("offline", `Antwort ${list.status}`);
+          const stamped = list.body.map((s) => ({ ...s, hostId: peer.hostId }));
+          const syncedAt = new Date().toISOString();
+          lastGood.set(peer.hostId, { sessions: stamped, syncedAt });
+          return { host: { hostId: peer.hostId, self: false, url: peer.url, state: "reachable" as const, lastSyncAt: syncedAt, detail: null, sessions: stamped.length }, sessions: stamped };
+        } catch (err) {
+          return away("offline", err instanceof Error ? err.message : String(err));
+        }
+      }),
+    );
+    for (const r of results) {
+      hosts.push(r.host);
+      sessions.push(...r.sessions);
+    }
+    return { self: deps.hostId, hosts, sessions };
+  });
 
   app.delete("/api/fleet/peers/:hostId", async (req, reply) => {
     const { hostId } = req.params as { hostId: string };

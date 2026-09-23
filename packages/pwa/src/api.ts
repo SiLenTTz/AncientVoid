@@ -26,6 +26,8 @@ export interface SessionRecord {
   /** T5.5: terminal command that opens this provider session natively on
    * the PC; only present between turns and when the native id is known. */
   openCmd?: string;
+  /** EPIC-P6: the hub this session lives on (absent on old hubs). */
+  hostId?: string;
   /** First line of the start prompt (null for sessions without one). */
   title?: string | null;
   /** Session files live in their own git worktree, not the project checkout. */
@@ -117,6 +119,23 @@ export interface SessionDiffResult {
    * worktree base_sha (T2.1) when isolated, else the literal "HEAD". */
   baseRef: string;
   error?: string;
+}
+
+/** ADR-0017 — one host in the fleet overview. */
+export interface FleetHost {
+  hostId: string;
+  self: boolean;
+  url: string | null;
+  state: "reachable" | "stale" | "offline" | "incompatible" | "unauthorized";
+  lastSyncAt: string | null;
+  detail: string | null;
+  sessions: number;
+}
+
+export interface FleetOverview {
+  self: string;
+  hosts: FleetHost[];
+  sessions: SessionRecord[];
 }
 
 /** ADR-0017 — a paired hub (never with its token). */
@@ -313,18 +332,20 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-export const hubApi = {
-  health: () => api<{ ok: boolean; serverTime: string }>("/api/health"),
-  adapters: () => api<AdapterInfo[]>("/api/adapters"),
-  adapterUsage: (id: string) => api<AdapterUsage>(`/api/adapters/${id}/usage`),
-  projects: () => api<ProjectDiscoveryResult>("/api/projects"),
-  skills: (project: string) => api<{ items: SkillOrAgent[] }>(`/api/skills?project=${encodeURIComponent(project)}`),
+/** All hub calls. `P` maps a path to its host (ADR-0017 routing). */
+function createHubApi(P: (path: string) => string) {
+  return {
+  health: () => api<{ ok: boolean; serverTime: string }>(P("/api/health")),
+  adapters: () => api<AdapterInfo[]>(P("/api/adapters")),
+  adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
+  projects: () => api<ProjectDiscoveryResult>(P("/api/projects")),
+  skills: (project: string) => api<{ items: SkillOrAgent[] }>(P(`/api/skills?project=${encodeURIComponent(project)}`)),
   recommendPrompt: (project: string, text: string) =>
-    api<PromptRecommendation | null>("/api/prompt-recommendation", { method: "POST", body: JSON.stringify({ project, text }) }),
+    api<PromptRecommendation | null>(P("/api/prompt-recommendation"), { method: "POST", body: JSON.stringify({ project, text }) }),
   saveArtifact: (body: { project: string; kind: PromptRecommendation["kind"]; name: string; description: string; draft: string }) =>
-    api<{ path: string }>("/api/skills", { method: "POST", body: JSON.stringify(body) }),
+    api<{ path: string }>(P("/api/skills"), { method: "POST", body: JSON.stringify(body) }),
   enhancePrompt: (adapter: string, project: string, text: string) =>
-    api<EnhanceResult>("/api/prompt-enhance", { method: "POST", body: JSON.stringify({ adapter, project, text }) }),
+    api<EnhanceResult>(P("/api/prompt-enhance"), { method: "POST", body: JSON.stringify({ adapter, project, text }) }),
   /** T3.9 (Learning-Loop, lokal, "niemals Cloud, niemals Telemetrie"): one
    * call per shown optimizer suggestion, whichever way the user decides.
    * 501 (no dataDir configured) is swallowed by the caller — this is a
@@ -338,45 +359,46 @@ export const hubApi = {
     decision: "accepted" | "rejected";
     costUsd?: number;
     latencyMs: number;
-  }) => api<{ ok: boolean }>("/api/prompt-optimizer/feedback", { method: "POST", body: JSON.stringify(entry) }),
-  sessions: () => api<SessionRecord[]>("/api/sessions"),
-  session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
-  discovery: (cursor = 0, limit = 50) => api<DiscoveryPage>(`/api/discovery?cursor=${cursor}&limit=${limit}`),
-  inventory: () => api<{ items: HarnessInventoryEntry[] }>("/api/inventory"),
-  fleetHello: () => api<{ hostId: string; protocolVersion: number }>("/api/fleet/hello"),
-  fleetInvite: () => api<{ code: string; expiresAt: string }>("/api/fleet/invites", { method: "POST", body: "{}" }),
-  fleetPeers: () => api<FleetPeer[]>("/api/fleet/peers"),
+  }) => api<{ ok: boolean }>(P("/api/prompt-optimizer/feedback"), { method: "POST", body: JSON.stringify(entry) }),
+  sessions: () => api<SessionRecord[]>(P("/api/sessions")),
+  session: (id: string) => api<SessionRecord>(P(`/api/sessions/${id}`)),
+  discovery: (cursor = 0, limit = 50) => api<DiscoveryPage>(P(`/api/discovery?cursor=${cursor}&limit=${limit}`)),
+  inventory: () => api<{ items: HarnessInventoryEntry[] }>(P("/api/inventory")),
+  fleet: () => api<FleetOverview>(P("/api/fleet")),
+  fleetHello: () => api<{ hostId: string; protocolVersion: number }>(P("/api/fleet/hello")),
+  fleetInvite: () => api<{ code: string; expiresAt: string }>(P("/api/fleet/invites"), { method: "POST", body: "{}" }),
+  fleetPeers: () => api<FleetPeer[]>(P("/api/fleet/peers")),
   fleetAddPeer: (url: string, code: string) =>
-    api<FleetPeer>("/api/fleet/peers", { method: "POST", body: JSON.stringify({ url, code }) }),
+    api<FleetPeer>(P("/api/fleet/peers"), { method: "POST", body: JSON.stringify({ url, code }) }),
   // Body "{}": Fastify rejects an empty body with a JSON content type (BUG-0011).
   fleetRemovePeer: (hostId: string) =>
-    api<{ ok: boolean }>(`/api/fleet/peers/${encodeURIComponent(hostId)}`, { method: "DELETE", body: "{}" }),
-  notifications: (after = 0) => api<{ items: HubNotification[]; lastId: number }>(`/api/notifications?after=${after}`),
-  sessionDiff: (id: string) => api<SessionDiffResult>(`/api/sessions/${id}/diff`),
+    api<{ ok: boolean }>(P(`/api/fleet/peers/${encodeURIComponent(hostId)}`), { method: "DELETE", body: "{}" }),
+  notifications: (after = 0) => api<{ items: HubNotification[]; lastId: number }>(P(`/api/notifications?after=${after}`)),
+  sessionDiff: (id: string) => api<SessionDiffResult>(P(`/api/sessions/${id}/diff`)),
   /** T3.8: real qmd-backed project search. A 501 (qmd not installed on
    * this host) is a real, expected state for a fresh/minimal deployment —
    * callers show it as "Suche nicht verfügbar", not a hard error. */
-  searchStatus: (project: string) => api<SearchStatus>(`/api/search/status?project=${encodeURIComponent(project)}`),
+  searchStatus: (project: string) => api<SearchStatus>(P(`/api/search/status?project=${encodeURIComponent(project)}`)),
   search: (project: string, q: string) =>
-    api<SearchResponse>(`/api/search?project=${encodeURIComponent(project)}&q=${encodeURIComponent(q)}`),
+    api<SearchResponse>(P(`/api/search?project=${encodeURIComponent(project)}&q=${encodeURIComponent(q)}`)),
   searchFile: (project: string, path: string) =>
-    api<ProjectFile>(`/api/search/file?project=${encodeURIComponent(project)}&path=${encodeURIComponent(path)}`),
+    api<ProjectFile>(P(`/api/search/file?project=${encodeURIComponent(project)}&path=${encodeURIComponent(path)}`)),
   /** T2.4/T2.6: the approval queue. 501 (approvals not configured on this
    * hub) is treated as "no queue" by callers, not a hard error — see
    * Approvals.tsx. */
   approvals: (status?: ApprovalStatus) =>
-    api<ApprovalRequest[]>(`/api/approvals${status ? `?status=${status}` : ""}`),
+    api<ApprovalRequest[]>(P(`/api/approvals${status ? `?status=${status}` : ""}`)),
   /** T2.7: request a higher budget for a parked-for-budget session.
    * Applied immediately (200) if this hub has no approvals configured,
    * otherwise parked pending a write-class approval (422, same
    * ack.ok===false shape as /steer). */
   requestBudgetTopUp: (id: string, budgetUsd: number, reason?: string) =>
-    api<{ ok: boolean; detail?: string }>(`/api/sessions/${id}/budget`, {
+    api<{ ok: boolean; detail?: string }>(P(`/api/sessions/${id}/budget`), {
       method: "POST",
       body: JSON.stringify({ budgetUsd, ...(reason ? { reason } : {}) }),
     }),
   decideApproval: (id: string, decision: "approve" | "reject", reason?: string) =>
-    api<ApprovalRequest>(`/api/approvals/${id}/decide`, {
+    api<ApprovalRequest>(P(`/api/approvals/${id}/decide`), {
       method: "POST",
       body: JSON.stringify({ decision, ...(reason ? { reason } : {}) }),
     }),
@@ -384,27 +406,27 @@ export const hubApi = {
    * `destructive` approvals. 501 (webauthn not configured) is a real,
    * common state — same "feature genuinely absent" handling as the
    * approval queue's own 501. */
-  webauthnStatus: () => api<{ registered: boolean }>("/api/webauthn/status"),
+  webauthnStatus: () => api<{ registered: boolean }>(P("/api/webauthn/status")),
   // Fastify's JSON body parser rejects a POST with the JSON content-type
   // header (set unconditionally by api() below) but a truly empty body —
   // real bug found live-testing this against the actual server — so
   // these two no-payload POSTs send an explicit empty object instead.
-  webauthnRegisterOptions: () => api<unknown>("/api/webauthn/register/options", { method: "POST", body: "{}" }),
+  webauthnRegisterOptions: () => api<unknown>(P("/api/webauthn/register/options"), { method: "POST", body: "{}" }),
   webauthnRegisterVerify: (response: unknown) =>
-    api<{ ok: boolean }>("/api/webauthn/register/verify", { method: "POST", body: JSON.stringify(response) }),
+    api<{ ok: boolean }>(P("/api/webauthn/register/verify"), { method: "POST", body: JSON.stringify(response) }),
   webauthnAssertOptions: (approvalId: string) =>
-    api<unknown>(`/api/approvals/${approvalId}/webauthn/assert-options`, { method: "POST", body: "{}" }),
+    api<unknown>(P(`/api/approvals/${approvalId}/webauthn/assert-options`), { method: "POST", body: "{}" }),
   decideApprovalBiometric: (approvalId: string, decision: "approve" | "reject", response: unknown, reason?: string) =>
-    api<ApprovalRequest>(`/api/approvals/${approvalId}/webauthn/decide`, {
+    api<ApprovalRequest>(P(`/api/approvals/${approvalId}/webauthn/decide`), {
       method: "POST",
       body: JSON.stringify({ decision, response, ...(reason ? { reason } : {}) }),
     }),
   /** T2.2 expand-on-tap: full hunks for one file, after /diff collapsed them under K3. */
   sessionDiffHunk: (id: string, path: string) =>
-    api<{ path: string; hunks: DiffHunk[] }>(`/api/sessions/${id}/diff/hunk?path=${encodeURIComponent(path)}`),
+    api<{ path: string; hunks: DiffHunk[] }>(P(`/api/sessions/${id}/diff/hunk?path=${encodeURIComponent(path)}`)),
   events: (id: string, afterSeq = 0, limit = 500) =>
     api<{ seq: number; type: string; summary: string; ts: string; payload: unknown; blobRef: string | null }[]>(
-      `/api/sessions/${id}/events?afterSeq=${afterSeq}&limit=${limit}`,
+      P(`/api/sessions/${id}/events?afterSeq=${afterSeq}&limit=${limit}`),
     ),
   createSession: (body: {
     adapter: string;
@@ -414,7 +436,7 @@ export const hubApi = {
     budgetUsd?: number | null;
     args?: { skill?: string; agent?: string };
   }) =>
-    api<SessionRecord>("/api/sessions", {
+    api<SessionRecord>(P("/api/sessions"), {
       method: "POST",
       body: JSON.stringify(body),
     }),
@@ -427,7 +449,7 @@ export const hubApi = {
   // nothing this whole time — confirmed live via curl before assuming.
   /** Commit the session worktree and merge it into the project checkout. */
   applyToProject: async (id: string): Promise<{ ok: boolean; into?: string; commit?: string; files?: number; detail?: string }> => {
-    const res = await fetch(`/api/sessions/${id}/apply`, {
+    const res = await fetch(P(`/api/sessions/${id}/apply`), {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
       body: "{}",
@@ -441,9 +463,9 @@ export const hubApi = {
     };
   },
   stopSession: (id: string) =>
-    api<{ ok: boolean }>(`/api/sessions/${id}/stop`, { method: "POST", body: "{}" }),
+    api<{ ok: boolean }>(P(`/api/sessions/${id}/stop`), { method: "POST", body: "{}" }),
   setArchived: (id: string, archived: boolean) =>
-    api<SessionRecord>(`/api/sessions/${id}/archive`, {
+    api<SessionRecord>(P(`/api/sessions/${id}/archive`), {
       method: "POST",
       body: JSON.stringify({ archived }),
     }),
@@ -454,7 +476,7 @@ export const hubApi = {
   // detail. Callers inspect ack.ok/ack.detail themselves.
   /** `takeover` moves the writer lease to this device on purpose (T5.5). */
   steer: async (id: string, input: SteerInput, inputId?: string, takeover = false): Promise<Ack> => {
-    const res = await fetch(`/api/sessions/${id}/steer`, {
+    const res = await fetch(P(`/api/sessions/${id}/steer`), {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ ...input, clientId: clientId(), ...(inputId ? { inputId } : {}), ...(takeover ? { takeover } : {}) }),
@@ -466,4 +488,32 @@ export const hubApi = {
     if (typeof body.ok === "boolean") return { ok: body.ok, ...(body.detail ? { detail: body.detail } : {}) };
     return { ok: false, detail: body.error ?? `${res.status} ${res.statusText}` };
   },
-};
+  };
+}
+
+export type HubApi = ReturnType<typeof createHubApi>;
+
+/** This hub. */
+export const hubApi: HubApi = createHubApi((path) => path);
+
+let selfHostId: string | null = null;
+
+/** Learned once from /api/fleet/hello: which host id is this hub. */
+export function setSelfHostId(hostId: string | null): void {
+  selfHostId = hostId;
+}
+
+/** The host id if it is another hub of the fleet, else null (this hub). */
+export function remoteHost(hostId: string | null | undefined): string | null {
+  return hostId && hostId !== selfHostId ? hostId : null;
+}
+
+/**
+ * EPIC-P6: the same calls for one host of the fleet — through this hub's
+ * /api/hosts/<hostId>/… route (answered locally for its own id).
+ */
+export function hostApi(hostId: string | null | undefined): HubApi {
+  const remote = remoteHost(hostId);
+  if (!remote) return hubApi;
+  return createHubApi((path) => (path.startsWith("/api/") ? `/api/hosts/${encodeURIComponent(remote)}/${path.slice(5)}` : path));
+}

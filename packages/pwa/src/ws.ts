@@ -24,6 +24,8 @@ export interface TailOptions {
   url: string;
   token: string;
   sessionId: string;
+  /** EPIC-P6: set for a session on another host of the fleet. */
+  hostId?: string | null;
   onEvents: (events: NormalizedEvent[]) => void;
   onState: (state: "connecting" | "live" | "reconnecting" | "closed") => void;
 }
@@ -38,7 +40,8 @@ export function connectTail(opts: TailOptions): TailConnection {
     opts.onState(lastSeq === 0 ? "connecting" : "reconnecting");
     const proto = opts.url.startsWith("https") ? "wss" : "ws";
     const base = opts.url.replace(/^https?/, proto);
-    socket = new WebSocket(`${base}/api/events/${opts.sessionId}/tail?token=${encodeURIComponent(opts.token)}`);
+    const scope = opts.hostId ? `/api/hosts/${encodeURIComponent(opts.hostId)}` : "/api";
+    socket = new WebSocket(`${base}${scope}/events/${opts.sessionId}/tail?token=${encodeURIComponent(opts.token)}`);
 
     socket.onopen = () => {
       backoffMs = 500;

@@ -2,7 +2,7 @@ import { render } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { App } from "./App.tsx";
 import { SessionTail } from "./SessionTail.tsx";
-import { getToken, setToken, hubApi, type SessionRecord } from "./api.ts";
+import { getToken, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "./api.ts";
 import { parseAppHash, sessionHash } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { NotificationCenter } from "./Notifications.tsx";
@@ -81,6 +81,15 @@ function TokenGate({ onReady }: { onReady: () => void }) {
 
 function Main() {
   const [ready, setReady] = useState(false);
+  // EPIC-P6: know this hub's host id before any session opens, so its own
+  // sessions keep short links and direct calls.
+  const becomeReady = async () => {
+    await hubApi
+      .fleetHello()
+      .then((h) => setSelfHostId(h.hostId))
+      .catch(() => setSelfHostId(null));
+    setReady(true);
+  };
   const [route, setRoute] = useState<
     { view: "list"; initialPage?: Page } | { view: "tail"; session: SessionRecord }
   >({ view: "list" });
@@ -93,7 +102,7 @@ function Main() {
     // adapters() is a real, token-protected endpoint.
     hubApi
       .adapters()
-      .then(() => setReady(true))
+      .then(becomeReady)
       .catch(() => setReady(false));
   }, []);
 
@@ -111,7 +120,7 @@ function Main() {
         setRoute({ view: "list" });
         return;
       }
-      hubApi
+      hostApi(parsed.hostId)
         .session(parsed.sessionId)
         .then((session) => setRoute({ view: "tail", session }))
         .catch(() => setRoute({ view: "list" }));
@@ -123,7 +132,7 @@ function Main() {
 
   const [staleAt, setStaleAt] = useState<Date | null>(null);
 
-  if (!ready) return <TokenGate onReady={() => setReady(true)} />;
+  if (!ready) return <TokenGate onReady={() => void becomeReady()} />;
 
   return (
     <>
@@ -136,7 +145,7 @@ function Main() {
       {route.view === "list" ? (
         <App
           onOpen={(session) => {
-            location.hash = sessionHash(session.id);
+            location.hash = sessionHash(session.id, remoteHost(session.hostId));
             setRoute({ view: "tail", session });
           }}
           ready={() => setReady(false)}

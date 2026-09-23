@@ -49,3 +49,15 @@ export interface FleetPeerView {
   protocolVersion: number;
   pairedAt: string;
 }
+
+/** One host in the fleet overview (T6.3). */
+export interface FleetHostView {
+  hostId: string;
+  self: boolean;
+  url: string | null;
+  state: HostState;
+  /** Last successful sync — kept when the host goes away (AC-P6-3). */
+  lastSyncAt: string | null;
+  detail: string | null;
+  sessions: number;
+}
