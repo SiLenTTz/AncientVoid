@@ -26,11 +26,18 @@ test.describe("Harness-Parität (EPIC-P7)", () => {
 });
 
 test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
-  test("ein Claude-Tool-Aufruf und die Antwort erscheinen im Chat, mit Kosten", async ({ app, hub }) => {
+  test("T7.2: Claude fragt vor dem Tool — erst nach „Erlauben“ läuft es, mit Kosten", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Chat" }).click();
-    await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · Claude/)).toBeVisible();
+    const card = app.locator(".session-approvals .approval-card");
+    await expect(card).toContainText("Bash");
+    await expect(card.locator(".tool-input")).toHaveText("echo hallo-uacc");
+    await expect(app.locator(".topbar .pill")).toHaveText("waiting_approval");
+    expect((await hub.events(id)).filter((e) => e.type === "tool_result")).toHaveLength(0);
+    await card.getByRole("button", { name: "Erlauben" }).click();
+    await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · Claude .* · Ausgabe hallo-uacc/)).toBeVisible();
+    await expect(card).toHaveCount(0);
     await app.getByRole("button", { name: "Verlauf" }).click();
     await expect(app.locator(".event.tool_use")).toHaveCount(1);
     await expect(app.locator(".event.tool_use")).toContainText("echo hallo-uacc");
@@ -48,5 +55,36 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await app.getByPlaceholder("Antworten…").fill("Jetzt wieder");
     await app.getByRole("button", { name: /^(Senden|Weiter)$/ }).click();
     await expect(app.getByText(/Antwort auf: Jetzt wieder · Claude/)).toBeVisible();
+  });
+
+  test("T7.2: „Ablehnen“ — das Tool läuft nicht, Claude erfährt wer und warum", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await app.locator(".session-approvals .approval-card").getByRole("button", { name: "Ablehnen" }).click();
+    await expect(app.getByText(/nicht ausgeführt: Abgelehnt von e2e\. Nicht ausführen\./)).toBeVisible();
+    const results = (await hub.events(id)).filter((e) => e.type === "tool_result");
+    expect(results).toHaveLength(1);
+    expect(results[0]!.payload.isError).toBe(true);
+  });
+
+  test("T7.2: eine Rückfrage von Claude am Handy beantworten", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "claude", prompt: "Bitte FRAGE" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const card = app.locator(".session-approvals .approval-card");
+    await expect(card.locator(".question-text")).toHaveText("Welche Farbe soll das Logo haben?");
+    await expect(card.getByRole("button", { name: "Antworten" })).toBeDisabled();
+    await card.getByRole("button", { name: "Grün" }).click();
+    await card.getByRole("button", { name: "Antworten" }).click();
+    await expect(app.getByText(/Antwort auf: Bitte FRAGE · Claude .* · Gewählt: Grün/)).toBeVisible();
+  });
+
+  test("T7.2: die Tool-Anfrage steht auch in der Freigabe-Warteschlange", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
+    await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();
+    const card = app.locator(".approval-card").filter({ hasText: "echo hallo-uacc" });
+    await card.getByRole("button", { name: "Erlauben" }).click();
+    await expect(app.getByText("keine offenen Freigaben")).toBeVisible();
   });
 });

@@ -47,5 +47,7 @@ export type ApprovalRequest = z.infer<typeof ApprovalRequest>;
 export const DecideApprovalInput = z.object({
   decision: z.enum(["approve", "reject"]),
   reason: z.string().min(1).optional(),
+  /** T7.2: answers to a provider question, keyed by the question text. */
+  answers: z.record(z.string().max(2000)).optional(),
 });
 export type DecideApprovalInput = z.infer<typeof DecideApprovalInput>;

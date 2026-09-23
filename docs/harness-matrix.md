@@ -13,7 +13,7 @@ dieser Session.
 <!-- harness-matrix:start -->
 | Adapter | geprüfte CLI | Folgeprompt | Anhalten | Tool-Gate | Rückfragen | Modellwahl | Agenten | Bilder | Dateien | Abzweig |
 |---|---|---|---|---|---|---|---|---|---|---|
-| claude | 2.1.280 | ✓ | ✓ | allowlist | — | ✓ | ✓ | — | — | — |
+| claude | 2.1.280 | ✓ | ✓ | native | ✓ | ✓ | ✓ | — | — | — |
 | codex | 0.156.1 | ✓ | ✓ | sandbox | — | ✓ | — | — | — | — |
 | opencode | 1.18.32 | ✓ | ✓ | allowlist | — | ✓ | ✓ | — | — | — |
 | copilot | 1.0.88 | ✓ | ✓ | bypass | — | ✓ | ✓ | — | — | — |
@@ -29,9 +29,12 @@ dieser Session.
   `packages/adapters/claude/test/adapter.test.ts` gegen echte Captures
   (`test/fixtures/*.jsonl`), E2E `session.spec.ts`. Modellwahl: Kürzel aus
   `claude --help` (2.1.280). Agent: `--agent` (ADR-0005). Tool-Gate
-  `allowlist`: ohne Skip-Flag lehnt `claude -p` jedes Tool ab, das fragen
-  müsste. Mit `--dangerously-skip-permissions` wird daraus `bypass`
-  (Adapter-Test „identity + capabilities are honest“).
+  `native` (T7.2): `--permission-prompt-tool` über die MCP-Brücke des Hubs,
+  Rückfragen (`AskUserQuestion`) auf demselben Weg — Hub-Integration
+  `apps/hub/test/modules/approvals/tool-permissions.test.ts`, Brücke
+  `apps/gateway-mcp/test/permission.test.ts`, E2E `harness.spec.ts` (Erlauben,
+  Ablehnen, Rückfrage). `permissionPrompts: "off"` → `allowlist`,
+  `--dangerously-skip-permissions` → `bypass`.
 - **codex:** `codex exec resume` für Folgeprompts (`test/fixtures/resume.jsonl`).
   `exec` fragt nie; Tools laufen in `workspace-write`. `danger-full-access`
   macht daraus `bypass`.
@@ -48,8 +51,9 @@ dieser Session.
 
 Der Heim-Hub weicht von der Standard-Konfiguration ab: claude mit
 `--dangerously-skip-permissions` und opencode mit `--auto` laufen dort als
-`bypass`. Die PWA warnt beim Start und auf der Status-Seite. T7.2 stellt beide
-auf `native` um.
+`bypass`. Die PWA warnt beim Start und auf der Status-Seite. Claude kann
+`native` laufen, sobald das Skip-Flag aus `hub.config.json` entfernt ist
+(Umstellung nach dem Live-Messlauf, T7.2).
 
 ## Nicht in der Tabelle
 

@@ -5,10 +5,18 @@
 // adapter, worker runner and normalizer run unchanged — no cloud, no cost.
 //
 // Keywords in the prompt pick a behaviour:
-//   WERKZEUG  one Bash tool call (echo) with its result, then the answer
+//   WERKZEUG  one Bash tool call (echo) with its result, then the answer.
+//             With --permission-prompt-tool it asks first, like the real CLI:
+//             starts the MCP server from --mcp-config and calls the tool with
+//             {tool_name, input, tool_use_id}; "deny" means the tool never runs.
+//   FRAGE     asks AskUserQuestion (Rot/Grün) through the same tool and
+//             answers with the choice
 //   FEHLER    a failed turn: result is_error with an overloaded API error, exit 1
 //   LANGSAM   keep the turn open for 60 s
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const argv = process.argv.slice(2);
 if (argv[0] === "--version") {
@@ -44,13 +52,47 @@ if (prompt.includes("FEHLER")) {
   process.exit(1);
 }
 
-if (prompt.includes("WERKZEUG")) {
-  const id = `toolu_${randomUUID().replace(/-/g, "").slice(0, 24)}`;
-  assistant([{ type: "tool_use", id, name: "Bash", input: { command: "echo hallo-uacc", description: "Echo test string" } }]);
-  emit({ type: "user", message: { role: "user", content: [{ tool_use_id: id, type: "tool_result", content: "hallo-uacc", is_error: false }] }, session_id: sessionId });
+/** --permission-prompt-tool mcp__<server>__<tool>: ask before a tool runs. */
+async function askPermission(toolName, input, toolUseId) {
+  const tool = flag("--permission-prompt-tool");
+  const configPath = flag("--mcp-config");
+  if (!tool || !configPath) return { behavior: "allow", updatedInput: input };
+  const [, server, name] = tool.split("__");
+  const spec = JSON.parse(readFileSync(configPath, "utf8")).mcpServers[server];
+  const client = new Client({ name: "fake-claude", version: "2.1.280" });
+  await client.connect(new StdioClientTransport({ command: spec.command, args: spec.args, env: { ...process.env, ...spec.env } }));
+  const res = await client.callTool({ name, arguments: { tool_name: toolName, input, tool_use_id: toolUseId } }, undefined, { timeout: 3_600_000 });
+  await client.close();
+  return JSON.parse(res.content[0].text);
 }
 
-const text = `Antwort auf: ${prompt.split("\n").pop()} · Claude ${model}`;
+const toolId = () => `toolu_${randomUUID().replace(/-/g, "").slice(0, 24)}`;
+let tail = "";
+
+if (prompt.includes("WERKZEUG")) {
+  const id = toolId();
+  const input = { command: "echo hallo-uacc", description: "Echo test string" };
+  assistant([{ type: "tool_use", id, name: "Bash", input }]);
+  const answer = await askPermission("Bash", input, id);
+  if (answer.behavior === "allow") {
+    const ran = String(answer.updatedInput.command).replace(/^echo /, "");
+    emit({ type: "user", message: { role: "user", content: [{ tool_use_id: id, type: "tool_result", content: ran, is_error: false }] }, session_id: sessionId });
+    tail = ` · Ausgabe ${ran}`;
+  } else {
+    emit({ type: "user", message: { role: "user", content: [{ tool_use_id: id, type: "tool_result", content: answer.message, is_error: true }] }, session_id: sessionId });
+    tail = ` · nicht ausgeführt: ${answer.message}`;
+  }
+}
+
+if (prompt.includes("FRAGE")) {
+  const id = toolId();
+  const input = { questions: [{ question: "Welche Farbe soll das Logo haben?", header: "Logofarbe", options: [{ label: "Rot" }, { label: "Grün" }], multiSelect: false }] };
+  assistant([{ type: "tool_use", id, name: "AskUserQuestion", input }]);
+  const answer = await askPermission("AskUserQuestion", input, id);
+  tail = answer.behavior === "allow" ? ` · Gewählt: ${Object.values(answer.updatedInput.answers ?? {}).join(", ")}` : ` · keine Antwort: ${answer.message}`;
+}
+
+const text = `Antwort auf: ${prompt.split("\n").pop()} · Claude ${model}${tail}`;
 assistant([{ type: "text", text }]);
 emit({
   type: "result",

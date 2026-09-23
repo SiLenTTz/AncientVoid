@@ -11,6 +11,7 @@ import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter
 import { EventRow } from "./EventRow.tsx";
 import { DiffPane } from "./DiffPane.tsx";
 import { ReportPane } from "./ReportPane.tsx";
+import { SessionApprovals } from "./SessionApprovals.tsx";
 
 export function SessionTail({ session, onNavigate }: { session: SessionRecord; onNavigate: (page: Page) => void }) {
   // EPIC-P6: every call of this view goes to the session's own host.
@@ -401,6 +402,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
         >
           {controlsHidden ? "▴" : "▾"}
         </button>
+        <SessionApprovals sessionId={session.id} api={api} />
         {!controlsHidden && (showReply || status !== "stopped") && (
           <div class="dock-actions">
             {replyError && (

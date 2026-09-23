@@ -42,6 +42,14 @@ export interface SessionRecord {
 export type ApprovalClass = "read" | "write" | "destructive";
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "timed_out";
 
+/** T7.2 — mirrors `@uacc/contracts`'s ToolQuestion (claude AskUserQuestion). */
+export interface ToolQuestion {
+  question: string;
+  header?: string;
+  options: { label: string; description?: string }[];
+  multiSelect: boolean;
+}
+
 export interface ApprovalRequest {
   id: string;
   sessionId: string;
@@ -56,6 +64,8 @@ export interface ApprovalRequest {
   decidedAt: string | null;
   decidedByLabel: string | null;
   signature: string | null;
+  /** T7.2: a provider's own tool request or question. */
+  tool?: { name: string; input: string; questions?: ToolQuestion[] };
   /** T7.3: what the decision released and what became of it. */
   operation?: { state: "pending" | "rejected" | "timed_out" | "dispatching" | "done" | "failed" | "uncertain"; outcome: string | null };
 }
@@ -421,10 +431,10 @@ function createHubApi(P: (path: string) => string) {
       method: "POST",
       body: JSON.stringify({ budgetUsd, ...(reason ? { reason } : {}) }),
     }),
-  decideApproval: (id: string, decision: "approve" | "reject", reason?: string) =>
+  decideApproval: (id: string, decision: "approve" | "reject", reason?: string, answers?: Record<string, string>) =>
     api<ApprovalRequest>(P(`/api/approvals/${id}/decide`), {
       method: "POST",
-      body: JSON.stringify({ decision, ...(reason ? { reason } : {}) }),
+      body: JSON.stringify({ decision, ...(reason ? { reason } : {}), ...(answers ? { answers } : {}) }),
     }),
   /** T2.5: WebAuthn passkey registration + the biometric decide path for
    * `destructive` approvals. 501 (webauthn not configured) is a real,

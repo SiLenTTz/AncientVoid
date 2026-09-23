@@ -22,11 +22,16 @@ import { normalizeClaudeLine } from "./normalize.ts";
  *   command:   executable to spawn (default "claude") — override in tests
  *              to avoid invoking the real CLI.
  *   extraArgs: extra CLI args appended verbatim (e.g. ["--model", "opus"]).
+ *   permissionPrompts: "hub" (default) — every tool that needs a decision
+ *              is asked through the hub's permission bridge (ADR-0018 §3,
+ *              `--permission-prompt-tool`); "off" — claude's own settings
+ *              decide and anything that would ask is denied.
  */
 
 const ClaudeConfig = z.object({
   command: z.string().min(1).default("claude"),
   extraArgs: z.array(z.string()).default([]),
+  permissionPrompts: z.enum(["hub", "off"]).default("hub"),
 });
 type ClaudeConfig = z.infer<typeof ClaudeConfig>;
 
@@ -81,8 +86,28 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
    * fixed, `claude --resume` doesn't accept switching it mid-session).
    * `skill` is applied by the caller wrapping `prompt` before calling this
    * (applies to every turn). */
-  function buildArgs(prompt: string, resumeSessionId?: string, agent?: string, model?: string): string[] {
-    const args = ["-p", prompt, "--output-format", "stream-json", "--verbose"];
+  const askHub = cfg.permissionPrompts === "hub" && !bypassesPermissions(cfg.extraArgs);
+
+  /** ADR-0018 §3: route permission prompts to the hub, when it offers a
+   * bridge. Without one (a hub that doesn't), say so in the tail. */
+  async function permissionArgs(ctx: AdapterContext): Promise<string[]> {
+    if (!askHub) return [];
+    const bridge = await ctx.permissionBridge?.();
+    if (!bridge) {
+      ctx.emit({ type: "system", summary: "claude: keine Freigabe-Brücke — Tools, die fragen müssten, werden abgelehnt", payload: { kind: "claude.no_permission_bridge" } });
+      return [];
+    }
+    return ["--mcp-config", bridge.mcpConfigPath, "--permission-prompt-tool", bridge.toolName];
+  }
+
+  /** A human may take minutes to answer — claude must not give up on the
+   * bridge's tool call before the hub's own timeout does. */
+  function workerEnv(env: Record<string, string> | undefined): { env: Record<string, string> } | undefined {
+    return askHub ? { env: { ...env, MCP_TOOL_TIMEOUT: String(60 * 60_000) } } : env ? { env } : undefined;
+  }
+
+  function buildArgs(prompt: string, resumeSessionId?: string, agent?: string, model?: string, extra: string[] = []): string[] {
+    const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", ...extra];
     if (resumeSessionId) args.push("--resume", resumeSessionId);
     if (agent && !resumeSessionId) args.push("--agent", agent);
     if (model && !resumeSessionId) args.push("--model", model);
@@ -175,13 +200,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         usage: true,
         nativeDiscovery: "none",
         nativeResume: "native",
-        // ADR-0018. Without the skip flag, `claude -p` denies every tool that
+        // ADR-0018. Hub prompts: every tool that needs a decision is asked
+        // on the phone (native). Off: `claude -p` denies every tool that
         // would ask — a fixed list (settings/--allowedTools), nobody asked.
         features: {
           followUp: true,
           interrupt: true,
-          toolGate: bypassesPermissions(cfg.extraArgs) ? "bypass" : "allowlist",
-          questions: false,
+          toolGate: bypassesPermissions(cfg.extraArgs) ? "bypass" : askHub ? "native" : "allowlist",
+          questions: askHub,
           modelChoice: "start",
           skills: true,
           agents: true,
@@ -210,8 +236,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const resumeSessionId = args.success ? args.data?.resumeSessionId : undefined;
       const meta: SessionMeta = { healthy: true, degraded: false, skill, ...(resumeSessionId ? { resumeSessionId } : {}) };
       const proc = await ctx.spawnWorker(
-        buildArgs(withSkill(spec.prompt ?? "", skill), resumeSessionId, agentPersona, spec.model),
-        spec.env ? { env: spec.env } : undefined,
+        buildArgs(withSkill(spec.prompt ?? "", skill), resumeSessionId, agentPersona, spec.model, await permissionArgs(ctx)),
+        workerEnv(spec.env),
       );
       attach(ctx.sessionId, proc, ctx, meta);
       const handle: SessionHandle = {
@@ -230,7 +256,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           // session's skill (if any) is reapplied to every turn; --agent
           // is deliberately NOT re-added here (see buildArgs' doc comment).
           const proc = await ctx.spawnWorker(
-            buildArgs(withSkill(input.text, meta?.skill), meta?.resumeSessionId),
+            buildArgs(withSkill(input.text, meta?.skill), meta?.resumeSessionId, undefined, undefined, await permissionArgs(ctx)),
+            workerEnv(undefined),
           );
           attach(handle.sessionId, proc, ctx, meta ?? { healthy: true, degraded: false });
           return { ok: true };

@@ -176,6 +176,10 @@ export interface AdapterContext {
   /** ADR-0014: the provider's own session id as the hub last recorded it
    * (null when none was captured yet) — what `recover()` resumes with. */
   readonly nativeSessionId?: string | null;
+  /** ADR-0018 §3 / T7.2: an MCP config that starts the hub's permission
+   * bridge for this session, and the tool name to pass as
+   * `--permission-prompt-tool`. Absent when the hub offers no bridge. */
+  permissionBridge?(): Promise<{ mcpConfigPath: string; toolName: string }>;
 }
 
 /**

@@ -75,6 +75,8 @@ export class ApprovalService {
     action: string,
     summary: string,
     reasonRequired = false,
+    /** T7.2: tool requests wait longer than the 60 s for hub prompts. */
+    timeoutMs: number = this.timeoutMs,
   ): ApprovalRequest {
     const now = new Date();
     const row: ApprovalRow = {
@@ -84,7 +86,7 @@ export class ApprovalService {
       action,
       summary,
       created_at: now.toISOString(),
-      timeout_at: new Date(now.getTime() + this.timeoutMs).toISOString(),
+      timeout_at: new Date(now.getTime() + timeoutMs).toISOString(),
       status: "pending",
       reason_required: cls === "destructive" || reasonRequired ? 1 : 0,
       reason: null,
