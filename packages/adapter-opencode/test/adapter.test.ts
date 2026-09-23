@@ -193,4 +193,32 @@ describe("opencode adapter — lifecycle against a real captured stream", () => 
     }
     expect(downState).toBe(true);
   });
+
+  it("ADR-0014: recover() adopts the turn that survived the hub restart", async () => {
+    const adapter = createAdapter();
+    const ctx = makeRecordingContext({
+      adoptWorker: async () => fakeOpencodeProcess(loadFixture("trivial-read.jsonl")),
+      nativeSessionId: "ses_before",
+    });
+    const handle = await adapter.recover!("s1", 0, ctx);
+    expect(handle?.sessionId).toBe("s1");
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    expect(ctx.spawned).toEqual([]);
+  });
+
+  it("ADR-0014: recover() without a worker resumes with --session on the next prompt", async () => {
+    const adapter = createAdapter();
+    const spawned: string[][] = [];
+    const ctx = makeRecordingContext({
+      adoptWorker: async () => null,
+      nativeSessionId: "ses_before",
+      spawnWorker: async (cmd) => {
+        spawned.push(cmd);
+        return fakeOpencodeProcess("");
+      },
+    });
+    const handle = await adapter.recover!("s1", 0, ctx);
+    expect((await adapter.steer(handle!, { kind: "prompt", text: "weiter" }, ctx)).ok).toBe(true);
+    expect(spawned[0]).toEqual(expect.arrayContaining(["--session", "ses_before"]));
+  });
 });

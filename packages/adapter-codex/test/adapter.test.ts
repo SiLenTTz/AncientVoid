@@ -74,7 +74,7 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
       nativeDiscovery: "none",
       nativeResume: "native",
     });
-    expect(adapter.recover).toBeUndefined();
+    expect(typeof adapter.recover).toBe("function"); // ADR-0014
   });
 
   it("start() emits schema-valid events from a chunked, split-mid-line stream", async () => {
@@ -317,5 +317,23 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     const adapter = createAdapter();
     await adapter.start({ adapter: "codex", project: "/tmp" }, ctx);
     await waitFor(() => ctx.events.some((e) => e.summary.includes("non-JSON stdout line")));
+  });
+
+  it("ADR-0014: recover() without a surviving worker resumes the recorded thread on the next prompt", async () => {
+    const adapter = createAdapter();
+    expect(await adapter.recover!("s1", 0, makeRecordingContext({ adoptWorker: async () => null, nativeSessionId: null }))).toBeNull();
+    const spawned: string[][] = [];
+    const ctx = makeRecordingContext({
+      adoptWorker: async () => null,
+      nativeSessionId: "thread-1",
+      spawnWorker: withVersionHandshake((cmd) => {
+        spawned.push(cmd);
+        return fakeCodexProcess("");
+      }),
+    });
+    const handle = await adapter.recover!("s1", 0, ctx);
+    expect(handle).toEqual({ sessionId: "s1" });
+    expect((await adapter.steer(handle!, { kind: "prompt", text: "weiter" }, ctx)).ok).toBe(true);
+    expect(spawned.at(-1)).toEqual(expect.arrayContaining(["resume", "thread-1"]));
   });
 });

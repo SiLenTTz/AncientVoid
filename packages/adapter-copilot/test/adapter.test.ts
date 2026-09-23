@@ -154,4 +154,21 @@ describe("copilot adapter — lifecycle against real captured streams", () => {
     }
     expect(downState).toBe(true);
   });
+
+  it("ADR-0014: recover() without a surviving worker resumes the recorded session on the next prompt", async () => {
+    const adapter = createAdapter();
+    expect(await adapter.recover!("s1", 0, makeRecordingContext({ adoptWorker: async () => null, nativeSessionId: null }))).toBeNull();
+    const spawned: string[][] = [];
+    const ctx = makeRecordingContext({
+      adoptWorker: async () => null,
+      nativeSessionId: "cop-1",
+      spawnWorker: async (cmd) => {
+        spawned.push(cmd);
+        return fakeCopilotProcess("", 0);
+      },
+    });
+    const handle = await adapter.recover!("s1", 0, ctx);
+    expect((await adapter.steer(handle!, { kind: "prompt", text: "weiter" }, ctx)).ok).toBe(true);
+    expect(spawned[0]).toEqual(expect.arrayContaining(["-r", "cop-1"]));
+  });
 });

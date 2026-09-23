@@ -82,6 +82,8 @@ interface LiveSession {
   skillName?: string;
   /** T5.4: provider workers of this session that have not exited yet. */
   activeWorkers?: number;
+  /** T5.6: result of ctx.adoptWorker() during recover(), if it was asked. */
+  adopted?: boolean;
 }
 
 /** A turn counts as over only if no new worker starts within this window —
@@ -1082,6 +1084,10 @@ export class SessionManager {
           );
           session.handle = handle;
           if (handle) keepWorkers.push(record.id);
+          // T5.6: resumable, but no turn survived the restart — between turns.
+          if (handle && session.adopted === false && session.record.status === "working") {
+            await this.setStatus(session, "idle");
+          }
         }
         if (!session.handle) {
           session.record.controlMode = "observed";
@@ -1156,6 +1162,15 @@ export class SessionManager {
         });
         await this.trackTurn(session, proc);
         return proc;
+      },
+      adoptWorker: async () => {
+        const proc = (await this.runner.adopt?.(session.record.id)) ?? null;
+        session.adopted = proc !== null;
+        if (proc) await this.trackTurn(session, proc);
+        return proc;
+      },
+      get nativeSessionId() {
+        return session.record.nativeSessionId;
       },
     };
   }

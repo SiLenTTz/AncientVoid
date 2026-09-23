@@ -134,6 +134,30 @@ describe("TmuxRunner", () => {
     }
   });
 
+  itTmux("T5.6: a restarted hub adopts a surviving worker and reads on where it stopped", async () => {
+    const first = await runner.spawn({
+      name: "test-adopt",
+      cwd: dir,
+      cmd: ["bash", "-c", "echo eins; sleep 0.6; echo zwei; sleep 0.3; exit 4"],
+    });
+    const before: string[] = [];
+    first.onStdout((chunk) => before.push(chunk.trim()));
+    const deadline = Date.now() + 3000;
+    while (!before.includes("eins") && Date.now() < deadline) await new Promise((r) => setTimeout(r, 20));
+    expect(before).toEqual(["eins"]);
+
+    // Same log dir → same owner, like the same hub after kill -9.
+    const restarted = new TmuxRunner(join(dir, "logs"));
+    const adopted = await restarted.adopt("test-adopt");
+    expect(adopted).not.toBeNull();
+    const after: string[] = [];
+    adopted!.onStdout((chunk) => after.push(chunk.trim()));
+    const { code } = await adopted!.exited();
+    expect(after).toEqual(["zwei"]);
+    expect(code).toBe(4);
+    expect(await restarted.adopt("gibt-es-nicht")).toBeNull();
+  });
+
   itTmux("kill terminates a worker", async () => {
     const proc = await runner.spawn({
       name: "test-kill",

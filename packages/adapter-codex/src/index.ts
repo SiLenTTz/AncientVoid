@@ -123,7 +123,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         }
         if (parsed && typeof parsed === "object" && "thread_id" in parsed) {
           const tid = (parsed as { thread_id?: unknown }).thread_id;
-          if (typeof tid === "string") meta.threadId = tid;
+          if (typeof tid === "string" && tid !== meta.threadId) {
+            meta.threadId = tid;
+            // ADR-0014: the hub records the id so recover() can resume.
+            ctx.emit({ type: "system", summary: `Codex · Thread ${tid}`, payload: { kind: "codex.native_session", nativeSessionId: tid } });
+          }
         }
         for (const event of normalizeCodexLine(parsed, meta.model)) {
           ctx.emit(event);
@@ -285,6 +289,18 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         return { state: "degraded", detail: "unhandled stream-json event seen", lastSeen: new Date().toISOString() };
       }
       return { state: "healthy", lastSeen: new Date().toISOString() };
+    },
+
+    /** ADR-0014: after a hub restart, take over the turn that is still
+     * running, or continue natively with the next prompt. */
+    async recover(sessionId: string, _lastSeq: number, ctx: AdapterContext): Promise<SessionHandle | null> {
+      const native = ctx.nativeSessionId ?? undefined;
+      const proc = (await ctx.adoptWorker?.()) ?? null;
+      if (!proc && !native) return null;
+      const meta: SessionMeta = { healthy: true, degraded: false, ...(native ? { threadId: native } : {}) };
+      if (proc) attach(sessionId, proc, ctx, meta);
+      else sessions.set(sessionId, meta);
+      return { sessionId, ...(proc?.pid !== undefined ? { pid: proc.pid } : {}) };
     },
 
     async stop(handle: SessionHandle): Promise<void> {

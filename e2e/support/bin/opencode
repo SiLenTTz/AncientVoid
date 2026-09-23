@@ -10,6 +10,7 @@
 //   LIMIT    end at the length limit, reasoning only, no answer
 //   GROSS    a tool result above the 2 KB chat threshold
 //   DATEI    write e2e-change.txt into the working directory (diff tab)
+//   WARTE<n> answer only after n seconds (a turn that outlives a hub kill)
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -70,6 +71,8 @@ if (has("LANGSAM")) {
   process.on("SIGINT", () => process.exit(130));
   await sleep(60_000);
 }
+const wait = /WARTE(\d+)/.exec(prompt);
+if (wait) await sleep(Number(wait[1]) * 1000);
 await sleep(120);
 if (has("LIMIT")) {
   emit({ type: "step_finish", sessionID: sid, part: { reason: "length", cost: 0.001, tokens: { total: 4000, reasoning: 3900 } } });
