@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { hubApi, getToken, type SessionRecord, type AdapterUsage, type SessionDiffResult, type DiffHunk } from "./api.ts";
+import { hubApi, getToken, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type DiffHunk } from "./api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "./ws.ts";
 import { Composer } from "./Composer.tsx";
 import { visibleEventText } from "./event-text.ts";
@@ -115,6 +115,8 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   const [reply, setReply] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
   const [replyError, setReplyError] = useState("");
+  // Same text sent again after a failure keeps its input id (BUG-0016).
+  const pendingInput = useRef<{ text: string; id: string } | null>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [archived, setArchived] = useState(session.archived === true);
 
@@ -278,14 +280,17 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     setReplyBusy(true);
     setReplyError("");
     try {
-      const ack = await hubApi.steer(session.id, { kind: "prompt", text: reply });
+      if (pendingInput.current?.text !== reply) pendingInput.current = { text: reply, id: newInputId() };
+      const ack = await hubApi.steer(session.id, { kind: "prompt", text: reply }, pendingInput.current.id);
       if (ack.ok) {
+        pendingInput.current = null;
         setReply("");
       } else {
         // A rejected steer (e.g. claude's "no thread_id captured yet") is
         // shown, not swallowed — an AC-P1.5-7 requirement, and the same
         // honesty standard the rest of this app already applies.
-        setReplyError(ack.detail ?? "Antwort wurde abgelehnt");
+        if (ack.detail === "writer lease held" || ack.detail === "revision conflict") pendingInput.current = null;
+        setReplyError(steerRejectText(ack.detail));
       }
     } catch (err) {
       setReplyError(err instanceof Error ? err.message : "Antwort fehlgeschlagen");
