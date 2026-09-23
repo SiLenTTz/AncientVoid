@@ -1728,3 +1728,12 @@ a {
 .run-quota.err {
   color: var(--err);
 }
+
+/* Overview card: project and the session's own title up front. */
+.session-title {
+  font-size: 13px;
+  margin: 2px 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

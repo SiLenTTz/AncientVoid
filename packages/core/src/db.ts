@@ -157,6 +157,11 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 10,
+    name: "session-title",
+    sql: `ALTER TABLE sessions ADD COLUMN title TEXT;`,
+  },
 ];
 
 export class HubDatabase {

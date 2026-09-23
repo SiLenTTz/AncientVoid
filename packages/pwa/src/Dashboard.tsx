@@ -158,12 +158,13 @@ function SessionRow({
     <div class={`card session-card ${glow}`}>
       <button class="session-open" type="button" onClick={() => onOpen(session)}>
         <div class="row">
-          <strong>{session.adapter}</strong>
+          <strong class="session-project">{session.project.split("/").filter(Boolean).pop() ?? session.project}</strong>
           <span class={`pill ${session.status}`}>{session.status}</span>
         </div>
+        <div class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? "ohne Startprompt"}</div>
         <div class="row dim">
           <span>
-            {session.model ?? "n/a"} · #{session.lastSeq}
+            {session.adapter} · {session.model ?? "n/a"} · #{session.lastSeq}
           </span>
           <span>{session.costUsd > 0 ? formatUsd(session.costUsd) : ""}</span>
         </div>

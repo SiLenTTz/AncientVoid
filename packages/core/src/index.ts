@@ -17,7 +17,7 @@ export {
   type ResolvedSkillChain,
 } from "./skills.ts";
 export { ensureBaseSkills } from "./base-skills.ts";
-export { SessionManager, hashToken, type AdapterUsageSnapshot, type SessionManagerObservability } from "./sessionmanager.ts";
+export { SessionManager, sessionTitle, hashToken, type AdapterUsageSnapshot, type SessionManagerObservability } from "./sessionmanager.ts";
 export { createJsonLogger, createConsoleLogger, redactFields } from "./logger.ts";
 export { InMemoryMetrics } from "./metrics.ts";
 export { collectHealth, type HealthDeps, type HealthStore } from "./health.ts";
