@@ -142,6 +142,21 @@ export const MIGRATIONS: Migration[] = [
     name: "session-archived",
     sql: `ALTER TABLE sessions ADD COLUMN archived INTEGER NOT NULL DEFAULT 0;`,
   },
+  {
+    id: 9,
+    name: "notifications",
+    sql: `
+      CREATE TABLE notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        level TEXT NOT NULL,
+        title TEXT NOT NULL,
+        detail TEXT,
+        kind TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

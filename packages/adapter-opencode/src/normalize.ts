@@ -1,4 +1,4 @@
-import type { EmittedEvent } from "@uacc/contracts";
+import { providerErrorEvent, type EmittedEvent } from "@uacc/contracts";
 
 /**
  * Maps one parsed line of `opencode run --format json` output to zero or
@@ -130,6 +130,14 @@ export function normalizeOpencodeLine(raw: unknown): EmittedEvent[] {
           ...(tokensEst !== undefined ? { tokensEst } : {}),
         },
       ];
+    }
+
+    case "error": {
+      // ADR-0015: {"type":"error","error":{"name","data":{"message","ref"}}}
+      const err = (raw as { error?: { name?: unknown; message?: unknown; data?: { message?: unknown; ref?: unknown } } }).error;
+      const message = [err?.data?.message, err?.message, err?.name].find((v): v is string => typeof v === "string" && v.length > 0) ?? "";
+      const ref = typeof err?.data?.ref === "string" ? err.data.ref : undefined;
+      return [providerErrorEvent("opencode", message, ref)];
     }
 
     default:

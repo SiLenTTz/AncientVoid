@@ -115,6 +115,17 @@ export interface SessionDiffResult {
   error?: string;
 }
 
+/** ADR-0015 — cross-session notification from the hub. */
+export interface HubNotification {
+  id: number;
+  sessionId: string;
+  level: "info" | "success" | "warning" | "error";
+  title: string;
+  detail: string | null;
+  kind: string;
+  createdAt: string;
+}
+
 /** ADR-0011 — one session found by the hub or a read-only provider scan. */
 export interface DiscoveredSession {
   hubSessionId: string | null;
@@ -320,6 +331,7 @@ export const hubApi = {
   session: (id: string) => api<SessionRecord>(`/api/sessions/${id}`),
   discovery: (cursor = 0, limit = 50) => api<DiscoveryPage>(`/api/discovery?cursor=${cursor}&limit=${limit}`),
   inventory: () => api<{ items: HarnessInventoryEntry[] }>("/api/inventory"),
+  notifications: (after = 0) => api<{ items: HubNotification[]; lastId: number }>(`/api/notifications?after=${after}`),
   sessionDiff: (id: string) => api<SessionDiffResult>(`/api/sessions/${id}/diff`),
   /** T3.8: real qmd-backed project search. A 501 (qmd not installed on
    * this host) is a real, expected state for a fresh/minimal deployment —

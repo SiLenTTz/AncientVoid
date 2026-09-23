@@ -22,6 +22,7 @@ import type {
   ReportingSink,
   DiscoverySource,
   DiscoveredSession,
+  HubNotification,
 } from "@uacc/contracts";
 import { DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, unsupportedResume } from "@uacc/contracts";
 import type { EventStore } from "./eventstore.ts";
@@ -33,6 +34,7 @@ import { buildSessionSummary } from "./digest.ts";
 import { createConsoleLogger } from "./logger.ts";
 import { dedupeDiscovered, pageDiscovered } from "./discovery.ts";
 import { resolveSkillChain, withSkillChain } from "./skills.ts";
+import { notificationFor } from "./notifications.ts";
 
 const WRITER_LEASE_MS = 30_000;
 
@@ -194,7 +196,9 @@ const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   parked: ["working", "stopping", "stopped", "error"],
   stopping: ["stopped", "error"],
   stopped: ["working"],
-  error: ["stopping", "stopped"],
+  // ADR-0015: a failed turn (quota, rate limit, provider outage) is not a
+  // dead session — the next prompt may start a new turn.
+  error: ["stopping", "stopped", "working"],
 };
 
 /** T1.9: 30s default per EPIC-P1 §2 ("Heartbeat pro Adapter (30 s)"). */
@@ -223,6 +227,8 @@ export class SessionManager {
    * (in SQLite) still shows what was asked for, it just can no longer be
    * carried out after a restart. Documented here, not silently assumed. */
   private readonly pendingSteers = new Map<string, { sessionId: string; input: SteerInput; typed?: string }>();
+  /** ADR-0015: when the last provider.error per session was reported. */
+  private readonly lastProviderError = new Map<string, number>();
   /** Tail of the per-session steer chain (see steer()). */
   private readonly steerQueue = new Map<string, Promise<void>>();
 
@@ -745,6 +751,52 @@ export class SessionManager {
     await this.emitEvents(session, [
       { type: "user", summary: text.slice(0, 200), payload: { kind: "session.prompt", text, actor: actor ?? null } },
     ]);
+  }
+
+  /** ADR-0015: cross-session notifications, persisted so every device and a
+   * restarted hub show the same list. */
+  private recordNotifications(session: LiveSession, events: readonly NormalizedEvent[]): void {
+    for (const event of events) {
+      const kind = (event.payload as { kind?: unknown }).kind;
+      if (kind === "provider.error") this.lastProviderError.set(session.record.id, Date.now());
+      const draft = notificationFor(event, {
+        adapter: session.record.adapter,
+        project: session.record.project,
+        recentProviderError: Date.now() - (this.lastProviderError.get(session.record.id) ?? 0) < 30_000 && kind !== "provider.error",
+      });
+      if (!draft) continue;
+      this.db
+        .prepare("INSERT INTO notifications (session_id, level, title, detail, kind, created_at) VALUES (?, ?, ?, ?, ?, ?)")
+        .run(session.record.id, draft.level, draft.title, draft.detail, draft.kind, event.ts);
+    }
+  }
+
+  /** Newest first. With `afterId`, only newer ones (polling). */
+  notifications(afterId = 0, limit = 50): { items: HubNotification[]; lastId: number } {
+    const rows = this.db
+      .prepare("SELECT * FROM notifications WHERE id > ? ORDER BY id DESC LIMIT ?")
+      .all(afterId, Math.min(Math.max(limit, 1), 200)) as unknown as {
+      id: number;
+      session_id: string;
+      level: HubNotification["level"];
+      title: string;
+      detail: string | null;
+      kind: string;
+      created_at: string;
+    }[];
+    const last = this.db.prepare("SELECT MAX(id) AS id FROM notifications").get() as { id: number | null };
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
+        level: row.level,
+        title: row.title,
+        detail: row.detail,
+        kind: row.kind,
+        createdAt: row.created_at,
+      })),
+      lastId: last.id ?? 0,
+    };
   }
 
   /** Records a delivered steer and, for a takeover, who handed over to whom. */
@@ -1288,6 +1340,7 @@ export class SessionManager {
         // a slow/broken subscriber never blocks the stream
       }
     }
+    this.recordNotifications(session, enforced);
     // T2.7: after this event's own subscriber notification, not before —
     // checkBudget/checkDailyCap recurse back into this method for their
     // own park/warning events, which must reach subscribers in their real
@@ -1330,7 +1383,7 @@ export class SessionManager {
    */
   private async trackTurn(session: LiveSession, proc: WorkerProcess): Promise<void> {
     session.activeWorkers = (session.activeWorkers ?? 0) + 1;
-    if (session.record.status === "idle") await this.setStatus(session, "working");
+    if (session.record.status === "idle" || session.record.status === "error") await this.setStatus(session, "working");
     proc.onExit((code) => {
       session.activeWorkers = Math.max(0, (session.activeWorkers ?? 1) - 1);
       if (code !== 0) return;

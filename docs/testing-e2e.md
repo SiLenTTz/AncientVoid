@@ -36,6 +36,8 @@ startet in etwa einer Sekunde.
 | `GROSS` | Tool-Ergebnis über 2 KB |
 | `DATEI` | legt `e2e-change.txt` im Arbeitsverzeichnis an |
 | `WARTE<n>` | antwortet erst nach n Sekunden (Zug überlebt einen Hub-Kill) |
+| `KONTINGENT` | z.ai-Fehler „Usage limit reached for 5 hour … reset at …“, Exit 1 |
+| `SERVERFEHLER` | OpenCodes „UnknownError: Unexpected server error“ (echte Zeile vom 2026-09-23), Exit 1 |
 | `--session <id>` | setzt die Session fort, Antwort endet auf `(fortgesetzt)` |
 | `--agent plan --` | Prompt-Optimierer für „Verbessern“ |
 

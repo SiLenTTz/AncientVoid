@@ -1,4 +1,4 @@
-import type { EmittedEvent } from "@uacc/contracts";
+import { providerErrorEvent, type EmittedEvent } from "@uacc/contracts";
 import { estimateCostUsd } from "./pricing.ts";
 
 /**
@@ -96,6 +96,14 @@ export function normalizeCodexLine(raw: unknown, model?: string): EmittedEvent[]
       const item = (line.item ?? {}) as CodexItem;
       return normalizeItem(item, line.type === "item.completed");
     }
+    case "turn.failed":
+    case "error": {
+      // ADR-0015: {"type":"turn.failed","error":{"message"}} / {"type":"error","message"}
+      const nested = (line.error as { message?: unknown } | undefined)?.message;
+      const message = typeof nested === "string" ? nested : typeof line.message === "string" ? line.message : "";
+      return [providerErrorEvent("codex", message)];
+    }
+
     default:
       // Fail loud (AGENTS.md rule 6): an unrecognized top-level type
       // becomes a visible system event, never a silent drop.

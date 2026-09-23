@@ -48,3 +48,4 @@ export {
   type LoadedConfig,
   type BuiltinAdapters,
 } from "./config.ts";
+export { notificationFor, type NotificationDraft } from "./notifications.ts";

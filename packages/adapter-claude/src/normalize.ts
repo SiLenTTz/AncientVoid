@@ -1,4 +1,4 @@
-import type { EmittedEvent, UsageQuota } from "@uacc/contracts";
+import { providerErrorEvent, type EmittedEvent, type UsageQuota } from "@uacc/contracts";
 
 /**
  * Maps one parsed line of `claude --output-format stream-json` output to
@@ -116,7 +116,10 @@ export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
       ];
     }
     case "result":
-      return [normalizeResult(line)];
+      // ADR-0015: a failed turn also says why, in words.
+      return line.is_error === true && typeof line.result === "string"
+        ? [normalizeResult(line), providerErrorEvent("claude", line.result)]
+        : [normalizeResult(line)];
     case "assistant":
     case "user": {
       const message = line.message as { content?: ContentBlock[] } | undefined;

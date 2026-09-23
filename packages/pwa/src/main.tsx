@@ -5,6 +5,7 @@ import { SessionTail } from "./SessionTail.tsx";
 import { getToken, setToken, hubApi, type SessionRecord } from "./api.ts";
 import { parseAppHash, sessionHash } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
+import { NotificationCenter } from "./Notifications.tsx";
 import type { Page } from "./Dock.tsx";
 import "./styles.css";
 
@@ -126,6 +127,7 @@ function Main() {
 
   return (
     <>
+      <NotificationCenter />
       {staleAt && (
         <div class="topbar">
           <span class="badge-stale">Daten vom {staleAt.toLocaleString("de-DE")} (offline)</span>

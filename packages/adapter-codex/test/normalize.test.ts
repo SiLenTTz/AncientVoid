@@ -87,3 +87,11 @@ describe("normalizeCodexLine — real captured stream-json (codex-cli 0.153.4)",
     expect(normalizeCodexLine(null)[0]!.type).toBe("system");
   });
 });
+
+describe("provider errors (ADR-0015)", () => {
+  it("names a failed turn instead of an unhandled line", () => {
+    const [event] = normalizeCodexLine({ type: "turn.failed", error: { message: "stream error: 429 Too Many Requests" } });
+    expect(event?.summary).toBe("codex: Rate-Limit des Providers");
+    expect(event?.payload).toMatchObject({ kind: "provider.error", category: "rate_limit" });
+  });
+});

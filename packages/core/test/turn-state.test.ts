@@ -78,4 +78,25 @@ describe("turn state (T5.4)", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it("after a failed turn in error state, the next prompt runs again (ADR-0015)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-turns-"));
+    const db = new HubDatabase(":memory:");
+    const registry = new AdapterRegistry();
+    registry.register("turns", () => ({ ...oneProcessPerTurn(), status: async () => ({ state: "down" as const }) }));
+    const manager = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "turns", project: dir, prompt: "FAIL" });
+      await new Promise((r) => setTimeout(r, 500));
+      await manager.runHeartbeat();
+      expect(manager.get(record.id)?.status).toBe("error");
+      expect((await manager.steer(record.id, { kind: "prompt", text: "nochmal" })).ok).toBe(true);
+      expect(manager.get(record.id)?.status).toBe("working");
+      await waitFor(() => manager.get(record.id)?.status === "idle", "idle after the retry");
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });
