@@ -1,6 +1,6 @@
 # EPIC-P5 — Session-Discovery, PC↔Handy-Handoff und Recovery
 
-**Status:** bereit zur Abnahme — alle Aufgaben umgesetzt und im E2E-Gate (Stand §12). Offen ist nur der manuelle Lauf AC-P5-2 mit echten Providern und Geräten (Checkliste §12.4); danach Retro und Abschluss. · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
+**Status:** abgeschlossen 2026-09-23 (Retro unten) — AC-P5-2 manuell nur für OpenCode belegt; die Handläufe für Claude Code, Codex und Copilot laufen als AI-P5-1 in P12 weiter (Nutzerentscheidung) · **Phase:** P5 · **Dauer:** 2–4 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P4.5 grün; P4-externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) bleiben bewusst offen (Ausnahme P4.5, siehe Index).
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:
@@ -212,4 +212,49 @@ prüfen, dass die CLI dieselbe Unterhaltung zeigt.
 Ergebnis je Zelle hier eintragen. Danach in `packages/core/src/inventory.ts`
 die Resume-Zellen der geprüften CLIs auf `verified` setzen (mit Datum und
 Beleg in `evidence`), Retro schreiben, P5 schließen.
+
+## Retro (2026-09-23)
+
+**Zeitraum:** 2026-09-22 bis 2026-09-23 · **Commits:** 37 (ohne Merges),
+32 MRs · **Bugs aus der Phase:** 12 (BUG-0016 bis BUG-0027), alle behoben.
+Gate zum Abschluss: `npm run gate` grün (vitest 453, E2E 92 + 4 `fixme`/skip).
+
+### AK-Matrix
+
+| AC | Bewertung | Beleg | Bemerkung |
+|---|---|---|---|
+| AC-P5-1 | 🟢 erfüllt | `e2e/specs/discovery.spec.ts` „AC-P5-1: 20 Sessions …“; `docs/messlauf/2026-09-23-p5-discovery-recovery.md` | 20 Sessions (je 2 pro Projekt, Hub + extern) sichtbar < 10 s, 0 Duplikate, unbekanntes Format sichtbar |
+| AC-P5-2 | 🟡 teilweise | `e2e/specs/handoff.spec.ts` (2 Tests), Handlauf OpenCode (Session `821b0ec8`, `ses_f31f2e3b…`), `packages/core/src/inventory.ts` opencode `resume: verified` | Automatisiert für den echten OpenCode-Adapter: gleiche native ID und CWD, kein Doppelzug, live und nach Stop. Manuell nur OpenCode; Claude Code, Codex, Copilot bleiben `implemented-unverified` → AI-P5-1 |
+| AC-P5-3 | 🟢 erfüllt | Messlauf `recovery` + `recovery-provider`; `recovery.spec.ts` (Kill -9, geplanter Neustart, Übernahme eines laufenden Zugs) | Recovery 37 ms (Dummy) / 96 ms (OpenCode unter tmux), 0 verlorene Antworten, kein Reaping fremder oder lebender Worker |
+| AC-P5-4 | 🟢 erfüllt | `packages/core/test/steer-reopen.test.ts`, `steer-lease.test.ts`; E2E „Doppeltipp“, „zwei Geräte“ | Einmalige Ausführung oder sichtbarer Konflikt; „Übernehmen“ bewusst (T5.5) |
+| AC-P5-5 | 🟢 erfüllt | `e2e/specs/deeplink.spec.ts`; `session.spec.ts` „andere Session“ (BUG-0024) | Deep-Link nach Reload, kein Attach ohne lebenden Worker, kein Terminal-Befehl während eines Zugs; K5/K8-Gates grün (Loadtest) |
+
+**Summe:** 4 🟢 / 1 🟡 / 0 🔴 / 0 ⚪
+
+### Premortem
+
+| Risiko | Eingetreten? | Beleg |
+|---|---|---|
+| 1. Gleicher Titel, neue Provider-Session | nein — abgesichert | Handoff-Tests prüfen die native ID pro Zug; `nativeIdFromWorkerLog` nur Fallback |
+| 2. Desktop und Handy schreiben gleichzeitig | **ja**, gefunden vor Nutzung | BUG-0016/0017 (Doppelstart), behoben mit Steer-Queue und Lease-Commit |
+| 3. Recovery räumt lebende Worker weg | **ja**, zweifach | BUG-0019 (`npm test` tötete Worker des echten Hubs), BUG-0027 (Stop löschte Worktree-Arbeit, einmal real beim Einspielen, aus OpenCode-Snapshot wiederhergestellt) |
+| 4. Provider-Dateiformat ändert sich | nein | Unbekannte Formate bleiben `unsupported-format` (Discovery-E2E) |
+
+### Erkenntnisse
+
+1. **Das E2E-Gate gegen einen echten Hub fand Fehler, die Unit-Tests nie sahen** — BUG-0020 (Diff ohne neue Dateien), BUG-0021 (Skill-Kette), BUG-0023/0024 (Chat-Duplikate, vermischte Verläufe) kamen alle aus Specs, nicht aus Nutzung.
+2. **Der Handtest fand die schwersten Fehler** — BUG-0026 (nur die ältesten 100 Events) und die Frage „warum sehe ich nichts im Repo“, die zu BUG-0027 (Datenverlust) führte. Automatisierung ersetzt den Handlauf nicht; sie macht ihn billiger.
+3. **Einspielen ist Teil des Fixes.** BUG-0027 wurde beim Deploy vom alten Prozess ausgelöst. Seither: geplanter Neustart stoppt nichts (ADR-0014 Nachtrag), und Fixes im Stop-Pfad werden mit `kill -9` eingespielt (`bugs/bug-0027-…` „Vorfall“).
+4. **Geteilte Infrastruktur braucht Eigentumsnachweis.** tmux-Server und Test-Läufe teilten sich Ressourcen mit dem echten Hub (BUG-0019, BUG-0025); gelöst mit `@uacc_owner` und exakten Session-Zielen.
+5. **Ehrliche Signale statt geschätzter Zahlen** trugen: Fortschritt nur aus der To-do-Liste des Agenten, Fehler nur aus dem Text der CLI (ADR-0015); an echten Prompts nachgemessen (Skill-Vorschläge: 5 falsche → 0).
+
+### Action Items
+
+| ID | Maßnahme | zurück als |
+|---|---|---|
+| AI-P5-1 | Handläufe PC→Handy→PC für Claude Code, Codex, Copilot (Checkliste §12.4), dann deren Resume-Zelle `verified` | EPIC-P12 T12.4 |
+| AI-P5-2 | GitLab-CI ist ausgefallen (`ci_quota_exceeded`); der Job `e2e` lief nie remote. Runner/Kontingent klären oder lokales Gate als offizielles Gate festschreiben | EPIC-P12 T12.6 |
+| AI-P5-3 | Nachgebauter `claude`-CLI für das E2E-Gate (Skill-Picker `fixme`, claude-Fehlerpfad) | EPIC-P7 T7.8 |
+| AI-P5-4 | Offline-Neuladen BUG-0015 (K10) | EPIC-P8 T8.2 (bestehend) |
+| AI-P5-5 | Mehrere Hubs: Worktree-, tmux- und Notification-Zuordnung pro Host | EPIC-P6 T6.6 |
 

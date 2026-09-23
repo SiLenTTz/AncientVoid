@@ -36,8 +36,9 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     args: ["--version"],
     openArgs: ["--session", "{id}"],
     discovery: "missing",
-    resume: "implemented-unverified",
-    evidence: "No verified external session scan. Adapter passes --session on a later prompt.",
+    resume: "verified",
+    evidence:
+      "No verified external session scan. Resume via --session verified by hand 2026-09-23 (tetris-reloaded, zai-coding-plan/glm-5.3, session 821b0ec8: Weiter, hub restart, PC/phone) plus E2E handoff/recovery.",
   },
   {
     id: "copilot",
