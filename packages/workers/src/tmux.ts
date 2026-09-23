@@ -311,12 +311,18 @@ export class TmuxRunner implements WorkerRunner {
   }
 
   private async paneDead(full: string): Promise<boolean> {
+    // BUG-0025: with other sessions on the server, tmux 3.7 answers
+    // display-message for a missing target with exit 0 and no output — ask
+    // for the exact session first ("=" disables prefix matching).
+    const exists = await execTmux(["has-session", "-t", `=${full}`]).catch(() => null);
+    if (!exists || exists.code !== 0) return true; // session gone entirely
     const res = await execTmux(["display-message", "-p", "-t", full, "#{pane_dead}"]).catch(
       () => null,
     );
     if (!res) return true; // tmux itself failed to run
-    if (res.code !== 0) return true; // session gone entirely
-    return res.stdout.trim() === "1";
+    if (res.code !== 0) return true;
+    const state = res.stdout.trim();
+    return state === "" || state === "1";
   }
 
   async list(): Promise<WorkerInfo[]> {
