@@ -34,6 +34,8 @@ export interface DashboardProps {
    * since either way there's nothing for the banner to show). */
   pendingApprovals?: number;
   onOpenApprovals?: () => void;
+  /** T5.3: all found sessions, including external provider sessions. */
+  onOpenDiscovery?: () => void;
 }
 
 /**
@@ -54,7 +56,7 @@ export interface DashboardProps {
  * (ok/warn/err/dim, see styles.css) rather than adding a second,
  * redundant status-color indicator next to it.
  */
-export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprovals }: DashboardProps) {
+export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprovals, onOpenDiscovery }: DashboardProps) {
   const [showArchived, setShowArchived] = useState(false);
   const [archivedOverride, setArchivedOverride] = useState<Record<string, boolean>>({});
   const [archiveError, setArchiveError] = useState("");
@@ -113,6 +115,11 @@ export function Dashboard({ sessions, onOpen, pendingApprovals = 0, onOpenApprov
         <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => setShowArchived((on) => !on)}>
           {showArchived ? "Aktive" : `Archiv${archivedCount > 0 ? ` (${archivedCount})` : ""}`}
         </button>
+        {onOpenDiscovery && (
+          <button class="chip" type="button" onClick={onOpenDiscovery}>
+            Gefunden
+          </button>
+        )}
         {waitingCount > 0 && (
           <span class="badge waiting">
             {waitingCount} {waitingCount === 1 ? "wartet" : "warten"} auf dich

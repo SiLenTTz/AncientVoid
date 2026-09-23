@@ -1519,3 +1519,33 @@ a {
   font-size: 12px;
   white-space: nowrap;
 }
+
+/* T5.1 inventory table and T5.3 discovery rows */
+.table-scroll {
+  overflow-x: auto;
+}
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.inventory-table th,
+.inventory-table td {
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line, rgba(127, 127, 127, 0.2));
+  white-space: nowrap;
+}
+.inventory-table .support.verified {
+  color: var(--ok);
+}
+.inventory-table .support.missing,
+.inventory-table .support.blocked {
+  color: var(--err);
+}
+.inventory-table .support.implemented-unverified {
+  color: var(--warn);
+}
+.discovered-row div.session-open {
+  cursor: default;
+}
