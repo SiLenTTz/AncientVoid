@@ -1549,3 +1549,19 @@ a {
 .discovered-row div.session-open {
   cursor: default;
 }
+
+/* Show/hide the session controls; a small handle on top of the dock. */
+.dock-toggle {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--bg-chip);
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 0;
+  min-height: 24px;
+  cursor: pointer;
+}

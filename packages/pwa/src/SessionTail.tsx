@@ -82,6 +82,12 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   const [status, setStatus] = useState(session.status);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const tailRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+  // The tail ends exactly where the fixed controls start — measured, not
+  // guessed: a taller composer (draft, recommendation, error) used to cover
+  // the last message.
+  const [tailMaxHeight, setTailMaxHeight] = useState<number | null>(null);
+  const [controlsHidden, setControlsHidden] = useState(() => localStorage.getItem("uacc.controlsHidden") === "1");
   const connRef = useRef<TailConnection | null>(null);
 
   // T1.6-3: Chat/Verlauf are the new dock sub-tabs — Chat is exactly the
@@ -230,6 +236,31 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
     tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
   }, [events]);
 
+  useEffect(() => {
+    const measure = () => {
+      const tail = tailRef.current;
+      const dock = dockRef.current;
+      if (!tail || !dock) return;
+      const available = window.innerHeight - tail.getBoundingClientRect().top - dock.getBoundingClientRect().height - 8;
+      setTailMaxHeight(Math.max(120, Math.floor(available)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (dockRef.current) observer.observe(dockRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  const toggleControls = () => {
+    setControlsHidden((hidden) => {
+      localStorage.setItem("uacc.controlsHidden", hidden ? "0" : "1");
+      return !hidden;
+    });
+  };
+
   const visible = useMemo(() => {
     const preset = FILTERS.find((f) => f.id === filter)!;
     return events.filter(preset.keep);
@@ -341,7 +372,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
       <div
         ref={tailRef}
         class="tail-scroll"
-        style={`overflow-y: auto; max-height: calc(100vh - ${166 + (showVerlaufFilterBar ? 40 : 0) + (showReply ? 110 : 0)}px)`}
+        style={`overflow-y: auto; max-height: ${tailMaxHeight !== null ? `${tailMaxHeight}px` : "60vh"}`}
       >
         {activeTab === "bericht" ? (
           <BerichtPane
@@ -376,8 +407,17 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
         )}
       </div>
 
-      <div class="dock-stack">
-        {(showReply || status !== "stopped") && (
+      <div class="dock-stack" ref={dockRef}>
+        <button
+          class="dock-toggle"
+          type="button"
+          aria-label={controlsHidden ? "Steuerung einblenden" : "Steuerung ausblenden"}
+          aria-expanded={!controlsHidden}
+          onClick={toggleControls}
+        >
+          {controlsHidden ? "▴" : "▾"}
+        </button>
+        {!controlsHidden && (showReply || status !== "stopped") && (
           <div class="dock-actions">
             {replyError && (
               <div class="reply-error">
@@ -428,7 +468,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
         {/* AC-P1.6-2: this sub-filter used to sit right under the topbar
          * (top ~15% zone) — moved down here so every control, not just the
          * dock/tabs, lives in the thumb zone. */}
-        {showVerlaufFilterBar && (
+        {!controlsHidden && showVerlaufFilterBar && (
           <div class="filter-bar dock-filter-bar">
             {FILTERS.filter((f) => f.id !== "lesen").map((f) => (
               <button key={f.id} class={`chip ${filter === f.id ? "active" : ""}`} onClick={() => setFilter(f.id)}>
