@@ -495,6 +495,72 @@ describe("SessionManager", () => {
     }
   });
 
+  it("BUG-0027: stop keeps a worktree that holds work, and Weiter continues in it", async () => {
+    const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-keep-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-keepout-"));
+    await execFileAsync("git", ["-C", repoDir, "init", "-q", "-b", "main"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@uacc.local"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "uacc test"]);
+    await writeFile(join(repoDir, "a.txt"), "hi\n");
+    await execFileAsync("git", ["-C", repoDir, "add", "a.txt"]);
+    await execFileAsync("git", ["-C", repoDir, "commit", "-q", "-m", "initial"]);
+
+    const db = new HubDatabase(":memory:");
+    const registry = new AdapterRegistry();
+    const workdirs: string[] = [];
+    registry.register("wt-keep", () => ({
+      id: "wt-keep",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none" }),
+      async start(_spec, ctx) {
+        workdirs.push(ctx.workdir);
+        return { sessionId: ctx.sessionId };
+      },
+      async steer() {
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" as const };
+      },
+      async stop() {},
+    }));
+    const worktrees = new WorktreeManager(worktreesOut);
+    const manager = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner(), undefined, worktrees);
+    try {
+      // Uncommitted work (what an agent leaves behind).
+      const dirty = await manager.create({ adapter: "wt-keep", project: repoDir });
+      const dirtyPath = worktrees.pathFor(dirty.id);
+      await writeFile(join(dirtyPath, "index.html"), "<h1>Tetris</h1>\n");
+      await manager.stop(dirty.id);
+      expect(existsSync(join(dirtyPath, "index.html"))).toBe(true);
+      const kept = (await manager.tail(dirty.id, 0)).find((e) => (e.payload as { kind?: string }).kind === "session.worktree_kept");
+      expect(kept?.payload).toMatchObject({ path: dirtyPath, branch: `uacc/${dirty.id}` });
+      expect((await manager.steer(dirty.id, { kind: "prompt", text: "weiter" })).ok).toBe(true);
+      expect(workdirs.at(-1)).toBe(dirtyPath);
+      expect(existsSync(join(dirtyPath, "index.html"))).toBe(true);
+
+      // A commit on the session branch counts as work, too.
+      const committed = await manager.create({ adapter: "wt-keep", project: repoDir });
+      const committedPath = worktrees.pathFor(committed.id);
+      await writeFile(join(committedPath, "b.txt"), "b\n");
+      await execFileAsync("git", ["-C", committedPath, "add", "b.txt"]);
+      await execFileAsync("git", ["-C", committedPath, "-c", "user.email=t@u", "-c", "user.name=t", "commit", "-q", "-m", "work"]);
+      await manager.stop(committed.id);
+      expect(existsSync(committedPath)).toBe(true);
+      const { stdout: branches } = await execFileAsync("git", ["-C", repoDir, "branch", "--list", `uacc/${committed.id}`]);
+      expect(branches.trim()).not.toBe("");
+
+      // A clean worktree still goes away (disk hygiene, T2.1).
+      const clean = await manager.create({ adapter: "wt-keep", project: repoDir });
+      await manager.stop(clean.id);
+      expect(existsSync(worktrees.pathFor(clean.id))).toBe(false);
+    } finally {
+      await manager.shutdown();
+      await rm(repoDir, { recursive: true, force: true });
+      await rm(worktreesOut, { recursive: true, force: true });
+    }
+  });
+
   it("T2.1: a non-git project honestly falls back — no isolation, no crash, event says why", async () => {
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);

@@ -62,6 +62,20 @@ export class WorktreeManager {
     return this.pathFor(sessionId);
   }
 
+  /** BUG-0027: uncommitted changes or commits since the session's base. */
+  async hasWork(sessionId: string, baseSha: string | null): Promise<boolean> {
+    const path = this.worktreePath(sessionId);
+    const { stdout: status } = await execFileAsync("git", ["-C", path, "status", "--porcelain"]);
+    if (status.trim() !== "") return true;
+    if (!baseSha) return false;
+    const { stdout: ahead } = await execFileAsync("git", ["-C", path, "rev-list", "--count", `${baseSha}..HEAD`]);
+    return Number(ahead.trim()) > 0;
+  }
+
+  branchFor(sessionId: string): string {
+    return this.branchName(sessionId);
+  }
+
   private branchName(sessionId: string): string {
     return `uacc/${sessionId}`;
   }

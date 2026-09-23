@@ -915,13 +915,21 @@ export class SessionManager {
       if (session.handle) await session.adapter.stop(session.handle, this.makeContext(session));
     } finally {
       // T2.1: clean up the isolated worktree once the adapter is done with
-      // it. Best-effort and non-fatal to the stop path — a worktree that
-      // fails to remove (e.g. a still-open fd from a slow-to-exit worker)
-      // is a disk-hygiene problem to surface, not a reason to leave the
-      // session stuck in "stopping".
+      // it — but only a clean one. BUG-0027: `remove --force` + `branch -D`
+      // destroyed every uncommitted file and commit an agent had made.
+      // A worktree with work stays, and "Weiter" continues in it.
+      // Removal failures are a disk-hygiene problem to surface, not a
+      // reason to leave the session stuck in "stopping".
       if (session.worktreeIsolated && this.worktrees) {
         try {
-          await this.worktrees.remove(session.record.id, session.record.project);
+          if (await this.worktrees.hasWork(session.record.id, session.record.worktreeSha)) {
+            await this.emitSystem(session, "session.worktree_kept", {
+              path: this.worktrees.pathFor(session.record.id),
+              branch: this.worktrees.branchFor(session.record.id),
+            });
+          } else {
+            await this.worktrees.remove(session.record.id, session.record.project);
+          }
         } catch (err) {
           await this.emitSystem(session, "session.worktree_cleanup_failed", {
             error: err instanceof Error ? err.message : String(err),
