@@ -124,23 +124,31 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
 
   useEffect(() => {
     let alive = true;
-    hubApi
-      .adapters()
-      .then((adapters) => {
-        if (!alive) return;
-        const info = adapters.find((a) => a.id === session.adapter);
-        // Honest per-adapter check, not a blanket "always show a reply
-        // box": an adapter without capabilities.steer gets no reply field
-        // at all rather than one that would silently fail every time.
-        setSteerSupported(info?.capabilities.steer ?? false);
-        setReportNumbersReal(info?.capabilities.cost ?? false);
-      })
-      .catch(() => {
-        setSteerSupported(false);
-        setReportNumbersReal(false);
-      });
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const load = () =>
+      hubApi
+        .adapters()
+        .then((adapters) => {
+          if (!alive) return;
+          const info = adapters.find((a) => a.id === session.adapter);
+          // Honest per-adapter check, not a blanket "always show a reply
+          // box": an adapter without capabilities.steer gets no reply field
+          // at all rather than one that would silently fail every time.
+          setSteerSupported(info?.capabilities.steer ?? false);
+          setReportNumbersReal(info?.capabilities.cost ?? false);
+        })
+        .catch(() => {
+          if (!alive) return;
+          setSteerSupported(false);
+          setReportNumbersReal(false);
+          // BUG-0022: the hub was unreachable while opening — ask again
+          // instead of hiding the reply field until a reload.
+          retry = setTimeout(() => void load(), 3000);
+        });
+    void load();
     return () => {
       alive = false;
+      clearTimeout(retry);
     };
   }, [session.adapter]);
 

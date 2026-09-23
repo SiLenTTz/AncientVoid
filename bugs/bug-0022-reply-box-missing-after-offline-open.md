@@ -1,7 +1,7 @@
 ---
 id: BUG-0022
 slug: reply-box-missing-after-offline-open
-status: open
+status: fixed
 severity: S3
 area: pwa
 instance: dev
@@ -43,10 +43,14 @@ geprüft.
 
 | Ring | Befehl / Datei | Stand vor dem Fix |
 |---|---|---|
-| E2E | neuer Fall in `e2e/specs/steer.spec.ts`: Hub beim Öffnen weg, dann zurück → Antwortfeld sichtbar | nicht vorhanden |
+| E2E | `e2e/specs/steer.spec.ts` „BUG-0022“ (Adapter-Abruf der Ansicht scheitert, dann wieder erreichbar) | rot | grün |
+
+## Fix
+
+Scheitert der Abruf, fragt die Ansicht alle 3 s erneut, bis er klappt.
 
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
 - [ ] GitLab-Issue
-- [ ] `bugfix`
+- [x] `bugfix`

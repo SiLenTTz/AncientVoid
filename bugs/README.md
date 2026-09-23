@@ -45,7 +45,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0019](bug-0019-tmux-reap-kills-foreign-workers.md) | Ein zweiter Hub oder `npm test` tötet die tmux-Worker des laufenden Hubs | fixed | S1 | workers | — |
 | [BUG-0020](bug-0020-diff-hides-new-files.md) | Diff und Bericht zeigen keine neu angelegten Dateien | fixed | S2 | server | — |
 | [BUG-0021](bug-0021-skill-chain-misses-base-catalog.md) | Skill-Kette ist kürzer, wenn vorher niemand die Skill-Liste geöffnet hat | fixed | S2 | server | — |
-| [BUG-0022](bug-0022-reply-box-missing-after-offline-open.md) | Antwortfeld fehlt dauerhaft, wenn der Hub beim Öffnen kurz weg war | open | S3 | pwa | — |
+| [BUG-0022](bug-0022-reply-box-missing-after-offline-open.md) | Antwortfeld fehlt dauerhaft, wenn der Hub beim Öffnen kurz weg war | fixed | S3 | pwa | — |
 | [BUG-0023](bug-0023-chat-duplicates-overlapping-batches.md) | Chat zeigt Events doppelt nach Resync oder Replay | fixed | S2 | pwa | — |
 | [BUG-0024](bug-0024-session-link-mixes-histories.md) | Ein Link auf eine andere Session mischt beide Verläufe | fixed | S2 | pwa | — |
 
