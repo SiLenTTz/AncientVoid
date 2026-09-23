@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { checkFixture } from "@uacc/adapter-testkit";
@@ -75,5 +76,25 @@ describe("normalizeOpencodeLine — real captured `opencode run --format json` (
   it("fails loud on a non-object line instead of throwing", () => {
     const events = normalizeOpencodeLine("not an object");
     expect(events[0]!.summary).toContain("non-object");
+  });
+});
+
+describe("provider errors (ADR-0015)", () => {
+  it("turns the real UnknownError line into a readable provider.error", () => {
+    const lines = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "fixtures", "server-error.jsonl"), "utf8").trim().split("\n");
+    const events = lines.flatMap((line) => normalizeOpencodeLine(JSON.parse(line)));
+    const error = events.find((e) => (e.payload as { kind?: string }).kind === "provider.error");
+    expect(error?.summary).toBe("opencode: Serverfehler beim Provider");
+    expect(error?.payload).toMatchObject({ category: "server", ref: "err_9508ce50" });
+    expect(events.some((e) => e.summary.includes("unhandled"))).toBe(false);
+  });
+
+  it("names a usage limit with its reset time", () => {
+    const [event] = normalizeOpencodeLine({
+      type: "error",
+      error: { name: "APIError", data: { message: "Usage limit reached for 5 hour. Your limit will reset at 2026-09-23 15:00:00" } },
+    });
+    expect(event?.summary).toBe("opencode: Kontingent erschöpft (5 h)");
+    expect(event?.payload).toMatchObject({ category: "quota", resetAt: "2026-09-23 15:00:00" });
   });
 });

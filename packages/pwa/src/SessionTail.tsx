@@ -43,6 +43,7 @@ function showInChat(event: NormalizedEvent): boolean {
     payload.kind === "opencode.model" ||
     payload.kind === "opencode.step_start" ||
     payload.kind === "session.skill_chain" ||
+    payload.kind === "provider.error" ||
     (payload.kind === "opencode.step_finish" && payload.reason === "length")
   );
 }
@@ -1059,8 +1060,11 @@ function EventRow({
   // The hub's own record of what the user typed (session.prompt).
   const prompt = event.type === "user" && (event.payload as { kind?: unknown }).kind === "session.prompt";
   const device = prompt ? (event.payload as { actor?: unknown }).actor : null;
+  // ADR-0015: a provider failure, in words, with what to do next.
+  const providerError = (event.payload as { kind?: unknown }).kind === "provider.error";
+  const errorDetail = providerError ? (event.payload as { detail?: unknown }).detail : null;
   return (
-    <div class={`event ${event.type}${prompt ? " own" : ""}${expanded ? " expanded" : ""}`} data-seq={event.seq} onClick={(ev) => onCardClick(ev, onToggleExpand)}>
+    <div class={`event ${event.type}${prompt ? " own" : ""}${providerError ? " provider-error" : ""}${expanded ? " expanded" : ""}`} data-seq={event.seq} onClick={(ev) => onCardClick(ev, onToggleExpand)}>
       <div class="meta">
         <span>
           {prompt ? `Du${typeof device === "string" && device ? ` · ${device}` : ""}` : `#${event.seq} · ${event.type}`}
@@ -1069,6 +1073,7 @@ function EventRow({
         <span>{time}</span>
       </div>
       <div class="summary prose">{visibleEventText(event)}</div>
+      {typeof errorDetail === "string" && <div class="dim provider-error-detail">{errorDetail}</div>}
       {expanded && <EventDetail event={event} />}
     </div>
   );

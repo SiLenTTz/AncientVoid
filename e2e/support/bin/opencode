@@ -11,6 +11,8 @@
 //   GROSS    a tool result above the 2 KB chat threshold
 //   DATEI    write e2e-change.txt into the working directory (diff tab)
 //   WARTE<n> answer only after n seconds (a turn that outlives a hub kill)
+//   KONTINGENT   z.ai usage-limit error line, exit 1
+//   SERVERFEHLER opencode's opaque UnknownError line (real, 2026-09-23), exit 1
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -61,6 +63,13 @@ emit({
   sessionID: sid,
   part: { type: "tool", tool: "read", callID: "call_read_1", state: { status: "completed", input: { filePath: "README.md" }, output } },
 });
+if (has("KONTINGENT") || has("SERVERFEHLER")) {
+  const data = has("KONTINGENT")
+    ? { message: "Usage limit reached for 5 hour. Your limit will reset at 2026-09-23 15:00:00" }
+    : { message: "Unexpected server error. Check server logs for details.", ref: "err_9508ce50" };
+  emit({ type: "error", timestamp: Date.now(), sessionID: sid, error: { name: has("KONTINGENT") ? "APIError" : "UnknownError", data } });
+  process.exit(1);
+}
 if (has("FEHLER")) {
   console.error("fake opencode: simulated provider failure");
   process.exit(3);

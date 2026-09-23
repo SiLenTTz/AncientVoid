@@ -99,3 +99,11 @@ describe("normalizeClaudeLine — real captured stream-json (claude 2.1.263)", (
     expect(normalizeClaudeLine(null)[0]!.type).toBe("system");
   });
 });
+
+describe("provider errors (ADR-0015)", () => {
+  it("adds a readable provider.error to a failed result", () => {
+    const events = normalizeClaudeLine({ type: "result", is_error: true, result: "Claude AI usage limit reached|1790200000", total_cost_usd: 0 });
+    const error = events.find((e) => (e.payload as { kind?: string }).kind === "provider.error");
+    expect(error?.summary).toBe("claude: Kontingent erschöpft");
+  });
+});
