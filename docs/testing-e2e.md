@@ -94,7 +94,6 @@ Fehlt Chromium, scheitert der Lauf laut. Es gibt kein stilles Überspringen.
 
 | Test | Grund |
 |---|---|
-| Handoff PC ↔ Handy (2 Tests) | T5.5 „Übernehmen“ fehlt. Innerhalb von 30 s nach dem letzten Schreiben ist ein Gerät gesperrt. |
 | Überlebender Provider-Worker nach Kill steuerbar | T5.6: kein `recover()` in claude/codex/opencode/copilot |
 | Skill-Picker-Overlay | nur für Claude freigeschaltet, braucht einen nachgebauten `claude`-CLI |
 | Offline-Neuladen | BUG-0015 (K10) |

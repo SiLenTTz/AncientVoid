@@ -54,6 +54,7 @@ const SteerBody = z.intersection(
     inputId: z.string().min(1).optional(),
     revision: z.number().int().nonnegative().optional(),
     clientId: z.string().min(1).optional(),
+    takeover: z.boolean().optional(),
   }),
 );
 
@@ -404,11 +405,12 @@ export function registerRoutes(
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid steer input" });
     }
-    const { inputId, revision, clientId, ...input } = parsed.data;
+    const { inputId, revision, clientId, takeover, ...input } = parsed.data;
     const ack = await deps.sessions.steer(id, input, callerLabel(req) ?? undefined, {
       ...(inputId !== undefined ? { inputId } : {}),
       ...(revision !== undefined ? { revision } : {}),
       ...(clientId !== undefined ? { clientId } : {}),
+      ...(takeover ? { takeover } : {}),
     });
     return ack.ok ? ack : reply.code(422).send(ack);
   });
