@@ -35,7 +35,8 @@ export function authHook(opts: AuthOptions) {
     // health/ready stay open for tailnet and process probes (ADR-0010).
     // Strip the query string — `/api/health?foo` must not fall through to 401.
     const path = req.url.split("?")[0] ?? req.url;
-    if (path === "/api/health" || path === "/api/ready") return;
+    // ADR-0017: hello tells other hubs who this is; no data, no token needed.
+    if (path === "/api/health" || path === "/api/ready" || path === "/api/fleet/hello") return;
     // BUG-0006: everything, including the static PWA shell (index.html,
     // its JS/CSS bundle, manifest, service worker), used to require a
     // device token — but a real browser only carries a URL's ?token= on

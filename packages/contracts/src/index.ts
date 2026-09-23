@@ -10,3 +10,4 @@ export * from "./identity.ts";
 export * from "./inventory.ts";
 export * from "./provider-error.ts";
 export * from "./notification.ts";
+export * from "./fleet.ts";

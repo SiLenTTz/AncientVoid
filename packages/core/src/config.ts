@@ -32,6 +32,9 @@ export type ReportingSinkRegistration = z.infer<typeof ReportingSinkRegistration
 
 export const HubConfig = z.object({
   dataDir: z.string().default("./data"),
+  /** EPIC-P6: this hub's name in the fleet. Default: the machine's
+   * hostname as a slug (see toHostId). */
+  hostId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).optional(),
   server: z
     .object({
       host: z.string().default("127.0.0.1"),

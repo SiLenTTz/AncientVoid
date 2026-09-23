@@ -38,7 +38,7 @@ K5/K8; für eine einzelne Aktion zählt die Wahrheit des zuständigen Hubs.
 
 ## 4. Aufgaben
 
-- [ ] **T6.1 — Flotten-Contract und Routing-ADR.** Host-ID, Trust, Protocol-Version, Pfadidentität und Topologie definieren; zwei echte Hub-Prozesse als Spike. K5/K7/K10.
+- [x] **T6.1 — Flotten-Contract und Routing-ADR.** Host-ID, Trust, Protocol-Version, Pfadidentität und Topologie definieren; zwei echte Hub-Prozesse als Spike. K5/K7/K10. Stand 2026-09-23: ADR-0017 (Heim-Hub aggregiert), `contracts/fleet.ts`, Konfig `hostId`, `GET /api/fleet/hello`, Spike `e2e/specs/fleet.spec.ts`.
 - [ ] **T6.2 — Pairing und Gerätezugriff.** Einmalcode/QR, hostgebundene Tokens, explizite Registrierung, Rotation/Revoke und Gerätestatus; keine freie URL-Weiterleitung. PRD §8; K7/K10.
 - [ ] **T6.3 — Flottenübersicht.** Host-/Projekt-/Session-Ansicht, globale Braucht-dich-Queue, Teilfehler und letzte Synchronisierung pro Host. K1/K2/K8/K10.
 - [ ] **T6.4 — Hostgebundene Aktionen.** Start/Handoff/Steer/Freigabe über genau den ausgewählten Hub routen; Idempotenz aus P5 und Version-Konflikte testen. K1/K7.
