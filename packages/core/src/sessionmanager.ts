@@ -92,6 +92,18 @@ interface LiveSession {
  * some adapters run a short probe (`--version`) right before the turn. */
 const TURN_END_SETTLE_MS = 250;
 
+/** Overview title: the first line that says something, without the
+ * prefixes the composer adds (Workflow:, /skill, Agent:, Ziel:). */
+export function sessionTitle(prompt: string): string | null {
+  const line = prompt
+    .split("\n")
+    .map((l) => l.trim())
+    .find((l) => l.length > 0 && !/^(workflow|agent):\s/i.test(l) && !/^\/[\w-]+$/.test(l));
+  if (!line) return null;
+  const text = line.replace(/^(ziel|goal):\s*/i, "");
+  return text.length > 80 ? `${text.slice(0, 79).trimEnd()}…` : text;
+}
+
 function readSkillName(args: Record<string, unknown> | undefined): string | undefined {
   const skill = args?.skill;
   return typeof skill === "string" && skill.length > 0 ? skill : undefined;
@@ -154,6 +166,7 @@ interface SessionRow {
   writer_client: string | null;
   writer_lease_until: string | null;
   archived: number;
+  title: string | null;
 }
 
 function rowToRecord(row: SessionRow): SessionRecord {
@@ -185,6 +198,7 @@ function rowToRecord(row: SessionRow): SessionRecord {
     writerClient: row.writer_client,
     writerLeaseUntil: row.writer_lease_until,
     archived: row.archived === 1,
+    title: row.title ?? null,
   };
 }
 
@@ -453,6 +467,7 @@ export class SessionManager {
       writerClient: null,
       writerLeaseUntil: null,
       archived: false,
+      title: parsed.prompt ? sessionTitle(parsed.prompt) : null,
     };
     await this.store.initSession(record.id);
     this.persist(record);
@@ -748,6 +763,8 @@ export class SessionManager {
    * chain the hub puts in front for the provider. The hub is the one source
    * for these; adapters no longer echo prompts as `user` events. */
   private async emitPrompt(session: LiveSession, text: string, actor?: string): Promise<void> {
+    // A session that had no start prompt takes its first reply as title.
+    if (!session.record.title) session.record.title = sessionTitle(text);
     await this.emitEvents(session, [
       { type: "user", summary: text.slice(0, 200), payload: { kind: "session.prompt", text, actor: actor ?? null } },
     ]);
@@ -1434,9 +1451,9 @@ export class SessionManager {
            id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq,
            cost_usd, updated_at, tokens_est, park_reason, control_mode, harness, host_id, native_session_id,
            resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until,
-           archived
+           archived, title
          )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            status = excluded.status,
            model = excluded.model,
@@ -1460,7 +1477,8 @@ export class SessionManager {
            input_revision = excluded.input_revision,
            writer_client = excluded.writer_client,
            writer_lease_until = excluded.writer_lease_until,
-           archived = excluded.archived`,
+           archived = excluded.archived,
+           title = excluded.title`,
       )
       .run(
         record.id,
@@ -1490,6 +1508,7 @@ export class SessionManager {
         record.writerClient,
         record.writerLeaseUntil,
         record.archived ? 1 : 0,
+        record.title,
       );
   }
 

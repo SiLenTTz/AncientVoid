@@ -90,6 +90,9 @@ export const SessionRecord = z.object({
   writerLeaseUntil: z.string().nullable().default(null),
   /** Hidden from the overview list. The session and its events stay. */
   archived: z.boolean().default(false),
+  /** First line of the start prompt, for the overview. Null when the
+   * session started without one (or before titles existed). */
+  title: z.string().nullable().default(null),
 });
 export type SessionRecord = z.infer<typeof SessionRecord>;
 

@@ -52,3 +52,9 @@ leben in Adapter-Maps und überleben keinen Neustart als Steuer-Handle.
 - Alte Clients, die Steer ohne `inputId`/`revision`/`clientId` senden,
   verhalten sich wie vorher.
 - Forks (`fork: true`) sind sichtbar und zählen nicht als native Handoff.
+
+## Nachtrag 2026-09-23 — Titel
+
+`SessionRecord.title` (Migration 10): erste inhaltliche Zeile des Startprompts
+(ohne „Workflow:“, „/skill“, „Ziel:“), höchstens 80 Zeichen; ohne Startprompt
+die erste Antwort. Nur Anzeige in der Übersicht, keine Identität.

@@ -26,6 +26,8 @@ export interface SessionRecord {
   /** T5.5: terminal command that opens this provider session natively on
    * the PC; only present between turns and when the native id is known. */
   openCmd?: string;
+  /** First line of the start prompt (null for sessions without one). */
+  title?: string | null;
   /** Session files live in their own git worktree, not the project checkout. */
   worktree?: { path: string; branch: string };
   /** Hidden from the overview until the Archiv chip is on. */

@@ -40,6 +40,16 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(app.locator(".event.user").first()).toContainText("Du");
   });
 
+  test("jede Karte in der Übersicht nennt Projekt und Auftrag @desktop", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Workflow: release\n\nBaue die Punkteanzeige" });
+    await hub.createSession({ adapter: "opencode", project: hub.beta, prompt: "Ziel: Menü aufräumen\nScope: nur beta" });
+    const alpha = app.locator(".session-card").filter({ hasText: "Baue die Punkteanzeige" });
+    await expect(alpha.locator(".session-project")).toHaveText("alpha");
+    const beta = app.locator(".session-card").filter({ hasText: "Menü aufräumen" });
+    await expect(beta.locator(".session-project")).toHaveText("beta");
+    await expect(beta).toContainText("opencode");
+  });
+
   test("die Übersicht gruppiert nach Projekt und öffnet eine Session", async ({ app, hub }) => {
     await hub.createSession({ adapter: "dummy" });
     await hub.createSession({ adapter: "dummy", project: hub.beta });
