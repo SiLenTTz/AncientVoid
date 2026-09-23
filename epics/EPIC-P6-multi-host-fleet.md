@@ -1,6 +1,6 @@
 # EPIC-P6 — Mehrere Rechner in einer Flotte
 
-**Status:** Planungsentwurf, Umsetzung blockiert · **Phase:** P6 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P5 grün; WSL-Abnahme aus P4 vorhanden.
+**Status:** in Arbeit seit 2026-09-23 (P5 abgeschlossen, siehe dessen Retro) · **Phase:** P6 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P5 grün; WSL-Abnahme aus P4 vorhanden.
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:
@@ -42,6 +42,7 @@ K5/K8; für eine einzelne Aktion zählt die Wahrheit des zuständigen Hubs.
 - [ ] **T6.2 — Pairing und Gerätezugriff.** Einmalcode/QR, hostgebundene Tokens, explizite Registrierung, Rotation/Revoke und Gerätestatus; keine freie URL-Weiterleitung. PRD §8; K7/K10.
 - [ ] **T6.3 — Flottenübersicht.** Host-/Projekt-/Session-Ansicht, globale Braucht-dich-Queue, Teilfehler und letzte Synchronisierung pro Host. K1/K2/K8/K10.
 - [ ] **T6.4 — Hostgebundene Aktionen.** Start/Handoff/Steer/Freigabe über genau den ausgewählten Hub routen; Idempotenz aus P5 und Version-Konflikte testen. K1/K7.
+- [ ] **T6.6 — Hostgebundene Nebenpfade (AI-P5-5).** Worktree-Pfad, `openCmd`, tmux-Attach, „Ins Projekt übernehmen“ und Benachrichtigungen tragen die Host-ID und werden nur auf dem eigenen Host ausgeführt bzw. angezeigt.
 - [ ] **T6.5 — Drei-Host-Betrieb.** P4-WSL-Installer verwenden; Omarchy, silenttz-server, evox2 konfigurieren und reale WAN-/Ausfallmessung dokumentieren; Host-Wiederanmeldung ohne Dubletten. K2/K7/K8/K10.
 
 ## 5. Acceptance Criteria

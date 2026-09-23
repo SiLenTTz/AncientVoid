@@ -60,7 +60,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     const row = app.locator(".inventory-table tr").filter({ hasText: "opencode" });
     await expect(row).toContainText("1.2.3-e2e");
     await expect(row.locator(".support").first()).toHaveText("fehlt");
-    await expect(row.locator(".support").nth(1)).toHaveText("gebaut, unbelegt");
+    await expect(row.locator(".support").nth(1)).toHaveText("belegt");
     await expect(app.locator(".inventory-table tr").filter({ hasText: "deepseek" })).toContainText("blockiert");
   });
 });
