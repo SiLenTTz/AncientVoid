@@ -107,6 +107,8 @@ npm -w @uacc/pwa run build
 scripts/setup-tailscale-serve.sh
 ```
 
+Betrieb und verschlüsselte Sicherungen: [Backup/Restore-Runbook](docs/backup-restore.md).
+
 ## Messlatten (Auszug, PRD §9)
 
 | ID | Metrik | P0-Umsetzung |

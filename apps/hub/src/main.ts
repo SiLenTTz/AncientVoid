@@ -23,6 +23,7 @@ import {
   ApprovalService,
   EventStore,
   HubDatabase,
+  acquireHubPidLock,
   SessionManager,
   TokenService,
   WebAuthnStore,
@@ -50,6 +51,7 @@ import { createPermissionBridge } from "./modules/approvals/permission-bridge.ts
 // hub.config.json's own `adapters` array, same as any other adapter, when
 // you actually want it for local testing.
 const BUILTIN_ADAPTERS: Record<string, AdapterFactory> = {};
+let releaseHubPidLock: (() => Promise<void>) | undefined;
 
 function discoverySources(config: HubConfig): DiscoverySource[] {
   const sources: DiscoverySource[] = [];
@@ -65,6 +67,7 @@ async function main(): Promise<void> {
   const { config } = await loadConfig(configPath);
   const dataDir = resolve(config.dataDir);
   mkdirSync(dataDir, { recursive: true });
+  releaseHubPidLock = await acquireHubPidLock(dataDir);
 
   // M-2 (red-team review, 2026-09-18, T4.10): an empty projectRoots is a
   // real, honestly-documented default (isProjectPathAllowed() then
@@ -252,13 +255,15 @@ async function main(): Promise<void> {
     await sessions.shutdown({ keepWorkers }).catch(() => undefined);
     await app.close().catch(() => undefined);
     db.close();
+    await releaseHubPidLock?.();
     process.exit(0);
   };
   process.on("SIGINT", () => void shutdown("SIGINT"));
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
+  await releaseHubPidLock?.();
   createJsonLogger({ fields: { service: "uacc-hub" } }).error("fatal", {
     err: err instanceof Error ? err.message : String(err),
   });
