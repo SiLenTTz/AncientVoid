@@ -255,6 +255,10 @@ Toolfehlerbehandlung (fehlende Datei sichtbar, ohne Verlust des Turns). Das
 prüft echten ACP-Transport und Modell, aber kein Telefon-UI und keine
 Claude-Code-Freigabe.
 
+Nach diesem Messlauf bestand `npm run gate` am Commit `160ea99`: Typecheck,
+Lint, Commit-Notation, Architekturprüfung, Adapter-Matrix und 104 Vitest-
+Dateien / 637 Tests grün; Playwright 151 bestanden, 2 sichtbar übersprungen.
+
 ## T12.2 — K8 lokaler Wiederholungslauf
 
 `npm run loadtest` am Stand `6b1bcb0`: 20 Dummy-Sessions × 30 ev/s × 10 s,
