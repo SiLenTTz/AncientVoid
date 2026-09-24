@@ -279,6 +279,25 @@ prüft einen frischen lokalen Installationspfad, aber kein anderes OS/einen
 anderen Benutzerkontext, kein Telefon-Pairing, keinen echten Provider-Turn und
 keinen Update-/Rollback über persistente Produktionsdaten.
 
+### Isolierter Update-/Rollback-Rundlauf
+
+Zwei temporäre Worktrees prüften den Commit `794cc4c` (P12 einschließlich
+BUG-0030, Sicherheits-MR !115) gegen P11 `378f064`. Der P12-Hub legte eine
+Dummy-Session an, schrieb Events, stoppte sie sauber und erstellte ein
+AES-verschlüsseltes Backup (7.819 Byte, Modus `0600`). Der Restore ging in ein
+frisches Datadir; anschließend startete der ältere P11-Code gegen dieses
+Datadir. `/api/health` und der authentifizierte Session-Read antworteten mit
+HTTP 200; dieselbe Session blieb `stopped`, und alle 63 Events stimmten exakt
+mit dem Stand vor dem Backup überein. Restore-Datadir und SQLite-Datei hatten
+Modi `0700` bzw. `0600`. Beide Worktrees, das synthetische Projekt, Backup,
+Schlüssel und Testdatadir wurden danach entfernt. Das belegt den isolierten
+Code-/Daten-Rollback mit der BUG-0030-Korrektur; es ist kein Update der
+Produktivinstanz und prüft weder Telefon-Pairing noch Provider-Recovery.
+Beim ersten Durchlauf gegen den unveränderten P12-Basisstand `ce156ff` waren
+die Restore-Modi noch `0755`/`0644`. Der Lauf wurde wiederholt, nachdem MR !115
+die Restore-Rechte korrekt auf `0700`/`0600` gesetzt hatte; nur der zweite
+Durchlauf ist als erfolgreicher, sicherer Rollback gewertet.
+
 Am selben Tag bestätigte der echte OpenCode-ACP-Adapter mit Qwen3-Coder auf
 evox2 die Toolfreigabe im separaten Mess-Hub: Shell-Anfrage erschien nach
 12,6 s als `waiting_approval`; Allow führte ausschließlich
