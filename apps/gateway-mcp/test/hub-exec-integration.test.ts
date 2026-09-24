@@ -28,6 +28,7 @@ describe("gateway-mcp hub_exec — real hub, real HTTP, real MCP client", () => 
   let dir: string;
   let sessions: SessionManager;
   let client: Client;
+  let humanToken: string;
 
   beforeAll(async () => {
     dir = await mkdtemp(join(tmpdir(), "uacc-gw-"));
@@ -38,8 +39,11 @@ describe("gateway-mcp hub_exec — real hub, real HTTP, real MCP client", () => 
     const approvals = new ApprovalService(db, 60_000);
     sessions = new SessionManager(db, store, registry, new ProcessRunner(), undefined, undefined, approvals);
     const tokens = new TokenService(db);
-    token = tokens.issue("gateway-test").token;
-    app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, approvals });
+    // T7.4: the gateway runs with an agent token — reads freely, requests writes.
+    token = tokens.issue("agent:gateway-test").token;
+    humanToken = tokens.issue("pixel").token;
+    sessions.enableToolPermissions({ approvals, timeoutMs: 60_000 });
+    app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, approvals, projectRoots: [dir] });
     await app.listen({ port: 0, host: "127.0.0.1" });
     baseUrl = `http://127.0.0.1:${(app.server.address() as { port: number }).port}`;
 
@@ -115,5 +119,16 @@ describe("gateway-mcp hub_exec — real hub, real HTTP, real MCP client", () => 
     const result = await client.callTool({ name: "hub_exec", arguments: { op: "does.not.exist", args_json: "{}" } });
     expect(result.isError).toBe(true);
     expect(JSON.parse(textOf(result)).error).toMatch(/unknown operation/);
+  });
+
+  it("T7.4: an agent's hub_exec sessions.create comes back as a pending approval; only a human's decision starts it", async () => {
+    const before = sessions.list().length;
+    const result = await client.callTool({ name: "hub_exec", arguments: { op: "sessions.create", args_json: JSON.stringify({ adapter: "dummy", project: dir, prompt: "vom Agenten" }) } });
+    const body = JSON.parse(textOf(result)) as { ok: boolean; detail: string; approvalId: string };
+    expect(body).toMatchObject({ ok: false, detail: expect.stringMatching(/^pending approval /) });
+    expect(sessions.list()).toHaveLength(before);
+    const decide = await fetch(`${baseUrl}/api/approvals/${body.approvalId}/decide`, { method: "POST", headers: { authorization: `Bearer ${humanToken}`, "content-type": "application/json" }, body: JSON.stringify({ decision: "approve" }) });
+    expect(decide.status).toBe(200);
+    expect(sessions.list()).toHaveLength(before + 1);
   });
 });

@@ -8,7 +8,7 @@
  * Desktop's `mcpServers` config pointing at this file).
  *
  *   UACC_GATEWAY_URL=http://127.0.0.1:7373 \
- *   UACC_GATEWAY_TOKEN=<a real device token, e.g. from `hubctl token issue`> \
+ *   UACC_GATEWAY_TOKEN=<an agent token: `hubctl token issue mcp --agent`> \
  *   node apps/gateway-mcp/src/main.ts
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";

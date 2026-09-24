@@ -8,7 +8,7 @@ import type { HubDatabase } from "../../platform/index.ts";
 import type { WorktreeManager } from "../workspace/index.ts";
 import { refuseSpec, refuseSteer } from "../harness/index.ts";
 import { OperationStore } from "../approvals/index.ts";
-import { ApprovalFlow } from "./approval-flow.ts";
+import { ApprovalFlow, type AgentActionKind } from "./approval-flow.ts";
 import { BudgetGuard } from "./budget-guard.ts";
 import { ToolPermissions, type ToolGate } from "./tool-permissions.ts";
 import type { ApprovalService } from "../approvals/index.ts";
@@ -122,6 +122,9 @@ export class SessionManager {
         continueStopped: (session, input, actor) => this.continueStopped(session, input, actor),
         context: (session) => this.makeContext(session),
         applyBudgetTopUp: (sessionId, usd, actor) => this.applyBudgetTopUp(sessionId, usd, actor),
+        createSession: (spec, actor) => this.create(spec, actor),
+        stopSession: (sessionId, actor) => this.stop(sessionId, actor),
+        parkSession: (sessionId, actor) => this.steer(sessionId, { kind: "park" }, actor),
       },
       approvals,
       this.operationStore,
@@ -715,6 +718,7 @@ export class SessionManager {
    * the bridge that lets a provider ask.
    */
   enableToolPermissions(gate: ToolGate): void {
+    this.flow.useHumanGate(gate.approvals);
     this.tools = new ToolPermissions(
       {
         session: (id) => this.live.get(id),
@@ -724,6 +728,16 @@ export class SessionManager {
       this.operationStore,
       gate,
     );
+  }
+
+  /** T7.4: see ApprovalFlow.requestAgentAction. */
+  requestAgentAction(kind: AgentActionKind, sessionId: string | null, payload: Record<string, unknown>, actor: string): Promise<Ack & { approvalId?: string }> {
+    return this.flow.requestAgentAction(kind, sessionId, payload, actor);
+  }
+
+  /** T7.4: runs what an approval released (any operation kind). */
+  applyApproved(approvalId: string, decidedByLabel?: string): Promise<Ack> {
+    return this.flow.applyApproved(approvalId, decidedByLabel);
   }
 
   /** T7.2: see ToolPermissions. */

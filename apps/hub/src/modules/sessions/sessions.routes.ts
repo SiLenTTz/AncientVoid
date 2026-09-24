@@ -62,6 +62,11 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
+    // T7.4: an agent only requests — a human starts it from the queue.
+    if (req.policy?.decision === "approve") {
+      const ack = await deps.sessions.requestAgentAction("session.create", null, parsed.data, req.policy.actor);
+      return reply.code(ack.approvalId ? 202 : 422).send(ack);
+    }
     try {
       await catalogRootFor(parsed.data.project);
       const record = await deps.sessions.create(parsed.data, callerLabel(req) ?? undefined);
@@ -160,6 +165,16 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
       return reply.code(400).send({ error: "invalid steer input" });
     }
     const { inputId, revision, clientId, takeover, ...input } = parsed.data;
+    if (req.policy?.decision === "approve") {
+      if (!deps.sessions.get(id)) return reply.code(404).send({ ok: false, detail: "unknown session" });
+      const ack =
+        input.kind === "prompt"
+          ? await deps.sessions.requestAgentAction("steer.prompt", id, { input, typed: input.text }, req.policy.actor)
+          : input.kind === "park" || input.kind === "stop"
+            ? await deps.sessions.requestAgentAction(input.kind === "park" ? "session.park" : "session.stop", id, {}, req.policy.actor)
+            : { ok: false, detail: "Agenten können eine Session nur mit einem Prompt fortsetzen." };
+      return reply.code("approvalId" in ack && ack.approvalId ? 202 : 422).send(ack);
+    }
     const ack = await deps.sessions.steer(id, input, callerLabel(req) ?? undefined, {
       ...(inputId !== undefined ? { inputId } : {}),
       ...(revision !== undefined ? { revision } : {}),
@@ -182,6 +197,11 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
 
   app.post("/api/sessions/:id/stop", async (req, reply) => {
     const { id } = req.params as { id: string };
+    if (req.policy?.decision === "approve") {
+      if (!deps.sessions.get(id)) return reply.code(404).send({ ok: false, detail: "unknown session" });
+      const pending = await deps.sessions.requestAgentAction("session.stop", id, {}, req.policy.actor);
+      return reply.code(pending.approvalId ? 202 : 422).send(pending);
+    }
     const ack = await deps.sessions.stop(id, callerLabel(req) ?? undefined);
     return ack.ok ? ack : reply.code(422).send(ack);
   });
@@ -209,6 +229,10 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     const { id } = req.params as { id: string };
     const body = z.object({ budgetUsd: z.number().positive(), reason: z.string().min(1).optional() }).safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: "invalid budget" });
+    if (req.policy?.decision === "approve") {
+      const pending = await deps.sessions.requestAgentAction("budget.increase", id, { newBudgetUsd: body.data.budgetUsd, reason: body.data.reason ?? null }, req.policy.actor);
+      return reply.code(pending.approvalId ? 202 : 422).send(pending);
+    }
     const ack = await deps.sessions.requestBudgetTopUp(id, body.data.budgetUsd, body.data.reason, callerLabel(req) ?? undefined);
     return ack.ok ? ack : reply.code(422).send(ack);
   });
