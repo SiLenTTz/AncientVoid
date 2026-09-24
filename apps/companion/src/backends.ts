@@ -258,7 +258,7 @@ export class HyprlandInput implements InputBackend {
       if (!targetId) throw new Error("Gezieltes Einfügen braucht eine window address.");
       return this.targetedPaste(text, targetId, signal);
     }
-    return this.keyboard.type(text, signal);
+    return Promise.reject(new Error('Hyprland sendet Text nur mit „Gezielt einfügen“ an das bestätigte Fenster.'));
   }
 
   async targetedPaste(text: string, targetId: string, signal: AbortSignal): Promise<void> {

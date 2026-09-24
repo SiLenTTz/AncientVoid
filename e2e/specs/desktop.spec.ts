@@ -43,19 +43,24 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
       await expect(app.locator(".desktop-focus")).toContainText("foot — ~/projekt — bash");
       await expect(app.locator(".desktop-head")).toContainText("verbunden");
       await app.getByLabel("Text für den PC").fill("npm test -- --run äöü");
+      await expect(app.getByRole("button", { name: "Eintippen" })).toBeDisabled();
+      await expect(app.locator(".desktop-input")).toContainText("bis du das adressierte Einfügen ausdrücklich einschaltest");
+      await app.getByLabel(/Gezielt einfügen/).check();
       await app.getByRole("button", { name: "Eintippen" }).click();
       await expect(app.locator(".desktop-action").first()).toContainText("fertig");
       await expect(app.locator(".desktop-action").first()).toContainText("21 Zeichen in foot getippt");
       expect(desk.typed).toBe("npm test -- --run äöü");
-      expect(desk.inputModes).toEqual(["keystroke"]);
+      expect(desk.inputModes).toEqual(["targeted-paste"]);
       expect(desk.targets).toEqual(["w1"]);
 
+      await app.getByLabel(/Gezielt einfügen/).uncheck();
+      await expect(app.getByRole("button", { name: "Eintippen" })).toBeDisabled();
       await app.getByLabel(/Gezielt einfügen/).check();
       await app.getByLabel("Text für den PC").fill("zielgenau");
       await app.getByRole("button", { name: "Eintippen" }).click();
       await expect(app.locator(".desktop-action").first()).toContainText("fertig");
       expect(desk.typed).toBe("npm test -- --run äöüzielgenau");
-      expect(desk.inputModes).toEqual(["keystroke", "targeted-paste"]);
+      expect(desk.inputModes).toEqual(["targeted-paste", "targeted-paste"]);
       expect(desk.targets).toEqual(["w1", "w1"]);
       await app.getByRole("button", { name: "↵ Enter" }).click();
       await expect(app.locator(".desktop-action").first()).toContainText("Taste Return");

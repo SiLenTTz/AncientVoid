@@ -59,6 +59,7 @@ export function DesktopPage() {
 
   const c = companions?.find((x) => x.name === chosen) ?? companions?.find((x) => x.online) ?? companions?.[0] ?? null;
   const ready = Boolean(c?.online && c.focus && !c.locked && !c.paused && !c.blocked);
+  const textNeedsTargetedPaste = c?.backend === "hyprland" && inputMode !== "targeted-paste";
 
   const send = async (kind: "insert" | "replace" | "key", key?: string) => {
     if (!c?.focus) return;
@@ -144,16 +145,19 @@ export function DesktopPage() {
       <div class="card desktop-input">
         <textarea rows={4} value={text} placeholder="Text, der am PC ins fokussierte Feld getippt wird" aria-label="Text für den PC" maxLength={2000} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} />
         {c?.backend === "hyprland" && (
-          <label class="dim" style="display: flex; gap: 8px; align-items: flex-start; margin: 8px 0">
-            <input type="checkbox" checked={inputMode === "targeted-paste"} onChange={(e) => setInputMode((e.target as HTMLInputElement).checked ? "targeted-paste" : "keystroke")} />
-            <span>Gezielt einfügen (Clipboard vorübergehend ersetzen; Clipboard-Manager können den Text übernehmen. Paste gilt fürs angezeigte Fenster.)</span>
-          </label>
+          <div class="dim" style="margin: 8px 0">
+            <label style="display: flex; gap: 8px; align-items: flex-start">
+              <input type="checkbox" checked={inputMode === "targeted-paste"} onChange={(e) => setInputMode((e.target as HTMLInputElement).checked ? "targeted-paste" : "keystroke")} />
+              <span>Gezielt einfügen (Clipboard vorübergehend ersetzen; Clipboard-Manager können den Text übernehmen. Paste gilt fürs angezeigte Fenster.)</span>
+            </label>
+            {textNeedsTargetedPaste && <div role="status">Text bleibt gesperrt, bis du das adressierte Einfügen ausdrücklich einschaltest. Normale Hyprland-Tasten würden dem Fokus folgen.</div>}
+          </div>
         )}
         <div class="row" style="gap: 8px; flex-wrap: wrap">
-          <button class="btn primary" type="button" disabled={!ready || busy || !text.trim()} onClick={() => void send("insert")}>
+          <button class="btn primary" type="button" disabled={!ready || busy || !text.trim() || textNeedsTargetedPaste} onClick={() => void send("insert")}>
             Eintippen
           </button>
-          <button class="btn" type="button" disabled={!ready || busy || !text.trim()} onClick={() => void send("replace")} title="Feldinhalt markieren (Strg+A) und ersetzen">
+          <button class="btn" type="button" disabled={!ready || busy || !text.trim() || textNeedsTargetedPaste} onClick={() => void send("replace")} title="Feldinhalt markieren (Strg+A) und ersetzen">
             Ersetzen
           </button>
           {stt && (

@@ -264,6 +264,14 @@ describe("desktop backends (T11.1)", () => {
     expect(calls).toEqual([["dispatch", "sendshortcut", "CTRL,V,address:0xabc"]]);
   });
 
+  it("Hyprland refuses unfocused keystroke text unless targeted paste was explicitly selected", async () => {
+    const calls: string[][] = [];
+    const input = new HyprlandInput(async (_cmd, args) => { calls.push(args); return "ok"; }, 8, async () => undefined);
+    await expect(input.type("must not leak", new AbortController().signal, "0xabc"))
+      .rejects.toThrow(/Gezielt einfügen/);
+    expect(calls).toEqual([]);
+  });
+
   it("Hyprland keys and replace selection are addressed to the previewed window", async () => {
     const calls: string[][] = [];
     const input = new HyprlandInput(async (_cmd, args) => { calls.push(args); return "ok"; }, 8, async () => undefined);
