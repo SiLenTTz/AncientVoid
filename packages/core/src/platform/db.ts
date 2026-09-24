@@ -336,14 +336,13 @@ export class HubDatabase {
       return;
     }
 
-    // The database stores Fleet bearer credentials, so both its directory and
-    // SQLite files must stay private even when launched with umask 0022.
+    // The database stores Fleet bearer credentials. New directories and the
+    // SQLite files stay private without changing an existing shared parent.
     const previousUmask = process.umask(0o077);
     let db: DatabaseSync | undefined;
     try {
       const directory = dirname(resolve(path));
       mkdirSync(directory, { recursive: true, mode: 0o700 });
-      chmodSync(directory, 0o700);
       db = new DatabaseSync(path);
       this.db = db;
       this.db.exec("PRAGMA journal_mode = WAL;");
