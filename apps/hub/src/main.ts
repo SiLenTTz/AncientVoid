@@ -164,6 +164,7 @@ async function main(): Promise<void> {
     },
     ...(config.server.pwaDir ? { pwaDir: resolve(config.server.pwaDir) } : {}),
     projectRoots: config.projectRoots.map((root) => resolve(root)),
+    actions: config.actions,
     approvals,
     attachments,
     settings,

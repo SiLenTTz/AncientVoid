@@ -10,6 +10,7 @@ import { registerNotificationsRoutes } from "./modules/notifications/notificatio
 import { registerIdentityRoutes } from "./modules/identity/identity.routes.ts";
 import { registerApprovalsRoutes } from "./modules/approvals/approvals.routes.ts";
 import { registerSearchRoutes } from "./modules/search/search.routes.ts";
+import { registerCodeRoutes } from "./modules/code/code.routes.ts";
 
 /** Composition of every module's HTTP routes (ADR-0020). */
 export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
@@ -24,4 +25,5 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
   registerIdentityRoutes(app, ctx);
   registerApprovalsRoutes(app, ctx);
   registerSearchRoutes(app, ctx);
+  registerCodeRoutes(app, ctx);
 }

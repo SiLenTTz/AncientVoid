@@ -3,7 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { App } from "./App.tsx";
 import { SessionTail } from "../features/session/SessionTail.tsx";
 import { getToken, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
-import { parseAppHash, sessionHash } from "./route.ts";
+import { parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
 import type { Page } from "./Dock.tsx";
@@ -91,7 +91,7 @@ function Main() {
     setReady(true);
   };
   const [route, setRoute] = useState<
-    { view: "list"; initialPage?: Page } | { view: "tail"; session: SessionRecord }
+    { view: "list"; initialPage?: Page } | { view: "tail"; session: SessionRecord; code?: CodeTarget }
   >({ view: "list" });
 
   useEffect(() => {
@@ -122,7 +122,7 @@ function Main() {
       }
       hostApi(parsed.hostId)
         .session(parsed.sessionId)
-        .then((session) => setRoute({ view: "tail", session }))
+        .then((session) => setRoute({ view: "tail", session, ...(parsed.code ? { code: parsed.code } : {}) }))
         .catch(() => setRoute({ view: "list" }));
     };
     openFromHash();
@@ -160,6 +160,7 @@ function Main() {
         <SessionTail
           key={route.session.id}
           session={route.session}
+          {...(route.code ? { initialCode: route.code } : {})}
           onNavigate={(page) => setRoute({ view: "list", initialPage: page })}
         />
       )}

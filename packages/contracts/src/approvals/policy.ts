@@ -46,6 +46,7 @@ export const POLICY_OPERATIONS = [
   "tools.ask",
   "attachments.upload",
   "settings.manage",
+  "actions.run",
 ] as const;
 export type PolicyOperation = (typeof POLICY_OPERATIONS)[number];
 
@@ -76,6 +77,9 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "attachments.upload": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
   /** T7.10: hub settings incl. the Gemini key — this hub's own devices only. */
   "settings.manage": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny" },
+  /** T7.6: registered test/git/tool actions — a person's button. An agent
+   * runs its tools inside its own harness, gated there (T7.2). */
+  "actions.run": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
 };
 
 export function policyFor(operation: PolicyOperation, label: string | null | undefined): PolicyDecision {

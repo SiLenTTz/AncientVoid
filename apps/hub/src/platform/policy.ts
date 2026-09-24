@@ -14,6 +14,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   // Asking and polling alike: the bridge's own route, nobody else's.
   if (/^\/api\/sessions\/[^/]+\/tool-permissions/.test(path)) return "tools.ask";
   if (method === "GET" || method === "HEAD") return "read";
+  if (/^\/api\/sessions\/[^/]+\/actions\/[^/]+$/.test(path)) return "actions.run";
   if (path === "/api/sessions") return "sessions.create";
   if (/^\/api\/sessions\/[^/]+\/steer$/.test(path)) {
     const kind = (body as { kind?: unknown } | undefined)?.kind;

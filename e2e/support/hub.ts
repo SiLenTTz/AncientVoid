@@ -24,6 +24,12 @@ export interface ApiResult<T> {
   body: T;
 }
 
+class PortTaken extends Error {
+  constructor() {
+    super("port answered by another hub");
+  }
+}
+
 function freePort(): Promise<number> {
   return new Promise((resolvePort, reject) => {
     const server = createServer();
@@ -89,16 +95,27 @@ export class TestHub {
     this.alpha = makeProject(this.projectsDir, "alpha", "# Alpha\n\nDas Handbuch beschreibt den Handoff zwischen PC und Handy.\n", {
       ".claude/skills/neon/SKILL.md":
         "---\nname: neon\ndescription: Neon-Styling für die Oberfläche\nextends: task\n---\nNutze Neonfarben.\n",
+      // T7.6: code to search in (a known function in .ts and .py).
+      "src/auth.ts": "import { z } from \"zod\";\n\n/** Prüft einen Token. */\nexport function parseToken(raw: string): string {\n  return raw.trim();\n}\n",
+      "tools/check.py": "import sys\n\n\ndef parse_token(raw):\n    return raw.strip()\n",
     });
     this.beta = makeProject(this.projectsDir, "beta", "# Beta\n\nZweites Projekt.\n");
   }
 
   static async start(options: HubOptions = {}): Promise<TestHub> {
     const hub = new TestHub(options);
-    hub.port = await freePort();
-    hub.writeConfig();
     hub.issueToken();
-    await hub.boot();
+    // freePort() can race with a parallel worker's hub — retry on a new port.
+    for (let attempt = 1; ; attempt++) {
+      hub.port = await freePort();
+      hub.writeConfig();
+      try {
+        await hub.boot();
+        break;
+      } catch (err) {
+        if (!(err instanceof PortTaken) || attempt >= 5) throw err;
+      }
+    }
     return hub;
   }
 
@@ -191,8 +208,15 @@ export class TestHub {
       if (child.exitCode !== null) throw new Error(`hub exited with ${child.exitCode}, see ${this.logPath}`);
       try {
         const res = await this.api("/api/ready");
-        if (res.status === 200) return;
-      } catch {
+        if (res.status === 200) {
+          // /api/ready is public: a parallel test's hub on the same port
+          // answers it too. Only our own token proves it is our hub.
+          if ((await this.api("/api/sessions")).status === 200) return;
+          child.kill("SIGKILL");
+          throw new PortTaken();
+        }
+      } catch (err) {
+        if (err instanceof PortTaken) throw err;
         // not listening yet
       }
       await new Promise((r) => setTimeout(r, 100));
