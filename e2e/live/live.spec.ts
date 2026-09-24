@@ -74,5 +74,29 @@ test.describe("Live-Hub (nur lesend)", () => {
     expect(out.text.toLowerCase().replace(/[^\p{L}]/gu, "")).toContain("npmtest"); // Schreibweise egal (npm-test, npm test)
     expect(out.latencyMs).toBeLessThan(1500); // K6
   });
+
+  test("Videoanalyse: Datei → whisper.cpp + Szenenbilder + OCR → Ergebnis; Job wird danach gelöscht (P10.5)", async () => {
+    const info = await api<{ available: boolean; stt: boolean; summary: boolean }>("/api/media");
+    test.skip(!info.available, "ffmpeg fehlt");
+    const video = readFileSync(new URL("../../packages/core/test/fixtures/media/slides.mp4", import.meta.url));
+    const up = await fetch(`${url}/api/media/upload?language=de`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "video/mp4", "x-filename": "live-smoke.mp4" }, body: video });
+    expect(up.status).toBe(201);
+    const job = (await up.json()) as { id: string };
+    try {
+      let status = "";
+      for (let i = 0; i < 120 && !["done", "failed", "cancelled"].includes(status); i++) {
+        await new Promise((r) => setTimeout(r, 1000));
+        status = (await api<{ status: string }>(`/api/media/jobs/${job.id}`)).status;
+      }
+      expect(status).toBe("done");
+      const r = await api<{ transcript: { text: string }[]; frames: { ocr: string | null }[]; chapters: unknown[]; summaryVia: string | null }>(`/api/media/jobs/${job.id}/result`);
+      expect(r.frames).toHaveLength(3);
+      expect(r.frames.some((f) => /Kapitel/.test(f.ocr ?? ""))).toBe(true);
+      if (info.stt) expect(r.transcript.map((s) => s.text).join(" ")).toMatch(/Tests|Worktree|Session/i);
+      expect(r.chapters.length).toBeGreaterThan(0);
+    } finally {
+      await fetch(`${url}/api/media/jobs/${job.id}`, { method: "DELETE", headers: { authorization: `Bearer ${token}` } });
+    }
+  });
 });
 
