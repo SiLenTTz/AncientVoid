@@ -133,11 +133,12 @@ Produktivdatengröße.
   gestartete Log liegt mit Modus `0600` vor.
 - `silenttz-server` wurde per einmaligem Invite neu gekoppelt. `/api/fleet`
   meldete anschließend `omarchy`, `evox2` und `silenttz-server` als erreichbar.
-  Nachdem SSH-Zugriff verfügbar wurde, wurden beide Peers (`silenttz-server`,
-  `evox2`) am 2026-09-24 mit neuen Einmal-Einladungen gekoppelt; damit wurden
-  ihre alten `fleet:omarchy`-Credentials ersetzt. Der Fleet-Logscan meldete
-  für `omarchy`, `silenttz-server` und `evox2` null unmaskierte `token=`-Werte
-  und null Treffer auf bekannte Tokens.
+  Der spätere Versuch, `evox2` per SSH zu erreichen, scheiterte an der
+  Host-Authentifizierung; das dortige Fleet-Credential wurde in diesem Schritt
+  nicht rotiert. Nur das Credential von `silenttz-server` wurde ersetzt. Der
+  Logscan auf den zugänglichen Hosts meldete null unmaskierte `token=`-Werte
+  und null Treffer auf bekannte Tokens. Für `evox2` ist ein aktueller
+  Credential-/Logscan-Nachweis offen.
 - `gitleaks dir` und `gitleaks git` meldeten dieselben zwei Treffer in
   Test-Fixtures (`attachments/extract.test.ts`, `push.test.ts`): ein gemockter
   Provider-API-Key sowie Testdaten für Push-Auth, keine produktiven Zugangsdaten.
@@ -158,11 +159,11 @@ versehentlich in einer internen Werkzeugausgabe angezeigt. Beide betroffenen
 Gerätetokens (`diag`, `pixel`) wurden deshalb nochmals widerrufen und frisch
 ausgestellt; das geschützte Archiv wurde ersetzt und blieb Modus `0600`. Die
 Tokenliste führt beide Labels aktiv, bislang ohne Nutzung. Die neuen Werte
-müssen noch auf die Clients übertragen und dort geprüft werden. Die lokalen
-Fleet-Daten führen `evox2` und `silenttz-server` mit frischen Kopplungszeiten
-vom 2026-09-24; eine erneute Rotation war daher nicht nötig. Eine aktuelle
-SSH-Prüfung von `evox2` scheiterte an der Host-Authentifizierung, sodass der
-Remote-Dienstzustand in diesem Schritt nicht live bestätigt wurde.
+müssen noch auf die Clients übertragen und dort geprüft werden. Ein lokaler
+Fleet-Eintrag mit aktuellem Zeitstempel belegt keine Rotation des Remote-
+Credentials: `silenttz-server` wurde neu gekoppelt, während `evox2` bei der
+SSH-Prüfung an der Host-Authentifizierung scheiterte. Dessen Remote-
+Credentialstatus wurde nicht live bestätigt und bleibt offen.
 
 Für den Gerätewechsel wurde der Hub vorübergehend wieder gestartet; die PWA
 war über die Tailnet-Adresse erreichbar. Die ADB-Verbindung zum Fairphone 6
