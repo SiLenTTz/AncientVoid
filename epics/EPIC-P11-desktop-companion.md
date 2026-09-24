@@ -146,4 +146,3 @@ Commit/MR gemäß Repo-Workflow; kein lokaler Merge nach main.
 - **AI-P11-3:** Leckfreie gezielte Eingabe unter Hyprland (`sendshortcut`
   auf Fenster-Adresse, Einfügen nur als ausdrücklicher Modus). Zurück als:
   P12 T12.12.
-
