@@ -148,3 +148,8 @@
   padding: 10px;
   font: inherit;
 }
+
+.offline-note {
+  display: block;
+  margin: 6px 0;
+}

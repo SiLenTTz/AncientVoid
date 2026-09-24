@@ -9,6 +9,7 @@ import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
 import { statusLabel } from "../../shared/status.ts";
 import { useDraft } from "./draft.ts";
+import { loadTail, saveTail } from "./tail-cache.ts";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
@@ -22,6 +23,26 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   // EPIC-P6: every call of this view goes to the session's own host.
   const api = useMemo(() => hostApi(session.hostId), [session.hostId]);
   const [events, setEvents] = useState<NormalizedEvent[]>([]);
+  // T8.2: what this device saw last — until live events arrive.
+  const hostKey = remoteHost(session.hostId) ?? "local";
+  const [cached] = useState(() => loadTail(hostKey, session.id));
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const up = () => setOnline(true);
+    const down = () => setOnline(false);
+    window.addEventListener("online", up);
+    window.addEventListener("offline", down);
+    return () => {
+      window.removeEventListener("online", up);
+      window.removeEventListener("offline", down);
+    };
+  }, []);
+  useEffect(() => {
+    const t = setTimeout(() => saveTail(hostKey, session.id, events), 1000);
+    return () => clearTimeout(t);
+  }, [events]);
+  const shownEvents = events.length === 0 && cached ? cached.events : events;
+  const fromCache = events.length === 0 && cached !== null;
   const [conn, setConn] = useState<"connecting" | "live" | "reconnecting" | "closed">("connecting");
   const [filter, setFilter] = useState<FilterPreset>(loadFilter);
   const [status, setStatus] = useState(session.status);
@@ -245,22 +266,22 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
 
   const visible = useMemo(() => {
     const preset = FILTERS.find((f) => f.id === filter)!;
-    return events.filter(preset.keep);
-  }, [events, filter]);
+    return shownEvents.filter(preset.keep);
+  }, [shownEvents, filter]);
 
   // T1.8: tool_use <-> tool_result status + anchor navigation, built from
   // the full (unfiltered) stream so a match isn't missed just because one
   // side got filtered out under the current preset.
   const toolResultByToolId = useMemo(() => {
     const map = new Map<string, NormalizedEvent>();
-    for (const e of events) {
+    for (const e of shownEvents) {
       if (e.type === "tool_result") {
         const id = toolIdOf(e);
         if (id) map.set(id, e);
       }
     }
     return map;
-  }, [events]);
+  }, [shownEvents]);
 
   const toggleExpanded = (seq: number) => {
     setExpanded((prev) => {
@@ -418,6 +439,13 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
         <div class={`conn-dot ${conn}`} title={conn} />
       </div>
 
+      {fromCache && cached && (
+        <div class="badge-stale offline-note">
+          Gespeicherter Stand vom {new Date(cached.at).toLocaleString("de-DE")}
+          {online ? " — verbinde…" : " — offline"}
+        </div>
+      )}
+      {!online && <div class="badge-stale offline-note">Offline — Senden ist gesperrt, dein Entwurf bleibt.</div>}
       <div class="run-strip">
         {progress &&
           (progress.percent !== null ? (
@@ -534,7 +562,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                       class={replyBusy ? "btn primary busy" : "btn primary"}
                       aria-busy={replyBusy}
                       onClick={() => void sendReply()}
-                      disabled={replyBusy || (!reply.trim() && replyAttachments.length === 0)}
+                      disabled={replyBusy || !online || (!reply.trim() && replyAttachments.length === 0)}
                     >
                       {replyBusy ? "lädt…" : status === "stopped" ? "Weiter" : "Senden"}
                     </button>

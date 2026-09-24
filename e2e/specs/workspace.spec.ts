@@ -226,6 +226,52 @@ test.describe("Sprache (T1.5, T3.10)", () => {
   });
 });
 
-test.describe("Offline (K10)", () => {
-  test.fixme("BUG-0015: Neuladen ohne Netz zeigt gecachte Sessions statt der Token-Eingabe", async () => {});
+test.describe("Offline (K10, T8.2)", () => {
+  test.use({ serviceWorkers: "allow" });
+
+  test("BUG-0015/AC-P8-2: offline neu laden zeigt den letzten Stand mit seiner Zeit, keine Token-Eingabe, keine Mutation", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Vor dem Flugmodus" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
+    // Let the service worker take control, then load once online (fills the cache).
+    await app.evaluate(async () => {
+      const nav = globalThis as unknown as { navigator: { serviceWorker: { ready: Promise<unknown> } } };
+      await nav.navigator.serviceWorker.ready;
+    });
+    await app.reload();
+    await expect(app.locator(".session-card")).toHaveCount(1);
+    await app.locator(".session-open").click();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Vor dem Flugmodus/)).toBeVisible();
+    await app.waitForTimeout(1300); // tail cache is written after 1 s
+    await app.getByLabel("Zur Übersicht").click();
+    await expect(app.locator(".session-card")).toHaveCount(1);
+    const before = Date.now();
+
+    await app.context().setOffline(true);
+    await app.waitForTimeout(1100);
+    await app.reload();
+    await expect(app.getByText("Device-Token")).toHaveCount(0);
+    await expect(app.locator(".session-card")).toHaveCount(1);
+    const stale = app.locator(".badge-stale").first();
+    await expect(stale).toContainText("offline");
+    // The time shown is when the data was fetched — not "now".
+    const shown = (await stale.textContent()) ?? "";
+    const hhmmss = /(\d{2}):(\d{2}):(\d{2})/.exec(shown);
+    expect(hhmmss).not.toBeNull();
+    const at = new Date(before);
+    at.setHours(Number(hhmmss![1]), Number(hhmmss![2]), Number(hhmmss![3]));
+    expect(at.getTime()).toBeLessThanOrEqual(before + 1000);
+
+    await app.locator(".session-open").click();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Vor dem Flugmodus/)).toBeVisible();
+    await expect(app.getByText("Offline — Senden ist gesperrt, dein Entwurf bleibt.")).toBeVisible();
+    await app.getByPlaceholder("Antworten…").fill("Offline geschrieben");
+    await expect(app.getByRole("button", { name: /^(Senden|Weiter)$/ })).toBeDisabled();
+
+    await app.context().setOffline(false);
+    await app.reload();
+    await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Offline geschrieben");
+    await expect(app.getByText("Offline — Senden ist gesperrt, dein Entwurf bleibt.")).toHaveCount(0);
+    // Nothing was sent while offline.
+    expect((await hub.events(id)).filter((e) => e.type === "user")).toHaveLength(1);
+  });
 });

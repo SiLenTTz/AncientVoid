@@ -406,7 +406,7 @@ export function setToken(token: string): void {
   // T8.2/AC-P8-4: another token is another person's device state — drafts
   // and cached views of the previous one must not show up.
   if (localStorage.getItem(TOKEN_KEY) !== token) {
-    for (const key of Object.keys(localStorage)) if (key.startsWith("uacc.draft.") || key.startsWith("uacc.newSession")) localStorage.removeItem(key);
+    for (const key of Object.keys(localStorage)) if (key.startsWith("uacc.draft.") || key.startsWith("uacc.newSession") || key.startsWith("uacc.tail.")) localStorage.removeItem(key);
     void caches?.delete?.("uacc-api").catch(() => undefined);
   }
   localStorage.setItem(TOKEN_KEY, token);
@@ -471,9 +471,15 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(body.error ?? `${res.status} ${res.statusText}`);
+    throw Object.assign(new Error(body.error ?? `${res.status} ${res.statusText}`), { status: res.status });
   }
   return (await res.json()) as T;
+}
+
+/** T8.2: only a real 401/403 says the token is wrong — offline is not. */
+export function isAuthError(err: unknown): boolean {
+  const status = (err as { status?: unknown })?.status;
+  return status === 401 || status === 403;
 }
 
 /** All hub calls. `P` maps a path to its host (ADR-0017 routing). */
