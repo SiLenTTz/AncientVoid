@@ -53,6 +53,8 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   // one — POST /api/sessions/:id/steer existed server-side and both real
   // adapters implement it, nothing in the client ever called it.
   const [steerSupported, setSteerSupported] = useState(false);
+  /** T7.5: an observer (clip) cannot stop the harness — only stop watching. */
+  const [observerOnly, setObserverOnly] = useState(false);
   // T1.6-4: claude's result line is the one real source for both costUsd
   // and tokensEst (ADR-0006) — reusing capabilities().cost as the signal
   // for "this adapter's Bericht numbers are real" avoids inventing a
@@ -83,6 +85,7 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
           // box": an adapter without capabilities.steer gets no reply field
           // at all rather than one that would silently fail every time.
           setSteerSupported(info?.capabilities.features?.followUp ?? info?.capabilities.steer ?? false);
+          setObserverOnly(info?.capabilities.features ? !info.capabilities.features.followUp && !info.capabilities.features.interrupt : false);
           setReportNumbersReal(info?.capabilities.cost ?? false);
         })
         .catch(() => {
@@ -450,9 +453,18 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
             )}
             {!showReply && status !== "stopped" && (
               <div class="composer-actions">
-                <button class="btn danger" onClick={stop}>
-                  Stop
-                </button>
+                {observerOnly ? (
+                  <>
+                    <span class="observer-note">nur beobachten — der Harness läuft außerhalb des Hubs</span>
+                    <button class="btn" onClick={stop}>
+                      Beobachtung beenden
+                    </button>
+                  </>
+                ) : (
+                  <button class="btn danger" onClick={stop}>
+                    Stop
+                  </button>
+                )}
               </div>
             )}
           </div>

@@ -21,9 +21,9 @@ dieser Session.
 | cursor-clip | Cursor state.vscdb | — | — | none | — | — | — | — | — | — |
 | claude-clip | Transcript JSONL | — | — | none | — | — | — | — | — | — |
 | dummy | — | ✓ | ✓ | none | — | — | — | — | — | — |
-| acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — |
-| acp · opencode | 1.18.32 `acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — |
-| acp · dsh | 0.1.5-rc.3 `--profile acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — |
+| acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — |
+| acp · opencode | 1.18.32 `acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — |
+| acp · dsh | 0.1.5-rc.3 `--profile acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — |
 <!-- harness-matrix:end -->
 
 ## Belege je Zeile
@@ -63,7 +63,17 @@ dieser Session.
   **copilot 1.0.88** und **opencode 1.18.32** — Erlauben schreibt die Datei,
   Ablehnen verhindert sie (2026-09-24). Das opencode-Preset setzt
   `permission: ask` für edit/bash/webfetch, sonst würde opencode ungefragt
-  ausführen. **dsh:** Abnahme mit lokalem Modell in T7.5.
+  ausführen. **dsh 0.1.5-rc.3 (T7.5):** Preset setzt
+  `DSH_PERMISSION_MODE=read-only` — Lesen läuft in dsh' OS-Sandbox, jeder
+  Befehl, der mehr braucht, fragt per `request_permission` (nur mit
+  `toolCallId`; der Adapter ergänzt Befehl und Titel aus dem vorigen
+  `tool_call`). Live mit lokalem Modell (evox2, llama.cpp): Erlauben schreibt
+  die Datei, Fehlschlag kommt als Fehler an
+  ([Messlauf](messlauf/2026-09-24-p7-harness-gates.md)).
+  **Modellwahl:** `session/set_config_option` (Kategorie `model`) bzw. das
+  ältere `session/set_model`; ein Modell, das der Agent nicht anbietet,
+  bricht den Start ab. Live belegt mit dsh; copilot/opencode nur über das
+  Protokoll (Fake-Agent), nicht live.
 
 ## Anhänge (T7.10, ADR-0022)
 
@@ -87,6 +97,7 @@ Der Heim-Hub weicht von der Standard-Konfiguration ab: claude mit
 ## Nicht in der Tabelle
 
 - `deepseek`/`local-llm` über `examples/adapters/openai-compat`: Modell-Endpunkt
-  ohne Tools (`toolGate: none`), kein Coding-Harness. Der DeepSeek-Harness `dsh`
-  kommt mit T7.2/T7.5 über ACP.
+  ohne Tools (`toolGate: none`), kein Coding-Harness. Mit Tools läuft das
+  lokale Modell über opencode oder dsh (Zeilen `acp · …`,
+  [local-llm.md](local-llm.md)).
 - `swarm`: kommt mit T7.5.

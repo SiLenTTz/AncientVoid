@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import type { AdapterContext, EmittedEvent, ToolPermissionRequest } from "@uacc/contracts";
 import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
 import { ProcessRunner } from "@uacc/workers";
-import { ACP_PRESETS, createAdapter } from "../src/index.ts";
+import { ACP_PRESETS, createAdapter, pickModel } from "../src/index.ts";
 import { JsonRpcConnection as AcpConnection } from "@uacc/adapter-jsonrpc";
 import { UpdateMapper } from "../src/normalize.ts";
 
@@ -36,7 +36,8 @@ describe("acp adapter (T7.2)", () => {
   it("presets: the opencode preset makes opencode ask (ADR-0018)", () => {
     expect(ACP_PRESETS.copilot.command).toEqual(["copilot", "--acp"]);
     expect(JSON.parse(ACP_PRESETS.opencode.env.OPENCODE_CONFIG_CONTENT).permission).toEqual({ edit: "ask", bash: "ask", webfetch: "ask" });
-    expect(createAdapter({ preset: "dsh" }).capabilities().features).toMatchObject({ toolGate: "native", followUp: true, interrupt: true });
+    expect(ACP_PRESETS.dsh.env.DSH_PERMISSION_MODE).toBe("read-only");
+    expect(createAdapter({ preset: "dsh" }).capabilities().features).toMatchObject({ toolGate: "native", followUp: true, interrupt: true, modelChoice: "start" });
     expect(createAdapter({ command: ["x"], permissions: "reject" }).capabilities().features.toolGate).toBe("allowlist");
     expect(() => createAdapter({})).toThrow("preset");
   });
@@ -71,6 +72,40 @@ describe("acp adapter (T7.2)", () => {
     expect(texts(ctx.events, "assistant")[0]).toContain("Ausgabe hallo-acp (allow-once)");
     const result = ctx.events.find((e) => e.type === "tool_result");
     expect(result?.payload).toMatchObject({ isError: false, content: "hallo-acp" });
+  });
+
+  it("a permission request with only the call id shows the tool from the earlier update (dsh)", async () => {
+    const asked: ToolPermissionRequest[] = [];
+    const turns: string[] = [];
+    const ctx = context({ answer: "allow", asked, turns });
+    await createAdapter({ command: [agent] }).start({ adapter: "acp", project: process.cwd(), prompt: "Bitte WERKZEUG KNAPP" }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    expect(asked[0]).toMatchObject({ toolName: "Shell", input: { command: "echo hallo-acp" } });
+  });
+
+  it("model choice at start: set through the model config option; `provider/model` matches a pair value", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    await createAdapter({ command: [agent], label: "fake" }).start({ adapter: "acp", project: process.cwd(), prompt: "Hallo", model: "lokal/klein" }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    expect(texts(ctx.events, "assistant")[0]).toContain('Modell ["lokal","klein"]');
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.summary).toBe("fake · lokal/klein");
+    // by name, and from the adapter config
+    const byName = context({ turns: [] });
+    const named = createAdapter({ command: [agent], model: "Groß" });
+    const h = await named.start({ adapter: "acp", project: process.cwd() }, byName);
+    expect(byName.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.payload).toMatchObject({ value: '["cloud","gross"]' });
+    await named.stop(h, byName);
+  });
+
+  it("an unknown model fails the start visibly — never another model silently", async () => {
+    const ctx = context();
+    await expect(createAdapter({ command: [agent], label: "fake" }).start({ adapter: "acp", project: process.cwd(), prompt: "x", model: "gibts/nicht" }, ctx)).rejects.toThrow("gibts/nicht");
+  });
+
+  it("pickModel also knows the older `models` block", () => {
+    expect(pickModel({ models: { availableModels: [{ modelId: "a/b", name: "AB" }] } }, "AB")).toEqual({ method: "session/set_model", params: { modelId: "a/b" }, value: "a/b" });
+    expect(pickModel({}, "x")).toBeNull();
   });
 
   it("deny, and no hub gate at all, both reject — the tool does not run", async () => {
@@ -133,6 +168,15 @@ describe("ACP JSON-RPC and update mapping", () => {
     expect(JSON.parse(written[0]!)).toEqual({ jsonrpc: "2.0", id: 7, result: { echoed: "session/request_permission" } });
     expect(noise).toEqual(["npm warn something"]);
     expect(stray).toEqual([{ stopReason: "end_turn" }]);
+  });
+
+  it("a completed call that ends in a non-zero exit code is an error (dsh)", () => {
+    const mapper = new UpdateMapper("x");
+    const text = (t: string) => [{ type: "content" as const, content: { type: "text" as const, text: t } }];
+    const [failed] = mapper.map({ sessionUpdate: "tool_call_update", toolCallId: "a", status: "completed", content: text("[stderr]\ncat: x: No such file\n[exit code: 1]") });
+    const [ok] = mapper.map({ sessionUpdate: "tool_call_update", toolCallId: "b", status: "completed", content: text("fine\n[exit code: 0]") });
+    expect(failed?.payload).toMatchObject({ isError: true });
+    expect(ok?.payload).toMatchObject({ isError: false });
   });
 
   it("an unknown update kind is reported once, not dropped", () => {

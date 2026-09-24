@@ -6,6 +6,8 @@
 //
 // Keywords in the prompt:
 //   WERKZEUG  one "execute" tool call (echo hallo-acp), asked first
+//   KNAPP     with WERKZEUG: the permission request names only the call id
+//             (as dsh does — the command came with the tool_call update)
 //   PLAN      a plan with 1 of 3 entries done
 //   LANGSAM   the turn runs until cancelled (or 60 s)
 //   FEHLER    the prompt fails with a rate-limit error
@@ -15,6 +17,18 @@ let buffer = "";
 let nextId = 1000;
 const waiting = new Map();
 const cancelled = new Set();
+const models = new Map(); // sessionId → model value (session/set_config_option)
+const MODEL_OPTION = (current) => ({
+  id: "model",
+  name: "Model",
+  category: "model",
+  type: "select",
+  currentValue: current,
+  options: [
+    { group: "cloud", name: "Cloud", options: [{ value: JSON.stringify(["cloud", "gross"]), name: "Groß" }] },
+    { group: "lokal", name: "Lokal", options: [{ value: JSON.stringify(["lokal", "klein"]), name: "Klein" }] },
+  ],
+});
 const send = (msg) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...msg })}\n`);
 const update = (sessionId, u) => send({ method: "session/update", params: { sessionId, update: u } });
 const ask = (method, params) =>
@@ -40,7 +54,7 @@ async function prompt(id, { sessionId, prompt: blocks }) {
     update(sessionId, { sessionUpdate: "tool_call", ...call, status: "pending" });
     const answer = await ask("session/request_permission", {
       sessionId,
-      toolCall: call,
+      toolCall: text.includes("KNAPP") ? { toolCallId } : call,
       options: [
         { optionId: "allow-once", name: "Erlauben", kind: "allow_once" },
         { optionId: "allow-always", name: "Immer erlauben", kind: "allow_always" },
@@ -60,7 +74,8 @@ async function prompt(id, { sessionId, prompt: blocks }) {
     for (let i = 0; i < 600 && !cancelled.has(sessionId); i++) await sleep(100);
     if (cancelled.delete(sessionId)) return send({ id, result: { stopReason: "cancelled" } });
   }
-  const reply = `Antwort auf: ${text.split("\n").pop()} · ACP${tail}`;
+  const model = models.get(sessionId);
+  const reply = `Antwort auf: ${text.split("\n").pop()} · ACP${tail}${model ? ` · Modell ${model}` : ""}`;
   for (const part of [reply.slice(0, 10), reply.slice(10, 25), reply.slice(25)]) update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: part } });
   send({ id, result: { stopReason: "end_turn", usage: { totalTokens: 42, inputTokens: 30, outputTokens: 12 } } });
 }
@@ -76,7 +91,19 @@ function handle(msg) {
     case "initialize":
       return send({ id, result: { protocolVersion: 1, agentCapabilities: { loadSession: true, promptCapabilities: { image: true } }, agentInfo: { name: "fake-acp", version: "1.0.0" } } });
     case "session/new":
-      return send({ id, result: { sessionId: `acp_${randomUUID().slice(0, 12)}` } });
+    {
+      // Like dsh on a fresh home: the answer lists the built-in models only,
+      // the configured (local) ones follow in a config_option_update.
+      const sessionId = `acp_${randomUUID().slice(0, 12)}`;
+      const full = MODEL_OPTION(JSON.stringify(["cloud", "gross"]));
+      send({ id, result: { sessionId, configOptions: [{ ...full, options: full.options.slice(0, 1) }] } });
+      setTimeout(() => update(sessionId, { sessionUpdate: "config_option_update", configOptions: [full] }), 100);
+      return;
+    }
+    case "session/set_config_option":
+      if (params.configId !== "model" || !MODEL_OPTION().options.some((g) => g.options.some((o) => o.value === params.value))) return send({ id, error: { code: -32602, message: "unknown option" } });
+      models.set(params.sessionId, params.value);
+      return send({ id, result: { configOptions: [MODEL_OPTION(params.value)] } });
     case "session/load":
       return send({ id, result: null });
     case "session/prompt":

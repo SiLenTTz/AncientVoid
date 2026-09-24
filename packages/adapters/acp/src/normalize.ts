@@ -38,6 +38,9 @@ function summarize(text: string, max = 200): string {
   return one.length > max ? `${one.slice(0, max - 1)}…` : one;
 }
 
+/** dsh reports a failed command as "completed" with `[exit code: N]` at the end. */
+const NONZERO_EXIT = /\[exit code: [1-9]\d*\]\s*$/;
+
 function toolResultText(update: SessionUpdate): string {
   const parts: string[] = [];
   if (Array.isArray(update.content)) {
@@ -106,7 +109,7 @@ export class UpdateMapper {
           {
             type: "tool_result",
             summary: summarize(content) || (update.status === "failed" ? "Tool-Fehler" : "Tool fertig"),
-            payload: { toolUseId: update.toolCallId, name: update.toolCallId ? this.toolNames.get(update.toolCallId) : undefined, isError: update.status === "failed", content },
+            payload: { toolUseId: update.toolCallId, name: update.toolCallId ? this.toolNames.get(update.toolCallId) : undefined, isError: update.status === "failed" || NONZERO_EXIT.test(content), content },
           },
         ];
       }
