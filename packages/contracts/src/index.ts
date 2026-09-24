@@ -20,3 +20,4 @@ export * from "./notifications/notification.ts";
 export * from "./fleet/fleet.ts";
 export * from "./code/code.ts";
 export * from "./push/push.ts";
+export * from "./commands/commands.ts";

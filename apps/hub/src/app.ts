@@ -4,7 +4,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { AttachmentStore, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import type { AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
 import { discoverProjects, FleetStore } from "@uacc/core";
 import type { HubMetrics, DiscoverySource } from "@uacc/contracts";
 import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@uacc/contracts";
@@ -31,6 +31,8 @@ export interface HubAppDeps {
   projectRoots?: string[];
   /** T8.3: Web Push (optional — off unless a person enables it). */
   push?: PushService;
+  /** T9.2: local model for text commands (ADR-0027). */
+  assistantModel?: PlannerModelConfig;
   /** T7.6: registered actions from the config. */
   actions?: ActionDefinition[];
   /** T2.4: optional, mirrors SessionManager's own optional approvals —

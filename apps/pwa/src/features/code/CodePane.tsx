@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import type { ActionDefinition, ActionRun, CodeFile, CodeSearchResult, WorkspaceIdentity } from "../../shared/api.ts";
 import { codeHash, sessionHash, type CodeTarget } from "../../app/route.ts";
+import { registerField, touchField } from "../../shared/command-context.ts";
 
 /** Lines shown at once — a 1 MB file stays usable on a phone. */
 const WINDOW = 1500;
@@ -34,6 +35,19 @@ export function CodePane({ sessionId, hostId, initial, onOpenDiff }: { sessionId
   const [busy, setBusy] = useState(false);
   const [file, setFile] = useState<CodeFile | null>(null);
   const [line, setLine] = useState<number | null>(initial?.line ?? null);
+
+  // T9.4: a field the text entry can fill; a search asked for in words runs here.
+  const queryRef = useRef(query);
+  queryRef.current = query;
+  useEffect(() => registerField("code_query", { get: () => queryRef.current, set: setQuery }), []);
+  useEffect(() => {
+    const pending = JSON.parse(sessionStorage.getItem("uacc.pendingCodeSearch") ?? "null") as { sessionId?: string; text?: string } | null;
+    if (pending?.sessionId !== sessionId || !pending.text) return;
+    sessionStorage.removeItem("uacc.pendingCodeSearch");
+    setQuery(pending.text);
+    setMode("symbol");
+    void api.codeSearch(sessionId, pending.text, "symbol").then(setResult).catch((err) => setError(err instanceof Error ? err.message : "Suche fehlgeschlagen"));
+  }, [sessionId]);
 
   const openFile = async (path: string, at: number | null) => {
     setError("");
@@ -98,6 +112,7 @@ export function CodePane({ sessionId, hostId, initial, onOpenDiff }: { sessionId
           placeholder={mode === "symbol" ? "Funktion, Klasse …" : "Text im Code…"}
           aria-label="Code durchsuchen"
           onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
+          onFocus={() => touchField("code_query")}
         />
         <button class="btn primary" type="submit" disabled={busy || !query.trim()}>
           {busy ? "sucht…" : "Suchen"}

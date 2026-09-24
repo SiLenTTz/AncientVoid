@@ -9,7 +9,9 @@ import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
 import { statusLabel } from "../../shared/status.ts";
+import { registerField, setHere, touchField } from "../../shared/command-context.ts";
 import { useDraft } from "./draft.ts";
+import { openCommandBar } from "../commands/CommandBar.tsx";
 import { getSeen, markSeen, seenKey } from "../../shared/seen.ts";
 import { loadTail, saveTail } from "./tail-cache.ts";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
@@ -309,10 +311,28 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   };
 
   const [title, setTitle] = useState(session.title ?? null);
+  // T9.4: the text entry knows which session is open (bound to its plans).
+  useEffect(() => {
+    setHere({ page: "session", sessionId: session.id, hostId: session.hostId ?? null, sessionRevision: record.inputRevision ?? null });
+  }, [session.id, record.inputRevision]);
+  useEffect(() => () => setHere({ page: "dashboard", sessionId: null, hostId: null, sessionRevision: null }), []);
+  // T9.4: "Such im Code nach …" lands here.
+  useEffect(() => {
+    const check = () => {
+      const pending = JSON.parse(sessionStorage.getItem("uacc.pendingCodeSearch") ?? "null") as { sessionId?: string } | null;
+      if (pending?.sessionId === session.id) setActiveTab("code");
+    };
+    check();
+    window.addEventListener("uacc:code-search", check);
+    return () => window.removeEventListener("uacc:code-search", check);
+  }, [session.id]);
   const [pinned, setPinned] = useState(session.pinned === true);
   const [renaming, setRenaming] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const menuRef = useRef<HTMLDetailsElement>(null);
+  const titleRef = useRef(titleDraft);
+  titleRef.current = titleDraft;
+  useEffect(() => (renaming ? registerField("session_title", { get: () => titleRef.current, set: setTitleDraft }) : undefined), [renaming]);
   const menuDo = (fn: () => void) => {
     if (menuRef.current) menuRef.current.open = false;
     fn();
@@ -413,7 +433,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                 void saveTitle();
               }}
             >
-              <input aria-label="Neuer Titel" value={titleDraft} maxLength={80} onInput={(e) => setTitleDraft((e.target as HTMLInputElement).value)} />
+              <input aria-label="Neuer Titel" value={titleDraft} maxLength={80} onFocus={() => touchField("session_title")} onInput={(e) => setTitleDraft((e.target as HTMLInputElement).value)} />
               <button class="btn primary" type="submit">
                 OK
               </button>
@@ -445,6 +465,9 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             </button>
             <button type="button" onClick={() => menuDo(() => setVoiceOpen(true))}>
               Sprachbefehl
+            </button>
+            <button type="button" onClick={() => menuDo(openCommandBar)}>
+              Auftrag in Worten
             </button>
           </div>
         </details>
@@ -579,6 +602,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
               <Composer
                 value={reply}
                 onChange={setReply}
+                fieldId="reply"
                 placeholder="Antworten…"
                 disabled={replyBusy}
                 adapter={session.adapter}

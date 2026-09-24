@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { registerField } from "../../shared/command-context.ts";
 import type { FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi } from "../../shared/api.ts";
 import { sessionsForOverview } from "./session-list.ts";
@@ -99,6 +100,16 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
   const [actionError, setActionError] = useState("");
   const [query, setQuery] = useState("");
   const [allRecent, setAllRecent] = useState(false);
+  // T9.4: "Zeig wartende Sessions" narrows the overview; the chip undoes it.
+  const [statusFilter, setStatusFilter] = useState(() => sessionStorage.getItem("uacc.overviewFilter") ?? "all");
+  useEffect(() => {
+    const on = (e: Event) => setStatusFilter(String((e as CustomEvent<string>).detail ?? "all"));
+    window.addEventListener("uacc:overview-filter", on);
+    return () => window.removeEventListener("uacc:overview-filter", on);
+  }, []);
+  const queryRef = useRef(query);
+  queryRef.current = query;
+  useEffect(() => registerField("session_filter", { get: () => queryRef.current, set: setQuery }), []);
   // T8.6: first run on this device — what exists now counts as read.
   useEffect(() => {
     if (sessions.length > 0) initSeen(sessions.map((s) => ({ key: seenKey(s.hostId ?? "", s.id), lastSeq: s.lastSeq })));
@@ -116,7 +127,13 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
     });
   }, [sessions]);
   const withOverride = useMemo(() => sessions.map((s) => (override[s.id] ? { ...s, ...override[s.id] } : s)), [sessions, override]);
-  const visible = useMemo(() => sessionsForOverview(withOverride, showArchived).filter((s) => matches(s, query.trim())), [withOverride, showArchived, query]);
+  const visible = useMemo(
+    () =>
+      sessionsForOverview(withOverride, showArchived)
+        .filter((s) => matches(s, query.trim()))
+        .filter((s) => (statusFilter === "waiting" ? sectionOf(s) === "braucht" : statusFilter === "active" ? sectionOf(s) === "aktiv" || sectionOf(s) === "braucht" : true)),
+    [withOverride, showArchived, query, statusFilter],
+  );
   const sorted = useMemo(() => [...visible].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)), [visible]);
   const sections = useMemo(() => {
     const out: Record<Section, SessionRecord[]> = { braucht: [], pins: [], aktiv: [], zuletzt: [] };
@@ -163,6 +180,18 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
           </button>
         )}
       </div>
+      {statusFilter !== "all" && statusFilter !== "recent" && (
+        <button
+          type="button"
+          class="chip active status-filter"
+          onClick={() => {
+            sessionStorage.removeItem("uacc.overviewFilter");
+            setStatusFilter("all");
+          }}
+        >
+          {statusFilter === "waiting" ? "nur wartende" : "nur aktive"} ✕
+        </button>
+      )}
       {sessions.length > 4 && (
         <input class="dashboard-search" type="search" placeholder="Sessions filtern…" aria-label="Sessions filtern" value={query} onInput={(e) => setQuery((e.target as HTMLInputElement).value)} />
       )}

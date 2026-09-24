@@ -3,6 +3,8 @@ import { hubApi, type AdapterInfo, type AdapterUsage, type FleetHost, type Sessi
 import { Dashboard } from "../features/overview/Dashboard.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
 import { pageHash } from "./route.ts";
+import { setHere } from "../shared/command-context.ts";
+import { openCommandBar } from "../features/commands/CommandBar.tsx";
 import { VoiceSheet } from "../features/voice/VoiceSheet.tsx";
 import { ApprovalQueuePane } from "../features/approvals/Approvals.tsx";
 import { StatusPage } from "../features/status/StatusPage.tsx";
@@ -23,6 +25,7 @@ export function App({
   /** T8.1: the page comes from the URL (#/neu, #/status …). */
   page: Page;
 }) {
+  useEffect(() => setHere({ page, sessionId: null, hostId: null, sessionRevision: null }), [page]);
   const setPage = (p: Page) => {
     location.hash = pageHash(p);
   };
@@ -93,6 +96,9 @@ export function App({
            * sit inline on the Dashboard, dominating small screens before
            * any session ever showed — moved to its own page, reached from
            * here. */}
+          <button class="link-btn command-open" type="button" onClick={openCommandBar} aria-label="Auftrag in Worten (Strg+K)" title="Auftrag in Worten (Strg+K)">
+            ✦
+          </button>
           <button class="link-btn" onClick={() => setPage("status")} title="Provider-Status">
             Status
           </button>

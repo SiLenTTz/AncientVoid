@@ -1,4 +1,5 @@
-import { useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { registerField, touchField, type FieldId } from "../../shared/command-context.ts";
 import { useApi } from "../../shared/api-context.ts";
 import type { ComponentChildren } from "preact";
 import { recognizeOnce, speechRecognitionSupported } from "../../shared/speech.ts";
@@ -31,6 +32,7 @@ export function Composer({
   onUseRecommendation,
   attachments,
   onAttachmentsChange,
+  fieldId,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -52,8 +54,15 @@ export function Composer({
   /** T7.10: files and images sent with this prompt. */
   attachments?: AttachmentRecord[];
   onAttachmentsChange?: (next: AttachmentRecord[]) => void;
+  /** T9.4: the text entry may fill or rewrite this field. */
+  fieldId?: FieldId;
 }) {
   const api = useApi();
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => (fieldId ? registerField(fieldId, { get: () => valueRef.current, set: (t) => onChangeRef.current(t) }) : undefined), [fieldId]);
   const supported = speechRecognitionSupported();
   const [listening, setListening] = useState(false);
   const [micError, setMicError] = useState("");
@@ -208,6 +217,7 @@ export function Composer({
         placeholder={placeholder}
         disabled={disabled}
         rows={2}
+        onFocus={() => fieldId && touchField(fieldId)}
       />
       {listening && (
         <div class="composer-notice dim">

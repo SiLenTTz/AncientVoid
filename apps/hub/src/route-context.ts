@@ -1,6 +1,6 @@
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import type { PlannerModelConfig, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills } from "@uacc/core";
 import { DEFAULT_HOST_ID } from "@uacc/contracts";
 import type { ActionDefinition, HubMetrics, DiscoverySource, SessionRecord } from "@uacc/contracts";
@@ -39,6 +39,8 @@ export interface RouteDeps {
   probeRunner?: ProbeRunner;
   /** EPIC-P6: this hub's host id in the fleet. */
   hostId?: string;
+  /** T9.2: local model for text commands and text edits (ADR-0027). */
+  assistantModel?: PlannerModelConfig;
   /** T7.6: actions from hub.config.json (`actions`). */
   actions?: ActionDefinition[];
 }
