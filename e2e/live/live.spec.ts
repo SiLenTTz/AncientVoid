@@ -51,4 +51,13 @@ test.describe("Live-Hub (nur lesend)", () => {
     await page.getByRole("button", { name: "Einstellungen" }).click();
     await expect(page.getByText(/Gemini/).first()).toBeVisible();
   });
+
+  test("Aufträge in Worten: „Zeig wartende Sessions“ plant und filtert (nur lesend)", async ({ page }) => {
+    await open(page);
+    await expect(page.locator(".dashboard")).toBeVisible();
+    await page.getByLabel("Auftrag in Worten (Strg+K)").click();
+    await page.getByLabel("Auftrag", { exact: true }).fill("Zeig wartende Sessions");
+    await page.getByRole("button", { name: "Planen" }).click();
+    await expect(page.getByRole("button", { name: "nur wartende ✕" })).toBeVisible();
+  });
 });
