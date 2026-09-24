@@ -103,6 +103,68 @@ export interface ProjectFile {
   lineCount: number;
 }
 
+/** T7.6: which checkout a code view shows. */
+export interface WorkspaceIdentity {
+  kind: "session" | "project";
+  sessionId: string | null;
+  root: string;
+  branch: string | null;
+  head: string | null;
+  base: string | null;
+}
+
+export interface CodeMatch {
+  path: string;
+  line: number;
+  column: number;
+  text: string;
+  kind: "definition" | "match";
+}
+
+export interface CodeSearchResult {
+  identity: WorkspaceIdentity;
+  engine: "ripgrep" | "git-grep";
+  matches: CodeMatch[];
+  truncated: boolean;
+}
+
+export interface CodeFile {
+  identity: WorkspaceIdentity;
+  path: string;
+  language: string;
+  bytes: number;
+  lines: number;
+  content: string;
+  truncated: boolean;
+  binary: boolean;
+  blobSha: string | null;
+  changed: { additions: number; deletions: number } | null;
+}
+
+export interface ActionDefinition {
+  id: string;
+  label: string;
+  kind: "test" | "git" | "tool";
+  argv: string[];
+  params: Record<string, { description: string; pattern: string; optional: boolean }>;
+  readOnly: boolean;
+  timeoutMs: number;
+}
+
+export interface ActionRun {
+  id: string;
+  sessionId: string;
+  actionId: string;
+  argv: string[];
+  status: "running" | "succeeded" | "failed" | "timeout";
+  exitCode: number | null;
+  startedAt: string;
+  endedAt: string | null;
+  actor: string | null;
+  output: string;
+  outputTruncated: boolean;
+}
+
 /** T2.2: one structured hunk — `functionContext` is git's own real
  * function/section-context heuristic (absent for some hunks/languages,
  * never guessed when missing). `collapsed` means `body` is a short
@@ -497,6 +559,15 @@ function createHubApi(P: (path: string) => string) {
       body: JSON.stringify({ decision, response, ...(reason ? { reason } : {}) }),
     }),
   /** T2.2 expand-on-tap: full hunks for one file, after /diff collapsed them under K3. */
+  /** T7.6: local code search and viewer in the session's worktree. */
+  codeSearch: (sessionId: string, q: string, mode: "text" | "symbol") =>
+    api<CodeSearchResult>(P(`/api/code/search?session=${encodeURIComponent(sessionId)}&q=${encodeURIComponent(q)}&mode=${mode}`)),
+  codeFile: (sessionId: string, path: string) =>
+    api<CodeFile>(P(`/api/code/file?session=${encodeURIComponent(sessionId)}&path=${encodeURIComponent(path)}`)),
+  sessionActions: (sessionId: string) => api<{ actions: ActionDefinition[]; runs: ActionRun[] }>(P(`/api/sessions/${sessionId}/actions`)),
+  runAction: (sessionId: string, actionId: string, params: Record<string, string>) =>
+    api<ActionRun>(P(`/api/sessions/${sessionId}/actions/${encodeURIComponent(actionId)}`), { method: "POST", body: JSON.stringify({ params }) }),
+  actionRun: (sessionId: string, runId: string) => api<ActionRun>(P(`/api/sessions/${sessionId}/actions/runs/${runId}`)),
   sessionDiffHunk: (id: string, path: string) =>
     api<{ path: string; hunks: DiffHunk[] }>(P(`/api/sessions/${id}/diff/hunk?path=${encodeURIComponent(path)}`)),
   events: (id: string, afterSeq = 0, limit = 500) =>

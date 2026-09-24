@@ -249,6 +249,15 @@ export class SessionManager {
     return worktree && existsSync(worktree) ? worktree : record.project;
   }
 
+  /** T7.6: hub-side work (registered actions) in a live session's timeline.
+   * A session without a live process gets none — the run is still listed. */
+  async recordHubEvents(sessionId: string, events: EmittedEvent[]): Promise<boolean> {
+    const live = this.live.get(sessionId);
+    if (!live) return false;
+    await this.emitEvents(live, events);
+    return true;
+  }
+
   require(sessionId: string): SessionRecord {
     const rec = this.get(sessionId);
     if (!rec) throw new Error(`unknown session ${sessionId}`);

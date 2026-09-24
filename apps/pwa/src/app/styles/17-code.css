@@ -1,0 +1,199 @@
+/* T7.6: code search, file viewer with line anchors, registered actions. */
+.code-pane,
+.code-file {
+  display: grid;
+  gap: 8px;
+}
+
+.code-search {
+  display: flex;
+  gap: 6px;
+}
+
+.code-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.code-identity {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.code-results {
+  display: grid;
+  gap: 4px;
+}
+
+.code-hit {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  color: var(--fg);
+}
+
+.code-hit.definition {
+  border-color: var(--accent);
+}
+
+.code-hit-where {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-dim);
+  display: flex;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.code-hit-def {
+  color: var(--accent);
+}
+
+.code-hit code,
+.code-lines code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.code-engine {
+  font-size: 11px;
+}
+
+.code-file-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.code-file-title {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.code-changed {
+  text-align: left;
+  color: var(--warn);
+  background: none;
+  border: 1px dashed var(--warn);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+}
+
+.code-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  background: var(--bg-elev);
+  border-radius: var(--radius);
+}
+
+.code-lines li {
+  display: flex;
+  min-width: max-content;
+}
+
+.code-lines li.hit {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.code-lines .ln {
+  flex: 0 0 auto;
+  min-width: 3.2em;
+  padding: 0 8px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-faint);
+  background: none;
+  border: none;
+  user-select: none;
+}
+
+.code-more {
+  justify-self: center;
+}
+
+.code-actions {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.code-actions h3 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg-dim);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.action-row {
+  display: grid;
+  gap: 4px;
+}
+
+.action-main {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.action-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.action-kind {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-chip);
+  color: var(--fg-dim);
+}
+
+.action-run {
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.action-run-head {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  color: var(--fg);
+}
+
+.action-run.succeeded .action-status {
+  color: var(--ok);
+}
+
+.action-run.failed .action-status,
+.action-run.timeout .action-status {
+  color: var(--err);
+}
+
+.action-run.running .action-status {
+  color: var(--warn);
+}
+
+.action-output {
+  margin: 0;
+  padding: 8px 10px;
+  max-height: 40vh;
+  overflow: auto;
+  font-size: 11px;
+  white-space: pre-wrap;
+}

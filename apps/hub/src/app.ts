@@ -1,3 +1,4 @@
+import type { ActionDefinition } from "@uacc/contracts";
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
@@ -27,6 +28,8 @@ export interface HubAppDeps {
   pwaDir?: string;
   /** T1.5-4: host paths to scan for git repos, offered as session projects. */
   projectRoots?: string[];
+  /** T7.6: registered actions from the config. */
+  actions?: ActionDefinition[];
   /** T2.4: optional, mirrors SessionManager's own optional approvals —
    * omitting it disables the /api/approvals routes (501), not a crash. */
   approvals?: ApprovalService;

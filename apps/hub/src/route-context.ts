@@ -3,7 +3,7 @@ import type { FastifyRequest } from "fastify";
 import type { AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills } from "@uacc/core";
 import { DEFAULT_HOST_ID } from "@uacc/contracts";
-import type { HubMetrics, DiscoverySource, SessionRecord } from "@uacc/contracts";
+import type { ActionDefinition, HubMetrics, DiscoverySource, SessionRecord } from "@uacc/contracts";
 import { TMUX_PREFIX } from "@uacc/workers";
 import { extractToken } from "./platform/auth.ts";
 import { createWebAuthnRoutes, type WebAuthnConfig } from "./modules/identity/webauthn.ts";
@@ -39,6 +39,8 @@ export interface RouteDeps {
   probeRunner?: ProbeRunner;
   /** EPIC-P6: this hub's host id in the fleet. */
   hostId?: string;
+  /** T7.6: actions from hub.config.json (`actions`). */
+  actions?: ActionDefinition[];
 }
 
 /**

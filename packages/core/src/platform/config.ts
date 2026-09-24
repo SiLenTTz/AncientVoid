@@ -1,3 +1,4 @@
+import { ActionDefinition } from "@uacc/contracts";
 import { z } from "zod";
 import type { AdapterFactory, ReportingSink } from "@uacc/contracts";
 
@@ -71,6 +72,9 @@ export const HubConfig = z.object({
   /** T7.10: local OCR — a tessdata dir with extra languages (e.g. deu),
    * set up by scripts/setup-ocr.sh without root. */
   ocr: z.object({ tessdataDir: z.string().optional() }).default({}),
+  /** T7.6: registered actions (tests, tools) offered in every session,
+   * next to the built-in git reads and the project's own test command. */
+  actions: z.array(ActionDefinition).default([]),
   /** T2.5: WebAuthn relying-party identity for destructive approvals.
    * Defaults suit local dev only (`localhost` origin) — a real Tailscale
    * deployment MUST override `rpId`/`origin` to the actual MagicDNS

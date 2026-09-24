@@ -6,6 +6,8 @@ import { Composer } from "../composer/Composer.tsx";
 import { GlobalDock, type Page } from "../../app/Dock.tsx";
 import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
+import { CodePane } from "../code/CodePane.tsx";
+import type { CodeTarget } from "../../app/route.ts";
 import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
 import { EventRow } from "./EventRow.tsx";
@@ -13,7 +15,7 @@ import { DiffPane } from "./DiffPane.tsx";
 import { ReportPane } from "./ReportPane.tsx";
 import { SessionApprovals } from "./SessionApprovals.tsx";
 
-export function SessionTail({ session, onNavigate }: { session: SessionRecord; onNavigate: (page: Page) => void }) {
+export function SessionTail({ session, onNavigate, initialCode }: { session: SessionRecord; onNavigate: (page: Page) => void; initialCode?: CodeTarget }) {
   // EPIC-P6: every call of this view goes to the session's own host.
   const api = useMemo(() => hostApi(session.hostId), [session.hostId]);
   const [events, setEvents] = useState<NormalizedEvent[]>([]);
@@ -45,8 +47,8 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   // filter split above — it replaces the event list with a summary pane
   // instead of filtering it, so it needs its own bit of state rather than
   // being derived from `filter` like Chat/Verlauf are.
-  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "suche">(() =>
-    loadFilter() === "lesen" ? "chat" : "verlauf",
+  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "suche" | "code">(() =>
+    initialCode ? "code" : loadFilter() === "lesen" ? "chat" : "verlauf",
   );
 
   // T1.5-6: the PWA could watch and stop a session, but never reply to
@@ -177,10 +179,14 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   const showBerichtTab = () => setActiveTab("bericht");
   const showDiffTab = () => setActiveTab("diff");
   const showSucheTab = () => setActiveTab("suche");
+  const showCodeTab = () => setActiveTab("code");
 
+  // Follow new events only where they are shown — in Bericht/Diff/Suche/
+  // Code a running session used to scroll the search field away (T7.6).
   useEffect(() => {
+    if (activeTab !== "chat" && activeTab !== "verlauf") return;
     tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
-  }, [events]);
+  }, [events, activeTab]);
 
   useEffect(() => {
     const measure = () => {
@@ -379,6 +385,8 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
           <DiffPane diff={diff} sessionId={session.id} />
         ) : activeTab === "suche" ? (
           <SearchPane project={session.project} />
+        ) : activeTab === "code" ? (
+          <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} {...(initialCode ? { initial: initialCode } : {})} onOpenDiff={showDiffTab} />
         ) : visible.length === 0 ? (
           <div class="empty">
             {status === "working" || status === "starting"
@@ -496,6 +504,9 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
           </button>
           <button class={activeTab === "suche" ? "active" : ""} onClick={showSucheTab}>
             Suche
+          </button>
+          <button class={activeTab === "code" ? "active" : ""} onClick={showCodeTab}>
+            Code
           </button>
         </div>
         <GlobalDock active={null} onNavigate={onNavigate} onVoice={() => setVoiceOpen(true)} />

@@ -16,3 +16,4 @@ export * from "./harness/inventory.ts";
 export * from "./harness/provider-error.ts";
 export * from "./notifications/notification.ts";
 export * from "./fleet/fleet.ts";
+export * from "./code/code.ts";
