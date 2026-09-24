@@ -1,4 +1,4 @@
-import type { Ack, AdapterContext, PendingOperation, SteerInput } from "@uacc/contracts";
+import type { Ack, AdapterContext, PendingOperation, PromptAttachment, SteerInput } from "@uacc/contracts";
 import type { ApprovalService, OperationStore } from "../approvals/index.ts";
 import type { LiveSession } from "./session-state.ts";
 
@@ -6,7 +6,9 @@ import type { LiveSession } from "./session-state.ts";
 export interface ApprovalFlowHost {
   session(id: string): LiveSession | undefined;
   emitSystem(session: LiveSession, kind: string, payload: Record<string, unknown>): Promise<void>;
-  emitPrompt(session: LiveSession, text: string, actor?: string): Promise<void>;
+  emitPrompt(session: LiveSession, text: string, actor?: string, attachments?: readonly PromptAttachment[]): Promise<void>;
+  /** T7.10: attachments as the session's harness takes them. */
+  forAdapter<T extends { text: string; attachments?: PromptAttachment[] | undefined }>(session: LiveSession, input: T): T;
   continueStopped(session: LiveSession, input: Extract<SteerInput, { kind: "prompt" }>, actor?: string): Promise<Ack>;
   context(session: LiveSession): AdapterContext;
   applyBudgetTopUp(sessionId: string, newBudgetUsd: number, actor?: string): Promise<Ack>;
@@ -168,7 +170,8 @@ export class ApprovalFlow {
   }
 
   private async runApprovedSteer(session: LiveSession, input: SteerInput, typed: string | undefined, approvalId: string, decidedByLabel?: string): Promise<Ack> {
-    if (input.kind === "prompt") await this.host.emitPrompt(session, typed ?? input.text, decidedByLabel);
+    if (input.kind === "prompt") await this.host.emitPrompt(session, typed ?? input.text, decidedByLabel, input.attachments);
+    if (input.kind === "prompt") input = this.host.forAdapter(session, input);
     if (input.kind === "prompt" && (session.record.status === "stopped" || !session.handle)) {
       return this.host.continueStopped(session, input, decidedByLabel);
     }

@@ -1,6 +1,6 @@
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import type { AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills } from "@uacc/core";
 import { DEFAULT_HOST_ID } from "@uacc/contracts";
 import type { HubMetrics, DiscoverySource, SessionRecord } from "@uacc/contracts";
@@ -10,6 +10,8 @@ import { createWebAuthnRoutes, type WebAuthnConfig } from "./modules/identity/we
 
 /** What the HTTP modules get from the hub (ADR-0020). */
 export interface RouteDeps {
+  /** T7.10: uploaded files (optional — a hub without them refuses attachment ids). */
+  attachments?: AttachmentStore;
   sessions: SessionManager;
   tokens: TokenService;
   registry: AdapterRegistry;

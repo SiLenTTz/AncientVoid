@@ -28,6 +28,8 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (path === "/api/fleet/pairing") return "fleet.unpair";
   if (path.startsWith("/api/fleet/")) return "fleet.manage";
   if (path === "/api/skills") return "skills.write";
+  if (path.startsWith("/api/attachments")) return "attachments.upload";
+  if (path.startsWith("/api/settings")) return "settings.manage";
   if (path === "/api/prompt-enhance" || path === "/api/prompt-recommendation" || path === "/api/prompt-optimizer/feedback") return "read";
   return null;
 }

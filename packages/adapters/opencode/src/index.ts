@@ -6,11 +6,13 @@ import type {
   Ack,
   HealthReport,
   ModelOption,
+  PromptAttachment,
   SessionHandle,
   SessionSpec,
   SteerInput,
   WorkerProcess,
 } from "@uacc/contracts";
+import { promptWithAttachments } from "@uacc/contracts";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { normalizeOpencodeLine } from "./normalize.ts";
@@ -83,12 +85,18 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const procs = new Map<string, WorkerProcess>();
   const sessions = new Map<string, SessionMeta>();
 
+  /** T7.10: images and PDFs as files (`-f`), everything else as text. */
+  function withFiles(prompt: string, attachments: readonly PromptAttachment[] | undefined): { prompt: string; files: string[] } {
+    const native = new Set((attachments ?? []).filter((a) => a.kind === "image" || a.kind === "pdf").map((a) => a.id));
+    return { prompt: promptWithAttachments(prompt, attachments, native), files: (attachments ?? []).filter((a) => native.has(a.id)).map((a) => a.path) };
+  }
+
   /** `agent`/`model` only on the initial (non-resume) spawn — same
    * reasoning as adapter-claude's buildArgs: whether either still applies
    * across a `--session`-continued run is unverified, so neither is
    * re-added on continuation. */
-  function buildArgs(prompt: string, resumeSessionId?: string, agent?: string, model?: string): string[] {
-    const args = [cfg.command, "run", prompt, "--format", "json"];
+  function buildArgs(prompt: string, resumeSessionId?: string, agent?: string, model?: string, files: string[] = []): string[] {
+    const args = [cfg.command, "run", prompt, "--format", "json", ...files.flatMap((f) => ["-f", f])];
     if (resumeSessionId) args.push("--session", resumeSessionId);
     if (agent && !resumeSessionId) args.push("--agent", agent);
     if (model && !resumeSessionId) args.push("--model", model);
@@ -159,7 +167,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // usage: false — no account-level rate-limit/quota signal observed
       // anywhere in the real capture (unlike claude's rate_limit_event);
       // R9.7, not guessed.
-      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native", features: { followUp: true, interrupt: true, toolGate: cfg.extraArgs.includes("--auto") ? "bypass" : "allowlist", questions: false, modelChoice: "start", skills: true, agents: true, images: false, files: false, contextFork: false } };
+      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native", features: { followUp: true, interrupt: true, toolGate: cfg.extraArgs.includes("--auto") ? "bypass" : "allowlist", questions: false, modelChoice: "start", skills: true, agents: true, images: true, files: true, contextFork: false } };
     },
 
     /** ADR-0018: `opencode models` lists every model the configured
@@ -191,10 +199,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           payload: { kind: "opencode.model", model },
         });
       }
-      const proc = await ctx.spawnWorker(
-        buildArgs(spec.prompt ?? "", resumeSessionId, agent, model),
-        spec.env ? { env: spec.env } : undefined,
-      );
+      const w = withFiles(spec.prompt ?? "", spec.attachments);
+      const proc = await ctx.spawnWorker(buildArgs(w.prompt, resumeSessionId, agent, model, w.files), spec.env ? { env: spec.env } : undefined);
       attach(ctx.sessionId, proc, ctx, meta);
       const handle: SessionHandle = {
         sessionId: ctx.sessionId,
@@ -207,7 +213,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const meta = sessions.get(handle.sessionId);
       switch (input.kind) {
         case "prompt": {
-          const proc = await ctx.spawnWorker(buildArgs(input.text, meta?.resumeSessionId));
+          const w = withFiles(input.text, input.attachments);
+          const proc = await ctx.spawnWorker(buildArgs(w.prompt, meta?.resumeSessionId, undefined, undefined, w.files));
           attach(handle.sessionId, proc, ctx, meta ?? { healthy: true });
           return { ok: true };
         }

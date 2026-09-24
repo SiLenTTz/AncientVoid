@@ -12,6 +12,8 @@ import { toHostId } from "@uacc/contracts";
 import { resolve } from "node:path";
 import type { WorkerRunner, DiscoverySource } from "@uacc/contracts";
 import {
+  AttachmentStore,
+  SettingsStore,
   AdapterRegistry,
   ApprovalService,
   EventStore,
@@ -138,6 +140,12 @@ async function main(): Promise<void> {
     bridge: createPermissionBridge({ tokens, hubUrl: `http://${loopHost}:${config.server.port}`, dir: resolve(dataDir, "bridges") }),
   });
 
+  // T7.10 (ADR-0022): uploaded files, local extraction first, Gemini only
+  // with a key the user set in the PWA settings.
+  const settings = new SettingsStore(db);
+  const tessdataDir = config.ocr.tessdataDir ? resolve(config.ocr.tessdataDir) : undefined;
+  const attachments = new AttachmentStore(db, resolve(dataDir, "attachments"), () => ({ gemini: settings.gemini(), ...(tessdataDir ? { tessdataDir } : {}) }));
+
   // K7: recover sessions from JSONL + snapshots before accepting traffic.
   const recovery = await sessions.recoverAll();
   logger.info("recovery finished", {
@@ -157,6 +165,8 @@ async function main(): Promise<void> {
     ...(config.server.pwaDir ? { pwaDir: resolve(config.server.pwaDir) } : {}),
     projectRoots: config.projectRoots.map((root) => resolve(root)),
     approvals,
+    attachments,
+    settings,
     dataDir,
     workerRunnerKind: runner.kind,
     store,

@@ -1,4 +1,4 @@
-import { ToolPermissionRequest } from "@uacc/contracts";
+import { AttachmentId, ToolPermissionRequest, type SteerInput } from "@uacc/contracts";
 import type { FastifyInstance } from "fastify";
 import { isProjectPathAllowed } from "@uacc/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
@@ -18,11 +18,13 @@ const CreateSessionBody = z.object({
   // pattern, same regex, single source of truth).
   env: z.record(z.string().regex(ENV_VAR_NAME), z.string()).optional(),
   args: z.record(z.unknown()).optional(),
+  /** T7.10: uploaded files for the first prompt. */
+  attachmentIds: z.array(AttachmentId).max(20).optional(),
 });
 
 const SteerBody = z.intersection(
   z.discriminatedUnion("kind", [
-    z.object({ kind: z.literal("prompt"), text: z.string().min(1) }),
+    z.object({ kind: z.literal("prompt"), text: z.string(), attachmentIds: z.array(AttachmentId).max(20).optional() }),
     z.object({ kind: z.literal("stop") }),
     z.object({ kind: z.literal("park") }),
     z.object({ kind: z.literal("resume") }),
@@ -37,6 +39,11 @@ const SteerBody = z.intersection(
 
 /** Session lifecycle, events, steering, diff and budget. */
 export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext): void {
+  /** T7.10: uploaded ids → what the adapter gets (waits for extraction). */
+  async function resolveAttachments(ids: string[]) {
+    if (!ctx.deps.attachments) throw new Error("Anhänge sind auf diesem Hub nicht eingerichtet.");
+    return ctx.deps.attachments.resolve(ids);
+  }
   const { deps, projectRoots, hostId, catalogRootFor, callerLabel, withAttachCmd } = ctx;
 
   app.get("/api/sessions", async () => Promise.all(deps.sessions.list().map((session) => withAttachCmd(session))));
@@ -69,7 +76,9 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     }
     try {
       await catalogRootFor(parsed.data.project);
-      const record = await deps.sessions.create(parsed.data, callerLabel(req) ?? undefined);
+      const { attachmentIds, ...spec } = parsed.data;
+      const attachments = attachmentIds?.length ? await resolveAttachments(attachmentIds) : undefined;
+      const record = await deps.sessions.create({ ...spec, ...(attachments ? { attachments } : {}) }, callerLabel(req) ?? undefined);
       return reply.code(201).send({ ...record, hostId });
     } catch (err) {
       return reply.code(422).send({
@@ -164,7 +173,17 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid steer input" });
     }
-    const { inputId, revision, clientId, takeover, ...input } = parsed.data;
+    const { inputId, revision, clientId, takeover, ...raw } = parsed.data;
+    let input: SteerInput;
+    if (raw.kind === "prompt") {
+      const { attachmentIds, ...prompt } = raw;
+      if (!prompt.text.trim() && !attachmentIds?.length) return reply.code(400).send({ error: "invalid steer input" });
+      try {
+        input = attachmentIds?.length ? { ...prompt, attachments: await resolveAttachments(attachmentIds) } : prompt;
+      } catch (err) {
+        return reply.code(422).send({ ok: false, detail: err instanceof Error ? err.message : "Anhang fehlt" });
+      }
+    } else input = raw;
     if (req.policy?.decision === "approve") {
       if (!deps.sessions.get(id)) return reply.code(404).send({ ok: false, detail: "unknown session" });
       const ack =

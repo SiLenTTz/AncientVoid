@@ -6,11 +6,13 @@ import type {
   Ack,
   HealthReport,
   ModelOption,
+  PromptAttachment,
   SessionHandle,
   SessionSpec,
   SteerInput,
   WorkerProcess,
 } from "@uacc/contracts";
+import { promptWithAttachments } from "@uacc/contracts";
 import { normalizeClaudeLine } from "./normalize.ts";
 
 /**
@@ -118,6 +120,15 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     return skill ? `/${skill}\n\n${prompt}` : prompt;
   }
 
+  /** T7.10: claude reads images and PDFs itself (Read tool) — it gets the
+   * path and access to the folder; other files come with their text. */
+  function withAttachments(prompt: string, attachments: readonly PromptAttachment[] | undefined): { prompt: string; dirs: string[] } {
+    if (!attachments?.length) return { prompt, dirs: [] };
+    const native = new Set(attachments.filter((a) => a.kind === "image" || a.kind === "pdf").map((a) => a.id));
+    const dirs = [...new Set(attachments.map((a) => a.path.slice(0, a.path.lastIndexOf("/"))))];
+    return { prompt: promptWithAttachments(prompt, attachments, native), dirs };
+  }
+
   /** Wires a spawned claude process's stdout/stderr/exit into ctx.emit(). */
   function attach(sessionId: string, proc: WorkerProcess, ctx: AdapterContext, meta: SessionMeta): void {
     // Reset per new process: a stale `healthy=false` from a *previous*
@@ -211,8 +222,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           modelChoice: "start",
           skills: true,
           agents: true,
-          images: false,
-          files: false,
+          images: true,
+          files: true,
           contextFork: false,
         },
       };
@@ -235,8 +246,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const agentPersona = args.success ? args.data?.agent : undefined;
       const resumeSessionId = args.success ? args.data?.resumeSessionId : undefined;
       const meta: SessionMeta = { healthy: true, degraded: false, skill, ...(resumeSessionId ? { resumeSessionId } : {}) };
+      const att = withAttachments(spec.prompt ?? "", spec.attachments);
       const proc = await ctx.spawnWorker(
-        buildArgs(withSkill(spec.prompt ?? "", skill), resumeSessionId, agentPersona, spec.model, await permissionArgs(ctx)),
+        buildArgs(withSkill(att.prompt, skill), resumeSessionId, agentPersona, spec.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])]),
         workerEnv(spec.env),
       );
       attach(ctx.sessionId, proc, ctx, meta);
@@ -255,8 +267,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           // fresh process resumed via --resume <session_id>. The
           // session's skill (if any) is reapplied to every turn; --agent
           // is deliberately NOT re-added here (see buildArgs' doc comment).
+          const att = withAttachments(input.text, input.attachments);
           const proc = await ctx.spawnWorker(
-            buildArgs(withSkill(input.text, meta?.skill), meta?.resumeSessionId, undefined, undefined, await permissionArgs(ctx)),
+            buildArgs(withSkill(att.prompt, meta?.skill), meta?.resumeSessionId, undefined, undefined, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])]),
             workerEnv(undefined),
           );
           attach(handle.sessionId, proc, ctx, meta ?? { healthy: true, degraded: false });

@@ -99,3 +99,19 @@ describe("codex app-server events", () => {
     expect(itemCompleted({ type: "commandExecution", id: "i", status: "declined", exitCode: null })[0]?.payload).toMatchObject({ isError: true, content: "abgelehnt — nicht ausgeführt" });
   });
 });
+
+describe("codex attachments (T7.10)", () => {
+  it("an image goes as localImage, a document's text rides in the prompt", async () => {
+    const { ctx, turns } = context();
+    const attachments = [
+      { id: "a".repeat(64), name: "foto.png", mimeType: "image/png", kind: "image" as const, bytes: 1000, path: "/data/att/aaa", text: null, method: null },
+      { id: "b".repeat(64), name: "notiz.txt", mimeType: "text/plain", kind: "text" as const, bytes: 20, path: "/data/att/bbb", text: "Einkaufsliste: Milch", method: "text" as const },
+    ];
+    await createAdapter({ mode: "app-server", command: fakeCodex }).start({ adapter: "codex", project: process.cwd(), prompt: "Schau", attachments }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    const answer = (ctx.events.find((e) => e.type === "assistant")?.payload as { text: string }).text;
+    expect(answer).toContain("[Bilder: 1]");
+    expect(answer).toContain("Einkaufsliste: Milch");
+    expect(answer).toContain("foto.png");
+  });
+});

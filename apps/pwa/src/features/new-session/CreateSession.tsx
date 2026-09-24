@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { hubApi, hostApi, type AdapterInfo, type DiscoveredProject, type FleetHost, type ModelOption, type SessionRecord } from "../../shared/api.ts";
+import type { AttachmentRecord } from "../../shared/api.ts";
 import { ApiContext } from "../../shared/api-context.ts";
 import { Composer } from "../composer/Composer.tsx";
 import { SkillPicker, loadSelectedSkill, loadSelectedWorkflow, type SelectedSkill } from "../composer/SkillOverlay.tsx";
@@ -29,6 +30,7 @@ export function CreateSession({
     if (adapters.length > 0 && !adapters.some((a) => a.id === adapter)) setAdapter(adapters[0]!.id);
   }, [adapters]);
   const [project, setProject] = useState("");
+  const [attachments, setAttachments] = useState<AttachmentRecord[]>([]);
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -109,6 +111,7 @@ export function CreateSession({
         ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
         ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
         ...(skill ? { args: { [skill.kind]: skill.name } } : {}),
+        ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
       });
       onCreated(rec);
     } catch (err) {
@@ -207,6 +210,8 @@ export function CreateSession({
           adapter={adapter}
           project={project}
           onUseRecommendation={(item) => setSkill(item)}
+          attachments={attachments}
+          onAttachmentsChange={setAttachments}
         />
       </label>
       {error && <div style="color: var(--err)">{error}</div>}

@@ -4,6 +4,8 @@ import type { ComponentChildren } from "preact";
 import { recognizeOnce, speechRecognitionSupported } from "../../shared/speech.ts";
 import { type PromptRecommendation } from "../../shared/api.ts";
 import { saveSelectedSkill, saveSelectedWorkflow } from "./SkillOverlay.tsx";
+import { AttachmentPicker } from "../attachments/Attachments.tsx";
+import type { AttachmentRecord } from "../../shared/api.ts";
 
 /** T1.5-8: enhance.ts only has a real implementation for these adapters —
  * never offer the button for an adapter it can't actually enhance for
@@ -27,6 +29,8 @@ export function Composer({
   project,
   extraActions,
   onUseRecommendation,
+  attachments,
+  onAttachmentsChange,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -45,6 +49,9 @@ export function Composer({
   /** New-session form applies a skill/agent through SessionSpec.args.
    * A reply has no such args, so the composer puts the name in the text. */
   onUseRecommendation?: (item: { kind: "skill" | "agent"; name: string }) => void;
+  /** T7.10: files and images sent with this prompt. */
+  attachments?: AttachmentRecord[];
+  onAttachmentsChange?: (next: AttachmentRecord[]) => void;
 }) {
   const api = useApi();
   const supported = speechRecognitionSupported();
@@ -272,6 +279,11 @@ export function Composer({
         </div>
       )}
 
+      {attachments && onAttachmentsChange && (
+        <div class="composer-attachments">
+          <AttachmentPicker attachments={attachments} onChange={onAttachmentsChange} {...(disabled !== undefined ? { disabled } : {})} />
+        </div>
+      )}
       <div class="composer-actions">
         <button
           class={listening ? "btn busy" : "btn"}

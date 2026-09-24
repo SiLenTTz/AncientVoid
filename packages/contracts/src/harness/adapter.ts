@@ -2,6 +2,7 @@ import type { BlobRef, EmittedEvent } from "../sessions/event.ts";
 import type { NativeDiscovery, NativeResume } from "./inventory.ts";
 import type { SessionSpec } from "../sessions/session.ts";
 import type { ToolPermissionAnswer, ToolPermissionRequest } from "../approvals/tool-permission.ts";
+import type { PromptAttachment } from "../attachments/attachment.ts";
 
 /** ADR-0018: how a harness's tool calls are released. Ordered from the
  * strongest to the weakest guarantee; only `native` asks per call. */
@@ -104,7 +105,7 @@ export const SteerInput = {
 } as const;
 
 export type SteerInput =
-  | { kind: "prompt"; text: string }
+  | { kind: "prompt"; text: string; attachments?: PromptAttachment[] }
   | { kind: "stop" }
   | { kind: "park" }
   | { kind: "resume" };

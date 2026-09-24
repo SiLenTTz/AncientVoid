@@ -286,4 +286,24 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     await createAdapter().start({ adapter: "claude", project: "/tmp", prompt: "hallo" }, ctx);
     expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.no_permission_bridge")).toBe(true);
   });
+
+  it("T7.10: images and PDFs by path with --add-dir, other files as text", async () => {
+    const calls: string[][] = [];
+    const ctx = makeRecordingContext({ spawnWorker: async (cmd) => { calls.push(cmd); return fakeClaudeProcess(loadFixture("trivial-text.jsonl")); } });
+    await createAdapter({ permissionPrompts: "off" }).start({
+      adapter: "claude",
+      project: "/tmp",
+      prompt: "Bitte ansehen",
+      attachments: [
+        { id: "a".repeat(64), name: "scan.pdf", mimeType: "application/pdf", kind: "pdf", bytes: 2048, path: "/data/att/aaa", text: "egal", method: "pdftotext" },
+        { id: "b".repeat(64), name: "tabelle.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", kind: "office", bytes: 4096, path: "/data/att/bbb", text: "Artikel;Preis", method: "office" },
+      ],
+    }, ctx);
+    const cmd = calls[0]!;
+    const prompt = cmd[cmd.indexOf("-p") + 1]!;
+    expect(prompt).toContain("scan.pdf");
+    expect(prompt).toContain("Datei: /data/att/aaa]\n(als Datei übergeben)");
+    expect(prompt).toContain("Artikel;Preis");
+    expect(cmd.join(" ")).toContain("--add-dir /data/att");
+  });
 });

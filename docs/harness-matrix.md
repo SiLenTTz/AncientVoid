@@ -13,17 +13,17 @@ dieser Session.
 <!-- harness-matrix:start -->
 | Adapter | geprüfte CLI | Folgeprompt | Anhalten | Tool-Gate | Rückfragen | Modellwahl | Agenten | Bilder | Dateien | Abzweig |
 |---|---|---|---|---|---|---|---|---|---|---|
-| claude | 2.1.280 | ✓ | ✓ | native | ✓ | ✓ | ✓ | — | — | — |
-| codex | 0.156.1 `app-server` | ✓ | ✓ | native | ✓ | ✓ | — | — | — | — |
-| opencode | 1.18.32 | ✓ | ✓ | allowlist | — | ✓ | ✓ | — | — | — |
+| claude | 2.1.280 | ✓ | ✓ | native | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| codex | 0.156.1 `app-server` | ✓ | ✓ | native | ✓ | ✓ | — | ✓ | ✓ | — |
+| opencode | 1.18.32 | ✓ | ✓ | allowlist | — | ✓ | ✓ | ✓ | ✓ | — |
 | copilot | 1.0.88 | ✓ | ✓ | bypass | — | ✓ | ✓ | — | — | — |
 | aider | 0.86.2 | — | ✓ | bypass | — | ✓ | — | — | — | — |
 | cursor-clip | Cursor state.vscdb | — | — | none | — | — | — | — | — | — |
 | claude-clip | Transcript JSONL | — | — | none | — | — | — | — | — | — |
 | dummy | — | ✓ | ✓ | none | — | — | — | — | — | — |
-| acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | — | — | — | — | — |
-| acp · opencode | 1.18.32 `acp` | ✓ | ✓ | native | — | — | — | — | — | — |
-| acp · dsh | 0.1.5-rc.3 `--profile acp` | ✓ | ✓ | native | — | — | — | — | — | — |
+| acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — |
+| acp · opencode | 1.18.32 `acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — |
+| acp · dsh | 0.1.5-rc.3 `--profile acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — |
 <!-- harness-matrix:end -->
 
 ## Belege je Zeile
@@ -64,6 +64,17 @@ dieser Session.
   Ablehnen verhindert sie (2026-09-24). Das opencode-Preset setzt
   `permission: ask` für edit/bash/webfetch, sonst würde opencode ungefragt
   ausführen. **dsh:** Abnahme mit lokalem Modell in T7.5.
+
+## Anhänge (T7.10, ADR-0022)
+
+„Bilder“/„Dateien“ ✓ heißt: der Harness bekommt die Datei selbst — claude
+liest Bilder und PDFs über den Pfad (`--add-dir`), codex bekommt Bilder als
+`localImage`, opencode Bilder und PDFs über `-f`, ACP-Agenten Bilder als
+Bildblock, wenn sie es beim `initialize` anbieten. Alles andere (und jeder
+Harness ohne ✓) bekommt den ausgelesenen Text im Prompt — lokal über
+pdftotext, tesseract (deu+eng) und die Office-XML, sonst über Gemini, wenn
+ein Schlüssel hinterlegt ist. Belege: `packages/core/test/modules/attachments/extract.test.ts`
+(echte PNG/PDF/DOCX/XLSX/CSV), Adapter-Tests je Weg.
 
 ## Live-Konfiguration auf omarchy (Stand 2026-09-23)
 

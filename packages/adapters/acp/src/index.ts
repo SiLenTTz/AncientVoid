@@ -1,12 +1,14 @@
 import { z } from "zod";
 import {
   basicFeatures,
+  promptWithAttachments,
   providerErrorEvent,
   type Ack,
   type Adapter,
   type AdapterCapabilities,
   type AdapterContext,
   type HealthReport,
+  type PromptAttachment,
   type SessionHandle,
   type SessionSpec,
   type SteerInput,
@@ -65,6 +67,15 @@ const AcpConfig = z.object({
 
 const PROTOCOL_VERSION = 1;
 
+/** T7.10: prompt blocks — images as image content if the agent takes them. */
+async function promptBlocks(text: string, attachments: readonly PromptAttachment[] | undefined, images: boolean): Promise<Record<string, unknown>[]> {
+  const native = images ? (attachments ?? []).filter((a) => a.kind === "image" && a.bytes <= 10 * 1024 * 1024) : [];
+  const { readFile } = await import("node:fs/promises");
+  const blocks: Record<string, unknown>[] = [{ type: "text", text: promptWithAttachments(text, attachments, new Set(native.map((a) => a.id))) }];
+  for (const a of native) blocks.push({ type: "image", mimeType: a.mimeType, data: (await readFile(a.path)).toString("base64") });
+  return blocks;
+}
+
 interface AgentSession {
   proc: WorkerProcess;
   conn: AcpConnection;
@@ -72,6 +83,8 @@ interface AgentSession {
   busy: boolean;
   mapper: UpdateMapper;
   healthy: boolean;
+  /** From initialize: the agent takes image content blocks. */
+  images: boolean;
 }
 
 export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapter {
@@ -111,7 +124,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   function connect(sessionId: string, proc: WorkerProcess, ctx: AdapterContext): AgentSession {
-    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true };
+    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false };
     state.conn = new AcpConnection((line) => proc.write(line), {
       onNotification: (method, params) => {
         if (method !== "session/update") return;
@@ -153,7 +166,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       "initialize",
       { protocolVersion: PROTOCOL_VERSION, clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false }, clientInfo: { name: "uacc-hub", version: "0.1.0" } },
       cfg.startupTimeoutMs,
-    )) as { agentCapabilities?: { loadSession?: boolean; sessionCapabilities?: { resume?: unknown } } };
+    )) as { agentCapabilities?: { loadSession?: boolean; sessionCapabilities?: { resume?: unknown }; promptCapabilities?: { image?: boolean } } };
+    state.images = init.agentCapabilities?.promptCapabilities?.image === true;
     return { loadSession: init.agentCapabilities?.loadSession === true, resume: Boolean(init.agentCapabilities?.sessionCapabilities?.resume) };
   }
 
@@ -167,11 +181,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     announce(ctx, res.sessionId);
   }
 
-  function runTurn(state: AgentSession, ctx: AdapterContext, text: string): void {
+  function runTurn(state: AgentSession, ctx: AdapterContext, text: string, attachments?: readonly PromptAttachment[]): void {
     state.busy = true;
     ctx.turn?.("working");
-    void state.conn
-      .request("session/prompt", { sessionId: state.acpSessionId, prompt: [{ type: "text", text }] })
+    void promptBlocks(text, attachments, state.images)
+      .then((prompt) => state.conn.request("session/prompt", { sessionId: state.acpSessionId, prompt }))
       .then((res) => {
         const r = res as { stopReason?: string; usage?: { totalTokens?: number } | null };
         emitAll(ctx, state.mapper.flush());
@@ -212,7 +226,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         nativeResume: "none",
         // ADR-0018: tools are asked per call through request_permission —
         // as far as the agent asks (see the presets and docs/harness-matrix.md).
-        features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist" }),
+        // T7.10: images as content blocks when the agent says it takes them,
+        // otherwise (and for other files) their text.
+        features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist", images: true, files: true }),
       };
     },
 
@@ -221,7 +237,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const state = connect(ctx.sessionId, proc, ctx);
       await initialize(state);
       await newSession(state, ctx);
-      if (spec.prompt) runTurn(state, ctx, spec.prompt);
+      if (spec.prompt || spec.attachments?.length) runTurn(state, ctx, spec.prompt ?? "", spec.attachments);
       return { sessionId: ctx.sessionId, ...(proc.pid !== undefined ? { pid: proc.pid } : {}) };
     },
 
@@ -231,7 +247,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         case "prompt":
           if (!state || !state.healthy) return { ok: false, detail: `${label}: Agent läuft nicht mehr — Session neu starten` };
           if (state.busy) return { ok: false, detail: `${label}: der Zug läuft noch — erst anhalten oder abwarten` };
-          runTurn(state, ctx, input.text);
+          runTurn(state, ctx, input.text, input.attachments);
           return { ok: true };
         case "park":
           if (state?.acpSessionId) state.conn.notify("session/cancel", { sessionId: state.acpSessionId });

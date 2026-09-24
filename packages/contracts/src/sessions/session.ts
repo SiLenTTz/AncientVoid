@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PromptAttachment } from "../attachments/attachment.ts";
 import { CONTROL_MODES, DEFAULT_HOST_ID, HARNESS_TARGETS, RESUME_SCHEMA_VERSION } from "./identity.ts";
 
 export const SESSION_STATUSES = [
@@ -43,6 +44,9 @@ export const SessionSpec = z.object({
   env: z.record(z.string().regex(ENV_VAR_NAME), z.string()).optional(),
   /** Adapter-specific free-form arguments, validated by the adapter itself. */
   args: z.record(z.unknown()).optional(),
+  /** T7.10: files for the first prompt — resolved by the hub from the
+   * uploaded attachment ids (clients send `attachmentIds`). */
+  attachments: z.array(z.custom<PromptAttachment>()).optional(),
 });
 export type SessionSpec = z.infer<typeof SessionSpec>;
 

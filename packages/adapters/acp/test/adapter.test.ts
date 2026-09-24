@@ -141,3 +141,22 @@ describe("ACP JSON-RPC and update mapping", () => {
     expect(mapper.map({ sessionUpdate: "hologram" })).toHaveLength(0);
   });
 });
+
+describe("acp attachments (T7.10)", () => {
+  it("an image becomes an image block when the agent takes images", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const { mkdtempSync, writeFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { tmpdir } = await import("node:os");
+    const dir = mkdtempSync(join(tmpdir(), "acp-att-"));
+    writeFileSync(join(dir, "img"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    await createAdapter({ command: [agent] }).start(
+      { adapter: "acp", project: process.cwd(), prompt: "Schau", attachments: [{ id: "c".repeat(64), name: "bild.png", mimeType: "image/png", kind: "image", bytes: 4, path: join(dir, "img"), text: null, method: null }] },
+      ctx,
+    );
+    await waitFor(() => turns.includes("idle"));
+    expect(texts(ctx.events, "assistant")[0]).toContain("[image]");
+    expect(texts(ctx.events, "assistant")[0]).toContain("(als Datei übergeben)");
+  });
+});

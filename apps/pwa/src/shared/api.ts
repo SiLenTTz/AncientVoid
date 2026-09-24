@@ -281,8 +281,19 @@ export interface PromptRecommendation {
   draft: string | null;
 }
 
+/** T7.10 — mirrors `@uacc/contracts`'s AttachmentRecord. */
+export interface AttachmentRecord {
+  id: string;
+  name: string;
+  mimeType: string;
+  bytes: number;
+  kind: "image" | "pdf" | "office" | "text" | "audio" | "video" | "other";
+  createdAt: string;
+  extraction: { status: "pending" | "done" | "failed" | "none"; method: string | null; chars: number; error: string | null };
+}
+
 export type SteerInput =
-  | { kind: "prompt"; text: string }
+  | { kind: "prompt"; text: string; attachmentIds?: string[] }
   | { kind: "stop" }
   | { kind: "park" }
   | { kind: "resume" };
@@ -369,6 +380,29 @@ function createHubApi(P: (path: string) => string) {
   return {
   health: () => api<{ ok: boolean; serverTime: string }>(P("/api/health")),
   adapters: () => api<AdapterInfo[]>(P("/api/adapters")),
+  /** T7.10: a file into the hub — raw bytes, name in a header. */
+  uploadAttachment: async (file: File): Promise<AttachmentRecord> => {
+    const res = await fetch(P("/api/attachments"), {
+      method: "POST",
+      headers: { "content-type": file.type || "application/octet-stream", "x-filename": encodeURIComponent(file.name), authorization: `Bearer ${getToken()}` },
+      body: file,
+    });
+    const body = (await res.json().catch(() => ({}))) as AttachmentRecord & { error?: string };
+    if (!res.ok) throw new Error(body.error ?? `${res.status} ${res.statusText}`);
+    return body;
+  },
+  attachment: (id: string) => api<AttachmentRecord>(P(`/api/attachments/${id}`)),
+  attachmentText: (id: string) => api<{ extraction: AttachmentRecord["extraction"]; text: string | null }>(P(`/api/attachments/${id}/text`)),
+  /** The file itself as an object URL — the token stays in a header, never in a URL. */
+  attachmentUrl: async (id: string): Promise<string> => {
+    const res = await fetch(P(`/api/attachments/${id}/content`), { headers: { authorization: `Bearer ${getToken()}` } });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return URL.createObjectURL(await res.blob());
+  },
+  reextractAttachment: (id: string) => api<AttachmentRecord>(P(`/api/attachments/${id}/extract`), { method: "POST", body: "{}" }),
+  settings: () => api<{ gemini: { configured: boolean; model: string } }>(P("/api/settings")),
+  setGemini: (body: { apiKey?: string | null; model?: string }) =>
+    api<{ gemini: { configured: boolean; model: string } }>(P("/api/settings/gemini"), { method: "PUT", body: JSON.stringify(body) }),
   /** ADR-0018: null when the adapter has no catalog (free text then). */
   adapterModels: (id: string) => api<{ models: ModelOption[] | null }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
   adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
@@ -469,6 +503,7 @@ function createHubApi(P: (path: string) => string) {
     model?: string;
     budgetUsd?: number | null;
     args?: { skill?: string; agent?: string };
+    attachmentIds?: string[];
   }) =>
     api<SessionRecord>(P("/api/sessions"), {
       method: "POST",
