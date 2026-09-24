@@ -129,6 +129,14 @@ Modellartefakte liegen außerhalb des Repositories unter
 "media": { "vision": { "url": "http://100.65.133.28:8095/v1", "model": "qwen-vl", "apiKeyFile": "~/.config/uacc/vision.key" }, "maxDurationSec": 1800, "maxFrames": 30, "keepSource": false }
 ```
 
+Der User-Service `~/.config/systemd/user/uacc-vision.service` startet
+`llama-server` mit `-m ~/uacc-llm/models/Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf`,
+`--mmproj ~/uacc-llm/models/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf`,
+`--alias qwen-vl`, `--host 100.65.133.28`, `--port 8095`,
+`--api-key-file ~/uacc-llm/vision.key`, `--jinja`, `-ngl 99`, `-c 8192`,
+`--parallel 1`, `-fa on`, `--cache-ram 0` und `--metrics`. Der Dienst ist
+aktiviert und startet nach einem Host-Neustart automatisch.
+
 Ohne `vision` gibt es für Bilder nur OCR (tesseract). Gemini wird nur für
 Jobs gefragt, bei denen in der PWA „Cloud erlauben“ gesetzt ist.
 Messwerte: [Messlauf P10.5](messlauf/2026-09-24-p10.5-media.md).

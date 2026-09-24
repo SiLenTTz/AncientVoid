@@ -197,6 +197,8 @@ der Q8_0-mmproj (844.757.728 Byte, SHA-256
 `980c9b2f78c04e6cff93d277ada09e768394f112d75db3b4e9dea8a69f9fb904`)
 geladen. Beide Dateien sowie beide API-Schlüssel haben Modus `0600`; der
 schlüsselgeschützte Dienst `uacc-vision` ist auf Tailnet-IP `:8095` aktiv.
+`GET /v1/models` wurde ohne Schlüssel mit HTTP 401 und mit Schlüssel mit
+HTTP 200 beantwortet.
 UACC-Text, STT, Halogen-Server, Live-Proxy und Wächter blieben aktiv. Nach
 dem Vision-Modellstart standen 29 GiB von 123 GiB Unified Memory verfügbar;
 im Home-Dateisystem blieben 51 GiB frei.
@@ -229,3 +231,15 @@ Ein erster Gesamtlauf hatte einen E2E-Timeout beim erneuten Freigeben nach dem
 Not-Stopp; derselbe Fall bestand isoliert und in fünf Wiederholungen, danach
 bestand auch das vollständige Gate. Das ist lokales Gate-Evidenz; GitLab CI
 hatte zuletzt `ci_quota_exceeded`, bevor Remote-Jobs starteten.
+
+## T12.1 — Fresh-Clone-Installation
+
+`feat/p12-backup-restore` Commit `f86e790` wurde in ein privates Verzeichnis
+unter `/dev/shm` geklont. Auf Node 26.7 liefen `npm ci` und der PWA-Build
+erfolgreich. Mit frischer Beispielconfig und neuem tmpfs-Datadir startete der
+Hub auf separatem Loopback-Port; `/api/health`, Token-Ausgabe sowie
+`hubctl health` und `hubctl adapters` funktionierten. Der Hub wurde mit
+Exitcode 0 gestoppt; Klon, Token, Testdaten und Config wurden entfernt. Dies
+prüft einen frischen lokalen Installationspfad, aber kein anderes OS/einen
+anderen Benutzerkontext, kein Telefon-Pairing, keinen echten Provider-Turn und
+keinen Update-/Rollback über persistente Produktionsdaten.
