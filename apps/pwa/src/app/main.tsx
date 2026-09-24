@@ -100,12 +100,14 @@ function Main() {
   const [ready, setReady] = useState(false);
   // EPIC-P6: know this hub's host id before any session opens, so its own
   // sessions keep short links and direct calls.
-  const becomeReady = async () => {
-    await hubApi
+  const becomeReady = () => {
+    // Token validation is the login gate; fleet discovery must not keep the
+    // user on the token form when a peer or local handshake is slow.
+    setReady(true);
+    void hubApi
       .fleetHello()
       .then((h) => setSelfHostId(h.hostId))
       .catch(() => setSelfHostId(null));
-    setReady(true);
   };
   const [route, setRoute] = useState<
     { view: "list"; page: Page } | { view: "tail"; session: SessionRecord; code?: CodeTarget }
