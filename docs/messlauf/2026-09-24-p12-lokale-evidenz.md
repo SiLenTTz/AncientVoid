@@ -243,3 +243,12 @@ Exitcode 0 gestoppt; Klon, Token, Testdaten und Config wurden entfernt. Dies
 prüft einen frischen lokalen Installationspfad, aber kein anderes OS/einen
 anderen Benutzerkontext, kein Telefon-Pairing, keinen echten Provider-Turn und
 keinen Update-/Rollback über persistente Produktionsdaten.
+
+## T12.2 — K8 lokaler Wiederholungslauf
+
+`npm run loadtest` am Stand `6b1bcb0`: 20 Dummy-Sessions × 30 ev/s × 10 s,
+6.083 Events, 603 ev/s aggregiert, RSS am Ende 169 MB; alle Sessions lagen
+über dem 90-%-Minimum und alle gezählten Live-Events waren im EventStore
+persistiert (`K8 PASSED`). Das ist der isolierte In-Process-Kernpfad; der
+Fleet-HTTP-Lauf steht separat oben. Es belegt keinen 24-h-Dauerlauf oder
+Sprachlast.
