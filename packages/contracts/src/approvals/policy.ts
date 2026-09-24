@@ -44,6 +44,8 @@ export const POLICY_OPERATIONS = [
   "fleet.unpair",
   "skills.write",
   "tools.ask",
+  "attachments.upload",
+  "settings.manage",
 ] as const;
 export type PolicyOperation = (typeof POLICY_OPERATIONS)[number];
 
@@ -70,6 +72,10 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "skills.write": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
   /** T7.2: a provider asks before a tool runs — the bridge's only job. */
   "tools.ask": { human: "deny", fleet: "deny", agent: "deny", bridge: "allow" },
+  /** T7.10: files into sessions — from a person's device (or their home hub). */
+  "attachments.upload": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
+  /** T7.10: hub settings incl. the Gemini key — this hub's own devices only. */
+  "settings.manage": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny" },
 };
 
 export function policyFor(operation: PolicyOperation, label: string | null | undefined): PolicyDecision {

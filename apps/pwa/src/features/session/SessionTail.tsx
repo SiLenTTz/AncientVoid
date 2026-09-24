@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiContext } from "../../shared/api-context.ts";
-import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult } from "../../shared/api.ts";
+import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord } from "../../shared/api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "../../shared/ws.ts";
 import { Composer } from "../composer/Composer.tsx";
 import { GlobalDock, type Page } from "../../app/Dock.tsx";
@@ -58,6 +58,8 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   // for "this adapter's Bericht numbers are real" avoids inventing a
   // second capability flag for data that already arrives together.
   const [reportNumbersReal, setReportNumbersReal] = useState(false);
+  // T7.10: files and images for the next reply.
+  const [replyAttachments, setReplyAttachments] = useState<AttachmentRecord[]>([]);
   const [reply, setReply] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
   const [replyError, setReplyError] = useState("");
@@ -283,16 +285,18 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
   };
 
   const sendReply = async (takeover = false) => {
-    if (!reply.trim()) return;
+    if (!reply.trim() && replyAttachments.length === 0) return;
     setReplyBusy(true);
     setReplyError("");
     setLeaseHeld(false);
     try {
       if (pendingInput.current?.text !== reply) pendingInput.current = { text: reply, id: newInputId() };
-      const ack = await api.steer(session.id, { kind: "prompt", text: reply }, pendingInput.current.id, takeover);
+      const ids = replyAttachments.map((a) => a.id);
+      const ack = await api.steer(session.id, { kind: "prompt", text: reply, ...(ids.length ? { attachmentIds: ids } : {}) }, pendingInput.current.id, takeover);
       if (ack.ok) {
         pendingInput.current = null;
         setReply("");
+        setReplyAttachments([]);
       } else {
         setLeaseHeld(ack.detail === "writer lease held");
         // A rejected steer (e.g. claude's "no thread_id captured yet") is
@@ -423,13 +427,15 @@ export function SessionTail({ session, onNavigate }: { session: SessionRecord; o
                 disabled={replyBusy}
                 adapter={session.adapter}
                 project={session.project}
+                attachments={replyAttachments}
+                onAttachmentsChange={setReplyAttachments}
                 extraActions={
                   <>
                     <button
                       class={replyBusy ? "btn primary busy" : "btn primary"}
                       aria-busy={replyBusy}
                       onClick={() => void sendReply()}
-                      disabled={replyBusy || !reply.trim()}
+                      disabled={replyBusy || (!reply.trim() && replyAttachments.length === 0)}
                     >
                       {replyBusy ? "lädt…" : status === "stopped" ? "Weiter" : "Senden"}
                     </button>

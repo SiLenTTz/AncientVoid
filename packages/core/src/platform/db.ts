@@ -210,6 +210,23 @@ export const MIGRATIONS: Migration[] = [
     // apart from the immutable, hashed payload.
     sql: `ALTER TABLE operations ADD COLUMN response TEXT;`,
   },
+  {
+    id: 14,
+    name: "attachments",
+    // T7.10 (ADR-0022): uploaded files by content hash; bytes and extracted
+    // text live on disk next to them.
+    sql: `
+      CREATE TABLE attachments (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        bytes INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        extraction TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

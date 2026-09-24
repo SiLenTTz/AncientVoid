@@ -88,7 +88,8 @@ function handle(msg) {
     case "turn/start": {
       const turnId = `turn_${randomUUID().slice(0, 8)}`;
       send({ id, result: { turn: { id: turnId, status: "inProgress", items: [] } } });
-      return void turn(params.threadId, turnId, params.input.map((i) => i.text ?? "").join(" "));
+      const images = params.input.filter((i) => i.type === "localImage").length;
+      return void turn(params.threadId, turnId, params.input.map((i) => i.text ?? "").join(" ") + (images ? ` [Bilder: ${images}]` : ""));
     }
     case "turn/interrupt":
       interrupted.add(params.turnId);

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import {
   basicFeatures,
+  promptWithAttachments,
   providerErrorEvent,
   type Ack,
   type Adapter,
@@ -8,6 +9,7 @@ import {
   type AdapterContext,
   type HealthReport,
   type ModelOption,
+  type PromptAttachment,
   type SessionHandle,
   type SessionSpec,
   type SteerInput,
@@ -148,10 +150,17 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
     return { cwd: ctx.workdir, approvalPolicy: cfg.approvalPolicy, sandbox: cfg.sandbox, ...(model ? { model } : {}) };
   }
 
-  async function startTurn(state: ServerSession, ctx: AdapterContext, text: string): Promise<void> {
+  /** T7.10: images as `localImage` input, everything else as text. */
+  function inputOf(text: string, attachments: readonly PromptAttachment[] | undefined): Record<string, unknown>[] {
+    const images = (attachments ?? []).filter((a) => a.kind === "image");
+    const native = new Set(images.map((a) => a.id));
+    return [{ type: "text", text: promptWithAttachments(text, attachments, native) }, ...images.map((a) => ({ type: "localImage", path: a.path }))];
+  }
+
+  async function startTurn(state: ServerSession, ctx: AdapterContext, text: string, attachments?: readonly PromptAttachment[]): Promise<void> {
     ctx.turn?.("working");
     try {
-      const res = (await state.conn.request("turn/start", { threadId: state.threadId, input: [{ type: "text", text }] })) as { turn?: { id?: string } };
+      const res = (await state.conn.request("turn/start", { threadId: state.threadId, input: inputOf(text, attachments) })) as { turn?: { id?: string } };
       state.turnId = res.turn?.id ?? null;
     } catch (err) {
       ctx.emit(providerErrorEvent("codex", err instanceof Error ? err.message : String(err)));
@@ -176,6 +185,8 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
           toolGate: cfg.approvalPolicy === "never" ? (cfg.sandbox === "danger-full-access" ? "bypass" : "sandbox") : "native",
           questions: cfg.approvalPolicy !== "never",
           modelChoice: "start",
+          images: true,
+          files: true,
         }),
       };
     },
@@ -193,7 +204,7 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
       state.threadId = started.thread?.id ?? null;
       state.model = spec.model ?? started.model;
       if (state.threadId) ctx.emit({ type: "system", summary: `Codex · Thread ${state.threadId}`, payload: { kind: "codex.native_session", nativeSessionId: state.threadId, model: started.model ?? null } });
-      if (spec.prompt) await startTurn(state, ctx, spec.prompt);
+      if (spec.prompt || spec.attachments?.length) await startTurn(state, ctx, spec.prompt ?? "", spec.attachments);
       return { sessionId: ctx.sessionId, ...(proc.pid !== undefined ? { pid: proc.pid } : {}) };
     },
 
@@ -207,7 +218,7 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
             await state.conn.request("turn/steer", { threadId: state.threadId, turnId: state.turnId, input: [{ type: "text", text: input.text }] }).catch(() => undefined);
             return { ok: true };
           }
-          await startTurn(state, ctx, input.text);
+          await startTurn(state, ctx, input.text, input.attachments);
           return { ok: true };
         case "park":
           if (state?.threadId && state.turnId) await state.conn.request("turn/interrupt", { threadId: state.threadId, turnId: state.turnId }).catch(() => undefined);

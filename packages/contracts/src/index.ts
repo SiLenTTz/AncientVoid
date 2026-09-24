@@ -7,6 +7,7 @@ export * from "./approvals/approval.ts";
 export * from "./approvals/operation.ts";
 export * from "./approvals/tool-permission.ts";
 export * from "./approvals/policy.ts";
+export * from "./attachments/attachment.ts";
 export * from "./reporting/reporting.ts";
 export * from "./observability/observability.ts";
 export * from "./sessions/identity.ts";

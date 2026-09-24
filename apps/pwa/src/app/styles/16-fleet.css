@@ -67,3 +67,8 @@
 .approval-outcome.uncertain {
   color: var(--warn);
 }
+
+/* T7.10: Gemini key state */
+.gemini-state.ok {
+  color: var(--ok);
+}

@@ -3,6 +3,7 @@ import { getToken } from "../../shared/api.ts";
 import { type NormalizedEvent } from "../../shared/ws.ts";
 import { visibleEventText } from "./event-text.ts";
 import { toolIdOf } from "./event-filter.ts";
+import { AttachmentChips, type AttachmentRef } from "../attachments/Attachments.tsx";
 
 export function toolAnchor(toolId: string, side: "use" | "result"): string {
   return `tool-${side}-${toolId}`;
@@ -179,6 +180,9 @@ export function EventRow({
         <span>{time}</span>
       </div>
       <div class="summary prose">{visibleEventText(event)}</div>
+      {prompt && Array.isArray((event.payload as { attachments?: unknown }).attachments) && (
+        <AttachmentChips refs={(event.payload as { attachments: AttachmentRef[] }).attachments} />
+      )}
       {typeof errorDetail === "string" && <div class="dim provider-error-detail">{errorDetail}</div>}
       {expanded && <EventDetail event={event} />}
     </div>

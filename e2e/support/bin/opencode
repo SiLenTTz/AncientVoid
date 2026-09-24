@@ -55,6 +55,12 @@ if (dashDash >= 0 && flag("--agent") === "plan") {
 }
 
 const prompt = argv[1] ?? "";
+// T7.10: what came along — files via -f, text in the prompt.
+const attachmentNote = () => {
+  const files = argv.filter((a, i) => argv[i - 1] === "-f");
+  const texts = [...prompt.matchAll(/Inhalt \(([a-z]+)\):\n([^\n]*)/g)].map((m) => `${m[1]}: ${m[2].slice(0, 40)}`);
+  return files.length || texts.length ? ` · Dateien: ${files.length} · Texte: ${texts.join(" | ")}` : "";
+};
 const resumed = flag("--session");
 const sid = resumed ?? `ses_e2e_${Math.random().toString(36).slice(2, 10)}`;
 const has = (word) => prompt.includes(word);
@@ -100,6 +106,6 @@ if (has("LIMIT")) {
 emit({
   type: "text",
   sessionID: sid,
-  part: { text: `Antwort auf: ${prompt.split("\n").pop()} · Session ${sid}${resumed ? " (fortgesetzt)" : ""} · cwd ${process.cwd()}` },
+  part: { text: `Antwort auf: ${prompt.split("\n\n[Anhang")[0].split("\n").pop()} · Session ${sid}${resumed ? " (fortgesetzt)" : ""} · cwd ${process.cwd()}${attachmentNote()}` },
 });
 emit({ type: "step_finish", sessionID: sid, part: { reason: "stop", cost: 0.0012, tokens: { total: 321 } } });

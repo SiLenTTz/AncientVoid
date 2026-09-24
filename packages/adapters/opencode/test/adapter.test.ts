@@ -233,3 +233,24 @@ describe("opencode model catalog (ADR-0018)", () => {
     ]);
   });
 });
+
+describe("opencode attachments (T7.10)", () => {
+  it("images and PDFs as -f files, text files in the prompt", async () => {
+    const calls: string[][] = [];
+    const { makeRecordingContext } = await import("@uacc/adapter-testkit");
+    const ctx = makeRecordingContext({ spawnWorker: async (cmd) => { calls.push(cmd); throw new Error("stop here"); } });
+    await createAdapter().start({
+      adapter: "opencode",
+      project: "/tmp",
+      prompt: "Lies",
+      attachments: [
+        { id: "a".repeat(64), name: "foto.jpg", mimeType: "image/jpeg", kind: "image", bytes: 1000, path: "/data/att/aaa", text: null, method: null },
+        { id: "b".repeat(64), name: "notiz.md", mimeType: "text/markdown", kind: "text", bytes: 10, path: "/data/att/bbb", text: "# Hallo", method: "text" },
+      ],
+    }, ctx).catch(() => undefined);
+    const cmd = calls[0]!;
+    expect(cmd.slice(cmd.indexOf("-f"), cmd.indexOf("-f") + 2)).toEqual(["-f", "/data/att/aaa"]);
+    expect(cmd.filter((a) => a === "-f")).toHaveLength(1);
+    expect(cmd[2]).toContain("# Hallo");
+  });
+});

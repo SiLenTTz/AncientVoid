@@ -3,19 +3,23 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import type { AttachmentStore, SettingsStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
 import { discoverProjects, FleetStore } from "@uacc/core";
 import type { HubMetrics, DiscoverySource } from "@uacc/contracts";
 import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@uacc/contracts";
 import type { WebAuthnConfig } from "./modules/identity/webauthn.ts";
 import { authHook, type AuthOptions } from "./platform/auth.ts";
 import { registerRoutes } from "./routes.ts";
+import { registerAttachmentRoutes } from "./modules/attachments/attachments.routes.ts";
 import { policyHook } from "./platform/policy.ts";
 import { registerWs } from "./modules/sessions/ws.ts";
 import { registerFleetRoutes } from "./modules/fleet/fleet.routes.ts";
 import { registerFleetProxy } from "./modules/fleet/fleet-proxy.ts";
 
 export interface HubAppDeps {
+  /** T7.10: attachments and hub settings (Gemini key). */
+  attachments?: AttachmentStore;
+  settings?: SettingsStore;
   sessions: SessionManager;
   tokens: TokenService;
   registry: AdapterRegistry;
@@ -99,6 +103,7 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
     for (const w of warnings) app.log.warn(w);
   }
   registerRoutes(app, { ...deps, projectRoots });
+  if (deps.attachments && deps.settings) registerAttachmentRoutes(app, { attachments: deps.attachments, settings: deps.settings });
   const fleet = deps.fleet ?? new FleetStore(deps.tokens.database, deps.tokens);
   const hostId = deps.hostId ?? DEFAULT_HOST_ID;
   registerFleetRoutes(app, { fleet, tokens: deps.tokens, hostId });

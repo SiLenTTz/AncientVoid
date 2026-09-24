@@ -11,3 +11,4 @@ export * from "./modules/approvals/index.ts";
 export * from "./modules/identity/index.ts";
 export * from "./modules/notifications/index.ts";
 export * from "./modules/fleet/index.ts";
+export * from "./modules/attachments/index.ts";

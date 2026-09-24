@@ -68,6 +68,9 @@ export const HubConfig = z.object({
   /** T7.2: how long a provider's tool request or question waits for the
    * phone before it is denied (never run on timeout). */
   toolApprovalTimeoutMs: z.number().int().min(10_000).default(10 * 60_000),
+  /** T7.10: local OCR — a tessdata dir with extra languages (e.g. deu),
+   * set up by scripts/setup-ocr.sh without root. */
+  ocr: z.object({ tessdataDir: z.string().optional() }).default({}),
   /** T2.5: WebAuthn relying-party identity for destructive approvals.
    * Defaults suit local dev only (`localhost` origin) — a real Tailscale
    * deployment MUST override `rpId`/`origin` to the actual MagicDNS

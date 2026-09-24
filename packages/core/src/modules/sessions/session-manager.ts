@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation } from "@uacc/contracts";
-import { DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, unsupportedResume } from "@uacc/contracts";
+import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation } from "@uacc/contracts";
+import { promptWithAttachments, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, unsupportedResume } from "@uacc/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
@@ -118,7 +118,8 @@ export class SessionManager {
       {
         session: (id) => this.live.get(id),
         emitSystem: (session, kind, payload) => this.emitSystem(session, kind, payload),
-        emitPrompt: (session, text, actor) => this.emitPrompt(session, text, actor),
+        emitPrompt: (session, text, actor, attachments) => this.emitPrompt(session, text, actor, attachments),
+        forAdapter: (session, input) => this.withAttachments(session, input),
         continueStopped: (session, input, actor) => this.continueStopped(session, input, actor),
         context: (session) => this.makeContext(session),
         applyBudgetTopUp: (sessionId, usd, actor) => this.applyBudgetTopUp(sessionId, usd, actor),
@@ -386,7 +387,11 @@ export class SessionManager {
       args: startSpec.args ?? null,
       actor: actor ?? null,
     });
-    if (parsed.prompt) await this.emitPrompt(session, parsed.prompt, actor);
+    if (parsed.prompt || parsed.attachments?.length) await this.emitPrompt(session, parsed.prompt ?? "", actor, parsed.attachments);
+    if (startSpec.attachments?.length) {
+      const converted = this.withAttachments(session, { text: startSpec.prompt ?? "", attachments: startSpec.attachments });
+      startSpec = { ...startSpec, prompt: converted.text, ...(converted.attachments ? { attachments: converted.attachments } : { attachments: undefined }) };
+    }
     try {
       session.handle = await session.adapter.start(startSpec, ctx);
       await this.setStatus(session, "working");
@@ -483,7 +488,8 @@ export class SessionManager {
         });
       }
     }
-    const text = await this.promptWithSkill(session, input.text);
+    const converted = this.withAttachments(session, { text: await this.promptWithSkill(session, input.text), attachments: input.attachments });
+    const text = converted.text;
     await this.setStatus(session, "working");
     const native = session.record.nativeSessionId;
     if (!native) {
@@ -497,6 +503,7 @@ export class SessionManager {
           adapter: session.record.adapter,
           project: session.record.project,
           prompt: text,
+          ...(converted.attachments ? { attachments: converted.attachments } : {}),
           ...(session.record.model ? { model: session.record.model } : {}),
           args: {
             ...(session.skillName ? { skill: session.skillName } : {}),
@@ -567,7 +574,8 @@ export class SessionManager {
     }
     const gated = await this.flow.gateSteer(session, input, delivered, actor);
     if (gated) return gated;
-    if (input.kind === "prompt") await this.emitPrompt(session, input.text, actor);
+    if (input.kind === "prompt") await this.emitPrompt(session, input.text, actor, input.attachments);
+    if (delivered.kind === "prompt") delivered = this.withAttachments(session, delivered);
     if (reopening && delivered.kind === "prompt") {
       // BUG-0016: the reopen is a steer like any other — without the
       // commit, a retried input id started the provider a second time.
@@ -591,12 +599,26 @@ export class SessionManager {
   /** The user's own input as a chat message — as typed, without the skill
    * chain the hub puts in front for the provider. The hub is the one source
    * for these; adapters no longer echo prompts as `user` events. */
-  private async emitPrompt(session: LiveSession, text: string, actor?: string): Promise<void> {
+  private async emitPrompt(session: LiveSession, text: string, actor?: string, attachments?: readonly PromptAttachment[]): Promise<void> {
     // A session that had no start prompt takes its first reply as title.
     if (!session.record.title) session.record.title = sessionTitle(text);
+    // T7.10: references only (K5) — never the bytes or the extracted text.
+    const refs = attachments?.map((a) => ({ id: a.id, name: a.name, mimeType: a.mimeType, kind: a.kind, bytes: a.bytes, method: a.method }));
     await this.emitEvents(session, [
-      { type: "user", summary: text.slice(0, 200), payload: { kind: "session.prompt", text, actor: actor ?? null } },
+      { type: "user", summary: text.slice(0, 200) || `${refs?.length ?? 0} Anhang/Anhänge`, payload: { kind: "session.prompt", text, actor: actor ?? null, ...(refs && refs.length > 0 ? { attachments: refs } : {}) } },
     ]);
+  }
+
+  /**
+   * T7.10 (ADR-0022): a harness that takes files or images itself gets the
+   * attachments; any other gets their text inside the prompt.
+   */
+  private withAttachments<T extends { text: string; attachments?: PromptAttachment[] | undefined }>(session: LiveSession, input: T): T {
+    if (!input.attachments || input.attachments.length === 0) return input;
+    const f = this.registry.get(session.record.adapter)?.capabilities.features;
+    if (f?.images || f?.files) return input;
+    const { attachments, ...rest } = input;
+    return { ...rest, text: promptWithAttachments(input.text, attachments) } as T;
   }
 
   /** ADR-0015: cross-session notifications, persisted so every device and a
