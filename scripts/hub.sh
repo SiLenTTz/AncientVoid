@@ -28,7 +28,26 @@ start() {
 
 stop() {
   if [ -f "$PIDFILE" ]; then
-    kill "$(cat "$PIDFILE")" 2>/dev/null || true
+    local pid pgid
+    pid=$(cat "$PIDFILE")
+    if kill -0 "$pid" 2>/dev/null; then
+      pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+      # setsid may leave a shell as the recorded process and Node as its
+      # child. Signal the isolated process group so the hub handles SIGTERM.
+      if [ "$pgid" = "$pid" ]; then
+        kill -TERM -- "-$pid" 2>/dev/null || true
+      else
+        kill -TERM "$pid" 2>/dev/null || true
+      fi
+      for _ in $(seq 1 100); do
+        if ! kill -0 -- "-$pid" 2>/dev/null; then break; fi
+        sleep 0.1
+      done
+      if kill -0 -- "-$pid" 2>/dev/null; then
+        echo "hub stop timed out (process group $pid still exists)" >&2
+        return 1
+      fi
+    fi
     rm -f "$PIDFILE"
     echo "hub stopped"
   else
