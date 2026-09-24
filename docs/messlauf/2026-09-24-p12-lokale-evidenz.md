@@ -160,9 +160,9 @@ ausgestellt; das geschützte Archiv wurde ersetzt und blieb Modus `0600`. Die
 Tokenliste führt beide Labels aktiv, bislang ohne Nutzung. Die neuen Werte
 müssen noch auf die Clients übertragen und dort geprüft werden. Die lokalen
 Fleet-Daten führen `evox2` und `silenttz-server` mit frischen Kopplungszeiten
-vom 2026-09-24; eine erneute Rotation war daher nicht nötig. Eine aktuelle
-SSH-Prüfung von `evox2` scheiterte an der Host-Authentifizierung, sodass der
-Remote-Dienstzustand in diesem Schritt nicht live bestätigt wurde.
+vom 2026-09-24; ein lokaler Peer-Zeitstempel belegt aber keine Rotation des
+Remote-Credentials. Die damalige SSH-Prüfung als Dienstkonto `silenttz` wurde
+abgewiesen; der separate Alias `evo` war in dieser Prüfung nicht verwendet.
 
 Nach erneuter ausdrücklicher Freigabe am 2026-09-24 wurden folgende Zustände
 live geprüft bzw. geändert:
@@ -178,11 +178,13 @@ live geprüft bzw. geändert:
   gekoppelt. Der alte Remote-Token `fleet:omarchy` wurde bei der Einlösung
   widerrufen; der neue Token wurde im lokalen Peer-Eintrag gespeichert und
   ein authentifizierter `GET /api/sessions` lieferte HTTP 200.
-- `evox2`: der SSH-Alias `evo` erreicht den Host als Benutzer `jan`, aber in
-  dessen Home liegt weder Hub-Repository noch Hub-Konfiguration. SSH als
-  `silenttz` wird mit `Permission denied (publickey,password)` abgewiesen.
-  Es wurde weder ein Token widerrufen noch der Peer verändert. Die dortige
-  Fleet-Rotation bleibt offen.
+- `evox2`: der SSH-Alias `evo` erreicht den Host als Benutzer `jan`; der
+  laufende Hub-Prozess gehört dort dem geschützten Konto `securesight`. Das
+  Service-Home ist für `jan` nicht lesbar und `sudo -n` meldet, dass ein
+  Passwort nötig ist. SSH als `silenttz` wird mit
+  `Permission denied (publickey,password)` abgewiesen. Es wurde weder ein
+  Token widerrufen noch der Peer verändert. Die Fleet-Rotation bleibt offen,
+  bis ein gezielter Service-/Admin-Zugang vorliegt.
 - `/tmp/uacc-hub.log` war bereits nicht vorhanden; es wurde in diesem Schritt
   keine Logdatei gelöscht. `data/hub.db` bestand `PRAGMA integrity_check` und
   `PRAGMA wal_checkpoint(TRUNCATE)` (busy=0); anschließend lagen keine
