@@ -108,3 +108,12 @@ Fehlt Chromium, scheitert der Lauf laut. Es gibt kein stilles Überspringen.
 Nicht im Gate: Passkey-Registrierung und biometrische Freigabe (WebAuthn)
 sind nur bis „Passkey registrieren“ sichtbar geprüft. Echte Provider und
 echte Geräte bleiben manuelle Abnahme (AC-P5-2).
+
+## Live-Smoke nach jedem Epic
+
+Nach dem Neustart der echten Hubs (`scripts/hub.sh stop && scripts/hub.sh start`,
+Peers per `scripts/fleet-deploy.sh`) läuft `npm run test:live` gegen den laufenden Hub:
+Übersicht, Flotte, Status, Bericht und Code-Suche einer vorhandenen Session,
+Einstellungen ohne sichtbaren Schlüssel. **Nur lesend:** Es startet keine Session
+und entscheidet nichts. Das Gerätetoken ist temporär und wird am Ende widerrufen
+(`scripts/test-live.sh`).
