@@ -164,6 +164,39 @@ vom 2026-09-24; eine erneute Rotation war daher nicht nötig. Eine aktuelle
 SSH-Prüfung von `evox2` scheiterte an der Host-Authentifizierung, sodass der
 Remote-Dienstzustand in diesem Schritt nicht live bestätigt wurde.
 
+Nach erneuter ausdrücklicher Freigabe am 2026-09-24 wurden folgende Zustände
+live geprüft bzw. geändert:
+
+- Der lokale Hub war bereits aus; `scripts/hub.sh stop` meldete `not running`,
+  Port 7373 und PID-Lock waren frei. Kein Prozess hielt DB/WAL/SHM offen.
+- `diag` und `pixel` wurden erneut widerrufen und ausgestellt. Die neuen
+  Klartextwerte liegen ausschließlich in
+  `~/.config/uacc/rotated-2026-09-24/device-tokens.txt` (77 Byte, Modus
+  `0600`); beide SHA-256-Hashes wurden gegen die aktiven DB-Zeilen geprüft.
+  Die Werte sind noch nicht auf dem Handy bzw. anderen Clients eingespielt.
+- `silenttz-server` wurde über den SSH-Alias mit frischem Einmal-Invite neu
+  gekoppelt. Der alte Remote-Token `fleet:omarchy` wurde bei der Einlösung
+  widerrufen; der neue Token wurde im lokalen Peer-Eintrag gespeichert und
+  ein authentifizierter `GET /api/sessions` lieferte HTTP 200.
+- `evox2`: der SSH-Alias `evo` erreicht den Host als Benutzer `jan`, aber in
+  dessen Home liegt weder Hub-Repository noch Hub-Konfiguration. SSH als
+  `silenttz` wird mit `Permission denied (publickey,password)` abgewiesen.
+  Es wurde weder ein Token widerrufen noch der Peer verändert. Die dortige
+  Fleet-Rotation bleibt offen.
+- `/tmp/uacc-hub.log` war bereits nicht vorhanden; es wurde in diesem Schritt
+  keine Logdatei gelöscht. `data/hub.db` bestand `PRAGMA integrity_check` und
+  `PRAGMA wal_checkpoint(TRUNCATE)` (busy=0); anschließend lagen keine
+  WAL/SHM-Dateien oder offenen DB-Handles vor.
+
+Nach den Credential-Änderungen wurde ein neues verschlüsseltes Produktivbackup
+`~/.local/share/uacc/backups/uacc-2026-09-24-after-rotation.uaccbak`
+erstellt (852.535 Byte, Modus `0600`). Der isolierte Restore bestätigte
+`integrity_check=ok`, sieben Sessions (eine `error`, sechs `stopped`), die
+aktiven Labels `diag`/`pixel`, beide Fleet-Peer-Zeilen und Modus `0700` für das
+Datadir bzw. `0600` für die Datenbank. Der Restore wurde nicht gestartet; das
+temporäre Ziel wurde entfernt. Damit ist der lokale Backup-/Restore-Pfad live
+belegt; T12.3 bleibt wegen echtem ENOSPC- und Retention-Langzeittest offen.
+
 Für den Gerätewechsel wurde der Hub vorübergehend wieder gestartet; die PWA
 war über die Tailnet-Adresse erreichbar. Die ADB-Verbindung zum Fairphone 6
 brach während der Bedienung ab. Als das Gerät wieder sichtbar war, zeigte es
