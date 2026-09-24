@@ -117,3 +117,42 @@
   overflow: auto;
   margin-bottom: 8px;
 }
+
+/* T7.9: gatekeeper label on a tool approval — a hint, never a decision. */
+.assessment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  padding: 6px 10px;
+  margin: 6px 0;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--ok);
+  background: var(--bg-elev);
+  font-size: 12px;
+}
+
+.assessment.gate-WARNING {
+  border-left-color: var(--warn);
+}
+
+.assessment.gate-CRITICAL_BLOCK {
+  border-left-color: var(--err);
+  background: color-mix(in srgb, var(--err) 12%, var(--bg-elev));
+}
+
+.assessment-gate {
+  font-weight: 700;
+}
+
+.assessment.gate-WARNING .assessment-gate {
+  color: var(--warn);
+}
+
+.assessment.gate-CRITICAL_BLOCK .assessment-gate {
+  color: var(--err);
+}
+
+.assessment-notes {
+  flex-basis: 100%;
+}

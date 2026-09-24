@@ -50,6 +50,9 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     const card = app.locator(".session-approvals .approval-card");
     await expect(card).toContainText("Bash");
     await expect(card.locator(".tool-input")).toHaveText("echo hallo-uacc");
+    // T7.9: the gatekeeper's label (rules only in this hub) — a hint, no decision.
+    await expect(card.locator(".assessment")).toContainText("Laya: unauffällig");
+    await expect(card.locator(".assessment")).toContainText("Regeln");
     await expect(app.locator(".topbar .pill")).toHaveText("waiting_approval");
     expect((await hub.events(id)).filter((e) => e.type === "tool_result")).toHaveLength(0);
     await card.getByRole("button", { name: "Erlauben" }).click();
@@ -59,6 +62,20 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(app.locator(".event.tool_use")).toHaveCount(1);
     await expect(app.locator(".event.tool_use")).toContainText("echo hallo-uacc");
     await hub.until(async () => (await hub.api<{ costUsd: number }>(`/api/sessions/${id}`)).body.costUsd > 0, "cost");
+  });
+
+  test("T7.9: ein Schlüssel ins Netz ist kritisch — die Karte verlangt den Passkey, das Tool läuft nicht", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG GEFAHR" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const card = app.locator(".session-approvals .approval-card");
+    await expect(card.locator(".assessment")).toContainText("Laya: kritisch — Passkey");
+    await expect(card.locator(".assessment")).toContainText("sendet nach außen");
+    const [approval] = (await hub.api<{ class: string; assessment: { securityGate: string } }[]>("/api/approvals?status=pending")).body;
+    expect(approval).toMatchObject({ class: "destructive", assessment: { securityGate: "CRITICAL_BLOCK" } });
+    // A plain "approve" is not enough for a destructive approval (ADR-0007).
+    const plain = await hub.api(`/api/approvals/${(approval as unknown as { id: string }).id}/decide`, { body: { decision: "approve", reason: "test" } });
+    expect(plain.status).toBeGreaterThanOrEqual(400);
+    expect((await hub.events(id)).filter((e) => e.type === "tool_result")).toHaveLength(0);
   });
 
   test("ein Claude-Fehler kommt als lesbare Meldung, der nächste Prompt läuft wieder (ADR-0015)", async ({ app, hub }) => {

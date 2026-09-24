@@ -75,6 +75,18 @@ export interface ApprovalRequest {
   tool?: { name: string; input: string; questions?: ToolQuestion[] };
   /** T7.3: what the decision released and what became of it. */
   operation?: { state: "pending" | "rejected" | "timed_out" | "dispatching" | "done" | "failed" | "uncertain"; outcome: string | null };
+  /** T7.9: the gatekeeper's label (never a decision). */
+  assessment?: ToolAssessment | null;
+}
+
+export interface ToolAssessment {
+  toolRisk: "READ_ONLY" | "LOCAL_WRITE" | "DESTRUCTIVE" | "EXFILTRATION";
+  securityGate: "CLEAN" | "WARNING" | "CRITICAL_BLOCK";
+  source: "model" | "rules" | "fallback";
+  confidence: { toolRisk: number | null; securityGate: number | null };
+  model: string | null;
+  latencyMs: number | null;
+  notes: string[];
 }
 
 /** T3.8: one real qmd hit — `file` is relative to `project`, `line` is

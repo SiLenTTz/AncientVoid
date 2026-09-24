@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { hubApi, type ApprovalRequest, type HubApi, type ToolQuestion } from "../../shared/api.ts";
+import { hubApi, type ApprovalRequest, type HubApi, type ToolAssessment, type ToolQuestion } from "../../shared/api.ts";
 import { startAuthentication } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
 
@@ -95,6 +95,31 @@ function QuestionForm({ questions, busy, onAnswer, onReject }: { questions: Tool
   );
 }
 
+const RISK_TEXT: Record<ToolAssessment["toolRisk"], string> = {
+  READ_ONLY: "liest nur",
+  LOCAL_WRITE: "schreibt lokal",
+  DESTRUCTIVE: "zerstörerisch",
+  EXFILTRATION: "sendet nach außen",
+};
+const GATE_TEXT: Record<ToolAssessment["securityGate"], string> = { CLEAN: "unauffällig", WARNING: "genau hinsehen", CRITICAL_BLOCK: "kritisch — Passkey" };
+const SOURCE_TEXT: Record<ToolAssessment["source"], string> = { model: "Modell", rules: "Regeln", fallback: "vorsichtshalber strenger" };
+
+/** T7.9: the gatekeeper's label — a hint for the human, never a decision. */
+function AssessmentBadge({ a }: { a: ToolAssessment }) {
+  const conf = a.confidence.securityGate !== null ? ` · ${Math.round(a.confidence.securityGate * 100)} %` : "";
+  return (
+    <div class={`assessment gate-${a.securityGate}`} title={a.notes.join(" · ")}>
+      <span class="assessment-gate">Laya: {GATE_TEXT[a.securityGate]}</span>
+      <span class="assessment-risk">{RISK_TEXT[a.toolRisk]}</span>
+      <span class="assessment-src dim">
+        {SOURCE_TEXT[a.source]}
+        {conf}
+      </span>
+      {a.notes.length > 0 && <span class="assessment-notes dim">{a.notes.slice(0, 3).join(" · ")}</span>}
+    </div>
+  );
+}
+
 export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRequest; onDecided: () => void; api?: HubApi }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -139,6 +164,7 @@ export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRe
         {pending && <span class="approval-countdown mono">läuft ab in {secondsLeft(req.timeoutAt)}s</span>}
         {!pending && <span class={`badge status-${req.status}`}>{req.status}</span>}
       </div>
+      {req.assessment && <AssessmentBadge a={req.assessment} />}
       {req.tool && !req.tool.questions ? (
         <>
           <div class="approval-summary">

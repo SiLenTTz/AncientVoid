@@ -78,6 +78,17 @@ nicht angebotenes Modell bricht den Start sichtbar ab. dsh bekommt vom
 Preset `DSH_PERMISSION_MODE=read-only`: Lesen läuft in der OS-Sandbox,
 alles Weitere fragt am Handy.
 
+## Gatekeeper (T7.9)
+
+Derselbe Server bewertet Tool-Anfragen ([ADR-0024](adr/0024-tool-gatekeeper.md)):
+
+```json
+"gatekeeper": { "model": { "url": "http://100.65.133.28:8081/v1", "model": "qwen3-coder", "apiKeyFile": "~/.config/uacc/llama.key" } }
+```
+
+Ohne `model` laufen nur die Regeln. Ist der Server weg (z. B. nach
+`halogen-starten.sh`), gilt fail-closed: Regeln + mindestens WARNING.
+
 ## Was fehlt
 
 - **aider** mit dem lokalen Modell nicht live abgenommen (aider hat kein

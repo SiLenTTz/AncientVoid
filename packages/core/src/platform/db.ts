@@ -241,6 +241,12 @@ export const MIGRATIONS: Migration[] = [
       ) WHERE cost_usd > 0 OR tokens_est > 0;
     `,
   },
+  {
+    id: 16,
+    name: "approval-assessment",
+    // T7.9 (ADR-0024): the gatekeeper's label next to a tool approval.
+    sql: `ALTER TABLE approvals ADD COLUMN assessment TEXT;`,
+  },
 ];
 
 export class HubDatabase {

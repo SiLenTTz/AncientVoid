@@ -7,11 +7,13 @@
  * Boot order (P0): config → db → adapters → recovery (K7) → HTTP/WS → PWA.
  */
 import { mkdirSync, existsSync } from "node:fs";
-import { hostname } from "node:os";
+import { readFile } from "node:fs/promises";
+import { homedir, hostname } from "node:os";
 import { toHostId } from "@uacc/contracts";
 import { resolve } from "node:path";
 import type { WorkerRunner, DiscoverySource } from "@uacc/contracts";
 import {
+  Gatekeeper,
   AttachmentStore,
   SettingsStore,
   AdapterRegistry,
@@ -134,10 +136,22 @@ async function main(): Promise<void> {
   // T7.2 / ADR-0018 §3: providers ask before a tool runs — always through
   // the approval queue, independent of requireStepApprovals.
   const loopHost = config.server.host === "0.0.0.0" ? "127.0.0.1" : config.server.host;
+  // T7.9 (ADR-0024): every tool request is labelled before it is shown.
+  const gk = config.gatekeeper;
+  const gatekeeperKey = gk.model?.apiKeyFile ? (await readFile(resolve(gk.model.apiKeyFile.replace(/^~(?=\/)/, homedir())), "utf8").catch(() => "")).split("\n")[0]?.trim() : undefined;
+  if (gk.model?.apiKeyFile && !gatekeeperKey) logger.warn("gatekeeper key file unreadable — model calls will fail (fail-closed)", { file: gk.model.apiKeyFile });
+  const gatekeeper = gk.enabled
+    ? new Gatekeeper({
+        ...(gk.model ? { model: { url: gk.model.url, model: gk.model.model, ...(gatekeeperKey ? { apiKey: gatekeeperKey } : {}) } } : {}),
+        timeoutMs: gk.timeoutMs,
+        minConfidence: gk.minConfidence,
+      })
+    : undefined;
   sessions.enableToolPermissions({
     approvals,
     timeoutMs: config.toolApprovalTimeoutMs,
     bridge: createPermissionBridge({ tokens, hubUrl: `http://${loopHost}:${config.server.port}`, dir: resolve(dataDir, "bridges") }),
+    ...(gatekeeper ? { gatekeeper } : {}),
   });
 
   // T7.10 (ADR-0022): uploaded files, local extraction first, Gemini only

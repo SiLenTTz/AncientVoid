@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ToolAssessment } from "./gatekeeper.ts";
 
 /**
  * Approval-Klassen/Contract (ADR-0007, T2.4/EPIC-P2 §3).
@@ -41,6 +42,8 @@ export const ApprovalRequest = z.object({
    * pending operation's payload) — part of the signed decision. Null for
    * approvals without an operation. */
   payloadHash: z.string().nullable().optional(),
+  /** T7.9: the gatekeeper's view of a tool request (never a decision). */
+  assessment: ToolAssessment.nullable().optional(),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequest>;
 
