@@ -20,6 +20,7 @@
     "e2e",
     "vitest.config.ts",
     "playwright.config.ts",
+    "playwright.live.config.ts",
     "eslint.config.mjs"
   ],
   "exclude": ["apps/pwa"]

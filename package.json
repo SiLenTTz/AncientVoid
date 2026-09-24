@@ -33,7 +33,8 @@
     "check:arch": "depcruise apps packages --config .dependency-cruiser.cjs",
     "prepare": "node scripts/setup-git.mjs",
     "hubctl": "node apps/hubctl/src/cli.ts",
-    "gate": "npm run typecheck && npm run lint && npm run check:commits && npm run check:arch && npm run check:adapter-matrix && npm test && npm run test:e2e"
+    "gate": "npm run typecheck && npm run lint && npm run check:commits && npm run check:arch && npm run check:adapter-matrix && npm test && npm run test:e2e",
+    "test:live": "scripts/test-live.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
