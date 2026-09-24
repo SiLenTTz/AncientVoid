@@ -1,5 +1,5 @@
 import type { EmittedEvent, SessionStatus, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, ToolQuestion } from "@uacc/contracts";
-import { QUESTION_TOOLS, ToolQuestion as ToolQuestionSchema } from "@uacc/contracts";
+import { QUESTION_TOOLS, requiresPasskey, ToolQuestion as ToolQuestionSchema, type ToolAssessment } from "@uacc/contracts";
 import type { ApprovalService, OperationStore } from "../approvals/index.ts";
 import type { LiveSession } from "./session-state.ts";
 
@@ -10,6 +10,8 @@ export interface ToolGate {
   timeoutMs: number;
   /** Prepares the per-session MCP bridge (claude --permission-prompt-tool). */
   bridge?: (sessionId: string) => Promise<{ mcpConfigPath: string; toolName: string }>;
+  /** T7.9: labels each tool request before it is shown; never decides. */
+  gatekeeper?: { assess(toolName: string, input: Record<string, unknown>, workdir: string | null): Promise<ToolAssessment> };
 }
 
 /** What tool permissions may do with a session — nothing more (ADR-0020). */
@@ -48,6 +50,8 @@ export class ToolPermissions {
   private readonly host: ToolPermissionHost;
   private readonly operations: OperationStore;
   private readonly gate: ToolGate;
+  /** A request being labelled — a retried one waits for the same approval. */
+  private readonly inFlight = new Map<string, Promise<{ ok: true; id: string } | { ok: false; detail: string }>>();
 
   constructor(host: ToolPermissionHost, operations: OperationStore, gate: ToolGate) {
     this.host = host;
@@ -61,6 +65,18 @@ export class ToolPermissions {
 
   /** A provider asks before running a tool. Idempotent per tool-use id. */
   async request(sessionId: string, req: ToolPermissionRequest): Promise<{ ok: true; id: string } | { ok: false; detail: string }> {
+    const key = req.toolUseId ? `${sessionId}:${req.toolUseId}` : null;
+    const running = key ? this.inFlight.get(key) : undefined;
+    if (running) return running;
+    const job = this.create(sessionId, req);
+    if (key) {
+      this.inFlight.set(key, job);
+      void job.finally(() => this.inFlight.delete(key));
+    }
+    return job;
+  }
+
+  private async create(sessionId: string, req: ToolPermissionRequest): Promise<{ ok: true; id: string } | { ok: false; detail: string }> {
     const session = this.host.session(sessionId);
     if (!session) return { ok: false, detail: "session not live" };
     if (req.toolUseId) {
@@ -70,14 +86,24 @@ export class ToolPermissions {
     const question = (QUESTION_TOOLS as readonly string[]).includes(req.toolName);
     const questions = question ? readQuestions(req.input) : [];
     const summary = question ? `Rückfrage: ${questions.map((q) => q.question).join(" / ")}` : `${req.toolName}: ${describeToolInput(req.input)}`;
-    const approval = this.gate.approvals.create(sessionId, "write", question ? "tool.question" : `tool.${req.toolName}`, summary.slice(0, 300), false, this.gate.timeoutMs);
+    // T7.9: label first — a critical request needs the passkey (ADR-0007).
+    const assessment = !question && this.gate.gatekeeper ? await this.gate.gatekeeper.assess(req.toolName, req.input, session.workdir ?? null) : null;
+    const cls = requiresPasskey(assessment) ? "destructive" : "write";
+    const approval = this.gate.approvals.create(sessionId, cls, question ? "tool.question" : `tool.${req.toolName}`, summary.slice(0, 300), false, this.gate.timeoutMs, assessment);
     this.operations.create(approval.id, sessionId, "tool.permission", { toolName: req.toolName, input: req.input, toolUseId: req.toolUseId ?? null }, session.record.inputRevision, session.record.adapter);
     if (session.record.status === "working" || session.record.status === "idle") await this.host.setStatus(session, "waiting_approval");
     await this.host.emitEvents(session, [
       {
         type: "gate",
         summary: summary.slice(0, 200),
-        payload: { kind: "tool.permission_requested", approvalId: approval.id, toolName: req.toolName, question, ...(question ? { questions } : {}) },
+        payload: {
+          kind: "tool.permission_requested",
+          approvalId: approval.id,
+          toolName: req.toolName,
+          question,
+          ...(question ? { questions } : {}),
+          ...(assessment ? { assessment: { toolRisk: assessment.toolRisk, securityGate: assessment.securityGate, source: assessment.source } } : {}),
+        },
       },
     ]);
     return { ok: true, id: approval.id };

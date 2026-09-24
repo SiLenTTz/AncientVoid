@@ -1,5 +1,5 @@
 import { randomUUID, createHmac } from "node:crypto";
-import type { ApprovalClass, ApprovalRequest, ApprovalStatus } from "@uacc/contracts";
+import { ToolAssessment, type ApprovalClass, type ApprovalRequest, type ApprovalStatus } from "@uacc/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 /**
@@ -27,6 +27,13 @@ interface ApprovalRow {
   decided_by_label: string | null;
   signature: string | null;
   payload_hash?: string | null;
+  assessment?: string | null;
+}
+
+function parseAssessment(raw: string | null | undefined): ToolAssessment | null {
+  if (!raw) return null;
+  const parsed = ToolAssessment.safeParse(JSON.parse(raw));
+  return parsed.success ? parsed.data : null;
 }
 
 function rowToRequest(row: ApprovalRow): ApprovalRequest {
@@ -45,6 +52,7 @@ function rowToRequest(row: ApprovalRow): ApprovalRequest {
     decidedByLabel: row.decided_by_label,
     signature: row.signature,
     payloadHash: row.payload_hash ?? null,
+    assessment: parseAssessment(row.assessment),
   };
 }
 
@@ -77,6 +85,8 @@ export class ApprovalService {
     reasonRequired = false,
     /** T7.2: tool requests wait longer than the 60 s for hub prompts. */
     timeoutMs: number = this.timeoutMs,
+    /** T7.9: the gatekeeper's label for a tool request. */
+    assessment: ToolAssessment | null = null,
   ): ApprovalRequest {
     const now = new Date();
     const row: ApprovalRow = {
@@ -93,11 +103,12 @@ export class ApprovalService {
       decided_at: null,
       decided_by_label: null,
       signature: null,
+      assessment: assessment ? JSON.stringify(assessment) : null,
     };
     this.db
       .prepare(
-        `INSERT INTO approvals (id, session_id, class, action, summary, created_at, timeout_at, status, reason_required, reason, decided_at, decided_by_label, signature)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO approvals (id, session_id, class, action, summary, created_at, timeout_at, status, reason_required, reason, decided_at, decided_by_label, signature, assessment)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         row.id,
@@ -113,6 +124,7 @@ export class ApprovalService {
         row.decided_at,
         row.decided_by_label,
         row.signature,
+        row.assessment ?? null,
       );
     return rowToRequest(row);
   }

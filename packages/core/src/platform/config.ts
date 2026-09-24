@@ -75,6 +75,23 @@ export const HubConfig = z.object({
   /** T7.6: registered actions (tests, tools) offered in every session,
    * next to the built-in git reads and the project's own test command. */
   actions: z.array(ActionDefinition).default([]),
+  /** T7.9 (ADR-0024): System-1 gatekeeper for tool requests. The rules
+   * always run; `model` adds a local llama.cpp judgement (OpenAI API). */
+  gatekeeper: z
+    .object({
+      enabled: z.boolean().default(true),
+      model: z
+        .object({
+          url: z.string().url(),
+          model: z.string().min(1).default("qwen3-coder"),
+          /** File with the API key (first line) — not in the config. */
+          apiKeyFile: z.string().optional(),
+        })
+        .optional(),
+      timeoutMs: z.number().int().min(500).max(60_000).default(8000),
+      minConfidence: z.number().min(0).max(1).default(0.8),
+    })
+    .default({}),
   /** T2.5: WebAuthn relying-party identity for destructive approvals.
    * Defaults suit local dev only (`localhost` origin) — a real Tailscale
    * deployment MUST override `rpId`/`origin` to the actual MagicDNS

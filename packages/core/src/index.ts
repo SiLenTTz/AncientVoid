@@ -13,3 +13,4 @@ export * from "./modules/notifications/index.ts";
 export * from "./modules/fleet/index.ts";
 export * from "./modules/attachments/index.ts";
 export * from "./modules/code/index.ts";
+export * from "./modules/gatekeeper/index.ts";
