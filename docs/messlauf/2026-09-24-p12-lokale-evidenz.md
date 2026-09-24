@@ -211,6 +211,15 @@ Maximum 5,53 s; alle Requests endeten in 5,57 s. Das liegt über der
 Verarbeitung, PWA-Teiltranskripte, 20 persistente Sessions und echte Geräte
 waren nicht beteiligt. Es schließt AI-P10-3 oder T12.10 nicht.
 
+Zusatzmessung über den vollständigen Hub-Endpunkt: 20 parallele 3,8-s-Clips
+aus demselben synthetischen Piper-Testdiktat gingen über einen isolierten
+Loopback-Hub mit temporärem Token/Datadir an den privaten STT-Dienst. 20/20
+Requests lieferten nichtleeren Text; p50 3,02 s, p95 5,59 s, Maximum 5,91 s,
+gesamte Wandzeit 5,91 s. Darin sind WebM→WAV und HTTP/Hub-Pfad enthalten.
+Es liefen keine Agent-Sessions und keine echte Stimme; damit bleibt AI-P10-3
+(20 Hub-Sessions unter Sprachlast) offen. Die temporären Dateien wurden
+entfernt, der Produktivhub blieb aus.
+
 ## T12.3 — Isolierter Backup-/Restore-Rundlauf
 
 Mit einem separaten Loopback-Hub und einem privaten temporären Datadir wurde
