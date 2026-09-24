@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 
 const url = process.env.UACC_LIVE_URL ?? "http://127.0.0.1:7373";
@@ -60,4 +61,18 @@ test.describe("Live-Hub (nur lesend)", () => {
     await page.getByRole("button", { name: "Planen" }).click();
     await expect(page.getByRole("button", { name: "nur wartende ✕" })).toBeVisible();
   });
+
+  test("Lokale Spracherkennung: Diktat (WebM wie vom Handy) → Hub → whisper.cpp → Text (P10)", async () => {
+    const stt = await api<{ available: boolean; engine?: string }>("/api/stt");
+    test.skip(!stt.available, "stt nicht konfiguriert");
+    // Piper „Thorsten“: „Führe bitte die Tests mit npm test aus und zeig mir die Fehler.“
+    const audio = readFileSync(new URL("./fixtures/diktat-npm-test.webm", import.meta.url));
+    const res = await fetch(`${url}/api/stt`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "audio/webm" }, body: audio });
+    expect(res.status).toBe(200);
+    const out = (await res.json()) as { text: string; latencyMs: number };
+    expect(out.text.toLowerCase()).toMatch(/tests/);
+    expect(out.text.toLowerCase().replace(/[^\p{L}]/gu, "")).toContain("npmtest"); // Schreibweise egal (npm-test, npm test)
+    expect(out.latencyMs).toBeLessThan(1500); // K6
+  });
 });
+
