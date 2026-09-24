@@ -213,7 +213,18 @@ async function main(): Promise<void> {
     projectRoots: config.projectRoots.map((root) => resolve(root)),
     actions: config.actions,
     ...(assistantModel ? { assistantModel } : {}),
-    ...(config.stt ? { stt: config.stt } : {}),
+    ...(config.stt ? { stt: {
+      url: config.stt.url,
+      engine: config.stt.engine,
+      language: config.stt.language,
+      vocabulary: config.stt.vocabulary,
+      timeoutMs: config.stt.timeoutMs,
+      ...(config.stt.streaming ? { streaming: {
+        url: config.stt.streaming.url,
+        endpointingMs: config.stt.streaming.endpointingMs,
+        ...(config.stt.streaming.apiKeyFile ? { apiKeyFile: resolve(config.stt.streaming.apiKeyFile.replace(/^~(?=\/)/, homedir())) } : {}),
+      } } : {}),
+    } } : {}),
     // EPIC-P11 (ADR-0031): the desktop companion's queue — always there; a
     // PC appears once a companion with a `companion:` token reports in.
     desktop: new DesktopService(db),

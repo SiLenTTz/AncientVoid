@@ -78,7 +78,7 @@ export interface HubAppDeps {
 
 /** Masks credentials carried in a URL's query string. */
 export function redactUrl(url: string): string {
-  return url.replace(/([?&](?:token|access_token)=)[^&#]*/gi, "$1[redacted]");
+  return url.replace(/([?&](?:token|access_token|ticket)=)[^&#]*/gi, "$1[redacted]");
 }
 
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {

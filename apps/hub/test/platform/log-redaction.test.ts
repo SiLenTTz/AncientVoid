@@ -10,6 +10,7 @@ import { createHubApp, redactUrl } from "../../src/app.ts";
 describe("no credentials in logs (BUG-0028, AC-P6-2)", () => {
   it("masks token query parameters", () => {
     expect(redactUrl("/api/events/abc/tail?token=s3cr3t")).toBe("/api/events/abc/tail?token=[redacted]");
+    expect(redactUrl("/api/stt/stream?ticket=s3cr3t")).toBe("/api/stt/stream?ticket=[redacted]");
     expect(redactUrl("/x?a=1&token=s3cr3t&b=2")).toBe("/x?a=1&token=[redacted]&b=2");
     expect(redactUrl("/api/sessions")).toBe("/api/sessions");
   });

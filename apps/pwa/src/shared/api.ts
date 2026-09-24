@@ -1,3 +1,5 @@
+import type { SttStreamTicket } from "@uacc/contracts";
+
 export interface SessionRecord {
   id: string;
   adapter: string;
@@ -821,7 +823,14 @@ function createHubApi(P: (path: string) => string) {
     return URL.createObjectURL(await res.blob());
   },
   /** T10.2 (ADR-0028): local speech-to-text on the hub. */
-  stt: () => api<{ available: boolean; engine?: string }>(P("/api/stt")),
+  stt: () => api<{ available: boolean; engine?: string; streaming?: boolean }>(P("/api/stt")),
+  sttStreamTicket: () => api<SttStreamTicket>(P("/api/stt/stream-ticket"), { method: "POST", body: "{}" }),
+  sttStreamUrl: (ticket: string) => {
+    const path = P(`/api/stt/stream?ticket=${encodeURIComponent(ticket)}`);
+    const url = new URL(path, window.location.href);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return url.href;
+  },
   transcribe: async (audio: Blob): Promise<{ text: string; engine: string; audioMs: number; latencyMs: number }> => {
     const res = await fetch(P("/api/stt"), { method: "POST", headers: { "content-type": audio.type || "audio/webm", authorization: `Bearer ${getToken()}` }, body: audio });
     const body = (await res.json().catch(() => ({}))) as { text?: string; engine?: string; audioMs?: number; latencyMs?: number; error?: string };

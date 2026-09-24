@@ -211,6 +211,9 @@ Maximum 5,53 s; alle Requests endeten in 5,57 s. Das liegt über der
 Verarbeitung, PWA-Teiltranskripte, 20 persistente Sessions und echte Geräte
 waren nicht beteiligt. Es schließt AI-P10-3 oder T12.10 nicht.
 
+Die folgenden Nachträge dokumentieren spätere Läufe am selben Datum und
+ersetzen Zwischenstände, wo sie abweichen.
+
 ## T12.3 — Isolierter Backup-/Restore-Rundlauf
 
 Mit einem separaten Loopback-Hub und einem privaten temporären Datadir wurde
@@ -222,6 +225,27 @@ gestartete Restore-Hub meldete Health 200; die Session blieb `stopped`, alle
 und Datadir wurden danach entfernt. Diese Messung belegt den isolierten
 Funktionspfad. Das Produktivbackup und dessen Dauer bleiben wegen des weiterhin
 aktiven ACP-Workers offen; ENOSPC wurde nicht simuliert.
+
+Nach ausdrücklicher Freigabe wurde der Hub angehalten und ein verschlüsseltes
+Produktivbackup mit 852.535 Byte und Modus `0600` erstellt. Die isolierte
+Wiederherstellung hatte eine intakte SQLite-Datenbank, sieben Sessions und
+erhaltene Geräte-/Fleet-Metadaten; das restaurierte Datadir blieb privat.
+Ein separater Rollback-Test auf Kandidatenstand P12→P11 stellte dieselbe
+Session und alle 63 Events bytegenau wieder her. Der temp. Restore wurde
+entfernt; der Produktiv-Hub blieb gestoppt. Offen bleiben Restore-Latenz,
+ENOSPC und Retention-Löschlauf.
+
+## T12.7 — Aktueller Stand nach Rotation
+
+Nach erneuter ausdrücklicher Freigabe wurde der lokale Hub sauber gestoppt;
+Port, PID-Lock und SQLite-WAL/SHM waren frei. `/tmp/uacc-hub.log` war zu
+diesem Zeitpunkt nicht vorhanden und daher wurde keine Logdatei gelöscht.
+Neue `diag`-/`pixel`-Tokens liegen geschützt (Modus `0600`) und sind noch nicht
+auf Clients eingespielt. `silenttz-server` wurde neu gekoppelt. Auf `evox2`
+funktioniert der SSH-Alias nur als `jan`, während der laufende Hub dem Nutzer
+`securesight` gehört; Dienstkonto-/sudo-Zugriff war nicht verfügbar, daher
+blieb dessen Fleet-Credential unverändert. Das getestete Passwort-geschützte
+Backup und der isolierte Restore wurden nicht gestartet.
 
 ## T12.11 — Vision-Modell und P10.5-Medienpfad
 
@@ -310,3 +334,27 @@ Dateien / 637 Tests grün; Playwright 151 bestanden, 2 sichtbar übersprungen.
 persistiert (`K8 PASSED`). Das ist der isolierte In-Process-Kernpfad; der
 Fleet-HTTP-Lauf steht separat oben. Es belegt keinen 24-h-Dauerlauf oder
 Sprachlast.
+
+## T12.10 — STT-Streamingpfad (implementiert, Zielgeräte offen)
+
+ADR-0032 und ein optionaler lokaler Hub-WebSocket-Proxy ergänzen den bisherigen
+`whisper.cpp`-Dateipfad. Die PWA zeigt Teiltranskripte ausschließlich als
+Vorschau; der E2E-Test bestätigt, dass erst das Finaltranskript im editierbaren
+Feld landet und kein Session-Event ausgelöst wird. Hub-Tests einschließlich
+Einmal-Ticket, Wiederverwendungssperre, Agent-Deny und URL-Redaction: 8/8.
+`npx playwright test e2e/specs/voice-local.spec.ts --repeat-each=3`: 9/9
+bestanden. Typecheck und PWA-Produktionsbuild bestanden.
+
+Vorher wurde die offizielle NVIDIA NeMo-Speech.cpp 0.1.0 Runtime samt
+verifiziertem Modell in isoliertem temporärem Verzeichnis auf CPU erprobt.
+Eine synthetische Piper-Aufnahme lieferte ein deutsches Delta-Transkript; das
+erste Delta traf 919 ms nach Streamstart ein, während die Fixture den
+Sprechbeginn bei 640 ms ansetzt. Ein Einzelwert an synthetischem Audio belegt
+weder p95 noch Verhalten auf dem Telefon. Der Versuch und die temporäre
+Runtime wurden beendet/entfernt. Der Hub lief dafür nicht produktiv.
+
+Offen bleiben Installation und Konfiguration des Streamingdienstes auf den
+Zielhosts sowie 100 warme Kurzbefehle je Zielgerät einschließlich
+VAD-/Abbruch-/Negativfällen. Damit bleibt AC-P10-2 (p95 ≤ 500 ms ab
+Sprachbeginn und p95 ≤ 2 s bis zur sichtbaren Aktion ab Sprachende) offen;
+`stt.streaming` ist standardmäßig deaktiviert.

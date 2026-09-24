@@ -19,6 +19,8 @@ export interface HubOptions {
   hostId?: string;
   /** T10.2: a whisper-compatible `/inference` URL for local STT. */
   sttUrl?: string;
+  /** T12.10: a local PCM16 streaming-ASR WebSocket endpoint. */
+  sttStreamingUrl?: string;
   /** T9/P10.5: an OpenAI-compatible model URL (…/v1) for commands and video summaries. */
   assistantUrl?: string;
 }
@@ -134,7 +136,11 @@ export class TestHub {
       workerRunner: this.options.runner ?? "process",
       projectRoots: [this.projectsDir],
       requireStepApprovals: this.options.requireStepApprovals ?? false,
-      ...(this.options.sttUrl ? { stt: { url: this.options.sttUrl, engine: "whisper-e2e" } } : {}),
+      ...(this.options.sttUrl ? { stt: {
+        url: this.options.sttUrl,
+        engine: "whisper-e2e",
+        ...(this.options.sttStreamingUrl ? { streaming: { url: this.options.sttStreamingUrl } } : {}),
+      } } : {}),
       ...(this.options.assistantUrl ? { assistant: { model: { url: this.options.assistantUrl, model: "e2e-model" } } } : {}),
       media: { ytDlp: join(binDir, "yt-dlp") },
       server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
