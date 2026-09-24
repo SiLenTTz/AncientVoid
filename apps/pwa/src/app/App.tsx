@@ -14,6 +14,7 @@ import { GeminiSettings } from "../features/settings/GeminiSettings.tsx";
 import { PushSettings } from "../features/settings/PushSettings.tsx";
 import { Settings } from "../features/settings/Settings.tsx";
 import { CreateSession } from "../features/new-session/CreateSession.tsx";
+import { MediaPage } from "../features/media/MediaPage.tsx";
 
 export function App({
   onOpen,
@@ -99,6 +100,9 @@ export function App({
           <button class="link-btn command-open" type="button" onClick={openCommandBar} aria-label="Auftrag in Worten (Strg+K)" title="Auftrag in Worten (Strg+K)">
             ✦
           </button>
+          <button class="link-btn" onClick={() => setPage("media")} title="Videos analysieren">
+            Medien
+          </button>
           <button class="link-btn" onClick={() => setPage("status")} title="Provider-Status">
             Status
           </button>
@@ -139,6 +143,8 @@ export function App({
       {page === "status" && <StatusPage adapters={adapters} usage={usage} />}
 
       {page === "discovery" && <DiscoveryPane onOpen={onOpen} />}
+
+      {page === "media" && <MediaPage sessions={sessions ?? []} />}
 
       {page === "dashboard" &&
         (sessions === null ? (

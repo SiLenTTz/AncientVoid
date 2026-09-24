@@ -31,6 +31,7 @@ const PAGE_WORDS: [RegExp, string][] = [
   [/\b(status|provider-?status|kontingent|quota)\b/, "status"],
   [/\b(freigaben|approvals?|warteschlange)\b/, "approvals"],
   [/\b(gefunden\w*|discovery|externe sessions)\b/, "discovery"],
+  [/\b(medien|media|videos|videoanalyse\w*)\b/, "media"],
   [/\b(uebersicht|uebersicht|overview|startseite|home|dashboard)\b/, "dashboard"],
 ];
 
@@ -96,6 +97,12 @@ export function parseCommand(raw: string): ParseResult {
     if (!txt) return { kind: "refusal", reason: "Welcher Text soll ins Feld?" };
     const field = /\b(titel|name|title)\b/.test(t) ? "session_title" : /\b(suche|suchfeld|search)\b/.test(t) ? "code_query" : "reply";
     return { kind: "intent", intent: { op: "field.fill", slots: { field, text: txt } } };
+  }
+
+  // --- EPIC-P10.5: a video link to analyse ----------------------------------
+  const link = /https?:\/\/[^\s"“”'<>]+/i.exec(text)?.[0]?.replace(/[.,;:!?)\]]+$/, "");
+  if (link && /\b(analysier\w*|analy[sz]e|zusammenfass\w*|fass\w*\b.*\bzusammen|transkribier\w*|transcribe|summari[sz]e|schau\w*\b.*\ban|watch)\b/.test(t)) {
+    return { kind: "intent", intent: { op: "media.analyze", slots: { text: link } } };
   }
 
   // --- Text transforms on the current field ----------------------------------

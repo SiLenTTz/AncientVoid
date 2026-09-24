@@ -97,6 +97,21 @@ export const HubConfig = z.object({
       timeoutMs: z.number().int().min(1000).max(120_000).default(30_000),
     })
     .optional(),
+  /** EPIC-P10.5 (ADR-0030): video analysis. Speech uses `stt`, chapters and
+   * summary the assistant model; `vision` is an optional local image model
+   * (llama.cpp with mmproj, OpenAI API). Gemini only per job, when allowed. */
+  media: z
+    .object({
+      enabled: z.boolean().default(true),
+      ytDlp: z.string().default("yt-dlp"),
+      /** Keep the downloaded/uploaded video after the analysis (default: delete). */
+      keepSource: z.boolean().default(false),
+      maxDurationSec: z.number().int().min(10).max(4 * 3600).default(30 * 60),
+      maxBytes: z.number().int().min(1024 * 1024).max(4 * 1024 * 1024 * 1024).default(500 * 1024 * 1024),
+      maxFrames: z.number().int().min(1).max(200).default(24),
+      vision: z.object({ url: z.string().url(), model: z.string().min(1), apiKeyFile: z.string().optional() }).optional(),
+    })
+    .default({}),
   /** T8.3 (ADR-0026): VAPID contact the push services see. */
   push: z.object({ subject: z.string().regex(/^(mailto:|https:)/).default("mailto:uacc@localhost") }).default({}),
   /** T7.9 (ADR-0024): System-1 gatekeeper for tool requests. The rules

@@ -170,6 +170,12 @@ export const CASES: [string, Partial<CommandContext>, Expect][] = [
   ["thanks", inS1, { none: true }],
   ["öffne die archivierte Session Alter Versuch", overview, { question: "session" }],
   ["show me the login session", overview, { op: "session.open", args: { sessionId: "s3" } }],
+  // --- EPIC-P10.5: videos ---
+  ["Analysiere das Video https://www.youtube.com/watch?v=abc123", overview, { op: "media.analyze", args: { text: "https://www.youtube.com/watch?v=abc123" } }],
+  ["Fasse https://youtu.be/xyz bitte zusammen.", overview, { op: "media.analyze", args: { text: "https://youtu.be/xyz" } }],
+  ["summarize this video: https://vimeo.com/12345", overview, { op: "media.analyze", args: { text: "https://vimeo.com/12345" } }],
+  ["Öffne Medien", overview, { op: "nav.open", args: { page: "media" } }],
+  ["schreibe 'https://youtu.be/xyz' in die Nachricht", inS1, { op: "field.fill", args: { text: "https://youtu.be/xyz" } }],
   // --- found by the adversarial test: questions are not orders ---
   ["Was sagt der Agent?", inS1, { none: true }],
   ["what did it say?", inS1, { none: true }],

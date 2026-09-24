@@ -368,6 +368,56 @@ export interface PromptRecommendation {
   draft: string | null;
 }
 
+/** EPIC-P10.5 — mirrors `@uacc/contracts`'s media types (ADR-0030). */
+export type MediaStep = "fetch" | "probe" | "audio" | "frames" | "vision" | "merge" | "summarize";
+export interface MediaStepState {
+  status: "pending" | "running" | "done" | "skipped" | "failed";
+  startedAt: string | null;
+  finishedAt: string | null;
+  detail: string | null;
+  via: string | null;
+  progress: number | null;
+}
+export interface MediaJob {
+  id: string;
+  source: { kind: "url" | "file"; url: string | null; attachmentId: string | null; name: string | null };
+  title: string | null;
+  durationSec: number | null;
+  status: "queued" | "running" | "done" | "failed" | "cancelled";
+  steps: Record<MediaStep, MediaStepState>;
+  allowCloud: boolean;
+  language: string;
+  egress: { step: MediaStep; service: string; own: boolean; at: string }[];
+  createdAt: string;
+  finishedAt: string | null;
+  error: string | null;
+  resultAttachmentId: string | null;
+}
+export interface MediaResult {
+  jobId: string;
+  title: string;
+  url: string | null;
+  durationSec: number;
+  language: string | null;
+  transcriptVia: string | null;
+  transcript: { startMs: number; endMs: number; text: string }[];
+  frames: { index: number; atMs: number; file: string; description: string | null; ocr: string | null; via: string | null }[];
+  chapters: { startMs: number; title: string; summary: string }[];
+  summary: string | null;
+  keyPoints: string[];
+  summaryVia: string | null;
+  notes: string[];
+}
+export interface MediaInfo {
+  available: boolean;
+  tools: { ytDlp: boolean; ffmpeg: boolean };
+  stt: boolean;
+  summary: boolean;
+  vision: boolean;
+  gemini: boolean;
+  limits: { maxBytes: number };
+}
+
 /** T7.10 — mirrors `@uacc/contracts`'s AttachmentRecord. */
 export interface AttachmentRecord {
   id: string;
@@ -710,6 +760,30 @@ function createHubApi(P: (path: string) => string) {
   // throw a bare "422 Unprocessable Entity" instead of surfacing that
   // detail. Callers inspect ack.ok/ack.detail themselves.
   /** `takeover` moves the writer lease to this device on purpose (T5.5). */
+  /** EPIC-P10.5 (ADR-0030): video analysis. */
+  media: () => api<MediaInfo>(P("/api/media")),
+  mediaJobs: () => api<MediaJob[]>(P("/api/media/jobs")),
+  mediaJob: (id: string) => api<MediaJob>(P(`/api/media/jobs/${id}`)),
+  mediaResult: (id: string) => api<MediaResult>(P(`/api/media/jobs/${id}/result`)),
+  createMediaJob: (body: { url: string; allowCloud: boolean; language: string }) => api<MediaJob>(P("/api/media/jobs"), { method: "POST", body: JSON.stringify(body) }),
+  uploadMedia: async (file: File, allowCloud: boolean, language: string): Promise<MediaJob> => {
+    const res = await fetch(P(`/api/media/upload?allowCloud=${allowCloud ? 1 : 0}&language=${encodeURIComponent(language)}`), {
+      method: "POST",
+      headers: { "content-type": file.type || "application/octet-stream", "x-filename": encodeURIComponent(file.name), authorization: `Bearer ${getToken()}` },
+      body: file,
+    });
+    const body = (await res.json().catch(() => ({}))) as MediaJob & { error?: string };
+    if (!res.ok) throw new Error(body.error ?? `${res.status} ${res.statusText}`);
+    return body;
+  },
+  cancelMediaJob: (id: string) => api<MediaJob>(P(`/api/media/jobs/${id}/cancel`), { method: "POST", body: "{}" }),
+  deleteMediaJob: (id: string) => api<{ ok: boolean }>(P(`/api/media/jobs/${id}`), { method: "DELETE" }),
+  /** A key frame as an object URL (the token stays in a header). */
+  mediaFrameUrl: async (id: string, file: string): Promise<string> => {
+    const res = await fetch(P(`/api/media/jobs/${id}/frames/${file}`), { headers: { authorization: `Bearer ${getToken()}` } });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return URL.createObjectURL(await res.blob());
+  },
   /** T10.2 (ADR-0028): local speech-to-text on the hub. */
   stt: () => api<{ available: boolean; engine?: string }>(P("/api/stt")),
   transcribe: async (audio: Blob): Promise<{ text: string; engine: string; audioMs: number; latencyMs: number }> => {

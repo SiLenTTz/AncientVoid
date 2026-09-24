@@ -293,6 +293,18 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 20,
+    name: "media-jobs",
+    // EPIC-P10.5 (ADR-0030): video analysis jobs; files live in data/media/<id>/.
+    sql: `
+      CREATE TABLE media_jobs (
+        id TEXT PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        state TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

@@ -17,6 +17,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (/^\/api\/sessions\/[^/]+\/draft$/.test(path)) return "drafts.write";
   if (method === "GET" || method === "HEAD") return "read";
   if (path === "/api/stt" && method === "POST") return "voice.transcribe";
+  if (path.startsWith("/api/media/")) return "media.analyze";
   // T9.3: planning is reading; executing runs every step through the real
   // route with the caller's own token — that route's policy decides.
   if (path.startsWith("/api/commands/")) return "read";

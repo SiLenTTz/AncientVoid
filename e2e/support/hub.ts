@@ -19,6 +19,8 @@ export interface HubOptions {
   hostId?: string;
   /** T10.2: a whisper-compatible `/inference` URL for local STT. */
   sttUrl?: string;
+  /** T9/P10.5: an OpenAI-compatible model URL (…/v1) for commands and video summaries. */
+  assistantUrl?: string;
 }
 
 export interface ApiResult<T> {
@@ -133,6 +135,8 @@ export class TestHub {
       projectRoots: [this.projectsDir],
       requireStepApprovals: this.options.requireStepApprovals ?? false,
       ...(this.options.sttUrl ? { stt: { url: this.options.sttUrl, engine: "whisper-e2e" } } : {}),
+      ...(this.options.assistantUrl ? { assistant: { model: { url: this.options.assistantUrl, model: "e2e-model" } } } : {}),
+      media: { ytDlp: join(binDir, "yt-dlp") },
       server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
       discovery: { claudeDir: join(this.root, "claude"), cursorUserDir: join(this.root, "cursor") },
       adapters: [

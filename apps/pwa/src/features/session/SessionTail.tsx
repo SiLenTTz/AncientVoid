@@ -11,6 +11,7 @@ import { CodePane } from "../code/CodePane.tsx";
 import { statusLabel } from "../../shared/status.ts";
 import { registerField, setHere, touchField } from "../../shared/command-context.ts";
 import { useDraft } from "./draft.ts";
+import { takeHandOver } from "../../shared/media.ts";
 import { openCommandBar } from "../commands/CommandBar.tsx";
 import { getSeen, markSeen, seenKey } from "../../shared/seen.ts";
 import { loadTail, saveTail } from "./tail-cache.ts";
@@ -102,7 +103,9 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   const [replyAttachments, setReplyAttachments] = useState<AttachmentRecord[]>([]);
   const [reply, setReply] = useState("");
   // T8.4: the reply is a draft on this device and on the hub (ADR-0025).
-  const draft = useDraft({ api, hostKey: remoteHost(session.hostId) ?? "local", sessionId: session.id, text: reply, setText: setReply, attachments: replyAttachments, setAttachments: setReplyAttachments });
+  // EPIC-P10.5: a video result handed to this session (Medien → „In Session verwenden“).
+  const [handedOver] = useState(() => takeHandOver(session.id));
+  const draft = useDraft({ api, hostKey: remoteHost(session.hostId) ?? "local", sessionId: session.id, text: reply, setText: setReply, attachments: replyAttachments, setAttachments: setReplyAttachments, pending: handedOver });
   const [replyBusy, setReplyBusy] = useState(false);
   const [replyError, setReplyError] = useState("");
   // Same text sent again after a failure keeps its input id (BUG-0016).

@@ -16,6 +16,7 @@ import {
   Gatekeeper,
   PushService,
   AttachmentStore,
+  MediaJobs,
   SettingsStore,
   AdapterRegistry,
   ApprovalService,
@@ -168,6 +169,26 @@ async function main(): Promise<void> {
   const tessdataDir = config.ocr.tessdataDir ? resolve(config.ocr.tessdataDir) : undefined;
   const attachments = new AttachmentStore(db, resolve(dataDir, "attachments"), () => ({ gemini: settings.gemini(), ...(tessdataDir ? { tessdataDir } : {}) }));
 
+  // EPIC-P10.5 (ADR-0030): video analysis — local services first, Gemini
+  // only for jobs that allow the cloud.
+  const mc = config.media;
+  const visionKey = mc.vision?.apiKeyFile ? (await readFile(resolve(mc.vision.apiKeyFile.replace(/^~(?=\/)/, homedir())), "utf8").catch(() => "")).split("\n")[0]?.trim() : undefined;
+  const media = mc.enabled
+    ? new MediaJobs(db, {
+        dir: resolve(dataDir, "media"),
+        attachments,
+        ...(config.stt ? { stt: { url: config.stt.url, timeoutMs: 15 * 60_000 } } : {}),
+        ...(assistantModel ? { summaryModel: { ...assistantModel, timeoutMs: 10 * 60_000 } } : {}),
+        ...(mc.vision ? { vision: { url: mc.vision.url, model: mc.vision.model, ...(visionKey ? { apiKey: visionKey } : {}) } } : {}),
+        gemini: () => settings.gemini(),
+        ytDlp: mc.ytDlp,
+        keepSource: mc.keepSource,
+        limits: { maxDurationSec: mc.maxDurationSec, maxBytes: mc.maxBytes, maxFrames: mc.maxFrames },
+        tessdataDir,
+        log: (message, meta) => logger.warn(message, meta ?? {}),
+      })
+    : undefined;
+
   // K7: recover sessions from JSONL + snapshots before accepting traffic.
   const recovery = await sessions.recoverAll();
   logger.info("recovery finished", {
@@ -189,6 +210,7 @@ async function main(): Promise<void> {
     actions: config.actions,
     ...(assistantModel ? { assistantModel } : {}),
     ...(config.stt ? { stt: config.stt } : {}),
+    ...(media ? { media: { media, ytDlp: mc.ytDlp, capabilities: { stt: Boolean(config.stt), summary: Boolean(assistantModel), vision: Boolean(mc.vision) } } } : {}),
     approvals,
     attachments,
     settings,
@@ -211,6 +233,8 @@ async function main(): Promise<void> {
     : config.server.host;
   await app.listen({ port: config.server.port, host: listen });
   logger.info("listening", { host: config.server.host, port: config.server.port, dataDir });
+  const resumed = media?.resume() ?? 0;
+  if (resumed) logger.info("media jobs resumed", { count: resumed });
   if (config.server.host === "127.0.0.1" && !process.env.UACC_EXPOSE) {
     logger.info("bound to loopback — expose via tailscale serve, never via public bind");
   }
