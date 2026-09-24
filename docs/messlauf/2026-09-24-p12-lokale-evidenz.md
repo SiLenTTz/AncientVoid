@@ -150,7 +150,19 @@ mit `shred -u -n 1` entfernt. Der Hub bleibt für den Gerätewechsel bewusst aus
 Das bestehende Tokenarchiv unter
 `/home/silenttz/.config/uacc/rotated-2026-09-24/device-tokens.txt` ist
 vorhanden, nicht leer und Modus `0600`; die Tokens wurden nicht ein zweites
-Mal rotiert, damit die noch einzuspielenden Client-Tokens gültig bleiben.
+Mal rotiert, damit die noch einzuspielenden Client-Tokens gültig bleiben (Stand
+dieser damaligen Prüfung).
+
+Bei einer späteren Metadatenprüfung wurden die Klartextwerte des Archivs
+versehentlich in einer internen Werkzeugausgabe angezeigt. Beide betroffenen
+Gerätetokens (`diag`, `pixel`) wurden deshalb nochmals widerrufen und frisch
+ausgestellt; das geschützte Archiv wurde ersetzt und blieb Modus `0600`. Die
+Tokenliste führt beide Labels aktiv, bislang ohne Nutzung. Die neuen Werte
+müssen noch auf die Clients übertragen und dort geprüft werden. Die lokalen
+Fleet-Daten führen `evox2` und `silenttz-server` mit frischen Kopplungszeiten
+vom 2026-09-24; eine erneute Rotation war daher nicht nötig. Eine aktuelle
+SSH-Prüfung von `evox2` scheiterte an der Host-Authentifizierung, sodass der
+Remote-Dienstzustand in diesem Schritt nicht live bestätigt wurde.
 
 Für den Gerätewechsel wurde der Hub vorübergehend wieder gestartet; die PWA
 war über die Tailnet-Adresse erreichbar. Die ADB-Verbindung zum Fairphone 6
@@ -187,6 +199,29 @@ geprüft: Halogen-Units und Proxy blieben aktiv; zwei `llama-server`-Prozesse;
 meldete evox2 89 GiB belegt und 34 GiB verfügbar von 123 GiB Unified Memory.
 Es wurden keine Modellserver gestoppt. Auf dem Home-Dateisystem sind 53 GiB
 frei (94 % belegt), relevant für T12.11-Modellartefakte.
+
+## T12.2 — STT-Backend unter Parallelität
+
+Das synthetische Piper-E2E-Diktat `e2e/live/fixtures/diktat-npm-test.webm`
+(3,81 s) wurde in 16-kHz-Mono-WAV konvertiert und 20-mal parallel direkt an den lokalen
+`uacc-stt`-Dienst auf evox2 geschickt. 20/20 Antworten waren HTTP 200 mit
+nichtleerem Text. End-to-End am Backend: p50 2,81 s, p90 4,95 s, p95 5,24 s,
+Maximum 5,53 s; alle Requests endeten in 5,57 s. Das liegt über der
+2-s-Schwelle, ist aber nur ein synthetischer Backend-Baseline-Lauf: Hub-
+Verarbeitung, PWA-Teiltranskripte, 20 persistente Sessions und echte Geräte
+waren nicht beteiligt. Es schließt AI-P10-3 oder T12.10 nicht.
+
+## T12.3 — Isolierter Backup-/Restore-Rundlauf
+
+Mit einem separaten Loopback-Hub und einem privaten temporären Datadir wurde
+eine Dummy-Session angelegt, bis 65 Events gewartet und anschließend gestoppt.
+`hubctl backup create` erzeugte ein 7.442-Byte-Archiv mit Modus `0600`;
+`hubctl backup restore` stellte es in ein neues Datadir wieder her. Der
+gestartete Restore-Hub meldete Health 200; die Session blieb `stopped`, alle
+65 Events und der Sentinel-Text waren vorhanden. Testschlüssel, Token, Archiv
+und Datadir wurden danach entfernt. Diese Messung belegt den isolierten
+Funktionspfad. Das Produktivbackup und dessen Dauer bleiben wegen des weiterhin
+aktiven ACP-Workers offen; ENOSPC wurde nicht simuliert.
 
 ## T12.11 — Vision-Modell und P10.5-Medienpfad
 
@@ -254,6 +289,14 @@ Probeverzeichnis entfernt. Ein erster lokaler Qwen-Lauf bestätigt zusätzlich
 Toolfehlerbehandlung (fehlende Datei sichtbar, ohne Verlust des Turns). Das
 prüft echten ACP-Transport und Modell, aber kein Telefon-UI und keine
 Claude-Code-Freigabe.
+
+Der Live-Versuch für den Claude-Code-Provider-Freigabepfad (CLI 2.1.280,
+Sonnet) wurde am selben Datum vor dem ersten Tool-Aufruf vom Provider
+abgelehnt: `weekly limit`, `overageStatus=rejected`,
+`overageDisabledReason=out_of_credits`. Die Session erhielt kein
+Permission-Event, legte keine Testdateien an und meldete `$0.0000`; der
+Provider nannte den Reset am 2026-09-27 um 10:00 Europe/Berlin. Die Abnahme
+bleibt offen und muss nach dem Reset wiederholt werden.
 
 Nach diesem Messlauf bestand `npm run gate` am Commit `160ea99`: Typecheck,
 Lint, Commit-Notation, Architekturprüfung, Adapter-Matrix und 104 Vitest-
