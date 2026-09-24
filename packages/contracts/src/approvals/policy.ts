@@ -47,6 +47,7 @@ export const POLICY_OPERATIONS = [
   "attachments.upload",
   "settings.manage",
   "actions.run",
+  "drafts.write",
 ] as const;
 export type PolicyOperation = (typeof POLICY_OPERATIONS)[number];
 
@@ -80,6 +81,8 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   /** T7.6: registered test/git/tool actions — a person's button. An agent
    * runs its tools inside its own harness, gated there (T7.2). */
   "actions.run": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
+  /** T8.4: a person's unsent reply — agents neither read nor write it. */
+  "drafts.write": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
 };
 
 export function policyFor(operation: PolicyOperation, label: string | null | undefined): PolicyDecision {

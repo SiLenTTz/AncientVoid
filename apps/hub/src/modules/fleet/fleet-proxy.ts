@@ -124,5 +124,5 @@ export function registerFleetProxy(
       return reply.code(502).send({ error: `${hostId} nicht erreichbar: ${err instanceof Error ? err.message : String(err)}`, hostId, state: "offline" });
     }
   };
-  app.route({ method: ["GET", "POST", "DELETE"], url: "/api/hosts/:hostId/*", handler });
+  app.route({ method: ["GET", "POST", "PUT", "DELETE"], url: "/api/hosts/:hostId/*", handler });
 }

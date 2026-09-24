@@ -148,3 +148,51 @@
 .composer-actions .btn.attach-btn {
   flex: 0 0 44px;
 }
+
+/* T8.4: drafts — where the text lives, and a conflict to decide. */
+.draft-state {
+  font-size: 11px;
+  padding: 2px 2px 4px;
+}
+
+.draft-state.local {
+  color: var(--warn);
+}
+
+.draft-conflict {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border-radius: var(--radius);
+  border: 1px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, var(--bg-elev));
+  font-size: 13px;
+}
+
+.reply-templates {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0 6px;
+  scrollbar-width: none;
+}
+
+.reply-templates .chip {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.template-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.template-remove {
+  background: none;
+  border: none;
+  color: var(--fg-dim);
+  min-width: 28px;
+  min-height: 32px;
+}

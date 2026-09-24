@@ -13,6 +13,8 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   const path = url.split("?")[0] ?? url;
   // Asking and polling alike: the bridge's own route, nobody else's.
   if (/^\/api\/sessions\/[^/]+\/tool-permissions/.test(path)) return "tools.ask";
+  // T8.4: drafts are a person's, reading included.
+  if (/^\/api\/sessions\/[^/]+\/draft$/.test(path)) return "drafts.write";
   if (method === "GET" || method === "HEAD") return "read";
   if (/^\/api\/sessions\/[^/]+\/actions\/[^/]+$/.test(path)) return "actions.run";
   if (path === "/api/sessions") return "sessions.create";

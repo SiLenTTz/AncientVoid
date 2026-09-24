@@ -1,5 +1,6 @@
 export * from "./sessions/event.ts";
 export * from "./sessions/metrics.ts";
+export * from "./sessions/draft.ts";
 export * from "./sessions/session.ts";
 export * from "./harness/adapter.ts";
 export * from "./sessions/worker.ts";

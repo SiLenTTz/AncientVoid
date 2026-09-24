@@ -5,6 +5,17 @@ import { ApiContext } from "../../shared/api-context.ts";
 import { Composer } from "../composer/Composer.tsx";
 import { SkillPicker, loadSelectedSkill, loadSelectedWorkflow, type SelectedSkill } from "../composer/SkillOverlay.tsx";
 
+const LAST_KEY = "uacc.newSession.last";
+const PROMPT_KEY = "uacc.newSession.prompt";
+
+function readLast(): { host?: string | null; adapter?: string; project?: string } {
+  try {
+    return (JSON.parse(localStorage.getItem(LAST_KEY) ?? "{}") ?? {}) as { host?: string | null; adapter?: string; project?: string };
+  } catch {
+    return {};
+  }
+}
+
 export function CreateSession({
   adapters: localAdapters,
   hosts,
@@ -16,7 +27,10 @@ export function CreateSession({
 }) {
   // EPIC-P6: a session starts on exactly the chosen host.
   const selfHost = hosts.find((h) => h.self)?.hostId ?? null;
-  const [host, setHost] = useState<string | null>(selfHost);
+  // T8.4: start where you last started — host, harness, project — and
+  // keep an unsent start prompt on this device.
+  const last = useMemo(readLast, []);
+  const [host, setHost] = useState<string | null>(last.host && hosts.some((h) => h.hostId === last.host) ? last.host : selfHost);
   const remote = host !== null && host !== selfHost;
   const api = useMemo(() => (remote ? hostApi(host) : hubApi), [host, remote]);
   const [remoteAdapters, setRemoteAdapters] = useState<AdapterInfo[]>([]);
@@ -25,13 +39,18 @@ export function CreateSession({
     if (!remote) return;
     api.adapters().then(setRemoteAdapters).catch(() => setRemoteAdapters([]));
   }, [api, remote]);
-  const [adapter, setAdapter] = useState(adapters[0]?.id ?? "dummy");
+  const [adapter, setAdapter] = useState(last.adapter && adapters.some((a) => a.id === last.adapter) ? last.adapter : (adapters[0]?.id ?? "dummy"));
   useEffect(() => {
     if (adapters.length > 0 && !adapters.some((a) => a.id === adapter)) setAdapter(adapters[0]!.id);
   }, [adapters]);
   const [project, setProject] = useState("");
   const [attachments, setAttachments] = useState<AttachmentRecord[]>([]);
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPromptState] = useState(() => localStorage.getItem(PROMPT_KEY) ?? "");
+  const setPrompt = (p: string) => {
+    setPromptState(p);
+    if (p) localStorage.setItem(PROMPT_KEY, p);
+    else localStorage.removeItem(PROMPT_KEY);
+  };
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
@@ -67,7 +86,7 @@ export function CreateSession({
         setProjects(res.projects);
         // Preselect the first discovered project so "Starten" works
         // without any typing when a picker is shown.
-        if (res.projects.length > 0) setProject((p) => p || res.projects[0]!.path);
+        if (res.projects.length > 0) setProject((p) => p || (res.projects.some((x) => x.path === last.project) ? last.project! : res.projects[0]!.path));
       })
       .catch(() => {
         // T1.5-5: an unreachable /api/projects must not make the form
@@ -113,6 +132,8 @@ export function CreateSession({
         ...(skill ? { args: { [skill.kind]: skill.name } } : {}),
         ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
       });
+      localStorage.removeItem(PROMPT_KEY);
+      localStorage.setItem(LAST_KEY, JSON.stringify({ host, adapter, project }));
       onCreated(rec);
     } catch (err) {
       setError(err instanceof Error ? err.message : "create failed");

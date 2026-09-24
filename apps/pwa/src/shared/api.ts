@@ -403,7 +403,23 @@ export function getToken(): string {
 }
 
 export function setToken(token: string): void {
+  // T8.2/AC-P8-4: another token is another person's device state — drafts
+  // and cached views of the previous one must not show up.
+  if (localStorage.getItem(TOKEN_KEY) !== token) {
+    for (const key of Object.keys(localStorage)) if (key.startsWith("uacc.draft.") || key.startsWith("uacc.newSession")) localStorage.removeItem(key);
+    void caches?.delete?.("uacc-api").catch(() => undefined);
+  }
   localStorage.setItem(TOKEN_KEY, token);
+}
+
+/** T8.4: a session's shared, revisioned draft (ADR-0025). */
+export interface SessionDraft {
+  sessionId: string;
+  text: string;
+  attachmentIds: string[];
+  revision: number;
+  updatedAt: string | null;
+  device: string | null;
 }
 
 const CLIENT_KEY = "uacc.clientId";
@@ -641,6 +657,19 @@ function createHubApi(P: (path: string) => string) {
   // throw a bare "422 Unprocessable Entity" instead of surfacing that
   // detail. Callers inspect ack.ok/ack.detail themselves.
   /** `takeover` moves the writer lease to this device on purpose (T5.5). */
+  /** T8.4 (ADR-0025): the shared draft of a session. */
+  draft: (id: string) => api<SessionDraft>(P(`/api/sessions/${id}/draft`)),
+  saveDraft: async (id: string, text: string, attachmentIds: string[], baseRevision: number): Promise<{ ok: true; draft: SessionDraft } | { ok: false; current: SessionDraft }> => {
+    const res = await fetch(P(`/api/sessions/${id}/draft`), {
+      method: "PUT",
+      headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ text, attachmentIds, baseRevision }),
+    });
+    const body = (await res.json().catch(() => ({}))) as SessionDraft & { current?: SessionDraft; error?: string };
+    if (res.status === 409 && body.current) return { ok: false, current: body.current };
+    if (!res.ok) throw new Error(body.error ?? `${res.status} ${res.statusText}`);
+    return { ok: true, draft: body };
+  },
   steer: async (id: string, input: SteerInput, inputId?: string, takeover = false): Promise<Ack> => {
     const res = await fetch(P(`/api/sessions/${id}/steer`), {
       method: "POST",

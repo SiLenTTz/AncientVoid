@@ -8,6 +8,8 @@ import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
 import { statusLabel } from "../../shared/status.ts";
+import { useDraft } from "./draft.ts";
+import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
@@ -66,6 +68,8 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   // T7.10: files and images for the next reply.
   const [replyAttachments, setReplyAttachments] = useState<AttachmentRecord[]>([]);
   const [reply, setReply] = useState("");
+  // T8.4: the reply is a draft on this device and on the hub (ADR-0025).
+  const draft = useDraft({ api, hostKey: remoteHost(session.hostId) ?? "local", sessionId: session.id, text: reply, setText: setReply, attachments: replyAttachments, setAttachments: setReplyAttachments });
   const [replyBusy, setReplyBusy] = useState(false);
   const [replyError, setReplyError] = useState("");
   // Same text sent again after a failure keeps its input id (BUG-0016).
@@ -334,6 +338,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
         pendingInput.current = null;
         setReply("");
         setReplyAttachments([]);
+        void draft.clear();
       } else {
         setLeaseHeld(ack.detail === "writer lease held");
         // A rejected steer (e.g. claude's "no thread_id captured yet") is
@@ -494,6 +499,25 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                 )}
               </div>
             )}
+            {showReply && draft.conflict && (
+              <div class="draft-conflict" role="alert">
+                <div>
+                  {draft.conflict.device ?? "Ein anderes Gerät"} hat den Entwurf geändert: <em>„{draft.conflict.text.slice(0, 160) || "(leer)"}“</em>
+                </div>
+                <div class="row">
+                  <button class="btn" type="button" onClick={draft.takeTheirs}>
+                    Deren übernehmen
+                  </button>
+                  <button class="btn primary" type="button" onClick={draft.keepMine}>
+                    Meinen behalten
+                  </button>
+                </div>
+              </div>
+            )}
+            {showReply && (draft.state === "saved" || draft.state === "local") && (reply || replyAttachments.length > 0) && (
+              <div class={`draft-state dim ${draft.state}`}>{draft.state === "saved" ? "Entwurf gespeichert — auch auf deinen anderen Geräten" : "Entwurf nur auf diesem Gerät (Hub nicht erreichbar)"}</div>
+            )}
+            {showReply && !draft.conflict && <ReplyTemplates value={reply} onPick={setReply} />}
             {showReply && (
               <Composer
                 value={reply}
