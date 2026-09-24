@@ -42,7 +42,7 @@ ohne ADR bei späterer Implementierung. Schätzungen ohne G0-Restarbeit.
 | [P10 — Echtzeit-Sprache und Laya](EPIC-P10-realtime-voice-laya.md) | lokale Streaming-STT, gemessene Laya-Entscheidung | P9 grün | 1–3 |
 | [P10.5 — Medien- und Video-Analyse](EPIC-P10.5-media-video-analysis.md) | YouTube/Videos: Transkript, Schlüsselbilder, Kapitel, Zusammenfassung als Session-Material | P7 T7.10 + P10 grün | 1–3 |
 | [P11 — Desktop-Companion](EPIC-P11-desktop-companion.md) | systemweite Eingabe und definierte GUI-Flows | P10 grün | 2–4 |
-| [P12 — Betriebsreife](EPIC-P12-operational-readiness.md) | Backup/Restore vorbereitet, native Gates live aktiviert, Fleet-Credentials rotiert; Live-Abnahmen blockiert | P11 grün (!112/!113 offen) | 1–2 |
+| [P12 — Betriebsreife](EPIC-P12-operational-readiness.md) | Verschlüsseltes Produktivbackup + isolierter Restore belegt; BUG-0030 in [MR !115](https://gitlab.com/SiLenT_Tz/mobile-hub/-/merge_requests/115); externe Geräte-/Provider-Abnahmen offen | P11 grün (!112/!113 offen) | 1–2 |
 
 „Alle / 100 %“ bezieht sich auf die Pflichtmatrix aus Audit §4. Eine unbekannte
 oder technisch blockierte Fähigkeit verhindert diesen Claim; Monitor-only und
