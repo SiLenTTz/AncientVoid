@@ -5,7 +5,7 @@ status: done
 severity: S3
 area: hub.sh
 instance: dev
-commit: ""
+commit: "c24448b"
 forge: ""
 epic: P12
 created: 2026-09-24
