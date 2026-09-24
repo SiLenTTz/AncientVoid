@@ -14,7 +14,7 @@ test.describe("Harness-Parität (EPIC-P7)", () => {
     await model.selectOption("opencode/big-pickle");
     await app.getByPlaceholder("Refactore den Auth-Flow…").fill("Hallo");
     await app.getByRole("button", { name: "Starten" }).click();
-    await expect(app.locator(".topbar")).toContainText("opencode · opencode/big-pickle");
+    await expect(app.locator(".session-topbar")).toContainText("opencode · opencode/big-pickle");
     const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
     expect((await hub.api<{ model: string | null }>(`/api/sessions/${id}`)).body.model).toBe("opencode/big-pickle");
   });
@@ -56,7 +56,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "waiting_approval");
     expect((await hub.events(id)).filter((e) => e.type === "tool_result")).toHaveLength(0);
     await card.getByRole("button", { name: "Erlauben" }).click();
-    await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · Claude .* · Ausgabe hallo-uacc/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte WERKZEUG · Claude .* · Ausgabe hallo-uacc/)).toBeVisible();
     await expect(card).toHaveCount(0);
     await app.getByRole("button", { name: "Verlauf" }).click();
     await expect(app.locator(".event.tool_use")).toHaveCount(1);
@@ -88,7 +88,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(app.locator(".event.provider-error")).toContainText("claude: Serverfehler beim Provider");
     await app.getByPlaceholder("Antworten…").fill("Jetzt wieder");
     await app.getByRole("button", { name: /^(Senden|Weiter)$/ }).click();
-    await expect(app.getByText(/Antwort auf: Jetzt wieder · Claude/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Jetzt wieder · Claude/)).toBeVisible();
   });
 
   test("T7.2: „Ablehnen“ — das Tool läuft nicht, Claude erfährt wer und warum", async ({ app, hub }) => {
@@ -112,7 +112,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(card.getByRole("button", { name: "Antworten" })).toBeDisabled();
     await card.getByRole("button", { name: "Grün" }).click();
     await card.getByRole("button", { name: "Antworten" }).click();
-    await expect(app.getByText(/Antwort auf: Bitte FRAGE · Claude .* · Gewählt: Grün/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte FRAGE · Claude .* · Gewählt: Grün/)).toBeVisible();
   });
 
   test("T7.2: die Tool-Anfrage steht auch in der Freigabe-Warteschlange", async ({ app, hub }) => {
@@ -133,11 +133,11 @@ test.describe("ACP-Harness (T7.2)", () => {
     await expect(card.locator(".tool-input")).toHaveText("echo hallo-acp");
     await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "waiting_approval");
     await card.getByRole("button", { name: "Erlauben" }).click();
-    await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · ACP · Ausgabe hallo-acp \(allow-once\)/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte WERKZEUG · ACP · Ausgabe hallo-acp \(allow-once\)/)).toBeVisible();
     await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
     await app.getByPlaceholder("Antworten…").fill("Noch eine Frage");
     await app.getByRole("button", { name: "Senden" }).click();
-    await expect(app.getByText(/Antwort auf: Noch eine Frage · ACP/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Noch eine Frage · ACP/)).toBeVisible();
   });
 
   test.describe("mit tmux-Workern", () => {
@@ -154,7 +154,7 @@ test.describe("ACP-Harness (T7.2)", () => {
       await app.getByRole("button", { name: "Chat" }).click();
       await app.getByPlaceholder("Antworten…").fill("Nach dem Absturz");
       await app.getByRole("button", { name: "Senden" }).click();
-      await expect(app.getByText(/Antwort auf: Nach dem Absturz · ACP/)).toBeVisible();
+      await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Nach dem Absturz · ACP/)).toBeVisible();
       const started = (await hub.events(id)).filter((e) => e.payload.kind === "acp.native_session");
       expect(started, "same agent session, no new one").toHaveLength(1);
     });
@@ -173,7 +173,7 @@ test.describe("Codex app-server (T7.2)", () => {
     const card = app.locator(".session-approvals .approval-card");
     await expect(card.locator(".tool-input")).toHaveText("echo hallo-codex");
     await card.getByRole("button", { name: "Erlauben" }).click();
-    await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · Codex · Ausgabe hallo-codex \(accept\)/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte WERKZEUG · Codex · Ausgabe hallo-codex \(accept\)/)).toBeVisible();
     await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
     await app.goto(hub.origin);
     await app.getByRole("button", { name: "Status" }).click();

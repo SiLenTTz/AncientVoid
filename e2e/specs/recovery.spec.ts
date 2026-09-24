@@ -8,15 +8,15 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
       const id = await hub.createSession({ adapter: "dummy" });
       await app.goto(`${hub.origin}/#/sessions/${id}`);
       await app.getByRole("button", { name: "Verlauf" }).click();
-      await expect(app.locator(".conn-dot.live")).toBeVisible();
+      await expect(app.locator(".session-topbar .conn-dot.live")).toBeVisible();
       await hub.until(async () => (await hub.events(id)).length >= 12, "some events");
       const before = await hub.events(id);
 
       await hub.kill("SIGKILL");
-      await expect(app.locator(".topbar .conn-dot.live")).toHaveCount(0);
+      await expect(app.locator(".session-topbar .conn-dot.live")).toHaveCount(0);
       const restartMs = await hub.restart();
       info.annotations.push({ type: "restart-ms (inkl. Node-Start)", description: String(restartMs) });
-      await expect(app.locator(".topbar .conn-dot.live")).toBeVisible({ timeout: 20_000 });
+      await expect(app.locator(".session-topbar .conn-dot.live")).toBeVisible({ timeout: 20_000 });
 
       const after = await hub.events(id);
       expect(after.slice(0, before.length).map((e) => [e.seq, e.type, e.summary])).toEqual(
@@ -43,10 +43,10 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
     await app.reload();
     await openFromOverview(app, "opencode");
     await app.getByRole("button", { name: "Chat" }).click();
-    await expect(app.getByText(/Antwort auf: Vor dem Neustart/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Vor dem Neustart/)).toBeVisible();
     await app.getByPlaceholder("Antworten…").fill("Nach dem Neustart");
     await app.getByRole("button", { name: "Weiter" }).click();
-    await expect(app.getByText(/Antwort auf: Nach dem Neustart .*\(fortgesetzt\)/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Nach dem Neustart .*\(fortgesetzt\)/)).toBeVisible();
   });
 
   test("ohne tmux stoppt ein geplanter Neustart die Sessions, verliert aber keine Arbeit (BUG-0027)", async ({ hub }) => {
@@ -86,7 +86,7 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
 
       await app.goto(`${hub.origin}/#/sessions/${id}`);
       await app.getByRole("button", { name: "Chat" }).click();
-      await expect(app.getByText(/Antwort auf: Lege eine DATEI an WARTE3/)).toBeVisible({ timeout: 15_000 });
+      await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Lege eine DATEI an WARTE3/)).toBeVisible({ timeout: 15_000 });
       await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
       const events = await hub.events(id);
       expect(events.some((e) => e.payload.kind === "session.stopped"), "planned restart stops nothing").toBe(false);
@@ -95,7 +95,7 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
 
       await app.getByPlaceholder("Antworten…").fill("Nach dem Neustart");
       await app.getByRole("button", { name: "Senden" }).click();
-      await expect(app.getByText(/Antwort auf: Nach dem Neustart .*\(fortgesetzt\)/)).toBeVisible();
+      await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Nach dem Neustart .*\(fortgesetzt\)/)).toBeVisible();
     });
 
     test("ein Zug, der den Kill überlebt, wird übernommen und läuft sichtbar zu Ende (AC-P5-3) @desktop", async ({ app, hub }) => {
@@ -106,7 +106,7 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
 
       await app.goto(`${hub.origin}/#/sessions/${id}`);
       await app.getByRole("button", { name: "Chat" }).click();
-      await expect(app.getByText(/Antwort auf: Arbeite WARTE3/)).toBeVisible({ timeout: 15_000 });
+      await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Arbeite WARTE3/)).toBeVisible({ timeout: 15_000 });
       await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
 
       const after = await hub.events(id);
@@ -116,7 +116,7 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
 
       await app.getByPlaceholder("Antworten…").fill("Und weiter");
       await app.getByRole("button", { name: "Senden" }).click();
-      await expect(app.getByText(/Antwort auf: Und weiter .*\(fortgesetzt\)/)).toBeVisible();
+      await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Und weiter .*\(fortgesetzt\)/)).toBeVisible();
     });
   });
 });

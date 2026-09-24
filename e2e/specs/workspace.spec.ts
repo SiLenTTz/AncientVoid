@@ -17,8 +17,10 @@ test.describe("Archiv (P5 §9)", () => {
   test("Archivieren aus der Session heraus bleibt nach Reload", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.locator(".topbar").getByRole("button", { name: "Archivieren" }).click();
-    await expect(app.locator(".topbar").getByRole("button", { name: "Zurückholen" })).toBeVisible();
+    await app.getByLabel("Weitere Aktionen").click();
+    await app.locator(".session-menu").getByRole("button", { name: "Archivieren" }).click();
+    await app.getByLabel("Weitere Aktionen").click();
+    await expect(app.locator(".session-menu").getByRole("button", { name: "Zurückholen" })).toBeVisible();
     expect((await hub.api<{ archived: boolean }>(`/api/sessions/${id}`)).body.archived).toBe(true);
   });
 });
@@ -154,7 +156,7 @@ test.describe("Composer: Verbessern, Empfehlung, Skills (T3.9, T5.7–T5.10)", (
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Chat" }).click();
     await expect(app.getByText("Skills task → neon")).toBeVisible();
-    await expect(app.getByText(/Antwort auf: Mach es bunt/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Mach es bunt/)).toBeVisible();
   });
 
   test("Skill-Picker-Overlay für Claude: Skill wählen, starten, Kette im Chat (T7.8)", async ({ app, hub }) => {
@@ -169,7 +171,7 @@ test.describe("Composer: Verbessern, Empfehlung, Skills (T3.9, T5.7–T5.10)", (
     await app.getByRole("button", { name: "Starten" }).click();
     await app.getByRole("button", { name: "Chat" }).click();
     await expect(app.getByText("Skills task → neon")).toBeVisible();
-    await expect(app.getByText(/Antwort auf: Mach es bunt · Claude/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Mach es bunt · Claude/)).toBeVisible();
     const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
     const created = (await hub.events(id)).find((e) => e.payload.kind === "session.created");
     expect(created?.payload.args).toMatchObject({ skill: "neon", skillChain: ["task", "neon"] });
@@ -214,7 +216,8 @@ test.describe("Sprache (T1.5, T3.10)", () => {
   test("„stopp“ im Voice-Sheet stoppt nach Bestätigung die Session", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite LANGSAM" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.locator(".dock").getByRole("button", { name: "Voice" }).click();
+    await app.getByLabel("Weitere Aktionen").click();
+    await app.locator(".session-menu").getByRole("button", { name: "Sprachbefehl" }).click();
     await app.getByTitle("Tippen zum Sprechen").click();
     await expect(app.getByText("„stopp\"")).toBeVisible();
     await app.getByRole("button", { name: "Bestätigen" }).click();

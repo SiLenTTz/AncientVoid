@@ -139,3 +139,34 @@ a {
   justify-content: space-between;
   gap: 8px;
 }
+
+/* T8.5 (AC-P8-6): desktop from 1280 px — list left, session right, each
+ * column scrolls on its own; the docks stay inside their column. */
+#app:has(.split) {
+  max-width: none;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
+  gap: 28px;
+  max-width: 1680px;
+  margin: 0 auto;
+  height: 100dvh;
+}
+
+.split-list,
+.split-detail {
+  overflow-y: auto;
+  min-height: 0;
+  position: relative;
+}
+
+.split .dock-stack {
+  position: sticky;
+  max-width: none;
+}
+
+.split-placeholder {
+  margin-top: 30vh;
+}

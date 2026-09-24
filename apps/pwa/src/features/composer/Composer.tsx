@@ -279,12 +279,14 @@ export function Composer({
         </div>
       )}
 
-      {attachments && onAttachmentsChange && (
-        <div class="composer-attachments">
-          <AttachmentPicker attachments={attachments} onChange={onAttachmentsChange} {...(disabled !== undefined ? { disabled } : {})} />
-        </div>
-      )}
+      {/* T8.5: the paperclip sits in the button row; chips get their own
+       * row above it (CSS order) — one row less than before. */}
       <div class="composer-actions">
+        {attachments && onAttachmentsChange && (
+          <span class="composer-attachments">
+            <AttachmentPicker attachments={attachments} onChange={onAttachmentsChange} {...(disabled !== undefined ? { disabled } : {})} />
+          </span>
+        )}
         <button
           class={listening ? "btn busy" : "btn"}
           type="button"

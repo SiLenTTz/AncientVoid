@@ -14,7 +14,7 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     await app.getByPlaceholder("Antworten…").fill("Zweiter Zug");
     await app.getByRole("button", { name: "Senden" }).click();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("");
-    await expect(app.getByText(/Antwort auf: Zweiter Zug · Session ses_e2e_\w+/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Zweiter Zug · Session ses_e2e_\w+/)).toBeVisible();
     const natives = (await hub.events(id))
       .filter((e) => e.type === "assistant")
       .map((e) => /Session (ses_e2e_\w+)/.exec(String(e.payload.text))?.[1]);
@@ -32,7 +32,7 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     await app.getByRole("button", { name: "Chat" }).click();
     await app.getByPlaceholder("Antworten…").fill("Nach dem Stopp");
     await app.getByRole("button", { name: "Weiter" }).click();
-    await expect(app.getByText(/Antwort auf: Nach dem Stopp · Session ses_e2e_\w+ \(fortgesetzt\)/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Nach dem Stopp · Session ses_e2e_\w+ \(fortgesetzt\)/)).toBeVisible();
     await expect(statusPill(app)).toHaveAttribute("data-status", "idle");
     const [record] = await hub.sessions();
     const first = (await hub.events(id)).find((e) => e.type === "assistant");
@@ -47,7 +47,7 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     await app.getByPlaceholder("Antworten…").fill("Nur einmal");
     await app.getByRole("button", { name: "Weiter" }).dblclick();
     await answered(hub, id, 2);
-    await expect(app.getByText(/Antwort auf: Nur einmal/)).toHaveCount(1);
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Nur einmal/)).toHaveCount(1);
     const continued = (await hub.events(id)).filter((e) => e.payload.kind === "session.continued");
     expect(continued).toHaveLength(1);
   });
@@ -98,7 +98,7 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     await app.getByPlaceholder("Antworten…").fill("Arbeite LANGSAM");
     await app.getByRole("button", { name: "Senden" }).click();
     await expect(statusPill(app)).toHaveAttribute("data-status", "working");
-    await expect(app.locator(".session-card")).toHaveCount(0);
+    await expect(app).toHaveURL(new RegExp(`#/sessions/${id}$`));
     await app.getByRole("button", { name: "Stop" }).click();
     await expect(statusPill(app)).toHaveAttribute("data-status", "stopped");
     const ends = (await hub.events(id)).filter((e) => e.payload.kind === "session.turn_end");
@@ -115,7 +115,7 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     await app.route("**/api/adapters", (route) => (++calls > 1 && offline ? route.abort() : route.continue()));
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.reload();
-    await expect(app.locator(".topbar")).toContainText("opencode");
+    await expect(app.locator(".session-topbar")).toContainText("opencode");
     await expect(app.getByPlaceholder("Antworten…")).toHaveCount(0);
     offline = false;
     await expect(app.getByPlaceholder("Antworten…")).toBeVisible({ timeout: 8_000 });

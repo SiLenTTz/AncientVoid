@@ -59,7 +59,7 @@ export function AttachmentPicker({ attachments, onChange, disabled }: { attachme
   return (
     <>
       <input ref={input} type="file" multiple hidden aria-label="Dateien anhängen" onChange={(e) => void pick((e.target as HTMLInputElement).files)} />
-      <button class="btn" type="button" disabled={disabled} onClick={() => input.current?.click()} title="Dateien oder Bilder anhängen">
+      <button class="btn attach-btn" type="button" disabled={disabled} onClick={() => input.current?.click()} title="Dateien oder Bilder anhängen" aria-label="Anhang hinzufügen">
         📎
       </button>
       {(attachments.length > 0 || uploading.length > 0) && (

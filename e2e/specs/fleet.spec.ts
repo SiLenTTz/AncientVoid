@@ -119,10 +119,10 @@ test.describe("Flotte (EPIC-P6)", () => {
       await app.locator(".session-card").filter({ hasText: "silenttz-server · alpha" }).locator(".session-open").click();
       await expect(app).toHaveURL(new RegExp(`#/hosts/silenttz-server/sessions/${remote}`));
       await app.getByRole("button", { name: "Chat" }).click();
-      await expect(app.getByText(/Antwort auf: Auf dem Server/)).toBeVisible();
+      await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Auf dem Server/)).toBeVisible();
       await app.getByPlaceholder("Antworten…").fill("Vom Handy an den Server");
       await app.getByRole("button", { name: "Senden" }).click();
-      await expect(app.getByText(/Antwort auf: Vom Handy an den Server .*\(fortgesetzt\)|Antwort auf: Vom Handy an den Server/)).toBeVisible();
+      await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Vom Handy an den Server .*\(fortgesetzt\)|Antwort auf: Vom Handy an den Server/)).toBeVisible();
       const remoteEvents = await peer.events(remote);
       expect(remoteEvents.some((e) => e.type === "user" && e.payload.text === "Vom Handy an den Server")).toBe(true);
       const localEvents = await hub.events(local);
@@ -166,11 +166,11 @@ test.describe("Flotte (EPIC-P6)", () => {
 
       await app.locator(".session-card").filter({ hasText: "omarchy · alpha" }).locator(".session-open").click();
       await app.getByRole("button", { name: "Chat" }).click();
-      await expect(app.getByText(/Antwort auf: Lokal/)).toBeVisible();
+      await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Lokal/)).toBeVisible();
       await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${local}`)).body.status === "idle", "idle");
       await app.getByPlaceholder("Antworten…").fill("Trotzdem weiter");
       await app.getByRole("button", { name: "Senden" }).click();
-      await expect(app.getByText(/Antwort auf: Trotzdem weiter/)).toBeVisible();
+      await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Trotzdem weiter/)).toBeVisible();
     } finally {
       await peer.stop();
     }

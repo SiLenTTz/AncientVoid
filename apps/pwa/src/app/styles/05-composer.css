@@ -17,7 +17,7 @@
 
 .composer-actions {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -134,15 +134,17 @@
   font-size: 12px;
 }
 /* the paperclip and its chips: their own row above the buttons */
+/* T8.5: paperclip in the button row, chips on their own row above it. */
 .composer-attachments {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin: 4px 0;
+  display: contents;
 }
-.composer-attachments .attachment-chips {
-  flex-basis: auto;
-  flex: 1 1 auto;
+
+.composer-actions .attachment-chips {
+  order: -1;
+  flex: 1 0 100%;
   min-width: 0;
+}
+
+.composer-actions .btn.attach-btn {
+  flex: 0 0 44px;
 }

@@ -41,22 +41,22 @@ test.describe("Handoff PC ↔ Handy (AC-P5-2) @desktop", () => {
     await pc.getByPlaceholder("Refactore den Auth-Flow…").fill("Zug 1 am PC");
     await pc.getByRole("button", { name: "Starten" }).click();
     await pc.getByRole("button", { name: "Chat" }).click();
-    await expect(pc.getByText(/Antwort auf: Zug 1 am PC/)).toBeVisible();
+    await expect(pc.locator(".tail-scroll").getByText(/Antwort auf: Zug 1 am PC/)).toBeVisible();
     const link = pc.url();
 
     const phone = await device(browser, hub, "phone");
     await phone.goto(link);
     await phone.getByRole("button", { name: "Chat" }).click();
-    await expect(phone.getByText(/Antwort auf: Zug 1 am PC/)).toBeVisible();
+    await expect(phone.locator(".tail-scroll").getByText(/Antwort auf: Zug 1 am PC/)).toBeVisible();
     await send(phone, "Zug 2 vom Handy");
-    await expect(phone.getByText(/Antwort auf: Zug 2 vom Handy/)).toBeVisible();
-    await expect(pc.getByText(/Antwort auf: Zug 2 vom Handy/), "PC sees the phone's turn live").toBeVisible();
+    await expect(phone.locator(".tail-scroll").getByText(/Antwort auf: Zug 2 vom Handy/)).toBeVisible();
+    await expect(pc.locator(".tail-scroll").getByText(/Antwort auf: Zug 2 vom Handy/), "PC sees the phone's turn live").toBeVisible();
 
     await send(pc, "Zug 3 am PC");
     await expect(pc.getByText("Ein anderes Gerät schreibt gerade in diese Session.")).toBeVisible();
     await pc.getByRole("button", { name: "Übernehmen" }).click();
-    await expect(pc.getByText(/Antwort auf: Zug 3 am PC/)).toBeVisible();
-    await expect(phone.getByText(/Antwort auf: Zug 3 am PC/)).toBeVisible();
+    await expect(pc.locator(".tail-scroll").getByText(/Antwort auf: Zug 3 am PC/)).toBeVisible();
+    await expect(phone.locator(".tail-scroll").getByText(/Antwort auf: Zug 3 am PC/)).toBeVisible();
 
     const id = decodeURIComponent(link.split("#/sessions/")[1]!);
     const all = turns(await hub.events(id));
@@ -80,13 +80,13 @@ test.describe("Handoff PC ↔ Handy (AC-P5-2) @desktop", () => {
     const phone = await device(browser, hub, "phone");
     await phone.goto(`${hub.origin}/#/sessions/${id}`);
     await send(phone, "Zug 2 vom Handy");
-    await expect(phone.getByText(/Antwort auf: Zug 2 vom Handy .*\(fortgesetzt\)/)).toBeVisible();
+    await expect(phone.locator(".tail-scroll").getByText(/Antwort auf: Zug 2 vom Handy .*\(fortgesetzt\)/)).toBeVisible();
 
     await phone.getByRole("button", { name: "Stop" }).click();
     await expect(pc.locator(".topbar .pill")).toHaveAttribute("data-status", "stopped");
     await send(pc, "Zug 3 am PC");
     await pc.getByRole("button", { name: "Übernehmen" }).click();
-    await expect(pc.getByText(/Antwort auf: Zug 3 am PC .*\(fortgesetzt\)/)).toBeVisible();
+    await expect(pc.locator(".tail-scroll").getByText(/Antwort auf: Zug 3 am PC .*\(fortgesetzt\)/)).toBeVisible();
 
     const all = turns(await hub.events(id));
     expect(all).toHaveLength(3);
