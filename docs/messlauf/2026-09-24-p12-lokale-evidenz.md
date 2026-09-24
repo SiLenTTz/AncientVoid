@@ -211,6 +211,27 @@ Maximum 5,53 s; alle Requests endeten in 5,57 s. Das liegt über der
 Verarbeitung, PWA-Teiltranskripte, 20 persistente Sessions und echte Geräte
 waren nicht beteiligt. Es schließt AI-P10-3 oder T12.10 nicht.
 
+### Zusatzmessung: kurze Segmente über den Hub
+
+Ein isolierter Hub mit eigenem temporären Datadir, zufälligem Loopback-Port,
+temporärem Gerätetoken und ohne Adapter leitete synthetische Clips aus
+`e2e/live/fixtures/diktat-npm-test.webm` an denselben privaten
+`whisper.cpp large-v3-turbo`-Dienst weiter. Je 20 sequenzielle Requests über
+`POST /api/stt`, einschließlich WebM→WAV-Konvertierung:
+
+| Clip | erfolgreiche Texte | p50 | p95 | Maximum |
+|---|---:|---:|---:|---:|
+| 0,5 s | 20/20 | 329 ms | 342 ms | 347 ms |
+| 1,0 s | 20/20 | 324 ms | 328 ms | 334 ms |
+
+Das misst die Anfrage ab Versand eines vollständigen Clips, nicht ab
+Sprachbeginn. Bereits das 0,5-s-Erfassungsfenster addiert sich auf mindestens
+842 ms bis zur Antwort (0,5 s + 342 ms), also oberhalb des 500-ms-Ziels. Der
+aktuelle PWA-Recorder zeigt weiterhin erst nach Aufnahmeende ein Resultat.
+Temporärer Hub, Token und Datadir wurden danach entfernt; der Produktivhub
+blieb aus. Keine parallelen Hub-Sessions und keine Teiltranskripte waren Teil
+dieser Messung.
+
 ## T12.3 — Isolierter Backup-/Restore-Rundlauf
 
 Mit einem separaten Loopback-Hub und einem privaten temporären Datadir wurde
