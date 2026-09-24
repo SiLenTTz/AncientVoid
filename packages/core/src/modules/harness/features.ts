@@ -8,8 +8,10 @@ import type { HarnessFeatures, SessionSpec, SteerInput } from "@uacc/contracts";
  * Skills are not checked here: the hub puts a skill chain in front of any
  * prompt itself (T5.x); `features.skills` only names native invocation.
  */
-export function refuseSpec(features: HarnessFeatures, adapter: string, spec: Pick<SessionSpec, "model" | "args">): string | null {
+export function refuseSpec(features: HarnessFeatures, adapter: string, spec: Pick<SessionSpec, "model" | "args" | "attachments">): string | null {
   if (spec.model && features.modelChoice === "none") return `${adapter} kann beim Start kein Modell wählen.`;
+  // AC-P7-4: an observer takes no input — its attachments would vanish.
+  if (spec.attachments?.length && !features.followUp && !features.interrupt) return `${adapter} beobachtet nur — Anhänge kommen dort nicht an.`;
   const agent = (spec.args as { agent?: unknown } | undefined)?.agent;
   if (typeof agent === "string" && agent && !features.agents) return `${adapter} kennt keine Agenten.`;
   return null;
