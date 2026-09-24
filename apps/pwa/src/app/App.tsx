@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { hubApi, type AdapterInfo, type AdapterUsage, type FleetHost, type SessionRecord } from "../shared/api.ts";
 import { Dashboard } from "../features/overview/Dashboard.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
+import { pageHash } from "./route.ts";
 import { VoiceSheet } from "../features/voice/VoiceSheet.tsx";
 import { ApprovalQueuePane } from "../features/approvals/Approvals.tsx";
 import { StatusPage } from "../features/status/StatusPage.tsx";
@@ -14,12 +15,16 @@ import { CreateSession } from "../features/new-session/CreateSession.tsx";
 export function App({
   onOpen,
   ready,
-  initialPage,
+  page,
 }: {
   onOpen: (session: SessionRecord) => void;
   ready: () => void;
-  initialPage?: Page;
+  /** T8.1: the page comes from the URL (#/neu, #/status …). */
+  page: Page;
 }) {
+  const setPage = (p: Page) => {
+    location.hash = pageHash(p);
+  };
   const [sessions, setSessions] = useState<SessionRecord[] | null>(null);
   // EPIC-P6: hosts of the fleet (just this hub when nothing is paired).
   const [hosts, setHosts] = useState<FleetHost[]>([]);
@@ -31,7 +36,6 @@ export function App({
   // the mockup review). Settings didn't exist as a destination before.
   // T1.6-3: initialPage lets SessionTail's dock jump straight to "new" or
   // "settings" instead of always landing back on the dashboard.
-  const [page, setPage] = useState<Page>(initialPage ?? "dashboard");
   const [voiceOpen, setVoiceOpen] = useState(false);
   // T2.6: pending-approval count for the Dashboard banner. A 501 (no
   // ApprovalService configured on this hub) is a real, common state, not
@@ -101,10 +105,7 @@ export function App({
         <CreateSession
           adapters={adapters}
           hosts={hosts}
-          onCreated={(s) => {
-            setPage("dashboard");
-            onOpen(s);
-          }}
+          onCreated={(s) => onOpen(s)}
         />
       )}
 

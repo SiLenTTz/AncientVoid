@@ -26,14 +26,14 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     await answered(hub, id, 1);
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Stop" }).click();
-    await expect(statusPill(app)).toHaveText("stopped");
+    await expect(statusPill(app)).toHaveAttribute("data-status", "stopped");
     await expect(app.getByRole("button", { name: "Stop" })).toHaveCount(0);
 
     await app.getByRole("button", { name: "Chat" }).click();
     await app.getByPlaceholder("Antworten…").fill("Nach dem Stopp");
     await app.getByRole("button", { name: "Weiter" }).click();
     await expect(app.getByText(/Antwort auf: Nach dem Stopp · Session ses_e2e_\w+ \(fortgesetzt\)/)).toBeVisible();
-    await expect(statusPill(app)).toHaveText("idle");
+    await expect(statusPill(app)).toHaveAttribute("data-status", "idle");
     const [record] = await hub.sessions();
     const first = (await hub.events(id)).find((e) => e.type === "assistant");
     expect(String(first?.payload.text)).toContain(record!.nativeSessionId!);
@@ -94,13 +94,13 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
   test("der Status trennt laufenden Zug und Pause zwischen Zügen (T5.4) @desktop", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Erster Zug" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await expect(statusPill(app)).toHaveText("idle");
+    await expect(statusPill(app)).toHaveAttribute("data-status", "idle");
     await app.getByPlaceholder("Antworten…").fill("Arbeite LANGSAM");
     await app.getByRole("button", { name: "Senden" }).click();
-    await expect(statusPill(app)).toHaveText("working");
+    await expect(statusPill(app)).toHaveAttribute("data-status", "working");
     await expect(app.locator(".session-card")).toHaveCount(0);
     await app.getByRole("button", { name: "Stop" }).click();
-    await expect(statusPill(app)).toHaveText("stopped");
+    await expect(statusPill(app)).toHaveAttribute("data-status", "stopped");
     const ends = (await hub.events(id)).filter((e) => e.payload.kind === "session.turn_end");
     expect(ends).toHaveLength(1);
   });

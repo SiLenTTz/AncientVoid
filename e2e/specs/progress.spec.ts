@@ -8,7 +8,7 @@ test.describe("Fortschritt und Kontingent im Lauf", () => {
     await expect(progress).toContainText("1/4 Aufgaben · 25 %");
     await expect(progress).toContainText("noch ca.");
     await expect(app.locator(".run-bar span")).toHaveAttribute("style", /width: 25%/);
-    await expect(app.locator(".topbar .pill")).toHaveText("idle", { timeout: 15_000 });
+    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle", { timeout: 15_000 });
     await expect(progress).toHaveCount(0);
   });
 

@@ -41,6 +41,10 @@ export interface SessionRecord {
   worktree?: { path: string; branch: string };
   /** Hidden from the overview until the Archiv chip is on. */
   archived?: boolean;
+  /** T8.6: pinned to the top of the overview. */
+  pinned?: boolean;
+  /** T8.1: the last understandable action (absent on older hubs). */
+  lastActivity?: { text: string; type: string; at: string } | null;
 }
 
 /** T2.4/ADR-0007 — mirrors `@uacc/contracts`'s ApprovalRequest, same
@@ -623,6 +627,9 @@ function createHubApi(P: (path: string) => string) {
   },
   stopSession: (id: string) =>
     api<{ ok: boolean }>(P(`/api/sessions/${id}/stop`), { method: "POST", body: "{}" }),
+  /** T8.6: rename and pin. */
+  setSessionMeta: (id: string, meta: { title?: string | null; pinned?: boolean }) =>
+    api<SessionRecord>(P(`/api/sessions/${id}/meta`), { method: "POST", body: JSON.stringify(meta) }),
   setArchived: (id: string, archived: boolean) =>
     api<SessionRecord>(P(`/api/sessions/${id}/archive`), {
       method: "POST",

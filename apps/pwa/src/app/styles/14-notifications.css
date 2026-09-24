@@ -119,3 +119,14 @@
 .event.system.provider-error {
   border-color: var(--err);
 }
+
+.toast-more {
+  align-self: flex-end;
+  background: var(--bg-elev);
+  color: var(--fg-dim);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  font-size: 12px;
+  pointer-events: auto;
+}

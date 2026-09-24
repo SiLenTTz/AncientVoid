@@ -56,6 +56,43 @@ export function sessionTitle(prompt: string): string | null {
   return text.length > 80 ? `${text.slice(0, 79).trimEnd()}…` : text;
 }
 
+/**
+ * T8.1: what a person would call "the last thing that happened" — a
+ * reply, a tool, a question, an error, the end of a turn. Internal system
+ * noise (heartbeats, native ids, metrics) is not an activity.
+ */
+export function activityOf(event: Pick<NormalizedEvent, "type" | "summary" | "payload" | "ts">): { text: string; type: string; at: string } | null {
+  const kind = (event.payload as { kind?: unknown }).kind;
+  const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
+  const clip = (s: string) => (s.length > 140 ? `${s.slice(0, 139).trimEnd()}…` : s);
+  let text: string | null = null;
+  switch (event.type) {
+    case "assistant": {
+      const t = (event.payload as { text?: unknown }).text;
+      text = oneLine(typeof t === "string" && t.trim() ? t : event.summary);
+      break;
+    }
+    case "user":
+      text = `Du: ${oneLine(event.summary)}`;
+      break;
+    case "tool_use":
+      text = `Werkzeug: ${oneLine(event.summary)}`;
+      break;
+    case "gate":
+      text = kind === "tool.permission_requested" ? `Wartet auf Freigabe: ${oneLine(event.summary)}` : oneLine(event.summary);
+      break;
+    case "error":
+      text = `Fehler: ${oneLine(event.summary)}`;
+      break;
+    case "system":
+      if (kind === "provider.error") text = `Fehler: ${oneLine((event.payload as { title?: string }).title ?? event.summary)}`;
+      else if (kind === "session.turn_end") text = "Zug beendet — wartet auf dich";
+      else if (kind === "session.stopped") text = "Beendet";
+      break;
+  }
+  return text ? { text: clip(text), type: event.type, at: event.ts } : null;
+}
+
 export function readSkillName(args: Record<string, unknown> | undefined): string | undefined {
   const skill = args?.skill;
   return typeof skill === "string" && skill.length > 0 ? skill : undefined;

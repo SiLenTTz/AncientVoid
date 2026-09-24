@@ -3,7 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { App } from "./App.tsx";
 import { SessionTail } from "../features/session/SessionTail.tsx";
 import { getToken, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
-import { parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
+import { pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
 import type { Page } from "./Dock.tsx";
@@ -91,8 +91,8 @@ function Main() {
     setReady(true);
   };
   const [route, setRoute] = useState<
-    { view: "list"; initialPage?: Page } | { view: "tail"; session: SessionRecord; code?: CodeTarget }
-  >({ view: "list" });
+    { view: "list"; page: Page } | { view: "tail"; session: SessionRecord; code?: CodeTarget }
+  >({ view: "list", page: "dashboard" });
 
   useEffect(() => {
     // BUG-0006 (part 2): /api/health is deliberately open (tailnet
@@ -117,13 +117,13 @@ function Main() {
     const openFromHash = () => {
       const parsed = parseAppHash(location.hash);
       if (parsed.view !== "tail") {
-        setRoute({ view: "list" });
+        setRoute({ view: "list", page: parsed.page });
         return;
       }
       hostApi(parsed.hostId)
         .session(parsed.sessionId)
         .then((session) => setRoute({ view: "tail", session, ...(parsed.code ? { code: parsed.code } : {}) }))
-        .catch(() => setRoute({ view: "list" }));
+        .catch(() => setRoute({ view: "list", page: "dashboard" }));
     };
     openFromHash();
     window.addEventListener("hashchange", openFromHash);
@@ -149,7 +149,7 @@ function Main() {
             setRoute({ view: "tail", session });
           }}
           ready={() => setReady(false)}
-          initialPage={route.initialPage}
+          page={route.page}
         />
       ) : (
         // T1.6-3: one callback back into the list, optionally landing on a
@@ -161,7 +161,9 @@ function Main() {
           key={route.session.id}
           session={route.session}
           {...(route.code ? { initialCode: route.code } : {})}
-          onNavigate={(page) => setRoute({ view: "list", initialPage: page })}
+          onNavigate={(page) => {
+            location.hash = pageHash(page);
+          }}
         />
       )}
     </>

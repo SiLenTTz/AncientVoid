@@ -247,6 +247,15 @@ export const MIGRATIONS: Migration[] = [
     // T7.9 (ADR-0024): the gatekeeper's label next to a tool approval.
     sql: `ALTER TABLE approvals ADD COLUMN assessment TEXT;`,
   },
+  {
+    id: 17,
+    name: "session-overview-meta",
+    // T8.1/T8.6: last understandable action for the card, and pins.
+    sql: `
+      ALTER TABLE sessions ADD COLUMN last_activity TEXT;
+      ALTER TABLE sessions ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];
 
 export class HubDatabase {

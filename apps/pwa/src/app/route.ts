@@ -14,7 +14,15 @@ export interface CodeTarget {
   line: number | null;
 }
 
-export type AppRoute = { view: "list" } | { view: "tail"; sessionId: string; hostId?: string; code?: CodeTarget };
+/** T8.1: every page has a URL, so Back in the browser goes back. */
+export type ListPage = "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery";
+const PAGE_SLUG: Record<ListPage, string> = { dashboard: "", new: "neu", settings: "einstellungen", approvals: "freigaben", status: "status", discovery: "gefunden" };
+
+export function pageHash(page: ListPage): string {
+  return `#/${PAGE_SLUG[page]}`;
+}
+
+export type AppRoute = { view: "list"; page: ListPage } | { view: "tail"; sessionId: string; hostId?: string; code?: CodeTarget };
 
 function codeTarget(raw: string | undefined): CodeTarget | undefined {
   if (!raw) return undefined;
@@ -25,6 +33,11 @@ function codeTarget(raw: string | undefined): CodeTarget | undefined {
 }
 
 export function parseAppHash(hash: string): AppRoute {
+  const slug = /^#\/([a-z]*)\/?$/.exec(hash || "#/")?.[1];
+  if (slug !== undefined) {
+    const page = (Object.keys(PAGE_SLUG) as ListPage[]).find((p) => PAGE_SLUG[p] === slug);
+    return { view: "list", page: page ?? "dashboard" };
+  }
   const hosted = /^#\/hosts\/([^/?#]+)\/sessions\/([^/?#]+)(?:\/code\/(.+))?$/.exec(hash);
   if (hosted?.[1] && hosted[2]) {
     const code = codeTarget(hosted[3]);
@@ -32,7 +45,7 @@ export function parseAppHash(hash: string): AppRoute {
   }
   const match = /^#\/sessions\/([^/?#]+)(?:\/code\/(.+))?$/.exec(hash);
   const raw = match?.[1];
-  if (!raw) return { view: "list" };
+  if (!raw) return { view: "list", page: "dashboard" };
   const code = codeTarget(match[2]);
   return { view: "tail", sessionId: decodeURIComponent(raw), ...(code ? { code } : {}) };
 }

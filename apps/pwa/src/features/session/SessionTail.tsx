@@ -7,6 +7,7 @@ import { GlobalDock, type Page } from "../../app/Dock.tsx";
 import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
+import { statusLabel } from "../../shared/status.ts";
 import type { CodeTarget } from "../../app/route.ts";
 import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
@@ -340,7 +341,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
           </div>
           <div class="dim">
             {session.adapter}
-            {shownModel ? ` · ${shownModel}` : ""} · <span class={`pill ${status}`}>{status}</span>
+            {shownModel ? ` · ${shownModel}` : ""} · <span class={`pill ${status}`} data-status={status}>{statusLabel(status)}</span>
           </div>
         </div>
         <button class="btn" type="button" onClick={toggleArchive}>

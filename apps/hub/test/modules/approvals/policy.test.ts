@@ -77,6 +77,16 @@ describe("actor policy (T7.4)", () => {
     expect((await call("POST", `/api/sessions/${s.id}/steer`, agent, { kind: "park" })).status).toBe(202);
   });
 
+  it("T8.6: rename and pin are a person's — an agent may not", async () => {
+    const s = await sessions.create({ adapter: "dummy", project: dir, prompt: "Alt" });
+    expect((await call("POST", `/api/sessions/${s.id}/meta`, agent, { pinned: true })).status).toBe(403);
+    const ok = await call("POST", `/api/sessions/${s.id}/meta`, human, { title: "  Neu  ", pinned: true });
+    expect(ok.body).toMatchObject({ title: "Neu", pinned: true });
+    expect(sessions.get(s.id)).toMatchObject({ title: "Neu", pinned: true });
+    expect((await call("POST", `/api/sessions/${s.id}/meta`, human, {})).status).toBe(400);
+    expect((await call("POST", `/api/sessions/gibts-nicht/meta`, human, { pinned: true })).status).toBe(404);
+  });
+
   it("an agent may read but not decide, apply, archive, manage tokens or the fleet", async () => {
     const s = await sessions.create({ adapter: "dummy", project: dir });
     expect((await call("GET", "/api/sessions", agent)).status).toBe(200);

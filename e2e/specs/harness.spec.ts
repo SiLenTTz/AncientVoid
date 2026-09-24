@@ -53,7 +53,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     // T7.9: the gatekeeper's label (rules only in this hub) — a hint, no decision.
     await expect(card.locator(".assessment")).toContainText("Laya: unauffällig");
     await expect(card.locator(".assessment")).toContainText("Regeln");
-    await expect(app.locator(".topbar .pill")).toHaveText("waiting_approval");
+    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "waiting_approval");
     expect((await hub.events(id)).filter((e) => e.type === "tool_result")).toHaveLength(0);
     await card.getByRole("button", { name: "Erlauben" }).click();
     await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · Claude .* · Ausgabe hallo-uacc/)).toBeVisible();
@@ -100,7 +100,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     const results = (await hub.events(id)).filter((e) => e.type === "tool_result");
     expect(results).toHaveLength(1);
     expect(results[0]!.payload.isError).toBe(true);
-    await expect(app.locator(".topbar .pill")).toHaveText("idle");
+    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
   });
 
   test("T7.2: eine Rückfrage von Claude am Handy beantworten", async ({ app, hub }) => {
@@ -131,10 +131,10 @@ test.describe("ACP-Harness (T7.2)", () => {
     await app.getByRole("button", { name: "Chat" }).click();
     const card = app.locator(".session-approvals .approval-card");
     await expect(card.locator(".tool-input")).toHaveText("echo hallo-acp");
-    await expect(app.locator(".topbar .pill")).toHaveText("waiting_approval");
+    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "waiting_approval");
     await card.getByRole("button", { name: "Erlauben" }).click();
     await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · ACP · Ausgabe hallo-acp \(allow-once\)/)).toBeVisible();
-    await expect(app.locator(".topbar .pill")).toHaveText("idle");
+    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
     await app.getByPlaceholder("Antworten…").fill("Noch eine Frage");
     await app.getByRole("button", { name: "Senden" }).click();
     await expect(app.getByText(/Antwort auf: Noch eine Frage · ACP/)).toBeVisible();
@@ -174,7 +174,7 @@ test.describe("Codex app-server (T7.2)", () => {
     await expect(card.locator(".tool-input")).toHaveText("echo hallo-codex");
     await card.getByRole("button", { name: "Erlauben" }).click();
     await expect(app.getByText(/Antwort auf: Bitte WERKZEUG · Codex · Ausgabe hallo-codex \(accept\)/)).toBeVisible();
-    await expect(app.locator(".topbar .pill")).toHaveText("idle");
+    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
     await app.goto(hub.origin);
     await app.getByRole("button", { name: "Status" }).click();
     // ADR-0004 Nachtrag: codex quota from account/rateLimits — 12 % of 5 h used

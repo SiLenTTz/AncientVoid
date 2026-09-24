@@ -240,6 +240,21 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
   });
 
 
+  // T8.6: rename and pin — overview metadata, same class as archive.
+  app.post("/api/sessions/:id/meta", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = z.object({ title: z.string().max(200).nullable().optional(), pinned: z.boolean().optional() }).strict().safeParse(req.body);
+    if (!body.success || (body.data.title === undefined && body.data.pinned === undefined)) return reply.code(400).send({ error: "title or pinned required" });
+    try {
+      return { ...deps.sessions.setMeta(id, { ...(body.data.title !== undefined ? { title: body.data.title } : {}), ...(body.data.pinned !== undefined ? { pinned: body.data.pinned } : {}) }), hostId };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "update failed";
+      if (message.startsWith("unknown session")) return reply.code(404).send({ error: message });
+      throw err;
+    }
+  });
+
+
   app.post("/api/sessions/:id/budget", async (req, reply) => {
     // T2.7 (EPIC-P2 §3 "Budget-Top-up (write-Klasse)"). Same shape as
     // /steer: 422 (not 200) when it's parked pending approval, since

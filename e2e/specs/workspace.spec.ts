@@ -87,7 +87,7 @@ test.describe("Budget (T2.7)", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Teuer", budgetUsd: 0.001 });
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "parked", "budget park");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await expect(statusPill(app)).toHaveText("parked");
+    await expect(statusPill(app)).toHaveAttribute("data-status", "parked");
     await app.getByRole("button", { name: "Bericht" }).click();
     await expect(app.getByText("Session wegen Budget pausiert.")).toBeVisible();
     await app.locator('input[type="number"]').fill("1");
@@ -219,7 +219,7 @@ test.describe("Sprache (T1.5, T3.10)", () => {
     await expect(app.getByText("„stopp\"")).toBeVisible();
     await app.getByRole("button", { name: "Bestätigen" }).click();
     await app.getByRole("button", { name: "✕" }).click();
-    await expect(statusPill(app)).toHaveText("stopped");
+    await expect(statusPill(app)).toHaveAttribute("data-status", "stopped");
   });
 });
 
