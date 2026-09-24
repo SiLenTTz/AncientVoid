@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtemp, mkdir, readdir, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { Writable } from "node:stream";
 import { EventStore, HubDatabase } from "@uacc/core";
 import { createBackup, pruneBackups, restoreBackup } from "../src/backup.ts";
 
@@ -178,6 +179,18 @@ describe("hubctl encrypted backup and restore (T12.3)", () => {
       },
       stdio: "pipe",
     })).toThrow();
+    await expect(readFile(f.output)).rejects.toThrow();
+    expect((await readdir(root)).filter((name) => name.startsWith(".uacc-backup-"))).toEqual([]);
+    await expect(readFile(join(f.source, ".uacc-hub.pid"))).rejects.toThrow();
+  });
+
+  it("cleans the partial archive when the output filesystem reports ENOSPC", async () => {
+    const f = await fixture();
+    const noSpace = Object.assign(new Error("ENOSPC: no space left on device"), { code: "ENOSPC" });
+    await expect(createBackup(
+      { dataDir: f.source, configFile: f.config, outputFile: f.output, keyFile: f.key },
+      () => new Writable({ write(_chunk, _encoding, callback) { callback(noSpace); } }),
+    )).rejects.toMatchObject({ code: "ENOSPC" });
     await expect(readFile(f.output)).rejects.toThrow();
     expect((await readdir(root)).filter((name) => name.startsWith(".uacc-backup-"))).toEqual([]);
     await expect(readFile(join(f.source, ".uacc-hub.pid"))).rejects.toThrow();

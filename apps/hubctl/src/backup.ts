@@ -3,6 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, scrypt as sc
 import { createReadStream, createWriteStream } from "node:fs";
 import { link, lstat, mkdir, mkdtemp, open, readFile, readlink, readdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline";
+import type { Writable } from "node:stream";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { acquireBackupLock, HubDatabase } from "@uacc/core";
@@ -223,7 +224,8 @@ async function hashFile(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
-export async function createBackup(options: CreateBackupOptions): Promise<void> {
+/** The writer seam makes filesystem write failures reproducible without filling a real disk. */
+export async function createBackup(options: CreateBackupOptions, outputStream: (path: string) => Writable = (path) => createWriteStream(path, { flags: "a", mode: 0o600 })): Promise<void> {
   const dataDir = resolve(options.dataDir);
   const outputFile = resolve(options.outputFile);
   const configFile = resolve(options.configFile);
@@ -262,7 +264,7 @@ export async function createBackup(options: CreateBackupOptions): Promise<void> 
       configName,
     ], { stdio: ["ignore", "pipe", "pipe"] });
     const closed = waitForTar(child);
-    const encryptedOutput = createWriteStream(tmpFile, { flags: "a", mode: 0o600 });
+    const encryptedOutput = outputStream(tmpFile);
     await Promise.all([pipeline(child.stdout!, cipher, encryptedOutput), closed]);
     await writeFile(tmpFile, cipher.getAuthTag(), { flag: "a", mode: 0o600 });
     await mkdir(dirname(outputFile), { recursive: true, mode: 0o700 });
