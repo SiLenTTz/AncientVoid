@@ -54,7 +54,7 @@ nicht aus dem Nenner entfernt. Ohne Zugriff echte Aufgabe blockiert lassen.
 - [ ] **T12.10 — Teiltranskripte beim Diktat (AI-P10-2).** Streaming-Erkennung mit VAD (Kandidaten: Parakeet-Streaming, whisper.cpp `stream`), Teilresultate nur zur Anzeige, nie als Befehl; AC-P10-2 (erstes Teiltranskript p95 ≤ 500 ms, sichtbare Aktion p95 ≤ 2 s) auf Geräten messen.
 - [ ] **T12.11 — Lokales Bildmodell für die Videoanalyse (AI-P10.5-1).** Qwen2.5-VL (o. ä.) per llama.cpp + mmproj auf evox2 als `media.vision`; Speicher neben uacc-llama/Halogen klären (T12.9); Beschreibungen auf ≥ 30 Schlüsselbildern stichprobenartig prüfen.
 - [ ] **T12.12 — Leckfreie Desktop-Eingabe (AI-P11-3).** MR !113 ergänzt adressierte Hyprland-Tasten und sperrt Text, bis „Gezielt einfügen“ sichtbar aktiviert ist; Full Gate grün (102 Testdateien/629 Tests, 151 E2E, 2 Skips). Offen bleibt die reale Leck-Messung 0/50: isolierter Hyprland-Start scheiterte erneut mit Aquamarine `CBackend::create() failed!`; echter Desktop nicht verwendet.
-- [ ] **T12.7 — Vor der Veröffentlichung: Geheimnisse aufräumen (AI-P6-4).** Alle Geräte- und Fleet-Tokens rotieren, `/tmp/uacc-hub.log` und ältere Request-Logs leeren, in denen vor BUG-0028 Tokens standen; danach `git log`/Repo auf Geheimnisse prüfen. Erst dann das Repo public schalten.
+- [ ] **T12.7 — Vor der Veröffentlichung: Geheimnisse aufräumen (AI-P6-4).** Lokale Gerätetokens `diag`/`pixel` rotiert, alte `/tmp/uacc-hub.log` entfernt und `silenttz-server` neu gekoppelt. Offen: `evox2`-Fleet-Credential/Remote-Logs (kein SSH-/Adminzugriff von diesem Host) sowie neue Gerätetokens auf Clients einspielen. Gitleaks-History-Scan fand nur zwei dokumentierte synthetische Test-Fixture-Treffer. Public-Schaltung bleibt separat.
 
 ## 5. Acceptance Criteria
 

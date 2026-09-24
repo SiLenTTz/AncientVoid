@@ -65,3 +65,27 @@ Der lokale Gate- und K8-Beleg schließt keine Pflichtzelle aus P12 T12.4/T12.5.
 Insbesondere bleiben echte Geräte, 24-Stunden-Lauf, Zwei-Host-Fleet-Last,
 Wiederherstellungslatenz auf Produktivdatengröße, ein echter ENOSPC-Lauf
 sowie die Hyprland-0/50-Messung getrennt offen.
+
+## T12.7 — Credential-Rotation und Logbereinigung
+
+- Der lokale Hub (PID 662613) wurde per `SIGTERM` sauber heruntergefahren;
+  PID-Lock sowie SQLite-WAL/SHM waren danach entfernt.
+- Die beiden lokalen Gerätetokens `diag` und `pixel` wurden ersetzt. Die neuen
+  Einmalwerte liegen in `/home/silenttz/.config/uacc/rotated-2026-09-24/device-tokens.txt`
+  (Modus `0600`); der neue `pixel`-Token wurde erfolgreich an
+  `GET /api/adapters` geprüft. Werte sind nicht in Git oder Messlauf gelandet.
+- `/tmp/uacc-hub.log` wurde nach dem Stop mit `shred -u -n 1` entfernt; der
+  Remote-Host `silenttz-server` hatte kein gleichnamiges Log.
+- `silenttz-server` wurde per einmaligem Invite neu gekoppelt. `/api/fleet`
+  meldete anschließend `omarchy`, `evox2` und `silenttz-server` als erreichbar.
+  Das Evox2-Credential selbst ist noch alt: HTTP ist erreichbar, aber SSH und
+  Tailscale-SSH sind hier nicht verfügbar; Invite-Erstellung auf Evox2 braucht
+  dessen Adminzugriff. Remote-Logs dort konnten damit nicht geprüft werden.
+- `gitleaks dir` und `gitleaks git` meldeten dieselben zwei Treffer in
+  Test-Fixtures (`attachments/extract.test.ts`, `push.test.ts`): ein gemockter
+  Provider-API-Key sowie Testdaten für Push-Auth, keine produktiven Zugangsdaten.
+  Die Scans fanden keine weiteren Treffer.
+
+Offen bleiben Evox2-Rotation/Logprüfung und das Einspielen der neuen lokalen
+Tokens auf den Geräten. Das Repository wird in diesem Task nicht öffentlich
+geschaltet.
