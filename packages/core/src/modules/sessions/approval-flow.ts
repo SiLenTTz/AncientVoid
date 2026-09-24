@@ -10,7 +10,14 @@ export interface ApprovalFlowHost {
   continueStopped(session: LiveSession, input: Extract<SteerInput, { kind: "prompt" }>, actor?: string): Promise<Ack>;
   context(session: LiveSession): AdapterContext;
   applyBudgetTopUp(sessionId: string, newBudgetUsd: number, actor?: string): Promise<Ack>;
+  /** T7.4: what an agent's approved request finally runs. */
+  createSession(spec: unknown, actor?: string): Promise<{ id: string }>;
+  stopSession(sessionId: string, actor?: string): Promise<Ack>;
+  parkSession(sessionId: string, actor?: string): Promise<Ack>;
 }
+
+/** T7.4: requests an agent may make — each waits for a human. */
+export type AgentActionKind = "session.create" | "session.stop" | "session.park" | "steer.prompt" | "budget.increase";
 
 /**
  * ADR-0007/ADR-0019: prompts and budget top-ups that wait for a human
@@ -19,12 +26,49 @@ export interface ApprovalFlowHost {
 export class ApprovalFlow {
   private readonly host: ApprovalFlowHost;
   private readonly approvals: ApprovalService | undefined;
+  /** T7.4: always present on a real hub (independent of requireStepApprovals). */
+  private humanGate: ApprovalService | undefined;
   private readonly operations: OperationStore;
 
   constructor(host: ApprovalFlowHost, approvals: ApprovalService | undefined, operations: OperationStore) {
     this.host = host;
     this.approvals = approvals;
     this.operations = operations;
+  }
+
+  /** T7.4: the approval queue for agent requests. */
+  useHumanGate(approvals: ApprovalService): void {
+    this.humanGate = approvals;
+  }
+
+  /**
+   * T7.4: an agent (MCP gateway) asks to create, prompt, park or stop a
+   * session. Never runs directly — a human decides in the queue; the
+   * approved request runs once (ADR-0019).
+   */
+  async requestAgentAction(kind: AgentActionKind, sessionId: string | null, payload: Record<string, unknown>, actor: string): Promise<Ack & { approvalId?: string }> {
+    const gate = this.humanGate ?? this.approvals;
+    if (!gate) return { ok: false, detail: "Keine Freigabe-Warteschlange — Agenten dürfen hier nichts ändern." };
+    const summary =
+      kind === "session.create"
+        ? `${actor} möchte eine Session starten: ${String(payload.adapter)} in ${String(payload.project).split("/").pop()}${payload.prompt ? ` — "${String(payload.prompt).slice(0, 120)}"` : ""}`
+        : kind === "steer.prompt"
+          ? `${actor} möchte einen Prompt senden: "${String((payload.input as { text?: string })?.text ?? "").slice(0, 160)}"`
+          : kind === "budget.increase"
+            ? `${actor} möchte das Budget auf ${Number(payload.newBudgetUsd).toFixed(2)}$ erhöhen${payload.reason ? ` (${String(payload.reason)})` : ""}`
+            : `${actor} möchte die Session ${kind === "session.stop" ? "stoppen" : "anhalten"}`;
+    const req = gate.create(sessionId ?? "neu", "write", kind, summary);
+    this.operations.create(req.id, sessionId ?? "neu", kind, payload, 0, actor);
+    const session = sessionId ? this.host.session(sessionId) : undefined;
+    if (session) await this.host.emitSystem(session, "session.agent_request", { approvalId: req.id, action: kind, actor });
+    return { ok: false, detail: `pending approval ${req.id}`, approvalId: req.id };
+  }
+
+  /** T7.4: runs whatever an approval released (the decide route calls this). */
+  async applyApproved(approvalId: string, decidedByLabel?: string): Promise<Ack> {
+    const op = this.operations.get(approvalId);
+    if (!op) return { ok: false, detail: "no pending operation for this approval" };
+    return this.dispatchOperation(op, decidedByLabel);
   }
 
   /** Parks a prompt behind an approval when the hub requires one; null
@@ -68,6 +112,7 @@ export class ApprovalFlow {
    * against the approved hash right before running.
    */
   private async dispatchOperation(op: PendingOperation, decidedByLabel?: string): Promise<Ack> {
+    if (op.kind === "session.create") return this.dispatchCreate(op, decidedByLabel);
     const session = this.host.session(op.sessionId);
     if (!session) {
       this.operations.transition(op.id, ["pending"], "failed", "Die Session ist nicht mehr aktiv.");
@@ -86,6 +131,10 @@ export class ApprovalFlow {
       if (op.kind === "steer.prompt") {
         const { input, typed } = op.payload as { input: SteerInput; typed?: string };
         ack = await this.runApprovedSteer(session, input, typed, op.id, decidedByLabel);
+      } else if (op.kind === "session.stop") {
+        ack = await this.host.stopSession(op.sessionId, decidedByLabel);
+      } else if (op.kind === "session.park") {
+        ack = await this.host.parkSession(op.sessionId, decidedByLabel);
       } else if (op.kind === "budget.increase") {
         const { newBudgetUsd } = op.payload as { newBudgetUsd: number };
         ack = await this.host.applyBudgetTopUp(op.sessionId, newBudgetUsd, decidedByLabel);
@@ -98,6 +147,26 @@ export class ApprovalFlow {
     this.operations.transition(op.id, ["dispatching"], ack.ok ? "done" : "failed", ack.ok ? "ausgeführt" : (ack.detail ?? "fehlgeschlagen"));
     return ack;
   }
+  /** T7.4: an agent's session start, approved — runs once. */
+  private async dispatchCreate(op: PendingOperation, decidedByLabel?: string): Promise<Ack> {
+    if (!this.operations.intact(op)) {
+      this.operations.transition(op.id, ["pending"], "failed", "Die Argumente weichen von der Freigabe ab.");
+      return { ok: false, detail: "operation arguments changed after approval" };
+    }
+    if (!this.operations.transition(op.id, ["pending"], "dispatching")) {
+      return { ok: false, detail: `operation already ${this.operations.get(op.id)?.state ?? "gone"}` };
+    }
+    try {
+      const created = await this.host.createSession(op.payload, `${op.actor ?? "agent"} (freigegeben von ${decidedByLabel ?? "?"})`);
+      this.operations.transition(op.id, ["dispatching"], "done", `Session ${created.id}`);
+      return { ok: true, detail: created.id };
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      this.operations.transition(op.id, ["dispatching"], "failed", detail);
+      return { ok: false, detail };
+    }
+  }
+
   private async runApprovedSteer(session: LiveSession, input: SteerInput, typed: string | undefined, approvalId: string, decidedByLabel?: string): Promise<Ack> {
     if (input.kind === "prompt") await this.host.emitPrompt(session, typed ?? input.text, decidedByLabel);
     if (input.kind === "prompt" && (session.record.status === "stopped" || !session.handle)) {

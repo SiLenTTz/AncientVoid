@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Tiktoken } from "js-tiktoken/lite";
+import o200k from "js-tiktoken/ranks/o200k_base";
+import cl100k from "js-tiktoken/ranks/cl100k_base";
 import { buildGatewayServer } from "../src/server.ts";
 
 /**
@@ -17,13 +20,12 @@ import { buildGatewayServer } from "../src/server.ts";
  * client would receive — not a hand-copied duplicate that could silently
  * drift from what server.ts really registers.
  *
- * Token estimate: ~4 characters per token — the same real, documented
- * heuristic this session found in custom-rag's own real code
- * (`estimate_tokens` in domain/schemas.py), not a number invented here.
+ * T7.4: counted with real tokenizers, not the former ~4-characters-per-token
+ * rule — `o200k_base` (GPT-4o/GPT-5 family) and `cl100k_base`, both via
+ * js-tiktoken 1.0.21. The budget must hold for each. The character rule is
+ * kept as a third, printed number for comparison with older measurements.
  */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
+const TOKENIZERS = { o200k_base: new Tiktoken(o200k), cl100k_base: new Tiktoken(cl100k) };
 
 describe("gateway-mcp K4 static token budget", () => {
   it("has exactly three tools", async () => {
@@ -48,9 +50,12 @@ describe("gateway-mcp K4 static token budget", () => {
     try {
       const { tools } = await client.listTools();
       const manifestText = JSON.stringify(tools);
-      const tokens = estimateTokens(manifestText);
-      expect(tokens).toBeGreaterThan(0); // sanity: a real, non-empty manifest was actually measured
-      expect(tokens).toBeLessThan(1000);
+      const counts = Object.fromEntries(Object.entries(TOKENIZERS).map(([name, enc]) => [name, enc.encode(manifestText).length]));
+      console.log(`K4 manifest: ${JSON.stringify(counts)}, chars/4=${Math.ceil(manifestText.length / 4)}`);
+      for (const [name, tokens] of Object.entries(counts)) {
+        expect(tokens, name).toBeGreaterThan(0); // sanity: a real, non-empty manifest was actually measured
+        expect(tokens, name).toBeLessThan(1000);
+      }
     } finally {
       await client.close();
       await server.close();

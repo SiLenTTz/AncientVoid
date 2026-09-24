@@ -52,7 +52,7 @@ Usage:
   hubctl show <sessionId>
   hubctl events <sessionId> [afterSeq]
   hubctl tail <sessionId> [-f]
-  hubctl token issue <label> [--db <hub.db>]
+  hubctl token issue <label> [--agent] [--db <hub.db>]   (--agent: label agent:<label>, writes need approval)
   hubctl token list [--db <hub.db>]
   hubctl token revoke <label> [--db <hub.db>]
   hubctl fleet invite [--db <hub.db>]     one-time code for another hub to pair (10 min)
@@ -210,7 +210,10 @@ async function main(): Promise<void> {
       const dbIdx = args.indexOf("--db");
       const dbPath = dbIdx >= 0 ? (args[dbIdx + 1] ?? "data/hub.db") : "data/hub.db";
       if (sub === "issue") {
-        const label = args[1] ?? usage();
+        const name = args[1] ?? usage();
+        // T7.4: an agent token (e.g. for the MCP gateway) may read and
+        // request, never act on its own — every write waits for a human.
+        const label = args.includes("--agent") && !name.startsWith("agent:") ? `agent:${name}` : name;
         const { TokenService, HubDatabase } = await import("@uacc/core");
         const tokens = new TokenService(new HubDatabase(dbPath));
         const issued = tokens.issue(label);

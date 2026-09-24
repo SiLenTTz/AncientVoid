@@ -17,9 +17,10 @@
     "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
+    "@uacc/adapter-dummy": "0.1.0",
     "@uacc/core": "0.1.0",
     "@uacc/hub": "0.1.0",
     "@uacc/workers": "0.1.0",
-    "@uacc/adapter-dummy": "0.1.0"
+    "js-tiktoken": "^1.0.21"
   }
 }

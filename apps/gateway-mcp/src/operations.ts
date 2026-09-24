@@ -17,14 +17,12 @@ import { z } from "zod";
  *    destructive approval through a route an agent could reach anyway
  *    (see EPIC-P2 T2.5's own note that no real destructive action exists
  *    yet), and if one did, it would need WebAuthn — inherently human-only.
- *  - `session.create`/`session.stop`/`session.park`: EPIC-P2 §3's class
- *    table lists "Session starten" as a write-class example, but T2.4
- *    never actually gated session creation behind an approval (only
- *    steer-prompt and budget top-up are really gated today — a real,
- *    already-documented gap, see EPIC-P2's T2.4 evidence). Exposing
- *    ungated session start/stop to an MCP agent would be a real, new
- *    write-capable surface with no approval backing it — left out until
- *    that gap is closed, not silently exposed anyway.
+ *
+ * T7.4: session start/stop/park are here now — the gap that kept them out
+ * is closed. The gateway runs with an agent token (`agent:<name>`), and the
+ * hub's policy turns every write of an agent into an approval a human
+ * decides (contracts/approvals/policy.ts). A write answers 202 "pending
+ * approval <id>" and runs only once released.
  */
 
 export type OperationClass = "read" | "write";
@@ -54,6 +52,12 @@ export interface Operation {
  * pattern would keep recurring otherwise.
  */
 const SessionIdArgs = z.object({ sessionId: z.string().uuid() });
+const CreateArgs = z.object({
+  adapter: z.string().min(1).max(100),
+  project: z.string().min(1).max(1000),
+  prompt: z.string().min(1).max(20_000).optional(),
+  model: z.string().min(1).max(200).optional(),
+});
 
 export const OPERATIONS: Operation[] = [
   {
@@ -107,6 +111,27 @@ export const OPERATIONS: Operation[] = [
       const a = SessionIdArgs.extend({ text: z.string().min(1) }).parse(args);
       return { method: "POST", path: `/api/sessions/${encodeURIComponent(a.sessionId)}/steer`, body: { kind: "prompt", text: a.text } };
     },
+  },
+  {
+    id: "sessions.create",
+    class: "write",
+    description: "Start a new agent session in a configured project. A human must approve it in the hub's queue first; the call returns 'pending approval <id>'.",
+    argsSchema: CreateArgs,
+    request: (args) => ({ method: "POST", path: "/api/sessions", body: CreateArgs.parse(args) }),
+  },
+  {
+    id: "sessions.stop",
+    class: "write",
+    description: "Stop a session for good. Waits for a human's approval ('pending approval <id>').",
+    argsSchema: SessionIdArgs,
+    request: (args) => ({ method: "POST", path: `/api/sessions/${encodeURIComponent(SessionIdArgs.parse(args).sessionId)}/stop`, body: {} }),
+  },
+  {
+    id: "sessions.park",
+    class: "write",
+    description: "Pause a session's running turn (it can continue later). Waits for a human's approval.",
+    argsSchema: SessionIdArgs,
+    request: (args) => ({ method: "POST", path: `/api/sessions/${encodeURIComponent(SessionIdArgs.parse(args).sessionId)}/steer`, body: { kind: "park" } }),
   },
   {
     id: "sessions.budget_topup",

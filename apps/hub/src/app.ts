@@ -10,6 +10,7 @@ import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@uacc/contracts";
 import type { WebAuthnConfig } from "./modules/identity/webauthn.ts";
 import { authHook, type AuthOptions } from "./platform/auth.ts";
 import { registerRoutes } from "./routes.ts";
+import { policyHook } from "./platform/policy.ts";
 import { registerWs } from "./modules/sessions/ws.ts";
 import { registerFleetRoutes } from "./modules/fleet/fleet.routes.ts";
 import { registerFleetProxy } from "./modules/fleet/fleet-proxy.ts";
@@ -86,6 +87,8 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   await app.register(fastifyWebsocket);
 
   app.addHook("onRequest", authHook(deps.auth));
+  // T7.4: after body parsing — a steer's kind decides park vs. prompt.
+  app.addHook("preHandler", policyHook(deps.tokens));
 
   const projectRoots = deps.projectRoots ?? [];
   if (projectRoots.length > 0) {
