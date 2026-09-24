@@ -8,7 +8,7 @@ const TRANSFORM_TEXT: Record<string, string> = { correct: "korrigiert", shorten:
 const EXAMPLES = ["Zeig wartende Sessions", "Starte Codex in Projekt …: …", "Antworte dort: …", "Korrigiere den Text"];
 
 /** A client step — navigation and fields live in the app, not on the hub. */
-function runClientStep(c: Record<string, string | number | boolean | null>): string {
+export function runClientStep(c: Record<string, string | number | boolean | null>): string {
   const op = String(c.op);
   if (op === "nav.open") {
     location.hash = pageHash(String(c.page ?? "dashboard") as ListPage);

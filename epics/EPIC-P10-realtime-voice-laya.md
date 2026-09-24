@@ -1,6 +1,6 @@
 # EPIC-P10 — Lokale Echtzeit-Sprache und Laya-Evaluation
 
-**Status:** Planungsentwurf, Umsetzung blockiert · **Phase:** P10 · **Dauer:** 1–3 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P9 grün; lokale STT-Grundfunktion aus P3 abgenommen.
+**Status:** abgeschlossen mit Restnachweisen in P12 (2026-09-24, Retro unten) · **Phase:** P10 · **Dauer:** 1–3 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P9 grün; lokale STT-Grundfunktion aus P3 abgenommen.
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:
@@ -56,12 +56,12 @@ Uhren nicht ungeprüft subtrahieren; Roundtrips/Clock-Korrelation dokumentieren.
 
 ## 4. Aufgaben
 
-- [ ] **T10.1 — Streaming-ADR und Instrumentierung.** Audio-/Transkript-/Cancel-Verträge und Recovery-Grenze; K6 ab Sprachende statt Aufnahmestart; Phasenlatenzen instrumentieren. K5/K6/K7.
-- [ ] **T10.2 — Lokale Streaming-STT und kleines Audio-Modell.** P3-STT mit vorgewärmtem mehrsprachigem `whisper.cpp base` erweitern: VAD, Teilresultate, domänenspezifisches Vokabular, Chunk-Backpressure, Codec-Probe auf realem Handy und lokalem Zielhost. `tiny` gegen `base` auf Größe, RAM, Warm-/Coldstart, K6 und Fachbegriff-Fehler messen; Standardmodell erst daraus entscheiden. K2/K5/K6.
-- [ ] **T10.3 — Durchgängige Sprachbedienung.** **AI-P9-3:** Sprachbefehle über die P9-Schnittstelle (`/api/commands/plan`, ADR-0027) statt eigener Direktiven führen. P9-Felder/Aktionen erreichbar machen; „korrigiere“, „abbrechen“, Befehl/Diktat und wiederholte Aufnahme; optional TTS/Barge-in, kein Echo-Dispatch. K1/K6/K10.
-- [ ] **T10.4 — Laya-Spike und Entscheidung.** Gepinnte Installation isoliert; ≥ 200 deutsche/englische Äußerungen mit unabhängiger Testaufteilung, Regeln/Laya/Planer vergleichen; Accuracy, falsche Aktion, Kalibrierung und Ressourcen messen; ADR go/no-go. K1/K6.
-- [ ] **T10.6 — Bessere Alternativen zu Whisper prüfen (Wunsch 2026-09-24).** Aktuelle lokale STT-Modelle (u. a. NVIDIA Parakeet/Canary, Moonshine, Kyutai STT, whisper large-v3-turbo über faster-whisper/whisper.cpp) auf deutschen Fachbegriffen, Streaming-Fähigkeit, Latenz (K6), CPU/GPU-Bedarf (evox2 Vulkan/ROCm, omarchy) und Lizenz vergleichen; Ergebnis als Messlauf und ADR, Gewinner wird T10.2-Standard.
-- [ ] **T10.5 — Geräte- und Lastabnahme.** Android-/iOS-Verhalten soweit Zielmatrix verlangt, Permission-Deny, Tastatur, Headset, Störgeräusch, Coldstart, 20 laufende Sessions, WAN und Offline prüfen. K2/K6/K8/K10.
+- [x] **T10.1 — Streaming-ADR und Instrumentierung.** Audio-/Transkript-/Cancel-Verträge und Recovery-Grenze; K6 ab Sprachende statt Aufnahmestart; Phasenlatenzen instrumentieren. K5/K6/K7. Stand 2026-09-24: [ADR-0028](../docs/adr/0028-local-stt.md) — Push-to-talk statt Streaming; Audio nur als Request-Body, nie in Events (K5). K6 zählt ab dem Tippen auf „Stopp“ (`LocalRecorder.stoppedAt`); der Hub meldet `audioMs`/`convertMs`/`latencyMs`, die PWA zeigt „lokal · Modell · x,x s“. Abbruch = Aufnahme verwerfen; nichts wird wiederholt.
+- [x] **T10.2 — Lokale Streaming-STT und kleines Audio-Modell.** P3-STT mit vorgewärmtem mehrsprachigem `whisper.cpp base` erweitern: VAD, Teilresultate, domänenspezifisches Vokabular, Chunk-Backpressure, Codec-Probe auf realem Handy und lokalem Zielhost. `tiny` gegen `base` auf Größe, RAM, Warm-/Coldstart, K6 und Fachbegriff-Fehler messen; Standardmodell erst daraus entscheiden. K2/K5/K6. Stand 2026-09-24: gemessen statt angenommen — `base` 33 % WER auf Fachdiktat, daher **whisper.cpp large-v3-turbo q5_0 (Vulkan, evox2, Dienst `uacc-stt`)** mit Vokabular-Prompt (Config-Liste + Projektnamen); Hub `POST /api/stt` (ffmpeg → 16 kHz mono), Policy `voice.transcribe`; Tests `stt-routes.test.ts`, E2E `voice-local.spec.ts`. **Nicht erledigt:** Teilresultate/VAD (whisper-server streamt nicht) → AI-P10-2.
+- [x] **T10.3 — Durchgängige Sprachbedienung.** **AI-P9-3:** Sprachbefehle über die P9-Schnittstelle (`/api/commands/plan`, ADR-0027) statt eigener Direktiven führen. P9-Felder/Aktionen erreichbar machen; „korrigiere“, „abbrechen“, Befehl/Diktat und wiederholte Aufnahme; optional TTS/Barge-in, kein Echo-Dispatch. K1/K6/K10. Stand 2026-09-24: `voice-directives.ts` entfernt; `VoiceSheet` plant über `/api/commands/plan`, Feld-Schritte mit Rückgängig, Schreibschritte erst nach „Ausführen“; E2E `qol.spec.ts` (T10.3) und `workspace.spec.ts` (AC-P10-3). TTS/Barge-in bewusst nicht gebaut (keine Sprachausgabe → kein Echo-Risiko).
+- [x] **T10.4 — Laya-Spike und Entscheidung.** Gepinnte Installation isoliert; ≥ 200 deutsche/englische Äußerungen mit unabhängiger Testaufteilung, Regeln/Laya/Planer vergleichen; Accuracy, falsche Aktion, Kalibrierung und Ressourcen messen; ADR go/no-go. K1/K6. Stand 2026-09-24: **no-go** ([ADR-0029](../docs/adr/0029-laya-no-go.md)) — zero-shot 41,4 % held-out (Planer 96,7 %), 16/25 Nicht-Aufträge bekamen eine Operation, p50 234 ms CPU, keine Argumente; `scripts/stt-bench/laya_eval.py`. 131 statt 200 Äußerungen (Begründung im Messlauf).
+- [x] **T10.6 — Bessere Alternativen zu Whisper prüfen (Wunsch 2026-09-24).** Aktuelle lokale STT-Modelle (u. a. NVIDIA Parakeet/Canary, Moonshine, Kyutai STT, whisper large-v3-turbo über faster-whisper/whisper.cpp) auf deutschen Fachbegriffen, Streaming-Fähigkeit, Latenz (K6), CPU/GPU-Bedarf (evox2 Vulkan/ROCm, omarchy) und Lizenz vergleichen; Ergebnis als Messlauf und ADR, Gewinner wird T10.2-Standard. Stand 2026-09-24: [Messlauf](../docs/messlauf/2026-09-24-p10-stt.md) — whisper.cpp turbo (+ Vokabular), faster-whisper, Parakeet v3, Canary v2, small, base auf Fachdiktat und FLEURS; Kyutai/Moonshine ohne Deutsch. Gewinner: whisper.cpp large-v3-turbo + Vokabular (11,9 % WER, 44/59 Begriffe, ~290 ms); Parakeet auf echter Sprache gleichauf, aber ohne Vokabular.
+- [ ] **T10.5 — Geräte- und Lastabnahme.** → verschoben nach P12 T12.4 (AI-P10-1). Android-/iOS-Verhalten soweit Zielmatrix verlangt, Permission-Deny, Tastatur, Headset, Störgeräusch, Coldstart, 20 laufende Sessions, WAN und Offline prüfen. K2/K6/K8/K10.
 
 ## 5. Acceptance Criteria
 
@@ -88,3 +88,45 @@ nachgewiesen. Jede Funktion in Config, API/CLI und passender UI tatsächlich
 registriert/erreichbar; Capability-/Support-Matrix ehrlich aktualisiert.
 Premortem im Abschlussreview gegenprüfen, offene Pflicht-ACs blockieren Abschluss.
 Commit/MR gemäß Repo-Workflow; kein lokaler Merge nach main.
+
+## Retro
+
+**Zeitraum:** 2026-09-24 · **Gate:** lokal grün (Abschluss-MR)
+
+### AK-Matrix
+
+- **AC-P10-1 (K6):** 🟡 teilweise
+  - **Beleg:** [Messlauf](../docs/messlauf/2026-09-24-p10-stt.md) §2 — Ende zu Ende p90 575 ms (Ziel ≤ 1,5 s); Fachbegriffe 79,7 % dev / 74,0 % held-out (Ziel ≥ 90 %), WER ausgewiesen; `tiny`/`base` ersetzt durch den breiteren Kandidatenvergleich (§1).
+  - **Was fehlt:** echte Stimmen am Zielgerät (synthetische Stimme spricht Englisch deutsch aus) → AI-P10-1.
+- **AC-P10-2:** 🔴 offen
+  - **Bemerkung:** Push-to-talk ohne Teiltranskripte; einfache Aktion nach Sprachende nicht auf Geräten gemessen → AI-P10-2.
+- **AC-P10-3:** 🟢 erfüllt
+  - **Beleg:** E2E `workspace.spec.ts` „AC-P10-3: „schreibe stopp“ und „nicht stoppen“ stoppen nichts …“, `qol.spec.ts` „Sprachbefehle laufen über den Planer (T10.3)“; alle P9-Flows sind über denselben Planer erreichbar (AC-P9-1-Coverage-Test), Passkey/OS-Prompts bleiben `USER_ONLY_FLOWS`. Keine TTS → keine eigene Stimme als Befehl.
+- **AC-P10-4:** 🟢 erfüllt (begründetes no-go)
+  - **Beleg:** [ADR-0029](../docs/adr/0029-laya-no-go.md), `scripts/stt-bench/laya_eval.py`, Messlauf §3.
+- **AC-P10-5:** 🟡 teilweise
+  - **Beleg:** E2E „Gesperrter Bildschirm bricht die Aufnahme sichtbar ab …“; Mikro verweigert → „Mikrofon-Zugriff verweigert.“; Erkenner weg → 502 „bitte tippen“ (`stt-routes.test.ts`); kein Retry. Lokal ohne Egress: Audio geht nur an `stt.url` im Tailnet.
+  - **Was fehlt:** K2/K8 unter Sprachlast nicht gemessen → AI-P10-3.
+
+**Stand:** 2 🟢 / 2 🟡 / 1 🔴.
+
+### Premortem
+
+1. **33-ms-Marketing verdeckt langsame STT:** nicht eingetreten — Audio-Modell und Intent getrennt gemessen; Laya brauchte auf CPU 234 ms.
+2. **Deutscher Befehl hochkonfident falsch:** eingetreten bei Laya (16/25 Nicht-Aufträge als Operation) — genau deshalb no-go; der Planer fragt weiter nach.
+3. **PWA kann Hintergrundaufnahme nicht halten:** als Produktgrenze umgesetzt — Push-to-talk, Abbruch bei Sperrbildschirm.
+4. **Audio stört Agent-Streams:** offen, nicht gemessen (AI-P10-3).
+
+### Erkenntnisse
+
+1. Der Epic-Ausgangskandidat `base` war falsch; erst die Messung zeigte 33 % WER auf Fachdiktat. Beleg: Messlauf §1.
+2. Ein Vokabular-Prompt bringt auf Fachdiktat mehr (+11 Begriffe) als jeder Modellwechsel, kostet aber auf allgemeiner Sprache ~1 Punkt WER. Beleg: Messlauf §1.
+3. Sprache über den P9-Planer statt eigener Direktiven hat Code entfernt (`voice-directives.ts`) und AC-P10-3 fast geschenkt. Beleg: `git status` dieses MRs, E2E AC-P10-3.
+4. Synthetische Stimmen taugen für Latenz, nicht für die Fachbegriff-Quote. Beleg: Messlauf §2.
+
+### Action Items
+
+- **AI-P10-1:** Fachbegriff-Diktate (≥ 20 je Gerät) mit echter Stimme am Handy, Headset und Störgeräusch; bei < 90 % Vokabular nachschärfen — zurück als: P12 T12.4.
+- **AI-P10-2:** Teiltranskripte (Streaming/VAD, z. B. Parakeet-Streaming oder whisper.cpp `stream`) und AC-P10-2 messen — zurück als: P12-Aufgabe (T12.10).
+- **AI-P10-3:** K2/K8 mit 20 laufenden Sessions unter Sprachlast — zurück als: P12 T12.2.
+

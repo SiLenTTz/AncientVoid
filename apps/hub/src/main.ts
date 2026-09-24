@@ -188,6 +188,7 @@ async function main(): Promise<void> {
     projectRoots: config.projectRoots.map((root) => resolve(root)),
     actions: config.actions,
     ...(assistantModel ? { assistantModel } : {}),
+    ...(config.stt ? { stt: config.stt } : {}),
     approvals,
     attachments,
     settings,

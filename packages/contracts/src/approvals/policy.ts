@@ -49,6 +49,7 @@ export const POLICY_OPERATIONS = [
   "actions.run",
   "drafts.write",
   "push.subscribe",
+  "voice.transcribe",
 ] as const;
 export type PolicyOperation = (typeof POLICY_OPERATIONS)[number];
 
@@ -86,6 +87,8 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "drafts.write": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
   /** T8.3: a device subscribes itself to Web Push. */
   "push.subscribe": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny" },
+  /** T10.2: a person's own voice — not something an agent sends in. */
+  "voice.transcribe": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
 };
 
 export function policyFor(operation: PolicyOperation, label: string | null | undefined): PolicyDecision {

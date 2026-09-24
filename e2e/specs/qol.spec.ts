@@ -24,13 +24,13 @@ test.describe("Kleine Hilfen (T8.6)", () => {
     await expect(app.locator(".session-card .new-badge")).toHaveCount(0);
   });
 
-  test("Sprachbefehle zeigen nur, was wirklich geht, und fragen vor dem Ausführen", async ({ app, hub }) => {
+  test("Sprachbefehle laufen über den Planer (T10.3) und fragen vor dem Ausführen", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByLabel("Weitere Aktionen").click();
     await app.locator(".session-menu").getByRole("button", { name: "Sprachbefehl" }).click();
-    await expect(app.locator(".voice-example-chip")).toHaveText(["„Stopp\"", "„Budget auf 5 Dollar\""]);
-    await app.locator(".voice-example-chip").first().click();
+    await expect(app.locator(".voice-example-chip")).toHaveText(["„Zeig wartende Sessions\"", "„Stopp\"", "„Budget auf 5 Dollar\""]);
+    await app.locator(".voice-example-chip").filter({ hasText: "Stopp" }).click();
     await expect(app.getByRole("button", { name: "Bestätigen" })).toBeVisible();
     expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).not.toBe("stopped");
   });

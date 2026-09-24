@@ -3,6 +3,7 @@ import { registerField, touchField, type FieldId } from "../../shared/command-co
 import { useApi } from "../../shared/api-context.ts";
 import type { ComponentChildren } from "preact";
 import { recognizeOnce, speechRecognitionSupported } from "../../shared/speech.ts";
+import { LocalRecorder, recordingSupported, sttStatus, transcribe } from "../../shared/local-stt.ts";
 import { type PromptRecommendation } from "../../shared/api.ts";
 import { saveSelectedSkill, saveSelectedWorkflow } from "./SkillOverlay.tsx";
 import { AttachmentPicker } from "../attachments/Attachments.tsx";
@@ -77,7 +78,69 @@ export function Composer({
   const [recommendError, setRecommendError] = useState("");
   const [recommendBusy, setRecommendBusy] = useState(false);
 
+  // T10.2: local push-to-talk when the hub has a recogniser, else the browser's.
+  const [localStt, setLocalStt] = useState<{ available: boolean; engine?: string }>({ available: false });
+  useEffect(() => {
+    void sttStatus().then(setLocalStt);
+  }, []);
+  const recorder = useRef<LocalRecorder | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [sttInfo, setSttInfo] = useState("");
+  // AC-P10-5: a locked screen or a lost microphone ends the recording
+  // visibly — nothing is transcribed or retried behind the person's back.
+  useEffect(() => {
+    if (!recording) return;
+    const end = (why: string) => {
+      recorder.current?.cancel();
+      recorder.current = null;
+      setRecording(false);
+      setMicError(why);
+    };
+    const hidden = () => document.visibilityState === "hidden" && end("Aufnahme abgebrochen — Bildschirm gesperrt oder App verlassen.");
+    const lost = () => end("Aufnahme abgebrochen — Mikrofon nicht mehr verfügbar.");
+    document.addEventListener("visibilitychange", hidden);
+    const track = recorder.current?.track();
+    track?.addEventListener("ended", lost);
+    return () => {
+      document.removeEventListener("visibilitychange", hidden);
+      track?.removeEventListener("ended", lost);
+    };
+  }, [recording]);
+
+  const stopLocal = async () => {
+    const rec = recorder.current;
+    if (!rec) return;
+    recorder.current = null;
+    setRecording(false);
+    setListening(true);
+    try {
+      const blob = await rec.stop();
+      const t = await transcribe(blob, rec.stoppedAt);
+      if (t.text) onChange(valueRef.current ? `${valueRef.current} ${t.text}` : t.text);
+      else setMicError("Nichts erkannt — nochmal versuchen.");
+      setSttInfo(`lokal · ${t.engine} · ${(t.k6Ms / 1000).toFixed(1)} s`);
+    } catch (err) {
+      setMicError(err instanceof Error ? err.message : "Spracherkennung fehlgeschlagen.");
+    } finally {
+      setListening(false);
+    }
+  };
+
   const toggleMic = async () => {
+    if (localStt.available && recordingSupported()) {
+      if (recording) return void stopLocal();
+      setMicError("");
+      setSttInfo("");
+      try {
+        const rec = new LocalRecorder();
+        await rec.start(() => void stopLocal());
+        recorder.current = rec;
+        setRecording(true);
+      } catch {
+        setMicError("Mikrofon-Zugriff verweigert.");
+      }
+      return;
+    }
     if (listening) return; // recognizeOnce already runs to completion/timeout
     setMicError("");
     setListening(true);
@@ -219,7 +282,9 @@ export function Composer({
         rows={2}
         onFocus={() => fieldId && touchField(fieldId)}
       />
-      {listening && (
+      {recording && <div class="composer-notice dim">🔴 Aufnahme — tippe „Stopp“, wenn du fertig bist (bleibt auf deinen Rechnern)</div>}
+      {sttInfo && !micError && <div class="composer-notice dim">{sttInfo}</div>}
+      {listening && !localStt.available && (
         <div class="composer-notice dim">
           🔴 höre zu… (Spracherkennung läuft meist über einen Cloud-Dienst des Browsers)
         </div>
@@ -302,10 +367,10 @@ export function Composer({
           type="button"
           aria-busy={listening}
           onClick={toggleMic}
-          disabled={disabled || !supported || listening}
-          title={supported ? "Spracheingabe" : "Browser unterstützt keine Spracherkennung"}
+          disabled={disabled || (!supported && !(localStt.available && recordingSupported())) || listening}
+          title={localStt.available ? `Spracheingabe lokal (${localStt.engine ?? "whisper"})` : supported ? "Spracheingabe (Browser, meist Cloud)" : "Browser unterstützt keine Spracherkennung"}
         >
-          {listening ? "lädt…" : "Voice"}
+          {listening ? "lädt…" : recording ? "Stopp" : "Voice"}
         </button>
         <button
           class={enhancing ? "btn busy" : "btn"}

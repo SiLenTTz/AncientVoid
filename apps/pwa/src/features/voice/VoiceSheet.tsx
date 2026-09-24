@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useApi } from "../../shared/api-context.ts";
+import { hubApi, type CommandPlan } from "../../shared/api.ts";
 import { recognizeOnce, speechRecognitionSupported, type SpeechResult } from "../../shared/speech.ts";
-import { parseVoiceDirective, type VoiceDirective } from "./voice-directives.ts";
+import { commandContext, field, type FieldId } from "../../shared/command-context.ts";
+import { runClientStep } from "../commands/CommandBar.tsx";
 
 /**
  * T1.6-7 → T3.10 — global voice-command entry point (Voice dock item).
@@ -29,9 +30,10 @@ import { parseVoiceDirective, type VoiceDirective } from "./voice-directives.ts"
  * that tap is its own fresh, synchronous user gesture. Not verified on an
  * actual phone from here (no device access) — needs a real retest.
  */
-/** T8.6: only commands that really run (T3.10) — tapping one shows the
- * same confirmation as speaking it; nothing runs without "Bestätigen". */
-const EXAMPLE_COMMANDS = ["Stopp", "Budget auf 5 Dollar"];
+/** AI-P9-3 / T10.3: spoken words go through the same planner as typed
+ * ones (ADR-0027) — navigation runs at once, anything that changes
+ * something waits for "Bestätigen"; "nicht stoppen" and questions do nothing. */
+const EXAMPLE_COMMANDS = ["Zeig wartende Sessions", "Stopp", "Budget auf 5 Dollar"];
 
 export function VoiceSheet({
   open,
@@ -40,18 +42,17 @@ export function VoiceSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  /** T3.10: only a directive scoped to one session (stop/budget) can be
-   * confirmed and executed — undefined (opened from the Dashboard, not a
-   * session) is a real, honestly-shown limitation, not a silent no-op. */
+  /** Kept for callers; the planner reads the open session from the context. */
   sessionId?: string;
 }) {
-  const api = useApi();
   const [state, setState] = useState<"idle" | "listening" | "done">("idle");
   const [result, setResult] = useState<SpeechResult | null>(null);
-  const [directive, setDirective] = useState<VoiceDirective | null>(null);
+  const [plan, setPlan] = useState<CommandPlan | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [actionResult, setActionResult] = useState<string | null>(null);
   const alive = useRef(true);
+  void sessionId;
 
   useEffect(() => {
     alive.current = true;
@@ -60,12 +61,58 @@ export function VoiceSheet({
     // auto-starts recognition (see this file's own doc comment for why).
     setState("idle");
     setResult(null);
-    setDirective(null);
+    setPlan(null);
+    setAnswers({});
     setActionResult(null);
+    setUndo(null);
     return () => {
       alive.current = false;
     };
   }, [open]);
+
+  const [undo, setUndo] = useState<{ field: FieldId; before: string } | null>(null);
+  const run = async (p: CommandPlan) => {
+    setBusy(true);
+    try {
+      const first = p.steps[0];
+      // Field steps happen here, in the app: fill or rewrite, never send.
+      if (first && (first.op === "field.fill" || first.op === "field.transform")) {
+        const id = String(first.args.field) as FieldId;
+        const f = field(id);
+        if (!f) throw new Error("Das Feld ist hier nicht offen.");
+        const before = f.get();
+        const after = first.op === "field.fill" ? String(first.args.text) : (await hubApi.commandTransform(before, String(first.args.transform))).text;
+        f.set(after);
+        setUndo({ field: id, before });
+        setActionResult(first.op === "field.fill" ? "eingetragen — nicht gesendet" : "Text bearbeitet — nicht gesendet");
+        return;
+      }
+      const res = await hubApi.commandExecute(p.id, commandContext());
+      const lines = res.results.map((r) => (r.client ? runClientStep(r.client) || r.detail : r.detail));
+      setActionResult(lines.join(" · ") || "erledigt");
+      if (res.results.every((r) => r.ok) && p.steps.every((s) => s.risk === "read")) onClose();
+    } catch (err) {
+      setActionResult(err instanceof Error ? err.message : "Aktion fehlgeschlagen");
+    } finally {
+      setBusy(false);
+      setPlan(null);
+    }
+  };
+
+  const understand = async (text: string, withAnswers: Record<string, string> = {}) => {
+    setBusy(true);
+    setActionResult(null);
+    try {
+      const p = await hubApi.commandPlan(text, commandContext(), Object.keys(withAnswers).length ? withAnswers : undefined);
+      if (!alive.current) return;
+      setPlan(p);
+      if (!p.question && !p.refusal && p.steps.length > 0 && p.steps.every((s) => s.risk === "read" && !s.op.startsWith("field."))) await run(p);
+    } catch (err) {
+      setActionResult(err instanceof Error ? err.message : "Nicht verstanden");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // Called directly from a button's onClick — must stay synchronous up to
   // the recognizeOnce() call itself for the real reason in this file's
@@ -73,42 +120,24 @@ export function VoiceSheet({
   const startListening = () => {
     setState("listening");
     setResult(null);
-    setDirective(null);
+    setPlan(null);
     setActionResult(null);
     recognizeOnce().then((r) => {
       if (!alive.current) return;
       setResult(r);
       setState("done");
-      if (r.ok) {
-        const parsed = parseVoiceDirective(r.text);
-        if (parsed.kind !== "unrecognized") setDirective(parsed);
-      }
+      if (r.ok) void understand(r.text);
     });
   };
 
   if (!open) return null;
 
   const supported = speechRecognitionSupported();
-
-  const confirmDirective = async () => {
-    if (!directive || directive.kind === "unrecognized" || !sessionId) return;
-    setBusy(true);
-    try {
-      if (directive.kind === "stop") {
-        await api.stopSession(sessionId);
-        setActionResult("Session gestoppt.");
-      } else if (directive.kind === "budget") {
-        const ack = await api.requestBudgetTopUp(sessionId, directive.amountUsd);
-        setActionResult(
-          ack.ok ? "Budget geändert." : `Zur Freigabe eingereicht (${ack.detail ?? "wartet auf Bestätigung"}).`,
-        );
-      }
-    } catch (err) {
-      setActionResult(err instanceof Error ? err.message : "Aktion fehlgeschlagen");
-    } finally {
-      setBusy(false);
-      setDirective(null);
-    }
+  const pickExample = (cmd: string) => {
+    setResult({ ok: true, text: cmd } as SpeechResult);
+    setState("done");
+    setAnswers({});
+    void understand(cmd);
   };
 
   return (
@@ -144,67 +173,85 @@ export function VoiceSheet({
                     ? "Erkannt"
                     : "Nicht erkannt"}
             </p>
-            {result &&
-              (result.ok ? (
-                <p class="voice-example">„{result.text}"</p>
-              ) : (
-                <p class="voice-example">
-                  {result.reason === "timeout"
-                    ? "Zeitüberschreitung — kein Ergebnis vom Browser."
-                    : result.reason === "not-allowed"
-                      ? "Mikrofon-Zugriff verweigert."
-                      : result.reason === "no-speech"
-                        ? "Nichts gehört."
-                        : "Erkennung fehlgeschlagen."}
-                </p>
-              ))}
-
-            {directive && directive.kind !== "unrecognized" && !actionResult && (
-              <div class="card" style="margin-top: 10px; display: grid; gap: 8px">
-                <div>{directive.summary}?</div>
-                {!sessionId ? (
-                  <div class="dim" style="font-size: 12px">
-                    Keine Session ausgewählt — aus einer laufenden Session heraus sprechen, um dies auszuführen.
-                  </div>
-                ) : (
-                  <div class="row" style="gap: 8px">
-                    <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={confirmDirective} disabled={busy}>
-                      {busy ? "lädt…" : "Bestätigen"}
-                    </button>
-                    <button class="btn" onClick={() => setDirective(null)} disabled={busy}>
-                      Abbrechen
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-            {actionResult && <p class="voice-example">{actionResult}</p>}
-            {!directive && !actionResult && <span class="preview-tag">Erkannt werden „Stopp“ und „Budget auf … Dollar“.</span>}
           </>
         )}
-        <div class="label" style="margin: 14px 0 6px">
-          Befehle
-        </div>
-        {sessionId ? (
-          EXAMPLE_COMMANDS.map((cmd) => (
-            <button
-              key={cmd}
-              type="button"
-              class="chip subtle voice-example-chip"
-              onClick={() => {
-                setActionResult(null);
-                setResult({ ok: true, text: cmd } as SpeechResult);
-                setState("done");
-                const parsed = parseVoiceDirective(cmd);
-                setDirective(parsed.kind !== "unrecognized" ? parsed : null);
-              }}
-            >
-              „{cmd}"
-            </button>
-          ))
-        ) : (
-          <p class="dim" style="margin: 0">Sprachbefehle wirken in einer Session: öffne sie und wähle ⋯ → Sprachbefehl.</p>
+        {result &&
+          (result.ok ? (
+            <p class="voice-example">„{result.text}"</p>
+          ) : (
+            <p class="voice-example">
+              {result.reason === "timeout"
+                ? "Zeitüberschreitung — kein Ergebnis vom Browser."
+                : result.reason === "not-allowed"
+                  ? "Mikrofon-Zugriff verweigert."
+                  : result.reason === "no-speech"
+                    ? "Nichts gehört."
+                    : "Erkennung fehlgeschlagen."}
+            </p>
+          ))}
+        {plan?.refusal && <p class="voice-example command-refusal">{plan.refusal}</p>}
+        {plan && !plan.refusal && !plan.question && plan.steps.length === 0 && <p class="voice-example dim">Kein Auftrag erkannt — es passiert nichts.</p>}
+        {plan?.question && (
+          <div class="card" style="margin-top: 10px; display: grid; gap: 8px">
+            <div>{plan.question.question}</div>
+            <div class="command-options">
+              {plan.question.options.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  class="chip"
+                  onClick={() => {
+                    const next = { ...answers, [plan.question!.param]: o.value };
+                    setAnswers(next);
+                    void understand(plan.text, next);
+                  }}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
+        {plan && plan.steps.length > 0 && plan.steps.some((s) => s.risk !== "read" || s.op.startsWith("field.")) && !actionResult && (
+          <div class="card" style="margin-top: 10px; display: grid; gap: 8px">
+            {plan.steps.map((s, i) => (
+              <div key={i}>{s.summary}?</div>
+            ))}
+            <div class="row" style="gap: 8px">
+              <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={() => void run(plan)} disabled={busy}>
+                {busy ? "lädt…" : "Bestätigen"}
+              </button>
+              <button class="btn" onClick={() => setPlan(null)} disabled={busy}>
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        )}
+        {actionResult && <p class="voice-example">{actionResult}</p>}
+        {undo && (
+          <button
+            type="button"
+            class="btn"
+            onClick={() => {
+              field(undo.field)?.set(undo.before);
+              setUndo(null);
+              setActionResult("rückgängig gemacht");
+            }}
+          >
+            Rückgängig
+          </button>
+        )}
+        <div class="label" style="margin: 14px 0 6px">
+          Beispiele
+        </div>
+        {EXAMPLE_COMMANDS.map((cmd) => (
+          <button key={cmd} type="button" class="chip subtle voice-example-chip" onClick={() => pickExample(cmd)}>
+            „{cmd}"
+          </button>
+        ))}
+        <p class="dim" style="margin: 6px 0 0; font-size: 12px">
+          Alles, was die Texteingabe (✦) versteht, geht auch gesprochen. Freigaben und Schlüssel bleiben ein Tippen.
+        </p>
       </div>
     </div>
   );
