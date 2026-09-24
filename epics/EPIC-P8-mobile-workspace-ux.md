@@ -46,7 +46,7 @@ auf. Versioniertes PWA-Update darf Draft/Session-Link nicht verlieren.
 
 ## 4. Aufgaben
 
-- [ ] **T8.1 — Übersicht und Navigation.** UI-Funde aus Audit §5 umsetzen: Titel, letzte Aktion, Host, Braucht-dich, aktive/archivierte Sessions, stabile URLs und Browser-Zurück. K1/K2/K10.
+- [x] **T8.1 — Übersicht und Navigation.** UI-Funde aus Audit §5 umsetzen: Titel, letzte Aktion, Host, Braucht-dich, aktive/archivierte Sessions, stabile URLs und Browser-Zurück. K1/K2/K10. Stand 2026-09-24: Abschnitte „Braucht dich“ (Freigabe/Fehler), „Angeheftet“, „Aktiv“, „Zuletzt“ (15, dann „Alle zeigen“), Filterfeld; Karte mit Auftrag, Host · Projekt · Harness, letzter verständlicher Aktion (`SessionRecord.lastActivity`, Migration 17) und „vor x min“; Status in Worten (`data-status` behält den Rohwert); Kosten nur bei gemeldeten Werten (ADR-0023). Jede Seite hat eine Adresse (`#/neu`, `#/einstellungen`, `#/freigaben`, `#/status`, `#/gefunden`), Zurück im Browser funktioniert. Höchstens zwei Meldungen über dem Inhalt, der Rest in der Glocke. E2E `session.spec.ts` (Abschnitte, ein Tap zur Freigabe, Zurück, Anheften/Umbenennen).
 - [ ] **T8.2 — Offline, Auth und Updates.** K10-Abnahme erweitern: Reload/offline-first-open mit vorhandenem Cache, korrekter Datenzeitpunkt, Tokenwechsel ohne Datenvermischung, Reconnect und SW-Upgrade. K7/K10.
 - [ ] **T8.3 — Benachrichtigungsprodukt.** P1-Push-Basis um Inbox, ruhige Zeiten, Deduplizierung, richtigen Deep-Link, Endpoint-Rotation und sichtbaren Zustellstatus ergänzen; echte Hintergrund-/Lockscreen-Tests. K1/K10.
 - [ ] **T8.4 — Composer und Kontinuität.** Dauerhafte Entwürfe, Sync-Konflikte, Leseposition, Anhang-Teilen, Copy, Antwortvorlagen und letzte Projekt-/Harness-Auswahl; keine erneute Ausführung beim Reload. K5/K7/K10.

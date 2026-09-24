@@ -50,13 +50,55 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(beta).toContainText("opencode");
   });
 
-  test("die Übersicht gruppiert nach Projekt und öffnet eine Session", async ({ app, hub }) => {
+  test("T8.1: die Übersicht ordnet nach „Braucht dich“, „Aktiv“, „Zuletzt“ und öffnet eine Session", async ({ app, hub }) => {
     await hub.createSession({ adapter: "dummy" });
-    await hub.createSession({ adapter: "dummy", project: hub.beta });
-    await expect(app.locator(".project-tile-header")).toHaveText(["beta", "alpha"]);
-    await app.locator(".project-tile").filter({ hasText: "alpha" }).locator(".session-open").click();
+    const stopped = await hub.createSession({ adapter: "dummy", project: hub.beta });
+    await hub.api(`/api/sessions/${stopped}/stop`, { body: {} });
+    const waiting = await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
+    await expect(app.locator(".section-title")).toHaveText([/Braucht dich/, /Aktiv/, /Zuletzt/]);
+    const need = app.locator(".section-braucht .session-card");
+    await expect(need).toHaveCount(1);
+    await expect(need.locator(".pill")).toHaveText("Freigabe nötig");
+    await expect(need.locator(".session-activity")).toContainText("Wartet auf Freigabe: Bash");
+    // One tap from the overview to the waiting request (AC-P8-1).
+    await need.locator(".session-open").click();
+    await expect(app).toHaveURL(new RegExp(`#/sessions/${waiting}`));
+    await expect(app.locator(".session-approvals .approval-card")).toBeVisible();
+    await app.goBack();
+    await expect(app.locator(".section-zuletzt .session-card .session-project")).toHaveText("beta");
+    await app.locator(".section-aktiv .session-card").filter({ hasText: "alpha" }).locator(".session-open").click();
     await expect(app.locator(".topbar")).toContainText("alpha");
     await expect(app.locator(".topbar")).toContainText("dummy");
+  });
+
+  test("T8.1: jede Seite hat eine Adresse — Zurück im Browser geht zurück", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await expect(app).toHaveURL(/#\/neu$/);
+    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await expect(app).toHaveURL(/#\/einstellungen$/);
+    await app.goBack();
+    await expect(app).toHaveURL(/#\/neu$/);
+    await expect(app.getByRole("button", { name: "Starten" })).toBeVisible();
+    await app.goBack();
+    await expect(app.locator(".session-card")).toHaveCount(1);
+    await app.locator(".session-open").click();
+    await expect(app).toHaveURL(new RegExp(`#/sessions/${id}$`));
+    await app.reload();
+    await expect(app.locator(".topbar")).toContainText("dummy");
+    await app.goBack();
+    await expect(app.locator(".dashboard")).toBeVisible();
+  });
+
+  test("T8.6: anheften und umbenennen gilt auf allen Geräten", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Erster Auftrag" });
+    await hub.api(`/api/sessions/${id}/stop`, { body: {} });
+    const card = app.locator(".session-card").filter({ hasText: "Erster Auftrag" });
+    await card.getByRole("button", { name: "Anheften" }).click();
+    await expect(app.locator(".section-pins .session-card")).toHaveCount(1);
+    expect((await hub.api<{ pinned: boolean }>(`/api/sessions/${id}`)).body.pinned).toBe(true);
+    await hub.api(`/api/sessions/${id}/meta`, { body: { title: "Umbenannt" } });
+    await expect(app.locator(".section-pins .session-title")).toHaveText("Umbenannt");
   });
 
   test("Verlauf filtert große Tool-Ergebnisse und merkt sich den Filter", async ({ app, hub }) => {

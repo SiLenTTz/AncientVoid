@@ -68,7 +68,7 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
     expect(recovered?.payload.controllable).toBe(true);
 
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await expect(app.locator(".topbar .pill")).toHaveText("idle");
+    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
     await app.getByRole("button", { name: "Chat" }).click();
     await app.getByPlaceholder("Antworten…").fill("Nach dem Kill");
     await app.getByRole("button", { name: "Senden" }).click();
@@ -87,7 +87,7 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
       await app.goto(`${hub.origin}/#/sessions/${id}`);
       await app.getByRole("button", { name: "Chat" }).click();
       await expect(app.getByText(/Antwort auf: Lege eine DATEI an WARTE3/)).toBeVisible({ timeout: 15_000 });
-      await expect(app.locator(".topbar .pill")).toHaveText("idle");
+      await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
       const events = await hub.events(id);
       expect(events.some((e) => e.payload.kind === "session.stopped"), "planned restart stops nothing").toBe(false);
       const { existsSync } = await import("node:fs");
@@ -107,7 +107,7 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
       await app.goto(`${hub.origin}/#/sessions/${id}`);
       await app.getByRole("button", { name: "Chat" }).click();
       await expect(app.getByText(/Antwort auf: Arbeite WARTE3/)).toBeVisible({ timeout: 15_000 });
-      await expect(app.locator(".topbar .pill")).toHaveText("idle");
+      await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
 
       const after = await hub.events(id);
       expect(after.slice(0, before.length).map((e) => e.summary)).toEqual(before.map((e) => e.summary));

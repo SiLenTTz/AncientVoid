@@ -23,7 +23,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (/^\/api\/sessions\/[^/]+\/stop$/.test(path)) return "sessions.stop";
   if (/^\/api\/sessions\/[^/]+\/budget$/.test(path)) return "sessions.budget";
   if (/^\/api\/sessions\/[^/]+\/apply$/.test(path)) return "sessions.apply";
-  if (/^\/api\/sessions\/[^/]+\/archive$/.test(path)) return "sessions.archive";
+  if (/^\/api\/sessions\/[^/]+\/(archive|meta)$/.test(path)) return "sessions.archive";
   if (/^\/api\/approvals\/[^/]+\/(decide|webauthn\/)/.test(path)) return "approvals.decide";
   if (path.startsWith("/api/tokens") || path.startsWith("/api/webauthn/register")) return "tokens.manage";
   if (path === "/api/fleet/pairing") return "fleet.unpair";

@@ -101,6 +101,11 @@ export const SessionRecord = z.object({
   /** First line of the start prompt, for the overview. Null when the
    * session started without one (or before titles existed). */
   title: z.string().nullable().default(null),
+  /** T8.1: the last understandable thing that happened — what the card
+   * shows instead of an event number. */
+  lastActivity: z.object({ text: z.string().max(160), type: z.string(), at: z.string() }).nullable().default(null),
+  /** T8.6: pinned to the top of the overview (on this hub, all devices). */
+  pinned: z.boolean().default(false),
 });
 export type SessionRecord = z.infer<typeof SessionRecord>;
 

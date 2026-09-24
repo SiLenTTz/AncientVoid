@@ -75,7 +75,7 @@ test.describe("Handoff PC ↔ Handy (AC-P5-2) @desktop", () => {
     const pc = await device(browser, hub, "pc");
     await pc.goto(`${hub.origin}/#/sessions/${id}`);
     await pc.getByRole("button", { name: "Stop" }).click();
-    await expect(pc.locator(".topbar .pill")).toHaveText("stopped");
+    await expect(pc.locator(".topbar .pill")).toHaveAttribute("data-status", "stopped");
 
     const phone = await device(browser, hub, "phone");
     await phone.goto(`${hub.origin}/#/sessions/${id}`);
@@ -83,7 +83,7 @@ test.describe("Handoff PC ↔ Handy (AC-P5-2) @desktop", () => {
     await expect(phone.getByText(/Antwort auf: Zug 2 vom Handy .*\(fortgesetzt\)/)).toBeVisible();
 
     await phone.getByRole("button", { name: "Stop" }).click();
-    await expect(pc.locator(".topbar .pill")).toHaveText("stopped");
+    await expect(pc.locator(".topbar .pill")).toHaveAttribute("data-status", "stopped");
     await send(pc, "Zug 3 am PC");
     await pc.getByRole("button", { name: "Übernehmen" }).click();
     await expect(pc.getByText(/Antwort auf: Zug 3 am PC .*\(fortgesetzt\)/)).toBeVisible();

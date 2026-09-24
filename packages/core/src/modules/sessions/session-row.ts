@@ -32,6 +32,18 @@ export interface SessionRow {
   archived: number;
   title: string | null;
   metric_counters: string;
+  last_activity: string | null;
+  pinned: number;
+}
+
+function activity(raw: string | null | undefined): SessionRecord["lastActivity"] {
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw) as { text?: unknown; type?: unknown; at?: unknown };
+    return typeof v.text === "string" && typeof v.type === "string" && typeof v.at === "string" ? { text: v.text, type: v.type, at: v.at } : null;
+  } catch {
+    return null;
+  }
 }
 
 function counters(raw: string | null | undefined): MetricCounters {
@@ -73,6 +85,8 @@ export function rowToRecord(row: SessionRow): SessionRecord {
     archived: row.archived === 1,
     title: row.title ?? null,
     metrics: metricsState(counters(row.metric_counters)),
+    lastActivity: activity(row.last_activity),
+    pinned: row.pinned === 1,
   };
 }
 
@@ -83,9 +97,9 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
          id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq,
          cost_usd, updated_at, tokens_est, park_reason, control_mode, harness, host_id, native_session_id,
          resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until,
-         archived, title, metric_counters
+         archived, title, metric_counters, last_activity, pinned
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          status = excluded.status,
          model = excluded.model,
@@ -111,7 +125,9 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
          writer_lease_until = excluded.writer_lease_until,
          archived = excluded.archived,
          title = excluded.title,
-         metric_counters = excluded.metric_counters`,
+         metric_counters = excluded.metric_counters,
+         last_activity = excluded.last_activity,
+         pinned = excluded.pinned`,
     )
     .run(
       record.id,
@@ -143,5 +159,7 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
       record.archived ? 1 : 0,
       record.title,
       JSON.stringify(record.metrics.counters),
+      record.lastActivity ? JSON.stringify(record.lastActivity) : null,
+      record.pinned ? 1 : 0,
     );
 }

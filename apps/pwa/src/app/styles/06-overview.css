@@ -9,6 +9,7 @@
   font-size: 12px;
 }
 
+/* Discovery groups found sessions by project. */
 .project-tile {
   margin: 14px 0;
 }
@@ -18,6 +19,77 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 0 2px 4px;
+}
+
+/* T8.1: sections instead of project tiles — what needs you comes first. */
+.session-section {
+  margin: 14px 0;
+}
+
+.section-title {
+  margin: 0;
+  padding: 0 2px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-dim);
+}
+
+.section-braucht .section-title {
+  color: var(--warn);
+}
+
+.dashboard-search {
+  width: 100%;
+  margin: 6px 0 2px;
+}
+
+.session-card .session-title {
+  font-size: 14px;
+  margin: 0;
+  min-width: 0;
+}
+
+.session-where {
+  font-size: 12px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-activity {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.session-activity-text {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.session-ago {
+  flex: 0 0 auto;
+  font-size: 11px;
+}
+
+.session-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.more-sessions {
+  display: block;
+  margin: 8px auto;
 }
 
 .badge {

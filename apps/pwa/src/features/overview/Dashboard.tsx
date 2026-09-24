@@ -1,8 +1,9 @@
-import { useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import type { FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi } from "../../shared/api.ts";
 import { sessionsForOverview } from "./session-list.ts";
 import { metricView, totalCostText } from "../../shared/metrics.ts";
+import { ago, statusLabel } from "../../shared/status.ts";
 
 export function formatUsd(n: number): string {
   if (n === 0) return "$0";
@@ -71,53 +72,72 @@ function projectName(project: string): string {
   return project.split("/").filter(Boolean).pop() ?? project;
 }
 
+type Section = "braucht" | "pins" | "aktiv" | "zuletzt";
+
+/** T8.1: what needs you first, then what runs, then what happened. */
+export function sectionOf(s: SessionRecord): Section {
+  if (s.status === "waiting_approval" || s.status === "error") return "braucht";
+  if (s.pinned) return "pins";
+  if (s.status === "starting" || s.status === "working" || s.status === "idle") return "aktiv";
+  return "zuletzt";
+}
+
+const SECTION_TITLE: Record<Section, string> = { braucht: "Braucht dich", pins: "Angeheftet", aktiv: "Aktiv", zuletzt: "Zuletzt" };
+const RECENT_LIMIT = 15;
+
+function matches(s: SessionRecord, q: string): boolean {
+  if (!q) return true;
+  const hay = `${s.title ?? ""} ${s.project} ${s.hostId ?? ""} ${s.adapter} ${s.model ?? ""} ${s.lastActivity?.text ?? ""}`.toLowerCase();
+  return q.toLowerCase().split(/\s+/).every((w) => hay.includes(w));
+}
+
 export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, onOpenApprovals, onOpenDiscovery }: DashboardProps) {
   const fleet = hosts.length > 1;
   const [showArchived, setShowArchived] = useState(false);
-  const [archivedOverride, setArchivedOverride] = useState<Record<string, boolean>>({});
-  const [archiveError, setArchiveError] = useState("");
-  const withArchive = useMemo(
-    () => sessions.map((session) => (session.id in archivedOverride ? { ...session, archived: archivedOverride[session.id] } : session)),
-    [sessions, archivedOverride],
-  );
-  const visible = useMemo(() => sessionsForOverview(withArchive, showArchived), [withArchive, showArchived]);
-  const sorted = useMemo(
-    () => [...visible].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)),
-    [visible],
-  );
-
-  const byProject = useMemo(() => {
-    // EPIC-P6: host + project — project names are not unique across hosts.
-    const map = new Map<string, SessionRecord[]>();
-    for (const s of sorted) {
-      const key = fleet ? `${s.hostId ?? ""}\u0000${s.project}` : s.project;
-      const list = map.get(key) ?? [];
-      list.push(s);
-      map.set(key, list);
-    }
-    // Projects ordered by their most-recently-active session (sorted already).
-    return [...map.entries()];
-  }, [sorted]);
-
-  const todayCost = useMemo(() => {
-    const today = todayKey();
-    return totalCostText(sessions.filter((s) => s.createdAt.slice(0, 10) === today), formatUsd);
+  const [override, setOverride] = useState<Record<string, Partial<SessionRecord>>>({});
+  const [actionError, setActionError] = useState("");
+  const [query, setQuery] = useState("");
+  const [allRecent, setAllRecent] = useState(false);
+  // Local changes win until the next poll reports the same value.
+  useEffect(() => {
+    setOverride((prev) => {
+      const next: Record<string, Partial<SessionRecord>> = {};
+      for (const [id, patch] of Object.entries(prev)) {
+        const server = sessions.find((s) => s.id === id);
+        if (server && Object.entries(patch).some(([k, v]) => server[k as keyof SessionRecord] !== v)) next[id] = patch;
+      }
+      return Object.keys(next).length === Object.keys(prev).length ? prev : next;
+    });
   }, [sessions]);
+  const withOverride = useMemo(() => sessions.map((s) => (override[s.id] ? { ...s, ...override[s.id] } : s)), [sessions, override]);
+  const visible = useMemo(() => sessionsForOverview(withOverride, showArchived).filter((s) => matches(s, query.trim())), [withOverride, showArchived, query]);
+  const sorted = useMemo(() => [...visible].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)), [visible]);
+  const sections = useMemo(() => {
+    const out: Record<Section, SessionRecord[]> = { braucht: [], pins: [], aktiv: [], zuletzt: [] };
+    for (const s of sorted) out[showArchived ? "zuletzt" : sectionOf(s)].push(s);
+    return out;
+  }, [sorted, showArchived]);
 
-  const waitingCount = sessions.filter((s) => s.status === "waiting_approval").length;
-  const archivedCount = withArchive.filter((s) => s.archived === true).length;
+  // ADR-0023: a sum with unknown parts is no number — shown only when any
+  // session of today reported a cost at all.
+  const today = useMemo(() => sessions.filter((s) => s.createdAt.slice(0, 10) === todayKey()), [sessions]);
+  const todayCost = today.some((s) => s.metrics && s.metrics.cost !== "unknown") ? totalCostText(today, formatUsd) : null;
+  const archivedCount = withOverride.filter((s) => s.archived === true).length;
 
-  const archive = async (session: SessionRecord) => {
-    const next = session.archived !== true;
+  const change = async (session: SessionRecord, patch: Partial<SessionRecord>, call: () => Promise<unknown>) => {
+    setOverride((prev) => ({ ...prev, [session.id]: { ...prev[session.id], ...patch } }));
     try {
-      await hostApi(session.hostId).setArchived(session.id, next);
-      setArchivedOverride((prev) => ({ ...prev, [session.id]: next }));
-      setArchiveError("");
+      await call();
+      setActionError("");
     } catch (err) {
-      setArchiveError(err instanceof Error ? err.message : "Archivieren fehlgeschlagen.");
+      setOverride((prev) => ({ ...prev, [session.id]: {} }));
+      setActionError(err instanceof Error ? err.message : "Änderung fehlgeschlagen.");
     }
   };
+  const archive = (s: SessionRecord) => change(s, { archived: !s.archived }, () => hostApi(s.hostId).setArchived(s.id, !s.archived));
+  const pin = (s: SessionRecord) => change(s, { pinned: !s.pinned }, () => hostApi(s.hostId).setSessionMeta(s.id, { pinned: !s.pinned }));
 
+  const order: Section[] = ["braucht", "pins", "aktiv", "zuletzt"];
   return (
     <div class="dashboard">
       {pendingApprovals > 0 && onOpenApprovals && (
@@ -125,9 +145,9 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
           ⚠ {pendingApprovals} {pendingApprovals === 1 ? "Freigabe wartet" : "Freigaben warten"} auf dich
         </button>
       )}
-      {archiveError && <div class="reply-error">{archiveError}</div>}
+      {actionError && <div class="reply-error">{actionError}</div>}
       <div class="dashboard-summary dim">
-        <span>Heute: {todayCost}</span>
+        {todayCost && <span>Heute: {todayCost}</span>}
         <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => setShowArchived((on) => !on)}>
           {showArchived ? "Aktive" : `Archiv${archivedCount > 0 ? ` (${archivedCount})` : ""}`}
         </button>
@@ -136,12 +156,10 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
             Gefunden
           </button>
         )}
-        {waitingCount > 0 && (
-          <span class="badge waiting">
-            {waitingCount} {waitingCount === 1 ? "wartet" : "warten"} auf dich
-          </span>
-        )}
       </div>
+      {sessions.length > 4 && (
+        <input class="dashboard-search" type="search" placeholder="Sessions filtern…" aria-label="Sessions filtern" value={query} onInput={(e) => setQuery((e.target as HTMLInputElement).value)} />
+      )}
       {fleet && (
         <div class="fleet-hosts">
           {hosts.map((h) => (
@@ -155,55 +173,77 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
         </div>
       )}
       {sorted.length === 0 ? (
-        <div class="empty">{showArchived ? "nichts archiviert" : "keine Sessions — lege eine an"}</div>
+        <div class="empty">{query ? "nichts gefunden" : showArchived ? "nichts archiviert" : "keine Sessions — lege eine an"}</div>
       ) : (
-        byProject.map(([key, projectSessions]) => (
-          <div key={key} class="project-tile">
-            <div class="project-tile-header dim">
-              {fleet ? `${projectSessions[0]?.hostId ?? "?"} · ` : ""}
-              {projectName(projectSessions[0]?.project ?? key)}
-            </div>
-            {projectSessions.map((s) => (
-              <SessionRow key={s.id} session={s} onOpen={onOpen} onArchive={archive} />
-            ))}
-          </div>
-        ))
+        order
+          .filter((key) => sections[key].length > 0)
+          .map((key) => {
+            const list = key === "zuletzt" && !allRecent && !query ? sections[key].slice(0, RECENT_LIMIT) : sections[key];
+            return (
+              <section key={key} class={`session-section section-${key}`} aria-label={SECTION_TITLE[key]}>
+                <h2 class="section-title">
+                  {showArchived ? "Archiv" : SECTION_TITLE[key]} <span class="dim">{sections[key].length}</span>
+                </h2>
+                {list.map((s) => (
+                  <SessionRow key={`${s.hostId ?? ""}:${s.id}`} session={s} fleet={fleet} onOpen={onOpen} onArchive={archive} onPin={pin} />
+                ))}
+                {list.length < sections[key].length && (
+                  <button class="btn more-sessions" type="button" onClick={() => setAllRecent(true)}>
+                    Alle {sections[key].length} zeigen
+                  </button>
+                )}
+              </section>
+            );
+          })
       )}
     </div>
   );
 }
 
-
 function SessionRow({
   session,
+  fleet,
   onOpen,
   onArchive,
+  onPin,
 }: {
   session: SessionRecord;
+  fleet: boolean;
   onOpen: (s: SessionRecord) => void;
   onArchive: (s: SessionRecord) => void;
+  onPin: (s: SessionRecord) => void;
 }) {
   const waiting = session.status === "waiting_approval";
   const glow = session.status === "working" ? "st-working" : waiting ? "st-waiting" : "";
+  const project = projectName(session.project);
   return (
     <div class={`card session-card ${glow}`}>
       <button class="session-open" type="button" onClick={() => onOpen(session)}>
         <div class="row">
-          <strong class="session-project">{session.project.split("/").filter(Boolean).pop() ?? session.project}</strong>
-          <span class={`pill ${session.status}`}>{session.status}</span>
-        </div>
-        <div class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? "ohne Startprompt"}</div>
-        <div class="row dim">
-          <span>
-            {session.adapter} · {session.model ?? "n/a"} · #{session.lastSeq}
+          <strong class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? `${project} — ohne Auftrag`}</strong>
+          <span class={`pill ${session.status}`} data-status={session.status}>
+            {statusLabel(session.status)}
           </span>
-          <span>{session.costUsd > 0 ? metricView(session, "cost", formatUsd, true).text : ""}</span>
         </div>
-        {waiting && <span class="badge waiting">wartet auf dich</span>}
+        <div class="session-where dim">
+          {fleet && session.hostId ? `${session.hostId} · ` : ""}
+          <span class="session-project">{project}</span> · {session.adapter}
+          {session.model ? ` · ${session.model}` : ""}
+          {session.costUsd > 0 ? ` · ${metricView(session, "cost", formatUsd, true).text}` : ""}
+        </div>
+        <div class="session-activity">
+          <span class="session-activity-text">{session.lastActivity?.text ?? "noch nichts passiert"}</span>
+          <span class="dim session-ago">{ago(session.lastActivity?.at ?? session.updatedAt)}</span>
+        </div>
       </button>
-      <button class="link-btn" type="button" onClick={() => void onArchive(session)}>
-        {session.archived ? "Zurückholen" : "Archivieren"}
-      </button>
+      <div class="session-card-actions">
+        <button class="link-btn" type="button" aria-pressed={session.pinned === true} onClick={() => void onPin(session)}>
+          {session.pinned ? "Lösen" : "Anheften"}
+        </button>
+        <button class="link-btn" type="button" onClick={() => void onArchive(session)}>
+          {session.archived ? "Zurückholen" : "Archivieren"}
+        </button>
+      </div>
     </div>
   );
 }

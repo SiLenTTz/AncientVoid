@@ -113,10 +113,10 @@ test.describe("Flotte (EPIC-P6)", () => {
       await app.reload();
       await expect(app.locator(".host-chip").filter({ hasText: "omarchy" })).toContainText("verbunden");
       await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
-      await expect(app.locator(".project-tile-header").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
-      await expect(app.locator(".project-tile-header").filter({ hasText: "omarchy · alpha" })).toBeVisible();
+      await expect(app.locator(".session-where").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
+      await expect(app.locator(".session-where").filter({ hasText: "omarchy · alpha" })).toBeVisible();
 
-      await app.locator(".project-tile").filter({ hasText: "silenttz-server · alpha" }).locator(".session-open").click();
+      await app.locator(".session-card").filter({ hasText: "silenttz-server · alpha" }).locator(".session-open").click();
       await expect(app).toHaveURL(new RegExp(`#/hosts/silenttz-server/sessions/${remote}`));
       await app.getByRole("button", { name: "Chat" }).click();
       await expect(app.getByText(/Antwort auf: Auf dem Server/)).toBeVisible();
@@ -162,9 +162,9 @@ test.describe("Flotte (EPIC-P6)", () => {
       await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
       await peer.kill("SIGKILL");
       await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText(/veraltet · Stand \d\d:\d\d/, { timeout: 15_000 });
-      await expect(app.locator(".project-tile-header").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
+      await expect(app.locator(".session-where").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
 
-      await app.locator(".project-tile").filter({ hasText: "omarchy · alpha" }).locator(".session-open").click();
+      await app.locator(".session-card").filter({ hasText: "omarchy · alpha" }).locator(".session-open").click();
       await app.getByRole("button", { name: "Chat" }).click();
       await expect(app.getByText(/Antwort auf: Lokal/)).toBeVisible();
       await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${local}`)).body.status === "idle", "idle");

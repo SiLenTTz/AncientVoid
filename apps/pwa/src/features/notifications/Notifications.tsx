@@ -46,6 +46,15 @@ export function timeAgo(iso: string, now = Date.now()): string {
   return new Date(iso).toLocaleDateString("de-DE");
 }
 
+/** T8.1: at most two toasts over the content — errors first; the rest
+ * waits in the bell instead of covering the overview. */
+const TOASTS_SHOWN = 2;
+const TOAST_RANK: Record<string, number> = { error: 0, warning: 1, info: 2, success: 3 };
+
+function visibleToasts<T extends { level: string }>(toasts: T[]): T[] {
+  return [...toasts].sort((a, b) => (TOAST_RANK[a.level] ?? 9) - (TOAST_RANK[b.level] ?? 9)).slice(0, TOASTS_SHOWN);
+}
+
 /**
  * ADR-0015: toasts top right for new errors and status changes, plus a bell
  * with the recent list. Polls the hub; the first load only fills the list,
@@ -152,7 +161,7 @@ export function NotificationCenter() {
         🔔{unread > 0 && <span class="notif-count">{unread > 9 ? "9+" : unread}</span>}
       </button>
       <div class="toast-stack" role="status" aria-live="polite">
-        {toasts.map((t) => (
+        {visibleToasts(toasts).map((t) => (
           <div key={t.key} class={`toast ${t.level}`}>
             <button class="toast-body" type="button" onClick={() => goTo(t.sessionId, t.hostId)}>
               <strong>{t.title}</strong>
@@ -163,6 +172,11 @@ export function NotificationCenter() {
             </button>
           </div>
         ))}
+        {toasts.length > TOASTS_SHOWN && (
+          <button class="toast-more" type="button" onClick={openPanel}>
+            +{toasts.length - TOASTS_SHOWN} weitere Meldungen
+          </button>
+        )}
       </div>
       {open && (
         <div class="notif-panel" role="dialog" aria-label="Benachrichtigungen">

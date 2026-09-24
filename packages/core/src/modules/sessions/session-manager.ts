@@ -17,7 +17,7 @@ import { createConsoleLogger } from "../../platform/index.ts";
 import { dedupeDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
 import { notificationFor } from "../notifications/index.ts";
-import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS } from "./session-state.ts";
+import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS } from "./session-state.ts";
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 
 export interface SessionManagerObservability {
@@ -265,6 +265,16 @@ export class SessionManager {
   }
 
   /** Hide or restore a session in the overview. Does not stop the worker. */
+  /** T8.6: rename or pin — the overview's own metadata, no event. */
+  setMeta(sessionId: string, meta: { title?: string | null; pinned?: boolean }): SessionRecord {
+    const live = this.live.get(sessionId);
+    const record = live?.record ?? this.require(sessionId);
+    if (meta.title !== undefined) record.title = meta.title?.trim() ? meta.title.trim().slice(0, 80) : null;
+    if (meta.pinned !== undefined) record.pinned = meta.pinned;
+    this.persist(record);
+    return record;
+  }
+
   setArchived(sessionId: string, archived: boolean): SessionRecord {
     const live = this.live.get(sessionId);
     const record = live?.record ?? this.require(sessionId);
@@ -305,6 +315,8 @@ export class SessionManager {
       updatedAt: now,
       tokensEst: 0,
       metrics: metricsState(emptyMetricCounters()),
+      lastActivity: null,
+      pinned: false,
       parkReason: null,
       controlMode: "managed",
       harness: "cli",
@@ -1153,6 +1165,9 @@ export class SessionManager {
       if (e.tokensEst !== undefined) session.record.tokensEst += e.tokensEst;
       // T7.7: per-turn evidence — "no number" stays visibly unknown.
       session.record.metrics = metricsState(countMetrics(session.record.metrics.counters, e));
+      // T8.1: the card shows what happened last, in words.
+      const act = activityOf(e);
+      if (act) session.record.lastActivity = act;
       const native = (e.payload as { nativeSessionId?: unknown }).nativeSessionId;
       if (typeof native === "string" && native.length > 0) session.record.nativeSessionId = native;
       // ADR-0004: usageQuota is account-level, NEVER summed and NEVER
