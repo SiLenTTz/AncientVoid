@@ -220,6 +220,17 @@ Es liefen keine Agent-Sessions und keine echte Stimme; damit bleibt AI-P10-3
 (20 Hub-Sessions unter Sprachlast) offen. Die temporären Dateien wurden
 entfernt, der Produktivhub blieb aus.
 
+### Dummy-Sessions parallel zur STT-Last
+
+Ein zweiter isolierter Hub hielt 20 Dummy-Sessions mit 30 ev/s parallel zu 20
+gleichzeitigen Anfragen des 3,8-s-Piper-Clips an `POST /api/stt` aktiv. Alle
+Anfragen lieferten HTTP 200 mit Text; p50 3,03 s, p95 5,65 s, Maximum 5,96 s,
+Wandzeit 6,11 s. Jede Session persistierte 216–219 Events ohne Sequenzlücken;
+RSS am Ende 109 MB. Die Sessions wurden gestoppt; Hub, Token und Datadir
+entfernt. Das belegt die Hub-Eventpipeline unter synthetischer lokaler STT-
+Last, nicht K2/K8 mit echten Sprachaufnahmen, realen Providern oder Geräten.
+AI-P10-3 bleibt offen.
+
 ## T12.3 — Isolierter Backup-/Restore-Rundlauf
 
 Mit einem separaten Loopback-Hub und einem privaten temporären Datadir wurde
