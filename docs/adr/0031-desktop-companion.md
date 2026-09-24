@@ -18,9 +18,9 @@ Die Gefahren sind:
 - Ein Agent, der den PC fernsteuert.
 
 Omarchy läuft unter Hyprland/Wayland. Dort gibt es keine
-Accessibility-Schreib-API. Tastatureingaben laufen über das
-Virtual-Keyboard-Protokoll (wtype), und das tippt immer in das Fenster, das
-gerade den Fokus hat.
+Accessibility-Schreib-API. Normale Tastatureingaben laufen über das
+Virtual-Keyboard-Protokoll (wtype), das immer in das gerade fokussierte
+Fenster tippt.
 
 ## Entscheidung
 
@@ -48,9 +48,14 @@ gerade den Fokus hat.
    - Fokus-Ereignisse des Compositors (sway `subscribe window`, Hyprland
      socket2 `activewindowv2`) beenden das Tippen sofort. Eine Abfrage alle
      15 ms ist der Rückfall.
-   - Gemessen: kein Zeichen im falschen Fenster, wenn der Fokus vor der
-     Vorschau wechselt (20/20). Wechselt er während des Tippens, landete in
-     1 von 20 Fällen genau 1 Zeichen im neuen Fenster (siehe Folgen).
+   - Normales Tasten-Tippen bleibt auf den Fokus angewiesen. Beim
+     ausdrücklich gewählten Modus „Gezielt einfügen“ adressiert Hyprland den
+     Paste-Befehl an die Window-Address aus der Vorschau. Der Text wird als
+     sensibles, einmaliges `wl-copy --paste-once`-Angebot bereitgestellt und
+     nach dem Einfügeversuch beendet; dieses Angebot verändert kurz die
+     Zwischenablage. Der Hub akzeptiert den Modus nur bei einem Hyprland-
+     Companion. Enter, Tab, Esc, Rückgängig und Ersetzen-Markierung werden
+     ebenfalls an die Vorschau-Window-Address adressiert.
 5. **Nie in Geheimnisse tippen:**
    - Fenster von Passwortmanagern und PIN-/polkit-Dialogen (App-ID) und
      Dialoge mit eindeutigem Titel werden abgelehnt.
@@ -75,10 +80,11 @@ gerade den Fokus hat.
 
 ## Alternativen
 
-- **Zwischenablage und Einfügen:** Das wäre gezielt per Hyprland
-  `sendshortcut … address:<fenster>` möglich und damit leckfrei, verändert
-  aber die Zwischenablage. Das ist ein Kandidat für P12, nur als
-  ausdrücklicher Modus.
+- **Zwischenablage und Einfügen:** Hyprland kann den Paste-Befehl an
+  `address:<fenster>` adressieren. Das ist als ausdrücklicher Modus umgesetzt;
+  das einmalige Angebot wird bei Timeout/Abbruch beendet. Clipboard-Manager
+  und manche XWayland-Apps können one-shot-Angebote beeinflussen; die
+  geräteübergreifende Live-Messung bleibt P12 T12.4.
 - **ydotool (uinput):** braucht root oder einen Dienst. Verworfen.
 - **Accessibility-Schreiben (AT-SPI `EditableText`):** unter Wayland
   unzuverlässig, viele Apps (Chromium, Terminals) machen nicht mit.
@@ -86,10 +92,10 @@ gerade den Fokus hat.
 
 ## Folgen
 
-- Ein Restrisiko bleibt: Wechselt man den Fokus genau während des Tippens,
-  kann eine bereits gesendete Taste im neuen Fenster landen (gemessen:
-  1 Zeichen in 1 von 20). Mit einer echten Tastatur ist das genauso.
-  Leckfrei wird es erst mit gezielter Eingabe (P12 T12.12).
+- Im normalen Keystroke-Modus bleibt das Restrisiko: Eine bereits gesendete
+  Taste kann bei Fokuswechsel im neuen Fenster landen (gemessen: 1 Zeichen in
+  1 von 20). Der gezielte Clipboard-Modus adressiert den Paste-Befehl an das
+  Vorschau-Fenster, muss aber noch die P12-Messung T12.12 bestehen.
 - GTK3-Felder bekamen im Labor keine Zeichen von wtype. GTK4, foot und
   Chromium funktionierten. Auf echtem Hyprland ist das noch zu prüfen
   (P12 T12.4).

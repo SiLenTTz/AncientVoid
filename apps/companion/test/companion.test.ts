@@ -6,7 +6,7 @@ import { AdapterRegistry, DesktopService, EventStore, HubDatabase, SessionManage
 import { ProcessRunner } from "@uacc/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../hub/src/app.ts";
-import { Companion, HyprlandBackend, SwayBackend, WtypeInput, type FocusBackend, type FocusInfo, type InputBackend } from "../src/companion.ts";
+import { Companion, HyprlandBackend, HyprlandInput, SwayBackend, WtypeInput, type FocusBackend, type FocusInfo, type InputBackend } from "../src/companion.ts";
 import { sendControl, serveControl } from "../src/control.ts";
 
 /** A desktop whose focus the test moves, and a keyboard that records. */
@@ -246,5 +246,42 @@ describe("desktop backends (T11.1)", () => {
       ["-s", "30", "-k", "Tab"],
       ["-s", "30", "-M", "ctrl", "a", "-m", "ctrl"],
     ]);
+  });
+
+  it("Hyprland targeted paste sends clipboard content only to the previewed window", async () => {
+    const calls: string[][] = [];
+    const offered: string[] = [];
+    const exe = async (_cmd: string, args: string[]) => {
+      calls.push(args);
+      return "ok";
+    };
+    const input = new HyprlandInput(exe, 8, async (text, _target, _signal, sendPaste) => {
+      offered.push(text);
+      await sendPaste();
+    });
+    await input.type("npm test äöü", new AbortController().signal, "0xabc", "targeted-paste");
+    expect(offered).toEqual(["npm test äöü"]);
+    expect(calls).toEqual([["dispatch", "sendshortcut", "CTRL,V,address:0xabc"]]);
+  });
+
+  it("Hyprland keys and replace selection are addressed to the previewed window", async () => {
+    const calls: string[][] = [];
+    const input = new HyprlandInput(async (_cmd, args) => { calls.push(args); return "ok"; }, 8, async () => undefined);
+    const signal = new AbortController().signal;
+    await input.selectAll(signal, "0xabc");
+    await input.key("Return", signal, "0xabc");
+    await input.key("undo", signal, "0xabc");
+    expect(calls).toEqual([
+      ["dispatch", "sendshortcut", "CTRL,A,address:0xabc"],
+      ["dispatch", "sendshortcut", ",Return,address:0xabc"],
+      ["dispatch", "sendshortcut", "CTRL,Z,address:0xabc"],
+    ]);
+  });
+
+  it("Hyprland never interpolates an invalid window address into a dispatcher", async () => {
+    let called = false;
+    const input = new HyprlandInput(async () => { called = true; return "ok"; }, 8, async () => undefined);
+    await expect(input.type("text", new AbortController().signal, "0xabc;exec evil", "targeted-paste")).rejects.toThrow(/window address/);
+    expect(called).toBe(false);
   });
 });

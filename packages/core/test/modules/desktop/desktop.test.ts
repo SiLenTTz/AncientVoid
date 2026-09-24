@@ -28,6 +28,28 @@ describe("desktop service (T11.2)", () => {
     expect(d.result("other", a.id, { status: "failed", detail: null, typedChars: 0 })).toMatchObject({ status: "done" });
   });
 
+  it("targeted paste is explicit, Hyprland-only, and recorded with the action", () => {
+    const { d } = setup();
+    d.report("omarchy", state());
+    expect(() => d.request({ companion: "omarchy", kind: "insert", inputMode: "targeted-paste", text: "x", target: { id: "0xabc", revision: 7 } }, "pixel"))
+      .toThrow(/nur auf Hyprland/);
+    d.report("omarchy", state({ backend: "hyprland" }));
+    const a = d.request({ companion: "omarchy", kind: "insert", inputMode: "targeted-paste", text: "x", target: { id: "0xabc", revision: 7 } }, "pixel");
+    expect(a.inputMode).toBe("targeted-paste");
+    expect(d.request({ companion: "omarchy", kind: "insert", text: "y", target: { id: "0xabc", revision: 7 } }, "pixel").inputMode).toBe("keystroke");
+  });
+
+  it("reads pre-T12.12 persisted actions as keystroke actions", () => {
+    const { d, db } = setup();
+    d.report("omarchy", state());
+    const a = d.request({ companion: "omarchy", kind: "insert", text: "old", target: { id: "0xabc", revision: 7 } }, "pixel");
+    const oldRecord: Record<string, unknown> = { ...a };
+    delete oldRecord.inputMode;
+    db.prepare("UPDATE desktop_actions SET state = ? WHERE id = ?").run(JSON.stringify(oldRecord), a.id);
+    expect(d.get(a.id)?.inputMode).toBe("keystroke");
+    expect(d.list()[0]?.inputMode).toBe("keystroke");
+  });
+
   it("the long poll wakes as soon as a request arrives", async () => {
     const { d } = setup();
     d.report("omarchy", state());

@@ -41,17 +41,21 @@ export const DESKTOP_KEYS = ["Return", "Tab", "Escape", "undo"] as const;
 export type DesktopKey = (typeof DESKTOP_KEYS)[number];
 
 export const MAX_DESKTOP_TEXT = 2000;
+export const DESKTOP_INPUT_MODES = ["keystroke", "targeted-paste"] as const;
+export type DesktopInputMode = (typeof DESKTOP_INPUT_MODES)[number];
 
 export const DesktopActionRequest = z
   .object({
     companion: z.string().min(1).max(80),
     kind: z.enum(["insert", "replace", "key"]),
+    /** Clipboard-backed paste is an explicit action, never the default. */
+    inputMode: z.enum(DESKTOP_INPUT_MODES).optional(),
     text: z.string().min(1).max(MAX_DESKTOP_TEXT).optional(),
     key: z.enum(DESKTOP_KEYS).optional(),
     /** The window the person saw in the preview. */
     target: z.object({ id: z.string().min(1).max(100), revision: z.number().int().nonnegative() }),
   })
-  .refine((r) => (r.kind === "key" ? Boolean(r.key) && !r.text : Boolean(r.text) && !r.key), "insert/replace brauchen Text, key eine Taste");
+  .refine((r) => (r.kind === "key" ? Boolean(r.key) && !r.text && !r.inputMode : Boolean(r.text) && !r.key), "insert/replace brauchen Text, key eine Taste");
 export type DesktopActionRequest = z.infer<typeof DesktopActionRequest>;
 
 export type DesktopActionStatus = "pending" | "delivered" | "running" | "done" | "failed" | "refused" | "cancelled" | "expired" | "uncertain";
@@ -60,6 +64,7 @@ export interface DesktopAction {
   id: string;
   companion: string;
   kind: "insert" | "replace" | "key";
+  inputMode: DesktopInputMode;
   key: DesktopKey | null;
   /** Length only — the text itself is dropped once the action ended. */
   textLength: number;

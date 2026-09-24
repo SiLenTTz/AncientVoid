@@ -146,10 +146,10 @@ export class Companion {
     };
     try {
       if (a.kind === "key") {
-        await this.o.input.key(a.key!, abort.signal);
+        await this.o.input.key(a.key!, abort.signal, a.target.id);
         return { status: "done", detail: `Taste ${a.key}`, typedChars: 0 };
       }
-      if (a.kind === "replace") await this.o.input.selectAll(abort.signal);
+      if (a.kind === "replace") await this.o.input.selectAll(abort.signal, a.target.id);
       const text = a.text ?? "";
       // A virtual keyboard types into whatever has the focus: while it types,
       // the focus is checked every few milliseconds and typing is killed on
@@ -170,7 +170,7 @@ export class Companion {
         }
       })();
       try {
-        await this.o.input.type(text, abort.signal);
+        await this.o.input.type(text, abort.signal, a.target.id, a.inputMode);
         typed = text.length;
       } finally {
         watching = false;

@@ -390,6 +390,7 @@ export interface DesktopAction {
   id: string;
   companion: string;
   kind: "insert" | "replace" | "key";
+  inputMode: "keystroke" | "targeted-paste";
   key: string | null;
   textLength: number;
   target: { id: string; revision: number; app: string; title: string };
@@ -793,7 +794,7 @@ function createHubApi(P: (path: string) => string) {
   /** `takeover` moves the writer lease to this device on purpose (T5.5). */
   /** EPIC-P11 (ADR-0031): the desktop companion. */
   desktop: () => api<{ companions: CompanionState[]; actions: DesktopAction[] }>(P("/api/desktop")),
-  desktopAction: (body: { companion: string; kind: "insert" | "replace" | "key"; text?: string; key?: string; target: { id: string; revision: number } }) =>
+  desktopAction: (body: { companion: string; kind: "insert" | "replace" | "key"; inputMode?: "keystroke" | "targeted-paste"; text?: string; key?: string; target: { id: string; revision: number } }) =>
     api<DesktopAction>(P("/api/desktop/actions"), { method: "POST", body: JSON.stringify(body) }),
   cancelDesktopAction: (id: string) => api<DesktopAction>(P(`/api/desktop/actions/${id}/cancel`), { method: "POST", body: "{}" }),
   /** EPIC-P10.5 (ADR-0030): video analysis. */

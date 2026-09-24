@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { parseArgs } from "node:util";
-import { atspiRole, Companion, detectBackend, HyprlandBackend, SwayBackend, WtypeInput } from "./companion.ts";
+import { atspiRole, Companion, detectBackend, HyprlandBackend, HyprlandInput, SwayBackend, WtypeInput } from "./companion.ts";
 import { sendControl, serveControl } from "./control.ts";
 
 /**
@@ -40,7 +40,7 @@ if (cmd === "stop" || cmd === "resume" || cmd === "status") {
     hub: values.hub!,
     token,
     focus,
-    input: new WtypeInput(),
+    input: focus.name === "hyprland" ? new HyprlandInput() : new WtypeInput(),
     ...(values.allow ? { allow: values.allow.split(",").map((a) => a.trim()).filter(Boolean) } : {}),
     ...(values["no-atspi"] ? {} : { focusedRole: atspiRole() }),
     log: (m) => console.log(new Date().toISOString(), m),

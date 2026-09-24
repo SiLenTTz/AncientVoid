@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { credentialTarget, type CompanionState, type DeliveredDesktopAction, type DesktopAction, type DesktopActionRequest, type DesktopResult } from "@uacc/contracts";
+import { credentialTarget, type CompanionState, type DeliveredDesktopAction, type DesktopAction, type DesktopActionRequest, type DesktopInputMode, type DesktopResult } from "@uacc/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 /**
@@ -25,6 +25,11 @@ interface Waiter {
 }
 
 const FINAL = new Set(["done", "failed", "refused", "cancelled", "expired", "uncertain"]);
+
+function actionFromState(state: string): DesktopAction {
+  const action = JSON.parse(state) as Omit<DesktopAction, "inputMode"> & { inputMode?: DesktopInputMode };
+  return { ...action, inputMode: action.inputMode ?? "keystroke" };
+}
 
 export class DesktopService {
   private readonly db: HubDatabase;
@@ -77,7 +82,7 @@ export class DesktopService {
     const rows = this.db.prepare("SELECT state, text FROM desktop_actions WHERE companion = ? ORDER BY created_at").all(name) as { state: string; text: string | null }[];
     const actions: DeliveredDesktopAction[] = [];
     for (const r of rows) {
-      const a = JSON.parse(r.state) as DesktopAction;
+      const a = actionFromState(r.state);
       if (a.status !== "pending") continue;
       actions.push({ ...this.update(a.id, { status: "delivered" })!, text: r.text });
     }
@@ -129,11 +134,13 @@ export class DesktopService {
     if (!c.focus) throw Object.assign(new Error("Am PC hat kein Fenster den Fokus."), { status: 409 });
     if (c.focus.id !== req.target.id || c.focus.revision !== req.target.revision) throw Object.assign(new Error(`Der Fokus am PC hat sich geändert (jetzt: ${c.focus.app} — ${c.focus.title}). Bitte das Ziel neu prüfen.`), { status: 409 });
     if (c.blocked) throw Object.assign(new Error(c.blocked), { status: 403 });
+    if (req.inputMode === "targeted-paste" && c.backend !== "hyprland") throw Object.assign(new Error("Gezieltes Einfügen ist nur auf Hyprland verfügbar."), { status: 422 });
     const at = this.iso();
     const action: DesktopAction = {
       id: `d_${randomBytes(6).toString("hex")}`,
       companion: c.name,
       kind: req.kind,
+      inputMode: req.inputMode ?? "keystroke",
       key: req.key ?? null,
       textLength: req.text?.length ?? 0,
       target: { id: c.focus.id, revision: c.focus.revision, app: c.focus.app, title: c.focus.title },
@@ -166,16 +173,16 @@ export class DesktopService {
 
   get(id: string): DesktopAction | undefined {
     const row = this.db.prepare("SELECT state FROM desktop_actions WHERE id = ?").get(id) as { state: string } | undefined;
-    return row ? (JSON.parse(row.state) as DesktopAction) : undefined;
+    return row ? actionFromState(row.state) : undefined;
   }
 
   list(limit = 30): DesktopAction[] {
     this.expire();
-    return (this.db.prepare("SELECT state FROM desktop_actions ORDER BY created_at DESC LIMIT ?").all(limit) as { state: string }[]).map((r) => JSON.parse(r.state) as DesktopAction);
+    return (this.db.prepare("SELECT state FROM desktop_actions ORDER BY created_at DESC LIMIT ?").all(limit) as { state: string }[]).map((r) => actionFromState(r.state));
   }
 
   private all(): DesktopAction[] {
-    return (this.db.prepare("SELECT state FROM desktop_actions").all() as { state: string }[]).map((r) => JSON.parse(r.state) as DesktopAction);
+    return (this.db.prepare("SELECT state FROM desktop_actions").all() as { state: string }[]).map((r) => actionFromState(r.state));
   }
 
   /** Stale requests expire; delivered ones without a report become uncertain. */

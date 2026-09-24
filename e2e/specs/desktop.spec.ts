@@ -7,18 +7,22 @@ import { Companion, type FocusBackend, type FocusInfo, type InputBackend } from 
  * stand-in — no real window of this machine is ever touched.
  */
 class FakeDesktop implements FocusBackend, InputBackend {
-  readonly name = "e2e-desktop";
+  readonly name = "hyprland";
   current: FocusInfo | null = { id: "w1", app: "foot", title: "~/projekt — bash", pid: 1 };
   typed = "";
   keys: string[] = [];
+  inputModes: string[] = [];
+  targets: (string | undefined)[] = [];
   async focus() {
     return this.current;
   }
   async locked() {
     return false;
   }
-  async type(text: string) {
+  async type(text: string, _signal?: AbortSignal, targetId?: string, mode = "keystroke") {
     this.typed += text;
+    this.inputModes.push(mode);
+    this.targets.push(targetId);
   }
   async key(key: string) {
     this.keys.push(key);
@@ -43,6 +47,16 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
       await expect(app.locator(".desktop-action").first()).toContainText("fertig");
       await expect(app.locator(".desktop-action").first()).toContainText("21 Zeichen in foot getippt");
       expect(desk.typed).toBe("npm test -- --run äöü");
+      expect(desk.inputModes).toEqual(["keystroke"]);
+      expect(desk.targets).toEqual(["w1"]);
+
+      await app.getByLabel(/Gezielt einfügen/).check();
+      await app.getByLabel("Text für den PC").fill("zielgenau");
+      await app.getByRole("button", { name: "Eintippen" }).click();
+      await expect(app.locator(".desktop-action").first()).toContainText("fertig");
+      expect(desk.typed).toBe("npm test -- --run äöüzielgenau");
+      expect(desk.inputModes).toEqual(["keystroke", "targeted-paste"]);
+      expect(desk.targets).toEqual(["w1", "w1"]);
       await app.getByRole("button", { name: "↵ Enter" }).click();
       await expect(app.locator(".desktop-action").first()).toContainText("Taste Return");
       expect(desk.keys).toEqual(["Return"]);
@@ -67,7 +81,7 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
       await expect(app.getByRole("button", { name: "Eintippen" })).toBeDisabled();
       companion.resume();
       await expect(app.getByRole("button", { name: "Eintippen" })).toBeEnabled();
-      expect(desk.typed).toBe("npm test -- --run äöü");
+      expect(desk.typed).toBe("npm test -- --run äöüzielgenau");
     } finally {
       companion.shutdown();
       await running.catch(() => undefined);

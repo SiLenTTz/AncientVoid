@@ -30,6 +30,7 @@ export function DesktopPage() {
   const [actions, setActions] = useState<DesktopAction[]>([]);
   const [chosen, setChosen] = useState<string | null>(null);
   const [text, setText] = useState("");
+  const [inputMode, setInputMode] = useState<"keystroke" | "targeted-paste">("keystroke");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [stt, setStt] = useState(false);
@@ -65,7 +66,7 @@ export function DesktopPage() {
     setError("");
     try {
       // The target is the window shown right now — nothing else.
-      const a = await hubApi.desktopAction({ companion: c.name, kind, ...(kind === "key" ? { key: key! } : { text }), target: { id: c.focus.id, revision: c.focus.revision } });
+      const a = await hubApi.desktopAction({ companion: c.name, kind, ...(kind === "key" ? { key: key! } : { text, inputMode: c.backend === "hyprland" ? inputMode : "keystroke" }), target: { id: c.focus.id, revision: c.focus.revision } });
       setActions((all) => [a, ...all]);
       if (kind !== "key") setText("");
     } catch (err) {
@@ -142,6 +143,12 @@ export function DesktopPage() {
 
       <div class="card desktop-input">
         <textarea rows={4} value={text} placeholder="Text, der am PC ins fokussierte Feld getippt wird" aria-label="Text für den PC" maxLength={2000} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} />
+        {c?.backend === "hyprland" && (
+          <label class="dim" style="display: flex; gap: 8px; align-items: flex-start; margin: 8px 0">
+            <input type="checkbox" checked={inputMode === "targeted-paste"} onChange={(e) => setInputMode((e.target as HTMLInputElement).checked ? "targeted-paste" : "keystroke")} />
+            <span>Gezielt einfügen (Clipboard vorübergehend ersetzen; Clipboard-Manager können den Text übernehmen. Paste gilt fürs angezeigte Fenster.)</span>
+          </label>
+        )}
         <div class="row" style="gap: 8px; flex-wrap: wrap">
           <button class="btn primary" type="button" disabled={!ready || busy || !text.trim()} onClick={() => void send("insert")}>
             Eintippen

@@ -1,6 +1,7 @@
 import { execFile, spawn } from "node:child_process";
 import { createConnection } from "node:net";
 import { join } from "node:path";
+import type { DesktopInputMode } from "@uacc/contracts";
 
 /**
  * EPIC-P11 (ADR-0031): what the companion needs from the desktop — which
@@ -27,9 +28,11 @@ export interface InputBackend {
   /** Milliseconds per key (to estimate how far typing got when stopped). */
   readonly keyDelayMs?: number;
   /** Types text; a signal abort kills the typing at once. */
-  type(text: string, signal: AbortSignal): Promise<void>;
-  key(key: "Return" | "Tab" | "Escape" | "undo", signal: AbortSignal): Promise<void>;
-  selectAll(signal: AbortSignal): Promise<void>;
+  type(text: string, signal: AbortSignal, targetId?: string, mode?: DesktopInputMode): Promise<void>;
+  key(key: "Return" | "Tab" | "Escape" | "undo", signal: AbortSignal, targetId?: string): Promise<void>;
+  selectAll(signal: AbortSignal, targetId?: string): Promise<void>;
+  /** Uses a one-shot clipboard offer and compositor-targeted paste, when supported. */
+  targetedPaste?(text: string, targetId: string, signal: AbortSignal): Promise<void>;
 }
 
 export type Exec = (cmd: string, args: string[], opts?: { signal?: AbortSignal; timeoutMs?: number }) => Promise<string>;
@@ -143,6 +146,140 @@ export class WtypeInput implements InputBackend {
   }
   async selectAll(signal: AbortSignal): Promise<void> {
     await this.exe(this.wtype, ["-s", "30", "-M", "ctrl", "a", "-m", "ctrl"], { signal });
+  }
+}
+
+type TargetedPaste = (text: string, targetId: string, signal: AbortSignal, pasteShortcut: () => Promise<void>) => Promise<void>;
+
+function targetAddress(id: string): string {
+  if (!/^0x[0-9a-f]+$/i.test(id)) throw new Error("Ungültige Hyprland window address.");
+  return `address:${id}`;
+}
+
+function wait(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) return reject(new Error("aborted"));
+    const timer = setTimeout(done, ms);
+    const abort = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", abort);
+      reject(new Error("aborted"));
+    };
+    function done() {
+      signal.removeEventListener("abort", abort);
+      resolve();
+    }
+    signal.addEventListener("abort", abort, { once: true });
+  });
+}
+
+/**
+ * The child is isolated in its own process group so a failed/ignored paste
+ * cannot leave this text available to the next unrelated clipboard request.
+ */
+const pasteOnce: TargetedPaste = async (text, _targetId, signal, pasteShortcut) => {
+  const child = spawn("wl-copy", ["--paste-once", "--sensitive", "--type", "text/plain;charset=utf-8"], {
+    detached: true,
+    stdio: ["pipe", "ignore", "ignore"],
+  });
+  const pid = child.pid;
+  const closed = new Promise<{ code: number | null; signal: NodeJS.Signals | null; error?: Error }>((resolve) => {
+    child.once("error", (error) => resolve({ code: null, signal: null, error }));
+    child.once("close", (code, childSignal) => resolve({ code, signal: childSignal }));
+  });
+  child.stdin.on("error", () => undefined);
+  child.stdin.end(text);
+
+  const killGroup = async () => {
+    if (!pid) return;
+    const signalGroup = (signal: NodeJS.Signals) => {
+      try { process.kill(-pid, signal); return true; }
+      catch (err) { return (err as NodeJS.ErrnoException).code !== "ESRCH"; }
+    };
+    if (!signalGroup("SIGTERM")) return;
+    const deadline = Date.now() + 100;
+    while (Date.now() < deadline) {
+      try { process.kill(-pid, 0); }
+      catch (err) { if ((err as NodeJS.ErrnoException).code === "ESRCH") return; }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    signalGroup("SIGKILL");
+  };
+  try {
+    const ready = await new Promise<{ code: number | null; signal: NodeJS.Signals | null; error?: Error }>((resolve, reject) => {
+      const timer = setTimeout(() => finish(() => reject(new Error("Zwischenablage-Timeout — nichts eingefügt."))), 2_000);
+      const abort = () => finish(() => reject(new Error("aborted")));
+      const finish = (done: () => void) => {
+        clearTimeout(timer);
+        signal.removeEventListener("abort", abort);
+        done();
+      };
+      if (signal.aborted) return abort();
+      signal.addEventListener("abort", abort, { once: true });
+      void closed.then((value) => finish(() => resolve(value)));
+    });
+    if (ready.error) throw new Error(`wl-copy konnte nicht starten: ${ready.error.message}`);
+    if (ready.code !== 0) throw new Error(`wl-copy endete vor dem Einfügen (${ready.code ?? ready.signal ?? "unbekannt"}).`);
+
+    await pasteShortcut();
+    const deadline = Date.now() + 2_000;
+    while (Date.now() < deadline) {
+      if (signal.aborted) throw new Error("aborted");
+      let alive = false;
+      if (pid) {
+        try { process.kill(-pid, 0); alive = true; }
+        catch (err) { if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw err; }
+      }
+      if (!alive) return;
+      await wait(10, signal);
+    }
+    throw new Error("Die Ziel-App hat das Einfügen nicht abgefragt — Clipboard-Angebot beendet.");
+  } finally {
+    await killGroup();
+  }
+};
+
+/** Hyprland can address keyboard shortcuts to a window, unlike wtype. */
+export class HyprlandInput implements InputBackend {
+  private readonly exe: Exec;
+  private readonly keyboard: WtypeInput;
+  private readonly paste: TargetedPaste;
+  readonly keyDelayMs: number;
+
+  constructor(exe: Exec = exec, keyDelayMs = 8, paste: TargetedPaste = pasteOnce) {
+    this.exe = exe;
+    this.keyboard = new WtypeInput(exe, "wtype", keyDelayMs);
+    this.keyDelayMs = keyDelayMs;
+    this.paste = paste;
+  }
+
+  type(text: string, signal: AbortSignal, targetId?: string, mode: DesktopInputMode = "keystroke"): Promise<void> {
+    if (mode === "targeted-paste") {
+      if (!targetId) throw new Error("Gezieltes Einfügen braucht eine window address.");
+      return this.targetedPaste(text, targetId, signal);
+    }
+    return this.keyboard.type(text, signal);
+  }
+
+  async targetedPaste(text: string, targetId: string, signal: AbortSignal): Promise<void> {
+    const window = targetAddress(targetId);
+    await this.paste(text, targetId, signal, () => this.shortcut("CTRL,V", window, signal));
+  }
+
+  async key(key: "Return" | "Tab" | "Escape" | "undo", signal: AbortSignal, targetId?: string): Promise<void> {
+    if (!targetId) return this.keyboard.key(key, signal);
+    const window = targetAddress(targetId);
+    await this.shortcut(key === "undo" ? "CTRL,Z" : `,${key}`, window, signal);
+  }
+
+  async selectAll(signal: AbortSignal, targetId?: string): Promise<void> {
+    if (!targetId) return this.keyboard.selectAll(signal);
+    await this.shortcut("CTRL,A", targetAddress(targetId), signal);
+  }
+
+  private async shortcut(keys: string, window: string | undefined, signal: AbortSignal): Promise<void> {
+    const arg = window ? `${keys},${window}` : keys;
+    await this.exe("hyprctl", ["dispatch", "sendshortcut", arg], { signal, timeoutMs: 2_000 });
   }
 }
 
