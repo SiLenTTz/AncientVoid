@@ -3,7 +3,7 @@ import { ApiContext } from "../../shared/api-context.ts";
 import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord } from "../../shared/api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "../../shared/ws.ts";
 import { Composer } from "../composer/Composer.tsx";
-import { GlobalDock, type Page } from "../../app/Dock.tsx";
+import type { Page } from "../../app/Dock.tsx";
 import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
@@ -271,6 +271,33 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
     document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
+  const [title, setTitle] = useState(session.title ?? null);
+  const [pinned, setPinned] = useState(session.pinned === true);
+  const [renaming, setRenaming] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const menuRef = useRef<HTMLDetailsElement>(null);
+  const menuDo = (fn: () => void) => {
+    if (menuRef.current) menuRef.current.open = false;
+    fn();
+  };
+  const saveTitle = async () => {
+    try {
+      const updated = await api.setSessionMeta(session.id, { title: titleDraft });
+      setTitle(updated.title ?? null);
+      setRenaming(false);
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Umbenennen fehlgeschlagen.");
+    }
+  };
+  const togglePin = async () => {
+    try {
+      const updated = await api.setSessionMeta(session.id, { pinned: !pinned });
+      setPinned(updated.pinned === true);
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Anheften fehlgeschlagen.");
+    }
+  };
+
   const toggleArchive = async () => {
     const next = !archived;
     try {
@@ -334,19 +361,55 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   return (
     <ApiContext.Provider value={api}>
     <div>
-      <div class="topbar">
+      {/* T8.5: back, what this is, Stop apart from Senden, the rest in ⋯ */}
+      <div class="topbar session-topbar">
+        <button class="btn back-btn" type="button" aria-label="Zur Übersicht" onClick={() => onNavigate("dashboard")}>
+          ←
+        </button>
         <div style="flex: 1; min-width: 0">
-          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
-            {session.project.split("/").pop()}
-          </div>
-          <div class="dim">
-            {session.adapter}
+          {renaming ? (
+            <form
+              class="rename-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void saveTitle();
+              }}
+            >
+              <input aria-label="Neuer Titel" value={titleDraft} maxLength={80} onInput={(e) => setTitleDraft((e.target as HTMLInputElement).value)} />
+              <button class="btn primary" type="submit">
+                OK
+              </button>
+            </form>
+          ) : (
+            <div class="session-top-title">{title ?? session.project.split("/").pop()}</div>
+          )}
+          <div class="dim session-top-meta">
+            {session.project.split("/").pop()} · {session.adapter}
             {shownModel ? ` · ${shownModel}` : ""} · <span class={`pill ${status}`} data-status={status}>{statusLabel(status)}</span>
           </div>
         </div>
-        <button class="btn" type="button" onClick={toggleArchive}>
-          {archived ? "Zurückholen" : "Archivieren"}
-        </button>
+        {!observerOnly && status !== "stopped" && (
+          <button class="btn danger stop-btn" type="button" onClick={stop}>
+            Stop
+          </button>
+        )}
+        <details class="session-menu" ref={menuRef}>
+          <summary aria-label="Weitere Aktionen">⋯</summary>
+          <div class="session-menu-items">
+            <button type="button" onClick={() => menuDo(() => { setTitleDraft(title ?? ""); setRenaming(true); })}>
+              Umbenennen
+            </button>
+            <button type="button" onClick={() => menuDo(() => void togglePin())}>
+              {pinned ? "Lösen" : "Anheften"}
+            </button>
+            <button type="button" onClick={() => menuDo(() => void toggleArchive())}>
+              {archived ? "Zurückholen" : "Archivieren"}
+            </button>
+            <button type="button" onClick={() => menuDo(() => setVoiceOpen(true))}>
+              Sprachbefehl
+            </button>
+          </div>
+        </details>
         <div class={`conn-dot ${conn}`} title={conn} />
       </div>
 
@@ -451,11 +514,6 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                     >
                       {replyBusy ? "lädt…" : status === "stopped" ? "Weiter" : "Senden"}
                     </button>
-                    {status !== "stopped" && (
-                      <button class="btn danger" onClick={stop}>
-                        Stop
-                      </button>
-                    )}
                   </>
                 }
               />
@@ -469,11 +527,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                       Beobachtung beenden
                     </button>
                   </>
-                ) : (
-                  <button class="btn danger" onClick={stop}>
-                    Stop
-                  </button>
-                )}
+                ) : null}
               </div>
             )}
           </div>
@@ -510,7 +564,6 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             Code
           </button>
         </div>
-        <GlobalDock active={null} onNavigate={onNavigate} onVoice={() => setVoiceOpen(true)} />
       </div>
       <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} sessionId={session.id} />
     </div>

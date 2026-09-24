@@ -11,10 +11,10 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
 
     await expect(app).toHaveURL(/#\/sessions\//);
     const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
-    await expect(app.locator(".topbar")).toContainText("alpha");
-    await expect(app.locator(".topbar")).toContainText("opencode · e2e/fake-model");
+    await expect(app.locator(".session-topbar")).toContainText("alpha");
+    await expect(app.locator(".session-topbar")).toContainText("opencode · e2e/fake-model");
     await app.getByRole("button", { name: "Chat" }).click();
-    await expect(app.getByText(/Antwort auf: Fasse die README zusammen · Session ses_e2e_/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Fasse die README zusammen · Session ses_e2e_/)).toBeVisible();
     await expect(app.getByText("Ich lese zuerst die README.")).toBeVisible();
 
     const [record] = await hub.sessions();
@@ -28,12 +28,12 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await app.getByPlaceholder("Refactore den Auth-Flow…").fill("Mein Startprompt");
     await app.getByRole("button", { name: "Starten" }).click();
     await app.getByRole("button", { name: "Chat" }).click();
-    await expect(app.getByText(/Antwort auf: Mein Startprompt/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Mein Startprompt/)).toBeVisible();
     const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
     await app.getByPlaceholder("Antworten…").fill("Meine Rückfrage");
     await app.getByRole("button", { name: "Senden" }).click();
-    await expect(app.getByText(/Antwort auf: Meine Rückfrage/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Meine Rückfrage/)).toBeVisible();
     const chat = await app.locator(".event.user, .event.assistant").allTextContents();
     const order = chat.map((t) => (t.includes("Antwort auf") ? "llm" : t.includes("Mein Startprompt") ? "start" : t.includes("Meine Rückfrage") ? "reply" : "?"));
     expect(order).toEqual(["start", "llm", "reply", "llm"]);
@@ -67,8 +67,8 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await app.goBack();
     await expect(app.locator(".section-zuletzt .session-card .session-project")).toHaveText("beta");
     await app.locator(".section-aktiv .session-card").filter({ hasText: "alpha" }).locator(".session-open").click();
-    await expect(app.locator(".topbar")).toContainText("alpha");
-    await expect(app.locator(".topbar")).toContainText("dummy");
+    await expect(app.locator(".session-topbar")).toContainText("alpha");
+    await expect(app.locator(".session-topbar")).toContainText("dummy");
   });
 
   test("T8.1: jede Seite hat eine Adresse — Zurück im Browser geht zurück", async ({ app, hub }) => {
@@ -85,7 +85,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await app.locator(".session-open").click();
     await expect(app).toHaveURL(new RegExp(`#/sessions/${id}$`));
     await app.reload();
-    await expect(app.locator(".topbar")).toContainText("dummy");
+    await expect(app.locator(".session-topbar")).toContainText("dummy");
     await app.goBack();
     await expect(app.locator(".dashboard")).toBeVisible();
   });
@@ -149,10 +149,10 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const second = await hub.createSession({ adapter: "opencode", prompt: "Zweite Session" });
     await app.goto(`${hub.origin}/#/sessions/${first}`);
     await app.getByRole("button", { name: "Chat" }).click();
-    await expect(app.getByText(/Antwort auf: Erste Session/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Erste Session/)).toBeVisible();
     await app.evaluate((id) => ((globalThis as unknown as { location: { hash: string } }).location.hash = `#/sessions/${id}`), second);
-    await expect(app.getByText(/Antwort auf: Zweite Session/)).toBeVisible();
-    await expect(app.getByText(/Antwort auf: Erste Session/)).toHaveCount(0);
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Zweite Session/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Erste Session/)).toHaveCount(0);
   });
 
   test("eine Karte klappt beim Antippen auf und zeigt Details", async ({ app, hub }) => {

@@ -16,7 +16,7 @@ test.describe("Anhänge (T7.10)", () => {
     await app.getByRole("button", { name: "Starten" }).click();
     await app.getByRole("button", { name: "Chat" }).click();
     // opencode takes the image as a file (-f); the DOCX rides as its text
-    await expect(app.getByText(/Antwort auf: Was steht in den Anhängen\? .* Dateien: 1 · Texte: office: Rechnung Nr\. 4711/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Was steht in den Anhängen\? .* Dateien: 1 · Texte: office: Rechnung Nr\. 4711/)).toBeVisible();
     const own = app.locator(".event.own").first();
     await expect(own.locator(".attachment-chip")).toHaveCount(2);
     await own.getByRole("button", { name: /bild-mit-text\.png/ }).click();

@@ -130,3 +130,18 @@
   font-size: 12px;
   pointer-events: auto;
 }
+
+/* T8.5: on desktop the bell and its messages belong to the list column,
+ * not over the session header. */
+.split-list .notif-bell {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.split-list .toast-stack {
+  position: absolute;
+  top: 52px;
+  right: 8px;
+  left: 8px;
+}

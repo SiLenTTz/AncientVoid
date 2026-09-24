@@ -9,7 +9,9 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     const box = (await toast.boundingBox())!;
     const width = app.viewportSize()!.width;
     expect(box.y).toBeLessThan(160);
-    expect(box.x + box.width).toBeGreaterThan(width * 0.6);
+    // T8.5: on the desktop split the messages live in the list column.
+    if ((await app.locator(".split").count()) > 0) expect(box.x + box.width).toBeLessThanOrEqual((await app.locator(".split-list").boundingBox())!.width + 40);
+    else expect(box.x + box.width).toBeGreaterThan(width * 0.6);
     await expect(app.locator(".toast.error"), "no second toast for the process exit").toHaveCount(1);
 
     await toast.locator(".toast-body").click();
@@ -25,7 +27,7 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     await app.getByRole("button", { name: "Chat" }).click();
     await app.getByPlaceholder("Antworten…").fill("Jetzt wieder");
     await app.getByRole("button", { name: /^(Senden|Weiter)$/ }).click();
-    await expect(app.getByText(/Antwort auf: Jetzt wieder/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Jetzt wieder/)).toBeVisible();
     await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
   });
 

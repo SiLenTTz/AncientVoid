@@ -79,6 +79,19 @@ function TokenGate({ onReady }: { onReady: () => void }) {
   );
 }
 
+const WIDE = "(min-width: 1280px)";
+
+function useWide(): boolean {
+  const [wide, setWide] = useState(() => matchMedia(WIDE).matches);
+  useEffect(() => {
+    const mq = matchMedia(WIDE);
+    const on = () => setWide(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return wide;
+}
+
 function Main() {
   const [ready, setReady] = useState(false);
   // EPIC-P6: know this hub's host id before any session opens, so its own
@@ -131,18 +144,48 @@ function Main() {
   }, [ready]);
 
   const [staleAt, setStaleAt] = useState<Date | null>(null);
+  const wide = useWide();
 
   if (!ready) return <TokenGate onReady={() => void becomeReady()} />;
 
   return (
     <>
-      <NotificationCenter />
+      {!wide && <NotificationCenter />}
       {staleAt && (
         <div class="topbar">
           <span class="badge-stale">Daten vom {staleAt.toLocaleString("de-DE")} (offline)</span>
         </div>
       )}
-      {route.view === "list" ? (
+      {wide ? (
+        // T8.5 (AC-P8-6): from 1280 px list and session side by side.
+        <div class="split">
+          <aside class="split-list">
+            <NotificationCenter />
+            <App
+              onOpen={(session) => {
+                location.hash = sessionHash(session.id, remoteHost(session.hostId));
+                setRoute({ view: "tail", session });
+              }}
+              ready={() => setReady(false)}
+              page={route.view === "list" ? route.page : "dashboard"}
+            />
+          </aside>
+          <section class="split-detail">
+            {route.view === "tail" ? (
+              <SessionTail
+                key={route.session.id}
+                session={route.session}
+                {...(route.code ? { initialCode: route.code } : {})}
+                onNavigate={(page) => {
+                  location.hash = pageHash(page);
+                }}
+              />
+            ) : (
+              <div class="empty split-placeholder">Session links wählen</div>
+            )}
+          </section>
+        </div>
+      ) : route.view === "list" ? (
         <App
           onOpen={(session) => {
             location.hash = sessionHash(session.id, remoteHost(session.hostId));

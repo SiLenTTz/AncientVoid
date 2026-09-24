@@ -4,9 +4,9 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
   test("ein Session-Link öffnet nach Reload dieselbe Session @desktop", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await expect(app.locator(".topbar")).toContainText("dummy");
+    await expect(app.locator(".session-topbar")).toContainText("dummy");
     await app.reload();
-    await expect(app.locator(".topbar")).toContainText("dummy");
+    await expect(app.locator(".session-topbar")).toContainText("dummy");
     expect(app.url()).toContain(`#/sessions/${id}`);
   });
 

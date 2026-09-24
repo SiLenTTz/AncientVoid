@@ -54,8 +54,10 @@ describe("turn state (T5.4)", () => {
       expect(manager.get(record.id)?.status).toBe("working");
       await waitFor(() => manager.get(record.id)?.status === "idle", "idle after second turn");
 
-      const ends = (await manager.tail(record.id, 0)).filter((e) => (e.payload as { kind?: string }).kind === "session.turn_end");
-      expect(ends).toHaveLength(2);
+      // idle is set just before the turn_end event is written — wait for it.
+      const turnEnds = async () => (await manager.tail(record.id, 0)).filter((e) => (e.payload as { kind?: string }).kind === "session.turn_end");
+      for (let i = 0; i < 100 && (await turnEnds()).length < 2; i++) await new Promise((r) => setTimeout(r, 20));
+      expect(await turnEnds()).toHaveLength(2);
     } finally {
       await manager.shutdown();
       db.close();

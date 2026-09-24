@@ -31,7 +31,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
 
     await rows.filter({ hasText: own }).locator(".session-open").click();
     await expect(app).toHaveURL(new RegExp(`#/sessions/${own}`));
-    await expect(app.locator(".topbar")).toContainText("dummy");
+    await expect(app.locator(".session-topbar")).toContainText("dummy");
   });
 
   test("AC-P5-1: 20 Sessions, je zwei pro Projekt, sind binnen 10 s vollständig sichtbar", async ({ app, hub }, info) => {
