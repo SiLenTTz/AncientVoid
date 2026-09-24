@@ -21,7 +21,8 @@ test.describe("Live-Hub (nur lesend)", () => {
     const hosts = await api<{ hostId: string; reachable?: boolean; state?: string }[] | { hosts: { hostId: string }[] }>("/api/fleet");
     await open(page);
     await expect(page.locator(".dashboard")).toBeVisible();
-    await expect(page.getByText(/Heute: /)).toBeVisible();
+    // T8.1: sections instead of a cost line (costs only when reported).
+    await expect(page.locator(".session-section, .dashboard .empty").first()).toBeVisible();
     await page.getByRole("button", { name: "Status" }).click();
     await expect(page.locator(".inventory-table")).toBeVisible();
     expect(JSON.stringify(hosts)).toContain("hostId");
