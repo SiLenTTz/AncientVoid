@@ -1,5 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
-import { mkdirSync } from "node:fs";
+import { chmodSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 /**
@@ -328,13 +328,41 @@ export class HubDatabase {
 
   constructor(path: string) {
     this.path = path;
-    if (path !== ":memory:") {
-      mkdirSync(dirname(resolve(path)), { recursive: true });
+    if (path === ":memory:") {
+      this.db = new DatabaseSync(path);
+      this.db.exec("PRAGMA journal_mode = WAL;");
+      this.db.exec("PRAGMA foreign_keys = ON;");
+      this.migrate();
+      return;
     }
-    this.db = new DatabaseSync(path);
-    this.db.exec("PRAGMA journal_mode = WAL;");
-    this.db.exec("PRAGMA foreign_keys = ON;");
-    this.migrate();
+
+    // The database stores Fleet bearer credentials, so both its directory and
+    // SQLite files must stay private even when launched with umask 0022.
+    const previousUmask = process.umask(0o077);
+    let db: DatabaseSync | undefined;
+    try {
+      const directory = dirname(resolve(path));
+      mkdirSync(directory, { recursive: true, mode: 0o700 });
+      chmodSync(directory, 0o700);
+      db = new DatabaseSync(path);
+      this.db = db;
+      this.db.exec("PRAGMA journal_mode = WAL;");
+      this.db.exec("PRAGMA foreign_keys = ON;");
+      chmodSync(path, 0o600);
+      for (const suffix of ["-wal", "-shm"]) {
+        try {
+          chmodSync(`${path}${suffix}`, 0o600);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        }
+      }
+      this.migrate();
+    } catch (error) {
+      db?.close();
+      throw error;
+    } finally {
+      process.umask(previousUmask);
+    }
   }
 
   private migrate(): void {

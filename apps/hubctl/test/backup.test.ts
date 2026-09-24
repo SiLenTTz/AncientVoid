@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, mkdir, readdir, readFile, rm, utimes, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { EventStore, HubDatabase } from "@uacc/core";
@@ -80,6 +80,18 @@ describe("hubctl encrypted backup and restore (T12.3)", () => {
     expect(await readFile(join(f.restore, "worktrees", "s_test", "work.txt"), "utf8")).toBe("worktree state");
     expect(JSON.parse(await readFile(f.configOut, "utf8"))).toMatchObject({ dataDir: f.restore });
     await expect(readFile(join(f.restore, ".uacc-hub.pid"))).rejects.toThrow();
+  });
+
+  it("publishes the restored datadir and SQLite database with private permissions", async () => {
+    const f = await fixture();
+    await createBackup({ dataDir: f.source, configFile: f.config, outputFile: f.output, keyFile: f.key });
+    await restoreBackup({ archiveFile: f.output, targetDir: f.restore, configOut: f.configOut, keyFile: f.key });
+
+    expect((await stat(f.restore)).mode & 0o777).toBe(0o700);
+    expect((await stat(join(f.restore, "hub.db"))).mode & 0o777).toBe(0o600);
+    expect((await stat(join(f.restore, "sessions"))).mode & 0o777).toBe(0o700);
+    expect((await stat(join(f.restore, "sessions", "s_test", "events.jsonl"))).mode & 0o777).toBe(0o600);
+    expect((await stat(join(f.restore, "attachments", f.attachmentId))).mode & 0o777).toBe(0o600);
   });
 
   it("rejects a wrong key and leaves no partial restore directory", async () => {

@@ -220,8 +220,54 @@ eine Dummy-Session angelegt, bis 65 Events gewartet und anschließend gestoppt.
 gestartete Restore-Hub meldete Health 200; die Session blieb `stopped`, alle
 65 Events und der Sentinel-Text waren vorhanden. Testschlüssel, Token, Archiv
 und Datadir wurden danach entfernt. Diese Messung belegt den isolierten
-Funktionspfad. Das Produktivbackup und dessen Dauer bleiben wegen des weiterhin
-aktiven ACP-Workers offen; ENOSPC wurde nicht simuliert.
+Funktionspfad.
+
+Am 2026-09-24 wurde danach das Produktiv-Datadir bei gestopptem Hub und ohne
+aktive tmux-Worker gesichert. Ein einzelner verwaister FIFO unter
+`data/workers/…log.in` blockierte zunächst die Spezialdatei-Prüfung. Er war
+laut `fuser` und tmux-Status von keinem Prozess geöffnet und enthält keine
+gespeicherten Logdaten; nur dieser FIFO-Eintrag wurde entfernt. Das
+AES-256-GCM-Archiv `~/.local/share/uacc/backups/uacc-2026-09-24.uaccbak` ist
+852.537 Byte groß und hat Modus `0600`; die Schlüsseldatei
+`~/.config/uacc/backup.key` liegt separat mit Modus `0600` auf einem anderen
+Dateisystem als das Datadir. Der Restore in ein temporäres neues Datadir
+bestand Entschlüsselungs-, SQLite-Integritäts- und Referenzprüfungen
+(`integrity_check: ok`), enthielt 7 Sessions und 713 summierte `last_seq`-
+Werte. Wiederhergestelltes Datadir, DB, Sessions-Verzeichnis und Config hatten
+erwartete Modi `0700`/`0600`. Der temporäre Restore wurde entfernt; das
+verschlüsselte Produktivarchiv bleibt erhalten. Den Restore-Hub habe ich
+nicht gestartet, da die darin gespeicherte ACP-Session im Produktivdatadir
+`error` ist und beim Start kein Provider-Worker ungefragt wiederbelebt werden
+soll. Das belegt Backup und Restore-Integrität, nicht die Recovery dieses
+ACP-Laufs. ENOSPC, Retention und Produktiv-Recovery sind weiterhin offen.
+
+## BUG-0030 — Private Hub-Daten
+
+Live vor dem Fix: `data` war `0755`, `hub.db` sowie vorhandene WAL/SHM waren
+`0644`; das SQLite-Schema führt `fleet_peers.token` als Klartextfeld. Keine
+Credentialwerte wurden gelesen. Der Datadir wurde sofort auf `0700`, DB und
+vorhandene Seitendateien auf `0600` gesetzt. Der Hub-Start erzwingt jetzt
+private Datadir-Rechte; `HubDatabase` legt DB/WAL/SHM unter temporärer umask
+`0077` an und korrigiert bestehende Dateien. Restore begrenzt alle
+wiederhergestellten Verzeichnisse auf `0700` und reguläre Dateien auf `0600`
+(ausführbare Dateien `0700`). Vor dem Fix scheiterten beide neuen
+Permission-Regressionstests; danach bestanden Core-/Backup-Tests 16/16 und der
+Typecheck. Vollständiges Gate steht noch aus.
+
+## Produktiver ACP-Recovery-Vorfall während der Reproduktion
+
+Am 2026-09-24 um 17:11:56 UTC schlug die Erzeugung einer temporären Testconfig
+fehl; der danach gestartete Hub fiel auf die Repo-Config und den Produktiv-
+Datadir zurück. Der Hub wurde nach rund 20 s sauber mit SIGINT gestoppt. Die
+Events enthalten `session.recovery_failed`; der tmux-Worker ist nicht mehr
+vorhanden. Der zugehörige Worktree blieb erhalten (`README.md` geändert,
+`index.html` untracked). Es wurde keine neue Session gestartet. Der spätere
+Der erste Backup-Versuch wurde durch die verwaiste FIFO
+`data/workers/uacc-821b0ec8-6e5b-4238-ab27-7dc8ad5c62cc.log.in` abgewiesen.
+Nach Bestätigung, dass kein Prozess sie geöffnet hielt, wurde nur die FIFO
+entfernt; sie enthielt keine gespeicherten Daten. Der Worktree mit den
+uncommitteten Änderungen (`README.md` geändert, `index.html` neu) blieb
+unverändert und erhalten. Der Hub bleibt aus.
 
 ## T12.11 — Vision-Modell und P10.5-Medienpfad
 
