@@ -143,6 +143,15 @@ Produktivdatengröße.
   Provider-API-Key sowie Testdaten für Push-Auth, keine produktiven Zugangsdaten.
   Die Scans fanden keine weiteren Treffer.
 
+Nach ausdrücklicher Nutzerfreigabe wurde der lokale Hub am 2026-09-24 erneut
+sauber gestoppt. Verifiziert: PID-Datei und Port 7373 geschlossen, SQLite-WAL
+und SHM entfernt. `/tmp/uacc-hub.log` war Modus `0600` und wurde nach dem Stop
+mit `shred -u -n 1` entfernt. Der Hub bleibt für den Gerätewechsel bewusst aus.
+Das bestehende Tokenarchiv unter
+`/home/silenttz/.config/uacc/rotated-2026-09-24/device-tokens.txt` ist
+vorhanden, nicht leer und Modus `0600`; die Tokens wurden nicht ein zweites
+Mal rotiert, damit die noch einzuspielenden Client-Tokens gültig bleiben.
+
 Offen bleiben das Einspielen und Prüfen der aktuellen lokalen Tokens auf den
 Geräten. Der Scan belegt die Journals seit dem jeweiligen verfügbaren Zeitraum,
 nicht gelöschte oder bereits rotierte Alt-Logs. Das Repository wird in diesem
