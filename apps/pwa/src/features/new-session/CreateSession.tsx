@@ -1,3 +1,4 @@
+import { takeHandOver } from "../../shared/media.ts";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { hubApi, hostApi, type AdapterInfo, type DiscoveredProject, type FleetHost, type ModelOption, type SessionRecord } from "../../shared/api.ts";
 import type { AttachmentRecord } from "../../shared/api.ts";
@@ -44,7 +45,8 @@ export function CreateSession({
     if (adapters.length > 0 && !adapters.some((a) => a.id === adapter)) setAdapter(adapters[0]!.id);
   }, [adapters]);
   const [project, setProject] = useState("");
-  const [attachments, setAttachments] = useState<AttachmentRecord[]>([]);
+  // EPIC-P10.5: a video result handed over from the media page.
+  const [attachments, setAttachments] = useState<AttachmentRecord[]>(() => takeHandOver("new"));
   const [prompt, setPromptState] = useState(() => localStorage.getItem(PROMPT_KEY) ?? "");
   const setPrompt = (p: string) => {
     setPromptState(p);

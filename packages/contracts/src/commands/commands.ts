@@ -54,6 +54,8 @@ export const COMMANDS = {
   "session.budget": { id: "session.budget", label: "Budget setzen", risk: "write", runner: "hub", params: { session: { kind: "session", fromContext: true }, amount: { kind: "amount" } }, policy: "sessions.budget" },
   "session.apply": { id: "session.apply", label: "Ins Projekt übernehmen", risk: "write", runner: "hub", params: { session: { kind: "session", fromContext: true } }, policy: "sessions.apply" },
   "action.run": { id: "action.run", label: "Aktion ausführen", risk: "write", runner: "hub", params: { session: { kind: "session", fromContext: true }, action: { kind: "action" } }, policy: "actions.run" },
+  /** EPIC-P10.5: the link is the text slot; the hub fetches and analyses it. */
+  "media.analyze": { id: "media.analyze", label: "Video analysieren", risk: "write", runner: "hub", params: { text: { kind: "text" } }, policy: "media.analyze" },
 } as const satisfies Record<string, CommandSpec>;
 
 export type CommandId = keyof typeof COMMANDS;
@@ -72,7 +74,7 @@ export const USER_ONLY_FLOWS: readonly { flow: string; why: string }[] = [
   { flow: "Dateien anhängen", why: "Die Dateiauswahl ist ein Dialog des Systems." },
 ];
 
-export const PAGES = ["dashboard", "new", "settings", "approvals", "status", "discovery"] as const;
+export const PAGES = ["dashboard", "new", "settings", "approvals", "status", "discovery", "media"] as const;
 export const SESSION_FILTERS = ["waiting", "active", "recent", "all"] as const;
 export const TRANSFORMS = ["correct", "shorten", "translate_en", "translate_de", "improve"] as const;
 /** Fields the text entry can fill or rewrite (AC-P9-1 field catalog). */

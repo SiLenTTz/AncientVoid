@@ -153,6 +153,7 @@ describe("text commands (T9.2/T9.3)", () => {
       ["Archiviere die Session", here, "session.archive", true],
       ["Übernimm die Änderungen ins Projekt", here, "session.apply", false],
       ["Stoppe die Session", here, "session.stop", true],
+      ["Analysiere das Video https://www.youtube.com/watch?v=katalog", ctx(), "media.analyze", false],
     ];
     const { COMMANDS } = await import("@uacc/contracts");
     expect(new Set(FLOWS.map((f) => f[2]))).toEqual(new Set(Object.keys(COMMANDS)));

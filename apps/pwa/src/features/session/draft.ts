@@ -57,6 +57,8 @@ export function useDraft(opts: {
   setText: (t: string) => void;
   attachments: AttachmentRecord[];
   setAttachments: (a: AttachmentRecord[]) => void;
+  /** EPIC-P10.5: handed over from elsewhere (a video result) — merged in once the draft is loaded. */
+  pending?: AttachmentRecord[];
 }): { conflict: SessionDraft | null; takeTheirs: () => void; keepMine: () => void; clear: () => Promise<void>; state: "saved" | "local" | "saving" | "idle" } {
   const { api, sessionId } = opts;
   const key = draftKey(opts.hostKey, sessionId);
@@ -66,10 +68,12 @@ export function useDraft(opts: {
   const [conflict, setConflict] = useState<SessionDraft | null>(null);
   const [state, setState] = useState<"saved" | "local" | "saving" | "idle">("idle");
 
+  const pending = useRef(opts.pending ?? []);
   const restoreAttachments = async (ids: string[]) => {
-    if (ids.length === 0) return opts.setAttachments([]);
-    const records = await Promise.all(ids.map((id) => api.attachment(id).catch(() => null)));
-    opts.setAttachments(records.filter((r): r is AttachmentRecord => r !== null));
+    const records = (await Promise.all(ids.map((id) => api.attachment(id).catch(() => null)))).filter((r): r is AttachmentRecord => r !== null);
+    const extra = pending.current.filter((p) => !records.some((r) => r.id === p.id));
+    pending.current = [];
+    opts.setAttachments([...records, ...extra]);
   };
 
   // Open: local copy at once (offline, reload), then the hub's.
@@ -94,7 +98,7 @@ export function useDraft(opts: {
       })
       .catch(() => {
         loaded.current = true;
-        if (local) void restoreAttachments(local.attachmentIds);
+        void restoreAttachments(local?.attachmentIds ?? []);
         setState(local?.dirty ? "local" : "idle");
       });
     return () => {

@@ -50,6 +50,7 @@ export const POLICY_OPERATIONS = [
   "drafts.write",
   "push.subscribe",
   "voice.transcribe",
+  "media.analyze",
 ] as const;
 export type PolicyOperation = (typeof POLICY_OPERATIONS)[number];
 
@@ -89,6 +90,8 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "push.subscribe": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny" },
   /** T10.2: a person's own voice — not something an agent sends in. */
   "voice.transcribe": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
+  /** EPIC-P10.5: the hub fetches and analyses a video — a person's request. */
+  "media.analyze": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
 };
 
 export function policyFor(operation: PolicyOperation, label: string | null | undefined): PolicyDecision {

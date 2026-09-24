@@ -1,0 +1,26 @@
+#!/usr/bin/env node
+// E2E stand-in for yt-dlp (EPIC-P10.5): the real flags the hub uses —
+// metadata as JSON, subtitles, the download — without the network. The
+// "video" is the slide fixture; the id "untertitel" also has captions.
+import { copyFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const argv = process.argv.slice(2);
+const url = argv.at(-1) ?? "";
+const out = argv[argv.indexOf("-o") + 1] ?? "";
+const withSubs = url.includes("untertitel");
+if (argv.includes("--version")) {
+  console.log("2026.08.19-e2e");
+} else if (argv.includes("--dump-single-json")) {
+  if (url.includes("privat")) {
+    console.error("ERROR: [youtube] privat: Private video. Sign in if you've been granted access to this video");
+    process.exit(1);
+  }
+  console.log(JSON.stringify({ title: "E2E Folien-Video", duration: 18, is_live: false, webpage_url: url, language: "de", subtitles: {}, automatic_captions: withSubs ? { "de-orig": [{}] } : {} }));
+} else if (argv.includes("--skip-download")) {
+  writeFileSync(out.replace("%(ext)s", "de-orig.vtt"), "WEBVTT\n\n00:00:00.000 --> 00:00:03.000\nStarte eine neue Session.\n\n00:00:06.000 --> 00:00:09.000\nJetzt laufen die Tests.\n\n00:00:12.000 --> 00:00:15.000\nZum Schluss der Worktree.\n");
+} else {
+  console.log("[download]  42.0% of 72.00KiB at 1.00MiB/s");
+  copyFileSync(fileURLToPath(new URL("../../../packages/core/test/fixtures/media/slides.mp4", import.meta.url)), out.replace("%(ext)s", "mp4"));
+  console.log("[download] 100.0% of 72.00KiB");
+}

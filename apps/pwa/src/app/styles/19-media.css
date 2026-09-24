@@ -1,0 +1,181 @@
+/* EPIC-P10.5 (ADR-0030): video analysis — form, jobs with steps, result. */
+.media-page {
+  display: grid;
+  gap: 12px;
+}
+.media-form {
+  display: grid;
+  gap: 10px;
+}
+.media-form h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.media-url {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.media-caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+}
+.media-caps .chip {
+  padding: 3px 8px;
+}
+.media-caps .chip.ok {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.media-jobs {
+  display: grid;
+  gap: 10px;
+}
+.media-job {
+  display: grid;
+  gap: 8px;
+}
+.media-job.selected {
+  border-color: var(--accent);
+}
+.media-job-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 0;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.media-job-head strong {
+  flex: 1 1 200px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.media-job .chip {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.chip.status-done {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.chip.status-failed,
+.chip.status-cancelled {
+  color: var(--err);
+  border-color: var(--err);
+}
+.chip.status-running {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.media-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 3px;
+  font-size: 13px;
+}
+.media-step-icon {
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+.media-step.done .media-step-icon {
+  color: var(--ok);
+}
+.media-step.failed .media-step-icon {
+  color: var(--err);
+}
+.media-step.running {
+  color: var(--accent);
+}
+.media-step .dim {
+  overflow-wrap: anywhere;
+}
+.media-egress {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.media-result {
+  display: grid;
+  gap: 12px;
+}
+.media-result h3 {
+  margin: 4px 0;
+  font-size: 14px;
+}
+.media-result p {
+  margin: 4px 0;
+}
+.media-use {
+  display: grid;
+  gap: 6px;
+}
+.media-use select {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.media-stamp {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-chip);
+  color: var(--fg);
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  cursor: pointer;
+}
+.media-chapters {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 4px;
+}
+.media-frames {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.media-frame {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+.media-frame-img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--bg-chip);
+}
+.media-frame-img.placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--fg-dim);
+}
+.media-desc {
+  color: var(--fg-dim);
+  font-style: italic;
+}
+.media-ocr {
+  overflow-wrap: anywhere;
+}
+.media-transcript {
+  max-height: 50vh;
+  overflow-y: auto;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.media-line.focus {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: var(--radius-sm);
+}

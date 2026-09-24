@@ -106,6 +106,20 @@ und `timeoutMs`. Der Hub braucht `ffmpeg`. Ohne `stt` nutzt die PWA die
 Browser-Erkennung und kennzeichnet sie als Cloud.
 Messwerte: [Messlauf P10](messlauf/2026-09-24-p10-stt.md).
 
+## Videoanalyse (P10.5)
+
+Medien-Jobs ([ADR-0030](adr/0030-media-jobs.md)) nutzen dieselben Dienste:
+`stt` für Sprache und `assistant.model` (bzw. den Gatekeeper-Server) für
+Kapitel und Zusammenfassung. Optional ist ein lokales Bildmodell:
+
+```json
+"media": { "vision": { "url": "http://100.65.133.28:8095/v1", "model": "qwen-vl", "apiKeyFile": "~/.config/uacc/vision.key" }, "maxDurationSec": 1800, "maxFrames": 24, "keepSource": false }
+```
+
+Ohne `vision` gibt es für Bilder nur OCR (tesseract). Gemini wird nur für
+Jobs gefragt, bei denen in der PWA „Cloud erlauben“ gesetzt ist.
+Messwerte: [Messlauf P10.5](messlauf/2026-09-24-p10.5-media.md).
+
 ## Was fehlt
 
 - **aider** mit dem lokalen Modell nicht live abgenommen (aider hat kein

@@ -121,6 +121,8 @@ export function registerCommandRoutes(app: FastifyInstance, ctx: RouteContext, d
         return { url: on(host, `/api/sessions/${sid}/budget`), body: { budgetUsd: a.amount, reason: "per Textauftrag" } };
       case "session.apply":
         return { url: on(host, `/api/sessions/${sid}/apply`), body: {} };
+      case "media.analyze":
+        return { url: on(selfHost, "/api/media/jobs"), body: { url: a.text } };
       case "action.run":
         return { url: on(host, `/api/sessions/${sid}/actions/${encodeURIComponent(String(a.action))}`), body: {} };
       default:
@@ -155,7 +157,7 @@ export function registerCommandRoutes(app: FastifyInstance, ctx: RouteContext, d
       const res = await call<Record<string, unknown>>(req, "POST", r.url, r.body);
       const ok = res.status >= 200 && res.status < 300 && res.body?.ok !== false;
       const detail = res.status === 202 && res.body?.approvalId ? "wartet auf Freigabe" : ok ? "erledigt" : String(res.body?.error ?? res.body?.detail ?? `Fehler ${res.status}`);
-      results.push({ op: step.op, ok, detail, ...(step.op === "session.create" && typeof res.body?.id === "string" ? { client: { op: "session.open", sessionId: res.body.id, hostId: String(step.args.hostId ?? selfHost) } } : {}) });
+      results.push({ op: step.op, ok, detail, ...(step.op === "session.create" && typeof res.body?.id === "string" ? { client: { op: "session.open", sessionId: res.body.id, hostId: String(step.args.hostId ?? selfHost) } } : {}), ...(step.op === "media.analyze" && ok ? { client: { op: "nav.open", page: "media" } } : {}) });
       if (!ok) break; // partial failure: stop, report what ran
     }
     stored.results = results;
