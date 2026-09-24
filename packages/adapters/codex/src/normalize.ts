@@ -81,7 +81,7 @@ export function normalizeCodexLine(raw: unknown, model?: string): EmittedEvent[]
         {
           type: "system",
           summary: "codex: turn complete",
-          ...(costUsd !== undefined ? { costUsd } : {}),
+          ...(costUsd !== undefined ? { costUsd, costSource: "estimated" as const } : {}),
           payload: {
             kind: "codex.turn_complete",
             usage: normalizedUsage,

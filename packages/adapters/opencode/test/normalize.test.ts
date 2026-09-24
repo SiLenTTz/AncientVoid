@@ -30,7 +30,8 @@ describe("normalizeOpencodeLine — real captured `opencode run --format json` (
       (e) => e.type === "system" && (e.payload as { kind?: string }).kind === "opencode.step_finish",
     );
     expect(finishes).toHaveLength(2);
-    expect(finishes[0]!.costUsd).toBe(0);
+    // T7.7: the real capture says cost 0 (subscription plan) — not a confirmed $0.
+    expect(finishes[0]!.costUsd).toBeUndefined();
     expect(finishes[0]!.tokensEst).toBe(7450);
     expect(finishes[1]!.tokensEst).toBe(7505);
   });

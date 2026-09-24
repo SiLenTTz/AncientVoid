@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SessionMetrics } from "../sessions/metrics.ts";
 
 /**
  * T4.1 (EPIC-P4 §3 "Brain-Digest") / ADR-0009 — the entire boundary between
@@ -43,6 +44,8 @@ export const SessionSummary = z.object({
   endedAt: z.string().min(1),
   costUsd: z.number().nonnegative(),
   tokensEst: z.number().nonnegative(),
+  /** T7.7 (ADR-0023): "unknown" means the 0 above is not a value. */
+  metrics: SessionMetrics.optional(),
   eventCount: z.number().int().nonnegative(),
   lessons: z.array(DigestLesson),
   /** Relative path from the hub's dataDir to the raw JSONL event archive

@@ -227,6 +227,20 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 15,
+    name: "metric-counters",
+    // T7.7 (ADR-0023): per-turn evidence for tokens/cost. Older sessions
+    // with a sum > 0 cannot prove every turn reported it: "partial".
+    sql: `
+      ALTER TABLE sessions ADD COLUMN metric_counters TEXT NOT NULL DEFAULT '{}';
+      UPDATE sessions SET metric_counters = json_object(
+        'turns', 1,
+        'costEvents', CASE WHEN cost_usd > 0 THEN 1 ELSE 0 END,
+        'tokenEvents', CASE WHEN tokens_est > 0 THEN 1 ELSE 0 END
+      ) WHERE cost_usd > 0 OR tokens_est > 0;
+    `,
+  },
 ];
 
 export class HubDatabase {

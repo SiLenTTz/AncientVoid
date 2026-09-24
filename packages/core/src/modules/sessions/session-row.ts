@@ -1,4 +1,4 @@
-import type { SessionRecord } from "@uacc/contracts";
+import { MetricCounters, metricsState, type SessionRecord } from "@uacc/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 /** Raw SQLite row shape (snake_case) for the sessions table. */
@@ -31,6 +31,15 @@ export interface SessionRow {
   writer_lease_until: string | null;
   archived: number;
   title: string | null;
+  metric_counters: string;
+}
+
+function counters(raw: string | null | undefined): MetricCounters {
+  try {
+    return MetricCounters.parse(JSON.parse(raw ?? "{}"));
+  } catch {
+    return MetricCounters.parse({});
+  }
 }
 
 export function rowToRecord(row: SessionRow): SessionRecord {
@@ -63,6 +72,7 @@ export function rowToRecord(row: SessionRow): SessionRecord {
     writerLeaseUntil: row.writer_lease_until,
     archived: row.archived === 1,
     title: row.title ?? null,
+    metrics: metricsState(counters(row.metric_counters)),
   };
 }
 
@@ -73,9 +83,9 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
          id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq,
          cost_usd, updated_at, tokens_est, park_reason, control_mode, harness, host_id, native_session_id,
          resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until,
-         archived, title
+         archived, title, metric_counters
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          status = excluded.status,
          model = excluded.model,
@@ -100,7 +110,8 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
          writer_client = excluded.writer_client,
          writer_lease_until = excluded.writer_lease_until,
          archived = excluded.archived,
-         title = excluded.title`,
+         title = excluded.title,
+         metric_counters = excluded.metric_counters`,
     )
     .run(
       record.id,
@@ -131,5 +142,6 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
       record.writerLeaseUntil,
       record.archived ? 1 : 0,
       record.title,
+      JSON.stringify(record.metrics.counters),
     );
 }

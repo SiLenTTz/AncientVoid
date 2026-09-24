@@ -169,6 +169,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         summary: `dummy ${type} #${n}`,
         payload,
         tokensEst: 10 + (n % 40),
+        tokensSource: "estimated",
       });
       if (cfg.autoStopAfterEvents > 0 && n >= cfg.autoStopAfterEvents) {
         stopGenerating(handle);

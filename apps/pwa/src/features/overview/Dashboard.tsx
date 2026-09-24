@@ -2,6 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import type { FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi } from "../../shared/api.ts";
 import { sessionsForOverview } from "./session-list.ts";
+import { metricView, totalCostText } from "../../shared/metrics.ts";
 
 export function formatUsd(n: number): string {
   if (n === 0) return "$0";
@@ -98,11 +99,9 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
     return [...map.entries()];
   }, [sorted]);
 
-  const todayTotalUsd = useMemo(() => {
+  const todayCost = useMemo(() => {
     const today = todayKey();
-    return sessions
-      .filter((s) => s.createdAt.slice(0, 10) === today)
-      .reduce((sum, s) => sum + s.costUsd, 0);
+    return totalCostText(sessions.filter((s) => s.createdAt.slice(0, 10) === today), formatUsd);
   }, [sessions]);
 
   const waitingCount = sessions.filter((s) => s.status === "waiting_approval").length;
@@ -128,7 +127,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
       )}
       {archiveError && <div class="reply-error">{archiveError}</div>}
       <div class="dashboard-summary dim">
-        <span>Heute: {formatUsd(todayTotalUsd)}</span>
+        <span>Heute: {todayCost}</span>
         <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => setShowArchived((on) => !on)}>
           {showArchived ? "Aktive" : `Archiv${archivedCount > 0 ? ` (${archivedCount})` : ""}`}
         </button>
@@ -198,7 +197,7 @@ function SessionRow({
           <span>
             {session.adapter} · {session.model ?? "n/a"} · #{session.lastSeq}
           </span>
-          <span>{session.costUsd > 0 ? formatUsd(session.costUsd) : ""}</span>
+          <span>{session.costUsd > 0 ? metricView(session, "cost", formatUsd, true).text : ""}</span>
         </div>
         {waiting && <span class="badge waiting">wartet auf dich</span>}
       </button>

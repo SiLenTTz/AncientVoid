@@ -97,7 +97,7 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
             const last = (params.tokenUsage as { last?: { inputTokens?: number; cachedInputTokens?: number; outputTokens?: number; totalTokens?: number } })?.last;
             if (last) {
               const cost = estimateCostUsd(state.model, last);
-              ctx.emit({ type: "system", summary: `codex: ${last.totalTokens ?? "?"} Tokens`, payload: { kind: "codex.token_usage" }, ...(typeof last.totalTokens === "number" ? { tokensEst: last.totalTokens } : {}), ...(cost !== undefined ? { costUsd: cost } : {}) });
+              ctx.emit({ type: "system", summary: `codex: ${last.totalTokens ?? "?"} Tokens`, payload: { kind: "codex.token_usage" }, ...(typeof last.totalTokens === "number" ? { tokensEst: last.totalTokens } : {}), ...(cost !== undefined ? { costUsd: cost, costSource: "estimated" as const } : {}) });
             }
             break;
           }
