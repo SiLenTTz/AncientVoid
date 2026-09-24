@@ -66,6 +66,13 @@ Insbesondere bleiben echte Geräte, 24-Stunden-Lauf, Zwei-Host-Fleet-Last,
 Wiederherstellungslatenz auf Produktivdatengröße, ein echter ENOSPC-Lauf
 sowie die Hyprland-0/50-Messung getrennt offen.
 
+Zusätzlicher Restore-Lauf am lokalen echten Datadir (nach sauberem Stop,
+verschlüsseltes Temp-Archiv, Restore in einen neuen Temp-Pfad): 1.408.668 Byte
+Datadir, 582.494 Byte Archiv, Backup 298 ms, Restore inklusive Integritäts-
+und Referenzprüfung 281 ms. Die Testartefakte wurden entfernt. Diese kleine
+Bestandsgröße belegt den End-to-End-Pfad, ersetzt aber keinen Lauf auf
+Produktivdatengröße.
+
 ## T12.7 — Credential-Rotation und Logbereinigung
 
 - Der lokale Hub (PID 662613) wurde per `SIGTERM` sauber heruntergefahren;
