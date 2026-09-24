@@ -50,13 +50,14 @@ const KIND_LABEL: Record<string, string> = {
  * runs its tools in an OS sandbox; in `read-only` every write or command
  * that needs more asks for escalation — on the phone (T7.5, live verified). */
 export const ACP_PRESETS = {
-  copilot: { command: ["copilot", "--acp"], env: {} },
+  // copilot 1.0.88 offers no model option over ACP (checked live 2026-09-24).
+  copilot: { command: ["copilot", "--acp"], env: {}, models: false },
   opencode: {
     command: ["opencode", "acp"],
     env: { OPENCODE_CONFIG_CONTENT: JSON.stringify({ permission: { edit: "ask", bash: "ask", webfetch: "ask" } }) },
   },
   dsh: { command: ["dsh", "--profile", "acp"], env: { DSH_PERMISSION_MODE: "read-only" } },
-} as const satisfies Record<string, { command: string[]; env: Record<string, string> }>;
+} as const satisfies Record<string, { command: string[]; env: Record<string, string>; models?: boolean }>;
 
 const AcpConfig = z.object({
   preset: z.enum(["copilot", "opencode", "dsh"]).optional(),
@@ -306,7 +307,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // as far as the agent asks (see the presets and docs/harness-matrix.md).
         // T7.10: images as content blocks when the agent says it takes them,
         // otherwise (and for other files) their text.
-        features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist", images: true, files: true, modelChoice: "start" }),
+        features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist", images: true, files: true, modelChoice: preset && "models" in preset && !preset.models ? "none" : "start" }),
       };
     },
 

@@ -21,7 +21,7 @@ dieser Session.
 | cursor-clip | Cursor state.vscdb | — | — | none | — | — | — | — | — | — |
 | claude-clip | Transcript JSONL | — | — | none | — | — | — | — | — | — |
 | dummy | — | ✓ | ✓ | none | — | — | — | — | — | — |
-| acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — |
+| acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — |
 | acp · opencode | 1.18.32 `acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — |
 | acp · dsh | 0.1.5-rc.3 `--profile acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — |
 <!-- harness-matrix:end -->
@@ -72,8 +72,9 @@ dieser Session.
   ([Messlauf](messlauf/2026-09-24-p7-harness-gates.md)).
   **Modellwahl:** `session/set_config_option` (Kategorie `model`) bzw. das
   ältere `session/set_model`; ein Modell, das der Agent nicht anbietet,
-  bricht den Start ab. Live belegt mit dsh; copilot/opencode nur über das
-  Protokoll (Fake-Agent), nicht live.
+  bricht den Start ab. Live belegt mit dsh (`["evox2","qwen3-coder"]`) und
+  opencode 1.18.32 (15 Modelle, Wechsel per `set_config_option`). copilot
+  1.0.88 bietet über ACP keine Modellwahl an (live geprüft) — Zelle „—“.
 
 ## Anhänge (T7.10, ADR-0022)
 

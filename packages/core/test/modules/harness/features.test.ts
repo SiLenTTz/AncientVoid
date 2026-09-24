@@ -21,6 +21,13 @@ describe("ADR-0018: the server refuses what a harness can't do", () => {
     expect(refuseSteer(none, "aider", { kind: "stop" })).toBeNull();
   });
 
+  it("AC-P7-4: an observer gets no attachments — said before anything is sent", () => {
+    const att = [{ id: "a".repeat(64), name: "x.png", mimeType: "image/png", kind: "image" as const, bytes: 3, path: "/x", text: null, method: null }];
+    expect(refuseSpec(basicFeatures({ followUp: false, interrupt: false }), "claude-clip", { attachments: att })).toBe("claude-clip beobachtet nur — Anhänge kommen dort nicht an.");
+    // A harness without native images still gets the extracted text (T7.10).
+    expect(refuseSpec(basicFeatures({ followUp: true, interrupt: true, images: false }), "aider", { attachments: att })).toBeNull();
+  });
+
   it("SessionManager refuses before the adapter sees the request", async () => {
     const root = await mkdtemp(join(tmpdir(), "uacc-features-"));
     const calls: string[] = [];
