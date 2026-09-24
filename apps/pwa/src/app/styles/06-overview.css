@@ -104,3 +104,13 @@
   background: color-mix(in srgb, var(--warn) 22%, transparent);
   color: var(--warn);
 }
+
+.session-card.unseen .session-title {
+  color: var(--fg);
+}
+
+.new-badge {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent);
+  margin-right: 4px;
+}

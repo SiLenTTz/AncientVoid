@@ -32,6 +32,7 @@ export function App({
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
   const [usage, setUsage] = useState<Record<string, AdapterUsage>>({});
   const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
   // T1.6-2: bottom-dock navigation replaces the top icon buttons ("Buttons
   // oben sind sehr schlecht zu bedienen" — real ergonomics feedback from
   // the mockup review). Settings didn't exist as a destination before.
@@ -76,11 +77,12 @@ export function App({
     };
     void tick();
     const timer = setInterval(tick, 3000);
+    // T8.6: "Erneut versuchen" restarts the poll at once.
     return () => {
       alive = false;
       clearInterval(timer);
     };
-  }, []);
+  }, [retry]);
 
   return (
     <div class="app-page">
@@ -100,7 +102,14 @@ export function App({
         </div>
       </div>
 
-      {error && <div class="card" style="color: var(--err)">{error}</div>}
+      {error && (
+        <div class="card load-error" role="alert" style="color: var(--err)">
+          {error}{" "}
+          <button class="btn" type="button" onClick={() => setRetry((n) => n + 1)}>
+            Erneut versuchen
+          </button>
+        </div>
+      )}
 
       {page === "new" && (
         <CreateSession

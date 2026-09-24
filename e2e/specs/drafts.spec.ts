@@ -1,4 +1,8 @@
+import { execFileSync } from "node:child_process";
+import { join, resolve } from "node:path";
 import { test, expect } from "../support/fixtures.ts";
+
+const repoRoot = resolve(import.meta.dirname, "../..");
 
 test.describe("Entwürfe (T8.4, AC-P8-4)", () => {
   test("ein Entwurf übersteht Navigation und Neuladen und erscheint auf dem zweiten Gerät — ohne gesendet zu werden", async ({ app, hub, browser }) => {
@@ -86,5 +90,25 @@ test.describe("Entwürfe (T8.4, AC-P8-4)", () => {
     await expect(app.getByLabel("Adapter")).toHaveValue("opencode");
     await expect(app.getByPlaceholder("Refactore den Auth-Flow…")).toHaveValue("");
     expect((await hub.sessions()).length).toBe(1);
+  });
+
+  test("AC-P8-4: ein anderes Gerätetoken sieht keine Entwürfe und gespeicherten Stände des vorherigen", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByPlaceholder("Antworten…").fill("Privater Entwurf");
+    await expect(app.locator(".draft-state")).toContainText("gespeichert");
+    await app.waitForTimeout(1200);
+    const before = await app.evaluate(() => Object.keys((globalThis as unknown as { localStorage: Record<string, unknown> }).localStorage).filter((k) => k.startsWith("uacc.draft.") || k.startsWith("uacc.tail.")));
+    expect(before.length).toBeGreaterThan(0);
+    const other = execFileSync(process.execPath, [join(repoRoot, "apps/hubctl/src/cli.ts"), "token", "issue", "zweites-geraet", "--db", join(hub.dataDir, "hub.db")], { encoding: "utf8" })
+      .split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("token for"))!;
+    await app.getByLabel("Zur Übersicht").click();
+    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await app.getByRole("button", { name: "Geräte-Token wechseln" }).click();
+    await app.getByPlaceholder(/z\. B\./).fill(other);
+    await app.getByRole("button", { name: "Verbinden" }).click();
+    await expect(app.getByRole("button", { name: "Verbinden" })).toHaveCount(0);
+    const after = await app.evaluate(() => Object.keys((globalThis as unknown as { localStorage: Record<string, unknown> }).localStorage).filter((k) => k.startsWith("uacc.draft.") || k.startsWith("uacc.tail.")));
+    expect(after).toEqual([]);
   });
 });

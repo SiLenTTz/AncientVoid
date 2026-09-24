@@ -201,9 +201,13 @@ test.describe("Flotte (EPIC-P6)", () => {
       await firstLook;
       const remote = await peer.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an" });
 
-      const toast = app.locator(".toast.success").filter({ hasText: "silenttz-server · alpha · Zug fertig" });
-      await expect(toast).toBeVisible({ timeout: 15_000 });
-      await toast.locator(".toast-body").click();
+      // T8.6: "Zug fertig" lands in the bell (no toast over the content).
+      await expect(app.getByRole("button", { name: /Benachrichtigungen \(\d+ neu\)/ })).toBeVisible({ timeout: 15_000 });
+      await expect(app.locator(".toast").filter({ hasText: "Zug fertig" })).toHaveCount(0);
+      await app.getByRole("button", { name: /Benachrichtigungen/ }).first().click();
+      const item = app.locator(".notif-item").filter({ hasText: "silenttz-server · alpha · Zug fertig" });
+      await expect(item).toBeVisible({ timeout: 15_000 });
+      await item.click();
       await expect(app).toHaveURL(new RegExp(`#/hosts/silenttz-server/sessions/${remote}`));
 
       await app.getByRole("button", { name: "Bericht" }).click();

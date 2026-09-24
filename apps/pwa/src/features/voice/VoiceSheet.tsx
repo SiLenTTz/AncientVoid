@@ -29,7 +29,9 @@ import { parseVoiceDirective, type VoiceDirective } from "./voice-directives.ts"
  * that tap is its own fresh, synchronous user gesture. Not verified on an
  * actual phone from here (no device access) — needs a real retest.
  */
-const EXAMPLE_COMMANDS = ["Zeig mir mobile-hub", "Neue Session mit Codex starten", "Wie ist mein Kontingent?"];
+/** T8.6: only commands that really run (T3.10) — tapping one shows the
+ * same confirmation as speaking it; nothing runs without "Bestätigen". */
+const EXAMPLE_COMMANDS = ["Stopp", "Budget auf 5 Dollar"];
 
 export function VoiceSheet({
   open,
@@ -46,7 +48,6 @@ export function VoiceSheet({
   const api = useApi();
   const [state, setState] = useState<"idle" | "listening" | "done">("idle");
   const [result, setResult] = useState<SpeechResult | null>(null);
-  const [pickedExample, setPickedExample] = useState<string | null>(null);
   const [directive, setDirective] = useState<VoiceDirective | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionResult, setActionResult] = useState<string | null>(null);
@@ -59,7 +60,6 @@ export function VoiceSheet({
     // auto-starts recognition (see this file's own doc comment for why).
     setState("idle");
     setResult(null);
-    setPickedExample(null);
     setDirective(null);
     setActionResult(null);
     return () => {
@@ -179,26 +179,31 @@ export function VoiceSheet({
               </div>
             )}
             {actionResult && <p class="voice-example">{actionResult}</p>}
-            {!directive && !actionResult && <span class="preview-tag">Vorschau — nur „stopp"/„Budget …" werden ausgeführt (T3.10)</span>}
+            {!directive && !actionResult && <span class="preview-tag">Erkannt werden „Stopp“ und „Budget auf … Dollar“.</span>}
           </>
         )}
         <div class="label" style="margin: 14px 0 6px">
-          Beispiel-Befehle
+          Befehle
         </div>
-        {EXAMPLE_COMMANDS.map((cmd) => (
-          <button
-            key={cmd}
-            type="button"
-            class="chip subtle voice-example-chip"
-            onClick={() => setPickedExample(cmd)}
-          >
-            „{cmd}"
-          </button>
-        ))}
-        {pickedExample && (
-          <p class="dim" style="margin-top: 8px">
-            Noch keine Ausführung — nur eine Vorschau, welche Befehle künftig erkannt werden sollen.
-          </p>
+        {sessionId ? (
+          EXAMPLE_COMMANDS.map((cmd) => (
+            <button
+              key={cmd}
+              type="button"
+              class="chip subtle voice-example-chip"
+              onClick={() => {
+                setActionResult(null);
+                setResult({ ok: true, text: cmd } as SpeechResult);
+                setState("done");
+                const parsed = parseVoiceDirective(cmd);
+                setDirective(parsed.kind !== "unrecognized" ? parsed : null);
+              }}
+            >
+              „{cmd}"
+            </button>
+          ))
+        ) : (
+          <p class="dim" style="margin: 0">Sprachbefehle wirken in einer Session: öffne sie und wähle ⋯ → Sprachbefehl.</p>
         )}
       </div>
     </div>
