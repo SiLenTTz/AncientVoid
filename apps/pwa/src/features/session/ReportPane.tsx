@@ -1,6 +1,7 @@
 import { remoteHost, type SessionRecord, type AdapterUsage, type SessionDiffResult } from "../../shared/api.ts";
 import { formatUsd, formatWindow } from "../overview/Dashboard.tsx";
 import { BudgetTopUp } from "./BudgetTopUp.tsx";
+import { metricView } from "../../shared/metrics.ts";
 import { onHost, WorktreeCard, ContinueCard, AttachCmdRow } from "./HostCommands.tsx";
 
 export function ReportPane({
@@ -21,6 +22,8 @@ export function ReportPane({
   const running = status !== "stopped" && status !== "error";
   const durationMs = new Date(record.updatedAt).getTime() - new Date(createdAt).getTime();
   const suffix = running ? " (bisher)" : "";
+  const cost = metricView(record, "cost", formatUsd, numbersReal);
+  const tokens = metricView(record, "tokens", (n) => n.toLocaleString("de-DE"), numbersReal);
   const filesChanged = diff ? (diff.error ? diff.error : `${diff.files.length}${suffix}`) : "lädt …";
 
   return (
@@ -37,12 +40,16 @@ export function ReportPane({
         </div>
         <div class="kv-row">
           <span class="k">Kosten</span>
-          <span class="v num">{numbersReal ? `${formatUsd(record.costUsd)}${suffix}` : "nicht erfasst"}</span>
+          <span class={`v num metric-${cost.quality}`} title={cost.hint}>
+            {cost.text}
+            {cost.quality !== "unknown" ? suffix : ""}
+          </span>
         </div>
         <div class="kv-row">
           <span class="k">Tokens</span>
-          <span class="v num">
-            {numbersReal ? `${record.tokensEst.toLocaleString("de-DE")}${suffix}` : "nicht erfasst"}
+          <span class={`v num metric-${tokens.quality}`} title={tokens.hint}>
+            {tokens.text}
+            {tokens.quality !== "unknown" ? suffix : ""}
           </span>
         </div>
         <div class="kv-row">

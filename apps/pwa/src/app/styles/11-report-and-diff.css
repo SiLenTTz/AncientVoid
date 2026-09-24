@@ -48,6 +48,17 @@
   font-weight: 600;
 }
 
+/* T7.7: how a number was measured shows in its colour — unknown is not 0. */
+.kv-row .v.metric-unknown {
+  color: var(--fg-faint);
+  font-weight: 400;
+}
+
+.kv-row .v.metric-partial,
+.kv-row .v.metric-estimated {
+  color: var(--warn);
+}
+
 /* T1.6-5: Diff tab */
 .diff-files {
   display: grid;

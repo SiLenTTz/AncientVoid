@@ -112,7 +112,9 @@ export function normalizeOpencodeLine(raw: unknown): EmittedEvent[] {
         cost?: number;
         reason?: string;
       };
-      const costUsd = typeof p.cost === "number" ? p.cost : undefined;
+      // T7.7 (ADR-0023): opencode prints 0 for subscription plans and local
+      // providers alike — that is "no price", never a confirmed $0.
+      const costUsd = typeof p.cost === "number" && p.cost > 0 ? p.cost : undefined;
       const tokensEst = typeof p.tokens?.total === "number" ? p.tokens.total : undefined;
       const reasoning = typeof p.tokens?.reasoning === "number" ? p.tokens.reasoning : undefined;
       const summary =

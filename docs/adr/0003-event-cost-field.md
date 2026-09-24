@@ -55,3 +55,9 @@ gleiche Migration).
   Anzeige — das ist keine neue Angriffsfläche (Adapter-Output war schon
   vorher ungeprüfte Dateneingabe, PWA behandelt sie als Daten, nie als
   Instruktion, AGENTS.md "Datadir & Sicherheit").
+
+## Nachtrag (2026-09-24, ADR-0023)
+
+Wie ehrlich die Summe ist, steht jetzt in `SessionRecord.metrics.cost`
+(`unknown`/`partial`/`estimated`/`native`). Geschätzte Werte tragen
+`costSource: "estimated"`, und opencode-`cost: 0` gilt nicht mehr als Wert.

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MetricSource } from "./metrics.ts";
 
 /**
  * K5 — Standard-Adapter-Event-Größe ≤ 4 KB unchunked.
@@ -87,6 +88,10 @@ export const NormalizedEvent = z.object({
    * be the "capabilities() promises more than it holds" anti-pattern.
    */
   costUsd: z.number().nonnegative().optional(),
+  /** T7.7 (ADR-0023): where tokensEst/costUsd came from; absent = the
+   * provider's own report (`native`). A price table is `estimated`. */
+  tokensSource: MetricSource.optional(),
+  costSource: MetricSource.optional(),
   /** Optional account-level usage/quota snapshot (ADR-0004). See UsageQuota. */
   usageQuota: UsageQuota.optional(),
 });

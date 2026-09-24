@@ -63,6 +63,7 @@ export function buildSessionSummary(record: SessionRecord, events: NormalizedEve
     endedAt: record.updatedAt,
     costUsd: record.costUsd,
     tokensEst: record.tokensEst,
+    metrics: { cost: record.metrics.cost, tokens: record.metrics.tokens },
     eventCount: events.length,
     lessons: extractLessons(events),
     archiveRef: archiveRefFor(record.id),

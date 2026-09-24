@@ -15,6 +15,13 @@ export interface SessionRecord {
    * it (claude); 0 means "unreported", not "confirmed zero" (same caveat
    * as costUsd). */
   tokensEst: number;
+  /** T7.7 (ADR-0023): how far costUsd/tokensEst can be trusted. Missing
+   * from older hubs. */
+  metrics?: {
+    cost: "unknown" | "partial" | "estimated" | "native";
+    tokens: "unknown" | "partial" | "estimated" | "native";
+    counters: { turns: number; costTurns: number; tokenTurns: number };
+  };
   /** T2.7/ADR-0008: why a "parked" session is paused — null otherwise, or
    * for a manually parked session that predates this field. */
   parkReason: "manual" | "budget" | "daily_cap" | null;

@@ -52,3 +52,9 @@ bestehende `tokensEst`-Feld angewendet statt ein neues zu erfinden:
   `capabilities().cost === false`.
 - Kein neuer Aggregations-Endpunkt nötig — `tokensEst` reist wie `costUsd`
   bereits über den bestehenden `GET /api/sessions/:id`-Pfad mit.
+
+## Nachtrag (2026-09-24, ADR-0023)
+
+`SessionRecord.metrics.tokens` ersetzt die Faustregel „UI zeigt nicht
+erfasst, wenn `capabilities().cost === false`“. Sie gilt nur noch als
+Rückfall für ältere Peers.

@@ -142,6 +142,19 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(row("Dateien geändert")).toContainText("1");
   });
 
+  test("T7.7: nicht gemeldete Kosten sind keine $0, geschätzte Tokens tragen ≈", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await hub.until(async () => (await hub.events(id)).some((e) => typeof (e as { tokensEst?: number }).tokensEst === "number"), "dummy tokens");
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Bericht" }).click();
+    const row = (label: string) => app.locator(".kv-row").filter({ hasText: label }).locator(".v");
+    await expect(row("Kosten")).toHaveText("nicht gemeldet");
+    await expect(row("Kosten")).toHaveAttribute("title", /keine 0/);
+    await expect(row("Tokens")).toContainText("≈ ");
+    const record = (await hub.api<{ metrics: { cost: string; tokens: string } }>(`/api/sessions/${id}`)).body;
+    expect(record.metrics).toMatchObject({ cost: "unknown", tokens: "estimated" });
+  });
+
   test("der Diff zeigt die geänderte Datei der Session", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "assistant reply");
