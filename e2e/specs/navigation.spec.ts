@@ -42,8 +42,8 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
 
   test("das Voice-Sheet öffnet und schließt sich", async ({ app }) => {
     await app.getByRole("button", { name: "Voice" }).click();
-    await expect(app.getByText("Sprachbefehl")).toBeVisible();
+    await expect(app.getByText("Sprachbefehl", { exact: true })).toBeVisible();
     await app.getByRole("button", { name: "✕" }).click();
-    await expect(app.getByText("Sprachbefehl")).toHaveCount(0);
+    await expect(app.getByText("Sprachbefehl", { exact: true })).toHaveCount(0);
   });
 });

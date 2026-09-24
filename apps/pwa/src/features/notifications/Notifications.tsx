@@ -60,6 +60,8 @@ function visibleToasts<T extends { level: string }>(toasts: T[]): T[] {
  * with the recent list. Polls the hub; the first load only fills the list,
  * so opening the app never replays old toasts.
  */
+const APPROVAL_KINDS = new Set(["tool.permission_requested", "session.steer_pending_approval"]);
+
 export function NotificationCenter() {
   const [items, setItems] = useState<FleetNotification[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -85,7 +87,20 @@ export function NotificationCenter() {
       title: hostId ? `${hostId} · ${n.title}` : n.title,
     }));
     if (known !== null) {
-      for (const n of [...stamped].reverse()) toast({ key: n.key, level: n.level, title: n.title, detail: n.detail, sessionId: n.sessionId, hostId });
+      // T8.6: "Zug fertig" goes to the bell only — with many sessions its
+      // toasts covered the controls at the top for seconds (P8 Messlauf).
+      for (const n of [...stamped].reverse()) {
+        if (n.kind === "session.turn_end") continue;
+        const show = () => toast({ key: n.key, level: n.level, title: n.title, detail: n.detail, sessionId: n.sessionId, hostId });
+        // Premortem P8-2: an approval decided meanwhile (e.g. a peer's
+        // notification that arrived late) is no toast any more.
+        if (APPROVAL_KINDS.has(n.kind))
+          void hostApi(hostId)
+            .approvals("pending")
+            .then((pending) => pending.some((a) => a.sessionId === n.sessionId) && show())
+            .catch(show);
+        else show();
+      }
     }
     if (stamped.length > 0) {
       setItems((prev) => [...stamped, ...prev].sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1)).slice(0, 100));

@@ -26,15 +26,18 @@
   min-width: 16px;
   padding: 1px 4px;
 }
+/* T8.6: messages sit in the page flow at the top and push the content
+ * down — they never lie over a control (P8 Messlauf: a toast covered the
+ * search button for 8 s). */
 .toast-stack {
-  position: fixed;
-  top: calc(env(safe-area-inset-top) + 52px);
-  right: max(8px, calc((100vw - 680px) / 2 + 8px));
-  z-index: 40;
   display: grid;
-  gap: 8px;
-  width: min(340px, calc(100vw - 16px));
-  pointer-events: none;
+  gap: 6px;
+  /* Room on the right for the bell. */
+  margin: calc(env(safe-area-inset-top) + 8px) 56px 6px 0;
+}
+
+.toast-stack:empty {
+  display: none;
 }
 .toast {
   pointer-events: auto;
@@ -140,8 +143,5 @@
 }
 
 .split-list .toast-stack {
-  position: absolute;
-  top: 52px;
-  right: 8px;
-  left: 8px;
+  margin-top: 8px;
 }

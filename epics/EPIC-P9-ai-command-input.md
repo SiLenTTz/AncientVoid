@@ -51,6 +51,8 @@ Prompt. Laya wird erst in P10 gegen diese Schnittstelle evaluiert.
 - [ ] **T9.4 — AI-Eingabe überall.** Gemeinsamer Composer und Cmd/Ctrl+K: Formular füllen, Text korrigieren/kürzen/übersetzen/verbessern, Original/Undo; lokale Optimierung mit Egress-Tests und Kosten-/Latenzanzeige bei optionalem Provider. K5/K10; PRD G2.
 - [ ] **T9.5 — Parität und adversarielle Evaluation.** Alle UI-Aktionen mit natürlichen deutschen/englischen Varianten prüfen, fremden Session-Output als Angriffstext einspielen, Fehlklassifikation/Planfehler messen, keine Selbstfreigabe. K1/K4/K5/K7.
 
+- [ ] **T9.x — Anhang aus dem Teilen-Menü (AI-P8-3).** Web Share Target im Manifest: Datei/Text aus einer anderen App direkt in eine Session oder einen Entwurf; Gerätetest.
+
 ## 5. Acceptance Criteria
 
 - **AC-P9-1:** Jeder Eintrag des UI-/Feldkatalogs hat einen erfolgreich getesteten AI-Flow; Passkey/OS-Zustimmung bleibt als Nutzerinteraktion benannt. Keine rein dekorative Command-Palette.

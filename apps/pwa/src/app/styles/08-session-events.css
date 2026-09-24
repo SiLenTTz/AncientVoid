@@ -94,3 +94,19 @@
   margin-left: auto;
   font-size: 12px;
 }
+
+/* T8.6: new since the last visit on this device. */
+.new-divider {
+  margin: 10px 0;
+  text-align: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border-top: 1px solid var(--accent);
+  padding-top: 4px;
+}
+
+.new-jump {
+  margin: 4px 0;
+}

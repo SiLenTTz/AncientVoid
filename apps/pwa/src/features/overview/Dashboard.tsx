@@ -4,6 +4,7 @@ import { hostApi } from "../../shared/api.ts";
 import { sessionsForOverview } from "./session-list.ts";
 import { metricView, totalCostText } from "../../shared/metrics.ts";
 import { ago, statusLabel } from "../../shared/status.ts";
+import { initSeen, isUnseen, seenKey } from "../../shared/seen.ts";
 
 export function formatUsd(n: number): string {
   if (n === 0) return "$0";
@@ -98,6 +99,11 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
   const [actionError, setActionError] = useState("");
   const [query, setQuery] = useState("");
   const [allRecent, setAllRecent] = useState(false);
+  // T8.6: first run on this device — what exists now counts as read.
+  useEffect(() => {
+    if (sessions.length > 0) initSeen(sessions.map((s) => ({ key: seenKey(s.hostId ?? "", s.id), lastSeq: s.lastSeq })));
+  }, [sessions.length > 0]);
+
   // Local changes win until the next poll reports the same value.
   useEffect(() => {
     setOverride((prev) => {
@@ -215,9 +221,10 @@ function SessionRow({
 }) {
   const waiting = session.status === "waiting_approval";
   const glow = session.status === "working" ? "st-working" : waiting ? "st-waiting" : "";
+  const unseen = isUnseen(seenKey(session.hostId ?? "", session.id), session.lastSeq);
   const project = projectName(session.project);
   return (
-    <div class={`card session-card ${glow}`}>
+    <div class={`card session-card ${glow}${unseen ? " unseen" : ""}`}>
       <button class="session-open" type="button" onClick={() => onOpen(session)}>
         <div class="row">
           <strong class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? `${project} — ohne Auftrag`}</strong>
@@ -233,7 +240,9 @@ function SessionRow({
         </div>
         <div class="session-activity">
           <span class="session-activity-text">{session.lastActivity?.text ?? "noch nichts passiert"}</span>
-          <span class="dim session-ago">{ago(session.lastActivity?.at ?? session.updatedAt)}</span>
+          <span class="dim session-ago">
+            {unseen && <span class="badge new-badge">neu</span>} {ago(session.lastActivity?.at ?? session.updatedAt)}
+          </span>
         </div>
       </button>
       <div class="session-card-actions">

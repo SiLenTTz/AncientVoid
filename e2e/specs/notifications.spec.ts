@@ -38,10 +38,10 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     await expect(toast).toContainText("err_9508ce50");
   });
 
-  test("ein fertiger Zug meldet sich grün, die Glocke sammelt alles", async ({ app, hub }) => {
+  test("ein fertiger Zug landet in der Glocke — ohne Meldung über dem Inhalt (T8.6)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
-    await expect(app.locator(".toast.success").filter({ hasText: "alpha · Zug fertig" })).toBeVisible();
     await expect(app.getByRole("button", { name: "Benachrichtigungen (1 neu)" })).toBeVisible();
+    await expect(app.locator(".toast")).toHaveCount(0);
     await app.getByRole("button", { name: "Benachrichtigungen (1 neu)" }).click();
     const item = app.locator(".notif-item").filter({ hasText: "alpha · Zug fertig" });
     await expect(item).toBeVisible();

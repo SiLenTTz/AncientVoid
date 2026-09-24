@@ -1,6 +1,6 @@
 # EPIC-P8 — Einfacher und zuverlässiger mobiler Arbeitsplatz
 
-**Status:** Planungsentwurf, Umsetzung blockiert · **Phase:** P8 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P7 grün; alte K10-/Push-Blocker aus G0 behoben.
+**Status:** abgeschlossen (2026-09-24, Retro unten) · **Phase:** P8 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P7 grün; alte K10-/Push-Blocker aus G0 behoben.
 
 Planungsauftrag vom 2026-09-21; kein Umsetzungsstart und keine Behauptung eines
 grünen Vorgänger-Gates. Scope, Evidenz und bestehende Restarbeiten:
@@ -51,7 +51,7 @@ auf. Versioniertes PWA-Update darf Draft/Session-Link nicht verlieren.
 - [x] **T8.3 — Benachrichtigungsprodukt.** P1-Push-Basis um Inbox, ruhige Zeiten, Deduplizierung, richtigen Deep-Link, Endpoint-Rotation und sichtbaren Zustellstatus ergänzen; echte Hintergrund-/Lockscreen-Tests. K1/K10. Stand 2026-09-24: [ADR-0026](../docs/adr/0026-web-push.md): Web Push aus, bis ein Mensch es einschaltet (Egress offen benannt), Inhalt nur Kennung + Kategorie, feste Texte im Service Worker, Tippen öffnet die Session; nur bekannte Push-Dienste (kein SSRF); je Gerät Ruhezeit und „auch bei fertigem Zug“; genau einmal je Meldung und Gerät; Zustellstatus und „Abo erloschen“ (404/410) sichtbar; Rotation per `oldEndpoint`/App-Start; Glocke bleibt die Quelle. Tests: `push.test.ts` (Core), `push-routes.test.ts` (Policy, SSRF), E2E `push.spec.ts` (Schalter, blockierter Browser). **Offen:** echte Hintergrund-/Sperrbildschirm-Zustellung auf deinem Handy und zweitem Profil → T12.4 (Headless-Browser haben keinen Push-Dienst).
 - [x] **T8.4 — Composer und Kontinuität.** Dauerhafte Entwürfe, Sync-Konflikte, Leseposition, Anhang-Teilen, Copy, Antwortvorlagen und letzte Projekt-/Harness-Auswahl; keine erneute Ausführung beim Reload. K5/K7/K10. Stand 2026-09-24: [ADR-0025](../docs/adr/0025-shared-drafts.md): geteilter Entwurf je Session mit Revision (Migration 18, 409 + beide Stände zur Wahl), lokal sofort und offline, nie ein Sendeauftrag, nach dem Senden geleert; Start-Prompt als lokaler Entwurf, zuletzt gewählter Host/Harness/Projekt vorbelegt; Antwortvorlagen (füllen, senden nie; eigene merken); „Kopieren“ an jeder Antwort; Tokenwechsel löscht lokale Entwürfe. Tests: `drafts.test.ts` (Hub), `draft.test.ts` (reconcile), E2E `drafts.spec.ts`. **Nicht umgesetzt:** Leseposition und Anhang aus dem Teilen-Menü → T8.6 bzw. T8.2 (Share-Target braucht Manifest + echtes Gerät).
 - [x] **T8.5 — Layout und Accessibility.** Composer-/Tab-/Dock-Stapel verkleinern; Stop absetzen; responsive Desktop-Liste; Fokus/Screenreader/Reduced-Motion/Touch-Ziele und echte Bildschirmtastatur prüfen. K1/K2. Stand 2026-09-24: in der Session kein globales Dock mehr (← zur Übersicht), Büroklammer in der Knopfzeile, Stop in der Kopfzeile abseits von Senden, Umbenennen/Anheften/Archivieren/Sprachbefehl im ⋯-Menü → Inhaltsanteil bei 390×844 von 45 % auf **60,8 %** (E2E `layout.spec.ts` prüft ≥ 50 %). Ab 1280 px Liste links + Session rechts (`layout-desktop.spec.ts`). Sichtbarer Tastaturfokus, Tastaturbedienung und benannte Knöpfe per E2E; Tipp-Ziele ≥ 40 px. **Offen:** 200-%-Text, echter Screenreader und reale Bildschirmtastatur brauchen ein echtes Gerät → Messlauf T8.6/T12.4.
-- [ ] **T8.6 — QoL und Messlauf.** Pins, Umbenennen, Archiv, neuer-Inhalt-Marker, Fehlermeldung mit Retry, nur verfügbare Voice-Beispiele; fünf Kernaufgaben mit 20 Sessions mobil messen. K1/K2/K10.
+- [x] **T8.6 — QoL und Messlauf.** Pins, Umbenennen, Archiv, neuer-Inhalt-Marker, Fehlermeldung mit Retry, nur verfügbare Voice-Beispiele; fünf Kernaufgaben mit 20 Sessions mobil messen. K1/K2/K10. Stand 2026-09-24: Anheften/Umbenennen/Archiv (T8.1/T8.5), „neu seit deinem letzten Besuch“ je Gerät (Marke auf der Karte, Trenner + Sprung in der Session), „Erneut versuchen“ bei nicht angekommener Antwort und bei Ladefehlern, Voice zeigt nur „Stopp“/„Budget auf … Dollar“ mit Bestätigung. Messlauf 20 Sessions auf 3 Hosts ([Messlauf](../docs/messlauf/2026-09-24-p8-mobile.md), E2E `messlauf-p8.spec.ts`): jede Freigabe in 2 Taps, ähnliche Sessions in einem Filter-Tipp unterscheidbar. Fund dabei: Meldungen verdeckten Bedienelemente bis 8 s → „Zug fertig“ nur noch in der Glocke, entschiedene Freigaben ohne Meldung, Meldungen im Seitenfluss statt darüber. Tests: `qol.spec.ts`.
 
 ## 5. Acceptance Criteria
 
@@ -79,3 +79,86 @@ nachgewiesen. Jede Funktion in Config, API/CLI und passender UI tatsächlich
 registriert/erreichbar; Capability-/Support-Matrix ehrlich aktualisiert.
 Premortem im Abschlussreview gegenprüfen, offene Pflicht-ACs blockieren Abschluss.
 Commit/MR gemäß Repo-Workflow; kein lokaler Merge nach main.
+
+## Retro
+
+**Zeitraum:** 2026-09-24 (Nacht) · **Commits:** 6 Feature-MRs (!99–!103, T8.6-MR) auf `main` ·
+**Gate am Ende:** lokal grün (siehe Abschluss-MR).
+
+### AK-Matrix
+
+- **AC-P8-1:** 🟢 erfüllt
+  - **Beleg:** E2E `messlauf-p8.spec.ts` (20 Sessions, 3 Hosts): jede
+    Freigabe in 2 Taps, drei gleichnamige Sessions per Host unterscheidbar
+    (121 ms). Zahlen in `docs/messlauf/2026-09-24-p8-mobile.md`.
+- **AC-P8-2 (K10):** 🟢 erfüllt (Browser)
+  - **Beleg:** E2E `workspace.spec.ts` „BUG-0015/AC-P8-2“ mit echtem Service
+    Worker: offline neu laden zeigt Übersicht und Session mit
+    Abrufzeitpunkt, keine Token-Eingabe, keine Mutation, nach Reconnect
+    aktuell.
+  - **Offen:** echter Flugmodus auf dem Handy → T12.4.
+- **AC-P8-3:** 🟡 teilweise
+  - **Beleg:** `push.test.ts` (einmal je Meldung und Gerät, Ruhezeit,
+    410 → erloschen), `push-routes.test.ts` (Policy, SSRF), E2E
+    `push.spec.ts` (blockierter Browser sichtbar); Deep-Link im Service
+    Worker.
+  - **Offen:** echte Hintergrund- und Sperrbildschirm-Zustellung auf deinem
+    Handy und einem zweiten Browserprofil. Headless-Browser haben keinen
+    Push-Dienst.
+- **AC-P8-4:** 🟢 erfüllt
+  - **Beleg:** E2E `drafts.spec.ts` (Navigation, Reload, zweiter Client,
+    Konflikt zur Wahl, Tokenwechsel ohne Altdaten), `drafts.test.ts`,
+    `draft.test.ts`.
+- **AC-P8-5:** 🟡 teilweise
+  - **Beleg:** E2E `layout.spec.ts`: 60,8 % Inhalt bei 390×844, Tastatur,
+    sichtbarer Fokus, benannte Knöpfe, Tipp-Ziele ≥ 40 px.
+  - **Offen:** echte Bildschirmtastatur, 200 % Text, Screenreader →
+    Gerätetest T12.4.
+- **AC-P8-6:** 🟢 erfüllt
+  - **Beleg:** K2-Lauf 10 min / 30 ev/s (Messlauf §3) und E2E
+    `layout-desktop.spec.ts` (Liste + Detail ab 1280 px).
+
+### Premortem
+
+1. **Weniger Tabs verstecken Kernfunktionen:** nicht eingetreten. Die
+   Session hat alle Reiter, der Rest liegt im ⋯-Menü. Die fünf Kernaufgaben
+   brauchen 1–4 Taps (Messlauf).
+2. **Push signalisiert erledigte Anfrage:** eingetreten, bei den Meldungen,
+   nicht beim Push. Die „Freigabe nötig“-Meldung eines Peers kam, nachdem
+   die Freigabe schon entschieden war, und verdeckte 8 s den Suchknopf.
+   Jetzt wird vor der Meldung geprüft, ob die Freigabe noch offen ist.
+   Meldungen verdecken nichts mehr. Push trägt nur die Kennung, die App
+   lädt den aktuellen Stand.
+3. **Offline-Draft wird versehentlich versendet:** nicht eingetreten.
+   Offline ist Senden gesperrt, der Entwurf füllt nur das Feld (E2E).
+4. **SW-Update vernichtet Kontext:** nicht eingetreten. Die Shell ist
+   network-first, Link (Hash) und Entwurf (`localStorage`) überstehen
+   Reload und Update.
+
+### Erkenntnisse
+
+1. **Der Messlauf fand einen echten Bedienfehler,** den kein funktionaler Test
+   sah: Meldungen über Bedienelementen (8,3 s → 170 ms).
+2. **BUG-0015 war eine Verwechslung von „offline“ mit „falsches Token“.**
+   Status-Codes zu unterscheiden (`isAuthError`) hat es gelöst, nicht mehr
+   Cache.
+3. **Ein Test, der für eine Rennbedingung nicht rot wird, ist wertlos.**
+   `turn-state` wartete auf `idle` statt auf das Event.
+4. **Zwei Topbars im Desktop-Split haben 8 E2E-Tests gebrochen.** Die Tests
+   waren an Klassen gebunden, die im Mobil-Layout eindeutig sind. Jetzt
+   adressieren sie `.session-topbar` bzw. `.tail-scroll`.
+5. **Ein fehlgeschlagener Commit-Hook hat ein leeres MR erzeugt** (!103
+   zunächst ohne Commit). Commit und Push werden jetzt mit `&&` verkettet.
+
+### Action Items
+
+- **AI-P8-1:** Gerätetest auf deinem Handy: Push im Hintergrund und auf dem
+  Sperrbildschirm, echter Flugmodus, Bildschirmtastatur, 200 % Text,
+  TalkBack/VoiceOver.
+  - **Zurück als:** P12 T12.4.
+- **AI-P8-2:** Meldungen gepaarter Peers als Push über den Heim-Hub
+  weiterleiten (heute pusht jeder Peer selbst).
+  - **Zurück als:** P12 T12.4.
+- **AI-P8-3:** Anhang aus dem Teilen-Menü des Handys (Web Share Target)
+  braucht Manifest und Gerätetest.
+  - **Zurück als:** P9 (Eingabe).

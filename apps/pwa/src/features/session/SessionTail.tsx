@@ -1,3 +1,4 @@
+import { Fragment } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiContext } from "../../shared/api-context.ts";
 import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord } from "../../shared/api.ts";
@@ -9,6 +10,7 @@ import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
 import { statusLabel } from "../../shared/status.ts";
 import { useDraft } from "./draft.ts";
+import { getSeen, markSeen, seenKey } from "../../shared/seen.ts";
 import { loadTail, saveTail } from "./tail-cache.ts";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
@@ -42,6 +44,14 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
     return () => clearTimeout(t);
   }, [events]);
   const shownEvents = events.length === 0 && cached ? cached.events : events;
+  // T8.6: where "new since your last visit" starts (null: nothing new / never here).
+  const seenAt = useRef(getSeen(seenKey(session.hostId ?? "", session.id)));
+  useEffect(() => {
+    const last = events.at(-1)?.seq;
+    if (last === undefined) return;
+    const t = setTimeout(() => markSeen(seenKey(session.hostId ?? "", session.id), last), 1500);
+    return () => clearTimeout(t);
+  }, [events]);
   const fromCache = events.length === 0 && cached !== null;
   const [conn, setConn] = useState<"connecting" | "live" | "reconnecting" | "closed">("connecting");
   const [filter, setFilter] = useState<FilterPreset>(loadFilter);
@@ -268,6 +278,8 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
     const preset = FILTERS.find((f) => f.id === filter)!;
     return shownEvents.filter(preset.keep);
   }, [shownEvents, filter]);
+  const firstNew = seenAt.current !== null && seenAt.current > 0 ? visible.find((e) => e.seq > seenAt.current!) : undefined;
+  const newCount = firstNew ? visible.filter((e) => e.seq >= firstNew.seq).length : 0;
 
   // T1.8: tool_use <-> tool_result status + anchor navigation, built from
   // the full (unfiltered) stream so a match isn't missed just because one
@@ -445,6 +457,11 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
           {online ? " — verbinde…" : " — offline"}
         </div>
       )}
+      {firstNew && (
+        <button type="button" class="chip new-jump" onClick={() => jumpTo("seit-letztem-besuch")}>
+          ↓ {newCount} neu seit deinem letzten Besuch
+        </button>
+      )}
       {!online && <div class="badge-stale offline-note">Offline — Senden ist gesperrt, dein Entwurf bleibt.</div>}
       <div class="run-strip">
         {progress &&
@@ -492,14 +509,20 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
           </div>
         ) : (
           visible.map((e) => (
-            <EventRow
-              key={e.seq}
-              event={e}
-              expanded={expanded.has(e.seq)}
-              onToggleExpand={() => toggleExpanded(e.seq)}
-              toolResult={e.type === "tool_use" ? toolResultByToolId.get(toolIdOf(e) ?? "") : undefined}
-              onJump={jumpTo}
-            />
+            <Fragment key={e.seq}>
+              {e.seq === firstNew?.seq && (
+                <div class="new-divider" id="seit-letztem-besuch">
+                  Neu seit deinem letzten Besuch
+                </div>
+              )}
+              <EventRow
+                event={e}
+                expanded={expanded.has(e.seq)}
+                onToggleExpand={() => toggleExpanded(e.seq)}
+                toolResult={e.type === "tool_use" ? toolResultByToolId.get(toolIdOf(e) ?? "") : undefined}
+                onJump={jumpTo}
+              />
+            </Fragment>
           ))
         )}
       </div>
@@ -523,6 +546,12 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                 {leaseHeld && (
                   <button class="btn" type="button" onClick={() => void sendReply(true)} disabled={replyBusy}>
                     Übernehmen
+                  </button>
+                )}
+                {/* T8.6: a failed send is one tap from the next try — same input id, no double turn. */}
+                {!leaseHeld && online && (reply.trim() || replyAttachments.length > 0) && (
+                  <button class="btn" type="button" onClick={() => void sendReply()} disabled={replyBusy}>
+                    Erneut versuchen
                   </button>
                 )}
               </div>
