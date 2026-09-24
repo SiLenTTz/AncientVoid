@@ -48,6 +48,7 @@ export const POLICY_OPERATIONS = [
   "settings.manage",
   "actions.run",
   "drafts.write",
+  "push.subscribe",
 ] as const;
 export type PolicyOperation = (typeof POLICY_OPERATIONS)[number];
 
@@ -83,6 +84,8 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "actions.run": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
   /** T8.4: a person's unsent reply — agents neither read nor write it. */
   "drafts.write": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny" },
+  /** T8.3: a device subscribes itself to Web Push. */
+  "push.subscribe": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny" },
 };
 
 export function policyFor(operation: PolicyOperation, label: string | null | undefined): PolicyDecision {

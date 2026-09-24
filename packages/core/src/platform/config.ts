@@ -75,6 +75,8 @@ export const HubConfig = z.object({
   /** T7.6: registered actions (tests, tools) offered in every session,
    * next to the built-in git reads and the project's own test command. */
   actions: z.array(ActionDefinition).default([]),
+  /** T8.3 (ADR-0026): VAPID contact the push services see. */
+  push: z.object({ subject: z.string().regex(/^(mailto:|https:)/).default("mailto:uacc@localhost") }).default({}),
   /** T7.9 (ADR-0024): System-1 gatekeeper for tool requests. The rules
    * always run; `model` adds a local llama.cpp judgement (OpenAI API). */
   gatekeeper: z

@@ -643,6 +643,13 @@ export class SessionManager {
     return { ...rest, text: promptWithAttachments(input.text, attachments) } as T;
   }
 
+  private readonly notificationListeners: ((n: HubNotification) => unknown)[] = [];
+
+  /** T8.3: hear about every stored notification (e.g. Web Push). */
+  onNotification(listener: (n: HubNotification) => unknown): void {
+    this.notificationListeners.push(listener);
+  }
+
   /** ADR-0015: cross-session notifications, persisted so every device and a
    * restarted hub show the same list. */
   private recordNotifications(session: LiveSession, events: readonly NormalizedEvent[]): void {
@@ -655,9 +662,16 @@ export class SessionManager {
         recentProviderError: Date.now() - (this.lastProviderError.get(session.record.id) ?? 0) < 30_000 && kind !== "provider.error",
       });
       if (!draft) continue;
-      this.db
+      const res = this.db
         .prepare("INSERT INTO notifications (session_id, level, title, detail, kind, created_at) VALUES (?, ?, ?, ?, ?, ?)")
         .run(session.record.id, draft.level, draft.title, draft.detail, draft.kind, event.ts);
+      // T8.3: push and other listeners — after it is stored, never blocking.
+      const stored: HubNotification = { id: Number(res.lastInsertRowid), sessionId: session.record.id, level: draft.level, title: draft.title, detail: draft.detail, kind: draft.kind, createdAt: event.ts };
+      for (const listener of this.notificationListeners) {
+        void Promise.resolve()
+          .then(() => listener(stored))
+          .catch((err) => this.logger.warn("notification listener failed", { err: String(err) }));
+      }
     }
   }
 

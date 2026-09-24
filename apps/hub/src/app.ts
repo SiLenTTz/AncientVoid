@@ -4,7 +4,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { AttachmentStore, SettingsStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import type { AttachmentStore, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
 import { discoverProjects, FleetStore } from "@uacc/core";
 import type { HubMetrics, DiscoverySource } from "@uacc/contracts";
 import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@uacc/contracts";
@@ -12,6 +12,7 @@ import type { WebAuthnConfig } from "./modules/identity/webauthn.ts";
 import { authHook, type AuthOptions } from "./platform/auth.ts";
 import { registerRoutes } from "./routes.ts";
 import { registerAttachmentRoutes } from "./modules/attachments/attachments.routes.ts";
+import { registerPushRoutes } from "./modules/push/push.routes.ts";
 import { policyHook } from "./platform/policy.ts";
 import { registerWs } from "./modules/sessions/ws.ts";
 import { registerFleetRoutes } from "./modules/fleet/fleet.routes.ts";
@@ -28,6 +29,8 @@ export interface HubAppDeps {
   pwaDir?: string;
   /** T1.5-4: host paths to scan for git repos, offered as session projects. */
   projectRoots?: string[];
+  /** T8.3: Web Push (optional — off unless a person enables it). */
+  push?: PushService;
   /** T7.6: registered actions from the config. */
   actions?: ActionDefinition[];
   /** T2.4: optional, mirrors SessionManager's own optional approvals —
@@ -107,6 +110,7 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   }
   registerRoutes(app, { ...deps, projectRoots });
   if (deps.attachments && deps.settings) registerAttachmentRoutes(app, { attachments: deps.attachments, settings: deps.settings });
+  if (deps.push) registerPushRoutes(app, { push: deps.push, tokens: deps.tokens });
   const fleet = deps.fleet ?? new FleetStore(deps.tokens.database, deps.tokens);
   const hostId = deps.hostId ?? DEFAULT_HOST_ID;
   registerFleetRoutes(app, { fleet, tokens: deps.tokens, hostId });

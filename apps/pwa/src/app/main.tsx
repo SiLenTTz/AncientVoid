@@ -3,6 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { App } from "./App.tsx";
 import { SessionTail } from "../features/session/SessionTail.tsx";
 import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
+import { resyncPush } from "../shared/push.ts";
 import { pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
@@ -117,7 +118,14 @@ function Main() {
     // not a wrong token — with a token, start on the cached data.
     hubApi
       .adapters()
-      .then(becomeReady)
+      .then(() => {
+        void becomeReady();
+        // T8.3: a rotated push subscription is registered again.
+        void resyncPush();
+        navigator.serviceWorker?.addEventListener("message", (e) => {
+          if ((e.data as { type?: string })?.type === "uacc:push-resubscribe") void resyncPush();
+        });
+      })
       .catch((err) => {
         if (getToken() && !isAuthError(err)) void becomeReady();
         else setReady(false);

@@ -97,3 +97,25 @@
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-elev));
 }
+
+/* T8.3: push per device, with its delivery status. */
+.push-status.warn {
+  color: var(--warn);
+}
+
+.push-status.err,
+.push-device.failed,
+.push-device.gone {
+  color: var(--err);
+}
+
+.push-devices {
+  display: grid;
+  gap: 6px;
+}
+
+.push-device {
+  padding: 6px 0;
+  border-top: 1px solid var(--bg-chip);
+  font-size: 13px;
+}

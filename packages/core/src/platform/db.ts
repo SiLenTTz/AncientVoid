@@ -271,6 +271,28 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 19,
+    name: "push-subscriptions",
+    // T8.3 (ADR-0026): Web Push per device — opaque ids only.
+    sql: `
+      CREATE TABLE push_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        device TEXT,
+        created_at TEXT NOT NULL,
+        quiet TEXT,
+        done INTEGER NOT NULL DEFAULT 0,
+        last_ok_at TEXT,
+        last_error TEXT,
+        last_error_at TEXT,
+        gone INTEGER NOT NULL DEFAULT 0,
+        last_notification_id INTEGER NOT NULL DEFAULT 0
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

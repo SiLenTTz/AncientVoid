@@ -9,6 +9,7 @@ import { StatusPage } from "../features/status/StatusPage.tsx";
 import { DiscoveryPane } from "../features/discovery/Discovery.tsx";
 import { FleetSettings } from "../features/fleet/Fleet.tsx";
 import { GeminiSettings } from "../features/settings/GeminiSettings.tsx";
+import { PushSettings } from "../features/settings/PushSettings.tsx";
 import { Settings } from "../features/settings/Settings.tsx";
 import { CreateSession } from "../features/new-session/CreateSession.tsx";
 
@@ -113,6 +114,7 @@ export function App({
         <>
           <Settings onSwitchToken={ready} />
           <FleetSettings />
+          <PushSettings />
           <GeminiSettings />
         </>
       )}

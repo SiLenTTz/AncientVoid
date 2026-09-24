@@ -106,3 +106,52 @@ async function networkFirstApi(req, url) {
     });
   }
 }
+
+// T8.3 (ADR-0026): a push is only a hint — an opaque id and a category.
+// The text is fixed here; what happened is loaded after login in the app.
+const PUSH_TEXT = {
+  approval: { title: "UACC — Freigabe nötig", body: "Eine Session wartet auf deine Entscheidung." },
+  error: { title: "UACC — Fehler", body: "In einer Session ist etwas schiefgegangen." },
+  done: { title: "UACC — Zug fertig", body: "Eine Session wartet auf deinen nächsten Schritt." },
+};
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+  const text = data.test ? { title: "UACC — Test", body: "Push kommt auf diesem Gerät an." } : PUSH_TEXT[data.category] ?? PUSH_TEXT.error;
+  const host = data.hostId && data.hostId !== "local" ? `/hosts/${encodeURIComponent(data.hostId)}` : "";
+  const url = data.sessionId ? `/#${host}/sessions/${encodeURIComponent(data.sessionId)}` : "/#/";
+  event.waitUntil(
+    self.registration.showNotification(text.title, {
+      body: text.body,
+      // One notification per hub notification, even if it arrives twice.
+      tag: data.id ? `uacc-${data.hostId ?? ""}-${data.id}` : "uacc-test",
+      data: { url },
+      icon: "/icons/icon.svg",
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url ?? "/#/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      const win = wins.find((w) => new URL(w.url).origin === self.location.origin);
+      if (win) return win.focus().then(() => win.navigate(url));
+      return self.clients.openWindow(url);
+    }),
+  );
+});
+
+// The browser rotated the subscription: the app re-registers it on its
+// next start (it holds the token, this worker does not).
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    self.clients.matchAll({ type: "window" }).then((wins) => wins.forEach((w) => w.postMessage({ type: "uacc:push-resubscribe" }))),
+  );
+});
