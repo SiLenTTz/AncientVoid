@@ -87,3 +87,10 @@
   color: var(--accent);
   border-color: var(--accent);
 }
+
+/* T8.4: copy an answer. */
+.event .copy-btn {
+  display: block;
+  margin-left: auto;
+  font-size: 12px;
+}

@@ -184,7 +184,29 @@ export function EventRow({
         <AttachmentChips refs={(event.payload as { attachments: AttachmentRef[] }).attachments} />
       )}
       {typeof errorDetail === "string" && <div class="dim provider-error-detail">{errorDetail}</div>}
+      {event.type === "assistant" && <CopyButton text={visibleEventText(event)} />}
       {expanded && <EventDetail event={event} />}
     </div>
+  );
+}
+
+/** T8.4: take an answer along — one tap, no selecting on a phone. */
+function CopyButton({ text }: { text: string }) {
+  const [done, setDone] = useState<"" | "ok" | "fail">("");
+  return (
+    <button
+      type="button"
+      class="link-btn copy-btn"
+      onClick={(ev) => {
+        ev.stopPropagation();
+        navigator.clipboard
+          ?.writeText(text)
+          .then(() => setDone("ok"))
+          .catch(() => setDone("fail"));
+        setTimeout(() => setDone(""), 1500);
+      }}
+    >
+      {done === "ok" ? "kopiert" : done === "fail" ? "nicht erlaubt" : "Kopieren"}
+    </button>
   );
 }

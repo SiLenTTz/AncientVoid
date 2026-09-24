@@ -256,6 +256,21 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE sessions ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    id: 18,
+    name: "drafts",
+    // T8.4 (ADR-0025): one shared, revisioned draft per session.
+    sql: `
+      CREATE TABLE drafts (
+        session_id TEXT PRIMARY KEY,
+        text TEXT NOT NULL,
+        attachment_ids TEXT NOT NULL,
+        revision INTEGER NOT NULL,
+        updated_at TEXT NOT NULL,
+        device TEXT
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

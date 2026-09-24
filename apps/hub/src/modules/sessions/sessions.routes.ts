@@ -1,6 +1,6 @@
-import { AttachmentId, ToolPermissionRequest, type SteerInput } from "@uacc/contracts";
+import { AttachmentId, SaveDraftInput, ToolPermissionRequest, type SteerInput } from "@uacc/contracts";
 import type { FastifyInstance } from "fastify";
-import { isProjectPathAllowed } from "@uacc/core";
+import { DraftStore, isProjectPathAllowed } from "@uacc/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { ENV_VAR_NAME } from "@uacc/contracts";
 import { z } from "zod";
@@ -239,6 +239,22 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     }
   });
 
+
+  // T8.4 (ADR-0025): the shared, revisioned draft of a session.
+  const drafts = new DraftStore(deps.tokens.database);
+  app.get("/api/sessions/:id/draft", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
+    return drafts.get(id);
+  });
+  app.put("/api/sessions/:id/draft", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
+    const body = SaveDraftInput.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: "text, attachmentIds, baseRevision required" });
+    const result = drafts.save(id, body.data, callerLabel(req));
+    return result.ok ? result.draft : reply.code(409).send({ error: "Ein anderes Gerät hat den Entwurf inzwischen geändert.", current: result.conflict });
+  });
 
   // T8.6: rename and pin — overview metadata, same class as archive.
   app.post("/api/sessions/:id/meta", async (req, reply) => {
