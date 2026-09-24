@@ -152,16 +152,16 @@ Das bestehende Tokenarchiv unter
 vorhanden, nicht leer und Modus `0600`; die Tokens wurden nicht ein zweites
 Mal rotiert, damit die noch einzuspielenden Client-Tokens gültig bleiben.
 
-Für den Gerätewechsel wurde der Hub vorübergehend wieder gestartet. Das
-Fairphone-6 war zunächst über ADB sichtbar; nach Öffnen des LineageOS-Browsers
-brach die USB-ADB-Verbindung ab, bevor ein Token eingegeben werden konnte. Die
-PWA war gleichzeitig über die Tailnet-Adresse erreichbar. Das temporäre Log
-wurde sicher entfernt. Dabei zeigte sich, dass die alte Startumleitung unter
-Benutzer-umask ein Log mit Modus `0644` anlegen konnte (BUG-0029). `hub.sh`
-setzt nun `umask 077` und erzwingt Modus `0600`; erneuter Start bei umask
-`0022` ergab Modus `0600` und Health 200. Danach wurde der Hub wieder sauber
-gestoppt und das Log entfernt. Das Gerätetoken ist daher noch nicht auf dem
-Telefon installiert.
+Für den Gerätewechsel wurde der Hub vorübergehend wieder gestartet; die PWA
+war über die Tailnet-Adresse erreichbar. Die ADB-Verbindung zum Fairphone 6
+brach während der Bedienung ab. Als das Gerät wieder sichtbar war, zeigte es
+den gesperrten Sperrbildschirm und Flugzeugmodus. Es wurde nicht entsperrt oder
+umkonfiguriert; kein Token wurde eingegeben. Der Hub wurde danach sauber
+gestoppt und das temporäre Log entfernt. Dabei zeigte sich, dass die alte
+Startumleitung unter Benutzer-umask ein Log mit Modus `0644` anlegen konnte
+(BUG-0029). `hub.sh` setzt nun `umask 077` und erzwingt Modus `0600`; erneuter
+Start bei umask `0022` ergab Modus `0600` und Health 200. Der Hub ist wieder
+aus, Port/PID/WAL/SHM sind frei, und `/tmp/uacc-hub.log` ist entfernt.
 
 Offen bleiben das Einspielen und Prüfen der aktuellen lokalen Tokens auf den
 Geräten. Der Scan belegt die Journals seit dem jeweiligen verfügbaren Zeitraum,
