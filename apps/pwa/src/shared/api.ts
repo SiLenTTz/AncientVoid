@@ -412,6 +412,25 @@ export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
+/** T8.3: Web Push state of this hub, subscriptions with delivery status. */
+export interface PushState {
+  enabled: boolean;
+  publicKey: string | null;
+  subscriptions: {
+    id: number;
+    device: string | null;
+    service: string;
+    createdAt: string;
+    quiet: { from: number; to: number; tzOffsetMinutes: number } | null;
+    done: boolean;
+    lastOkAt: string | null;
+    lastError: string | null;
+    lastErrorAt: string | null;
+    gone: boolean;
+    mine: boolean;
+  }[];
+}
+
 /** T8.4: a session's shared, revisioned draft (ADR-0025). */
 export interface SessionDraft {
   sessionId: string;
@@ -663,6 +682,13 @@ function createHubApi(P: (path: string) => string) {
   // throw a bare "422 Unprocessable Entity" instead of surfacing that
   // detail. Callers inspect ack.ok/ack.detail themselves.
   /** `takeover` moves the writer lease to this device on purpose (T5.5). */
+  /** T8.3 (ADR-0026): Web Push. */
+  push: () => api<PushState>(P("/api/push")),
+  setPushEnabled: (enabled: boolean) => api<{ enabled: boolean; publicKey: string | null }>(P("/api/push/enabled"), { method: "PUT", body: JSON.stringify({ enabled }) }),
+  pushSubscribe: (body: { endpoint: string; keys: { p256dh: string; auth: string }; oldEndpoint?: string; quiet?: { from: number; to: number; tzOffsetMinutes: number } | null; done?: boolean }) =>
+    api<{ ok: boolean }>(P("/api/push/subscriptions"), { method: "POST", body: JSON.stringify(body) }),
+  pushUnsubscribe: (endpoint: string) => api<{ ok: boolean }>(P("/api/push/subscriptions"), { method: "DELETE", body: JSON.stringify({ endpoint }) }),
+  pushTest: () => api<{ sent: number; errors: string[] }>(P("/api/push/test"), { method: "POST", body: "{}" }),
   /** T8.4 (ADR-0025): the shared draft of a session. */
   draft: (id: string) => api<SessionDraft>(P(`/api/sessions/${id}/draft`)),
   saveDraft: async (id: string, text: string, attachmentIds: string[], baseRevision: number): Promise<{ ok: true; draft: SessionDraft } | { ok: false; current: SessionDraft }> => {

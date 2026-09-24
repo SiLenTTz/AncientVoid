@@ -14,6 +14,7 @@ import { resolve } from "node:path";
 import type { WorkerRunner, DiscoverySource } from "@uacc/contracts";
 import {
   Gatekeeper,
+  PushService,
   AttachmentStore,
   SettingsStore,
   AdapterRegistry,
@@ -157,6 +158,9 @@ async function main(): Promise<void> {
   // T7.10 (ADR-0022): uploaded files, local extraction first, Gemini only
   // with a key the user set in the PWA settings.
   const settings = new SettingsStore(db);
+  // T8.3 (ADR-0026): Web Push — off until a person turns it on.
+  const push = new PushService(db, settings, { hostId: config.hostId ?? toHostId(hostname()), subject: config.push.subject });
+  sessions.onNotification((n) => push.notify(n));
   const tessdataDir = config.ocr.tessdataDir ? resolve(config.ocr.tessdataDir) : undefined;
   const attachments = new AttachmentStore(db, resolve(dataDir, "attachments"), () => ({ gemini: settings.gemini(), ...(tessdataDir ? { tessdataDir } : {}) }));
 
@@ -182,6 +186,7 @@ async function main(): Promise<void> {
     approvals,
     attachments,
     settings,
+    push,
     dataDir,
     workerRunnerKind: runner.kind,
     store,
