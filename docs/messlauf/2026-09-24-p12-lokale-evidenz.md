@@ -253,8 +253,14 @@ eine Dummy-Session angelegt, bis 65 Events gewartet und anschließend gestoppt.
 gestartete Restore-Hub meldete Health 200; die Session blieb `stopped`, alle
 65 Events und der Sentinel-Text waren vorhanden. Testschlüssel, Token, Archiv
 und Datadir wurden danach entfernt. Diese Messung belegt den isolierten
-Funktionspfad. Das Produktivbackup und dessen Dauer bleiben wegen des weiterhin
-aktiven ACP-Workers offen; ENOSPC wurde nicht simuliert.
+Funktionspfad. Zusätzlich wurde ein verschlüsseltes Produktivbackup nach der
+Credential-Rotation erstellt (852.535 Byte, Modus `0600`). Ein isolierter
+Restore bestätigte `integrity_check=ok`, sieben Sessions, aktive Geräte-Token-
+Labels und beide Fleet-Peer-Zeilen. Der Restore-Hub wurde nicht gestartet und
+das temporäre Datadir entfernt. Eine P12→P11-Prüfung mit dem durch BUG-0030
+korrigierten Kandidaten stellte außerdem dieselbe Session mit allen 63 Events
+wieder her (siehe MR !120). Produktiv-Laufzeit/Größenentwicklung, echtes
+ENOSPC und Retention-Langzeittest bleiben offen.
 
 ## T12.11 — Vision-Modell und P10.5-Medienpfad
 
