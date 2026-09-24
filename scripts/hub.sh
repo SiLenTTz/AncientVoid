@@ -11,6 +11,9 @@ start() {
     echo "hub already running (pid $(cat "$PIDFILE"))"
     exit 0
   fi
+  umask 077
+  touch "$LOG"
+  chmod 600 "$LOG"
   UACC_CONFIG="${UACC_CONFIG:-./hub.config.json}" \
     setsid node apps/hub/src/main.ts >>"$LOG" 2>&1 < /dev/null &
   local pid=$!
