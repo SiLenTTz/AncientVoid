@@ -1,7 +1,7 @@
 ---
 id: BUG-0015
 slug: offline-reload-token-gate
-status: open
+status: fixed
 severity: S2
 area: pwa
 instance: dev
@@ -90,3 +90,21 @@ nicht zuverlässig abgebildet. Dieser zweite Befund ist hier nur Code-Review.
 - [x] Datei im Index.
 - [x] GitLab-Issue [#11](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/11) angelegt.
 - [ ] Fix über `bugfix`; blockiert ursprüngliche K10-Abnahme.
+
+## Behebung (2026-09-24, EPIC-P8 T8.2)
+
+**Root-cause:** `apps/pwa/src/app/main.tsx` prüfte beim Start das Token mit
+`/api/adapters`. Diese Antwort lag nicht im Service-Worker-Cache, offline kam
+503. Jeder Fehler führte zu `setReady(false)` und damit zur Token-Eingabe.
+
+**Fix:**
+- Nur 401/403 gelten als falsches Token (`isAuthError`); offline startet mit
+  vorhandenem Token auf dem Cache.
+- Der Service Worker cached Übersicht (`/api/fleet`), Adapter, Session und
+  Meldungen in einem eigenen Cache und liefert offline die **Speicherzeit**
+  (`X-UACC-Stored-At`), nicht „jetzt“.
+- Offline ist Senden gesperrt, der Entwurf bleibt.
+
+**Test:** E2E `workspace.spec.ts` „BUG-0015/AC-P8-2 …“ mit echtem Service
+Worker. Ablauf: offline neu laden, Übersicht und Session sichtbar,
+Zeitstempel vom Abruf, keine Mutation.

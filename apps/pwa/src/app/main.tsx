@@ -2,7 +2,7 @@ import { render } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { App } from "./App.tsx";
 import { SessionTail } from "../features/session/SessionTail.tsx";
-import { getToken, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
+import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
 import { pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
@@ -113,16 +113,29 @@ function Main() {
     // succeeded regardless of whether a valid token existed, so
     // TokenGate could never actually appear for a device without one.
     // adapters() is a real, token-protected endpoint.
+    // BUG-0015 / T8.2: offline (no network, 503 from the service worker) is
+    // not a wrong token — with a token, start on the cached data.
     hubApi
       .adapters()
       .then(becomeReady)
-      .catch(() => setReady(false));
+      .catch((err) => {
+        if (getToken() && !isAuthError(err)) void becomeReady();
+        else setReady(false);
+      });
   }, []);
 
   useEffect(() => {
-    const onStale = () => setStaleAt(new Date());
+    const onStale = (e: Event) => {
+      const at = new Date(String((e as CustomEvent<string>).detail ?? ""));
+      setStaleAt(Number.isNaN(at.getTime()) ? new Date() : at);
+    };
+    const onOnline = () => setStaleAt(null);
+    window.addEventListener("online", onOnline);
     document.addEventListener("uacc:stale-data", onStale);
-    return () => document.removeEventListener("uacc:stale-data", onStale);
+    return () => {
+      document.removeEventListener("uacc:stale-data", onStale);
+      window.removeEventListener("online", onOnline);
+    };
   }, []);
 
   useEffect(() => {
