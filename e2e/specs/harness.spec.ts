@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { test, expect } from "../support/fixtures.ts";
 
 test.describe("Harness-Parität (EPIC-P7)", () => {
@@ -22,6 +24,21 @@ test.describe("Harness-Parität (EPIC-P7)", () => {
     expect(res.status).toBe(422);
     expect(res.body.error).toBe("dummy kann beim Start kein Modell wählen.");
     expect(await hub.sessions()).toHaveLength(0);
+  });
+
+  test("T7.5: ein Beobachter hat keinen Steuerknopf — nur „Beobachtung beenden“", async ({ app, hub }) => {
+    const dir = join(hub.root, "claude", "projects", hub.alpha.replace(/\//g, "-"));
+    mkdirSync(dir, { recursive: true });
+    const line = (o: object) => `${JSON.stringify({ sessionId: "extern-1", timestamp: new Date().toISOString(), ...o })}\n`;
+    writeFileSync(join(dir, "extern-1.jsonl"), line({ type: "user", message: { role: "user", content: "Hallo" } }) + line({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Antwort von außerhalb" }] } }));
+    const id = await hub.createSession({ adapter: "claude-clip" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.getByText("Antwort von außerhalb")).toBeVisible();
+    await expect(app.getByText("nur beobachten — der Harness läuft außerhalb des Hubs")).toBeVisible();
+    await expect(app.getByRole("button", { name: "Stop" })).toHaveCount(0);
+    await expect(app.getByPlaceholder("Antworten…")).toHaveCount(0);
+    await app.getByRole("button", { name: "Beobachtung beenden" }).click();
+    await expect.poll(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("stopped");
   });
 });
 

@@ -4,6 +4,7 @@
  *
  *   node scripts/messlauf-p7.mjs claude-gate
  *   node scripts/messlauf-p7.mjs acp-gate <preset> [adapter-config-json]
+ *   LLAMA_KEY=… node scripts/messlauf-p7.mjs local-model [opencode|dsh]
  *
  * Boots its own hub (own data dir and port, real adapters, no skip flags),
  * drives it over the HTTP API the way the phone does and checks the real
@@ -39,7 +40,7 @@ function http(method, path, token, body) {
   });
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-async function until(check, label, timeoutMs = 240_000) {
+async function until(check, label, timeoutMs = Number(process.env.MESSLAUF_TIMEOUT_MS ?? 240_000)) {
   const t0 = Date.now();
   for (;;) {
     const v = await check();
@@ -69,21 +70,32 @@ async function bootHub(adapters) {
   return { root, project, token, stop: () => child.kill("SIGINT") };
 }
 
-/** `further`: decision for any later request in the same turn (null: leave it). */
-async function runClaude(hub, prompt, decide, further = null, adapter = "claude") {
+/** `further`: decision for any later request in the same turn (null: leave it).
+ * `optional`: a turn may also end without asking (a sandboxed read). */
+async function runClaude(hub, prompt, decide, further = null, adapter = "claude", optional = false) {
   const created = await http("POST", "/api/sessions", hub.token, { adapter, project: hub.project, prompt });
   if (created.status !== 201) throw new Error(`create: ${created.status} ${JSON.stringify(created.body)}`);
   const id = created.body.id;
   const t0 = Date.now();
   const pending = await until(async () => {
     const list = (await http("GET", "/api/approvals?status=pending", hub.token)).body;
-    return list.find((a) => a.sessionId === id);
-  }, "approval request");
-  const askedAfterMs = Date.now() - t0;
+    const found = list.find((a) => a.sessionId === id);
+    if (found || !optional) return found;
+    const ended = (await http("GET", `/api/sessions/${id}/events?afterSeq=0&limit=2000`, hub.token)).body.some((e) => e.payload?.kind === "session.turn_end");
+    return ended ? { none: true } : undefined;
+  }, "approval request").catch(async (err) => {
+    // What the session did instead — the reason is in the tail.
+    const tail = (await http("GET", `/api/sessions/${id}/events?afterSeq=0&limit=200`, hub.token)).body;
+    console.error(tail.map((e) => `${e.type}: ${e.summary ?? ""} ${JSON.stringify(e.payload).slice(0, 200)}`).join("\n"));
+    throw err;
+  });
+  const askedAfterMs = pending.none ? null : Date.now() - t0;
   const status = (await http("GET", `/api/sessions/${id}`, hub.token)).body.status;
-  const decision = await decide(pending);
-  const d = await http("POST", `/api/approvals/${pending.id}/decide`, hub.token, decision);
-  if (d.status !== 200) throw new Error(`decide: ${d.status} ${JSON.stringify(d.body)}`);
+  if (!pending.none) {
+    const decision = await decide(pending);
+    const d = await http("POST", `/api/approvals/${pending.id}/decide`, hub.token, decision);
+    if (d.status !== 200) throw new Error(`decide: ${d.status} ${JSON.stringify(d.body)}`);
+  }
   const followUps = [];
   await until(async () => {
     if (further) {
@@ -97,7 +109,7 @@ async function runClaude(hub, prompt, decide, further = null, adapter = "claude"
   }, "turn end");
   const events = (await http("GET", `/api/sessions/${id}/events?afterSeq=0&limit=2000`, hub.token)).body;
   const workdir = (await http("GET", `/api/sessions/${id}`, hub.token)).body.worktree?.path ?? hub.project;
-  return { id, pending, askedAfterMs, statusWhileAsking: status, events, workdir, followUps };
+  return { id, pending: pending.none ? {} : pending, asked: !pending.none, askedAfterMs, statusWhileAsking: status, events, workdir, followUps };
 }
 
 if (step === "claude-gate") {
@@ -152,7 +164,68 @@ if (step === "claude-gate") {
   console.log(JSON.stringify({ step, preset, date: new Date().toISOString(), durationMs: Date.now() - t0, results }, null, 2));
   console.log(results.every((r) => r.pass) ? "PASS" : "FAIL");
   process.exit(results.every((r) => r.pass) ? 0 : 1);
+} else if (step === "local-model") {
+  // AC-P7-1: a local model (llama.cpp on evox2) through a real harness —
+  // tool success and tool failure. Harness: opencode over ACP, provider
+  // pointed at the tailnet llama-server; the key comes from LLAMA_KEY.
+  const key = process.env.LLAMA_KEY;
+  const base = process.env.LLAMA_URL ?? "http://100.65.133.28:8081/v1";
+  if (!key) throw new Error("LLAMA_KEY missing");
+  const harness = process.argv[3] ?? "opencode";
+  let adapterConfig;
+  if (harness === "dsh") {
+    // DeepSeek harness: its pi-ai adapter takes a hand-declared
+    // OpenAI-compatible route from settings.yaml; the key stays in the env.
+    const home = mkdtempSync(join(tmpdir(), "uacc-dsh-"));
+    writeFileSync(
+      join(home, "settings.yaml"),
+      [
+        "llm-pi-ai:",
+        "  providers:",
+        "    evox2:",
+        "      displayName: evox2 llama.cpp",
+        "      apiKeyEnv: LLAMA_KEY",
+        "      api: openai-completions",
+        `      baseURL: ${base}`,
+        "      models:",
+        "        - id: qwen3-coder",
+        "          name: Qwen3 Coder 30B A3B",
+        "          contextWindow: 65536",
+        "agent-default-model:",
+        "  provider: evox2",
+        "  model: qwen3-coder",
+        "",
+      ].join("\n"),
+      { mode: 0o600 },
+    );
+    adapterConfig = { preset: "dsh", label: "dsh+lokal", model: "evox2/qwen3-coder", env: { DSH_HOME: home, LLAMA_KEY: key } };
+  } else {
+    const opencodeConfig = {
+      permission: { edit: "ask", bash: "ask", webfetch: "ask" },
+      provider: { evox2: { npm: "@ai-sdk/openai-compatible", name: "evox2 llama.cpp", options: { baseURL: base, apiKey: key }, models: { "qwen3-coder": { name: "Qwen3-Coder-30B-A3B (lokal)", tool_call: true } } } },
+      model: "evox2/qwen3-coder",
+    };
+    adapterConfig = { preset: "opencode", label: "opencode+lokal", env: { OPENCODE_CONFIG_CONTENT: JSON.stringify(opencodeConfig) } };
+  }
+  const hub = await bootHub([{ id: "agent", module: "@uacc/adapter-acp", config: adapterConfig }]);
+  const results = [];
+  const t0 = Date.now();
+  try {
+    const ok = await runClaude(hub, "Run exactly this shell command with your shell tool: echo lokal-ok > lokal.txt — then say done.", () => ({ decision: "approve" }), { decision: "approve" }, "agent");
+    const content = existsSync(join(ok.workdir, "lokal.txt")) ? readFileSync(join(ok.workdir, "lokal.txt"), "utf8").trim() : null;
+    results.push({ case: "tool success", tool: ok.pending.tool?.name, askedAfterMs: ok.askedAfterMs, fileContent: content, pass: content === "lokal-ok" });
+    // A read may run sandboxed without asking (dsh read-only) — both are fine.
+    const fail = await runClaude(hub, "Run exactly this shell command with your shell tool: cat /gibt/es/nicht.txt — then tell me what happened.", () => ({ decision: "approve" }), { decision: "approve" }, "agent", true);
+    const failed = fail.events.filter((e) => e.type === "tool_result").map((e) => ({ isError: e.payload.isError, content: String(e.payload.content ?? "").slice(0, 120) }));
+    const answer = fail.events.filter((e) => e.type === "assistant").map((e) => String(e.payload.text ?? "")).join(" ").slice(0, 300);
+    results.push({ case: "tool failure", asked: fail.asked, results: failed, answer, pass: failed.some((r) => r.isError || /No such file|nicht|not found/i.test(r.content)) && /not exist|no such|nicht|not found/i.test(answer) });
+  } finally {
+    hub.stop();
+  }
+  console.log(JSON.stringify({ step, harness, model: "Qwen3-Coder-30B-A3B-Instruct UD-Q4_K_XL · llama.cpp b11149 Vulkan · evox2", date: new Date().toISOString(), durationMs: Date.now() - t0, results }, null, 2));
+  console.log(results.every((r) => r.pass) ? "PASS" : "FAIL");
+  process.exit(results.every((r) => r.pass) ? 0 : 1);
 } else {
-  console.error("usage: messlauf-p7.mjs claude-gate | acp-gate <preset> [config-json] | codex-gate [config-json]");
+  console.error("usage: messlauf-p7.mjs claude-gate | acp-gate <preset> [config-json] | codex-gate [config-json] | local-model [opencode|dsh]");
   process.exit(2);
 }

@@ -139,6 +139,12 @@ export class TestHub {
           config: { command: join(binDir, "codex") },
         },
         {
+          // T7.5: an observer — reads Claude transcripts, cannot steer.
+          id: "claude-clip",
+          module: "@uacc/adapter-claude-clip",
+          config: { claudeDir: join(this.root, "claude"), pollIntervalMs: 200 },
+        },
+        {
           // T7.2: an ACP harness (stand-in agent, real protocol).
           id: "acp",
           module: "@uacc/adapter-acp",

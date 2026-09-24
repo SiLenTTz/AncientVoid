@@ -28,7 +28,8 @@ import { UpdateMapper, type SessionUpdate } from "./normalize.ts";
  *   command: the agent command line (overrides the preset),
  *   env:     extra environment for the agent,
  *   label:   name in summaries and errors (default: preset or "acp"),
- *   permissions: "hub" (default) — ask the phone; "reject" — deny all.
+ *   permissions: "hub" (default) — ask the phone; "reject" — deny all,
+ *   model:   model when the session names none (see `pickModel`).
  */
 
 /** ACP ToolKind → the tool name shown on the approval card. */
@@ -45,14 +46,16 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 /** Known ACP harnesses. The opencode preset makes it ask for edits and
- * shell commands — by default it would run them unasked (ADR-0018). */
+ * shell commands — by default it would run them unasked (ADR-0018). dsh
+ * runs its tools in an OS sandbox; in `read-only` every write or command
+ * that needs more asks for escalation — on the phone (T7.5, live verified). */
 export const ACP_PRESETS = {
   copilot: { command: ["copilot", "--acp"], env: {} },
   opencode: {
     command: ["opencode", "acp"],
     env: { OPENCODE_CONFIG_CONTENT: JSON.stringify({ permission: { edit: "ask", bash: "ask", webfetch: "ask" } }) },
   },
-  dsh: { command: ["dsh", "--profile", "acp"], env: {} },
+  dsh: { command: ["dsh", "--profile", "acp"], env: { DSH_PERMISSION_MODE: "read-only" } },
 } as const satisfies Record<string, { command: string[]; env: Record<string, string> }>;
 
 const AcpConfig = z.object({
@@ -61,11 +64,48 @@ const AcpConfig = z.object({
   env: z.record(z.string()).default({}),
   label: z.string().min(1).optional(),
   permissions: z.enum(["hub", "reject"]).default("hub"),
+  model: z.string().min(1).optional(),
   /** How long initialize/session setup may take (npx may download first). */
   startupTimeoutMs: z.number().int().positive().default(120_000),
 });
 
 const PROTOCOL_VERSION = 1;
+/** How long a wanted model may take to appear in the agent's list. */
+const MODEL_WAIT_MS = 5_000;
+
+/** What `session/new` says about models: the config option (ACP) or the
+ * older `models` block (unstable API, still used by some agents). */
+export interface SessionModels {
+  configOptions?: { id: string; category?: string | null; currentValue?: unknown; options?: ({ value: string; name?: string } | { group?: string; options?: { value: string; name?: string }[] })[] }[];
+  models?: { currentModelId?: string; availableModels?: { modelId: string; name?: string }[] } | null;
+}
+
+/**
+ * ADR-0018 modelChoice "start": the wanted model → how to set it. Matches
+ * the offered value, its name, or `provider/model` against a value that is
+ * a JSON pair (dsh: `["evox2","qwen3-coder"]`). Nothing matches → null, and
+ * the caller says so visibly instead of running on another model.
+ */
+export function pickModel(res: SessionModels, wanted: string): { method: string; params: Record<string, unknown>; value: string } | null {
+  const same = (value: string, name?: string) => {
+    if (value === wanted || name === wanted) return true;
+    try {
+      const pair = JSON.parse(value) as unknown;
+      return Array.isArray(pair) && pair.length === 2 && `${pair[0]}/${pair[1]}` === wanted;
+    } catch {
+      return false;
+    }
+  };
+  const option = res.configOptions?.find((o) => o.category === "model" || o.id === "model");
+  if (option) {
+    const flat = (option.options ?? []).flatMap((o) => ("value" in o ? [o] : (o.options ?? [])));
+    const hit = flat.find((o) => same(o.value, o.name));
+    if (hit) return { method: "session/set_config_option", params: { configId: option.id, value: hit.value }, value: hit.value };
+  }
+  const model = res.models?.availableModels?.find((m) => same(m.modelId, m.name));
+  if (model) return { method: "session/set_model", params: { modelId: model.modelId }, value: model.modelId };
+  return null;
+}
 
 /** T7.10: prompt blocks — images as image content if the agent takes them. */
 async function promptBlocks(text: string, attachments: readonly PromptAttachment[] | undefined, images: boolean): Promise<Record<string, unknown>[]> {
@@ -85,7 +125,14 @@ interface AgentSession {
   healthy: boolean;
   /** From initialize: the agent takes image content blocks. */
   images: boolean;
+  /** Tool calls seen in updates — some agents (dsh) ask with the id only. */
+  calls: Map<string, ToolCallInfo>;
+  /** Latest `config_option_update` — can be newer than the session/new answer. */
+  configOptions: SessionModels["configOptions"];
+  onConfig: (() => void) | null;
 }
+
+type ToolCallInfo = { toolCallId?: string; title?: string | null; name?: string | null; kind?: string | null; rawInput?: unknown };
 
 export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapter {
   const cfg = AcpConfig.parse(config ?? {});
@@ -101,8 +148,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   /** ACP permission request → the phone → the option the agent offered. */
-  async function decidePermission(ctx: AdapterContext, params: unknown): Promise<unknown> {
-    const p = params as { toolCall?: { toolCallId?: string; title?: string | null; name?: string | null; kind?: string | null; rawInput?: unknown }; options?: { optionId: string; kind: string }[] };
+  async function decidePermission(state: AgentSession, ctx: AdapterContext, params: unknown): Promise<unknown> {
+    const p = params as { toolCall?: ToolCallInfo; options?: { optionId: string; kind: string }[] };
     const options = p.options ?? [];
     const pick = (kinds: string[]) => kinds.map((k) => options.find((o) => o.kind === k)).find(Boolean);
     const deny = () => {
@@ -110,7 +157,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       return reject ? { outcome: { outcome: "selected", optionId: reject.optionId } } : { outcome: { outcome: "cancelled" } };
     };
     if (cfg.permissions !== "hub" || !ctx.requestToolPermission) return deny();
-    const call = p.toolCall ?? {};
+    const seen = p.toolCall?.toolCallId ? state.calls.get(p.toolCall.toolCallId) : undefined;
+    const call: ToolCallInfo = { ...seen, ...Object.fromEntries(Object.entries(p.toolCall ?? {}).filter(([, v]) => v !== undefined && v !== null)) };
     const input = call.rawInput && typeof call.rawInput === "object" && !Array.isArray(call.rawInput) ? (call.rawInput as Record<string, unknown>) : { title: call.title ?? call.kind ?? "tool" };
     const answer = await ctx.requestToolPermission({
       toolName: (call.name ?? (call.kind ? KIND_LABEL[call.kind] : undefined) ?? call.title ?? call.kind ?? "tool").slice(0, 200),
@@ -124,15 +172,27 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   function connect(sessionId: string, proc: WorkerProcess, ctx: AdapterContext): AgentSession {
-    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false };
+    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false, calls: new Map(), configOptions: undefined, onConfig: null };
     state.conn = new AcpConnection((line) => proc.write(line), {
       onNotification: (method, params) => {
         if (method !== "session/update") return;
         const update = (params as { update?: SessionUpdate }).update;
-        if (update) emitAll(ctx, state.mapper.map(update));
+        if (!update) return;
+        if (update.sessionUpdate === "config_option_update") {
+          state.configOptions = (update as { configOptions?: SessionModels["configOptions"] }).configOptions;
+          state.onConfig?.();
+          return;
+        }
+        if ((update.sessionUpdate === "tool_call" || update.sessionUpdate === "tool_call_update") && typeof update.toolCallId === "string") {
+          const known = state.calls.get(update.toolCallId) ?? {};
+          const u = update as ToolCallInfo;
+          state.calls.set(update.toolCallId, { ...known, ...(u.title ? { title: u.title } : {}), ...(u.kind ? { kind: u.kind } : {}), ...(u.rawInput !== undefined ? { rawInput: u.rawInput } : {}) });
+          if (state.calls.size > 200) state.calls.delete(state.calls.keys().next().value!);
+        }
+        emitAll(ctx, state.mapper.map(update));
       },
       onRequest: async (method, params) => {
-        if (method === "session/request_permission") return decidePermission(ctx, params);
+        if (method === "session/request_permission") return decidePermission(state, ctx, params);
         throw new RpcError(-32601, `${method} wird vom Hub nicht angeboten`);
       },
       // A prompt sent by the hub before a restart ends here — the turn is over.
@@ -175,10 +235,28 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     ctx.emit({ type: "system", summary: `${label} · Session ${acpSessionId}`, payload: { kind: "acp.native_session", nativeSessionId: acpSessionId } });
   }
 
-  async function newSession(state: AgentSession, ctx: AdapterContext): Promise<void> {
-    const res = (await state.conn.request("session/new", { cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs)) as { sessionId: string };
+  async function newSession(state: AgentSession, ctx: AdapterContext, model?: string): Promise<void> {
+    const res = (await state.conn.request("session/new", { cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs)) as { sessionId: string } & SessionModels;
     state.acpSessionId = res.sessionId;
     announce(ctx, res.sessionId);
+    if (!model) return;
+    // dsh registers routes from its settings right after boot: the answer
+    // may predate them, a config_option_update follows (seen live).
+    const find = () => (state.configOptions ? pickModel({ configOptions: state.configOptions }, model) : null) ?? pickModel(res, model);
+    let set = find();
+    for (const until = Date.now() + MODEL_WAIT_MS; !set && Date.now() < until; set = find()) {
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, 250);
+        state.onConfig = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+      });
+      state.onConfig = null;
+    }
+    if (!set) throw new Error(`${label}: Modell „${model}" wird nicht angeboten`);
+    await state.conn.request(set.method, { sessionId: res.sessionId, ...set.params }, cfg.startupTimeoutMs);
+    ctx.emit({ type: "system", summary: `${label} · ${model}`, payload: { kind: "acp.model", model, value: set.value } });
   }
 
   function runTurn(state: AgentSession, ctx: AdapterContext, text: string, attachments?: readonly PromptAttachment[]): void {
@@ -228,7 +306,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // as far as the agent asks (see the presets and docs/harness-matrix.md).
         // T7.10: images as content blocks when the agent says it takes them,
         // otherwise (and for other files) their text.
-        features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist", images: true, files: true }),
+        features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist", images: true, files: true, modelChoice: "start" }),
       };
     },
 
@@ -236,7 +314,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const proc = await spawnAgent(ctx, spec.env);
       const state = connect(ctx.sessionId, proc, ctx);
       await initialize(state);
-      await newSession(state, ctx);
+      try {
+        await newSession(state, ctx, spec.model ?? cfg.model);
+      } catch (err) {
+        await state.proc.kill("SIGTERM");
+        sessions.delete(ctx.sessionId);
+        throw err;
+      }
       if (spec.prompt || spec.attachments?.length) runTurn(state, ctx, spec.prompt ?? "", spec.attachments);
       return { sessionId: ctx.sessionId, ...(proc.pid !== undefined ? { pid: proc.pid } : {}) };
     },
