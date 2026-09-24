@@ -4,7 +4,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import type { DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
 import { discoverProjects, FleetStore } from "@uacc/core";
 import type { HubMetrics, DiscoverySource } from "@uacc/contracts";
 import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@uacc/contracts";
@@ -15,6 +15,7 @@ import { registerAttachmentRoutes } from "./modules/attachments/attachments.rout
 import { registerPushRoutes } from "./modules/push/push.routes.ts";
 import { registerSttRoutes, type SttConfig } from "./modules/voice/stt.routes.ts";
 import { registerMediaRoutes, type MediaRouteDeps } from "./modules/media/media.routes.ts";
+import { registerDesktopRoutes } from "./modules/desktop/desktop.routes.ts";
 import { policyHook } from "./platform/policy.ts";
 import { registerWs } from "./modules/sessions/ws.ts";
 import { registerFleetRoutes } from "./modules/fleet/fleet.routes.ts";
@@ -35,6 +36,8 @@ export interface HubAppDeps {
   push?: PushService;
   /** T10.2: local speech-to-text (ADR-0028). */
   stt?: SttConfig;
+  /** EPIC-P11: desktop companion (ADR-0031). */
+  desktop?: DesktopService;
   /** EPIC-P10.5: video analysis (ADR-0030). */
   media?: Omit<MediaRouteDeps, "settings">;
   /** T9.2: local model for text commands (ADR-0027). */
@@ -119,6 +122,7 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   registerRoutes(app, { ...deps, projectRoots });
   if (deps.attachments && deps.settings) registerAttachmentRoutes(app, { attachments: deps.attachments, settings: deps.settings });
   if (deps.push) registerPushRoutes(app, { push: deps.push, tokens: deps.tokens });
+  if (deps.desktop) registerDesktopRoutes(app, { desktop: deps.desktop, tokens: deps.tokens });
   if (deps.media) registerMediaRoutes(app, { ...deps.media, settings: deps.settings });
   registerSttRoutes(app, deps.stt, async () => (await discoverProjects(projectRoots)).projects.map((p) => p.path));
   const fleet = deps.fleet ?? new FleetStore(deps.tokens.database, deps.tokens);

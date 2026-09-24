@@ -305,6 +305,21 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 21,
+    name: "desktop-actions",
+    // EPIC-P11 (ADR-0031): typing requests for the desktop companion; the
+    // text column is cleared once an action ends.
+    sql: `
+      CREATE TABLE desktop_actions (
+        id TEXT PRIMARY KEY,
+        companion TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        state TEXT NOT NULL,
+        text TEXT
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

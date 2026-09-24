@@ -107,7 +107,7 @@ test.describe("Entwürfe (T8.4, AC-P8-4)", () => {
     await app.getByRole("button", { name: "Geräte-Token wechseln" }).click();
     await app.getByPlaceholder(/z\. B\./).fill(other);
     await app.getByRole("button", { name: "Verbinden" }).click();
-    await expect(app.getByRole("button", { name: "Verbinden" })).toHaveCount(0);
+    await expect(app.getByRole("button", { name: "Verbinden", exact: true })).toHaveCount(0);
     const after = await app.evaluate(() => Object.keys((globalThis as unknown as { localStorage: Record<string, unknown> }).localStorage).filter((k) => k.startsWith("uacc.draft.") || k.startsWith("uacc.tail.")));
     expect(after).toEqual([]);
   });

@@ -17,6 +17,7 @@ import {
   PushService,
   AttachmentStore,
   MediaJobs,
+  DesktopService,
   SettingsStore,
   AdapterRegistry,
   ApprovalService,
@@ -210,6 +211,9 @@ async function main(): Promise<void> {
     actions: config.actions,
     ...(assistantModel ? { assistantModel } : {}),
     ...(config.stt ? { stt: config.stt } : {}),
+    // EPIC-P11 (ADR-0031): the desktop companion's queue — always there; a
+    // PC appears once a companion with a `companion:` token reports in.
+    desktop: new DesktopService(db),
     ...(media ? { media: { media, ytDlp: mc.ytDlp, capabilities: { stt: Boolean(config.stt), summary: Boolean(assistantModel), vision: Boolean(mc.vision) } } } : {}),
     approvals,
     attachments,

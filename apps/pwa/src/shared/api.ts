@@ -368,6 +368,37 @@ export interface PromptRecommendation {
   draft: string | null;
 }
 
+/** EPIC-P11 — mirrors `@uacc/contracts`'s desktop types (ADR-0031). */
+export interface DesktopFocus {
+  id: string;
+  app: string;
+  title: string;
+  revision: number;
+}
+export interface CompanionState {
+  name: string;
+  backend: string;
+  focus: DesktopFocus | null;
+  locked: boolean;
+  paused: boolean;
+  blocked: string | null;
+  version: string;
+  lastSeen: string;
+  online: boolean;
+}
+export interface DesktopAction {
+  id: string;
+  companion: string;
+  kind: "insert" | "replace" | "key";
+  key: string | null;
+  textLength: number;
+  target: { id: string; revision: number; app: string; title: string };
+  status: "pending" | "delivered" | "running" | "done" | "failed" | "refused" | "cancelled" | "expired" | "uncertain";
+  detail: string | null;
+  typedChars: number;
+  createdAt: string;
+}
+
 /** EPIC-P10.5 — mirrors `@uacc/contracts`'s media types (ADR-0030). */
 export type MediaStep = "fetch" | "probe" | "audio" | "frames" | "vision" | "merge" | "summarize";
 export interface MediaStepState {
@@ -760,6 +791,11 @@ function createHubApi(P: (path: string) => string) {
   // throw a bare "422 Unprocessable Entity" instead of surfacing that
   // detail. Callers inspect ack.ok/ack.detail themselves.
   /** `takeover` moves the writer lease to this device on purpose (T5.5). */
+  /** EPIC-P11 (ADR-0031): the desktop companion. */
+  desktop: () => api<{ companions: CompanionState[]; actions: DesktopAction[] }>(P("/api/desktop")),
+  desktopAction: (body: { companion: string; kind: "insert" | "replace" | "key"; text?: string; key?: string; target: { id: string; revision: number } }) =>
+    api<DesktopAction>(P("/api/desktop/actions"), { method: "POST", body: JSON.stringify(body) }),
+  cancelDesktopAction: (id: string) => api<DesktopAction>(P(`/api/desktop/actions/${id}/cancel`), { method: "POST", body: "{}" }),
   /** EPIC-P10.5 (ADR-0030): video analysis. */
   media: () => api<MediaInfo>(P("/api/media")),
   mediaJobs: () => api<MediaJob[]>(P("/api/media/jobs")),

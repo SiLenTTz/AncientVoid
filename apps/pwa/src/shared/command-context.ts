@@ -11,7 +11,7 @@ export interface FieldHandle {
 }
 
 interface Here {
-  page: "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery" | "media" | "session";
+  page: "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery" | "media" | "pc" | "session";
   hostId: string | null;
   sessionId: string | null;
   sessionRevision: number | null;

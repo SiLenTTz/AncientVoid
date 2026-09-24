@@ -1,0 +1,55 @@
+/* EPIC-P11 (ADR-0031): typing on the PC from the phone. */
+.desktop-page {
+  display: grid;
+  gap: 12px;
+}
+.desktop-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.desktop-head .chip {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.desktop-head .chip.ok {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.desktop-focus {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+.desktop-input {
+  display: grid;
+  gap: 8px;
+}
+.desktop-input textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+.desktop-action {
+  padding: 4px 0;
+  overflow-wrap: anywhere;
+}
+.desktop-action .chip {
+  padding: 1px 6px;
+  font-size: 12px;
+}
+.desktop-action.done .chip {
+  color: var(--ok);
+}
+.desktop-action.failed .chip,
+.desktop-action.refused .chip,
+.desktop-action.uncertain .chip {
+  color: var(--err);
+}
+.desktop-cmd {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-x: auto;
+  background: var(--bg-chip);
+  padding: 8px;
+  border-radius: var(--radius-sm);
+}

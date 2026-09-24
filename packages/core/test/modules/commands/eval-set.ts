@@ -175,6 +175,7 @@ export const CASES: [string, Partial<CommandContext>, Expect][] = [
   ["Fasse https://youtu.be/xyz bitte zusammen.", overview, { op: "media.analyze", args: { text: "https://youtu.be/xyz" } }],
   ["summarize this video: https://vimeo.com/12345", overview, { op: "media.analyze", args: { text: "https://vimeo.com/12345" } }],
   ["Öffne Medien", overview, { op: "nav.open", args: { page: "media" } }],
+  ["Öffne die PC-Steuerung", overview, { op: "nav.open", args: { page: "pc" } }],
   ["schreibe 'https://youtu.be/xyz' in die Nachricht", inS1, { op: "field.fill", args: { text: "https://youtu.be/xyz" } }],
   // --- found by the adversarial test: questions are not orders ---
   ["Was sagt der Agent?", inS1, { none: true }],

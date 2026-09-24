@@ -179,6 +179,14 @@ export class TestHub {
     writeFileSync(this.configPath, JSON.stringify(config, null, 2));
   }
 
+  /** Another token with its own label (e.g. `companion:e2e`) — works while the hub runs (same SQLite file). */
+  extraToken(label: string): string {
+    const out = execFileSync(process.execPath, [join(repoRoot, "apps/hubctl/src/cli.ts"), "token", "issue", label, "--db", join(this.dataDir, "hub.db")], { encoding: "utf8" });
+    const token = out.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("token for"));
+    if (!token) throw new Error(`hubctl token issue gave no token:\n${out}`);
+    return token;
+  }
+
   private issueToken(): void {
     mkdirSync(this.dataDir, { recursive: true });
     const out = execFileSync(
