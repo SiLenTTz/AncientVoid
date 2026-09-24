@@ -43,6 +43,8 @@ export interface SessionRecord {
   archived?: boolean;
   /** T8.6: pinned to the top of the overview. */
   pinned?: boolean;
+  /** P5: counts prompts; a plan made on an older value is refused (T9.3). */
+  inputRevision?: number;
   /** T8.1: the last understandable action (absent on older hubs). */
   lastActivity?: { text: string; type: string; at: string } | null;
 }
@@ -412,6 +414,32 @@ export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
+/** T9: a plan for one text instruction (ADR-0027). */
+export interface PlanStep {
+  op: string;
+  args: Record<string, string | number | boolean | null>;
+  target: string | null;
+  risk: "read" | "write" | "destructive";
+  runner: "client" | "hub";
+  summary: string;
+}
+
+export interface CommandPlan {
+  id: string;
+  text: string;
+  planner: "rules" | "model" | "none";
+  steps: PlanStep[];
+  question: { param: string; question: string; options: { value: string; label: string }[] } | null;
+  refusal: string | null;
+}
+
+export interface StepResult {
+  op: string;
+  ok: boolean;
+  detail: string;
+  client?: Record<string, string | number | boolean | null>;
+}
+
 /** T8.3: Web Push state of this hub, subscriptions with delivery status. */
 export interface PushState {
   enabled: boolean;
@@ -682,6 +710,13 @@ function createHubApi(P: (path: string) => string) {
   // throw a bare "422 Unprocessable Entity" instead of surfacing that
   // detail. Callers inspect ack.ok/ack.detail themselves.
   /** `takeover` moves the writer lease to this device on purpose (T5.5). */
+  /** T9 (ADR-0027): text in, a plan out; executed through the real routes. */
+  commandPlan: (text: string, context: Record<string, unknown>, answers?: Record<string, string>) =>
+    api<CommandPlan>(P("/api/commands/plan"), { method: "POST", body: JSON.stringify({ text, context, ...(answers ? { answers } : {}) }) }),
+  commandExecute: (id: string, context: Record<string, unknown>) =>
+    api<{ planId: string; results: StepResult[]; repeated: boolean }>(P(`/api/commands/${id}/execute`), { method: "POST", body: JSON.stringify({ context }) }),
+  commandTransform: (text: string, transform: string) =>
+    api<{ text: string; model: string; provider: string; latencyMs: number }>(P("/api/commands/transform"), { method: "POST", body: JSON.stringify({ text, transform }) }),
   /** T8.3 (ADR-0026): Web Push. */
   push: () => api<PushState>(P("/api/push")),
   setPushEnabled: (enabled: boolean) => api<{ enabled: boolean; publicKey: string | null }>(P("/api/push/enabled"), { method: "PUT", body: JSON.stringify({ enabled }) }),

@@ -15,3 +15,4 @@ export * from "./modules/attachments/index.ts";
 export * from "./modules/code/index.ts";
 export * from "./modules/gatekeeper/index.ts";
 export * from "./modules/push/index.ts";
+export * from "./modules/commands/index.ts";

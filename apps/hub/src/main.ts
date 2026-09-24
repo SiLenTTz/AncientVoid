@@ -148,6 +148,10 @@ async function main(): Promise<void> {
         minConfidence: gk.minConfidence,
       })
     : undefined;
+  // T9.2: the same local model serves text commands unless one is set apart.
+  const assistantCfg = config.assistant.model ?? gk.model;
+  const assistantKey = assistantCfg?.apiKeyFile ? (await readFile(resolve(assistantCfg.apiKeyFile.replace(/^~(?=\/)/, homedir())), "utf8").catch(() => "")).split("\n")[0]?.trim() : undefined;
+  const assistantModel = assistantCfg ? { url: assistantCfg.url, model: assistantCfg.model, ...(assistantKey ? { apiKey: assistantKey } : {}) } : undefined;
   sessions.enableToolPermissions({
     approvals,
     timeoutMs: config.toolApprovalTimeoutMs,
@@ -183,6 +187,7 @@ async function main(): Promise<void> {
     ...(config.server.pwaDir ? { pwaDir: resolve(config.server.pwaDir) } : {}),
     projectRoots: config.projectRoots.map((root) => resolve(root)),
     actions: config.actions,
+    ...(assistantModel ? { assistantModel } : {}),
     approvals,
     attachments,
     settings,

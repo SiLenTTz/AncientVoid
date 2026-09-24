@@ -227,6 +227,7 @@ export function CreateSession({
         <Composer
           value={prompt}
           onChange={setPrompt}
+          fieldId="new_prompt"
           placeholder="Refactore den Auth-Flow…"
           adapter={adapter}
           project={project}

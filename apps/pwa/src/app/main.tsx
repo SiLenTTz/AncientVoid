@@ -4,6 +4,7 @@ import { App } from "./App.tsx";
 import { SessionTail } from "../features/session/SessionTail.tsx";
 import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
 import { resyncPush } from "../shared/push.ts";
+import { CommandBar } from "../features/commands/CommandBar.tsx";
 import { pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
@@ -177,6 +178,7 @@ function Main() {
           <span class="badge-stale">Daten vom {staleAt.toLocaleString("de-DE")} (offline)</span>
         </div>
       )}
+      <CommandBar />
       {wide ? (
         // T8.5 (AC-P8-6): from 1280 px list and session side by side.
         <div class="split">

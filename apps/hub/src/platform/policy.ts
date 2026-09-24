@@ -16,6 +16,9 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   // T8.4: drafts are a person's, reading included.
   if (/^\/api\/sessions\/[^/]+\/draft$/.test(path)) return "drafts.write";
   if (method === "GET" || method === "HEAD") return "read";
+  // T9.3: planning is reading; executing runs every step through the real
+  // route with the caller's own token — that route's policy decides.
+  if (path.startsWith("/api/commands/")) return "read";
   if (/^\/api\/sessions\/[^/]+\/actions\/[^/]+$/.test(path)) return "actions.run";
   if (path === "/api/sessions") return "sessions.create";
   if (/^\/api\/sessions\/[^/]+\/steer$/.test(path)) {
