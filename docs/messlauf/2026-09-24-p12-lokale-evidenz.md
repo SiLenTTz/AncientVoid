@@ -133,12 +133,13 @@ Produktivdatengröße.
   gestartete Log liegt mit Modus `0600` vor.
 - `silenttz-server` wurde per einmaligem Invite neu gekoppelt. `/api/fleet`
   meldete anschließend `omarchy`, `evox2` und `silenttz-server` als erreichbar.
-  Der spätere Versuch, `evox2` per SSH zu erreichen, scheiterte an der
-  Host-Authentifizierung; das dortige Fleet-Credential wurde in diesem Schritt
-  nicht rotiert. Nur das Credential von `silenttz-server` wurde ersetzt. Der
-  Logscan auf den zugänglichen Hosts meldete null unmaskierte `token=`-Werte
-  und null Treffer auf bekannte Tokens. Für `evox2` ist ein aktueller
-  Credential-/Logscan-Nachweis offen.
+  Der Alias `evo` erreicht den Host als `jan`; der aktive Hub läuft unter dem
+  geschützten Konto `securesight`. `jan` kann dessen Home nicht lesen und hat
+  kein nichtinteraktives sudo. SSH als `silenttz` wird abgewiesen. Das
+  Fleet-Credential wurde deshalb nicht rotiert. Nur das Credential von
+  `silenttz-server` wurde ersetzt. Der Logscan auf den zugänglichen Hosts
+  meldete null unmaskierte `token=`-Werte und null Treffer auf bekannte
+  Tokens. Für `evox2` bleibt ein gezielter Service-/Admin-Zugang nötig.
 - `gitleaks dir` und `gitleaks git` meldeten dieselben zwei Treffer in
   Test-Fixtures (`attachments/extract.test.ts`, `push.test.ts`): ein gemockter
   Provider-API-Key sowie Testdaten für Push-Auth, keine produktiven Zugangsdaten.
@@ -161,9 +162,10 @@ ausgestellt; das geschützte Archiv wurde ersetzt und blieb Modus `0600`. Die
 Tokenliste führt beide Labels aktiv, bislang ohne Nutzung. Die neuen Werte
 müssen noch auf die Clients übertragen und dort geprüft werden. Ein lokaler
 Fleet-Eintrag mit aktuellem Zeitstempel belegt keine Rotation des Remote-
-Credentials: `silenttz-server` wurde neu gekoppelt, während `evox2` bei der
-SSH-Prüfung an der Host-Authentifizierung scheiterte. Dessen Remote-
-Credentialstatus wurde nicht live bestätigt und bleibt offen.
+Credentials: `silenttz-server` wurde neu gekoppelt. Die SSH-Prüfung als
+Dienstkonto `silenttz` wurde abgewiesen; der Alias `evo` erreicht den Host
+als `jan`, ohne Leserecht auf das Service-Home oder nichtinteraktives sudo.
+Dessen Remote-Credentialstatus wurde nicht live geändert und bleibt offen.
 
 Für den Gerätewechsel wurde der Hub vorübergehend wieder gestartet; die PWA
 war über die Tailnet-Adresse erreichbar. Die ADB-Verbindung zum Fairphone 6
