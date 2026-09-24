@@ -244,6 +244,17 @@ prüft einen frischen lokalen Installationspfad, aber kein anderes OS/einen
 anderen Benutzerkontext, kein Telefon-Pairing, keinen echten Provider-Turn und
 keinen Update-/Rollback über persistente Produktionsdaten.
 
+Am selben Tag bestätigte der echte OpenCode-ACP-Adapter mit Qwen3-Coder auf
+evox2 die Toolfreigabe im separaten Mess-Hub: Shell-Anfrage erschien nach
+12,6 s als `waiting_approval`; Allow führte ausschließlich
+`echo live-ok > erlaubt.txt` im privaten Test-Worktree aus. Der Deny-Lauf
+lehnte `touch verboten.txt` ab; die Datei wurde nicht angelegt. Danach war
+der isolierte Hub-Port geschlossen, der eigene tmux-Socket beendet und das
+Probeverzeichnis entfernt. Ein erster lokaler Qwen-Lauf bestätigt zusätzlich
+Toolfehlerbehandlung (fehlende Datei sichtbar, ohne Verlust des Turns). Das
+prüft echten ACP-Transport und Modell, aber kein Telefon-UI und keine
+Claude-Code-Freigabe.
+
 ## T12.2 — K8 lokaler Wiederholungslauf
 
 `npm run loadtest` am Stand `6b1bcb0`: 20 Dummy-Sessions × 30 ev/s × 10 s,

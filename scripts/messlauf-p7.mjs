@@ -4,6 +4,7 @@
  *
  *   node scripts/messlauf-p7.mjs claude-gate
  *   node scripts/messlauf-p7.mjs acp-gate <preset> [adapter-config-json]
+ *   LLAMA_KEY=… node scripts/messlauf-p7.mjs acp-gate opencode
  *   LLAMA_KEY=… node scripts/messlauf-p7.mjs local-model [opencode|dsh]
  *
  * Boots its own hub (own data dir and port, real adapters, no skip flags),
@@ -144,10 +145,24 @@ if (step === "claude-gate") {
 } else if (step === "acp-gate" || step === "codex-gate") {
   const preset = step === "codex-gate" ? "codex app-server" : process.argv[3];
   const extra = process.argv[step === "codex-gate" ? 3 : 4] ? JSON.parse(process.argv[step === "codex-gate" ? 3 : 4]) : {};
+  const localModel = step === "acp-gate" && preset === "opencode" && Boolean(process.env.LLAMA_KEY);
+  const acpConfig = { preset, ...extra };
+  if (localModel) {
+    const base = process.env.LLAMA_URL ?? "http://100.65.133.28:8081/v1";
+    acpConfig.label = "opencode+lokal";
+    acpConfig.env = {
+      ...(acpConfig.env ?? {}),
+      OPENCODE_CONFIG_CONTENT: JSON.stringify({
+        permission: { edit: "ask", bash: "ask", webfetch: "ask" },
+        provider: { evox2: { npm: "@ai-sdk/openai-compatible", name: "evox2 llama.cpp", options: { baseURL: base, apiKey: process.env.LLAMA_KEY }, models: { "qwen3-coder": { name: "Qwen3-Coder-30B-A3B (lokal)", tool_call: true } } } },
+        model: "evox2/qwen3-coder",
+      }),
+    };
+  }
   const hub = await bootHub([
     step === "codex-gate"
       ? { id: "agent", module: "@uacc/adapter-codex", config: { mode: "app-server", ...extra } }
-      : { id: "agent", module: "@uacc/adapter-acp", config: { preset, ...extra } },
+      : { id: "agent", module: "@uacc/adapter-acp", config: acpConfig },
   ]);
   const results = [];
   const t0 = Date.now();
@@ -161,7 +176,7 @@ if (step === "claude-gate") {
   } finally {
     hub.stop();
   }
-  console.log(JSON.stringify({ step, preset, date: new Date().toISOString(), durationMs: Date.now() - t0, results }, null, 2));
+  console.log(JSON.stringify({ step, preset, ...(localModel ? { model: "Qwen3-Coder-30B-A3B-Instruct UD-Q4_K_XL · llama.cpp · evox2" } : {}), date: new Date().toISOString(), durationMs: Date.now() - t0, results }, null, 2));
   console.log(results.every((r) => r.pass) ? "PASS" : "FAIL");
   process.exit(results.every((r) => r.pass) ? 0 : 1);
 } else if (step === "local-model") {
