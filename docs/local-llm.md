@@ -89,6 +89,23 @@ Derselbe Server bewertet Tool-Anfragen ([ADR-0024](adr/0024-tool-gatekeeper.md))
 Ohne `model` laufen nur die Regeln. Ist der Server weg (z. B. nach
 `halogen-starten.sh`), gilt fail-closed: Regeln + mindestens WARNING.
 
+## Spracherkennung (P10)
+
+Auf evox2 läuft zusätzlich `uacc-stt`, ein systemd-User-Dienst
+([ADR-0028](adr/0028-local-stt.md)). Er startet `whisper-server` aus
+`~/uacc-stt/whisper.cpp` (Vulkan-Build) mit `ggml-large-v3-turbo-q5_0.bin`
+und lauscht nur auf der Tailnet-IP, Port 8094. Er hat keinen Schlüssel.
+
+```json
+"stt": { "url": "http://100.65.133.28:8094/inference" }
+```
+
+Optional sind `engine`, `language` (Standard `de`), `vocabulary` (Wörter, die
+richtig geschrieben werden sollen; die Projektnamen kommen automatisch dazu)
+und `timeoutMs`. Der Hub braucht `ffmpeg`. Ohne `stt` nutzt die PWA die
+Browser-Erkennung und kennzeichnet sie als Cloud.
+Messwerte: [Messlauf P10](messlauf/2026-09-24-p10-stt.md).
+
 ## Was fehlt
 
 - **aider** mit dem lokalen Modell nicht live abgenommen (aider hat kein

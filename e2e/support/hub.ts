@@ -17,6 +17,8 @@ export interface HubOptions {
   dummyAutoStop?: number;
   /** EPIC-P6: this hub's host id in the fleet. */
   hostId?: string;
+  /** T10.2: a whisper-compatible `/inference` URL for local STT. */
+  sttUrl?: string;
 }
 
 export interface ApiResult<T> {
@@ -130,6 +132,7 @@ export class TestHub {
       workerRunner: this.options.runner ?? "process",
       projectRoots: [this.projectsDir],
       requireStepApprovals: this.options.requireStepApprovals ?? false,
+      ...(this.options.sttUrl ? { stt: { url: this.options.sttUrl, engine: "whisper-e2e" } } : {}),
       server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
       discovery: { claudeDir: join(this.root, "claude"), cursorUserDir: join(this.root, "cursor") },
       adapters: [

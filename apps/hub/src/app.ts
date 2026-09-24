@@ -13,6 +13,7 @@ import { authHook, type AuthOptions } from "./platform/auth.ts";
 import { registerRoutes } from "./routes.ts";
 import { registerAttachmentRoutes } from "./modules/attachments/attachments.routes.ts";
 import { registerPushRoutes } from "./modules/push/push.routes.ts";
+import { registerSttRoutes, type SttConfig } from "./modules/voice/stt.routes.ts";
 import { policyHook } from "./platform/policy.ts";
 import { registerWs } from "./modules/sessions/ws.ts";
 import { registerFleetRoutes } from "./modules/fleet/fleet.routes.ts";
@@ -31,6 +32,8 @@ export interface HubAppDeps {
   projectRoots?: string[];
   /** T8.3: Web Push (optional — off unless a person enables it). */
   push?: PushService;
+  /** T10.2: local speech-to-text (ADR-0028). */
+  stt?: SttConfig;
   /** T9.2: local model for text commands (ADR-0027). */
   assistantModel?: PlannerModelConfig;
   /** T7.6: registered actions from the config. */
@@ -113,6 +116,7 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   registerRoutes(app, { ...deps, projectRoots });
   if (deps.attachments && deps.settings) registerAttachmentRoutes(app, { attachments: deps.attachments, settings: deps.settings });
   if (deps.push) registerPushRoutes(app, { push: deps.push, tokens: deps.tokens });
+  registerSttRoutes(app, deps.stt, async () => (await discoverProjects(projectRoots)).projects.map((p) => p.path));
   const fleet = deps.fleet ?? new FleetStore(deps.tokens.database, deps.tokens);
   const hostId = deps.hostId ?? DEFAULT_HOST_ID;
   registerFleetRoutes(app, { fleet, tokens: deps.tokens, hostId });

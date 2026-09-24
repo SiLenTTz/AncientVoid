@@ -80,6 +80,23 @@ export const HubConfig = z.object({
   assistant: z
     .object({ model: z.object({ url: z.string().url(), model: z.string().min(1).default("qwen3-coder"), apiKeyFile: z.string().optional() }).optional() })
     .default({}),
+  /** T10.2 (ADR-0028): local speech-to-text (whisper.cpp server on own
+   * hardware). Absent → the PWA falls back to the browser's recognizer and
+   * says that it is a cloud service. */
+  stt: z
+    .object({
+      url: z.string().url(),
+      engine: z.string().default("whisper.cpp large-v3-turbo"),
+      language: z.string().default("de"),
+      vocabulary: z
+        .string()
+        .max(1000)
+        .default(
+          "UACC, Session, Codex, Claude, opencode, TypeScript, JavaScript, Vitest, pytest, npm, pnpm, Pull Request, Branch, main, Rebase, Merge, Commit, Push, Worktree, Git Status, Diff, Build, Deploy, Logs, Cache, Cloud, Adapter, Hub, Tailnet, PWA, API, WebSocket, Service Worker, Docker, Container, llama.cpp, Gatekeeper, Readme, Doku, Kontingent, Unit-Test, Bug, Refactoring.",
+        ),
+      timeoutMs: z.number().int().min(1000).max(120_000).default(30_000),
+    })
+    .optional(),
   /** T8.3 (ADR-0026): VAPID contact the push services see. */
   push: z.object({ subject: z.string().regex(/^(mailto:|https:)/).default("mailto:uacc@localhost") }).default({}),
   /** T7.9 (ADR-0024): System-1 gatekeeper for tool requests. The rules

@@ -224,6 +224,33 @@ test.describe("Sprache (T1.5, T3.10)", () => {
     await app.getByRole("button", { name: "✕" }).click();
     await expect(statusPill(app)).toHaveAttribute("data-status", "stopped");
   });
+
+  test("AC-P10-3: „schreibe stopp“ und „nicht stoppen“ stoppen nichts; „zeig wartende Sessions“ läuft sofort", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite LANGSAM" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const speak = async (text: string) => {
+      await app.evaluate((t) => ((globalThis as unknown as { __speech: string }).__speech = t), text);
+      await app.getByLabel("Weitere Aktionen").click();
+      await app.locator(".session-menu").getByRole("button", { name: "Sprachbefehl" }).click();
+      await app.getByTitle("Tippen zum Sprechen").click();
+      await expect(app.getByText(`„${text}"`)).toBeVisible();
+    };
+    await speak("nicht stoppen");
+    await expect(app.locator(".voice-example").filter({ hasText: /Nicht verstanden|Kein Auftrag erkannt/ })).toBeVisible();
+    await expect(app.getByRole("button", { name: "Bestätigen" })).toHaveCount(0);
+    await app.getByRole("button", { name: "✕" }).click();
+
+    await speak("schreibe stopp in die Nachricht");
+    await app.getByRole("button", { name: "Bestätigen" }).click();
+    await expect(app.getByText("eingetragen — nicht gesendet")).toBeVisible();
+    await app.getByRole("button", { name: "✕" }).click();
+    await expect(app.getByPlaceholder("Antworten…")).toHaveValue("stopp");
+    await expect(statusPill(app)).not.toHaveAttribute("data-status", "stopped");
+
+    await speak("Zeig wartende Sessions");
+    await expect(app).toHaveURL(/#\/$/);
+    expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).not.toBe("stopped");
+  });
 });
 
 test.describe("Offline (K10, T8.2)", () => {

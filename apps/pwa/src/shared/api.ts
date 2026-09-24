@@ -710,6 +710,14 @@ function createHubApi(P: (path: string) => string) {
   // throw a bare "422 Unprocessable Entity" instead of surfacing that
   // detail. Callers inspect ack.ok/ack.detail themselves.
   /** `takeover` moves the writer lease to this device on purpose (T5.5). */
+  /** T10.2 (ADR-0028): local speech-to-text on the hub. */
+  stt: () => api<{ available: boolean; engine?: string }>(P("/api/stt")),
+  transcribe: async (audio: Blob): Promise<{ text: string; engine: string; audioMs: number; latencyMs: number }> => {
+    const res = await fetch(P("/api/stt"), { method: "POST", headers: { "content-type": audio.type || "audio/webm", authorization: `Bearer ${getToken()}` }, body: audio });
+    const body = (await res.json().catch(() => ({}))) as { text?: string; engine?: string; audioMs?: number; latencyMs?: number; error?: string };
+    if (!res.ok) throw new Error(body.error ?? `${res.status} ${res.statusText}`);
+    return { text: body.text ?? "", engine: body.engine ?? "", audioMs: body.audioMs ?? 0, latencyMs: body.latencyMs ?? 0 };
+  },
   /** T9 (ADR-0027): text in, a plan out; executed through the real routes. */
   commandPlan: (text: string, context: Record<string, unknown>, answers?: Record<string, string>) =>
     api<CommandPlan>(P("/api/commands/plan"), { method: "POST", body: JSON.stringify({ text, context, ...(answers ? { answers } : {}) }) }),
