@@ -224,8 +224,9 @@ Funktionspfad.
 
 Am 2026-09-24 wurde danach das Produktiv-Datadir bei gestopptem Hub und ohne
 aktive tmux-Worker gesichert. Ein einzelner verwaister FIFO unter
-`data/workers/…log.in` blockierte zunächst die Spezialdatei-Prüfung. Er war
-laut `fuser` und tmux-Status von keinem Prozess geöffnet und enthält keine
+`data/workers/…log.in` blockierte zunächst die Spezialdatei-Prüfung. Es gab
+keinen tmux-Worker; der `/proc/*/fd`-Scan fand keinen offenen Handle auf die
+FIFO-Inode. Sie enthält keine
 gespeicherten Logdaten; nur dieser FIFO-Eintrag wurde entfernt. Das
 AES-256-GCM-Archiv `~/.local/share/uacc/backups/uacc-2026-09-24.uaccbak` ist
 852.537 Byte groß und hat Modus `0600`; die Schlüsseldatei
@@ -322,8 +323,17 @@ Hub auf separatem Loopback-Port; `/api/health`, Token-Ausgabe sowie
 `hubctl health` und `hubctl adapters` funktionierten. Der Hub wurde mit
 Exitcode 0 gestoppt; Klon, Token, Testdaten und Config wurden entfernt. Dies
 prüft einen frischen lokalen Installationspfad, aber kein anderes OS/einen
-anderen Benutzerkontext, kein Telefon-Pairing, keinen echten Provider-Turn und
-keinen Update-/Rollback über persistente Produktionsdaten.
+anderen Benutzerkontext, kein Telefon-Pairing oder persistenten
+Produktivdaten-Update.
+
+Ein separater Update-/Rollback-Rundlauf wurde im isolierten Worktree zwischen
+altem Stand `d5433d0` und P12-Stand `ce156ff` durchgeführt: die alte Instanz
+erzeugte eine Dummy-Session mit 65 Events und Sentinel; die aktualisierte
+Instanz las dieselben Daten; anschließend stellte der Rollback wieder auf den
+alten Hub-Stand zurück. Health war HTTP 200, Sessionstatus und Events samt
+Sentinel blieben erhalten. Der temporäre Worktree wurde entfernt. Dies belegt
+ein isoliertes Schema-/Daten-Update und Rollback, aber keine Migration der
+Produktivinstanz und kein Telefon-Pairing.
 
 Am selben Tag bestätigte der echte OpenCode-ACP-Adapter mit Qwen3-Coder auf
 evox2 die Toolfreigabe im separaten Mess-Hub: Shell-Anfrage erschien nach

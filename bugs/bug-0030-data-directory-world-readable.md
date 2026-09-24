@@ -86,4 +86,5 @@ Baum ohne anschließende Einschränkung der Dateimodi.
 - [ ] GitLab-Issue angelegt
 - [x] Regressionstests vor Fix rot, nach Fix grün; `npm run gate` grün
 - [x] Live-Start unter umask `0022`: Health 200, Datadir `0700`, DB/WAL/SHM `0600`
-- [ ] Fix-Branch committen, pushen, MR öffnen und Review-Handoff
+- [x] Fix-Branch gepusht; [MR !115](https://gitlab.com/SiLenT_Tz/mobile-hub/-/merge_requests/115) nach `feat/p12-backup-restore` geöffnet
+- [ ] Review und Merge
