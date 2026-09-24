@@ -28,10 +28,16 @@ Restart=on-failure
 ```
 
 **Geteilte Maschine:** `halogen-starten.sh` (securesight, Halogen) beendet
-beim Start *alle* `llama-server`, um Speicher freizumachen — auch diesen.
-Das ist gewollt und wird nicht bekämpft (`Restart=on-failure` startet nach
-einem sauberen Beenden nicht neu). Danach: `systemctl --user start
-uacc-llama`. Der RAG-Dienst auf Port 8001 bleibt unberührt.
+beim Start *alle* `llama-server`, um Speicher freizumachen — auch UACC Text
+und Vision. Das ist gewollt und wird nicht bekämpft (`Restart=on-failure`
+startet nach einem sauberen Beenden nicht neu). Danach beide Dienste explizit
+starten:
+
+```sh
+systemctl --user start uacc-llama uacc-vision
+```
+
+Der RAG-Dienst auf Port 8001 bleibt unberührt.
 
 Durchsatz und Messbedingungen: [Messlauf P7](messlauf/2026-09-24-p7-harness-gates.md)
 (Median 82 tok/s Erzeugung, 58 tok/s mit ≈ 8k Kontext).
@@ -110,19 +116,31 @@ Messwerte: [Messlauf P10](messlauf/2026-09-24-p10-stt.md).
 
 Medien-Jobs ([ADR-0030](adr/0030-media-jobs.md)) nutzen dieselben Dienste:
 `stt` für Sprache und `assistant.model` (bzw. den Gatekeeper-Server) für
-Kapitel und Zusammenfassung. Optional ist ein lokales Bildmodell:
+Kapitel und Zusammenfassung. Auf evox2 läuft zusätzlich
+[Qwen2.5-VL-3B-Instruct-GGUF](https://huggingface.co/ggml-org/Qwen2.5-VL-3B-Instruct-GGUF)
+über llama.cpp mit separatem mmproj. `uacc-vision` lauscht auf
+der Tailnet-IP `100.65.133.28:8095`, nutzt den Alias `qwen-vl` und akzeptiert
+Anfragen nur mit eigenem Schlüssel `~/uacc-llm/vision.key` (0600). Die
+Modellartefakte liegen außerhalb des Repositories unter
+`~/uacc-llm/models/`; der Hub-Schlüssel liegt in
+`~/.config/uacc/vision.key` (0600). Hub-Konfiguration:
 
 ```json
-"media": { "vision": { "url": "http://100.65.133.28:8095/v1", "model": "qwen-vl", "apiKeyFile": "~/.config/uacc/vision.key" }, "maxDurationSec": 1800, "maxFrames": 24, "keepSource": false }
+"media": { "vision": { "url": "http://100.65.133.28:8095/v1", "model": "qwen-vl", "apiKeyFile": "~/.config/uacc/vision.key" }, "maxDurationSec": 1800, "maxFrames": 30, "keepSource": false }
 ```
 
 Ohne `vision` gibt es für Bilder nur OCR (tesseract). Gemini wird nur für
 Jobs gefragt, bei denen in der PWA „Cloud erlauben“ gesetzt ist.
 Messwerte: [Messlauf P10.5](messlauf/2026-09-24-p10.5-media.md).
 
+Der 3B-Dienst ist mit Halogen und `uacc-llama` parallel geladen. Nach dem
+Laden standen auf evox2 29 GiB von 123 GiB als verfügbar zur Verfügung. Die
+Messung nutzte das 18-s-Slides-Fixture; Langvideos, gleichzeitige Media-Jobs
+und eine echte Harness-Session sind damit nicht abgenommen.
+
 ## Was fehlt
 
 - **aider** mit dem lokalen Modell nicht live abgenommen (aider hat kein
   Tool-Gate, `--yes-always`).
-- Nur ein Modell geladen; größere (Qwen3.5-122B-A10B) laufen auf evox2,
-  gehören aber zu anderen Diensten.
+- UACC Text- und Visionmodell sind geladen; größere Modelle (Qwen3.5-122B-A10B)
+  gehören zu anderen Diensten und teilen denselben Unified Memory.

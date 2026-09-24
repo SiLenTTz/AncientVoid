@@ -167,3 +167,65 @@ Offen bleiben das Einspielen und Prüfen der aktuellen lokalen Tokens auf den
 Geräten. Der Scan belegt die Journals seit dem jeweiligen verfügbaren Zeitraum,
 nicht gelöschte oder bereits rotierte Alt-Logs. Das Repository wird in diesem
 Task nicht öffentlich geschaltet.
+
+## T12.9 — Modellbetrieb neben Halogen
+
+Direkte, hostkey-geprüfte SSH-Verbindung zu `evox2` über dessen Tailscale-IP
+und den hinterlegten Alias. Vor dem Eingriff: `halogen-server`,
+`halogen-live-proxy` und `halogen-waechter` aktiv, `uacc-llama` inaktiv,
+`uacc-stt` aktiv, 56 GiB RAM verfügbar. Das über die Desktop-Datei gestartete
+`halogen-starten.sh` liegt unter
+`/srv/securesight.ai/Desktop-Admin/Model Inference/`; es stoppt
+`qwen35-122b-server`, `bunker-llama`, `bunker-llama-router` und alle Prozesse
+namens `llama-server`, bevor es Halogen/Proxy/Wächter startet. Deshalb ist
+`uacc-llama` ein expliziter Folgeschritt.
+
+`systemctl --user start --no-block uacc-llama` wurde danach ausgeführt. Live
+geprüft: Halogen-Units und Proxy blieben aktiv; zwei `llama-server`-Prozesse;
+`uacc-llama` aktiv; `GET /health` HTTP 200; authentifiziertes
+`GET /v1/models` HTTP 200 mit Modellkennung `qwen3-coder`. Nach dem Laden
+meldete evox2 89 GiB belegt und 34 GiB verfügbar von 123 GiB Unified Memory.
+Es wurden keine Modellserver gestoppt. Auf dem Home-Dateisystem sind 53 GiB
+frei (94 % belegt), relevant für T12.11-Modellartefakte.
+
+## T12.11 — Vision-Modell und P10.5-Medienpfad
+
+Auf evox2 wurden das offizielle `ggml-org/Qwen2.5-VL-3B-Instruct-GGUF`
+Q4_K_M-Modell (1.929.901.056 Byte, SHA-256
+`d02fe9b69ad8cadbbd228e387667af66612c44bed29ffc8eb1e7caf9ac486c12`) und
+der Q8_0-mmproj (844.757.728 Byte, SHA-256
+`980c9b2f78c04e6cff93d277ada09e768394f112d75db3b4e9dea8a69f9fb904`)
+geladen. Beide Dateien sowie beide API-Schlüssel haben Modus `0600`; der
+schlüsselgeschützte Dienst `uacc-vision` ist auf Tailnet-IP `:8095` aktiv.
+UACC-Text, STT, Halogen-Server, Live-Proxy und Wächter blieben aktiv. Nach
+dem Vision-Modellstart standen 29 GiB von 123 GiB Unified Memory verfügbar;
+im Home-Dateisystem blieben 51 GiB frei.
+
+Die lokale Hub-Config wurde mit geschütztem Vorher-Backup um `media.vision`
+ergänzt (`qwen-vl`, `apiKeyFile: ~/.config/uacc/vision.key`) und auf
+`maxFrames: 30` gesetzt. `HubConfig`-Parsing war erfolgreich. Für die
+Stichprobe extrahierte FFmpeg 30 gleichmäßig verteilte JPEGs aus
+`packages/core/test/fixtures/media/slides.mp4` (18 s, 469.636 Byte). Die
+Kontaktbogen-Prüfung bestätigte drei Folien mit exakt diesen Titeln: „Kapitel
+1 Installation“, „Kapitel 2 Tests mit npm“ und „Kapitel 3 Worktree pruefen“.
+30/30 Modellantworten nannten die passende Folie und den sichtbaren Text;
+Antwortzeit p50 0,78 s, p95 1,52 s, Maximum 1,53 s. Das ist eine kleine,
+synthetische Stichprobe, kein Qualitätsnachweis für reale Videos.
+
+Zusätzlich lief der bestehende `MediaJobs`-Pfad mit dieser lokalen Config,
+Cloud-Freigabe aus, durch: 3 Szenen-Keyframes extrahiert, 3/3 mit Qwen-VL
+beschrieben und per Tesseract gelesen. Das Job-Egress protokollierte nur den
+eigenen Endpunkt `100.65.133.28:8095`; STT und Summary wurden mangels ihrer
+Konfiguration übersprungen. Quelldatei und Testdatenbank lagen in einem
+temporären Verzeichnis und wurden nach dem Lauf entfernt. Eine echte
+Harness-Session und ein Video > 20 min bleiben Teil der P12/T12.4-Abnahme.
+
+## Lokales Gate nach P12-Evidenzänderungen
+
+`npm run gate` am Branch `feat/p12-backup-restore`: Typecheck, Lint,
+Commit-Notation, Architekturprüfung und Adapter-Matrix grün; 104 Vitest-
+Dateien / 637 Tests grün; Playwright 151 bestanden, 2 sichtbar übersprungen.
+Ein erster Gesamtlauf hatte einen E2E-Timeout beim erneuten Freigeben nach dem
+Not-Stopp; derselbe Fall bestand isoliert und in fünf Wiederholungen, danach
+bestand auch das vollständige Gate. Das ist lokales Gate-Evidenz; GitLab CI
+hatte zuletzt `ci_quota_exceeded`, bevor Remote-Jobs starteten.
