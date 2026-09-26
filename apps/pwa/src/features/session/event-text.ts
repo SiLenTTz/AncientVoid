@@ -10,5 +10,11 @@ export function visibleEventText(event: NormalizedEvent): string {
     const text = event.payload.text;
     if (typeof text === "string" && text.length > 0) return text;
   }
+  // BUG-0033: a refused prompt looked delivered in the chat — the why
+  // (e.g. "der Zug läuft noch") travels on the session.steer event.
+  if (event.type === "system" && event.payload.kind === "session.steer" && event.payload.ok === false) {
+    const detail = event.payload.detail;
+    return typeof detail === "string" && detail.length > 0 ? `Nicht zugestellt: ${detail}` : "Nicht zugestellt";
+  }
   return event.summary;
 }

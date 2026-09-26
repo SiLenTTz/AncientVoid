@@ -140,6 +140,17 @@ test.describe("ACP-Harness (T7.2)", () => {
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Noch eine Frage · ACP/)).toBeVisible();
   });
 
+  test("eine abgelehnte Eingabe während eines laufenden Zugs ist im Chat sichtbar (BUG-0033)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "Arbeite LANGSAM" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await app.getByPlaceholder("Antworten…").fill("Wo hängst du?");
+    await app.getByRole("button", { name: "Senden" }).click();
+    await expect(app.locator(".tail-scroll").getByText(/Nicht zugestellt: ACP-Agent: der Zug läuft noch/)).toBeVisible();
+    await app.getByRole("button", { name: "Stop" }).click();
+    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "stopped");
+  });
+
   test.describe("mit tmux-Workern", () => {
     test.use({ hubOptions: { runner: "tmux" } });
 

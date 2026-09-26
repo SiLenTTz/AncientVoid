@@ -415,7 +415,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   const showReply = steerSupported;
   const modelLabel =
     session.model ??
-    [...events].reverse().find((event) => (event.payload as { kind?: unknown }).kind === "opencode.model")?.payload.model;
+    [...events].reverse().find((event) => (event.payload as { kind?: unknown }).kind === "opencode.model" || (event.payload as { kind?: unknown }).kind === "acp.model")?.payload.model;
   const shownModel = typeof modelLabel === "string" ? modelLabel : null;
   const showVerlaufFilterBar = activeTab === "verlauf";
 
