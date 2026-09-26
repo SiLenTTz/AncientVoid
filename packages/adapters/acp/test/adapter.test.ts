@@ -53,7 +53,11 @@ describe("acp adapter (T7.2)", () => {
     expect(texts(ctx.events, "thinking")).toEqual(["Ich überlege kurz."]);
     const native = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.native_session");
     expect((native?.payload as { nativeSessionId?: string }).nativeSessionId).toMatch(/^acp_/);
-    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_end")?.tokensEst).toBe(42);
+    const turnEnd = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_end");
+    expect(turnEnd?.tokensEst).toBe(42);
+    // ADR-0032: the input part is the context fill — it travels on the event.
+    expect((turnEnd?.payload as { usage?: { input?: number; output?: number } }).usage).toMatchObject({ input: 30, output: 12 });
+    expect(createAdapter({ command: [agent], contextWindowTokens: 200_000 }).capabilities().contextWindowTokens).toBe(200_000);
     expect(turns).toEqual(["working", "idle"]);
     // follow-up in the same agent process
     expect(await adapter.steer(handle, { kind: "prompt", text: "Nochmal" }, ctx)).toEqual({ ok: true });
@@ -221,6 +225,16 @@ describe("acp adapter (T7.2)", () => {
     expect(turns).not.toContain("idle");
     await waitFor(() => turns.includes("idle"), 8_000);
     expect(texts(ctx.events, "assistant").join("")).toBe("Antwort auf: STREAM · ACP");
+  });
+
+  it("ADR-0032: without totalTokens the turn counts input+output as its tokens", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    await createAdapter({ command: [agent], label: "fake" }).start({ adapter: "acp", project: process.cwd(), prompt: "OHNE_TOTAL" }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    const turnEnd = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_end");
+    expect(turnEnd?.tokensEst).toBe(15);
+    expect((turnEnd?.payload as { usage?: { input?: number; output?: number } }).usage).toMatchObject({ input: 10, output: 5 });
   });
 
   it("a failed prompt becomes a readable provider error (ADR-0015)", async () => {

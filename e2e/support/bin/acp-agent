@@ -14,6 +14,8 @@
 //             hang shape of BUG-0032 (opencode task tools never returning)
 //   STREAM    one chunk, 5 s of silence, then the rest — chunks must go
 //             out live (BUG-0033), not only at the turn's end
+//   OHNE_TOTAL usage without totalTokens: tokens come from input+output
+//             (ADR-0032)
 //   FEHLER    the prompt fails with a rate-limit error
 import { randomUUID } from "node:crypto";
 
@@ -87,6 +89,10 @@ async function prompt(id, { sessionId, prompt: blocks }) {
     for (const part of [reply.slice(10, 25), reply.slice(25)]) update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: part } });
     send({ id, result: { stopReason: "end_turn", usage: { totalTokens: 42, inputTokens: 30, outputTokens: 12 } } });
     return;
+  }
+  if (text.includes("OHNE_TOTAL")) {
+    for (const part of [reply.slice(0, 10), reply.slice(10, 25), reply.slice(25)]) update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: part } });
+    return send({ id, result: { stopReason: "end_turn", usage: { inputTokens: 10, outputTokens: 5 } } });
   }
   for (const part of [reply.slice(0, 10), reply.slice(10, 25), reply.slice(25)]) update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: part } });
   send({ id, result: { stopReason: "end_turn", usage: { totalTokens: 42, inputTokens: 30, outputTokens: 12 } } });
