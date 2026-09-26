@@ -80,6 +80,9 @@ const AcpConfig = z.object({
 const PROTOCOL_VERSION = 1;
 /** How long a wanted model may take to appear in the agent's list. */
 const MODEL_WAIT_MS = 5_000;
+/** BUG-0033: buffered chunks go to the tail live while the turn runs —
+ * the phone sees the agent working instead of silence until turn end. */
+const LIVE_FLUSH_MS = 1_500;
 
 /** What `session/new` says about models: the config option (ACP) or the
  * older `models` block (unstable API, still used by some agents). */
@@ -143,6 +146,8 @@ interface AgentSession {
   stuckTimer: ReturnType<typeof setTimeout> | null;
   /** Open permission requests — the agent waits for the phone, not stuck. */
   pendingPermissions: number;
+  /** Prompts sent while a turn runs — delivered when it ends (FIFO). */
+  queued: { text: string; attachments?: readonly PromptAttachment[] }[];
 }
 
 type ToolCallInfo = { toolCallId?: string; title?: string | null; name?: string | null; kind?: string | null; rawInput?: unknown };
@@ -186,6 +191,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       ctx.emit({ type: "system", summary: `${label}: Agent reagierte nicht auf session/cancel — Zug erzwungen beendet`, payload: { kind: "acp.turn_stuck" } });
       state.busy = false;
       ctx.turn?.("idle");
+      drainQueue(state, ctx);
     }, Math.min(10_000, cfg.stuckTurnMs));
   }
 
@@ -214,7 +220,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   function connect(sessionId: string, proc: WorkerProcess, ctx: AdapterContext): AgentSession {
-    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false, calls: new Map(), configOptions: undefined, onConfig: null, turnSeq: 0, stuckTimer: null, pendingPermissions: 0 };
+    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false, calls: new Map(), configOptions: undefined, onConfig: null, turnSeq: 0, stuckTimer: null, pendingPermissions: 0, queued: [] };
     state.conn = new AcpConnection((line) => proc.write(line), {
       onNotification: (method, params) => {
         if (method !== "session/update") return;
@@ -252,6 +258,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           emitAll(ctx, state.mapper.flush());
           state.busy = false;
           ctx.turn?.("idle");
+          drainQueue(state, ctx);
         }
       },
       onNoise: (line) => ctx.log("debug", `${label}: non-JSON output`, { line: line.slice(0, 300) }),
@@ -266,6 +273,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       if (state.busy) {
         state.busy = false;
         ctx.turn?.("idle");
+      }
+      if (state.queued.length) {
+        ctx.emit({ type: "system", summary: `${label}: ${state.queued.length} wartende Nachricht(en) verworfen — Agent-Prozess beendet`, payload: { kind: "acp.queued_dropped", count: state.queued.length } });
+        state.queued = [];
       }
       if (sessions.get(sessionId) === state) sessions.delete(sessionId);
     });
@@ -311,11 +322,24 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     ctx.emit({ type: "system", summary: `${label} · ${model}`, payload: { kind: "acp.model", model, value: set.value } });
   }
 
+  function drainQueue(state: AgentSession, ctx: AdapterContext): void {
+    if (state.busy || !state.healthy) return;
+    const next = state.queued.shift();
+    if (!next) return;
+    ctx.emit({ type: "system", summary: `${label}: wartende Nachricht wird jetzt zugestellt`, payload: { kind: "acp.queued_delivered", remaining: state.queued.length } });
+    runTurn(state, ctx, next.text, next.attachments);
+  }
+
   function runTurn(state: AgentSession, ctx: AdapterContext, text: string, attachments?: readonly PromptAttachment[]): void {
     state.busy = true;
     const seq = ++state.turnSeq; // BUG-0032: a forced end invalidates this turn's late answers
     ctx.turn?.("working");
     armStuckWatch(state, ctx);
+    // BUG-0033: interim flush of buffered message/thought text — a no-op
+    // tick when nothing is pending, the tail's live feed otherwise.
+    const liveFlush = setInterval(() => {
+      if (state.turnSeq === seq && state.busy) emitAll(ctx, state.mapper.flush());
+    }, LIVE_FLUSH_MS);
     void promptBlocks(text, attachments, state.images)
       .then((prompt) => state.conn.request("session/prompt", { sessionId: state.acpSessionId, prompt }))
       .then((res) => {
@@ -336,6 +360,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         ctx.emit(providerErrorEvent(label, err instanceof Error ? err.message : String(err)));
       })
       .finally(() => {
+        clearInterval(liveFlush);
         if (state.stuckTimer) {
           clearTimeout(state.stuckTimer);
           state.stuckTimer = null;
@@ -343,8 +368,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         if (state.turnSeq !== seq) return;
         state.busy = false;
         ctx.turn?.("idle");
-      });
-  }
+        drainQueue(state, ctx);
+        });
+        }
 
   async function spawnAgent(ctx: AdapterContext, extraEnv?: Record<string, string>): Promise<WorkerProcess> {
     return ctx.spawnWorker(command!, { stdin: "pipe", persistent: true, env: { ...env, ...extraEnv } });
@@ -391,11 +417,22 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       switch (input.kind) {
         case "prompt":
           if (!state || !state.healthy) return { ok: false, detail: `${label}: Agent läuft nicht mehr — Session neu starten` };
-          if (state.busy) return { ok: false, detail: `${label}: der Zug läuft noch — erst anhalten oder abwarten` };
+          if (state.busy) {
+            // EPIC-P7 follow-up: a prompt while a turn runs is parked in the
+            // FIFO queue and delivered when the turn ends — the phone never
+            // has to wait for the agent to finish before typing.
+            state.queued.push({ text: input.text, ...(input.attachments?.length ? { attachments: input.attachments } : {}) });
+            ctx.emit({ type: "system", summary: `${label}: Nachricht wartet bis der Zug endet (${state.queued.length} in der Warteschlange)`, payload: { kind: "acp.queued", queued: state.queued.length } });
+            return { ok: true, detail: "in der Warteschlange — wird nach dem Zug gesendet" };
+          }
           runTurn(state, ctx, input.text, input.attachments);
           return { ok: true };
         case "park":
           if (state?.acpSessionId) state.conn.notify("session/cancel", { sessionId: state.acpSessionId });
+          if (state?.queued.length) {
+            ctx.emit({ type: "system", summary: `${label}: ${state.queued.length} wartende Nachricht(en) verworfen — Session geparkt`, payload: { kind: "acp.queued_dropped", count: state.queued.length } });
+            state.queued = [];
+          }
           return { ok: true };
         case "stop":
           await adapter.stop(handle, ctx);

@@ -1,4 +1,4 @@
-import { basicFeatures } from "@uacc/contracts";
+import { basicFeatures, type Adapter, type AdapterContext, type SessionSpec } from "@uacc/contracts";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -106,6 +106,37 @@ describe("SessionManager", () => {
       expect((created!.payload as { actor?: string }).actor).toBe("pixel-9");
       expect((steered!.payload as { actor?: string }).actor).toBe("pixel-9");
       expect((stopped!.payload as { actor?: string }).actor).toBe("pixel-9");
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("BUG-0033: a refused steer says why in its session.steer event — the chat can show it", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    const refuser: Adapter = {
+      id: "refuser",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none" as const, nativeResume: "none" as const, features: basicFeatures({}) }),
+      start: async (_spec: SessionSpec, ctx: AdapterContext) => {
+        ctx.turn?.("working");
+        return { sessionId: "x" };
+      },
+      steer: async () => ({ ok: false, detail: "refuser: der Zug läuft noch — erst anhalten oder abwarten" }),
+      status: async () => ({ state: "healthy" as const }),
+      stop: async () => {},
+    };
+    registry.register("refuser", () => refuser);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "refuser", project: dir });
+      const ack = await manager.steer(record.id, { kind: "prompt", text: "Wo hängst du?" });
+      expect(ack.ok).toBe(false);
+      const events = await manager.tail(record.id, 0);
+      const steered = events.find((e) => (e.payload as { kind?: string }).kind === "session.steer");
+      expect((steered!.payload as { ok?: boolean }).ok).toBe(false);
+      expect((steered!.payload as { detail?: string }).detail).toContain("läuft noch");
     } finally {
       await manager.shutdown();
     }

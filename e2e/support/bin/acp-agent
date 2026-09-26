@@ -12,6 +12,8 @@
 //   LANGSAM   the turn runs until cancelled (or 60 s)
 //   STUMM     the turn never answers and ignores session/cancel — the
 //             hang shape of BUG-0032 (opencode task tools never returning)
+//   STREAM    one chunk, 5 s of silence, then the rest — chunks must go
+//             out live (BUG-0033), not only at the turn's end
 //   FEHLER    the prompt fails with a rate-limit error
 import { randomUUID } from "node:crypto";
 
@@ -79,6 +81,13 @@ async function prompt(id, { sessionId, prompt: blocks }) {
   }
   const model = models.get(sessionId);
   const reply = `Antwort auf: ${text.split("\n").pop()} · ACP${tail}${model ? ` · Modell ${model}` : ""}`;
+  if (text.includes("STREAM")) {
+    update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: reply.slice(0, 10) } });
+    await sleep(5_000);
+    for (const part of [reply.slice(10, 25), reply.slice(25)]) update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: part } });
+    send({ id, result: { stopReason: "end_turn", usage: { totalTokens: 42, inputTokens: 30, outputTokens: 12 } } });
+    return;
+  }
   for (const part of [reply.slice(0, 10), reply.slice(10, 25), reply.slice(25)]) update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: part } });
   send({ id, result: { stopReason: "end_turn", usage: { totalTokens: 42, inputTokens: 30, outputTokens: 12 } } });
 }

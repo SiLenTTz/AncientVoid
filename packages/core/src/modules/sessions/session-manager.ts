@@ -613,7 +613,7 @@ export class SessionManager {
     // non-"prompt" steer's audit event had payload.kind === "resume"/
     // "park" instead of "session.steer" ever since T2.4 introduced this
     // call. Named `steerKind` here to never collide again.
-    await this.emitSystem(session, "session.steer", { steerKind: input.kind, ok: ack.ok, actor: actor ?? null });
+    await this.emitSystem(session, "session.steer", { steerKind: input.kind, ok: ack.ok, actor: actor ?? null, ...(ack.ok ? {} : { detail: ack.detail ?? null }) });
     if (ack.ok) await this.commitSteer(session, meta, foreignWriter, actor);
     return ack;
   }

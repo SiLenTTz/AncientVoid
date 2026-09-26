@@ -121,16 +121,43 @@ describe("acp adapter (T7.2)", () => {
     }
   });
 
-  it("park cancels the running turn; a second prompt while busy is refused with a reason", async () => {
+  it("park cancels the running turn; a queued prompt survives until then, a new one after park starts fresh", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });
     const adapter = createAdapter({ command: [agent] });
     const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "LANGSAM" }, ctx);
     await waitFor(() => turns.includes("working"));
-    expect(await adapter.steer(handle, { kind: "prompt", text: "dazwischen" }, ctx)).toMatchObject({ ok: false, detail: expect.stringContaining("läuft noch") });
+    // A prompt while busy is queued, not refused — the phone never waits.
+    expect(await adapter.steer(handle, { kind: "prompt", text: "dazwischen" }, ctx)).toMatchObject({ ok: true, detail: expect.stringContaining("Warteschlange") });
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.queued")).toBeTruthy();
+    // Park discards the queued message, visibly.
     await adapter.steer(handle, { kind: "park" }, ctx);
     await waitFor(() => turns.includes("idle"));
     expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_end")?.payload).toMatchObject({ stopReason: "cancelled" });
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.queued_dropped")).toBeTruthy();
+    // After park the session is idle — a prompt runs as a normal turn.
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Hallo" }, ctx)).toEqual({ ok: true });
+    await waitFor(() => texts(ctx.events, "assistant").length === 1, 8000);
+    expect(texts(ctx.events, "assistant").join("")).toContain("Hallo");
+    await adapter.stop(handle, ctx);
+  });
+
+  it("a prompt sent while busy is delivered right after the turn ends (FIFO)", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent] });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "STREAM" }, ctx);
+    await waitFor(() => turns.includes("working"));
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Zweite" }, ctx)).toMatchObject({ ok: true });
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Dritte" }, ctx)).toMatchObject({ ok: true });
+    // The first turn ends; both queued prompts run in order, each as its own turn.
+    await waitFor(() => turns.filter((t) => t === "working").length === 3, 15_000);
+    await waitFor(() => turns.filter((t) => t === "idle").length === 3, 15_000);
+    const replies = texts(ctx.events, "assistant").join("");
+    expect(replies).toContain("Antwort auf: STREAM");
+    expect(replies).toContain("Zweite");
+    expect(replies).toContain("Dritte");
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.queued_delivered")).toBeTruthy();
     await adapter.stop(handle, ctx);
   });
 
@@ -181,6 +208,19 @@ describe("acp adapter (T7.2)", () => {
     expect(asked).toHaveLength(1);
     expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "provider.error")).toBeUndefined();
     expect(texts(ctx.events, "assistant")[0]).toContain("Ausgabe hallo-acp");
+  });
+
+  it("BUG-0033: buffered chunks go out live while the turn runs, not only at its end", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent] });
+    await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "STREAM" }, ctx);
+    // The turn is silent for 5 s after the first chunk; without the live
+    // flush the first assistant text only appears when the turn ends.
+    await waitFor(() => texts(ctx.events, "assistant").length >= 1, 3_500);
+    expect(turns).not.toContain("idle");
+    await waitFor(() => turns.includes("idle"), 8_000);
+    expect(texts(ctx.events, "assistant").join("")).toBe("Antwort auf: STREAM · ACP");
   });
 
   it("a failed prompt becomes a readable provider error (ADR-0015)", async () => {
