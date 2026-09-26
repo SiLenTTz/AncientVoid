@@ -6,7 +6,7 @@ severity: S1
 area: adapters
 instance: dev
 commit: "3dbc56c"
-forge: ""
+forge: "!124"
 epic: "P7"
 created: 2026-09-26
 reporter: jan
