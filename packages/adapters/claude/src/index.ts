@@ -34,6 +34,9 @@ const ClaudeConfig = z.object({
   command: z.string().min(1).default("claude"),
   extraArgs: z.array(z.string()).default([]),
   permissionPrompts: z.enum(["hub", "off"]).default("hub"),
+  /** ADR-0032: context window of the models this instance runs (tokens),
+   * configured — claude does not report it in band. */
+  contextWindowTokens: z.number().int().positive().optional(),
 });
 type ClaudeConfig = z.infer<typeof ClaudeConfig>;
 
@@ -209,6 +212,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         cost: true,
         steer: true,
         usage: true,
+        ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),
         nativeDiscovery: "none",
         nativeResume: "native",
         // ADR-0018. Hub prompts: every tool that needs a decision is asked
