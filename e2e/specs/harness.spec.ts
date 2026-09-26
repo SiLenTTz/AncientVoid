@@ -135,20 +135,28 @@ test.describe("ACP-Harness (T7.2)", () => {
     await card.getByRole("button", { name: "Erlauben" }).click();
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte WERKZEUG · ACP · Ausgabe hallo-acp \(allow-once\)/)).toBeVisible();
     await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
+    // ADR-0032: token sums and the context window percentage, both live.
+    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 42 Tokens · Kontext 15 % (30 / 200)");
+    await expect(app.locator(".tail-scroll .turn-stats").first()).toContainText("42 Tokens");
+    await expect(app.locator(".tail-scroll .turn-stats").first()).toContainText("Kontext 30");
     await app.getByPlaceholder("Antworten…").fill("Noch eine Frage");
     await app.getByRole("button", { name: "Senden" }).click();
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Noch eine Frage · ACP/)).toBeVisible();
+    await expect(app.locator(".tail-scroll .turn-stats")).toHaveCount(2);
   });
 
-  test("eine abgelehnte Eingabe während eines laufenden Zugs ist im Chat sichtbar (BUG-0033)", async ({ app, hub }) => {
+  test("eine Eingabe während eines laufenden Zugs wartet sichtbar und wird zugestellt (BUG-0033 + FIFO)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "acp", prompt: "Arbeite LANGSAM" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Chat" }).click();
-    await app.getByPlaceholder("Antworten…").fill("Wo hängst du?");
+    await app.getByPlaceholder("Antworten…").fill("Zwischendurch!");
     await app.getByRole("button", { name: "Senden" }).click();
-    await expect(app.locator(".tail-scroll").getByText(/Nicht zugestellt: ACP-Agent: der Zug läuft noch/)).toBeVisible();
+    // The turn still runs — the message is queued, visibly in the chat.
+    await expect(app.locator(".tail-scroll").getByText(/wartet bis der Zug endet/)).toBeVisible();
     await app.getByRole("button", { name: "Stop" }).click();
     await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "stopped");
+    const queued = (await hub.events(id)).filter((e) => e.payload.kind === "acp.queued");
+    expect(queued).toHaveLength(1);
   });
 
   test.describe("mit tmux-Workern", () => {
