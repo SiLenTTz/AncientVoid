@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import type { NormalizedEvent } from "../../../src/shared/ws.ts";
-import { turnTokenStats, turnsClosedBetween, contextText, contextLevel } from "../../../src/features/session/run-stats.ts";
+import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents } from "../../../src/features/session/run-stats.ts";
 
 let seq = 0;
 beforeEach(() => {
@@ -56,6 +56,19 @@ describe("turnsClosedBetween", () => {
     expect(turnsClosedBetween(turns, 2, 4)).toHaveLength(1);
     expect(turnsClosedBetween(turns, 1, 2)).toHaveLength(0);
     expect(turnsClosedBetween(turns, 4, null)).toHaveLength(0);
+  });
+});
+
+describe("contextWindowFromEvents (ADR-0032)", () => {
+  it("the latest model announce wins; unknown models carry no window", () => {
+    const events = [
+      event({ type: "system", summary: "acp · m1", payload: { kind: "acp.model", model: "a/glm-5.3", contextWindowTokens: 1_000_000 } }),
+      event({ type: "user", summary: "x" }),
+      event({ type: "system", summary: "acp · m2", payload: { kind: "acp.model", model: "a/klein" } }),
+    ];
+    expect(contextWindowFromEvents(events)).toBeNull();
+    expect(contextWindowFromEvents([events[0]!])).toBe(1_000_000);
+    expect(contextWindowFromEvents([event({ type: "system", summary: "opencode · m", payload: { kind: "opencode.model", model: "opencode/big-pickle", contextWindowTokens: 200_000 } })])).toBe(200_000);
   });
 });
 

@@ -32,7 +32,7 @@ const MODEL_OPTION = (current) => ({
   currentValue: current,
   options: [
     { group: "cloud", name: "Cloud", options: [{ value: JSON.stringify(["cloud", "gross"]), name: "Groß" }] },
-    { group: "lokal", name: "Lokal", options: [{ value: JSON.stringify(["lokal", "klein"]), name: "Klein" }] },
+    { group: "lokal", name: "Lokal", options: [{ value: JSON.stringify(["lokal", "klein"]), name: "Klein" }, { value: JSON.stringify(["lokal", "glm-5.3"]), name: "GLM 5.3" }] },
   ],
 });
 const send = (msg) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...msg })}\n`);

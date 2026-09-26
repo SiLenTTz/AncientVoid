@@ -18,7 +18,7 @@ import { loadTail, saveTail } from "./tail-cache.ts";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
-import { turnTokenStats, turnsClosedBetween, contextText, contextLevel } from "./run-stats.ts";
+import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents } from "./run-stats.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
 import { EventRow } from "./EventRow.tsx";
 import { DiffPane } from "./DiffPane.tsx";
@@ -276,9 +276,11 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   }, [session.adapter]);
   const progress = runProgress(events, status, now);
   const quota = quotaSummary(quotaUsage, events);
-  // ADR-0032: tokens per finished turn + the current context fill.
+  // ADR-0032: tokens per finished turn + the current context fill; the
+  // window of the chosen model (model announce) beats the static adapter value.
   const tokenStats = useMemo(() => turnTokenStats(shownEvents), [shownEvents]);
-  const context = contextText(tokenStats.lastContextTokens, contextWindow);
+  const windowTokens = contextWindowFromEvents(shownEvents) ?? contextWindow;
+  const context = contextText(tokenStats.lastContextTokens, windowTokens);
   const tokensKnown = (record.metrics?.tokens ?? "unknown") !== "unknown" || record.tokensEst > 0;
 
   const toggleControls = () => {
@@ -515,7 +517,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
           ))}
         <div class={`run-quota ${quota.level}`}>{quota.text}</div>
         {(tokensKnown || context !== null) && (
-          <div class={`run-tokens ${contextLevel(tokenStats.lastContextTokens, contextWindow) ?? ""}`}>
+          <div class={`run-tokens ${contextLevel(tokenStats.lastContextTokens, windowTokens) ?? ""}`}>
             {tokensKnown ? `Σ ${record.tokensEst.toLocaleString("de-DE")} Tokens` : "Tokens nicht gemeldet"}
             {context ? ` · ${context}` : ""}
           </div>
@@ -535,7 +537,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             numbersReal={reportNumbersReal}
             diff={diff}
             usage={usage}
-            context={{ fill: tokenStats.lastContextTokens, window: contextWindow }}
+            context={{ fill: tokenStats.lastContextTokens, window: windowTokens }}
           />
         ) : activeTab === "diff" ? (
           <DiffPane diff={diff} sessionId={session.id} />

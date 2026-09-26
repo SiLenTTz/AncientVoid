@@ -6,7 +6,7 @@ severity: S2
 area: adapters, pwa
 instance: dev
 commit: "3dbc56c"
-forge: ""
+forge: "!125"
 epic: "P7"
 created: 2026-09-26
 reporter: jan

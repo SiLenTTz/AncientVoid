@@ -15,6 +15,7 @@ import {
   type WorkerProcess,
 } from "@uacc/contracts";
 import { JsonRpcConnection as AcpConnection, RpcError } from "@uacc/adapter-jsonrpc";
+import { resolveContextWindow } from "@uacc/models";
 import { UpdateMapper, type SessionUpdate } from "./normalize.ts";
 
 /**
@@ -78,6 +79,10 @@ const AcpConfig = z.object({
   /** ADR-0032: context window of the models this instance runs — nobody
    * reports it in band; configured here, shown as a percentage then. */
   contextWindowTokens: z.number().int().positive().optional(),
+  /** ADR-0032: per-model context windows — substring-matched over the
+   * wanted model and the agent's raw value; wins over the built-in table
+   * (@uacc/models, Quelle models.dev). */
+  contextWindows: z.record(z.string().min(1), z.number().int().positive()).default({}),
 });
 
 const PROTOCOL_VERSION = 1;
@@ -322,7 +327,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     }
     if (!set) throw new Error(`${label}: Modell „${model}" wird nicht angeboten`);
     await state.conn.request(set.method, { sessionId: res.sessionId, ...set.params }, cfg.startupTimeoutMs);
-    ctx.emit({ type: "system", summary: `${label} · ${model}`, payload: { kind: "acp.model", model, value: set.value } });
+    // ADR-0032: the window of THIS model — config table first, then the
+    // curated one; rides the event so the PWA needs no adapter roundtrip.
+    const window = resolveContextWindow(model, set.value, cfg.contextWindows);
+    ctx.emit({
+      type: "system",
+      summary: `${label} · ${model}`,
+      payload: { kind: "acp.model", model, value: set.value, ...(window !== null ? { contextWindowTokens: window } : {}) },
+    });
   }
 
   function drainQueue(state: AgentSession, ctx: AdapterContext): void {

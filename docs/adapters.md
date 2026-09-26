@@ -61,6 +61,17 @@ Harness meldet sie im Band. Der Input-Token-Anteil der letzten Anfrage
 (`payload.usage.input` auf dem Zugende-Event) ist die gemessene Füllung;
 die PWA zeigt daraus „Kontext x %" nur, wenn beide Zahlen echt sind.
 
+**Je Modell statt je Instanz**: `@uacc/models` pflegt eine kuratierte
+Tabelle (`contextWindowFor`, Quelle models.dev — dieselbe Datenbank, die
+opencode nutzt; Stand im Quellverlauf). Der Adapter legt das Fenster des
+gewählten Modells auf sein `acp.model`-/`opencode.model`-Event
+(`payload.contextWindowTokens`) — das gewählte Modell gewinnt gegen die
+statische Capability. Einzelne Werte überschreiben oder ergänzen:
+`"contextWindows": { "glm": 1000000 }` (Substring-Match auf Modell und
+Rohwert). Wichtig z. B. bei GLM: glm-4.7 hat 204.800 Tokens, glm-5.2/5.3
+1.000.000 — eine Zahl je Instanz wäre falsch. Unbekannte Modelle bleiben
+ohne Fenster, die PWA zeigt dann keine Prozentzahl.
+
 ## NormalizedEvent — die gemeinsame Sprache
 
 Typen: `user | assistant | thinking | tool_use | tool_result | gate | error | system`.

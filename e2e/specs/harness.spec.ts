@@ -145,6 +145,15 @@ test.describe("ACP-Harness (T7.2)", () => {
     await expect(app.locator(".tail-scroll .turn-stats")).toHaveCount(2);
   });
 
+  test("das Kontextfenster folgt dem gewählten Modell (ADR-0032)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "Hallo", model: "lokal/glm-5.3" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
+    // glm-5.3 hat ein kuratiertes Fenster von 1.000.000 Tokens — nicht die
+    // statische Adapter-Zahl (200 aus der E2E-Konfiguration).
+    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 42 Tokens · Kontext 0 % (30 / 1.000.000)");
+  });
+
   test("eine Eingabe während eines laufenden Zugs wartet sichtbar und wird zugestellt (BUG-0033 + FIFO)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "acp", prompt: "Arbeite LANGSAM" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
