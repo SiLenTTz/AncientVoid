@@ -80,6 +80,9 @@ const AcpConfig = z.object({
 const PROTOCOL_VERSION = 1;
 /** How long a wanted model may take to appear in the agent's list. */
 const MODEL_WAIT_MS = 5_000;
+/** BUG-0033: buffered chunks go to the tail live while the turn runs —
+ * the phone sees the agent working instead of silence until turn end. */
+const LIVE_FLUSH_MS = 1_500;
 
 /** What `session/new` says about models: the config option (ACP) or the
  * older `models` block (unstable API, still used by some agents). */
@@ -316,6 +319,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     const seq = ++state.turnSeq; // BUG-0032: a forced end invalidates this turn's late answers
     ctx.turn?.("working");
     armStuckWatch(state, ctx);
+    // BUG-0033: interim flush of buffered message/thought text — a no-op
+    // tick when nothing is pending, the tail's live feed otherwise.
+    const liveFlush = setInterval(() => {
+      if (state.turnSeq === seq && state.busy) emitAll(ctx, state.mapper.flush());
+    }, LIVE_FLUSH_MS);
     void promptBlocks(text, attachments, state.images)
       .then((prompt) => state.conn.request("session/prompt", { sessionId: state.acpSessionId, prompt }))
       .then((res) => {
@@ -336,6 +344,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         ctx.emit(providerErrorEvent(label, err instanceof Error ? err.message : String(err)));
       })
       .finally(() => {
+        clearInterval(liveFlush);
         if (state.stuckTimer) {
           clearTimeout(state.stuckTimer);
           state.stuckTimer = null;

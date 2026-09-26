@@ -183,6 +183,19 @@ describe("acp adapter (T7.2)", () => {
     expect(texts(ctx.events, "assistant")[0]).toContain("Ausgabe hallo-acp");
   });
 
+  it("BUG-0033: buffered chunks go out live while the turn runs, not only at its end", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent] });
+    await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "STREAM" }, ctx);
+    // The turn is silent for 5 s after the first chunk; without the live
+    // flush the first assistant text only appears when the turn ends.
+    await waitFor(() => texts(ctx.events, "assistant").length >= 1, 3_500);
+    expect(turns).not.toContain("idle");
+    await waitFor(() => turns.includes("idle"), 8_000);
+    expect(texts(ctx.events, "assistant").join("")).toBe("Antwort auf: STREAM · ACP");
+  });
+
   it("a failed prompt becomes a readable provider error (ADR-0015)", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });
