@@ -55,6 +55,12 @@ Ein laufender Zug, in dem der Agent für `stuckTurnMs` (Default 30 min,
 `provider.error` sichtbar — wartende Tool-Freigaben zählen nicht als
 stumm (BUG-0032).
 
+`contextWindowTokens` (acp und claude, [ADR-0032](adr/0032-kontextfenster-transparenz.md)):
+die Kontextfenstergröße der Modelle dieser Instanz, konfiguriert — kein
+Harness meldet sie im Band. Der Input-Token-Anteil der letzten Anfrage
+(`payload.usage.input` auf dem Zugende-Event) ist die gemessene Füllung;
+die PWA zeigt daraus „Kontext x %" nur, wenn beide Zahlen echt sind.
+
 ## NormalizedEvent — die gemeinsame Sprache
 
 Typen: `user | assistant | thinking | tool_use | tool_result | gate | error | system`.
