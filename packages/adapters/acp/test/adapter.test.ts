@@ -95,6 +95,20 @@ describe("acp adapter (T7.2)", () => {
     await waitFor(() => turns.includes("idle"));
     expect(texts(ctx.events, "assistant")[0]).toContain('Modell ["lokal","klein"]');
     expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.summary).toBe("fake · lokal/klein");
+    // ADR-0032: models without a known window carry none — never a guess.
+    expect((ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.payload as { contextWindowTokens?: number }).contextWindowTokens).toBeUndefined();
+    // …and a known model carries its curated window on the announce.
+    const turns2: string[] = [];
+    const ctx2 = context({ turns: turns2 });
+    await createAdapter({ command: [agent], label: "fake" }).start({ adapter: "acp", project: process.cwd(), prompt: "Hallo", model: "lokal/glm-5.3" }, ctx2);
+    await waitFor(() => turns2.includes("idle"));
+    expect(ctx2.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.payload).toMatchObject({ contextWindowTokens: 1_000_000 });
+    // config override wins over the curated table
+    const turns3: string[] = [];
+    const ctx3 = context({ turns: turns3 });
+    await createAdapter({ command: [agent], label: "fake", contextWindows: { glm: 123_456 } }).start({ adapter: "acp", project: process.cwd(), prompt: "Hallo", model: "lokal/glm-5.3" }, ctx3);
+    await waitFor(() => turns3.includes("idle"));
+    expect(ctx3.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.payload).toMatchObject({ contextWindowTokens: 123_456 });
     // by name, and from the adapter config
     const byName = context({ turns: [] });
     const named = createAdapter({ command: [agent], model: "Groß" });

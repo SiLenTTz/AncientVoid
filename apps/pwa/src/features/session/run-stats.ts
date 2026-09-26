@@ -50,6 +50,19 @@ export function turnsClosedBetween(turns: readonly TurnStats[], prevSeq: number,
   return turns.filter((t) => t.endSeq > prevSeq && (nextSeq === null || t.endSeq < nextSeq));
 }
 
+/** The session's current model is its LATEST announce (acp.model /
+ * opencode.model, ADR-0032) — its window or none. An older model's window
+ * is not this model's window, so it never shines through. */
+export function contextWindowFromEvents(events: readonly NormalizedEvent[]): number | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const payload = events[i]!.payload as { kind?: unknown; contextWindowTokens?: unknown };
+    if (payload.kind === "acp.model" || payload.kind === "opencode.model") {
+      return typeof payload.contextWindowTokens === "number" ? payload.contextWindowTokens : null;
+    }
+  }
+  return null;
+}
+
 const fmt = new Intl.NumberFormat("de-DE");
 
 /** One honest sentence about the context window (ADR-0032): a percentage
