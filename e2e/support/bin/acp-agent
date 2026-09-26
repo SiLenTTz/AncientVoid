@@ -10,6 +10,8 @@
 //             (as dsh does — the command came with the tool_call update)
 //   PLAN      a plan with 1 of 3 entries done
 //   LANGSAM   the turn runs until cancelled (or 60 s)
+//   STUMM     the turn never answers and ignores session/cancel — the
+//             hang shape of BUG-0032 (opencode task tools never returning)
 //   FEHLER    the prompt fails with a rate-limit error
 import { randomUUID } from "node:crypto";
 
@@ -42,6 +44,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function prompt(id, { sessionId, prompt: blocks }) {
   const text = blocks.map((b) => (b.type === "text" ? b.text : `[${b.type}]`)).join(" ");
   if (text.includes("FEHLER")) return send({ id, error: { code: -32000, message: "Rate limit exceeded (429) — slow down" } });
+  if (text.includes("STUMM")) return;
   update(sessionId, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "Ich überlege" } });
   update(sessionId, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: " kurz." } });
   let tail = "";
