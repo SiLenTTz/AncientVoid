@@ -75,6 +75,9 @@ const AcpConfig = z.object({
   startupTimeoutMs: z.number().int().positive().default(120_000),
   /** BUG-0032: silence window within a busy turn before the hub cancels. */
   stuckTurnMs: z.number().int().min(0).default(1_800_000),
+  /** ADR-0032: context window of the models this instance runs — nobody
+   * reports it in band; configured here, shown as a percentage then. */
+  contextWindowTokens: z.number().int().positive().optional(),
 });
 
 const PROTOCOL_VERSION = 1;
@@ -344,13 +347,22 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       .then((prompt) => state.conn.request("session/prompt", { sessionId: state.acpSessionId, prompt }))
       .then((res) => {
         if (state.turnSeq !== seq) return;
-        const r = res as { stopReason?: string; usage?: { totalTokens?: number } | null };
+        const r = res as { stopReason?: string; usage?: { totalTokens?: number; inputTokens?: number; outputTokens?: number } | null };
         emitAll(ctx, state.mapper.flush());
+        // ADR-0032: input is the context fill; tokens fall back to
+        // input+output when the agent names no total.
+        const inTok = typeof r.usage?.inputTokens === "number" ? r.usage.inputTokens : undefined;
+        const outTok = typeof r.usage?.outputTokens === "number" ? r.usage.outputTokens : undefined;
+        const total = typeof r.usage?.totalTokens === "number" ? r.usage.totalTokens : inTok !== undefined && outTok !== undefined ? inTok + outTok : undefined;
         ctx.emit({
           type: "system",
           summary: `${label}: Zug beendet (${r.stopReason ?? "?"})`,
-          payload: { kind: "acp.turn_end", stopReason: r.stopReason ?? null },
-          ...(typeof r.usage?.totalTokens === "number" ? { tokensEst: r.usage.totalTokens } : {}),
+          payload: {
+            kind: "acp.turn_end",
+            stopReason: r.stopReason ?? null,
+            ...(inTok !== undefined || outTok !== undefined ? { usage: { ...(inTok !== undefined ? { input: inTok } : {}), ...(outTok !== undefined ? { output: outTok } : {}) } } : {}),
+          },
+          ...(total !== undefined ? { tokensEst: total } : {}),
         });
         if (r.stopReason === "refusal") ctx.emit(providerErrorEvent(label, "Der Agent hat die Anfrage abgelehnt (refusal)."));
       })
@@ -387,6 +399,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         cost: false,
         steer: true,
         usage: false,
+        ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),
         nativeDiscovery: "none",
         nativeResume: "none",
         // ADR-0018: tools are asked per call through request_permission —

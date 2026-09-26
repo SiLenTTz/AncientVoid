@@ -183,6 +183,10 @@ function normalizeResult(line: Record<string, unknown>): EmittedEvent {
       numTurns: line.num_turns,
       durationMs: line.duration_ms,
       result: typeof line.result === "string" ? line.result.slice(0, 500) : undefined,
+      // ADR-0032: the input part doubles as the context fill.
+      ...(inputTokens !== undefined || outputTokens !== undefined
+        ? { usage: { ...(inputTokens !== undefined ? { input: inputTokens } : {}), ...(outputTokens !== undefined ? { output: outputTokens } : {}) } }
+        : {}),
     },
     // ADR-0003: costUsd is a first-class, provider-neutral contract field
     // now — no longer duplicated into payload.totalCostUsd.

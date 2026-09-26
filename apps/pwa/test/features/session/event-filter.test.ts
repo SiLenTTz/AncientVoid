@@ -20,9 +20,10 @@ describe("showInChat (BUG-0033: gleiche Marker für ACP wie für CLI-Adapter)", 
     expect(showInChat(event({ type: "system", summary: "acp · m1", payload: { kind: "acp.model" } }))).toBe(true);
   });
 
-  it("shows a refused steer, never an accepted one", () => {
+  it("shows a refused steer, never an accepted one; a queued message shows its wait marker", () => {
     expect(showInChat(event({ type: "system", summary: "session.steer", payload: { kind: "session.steer", steerKind: "prompt", ok: false, detail: "acp: der Zug läuft noch" } }))).toBe(true);
     expect(showInChat(event({ type: "system", summary: "session.steer", payload: { kind: "session.steer", steerKind: "prompt", ok: true } }))).toBe(false);
+    expect(showInChat(event({ type: "system", summary: "ACP-Agent: Nachricht wartet bis der Zug endet", payload: { kind: "acp.queued", queued: 1 } }))).toBe(true);
   });
 
   it("keeps hiding unrelated system events", () => {
