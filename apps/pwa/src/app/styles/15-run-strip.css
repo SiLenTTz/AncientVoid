@@ -32,6 +32,22 @@
   color: var(--err);
 }
 
+/* ADR-0032: token sums (per session here, per turn as .turn-stats rows). */
+.run-tokens {
+  color: var(--fg-dim);
+}
+.run-tokens.warn {
+  color: var(--warn);
+}
+.run-tokens.err {
+  color: var(--err);
+}
+.turn-stats {
+  font-size: 11px;
+  margin: 2px 0 6px;
+  text-align: right;
+}
+
 /* Overview card: project and the session's own title up front. */
 .session-title {
   font-size: 13px;

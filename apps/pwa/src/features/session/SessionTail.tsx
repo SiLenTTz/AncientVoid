@@ -18,6 +18,7 @@ import { loadTail, saveTail } from "./tail-cache.ts";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
+import { turnTokenStats, turnsClosedBetween, contextText, contextLevel } from "./run-stats.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
 import { EventRow } from "./EventRow.tsx";
 import { DiffPane } from "./DiffPane.tsx";
@@ -99,6 +100,9 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   // for "this adapter's Bericht numbers are real" avoids inventing a
   // second capability flag for data that already arrives together.
   const [reportNumbersReal, setReportNumbersReal] = useState(false);
+  /** ADR-0032: the model's context window — configured on the adapter,
+   * without it the context chip names no percentage. */
+  const [contextWindow, setContextWindow] = useState<number | null>(null);
   // T7.10: files and images for the next reply.
   const [replyAttachments, setReplyAttachments] = useState<AttachmentRecord[]>([]);
   const [reply, setReply] = useState("");
@@ -130,6 +134,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
           setSteerSupported(info?.capabilities.features?.followUp ?? info?.capabilities.steer ?? false);
           setObserverOnly(info?.capabilities.features ? !info.capabilities.features.followUp && !info.capabilities.features.interrupt : false);
           setReportNumbersReal(info?.capabilities.cost ?? false);
+          setContextWindow(typeof info?.capabilities.contextWindowTokens === "number" ? info.capabilities.contextWindowTokens : null);
         })
         .catch(() => {
           if (!alive) return;
@@ -271,6 +276,10 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   }, [session.adapter]);
   const progress = runProgress(events, status, now);
   const quota = quotaSummary(quotaUsage, events);
+  // ADR-0032: tokens per finished turn + the current context fill.
+  const tokenStats = useMemo(() => turnTokenStats(shownEvents), [shownEvents]);
+  const context = contextText(tokenStats.lastContextTokens, contextWindow);
+  const tokensKnown = (record.metrics?.tokens ?? "unknown") !== "unknown" || record.tokensEst > 0;
 
   const toggleControls = () => {
     setControlsHidden((hidden) => {
@@ -505,6 +514,12 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             <div class="run-progress dim">läuft seit {formatMinutes(progress.elapsedMs)} · ohne Plan kein Fortschritt messbar</div>
           ))}
         <div class={`run-quota ${quota.level}`}>{quota.text}</div>
+        {(tokensKnown || context !== null) && (
+          <div class={`run-tokens ${contextLevel(tokenStats.lastContextTokens, contextWindow) ?? ""}`}>
+            {tokensKnown ? `Σ ${record.tokensEst.toLocaleString("de-DE")} Tokens` : "Tokens nicht gemeldet"}
+            {context ? ` · ${context}` : ""}
+          </div>
+        )}
       </div>
 
       <div
@@ -520,6 +535,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             numbersReal={reportNumbersReal}
             diff={diff}
             usage={usage}
+            context={{ fill: tokenStats.lastContextTokens, window: contextWindow }}
           />
         ) : activeTab === "diff" ? (
           <DiffPane diff={diff} sessionId={session.id} />
@@ -534,22 +550,35 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
               : "keine Nachrichten"}
           </div>
         ) : (
-          visible.map((e) => (
-            <Fragment key={e.seq}>
-              {e.seq === firstNew?.seq && (
-                <div class="new-divider" id="seit-letztem-besuch">
-                  Neu seit deinem letzten Besuch
-                </div>
-              )}
-              <EventRow
-                event={e}
-                expanded={expanded.has(e.seq)}
-                onToggleExpand={() => toggleExpanded(e.seq)}
-                toolResult={e.type === "tool_use" ? toolResultByToolId.get(toolIdOf(e) ?? "") : undefined}
-                onJump={jumpTo}
-              />
-            </Fragment>
-          ))
+          visible.map((e, i) => {
+            // ADR-0032: the token bill of a turn shows under its last
+            // visible row — even where the filter hides session.turn_end.
+            const closed = turnsClosedBetween(tokenStats.turns, e.seq, visible[i + 1]?.seq ?? null);
+            const turnTokens = closed.reduce((s, t) => s + t.tokens, 0);
+            const turnFill = closed.length > 0 ? closed[closed.length - 1]!.contextTokens : null;
+            return (
+              <Fragment key={e.seq}>
+                {e.seq === firstNew?.seq && (
+                  <div class="new-divider" id="seit-letztem-besuch">
+                    Neu seit deinem letzten Besuch
+                  </div>
+                )}
+                <EventRow
+                  event={e}
+                  expanded={expanded.has(e.seq)}
+                  onToggleExpand={() => toggleExpanded(e.seq)}
+                  toolResult={e.type === "tool_use" ? toolResultByToolId.get(toolIdOf(e) ?? "") : undefined}
+                  onJump={jumpTo}
+                />
+                {closed.length > 0 && (
+                  <div class="turn-stats dim">
+                    Zug {tokenStats.turns.findIndex((t) => t.endSeq === closed[0]!.endSeq) + 1}: {turnTokens.toLocaleString("de-DE")} Tokens
+                    {turnFill !== null ? ` · Kontext ${turnFill.toLocaleString("de-DE")}` : ""}
+                  </div>
+                )}
+              </Fragment>
+            );
+          })
         )}
       </div>
 

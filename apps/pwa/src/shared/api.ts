@@ -305,7 +305,7 @@ export interface HarnessFeatures {
 export interface AdapterInfo {
   id: string;
   version: string;
-  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; features: HarnessFeatures };
+  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; contextWindowTokens?: number | null; features: HarnessFeatures };
 }
 
 export interface ModelOption {

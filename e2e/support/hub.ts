@@ -172,7 +172,7 @@ export class TestHub {
           // T7.2: an ACP harness (stand-in agent, real protocol).
           id: "acp",
           module: "@uacc/adapter-acp",
-          config: { command: [join(binDir, "acp-agent")], label: "ACP-Agent" },
+          config: { command: [join(binDir, "acp-agent")], label: "ACP-Agent", contextWindowTokens: 200 },
         },
       ],
     };
