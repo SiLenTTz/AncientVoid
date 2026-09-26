@@ -134,6 +134,55 @@ describe("acp adapter (T7.2)", () => {
     await adapter.stop(handle, ctx);
   });
 
+  it("BUG-0032: a silent turn is cancelled after stuckTurnMs and the session recovers", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake", stuckTurnMs: 400 });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "LANGSAM" }, ctx);
+    await waitFor(() => turns.includes("idle"), 8000);
+    const error = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "provider.error");
+    expect(error?.payload).toMatchObject({ provider: "fake" });
+    expect((error?.payload as { detail?: string }).detail).toContain("stumm");
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_end")?.payload).toMatchObject({ stopReason: "cancelled" });
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Hallo" }, ctx)).toEqual({ ok: true });
+    await waitFor(() => texts(ctx.events, "assistant").length === 1, 8000);
+    await adapter.stop(handle, ctx);
+  });
+
+  it("BUG-0032: an agent that ignores session/cancel is force-ended and the session recovers", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], stuckTurnMs: 300 });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "STUMM" }, ctx);
+    await waitFor(() => turns.includes("idle"), 8000);
+    expect(turns).toEqual(["working", "idle"]);
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_stuck")).toBeTruthy();
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Hallo" }, ctx)).toEqual({ ok: true });
+    await waitFor(() => texts(ctx.events, "assistant").length === 1, 8000);
+    await adapter.stop(handle, ctx);
+  });
+
+  it("BUG-0032: a pending permission request disarms the watchdog — waiting for the phone is not stuck", async () => {
+    const turns: string[] = [];
+    const runner = new ProcessRunner();
+    const asked: ToolPermissionRequest[] = [];
+    const ctx = makeRecordingContext({
+      workdir: process.cwd(),
+      spawnWorker: (cmd, o) => runner.spawn({ name: "acp-test", cwd: process.cwd(), cmd, ...(o?.env ? { env: o.env } : {}) }),
+      requestToolPermission: async (req: ToolPermissionRequest) => {
+        asked.push(req);
+        await new Promise((r) => setTimeout(r, 900));
+        return { behavior: "allow" as const, updatedInput: req.input };
+      },
+      turn: (state: "working" | "idle") => turns.push(state),
+    } as Partial<AdapterContext>);
+    await createAdapter({ command: [agent], stuckTurnMs: 300 }).start({ adapter: "acp", project: process.cwd(), prompt: "Bitte WERKZEUG" }, ctx);
+    await waitFor(() => turns.includes("idle"), 8000);
+    expect(asked).toHaveLength(1);
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "provider.error")).toBeUndefined();
+    expect(texts(ctx.events, "assistant")[0]).toContain("Ausgabe hallo-acp");
+  });
+
   it("a failed prompt becomes a readable provider error (ADR-0015)", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });

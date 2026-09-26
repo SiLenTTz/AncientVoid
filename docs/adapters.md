@@ -49,6 +49,12 @@ Tool-Freigaben kommen als `session/request_permission` aufs Handy. Ob ein
 Agent überhaupt fragt, ist seine Einstellung — das opencode-Preset setzt dafür
 `permission: ask`; andere Agenten in `docs/harness-matrix.md` prüfen.
 
+Ein laufender Zug, in dem der Agent für `stuckTurnMs` (Default 30 min,
+`0` schaltet ab) keine Meldung mehr schickt, wird vom Hub abgebrochen
+(`session/cancel`, danach notfalls erzwungen beendet) und als
+`provider.error` sichtbar — wartende Tool-Freigaben zählen nicht als
+stumm (BUG-0032).
+
 ## NormalizedEvent — die gemeinsame Sprache
 
 Typen: `user | assistant | thinking | tool_use | tool_result | gate | error | system`.

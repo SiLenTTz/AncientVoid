@@ -53,5 +53,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0027](bug-0027-stop-deletes-agent-work.md) | Stop löscht die nicht committete Arbeit eines Agenten | fixed | S1 | core | — |
 | [BUG-0028](bug-0028-tokens-in-request-log.md) | Geräte-Tokens stehen im Klartext im Request-Log | fixed | S1 | server | — |
 | [BUG-0029](bug-0029-hub-log-default-permissions.md) | Hub-Log wird mit der Benutzer-umask für andere lesbar angelegt | done | S3 | hub.sh | — |
+| [BUG-0032](bug-0032-acp-turn-haengt-ohne-timeout.md) | ACP-Zug kann endlos hängen: kein Turn-Timeout, Herzschlag blind | in-progress | S1 | adapters | — |
 
-Die nächste freie Nummer ist **0030**.
+BUG-0030 (MR !115) und BUG-0031 (Branch `fix/p12-token-gate-fleet-delay`) sind vergeben; die nächste freie Nummer ist **0033**.

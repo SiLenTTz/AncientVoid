@@ -29,7 +29,12 @@ import { UpdateMapper, type SessionUpdate } from "./normalize.ts";
  *   env:     extra environment for the agent,
  *   label:   name in summaries and errors (default: preset or "acp"),
  *   permissions: "hub" (default) — ask the phone; "reject" — deny all,
- *   model:   model when the session names none (see `pickModel`).
+ *   model:   model when the session names none (see `pickModel`),
+ *   stuckTurnMs: BUG-0032 — a busy turn with no agent message for this
+ *             long is cancelled (`session/cancel`) and, if that stays
+ *             unanswered too, force-ended. 0 disables. A pending
+ *             permission request disarms it (waiting for the phone is
+ *             not being stuck). Default 30 min.
  */
 
 /** ACP ToolKind → the tool name shown on the approval card. */
@@ -68,6 +73,8 @@ const AcpConfig = z.object({
   model: z.string().min(1).optional(),
   /** How long initialize/session setup may take (npx may download first). */
   startupTimeoutMs: z.number().int().positive().default(120_000),
+  /** BUG-0032: silence window within a busy turn before the hub cancels. */
+  stuckTurnMs: z.number().int().min(0).default(1_800_000),
 });
 
 const PROTOCOL_VERSION = 1;
@@ -131,6 +138,11 @@ interface AgentSession {
   /** Latest `config_option_update` — can be newer than the session/new answer. */
   configOptions: SessionModels["configOptions"];
   onConfig: (() => void) | null;
+  /** BUG-0032: every runTurn bump; a stale turn's late answers are ignored. */
+  turnSeq: number;
+  stuckTimer: ReturnType<typeof setTimeout> | null;
+  /** Open permission requests — the agent waits for the phone, not stuck. */
+  pendingPermissions: number;
 }
 
 type ToolCallInfo = { toolCallId?: string; title?: string | null; name?: string | null; kind?: string | null; rawInput?: unknown };
@@ -146,6 +158,35 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
   function emitAll(ctx: AdapterContext, events: ReturnType<UpdateMapper["flush"]>): void {
     for (const e of events) ctx.emit(e);
+  }
+
+  /** BUG-0032: re-arm the stuck watchdog — every agent message is activity. */
+  function armStuckWatch(state: AgentSession, ctx: AdapterContext): void {
+    if (state.stuckTimer) clearTimeout(state.stuckTimer);
+    state.stuckTimer = null;
+    if (cfg.stuckTurnMs <= 0) return;
+    state.stuckTimer = setTimeout(() => unstickTurn(state, ctx), cfg.stuckTurnMs);
+  }
+
+  /** BUG-0032: a busy turn gone silent is cancelled loudly; an agent that
+   * ignores the cancel is force-ended so the session recovers (was: busy
+   * forever, every further prompt refused — 26 h live, 2026-09-25). */
+  function unstickTurn(state: AgentSession, ctx: AdapterContext): void {
+    state.stuckTimer = null;
+    if (!state.busy || !state.healthy) return;
+    if (state.pendingPermissions > 0) return armStuckWatch(state, ctx);
+    const minutes = Math.max(1, Math.round(cfg.stuckTurnMs / 60_000));
+    ctx.emit(providerErrorEvent(label, `${label}: der Zug ist seit ${minutes} min stumm — der Hub bricht ab (session/cancel)`));
+    if (state.acpSessionId) state.conn.notify("session/cancel", { sessionId: state.acpSessionId });
+    const seq = state.turnSeq;
+    setTimeout(() => {
+      if (!state.busy || state.turnSeq !== seq) return; // the cancel was honored — normal turn end took over
+      state.turnSeq++; // the dangling prompt's late answer is not ours any more
+      emitAll(ctx, state.mapper.flush());
+      ctx.emit({ type: "system", summary: `${label}: Agent reagierte nicht auf session/cancel — Zug erzwungen beendet`, payload: { kind: "acp.turn_stuck" } });
+      state.busy = false;
+      ctx.turn?.("idle");
+    }, Math.min(10_000, cfg.stuckTurnMs));
   }
 
   /** ACP permission request → the phone → the option the agent offered. */
@@ -173,10 +214,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   function connect(sessionId: string, proc: WorkerProcess, ctx: AdapterContext): AgentSession {
-    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false, calls: new Map(), configOptions: undefined, onConfig: null };
+    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false, calls: new Map(), configOptions: undefined, onConfig: null, turnSeq: 0, stuckTimer: null, pendingPermissions: 0 };
     state.conn = new AcpConnection((line) => proc.write(line), {
       onNotification: (method, params) => {
         if (method !== "session/update") return;
+        armStuckWatch(state, ctx); // BUG-0032: an update is activity
         const update = (params as { update?: SessionUpdate }).update;
         if (!update) return;
         if (update.sessionUpdate === "config_option_update") {
@@ -193,7 +235,15 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         emitAll(ctx, state.mapper.map(update));
       },
       onRequest: async (method, params) => {
-        if (method === "session/request_permission") return decidePermission(state, ctx, params);
+        if (method === "session/request_permission") {
+          armStuckWatch(state, ctx); // BUG-0032: asking is activity, and the answer may take hours
+          state.pendingPermissions++;
+          try {
+            return await decidePermission(state, ctx, params);
+          } finally {
+            state.pendingPermissions--;
+          }
+        }
         throw new RpcError(-32601, `${method} wird vom Hub nicht angeboten`);
       },
       // A prompt sent by the hub before a restart ends here — the turn is over.
@@ -209,6 +259,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     proc.onStdout((chunk) => state.conn.feed(chunk));
     proc.onExit((code) => {
       state.healthy = false;
+      if (state.stuckTimer) clearTimeout(state.stuckTimer);
       state.conn.failAll(`${label}-Prozess beendet (Code ${code ?? "?"})`);
       emitAll(ctx, state.mapper.flush());
       if (code !== 0 && code !== null) ctx.emit({ type: "system", summary: `${label}: process exited with code ${code}`, payload: { code } });
@@ -262,10 +313,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
   function runTurn(state: AgentSession, ctx: AdapterContext, text: string, attachments?: readonly PromptAttachment[]): void {
     state.busy = true;
+    const seq = ++state.turnSeq; // BUG-0032: a forced end invalidates this turn's late answers
     ctx.turn?.("working");
+    armStuckWatch(state, ctx);
     void promptBlocks(text, attachments, state.images)
       .then((prompt) => state.conn.request("session/prompt", { sessionId: state.acpSessionId, prompt }))
       .then((res) => {
+        if (state.turnSeq !== seq) return;
         const r = res as { stopReason?: string; usage?: { totalTokens?: number } | null };
         emitAll(ctx, state.mapper.flush());
         ctx.emit({
@@ -277,10 +331,16 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         if (r.stopReason === "refusal") ctx.emit(providerErrorEvent(label, "Der Agent hat die Anfrage abgelehnt (refusal)."));
       })
       .catch((err: unknown) => {
+        if (state.turnSeq !== seq) return;
         emitAll(ctx, state.mapper.flush());
         ctx.emit(providerErrorEvent(label, err instanceof Error ? err.message : String(err)));
       })
       .finally(() => {
+        if (state.stuckTimer) {
+          clearTimeout(state.stuckTimer);
+          state.stuckTimer = null;
+        }
+        if (state.turnSeq !== seq) return;
         state.busy = false;
         ctx.turn?.("idle");
       });
