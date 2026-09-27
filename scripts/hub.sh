@@ -14,7 +14,9 @@ start() {
   umask 077
   touch "$LOG"
   chmod 600 "$LOG"
-  UACC_CONFIG="${UACC_CONFIG:-./hub.config.json}" \
+  # BUG-0034: absolute, so `hubctl workers prune` can match this hub's root
+  # against /proc/<pid>/environ (UACC_CONFIG) and never treat it as orphaned.
+  UACC_CONFIG="${UACC_CONFIG:-$(pwd)/hub.config.json}" \
     setsid node apps/hub/src/main.ts >>"$LOG" 2>&1 < /dev/null &
   local pid=$!
   echo "$pid" > "$PIDFILE"
