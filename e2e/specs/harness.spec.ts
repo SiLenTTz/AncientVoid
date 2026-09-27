@@ -10,7 +10,9 @@ test.describe("Harness-Parität (EPIC-P7)", () => {
 
     await app.getByLabel("Adapter").selectOption("opencode");
     const model = app.getByLabel("Modell");
-    await expect(model.locator("option")).toHaveText(["Standard des Harness", "e2e/fake-model", "opencode/big-pickle", "zai-coding-plan/glm-5.3"]);
+    await expect(model.locator("option")).toHaveText(["Standard des Harness", "e2e/fake-model (Standard)", "opencode/big-pickle", "zai-coding-plan/glm-5.3"]);
+    // the registration's default arrives preselected — what "Standard" runs
+    await expect(model).toHaveValue("e2e/fake-model");
     await model.selectOption("opencode/big-pickle");
     await app.getByPlaceholder("Refactore den Auth-Flow…").fill("Hallo");
     await app.getByRole("button", { name: "Starten" }).click();
@@ -152,6 +154,22 @@ test.describe("ACP-Harness (T7.2)", () => {
     // glm-5.3 hat ein kuratiertes Fenster von 1.000.000 Tokens — nicht die
     // statische Adapter-Zahl (200 aus der E2E-Konfiguration).
     await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 42 Tokens · Kontext 0 % (30 / 1.000.000)");
+  });
+
+  test("Startformular: Modellkatalog als Dropdown, konfigurierter Default vorausgewählt (Harnez-Muster)", async ({ app, hub }) => {
+    await app.goto(`${hub.origin}/#/`);
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Adapter").selectOption("acp");
+    const select = app.getByLabel("Modell");
+    await expect(select).toHaveValue("lokal/klein");
+    await expect(select.locator("option")).toHaveText(["Standard des Harness", "cloud/gross", "lokal/klein (Standard)"]);
+    // Vorauswahl ist echt: eine Session ohne eigene Wahl läuft auf dem Default.
+    await app.getByPlaceholder("Refactore den Auth-Flow…").fill("Hallo");
+    await app.getByRole("button", { name: "Starten" }).click();
+    // the topbar names the adapter id and the session's model — the
+    // preselected default, since the form sent no other choice.
+    await expect(app.locator(".session-topbar")).toContainText("acp · lokal/klein");
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Hallo · ACP · Modell \["lokal","klein"\]/)).toBeVisible();
   });
 
   test("eine Eingabe während eines laufenden Zugs wartet sichtbar und wird zugestellt (BUG-0033 + FIFO)", async ({ app, hub }) => {

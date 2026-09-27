@@ -251,6 +251,21 @@ describe("acp adapter (T7.2)", () => {
     expect((turnEnd?.payload as { usage?: { input?: number; output?: number } }).usage).toMatchObject({ input: 10, output: 5 });
   });
 
+  it("models(): a listing command feeds the start form's dropdown; derived for `… acp` agents, explicit via modelsCommand", async () => {
+    const list = ["zai-coding-plan/glm-5.3", "opencode/claude-fable-5", "opencode/gpt-6-astra", "", "kein modell"];
+    const script = `process.stdout.write(${JSON.stringify(list.join("\n"))})`;
+    // derived: the trailing "acp" becomes "models" (opencode: `opencode models`)
+    const derived = createAdapter({ command: [process.execPath, "-e", script, "acp"] });
+    expect((await derived.models?.() ?? []).map((m) => m.id)).toEqual(["zai-coding-plan/glm-5.3", "opencode/claude-fable-5", "opencode/gpt-6-astra"]);
+    // no derivation without a trailing "acp" — empty catalog, not an error
+    expect(await createAdapter({ command: ["x"] }).models?.()).toEqual([]);
+    const explicit = createAdapter({ command: ["x"], modelsCommand: [process.execPath, "-e", script] });
+    expect((await explicit.models?.() ?? []).map((m) => m.id)).toEqual(["zai-coding-plan/glm-5.3", "opencode/claude-fable-5", "opencode/gpt-6-astra"]);
+    // a failing command throws — the catalog route catches and shows free text
+    const failing = createAdapter({ command: ["x"], modelsCommand: [process.execPath, "-e", "process.exit(1)"] });
+    await expect(failing.models?.()).rejects.toThrow();
+  });
+
   it("a failed prompt becomes a readable provider error (ADR-0015)", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });

@@ -638,8 +638,9 @@ function createHubApi(P: (path: string) => string) {
   settings: () => api<{ gemini: { configured: boolean; model: string } }>(P("/api/settings")),
   setGemini: (body: { apiKey?: string | null; model?: string }) =>
     api<{ gemini: { configured: boolean; model: string } }>(P("/api/settings/gemini"), { method: "PUT", body: JSON.stringify(body) }),
-  /** ADR-0018: null when the adapter has no catalog (free text then). */
-  adapterModels: (id: string) => api<{ models: ModelOption[] | null }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
+  /** ADR-0018: null when the adapter has no catalog (free text then);
+   * defaultModel is the registration's configured model. */
+  adapterModels: (id: string) => api<{ models: ModelOption[] | null; defaultModel: string | null }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
   adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
   projects: () => api<ProjectDiscoveryResult>(P("/api/projects")),
   skills: (project: string) => api<{ items: SkillOrAgent[] }>(P(`/api/skills?project=${encodeURIComponent(project)}`)),

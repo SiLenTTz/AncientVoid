@@ -169,10 +169,18 @@ export class TestHub {
           config: { claudeDir: join(this.root, "claude"), pollIntervalMs: 200 },
         },
         {
-          // T7.2: an ACP harness (stand-in agent, real protocol).
+          // T7.2: an ACP harness (stand-in agent, real protocol) — with the
+          // Harnez pattern: a configured default model plus a listing
+          // command, so the start form shows a dropdown with the default.
           id: "acp",
           module: "@uacc/adapter-acp",
-          config: { command: [join(binDir, "acp-agent")], label: "ACP-Agent", contextWindowTokens: 200 },
+          config: {
+            command: [join(binDir, "acp-agent")],
+            label: "ACP-Agent",
+            contextWindowTokens: 200,
+            model: "lokal/klein",
+            modelsCommand: [process.execPath, "-e", "process.stdout.write('cloud/gross\\nlokal/klein\\n')"],
+          },
         },
       ],
     };

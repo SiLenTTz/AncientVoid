@@ -8,6 +8,7 @@ import {
   type AdapterCapabilities,
   type AdapterContext,
   type HealthReport,
+  type ModelOption,
   type PromptAttachment,
   type SessionHandle,
   type SessionSpec,
@@ -17,6 +18,10 @@ import {
 import { JsonRpcConnection as AcpConnection, RpcError } from "@uacc/adapter-jsonrpc";
 import { resolveContextWindow } from "@uacc/models";
 import { UpdateMapper, type SessionUpdate } from "./normalize.ts";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const run = promisify(execFile);
 
 /**
  * ACP adapter (T7.2, ADR-0018 §3): one Agent Client Protocol harness per
@@ -83,6 +88,9 @@ const AcpConfig = z.object({
    * wanted model and the agent's raw value; wins over the built-in table
    * (@uacc/models, Quelle models.dev). */
   contextWindows: z.record(z.string().min(1), z.number().int().positive()).default({}),
+  /** Model catalog for the start form: a command printing one
+   * `provider/model` per line. Derived for opencode (`opencode models`). */
+  modelsCommand: z.array(z.string().min(1)).min(1).optional(),
 });
 
 const PROTOCOL_VERSION = 1;
@@ -420,6 +428,21 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // otherwise (and for other files) their text.
         features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist", images: true, files: true, modelChoice: preset && "models" in preset && !preset.models ? "none" : "start" }),
       };
+    },
+
+    /** ADR-0018: the model catalog for the start form — one provider/model
+     * per line from a listing command. Derived for `… acp` agents (opencode:
+     * `opencode models`), explicit via `modelsCommand`. Same line shape as
+     * adapter-opencode's parseModelList (kept local, 8 lines). */
+    async models(): Promise<ModelOption[]> {
+      const cmd = cfg.modelsCommand ?? (command?.at(-1) === "acp" ? [...command.slice(0, -1), "models"] : undefined);
+      if (!cmd) return [];
+      const { stdout } = await run(cmd[0]!, cmd.slice(1), { timeout: 20_000, maxBuffer: 1024 * 1024 });
+      return stdout
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => /^[\w.-]+\/\S+$/.test(line))
+        .map((id) => ({ id }));
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
