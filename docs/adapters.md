@@ -45,6 +45,22 @@ Jeder Agent, der das Agent Client Protocol spricht, läuft über
 { "id": "mein-agent", "module": "@uacc/adapter-acp", "config": { "command": ["mein-agent", "--acp"], "label": "Mein Agent" } }
 ```
 
+Ein Befehls-Framework ohne eigenes Binary (z. B. der SecureSight-Harnez,
+der als Slash-Commands in Claude-Code/opencode-Sessions lebt) wird als
+eigene opencode-Instanz registriert — mit Default-Modell und damit
+Modell-Dropdown im Startformular:
+
+```json
+{ "id": "securesight-harnez", "module": "@uacc/adapter-acp",
+  "config": { "preset": "opencode", "label": "SecureSight Harnez", "model": "zai-coding-plan/glm-5.3" } }
+```
+
+`model` ist der Default (im Dropdown vorausgewählt und markiert, läuft bei
+Sessions ohne eigene Wahl); der Katalog kommt bei `… acp`-Agenten
+automatisch über die `models`-Variante des Kommandos (opencode:
+`opencode models` — glm-5.3 von zai und die Zen-Claude-Modelle), explizit
+über `modelsCommand`.
+
 Tool-Freigaben kommen als `session/request_permission` aufs Handy. Ob ein
 Agent überhaupt fragt, ist seine Einstellung — das opencode-Preset setzt dafür
 `permission: ask`; andere Agenten in `docs/harness-matrix.md` prüfen.
