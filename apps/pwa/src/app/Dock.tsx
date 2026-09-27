@@ -2,8 +2,9 @@
 // (App.tsx renders ApprovalQueuePane/StatusPage for them) reached
 // contextually — from the Dashboard's pending-approvals banner, and from
 // a header link next to the connection dot — not from the dock. The
-// dock's four slots already match the T1.6 mockup exactly, and neither
-// EPIC-P2 nor this UI cleanup asked for a fifth. `active` simply never
+// dock's slots matched the T1.6 mockup exactly; "discovery" (2026-09-27)
+// became a fifth dock item so hub-external sessions are reachable in one
+// tap from every list page. `active` simply never
 // highlights any dock button while either page is open (same as
 // `active === null` inside a session tail).
 export type { ListPage as Page } from "./route.ts";
@@ -35,6 +36,9 @@ export function GlobalDock({
       </button>
       <button class={`dock-item ${active === "new" ? "active" : ""}`} onClick={() => onNavigate("new")}>
         <span class="ic">＋</span>Neue Session
+      </button>
+      <button class={`dock-item ${active === "discovery" ? "active" : ""}`} onClick={() => onNavigate("discovery")}>
+        <span class="ic">⌕</span>Entdeckt
       </button>
       <button class="dock-item" onClick={onVoice}>
         <span class="ic">◉</span>Voice
