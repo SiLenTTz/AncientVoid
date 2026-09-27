@@ -27,6 +27,19 @@ export function defaultCursorUserDir(): string {
   return join(home, ".config", "Cursor", "User");
 }
 
+/**
+ * opencode keeps one SQLite store per user (~/.local/share/opencode/opencode.db,
+ * verified on Linux 2026-08-31: tables `session`/`message`/`part`, ids `ses_*`,
+ * `time_*` epoch-ms, `parent_id` for compacted/forked children).
+ */
+export function defaultOpencodeDataDir(): string {
+  const home = process.env.HOME ?? process.env.USERPROFILE ?? "";
+  if (process.platform === "darwin") return join(home, "Library", "Application Support", "opencode");
+  if (process.platform === "win32") return join(process.env.APPDATA ?? join(home, "AppData", "Roaming"), "opencode");
+  const xdg = process.env.XDG_DATA_HOME;
+  return xdg ? join(xdg, "opencode") : join(home, ".local", "share", "opencode");
+}
+
 function observed(mtimeMs: number, fallback: string): string {
   const date = new Date(mtimeMs);
   return Number.isNaN(date.getTime()) ? fallback : date.toISOString();
@@ -223,8 +236,96 @@ export function scanCursorComposers(userDir: string, now = new Date().toISOStrin
   }
 }
 
+function opencodeItem(
+  project: string,
+  nativeSessionId: string | null,
+  observedAt: string,
+  parentSessionId: string | null,
+  status: string,
+): DiscoveredSession {
+  const unsupported = status === "unsupported-format";
+  return {
+    hubSessionId: null,
+    project,
+    adapter: "opencode",
+    status,
+    controlMode: "observed",
+    harness: "cli",
+    hostId: DEFAULT_HOST_ID,
+    nativeSessionId,
+    resumeVersion: unsupported ? 0 : 1,
+    observedAt,
+    unsupportedResume: unsupported,
+    fork: false,
+    parentSessionId,
+  };
+}
+
+/**
+ * Read-only scan of opencode's SQLite session store (ADR-0011: sessions this
+ * hub did not start). A set-but-missing or unreadable store surfaces as one
+ * `unsupported-format` row instead of being skipped (K9: visible, not dropped).
+ */
+export function scanOpencodeSessions(dataDir: string, now = new Date().toISOString()): DiscoveredSession[] {
+  const dbPath = join(dataDir, "opencode.db");
+  if (!existsSync(dbPath)) return [opencodeItem(dataDir, "unknown:missing-db", now, null, "unsupported-format")];
+  let db: DatabaseSync;
+  try {
+    db = new DatabaseSync(`file:${dbPath}?mode=ro`, { readOnly: true });
+  } catch {
+    return [opencodeItem(dataDir, "unknown:unreadable-db", now, null, "unsupported-format")];
+  }
+  try {
+    const tables = new Set(
+      db
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .all()
+        .map((row) => (row as { name: string }).name),
+    );
+    if (!tables.has("session")) return [opencodeItem(dataDir, "unknown:schema", now, null, "unsupported-format")];
+    const columns = new Set(
+      db
+        .prepare("PRAGMA table_info(session)")
+        .all()
+        .map((row) => (row as { name: string }).name),
+    );
+    for (const required of ["id", "directory", "time_created", "time_updated"]) {
+      if (!columns.has(required)) return [opencodeItem(dataDir, "unknown:schema", now, null, "unsupported-format")];
+    }
+    const parentColumn = columns.has("parent_id") ? "parent_id" : null;
+    const sql = `SELECT id, directory, time_created, time_updated${parentColumn ? `, ${parentColumn} AS parentId` : ""} FROM session`;
+    const rows = db.prepare(sql).all() as {
+      id?: string;
+      directory?: string | null;
+      time_created?: number | string;
+      time_updated?: number | string;
+      parentId?: string | null;
+    }[];
+    return rows.flatMap((row) => {
+      if (!row.id) return [];
+      const updated =
+        typeof row.time_updated === "number"
+          ? observed(row.time_updated, now)
+          : typeof row.time_updated === "string"
+            ? row.time_updated
+            : now;
+      const project = row.directory || dataDir;
+      const parent = parentColumn && row.parentId ? row.parentId : null;
+      return [opencodeItem(project, row.id, updated, parent, "observed")];
+    });
+  } catch {
+    return [opencodeItem(dataDir, "unknown:schema", now, null, "unsupported-format")];
+  } finally {
+    db.close();
+  }
+}
+
 export function claudeDiscoverySource(claudeDir: string): DiscoverySource {
   return { id: "claude-projects", list: async () => scanClaudeSessions(claudeDir) };
+}
+
+export function opencodeDiscoverySource(dataDir: string): DiscoverySource {
+  return { id: "opencode-sessions", list: async () => scanOpencodeSessions(dataDir) };
 }
 
 export function cursorDiscoverySource(userDir: string): DiscoverySource {

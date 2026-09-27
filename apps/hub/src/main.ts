@@ -36,6 +36,8 @@ import {
   cursorDiscoverySource,
   defaultClaudeDir,
   defaultCursorUserDir,
+  defaultOpencodeDataDir,
+  opencodeDiscoverySource,
   type HubConfig,
 } from "@uacc/core";
 import { TmuxRunner, ProcessRunner } from "@uacc/workers";
@@ -59,6 +61,8 @@ function discoverySources(config: HubConfig): DiscoverySource[] {
   const cursorUserDir = config.discovery.cursorUserDir ? resolve(config.discovery.cursorUserDir) : defaultCursorUserDir();
   if (config.discovery.claudeDir || existsSync(claudeDir)) sources.push(claudeDiscoverySource(claudeDir));
   if (config.discovery.cursorUserDir || existsSync(cursorUserDir)) sources.push(cursorDiscoverySource(cursorUserDir));
+  const opencodeDataDir = config.discovery.opencodeDataDir ? resolve(config.discovery.opencodeDataDir) : defaultOpencodeDataDir();
+  if (config.discovery.opencodeDataDir || existsSync(opencodeDataDir)) sources.push(opencodeDiscoverySource(opencodeDataDir));
   return sources;
 }
 

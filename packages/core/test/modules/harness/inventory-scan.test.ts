@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { HARNESS_CATALOG, probeHarnesses, type ProbeRunner } from "../../../src/modules/harness/inventory.ts";
-import { scanClaudeSessions, scanCursorComposers } from "../../../src/modules/discovery/sources.ts";
+import { scanClaudeSessions, scanCursorComposers, scanOpencodeSessions } from "../../../src/modules/discovery/sources.ts";
 
 describe("probeHarnesses (T5.1)", () => {
   it("records a parsed version and does not upgrade a missing discovery cell", async () => {
@@ -77,6 +77,59 @@ describe("scanCursorComposers (T5.3)", () => {
     db.exec("CREATE TABLE other (id TEXT)");
     db.close();
     const items = scanCursorComposers(root, "2026-09-22T00:00:00.000Z");
+    expect(items[0]).toMatchObject({ status: "unsupported-format", unsupportedResume: true, nativeSessionId: "unknown:schema" });
+  });
+});
+
+describe("scanOpencodeSessions", () => {
+  it("reads sessions read-only and keeps parent_id as parentSessionId", () => {
+    const root = mkdtempSync(join(tmpdir(), "uacc-opencode-scan-"));
+    const db = new DatabaseSync(join(root, "opencode.db"));
+    db.exec(`
+      CREATE TABLE session (
+        id TEXT PRIMARY KEY,
+        directory TEXT,
+        parent_id TEXT,
+        time_created INTEGER,
+        time_updated INTEGER
+      )
+    `);
+    db.prepare("INSERT INTO session (id, directory, parent_id, time_created, time_updated) VALUES (?, ?, ?, ?, ?)")
+      .run("ses_parent", "/tmp/project-a", null, 1_700_000_000_000, 1_700_000_100_000);
+    db.prepare("INSERT INTO session (id, directory, parent_id, time_created, time_updated) VALUES (?, ?, ?, ?, ?)")
+      .run("ses_child", "/tmp/project-a", "ses_parent", 1_700_000_050_000, 1_700_000_200_000);
+    db.close();
+    const items = scanOpencodeSessions(root, "2026-09-22T00:00:00.000Z");
+    expect(items).toHaveLength(2);
+    const parent = items.find((item) => item.nativeSessionId === "ses_parent");
+    const child = items.find((item) => item.nativeSessionId === "ses_child");
+    expect(parent).toMatchObject({
+      adapter: "opencode",
+      harness: "cli",
+      controlMode: "observed",
+      status: "observed",
+      project: "/tmp/project-a",
+      parentSessionId: null,
+      unsupportedResume: false,
+    });
+    expect(child).toMatchObject({ parentSessionId: "ses_parent", project: "/tmp/project-a" });
+    expect(new Date(child!.observedAt).toISOString()).toBe(new Date(1_700_000_200_000).toISOString());
+  });
+
+  it("stays visible when the db is missing", () => {
+    const root = mkdtempSync(join(tmpdir(), "uacc-opencode-scan-"));
+    const items = scanOpencodeSessions(root, "2026-09-22T00:00:00.000Z");
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ status: "unsupported-format", unsupportedResume: true, nativeSessionId: "unknown:missing-db" });
+  });
+
+  it("stays visible when the schema is not the known one", () => {
+    const root = mkdtempSync(join(tmpdir(), "uacc-opencode-scan-"));
+    const db = new DatabaseSync(join(root, "opencode.db"));
+    db.exec("CREATE TABLE other (id TEXT)");
+    db.close();
+    const items = scanOpencodeSessions(root, "2026-09-22T00:00:00.000Z");
+    expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ status: "unsupported-format", unsupportedResume: true, nativeSessionId: "unknown:schema" });
   });
 });
