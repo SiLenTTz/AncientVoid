@@ -176,6 +176,13 @@ export class TestHub {
           config: { claudeDir: join(this.root, "claude"), pollIntervalMs: 200 },
         },
         {
+          // cursor-agent CLI stand-in: claude-style stream-json, --resume,
+          // --list-models (adapter-cursor).
+          id: "cursor",
+          module: "@uacc/adapter-cursor",
+          config: { command: join(binDir, "cursor-agent"), model: "claude-sonnet-5" },
+        },
+        {
           // T7.2: an ACP harness (stand-in agent, real protocol) — with the
           // Harnez pattern: a configured default model plus a listing
           // command, so the start form shows a dropdown with the default.

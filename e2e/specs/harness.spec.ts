@@ -21,6 +21,25 @@ test.describe("Harness-Parität (EPIC-P7)", () => {
     expect((await hub.api<{ model: string | null }>(`/api/sessions/${id}`)).body.model).toBe("opencode/big-pickle");
   });
 
+  test("cursor-agent: Antwort kommt im Chat an, Modellkatalog füllt das Startformular", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "cursor", prompt: "Hallo" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Hallo · cursor/)).toBeVisible();
+    await expect(app.locator(".run-strip .run-tokens")).toContainText("Σ 1.542 Tokens");
+    // native Fortsetzung: Follow-up läuft auf derselben chatId
+    await app.getByPlaceholder("Antworten…").fill("Nochmal");
+    await app.getByRole("button", { name: "Senden" }).click();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Nochmal · cursor \(fortgesetzt\)/)).toBeVisible();
+    // Katalog im Startformular
+    await app.getByRole("button", { name: "Zur Übersicht" }).click();
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Adapter").selectOption("cursor");
+    const model = app.getByLabel("Modell");
+    await expect(model).toHaveValue("claude-sonnet-5");
+    await expect(model.locator("option")).toHaveText(["Standard des Harness", "claude-sonnet-5 (Standard)", "gpt-5.3-codex", "composer-2.5"]);
+  });
+
   test("T7.1: der Server lehnt ab, was der Harness nicht kann — mit Grund", async ({ hub }) => {
     const res = await hub.api<{ error: string }>("/api/sessions", { body: { adapter: "dummy", project: hub.alpha, model: "gpt" } });
     expect(res.status).toBe(422);
