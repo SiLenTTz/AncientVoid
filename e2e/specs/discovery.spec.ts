@@ -80,6 +80,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await expect(row).toContainText("1.2.3-e2e");
     await expect(row.locator(".support").first()).toHaveText("fehlt");
     await expect(row.locator(".support").nth(1)).toHaveText("belegt");
-    await expect(app.locator(".inventory-table tr").filter({ hasText: "deepseek" })).toContainText("blockiert");
+    // deepseek = dsh via ACP (ADR-0018) — probed like any CLI, honest cells
+    await expect(app.locator(".inventory-table tr").filter({ hasText: "deepseek" })).toContainText("gebaut, unbelegt");
   });
 });
