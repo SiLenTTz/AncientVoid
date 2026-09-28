@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { hubApi, type DiscoveredSession, type SessionRecord } from "../../shared/api.ts";
+import { groupDiscovery } from "./groups.ts";
 
 /** "vor 5 min" — how old the observation is (EPIC-P5 §3: explicit age). */
 export function observedAgo(observedAt: string, now = Date.now()): string {
@@ -11,14 +12,11 @@ export function observedAgo(observedAt: string, now = Date.now()): string {
   return `vor ${Math.floor(seconds / 86_400)} d`;
 }
 
-function projectName(project: string): string {
-  return project.split("/").filter(Boolean).pop() ?? project;
-}
-
 /**
  * T5.3 / AC-P5-1: every session the hub knows or found read-only in
  * provider files, deduplicated by host + provider + native id on the hub.
- * Hub sessions open as usual; external ones are observe-only.
+ * Hub sessions open as usual; external ones are observe-only. Grouped by
+ * project, collapsible — the newest project is expanded, the rest folded.
  */
 export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => void }) {
   const [items, setItems] = useState<DiscoveredSession[] | null>(null);
@@ -44,14 +42,7 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
     void load(0);
   }, []);
 
-  const byProject = useMemo(() => {
-    const map = new Map<string, DiscoveredSession[]>();
-    for (const item of items ?? []) {
-      const key = projectName(item.project);
-      map.set(key, [...(map.get(key) ?? []), item]);
-    }
-    return [...map.entries()];
-  }, [items]);
+  const groups = groupDiscovery(items ?? []);
 
   const open = async (id: string) => {
     try {
@@ -72,13 +63,18 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
       </div>
       {error && <div class="reply-error">{error}</div>}
       {items.length === 0 && <div class="empty">keine Sessions gefunden</div>}
-      {byProject.map(([project, sessions]) => (
-        <div key={project} class="project-tile">
-          <div class="project-tile-header dim">{project}</div>
-          {sessions.map((s) => (
+      {groups.map((group, i) => (
+        <details key={group.project} class="project-tile" open={i === 0}>
+          <summary class="project-tile-header">
+            <span class="project-tile-name">{group.project}</span>
+            <span class="dim">
+              {group.sessions.length} Session{group.sessions.length === 1 ? "" : "en"} · zuletzt {observedAgo(group.newestAt)}
+            </span>
+          </summary>
+          {group.sessions.map((s) => (
             <DiscoveredRow key={`${s.hostId}|${s.adapter}|${s.nativeSessionId ?? s.hubSessionId}`} item={s} onOpen={open} />
           ))}
-        </div>
+        </details>
       ))}
       {cursor !== null && (
         <button class={busy ? "btn busy" : "btn"} type="button" disabled={busy} onClick={() => void load(cursor)}>
