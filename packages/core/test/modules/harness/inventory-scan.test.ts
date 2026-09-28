@@ -48,11 +48,12 @@ describe("scanClaudeSessions (T5.3)", () => {
 
   it("maps a munged project dir back to the known path — unknown names stay raw", () => {
     const root = mkdtempSync(join(tmpdir(), "uacc-claude-unmunge-"));
+    // underscores become dashes too (observed live: /mnt/omarchy_data → -mnt-omarchy-data)
     const project = join(root, "projects", "-mnt-repos-my-proj");
     mkdirSync(project, { recursive: true });
     writeFileSync(join(project, "s.jsonl"), "{}\n");
-    const items = scanClaudeSessions(root, "2026-09-22T00:00:00.000Z", ["/mnt/repos/anders", "/mnt/repos/my-proj"]);
-    expect(items.find((item) => item.nativeSessionId === "s")?.project).toBe("/mnt/repos/my-proj");
+    const items = scanClaudeSessions(root, "2026-09-22T00:00:00.000Z", ["/mnt/repos/anders", "/mnt/repos_my-proj"]);
+    expect(items.find((item) => item.nativeSessionId === "s")?.project).toBe("/mnt/repos_my-proj");
     // ohne Treffer bleibt der gemungte Name sichtbar (fail loud, nie gedroppt)
     const unknownRoot = mkdtempSync(join(tmpdir(), "uacc-claude-unmunge2-"));
     mkdirSync(join(unknownRoot, "projects", "-tmp-wohin"), { recursive: true });

@@ -71,13 +71,14 @@ function claudeItem(
   };
 }
 
-/** Claude Code munges a cwd into a directory name: every `/` becomes `-`
- * (adapter-claude-clip/src/workspace.ts, confirmed live). Not reversible
- * in general (dashes in segment names) — so we match against known
- * project paths instead of guessing. */
+/** Claude Code munges a cwd into a directory name: every non-alphanumeric
+ * character becomes `-` — observed live: `/mnt/omarchy_data/…` becomes
+ * `-mnt-omarchy-data-…` (underscores too, despite adapter-claude-clip's
+ * older `/`-only note). Not reversible in general (dashes in segment
+ * names) — so we match against known project paths instead of guessing. */
 export function unMungeProject(munged: string, knownProjects: readonly string[]): string {
   for (const known of knownProjects) {
-    if (known.replace(/\//g, "-") === munged) return known;
+    if (known.replace(/[^a-zA-Z0-9]/g, "-") === munged) return known;
   }
   return munged;
 }
