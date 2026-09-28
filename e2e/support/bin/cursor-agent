@@ -1,0 +1,37 @@
+#!/usr/bin/env node
+// Stand-in cursor-agent CLI (adapter-cursor): claude-style stream-json,
+// one run per `-p --output-format stream-json` invocation.
+//
+// Prompt keywords:
+//   FEHLER    the run fails with a rate-limit error line
+//   LANGSAM   the turn takes 60 s (busy/stuck paths)
+const args = process.argv.slice(2);
+const flag = (name) => {
+  const i = args.indexOf(name);
+  return i >= 0 ? (args[i + 1] ?? true) : undefined;
+};
+if (args.includes("--list-models")) {
+  process.stdout.write("claude-sonnet-5\ngpt-5.3-codex\ncomposer-2.5\n");
+  process.exit(0);
+}
+const promptIdx = args.indexOf("--");
+const prompt = promptIdx >= 0 ? args.slice(promptIdx + 1).join(" ") : "";
+const chat = flag("--resume") ?? `chat_${Math.random().toString(36).slice(2, 12)}`;
+const model = flag("--model") ?? "claude-sonnet-5";
+const emit = (o) => process.stdout.write(`${JSON.stringify(o)}\n`);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+(async () => {
+  emit({ type: "system", subtype: "init", session_id: chat, cwd: process.cwd(), tools: ["Bash", "Read", "Edit"], model });
+  if (prompt.includes("FEHLER")) {
+    emit({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "API Error: 429 rate limit exceeded" }] } });
+    emit({ type: "result", subtype: "error_during_execution", is_error: true, result: "API Error: 429 rate limit exceeded", session_id: chat, total_cost_usd: 0, usage: { input_tokens: 0, output_tokens: 0 } });
+    process.exit(1);
+  }
+  if (prompt.includes("LANGSAM")) {
+    await sleep(60_000);
+  }
+  emit({ type: "assistant", message: { role: "assistant", content: [{ type: "thinking", thinking: "Kurz nachdenken." }, { type: "text", text: `Antwort auf: ${prompt.split("\n").pop()} · cursor${flag("--resume") ? " (fortgesetzt)" : ""}` }] } });
+  emit({ type: "result", subtype: "success", result: "ok", session_id: chat, total_cost_usd: 0.0042, usage: { input_tokens: 1500, output_tokens: 42 } });
+  process.exit(0);
+})();
