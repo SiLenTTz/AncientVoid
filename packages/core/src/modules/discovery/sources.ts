@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   DEFAULT_HOST_ID,
@@ -282,9 +282,17 @@ function opencodeItem(
  * hub did not start). A set-but-missing or unreadable store surfaces as one
  * `unsupported-format` row instead of being skipped (K9: visible, not dropped).
  */
-export function scanOpencodeSessions(dataDir: string, now = new Date().toISOString()): DiscoveredSession[] {
+export function scanOpencodeSessions(
+  dataDir: string,
+  now = new Date().toISOString(),
+  projectRoots: readonly string[] = [],
+): DiscoveredSession[] {
   const dbPath = join(dataDir, "opencode.db");
   if (!existsSync(dbPath)) return [opencodeItem(dataDir, "unknown:missing-db", now, null, "unsupported-format")];
+  // No roots configured → no filtering (backwards compatible).
+  const allowed = projectRoots.length
+    ? projectRoots.map((root) => resolve(root))
+    : null;
   let db: DatabaseSync;
   try {
     db = new DatabaseSync(`file:${dbPath}?mode=ro`, { readOnly: true });
@@ -326,6 +334,9 @@ export function scanOpencodeSessions(dataDir: string, now = new Date().toISOStri
             ? row.time_updated
             : now;
       const project = row.directory || dataDir;
+      // ADR-0011/K9: sessions outside the configured project roots are other
+      // people's business — hide them unless no roots are configured.
+      if (allowed && !allowed.some((root) => project === root || project.startsWith(root + "/"))) return [];
       const parent = parentColumn && row.parentId ? row.parentId : null;
       return [opencodeItem(project, row.id, updated, parent, "observed")];
     });
@@ -364,8 +375,8 @@ async function knownProjectCandidates(roots: readonly string[]): Promise<string[
   return [...candidates];
 }
 
-export function opencodeDiscoverySource(dataDir: string): DiscoverySource {
-  return { id: "opencode-sessions", list: async () => scanOpencodeSessions(dataDir) };
+export function opencodeDiscoverySource(dataDir: string, knownProjectRoots: readonly string[] = []): DiscoverySource {
+  return { id: "opencode-sessions", list: async () => scanOpencodeSessions(dataDir, new Date().toISOString(), knownProjectRoots) };
 }
 
 export function cursorDiscoverySource(userDir: string): DiscoverySource {

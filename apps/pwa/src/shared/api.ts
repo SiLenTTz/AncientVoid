@@ -749,6 +749,8 @@ function createHubApi(P: (path: string) => string) {
     model?: string;
     budgetUsd?: number | null;
     args?: { skill?: string; agent?: string };
+    /** Adoption (ADR-0011): continue an externally discovered session. */
+    adoptNativeSessionId?: string;
     attachmentIds?: string[];
   }) =>
     api<SessionRecord>(P("/api/sessions"), {

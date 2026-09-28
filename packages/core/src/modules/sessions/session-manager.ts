@@ -314,8 +314,7 @@ export class SessionManager {
       id: randomUUID(),
       adapter: parsed.adapter,
       project: parsed.project,
-      worktreeSha: null,
-      model: parsed.model ?? null,
+      worktreeSha: null,      model: parsed.model ?? null,
       status: "starting",
       createdAt: now,
       budgetUsd: parsed.budgetUsd ?? null,
@@ -331,7 +330,9 @@ export class SessionManager {
       controlMode: "managed",
       harness: "cli",
       hostId: DEFAULT_HOST_ID,
-      nativeSessionId: null,
+      // Adoption (ADR-0011): a hub-adopted external run keeps its native id —
+      // the first prompt resumes it instead of starting a fresh run.
+      nativeSessionId: parsed.adoptNativeSessionId ?? null,
       resumeVersion: RESUME_SCHEMA_VERSION,
       logOffset: null,
       parentSessionId: null,
@@ -387,6 +388,12 @@ export class SessionManager {
     const ctx = this.makeContext(session);
     const skillName = readSkillName(parsed.args);
     let startSpec = parsed;
+    if (parsed.adoptNativeSessionId) {
+      // Adoption: the first start resumes the adopted native session; the
+      // adapter's own args schema (opencode/claude: resumeSessionId) picks
+      // it up and turns the prompt into a continuation.
+      startSpec = { ...startSpec, args: { ...startSpec.args, resumeSessionId: parsed.adoptNativeSessionId } };
+    }
     if (skillName) {
       session.skillName = skillName;
       const chain = await resolveSkillChain(parsed.project, skillName);

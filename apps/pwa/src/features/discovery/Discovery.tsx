@@ -52,6 +52,28 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
     }
   };
 
+  /** Adoption (ADR-0011): hub-managed continuation of an observed session.
+   * A subagent transcript is not continuable itself — its parent run is
+   * (the subagent's work is part of that conversation). */
+  const adopt = async (item: DiscoveredSession) => {
+    const native = item.parentSessionId ?? item.nativeSessionId;
+    if (!native) return;
+    setBusy(true);
+    try {
+      const record = await hubApi.createSession({
+        adapter: item.adapter,
+        project: item.project,
+        adoptNativeSessionId: native,
+      });
+      onOpen(record);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Übernehmen fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (items === null) return <div class="empty">{error || "lade…"}</div>;
   const unsupported = items.filter((i) => i.status === "unsupported-format").length;
 
@@ -72,7 +94,7 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
             </span>
           </summary>
           {group.sessions.map((s) => (
-            <DiscoveredRow key={`${s.hostId}|${s.adapter}|${s.nativeSessionId ?? s.hubSessionId}`} item={s} onOpen={open} />
+            <DiscoveredRow key={`${s.hostId}|${s.adapter}|${s.nativeSessionId ?? s.hubSessionId}`} item={s} onOpen={open} onAdopt={adopt} />
           ))}
         </details>
       ))}
@@ -85,7 +107,7 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
   );
 }
 
-function DiscoveredRow({ item, onOpen }: { item: DiscoveredSession; onOpen: (id: string) => void }) {
+function DiscoveredRow({ item, onOpen, onAdopt }: { item: DiscoveredSession; onOpen: (id: string) => void; onAdopt?: (item: DiscoveredSession) => void }) {
   const unknown = item.status === "unsupported-format";
   const body = (
     <>
@@ -112,7 +134,19 @@ function DiscoveredRow({ item, onOpen }: { item: DiscoveredSession; onOpen: (id:
           {body}
         </button>
       ) : (
-        <div class="session-open">{body}</div>
+        <div class="session-open">
+          {body}
+          {onAdopt && item.nativeSessionId && !unknown && (
+            <button
+              class="btn"
+              type="button"
+              onClick={() => onAdopt(item)}
+              title="Session in den Hub übernehmen und fortsetzen"
+            >
+              Fortsetzen
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
