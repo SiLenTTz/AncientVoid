@@ -22,8 +22,9 @@ describe("probeHarnesses (T5.1)", () => {
     expect(claude?.evidence).toContain("Probe: 2.1.263.");
     expect(codex).toMatchObject({ version: null, discovery: "missing" });
     expect(codex?.evidence).toContain("Probe: binary missing.");
-    expect(deepseek).toMatchObject({ version: null, discovery: "blocked", resume: "blocked" });
-    expect(deepseek?.evidence).toContain("Probe: no binary");
+    // deepseek = dsh via ACP (ADR-0018): probing the binary, honest cells
+    expect(deepseek).toMatchObject({ version: null, discovery: "missing", resume: "implemented-unverified" });
+    expect(deepseek?.evidence).toContain("Probe: binary missing.");
   });
 });
 
