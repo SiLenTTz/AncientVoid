@@ -161,7 +161,7 @@ export class TestHub {
           // T7.8: a stand-in claude CLI with the real stream-json shapes.
           id: "claude",
           module: "@uacc/adapter-claude",
-          config: { command: join(binDir, "claude") },
+          config: { command: join(binDir, "claude"), claudeDir: join(this.root, "claude") },
         },
         {
           // T7.2: codex in app-server mode (stand-in, real v2 protocol).
