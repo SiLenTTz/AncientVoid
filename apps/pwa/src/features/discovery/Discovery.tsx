@@ -52,15 +52,18 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
     }
   };
 
-  /** Adoption (ADR-0011): hub-managed continuation of an observed session. */
+  /** Adoption (ADR-0011): hub-managed continuation of an observed session.
+   * A subagent transcript is not continuable itself — its parent run is
+   * (the subagent's work is part of that conversation). */
   const adopt = async (item: DiscoveredSession) => {
-    if (!item.nativeSessionId) return;
+    const native = item.parentSessionId ?? item.nativeSessionId;
+    if (!native) return;
     setBusy(true);
     try {
       const record = await hubApi.createSession({
         adapter: item.adapter,
         project: item.project,
-        adoptNativeSessionId: item.nativeSessionId,
+        adoptNativeSessionId: native,
       });
       onOpen(record);
       setError("");

@@ -65,6 +65,29 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await expect(app.locator(".project-tile")).toHaveCount(7);
   });
 
+  test("einen Subagent-Verlauf fortsetzen übernimmt die Haupt-Session samt Transkript (ADR-0011, Live-Fund 2026-09-28)", async ({ app, hub }) => {
+    const parent = "11111111-1111-4111-8111-111111111111";
+    // the external project dir must un-munge into an allowed project (alpha)
+    const mungedAlpha = hub.alpha.replace(/[^a-zA-Z0-9]/g, "-");
+    const dir = join(hub.root, "claude", "projects", mungedAlpha);
+    mkdirSync(join(dir, parent, "subagents"), { recursive: true });
+    writeFileSync(join(dir, `${parent}.jsonl`), `{"type":"user","sessionId":"${parent}"}\n`);
+    writeFileSync(join(dir, parent, "subagents", "agent-9.jsonl"), "{}\n");
+
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    await expandAllGroups(app);
+    // der Subagent-Zeile: „Fortsetzen" übernimmt die Haupt-Session
+    const row = app.locator(".discovered-row").filter({ hasText: "agent-9" });
+    await row.getByRole("button", { name: "Fortsetzen" }).click();
+    await expect(app.locator(".session-topbar")).toContainText("claude");
+    const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
+    const events = await hub.events(id);
+    // die Historie der Haupt-Session ist im Tail — ohne den Agenten zu
+    // fragen. Das Transkript ist nach der Parent-ID benannt: gefunden
+    // heißt, die Haupt-Session (nicht der Subagent) wurde fortgesetzt.
+    expect(events.some((e) => (e.payload as { kind?: string }).kind === "claude.transcript_imported")).toBe(true);
+  });
+
   test("mehr als eine Seite wird mit „Mehr laden“ vollständig", async ({ app, hub }) => {
     externalClaude(hub, "-home-user-viele", Array.from({ length: 55 }, (_, i) => `viele-${i}`));
     await app.getByRole("button", { name: "Gefunden" }).click();
