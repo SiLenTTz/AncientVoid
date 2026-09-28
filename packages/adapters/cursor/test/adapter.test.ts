@@ -47,8 +47,10 @@ describe("cursor adapter", () => {
     await waitFor(() => ctx.events.some((e) => e.summary.includes("exited with code 1")));
   });
 
-  it("models() listet den Katalog des CLIs auf", async () => {
+  it("models() listet den Katalog des CLIs auf (id - Label, live-Format)", async () => {
     const adapter = createAdapter({ command: [agent].join(" ") });
-    expect(((await adapter.models?.()) ?? []).map((m) => m.id)).toEqual(["claude-sonnet-5", "gpt-5.3-codex", "composer-2.5"]);
+    const models = (await adapter.models?.()) ?? [];
+    expect(models.map((m) => m.id)).toEqual(["auto", "claude-sonnet-5", "gpt-5.3-codex"]);
+    expect(models[0]).toMatchObject({ label: "Auto (default)" });
   });
 });

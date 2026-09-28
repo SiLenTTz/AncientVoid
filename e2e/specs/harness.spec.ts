@@ -36,8 +36,8 @@ test.describe("Harness-Parität (EPIC-P7)", () => {
     await app.getByRole("button", { name: "Neue Session" }).click();
     await app.getByLabel("Adapter").selectOption("cursor");
     const model = app.getByLabel("Modell");
-    await expect(model).toHaveValue("claude-sonnet-5");
-    await expect(model.locator("option")).toHaveText(["Standard des Harness", "claude-sonnet-5 (Standard)", "gpt-5.3-codex", "composer-2.5"]);
+    await expect(model).toHaveValue("auto");
+    await expect(model.locator("option")).toHaveText(["Standard des Harness", "Auto (default) (Standard)", "Claude Sonnet 5", "Codex 5.3"]);
   });
 
   test("T7.1: der Server lehnt ab, was der Harness nicht kann — mit Grund", async ({ hub }) => {
