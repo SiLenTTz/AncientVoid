@@ -44,6 +44,41 @@ describe("dedupeDiscovered (AC-P5-1)", () => {
 });
 
 describe("SessionManager.discover", () => {
+  it("filters clip observers out — IDE chats carry no value in the list (user decision 2026-09-28); hub-managed ones stay", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-disc-noclip-"));
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("cursor-clip", createDummy, { eventsPerSecond: 50, autoStopAfterEvents: 1 });
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const watched = await manager.create({ adapter: "cursor-clip", project: "/tmp/hub" });
+      const page = await manager.discover(
+        [
+          {
+            id: "extern",
+            list: async () => [
+              item({ hubSessionId: null, adapter: "cursor-clip", nativeSessionId: "cur-1", project: "/tmp/x", controlMode: "observed" }),
+              item({ hubSessionId: null, adapter: "claude-clip", nativeSessionId: "cl-1", project: "/tmp/x", controlMode: "observed" }),
+              item({ hubSessionId: null, adapter: "opencode", nativeSessionId: "oc-1", project: "/tmp/x", controlMode: "observed" }),
+            ],
+          },
+        ],
+        0,
+        50,
+      );
+      expect(page.items).toHaveLength(2);
+      expect(page.items.find((row) => row.hubSessionId === watched.id)).toBeTruthy();
+      expect(page.items.map((row) => row.nativeSessionId)).toContain("oc-1");
+      expect(page.items.some((row) => row.adapter === "cursor-clip" && row.controlMode === "observed")).toBe(false);
+      expect(page.items.some((row) => row.adapter === "claude-clip")).toBe(false);
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("BUG-0035: leads with the most recently observed — page 1 shows what runs now", async () => {
     const dir = await mkdtemp(join(tmpdir(), "uacc-disc-sort-"));
     const db = new HubDatabase(":memory:");

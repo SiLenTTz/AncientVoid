@@ -209,6 +209,10 @@ export class SessionManager {
   /**
    * Hub rows plus external sources, deduped, paged. Unknown resume versions
    * stay in the list with unsupportedResume (K9), they are not dropped.
+   *
+   * Clip observers (cursor/claude-clip, external IDE chats) stay out —
+   * they bury the real sessions (user decision 2026-09-28); a hub-managed
+   * clip session is a real session and stays.
    */
   async discover(
     sources: readonly DiscoverySource[] = [],
@@ -217,7 +221,9 @@ export class SessionManager {
   ): Promise<{ items: DiscoveredSession[]; nextCursor: number | null }> {
     const external: DiscoveredSession[] = [];
     for (const source of sources) external.push(...(await source.list()));
-    const merged = dedupeDiscovered([...this.list().map((record) => this.toDiscovered(record)), ...external]);
+    const merged = dedupeDiscovered([...this.list().map((record) => this.toDiscovered(record)), ...external]).filter(
+      (item) => !(item.hubSessionId === null && (item.adapter === "cursor-clip" || item.adapter === "claude-clip")),
+    );
     // BUG-0035: page 1 is what the user opens — the most recently observed
     // first, never the source's oldest scan order. Items without a
     // timestamp sink; ISO-8601 compares chronologically as a string.
