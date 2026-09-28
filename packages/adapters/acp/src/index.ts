@@ -159,6 +159,9 @@ interface AgentSession {
   onConfig: (() => void) | null;
   /** BUG-0032: every runTurn bump; a stale turn's late answers are ignored. */
   turnSeq: number;
+  /** BUG-0036: session/load re-notifies the whole history — map+emit stay
+   * off until the load answered; the hub's tail already has it all. */
+  replay: boolean;
   stuckTimer: ReturnType<typeof setTimeout> | null;
   /** Open permission requests — the agent waits for the phone, not stuck. */
   pendingPermissions: number;
@@ -236,7 +239,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   function connect(sessionId: string, proc: WorkerProcess, ctx: AdapterContext): AgentSession {
-    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false, calls: new Map(), configOptions: undefined, onConfig: null, turnSeq: 0, stuckTimer: null, pendingPermissions: 0, queued: [] };
+    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false, calls: new Map(), configOptions: undefined, onConfig: null, turnSeq: 0, replay: false, stuckTimer: null, pendingPermissions: 0, queued: [] };
     state.conn = new AcpConnection((line) => proc.write(line), {
       onNotification: (method, params) => {
         if (method !== "session/update") return;
@@ -254,7 +257,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           state.calls.set(update.toolCallId, { ...known, ...(u.title ? { title: u.title } : {}), ...(u.kind ? { kind: u.kind } : {}), ...(u.rawInput !== undefined ? { rawInput: u.rawInput } : {}) });
           if (state.calls.size > 200) state.calls.delete(state.calls.keys().next().value!);
         }
-        emitAll(ctx, state.mapper.map(update));
+        // BUG-0036: a re-loaded session arrives as update notifications —
+        // they are history, not news; nothing to emit while replaying.
+        if (!state.replay) emitAll(ctx, state.mapper.map(update));
       },
       onRequest: async (method, params) => {
         if (method === "session/request_permission") {
@@ -312,6 +317,23 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
   function announce(ctx: AdapterContext, acpSessionId: string): void {
     ctx.emit({ type: "system", summary: `${label} · Session ${acpSessionId}`, payload: { kind: "acp.native_session", nativeSessionId: acpSessionId } });
+  }
+
+  /** BUG-0036: load/resume a native session with the replay silenced —
+   * the agent re-notifies the loaded conversation; the hub's tail already
+   * has it. Returns false when the agent cannot load at all. */
+  async function resumeNative(state: AgentSession, ctx: AdapterContext, native: string, canLoad: boolean): Promise<boolean> {
+    if (!canLoad) return false;
+    state.replay = true;
+    try {
+      await state.conn.request("session/load", { sessionId: native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs);
+    } finally {
+      state.replay = false;
+      state.mapper.flush();
+    }
+    state.acpSessionId = native;
+    announce(ctx, native);
+    return true;
   }
 
   async function newSession(state: AgentSession, ctx: AdapterContext, model?: string): Promise<void> {
@@ -448,9 +470,19 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
       const proc = await spawnAgent(ctx, spec.env);
       const state = connect(ctx.sessionId, proc, ctx);
-      await initialize(state);
+      const caps = await initialize(state);
+      // continueStopped hands the native id as args.resumeSessionId — the
+      // continued turn runs in the loaded conversation, not a fresh one.
+      const resume = (spec.args as { resumeSessionId?: unknown } | undefined)?.resumeSessionId;
       try {
-        await newSession(state, ctx, spec.model ?? cfg.model);
+        if (typeof resume === "string" && resume && (await resumeNative(state, ctx, resume, caps.loadSession))) {
+          // loaded — the prompt (if any) continues the old conversation
+        } else {
+          if (typeof resume === "string" && resume) {
+            ctx.emit({ type: "system", summary: `${label}: Agent kann Sessions nicht laden — neuer Kontext`, payload: { kind: "acp.context_lost" } });
+          }
+          await newSession(state, ctx, spec.model ?? cfg.model);
+        }
       } catch (err) {
         await state.proc.kill("SIGTERM");
         sessions.delete(ctx.sessionId);
@@ -519,17 +551,24 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const proc = await spawnAgent(ctx);
       const state = connect(sessionId, proc, ctx);
       const caps = await initialize(state);
-      if (caps.loadSession) {
-        await state.conn.request("session/load", { sessionId: native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs);
-        state.acpSessionId = native;
-      } else if (caps.resume) {
-        await state.conn.request("session/resume", { sessionId: native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs);
-        state.acpSessionId = native;
-      } else {
-        await newSession(state, ctx);
-        ctx.emit({ type: "system", summary: `${label}: Agent kann Sessions nicht laden — neuer Kontext`, payload: { kind: "acp.context_lost" } });
+      // BUG-0036: resumeNative silences the load replay; an agent without
+      // load support starts a fresh context, visibly.
+      if (!(await resumeNative(state, ctx, native, caps.loadSession))) {
+        if (caps.resume) {
+          state.replay = true;
+          try {
+            await state.conn.request("session/resume", { sessionId: native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs);
+          } finally {
+            state.replay = false;
+            state.mapper.flush();
+          }
+          state.acpSessionId = native;
+          announce(ctx, native);
+        } else {
+          await newSession(state, ctx);
+          ctx.emit({ type: "system", summary: `${label}: Agent kann Sessions nicht laden — neuer Kontext`, payload: { kind: "acp.context_lost" } });
+        }
       }
-      state.mapper.flush(); // replayed history is already in the hub's tail
       return { sessionId, ...(proc.pid !== undefined ? { pid: proc.pid } : {}) };
     },
 
