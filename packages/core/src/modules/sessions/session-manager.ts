@@ -218,6 +218,10 @@ export class SessionManager {
     const external: DiscoveredSession[] = [];
     for (const source of sources) external.push(...(await source.list()));
     const merged = dedupeDiscovered([...this.list().map((record) => this.toDiscovered(record)), ...external]);
+    // BUG-0035: page 1 is what the user opens — the most recently observed
+    // first, never the source's oldest scan order. Items without a
+    // timestamp sink; ISO-8601 compares chronologically as a string.
+    merged.sort((a, b) => (b.observedAt ?? "").localeCompare(a.observedAt ?? ""));
     return pageDiscovered(merged, cursor, limit);
   }
 
