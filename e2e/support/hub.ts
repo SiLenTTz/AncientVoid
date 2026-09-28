@@ -1,6 +1,7 @@
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
 import { request } from "node:http";
 import { createWriteStream, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -128,6 +129,12 @@ export class TestHub {
   }
 
   private writeConfig(): void {
+    // 79928f3: the opencode discovery source defaults to the REAL
+    // ~/.local/share/opencode — isolate it with a valid but empty store,
+    // so the source runs (zero rows) without leaking host sessions in.
+    const odb = new DatabaseSync(join(this.root, "opencode.db"));
+    odb.exec("CREATE TABLE IF NOT EXISTS session (id TEXT PRIMARY KEY, directory TEXT, parent_id TEXT, time_created INTEGER, time_updated INTEGER)");
+    odb.close();
     const config = {
       dataDir: this.dataDir,
       ...(this.options.hostId ? { hostId: this.options.hostId } : {}),
@@ -138,7 +145,7 @@ export class TestHub {
       ...(this.options.assistantUrl ? { assistant: { model: { url: this.options.assistantUrl, model: "e2e-model" } } } : {}),
       media: { ytDlp: join(binDir, "yt-dlp") },
       server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
-      discovery: { claudeDir: join(this.root, "claude"), cursorUserDir: join(this.root, "cursor") },
+      discovery: { claudeDir: join(this.root, "claude"), cursorUserDir: join(this.root, "cursor"), opencodeDataDir: this.root },
       adapters: [
         {
           id: "dummy",
