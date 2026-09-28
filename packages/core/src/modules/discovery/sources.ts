@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -70,7 +71,18 @@ function claudeItem(
   };
 }
 
-export function scanClaudeSessions(claudeDir: string, now = new Date().toISOString()): DiscoveredSession[] {
+/** Claude Code munges a cwd into a directory name: every `/` becomes `-`
+ * (adapter-claude-clip/src/workspace.ts, confirmed live). Not reversible
+ * in general (dashes in segment names) — so we match against known
+ * project paths instead of guessing. */
+export function unMungeProject(munged: string, knownProjects: readonly string[]): string {
+  for (const known of knownProjects) {
+    if (known.replace(/\//g, "-") === munged) return known;
+  }
+  return munged;
+}
+
+export function scanClaudeSessions(claudeDir: string, now = new Date().toISOString(), knownProjects: readonly string[] = []): DiscoveredSession[] {
   if (!existsSync(claudeDir)) {
     return [claudeItem(claudeDir, "unknown:missing-dir", now, null, "unsupported-format")];
   }
@@ -83,8 +95,11 @@ export function scanClaudeSessions(claudeDir: string, now = new Date().toISOStri
     return [claudeItem(projects, "unknown:unreadable", now, null, "unsupported-format")];
   }
   const out: DiscoveredSession[] = [];
-  for (const projectName of projectNames) {
-    const projectDir = join(projects, projectName);
+  for (const rawName of projectNames) {
+    // The munged dir name becomes a readable path again when the project
+    // is known — otherwise the raw name stays visible (never dropped).
+    const projectName = unMungeProject(rawName, knownProjects);
+    const projectDir = join(projects, rawName);
     let entries: string[];
     try {
       if (!statSync(projectDir).isDirectory()) continue;
@@ -320,8 +335,32 @@ export function scanOpencodeSessions(dataDir: string, now = new Date().toISOStri
   }
 }
 
-export function claudeDiscoverySource(claudeDir: string): DiscoverySource {
-  return { id: "claude-projects", list: async () => scanClaudeSessions(claudeDir) };
+export function claudeDiscoverySource(claudeDir: string, knownProjectRoots: readonly string[] = []): DiscoverySource {
+  return {
+    id: "claude-projects",
+    // The candidates for un-munging are computed per scan, not once: roots
+    // and their projects change while the hub runs.
+    list: async () => scanClaudeSessions(claudeDir, new Date().toISOString(), await knownProjectCandidates(knownProjectRoots)),
+  };
+}
+
+/** Paths a munged Claude project name could be: each root itself, its
+ * direct children (the hub's project layout) and the home dir's direct
+ * children (where `~/my-project` sessions live). */
+async function knownProjectCandidates(roots: readonly string[]): Promise<string[]> {
+  const { readdir } = await import("node:fs/promises");
+  const candidates = new Set<string>([homedir()]);
+  for (const root of [...roots, homedir()]) {
+    candidates.add(root);
+    try {
+      for (const entry of await readdir(root, { withFileTypes: true })) {
+        if (entry.isDirectory()) candidates.add(join(root, entry.name));
+      }
+    } catch {
+      // unreadable root — the root itself stays a candidate
+    }
+  }
+  return [...candidates];
 }
 
 export function opencodeDiscoverySource(dataDir: string): DiscoverySource {
