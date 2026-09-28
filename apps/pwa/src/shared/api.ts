@@ -601,6 +601,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const body = (await res.json().catch(() => ({}))) as { error?: string };
     throw Object.assign(new Error(body.error ?? `${res.status} ${res.statusText}`), { status: res.status });
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -786,6 +787,8 @@ function createHubApi(P: (path: string) => string) {
       method: "POST",
       body: JSON.stringify({ archived }),
     }),
+  /** Delete for good — events, worktree, row. 409 while it runs. */
+  deleteSession: (id: string) => api<void>(P(`/api/sessions/${id}`), { method: "DELETE", body: "{}" }),
   // T1.5-6: doesn't go through api<T>() — a rejected steer (e.g. "no
   // thread_id captured yet") comes back as a 422 with a real, meaningful
   // {ok:false, detail} body, and api<T>()'s generic !res.ok path would
