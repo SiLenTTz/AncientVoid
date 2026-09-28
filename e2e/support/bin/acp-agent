@@ -122,8 +122,19 @@ function handle(msg) {
       if (params.configId !== "model" || !MODEL_OPTION().options.some((g) => g.options.some((o) => o.value === params.value))) return send({ id, error: { code: -32602, message: "unknown option" } });
       models.set(params.sessionId, params.value);
       return send({ id, result: { configOptions: [MODEL_OPTION(params.value)] } });
-    case "session/load":
+    case "session/load": {
+      // BUG-0036: like the real opencode, the loaded conversation comes
+      // back as session/update notifications — the hub must not map them
+      // to a second copy of the turn.
+      const loaded = params?.sessionId;
+      if (loaded) {
+        update(loaded, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "This is a substantial analysis task: replayed." } });
+        update(loaded, { sessionUpdate: "tool_call", toolCallId: "call_replay", title: "git log", kind: "execute", status: "pending", rawInput: { command: "git log" } });
+        update(loaded, { sessionUpdate: "tool_call_update", toolCallId: "call_replay", status: "failed", content: [{ type: "content", content: { type: "text", text: "The user rejected permission to use this specific tool call." } }] });
+        update(loaded, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Notiert — Replay der alten Antwort." } });
+      }
       return send({ id, result: null });
+    }
     case "session/prompt":
       return void prompt(id, params);
     case "session/cancel":

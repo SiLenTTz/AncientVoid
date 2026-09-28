@@ -266,6 +266,48 @@ describe("acp adapter (T7.2)", () => {
     await expect(failing.models?.()).rejects.toThrow();
   });
 
+  it("BUG-0036: recover() plays a loaded history back silently — no second copy of the turn", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "Hallo" }, ctx);
+    await waitFor(() => texts(ctx.events, "assistant").length === 1);
+    const native = String(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.native_session")?.payload.nativeSessionId);
+    await adapter.stop(handle, ctx);
+
+    // hub restart: no surviving worker, the native id is known — the agent
+    // re-notifies the loaded conversation (see the stand-in's session/load)
+    const ctx2 = context({ turns: [] });
+    const recoverCtx = Object.assign(ctx2, { nativeSessionId: native }) as typeof ctx2 & { nativeSessionId: string };
+    const recovered = (await adapter.recover?.("restart", 1, recoverCtx)) ?? null;
+    expect(recovered).toBeTruthy();
+    expect(texts(ctx2.events, "assistant")).toEqual([]);
+    expect(ctx2.events.filter((e) => e.type === "tool_use")).toEqual([]);
+    expect(ctx2.events.filter((e) => e.type === "thinking")).toEqual([]);
+    // after the takeover a new prompt still works normally
+    expect(await adapter.steer(recovered!, { kind: "prompt", text: "Weiter" }, ctx2)).toEqual({ ok: true });
+    await waitFor(() => texts(ctx2.events, "assistant").length === 1);
+    await adapter.stop(recovered!, ctx2);
+  });
+
+  it("a stopped run continues in its loaded conversation — args.resumeSessionId, silent replay (BUG-0036)", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    // the native id an earlier run left behind; the stand-in replays the
+    // old conversation on session/load — none of it may reach the stream
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "Weiter im Kontext", args: { resumeSessionId: "acp_alt_1234" } }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    const native = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.native_session");
+    expect((native?.payload as { nativeSessionId?: string }).nativeSessionId).toBe("acp_alt_1234");
+    expect(ctx.events.filter((e) => e.type === "tool_use")).toEqual([]);
+    // the loaded conversation's replay must stay out; the turn's own
+    // thinking ("Ich überlege kurz.") is welcome
+    expect(texts(ctx.events, "thinking").join("")).not.toContain("replayed");
+    expect(texts(ctx.events, "assistant")).toEqual(["Antwort auf: Weiter im Kontext · ACP"]);
+    await adapter.stop(handle, ctx);
+  });
+
   it("a failed prompt becomes a readable provider error (ADR-0015)", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });

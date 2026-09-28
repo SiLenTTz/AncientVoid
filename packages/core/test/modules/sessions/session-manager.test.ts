@@ -111,6 +111,42 @@ describe("SessionManager", () => {
     }
   });
 
+  it("an error session stays continuable — the way back in is a new prompt (openStopped)", async () => {
+    const { manager } = makeManager(dir, { eventsPerSecond: 10, autoStopAfterEvents: 1 });
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      await manager.stop(record.id);
+      // a dead run: crashed worker, hub restart — status error
+      manager.get(record.id)!.status = "error";
+      const ack = await manager.steer(record.id, { kind: "prompt", text: "Und weiter" });
+      expect(ack.ok).toBe(true);
+      const events = await manager.tail(record.id, 0);
+      expect(events.some((e) => (e.payload as { kind?: string }).kind === "session.continued")).toBe(true);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("delete removes a stopped session for good — events, row — and refuses a running one", async () => {
+    const { manager, store } = makeManager(dir, { eventsPerSecond: 10 });
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      await manager.stop(record.id);
+      expect((await manager.tail(record.id, 0)).length).toBeGreaterThan(0);
+      const ack = await manager.delete(record.id);
+      expect(ack.ok).toBe(true);
+      expect(manager.get(record.id)).toBeUndefined();
+      expect(await store.replay(record.id)).toEqual([]);
+      const running = await manager.create({ adapter: "dummy", project: dir, prompt: "läuft" });
+      const refused = await manager.delete(running.id);
+      expect(refused.ok).toBe(false);
+      expect(refused.detail).toContain("stoppen");
+      await manager.stop(running.id);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
   it("BUG-0033: a refused steer says why in its session.steer event — the chat can show it", async () => {
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);

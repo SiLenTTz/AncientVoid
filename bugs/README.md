@@ -58,6 +58,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0034](bug-0034-messlauf-laesst-acp-worker-zurueck.md) | Messlauf hinterlässt ACP-Worker und Zombie-tmux-Server | done | S2 | messlauf, workers | [!129](https://gitlab.com/SiLenT_Tz/mobile-hub/-/merge_requests/129) |
 
 
-| [BUG-0035](bug-0035-entdecken-zeigt-aelteste-zuerst.md) | Entdecken paginiert unsortiert: älteste zuerst, aktuelle erst auf Seite 3 | in-progress | S2 | core | — |
+| [BUG-0035](bug-0035-entdecken-zeigt-aelteste-zuerst.md) | Entdecken paginiert unsortiert: älteste zuerst, aktuelle erst auf Seite 3 | done | S2 | core | [!131](https://gitlab.com/SiLenT_Tz/mobile-hub/-/merge_requests/131) |
+| [BUG-0036](bug-0036-acp-recovery-replayed-historie.md) | ACP-Recovery replayed die geladene Historie als neue Events | in-progress | S1 | adapters | — |
 
-Die nächste freie Nummer ist **0036**.
+Die nächste freie Nummer ist **0037**.

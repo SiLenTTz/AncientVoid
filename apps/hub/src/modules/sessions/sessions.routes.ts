@@ -239,6 +239,14 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     }
   });
 
+  // Delete for good — events, worktree, row. The PWA asks before calling.
+  app.delete("/api/sessions/:id", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const ack = await deps.sessions.delete(id);
+    if (!ack.ok) return reply.code(409).send({ error: ack.detail ?? "delete refused" });
+    return reply.code(204).send();
+  });
+
 
   // T8.4 (ADR-0025): the shared, revisioned draft of a session.
   const drafts = new DraftStore(deps.tokens.database);

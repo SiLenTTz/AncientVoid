@@ -453,7 +453,9 @@ export class SessionManager {
     const existing = this.live.get(sessionId);
     if (existing) return existing;
     const record = this.get(sessionId);
-    if (!record || record.status !== "stopped") return undefined;
+    // "error" too: a dead run (hub restart, crashed worker) must stay
+    // continuable — the user's way back into a session is a new prompt.
+    if (!record || (record.status !== "stopped" && record.status !== "error")) return undefined;
     const registered = this.registry.get(record.adapter);
     if (!registered) return undefined;
     const isolated =
@@ -863,6 +865,37 @@ export class SessionManager {
       this.logger.info("session stopped", { sessionId, adapter: session.record.adapter });
       this.dispatchDigest(session);
     }
+    return { ok: true };
+  }
+
+  /**
+   * Delete a session for good — events, snapshot, worktree and row. Only
+   * for runs that are not live: a working session has to be stopped first
+   * (its worker and worktree still belong to it). Uncommitted agent work
+   * in a kept worktree goes with it, so the PWA asks before calling this.
+   */
+  async delete(sessionId: string): Promise<Ack> {
+    const record = this.get(sessionId);
+    if (!record) return { ok: false, detail: "session not found" };
+    if (this.live.has(sessionId) && record.status !== "error" && record.status !== "stopped" && record.status !== "parked") {
+      return { ok: false, detail: "Die Session läuft noch — erst stoppen, dann löschen." };
+    }
+    const live = this.live.get(sessionId);
+    if (live) {
+      live.abort.abort();
+      this.live.delete(sessionId);
+    }
+    if (record.worktreeSha !== null && this.worktrees) {
+      try {
+        if (existsSync(this.worktrees.pathFor(sessionId))) await this.worktrees.remove(sessionId, record.project);
+      } catch (err) {
+        this.logger.warn("worktree removal on delete failed", { sessionId, err: err instanceof Error ? err.message : String(err) });
+      }
+    }
+    await this.store.destroySession(sessionId);
+    this.db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+    this.metrics?.inc("sessions_deleted");
+    this.logger.info("session deleted", { sessionId, adapter: record.adapter });
     return { ok: true };
   }
 

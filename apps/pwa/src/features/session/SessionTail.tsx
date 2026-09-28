@@ -477,6 +477,21 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             <button type="button" onClick={() => menuDo(() => void toggleArchive())}>
               {archived ? "Zurückholen" : "Archivieren"}
             </button>
+            <button
+              type="button"
+              class="danger"
+              onClick={() =>
+                menuDo(() => {
+                  if (!confirm("Session endgültig löschen? Verlauf, Statistik und Worktree sind weg.")) return;
+                  void api
+                    .deleteSession(session.id)
+                    .then(() => onNavigate("dashboard"))
+                    .catch((err) => setReplyError(err instanceof Error ? err.message : "Löschen fehlgeschlagen"));
+                })
+              }
+            >
+              Löschen
+            </button>
             <button type="button" onClick={() => menuDo(() => setVoiceOpen(true))}>
               Sprachbefehl
             </button>
