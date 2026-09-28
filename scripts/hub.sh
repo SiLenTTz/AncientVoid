@@ -71,9 +71,27 @@ status() {
 }
 
 case "${1:-}" in
+  start|stop|status)
+    # A installed user unit wins over the dev daemon — never two hubs on
+    # one port (the unit also survives reboots, this script does not).
+    if systemctl --user cat uacc-hub.service >/dev/null 2>&1; then
+      echo "-> systemd: systemctl --user ${1} uacc-hub.service"
+      systemctl --user "${1}" uacc-hub.service || true
+      exit 0
+    fi
+    ;;
+esac
+
+case "${1:-}" in
   start) start ;;
   stop) stop ;;
   status) status ;;
-  logs) tail -f "$LOG" ;;
+  logs)
+    if systemctl --user cat uacc-hub.service >/dev/null 2>&1; then
+      echo "-> systemd: journalctl --user -u uacc-hub.service -f"
+      exec journalctl --user -u uacc-hub.service -f
+    fi
+    tail -f "$LOG"
+    ;;
   *) echo "usage: $0 start|stop|status|logs"; exit 1 ;;
 esac

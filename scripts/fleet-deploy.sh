@@ -72,6 +72,8 @@ WorkingDirectory=%h/mobile-hub
 Environment=UACC_CONFIG=%h/.config/uacc/hub.config.json
 Environment=PATH=%h/.local/share/mise/shims:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=$(command -v node) apps/hub/src/main.ts
+# BUG-0029: logs and data stay private to the user.
+UMask=0077
 Restart=on-failure
 RestartSec=3
 
