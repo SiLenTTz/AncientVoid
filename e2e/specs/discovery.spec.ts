@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Page } from "@playwright/test";
 import { test, expect } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
 
@@ -8,6 +9,17 @@ function externalClaude(hub: TestHub, project: string, ids: string[]): string {
   mkdirSync(dir, { recursive: true });
   for (const id of ids) writeFileSync(join(dir, `${id}.jsonl`), `{"type":"user","sessionId":"${id}"}\n`);
   return dir;
+}
+
+/** Collapsible groups (BUG-0035 follow-up): only the newest project starts
+ * expanded — tests flip every folded group open before asserting rows.
+ * One at a time: the closed-set shrinks with every click. */
+async function expandAllGroups(app: Page) {
+  for (let i = 0; i < 20; i++) {
+    const next = app.locator(".project-tile:not([open]) > summary").first();
+    if ((await next.count()) === 0) break;
+    await next.click();
+  }
 }
 
 test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
@@ -23,6 +35,12 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expect(app.getByText("6 gefunden")).toBeVisible();
     await expect(app.getByText("1 unbekanntes Format")).toBeVisible();
+    // collapsible: exactly one group open by default, the rest folded
+    // (kopie's ext-1 is deduped into extern — 3 groups, not 4)
+    const tiles = app.locator(".project-tile");
+    await expect(tiles).toHaveCount(3);
+    await expect(tiles.and(app.locator("[open]"))).toHaveCount(1);
+    await expandAllGroups(app);
     const rows = app.locator(".discovered-row");
     await expect(rows.filter({ hasText: "ext-1" })).toHaveCount(1);
     await expect(rows.filter({ hasText: "agent-9" }).getByText("Subagent von ext-2")).toBeVisible();
@@ -40,6 +58,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     const t0 = Date.now();
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expect(app.getByText("20 gefunden")).toBeVisible({ timeout: 10_000 });
+    await expandAllGroups(app);
     await expect(app.locator(".discovered-row")).toHaveCount(20);
     info.annotations.push({ type: "sichtbar nach ms", description: String(Date.now() - t0) });
     expect(Date.now() - t0).toBeLessThan(10_000);
