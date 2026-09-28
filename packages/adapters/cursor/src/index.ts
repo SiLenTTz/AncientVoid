@@ -58,7 +58,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const sessions = new Map<string, SessionMeta>();
 
   function buildArgs(prompt: string, resume: string | undefined, model: string | undefined): string[] {
-    const args = ["-p", "--output-format", "stream-json"];
+    // --trust: the hub runs in fresh worktrees — without it the CLI stops
+    // and asks for workspace trust interactively (verified live).
+    const args = ["-p", "--output-format", "stream-json", "--trust"];
     if (resume) args.push("--resume", resume);
     if (model && !resume) args.push("--model", model);
     if (cfg.mode) args.push("--mode", cfg.mode);
@@ -69,6 +71,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   function attach(sessionId: string, proc: WorkerProcess, ctx: AdapterContext, meta: SessionMeta): void {
     sessions.set(sessionId, meta);
     let buffer = "";
+    const lineState = { thinking: "" };
     proc.onStdout((chunk) => {
       buffer += chunk;
       let nl: number;
@@ -83,7 +86,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           ctx.emit({ type: "system", summary: "cursor: non-JSON stdout line", payload: { kind: "cursor.noise", line: line.slice(0, 200) } });
           continue;
         }
-        for (const e of normalizeCursorLine(parsed)) {
+        for (const e of normalizeCursorLine(parsed, lineState)) {
           if ((e.payload as { kind?: string }).kind === "cursor.native_session") {
             const native = (e.payload as { nativeSessionId?: string }).nativeSessionId;
             if (native) meta.resumeSessionId = native;
@@ -110,7 +113,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       return {
         reasoning: true,
         tools: true,
-        cost: true,
+        // live verified 2026-09-29: cursor-agent reports tokens (camelCase
+        // usage) but no cost — "nicht gemeldet" stays honest until it does.
+        cost: false,
         steer: true,
         usage: false,
         ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),

@@ -1,30 +1,40 @@
 import { describe, expect, it } from "vitest";
 import { normalizeCursorLine } from "../src/normalize.ts";
 
-const line = (o: object) => normalizeCursorLine(o as Parameters<typeof normalizeCursorLine>[0]);
+const line = (o: object, state = { thinking: "" }) => normalizeCursorLine(o as Parameters<typeof normalizeCursorLine>[0], state);
 
-describe("normalizeCursorLine — claude-kompatibler stream-json", () => {
+describe("normalizeCursorLine — echte cursor-agent-Formen (live 2026-09-29)", () => {
   it("init kündigt die native Session an", () => {
     const [e] = line({ type: "system", subtype: "init", session_id: "chat_123456789", cwd: "/p", tools: ["Bash", "Edit"] });
     expect(e?.payload).toMatchObject({ kind: "cursor.native_session", nativeSessionId: "chat_123456789", toolCount: 2 });
   });
 
-  it("assistant text/thinking/tool_use und user tool_result", () => {
-    expect(line({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Alles klar" }] } })[0]).toMatchObject({ type: "assistant" });
-    expect(line({ type: "assistant", message: { role: "assistant", content: [{ type: "thinking", thinking: "Ich überlege" }] } })[0]).toMatchObject({ type: "thinking" });
-    const [use] = line({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t1", name: "Bash", input: { command: "ls" } }] } });
-    expect(use).toMatchObject({ type: "tool_use" });
-    expect(use?.payload).toMatchObject({ id: "t1", name: "Bash" });
-    const [res] = line({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: "t1", content: "datei.txt", is_error: false }] } });
-    expect(res).toMatchObject({ type: "tool_result" });
-    expect(res?.payload).toMatchObject({ toolUseId: "t1", isError: false, content: "datei.txt" });
+  it("thinking kommt als Top-Level-Deltas und wird erst bei completed ein Event", () => {
+    const state = { thinking: "" };
+    expect(line({ type: "thinking", subtype: "delta", text: "Die Antwort " }, state)).toEqual([]);
+    expect(line({ type: "thinking", subtype: "delta", text: "ist kurz." }, state)).toEqual([]);
+    const [e] = line({ type: "thinking", subtype: "completed" }, state);
+    expect(e).toMatchObject({ type: "thinking" });
+    expect(e?.payload).toMatchObject({ text: "Die Antwort ist kurz." });
   });
 
-  it("result trägt Kosten, Token-Aufteilung als usage und native Fortsetzungs-Grundlage", () => {
-    const [e] = line({ type: "result", subtype: "success", total_cost_usd: 0.0123, usage: { input_tokens: 2000, output_tokens: 300 }, result: "fertig" });
-    expect(e?.costUsd).toBeCloseTo(0.0123, 6);
-    expect(e?.tokensEst).toBe(2300);
-    expect(e?.payload).toMatchObject({ kind: "cursor.result", usage: { input: 2000, output: 300 } });
+  it("assistant text/tool_use und user tool_result; der Prompt-Echo bleibt draußen", () => {
+    expect(line({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Alles klar" }] } })[0]).toMatchObject({ type: "assistant" });
+    const [use] = line({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t1", name: "Bash", input: { command: "ls" } }] } });
+    expect(use?.payload).toMatchObject({ id: "t1", name: "Bash" });
+    const [res] = line({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: "t1", content: "datei.txt", is_error: false }] } });
+    expect(res?.payload).toMatchObject({ toolUseId: "t1", isError: false, content: "datei.txt" });
+    expect(line({ type: "user", message: { role: "user", content: [{ type: "text", text: "eigener Prompt" }] } })).toEqual([]);
+  });
+
+  it("result nutzt camelCase-Usage (inputTokens/outputTokens); Kosten optional", () => {
+    const [e] = line({ type: "result", subtype: "success", usage: { inputTokens: 15694, outputTokens: 28, cacheReadTokens: 2688 }, result: "cursor ok" });
+    expect(e?.tokensEst).toBe(15722);
+    expect(e?.costUsd).toBeUndefined();
+    expect(e?.payload).toMatchObject({ usage: { input: 15694, output: 28 } });
+    const [withCost] = line({ type: "result", subtype: "success", total_cost_usd: 0.01, usage: { input_tokens: 10, output_tokens: 5 } });
+    expect(withCost?.costUsd).toBeCloseTo(0.01, 5);
+    expect(withCost?.tokensEst).toBe(15);
   });
 
   it("unbekannte Typen bleiben sichtbar, nie gedroppt", () => {
