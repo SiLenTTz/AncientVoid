@@ -125,14 +125,18 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       };
     },
 
-    /** `cursor-agent --list-models` prints one model id per line. */
+    /** `cursor-agent --list-models` prints `id - Label` lines (live:
+     * `auto - Auto (default)` first). */
     async models(): Promise<ModelOption[]> {
       const { stdout } = await run(cfg.command, ["--list-models"], { timeout: 20_000, maxBuffer: 1024 * 1024 });
       return stdout
         .split("\n")
         .map((line) => line.trim())
-        .filter((line) => line.length > 0 && !line.startsWith(" "))
-        .map((id) => ({ id }));
+        .filter((line) => line.length > 0)
+        .flatMap((line) => {
+          const m = /^([\w.-]+)\s+-\s+(.+)$/.exec(line);
+          return m ? [{ id: m[1]!, label: m[2]! }] : [];
+        });
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

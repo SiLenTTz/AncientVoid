@@ -180,7 +180,7 @@ export class TestHub {
           // --list-models (adapter-cursor).
           id: "cursor",
           module: "@uacc/adapter-cursor",
-          config: { command: join(binDir, "cursor-agent"), model: "claude-sonnet-5" },
+          config: { command: join(binDir, "cursor-agent"), model: "auto" },
         },
         {
           // T7.2: an ACP harness (stand-in agent, real protocol) — with the

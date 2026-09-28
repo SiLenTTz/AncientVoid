@@ -11,7 +11,7 @@ const flag = (name) => {
   return i >= 0 ? (args[i + 1] ?? true) : undefined;
 };
 if (args.includes("--list-models")) {
-  process.stdout.write("claude-sonnet-5\ngpt-5.3-codex\ncomposer-2.5\n");
+  process.stdout.write("Available models\n\nauto - Auto (default)\nclaude-sonnet-5 - Claude Sonnet 5\ngpt-5.3-codex - Codex 5.3\n");
   process.exit(0);
 }
 const promptIdx = args.indexOf("--");
