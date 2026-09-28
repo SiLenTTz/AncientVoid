@@ -18,6 +18,8 @@ const CreateSessionBody = z.object({
   // pattern, same regex, single source of truth).
   env: z.record(z.string().regex(ENV_VAR_NAME), z.string()).optional(),
   args: z.record(z.unknown()).optional(),
+  /** Adoption (ADR-0011): continue an externally discovered session. */
+  adoptNativeSessionId: z.string().min(1).optional(),
   /** T7.10: uploaded files for the first prompt. */
   attachmentIds: z.array(AttachmentId).max(20).optional(),
 });
