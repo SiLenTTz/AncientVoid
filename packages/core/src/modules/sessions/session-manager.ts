@@ -18,6 +18,7 @@ import { dedupeDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
 import { notificationFor } from "../notifications/index.ts";
 import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS } from "./session-state.ts";
+import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 
 export interface SessionManagerObservability {
@@ -65,6 +66,7 @@ export class SessionManager {
   private readonly registry: AdapterRegistry;
   private readonly runner: WorkerRunner;
   private readonly worktrees: WorktreeManager | undefined;
+  private readonly mirrorDataDir: string;
   private readonly reportingSinks: ReportingSink[];
   private readonly logger: HubLogger;
   private readonly metrics: HubMetrics | undefined;
@@ -94,7 +96,12 @@ export class SessionManager {
      * configured (same "default off" principle as the MCP gateway, OD-2). */
     reportingSinks: ReportingSink[] = [],
     observability: SessionManagerObservability = {},
+    /** Read-only opencode mirror (ADR-0011 Erweiterung): the data dir whose
+     * opencode.db mirror sessions read. Defaults to the same dir the
+     * discovery scan uses; tests inject their own fixture dir. */
+    mirrorDataDir: string = defaultOpencodeDataDir(),
   ) {
+    this.mirrorDataDir = mirrorDataDir;
     this.db = db;
     this.store = store;
     this.registry = registry;
@@ -306,6 +313,7 @@ export class SessionManager {
    */
   async create(spec: unknown, actor?: string): Promise<SessionRecord> {
     const parsed = SessionSpecSchema.parse(spec);
+    if (parsed.mirrorNativeSessionId) return this.createMirror(parsed, actor);
     const registered = this.registry.require(parsed.adapter);
     const refused = refuseSpec(registered.capabilities.features, parsed.adapter, parsed);
     if (refused) throw new Error(refused);
@@ -459,6 +467,115 @@ export class SessionManager {
     return { ...record };
   }
 
+  /**
+   * Read-only mirror (ADR-0011 Erweiterung): a read-only chat view of an
+   * externally observed opencode session. No adapter runs — history and
+   * updates come from opencode's own store (same source as the discovery
+   * scan). `refreshMirror()` pulls the delta; the observed control mode
+   * keeps every steer out.
+   */
+  private async createMirror(parsed: { adapter: string; project: string; mirrorNativeSessionId?: string | undefined }, actor?: string): Promise<SessionRecord> {
+    const nativeId = parsed.mirrorNativeSessionId;
+    if (!nativeId) throw new Error("Spiegel ohne native Session-ID");
+    const first = readOpenCodeMirrorDelta(this.mirrorDataDir, nativeId, 0);
+    if (!first) {
+      throw new Error(`Spiegel nicht möglich: keine lesbare opencode-Session „${nativeId}" in ${this.mirrorDataDir}`);
+    }
+    const now = new Date().toISOString();
+    const record: SessionRecord = {
+      id: randomUUID(),
+      adapter: parsed.adapter,
+      project: first.info.project ?? parsed.project,
+      worktreeSha: null,
+      model: null,
+      status: "idle",
+      createdAt: now,
+      budgetUsd: null,
+      adapterVersion: "0.0.0-mirror",
+      lastSeq: 0,
+      costUsd: 0,
+      updatedAt: now,
+      tokensEst: 0,
+      metrics: metricsState(emptyMetricCounters()),
+      lastActivity: null,
+      pinned: false,
+      parkReason: null,
+      controlMode: "mirror",
+      harness: "cli",
+      hostId: DEFAULT_HOST_ID,
+      nativeSessionId: nativeId,
+      resumeVersion: RESUME_SCHEMA_VERSION,
+      logOffset: null,
+      parentSessionId: null,
+      observedAt: now,
+      fork: false,
+      inputRevision: 0,
+      writerClient: null,
+      writerLeaseUntil: null,
+      archived: false,
+      title: first.info.title ?? sessionTitle(nativeId),
+    };
+    await this.store.initSession(record.id);
+    this.persist(record);
+    const session: LiveSession = {
+      record,
+      adapter: null as unknown as Adapter,
+      handle: null,
+      abort: new AbortController(),
+      subscribers: new Set(),
+      workdir: record.project,
+      worktreeIsolated: false,
+      budgetWarned: false,
+    };
+    this.live.set(record.id, session);
+    await this.emitEvents(session, first.events);
+    await this.emitSystem(session, "session.mirror", {
+      nativeSessionId: nativeId,
+      events: first.events.length,
+      actor: actor ?? null,
+      read_only: true,
+    });
+    await this.emitEvents(session, [{ type: "system", summary: "Spiegel steht", payload: { kind: "opencode.mirror_delta", watermark: first.watermark } }]);
+    this.logger.info("session mirrored", { sessionId: record.id, nativeSessionId: nativeId });
+    return { ...record };
+  }
+
+  /** Delta pull for a mirror session: everything opencode wrote since the
+   * last watermark becomes chat events (pushed to subscribers live). */
+  async refreshMirror(sessionId: string): Promise<void> {
+    const record = this.get(sessionId);
+    if (!record || record.controlMode !== "mirror" || !record.nativeSessionId) return;
+    let session = this.live.get(sessionId);
+    if (!session) {
+      // after a hub restart the mirror comes back lazily, like stopped runs
+      session = {
+        record,
+        adapter: null as unknown as Adapter,
+        handle: null,
+        abort: new AbortController(),
+        subscribers: new Set(),
+        workdir: record.project,
+        worktreeIsolated: false,
+        budgetWarned: false,
+      };
+      this.live.set(sessionId, session);
+    }
+    const tail = await this.store.replay(sessionId);
+    const marker = [...tail].reverse().find((e) => (e.payload as { kind?: string }).kind === "opencode.mirror_delta");
+    const since = typeof (marker?.payload as { watermark?: unknown })?.watermark === "number" ? (marker!.payload as { watermark: number }).watermark : 0;
+    const delta = readOpenCodeMirrorDelta(this.mirrorDataDir, record.nativeSessionId, since);
+    if (!delta) {
+      await this.emitSystem(session, "session.mirror_lost", { reason: "opencode-Store nicht mehr lesbar" });
+      return;
+    }
+    if (delta.events.length > 0) await this.emitEvents(session, delta.events);
+    await this.emitEvents(session, [{ type: "system", summary: "Spiegel aktualisiert", payload: { kind: "opencode.mirror_delta", watermark: delta.watermark } }]);
+    const last = tail.at(-1) ?? null;
+    record.updatedAt = new Date().toISOString();
+    record.lastActivity = last !== null ? activityOf(last) : null;
+    this.persist(record);
+  }
+
   /** BUG-0018: a stopped session enters `live` only once someone opens it
    * (tail subscription or steer), never at recovery. The shell is cheap:
    * skill and provider id are read from the log only when the run
@@ -589,6 +706,12 @@ export class SessionManager {
   }
 
   private async steerNow(sessionId: string, input: SteerInput, actor?: string, meta?: SteerMeta): Promise<Ack> {
+    // A mirror is a read-only view (ADR-0011 Erweiterung): nothing may be
+    // steered, stopped or parked into opencode's session — loudly refused.
+    const mirrorRecord = this.get(sessionId);
+    if (mirrorRecord?.controlMode === "mirror") {
+      return { ok: false, detail: "Spiegel-Session ist nur lesbar — zum Weiterarbeiten übernehmen" };
+    }
     const session = this.openStopped(sessionId);
     if (!session) {
       const record = this.get(sessionId);
@@ -1000,6 +1123,12 @@ export class SessionManager {
       if (record.status === "stopped") {
         // Loaded when opened (openStopped), so recovery time does not grow
         // with the history of finished runs.
+        recovered++;
+        continue;
+      }
+      if (record.controlMode === "mirror") {
+        // A mirror is a read-only view with no adapter of its own — nothing
+        // to recover, it refreshes from opencode's store when opened.
         recovered++;
         continue;
       }

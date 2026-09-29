@@ -20,6 +20,9 @@ const CreateSessionBody = z.object({
   args: z.record(z.unknown()).optional(),
   /** Adoption (ADR-0011): continue an externally discovered session. */
   adoptNativeSessionId: z.string().min(1).optional(),
+  /** Read-only mirror (ADR-0011 Erweiterung): show an observed opencode
+   * session's conversation without adopting or running anything. */
+  mirrorNativeSessionId: z.string().min(1).optional(),
   /** T7.10: uploaded files for the first prompt. */
   attachmentIds: z.array(AttachmentId).max(20).optional(),
 });
@@ -53,6 +56,12 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
 
   app.get("/api/sessions/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
+    // A mirror session pulls its delta on read (ADR-0011 Erweiterung):
+    // the PWA polls this route while the chat is open — new opencode
+    // messages become events and go out over the WS immediately.
+    if (deps.sessions.get(id)?.controlMode === "mirror") {
+      await deps.sessions.refreshMirror(id).catch(() => undefined);
+    }
     const session = deps.sessions.get(id);
     if (!session) return reply.code(404).send({ error: "unknown session" });
     return withAttachCmd(session);

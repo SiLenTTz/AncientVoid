@@ -74,6 +74,27 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
     }
   };
 
+  /** Read-only mirror (ADR-0011 Erweiterung): show an observed opencode
+   * session's chat exactly as it happened — nothing is started or taken
+   * over; it keeps updating while open. */
+  const mirror = async (item: DiscoveredSession) => {
+    if (!item.nativeSessionId) return;
+    setBusy(true);
+    try {
+      const record = await hubApi.createSession({
+        adapter: item.adapter,
+        project: item.project,
+        mirrorNativeSessionId: item.nativeSessionId,
+      });
+      onOpen(record);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Spiegeln fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (items === null) return <div class="empty">{error || "lade…"}</div>;
   const unsupported = items.filter((i) => i.status === "unsupported-format").length;
 
@@ -94,7 +115,7 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
             </span>
           </summary>
           {group.sessions.map((s) => (
-            <DiscoveredRow key={`${s.hostId}|${s.adapter}|${s.nativeSessionId ?? s.hubSessionId}`} item={s} onOpen={open} onAdopt={adopt} />
+            <DiscoveredRow key={`${s.hostId}|${s.adapter}|${s.nativeSessionId ?? s.hubSessionId}`} item={s} onOpen={open} onAdopt={adopt} onMirror={s.adapter === "opencode" ? mirror : undefined} />
           ))}
         </details>
       ))}
@@ -107,7 +128,7 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
   );
 }
 
-function DiscoveredRow({ item, onOpen, onAdopt }: { item: DiscoveredSession; onOpen: (id: string) => void; onAdopt?: (item: DiscoveredSession) => void }) {
+function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSession; onOpen: (id: string) => void; onAdopt?: (item: DiscoveredSession) => void; onMirror?: (item: DiscoveredSession) => void }) {
   const unknown = item.status === "unsupported-format";
   const body = (
     <>
@@ -144,6 +165,16 @@ function DiscoveredRow({ item, onOpen, onAdopt }: { item: DiscoveredSession; onO
               title="Session in den Hub übernehmen und fortsetzen"
             >
               Fortsetzen
+            </button>
+          )}
+          {onMirror && item.nativeSessionId && !unknown && (
+            <button
+              class="btn"
+              type="button"
+              onClick={() => onMirror(item)}
+              title="Verlauf lesbar im Hub spiegeln — ohne Übernahme, nur lesen"
+            >
+              Spiegeln
             </button>
           )}
         </div>

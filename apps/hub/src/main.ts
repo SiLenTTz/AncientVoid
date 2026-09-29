@@ -130,6 +130,9 @@ async function main(): Promise<void> {
   if (reportingSinks.length > 0) {
     logger.info("reporting sinks configured", { count: reportingSinks.length });
   }
+  // ADR-0011 Erweiterung: mirror sessions read the same store the
+  // discovery scan uses — one resolved path, two features.
+  const opencodeDataDir = config.discovery.opencodeDataDir ? resolve(config.discovery.opencodeDataDir) : defaultOpencodeDataDir();
   const sessions = new SessionManager(
     db,
     store,
@@ -141,6 +144,7 @@ async function main(): Promise<void> {
     config.dailyCapUsd,
     reportingSinks,
     { logger: logger.child({ component: "sessions" }), metrics },
+    opencodeDataDir,
   );
 
   // T7.2 / ADR-0018 §3: providers ask before a tool runs — always through

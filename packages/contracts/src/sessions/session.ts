@@ -52,6 +52,10 @@ export const SessionSpec = z.object({
    * refuse this via refuseSpec (unsupportedResume).
    */
   adoptNativeSessionId: z.string().min(1).optional(),
+  /** Read-only mirror (ADR-0011 Erweiterung): show an externally observed
+   * opencode session's conversation in the hub chat without adopting it —
+   * history and updates come from opencode's own store, nothing is run. */
+  mirrorNativeSessionId: z.string().min(1).optional(),
   /** T7.10: files for the first prompt — resolved by the hub from the
    * uploaded attachment ids (clients send `attachmentIds`). */
   attachments: z.array(z.custom<PromptAttachment>()).optional(),

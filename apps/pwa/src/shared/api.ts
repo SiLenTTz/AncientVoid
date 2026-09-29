@@ -262,7 +262,7 @@ export interface DiscoveredSession {
   project: string;
   adapter: string;
   status: string;
-  controlMode: "observed" | "managed" | "controllable";
+  controlMode: "observed" | "managed" | "controllable" | "mirror";
   harness: string;
   hostId: string;
   nativeSessionId: string | null;
@@ -751,6 +751,9 @@ function createHubApi(P: (path: string) => string) {
     args?: { skill?: string; agent?: string };
     /** Adoption (ADR-0011): continue an externally discovered session. */
     adoptNativeSessionId?: string;
+    /** Read-only mirror (ADR-0011 Erweiterung): show an observed opencode
+     * session's chat without adopting or running anything. */
+    mirrorNativeSessionId?: string;
     attachmentIds?: string[];
   }) =>
     api<SessionRecord>(P("/api/sessions"), {

@@ -1000,6 +1000,81 @@ describe("SessionManager — reporting sink dispatch (T4.1, ADR-0009)", () => {
   });
 });
 
+describe("SessionManager mirror (ADR-0011 Erweiterung)", () => {
+  let dir: string;
+  let dataDir: string;
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), "uacc-mirror-sm-"));
+    dataDir = join(dir, "opencode-data");
+    await mkdir(dataDir, { recursive: true });
+    const { DatabaseSync } = await import("node:sqlite");
+    const odb = new DatabaseSync(join(dataDir, "opencode.db"));
+    odb.exec("CREATE TABLE session (id TEXT PRIMARY KEY, directory TEXT, title TEXT, time_created INTEGER, time_updated INTEGER)");
+    odb.exec("CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT)");
+    odb.exec("CREATE TABLE part (id TEXT PRIMARY KEY, message_id TEXT, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT)");
+    odb.prepare("INSERT INTO session VALUES (?,?,?,?,?)").run("ses_live", dir, "Spiegel-Titel", 1000, 2000);
+    odb.prepare("INSERT INTO message VALUES (?,?,?,?,?)").run("m1", "ses_live", 1000, 1000, JSON.stringify({ role: "user" }));
+    odb.prepare("INSERT INTO part VALUES (?,?,?,?,?,?)").run("p1", "m1", "ses_live", 1000, 1000, JSON.stringify({ type: "text", text: "erste Frage" }));
+    odb.close();
+  });
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  function manager() {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy);
+    return { manager: new SessionManager(db, store, registry, new ProcessRunner(), undefined, undefined, undefined, undefined, [], {}, dataDir), db };
+  }
+
+  it("creates a read-only mirror without any adapter and imports the chat", async () => {
+    const { manager: sm, db } = manager();
+    try {
+      // adapter "opencode" is deliberately NOT registered — a mirror runs nothing
+      const record = await sm.create({ adapter: "opencode", project: dir, mirrorNativeSessionId: "ses_live" });
+      expect(record.controlMode).toBe("mirror");
+      expect(record.status).toBe("idle");
+      expect(record.title).toBe("Spiegel-Titel");
+      expect(record.nativeSessionId).toBe("ses_live");
+      const events = await sm.tail(record.id, 0);
+      expect(events.some((e) => e.type === "user" && (e.payload as { text?: string }).text === "erste Frage")).toBe(true);
+      // steering anything into the mirror is loudly refused
+      const ack = await sm.steer(record.id, { kind: "prompt", text: "hack" });
+      expect(ack).toMatchObject({ ok: false });
+    } finally {
+      await sm.shutdown();
+      db.close();
+    }
+  });
+
+  it("refreshMirror appends only the delta — new opencode parts become events", async () => {
+    const { manager: sm, db } = manager();
+    try {
+      const record = await sm.create({ adapter: "opencode", project: dir, mirrorNativeSessionId: "ses_live" });
+      const before = (await sm.tail(record.id, 0)).length;
+      const { DatabaseSync } = await import("node:sqlite");
+      const odb = new DatabaseSync(join(dataDir, "opencode.db"));
+      odb.prepare("INSERT INTO message VALUES (?,?,?,?,?)").run("m2", "ses_live", 3000, 3000, JSON.stringify({ role: "assistant" }));
+      odb.prepare("INSERT INTO part VALUES (?,?,?,?,?,?)").run("p2", "m2", "ses_live", 3000, 3000, JSON.stringify({ type: "text", text: "neue Antwort" }));
+      odb.close();
+      await sm.refreshMirror(record.id);
+      const events = await sm.tail(record.id, 0);
+      expect(events.length).toBe(before + 2); // the assistant event + the delta marker
+      expect(events.some((e) => e.type === "assistant" && (e.payload as { text?: string }).text === "neue Antwort")).toBe(true);
+      // idempotent: refreshing again without new parts adds only the marker
+      await sm.refreshMirror(record.id);
+      const again = await sm.tail(record.id, 0);
+      expect(again.length).toBe(events.length + 1);
+      expect(again.filter((e) => e.type === "assistant")).toHaveLength(1);
+    } finally {
+      await sm.shutdown();
+      db.close();
+    }
+  });
+});
+
 describe("SessionManager adoption (BUG-0039)", () => {
   let dir: string;
   beforeAll(async () => {
