@@ -47,6 +47,13 @@ describe("cursor adapter", () => {
     await waitFor(() => ctx.events.some((e) => e.summary.includes("exited with code 1")));
   });
 
+  it("ohne Modell läuft der Konto-Default auf out-of-usage — der Adapter setzt --model auto", async () => {
+    const ctx = context();
+    await createAdapter({ command: [agent].join(" ") }).start({ adapter: "cursor", project: process.cwd(), prompt: "Hallo" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "cursor.model"));
+    expect(kind(ctx.events, "cursor.model")?.payload).toMatchObject({ model: "auto" });
+  });
+
   it("models() listet den Katalog des CLIs auf (id - Label, live-Format)", async () => {
     const adapter = createAdapter({ command: [agent].join(" ") });
     const models = (await adapter.models?.()) ?? [];
