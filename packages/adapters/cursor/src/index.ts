@@ -35,7 +35,10 @@ const run = promisify(execFile);
 const CursorConfig = z.object({
   command: z.string().min(1).default("cursor-agent"),
   extraArgs: z.array(z.string()).default([]),
-  model: z.string().min(1).optional(),
+  /** Live 2026-09-29: ohne --model greift der Konto-Default (Max-Mode-Modell,
+   * out of usage → Exit 1). Der CLI-eigene "default" ist auto, nicht was das
+   * Konto durchreicht — deshalb explizit auto. */
+  model: z.string().min(1).default("auto"),
   mode: z.enum(["ask", "plan"]).optional(),
   /** ADR-0032: curated fallback if the chosen model has no known window. */
   contextWindowTokens: z.number().int().positive().optional(),
