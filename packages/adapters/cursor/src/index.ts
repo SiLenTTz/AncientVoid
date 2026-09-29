@@ -12,7 +12,7 @@ import type {
   SteerInput,
   WorkerProcess,
 } from "@uacc/contracts";
-import { basicFeatures, promptWithAttachments, providerErrorEvent } from "@uacc/contracts";
+import { basicFeatures, promptWithAttachments } from "@uacc/contracts";
 import { contextWindowFor } from "@uacc/models";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -45,7 +45,6 @@ type CursorConfig = z.infer<typeof CursorConfig>;
 const OpencodeStyleArgs = z.object({
   resumeSessionId: z.string().min(1).optional(),
 });
-type SessionArgs = z.infer<typeof OpencodeStyleArgs>;
 
 interface SessionMeta {
   healthy: boolean;
