@@ -54,6 +54,16 @@ describe("cursor adapter", () => {
     expect(kind(ctx.events, "cursor.model")?.payload).toMatchObject({ model: "auto" });
   });
 
+  it("out-of-usage Noise wird als usage_limit erkannt, nicht als Rauschen", async () => {
+    const ctx = context();
+    await createAdapter({ command: [agent].join(" ") }).start(
+      { adapter: "cursor", project: process.cwd(), prompt: "LIMIT" },
+      ctx,
+    );
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "cursor.usage_limit"));
+    expect(kind(ctx.events, "cursor.usage_limit")?.summary).toContain("Usage-Limit");
+  });
+
   it("models() listet den Katalog des CLIs auf (id - Label, live-Format)", async () => {
     const adapter = createAdapter({ command: [agent].join(" ") });
     const models = (await adapter.models?.()) ?? [];

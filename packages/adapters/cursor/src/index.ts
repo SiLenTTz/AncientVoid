@@ -85,7 +85,20 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         try {
           parsed = JSON.parse(line) as CursorLine;
         } catch {
-          ctx.emit({ type: "system", summary: "cursor: non-JSON stdout line", payload: { kind: "cursor.noise", line: line.slice(0, 200) } });
+          // ActionRequiredError ("You're out of usage") is Cursor's account
+          // limit, not hub noise — say so instead of a cryptic adapter.down.
+          const usage = /out of usage|ActionRequiredError/i.test(line);
+          ctx.emit({
+            type: "system",
+            summary: usage ? "cursor: Usage-Limit erreicht (Cursor-Konto)" : "cursor: non-JSON stdout line",
+            payload: {
+              kind: usage ? "cursor.usage_limit" : "cursor.noise",
+              line: line.slice(0, 500),
+              ...(usage
+                ? { hint: "Cursor-Account-Limit ausgeschöpft — Limit erhöhen, auf Auto-Plan wechseln oder später erneut versuchen." }
+                : {}),
+            },
+          });
           continue;
         }
         for (const e of normalizeCursorLine(parsed, lineState)) {
