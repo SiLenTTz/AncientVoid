@@ -999,3 +999,53 @@ describe("SessionManager — reporting sink dispatch (T4.1, ADR-0009)", () => {
     }
   });
 });
+
+describe("SessionManager adoption (BUG-0039)", () => {
+  let dir: string;
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), "uacc-adopt-"));
+  });
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("passes importHistory along the native id and ends idle without a prompt", async () => {
+    const seen: SessionSpec[] = [];
+    const fake: Adapter = {
+      id: "fake-acp",
+      version: "0.0.1",
+      capabilities() {
+        return { reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures() };
+      },
+      async start(spec: SessionSpec, ctx: AdapterContext) {
+        seen.push(spec);
+        // the adoption's history import — what a loadSession-capable agent
+        // replays during start()
+        ctx.emit({ type: "assistant", summary: "alte Nachricht aus der übernommenen Session", payload: { text: "alte Nachricht aus der übernommenen Session" } });
+        return { sessionId: ctx.sessionId };
+      },
+      async status() {
+        return { state: "healthy" };
+      },
+      async steer() {
+        return { ok: false, detail: "fake" };
+      },
+      async stop() {},
+    };
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("fake-acp", () => fake);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "fake-acp", project: dir, adoptNativeSessionId: "ses_adopt_1" });
+      expect(seen[0]!.args).toMatchObject({ resumeSessionId: "ses_adopt_1", importHistory: true });
+      expect(manager.get(record.id)?.status).toBe("idle");
+      const events = await manager.tail(record.id, 0);
+      expect(events.some((e) => e.type === "assistant")).toBe(true);
+    } finally {
+      await manager.shutdown();
+      db.close();
+    }
+  });
+});
