@@ -1,7 +1,7 @@
 ---
 id: BUG-0036
 slug: acp-recovery-replayed-historie
-status: open
+status: fixed
 severity: S1
 area: adapters
 instance: dev
@@ -62,6 +62,25 @@ zweiten Events; danach ein neuer Prompt liefert normal.
 
 ## Handoff
 
-- [ ] Datei im Index [`README.md`](README.md)
-- [ ] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` oder offen lassen
+- [x] Datei im Index [`README.md`](README.md)
+- [ ] GitLab-Issue (kein Forge-Eintrag; Solo-Fix auf `feat/p12-backup-restore`)
+- [x] `bugfix`
+
+## Behebung (2026-09-29, Commit `25c5efe`)
+
+**Root-cause:** wie Eingrenzung — opencode re-notifiziert die geladene
+Konversation als `session/update`; `UpdateMapper` emittete direkt.
+
+**Fix:** `state.replay` klemmt in `connect()`s `onNotification` map+emit,
+solange `session/load`/`session/resume` läuft (`resumeNative()` setzt
+das Flag, verwirft danach den Puffer). Adoptierte Worker sind nicht
+betroffen. Ein Agent ohne load-Fähigkeit meldet weiter sichtbar
+`acp.context_lost`.
+
+**Tests:** `packages/adapters/acp/test/adapter.test.ts` — „BUG-0036:
+recover() plays a loaded history back silently" und „a stopped run
+continues in its loaded conversation … silent replay (BUG-0036)".
+
+**Offen:** Die vor dem Fix entstandenen Duplikat-Blöcke in den
+betroffenen Sessions (#77–117, #334, #721) bleiben im EventStore —
+historische Daten, keine Nachbereinigung (K7: Append-Only).

@@ -38,7 +38,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0012](bug-0012-tmux-env-key-shell-injection.md) | `TmuxRunner.spawn()`: unvalidierte env-Keys = echte Shell-Injection (RCE) | fixed | S1 | workers | — (GitLab derzeit nicht erreichbar) |
 | [BUG-0013](bug-0013-mcp-gateway-sessionid-route-confusion.md) | MCP-Gateway: `sessionId` bricht per `?`/`..` aus dem Pfad-Template aus | fixed | S2 | gateway-mcp | — (GitLab derzeit nicht erreichbar) |
 | [BUG-0014](bug-0014-search-indexes-worktree-duplicates.md) | Sprachsuche zeigt Git-Worktree-Kopien als doppelte Treffer | fixed | S3 | server | — |
-| [BUG-0015](bug-0015-offline-reload-token-gate.md) | Offline-Neuladen zeigt Token-Anmeldung statt gecachter Sessions (K10) | open | S2 | pwa | [#11](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/11) |
+| [BUG-0015](bug-0015-offline-reload-token-gate.md) | Offline-Neuladen zeigt Token-Anmeldung statt gecachter Sessions (K10) | fixed | S2 | pwa | [#11](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/11) |
 | [BUG-0016](bug-0016-reopen-ignores-input-id.md) | Wiederholte Eingabe startet eine gestoppte Session zweimal | fixed | S1 | core | — |
 | [BUG-0017](bug-0017-concurrent-reopen-double-run.md) | Handy und PC öffnen eine gestoppte Session gleichzeitig: zwei Läufe | fixed | S1 | core, pwa | — |
 | [BUG-0018](bug-0018-recovery-replays-stopped-sessions.md) | Hub-Start liest den Verlauf jeder gestoppten Session ein (K7) | fixed | S2 | core | — |
@@ -59,6 +59,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 
 
 | [BUG-0035](bug-0035-entdecken-zeigt-aelteste-zuerst.md) | Entdecken paginiert unsortiert: älteste zuerst, aktuelle erst auf Seite 3 | done | S2 | core | [!131](https://gitlab.com/SiLenT_Tz/mobile-hub/-/merge_requests/131) |
-| [BUG-0036](bug-0036-acp-recovery-replayed-historie.md) | ACP-Recovery replayed die geladene Historie als neue Events | in-progress | S1 | adapters | — |
+| [BUG-0036](bug-0036-acp-recovery-replayed-historie.md) | ACP-Recovery replayed die geladene Historie als neue Events | fixed | S1 | adapters | — |
+| [BUG-0037](bug-0037-hub-down-nach-sigterm-ohne-restart.md) | Hub blieb nach SIGTERM-Exit down: kein Restart bei status 0 | done | S1 | hub.sh | — |
 
-Die nächste freie Nummer ist **0037**.
+Die nächste freie Nummer ist **0038**.

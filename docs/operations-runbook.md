@@ -51,7 +51,10 @@ Environment=UACC_CONFIG=/pfad/zum/mobile-hub/hub.config.json
 Environment=PATH=%h/.local/share/mise/shims:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=%h/.local/share/mise/shims/node apps/hub/src/main.ts
 UMask=0077
-Restart=on-failure
+# BUG-0037: on-failure ließ den Hub nach sauberem SIGTERM-Exit (status 0)
+# down — always startet neu; explizites `systemctl --user stop`
+# unterdrückt Restart weiterhin.
+Restart=always
 RestartSec=3
 
 [Install]
