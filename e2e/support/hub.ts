@@ -133,7 +133,7 @@ export class TestHub {
     // ~/.local/share/opencode — isolate it with a valid but empty store,
     // so the source runs (zero rows) without leaking host sessions in.
     const odb = new DatabaseSync(join(this.root, "opencode.db"));
-    odb.exec("CREATE TABLE IF NOT EXISTS session (id TEXT PRIMARY KEY, directory TEXT, parent_id TEXT, time_created INTEGER, time_updated INTEGER)");
+    odb.exec("CREATE TABLE IF NOT EXISTS session (id TEXT PRIMARY KEY, directory TEXT, parent_id TEXT, title TEXT, time_created INTEGER, time_updated INTEGER)");
     odb.close();
     const config = {
       dataDir: this.dataDir,

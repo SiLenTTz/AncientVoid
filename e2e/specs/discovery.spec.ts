@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import type { Page } from "@playwright/test";
 import { test, expect } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
@@ -86,6 +87,32 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     // fragen. Das Transkript ist nach der Parent-ID benannt: gefunden
     // heißt, die Haupt-Session (nicht der Subagent) wurde fortgesetzt.
     expect(events.some((e) => (e.payload as { kind?: string }).kind === "claude.transcript_imported")).toBe(true);
+  });
+
+  test("eine beobachtete opencode-Session spiegeln: derselbe Text erscheint im Hub-Chat (ADR-0011 Erweiterung)", async ({ app, hub }) => {
+    // der TestHub-Store ist leer und isoliert — die gespiegelte Session
+    // lebte „außerhalb": Historie nur in opencodes eigenem Store
+    const odb = new DatabaseSync(join(hub.root, "opencode.db"));
+    odb.exec("CREATE TABLE IF NOT EXISTS message (id TEXT PRIMARY KEY, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT)");
+    odb.exec("CREATE TABLE IF NOT EXISTS part (id TEXT PRIMARY KEY, message_id TEXT, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT)");
+    odb.prepare("INSERT INTO session (id, directory, title, time_created, time_updated) VALUES (?,?,?,?,?)").run("ses_e2e_mirror", hub.alpha, "E2E Spiegel", 1000, 2000);
+    odb.prepare("INSERT INTO message VALUES (?,?,?,?,?)").run("m1", "ses_e2e_mirror", 1000, 1000, JSON.stringify({ role: "user" }));
+    odb.prepare("INSERT INTO part VALUES (?,?,?,?,?,?)").run("p1", "m1", "ses_e2e_mirror", 1000, 1000, JSON.stringify({ type: "text", text: "外部のチャット — Frage vom Terminal" }));
+    odb.prepare("INSERT INTO message VALUES (?,?,?,?,?)").run("m2", "ses_e2e_mirror", 2000, 2000, JSON.stringify({ role: "assistant" }));
+    odb.prepare("INSERT INTO part VALUES (?,?,?,?,?,?)").run("p2", "m2", "ses_e2e_mirror", 2000, 2000, JSON.stringify({ type: "text", text: "Antwort aus dem externen Lauf" }));
+    odb.close();
+
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    await expandAllGroups(app);
+    const row = app.locator(".discovered-row").filter({ hasText: "ses_e2e_mirror" });
+    await row.getByRole("button", { name: "Spiegeln" }).click();
+    await expect(app.locator(".session-topbar")).toContainText("opencode");
+    // exact same text, in the hub chat — read-only mirror, nothing ran
+    await expect(app.locator(".tail-scroll")).toContainText("Frage vom Terminal");
+    await expect(app.locator(".tail-scroll")).toContainText("Antwort aus dem externen Lauf");
+    const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
+    const events = await hub.events(id);
+    expect(events.some((e) => e.type === "user" && (e.payload as { text?: string }).text?.includes("Frage vom Terminal"))).toBe(true);
   });
 
   test("mehr als eine Seite wird mit „Mehr laden“ vollständig", async ({ app, hub }) => {
