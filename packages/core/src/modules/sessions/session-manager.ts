@@ -391,8 +391,11 @@ export class SessionManager {
     if (parsed.adoptNativeSessionId) {
       // Adoption: the first start resumes the adopted native session; the
       // adapter's own args schema (opencode/claude: resumeSessionId) picks
-      // it up and turns the prompt into a continuation.
-      startSpec = { ...startSpec, args: { ...startSpec.args, resumeSessionId: parsed.adoptNativeSessionId } };
+      // it up and turns the prompt into a continuation. BUG-0039: the hub
+      // never had this history — importHistory tells the adapter to emit
+      // the load replay instead of discarding it (BUG-0036 is recovery's
+      // silence, not adoption's).
+      startSpec = { ...startSpec, args: { ...startSpec.args, resumeSessionId: parsed.adoptNativeSessionId, importHistory: true } };
     }
     if (skillName) {
       session.skillName = skillName;
@@ -433,7 +436,11 @@ export class SessionManager {
     }
     try {
       session.handle = await session.adapter.start(startSpec, ctx);
-      await this.setStatus(session, "working");
+      // BUG-0039: an adoption without a prompt has no turn — the history
+      // import already happened inside start(). "working" would lie (the
+      // PWA shows the loading state for a working session with no events).
+      const adoptedIdle = parsed.adoptNativeSessionId !== undefined && !parsed.prompt && !parsed.attachments?.length;
+      await this.setStatus(session, adoptedIdle ? "idle" : "working");
       await this.emitSystem(session, "session.started", {
         pid: session.handle.pid ?? null,
         capabilities: registered.capabilities,

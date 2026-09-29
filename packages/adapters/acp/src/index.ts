@@ -321,15 +321,18 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
   /** BUG-0036: load/resume a native session with the replay silenced —
    * the agent re-notifies the loaded conversation; the hub's tail already
-   * has it. Returns false when the agent cannot load at all. */
-  async function resumeNative(state: AgentSession, ctx: AdapterContext, native: string, canLoad: boolean): Promise<boolean> {
+   * has it. Returns false when the agent cannot load at all.
+   * BUG-0039: `emit` flips it for adoptions — an observed session's
+   * history exists only in this replay, so it must reach the stream. */
+  async function resumeNative(state: AgentSession, ctx: AdapterContext, native: string, canLoad: boolean, emit = false): Promise<boolean> {
     if (!canLoad) return false;
-    state.replay = true;
+    if (!emit) state.replay = true;
     try {
       await state.conn.request("session/load", { sessionId: native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs);
     } finally {
       state.replay = false;
-      state.mapper.flush();
+      const buffered = state.mapper.flush();
+      if (emit) emitAll(ctx, buffered);
     }
     state.acpSessionId = native;
     announce(ctx, native);
@@ -473,9 +476,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const caps = await initialize(state);
       // continueStopped hands the native id as args.resumeSessionId — the
       // continued turn runs in the loaded conversation, not a fresh one.
-      const resume = (spec.args as { resumeSessionId?: unknown } | undefined)?.resumeSessionId;
+      // BUG-0039: adoption sends importHistory along — the replay is then
+      // the session's only history and goes to the stream.
+      const startArgs = (spec.args ?? {}) as { resumeSessionId?: unknown; importHistory?: unknown };
+      const resume = startArgs.resumeSessionId;
       try {
-        if (typeof resume === "string" && resume && (await resumeNative(state, ctx, resume, caps.loadSession))) {
+        if (typeof resume === "string" && resume && (await resumeNative(state, ctx, resume, caps.loadSession, startArgs.importHistory === true))) {
           // loaded — the prompt (if any) continues the old conversation
         } else {
           if (typeof resume === "string" && resume) {

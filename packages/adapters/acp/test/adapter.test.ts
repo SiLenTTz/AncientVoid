@@ -308,6 +308,23 @@ describe("acp adapter (T7.2)", () => {
     await adapter.stop(handle, ctx);
   });
 
+  it("BUG-0039: an adoption (importHistory) plays the loaded history into the tail — the hub never had it", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    // adopting an observed session: same resumeSessionId as a reopen, plus
+    // the manager's importHistory flag — the load replay is the only source
+    // of history, so it must reach the stream.
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), args: { resumeSessionId: "acp_alt_1234", importHistory: true } }, ctx);
+    await waitFor(() => texts(ctx.events, "assistant").length >= 1);
+    expect(texts(ctx.events, "thinking").join("")).toContain("replayed");
+    expect(texts(ctx.events, "assistant").join("")).toContain("Replay der alten Antwort");
+    expect(ctx.events.some((e) => e.type === "tool_use")).toBe(true);
+    // no prompt went along — nothing is running, the session sits between turns
+    expect(turns).toEqual([]);
+    await adapter.stop(handle, ctx);
+  });
+
   it("a failed prompt becomes a readable provider error (ADR-0015)", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });
