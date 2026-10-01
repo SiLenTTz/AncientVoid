@@ -78,3 +78,53 @@ sich bewegen.
   `main` — auch nicht, wenn der Remote gerade nicht erreichbar ist. Details
   und die Kadenz (wann committen/pushen/MR öffnen): Skill
   [`.claude/skills/git-workflow/SKILL.md`](.claude/skills/git-workflow/SKILL.md).
+
+## Git-Hygiene (saubere Historie, wenig Branches)
+
+Ziel: `main` ist der einzige langfristige Branch. Alles andere ist kurzlebig
+und verschwindet nach dem Merge.
+
+### Branch-Regeln
+
+| Regel | Detail |
+|---|---|
+| Naming | `feat/<scope>-<slug>` · `fix/<problem>` · `docs/<scope>` · `test/<scope>` · `ops/<scope>` |
+| Lebensdauer | Ein Branch = eine Aufgabe = eine MR. Nach Merge löschen (lokal + remote). |
+| Ziel von MRs | Standard-Ziel ist **`main`**. Stacked MRs auf einen Integrations-Branch nur als Ausnahme (Epic-Kette), und die Kette muss zeitnah nach `main` landen. |
+| Keine Zombies | Fertige/gemergte Branches nicht liegen lassen. Stale Remote-Refs: `git fetch --prune`. |
+| `uacc/*` | Session-Worktrees des Hubs — nicht von Hand als Feature-Branches behandeln; Aufräumen über den Hub/`git worktree remove`, nicht über MR-Hygiene. |
+
+### Post-Merge (Pflicht, jedes Mal)
+
+```bash
+git checkout main && git pull
+git branch -d <source-branch>
+git push origin --delete <source-branch>   # falls GitLab es nicht schon gelöscht hat
+git fetch --prune
+```
+
+GitLab hat `remove_source_branch_after_merge` aktiv — trotzdem lokal
+aufräumen und bei Bedarf remote nachziehen.
+
+### Was „saubere Historie“ hier heißt
+
+- Eine Verhaltensänderung pro Commit (Commit-Notation).
+- Kein Force-Push auf `main`, kein History-Rewrite veröffentlichter Commits.
+- Kein lokales Merge nach `main` als MR-Ersatz.
+- Offene Draft-MRs, die nicht mehr gebraucht werden, schließen statt ewig offen
+  zu lassen.
+- Einmal pro Woche (oder vor Epic-Abschluss): `git branch -a` ansehen; alles
+  ohne offene MR und ohne Unique-Commits gegenüber `main` löschen.
+
+### Audit-Schnipsel
+
+```bash
+# Remote-Branches, die nicht main sind
+git branch -r | grep -v 'origin/main\|origin/HEAD'
+
+# Lokale Branches ohne offenen Nutzen (manuell prüfen)
+git branch --format='%(refname:short)' | grep -v '^main$\|^uacc/'
+
+# Commits auf einem Branch, die nicht in main sind
+git log --oneline main..<branch>
+```
