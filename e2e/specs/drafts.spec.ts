@@ -106,7 +106,15 @@ test.describe("Entwürfe (T8.4, AC-P8-4)", () => {
     await app.getByRole("button", { name: "Einstellungen" }).click();
     await app.getByRole("button", { name: "Geräte-Token wechseln" }).click();
     await app.getByPlaceholder(/z\. B\./).fill(other);
+    const checkStartedAt = Date.now();
+    const authCheck = app.waitForResponse((response) =>
+      response.request().method() === "GET" && new URL(response.url()).pathname === "/api/adapters",
+    { timeout: 30_000 });
     await app.getByRole("button", { name: "Verbinden" }).click();
+    const authResponse = await authCheck;
+    expect(authResponse.status()).toBe(200);
+    const authLatencyMs = Date.now() - checkStartedAt;
+    if (authLatencyMs > 5_000) test.info().annotations.push({ type: "slow auth check", description: `/api/adapters took ${authLatencyMs} ms` });
     await expect(app.getByRole("button", { name: "Verbinden", exact: true })).toHaveCount(0);
     const after = await app.evaluate(() => Object.keys((globalThis as unknown as { localStorage: Record<string, unknown> }).localStorage).filter((k) => k.startsWith("uacc.draft.") || k.startsWith("uacc.tail.")));
     expect(after).toEqual([]);

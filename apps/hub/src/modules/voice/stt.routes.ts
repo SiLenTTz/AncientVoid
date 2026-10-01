@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { registerSttStreamRoutes, type SttStreamingConfig } from "./stt-stream.ts";
 
 const run = promisify(execFile);
 
@@ -21,6 +22,11 @@ export interface SttConfig {
   /** Words to spell right (project terms) — a Whisper prompt. */
   vocabulary: string;
   timeoutMs: number;
+  streaming?: {
+    url: string;
+    apiKeyFile?: string;
+    endpointingMs: number;
+  };
   fetch?: typeof fetch;
 }
 
@@ -47,7 +53,15 @@ export function projectVocabulary(paths: readonly string[]): string {
 }
 
 export function registerSttRoutes(app: FastifyInstance, cfg: SttConfig | undefined, projects: () => Promise<string[]> = async () => []): void {
-  app.get("/api/stt", async () => (cfg ? { available: true, engine: cfg.engine, language: cfg.language, local: true } : { available: false }));
+  app.get("/api/stt", async () => (cfg ? { available: true, engine: cfg.engine, language: cfg.language, local: true, streaming: Boolean(cfg.streaming) } : { available: false, streaming: false }));
+  const streamConfig: SttStreamingConfig | undefined = cfg?.streaming ? {
+    ...cfg.streaming,
+    engine: "Nemotron 3.5 ASR Streaming",
+    language: cfg.language === "de" ? "de-DE" : cfg.language,
+    vocabulary: cfg.vocabulary,
+    speechContext: async () => [cfg.vocabulary, projectVocabulary(await projects().catch(() => []))].filter(Boolean).join(",").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 50),
+  } : undefined;
+  registerSttStreamRoutes(app, streamConfig);
 
   app.register(async (scope) => {
     scope.addContentTypeParser("*", { parseAs: "buffer", bodyLimit: MAX_AUDIO_BYTES }, (_req, body, done) => done(null, body));

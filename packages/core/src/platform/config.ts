@@ -95,6 +95,12 @@ export const HubConfig = z.object({
           "UACC, Session, Codex, Claude, opencode, TypeScript, JavaScript, Vitest, pytest, npm, pnpm, Pull Request, Branch, main, Rebase, Merge, Commit, Push, Worktree, Git Status, Diff, Build, Deploy, Logs, Cache, Cloud, Adapter, Hub, Tailnet, PWA, API, WebSocket, Service Worker, Docker, Container, llama.cpp, Gatekeeper, Readme, Doku, Kontingent, Unit-Test, Bug, Refactoring.",
         ),
       timeoutMs: z.number().int().min(1000).max(120_000).default(30_000),
+      /** T12.10 (ADR-0032): optional local PCM16 streaming endpoint. */
+      streaming: z.object({
+        url: z.string().url(),
+        apiKeyFile: z.string().optional(),
+        endpointingMs: z.number().int().min(100).max(5_000).default(800),
+      }).optional(),
     })
     .optional(),
   /** EPIC-P10.5 (ADR-0030): video analysis. Speech uses `stt`, chapters and
@@ -164,6 +170,7 @@ export const HubConfig = z.object({
     .object({
       claudeDir: z.string().min(1).optional(),
       cursorUserDir: z.string().min(1).optional(),
+      opencodeDataDir: z.string().min(1).optional(),
     })
     .default({}),
 });

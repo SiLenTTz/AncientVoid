@@ -3,7 +3,7 @@ import { registerField, touchField, type FieldId } from "../../shared/command-co
 import { useApi } from "../../shared/api-context.ts";
 import type { ComponentChildren } from "preact";
 import { recognizeOnce, speechRecognitionSupported } from "../../shared/speech.ts";
-import { LocalRecorder, recordingSupported, sttStatus, transcribe } from "../../shared/local-stt.ts";
+import { LocalRecorder, recordingSupported, sttStatus } from "../../shared/local-stt.ts";
 import { type PromptRecommendation } from "../../shared/api.ts";
 import { saveSelectedSkill, saveSelectedWorkflow } from "./SkillOverlay.tsx";
 import { AttachmentPicker } from "../attachments/Attachments.tsx";
@@ -79,13 +79,15 @@ export function Composer({
   const [recommendBusy, setRecommendBusy] = useState(false);
 
   // T10.2: local push-to-talk when the hub has a recogniser, else the browser's.
-  const [localStt, setLocalStt] = useState<{ available: boolean; engine?: string }>({ available: false });
+  const [localStt, setLocalStt] = useState<{ available: boolean; engine?: string; streaming?: boolean }>({ available: false });
   useEffect(() => {
     void sttStatus().then(setLocalStt);
   }, []);
   const recorder = useRef<LocalRecorder | null>(null);
   const [recording, setRecording] = useState(false);
   const [sttInfo, setSttInfo] = useState("");
+  const [sttPartial, setSttPartial] = useState("");
+  const [sttStreamNotice, setSttStreamNotice] = useState("");
   // AC-P10-5: a locked screen or a lost microphone ends the recording
   // visibly — nothing is transcribed or retried behind the person's back.
   useEffect(() => {
@@ -94,6 +96,7 @@ export function Composer({
       recorder.current?.cancel();
       recorder.current = null;
       setRecording(false);
+      setSttPartial("");
       setMicError(why);
     };
     const hidden = () => document.visibilityState === "hidden" && end("Aufnahme abgebrochen — Bildschirm gesperrt oder App verlassen.");
@@ -115,14 +118,15 @@ export function Composer({
     setListening(true);
     try {
       const blob = await rec.stop();
-      const t = await transcribe(blob, rec.stoppedAt);
+      const t = await rec.transcribe(blob);
       if (t.text) onChange(valueRef.current ? `${valueRef.current} ${t.text}` : t.text);
       else setMicError("Nichts erkannt — nochmal versuchen.");
-      setSttInfo(`lokal · ${t.engine} · ${(t.k6Ms / 1000).toFixed(1)} s`);
+      setSttInfo(`lokal · ${t.engine} · ${(t.k6Ms / 1000).toFixed(1)} s${sttStreamNotice ? " · Live-Vorschau nicht verfügbar" : ""}`);
     } catch (err) {
       setMicError(err instanceof Error ? err.message : "Spracherkennung fehlgeschlagen.");
     } finally {
       setListening(false);
+      setSttPartial("");
     }
   };
 
@@ -131,9 +135,14 @@ export function Composer({
       if (recording) return void stopLocal();
       setMicError("");
       setSttInfo("");
+      setSttPartial("");
+      setSttStreamNotice("");
       try {
         const rec = new LocalRecorder();
-        await rec.start(() => void stopLocal());
+        await rec.start(() => void stopLocal(), {
+          onPartial: setSttPartial,
+          onStreamError: setSttStreamNotice,
+        });
         recorder.current = rec;
         setRecording(true);
       } catch {
@@ -283,6 +292,8 @@ export function Composer({
         onFocus={() => fieldId && touchField(fieldId)}
       />
       {recording && <div class="composer-notice dim">🔴 Aufnahme — tippe „Stopp“, wenn du fertig bist (bleibt auf deinen Rechnern)</div>}
+      {recording && sttStreamNotice && <div class="composer-notice dim">{sttStreamNotice}</div>}
+      {recording && sttPartial && <div class="composer-notice stt-partial" role="status" aria-live="polite">Vorschau (wird nicht ausgeführt): {sttPartial}</div>}
       {sttInfo && !micError && <div class="composer-notice dim">{sttInfo}</div>}
       {listening && !localStt.available && (
         <div class="composer-notice dim">

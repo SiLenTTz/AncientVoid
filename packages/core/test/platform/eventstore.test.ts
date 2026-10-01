@@ -134,4 +134,12 @@ describe("EventStore", () => {
     const replayed = await store.replay("s1");
     expect(replayed.length).toBe(6);
   });
+
+  it("collects session-local blobs when a session is explicitly destroyed", async () => {
+    await store.initSession("gc-session");
+    const blob = await store.writeBlob("gc-session", "session data");
+    await store.destroySession("gc-session");
+    await expect(store.readBlob("gc-session", blob.hash)).rejects.toThrow();
+    await expect(readFile(join(dir, "sessions", "gc-session", "events.jsonl"))).rejects.toThrow();
+  });
 });

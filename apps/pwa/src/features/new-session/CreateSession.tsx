@@ -63,14 +63,23 @@ export function CreateSession({
   const modelChoice = features?.modelChoice === "start";
   const [model, setModel] = useState("");
   const [catalog, setCatalog] = useState<ModelOption[] | null>(null);
+  const [defaultModel, setDefaultModel] = useState<string | null>(null);
   useEffect(() => {
     setModel("");
     setCatalog(null);
+    setDefaultModel(null);
     if (!modelChoice) return;
     let alive = true;
     api
       .adapterModels(adapter)
-      .then((res) => alive && setCatalog(res.models))
+      .then((res) => {
+        if (!alive) return;
+        setCatalog(res.models);
+        setDefaultModel(res.defaultModel);
+        // The registration's default is what "Standard des Harness" runs —
+        // preselect it so the dropdown shows the actual model from the start.
+        if (typeof res.defaultModel === "string" && res.defaultModel) setModel(res.defaultModel);
+      })
       .catch(() => alive && setCatalog(null));
     return () => {
       alive = false;
@@ -183,6 +192,7 @@ export function CreateSession({
               {catalog.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.label ?? m.id}
+                  {m.id === defaultModel ? " (Standard)" : ""}
                 </option>
               ))}
             </select>

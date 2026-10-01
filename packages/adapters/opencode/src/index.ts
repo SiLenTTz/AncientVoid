@@ -13,6 +13,7 @@ import type {
   WorkerProcess,
 } from "@uacc/contracts";
 import { promptWithAttachments } from "@uacc/contracts";
+import { contextWindowFor } from "@uacc/models";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { normalizeOpencodeLine } from "./normalize.ts";
@@ -193,10 +194,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const meta: SessionMeta = { healthy: true, ...(resumeSessionId ? { resumeSessionId } : {}) };
       const model = spec.model ?? cfg.model;
       if (model) {
+        // ADR-0032: the curated window of this model rides the announce.
+        const window = contextWindowFor(model);
         ctx.emit({
           type: "system",
           summary: `OpenCode · ${model}`,
-          payload: { kind: "opencode.model", model },
+          payload: { kind: "opencode.model", model, ...(window !== null ? { contextWindowTokens: window } : {}) },
         });
       }
       const w = withFiles(spec.prompt ?? "", spec.attachments);

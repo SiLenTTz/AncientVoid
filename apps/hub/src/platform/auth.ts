@@ -56,6 +56,9 @@ export function authHook(opts: AuthOptions) {
     // health/ready stay open for tailnet and process probes (ADR-0010).
     // Strip the query string — `/api/health?foo` must not fall through to 401.
     const path = req.url.split("?")[0] ?? req.url;
+    // STT WebSocket upgrades authenticate with a short-lived, single-use
+    // ticket instead of putting the reusable device token in the URL.
+    if (req.method === "GET" && path === "/api/stt/stream") return;
     // ADR-0017: hello tells other hubs who this is; no data, no token needed.
     // Pairing is guarded by its one-time code, not a device token.
     if (path === "/api/health" || path === "/api/ready" || path === "/api/fleet/hello" || path === "/api/fleet/pair") return;

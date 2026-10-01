@@ -241,6 +241,9 @@ export class TmuxRunner implements WorkerRunner {
     }
     try {
       await execTmux(["set-option", "-t", full, "@uacc_owner", this.owner]);
+      // BUG-0034: where this worker's logs live — a prune recognizes an
+      // orphan in the default server by its log dir being gone.
+      await execTmux(["set-option", "-t", full, "@uacc_logdir", this.logDir]);
       // 2. Keep the pane after exit so pipe-pane can flush the tail reliably.
       await execTmux(["set-option", "-t", full, "remain-on-exit", "on"]);
       // 3. Capture pane output (stdout+stderr interleaved) into the log file.

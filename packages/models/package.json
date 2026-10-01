@@ -1,0 +1,14 @@
+{
+  "name": "@uacc/models",
+  "version": "0.1.0",
+  "description": "Model metadata for adapters: context window sizes per model id (ADR-0032), matched by substring — curated from models.dev, overridable per adapter config.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../.. --noEmit",
+    "test": "vitest run"
+  }
+}

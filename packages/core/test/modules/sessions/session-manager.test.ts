@@ -1,4 +1,4 @@
-import { basicFeatures } from "@uacc/contracts";
+import { basicFeatures, type Adapter, type AdapterContext, type SessionSpec } from "@uacc/contracts";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -106,6 +106,73 @@ describe("SessionManager", () => {
       expect((created!.payload as { actor?: string }).actor).toBe("pixel-9");
       expect((steered!.payload as { actor?: string }).actor).toBe("pixel-9");
       expect((stopped!.payload as { actor?: string }).actor).toBe("pixel-9");
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("an error session stays continuable — the way back in is a new prompt (openStopped)", async () => {
+    const { manager } = makeManager(dir, { eventsPerSecond: 10, autoStopAfterEvents: 1 });
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      await manager.stop(record.id);
+      // a dead run: crashed worker, hub restart — status error
+      manager.get(record.id)!.status = "error";
+      const ack = await manager.steer(record.id, { kind: "prompt", text: "Und weiter" });
+      expect(ack.ok).toBe(true);
+      const events = await manager.tail(record.id, 0);
+      expect(events.some((e) => (e.payload as { kind?: string }).kind === "session.continued")).toBe(true);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("delete removes a stopped session for good — events, row — and refuses a running one", async () => {
+    const { manager, store } = makeManager(dir, { eventsPerSecond: 10 });
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      await manager.stop(record.id);
+      expect((await manager.tail(record.id, 0)).length).toBeGreaterThan(0);
+      const ack = await manager.delete(record.id);
+      expect(ack.ok).toBe(true);
+      expect(manager.get(record.id)).toBeUndefined();
+      expect(await store.replay(record.id)).toEqual([]);
+      const running = await manager.create({ adapter: "dummy", project: dir, prompt: "läuft" });
+      const refused = await manager.delete(running.id);
+      expect(refused.ok).toBe(false);
+      expect(refused.detail).toContain("stoppen");
+      await manager.stop(running.id);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+  it("BUG-0033: a refused steer says why in its session.steer event — the chat can show it", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    const refuser: Adapter = {
+      id: "refuser",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none" as const, nativeResume: "none" as const, features: basicFeatures({}) }),
+      start: async (_spec: SessionSpec, ctx: AdapterContext) => {
+        ctx.turn?.("working");
+        return { sessionId: "x" };
+      },
+      steer: async () => ({ ok: false, detail: "refuser: der Zug läuft noch — erst anhalten oder abwarten" }),
+      status: async () => ({ state: "healthy" as const }),
+      stop: async () => {},
+    };
+    registry.register("refuser", () => refuser);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "refuser", project: dir });
+      const ack = await manager.steer(record.id, { kind: "prompt", text: "Wo hängst du?" });
+      expect(ack.ok).toBe(false);
+      const events = await manager.tail(record.id, 0);
+      const steered = events.find((e) => (e.payload as { kind?: string }).kind === "session.steer");
+      expect((steered!.payload as { ok?: boolean }).ok).toBe(false);
+      expect((steered!.payload as { detail?: string }).detail).toContain("läuft noch");
     } finally {
       await manager.shutdown();
     }
@@ -929,6 +996,131 @@ describe("SessionManager — reporting sink dispatch (T4.1, ADR-0009)", () => {
       expect(events.some((e) => (e.payload as { kind?: string }).kind === "session.continued")).toBe(true);
     } finally {
       await manager.shutdown();
+    }
+  });
+});
+
+describe("SessionManager mirror (ADR-0011 Erweiterung)", () => {
+  let dir: string;
+  let dataDir: string;
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), "uacc-mirror-sm-"));
+    dataDir = join(dir, "opencode-data");
+    await mkdir(dataDir, { recursive: true });
+    const { DatabaseSync } = await import("node:sqlite");
+    const odb = new DatabaseSync(join(dataDir, "opencode.db"));
+    odb.exec("CREATE TABLE session (id TEXT PRIMARY KEY, directory TEXT, title TEXT, time_created INTEGER, time_updated INTEGER)");
+    odb.exec("CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT)");
+    odb.exec("CREATE TABLE part (id TEXT PRIMARY KEY, message_id TEXT, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT)");
+    odb.prepare("INSERT INTO session VALUES (?,?,?,?,?)").run("ses_live", dir, "Spiegel-Titel", 1000, 2000);
+    odb.prepare("INSERT INTO message VALUES (?,?,?,?,?)").run("m1", "ses_live", 1000, 1000, JSON.stringify({ role: "user" }));
+    odb.prepare("INSERT INTO part VALUES (?,?,?,?,?,?)").run("p1", "m1", "ses_live", 1000, 1000, JSON.stringify({ type: "text", text: "erste Frage" }));
+    odb.close();
+  });
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  function manager() {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy);
+    return { manager: new SessionManager(db, store, registry, new ProcessRunner(), undefined, undefined, undefined, undefined, [], {}, dataDir), db };
+  }
+
+  it("creates a read-only mirror without any adapter and imports the chat", async () => {
+    const { manager: sm, db } = manager();
+    try {
+      // adapter "opencode" is deliberately NOT registered — a mirror runs nothing
+      const record = await sm.create({ adapter: "opencode", project: dir, mirrorNativeSessionId: "ses_live" });
+      expect(record.controlMode).toBe("mirror");
+      expect(record.status).toBe("idle");
+      expect(record.title).toBe("Spiegel-Titel");
+      expect(record.nativeSessionId).toBe("ses_live");
+      const events = await sm.tail(record.id, 0);
+      expect(events.some((e) => e.type === "user" && (e.payload as { text?: string }).text === "erste Frage")).toBe(true);
+      // steering anything into the mirror is loudly refused
+      const ack = await sm.steer(record.id, { kind: "prompt", text: "hack" });
+      expect(ack).toMatchObject({ ok: false });
+    } finally {
+      await sm.shutdown();
+      db.close();
+    }
+  });
+
+  it("refreshMirror appends only the delta — new opencode parts become events", async () => {
+    const { manager: sm, db } = manager();
+    try {
+      const record = await sm.create({ adapter: "opencode", project: dir, mirrorNativeSessionId: "ses_live" });
+      const before = (await sm.tail(record.id, 0)).length;
+      const { DatabaseSync } = await import("node:sqlite");
+      const odb = new DatabaseSync(join(dataDir, "opencode.db"));
+      odb.prepare("INSERT INTO message VALUES (?,?,?,?,?)").run("m2", "ses_live", 3000, 3000, JSON.stringify({ role: "assistant" }));
+      odb.prepare("INSERT INTO part VALUES (?,?,?,?,?,?)").run("p2", "m2", "ses_live", 3000, 3000, JSON.stringify({ type: "text", text: "neue Antwort" }));
+      odb.close();
+      await sm.refreshMirror(record.id);
+      const events = await sm.tail(record.id, 0);
+      expect(events.length).toBe(before + 2); // the assistant event + the delta marker
+      expect(events.some((e) => e.type === "assistant" && (e.payload as { text?: string }).text === "neue Antwort")).toBe(true);
+      // idempotent: refreshing again without new parts adds only the marker
+      await sm.refreshMirror(record.id);
+      const again = await sm.tail(record.id, 0);
+      expect(again.length).toBe(events.length + 1);
+      expect(again.filter((e) => e.type === "assistant")).toHaveLength(1);
+    } finally {
+      await sm.shutdown();
+      db.close();
+    }
+  });
+});
+
+describe("SessionManager adoption (BUG-0039)", () => {
+  let dir: string;
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), "uacc-adopt-"));
+  });
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("passes importHistory along the native id and ends idle without a prompt", async () => {
+    const seen: SessionSpec[] = [];
+    const fake: Adapter = {
+      id: "fake-acp",
+      version: "0.0.1",
+      capabilities() {
+        return { reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures() };
+      },
+      async start(spec: SessionSpec, ctx: AdapterContext) {
+        seen.push(spec);
+        // the adoption's history import — what a loadSession-capable agent
+        // replays during start()
+        ctx.emit({ type: "assistant", summary: "alte Nachricht aus der übernommenen Session", payload: { text: "alte Nachricht aus der übernommenen Session" } });
+        return { sessionId: ctx.sessionId };
+      },
+      async status() {
+        return { state: "healthy" };
+      },
+      async steer() {
+        return { ok: false, detail: "fake" };
+      },
+      async stop() {},
+    };
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("fake-acp", () => fake);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "fake-acp", project: dir, adoptNativeSessionId: "ses_adopt_1" });
+      expect(seen[0]!.args).toMatchObject({ resumeSessionId: "ses_adopt_1", importHistory: true });
+      expect(manager.get(record.id)?.status).toBe("idle");
+      const events = await manager.tail(record.id, 0);
+      expect(events.some((e) => e.type === "assistant")).toBe(true);
+    } finally {
+      await manager.shutdown();
+      db.close();
     }
   });
 });

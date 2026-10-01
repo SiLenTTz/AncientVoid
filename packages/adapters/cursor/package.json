@@ -1,0 +1,19 @@
+{
+  "name": "@uacc/adapter-cursor",
+  "version": "0.1.0",
+  "description": "cursor adapter: the cursor-agent CLI as a one-shot-per-turn worker (stream-json), native --resume, model catalog via --list-models.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@uacc/contracts": "0.1.0",
+    "@uacc/models": "0.1.0",
+    "zod": "^3.23.8"
+  }
+}

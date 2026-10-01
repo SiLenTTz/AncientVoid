@@ -4,6 +4,7 @@
  *
  *   node scripts/messlauf-p7.mjs claude-gate
  *   node scripts/messlauf-p7.mjs acp-gate <preset> [adapter-config-json]
+ *   LLAMA_KEY=… node scripts/messlauf-p7.mjs acp-gate opencode
  *   LLAMA_KEY=… node scripts/messlauf-p7.mjs local-model [opencode|dsh]
  *
  * Boots its own hub (own data dir and port, real adapters, no skip flags),
@@ -12,7 +13,7 @@
  * record lives under docs/messlauf/.
  */
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -67,7 +68,30 @@ async function bootHub(adapters) {
   const child = spawn(process.execPath, [join(repo, "apps/hub/src/main.ts")], { cwd: repo, env: { ...process.env, UACC_CONFIG: config, TMUX_TMPDIR: root }, stdio: ["ignore", "ignore", "pipe"] });
   child.stderr.on("data", (c) => writeFileSync(log, c, { flag: "a" }));
   await until(async () => (await http("GET", "/api/health", token).catch(() => ({ status: 0 }))).status === 200, "hub up", 20_000);
-  return { root, project, token, stop: () => child.kill("SIGINT") };
+  // BUG-0034: full teardown — the hub keeps tmux workers alive on purpose
+  // (K7 restart), but this throwaway hub will never come back: wait for the
+  // process, then kill ITS tmux server (own TMUX_TMPDIR) and remove the root.
+  const stop = async () => {
+    if (child.exitCode !== null) return;
+    await new Promise((done) => {
+      const hard = setTimeout(() => {
+        child.kill("SIGKILL");
+        done();
+      }, 10_000);
+      child.on("exit", () => {
+        clearTimeout(hard);
+        done();
+      });
+      child.kill("SIGINT");
+    });
+    try {
+      execFileSync("tmux", ["kill-server"], { env: { ...process.env, TMUX_TMPDIR: root, TMUX: "" }, stdio: "ignore" });
+    } catch {
+      // no server / tmux gone — nothing to kill
+    }
+    rmSync(root, { recursive: true, force: true });
+  };
+  return { root, project, token, stop };
 }
 
 /** `further`: decision for any later request in the same turn (null: leave it).
@@ -135,7 +159,7 @@ if (step === "claude-gate") {
     const color = existsSync(join(ask.workdir, "farbe.txt")) ? readFileSync(join(ask.workdir, "farbe.txt"), "utf8").trim() : null;
     results.push({ case: "question", question: ask.pending.tool?.questions?.[0]?.question, followUps: ask.followUps, fileContent: color, pass: color === "Grün" });
   } finally {
-    hub.stop();
+    await hub.stop();
   }
   const claudeVersion = execFileSync("claude", ["--version"], { encoding: "utf8" }).trim();
   console.log(JSON.stringify({ step, claudeVersion, date: new Date().toISOString(), results }, null, 2));
@@ -144,10 +168,24 @@ if (step === "claude-gate") {
 } else if (step === "acp-gate" || step === "codex-gate") {
   const preset = step === "codex-gate" ? "codex app-server" : process.argv[3];
   const extra = process.argv[step === "codex-gate" ? 3 : 4] ? JSON.parse(process.argv[step === "codex-gate" ? 3 : 4]) : {};
+  const localModel = step === "acp-gate" && preset === "opencode" && Boolean(process.env.LLAMA_KEY);
+  const acpConfig = { preset, ...extra };
+  if (localModel) {
+    const base = process.env.LLAMA_URL ?? "http://100.65.133.28:8081/v1";
+    acpConfig.label = "opencode+lokal";
+    acpConfig.env = {
+      ...(acpConfig.env ?? {}),
+      OPENCODE_CONFIG_CONTENT: JSON.stringify({
+        permission: { edit: "ask", bash: "ask", webfetch: "ask" },
+        provider: { evox2: { npm: "@ai-sdk/openai-compatible", name: "evox2 llama.cpp", options: { baseURL: base, apiKey: process.env.LLAMA_KEY }, models: { "qwen3-coder": { name: "Qwen3-Coder-30B-A3B (lokal)", tool_call: true } } } },
+        model: "evox2/qwen3-coder",
+      }),
+    };
+  }
   const hub = await bootHub([
     step === "codex-gate"
       ? { id: "agent", module: "@uacc/adapter-codex", config: { mode: "app-server", ...extra } }
-      : { id: "agent", module: "@uacc/adapter-acp", config: { preset, ...extra } },
+      : { id: "agent", module: "@uacc/adapter-acp", config: acpConfig },
   ]);
   const results = [];
   const t0 = Date.now();
@@ -159,9 +197,9 @@ if (step === "claude-gate") {
     const denied = existsSync(join(deny.workdir, "verboten.txt"));
     results.push({ case: "deny", tool: deny.pending.tool?.name, fileExists: denied, followUps: deny.followUps, pass: !denied });
   } finally {
-    hub.stop();
+    await hub.stop();
   }
-  console.log(JSON.stringify({ step, preset, date: new Date().toISOString(), durationMs: Date.now() - t0, results }, null, 2));
+  console.log(JSON.stringify({ step, preset, ...(localModel ? { model: "Qwen3-Coder-30B-A3B-Instruct UD-Q4_K_XL · llama.cpp · evox2" } : {}), date: new Date().toISOString(), durationMs: Date.now() - t0, results }, null, 2));
   console.log(results.every((r) => r.pass) ? "PASS" : "FAIL");
   process.exit(results.every((r) => r.pass) ? 0 : 1);
 } else if (step === "local-model") {
@@ -220,7 +258,7 @@ if (step === "claude-gate") {
     const answer = fail.events.filter((e) => e.type === "assistant").map((e) => String(e.payload.text ?? "")).join(" ").slice(0, 300);
     results.push({ case: "tool failure", asked: fail.asked, results: failed, answer, pass: failed.some((r) => r.isError || /No such file|nicht|not found/i.test(r.content)) && /not exist|no such|nicht|not found/i.test(answer) });
   } finally {
-    hub.stop();
+    await hub.stop();
   }
   console.log(JSON.stringify({ step, harness, model: "Qwen3-Coder-30B-A3B-Instruct UD-Q4_K_XL · llama.cpp b11149 Vulkan · evox2", date: new Date().toISOString(), durationMs: Date.now() - t0, results }, null, 2));
   console.log(results.every((r) => r.pass) ? "PASS" : "FAIL");
