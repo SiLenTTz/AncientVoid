@@ -71,11 +71,11 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
   {
     id: "deepseek",
     harness: "cli",
-    command: "",
-    args: [],
-    discovery: "blocked",
-    resume: "blocked",
-    evidence: "OpenAI-compatible endpoint is a model, not a coding harness.",
+    command: "dsh",
+    args: ["--version"],
+    discovery: "missing",
+    resume: "implemented-unverified",
+    evidence: "dsh (DeepSeek Harness) runs through @uacc/adapter-acp (`--profile acp`, ADR-0018): sandboxed read-only, every escalation asks on the phone. No external session scan.",
   },
 ];
 

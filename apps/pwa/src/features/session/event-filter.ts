@@ -30,12 +30,15 @@ export function isLargeToolResult(e: NormalizedEvent): boolean {
 export function showInChat(event: NormalizedEvent): boolean {
   if (event.type === "assistant" || event.type === "user" || event.type === "thinking") return true;
   if (event.type !== "system") return false;
-  const payload = event.payload as { kind?: unknown; reason?: unknown };
+  const payload = event.payload as { kind?: unknown; reason?: unknown; ok?: unknown };
   return (
     payload.kind === "opencode.model" ||
     payload.kind === "opencode.step_start" ||
+    payload.kind === "acp.model" ||
     payload.kind === "session.skill_chain" ||
     payload.kind === "provider.error" ||
+    payload.kind === "acp.queued" ||
+    (payload.kind === "session.steer" && payload.ok === false) ||
     (payload.kind === "opencode.step_finish" && payload.reason === "length")
   );
 }

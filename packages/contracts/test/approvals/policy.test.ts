@@ -7,6 +7,7 @@ describe("policy table (T7.4)", () => {
     expect(actorKind("agent:mcp")).toBe("agent");
     expect(actorKind("bridge:abc")).toBe("bridge");
     expect(actorKind("fleet:omarchy")).toBe("fleet");
+    expect(actorKind("companion:omarchy")).toBe("companion");
     expect(actorKind(null)).toBe("human");
   });
 
@@ -28,5 +29,12 @@ describe("policy table (T7.4)", () => {
   it("the emergency stop stays immediate for a human", () => {
     expect(policyFor("sessions.stop", "pixel-9")).toBe("allow");
     expect(policyFor("sessions.stop", "agent:mcp")).toBe("approve");
+  });
+
+  it("EPIC-P11: the companion does its one job and nothing else; only a person makes it type", () => {
+    for (const op of POLICY_OPERATIONS) expect(POLICY[op].companion, op).toBe(op === "desktop.companion" ? "allow" : "deny");
+    expect(policyFor("desktop.act", "pixel-9")).toBe("allow");
+    expect(policyFor("desktop.act", "agent:mcp")).toBe("deny");
+    expect(policyFor("desktop.act", "fleet:omarchy")).toBe("deny");
   });
 });

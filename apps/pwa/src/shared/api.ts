@@ -1,3 +1,5 @@
+import type { SttStreamTicket } from "@uacc/contracts";
+
 export interface SessionRecord {
   id: string;
   adapter: string;
@@ -262,7 +264,7 @@ export interface DiscoveredSession {
   project: string;
   adapter: string;
   status: string;
-  controlMode: "observed" | "managed" | "controllable";
+  controlMode: "observed" | "managed" | "controllable" | "mirror";
   harness: string;
   hostId: string;
   nativeSessionId: string | null;
@@ -305,7 +307,7 @@ export interface HarnessFeatures {
 export interface AdapterInfo {
   id: string;
   version: string;
-  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; features: HarnessFeatures };
+  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; contextWindowTokens?: number | null; features: HarnessFeatures };
 }
 
 export interface ModelOption {
@@ -366,6 +368,38 @@ export interface PromptRecommendation {
   description: string;
   reason: string;
   draft: string | null;
+}
+
+/** EPIC-P11 — mirrors `@uacc/contracts`'s desktop types (ADR-0031). */
+export interface DesktopFocus {
+  id: string;
+  app: string;
+  title: string;
+  revision: number;
+}
+export interface CompanionState {
+  name: string;
+  backend: string;
+  focus: DesktopFocus | null;
+  locked: boolean;
+  paused: boolean;
+  blocked: string | null;
+  version: string;
+  lastSeen: string;
+  online: boolean;
+}
+export interface DesktopAction {
+  id: string;
+  companion: string;
+  kind: "insert" | "replace" | "key";
+  inputMode: "keystroke" | "targeted-paste";
+  key: string | null;
+  textLength: number;
+  target: { id: string; revision: number; app: string; title: string };
+  status: "pending" | "delivered" | "running" | "done" | "failed" | "refused" | "cancelled" | "expired" | "uncertain";
+  detail: string | null;
+  typedChars: number;
+  createdAt: string;
 }
 
 /** EPIC-P10.5 — mirrors `@uacc/contracts`'s media types (ADR-0030). */
@@ -570,6 +604,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const body = (await res.json().catch(() => ({}))) as { error?: string };
     throw Object.assign(new Error(body.error ?? `${res.status} ${res.statusText}`), { status: res.status });
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -607,8 +642,9 @@ function createHubApi(P: (path: string) => string) {
   settings: () => api<{ gemini: { configured: boolean; model: string } }>(P("/api/settings")),
   setGemini: (body: { apiKey?: string | null; model?: string }) =>
     api<{ gemini: { configured: boolean; model: string } }>(P("/api/settings/gemini"), { method: "PUT", body: JSON.stringify(body) }),
-  /** ADR-0018: null when the adapter has no catalog (free text then). */
-  adapterModels: (id: string) => api<{ models: ModelOption[] | null }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
+  /** ADR-0018: null when the adapter has no catalog (free text then);
+   * defaultModel is the registration's configured model. */
+  adapterModels: (id: string) => api<{ models: ModelOption[] | null; defaultModel: string | null }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
   adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
   projects: () => api<ProjectDiscoveryResult>(P("/api/projects")),
   skills: (project: string) => api<{ items: SkillOrAgent[] }>(P(`/api/skills?project=${encodeURIComponent(project)}`)),
@@ -716,6 +752,11 @@ function createHubApi(P: (path: string) => string) {
     model?: string;
     budgetUsd?: number | null;
     args?: { skill?: string; agent?: string };
+    /** Adoption (ADR-0011): continue an externally discovered session. */
+    adoptNativeSessionId?: string;
+    /** Read-only mirror (ADR-0011 Erweiterung): show an observed opencode
+     * session's chat without adopting or running anything. */
+    mirrorNativeSessionId?: string;
     attachmentIds?: string[];
   }) =>
     api<SessionRecord>(P("/api/sessions"), {
@@ -754,12 +795,19 @@ function createHubApi(P: (path: string) => string) {
       method: "POST",
       body: JSON.stringify({ archived }),
     }),
+  /** Delete for good — events, worktree, row. 409 while it runs. */
+  deleteSession: (id: string) => api<void>(P(`/api/sessions/${id}`), { method: "DELETE", body: "{}" }),
   // T1.5-6: doesn't go through api<T>() — a rejected steer (e.g. "no
   // thread_id captured yet") comes back as a 422 with a real, meaningful
   // {ok:false, detail} body, and api<T>()'s generic !res.ok path would
   // throw a bare "422 Unprocessable Entity" instead of surfacing that
   // detail. Callers inspect ack.ok/ack.detail themselves.
   /** `takeover` moves the writer lease to this device on purpose (T5.5). */
+  /** EPIC-P11 (ADR-0031): the desktop companion. */
+  desktop: () => api<{ companions: CompanionState[]; actions: DesktopAction[] }>(P("/api/desktop")),
+  desktopAction: (body: { companion: string; kind: "insert" | "replace" | "key"; inputMode?: "keystroke" | "targeted-paste"; text?: string; key?: string; target: { id: string; revision: number } }) =>
+    api<DesktopAction>(P("/api/desktop/actions"), { method: "POST", body: JSON.stringify(body) }),
+  cancelDesktopAction: (id: string) => api<DesktopAction>(P(`/api/desktop/actions/${id}/cancel`), { method: "POST", body: "{}" }),
   /** EPIC-P10.5 (ADR-0030): video analysis. */
   media: () => api<MediaInfo>(P("/api/media")),
   mediaJobs: () => api<MediaJob[]>(P("/api/media/jobs")),
@@ -785,7 +833,14 @@ function createHubApi(P: (path: string) => string) {
     return URL.createObjectURL(await res.blob());
   },
   /** T10.2 (ADR-0028): local speech-to-text on the hub. */
-  stt: () => api<{ available: boolean; engine?: string }>(P("/api/stt")),
+  stt: () => api<{ available: boolean; engine?: string; streaming?: boolean }>(P("/api/stt")),
+  sttStreamTicket: () => api<SttStreamTicket>(P("/api/stt/stream-ticket"), { method: "POST", body: "{}" }),
+  sttStreamUrl: (ticket: string) => {
+    const path = P(`/api/stt/stream?ticket=${encodeURIComponent(ticket)}`);
+    const url = new URL(path, window.location.href);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return url.href;
+  },
   transcribe: async (audio: Blob): Promise<{ text: string; engine: string; audioMs: number; latencyMs: number }> => {
     const res = await fetch(P("/api/stt"), { method: "POST", headers: { "content-type": audio.type || "audio/webm", authorization: `Bearer ${getToken()}` }, body: audio });
     const body = (await res.json().catch(() => ({}))) as { text?: string; engine?: string; audioMs?: number; latencyMs?: number; error?: string };

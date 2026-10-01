@@ -12,6 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0"
+    "@uacc/contracts": "0.1.0",
+    "@uacc/core": "0.1.0",
+    "@uacc/workers": "0.1.0"
   }
 }

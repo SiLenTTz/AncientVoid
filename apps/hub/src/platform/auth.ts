@@ -1,4 +1,4 @@
-import { BRIDGE_TOKEN_PREFIX, FLEET_TOKEN_PREFIX, bridgeTokenAllows, isFleetRoutable } from "@uacc/contracts";
+import { BRIDGE_TOKEN_PREFIX, COMPANION_TOKEN_PREFIX, FLEET_TOKEN_PREFIX, bridgeTokenAllows, companionTokenAllows, isFleetRoutable } from "@uacc/contracts";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import type { TokenService } from "@uacc/core";
 
@@ -25,8 +25,9 @@ export function checkAuth(req: FastifyRequest, opts: AuthOptions): { ok: true } 
   const token = extractToken(req);
   // T7.2: the permission bridge runs on this machine and talks to the hub
   // directly, not through tailscale serve.
-  const bridgeOnLoopback =
-    token !== null && (opts.tokens.identify(token)?.label ?? "").startsWith(BRIDGE_TOKEN_PREFIX) && /^(127\.|::1$|::ffff:127\.)/.test(req.ip);
+  // EPIC-P11: so does a desktop companion on the hub's own machine.
+  const tokenLabel = token !== null ? (opts.tokens.identify(token)?.label ?? "") : "";
+  const bridgeOnLoopback = (tokenLabel.startsWith(BRIDGE_TOKEN_PREFIX) || tokenLabel.startsWith(COMPANION_TOKEN_PREFIX)) && /^(127\.|::1$|::ffff:127\.)/.test(req.ip);
   if (opts.enforceTailnetIdentity && !req.headers[TAILSCALE_LOGIN_HEADER] && !bridgeOnLoopback) {
     return { ok: false, status: 401, reason: "missing tailnet identity (serve via tailscale)" };
   }
@@ -43,6 +44,10 @@ export function checkAuth(req: FastifyRequest, opts: AuthOptions): { ok: true } 
   if (label.startsWith(BRIDGE_TOKEN_PREFIX) && !bridgeTokenAllows(label, path)) {
     return { ok: false, status: 403, reason: "bridge token not allowed here" };
   }
+  // EPIC-P11: the companion fetches its work and reports — nothing else.
+  if (label.startsWith(COMPANION_TOKEN_PREFIX) && !companionTokenAllows(path)) {
+    return { ok: false, status: 403, reason: "companion token not allowed here" };
+  }
   return { ok: true };
 }
 
@@ -51,6 +56,9 @@ export function authHook(opts: AuthOptions) {
     // health/ready stay open for tailnet and process probes (ADR-0010).
     // Strip the query string — `/api/health?foo` must not fall through to 401.
     const path = req.url.split("?")[0] ?? req.url;
+    // STT WebSocket upgrades authenticate with a short-lived, single-use
+    // ticket instead of putting the reusable device token in the URL.
+    if (req.method === "GET" && path === "/api/stt/stream") return;
     // ADR-0017: hello tells other hubs who this is; no data, no token needed.
     // Pairing is guarded by its one-time code, not a device token.
     if (path === "/api/health" || path === "/api/ready" || path === "/api/fleet/hello" || path === "/api/fleet/pair") return;

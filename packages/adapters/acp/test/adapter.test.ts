@@ -53,7 +53,11 @@ describe("acp adapter (T7.2)", () => {
     expect(texts(ctx.events, "thinking")).toEqual(["Ich überlege kurz."]);
     const native = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.native_session");
     expect((native?.payload as { nativeSessionId?: string }).nativeSessionId).toMatch(/^acp_/);
-    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_end")?.tokensEst).toBe(42);
+    const turnEnd = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_end");
+    expect(turnEnd?.tokensEst).toBe(42);
+    // ADR-0032: the input part is the context fill — it travels on the event.
+    expect((turnEnd?.payload as { usage?: { input?: number; output?: number } }).usage).toMatchObject({ input: 30, output: 12 });
+    expect(createAdapter({ command: [agent], contextWindowTokens: 200_000 }).capabilities().contextWindowTokens).toBe(200_000);
     expect(turns).toEqual(["working", "idle"]);
     // follow-up in the same agent process
     expect(await adapter.steer(handle, { kind: "prompt", text: "Nochmal" }, ctx)).toEqual({ ok: true });
@@ -91,6 +95,20 @@ describe("acp adapter (T7.2)", () => {
     await waitFor(() => turns.includes("idle"));
     expect(texts(ctx.events, "assistant")[0]).toContain('Modell ["lokal","klein"]');
     expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.summary).toBe("fake · lokal/klein");
+    // ADR-0032: models without a known window carry none — never a guess.
+    expect((ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.payload as { contextWindowTokens?: number }).contextWindowTokens).toBeUndefined();
+    // …and a known model carries its curated window on the announce.
+    const turns2: string[] = [];
+    const ctx2 = context({ turns: turns2 });
+    await createAdapter({ command: [agent], label: "fake" }).start({ adapter: "acp", project: process.cwd(), prompt: "Hallo", model: "lokal/glm-5.3" }, ctx2);
+    await waitFor(() => turns2.includes("idle"));
+    expect(ctx2.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.payload).toMatchObject({ contextWindowTokens: 1_000_000 });
+    // config override wins over the curated table
+    const turns3: string[] = [];
+    const ctx3 = context({ turns: turns3 });
+    await createAdapter({ command: [agent], label: "fake", contextWindows: { glm: 123_456 } }).start({ adapter: "acp", project: process.cwd(), prompt: "Hallo", model: "lokal/glm-5.3" }, ctx3);
+    await waitFor(() => turns3.includes("idle"));
+    expect(ctx3.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.payload).toMatchObject({ contextWindowTokens: 123_456 });
     // by name, and from the adapter config
     const byName = context({ turns: [] });
     const named = createAdapter({ command: [agent], model: "Groß" });
@@ -121,16 +139,189 @@ describe("acp adapter (T7.2)", () => {
     }
   });
 
-  it("park cancels the running turn; a second prompt while busy is refused with a reason", async () => {
+  it("park cancels the running turn; a queued prompt survives until then, a new one after park starts fresh", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });
     const adapter = createAdapter({ command: [agent] });
     const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "LANGSAM" }, ctx);
     await waitFor(() => turns.includes("working"));
-    expect(await adapter.steer(handle, { kind: "prompt", text: "dazwischen" }, ctx)).toMatchObject({ ok: false, detail: expect.stringContaining("läuft noch") });
+    // A prompt while busy is queued, not refused — the phone never waits.
+    expect(await adapter.steer(handle, { kind: "prompt", text: "dazwischen" }, ctx)).toMatchObject({ ok: true, detail: expect.stringContaining("Warteschlange") });
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.queued")).toBeTruthy();
+    // Park discards the queued message, visibly.
     await adapter.steer(handle, { kind: "park" }, ctx);
     await waitFor(() => turns.includes("idle"));
     expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_end")?.payload).toMatchObject({ stopReason: "cancelled" });
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.queued_dropped")).toBeTruthy();
+    // After park the session is idle — a prompt runs as a normal turn.
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Hallo" }, ctx)).toEqual({ ok: true });
+    await waitFor(() => texts(ctx.events, "assistant").length === 1, 8000);
+    expect(texts(ctx.events, "assistant").join("")).toContain("Hallo");
+    await adapter.stop(handle, ctx);
+  });
+
+  it("a prompt sent while busy is delivered right after the turn ends (FIFO)", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent] });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "STREAM" }, ctx);
+    await waitFor(() => turns.includes("working"));
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Zweite" }, ctx)).toMatchObject({ ok: true });
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Dritte" }, ctx)).toMatchObject({ ok: true });
+    // The first turn ends; both queued prompts run in order, each as its own turn.
+    await waitFor(() => turns.filter((t) => t === "working").length === 3, 15_000);
+    await waitFor(() => turns.filter((t) => t === "idle").length === 3, 15_000);
+    const replies = texts(ctx.events, "assistant").join("");
+    expect(replies).toContain("Antwort auf: STREAM");
+    expect(replies).toContain("Zweite");
+    expect(replies).toContain("Dritte");
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.queued_delivered")).toBeTruthy();
+    await adapter.stop(handle, ctx);
+  });
+
+  it("BUG-0032: a silent turn is cancelled after stuckTurnMs and the session recovers", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake", stuckTurnMs: 400 });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "LANGSAM" }, ctx);
+    await waitFor(() => turns.includes("idle"), 8000);
+    const error = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "provider.error");
+    expect(error?.payload).toMatchObject({ provider: "fake" });
+    expect((error?.payload as { detail?: string }).detail).toContain("stumm");
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_end")?.payload).toMatchObject({ stopReason: "cancelled" });
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Hallo" }, ctx)).toEqual({ ok: true });
+    await waitFor(() => texts(ctx.events, "assistant").length === 1, 8000);
+    await adapter.stop(handle, ctx);
+  });
+
+  it("BUG-0032: an agent that ignores session/cancel is force-ended and the session recovers", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], stuckTurnMs: 300 });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "STUMM" }, ctx);
+    await waitFor(() => turns.includes("idle"), 8000);
+    expect(turns).toEqual(["working", "idle"]);
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_stuck")).toBeTruthy();
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Hallo" }, ctx)).toEqual({ ok: true });
+    await waitFor(() => texts(ctx.events, "assistant").length === 1, 8000);
+    await adapter.stop(handle, ctx);
+  });
+
+  it("BUG-0032: a pending permission request disarms the watchdog — waiting for the phone is not stuck", async () => {
+    const turns: string[] = [];
+    const runner = new ProcessRunner();
+    const asked: ToolPermissionRequest[] = [];
+    const ctx = makeRecordingContext({
+      workdir: process.cwd(),
+      spawnWorker: (cmd, o) => runner.spawn({ name: "acp-test", cwd: process.cwd(), cmd, ...(o?.env ? { env: o.env } : {}) }),
+      requestToolPermission: async (req: ToolPermissionRequest) => {
+        asked.push(req);
+        await new Promise((r) => setTimeout(r, 900));
+        return { behavior: "allow" as const, updatedInput: req.input };
+      },
+      turn: (state: "working" | "idle") => turns.push(state),
+    } as Partial<AdapterContext>);
+    await createAdapter({ command: [agent], stuckTurnMs: 300 }).start({ adapter: "acp", project: process.cwd(), prompt: "Bitte WERKZEUG" }, ctx);
+    await waitFor(() => turns.includes("idle"), 8000);
+    expect(asked).toHaveLength(1);
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "provider.error")).toBeUndefined();
+    expect(texts(ctx.events, "assistant")[0]).toContain("Ausgabe hallo-acp");
+  });
+
+  it("BUG-0033: buffered chunks go out live while the turn runs, not only at its end", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent] });
+    await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "STREAM" }, ctx);
+    // The turn is silent for 5 s after the first chunk; without the live
+    // flush the first assistant text only appears when the turn ends.
+    await waitFor(() => texts(ctx.events, "assistant").length >= 1, 3_500);
+    expect(turns).not.toContain("idle");
+    await waitFor(() => turns.includes("idle"), 8_000);
+    expect(texts(ctx.events, "assistant").join("")).toBe("Antwort auf: STREAM · ACP");
+  });
+
+  it("ADR-0032: without totalTokens the turn counts input+output as its tokens", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    await createAdapter({ command: [agent], label: "fake" }).start({ adapter: "acp", project: process.cwd(), prompt: "OHNE_TOTAL" }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    const turnEnd = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.turn_end");
+    expect(turnEnd?.tokensEst).toBe(15);
+    expect((turnEnd?.payload as { usage?: { input?: number; output?: number } }).usage).toMatchObject({ input: 10, output: 5 });
+  });
+
+  it("models(): a listing command feeds the start form's dropdown; derived for `… acp` agents, explicit via modelsCommand", async () => {
+    const list = ["zai-coding-plan/glm-5.3", "opencode/claude-fable-5", "opencode/gpt-6-astra", "", "kein modell"];
+    const script = `process.stdout.write(${JSON.stringify(list.join("\n"))})`;
+    // derived: the trailing "acp" becomes "models" (opencode: `opencode models`)
+    const derived = createAdapter({ command: [process.execPath, "-e", script, "acp"] });
+    expect((await derived.models?.() ?? []).map((m) => m.id)).toEqual(["zai-coding-plan/glm-5.3", "opencode/claude-fable-5", "opencode/gpt-6-astra"]);
+    // no derivation without a trailing "acp" — empty catalog, not an error
+    expect(await createAdapter({ command: ["x"] }).models?.()).toEqual([]);
+    const explicit = createAdapter({ command: ["x"], modelsCommand: [process.execPath, "-e", script] });
+    expect((await explicit.models?.() ?? []).map((m) => m.id)).toEqual(["zai-coding-plan/glm-5.3", "opencode/claude-fable-5", "opencode/gpt-6-astra"]);
+    // a failing command throws — the catalog route catches and shows free text
+    const failing = createAdapter({ command: ["x"], modelsCommand: [process.execPath, "-e", "process.exit(1)"] });
+    await expect(failing.models?.()).rejects.toThrow();
+  });
+
+  it("BUG-0036: recover() plays a loaded history back silently — no second copy of the turn", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "Hallo" }, ctx);
+    await waitFor(() => texts(ctx.events, "assistant").length === 1);
+    const native = String(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.native_session")?.payload.nativeSessionId);
+    await adapter.stop(handle, ctx);
+
+    // hub restart: no surviving worker, the native id is known — the agent
+    // re-notifies the loaded conversation (see the stand-in's session/load)
+    const ctx2 = context({ turns: [] });
+    const recoverCtx = Object.assign(ctx2, { nativeSessionId: native }) as typeof ctx2 & { nativeSessionId: string };
+    const recovered = (await adapter.recover?.("restart", 1, recoverCtx)) ?? null;
+    expect(recovered).toBeTruthy();
+    expect(texts(ctx2.events, "assistant")).toEqual([]);
+    expect(ctx2.events.filter((e) => e.type === "tool_use")).toEqual([]);
+    expect(ctx2.events.filter((e) => e.type === "thinking")).toEqual([]);
+    // after the takeover a new prompt still works normally
+    expect(await adapter.steer(recovered!, { kind: "prompt", text: "Weiter" }, ctx2)).toEqual({ ok: true });
+    await waitFor(() => texts(ctx2.events, "assistant").length === 1);
+    await adapter.stop(recovered!, ctx2);
+  });
+
+  it("a stopped run continues in its loaded conversation — args.resumeSessionId, silent replay (BUG-0036)", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    // the native id an earlier run left behind; the stand-in replays the
+    // old conversation on session/load — none of it may reach the stream
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "Weiter im Kontext", args: { resumeSessionId: "acp_alt_1234" } }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    const native = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.native_session");
+    expect((native?.payload as { nativeSessionId?: string }).nativeSessionId).toBe("acp_alt_1234");
+    expect(ctx.events.filter((e) => e.type === "tool_use")).toEqual([]);
+    // the loaded conversation's replay must stay out; the turn's own
+    // thinking ("Ich überlege kurz.") is welcome
+    expect(texts(ctx.events, "thinking").join("")).not.toContain("replayed");
+    expect(texts(ctx.events, "assistant")).toEqual(["Antwort auf: Weiter im Kontext · ACP"]);
+    await adapter.stop(handle, ctx);
+  });
+
+  it("BUG-0039: an adoption (importHistory) plays the loaded history into the tail — the hub never had it", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    // adopting an observed session: same resumeSessionId as a reopen, plus
+    // the manager's importHistory flag — the load replay is the only source
+    // of history, so it must reach the stream.
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), args: { resumeSessionId: "acp_alt_1234", importHistory: true } }, ctx);
+    await waitFor(() => texts(ctx.events, "assistant").length >= 1);
+    expect(texts(ctx.events, "thinking").join("")).toContain("replayed");
+    expect(texts(ctx.events, "assistant").join("")).toContain("Replay der alten Antwort");
+    expect(ctx.events.some((e) => e.type === "tool_use")).toBe(true);
+    // no prompt went along — nothing is running, the session sits between turns
+    expect(turns).toEqual([]);
     await adapter.stop(handle, ctx);
   });
 

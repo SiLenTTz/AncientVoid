@@ -1,0 +1,20 @@
+{
+  "name": "@uacc/companion",
+  "version": "0.1.0",
+  "description": "EPIC-P11 (ADR-0031): desktop companion — types a person's dictation into the focused window of this PC, after they saw it as the target.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "uacc-companion": "./src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/companion.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@uacc/contracts": "0.1.0"
+  }
+}

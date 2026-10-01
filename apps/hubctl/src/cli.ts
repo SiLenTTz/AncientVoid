@@ -8,6 +8,7 @@
  */
 import { pathToFileURL } from "node:url";
 import type { NormalizedEvent } from "@uacc/contracts";
+import { DEFAULT_SERVER, findOrphanedWorkers, pruneOrphanedWorkers } from "@uacc/workers";
 
 const BASE = process.env.UACC_URL ?? "http://127.0.0.1:7373";
 const TOKEN = process.env.UACC_TOKEN ?? "";
@@ -57,6 +58,11 @@ Usage:
   hubctl token revoke <label> [--db <hub.db>]
   hubctl fleet invite [--db <hub.db>]     one-time code for another hub to pair (10 min)
   hubctl fleet peers [--db <hub.db>]      hubs this one is paired with
+  hubctl workers list                     verwaiste uacc-Worker anzeigen (lokal, BUG-0034)
+  hubctl workers prune                    verwaigte uacc-Worker entfernen (lokal)
+  hubctl backup create --config <hub.config.json> --out <file> --key-file <file>
+  hubctl backup restore --archive <file> --data-dir <empty-dir> --config-out <file> --key-file <file>
+  hubctl backup prune --dir <archive-dir> --keep <count> [--apply]   preview unless --apply
 
 Env:
   UACC_URL   hub base url (default http://127.0.0.1:7373)
@@ -248,6 +254,59 @@ async function main(): Promise<void> {
       } else {
         usage();
       }
+      break;
+    }
+    case "backup": {
+      const sub = args[0] ?? usage();
+      const option = (name: string): string => {
+        const index = args.indexOf(name);
+        if (index < 0 || !args[index + 1] || args[index + 1]!.startsWith("--")) usage();
+        return args[index + 1]!;
+      };
+      const { createBackup, pruneBackups, restoreBackup } = await import("./backup.ts");
+      if (sub === "create") {
+        const configFile = option("--config");
+        const outputFile = option("--out");
+        const keyFile = option("--key-file");
+        const { loadConfig } = await import("@uacc/core");
+        const { config } = await loadConfig(configFile);
+        await createBackup({ dataDir: config.dataDir, configFile, outputFile, keyFile });
+        console.log(`verschlüsseltes Backup erstellt: ${outputFile}`);
+      } else if (sub === "restore") {
+        const archiveFile = option("--archive");
+        const targetDir = option("--data-dir");
+        const configOut = option("--config-out");
+        const keyFile = option("--key-file");
+        await restoreBackup({ archiveFile, targetDir, configOut, keyFile });
+        console.log(`Restore geprüft: ${targetDir}\nConfig geschrieben: ${configOut}`);
+      } else if (sub === "prune") {
+        const directory = option("--dir");
+        const keep = Number(option("--keep"));
+        const apply = args.includes("--apply");
+        const removed = await pruneBackups({ directory, keep, ...(apply ? { apply: true } : {}) });
+        if (removed.length === 0) console.log("keine alten Backups zum Entfernen");
+        else for (const path of removed) console.log(`${apply ? "entfernt" : "würde entfernen"}: ${path}`);
+      } else {
+        usage();
+      }
+      break;
+    }
+    case "workers": {
+      // BUG-0034: local, not a hub route — orphans are recognized on the
+      // machine the tmux servers live on.
+      const sub = args[0];
+      if (sub !== "list" && sub !== "prune") {
+        console.log("hubctl workers list   verwaiste uacc-Worker anzeigen (tmux-Server und -Sessions)");
+        console.log("hubctl workers prune  verwaigte uacc-Worker entfernen");
+        break;
+      }
+      const found = sub === "prune" ? await pruneOrphanedWorkers() : await findOrphanedWorkers();
+      if (found.killServers.length === 0 && found.killSessions.length === 0) {
+        console.log("keine verwaisten uacc-Worker");
+        break;
+      }
+      for (const server of found.killServers) console.log(`${sub === "prune" ? "tmux-Server entfernt" : "verwaister tmux-Server"}: ${server}`);
+      for (const s of found.killSessions) console.log(`${sub === "prune" ? "Session entfernt" : "verwaite Session"}: ${s.name} (${s.server === DEFAULT_SERVER ? "Standard-Server" : s.server})`);
       break;
     }
     default:

@@ -15,9 +15,12 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (/^\/api\/sessions\/[^/]+\/tool-permissions/.test(path)) return "tools.ask";
   // T8.4: drafts are a person's, reading included.
   if (/^\/api\/sessions\/[^/]+\/draft$/.test(path)) return "drafts.write";
+  // EPIC-P11: the companion's long poll is a GET, but not a read.
+  if (path.startsWith("/api/desktop/companion/")) return "desktop.companion";
   if (method === "GET" || method === "HEAD") return "read";
-  if (path === "/api/stt" && method === "POST") return "voice.transcribe";
+  if ((path === "/api/stt" || path === "/api/stt/stream-ticket") && method === "POST") return "voice.transcribe";
   if (path.startsWith("/api/media/")) return "media.analyze";
+  if (path.startsWith("/api/desktop/")) return "desktop.act";
   // T9.3: planning is reading; executing runs every step through the real
   // route with the caller's own token — that route's policy decides.
   if (path.startsWith("/api/commands/")) return "read";

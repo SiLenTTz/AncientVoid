@@ -15,8 +15,8 @@ export interface CodeTarget {
 }
 
 /** T8.1: every page has a URL, so Back in the browser goes back. */
-export type ListPage = "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery" | "media";
-const PAGE_SLUG: Record<ListPage, string> = { dashboard: "", new: "neu", settings: "einstellungen", approvals: "freigaben", status: "status", discovery: "gefunden", media: "medien" };
+export type ListPage = "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery" | "media" | "pc";
+const PAGE_SLUG: Record<ListPage, string> = { dashboard: "", new: "neu", settings: "einstellungen", approvals: "freigaben", status: "status", discovery: "gefunden", media: "medien", pc: "pc" };
 
 export function pageHash(page: ListPage): string {
   return `#/${PAGE_SLUG[page]}`;

@@ -32,6 +32,7 @@ const PAGE_WORDS: [RegExp, string][] = [
   [/\b(freigaben|approvals?|warteschlange)\b/, "approvals"],
   [/\b(gefunden\w*|discovery|externe sessions)\b/, "discovery"],
   [/\b(medien|media|videos|videoanalyse\w*)\b/, "media"],
+  [/\b(pc|desktop|rechner)\b/, "pc"],
   [/\b(uebersicht|uebersicht|overview|startseite|home|dashboard)\b/, "dashboard"],
 ];
 

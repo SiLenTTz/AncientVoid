@@ -1,4 +1,5 @@
 import { createServer, type Server } from "node:http";
+import { WebSocketServer } from "ws";
 import { test, expect } from "../support/fixtures.ts";
 
 /**
@@ -7,7 +8,9 @@ import { test, expect } from "../support/fixtures.ts";
  * 16-bit WAV — so the test proves the hub converted the phone's recording.
  */
 const port = 19_000 + Math.floor(Math.random() * 900);
+const streamPort = port + 10_000;
 let server: Server;
+let streamServer: WebSocketServer;
 const received: { rate: number; channels: number; bytes: number; prompt: boolean; language: string }[] = [];
 
 test.beforeAll(async () => {
@@ -27,8 +30,28 @@ test.beforeAll(async () => {
     });
   });
   await new Promise<void>((r) => server.listen(port, "127.0.0.1", r));
+  streamServer = new WebSocketServer({ host: "127.0.0.1", port: streamPort });
+  await new Promise<void>((resolve) => streamServer.once("listening", resolve));
+  streamServer.on("connection", (socket) => {
+    let sentPartial = false;
+    socket.on("message", (raw, isBinary) => {
+      if (isBinary) {
+        if (!sentPartial) {
+          sentPartial = true;
+          socket.send(JSON.stringify({ type: "conversation.item.input_audio_transcription.delta", delta: "Nicht stoppen" }));
+        }
+        return;
+      }
+      const event = JSON.parse(raw.toString()) as { type?: string };
+      if (event.type === "session.update") socket.send(JSON.stringify({ type: "session.updated" }));
+      if (event.type === "input_audio_buffer.commit") socket.send(JSON.stringify({ type: "conversation.item.input_audio_transcription.completed", transcript: "Bitte weiter" }));
+    });
+  });
 });
-test.afterAll(() => server?.close());
+test.afterAll(async () => {
+  server?.close();
+  if (streamServer) await new Promise<void>((resolve) => streamServer.close(() => resolve()));
+});
 
 test.use({
   hubOptions: { sttUrl: `http://127.0.0.1:${port}/inference` },
@@ -36,6 +59,25 @@ test.use({
 });
 
 test.describe("Lokale Spracherkennung (T10.2)", () => {
+
+  test.describe("Live-Streaming", () => {
+    test.use({ hubOptions: { sttUrl: `http://127.0.0.1:${port}/inference`, sttStreamingUrl: `ws://127.0.0.1:${streamPort}/v1/audio/transcriptions/realtime` } });
+
+  test("Live-Teiltranskript bleibt Vorschau; nur der finale Text landet editierbar im Feld", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const voice = app.locator(".composer-actions").getByRole("button", { name: "Voice" });
+    await expect(voice).toHaveAttribute("title", /Spracheingabe lokal/);
+    await voice.click();
+    await expect(app.getByText(/Aufnahme — tippe „Stopp“/)).toBeVisible();
+    const partial = app.getByRole("status").filter({ hasText: "Vorschau (wird nicht ausgeführt): Nicht stoppen" });
+    await expect(partial).toBeVisible({ timeout: 10_000 });
+    expect((await hub.events(id)).filter((e) => e.type === "user")).toHaveLength(1);
+    await app.locator(".composer-actions").getByRole("button", { name: "Stopp" }).click();
+    await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Bitte weiter");
+    expect((await hub.events(id)).filter((e) => e.type === "user")).toHaveLength(1);
+  });
+  });
 
   test("Voice nimmt auf, der Hub erkennt lokal, der Text landet editierbar im Feld — mit K6-Zeit", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });

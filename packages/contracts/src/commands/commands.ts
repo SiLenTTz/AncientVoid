@@ -74,7 +74,7 @@ export const USER_ONLY_FLOWS: readonly { flow: string; why: string }[] = [
   { flow: "Dateien anhängen", why: "Die Dateiauswahl ist ein Dialog des Systems." },
 ];
 
-export const PAGES = ["dashboard", "new", "settings", "approvals", "status", "discovery", "media"] as const;
+export const PAGES = ["dashboard", "new", "settings", "approvals", "status", "discovery", "media", "pc"] as const;
 export const SESSION_FILTERS = ["waiting", "active", "recent", "all"] as const;
 export const TRANSFORMS = ["correct", "shorten", "translate_en", "translate_de", "improve"] as const;
 /** Fields the text entry can fill or rewrite (AC-P9-1 field catalog). */
