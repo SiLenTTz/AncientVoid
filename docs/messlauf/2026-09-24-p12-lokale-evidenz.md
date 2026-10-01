@@ -414,3 +414,27 @@ Zielhosts sowie 100 warme Kurzbefehle je Zielgerät einschließlich
 VAD-/Abbruch-/Negativfällen. Damit bleibt AC-P10-2 (p95 ≤ 500 ms ab
 Sprachbeginn und p95 ≤ 2 s bis zur sichtbaren Aktion ab Sprachende) offen;
 `stt.streaming` ist standardmäßig deaktiviert.
+## T12.8 — Statischer Audit der Swarm-Cockpit-API
+
+Read-only geprüft im sauberen Schwester-Checkout `custom-rag` am Commit
+`45a7d56b` (Branch `dev`). `RunEvent` ist in
+`app/backend/domain/coding/presentation/cockpit_schemas.py` als
+`{seq, kind, at, node?, payload}` definiert. Reale Emissionsstellen im
+Engine-/Workflow-Code umfassen `run.started` (`graph`, `task`),
+`node.entered` (`kind`, `node`), `node.exited`, `node.failed`,
+`run.budget_exceeded`, `run.aborted`, `run.finished`, `plan.created`,
+`code.generated` sowie `gates.finished` (`passed`, `stopped_at`, `failed`).
+Damit lassen sich Ereignisnamen und diese Quell-Payloads statisch zuordnen;
+ein echter Lauf bzw. dessen JSONL wurde dabei nicht abgerufen.
+
+Blocker für einen sicheren UACC-Freigabefluss: `ApprovalRequest` speichert
+`request_id`, `node`, `reason`, `diff_preview` und `created_at`, doch die
+Engine emittiert bei `approval.requested` nur `{node}`. `RunSummary`/`RunDetail`
+geben ebenfalls nur `pending_approval: bool` heraus. Das Admin-geschützte
+`POST /runs/{run_id}/decisions` kann `approve`, `reject` oder `override`
+entgegennehmen; ein Adapter kann aber ohne Grund und Vorschau keine informierte
+Hub-Freigabe anzeigen. Upstream muss die konkrete offene Approval-Anfrage über
+eine Admin-Read-Route verfügbar machen (Request-ID, Grund, Vorschau und Knoten).
+Zusätzlich fehlen diesem Hub weiterhin Admin-Credential und bestätigte
+`swarm_cockpit`-Lizenz. Kein Credential wurde erzeugt, kein Cockpit-Endpunkt
+aufgerufen und kein Approval ausgelöst.
