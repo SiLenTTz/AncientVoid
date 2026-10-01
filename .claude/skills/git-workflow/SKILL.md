@@ -1,6 +1,6 @@
 ---
 name: git-workflow
-description: Commit-Notation (Arlo, docs/commit-notation.md), Branch-Naming feat/fix/docs (ein Branch pro Aufgabe), GitLab-MR via glab, Co-Author-Trailer. Aktiv bei commit, branch, PR/MR anlegen. Merge NUR über glab mr merge/GitLab-UI, nie lokal per git merge nach main. Never force-push, never commit auf main.
+description: Commit-Notation (Arlo, docs/commit-notation.md), Branch-Naming feat/fix/docs (ein Branch pro Aufgabe), GitLab-MR via glab, Co-Author-Trailer, Post-Merge Branch-Hygiene. Aktiv bei commit, branch, PR/MR anlegen, Branch-Aufräumen. Merge NUR über glab mr merge/GitLab-UI, nie lokal per git merge nach main. Never force-push, never commit auf main.
 ---
 
 # Skill: git-workflow
@@ -64,6 +64,11 @@ ausführbare Form; `CONTRIBUTING.md` bleibt die Regelquelle.
   gepusht". Auch nicht bei Selbst-Merge (Solo-Projekt erlaubt Self-Merge
   der MR, nicht das Überspringen der MR selbst).
 - ❌ Never `--no-verify`.
+- ✅ Nach jedem Merge: Source-Branch lokal löschen, remote nachziehen,
+  `git fetch --prune`. Gemergte Branches nicht als Archiv liegen lassen —
+  die MR ist der Log.
+- ✅ MR-Ziel ist `main`. Lange Integrations-Branches nur als kurze
+  Epic-Kette, die zeitnah nach `main` kommt (sonst driftet `main`).
 
 ## Kadenz — wann commit, wann push, wann MR (deterministisch)
 
@@ -153,9 +158,29 @@ git checkout main
 git pull
 git branch -d feat/mein-feature
 
-# Remote
-git push origin --delete feat/mein-feature
+# Remote (GitLab löscht oft schon via remove_source_branch_after_merge)
+git push origin --delete feat/mein-feature 2>/dev/null || true
+git fetch --prune
 ```
+
+Ohne diesen Schritt bleiben lokale und stale Remote-Tracking-Branches liegen —
+das war der Hauptgrund für den Branch-Wildwuchs vor der Hygiene-Regel.
+
+### 6. Branch-Hygiene (laufend)
+
+- **MR-Ziel = `main`**, außer bei einer bewusst kurzen Epic-Kette
+  (Stacked MRs). Eine Integrations-Branch wie `feat/p12-…` darf existieren,
+  muss aber zeitnah nach `main` gemerged werden — sonst driftet `main` und
+  die Historie wirkt „fertig“, obwohl nichts auf `main` liegt.
+- Nach Merge eines Side-Branches in die Kette: denselben Cleanup wie oben
+  (Source-Branch weg).
+- Draft-MRs ohne Fortschritt schließen; Unique-Commits ohne MR entweder MR
+  öffnen oder Branch löschen (kein „vielleicht später“-Friedhof).
+- `uacc/*`-Worktrees gehören zum Hub-Session-Lifecycle, nicht zur
+  Feature-Branch-Liste — nicht mit `git branch -D` wegräumen, solange die
+  Session lebt.
+- Periodisch: `git branch -a`, alles ohne offene MR und ohne Commits vor
+  `main` löschen. Details: `CONTRIBUTING.md` § Git-Hygiene.
 
 ## Output-Format
 
@@ -164,6 +189,7 @@ Branch: <name oder „nicht angelegt, keine Anweisung">
 Commit: <subject>
 MR: <url oder Entwurf>
 Checks: npm test / lint / typecheck <ok|pending>
+Cleanup: post-merge lokal+remote (+ fetch --prune) <done|pending|n/a>
 ```
 
 ## Determinismus-Checkliste
@@ -173,6 +199,8 @@ Checks: npm test / lint / typecheck <ok|pending>
 - [ ] Pre-Commit-Bezug konkret (`npm test/lint/typecheck`, nicht „irgendwelche Checks").
 - [ ] Merge ausschließlich über `glab mr merge` (oder GitLab-UI) — kein lokales `git merge` von `feat/*` nach `main`.
 - [ ] Bei Remote-Ausfall: Branch offen und ungelöscht, kein Ersatz-Merge, Block klar benannt.
+- [ ] Nach Merge: Source-Branch lokal gelöscht, remote nachgezogen, `git fetch --prune`.
+- [ ] MR zielt auf `main` (oder dokumentierte kurze Epic-Kette, die bald auf `main` landet).
 
 ## Verweise
 

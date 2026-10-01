@@ -19,7 +19,7 @@
 | Skill | Kurzbeschreibung | Auto-loads when | Abgrenzung |
 |---|---|---|---|
 | [`gates`](gates/SKILL.md) | Qualitäts-Gates (npm test/lint/typecheck) in der richtigen Reihenfolge | „ist das grün?", CI rot, vor Commit | Messung, kein fachliches Urteil |
-| [`git-workflow`](git-workflow/SKILL.md) | Conventional Commits, Branch, MR via glab | commit, branch, MR anlegen | ausführbare Form von `CONTRIBUTING.md` |
+| [`git-workflow`](git-workflow/SKILL.md) | Commit-Notation, Branch, MR via glab, Post-Merge-Hygiene | commit, branch, MR, Branch-Aufräumen | ausführbare Form von `CONTRIBUTING.md` § Commits/Git-Hygiene |
 | [`bugfix`](bugfix/SKILL.md) | Reproduce → Fix → Re-verify → Finalize | Bug, Defekt, reproduzieren, Issue investigate | Handoff → `pr-review` |
 | [`bug-report`](bug-report/SKILL.md) | Defekt sehen, belegen, unter `bugs/` anlegen | „Bug anlegen", Dev-Fund, Issue erstellen, kein Patch | kein Fix; Handoff → `bugfix` |
 | [`pr-review`](pr-review/SKILL.md) | 6-Dimensionen-Gate-Review inkl. Future-Fragility | MR review, Merge-Freigabe, structured review | reines Lint bleibt `gates` |
