@@ -182,6 +182,7 @@ export class ApprovalFlow {
       ok: ack.ok,
       approvalId,
       actor: decidedByLabel ?? null,
+      ...(ack.ok ? {} : { detail: ack.detail ?? null }),
     });
     return ack;
   }

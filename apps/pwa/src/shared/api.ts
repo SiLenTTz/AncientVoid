@@ -262,7 +262,7 @@ export interface DiscoveredSession {
   project: string;
   adapter: string;
   status: string;
-  controlMode: "observed" | "managed" | "controllable";
+  controlMode: "observed" | "managed" | "controllable" | "mirror";
   harness: string;
   hostId: string;
   nativeSessionId: string | null;
@@ -305,7 +305,7 @@ export interface HarnessFeatures {
 export interface AdapterInfo {
   id: string;
   version: string;
-  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; features: HarnessFeatures };
+  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; contextWindowTokens?: number | null; features: HarnessFeatures };
 }
 
 export interface ModelOption {
@@ -601,6 +601,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const body = (await res.json().catch(() => ({}))) as { error?: string };
     throw Object.assign(new Error(body.error ?? `${res.status} ${res.statusText}`), { status: res.status });
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -638,8 +639,9 @@ function createHubApi(P: (path: string) => string) {
   settings: () => api<{ gemini: { configured: boolean; model: string } }>(P("/api/settings")),
   setGemini: (body: { apiKey?: string | null; model?: string }) =>
     api<{ gemini: { configured: boolean; model: string } }>(P("/api/settings/gemini"), { method: "PUT", body: JSON.stringify(body) }),
-  /** ADR-0018: null when the adapter has no catalog (free text then). */
-  adapterModels: (id: string) => api<{ models: ModelOption[] | null }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
+  /** ADR-0018: null when the adapter has no catalog (free text then);
+   * defaultModel is the registration's configured model. */
+  adapterModels: (id: string) => api<{ models: ModelOption[] | null; defaultModel: string | null }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
   adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
   projects: () => api<ProjectDiscoveryResult>(P("/api/projects")),
   skills: (project: string) => api<{ items: SkillOrAgent[] }>(P(`/api/skills?project=${encodeURIComponent(project)}`)),
@@ -747,6 +749,11 @@ function createHubApi(P: (path: string) => string) {
     model?: string;
     budgetUsd?: number | null;
     args?: { skill?: string; agent?: string };
+    /** Adoption (ADR-0011): continue an externally discovered session. */
+    adoptNativeSessionId?: string;
+    /** Read-only mirror (ADR-0011 Erweiterung): show an observed opencode
+     * session's chat without adopting or running anything. */
+    mirrorNativeSessionId?: string;
     attachmentIds?: string[];
   }) =>
     api<SessionRecord>(P("/api/sessions"), {
@@ -785,6 +792,8 @@ function createHubApi(P: (path: string) => string) {
       method: "POST",
       body: JSON.stringify({ archived }),
     }),
+  /** Delete for good — events, worktree, row. 409 while it runs. */
+  deleteSession: (id: string) => api<void>(P(`/api/sessions/${id}`), { method: "DELETE", body: "{}" }),
   // T1.5-6: doesn't go through api<T>() — a rejected steer (e.g. "no
   // thread_id captured yet") comes back as a 422 with a real, meaningful
   // {ok:false, detail} body, and api<T>()'s generic !res.ok path would

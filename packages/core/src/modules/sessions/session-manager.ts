@@ -18,6 +18,7 @@ import { dedupeDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
 import { notificationFor } from "../notifications/index.ts";
 import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS } from "./session-state.ts";
+import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 
 export interface SessionManagerObservability {
@@ -65,6 +66,7 @@ export class SessionManager {
   private readonly registry: AdapterRegistry;
   private readonly runner: WorkerRunner;
   private readonly worktrees: WorktreeManager | undefined;
+  private readonly mirrorDataDir: string;
   private readonly reportingSinks: ReportingSink[];
   private readonly logger: HubLogger;
   private readonly metrics: HubMetrics | undefined;
@@ -94,7 +96,12 @@ export class SessionManager {
      * configured (same "default off" principle as the MCP gateway, OD-2). */
     reportingSinks: ReportingSink[] = [],
     observability: SessionManagerObservability = {},
+    /** Read-only opencode mirror (ADR-0011 Erweiterung): the data dir whose
+     * opencode.db mirror sessions read. Defaults to the same dir the
+     * discovery scan uses; tests inject their own fixture dir. */
+    mirrorDataDir: string = defaultOpencodeDataDir(),
   ) {
+    this.mirrorDataDir = mirrorDataDir;
     this.db = db;
     this.store = store;
     this.registry = registry;
@@ -209,6 +216,10 @@ export class SessionManager {
   /**
    * Hub rows plus external sources, deduped, paged. Unknown resume versions
    * stay in the list with unsupportedResume (K9), they are not dropped.
+   *
+   * Clip observers (cursor/claude-clip, external IDE chats) stay out —
+   * they bury the real sessions (user decision 2026-09-28); a hub-managed
+   * clip session is a real session and stays.
    */
   async discover(
     sources: readonly DiscoverySource[] = [],
@@ -217,7 +228,13 @@ export class SessionManager {
   ): Promise<{ items: DiscoveredSession[]; nextCursor: number | null }> {
     const external: DiscoveredSession[] = [];
     for (const source of sources) external.push(...(await source.list()));
-    const merged = dedupeDiscovered([...this.list().map((record) => this.toDiscovered(record)), ...external]);
+    const merged = dedupeDiscovered([...this.list().map((record) => this.toDiscovered(record)), ...external]).filter(
+      (item) => !(item.hubSessionId === null && (item.adapter === "cursor-clip" || item.adapter === "claude-clip")),
+    );
+    // BUG-0035: page 1 is what the user opens — the most recently observed
+    // first, never the source's oldest scan order. Items without a
+    // timestamp sink; ISO-8601 compares chronologically as a string.
+    merged.sort((a, b) => (b.observedAt ?? "").localeCompare(a.observedAt ?? ""));
     return pageDiscovered(merged, cursor, limit);
   }
 
@@ -296,6 +313,7 @@ export class SessionManager {
    */
   async create(spec: unknown, actor?: string): Promise<SessionRecord> {
     const parsed = SessionSpecSchema.parse(spec);
+    if (parsed.mirrorNativeSessionId) return this.createMirror(parsed, actor);
     const registered = this.registry.require(parsed.adapter);
     const refused = refuseSpec(registered.capabilities.features, parsed.adapter, parsed);
     if (refused) throw new Error(refused);
@@ -304,8 +322,7 @@ export class SessionManager {
       id: randomUUID(),
       adapter: parsed.adapter,
       project: parsed.project,
-      worktreeSha: null,
-      model: parsed.model ?? null,
+      worktreeSha: null,      model: parsed.model ?? null,
       status: "starting",
       createdAt: now,
       budgetUsd: parsed.budgetUsd ?? null,
@@ -321,7 +338,9 @@ export class SessionManager {
       controlMode: "managed",
       harness: "cli",
       hostId: DEFAULT_HOST_ID,
-      nativeSessionId: null,
+      // Adoption (ADR-0011): a hub-adopted external run keeps its native id —
+      // the first prompt resumes it instead of starting a fresh run.
+      nativeSessionId: parsed.adoptNativeSessionId ?? null,
       resumeVersion: RESUME_SCHEMA_VERSION,
       logOffset: null,
       parentSessionId: null,
@@ -377,6 +396,15 @@ export class SessionManager {
     const ctx = this.makeContext(session);
     const skillName = readSkillName(parsed.args);
     let startSpec = parsed;
+    if (parsed.adoptNativeSessionId) {
+      // Adoption: the first start resumes the adopted native session; the
+      // adapter's own args schema (opencode/claude: resumeSessionId) picks
+      // it up and turns the prompt into a continuation. BUG-0039: the hub
+      // never had this history — importHistory tells the adapter to emit
+      // the load replay instead of discarding it (BUG-0036 is recovery's
+      // silence, not adoption's).
+      startSpec = { ...startSpec, args: { ...startSpec.args, resumeSessionId: parsed.adoptNativeSessionId, importHistory: true } };
+    }
     if (skillName) {
       session.skillName = skillName;
       const chain = await resolveSkillChain(parsed.project, skillName);
@@ -416,7 +444,11 @@ export class SessionManager {
     }
     try {
       session.handle = await session.adapter.start(startSpec, ctx);
-      await this.setStatus(session, "working");
+      // BUG-0039: an adoption without a prompt has no turn — the history
+      // import already happened inside start(). "working" would lie (the
+      // PWA shows the loading state for a working session with no events).
+      const adoptedIdle = parsed.adoptNativeSessionId !== undefined && !parsed.prompt && !parsed.attachments?.length;
+      await this.setStatus(session, adoptedIdle ? "idle" : "working");
       await this.emitSystem(session, "session.started", {
         pid: session.handle.pid ?? null,
         capabilities: registered.capabilities,
@@ -435,6 +467,115 @@ export class SessionManager {
     return { ...record };
   }
 
+  /**
+   * Read-only mirror (ADR-0011 Erweiterung): a read-only chat view of an
+   * externally observed opencode session. No adapter runs — history and
+   * updates come from opencode's own store (same source as the discovery
+   * scan). `refreshMirror()` pulls the delta; the observed control mode
+   * keeps every steer out.
+   */
+  private async createMirror(parsed: { adapter: string; project: string; mirrorNativeSessionId?: string | undefined }, actor?: string): Promise<SessionRecord> {
+    const nativeId = parsed.mirrorNativeSessionId;
+    if (!nativeId) throw new Error("Spiegel ohne native Session-ID");
+    const first = readOpenCodeMirrorDelta(this.mirrorDataDir, nativeId, 0);
+    if (!first) {
+      throw new Error(`Spiegel nicht möglich: keine lesbare opencode-Session „${nativeId}" in ${this.mirrorDataDir}`);
+    }
+    const now = new Date().toISOString();
+    const record: SessionRecord = {
+      id: randomUUID(),
+      adapter: parsed.adapter,
+      project: first.info.project ?? parsed.project,
+      worktreeSha: null,
+      model: null,
+      status: "idle",
+      createdAt: now,
+      budgetUsd: null,
+      adapterVersion: "0.0.0-mirror",
+      lastSeq: 0,
+      costUsd: 0,
+      updatedAt: now,
+      tokensEst: 0,
+      metrics: metricsState(emptyMetricCounters()),
+      lastActivity: null,
+      pinned: false,
+      parkReason: null,
+      controlMode: "mirror",
+      harness: "cli",
+      hostId: DEFAULT_HOST_ID,
+      nativeSessionId: nativeId,
+      resumeVersion: RESUME_SCHEMA_VERSION,
+      logOffset: null,
+      parentSessionId: null,
+      observedAt: now,
+      fork: false,
+      inputRevision: 0,
+      writerClient: null,
+      writerLeaseUntil: null,
+      archived: false,
+      title: first.info.title ?? sessionTitle(nativeId),
+    };
+    await this.store.initSession(record.id);
+    this.persist(record);
+    const session: LiveSession = {
+      record,
+      adapter: null as unknown as Adapter,
+      handle: null,
+      abort: new AbortController(),
+      subscribers: new Set(),
+      workdir: record.project,
+      worktreeIsolated: false,
+      budgetWarned: false,
+    };
+    this.live.set(record.id, session);
+    await this.emitEvents(session, first.events);
+    await this.emitSystem(session, "session.mirror", {
+      nativeSessionId: nativeId,
+      events: first.events.length,
+      actor: actor ?? null,
+      read_only: true,
+    });
+    await this.emitEvents(session, [{ type: "system", summary: "Spiegel steht", payload: { kind: "opencode.mirror_delta", watermark: first.watermark } }]);
+    this.logger.info("session mirrored", { sessionId: record.id, nativeSessionId: nativeId });
+    return { ...record };
+  }
+
+  /** Delta pull for a mirror session: everything opencode wrote since the
+   * last watermark becomes chat events (pushed to subscribers live). */
+  async refreshMirror(sessionId: string): Promise<void> {
+    const record = this.get(sessionId);
+    if (!record || record.controlMode !== "mirror" || !record.nativeSessionId) return;
+    let session = this.live.get(sessionId);
+    if (!session) {
+      // after a hub restart the mirror comes back lazily, like stopped runs
+      session = {
+        record,
+        adapter: null as unknown as Adapter,
+        handle: null,
+        abort: new AbortController(),
+        subscribers: new Set(),
+        workdir: record.project,
+        worktreeIsolated: false,
+        budgetWarned: false,
+      };
+      this.live.set(sessionId, session);
+    }
+    const tail = await this.store.replay(sessionId);
+    const marker = [...tail].reverse().find((e) => (e.payload as { kind?: string }).kind === "opencode.mirror_delta");
+    const since = typeof (marker?.payload as { watermark?: unknown })?.watermark === "number" ? (marker!.payload as { watermark: number }).watermark : 0;
+    const delta = readOpenCodeMirrorDelta(this.mirrorDataDir, record.nativeSessionId, since);
+    if (!delta) {
+      await this.emitSystem(session, "session.mirror_lost", { reason: "opencode-Store nicht mehr lesbar" });
+      return;
+    }
+    if (delta.events.length > 0) await this.emitEvents(session, delta.events);
+    await this.emitEvents(session, [{ type: "system", summary: "Spiegel aktualisiert", payload: { kind: "opencode.mirror_delta", watermark: delta.watermark } }]);
+    const last = tail.at(-1) ?? null;
+    record.updatedAt = new Date().toISOString();
+    record.lastActivity = last !== null ? activityOf(last) : null;
+    this.persist(record);
+  }
+
   /** BUG-0018: a stopped session enters `live` only once someone opens it
    * (tail subscription or steer), never at recovery. The shell is cheap:
    * skill and provider id are read from the log only when the run
@@ -443,7 +584,9 @@ export class SessionManager {
     const existing = this.live.get(sessionId);
     if (existing) return existing;
     const record = this.get(sessionId);
-    if (!record || record.status !== "stopped") return undefined;
+    // "error" too: a dead run (hub restart, crashed worker) must stay
+    // continuable — the user's way back into a session is a new prompt.
+    if (!record || (record.status !== "stopped" && record.status !== "error")) return undefined;
     const registered = this.registry.get(record.adapter);
     if (!registered) return undefined;
     const isolated =
@@ -563,6 +706,12 @@ export class SessionManager {
   }
 
   private async steerNow(sessionId: string, input: SteerInput, actor?: string, meta?: SteerMeta): Promise<Ack> {
+    // A mirror is a read-only view (ADR-0011 Erweiterung): nothing may be
+    // steered, stopped or parked into opencode's session — loudly refused.
+    const mirrorRecord = this.get(sessionId);
+    if (mirrorRecord?.controlMode === "mirror") {
+      return { ok: false, detail: "Spiegel-Session ist nur lesbar — zum Weiterarbeiten übernehmen" };
+    }
     const session = this.openStopped(sessionId);
     if (!session) {
       const record = this.get(sessionId);
@@ -613,7 +762,7 @@ export class SessionManager {
     // non-"prompt" steer's audit event had payload.kind === "resume"/
     // "park" instead of "session.steer" ever since T2.4 introduced this
     // call. Named `steerKind` here to never collide again.
-    await this.emitSystem(session, "session.steer", { steerKind: input.kind, ok: ack.ok, actor: actor ?? null });
+    await this.emitSystem(session, "session.steer", { steerKind: input.kind, ok: ack.ok, actor: actor ?? null, ...(ack.ok ? {} : { detail: ack.detail ?? null }) });
     if (ack.ok) await this.commitSteer(session, meta, foreignWriter, actor);
     return ack;
   }
@@ -856,6 +1005,37 @@ export class SessionManager {
     return { ok: true };
   }
 
+  /**
+   * Delete a session for good — events, snapshot, worktree and row. Only
+   * for runs that are not live: a working session has to be stopped first
+   * (its worker and worktree still belong to it). Uncommitted agent work
+   * in a kept worktree goes with it, so the PWA asks before calling this.
+   */
+  async delete(sessionId: string): Promise<Ack> {
+    const record = this.get(sessionId);
+    if (!record) return { ok: false, detail: "session not found" };
+    if (this.live.has(sessionId) && record.status !== "error" && record.status !== "stopped" && record.status !== "parked") {
+      return { ok: false, detail: "Die Session läuft noch — erst stoppen, dann löschen." };
+    }
+    const live = this.live.get(sessionId);
+    if (live) {
+      live.abort.abort();
+      this.live.delete(sessionId);
+    }
+    if (record.worktreeSha !== null && this.worktrees) {
+      try {
+        if (existsSync(this.worktrees.pathFor(sessionId))) await this.worktrees.remove(sessionId, record.project);
+      } catch (err) {
+        this.logger.warn("worktree removal on delete failed", { sessionId, err: err instanceof Error ? err.message : String(err) });
+      }
+    }
+    await this.store.destroySession(sessionId);
+    this.db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+    this.metrics?.inc("sessions_deleted");
+    this.logger.info("session deleted", { sessionId, adapter: record.adapter });
+    return { ok: true };
+  }
+
   /** ADR-0009: fire-and-forget, best-effort. A throwing/rejecting sink
    * must never affect the (already-returned) stop() result — errors are
    * caught per-sink and surfaced as a real system event instead of a
@@ -943,6 +1123,12 @@ export class SessionManager {
       if (record.status === "stopped") {
         // Loaded when opened (openStopped), so recovery time does not grow
         // with the history of finished runs.
+        recovered++;
+        continue;
+      }
+      if (record.controlMode === "mirror") {
+        // A mirror is a read-only view with no adapter of its own — nothing
+        // to recover, it refreshes from opencode's store when opened.
         recovered++;
         continue;
       }

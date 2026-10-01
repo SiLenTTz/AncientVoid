@@ -72,7 +72,11 @@ WorkingDirectory=%h/mobile-hub
 Environment=UACC_CONFIG=%h/.config/uacc/hub.config.json
 Environment=PATH=%h/.local/share/mise/shims:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=$(command -v node) apps/hub/src/main.ts
-Restart=on-failure
+# BUG-0029: logs and data stay private to the user.
+UMask=0077
+# BUG-0037: restart also after a clean SIGTERM exit; explicit
+# `systemctl --user stop` still suppresses restarts.
+Restart=always
 RestartSec=3
 
 [Install]

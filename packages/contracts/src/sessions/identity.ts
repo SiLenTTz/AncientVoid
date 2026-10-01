@@ -3,7 +3,10 @@
  * Hub id stays stable. External identity is host + provider + native id.
  */
 
-export const CONTROL_MODES = ["observed", "managed", "controllable"] as const;
+/** "mirror" — a read-only chat view of an externally observed session
+ * (ADR-0011 Erweiterung): refreshed from the provider's own store, no
+ * adapter of its own, no steering. */
+export const CONTROL_MODES = ["observed", "managed", "controllable", "mirror"] as const;
 export type ControlMode = (typeof CONTROL_MODES)[number];
 
 export const HARNESS_TARGETS = ["cli", "ide", "desktop-app"] as const;

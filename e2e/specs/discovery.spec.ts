@@ -1,5 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import type { Page } from "@playwright/test";
 import { test, expect } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
 
@@ -8,6 +10,17 @@ function externalClaude(hub: TestHub, project: string, ids: string[]): string {
   mkdirSync(dir, { recursive: true });
   for (const id of ids) writeFileSync(join(dir, `${id}.jsonl`), `{"type":"user","sessionId":"${id}"}\n`);
   return dir;
+}
+
+/** Collapsible groups (BUG-0035 follow-up): only the newest project starts
+ * expanded — tests flip every folded group open before asserting rows.
+ * One at a time: the closed-set shrinks with every click. */
+async function expandAllGroups(app: Page) {
+  for (let i = 0; i < 20; i++) {
+    const next = app.locator(".project-tile:not([open]) > summary").first();
+    if ((await next.count()) === 0) break;
+    await next.click();
+  }
 }
 
 test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
@@ -23,6 +36,12 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expect(app.getByText("6 gefunden")).toBeVisible();
     await expect(app.getByText("1 unbekanntes Format")).toBeVisible();
+    // collapsible: exactly one group open by default, the rest folded
+    // (kopie's ext-1 is deduped into extern — 3 groups, not 4)
+    const tiles = app.locator(".project-tile");
+    await expect(tiles).toHaveCount(3);
+    await expect(tiles.and(app.locator("[open]"))).toHaveCount(1);
+    await expandAllGroups(app);
     const rows = app.locator(".discovered-row");
     await expect(rows.filter({ hasText: "ext-1" })).toHaveCount(1);
     await expect(rows.filter({ hasText: "agent-9" }).getByText("Subagent von ext-2")).toBeVisible();
@@ -40,10 +59,60 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     const t0 = Date.now();
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expect(app.getByText("20 gefunden")).toBeVisible({ timeout: 10_000 });
+    await expandAllGroups(app);
     await expect(app.locator(".discovered-row")).toHaveCount(20);
     info.annotations.push({ type: "sichtbar nach ms", description: String(Date.now() - t0) });
     expect(Date.now() - t0).toBeLessThan(10_000);
     await expect(app.locator(".project-tile")).toHaveCount(7);
+  });
+
+  test("einen Subagent-Verlauf fortsetzen übernimmt die Haupt-Session samt Transkript (ADR-0011, Live-Fund 2026-09-28)", async ({ app, hub }) => {
+    const parent = "11111111-1111-4111-8111-111111111111";
+    // the external project dir must un-munge into an allowed project (alpha)
+    const mungedAlpha = hub.alpha.replace(/[^a-zA-Z0-9]/g, "-");
+    const dir = join(hub.root, "claude", "projects", mungedAlpha);
+    mkdirSync(join(dir, parent, "subagents"), { recursive: true });
+    writeFileSync(join(dir, `${parent}.jsonl`), `{"type":"user","sessionId":"${parent}"}\n`);
+    writeFileSync(join(dir, parent, "subagents", "agent-9.jsonl"), "{}\n");
+
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    await expandAllGroups(app);
+    // der Subagent-Zeile: „Fortsetzen" übernimmt die Haupt-Session
+    const row = app.locator(".discovered-row").filter({ hasText: "agent-9" });
+    await row.getByRole("button", { name: "Fortsetzen" }).click();
+    await expect(app.locator(".session-topbar")).toContainText("claude");
+    const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
+    const events = await hub.events(id);
+    // die Historie der Haupt-Session ist im Tail — ohne den Agenten zu
+    // fragen. Das Transkript ist nach der Parent-ID benannt: gefunden
+    // heißt, die Haupt-Session (nicht der Subagent) wurde fortgesetzt.
+    expect(events.some((e) => (e.payload as { kind?: string }).kind === "claude.transcript_imported")).toBe(true);
+  });
+
+  test("eine beobachtete opencode-Session spiegeln: derselbe Text erscheint im Hub-Chat (ADR-0011 Erweiterung)", async ({ app, hub }) => {
+    // der TestHub-Store ist leer und isoliert — die gespiegelte Session
+    // lebte „außerhalb": Historie nur in opencodes eigenem Store
+    const odb = new DatabaseSync(join(hub.root, "opencode.db"));
+    odb.exec("CREATE TABLE IF NOT EXISTS message (id TEXT PRIMARY KEY, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT)");
+    odb.exec("CREATE TABLE IF NOT EXISTS part (id TEXT PRIMARY KEY, message_id TEXT, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT)");
+    odb.prepare("INSERT INTO session (id, directory, title, time_created, time_updated) VALUES (?,?,?,?,?)").run("ses_e2e_mirror", hub.alpha, "E2E Spiegel", 1000, 2000);
+    odb.prepare("INSERT INTO message VALUES (?,?,?,?,?)").run("m1", "ses_e2e_mirror", 1000, 1000, JSON.stringify({ role: "user" }));
+    odb.prepare("INSERT INTO part VALUES (?,?,?,?,?,?)").run("p1", "m1", "ses_e2e_mirror", 1000, 1000, JSON.stringify({ type: "text", text: "外部のチャット — Frage vom Terminal" }));
+    odb.prepare("INSERT INTO message VALUES (?,?,?,?,?)").run("m2", "ses_e2e_mirror", 2000, 2000, JSON.stringify({ role: "assistant" }));
+    odb.prepare("INSERT INTO part VALUES (?,?,?,?,?,?)").run("p2", "m2", "ses_e2e_mirror", 2000, 2000, JSON.stringify({ type: "text", text: "Antwort aus dem externen Lauf" }));
+    odb.close();
+
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    await expandAllGroups(app);
+    const row = app.locator(".discovered-row").filter({ hasText: "ses_e2e_mirror" });
+    await row.getByRole("button", { name: "Spiegeln" }).click();
+    await expect(app.locator(".session-topbar")).toContainText("opencode");
+    // exact same text, in the hub chat — read-only mirror, nothing ran
+    await expect(app.locator(".tail-scroll")).toContainText("Frage vom Terminal");
+    await expect(app.locator(".tail-scroll")).toContainText("Antwort aus dem externen Lauf");
+    const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
+    const events = await hub.events(id);
+    expect(events.some((e) => e.type === "user" && (e.payload as { text?: string }).text?.includes("Frage vom Terminal"))).toBe(true);
   });
 
   test("mehr als eine Seite wird mit „Mehr laden“ vollständig", async ({ app, hub }) => {
@@ -61,6 +130,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await expect(row).toContainText("1.2.3-e2e");
     await expect(row.locator(".support").first()).toHaveText("fehlt");
     await expect(row.locator(".support").nth(1)).toHaveText("belegt");
-    await expect(app.locator(".inventory-table tr").filter({ hasText: "deepseek" })).toContainText("blockiert");
+    // deepseek = dsh via ACP (ADR-0018) — probed like any CLI, honest cells
+    await expect(app.locator(".inventory-table tr").filter({ hasText: "deepseek" })).toContainText("gebaut, unbelegt");
   });
 });
