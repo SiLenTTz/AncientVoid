@@ -110,12 +110,36 @@ test.describe("Entwürfe (T8.4, AC-P8-4)", () => {
     const authCheck = app.waitForResponse((response) =>
       response.request().method() === "GET" && new URL(response.url()).pathname === "/api/adapters",
     { timeout: 30_000 });
-    await app.getByRole("button", { name: "Verbinden" }).click();
-    const authResponse = await authCheck;
-    expect(authResponse.status()).toBe(200);
-    const authLatencyMs = Date.now() - checkStartedAt;
-    if (authLatencyMs > 5_000) test.info().annotations.push({ type: "slow auth check", description: `/api/adapters took ${authLatencyMs} ms` });
-    await expect(app.getByRole("button", { name: "Verbinden", exact: true })).toHaveCount(0);
+    let releaseFleetHello: (() => void) | undefined;
+    let fleetHelloStarted!: () => void;
+    let fleetHelloFinished!: () => void;
+    const fleetHelloRequest = new Promise<void>((resolve) => { fleetHelloStarted = resolve; });
+    const fleetHelloHandled = new Promise<void>((resolve) => { fleetHelloFinished = resolve; });
+    await app.route("**/api/fleet/hello", async (route) => {
+      fleetHelloStarted();
+      try {
+        await new Promise<void>((resolve) => { releaseFleetHello = resolve; });
+        await route.continue();
+      } finally {
+        fleetHelloFinished();
+      }
+    });
+    try {
+      await app.getByRole("button", { name: "Verbinden" }).click();
+      const authResponse = await authCheck;
+      expect(authResponse.status()).toBe(200);
+      const authLatencyMs = Date.now() - checkStartedAt;
+      if (authLatencyMs > 5_000) test.info().annotations.push({ type: "slow auth check", description: `/api/adapters took ${authLatencyMs} ms` });
+      await fleetHelloRequest;
+      // Token acceptance must expose the app even while this discovery call is held.
+      await expect(app.getByRole("button", { name: "Verbinden", exact: true })).toHaveCount(0);
+    } finally {
+      if (releaseFleetHello) {
+        releaseFleetHello();
+        await fleetHelloHandled;
+      }
+      await app.unroute("**/api/fleet/hello");
+    }
     const after = await app.evaluate(() => Object.keys((globalThis as unknown as { localStorage: Record<string, unknown> }).localStorage).filter((k) => k.startsWith("uacc.draft.") || k.startsWith("uacc.tail.")));
     expect(after).toEqual([]);
   });
