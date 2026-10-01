@@ -160,9 +160,44 @@ ausgestellt; das geschützte Archiv wurde ersetzt und blieb Modus `0600`. Die
 Tokenliste führt beide Labels aktiv, bislang ohne Nutzung. Die neuen Werte
 müssen noch auf die Clients übertragen und dort geprüft werden. Die lokalen
 Fleet-Daten führen `evox2` und `silenttz-server` mit frischen Kopplungszeiten
-vom 2026-09-24; eine erneute Rotation war daher nicht nötig. Eine aktuelle
-SSH-Prüfung von `evox2` scheiterte an der Host-Authentifizierung, sodass der
-Remote-Dienstzustand in diesem Schritt nicht live bestätigt wurde.
+vom 2026-09-24; ein lokaler Peer-Zeitstempel belegt aber keine Rotation des
+Remote-Credentials. Die damalige SSH-Prüfung als Dienstkonto `silenttz` wurde
+abgewiesen; der separate Alias `evo` war in dieser Prüfung nicht verwendet.
+
+Nach erneuter ausdrücklicher Freigabe am 2026-09-24 wurden folgende Zustände
+live geprüft bzw. geändert:
+
+- Der lokale Hub war bereits aus; `scripts/hub.sh stop` meldete `not running`,
+  Port 7373 und PID-Lock waren frei. Kein Prozess hielt DB/WAL/SHM offen.
+- `diag` und `pixel` wurden erneut widerrufen und ausgestellt. Die neuen
+  Klartextwerte liegen ausschließlich in
+  `~/.config/uacc/rotated-2026-09-24/device-tokens.txt` (77 Byte, Modus
+  `0600`); beide SHA-256-Hashes wurden gegen die aktiven DB-Zeilen geprüft.
+  Die Werte sind noch nicht auf dem Handy bzw. anderen Clients eingespielt.
+- `silenttz-server` wurde über den SSH-Alias mit frischem Einmal-Invite neu
+  gekoppelt. Der alte Remote-Token `fleet:omarchy` wurde bei der Einlösung
+  widerrufen; der neue Token wurde im lokalen Peer-Eintrag gespeichert und
+  ein authentifizierter `GET /api/sessions` lieferte HTTP 200.
+- `evox2`: der SSH-Alias `evo` erreicht den Host als Benutzer `jan`; der
+  laufende Hub-Prozess gehört dort dem geschützten Konto `securesight`. Das
+  Service-Home ist für `jan` nicht lesbar und `sudo -n` meldet, dass ein
+  Passwort nötig ist. SSH als `silenttz` wird mit
+  `Permission denied (publickey,password)` abgewiesen. Es wurde weder ein
+  Token widerrufen noch der Peer verändert. Die Fleet-Rotation bleibt offen,
+  bis ein gezielter Service-/Admin-Zugang vorliegt.
+- `/tmp/uacc-hub.log` war bereits nicht vorhanden; es wurde in diesem Schritt
+  keine Logdatei gelöscht. `data/hub.db` bestand `PRAGMA integrity_check` und
+  `PRAGMA wal_checkpoint(TRUNCATE)` (busy=0); anschließend lagen keine
+  WAL/SHM-Dateien oder offenen DB-Handles vor.
+
+Nach den Credential-Änderungen wurde ein neues verschlüsseltes Produktivbackup
+`~/.local/share/uacc/backups/uacc-2026-09-24-after-rotation.uaccbak`
+erstellt (852.535 Byte, Modus `0600`). Der isolierte Restore bestätigte
+`integrity_check=ok`, sieben Sessions (eine `error`, sechs `stopped`), die
+aktiven Labels `diag`/`pixel`, beide Fleet-Peer-Zeilen und Modus `0700` für das
+Datadir bzw. `0600` für die Datenbank. Der Restore wurde nicht gestartet; das
+temporäre Ziel wurde entfernt. Damit ist der lokale Backup-/Restore-Pfad live
+belegt; T12.3 bleibt wegen echtem ENOSPC- und Retention-Langzeittest offen.
 
 Für den Gerätewechsel wurde der Hub vorübergehend wieder gestartet; die PWA
 war über die Tailnet-Adresse erreichbar. Die ADB-Verbindung zum Fairphone 6
@@ -211,8 +246,25 @@ Maximum 5,53 s; alle Requests endeten in 5,57 s. Das liegt über der
 Verarbeitung, PWA-Teiltranskripte, 20 persistente Sessions und echte Geräte
 waren nicht beteiligt. Es schließt AI-P10-3 oder T12.10 nicht.
 
-Die folgenden Nachträge dokumentieren spätere Läufe am selben Datum und
-ersetzen Zwischenstände, wo sie abweichen.
+Zusatzmessung über den vollständigen Hub-Endpunkt: 20 parallele 3,8-s-Clips
+aus demselben synthetischen Piper-Testdiktat gingen über einen isolierten
+Loopback-Hub mit temporärem Token/Datadir an den privaten STT-Dienst. 20/20
+Requests lieferten nichtleeren Text; p50 3,02 s, p95 5,59 s, Maximum 5,91 s,
+gesamte Wandzeit 5,91 s. Darin sind WebM→WAV und HTTP/Hub-Pfad enthalten.
+Es liefen keine Agent-Sessions und keine echte Stimme; damit bleibt AI-P10-3
+(20 Hub-Sessions unter Sprachlast) offen. Die temporären Dateien wurden
+entfernt, der Produktivhub blieb aus.
+
+### Dummy-Sessions parallel zur STT-Last
+
+Ein zweiter isolierter Hub hielt 20 Dummy-Sessions mit 30 ev/s parallel zu 20
+gleichzeitigen Anfragen des 3,8-s-Piper-Clips an `POST /api/stt` aktiv. Alle
+Anfragen lieferten HTTP 200 mit Text; p50 3,03 s, p95 5,65 s, Maximum 5,96 s,
+Wandzeit 6,11 s. Jede Session persistierte 216–219 Events ohne Sequenzlücken;
+RSS am Ende 109 MB. Die Sessions wurden gestoppt; Hub, Token und Datadir
+entfernt. Das belegt die Hub-Eventpipeline unter synthetischer lokaler STT-
+Last, nicht K2/K8 mit echten Sprachaufnahmen, realen Providern oder Geräten.
+AI-P10-3 bleibt offen.
 
 ## T12.3 — Isolierter Backup-/Restore-Rundlauf
 
@@ -282,17 +334,103 @@ Session und alle 63 Events bytegenau wieder her. Der temp. Restore wurde
 entfernt; der Produktiv-Hub blieb gestoppt. Offen bleiben Restore-Latenz,
 ENOSPC und Retention-Löschlauf.
 
-## T12.7 — Aktueller Stand nach Rotation
+## T12.7 — Credential-Rotation und Logbereinigung
 
-Nach erneuter ausdrücklicher Freigabe wurde der lokale Hub sauber gestoppt;
-Port, PID-Lock und SQLite-WAL/SHM waren frei. `/tmp/uacc-hub.log` war zu
-diesem Zeitpunkt nicht vorhanden und daher wurde keine Logdatei gelöscht.
-Neue `diag`-/`pixel`-Tokens liegen geschützt (Modus `0600`) und sind noch nicht
-auf Clients eingespielt. `silenttz-server` wurde neu gekoppelt. Auf `evox2`
-funktioniert der SSH-Alias nur als `jan`, während der laufende Hub dem Nutzer
-`securesight` gehört; Dienstkonto-/sudo-Zugriff war nicht verfügbar, daher
-blieb dessen Fleet-Credential unverändert. Das getestete Passwort-geschützte
-Backup und der isolierte Restore wurden nicht gestartet.
+- Der lokale Hub (PID 662613) wurde per `SIGTERM` sauber heruntergefahren;
+  PID-Lock sowie SQLite-WAL/SHM waren danach entfernt.
+- Die lokalen Gerätetokens `diag` und `pixel` wurden ersetzt. Bei einer
+  späteren Statusprüfung wurden deren Werte einmal in einer internen
+  Tool-Ausgabe sichtbar; beide wurden daraufhin widerrufen und erneut rotiert.
+  Die aktuellen Einmalwerte liegen geschützt unter
+  `/home/silenttz/.config/uacc/rotated-2026-09-24/device-tokens.txt` (Modus
+  `0600`). Der aktuelle `pixel`-Token muss noch auf den Clients eingespielt
+  und anschließend geprüft werden.
+- `/tmp/uacc-hub.log` wurde nach dem Stop mit `shred -u -n 1` entfernt; der
+  Remote-Host `silenttz-server` hatte kein gleichnamiges Log. Der neu
+  gestartete Log liegt mit Modus `0600` vor.
+- `silenttz-server` wurde per einmaligem Invite neu gekoppelt. `/api/fleet`
+  meldete anschließend `omarchy`, `evox2` und `silenttz-server` als erreichbar.
+  Nachdem SSH-Zugriff verfügbar wurde, wurden beide Peers (`silenttz-server`,
+  `evox2`) am 2026-09-24 mit neuen Einmal-Einladungen gekoppelt; damit wurden
+  ihre alten `fleet:omarchy`-Credentials ersetzt. Der Fleet-Logscan meldete
+  für `omarchy`, `silenttz-server` und `evox2` null unmaskierte `token=`-Werte
+  und null Treffer auf bekannte Tokens.
+- `gitleaks dir` und `gitleaks git` meldeten dieselben zwei Treffer in
+  Test-Fixtures (`attachments/extract.test.ts`, `push.test.ts`): ein gemockter
+  Provider-API-Key sowie Testdaten für Push-Auth, keine produktiven Zugangsdaten.
+  Die Scans fanden keine weiteren Treffer.
+
+Nach ausdrücklicher Nutzerfreigabe wurde der lokale Hub am 2026-09-24 erneut
+sauber gestoppt. Verifiziert: PID-Datei und Port 7373 geschlossen, SQLite-WAL
+und SHM entfernt. `/tmp/uacc-hub.log` war Modus `0600` und wurde nach dem Stop
+mit `shred -u -n 1` entfernt. Der Hub bleibt für den Gerätewechsel bewusst aus.
+Das bestehende Tokenarchiv unter
+`/home/silenttz/.config/uacc/rotated-2026-09-24/device-tokens.txt` ist
+vorhanden, nicht leer und Modus `0600`; die Tokens wurden nicht ein zweites
+Mal rotiert, damit die noch einzuspielenden Client-Tokens gültig bleiben (Stand
+dieser damaligen Prüfung).
+
+Bei einer späteren Metadatenprüfung wurden die Klartextwerte des Archivs
+versehentlich in einer internen Werkzeugausgabe angezeigt. Beide betroffenen
+Gerätetokens (`diag`, `pixel`) wurden deshalb nochmals widerrufen und frisch
+ausgestellt; das geschützte Archiv wurde ersetzt und blieb Modus `0600`. Die
+Tokenliste führt beide Labels aktiv, bislang ohne Nutzung. Die neuen Werte
+müssen noch auf die Clients übertragen und dort geprüft werden. Die lokalen
+Fleet-Daten führen `evox2` und `silenttz-server` mit frischen Kopplungszeiten
+vom 2026-09-24; ein lokaler Peer-Zeitstempel belegt aber keine Rotation des
+Remote-Credentials. Die damalige SSH-Prüfung als Dienstkonto `silenttz` wurde
+abgewiesen; der separate Alias `evo` war in dieser Prüfung nicht verwendet.
+
+Nach erneuter ausdrücklicher Freigabe am 2026-09-24 wurden folgende Zustände
+live geprüft bzw. geändert:
+
+- Der lokale Hub war bereits aus; `scripts/hub.sh stop` meldete `not running`,
+  Port 7373 und PID-Lock waren frei. Kein Prozess hielt DB/WAL/SHM offen.
+- `diag` und `pixel` wurden erneut widerrufen und ausgestellt. Die neuen
+  Klartextwerte liegen ausschließlich in
+  `~/.config/uacc/rotated-2026-09-24/device-tokens.txt` (77 Byte, Modus
+  `0600`); beide SHA-256-Hashes wurden gegen die aktiven DB-Zeilen geprüft.
+  Die Werte sind noch nicht auf dem Handy bzw. anderen Clients eingespielt.
+- `silenttz-server` wurde über den SSH-Alias mit frischem Einmal-Invite neu
+  gekoppelt. Der alte Remote-Token `fleet:omarchy` wurde bei der Einlösung
+  widerrufen; der neue Token wurde im lokalen Peer-Eintrag gespeichert und
+  ein authentifizierter `GET /api/sessions` lieferte HTTP 200.
+- `evox2`: der SSH-Alias `evo` erreicht den Host als Benutzer `jan`; der
+  laufende Hub-Prozess gehört dort dem geschützten Konto `securesight`. Das
+  Service-Home ist für `jan` nicht lesbar und `sudo -n` meldet, dass ein
+  Passwort nötig ist. SSH als `silenttz` wird mit
+  `Permission denied (publickey,password)` abgewiesen. Es wurde weder ein
+  Token widerrufen noch der Peer verändert. Die Fleet-Rotation bleibt offen,
+  bis ein gezielter Service-/Admin-Zugang vorliegt.
+- `/tmp/uacc-hub.log` war bereits nicht vorhanden; es wurde in diesem Schritt
+  keine Logdatei gelöscht. `data/hub.db` bestand `PRAGMA integrity_check` und
+  `PRAGMA wal_checkpoint(TRUNCATE)` (busy=0); anschließend lagen keine
+  WAL/SHM-Dateien oder offenen DB-Handles vor.
+
+Nach den Credential-Änderungen wurde ein neues verschlüsseltes Produktivbackup
+`~/.local/share/uacc/backups/uacc-2026-09-24-after-rotation.uaccbak`
+erstellt (852.535 Byte, Modus `0600`). Der isolierte Restore bestätigte
+`integrity_check=ok`, sieben Sessions (eine `error`, sechs `stopped`), die
+aktiven Labels `diag`/`pixel`, beide Fleet-Peer-Zeilen und Modus `0700` für das
+Datadir bzw. `0600` für die Datenbank. Der Restore wurde nicht gestartet; das
+temporäre Ziel wurde entfernt. Damit ist der lokale Backup-/Restore-Pfad live
+belegt; T12.3 bleibt wegen echtem ENOSPC- und Retention-Langzeittest offen.
+
+Für den Gerätewechsel wurde der Hub vorübergehend wieder gestartet; die PWA
+war über die Tailnet-Adresse erreichbar. Die ADB-Verbindung zum Fairphone 6
+brach während der Bedienung ab. Als das Gerät wieder sichtbar war, zeigte es
+den gesperrten Sperrbildschirm und Flugzeugmodus. Es wurde nicht entsperrt oder
+umkonfiguriert; kein Token wurde eingegeben. Der Hub wurde danach sauber
+gestoppt und das temporäre Log entfernt. Dabei zeigte sich, dass die alte
+Startumleitung unter Benutzer-umask ein Log mit Modus `0644` anlegen konnte
+(BUG-0029). `hub.sh` setzt nun `umask 077` und erzwingt Modus `0600`; erneuter
+Start bei umask `0022` ergab Modus `0600` und Health 200. Der Hub ist wieder
+aus, Port/PID/WAL/SHM sind frei, und `/tmp/uacc-hub.log` ist entfernt.
+
+Offen bleiben das Einspielen und Prüfen der aktuellen lokalen Tokens auf den
+Geräten. Der Scan belegt die Journals seit dem jeweiligen verfügbaren Zeitraum,
+nicht gelöschte oder bereits rotierte Alt-Logs. Das Repository wird in diesem
+Task nicht öffentlich geschaltet.
 
 ## T12.11 — Vision-Modell und P10.5-Medienpfad
 
@@ -382,14 +520,36 @@ Nach diesem Messlauf bestand `npm run gate` am Commit `160ea99`: Typecheck,
 Lint, Commit-Notation, Architekturprüfung, Adapter-Matrix und 104 Vitest-
 Dateien / 637 Tests grün; Playwright 151 bestanden, 2 sichtbar übersprungen.
 
-## T12.2 — K8 lokaler Wiederholungslauf
+## T12.2 — STT-Backend unter Parallelität
 
-`npm run loadtest` am Stand `6b1bcb0`: 20 Dummy-Sessions × 30 ev/s × 10 s,
-6.083 Events, 603 ev/s aggregiert, RSS am Ende 169 MB; alle Sessions lagen
-über dem 90-%-Minimum und alle gezählten Live-Events waren im EventStore
-persistiert (`K8 PASSED`). Das ist der isolierte In-Process-Kernpfad; der
-Fleet-HTTP-Lauf steht separat oben. Es belegt keinen 24-h-Dauerlauf oder
-Sprachlast.
+Das synthetische Piper-E2E-Diktat `e2e/live/fixtures/diktat-npm-test.webm`
+(3,81 s) wurde in 16-kHz-Mono-WAV konvertiert und 20-mal parallel direkt an den lokalen
+`uacc-stt`-Dienst auf evox2 geschickt. 20/20 Antworten waren HTTP 200 mit
+nichtleerem Text. End-to-End am Backend: p50 2,81 s, p90 4,95 s, p95 5,24 s,
+Maximum 5,53 s; alle Requests endeten in 5,57 s. Das liegt über der
+2-s-Schwelle, ist aber nur ein synthetischer Backend-Baseline-Lauf: Hub-
+Verarbeitung, PWA-Teiltranskripte, 20 persistente Sessions und echte Geräte
+waren nicht beteiligt. Es schließt AI-P10-3 oder T12.10 nicht.
+
+Zusatzmessung über den vollständigen Hub-Endpunkt: 20 parallele 3,8-s-Clips
+aus demselben synthetischen Piper-Testdiktat gingen über einen isolierten
+Loopback-Hub mit temporärem Token/Datadir an den privaten STT-Dienst. 20/20
+Requests lieferten nichtleeren Text; p50 3,02 s, p95 5,59 s, Maximum 5,91 s,
+gesamte Wandzeit 5,91 s. Darin sind WebM→WAV und HTTP/Hub-Pfad enthalten.
+Es liefen keine Agent-Sessions und keine echte Stimme; damit bleibt AI-P10-3
+(20 Hub-Sessions unter Sprachlast) offen. Die temporären Dateien wurden
+entfernt, der Produktivhub blieb aus.
+
+### Dummy-Sessions parallel zur STT-Last
+
+Ein zweiter isolierter Hub hielt 20 Dummy-Sessions mit 30 ev/s parallel zu 20
+gleichzeitigen Anfragen des 3,8-s-Piper-Clips an `POST /api/stt` aktiv. Alle
+Anfragen lieferten HTTP 200 mit Text; p50 3,03 s, p95 5,65 s, Maximum 5,96 s,
+Wandzeit 6,11 s. Jede Session persistierte 216–219 Events ohne Sequenzlücken;
+RSS am Ende 109 MB. Die Sessions wurden gestoppt; Hub, Token und Datadir
+entfernt. Das belegt die Hub-Eventpipeline unter synthetischer lokaler STT-
+Last, nicht K2/K8 mit echten Sprachaufnahmen, realen Providern oder Geräten.
+AI-P10-3 bleibt offen.
 
 ## T12.10 — STT-Streamingpfad (implementiert, Zielgeräte offen)
 
