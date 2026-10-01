@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, scrypt as scryptCallback } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
-import { link, lstat, mkdir, mkdtemp, open, readFile, readlink, readdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
+import { chmod, link, lstat, mkdir, mkdtemp, open, readFile, readlink, readdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
@@ -223,6 +223,21 @@ async function hashFile(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
+async function secureRestoredTree(root: string): Promise<void> {
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) {
+      // Open it for the owner before recursion, even if the archive had mode 000.
+      await chmod(path, 0o700);
+      await secureRestoredTree(path);
+    } else if (entry.isFile()) {
+      const info = await lstat(path);
+      await chmod(path, info.mode & 0o100 ? 0o700 : 0o600);
+    }
+  }
+  await chmod(root, 0o700);
+}
+
 export async function createBackup(options: CreateBackupOptions): Promise<void> {
   const dataDir = resolve(options.dataDir);
   const outputFile = resolve(options.outputFile);
@@ -327,6 +342,7 @@ export async function restoreBackup(options: RestoreBackupOptions): Promise<void
     await mkdir(extracted, { mode: 0o700 });
     await tar(["--extract", "--gzip", "--file", tarFile, "--directory", extracted, "--no-same-owner", "--no-same-permissions"]);
     await verifyRestoredTree(extracted);
+    await secureRestoredTree(extracted);
     const configBytes = await readFile(join(extracted, "config", "hub.config.json"));
     const parsed = JSON.parse(configBytes.toString("utf8")) as Record<string, unknown>;
     parsed.dataDir = targetDir;

@@ -6,7 +6,7 @@
  *
  * Boot order (P0): config → db → adapters → recovery (K7) → HTTP/WS → PWA.
  */
-import { mkdirSync, existsSync } from "node:fs";
+import { chmodSync, mkdirSync, existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir, hostname } from "node:os";
 import { toHostId } from "@uacc/contracts";
@@ -67,10 +67,14 @@ function discoverySources(config: HubConfig): DiscoverySource[] {
 }
 
 async function main(): Promise<void> {
+  // Hub data includes local credentials and user content; future files,
+  // WAL/SHM sidecars, worker logs and attachment directories stay private.
+  process.umask(0o077);
   const configPath = resolve(process.env.UACC_CONFIG ?? "hub.config.json");
   const { config } = await loadConfig(configPath);
   const dataDir = resolve(config.dataDir);
-  mkdirSync(dataDir, { recursive: true });
+  mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+  chmodSync(dataDir, 0o700);
   releaseHubPidLock = await acquireHubPidLock(dataDir);
 
   // M-2 (red-team review, 2026-09-18, T4.10): an empty projectRoots is a
