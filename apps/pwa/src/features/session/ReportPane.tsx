@@ -11,6 +11,7 @@ export function ReportPane({
   numbersReal,
   diff,
   usage,
+  context,
 }: {
   record: SessionRecord;
   createdAt: string;
@@ -18,6 +19,8 @@ export function ReportPane({
   numbersReal: boolean;
   diff: SessionDiffResult | null;
   usage: AdapterUsage | null;
+  /** ADR-0032: { fill, window } in tokens — null when nothing was reported. */
+  context: { fill: number | null; window: number | null } | null;
 }) {
   const running = status !== "stopped" && status !== "error";
   const durationMs = new Date(record.updatedAt).getTime() - new Date(createdAt).getTime();
@@ -50,6 +53,16 @@ export function ReportPane({
           <span class={`v num metric-${tokens.quality}`} title={tokens.hint}>
             {tokens.text}
             {tokens.quality !== "unknown" ? suffix : ""}
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Kontextfenster</span>
+          <span class="v num">
+            {!context || context.fill === null
+              ? "keine Meldung"
+              : context.window === null
+                ? `${context.fill.toLocaleString("de-DE")} Tokens — Fenstergröße unbekannt (ADR-0032)`
+                : `${Math.round((context.fill / context.window) * 100)} % (${context.fill.toLocaleString("de-DE")} / ${context.window.toLocaleString("de-DE")})`}
           </span>
         </div>
         <div class="kv-row">

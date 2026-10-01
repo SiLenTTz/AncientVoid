@@ -76,6 +76,10 @@ export interface AdapterCapabilities {
    * standard as `reasoning`/`cost`). codex: false, verified absent from
    * its stream and CLI, not merely unimplemented. */
   usage: boolean;
+  /** ADR-0032: the context window of the models this instance runs, in
+   * tokens — configured, not provider-measured (nobody reports it in
+   * band). Absent = unknown; the PWA shows no percentage then. */
+  contextWindowTokens?: number;
   /** Sessions this process did not start. `read-only` only if the adapter scans without writing. */
   nativeDiscovery: NativeDiscovery;
   /** `native` only if steer/start reuses a provider session id. */

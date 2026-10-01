@@ -7,6 +7,7 @@ import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
 import { pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
+import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
 import type { Page } from "./Dock.tsx";
 import "./styles/index.css";
@@ -15,6 +16,7 @@ import "./styles/index.css";
 // never flashes dark first — index.html's data-theme="dark" was previously
 // the only value that ever existed.
 applyTheme(getTheme());
+applyPinchZoom(pinchZoomAllowed());
 
 function TokenGate({ onReady }: { onReady: () => void }) {
   const [token, setVal] = useState(getToken());

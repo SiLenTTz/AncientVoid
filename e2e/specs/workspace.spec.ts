@@ -23,6 +23,19 @@ test.describe("Archiv (P5 §9)", () => {
     await expect(app.locator(".session-menu").getByRole("button", { name: "Zurückholen" })).toBeVisible();
     expect((await hub.api<{ archived: boolean }>(`/api/sessions/${id}`)).body.archived).toBe(true);
   });
+
+  test("Löschen entfernt eine gestoppte Session komplett — mit Rückfrage", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await hub.api(`/api/sessions/${id}/stop`, { body: {} });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    app.on("dialog", (dialog) => void dialog.accept());
+    await app.getByLabel("Weitere Aktionen").click();
+    await app.locator(".session-menu").getByRole("button", { name: "Löschen" }).click();
+    await expect(app).toHaveURL(/#\/$/);
+    expect((await hub.sessions()).some((s) => s.id === id)).toBe(false);
+    const gone = await hub.api(`/api/sessions/${id}/events`);
+    expect(gone.status).toBe(404);
+  });
 });
 
 test.describe("Freigaben (T2.4, T2.6)", () => {

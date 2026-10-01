@@ -6,7 +6,7 @@
  *
  * Boot order (P0): config → db → adapters → recovery (K7) → HTTP/WS → PWA.
  */
-import { mkdirSync, existsSync } from "node:fs";
+import { chmodSync, mkdirSync, existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir, hostname } from "node:os";
 import { toHostId } from "@uacc/contracts";
@@ -36,6 +36,8 @@ import {
   cursorDiscoverySource,
   defaultClaudeDir,
   defaultCursorUserDir,
+  defaultOpencodeDataDir,
+  opencodeDiscoverySource,
   type HubConfig,
 } from "@uacc/core";
 import { TmuxRunner, ProcessRunner } from "@uacc/workers";
@@ -57,16 +59,22 @@ function discoverySources(config: HubConfig): DiscoverySource[] {
   const sources: DiscoverySource[] = [];
   const claudeDir = config.discovery.claudeDir ? resolve(config.discovery.claudeDir) : defaultClaudeDir();
   const cursorUserDir = config.discovery.cursorUserDir ? resolve(config.discovery.cursorUserDir) : defaultCursorUserDir();
-  if (config.discovery.claudeDir || existsSync(claudeDir)) sources.push(claudeDiscoverySource(claudeDir));
+  if (config.discovery.claudeDir || existsSync(claudeDir)) sources.push(claudeDiscoverySource(claudeDir, config.projectRoots));
   if (config.discovery.cursorUserDir || existsSync(cursorUserDir)) sources.push(cursorDiscoverySource(cursorUserDir));
+  const opencodeDataDir = config.discovery.opencodeDataDir ? resolve(config.discovery.opencodeDataDir) : defaultOpencodeDataDir();
+  if (config.discovery.opencodeDataDir || existsSync(opencodeDataDir)) sources.push(opencodeDiscoverySource(opencodeDataDir, config.projectRoots));
   return sources;
 }
 
 async function main(): Promise<void> {
+  // Hub data includes local credentials and user content; future files,
+  // WAL/SHM sidecars, worker logs and attachment directories stay private.
+  process.umask(0o077);
   const configPath = resolve(process.env.UACC_CONFIG ?? "hub.config.json");
   const { config } = await loadConfig(configPath);
   const dataDir = resolve(config.dataDir);
-  mkdirSync(dataDir, { recursive: true });
+  mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+  chmodSync(dataDir, 0o700);
   releaseHubPidLock = await acquireHubPidLock(dataDir);
 
   // M-2 (red-team review, 2026-09-18, T4.10): an empty projectRoots is a
@@ -126,6 +134,9 @@ async function main(): Promise<void> {
   if (reportingSinks.length > 0) {
     logger.info("reporting sinks configured", { count: reportingSinks.length });
   }
+  // ADR-0011 Erweiterung: mirror sessions read the same store the
+  // discovery scan uses — one resolved path, two features.
+  const opencodeDataDir = config.discovery.opencodeDataDir ? resolve(config.discovery.opencodeDataDir) : defaultOpencodeDataDir();
   const sessions = new SessionManager(
     db,
     store,
@@ -137,6 +148,7 @@ async function main(): Promise<void> {
     config.dailyCapUsd,
     reportingSinks,
     { logger: logger.child({ component: "sessions" }), metrics },
+    opencodeDataDir,
   );
 
   // T7.2 / ADR-0018 §3: providers ask before a tool runs — always through

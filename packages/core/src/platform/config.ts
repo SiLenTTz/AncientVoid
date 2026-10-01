@@ -164,6 +164,7 @@ export const HubConfig = z.object({
     .object({
       claudeDir: z.string().min(1).optional(),
       cursorUserDir: z.string().min(1).optional(),
+      opencodeDataDir: z.string().min(1).optional(),
     })
     .default({}),
 });

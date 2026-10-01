@@ -1,11 +1,13 @@
 import { useEffect, useState } from "preact/hooks";
 import { hubApi, getToken } from "../../shared/api.ts";
 import { applyTheme, getTheme, type Theme } from "../../app/theme.ts";
+import { applyPinchZoom, pinchZoomAllowed } from "../../app/zoom.ts";
 import { startRegistration } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/browser";
 
 export function Settings({ onSwitchToken }: { onSwitchToken: () => void }) {
   const [theme, setThemeState] = useState<Theme>(getTheme());
+  const [zoom, setZoomState] = useState<boolean>(pinchZoomAllowed());
   const [projectCount, setProjectCount] = useState<number | null>(null);
   // T2.5: null = unknown/loading, undefined = webauthn not configured on
   // this hub (501) — kept distinct from "false" (configured, not
@@ -39,6 +41,12 @@ export function Settings({ onSwitchToken }: { onSwitchToken: () => void }) {
     setThemeState(next);
   };
 
+  const toggleZoom = () => {
+    const next = !zoom;
+    applyPinchZoom(next);
+    setZoomState(next);
+  };
+
   const registerPasskey = async () => {
     setPasskeyBusy(true);
     setPasskeyError("");
@@ -60,6 +68,12 @@ export function Settings({ onSwitchToken }: { onSwitchToken: () => void }) {
         <span>Erscheinungsbild</span>
         <button class="btn" onClick={toggleTheme}>
           {theme === "dark" ? "☾ Dunkel" : "☀ Hell"}
+        </button>
+      </div>
+      <div class="settings-row">
+        <span>Pinch-Zoom (Feld-Zoom bleibt aus)</span>
+        <button class="btn" onClick={toggleZoom}>
+          {zoom ? "an" : "aus"}
         </button>
       </div>
       <div class="settings-row">

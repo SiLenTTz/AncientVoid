@@ -9,16 +9,37 @@
   font-size: 12px;
 }
 
-/* Discovery groups found sessions by project. */
+/* Discovery groups found sessions by project — collapsible (BUG-0035
+ * follow-up): the newest project expanded, the rest folded. */
 .project-tile {
   margin: 14px 0;
 }
 
 .project-tile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 0 2px 4px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--bg-chip, rgba(128, 128, 128, 0.25));
+}
+
+.project-tile-header::before {
+  content: "▸";
+  transition: transform 0.15s ease;
+}
+
+.project-tile[open] > .project-tile-header::before {
+  transform: rotate(90deg);
+}
+
+.project-tile-name {
+  font-weight: 700;
 }
 
 /* T8.1: sections instead of project tiles — what needs you comes first. */

@@ -84,6 +84,7 @@ export function EventRow({
           <span>{time}</span>
         </div>
         <div class="summary">{event.summary}</div>
+        <CopyButton text={copyText(event)} />
         {expanded && <EventDetail event={event} />}
       </div>
     );
@@ -109,6 +110,7 @@ export function EventRow({
           )}
         </div>
         <div class="summary">{event.summary}</div>
+        <CopyButton text={copyText(event)} />
         {expanded && <EventDetail event={event} />}
       </div>
     );
@@ -135,6 +137,7 @@ export function EventRow({
           </button>
         </div>
         <div class="summary">{event.summary}</div>
+        <CopyButton text={copyText(event)} />
         {expanded && <EventDetail event={event} />}
       </div>
     );
@@ -184,10 +187,22 @@ export function EventRow({
         <AttachmentChips refs={(event.payload as { attachments: AttachmentRef[] }).attachments} />
       )}
       {typeof errorDetail === "string" && <div class="dim provider-error-detail">{errorDetail}</div>}
-      {event.type === "assistant" && <CopyButton text={visibleEventText(event)} />}
+      {(event.type === "assistant" || prompt) && <CopyButton text={visibleEventText(event)} />}
       {expanded && <EventDetail event={event} />}
     </div>
   );
+}
+
+/** What a row's copy button copies: the full payload text — tool inputs
+ * as formatted JSON, results as their content, else the visible text. */
+function copyText(event: NormalizedEvent): string {
+  if (event.type === "tool_use") return JSON.stringify((event.payload as { input?: unknown }).input ?? null, null, 2);
+  if (event.type === "tool_result") {
+    const content = (event.payload as { content?: unknown }).content;
+    if (typeof content === "string" && content.length > 0) return content;
+  }
+  const text = (event.payload as { text?: unknown }).text;
+  return typeof text === "string" && text.length > 0 ? text : visibleEventText(event);
 }
 
 /** T8.4: take an answer along — one tap, no selecting on a phone. */
