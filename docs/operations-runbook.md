@@ -32,6 +32,44 @@ scripts/hub.sh start
 scripts/hub.sh status
 ```
 
+### Dauerbetrieb auf dem eigenen Rechner (systemd)
+
+`scripts/hub.sh` ist ein Entwicklungs-Daemon (PIDfile in /tmp) und
+überlebt keinen Neustart. Für einen Hub, der beim Boot automatisch
+startet, legt ein User-Unit an — gleiche Weise wie
+[`fleet-deploy.sh`](../scripts/fleet-deploy.sh) es auf Peers tut:
+
+```ini
+# ~/.config/systemd/user/uacc-hub.service  (Pfade anpassen)
+[Unit]
+Description=UACC mobile-hub
+After=network-online.target
+
+[Service]
+WorkingDirectory=/pfad/zum/mobile-hub
+Environment=UACC_CONFIG=/pfad/zum/mobile-hub/hub.config.json
+Environment=PATH=%h/.local/share/mise/shims:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/.local/share/mise/shims/node apps/hub/src/main.ts
+UMask=0077
+# BUG-0037: on-failure ließ den Hub nach sauberem SIGTERM-Exit (status 0)
+# down — always startet neu; explizites `systemctl --user stop`
+# unterdrückt Restart weiterhin.
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+```
+
+```sh
+systemctl --user daemon-reload
+loginctl enable-linger "$USER"   # startet auch ohne Anmeldung beim Boot
+systemctl --user enable --now uacc-hub.service
+```
+
+Ist das Unit installiert, delegieren `scripts/hub.sh start|stop|status|logs`
+an `systemctl`/`journalctl` — nie zwei Hubs auf einem Port.
+
 Für einen dauerhaften Fleet-Peer nutze
 [`fleet-deploy.sh`](../scripts/fleet-deploy.sh): der User-Service heißt
 `uacc-hub`, braucht aktives `loginctl enable-linger` und bindet an die

@@ -10,6 +10,12 @@
 //             (as dsh does — the command came with the tool_call update)
 //   PLAN      a plan with 1 of 3 entries done
 //   LANGSAM   the turn runs until cancelled (or 60 s)
+//   STUMM     the turn never answers and ignores session/cancel — the
+//             hang shape of BUG-0032 (opencode task tools never returning)
+//   STREAM    one chunk, 5 s of silence, then the rest — chunks must go
+//             out live (BUG-0033), not only at the turn's end
+//   OHNE_TOTAL usage without totalTokens: tokens come from input+output
+//             (ADR-0032)
 //   FEHLER    the prompt fails with a rate-limit error
 import { randomUUID } from "node:crypto";
 
@@ -26,7 +32,7 @@ const MODEL_OPTION = (current) => ({
   currentValue: current,
   options: [
     { group: "cloud", name: "Cloud", options: [{ value: JSON.stringify(["cloud", "gross"]), name: "Groß" }] },
-    { group: "lokal", name: "Lokal", options: [{ value: JSON.stringify(["lokal", "klein"]), name: "Klein" }] },
+    { group: "lokal", name: "Lokal", options: [{ value: JSON.stringify(["lokal", "klein"]), name: "Klein" }, { value: JSON.stringify(["lokal", "glm-5.3"]), name: "GLM 5.3" }] },
   ],
 });
 const send = (msg) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...msg })}\n`);
@@ -42,6 +48,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function prompt(id, { sessionId, prompt: blocks }) {
   const text = blocks.map((b) => (b.type === "text" ? b.text : `[${b.type}]`)).join(" ");
   if (text.includes("FEHLER")) return send({ id, error: { code: -32000, message: "Rate limit exceeded (429) — slow down" } });
+  if (text.includes("STUMM")) return;
   update(sessionId, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "Ich überlege" } });
   update(sessionId, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: " kurz." } });
   let tail = "";
@@ -76,6 +83,17 @@ async function prompt(id, { sessionId, prompt: blocks }) {
   }
   const model = models.get(sessionId);
   const reply = `Antwort auf: ${text.split("\n").pop()} · ACP${tail}${model ? ` · Modell ${model}` : ""}`;
+  if (text.includes("STREAM")) {
+    update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: reply.slice(0, 10) } });
+    await sleep(5_000);
+    for (const part of [reply.slice(10, 25), reply.slice(25)]) update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: part } });
+    send({ id, result: { stopReason: "end_turn", usage: { totalTokens: 42, inputTokens: 30, outputTokens: 12 } } });
+    return;
+  }
+  if (text.includes("OHNE_TOTAL")) {
+    for (const part of [reply.slice(0, 10), reply.slice(10, 25), reply.slice(25)]) update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: part } });
+    return send({ id, result: { stopReason: "end_turn", usage: { inputTokens: 10, outputTokens: 5 } } });
+  }
   for (const part of [reply.slice(0, 10), reply.slice(10, 25), reply.slice(25)]) update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: part } });
   send({ id, result: { stopReason: "end_turn", usage: { totalTokens: 42, inputTokens: 30, outputTokens: 12 } } });
 }
@@ -104,8 +122,19 @@ function handle(msg) {
       if (params.configId !== "model" || !MODEL_OPTION().options.some((g) => g.options.some((o) => o.value === params.value))) return send({ id, error: { code: -32602, message: "unknown option" } });
       models.set(params.sessionId, params.value);
       return send({ id, result: { configOptions: [MODEL_OPTION(params.value)] } });
-    case "session/load":
+    case "session/load": {
+      // BUG-0036: like the real opencode, the loaded conversation comes
+      // back as session/update notifications — the hub must not map them
+      // to a second copy of the turn.
+      const loaded = params?.sessionId;
+      if (loaded) {
+        update(loaded, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "This is a substantial analysis task: replayed." } });
+        update(loaded, { sessionUpdate: "tool_call", toolCallId: "call_replay", title: "git log", kind: "execute", status: "pending", rawInput: { command: "git log" } });
+        update(loaded, { sessionUpdate: "tool_call_update", toolCallId: "call_replay", status: "failed", content: [{ type: "content", content: { type: "text", text: "The user rejected permission to use this specific tool call." } }] });
+        update(loaded, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Notiert — Replay der alten Antwort." } });
+      }
       return send({ id, result: null });
+    }
     case "session/prompt":
       return void prompt(id, params);
     case "session/cancel":

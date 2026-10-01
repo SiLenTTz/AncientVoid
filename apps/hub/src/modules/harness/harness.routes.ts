@@ -18,22 +18,25 @@ export function registerHarnessRoutes(app: FastifyInstance, ctx: RouteContext): 
 
   // ADR-0018: an adapter's model catalog. `models: null` means it has
   // none (the PWA then offers free text). Cached, a listing can take seconds.
-  const modelCache = new Map<string, { at: number; models: ModelOption[] | null }>();
+  // `defaultModel` is the registration's configured model — what the
+  // harness runs when a session names none.
+  const modelCache = new Map<string, { at: number; models: ModelOption[] | null; defaultModel: string | null }>();
   app.get("/api/adapters/:id/models", async (req, reply) => {
     const { id } = req.params as { id: string };
     const registered = deps.registry.get(id);
     if (!registered) return reply.code(404).send({ error: "unknown adapter" });
+    const defaultModel = typeof registered.config?.model === "string" ? registered.config.model : null;
     const cached = modelCache.get(id);
-    if (cached && Date.now() - cached.at < 10 * 60_000) return { adapterId: id, models: cached.models };
+    if (cached && Date.now() - cached.at < 10 * 60_000) return { adapterId: id, models: cached.models, defaultModel };
     let models: ModelOption[] | null = null;
     try {
       models = registered.adapter.models ? await registered.adapter.models() : null;
     } catch (err) {
       req.log.warn({ adapter: id, err: err instanceof Error ? err.message : String(err) }, "model catalog failed");
-      return { adapterId: id, models: null };
+      return { adapterId: id, models: null, defaultModel };
     }
-    modelCache.set(id, { at: Date.now(), models });
-    return { adapterId: id, models };
+    modelCache.set(id, { at: Date.now(), models, defaultModel });
+    return { adapterId: id, models, defaultModel };
   });
 
 

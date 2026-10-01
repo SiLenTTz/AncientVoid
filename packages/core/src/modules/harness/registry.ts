@@ -18,6 +18,9 @@ export interface RegisteredAdapter {
   module: string;
   adapter: Adapter;
   capabilities: ReturnType<Adapter["capabilities"]>;
+  /** The registration's config — e.g. its `model` is the catalog's
+   * defaultModel (ADR-0018 modelChoice: what "Standard" means). */
+  config?: Readonly<Record<string, unknown>>;
 }
 
 /** ADR-0018: adapters written before `features` existed get the cautious
@@ -41,6 +44,7 @@ export class AdapterRegistry {
       module,
       adapter,
       capabilities: withFeatures(adapter.capabilities()),
+      ...(config !== undefined ? { config } : {}),
     });
   }
 

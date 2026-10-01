@@ -14,6 +14,10 @@ import type {
 } from "@uacc/contracts";
 import { promptWithAttachments } from "@uacc/contracts";
 import { normalizeClaudeLine } from "./normalize.ts";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 /**
  * claude adapter (P1 reference/"golden path"). Spawns the real CLI via
@@ -34,6 +38,12 @@ const ClaudeConfig = z.object({
   command: z.string().min(1).default("claude"),
   extraArgs: z.array(z.string()).default([]),
   permissionPrompts: z.enum(["hub", "off"]).default("hub"),
+  /** ADR-0032: context window of the models this instance runs (tokens),
+   * configured — claude does not report it in band. */
+  contextWindowTokens: z.number().int().positive().optional(),
+  /** Where Claude Code keeps its transcripts (~/.claude by default) — the
+   * continued run's history is imported from there into the hub's tail. */
+  claudeDir: z.string().min(1).optional(),
 });
 type ClaudeConfig = z.infer<typeof ClaudeConfig>;
 
@@ -209,6 +219,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         cost: true,
         steer: true,
         usage: true,
+        ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),
         nativeDiscovery: "none",
         nativeResume: "native",
         // ADR-0018. Hub prompts: every tool that needs a decision is asked
@@ -245,8 +256,18 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const skill = args.success ? args.data?.skill : undefined;
       const agentPersona = args.success ? args.data?.agent : undefined;
       const resumeSessionId = args.success ? args.data?.resumeSessionId : undefined;
+      if (resumeSessionId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resumeSessionId)) {
+        // Live-Fund 2026-09-28: adopting a subagent transcript sent
+        // `agent-…` as the resume id — the CLI dies with exit 1 and an
+        // opaque stdout error. Fail loudly before spawning anything.
+        throw new Error(`Claude kann „${resumeSessionId}" nicht fortsetzen — keine Session-ID (UUID). Subagent-Verläufe gehören zu ihrer Haupt-Session.`);
+      }
       const meta: SessionMeta = { healthy: true, degraded: false, skill, ...(resumeSessionId ? { resumeSessionId } : {}) };
       const att = withAttachments(spec.prompt ?? "", spec.attachments);
+      // Where the continued conversation happened: its transcript becomes
+      // the hub's history, so the phone shows where the run stands without
+      // asking the agent first. Awaited — history before the new turn.
+      if (resumeSessionId) await importTranscript(ctx, spec.project, resumeSessionId, cfg.claudeDir);
       const proc = await ctx.spawnWorker(
         buildArgs(withSkill(att.prompt, skill), resumeSessionId, agentPersona, spec.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])]),
         workerEnv(spec.env),
@@ -325,4 +346,48 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   };
 
   return adapter;
+}
+
+/** How much of the transcript becomes the hub's history — the tail, not
+ * the whole file: the phone needs "where do I stand", not every tool
+ * output of three weeks ago. */
+const TRANSCRIPT_IMPORT_LIMIT = 200;
+
+/**
+ * The continued conversation's transcript, mapped into the hub's tail
+ * (Nutzerwunsch 2026-09-28: never ask the agent for its history first).
+ * A missing/unreadable transcript never blocks the continuation — it
+ * shows a visible note instead.
+ */
+async function importTranscript(ctx: AdapterContext, project: string, resumeSessionId: string, claudeDir?: string): Promise<void> {
+  const dir = claudeDir ?? join(homedir(), ".claude");
+  // Claude Code munges the cwd the same way the discovery learned the
+  // hard way (BUG-0035): every non-alphanumeric character becomes `-`.
+  // The transcript lives where the run happened — the project, not the
+  // hub's worktree copy; the workdir is the fallback.
+  const candidates = [project, ctx.workdir].map((p) => join(dir, "projects", p.replace(/[^a-zA-Z0-9]/g, "-"), `${resumeSessionId}.jsonl`));
+  const file = candidates.find((p) => existsSync(p));
+  if (!file) {
+    ctx.emit({ type: "system", summary: `claude: kein Transkript zu ${resumeSessionId.slice(0, 8)} gefunden — Verlauf bleibt beim Anbieter`, payload: { kind: "claude.transcript_missing", tried: candidates } });
+    return;
+  }
+  try {
+    const lines = (await readFile(file, "utf8")).split("\n").filter((l) => l.trim().length > 0);
+    const events = lines.flatMap((line) => {
+      try {
+        return normalizeClaudeLine(JSON.parse(line) as Record<string, unknown>);
+      } catch {
+        return [];
+      }
+    });
+    const cut = events.length > TRANSCRIPT_IMPORT_LIMIT ? events.slice(-TRANSCRIPT_IMPORT_LIMIT) : events;
+    ctx.emit({
+      type: "system",
+      summary: `claude: Verlauf aus Transkript übernommen (${cut.length} von ${events.length} Events, ${resumeSessionId.slice(0, 8)})`,
+      payload: { kind: "claude.transcript_imported", session: resumeSessionId, imported: cut.length, total: events.length },
+    });
+    for (const e of cut) ctx.emit(e);
+  } catch (err) {
+    ctx.emit({ type: "system", summary: "claude: Transkript nicht lesbar — Verlauf bleibt beim Anbieter", payload: { kind: "claude.transcript_unreadable", error: err instanceof Error ? err.message : String(err) } });
+  }
 }

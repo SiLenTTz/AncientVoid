@@ -63,7 +63,7 @@ function QuestionForm({ questions, busy, onAnswer, onReject }: { questions: Tool
         <div key={q.question} class="question">
           <div class="question-text">{q.question}</div>
           <div class="choice-row">
-            {q.options.map((o) => (
+            {q.options.map((o, i) => (
               <button
                 key={o.label}
                 type="button"
@@ -71,7 +71,11 @@ function QuestionForm({ questions, busy, onAnswer, onReject }: { questions: Tool
                 title={o.description}
                 onClick={() => toggle(q, o.label)}
               >
-                {o.label}
+                <span class="choice-index">{i + 1}</span>
+                <span class="choice-body">
+                  <span class="choice-label">{o.label}</span>
+                  {o.description && <span class="choice-desc">{o.description}</span>}
+                </span>
               </button>
             ))}
           </div>

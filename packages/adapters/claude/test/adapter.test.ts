@@ -307,3 +307,46 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     expect(cmd.join(" ")).toContain("--add-dir /data/att");
   });
 });
+
+describe("Fortsetzen: Wächter und Transkript-Import (Live-Fund 2026-09-28)", () => {
+  it("eine nicht-UUID-Resume-Id (Subagent-Transkript) scheitert laut, VOR dem Spawn", async () => {
+    let spawned = 0;
+    const ctx = makeRecordingContext({ spawnWorker: async () => { spawned += 1; return fakeClaudeProcess(""); } });
+    await expect(
+      createAdapter().start({ adapter: "claude", project: "/tmp", prompt: "x", args: { resumeSessionId: "agent-a648a44cee0100a8c" } }, ctx),
+    ).rejects.toThrow("keine Session-ID");
+    expect(spawned).toBe(0);
+  });
+
+  it("beim Fortsetzen steht die Transkript-Historie im Tail, bevor der neue Zug läuft", async () => {
+    const { mkdtempSync, mkdirSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const sid = "485d0730-cd5d-43a9-8fdb-232219f80f1d";
+    const dir = mkdtempSync(join(tmpdir(), "claude-hist-"));
+    const munged = process.cwd().replace(/[^a-zA-Z0-9]/g, "-");
+    mkdirSync(join(dir, "projects", munged), { recursive: true });
+    writeFileSync(join(dir, "projects", munged, `${sid}.jsonl`), loadFixture("tool-use.jsonl"));
+    const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(loadFixture("trivial-text.jsonl")) });
+    const adapter = createAdapter({ claudeDir: dir });
+
+    await adapter.start({ adapter: "claude", project: "/tmp", prompt: "weiter", args: { resumeSessionId: sid } }, ctx);
+
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.transcript_imported"));
+    const marker = ctx.events.findIndex((e) => (e.payload as { kind?: string }).kind === "claude.transcript_imported");
+    expect(marker).toBeGreaterThanOrEqual(0);
+    // imported history: the fixture's tool_use + assistant events arrive after the marker
+    expect(ctx.events.slice(marker).some((e) => e.type === "tool_use")).toBe(true);
+    expect(ctx.events.slice(marker).some((e) => e.type === "assistant")).toBe(true);
+    // and the new turn runs on top
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+    const result = ctx.events.findIndex((e) => (e.payload as { kind?: string }).kind === "claude.result");
+    expect(result).toBeGreaterThan(marker);
+  });
+
+  it("ohne Transkript gibt es eine sichtbare Notiz statt Stillstand", async () => {
+    const sid = "00000000-0000-4000-8000-000000000000";
+    const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(loadFixture("trivial-text.jsonl")) });
+    await createAdapter({ claudeDir: "/nirgendwo" }).start({ adapter: "claude", project: "/tmp", prompt: "weiter", args: { resumeSessionId: sid } }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.transcript_missing"));
+  });
+});
