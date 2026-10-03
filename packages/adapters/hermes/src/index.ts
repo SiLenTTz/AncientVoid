@@ -113,9 +113,17 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     proc.onStdout((chunk) => {
       stdout += chunk;
     });
-    proc.onStderr((chunk) => {
-      const sid = extractSessionId(chunk);
-      if (sid && sid !== meta.nativeSessionId) {
+    // stderr needs LINE buffering, not per-chunk parsing: the tmux runner
+    // chunks output arbitrarily, and a `session_id:` line split across two
+    // chunks would otherwise be lost silently (breaking every later
+    // --resume). Complete lines are parsed, the trailing partial line waits
+    // for more data; the exit path flushes it.
+    let stderrBuf = "";
+    const seenSessionIds = new Set<string>();
+    const handleStderrLine = (line: string, ctx: AdapterContext, meta: SessionMeta): void => {
+      const sid = extractSessionId(line);
+      if (sid && sid !== meta.nativeSessionId && !seenSessionIds.has(sid)) {
+        seenSessionIds.add(sid);
         meta.nativeSessionId = sid;
         ctx.emit({
           type: "system",
@@ -123,8 +131,20 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           payload: { kind: "hermes.native_session", nativeSessionId: sid },
         });
       }
+    };
+    proc.onStderr((chunk) => {
+      stderrBuf += chunk;
+      const lines = stderrBuf.split("\n");
+      stderrBuf = lines.pop() ?? "";
+      for (const line of lines) handleStderrLine(line, ctx, meta);
     });
     proc.onExit((code) => {
+      // Flush a trailing partial stderr line (process ended without a
+      // final newline) — otherwise its session_id would be lost.
+      if (stderrBuf) {
+        handleStderrLine(stderrBuf, ctx, meta);
+        stderrBuf = "";
+      }
       const answer = stdout.trim();
       if (answer) {
         ctx.emit({ type: "assistant", summary: answer.slice(0, 200), payload: { text: answer } });

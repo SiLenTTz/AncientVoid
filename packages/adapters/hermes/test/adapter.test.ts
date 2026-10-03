@@ -9,13 +9,22 @@ import { createAdapter, extractSessionId, splitModelSpec, buildHermesArgs } from
 // CLI contract verified 2026-10-03 (see src/index.ts doc comment):
 // stdout = answer, stderr carries `session_id: <sid>`, --resume continues.
 
-function fakeHermesProcess(stdout: string, stderr = "", exitCode: number | null = 0): WorkerProcess {
+function fakeHermesProcess(
+  stdout: string,
+  stderr = "",
+  exitCode: number | null = 0,
+  /** Split stderr into N arbitrary chunks to model tmux runner chunking. */
+  stderrChunks = 1,
+): WorkerProcess {
   const stdoutCbs = new Set<(chunk: string) => void>();
   const stderrCbs = new Set<(chunk: string) => void>();
   const exitCbs = new Set<(code: number | null) => void>();
   setTimeout(async () => {
     for (const cb of stdoutCbs) cb(stdout);
-    for (const cb of stderrCbs) cb(stderr);
+    const size = Math.max(1, Math.ceil(stderr.length / stderrChunks));
+    for (let i = 0; i < stderr.length; i += size) {
+      for (const cb of stderrCbs) cb(stderr.slice(i, i + size));
+    }
     await new Promise((r) => setTimeout(r, 0));
     for (const cb of exitCbs) cb(exitCode);
   }, 0);
@@ -110,6 +119,42 @@ describe("hermes adapter — lifecycle against the live-verified CLI shape", () 
     // arrives on stderr asynchronously after start() returns; the hub
     // persists it via the hermes.native_session event (same as claude).
     // The follow-up steer test proves the adapter actually uses it.
+    void handle;
+  });
+
+  it("session_id survives arbitrary stderr chunking (tmux runner splits output) — T13.2", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: async () => fakeHermesProcess("OK", REAL_STDERR, 0, 5),
+    });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "hermes", project: "/tmp", prompt: "go" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "hermes.native_session"));
+    const native = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "hermes.native_session");
+    expect(native?.payload).toMatchObject({ nativeSessionId: "20261003_202145_0ee92a" });
+  });
+
+  it("a session_id in the FINAL stderr chunk without trailing newline is still captured (exit flush)", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: async () => fakeHermesProcess("OK", "\nsession_id: 20261003_noeol", 0, 3),
+    });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "hermes", project: "/tmp", prompt: "go" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "hermes.native_session"));
+    const native = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "hermes.native_session");
+    expect(native?.payload).toMatchObject({ nativeSessionId: "20261003_noeol" });
+  });
+
+  it("the same session_id re-printed on resume does NOT duplicate the native_session event", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: async () => fakeHermesProcess("ok", REAL_STDERR),
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "hermes", project: "/tmp", prompt: "first" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    await adapter.steer(handle, { kind: "prompt", text: "second" }, ctx);
+    await waitFor(() => ctx.events.filter((e) => e.type === "assistant").length >= 2);
+    const nativeEvents = ctx.events.filter((e) => (e.payload as { kind?: string }).kind === "hermes.native_session");
+    expect(nativeEvents).toHaveLength(1);
   });
 
   it("steer(prompt) spawns a fresh process with --resume <sid> — the live-verified continuation", async () => {
