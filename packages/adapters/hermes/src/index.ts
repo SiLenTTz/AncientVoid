@@ -58,12 +58,23 @@ interface SessionMeta {
   nativeSessionId?: string;
 }
 
-/** Matches `session_id: <id>` anywhere in a stderr line (live format has a
+/** Matches `session_id: <id>` anywhere in a line (live format has a
  * leading blank line; anchor on the `session_id:` marker, not position). */
 const SESSION_ID_RE = /session_id:\s*(\S+)/;
 
+/** ANSI escape sequences a PTY injects — terminal queries (`ESC ] 11 ; ?`),
+ * device queries (`ESC [ c`), CR from CRLF, and misc CSI/OSC sequences.
+ * Live-captured from the tmux runner pane 2026-10-03:
+ * `\x1b]11;?\x1b\\` + `\x1b[c` prefix before the answer. */
+const ANSI_RE = /\x1b(?:\][^\x07\x1b]*(?:\x07|\x1b\\)|\[[0-9;?]*[a-zA-Z]|[=>]|\(B)/g;
+
+/** Strip PTY noise from a chunk. Exported for unit tests. */
+export function stripAnsi(s: string): string {
+  return s.replace(ANSI_RE, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
 export function extractSessionId(chunk: string): string | null {
-  const lines = chunk.split("\n");
+  const lines = stripAnsi(chunk).split("\n");
   for (let i = lines.length - 1; i >= 0; i--) {
     const m = SESSION_ID_RE.exec(lines[i]!);
     if (m) return m[1]!;
@@ -106,60 +117,76 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     procs.set(sessionId, proc);
     sessions.set(sessionId, meta);
 
-    // The answer is the whole stdout blob (no structured event stream in -Q
-    // mode — verified live, point 2 of the doc comment); one assistant
-    // event per turn when the process exits.
+    // T13.4 live finding (2026-10-03, real tmux-PTY run): the tmux runner
+    // interleaves stdout+stderr in ONE pane capture — onStderr never fires.
+    // So BOTH the answer AND the `session_id:` line arrive via onStdout,
+    // wrapped in PTY noise (ANSI queries, CRLF). Parsing therefore happens
+    // on the stdout line stream; the stderr path stays as a second source
+    // for runners that DO split streams (child_process fallback).
     let stdout = "";
+    let stdoutBuf = "";
+    const seenSessionIds = new Set<string>();
+    const emitSessionId = (sid: string): void => {
+      if (sid === meta.nativeSessionId || seenSessionIds.has(sid)) return;
+      seenSessionIds.add(sid);
+      meta.nativeSessionId = sid;
+      ctx.emit({
+        type: "system",
+        summary: `Hermes · Session ${sid}`,
+        payload: { kind: "hermes.native_session", nativeSessionId: sid },
+      });
+    };
+    const handleLine = (line: string): void => {
+      const sid = extractSessionId(line);
+      if (sid) emitSessionId(sid);
+    };
     proc.onStdout((chunk) => {
       stdout += chunk;
+      stdoutBuf = stripAnsi(stdoutBuf + chunk);
+      const lines = stdoutBuf.split("\n");
+      stdoutBuf = lines.pop() ?? "";
+      for (const line of lines) handleLine(line);
     });
-    // stderr needs LINE buffering, not per-chunk parsing: the tmux runner
-    // chunks output arbitrarily, and a `session_id:` line split across two
-    // chunks would otherwise be lost silently (breaking every later
-    // --resume). Complete lines are parsed, the trailing partial line waits
-    // for more data; the exit path flushes it.
+    // stderr needs LINE buffering, not per-chunk parsing: a `session_id:`
+    // line split across two chunks would otherwise be lost silently
+    // (breaking every later --resume). Complete lines are parsed, the
+    // trailing partial line waits for more data; the exit path flushes it.
     let stderrBuf = "";
-    const seenSessionIds = new Set<string>();
-    const handleStderrLine = (line: string, ctx: AdapterContext, meta: SessionMeta): void => {
-      const sid = extractSessionId(line);
-      if (sid && sid !== meta.nativeSessionId && !seenSessionIds.has(sid)) {
-        seenSessionIds.add(sid);
-        meta.nativeSessionId = sid;
-        ctx.emit({
-          type: "system",
-          summary: `Hermes · Session ${sid}`,
-          payload: { kind: "hermes.native_session", nativeSessionId: sid },
-        });
-      }
-    };
+    const handleStderrLine = (line: string): void => handleLine(line);
     proc.onStderr((chunk) => {
       stderrBuf += chunk;
       const lines = stderrBuf.split("\n");
       stderrBuf = lines.pop() ?? "";
-      for (const line of lines) handleStderrLine(line, ctx, meta);
+      for (const line of lines) handleStderrLine(line);
     });
     proc.onExit((code) => {
-      // Flush a trailing partial stderr line (process ended without a
-      // final newline) — otherwise its session_id would be lost.
+      // Flush trailing partial lines from both streams (process ended
+      // without a final newline) — otherwise a session_id would be lost.
+      if (stdoutBuf) {
+        handleLine(stdoutBuf);
+        stdoutBuf = "";
+      }
       if (stderrBuf) {
-        handleStderrLine(stderrBuf, ctx, meta);
+        handleStderrLine(stderrBuf);
         stderrBuf = "";
       }
-      // T13.3: hermes prints runtime warnings (e.g. `Warning: Unknown
-      // toolsets: a2a`) on STDOUT before the answer — verified live with
-      // od -c (2026-10-03). Left in, they would corrupt the assistant
-      // text; strip whole lines that are exactly a warning into the hub
-      // log instead. Honest heuristic: line-prefix match — a model answer
-      // starting a line with "Warning: " would be caught too (accepted,
-      // documented trade-off; warnings are one-line and answer-leading).
-      const lines = stdout.split("\n");
+      // T13.3/T13.4 answer hygiene — everything below verified against a
+      // REAL tmux-PTY run (2026-10-03, session 20261003_203423_1d2848):
+      // stdout arrives ANSI-polluted (`\x1b]11;?\x1b\\`, `\x1b[c`) with
+      // CRLF endings and the `session_id:` trailer IN the stream (the tmux
+      // pane merges stderr into stdout). Warnings (`Warning: …`) are also
+      // printed on stdout (od -c). So: strip ANSI, drop session_id and
+      // Warning lines from the ANSWER (session_id already became an event
+      // via handleLine above), keep the rest verbatim.
+      const lines = stripAnsi(stdout).split("\n");
       const answerLines: string[] = [];
       for (const line of lines) {
+        if (SESSION_ID_RE.test(line)) continue;
         if (/^Warning: /.test(line)) {
           ctx.log("warn", "hermes stdout warning", { line: line.slice(0, 500) });
-        } else {
-          answerLines.push(line);
+          continue;
         }
+        answerLines.push(line);
       }
       const answer = answerLines.join("\n").trim();
       if (answer) {

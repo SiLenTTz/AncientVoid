@@ -42,6 +42,11 @@ function fakeHermesProcess(
 // leading blank line, then `session_id: <sid>`.
 const REAL_STDERR = "\nsession_id: 20261003_202145_0ee92a";
 
+// The literal stdout captured from the REAL tmux-PTY run through the hub
+// (2026-10-03, session 20261003_203423_1d2848): ANSI terminal queries,
+// CRLF endings, session_id trailer merged into stdout by the pane.
+const REAL_PTY_STDOUT = "\x1b]11;?\x1b\\\x1b[cSMOKE1\r\n\r\nsession_id: 20261003_203423_1d2848\r\n";
+
 describe("hermes adapter — parsing units", () => {
   it("extractSessionId finds the id in the real stderr shape (leading blank line)", () => {
     expect(extractSessionId(REAL_STDERR)).toBe("20261003_202145_0ee92a");
@@ -251,6 +256,34 @@ describe("hermes adapter — lifecycle against the live-verified CLI shape", () 
     expect((assistantEvents[0]!.payload as { text?: string }).text).toBe("OK");
     // the warning must NOT surface as any event
     expect(ctx.events.some((e) => /Unknown toolsets/.test(e.summary ?? ""))).toBe(false);
+  });
+
+  it("REAL tmux-PTY stdout: ANSI noise stripped, session_id event emitted, clean answer (T13.4 live capture)", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: async () => fakeHermesProcess(REAL_PTY_STDOUT, ""),
+    });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "hermes", project: "/tmp", prompt: "say smoke" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    const native = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "hermes.native_session");
+    expect(native?.payload).toMatchObject({ nativeSessionId: "20261003_203423_1d2848" });
+    const assistant = ctx.events.find((e) => e.type === "assistant");
+    expect((assistant!.payload as { text?: string }).text).toBe("SMOKE1");
+    // no ANSI escape may survive into the emitted answer
+    expect((assistant!.payload as { text?: string }).text).not.toMatch(/\x1b|\r/);
+  });
+
+  it("PTY chunk split mid-ANSI-sequence still yields a clean answer and session_id", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: async () => fakeHermesProcess(REAL_PTY_STDOUT, "", 0, 7),
+    });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "hermes", project: "/tmp", prompt: "say smoke" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    const native = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "hermes.native_session");
+    expect(native?.payload).toMatchObject({ nativeSessionId: "20261003_203423_1d2848" });
+    const assistant = ctx.events.find((e) => e.type === "assistant");
+    expect((assistant!.payload as { text?: string }).text).toBe("SMOKE1");
   });
 
   it("a config: command + extraArgs are respected", async () => {
