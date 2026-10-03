@@ -66,6 +66,7 @@ Welche Funktion jeder Harness wirklich hat (Folgeprompt, Anhalten, Tool-Freigabe
 | `local-llm` | OpenAI-kompatibel | ✓ | — | — | ✓ | — | Vorlage bereit (keine lokale Instanz zum Prüfen) | P3 |
 | `deepseek` | OpenAI-kompatibel (`api.deepseek.com`) | ✓ | — | — | ✓ | — | Vorlage bereit (kein API-Key zum Prüfen) | P3 |
 | `aider` | CLI (`--message`, Plaintext) | — | ✓ | — | ✓ | — | strukturell gebaut, unproven (kein API-Key/kein realer LLM-Turn hier möglich) | P3 |
+| `hermes` | CLI (`chat -q --yolo -Q --pass-session-id`, Plaintext) | — | ✓ | — | ✓ | — | built + smoke (echte hermes-Binary auf Zeratul, Session-ID/Resume live verifiziert 03.10.2026) | P13 |
 | `cursor-clip` | state.vscdb (read-only) | ✓ | ✓ | — | **nein** | — | proven (echte, live laufende Cursor-Installation auf dieser Maschine, echte SQLite-Reads gegen ihre aktive WAL-Datenbank) — may-break by design (K9) | P3 |
 | `claude-clip` | Claude-Code-Transcript JSONL (read-only) | ✓ | ✓ | — | **nein** | — | proven (echtes Linux-Transcript-Format, synthetische Datenschutz-Fixtures und Live-Tailing gegen echte Dateien) — may-break by design (K9); beobachtet, übernimmt oder steuert keine externe Session | P3 |
 

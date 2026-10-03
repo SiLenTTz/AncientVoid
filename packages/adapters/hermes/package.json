@@ -1,0 +1,18 @@
+{
+  "name": "@uacc/adapter-hermes",
+  "version": "0.1.0",
+  "description": "Hermes Agent CLI adapter (P13, T13.1): spawns `hermes chat -q --yolo -Q --pass-session-id`, session_id from stderr, resume via --resume.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@uacc/contracts": "0.1.0",
+    "zod": "^3.23.8"
+  }
+}

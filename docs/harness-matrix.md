@@ -18,6 +18,7 @@ dieser Session.
 | opencode | 1.18.32 | ✓ | ✓ | allowlist | — | ✓ | ✓ | ✓ | ✓ | — |
 | copilot | 1.0.88 | ✓ | ✓ | bypass | — | ✓ | ✓ | — | — | — |
 | aider | 0.86.2 | — | ✓ | bypass | — | ✓ | — | — | — | — |
+| hermes | hermes-agent venv, 03.10.2026 | ✓ | ✓ | bypass | — | ✓ | — | — | — | — |
 | cursor-clip | Cursor state.vscdb | — | — | none | — | — | — | — | — | — |
 | claude-clip | Transcript JSONL | — | — | none | — | — | — | — | — | — |
 | dummy | — | ✓ | ✓ | none | — | — | — | — | — | — |
