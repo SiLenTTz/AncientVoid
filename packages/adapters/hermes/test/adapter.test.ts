@@ -239,7 +239,21 @@ describe("hermes adapter — lifecycle against the live-verified CLI shape", () 
     expect(ctx.events.some((e) => e.type === "system" && /exited with code 1/.test(e.summary))).toBe(true);
   });
 
-  it("config: command + extraArgs are respected", async () => {
+  it("stdout `Warning:` lines are stripped from the answer and logged, not emitted (T13.3, live-verified od -c shape)", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: async () => fakeHermesProcess("Warning: Unknown toolsets: a2a\nOK\n", REAL_STDERR),
+    });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "hermes", project: "/tmp", prompt: "say ok" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    const assistantEvents = ctx.events.filter((e) => e.type === "assistant");
+    expect(assistantEvents).toHaveLength(1);
+    expect((assistantEvents[0]!.payload as { text?: string }).text).toBe("OK");
+    // the warning must NOT surface as any event
+    expect(ctx.events.some((e) => /Unknown toolsets/.test(e.summary ?? ""))).toBe(false);
+  });
+
+  it("a config: command + extraArgs are respected", async () => {
     const spawnedCmds: string[][] = [];
     const ctx = makeRecordingContext({
       spawnWorker: async (cmd) => {

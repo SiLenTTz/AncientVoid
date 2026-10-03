@@ -145,7 +145,23 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         handleStderrLine(stderrBuf, ctx, meta);
         stderrBuf = "";
       }
-      const answer = stdout.trim();
+      // T13.3: hermes prints runtime warnings (e.g. `Warning: Unknown
+      // toolsets: a2a`) on STDOUT before the answer — verified live with
+      // od -c (2026-10-03). Left in, they would corrupt the assistant
+      // text; strip whole lines that are exactly a warning into the hub
+      // log instead. Honest heuristic: line-prefix match — a model answer
+      // starting a line with "Warning: " would be caught too (accepted,
+      // documented trade-off; warnings are one-line and answer-leading).
+      const lines = stdout.split("\n");
+      const answerLines: string[] = [];
+      for (const line of lines) {
+        if (/^Warning: /.test(line)) {
+          ctx.log("warn", "hermes stdout warning", { line: line.slice(0, 500) });
+        } else {
+          answerLines.push(line);
+        }
+      }
+      const answer = answerLines.join("\n").trim();
       if (answer) {
         ctx.emit({ type: "assistant", summary: answer.slice(0, 200), payload: { text: answer } });
       }
