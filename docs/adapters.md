@@ -88,6 +88,39 @@ Rohwert). Wichtig z. B. bei GLM: glm-4.7 hat 204.800 Tokens, glm-5.2/5.3
 1.000.000 — eine Zahl je Instanz wäre falsch. Unbekannte Modelle bleiben
 ohne Fenster, die PWA zeigt dann keine Prozentzahl.
 
+## Hermes Agent (CLI) — `@uacc/adapter-hermes` (P13)
+
+Hermes Agent (Nous Research) als vollwertiger CLI-Adapter — gleiche Form
+wie claude print mode: **ein Prozess pro Zug**, native Resume über die
+Session-ID.
+
+```json
+{ "id": "hermes", "module": "@uacc/adapter-hermes",
+  "config": { "command": "/pfad/zu/hermes", "extraArgs": [] } }
+```
+
+- **Spawn:** `hermes chat -q <prompt> --yolo -Q --pass-session-id`
+  (Antwort auf stdout, `session_id: <sid>` auf stderr — im Hub-tmux-PTY
+  aber interleaved im stdout-Pane-Capture; der Adapter parst deshalb
+  stdout zeilenweise mit ANSI-Strip und nutzt stderr als Zweitquelle).
+- **Resume:** erste `session_id:` wird `hermes.native_session`-Event;
+  jeder Folgeprompt spawnt `hermes chat -q … --resume <sid>`. Adoption
+  externer Sessions via `spec.adoptNativeSessionId`.
+- **Antwort-Hygiene:** Warning-Zeilen (`Warning: …`, live per `od -c`
+  verifiziert) und Resume-Chrome (`↻ Resumed session …`,
+  `Model restored …`) werden herausgefiltert (in den Hub-Log geloggt),
+  ANSI-Terminal-Queries und CRLF vom PTY werden gestrippt.
+- **Modell:** optional `spec.model` als `model[:provider]` →
+  `-m`/`--provider`; ohne Angabe gilt die hermes-eigene config.yaml
+  (Provider-Unabhängigkeit).
+- **Capabilities, ehrlich:** `tools` (läuft mit `--yolo`/bypass), native
+  `nativeResume` (live verifiziert 03.10.2026), kein reasoning/cost/
+  usage-Stream in `-Q`. Ein-Turn-Prozess: clean exit 0 = Zug beendet,
+  Session idle — nicht down (BUG-0008-Lektion).
+- **Live-Smoke (03.10.2026):** Session im Hub gestartet, saubere Antwort,
+  native_session-Event, Resume-Steer mit Codewort-Rückruf erfolgreich,
+  exit 0. Siehe `epics/EPIC-P13-hermes-adapter.md`.
+
 ## NormalizedEvent — die gemeinsame Sprache
 
 Typen: `user | assistant | thinking | tool_use | tool_result | gate | error | system`.
