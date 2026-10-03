@@ -1,7 +1,7 @@
 ---
 id: BUG-0034
 slug: messlauf-laesst-acp-worker-zurueck
-status: open
+status: fixed
 severity: S2
 area: messlauf, workers
 instance: dev
@@ -80,3 +80,12 @@ also kann kein Werkzeug Verwaiste sicher erkennen.
 - [ ] Datei im Index [`README.md`](README.md)
 - [ ] GitLab-Issue angelegt (Link oben)
 - [ ] `bugfix` oder offen lassen
+
+## Fix (verifiziert 2026-10-03, Ralph mobile-hub-bugfrei)
+
+- Fix: `e73dba4` (^ B workers: verwaiste Hub-Worker erkennen und entfernen
+  (BUG-0034), MR !129) — `packages/workers/src/orphans.ts` (Erkennung über
+  `@uacc_logdir`-Marke), hubctl-Command zum Aufräumen, messlauf-p7.mjs
+  räumt tmux-Server beim stop() ab.
+- Verifikation: `npx vitest run packages/workers/test/orphans.test.ts`
+  → 6/6 grün (live nachgefahren 2026-10-03).

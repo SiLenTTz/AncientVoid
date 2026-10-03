@@ -1,7 +1,7 @@
 ---
 id: BUG-0032
 slug: acp-turn-haengt-ohne-timeout
-status: open
+status: fixed
 severity: S1
 area: adapters
 instance: dev
@@ -103,3 +103,17 @@ Inaktivitäts-Wachhund, den jede Agent-Meldung (auch
 - [ ] Datei im Index [`README.md`](README.md)
 - [ ] GitLab-Issue angelegt (Link oben)
 - [ ] `bugfix` oder offen lassen
+
+## Fix (verifiziert 2026-10-03, Ralph mobile-hub-bugfrei)
+
+- Fix: `407f9fb` (^ B acp: stumme Züge nach Frist abbrechen (BUG-0032),
+  MR !124) — Inaktivitäts-Wachhund `stuckTurnMs` (Default 30 min):
+  stummer Zug wird per `session/cancel` abgebrochen, `provider.error`
+  gelautet, Session `idle`; ignoriert der Agent auch den Cancel,
+  erzwungenes Zugende + Queue-Drain. Pending-Permission entwaffnet den
+  Hund (Warten auf das Handy ist kein Stuck). Config:
+  `packages/adapters/acp/src/index.ts` (`stuckTurnMs`, Z. 80–83,
+  `armStuckWatch`/`unstickTurn` Z. 185–215).
+- Verifikation: `npx vitest run packages/adapters/acp/test/adapter.test.ts`
+  → 25/25 grün, inkl. 3 BUG-0032-Szenarien (stummer Zug abgebrochen,
+  Cancel-ignorierender Agent erzwungen beendet, Permission entwaffnet).

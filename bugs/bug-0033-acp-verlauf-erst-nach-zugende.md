@@ -1,7 +1,7 @@
 ---
 id: BUG-0033
 slug: acp-verlauf-erst-nach-zugende
-status: open
+status: fixed
 severity: S2
 area: adapters, pwa
 instance: dev
@@ -106,3 +106,12 @@ streamt, die Zugende-Antwort aber verzögert — erwartet ein
 - [ ] Datei im Index [`README.md`](README.md)
 - [ ] GitLab-Issue angelegt (Link oben)
 - [ ] `bugfix` oder offen lassen
+
+## Fix (verifiziert 2026-10-03, Ralph mobile-hub-bugfrei)
+
+- Fix: `8c2401e` (^ B acp: gepufferte Chunks live in den Verlauf liefern
+  (BUG-0033), MR !125) + `a06cc4b` (^ F pwa: abgelehnte Eingaben und
+  ACP-Modell im Chat zeigen (BUG-0033)).
+- Verifikation: `npx vitest run packages/adapters/acp/test/adapter.test.ts`
+  → 25/25 grün, inkl. „BUG-0033: buffered chunks go out live while the
+  turn runs, not only at its end".

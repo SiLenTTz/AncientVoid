@@ -1,7 +1,7 @@
 ---
 id: BUG-0035
 slug: entdecken-zeigt-aelteste-zuerst
-status: open
+status: fixed
 severity: S2
 area: core
 instance: dev
@@ -59,3 +59,14 @@ die zwei jüngsten liefern, nicht die zwei ersten der Eingabereihenfolge.
 - [ ] Datei im Index [`README.md`](README.md)
 - [ ] GitLab-Issue angelegt (Link oben)
 - [ ] `bugfix` oder offen lassen
+
+## Fix (verifiziert 2026-10-03, Ralph mobile-hub-bugfrei)
+
+- Fix: `890d62c`/`b95f91c` (^ B core/discovery: Entdecken führt die
+  zuletzt beobachteten Sessions auf (BUG-0035) + Claude-Munging-Fix,
+  MR !131) — Discovery-Sortierung nach letzter Beobachtung, neueste
+  zuerst.
+- Verifikation: `npx vitest run packages/core/test/modules/discovery/
+  dedupe.test.ts` → 5/5 grün, inkl. „BUG-0035: leads with the most
+  recently observed"; `packages/core/test/modules/harness/
+  inventory-scan.test.ts` 8/8 grün.

@@ -1,7 +1,7 @@
 ---
 id: BUG-0031
 slug: token-login-waits-for-fleet-hello
-status: in-progress
+status: fixed
 severity: S3
 area: pwa
 instance: dev
@@ -76,3 +76,14 @@ fehl und besteht damit.
 - [x] Datei im Index [`README.md`](README.md)
 - [x] GitLab-Issue angelegt
 - [x] `bugfix` läuft
+
+## Fix (verifiziert 2026-10-03, Ralph mobile-hub-bugfrei)
+
+- Fix: `2f2676f` (^ B pwa: Tokenmaske nach Prüfung öffnen (BUG-0031)) —
+  `becomeReady()` in `apps/pwa/src/app/main.tsx` öffnet die Tokenmaske
+  nach dem token-geschützten `/api/adapters`-200; Fleet-Discovery läuft
+  weiter im Hintergrund.
+- Verifikation: `npx playwright test e2e/specs/drafts.spec.ts --grep
+  'AC-P8-4' --project=mobile` → 5/5 grün; die Probe hält `/api/fleet/hello`
+  per `app.route` an (drafts.spec.ts:118) und erwartet Verschwinden des
+  „Verbinden"-Buttons trotz blockiertem Handshake (live 2026-10-03).
