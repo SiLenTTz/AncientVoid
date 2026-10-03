@@ -286,6 +286,22 @@ describe("hermes adapter — lifecycle against the live-verified CLI shape", () 
     expect((assistant!.payload as { text?: string }).text).toBe("SMOKE1");
   });
 
+  it("resume-turn chrome (Resumed-session banner, model restore) stays out of the answer — live capture T13.4", async () => {
+    // wortwörtlich aus dem echten Resume-Steer-Run (Session 3b17eb7c):
+    // Banner + Antwort in einem stdout-Blob, CRLF.
+    const liveResumeStdout =
+      "↻ Resumed session 20261003_203901_1cf4df \"Store codeword ANANAS747\" (1 user message, 6 total messages)\r\nModel restored from session: glm-5.3 (zai)\r\nANANAS747\r\n";
+    const ctx = makeRecordingContext({
+      spawnWorker: async () => fakeHermesProcess(liveResumeStdout, ""),
+    });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "hermes", project: "/tmp", prompt: "codeword?" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    const assistant = ctx.events.filter((e) => e.type === "assistant");
+    expect(assistant).toHaveLength(1);
+    expect((assistant[0]!.payload as { text?: string }).text).toBe("ANANAS747");
+  });
+
   it("a config: command + extraArgs are respected", async () => {
     const spawnedCmds: string[][] = [];
     const ctx = makeRecordingContext({

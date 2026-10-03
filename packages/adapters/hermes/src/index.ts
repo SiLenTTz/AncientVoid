@@ -68,6 +68,11 @@ const SESSION_ID_RE = /session_id:\s*(\S+)/;
  * `\x1b]11;?\x1b\\` + `\x1b[c` prefix before the answer. */
 const ANSI_RE = /\x1b(?:\][^\x07\x1b]*(?:\x07|\x1b\\)|\[[0-9;?]*[a-zA-Z]|[=>]|\(B)/g;
 
+/** hermes prints these STATUS lines on stderr in a pipe (verified
+ * 2026-10-03) — but the tmux pane merges them into stdout, so they must
+ * be filtered from the answer text. Each is a complete line. */
+const STATUS_LINE_RE = /^(?:↻ Resumed session |Model restored from session: )/;
+
 /** Strip PTY noise from a chunk. Exported for unit tests. */
 export function stripAnsi(s: string): string {
   return s.replace(ANSI_RE, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -184,6 +189,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         if (SESSION_ID_RE.test(line)) continue;
         if (/^Warning: /.test(line)) {
           ctx.log("warn", "hermes stdout warning", { line: line.slice(0, 500) });
+          continue;
+        }
+        // hermes status lines (resume banner, model restore) belong to the
+        // session chrome, not the answer — logged, never emitted.
+        if (STATUS_LINE_RE.test(line)) {
+          ctx.log("info", "hermes status line", { line: line.slice(0, 500) });
           continue;
         }
         answerLines.push(line);
