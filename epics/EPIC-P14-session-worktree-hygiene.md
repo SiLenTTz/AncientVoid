@@ -1,6 +1,6 @@
 # EPIC-P14 — Session-Worktree-Hygiene (Archivieren räumt saubere Worktrees auf)
 
-**Status:** offen (Planung 2026-10-08) · **Phase:** P14 · **Dauer:** 0,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine (BUG-0027 ist behoben, `WorktreeManager.hasWork()` existiert). Läuft neben der blockierten P12; T12.5 (24-h-Dauerlauf) profitiert davon, setzt es aber nicht formal voraus.
+**Status:** Code abgeschlossen (2026-10-08); produktiver `prune --apply` steht aus (Entscheidung Jan, löscht Daten) · **Phase:** P14 · **Dauer:** 0,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine (BUG-0027 ist behoben, `WorktreeManager.hasWork()` existiert). Läuft neben der blockierten P12; T12.5 (24-h-Dauerlauf) profitiert davon, setzt es aber nicht formal voraus.
 
 Auslöser: Statusreport vom 2026-10-08. `data/worktrees/` hält 24 Verzeichnisse
 (309 MB).
@@ -71,7 +71,7 @@ Contract; PWA-Oberfläche (reine CLI/Operator-Funktion).
   - **Folge für die Zahlen aus §1:** 12 der 22 archivierten Sessions sind ACP-/Cursor-Adapter (langlebiger Worker) und bleiben bei T14.1 stehen — sie räumt T14.3, sobald kein Prozess mehr im Verzeichnis steht.
 - [x] **T14.2 — `hubctl worktrees` (Liste).** Lokal wie `workers`, liest `--db <hub.db>`; je Worktree Session-Status, archiviert, Zustand (`clean`/`work`/`unknown`), Größe, ob ein Prozess seinen cwd darin hat (`/proc`), und ob er entfernbar ist. Logik in `packages/core/src/modules/workspace/worktree-hygiene.ts` (`scanWorktrees`), Tests dort und in `apps/hubctl/test/worktrees.test.ts`. K8.
 - [x] **T14.3 — `hubctl worktrees prune`.** Trockenlauf als Standard, `--apply` entfernt nur Worktrees mit Zustand `clean`, ohne Prozess im Verzeichnis, von Sessions die archiviert oder `stopped`/`error` sind und nicht laufen. Vor jedem Entfernen erneute `hasWork`-/Prozess-Prüfung (Spätschreiber). Ersetzt die in T14.1 offene Lücke für Sessions mit persistentem Worker: ihr Prozess ist am cwd erkennbar, auch über Hub-Neustarts. K7.
-- [ ] **T14.4 — Doku und Abschluss.** Runbook-Abschnitt, `docs/p12-abnahme-checkliste.md` verlinkt dieses Epic, Retro-Eintrag, `epics/README.md` auf „abgeschlossen“.
+- [x] **T14.4 — Doku und Abschluss.** Runbook-Abschnitt „Session-Worktrees aufräumen“, P12-Checkliste verlinkt das Epic, `epics/README.md` aktualisiert, Abschlussreport unten.
 
 ## 5. Acceptance Criteria
 
@@ -97,3 +97,20 @@ Contract; PWA-Oberfläche (reine CLI/Operator-Funktion).
 - Kein Contract-Bruch: das neue Event ist additiv; falls der Event-Contract es verlangt, ADR in `docs/adr/`.
 - Erreichbarkeit: `hubctl worktrees` in `hubctl --help` und im Runbook.
 - Kein TODO ohne Epic-Referenz.
+
+## 8. Abschlussreport (2026-10-08)
+
+| AC | Beleg |
+|---|---|
+| AC-P14-1 | `session-manager.test.ts` „EPIC-P14 T14.1“ — rot ohne `archive()` (`manager.archive is not a function`), grün mit Fix |
+| AC-P14-2 | derselbe Test: uncommittete Datei und Commit lassen Worktree stehen, Event `session.worktree_kept` mit `reason`; zweiter Test: `reason: "worker"` |
+| AC-P14-3 | `worktree-hygiene.test.ts` (Trockenlauf: alle sechs Verzeichnisse danach noch da) und `hubctl/test/worktrees.test.ts` |
+| AC-P14-4 | `worktree-hygiene.test.ts`: Arbeit, Prozess im Verzeichnis, laufende und nicht archivierte Session bleiben; Re-Check kurz vor dem Entfernen |
+| AC-P14-5 | Liste gegen den echten Datadir, siehe oben |
+
+**Ehrliche Lücken:**
+- `prune --apply` wurde gegen die Produktivdaten **nicht** ausgeführt: 11 Worktrees (59,6 MiB) wären entfernbar. Das löscht Verzeichnisse und Branches und braucht deine ausdrückliche Freigabe.
+- `/proc` gibt es nur unter Linux; ohne `/proc` meldet `cwdInside` „in Benutzung“ (nichts wird entfernt).
+- Nicht archivierte `idle`-Sessions räumt nichts auf, bewusst: der Nutzer kann sie jederzeit fortsetzen.
+- Neuer Worktree nach Entfernen basiert auf dem aktuellen Projekt-HEAD, nicht auf dem alten Basis-SHA.
+- Kein neuer E2E-Spec: Archivieren hat dieselbe UI wie bisher (bestehender Spec `workspace.spec.ts` läuft grün), `hubctl` ist reine CLI.
