@@ -15,6 +15,6 @@
     "@uacc/adapter-jsonrpc": "0.1.0",
     "@uacc/contracts": "0.1.0",
     "@uacc/models": "0.1.0",
-    "zod": "^3.23.8"
+    "zod": "^4.6.5"
   }
 }

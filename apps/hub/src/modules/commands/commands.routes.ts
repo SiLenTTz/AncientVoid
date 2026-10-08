@@ -72,7 +72,7 @@ export function registerCommandRoutes(app: FastifyInstance, ctx: RouteContext, d
 
   app.post("/api/commands/plan", async (req, reply) => {
     const body = z
-      .object({ text: z.string().max(4000), context: CommandContext, answers: z.record(z.string().max(500)).optional(), planId: z.string().optional() })
+      .object({ text: z.string().max(4000), context: CommandContext, answers: z.record(z.string(), z.string().max(500)).optional(), planId: z.string().optional() })
       .safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: "text and context required" });
     // A follow-up answer re-plans the same text with the choice filled in.

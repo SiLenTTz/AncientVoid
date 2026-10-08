@@ -73,7 +73,7 @@ export const ACP_PRESETS = {
 const AcpConfig = z.object({
   preset: z.enum(["copilot", "opencode", "dsh"]).optional(),
   command: z.array(z.string().min(1)).min(1).optional(),
-  env: z.record(z.string()).default({}),
+  env: z.record(z.string(), z.string()).default({}),
   label: z.string().min(1).optional(),
   permissions: z.enum(["hub", "reject"]).default("hub"),
   model: z.string().min(1).optional(),

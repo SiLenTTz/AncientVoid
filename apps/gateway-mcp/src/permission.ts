@@ -110,7 +110,7 @@ export function buildPermissionServer(cfg: BridgeConfig): McpServer {
     PERMISSION_TOOL,
     {
       description: "Asks the human on the UACC hub whether a tool may run. Used by --permission-prompt-tool, not by the model.",
-      inputSchema: { tool_name: z.string(), input: z.record(z.unknown()), tool_use_id: z.string().optional() },
+      inputSchema: { tool_name: z.string(), input: z.record(z.string(), z.unknown()), tool_use_id: z.string().optional() },
     },
     async (args) => {
       const answer = await askHub(cfg, args);

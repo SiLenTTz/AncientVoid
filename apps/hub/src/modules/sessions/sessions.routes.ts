@@ -17,7 +17,7 @@ const CreateSessionBody = z.object({
   // TmuxRunner.spawn()'s matching runtime guard (defense in depth, same
   // pattern, same regex, single source of truth).
   env: z.record(z.string().regex(ENV_VAR_NAME), z.string()).optional(),
-  args: z.record(z.unknown()).optional(),
+  args: z.record(z.string(), z.unknown()).optional(),
   /** Adoption (ADR-0011): continue an externally discovered session. */
   adoptNativeSessionId: z.string().min(1).optional(),
   /** Read-only mirror (ADR-0011 Erweiterung): show an observed opencode

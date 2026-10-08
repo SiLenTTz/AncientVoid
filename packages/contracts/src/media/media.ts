@@ -54,8 +54,8 @@ export interface MediaLimits {
 
 export const DEFAULT_MEDIA_LIMITS: MediaLimits = { maxDurationSec: 30 * 60, maxBytes: 500 * 1024 * 1024, maxFrames: 24 };
 
-export const MediaJobRequest = z
-  .object({
+/** Felder ohne die Link-oder-Datei-Prüfung: `pick` geht nur auf dem Objekt ohne Refinement. */
+export const MediaJobFields = z.object({
     url: z
       .string()
       .trim()
@@ -68,8 +68,8 @@ export const MediaJobRequest = z
     allowCloud: z.boolean().default(false),
     /** Spoken language ("de", "en" …) or "auto". */
     language: z.string().regex(/^(auto|[a-z]{2})$/).default("auto"),
-  })
-  .refine((r) => Boolean(r.url) !== Boolean(r.attachmentId), "entweder ein Link oder eine Datei");
+});
+export const MediaJobRequest = MediaJobFields.refine((r) => Boolean(r.url) !== Boolean(r.attachmentId), "entweder ein Link oder eine Datei");
 export type MediaJobRequest = z.infer<typeof MediaJobRequest>;
 
 export interface MediaJob {

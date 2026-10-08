@@ -13,7 +13,7 @@ export const AdapterRegistration = z.object({
    */
   module: z.string().min(1),
   /** Adapter-specific config passed to the factory. */
-  config: z.record(z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
   /** Disable without removing the registration. */
   enabled: z.boolean().default(true),
 });
@@ -26,7 +26,7 @@ export type AdapterRegistration = z.infer<typeof AdapterRegistration>;
  * looked up by name at runtime, only iterated. */
 export const ReportingSinkRegistration = z.object({
   module: z.string().min(1),
-  config: z.record(z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
   enabled: z.boolean().default(true),
 });
 export type ReportingSinkRegistration = z.infer<typeof ReportingSinkRegistration>;
@@ -48,7 +48,7 @@ export const HubConfig = z.object({
       /** Directory containing the built PWA (served as static root). */
       pwaDir: z.string().optional(),
     })
-    .default({}),
+    .prefault({}),
   adapters: z.array(AdapterRegistration).default([]),
   /** Worker runner kind: "tmux" (default) | "process". */
   workerRunner: z.enum(["tmux", "process"]).default("tmux"),
@@ -117,9 +117,9 @@ export const HubConfig = z.object({
       maxFrames: z.number().int().min(1).max(200).default(24),
       vision: z.object({ url: z.string().url(), model: z.string().min(1), apiKeyFile: z.string().optional() }).optional(),
     })
-    .default({}),
+    .prefault({}),
   /** T8.3 (ADR-0026): VAPID contact the push services see. */
-  push: z.object({ subject: z.string().regex(/^(mailto:|https:)/).default("mailto:uacc@localhost") }).default({}),
+  push: z.object({ subject: z.string().regex(/^(mailto:|https:)/).default("mailto:uacc@localhost") }).prefault({}),
   /** T7.9 (ADR-0024): System-1 gatekeeper for tool requests. The rules
    * always run; `model` adds a local llama.cpp judgement (OpenAI API). */
   gatekeeper: z
@@ -136,7 +136,7 @@ export const HubConfig = z.object({
       timeoutMs: z.number().int().min(500).max(60_000).default(8000),
       minConfidence: z.number().min(0).max(1).default(0.8),
     })
-    .default({}),
+    .prefault({}),
   /** T2.5: WebAuthn relying-party identity for destructive approvals.
    * Defaults suit local dev only (`localhost` origin) — a real Tailscale
    * deployment MUST override `rpId`/`origin` to the actual MagicDNS
@@ -149,7 +149,7 @@ export const HubConfig = z.object({
       rpName: z.string().default("UACC"),
       origin: z.string().default("http://localhost:7373"),
     })
-    .default({}),
+    .prefault({}),
   /** T2.7 (EPIC-P2 §3 "Tages-Cap pro Rechner"): sum of every session's
    * costUsd created since 00:00 UTC today, hub-wide, not per session —
    * protection against a runaway/looping agent regardless of any single

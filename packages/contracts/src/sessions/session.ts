@@ -44,7 +44,7 @@ export const SessionSpec = z.object({
   /** Additional env vars for the session worker. */
   env: z.record(z.string().regex(ENV_VAR_NAME), z.string()).optional(),
   /** Adapter-specific free-form arguments, validated by the adapter itself. */
-  args: z.record(z.unknown()).optional(),
+  args: z.record(z.string(), z.unknown()).optional(),
   /**
    * Adoption (ADR-0011): continue a session the hub only observed so far.
    * `nativeSessionId` of the external run; the first prompt resumes it
@@ -84,7 +84,7 @@ export const SessionRecord = z.object({
   tokensEst: z.number().nonnegative().default(0),
   /** T7.7 (ADR-0023): how far costUsd/tokensEst can be trusted — "unknown"
    * means the 0 above is not a value. Derived from `counters`. */
-  metrics: SessionMetricsState.default({ cost: "unknown", tokens: "unknown", counters: {} }),
+  metrics: SessionMetricsState.prefault({ cost: "unknown", tokens: "unknown", counters: {} }),
   /** ISO-8601 timestamp of the last persisted change to this session
    * (status change or event) — T1.5's "zuletzt aktiv" sort key. */
   updatedAt: z.string().min(1),

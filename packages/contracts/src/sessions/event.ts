@@ -75,7 +75,7 @@ export const NormalizedEvent = z.object({
   /** <= 200 chars, human readable, safe to render untrusted (data, never instruction). */
   summary: z.string().max(MAX_SUMMARY_CHARS),
   /** Structured, small payload. Never > 4 KB serialized. */
-  payload: z.record(z.unknown()).default({}),
+  payload: z.record(z.string(), z.unknown()).default({}),
   /** sha256 hash of an offloaded blob, or null. */
   blobRef: z.string().nullable().default(null),
   /** Optional token estimate for context accounting. */
