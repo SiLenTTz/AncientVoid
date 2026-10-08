@@ -629,6 +629,133 @@ describe("SessionManager", () => {
     }
   });
 
+
+  it("EPIC-P14 T14.1: archive removes a clean worktree, keeps one with work, and a later prompt brings it back", async () => {
+    const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-arch-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-archout-"));
+    await execFileAsync("git", ["-C", repoDir, "init", "-q", "-b", "main"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@uacc.local"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "uacc test"]);
+    await writeFile(join(repoDir, "a.txt"), "hi\n");
+    await execFileAsync("git", ["-C", repoDir, "add", "a.txt"]);
+    await execFileAsync("git", ["-C", repoDir, "commit", "-q", "-m", "initial"]);
+
+    const db = new HubDatabase(":memory:");
+    const registry = new AdapterRegistry();
+    const workdirs: string[] = [];
+    registry.register("wt-arch", () => ({
+      id: "wt-arch",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
+      async start(_spec, ctx) {
+        workdirs.push(ctx.workdir);
+        setTimeout(() => ctx.turn?.("idle"), 30); // the turn ends after start() returned
+        return { sessionId: ctx.sessionId };
+      },
+      async steer(_handle, _input, ctx) {
+        workdirs.push(ctx.workdir);
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" as const };
+      },
+      async stop() {},
+    }));
+    const worktrees = new WorktreeManager(worktreesOut);
+    const manager = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner(), undefined, worktrees);
+    const idle = async (id: string) => waitFor(async () => manager.get(id)?.status === "idle");
+    try {
+      // Clean worktree, session idle between turns: archiving frees the disk.
+      const clean = await manager.create({ adapter: "wt-arch", project: repoDir });
+      await idle(clean.id);
+      const cleanPath = worktrees.pathFor(clean.id);
+      expect(existsSync(cleanPath)).toBe(true);
+      expect((await manager.archive(clean.id, true)).archived).toBe(true);
+      expect(existsSync(cleanPath)).toBe(false);
+      // Un-archive and continue: the worktree is back under the same path.
+      await manager.archive(clean.id, false);
+      expect((await manager.steer(clean.id, { kind: "prompt", text: "weiter" })).ok).toBe(true);
+      expect(existsSync(cleanPath)).toBe(true);
+      expect(workdirs.at(-1)).toBe(cleanPath);
+
+      // Uncommitted work: worktree and branch stay, the session says so.
+      const dirty = await manager.create({ adapter: "wt-arch", project: repoDir });
+      await idle(dirty.id);
+      const dirtyPath = worktrees.pathFor(dirty.id);
+      await writeFile(join(dirtyPath, "index.html"), "<h1>Arbeit</h1>\n");
+      await manager.archive(dirty.id, true);
+      expect(existsSync(join(dirtyPath, "index.html"))).toBe(true);
+      const kept = (await manager.tail(dirty.id, 0)).find((e) => (e.payload as { kind?: string }).kind === "session.worktree_kept");
+      expect(kept?.payload).toMatchObject({ path: dirtyPath, branch: `uacc/${dirty.id}`, reason: "work" });
+
+      // A commit on the session branch counts as work, too.
+      const committed = await manager.create({ adapter: "wt-arch", project: repoDir });
+      await idle(committed.id);
+      const committedPath = worktrees.pathFor(committed.id);
+      await writeFile(join(committedPath, "b.txt"), "b\n");
+      await execFileAsync("git", ["-C", committedPath, "add", "b.txt"]);
+      await execFileAsync("git", ["-C", committedPath, "-c", "user.email=t@uacc.local", "-c", "user.name=t", "commit", "-q", "-m", "agent"]);
+      await manager.archive(committed.id, true);
+      expect(existsSync(join(committedPath, "b.txt"))).toBe(true);
+
+      // Archiving never touches a worktree while a turn is running.
+      const running = await manager.create({ adapter: "wt-arch", project: repoDir });
+      await idle(running.id);
+      const runningPath = worktrees.pathFor(running.id);
+      (manager as unknown as { live: Map<string, { record: { status: string } }> }).live.get(running.id)!.record.status = "working";
+      await manager.archive(running.id, true);
+      expect(existsSync(runningPath)).toBe(true);
+    } finally {
+      await manager.shutdown().catch(() => undefined);
+      await rm(repoDir, { recursive: true, force: true });
+      await rm(worktreesOut, { recursive: true, force: true });
+    }
+  });
+
+  it("EPIC-P14 T14.1: archive keeps the worktree of a session whose long-lived worker has it as cwd", async () => {
+    const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-arch2-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-arch2out-"));
+    await execFileAsync("git", ["-C", repoDir, "init", "-q", "-b", "main"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@uacc.local"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "uacc test"]);
+    await writeFile(join(repoDir, "a.txt"), "hi\n");
+    await execFileAsync("git", ["-C", repoDir, "add", "a.txt"]);
+    await execFileAsync("git", ["-C", repoDir, "commit", "-q", "-m", "initial"]);
+
+    const registry = new AdapterRegistry();
+    registry.register("wt-persist", () => ({
+      id: "wt-persist",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
+      async start(_spec, ctx) {
+        await ctx.spawnWorker(["sleep", "30"], { persistent: true });
+        ctx.turn?.("working");
+        setTimeout(() => ctx.turn?.("idle"), 30);
+        return { sessionId: ctx.sessionId };
+      },
+      async steer() {
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" as const };
+      },
+      async stop() {},
+    }));
+    const worktrees = new WorktreeManager(worktreesOut);
+    const manager = new SessionManager(new HubDatabase(":memory:"), new EventStore(dir), registry, new ProcessRunner(), undefined, worktrees);
+    try {
+      const created = await manager.create({ adapter: "wt-persist", project: repoDir });
+      await waitFor(async () => manager.get(created.id)?.status === "idle");
+      await manager.archive(created.id, true);
+      expect(existsSync(worktrees.pathFor(created.id))).toBe(true);
+      const kept = (await manager.tail(created.id, 0)).find((e) => (e.payload as { kind?: string }).kind === "session.worktree_kept");
+      expect(kept?.payload).toMatchObject({ reason: "worker" });
+    } finally {
+      await manager.shutdown().catch(() => undefined);
+      await rm(repoDir, { recursive: true, force: true });
+      await rm(worktreesOut, { recursive: true, force: true });
+    }
+  });
   it("T2.1: a non-git project honestly falls back — no isolation, no crash, event says why", async () => {
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);

@@ -302,6 +302,42 @@ export class SessionManager {
   }
 
   /**
+   * EPIC-P14: archive a session and free its worktree when that loses nothing.
+   * The flag is persisted first and never depends on the cleanup. The worktree
+   * stays (and the session says why) while a turn runs, while a long-lived
+   * worker has it as cwd, or when it holds work (BUG-0027: `hasWork`).
+   */
+  async archive(sessionId: string, archived: boolean): Promise<SessionRecord> {
+    const record = this.setArchived(sessionId, archived);
+    if (archived) await this.tidyWorktree(sessionId);
+    return record;
+  }
+
+  private async tidyWorktree(sessionId: string): Promise<void> {
+    const live = this.live.get(sessionId);
+    const record = live?.record ?? this.get(sessionId);
+    if (!record || !this.worktrees || record.worktreeSha === null) return;
+    if (!existsSync(this.worktrees.pathFor(sessionId))) return;
+    const base = { path: this.worktrees.pathFor(sessionId), branch: this.worktrees.branchFor(sessionId) };
+    const note = async (kind: string, payload: Record<string, unknown>) => {
+      if (live) await this.emitSystem(live, kind, payload);
+      else this.logger.info(kind, { sessionId, ...payload });
+    };
+    const betweenTurns = record.status === "idle" || record.status === "stopped" || record.status === "error" || record.status === "parked";
+    if (!betweenTurns) return void (await note("session.worktree_kept", { ...base, reason: "running" }));
+    if (live?.persistentWorker) return void (await note("session.worktree_kept", { ...base, reason: "worker" }));
+    try {
+      if (await this.worktrees.hasWork(sessionId, record.worktreeSha, record.project)) {
+        await note("session.worktree_kept", { ...base, reason: "work" });
+      } else {
+        await this.worktrees.remove(sessionId, record.project);
+      }
+    } catch (err) {
+      await note("session.worktree_cleanup_failed", { error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  /**
    * T2.8 (EPIC-P2 §2 "Audit-Trail: jede Handy-Aktion als Event im
    * Session-JSONL (wer-wann-was)"): `actor` is the calling device's own
    * token label (identify()d by the route, never the raw token) —
@@ -616,6 +652,31 @@ export class SessionManager {
     return withSkillChain(text, chain.block);
   }
 
+  /** The worktree of an isolated session can be gone (EPIC-P14: archiving
+   * frees clean ones). Its path is fixed per session, so bringing it back
+   * keeps `ctx.workdir` valid; the base moves to the project's current HEAD,
+   * which loses nothing because only clean worktrees are ever removed. */
+  private async ensureWorkdir(session: LiveSession): Promise<void> {
+    if (!this.worktrees || existsSync(session.workdir)) return;
+    try {
+      const created = await this.worktrees.create(session.record.id, session.record.project);
+      if (created) {
+        session.workdir = created.path;
+        session.worktreeIsolated = true;
+        session.record.worktreeSha = created.baseSha;
+      } else {
+        session.workdir = session.record.project;
+        session.worktreeIsolated = false;
+      }
+    } catch (err) {
+      session.workdir = session.record.project;
+      session.worktreeIsolated = false;
+      await this.emitSystem(session, "session.worktree_failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   /** A stopped run keeps its provider session id. A new prompt spawns the CLI again. */
   private async continueStopped(
     session: LiveSession,
@@ -634,25 +695,7 @@ export class SessionManager {
         if (native) session.record.nativeSessionId = native;
       }
     }
-    if (this.worktrees && !existsSync(session.workdir)) {
-      try {
-        const created = await this.worktrees.create(session.record.id, session.record.project);
-        if (created) {
-          session.workdir = created.path;
-          session.worktreeIsolated = true;
-          session.record.worktreeSha = created.baseSha;
-        } else {
-          session.workdir = session.record.project;
-          session.worktreeIsolated = false;
-        }
-      } catch (err) {
-        session.workdir = session.record.project;
-        session.worktreeIsolated = false;
-        await this.emitSystem(session, "session.worktree_failed", {
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-    }
+    await this.ensureWorkdir(session);
     const converted = this.withAttachments(session, { text: await this.promptWithSkill(session, input.text), attachments: input.attachments });
     const text = converted.text;
     await this.setStatus(session, "working");
@@ -754,6 +797,7 @@ export class SessionManager {
       if (reopened.ok) await this.commitSteer(session, meta, foreignWriter, actor);
       return reopened;
     }
+    if (delivered.kind === "prompt") await this.ensureWorkdir(session);
     const ack = await session.adapter.steer(session.handle!, delivered, this.makeContext(session));
     // BUG found via T2.8's own audit test: emitSystem() builds
     // `{ kind, ...payload }`, where `kind` is this call's own event-kind
@@ -1271,12 +1315,14 @@ export class SessionManager {
         });
         // ADR-0013 Nachtrag: a persistent agent is not a turn — the adapter
         // reports turns through ctx.turn().
-        if (!opts?.persistent) await this.trackTurn(session, proc);
+        if (opts?.persistent) session.persistentWorker = true;
+        else await this.trackTurn(session, proc);
         return proc;
       },
       adoptWorker: async (opts) => {
         const proc = (await this.runner.adopt?.(session.record.id)) ?? null;
         session.adopted = proc !== null;
+        if (proc && opts?.persistent) session.persistentWorker = true;
         if (proc && !opts?.persistent) await this.trackTurn(session, proc);
         return proc;
       },

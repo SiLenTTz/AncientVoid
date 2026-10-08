@@ -38,6 +38,9 @@ export interface LiveSession {
   activeWorkers?: number;
   /** T5.6: result of ctx.adoptWorker() during recover(), if it was asked. */
   adopted?: boolean;
+  /** EPIC-P14: a long-lived worker (ACP, app-server) has the worktree as its
+   * cwd — deleting it would pull the directory out from under the process. */
+  persistentWorker?: boolean;
 }
 
 /** A turn counts as over only if no new worker starts within this window —
