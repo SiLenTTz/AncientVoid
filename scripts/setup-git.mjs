@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `npm install` (prepare): commit-msg hook and commit template of this repo
+ * `npm install` (prepare): commit-msg and pre-push hooks and commit template of this repo
  * (docs/commit-notation.md). A copy without .git (git archive, fleet-deploy)
  * has nothing to set up.
  */
