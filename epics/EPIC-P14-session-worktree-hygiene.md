@@ -67,7 +67,8 @@ Contract; PWA-Oberfläche (reine CLI/Operator-Funktion).
 
 ## 4. Aufgaben
 
-- [ ] **T14.1 — Archivieren räumt saubere Worktrees auf.** `setArchived(true)` prüft `hasWork()`; ohne Arbeit `remove()`, mit Arbeit `session.worktree_kept`. Integrationstest mit echtem git (Vorbild BUG-0027: uncommitted, Commit, sauber). K7.
+- [x] **T14.1 — Archivieren räumt saubere Worktrees auf.** `SessionManager.archive()` (Route nutzt es) räumt nur, wenn die Session zwischen zwei Zügen steht (`idle`/`stopped`/`error`/`parked`), **kein langlebiger Worker** den Worktree als cwd hat (`persistentWorker`, ACP/app-server) und `hasWork()` false ist; sonst bleibt er und `session.worktree_kept` nennt den Grund (`running`/`worker`/`work`). Vor jedem Prompt stellt `ensureWorkdir()` einen fehlenden Worktree wieder her (gleicher Pfad, `ctx.workdir` bleibt gültig). Zwei Integrationstests mit echtem git. K7.
+  - **Folge für die Zahlen aus §1:** 12 der 22 archivierten Sessions sind ACP-/Cursor-Adapter (langlebiger Worker) und bleiben bei T14.1 stehen — sie räumt erst T14.3 bei gestopptem Hub (dann ist kein Worker mehr da).
 - [ ] **T14.2 — `hubctl worktrees` (Liste).** Zustand je Worktree, Größe, Session-Status. Unit-Test der Zustandsklassifikation + CLI-Test. K8 (Plattenbedarf bei 20 Sessions sichtbar).
 - [ ] **T14.3 — `hubctl worktrees prune`.** Standard Trockenlauf, `--apply` nur saubere Worktrees nicht-aktiver Sessions; nie `dirty`/`ahead`. Test: mit Arbeit bleibt alles stehen. K7.
 - [ ] **T14.4 — Doku und Abschluss.** Runbook-Abschnitt, `docs/p12-abnahme-checkliste.md` verlinkt dieses Epic, Retro-Eintrag, `epics/README.md` auf „abgeschlossen“.
