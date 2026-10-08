@@ -71,6 +71,9 @@ sich bewegen.
   `F B r d t e a m` — Kriterien in [`docs/commit-notation.md`](docs/commit-notation.md).
   Der `commit-msg`-Hook (`npm install` richtet ihn ein) und `npm run
   check:commits` im Gate prüfen das. Gilt auch für MR-Titel.
+- **`pre-push`-Hook:** führt `npm run lint` und `npm run typecheck` aus (~10 s) und
+  bricht den Push bei Fehlern ab; Branch-Löschungen sind ausgenommen. Tests/E2E
+  bleiben beim Gate (`npm run gate`, Skill `gates`).
 - Ein Thema pro PR; Contract-Änderungen getrennt von Implementierungen.
 - CI (GitLab) führt `test`, `lint`, `typecheck` aus — grün vor Merge.
 - **Merge passiert ausschließlich über die GitLab-MR** (`glab mr merge` oder

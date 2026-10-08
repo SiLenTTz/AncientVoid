@@ -96,7 +96,7 @@ Aufgabe** davon gedeckt, siehe `git-workflow`). Self-Merge der eigenen MR
 ist zulässig (Solo-Projekt) — was **nicht** zulässig ist: die MR selbst zu
 überspringen und stattdessen lokal nach `main` zu mergen. Kein
 `--no-verify`-Äquivalent (der `commit-msg`-Hook prüft die Commit-Notation;
-Tests, Lint und Typecheck laufen über die drei Kommandos oben bzw. das Gate).
+der `pre-push`-Hook erzwingt Lint und Typecheck; Tests über die Kommandos oben bzw. das Gate).
 
 Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder
 `epics/` für Epics. ADRs nach `docs/adr/NNNN-*.md`. Kein `*-STATUS.md`/
