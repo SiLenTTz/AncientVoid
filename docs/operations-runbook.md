@@ -119,6 +119,26 @@ konfigurierten Adapter und deren Fähigkeiten ausgeben. Bei einem Fleet-Peer
 zusätzlich `/api/fleet` prüfen; ein unerreichbarer oder inkompatibler Peer ist
 kein erfolgreicher Installationsnachweis.
 
+## Session-Worktrees aufräumen (EPIC-P14)
+
+Jede isolierte Session hat einen Git-Worktree unter `data/worktrees/<id>`.
+Archivieren räumt ihn auf, wenn die Session zwischen zwei Zügen steht, kein
+langlebiger Worker darin läuft und er keine Arbeit enthält. Ältere oder von
+einem Worker gehaltene Worktrees zeigt und räumt `hubctl` (lokal, neben der DB):
+
+```sh
+node apps/hubctl/src/cli.ts worktrees --db data/hub.db            # Liste mit Zustand und Größe
+node apps/hubctl/src/cli.ts worktrees prune --db data/hub.db      # Trockenlauf
+node apps/hubctl/src/cli.ts worktrees prune --apply --db data/hub.db
+```
+
+`work` heißt: uncommittete Dateien oder Commits, die dem Projekt fehlen. Solche
+Worktrees und solche mit einem Prozess im Verzeichnis (`/proc`-cwd) bleiben
+immer stehen; laufende und nicht archivierte Sessions auch. Ein später
+fortgesetzter Prompt legt einen fehlenden Worktree am selben Pfad neu an, mit
+dem aktuellen Projekt-HEAD als Basis. Entfernen heißt `git worktree remove` und
+`branch -D` im jeweiligen Projekt-Repo, nie `rm -rf`.
+
 ## Update und Rollback
 
 Vor jedem Update sichere die Daten und Konfiguration verschlüsselt. Stoppe
