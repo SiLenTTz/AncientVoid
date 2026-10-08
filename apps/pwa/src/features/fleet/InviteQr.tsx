@@ -3,18 +3,27 @@ import { useEffect, useRef, useState } from "preact/hooks";
 /** AI-P6-2: the invite as a QR code (black on white — scanners need contrast). */
 export function InviteQr({ text }: { text: string }) {
   const [src, setSrc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     let live = true;
-    void import("qrcode-generator").then(({ default: qrcode }) => {
-      const qr = qrcode(0, "M");
-      qr.addData(text);
-      qr.make();
-      if (live) setSrc(qr.createDataURL(6, 4));
-    });
+    setFailed(false);
+    import("qrcode-generator")
+      .then(({ default: qrcode }) => {
+        const qr = qrcode(0, "M");
+        qr.addData(text);
+        qr.make();
+        if (live) setSrc(qr.createDataURL(6, 4));
+      })
+      .catch(() => {
+        // Offline oder neue App-Version mit anderem Chunk-Namen: sichtbar melden,
+        // der Code zum Eintippen steht daneben.
+        if (live) setFailed(true);
+      });
     return () => {
       live = false;
     };
   }, [text]);
+  if (failed) return <div class="reply-error">QR-Code konnte nicht geladen werden — Code unten eintippen oder die Seite neu laden.</div>;
   return src ? <img class="fleet-qr" src={src} alt="QR-Code der Einladung" /> : null;
 }
 

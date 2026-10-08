@@ -49,6 +49,17 @@ test.describe("Flotte (EPIC-P6)", () => {
     await app.getByRole("button", { name: "Einladungscode erzeugen" }).click();
     await expect(app.locator(".fleet-invite code")).toHaveText(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
     await expect(app.locator(".fleet-invite")).toContainText("einmalig");
+    // Das QR-Modul lädt nach: erst warten, sonst bricht der Abruf beim Schließen der Seite ab (BUG-0042).
+    await expect(app.locator("img.fleet-qr")).toBeVisible();
+  });
+
+  test("BUG-0042: lädt das QR-Modul nicht, sagt die Seite es — der Code zum Eintippen bleibt", async ({ app }) => {
+    await app.route("**/assets/qrcode-*.js", (route) => route.abort());
+    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await app.getByRole("button", { name: "Einladungscode erzeugen" }).click();
+    await expect(app.locator(".fleet-invite code")).toHaveText(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    await expect(app.locator(".fleet-invite")).toContainText("QR-Code konnte nicht geladen werden");
+    await expect(app.locator("img.fleet-qr")).toHaveCount(0);
   });
 
   test("AI-P6-2: Einladung als QR-Code auf dem anderen Hub, mit der Kamera scannen und verbinden", async ({ app, context }) => {
