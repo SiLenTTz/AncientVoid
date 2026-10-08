@@ -137,11 +137,8 @@ Trailer-DoS), `fast-uri` 3.1.8. Die Untergrenzen in `apps/gateway-mcp` und
 `apps/hub` sind angehoben, damit eine frische Auflösung keine verwundbare
 Version holt.
 
-Offen sind nur **Dev-Abhängigkeiten** der Test-Toolchain (`tinypool`,
-`@vitest/mocker`, `esbuild`, über vitest 3). Die Behebung braucht den Sprung
-auf vitest 5 (`npm audit fix --force`, Breaking Change) und gehört in eine
-eigene Aufgabe mit vollem Gate. Sie laufen nicht im Hub-Prozess und nie mit
-Eingaben aus dem Netz; sie betreffen nur Entwicklungs- und CI-Läufe.
+Die früher offenen Dev-Funde (`tinypool`, `@vitest/mocker`, `esbuild`) sind
+mit vitest 5 / Vite 8 (2026-10-08) behoben: `npm audit` meldet insgesamt 0 Funde.
 
 ## Was noch fehlt (ehrlich, nicht Teil dieser Session)
 
