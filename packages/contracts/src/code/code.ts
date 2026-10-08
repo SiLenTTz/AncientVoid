@@ -79,7 +79,7 @@ export const ActionDefinition = z.object({
   label: z.string().min(1).max(60),
   kind: z.enum(["test", "git", "tool"]),
   argv: z.array(z.string().min(1)).min(1),
-  params: z.record(ActionParam).default({}),
+  params: z.record(z.string(), ActionParam).default({}),
   /** Only reads (git status …) — nothing in the worktree changes. */
   readOnly: z.boolean().default(false),
   timeoutMs: z.number().int().positive().max(3_600_000).default(600_000),

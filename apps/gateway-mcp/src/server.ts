@@ -1,6 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
 import { findOperation, searchOperations } from "./operations.ts";
 import { callHub, type HubClientConfig } from "./hub-client.ts";
 
@@ -45,7 +44,7 @@ export function buildGatewayServer(cfg: HubClientConfig): McpServer {
               id: found.id,
               class: found.class,
               description: found.description,
-              argsSchema: zodToJsonSchema(found.argsSchema),
+              argsSchema: z.toJSONSchema(found.argsSchema),
             }),
           },
         ],

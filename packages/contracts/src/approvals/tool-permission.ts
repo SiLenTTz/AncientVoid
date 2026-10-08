@@ -23,7 +23,7 @@ export const QUESTION_TOOLS = ["AskUserQuestion"] as const;
 
 export const ToolPermissionRequest = z.object({
   toolName: z.string().min(1).max(200),
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
   /** Provider's id of this call — asking twice for the same id returns the
    * same request (a bridge that retried after a hub restart). */
   toolUseId: z.string().min(1).max(200).optional(),

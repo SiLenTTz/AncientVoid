@@ -108,7 +108,7 @@ export function registerApprovalsRoutes(app: FastifyInstance, ctx: RouteContext)
   const DecideBiometricBody = z.object({
     decision: z.enum(["approve", "reject"]),
     reason: z.string().min(1).optional(),
-    response: z.record(z.unknown()),
+    response: z.record(z.string(), z.unknown()),
   });
 
   app.post("/api/approvals/:id/webauthn/decide", async (req, reply) => {

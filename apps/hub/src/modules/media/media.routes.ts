@@ -4,7 +4,7 @@ import { readFile, rm } from "node:fs/promises";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { Readable } from "node:stream";
-import { MediaJobRequest } from "@uacc/contracts";
+import { MediaJobFields, MediaJobRequest } from "@uacc/contracts";
 import { runTool, type MediaJobs, type SettingsStore } from "@uacc/core";
 
 /**
@@ -56,7 +56,7 @@ export function registerMediaRoutes(app: FastifyInstance, deps: MediaRouteDeps):
     scope.addContentTypeParser("*", (_req, payload, done) => done(null, payload));
     scope.post("/api/media/upload", async (req, reply) => {
       const q = req.query as { allowCloud?: string; language?: string };
-      const opts = MediaJobRequest.innerType().pick({ allowCloud: true, language: true }).safeParse({ allowCloud: q.allowCloud === "1" || q.allowCloud === "true", language: q.language ?? "auto" });
+      const opts = MediaJobFields.pick({ allowCloud: true, language: true }).safeParse({ allowCloud: q.allowCloud === "1" || q.allowCloud === "true", language: q.language ?? "auto" });
       if (!opts.success) return reply.code(400).send({ error: "ungültige Sprache" });
       const raw = req.headers["x-filename"];
       let name: string;

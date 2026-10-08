@@ -40,7 +40,7 @@ describe("fixture helpers", () => {
 
   it("assertFixtureEventsValid throws on an oversized summary", () => {
     const events: EmittedEvent[] = [{ type: "system", summary: "x".repeat(201), payload: {} }];
-    expect(() => assertFixtureEventsValid(events)).toThrow(/at most 200 character/);
+    expect(() => assertFixtureEventsValid(events)).toThrow(/<=200 characters/);
   });
 
   it("checkFixture loads, normalizes and validates in one call", async () => {
@@ -56,6 +56,6 @@ describe("fixture helpers", () => {
   it("checkFixture surfaces a normalizer's schema violations, not just silence", () => {
     const path = join(dir, "normalize-me.jsonl"); // reuse — same two lines
     const badNormalize = (): EmittedEvent[] => [{ type: "assistant", summary: "x".repeat(300), payload: {} }];
-    expect(() => checkFixture(path, badNormalize)).toThrow(/at most 200 character/);
+    expect(() => checkFixture(path, badNormalize)).toThrow(/<=200 characters/);
   });
 });

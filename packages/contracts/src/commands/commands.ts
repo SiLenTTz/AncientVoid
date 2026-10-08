@@ -95,7 +95,7 @@ export type CommandContext = z.infer<typeof CommandContext>;
 
 export const PlanStep = z.object({
   op: z.string(),
-  args: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])),
+  args: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
   /** Resolved target, readable ("alpha · claude · Parser-Tests") — shown before writing. */
   target: z.string().nullable(),
   risk: z.enum(["read", "write", "destructive"]),
