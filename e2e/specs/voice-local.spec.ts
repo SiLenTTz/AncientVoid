@@ -110,4 +110,19 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("");
     expect(received.length).toBe(before);
   });
+
+  test("Schon gesperrter Bildschirm beim Aufnahmestart bricht ebenfalls ab (BUG-0041)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const before = received.length;
+    // Gesperrt, bevor die Aufnahme beginnt (z. B. während des Mikrofon-Dialogs):
+    // es kommt kein weiteres visibilitychange-Event mehr.
+    await app.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    });
+    await app.locator(".composer-actions").getByRole("button", { name: "Voice" }).click();
+    await expect(app.getByText(/Aufnahme abgebrochen — Bildschirm gesperrt/)).toBeVisible();
+    await expect(app.locator(".composer-actions").getByRole("button", { name: "Voice" })).toBeVisible();
+    expect(received.length).toBe(before);
+  });
 });
