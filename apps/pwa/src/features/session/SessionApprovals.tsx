@@ -11,11 +11,17 @@ export function SessionApprovals({ sessionId, api }: { sessionId: string; api: H
   const [items, setItems] = useState<ApprovalRequest[]>([]);
   useEffect(() => {
     let alive = true;
+    // BUG-0045: ein fehlgeschlagener Abruf lässt die Karten stehen; unveränderte
+    // Listen setzen keinen neuen State (kein Neuaufbau alle 2 s).
     const load = () =>
       api
         .approvals("pending")
-        .then((all) => alive && setItems(all.filter((a) => a.sessionId === sessionId)))
-        .catch(() => alive && setItems([]));
+        .then((all) => {
+          if (!alive) return;
+          const mine = all.filter((a) => a.sessionId === sessionId);
+          setItems((prev) => (prev.length === mine.length && prev.every((p, i) => p.id === mine[i]!.id && p.status === mine[i]!.status) ? prev : mine));
+        })
+        .catch(() => undefined);
     void load();
     const timer = setInterval(load, 2000);
     return () => {
