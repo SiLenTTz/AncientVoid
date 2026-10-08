@@ -68,9 +68,9 @@ Contract; PWA-Oberfläche (reine CLI/Operator-Funktion).
 ## 4. Aufgaben
 
 - [x] **T14.1 — Archivieren räumt saubere Worktrees auf.** `SessionManager.archive()` (Route nutzt es) räumt nur, wenn die Session zwischen zwei Zügen steht (`idle`/`stopped`/`error`/`parked`), **kein langlebiger Worker** den Worktree als cwd hat (`persistentWorker`, ACP/app-server) und `hasWork()` false ist; sonst bleibt er und `session.worktree_kept` nennt den Grund (`running`/`worker`/`work`). Vor jedem Prompt stellt `ensureWorkdir()` einen fehlenden Worktree wieder her (gleicher Pfad, `ctx.workdir` bleibt gültig). Zwei Integrationstests mit echtem git. K7.
-  - **Folge für die Zahlen aus §1:** 12 der 22 archivierten Sessions sind ACP-/Cursor-Adapter (langlebiger Worker) und bleiben bei T14.1 stehen — sie räumt erst T14.3 bei gestopptem Hub (dann ist kein Worker mehr da).
-- [ ] **T14.2 — `hubctl worktrees` (Liste).** Zustand je Worktree, Größe, Session-Status. Unit-Test der Zustandsklassifikation + CLI-Test. K8 (Plattenbedarf bei 20 Sessions sichtbar).
-- [ ] **T14.3 — `hubctl worktrees prune`.** Standard Trockenlauf, `--apply` nur saubere Worktrees nicht-aktiver Sessions; nie `dirty`/`ahead`. Test: mit Arbeit bleibt alles stehen. K7.
+  - **Folge für die Zahlen aus §1:** 12 der 22 archivierten Sessions sind ACP-/Cursor-Adapter (langlebiger Worker) und bleiben bei T14.1 stehen — sie räumt T14.3, sobald kein Prozess mehr im Verzeichnis steht.
+- [x] **T14.2 — `hubctl worktrees` (Liste).** Lokal wie `workers`, liest `--db <hub.db>`; je Worktree Session-Status, archiviert, Zustand (`clean`/`work`/`unknown`), Größe, ob ein Prozess seinen cwd darin hat (`/proc`), und ob er entfernbar ist. Logik in `packages/core/src/modules/workspace/worktree-hygiene.ts` (`scanWorktrees`), Tests dort und in `apps/hubctl/test/worktrees.test.ts`. K8.
+- [x] **T14.3 — `hubctl worktrees prune`.** Trockenlauf als Standard, `--apply` entfernt nur Worktrees mit Zustand `clean`, ohne Prozess im Verzeichnis, von Sessions die archiviert oder `stopped`/`error` sind und nicht laufen. Vor jedem Entfernen erneute `hasWork`-/Prozess-Prüfung (Spätschreiber). Ersetzt die in T14.1 offene Lücke für Sessions mit persistentem Worker: ihr Prozess ist am cwd erkennbar, auch über Hub-Neustarts. K7.
 - [ ] **T14.4 — Doku und Abschluss.** Runbook-Abschnitt, `docs/p12-abnahme-checkliste.md` verlinkt dieses Epic, Retro-Eintrag, `epics/README.md` auf „abgeschlossen“.
 
 ## 5. Acceptance Criteria
@@ -79,7 +79,8 @@ Contract; PWA-Oberfläche (reine CLI/Operator-Funktion).
 - **AC-P14-2:** Archivieren mit uncommitteter Datei **oder** Commit lässt Worktree und Branch unverändert und meldet `session.worktree_kept`.
 - **AC-P14-3:** `hubctl worktrees prune` ohne `--apply` ändert nichts auf der Platte (Test prüft Verzeichnisliste vorher/nachher).
 - **AC-P14-4:** `prune --apply` entfernt keinen Worktree mit Arbeit und keinen einer laufenden Session.
-- **AC-P14-5:** Gegen den echten Datadir (Trockenlauf) zeigt `hubctl worktrees` dieselben Zahlen wie der Messbefund in §1.
+- **AC-P14-5 (erfüllt 2026-10-08, Trockenlauf/Liste, nichts entfernt):** `hubctl worktrees --db data/hub.db` zeigt 24 Worktrees (249 MiB nach `du -sb`), 20 `clean`, 4 `work` (alle archiviert), 8 mit aktivem Prozess, 11 entfernbar (59,6 MiB). Damit deckt sich die Liste mit §1.
+- *(ursprüngliche Formulierung)* **AC-P14-5:** Gegen den echten Datadir (Trockenlauf) zeigt `hubctl worktrees` dieselben Zahlen wie der Messbefund in §1.
 
 ## 6. Premortem
 
