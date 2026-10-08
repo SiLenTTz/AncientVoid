@@ -60,6 +60,8 @@ Usage:
   hubctl fleet peers [--db <hub.db>]      hubs this one is paired with
   hubctl workers list                     verwaiste uacc-Worker anzeigen (lokal, BUG-0034)
   hubctl workers prune                    verwaigte uacc-Worker entfernen (lokal)
+  hubctl worktrees [--db <hub.db>]        Session-Worktrees mit Zustand und Größe (lokal, EPIC-P14)
+  hubctl worktrees prune [--apply] [--db <hub.db>]   saubere Worktrees beendeter/archivierter Sessions; Trockenlauf ohne --apply
   hubctl backup create --config <hub.config.json> --out <file> --key-file <file>
   hubctl backup restore --archive <file> --data-dir <empty-dir> --config-out <file> --key-file <file>
   hubctl backup prune --dir <archive-dir> --keep <count> [--apply]   preview unless --apply
@@ -289,6 +291,11 @@ async function main(): Promise<void> {
       } else {
         usage();
       }
+      break;
+    }
+    case "worktrees": {
+      const { runWorktrees } = await import("./worktrees.ts");
+      await runWorktrees(args);
       break;
     }
     case "workers": {
