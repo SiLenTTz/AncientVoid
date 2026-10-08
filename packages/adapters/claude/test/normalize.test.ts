@@ -109,3 +109,20 @@ describe("provider errors (ADR-0015)", () => {
     expect(error?.summary).toBe("claude: Kontingent erschöpft");
   });
 });
+
+describe("neue Top-Level-Typen der Claude-CLI (BUG-0040)", () => {
+  it("attachment wird als lesbares system-Event gemeldet, nicht als unbekannter Typ", () => {
+    const events = normalizeClaudeLine({ type: "attachment", source: "prompt" });
+    expect(events).toHaveLength(1);
+    expect(events[0]!.type).toBe("system");
+    expect(events[0]!.summary).toBe("claude: Anhang hinzugefügt");
+    expect(events[0]!.payload).toMatchObject({ subtype: "attachment", source: "prompt" });
+  });
+
+  it("stream_event wird sichtbar gemeldet statt still verworfen", () => {
+    const events = normalizeClaudeLine({ type: "stream_event", event: { type: "content_block_delta" } });
+    expect(events).toHaveLength(1);
+    expect(events[0]!.summary).toContain("stream envelope");
+    expect(events[0]!.payload).toMatchObject({ subtype: "stream_event" });
+  });
+});

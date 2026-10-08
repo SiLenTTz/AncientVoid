@@ -239,6 +239,28 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     await waitFor(() => ctx.events.some((e) => e.summary.includes("non-JSON stdout line")));
   });
 
+  it("BUG-0040: Klartext-Fehler 'Error: No deferred tool marker…' wird als lesbarer Resume-Hinweis gemeldet", async () => {
+    const content = "Error: No deferred tool marker found in the resumed session\n";
+    const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(content) });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.cli_error"));
+    const ev = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "claude.cli_error")!;
+    expect((ev.payload as { resumeStale?: boolean }).resumeStale).toBe(true);
+    expect(ev.summary).toContain("Resume fehlgeschlagen");
+    expect(ctx.events.some((e) => e.summary.includes("non-JSON stdout line"))).toBe(false);
+  });
+
+  it("BUG-0040: anderer 'Error:'-Klartext wird mit Text gemeldet, resumeStale ist false", async () => {
+    const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess("Error: boom\n") });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.cli_error"));
+    const ev = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "claude.cli_error")!;
+    expect(ev.summary).toBe("claude: CLI-Fehler — Error: boom");
+    expect((ev.payload as { resumeStale?: boolean }).resumeStale).toBe(false);
+  });
+
   it("ADR-0014: recover() without a surviving worker resumes the recorded session on the next prompt", async () => {
     const adapter = createAdapter();
     expect(await adapter.recover!("s1", 0, makeRecordingContext({ adoptWorker: async () => null, nativeSessionId: null }))).toBeNull();

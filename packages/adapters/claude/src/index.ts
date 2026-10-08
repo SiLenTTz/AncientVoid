@@ -159,11 +159,26 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         try {
           parsed = JSON.parse(rawLine);
         } catch {
-          ctx.emit({
-            type: "system",
-            summary: "claude: non-JSON stdout line",
-            payload: { line: rawLine.slice(0, 500) },
-          });
+          // Claude CLI prints some failures as plain text (not stream-json),
+          // e.g. "Error: No deferred tool marker found in the resumed session…"
+          // Surface those READABLY instead of a cryptic "non-JSON stdout line".
+          const text = rawLine.trim();
+          if (text.startsWith("Error:")) {
+            const resumeStale = text.includes("No deferred tool marker found");
+            ctx.emit({
+              type: "system",
+              summary: resumeStale
+                ? "claude: Resume fehlgeschlagen — die Session hatte eine offene (verwaiste) Tool-Freigabe. Neue Nachricht senden oder Session neu starten."
+                : `claude: CLI-Fehler — ${text.slice(0, 200)}`,
+              payload: { kind: "claude.cli_error", resumeStale, line: text.slice(0, 500) },
+            });
+          } else {
+            ctx.emit({
+              type: "system",
+              summary: "claude: non-JSON stdout line",
+              payload: { line: rawLine.slice(0, 500) },
+            });
+          }
           continue;
         }
         if (parsed && typeof parsed === "object" && "session_id" in parsed) {
