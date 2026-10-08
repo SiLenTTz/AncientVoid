@@ -135,6 +135,28 @@ export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
       }
       return blocks.flatMap((block) => normalizeContentBlock(block, line.type as "assistant" | "user"));
     }
+    case "attachment":
+      // Claude Code >= 2.1.28x emits top-level `attachment` events (files the
+      // CLI attaches itself, e.g. images/PDFs from the prompt). Informational —
+      // the follow-up tool_use/user events carry the actual content.
+      return [
+        {
+          type: "system",
+          summary: "claude: Anhang hinzugefügt",
+          payload: { subtype: "attachment", source: asString((line as Record<string, unknown>).source, 60) },
+        },
+      ];
+    case "stream_event":
+      // SDK-style streaming envelope. `claude -p stream-json` flattens these
+      // today; we only report the envelope (fail loud, rule 6) and do not
+      // unwrap the inner event.
+      return [
+        {
+          type: "system",
+          summary: "claude: stream envelope (ignoriert, Inhalte kommen als separate Events)",
+          payload: { subtype: "stream_event" },
+        },
+      ];
     default:
       // Fail loud (AGENTS.md rule 6): an unrecognized stream-json type
       // becomes a visible system event, never a silent drop.
