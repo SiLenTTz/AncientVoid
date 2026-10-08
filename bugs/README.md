@@ -65,5 +65,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0038](bug-0038-cursor-exit-1-ohne-modell.md) | Cursor-Sessions crashen ohne Modell: Exit 1 (out of usage) | fixed | S1 | adapters | — |
 | [BUG-0039](bug-0039-acp-adoption-verliert-historie.md) | Übernommene ACP-Session zeigt keine Historie: ewiges „lädt…" | fixed | S1 | adapters | — |
 | [BUG-0040](bug-0040-claude-cli-klartextfehler-und-neue-eventtypen.md) | Claude-CLI: Klartext-Fehler und neue Event-Typen erscheinen kryptisch | done | S2 | adapters | — |
+| [BUG-0041](bug-0041-voice-aufnahme-laeuft-bei-gesperrtem-bildschirm.md) | Voice-Aufnahme läuft weiter, wenn der Bildschirm schon gesperrt ist | done | S3 | pwa | — |
 
-Die nächste freie Nummer ist **0041**.
+Die nächste freie Nummer ist **0042**.

@@ -104,6 +104,9 @@ export function Composer({
     document.addEventListener("visibilitychange", hidden);
     const track = recorder.current?.track();
     track?.addEventListener("ended", lost);
+    // Der Listener steht erst nach dem Rendern: war der Bildschirm schon
+    // gesperrt (Mikrofon-Dialog), kommt kein Event mehr — Zustand prüfen.
+    hidden();
     return () => {
       document.removeEventListener("visibilitychange", hidden);
       track?.removeEventListener("ended", lost);
