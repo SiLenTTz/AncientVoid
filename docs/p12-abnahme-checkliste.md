@@ -51,8 +51,8 @@ schließt keine Zelle (AC-P12-4: „Nicht vorhandener Zugriff ist kein Pass“).
 ## E. Code-Arbeit, die tatsächlich noch fehlt
 
 Nichts Blockierendes in P12. Nebenbefunde aus dem Statusreport vom 2026-10-08
-(Worktree-Retention der `uacc/*`-Sessions) sind keine P12-Abnahmen und
-bekommen ein eigenes Epic.
+(Worktree-Retention der `uacc/*`-Sessions) sind keine P12-Abnahmen; sie stehen in
+[EPIC-P14](../epics/EPIC-P14-session-worktree-hygiene.md).
 
 ## Reihenfolge-Empfehlung
 
@@ -60,4 +60,4 @@ bekommen ein eigenes Epic.
 2. Block A in einem Gerätetermin bündeln (Pairing, Diktate, Push).
 3. Block B in einem Desktop-Termin.
 4. Block C sobald Zugänge/Kontingent da sind.
-5. T12.5 (24 h) zuletzt, wenn A–C grün sind; vorher sollte die Worktree-Retention stehen.
+5. T12.5 (24 h) zuletzt, wenn A–C grün sind; vorher sollte EPIC-P14 (Worktree-Hygiene) stehen.
