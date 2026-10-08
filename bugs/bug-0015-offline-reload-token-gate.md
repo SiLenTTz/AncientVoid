@@ -1,7 +1,7 @@
 ---
 id: BUG-0015
 slug: offline-reload-token-gate
-status: fixed
+status: done
 severity: S2
 area: pwa
 instance: dev

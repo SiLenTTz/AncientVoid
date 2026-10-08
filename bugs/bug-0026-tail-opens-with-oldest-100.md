@@ -1,7 +1,7 @@
 ---
 id: BUG-0026
 slug: tail-opens-with-oldest-100
-status: fixed
+status: done
 severity: S1
 area: server, pwa
 instance: dev

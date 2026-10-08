@@ -1,7 +1,7 @@
 ---
 id: BUG-0013
 slug: mcp-gateway-sessionid-route-confusion
-status: fixed
+status: done
 severity: S2
 area: gateway-mcp
 instance: dev

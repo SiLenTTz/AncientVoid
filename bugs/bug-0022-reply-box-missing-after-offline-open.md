@@ -1,7 +1,7 @@
 ---
 id: BUG-0022
 slug: reply-box-missing-after-offline-open
-status: fixed
+status: done
 severity: S3
 area: pwa
 instance: dev

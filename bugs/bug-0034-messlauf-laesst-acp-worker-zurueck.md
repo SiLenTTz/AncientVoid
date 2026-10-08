@@ -1,7 +1,7 @@
 ---
 id: BUG-0034
 slug: messlauf-laesst-acp-worker-zurueck
-status: fixed
+status: done
 severity: S2
 area: messlauf, workers
 instance: dev

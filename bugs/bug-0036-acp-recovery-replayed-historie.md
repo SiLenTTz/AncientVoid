@@ -1,7 +1,7 @@
 ---
 id: BUG-0036
 slug: acp-recovery-replayed-historie
-status: fixed
+status: done
 severity: S1
 area: adapters
 instance: dev

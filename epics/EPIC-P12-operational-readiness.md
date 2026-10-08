@@ -2,9 +2,12 @@
 
 **Status:** Umsetzung teilweise vorbereitet, Live-Abnahme blockiert (2026-09-24) · **Phase:** P12 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung) · **Abhängigkeit:** P11 grün; alle P0–P10- und P4-Restnachweise tatsächlich vorhanden.
 
-Der lokale Gate-Pfad (T12.6) ist dokumentiert und Backup/Restore wird in MR
-!114 vorbereitet. P11 ist weiterhin nicht grün (!112 offen, !113 darauf
-gestapelt); echte P12-Abnahmen und der Epic-Abschluss bleiben blockiert.
+Stand 2026-10-08: Der lokale Gate-Pfad (T12.6) ist dokumentiert; die MRs
+!112 (P11), !113 (Leckfreie Eingabe), !114 (Backup/Restore) und !115 (BUG-0030)
+sind gemergt. Offen bleiben ausschließlich Abnahmen, die ein echtes Gerät,
+einen Provider-Zugang oder deine Mitwirkung brauchen — Übersicht in
+[`docs/p12-abnahme-checkliste.md`](../docs/p12-abnahme-checkliste.md). Der
+Epic-Abschluss bleibt blockiert, bis diese belegt sind.
 Scope, Evidenz und bestehende Restarbeiten:
 [Audit](../docs/remote-control-audit-2026-09-21.md), [Index](README.md).
 

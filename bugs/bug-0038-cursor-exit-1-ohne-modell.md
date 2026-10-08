@@ -1,7 +1,7 @@
 ---
 id: BUG-0038
 slug: cursor-exit-1-ohne-modell
-status: fixed
+status: done
 severity: S1
 area: adapters
 instance: prod

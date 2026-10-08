@@ -1,7 +1,7 @@
 ---
 id: BUG-0012
 slug: tmux-env-key-shell-injection
-status: fixed
+status: done
 severity: S1
 area: workers
 instance: dev

@@ -1,7 +1,7 @@
 ---
 id: BUG-0004
 slug: adapter-testkit-no-spawnworker-override
-status: fixed
+status: done
 severity: S2
 area: core
 instance: dev

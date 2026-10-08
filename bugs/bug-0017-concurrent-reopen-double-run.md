@@ -1,7 +1,7 @@
 ---
 id: BUG-0017
 slug: concurrent-reopen-double-run
-status: fixed
+status: done
 severity: S1
 area: core
 instance: dev

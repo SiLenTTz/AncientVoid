@@ -1,7 +1,7 @@
 ---
 id: BUG-0014
 slug: search-indexes-worktree-duplicates
-status: fixed
+status: done
 severity: S3
 area: server
 instance: dev
