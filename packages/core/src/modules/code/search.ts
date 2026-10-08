@@ -120,6 +120,6 @@ async function rgRun(cwd: string, args: string[]): Promise<string> {
     const e = err as { code?: number; stdout?: string; stderr?: string };
     if (e.code === 1) return ""; // no match
     if (e.code === 2 && e.stdout) return e.stdout; // some files unreadable — matches still count
-    throw new Error(`Suche fehlgeschlagen: ${(e.stderr ?? String(err)).slice(0, 200)}`);
+    throw new Error(`Suche fehlgeschlagen: ${(e.stderr ?? String(err)).slice(0, 200)}`, { cause: err });
   }
 }

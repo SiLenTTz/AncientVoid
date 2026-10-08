@@ -139,14 +139,13 @@ export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics
     };
 
     socket.on("message", async (raw: Buffer) => {
-      let parsed: WsClientMessage | null = null;
+      let parsed: WsClientMessage;
       try {
         parsed = WsClientMessage.parse(JSON.parse(raw.toString()));
       } catch {
         send({ type: "error", message: "invalid message" });
         return;
       }
-      if (!parsed) return;
       switch (parsed.type) {
         case "hello": {
           // BUG-0026: one page used to be all a view ever got — the oldest

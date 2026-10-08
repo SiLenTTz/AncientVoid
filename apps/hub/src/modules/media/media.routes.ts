@@ -59,7 +59,7 @@ export function registerMediaRoutes(app: FastifyInstance, deps: MediaRouteDeps):
       const opts = MediaJobRequest.innerType().pick({ allowCloud: true, language: true }).safeParse({ allowCloud: q.allowCloud === "1" || q.allowCloud === "true", language: q.language ?? "auto" });
       if (!opts.success) return reply.code(400).send({ error: "ungültige Sprache" });
       const raw = req.headers["x-filename"];
-      let name = "video";
+      let name: string;
       try {
         name = decodeURIComponent(typeof raw === "string" ? raw : "video").split(/[\\/]/).pop() || "video";
       } catch {

@@ -35,7 +35,7 @@ export function httpJson<T = unknown>(
         res.setEncoding("utf8");
         res.on("data", (chunk: string) => (text += chunk));
         res.on("end", () => {
-          let body: unknown = null;
+          let body: unknown;
           try {
             body = text ? JSON.parse(text) : null;
           } catch {

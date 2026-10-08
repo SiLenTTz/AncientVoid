@@ -126,7 +126,7 @@ async function assertHubStopped(dataDir: string, ownsBackupLock = false): Promis
           throw new Error(`${match?.[1] === "backup" ? "Ein Backup" : "Der Hub"} läuft noch (PID ${pid}).`);
         } catch (err) {
           if (err instanceof Error && err.message.includes("läuft noch (PID")) throw err;
-          if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw new Error(`Hub-PID-Lock kann nicht geprüft werden: ${String(err)}`);
+          if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw new Error(`Hub-PID-Lock kann nicht geprüft werden: ${String(err)}`, { cause: err });
         }
       }
       throw new Error("Veralteter Hub-PID-Lock gefunden. Hub starten und sauber stoppen, dann erneut sichern.");

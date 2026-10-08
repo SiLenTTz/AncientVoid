@@ -37,7 +37,7 @@ export function registerCommandRoutes(app: FastifyInstance, ctx: RouteContext, d
 
   const call = async <T>(req: FastifyRequest, method: "GET" | "POST", url: string, body?: unknown): Promise<{ status: number; body: T }> => {
     const res = await app.inject({ method, url, headers: { authorization: String(req.headers.authorization ?? ""), "content-type": "application/json" }, ...(body !== undefined ? { payload: JSON.stringify(body) } : {}) });
-    let parsed: unknown = null;
+    let parsed: unknown;
     try {
       parsed = res.json();
     } catch {

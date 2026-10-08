@@ -16,7 +16,7 @@ export function registerAttachmentRoutes(app: FastifyInstance, deps: { attachmen
       const body = req.body as Buffer | undefined;
       if (!body || !Buffer.isBuffer(body) || body.length === 0) return reply.code(400).send({ error: "Leere Datei." });
       const raw = req.headers["x-filename"];
-      let name = "datei";
+      let name: string;
       try {
         name = decodeURIComponent(typeof raw === "string" ? raw : "datei");
       } catch {
