@@ -1,7 +1,7 @@
 ---
 id: BUG-0019
 slug: tmux-reap-kills-foreign-workers
-status: fixed
+status: done
 severity: S1
 area: workers
 instance: dev

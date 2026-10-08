@@ -1,7 +1,7 @@
 ---
 id: BUG-0032
 slug: acp-turn-haengt-ohne-timeout
-status: fixed
+status: done
 severity: S1
 area: adapters
 instance: dev

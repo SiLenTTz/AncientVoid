@@ -1,7 +1,7 @@
 ---
 id: BUG-0039
 slug: acp-adoption-verliert-historie
-status: fixed
+status: done
 severity: S1
 area: adapters
 instance: prod

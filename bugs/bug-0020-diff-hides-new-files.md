@@ -1,7 +1,7 @@
 ---
 id: BUG-0020
 slug: diff-hides-new-files
-status: fixed
+status: done
 severity: S2
 area: server
 instance: dev

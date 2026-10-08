@@ -1,7 +1,7 @@
 ---
 id: BUG-0031
 slug: token-login-waits-for-fleet-hello
-status: fixed
+status: done
 severity: S3
 area: pwa
 instance: dev

@@ -1,7 +1,7 @@
 ---
 id: BUG-0018
 slug: recovery-replays-stopped-sessions
-status: fixed
+status: done
 severity: S2
 area: core
 instance: dev

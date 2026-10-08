@@ -1,7 +1,7 @@
 ---
 id: BUG-0025
 slug: tmux-kill-never-reports-exit
-status: fixed
+status: done
 severity: S2
 area: workers
 instance: dev

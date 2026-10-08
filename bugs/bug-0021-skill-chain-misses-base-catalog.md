@@ -1,7 +1,7 @@
 ---
 id: BUG-0021
 slug: skill-chain-misses-base-catalog
-status: fixed
+status: done
 severity: S2
 area: server
 instance: dev

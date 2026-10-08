@@ -1,7 +1,7 @@
 ---
 id: BUG-0028
 slug: tokens-in-request-log
-status: fixed
+status: done
 severity: S1
 area: server
 instance: dev

@@ -1,7 +1,7 @@
 ---
 id: BUG-0024
 slug: session-link-mixes-histories
-status: fixed
+status: done
 severity: S2
 area: pwa
 instance: dev

@@ -1,7 +1,7 @@
 ---
 id: BUG-0027
 slug: stop-deletes-agent-work
-status: fixed
+status: done
 severity: S1
 area: core
 instance: dev

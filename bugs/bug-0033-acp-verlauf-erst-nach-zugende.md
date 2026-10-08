@@ -1,7 +1,7 @@
 ---
 id: BUG-0033
 slug: acp-verlauf-erst-nach-zugende
-status: fixed
+status: done
 severity: S2
 area: adapters, pwa
 instance: dev

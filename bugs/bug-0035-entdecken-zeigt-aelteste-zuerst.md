@@ -1,7 +1,7 @@
 ---
 id: BUG-0035
 slug: entdecken-zeigt-aelteste-zuerst
-status: fixed
+status: done
 severity: S2
 area: core
 instance: dev

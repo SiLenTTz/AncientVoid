@@ -1,7 +1,7 @@
 ---
 id: BUG-0016
 slug: reopen-ignores-input-id
-status: fixed
+status: done
 severity: S1
 area: core
 instance: dev
