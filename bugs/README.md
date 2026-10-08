@@ -66,5 +66,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0040](bug-0040-claude-cli-klartextfehler-und-neue-eventtypen.md) | Claude-CLI: Klartext-Fehler und neue Event-Typen erscheinen kryptisch | done | S2 | adapters | — |
 | [BUG-0041](bug-0041-voice-aufnahme-laeuft-bei-gesperrtem-bildschirm.md) | Voice-Aufnahme läuft weiter, wenn der Bildschirm schon gesperrt ist | done | S3 | pwa | — |
 | [BUG-0042](bug-0042-invite-qr-chunk-fehler-unbehandelt.md) | Einladungs-QR: fehlgeschlagener Chunk-Abruf bleibt unbehandelt und still | done | S3 | pwa | — |
+| [BUG-0043](bug-0043-verlauf-springt-nach-unten-beim-lesen.md) | Verlauf springt nach unten, während man weiter oben liest | done | S2 | pwa | — |
+| [BUG-0044](bug-0044-letzte-nachrichten-unter-dem-dock.md) | Die letzten Nachrichten liegen unter dem fixierten Dock | done | S2 | pwa | — |
 
-Die nächste freie Nummer ist **0043**.
+Die nächste freie Nummer ist **0045**.
