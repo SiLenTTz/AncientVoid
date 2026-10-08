@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, type AdapterInfo, type AdapterUsage, type FleetHost, type SessionRecord } from "../shared/api.ts";
 import { Dashboard } from "../features/overview/Dashboard.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
@@ -49,6 +49,9 @@ export function App({
   // an error to surface — same "feature genuinely absent" handling as
   // Approvals.tsx itself.
   const [pendingApprovals, setPendingApprovals] = useState(0);
+  // BUG-0045: ein einzelner fehlgeschlagener Abruf ist kein Ausfall — erst der
+  // zweite in Folge zeigt die Fehlerkarte (die Seite sonst nach unten schiebt).
+  const failedPolls = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -63,11 +66,13 @@ export function App({
         setSessions(fleet.sessions);
         setHosts(fleet.hosts);
         setAdapters(a);
+        failedPolls.current = 0;
         setError("");
         hubApi
           .approvals("pending")
           .then((pending) => alive && setPendingApprovals(pending.length))
-          .catch(() => alive && setPendingApprovals(0));
+          // 501: dieser Hub hat keine Freigaben — echte 0. Sonst den letzten Stand behalten.
+          .catch((err: unknown) => alive && err instanceof Error && /^501|not configured/.test(err.message) && setPendingApprovals(0));
         // T1.5-3/ADR-0004: one usage snapshot per known adapter, not per
         // session — fetched alongside the existing poll, not a second
         // independent timer.
@@ -77,7 +82,8 @@ export function App({
         if (!alive) return;
         setUsage(Object.fromEntries(usageEntries));
       } catch (err) {
-        if (alive) setError(err instanceof Error ? err.message : "load failed");
+        failedPolls.current += 1;
+        if (alive && failedPolls.current >= 2) setError(err instanceof Error ? err.message : "load failed");
       }
     };
     void tick();
