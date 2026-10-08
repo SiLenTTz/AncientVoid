@@ -32,13 +32,13 @@ async function acquireDataDirLock(dataDir: string, kind: LockKind): Promise<() =
       const parsed = /^(hub|backup):(\d+)$/.exec(contents.trim());
       const existingKind = parsed?.[1] as LockKind | undefined;
       const pid = legacyPid ?? (parsed ? Number(parsed[2]) : 0);
-      if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error(`Ungültiger Hub-PID-Lock: ${path}`);
+      if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error(`Ungültiger Hub-PID-Lock: ${path}`, { cause: err });
       try {
         process.kill(pid, 0);
-        throw new Error(`${existingKind === "backup" ? "Ein Backup" : "Ein Hub"} läuft bereits (PID ${pid}, Lock ${path}).`);
+        throw new Error(`${existingKind === "backup" ? "Ein Backup" : "Ein Hub"} läuft bereits (PID ${pid}, Lock ${path}).`, { cause: err });
       } catch (probeErr) {
         if (probeErr instanceof Error && / bereits \(PID /.test(probeErr.message)) throw probeErr;
-        if ((probeErr as NodeJS.ErrnoException).code !== "ESRCH") throw new Error(`Hub-PID-Lock kann nicht geprüft werden: ${String(probeErr)}`);
+        if ((probeErr as NodeJS.ErrnoException).code !== "ESRCH") throw new Error(`Hub-PID-Lock kann nicht geprüft werden: ${String(probeErr)}`, { cause: probeErr });
       }
       await mkdir(recoveryDir, { mode: 0o700 }).catch((recoverErr: NodeJS.ErrnoException) => {
         if (recoverErr.code === "EEXIST") throw new Error(`Hub-PID-Lock wird bereits bereinigt; falls kein Start läuft, verwaisten Recovery-Lock prüfen: ${recoveryDir}`);
@@ -52,13 +52,13 @@ async function acquireDataDirLock(dataDir: string, kind: LockKind): Promise<() =
         });
         if (latestText) {
           const latestPid = Number(latestText.trim().replace(/^(?:hub|backup):/, ""));
-          if (!Number.isSafeInteger(latestPid) || latestPid <= 0) throw new Error(`Ungültiger Hub-PID-Lock: ${path}`);
+          if (!Number.isSafeInteger(latestPid) || latestPid <= 0) throw new Error(`Ungültiger Hub-PID-Lock: ${path}`, { cause: err });
           try {
             process.kill(latestPid, 0);
-            throw new Error(`Ein Hub läuft bereits (PID ${latestPid}, Lock ${path}).`);
+            throw new Error(`Ein Hub läuft bereits (PID ${latestPid}, Lock ${path}).`, { cause: err });
           } catch (probeErr) {
             if (probeErr instanceof Error && / bereits \(PID /.test(probeErr.message)) throw probeErr;
-            if ((probeErr as NodeJS.ErrnoException).code !== "ESRCH") throw new Error(`Hub-PID-Lock kann nicht geprüft werden: ${String(probeErr)}`);
+            if ((probeErr as NodeJS.ErrnoException).code !== "ESRCH") throw new Error(`Hub-PID-Lock kann nicht geprüft werden: ${String(probeErr)}`, { cause: probeErr });
           }
           await unlink(path);
         }

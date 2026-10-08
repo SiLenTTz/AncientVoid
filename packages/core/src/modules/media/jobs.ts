@@ -695,7 +695,7 @@ export class MediaJobs {
         const message = err instanceof Error ? err.message : String(err);
         r.notes.push(`Zusammenfassung fehlgeschlagen (${message.slice(0, 120)}) — Kapitel nur nach Zeit.`);
         await this.finish(job, r);
-        throw new Error(`${message.slice(0, 200)} — Ergebnis ohne Zusammenfassung gespeichert.`);
+        throw new Error(`${message.slice(0, 200)} — Ergebnis ohne Zusammenfassung gespeichert.`, { cause: err });
       }
     }
     await this.finish(job, r);

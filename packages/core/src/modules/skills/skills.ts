@@ -433,7 +433,7 @@ export async function writeProjectArtifact(
   try {
     await writeFile(full, item.draft.endsWith("\n") ? item.draft : `${item.draft}\n`, { flag: "wx" });
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "EEXIST") throw new Error("artifact already exists");
+    if ((err as NodeJS.ErrnoException).code === "EEXIST") throw new Error("artifact already exists", { cause: err });
     throw err;
   }
   return { path: relative };

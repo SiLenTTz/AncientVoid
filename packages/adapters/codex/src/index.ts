@@ -169,7 +169,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
    * is a visible warning, never an abort — the session starts either way.
    */
   async function checkVersion(ctx: AdapterContext): Promise<void> {
-    let output = "";
+    let output: string;
     try {
       const proc = await ctx.spawnWorker([cfg.command, "--version"]);
       output = await new Promise<string>((resolve) => {

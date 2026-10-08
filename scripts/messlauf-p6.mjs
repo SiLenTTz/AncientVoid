@@ -203,7 +203,7 @@ async function revokeStep() {
   // Home hub down: the other hub keeps working on its own.
   const devTok = ssh(host, `${REMOTE_HUBCTL} token issue messlauf-p6 ${REMOTE_DB} | tail -n 1`).trim();
   execFileSync("scripts/hub.sh", ["stop"]);
-  let own = null;
+  let own;
   try {
     const url = "http://evox2-securesight.tail6d2826.ts.net:7373";
     const probe = (path, body) =>

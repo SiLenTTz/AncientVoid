@@ -28,7 +28,7 @@ export function registerHarnessRoutes(app: FastifyInstance, ctx: RouteContext): 
     const defaultModel = typeof registered.config?.model === "string" ? registered.config.model : null;
     const cached = modelCache.get(id);
     if (cached && Date.now() - cached.at < 10 * 60_000) return { adapterId: id, models: cached.models, defaultModel };
-    let models: ModelOption[] | null = null;
+    let models: ModelOption[] | null;
     try {
       models = registered.adapter.models ? await registered.adapter.models() : null;
     } catch (err) {
