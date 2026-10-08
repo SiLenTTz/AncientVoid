@@ -1,5 +1,5 @@
 import { Fragment } from "preact";
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiContext } from "../../shared/api-context.ts";
 import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord } from "../../shared/api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "../../shared/ws.ts";
@@ -63,6 +63,9 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const tailRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
+  // BUG-0043: nur wer unten liest, wird mit neuen Events nach unten geführt.
+  const stickRef = useRef(true);
+  const userInputAt = useRef(0);
   // The tail ends exactly where the fixed controls start — measured, not
   // guessed: a taller composer (draft, recommendation, error) used to cover
   // the last message.
@@ -230,9 +233,16 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   // Follow new events only where they are shown — in Bericht/Diff/Suche/
   // Code a running session used to scroll the search field away (T7.6).
   useEffect(() => {
+    stickRef.current = true; // neuer Tab oder neue Session beginnt unten
+  }, [activeTab, session.id]);
+  useEffect(() => {
     if (activeTab !== "chat" && activeTab !== "verlauf") return;
-    tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
-  }, [events, activeTab]);
+    if (stickRef.current) tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
+  }, [events, activeTab, filter]);
+  // BUG-0044: ändert sich die Höhe (Dock ein-/ausgeblendet), bleibt der Fuß sichtbar.
+  useLayoutEffect(() => {
+    if (stickRef.current) tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
+  }, [tailMaxHeight]);
 
   useEffect(() => {
     const measure = () => {
@@ -245,10 +255,14 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
     measure();
     const observer = new ResizeObserver(measure);
     if (dockRef.current) observer.observe(dockRef.current);
+    // BUG-0044: auch was über der Liste liegt (Laufleiste, Tabs, Hinweise) ändert ihre Oberkante.
+    if (tailRef.current?.parentElement) observer.observe(tailRef.current.parentElement);
     window.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("resize", measure);
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
     };
   }, []);
 
@@ -542,6 +556,18 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
       <div
         ref={tailRef}
         class="tail-scroll"
+        onWheel={() => (userInputAt.current = Date.now())}
+        onTouchMove={() => (userInputAt.current = Date.now())}
+        onPointerDown={() => (userInputAt.current = Date.now())}
+        onKeyDown={() => (userInputAt.current = Date.now())}
+        onScroll={() => {
+          const el = tailRef.current;
+          if (!el) return;
+          // Unten angekommen: wieder mitlaufen. Nach oben nur auf Nutzereingabe —
+          // Layout-Änderungen lösen ebenfalls scroll-Ereignisse aus.
+          if (el.scrollHeight - el.clientHeight - el.scrollTop < 48) stickRef.current = true;
+          else if (Date.now() - userInputAt.current < 800) stickRef.current = false;
+        }}
         style={`overflow-y: auto; max-height: ${tailMaxHeight !== null ? `${tailMaxHeight}px` : "60vh"}`}
       >
         {activeTab === "bericht" ? (
