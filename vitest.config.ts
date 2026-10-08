@@ -6,8 +6,8 @@ export default defineConfig({
     testTimeout: 15_000,
     hookTimeout: 15_000,
     pool: "forks",
-    poolOptions: {
-      forks: { singleFork: true },
-    },
+    // Ersatz für poolOptions.forks.singleFork (seit vitest 4 entfernt): die
+    // zeitbasierten Tests (BUG-0001/0002) laufen nacheinander, nicht parallel.
+    maxWorkers: 1,
   },
 });
