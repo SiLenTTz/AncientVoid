@@ -55,7 +55,8 @@ function TokenGate({ onReady }: { onReady: () => void }) {
         Device-Token
         <div style="display: flex; gap: 8px">
           <input
-            type={reveal ? "text" : "password"}
+            // Preact 11 typisiert <input> je type-Variante; ein Literal-Union passt zu keiner.
+            {...(reveal ? { type: "text" as const } : { type: "password" as const })}
             value={token}
             onInput={(e) => setVal((e.target as HTMLInputElement).value)}
             placeholder="z. B. 00bYRN3zmTJJIsfneN4iZmOQKsJl5q-s"
