@@ -270,7 +270,9 @@ describe("hermes adapter — lifecycle against the live-verified CLI shape", () 
     const assistant = ctx.events.find((e) => e.type === "assistant");
     expect((assistant!.payload as { text?: string }).text).toBe("SMOKE1");
     // no ANSI escape may survive into the emitted answer
-    expect((assistant!.payload as { text?: string }).text).not.toMatch(/\x1b|\r/);
+    const answer = (assistant!.payload as { text?: string }).text ?? "";
+    expect(answer).not.toContain("\x1b");
+    expect(answer).not.toContain("\r");
   });
 
   it("PTY chunk split mid-ANSI-sequence still yields a clean answer and session_id", async () => {

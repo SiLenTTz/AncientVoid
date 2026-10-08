@@ -66,6 +66,7 @@ const SESSION_ID_RE = /session_id:\s*(\S+)/;
  * device queries (`ESC [ c`), CR from CRLF, and misc CSI/OSC sequences.
  * Live-captured from the tmux runner pane 2026-10-03:
  * `\x1b]11;?\x1b\\` + `\x1b[c` prefix before the answer. */
+// eslint-disable-next-line no-control-regex -- ESC/BEL sind hier der Gegenstand der Regex
 const ANSI_RE = /\x1b(?:\][^\x07\x1b]*(?:\x07|\x1b\\)|\[[0-9;?]*[a-zA-Z]|[=>]|\(B)/g;
 
 /** hermes prints these STATUS lines on stderr in a pipe (verified
