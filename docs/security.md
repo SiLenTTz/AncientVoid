@@ -128,6 +128,21 @@ für eine unabhängige Prüfung, aber real gefunden und behoben):
   Adapter lief real weiter, bis `parkFor()` ein echtes
   `SteerInput{kind:"park"}`-Signal bekam.
 
+## Abhängigkeits-Audit (Stand 2026-10-08)
+
+`npm audit --omit=dev` (Laufzeit-Abhängigkeiten) meldet **0 Funde**. Behoben
+per `npm audit fix` (ohne `--force`): `@modelcontextprotocol/sdk` 1.30.0 →
+1.32.1 (OAuth-Client-Credentials, high), `fastify` 5.12.4 → 5.12.5 (HTTP/2-
+Trailer-DoS), `fast-uri` 3.1.8. Die Untergrenzen in `apps/gateway-mcp` und
+`apps/hub` sind angehoben, damit eine frische Auflösung keine verwundbare
+Version holt.
+
+Offen sind nur **Dev-Abhängigkeiten** der Test-Toolchain (`tinypool`,
+`@vitest/mocker`, `esbuild`, über vitest 3). Die Behebung braucht den Sprung
+auf vitest 5 (`npm audit fix --force`, Breaking Change) und gehört in eine
+eigene Aufgabe mit vollem Gate. Sie laufen nicht im Hub-Prozess und nie mit
+Eingaben aus dem Netz; sie betreffen nur Entwicklungs- und CI-Läufe.
+
 ## Was noch fehlt (ehrlich, nicht Teil dieser Session)
 
 - Lizenz-Entscheidung (T4.8) — rechtliche Frage, nicht hier autonom
