@@ -1,6 +1,7 @@
 import { createServer, type Server } from "node:http";
 import { fileURLToPath } from "node:url";
 import { test, expect } from "../support/fixtures.ts";
+import { freePort } from "../support/ports.ts";
 
 /**
  * EPIC-P10.5 (ADR-0030): a video becomes session material. Stand-ins for
@@ -8,7 +9,7 @@ import { test, expect } from "../support/fixtures.ts";
  * (`/v1/chat/completions`); ffmpeg, ffprobe and tesseract are real.
  */
 const video = fileURLToPath(new URL("../../packages/core/test/fixtures/media/slides.mp4", import.meta.url));
-const port = 18_000 + Math.floor(Math.random() * 900);
+const port = await freePort();
 let server: Server;
 const seen: string[] = [];
 

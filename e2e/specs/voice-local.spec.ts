@@ -1,14 +1,15 @@
 import { createServer, type Server } from "node:http";
 import { WebSocketServer } from "ws";
 import { test, expect } from "../support/fixtures.ts";
+import { freePort } from "../support/ports.ts";
 
 /**
  * T10.2 (ADR-0028): push to talk with local recognition. A stand-in for
  * whisper-server that only accepts what the real one needs — 16 kHz mono
  * 16-bit WAV — so the test proves the hub converted the phone's recording.
  */
-const port = 19_000 + Math.floor(Math.random() * 900);
-const streamPort = port + 10_000;
+const port = await freePort();
+const streamPort = await freePort();
 let server: Server;
 let streamServer: WebSocketServer;
 const received: { rate: number; channels: number; bytes: number; prompt: boolean; language: string }[] = [];
