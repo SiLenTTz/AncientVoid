@@ -71,5 +71,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0045](bug-0045-einzelner-abruffehler-laesst-ui-flackern.md) | Ein einzelner fehlgeschlagener Abruf lässt Meldungen aufflackern | done | S3 | pwa | — |
 | [BUG-0046](bug-0046-thinking-block-leer-und-aufklappbar.md) | Aufgeklappte „thinking“-Blöcke sind immer leer | done | S3 | adapters, pwa | — |
 | [BUG-0047](bug-0047-pc-tippen-leert-text-vor-dem-ergebnis.md) | „Am PC eintippen“ leert den Text, bevor der PC getippt hat | done | S3 | pwa | — |
+| [BUG-0048](bug-0048-freigabe-noetig-haengt-nach-neustart.md) | „Freigabe nötig“ bleibt stehen, obwohl nichts zu entscheiden ist | done | S2 | core | — |
 
-Die nächste freie Nummer ist **0048**.
+Die nächste freie Nummer ist **0049**.
