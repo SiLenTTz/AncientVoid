@@ -52,8 +52,11 @@ export const test = base.extend<Fixtures>({
 });
 
 export async function signIn(page: Page, hub: TestHub): Promise<void> {
+  // Always replace. On the phone, Chrome keeps localStorage per 127.0.0.1 port.
+  // A recycled port still holds the previous hub's token, and the gate then
+  // stays up with that token filled (BUG-0054).
   await page.addInitScript((token) => {
-    if (!localStorage.getItem("uacc.token")) localStorage.setItem("uacc.token", token);
+    localStorage.setItem("uacc.token", token);
   }, hub.token);
 }
 
