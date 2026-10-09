@@ -56,6 +56,8 @@ test.describe("Medien: Videos analysieren (EPIC-P10.5)", () => {
   test.describe.configure({ mode: "serial" });
 
   test("Videodatei → Schritte mit Fortschritt → Transkript, Schlüsselbilder mit Text, Kapitel; das Ergebnis geht in eine Session (AC-P10.5-1/5)", async ({ app, hub }) => {
+    // ffmpeg on a shared CI runner needs longer than the 45 s default.
+    test.setTimeout(120_000);
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "first answer");
     await app.getByRole("button", { name: "Medien" }).click();
