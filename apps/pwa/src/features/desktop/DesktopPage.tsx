@@ -38,6 +38,8 @@ export function DesktopPage() {
   const [sttPartial, setSttPartial] = useState("");
   const [sttStreamNotice, setSttStreamNotice] = useState("");
   const rec = useRef<LocalRecorder | null>(null);
+  // BUG-0047: the typed text is cleared only once the PC has really typed it.
+  const sent = useRef<{ id: string; text: string } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -59,6 +61,15 @@ export function DesktopPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const s = sent.current;
+    const a = s ? actions.find((x) => x.id === s.id) : undefined;
+    if (!s || !a) return;
+    if (a.status === "done") setText((current) => (current === s.text ? "" : current));
+    // Refused, failed, expired …: the person's text stays so nothing has to be typed again.
+    if (["done", "failed", "refused", "cancelled", "expired", "uncertain"].includes(a.status)) sent.current = null;
+  }, [actions]);
+
   const c = companions?.find((x) => x.name === chosen) ?? companions?.find((x) => x.online) ?? companions?.[0] ?? null;
   const ready = Boolean(c?.online && c.focus && !c.locked && !c.paused && !c.blocked);
   const textNeedsTargetedPaste = c?.backend === "hyprland" && inputMode !== "targeted-paste";
@@ -71,7 +82,7 @@ export function DesktopPage() {
       // The target is the window shown right now — nothing else.
       const a = await hubApi.desktopAction({ companion: c.name, kind, ...(kind === "key" ? { key: key! } : { text, inputMode: c.backend === "hyprland" ? inputMode : "keystroke" }), target: { id: c.focus.id, revision: c.focus.revision } });
       setActions((all) => [a, ...all]);
-      if (kind !== "key") setText("");
+      if (kind !== "key") sent.current = { id: a.id, text };
     } catch (err) {
       setError(err instanceof Error ? err.message : "abgelehnt");
     } finally {

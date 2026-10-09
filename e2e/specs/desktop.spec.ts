@@ -73,6 +73,8 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
       await expect(app.locator(".desktop-page")).toContainText(/Fokus (am PC )?hat sich (seit der Vorschau )?geändert/);
       expect(desk.typed).not.toContain("geheim");
       await expect(app.locator(".desktop-focus")).toContainText("org.telegram.desktop — Chat");
+      // BUG-0047: refused at the PC or by the hub — either way the person's text is still there.
+      await expect(app.getByLabel("Text für den PC")).toHaveValue("geheim");
 
       // A password manager has the focus: the page says so, the buttons are off.
       desk.current = { id: "w3", app: "org.keepassxc.KeePassXC", title: "Datenbank entsperren", pid: 3 };
