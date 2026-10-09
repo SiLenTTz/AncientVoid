@@ -76,5 +76,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0050](bug-0050-recovery-nacheinander-statt-parallel.md) | Hub-Recovery braucht 12–14 s statt unter 3 s (K7) | done | S2 | core | — |
 | [BUG-0051](bug-0051-gatekeeper-wertet-heredoc-inhalt-als-befehl.md) | Gatekeeper wertet den Inhalt eines Here-Documents als Befehl | done | S2 | core | — |
 | [BUG-0052](bug-0052-e2e-zufallsport-kollidiert.md) | E2E: Zufallsport der Stand-in-Server kollidiert mit fremden Prozessen | done | S3 | e2e | — |
+| [BUG-0053](bug-0053-dock-im-querformat-zu-hoch.md) | Im Querformat füllt das Dock fast den Bildschirm, der Verlauf ragt darunter | done | S2 | pwa | — |
 
-Die nächste freie Nummer ist **0053**.
+Die nächste freie Nummer ist **0054**.
