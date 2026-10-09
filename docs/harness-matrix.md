@@ -11,25 +11,27 @@ Nachfrage, `bypass` alles ungefragt, `none` keine Tools unter Kontrolle
 dieser Session.
 
 <!-- harness-matrix:start -->
-| Adapter | geprüfte CLI | Folgeprompt | Anhalten | Tool-Gate | Rückfragen | Modellwahl | Agenten | Bilder | Dateien | Abzweig |
-|---|---|---|---|---|---|---|---|---|---|---|
-| claude | 2.1.280 | ✓ | ✓ | native | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| codex | 0.156.1 `app-server` | ✓ | ✓ | native | ✓ | ✓ | — | ✓ | ✓ | — |
-| opencode | 1.18.32 | ✓ | ✓ | allowlist | — | ✓ | ✓ | ✓ | ✓ | — |
-| copilot | 1.0.88 | ✓ | ✓ | bypass | — | ✓ | ✓ | — | — | — |
-| aider | 0.86.2 | — | ✓ | bypass | — | ✓ | — | — | — | — |
-| hermes | hermes-agent venv, 03.10.2026 | ✓ | ✓ | bypass | — | ✓ | — | — | — | — |
-| cursor-clip | Cursor state.vscdb | — | — | none | — | — | — | — | — | — |
-| claude-clip | Transcript JSONL | — | — | none | — | — | — | — | — | — |
-| dummy | — | ✓ | ✓ | none | — | — | — | — | — | — |
-| acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — |
-| acp · opencode | 1.18.32 `acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — |
-| acp · dsh | 0.1.5-rc.3 `--profile acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — |
+| Adapter | geprüfte CLI | Folgeprompt | Anhalten | Tool-Gate | Rückfragen | Modellwahl | Agenten | Bilder | Dateien | Abzweig | Modell wechseln | Modi |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| claude | 2.1.280 | ✓ | ✓ | native | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ | auto, manual, plan, acceptEdits, dontAsk, bypassPermissions |
+| codex | 0.156.1 `app-server` | ✓ | ✓ | native | ✓ | ✓ | — | ✓ | ✓ | — | — | — |
+| opencode | 1.18.32 | ✓ | ✓ | allowlist | — | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| copilot | 1.0.88 | ✓ | ✓ | bypass | — | ✓ | ✓ | — | — | — | — | — |
+| aider | 0.86.2 | — | ✓ | bypass | — | ✓ | — | — | — | — | — | — |
+| hermes | hermes-agent venv, 03.10.2026 | ✓ | ✓ | bypass | — | ✓ | — | — | — | — | — | — |
+| cursor-clip | Cursor state.vscdb | — | — | none | — | — | — | — | — | — | — | — |
+| claude-clip | Transcript JSONL | — | — | none | — | — | — | — | — | — | — | — |
+| dummy | — | ✓ | ✓ | none | — | — | — | — | — | — | — | — |
+| acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — | — | — |
+| acp · opencode | 1.18.32 `acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — | — | — |
+| acp · dsh | 0.1.5-rc.3 `--profile acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — | — | — |
 <!-- harness-matrix:end -->
 
 ## Belege je Zeile
 
-- **claude:** Folgeprompt/Anhalten über `--resume` bzw. Prozessende:
+- **claude:** Modus und Modell (ADR-0033): `--permission-mode` und `--model` bei jedem Spawn, auch
+  bei `--resume` (gegen claude 2.1.288 geprüft: Haiku→Sonnet, Modus `auto`, gleiche Session-ID),
+  `adapter.test.ts` „ADR-0033“. Folgeprompt/Anhalten über `--resume` bzw. Prozessende:
   `packages/adapters/claude/test/adapter.test.ts` gegen echte Captures
   (`test/fixtures/*.jsonl`), E2E `session.spec.ts`. Modellwahl: Kürzel aus
   `claude --help` (2.1.280). Agent: `--agent` (ADR-0005). Tool-Gate

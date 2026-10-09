@@ -33,6 +33,7 @@ const SteerBody = z.intersection(
     z.object({ kind: z.literal("stop") }),
     z.object({ kind: z.literal("park") }),
     z.object({ kind: z.literal("resume") }),
+    z.object({ kind: z.literal("configure"), model: z.string().min(1).max(200).optional(), permissionMode: z.string().min(1).max(60).optional() }),
   ]),
   z.object({
     inputId: z.string().min(1).optional(),
@@ -194,6 +195,8 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
       } catch (err) {
         return reply.code(422).send({ ok: false, detail: err instanceof Error ? err.message : "Anhang fehlt" });
       }
+    } else if (raw.kind === "configure") {
+      input = { kind: "configure", ...(raw.model !== undefined ? { model: raw.model } : {}), ...(raw.permissionMode !== undefined ? { permissionMode: raw.permissionMode } : {}) };
     } else input = raw;
     if (req.policy?.decision === "approve") {
       if (!deps.sessions.get(id)) return reply.code(404).send({ ok: false, detail: "unknown session" });

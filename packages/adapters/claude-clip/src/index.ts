@@ -137,7 +137,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // record was observed anywhere in this transcript format (R9.7 —
       // unbekannt statt geraten, same reasoning as cursor-clip's own
       // capabilities() comment).
-      return { reasoning: true, tools: true, cost: false, steer: false, usage: false, nativeDiscovery: "read-only", nativeResume: "none", features: { followUp: false, interrupt: false, toolGate: "none", questions: false, modelChoice: "none", skills: false, agents: false, images: false, files: false, contextFork: false } };
+      return { reasoning: true, tools: true, cost: false, steer: false, usage: false, nativeDiscovery: "read-only", nativeResume: "none", features: { followUp: false, interrupt: false, toolGate: "none", questions: false, modelChoice: "none", modelSwitch: false, permissionModes: [], skills: false, agents: false, images: false, files: false, contextFork: false } };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
@@ -196,6 +196,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           if (state?.timer) clearInterval(state.timer);
           if (state) state.timer = undefined;
           return { ok: true };
+        case "configure":
+          return { ok: false, detail: "claude-clip: Modus und Modell lassen sich in dieser Session nicht wechseln" };
         case "resume":
           if (state && !state.timer && !state.down) {
             state.timer = setInterval(() => poll(state, ctx), cfg.pollIntervalMs);

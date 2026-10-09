@@ -113,7 +113,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     capabilities(): AdapterCapabilities {
       // cost/usage: false — no structured signal for either was ever
       // observed (see doc comment point 4), not guessed as present.
-      return { reasoning: false, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: { followUp: false, interrupt: true, toolGate: "bypass", questions: false, modelChoice: "start", skills: false, agents: false, images: false, files: false, contextFork: false } };
+      return { reasoning: false, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: { followUp: false, interrupt: true, toolGate: "bypass", questions: false, modelChoice: "start", modelSwitch: false, permissionModes: [], skills: false, agents: false, images: false, files: false, contextFork: false } };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
@@ -156,6 +156,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           await procs.get(handle.sessionId)?.kill("SIGTERM");
           return { ok: true };
         }
+        case "configure":
+          return { ok: false, detail: "aider: Modus und Modell lassen sich in dieser Session nicht wechseln" };
         case "resume":
           return { ok: false, detail: "aider: resume needs a prompt — steer with kind: 'prompt' instead" };
       }

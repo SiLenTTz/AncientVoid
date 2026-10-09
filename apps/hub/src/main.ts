@@ -149,6 +149,7 @@ async function main(): Promise<void> {
     reportingSinks,
     { logger: logger.child({ component: "sessions" }), metrics },
     opencodeDataDir,
+    config.defaultPermissionMode,
   );
 
   // T7.2 / ADR-0018 §3: providers ask before a tool runs — always through

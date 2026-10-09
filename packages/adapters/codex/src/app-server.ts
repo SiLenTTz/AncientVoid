@@ -184,7 +184,7 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
         features: basicFeatures({
           toolGate: cfg.approvalPolicy === "never" ? (cfg.sandbox === "danger-full-access" ? "bypass" : "sandbox") : "native",
           questions: cfg.approvalPolicy !== "never",
-          modelChoice: "start",
+          modelChoice: "start", modelSwitch: false, permissionModes: [],
           images: true,
           files: true,
         }),
@@ -226,6 +226,8 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
         case "stop":
           await adapter.stop(handle, ctx);
           return { ok: true };
+        case "configure":
+          return { ok: false, detail: "codex: Modus und Modell lassen sich in dieser Session nicht wechseln" };
         case "resume":
           return { ok: false, detail: "codex: weiter geht es mit einem neuen Prompt" };
       }

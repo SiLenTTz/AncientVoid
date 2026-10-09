@@ -320,6 +320,15 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 22,
+    name: "session-permission-mode",
+    // EPIC-P15 (ADR-0033): the permission mode a session runs in (null: the
+    // adapter has none). The model already has its column.
+    sql: `
+      ALTER TABLE sessions ADD COLUMN permission_mode TEXT;
+    `,
+  },
 ];
 
 export class HubDatabase {

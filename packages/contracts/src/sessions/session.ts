@@ -69,6 +69,9 @@ export const SessionRecord = z.object({
   project: z.string().min(1),
   worktreeSha: z.string().nullable(),
   model: z.string().nullable(),
+  /** ADR-0033: the permission mode this session runs in (provider-specific
+   * name), null when the adapter has none. */
+  permissionMode: z.string().nullable().default(null),
   status: SessionStatus,
   createdAt: z.string().min(1),
   budgetUsd: z.number().positive().nullable(),

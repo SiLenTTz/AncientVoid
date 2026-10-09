@@ -8,6 +8,7 @@ export interface SessionRow {
   project: string;
   worktree_sha: string | null;
   model: string | null;
+  permission_mode: string | null;
   status: string;
   created_at: string;
   budget_usd: number | null;
@@ -61,6 +62,7 @@ export function rowToRecord(row: SessionRow): SessionRecord {
     project: row.project,
     worktreeSha: row.worktree_sha,
     model: row.model,
+    permissionMode: row.permission_mode ?? null,
     status: row.status as SessionRecord["status"],
     createdAt: row.created_at,
     budgetUsd: row.budget_usd,
@@ -97,9 +99,9 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
          id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq,
          cost_usd, updated_at, tokens_est, park_reason, control_mode, harness, host_id, native_session_id,
          resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until,
-         archived, title, metric_counters, last_activity, pinned
+         archived, title, metric_counters, last_activity, pinned, permission_mode
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          status = excluded.status,
          model = excluded.model,
@@ -127,7 +129,8 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
          title = excluded.title,
          metric_counters = excluded.metric_counters,
          last_activity = excluded.last_activity,
-         pinned = excluded.pinned`,
+         pinned = excluded.pinned,
+         permission_mode = excluded.permission_mode`,
     )
     .run(
       record.id,
@@ -161,5 +164,6 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
       JSON.stringify(record.metrics.counters),
       record.lastActivity ? JSON.stringify(record.lastActivity) : null,
       record.pinned ? 1 : 0,
+      record.permissionMode,
     );
 }

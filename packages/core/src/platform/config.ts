@@ -66,6 +66,9 @@ export const HubConfig = z.object({
    * operator choice, not a silent default change to how every existing
    * session already behaves. */
   requireStepApprovals: z.boolean().default(false),
+  /** ADR-0033: the permission mode new sessions start in, for every adapter
+   * that offers it (claude: "auto"). "manual" restores asking on the phone. */
+  defaultPermissionMode: z.string().min(1).default("auto"),
   /** T7.2: how long a provider's tool request or question waits for the
    * phone before it is denied (never run on timeout). */
   toolApprovalTimeoutMs: z.number().int().min(10_000).default(10 * 60_000),

@@ -107,7 +107,7 @@ for (const { id, modulePath } of CHECKED) {
 }
 
 // ADR-0018: docs/harness-matrix.md — the per-function matrix, same rule.
-const FEATURE_COLUMNS = ["followUp", "interrupt", "toolGate", "questions", "modelChoice", "agents", "images", "files", "contextFork"];
+const FEATURE_COLUMNS = ["followUp", "interrupt", "toolGate", "questions", "modelChoice", "agents", "images", "files", "contextFork", "modelSwitch", "permissionModes"];
 const matrix = await readFile(join(repoRoot, "docs", "harness-matrix.md"), "utf8");
 const block = matrix.split("<!-- harness-matrix:start -->")[1]?.split("<!-- harness-matrix:end -->")[0] ?? "";
 const featureRows = new Map();
@@ -126,8 +126,9 @@ for (const { id, modulePath, config } of [...CHECKED, ...CHECKED_CONFIGS]) {
   const { createAdapter } = await import(modulePath);
   const f = createAdapter(config).capabilities().features;
   FEATURE_COLUMNS.forEach((key, i) => {
-    const real = key === "toolGate" ? f.toolGate : key === "modelChoice" ? f.modelChoice === "start" : f[key];
-    const claimed = key === "toolGate" ? cells[i] : SYMBOL_TO_BOOL[cells[i]];
+    const text = key === "toolGate" || key === "permissionModes";
+    const real = key === "toolGate" ? f.toolGate : key === "modelChoice" ? f.modelChoice === "start" : key === "permissionModes" ? (f.permissionModes.length ? f.permissionModes.join(", ") : "—") : f[key];
+    const claimed = text ? cells[i] : SYMBOL_TO_BOOL[cells[i]];
     if (claimed !== real) {
       console.error(`FAIL: ${id}.features.${key} = ${real}, but docs/harness-matrix.md says "${cells[i]}"`);
       mismatches++;

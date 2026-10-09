@@ -143,7 +143,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // usage: false — session.usage_checkpoint has no fraction-of-quota +
       // resetsAt (ADR-0004's UsageQuota shape), only cumulative raw
       // counters — R9.7, not guessed into the wrong shape.
-      return { reasoning: false, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native", features: { followUp: true, interrupt: true, toolGate: "bypass", questions: false, modelChoice: "start", skills: false, agents: true, images: false, files: false, contextFork: false } };
+      return { reasoning: false, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native", features: { followUp: true, interrupt: true, toolGate: "bypass", questions: false, modelChoice: "start", modelSwitch: false, permissionModes: [], skills: false, agents: true, images: false, files: false, contextFork: false } };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
@@ -177,6 +177,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           await procs.get(handle.sessionId)?.kill("SIGTERM");
           return { ok: true };
         }
+        case "configure":
+          return { ok: false, detail: "copilot: Modus und Modell lassen sich in dieser Session nicht wechseln" };
         case "resume":
           return { ok: false, detail: "copilot: resume needs a prompt — steer with kind: 'prompt' instead" };
       }

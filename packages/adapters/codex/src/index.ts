@@ -224,7 +224,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           toolGate:
             cfg.sandbox === "danger-full-access" || cfg.extraArgs.includes("--dangerously-bypass-approvals-and-sandbox") ? "bypass" : "sandbox",
           questions: false,
-          modelChoice: "start",
+          modelChoice: "start", modelSwitch: false, permissionModes: [],
           skills: false,
           agents: false,
           images: false,
@@ -287,6 +287,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           await procs.get(handle.sessionId)?.kill("SIGTERM");
           return { ok: true };
         }
+        case "configure":
+          return { ok: false, detail: "codex: Modus und Modell lassen sich in dieser Session nicht wechseln" };
         case "resume":
           // Same honest limitation as the claude adapter: codex exec has
           // no bare "continue without a new prompt" mode either.

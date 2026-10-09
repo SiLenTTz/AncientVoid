@@ -168,7 +168,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // usage: false — no account-level rate-limit/quota signal observed
       // anywhere in the real capture (unlike claude's rate_limit_event);
       // R9.7, not guessed.
-      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native", features: { followUp: true, interrupt: true, toolGate: cfg.extraArgs.includes("--auto") ? "bypass" : "allowlist", questions: false, modelChoice: "start", skills: true, agents: true, images: true, files: true, contextFork: false } };
+      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native", features: { followUp: true, interrupt: true, toolGate: cfg.extraArgs.includes("--auto") ? "bypass" : "allowlist", questions: false, modelChoice: "start", modelSwitch: false, permissionModes: [], skills: true, agents: true, images: true, files: true, contextFork: false } };
     },
 
     /** ADR-0018: `opencode models` lists every model the configured
@@ -228,6 +228,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           await procs.get(handle.sessionId)?.kill("SIGTERM");
           return { ok: true };
         }
+        case "configure":
+          return { ok: false, detail: "opencode: Modus und Modell lassen sich in dieser Session nicht wechseln" };
         case "resume":
           return { ok: false, detail: "opencode: resume needs a prompt — steer with kind: 'prompt' instead" };
       }

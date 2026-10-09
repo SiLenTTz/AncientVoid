@@ -203,7 +203,7 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     expect(spawnedCmds[1]).not.toContain("--agent");
   });
 
-  it("T1.6-6: spec.model appends --model on the initial spawn only, never on a resume", async () => {
+  it("T1.6-6 / ADR-0033: the session's model rides on the first spawn and on every resumed turn", async () => {
     const spawnedCmds: string[][] = [];
     const ctx = makeRecordingContext({
       spawnWorker: async (cmd) => {
@@ -218,9 +218,79 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     expect(spawnedCmds[0]).toContain("opus");
 
     await adapter.steer(handle, { kind: "prompt", text: "follow up" }, ctx);
-    // Same reasoning as --agent: a resumed process already has its model
-    // fixed, never re-added on --resume.
-    expect(spawnedCmds[1]).not.toContain("--model");
+    // Verified live against claude 2.1.288: --model is honoured on --resume.
+    // Dropping it let a resumed turn fall back to the CLI default.
+    expect(spawnedCmds[1]).toContain("--model");
+    expect(spawnedCmds[1]).toContain("opus");
+  });
+
+  describe("ADR-0033 permission mode and model switching", () => {
+    const modeOf = (cmd: string[] | undefined) => cmd?.[cmd.indexOf("--permission-mode") + 1];
+    const harness = () => {
+      const spawned: string[][] = [];
+      const ctx = makeRecordingContext({
+        spawnWorker: async (cmd) => {
+          spawned.push(cmd);
+          return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
+        },
+      });
+      return { spawned, ctx };
+    };
+
+    it("declares its modes and model switching in the features", () => {
+      const features = createAdapter().capabilities().features;
+      expect(features.permissionModes).toEqual(["auto", "manual", "plan", "acceptEdits", "dontAsk", "bypassPermissions"]);
+      expect(features.modelSwitch).toBe(true);
+    });
+
+    it("starts in the requested mode and keeps it on every later turn", async () => {
+      const { spawned, ctx } = harness();
+      const adapter = createAdapter();
+      const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "go", args: { permissionMode: "plan" } }, ctx);
+      await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+      await adapter.steer(handle, { kind: "prompt", text: "weiter" }, ctx);
+      expect(modeOf(spawned[0])).toBe("plan");
+      expect(modeOf(spawned[1])).toBe("plan");
+    });
+
+    it("configure changes mode and model from the next turn on", async () => {
+      const { spawned, ctx } = harness();
+      const adapter = createAdapter();
+      const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "go", model: "haiku", args: { permissionMode: "manual" } }, ctx);
+      await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+      expect((await adapter.steer(handle, { kind: "configure", permissionMode: "auto", model: "sonnet" }, ctx)).ok).toBe(true);
+      await adapter.steer(handle, { kind: "prompt", text: "weiter" }, ctx);
+      expect(modeOf(spawned[1])).toBe("auto");
+      expect(spawned[1]![spawned[1]!.indexOf("--model") + 1]).toBe("sonnet");
+    });
+
+    it("refuses an unknown mode instead of ignoring it", async () => {
+      const { ctx } = harness();
+      const adapter = createAdapter();
+      const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "go" }, ctx);
+      const ack = await adapter.steer(handle, { kind: "configure", permissionMode: "yolo" }, ctx);
+      expect(ack.ok).toBe(false);
+      expect(ack.detail).toContain("yolo");
+    });
+
+    it("the session's mode replaces a --permission-mode an operator put in extraArgs", async () => {
+      const { spawned, ctx } = harness();
+      const adapter = createAdapter({ extraArgs: ["--permission-mode", "manual", "--verbose-extra"] });
+      await adapter.start({ adapter: "claude", project: "/tmp", prompt: "go", args: { permissionMode: "auto" } }, ctx);
+      const cmd = spawned[0]!;
+      expect(cmd.filter((a) => a === "--permission-mode")).toHaveLength(1);
+      expect(modeOf(cmd)).toBe("auto");
+      expect(cmd).toContain("--verbose-extra");
+    });
+
+    it("without any mode it adds no flag (adapter-wide fallback optional)", async () => {
+      const { spawned, ctx } = harness();
+      await createAdapter().start({ adapter: "claude", project: "/tmp", prompt: "go" }, ctx);
+      expect(spawned[0]).not.toContain("--permission-mode");
+      const { spawned: s2, ctx: c2 } = harness();
+      await createAdapter({ permissionMode: "acceptEdits" }).start({ adapter: "claude", project: "/tmp", prompt: "go" }, c2);
+      expect(modeOf(s2[0])).toBe("acceptEdits");
+    });
   });
 
   it("steer(resume) is an honest no, not a fake success", async () => {
