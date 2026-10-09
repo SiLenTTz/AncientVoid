@@ -1,9 +1,10 @@
 import { Fragment } from "preact";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiContext } from "../../shared/api-context.ts";
-import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord } from "../../shared/api.ts";
+import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord, type HarnessFeatures } from "../../shared/api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "../../shared/ws.ts";
 import { Composer } from "../composer/Composer.tsx";
+import { SessionConfigure } from "./SessionConfigure.tsx";
 import type { Page } from "../../app/Dock.tsx";
 import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
@@ -121,6 +122,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   const [leaseHeld, setLeaseHeld] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [archived, setArchived] = useState(session.archived === true);
+  const [features, setFeatures] = useState<HarnessFeatures | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -136,6 +138,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
           // at all rather than one that would silently fail every time.
           setSteerSupported(info?.capabilities.features?.followUp ?? info?.capabilities.steer ?? false);
           setObserverOnly(info?.capabilities.features ? !info.capabilities.features.followUp && !info.capabilities.features.interrupt : false);
+          setFeatures(info?.capabilities.features ?? null);
           setReportNumbersReal(info?.capabilities.cost ?? false);
           setContextWindow(typeof info?.capabilities.contextWindowTokens === "number" ? info.capabilities.contextWindowTokens : null);
         })
@@ -636,6 +639,9 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
           {controlsHidden ? "▴" : "▾"}
         </button>
         <SessionApprovals sessionId={session.id} api={api} />
+        {!controlsHidden && !observerOnly && (
+          <SessionConfigure session={record} features={features} api={api} onChanged={(patch) => setRecord((prev) => ({ ...prev, ...patch }))} />
+        )}
         {!controlsHidden && (showReply || status !== "stopped") && (
           <div class="dock-actions">
             {replyError && (

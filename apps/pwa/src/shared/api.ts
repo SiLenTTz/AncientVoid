@@ -8,6 +8,8 @@ export interface SessionRecord {
   status: string;
   createdAt: string;
   model: string | null;
+  /** ADR-0033: the permission mode the session runs in; absent on older hubs. */
+  permissionMode?: string | null;
   budgetUsd: number | null;
   adapterVersion: string;
   lastSeq: number;
@@ -297,6 +299,10 @@ export interface HarnessFeatures {
   toolGate: ToolGate;
   questions: boolean;
   modelChoice: "start" | "none";
+  /** ADR-0033: model changeable after the start. Absent on older hubs. */
+  modelSwitch?: boolean;
+  /** ADR-0033: selectable permission modes, provider-specific names. */
+  permissionModes?: readonly string[];
   skills: boolean;
   agents: boolean;
   images: boolean;
@@ -467,7 +473,8 @@ export type SteerInput =
   | { kind: "prompt"; text: string; attachmentIds?: string[] }
   | { kind: "stop" }
   | { kind: "park" }
-  | { kind: "resume" };
+  | { kind: "resume" }
+  | { kind: "configure"; model?: string; permissionMode?: string };
 
 export interface Ack {
   ok: boolean;
@@ -751,7 +758,7 @@ function createHubApi(P: (path: string) => string) {
     prompt?: string;
     model?: string;
     budgetUsd?: number | null;
-    args?: { skill?: string; agent?: string };
+    args?: { skill?: string; agent?: string; permissionMode?: string };
     /** Adoption (ADR-0011): continue an externally discovered session. */
     adoptNativeSessionId?: string;
     /** Read-only mirror (ADR-0011 Erweiterung): show an observed opencode

@@ -41,7 +41,7 @@ const emit = (line) => process.stdout.write(`${JSON.stringify(line)}\n`);
 const assistant = (content) =>
   emit({ type: "assistant", message: { model, id: `msg_${randomUUID()}`, type: "message", role: "assistant", content }, session_id: sessionId });
 
-emit({ type: "system", subtype: "init", cwd: process.cwd(), session_id: sessionId, tools: ["Bash", "Read", "Edit"], model, claude_code_version: "2.1.280" });
+emit({ type: "system", subtype: "init", cwd: process.cwd(), session_id: sessionId, tools: ["Bash", "Read", "Edit"], model, permissionMode: flag("--permission-mode") ?? "default", claude_code_version: "2.1.280" });
 await sleep(50);
 
 if (prompt.includes("LANGSAM")) await sleep(60_000);
