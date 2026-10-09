@@ -216,7 +216,8 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const hit = app.locator(".search-result-card").filter({ hasText: "README.md" });
     await expect(hit).toBeVisible({ timeout: 20_000 });
     await hit.click();
-    await expect(app.getByText("Das Handbuch beschreibt den Handoff zwischen PC und Handy.")).toBeVisible();
+    // Der Satz steht auch im Suchtreffer: auf breiten Fenstern bleibt die Trefferliste neben der Datei sichtbar.
+    await expect(app.locator("code", { hasText: "Das Handbuch beschreibt den Handoff zwischen PC und Handy." })).toBeVisible();
   });
 
   test("ein Provider-Absturz bleibt im Verlauf sichtbar", async ({ app, hub }) => {

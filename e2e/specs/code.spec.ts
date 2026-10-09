@@ -27,6 +27,9 @@ test.describe("Code und Aktionen (T7.6, AC-P7-6)", () => {
     await app.getByRole("button", { name: "Suchen" }).click();
     await expect(app.locator(".code-hit").first()).toContainText("tools/check.py:4");
     // New timeline events (here: from an action) must not scroll the search away.
+    // A short window is what the phone actually has once the browser chrome is in;
+    // the desktop-sized Pixel profile still fits the pane and hides the scroll.
+    await app.setViewportSize({ width: 390, height: 480 });
     await app.locator(".action-row").filter({ hasText: "Letzte Commits" }).getByRole("button", { name: "Ausführen" }).click();
     await expect(app.locator(".action-run .action-status").first()).toHaveText("erfolgreich");
     await expect.poll(async () => (await hub.events(id)).filter((e) => e.type === "tool_result").length).toBeGreaterThan(0);

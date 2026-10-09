@@ -77,5 +77,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0051](bug-0051-gatekeeper-wertet-heredoc-inhalt-als-befehl.md) | Gatekeeper wertet den Inhalt eines Here-Documents als Befehl | done | S2 | core | — |
 | [BUG-0052](bug-0052-e2e-zufallsport-kollidiert.md) | E2E: Zufallsport der Stand-in-Server kollidiert mit fremden Prozessen | done | S3 | e2e | — |
 | [BUG-0053](bug-0053-dock-im-querformat-zu-hoch.md) | Im Querformat füllt das Dock fast den Bildschirm, der Verlauf ragt darunter | done | S2 | pwa | — |
+| [BUG-0054](bug-0054-token-gate-bleibt-trotz-token.md) | Die Übersicht öffnet nicht, obwohl das Token schon im Feld steht | done | S3 | pwa | [#12](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/12) |
+| [BUG-0055](bug-0055-handy-devtools-bricht-im-lauf-ab.md) | Die DevTools-Verbindung zum Handy-Chrome bricht mitten im Lauf ab | done | S3 | e2e | [#13](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/13) |
+| [BUG-0056](bug-0056-code-suche-nicht-im-viewport.md) | „Code durchsuchen“ liegt nach einer Aktion nicht mehr im Bild | done | S3 | pwa | [#14](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/14) |
 
-Die nächste freie Nummer ist **0054**.
+Die nächste freie Nummer ist **0057**.

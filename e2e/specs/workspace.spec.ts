@@ -1,4 +1,5 @@
 import { test, expect, statusPill } from "../support/fixtures.ts";
+import { phone } from "../support/phone.ts";
 
 test.describe("Archiv (P5 §9)", () => {
   test("Archivieren nimmt die Session aus der Übersicht, der Archiv-Chip holt sie zurück @desktop", async ({ app, hub }) => {
@@ -192,6 +193,8 @@ test.describe("Composer: Verbessern, Empfehlung, Skills (T3.9, T5.7–T5.10)", (
 });
 
 test.describe("Sprache (T1.5, T3.10)", () => {
+  // Das Voice-Sheet fragt das Mikrofon an; auf dem echten Handy öffnet das einen Berechtigungsdialog, den kein Test beantworten soll.
+  test.skip(phone.active, "Mikrofon-Dialog: auf dem Handy nicht automatisierbar");
   test.beforeEach(async ({ page }) => {
     // Chromium headless has no speech service; this stands in for the
     // browser's recognizer with the same event shape.
@@ -267,6 +270,8 @@ test.describe("Sprache (T1.5, T3.10)", () => {
 });
 
 test.describe("Offline (K10, T8.2)", () => {
+  // Die Handy-Läufe blockieren den Service Worker (wie `serviceWorkers: "block"`); der Offline-Stand kommt aus genau diesem Worker.
+  test.skip(phone.active, "braucht den Service Worker, den die Handy-Läufe blockieren");
   test.use({ serviceWorkers: "allow" });
 
   test("BUG-0015/AC-P8-2: offline neu laden zeigt den letzten Stand mit seiner Zeit, keine Token-Eingabe, keine Mutation", async ({ app, hub }) => {

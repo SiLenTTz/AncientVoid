@@ -34,7 +34,8 @@
     "prepare": "node scripts/setup-git.mjs",
     "hubctl": "node apps/hubctl/src/cli.ts",
     "gate": "npm run typecheck && npm run lint && npm run check:commits && npm run check:arch && npm run check:adapter-matrix && npm test && npm run test:e2e",
-    "test:live": "scripts/test-live.sh"
+    "test:live": "scripts/test-live.sh",
+    "test:phone": "node scripts/phone-e2e.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

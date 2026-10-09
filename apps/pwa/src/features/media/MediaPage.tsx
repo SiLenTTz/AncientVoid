@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { hubApi, type MediaInfo, type MediaJob, type MediaResult, type SessionRecord } from "../../shared/api.ts";
+import { hubApi, remoteHost, type MediaInfo, type MediaJob, type MediaResult, type SessionRecord } from "../../shared/api.ts";
 import { formatTimestamp, handOver, MEDIA_STEP_LABELS, MEDIA_STEPS, timestampLink } from "../../shared/media.ts";
 import { pageHash, sessionHash } from "../../app/route.ts";
 
@@ -74,7 +74,9 @@ function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaRes
       {formatTimestamp(ms)}
     </button>
   );
-  const local = sessions.filter((s) => !s.hostId || s.hostId === "local" || !s.hostId.includes("-"));
+  // Ein Bindestrich im Hostnamen (CI-Runner) ist kein fremder Host. Fremd ist,
+  // was nicht dieser Hub ist — dieselbe Regel wie remoteHost().
+  const local = sessions.filter((s) => remoteHost(s.hostId) === null);
   return (
     <div class="media-result">
       <div class="media-use card">

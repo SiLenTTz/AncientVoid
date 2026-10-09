@@ -18,9 +18,15 @@ import "./styles/index.css";
 applyTheme(getTheme());
 applyPinchZoom(pinchZoomAllowed());
 
-function TokenGate({ onReady }: { onReady: () => void }) {
+function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: string }) {
   const [token, setVal] = useState(getToken());
   const [error, setError] = useState("");
+  // BUG-0054: the automatic check fails after the first paint. Without this,
+  // a stored token that the hub rejects leaves a filled field and "Verbinden"
+  // and no reason.
+  useEffect(() => {
+    if (rejected) setError(rejected);
+  }, [rejected]);
   const [checking, setChecking] = useState(false);
   // Real find: a hidden, case-sensitive, hyphen-containing token typed on a
   // phone keyboard is exactly the kind of input mobile autocorrect/
@@ -99,6 +105,7 @@ function useWide(): boolean {
 
 function Main() {
   const [ready, setReady] = useState(false);
+  const [gateError, setGateError] = useState("");
   // EPIC-P6: know this hub's host id before any session opens, so its own
   // sessions keep short links and direct calls.
   const becomeReady = () => {
@@ -134,7 +141,11 @@ function Main() {
       })
       .catch((err) => {
         if (getToken() && !isAuthError(err)) void becomeReady();
-        else setReady(false);
+        else {
+          setReady(false);
+          // BUG-0054: a rejected stored token used to leave the gate silent.
+          if (getToken()) setGateError(err instanceof Error ? err.message : "Anmeldung abgelehnt");
+        }
       });
   }, []);
 
@@ -173,7 +184,7 @@ function Main() {
   const [staleAt, setStaleAt] = useState<Date | null>(null);
   const wide = useWide();
 
-  if (!ready) return <TokenGate onReady={() => void becomeReady()} />;
+  if (!ready) return <TokenGate onReady={() => void becomeReady()} rejected={gateError} />;
 
   return (
     <>

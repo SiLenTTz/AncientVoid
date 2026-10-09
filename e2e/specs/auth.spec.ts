@@ -7,6 +7,14 @@ test.describe("Anmeldung per Geräte-Token (BUG-0006, AC-P4.5-4)", () => {
     await expect(page.getByLabel("Device-Token")).toBeVisible();
   });
 
+  test("BUG-0054: ein gespeichertes falsches Token nennt den Grund, statt stumm zu bleiben", async ({ page, hub }) => {
+    await page.addInitScript(() => localStorage.setItem("uacc.token", "alt-und-falsch"));
+    await page.goto(hub.origin);
+    await expect(page.getByRole("heading", { name: "UACC Hub" })).toBeVisible();
+    await expect(page.getByText(/401|unauthori[sz]ed|token/i).last()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "UACC", exact: true })).toHaveCount(0);
+  });
+
   test("ein falsches Token wird abgelehnt und die Eingabe bleibt", async ({ page, hub }) => {
     await page.goto(hub.origin);
     await page.getByLabel("Device-Token").fill("falsches-token");

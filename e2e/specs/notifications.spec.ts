@@ -7,7 +7,8 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     await expect(toast).toBeVisible();
     await expect(toast).toContainText("wieder frei ab 2026-09-23 15:00:00");
     const box = (await toast.boundingBox())!;
-    const width = app.viewportSize()!.width;
+    // Nach clearDeviceMetricsOverride kennt Playwright die Fläche nicht (T16.6).
+    const width = app.viewportSize()?.width ?? (await app.evaluate(() => window.innerWidth));
     expect(box.y).toBeLessThan(160);
     // T8.5: on the desktop split the messages live in the list column.
     if ((await app.locator(".split").count()) > 0) expect(box.x + box.width).toBeLessThanOrEqual((await app.locator(".split-list").boundingBox())!.width + 40);

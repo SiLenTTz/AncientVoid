@@ -255,9 +255,11 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
     if (stickRef.current) tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
   }, [events, activeTab, filter]);
   // BUG-0044: ändert sich die Höhe (Dock ein-/ausgeblendet), bleibt der Fuß sichtbar.
+  // BUG-0056: nicht auf Code/Suche/Bericht — dort schiebt „nach unten“ das Suchfeld aus dem Bild.
   useLayoutEffect(() => {
+    if (activeTab !== "chat" && activeTab !== "verlauf") return;
     if (stickRef.current) tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
-  }, [tailMaxHeight]);
+  }, [tailMaxHeight, activeTab]);
 
   useEffect(() => {
     const measure = () => {
@@ -672,6 +674,14 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
         >
           {controlsHidden ? "▴" : "▾"}
         </button>
+        {controlsHidden && observerOnly && status !== "stopped" && (
+          <div class="composer-actions">
+            <span class="observer-note">nur beobachten — der Harness läuft außerhalb des Hubs</span>
+            <button class="btn" type="button" onClick={() => void stop()}>
+              Beobachtung beenden
+            </button>
+          </div>
+        )}
         <SessionApprovals sessionId={session.id} api={api} />
         {!controlsHidden && !observerOnly && (
           <SessionConfigure session={record} features={features} api={api} onChanged={(patch) => setRecord((prev) => ({ ...prev, ...patch }))} />

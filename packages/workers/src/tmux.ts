@@ -369,16 +369,17 @@ export class TmuxRunner implements WorkerRunner {
   }
 
   async list(): Promise<WorkerInfo[]> {
+    // tmux 3.5 ersetzt Steuerzeichen in -F (auch Tab) durch "_", dann bleibt eine Spalte übrig.
     const res = await execTmux([
       "list-sessions",
       "-F",
-      "#{session_name}\t#{pane_pid}\t#{session_created}\t#{@uacc_owner}",
+      "#{session_name}|#{pane_pid}|#{session_created}|#{@uacc_owner}",
     ]).catch(() => null);
     if (!res || res.code !== 0) return [];
     return res.stdout
       .trim()
       .split("\n")
-      .map((l) => l.split("\t"))
+      .map((l) => l.split("|"))
       .filter(([name, , , owner]) => name?.startsWith(TMUX_PREFIX) && owner === this.owner)
       .map(([name, pid, created]) => {
         const pidNum = pid ? Number(pid) : NaN;

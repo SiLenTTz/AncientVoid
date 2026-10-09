@@ -74,6 +74,39 @@ npm run gate                        # typecheck + lint + vitest + E2E
 
 Fehlt Chromium, scheitert der Lauf laut. Es gibt kein stilles Überspringen.
 
+## Auf dem echten Handy (`npm run test:phone`)
+
+Dieselben Specs laufen im Chrome eines per `adb` verbundenen Android-Handys (Projekt `phone`). Der Test-Hub
+bleibt auf dem PC (nie dein Hub, nie deine Sessions); sein Port erscheint per `adb reverse` auf dem Handy als
+`http://127.0.0.1:PORT`. Jeder Test öffnet einen eigenen Tab und schließt ihn wieder, bestehende Tabs bleiben
+unberührt.
+
+```bash
+npm run test:phone                       # alle Specs der Liste PHONE_SPECS (playwright.config.ts)
+npm run test:phone -- e2e/specs/steer.spec.ts
+npm run test:phone -- --portrait         # stellt die Drehung nur für den Lauf auf Hochformat und danach zurück
+```
+
+Voraussetzungen: USB-Debugging oder drahtloses Debugging an, `adb devices` zeigt das Handy, Bildschirm an und
+entsperrt (das Skript entsperrt nichts), Chrome installiert. **Hochformat:** im Querformat hat die Seite nur
+~450 px Höhe; das Skript bricht dann ab, außer mit `--portrait`. Stirbt die DevTools-Verbindung mitten im Lauf
+oder dreht das Gerät ins Querformat, endet der Lauf sofort (BUG-0055), statt jeden weiteren Test 15 s warten zu lassen. Bei mehreren Browsern auf dem Handy steuert es
+ausschließlich den Socket, dessen `Android-Package` wirklich `com.android.chrome` ist (der Socket
+`chrome_devtools_remote` ohne Zahl gehört oft Brave oder Edge). Das Skript ändert keine Handy-Einstellungen
+(außer `--portrait`, danach wiederhergestellt) und installiert nichts.
+
+Was auf dem Handy anders ist (und warum die Fixture es ausgleicht, `e2e/support/phone.ts`):
+
+| Eigenheit | Ausgleich |
+|---|---|
+| Playwright setzt neuen Tabs ein Desktop-Fenster (1280×720) auf | `Emulation.clearDeviceMetricsOverride`; echte Größe z. B. 448×875 CSS-px, Pixeldichte 3 |
+| Offene Bildschirmtastatur verschiebt die sichtbare Fläche (≈ 350 px); Klickkoordinaten liegen daneben | vor Klicks wird eine offene Tastatur per Zurück-Taste geschlossen (gemessen: bei geschlossener Tastatur trifft derselbe Klick) |
+| Service Worker liefern nach einem Hub-Stopp den letzten Stand | `Network.setBypassServiceWorker` (wie `serviceWorkers: "block"` der anderen Projekte) |
+
+Nicht auf dem Handy (sichtbar übersprungen oder nicht in der Liste): Mikrofon-Tests (Berechtigungsdialog),
+Offline-Test (Service Worker), Kamera/QR, Push, zweiter Hub oder zweiter Browserkontext, Querformat-Spec
+(ändert die Fenstergröße).
+
 ## Einen Test ergänzen
 
 1. Spec im passenden Bereich anlegen oder erweitern. Titel auf Deutsch,
