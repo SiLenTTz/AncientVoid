@@ -11,10 +11,18 @@ export function PcOpenNotice({ sessionId, api }: { sessionId: string; api: HubAp
   const [pc, setPc] = useState<PcState>({ open: false });
   useEffect(() => {
     let alive = true;
+    let closedInARow = 0;
     const load = () =>
       api
         .sessionPc(sessionId)
-        .then((state) => alive && setPc((prev) => (prev.open === state.open && prev.name === state.name && prev.kind === state.kind ? prev : state)))
+        .then((state) => {
+          if (!alive) return;
+          // BUG-0049: "closed" has to hold for three reads before the notice goes — one empty read
+          // (a slow `claude agents`) must not make it blink and push the layout.
+          closedInARow = state.open ? 0 : closedInARow + 1;
+          if (!state.open && closedInARow < 3) return;
+          setPc((prev) => (prev.open === state.open && prev.name === state.name && prev.kind === state.kind ? prev : state));
+        })
         .catch(() => undefined); // ein Fehlschlag lässt den Hinweis stehen (BUG-0045)
     void load();
     const timer = setInterval(load, 10_000);

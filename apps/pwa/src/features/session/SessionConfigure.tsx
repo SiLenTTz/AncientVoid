@@ -37,8 +37,8 @@ export function SessionConfigure({
     let alive = true;
     api
       .adapterModels(session.adapter)
-      .then((res) => alive && setModels(res.models ?? []))
-      .catch(() => alive && setModels([]));
+      .then((res) => alive && setModels((prev) => (res.models && res.models.length > 0 ? res.models : prev)))
+      .catch(() => undefined); // BUG-0049: a failed read keeps the list — the select must not turn into plain text and back
     return () => {
       alive = false;
     };

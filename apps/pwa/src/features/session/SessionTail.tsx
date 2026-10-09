@@ -456,6 +456,12 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   // T1.6-3/AC-P1.6-2: no back-arrow up top anymore — "Übersicht" in the
   // dock below is the one way back, reachable from anywhere with one tap.
   const showReply = steerSupported;
+  // BUG-0049: "saving" is a moment between two saves, not a state worth a message — keep showing the last
+  // settled one, otherwise the line folds away and back at every pause while typing and pushes the dock.
+  const settledDraft = useRef<"saved" | "local" | null>(null);
+  if (draft.state === "saved" || draft.state === "local") settledDraft.current = draft.state;
+  else if (draft.state === "idle") settledDraft.current = null;
+  const draftShown = settledDraft.current;
   const modelLabel =
     session.model ??
     [...events].reverse().find((event) => (event.payload as { kind?: unknown }).kind === "opencode.model" || (event.payload as { kind?: unknown }).kind === "acp.model")?.payload.model;
@@ -695,8 +701,8 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                 </div>
               </div>
             )}
-            {showReply && (draft.state === "saved" || draft.state === "local") && (reply || replyAttachments.length > 0) && (
-              <div class={`draft-state dim ${draft.state}`}>{draft.state === "saved" ? "Entwurf gespeichert — auch auf deinen anderen Geräten" : "Entwurf nur auf diesem Gerät (Hub nicht erreichbar)"}</div>
+            {showReply && draftShown && (reply || replyAttachments.length > 0) && (
+              <div class={`draft-state dim ${draftShown}`}>{draftShown === "saved" ? "Entwurf gespeichert — auch auf deinen anderen Geräten" : "Entwurf nur auf diesem Gerät (Hub nicht erreichbar)"}</div>
             )}
             {showReply && <PcOpenNotice sessionId={session.id} api={api} />}
             {showReply && <QueueList sessionId={session.id} api={api} refreshKey={queueTick} />}
