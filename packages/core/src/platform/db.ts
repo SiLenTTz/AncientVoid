@@ -345,6 +345,14 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX session_queue_session ON session_queue (session_id, created_at);
     `,
   },
+  {
+    id: 24,
+    name: "session-title-source",
+    // EPIC-P15 T15.5: auto | ai | manual — a person's rename is never overwritten.
+    sql: `
+      ALTER TABLE sessions ADD COLUMN title_source TEXT NOT NULL DEFAULT 'auto';
+    `,
+  },
 ];
 
 export class HubDatabase {

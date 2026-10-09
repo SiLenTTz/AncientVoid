@@ -171,6 +171,7 @@ async function main(): Promise<void> {
   const assistantCfg = config.assistant.model ?? gk.model;
   const assistantKey = assistantCfg?.apiKeyFile ? (await readFile(resolve(assistantCfg.apiKeyFile.replace(/^~(?=\/)/, homedir())), "utf8").catch(() => "")).split("\n")[0]?.trim() : undefined;
   const assistantModel = assistantCfg ? { url: assistantCfg.url, model: assistantCfg.model, ...(assistantKey ? { apiKey: assistantKey } : {}) } : undefined;
+  sessions.enableAiTitles(assistantModel);
   sessions.enableToolPermissions({
     approvals,
     timeoutMs: config.toolApprovalTimeoutMs,

@@ -115,6 +115,10 @@ export const SessionRecord = z.object({
   /** First line of the start prompt, for the overview. Null when the
    * session started without one (or before titles existed). */
   title: z.string().nullable().default(null),
+  /** EPIC-P15 T15.5: where the title comes from — `auto` (first words of the
+   * prompt), `ai` (short title from the assistant model), `manual` (renamed by
+   * the person; never overwritten). */
+  titleSource: z.enum(["auto", "ai", "manual"]).default("auto"),
   /** T8.1: the last understandable thing that happened — what the card
    * shows instead of an event number. */
   lastActivity: z.object({ text: z.string().max(160), type: z.string(), at: z.string() }).nullable().default(null),
