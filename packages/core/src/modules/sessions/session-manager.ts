@@ -1334,6 +1334,7 @@ export class SessionManager {
     }
 
     await this.flow.reconcile();
+    for (const live of this.live.values()) await this.healWaitingApproval(live, true);
     for (const sessionId of this.queue.sessionsWithEntries()) this.scheduleDrain(sessionId);
     const reaped = await this.runner.reapOrphans(keepWorkers).catch(() => []);
     const elapsed = performance.now() - t0;
@@ -1522,6 +1523,10 @@ export class SessionManager {
     }
     this.recordNotifications(session, enforced);
     this.maybeTitleWithModel(session, enforced);
+    // BUG-0048: the provider moved on — "Freigabe nötig" without an open request is stale.
+    if (session.record.status === "waiting_approval" && enforced.some((e) => ["assistant", "tool_use", "tool_result", "thinking"].includes(e.type))) {
+      void this.healWaitingApproval(session, false).catch((err) => this.logger.warn("waiting_approval heal failed", { sessionId: session.record.id, err: err instanceof Error ? err.message : String(err) }));
+    }
     // T2.7: after this event's own subscriber notification, not before —
     // checkBudget/checkDailyCap recurse back into this method for their
     // own park/warning events, which must reach subscribers in their real
@@ -1533,6 +1538,19 @@ export class SessionManager {
       await this.budget.check(session);
       await this.budget.checkDailyCap();
     }
+  }
+
+  /**
+   * BUG-0048: "waiting_approval" is only true while a tool request is open. A hub restart in the
+   * middle of one (the bridge's answer never arrived) or a request that timed out meanwhile left
+   * it standing — the overview then showed "Braucht dich" with nothing to decide.
+   */
+  private async healWaitingApproval(session: LiveSession, afterRestart: boolean): Promise<void> {
+    if (session.record.status !== "waiting_approval") return;
+    if (this.operationStore.list(["pending"], session.record.id).some((o) => o.kind === "tool.permission")) return;
+    // After a restart no turn is known to be running unless the worker was adopted.
+    const idle = afterRestart && (session.adopted === false || !session.handle);
+    await this.setStatus(session, idle ? "idle" : "working");
   }
 
   /** EPIC-P15 T15.5: model for short AI titles. Absent: titles come from the prompt only. */
