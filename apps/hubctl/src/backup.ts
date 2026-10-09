@@ -157,7 +157,8 @@ async function assertNoActiveWorkers(dataDir: string): Promise<void> {
     });
     child.once("close", (code) => resolvePromise({ code, stdout, stderr }));
   });
-  if (result.code !== 0 && !/no server running|can't connect to server/i.test(result.stderr)) {
+  // tmux 3.5, wenn das Socket-Verzeichnis noch nie angelegt wurde: „error connecting … (No such file or directory)“.
+  if (result.code !== 0 && !/no server running|can't connect to server|no such file or directory/i.test(result.stderr)) {
     throw new Error(`tmux-Worker-Status nicht prüfbar; Backup abgebrochen: ${result.stderr.trim()}`);
   }
   if (result.stdout.split("\n").some((line) => {
