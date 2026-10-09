@@ -45,7 +45,7 @@ ohne ADR bei späterer Implementierung. Schätzungen ohne G0-Restarbeit.
 | [P12 — Betriebsreife](EPIC-P12-operational-readiness.md) | Verschlüsseltes Produktivbackup + isolierter Restore belegt; Code und Doku gemergt (!112–!115); **offen: externe Geräte-/Provider-Abnahmen** (T12.1–T12.5, T12.7, T12.8, T12.10, T12.12) | P11 abgeschlossen mit Restnachweisen | 1–2 |
 | [P13 — Hermes-Adapter](EPIC-P13-hermes-adapter.md) | Hermes Agent als CLI-Adapter (Spawn/Resume/Events, live verifiziert 03.10.2026) — **abgeschlossen 2026-10-03** (Ralph-Loop) | P3-Adaptermuster | 1 |
 | [P14 — Session-Worktree-Hygiene](EPIC-P14-session-worktree-hygiene.md) | Archivieren räumt saubere Worktrees auf, `hubctl worktrees [prune]` — **abgeschlossen 2026-10-08** (produktiver `prune --apply` steht aus) | keine fachliche (BUG-0027 behoben) | 0,5 |
-| [P15 — Session-Steuerung](EPIC-P15-session-steuerung.md) | Modus/Modell wählen, Pause, Queue, Sync Handy↔PC, klare Titel — **in Arbeit** (T15.1: ADR-0033) | keine offene | 1–2 |
+| [P15 — Session-Steuerung](EPIC-P15-session-steuerung.md) | Modus/Modell wählen, Pause, Queue, Sync Handy↔PC, klare Titel — **Code abgeschlossen 2026-10-09** (ADR-0033/0034/0035; Live-Sync am PC offen, Entscheidung bei Jan) | keine offene | 1–2 |
 
 „Alle / 100 %“ bezieht sich auf die Pflichtmatrix aus Audit §4. Eine unbekannte
 oder technisch blockierte Fähigkeit verhindert diesen Claim; Monitor-only und
