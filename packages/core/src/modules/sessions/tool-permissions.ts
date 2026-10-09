@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { EmittedEvent, SessionStatus, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, ToolQuestion } from "@uacc/contracts";
 import { QUESTION_TOOLS, requiresPasskey, ToolQuestion as ToolQuestionSchema, type ToolAssessment } from "@uacc/contracts";
 import type { ApprovalService, OperationStore } from "../approvals/index.ts";
@@ -12,6 +13,9 @@ export interface ToolGate {
   bridge?: (sessionId: string) => Promise<{ mcpConfigPath: string; toolName: string }>;
   /** T7.9: labels each tool request before it is shown; never decides. */
   gatekeeper?: { assess(toolName: string, input: Record<string, unknown>, workdir: string | null): Promise<ToolAssessment> };
+  /** Hub setting `toolApprovals: "auto"`: every tool request is allowed at once and left as an
+   * event in the history. Questions to the person (AskUserQuestion) still wait for an answer. */
+  autoApprove?: boolean;
 }
 
 /** What tool permissions may do with a session — nothing more (ADR-0020). */
@@ -50,6 +54,8 @@ export class ToolPermissions {
   private readonly host: ToolPermissionHost;
   private readonly operations: OperationStore;
   private readonly gate: ToolGate;
+  /** Inputs of auto-approved requests, handed back on the next poll. Small and short-lived. */
+  private readonly autoInputs = new Map<string, Record<string, unknown>>();
   /** A request being labelled — a retried one waits for the same approval. */
   private readonly inFlight = new Map<string, Promise<{ ok: true; id: string } | { ok: false; detail: string }>>();
 
@@ -65,6 +71,7 @@ export class ToolPermissions {
 
   /** A provider asks before running a tool. Idempotent per tool-use id. */
   async request(sessionId: string, req: ToolPermissionRequest): Promise<{ ok: true; id: string } | { ok: false; detail: string }> {
+    if (this.gate.autoApprove && !(QUESTION_TOOLS as readonly string[]).includes(req.toolName)) return this.autoApprove(sessionId, req);
     const key = req.toolUseId ? `${sessionId}:${req.toolUseId}` : null;
     const running = key ? this.inFlight.get(key) : undefined;
     if (running) return running;
@@ -74,6 +81,22 @@ export class ToolPermissions {
       void job.finally(() => this.inFlight.delete(key));
     }
     return job;
+  }
+
+  private async autoApprove(sessionId: string, req: ToolPermissionRequest): Promise<{ ok: true; id: string } | { ok: false; detail: string }> {
+    const session = this.host.session(sessionId);
+    if (!session) return { ok: false, detail: "session not live" };
+    const id = `auto:${randomUUID()}`;
+    this.autoInputs.set(id, req.input);
+    if (this.autoInputs.size > 500) this.autoInputs.delete(this.autoInputs.keys().next().value as string);
+    await this.host.emitEvents(session, [
+      {
+        type: "gate",
+        summary: `Automatisch erlaubt — ${req.toolName}: ${describeToolInput(req.input)}`.slice(0, 200),
+        payload: { kind: "tool.auto_approved", toolName: req.toolName },
+      },
+    ]);
+    return { ok: true, id };
   }
 
   private async create(sessionId: string, req: ToolPermissionRequest): Promise<{ ok: true; id: string } | { ok: false; detail: string }> {
@@ -124,6 +147,10 @@ export class ToolPermissions {
    * retried) get the same answer.
    */
   async poll(sessionId: string, id: string): Promise<ToolPermissionPoll | undefined> {
+    if (id.startsWith("auto:")) {
+      const input = this.autoInputs.get(id);
+      return input ? { state: "answered", id, answer: { behavior: "allow", updatedInput: input } } : undefined;
+    }
     const op = this.operations.get(id);
     if (!op || op.sessionId !== sessionId || op.kind !== "tool.permission") return undefined;
     const decision = this.gate.approvals.get(id);

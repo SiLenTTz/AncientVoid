@@ -44,6 +44,15 @@ exponiert `session.create`/`stop`/`park` deshalb bewusst nicht (siehe
 dessen `operations.ts`), um diese Lücke nicht über eine neue Oberfläche
 zu vergrößern.
 
+### Automatische Freigabe (`toolApprovals: "auto"`)
+
+Auf Wunsch des Betreibers (2026-10-09) kann der Hub Tool-Anfragen der Provider ohne Rückfrage erlauben.
+Der Gatekeeper (T7.9) und die Klasse `destructive` mit Passkey greifen dann für Tool-Anfragen nicht mehr;
+**jede** so erlaubte Anfrage steht trotzdem als Event `tool.auto_approved` im Verlauf (Audit). Nicht erfasst
+sind Rückfragen an die Person und Aktionen am Hub selbst. Der Standard bleibt `"ask"`. Das Risiko ist bewusst:
+ein Agent kann auf diesem Rechner alles tun, was sein Benutzer darf. Es gilt nur in Verbindung mit dem
+Tailscale-Netz als Vertrauensgrenze (Abschnitt 1).
+
 ### 3. Befehls-Allowlist — nie freie Shell vom Handy
 
 Kein Route-Handler in `apps/hub/src/modules/*/*.routes.ts` reicht
