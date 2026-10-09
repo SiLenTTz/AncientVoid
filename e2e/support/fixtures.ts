@@ -1,6 +1,7 @@
 import { test as base, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { TestHub, type HubOptions } from "./hub.ts";
+import { openPhoneTab, phone } from "./phone.ts";
 
 export { expect };
 
@@ -28,11 +29,18 @@ export const test = base.extend<Fixtures>({
 
   // Every test fails on an uncaught exception in the PWA — a crash that
   // happens to leave the asserted text on screen is still a crash.
-  page: async ({ page }, use) => {
+  page: async ({ page, hub }, use) => {
+    // Mit UACC_E2E_CDP (scripts/phone-e2e.mjs) ist der Browser das echte Handy statt des Playwright-Browsers.
+    const tab = phone.active ? await openPhoneTab(hub.port) : null;
+    const target = tab ? tab.page : page;
     const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
-    await use(page);
-    expect(errors, "uncaught PWA exceptions").toEqual([]);
+    target.on("pageerror", (err) => errors.push(err.message));
+    try {
+      await use(target);
+      expect(errors, "uncaught PWA exceptions").toEqual([]);
+    } finally {
+      await tab?.close();
+    }
   },
 
   app: async ({ page, hub }, use) => {
