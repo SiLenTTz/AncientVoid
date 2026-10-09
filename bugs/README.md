@@ -73,5 +73,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0047](bug-0047-pc-tippen-leert-text-vor-dem-ergebnis.md) | „Am PC eintippen“ leert den Text, bevor der PC getippt hat | done | S3 | pwa | — |
 | [BUG-0048](bug-0048-freigabe-noetig-haengt-nach-neustart.md) | „Freigabe nötig“ bleibt stehen, obwohl nichts zu entscheiden ist | done | S2 | core | — |
 | [BUG-0049](bug-0049-meldung-flackert-beim-tippen.md) | Eine Meldung flackert auf (Entwurf-Zeile, Hub-Hinweise, „Am PC offen“) | done | S3 | pwa, core | — |
+| [BUG-0050](bug-0050-recovery-nacheinander-statt-parallel.md) | Hub-Recovery braucht 12–14 s statt unter 3 s (K7) | done | S2 | core | — |
 
-Die nächste freie Nummer ist **0050**.
+Die nächste freie Nummer ist **0051**.

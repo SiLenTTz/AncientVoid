@@ -40,6 +40,23 @@ export interface AdapterUsageSnapshot {
   observedAt: string;
 }
 
+/** BUG-0050: how many sessions are recovered at the same time. */
+const RECOVERY_CONCURRENCY = 6;
+
+/** Runs `fn` over `items` with at most `limit` in flight; results keep the input order. */
+async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await fn(items[index]!);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
 /**
  * Session lifecycle manager.
  *
@@ -1244,18 +1261,17 @@ export class SessionManager {
     let failed = 0;
     let uncontrolled = 0;
 
-    for (const record of persisted) {
+    type Outcome = "recovered" | "failed" | "uncontrolled";
+    const recoverOne = async (record: SessionRecord): Promise<Outcome> => {
       if (record.status === "stopped") {
         // Loaded when opened (openStopped), so recovery time does not grow
         // with the history of finished runs.
-        recovered++;
-        continue;
+        return "recovered";
       }
       if (record.controlMode === "mirror") {
         // A mirror is a read-only view with no adapter of its own — nothing
         // to recover, it refreshes from opencode's store when opened.
-        recovered++;
-        continue;
+        return "recovered";
       }
       const events = await this.store.replay(record.id);
       const lastSeq = events.length > 0 ? events[events.length - 1]!.seq : 0;
@@ -1290,8 +1306,7 @@ export class SessionManager {
         await this.emitSystem(session, "session.recovery_failed", {
           reason: `adapter "${record.adapter}" not registered`,
         });
-        failed++;
-        continue;
+        return "failed";
       }
       try {
         if (registered.adapter.recover) {
@@ -1315,22 +1330,29 @@ export class SessionManager {
             lastSeq,
             controllable: false,
           });
-          uncontrolled++;
-          continue;
+          return "uncontrolled";
         }
         await this.emitSystem(session, "session.recovered", {
           events: events.length,
           lastSeq,
           controllable: true,
         });
-        recovered++;
+        return "recovered";
       } catch (err) {
         await this.setStatus(session, "error");
         await this.emitSystem(session, "session.recovery_failed", {
           reason: err instanceof Error ? err.message : String(err),
         });
-        failed++;
+        return "failed";
       }
+    };
+    // BUG-0050: sessions are independent and `adapter.recover` mostly waits for a process or a
+    // handshake — one after the other that was 12–14 s for 25 sessions (K7: < 3 s).
+    const outcomes = await mapLimit(persisted, RECOVERY_CONCURRENCY, recoverOne);
+    for (const outcome of outcomes) {
+      if (outcome === "recovered") recovered++;
+      else if (outcome === "failed") failed++;
+      else uncontrolled++;
     }
 
     await this.flow.reconcile();
