@@ -149,3 +149,13 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* EPIC-P15 T15.4: Hinweis, dass die Session am PC offen ist. */
+.pc-open-notice {
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.pc-open-notice code {
+  word-break: break-all;
+}

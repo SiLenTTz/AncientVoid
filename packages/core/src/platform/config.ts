@@ -172,10 +172,12 @@ export const HubConfig = z.object({
   discovery: z
     .object({
       claudeDir: z.string().min(1).optional(),
+      /** EPIC-P15 T15.4: the claude CLI whose `agents --json` says what is open at the PC. */
+      claudeCommand: z.string().min(1).default("claude"),
       cursorUserDir: z.string().min(1).optional(),
       opencodeDataDir: z.string().min(1).optional(),
     })
-    .default({}),
+    .prefault({}),
 });
 export type HubConfig = z.infer<typeof HubConfig>;
 

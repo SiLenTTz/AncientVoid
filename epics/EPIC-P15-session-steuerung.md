@@ -44,7 +44,7 @@ Zeit-Retention für Sessions.
 - [x] **T15.1 — Modus-/Modell-Contract, Claude, Hub-Default `auto`.** ADR-0033, `configure`-Steer, Feature-Gate, Migration 22, `session.configured`, Claude `--permission-mode`/`--model` bei jedem Spawn. K7.
 - [x] **T15.2 — Oberfläche für Modus und Modell.** Knöpfe in der Session-Steuerung; Auswahl nur aus dem, was der Adapter meldet; Modus bei „Neue Session“. K10 (mobil bedienbar).
 - [x] **T15.3 — Pause-/Stop-Knopf und Queue.** „Pause“ (sichtbar, wenn der Adapter anhalten kann) setzt über `park` den Status auf pausiert — ein bloßer Adapter-Steer ließ ihn vorher auf „working“; ein Prompt danach setzt ihn wieder auf working (war ebenfalls nie verdrahtet). „Vormerken“ legt einen Prompt in die persistente Hub-Queue (Migration 23, `session_queue`), sie wird am Zugende der Reihe nach gesendet, ist streichbar und überlebt einen Neustart; Stop leert sie. „Senden“ geht wie bisher sofort (Codex/ACP nehmen Zwischenrufe direkt). K7.
-- [ ] **T15.4 — Sync Handy ↔ PC.** Eingaben und Entwurf erscheinen auf dem jeweils anderen Gerät. K7/K10.
+- [~] **T15.4 — Sync Handy ↔ PC.** Befund ([ADR-0034](../docs/adr/0034-handy-und-pc-bei-claude.md)): Die interaktive Claude Code am PC liest ihr Transcript nicht neu ein und nimmt nichts von außen an — Handy-Eingaben stehen im selben Transcript, aber nicht live am PC. Der Entwurf ist bereits synchron. **Umgesetzt:** Hub erkennt über `claude agents --json`, dass die Session am PC offen ist (`GET /api/sessions/:id/pc`); die App zeigt Hinweis mit `claude --resume`/`claude attach`. **Offen (Entscheidung nötig):** Hub-Sessions als Hintergrund-Sessions (`claude --bg`/`attach`) für echten Live-Sync, ersetzt `claude -p` pro Zug. K7/K10.
 - [ ] **T15.5 — Titel.** Heuristik, KI-Kurztitel (`titleSource`), Titel für übernommene Sessions. K10.
 - [ ] **T15.6 — Relevanz in der Übersicht.** Zuletzt aktive zuerst, ältere Leerlauf-Sessions eingeklappt. K10.
 
@@ -54,7 +54,7 @@ Zeit-Retention für Sessions.
 - **AC-P15-2:** Modus und Modell einer laufenden und einer beendeten Session lassen sich ändern; der nächste Zug nutzt sie. Ein Adapter ohne diese Fähigkeit lehnt mit Grund ab.
 - **AC-P15-3:** Der Wechsel steht als Event im Verlauf und überlebt einen Hub-Neustart.
 - **AC-P15-4:** Eine Nachricht während eines laufenden Zugs geht nicht verloren und nicht doppelt raus.
-- **AC-P15-5:** Eine Eingabe am Handy ist am PC-Client sichtbar, ohne die Session neu zu öffnen.
+- **AC-P15-5 (angepasst, ADR-0034):** Ist eine Session am PC offen, sagt die App es und nennt den Befehl, mit dem der PC die Handy-Eingaben sieht. Ein echter Live-Sync bleibt eine offene Entscheidung (Hintergrund-Sessions).
 
 ## 6. Premortem
 

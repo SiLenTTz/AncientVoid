@@ -476,6 +476,15 @@ export type SteerInput =
   | { kind: "resume" }
   | { kind: "configure"; model?: string; permissionMode?: string };
 
+/** EPIC-P15 T15.4 */
+export interface PcState {
+  open: boolean;
+  kind?: "interactive" | "background";
+  name?: string | null;
+  state?: string | null;
+  nativeSessionId?: string;
+}
+
 /** EPIC-P15 T15.3: a prompt held back until the turn ends. */
 export interface QueuedPrompt {
   id: string;
@@ -890,6 +899,8 @@ function createHubApi(P: (path: string) => string) {
     if (!res.ok) throw new Error(body.error ?? `${res.status} ${res.statusText}`);
     return { ok: true, draft: body };
   },
+  /** EPIC-P15 T15.4: is this session open in a terminal at the PC? */
+  sessionPc: (id: string) => api<PcState>(P(`/api/sessions/${id}/pc`)),
   /** EPIC-P15 T15.3: prompts waiting for the running turn. */
   sessionQueue: (id: string) => api<QueuedPrompt[]>(P(`/api/sessions/${id}/queue`)),
   removeQueued: (id: string, queueId: string) => api<{ ok: boolean }>(P(`/api/sessions/${id}/queue/${queueId}`), { method: "DELETE" }),

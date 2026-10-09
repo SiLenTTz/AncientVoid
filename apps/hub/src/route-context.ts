@@ -1,6 +1,6 @@
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { PlannerModelConfig, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import type { ClaudeLive, PlannerModelConfig, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills } from "@uacc/core";
 import { DEFAULT_HOST_ID } from "@uacc/contracts";
 import type { ActionDefinition, HubMetrics, DiscoverySource, SessionRecord } from "@uacc/contracts";
@@ -35,6 +35,8 @@ export interface RouteDeps {
   startedAt?: number;
   /** ADR-0012: external read-only session sources mixed into GET /api/discovery. */
   discoverySources?: DiscoverySource[];
+  /** EPIC-P15 T15.4: which Claude sessions are open at the PC (optional: no CLI, no hint). */
+  claudeLive?: ClaudeLive;
   /** Injected in tests. Production uses spawnProbeRunner. */
   probeRunner?: ProbeRunner;
   /** EPIC-P6: this hub's host id in the fleet. */
