@@ -82,3 +82,10 @@ describe("normalizeClaudeClipLine — real transcript schema, synthetic content"
     expect(normalizeClaudeClipLine({ type: "user", message: { role: "user", content: "" } })).toEqual([]);
   });
 });
+
+describe("BUG-0046: leerer Denk-Block im Transcript", () => {
+  it("sagt, dass der Text nicht geliefert wird", () => {
+    const events = normalizeClaudeClipLine({ type: "assistant", message: { content: [{ type: "thinking", thinking: "", signature: "sig" }] } });
+    expect(events[0]).toMatchObject({ type: "thinking", summary: "Claude hat nachgedacht — der Anbieter liefert den Text nicht", payload: { text: "", redacted: true } });
+  });
+});

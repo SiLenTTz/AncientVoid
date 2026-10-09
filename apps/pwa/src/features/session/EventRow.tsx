@@ -2,7 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { getToken } from "../../shared/api.ts";
 import { type NormalizedEvent } from "../../shared/ws.ts";
 import { visibleEventText } from "./event-text.ts";
-import { toolIdOf } from "./event-filter.ts";
+import { isEmptyThinking, toolIdOf } from "./event-filter.ts";
 import { AttachmentChips, type AttachmentRef } from "../attachments/Attachments.tsx";
 
 export function toolAnchor(toolId: string, side: "use" | "result"): string {
@@ -69,6 +69,19 @@ export function EventRow({
   const time = new Date(event.ts).toLocaleTimeString("de-DE");
   const blobNote = event.blobRef ? " ⛁" : "";
   const toolId = toolIdOf(event);
+
+  if (isEmptyThinking(event)) {
+    // BUG-0046: the provider withheld the text — one quiet line, nothing to expand or copy.
+    return (
+      <div class="event thinking withheld" data-seq={event.seq}>
+        <div class="meta">
+          <span>#{event.seq} · thinking</span>
+          <span>{time}</span>
+        </div>
+        <div class="summary">Claude hat nachgedacht — der Anbieter liefert den Text nicht</div>
+      </div>
+    );
+  }
 
   if (event.type === "thinking") {
     // T1.7: dimmed/italic (app/styles/ .event.thinking), collapsible —
