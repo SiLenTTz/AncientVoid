@@ -175,6 +175,7 @@ async function main(): Promise<void> {
   sessions.enableToolPermissions({
     approvals,
     timeoutMs: config.toolApprovalTimeoutMs,
+    ...(config.toolApprovals === "auto" ? { autoApprove: true } : {}),
     bridge: createPermissionBridge({ tokens, hubUrl: `http://${loopHost}:${config.server.port}`, dir: resolve(dataDir, "bridges") }),
     ...(gatekeeper ? { gatekeeper } : {}),
   });

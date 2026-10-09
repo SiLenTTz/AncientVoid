@@ -72,6 +72,10 @@ export const HubConfig = z.object({
   /** T7.2: how long a provider's tool request or question waits for the
    * phone before it is denied (never run on timeout). */
   toolApprovalTimeoutMs: z.number().int().min(10_000).default(10 * 60_000),
+  /** "auto": every tool request of a provider is allowed at once (and shown in the history as
+   * "Automatisch erlaubt"); "ask" (default) sends each one to the phone. Questions to the person
+   * are always asked. Only for a hub you trust the agents on. */
+  toolApprovals: z.enum(["ask", "auto"]).default("ask"),
   /** T7.10: local OCR — a tessdata dir with extra languages (e.g. deu),
    * set up by scripts/setup-ocr.sh without root. */
   ocr: z.object({ tessdataDir: z.string().optional() }).default({}),

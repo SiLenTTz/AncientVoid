@@ -30,6 +30,23 @@ git-ignored — keine Secrets committen.
 }
 ```
 
+## Freigaben und Modus (`defaultPermissionMode`, `toolApprovals`)
+
+Zwei getrennte Einstellungen in `hub.config.json`:
+
+| Schlüssel | Werte | Wirkung |
+|---|---|---|
+| `defaultPermissionMode` | Name eines Modus, Standard `"auto"` | In diesem Modus startet jede neue Session, deren Adapter ihn kennt (Claude: `auto`, `manual`, `plan`, `acceptEdits`, `dontAsk`, `bypassPermissions`). `"manual"` stellt das Nachfragen wieder her. In der App pro Session wählbar (ADR-0033). |
+| `toolApprovals` | `"ask"` (Standard) · `"auto"` | `"ask"`: jede Tool-Anfrage eines Providers geht aufs Handy; kritische verlangen einen Passkey. `"auto"`: jede Tool-Anfrage wird sofort erlaubt und steht im Verlauf als „Automatisch erlaubt — …“. Rückfragen an dich (`AskUserQuestion`) werden weiter gestellt. |
+
+`"auto"` ist für einen Hub gedacht, auf dem du den Agenten vertraust (eigenes Tailscale-Netz, eigene
+Rechner). Es gibt dann keine Freigabe-Karten und keinen Passkey für Tool-Anfragen. Aktionen
+am Hub selbst (Tokens, Budget-Erhöhung, Schritt-Freigaben mit `requireStepApprovals`) bleiben davon unberührt.
+
+Passkeys (`destructive`-Freigaben) funktionieren nur, wenn `webauthn.rpId` und `webauthn.origin` zur
+Adresse passen, unter der die App geöffnet wird — bei Tailscale also der MagicDNS-Name mit HTTPS. Mit dem
+Standard (`localhost`) ist eine Registrierung auf dem Handy nicht möglich.
+
 ## Projekt-Wurzeln (`projectRoots`)
 
 ```jsonc
