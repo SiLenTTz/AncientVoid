@@ -4,7 +4,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
 import { discoverProjects, FleetStore } from "@uacc/core";
 import type { HubMetrics, DiscoverySource } from "@uacc/contracts";
 import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@uacc/contracts";
@@ -67,6 +67,8 @@ export interface HubAppDeps {
   metrics?: HubMetrics;
   startedAt?: number;
   discoverySources?: DiscoverySource[];
+  /** EPIC-P15 T15.4: which Claude sessions are open at the PC. */
+  claudeLive?: ClaudeLive;
   probeRunner?: ProbeRunner;
   /** EPIC-P6: this hub's host id in the fleet (default "local"). */
   hostId?: string;

@@ -220,6 +220,21 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     return ack.ok ? ack : reply.code(422).send(ack);
   });
 
+  /**
+   * EPIC-P15 T15.4: is this session open in a terminal at the PC? The interactive
+   * Claude Code does not re-read its transcript, so what the phone sends shows there
+   * only after reopening — the app says so instead of leaving the PC looking stale.
+   */
+  app.get("/api/sessions/:id/pc", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const record = deps.sessions.get(id);
+    if (!record) return reply.code(404).send({ error: "unknown session" });
+    if (!record.nativeSessionId || !deps.claudeLive) return { open: false };
+    const live = await deps.claudeLive.find(record.nativeSessionId);
+    if (!live) return { open: false };
+    return { open: true, kind: live.kind, name: live.name, state: live.state, nativeSessionId: record.nativeSessionId };
+  });
+
   /** EPIC-P15 T15.3: prompts waiting for the running turn. */
   app.get("/api/sessions/:id/queue", async (req, reply) => {
     const { id } = req.params as { id: string };

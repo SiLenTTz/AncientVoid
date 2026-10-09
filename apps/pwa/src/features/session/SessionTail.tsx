@@ -6,6 +6,7 @@ import { connectTail, type NormalizedEvent, type TailConnection } from "../../sh
 import { Composer } from "../composer/Composer.tsx";
 import { SessionConfigure } from "./SessionConfigure.tsx";
 import { QueueList } from "./QueueList.tsx";
+import { PcOpenNotice } from "./PcOpenNotice.tsx";
 import type { Page } from "../../app/Dock.tsx";
 import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
@@ -697,6 +698,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             {showReply && (draft.state === "saved" || draft.state === "local") && (reply || replyAttachments.length > 0) && (
               <div class={`draft-state dim ${draft.state}`}>{draft.state === "saved" ? "Entwurf gespeichert — auch auf deinen anderen Geräten" : "Entwurf nur auf diesem Gerät (Hub nicht erreichbar)"}</div>
             )}
+            {showReply && <PcOpenNotice sessionId={session.id} api={api} />}
             {showReply && <QueueList sessionId={session.id} api={api} refreshKey={queueTick} />}
             {showReply && !draft.conflict && <ReplyTemplates value={reply} onPick={setReply} />}
             {showReply && (

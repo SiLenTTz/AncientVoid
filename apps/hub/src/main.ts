@@ -32,6 +32,7 @@ import {
   InMemoryMetrics,
   loadConfig,
   loadReportingSinks,
+  ClaudeLive,
   claudeDiscoverySource,
   cursorDiscoverySource,
   defaultClaudeDir,
@@ -256,6 +257,7 @@ async function main(): Promise<void> {
     // rpId/origin defaults only work for local dev.
     webauthn: { store: new WebAuthnStore(db), config: config.webauthn },
     discoverySources: discoverySources(config),
+    claudeLive: new ClaudeLive(config.discovery.claudeCommand),
     hostId: config.hostId ?? toHostId(hostname()),
   });
 
