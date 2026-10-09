@@ -42,7 +42,7 @@ Zeit-Retention für Sessions.
 ## 4. Aufgaben
 
 - [x] **T15.1 — Modus-/Modell-Contract, Claude, Hub-Default `auto`.** ADR-0033, `configure`-Steer, Feature-Gate, Migration 22, `session.configured`, Claude `--permission-mode`/`--model` bei jedem Spawn. K7.
-- [ ] **T15.2 — Oberfläche für Modus und Modell.** Knöpfe in der Session-Steuerung; Auswahl nur aus dem, was der Adapter meldet; Modus bei „Neue Session“. K10 (mobil bedienbar).
+- [x] **T15.2 — Oberfläche für Modus und Modell.** Knöpfe in der Session-Steuerung; Auswahl nur aus dem, was der Adapter meldet; Modus bei „Neue Session“. K10 (mobil bedienbar).
 - [ ] **T15.3 — Pause-/Stop-Knopf und Queue.** Sichtbarer Pause/Weiter-Knopf; Nachrichten während eines laufenden Zugs werden vorgemerkt und der Reihe nach gesendet; Queue anzeigen, einzelne Einträge streichen. K7.
 - [ ] **T15.4 — Sync Handy ↔ PC.** Eingaben und Entwurf erscheinen auf dem jeweils anderen Gerät. K7/K10.
 - [ ] **T15.5 — Titel.** Heuristik, KI-Kurztitel (`titleSource`), Titel für übernommene Sessions. K10.

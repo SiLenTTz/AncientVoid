@@ -62,6 +62,10 @@ export function CreateSession({
   const features = adapters.find((a) => a.id === adapter)?.capabilities.features;
   const modelChoice = features?.modelChoice === "start";
   const [model, setModel] = useState("");
+  // ADR-0033: leer = Standard des Hubs (Auto, wo der Harness es kennt).
+  const modes = features?.permissionModes ?? [];
+  const [mode, setMode] = useState("");
+  useEffect(() => setMode(""), [adapter]);
   const [catalog, setCatalog] = useState<ModelOption[] | null>(null);
   const [defaultModel, setDefaultModel] = useState<string | null>(null);
   useEffect(() => {
@@ -140,7 +144,7 @@ export function CreateSession({
         project,
         ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
         ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
-        ...(skill ? { args: { [skill.kind]: skill.name } } : {}),
+        ...(skill || mode ? { args: { ...(skill ? { [skill.kind]: skill.name } : {}), ...(mode ? { permissionMode: mode } : {}) } } : {}),
         ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
       });
       localStorage.removeItem(PROMPT_KEY);
@@ -182,6 +186,19 @@ export function CreateSession({
       </label>
       {features?.toolGate === "bypass" && (
         <div class="tool-gate warn">{adapter}: Tools laufen ungefragt, ohne Rückfrage an dich.</div>
+      )}
+      {modes.length > 0 && (
+        <label>
+          Modus
+          <select aria-label="Modus" value={mode} onChange={(e) => setMode((e.target as HTMLSelectElement).value)}>
+            <option value="">Standard des Hubs</option>
+            {modes.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
       {modelChoice && (
         <label>

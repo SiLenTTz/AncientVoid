@@ -110,3 +110,23 @@
 .new-jump {
   margin: 4px 0;
 }
+
+/* ADR-0033: Modus und Modell der Session, über der Eingabe. */
+.session-configure {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.session-configure label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-dim);
+}
+.session-configure select {
+  min-height: 32px;
+  max-width: 46vw;
+}

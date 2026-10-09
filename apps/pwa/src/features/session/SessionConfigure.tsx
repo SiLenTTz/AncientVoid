@@ -1,0 +1,101 @@
+import { useEffect, useState } from "preact/hooks";
+import type { HarnessFeatures, HubApi, SessionRecord } from "../../shared/api.ts";
+
+/** ADR-0033: Namen, wie die Oberfläche sie zeigt; unbekannte Modi erscheinen unverändert. */
+const MODE_LABEL: Record<string, string> = {
+  auto: "Auto",
+  manual: "Nachfragen",
+  plan: "Plan",
+  acceptEdits: "Edits ohne Frage",
+  dontAsk: "Nie fragen",
+  bypassPermissions: "Alles erlauben",
+};
+
+/**
+ * ADR-0033: Modus und Modell der Session, direkt über der Eingabe. Gezeigt wird
+ * nur, was der Adapter meldet; der Wechsel gilt ab dem nächsten Zug.
+ */
+export function SessionConfigure({
+  session,
+  features,
+  api,
+  onChanged,
+}: {
+  session: SessionRecord;
+  features: HarnessFeatures | null;
+  api: HubApi;
+  onChanged: (patch: Partial<SessionRecord>) => void;
+}) {
+  const modes = features?.permissionModes ?? [];
+  const canModel = features?.modelSwitch === true;
+  const [models, setModels] = useState<{ id: string; label?: string }[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!canModel) return;
+    let alive = true;
+    api
+      .adapterModels(session.adapter)
+      .then((res) => alive && setModels(res.models ?? []))
+      .catch(() => alive && setModels([]));
+    return () => {
+      alive = false;
+    };
+  }, [canModel, session.adapter, api]);
+
+  if (modes.length === 0 && !canModel) return null;
+
+  const change = async (patch: { model?: string; permissionMode?: string }) => {
+    setBusy(true);
+    setError("");
+    const ack = await api.steer(session.id, { kind: "configure", ...patch }).catch((err: unknown) => ({ ok: false, detail: err instanceof Error ? err.message : "Änderung fehlgeschlagen." }));
+    setBusy(false);
+    if (ack.ok) onChanged(patch);
+    else setError(ack.detail ?? "Änderung nicht möglich.");
+  };
+
+  const current = session.model ?? "";
+  const known = models.some((m) => m.id === current);
+  return (
+    <div class="session-configure">
+      {modes.length > 0 && (
+        <label>
+          Modus
+          <select
+            aria-label="Modus"
+            disabled={busy}
+            value={session.permissionMode ?? ""}
+            onChange={(e) => void change({ permissionMode: (e.target as HTMLSelectElement).value })}
+          >
+            {!session.permissionMode && <option value="">—</option>}
+            {modes.map((m) => (
+              <option key={m} value={m}>
+                {MODE_LABEL[m] ?? m}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {canModel && (
+        <label>
+          Modell
+          {models.length > 0 ? (
+            <select aria-label="Modell" disabled={busy} value={current} onChange={(e) => void change({ model: (e.target as HTMLSelectElement).value })}>
+              {!current && <option value="">Standard</option>}
+              {current && !known && <option value={current}>{current}</option>}
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label ?? m.id}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span class="dim">{current || "Standard"}</span>
+          )}
+        </label>
+      )}
+      {error && <div class="reply-error">{error}</div>}
+    </div>
+  );
+}

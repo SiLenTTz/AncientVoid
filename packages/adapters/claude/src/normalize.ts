@@ -177,6 +177,10 @@ function normalizeSystem(line: Record<string, unknown>): EmittedEvent {
     payload.cwd = line.cwd;
     payload.claudeCodeVersion = line.claude_code_version;
     payload.toolCount = Array.isArray(line.tools) ? line.tools.length : undefined;
+    // ADR-0033: what the CLI really runs with — a mode or model that differs
+    // from what was asked shows up in the history instead of staying silent.
+    if (typeof line.model === "string") payload.model = line.model;
+    if (typeof line.permissionMode === "string") payload.permissionMode = line.permissionMode;
   } else {
     for (const key of ["hook_name", "hook_event", "outcome", "exit_code"] as const) {
       if (key in line) payload[key] = line[key];
