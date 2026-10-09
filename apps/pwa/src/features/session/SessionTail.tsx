@@ -28,6 +28,9 @@ import { DiffPane } from "./DiffPane.tsx";
 import { ReportPane } from "./ReportPane.tsx";
 import { SessionApprovals } from "./SessionApprovals.tsx";
 
+/** BUG-0053: below this window height (landscape) the dock is compacted and the controls start folded. */
+const SHORT_VIEWPORT_PX = 520;
+
 export function SessionTail({ session, onNavigate, initialCode }: { session: SessionRecord; onNavigate: (page: Page) => void; initialCode?: CodeTarget }) {
   // EPIC-P6: every call of this view goes to the session's own host.
   const api = useMemo(() => hostApi(session.hostId), [session.hostId]);
@@ -73,7 +76,12 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   // guessed: a taller composer (draft, recommendation, error) used to cover
   // the last message.
   const [tailMaxHeight, setTailMaxHeight] = useState<number | null>(null);
-  const [controlsHidden, setControlsHidden] = useState(() => localStorage.getItem("uacc.controlsHidden") === "1");
+  // BUG-0053: in a low window (landscape) the controls start folded away — one tap on ▴ brings them back.
+  // A choice the person made is kept.
+  const [controlsHidden, setControlsHidden] = useState(() => {
+    const stored = localStorage.getItem("uacc.controlsHidden");
+    return stored === null ? window.innerHeight < SHORT_VIEWPORT_PX : stored === "1";
+  });
   const connRef = useRef<TailConnection | null>(null);
 
   // T1.6-3: Chat/Verlauf are the new dock sub-tabs — Chat is exactly the
@@ -257,7 +265,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
       const dock = dockRef.current;
       if (!tail || !dock) return;
       const available = window.innerHeight - tail.getBoundingClientRect().top - dock.getBoundingClientRect().height - 8;
-      setTailMaxHeight(Math.max(120, Math.floor(available)));
+      setTailMaxHeight(Math.max(48, Math.floor(available))); // BUG-0053: no floor above what is free — the list must not slide under the dock
     };
     measure();
     const observer = new ResizeObserver(measure);
