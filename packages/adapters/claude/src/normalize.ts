@@ -221,18 +221,16 @@ function normalizeResult(line: Record<string, unknown>): EmittedEvent {
   };
 }
 
+/** BUG-0046: Anthropic liefert den Denk-Text teils nicht (leerer Block mit Signatur). */
+const THINKING_WITHHELD = "Claude hat nachgedacht — der Anbieter liefert den Text nicht";
+
 function normalizeContentBlock(block: ContentBlock, role: "assistant" | "user"): EmittedEvent[] {
   switch (block.type) {
     case "text":
       return [{ type: "assistant", summary: summarize(block.text ?? ""), payload: { text: block.text ?? "" } }];
     case "thinking":
-      return [
-        {
-          type: "thinking",
-          summary: summarize(block.thinking ?? "(thinking)"),
-          payload: { text: block.thinking ?? "" },
-        },
-      ];
+      if (!block.thinking?.trim()) return [{ type: "thinking", summary: THINKING_WITHHELD, payload: { text: "", redacted: true } }];
+      return [{ type: "thinking", summary: summarize(block.thinking), payload: { text: block.thinking } }];
     case "tool_use":
       return [
         {

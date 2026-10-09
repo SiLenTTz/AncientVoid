@@ -27,7 +27,15 @@ export function isLargeToolResult(e: NormalizedEvent): boolean {
   return e.type === "tool_result" && payloadByteEstimate(e) > LARGE_TOOL_RESULT_BYTES;
 }
 
+/** BUG-0046: a thinking block whose text the provider did not deliver. Older stored events lack the `redacted` flag. */
+export function isEmptyThinking(event: NormalizedEvent): boolean {
+  if (event.type !== "thinking") return false;
+  const text = (event.payload as { text?: unknown }).text;
+  return typeof text !== "string" || text.trim() === "";
+}
+
 export function showInChat(event: NormalizedEvent): boolean {
+  if (isEmptyThinking(event)) return false; // nothing to read — it stays in the Verlauf
   if (event.type === "assistant" || event.type === "user" || event.type === "thinking") return true;
   if (event.type !== "system") return false;
   const payload = event.payload as { kind?: unknown; reason?: unknown; ok?: unknown };

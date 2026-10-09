@@ -139,3 +139,20 @@ describe("ADR-0033: Modus und Modell aus dem Init-Event", () => {
     expect(event!.payload).not.toHaveProperty("permissionMode");
   });
 });
+
+describe("BUG-0046: leerer Denk-Block (der Anbieter redigiert den Text)", () => {
+  const block = (thinking: string) => ({ type: "assistant", message: { content: [{ type: "thinking", thinking, signature: "sig" }] } });
+
+  it("sagt, dass der Text nicht geliefert wird, statt einen leeren Block zu liefern", () => {
+    const [event] = normalizeClaudeLine(block(""));
+    expect(event!.type).toBe("thinking");
+    expect(event!.summary).toBe("Claude hat nachgedacht — der Anbieter liefert den Text nicht");
+    expect(event!.payload).toEqual({ text: "", redacted: true });
+  });
+
+  it("ein Denk-Block mit Text bleibt unverändert", () => {
+    const [event] = normalizeClaudeLine(block("17*23 = 391"));
+    expect(event!.summary).toBe("17*23 = 391");
+    expect(event!.payload).toEqual({ text: "17*23 = 391" });
+  });
+});
