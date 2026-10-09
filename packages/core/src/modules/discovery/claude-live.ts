@@ -67,8 +67,11 @@ export class ClaudeLive {
     } catch (err) {
       // A CLI without `agents` (older version) is a normal state, not a failure of the hub.
       this.lastError = err instanceof Error ? err.message : String(err);
-      this.cache = { at: Date.now(), sessions: [] };
-      return [];
+      // BUG-0049: a slow or failed read keeps the last good list (retry after the next TTL) — an
+      // empty answer would make "am PC offen" blink away and back.
+      const kept = this.cache?.sessions ?? [];
+      this.cache = { at: Date.now(), sessions: kept };
+      return kept;
     }
   }
 

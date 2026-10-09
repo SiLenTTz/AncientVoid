@@ -42,4 +42,19 @@ describe("EPIC-P15 T15.4 claude agents --json", () => {
     await live.list();
     expect(calls).toBe(2);
   });
+
+  it("BUG-0049: ein einzelner Fehlschlag behält die letzte gute Liste statt sie zu leeren", async () => {
+    let fail = false;
+    const live = new ClaudeLive("claude", async () => {
+      if (fail) throw new Error("timeout");
+      return SAMPLE;
+    }, 0);
+    expect((await live.list()).map((s) => s.name)).toEqual(["HiveOS Design", "securesight-harnez-d5"]);
+    fail = true;
+    expect((await live.list()).map((s) => s.name)).toEqual(["HiveOS Design", "securesight-harnez-d5"]); // behalten
+    expect(live.lastError).toContain("timeout");
+    fail = false;
+    expect(await live.list()).toHaveLength(2);
+    expect(live.lastError).toBeNull();
+  });
 });

@@ -6,6 +6,8 @@ const READ_KEY = "uacc.notifications.readUpTo";
 /** EPIC-P6: read marks of other hosts, { hostId: lastReadId }. */
 const PEER_READ_KEY = "uacc.notifications.readByHost";
 const POLL_MS = 4000;
+/** BUG-0049: a short blip (a few seconds) is no outage — announce "nicht erreichbar" (and later "wieder da") only after this many failed polls in a row. */
+const HUB_DOWN_AFTER = 3;
 const PEERS_REFRESH_MS = 60_000;
 /** Errors stay longer — they usually need an action. */
 const TOAST_MS: Record<HubNotification["level"], number> = { error: 12_000, warning: 8000, success: 5000, info: 5000 };
@@ -119,13 +121,13 @@ export function NotificationCenter() {
       try {
         const page = await hubApi.notifications(lastIds.current[""] ?? 0);
         if (!alive) return;
-        if (failures.current >= 2) toast({ key: `hub-${Date.now()}`, level: "success", title: "Verbindung zum Hub wieder da", detail: null, sessionId: null, hostId: null });
+        if (failures.current >= HUB_DOWN_AFTER) toast({ key: `hub-${Date.now()}`, level: "success", title: "Verbindung zum Hub wieder da", detail: null, sessionId: null, hostId: null });
         failures.current = 0;
         take(null, page);
       } catch {
         if (!alive) return;
         failures.current += 1;
-        if (failures.current === 2) {
+        if (failures.current === HUB_DOWN_AFTER) {
           toast({ key: `hub-${Date.now()}`, level: "warning", title: "Hub nicht erreichbar", detail: "Neue Meldungen kommen, sobald er wieder antwortet.", sessionId: null, hostId: null });
         }
       }
