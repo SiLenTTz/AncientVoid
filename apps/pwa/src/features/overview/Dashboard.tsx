@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
 import type { FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi } from "../../shared/api.ts";
-import { sessionsForOverview } from "./session-list.ts";
+import { compareByActivity, IDLE_STILL_ACTIVE_MS, lastActivityAt, sessionsForOverview } from "./session-list.ts";
 import { metricView, totalCostText } from "../../shared/metrics.ts";
 import { ago, statusLabel } from "../../shared/status.ts";
 import { initSeen, isUnseen, seenKey } from "../../shared/seen.ts";
@@ -77,10 +77,12 @@ function projectName(project: string): string {
 type Section = "braucht" | "pins" | "aktiv" | "zuletzt";
 
 /** T8.1: what needs you first, then what runs, then what happened. */
-export function sectionOf(s: SessionRecord): Section {
+export function sectionOf(s: SessionRecord, now: number = Date.now()): Section {
   if (s.status === "waiting_approval" || s.status === "error") return "braucht";
   if (s.pinned) return "pins";
-  if (s.status === "starting" || s.status === "working" || s.status === "idle") return "aktiv";
+  if (s.status === "starting" || s.status === "working") return "aktiv";
+  // EPIC-P15 T15.6: an idle session nobody has touched for half a day is history, not "active".
+  if (s.status === "idle") return now - Date.parse(lastActivityAt(s)) <= IDLE_STILL_ACTIVE_MS ? "aktiv" : "zuletzt";
   return "zuletzt";
 }
 
@@ -134,7 +136,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
         .filter((s) => (statusFilter === "waiting" ? sectionOf(s) === "braucht" : statusFilter === "active" ? sectionOf(s) === "aktiv" || sectionOf(s) === "braucht" : true)),
     [withOverride, showArchived, query, statusFilter],
   );
-  const sorted = useMemo(() => [...visible].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)), [visible]);
+  const sorted = useMemo(() => [...visible].sort(compareByActivity), [visible]);
   const sections = useMemo(() => {
     const out: Record<Section, SessionRecord[]> = { braucht: [], pins: [], aktiv: [], zuletzt: [] };
     for (const s of sorted) out[showArchived ? "zuletzt" : sectionOf(s)].push(s);
