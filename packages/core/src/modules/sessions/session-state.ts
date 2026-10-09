@@ -45,21 +45,43 @@ export interface LiveSession {
   /** EPIC-P14: a long-lived worker (ACP, app-server) has the worktree as its
    * cwd — deleting it would pull the directory out from under the process. */
   persistentWorker?: boolean;
+  /** EPIC-P15 T15.5: the first words of the person, for the AI title. */
+  titlePrompt?: string;
+  /** EPIC-P15 T15.5: the model was asked once already (success or not). */
+  aiTitleTried?: boolean;
 }
 
 /** A turn counts as over only if no new worker starts within this window —
  * some adapters run a short probe (`--version`) right before the turn. */
 export const TURN_END_SETTLE_MS = 250;
 
+/** Politeness and filler that carry no task ("Kannst du mir sagen, ob …"). */
+const LEAD =
+  /^(?:(?:hallo|hi|hey|moin|servus)\b[,!.\s]*|(?:bitte|please)\s+|(?:kannst|könntest|würdest) du(?: mir)?(?: bitte)?\s+|(?:can|could|would) you(?: please)?\s+|ich (?:würde|möchte|will|brauche|hätte)(?: gern(?:e)?)?(?: bitte)?\s+|i(?:'d| would) like(?: you)? to\s+|mir sagen[,:\s]+|sagen[,:]\s+)/i;
+
 /** Overview title: the first line that says something, without the
- * prefixes the composer adds (Workflow:, /skill, Agent:, Ziel:). */
+ * prefixes the composer adds (Workflow:, /skill, Agent:, Ziel:) and without
+ * filler words in front of the actual task. */
 export function sessionTitle(prompt: string): string | null {
   const line = prompt
     .split("\n")
     .map((l) => l.trim())
     .find((l) => l.length > 0 && !/^(workflow|agent):\s/i.test(l) && !/^\/[\w-]+$/.test(l));
   if (!line) return null;
-  const text = line.replace(/^(ziel|goal):\s*/i, "");
+  let text = line
+    .replace(/^(ziel|goal):\s*/i, "")
+    .replace(/^#+\s*/, "")
+    .replace(/[*_`]/g, "")
+    .trim();
+  // Strip filler from the front, but never down to nothing ("Bitte", "Hallo" stay).
+  for (let i = 0; i < 4; i++) {
+    const rest = text.replace(LEAD, "").trim();
+    if (rest === text || !rest) break;
+    text = rest;
+  }
+  text = text.replace(/[.!?:;,\s]+$/, "");
+  if (!text) return line.slice(0, 80);
+  text = text.charAt(0).toUpperCase() + text.slice(1);
   return text.length > 80 ? `${text.slice(0, 79).trimEnd()}…` : text;
 }
 

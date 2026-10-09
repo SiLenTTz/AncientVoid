@@ -18,6 +18,8 @@ import { dedupeDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
 import { notificationFor } from "../notifications/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
+import { askTitleModel } from "./session-title.ts";
+import type { PlannerModelConfig } from "../commands/model.ts";
 import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS } from "./session-state.ts";
 import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
@@ -70,6 +72,7 @@ export class SessionManager {
   private readonly mirrorDataDir: string;
   private readonly defaultPermissionMode: string | null;
   private readonly queue: SessionQueue;
+  private titleModel: PlannerModelConfig | undefined;
   private readonly draining = new Set<string>();
   private readonly reportingSinks: ReportingSink[];
   private readonly logger: HubLogger;
@@ -294,7 +297,11 @@ export class SessionManager {
   setMeta(sessionId: string, meta: { title?: string | null; pinned?: boolean }): SessionRecord {
     const live = this.live.get(sessionId);
     const record = live?.record ?? this.require(sessionId);
-    if (meta.title !== undefined) record.title = meta.title?.trim() ? meta.title.trim().slice(0, 80) : null;
+    if (meta.title !== undefined) {
+      record.title = meta.title?.trim() ? meta.title.trim().slice(0, 80) : null;
+      // A person's own title is never replaced; clearing it hands the job back.
+      record.titleSource = record.title ? "manual" : "auto";
+    }
     if (meta.pinned !== undefined) record.pinned = meta.pinned;
     this.persist(record);
     return record;
@@ -405,6 +412,7 @@ export class SessionManager {
       writerLeaseUntil: null,
       archived: false,
       title: parsed.prompt ? sessionTitle(parsed.prompt) : null,
+      titleSource: "auto",
     };
     await this.store.initSession(record.id);
     this.persist(record);
@@ -418,6 +426,7 @@ export class SessionManager {
       workdir: record.project,
       worktreeIsolated: false,
       budgetWarned: false,
+      ...(parsed.prompt ? { titlePrompt: parsed.prompt } : {}),
     };
     this.live.set(record.id, session);
 
@@ -569,6 +578,7 @@ export class SessionManager {
       writerLeaseUntil: null,
       archived: false,
       title: first.info.title ?? sessionTitle(nativeId),
+      titleSource: "auto",
     };
     await this.store.initSession(record.id);
     this.persist(record);
@@ -885,6 +895,7 @@ export class SessionManager {
   private async emitPrompt(session: LiveSession, text: string, actor?: string, attachments?: readonly PromptAttachment[]): Promise<void> {
     // A session that had no start prompt takes its first reply as title.
     if (!session.record.title) session.record.title = sessionTitle(text);
+    session.titlePrompt ??= text;
     // T7.10: references only (K5) — never the bytes or the extracted text.
     const refs = attachments?.map((a) => ({ id: a.id, name: a.name, mimeType: a.mimeType, kind: a.kind, bytes: a.bytes, method: a.method }));
     await this.emitEvents(session, [
@@ -1510,6 +1521,7 @@ export class SessionManager {
       }
     }
     this.recordNotifications(session, enforced);
+    this.maybeTitleWithModel(session, enforced);
     // T2.7: after this event's own subscriber notification, not before —
     // checkBudget/checkDailyCap recurse back into this method for their
     // own park/warning events, which must reach subscribers in their real
@@ -1521,6 +1533,31 @@ export class SessionManager {
       await this.budget.check(session);
       await this.budget.checkDailyCap();
     }
+  }
+
+  /** EPIC-P15 T15.5: model for short AI titles. Absent: titles come from the prompt only. */
+  enableAiTitles(model: PlannerModelConfig | undefined): void {
+    this.titleModel = model;
+  }
+
+  /** EPIC-P15 T15.5: once per session, after the first real answer. Fire and forget: a slow or
+   * failing model never holds up the stream, and the prompt-based title stays when it fails. */
+  private maybeTitleWithModel(session: LiveSession, events: readonly NormalizedEvent[]): void {
+    if (!this.titleModel || session.aiTitleTried || session.record.titleSource !== "auto") return;
+    const answer = events.find((e) => e.type === "assistant" && typeof (e.payload as { text?: unknown }).text === "string" && (e.payload as { text: string }).text.trim());
+    const prompt = session.titlePrompt ?? session.record.title;
+    if (!answer || !prompt) return;
+    session.aiTitleTried = true;
+    const text = (answer.payload as { text: string }).text;
+    void (async () => {
+      const title = await askTitleModel(this.titleModel!, prompt, text);
+      if (!title || session.record.titleSource !== "auto") return; // none, or renamed meanwhile
+      session.record.title = title;
+      session.record.titleSource = "ai";
+      session.record.updatedAt = new Date().toISOString();
+      this.persist(session.record);
+      await this.emitSystem(session, "session.titled", { title, source: "ai" });
+    })().catch((err) => this.logger.warn("ai title failed", { sessionId: session.record.id, err: err instanceof Error ? err.message : String(err) }));
   }
 
   private async emitSystem(session: LiveSession, kind: string, payload: Record<string, unknown>): Promise<void> {

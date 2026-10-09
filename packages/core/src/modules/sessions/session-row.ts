@@ -32,6 +32,7 @@ export interface SessionRow {
   writer_lease_until: string | null;
   archived: number;
   title: string | null;
+  title_source: string | null;
   metric_counters: string;
   last_activity: string | null;
   pinned: number;
@@ -86,6 +87,7 @@ export function rowToRecord(row: SessionRow): SessionRecord {
     writerLeaseUntil: row.writer_lease_until,
     archived: row.archived === 1,
     title: row.title ?? null,
+    titleSource: row.title_source === "ai" || row.title_source === "manual" ? row.title_source : "auto",
     metrics: metricsState(counters(row.metric_counters)),
     lastActivity: activity(row.last_activity),
     pinned: row.pinned === 1,
@@ -99,9 +101,9 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
          id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq,
          cost_usd, updated_at, tokens_est, park_reason, control_mode, harness, host_id, native_session_id,
          resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until,
-         archived, title, metric_counters, last_activity, pinned, permission_mode
+         archived, title, metric_counters, last_activity, pinned, permission_mode, title_source
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          status = excluded.status,
          model = excluded.model,
@@ -130,7 +132,8 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
          metric_counters = excluded.metric_counters,
          last_activity = excluded.last_activity,
          pinned = excluded.pinned,
-         permission_mode = excluded.permission_mode`,
+         permission_mode = excluded.permission_mode,
+         title_source = excluded.title_source`,
     )
     .run(
       record.id,
@@ -165,5 +168,6 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
       record.lastActivity ? JSON.stringify(record.lastActivity) : null,
       record.pinned ? 1 : 0,
       record.permissionMode,
+      record.titleSource,
     );
 }
