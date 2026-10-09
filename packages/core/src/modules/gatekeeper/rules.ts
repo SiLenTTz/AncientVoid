@@ -26,6 +26,18 @@ const BULK_UPLOAD = /(\btar\b[^|]*\||\bscp\s+-[a-z]*r|\brsync\s+-[a-z]*a|\b\d{1,
 const PACKAGES = /\b(npm|pnpm|yarn)\s+(i|install|add|ci|update)\b|\bpip3?\s+install\b|\bcargo\s+(add|install)\b|\bgo\s+get\b/;
 const PRIVILEGE = /\b(sudo|su\s|doas|pkexec)\b/;
 
+/**
+ * BUG-0051: `cat > file <<'EOF' … EOF` (and `tee`) only WRITES the body into a file; the body is
+ * never run, so words like `rm -rf` inside it are no reason to ask for a passkey. The body is dropped
+ * only when the heredoc line ends at the marker — `cat <<EOF | bash`, `bash <<EOF` and
+ * `cat > f <<EOF; bash f` keep their body, because there it can run.
+ */
+const FILE_HEREDOC = /((?:^|[;&|\n])\s*(?:cat|tee)\b[^\n;&|<]*<<-?[ \t]*(['"]?)(\w+)\2[ \t]*\n)[\s\S]*?\n[ \t]*\3[ \t]*(?=\n|$)/g;
+
+export function withoutFileHeredocs(cmd: string): string {
+  return cmd.replace(FILE_HEREDOC, "$1");
+}
+
 function outsideWorktree(path: string, workdir: string | null): boolean {
   if (!workdir) return false;
   const full = isAbsolute(path) ? path : resolve(workdir, path);
@@ -71,7 +83,7 @@ export function assessByRules(toolName: string, input: Record<string, unknown>, 
   } else if (FETCH_TOOLS.has(toolName)) {
     raise("READ_ONLY", "WARNING", "Netzwerkzugriff");
   } else if (SHELL_TOOLS.has(toolName) || textOf(input)) {
-    const cmd = textOf(input);
+    const cmd = withoutFileHeredocs(textOf(input));
     if (!READ_ONLY_CMD.test(cmd) || /[;&|`$]/.test(cmd.replace(/\|\|/g, ""))) raise("LOCAL_WRITE", "CLEAN", "Shell-Befehl");
     if (WRITES.test(cmd)) raise("LOCAL_WRITE", "CLEAN", "Shell schreibt");
     if (DESTRUCTIVE.test(cmd)) raise("DESTRUCTIVE", "WARNING", "löscht oder überschreibt");
