@@ -61,6 +61,20 @@ test.describe("Harness-Parität (EPIC-P7)", () => {
     await app.getByRole("button", { name: "Beobachtung beenden" }).click();
     await expect.poll(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("stopped");
   });
+
+  test("eingeklappte Steuerung behält „Beobachtung beenden“", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 800, height: 420 });
+    const dir = join(hub.root, "claude", "projects", hub.alpha.replace(/\//g, "-"));
+    mkdirSync(dir, { recursive: true });
+    const line = (o: object) => `${JSON.stringify({ sessionId: "extern-2", timestamp: new Date().toISOString(), ...o })}\n`;
+    writeFileSync(join(dir, "extern-2.jsonl"), line({ type: "user", message: { role: "user", content: "Hallo" } }) + line({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Antwort von außerhalb" }] } }));
+    const id = await hub.createSession({ adapter: "claude-clip" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.getByLabel("Steuerung einblenden")).toBeVisible();
+    await expect(app.getByText("nur beobachten — der Harness läuft außerhalb des Hubs")).toBeVisible();
+    await app.getByRole("button", { name: "Beobachtung beenden" }).click();
+    await expect.poll(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("stopped");
+  });
 });
 
 test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
