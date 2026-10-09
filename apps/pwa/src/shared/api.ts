@@ -476,6 +476,15 @@ export type SteerInput =
   | { kind: "resume" }
   | { kind: "configure"; model?: string; permissionMode?: string };
 
+/** EPIC-P15 T15.3: a prompt held back until the turn ends. */
+export interface QueuedPrompt {
+  id: string;
+  text: string;
+  createdAt: string;
+  actor: string | null;
+  attachments: number;
+}
+
 export interface Ack {
   ok: boolean;
   detail?: string;
@@ -881,11 +890,14 @@ function createHubApi(P: (path: string) => string) {
     if (!res.ok) throw new Error(body.error ?? `${res.status} ${res.statusText}`);
     return { ok: true, draft: body };
   },
-  steer: async (id: string, input: SteerInput, inputId?: string, takeover = false): Promise<Ack> => {
+  /** EPIC-P15 T15.3: prompts waiting for the running turn. */
+  sessionQueue: (id: string) => api<QueuedPrompt[]>(P(`/api/sessions/${id}/queue`)),
+  removeQueued: (id: string, queueId: string) => api<{ ok: boolean }>(P(`/api/sessions/${id}/queue/${queueId}`), { method: "DELETE" }),
+  steer: async (id: string, input: SteerInput, inputId?: string, takeover = false, queue = false): Promise<Ack> => {
     const res = await fetch(P(`/api/sessions/${id}/steer`), {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ ...input, clientId: clientId(), ...(inputId ? { inputId } : {}), ...(takeover ? { takeover } : {}) }),
+      body: JSON.stringify({ ...input, clientId: clientId(), ...(inputId ? { inputId } : {}), ...(takeover ? { takeover } : {}), ...(queue ? { queue } : {}) }),
     });
     const body = (await res.json().catch(() => ({}))) as { ok?: boolean; detail?: string; error?: string };
     // Two possible failure shapes from the server: a rejected Ack

@@ -11,6 +11,10 @@ export interface SteerMeta {
   /** T5.5: take the writer lease from another device on purpose. Input-id
    * and revision checks still apply. */
   takeover?: boolean;
+  /** EPIC-P15 T15.3: hold this prompt back until the running turn ends. */
+  queue?: boolean;
+  /** EPIC-P15 T15.3: sent by the hub itself from the queue — never queued again. */
+  fromQueue?: boolean;
 }
 
 export interface LiveSession {

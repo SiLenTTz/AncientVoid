@@ -17,6 +17,7 @@ import { createConsoleLogger } from "../../platform/index.ts";
 import { dedupeDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
 import { notificationFor } from "../notifications/index.ts";
+import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
 import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS } from "./session-state.ts";
 import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
@@ -68,6 +69,8 @@ export class SessionManager {
   private readonly worktrees: WorktreeManager | undefined;
   private readonly mirrorDataDir: string;
   private readonly defaultPermissionMode: string | null;
+  private readonly queue: SessionQueue;
+  private readonly draining = new Set<string>();
   private readonly reportingSinks: ReportingSink[];
   private readonly logger: HubLogger;
   private readonly metrics: HubMetrics | undefined;
@@ -105,6 +108,7 @@ export class SessionManager {
     defaultPermissionMode: string | null = null,
   ) {
     this.defaultPermissionMode = defaultPermissionMode;
+    this.queue = new SessionQueue(db);
     this.mirrorDataDir = mirrorDataDir;
     this.db = db;
     this.store = store;
@@ -797,10 +801,25 @@ export class SessionManager {
       if (session.record.status === "stopped") return { ok: true };
       return this.stop(sessionId, actor);
     }
+    if (input.kind === "park") {
+      // EPIC-P15 T15.3: the phone's Pause. Reaches the adapter AND sets the status — a bare adapter
+      // steer used to kill the process and leave the session "working".
+      if (session.record.status === "parked") return { ok: true };
+      const done = await this.park(sessionId, actor);
+      if (done.ok) await this.commitSteer(session, meta, foreignWriter, actor);
+      return done;
+    }
     if (input.kind === "configure") {
       const done = await this.configure(session, input, actor);
       if (done.ok) await this.commitSteer(session, meta, foreignWriter, actor);
       return done;
+    }
+    // EPIC-P15 T15.3: "Vormerken" — the prompt waits for the running turn instead of starting a second process.
+    if (input.kind === "prompt" && meta?.queue && !meta.fromQueue && session.handle && ["starting", "working", "waiting_approval"].includes(session.record.status)) {
+      const item = this.queue.add(sessionId, input.text, input.attachments, actor ?? null);
+      await this.emitSystem(session, "session.queued", { queueId: item.id, position: this.queue.count(sessionId), actor: actor ?? null });
+      await this.commitSteer(session, meta, foreignWriter, actor);
+      return { ok: true, detail: "queued" };
     }
     let delivered = input;
     const reopening = input.kind === "prompt" && (session.record.status === "stopped" || !session.handle);
@@ -820,6 +839,12 @@ export class SessionManager {
     }
     if (delivered.kind === "prompt") await this.ensureWorkdir(session);
     const ack = await session.adapter.steer(session.handle!, delivered, this.makeContext(session));
+    // EPIC-P15 T15.3: a prompt after a manual Pause starts the next turn — the status follows.
+    // (Budget and daily-cap parks keep their own rules.)
+    if (ack.ok && delivered.kind === "prompt" && session.record.status === "parked" && session.record.parkReason === "manual") {
+      session.record.parkReason = null;
+      await this.setStatus(session, "working");
+    }
     // BUG found via T2.8's own audit test: emitSystem() builds
     // `{ kind, ...payload }`, where `kind` is this call's own event-kind
     // string ("session.steer") — a payload field ALSO named `kind` (the
@@ -1057,6 +1082,7 @@ export class SessionManager {
     if (!session) return { ok: false, detail: "session not live" };
     session.record.parkReason = null; // ADR-0008: leaving "parked" (if it was) for good, never a stale reason
     await this.setStatus(session, "stopping");
+    this.queue.clear(sessionId); // Stop heißt: nichts mehr senden, auch nichts Vorgemerktes
     session.abort.abort();
     try {
       if (session.handle) await session.adapter.stop(session.handle, this.makeContext(session));
@@ -1117,6 +1143,7 @@ export class SessionManager {
       }
     }
     await this.store.destroySession(sessionId);
+    this.queue.clear(sessionId);
     this.db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
     this.metrics?.inc("sessions_deleted");
     this.logger.info("session deleted", { sessionId, adapter: record.adapter });
@@ -1296,6 +1323,7 @@ export class SessionManager {
     }
 
     await this.flow.reconcile();
+    for (const sessionId of this.queue.sessionsWithEntries()) this.scheduleDrain(sessionId);
     const reaped = await this.runner.reapOrphans(keepWorkers).catch(() => []);
     const elapsed = performance.now() - t0;
     this.metrics?.gauge("recovery_ms", elapsed);
@@ -1573,6 +1601,46 @@ export class SessionManager {
     session.record.updatedAt = new Date().toISOString();
     this.persist(session.record);
     await this.store.saveSnapshot(session.record.id, this.snapshotOf(session));
+    if (status === "idle") this.scheduleDrain(session.record.id);
+  }
+
+  /** EPIC-P15 T15.3: the turn ended — send the oldest queued prompt. One at a time:
+   * its own turn end sends the next. */
+  private scheduleDrain(sessionId: string): void {
+    if (this.draining.has(sessionId) || this.queue.count(sessionId) === 0) return;
+    this.draining.add(sessionId);
+    setTimeout(() => {
+      void this.drainNext(sessionId)
+        .catch((err) => this.logger.warn("queue drain failed", { sessionId, err: err instanceof Error ? err.message : String(err) }))
+        .finally(() => this.draining.delete(sessionId));
+    }, 0);
+  }
+
+  private async drainNext(sessionId: string): Promise<void> {
+    const session = this.live.get(sessionId);
+    if (!session || session.record.status !== "idle") return;
+    const item = this.queue.take(sessionId);
+    if (!item) return;
+    const ack = await this.steer(
+      sessionId,
+      { kind: "prompt", text: item.text, ...(item.attachments ? { attachments: item.attachments } : {}) },
+      item.actor ?? undefined,
+      { fromQueue: true },
+    );
+    await this.emitSystem(session, "session.dequeued", { queueId: item.id, ok: ack.ok, ...(ack.ok ? {} : { detail: ack.detail ?? null }) });
+  }
+
+  /** EPIC-P15 T15.3: what is waiting in this session. */
+  queued(sessionId: string): QueuedPrompt[] {
+    return this.queue.list(sessionId);
+  }
+
+  /** EPIC-P15 T15.3: drop one waiting prompt before it is sent. */
+  async unqueue(sessionId: string, queueId: string, actor?: string): Promise<boolean> {
+    const removed = this.queue.remove(sessionId, queueId);
+    const session = this.live.get(sessionId);
+    if (removed && session) await this.emitSystem(session, "session.unqueued", { queueId, actor: actor ?? null });
+    return removed;
   }
 
   private persist(record: SessionRecord): void {

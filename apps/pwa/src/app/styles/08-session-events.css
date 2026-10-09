@@ -130,3 +130,22 @@
   min-height: 32px;
   max-width: 46vw;
 }
+
+/* EPIC-P15 T15.3: vorgemerkte Nachrichten über der Eingabe. */
+.queue-list {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.queue-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 2px 0;
+}
+.queue-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

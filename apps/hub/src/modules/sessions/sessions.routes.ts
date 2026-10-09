@@ -40,6 +40,8 @@ const SteerBody = z.intersection(
     revision: z.number().int().nonnegative().optional(),
     clientId: z.string().min(1).optional(),
     takeover: z.boolean().optional(),
+    /** EPIC-P15 T15.3: hold a prompt back until the running turn ends. */
+    queue: z.boolean().optional(),
   }),
 );
 
@@ -185,7 +187,7 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid steer input" });
     }
-    const { inputId, revision, clientId, takeover, ...raw } = parsed.data;
+    const { inputId, revision, clientId, takeover, queue, ...raw } = parsed.data;
     let input: SteerInput;
     if (raw.kind === "prompt") {
       const { attachmentIds, ...prompt } = raw;
@@ -213,8 +215,24 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
       ...(revision !== undefined ? { revision } : {}),
       ...(clientId !== undefined ? { clientId } : {}),
       ...(takeover ? { takeover } : {}),
+      ...(queue ? { queue } : {}),
     });
     return ack.ok ? ack : reply.code(422).send(ack);
+  });
+
+  /** EPIC-P15 T15.3: prompts waiting for the running turn. */
+  app.get("/api/sessions/:id/queue", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
+    return deps.sessions.queued(id).map(({ id: queueId, text, createdAt, actor, attachments }) => ({ id: queueId, text, createdAt, actor, attachments: attachments?.length ?? 0 }));
+  });
+
+  app.delete("/api/sessions/:id/queue/:queueId", async (req, reply) => {
+    const { id, queueId } = req.params as { id: string; queueId: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
+    return (await deps.sessions.unqueue(id, queueId, callerLabel(req) ?? undefined))
+      ? { ok: true }
+      : reply.code(404).send({ ok: false, detail: "nicht mehr in der Warteschlange" });
   });
 
 

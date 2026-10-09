@@ -329,6 +329,22 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE sessions ADD COLUMN permission_mode TEXT;
     `,
   },
+  {
+    id: 23,
+    name: "session-queue",
+    // EPIC-P15 T15.3: prompts queued while a turn runs; survive a hub restart (K7).
+    sql: `
+      CREATE TABLE session_queue (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        text TEXT NOT NULL,
+        attachments TEXT,
+        actor TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX session_queue_session ON session_queue (session_id, created_at);
+    `,
+  },
 ];
 
 export class HubDatabase {
