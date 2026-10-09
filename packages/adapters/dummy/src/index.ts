@@ -63,7 +63,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     version: "0.1.0",
 
     capabilities(): AdapterCapabilities {
-      return { reasoning: true, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: { followUp: true, interrupt: true, toolGate: "none", questions: false, modelChoice: "none", skills: false, agents: false, images: false, files: false, contextFork: false } };
+      return { reasoning: true, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: { followUp: true, interrupt: true, toolGate: "none", questions: false, modelChoice: "none", modelSwitch: false, permissionModes: [], skills: false, agents: false, images: false, files: false, contextFork: false } };
     },
 
     async start(_spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
@@ -90,6 +90,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
             payload: { kind: "dummy.prompt", text: input.text },
           });
           return { ok: true };
+        case "configure":
+          return { ok: false, detail: "dummy: Modus und Modell lassen sich in dieser Session nicht wechseln" };
         case "resume":
           if (!h.meta.running) {
             h.meta.running = true;

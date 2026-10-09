@@ -37,6 +37,8 @@ import { join } from "node:path";
 const ClaudeConfig = z.object({
   command: z.string().min(1).default("claude"),
   extraArgs: z.array(z.string()).default([]),
+  /** ADR-0033: adapter-wide fallback when neither the hub nor the session names a mode. */
+  permissionMode: z.string().min(1).optional(),
   permissionPrompts: z.enum(["hub", "off"]).default("hub"),
   /** ADR-0032: context window of the models this instance runs (tokens),
    * configured — claude does not report it in band. */
@@ -63,11 +65,19 @@ const ClaudeSessionArgs = z
     skill: z.string().min(1).optional(),
     agent: z.string().min(1).optional(),
     resumeSessionId: z.string().min(1).optional(),
+    /** ADR-0033: one of PERMISSION_MODES. */
+    permissionMode: z.string().min(1).optional(),
   })
   .optional();
 
+/** ADR-0033: `claude --permission-mode` choices (2.1.288). */
+const PERMISSION_MODES = ["auto", "manual", "plan", "acceptEdits", "dontAsk", "bypassPermissions"] as const;
+
 interface SessionMeta {
   resumeSessionId?: string;
+  /** ADR-0033: reapplied to every turn, changeable through `configure`. */
+  permissionMode?: string | undefined;
+  model?: string | undefined;
   healthy: boolean;
   degraded: boolean;
   /** Reapplied to every prompt (initial and steer) — a skill choice is
@@ -118,12 +128,26 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     return askHub ? { env: { ...env, MCP_TOOL_TIMEOUT: String(60 * 60_000) } } : env ? { env } : undefined;
   }
 
-  function buildArgs(prompt: string, resumeSessionId?: string, agent?: string, model?: string, extra: string[] = []): string[] {
+  function buildArgs(
+    prompt: string,
+    resumeSessionId?: string,
+    agent?: string,
+    model?: string,
+    extra: string[] = [],
+    mode?: string,
+    modelOnResume = false,
+  ): string[] {
     const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", ...extra];
     if (resumeSessionId) args.push("--resume", resumeSessionId);
     if (agent && !resumeSessionId) args.push("--agent", agent);
-    if (model && !resumeSessionId) args.push("--model", model);
-    return [cfg.command, ...args, ...cfg.extraArgs];
+    if (model && (!resumeSessionId || modelOnResume)) args.push("--model", model);
+    // ADR-0033: the session's mode beats an operator's --permission-mode in extraArgs.
+    let tail = cfg.extraArgs;
+    if (mode) {
+      args.push("--permission-mode", mode);
+      tail = tail.filter((a, i, all) => a !== "--permission-mode" && all[i - 1] !== "--permission-mode");
+    }
+    return [cfg.command, ...args, ...tail];
   }
 
   function withSkill(prompt: string, skill: string | undefined): string {
@@ -245,7 +269,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           interrupt: true,
           toolGate: bypassesPermissions(cfg.extraArgs) ? "bypass" : askHub ? "native" : "allowlist",
           questions: askHub,
-          modelChoice: "start",
+          modelChoice: "start", modelSwitch: true, permissionModes: PERMISSION_MODES,
           skills: true,
           agents: true,
           images: true,
@@ -277,14 +301,15 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // opaque stdout error. Fail loudly before spawning anything.
         throw new Error(`Claude kann „${resumeSessionId}" nicht fortsetzen — keine Session-ID (UUID). Subagent-Verläufe gehören zu ihrer Haupt-Session.`);
       }
-      const meta: SessionMeta = { healthy: true, degraded: false, skill, ...(resumeSessionId ? { resumeSessionId } : {}) };
+      const permissionMode = args.success ? (args.data?.permissionMode ?? cfg.permissionMode) : cfg.permissionMode;
+      const meta: SessionMeta = { healthy: true, degraded: false, skill, permissionMode, model: spec.model, ...(resumeSessionId ? { resumeSessionId } : {}) };
       const att = withAttachments(spec.prompt ?? "", spec.attachments);
       // Where the continued conversation happened: its transcript becomes
       // the hub's history, so the phone shows where the run stands without
       // asking the agent first. Awaited — history before the new turn.
       if (resumeSessionId) await importTranscript(ctx, spec.project, resumeSessionId, cfg.claudeDir);
       const proc = await ctx.spawnWorker(
-        buildArgs(withSkill(att.prompt, skill), resumeSessionId, agentPersona, spec.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])]),
+        buildArgs(withSkill(att.prompt, skill), resumeSessionId, agentPersona, spec.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], permissionMode, true),
         workerEnv(spec.env),
       );
       attach(ctx.sessionId, proc, ctx, meta);
@@ -305,7 +330,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           // is deliberately NOT re-added here (see buildArgs' doc comment).
           const att = withAttachments(input.text, input.attachments);
           const proc = await ctx.spawnWorker(
-            buildArgs(withSkill(att.prompt, meta?.skill), meta?.resumeSessionId, undefined, undefined, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])]),
+            buildArgs(withSkill(att.prompt, meta?.skill), meta?.resumeSessionId, undefined, meta?.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], meta?.permissionMode, true),
             workerEnv(undefined),
           );
           attach(handle.sessionId, proc, ctx, meta ?? { healthy: true, degraded: false });
@@ -316,6 +341,16 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           return { ok: true };
         case "park": {
           await procs.get(handle.sessionId)?.kill("SIGTERM");
+          return { ok: true };
+        }
+        case "configure": {
+          // ADR-0033: claude -p starts a process per turn — the change applies from the next one.
+          if (!meta) return { ok: false, detail: "claude: Session unbekannt" };
+          if (input.permissionMode !== undefined) {
+            if (!(PERMISSION_MODES as readonly string[]).includes(input.permissionMode)) return { ok: false, detail: `claude: Modus „${input.permissionMode}“ unbekannt` };
+            meta.permissionMode = input.permissionMode;
+          }
+          if (input.model !== undefined) meta.model = input.model;
           return { ok: true };
         }
         case "resume":

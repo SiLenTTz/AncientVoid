@@ -12,6 +12,8 @@ export function refuseSpec(features: HarnessFeatures, adapter: string, spec: Pic
   if (spec.model && features.modelChoice === "none") return `${adapter} kann beim Start kein Modell wählen.`;
   // AC-P7-4: an observer takes no input — its attachments would vanish.
   if (spec.attachments?.length && !features.followUp && !features.interrupt) return `${adapter} beobachtet nur — Anhänge kommen dort nicht an.`;
+  const mode = (spec.args as { permissionMode?: unknown } | undefined)?.permissionMode;
+  if (typeof mode === "string" && mode && !features.permissionModes.includes(mode)) return `${adapter} kennt den Modus „${mode}“ nicht.`;
   const agent = (spec.args as { agent?: unknown } | undefined)?.agent;
   if (typeof agent === "string" && agent && !features.agents) return `${adapter} kennt keine Agenten.`;
   return null;
@@ -20,5 +22,11 @@ export function refuseSpec(features: HarnessFeatures, adapter: string, spec: Pic
 export function refuseSteer(features: HarnessFeatures, adapter: string, input: SteerInput): string | null {
   if (input.kind === "prompt" && !features.followUp) return `${adapter} nimmt keine weiteren Eingaben an.`;
   if (input.kind === "park" && !features.interrupt) return `${adapter} kann einen laufenden Zug nicht anhalten.`;
+  if (input.kind === "configure") {
+    if (input.model === undefined && input.permissionMode === undefined) return "Nichts zu ändern.";
+    if (input.model !== undefined && !features.modelSwitch) return `${adapter} kann das Modell nach dem Start nicht wechseln.`;
+    if (input.permissionMode !== undefined && !features.permissionModes.includes(input.permissionMode))
+      return `${adapter} kennt den Modus „${input.permissionMode}“ nicht.`;
+  }
   return null;
 }

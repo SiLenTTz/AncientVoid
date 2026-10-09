@@ -523,6 +523,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         case "stop":
           await adapter.stop(handle, ctx);
           return { ok: true };
+        case "configure":
+          return { ok: false, detail: "acp: Modus und Modell lassen sich in dieser Session nicht wechseln" };
         case "resume":
           return { ok: false, detail: `${label}: weiter geht es mit einem neuen Prompt` };
       }

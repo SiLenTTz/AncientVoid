@@ -263,7 +263,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           interrupt: true,
           toolGate: "bypass",
           questions: false,
-          modelChoice: "start",
+          modelChoice: "start", modelSwitch: false, permissionModes: [],
           skills: false,
           agents: false,
           images: false,
@@ -304,6 +304,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           await procs.get(handle.sessionId)?.kill("SIGTERM");
           return { ok: true };
         }
+        case "configure":
+          return { ok: false, detail: "hermes: Modus und Modell lassen sich in dieser Session nicht wechseln" };
         case "resume":
           return { ok: false, detail: "hermes: resume needs a prompt — steer with kind: 'prompt' instead" };
       }

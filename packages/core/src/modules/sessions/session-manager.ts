@@ -67,6 +67,7 @@ export class SessionManager {
   private readonly runner: WorkerRunner;
   private readonly worktrees: WorktreeManager | undefined;
   private readonly mirrorDataDir: string;
+  private readonly defaultPermissionMode: string | null;
   private readonly reportingSinks: ReportingSink[];
   private readonly logger: HubLogger;
   private readonly metrics: HubMetrics | undefined;
@@ -100,7 +101,10 @@ export class SessionManager {
      * opencode.db mirror sessions read. Defaults to the same dir the
      * discovery scan uses; tests inject their own fixture dir. */
     mirrorDataDir: string = defaultOpencodeDataDir(),
+    /** ADR-0033: the mode new sessions start in, where the adapter offers it. */
+    defaultPermissionMode: string | null = null,
   ) {
+    this.defaultPermissionMode = defaultPermissionMode;
     this.mirrorDataDir = mirrorDataDir;
     this.db = db;
     this.store = store;
@@ -348,9 +352,18 @@ export class SessionManager {
    * available", not "system" or a guess.
    */
   async create(spec: unknown, actor?: string): Promise<SessionRecord> {
-    const parsed = SessionSpecSchema.parse(spec);
-    if (parsed.mirrorNativeSessionId) return this.createMirror(parsed, actor);
-    const registered = this.registry.require(parsed.adapter);
+    const requested = SessionSpecSchema.parse(spec);
+    if (requested.mirrorNativeSessionId) return this.createMirror(requested, actor);
+    const registered = this.registry.require(requested.adapter);
+    // ADR-0033: an explicit mode wins; otherwise the hub default, but only where the adapter has that mode.
+    const asked = (requested.args as { permissionMode?: unknown } | undefined)?.permissionMode;
+    const permissionMode =
+      typeof asked === "string" && asked
+        ? asked
+        : this.defaultPermissionMode && registered.capabilities.features.permissionModes.includes(this.defaultPermissionMode)
+          ? this.defaultPermissionMode
+          : null;
+    const parsed = permissionMode ? { ...requested, args: { ...requested.args, permissionMode } } : requested;
     const refused = refuseSpec(registered.capabilities.features, parsed.adapter, parsed);
     if (refused) throw new Error(refused);
     const now = new Date().toISOString();
@@ -359,6 +372,7 @@ export class SessionManager {
       adapter: parsed.adapter,
       project: parsed.project,
       worktreeSha: null,      model: parsed.model ?? null,
+      permissionMode,
       status: "starting",
       createdAt: now,
       budgetUsd: parsed.budgetUsd ?? null,
@@ -524,6 +538,7 @@ export class SessionManager {
       project: first.info.project ?? parsed.project,
       worktreeSha: null,
       model: null,
+      permissionMode: null,
       status: "idle",
       createdAt: now,
       budgetUsd: null,
@@ -714,6 +729,7 @@ export class SessionManager {
           ...(converted.attachments ? { attachments: converted.attachments } : {}),
           ...(session.record.model ? { model: session.record.model } : {}),
           args: {
+            ...(session.record.permissionMode ? { permissionMode: session.record.permissionMode } : {}),
             ...(session.skillName ? { skill: session.skillName } : {}),
             ...(native ? { resumeSessionId: native } : {}),
           },
@@ -761,7 +777,7 @@ export class SessionManager {
       if (record?.status === "stopped") return { ok: false, detail: `adapter "${record.adapter}" not registered` };
       return { ok: false, detail: "session not live" };
     }
-    if (!session.handle && input.kind !== "prompt") return { ok: false, detail: "session not live" };
+    if (!session.handle && input.kind !== "prompt" && input.kind !== "configure") return { ok: false, detail: "session not live" };
     if (meta?.inputId && this.hasSeenInput(sessionId, meta.inputId)) {
       return { ok: true, detail: "duplicate input ignored" };
     }
@@ -780,6 +796,11 @@ export class SessionManager {
     if (input.kind === "stop") {
       if (session.record.status === "stopped") return { ok: true };
       return this.stop(sessionId, actor);
+    }
+    if (input.kind === "configure") {
+      const done = await this.configure(session, input, actor);
+      if (done.ok) await this.commitSteer(session, meta, foreignWriter, actor);
+      return done;
     }
     let delivered = input;
     const reopening = input.kind === "prompt" && (session.record.status === "stopped" || !session.handle);
@@ -809,6 +830,28 @@ export class SessionManager {
     await this.emitSystem(session, "session.steer", { steerKind: input.kind, ok: ack.ok, actor: actor ?? null, ...(ack.ok ? {} : { detail: ack.detail ?? null }) });
     if (ack.ok) await this.commitSteer(session, meta, foreignWriter, actor);
     return ack;
+  }
+
+  /**
+   * ADR-0033: model and permission mode of a session. A live adapter applies it
+   * at the latest on the next turn; a stopped session passes it on when it is
+   * continued. The change is an event, so recovery finds it again (K7).
+   */
+  private async configure(session: LiveSession, input: Extract<SteerInput, { kind: "configure" }>, actor?: string): Promise<Ack> {
+    if (session.handle && session.record.status !== "stopped") {
+      const ack = await session.adapter.steer(session.handle, input, this.makeContext(session));
+      if (!ack.ok) return ack;
+    }
+    if (input.model !== undefined) session.record.model = input.model;
+    if (input.permissionMode !== undefined) session.record.permissionMode = input.permissionMode;
+    session.record.updatedAt = new Date().toISOString();
+    this.persist(session.record);
+    await this.emitSystem(session, "session.configured", {
+      model: session.record.model,
+      permissionMode: session.record.permissionMode,
+      actor: actor ?? null,
+    });
+    return { ok: true };
   }
 
   /** The user's own input as a chat message — as typed, without the skill

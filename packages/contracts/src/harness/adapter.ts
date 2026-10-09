@@ -25,6 +25,11 @@ export interface HarnessFeatures {
   questions: boolean;
   /** Model choosable when starting. */
   modelChoice: "start" | "none";
+  /** ADR-0033: model changeable after the start (`configure`). */
+  modelSwitch: boolean;
+  /** ADR-0033: permission modes the session can run in, provider-specific
+   * names (claude: auto, manual, plan …). Empty: no selectable mode. */
+  permissionModes: readonly string[];
   skills: boolean;
   agents: boolean;
   /** Attachments to a prompt (T7.5). */
@@ -43,6 +48,8 @@ export function basicFeatures(overrides: Partial<HarnessFeatures> = {}): Harness
     toolGate: "none",
     questions: false,
     modelChoice: "none",
+    modelSwitch: false,
+    permissionModes: [],
     skills: false,
     agents: false,
     images: false,
@@ -99,10 +106,11 @@ export interface HealthReport {
   lastSeen?: string;
 }
 
-export type SteerKind = "prompt" | "stop" | "park" | "resume";
+export type SteerKind = "prompt" | "stop" | "park" | "resume" | "configure";
 
 export const SteerInput = {
   prompt: (text: string) => ({ kind: "prompt", text }) as const,
+  configure: (change: { model?: string; permissionMode?: string }) => ({ kind: "configure", ...change }) as const,
   stop: () => ({ kind: "stop" }) as const,
   park: () => ({ kind: "park" }) as const,
   resume: () => ({ kind: "resume" }) as const,
@@ -112,7 +120,9 @@ export type SteerInput =
   | { kind: "prompt"; text: string; attachments?: PromptAttachment[] }
   | { kind: "stop" }
   | { kind: "park" }
-  | { kind: "resume" };
+  | { kind: "resume" }
+  /** ADR-0033: change model and/or permission mode; applied at the latest on the next turn. */
+  | { kind: "configure"; model?: string; permissionMode?: string };
 
 export interface Ack {
   ok: boolean;
