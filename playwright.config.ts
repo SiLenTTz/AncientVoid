@@ -20,6 +20,7 @@ const PHONE_SPECS = [
   "ruhe-beim-tippen.spec.ts",
   "pc-offen.spec.ts",
   "workspace.spec.ts",
+  "code.spec.ts",
 ];
 
 export default defineConfig({
@@ -44,8 +45,9 @@ export default defineConfig({
   projects: [
     { name: "mobile", use: { ...devices["Pixel 7"] } },
     { name: "desktop", use: { ...devices["Desktop Chrome"] }, grep: /@desktop/ },
-    // Das echte Handy per adb/CDP: `npm run test:phone` (scripts/phone-e2e.mjs, docs/testing-e2e.md).
-    // Nur Specs, die ohne Mikrofon, Kamera, zweiten Browserkontext und fremde Hubs auskommen.
-    { name: "phone", testMatch: PHONE_SPECS, retries: 0 },
+    // Das echte Handy per adb/CDP: `npm run test:phone` setzt UACC_E2E_CDP.
+    // Ohne das hängt das Projekt nicht am Gate — sonst laufen dieselben Specs
+    // lokal ohne Gerätefläche und scheitern an der Desktop-Breite.
+    ...(process.env.UACC_E2E_CDP ? [{ name: "phone", testMatch: PHONE_SPECS, retries: 0 }] : []),
   ],
 });

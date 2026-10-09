@@ -9,7 +9,15 @@
  *
  * Umgebung: UACC_PHONE_SERIAL wählt ein bestimmtes Gerät.
  */
+/* global fetch, AbortSignal */
 import { execFileSync, spawnSync } from "node:child_process";
+import { rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { quarterFromDumpsys } from "./phone-run-guard.mjs";
+
+const deadFlag = join(tmpdir(), "uacc-phone-cdp-dead");
+rmSync(deadFlag, { force: true });
 
 const adbRaw = (args, opts = {}) => execFileSync("adb", args, { encoding: "utf8", timeout: 20_000, ...opts });
 
@@ -38,11 +46,40 @@ if (/isKeyguardShowing=true|mDreamingLockscreen=true/.test(window)) {
 }
 
 // Hochformat? Im Querformat hat die Seite nur ~450 px Höhe; Messungen und Klicks wären nicht vergleichbar.
-// Die Ausrichtung wird nicht verändert — das ist die Einstellung der Person.
-const rotation = /mRotation=(\d)/.exec(adb("shell", "dumpsys", "window", "displays"))?.[1];
-if (rotation === "1" || rotation === "3") {
-  console.error("Das Handy liegt im Querformat. Bitte aufrecht halten (Hochformat) und noch einmal starten.");
-  process.exit(2);
+// Standardmäßig wird die Ausrichtung NICHT verändert (das ist die Einstellung der Person). Mit `--portrait`
+// stellt das Skript die Drehung für die Dauer des Laufs auf Hochformat und danach exakt zurück.
+const portraitFlag = process.argv.includes("--portrait");
+const passthrough = process.argv.slice(2).filter((a) => a !== "--portrait");
+const getSetting = (key) => adb("shell", "settings", "get", "system", key).trim();
+let restoreRotation = () => {};
+const quarter = () => quarterFromDumpsys(adb("shell", "dumpsys", "window", "displays"));
+if (quarter() === "1" || quarter() === "3") {
+  if (!portraitFlag) {
+    console.error("Das Handy liegt im Querformat. Bitte aufrecht halten oder mit `--portrait` starten (stellt die Drehung nur für den Lauf um).");
+    process.exit(2);
+  }
+  const before = { auto: getSetting("accelerometer_rotation"), user: getSetting("user_rotation") };
+  adb("shell", "settings", "put", "system", "accelerometer_rotation", "0");
+  adb("shell", "settings", "put", "system", "user_rotation", "0");
+  restoreRotation = () => {
+    try {
+      adb("shell", "settings", "put", "system", "user_rotation", before.user === "null" ? "0" : before.user);
+      adb("shell", "settings", "put", "system", "accelerometer_rotation", before.auto === "null" ? "1" : before.auto);
+      console.log(`Drehung wiederhergestellt (accelerometer_rotation=${before.auto}, user_rotation=${before.user}).`);
+    } catch (err) {
+      console.error("Drehung konnte nicht wiederhergestellt werden:", err instanceof Error ? err.message : err);
+    }
+  };
+  process.on("SIGINT", () => {
+    restoreRotation();
+    process.exit(130);
+  });
+  process.on("SIGTERM", () => {
+    restoreRotation();
+    process.exit(143);
+  });
+  await new Promise((r) => setTimeout(r, 1500));
+  console.log("Drehung für den Lauf auf Hochformat gestellt.");
 }
 
 // Chrome öffnen. Der Socket `chrome_devtools_remote` ohne Zahl gehört oft einem ANDEREN Browser
@@ -77,14 +114,15 @@ if (!found) {
 const { port, socket } = found;
 console.log(`${PACKAGE}: ${socket} → 127.0.0.1:${port}`);
 
-const args = ["playwright", "test", "--project=phone", "--workers=1", ...process.argv.slice(2)];
+const args = ["playwright", "test", "--project=phone", "--workers=1", ...passthrough];
 const result = spawnSync("npx", args, {
   stdio: "inherit",
-  env: { ...process.env, UACC_E2E_CDP: `http://127.0.0.1:${port}`, UACC_PHONE_SERIAL: serial },
+  env: { ...process.env, UACC_E2E_CDP: `http://127.0.0.1:${port}`, UACC_PHONE_SERIAL: serial, UACC_PHONE_LOCK_PORTRAIT: "1" },
 });
 try {
   adb("forward", "--remove", `tcp:${port}`);
 } catch {
   // schon weg
 }
+restoreRotation();
 process.exit(result.status ?? 1);
