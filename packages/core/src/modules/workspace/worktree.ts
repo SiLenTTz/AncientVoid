@@ -104,15 +104,15 @@ export class WorktreeManager {
 
     await git(path, "add", "-A");
     const staged = await git(path, "diff", "--cached", "--quiet").then(() => false).catch(() => true);
-    if (staged) {
-      const identity = await git(path, "config", "user.email").then(() => [] as string[]).catch(() => ["-c", "user.name=UACC Hub", "-c", "user.email=hub@uacc.local"]);
-      await execFileAsync("git", ["-C", path, ...identity, "commit", "-q", "-m", message]);
-    }
+    const identity = async (cwd: string) =>
+      git(cwd, "config", "user.email").then(() => [] as string[]).catch(() => ["-c", "user.name=UACC Hub", "-c", "user.email=hub@uacc.local"]);
+    const gitAs = async (cwd: string, args: string[]) => execFileAsync("git", ["-C", cwd, ...(await identity(cwd)), ...args]);
+    if (staged) await gitAs(path, ["commit", "-q", "-m", message]);
     const { stdout: pending } = await git(projectPath, "log", "--format=%H", `HEAD..${branch}`);
     if (pending.trim() === "") return { ok: false, detail: "Keine Änderungen zum Übernehmen." };
     const { stdout: changed } = await git(projectPath, "diff", "--name-only", `HEAD...${branch}`);
     try {
-      await git(projectPath, "merge", "--no-ff", "-m", message, branch);
+      await gitAs(projectPath, ["merge", "--no-ff", "-m", message, branch]);
     } catch {
       const { stdout: conflicts } = await git(projectPath, "diff", "--name-only", "--diff-filter=U").catch(() => ({ stdout: "" }));
       await git(projectPath, "merge", "--abort").catch(() => undefined);
