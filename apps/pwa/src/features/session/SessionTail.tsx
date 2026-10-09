@@ -5,6 +5,7 @@ import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type Sessio
 import { connectTail, type NormalizedEvent, type TailConnection } from "../../shared/ws.ts";
 import { Composer } from "../composer/Composer.tsx";
 import { SessionConfigure } from "./SessionConfigure.tsx";
+import { QueueList } from "./QueueList.tsx";
 import type { Page } from "../../app/Dock.tsx";
 import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
@@ -123,6 +124,8 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [archived, setArchived] = useState(session.archived === true);
   const [features, setFeatures] = useState<HarnessFeatures | null>(null);
+  // EPIC-P15 T15.3: neu laden, wenn etwas vorgemerkt wurde.
+  const [queueTick, setQueueTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -409,7 +412,17 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
     }
   };
 
-  const sendReply = async (takeover = false) => {
+  /** EPIC-P15 T15.3: Pause — hält den laufenden Zug an, die Session bleibt fortsetzbar. */
+  const pause = async () => {
+    try {
+      const ack = await api.steer(session.id, { kind: "park" });
+      if (!ack.ok) setReplyError(steerRejectText(ack.detail));
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Pause fehlgeschlagen.");
+    }
+  };
+
+  const sendReply = async (takeover = false, queue = false) => {
     if (!reply.trim() && replyAttachments.length === 0) return;
     setReplyBusy(true);
     setReplyError("");
@@ -417,8 +430,9 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
     try {
       if (pendingInput.current?.text !== reply) pendingInput.current = { text: reply, id: newInputId() };
       const ids = replyAttachments.map((a) => a.id);
-      const ack = await api.steer(session.id, { kind: "prompt", text: reply, ...(ids.length ? { attachmentIds: ids } : {}) }, pendingInput.current.id, takeover);
+      const ack = await api.steer(session.id, { kind: "prompt", text: reply, ...(ids.length ? { attachmentIds: ids } : {}) }, pendingInput.current.id, takeover, queue);
       if (ack.ok) {
+        if (queue) setQueueTick((t) => t + 1);
         pendingInput.current = null;
         setReply("");
         setReplyAttachments([]);
@@ -477,6 +491,11 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             {shownModel ? ` · ${shownModel}` : ""} · <span class={`pill ${status}`} data-status={status}>{statusLabel(status)}</span>
           </div>
         </div>
+        {!observerOnly && features?.interrupt && (status === "working" || status === "starting" || status === "waiting_approval") && (
+          <button class="btn pause-btn" type="button" onClick={() => void pause()}>
+            Pause
+          </button>
+        )}
         {!observerOnly && status !== "stopped" && (
           <button class="btn danger stop-btn" type="button" onClick={stop}>
             Stop
@@ -678,6 +697,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             {showReply && (draft.state === "saved" || draft.state === "local") && (reply || replyAttachments.length > 0) && (
               <div class={`draft-state dim ${draft.state}`}>{draft.state === "saved" ? "Entwurf gespeichert — auch auf deinen anderen Geräten" : "Entwurf nur auf diesem Gerät (Hub nicht erreichbar)"}</div>
             )}
+            {showReply && <QueueList sessionId={session.id} api={api} refreshKey={queueTick} />}
             {showReply && !draft.conflict && <ReplyTemplates value={reply} onPick={setReply} />}
             {showReply && (
               <Composer
@@ -692,13 +712,23 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                 onAttachmentsChange={setReplyAttachments}
                 extraActions={
                   <>
+                    {(status === "working" || status === "starting" || status === "waiting_approval") && (
+                      <button
+                        class="btn"
+                        type="button"
+                        onClick={() => void sendReply(false, true)}
+                        disabled={replyBusy || !online || (!reply.trim() && replyAttachments.length === 0)}
+                      >
+                        Vormerken
+                      </button>
+                    )}
                     <button
                       class={replyBusy ? "btn primary busy" : "btn primary"}
                       aria-busy={replyBusy}
                       onClick={() => void sendReply()}
                       disabled={replyBusy || !online || (!reply.trim() && replyAttachments.length === 0)}
                     >
-                      {replyBusy ? "lädt…" : status === "stopped" ? "Weiter" : "Senden"}
+                      {replyBusy ? "lädt…" : status === "stopped" || status === "parked" ? "Weiter" : "Senden"}
                     </button>
                   </>
                 }

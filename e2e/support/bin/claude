@@ -14,6 +14,7 @@
 //             answers with the choice
 //   FEHLER    a failed turn: result is_error with an overloaded API error, exit 1
 //   LANGSAM   keep the turn open for 60 s
+//   ZUEGIG    keep the turn open for 3 s, then answer normally (EPIC-P15: queue)
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -45,6 +46,7 @@ emit({ type: "system", subtype: "init", cwd: process.cwd(), session_id: sessionI
 await sleep(50);
 
 if (prompt.includes("LANGSAM")) await sleep(60_000);
+if (prompt.includes("ZUEGIG")) await sleep(3000);
 
 if (prompt.includes("FEHLER")) {
   const message = 'API Error: 529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}';
