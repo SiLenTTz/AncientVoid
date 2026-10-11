@@ -672,6 +672,9 @@ function createHubApi(P: (path: string) => string) {
   adapterModels: (id: string) => api<{ models: ModelOption[] | null; defaultModel: string | null }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
   adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
   projects: () => api<ProjectDiscoveryResult>(P("/api/projects")),
+  /** T-PJ1: create a project (git init) in the first projectRoot. */
+  createProject: (name: string) =>
+    api<{ ok: boolean; created: boolean; project: DiscoveredProject }>(P("/api/projects"), { method: "POST", body: JSON.stringify({ name }) }),
   skills: (project: string) => api<{ items: SkillOrAgent[] }>(P(`/api/skills?project=${encodeURIComponent(project)}`)),
   recommendPrompt: (project: string, text: string) =>
     api<PromptRecommendation | null>(P("/api/prompt-recommendation"), { method: "POST", body: JSON.stringify({ project, text }) }),

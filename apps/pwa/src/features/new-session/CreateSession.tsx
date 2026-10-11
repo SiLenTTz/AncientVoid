@@ -56,6 +56,28 @@ export function CreateSession({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
+  // T-PJ1: inline project creation (git init in first projectRoot)
+  const [newProject, setNewProject] = useState("");
+  const [creating, setCreating] = useState(false);
+  const createNewProject = async () => {
+    const name = newProject.trim();
+    if (!name || creating) return;
+    setCreating(true);
+    setError("");
+    try {
+      const res = await hubApi.createProject(name);
+      if (res.created || res.project) {
+        setNewProject("");
+        const list = await hubApi.projects();
+        setProjects(list.projects);
+        setProject(res.project.path);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCreating(false);
+    }
+  };
   const [skill, setSkill] = useState<SelectedSkill | null>(null);
   // ADR-0018: a model picker only where the harness takes one at start,
   // filled from its catalog when it has one, else free text.
@@ -230,14 +252,27 @@ export function CreateSession({
         {projects === null ? (
           <input disabled placeholder="lade…" />
         ) : projects.length > 0 ? (
-          <select value={project} onChange={(e) => setProject((e.target as HTMLSelectElement).value)}>
-            {projects.map((p) => (
-              <option key={p.path} value={p.path}>
-                {p.name}
-                {p.branch ? ` (${p.branch})` : ""}
-              </option>
-            ))}
-          </select>
+          <>
+            <select value={project} onChange={(e) => setProject((e.target as HTMLSelectElement).value)}>
+              {projects.map((p) => (
+                <option key={p.path} value={p.path}>
+                  {p.name}
+                  {p.branch ? ` (${p.branch})` : ""}
+                </option>
+              ))}
+            </select>
+            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              <input
+                value={newProject}
+                onInput={(e) => setNewProject((e.target as HTMLInputElement).value)}
+                placeholder="neues Projekt (Name)"
+                style={{ flex: 1 }}
+              />
+              <button type="button" disabled={!newProject.trim() || creating} onClick={createNewProject}>
+                {creating ? "…" : "+ Anlegen"}
+              </button>
+            </div>
+          </>
         ) : (
           <>
             <input

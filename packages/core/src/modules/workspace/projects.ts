@@ -89,3 +89,52 @@ export async function isProjectPathAllowed(projectPath: string, roots: readonly 
   }
   return false;
 }
+
+/**
+ * T-PJ1: create a new project (git init) inside a configured root.
+ * Name is validated strictly (no path traversal, no reserved names) so a
+ * client can never write outside projectRoots — same allowlist spirit as
+ * isProjectPathAllowed. Idempotent: returns { created: false } if the dir
+ * exists with a .git already.
+ */
+export interface CreateProjectResult {
+  created: boolean;
+  project: DiscoveredProject;
+  warning?: string;
+}
+
+const PROJECT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+
+export async function createProject(
+  roots: readonly string[],
+  name: string,
+  init: { git: (args: string[], cwd: string) => Promise<{ code: number; stderr: string }> },
+): Promise<CreateProjectResult> {
+  if (!PROJECT_NAME_RE.test(name)) {
+    throw new Error(`Ungültiger Projektname: "${name}" (erlaubt: Buchstaben, Ziffern, . _ -, max 64 Zeichen; keine Pfade)`);
+  }
+  if (roots.length === 0) {
+    throw new Error("Keine projectRoots konfiguriert — Projekt-Anlegen nicht möglich.");
+  }
+  const root = roots[0]!;
+  const projectPath = join(root, name);
+  // Path traversal defence: name contains no separators by regex, but belt-and-braces.
+  const realRoot = await realpath(root);
+  if (!(projectPath + sep).startsWith(realRoot + sep) && projectPath !== realRoot) {
+    throw new Error("Projektpfad liegt außerhalb der projectRoots.");
+  }
+  const hasGit = await stat(join(projectPath, ".git")).then(() => true, () => false);
+  if (hasGit) {
+    return { created: false, project: { path: projectPath, name, branch: await readBranch(projectPath) } };
+  }
+  const exists = await stat(projectPath).then(() => true, () => false);
+  if (exists) {
+    throw new Error(`Verzeichnis "${name}" existiert bereits ohne .git — nicht über den Hub überschreiben.`);
+  }
+  await (await import("node:fs/promises")).mkdir(projectPath, { recursive: true });
+  const r = await init.git(["init", "--initial-branch=main"], projectPath);
+  if (r.code !== 0) {
+    throw new Error(`git init fehlgeschlagen: ${r.stderr.slice(0, 200)}`);
+  }
+  return { created: true, project: { path: projectPath, name, branch: "main" } };
+}
