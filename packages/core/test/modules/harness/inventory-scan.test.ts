@@ -74,6 +74,26 @@ describe("scanClaudeSessions (T5.3)", () => {
     const items = await claudeDiscoverySource(claudeDir, [projectRoot]).list();
     expect(items.find((item) => item.nativeSessionId === "s")?.project).toBe(real);
   });
+
+  it("hides sessions outside the configured roots — tmp stays out (User-Vorgabe 2026-10-20)", async () => {
+    const base = mkdtempSync(join(tmpdir(), "uacc-claude-filter-"));
+    const projectRoot = join(base, "work");
+    const inside = join(projectRoot, "mine");
+    const outside = join(base, "tmp-clutter");
+    mkdirSync(inside, { recursive: true });
+    mkdirSync(outside, { recursive: true });
+    const claudeDir = join(base, "claude");
+    for (const project of [inside, outside]) {
+      const munged = project.replace(/[^a-zA-Z0-9]/g, "-");
+      mkdirSync(join(claudeDir, "projects", munged), { recursive: true });
+      writeFileSync(join(claudeDir, "projects", munged, "s-" + munged.slice(-4) + ".jsonl"), "{}\n");
+    }
+    const items = await claudeDiscoverySource(claudeDir, [projectRoot]).list();
+    const projects = items.filter((i) => i.status === "observed").map((i) => i.project);
+    expect(projects).toContain(inside);
+    // draußen bleibt draußen — weder als Pfad noch als gemunged Name
+    expect(projects.some((p) => p.includes("tmp-clutter"))).toBe(false);
+  });
 });
 
 describe("scanCursorComposers (T5.3)", () => {

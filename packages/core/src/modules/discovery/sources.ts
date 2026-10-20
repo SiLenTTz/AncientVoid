@@ -367,6 +367,23 @@ export function claudeDiscoverySource(claudeDir: string, knownProjectRoots: read
         }
         item.project = project;
       }
+      // Same policy as opencode (ADR-0011): sessions outside the configured
+      // roots are other people's business — hide them, but only when roots
+      // are configured at all. Unresolved munged names are judged by their
+      // munged root prefix (a name can only be under a root if the root's
+      // munged form is a prefix) — e.g. "-tmp-…" never sits under a root.
+      if (knownProjectRoots.length > 0) {
+        const allowed = knownProjectRoots.map((r) => resolve(r));
+        return items.filter(
+          (item) =>
+            item.status !== "observed" ||
+            allowed.some((root) => {
+              if (item.project === root || item.project.startsWith(root + "/")) return true;
+              const rootMunged = root.replace(/[^a-zA-Z0-9]/g, "-");
+              return item.project.startsWith("-") && (item.project === rootMunged || item.project.startsWith(rootMunged + "-"));
+            }),
+        );
+      }
       return items;
     },
   };
