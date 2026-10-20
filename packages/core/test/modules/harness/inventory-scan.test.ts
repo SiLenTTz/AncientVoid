@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { HARNESS_CATALOG, probeHarnesses, type ProbeRunner } from "../../../src/modules/harness/inventory.ts";
-import { scanClaudeSessions, scanCursorComposers, scanOpencodeSessions } from "../../../src/modules/discovery/sources.ts";
+import { claudeDiscoverySource, scanClaudeSessions, scanCursorComposers, scanOpencodeSessions } from "../../../src/modules/discovery/sources.ts";
 
 describe("probeHarnesses (T5.1)", () => {
   it("records a parsed version and does not upgrade a missing discovery cell", async () => {
@@ -60,6 +60,19 @@ describe("scanClaudeSessions (T5.3)", () => {
     mkdirSync(join(unknownRoot, "projects", "-tmp-wohin"), { recursive: true });
     writeFileSync(join(unknownRoot, "projects", "-tmp-wohin", "s.jsonl"), "{}\n");
     expect(scanClaudeSessions(unknownRoot, "2026-09-22T00:00:00.000Z", []).find((item) => item.nativeSessionId === "s")?.project).toBe("-tmp-wohin");
+  });
+
+  it("resolves a nested project under a root back to its real path (BUG-0057)", async () => {
+    const base = mkdtempSync(join(tmpdir(), "uacc-claude-nested-"));
+    const projectRoot = join(base, "work");
+    const real = join(projectRoot, "30_repos", "my-proj_uxt");
+    mkdirSync(real, { recursive: true }); // der Walk löst gegen echte Verzeichnisse auf
+    const munged = real.replace(/[^a-zA-Z0-9]/g, "-");
+    const claudeDir = join(base, "claude");
+    mkdirSync(join(claudeDir, "projects", munged), { recursive: true });
+    writeFileSync(join(claudeDir, "projects", munged, "s.jsonl"), "{}\n");
+    const items = await claudeDiscoverySource(claudeDir, [projectRoot]).list();
+    expect(items.find((item) => item.nativeSessionId === "s")?.project).toBe(real);
   });
 });
 

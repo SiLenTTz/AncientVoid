@@ -352,8 +352,62 @@ export function claudeDiscoverySource(claudeDir: string, knownProjectRoots: read
     id: "claude-projects",
     // The candidates for un-munging are computed per scan, not once: roots
     // and their projects change while the hub runs.
-    list: async () => scanClaudeSessions(claudeDir, new Date().toISOString(), await knownProjectCandidates(knownProjectRoots)),
+    list: async () => {
+      const items = await scanClaudeSessions(claudeDir, new Date().toISOString(), await knownProjectCandidates(knownProjectRoots));
+      // Exact candidates only cover roots and direct children — deeper
+      // projects (BUG-0057) need a filesystem walk from the roots.
+      const roots = [...new Set([...knownProjectRoots.map((r) => resolve(r)), homedir()])];
+      const resolved = new Map<string, string>();
+      for (const item of items) {
+        if (!item.project.startsWith("-")) continue;
+        let project = resolved.get(item.project);
+        if (project === undefined) {
+          project = (await resolveMungedProject(item.project, roots)) ?? item.project;
+          resolved.set(item.project, project);
+        }
+        item.project = project;
+      }
+      return items;
+    },
   };
+}
+
+/** Walk the filesystem from the given roots to turn a munged project name
+ * back into the real path (BUG-0057: nested projects never matched the
+ * direct-children candidates). Dash-ambiguity is resolved by preferring the
+ * longest matching segment; unresolved names stay munged (fail loud). */
+export async function resolveMungedProject(munged: string, roots: readonly string[]): Promise<string | null> {
+  const { readdir } = await import("node:fs/promises");
+  const MAX_DEPTH = 12; // cycle guard for symlinked directory layouts
+  const walk = async (dir: string, tail: string, depth: number): Promise<string | null> => {
+    if (tail === "") return dir;
+    if (depth <= 0) return null;
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = (await readdir(dir, { withFileTypes: true })) as import("node:fs").Dirent[];
+    } catch {
+      return null;
+    }
+    const matching = entries
+      .filter((e) => e.isDirectory())
+      .map((e) => ({ name: e.name, munged: e.name.replace(/[^a-zA-Z0-9]/g, "-") }))
+      .filter(({ munged: m }) => tail === m || tail.startsWith(m + "-"))
+      .sort((a, b) => b.munged.length - a.munged.length);
+    for (const { name, munged: m } of matching) {
+      const rest = tail === m ? "" : tail.slice(m.length + 1);
+      const hit = await walk(join(dir, name), rest, depth - 1);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  for (const root of roots) {
+    const rootMunged = root.replace(/[^a-zA-Z0-9]/g, "-");
+    if (munged === rootMunged) return root;
+    if (!munged.startsWith(rootMunged + "-")) continue;
+    const hit = await walk(root, munged.slice(rootMunged.length + 1), MAX_DEPTH);
+    if (hit) return hit;
+  }
+  return null;
 }
 
 /** Paths a munged Claude project name could be: each root itself, its
