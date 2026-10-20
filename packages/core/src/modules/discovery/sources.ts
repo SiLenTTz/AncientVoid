@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
@@ -382,9 +382,9 @@ export async function resolveMungedProject(munged: string, roots: readonly strin
   const walk = async (dir: string, tail: string, depth: number): Promise<string | null> => {
     if (tail === "") return dir;
     if (depth <= 0) return null;
-    let entries: import("node:fs").Dirent[];
+    let entries: Dirent[];
     try {
-      entries = (await readdir(dir, { withFileTypes: true })) as import("node:fs").Dirent[];
+      entries = (await readdir(dir, { withFileTypes: true })) as Dirent[];
     } catch {
       return null;
     }
