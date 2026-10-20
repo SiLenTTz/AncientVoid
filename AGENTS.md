@@ -38,6 +38,12 @@ wenn die Exit-Kriterien von P(n-1) grün sind.
 
 ## Kommandos
 
+> **GitLab-CI ist nicht verlässlich** (Free-Abo: Pipelines schlagen sporadisch
+> fehl, REST-Merge-Endpoint liefert gern 404 — Merge via GraphQL
+> `mergeRequestAccept` funktioniert). Qualität zählt nur über die **lokalen**
+> Gates unten; eine rote GitLab-Pipeline ohne lokales Gegenbild ist kein
+> Merge-Blocker.
+
 ```bash
 npm test                 # vitest (Unit/Integration)
 npm run test:e2e         # Playwright-E2E-Gate gegen einen echten Hub (docs/testing-e2e.md)
