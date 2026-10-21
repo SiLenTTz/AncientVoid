@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SessionMetricsState } from "./metrics.ts";
+import { prefaultSessionMetrics } from "./metrics.ts";
 import type { PromptAttachment } from "../attachments/attachment.ts";
 import { CONTROL_MODES, DEFAULT_HOST_ID, HARNESS_TARGETS, RESUME_SCHEMA_VERSION } from "./identity.ts";
 
@@ -87,7 +87,7 @@ export const SessionRecord = z.object({
   tokensEst: z.number().nonnegative().default(0),
   /** T7.7 (ADR-0023): how far costUsd/tokensEst can be trusted — "unknown"
    * means the 0 above is not a value. Derived from `counters`. */
-  metrics: SessionMetricsState.prefault({ cost: "unknown", tokens: "unknown", counters: {} }),
+  metrics: prefaultSessionMetrics(),
   /** ISO-8601 timestamp of the last persisted change to this session
    * (status change or event) — T1.5's "zuletzt aktiv" sort key. */
   updatedAt: z.string().min(1),

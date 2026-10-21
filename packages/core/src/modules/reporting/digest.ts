@@ -1,4 +1,4 @@
-import type { DigestLesson, DigestLessonKind, NormalizedEvent, SessionRecord, SessionSummary } from "@uacc/contracts";
+import type { DigestLesson, DigestLessonKind, NormalizedEvent, SessionRecord, SessionMetricsState, SessionSummary } from "@uacc/contracts";
 
 /**
  * T4.2 (EPIC-P4 §3 "Digest-Pipeline") / ADR-0009 — turns one completed
@@ -63,7 +63,7 @@ export function buildSessionSummary(record: SessionRecord, events: NormalizedEve
     endedAt: record.updatedAt,
     costUsd: record.costUsd,
     tokensEst: record.tokensEst,
-    metrics: { cost: record.metrics.cost, tokens: record.metrics.tokens },
+    metrics: { cost: (record.metrics as SessionMetricsState).cost, tokens: (record.metrics as SessionMetricsState).tokens },
     eventCount: events.length,
     lessons: extractLessons(events),
     archiveRef: archiveRefFor(record.id),

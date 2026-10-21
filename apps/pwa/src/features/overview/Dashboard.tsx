@@ -100,6 +100,9 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
   const [showArchived, setShowArchived] = useState(false);
   const [override, setOverride] = useState<Record<string, Partial<SessionRecord>>>({});
   const [actionError, setActionError] = useState("");
+  // Sessions deleted from the archive view: gone locally right away, the
+  // next poll confirms. A failed delete puts the row back (fail loud).
+  const [deleted, setDeleted] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
   const [allRecent, setAllRecent] = useState(false);
   // T9.4: "Zeig wartende Sessions" narrows the overview; the chip undoes it.
@@ -128,7 +131,10 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
       return Object.keys(next).length === Object.keys(prev).length ? prev : next;
     });
   }, [sessions]);
-  const withOverride = useMemo(() => sessions.map((s) => (override[s.id] ? { ...s, ...override[s.id] } : s)), [sessions, override]);
+  const withOverride = useMemo(
+    () => sessions.filter((s) => !deleted.has(s.id)).map((s) => (override[s.id] ? { ...s, ...override[s.id] } : s)),
+    [sessions, override, deleted],
+  );
   const visible = useMemo(
     () =>
       sessionsForOverview(withOverride, showArchived)
@@ -161,6 +167,22 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
   };
   const archive = (s: SessionRecord) => change(s, { archived: !s.archived }, () => hostApi(s.hostId).setArchived(s.id, !s.archived));
   const pin = (s: SessionRecord) => change(s, { pinned: !s.pinned }, () => hostApi(s.hostId).setSessionMeta(s.id, { pinned: !s.pinned }));
+  // Archiv aufräumen: endgültig löschen, gleiche Sicherheitsfrage wie in
+  // der Session-Ansicht — Verlauf, Statistik und Worktree sind weg.
+  const remove = (s: SessionRecord) => {
+    if (!confirm("Session endgültig löschen? Verlauf, Statistik und Worktree sind weg.")) return;
+    setDeleted((prev) => new Set(prev).add(s.id));
+    hostApi(s.hostId)
+      .deleteSession(s.id)
+      .catch((err: unknown) => {
+        setDeleted((prev) => {
+          const next = new Set(prev);
+          next.delete(s.id);
+          return next;
+        });
+        setActionError(err instanceof Error ? err.message : "Löschen fehlgeschlagen.");
+      });
+  };
 
   const order: Section[] = ["braucht", "pins", "aktiv", "zuletzt"];
   return (
@@ -222,7 +244,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
                   {showArchived ? "Archiv" : SECTION_TITLE[key]} <span class="dim">{sections[key].length}</span>
                 </h2>
                 {list.map((s) => (
-                  <SessionRow key={`${s.hostId ?? ""}:${s.id}`} session={s} fleet={fleet} onOpen={onOpen} onArchive={archive} onPin={pin} />
+                  <SessionRow key={`${s.hostId ?? ""}:${s.id}`} session={s} fleet={fleet} onOpen={onOpen} onArchive={archive} onPin={pin} onDelete={remove} />
                 ))}
                 {list.length < sections[key].length && (
                   <button class="btn more-sessions" type="button" onClick={() => setAllRecent(true)}>
@@ -243,12 +265,14 @@ function SessionRow({
   onOpen,
   onArchive,
   onPin,
+  onDelete,
 }: {
   session: SessionRecord;
   fleet: boolean;
   onOpen: (s: SessionRecord) => void;
   onArchive: (s: SessionRecord) => void;
   onPin: (s: SessionRecord) => void;
+  onDelete: (s: SessionRecord) => void;
 }) {
   const waiting = session.status === "waiting_approval";
   const glow = session.status === "working" ? "st-working" : waiting ? "st-waiting" : "";
@@ -283,6 +307,11 @@ function SessionRow({
         <button class="link-btn" type="button" onClick={() => void onArchive(session)}>
           {session.archived ? "Zurückholen" : "Archivieren"}
         </button>
+        {session.archived && (
+          <button class="link-btn danger" type="button" onClick={() => onDelete(session)}>
+            Löschen
+          </button>
+        )}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Adapter } from "@uacc/contracts";
+import type { Adapter, SessionMetricsState } from "@uacc/contracts";
 import { basicFeatures } from "@uacc/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
 import { rowToRecord, type SessionRow } from "../../../src/modules/sessions/session-row.ts";
@@ -53,7 +53,7 @@ describe("honest session metrics (T7.7, ADR-0023)", () => {
       await waitFor(() => manager.get(record.id)?.status === "idle", "first turn");
       expect(manager.get(record.id)?.metrics).toMatchObject({ cost: "native", tokens: "unknown" });
       await manager.steer(record.id, { kind: "prompt", text: "ohne" });
-      await waitFor(() => manager.get(record.id)?.metrics.counters.turns === 2, "second turn");
+      await waitFor(() => (manager.get(record.id)?.metrics as SessionMetricsState).counters.turns === 2, "second turn");
       expect(manager.get(record.id)?.metrics).toMatchObject({ cost: "partial", tokens: "unknown", counters: { turns: 2, costTurns: 1 } });
       const row = db.prepare("SELECT * FROM sessions WHERE id = ?").get(record.id) as unknown as SessionRow;
       expect(rowToRecord(row).metrics).toMatchObject({ cost: "partial", tokens: "unknown" });
