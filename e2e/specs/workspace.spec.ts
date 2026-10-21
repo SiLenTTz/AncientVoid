@@ -129,6 +129,21 @@ test.describe("Composer: Verbessern, Empfehlung, Skills (T3.9, T5.7–T5.10)", (
     await expect(app.locator(".recommend-card")).toHaveCount(0);
   });
 
+  test("Verbessern geht auch für eine dsh-ACP-Registration unter freier ID (BUG-0061)", async ({ app }) => {
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Adapter").selectOption("deepseek");
+    const prompt = app.getByPlaceholder("Refactore den Auth-Flow…");
+    await prompt.fill("mach das mit dem login besser");
+    // The button must be enabled at all: the hub said enhance:true for
+    // this registration, the old hardcoded id list said no.
+    await app.getByRole("button", { name: "Verbessern" }).click();
+    const preview = app.locator(".enhance-preview");
+    await expect(preview).toContainText("mach das mit dem login besser");
+    await expect(preview).toContainText("Ziel: mach das mit dem login besser");
+    await app.getByRole("button", { name: "Verbessertes übernehmen" }).click();
+    await expect(prompt).toHaveValue(/^Ziel: mach das mit dem login besser\nScope:/);
+  });
+
   test("„Original senden“ behält den eigenen Text", async ({ app }) => {
     await app.getByRole("button", { name: "Neue Session" }).click();
     await app.getByLabel("Adapter").selectOption("opencode");

@@ -85,4 +85,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0059](bug-0059-dsh-deklariert-bilder-ohne-bildeingabe.md) | dsh: Adapter deklariert Bilder, der Agent nimmt keine Bildeingabe | done | S3 | adapters | — |
 | [BUG-0060](bug-0060-recovery-weiter-ueber-k7-trotz-parallelisierung.md) | Recovery braucht weiter über 12 s trotz paralleler Wiederherstellung (K7) | done | S2 | core | — |
 
-Die nächste freie Nummer ist **0061**.
+| [BUG-0061](bug-0061-dsh-prompt-verbessern-fehlt.md) | „Verbessern“ fehlt für DeepSeek-Harness-Sessions | in-progress | S3 | server, pwa | [#16](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/16) |
+
+Die nächste freie Nummer ist **0062**.

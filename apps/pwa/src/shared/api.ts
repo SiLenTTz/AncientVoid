@@ -314,6 +314,10 @@ export interface AdapterInfo {
   id: string;
   version: string;
   capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; contextWindowTokens?: number | null; features: HarnessFeatures };
+  /** BUG-0061: server-side truth whether "Verbessern" has a one-shot
+   * enhancer for this registration. Absent = older hub → the composer's
+   * legacy id-set fallback decides. */
+  enhance?: boolean;
 }
 
 export interface ModelOption {

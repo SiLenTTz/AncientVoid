@@ -159,6 +159,15 @@ export class TestHub {
           config: { eventsPerSecond: 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
         },
         {
+          // BUG-0061: dsh via ACP (ADR-0018) under a free-form id, like a
+          // real hub.config.json — the enhance one-shot runs the dsh
+          // stand-in from PATH. No spec starts a session on it (the
+          // stand-in speaks headless, not ACP).
+          id: "deepseek",
+          module: "@uacc/adapter-acp",
+          config: { preset: "dsh" },
+        },
+        {
           id: "opencode",
           module: "@uacc/adapter-opencode",
           config: { command: join(binDir, "opencode"), model: "e2e/fake-model" },

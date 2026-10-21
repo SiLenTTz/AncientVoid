@@ -50,6 +50,14 @@ const execFileAsync = promisify(execFile);
  * and opencode sat after init until SIGTERM, empty stdout, 120s. The
  * same argv with `child.stdin.end()` returned a rewrite in about 9s
  * inside a real project.
+ * dsh (BUG-0061): `dsh --profile headless -` answers one task on stdout
+ * and puts diagnostics on stderr (dsh 0.2.1-rc.2 `--help`). Real run
+ * 2026-10-21 in this repo: ~9s for one rewrite. The task goes over stdin
+ * (`-`), so the prompt never becomes one giant argv entry. No costUsd —
+ * dsh reports none (adapter capabilities cost:false), never guessed (R9.7).
+ * DSH_PERMISSION_MODE=read-only mirrors the ACP preset: a pure rewrite
+ * needs no tools at all, and if the model tries one anyway it must not
+ * run silently.
  */
 
 const INSTRUCTION =
@@ -203,6 +211,64 @@ async function enhanceViaOpencode(rawText: string, cwd: string): Promise<Enhance
   return { ...parsed, latencyMs: Date.now() - start };
 }
 
+async function enhanceViaDsh(rawText: string, cwd: string): Promise<EnhanceResult> {
+  const start = Date.now();
+  let stdout: string;
+  try {
+    stdout = await new Promise<string>((resolve, reject) => {
+      const child = execFile(
+        "dsh",
+        ["--profile", "headless", "-"],
+        // Headless answers in ~9s measured; 120s is the same headroom the
+        // opencode one-shot gets for a slow model.
+        { timeout: OPENCODE_TIMEOUT_MS, maxBuffer: MAX_BUFFER, cwd, env: { ...process.env, DSH_PERMISSION_MODE: "read-only" } },
+        (err, out, stderr) => {
+          if (err) {
+            const failure = err as { stderr?: string };
+            if (typeof stderr === "string" && stderr.trim()) failure.stderr = stderr;
+            reject(err);
+            return;
+          }
+          resolve(out);
+        },
+      );
+      // Same lesson as opencode: a stdin pipe held open keeps the agent
+      // waiting. Here stdin is the task channel, so `-` plus one write.
+      child.stdin?.end(`${INSTRUCTION}\n\n---\n${rawText}`);
+    });
+  } catch (err) {
+    throw enhanceFailure("DeepSeek Harness", err);
+  }
+  const parsed = parseDshEnhanceOutput(stdout);
+  if (!parsed.enhanced) throw new Error("DeepSeek Harness hat keinen umgeschriebenen Prompt geliefert.");
+  return { ...parsed, latencyMs: Date.now() - start };
+}
+
+/** dsh headless prints the final answer and nothing else to stdout —
+ * trimming is all the parsing there is (kept as a function so the real
+ * captured shape is locked by a test, same as the other parsers). */
+export function parseDshEnhanceOutput(stdout: string): Omit<EnhanceResult, "latencyMs"> {
+  return { enhanced: stdout.trim() };
+}
+
+/** Which one-shot enhancer a registration can use, derived from the
+ * registry (module + config), not from a hardcoded adapter id — ids are
+ * free-form in hub.config.json ("deepseek", "securesight-harnez", …),
+ * BUG-0061. */
+export type EnhanceFlavor = "claude" | "codex" | "opencode" | "dsh";
+
+export function enhanceFlavorFor(id: string, module?: string, config?: Record<string, unknown>): EnhanceFlavor | null {
+  if (id === "claude" || id === "codex" || id === "opencode") return id;
+  // Only an ACP registration of dsh gets the dsh enhancer — the preset
+  // names the binary, a custom `command` starting with dsh does too.
+  if (module?.includes("adapter-acp")) {
+    if (config?.preset === "dsh") return "dsh";
+    const command = config?.command;
+    if (Array.isArray(command) && command[0] === "dsh") return "dsh";
+  }
+  return null;
+}
+
 /**
  * `project` sets the CLI's cwd — found necessary via a real end-to-end
  * test: without it, the call ran in the *hub server's own* working
@@ -212,9 +278,16 @@ async function enhanceViaOpencode(rawText: string, cwd: string): Promise<Enhance
  * same containment check used for session creation (isProjectPathAllowed,
  * routes.ts) — this function trusts the path it's given.
  */
-export async function enhancePrompt(adapterId: string, rawText: string, project: string): Promise<EnhanceResult> {
-  if (adapterId === "claude") return enhanceViaClaude(rawText, project);
-  if (adapterId === "codex") return enhanceViaCodex(rawText, project);
-  if (adapterId === "opencode") return enhanceViaOpencode(rawText, project);
+export async function enhancePrompt(
+  adapterId: string,
+  rawText: string,
+  project: string,
+  registration?: { module?: string; config?: Record<string, unknown> },
+): Promise<EnhanceResult> {
+  const flavor = enhanceFlavorFor(adapterId, registration?.module, registration?.config);
+  if (flavor === "claude") return enhanceViaClaude(rawText, project);
+  if (flavor === "codex") return enhanceViaCodex(rawText, project);
+  if (flavor === "opencode") return enhanceViaOpencode(rawText, project);
+  if (flavor === "dsh") return enhanceViaDsh(rawText, project);
   throw new Error(`enhancePrompt: no enhancer wired up for adapter "${adapterId}"`);
 }
