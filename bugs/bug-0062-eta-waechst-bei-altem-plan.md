@@ -1,7 +1,7 @@
 ---
 id: BUG-0062
 slug: eta-waechst-bei-altem-plan
-status: in-progress
+status: done
 severity: S3
 area: pwa
 instance: dev
