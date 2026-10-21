@@ -18,6 +18,7 @@ import {
 import { JsonRpcConnection as AcpConnection, RpcError } from "@uacc/adapter-jsonrpc";
 import { resolveContextWindow } from "@uacc/models";
 import { UpdateMapper, type SessionUpdate } from "./normalize.ts";
+import { probeModelCatalog } from "./catalog.ts";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -460,6 +461,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
      * `opencode models`), explicit via `modelsCommand`. Same line shape as
      * adapter-opencode's parseModelList (kept local, 8 lines). */
     async models(): Promise<ModelOption[]> {
+      // dsh ≥ 0.2 has no listing command; its ACP session offers every provider and model.
+      if (!cfg.modelsCommand && cfg.preset === "dsh" && command) return probeModelCatalog(command, env);
       const cmd = cfg.modelsCommand ?? (command?.at(-1) === "acp" ? [...command.slice(0, -1), "models"] : undefined);
       if (!cmd) return [];
       const { stdout } = await run(cmd[0]!, cmd.slice(1), { timeout: 20_000, maxBuffer: 1024 * 1024 });

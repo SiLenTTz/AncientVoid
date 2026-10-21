@@ -45,6 +45,14 @@ Jeder Agent, der das Agent Client Protocol spricht, läuft über
 { "id": "mein-agent", "module": "@uacc/adapter-acp", "config": { "command": ["mein-agent", "--acp"], "label": "Mein Agent" } }
 ```
 
+**dsh (DeepSeek Harness, `dst` ist nur dessen Terminal-Oberfläche):** Der Hub startet
+`dsh --profile acp`. Dieses Profil (`~/.dsh/profiles/acp/cordis.patch.yml`) hat eigene
+Einstellungen und erbt **nichts** von `dsh-tui`: Provider (z. B. `zai` mit `apiKeyEnv: ZAI_API_KEY`)
+und Default-Modell müssen dort stehen, der Schlüssel in `~/.dsh/.env` oder dem
+Anmeldedaten-System von dsh. Die Modellliste (alle Provider/Modelle) holt der Adapter über ACP
+`session/new`; ein Default fürs Startformular setzt `"model": "zai/glm-5.3"` in der
+Adapter-Config. Das Rechte-Preset bleibt beim Hub (`DSH_PERMISSION_MODE=read-only`, Freigaben am Handy).
+
 Ein Befehls-Framework ohne eigenes Binary (z. B. der SecureSight-Harnez,
 der als Slash-Commands in Claude-Code/opencode-Sessions lebt) wird als
 eigene opencode-Instanz registriert — mit Default-Modell und damit

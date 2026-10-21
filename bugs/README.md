@@ -81,5 +81,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0055](bug-0055-handy-devtools-bricht-im-lauf-ab.md) | Die DevTools-Verbindung zum Handy-Chrome bricht mitten im Lauf ab | done | S3 | e2e | [#13](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/13) |
 | [BUG-0057](bug-0057-claude-discovery-tiefe-projekte-bleiben-gemunged.md) | Claude-Discovery zeigt tiefer verschachtelte Projekte gemunged statt als Pfad | open | S3 | core | keine |
 | [BUG-0056](bug-0056-code-suche-nicht-im-viewport.md) | „Code durchsuchen“ liegt nach einer Aktion nicht mehr im Bild | done | S3 | pwa | [#14](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/14) |
+| [BUG-0058](bug-0058-acp-dsh-modellkatalog-leer.md) | dsh: Modellauswahl am Handy bleibt leer (Profil models entfällt) | done | S2 | adapters | — |
 
-Die nächste freie Nummer ist **0057**.
+Die nächste freie Nummer ist **0059**.
