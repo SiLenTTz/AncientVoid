@@ -10,7 +10,7 @@ const todos = (statuses: string[], tool = "todowrite") =>
   ({ id: "t", tool, input: { todos: statuses.map((status, i) => ({ content: `Aufgabe ${i}`, status })) } });
 
 describe("runProgress", () => {
-  it("counts the agent's own plan and extrapolates the rest", () => {
+  it("counts the agent's own plan and estimates the rest from measured velocity", () => {
     const events = [
       ev(1, 0, "user", { kind: "session.prompt", text: "los" }),
       ev(2, 10, "tool_use", todos(["pending", "pending", "pending", "pending"])),
@@ -18,7 +18,41 @@ describe("runProgress", () => {
     ];
     const p = runProgress(events, "working", Date.parse(at(60)))!;
     expect(p).toMatchObject({ done: 1, total: 4, percent: 25, source: "todos", elapsedMs: 60_000 });
-    expect(p.etaMs).toBe(180_000);
+    // 1 item in the 10s→60s window → 3 remaining ≈ 150s (BUG-0062:
+    // velocity between snapshots, not elapsed·(1-r)/r from turn start).
+    expect(p.etaMs).toBe(150_000);
+  });
+
+  it("BUG-0062: a stale plan no longer inflates the ETA while time passes", () => {
+    // Real-turn shape (2026-10-21): plan last advanced long ago, the agent
+    // kept working without rewriting it. The display must not climb from
+    // 25 min to ~2 h just because `now` moves.
+    const events = [
+      ev(1, 0, "user", { kind: "session.prompt", text: "los" }),
+      ev(2, 210, "tool_use", todos(["completed", "pending", "pending", "pending", "pending", "pending", "pending", "pending"])),
+      ev(3, 660, "tool_use", todos(["completed", "completed", "pending", "pending", "pending", "pending", "pending", "pending"])),
+    ];
+    const early = runProgress(events, "working", Date.parse(at(700)))!;
+    const muchLater = runProgress(events, "working", Date.parse(at(1600)))!;
+    // 1 item per 450s, 6 remaining → 2700s, and it stays exactly there.
+    expect(early.etaMs).toBe(2_700_000);
+    expect(muchLater.etaMs).toBe(2_700_000);
+    expect(muchLater.elapsedMs).toBeGreaterThan(early.elapsedMs);
+  });
+
+  it("has no ETA before two progress snapshots — no guess (BUG-0062)", () => {
+    // Plan first written with 1 item already done (common) — no velocity
+    // measurable. The old formula answered elapsed·7 ≈ "noch ca. 7× so
+    // lang wie bisher"; honesty beats that guess.
+    const events = [
+      ev(1, 0, "user", { kind: "session.prompt", text: "los" }),
+      ev(2, 60, "tool_use", todos(["completed", "pending", "pending", "pending", "pending", "pending", "pending", "pending"])),
+    ];
+    const p = runProgress(events, "working", Date.parse(at(60)))!;
+    expect(p.done).toBe(1);
+    expect(p.total).toBe(8);
+    expect(p.percent).toBe(13);
+    expect(p.etaMs).toBeNull();
   });
 
   it("reads Claude's TodoWrite and leaves cancelled items out", () => {

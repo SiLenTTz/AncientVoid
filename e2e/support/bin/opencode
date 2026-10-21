@@ -76,8 +76,19 @@ emit({
   part: { type: "tool", tool: "read", callID: "call_read_1", state: { status: "completed", input: { filePath: "README.md" }, output } },
 });
 if (has("PLAN")) {
-  const todos = ["Lesen", "Ändern", "Testen", "Aufräumen"].map((content, i) => ({ id: `t${i}`, content, status: i === 0 ? "completed" : i === 1 ? "in_progress" : "pending", priority: "medium" }));
-  emit({ type: "tool_use", sessionID: sid, part: { type: "tool", tool: "todowrite", callID: "call_todo_1", state: { status: "completed", input: { todos }, output: "ok" } } });
+  // BUG-0062: two snapshots with real time between them, like a real
+  // agent updating its plan as it works — the ETA needs a measurable
+  // velocity, a single snapshot honestly has none.
+  const plan = (done) =>
+    ["Lesen", "Ändern", "Testen", "Aufräumen"].map((content, i) => ({
+      id: `t${i}`,
+      content,
+      status: i < done ? "completed" : i === done ? "in_progress" : "pending",
+      priority: "medium",
+    }));
+  emit({ type: "tool_use", sessionID: sid, part: { type: "tool", tool: "todowrite", callID: "call_todo_1", state: { status: "completed", input: { todos: plan(1) }, output: "ok" } } });
+  await sleep(1500);
+  emit({ type: "tool_use", sessionID: sid, part: { type: "tool", tool: "todowrite", callID: "call_todo_2", state: { status: "completed", input: { todos: plan(2) }, output: "ok" } } });
 }
 if (has("KONTINGENT") || has("SERVERFEHLER")) {
   const data = has("KONTINGENT")

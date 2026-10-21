@@ -13,7 +13,10 @@ export interface RunProgress {
   total: number;
   percent: number | null;
   elapsedMs: number;
-  /** Linear extrapolation from elapsed time and plan progress. */
+  /** BUG-0062: measured plan velocity — remaining items over the rate of
+   * the last two snapshots with different done counts. Independent of
+   * `now`, so a stale plan cannot inflate it; null without two progress
+   * snapshots (no guess) or when everything is done. */
   etaMs: number | null;
 }
 
@@ -39,20 +42,50 @@ export function runProgress(events: readonly NormalizedEvent[], status: string, 
   const turn = events.slice(start);
   const startedAt = turn[0] ? Date.parse(turn[0].ts) : now;
   const elapsedMs = Math.max(0, now - startedAt);
-  const plan = [...turn].reverse().map(todosOf).find((todos) => todos !== null);
-  if (!plan) return { source: "none", done: 0, total: 0, percent: null, elapsedMs, etaMs: null };
-  const counted = plan.filter((t) => t.status !== "cancelled");
-  const total = counted.length;
-  const done = counted.filter((t) => t.status === "completed").length;
-  if (total === 0) return { source: "none", done: 0, total: 0, percent: null, elapsedMs, etaMs: null };
+  // Every todo snapshot with its own timestamp — the ETA below measures
+  // plan velocity from these pairs, never from `now` (BUG-0062).
+  const snapshots = turn
+    .filter(todosOf)
+    .map((e) => {
+      const counted = todosOf(e)!.filter((t) => t.status !== "cancelled");
+      return {
+        ts: Date.parse(e.ts),
+        done: counted.filter((t) => t.status === "completed").length,
+        total: counted.length,
+      };
+    })
+    .filter((s) => s.total > 0);
+  const last = snapshots.at(-1);
+  if (!last) return { source: "none", done: 0, total: 0, percent: null, elapsedMs, etaMs: null };
+  const done = last.done;
+  const total = last.total;
   const ratio = done / total;
+  // BUG-0062: the old `elapsed·(1-r)/r` grew whenever the agent didn't
+  // rewrite its plan for a while (r frozen, elapsed climbing — 25 min
+  // became "noch ca. 2 h" on a real turn). The honest signal is how fast
+  // completed-items actually accumulated between snapshots: velocity
+  // from the last pair with different done counts, ETA = remaining /
+  // velocity. Fewer than two progress snapshots → no ETA at all, rather
+  // than a guess that pretends to know.
+  let etaMs: number | null = null;
+  if (done < total) {
+    for (let i = snapshots.length - 1; i > 0 && etaMs === null; i--) {
+      const prev = snapshots[i - 1]!;
+      const cur = snapshots[i]!;
+      const gained = cur.done - prev.done;
+      const span = cur.ts - prev.ts;
+      // Sub-second spans (two snapshots emitted back to back) say nothing
+      // about real per-item duration — keep looking for an older pair.
+      if (gained > 0 && span >= 1000) etaMs = Math.round(((total - done) * span) / gained);
+    }
+  }
   return {
     source: "todos",
     done,
     total,
     percent: Math.round(ratio * 100),
     elapsedMs,
-    etaMs: ratio > 0 && ratio < 1 ? Math.round((elapsedMs * (1 - ratio)) / ratio) : null,
+    etaMs,
   };
 }
 
