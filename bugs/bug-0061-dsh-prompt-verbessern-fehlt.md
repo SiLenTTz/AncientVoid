@@ -1,7 +1,7 @@
 ---
 id: BUG-0061
 slug: dsh-prompt-verbessern-fehlt
-status: in-progress
+status: done
 severity: S3
 area: server, pwa
 instance: dev
