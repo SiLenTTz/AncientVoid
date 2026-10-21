@@ -401,4 +401,9 @@ describe("acp attachments (T7.10)", () => {
     const models = await adapter.models!();
     expect(models.map((m) => m.id)).toEqual(expect.arrayContaining(["cloud/gross", "lokal/glm-5.3"]));
   });
+  it("BUG-0059: dsh does not claim image input (it reads attachments as OCR text), other presets keep it", () => {
+    expect(createAdapter({ preset: "dsh" }).capabilities().features.images).toBe(false);
+    expect(createAdapter({ preset: "dsh" }).capabilities().features.files).toBe(true);
+    expect(createAdapter({ preset: "opencode" }).capabilities().features.images).toBe(true);
+  });
 });
