@@ -295,6 +295,7 @@ export function CreateSession({
           placeholder="Refactore den Auth-Flow…"
           adapter={adapter}
           project={project}
+          adapterEnhance={adapters.find((a) => a.id === adapter)?.enhance}
           onUseRecommendation={(item) => setSkill(item)}
           attachments={attachments}
           onAttachmentsChange={setAttachments}

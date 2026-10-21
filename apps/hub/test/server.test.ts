@@ -436,6 +436,9 @@ describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, {});
+    // BUG-0061: a dsh ACP registration under a free-form id — same shape
+    // as a real hub.config.json entry (module @uacc/adapter-acp, preset dsh).
+    registry.register("deepseek", createDummy, { preset: "dsh" }, "@uacc/adapter-acp");
     const sessions = new SessionManager(db, store, registry, new ProcessRunner());
     const tokens = new TokenService(db);
     const token = tokens.issue("test-device").token;
@@ -448,6 +451,20 @@ describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
     });
     return { app, token, cleanup: () => rm(dir, { recursive: true, force: true }) };
   }
+
+  it("reports per-registration enhance support in /api/adapters — true for dsh ACP, false for dummy (BUG-0061)", async () => {
+    const { app, token, cleanup } = await buildApp([]);
+    try {
+      const res = await app.inject({ method: "GET", url: "/api/adapters", headers: { authorization: `Bearer ${token}` } });
+      expect(res.statusCode).toBe(200);
+      const adapters = res.json() as { id: string; enhance: boolean }[];
+      expect(adapters.find((a) => a.id === "deepseek")?.enhance).toBe(true);
+      expect(adapters.find((a) => a.id === "dummy")?.enhance).toBe(false);
+    } finally {
+      await app.close().catch(() => undefined);
+      await cleanup();
+    }
+  });
 
   it("400s on an invalid body (missing project)", async () => {
     const { app, token, cleanup } = await buildApp([]);

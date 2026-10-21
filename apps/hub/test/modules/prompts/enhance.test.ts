@@ -7,6 +7,8 @@ import {
   parseClaudeEnhanceOutput,
   parseCodexEnhanceOutput,
   parseOpencodeEnhanceOutput,
+  parseDshEnhanceOutput,
+  enhanceFlavorFor,
 } from "../../../src/modules/prompts/enhance.ts";
 
 describe("parseClaudeEnhanceOutput (T1.5-8)", () => {
@@ -86,6 +88,37 @@ describe("opencodeEnhanceArgs", () => {
     expect(args[sep + 1]).toContain("\n");
     expect(args[sep + 1]?.endsWith("mach das spiel neon")).toBe(true);
     expect(args.slice(sep + 2)).toEqual([]);
+  });
+});
+
+describe("parseDshEnhanceOutput + enhanceFlavorFor (BUG-0061)", () => {
+  it("takes stdout as the rewritten prompt — dsh headless prints the answer and nothing else", () => {
+    // Real captured shape (2026-10-21, dsh 0.2.1-rc.2): `… | dsh
+    // --profile headless -` answered with the structured rewrite on
+    // stdout, diagnostics on stderr. Abbreviated, not invented.
+    const real = "\nZiel: Login-Flow verbessern.\n\nScope: apps/hub Auth-Routen analysieren.\n\nConstraints: Kein neues Auth-System.\n\nErfolgskriterium: npm test bleibt grün.\n";
+    const parsed = parseDshEnhanceOutput(real);
+    expect(parsed.enhanced.startsWith("Ziel:")).toBe(true);
+    expect(parsed.enhanced.endsWith("grün.")).toBe(true);
+    // dsh reports no cost figure — never a guessed number (R9.7).
+    expect(parsed.costUsd).toBeUndefined();
+  });
+
+  it("resolves a dsh ACP registration by preset or command, not by the free-form id", () => {
+    expect(enhanceFlavorFor("deepseek", "@uacc/adapter-acp", { preset: "dsh" })).toBe("dsh");
+    expect(enhanceFlavorFor("whatever", "@uacc/adapter-acp", { command: ["dsh", "--profile", "acp"] })).toBe("dsh");
+  });
+
+  it("keeps the id-based flavors and refuses everything it cannot prove", () => {
+    expect(enhanceFlavorFor("claude")).toBe("claude");
+    expect(enhanceFlavorFor("codex", "@uacc/adapter-codex")).toBe("codex");
+    expect(enhanceFlavorFor("opencode")).toBe("opencode");
+    // Same ACP module, different harness: copilot/opencode presets have
+    // their own id-based flavor only — no silent dsh headless call.
+    expect(enhanceFlavorFor("deepseek", "@uacc/adapter-acp", { preset: "copilot" })).toBeNull();
+    expect(enhanceFlavorFor("deepseek", "@uacc/adapter-acp", {})).toBeNull();
+    expect(enhanceFlavorFor("deepseek", undefined, { preset: "dsh" })).toBeNull();
+    expect(enhanceFlavorFor("dummy")).toBeNull();
   });
 });
 

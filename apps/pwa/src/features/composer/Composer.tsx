@@ -11,7 +11,9 @@ import type { AttachmentRecord } from "../../shared/api.ts";
 
 /** T1.5-8: enhance.ts only has a real implementation for these adapters —
  * never offer the button for an adapter it can't actually enhance for
- * (dummy has no LLM behind it at all). */
+ * (dummy has no LLM behind it at all). BUG-0061: only the fallback for
+ * hubs that don't send `enhance` per adapter yet — the server knows dsh
+ * ACP registrations under free-form ids, an id list here cannot. */
 const ENHANCE_SUPPORTED_ADAPTERS = new Set(["claude", "codex", "opencode"]);
 
 /**
@@ -34,6 +36,7 @@ export function Composer({
   attachments,
   onAttachmentsChange,
   fieldId,
+  adapterEnhance,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -57,6 +60,10 @@ export function Composer({
   onAttachmentsChange?: (next: AttachmentRecord[]) => void;
   /** T9.4: the text entry may fill or rewrite this field. */
   fieldId?: FieldId;
+  /** BUG-0061: the hub's per-registration answer whether enhance is wired
+   * up (from /api/adapters). undefined = hub didn't say → legacy id-set
+   * fallback above. */
+  adapterEnhance?: boolean;
 }) {
   const api = useApi();
   const valueRef = useRef(value);
@@ -68,7 +75,7 @@ export function Composer({
   const [listening, setListening] = useState(false);
   const [micError, setMicError] = useState("");
 
-  const enhanceSupported = ENHANCE_SUPPORTED_ADAPTERS.has(adapter);
+  const enhanceSupported = adapterEnhance ?? ENHANCE_SUPPORTED_ADAPTERS.has(adapter);
   const [enhancing, setEnhancing] = useState(false);
   const [enhanceError, setEnhanceError] = useState("");
   const [preview, setPreview] = useState<{ original: string; enhanced: string; costUsd?: number; latencyMs: number } | null>(

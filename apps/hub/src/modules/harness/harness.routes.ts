@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { probeHarnesses, HARNESS_CATALOG, spawnProbeRunner } from "@uacc/core";
 import type { ModelOption } from "@uacc/contracts";
+import { enhanceFlavorFor } from "../prompts/enhance.ts";
 import type { RouteContext } from "../../route-context.ts";
 
 /** Adapters, model catalog, quota and harness inventory (ADR-0004, ADR-0012, ADR-0018). */
@@ -12,6 +13,10 @@ export function registerHarnessRoutes(app: FastifyInstance, ctx: RouteContext): 
       id: a.id,
       version: a.adapter.version,
       capabilities: a.capabilities,
+      // BUG-0061: server-side truth (registration, not id guessing) so the
+      // PWA can honestly show/hide "Verbessern" — also for dsh ACP
+      // registrations under free-form ids like "deepseek".
+      enhance: enhanceFlavorFor(a.id, a.module, a.config as Record<string, unknown> | undefined) !== null,
     })),
   );
 

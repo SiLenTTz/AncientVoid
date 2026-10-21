@@ -114,6 +114,9 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   // for "this adapter's Bericht numbers are real" avoids inventing a
   // second capability flag for data that already arrives together.
   const [reportNumbersReal, setReportNumbersReal] = useState(false);
+  /** BUG-0061: the hub's per-registration enhance support (undefined =
+   * older hub, the composer falls back to its id set). */
+  const [adapterEnhance, setAdapterEnhance] = useState<boolean | undefined>(undefined);
   /** ADR-0032: the model's context window — configured on the adapter,
    * without it the context chip names no percentage. */
   const [contextWindow, setContextWindow] = useState<number | null>(null);
@@ -152,6 +155,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
           setObserverOnly(info?.capabilities.features ? !info.capabilities.features.followUp && !info.capabilities.features.interrupt : false);
           setFeatures(info?.capabilities.features ?? null);
           setReportNumbersReal(info?.capabilities.cost ?? false);
+          setAdapterEnhance(typeof info?.enhance === "boolean" ? info.enhance : undefined);
           setContextWindow(typeof info?.capabilities.contextWindowTokens === "number" ? info.capabilities.contextWindowTokens : null);
         })
         .catch(() => {
@@ -734,6 +738,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                 disabled={replyBusy}
                 adapter={session.adapter}
                 project={session.project}
+                adapterEnhance={adapterEnhance}
                 attachments={replyAttachments}
                 onAttachmentsChange={setReplyAttachments}
                 extraActions={

@@ -43,7 +43,14 @@ export function registerPromptsRoutes(app: FastifyInstance, ctx: RouteContext): 
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
     try {
-      return await enhancePrompt(parsed.data.adapter, parsed.data.text, parsed.data.project);
+      // BUG-0061: the enhancer is picked from the registration (module +
+      // config), not the free-form adapter id — a dsh ACP registration
+      // can carry any id ("deepseek", …).
+      const registered = deps.registry.get(parsed.data.adapter);
+      return await enhancePrompt(parsed.data.adapter, parsed.data.text, parsed.data.project, {
+        ...(registered?.module !== undefined ? { module: registered.module } : {}),
+        ...(registered?.config !== undefined ? { config: registered.config as Record<string, unknown> } : {}),
+      });
     } catch (err) {
       return reply.code(502).send({
         error: err instanceof Error ? err.message : "prompt enhancement failed",
