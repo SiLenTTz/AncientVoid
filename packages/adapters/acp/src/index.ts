@@ -182,6 +182,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const env = { ...(preset?.env ?? {}), ...cfg.env };
   const label = cfg.label ?? cfg.preset ?? "acp";
   const sessions = new Map<string, AgentSession>();
+  /** BUG-0060: sessions restored after a hub restart with no surviving agent. The agent (and its
+   * history load) starts with the next prompt, not at recovery — 17 ACP sessions took 65 s. */
+  const dormant = new Map<string, { native: string }>();
+  const waking = new Map<string, Promise<AgentSession>>();
 
   function emitAll(ctx: AdapterContext, events: ReturnType<UpdateMapper["flush"]>): void {
     for (const e of events) ctx.emit(e);
@@ -436,6 +440,41 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     return ctx.spawnWorker(command!, { stdin: "pipe", persistent: true, env: { ...env, ...extraEnv } });
   }
 
+  /** Start the agent of a dormant session and load its conversation (the former eager recover). */
+  async function wake(sessionId: string, ctx: AdapterContext): Promise<AgentSession> {
+    const entry = dormant.get(sessionId);
+    if (!entry) throw new Error(`${label}: keine schlafende Session`);
+    const proc = await spawnAgent(ctx);
+    const state = connect(sessionId, proc, ctx);
+    try {
+      const caps = await initialize(state);
+      // BUG-0036: resumeNative silences the load replay; an agent without
+      // load support starts a fresh context, visibly.
+      if (!(await resumeNative(state, ctx, entry.native, caps.loadSession))) {
+        if (caps.resume) {
+          state.replay = true;
+          try {
+            await state.conn.request("session/resume", { sessionId: entry.native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs);
+          } finally {
+            state.replay = false;
+            state.mapper.flush();
+          }
+          state.acpSessionId = entry.native;
+          announce(ctx, entry.native);
+        } else {
+          await newSession(state, ctx);
+          ctx.emit({ type: "system", summary: `${label}: Agent kann Sessions nicht laden — neuer Kontext`, payload: { kind: "acp.context_lost" } });
+        }
+      }
+    } catch (err) {
+      await proc.kill("SIGTERM");
+      sessions.delete(sessionId);
+      throw err;
+    }
+    dormant.delete(sessionId);
+    return state;
+  }
+
   const adapter: Adapter = {
     id: "acp",
     version: "0.1.0",
@@ -506,7 +545,26 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     async steer(handle: SessionHandle, input: SteerInput, ctx: AdapterContext): Promise<Ack> {
       const state = sessions.get(handle.sessionId);
       switch (input.kind) {
-        case "prompt":
+        case "prompt": {
+          if (!state && dormant.has(handle.sessionId)) {
+            // BUG-0060: the agent of a restored session starts now, with the first prompt.
+            let waker = waking.get(handle.sessionId);
+            if (!waker) {
+              waker = wake(handle.sessionId, ctx).finally(() => waking.delete(handle.sessionId));
+              waking.set(handle.sessionId, waker);
+            }
+            try {
+              const woken = await waker;
+              if (woken.busy) {
+                woken.queued.push({ text: input.text, ...(input.attachments?.length ? { attachments: input.attachments } : {}) });
+                return { ok: true, detail: "in der Warteschlange — wird nach dem Zug gesendet" };
+              }
+              runTurn(woken, ctx, input.text, input.attachments);
+              return { ok: true };
+            } catch (err) {
+              return { ok: false, detail: `${label}: Agent konnte nicht gestartet werden — ${err instanceof Error ? err.message : String(err)}` };
+            }
+          }
           if (!state || !state.healthy) return { ok: false, detail: `${label}: Agent läuft nicht mehr — Session neu starten` };
           if (state.busy) {
             // EPIC-P7 follow-up: a prompt while a turn runs is parked in the
@@ -518,6 +576,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           }
           runTurn(state, ctx, input.text, input.attachments);
           return { ok: true };
+        }
         case "park":
           if (state?.acpSessionId) state.conn.notify("session/cancel", { sessionId: state.acpSessionId });
           if (state?.queued.length) {
@@ -537,6 +596,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
     async status(handle: SessionHandle): Promise<HealthReport> {
       const state = sessions.get(handle.sessionId);
+      if (!state && dormant.has(handle.sessionId)) return { state: "healthy", detail: "Agent startet mit dem nächsten Prompt", lastSeen: new Date().toISOString() };
       if (!state) return { state: "down", detail: "no agent process" };
       return { state: state.healthy ? "healthy" : "down", lastSeen: new Date().toISOString() };
     },
@@ -561,31 +621,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         return { sessionId, ...(adopted.pid !== undefined ? { pid: adopted.pid } : {}) };
       }
       if (!native) return null;
-      const proc = await spawnAgent(ctx);
-      const state = connect(sessionId, proc, ctx);
-      const caps = await initialize(state);
-      // BUG-0036: resumeNative silences the load replay; an agent without
-      // load support starts a fresh context, visibly.
-      if (!(await resumeNative(state, ctx, native, caps.loadSession))) {
-        if (caps.resume) {
-          state.replay = true;
-          try {
-            await state.conn.request("session/resume", { sessionId: native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs);
-          } finally {
-            state.replay = false;
-            state.mapper.flush();
-          }
-          state.acpSessionId = native;
-          announce(ctx, native);
-        } else {
-          await newSession(state, ctx);
-          ctx.emit({ type: "system", summary: `${label}: Agent kann Sessions nicht laden — neuer Kontext`, payload: { kind: "acp.context_lost" } });
-        }
-      }
-      return { sessionId, ...(proc.pid !== undefined ? { pid: proc.pid } : {}) };
+      dormant.set(sessionId, { native });
+      ctx.emit({ type: "system", summary: `${label}: Agent startet mit dem nächsten Prompt`, payload: { kind: "acp.dormant" } });
+      return { sessionId };
     },
 
     async stop(handle: SessionHandle): Promise<void> {
+      dormant.delete(handle.sessionId);
       const state = sessions.get(handle.sessionId);
       if (!state) return;
       if (state.acpSessionId) state.conn.notify("session/cancel", { sessionId: state.acpSessionId });

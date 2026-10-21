@@ -290,6 +290,56 @@ describe("acp adapter (T7.2)", () => {
     await adapter.stop(recovered!, ctx2);
   });
 
+  it("BUG-0060: recover() without a surviving agent starts none — one agent starts with the first prompt", async () => {
+    const runner = new ProcessRunner();
+    const spawned: string[][] = [];
+    const ctx = makeRecordingContext({
+      workdir: process.cwd(),
+      nativeSessionId: "acp_alt_1234",
+      adoptWorker: async () => null,
+      spawnWorker: (cmd, o) => {
+        spawned.push(cmd);
+        return runner.spawn({ name: "acp-lazy", cwd: process.cwd(), cmd, ...(o?.env ? { env: o.env } : {}) });
+      },
+      turn: () => {},
+    } as Partial<AdapterContext>);
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+
+    const handle = await adapter.recover!("lazy", 1, ctx);
+    expect(handle).toEqual({ sessionId: "lazy" });
+    expect(spawned).toEqual([]); // recovery is instant: no process, no history load
+    expect((await adapter.status(handle!)).state).toBe("healthy");
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "acp.dormant")).toBe(true);
+
+    // two prompts at once wake it once; both are delivered, the old history stays silent
+    const [one, two] = await Promise.all([
+      adapter.steer(handle!, { kind: "prompt", text: "eins" }, ctx),
+      adapter.steer(handle!, { kind: "prompt", text: "zwei" }, ctx),
+    ]);
+    expect(one.ok && two.ok).toBe(true);
+    expect(spawned.length).toBe(1);
+    await waitFor(() => texts(ctx.events, "assistant").length >= 2);
+    await adapter.stop(handle!, ctx);
+  });
+
+  it("BUG-0060: a dormant session can be stopped, and a failed wake says so instead of hanging", async () => {
+    const ctx = makeRecordingContext({
+      workdir: process.cwd(),
+      nativeSessionId: "acp_alt_1234",
+      adoptWorker: async () => null,
+      spawnWorker: async () => {
+        throw new Error("kein Agent");
+      },
+    } as Partial<AdapterContext>);
+    const adapter = createAdapter({ command: ["/nonexistent"], label: "fake" });
+    const handle = await adapter.recover!("dormant-fail", 1, ctx);
+    const failed = await adapter.steer(handle!, { kind: "prompt", text: "los" }, ctx);
+    expect(failed.ok).toBe(false);
+    expect(failed.detail).toContain("Agent konnte nicht gestartet werden");
+    await adapter.stop(handle!, ctx); // no error
+    expect((await adapter.status(handle!)).state).toBe("down");
+  });
+
   it("a stopped run continues in its loaded conversation — args.resumeSessionId, silent replay (BUG-0036)", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });

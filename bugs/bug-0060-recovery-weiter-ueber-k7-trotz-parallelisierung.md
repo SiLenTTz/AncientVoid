@@ -1,7 +1,7 @@
 ---
 id: BUG-0060
 slug: recovery-weiter-ueber-k7-trotz-parallelisierung
-status: open
+status: in-progress
 severity: S2
 area: core
 instance: prod
@@ -55,9 +55,18 @@ Das Journal enthält keine Zeiten pro Session; die Verteilung ist unbekannt. Des
 
 ## Eingrenzung
 
-Offen: erst die Messung des nächsten Neustarts zeigt, ob die Zeit in `adapter.recover()` einzelner
-Adapter (ACP-`session/load` mit großer Historie, Codex-Handshake), in `flow.reconcile()` oder in
-`runner.reapOrphans()` liegt.
+Gemessen beim Neustart am 21.10. (`recovery detail`): 12.043 ms für Sessions, `reconcile` 1 ms, `reap` 19 ms.
+Je Adapter: **opencode 17 Sessions, zusammen 65.319 ms, langsamste 10.219 ms**; codex 1 Session 2.298 ms;
+claude 12 Sessions 954 ms; cursor 9 Sessions 273 ms; hermes 3 Sessions 104 ms.
+
+Ursache: `packages/adapters/acp/src/index.ts` `recover()` startete ohne überlebenden Agent-Prozess für jede
+Session einen neuen Agenten, initialisierte ihn und lud per `session/load` die ganze Historie (bis MB) —
+auch für Sessions, die nur herumliegen. ACP-Worker (`stdin: pipe`) überleben den Hub nicht.
+
+Fix: träge Wiederherstellung. `recover()` merkt sich die native Session-ID (`dormant`) und gibt sofort einen
+Handle zurück; der Agent startet beim ersten Prompt (`wake()`, derselbe Ladepfad wie bisher, einmal auch bei
+zwei gleichzeitigen Prompts). `status()` meldet schlafende Sessions als gesund, `stop()` räumt auf.
+Nach dem Neustart mit dem Fix erneut messen, dann `done`.
 
 ## Handoff
 
