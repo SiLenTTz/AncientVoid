@@ -46,12 +46,38 @@ Jeder Agent, der das Agent Client Protocol spricht, läuft über
 ```
 
 **dsh (DeepSeek Harness, `dst` ist nur dessen Terminal-Oberfläche):** Der Hub startet
-`dsh --profile acp`. Dieses Profil (`~/.dsh/profiles/acp/cordis.patch.yml`) hat eigene
-Einstellungen und erbt **nichts** von `dsh-tui`: Provider (z. B. `zai` mit `apiKeyEnv: ZAI_API_KEY`)
-und Default-Modell müssen dort stehen, der Schlüssel in `~/.dsh/.env` oder dem
-Anmeldedaten-System von dsh. Die Modellliste (alle Provider/Modelle) holt der Adapter über ACP
-`session/new`; ein Default fürs Startformular setzt `"model": "zai/glm-5.3"` in der
-Adapter-Config. Das Rechte-Preset bleibt beim Hub (`DSH_PERMISSION_MODE=read-only`, Freigaben am Handy).
+`dsh --profile acp`, der PC `dst` mit dem Profil `dsh-tui`. Beide Profile haben eigene Einstellungen
+(`~/.dsh/profiles/<profil>/cordis.patch.yml`) und erben nichts voneinander. Damit Handy und PC
+dieselben Provider und Modelle sehen, steht derselbe Provider-Block in beiden:
+
+```yaml
+- id: llm-pi-ai
+  name: "@deepseek-ai/dsh-llm-pi-ai"
+  config:
+    providers:
+      zai:     { apiKeyEnv: ZAI_API_KEY }          # GLM-4.7 … GLM-5.3 (7 Modelle)
+      google:  { apiKeyEnv: GEMINI_API_KEY }       # Gemini (23 Modelle)
+      evo-local:                                    # llama.cpp auf evox2, OpenAI-kompatibel
+        displayName: Evo Local (evox2)
+        api: openai-completions
+        baseURL: https://evox2-securesight.tail6d2826.ts.net/v1
+        apiKeyEnv: EVOX2_API_KEY
+        models: [{ id: halogen-qwen3.8-flash-next-uncensored-iq4xs, name: Halogen Qwen3.8 Flash, contextWindow: 216064, maxTokens: 65536, input: [text] }]
+- id: agent-default-model
+  name: "@deepseek-ai/dsh-agent-default-model"
+  config: { provider: zai, model: glm-5.3 }
+```
+
+Die Schlüssel stehen **nicht** im Patch, sondern in `~/.dsh/.env` (Modus 0600; `dsh` liest sie selbst, auch
+ohne Variablen in der Shell oder im Hub-Dienst): `ZAI_API_KEY`, `GEMINI_API_KEY`, `EVOX2_API_KEY`. Das
+Rechte-Preset steht nur im PC-Profil (`danger-full-access`); der Hub setzt `DSH_PERMISSION_MODE=read-only`
+und fragt am Handy. Die Modellliste (alle Provider und Modelle von dsh) holt der Adapter über ACP
+`session/new`; den Default fürs Startformular setzt `"model": "zai/glm-5.3"` in der Adapter-Config.
+Weitere Provider: dort ergänzen, den Schlüssel in `~/.dsh/.env` ablegen; sie erscheinen ohne Codeänderung.
+
+**Nicht über dsh nutzbar:** Claude, Codex, Cursor und Copilot laufen über Abonnements ohne API-Schlüssel.
+Sie sind im Hub eigene Adapter (`claude`, `codex`, `cursor`, `copilot`) und am Handy wie am PC verfügbar,
+aber nicht als Provider in `dst`.
 
 Ein Befehls-Framework ohne eigenes Binary (z. B. der SecureSight-Harnez,
 der als Slash-Commands in Claude-Code/opencode-Sessions lebt) wird als
