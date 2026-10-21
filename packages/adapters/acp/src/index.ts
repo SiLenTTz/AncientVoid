@@ -68,8 +68,10 @@ export const ACP_PRESETS = {
     command: ["opencode", "acp"],
     env: { OPENCODE_CONFIG_CONTENT: JSON.stringify({ permission: { edit: "ask", bash: "ask", webfetch: "ask" } }) },
   },
-  dsh: { command: ["dsh", "--profile", "acp"], env: { DSH_PERMISSION_MODE: "read-only" } },
-} as const satisfies Record<string, { command: string[]; env: Record<string, string>; models?: boolean }>;
+  // dsh 0.2.1 answers initialize with promptCapabilities.image=false: images reach it as
+  // the OCR text of the attachment (live checked 2026-10-21), not as image blocks.
+  dsh: { command: ["dsh", "--profile", "acp"], env: { DSH_PERMISSION_MODE: "read-only" }, images: false },
+} as const satisfies Record<string, { command: string[]; env: Record<string, string>; models?: boolean; images?: boolean }>;
 
 const AcpConfig = z.object({
   preset: z.enum(["copilot", "opencode", "dsh"]).optional(),
@@ -452,7 +454,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // as far as the agent asks (see the presets and docs/harness-matrix.md).
         // T7.10: images as content blocks when the agent says it takes them,
         // otherwise (and for other files) their text.
-        features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist", images: true, files: true, modelChoice: preset && "models" in preset && !preset.models ? "none" : "start" }),
+        features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist", images: !(preset && "images" in preset && !preset.images), files: true, modelChoice: preset && "models" in preset && !preset.models ? "none" : "start" }),
       };
     },
 

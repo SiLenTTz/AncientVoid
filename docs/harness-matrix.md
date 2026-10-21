@@ -24,7 +24,7 @@ dieser Session.
 | dummy | — | ✓ | ✓ | none | — | — | — | — | — | — | — | — |
 | acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — | — | — |
 | acp · opencode | 1.18.32 `acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — | — | — |
-| acp · dsh | 0.1.5-rc.3 `--profile acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — | — | — |
+| acp · dsh | 0.2.1-rc.2 `--profile acp` | ✓ | ✓ | native | — | ✓ | — | — | ✓ | — | — | — |
 <!-- harness-matrix:end -->
 
 ## Belege je Zeile
