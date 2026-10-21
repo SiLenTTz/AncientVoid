@@ -43,6 +43,12 @@
   cursor: pointer;
 }
 
+/* Archiv aufräumen: endgültiges Löschen muss auch auf Touch als
+ * destruktiv erkennbar sein, nicht nur am Wort. */
+.link-btn.danger {
+  color: var(--err);
+}
+
 /* T1.6-3: dock-actions replaces the old standalone .bottom-actions —
  * folded into .dock-stack below instead of being its own separately fixed
  * element (that pattern once overlapped the tail's last rows in practice,
