@@ -5,9 +5,15 @@ test.describe("Fortschritt und Kontingent im Lauf", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "PLAN WARTE4" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     const progress = app.locator(".run-progress");
+    // First snapshot: percent yes, but no ETA yet — one snapshot has no
+    // velocity to measure (BUG-0062), a guess would pretend to know.
     await expect(progress).toContainText("1/4 Aufgaben · 25 %");
+    await expect(progress).not.toContainText("noch ca.");
+    // Second snapshot 1.5 s later: velocity exists, an ETA appears —
+    // tied to the snapshots, not to the running clock.
+    await expect(progress).toContainText("2/4 Aufgaben · 50 %");
     await expect(progress).toContainText("noch ca.");
-    await expect(app.locator(".run-bar span")).toHaveAttribute("style", /width: 25%/);
+    await expect(app.locator(".run-bar span")).toHaveAttribute("style", /width: 50%/);
     await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle", { timeout: 15_000 });
     await expect(progress).toHaveCount(0);
   });

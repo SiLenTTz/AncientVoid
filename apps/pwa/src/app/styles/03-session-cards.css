@@ -76,6 +76,56 @@
   }
 }
 
+/* BUG-0063: the same traveling border, on the status pill inside the
+ * session view — "the agent is working" must be as visible in the chat
+ * as on the overview cards, in the same animation language. Purely
+ * additive: the pill already carries .working/.waiting_approval. */
+.pill.working,
+.pill.waiting_approval {
+  position: relative;
+  isolation: isolate;
+}
+
+.pill.working::after,
+.pill.waiting_approval::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 2px;
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: uacc-border-chase var(--glow-dur) linear infinite;
+}
+
+.pill.working::after {
+  background: conic-gradient(
+    from var(--uacc-glow-angle),
+    transparent 0deg,
+    transparent 270deg,
+    color-mix(in srgb, var(--ok) 85%, transparent) 320deg,
+    var(--ok) 340deg,
+    transparent 360deg
+  );
+}
+
+.pill.waiting_approval::after {
+  animation-duration: calc(var(--glow-dur) * 0.55);
+  background: conic-gradient(
+    from var(--uacc-glow-angle),
+    transparent 0deg,
+    transparent 250deg,
+    color-mix(in srgb, var(--warn) 85%, transparent) 310deg,
+    var(--warn) 335deg,
+    transparent 360deg
+  );
+}
+
 /* Same traveling border as a working session card, on the control that is
  * actually in flight (Verbessern, Senden, Starten, …). Disabled buttons
  * otherwise only drop to 50% opacity, which reads as "broken" for as long
@@ -120,6 +170,8 @@
 @media (prefers-reduced-motion: reduce) {
   .session-card.st-working::after,
   .session-card.st-waiting::after,
+  .pill.working::after,
+  .pill.waiting_approval::after,
   .btn.busy::after,
   .hunk-expand-btn.busy::after {
     animation: none;
@@ -128,6 +180,12 @@
   .btn.busy,
   .hunk-expand-btn.busy {
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, var(--bg-chip));
+  }
+  .pill.working {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 45%, var(--bg-chip));
+  }
+  .pill.waiting_approval {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn) 55%, var(--bg-chip));
   }
   .session-card.st-working {
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 45%, var(--bg-chip));
