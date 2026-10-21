@@ -1,7 +1,7 @@
 ---
 id: BUG-0063
 slug: chat-aktivitaet-unsauber-sichtbar
-status: in-progress
+status: done
 severity: S3
 area: pwa
 instance: dev

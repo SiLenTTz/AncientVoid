@@ -86,7 +86,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0060](bug-0060-recovery-weiter-ueber-k7-trotz-parallelisierung.md) | Recovery braucht weiter über 12 s trotz paralleler Wiederherstellung (K7) | done | S2 | core | — |
 
 | [BUG-0061](bug-0061-dsh-prompt-verbessern-fehlt.md) | „Verbessern“ fehlt für DeepSeek-Harness-Sessions | done | S3 | server, pwa | [#16](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/16) |
-| [BUG-0062](bug-0062-eta-waechst-bei-altem-plan.md) | Restzeit-Schätzung wächst, statt zu schrumpfen | in-progress | S3 | pwa | [#17](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/17) |
-| [BUG-0063](bug-0063-chat-aktivitaet-unsauber-sichtbar.md) | Im Chat ist nicht sichtbar genug, ob der Agent aktiv ist | in-progress | S3 | pwa | [#18](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/18) |
+| [BUG-0062](bug-0062-eta-waechst-bei-altem-plan.md) | Restzeit-Schätzung wächst, statt zu schrumpfen | done | S3 | pwa | [#17](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/17) |
+| [BUG-0063](bug-0063-chat-aktivitaet-unsauber-sichtbar.md) | Im Chat ist nicht sichtbar genug, ob der Agent aktiv ist | done | S3 | pwa | [#18](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/18) |
 
 Die nächste freie Nummer ist **0064**.
