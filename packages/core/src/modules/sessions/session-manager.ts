@@ -27,6 +27,8 @@ import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 export interface SessionManagerObservability {
   logger?: HubLogger;
   metrics?: HubMetrics;
+  /** K7 budget for recoverAll in ms (default 3000); tests lower it. */
+  recoveryBudgetMs?: number;
 }
 
 /** Account-level usage/quota snapshot (ADR-0004) — keyed by adapter id,
@@ -86,6 +88,7 @@ export class SessionManager {
   private readonly registry: AdapterRegistry;
   private readonly runner: WorkerRunner;
   private readonly worktrees: WorktreeManager | undefined;
+  private readonly recoveryBudgetMs: number;
   private readonly mirrorDataDir: string;
   private readonly defaultPermissionMode: string | null;
   private readonly queue: SessionQueue;
@@ -168,6 +171,7 @@ export class SessionManager {
     this.reportingSinks = reportingSinks;
     this.logger = observability.logger ?? createConsoleLogger();
     this.metrics = observability.metrics;
+    this.recoveryBudgetMs = observability.recoveryBudgetMs ?? 3000;
     // T1.9 (AC-P1-5): poll each live adapter's own status() on a timer,
     // not just react to its worker process exiting. A hard-killed process
     // already surfaces via WorkerProcess.onExit (see makeContext below),
@@ -1348,21 +1352,43 @@ export class SessionManager {
     };
     // BUG-0050: sessions are independent and `adapter.recover` mostly waits for a process or a
     // handshake — one after the other that was 12–14 s for 25 sessions (K7: < 3 s).
-    const outcomes = await mapLimit(persisted, RECOVERY_CONCURRENCY, recoverOne);
+    const timings: { id: string; adapter: string; ms: number }[] = [];
+    const outcomes = await mapLimit(persisted, RECOVERY_CONCURRENCY, async (record) => {
+      const started = performance.now();
+      const outcome = await recoverOne(record);
+      timings.push({ id: record.id, adapter: record.adapter, ms: Math.round(performance.now() - started) });
+      return outcome;
+    });
     for (const outcome of outcomes) {
       if (outcome === "recovered") recovered++;
       else if (outcome === "failed") failed++;
       else uncontrolled++;
     }
+    const sessionsMs = Math.round(performance.now() - t0);
 
+    const tailStart = performance.now();
     await this.flow.reconcile();
+    const reconcileMs = Math.round(performance.now() - tailStart);
     for (const live of this.live.values()) await this.healWaitingApproval(live, true);
+    const healMs = Math.round(performance.now() - tailStart) - reconcileMs;
     for (const sessionId of this.queue.sessionsWithEntries()) this.scheduleDrain(sessionId);
+    const reapStart = performance.now();
     const reaped = await this.runner.reapOrphans(keepWorkers).catch(() => []);
+    const reapMs = Math.round(performance.now() - reapStart);
     const elapsed = performance.now() - t0;
     this.metrics?.gauge("recovery_ms", elapsed);
-    if (elapsed > 3000) {
-      this.logger.warn("recovery exceeded K7 budget", { elapsedMs: Math.round(elapsed), budgetMs: 3000 });
+    if (elapsed > this.recoveryBudgetMs) {
+      // Where the time goes: without this a slow start is only "12 s", never "which adapter".
+      const perAdapter: Record<string, { sessions: number; totalMs: number; maxMs: number }> = {};
+      for (const t of timings) {
+        const entry = (perAdapter[t.adapter] ??= { sessions: 0, totalMs: 0, maxMs: 0 });
+        entry.sessions++;
+        entry.totalMs += t.ms;
+        entry.maxMs = Math.max(entry.maxMs, t.ms);
+      }
+      const slowest = [...timings].sort((a, b) => b.ms - a.ms).slice(0, 5).map((t) => ({ session: t.id.slice(0, 8), adapter: t.adapter, ms: t.ms }));
+      this.logger.warn("recovery exceeded K7 budget", { elapsedMs: Math.round(elapsed), budgetMs: this.recoveryBudgetMs });
+      this.logger.info("recovery detail", { sessionsMs, reconcileMs, healMs, reapMs, perAdapter, slowest });
     }
     return { recovered, failed, reaped, uncontrolled };
   }

@@ -84,4 +84,35 @@ describe("recoverAll arbeitet parallel", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+  it("eine zu langsame Recovery nennt, welcher Adapter und welche Sessions die Zeit kosten", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-recdetail-"));
+    const file = join(dir, "hub.db");
+    const first = new SessionManager(new HubDatabase(file), new EventStore(dir), make({ now: 0, max: 0 }), new ProcessRunner());
+    for (let i = 0; i < 8; i++) await first.create({ adapter: "slowrec", project: dir });
+    await first.shutdown({ keepWorkers: true });
+
+    const lines: { level: string; msg: string; fields?: Record<string, unknown> }[] = [];
+    const record = (level: string) => (msg: string, fields?: Record<string, unknown>) => void lines.push({ level, msg, ...(fields ? { fields } : {}) });
+    const logger = { debug: record("debug"), info: record("info"), warn: record("warn"), error: record("error"), child: () => logger };
+    const second = new SessionManager(new HubDatabase(file), new EventStore(dir), make({ now: 0, max: 0 }), new ProcessRunner(), undefined, undefined, undefined, null, [], { logger, recoveryBudgetMs: 50 });
+    try {
+      await second.recoverAll();
+      expect(lines.some((l) => l.level === "warn" && l.msg === "recovery exceeded K7 budget")).toBe(true);
+      const detail = lines.find((l) => l.msg === "recovery detail")?.fields as {
+        perAdapter: Record<string, { sessions: number; totalMs: number; maxMs: number }>;
+        slowest: { session: string; adapter: string; ms: number }[];
+        sessionsMs: number;
+        reapMs: number;
+      };
+      expect(detail.perAdapter.slowrec).toMatchObject({ sessions: 8 });
+      expect(detail.perAdapter.slowrec!.maxMs).toBeGreaterThanOrEqual(DELAY - 20);
+      expect(detail.slowest.length).toBe(5);
+      expect(detail.slowest[0]!.adapter).toBe("slowrec");
+      expect(detail.sessionsMs).toBeGreaterThan(0);
+      expect(typeof detail.reapMs).toBe("number");
+    } finally {
+      await second.shutdown();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });
