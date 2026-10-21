@@ -1,7 +1,7 @@
 ---
 id: BUG-0057
 slug: claude-discovery-tiefe-projekte-bleiben-gemunged
-status: fixed
+status: done
 severity: S3
 area: core
 instance: dev
