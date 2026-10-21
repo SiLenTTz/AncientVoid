@@ -5,8 +5,10 @@ import type { Page } from "@playwright/test";
 import { test, expect } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
 
+/** Claude Code names a project dir after its cwd. Discovery only shows projects
+ * under a configured root (7c5f168), so the name starts with the munged root. */
 function externalClaude(hub: TestHub, project: string, ids: string[]): string {
-  const dir = join(hub.root, "claude", "projects", project);
+  const dir = join(hub.root, "claude", "projects", hub.projectsDir.replace(/[^a-zA-Z0-9]/g, "-") + project);
   mkdirSync(dir, { recursive: true });
   for (const id of ids) writeFileSync(join(dir, `${id}.jsonl`), `{"type":"user","sessionId":"${id}"}\n`);
   return dir;
