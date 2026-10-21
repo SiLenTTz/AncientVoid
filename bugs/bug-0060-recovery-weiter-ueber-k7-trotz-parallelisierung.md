@@ -1,7 +1,7 @@
 ---
 id: BUG-0060
 slug: recovery-weiter-ueber-k7-trotz-parallelisierung
-status: in-progress
+status: done
 severity: S2
 area: core
 instance: prod
@@ -66,9 +66,20 @@ auch für Sessions, die nur herumliegen. ACP-Worker (`stdin: pipe`) überleben d
 Fix: träge Wiederherstellung. `recover()` merkt sich die native Session-ID (`dormant`) und gibt sofort einen
 Handle zurück; der Agent startet beim ersten Prompt (`wake()`, derselbe Ladepfad wie bisher, einmal auch bei
 zwei gleichzeitigen Prompts). `status()` meldet schlafende Sessions als gesund, `stop()` räumt auf.
-Nach dem Neustart mit dem Fix erneut messen, dann `done`.
+
+**Nach dem Fix gemessen (Produktiv-Hub, 21.10.2026, gleicher Bestand, 31 Sessions):** Recovery **0,66 s**
+(Journal: `adapters loaded` 14:06:52.845 → `recovery finished` 14:06:53.501), vorher 12,0 s; keine K7-Warnung.
+Der Hub war nach 4 s gesund.
+
+**Weckpfad live geprüft** (isolierter Hub, echtes dsh): Session mit Codewort, Hub per `kill -9` beendet,
+neu gestartet → Status `idle`, `managed`, kein Agent-Prozess, Event „Agent startet mit dem nächsten Prompt".
+Prompt „Wie lautet das Codewort?" → Agent startet (HTTP-Antwort in 1,5 s), lädt die Konversation, antwortet
+„MANGO-77", gleiche native Session, keine doppelte Historie (BUG-0036 bleibt erfüllt).
+
+Folge: Der erste Prompt nach einem Hub-Neustart braucht dadurch länger (Agent starten, Historie laden);
+bei großen Historien (opencode bis 10 s) sieht man das als Wartezeit vor der Antwort.
 
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [ ] Messung auswerten, dann Fix (ggf. Adapter-Recovery im Hintergrund: Zustand sofort, Handshake danach)
+- [x] Messung ausgewertet, Fix umgesetzt und nachgemessen

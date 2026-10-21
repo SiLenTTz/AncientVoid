@@ -83,6 +83,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0056](bug-0056-code-suche-nicht-im-viewport.md) | „Code durchsuchen“ liegt nach einer Aktion nicht mehr im Bild | done | S3 | pwa | [#14](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/14) |
 | [BUG-0058](bug-0058-acp-dsh-modellkatalog-leer.md) | dsh: Modellauswahl am Handy bleibt leer (Profil models entfällt) | done | S2 | adapters | — |
 | [BUG-0059](bug-0059-dsh-deklariert-bilder-ohne-bildeingabe.md) | dsh: Adapter deklariert Bilder, der Agent nimmt keine Bildeingabe | done | S3 | adapters | — |
-| [BUG-0060](bug-0060-recovery-weiter-ueber-k7-trotz-parallelisierung.md) | Recovery braucht weiter über 12 s trotz paralleler Wiederherstellung (K7) | open | S2 | core | — |
+| [BUG-0060](bug-0060-recovery-weiter-ueber-k7-trotz-parallelisierung.md) | Recovery braucht weiter über 12 s trotz paralleler Wiederherstellung (K7) | done | S2 | core | — |
 
 Die nächste freie Nummer ist **0061**.
