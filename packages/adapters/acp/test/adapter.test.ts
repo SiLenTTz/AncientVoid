@@ -395,4 +395,10 @@ describe("acp attachments (T7.10)", () => {
     expect(texts(ctx.events, "assistant")[0]).toContain("[image]");
     expect(texts(ctx.events, "assistant")[0]).toContain("(als Datei übergeben)");
   });
+  it("dsh preset: models() lists every provider/model over ACP instead of the removed `--profile models`", async () => {
+    // `command` replaces dsh's command line, the preset still selects the ACP catalog path.
+    const adapter = createAdapter({ preset: "dsh", command: [agent] });
+    const models = await adapter.models!();
+    expect(models.map((m) => m.id)).toEqual(expect.arrayContaining(["cloud/gross", "lokal/glm-5.3"]));
+  });
 });
