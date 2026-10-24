@@ -7,6 +7,11 @@ import type { NormalizedEvent } from "../../shared/ws.ts";
  * Claude `TodoWrite`, input `{ todos: [{ status }] }` per their docs) is the
  * one honest signal. Without a plan there is no percent, only elapsed time.
  */
+export interface TodoItem {
+  text: string;
+  status: string;
+}
+
 export interface RunProgress {
   source: "todos" | "none";
   done: number;
@@ -18,11 +23,16 @@ export interface RunProgress {
    * `now`, so a stale plan cannot inflate it; null without two progress
    * snapshots (no guess) or when everything is done. */
   etaMs: number | null;
+  /** 2026-10-25: the plan's own entries — transparency, click-to-expand. */
+  todos: TodoItem[];
 }
 
-const TODO_TOOL = /^todo[_-]?write$/i;
+// 2026-10-25: broadened — Claude (TodoWrite), OpenCode (todowrite), and the
+// common snake/kevel variants (todo_write, todo-write, todoUpdate) all carry
+// the same { todos: [{ status, content }] } shape.
+const TODO_TOOL = /^(todo[_-]?write|todo[_-]?update|update[_-]?todos?)$/i;
 
-function todosOf(event: NormalizedEvent): { status?: unknown }[] | null {
+function todosOf(event: NormalizedEvent): { status?: unknown; content?: unknown }[] | null {
   if (event.type !== "tool_use") return null;
   const payload = event.payload as { tool?: unknown; name?: unknown; input?: { todos?: unknown } };
   const tool = typeof payload.tool === "string" ? payload.tool : typeof payload.name === "string" ? payload.name : "";
@@ -44,8 +54,8 @@ export function runProgress(events: readonly NormalizedEvent[], status: string, 
   const elapsedMs = Math.max(0, now - startedAt);
   // Every todo snapshot with its own timestamp — the ETA below measures
   // plan velocity from these pairs, never from `now` (BUG-0062).
-  const snapshots = turn
-    .filter(todosOf)
+  const todoEvents = turn.filter(todosOf);
+  const snapshots = todoEvents
     .map((e) => {
       const counted = todosOf(e)!.filter((t) => t.status !== "cancelled");
       return {
@@ -56,7 +66,8 @@ export function runProgress(events: readonly NormalizedEvent[], status: string, 
     })
     .filter((s) => s.total > 0);
   const last = snapshots.at(-1);
-  if (!last) return { source: "none", done: 0, total: 0, percent: null, elapsedMs, etaMs: null };
+  const lastTodos = todoEvents.at(-1) ? todosOf(todoEvents.at(-1)!) : null;
+  if (!last) return { source: "none", done: 0, total: 0, percent: null, elapsedMs, etaMs: null, todos: [] };
   const done = last.done;
   const total = last.total;
   const ratio = done / total;
@@ -86,6 +97,12 @@ export function runProgress(events: readonly NormalizedEvent[], status: string, 
     percent: Math.round(ratio * 100),
     elapsedMs,
     etaMs,
+    // 2026-10-25: full plan entries for the click-to-expand detail — the agent's
+    // own words, not just counts (transparency request).
+    todos: (lastTodos ?? []).map((t) => ({
+      text: typeof t.content === "string" && t.content ? t.content : "(ohne Beschreibung)",
+      status: typeof t.status === "string" ? t.status : "unknown",
+    })),
   };
 }
 

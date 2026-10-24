@@ -1333,6 +1333,9 @@ export class SessionManager {
             events: events.length,
             lastSeq,
             controllable: false,
+            // 2026-10-25: whether the session was mid-turn — only then is
+            // "nur noch lesbar" a real loss worth a bell warning.
+            wasWorking: session.record.status === "working",
           });
           return "uncontrolled";
         }
