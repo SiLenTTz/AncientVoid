@@ -1,4 +1,4 @@
-import { MetricCounters, metricsState, type SessionRecord } from "@uacc/contracts";
+import { MetricCounters, metricsState, type SessionRecord, type SessionMetricsState } from "@uacc/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 /** Raw SQLite row shape (snake_case) for the sessions table. */
@@ -164,7 +164,7 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
       record.writerLeaseUntil,
       record.archived ? 1 : 0,
       record.title,
-      JSON.stringify(record.metrics.counters),
+      JSON.stringify((record.metrics as SessionMetricsState).counters),
       record.lastActivity ? JSON.stringify(record.lastActivity) : null,
       record.pinned ? 1 : 0,
       record.permissionMode,

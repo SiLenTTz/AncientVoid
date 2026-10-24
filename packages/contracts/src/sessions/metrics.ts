@@ -98,3 +98,7 @@ export function sessionMetrics(c: MetricCounters): SessionMetrics {
     tokens: quality(c.tokenEvents, c.tokenTurns, c.turns, c.tokensEstimated),
   };
 }
+/** Safe default for fresh sessions (T15.5): parse with unknown qualities. */
+export function prefaultSessionMetrics(): SessionMetricsState {
+  return SessionMetricsState.parse({ cost: "unknown", tokens: "unknown", counters: {} });
+}

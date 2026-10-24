@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -150,11 +150,30 @@ async function enhanceViaClaude(rawText: string, cwd: string): Promise<EnhanceRe
 
 async function enhanceViaCodex(rawText: string, cwd: string): Promise<EnhanceResult> {
   const start = Date.now();
-  const { stdout } = await execFileAsync(
-    "codex",
-    ["exec", `${INSTRUCTION}\n\n${rawText}`, "--json", "--skip-git-repo-check", "--sandbox", "read-only"],
-    { timeout: TIMEOUT_MS, maxBuffer: MAX_BUFFER, cwd },
-  );
+  // 2026-10-24: execFile left stdin half-open for codex ("Reading additional
+  // input from stdin..." — measured, hung until timeout). A fully ignored
+  // stdin fd via spawn is the reliable shape; `< /dev/null` always worked.
+  const stdout = await new Promise<string>((resolve, reject) => {
+    const child = spawn("codex",
+      ["exec", `${INSTRUCTION}\n\n${rawText}`, "--json", "--skip-git-repo-check", "--sandbox", "read-only"],
+      { cwd, stdio: ["ignore", "pipe", "pipe"] });
+    const chunks: Buffer[] = [];
+    let total = 0;
+    let stderr = "";
+    const timer = setTimeout(() => child.kill("SIGTERM"), TIMEOUT_MS);
+    child.stdout.on("data", (d: Buffer) => {
+      total += d.length;
+      if (total > MAX_BUFFER) child.kill("SIGTERM");
+      else chunks.push(d);
+    });
+    child.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
+    child.on("error", (err) => { clearTimeout(timer); reject(err); });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve(Buffer.concat(chunks).toString());
+      else reject(Object.assign(new Error(`codex enhance failed: ${stderr.trim().slice(0, 300)}`), { stderr }));
+    });
+  });
   return { ...parseCodexEnhanceOutput(stdout), latencyMs: Date.now() - start };
 }
 
@@ -289,5 +308,8 @@ export async function enhancePrompt(
   if (flavor === "codex") return enhanceViaCodex(rawText, project);
   if (flavor === "opencode") return enhanceViaOpencode(rawText, project);
   if (flavor === "dsh") return enhanceViaDsh(rawText, project);
-  throw new Error(`enhancePrompt: no enhancer wired up for adapter "${adapterId}"`);
+  // 2026-10-24: adapters without a native enhancer (aider, copilot, custom
+  // registrations) fell over with a 502 and a dead "Verbessern" button.
+  // Fallback: enhance through opencode — works for every adapter selection.
+  return enhanceViaOpencode(rawText, project);
 }

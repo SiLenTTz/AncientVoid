@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation } from "@uacc/contracts";
+import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation } from "@uacc/contracts";
 import { countMetrics, emptyMetricCounters, metricsState, promptWithAttachments, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, unsupportedResume } from "@uacc/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
@@ -1541,7 +1541,7 @@ export class SessionManager {
       // never aggregated onto the session record.
       if (e.tokensEst !== undefined) session.record.tokensEst += e.tokensEst;
       // T7.7: per-turn evidence — "no number" stays visibly unknown.
-      session.record.metrics = metricsState(countMetrics(session.record.metrics.counters, e));
+      session.record.metrics = metricsState(countMetrics((session.record.metrics as SessionMetricsState).counters, e));
       // T8.1: the card shows what happened last, in words.
       const act = activityOf(e);
       if (act) session.record.lastActivity = act;

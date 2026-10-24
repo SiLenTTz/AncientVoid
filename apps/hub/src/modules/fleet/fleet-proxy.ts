@@ -8,6 +8,11 @@ import { isFleetRoutable } from "@uacc/contracts";
 import { createTailHandler } from "../sessions/ws.ts";
 
 const FORWARD_TIMEOUT_MS = 10_000;
+/** Enhance/optimizer calls spawn a CLI model call (10–30 s measured) — the
+ * generic 10 s forward timeout killed them (observed 2026-10-24, evox2 via
+ * fleet). Slow-path allowlist instead of raising the global limit. */
+const FORWARD_TIMEOUT_SLOW_MS = 90_000;
+const SLOW_PATHS = /^\/api\/(prompt-enhance|prompt-recommendation|prompt-optimizer|sessions\/[^/]+\/(steer|apply|stop|archive|budget))$/;
 const MAX_FORWARD_BYTES = 16 * 1024 * 1024;
 
 interface Forwarded {
@@ -44,7 +49,8 @@ function forward(url: string, method: string, token: string, body: unknown): Pro
         );
       },
     );
-    req.setTimeout(FORWARD_TIMEOUT_MS, () => req.destroy(new Error(`no answer within ${FORWARD_TIMEOUT_MS / 1000} s`)));
+    const timeoutMs = SLOW_PATHS.test(new URL(url).pathname) ? FORWARD_TIMEOUT_SLOW_MS : FORWARD_TIMEOUT_MS;
+    req.setTimeout(timeoutMs, () => req.destroy(new Error(`no answer within ${timeoutMs / 1000} s`)));
     req.on("error", reject);
     if (payload !== undefined) req.write(payload);
     req.end();
