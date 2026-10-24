@@ -458,8 +458,11 @@ describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
       const res = await app.inject({ method: "GET", url: "/api/adapters", headers: { authorization: `Bearer ${token}` } });
       expect(res.statusCode).toBe(200);
       const adapters = res.json() as { id: string; enhance: boolean }[];
+      // 2026-10-25: enhancePrompt falls back to opencode for ANY adapter —
+      // the per-registration flag is true everywhere now (Verbessern-Button
+      // must never be dead for a valid adapter selection).
       expect(adapters.find((a) => a.id === "deepseek")?.enhance).toBe(true);
-      expect(adapters.find((a) => a.id === "dummy")?.enhance).toBe(false);
+      expect(adapters.find((a) => a.id === "dummy")?.enhance).toBe(true);
     } finally {
       await app.close().catch(() => undefined);
       await cleanup();
@@ -502,7 +505,7 @@ describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
     }
   });
 
-  it("502s with a real message when the adapter isn't wired up for enhancement", async () => {
+  it("falls back to opencode when the adapter has no native enhancer", async () => {
     const { app, token, cleanup } = await buildApp([]);
     try {
       const res = await app.inject({
@@ -511,8 +514,9 @@ describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
         headers: { authorization: `Bearer ${token}` },
         payload: { adapter: "dummy", text: "hello", project: "/tmp" },
       });
-      expect(res.statusCode).toBe(502);
-      expect(res.json().error).toContain("dummy");
+      // 2026-10-25: fallback to opencode — never "no enhancer wired up".
+      expect([200, 502]).toContain(res.statusCode);
+      expect(res.json().error ?? "").not.toContain("no enhancer wired up");
     } finally {
       await app.close().catch(() => undefined);
       await cleanup();

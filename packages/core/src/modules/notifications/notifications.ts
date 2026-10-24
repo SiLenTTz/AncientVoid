@@ -67,8 +67,12 @@ export function notificationFor(event: NormalizedEvent, ctx: NotificationContext
     case "operation.rejected_changed":
       return { level: "error", title: `${where} · Aktion nicht ausgeführt`, detail: "Die Argumente weichen von der Freigabe ab.", kind };
     case "session.recovered":
-      return payload.controllable === false
-        ? { level: "warning", title: `${where} · nach Neustart nicht steuerbar`, detail: "Die Session ist nur noch lesbar.", kind }
+      // 2026-10-25: only warn when the session was ACTIVELY working — an idle
+      // session between turns loses nothing by falling back to observed mode.
+      // Repeated false "nur noch lesbar" warnings after every hub restart
+      // trained users to ignore the bell (observed 2026-10-24).
+      return payload.controllable === false && payload.wasWorking === true
+        ? { level: "warning", title: `${where} · nach Neustart nicht steuerbar`, detail: "Die Session lief mitten im Zug und ist jetzt nur noch lesbar.", kind }
         : null;
   }
   const exited = /process exited with code (\d+)/.exec(event.summary);

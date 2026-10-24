@@ -35,6 +35,8 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   // EPIC-P6: every call of this view goes to the session's own host.
   const api = useMemo(() => hostApi(session.hostId), [session.hostId]);
   const [events, setEvents] = useState<NormalizedEvent[]>([]);
+  // 2026-10-25: click-to-expand for the run strip's todo plan (transparency).
+  const [todosOpen, setTodosOpen] = useState(false);
   // T8.2: what this device saw last — until live events arrive.
   const hostKey = remoteHost(session.hostId) ?? "local";
   const [cached] = useState(() => loadTail(hostKey, session.id));
@@ -575,14 +577,31 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
       <div class="run-strip">
         {progress &&
           (progress.percent !== null ? (
-            <div class="run-progress" title="aus der To-do-Liste des Agenten">
-              <div class="run-bar">
-                <span style={`width: ${progress.percent}%`} />
-              </div>
-              <span>
-                {progress.done}/{progress.total} Aufgaben · {progress.percent} %
-                {progress.etaMs !== null ? ` · noch ca. ${formatMinutes(progress.etaMs)}` : ""}
-              </span>
+            <div class="run-progress-wrap">
+              <button
+                type="button"
+                class="run-progress"
+                title="To-do-Liste des Agenten — klicken zum Aufklappen"
+                onClick={() => setTodosOpen((v) => !v)}
+              >
+                <div class="run-bar">
+                  <span style={`width: ${progress.percent}%`} />
+                </div>
+                <span>
+                  {todosOpen ? "▾" : "▸"} {progress.done}/{progress.total} Aufgaben · {progress.percent} %
+                  {progress.etaMs !== null ? ` · noch ca. ${formatMinutes(progress.etaMs)}` : ""}
+                </span>
+              </button>
+              {todosOpen && progress.todos.length > 0 && (
+                <ol class="run-todo-list">
+                  {progress.todos.map((t, idx) => (
+                    <li key={idx} class={`todo-${t.status}`}>
+                      <span class="todo-marker">{t.status === "completed" ? "✔" : t.status === "in_progress" || t.status === "in-progress" ? "▶" : t.status === "cancelled" ? "✖" : "○"}</span>
+                      <span class={`todo-text ${t.status === "completed" ? "done" : ""}`}>{t.text}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
           ) : (
             <div class="run-progress dim">läuft seit {formatMinutes(progress.elapsedMs)} · ohne Plan kein Fortschritt messbar</div>
