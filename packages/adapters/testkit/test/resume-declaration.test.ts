@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Adapter, AdapterCapabilities } from "@uacc/contracts";
+import type { Adapter, AdapterCapabilities, SessionSpec, AdapterContext } from "@uacc/contracts";
 import { runContractTests } from "../src/index.ts";
 
 /**
@@ -39,7 +39,7 @@ function fakeAdapter(resume: AdapterCapabilities["resume"]): Adapter {
         },
       };
     },
-    async start(_spec, ctx) {
+    async start(_spec: SessionSpec, ctx: AdapterContext) {
       ctx.emit({ type: "system", summary: "fake", payload: {} });
       return { sessionId: "fake-session" };
     },
