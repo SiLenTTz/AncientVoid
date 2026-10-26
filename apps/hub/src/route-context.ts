@@ -41,6 +41,8 @@ export interface RouteDeps {
   probeRunner?: ProbeRunner;
   /** EPIC-P6: this hub's host id in the fleet. */
   hostId?: string;
+  /** 2026-10-26: readable name for fleet views (hostname by default). */
+  hostLabel?: string;
   /** T9.2: local model for text commands and text edits (ADR-0027). */
   assistantModel?: PlannerModelConfig;
   /** T7.6: actions from hub.config.json (`actions`). */
@@ -122,7 +124,7 @@ export function createRouteContext(deps: RouteDeps) {
   const startedAt = deps.startedAt ?? Date.now();
   const hostId = deps.hostId ?? DEFAULT_HOST_ID;
 
-  return { deps, projectRoots, hostId, startedAt, catalogRootFor, skillsFor, callerLabel, withAttachCmd, webauthnRoutes, indexingInFlight };
+  return { deps, projectRoots, hostId, hostLabel: deps.hostLabel, startedAt, catalogRootFor, skillsFor, callerLabel, withAttachCmd, webauthnRoutes, indexingInFlight };
 }
 
 export type RouteContext = ReturnType<typeof createRouteContext>;

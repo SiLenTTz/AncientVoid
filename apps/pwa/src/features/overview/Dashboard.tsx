@@ -223,7 +223,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
         <div class="fleet-hosts">
           {hosts.map((h) => (
             <span key={h.hostId} class={`chip subtle host-chip ${h.state}`} title={h.detail ?? undefined}>
-              {h.hostId} · {HOST_STATE_LABEL[h.state]}
+              {h.label ?? h.hostId.slice(0, 8)} · {HOST_STATE_LABEL[h.state]}
               {h.state !== "reachable" && h.lastSyncAt
                 ? ` · Stand ${new Date(h.lastSyncAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`
                 : ""}
@@ -244,7 +244,15 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
                   {showArchived ? "Archiv" : SECTION_TITLE[key]} <span class="dim">{sections[key].length}</span>
                 </h2>
                 {list.map((s) => (
-                  <SessionRow key={`${s.hostId ?? ""}:${s.id}`} session={s} fleet={fleet} onOpen={onOpen} onArchive={archive} onPin={pin} onDelete={remove} />
+                  <SessionRow
+                    key={`${s.hostId ?? ""}:${s.id}`}
+                    session={s}
+                    hosts={hosts ?? []}
+                    onOpen={onOpen}
+                    onArchive={archive}
+                    onPin={pin}
+                    onDelete={remove}
+                  />
                 ))}
                 {list.length < sections[key].length && (
                   <button class="btn more-sessions" type="button" onClick={() => setAllRecent(true)}>
@@ -261,14 +269,14 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
 
 function SessionRow({
   session,
-  fleet,
+  hosts,
   onOpen,
   onArchive,
   onPin,
   onDelete,
 }: {
   session: SessionRecord;
-  fleet: boolean;
+  hosts: FleetHost[];
   onOpen: (s: SessionRecord) => void;
   onArchive: (s: SessionRecord) => void;
   onPin: (s: SessionRecord) => void;
@@ -288,9 +296,11 @@ function SessionRow({
           </span>
         </div>
         <div class="session-where dim">
-          {fleet && session.hostId ? `${session.hostId} · ` : ""}
-          <span class="session-project">{project}</span> · {session.adapter}
-          {session.model ? ` · ${session.model}` : ""}
+          {/* 2026-10-26: host and model are always visible — readable host
+           * label (fallback short id), model or the honest "Standardmodell"
+           * (no guessed provider). */}
+          {session.hostId ? `${hostLabel(hosts ?? [], session.hostId)} · ` : ""}
+          <span class="session-project">{project}</span> · {session.adapter} · {session.model ?? "Standardmodell"}
           {session.costUsd > 0 ? ` · ${metricView(session, "cost", formatUsd, true).text}` : ""}
         </div>
         <div class="session-activity">
@@ -315,4 +325,13 @@ function SessionRow({
       </div>
     </div>
   );
+}
+
+/** 2026-10-26: readable host label — the fleet's own label (hostname /
+ * tailnet name), falling back to a short id. Never empty, never guessed. */
+function hostLabel(hosts: readonly FleetHost[], hostId: string): string {
+  const host = hosts.find((h) => h.hostId === hostId);
+  if (host?.label) return host.label;
+  if (hostId === "local") return "dieser Rechner";
+  return hostId.slice(0, 8);
 }

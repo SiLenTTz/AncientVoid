@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { FleetStore, TokenService } from "@uacc/core";
 import { peerView } from "@uacc/core";
 import { FLEET_PROTOCOL_VERSION, FLEET_TOKEN_PREFIX, HOST_ID_PATTERN, type FleetHello, type FleetHostView, type SessionRecord } from "@uacc/contracts";
+import { hostname } from "node:os";
 import { extractToken } from "../../platform/auth.ts";
 import { httpJson } from "../../platform/http-json.ts";
 
@@ -80,19 +81,30 @@ export function registerFleetRoutes(app: FastifyInstance, deps: { fleet: FleetSt
 
   // T6.3: last good session list per peer, shown with its own time when the
   // peer is away (AC-P6-3).
-  const lastGood = new Map<string, { sessions: SessionRecord[]; syncedAt: string }>();
+  const lastGood = new Map<string, { sessions: SessionRecord[]; syncedAt: string; label?: string }>();
 
   app.get("/api/fleet", async (req) => {
     const ownRes = await app.inject({ method: "GET", url: "/api/sessions", headers: { authorization: String(req.headers.authorization ?? "") } });
     const own = ownRes.statusCode === 200 ? (ownRes.json() as SessionRecord[]) : [];
     const now = new Date().toISOString();
-    const hosts: FleetHostView[] = [{ hostId: deps.hostId, self: true, url: null, state: "reachable", lastSyncAt: now, detail: null, sessions: own.length }];
+    const hosts: FleetHostView[] = [
+      { hostId: deps.hostId, label: hostname(), self: true, url: null, state: "reachable", lastSyncAt: now, detail: null, sessions: own.length },
+    ];
     const sessions: SessionRecord[] = [...own];
     const results = await Promise.all(
       deps.fleet.peers().map(async (peer) => {
         const cached = lastGood.get(peer.hostId);
         const away = (state: FleetHostView["state"], detail: string): { host: FleetHostView; sessions: SessionRecord[] } => ({
-          host: { hostId: peer.hostId, self: false, url: peer.url, state: cached && state === "offline" ? "stale" : state, lastSyncAt: cached?.syncedAt ?? null, detail, sessions: cached?.sessions.length ?? 0 },
+          host: {
+            hostId: peer.hostId,
+            ...(cached?.label ? { label: cached.label } : {}),
+            self: false,
+            url: peer.url,
+            state: cached && state === "offline" ? "stale" : state,
+            lastSyncAt: cached?.syncedAt ?? null,
+            detail,
+            sessions: cached?.sessions.length ?? 0,
+          },
           sessions: state === "offline" ? (cached?.sessions ?? []) : [],
         });
         try {
@@ -107,8 +119,11 @@ export function registerFleetRoutes(app: FastifyInstance, deps: { fleet: FleetSt
           if (list.status !== 200 || !Array.isArray(list.body)) return away("offline", `Antwort ${list.status}`);
           const stamped = list.body.map((s) => ({ ...s, hostId: peer.hostId }));
           const syncedAt = new Date().toISOString();
-          lastGood.set(peer.hostId, { sessions: stamped, syncedAt });
-          return { host: { hostId: peer.hostId, self: false, url: peer.url, state: "reachable" as const, lastSyncAt: syncedAt, detail: null, sessions: stamped.length }, sessions: stamped };
+          // 2026-10-26: the remote's OWN name (from its hello), not a URL
+          // guess — peers behind 127.0.0.1 ports would all look alike.
+          const remoteLabel = hello.body?.label;
+          lastGood.set(peer.hostId, { sessions: stamped, syncedAt, ...(remoteLabel ? { label: remoteLabel } : {}) });
+          return { host: { hostId: peer.hostId, ...(remoteLabel ? { label: remoteLabel } : {}), self: false, url: peer.url, state: "reachable" as const, lastSyncAt: syncedAt, detail: null, sessions: stamped.length }, sessions: stamped };
         } catch (err) {
           return away("offline", err instanceof Error ? err.message : String(err));
         }

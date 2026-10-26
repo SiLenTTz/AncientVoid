@@ -36,6 +36,9 @@ export const HubConfig = z.object({
   /** EPIC-P6: this hub's name in the fleet. Default: the machine's
    * hostname as a slug (see toHostId). */
   hostId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).optional(),
+  /** 2026-10-26: readable host name reported in fleet hello/views —
+   * defaults to the machine's hostname(). */
+  hostLabel: z.string().min(1).max(63).optional(),
   server: z
     .object({
       host: z.string().default("127.0.0.1"),

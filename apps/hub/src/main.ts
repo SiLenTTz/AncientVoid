@@ -264,6 +264,7 @@ async function main(): Promise<void> {
     discoverySources: discoverySources(config),
     claudeLive: new ClaudeLive(config.discovery.claudeCommand),
     hostId: config.hostId ?? toHostId(hostname()),
+    hostLabel: config.hostLabel ?? hostname(),
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.UACC_EXPOSE === "1"

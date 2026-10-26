@@ -9,10 +9,11 @@ const HUB_VERSION = "0.1.0";
 
 /** Health, readiness, metrics and the fleet hello (ADR-0010, ADR-0017). */
 export function registerSystemRoutes(app: FastifyInstance, ctx: RouteContext): void {
-  const { deps, hostId, startedAt } = ctx;
+  const { deps, hostId, hostLabel, startedAt } = ctx;
 
   app.get("/api/fleet/hello", async (): Promise<FleetHello> => ({
     hostId,
+    ...(hostLabel ? { label: hostLabel } : {}),
     protocolVersion: FLEET_PROTOCOL_VERSION,
     hubVersion: HUB_VERSION,
     serverTime: new Date().toISOString(),

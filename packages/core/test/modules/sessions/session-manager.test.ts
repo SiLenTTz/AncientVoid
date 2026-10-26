@@ -50,6 +50,55 @@ describe("SessionManager", () => {
     await rm(dir, { recursive: true, force: true });
   });
 
+  it("2026-10-26: ohne Modellauswahl trägt die Session das Default-Modell der Registration", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "uacc-sm-defaultmodel-"));
+    // dummy verbietet Modellauswahl (modelChoice "none") — dieser Inline-
+    // Adapter erlaubt sie, wie es pi/opencode/claude tun.
+    const choosy: Adapter = {
+      id: "choosy",
+      version: "0.0.1",
+      capabilities: () => ({
+        reasoning: false,
+        tools: false,
+        cost: false,
+        steer: true,
+        usage: false,
+        nativeDiscovery: "none",
+        nativeResume: "none",
+        features: basicFeatures({ modelChoice: "start" }),
+      }),
+      async start() {
+        return { sessionId: "s" };
+      },
+      async steer() {
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" };
+      },
+      async stop() {},
+    };
+    try {
+      const withDefault = new AdapterRegistry();
+      withDefault.register("choosy", () => choosy, { model: "evo-evox2/halogen-qwen3.8-flash-next-uncensored-iq4xs" });
+      const manager = new SessionManager(new HubDatabase(":memory:"), new EventStore(dir), withDefault, new ProcessRunner());
+      const record = await manager.create({ adapter: "choosy", project: dir, prompt: "x" });
+      expect(record.model).toBe("evo-evox2/halogen-qwen3.8-flash-next-uncensored-iq4xs");
+      const explicit = await manager.create({ adapter: "choosy", project: dir, prompt: "y", model: "other/mini" });
+      expect(explicit.model).toBe("other/mini");
+      const bare = new AdapterRegistry();
+      bare.register("choosy", () => choosy); // keine Config → null, nie geraten
+      const without = await new SessionManager(new HubDatabase(":memory:"), new EventStore(dir), bare, new ProcessRunner()).create({
+        adapter: "choosy",
+        project: dir,
+        prompt: "z",
+      });
+      expect(without.model).toBeNull();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("creates a session, persists it and emits lifecycle events", async () => {
     const { manager } = makeManager(dir, { eventsPerSecond: 20, autoStopAfterEvents: 5 });
     try {

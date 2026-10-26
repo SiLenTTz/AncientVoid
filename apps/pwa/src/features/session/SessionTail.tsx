@@ -119,6 +119,23 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   /** BUG-0061: the hub's per-registration enhance support (undefined =
    * older hub, the composer falls back to its id set). */
   const [adapterEnhance, setAdapterEnhance] = useState<boolean | undefined>(undefined);
+  // 2026-10-26: readable host names (own hostname / tailnet peer names).
+  const [hostNames, setHostNames] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    let alive = true;
+    api
+      .fleet()
+      .then((overview) => {
+        if (!alive) return;
+        const names = new Map<string, string>();
+        for (const host of overview.hosts) names.set(host.hostId, host.label ?? host.hostId.slice(0, 8));
+        setHostNames(names);
+      })
+      .catch(() => undefined); // offline: the short id stays as fallback
+    return () => {
+      alive = false;
+    };
+  }, [api]);
   // ADR-0036: the adapter's declared external continuation command.
   const [adapterResume, setAdapterResume] = useState<{ argv: string[]; ref: "native" | "token" } | undefined>(undefined);
   /** ADR-0032: the model's context window — configured on the adapter,
@@ -483,8 +500,13 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   const draftShown = settledDraft.current;
   const modelLabel =
     session.model ??
-    [...events].reverse().find((event) => (event.payload as { kind?: unknown }).kind === "opencode.model" || (event.payload as { kind?: unknown }).kind === "acp.model")?.payload.model;
-  const shownModel = typeof modelLabel === "string" ? modelLabel : null;
+    [...events]
+      .reverse()
+      .find((event) => ["opencode.model", "acp.model", "pi.model"].includes(String((event.payload as { kind?: unknown }).kind)))?.payload.model;
+  // 2026-10-26: the model is ALWAYS visible — the adapter's own event wins
+  // (it names what really runs), then the record (session choice or the
+  // registration's configured default), else the honest "Standardmodell".
+  const shownModel = typeof modelLabel === "string" && modelLabel ? modelLabel : typeof session.model === "string" && session.model ? session.model : "Standardmodell";
   const showVerlaufFilterBar = activeTab === "verlauf";
 
   return (
@@ -516,8 +538,9 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             <div class="session-top-title">{title ?? session.project.split("/").pop()}</div>
           )}
           <div class="dim session-top-meta">
-            {session.project.split("/").pop()} · {session.adapter}
-            {shownModel ? ` · ${shownModel}` : ""} · <span class={`pill ${status}`} data-status={status}>{statusLabel(status)}</span>
+            {session.project.split("/").pop()} · {session.adapter} · {shownModel} ·{" "}
+            {session.hostId ? (hostNames.get(session.hostId) ?? (session.hostId === "local" ? "dieser Rechner" : session.hostId.slice(0, 8))) : "dieser Rechner"} ·{" "}
+            <span class={`pill ${status}`} data-status={status}>{statusLabel(status)}</span>
           </div>
         </div>
         {!observerOnly && features?.interrupt && (status === "working" || status === "starting" || status === "waiting_approval") && (

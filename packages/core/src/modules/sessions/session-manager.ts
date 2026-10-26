@@ -77,6 +77,13 @@ async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) 
  * - K7 crash recovery: replay JSONL + snapshot + optional adapter.recover().
  * - Adapters only ever see AdapterContext — never hub internals.
  */
+/** 2026-10-26: a registration's `config.model` (the same field
+ * /api/adapters/:id/models reports as defaultModel). */
+function defaultModelOf(registered: { config?: Readonly<Record<string, unknown>> }): string | null {
+  const model = registered.config?.model;
+  return typeof model === "string" && model.length > 0 ? model : null;
+}
+
 export class SessionManager {
   private readonly live = new Map<string, LiveSession>();
   private readonly usageByAdapter = new Map<string, AdapterUsageSnapshot>();
@@ -421,7 +428,12 @@ export class SessionManager {
       id: randomUUID(),
       adapter: parsed.adapter,
       project: parsed.project,
-      worktreeSha: null,      model: parsed.model ?? null,
+      worktreeSha: null,
+      // 2026-10-26: a session without an explicit model still shows WHICH
+      // model runs — the registration's configured default (e.g. pi → the
+      // evox2 qwen) fills the record; without any default it stays null and
+      // the UI honestly says "Standardmodell" instead of guessing.
+      model: parsed.model ?? defaultModelOf(registered) ?? null,
       permissionMode,
       status: "starting",
       createdAt: now,

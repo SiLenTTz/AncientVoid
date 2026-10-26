@@ -18,6 +18,9 @@ export interface HubOptions {
   dummyAutoStop?: number;
   /** EPIC-P6: this hub's host id in the fleet. */
   hostId?: string;
+  /** 2026-10-26: readable fleet label (config hostLabel) — two hubs on one
+   * machine would otherwise both answer with the same hostname. */
+  label?: string;
   /** T10.2: a whisper-compatible `/inference` URL for local STT. */
   sttUrl?: string;
   /** T12.10: a local PCM16 streaming-ASR WebSocket endpoint. */
@@ -142,6 +145,7 @@ export class TestHub {
     const config = {
       dataDir: this.dataDir,
       ...(this.options.hostId ? { hostId: this.options.hostId } : {}),
+      ...(this.options.label ? { hostLabel: this.options.label } : {}),
       workerRunner: this.options.runner ?? "process",
       projectRoots: [this.projectsDir],
       requireStepApprovals: this.options.requireStepApprovals ?? false,
