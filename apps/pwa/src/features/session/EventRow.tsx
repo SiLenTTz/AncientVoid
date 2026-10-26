@@ -3,6 +3,7 @@ import { getToken } from "../../shared/api.ts";
 import { type NormalizedEvent } from "../../shared/ws.ts";
 import { isOffloaded, visibleEventText, withBlobPayload } from "./event-text.ts";
 import { isEmptyThinking, toolIdOf } from "./event-filter.ts";
+import { Markdown } from "../../shared/Markdown.tsx";
 import { AttachmentChips, type AttachmentRef } from "../attachments/Attachments.tsx";
 
 export function toolAnchor(toolId: string, side: "use" | "result"): string {
@@ -235,7 +236,11 @@ export function EventRow({
         </span>
         <span>{time}</span>
       </div>
-      <div class="summary prose">{visibleEventText(event)}</div>
+      {event.type === "assistant" ? (
+        <Markdown class="summary prose" text={visibleEventText(event)} />
+      ) : (
+        <div class="summary prose">{visibleEventText(event)}</div>
+      )}
       {fullText !== "ok" && (
         <div class={`dim full-text-note${fullText === "failed" ? " failed" : ""}`}>
           {fullText === "loading" ? "Langer Text wird geladen …" : "Gekürzt — der volle Text konnte nicht geladen werden."}

@@ -299,3 +299,20 @@ test.describe("Lange Antworten im Chat (BUG-0068)", () => {
     await expect(answer.locator(".full-text-note")).toHaveCount(0);
   });
 });
+
+test.describe("Markdown im Chat (BUG-0067)", () => {
+  test("Antworten erscheinen formatiert, HTML und javascript-Links bleiben Text", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "pi", prompt: "Bitte MARKDOWN" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const answer = app.locator(".event.assistant").last().locator(".markdown");
+    await expect(answer.getByRole("heading", { name: "Stand" })).toBeVisible();
+    await expect(answer.locator("li strong")).toHaveText("Fix:");
+    await expect(answer.locator("table td code")).toHaveText("43f43d0");
+    await expect(answer.locator("pre code")).toHaveText("**nicht fett**");
+    await expect(answer).toContainText("<img src=x onerror=alert(1)>");
+    await expect(answer.locator("img")).toHaveCount(0);
+    await expect(answer.locator('a[href^="javascript"]')).toHaveCount(0);
+    await expect(answer).not.toContainText("## Stand");
+  });
+});
