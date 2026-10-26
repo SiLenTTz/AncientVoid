@@ -299,6 +299,7 @@ export function CreateSession({
           onUseRecommendation={(item) => setSkill(item)}
           attachments={attachments}
           onAttachmentsChange={setAttachments}
+          onSubmit={busy || !project ? undefined : () => void submit()}
         />
       </label>
       {error && <div style="color: var(--err)">{error}</div>}

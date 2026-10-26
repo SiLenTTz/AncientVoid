@@ -40,6 +40,21 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(app.locator(".event.user").first()).toContainText("Du");
   });
 
+  test("⌘/Ctrl+Enter sendet die Antwort aus dem Eingabefeld (Tablet mit Tastatur) @desktop", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Tastatur Start" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const box = app.getByPlaceholder("Antworten…");
+    await box.fill("Gesendet per Tastatur");
+    // Plain Enter must stay a newline (one-handed phone use): the value
+    // grows, nothing is sent.
+    await box.press("Enter");
+    await expect(box).toHaveValue("Gesendet per Tastatur\n");
+    await box.press("Control+Enter");
+    await expect(app.locator(".event.user").last()).toContainText("Gesendet per Tastatur");
+    await expect(box).toHaveValue("");
+  });
+
   test("jede Karte in der Übersicht nennt Projekt und Auftrag @desktop", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Workflow: release\n\nBaue die Punkteanzeige" });
     await hub.createSession({ adapter: "opencode", project: hub.beta, prompt: "Ziel: Menü aufräumen\nScope: nur beta" });

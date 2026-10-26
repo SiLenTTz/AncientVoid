@@ -766,6 +766,11 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                 adapter={session.adapter}
                 project={session.project}
                 adapterEnhance={adapterEnhance}
+                onSubmit={
+                  !replyBusy && online && (reply.trim() || replyAttachments.length > 0)
+                    ? () => void sendReply()
+                    : undefined
+                }
                 attachments={replyAttachments}
                 onAttachmentsChange={setReplyAttachments}
                 extraActions={
