@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { open, readFile, stat, mkdir, rm, writeFile } from "node:fs/promises";
 import { watch } from "node:fs";
 import { join, resolve } from "node:path";
@@ -23,6 +23,16 @@ export const TMUX_PREFIX = "uacc-";
  * form that preserves intent — the caller's env object is simply wrong).
  */
 const SAFE_ENV_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/** T17.5/ADR-0037: env keys the runner itself owns as pane markers. A caller
+ * putting them into spec.env would fake another session's identity —
+ * refused like an illegal key, same BUG-0012 reasoning (fail loud, no spawn). */
+const RESERVED_ENV_KEYS = new Set(["UACC_SESSION_ID", "UACC_WORKER_ID"]);
+
+/** T17.5: marker values are hub-internal ids (randomUUID / session ids).
+ * Operationally "never user input" means: one token, nothing a tmux format
+ * string, an env assignment or a shell could reinterpret. */
+const SAFE_MARKER_VALUE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
 function shellQuote(value: string): string {
   // Single-quote the whole value, escaping embedded single quotes the
@@ -170,9 +180,18 @@ export class TmuxRunner implements WorkerRunner {
    * own. Workers without the option are foreign too. */
   readonly owner: string;
 
-  constructor(logDir: string, owner?: string) {
+  /** T17.6: fallback paths (no marker) are reported here — the heuristic
+   * stays visible until T12.5 has proven the marker path broadly. */
+  private readonly log: ((level: "info" | "warn", msg: string, fields?: Record<string, unknown>) => void) | undefined;
+
+  constructor(
+    logDir: string,
+    owner?: string,
+    log?: (level: "info" | "warn", msg: string, fields?: Record<string, unknown>) => void,
+  ) {
     this.logDir = logDir;
     this.owner = owner ?? createHash("sha256").update(resolve(logDir)).digest("hex").slice(0, 16);
+    this.log = log;
   }
 
   private fullName(name: string): string {
@@ -192,6 +211,18 @@ export class TmuxRunner implements WorkerRunner {
         throw new Error(`TmuxRunner: invalid environment variable name "${key}" — refusing to spawn (shell-injection guard)`);
       }
     }
+    // T17.5 (AC-P17-4): marker keys are the hub's — an adapter or client
+    // trying to set them would fake worker identity. Same fail-loud pattern.
+    for (const key of Object.keys(spec.env ?? {})) {
+      if (RESERVED_ENV_KEYS.has(key)) {
+        throw new Error(`TmuxRunner: env key "${key}" is reserved for hub markers — refusing to spawn (identity-injection guard)`);
+      }
+    }
+    const sessionId = spec.sessionId ?? spec.name;
+    if (!SAFE_MARKER_VALUE.test(sessionId)) {
+      throw new Error(`TmuxRunner: marker value "${sessionId}" is not a hub-internal id — refusing to spawn (marker-injection guard)`);
+    }
+    const workerId = randomUUID();
 
     await mkdir(this.logDir, { recursive: true });
     const full = this.fullName(spec.name ?? "session");
@@ -244,6 +275,14 @@ export class TmuxRunner implements WorkerRunner {
       // BUG-0034: where this worker's logs live — a prune recognizes an
       // orphan in the default server by its log dir being gone.
       await execTmux(["set-option", "-t", full, "@uacc_logdir", this.logDir]);
+      // T17.5/ADR-0037: stable identity for adoption (T17.6) and prune.
+      // Session OPTION (readable via list-sessions -F — what list(), adopt()
+      // and orphans read) AND pane ENV (inherited by the respawned process,
+      // readable via /proc/<pid>/environ and by the worker itself).
+      await execTmux(["set-option", "-t", full, "@uacc_session", sessionId]);
+      await execTmux(["set-option", "-t", full, "@uacc_worker", workerId]);
+      await execTmux(["set-environment", "-t", full, "UACC_SESSION_ID", sessionId]);
+      await execTmux(["set-environment", "-t", full, "UACC_WORKER_ID", workerId]);
       // 2. Keep the pane after exit so pipe-pane can flush the tail reliably.
       await execTmux(["set-option", "-t", full, "remain-on-exit", "on"]);
       // 3. Capture pane output (stdout+stderr interleaved) into the log file.
@@ -263,10 +302,41 @@ export class TmuxRunner implements WorkerRunner {
    * restart. Output continues after the last line the previous hub
    * delivered. Null when there is no such worker.
    */
-  async adopt(name: string): Promise<WorkerProcess | null> {
-    const full = this.fullName(name);
-    if (!(await this.list()).some((worker) => worker.fullName === full)) return null;
-    const logPath = join(this.logDir, `${full}.log`);
+  async adopt(sessionId: string): Promise<WorkerProcess | null> {
+    // T17.6/ADR-0037: the @uacc_session marker is the primary identity —
+    // the tmux session name is only the fallback (pre-T17.5 worker) and
+    // that fallback is logged, never silent.
+    const workers = await this.list();
+    const marked = workers.find((w) => w.sessionId === sessionId) ?? null;
+    const target = marked ?? workers.find((w) => w.fullName === this.fullName(sessionId)) ?? null;
+    if (!target) return null;
+    if (!marked) {
+      this.log?.("warn", "adopt without @uacc_session marker — fell back to name heuristic", { sessionId, fullName: target.fullName });
+    }
+    const full = target.fullName;
+    // A renamed session keeps writing its ORIGINAL log (pipe-pane holds the
+    // spawn-time path). When the renamed path is missing, the marker lets us
+    // look under the original name — without this, adopting a renamed
+    // worker would crash on a log that never existed.
+    let logPath = join(this.logDir, `${full}.log`);
+    if (
+      !(await stat(logPath).then(
+        () => true,
+        () => false,
+      )) &&
+      target.fullName !== this.fullName(sessionId)
+    ) {
+      const original = join(this.logDir, `${this.fullName(sessionId)}.log`);
+      if (
+        await stat(original).then(
+          () => true,
+          () => false,
+        )
+      ) {
+        logPath = original;
+        this.log?.("info", "adopted a renamed worker — following its original log", { sessionId, fullName: target.fullName });
+      }
+    }
     const saved = Number(await readFile(offsetPath(logPath), "utf8").catch(() => "0"));
     const piped = await stat(stdinPath(logPath)).then(
       (s) => s.isFIFO(),
@@ -373,7 +443,7 @@ export class TmuxRunner implements WorkerRunner {
     const res = await execTmux([
       "list-sessions",
       "-F",
-      "#{session_name}|#{pane_pid}|#{session_created}|#{@uacc_owner}",
+      "#{session_name}|#{pane_pid}|#{session_created}|#{@uacc_owner}|#{@uacc_session}|#{@uacc_worker}",
     ]).catch(() => null);
     if (!res || res.code !== 0) return [];
     return res.stdout
@@ -381,12 +451,16 @@ export class TmuxRunner implements WorkerRunner {
       .split("\n")
       .map((l) => l.split("|"))
       .filter(([name, , , owner]) => name?.startsWith(TMUX_PREFIX) && owner === this.owner)
-      .map(([name, pid, created]) => {
+      .map(([name, pid, created, , sessionId, workerId]) => {
         const pidNum = pid ? Number(pid) : NaN;
         const createdNum = created ? Number(created) * 1000 : NaN;
         return {
           name: name!.slice(TMUX_PREFIX.length),
           fullName: name!,
+          // T17.5: empty for workers from a pre-marker hub — callers treat
+          // absence as "use the fallback and say so".
+          ...(sessionId ? { sessionId } : {}),
+          ...(workerId ? { workerId } : {}),
           ...(Number.isFinite(pidNum) ? { pid: pidNum } : {}),
           ...(Number.isFinite(createdNum) ? { createdAt: createdNum } : {}),
         };
@@ -404,10 +478,13 @@ export class TmuxRunner implements WorkerRunner {
 
   async reapOrphans(keep: readonly string[]): Promise<string[]> {
     const keepSet = new Set(keep.map((k) => this.fullName(k)));
+    // T17.6: marker first — a renamed session must not be reaped just
+    // because its name no longer matches a recovered session.
+    const keepIds = new Set(keep);
     const workers = await this.list();
     const reaped: string[] = [];
     for (const w of workers) {
-      if (keepSet.has(w.fullName)) continue;
+      if (keepSet.has(w.fullName) || (w.sessionId !== undefined && keepIds.has(w.sessionId))) continue;
       await this.killByName(w.fullName, "SIGKILL").catch(() => undefined);
       reaped.push(w.fullName);
     }

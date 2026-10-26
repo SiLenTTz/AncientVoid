@@ -20,7 +20,15 @@ export const DEFAULT_SERVER = "default";
 export interface ServerWorkers {
   /** "default" or the throwaway root the server's socket lives under. */
   server: string;
-  sessions: { name: string; owner: string; logDir: string | null }[];
+  sessions: {
+    name: string;
+    owner: string;
+    logDir: string | null;
+    /** T17.5/ADR-0037: @uacc_session marker, when the spawning hub set it. */
+    sessionId?: string;
+    /** T17.6: pane cwd (#{pane_current_path}) — prune's fallback signal. */
+    cwd?: string;
+  }[];
 }
 
 export interface OrphanDecision {
@@ -71,15 +79,25 @@ function tmux(server: string, args: string[]): Promise<{ code: number; stdout: s
 
 /** One server's uacc sessions with their owner and log dir. */
 export async function listServerWorkers(server: string): Promise<ServerWorkers> {
-  const res = await tmux(server, ["list-sessions", "-F", "#{session_name}\t#{@uacc_owner}\t#{@uacc_logdir}"]);
+  const res = await tmux(server, [
+    "list-sessions",
+    "-F",
+    "#{session_name}\t#{@uacc_owner}\t#{@uacc_logdir}\t#{@uacc_session}\t#{pane_current_path}",
+  ]);
   if (res.code !== 0) return { server, sessions: [] };
   const sessions = res.stdout
     .trim()
     .split("\n")
     .filter((l) => l.startsWith("uacc-"))
     .map((l) => {
-      const [name, owner, logDir] = l.split("\t");
-      return { name: name ?? "", owner: owner ?? "", logDir: logDir && logDir.length > 0 && logDir !== "" ? logDir : null };
+      const [name, owner, logDir, sessionId, cwd] = l.split("\t");
+      return {
+        name: name ?? "",
+        owner: owner ?? "",
+        logDir: logDir && logDir.length > 0 && logDir !== "" ? logDir : null,
+        ...(sessionId ? { sessionId } : {}),
+        ...(cwd ? { cwd } : {}),
+      };
     })
     .filter((s) => s.name.length > 0);
   return { server, sessions };

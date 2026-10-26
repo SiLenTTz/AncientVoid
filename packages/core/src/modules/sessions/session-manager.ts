@@ -272,7 +272,8 @@ export class SessionManager {
 
   async hasLiveWorker(sessionId: string): Promise<boolean> {
     const workers = await this.runner.list();
-    return workers.some((worker) => worker.name === sessionId);
+    // T17.6: marker first; the name stays for runners/workers without one.
+    return workers.some((worker) => worker.sessionId === sessionId || worker.name === sessionId);
   }
 
   get(sessionId: string): SessionRecord | undefined {
@@ -1440,6 +1441,9 @@ export class SessionManager {
       spawnWorker: async (cmd, opts) => {
         const proc = await this.runner.spawn({
           name: session.record.id,
+          // T17.5/ADR-0037: explicit marker — identity after a restart
+          // comes from this, not from the (overridable) name.
+          sessionId: session.record.id,
           cwd: session.workdir,
           cmd,
           ...(opts?.env !== undefined ? { env: opts.env } : {}),

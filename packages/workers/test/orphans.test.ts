@@ -57,9 +57,16 @@ describe("discoverTmuxServers + findOrphanedWorkers (BUG-0034) — integration",
         env: { ...process.env, TMUX_TMPDIR: root, TMUX: "" },
         stdio: "ignore",
       });
+      // T17.5/ADR-0037: the marker columns a marker-based prune reads.
+      execFileSync("tmux", ["set-option", "-t", "uacc-orphantest", "@uacc_session", "sess-42"], {
+        env: { ...process.env, TMUX_TMPDIR: root, TMUX: "" },
+        stdio: "ignore",
+      });
       expect(discoverTmuxServers(parent)).toContain(root);
       const listed = await listServerWorkers(root);
       expect(listed.sessions.map((s) => s.name)).toEqual(["uacc-orphantest"]);
+      expect(listed.sessions[0]?.sessionId).toBe("sess-42");
+      expect(listed.sessions[0]?.cwd).toBeTruthy(); // #{pane_current_path}
       // kein lebender Hub in diesem Root → die ganze Server-Entscheidung
       const found = await findOrphanedWorkers(parent);
       expect(found.killServers).toContain(root);

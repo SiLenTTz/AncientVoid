@@ -100,7 +100,9 @@ async function main(): Promise<void> {
   // Worker runner: config.workerRunner, with a process fallback when tmux
   // is asked for but missing.
   let runner: WorkerRunner =
-    config.workerRunner === "process" ? new ProcessRunner() : new TmuxRunner(resolve(dataDir, "workers"));
+    config.workerRunner === "process"
+      ? new ProcessRunner()
+      : new TmuxRunner(resolve(dataDir, "workers"), undefined, (level, msg, fields) => logger[level](msg, fields));
   if (!(await runner.isAvailable())) {
     logger.warn("tmux not available — falling back to process runner (no attach, no survival across restarts)");
     runner = new ProcessRunner();
