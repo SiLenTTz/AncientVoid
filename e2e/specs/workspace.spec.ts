@@ -267,7 +267,8 @@ test.describe("Sprache (T1.5, T3.10)", () => {
     await app.getByLabel("Weitere Aktionen").click();
     await app.locator(".session-menu").getByRole("button", { name: "Sprachbefehl" }).click();
     await app.getByTitle("Tippen zum Sprechen").click();
-    await expect(app.getByText("„stopp\"")).toBeVisible();
+    // Result paragraph, not the example chips (same collision as AC-P10-3).
+    await expect(app.locator("p.voice-example").filter({ hasText: "„stopp\"" })).toBeVisible();
     await app.getByRole("button", { name: "Bestätigen" }).click();
     await app.getByRole("button", { name: "✕" }).click();
     await expect(statusPill(app)).toHaveAttribute("data-status", "stopped");
