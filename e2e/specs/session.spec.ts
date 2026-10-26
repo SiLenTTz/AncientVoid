@@ -13,6 +13,12 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
     await expect(app.locator(".session-topbar")).toContainText("alpha");
     await expect(app.locator(".session-topbar")).toContainText("opencode · e2e/fake-model");
+    // 2026-10-26: host and model are always visible — the model from the
+    // registration's default (hub.ts configures model for the e2e opencode),
+    // the host from the fleet's own label (this machine's real hostname).
+    const fleet = await hub.api<{ hosts: { hostId: string; self: boolean; label?: string }[] }>("/api/fleet");
+    const selfLabel = fleet.body.hosts.find((h) => h.self)?.label;
+    await expect(app.locator(".session-topbar")).toContainText(selfLabel ?? "dieser Rechner");
     await app.getByRole("button", { name: "Chat" }).click();
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Fasse die README zusammen · Session ses_e2e_/)).toBeVisible();
     await expect(app.getByText("Ich lese zuerst die README.")).toBeVisible();
@@ -63,6 +69,8 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const beta = app.locator(".session-card").filter({ hasText: "Menü aufräumen" });
     await expect(beta.locator(".session-project")).toHaveText("beta");
     await expect(beta).toContainText("opencode");
+    // card shows the model (registration default) and the readable host too
+    await expect(beta).toContainText("e2e/fake-model");
   });
 
   test("T8.1: die Übersicht ordnet nach „Braucht dich“, „Aktiv“, „Zuletzt“ und öffnet eine Session", async ({ app, hub }) => {

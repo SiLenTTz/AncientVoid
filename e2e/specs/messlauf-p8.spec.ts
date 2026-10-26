@@ -8,7 +8,7 @@ import { TestHub } from "../support/hub.ts";
  * test-results/messlauf-p8.json (docs/messlauf/…-p8-mobile.md).
  */
 test.describe("Messlauf P8: Kernaufgaben mit 20 Sessions auf drei Hosts", () => {
-  test.use({ hubOptions: { hostId: "omarchy" } });
+  test.use({ hubOptions: { hostId: "omarchy", label: "omarchy" } });
 
   async function pair(home: TestHub, peer: TestHub): Promise<void> {
     const invite = await peer.api<{ code: string }>("/api/fleet/invites", { body: {} });
@@ -18,8 +18,8 @@ test.describe("Messlauf P8: Kernaufgaben mit 20 Sessions auf drei Hosts", () => 
 
   test("AC-P8-1: jede wartende Anfrage in ≤ 2 Taps, ähnliche Sessions unterscheidbar, fünf Aufgaben gemessen", async ({ app, hub }, info) => {
     test.setTimeout(240_000);
-    const server = await TestHub.start({ hostId: "silenttz-server" });
-    const evox = await TestHub.start({ hostId: "evox2" });
+    const server = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
+    const evox = await TestHub.start({ hostId: "evox2", label: "evox2" });
     try {
       await pair(hub, server);
       await pair(hub, evox);

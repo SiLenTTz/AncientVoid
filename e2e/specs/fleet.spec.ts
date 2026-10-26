@@ -5,7 +5,7 @@ test.describe("Flotte (EPIC-P6)", () => {
   test.use({ hubOptions: { hostId: "omarchy" } });
 
   test("T6.1-Spike: zwei echte Hubs melden sich mit eigener Host-ID und Protokoll", async ({ hub }) => {
-    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
     try {
       const [a, b] = await Promise.all([hub.api<{ hostId: string; protocolVersion: number }>("/api/fleet/hello"), peer.api<{ hostId: string; protocolVersion: number }>("/api/fleet/hello")]);
       expect(a.body.hostId).toBe("omarchy");
@@ -19,7 +19,7 @@ test.describe("Flotte (EPIC-P6)", () => {
   });
 
   test("T6.2: Host per Einladungscode verbinden, anzeigen und wieder entfernen @desktop", async ({ app }) => {
-    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
     try {
       await app.getByRole("button", { name: "Einstellungen" }).click();
       await expect(app.locator(".fleet-self")).toHaveText("omarchy");
@@ -63,7 +63,7 @@ test.describe("Flotte (EPIC-P6)", () => {
   });
 
   test("AI-P6-2: Einladung als QR-Code auf dem anderen Hub, mit der Kamera scannen und verbinden", async ({ app, context }) => {
-    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
     try {
       const other = await context.newPage();
       await signIn(other, peer);
@@ -114,7 +114,7 @@ test.describe("Flotte (EPIC-P6)", () => {
   }
 
   test("T6.3/T6.4: beide Hosts in einer Übersicht, Aktionen landen beim richtigen Host @desktop", async ({ app, hub }) => {
-    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
     try {
       await pair(hub, peer);
       const local = await hub.createSession({ adapter: "opencode", prompt: "Lokal am PC" });
@@ -125,7 +125,10 @@ test.describe("Flotte (EPIC-P6)", () => {
       await expect(app.locator(".host-chip").filter({ hasText: "omarchy" })).toContainText("verbunden");
       await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
       await expect(app.locator(".session-where").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
-      await expect(app.locator(".session-where").filter({ hasText: "omarchy · alpha" })).toBeVisible();
+      // the own host shows its real label (hostname), not a hardcoded name
+      const overview = await hub.api<{ hosts: { self: boolean; label?: string }[] }>("/api/fleet");
+      const selfLabel = overview.body.hosts.find((h) => h.self)?.label ?? "dieser Rechner";
+      await expect(app.locator(".session-where").filter({ hasText: `${selfLabel} · alpha` })).toBeVisible();
 
       await app.locator(".session-card").filter({ hasText: "silenttz-server · alpha" }).locator(".session-open").click();
       await expect(app).toHaveURL(new RegExp(`#/hosts/silenttz-server/sessions/${remote}`));
@@ -144,7 +147,7 @@ test.describe("Flotte (EPIC-P6)", () => {
   });
 
   test("T6.3: neue Session auf dem gewählten Host starten", async ({ app, hub }) => {
-    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
     try {
       await pair(hub, peer);
       await app.reload();
@@ -164,7 +167,7 @@ test.describe("Flotte (EPIC-P6)", () => {
   });
 
   test("T6.3/AC-P6-3: ein Host fällt aus — die anderen bleiben bedienbar, sein Stand bleibt sichtbar", async ({ app, hub }) => {
-    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
     try {
       await pair(hub, peer);
       await peer.createSession({ adapter: "dummy" });
@@ -188,7 +191,7 @@ test.describe("Flotte (EPIC-P6)", () => {
   });
 
   test("T6.2/AC-P6-4: widerrufene Kopplung wird in der Übersicht benannt", async ({ app, hub }) => {
-    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
     try {
       await pair(hub, peer);
       await app.reload();
@@ -202,7 +205,7 @@ test.describe("Flotte (EPIC-P6)", () => {
   });
 
   test("T6.6: Meldungen, Befehle und Übernehmen gehören zum Host der Session", async ({ app, hub }) => {
-    const peer = await TestHub.start({ hostId: "silenttz-server" });
+    const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
     try {
       await pair(hub, peer);
       // The bell has taken its first look at the server: from now on its
