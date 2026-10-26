@@ -176,6 +176,19 @@ Stream trägt (heute: `codex`), bleibt `usage: false` und die PWA zeigt
 true` nur setzen, wenn er das Feld tatsächlich befüllt — sonst zeigt der Hub
 eine Zahl, für die es keine Quelle gibt.
 
+## Resume-Befehl deklarieren (`resume`, ADR-0036)
+
+`capabilities().resume?: { argv, ref }` benennt den CLI-Aufruf, mit dem ein
+Mensch die Session **außerhalb des Hubs** fortsetzt — Template mit
+`{sessionId}`/`{token}`-Platzhalter, Anzeige-only (der Hub führt ihn nie
+aus). Gilt nur mit Beleg gegen die installierte CLI-Version (Handlauf oder
+Adapter-Nutzung + `--help`, in der MR beschrieben); ohne Beleg wird **nichts**
+deklariert — das ist der ehrliche Zustand, kein Fehler. Das Adapter-Testkit
+prüft die Form (nicht-leer, Platzhalter vorhanden, gültiges `ref`); `hubctl
+show` und der „PC offen"-Hinweis rendern den Befehl. Beziehung zu
+`nativeResume`: unabhängig — jenes beschreibt In-Hub-Steuerung, dieses die
+Fortsetzung außerhalb.
+
 ## Skill-/Agent-Übergabe (`SessionSpec.args`, ADR-0005)
 
 Es gibt **keinen** eigenen Contract-Kanal für „starte mit Skill X" — jeder

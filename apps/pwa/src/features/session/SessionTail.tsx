@@ -119,6 +119,8 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   /** BUG-0061: the hub's per-registration enhance support (undefined =
    * older hub, the composer falls back to its id set). */
   const [adapterEnhance, setAdapterEnhance] = useState<boolean | undefined>(undefined);
+  // ADR-0036: the adapter's declared external continuation command.
+  const [adapterResume, setAdapterResume] = useState<{ argv: string[]; ref: "native" | "token" } | undefined>(undefined);
   /** ADR-0032: the model's context window — configured on the adapter,
    * without it the context chip names no percentage. */
   const [contextWindow, setContextWindow] = useState<number | null>(null);
@@ -158,6 +160,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
           setFeatures(info?.capabilities.features ?? null);
           setReportNumbersReal(info?.capabilities.cost ?? false);
           setAdapterEnhance(typeof info?.enhance === "boolean" ? info.enhance : undefined);
+          setAdapterResume(info?.capabilities.resume);
           setContextWindow(typeof info?.capabilities.contextWindowTokens === "number" ? info.capabilities.contextWindowTokens : null);
         })
         .catch(() => {
@@ -753,7 +756,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
             {showReply && draftShown && (reply || replyAttachments.length > 0) && (
               <div class={`draft-state dim ${draftShown}`}>{draftShown === "saved" ? "Entwurf gespeichert — auch auf deinen anderen Geräten" : "Entwurf nur auf diesem Gerät (Hub nicht erreichbar)"}</div>
             )}
-            {showReply && <PcOpenNotice sessionId={session.id} api={api} />}
+            {showReply && <PcOpenNotice sessionId={session.id} api={api} resume={adapterResume} />}
             {showReply && <QueueList sessionId={session.id} api={api} refreshKey={queueTick} />}
             {showReply && !draft.conflict && <ReplyTemplates value={reply} onPick={setReply} />}
             {showReply && (

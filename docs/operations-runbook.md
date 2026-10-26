@@ -139,6 +139,23 @@ fortgesetzter Prompt legt einen fehlenden Worktree am selben Pfad neu an, mit
 dem aktuellen Projekt-HEAD als Basis. Entfernen heißt `git worktree remove` und
 `branch -D` im jeweiligen Projekt-Repo, nie `rm -rf`.
 
+## Session außerhalb des Hubs fortsetzen (ADR-0036)
+
+Adapter mit belegtem Resume-Pfad deklarieren ihn (`capabilities().resume`).
+`hubctl show <sessionId>` nennt den konkreten Befehl, aktuell:
+
+| Adapter | Fortsetzung |
+|---|---|
+| claude | `claude --resume <session-id>` |
+| codex | `codex resume <session-id>` |
+| opencode | `opencode --session <session-id>` |
+| hermes | `hermes --resume <session-id>` |
+
+Die `<session-id>` ist die Provider-Session-ID (bei claude z. B. über den
+„PC offen"-Hinweis der PWA oder `claude agents` erfahrbar). Adapter ohne
+Eintrag haben keinen belegten Pfad — dann bleibt die Fortsetzung über den
+Hub („Weiter") der einzige Weg.
+
 ## Update und Rollback
 
 Vor jedem Update sichere die Daten und Konfiguration verschlüsselt. Stoppe
