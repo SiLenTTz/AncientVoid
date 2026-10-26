@@ -217,7 +217,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // `codex exec --json` captures, and neither `codex login status`
       // nor `codex --help` expose any on-demand quota query under a
       // ChatGPT-plan login.
-      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native", features: {
+      return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native",
+        // ADR-0036: `codex --help`: "resume — Resume a previous interactive
+        // session"; the adapter drives the same subcommand (index.ts spawn).
+        resume: { argv: ["codex", "resume", "{sessionId}"], ref: "native" },
+        features: {
           followUp: true,
           interrupt: true,
           // ADR-0018: codex exec never asks — tools run inside its sandbox.

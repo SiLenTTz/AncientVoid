@@ -6,8 +6,12 @@ import type { HubApi, PcState } from "../../shared/api.ts";
  * Claude Code liest ihr Transcript nicht neu — was vom Handy kommt, steht dort erst
  * nach dem erneuten Öffnen. Die App sagt das und nennt den Befehl, statt den PC
  * veraltet aussehen zu lassen.
+ *
+ * ADR-0036 (EPIC-P17 T17.3): the command comes from the adapter's declared
+ * resume template when the hub sends one; the old hardcoded claude text stays
+ * as the fallback for hubs/registrations without a declaration.
  */
-export function PcOpenNotice({ sessionId, api }: { sessionId: string; api: HubApi }) {
+export function PcOpenNotice({ sessionId, api, resume }: { sessionId: string; api: HubApi; resume?: { argv: string[]; ref: "native" | "token" } }) {
   const [pc, setPc] = useState<PcState>({ open: false });
   useEffect(() => {
     let alive = true;
@@ -33,6 +37,13 @@ export function PcOpenNotice({ sessionId, api }: { sessionId: string; api: HubAp
   }, [sessionId, api]);
   if (!pc.open) return null;
   const short = (pc.nativeSessionId ?? "").slice(0, 8);
+  // Display-only substitution (ADR-0036): a known provider id fills the
+  // placeholder, an unknown one stays visible as such — never guessed.
+  const resumeCmd = resume
+    ? resume.argv
+        .map((a) => (a === "{sessionId}" ? (pc.nativeSessionId ?? "<session-id>") : a === "{token}" ? "<resume-token>" : a))
+        .join(" ")
+    : `claude --resume ${pc.nativeSessionId}`;
   return (
     <div class="pc-open-notice dim" role="note">
       <strong>💻 Am PC offen{pc.name ? ` (${pc.name})` : ""}.</strong>{" "}
@@ -42,7 +53,7 @@ export function PcOpenNotice({ sessionId, api }: { sessionId: string; api: HubAp
         </>
       ) : (
         <>
-          Was du hier schickst, steht im Verlauf; die offene PC-Ansicht zeigt es erst nach <code>claude --resume {pc.nativeSessionId}</code>.
+          Was du hier schickst, steht im Verlauf; die offene PC-Ansicht zeigt es erst nach <code>{resumeCmd}</code>.
         </>
       )}
     </div>

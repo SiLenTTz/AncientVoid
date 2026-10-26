@@ -39,7 +39,7 @@ function prunable(row: WorktreeSessionRow, state: WorktreeState, inUse: boolean)
 export async function scanWorktrees(
   worktrees: WorktreeManager,
   sessions: readonly WorktreeSessionRow[],
-  inUse: (path: string) => Promise<boolean>,
+  inUse: (path: string, session: WorktreeSessionRow) => Promise<boolean>,
 ): Promise<WorktreeEntry[]> {
   const entries: WorktreeEntry[] = [];
   for (const row of sessions) {
@@ -51,7 +51,7 @@ export async function scanWorktrees(
     } catch {
       state = "unknown";
     }
-    const used = await inUse(path);
+    const used = await inUse(path, row);
     const sizeBytes = await worktrees.diskUsageBytes(path).catch(() => 0);
     entries.push({
       sessionId: row.id,
@@ -79,7 +79,7 @@ export async function pruneWorktrees(
   worktrees: WorktreeManager,
   sessions: readonly WorktreeSessionRow[],
   entries: readonly WorktreeEntry[],
-  inUse: (path: string) => Promise<boolean>,
+  inUse: (path: string, session: WorktreeSessionRow) => Promise<boolean>,
   apply: boolean,
 ): Promise<PruneResult> {
   const result: PruneResult = { removed: [], failed: [] };
@@ -93,7 +93,7 @@ export async function pruneWorktrees(
     const row = byId.get(entry.sessionId);
     if (!row) continue;
     try {
-      if ((await worktrees.hasWork(row.id, row.worktreeSha, row.project)) || (await inUse(entry.path))) continue;
+      if ((await worktrees.hasWork(row.id, row.worktreeSha, row.project)) || (await inUse(entry.path, row))) continue;
       await worktrees.remove(row.id, row.project);
       result.removed.push(entry.path);
     } catch (err) {

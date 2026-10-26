@@ -8,6 +8,11 @@ import type { WorkerProcess } from "../harness/adapter.ts";
 export interface WorkerSpec {
   /** Unique worker name; the tmux runner prefixes it with "uacc-". */
   name: string;
+  /** T17.5/ADR-0037: hub session id this worker belongs to — written as the
+   * tmux session option @uacc_session and pane env UACC_SESSION_ID. Identity
+   * after a hub restart comes from this marker; `name` is only the fallback.
+   * Values are hub-internal ids (randomUUID), never user input. */
+  sessionId?: string;
   cwd: string;
   cmd: string[];
   env?: Record<string, string>;
@@ -22,6 +27,11 @@ export interface WorkerInfo {
   name: string;
   /** Full session name including prefix, if runner uses namespacing. */
   fullName: string;
+  /** T17.5/ADR-0037: the hub session id from @uacc_session, when the
+   * runner sets it. Absent = pre-marker worker (fallback path). */
+  sessionId?: string;
+  /** T17.5/ADR-0037: stable per-spawn worker id (@uacc_worker, randomUUID). */
+  workerId?: string;
   pid?: number;
   createdAt?: number;
 }
@@ -39,6 +49,8 @@ export interface WorkerRunner {
   reapOrphans(keep: readonly string[]): Promise<string[]>;
   /** ADR-0014: take over a still running worker of this runner after a hub
    * restart; output resumes after the last delivered line. Runners whose
-   * workers die with the hub (process) leave this out. */
-  adopt?(name: string): Promise<WorkerProcess | null>;
+   * workers die with the hub (process) leave this out.
+   * T17.6/ADR-0037: identifies the worker primarily via the marker
+   * (WorkerInfo.sessionId); the name is the logged fallback. */
+  adopt?(sessionId: string): Promise<WorkerProcess | null>;
 }

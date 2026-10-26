@@ -9,6 +9,8 @@
 //   WERKZEUG  a shell command that asks first (item/commandExecution/requestApproval)
 //   FRAGE     a question (item/tool/requestUserInput, Rot/Grün)
 //   LANGSAM   the turn runs until interrupted
+//   STUMM     turn/start is never answered — the hub's steer wait hits its
+//             hard timeout (EPIC-P17 T17.4 / AC-P17-3)
 import { randomUUID } from "node:crypto";
 
 if (process.argv[2] === "--version") {
@@ -87,9 +89,13 @@ function handle(msg) {
       return send({ id, result: { thread: { id: params.threadId } } });
     case "turn/start": {
       const turnId = `turn_${randomUUID().slice(0, 8)}`;
-      send({ id, result: { turn: { id: turnId, status: "inProgress", items: [] } } });
       const images = params.input.filter((i) => i.type === "localImage").length;
-      return void turn(params.threadId, turnId, params.input.map((i) => i.text ?? "").join(" ") + (images ? ` [Bilder: ${images}]` : ""));
+      const text = params.input.map((i) => i.text ?? "").join(" ") + (images ? ` [Bilder: ${images}]` : "");
+      // STUMM: never answers turn/start — the hub's steer wait runs into
+      // its hard timeout with the outcome unknown (T17.4).
+      if (text.includes("STUMM")) return;
+      send({ id, result: { turn: { id: turnId, status: "inProgress", items: [] } } });
+      return void turn(params.threadId, turnId, text);
     }
     case "turn/interrupt":
       interrupted.add(params.turnId);

@@ -66,6 +66,21 @@ export interface ModelOption {
 }
 
 /**
+ * ADR-0036 (EPIC-P17 T17.2): how a human continues this session OUTSIDE the
+ * hub — the adapter's own CLI resume invocation, as a template. Display-only:
+ * the hub substitutes `{sessionId}` when it knows the provider id, never
+ * spawns the command itself.
+ */
+export interface AdapterResume {
+  /** Argv template with `{sessionId}`/`{token}` placeholders. */
+  argv: string[];
+  /** "native" = the provider session id the adapter surfaced (PcState,
+   * discovery); "token" = the adapter-internal resume handle (shown as a
+   * placeholder — the hub never interprets `SessionHandle.internal`). */
+  ref: "native" | "token";
+}
+
+/**
  * What an adapter can do. Surfaced in dashboards, README matrix and the
  * MCP gateway catalog. Be honest — capabilities are promises (aSPARK lesson).
  */
@@ -91,6 +106,10 @@ export interface AdapterCapabilities {
   nativeDiscovery: NativeDiscovery;
   /** `native` only if steer/start reuses a provider session id. */
   nativeResume: NativeResume;
+  /** ADR-0036: declared ONLY with a verified live hand-run against the
+   * installed CLI (R9.7: no invented flags). Absent = no known external
+   * continuation path — an honest state, not an error. */
+  resume?: AdapterResume;
   /** ADR-0018: the per-function matrix. `steer` stays as the short form
    * (`followUp || interrupt`). */
   features: HarnessFeatures;

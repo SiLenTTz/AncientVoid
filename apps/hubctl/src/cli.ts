@@ -193,6 +193,20 @@ async function main(): Promise<void> {
       const id = args[0] ?? usage();
       const s = await api<SessionRow>(`/api/sessions/${id}`);
       console.log(JSON.stringify(s, null, 2));
+      // ADR-0036 (EPIC-P17 T17.3): the adapter's declared external
+      // continuation command — display-only, placeholders stay visible.
+      try {
+        const adapters = await api<{ id: string; capabilities?: { resume?: { argv: string[] } } }[]>("/api/adapters");
+        const resume = adapters.find((a) => a.id === s.adapter)?.capabilities?.resume;
+        if (resume) {
+          const cmd = resume.argv
+            .map((part) => part.replaceAll("{sessionId}", "<session-id>").replaceAll("{token}", "<resume-token>"))
+            .join(" ");
+          console.log(`resume: ${cmd}`);
+        }
+      } catch {
+        // a hub without the adapters route still gets its session printed
+      }
       break;
     }
     case "events": {

@@ -4,6 +4,11 @@ import type { Adapter, NormalizedEvent, SessionHandle, SessionRecord, SessionSta
 
 export const WRITER_LEASE_MS = 30_000;
 
+/** EPIC-P17 T17.4: hard cap for the hub's wait on one adapter submission
+ * (a prompt steer or a reopen's start). A timeout never resubmits — it
+ * answers "outcome unknown" as a session.steer_timeout event instead. */
+export const DEFAULT_STEER_WAIT_MS = 30_000;
+
 export interface SteerMeta {
   inputId?: string;
   revision?: number;

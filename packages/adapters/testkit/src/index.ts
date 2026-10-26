@@ -112,6 +112,20 @@ export async function runContractTests(
     if (caps.nativeResume !== "native" && caps.nativeResume !== "none") {
       throw new Error("capabilities.nativeResume must be native or none");
     }
+    // ADR-0036: a declared resume must carry a usable template — the live
+    // hand-run BEHIND a declaration stays an MR-description duty (AC-P17-2),
+    // the kit checks only that what is declared has the agreed shape.
+    if (caps.resume !== undefined) {
+      if (!Array.isArray(caps.resume.argv) || caps.resume.argv.length === 0 || caps.resume.argv.some((a) => typeof a !== "string" || a.length === 0)) {
+        throw new Error("capabilities.resume.argv must be a non-empty string array");
+      }
+      if (!caps.resume.argv.some((a) => a.includes("{sessionId}") || a.includes("{token}"))) {
+        throw new Error("capabilities.resume.argv must contain a {sessionId} or {token} placeholder");
+      }
+      if (caps.resume.ref !== "native" && caps.resume.ref !== "token") {
+        throw new Error("capabilities.resume.ref must be native or token");
+      }
+    }
     // ADR-0018: the per-function matrix, and no promise the tools can't keep.
     const f = caps.features;
     if (!f) throw new Error("capabilities.features missing (ADR-0018)");

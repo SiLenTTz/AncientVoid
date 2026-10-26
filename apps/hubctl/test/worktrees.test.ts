@@ -5,10 +5,16 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { execFileSync } from "node:child_process";
 import { HubDatabase, WorktreeManager } from "@uacc/core";
+import { TmuxRunner } from "@uacc/workers";
 import { cwdInside, runWorktrees } from "../src/worktrees.ts";
 
 const git = promisify(execFile);
+
+// top-level await is only legal at module level (ADR-0002 skip pattern)
+const hasTmux = (await new TmuxRunner(join(tmpdir(), "probe")).isAvailable()).valueOf();
+const itTmux = hasTmux ? it : it.skip;
 
 describe("hubctl worktrees (EPIC-P14 T14.2/T14.3)", () => {
   const dirs: string[] = [];
@@ -83,5 +89,42 @@ describe("hubctl worktrees (EPIC-P14 T14.2/T14.3)", () => {
     expect(existsSync(worktrees.pathFor("aaaaaaaa-clean"))).toBe(false);
     expect(existsSync(join(worktrees.pathFor("bbbbbbbb-work"), "x.txt"))).toBe(true);
     expect(existsSync(worktrees.pathFor("cccccccc-live"))).toBe(true);
+  });
+
+  // T17.6 (ADR-0037): the marker is prune's primary in-use signal — exact
+  // session identity even when the pane process has left the worktree
+  // (cwdInside alone would not see it). Skips visibly without tmux.
+  itTmux("prune keeps a worktree whose live worker is only identifiable by the marker (T17.6)", async () => {
+    const { dbPath, worktrees, add } = await fixture();
+    await add("dddddddd-marker", "idle", 1); // archived + clean → prunable without protection
+    const path = worktrees.pathFor("dddddddd-marker");
+    execFileSync("tmux", ["new-session", "-d", "-s", "uacc-dddddddd-marker", "-c", path, "bash", "-c", "cd /; sleep 30"], { stdio: "ignore" });
+    execFileSync("tmux", ["set-option", "-t", "uacc-dddddddd-marker", "@uacc_session", "dddddddd-marker"], { stdio: "ignore" });
+    try {
+      const out: string[] = [];
+      await runWorktrees(["prune", "--apply", "--db", dbPath], (t) => out.push(t));
+      expect(existsSync(path)).toBe(true); // the marker holds the worktree
+      expect(out.join("\n")).toContain("Prozess aktiv — bleibt"); // listed as protected
+      expect(out.filter((l) => l.startsWith("entfernt")).some((l) => l.includes("dddddddd"))).toBe(false); // never removed
+    } finally {
+      execFileSync("tmux", ["kill-session", "-t", "uacc-dddddddd-marker"], { stdio: "ignore" });
+    }
+    const out: string[] = [];
+    await runWorktrees(["prune", "--apply", "--db", dbPath], (t) => out.push(t));
+    expect(existsSync(path)).toBe(false); // worker gone → removable
+  });
+
+  itTmux("the cwd fallback stays and is visibly flagged (T17.6)", async () => {
+    const { dbPath, worktrees, add } = await fixture();
+    await add("eeeeeeee-heur", "idle", 1);
+    const child = spawn("sleep", ["30"], { cwd: worktrees.pathFor("eeeeeeee-heur") }); // no marker
+    try {
+      const out: string[] = [];
+      await runWorktrees(["list", "--db", dbPath], (t) => out.push(t));
+      expect(out.join("\n")).toContain("cwd-Heuristik");
+    } finally {
+      child.kill();
+      await new Promise((r) => child.once("exit", r));
+    }
   });
 });

@@ -1,6 +1,18 @@
 import { readdir, readlink } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
+import { DEFAULT_SERVER, discoverTmuxServers, listServerWorkers } from "@uacc/workers";
 import { HubDatabase, pruneWorktrees, scanWorktrees, WorktreeManager, type WorktreeEntry, type WorktreeSessionRow } from "@uacc/core";
+
+/** T17.6/ADR-0037: a live uacc worker carrying this session's @uacc_session
+ * marker — prune's primary "in use" signal. Exact session identity, works
+ * even when the pane process has left the worktree directory. */
+async function markerInUse(servers: readonly string[], sessionId: string): Promise<boolean> {
+  for (const server of servers) {
+    const listed = await listServerWorkers(server).catch(() => null);
+    if (listed?.sessions.some((s) => s.sessionId === sessionId)) return true;
+  }
+  return false;
+}
 
 /** True when a process has its cwd inside `path` (Linux /proc). A persistent
  * worker (ACP, app-server) keeps the worktree as cwd, even across a hub
@@ -51,15 +63,30 @@ export async function runWorktrees(args: string[], print: (text: string) => void
   if (sub !== "list" && sub !== "prune") throw new Error(`unbekannter Unterbefehl: ${sub}`);
   const worktrees = new WorktreeManager(resolve(dirname(dbPath), "worktrees"));
   const sessions = rowsOf(dbPath);
-  const entries = await scanWorktrees(worktrees, sessions, cwdInside);
+  const servers = [DEFAULT_SERVER, ...discoverTmuxServers()];
+  let heuristicHits = 0;
+  // T17.6: marker first (exact identity), cwd only as fallback — and the
+  // fallback is counted, never silent.
+  const inUse = async (path: string, row: WorktreeSessionRow): Promise<boolean> => {
+    if (await markerInUse(servers, row.id)) return true;
+    if (await cwdInside(path)) {
+      heuristicHits++;
+      return true;
+    }
+    return false;
+  };
+  const entries = await scanWorktrees(worktrees, sessions, inUse);
   if (entries.length === 0) return void print("keine Session-Worktrees");
   for (const e of entries) print(line(e));
   const total = entries.reduce((sum, e) => sum + e.sizeBytes, 0);
   const free = entries.filter((e) => e.prunable).reduce((sum, e) => sum + e.sizeBytes, 0);
   print(`${entries.length} Worktrees, ${mib(total)}; entfernbar: ${entries.filter((e) => e.prunable).length} (${mib(free)})`);
+  if (heuristicHits > 0) {
+    print(`Hinweis: ${heuristicHits} Worktree(s) nur über cwd-Heuristik als aktiv erkannt — kein @uacc_session-Marker (Hub vor T17.5?)`);
+  }
   if (sub === "list") return;
   const apply = args.includes("--apply");
-  const result = await pruneWorktrees(worktrees, sessions, entries, cwdInside, apply);
+  const result = await pruneWorktrees(worktrees, sessions, entries, inUse, apply);
   for (const path of result.removed) print(`${apply ? "entfernt" : "würde entfernen"}: ${path}`);
   for (const f of result.failed) print(`FEHLER ${f.path}: ${f.error}`);
   if (!apply && result.removed.length > 0) print("Trockenlauf — mit --apply wirklich entfernen.");

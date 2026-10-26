@@ -56,3 +56,33 @@ test.describe("Pause und Warteschlange", () => {
     await expect(app.getByRole("button", { name: "Pause" })).toHaveCount(0);
   });
 });
+
+test.describe("Steer-Timeout (AC-P17-3)", () => {
+  // T17.4: der Hub wartet hart begrenzt auf die Annahme eines Prompts. Ein
+  // Timeout beweist nichts — derselbe inputId wird nie zweimal gesendet.
+  test.use({ hubOptions: { steerWaitMs: 3_000 } });
+
+  test("eine hängende Antwort endet mit Timeout-Event und wird nie doppelt gesendet", async ({ hub }) => {
+    test.setTimeout(90_000);
+    const id = await hub.createSession({ adapter: "codex", prompt: "erste Frage" });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "erste Antwort", 30_000);
+
+    const body = { kind: "prompt", text: "STUMM zweite Frage", inputId: "stumm-1" };
+    const first = await hub.api<{ ok: boolean; detail?: string }>(`/api/sessions/${id}/steer`, { method: "POST", body });
+    expect(first.status).toBe(422);
+    expect(first.body.detail).toMatch(/steer timeout/);
+
+    // Fail loud: der Timeout steht als eigenes Event im Verlauf …
+    const events = await hub.events(id);
+    expect(events.filter((e) => (e.payload as { kind?: string }).kind === "session.steer_timeout")).toHaveLength(1);
+
+    // … und der Retry mit derselben inputId ist keine zweite Submission.
+    const retry = await hub.api<{ ok: boolean; detail?: string }>(`/api/sessions/${id}/steer`, { method: "POST", body });
+    expect(retry.status).toBe(422);
+    expect(retry.body.detail).toMatch(/in flight/);
+    const asked = (await hub.events(id)).filter(
+      (e) => e.type === "user" && String((e.payload as { text?: string }).text).includes("STUMM"),
+    );
+    expect(asked).toHaveLength(1);
+  });
+});

@@ -1,6 +1,6 @@
 # EPIC-P17 — Laufzeit-Robustheit: Resume-Referenzen, Wait-Semantik, stabile Worker-Identität
 
-**Status:** offen · **Phase:** P17 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P5-Recovery, P7-Tool-Parität und P15-Steuerung auf; P13/P14-Präzedenz: unabhängiges Epic neben laufenden P12-Abnahmen).
+**Status:** abgeschlossen 2026-10-26 (Ralph-Lauf; Belege im Abschluss-MR) · **Phase:** P17 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P5-Recovery, P7-Tool-Parität und P15-Steuerung auf; P13/P14-Präzedenz: unabhängiges Epic neben laufenden P12-Abnahmen).
 
 Auslöser: [Herdr-Evaluation 2026-10-26](../docs/herdr-evaluation-2026-10-26.md),
 Entscheidung desselben Tages — mobile-hub bleibt, Herdr ersetzt nichts; übernommen
@@ -79,29 +79,29 @@ werden nur genauer, nicht neu erfunden); Retention/Zeitfenster für Worker.
 
 ## 4. Aufgaben
 
-- [ ] **T17.1 — ADR-0036 „Resume-Referenzen im Adapter-Contract".** Felder,
+- [x] **T17.1 — ADR-0036 „Resume-Referenzen im Adapter-Contract".** Felder,
   Semantik (`native` vs. `transcript`), Mitnahmepflicht der testkit-Suite.
   Vorlage `docs/adr/0035-*`. Messlatte: K7.
-- [ ] **T17.2 — Resume-Deklaration in Adaptern.** claude, codex, opencode,
+- [x] **T17.2 — Resume-Deklaration in Adaptern.** claude, codex, opencode,
   pi, hermes, dsh/ACP-Presets — nur soweit ein echter Handlauf je CLI
   belegbar ist (Live-Verifikation gegen die installierte Version). Andere
   Adapter deklarieren explizit nichts. Contract-Tests im testkit. K7.
-- [ ] **T17.3 — Fortsetzungs-Hinweise nutzen den Katalog.** „PC offen"-
+- [x] **T17.3 — Fortsetzungs-Hinweise nutzen den Katalog.** „PC offen"-
   Hinweis (ADR-0034-Pfad), `hubctl show` und Handoff-Doku nennen den
   konkreten Befehl (`claude --resume …`). K1 (der Weg zur Entscheidung wird
   kürzer), K10.
-- [ ] **T17.4 — Wait-Pinning + Timeout-Idempotenz für steer.** Occupant-
+- [x] **T17.4 — Wait-Pinning + Timeout-Idempotenz für steer.** Occupant-
   Referenz im laufenden Zug; Timeout endet mit sichtbarem Fehler-Event;
   erneute Einreichung nach Timeout ist eindeutig (inputId). Unit-Tests mit
   absichtlichem Timeout + Spec in `e2e/specs/pause-queue.spec.ts`. K2.
-- [ ] **T17.5 — Stabile `UACC_*`-Pane-Marker.** Worker-Runner setzt sie,
+- [x] **T17.5 — Stabile `UACC_*`-Pane-Marker.** Worker-Runner setzt sie,
   tmux-Adapter liest sie; Allowlist-Validierung mit BUG-0012-Muster-Test
   (ungültige/Injections-Keys → fail loud, kein Spawn). K7, K9-Geist
   (Bruchbarkeit sichtbar).
-- [ ] **T17.6 — Adoption & `worktrees prune` über Marker.** Marker ist
+- [x] **T17.6 — Adoption & `worktrees prune` über Marker.** Marker ist
   primäre Quelle, cwd-Heuristik Fallback mit Log-Hinweis; Recovery-Test
   gegen echtes tmux (≥ 2 Adapter, Hub-Kill + Restart). K7.
-- [ ] **T17.7 — Erreichbarkeit & Doku.** README-Adapter-Matrix-Spalte
+- [x] **T17.7 — Erreichbarkeit & Doku.** README-Adapter-Matrix-Spalte
   „Resume", `docs/adapters.md`, Runbook-Abschnitt Wiederanlauf. Neue Specs
   in `e2e/specs/` für jeden neuen/veränderten Ablauf. K10.
 

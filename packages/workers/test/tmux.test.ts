@@ -2,6 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { spawn } from "node:child_process";
 import { TmuxRunner, TMUX_PREFIX } from "../src/tmux.ts";
 
 const hasTmux = (await new TmuxRunner(join(tmpdir(), "probe")).isAvailable()).valueOf();
@@ -205,7 +206,72 @@ describe("TmuxRunner", () => {
     adopted!.write("quit\n");
     expect((await adopted!.exited()).code).toBe(0);
   });
+
+  // T17.5 (AC-P17-4), BUG-0012-Muster: reserved marker keys fail loudly
+  // before tmux is ever touched; marker values are validated as hub ids.
+  // Runs without itTmux for the same reason as C-1 above.
+  it("rejects reserved UACC_* marker keys and non-id marker values without touching tmux", async () => {
+    const sentinel = join(dir, "pwned-marker");
+    await expect(
+      runner.spawn({
+        name: "test-marker-inject",
+        cwd: dir,
+        cmd: ["true"],
+        env: { UACC_SESSION_ID: `$(touch ${sentinel})` },
+      }),
+    ).rejects.toThrow(/reserved for hub markers/);
+    await expect(stat(sentinel)).rejects.toThrow();
+    await expect(runner.spawn({ name: "t", sessionId: "bad;value", cwd: dir, cmd: ["true"] })).rejects.toThrow(
+      /not a hub-internal id/,
+    );
+  });
+
+  itTmux("T17.5: spawn sets @uacc_session/@uacc_worker and the pane process sees UACC_* env", async () => {
+    const proc = await runner.spawn({
+      name: "11111111-marker",
+      sessionId: "11111111-marker",
+      cwd: dir,
+      cmd: ["bash", "-c", "echo S=$UACC_SESSION_ID W=$UACC_WORKER_ID; sleep 5"],
+    });
+    const lines: string[] = [];
+    proc.onStdout((c) => lines.push(...c.split("\n").map((l) => l.trim()).filter(Boolean)));
+    await waitUntil(() => lines.some((l) => l.startsWith("S=")));
+    // list() BEFORE the exit: track() kills the remained pane once the
+    // process is done — the marker must be readable while the worker lives.
+    const listed = (await runner.list()).find((w) => w.name === "11111111-marker");
+    expect(listed?.sessionId).toBe("11111111-marker");
+    expect(listed?.workerId).toMatch(/^[0-9a-f-]{36}$/); // randomUUID, never user input
+    expect(lines.find((l) => l.startsWith("S="))).toBe(`S=11111111-marker W=${listed?.workerId}`);
+    await proc.kill("SIGKILL");
+    await proc.exited();
+  });
+
+  itTmux("T17.6: adopt finds a renamed worker via the marker; without marker it falls back by name, loudly", async () => {
+    await runner.spawn({ name: "22222222-adopt", sessionId: "22222222-adopt", cwd: dir, cmd: ["bash", "-c", "sleep 5"] });
+    await tmux0(["rename-session", "-t", `${TMUX_PREFIX}22222222-adopt`, `${TMUX_PREFIX}22222222-renamed`]);
+    const warns: string[] = [];
+    const restart = new TmuxRunner(join(dir, "logs"), undefined, (level, msg) => {
+      if (level === "warn") warns.push(msg);
+    });
+    const adopted = await restart.adopt("22222222-adopt"); // name heuristic alone would fail
+    expect(adopted).not.toBeNull();
+    expect(warns).toEqual([]);
+    await adopted!.kill("SIGKILL");
+
+    await runner.spawn({ name: "33333333-old", cwd: dir, cmd: ["bash", "-c", "sleep 5"] });
+    await tmux0(["set-option", "-t", `${TMUX_PREFIX}33333333-old`, "-u", "@uacc_session"]); // simulate a pre-T17.5 worker
+    const byName = await restart.adopt("33333333-old");
+    expect(byName).not.toBeNull();
+    expect(warns.some((m) => m.includes("name heuristic"))).toBe(true); // fallback is logged, never silent
+    await byName!.kill("SIGKILL");
+  });
 });
+
+/** T17.6: rename/set-option from the test side — execTmux is private, tests
+ * must not widen the prod API. */
+function tmux0(args: string[]): Promise<void> {
+  return new Promise((res, rej) => spawn("tmux", args, { stdio: "ignore" }).on("close", () => res()).on("error", rej));
+}
 
 async function waitUntil(check: () => boolean, timeoutMs = 10_000): Promise<void> {
   const t0 = Date.now();

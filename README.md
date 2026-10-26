@@ -54,21 +54,22 @@ Ollama, vLLM). Anleitung: [`CONTRIBUTING.md`](./CONTRIBUTING.md) und
 
 Welche Funktion jeder Harness wirklich hat (Folgeprompt, Anhalten, Tool-Freigabe, Rückfragen, Modellwahl, Anhänge): [`docs/harness-matrix.md`](docs/harness-matrix.md) (ADR-0018).
 
-| Adapter | Typ | Reasoning | Tools | Cost | Steer | Kontingent | Status | Phase |
-|---|---|---|---|---|---|---|---|---|
-| `dummy` | synthetisch | ✓ | ✓ | — | ✓ | — | proven | P0 |
-| `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | ✓ | proven | P1 |
-| `codex` | CLI (`app-server` JSON-RPC, früher `exec`) | ✓ | ✓ | ~ | ✓ | ✓ | proven | P1 |
-| `opencode` | CLI (`--format json`) | ✓ | ✓ | ✓ | ✓ | — | proven | P3 |
-| `copilot` | CLI (`--output-format json`) | — | ✓ | — | ✓ | — | proven (echte, authentifizierte GitHub-Copilot-CLI 1.0.86 auf dieser Maschine, echte Live-Captures inkl. Tool-Erfolg/-Fehler) | P3 |
-| `swarm` | custom-rag Coding-Swarm REST | ✓ | ✓ | ✓ | ✓ | ? | geplant (Spec real, keine Live-Instanz) | P3 |
+| Adapter | Typ | Reasoning | Tools | Cost | Steer | Kontingent | Status | Phase | Resume (ADR-0036) |
+|---|---|---|---|---|---|---|---|---|---|
+| `dummy` | synthetisch | ✓ | ✓ | — | ✓ | — | proven | P0 | — |
+| `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | ✓ | proven | P1 | `claude --resume <id>` |
+| `codex` | CLI (`app-server` JSON-RPC, früher `exec`) | ✓ | ✓ | ~ | ✓ | ✓ | proven | P1 | `codex resume <id>` |
+| `opencode` | CLI (`--format json`) | ✓ | ✓ | ✓ | ✓ | — | proven | P3 | `opencode --session <id>` |
+| `copilot` | CLI (`--output-format json`) | — | ✓ | — | ✓ | — | proven (echte, authentifizierte GitHub-Copilot-CLI 1.0.86 auf dieser Maschine, echte Live-Captures inkl. Tool-Erfolg/-Fehler) | P3 | — |
+| `pi` | CLI (`pi exec`, Events+Plaintext) | ✓ | ✓ | — | ✓ | — | proven (pi exec headless live auf omarchy, MR !200) | P16 | — |
+| `swarm` | custom-rag Coding-Swarm REST | ✓ | ✓ | ✓ | ✓ | ? | geplant (Spec real, keine Live-Instanz) | P3 | — |
 | ~~`zai`~~ | — | — | — | — | — | — | **entfällt** — real läuft über `opencode` (Provider `zai-coding-plan`) | P3 |
-| `local-llm` | OpenAI-kompatibel | ✓ | — | — | ✓ | — | Vorlage bereit (keine lokale Instanz zum Prüfen) | P3 |
-| `deepseek` | OpenAI-kompatibel (`api.deepseek.com`) | ✓ | — | — | ✓ | — | Vorlage bereit (kein API-Key zum Prüfen) | P3 |
-| `aider` | CLI (`--message`, Plaintext) | — | ✓ | — | ✓ | — | strukturell gebaut, unproven (kein API-Key/kein realer LLM-Turn hier möglich) | P3 |
-| `hermes` | CLI (`chat -q --yolo -Q --pass-session-id`, Plaintext) | — | ✓ | — | ✓ | — | built + smoke (echte hermes-Binary auf Zeratul, Session-ID/Resume live verifiziert 03.10.2026) | P13 |
-| `cursor-clip` | state.vscdb (read-only) | ✓ | ✓ | — | **nein** | — | proven (echte, live laufende Cursor-Installation auf dieser Maschine, echte SQLite-Reads gegen ihre aktive WAL-Datenbank) — may-break by design (K9) | P3 |
-| `claude-clip` | Claude-Code-Transcript JSONL (read-only) | ✓ | ✓ | — | **nein** | — | proven (echtes Linux-Transcript-Format, synthetische Datenschutz-Fixtures und Live-Tailing gegen echte Dateien) — may-break by design (K9); beobachtet, übernimmt oder steuert keine externe Session | P3 |
+| `local-llm` | OpenAI-kompatibel | ✓ | — | — | ✓ | — | Vorlage bereit (keine lokale Instanz zum Prüfen) | P3 | — |
+| `deepseek` | OpenAI-kompatibel (`api.deepseek.com`) | ✓ | — | — | ✓ | — | Vorlage bereit (kein API-Key zum Prüfen) | P3 | — |
+| `aider` | CLI (`--message`, Plaintext) | — | ✓ | — | ✓ | — | strukturell gebaut, unproven (kein API-Key/kein realer LLM-Turn hier möglich) | P3 | — |
+| `hermes` | CLI (`chat -q --yolo -Q --pass-session-id`, Plaintext) | — | ✓ | — | ✓ | — | built + smoke (echte hermes-Binary auf Zeratul, Session-ID/Resume live verifiziert 03.10.2026) | P13 | `hermes --resume <id>` |
+| `cursor-clip` | state.vscdb (read-only) | ✓ | ✓ | — | **nein** | — | proven (echte, live laufende Cursor-Installation auf dieser Maschine, echte SQLite-Reads gegen ihre aktive WAL-Datenbank) — may-break by design (K9) | P3 | — |
+| `claude-clip` | Claude-Code-Transcript JSONL (read-only) | ✓ | ✓ | — | **nein** | — | proven (echtes Linux-Transcript-Format, synthetische Datenschutz-Fixtures und Live-Tailing gegen echte Dateien) — may-break by design (K9); beobachtet, übernimmt oder steuert keine externe Session | P3 | — |
 
 Kontingent (`capabilities().usage`, [ADR-0004](docs/adr/0004-account-level-usage-quota.md)):
 ✓ = liefert real ein Account-Level-Quota-Fenster, — = verifiziert kein

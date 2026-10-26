@@ -258,6 +258,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         usage: false,
         nativeDiscovery: "none",
         nativeResume: "native",
+        // ADR-0036: "verified live via --resume <sid>" (P13 hand-run, the
+        // comment above) — the exact external continuation invocation.
+        resume: { argv: ["hermes", "--resume", "{sessionId}"], ref: "native" },
         features: {
           followUp: true,
           interrupt: true,

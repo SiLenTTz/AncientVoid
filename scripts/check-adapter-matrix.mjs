@@ -38,6 +38,7 @@ const CHECKED = [
   { id: "aider", modulePath: "../packages/adapters/aider/src/index.ts" },
   { id: "hermes", modulePath: "../packages/adapters/hermes/src/index.ts" },
   { id: "copilot", modulePath: "../packages/adapters/copilot/src/index.ts" },
+  { id: "pi", modulePath: "../packages/adapters/pi/src/index.ts" },
   { id: "cursor-clip", modulePath: "../packages/adapters/cursor-clip/src/index.ts" },
   { id: "claude-clip", modulePath: "../packages/adapters/claude-clip/src/index.ts" },
 ];

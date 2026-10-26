@@ -24,6 +24,8 @@ export interface HubOptions {
   sttStreamingUrl?: string;
   /** T9/P10.5: an OpenAI-compatible model URL (…/v1) for commands and video summaries. */
   assistantUrl?: string;
+  /** EPIC-P17 T17.4: the hub's steer wait (config field steerWaitMs). */
+  steerWaitMs?: number;
 }
 
 export interface ApiResult<T> {
@@ -143,6 +145,7 @@ export class TestHub {
       workerRunner: this.options.runner ?? "process",
       projectRoots: [this.projectsDir],
       requireStepApprovals: this.options.requireStepApprovals ?? false,
+      ...(this.options.steerWaitMs !== undefined ? { steerWaitMs: this.options.steerWaitMs } : {}),
       ...(this.options.sttUrl ? { stt: {
         url: this.options.sttUrl,
         engine: "whisper-e2e",
