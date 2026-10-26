@@ -74,6 +74,39 @@ describe("runProgress", () => {
     ];
     expect(runProgress(events, "working", Date.parse(at(30)))).toMatchObject({ source: "none", elapsedMs: 10_000 });
   });
+
+  it("without a plan, estimates a typical turn from finished turns across the session", () => {
+    // Two finished turns (30 s, 90 s) plus the running third one — the
+    // strip can honestly say "Zug hier meist 1 min" instead of nothing.
+    const events = [
+      ev(1, 0, "user", { kind: "session.prompt", text: "a" }),
+      ev(2, 30, "system", { kind: "session.turn_end" }),
+      ev(3, 100, "user", { kind: "session.prompt", text: "b" }),
+      ev(4, 190, "system", { kind: "session.turn_end" }),
+      ev(5, 200, "user", { kind: "session.prompt", text: "c" }),
+      ev(6, 205, "assistant", { text: "arbeitet…" }),
+    ];
+    expect(runProgress(events, "working", Date.parse(at(260)))).toMatchObject({
+      source: "none",
+      medianTurnMs: 60_000,
+      turnCount: 2,
+      elapsedMs: 60_000,
+    });
+  });
+
+  it("keeps the turn estimate null with fewer than two finished turns", () => {
+    // One duration is no statistics — same honesty rule as the plan ETA.
+    const events = [
+      ev(1, 0, "user", { kind: "session.prompt", text: "a" }),
+      ev(2, 45, "system", { kind: "session.turn_end" }),
+      ev(3, 60, "user", { kind: "session.prompt", text: "b" }),
+    ];
+    expect(runProgress(events, "working", Date.parse(at(80)))).toMatchObject({
+      source: "none",
+      medianTurnMs: null,
+      turnCount: 1,
+    });
+  });
 });
 
 describe("quotaSummary", () => {

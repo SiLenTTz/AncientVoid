@@ -607,7 +607,12 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
               )}
             </div>
           ) : (
-<div class="run-progress dim">läuft seit {formatMinutes(progress.elapsedMs)} · ohne Plan kein Fortschritt messbar</div>
+            <div class="run-progress dim">
+              läuft seit {formatMinutes(progress.elapsedMs)}
+              {progress.medianTurnMs !== null
+                ? ` · Zug hier meist ${formatMinutes(progress.medianTurnMs)} (${progress.turnCount} gelaufen)`
+                : " · ohne Plan kein Fortschritt messbar"}
+            </div>
           ))}
         <div class={`run-quota ${quota.level}`}>{quota.text}</div>
         {(tokensKnown || context !== null) && (
