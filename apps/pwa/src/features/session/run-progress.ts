@@ -23,6 +23,12 @@ export interface RunProgress {
    * `now`, so a stale plan cannot inflate it; null without two progress
    * snapshots (no guess) or when everything is done. */
   etaMs: number | null;
+  /** 2026-10-26: without a plan there is no honest total ETA — the honest
+   * fallback is how long a turn takes in THIS session, so the strip can
+   * say "Zug meist ~N min" instead of nothing. Null with fewer than two
+   * finished turns (one duration is no statistics). */
+  medianTurnMs: number | null;
+  turnCount: number;
   /** 2026-10-25: the plan's own entries — transparency, click-to-expand. */
   todos: TodoItem[];
 }
@@ -38,6 +44,31 @@ function todosOf(event: NormalizedEvent): { status?: unknown; content?: unknown 
   const tool = typeof payload.tool === "string" ? payload.tool : typeof payload.name === "string" ? payload.name : "";
   if (!TODO_TOOL.test(tool) || !Array.isArray(payload.input?.todos)) return null;
   return payload.input.todos as { status?: unknown }[];
+}
+
+/** Finished-turn durations across the WHOLE session (prompt → turn_end),
+ * not just the running one — the "how long does a turn take here" signal
+ * for turns without a plan. Sub-second durations are startup noise. */
+function turnDurationsMs(events: readonly NormalizedEvent[]): number[] {
+  const durations: number[] = [];
+  let promptTs: number | null = null;
+  for (const e of events) {
+    const kind = (e.payload as { kind?: unknown }).kind;
+    if (kind === "session.prompt") promptTs = Date.parse(e.ts);
+    else if (kind === "session.turn_end" && promptTs !== null) {
+      const span = Date.parse(e.ts) - promptTs;
+      if (span >= 1000) durations.push(span);
+      promptTs = null;
+    }
+  }
+  return durations;
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[mid]! : Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
 }
 
 export function runProgress(events: readonly NormalizedEvent[], status: string, now = Date.now()): RunProgress | null {
@@ -67,7 +98,19 @@ export function runProgress(events: readonly NormalizedEvent[], status: string, 
     .filter((s) => s.total > 0);
   const last = snapshots.at(-1);
   const lastTodos = todoEvents.at(-1) ? todosOf(todoEvents.at(-1)!) : null;
-  if (!last) return { source: "none", done: 0, total: 0, percent: null, elapsedMs, etaMs: null, todos: [] };
+  const turnDurations = turnDurationsMs(events);
+  if (!last)
+    return {
+      source: "none",
+      done: 0,
+      total: 0,
+      percent: null,
+      elapsedMs,
+      etaMs: null,
+      medianTurnMs: turnDurations.length >= 2 ? median(turnDurations) : null,
+      turnCount: turnDurations.length,
+      todos: [],
+    };
   const done = last.done;
   const total = last.total;
   const ratio = done / total;
@@ -97,6 +140,8 @@ export function runProgress(events: readonly NormalizedEvent[], status: string, 
     percent: Math.round(ratio * 100),
     elapsedMs,
     etaMs,
+    medianTurnMs: turnDurations.length >= 2 ? median(turnDurations) : null,
+    turnCount: turnDurations.length,
     // 2026-10-25: full plan entries for the click-to-expand detail — the agent's
     // own words, not just counts (transparency request).
     todos: (lastTodos ?? []).map((t) => ({

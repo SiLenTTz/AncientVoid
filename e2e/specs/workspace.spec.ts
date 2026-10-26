@@ -281,7 +281,10 @@ test.describe("Sprache (T1.5, T3.10)", () => {
       await app.getByLabel("Weitere Aktionen").click();
       await app.locator(".session-menu").getByRole("button", { name: "Sprachbefehl" }).click();
       await app.getByTitle("Tippen zum Sprechen").click();
-      await expect(app.getByText(`„${text}"`)).toBeVisible();
+      // The spoken text, as the RESULT paragraph — not the example chips,
+      // which may carry the same command word-for-word (strict-mode
+      // violation when both matched, first seen 2026-10-26).
+      await expect(app.locator("p.voice-example").filter({ hasText: `„${text}"` })).toBeVisible();
     };
     await speak("nicht stoppen");
     await expect(app.locator(".voice-example").filter({ hasText: /Nicht verstanden|Kein Auftrag erkannt/ })).toBeVisible();

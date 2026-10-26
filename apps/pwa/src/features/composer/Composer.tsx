@@ -36,6 +36,7 @@ export function Composer({
   attachments,
   onAttachmentsChange,
   fieldId,
+  onSubmit,
   adapterEnhance,
 }: {
   value: string;
@@ -60,6 +61,10 @@ export function Composer({
   onAttachmentsChange?: (next: AttachmentRecord[]) => void;
   /** T9.4: the text entry may fill or rewrite this field. */
   fieldId?: FieldId;
+  /** T9.6/2026-10-26: keyboard submit (tablet with keyboard) —
+   * ⌘/Ctrl+Enter triggers the caller's submit action, plain Enter stays a
+   * newline (one-handed phone typing must not send by accident). */
+  onSubmit?: () => void;
   /** BUG-0061: the hub's per-registration answer whether enhance is wired
    * up (from /api/adapters). undefined = hub didn't say → legacy id-set
    * fallback above. */
@@ -300,6 +305,13 @@ export function Composer({
         disabled={disabled}
         rows={2}
         onFocus={() => fieldId && touchField(fieldId)}
+        onKeyDown={(e) => {
+          if (onSubmit && (e.metaKey || e.ctrlKey) && e.key === "Enter" && !disabled) {
+            e.preventDefault();
+            onSubmit();
+          }
+        }}
+        title={onSubmit ? "⌘/Ctrl+Enter senden" : undefined}
       />
       {recording && <div class="composer-notice dim">🔴 Aufnahme — tippe „Stopp“, wenn du fertig bist (bleibt auf deinen Rechnern)</div>}
       {recording && sttStreamNotice && <div class="composer-notice dim">{sttStreamNotice}</div>}
