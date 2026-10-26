@@ -227,6 +227,8 @@ export interface SessionDiffResult {
 /** ADR-0017 — one host in the fleet overview. */
 export interface FleetHost {
   hostId: string;
+  /** Readable host name (own hostname / peer tailnet name). */
+  label?: string;
   self: boolean;
   url: string | null;
   state: "reachable" | "stale" | "offline" | "incompatible" | "unauthorized";
