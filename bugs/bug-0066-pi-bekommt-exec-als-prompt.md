@@ -1,7 +1,7 @@
 ---
 id: BUG-0066
 slug: pi-bekommt-exec-als-prompt
-status: open
+status: done
 severity: S2
 area: adapters
 instance: prod

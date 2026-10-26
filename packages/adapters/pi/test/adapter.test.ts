@@ -1,4 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { execFileSync } from "node:child_process";
+import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { WorkerProcess } from "@uacc/contracts";
 import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
 import { createAdapter } from "../src/index.ts";
@@ -77,5 +81,37 @@ describe("pi adapter model handling", () => {
     expect(ack.ok).toBe(true);
     expect(spawned[1]!.join(" ")).toContain(`--model ${EVOX2}`);
     expect(spawned[1]!.join(" ")).toContain("--continue");
+  });
+});
+
+describe("pi adapter prompt argv (BUG-0066)", () => {
+  // Run the built command line through a real `sh`, with the pi binary
+  // replaced by a script that prints its argv — so the test sees exactly
+  // what pi would receive, quoting included.
+  function argvPi(): string {
+    const dir = mkdtempSync(join(tmpdir(), "uacc-pi-argv-"));
+    const bin = join(dir, "pi");
+    writeFileSync(bin, `#!/bin/sh\nexec "${process.execPath}" -e 'process.stdout.write(JSON.stringify(process.argv.slice(1)))' -- "$@"\n`);
+    chmodSync(bin, 0o755);
+    return bin;
+  }
+
+  function received(cmd: string[]): string[] {
+    return JSON.parse(execFileSync(cmd[0]!, cmd.slice(1), { encoding: "utf8" })) as string[];
+  }
+
+  const prompts = ["hallo", 'Sag "OK" und dann \'tschüss\'', "-v ist keine Option", "$HOME `id` ; echo x"];
+
+  it.each(prompts)("pi bekommt den Prompt unverändert als einzige Nachricht: %s", async (prompt) => {
+    const adapter = createAdapter({ command: argvPi(), model: EVOX2 });
+    const { ctx, spawned } = recording();
+    const handle = await adapter.start({ adapter: "pi", project: process.cwd(), prompt }, ctx);
+    await adapter.steer(handle, { kind: "prompt", text: prompt }, ctx);
+    for (const cmd of spawned) {
+      const argv = received(cmd);
+      expect(argv).not.toContain("exec");
+      // Everything after `--` is a message; exactly one, verbatim.
+      expect(argv.slice(argv.indexOf("--") + 1)).toEqual([prompt]);
+    }
   });
 });

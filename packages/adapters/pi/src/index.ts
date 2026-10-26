@@ -12,13 +12,13 @@ import type {
 } from "@uacc/contracts";
 
 /**
- * pi adapter (pi coding agent, badlogic/pi). Spawns `pi exec --continue`
+ * pi adapter (pi coding agent, badlogic/pi). Spawns `pi -p --continue`
  * per turn — pi keeps its own session state in ~/.pi/agent/sessions keyed
  * by cwd, so consecutive turns in the same project continue the thread.
  *
  * Verified behaviour (evox2 + zeratul, 2026-10-25):
  * - headless ONLY without a pty; the hub's tmux worker provides one, but
- *   pi exec exits fine when stdin is not a terminal — it never blocks.
+ *   pi -p exits fine when stdin is not a terminal — it never blocks.
  * - model choice via `--model provider/id`; custom providers from
  *   ~/.pi/agent/models.json (providers-OBJECT, apiKey directly).
  *
@@ -48,12 +48,15 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const sessionModels = new Map<string, string | undefined>();
 
   function buildArgs(prompt: string, model: string | undefined, first: boolean): string[] {
-    // pi exec hangs when stdin is a TTY (hub workers run under tmux) — route
+    // pi -p hangs when stdin is a TTY (hub workers run under tmux) — route
     // through sh with stdin redirected from /dev/null, stdout stays piped.
-    const piArgs = [cfg.command, "exec"];
+    // BUG-0066: pi 1.4.0 has no `exec` subcommand — positionals are messages,
+    // so `exec` became its own turn. `-p` is the headless mode; `--` keeps a
+    // prompt starting with "-" from being read as a flag.
+    const piArgs = [cfg.command, "-p"];
     if (!first) piArgs.push("--continue");
     if (model) piArgs.push("--model", model);
-    piArgs.push(...cfg.extraArgs, JSON.stringify(prompt));
+    piArgs.push(...cfg.extraArgs, "--", prompt);
     const cmdline = piArgs.map((a) => (/^[A-Za-z0-9_@%+=:,./-]+$/.test(a) ? a : "'" + a.replace(/'/g, "'\\''") + "'")).join(" ");
     return ["sh", "-c", cmdline + " </dev/null"];
   }
