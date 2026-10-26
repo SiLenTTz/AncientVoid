@@ -1,18 +1,20 @@
 import { z } from "zod";
-import type {
-  Adapter,
-  AdapterCapabilities,
-  AdapterContext,
-  Ack,
-  HealthReport,
-  SessionHandle,
-  SessionSpec,
-  SteerInput,
-  WorkerProcess,
+import {
+  providerErrorEvent,
+  type Adapter,
+  type AdapterCapabilities,
+  type AdapterContext,
+  type Ack,
+  type HealthReport,
+  type SessionHandle,
+  type SessionSpec,
+  type SteerInput,
+  type WorkerProcess,
 } from "@uacc/contracts";
+import { createPiStream } from "./normalize.ts";
 
 /**
- * pi adapter (pi coding agent, badlogic/pi). Spawns `pi -p --continue`
+ * pi adapter (pi coding agent, badlogic/pi). Spawns `pi -p --mode json --continue`
  * per turn — pi keeps its own session state in ~/.pi/agent/sessions keyed
  * by cwd, so consecutive turns in the same project continue the thread.
  *
@@ -53,7 +55,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     // BUG-0066: pi 1.4.0 has no `exec` subcommand — positionals are messages,
     // so `exec` became its own turn. `-p` is the headless mode; `--` keeps a
     // prompt starting with "-" from being read as a flag.
-    const piArgs = [cfg.command, "-p"];
+    const piArgs = [cfg.command, "-p", "--mode", "json"];
     if (!first) piArgs.push("--continue");
     if (model) piArgs.push("--model", model);
     piArgs.push(...cfg.extraArgs, "--", prompt);
@@ -62,20 +64,24 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   function attach(ctx: AdapterContext, proc: WorkerProcess, meta: SessionMeta) {
-    let stdout = "";
+    // BUG-0065: `--mode json` streams thinking, tool calls and results;
+    // each finished block is emitted live instead of one text at exit.
+    const stream = createPiStream();
+    let stderr = "";
     procs.set(ctx.sessionId, proc);
     proc.onStdout((chunk: string) => {
-      stdout += chunk;
+      for (const event of stream.push(chunk)) ctx.emit(event);
     });
     proc.onStderr((chunk: string) => {
+      stderr = (stderr + chunk).slice(-2000);
       ctx.log("warn", "pi stderr", { chunk: chunk.slice(0, 500) });
     });
     proc.onExit((code: number | null) => {
       meta.busy = false;
-      const text = stdout.trim();
-      if (text) {
-        ctx.emit({ type: "assistant", summary: text.slice(0, 200), payload: { text } });
-      }
+      for (const event of stream.end()) ctx.emit(event);
+      // JSON mode keeps stdout for records only — a failing pi says why on
+      // stderr, which must not stay in the log alone (fail loud).
+      if (code !== 0 && code !== null && stderr.trim()) ctx.emit(providerErrorEvent("pi", stderr.trim()));
       ctx.emit({ type: "system", summary: "pi: turn finished", payload: { kind: "pi.turn_end", code: code ?? 0 } });
       if (code !== 0 && code !== null) meta.healthy = false;
       if (procs.get(ctx.sessionId) === proc) procs.delete(ctx.sessionId);

@@ -115,3 +115,56 @@ describe("pi adapter prompt argv (BUG-0066)", () => {
     }
   });
 });
+
+describe("pi adapter streams the json run (BUG-0065)", () => {
+  it("Thinking und Tool-Aufruf kommen ins Event-Log, während pi noch läuft", async () => {
+    let out: (chunk: string) => void = () => undefined;
+    const exitCbs = new Set<(code: number | null) => void>();
+    const proc: WorkerProcess = {
+      onStdout: (cb) => {
+        out = cb;
+      },
+      onStderr: () => undefined,
+      onExit: (cb) => exitCbs.add(cb),
+      write: () => undefined,
+      kill: async () => undefined,
+      exited: () => new Promise(() => undefined),
+    };
+    const ctx = makeRecordingContext({ spawnWorker: async () => proc });
+    const adapter = createAdapter({});
+    await adapter.start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx);
+    out(JSON.stringify({ type: "message_update", assistantMessageEvent: { type: "thinking_end", contentIndex: 0, content: "erst lesen" } }) + "\n");
+    out(JSON.stringify({ type: "message_update", assistantMessageEvent: { type: "toolcall_end", contentIndex: 1, toolCall: { type: "toolCall", id: "c1", name: "read", arguments: { path: "a" } } } }) + "\n");
+    expect(ctx.events.map((e) => e.type)).toEqual(expect.arrayContaining(["thinking", "tool_use"]));
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "pi.turn_end")).toBe(false);
+    for (const cb of exitCbs) cb(0);
+    expect(ctx.events.at(-1)?.payload).toMatchObject({ kind: "pi.turn_end" });
+  });
+
+  it("pi läuft im JSON-Modus", async () => {
+    const adapter = createAdapter({});
+    const { ctx, spawned } = recording();
+    await adapter.start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx);
+    expect(spawned[0]!.join(" ")).toContain("-p --mode json");
+  });
+
+  it("ein Absturz mit Grund auf stderr wird sichtbar", async () => {
+    let err: (chunk: string) => void = () => undefined;
+    const exitCbs = new Set<(code: number | null) => void>();
+    const proc: WorkerProcess = {
+      onStdout: () => undefined,
+      onStderr: (cb) => {
+        err = cb;
+      },
+      onExit: (cb) => exitCbs.add(cb),
+      write: () => undefined,
+      kill: async () => undefined,
+      exited: () => new Promise(() => undefined),
+    };
+    const ctx = makeRecordingContext({ spawnWorker: async () => proc });
+    await createAdapter({}).start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx);
+    err("Error: No API key found for provider evo-evox2\n");
+    for (const cb of exitCbs) cb(1);
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "provider.error")).toBe(true);
+  });
+});
