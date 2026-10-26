@@ -261,6 +261,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),
         nativeDiscovery: "none",
         nativeResume: "native",
+        // ADR-0036: `claude --help`: "--resume <session-id>, continues that
+        // session" — same flag this adapter itself spawns (start --resume),
+        // and the one PcOpenNotice showed live (ADR-0034).
+        resume: { argv: ["claude", "--resume", "{sessionId}"], ref: "native" },
         // ADR-0018. Hub prompts: every tool that needs a decision is asked
         // on the phone (native). Off: `claude -p` denies every tool that
         // would ask — a fixed list (settings/--allowedTools), nobody asked.
