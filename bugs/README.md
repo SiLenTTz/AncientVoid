@@ -88,5 +88,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0061](bug-0061-dsh-prompt-verbessern-fehlt.md) | „Verbessern“ fehlt für DeepSeek-Harness-Sessions | done | S3 | server, pwa | [#16](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/16) |
 | [BUG-0062](bug-0062-eta-waechst-bei-altem-plan.md) | Restzeit-Schätzung wächst, statt zu schrumpfen | done | S3 | pwa | [#17](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/17) |
 | [BUG-0063](bug-0063-chat-aktivitaet-unsauber-sichtbar.md) | Im Chat ist nicht sichtbar genug, ob der Agent aktiv ist | done | S3 | pwa | [#18](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/18) |
+| [BUG-0064](bug-0064-pi-model-ohne-reasoning-deklariert.md) | Agent-Modell als non-thinking deklariert — Denken nicht steuerbar | done | S3 | agent-tooling | [#19](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/19) |
 
-Die nächste freie Nummer ist **0064**.
+Die nächste freie Nummer ist **0065**.
