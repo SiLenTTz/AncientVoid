@@ -150,7 +150,8 @@ async function main(): Promise<void> {
     config.requireStepApprovals ? approvals : undefined,
     config.dailyCapUsd,
     reportingSinks,
-    { logger: logger.child({ component: "sessions" }), metrics },
+    // T17.4: the steer wait travels with the rest of the observability bag.
+    { logger: logger.child({ component: "sessions" }), metrics, steerWaitMs: config.steerWaitMs },
     opencodeDataDir,
     config.defaultPermissionMode,
   );

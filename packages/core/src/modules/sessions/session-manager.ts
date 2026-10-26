@@ -20,7 +20,7 @@ import { notificationFor } from "../notifications/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
 import { askTitleModel } from "./session-title.ts";
 import type { PlannerModelConfig } from "../commands/model.ts";
-import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS } from "./session-state.ts";
+import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS } from "./session-state.ts";
 import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 
@@ -29,6 +29,10 @@ export interface SessionManagerObservability {
   metrics?: HubMetrics;
   /** K7 budget for recoverAll in ms (default 3000); tests lower it. */
   recoveryBudgetMs?: number;
+  /** T17.4: hard cap for the hub's wait on one adapter submission in ms
+   * (default 30_000, see DEFAULT_STEER_WAIT_MS); tests lower it. There is
+   * deliberately no "0 = off" — no unbounded waits in the server. */
+  steerWaitMs?: number;
 }
 
 /** Account-level usage/quota snapshot (ADR-0004) — keyed by adapter id,
@@ -44,6 +48,12 @@ export interface AdapterUsageSnapshot {
 
 /** BUG-0050: how many sessions are recovered at the same time. */
 const RECOVERY_CONCURRENCY = 6;
+
+/** T17.4: the one honest answer once a submission wait ran out — the
+ * attempt may still land late; whether it did is for the session's own
+ * tail to answer, never a second submission of the same input id
+ * (Herdr lesson: a timeout does not prove that no input was sent). */
+const STEER_TIMEOUT_DETAIL = "steer timeout — unclear whether the input arrived; read the session before retrying";
 
 /** Runs `fn` over `items` with at most `limit` in flight; results keep the input order. */
 async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
@@ -82,6 +92,12 @@ export class SessionManager {
   private readonly lastProviderError = new Map<string, number>();
   /** Tail of the per-session steer chain (see steer()). */
   private readonly steerQueue = new Map<string, Promise<void>>();
+  /** T17.4: input ids with a submission still running — its wait may have
+   * timed out; until the attempt settles the outcome is unknown, and the
+   * same id is never submitted twice. */
+  private readonly inFlightInputs = new Map<string, Set<string>>();
+  /** T17.4: hard cap for the hub's wait on one adapter submission. */
+  private readonly steerWaitMs: number;
 
   private readonly db: HubDatabase;
   private readonly store: EventStore;
@@ -172,6 +188,7 @@ export class SessionManager {
     this.logger = observability.logger ?? createConsoleLogger();
     this.metrics = observability.metrics;
     this.recoveryBudgetMs = observability.recoveryBudgetMs ?? 3000;
+    this.steerWaitMs = observability.steerWaitMs ?? DEFAULT_STEER_WAIT_MS;
     // T1.9 (AC-P1-5): poll each live adapter's own status() on a timer,
     // not just react to its worker process exiting. A hard-killed process
     // already surfaces via WorkerProcess.onExit (see makeContext below),
@@ -817,6 +834,12 @@ export class SessionManager {
     if (meta?.inputId && this.hasSeenInput(sessionId, meta.inputId)) {
       return { ok: true, detail: "duplicate input ignored" };
     }
+    // T17.4: the first attempt may still be running after its wait timed
+    // out — its outcome is unknown, so the same input id must not be
+    // submitted twice (AC-P17-3).
+    if (meta?.inputId && this.inputInFlight(sessionId, meta.inputId)) {
+      return { ok: false, detail: "input in flight — outcome of the earlier attempt is unknown" };
+    }
     if (meta?.revision !== undefined && meta.revision !== session.record.inputRevision) {
       return { ok: false, detail: "revision conflict" };
     }
@@ -865,12 +888,27 @@ export class SessionManager {
     if (reopening && delivered.kind === "prompt") {
       // BUG-0016: the reopen is a steer like any other — without the
       // commit, a retried input id started the provider a second time.
-      const reopened = await this.continueStopped(session, delivered, actor);
+      // T17.4: same hard wait as every submission (see submitAndWait).
+      const reopened = await this.submitAndWait(
+        session,
+        meta,
+        foreignWriter,
+        actor,
+        "prompt",
+        () => this.continueStopped(session, delivered, actor),
+      );
       if (reopened.ok) await this.commitSteer(session, meta, foreignWriter, actor);
       return reopened;
     }
     if (delivered.kind === "prompt") await this.ensureWorkdir(session);
-    const ack = await session.adapter.steer(session.handle!, delivered, this.makeContext(session));
+    const ack = await this.submitAndWait(
+      session,
+      meta,
+      foreignWriter,
+      actor,
+      input.kind,
+      () => session.adapter.steer(session.handle!, delivered, this.makeContext(session)),
+    );
     // EPIC-P15 T15.3: a prompt after a manual Pause starts the next turn — the status follows.
     // (Budget and daily-cap parks keep their own rules.)
     if (ack.ok && delivered.kind === "prompt" && session.record.status === "parked" && session.record.parkReason === "manual") {
@@ -1031,6 +1069,68 @@ export class SessionManager {
     }
   }
 
+  /**
+   * EPIC-P17 T17.4: every prompt submission waits at most `steerWaitMs`.
+   * A timeout answers "outcome unknown" (visible as session.steer_timeout)
+   * and NEVER resubmits: the input id stays reserved for the still-running
+   * attempt, and a late success still commits it — a retry with the same
+   * id then dedups against the store like any delivered input.
+   */
+  private async submitAndWait(
+    session: LiveSession,
+    meta: SteerMeta | undefined,
+    foreignWriter: string | null,
+    actor: string | undefined,
+    steerKind: SteerInput["kind"],
+    submit: () => Promise<Ack>,
+  ): Promise<Ack> {
+    const sessionId = session.record.id;
+    const inputId = meta?.inputId;
+    if (inputId) {
+      const ids = this.inFlightInputs.get(sessionId) ?? new Set<string>();
+      ids.add(inputId);
+      this.inFlightInputs.set(sessionId, ids);
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+    const expired = new Promise<{ expired: true }>((resolve) => {
+      timer = setTimeout(() => resolve({ expired: true }), this.steerWaitMs);
+    });
+    const attempt = submit();
+    const outcome = await Promise.race([attempt.then((ack) => ({ ack })), expired]);
+    clearTimeout(timer);
+    if ("ack" in outcome) {
+      this.releaseInFlight(sessionId, inputId);
+      return outcome.ack;
+    }
+    // The wait is over, the attempt is not — its late result still counts.
+    void attempt
+      .then(async (ack) => {
+        if (ack.ok) await this.commitSteer(session, meta, foreignWriter, actor).catch(() => undefined);
+      })
+      .catch(() => undefined)
+      .finally(() => this.releaseInFlight(sessionId, inputId));
+    await this.emitSystem(session, "session.steer_timeout", {
+      steerKind,
+      inputId: inputId ?? null,
+      waitedMs: this.steerWaitMs,
+      detail: STEER_TIMEOUT_DETAIL,
+    });
+    return { ok: false, detail: STEER_TIMEOUT_DETAIL };
+  }
+
+  /** T17.4: the attempt settled — free its input id for retries. */
+  private releaseInFlight(sessionId: string, inputId: string | undefined): void {
+    if (!inputId) return;
+    const ids = this.inFlightInputs.get(sessionId);
+    if (!ids) return;
+    ids.delete(inputId);
+    if (ids.size === 0) this.inFlightInputs.delete(sessionId);
+  }
+
+  private inputInFlight(sessionId: string, inputId: string): boolean {
+    return this.inFlightInputs.get(sessionId)?.has(inputId) ?? false;
+  }
+
 
 
 
@@ -1177,6 +1277,9 @@ export class SessionManager {
     }
     await this.store.destroySession(sessionId);
     this.queue.clear(sessionId);
+    // T17.4: no attempt can settle for a deleted session — its reserved
+    // input ids would leak into the map forever.
+    this.inFlightInputs.delete(sessionId);
     this.db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
     this.metrics?.inc("sessions_deleted");
     this.logger.info("session deleted", { sessionId, adapter: record.adapter });
@@ -1726,12 +1829,34 @@ export class SessionManager {
     }, 0);
   }
 
-  private async drainNext(sessionId: string): Promise<void> {
+  /** T17.4: check, take and submit run as one task inside the session's
+   * steer chain. A prompt steer that came in mid-flight has fully settled
+   * by then (its status flip can lag behind its own spawn), so a queued
+   * entry is never sent into a turn it was never queued for — the wait
+   * stays pinned to the turn that ended (occupant pinning). */
+  private drainNext(sessionId: string): Promise<void> {
+    const previous = this.steerQueue.get(sessionId) ?? Promise.resolve();
+    const run = previous.then(
+      () => this.drainSlot(sessionId),
+      () => this.drainSlot(sessionId),
+    );
+    const settled = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.steerQueue.set(sessionId, settled);
+    void settled.then(() => {
+      if (this.steerQueue.get(sessionId) === settled) this.steerQueue.delete(sessionId);
+    });
+    return run;
+  }
+
+  private async drainSlot(sessionId: string): Promise<void> {
     const session = this.live.get(sessionId);
     if (!session || session.record.status !== "idle") return;
     const item = this.queue.take(sessionId);
     if (!item) return;
-    const ack = await this.steer(
+    const ack = await this.steerNow(
       sessionId,
       { kind: "prompt", text: item.text, ...(item.attachments ? { attachments: item.attachments } : {}) },
       item.actor ?? undefined,

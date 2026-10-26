@@ -76,6 +76,10 @@ export const HubConfig = z.object({
    * "Automatisch erlaubt"); "ask" (default) sends each one to the phone. Questions to the person
    * are always asked. Only for a hub you trust the agents on. */
   toolApprovals: z.enum(["ask", "auto"]).default("ask"),
+  /** EPIC-P17 T17.4: how long the hub waits for an adapter to take a
+   * steer before answering "outcome unknown" (event session.steer_timeout).
+   * A timeout never triggers a second submission of the same input id. */
+  steerWaitMs: z.number().int().min(100).max(600_000).default(30_000),
   /** T7.10: local OCR — a tessdata dir with extra languages (e.g. deu),
    * set up by scripts/setup-ocr.sh without root. */
   ocr: z.object({ tessdataDir: z.string().optional() }).default({}),
