@@ -29,6 +29,10 @@ import type {
 const PiConfig = z.object({
   command: z.string().min(1).default("pi"),
   extraArgs: z.array(z.string()).default([]),
+  /** Registered default `--model provider/id` (e.g. the evox2 qwen). A
+   * session's own model choice (SessionSpec.model) always wins — without
+   * either, pi runs its own default and the hub says so honestly. */
+  model: z.string().min(1).optional(),
 });
 type PiConfig = z.infer<typeof PiConfig>;
 
@@ -108,9 +112,17 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
       const meta: SessionMeta = { healthy: true, busy: true };
       sessions.set(ctx.sessionId, meta);
-      sessionModels.set(ctx.sessionId, spec.model);
+      // T17-adjacent honesty (2026-10-26): the effective model must be
+      // visible, not just configured — record it per session AND emit it
+      // as an event, so the UI shows what actually runs even when the
+      // default came from this registration's config.
+      const model = spec.model ?? cfg.model;
+      sessionModels.set(ctx.sessionId, model);
+      if (model) {
+        ctx.emit({ type: "system", summary: `pi: Modell ${model}`, payload: { kind: "pi.model", model } });
+      }
       const proc = await ctx.spawnWorker(
-        buildArgs(spec.prompt ?? "(Session startet — bitte bestätigen mit OK)", spec.model, true),
+        buildArgs(spec.prompt ?? "(Session startet — bitte bestätigen mit OK)", model, true),
         spec.env ? { env: spec.env } : undefined,
       );
       attach(ctx, proc, meta);
