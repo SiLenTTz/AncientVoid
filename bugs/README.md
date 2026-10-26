@@ -89,5 +89,9 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0062](bug-0062-eta-waechst-bei-altem-plan.md) | Restzeit-Schätzung wächst, statt zu schrumpfen | done | S3 | pwa | [#17](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/17) |
 | [BUG-0063](bug-0063-chat-aktivitaet-unsauber-sichtbar.md) | Im Chat ist nicht sichtbar genug, ob der Agent aktiv ist | done | S3 | pwa | [#18](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/18) |
 | [BUG-0064](bug-0064-pi-model-ohne-reasoning-deklariert.md) | Agent-Modell als non-thinking deklariert — Denken nicht steuerbar | done | S3 | agent-tooling | [#19](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/19) |
+| [BUG-0065](bug-0065-pi-verlauf-ohne-tools-und-thinking.md) | pi-Verlauf zeigt nur die Schlussantwort: kein Streaming, keine Tool-Calls, kein Thinking | open | S2 | adapters | [#20](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/20) |
+| [BUG-0066](bug-0066-pi-bekommt-exec-als-prompt.md) | pi bekommt „exec" als eigene Nachricht und den Prompt in Anführungszeichen | open | S2 | adapters | [#21](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/21) |
+| [BUG-0067](bug-0067-chat-zeigt-markdown-als-rohtext.md) | Chat zeigt Markdown der Agenten als Rohtext | open | S3 | pwa | [#22](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/22) |
+| [BUG-0068](bug-0068-lange-antwort-im-chat-gekuerzt.md) | Antworten über 4 KB zeigt der Chat nur mit 200 Zeichen | open | S2 | pwa | [#23](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/23) |
 
-Die nächste freie Nummer ist **0065**.
+Die nächste freie Nummer ist **0069**.
