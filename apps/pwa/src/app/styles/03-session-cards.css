@@ -76,6 +76,58 @@
   }
 }
 
+/* 2026-10-26: the same border chase around the ENTIRE session view —
+ * same animation language as the overview cards, so "the agent is
+ * working / needs you" is visible on every tab, not just the status
+ * pill. inset: 0 (not -2px): a full-viewport ring must not be clipped
+ * by the viewport edge on rounded phone screens. No ambient bloom here —
+ * that much area would glow the whole page. */
+.session-live {
+  position: relative;
+  isolation: isolate;
+  min-height: 100%;
+}
+
+.session-live.st-working::after,
+.session-live.st-waiting::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  padding: 2px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: uacc-border-chase var(--glow-dur) linear infinite;
+}
+
+.session-live.st-working::after {
+  background: conic-gradient(
+    from var(--uacc-glow-angle),
+    transparent 0deg,
+    transparent 270deg,
+    color-mix(in srgb, var(--ok) 85%, transparent) 320deg,
+    var(--ok) 340deg,
+    transparent 360deg
+  );
+}
+
+.session-live.st-waiting::after {
+  animation-duration: calc(var(--glow-dur) * 0.55);
+  background: conic-gradient(
+    from var(--uacc-glow-angle),
+    transparent 0deg,
+    transparent 250deg,
+    color-mix(in srgb, var(--warn) 85%, transparent) 310deg,
+    var(--warn) 335deg,
+    transparent 360deg
+  );
+}
+
 /* BUG-0063: the same traveling border, on the status pill inside the
  * session view — "the agent is working" must be as visible in the chat
  * as on the overview cards, in the same animation language. Purely
@@ -168,6 +220,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .session-live.st-working::after,
+  .session-live.st-waiting::after,
   .session-card.st-working::after,
   .session-card.st-waiting::after,
   .pill.working::after,
@@ -192,6 +246,12 @@
   }
   .session-card.st-waiting {
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn) 55%, var(--bg-chip));
+  }
+  .session-live.st-working {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ok) 45%, transparent);
+  }
+  .session-live.st-waiting {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--warn) 55%, transparent);
   }
 }
 

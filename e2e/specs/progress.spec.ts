@@ -26,6 +26,16 @@ test.describe("Fortschritt und Kontingent im Lauf", () => {
     await expect(app.locator(".run-bar")).toHaveCount(0);
   });
 
+  test("die ganze Session-Ansicht trägt den aktiven Rahmen wie die Übersichtskarte", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Rahmen WARTE6" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    // Same class language as the overview card (st-working) — visible on
+    // every tab, not just the small status pill.
+    await expect(app.locator(".session-live.st-working")).toHaveCount(1);
+    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle", { timeout: 20_000 });
+    await expect(app.locator(".session-live.st-working, .session-live.st-waiting")).toHaveCount(0);
+  });
+
   test("das Kontingent zeigt, was der Provider meldet", async ({ app, hub }) => {
     const ok = await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await app.goto(`${hub.origin}/#/sessions/${ok}`);

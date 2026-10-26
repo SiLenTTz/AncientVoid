@@ -486,7 +486,10 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
 
   return (
     <ApiContext.Provider value={api}>
-    <div>
+    {/* 2026-10-26: the whole session view carries the same traveling border
+     * as an active overview card — "this agent is working" must be visible
+     * from any tab (chat/diff/code), not only from the small status pill. */}
+    <div class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}`}>
       {/* T8.5: back, what this is, Stop apart from Senden, the rest in ⋯ */}
       <div class="topbar session-topbar">
         <button class="btn back-btn" type="button" aria-label="Zur Übersicht" onClick={() => onNavigate("dashboard")}>
@@ -604,7 +607,7 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
               )}
             </div>
           ) : (
-            <div class="run-progress dim">läuft seit {formatMinutes(progress.elapsedMs)} · ohne Plan kein Fortschritt messbar</div>
+<div class="run-progress dim">läuft seit {formatMinutes(progress.elapsedMs)} · ohne Plan kein Fortschritt messbar</div>
           ))}
         <div class={`run-quota ${quota.level}`}>{quota.text}</div>
         {(tokensKnown || context !== null) && (
