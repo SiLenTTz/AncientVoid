@@ -144,6 +144,15 @@
   white-space: pre-wrap;
 }
 
+/* BUG-0068: a long answer still loading, or shortened for good. */
+.event .full-text-note {
+  font-size: 0.8em;
+}
+
+.event .full-text-note.failed {
+  color: var(--warn);
+}
+
 .badge-stale {
   background: color-mix(in srgb, var(--warn) 20%, transparent);
   color: var(--warn);

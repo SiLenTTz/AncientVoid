@@ -92,7 +92,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0065](bug-0065-pi-verlauf-ohne-tools-und-thinking.md) | pi-Verlauf zeigt nur die Schlussantwort: kein Streaming, keine Tool-Calls, kein Thinking | done | S2 | adapters | [#20](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/20) |
 | [BUG-0066](bug-0066-pi-bekommt-exec-als-prompt.md) | pi bekommt „exec" als eigene Nachricht und den Prompt in Anführungszeichen | done | S2 | adapters | [#21](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/21) |
 | [BUG-0067](bug-0067-chat-zeigt-markdown-als-rohtext.md) | Chat zeigt Markdown der Agenten als Rohtext | open | S3 | pwa | [#22](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/22) |
-| [BUG-0068](bug-0068-lange-antwort-im-chat-gekuerzt.md) | Antworten über 4 KB zeigt der Chat nur mit 200 Zeichen | open | S2 | pwa | [#23](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/23) |
+| [BUG-0068](bug-0068-lange-antwort-im-chat-gekuerzt.md) | Antworten über 4 KB zeigt der Chat nur mit 200 Zeichen | done | S2 | pwa | [#23](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/23) |
 | [BUG-0069](bug-0069-worktree-testet-pakete-von-main.md) | Gates im Session-Worktree testen die `@uacc/*`-Pakete des Haupt-Checkouts | done | S2 | core, e2e | [#24](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/24) |
 
 Die nächste freie Nummer ist **0070**.

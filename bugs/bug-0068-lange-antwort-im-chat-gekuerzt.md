@@ -1,7 +1,7 @@
 ---
 id: BUG-0068
 slug: lange-antwort-im-chat-gekuerzt
-status: open
+status: done
 severity: S2
 area: pwa
 instance: prod
