@@ -72,6 +72,8 @@ export interface HubAppDeps {
   probeRunner?: ProbeRunner;
   /** EPIC-P6: this hub's host id in the fleet (default "local"). */
   hostId?: string;
+  /** 2026-10-26: readable host name for fleet views (defaults to hostname). */
+  hostLabel?: string;
   /** EPIC-P6: invites and paired peers (default: in the token database). */
   fleet?: FleetStore;
   /** Tests only: where the request log goes (default stdout). */

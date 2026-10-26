@@ -13,6 +13,8 @@ export type HostState = (typeof HOST_STATES)[number];
 /** Public answer of every hub: who am I, which protocol do I speak. */
 export interface FleetHello {
   hostId: string;
+  /** 2026-10-26: the remote's own readable name (its hostname). */
+  label?: string;
   protocolVersion: number;
   hubVersion: string;
   serverTime: string;
@@ -53,6 +55,10 @@ export interface FleetPeerView {
 /** One host in the fleet overview (T6.3). */
 export interface FleetHostView {
   hostId: string;
+  /** 2026-10-26: human-readable host name — own hostname, or the peer's
+   * URL host (e.g. "bmax.tail…"). Absent = unknown, the UI falls back to
+   * the short hostId. */
+  label?: string;
   self: boolean;
   url: string | null;
   state: HostState;
