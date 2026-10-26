@@ -1,7 +1,7 @@
 ---
 id: BUG-0069
 slug: worktree-testet-pakete-von-main
-status: open
+status: done
 severity: S2
 area: core, e2e
 instance: dev
