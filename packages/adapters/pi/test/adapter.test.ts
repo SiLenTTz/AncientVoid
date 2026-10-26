@@ -168,3 +168,17 @@ describe("pi adapter streams the json run (BUG-0065)", () => {
     expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "provider.error")).toBe(true);
   });
 });
+
+describe("pi context window (ADR-0032)", () => {
+  it("die konfigurierte Fenstergröße steht in den Capabilities und in der Modell-Ansage", async () => {
+    const adapter = createAdapter({ model: EVOX2, contextWindowTokens: 131072 });
+    expect(adapter.capabilities().contextWindowTokens).toBe(131072);
+    const { ctx } = recording();
+    await adapter.start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx);
+    expect(ctx.events.find((e) => e.payload.kind === "pi.model")?.payload).toMatchObject({ model: EVOX2, contextWindowTokens: 131072 });
+  });
+
+  it("ohne Konfiguration bleibt die Größe unbekannt", () => {
+    expect(createAdapter({}).capabilities().contextWindowTokens).toBeUndefined();
+  });
+});

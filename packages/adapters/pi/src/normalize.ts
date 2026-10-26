@@ -105,9 +105,10 @@ function normalize(rec: Record_): EmittedEvent[] {
     case "message_update":
       return normalizeUpdate((rec.assistantMessageEvent ?? {}) as Record_);
     case "message_end": {
-      const msg = (rec.message ?? {}) as { role?: unknown; stopReason?: unknown; errorMessage?: unknown };
-      if (msg.role === "assistant" && msg.stopReason === "error") return [providerErrorEvent("pi", asString(msg.errorMessage ?? "unknown error", 1000))];
-      return [];
+      const msg = (rec.message ?? {}) as { role?: unknown; stopReason?: unknown; errorMessage?: unknown; usage?: unknown };
+      if (msg.role !== "assistant") return [];
+      if (msg.stopReason === "error") return [providerErrorEvent("pi", asString(msg.errorMessage ?? "unknown error", 1000))];
+      return usageEvent(msg.usage);
     }
     case "tool_execution_end": {
       const content = resultText(rec.result);
@@ -122,6 +123,19 @@ function normalize(rec: Record_): EmittedEvent[] {
     default:
       return [unknown(type || "(ohne type)")];
   }
+}
+
+/** ADR-0032: one event per model reply. The fill is what the request
+ * carried — pi splits it into fresh input and cache reads/writes, so all
+ * three count (real capture: round 2 = 53 input + 1057 cacheRead). */
+function usageEvent(raw: unknown): EmittedEvent[] {
+  const u = (raw ?? {}) as { input?: unknown; output?: unknown; cacheRead?: unknown; cacheWrite?: unknown; totalTokens?: unknown };
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  if (typeof u.input !== "number" && typeof u.output !== "number") return [];
+  const input = n(u.input) + n(u.cacheRead) + n(u.cacheWrite);
+  const output = n(u.output);
+  const total = typeof u.totalTokens === "number" ? u.totalTokens : input + output;
+  return [{ type: "system", summary: `pi: ${total} Tokens`, payload: { kind: "pi.usage", usage: { input, output } }, tokensEst: total }];
 }
 
 function pick(rec: Record_, keys: string[]): Record<string, unknown> {
