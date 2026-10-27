@@ -1,6 +1,7 @@
 import { useMemo, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type SessionDiffResult, type DiffHunk } from "../../shared/api.ts";
+import { diffLineClass, isOneSided, pairHunkLines } from "./diff-lines.ts";
 
 /**
  * T1.6-5 → T2.3 (EPIC-P2 §4): per-file hunk cards, replacing the raw
@@ -8,61 +9,6 @@ import { type SessionDiffResult, type DiffHunk } from "../../shared/api.ts";
  * anchor (T2.2) and, once collapsed under K3, a tap-to-expand button that
  * fetches the full hunk via GET /api/sessions/:id/diff/hunk.
  */
-export function diffLineClass(line: string): string {
-  if (line.startsWith("+++") || line.startsWith("---")) return "diff-line-file";
-  if (line.startsWith("+")) return "diff-line-add";
-  if (line.startsWith("-")) return "diff-line-del";
-  if (line.startsWith("@@")) return "diff-line-hunk";
-  if (line.startsWith("diff --git")) return "diff-line-header";
-  return "diff-line-ctx";
-}
-
-export interface SplitCell {
-  type: "ctx" | "add" | "del" | "empty";
-  text: string;
-}
-
-export interface SplitRow {
-  left: SplitCell;
-  right: SplitCell;
-}
-
-/**
- * Unified hunk body → side-by-side rows (T2.3 "Querformat side-by-side").
- * Classic run-pairing: consecutive `-` lines are paired against the
- * consecutive `+` lines that follow them, index by index, empty cells
- * filling whichever side ran out first; a context line flushes any
- * pending run and appears on both sides unchanged.
- */
-export function pairHunkLines(body: string): SplitRow[] {
-  const rows: SplitRow[] = [];
-  let delBuf: string[] = [];
-  let addBuf: string[] = [];
-  const flush = () => {
-    const n = Math.max(delBuf.length, addBuf.length);
-    for (let i = 0; i < n; i++) {
-      rows.push({
-        left: i < delBuf.length ? { type: "del", text: delBuf[i]! } : { type: "empty", text: "" },
-        right: i < addBuf.length ? { type: "add", text: addBuf[i]! } : { type: "empty", text: "" },
-      });
-    }
-    delBuf = [];
-    addBuf = [];
-  };
-  for (const line of body.split("\n")) {
-    if (line.startsWith("-")) delBuf.push(line.slice(1));
-    else if (line.startsWith("+")) addBuf.push(line.slice(1));
-    else if (line.startsWith("\\")) continue; // "\ No newline at end of file"
-    else {
-      flush();
-      const text = line.startsWith(" ") ? line.slice(1) : line;
-      rows.push({ left: { type: "ctx", text }, right: { type: "ctx", text } });
-    }
-  }
-  flush();
-  return rows;
-}
-
 export function HunkCard({
   sessionId,
   path,
@@ -79,6 +25,7 @@ export function HunkCard({
   const [loading, setLoading] = useState(false);
   const active = expanded ?? hunk;
   const rows = useMemo(() => pairHunkLines(active.body), [active.body]);
+  const oneSided = useMemo(() => isOneSided(rows), [rows]);
 
   const onExpand = async () => {
     setLoading(true);
@@ -94,7 +41,7 @@ export function HunkCard({
   };
 
   return (
-    <div class="hunk-card">
+    <div class={`hunk-card${oneSided ? " one-sided" : ""}`}>
       <div class="hunk-card-header mono">
         <span class="hunk-range">
           -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines}

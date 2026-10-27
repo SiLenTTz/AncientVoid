@@ -75,7 +75,7 @@ Kachelgrößen (P18 Out), Änderungen am Server, Umsetzung weiterer Einstellunge
 ## 5. Acceptance Criteria
 
 - **AC-P20-1:** Auf 2560 × 1440 nutzt der Diff-Screen ≥ 90 % der Kachelbreite (Dateiliste + Code) und ≥ 75 % der Kachelhöhe als
-  Lesefläche (E2E misst beides). Der Vorher-Wert wird vor der Änderung mit demselben Spec gemessen und im Abschlussbericht genannt.
+  Lesefläche (E2E misst beides). Vorher (gemessen 2026-10-27 am P18-Stand, drei große Dateien im Diff): Lesefläche 1.198 von 2.536 px = 47 % der Breite, 997 von 1.388 px = 72 % der Höhe, Antwortfeld offen.
 - **AC-P20-2:** Strg+Mausrad, Strg+`+`, Strg+`−`, Strg+`0` und der Regler ändern die Skala von 70 bis 200 %. Reload behält sie.
   Tail, Dock und Kacheln liegen bei 70, 100 und 150 % vollständig im Bild (keine Seitenscrollbalken, Eingabefeld sichtbar).
 - **AC-P20-3:** Ein Zahnrad steht neben der Glocke und öffnet die Einstellungen, auf Mobil, in der Desktop-Liste und mit

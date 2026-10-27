@@ -144,6 +144,8 @@ a {
  * column scrolls on its own; the docks stay inside their column. */
 #app:has(.split) {
   max-width: none;
+  /* The split fills the window by itself (100dvh); the phone's bottom padding made the page scroll by 24 px. */
+  padding-bottom: 0;
 }
 
 .split {

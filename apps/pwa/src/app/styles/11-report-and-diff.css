@@ -278,3 +278,11 @@
     font-size: 13px;
   }
 }
+
+/* EPIC-P20 T20.1: a hunk that exists on one side only (new/deleted file) uses the whole width, unified. */
+.hunk-card.one-sided .hunk-body-split {
+  display: none;
+}
+.hunk-card.one-sided .hunk-body-unified {
+  display: block;
+}

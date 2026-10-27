@@ -193,6 +193,11 @@ test.describe("Diff in voller Breite (EPIC-P20 T20.1)", () => {
       expect(Math.abs(files!.y - main!.y)).toBeLessThan(40);
       // The reading tab is not capped to the chat's line length any more.
       expect(files!.width + main!.width).toBeGreaterThan(tile!.width * 0.9);
+      // New files exist on one side only: they use the whole width, unified, not half of it.
+      const fresh = pane.locator(".hunk-card.one-sided").first();
+      await expect(fresh.locator(".hunk-body-unified")).toBeVisible();
+      await expect(fresh.locator(".hunk-body-split")).toBeHidden();
+      expect((await fresh.boundingBox())!.width).toBeGreaterThan(main!.width * 0.95);
       // The composer folds away: the reply field is gone, the tab bar stays.
       await expect(app.getByPlaceholder("Antworten…")).toHaveCount(0);
       await expect(app.getByRole("button", { name: "Chat" })).toBeVisible();
