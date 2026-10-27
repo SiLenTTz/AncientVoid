@@ -97,4 +97,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0070](bug-0070-claude-tool-progress-heartbeat-spam.md) | Claude-Heartbeats (`tool_progress`) füllen den Verlauf mit „unhandled stream-json type“ | done | S3 | adapters | [#25](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/25) |
 | [BUG-0071](bug-0071-kachel-kuerzel-veralteter-zustand.md) | Zwei Kachel-Kürzel kurz hintereinander: das zweite arbeitet auf dem Zustand vor dem ersten | done | S3 | pwa | [#26](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/26) |
 
-Die nächste freie Nummer ist **0072**.
+| [BUG-0072](bug-0072-hub-neustart-toetet-worker.md) | Neustart oder Absturz des Hub-Dienstes tötet die Worker und bricht laufende Züge ab | done | S2 | ops | [#27](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/27) |
+| [BUG-0073](bug-0073-desktop-starter-zweiter-hub.md) | Der Desktop-Starter „UACC“ startet einen zweiten Hub neben dem Dienst | done | S2 | ops | [#28](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/28) |
+| [BUG-0074](bug-0074-hub-heap-oom-absturz.md) | Der Hub stürzt wiederholt mit „JavaScript heap out of memory“ ab | open | S1 | core | [#29](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/29) |
+
+Die nächste freie Nummer ist **0075**.
