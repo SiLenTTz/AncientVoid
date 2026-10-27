@@ -146,6 +146,14 @@ export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
           payload: { subtype: "attachment", source: asString((line as Record<string, unknown>).source, 60) },
         },
       ];
+    case "tool_progress":
+      // Claude Code >= 2.1.3xx: informational heartbeat progress of an
+      // already-reported tool call (tool_use_id carries "-heartbeat-N").
+      // Emits nothing — one system event per ~30s heartbeat turned into
+      // event spam during long-running tools (live 27.10.2026).
+      // NOT a silent drop of an unknown type: this case is explicit and
+      // tested; anything else still fails loud in the default branch.
+      return [];
     case "stream_event":
       // SDK-style streaming envelope. `claude -p stream-json` flattens these
       // today; we only report the envelope (fail loud, rule 6) and do not
