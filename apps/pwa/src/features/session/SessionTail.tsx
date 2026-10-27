@@ -12,7 +12,7 @@ import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
 import { statusLabel } from "../../shared/status.ts";
-import { registerField, setHere, touchField } from "../../shared/command-context.ts";
+import { getHere, registerField, setHere, touchField } from "../../shared/command-context.ts";
 import { useDraft } from "./draft.ts";
 import { takeHandOver } from "../../shared/media.ts";
 import { openCommandBar } from "../commands/CommandBar.tsx";
@@ -30,8 +30,31 @@ import { SessionApprovals } from "./SessionApprovals.tsx";
 
 /** BUG-0053: below this window height (landscape) the dock is compacted and the controls start folded. */
 const SHORT_VIEWPORT_PX = 520;
+/** A tile without focus renders new events at most this often (K2 budget 200 ms). */
+const BACKGROUND_FLUSH_MS = 50;
+/** Rows a tile without focus keeps in the DOM. */
+const BACKGROUND_ROWS = 150;
 
-export function SessionTail({ session, onNavigate, initialCode }: { session: SessionRecord; onNavigate: (page: Page) => void; initialCode?: CodeTarget }) {
+/** EPIC-P18: set when this view is one tile of the desktop workspace —
+ * several SessionTails then share one page. */
+export interface TileContext {
+  /** The focused tile owns the command context (T9.4). */
+  active: boolean;
+  /** A small tile starts with the controls folded away (P18 premortem 3). */
+  compact: boolean;
+}
+
+export function SessionTail({
+  session,
+  onNavigate,
+  initialCode,
+  tile,
+}: {
+  session: SessionRecord;
+  onNavigate: (page: Page) => void;
+  initialCode?: CodeTarget;
+  tile?: TileContext;
+}) {
   // EPIC-P6: every call of this view goes to the session's own host.
   const api = useMemo(() => hostApi(session.hostId), [session.hostId]);
   const [events, setEvents] = useState<NormalizedEvent[]>([]);
@@ -81,10 +104,21 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   // BUG-0053: in a low window (landscape) the controls start folded away — one tap on ▴ brings them back.
   // A choice the person made is kept.
   const [controlsHidden, setControlsHidden] = useState(() => {
+    if (tile) return tile.compact;
     const stored = localStorage.getItem("uacc.controlsHidden");
     return stored === null ? window.innerHeight < SHORT_VIEWPORT_PX : stored === "1";
   });
+  // EPIC-P18: a layout change that makes this tile small folds it too.
+  const compactTile = tile?.compact;
+  useEffect(() => {
+    if (compactTile !== undefined) setControlsHidden(compactTile);
+  }, [compactTile]);
   const connRef = useRef<TailConnection | null>(null);
+  const pendingRef = useRef<NormalizedEvent[]>([]);
+  /** rAF id (> 0) or negated timeout id (< 0) of the scheduled flush. */
+  const flushRef = useRef<number | null>(null);
+  const activeRef = useRef(tile?.active ?? true);
+  activeRef.current = tile?.active ?? true;
 
   // T1.6-3: Chat/Verlauf are the new dock sub-tabs — Chat is exactly the
   // existing "lesen" preset, Verlauf is "ueberwachen"/"debuggen" with a
@@ -202,15 +236,34 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
       token: getToken(),
       sessionId: session.id,
       hostId: remoteHost(session.hostId),
+      // EPIC-P18 T18.6 (K2 with four tiles): one render per frame, not per
+      // WS batch — a background tile at most every 100 ms. Four tiles at
+      // 30 ev/s each re-rendered 120×/s and queued up behind each other.
       onEvents: (incoming) => {
-        setEvents((prev) => {
-          const merged = [...prev, ...incoming];
-          return merged.length > 500 ? merged.slice(-500) : merged;
-        });
+        pendingRef.current.push(...incoming);
+        if (flushRef.current !== null) return;
+        const flush = () => {
+          flushRef.current = null;
+          const batch = pendingRef.current;
+          pendingRef.current = [];
+          setEvents((prev) => {
+            const merged = [...prev, ...batch];
+            return merged.length > 500 ? merged.slice(-500) : merged;
+          });
+        };
+        flushRef.current = activeRef.current ? requestAnimationFrame(flush) : -window.setTimeout(flush, BACKGROUND_FLUSH_MS);
       },
       onState: setConn,
     });
-    return () => connRef.current?.close();
+    return () => {
+      connRef.current?.close();
+      const pending = flushRef.current;
+      if (pending !== null) {
+        if (pending < 0) clearTimeout(-pending);
+        else cancelAnimationFrame(pending);
+      }
+      flushRef.current = null;
+    };
   }, [session.id]);
 
   // T1.6-4: extends the existing 3s status poll to also carry costUsd/
@@ -292,7 +345,10 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
       const tail = tailRef.current;
       const dock = dockRef.current;
       if (!tail || !dock) return;
-      const available = window.innerHeight - tail.getBoundingClientRect().top - dock.getBoundingClientRect().height - 8;
+      // EPIC-P18: in a tile the list ends at the tile's bottom, not the window's.
+      const frame = tail.closest<HTMLElement>("[data-tile]");
+      const bottom = frame ? frame.getBoundingClientRect().bottom : window.innerHeight;
+      const available = bottom - tail.getBoundingClientRect().top - dock.getBoundingClientRect().height - 8;
       setTailMaxHeight(Math.max(48, Math.floor(available))); // BUG-0053: no floor above what is free — the list must not slide under the dock
     };
     measure();
@@ -300,6 +356,8 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
     if (dockRef.current) observer.observe(dockRef.current);
     // BUG-0044: auch was über der Liste liegt (Laufleiste, Tabs, Hinweise) ändert ihre Oberkante.
     if (tailRef.current?.parentElement) observer.observe(tailRef.current.parentElement);
+    const frame = tailRef.current?.closest<HTMLElement>("[data-tile]");
+    if (frame) observer.observe(frame);
     window.addEventListener("resize", measure);
     window.visualViewport?.addEventListener("resize", measure);
     return () => {
@@ -342,15 +400,22 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
 
   const toggleControls = () => {
     setControlsHidden((hidden) => {
-      localStorage.setItem("uacc.controlsHidden", hidden ? "0" : "1");
+      // A tile's fold is that tile's; the single view keeps the device choice.
+      if (!tile) localStorage.setItem("uacc.controlsHidden", hidden ? "0" : "1");
       return !hidden;
     });
   };
 
-  const visible = useMemo(() => {
+  const backgroundTile = tile !== undefined && !tile.active;
+  const filtered = useMemo(() => {
     const preset = FILTERS.find((f) => f.id === filter)!;
     return shownEvents.filter(preset.keep);
   }, [shownEvents, filter]);
+  // EPIC-P18 T18.6: a tile without focus keeps only its newest rows in the
+  // DOM — four tiles of 500 rows each re-laid out on every update broke K2.
+  // Focus brings the full history back.
+  const visible = useMemo(() => (backgroundTile && filtered.length > BACKGROUND_ROWS ? filtered.slice(-BACKGROUND_ROWS) : filtered), [filtered, backgroundTile]);
+  const hiddenOlder = filtered.length - visible.length;
   const firstNew = seenAt.current !== null && seenAt.current > 0 ? visible.find((e) => e.seq > seenAt.current!) : undefined;
   const newCount = firstNew ? visible.filter((e) => e.seq >= firstNew.seq).length : 0;
 
@@ -378,15 +443,25 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
   };
 
   const jumpTo = (anchor: string) => {
-    document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    // EPIC-P18: anchors repeat across tiles — search this view only.
+    tailRef.current?.querySelector(`[id="${CSS.escape(anchor)}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const [title, setTitle] = useState(session.title ?? null);
   // T9.4: the text entry knows which session is open (bound to its plans).
+  // EPIC-P18: with several tiles only the focused one speaks for "here".
+  const ownsHere = tile?.active ?? true;
   useEffect(() => {
+    if (!ownsHere) return;
     setHere({ page: "session", sessionId: session.id, hostId: session.hostId ?? null, sessionRevision: record.inputRevision ?? null });
-  }, [session.id, record.inputRevision]);
-  useEffect(() => () => setHere({ page: "dashboard", sessionId: null, hostId: null, sessionRevision: null }), []);
+  }, [session.id, record.inputRevision, ownsHere]);
+  useEffect(() => {
+    if (!ownsHere) return;
+    // Another tile may already have taken "here" in the same commit.
+    return () => {
+      if (getHere().sessionId === session.id) setHere({ page: "dashboard", sessionId: null, hostId: null, sessionRevision: null });
+    };
+  }, [ownsHere]);
   // T9.4: "Such im Code nach …" lands here.
   useEffect(() => {
     const check = () => {
@@ -691,7 +766,9 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
               : "keine Nachrichten"}
           </div>
         ) : (
-          visible.map((e, i) => {
+          <>
+          {hiddenOlder > 0 && <div class="dim older-hidden">{hiddenOlder} ältere Einträge — Kachel anklicken zeigt alle</div>}
+          {visible.map((e, i) => {
             // ADR-0032: the token bill of a turn shows under its last
             // visible row — even where the filter hides session.turn_end.
             const closed = turnsClosedBetween(tokenStats.turns, e.seq, visible[i + 1]?.seq ?? null);
@@ -719,7 +796,8 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                 )}
               </Fragment>
             );
-          })
+          })}
+          </>
         )}
       </div>
 
