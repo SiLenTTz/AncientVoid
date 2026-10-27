@@ -1,7 +1,7 @@
 ---
 id: BUG-0067
 slug: chat-zeigt-markdown-als-rohtext
-status: open
+status: done
 severity: S3
 area: pwa
 instance: prod
