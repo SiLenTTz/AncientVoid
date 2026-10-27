@@ -160,6 +160,9 @@ export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics
           break;
         }
         case "resync": {
+          // Läuft schon ein Replay, liefert der alle Events — ein weiterer
+          // würde nur dieselben Seiten nochmal lesen.
+          if (replaying) break;
           await replay(parsed.since, false);
           break;
         }

@@ -35,6 +35,7 @@ export function connectTail(opts: TailOptions): TailConnection {
   let closedByUser = false;
   let socket: WebSocket | null = null;
   let backoffMs = 500;
+  let resyncedFrom = -1;
 
   const open = () => {
     opts.onState(lastSeq === 0 ? "connecting" : "reconnecting");
@@ -60,13 +61,15 @@ export function connectTail(opts: TailOptions): TailConnection {
           if (data.baseline && lastSeq === 0 && data.events[0]) lastSeq = data.events[0].seq - 1;
           const incoming = newEvents(lastSeq, data.events);
           const first = incoming[0];
-          if (shouldResync(lastSeq, first?.seq, data.dropped)) {
-            // Gap or dropped batch — resync from last known seq.
+          if (shouldResync(lastSeq, first?.seq, data.dropped, resyncedFrom === lastSeq)) {
+            // Gap or dropped batch — resync from last known seq (once per seq).
+            resyncedFrom = lastSeq;
             socket?.send(JSON.stringify({ type: "resync", since: lastSeq }));
             return;
           }
           if (incoming.length > 0) {
             lastSeq = incoming[incoming.length - 1]!.seq;
+            resyncedFrom = -1;
             opts.onState("live");
             opts.onEvents(incoming);
           }

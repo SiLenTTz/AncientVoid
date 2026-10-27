@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { newEvents, shouldResync } from "../../src/shared/ws-protocol.ts";
 
 describe("shouldResync (T4.5-5)", () => {
+  it("wiederholt einen resync nicht, der die Lücke nicht geschlossen hat", () => {
+    expect(shouldResync(405, 407, false, true)).toBe(false);
+    expect(shouldResync(405, 407, true, true)).toBe(false);
+  });
+
   it("resyncs when the server flagged a drop", () => {
     expect(shouldResync(10, 11, true)).toBe(true);
   });
