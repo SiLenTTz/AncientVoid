@@ -37,6 +37,8 @@ describe("acp adapter (T7.2)", () => {
     expect(ACP_PRESETS.copilot.command).toEqual(["copilot", "--acp"]);
     expect(JSON.parse(ACP_PRESETS.opencode.env.OPENCODE_CONFIG_CONTENT).permission).toEqual({ edit: "ask", bash: "ask", webfetch: "ask" });
     expect(ACP_PRESETS.dsh.env.DSH_PERMISSION_MODE).toBe("read-only");
+    expect(ACP_PRESETS.maki.command).toEqual(["maki", "acp"]);
+    expect(createAdapter({ preset: "maki" }).capabilities().features).toMatchObject({ toolGate: "native", modelChoice: "start" });
     expect(createAdapter({ preset: "copilot" }).capabilities().features.modelChoice).toBe("none");
     expect(createAdapter({ preset: "dsh" }).capabilities().features).toMatchObject({ toolGate: "native", followUp: true, interrupt: true, modelChoice: "start" });
     expect(createAdapter({ command: ["x"], permissions: "reject" }).capabilities().features.toolGate).toBe("allowlist");
