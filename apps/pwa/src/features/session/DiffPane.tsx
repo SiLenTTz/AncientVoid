@@ -125,14 +125,35 @@ export function HunkCard({
   );
 }
 
+/** The anchor of a file's hunks — the list on the left jumps to it. */
+const fileAnchor = (index: number) => `diff-file-${index}`;
+
 export function DiffPane({ diff, sessionId }: { diff: SessionDiffResult | null; sessionId: string }) {
   if (diff === null) return <div class="empty">lädt …</div>;
   if (diff.error) return <div class="empty">{diff.error}</div>;
+  // EPIC-P20 T20.1: from 1280 px the file list sits beside the code (CSS), a click jumps to
+  // the file. The phone keeps the stacked list; the rows only gain a jump there.
+  const jump = (index: number) => {
+    const root = document.querySelector(".tail-scroll");
+    root?.querySelector(`[id="${fileAnchor(index)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   return (
-    <div>
+    <div class="diff-pane">
       <div class="diff-files">
-        {diff.files.map((f) => (
-          <div key={f.path} class="diff-file-row">
+        {diff.files.map((f, i) => (
+          <div
+            key={f.path}
+            class="diff-file-row"
+            role="button"
+            tabIndex={0}
+            onClick={() => jump(i)}
+            onKeyDown={(ev) => {
+              if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                jump(i);
+              }
+            }}
+          >
             <span class="mono">{f.path}</span>
             {f.binary ? (
               <span class="dim">binär</span>
@@ -144,21 +165,23 @@ export function DiffPane({ diff, sessionId }: { diff: SessionDiffResult | null; 
           </div>
         ))}
       </div>
-      {diff.truncated && (
-        <div class="dim" style="margin: 8px 0">
-          Große Hunks gekürzt — „ganzer Hunk" antippen, um einen einzelnen vollständig zu laden.
-        </div>
-      )}
-      {diff.files.map((f) =>
-        f.binary || f.hunks.length === 0 ? null : (
-          <div key={f.path} class="diff-file-group">
-            <div class="diff-file-heading mono">{f.path}</div>
-            {f.hunks.map((h, i) => (
-              <HunkCard key={`${f.path}:${i}`} sessionId={sessionId} path={f.path} hunk={h} index={i} />
-            ))}
+      <div class="diff-main">
+        {diff.truncated && (
+          <div class="dim" style="margin: 8px 0">
+            Große Hunks gekürzt — „ganzer Hunk" antippen, um einen einzelnen vollständig zu laden.
           </div>
-        ),
-      )}
+        )}
+        {diff.files.map((f, i) =>
+          f.binary || f.hunks.length === 0 ? null : (
+            <div key={f.path} class="diff-file-group" id={fileAnchor(i)}>
+              <div class="diff-file-heading mono">{f.path}</div>
+              {f.hunks.map((h, j) => (
+                <HunkCard key={`${f.path}:${j}`} sessionId={sessionId} path={f.path} hunk={h} index={j} />
+              ))}
+            </div>
+          ),
+        )}
+      </div>
     </div>
   );
 }

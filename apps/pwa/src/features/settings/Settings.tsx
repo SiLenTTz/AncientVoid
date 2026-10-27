@@ -2,12 +2,21 @@ import { useEffect, useState } from "preact/hooks";
 import { hubApi, getToken } from "../../shared/api.ts";
 import { applyTheme, getTheme, type Theme } from "../../app/theme.ts";
 import { applyPinchZoom, pinchZoomAllowed } from "../../app/zoom.ts";
+import { applyCtxMotion, ctxMotionOn, getScale, setScale, SCALE_MAX, SCALE_MIN, SCALE_STEP } from "../../app/ui-scale.ts";
 import { startRegistration } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/browser";
 
 export function Settings({ onSwitchToken }: { onSwitchToken: () => void }) {
   const [theme, setThemeState] = useState<Theme>(getTheme());
   const [zoom, setZoomState] = useState<boolean>(pinchZoomAllowed());
+  // EPIC-P20: the scale changes from the keyboard and wheel too — follow it.
+  const [scale, setScaleState] = useState<number>(getScale());
+  const [motion, setMotion] = useState<boolean>(ctxMotionOn());
+  useEffect(() => {
+    const on = (e: Event) => setScaleState((e as CustomEvent<number>).detail);
+    window.addEventListener("uacc:scale", on);
+    return () => window.removeEventListener("uacc:scale", on);
+  }, []);
   const [projectCount, setProjectCount] = useState<number | null>(null);
   // T2.5: null = unknown/loading, undefined = webauthn not configured on
   // this hub (501) — kept distinct from "false" (configured, not
@@ -68,6 +77,41 @@ export function Settings({ onSwitchToken }: { onSwitchToken: () => void }) {
         <span>Erscheinungsbild</span>
         <button class="btn" onClick={toggleTheme}>
           {theme === "dark" ? "☾ Dunkel" : "☀ Hell"}
+        </button>
+      </div>
+      <div class="settings-row">
+        <span>
+          Zoom der Oberfläche
+          <span class="dim settings-hint"> · Strg + Mausrad, Strg + / − , Strg + 0</span>
+        </span>
+        <span class="scale-control">
+          <button class="btn" aria-label="Kleiner" disabled={scale <= SCALE_MIN} onClick={() => setScale(scale - SCALE_STEP)}>
+            −
+          </button>
+          <span class="scale-value mono" aria-live="polite">
+            {Math.round(scale * 100)} %
+          </span>
+          <button class="btn" aria-label="Größer" disabled={scale >= SCALE_MAX} onClick={() => setScale(scale + SCALE_STEP)}>
+            +
+          </button>
+          <button class="btn" disabled={scale === 1} onClick={() => setScale(1)}>
+            100 %
+          </button>
+        </span>
+      </div>
+      <div class="settings-row">
+        <span>
+          Schimmer der Kontextleiste
+          <span class="dim settings-hint"> · folgt „Bewegung reduzieren“ des Systems</span>
+        </span>
+        <button
+          class="btn"
+          onClick={() => {
+            applyCtxMotion(!motion);
+            setMotion(!motion);
+          }}
+        >
+          {motion ? "an" : "aus"}
         </button>
       </div>
       <div class="settings-row">

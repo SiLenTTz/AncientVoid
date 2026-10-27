@@ -150,7 +150,7 @@ a {
   display: grid;
   grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
   gap: 20px;
-  height: 100dvh;
+  height: calc(100dvh / var(--ui-zoom, 1));
 }
 
 /* EPIC-P18 T18.1: the whole width — the list folds away on demand. */
@@ -177,6 +177,11 @@ a {
 /* One tile on a wide screen: readable lines, not 2,500 px ones. */
 .tile-grid.layout-1 > .tile {
   padding-inline: max(12px, calc((100% - 1200px) / 2));
+}
+
+/* EPIC-P20 T20.1: reading tabs (Diff, Bericht, Suche, Code) use the whole tile. */
+.tile-grid.layout-1 > .tile:has(:is([data-tab="diff"], [data-tab="bericht"], [data-tab="suche"], [data-tab="code"])) {
+  padding-inline: 12px;
 }
 
 .split-list,

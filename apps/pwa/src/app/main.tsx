@@ -8,6 +8,7 @@ import { CommandBar } from "../features/commands/CommandBar.tsx";
 import { pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
+import { applyCtxMotion, applyScale, ctxMotionOn, getScale, installScaleShortcuts } from "./ui-scale.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
 import { TileWorkspace } from "../features/workspace/TileWorkspace.tsx";
 import { openInNewTile, openSession, parseWorkspace, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
@@ -19,6 +20,10 @@ import "./styles/index.css";
 // the only value that ever existed.
 applyTheme(getTheme());
 applyPinchZoom(pinchZoomAllowed());
+// EPIC-P20: UI scale (Ctrl+wheel, Ctrl +/−/0) and the context-bar shimmer, before the first paint.
+applyScale(getScale());
+applyCtxMotion(ctxMotionOn());
+installScaleShortcuts();
 
 function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: string }) {
   const [token, setVal] = useState(getToken());
@@ -216,6 +221,7 @@ function Main() {
   return (
     <>
       {!wide && <NotificationCenter />}
+      {wide && listCollapsed && <NotificationCenter corner />}
       {staleAt && (
         <div class="topbar">
           <span class="badge-stale">Daten vom {staleAt.toLocaleString("de-DE")} (offline)</span>

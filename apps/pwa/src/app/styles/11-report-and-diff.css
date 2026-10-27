@@ -243,3 +243,38 @@
     display: block;
   }
 }
+
+/* EPIC-P20 T20.1: wide screens — file list beside the code, the whole width for the diff. */
+.diff-file-row[role="button"] {
+  cursor: pointer;
+}
+.diff-file-row[role="button"]:hover {
+  background: var(--bg-chip);
+}
+@media (min-width: 1280px) {
+  .diff-pane {
+    display: grid;
+    grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .diff-pane > .diff-files {
+    position: sticky;
+    top: 0;
+    max-height: calc((100dvh / var(--ui-zoom, 1)) - 240px);
+    overflow-y: auto;
+  }
+  .diff-pane > .diff-files .diff-file-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    word-break: break-all;
+  }
+  .diff-main {
+    min-width: 0;
+  }
+  .hunk-body-unified,
+  .hunk-split-cell {
+    font-size: 13px;
+  }
+}

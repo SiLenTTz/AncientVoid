@@ -21,6 +21,7 @@ import { loadTail, saveTail } from "./tail-cache.ts";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
+import { ContextBar } from "./ContextBar.tsx";
 import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, tokenText } from "./run-stats.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
 import { EventRow } from "./EventRow.tsx";
@@ -34,6 +35,8 @@ const SHORT_VIEWPORT_PX = 520;
 const BACKGROUND_FLUSH_MS = 50;
 /** Rows a tile without focus keeps in the DOM. */
 const BACKGROUND_ROWS = 150;
+/** Tabs that read rather than talk: the composer folds away in a desktop tile. */
+const READING_TABS: ReadonlySet<string> = new Set(["diff", "bericht", "suche", "code"]);
 
 /** EPIC-P18: set when this view is one tile of the desktop workspace —
  * several SessionTails then share one page. */
@@ -398,7 +401,19 @@ export function SessionTail({
   const context = contextText(tokenStats.lastContextTokens, windowTokens);
   const tokensKnown = (record.metrics?.tokens ?? "unknown") !== "unknown" || record.tokensEst > 0;
 
+  // EPIC-P20 T20.1: in a desktop tile the reading tabs (Diff, Bericht, Suche, Code) get the
+  // height of the composer too — it stays one tap away (▴), and the tab's own choice resets
+  // when the tab changes. The phone view and the chat tabs keep the device's choice.
+  const [openedInReadingTab, setOpenedInReadingTab] = useState(false);
+  useEffect(() => setOpenedInReadingTab(false), [activeTab]);
+  const readingTab = tile !== undefined && READING_TABS.has(activeTab);
+  const controlsFolded = readingTab ? !openedInReadingTab : controlsHidden;
+
   const toggleControls = () => {
+    if (readingTab) {
+      setOpenedInReadingTab((v) => !v);
+      return;
+    }
     setControlsHidden((hidden) => {
       // A tile's fold is that tile's; the single view keeps the device choice.
       if (!tile) localStorage.setItem("uacc.controlsHidden", hidden ? "0" : "1");
@@ -589,7 +604,7 @@ export function SessionTail({
     {/* 2026-10-26: the whole session view carries the same traveling border
      * as an active overview card — "this agent is working" must be visible
      * from any tab (chat/diff/code), not only from the small status pill. */}
-    <div class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}`}>
+    <div data-tab={activeTab} class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}`}>
       {/* T8.5: back, what this is, Stop apart from Senden, the rest in ⋯ */}
       <div class="topbar session-topbar">
         <button class="btn back-btn" type="button" aria-label="Zur Übersicht" onClick={() => onNavigate("dashboard")}>
@@ -724,6 +739,7 @@ export function SessionTail({
             {tokenText(tokensKnown, record.tokensEst)} · {context}
           </span>
         </div>
+        <ContextBar fill={tokenStats.lastContextTokens} windowTokens={windowTokens} />
       </div>
 
       <div
@@ -805,13 +821,13 @@ export function SessionTail({
         <button
           class="dock-toggle"
           type="button"
-          aria-label={controlsHidden ? "Steuerung einblenden" : "Steuerung ausblenden"}
-          aria-expanded={!controlsHidden}
+          aria-label={controlsFolded ? "Steuerung einblenden" : "Steuerung ausblenden"}
+          aria-expanded={!controlsFolded}
           onClick={toggleControls}
         >
-          {controlsHidden ? "▴" : "▾"}
+          {controlsFolded ? "▴" : "▾"}
         </button>
-        {controlsHidden && observerOnly && status !== "stopped" && (
+        {controlsFolded && observerOnly && status !== "stopped" && (
           <div class="composer-actions">
             <span class="observer-note">nur beobachten — der Harness läuft außerhalb des Hubs</span>
             <button class="btn" type="button" onClick={() => void stop()}>
@@ -820,10 +836,10 @@ export function SessionTail({
           </div>
         )}
         <SessionApprovals sessionId={session.id} api={api} />
-        {!controlsHidden && !observerOnly && (
+        {!controlsFolded && !observerOnly && (
           <SessionConfigure session={record} features={features} api={api} onChanged={(patch) => setRecord((prev) => ({ ...prev, ...patch }))} />
         )}
-        {!controlsHidden && (showReply || status !== "stopped") && (
+        {!controlsFolded && (showReply || status !== "stopped") && (
           <div class="dock-actions">
             {replyError && (
               <div class="reply-error">
@@ -920,7 +936,7 @@ export function SessionTail({
         {/* AC-P1.6-2: this sub-filter used to sit right under the topbar
          * (top ~15% zone) — moved down here so every control, not just the
          * dock/tabs, lives in the thumb zone. */}
-        {!controlsHidden && showVerlaufFilterBar && (
+        {!controlsFolded && showVerlaufFilterBar && (
           <div class="filter-bar dock-filter-bar">
             {FILTERS.filter((f) => f.id !== "lesen").map((f) => (
               <button key={f.id} class={`chip ${filter === f.id ? "active" : ""}`} onClick={() => setFilter(f.id)}>
