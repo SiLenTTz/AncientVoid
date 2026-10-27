@@ -44,7 +44,7 @@ test.describe("Anhänge (T7.10)", () => {
   });
 
   test("Gemini-Schlüssel: nur setzbar, nie auslesbar; entfernbar", async ({ app, hub }) => {
-    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     const card = app.locator(".gemini-settings");
     await expect(card).toContainText("kein Schlüssel");
     await card.getByLabel("API-Schlüssel").fill("AIzaTEST-geheim-1234567890");

@@ -1,5 +1,5 @@
 ---
-id: BUG-0071
+id: BUG-0072
 slug: hub-oom-resync-schleife
 status: in-progress
 severity: S1
@@ -12,7 +12,7 @@ created: 2026-10-27
 reporter: claude
 ---
 
-# BUG-0071 — Hub stürzt alle ~2 Minuten mit Heap-OOM ab (Resync-Schleife)
+# BUG-0072 — Hub stürzt alle ~2 Minuten mit Heap-OOM ab (Resync-Schleife)
 
 ## Gesehen
 

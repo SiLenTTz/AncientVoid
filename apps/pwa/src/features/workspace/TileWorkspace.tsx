@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { hostApi, type SessionRecord } from "../../shared/api.ts";
 import { SessionTail } from "../session/SessionTail.tsx";
 import type { Page } from "../../app/Dock.tsx";
@@ -26,21 +26,28 @@ export function TileWorkspace({
   initialCode?: { sessionId: string; code: CodeTarget };
 }) {
   const count = tileCount(ws.layout);
+  // BUG-0071: the handler works on the NEWEST state, not the one of its last render — two shortcuts
+  // within one tick (fast typing, a loaded machine) must compose instead of the second one
+  // starting from the state before the first.
+  const latest = useRef(ws);
+  latest.current = ws;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      const cur = latest.current;
       const n = /^Digit([1-4])$/.exec(e.code)?.[1];
       let next: Workspace | null = null;
-      if (n) next = e.shiftKey ? swapWith(ws, Number(n) - 1) : focusTile(ws, Number(n) - 1);
-      else if (e.code === "KeyL") next = cycleLayout(ws, e.shiftKey ? -1 : 1);
-      else if (e.code === "KeyW" && !e.shiftKey) next = closeTile(ws, ws.focus);
+      if (n) next = e.shiftKey ? swapWith(cur, Number(n) - 1) : focusTile(cur, Number(n) - 1);
+      else if (e.code === "KeyL") next = cycleLayout(cur, e.shiftKey ? -1 : 1);
+      else if (e.code === "KeyW" && !e.shiftKey) next = closeTile(cur, cur.focus);
       if (!next) return;
       e.preventDefault();
+      latest.current = next;
       onChange(next);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [ws, onChange]);
+  }, [onChange]);
 
   // A tile in a stacked layout gets half the height (or less).
   const stacked = ws.layout === "2h" || ws.layout === "2x2" || ws.layout === "1+2";

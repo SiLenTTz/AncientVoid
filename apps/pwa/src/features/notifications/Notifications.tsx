@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, hostApi, type HubNotification } from "../../shared/api.ts";
-import { sessionHash } from "../../app/route.ts";
+import { pageHash, sessionHash } from "../../app/route.ts";
 
 const READ_KEY = "uacc.notifications.readUpTo";
 /** EPIC-P6: read marks of other hosts, { hostId: lastReadId }. */
@@ -66,7 +66,8 @@ function visibleToasts<T extends { level: string }>(toasts: T[]): T[] {
  */
 const APPROVAL_KINDS = new Set(["tool.permission_requested", "session.steer_pending_approval"]);
 
-export function NotificationCenter() {
+/** `corner`: the list column is folded away, so bell and gear sit in the window corner. */
+export function NotificationCenter({ corner = false }: { corner?: boolean }) {
   const [items, setItems] = useState<FleetNotification[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [open, setOpen] = useState(false);
@@ -171,8 +172,11 @@ export function NotificationCenter() {
 
   return (
     <>
+      <button class={`notif-gear${corner ? " corner" : ""}`} type="button" aria-label="Einstellungen" title="Einstellungen" onClick={() => (location.hash = pageHash("settings"))}>
+        ⚙
+      </button>
       <button
-        class="notif-bell"
+        class={`notif-bell${corner ? " corner" : ""}`}
         type="button"
         aria-label={unread > 0 ? `Benachrichtigungen (${unread} neu)` : "Benachrichtigungen"}
         onClick={openPanel}

@@ -59,6 +59,22 @@ test.describe("Desktop-Workspace (EPIC-P18)", () => {
     await expect(tile(app, 1).locator(".session-top-title")).toHaveText("Aufgabe Rechts");
   });
 
+  test("zwei Kürzel im selben Tick arbeiten auf dem Ergebnis des ersten (BUG-0071)", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Links" });
+    await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Rechts" });
+    await card(app, "Aufgabe Links").click();
+    await card(app, "Aufgabe Rechts").click({ modifiers: ["Control"] });
+    await expect(tile(app, 2)).toHaveClass(/focused/);
+    // Both keydowns before Preact renders in between — what a fast typist or a loaded machine produces.
+    await app.evaluate(() => {
+      const key = (code: string, shiftKey: boolean) => window.dispatchEvent(new KeyboardEvent("keydown", { code, altKey: true, shiftKey, bubbles: true, cancelable: true }));
+      key("Digit1", false);
+      key("Digit2", true);
+    });
+    await expect(tile(app, 1).locator(".session-top-title")).toHaveText("Aufgabe Rechts");
+    await expect(tile(app, 2).locator(".session-top-title")).toHaveText("Aufgabe Links");
+  });
+
   test("nach Reload sind Layout und Belegung gleich; eine gelöschte Session sagt es (AC-P18-3, Premortem 4)", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Bleibt" });
     const gone = await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Geht" });
