@@ -921,6 +921,10 @@ function createHubApi(P: (path: string) => string) {
   /** EPIC-P15 T15.4: is this session open in a terminal at the PC? */
   sessionPc: (id: string) => api<PcState>(P(`/api/sessions/${id}/pc`)),
   /** EPIC-P15 T15.3: prompts waiting for the running turn. */
+  /** EPIC-P21 T21.2: proposal for handing a session to another provider. */
+  handoverDraft: (id: string) =>
+    api<{ prompt: string; adapter: string; model: string | null; reason: { category: string; title: string; detail: string } | null }>(P(`/api/sessions/${id}/handover`)),
+  handover: (id: string, body: { adapter: string; model?: string; prompt: string }) => api<SessionRecord>(P(`/api/sessions/${id}/handover`), { method: "POST", body: JSON.stringify(body) }),
   runEstimate: (id: string) => api<RunEstimate>(P(`/api/sessions/${id}/estimate`)),
   sessionQueue: (id: string) => api<QueuedPrompt[]>(P(`/api/sessions/${id}/queue`)),
   removeQueued: (id: string, queueId: string) => api<{ ok: boolean }>(P(`/api/sessions/${id}/queue/${queueId}`), { method: "DELETE" }),

@@ -7,6 +7,7 @@ import { registerWorkspaceRoutes } from "./modules/workspace/workspace.routes.ts
 import { registerProjectCreateRoute } from "./modules/workspace/project-create.routes.ts";
 import { registerSessionsRoutes } from "./modules/sessions/sessions.routes.ts";
 import { registerDiscoveryRoutes } from "./modules/discovery/discovery.routes.ts";
+import { registerHandoverRoutes } from "./modules/sessions/handover.routes.ts";
 import { registerRunsRoutes } from "./modules/runs/runs.routes.ts";
 import { registerNotificationsRoutes } from "./modules/notifications/notifications.routes.ts";
 import { registerIdentityRoutes } from "./modules/identity/identity.routes.ts";
@@ -27,6 +28,7 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
   registerDiscoveryRoutes(app, ctx);
   registerNotificationsRoutes(app, ctx);
   registerRunsRoutes(app, ctx);
+  registerHandoverRoutes(app, ctx);
   registerIdentityRoutes(app, ctx);
   registerApprovalsRoutes(app, ctx);
   registerSearchRoutes(app, ctx);
