@@ -156,3 +156,34 @@
 .assessment-notes {
   flex-basis: 100%;
 }
+
+/* T21.4: question form — header chip, hints, progress, summary */
+.question-header {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 1px 8px;
+  margin-bottom: 4px;
+}
+.question-hint {
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.question-progress {
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+.question.answered .question-text::after {
+  content: " ✓";
+  color: var(--ok);
+}
+.question-summary {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+}

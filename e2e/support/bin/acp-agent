@@ -16,6 +16,8 @@
 //             out live (BUG-0033), not only at the turn's end
 //   OHNE_TOTAL usage without totalTokens: tokens come from input+output
 //             (ADR-0032)
+//   FRAGE     an `elicitation/create` form (T21.4): a single choice, a multi choice, a yes/no and a number;
+//             the answer is echoed back as JSON in the reply
 //   FEHLER    the prompt fails with a rate-limit error
 import { randomUUID } from "node:crypto";
 
@@ -76,6 +78,24 @@ async function prompt(id, { sessionId, prompt: blocks }) {
       content: [{ type: "content", content: { type: "text", text: allowed ? "hallo-acp" : "vom Menschen abgelehnt" } }],
     });
     tail = allowed ? ` · Ausgabe hallo-acp (${answer.outcome.optionId})` : " · nicht ausgeführt";
+  }
+  if (text.includes("FRAGE")) {
+    const answer = await ask("elicitation/create", {
+      mode: "form",
+      sessionId,
+      message: "Wie soll es weitergehen?",
+      requestedSchema: {
+        type: "object",
+        properties: {
+          strategie: { type: "string", title: "Strategie", oneOf: [{ const: "schnell", title: "Schnell" }, { const: "gruendlich", title: "Gründlich", description: "mit Tests" }] },
+          teile: { type: "array", title: "Teile", items: { enum: ["api", "ui", "doku"] } },
+          sicher: { type: "boolean", title: "Sicher?" },
+          anzahl: { type: "integer", title: "Anzahl" },
+        },
+        required: ["strategie"],
+      },
+    });
+    tail = ` · Antwort ${JSON.stringify(answer)}`;
   }
   if (text.includes("LANGSAM")) {
     for (let i = 0; i < 600 && !cancelled.has(sessionId); i++) await sleep(100);
