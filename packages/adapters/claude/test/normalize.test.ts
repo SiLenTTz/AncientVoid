@@ -86,6 +86,20 @@ describe("normalizeClaudeLine — real captured stream-json (claude 2.1.263)", (
     expect(events[0]!.summary).toContain("unhandled stream-json type");
   });
 
+  it("tool_progress (CLI >=2.1.3xx Bash heartbeats) emits nothing — no event spam", () => {
+    // Live fund 27.10.2026: claude 2.1.310 emits tool_progress every ~30s for
+    // long-running Bash tools (tool_use_id + "-heartbeat-N"). Purely informational
+    // progress of an already-reported tool call — emitting a system event per
+    // heartbeat spammed the session log (4.4 MB in one hung turn).
+    const events = normalizeClaudeLine({
+      type: "tool_progress",
+      tool_use_id: "toolu_014tcLJ89JYXNg5q5vVYCfM2-heartbeat-0",
+      tool_name: "Bash",
+      parent_tool_use_id: "toolu_014tcLJ89JYXNg5q5vVYCfM2",
+    });
+    expect(events).toHaveLength(0);
+  });
+
   it("never drops an unrecognized content block silently (fail loud)", () => {
     const events = normalizeClaudeLine({
       type: "assistant",
