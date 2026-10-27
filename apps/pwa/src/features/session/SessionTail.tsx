@@ -1,3 +1,6 @@
+import { sessionHash } from "../../app/route.ts";
+import { HandoverBar } from "./Handover.tsx";
+import { currentProviderFailure } from "./handover.ts";
 import { TabIcon, type TabIconName } from "../../shared/TabIcon.tsx";
 import { Fragment } from "preact";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
@@ -394,6 +397,7 @@ export function SessionTail({
     };
   }, [session.adapter]);
   const progress = runProgress(events, status, now);
+  const providerFailure = observerOnly ? null : currentProviderFailure(events);
   // T21.3: measured turns of the same adapter/model — fetched when a turn starts, never guessed client-side.
   const [estimate, setEstimate] = useState<RunEstimate | null>(null);
   useEffect(() => {
@@ -865,6 +869,16 @@ export function SessionTail({
               Beobachtung beenden
             </button>
           </div>
+        )}
+        {providerFailure && (
+          <HandoverBar
+            failure={providerFailure}
+            session={record}
+            api={api}
+            onHandedOver={(created) => {
+              location.hash = sessionHash(created.id, remoteHost(session.hostId));
+            }}
+          />
         )}
         <SessionApprovals sessionId={session.id} api={api} />
         {!controlsFolded && !observerOnly && (

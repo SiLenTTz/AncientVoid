@@ -18,6 +18,7 @@ import { dedupeDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
 import { notificationFor } from "../notifications/index.ts";
 import { deriveTurnMetrics, TurnMetricStore } from "../runs/index.ts";
+import { buildHandoverPrompt, HANDOVER_PROMPT_MAX } from "../handover/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
 import { askTitleModel } from "./session-title.ts";
 import type { PlannerModelConfig } from "../commands/model.ts";
@@ -1376,6 +1377,36 @@ export class SessionManager {
    * K7 crash recovery: restore every persisted session.
    * Identical status/event-count after `kill -9`, restore < 3 s.
    */
+  /**
+   * EPIC-P21 T21.2: the proposal for handing a session to another provider — the text the next one
+   * starts from, and why (the provider.error of the current turn, if there is one).
+   */
+  async handoverDraft(sessionId: string): Promise<{ prompt: string; adapter: string; model: string | null; reason: { category: string; title: string; detail: string } | null }> {
+    const record = this.live.get(sessionId)?.record ?? this.list().find((r) => r.id === sessionId);
+    if (!record) throw new Error("unknown session");
+    const events = await this.store.replay(sessionId);
+    let reason: { category: string; title: string; detail: string } | null = null;
+    for (let i = events.length - 1; i >= 0 && !reason; i--) {
+      const p = events[i]!.payload as { kind?: unknown; category?: unknown; title?: unknown; detail?: unknown };
+      if (p.kind === "session.prompt") break;
+      if (p.kind === "provider.error") reason = { category: String(p.category ?? "unknown"), title: String(p.title ?? events[i]!.summary), detail: String(p.detail ?? "") };
+    }
+    return { prompt: buildHandoverPrompt(events, { adapter: record.adapter, model: record.model, ...(reason ? { reason } : {}) }), adapter: record.adapter, model: record.model, reason };
+  }
+
+  /** Starts a new session at another adapter/model with the (edited) handover text; both sides record the link. */
+  async handover(sessionId: string, input: { adapter: string; model?: string | undefined; prompt: string }, actor?: string): Promise<SessionRecord> {
+    const source = this.live.get(sessionId)?.record ?? this.list().find((r) => r.id === sessionId);
+    if (!source) throw new Error("unknown session");
+    if (input.prompt.length === 0 || input.prompt.length > HANDOVER_PROMPT_MAX) throw new Error(`handover prompt must be 1–${HANDOVER_PROMPT_MAX} characters`);
+    const created = await this.create({ adapter: input.adapter, project: source.project, prompt: input.prompt, ...(input.model ? { model: input.model } : {}) }, actor);
+    const from = this.live.get(sessionId);
+    const to = this.live.get(created.id);
+    if (from) await this.emitEvents(from, [{ type: "system", summary: `Übergeben an ${created.adapter}${created.model ? ` (${created.model})` : ""}`, payload: { kind: "session.handover_out", toSessionId: created.id, adapter: created.adapter, model: created.model } }]);
+    if (to) await this.emitEvents(to, [{ type: "system", summary: `Übernommen von ${source.adapter}${source.model ? ` (${source.model})` : ""}`, payload: { kind: "session.handover_in", fromSessionId: sessionId, adapter: source.adapter, model: source.model } }]);
+    return created;
+  }
+
   /** Rebuilds one session's turn measurements from its event stream (idempotent). */
   private async recordTurnMetrics(sessionId: string): Promise<void> {
     const record = this.live.get(sessionId)?.record ?? this.list().find((r) => r.id === sessionId);

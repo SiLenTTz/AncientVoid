@@ -1,6 +1,6 @@
 # EPIC-P21 — Icon-Leisten, Provider-Übergabe, Laufzeit-Metriken mit Schätzung, Fragen-Dialog
 
-**Status:** in Arbeit (T21.1 fertig, Rest siehe Aufgaben) · **Phase:** P21 · **Abhängigkeit:** fachlich keine; baut auf P18/P20 (Kacheln, Oberfläche),
+**Status:** Code abgeschlossen 2026-10-28 (T21.1–T21.4), Roll-out und Retro offen · **Phase:** P21 · **Abhängigkeit:** fachlich keine; baut auf P18/P20 (Kacheln, Oberfläche),
 ADR-0015 (Provider-Fehler), ADR-0023 (ehrliche Metriken) und dem Adapter-Contract (`questions`, Resume-Referenzen ADR-0036) auf.
 
 Auslöser: Wunsch von Jan vom 2026-10-27. Die Session-Abbrüche waren eine Hub-Absturzschleife (BUG-0072); danach: Desktop wirkt unfertig
@@ -21,8 +21,8 @@ Freitext) und gehen als strukturierte Antwort zurück. Messlatten: K2 (Latenz), 
 ## 3. Aufgaben
 - [x] **T21.1 — Icon-Leisten und klickbare Kürzel.** Ab 1280 px: globale Navigation als linke Icon-Leiste, Kachel-Ansichten (Chat/Verlauf/Bericht/Diff/Suche/Code)
   als senkrechte Icon-Leiste, Layout-/Fokus-/Tausch-/Leeren-Aktionen als Knöpfe, Fenster scrollt nie. Handy unverändert. Spec: `layout-desktop.spec.ts`.
-- [ ] **T21.2 — Provider-Ausfall erkennen und übergeben.** Login abgelaufen (401), Rate-Limit, Kontingent als Event + Banner mit Wahl des Ziels (Adapter + Modell);
-  „Übergeben“ startet eine neue Session mit Zusammenfassung/Verlauf als Kontext (Blob, K5), verlinkt beide Sessions. Kein stilles Umschalten.
+- [x] **T21.2 — Provider-Ausfall erkennen und übergeben.** Login abgelaufen (401), Rate-Limit, Kontingent als Event + Banner mit Wahl des Ziels (Adapter + Modell);
+  „Übergeben“ startet eine neue Session mit Zusammenfassung/Verlauf als Kontext (Blob, K5), verlinkt beide Sessions. Kein stilles Umschalten. [ADR-0039](../docs/adr/0039-session-uebergabe.md); Specs: `harness.spec.ts`, `handover.test.ts`. Die Fehlerklassen selbst gab es schon (ADR-0015).
 - [x] **T21.3 — Lauf-Metriken und Schätzung.** Pro Zug: Start, Ende, Dauer, Tokens (nativ/geschätzt), Modell, Adapter, Aufgabentyp. Aus JSONL rekonstruierbar (K7).
   Schätzung = Median/P80 gleicher Adapter+Modell; weniger als 5 Läufe → „Schätzung ab 5 Läufen“. Tabelle `turn_metrics` (Migration 25) ist Cache, `backfillTurnMetrics()` baut sie beim Start aus dem JSONL nach; `GET /api/sessions/:id/turns|estimate`, `GET /api/metrics/turns`. Dauer ist Wanduhrzeit inkl. Freigabe-Wartezeit. Specs: `progress.spec.ts`, `turn-metrics.test.ts`.
 - [x] **T21.4 — Fragen-Dialog (Hybrid).** Aus claude (`AskUserQuestion`), codex (native Fragen), opencode/maki (ACP-Elicitation) ein Formular: Optionen als Chips, Mehrfachauswahl, Freitext „Sonstiges“,
