@@ -171,7 +171,7 @@ test.describe("ACP-Harness (T7.2)", () => {
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte WERKZEUG · ACP · Ausgabe hallo-acp \(allow-once\)/)).toBeVisible();
     await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
     // ADR-0032: token sums and the context window percentage, both live.
-    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 42 Tokens · Kontext 15 % (30 / 200)");
+    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 42 Tokens · Kontext 15 % · frei 170 von 200");
     await expect(app.locator(".tail-scroll .turn-stats").first()).toContainText("42 Tokens");
     await expect(app.locator(".tail-scroll .turn-stats").first()).toContainText("Kontext 30");
     await app.getByPlaceholder("Antworten…").fill("Noch eine Frage");
@@ -186,7 +186,7 @@ test.describe("ACP-Harness (T7.2)", () => {
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
     // glm-5.3 hat ein kuratiertes Fenster von 1.000.000 Tokens — nicht die
     // statische Adapter-Zahl (200 aus der E2E-Konfiguration).
-    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 42 Tokens · Kontext 0 % (30 / 1.000.000)");
+    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 42 Tokens · Kontext 0 % · frei 999.970 von 1.000.000");
   });
 
   test("Startformular: Modellkatalog als Dropdown, konfigurierter Default vorausgewählt (Harnez-Muster)", async ({ app, hub }) => {
@@ -314,5 +314,21 @@ test.describe("Markdown im Chat (BUG-0067)", () => {
     await expect(answer.locator("img")).toHaveCount(0);
     await expect(answer.locator('a[href^="javascript"]')).toHaveCount(0);
     await expect(answer).not.toContainText("## Stand");
+  });
+});
+
+test.describe("Tokens und Kontext je Session (ADR-0032)", () => {
+  test("pi: verbrauchte Tokens und freier Kontext stehen im Kopf der Session", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "pi", prompt: "Wie viele Zeilen?" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    // Stand-in: two replies, 1.092 + 1.132 tokens; fill 53 + 1.057 cached.
+    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 2.224 Tokens · Kontext 1 % · frei 129.962 von 131.072");
+  });
+
+  test("ohne Meldung des Providers steht ausdrücklich „unbekannt“ da", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.locator(".run-strip .run-tokens")).toContainText("Kontext unbekannt");
   });
 });

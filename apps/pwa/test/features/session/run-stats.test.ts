@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import type { NormalizedEvent } from "../../../src/shared/ws.ts";
-import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents } from "../../../src/features/session/run-stats.ts";
+import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, tokenText } from "../../../src/features/session/run-stats.ts";
 
 let seq = 0;
 beforeEach(() => {
@@ -68,15 +68,22 @@ describe("contextWindowFromEvents (ADR-0032)", () => {
     ];
     expect(contextWindowFromEvents(events)).toBeNull();
     expect(contextWindowFromEvents([events[0]!])).toBe(1_000_000);
+    expect(contextWindowFromEvents([event({ type: "system", summary: "pi: Modell m", payload: { kind: "pi.model", model: "evo/q", contextWindowTokens: 131_072 } })])).toBe(131_072);
     expect(contextWindowFromEvents([event({ type: "system", summary: "opencode · m", payload: { kind: "opencode.model", model: "opencode/big-pickle", contextWindowTokens: 200_000 } })])).toBe(200_000);
   });
 });
 
 describe("contextText / contextLevel", () => {
   it("a percentage only from two real numbers", () => {
-    expect(contextText(9000, 200_000)).toBe("Kontext 5 % (9.000 / 200.000)");
-    expect(contextText(9000, null)).toBe("Kontext 9.000 Tokens");
-    expect(contextText(null, 200_000)).toBeNull();
+    expect(contextText(9000, 200_000)).toBe("Kontext 5 % · frei 191.000 von 200.000");
+    expect(contextText(9000, null)).toBe("Kontext 9.000 Tokens · Fenstergröße unbekannt");
+    // Fail loud: no provider number is said, not hidden.
+    expect(contextText(null, 200_000)).toBe("Kontext unbekannt");
+    expect(contextText(null, null)).toBe("Kontext unbekannt");
+  });
+
+  it("über dem Fenster ist frei 0, nicht negativ", () => {
+    expect(contextText(210_000, 200_000)).toBe("Kontext 105 % · frei 0 von 200.000");
   });
 
   it("warns from 80 %, red from 95 %", () => {
@@ -84,5 +91,12 @@ describe("contextText / contextLevel", () => {
     expect(contextLevel(160_000, 200_000)).toBe("warn");
     expect(contextLevel(195_000, 200_000)).toBe("err");
     expect(contextLevel(160_000, null)).toBeNull();
+  });
+});
+
+describe("tokenText (Tokens immer sichtbar)", () => {
+  it("bekannt: Summe; sonst ausdrücklich unbekannt", () => {
+    expect(tokenText(true, 12_345)).toBe("Σ 12.345 Tokens");
+    expect(tokenText(false, 0)).toBe("Tokens unbekannt");
   });
 });

@@ -32,6 +32,17 @@
   color: var(--err);
 }
 
+.run-meta {
+  display: flex;
+  gap: 14px;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.run-meta::-webkit-scrollbar {
+  display: none;
+}
+
 /* ADR-0032: token sums (per session here, per turn as .turn-stats rows). */
 .run-tokens {
   color: var(--fg-dim);
