@@ -1,13 +1,14 @@
-# EPIC-P19 — Loop / Dark Factory: securesight-harnez und aSPARK-Factory als wählbare Loops
+# EPIC-P19 — Loop / Dark Factory: securesight-factory und aSPARK-Factory als wählbare Loops
 
 **Status:** Planungsentwurf — **wartet auf Bestätigung von [ADR-0038](../docs/adr/0038-loop-dark-factory.md)**; kein Code vorher ·
 **Phase:** P19 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P15 Modus-/Steuermuster,
 P17 Resume-Referenzen und Worker-Marker auf). Präzedenz wie P13/P14/P17: unabhängiges Epic neben offenen Abnahmen.
-**P18 ist noch nicht abgeschlossen** (Desktop-Workspace: Messlauf und MR offen), das Gating ist daher Frage 6 im ADR.
+P18 (Desktop-Workspace) ist seit 2026-10-27 gemergt, das Gating ist damit kein Hindernis mehr. Offen bleibt die Bestätigung des ADR.
 
 Auslöser: Wunsch von Jan vom 2026-10-27: „Neben Host, Adapter, Model und Mode eine weitere
 Auswahldimension Loop / Dark Factory, mehrere austauschbare Implementierungen, zuerst
 securesight-harnez (mit Hermes als Orchestrator) und aSPARK-Factory.“
+**Umbenennung (Jan, 2026-10-27):** Der Loop heißt `securesight-factory`. `securesight-harnez` bleibt der Name des Harness-Adapters im Hub.
 Analyse: [docs/loop-analyse-2026-10-27.md](../docs/loop-analyse-2026-10-27.md).
 
 ## 1. Ziel
@@ -16,7 +17,7 @@ Am Handy und am PC lässt sich beim Start einer Session ein **Loop** wählen. De
 verbindet sich über einen `LoopConnector` mit dem Loop-System, zeigt dessen Zustand,
 Fortschritt, Gates und Fragen als normale Session mit Verlauf, nimmt Freigaben vom
 Handy entgegen und steuert den Loop (pausieren, fortsetzen, Betriebsart). Zwei
-Implementierungen liegen bei: `aspark-factory` (MQTT) und `securesight-harnez`
+Implementierungen liegen bei: `aspark-factory` (MQTT) und `securesight-factory`
 (CLI und Dateien, Orchestrator `self` oder `hermes`). Weitere Loops kommen als Paket
 dazu, ohne den Hub zu ändern.
 
@@ -33,7 +34,7 @@ dazu, ohne den Hub zu ändern.
   Betriebsart, `workNext`, Fortsetzen.
 - **Loop `aspark-factory`:** MQTT-Leitstand-Client (`info`, `state`, `progress`, `stats`,
   `report`, `ask`; `answer`, `command`).
-- **Loop `securesight-harnez`:** `supervisor-status`, Notify-Dateien, Transcript-Bus,
+- **Loop `securesight-factory`:** `supervisor-status`, Notify-Dateien, Transcript-Bus,
   `progress show`; Orchestrator `self | hermes` (Hermes: Zustand lesen, v1 ohne Start).
 - **PWA:** Zeile „Loop“ im Start-Formular, Optionen aus Fähigkeiten, Session-Kopf-Abzeichen,
   Loop-Panel, Freigaben mit Quellenkennzeichnung, Bestätigungsdialog für `dark`/`a`.
@@ -41,7 +42,7 @@ dazu, ohne den Hub zu ändern.
 
 **Out:** Loops, die der Hub selbst treibt (`agents: "hub"`, „Ralph im Hub“), Kind-Sessions
 (ein aSPARK-Ticket je Hub-Session), „Immer erlauben“-Regeln, Anlegen von MQTT-Nutzern
-oder Lines (das bleibt `factoryctl`), Änderungen an `securesight-harnez` oder
+oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (künftig `securesight-factory`) oder
 `aSPARK-Factory`, Loop-Marktplatz, Multi-Host-Loops (Fleet bleibt ADR-0017).
 
 ## 3. Design-Details
@@ -76,7 +77,7 @@ oder Lines (das bleibt `factoryctl`), Änderungen an `securesight-harnez` oder
   Audit-Event bei Betriebsartwechsel. `check:arch`-Regel.
 - [ ] **T19.4 — Loop `aspark-factory`.** MQTT-Leitstand-Client, Fragen und Antworten, Befehle,
   `loop.broken`. Dokumentierte Anleitung für den Hub-MQTT-Nutzer (nicht ausgeführt). K1, K5, K7, K9.
-- [ ] **T19.5 — Loop `securesight-harnez`.** Supervisor-Status, Notify, Transcript, Progress,
+- [ ] **T19.5 — Loop `securesight-factory`.** Supervisor-Status, Notify, Transcript, Progress,
   Orchestrator `self | hermes` (Hermes lesend), Fortsetzen als Tipp. K2, K7, K9.
 - [ ] **T19.6 — PWA.** Auswahl-Flow, Fähigkeiten-getriebene Optionen, Kopf-Abzeichen,
   Loop-Panel, Bestätigungsdialog. E2E-Specs. K10, AC-P8-5 (Mobil unverändert).

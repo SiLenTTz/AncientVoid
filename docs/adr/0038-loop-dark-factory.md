@@ -12,8 +12,8 @@ Neben Host, Adapter, Modell und Modus soll eine weitere Dimension wählbar sein:
 **Loop / Dark Factory**, mit mehreren austauschbaren Implementierungen. Zuerst
 zwei:
 
-- **securesight-harnez** (Harnez-Loop-Runner mit Watchdog und Betriebsmodi a/b,
-  Hermes als Orchestrator wählbar),
+- **securesight-factory** (Entwurfsname bis 2026-10-27: `securesight-harnez`; Harnez-Loop-Runner mit Watchdog und
+  Betriebsmodi a/b, Hermes als Orchestrator wählbar),
 - **aSPARK-Factory** (Docker-„Lines“, Modus `dark` = Dark Factory, MQTT-Leitstand).
 
 Beide sind **eigenständige Systeme, die ihre Agenten selbst ausführen** und über
@@ -51,7 +51,7 @@ genau eines von `adapter` und `loop` ist gesetzt (Zod-`refine`, fail loud mit 40
 | Loop | Verbindung | Was gelesen wird | Was geschrieben wird |
 |---|---|---|---|
 | `aspark-factory` | MQTT-Client als **Leitstand** (eigener Nutzer mit ACL, nicht der Admin) | `agent/<line>/…` (`info`, `state`, `progress`, `stats`, `report`, `ask`) | `answer` (nur `allow`/`deny` einmalig), `command` (`pause`, `resume`, `work`, `set-mode`, `next-steps`) |
-| `securesight-harnez` | CLI und Dateien, **kein** Leitwerk-HTTP (das ist intern) | `betrieb.py supervisor-status --json`, `.harness/notify/`, Transcript-Bus NDJSON, `harnez progress show`, bei Hermes-Orchestrierung `~/.hermes/ralph/<epic>-state.json` | nur `notify-ack`; „Fortsetzen“ als ausdrücklicher Tipp des Menschen (`betrieb.py cycle --once`), nie automatisch |
+| `securesight-factory` | CLI und Dateien, **kein** Leitwerk-HTTP (das ist intern) | `betrieb.py supervisor-status --json`, `.harness/notify/`, Transcript-Bus NDJSON, `harnez progress show`, bei Hermes-Orchestrierung `~/.hermes/ralph/<epic>-state.json` | nur `notify-ack`; „Fortsetzen“ als ausdrücklicher Tipp des Menschen (`betrieb.py cycle --once`), nie automatisch |
 
 Nicht erlaubt: Docker- oder Prozess-Interna, Screen-Parsing von tmux, Schreiben in
 fremde Zustandsdateien. Der Hub verhält sich gegenüber harnez wie ein **dritter
@@ -118,7 +118,7 @@ das Feld **„Betriebsart“**, nicht „Modus“ (dort liegt der Adapter-Berech
 
 ### 5. Hermes als Orchestrator ist eine Option des Loops
 
-`securesight-harnez` deklariert `orchestrators: ["self", "hermes"]`. Gewählt wird
+`securesight-factory` deklariert `orchestrators: ["self", "hermes"]`. Gewählt wird
 sie im Start-Formular wie jede andere Option und steht danach unveränderlich im
 Event `session.loop`. Bedeutung:
 
@@ -186,14 +186,16 @@ packages/contracts/src/loops/              Contract, Zod-Schemas
 packages/core/src/modules/loops/           Registry (hub.config.json: loops[]), loopAsAdapter
 apps/hub/src/modules/loops/loops.routes.ts GET /api/loops, Gesundheit je Loop
 packages/loops/aspark-factory/             @uacc/loop-aspark-factory
-packages/loops/securesight-harnez/         @uacc/loop-securesight-harnez
+packages/loops/securesight-factory/         @uacc/loop-securesight-factory
 packages/adapters/testkit/                 + runLoopContractTests()
 apps/pwa/src/features/loops/               Start-Optionen, Loop-Panel
 ```
 
-Loop-Ids haben einen **eigenen Namensraum**: `aspark-factory`, `securesight-harnez`.
-Der bestehende Adapter `securesight-harnez` (opencode/ACP, `hub.config.json`) bleibt
-unberührt. Die Oberfläche kennzeichnet Loops mit einem Typ-Abzeichen „Loop“.
+Loop-Ids haben einen **eigenen Namensraum**: `aspark-factory`, `securesight-factory`.
+**Umbenennung (Jan, 2026-10-27):** Der bestehende Adapter `securesight-harnez` (opencode/ACP, `hub.config.json`) ist
+der **Harness** und behält seinen Namen. Das System, das Loops betreibt, heißt Factory. Damit ist die Namenskollision
+aus der Analyse (Befund 1) gelöst. Das fremde Repo heißt auf der Platte noch `securesight-harnez`, seine Umbenennung ist
+nicht Sache des Hubs. Die Oberfläche kennzeichnet Loops mit einem Typ-Abzeichen „Loop“.
 
 ### 10. Abhängigkeit für MQTT
 
@@ -210,7 +212,7 @@ Das Start-Formular behält Host, Adapter, Modell, Modus. Neu ist **eine** Zeile
 
 ```text
 Host      [ omarchy            ▾]
-Loop      [ keiner             ▾]   ← keiner | securesight-harnez | aSPARK-Factory
+Loop      [ keiner             ▾]   ← keiner | securesight-factory | aSPARK-Factory
           └ bei Auswahl eines Loops:
 Betriebsart   [ dark ▾ ]            ← aus capabilities().modes
 Orchestrator  [ self | hermes ▾ ]   ← nur wenn capabilities().orchestrators nicht leer
@@ -266,7 +268,5 @@ Adapter · Modell · Modus: „vom Loop bestimmt“ (ausgegraut, mit Begründung
    wählbar sein, oder nur lesbar (Wechsel nur am PC bzw. in `factoryctl`)? Empfehlung:
    wählbar, mit Bestätigung und Eintrag im Audit-Event.
 5. **Reihenfolge:** Erst `aspark-factory` (klarer MQTT-Vertrag, passt 1:1 auf
-   Freigaben) oder erst `securesight-harnez`? Empfehlung: `aspark-factory` zuerst.
-6. **Epic-Gating:** P19 ist als Planungsentwurf angelegt. P18 (Desktop-Workspace) ist
-   noch nicht abgeschlossen. Gilt die Präzedenz P13/P14/P17 (unabhängiges Epic neben
-   laufenden), oder soll P19 erst nach P18 starten?
+   Freigaben) oder erst `securesight-factory`? Empfehlung: `aspark-factory` zuerst.
+6. ~~Epic-Gating~~ erledigt: P18 ist seit 2026-10-27 gemergt, P19 darf nach Bestätigung dieses ADR starten.

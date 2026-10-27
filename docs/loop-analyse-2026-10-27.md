@@ -37,7 +37,7 @@ und alle Sessions erneut unterbrochen. **Wichtig für das Testen:** `origin/main
 enthält die offenen MRs !206–!212 (pi-Verlauf, Markdown, Token-Anzeige, Gate-Check)
 noch nicht. Der laufende Hub zeigt also `main` ohne diese Änderungen.
 
-## 2. securesight-harnez
+## 2. securesight-harnez (Repo; als Loop künftig `securesight-factory`)
 
 ### 2.1 Was es ist
 
@@ -200,7 +200,8 @@ Standard `127.0.0.1` (`compose.yaml:15`). Alle Nachrichten tragen `v: 1`.
 
 1. **Namenskollision.** `hub.config.json` hat schon einen Adapter mit der Id
    `securesight-harnez`: ein opencode-ACP-Agent mit Modell `zai-coding-plan/glm-5.3`,
-   **nicht** der Harnez-Loop. Loops brauchen einen eigenen Namensraum.
+   **nicht** der Harnez-Loop. Loops brauchen einen eigenen Namensraum. **Gelöst am 2026-10-27 (Jan):** der Adapter bleibt
+   der Harness `securesight-harnez`, der Loop heißt `securesight-factory`.
 2. **ASPARK-Fragen haben schon die Form der UACC-Freigaben.** `permission`
    ≙ `ToolPermissionRequest`, `question` ≙ `ToolQuestion` (beide stammen aus dem
    Claude-SDK-Tool `AskUserQuestion`). Ein neuer Freigabe-Vertrag ist nicht nötig.
