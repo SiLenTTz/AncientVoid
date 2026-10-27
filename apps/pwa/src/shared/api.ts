@@ -492,6 +492,16 @@ export interface PcState {
 }
 
 /** EPIC-P15 T15.3: a prompt held back until the turn ends. */
+/** EPIC-P21 T21.3: what comparable finished turns say about a running one. */
+export interface RunEstimate {
+  state: "no-data" | "too-few" | "ok";
+  n: number;
+  basis: "model" | "adapter" | "none";
+  medianMs: number | null;
+  p80Ms: number | null;
+  tokensPerSec: number | null;
+}
+
 export interface QueuedPrompt {
   id: string;
   text: string;
@@ -911,6 +921,7 @@ function createHubApi(P: (path: string) => string) {
   /** EPIC-P15 T15.4: is this session open in a terminal at the PC? */
   sessionPc: (id: string) => api<PcState>(P(`/api/sessions/${id}/pc`)),
   /** EPIC-P15 T15.3: prompts waiting for the running turn. */
+  runEstimate: (id: string) => api<RunEstimate>(P(`/api/sessions/${id}/estimate`)),
   sessionQueue: (id: string) => api<QueuedPrompt[]>(P(`/api/sessions/${id}/queue`)),
   removeQueued: (id: string, queueId: string) => api<{ ok: boolean }>(P(`/api/sessions/${id}/queue/${queueId}`), { method: "DELETE" }),
   steer: async (id: string, input: SteerInput, inputId?: string, takeover = false, queue = false): Promise<Ack> => {

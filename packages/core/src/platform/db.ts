@@ -353,6 +353,30 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE sessions ADD COLUMN title_source TEXT NOT NULL DEFAULT 'auto';
     `,
   },
+  {
+    id: 25,
+    name: "turn-metrics",
+    // EPIC-P21 T21.3: one row per finished turn — a cache, rebuilt from the JSONL (K7).
+    sql: `
+      CREATE TABLE turn_metrics (
+        session_id TEXT NOT NULL,
+        turn INTEGER NOT NULL,
+        adapter TEXT NOT NULL,
+        model TEXT,
+        started_at TEXT NOT NULL,
+        ended_at TEXT NOT NULL,
+        duration_ms INTEGER NOT NULL,
+        tokens REAL,
+        tokens_source TEXT,
+        cost_usd REAL,
+        events INTEGER NOT NULL,
+        tool_calls INTEGER NOT NULL,
+        outcome TEXT NOT NULL,
+        PRIMARY KEY (session_id, turn)
+      );
+      CREATE INDEX turn_metrics_adapter ON turn_metrics (adapter, model, ended_at);
+    `,
+  },
 ];
 
 export class HubDatabase {

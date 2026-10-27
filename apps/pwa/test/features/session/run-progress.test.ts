@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { quotaSummary, runProgress } from "../../../src/features/session/run-progress.ts";
+import { estimateText, quotaSummary, runProgress } from "../../../src/features/session/run-progress.ts";
 import type { NormalizedEvent } from "../../../src/shared/ws.ts";
 
 const at = (s: number) => new Date(Date.UTC(2026, 8, 23, 12, 0, s)).toISOString();
@@ -132,5 +132,22 @@ describe("quotaSummary", () => {
 
   it("says so when nothing is known", () => {
     expect(quotaSummary(null, [])).toEqual({ text: "Kontingent: Provider meldet nichts", level: "none" });
+  });
+});
+
+describe("estimateText (EPIC-P21 T21.3)", () => {
+  const ok = { state: "ok" as const, n: 12, basis: "model" as const, medianMs: 300_000, p80Ms: 480_000, tokensPerSec: null };
+  it("sagt ohne Daten nichts und nennt unter 5 Läufen den Grund statt einer Zahl", () => {
+    expect(estimateText(null, 1000)).toBeNull();
+    expect(estimateText({ ...ok, state: "no-data", n: 0, basis: "none", medianMs: null, p80Ms: null }, 1000)).toBeNull();
+    expect(estimateText({ ...ok, state: "too-few", n: 2, medianMs: null, p80Ms: null }, 1000)).toBe("Schätzung ab 5 Läufen (bisher 2)");
+  });
+  it("Restzeit = Median − bisher, mit Streuung und Datenbasis", () => {
+    expect(estimateText(ok, 60_000)).toBe("≈ noch 4 min · typisch 5 min, bis 8 min · 12 Läufe, dieses Modell");
+    expect(estimateText({ ...ok, basis: "adapter" }, 60_000)).toContain("dieser Harness");
+  });
+  it("über dem P80 heißt es länger als üblich, nie eine negative Restzeit", () => {
+    expect(estimateText(ok, 600_000)).toBe("länger als 80 % der Läufe (8 min) · 12 Läufe, dieses Modell");
+    expect(estimateText(ok, 400_000)).toContain("≈ noch 0 min".replace("0 min", "< 1 min"));
   });
 });

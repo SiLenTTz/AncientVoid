@@ -219,6 +219,11 @@ async function main(): Promise<void> {
     failed: recovery.failed,
     reaped: recovery.reaped.length,
   });
+  // K7 für Zug-Messwerte: fehlende Zeilen aus dem JSONL nachbauen, ohne den Start zu blockieren.
+  void sessions
+    .backfillTurnMetrics()
+    .then((n) => logger.info("turn metrics backfilled", { sessions: n }))
+    .catch((err) => logger.warn("turn metrics backfill failed", { err: err instanceof Error ? err.message : String(err) }));
 
   const app = await createHubApp({
     sessions,
