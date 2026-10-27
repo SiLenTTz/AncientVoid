@@ -103,7 +103,7 @@ test.describe("Entwürfe (T8.4, AC-P8-4)", () => {
     const other = execFileSync(process.execPath, [join(repoRoot, "apps/hubctl/src/cli.ts"), "token", "issue", "zweites-geraet", "--db", join(hub.dataDir, "hub.db")], { encoding: "utf8" })
       .split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("token for"))!;
     await app.getByLabel("Zur Übersicht").click();
-    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     await app.getByRole("button", { name: "Geräte-Token wechseln" }).click();
     await app.getByPlaceholder(/z\. B\./).fill(other);
     const checkStartedAt = Date.now();

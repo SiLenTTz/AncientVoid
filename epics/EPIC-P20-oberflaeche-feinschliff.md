@@ -1,6 +1,6 @@
 # EPIC-P20 — Oberflächen-Feinschliff: Vollbreite-Diff, Zoom, Einstellungen-Zugang, schimmernde Kontextleiste
 
-**Status:** offen · **Phase:** P20 · **Dauer:** 3–4 Agenten-Tage · **Abhängigkeit:** fachlich keine. Es baut auf dem
+**Status:** Code abgeschlossen 2026-10-27, Roll-out teilweise · **Phase:** P20 · **Dauer:** 3–4 Agenten-Tage · **Abhängigkeit:** fachlich keine. Es baut auf dem
 Kachel-Arbeitsplatz aus P18 auf (Kontextleiste je Kachel, Diff in der Kachel). Präzedenz wie P13/P14/P17/P18: unabhängiges
 Epic neben offenen Abnahmen.
 
@@ -59,15 +59,15 @@ Kachelgrößen (P18 Out), Änderungen am Server, Umsetzung weiterer Einstellunge
 
 ## 4. Aufgaben
 
-- [ ] **T20.1 — Diff und Lese-Tabs in voller Breite und Höhe.** Kein 1200-px-Deckel für Lese-Tabs, Dock klappt in der Kachel weg,
+- [x] **T20.1 — Diff und Lese-Tabs in voller Breite und Höhe.** Kein 1200-px-Deckel für Lese-Tabs, Dock klappt in der Kachel weg,
   Dateiliste neben dem Code (klebend, mit Sprung). E2E-Spec misst Breite, Höhe und Verhalten, auch das Handy (gestapelt wie zuvor).
   AC-P8-5.
-- [ ] **T20.2 — UI-Zoom.** `ui-scale.ts`, Strg+Rad, Strg+`+`/`−`/`0`, Anzeige der Stufe, Höhenkorrektur. Unit-Tests der Skala,
+- [x] **T20.2 — UI-Zoom.** `ui-scale.ts`, Strg+Rad, Strg+`+`/`−`/`0`, Anzeige der Stufe, Höhenkorrektur. Unit-Tests der Skala,
   E2E bei 150 % und 70 %.
-- [ ] **T20.3 — Einstellungen-Icon.** Zahnrad neben der Glocke, Mobil, Liste, Kachel-Ansicht, Tastaturbedienung und Name.
-- [ ] **T20.4 — Einstellungen: Darstellung und Empfehlungen.** Abschnitt „Darstellung“ (Zoom-Regler, Animation), Empfehlungsliste
+- [x] **T20.3 — Einstellungen-Icon.** Zahnrad neben der Glocke, Mobil, Liste, Kachel-Ansicht, Tastaturbedienung und Name.
+- [x] **T20.4 — Einstellungen: Darstellung und Empfehlungen.** Abschnitt „Darstellung“ (Zoom-Regler, Animation), Empfehlungsliste
   in `docs/einstellungen-empfehlungen.md`.
-- [ ] **T20.5 — Schimmernde Kontextleiste.** `ContextMeter`, Schwellen, unbekannt, reduced-motion, in Session-Kopf und Kachel.
+- [x] **T20.5 — Schimmernde Kontextleiste.** `ContextMeter`, Schwellen, unbekannt, reduced-motion, in Session-Kopf und Kachel.
   K2-Wiederholung.
 - [ ] **T20.6 — Ausrollen.** MRs gemergt, Hubs aller Flotten-Hosts neu gestartet, Stand je Host geprüft (`/api/health`,
   Commit), Test-Hinweise.
@@ -107,3 +107,25 @@ Kachelgrößen (P18 Out), Änderungen am Server, Umsetzung weiterer Einstellunge
 - Mobile-Specs unverändert grün (AC-P20-6).
 - Hubs aller Flotten-Hosts laufen auf demselben Stand (AC-P20-7), belegt im Abschlussbericht.
 - `retro` am Ende, Abschnitt in dieser Datei.
+
+## 8. Abschluss (2026-10-27)
+
+| AC | Beleg | Stand |
+|---|---|---|
+| AC-P20-1 | `oberflaeche.spec.ts` „Diff in voller Breite“: Dateiliste + Code ≥ 90 % der Kachelbreite (vorher 47 %), Lesefläche ≥ 75 % der Höhe (vorher 72 % mit offenem Dock), neue Dateien einspaltig | 🟢 |
+| AC-P20-2 | „Zoom der Oberfläche“: Strg+`+`/`−`/`0`, Strg+Rad, Regler, Reload, Grenzen 70/200 %, kein Seiten-Scrollbalken bei 70 und 150 % | 🟢 |
+| AC-P20-3 | „Zahnrad neben der Glocke“: Mobil, Tastatur, Fensterecke bei eingeklappter Liste | 🟢 |
+| AC-P20-4 | „Schimmernde Kontextleiste“: Prozent, Warn (84 %), Fehler (96 %), unbekannt, Schimmer an/aus und reduced-motion | 🟢 |
+| AC-P20-5 | K2 mit Leiste, vier Kacheln: nicht erneut gemessen. Die Animation ist reines CSS (`transform`), der Lauf aus P18 hatte noch keine Leiste | ⚪ offen |
+| AC-P20-6 | `layout.spec.ts` (≥ 50 %) und alle Mobile-Specs grün, Handy-Kopf im Bild geprüft | 🟢 |
+| AC-P20-7 | omarchy und silenttz-server laufen auf `main` 21706d8, **evox2 nicht** (kein Zugriff auf den Benutzer `securesight`) | 🟡 teilweise |
+
+**Was beim Testen auftauchte (alles behoben):**
+- Das Zahnrad drückte auf dem Handy den Titel der Session-Kopfzeile auf „a…“: dort jetzt ausgeblendet, Einstellungen bleiben über Dock erreichbar.
+- Die Leiste kostete auf dem Handy 10 px Inhaltsanteil (49,1 % statt ≥ 50 %): dort jetzt eine 3-px-Linie über dem vorhandenen Rand.
+- „Kontext“ stand hinter dem langen Kontingent-Satz und war abgeschnitten: Token-/Kontextzeile steht jetzt zuerst.
+- Zwei Bedienelemente hießen „Einstellungen“: 12 Specs auf das Dock eingeschränkt.
+- Eine 24-px-Seiten-Scrollleiste am Desktop (Restpadding von `#app` im Split) bestand schon vorher und ist behoben.
+- Neue Dateien im Diff blieben halbseitig, weil die leere Schlusszeile des Hunks als Kontext zählte.
+
+**Offen:** K2 mit Leiste (AC-P20-5) und evox2.

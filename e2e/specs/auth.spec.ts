@@ -41,7 +41,7 @@ test.describe("Anmeldung per Geräte-Token (BUG-0006, AC-P4.5-4)", () => {
   });
 
   test("„Geräte-Token wechseln“ führt zurück zur Eingabe", async ({ app }) => {
-    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     await app.getByRole("button", { name: "Geräte-Token wechseln" }).click();
     await expect(app.getByRole("heading", { name: "UACC Hub" })).toBeVisible();
   });

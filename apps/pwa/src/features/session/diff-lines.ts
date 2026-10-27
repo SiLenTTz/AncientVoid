@@ -41,7 +41,10 @@ export function pairHunkLines(body: string): SplitRow[] {
     delBuf = [];
     addBuf = [];
   };
-  for (const line of body.split("\n")) {
+  // A body ends with "\n": the empty string after it is no context line (it made a pure addition two-sided).
+  const lines = body.split("\n");
+  if (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
+  for (const line of lines) {
     if (line.startsWith("-")) delBuf.push(line.slice(1));
     else if (line.startsWith("+")) addBuf.push(line.slice(1));
     else if (line.startsWith("\\")) continue; // "\ No newline at end of file"

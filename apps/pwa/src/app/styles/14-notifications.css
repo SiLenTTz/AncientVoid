@@ -2,6 +2,16 @@
 .topbar {
   padding-right: 88px; /* bell + settings gear */
 }
+/* The phone's session header has no room for a second round button: the title would shrink to "a…".
+ * Settings stay one tap away there (back to the overview, dock). */
+@media (max-width: 639px) {
+  .topbar.session-topbar {
+    padding-right: 44px;
+  }
+  body:has(.session-topbar) .notif-gear {
+    display: none;
+  }
+}
 .notif-bell {
   position: fixed;
   top: calc(env(safe-area-inset-top) + 8px);

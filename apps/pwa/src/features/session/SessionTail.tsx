@@ -733,11 +733,13 @@ export function SessionTail({
         {/* One line, never wrapping: quota, then the always-present token line
             (used tokens and free context, or that they are unknown). On a
             phone it scrolls sideways instead of taking height (AC-P8-5). */}
+        {/* Tokens and context first: they are the short, important part; the quota sentence is long
+            and scrolls sideways on a phone. */}
         <div class="run-meta">
-          <span class={`run-quota ${quota.level}`}>{quota.text}</span>
           <span class={`run-tokens ${contextLevel(tokenStats.lastContextTokens, windowTokens) ?? ""}`}>
             {tokenText(tokensKnown, record.tokensEst)} · {context}
           </span>
+          <span class={`run-quota ${quota.level}`}>{quota.text}</span>
         </div>
         <ContextBar fill={tokenStats.lastContextTokens} windowTokens={windowTokens} />
       </div>

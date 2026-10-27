@@ -27,6 +27,12 @@ describe("isOneSided (EPIC-P20 T20.1)", () => {
     expect(isOneSided(pairHunkLines("-alt\n+neu"))).toBe(false);
   });
 
+  it("die leere Schlusszeile hinter dem letzten \\n zählt nicht als Kontext (echte Hunks enden mit \\n)", () => {
+    expect(pairHunkLines("+a\n+b\n")).toHaveLength(2);
+    expect(isOneSided(pairHunkLines("+a\n+b\n"))).toBe(true);
+    expect(pairHunkLines(" kontext\n")).toHaveLength(1);
+  });
+
   it("ein leerer Hunk ist nicht einseitig", () => {
     expect(isOneSided([])).toBe(false);
   });
