@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { NormalizedEvent } from "../../../src/shared/ws.ts";
-import { visibleEventText } from "../../../src/features/session/event-text.ts";
+import { isOffloaded, visibleEventText, withBlobPayload } from "../../../src/features/session/event-text.ts";
 import { sessionsForOverview } from "../../../src/features/overview/session-list.ts";
 import type { SessionRecord } from "../../../src/shared/api.ts";
 
@@ -41,5 +41,32 @@ describe("sessionsForOverview", () => {
   it("hides archived sessions until the archive chip is on", () => {
     expect(sessionsForOverview([active, archived], false).map((s) => s.id)).toEqual(["a"]);
     expect(sessionsForOverview([active, archived], true).map((s) => s.id)).toEqual(["b"]);
+  });
+});
+
+describe("ausgelagerte Payloads (BUG-0068)", () => {
+  const text = `${"Absatz mit Inhalt. ".repeat(300)}ENDE`;
+  const offloaded = event({
+    type: "assistant",
+    summary: text.slice(0, 199) + "…",
+    blobRef: "sha256:abc",
+    payload: { truncated: true, bytes: text.length + 11, preview: JSON.stringify({ text }).slice(0, 256) },
+  });
+
+  it("erkennt ein vom EventStore ausgelagertes Payload", () => {
+    expect(isOffloaded(offloaded)).toBe(true);
+    // An adapter's own blob (raw stdout etc.) is not the payload.
+    expect(isOffloaded(event({ type: "tool_result", summary: "x", blobRef: "sha256:def", payload: { content: "x" } }))).toBe(false);
+  });
+
+  it("mit dem geladenen Blob zeigt der Chat den ganzen Text, nicht die 200-Zeichen-Zusammenfassung", () => {
+    const full = withBlobPayload(offloaded, JSON.stringify({ text }));
+    expect(visibleEventText(full)).toBe(text);
+    expect(visibleEventText(full).endsWith("ENDE")).toBe(true);
+  });
+
+  it("ein Blob, der kein Payload-Objekt ist, ändert nichts", () => {
+    expect(withBlobPayload(offloaded, "kein json")).toBe(offloaded);
+    expect(withBlobPayload(offloaded, "[1,2]")).toBe(offloaded);
   });
 });

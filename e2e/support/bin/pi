@@ -6,6 +6,9 @@
 //
 // Insists on the argv the adapter must build (BUG-0066): `-p`, `--mode json`,
 // and exactly one message after `--`.
+//
+// Keywords in the prompt:
+//   LANG  an answer over the 4 KB event limit (BUG-0068), ends with ENDE-DER-ANTWORT
 const argv = process.argv.slice(2);
 const sep = argv.indexOf("--");
 const messages = sep >= 0 ? argv.slice(sep + 1) : [];
@@ -33,7 +36,8 @@ emit({ type: "turn_end" });
 emit({ type: "turn_start" });
 update({ type: "thinking_end", contentIndex: 0, content: "Zwei Zeilen." });
 update({ type: "text_start", contentIndex: 1 });
-update({ type: "text_end", contentIndex: 1, content: `Antwort auf: ${prompt} · pi · notiz.txt hat 2 Zeilen.` });
+const long = prompt.includes("LANG") ? `\n\n${"Ein langer Absatz, der den Chat füllt. ".repeat(150)}\n\nENDE-DER-ANTWORT` : "";
+update({ type: "text_end", contentIndex: 1, content: `Antwort auf: ${prompt} · pi · notiz.txt hat 2 Zeilen.${long}` });
 emit({ type: "message_end", message: { role: "assistant", content: [], usage: { ...usage, input: 53, cacheRead: 1057, totalTokens: 1132 }, stopReason: "stop" } });
 emit({ type: "turn_end" });
 emit({ type: "agent_end", messages: [], willRetry: false });

@@ -287,3 +287,15 @@ test.describe("pi im Browser (BUG-0065)", () => {
     await expect(app.locator(".event.tool_result")).toContainText("alpha");
   });
 });
+
+test.describe("Lange Antworten im Chat (BUG-0068)", () => {
+  test("eine Antwort über 4 KB steht vollständig im Chat", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "pi", prompt: "Bitte LANG" });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant" && e.payload.truncated === true), "offloaded answer");
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const answer = app.locator(".event.assistant").last();
+    await expect(answer.locator(".summary")).toContainText("ENDE-DER-ANTWORT");
+    await expect(answer.locator(".full-text-note")).toHaveCount(0);
+  });
+});
