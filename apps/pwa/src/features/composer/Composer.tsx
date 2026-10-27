@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField, touchField, type FieldId } from "../../shared/command-context.ts";
 import { useApi } from "../../shared/api-context.ts";
 import type { ComponentChildren } from "preact";
@@ -75,7 +75,8 @@ export function Composer({
   valueRef.current = value;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
-  useEffect(() => (fieldId ? registerField(fieldId, { get: () => valueRef.current, set: (t) => onChangeRef.current(t) }) : undefined), [fieldId]);
+  const handle = useMemo(() => ({ get: () => valueRef.current, set: (t: string) => onChangeRef.current(t) }), []);
+  useEffect(() => (fieldId ? registerField(fieldId, handle) : undefined), [fieldId]);
   const supported = speechRecognitionSupported();
   const [listening, setListening] = useState(false);
   const [micError, setMicError] = useState("");
@@ -304,7 +305,12 @@ export function Composer({
         placeholder={placeholder}
         disabled={disabled}
         rows={2}
-        onFocus={() => fieldId && touchField(fieldId)}
+        onFocus={() => {
+          if (!fieldId) return;
+          // EPIC-P18: several tiles each have a reply field — the one used last is "the" field.
+          registerField(fieldId, handle);
+          touchField(fieldId);
+        }}
         onKeyDown={(e) => {
           if (onSubmit && (e.metaKey || e.ctrlKey) && e.key === "Enter" && !disabled) {
             e.preventDefault();

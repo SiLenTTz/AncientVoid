@@ -9,6 +9,8 @@ import { pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts
 import { applyTheme, getTheme } from "./theme.ts";
 import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
+import { TileWorkspace } from "../features/workspace/TileWorkspace.tsx";
+import { openInNewTile, openSession, parseWorkspace, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
 import type { Page } from "./Dock.tsx";
 import "./styles/index.css";
 
@@ -91,6 +93,12 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
 }
 
 const WIDE = "(min-width: 1280px)";
+const WORKSPACE_KEY = "uacc.workspace";
+
+function tileRefOf(session: SessionRecord): TileRef {
+  const host = remoteHost(session.hostId);
+  return host ? { sessionId: session.id, hostId: host } : { sessionId: session.id };
+}
 
 function useWide(): boolean {
   const [wide, setWide] = useState(() => matchMedia(WIDE).matches);
@@ -184,6 +192,23 @@ function Main() {
   const [staleAt, setStaleAt] = useState<Date | null>(null);
   const wide = useWide();
 
+  // EPIC-P18 T18.5: layout and tiles are this device's choice; the hash
+  // follows the focused tile (replaceState: focus moves are no history).
+  const [ws, setWs] = useState(() => parseWorkspace(localStorage.getItem(WORKSPACE_KEY)));
+  const changeWorkspace = (next: Workspace) => {
+    setWs(next);
+    localStorage.setItem(WORKSPACE_KEY, serializeWorkspace(next));
+    const focused = visibleTiles(next)[next.focus];
+    const hash = focused ? sessionHash(focused.sessionId, focused.hostId) : pageHash(route.view === "list" ? route.page : "dashboard");
+    if (location.hash !== hash) history.replaceState(null, "", hash);
+  };
+  // A deep link or Back to a session lands in the workspace too.
+  useEffect(() => {
+    if (!wide || route.view !== "tail") return;
+    const next = openSession(ws, tileRefOf(route.session));
+    if (next !== ws && (next.focus !== ws.focus || next.slots !== ws.slots)) changeWorkspace(next);
+  }, [wide, route]);
+
   if (!ready) return <TokenGate onReady={() => void becomeReady()} rejected={gateError} />;
 
   return (
@@ -201,27 +226,24 @@ function Main() {
           <aside class="split-list">
             <NotificationCenter />
             <App
-              onOpen={(session) => {
-                location.hash = sessionHash(session.id, remoteHost(session.hostId));
-                setRoute({ view: "tail", session });
+              onOpen={(session, opts) => {
+                const ref = tileRefOf(session);
+                changeWorkspace(opts?.newTile ? openInNewTile(ws, ref) : openSession(ws, ref));
               }}
               ready={() => setReady(false)}
               page={route.view === "list" ? route.page : "dashboard"}
             />
           </aside>
           <section class="split-detail">
-            {route.view === "tail" ? (
-              <SessionTail
-                key={route.session.id}
-                session={route.session}
-                {...(route.code ? { initialCode: route.code } : {})}
-                onNavigate={(page) => {
-                  location.hash = pageHash(page);
-                }}
-              />
-            ) : (
-              <div class="empty split-placeholder">Session links wählen</div>
-            )}
+            {/* EPIC-P18: up to four sessions as tiles. */}
+            <TileWorkspace
+              ws={ws}
+              onChange={changeWorkspace}
+              {...(route.view === "tail" && route.code ? { initialCode: { sessionId: route.session.id, code: route.code } } : {})}
+              onNavigate={(page) => {
+                location.hash = pageHash(page);
+              }}
+            />
           </section>
         </div>
       ) : route.view === "list" ? (
