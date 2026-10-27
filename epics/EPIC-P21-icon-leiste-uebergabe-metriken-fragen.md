@@ -23,8 +23,8 @@ Freitext) und gehen als strukturierte Antwort zurück. Messlatten: K2 (Latenz), 
   als senkrechte Icon-Leiste, Layout-/Fokus-/Tausch-/Leeren-Aktionen als Knöpfe, Fenster scrollt nie. Handy unverändert. Spec: `layout-desktop.spec.ts`.
 - [ ] **T21.2 — Provider-Ausfall erkennen und übergeben.** Login abgelaufen (401), Rate-Limit, Kontingent als Event + Banner mit Wahl des Ziels (Adapter + Modell);
   „Übergeben“ startet eine neue Session mit Zusammenfassung/Verlauf als Kontext (Blob, K5), verlinkt beide Sessions. Kein stilles Umschalten.
-- [ ] **T21.3 — Lauf-Metriken und Schätzung.** Pro Zug: Start, Ende, Dauer, Tokens (nativ/geschätzt), Modell, Adapter, Aufgabentyp. Aus JSONL rekonstruierbar (K7).
-  Schätzung = Median/P80 gleicher Adapter+Modell; weniger als 5 Läufe → „zu wenig Daten“.
+- [x] **T21.3 — Lauf-Metriken und Schätzung.** Pro Zug: Start, Ende, Dauer, Tokens (nativ/geschätzt), Modell, Adapter, Aufgabentyp. Aus JSONL rekonstruierbar (K7).
+  Schätzung = Median/P80 gleicher Adapter+Modell; weniger als 5 Läufe → „Schätzung ab 5 Läufen“. Tabelle `turn_metrics` (Migration 25) ist Cache, `backfillTurnMetrics()` baut sie beim Start aus dem JSONL nach; `GET /api/sessions/:id/turns|estimate`, `GET /api/metrics/turns`. Dauer ist Wanduhrzeit inkl. Freigabe-Wartezeit. Specs: `progress.spec.ts`, `turn-metrics.test.ts`.
 - [ ] **T21.4 — Fragen-Dialog (Hybrid).** Aus claude (`AskUserQuestion`), codex (native Fragen), opencode/maki (ACP-Elicitation) ein Formular: Optionen als Chips, Mehrfachauswahl, Freitext „Sonstiges“,
   Antwort strukturiert zurück, Frage bleibt nach Reload sichtbar, Timeout sichtbar.
 

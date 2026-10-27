@@ -42,6 +42,36 @@ test.describe("Fortschritt und Kontingent im Lauf", () => {
     await expect(app.locator(".run-bar")).toHaveCount(0);
   });
 
+  test("Lauf-Messwerte: nach 5 Zügen schätzt der Hub die Restzeit, davor ehrlich „ab 5 Läufen“ (T21.3)", async ({ app, hub }) => {
+    const idle = async (id: string) => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle";
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Messung eins WARTE2" });
+    await hub.until(() => idle(id), "turn 1 idle");
+    await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "Messung zwei WARTE2" } });
+    await hub.until(() => idle(id), "turn 2 idle");
+    await hub.until(async () => (await hub.api<{ turns: unknown[] }>(`/api/sessions/${id}/turns`)).body.turns.length === 2, "2 Züge gemessen");
+
+    await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "Messung drei WARTE12" } });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.locator(".run-progress")).toContainText("Schätzung ab 5 Läufen (bisher 2)");
+    await expect(app.locator(".run-progress")).not.toContainText("≈ noch");
+
+    for (const n of [4, 5, 6]) {
+      await hub.until(() => idle(id), `turn ${n - 1} idle`);
+      await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: `Messung ${n} WARTE2` } });
+    }
+    await hub.until(() => idle(id), "turn 6 idle");
+    const turns = (await hub.api<{ turns: { outcome: string; durationMs: number }[] }>(`/api/sessions/${id}/turns`)).body.turns;
+    expect(turns.length).toBeGreaterThanOrEqual(5);
+    expect(turns.every((t) => t.outcome === "ok" && t.durationMs > 0)).toBe(true);
+    const est = (await hub.api<{ state: string; n: number; medianMs: number }>(`/api/sessions/${id}/estimate`)).body;
+    expect(est).toMatchObject({ state: "ok" });
+    expect(est.n).toBeGreaterThanOrEqual(5);
+
+    await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "Messung sieben WARTE12" } });
+    await app.reload();
+    await expect(app.locator(".run-progress")).toContainText(/≈ noch .+ · typisch .+ · \d+ Läufe, (dieser Harness|dieses Modell)/);
+  });
+
   test("die ganze Session-Ansicht trägt den aktiven Rahmen wie die Übersichtskarte", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Rahmen WARTE6" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);

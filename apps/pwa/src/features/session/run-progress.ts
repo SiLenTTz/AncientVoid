@@ -1,4 +1,4 @@
-import type { AdapterUsage, UsageQuota } from "../../shared/api.ts";
+import type { AdapterUsage, RunEstimate, UsageQuota } from "../../shared/api.ts";
 import type { NormalizedEvent } from "../../shared/ws.ts";
 
 /**
@@ -156,6 +156,19 @@ export function formatMinutes(ms: number): string {
   if (minutes < 1) return "< 1 min";
   if (minutes < 60) return `${minutes} min`;
   return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}
+
+/**
+ * T21.3: the hub's estimate from measured turns of the same adapter/model, as one honest sentence.
+ * Never a number without data (R9.7): too few finished turns say so, an overrun says "länger als üblich".
+ */
+export function estimateText(est: RunEstimate | null, elapsedMs: number): string | null {
+  if (!est || est.state === "no-data") return null;
+  if (est.state === "too-few" || est.medianMs === null || est.p80Ms === null) return `Schätzung ab 5 Läufen (bisher ${est.n})`;
+  const basis = `${est.n} Läufe${est.basis === "adapter" ? ", dieser Harness" : ", dieses Modell"}`;
+  if (elapsedMs > est.p80Ms) return `länger als 80 % der Läufe (${formatMinutes(est.p80Ms)}) · ${basis}`;
+  const remaining = Math.max(0, est.medianMs - elapsedMs);
+  return `≈ noch ${formatMinutes(remaining)} · typisch ${formatMinutes(est.medianMs)}, bis ${formatMinutes(est.p80Ms)} · ${basis}`;
 }
 
 const WINDOW_LABELS: Record<string, string> = { five_hour: "5h", seven_day: "7d" };

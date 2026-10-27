@@ -2,7 +2,7 @@ import { TabIcon, type TabIconName } from "../../shared/TabIcon.tsx";
 import { Fragment } from "preact";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiContext } from "../../shared/api-context.ts";
-import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord, type HarnessFeatures } from "../../shared/api.ts";
+import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord, type HarnessFeatures, type RunEstimate } from "../../shared/api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "../../shared/ws.ts";
 import { Composer } from "../composer/Composer.tsx";
 import { SessionConfigure } from "./SessionConfigure.tsx";
@@ -21,7 +21,7 @@ import { getSeen, markSeen, seenKey } from "../../shared/seen.ts";
 import { loadTail, saveTail } from "./tail-cache.ts";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
-import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
+import { estimateText, formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
 import { ContextBar } from "./ContextBar.tsx";
 import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, tokenText } from "./run-stats.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
@@ -394,6 +394,16 @@ export function SessionTail({
     };
   }, [session.adapter]);
   const progress = runProgress(events, status, now);
+  // T21.3: measured turns of the same adapter/model — fetched when a turn starts, never guessed client-side.
+  const [estimate, setEstimate] = useState<RunEstimate | null>(null);
+  useEffect(() => {
+    if (status !== "working") return;
+    let alive = true;
+    api.runEstimate(session.id).then((e) => alive && setEstimate(e)).catch(() => alive && setEstimate(null));
+    return () => {
+      alive = false;
+    };
+  }, [api, session.id, status === "working"]);
   const quota = quotaSummary(quotaUsage, events);
   // ADR-0032: tokens per finished turn + the current context fill; the
   // window of the chosen model (model announce) beats the static adapter value.
@@ -746,6 +756,7 @@ export function SessionTail({
               {progress.medianTurnMs !== null
                 ? ` · Zug hier meist ${formatMinutes(progress.medianTurnMs)} (${progress.turnCount} gelaufen)`
                 : " · ohne Plan kein Fortschritt messbar"}
+              {estimateText(estimate, progress.elapsedMs) ? ` · ${estimateText(estimate, progress.elapsedMs)}` : ""}
             </div>
           ))}
         {/* One line, never wrapping: quota, then the always-present token line
