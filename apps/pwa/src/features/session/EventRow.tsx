@@ -1,8 +1,10 @@
+import { memo } from "preact/compat";
 import { useEffect, useState } from "preact/hooks";
 import { getToken } from "../../shared/api.ts";
 import { type NormalizedEvent } from "../../shared/ws.ts";
-import { visibleEventText } from "./event-text.ts";
+import { isOffloaded, visibleEventText, withBlobPayload } from "./event-text.ts";
 import { isEmptyThinking, toolIdOf } from "./event-filter.ts";
+import { Markdown } from "../../shared/Markdown.tsx";
 import { AttachmentChips, type AttachmentRef } from "../attachments/Attachments.tsx";
 
 export function toolAnchor(toolId: string, side: "use" | "result"): string {
@@ -22,18 +24,57 @@ export function eventDetail(event: NormalizedEvent): string {
   }
 }
 
+/** Blob texts by hash — rows remount while scrolling, the blob never changes. */
+const blobCache = new Map<string, string>();
+
+function fetchBlob(event: NormalizedEvent): Promise<string> {
+  const hash = (event.blobRef ?? "").replace(/^sha256:/, "");
+  const hit = blobCache.get(hash);
+  if (hit !== undefined) return Promise.resolve(hit);
+  return fetch(`/api/sessions/${event.sessionId}/blobs/${hash}`, {
+    headers: { authorization: `Bearer ${getToken()}` },
+  })
+    .then((res) => (res.ok ? res.text() : Promise.reject(new Error("blob"))))
+    .then((text) => {
+      if (blobCache.size > 200) blobCache.delete(blobCache.keys().next().value!);
+      blobCache.set(hash, text);
+      return text;
+    });
+}
+
+/** BUG-0068: an answer over 4 KB lives in a blob — load it so the chat
+ * shows the whole text. `failed` keeps the shortened row honest. */
+function useFullEvent(event: NormalizedEvent): { event: NormalizedEvent; state: "ok" | "loading" | "failed" } {
+  const offloaded = isOffloaded(event);
+  const [raw, setRaw] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (!offloaded) return;
+    let alive = true;
+    fetchBlob(event)
+      .then((text) => {
+        if (alive) setRaw(text);
+      })
+      .catch(() => {
+        if (alive) setFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [offloaded, event.blobRef, event.sessionId]);
+  if (!offloaded) return { event, state: "ok" };
+  if (raw !== null) return { event: withBlobPayload(event, raw), state: "ok" };
+  return { event, state: failed ? "failed" : "loading" };
+}
+
 export function EventDetail({ event }: { event: NormalizedEvent }) {
   const [blob, setBlob] = useState<string | null>(null);
   useEffect(() => {
     if (!event.blobRef) return;
-    const hash = event.blobRef.replace(/^sha256:/, "");
     let alive = true;
-    fetch(`/api/sessions/${event.sessionId}/blobs/${hash}`, {
-      headers: { authorization: `Bearer ${getToken()}` },
-    })
-      .then((res) => (res.ok ? res.text() : Promise.reject(new Error("blob"))))
+    fetchBlob(event)
       .then((text) => {
-        if (alive) setBlob(text);
+        if (alive) setBlob(isOffloaded(event) ? eventDetail(withBlobPayload(event, text)) : text);
       })
       .catch(() => {
         if (alive) setBlob("Details konnten nicht geladen werden.");
@@ -51,8 +92,8 @@ export function onCardClick(ev: { target: EventTarget | null }, toggle: () => vo
   toggle();
 }
 
-export function EventRow({
-  event,
+function EventRowView({
+  event: rowEvent,
   expanded,
   onToggleExpand,
   toolResult,
@@ -66,6 +107,7 @@ export function EventRow({
   toolResult: NormalizedEvent | undefined;
   onJump: (anchor: string) => void;
 }) {
+  const { event, state: fullText } = useFullEvent(rowEvent);
   const time = new Date(event.ts).toLocaleTimeString("de-DE");
   const blobNote = event.blobRef ? " ⛁" : "";
   const toolId = toolIdOf(event);
@@ -98,7 +140,7 @@ export function EventRow({
         </div>
         <div class="summary">{event.summary}</div>
         <CopyButton text={copyText(event)} />
-        {expanded && <EventDetail event={event} />}
+        {expanded && <EventDetail event={rowEvent} />}
       </div>
     );
   }
@@ -124,7 +166,7 @@ export function EventRow({
         </div>
         <div class="summary">{event.summary}</div>
         <CopyButton text={copyText(event)} />
-        {expanded && <EventDetail event={event} />}
+        {expanded && <EventDetail event={rowEvent} />}
       </div>
     );
   }
@@ -151,7 +193,7 @@ export function EventRow({
         </div>
         <div class="summary">{event.summary}</div>
         <CopyButton text={copyText(event)} />
-        {expanded && <EventDetail event={event} />}
+        {expanded && <EventDetail event={rowEvent} />}
       </div>
     );
   }
@@ -175,7 +217,7 @@ export function EventRow({
           {event.summary}
           {skillNote && <span class="badge waiting"> · Gestartet mit {skillNote}</span>}
         </div>
-        {expanded && <EventDetail event={event} />}
+        {expanded && <EventDetail event={rowEvent} />}
       </div>
     );
   }
@@ -195,13 +237,22 @@ export function EventRow({
         </span>
         <span>{time}</span>
       </div>
-      <div class="summary prose">{visibleEventText(event)}</div>
+      {event.type === "assistant" ? (
+        <Markdown class="summary prose" text={visibleEventText(event)} />
+      ) : (
+        <div class="summary prose">{visibleEventText(event)}</div>
+      )}
+      {fullText !== "ok" && (
+        <div class={`dim full-text-note${fullText === "failed" ? " failed" : ""}`}>
+          {fullText === "loading" ? "Langer Text wird geladen …" : "Gekürzt — der volle Text konnte nicht geladen werden."}
+        </div>
+      )}
       {prompt && Array.isArray((event.payload as { attachments?: unknown }).attachments) && (
         <AttachmentChips refs={(event.payload as { attachments: AttachmentRef[] }).attachments} />
       )}
       {typeof errorDetail === "string" && <div class="dim provider-error-detail">{errorDetail}</div>}
       {(event.type === "assistant" || prompt) && <CopyButton text={visibleEventText(event)} />}
-      {expanded && <EventDetail event={event} />}
+      {expanded && <EventDetail event={rowEvent} />}
     </div>
   );
 }
@@ -238,3 +289,12 @@ function CopyButton({ text }: { text: string }) {
     </button>
   );
 }
+
+/** EPIC-P18 T18.6 (K2 with four tiles): a row renders again only when what
+ * it shows changed. Every WS batch re-rendered up to 500 rows per tile —
+ * p95 880 ms with four tiles at 30 ev/s. The callbacks are left out on
+ * purpose: they are recreated each render but do the same for this row. */
+export const EventRow = memo(
+  EventRowView,
+  (a, b) => a.event === b.event && a.expanded === b.expanded && a.toolResult === b.toolResult,
+);

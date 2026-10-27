@@ -205,6 +205,12 @@ export class TestHub {
           config: { command: join(binDir, "cursor-agent"), model: "auto" },
         },
         {
+          // BUG-0065/0066: pi coding agent stand-in (`pi -p --mode json`).
+          id: "pi",
+          module: "@uacc/adapter-pi",
+          config: { command: join(binDir, "pi"), model: "evo/qwen-e2e", contextWindowTokens: 131072 },
+        },
+        {
           // T7.2: an ACP harness (stand-in agent, real protocol) — with the
           // Harnez pattern: a configured default model plus a listing
           // command, so the start form shows a dropdown with the default.

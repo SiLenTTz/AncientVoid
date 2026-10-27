@@ -22,7 +22,8 @@ export function App({
   ready,
   page,
 }: {
-  onOpen: (session: SessionRecord) => void;
+  /** `newTile`: Ctrl/⌘-click — open next to the others (EPIC-P18). */
+  onOpen: (session: SessionRecord, opts?: { newTile?: boolean }) => void;
   ready: () => void;
   /** T8.1: the page comes from the URL (#/neu, #/status …). */
   page: Page;

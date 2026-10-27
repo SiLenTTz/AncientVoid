@@ -18,3 +18,23 @@ export function visibleEventText(event: NormalizedEvent): string {
   }
   return event.summary;
 }
+
+/** BUG-0068: the EventStore moved this payload to a blob (K5) and left
+ * `{truncated, bytes, preview}` behind. An adapter's own blobRef (raw
+ * output next to a real payload) is not that. */
+export function isOffloaded(event: NormalizedEvent): boolean {
+  return event.blobRef !== null && event.payload.truncated === true;
+}
+
+/** The event with its real payload from the blob — unchanged when the blob
+ * is not a payload object, so a bad blob never blanks the row. */
+export function withBlobPayload(event: NormalizedEvent, raw: string): NormalizedEvent {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return event;
+  }
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return event;
+  return { ...event, payload: payload as Record<string, unknown> };
+}

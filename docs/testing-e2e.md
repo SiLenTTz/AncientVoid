@@ -74,6 +74,12 @@ npm run gate                        # typecheck + lint + vitest + E2E
 
 Fehlt Chromium, scheitert der Lauf laut. Es gibt kein stilles Überspringen.
 
+**In einem Hub-Session-Worktree** (`data/worktrees/<id>/`) fehlen eigene
+`node_modules/@uacc/*`. Node fände dann die Pakete des Haupt-Checkouts, und
+der E2E-Hub liefe mit dem Code von `main` (BUG-0069). `test:e2e` und `gate`
+brechen deshalb vorher mit `check:workspace-links` ab.
+`node scripts/check-workspace-links.mjs --fix` setzt die Links auf den Worktree.
+
 ## Auf dem echten Handy (`npm run test:phone`)
 
 Dieselben Specs laufen im Chrome eines per `adb` verbundenen Android-Handys (Projekt `phone`). Der Test-Hub

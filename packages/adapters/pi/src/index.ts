@@ -1,24 +1,26 @@
 import { z } from "zod";
-import type {
-  Adapter,
-  AdapterCapabilities,
-  AdapterContext,
-  Ack,
-  HealthReport,
-  SessionHandle,
-  SessionSpec,
-  SteerInput,
-  WorkerProcess,
+import {
+  providerErrorEvent,
+  type Adapter,
+  type AdapterCapabilities,
+  type AdapterContext,
+  type Ack,
+  type HealthReport,
+  type SessionHandle,
+  type SessionSpec,
+  type SteerInput,
+  type WorkerProcess,
 } from "@uacc/contracts";
+import { createPiStream } from "./normalize.ts";
 
 /**
- * pi adapter (pi coding agent, badlogic/pi). Spawns `pi exec --continue`
+ * pi adapter (pi coding agent, badlogic/pi). Spawns `pi -p --mode json --continue`
  * per turn — pi keeps its own session state in ~/.pi/agent/sessions keyed
  * by cwd, so consecutive turns in the same project continue the thread.
  *
  * Verified behaviour (evox2 + zeratul, 2026-10-25):
  * - headless ONLY without a pty; the hub's tmux worker provides one, but
- *   pi exec exits fine when stdin is not a terminal — it never blocks.
+ *   pi -p exits fine when stdin is not a terminal — it never blocks.
  * - model choice via `--model provider/id`; custom providers from
  *   ~/.pi/agent/models.json (providers-OBJECT, apiKey directly).
  *
@@ -33,6 +35,9 @@ const PiConfig = z.object({
    * session's own model choice (SessionSpec.model) always wins — without
    * either, pi runs its own default and the hub says so honestly. */
   model: z.string().min(1).optional(),
+  /** ADR-0032: the model's context window in tokens, from pi's own
+   * models.json (`contextWindow`) — pi does not report it in the stream. */
+  contextWindowTokens: z.number().int().positive().optional(),
 });
 type PiConfig = z.infer<typeof PiConfig>;
 
@@ -48,31 +53,38 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const sessionModels = new Map<string, string | undefined>();
 
   function buildArgs(prompt: string, model: string | undefined, first: boolean): string[] {
-    // pi exec hangs when stdin is a TTY (hub workers run under tmux) — route
+    // pi -p hangs when stdin is a TTY (hub workers run under tmux) — route
     // through sh with stdin redirected from /dev/null, stdout stays piped.
-    const piArgs = [cfg.command, "exec"];
+    // BUG-0066: pi 1.4.0 has no `exec` subcommand — positionals are messages,
+    // so `exec` became its own turn. `-p` is the headless mode; `--` keeps a
+    // prompt starting with "-" from being read as a flag.
+    const piArgs = [cfg.command, "-p", "--mode", "json"];
     if (!first) piArgs.push("--continue");
     if (model) piArgs.push("--model", model);
-    piArgs.push(...cfg.extraArgs, JSON.stringify(prompt));
+    piArgs.push(...cfg.extraArgs, "--", prompt);
     const cmdline = piArgs.map((a) => (/^[A-Za-z0-9_@%+=:,./-]+$/.test(a) ? a : "'" + a.replace(/'/g, "'\\''") + "'")).join(" ");
     return ["sh", "-c", cmdline + " </dev/null"];
   }
 
   function attach(ctx: AdapterContext, proc: WorkerProcess, meta: SessionMeta) {
-    let stdout = "";
+    // BUG-0065: `--mode json` streams thinking, tool calls and results;
+    // each finished block is emitted live instead of one text at exit.
+    const stream = createPiStream();
+    let stderr = "";
     procs.set(ctx.sessionId, proc);
     proc.onStdout((chunk: string) => {
-      stdout += chunk;
+      for (const event of stream.push(chunk)) ctx.emit(event);
     });
     proc.onStderr((chunk: string) => {
+      stderr = (stderr + chunk).slice(-2000);
       ctx.log("warn", "pi stderr", { chunk: chunk.slice(0, 500) });
     });
     proc.onExit((code: number | null) => {
       meta.busy = false;
-      const text = stdout.trim();
-      if (text) {
-        ctx.emit({ type: "assistant", summary: text.slice(0, 200), payload: { text } });
-      }
+      for (const event of stream.end()) ctx.emit(event);
+      // JSON mode keeps stdout for records only — a failing pi says why on
+      // stderr, which must not stay in the log alone (fail loud).
+      if (code !== 0 && code !== null && stderr.trim()) ctx.emit(providerErrorEvent("pi", stderr.trim()));
       ctx.emit({ type: "system", summary: "pi: turn finished", payload: { kind: "pi.turn_end", code: code ?? 0 } });
       if (code !== 0 && code !== null) meta.healthy = false;
       if (procs.get(ctx.sessionId) === proc) procs.delete(ctx.sessionId);
@@ -92,6 +104,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         usage: false,
         nativeDiscovery: "none",
         nativeResume: "none",
+        ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),
         features: {
           followUp: true,
           interrupt: true,
@@ -119,7 +132,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const model = spec.model ?? cfg.model;
       sessionModels.set(ctx.sessionId, model);
       if (model) {
-        ctx.emit({ type: "system", summary: `pi: Modell ${model}`, payload: { kind: "pi.model", model } });
+        ctx.emit({
+          type: "system",
+          summary: `pi: Modell ${model}`,
+          payload: { kind: "pi.model", model, ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}) },
+        });
       }
       const proc = await ctx.spawnWorker(
         buildArgs(spec.prompt ?? "(Session startet — bitte bestätigen mit OK)", model, true),

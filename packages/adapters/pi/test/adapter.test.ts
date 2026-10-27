@@ -1,4 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { execFileSync } from "node:child_process";
+import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { WorkerProcess } from "@uacc/contracts";
 import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
 import { createAdapter } from "../src/index.ts";
@@ -77,5 +81,104 @@ describe("pi adapter model handling", () => {
     expect(ack.ok).toBe(true);
     expect(spawned[1]!.join(" ")).toContain(`--model ${EVOX2}`);
     expect(spawned[1]!.join(" ")).toContain("--continue");
+  });
+});
+
+describe("pi adapter prompt argv (BUG-0066)", () => {
+  // Run the built command line through a real `sh`, with the pi binary
+  // replaced by a script that prints its argv — so the test sees exactly
+  // what pi would receive, quoting included.
+  function argvPi(): string {
+    const dir = mkdtempSync(join(tmpdir(), "uacc-pi-argv-"));
+    const bin = join(dir, "pi");
+    writeFileSync(bin, `#!/bin/sh\nexec "${process.execPath}" -e 'process.stdout.write(JSON.stringify(process.argv.slice(1)))' -- "$@"\n`);
+    chmodSync(bin, 0o755);
+    return bin;
+  }
+
+  function received(cmd: string[]): string[] {
+    return JSON.parse(execFileSync(cmd[0]!, cmd.slice(1), { encoding: "utf8" })) as string[];
+  }
+
+  const prompts = ["hallo", 'Sag "OK" und dann \'tschüss\'', "-v ist keine Option", "$HOME `id` ; echo x"];
+
+  it.each(prompts)("pi bekommt den Prompt unverändert als einzige Nachricht: %s", async (prompt) => {
+    const adapter = createAdapter({ command: argvPi(), model: EVOX2 });
+    const { ctx, spawned } = recording();
+    const handle = await adapter.start({ adapter: "pi", project: process.cwd(), prompt }, ctx);
+    await adapter.steer(handle, { kind: "prompt", text: prompt }, ctx);
+    for (const cmd of spawned) {
+      const argv = received(cmd);
+      expect(argv).not.toContain("exec");
+      // Everything after `--` is a message; exactly one, verbatim.
+      expect(argv.slice(argv.indexOf("--") + 1)).toEqual([prompt]);
+    }
+  });
+});
+
+describe("pi adapter streams the json run (BUG-0065)", () => {
+  it("Thinking und Tool-Aufruf kommen ins Event-Log, während pi noch läuft", async () => {
+    let out: (chunk: string) => void = () => undefined;
+    const exitCbs = new Set<(code: number | null) => void>();
+    const proc: WorkerProcess = {
+      onStdout: (cb) => {
+        out = cb;
+      },
+      onStderr: () => undefined,
+      onExit: (cb) => exitCbs.add(cb),
+      write: () => undefined,
+      kill: async () => undefined,
+      exited: () => new Promise(() => undefined),
+    };
+    const ctx = makeRecordingContext({ spawnWorker: async () => proc });
+    const adapter = createAdapter({});
+    await adapter.start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx);
+    out(JSON.stringify({ type: "message_update", assistantMessageEvent: { type: "thinking_end", contentIndex: 0, content: "erst lesen" } }) + "\n");
+    out(JSON.stringify({ type: "message_update", assistantMessageEvent: { type: "toolcall_end", contentIndex: 1, toolCall: { type: "toolCall", id: "c1", name: "read", arguments: { path: "a" } } } }) + "\n");
+    expect(ctx.events.map((e) => e.type)).toEqual(expect.arrayContaining(["thinking", "tool_use"]));
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "pi.turn_end")).toBe(false);
+    for (const cb of exitCbs) cb(0);
+    expect(ctx.events.at(-1)?.payload).toMatchObject({ kind: "pi.turn_end" });
+  });
+
+  it("pi läuft im JSON-Modus", async () => {
+    const adapter = createAdapter({});
+    const { ctx, spawned } = recording();
+    await adapter.start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx);
+    expect(spawned[0]!.join(" ")).toContain("-p --mode json");
+  });
+
+  it("ein Absturz mit Grund auf stderr wird sichtbar", async () => {
+    let err: (chunk: string) => void = () => undefined;
+    const exitCbs = new Set<(code: number | null) => void>();
+    const proc: WorkerProcess = {
+      onStdout: () => undefined,
+      onStderr: (cb) => {
+        err = cb;
+      },
+      onExit: (cb) => exitCbs.add(cb),
+      write: () => undefined,
+      kill: async () => undefined,
+      exited: () => new Promise(() => undefined),
+    };
+    const ctx = makeRecordingContext({ spawnWorker: async () => proc });
+    await createAdapter({}).start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx);
+    err("Error: No API key found for provider evo-evox2\n");
+    for (const cb of exitCbs) cb(1);
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "provider.error")).toBe(true);
+  });
+});
+
+describe("pi context window (ADR-0032)", () => {
+  it("die konfigurierte Fenstergröße steht in den Capabilities und in der Modell-Ansage", async () => {
+    const adapter = createAdapter({ model: EVOX2, contextWindowTokens: 131072 });
+    expect(adapter.capabilities().contextWindowTokens).toBe(131072);
+    const { ctx } = recording();
+    await adapter.start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx);
+    expect(ctx.events.find((e) => e.payload.kind === "pi.model")?.payload).toMatchObject({ model: EVOX2, contextWindowTokens: 131072 });
+  });
+
+  it("ohne Konfiguration bleibt die Größe unbekannt", () => {
+    expect(createAdapter({}).capabilities().contextWindowTokens).toBeUndefined();
   });
 });
