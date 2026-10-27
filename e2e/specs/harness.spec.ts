@@ -272,3 +272,18 @@ test.describe("Codex app-server (T7.2)", () => {
   });
 });
 
+
+test.describe("pi im Browser (BUG-0065)", () => {
+  test("der Verlauf zeigt Thinking, Tool-Aufruf, Tool-Ergebnis und Antwort", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "pi", prompt: "Wie viele Zeilen hat notiz.txt?" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.locator(".tail-scroll").getByText("Antwort auf: Wie viele Zeilen hat notiz.txt? · pi · notiz.txt hat 2 Zeilen.")).toBeVisible();
+    await app.getByRole("button", { name: "Verlauf" }).click();
+    await expect(app.locator(".event.thinking")).toHaveCount(2);
+    await expect(app.locator(".event.thinking").first()).toContainText("Erst die Datei notiz.txt lesen.");
+    await expect(app.locator(".event.tool_use")).toContainText("read");
+    await expect(app.locator(".event.tool_use")).toContainText("notiz.txt");
+    await expect(app.locator(".event.tool_result")).toContainText("alpha");
+  });
+});

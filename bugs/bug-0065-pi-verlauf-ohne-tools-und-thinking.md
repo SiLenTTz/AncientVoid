@@ -1,7 +1,7 @@
 ---
 id: BUG-0065
 slug: pi-verlauf-ohne-tools-und-thinking
-status: open
+status: done
 severity: S2
 area: adapters
 instance: prod
