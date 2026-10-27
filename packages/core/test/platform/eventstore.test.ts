@@ -142,4 +142,38 @@ describe("EventStore", () => {
     await expect(store.readBlob("gc-session", blob.hash)).rejects.toThrow();
     await expect(readFile(join(dir, "sessions", "gc-session", "events.jsonl"))).rejects.toThrow();
   });
+
+  describe("tail", () => {
+    it("pages by seq with limit, skips torn lines, tolerates missing file", async () => {
+      await store.initSession("tail1");
+      await store.append("tail1", Array.from({ length: 250 }, (_, i) => ev(i + 1)));
+      await store.flush("tail1");
+      await writeFile(join(dir, "sessions", "tail1", "events.jsonl"), '{"seq":251,"tor', { flag: "a" });
+
+      const first = await store.tail("tail1", 0, 100);
+      expect(first.map((e) => e.seq)).toEqual(Array.from({ length: 100 }, (_, i) => i + 1));
+      const mid = await store.tail("tail1", 100, 100);
+      expect(mid[0]!.seq).toBe(101);
+      expect(mid).toHaveLength(100);
+      const rest = await store.tail("tail1", 200, 100);
+      expect(rest.map((e) => e.seq)).toEqual(Array.from({ length: 50 }, (_, i) => i + 201));
+      expect(await store.tail("tail1", 250, 100)).toEqual([]);
+      expect(await store.tail("does-not-exist", 0, 100)).toEqual([]);
+    });
+
+    it("schreibt in Aufrufreihenfolge, auch wenn ein früheres Event einen Blob braucht", async () => {
+      await store.initSession("order1");
+      const big = { ...ev(1), payload: { text: "x".repeat(8000) } };
+      await Promise.all([store.append("order1", [big]), store.append("order1", [ev(2)]), store.append("order1", [ev(3)])]);
+      await store.flush("order1");
+      expect((await store.replay("order1")).map((e) => e.seq)).toEqual([1, 2, 3]);
+    });
+
+    it("liefert Altbestand mit lokal vertauschter seq sortiert", async () => {
+      await store.initSession("legacy1");
+      const lines = [1, 3, 4, 2, 5].map((n) => JSON.stringify(ev(n))).join("\n") + "\n";
+      await writeFile(join(dir, "sessions", "legacy1", "events.jsonl"), lines);
+      expect((await store.tail("legacy1", 1, 10)).map((e) => e.seq)).toEqual([2, 3, 4, 5]);
+    });
+  });
 });
