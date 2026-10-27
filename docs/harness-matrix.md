@@ -26,6 +26,7 @@ dieser Session.
 | acp · copilot | 1.0.88 `--acp` | ✓ | ✓ | native | — | — | — | ✓ | ✓ | — | — | — |
 | acp · opencode | 1.18.32 `acp` | ✓ | ✓ | native | — | ✓ | — | ✓ | ✓ | — | — | — |
 | acp · dsh | 0.2.1-rc.2 `--profile acp` | ✓ | ✓ | native | — | ✓ | — | — | ✓ | — | — | — |
+| acp · maki | 0.6.5 `maki acp` | ✓ | ✓ | native | — | ✓ | — | — | ✓ | — | — | — |
 <!-- harness-matrix:end -->
 
 ## Belege je Zeile
@@ -106,3 +107,5 @@ Der Heim-Hub weicht von der Standard-Konfiguration ab: claude mit
   lokale Modell über opencode oder dsh (Zeilen `acp · …`,
   [local-llm.md](local-llm.md)).
 - `swarm`: kommt mit T7.5.
+
+**maki (2026-10-27):** `preset: "maki"` startet `maki acp` (Rechte-Abfragen im Client, `question` als ACP-Formular). Installation `~/.local/bin/maki`. Provider-Plan und Thinking stehen in `~/.config/maki/providers.toml` (`[zai] plan = "coding"`) und `init.lua` (`always_thinking = "high"`, GLM-5.3 verlangt low/high/max). Der Key kommt per `envFiles: { ZHIPU_API_KEY: "~/.config/uacc/glm-coding.key" }`. Live: Hub-Session antwortet „OK“ (glm-5.3).
