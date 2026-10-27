@@ -17,7 +17,7 @@ dieser Session.
 | codex | 0.156.1 `app-server` | ✓ | ✓ | native | ✓ | ✓ | — | ✓ | ✓ | — | — | — |
 | opencode | 1.18.32 | ✓ | ✓ | allowlist | — | ✓ | ✓ | ✓ | ✓ | — | — | — |
 | copilot | 1.0.88 | ✓ | ✓ | bypass | — | ✓ | ✓ | — | — | — | — | — |
-| pi | pi coding agent (`pi exec`), 2026-10-26 | ✓ | ✓ | bypass | — | ✓ | — | — | — | — | — | — |
+| pi | pi coding agent 1.4.0 (`pi -p`), 2026-10-26 | ✓ | ✓ | bypass | — | ✓ | — | — | — | — | — | — |
 | aider | 0.86.2 | — | ✓ | bypass | — | ✓ | — | — | — | — | — | — |
 | hermes | hermes-agent venv, 03.10.2026 | ✓ | ✓ | bypass | — | ✓ | — | — | — | — | — | — |
 | cursor-clip | Cursor state.vscdb | — | — | none | — | — | — | — | — | — | — | — |

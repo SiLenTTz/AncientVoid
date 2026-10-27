@@ -61,7 +61,7 @@ Welche Funktion jeder Harness wirklich hat (Folgeprompt, Anhalten, Tool-Freigabe
 | `codex` | CLI (`app-server` JSON-RPC, früher `exec`) | ✓ | ✓ | ~ | ✓ | ✓ | proven | P1 | `codex resume <id>` |
 | `opencode` | CLI (`--format json`) | ✓ | ✓ | ✓ | ✓ | — | proven | P3 | `opencode --session <id>` |
 | `copilot` | CLI (`--output-format json`) | — | ✓ | — | ✓ | — | proven (echte, authentifizierte GitHub-Copilot-CLI 1.0.86 auf dieser Maschine, echte Live-Captures inkl. Tool-Erfolg/-Fehler) | P3 | — |
-| `pi` | CLI (`pi exec`, Events+Plaintext) | ✓ | ✓ | — | ✓ | — | proven (pi exec headless live auf omarchy, MR !200) | P16 | — |
+| `pi` | CLI (`pi -p`, Events+Plaintext) | ✓ | ✓ | — | ✓ | — | proven (pi -p headless live auf omarchy, MR !200; BUG-0066) | P16 | — |
 | `swarm` | custom-rag Coding-Swarm REST | ✓ | ✓ | ✓ | ✓ | ? | geplant (Spec real, keine Live-Instanz) | P3 | — |
 | ~~`zai`~~ | — | — | — | — | — | — | **entfällt** — real läuft über `opencode` (Provider `zai-coding-plan`) | P3 |
 | `local-llm` | OpenAI-kompatibel | ✓ | — | — | ✓ | — | Vorlage bereit (keine lokale Instanz zum Prüfen) | P3 | — |
