@@ -1,4 +1,4 @@
-import { newEvents, shouldResync } from "./ws-protocol.ts";
+import { newEvents, resyncDelayMs, shouldResync } from "./ws-protocol.ts";
 
 /**
  * WS delta-protocol client (counterpart of apps/hub/src/ws.ts).
@@ -36,6 +36,8 @@ export function connectTail(opts: TailOptions): TailConnection {
   let socket: WebSocket | null = null;
   let backoffMs = 500;
   let resyncedFrom = -1;
+  let resyncAttempts = 0;
+  let resyncTimer: ReturnType<typeof setTimeout> | null = null;
 
   const open = () => {
     opts.onState(lastSeq === 0 ? "connecting" : "reconnecting");
@@ -61,15 +63,26 @@ export function connectTail(opts: TailOptions): TailConnection {
           if (data.baseline && lastSeq === 0 && data.events[0]) lastSeq = data.events[0].seq - 1;
           const incoming = newEvents(lastSeq, data.events);
           const first = incoming[0];
-          if (shouldResync(lastSeq, first?.seq, data.dropped, resyncedFrom === lastSeq)) {
-            // Gap or dropped batch — resync from last known seq (once per seq).
+          if (resyncedFrom !== lastSeq) {
             resyncedFrom = lastSeq;
-            socket?.send(JSON.stringify({ type: "resync", since: lastSeq }));
+            resyncAttempts = 0;
+          }
+          if (shouldResync(lastSeq, first?.seq, data.dropped, resyncAttempts)) {
+            // Gap or dropped batch — resync from last known seq, with backoff and a bounded number of tries.
+            if (!resyncTimer) {
+              const since = lastSeq;
+              resyncTimer = setTimeout(() => {
+                resyncTimer = null;
+                if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "resync", since }));
+              }, resyncDelayMs(resyncAttempts));
+              resyncAttempts++;
+            }
             return;
           }
           if (incoming.length > 0) {
             lastSeq = incoming[incoming.length - 1]!.seq;
             resyncedFrom = -1;
+            resyncAttempts = 0;
             opts.onState("live");
             opts.onEvents(incoming);
           }
@@ -84,6 +97,8 @@ export function connectTail(opts: TailOptions): TailConnection {
     };
 
     socket.onclose = () => {
+      if (resyncTimer) clearTimeout(resyncTimer);
+      resyncTimer = null;
       if (closedByUser) {
         opts.onState("closed");
         return;
@@ -98,6 +113,7 @@ export function connectTail(opts: TailOptions): TailConnection {
   return {
     close() {
       closedByUser = true;
+      if (resyncTimer) clearTimeout(resyncTimer);
       socket?.close();
     },
   };

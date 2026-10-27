@@ -150,6 +150,29 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte FRAGE · Claude .* · Gewählt: Grün/)).toBeVisible();
   });
 
+  test("T21.4: ein ACP-Formular (elicitation) wird zum Fragen-Dialog, die Antwort passt zum Schema", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "Bitte FRAGE" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const card = app.locator(".session-approvals .approval-card");
+    await expect(card.locator(".question-text")).toHaveText(["Strategie", "Teile", "Sicher?", "Anzahl"]);
+    await expect(card.locator(".question-header").first()).toHaveText("Wie soll es weitergehen?");
+    await expect(card.locator(".question-progress")).toHaveText("0 von 4 beantwortet");
+    await expect(card.getByRole("button", { name: "Antworten" })).toBeDisabled();
+
+    const pick = (question: string, label: RegExp) => card.locator(".question").filter({ hasText: question }).locator(".choice-label", { hasText: label }).click();
+    await pick("Strategie", /^Gründlich$/);
+    await pick("Teile", /^ui$/);
+    await pick("Teile", /^doku$/);
+    await pick("Sicher?", /^Ja$/);
+    // Ziffern-Taste wählt, Eigene Antwort ersetzt die Wahl, Enter sendet.
+    await card.locator(".question").filter({ hasText: "Anzahl" }).locator(".question-free").fill("3");
+    await expect(card.locator(".question-progress")).toHaveText("4 von 4 beantwortet");
+    await expect(card.locator(".question-summary")).toContainText("Teile → ui, doku");
+    await card.locator(".question").filter({ hasText: "Anzahl" }).locator(".question-free").press("Enter");
+    await expect(app.locator(".tail-scroll").getByText(/"content":\{"strategie":"gruendlich","teile":\["ui","doku"\],"sicher":true,"anzahl":3\}/)).toBeVisible();
+  });
+
   test("T7.2: die Tool-Anfrage steht auch in der Freigabe-Warteschlange", async ({ app, hub }) => {
     await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
     await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { z } from "zod";
+import { contentFromAnswers, fieldsFromSchema } from "./elicitation.ts";
 import {
   basicFeatures,
   promptWithAttachments,
@@ -286,6 +287,15 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
             state.pendingPermissions--;
           }
         }
+        if (method === "elicitation/create") {
+          armStuckWatch(state, ctx);
+          state.pendingPermissions++;
+          try {
+            return await answerElicitation(ctx, params as { mode?: unknown; message?: unknown; requestedSchema?: unknown; toolCallId?: unknown });
+          } finally {
+            state.pendingPermissions--;
+          }
+        }
         throw new RpcError(-32601, `${method} wird vom Hub nicht angeboten`);
       },
       // A prompt sent by the hub before a restart ends here — the turn is over.
@@ -323,7 +333,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   async function initialize(state: AgentSession): Promise<{ loadSession: boolean; resume: boolean }> {
     const init = (await state.conn.request(
       "initialize",
-      { protocolVersion: PROTOCOL_VERSION, clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false }, clientInfo: { name: "uacc-hub", version: "0.1.0" } },
+      { protocolVersion: PROTOCOL_VERSION, clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false, elicitation: { form: {} } }, clientInfo: { name: "uacc-hub", version: "0.1.0" } },
       cfg.startupTimeoutMs,
     )) as { agentCapabilities?: { loadSession?: boolean; sessionCapabilities?: { resume?: unknown }; promptCapabilities?: { image?: boolean } } };
     state.images = init.agentCapabilities?.promptCapabilities?.image === true;
@@ -443,6 +453,21 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         drainQueue(state, ctx);
         });
         }
+
+  /** T21.4: an agent's form (`elicitation/create`) becomes the phone's question form. URL mode is not offered. */
+  async function answerElicitation(ctx: AdapterContext, params: { mode?: unknown; message?: unknown; requestedSchema?: unknown; toolCallId?: unknown }): Promise<unknown> {
+    if (params.mode !== undefined && params.mode !== "form") throw new RpcError(-32602, "elicitation: nur der Formular-Modus wird angeboten");
+    if (!ctx.requestToolPermission) return { action: "decline" };
+    const fields = fieldsFromSchema(typeof params.message === "string" ? params.message : "", (params.requestedSchema ?? {}) as Parameters<typeof fieldsFromSchema>[1]);
+    if (fields.length === 0) return { action: "decline" };
+    const answer = await ctx.requestToolPermission({
+      toolName: "AskUserQuestion",
+      input: { questions: fields.map((f) => f.question) },
+      ...(typeof params.toolCallId === "string" ? { toolUseId: params.toolCallId } : {}),
+    });
+    if (answer.behavior !== "allow") return { action: "decline" };
+    return { action: "accept", content: contentFromAnswers(fields, (answer.updatedInput.answers ?? {}) as Record<string, string>) };
+  }
 
   async function spawnAgent(ctx: AdapterContext, extraEnv?: Record<string, string>): Promise<WorkerProcess> {
     return ctx.spawnWorker(command!, { stdin: "pipe", persistent: true, env: { ...env, ...extraEnv } });

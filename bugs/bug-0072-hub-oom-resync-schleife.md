@@ -33,7 +33,8 @@ Der Hub bleibt bei einigen hundert MB und bedient offene Tabs ohne Neustart.
 - `EventStore.append()`: Blob-Offload und Schreiben laufen gemeinsam in der Kette (Aufrufreihenfolge bleibt auf der Platte erhalten).
 - `EventStore.tail()`: streamt, überspringt alte Zeilen vor JSON/zod, bricht nach `limit` (+Slack) ab, liefert nach `seq` sortiert (Altbestand bleibt lesbar).
 - Hub `ws.ts`: ein `resync` während eines laufenden Replays wird verworfen.
-- PWA `ws.ts`/`ws-protocol.ts`: pro `lastSeq` höchstens ein `resync`, ein nicht schließender Resync wird nicht wiederholt.
+- PWA `ws.ts`/`ws-protocol.ts`: `resync` mit Backoff (0/250/750/2000/5000 ms) und höchstens 5 Versuchen je Lücke.
+  Die erste Fassung („nur ein resync“) war falsch: eine Lücke ist oft nur ein Event, das beim ersten Lesen noch nicht auf der Platte stand — der Client verlor dann das erste Event dauerhaft (E2E `session.spec`/`attachments.spec` ~1 von 3 Läufen rot, 0 von 260 vorher). Bisektiert auf den Fix-Commit, behoben, 208/208 Läufe grün.
 
 ## Tests
 
