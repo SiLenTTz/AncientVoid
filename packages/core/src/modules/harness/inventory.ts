@@ -77,6 +77,15 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     resume: "implemented-unverified",
     evidence: "dsh (DeepSeek Harness) runs through @uacc/adapter-acp (`--profile acp`, ADR-0018): sandboxed read-only, every escalation asks on the phone. No external session scan.",
   },
+  {
+    id: "maki",
+    harness: "cli",
+    command: "maki",
+    args: ["--version"],
+    discovery: "missing",
+    resume: "implemented-unverified",
+    evidence: "maki (maki.sh) runs through @uacc/adapter-acp (`maki acp`, preset maki, live 2026-10-28). No external session scan.",
+  },
 ];
 
 export interface ProbeRun {
