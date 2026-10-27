@@ -1,6 +1,6 @@
 # EPIC-P18 — Desktop-Workspace: Widescreen und bis zu vier Sessions als Kacheln
 
-**Status:** offen · **Phase:** P18 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine. Es baut auf dem Desktop-Split aus P8 auf (T8.5, AC-P8-6 grün). P17 ist abgeschlossen. Präzedenz wie P13/P14/P17: ein unabhängiges Epic neben den offenen Geräte-Abnahmen P12/P16.
+**Status:** Code abgeschlossen 2026-10-27, Merge und Roll-out offen · **Phase:** P18 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine. Es baut auf dem Desktop-Split aus P8 auf (T8.5, AC-P8-6 grün). P17 ist abgeschlossen. Präzedenz wie P13/P14/P17: ein unabhängiges Epic neben den offenen Geräte-Abnahmen P12/P16.
 
 Auslöser: Wunsch des Nutzers vom 2026-10-26: „Die UI auf dem Desktop, vor allem
 im Widescreen, gefällt mir noch nicht. Am PC bis zu 4 Sessions gleichzeitig
@@ -108,7 +108,7 @@ eigenen Tail-WebSocket. Das ist dasselbe wie vier Tabs, nur sichtbar.
 - [x] **T18.5 — Persistenz und URL.** Layout und Belegung pro Gerät. Reload
   stellt sie her. Eine nicht mehr vorhandene Session wird eine leere Kachel mit
   Hinweis (fail loud). Der Hash folgt der Fokus-Kachel. E2E-Spec.
-- [ ] **T18.6 — K2 mit vier Kacheln.** `scripts/k2-frame-lag.mjs` bzw.
+- [x] **T18.6 — K2 mit vier Kacheln.** `scripts/k2-frame-lag.mjs` bzw.
   Messlauf mit vier laufenden Dummy-Sessions zu je 30 ev/s. Kein Frame-Lag
   über 200 ms, drop-on-slow aktiv. Messlauf-Skill.
 
@@ -160,3 +160,28 @@ eigenen Tail-WebSocket. Das ist dasselbe wie vier Tabs, nur sichtbar.
   Kürzel sind in der Oberfläche sichtbar.
 - Mobile-Specs unverändert grün (AC-P18-4).
 - `retro` am Ende, Abschnitt in dieser Datei.
+
+## 8. Abschluss (2026-10-27)
+
+| AC | Beleg | Stand |
+|---|---|---|
+| AC-P18-1 | `workspace-tiles.spec.ts` „2560 px: volle Breite … ≥ 90 %“ | 🟢 |
+| AC-P18-2 | `workspace-tiles.spec.ts` „Strg-Klick … bis 2×2, jede Kachel mit Token-Zeile“ und „Antwort in Kachel 3 geht nur an Session 3“ | 🟢 |
+| AC-P18-3 | „Tastatur …“ und „nach Reload sind Layout und Belegung gleich“ | 🟢 |
+| AC-P18-4 | „unter 1280 px gibt es keine Kacheln“, `layout.spec.ts` und alle Mobile-Specs im Gate | 🟢 |
+| AC-P18-5 | [Messlauf](../docs/messlauf/2026-10-27-p18-k2-vier-kacheln.md): 600 s, 4 × 30 ev/s, p95 91 ms, max 176 ms, 0 von 72.490 über 200 ms | 🟢 (eine Maschine, nicht leer, siehe Bericht) |
+
+**Premortem, was eingetreten ist:**
+- *Vier Live-Tails ruckeln (2):* eingetreten. Ausgangslage p95 880 ms. Behoben durch `memo`, Bündelung und Zeilenbegrenzung
+  der Kacheln ohne Fokus. Diese Begrenzung ist sichtbar („N ältere Einträge“), nicht still.
+- *`SessionTail` ist heimlich ein Singleton (1):* teilweise. Anker, Höhenmessung, Befehlskontext und die
+  Antwortfeld-Registrierung mussten kachelfähig werden. Der Spec „Antwort in Kachel 3“ sichert das.
+- *Dock frisst die Kachel (3):* eingetreten bei Halbhöhe. Kacheln unter 800 px Höhe starten mit eingeklappter Steuerung.
+- *Gespeicherte Belegung zeigt auf Tote (4), Tastenkürzel kollidieren (5):* Fall 4 durch Spec belegt. Fall 5 bleibt offen
+  (nur in Chromium geprüft, Firefox unter Linux nicht).
+
+**Gelernt:** (1) Ein Scheitern der Messung kam zuerst vom Rendern aller Zeilen bei jedem Batch, nicht vom Netz. (2) Ein
+Messlauf braucht die Last der Maschine im Bericht, ein früherer Lauf mit Fremdlast hatte eine 2,2-s-Spitze. (3) In einem
+Worktree unter dem Hauptcheckout lud der E2E-Hub zunächst den Code von `main` (BUG-0069, `check:workspace-links`).
+
+**Offen:** Hub-Neustart auf allen Systemen nach dem Merge. Test von `Alt`-Kürzeln in Firefox.
