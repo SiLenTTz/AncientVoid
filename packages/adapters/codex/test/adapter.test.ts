@@ -338,4 +338,22 @@ describe("codex adapter — lifecycle against a real captured stream", () => {
     expect((await adapter.steer(handle!, { kind: "prompt", text: "weiter" }, ctx)).ok).toBe(true);
     expect(spawned.at(-1)).toEqual(expect.arrayContaining(["resume", "thread-1"]));
   });
+
+  it("Adapter-Standard: cfg.model und reasoningEffort kommen als Argumente, spec.model gewinnt", async () => {
+    const calls: string[][] = [];
+    const run = async (specModel?: string) => {
+      const ctx = makeRecordingContext({
+        spawnWorker: withVersionHandshake((cmd) => {
+          if (cmd.includes("exec")) calls.push(cmd);
+          return fakeCodexProcess(loadFixture("trivial-text.jsonl"));
+        }),
+      });
+      const adapter = createAdapter({ mode: "exec", model: "gpt-6.1-sol", reasoningEffort: "medium" });
+      await adapter.start({ adapter: "codex", project: "/tmp", prompt: "x", ...(specModel ? { model: specModel } : {}) }, ctx);
+    };
+    await run();
+    await run("gpt-other");
+    expect(calls[0]).toEqual(expect.arrayContaining(["--model", "gpt-6.1-sol", "-c", 'model_reasoning_effort="medium"']));
+    expect(calls[1]).toEqual(expect.arrayContaining(["--model", "gpt-other"]));
+  });
 });

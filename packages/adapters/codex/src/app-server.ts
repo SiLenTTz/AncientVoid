@@ -31,6 +31,7 @@ export interface AppServerConfig {
   sandbox: "read-only" | "workspace-write" | "danger-full-access";
   approvalPolicy: "untrusted" | "on-request" | "never";
   extraArgs: string[];
+  model?: string | undefined;
 }
 
 interface ServerSession {
@@ -198,11 +199,11 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
       const proc = await ctx.spawnWorker(command, { stdin: "pipe", persistent: true, ...(spec.env ? { env: spec.env } : {}) });
-      const state = connect(ctx.sessionId, proc, ctx, spec.model);
+      const state = connect(ctx.sessionId, proc, ctx, spec.model ?? cfg.model);
       await initialize(state);
-      const started = (await state.conn.request("thread/start", threadParams(ctx, spec.model), 60_000)) as { thread?: { id?: string }; model?: string };
+      const started = (await state.conn.request("thread/start", threadParams(ctx, spec.model ?? cfg.model), 60_000)) as { thread?: { id?: string }; model?: string };
       state.threadId = started.thread?.id ?? null;
-      state.model = spec.model ?? started.model;
+      state.model = spec.model ?? cfg.model ?? started.model;
       if (state.threadId) ctx.emit({ type: "system", summary: `Codex · Thread ${state.threadId}`, payload: { kind: "codex.native_session", nativeSessionId: state.threadId, model: started.model ?? null } });
       if (spec.prompt || spec.attachments?.length) await startTurn(state, ctx, spec.prompt ?? "", spec.attachments);
       return { sessionId: ctx.sessionId, ...(proc.pid !== undefined ? { pid: proc.pid } : {}) };

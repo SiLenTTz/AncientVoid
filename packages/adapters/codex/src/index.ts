@@ -37,6 +37,10 @@ const CodexConfig = z.object({
   command: z.string().min(1).default("codex"),
   sandbox: z.enum(["read-only", "workspace-write", "danger-full-access"]).default("workspace-write"),
   extraArgs: z.array(z.string()).default([]),
+  /** Standard-Modell, wenn die Session keins verlangt (spec.model gewinnt). */
+  model: z.string().min(1).optional(),
+  /** Standard-Reasoning-Aufwand (`model_reasoning_effort`), nur im exec-Modus als -c-Override; app-server liest ihn aus ~/.codex/config.toml. */
+  reasoningEffort: z.enum(["minimal", "low", "medium", "high", "xhigh"]).optional(),
   expectedVersion: z.string().optional(),
   /** T7.2: "app-server" — one persistent `codex app-server` per session with
    * native approvals, questions, model catalog and quota (ADR-0018 §3).
@@ -82,6 +86,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       "--sandbox",
       cfg.sandbox,
       ...(model ? ["--model", model] : []),
+      ...(cfg.reasoningEffort ? ["-c", `model_reasoning_effort="${cfg.reasoningEffort}"`] : []),
       ...cfg.extraArgs,
     ];
   }
@@ -238,7 +243,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
-      const meta: SessionMeta = { healthy: true, degraded: false, model: spec.model };
+      const meta: SessionMeta = { healthy: true, degraded: false, model: spec.model ?? cfg.model };
       // T1.5-10/ADR-0005: codex has no project-local skill/agent mechanism
       // (`codex plugin list` is a global, project-independent marketplace,
       // structurally unrelated to a target repo's own .claude/skills —
@@ -260,7 +265,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       }
       await checkVersion(ctx);
       const proc = await ctx.spawnWorker(
-        buildInitialArgs(spec.prompt ?? "", spec.model),
+        buildInitialArgs(spec.prompt ?? "", spec.model ?? cfg.model),
         spec.env ? { env: spec.env } : undefined,
       );
       attach(ctx.sessionId, proc, ctx, meta);

@@ -126,4 +126,24 @@ describe("aider adapter — lifecycle against a synthetic (unverified-happy-path
     }
     expect(downState).toBe(true);
   });
+
+  it("Adapter-Standard: cfg.model ersetzt spec.model, apiBase/apiKeyFile landen als OPENAI_*-Env (Key nie in argv)", async () => {
+    const { mkdtempSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const keyFile = join(mkdtempSync(join(tmpdir(), "aider-key-")), "k");
+    writeFileSync(keyFile, "sekret\n");
+    let seen: { cmd: string[]; env?: Record<string, string> | undefined } | undefined;
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd, opts) => {
+        seen = { cmd, env: opts?.env };
+        return fakeAiderProcess("ok");
+      },
+    });
+    const adapter = createAdapter({ model: "openai/glm-5.3", apiBase: "https://api.z.ai/api/coding/paas/v4", apiKeyFile: keyFile });
+    await adapter.start({ adapter: "aider", project: "/tmp", prompt: "say ok" }, ctx);
+    expect(seen!.cmd).toContain("openai/glm-5.3");
+    expect(seen!.cmd.join(" ")).not.toContain("sekret");
+    expect(seen!.env).toMatchObject({ OPENAI_API_BASE: "https://api.z.ai/api/coding/paas/v4", OPENAI_API_KEY: "sekret" });
+  });
 });
