@@ -104,3 +104,25 @@ test.describe("Desktop-Workspace (EPIC-P18)", () => {
     await expect(app.locator(".tile-workspace")).toHaveCount(0);
   });
 });
+
+test.describe("Desktop-Workspace: Kacheln ohne Fokus (EPIC-P18 T18.6)", () => {
+  test.use({ viewport: { width: 2560, height: 1440 }, hubOptions: { dummyAutoStop: 220 } });
+
+  test("eine Kachel ohne Fokus zeigt nur die neuesten Zeilen und sagt es; Fokus holt alle zurück", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await hub.until(async () => (await hub.events(id)).length >= 200, "200 events");
+    await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Nachbar" });
+    const cardOf = (text: string) => app.locator(".split-list .session-card").filter({ hasText: text }).locator(".session-open");
+    await app.evaluate(() => localStorage.setItem("uacc.filter", "debuggen"));
+    await app.reload();
+    await app.locator(".split-list .session-card").first().waitFor();
+    await app.locator(".split-list .session-card").filter({ hasNotText: "Aufgabe Nachbar" }).locator(".session-open").click();
+    await cardOf("Aufgabe Nachbar").click({ modifiers: ["Control"] });
+    const first = app.locator('.tile[data-tile="1"]');
+    await expect(first.locator(".older-hidden")).toContainText("ältere Einträge");
+    await expect(first.locator(".event")).toHaveCount(150);
+    await first.locator(".session-top-title").click();
+    await expect(first.locator(".older-hidden")).toHaveCount(0);
+    expect(await first.locator(".event").count()).toBeGreaterThan(150);
+  });
+});

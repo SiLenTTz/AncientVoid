@@ -1,3 +1,4 @@
+import { memo } from "preact/compat";
 import { useEffect, useState } from "preact/hooks";
 import { getToken } from "../../shared/api.ts";
 import { type NormalizedEvent } from "../../shared/ws.ts";
@@ -91,7 +92,7 @@ export function onCardClick(ev: { target: EventTarget | null }, toggle: () => vo
   toggle();
 }
 
-export function EventRow({
+function EventRowView({
   event: rowEvent,
   expanded,
   onToggleExpand,
@@ -288,3 +289,12 @@ function CopyButton({ text }: { text: string }) {
     </button>
   );
 }
+
+/** EPIC-P18 T18.6 (K2 with four tiles): a row renders again only when what
+ * it shows changed. Every WS batch re-rendered up to 500 rows per tile —
+ * p95 880 ms with four tiles at 30 ev/s. The callbacks are left out on
+ * purpose: they are recreated each render but do the same for this row. */
+export const EventRow = memo(
+  EventRowView,
+  (a, b) => a.event === b.event && a.expanded === b.expanded && a.toolResult === b.toolResult,
+);

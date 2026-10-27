@@ -30,6 +30,10 @@ import { SessionApprovals } from "./SessionApprovals.tsx";
 
 /** BUG-0053: below this window height (landscape) the dock is compacted and the controls start folded. */
 const SHORT_VIEWPORT_PX = 520;
+/** A tile without focus renders new events at most this often (K2 budget 200 ms). */
+const BACKGROUND_FLUSH_MS = 50;
+/** Rows a tile without focus keeps in the DOM. */
+const BACKGROUND_ROWS = 150;
 
 /** EPIC-P18: set when this view is one tile of the desktop workspace —
  * several SessionTails then share one page. */
@@ -110,6 +114,11 @@ export function SessionTail({
     if (compactTile !== undefined) setControlsHidden(compactTile);
   }, [compactTile]);
   const connRef = useRef<TailConnection | null>(null);
+  const pendingRef = useRef<NormalizedEvent[]>([]);
+  /** rAF id (> 0) or negated timeout id (< 0) of the scheduled flush. */
+  const flushRef = useRef<number | null>(null);
+  const activeRef = useRef(tile?.active ?? true);
+  activeRef.current = tile?.active ?? true;
 
   // T1.6-3: Chat/Verlauf are the new dock sub-tabs — Chat is exactly the
   // existing "lesen" preset, Verlauf is "ueberwachen"/"debuggen" with a
@@ -227,15 +236,34 @@ export function SessionTail({
       token: getToken(),
       sessionId: session.id,
       hostId: remoteHost(session.hostId),
+      // EPIC-P18 T18.6 (K2 with four tiles): one render per frame, not per
+      // WS batch — a background tile at most every 100 ms. Four tiles at
+      // 30 ev/s each re-rendered 120×/s and queued up behind each other.
       onEvents: (incoming) => {
-        setEvents((prev) => {
-          const merged = [...prev, ...incoming];
-          return merged.length > 500 ? merged.slice(-500) : merged;
-        });
+        pendingRef.current.push(...incoming);
+        if (flushRef.current !== null) return;
+        const flush = () => {
+          flushRef.current = null;
+          const batch = pendingRef.current;
+          pendingRef.current = [];
+          setEvents((prev) => {
+            const merged = [...prev, ...batch];
+            return merged.length > 500 ? merged.slice(-500) : merged;
+          });
+        };
+        flushRef.current = activeRef.current ? requestAnimationFrame(flush) : -window.setTimeout(flush, BACKGROUND_FLUSH_MS);
       },
       onState: setConn,
     });
-    return () => connRef.current?.close();
+    return () => {
+      connRef.current?.close();
+      const pending = flushRef.current;
+      if (pending !== null) {
+        if (pending < 0) clearTimeout(-pending);
+        else cancelAnimationFrame(pending);
+      }
+      flushRef.current = null;
+    };
   }, [session.id]);
 
   // T1.6-4: extends the existing 3s status poll to also carry costUsd/
@@ -378,10 +406,16 @@ export function SessionTail({
     });
   };
 
-  const visible = useMemo(() => {
+  const backgroundTile = tile !== undefined && !tile.active;
+  const filtered = useMemo(() => {
     const preset = FILTERS.find((f) => f.id === filter)!;
     return shownEvents.filter(preset.keep);
   }, [shownEvents, filter]);
+  // EPIC-P18 T18.6: a tile without focus keeps only its newest rows in the
+  // DOM — four tiles of 500 rows each re-laid out on every update broke K2.
+  // Focus brings the full history back.
+  const visible = useMemo(() => (backgroundTile && filtered.length > BACKGROUND_ROWS ? filtered.slice(-BACKGROUND_ROWS) : filtered), [filtered, backgroundTile]);
+  const hiddenOlder = filtered.length - visible.length;
   const firstNew = seenAt.current !== null && seenAt.current > 0 ? visible.find((e) => e.seq > seenAt.current!) : undefined;
   const newCount = firstNew ? visible.filter((e) => e.seq >= firstNew.seq).length : 0;
 
@@ -732,7 +766,9 @@ export function SessionTail({
               : "keine Nachrichten"}
           </div>
         ) : (
-          visible.map((e, i) => {
+          <>
+          {hiddenOlder > 0 && <div class="dim older-hidden">{hiddenOlder} ältere Einträge — Kachel anklicken zeigt alle</div>}
+          {visible.map((e, i) => {
             // ADR-0032: the token bill of a turn shows under its last
             // visible row — even where the filter hides session.turn_end.
             const closed = turnsClosedBetween(tokenStats.turns, e.seq, visible[i + 1]?.seq ?? null);
@@ -760,7 +796,8 @@ export function SessionTail({
                 )}
               </Fragment>
             );
-          })
+          })}
+          </>
         )}
       </div>
 

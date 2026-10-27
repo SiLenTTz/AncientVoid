@@ -92,20 +92,20 @@ eigenen Tail-WebSocket. Das ist dasselbe wie vier Tabs, nur sichtbar.
 
 ## 4. Aufgaben
 
-- [ ] **T18.1 — Widescreen-Grundlayout.** Kein 1680-px-Deckel. Liste
+- [x] **T18.1 — Widescreen-Grundlayout.** Kein 1680-px-Deckel. Liste
   einklappbar zur Leiste (Zustand pro Gerät). Detail mit begrenzter
   Zeilenlänge für Chat-Text, wenn nur eine Kachel offen ist. Unter 1280 px
   unverändert. K2, AC-P8-6.
-- [ ] **T18.2 — Kachel-Zustand (`tiles.ts`).** Layouts, Belegung, Fokus,
+- [x] **T18.2 — Kachel-Zustand (`tiles.ts`).** Layouts, Belegung, Fokus,
   Tausch, Leeren, Layout-Wechsel ohne Verlust, Serialisierung. Rein und
   unit-getestet.
-- [ ] **T18.3 — Kachel-Ansicht.** `TileWorkspace` mit Kachel-Leiste
+- [x] **T18.3 — Kachel-Ansicht.** `TileWorkspace` mit Kachel-Leiste
   (Layout-Knöpfe, Kachel-Kopf mit Titel, Fokus-Markierung, ×). Klick in der
   Liste füllt die Fokus-Kachel. `SessionTail` ist mehrfach instanzierbar
   (Anker im Container, kein globaler Konflikt). E2E-Spec.
-- [ ] **T18.4 — Tastatur.** Kürzel aus §3.3, sichtbar dokumentiert (Tooltip
+- [x] **T18.4 — Tastatur.** Kürzel aus §3.3, sichtbar dokumentiert (Tooltip
   bzw. Hilfe im Kachel-Kopf). E2E-Spec.
-- [ ] **T18.5 — Persistenz und URL.** Layout und Belegung pro Gerät. Reload
+- [x] **T18.5 — Persistenz und URL.** Layout und Belegung pro Gerät. Reload
   stellt sie her. Eine nicht mehr vorhandene Session wird eine leere Kachel mit
   Hinweis (fail loud). Der Hash folgt der Fokus-Kachel. E2E-Spec.
 - [ ] **T18.6 — K2 mit vier Kacheln.** `scripts/k2-frame-lag.mjs` bzw.
