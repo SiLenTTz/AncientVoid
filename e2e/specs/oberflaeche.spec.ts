@@ -1,4 +1,5 @@
 import { test, expect } from "../support/fixtures.ts";
+import type { TestHub } from "../support/hub.ts";
 import type { Page } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -167,7 +168,7 @@ test.describe("Schimmernde Kontextleiste (EPIC-P20 T20.5)", () => {
 });
 
 test.describe("Diff in voller Breite (EPIC-P20 T20.1)", () => {
-  async function sessionWithBigDiff(hub: import("../support/hub.ts").TestHub): Promise<string> {
+  async function sessionWithBigDiff(hub: TestHub): Promise<string> {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "assistant reply");
     const worktree = join(hub.dataDir, "worktrees", id);
