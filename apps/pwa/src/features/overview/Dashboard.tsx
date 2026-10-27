@@ -34,7 +34,7 @@ export interface DashboardProps {
   sessions: SessionRecord[];
   /** EPIC-P6: the fleet's hosts; more than one groups the overview by host. */
   hosts?: FleetHost[];
-  onOpen: (session: SessionRecord) => void;
+  onOpen: (session: SessionRecord, opts?: { newTile?: boolean }) => void;
   /** T2.6: pending approval-queue count (0 on a hub without approvals
    * configured — not distinguished from "genuinely zero pending" here,
    * since either way there's nothing for the banner to show). */
@@ -277,7 +277,7 @@ function SessionRow({
 }: {
   session: SessionRecord;
   hosts: FleetHost[];
-  onOpen: (s: SessionRecord) => void;
+  onOpen: (s: SessionRecord, opts?: { newTile?: boolean }) => void;
   onArchive: (s: SessionRecord) => void;
   onPin: (s: SessionRecord) => void;
   onDelete: (s: SessionRecord) => void;
@@ -288,7 +288,7 @@ function SessionRow({
   const project = projectName(session.project);
   return (
     <div class={`card session-card ${glow}${unseen ? " unseen" : ""}`}>
-      <button class="session-open" type="button" onClick={() => onOpen(session)}>
+      <button class="session-open" type="button" onClick={(ev) => onOpen(session, { newTile: ev.ctrlKey || ev.metaKey })}>
         <div class="row">
           <strong class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? `${project} — ohne Auftrag`}</strong>
           <span class={`pill ${session.status}`} data-status={session.status}>

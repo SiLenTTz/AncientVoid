@@ -38,3 +38,19 @@ stehen) und die **Fenstergröße** des Modells.
 - Fenstergröße gilt pro Adapter-Instanz (typisch: eine Instanz je
   Provider/Modellfamilie). Modellspezifische Größen brauchen später eine
   Erweiterung des Modellkatalogs — heute nicht spekulieren.
+
+## Nachtrag 2026-10-27: pi und „immer sichtbar“
+
+- **pi** meldet die Usage je Modellantwort im `--mode json`-Stream
+  (`message_end.message.usage`, BUG-0065). Die Füllung ist dort
+  `input + cacheRead + cacheWrite`, denn pi zählt gecachte Tokens getrennt
+  (echte Aufnahme: 53 frische + 1.057 gecachte Input-Tokens). Die
+  Fenstergröße kommt wie gehabt aus `contextWindowTokens` in der
+  Adapter-Konfiguration. pis eigene `models.json` hat den Wert
+  (`contextWindow`), meldet ihn aber nicht im Stream. Die Modell-Ansage
+  `pi.model` trägt ihn.
+- Die Token-Zeile im Session-Kopf steht jetzt **immer** da: „Tokens
+  unbekannt“, „Kontext unbekannt“ oder „Fenstergröße unbekannt“, statt
+  ausgeblendet zu werden. Mit beiden Zahlen nennt sie auch den freien
+  Platz („frei 129.962 von 131.072“). Das ist dieselbe Regel wie oben,
+  nur sichtbar statt still.

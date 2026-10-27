@@ -1,0 +1,48 @@
+#!/usr/bin/env node
+// E2E stand-in for the pi coding agent (1.4.0). Speaks `pi -p --mode json`
+// with the record shapes of the real capture in
+// packages/adapters/pi/test/fixtures/tool-use.jsonl (BUG-0065), so the real
+// adapter and worker runner run unchanged.
+//
+// Insists on the argv the adapter must build (BUG-0066): `-p`, `--mode json`,
+// and exactly one message after `--`.
+//
+// Keywords in the prompt:
+//   MARKDOWN  a formatted answer with an injection attempt (BUG-0067)
+//   LANG  an answer over the 4 KB event limit (BUG-0068), ends with ENDE-DER-ANTWORT
+const argv = process.argv.slice(2);
+const sep = argv.indexOf("--");
+const messages = sep >= 0 ? argv.slice(sep + 1) : [];
+if (argv[0] !== "-p" || argv[1] !== "--mode" || argv[2] !== "json" || messages.length !== 1) {
+  console.error(`fake pi: unexpected argv ${JSON.stringify(argv)}`);
+  process.exit(2);
+}
+const prompt = messages[0];
+const emit = (line) => process.stdout.write(`${JSON.stringify(line)}\n`);
+const update = (e) => emit({ type: "message_update", assistantMessageEvent: e });
+const usage = { input: 1057, output: 35, cacheRead: 0, cacheWrite: 0, totalTokens: 1092 };
+
+emit({ type: "session", version: 3, id: "pi-e2e-session", timestamp: new Date().toISOString(), cwd: process.cwd() });
+emit({ type: "agent_start" });
+emit({ type: "turn_start" });
+update({ type: "thinking_start", contentIndex: 0 });
+update({ type: "thinking_delta", contentIndex: 0, delta: "Erst die Datei " });
+update({ type: "thinking_end", contentIndex: 0, content: "Erst die Datei notiz.txt lesen." });
+update({ type: "toolcall_start", contentIndex: 1, id: "call_e2e_1", toolName: "read" });
+update({ type: "toolcall_end", contentIndex: 1, toolCall: { type: "toolCall", id: "call_e2e_1", name: "read", arguments: { path: "notiz.txt" } } });
+emit({ type: "message_end", message: { role: "assistant", content: [], usage, stopReason: "toolUse" } });
+emit({ type: "tool_execution_start", toolCallId: "call_e2e_1", toolName: "read", args: { path: "notiz.txt" } });
+emit({ type: "tool_execution_end", toolCallId: "call_e2e_1", toolName: "read", result: { content: [{ type: "text", text: "alpha\nbeta\n" }] }, isError: false, durationMs: 2 });
+emit({ type: "turn_end" });
+emit({ type: "turn_start" });
+update({ type: "thinking_end", contentIndex: 0, content: "Zwei Zeilen." });
+update({ type: "text_start", contentIndex: 1 });
+const long = prompt.includes("LANG") ? `\n\n${"Ein langer Absatz, der den Chat füllt. ".repeat(150)}\n\nENDE-DER-ANTWORT` : "";
+const md = prompt.includes("MARKDOWN")
+  ? "\n\n## Stand\n\n- **Fix:** eins\n- `code` zwei\n\n| Feld | Wert |\n|---|---|\n| Commit | `43f43d0` |\n\n```text\n**nicht fett**\n```\n\n[böse](javascript:alert(1)) <img src=x onerror=alert(1)>"
+  : "";
+update({ type: "text_end", contentIndex: 1, content: `Antwort auf: ${prompt} · pi · notiz.txt hat 2 Zeilen.${long}${md}` });
+emit({ type: "message_end", message: { role: "assistant", content: [], usage: { ...usage, input: 53, cacheRead: 1057, totalTokens: 1132 }, stopReason: "stop" } });
+emit({ type: "turn_end" });
+emit({ type: "agent_end", messages: [], willRetry: false });
+emit({ type: "agent_settled", aborted: false });

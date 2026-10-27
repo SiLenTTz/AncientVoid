@@ -148,11 +148,35 @@ a {
 
 .split {
   display: grid;
-  grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
-  gap: 28px;
-  max-width: 1680px;
-  margin: 0 auto;
+  grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+  gap: 20px;
   height: 100dvh;
+}
+
+/* EPIC-P18 T18.1: the whole width — the list folds away on demand. */
+.split.list-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.split.list-collapsed .split-list {
+  display: none;
+}
+
+.tile-list-toggle {
+  background: none;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius-sm);
+  color: var(--fg-dim);
+  padding: 4px 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  margin-right: 6px;
+}
+
+/* One tile on a wide screen: readable lines, not 2,500 px ones. */
+.tile-grid.layout-1 > .tile {
+  padding-inline: max(12px, calc((100% - 1200px) / 2));
 }
 
 .split-list,
@@ -169,4 +193,143 @@ a {
 
 .split-placeholder {
   margin-top: 30vh;
+}
+
+/* EPIC-P18: the session column holds up to four tiles. */
+.split-detail:has(.tile-workspace) {
+  overflow: hidden;
+}
+
+.tile-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.tile-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  flex-wrap: wrap;
+}
+
+.tile-layout-btn {
+  background: var(--bg-chip);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  cursor: pointer;
+  color: var(--fg-dim);
+  line-height: 0;
+}
+
+.tile-layout-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tile-keys {
+  margin-left: auto;
+  font-size: 11px;
+}
+
+.tile-glyph {
+  display: inline-grid;
+  width: 20px;
+  height: 14px;
+  gap: 2px;
+}
+
+.tile-glyph > span {
+  background: currentColor;
+  opacity: 0.75;
+  border-radius: 1px;
+}
+
+.tile-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+
+.tile-grid.layout-2v,
+.tile-glyph.layout-2v {
+  grid-template-columns: 1fr 1fr;
+}
+
+.tile-grid.layout-2h,
+.tile-glyph.layout-2h {
+  grid-template-rows: 1fr 1fr;
+}
+
+.tile-grid.layout-1p2,
+.tile-glyph.layout-1p2 {
+  grid-template-columns: 1.35fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.tile-grid.layout-1p2 > :first-child,
+.tile-glyph.layout-1p2 > :first-child {
+  grid-row: 1 / span 2;
+}
+
+.tile-grid.layout-2x2,
+.tile-glyph.layout-2x2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.tile {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  background: var(--bg);
+}
+
+.tile.focused {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.tile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0 0;
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+
+.tile.focused .tile-no {
+  color: var(--accent);
+}
+
+.tile-close {
+  background: none;
+  border: none;
+  color: var(--fg-dim);
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.tile-close:hover {
+  color: var(--err);
+}
+
+.tile-empty {
+  margin-top: 20%;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
 }

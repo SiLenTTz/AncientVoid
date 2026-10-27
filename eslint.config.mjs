@@ -56,11 +56,12 @@ export default tseslint.config(
     // page.evaluate() callbacks run inside a real Chromium, not Node —
     // ESLint parses the whole file as Node, so these globals need scoping
     // to just this script rather than the shared Node config above.
-    files: ["scripts/k2-frame-lag.mjs"],
+    files: ["scripts/k2-frame-lag.mjs", "scripts/k2-tiles.mjs"],
     languageOptions: {
       globals: {
         window: "readonly",
         document: "readonly",
+        localStorage: "readonly",
         MutationObserver: "readonly",
       },
     },
