@@ -536,7 +536,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
      * adapter-opencode's parseModelList (kept local, 8 lines). */
     async models(): Promise<ModelOption[]> {
       // dsh ≥ 0.2 has no listing command; its ACP session offers every provider and model.
-      if (!cfg.modelsCommand && cfg.preset === "dsh" && command) return probeModelCatalog(command, env);
+      // maki 0.6.5: `maki models` exits 0 with empty output; `maki acp` lists them (live 2026-10-28).
+      if (!cfg.modelsCommand && (cfg.preset === "dsh" || cfg.preset === "maki") && command) return probeModelCatalog(command, env);
       const cmd = cfg.modelsCommand ?? (command?.at(-1) === "acp" ? [...command.slice(0, -1), "models"] : undefined);
       if (!cmd) return [];
       const { stdout } = await run(cmd[0]!, cmd.slice(1), { timeout: 20_000, maxBuffer: 1024 * 1024 });
