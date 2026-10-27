@@ -104,6 +104,11 @@ export function SessionTail({
     const stored = localStorage.getItem("uacc.controlsHidden");
     return stored === null ? window.innerHeight < SHORT_VIEWPORT_PX : stored === "1";
   });
+  // EPIC-P18: a layout change that makes this tile small folds it too.
+  const compactTile = tile?.compact;
+  useEffect(() => {
+    if (compactTile !== undefined) setControlsHidden(compactTile);
+  }, [compactTile]);
   const connRef = useRef<TailConnection | null>(null);
 
   // T1.6-3: Chat/Verlauf are the new dock sub-tabs — Chat is exactly the

@@ -14,7 +14,11 @@ export function TileWorkspace({
   onChange,
   onNavigate,
   initialCode,
+  listCollapsed,
+  onToggleList,
 }: {
+  listCollapsed: boolean;
+  onToggleList: () => void;
   ws: Workspace;
   onChange: (ws: Workspace) => void;
   onNavigate: (page: Page) => void;
@@ -45,6 +49,9 @@ export function TileWorkspace({
   return (
     <div class="tile-workspace">
       <div class="tile-bar" role="toolbar" aria-label="Kachel-Layout">
+        <button type="button" class="tile-list-toggle" onClick={onToggleList} aria-expanded={!listCollapsed}>
+          {listCollapsed ? "☰ Liste ausklappen" : "⟨ Liste einklappen"}
+        </button>
         {LAYOUTS.map((layout) => (
           <button
             key={layout}

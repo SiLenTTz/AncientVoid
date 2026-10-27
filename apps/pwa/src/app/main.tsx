@@ -94,6 +94,7 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
 
 const WIDE = "(min-width: 1280px)";
 const WORKSPACE_KEY = "uacc.workspace";
+const LIST_COLLAPSED_KEY = "uacc.listCollapsed";
 
 function tileRefOf(session: SessionRecord): TileRef {
   const host = remoteHost(session.hostId);
@@ -194,6 +195,7 @@ function Main() {
 
   // EPIC-P18 T18.5: layout and tiles are this device's choice; the hash
   // follows the focused tile (replaceState: focus moves are no history).
+  const [listCollapsed, setListCollapsed] = useState(() => localStorage.getItem(LIST_COLLAPSED_KEY) === "1");
   const [ws, setWs] = useState(() => parseWorkspace(localStorage.getItem(WORKSPACE_KEY)));
   const changeWorkspace = (next: Workspace) => {
     setWs(next);
@@ -222,7 +224,7 @@ function Main() {
       <CommandBar />
       {wide ? (
         // T8.5 (AC-P8-6): from 1280 px list and session side by side.
-        <div class="split">
+        <div class={`split${listCollapsed ? " list-collapsed" : ""}`}>
           <aside class="split-list">
             <NotificationCenter />
             <App
@@ -237,6 +239,13 @@ function Main() {
           <section class="split-detail">
             {/* EPIC-P18: up to four sessions as tiles. */}
             <TileWorkspace
+              listCollapsed={listCollapsed}
+              onToggleList={() =>
+                setListCollapsed((v) => {
+                  localStorage.setItem(LIST_COLLAPSED_KEY, v ? "0" : "1");
+                  return !v;
+                })
+              }
               ws={ws}
               onChange={changeWorkspace}
               {...(route.view === "tail" && route.code ? { initialCode: { sessionId: route.session.id, code: route.code } } : {})}

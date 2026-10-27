@@ -21,6 +21,8 @@ test.describe("Desktop-Workspace (EPIC-P18)", () => {
       await expect(tile(app, n + 1).locator(".run-tokens")).toContainText("Kontext");
     }
     await expect(tile(app, 4)).toHaveClass(/focused/);
+    // Half-height tiles: every tile folds its controls, not only new ones.
+    for (const n of [1, 2, 3, 4]) await expect(tile(app, n).getByRole("button", { name: "Steuerung einblenden" })).toBeVisible();
   });
 
   test("eine Antwort in Kachel 3 geht nur an die Session in Kachel 3 (P18-Premortem 1)", async ({ app, hub }) => {
@@ -74,6 +76,24 @@ test.describe("Desktop-Workspace (EPIC-P18)", () => {
     await expect(tile(app, 2).locator(".tile-missing")).toContainText("gibt es nicht mehr");
     await tile(app, 2).getByRole("button", { name: "Kachel leeren" }).last().click();
     await expect(tile(app, 2).locator(".tile-empty")).toContainText("frei");
+  });
+
+  test("2560 px: volle Breite, mit eingeklappter Liste ≥ 90 % für die Kacheln (AC-P18-1)", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Breit" });
+    await card(app, "Aufgabe Breit").click();
+    const split = await app.locator(".split").boundingBox();
+    expect(split!.width).toBeGreaterThan(2560 * 0.95);
+    await app.getByRole("button", { name: "Liste einklappen" }).click();
+    await expect(app.locator(".split-list")).toBeHidden();
+    const grid = await app.locator(".tile-grid").boundingBox();
+    expect(grid!.width).toBeGreaterThanOrEqual(2560 * 0.9);
+    // One tile: the chat keeps a readable line length instead of 2,500 px lines.
+    const row = await tile(app, 1).locator(".topbar").boundingBox();
+    expect(row!.width).toBeLessThanOrEqual(1300);
+    await app.reload();
+    await expect(app.locator(".split-list")).toBeHidden();
+    await app.getByRole("button", { name: "Liste ausklappen" }).click();
+    await expect(app.locator(".split-list")).toBeVisible();
   });
 
   test("unter 1280 px gibt es keine Kacheln (AC-P18-4)", async ({ app, hub }) => {

@@ -148,11 +148,35 @@ a {
 
 .split {
   display: grid;
-  grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
-  gap: 28px;
-  max-width: 1680px;
-  margin: 0 auto;
+  grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+  gap: 20px;
   height: 100dvh;
+}
+
+/* EPIC-P18 T18.1: the whole width — the list folds away on demand. */
+.split.list-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.split.list-collapsed .split-list {
+  display: none;
+}
+
+.tile-list-toggle {
+  background: none;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius-sm);
+  color: var(--fg-dim);
+  padding: 4px 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  margin-right: 6px;
+}
+
+/* One tile on a wide screen: readable lines, not 2,500 px ones. */
+.tile-grid.layout-1 > .tile {
+  padding-inline: max(12px, calc((100% - 1200px) / 2));
 }
 
 .split-list,
