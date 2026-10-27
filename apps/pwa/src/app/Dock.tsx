@@ -7,6 +7,7 @@
 // tap from every list page. `active` simply never
 // highlights any dock button while either page is open (same as
 // `active === null` inside a session tail).
+import { TabIcon } from "../shared/TabIcon.tsx";
 export type { ListPage as Page } from "./route.ts";
 import type { ListPage as Page } from "./route.ts";
 
@@ -31,20 +32,20 @@ export function GlobalDock({
 }) {
   return (
     <nav class="dock">
-      <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} onClick={() => onNavigate("dashboard")}>
-        <span class="ic">▤</span>Übersicht
+      <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} title="Übersicht" onClick={() => onNavigate("dashboard")}>
+        <TabIcon name="uebersicht" /><span class="lb">Übersicht</span>
       </button>
-      <button class={`dock-item ${active === "new" ? "active" : ""}`} onClick={() => onNavigate("new")}>
-        <span class="ic">＋</span>Neue Session
+      <button class={`dock-item ${active === "new" ? "active" : ""}`} title="Neue Session" onClick={() => onNavigate("new")}>
+        <TabIcon name="neu" /><span class="lb">Neue Session</span>
       </button>
-      <button class={`dock-item ${active === "discovery" ? "active" : ""}`} onClick={() => onNavigate("discovery")}>
-        <span class="ic">⌕</span>Entdeckt
+      <button class={`dock-item ${active === "discovery" ? "active" : ""}`} title="Entdeckt" onClick={() => onNavigate("discovery")}>
+        <TabIcon name="entdeckt" /><span class="lb">Entdeckt</span>
       </button>
-      <button class="dock-item" onClick={onVoice}>
-        <span class="ic">◉</span>Voice
+      <button class="dock-item" title="Voice" onClick={onVoice}>
+        <TabIcon name="voice" /><span class="lb">Voice</span>
       </button>
-      <button class={`dock-item ${active === "settings" ? "active" : ""}`} onClick={() => onNavigate("settings")}>
-        <span class="ic">⚙</span>Einstellungen
+      <button class={`dock-item ${active === "settings" ? "active" : ""}`} title="Einstellungen" onClick={() => onNavigate("settings")}>
+        <TabIcon name="einstellungen" /><span class="lb">Einstellungen</span>
       </button>
     </nav>
   );
