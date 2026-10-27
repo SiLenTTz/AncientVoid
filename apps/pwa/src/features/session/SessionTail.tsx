@@ -1,3 +1,4 @@
+import { TabIcon, type TabIconName } from "../../shared/TabIcon.tsx";
 import { Fragment } from "preact";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiContext } from "../../shared/api-context.ts";
@@ -597,6 +598,20 @@ export function SessionTail({
   // (it names what really runs), then the record (session choice or the
   // registration's configured default), else the honest "Standardmodell".
   const shownModel = typeof modelLabel === "string" && modelLabel ? modelLabel : typeof session.model === "string" && session.model ? session.model : "Standardmodell";
+  const TABS: { id: typeof activeTab; label: string; icon: TabIconName; show: () => void }[] = [
+    { id: "chat", label: "Chat", icon: "chat", show: showChatTab },
+    { id: "verlauf", label: "Verlauf", icon: "verlauf", show: showVerlaufTab },
+    { id: "bericht", label: "Bericht", icon: "bericht", show: showBerichtTab },
+    { id: "diff", label: "Diff", icon: "diff", show: showDiffTab },
+    { id: "suche", label: "Suche", icon: "suche", show: showSucheTab },
+    { id: "code", label: "Code", icon: "code", show: showCodeTab },
+  ];
+  const tabButtons = TABS.map((t) => (
+    <button key={t.id} type="button" class={activeTab === t.id ? "active" : ""} title={t.label} aria-current={activeTab === t.id ? "page" : undefined} onClick={t.show}>
+      <TabIcon name={t.icon} />
+      <span class="lb">{t.label}</span>
+    </button>
+  ));
   const showVerlaufFilterBar = activeTab === "verlauf";
 
   return (
@@ -605,6 +620,9 @@ export function SessionTail({
      * as an active overview card — "this agent is working" must be visible
      * from any tab (chat/diff/code), not only from the small status pill. */}
     <div data-tab={activeTab} class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}`}>
+      {/* Desktop-Kachel: Ansichten als Icon-Leiste links, am Handy bleiben sie im Dock unten. */}
+      {tile && <nav class="subtabs-wrap tile-rail" aria-label="Ansichten">{tabButtons}</nav>}
+      <div class="session-main">
       {/* T8.5: back, what this is, Stop apart from Senden, the rest in ⋯ */}
       <div class="topbar session-topbar">
         <button class="btn back-btn" type="button" aria-label="Zur Übersicht" onClick={() => onNavigate("dashboard")}>
@@ -947,28 +965,10 @@ export function SessionTail({
             ))}
           </div>
         )}
-        <div class="subtabs-wrap">
-          <button class={activeTab === "chat" ? "active" : ""} onClick={showChatTab}>
-            Chat
-          </button>
-          <button class={activeTab === "verlauf" ? "active" : ""} onClick={showVerlaufTab}>
-            Verlauf
-          </button>
-          <button class={activeTab === "bericht" ? "active" : ""} onClick={showBerichtTab}>
-            Bericht
-          </button>
-          <button class={activeTab === "diff" ? "active" : ""} onClick={showDiffTab}>
-            Diff
-          </button>
-          <button class={activeTab === "suche" ? "active" : ""} onClick={showSucheTab}>
-            Suche
-          </button>
-          <button class={activeTab === "code" ? "active" : ""} onClick={showCodeTab}>
-            Code
-          </button>
-        </div>
+        {!tile && <nav class="subtabs-wrap" aria-label="Ansichten">{tabButtons}</nav>}
       </div>
       <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} sessionId={session.id} />
+      </div>
     </div>
     </ApiContext.Provider>
   );
