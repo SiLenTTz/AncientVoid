@@ -98,7 +98,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.getByRole("button", { name: "Neue Session" }).click();
     await expect(app).toHaveURL(/#\/neu$/);
-    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     await expect(app).toHaveURL(/#\/einstellungen$/);
     await app.goBack();
     await expect(app).toHaveURL(/#\/neu$/);

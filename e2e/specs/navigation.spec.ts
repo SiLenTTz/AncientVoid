@@ -4,7 +4,7 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
   test("das Dock erreicht jede Seite und kommt zurück @desktop", async ({ app }) => {
     await app.getByRole("button", { name: "Neue Session" }).click();
     await expect(app.getByRole("button", { name: "Starten" })).toBeVisible();
-    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     await expect(app.getByText("Erscheinungsbild")).toBeVisible();
     await app.getByRole("button", { name: "Übersicht" }).click();
     await expect(app.getByText("keine Sessions — lege eine an")).toBeVisible();
@@ -26,7 +26,7 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
   });
 
   test("das helle Design bleibt nach einem Reload", async ({ app }) => {
-    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     await app.getByRole("button", { name: "☾ Dunkel" }).click();
     await expect(app.locator("html")).toHaveAttribute("data-theme", "light");
     await app.reload();
@@ -34,7 +34,7 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
   });
 
   test("die Einstellungen nennen die gefundenen Projekte und den Passkey-Stand", async ({ app }) => {
-    await app.getByRole("button", { name: "Einstellungen" }).click();
+    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     await expect(app.getByText("2 Projekte gefunden")).toBeVisible();
     await expect(app.getByText("•••• aktiv")).toBeVisible();
     await expect(app.getByRole("button", { name: "Passkey registrieren" })).toBeVisible();

@@ -8,6 +8,7 @@
 // and exactly one message after `--`.
 //
 // Keywords in the prompt:
+//   KONTEXT-WARN / KONTEXT-FEHLER  context fill of 84 % / 96 % of the 131072 window (EPIC-P20)
 //   MARKDOWN  a formatted answer with an injection attempt (BUG-0067)
 //   LANG  an answer over the 4 KB event limit (BUG-0068), ends with ENDE-DER-ANTWORT
 const argv = process.argv.slice(2);
@@ -42,7 +43,9 @@ const md = prompt.includes("MARKDOWN")
   ? "\n\n## Stand\n\n- **Fix:** eins\n- `code` zwei\n\n| Feld | Wert |\n|---|---|\n| Commit | `43f43d0` |\n\n```text\n**nicht fett**\n```\n\n[böse](javascript:alert(1)) <img src=x onerror=alert(1)>"
   : "";
 update({ type: "text_end", contentIndex: 1, content: `Antwort auf: ${prompt} · pi · notiz.txt hat 2 Zeilen.${long}${md}` });
-emit({ type: "message_end", message: { role: "assistant", content: [], usage: { ...usage, input: 53, cacheRead: 1057, totalTokens: 1132 }, stopReason: "stop" } });
+const fill = prompt.includes("KONTEXT-FEHLER") ? 126000 : prompt.includes("KONTEXT-WARN") ? 110000 : null;
+const last = fill === null ? { ...usage, input: 53, cacheRead: 1057, totalTokens: 1132 } : { ...usage, input: fill, cacheRead: 0, totalTokens: fill + usage.output };
+emit({ type: "message_end", message: { role: "assistant", content: [], usage: last, stopReason: "stop" } });
 emit({ type: "turn_end" });
 emit({ type: "agent_end", messages: [], willRetry: false });
 emit({ type: "agent_settled", aborted: false });

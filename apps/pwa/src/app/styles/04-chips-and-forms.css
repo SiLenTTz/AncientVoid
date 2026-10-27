@@ -320,3 +320,17 @@
   display: block;
   margin: 6px 0;
 }
+
+/* EPIC-P20: settings rows with a stepper */
+.scale-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.scale-value {
+  min-width: 4ch;
+  text-align: center;
+}
+.settings-hint {
+  font-size: 11px;
+}
