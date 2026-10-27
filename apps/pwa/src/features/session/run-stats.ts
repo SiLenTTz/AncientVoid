@@ -56,7 +56,7 @@ export function turnsClosedBetween(turns: readonly TurnStats[], prevSeq: number,
 export function contextWindowFromEvents(events: readonly NormalizedEvent[]): number | null {
   for (let i = events.length - 1; i >= 0; i--) {
     const payload = events[i]!.payload as { kind?: unknown; contextWindowTokens?: unknown };
-    if (payload.kind === "acp.model" || payload.kind === "opencode.model") {
+    if (payload.kind === "acp.model" || payload.kind === "opencode.model" || payload.kind === "pi.model") {
       return typeof payload.contextWindowTokens === "number" ? payload.contextWindowTokens : null;
     }
   }
@@ -66,12 +66,18 @@ export function contextWindowFromEvents(events: readonly NormalizedEvent[]): num
 const fmt = new Intl.NumberFormat("de-DE");
 
 /** One honest sentence about the context window (ADR-0032): a percentage
- * only from two real numbers; a fill without a window names no percentage. */
-export function contextText(fill: number | null, windowTokens: number | null): string | null {
-  if (fill === null) return null;
-  if (windowTokens === null || windowTokens <= 0) return `Kontext ${fmt.format(fill)} Tokens`;
+ * and the free room only from two real numbers; a missing number is said,
+ * not hidden (fail loud). */
+export function contextText(fill: number | null, windowTokens: number | null): string {
+  if (fill === null) return "Kontext unbekannt";
+  if (windowTokens === null || windowTokens <= 0) return `Kontext ${fmt.format(fill)} Tokens · Fenstergröße unbekannt`;
   const pct = Math.round((fill / windowTokens) * 100);
-  return `Kontext ${pct} % (${fmt.format(fill)} / ${fmt.format(windowTokens)})`;
+  return `Kontext ${pct} % · frei ${fmt.format(Math.max(0, windowTokens - fill))} von ${fmt.format(windowTokens)}`;
+}
+
+/** The session's token sum, or that nobody reported one. */
+export function tokenText(known: boolean, total: number): string {
+  return known ? `Σ ${fmt.format(total)} Tokens` : "Tokens unbekannt";
 }
 
 /** Context level for styling — warn from 80 %, err from 95 %. */

@@ -21,7 +21,7 @@ import { loadTail, saveTail } from "./tail-cache.ts";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
-import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents } from "./run-stats.ts";
+import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, tokenText } from "./run-stats.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
 import { EventRow } from "./EventRow.tsx";
 import { DiffPane } from "./DiffPane.tsx";
@@ -640,13 +640,15 @@ export function SessionTail({ session, onNavigate, initialCode }: { session: Ses
                 : " · ohne Plan kein Fortschritt messbar"}
             </div>
           ))}
-        <div class={`run-quota ${quota.level}`}>{quota.text}</div>
-        {(tokensKnown || context !== null) && (
-          <div class={`run-tokens ${contextLevel(tokenStats.lastContextTokens, windowTokens) ?? ""}`}>
-            {tokensKnown ? `Σ ${record.tokensEst.toLocaleString("de-DE")} Tokens` : "Tokens nicht gemeldet"}
-            {context ? ` · ${context}` : ""}
-          </div>
-        )}
+        {/* One line, never wrapping: quota, then the always-present token line
+            (used tokens and free context, or that they are unknown). On a
+            phone it scrolls sideways instead of taking height (AC-P8-5). */}
+        <div class="run-meta">
+          <span class={`run-quota ${quota.level}`}>{quota.text}</span>
+          <span class={`run-tokens ${contextLevel(tokenStats.lastContextTokens, windowTokens) ?? ""}`}>
+            {tokenText(tokensKnown, record.tokensEst)} · {context}
+          </span>
+        </div>
       </div>
 
       <div

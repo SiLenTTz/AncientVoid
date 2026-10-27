@@ -35,6 +35,9 @@ const PiConfig = z.object({
    * session's own model choice (SessionSpec.model) always wins — without
    * either, pi runs its own default and the hub says so honestly. */
   model: z.string().min(1).optional(),
+  /** ADR-0032: the model's context window in tokens, from pi's own
+   * models.json (`contextWindow`) — pi does not report it in the stream. */
+  contextWindowTokens: z.number().int().positive().optional(),
 });
 type PiConfig = z.infer<typeof PiConfig>;
 
@@ -101,6 +104,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         usage: false,
         nativeDiscovery: "none",
         nativeResume: "none",
+        ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),
         features: {
           followUp: true,
           interrupt: true,
@@ -128,7 +132,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const model = spec.model ?? cfg.model;
       sessionModels.set(ctx.sessionId, model);
       if (model) {
-        ctx.emit({ type: "system", summary: `pi: Modell ${model}`, payload: { kind: "pi.model", model } });
+        ctx.emit({
+          type: "system",
+          summary: `pi: Modell ${model}`,
+          payload: { kind: "pi.model", model, ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}) },
+        });
       }
       const proc = await ctx.spawnWorker(
         buildArgs(spec.prompt ?? "(Session startet — bitte bestätigen mit OK)", model, true),

@@ -64,3 +64,20 @@ describe("pi --mode json stream (BUG-0065)", () => {
     expect(run([line + "\n"])).toEqual([expect.objectContaining({ payload: expect.objectContaining({ kind: "provider.error", provider: "pi" }) })]);
   });
 });
+
+describe("pi usage (ADR-0032)", () => {
+  it("jede Modell-Antwort meldet Tokens; die Füllung zählt den Cache mit", () => {
+    const usage = run([fixture]).filter((e) => e.payload.kind === "pi.usage");
+    // Real capture: round 1 input 1057; round 2 input 53 + cacheRead 1057.
+    expect(usage.map((e) => e.payload.usage)).toEqual([
+      { input: 1057, output: 35 },
+      { input: 1110, output: 22 },
+    ]);
+    expect(usage.map((e) => e.tokensEst)).toEqual([1092, 1132]);
+  });
+
+  it("ohne usage kein Token-Event (nichts geraten)", () => {
+    const line = JSON.stringify({ type: "message_end", message: { role: "assistant", content: [], stopReason: "stop" } });
+    expect(run([line + "\n"])).toEqual([]);
+  });
+});
