@@ -1,7 +1,7 @@
 # EPIC-P19 — Loop / Dark Factory: securesight-factory und aSPARK-Factory als wählbare Loops
 
 **Status:** Gerüst gebaut (2026-10-28, Auftrag von Jan): Katalog, `GET /api/loops`, Policy `loops.start`, Auswahl im Start-Formular.
-**Offen:** die Connectors T19.4/T19.5 (eigene Pakete unter `packages/loops/`) und das Loop-Panel T19.6; bis dahin sind beide Loops sichtbar, gesperrt und begründet ·
+**Offen:** der Connector T19.5 (eigenes Paket unter `packages/loops/`) und das Loop-Panel T19.6; bis dahin sind beide Loops sichtbar, gesperrt und begründet ·
 **Phase:** P19 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P15 Modus-/Steuermuster,
 P17 Resume-Referenzen und Worker-Marker auf). Präzedenz wie P13/P14/P17: unabhängiges Epic neben offenen Abnahmen.
 P18 (Desktop-Workspace) ist seit 2026-10-27 gemergt, das Gating ist damit kein Hindernis mehr. Offen bleibt die Bestätigung des ADR.
@@ -77,8 +77,11 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
   entfallen: die Zuordnung steckt im Adapter-Namen `loop:<id>`. K7.
 - [x] **T19.3 — Hub-Route und Policy.** *Erledigt 2026-10-28* (Audit-Event bei Betriebsartwechsel gehört zu T19.4/T19.5). `GET /api/loops`, Start mit `loop`, Policy-Operationen,
   Audit-Event bei Betriebsartwechsel. `check:arch`-Regel.
-- [ ] **T19.4 — Loop `aspark-factory`.** MQTT-Leitstand-Client, Fragen und Antworten, Befehle,
-  `loop.broken`. Dokumentierte Anleitung für den Hub-MQTT-Nutzer (nicht ausgeführt). K1, K5, K7, K9.
+- [x] **T19.4 — Loop `aspark-factory`.** *Erledigt 2026-10-28* (Paket `@uacc/loop-aspark-factory`, einzige Abhängigkeit `mqtt`):
+  MQTT-Leitstand-Client, Fragen und Antworten (permission und question), Befehle gegen `commands[]`, `loop.broken` bei
+  Last Will, `v≠1`, kaputtem JSON und Brokerverlust, Berichte >2 KB als Blob (K5), beantwortete Fragen im Cursor (K7).
+  Getestet gegen einen echten Mosquitto (11 Tests, Skip wenn er fehlt). Offen: die Anleitung für den Hub-MQTT-Nutzer
+  (nicht ausgeführt) steht in MR 4 mit der Konfiguration. K1, K9 messen wir erst gegen eine laufende Linie.
 - [ ] **T19.5 — Loop `securesight-factory`.** Supervisor-Status, Notify, Transcript, Progress,
   Orchestrator `self | hermes` (Hermes lesend), Fortsetzen als Tipp. K2, K7, K9.
 - [~] **T19.6 — PWA.** *Teilweise:* Zeile „Loop“ im Start-Formular, Optionen aus den Fähigkeiten, gesperrt mit Grund (Spec `loops.spec.ts`). Offen: Kopf-Abzeichen, Loop-Panel, Bestätigungsdialog. Auswahl-Flow, Fähigkeiten-getriebene Optionen, Kopf-Abzeichen,

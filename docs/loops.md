@@ -51,3 +51,20 @@ sichtbar, gesperrt, mit dem Grund. Ohne Eintrag steht er als „nicht eingericht
 `createLoopConnector(config?) => LoopConnector` exportieren (`packages/contracts/src/loops/connector.ts`) und
 `runLoopContractTests(createLoopConnector, …)` aus `@uacc/adapter-testkit` grün bekommen. Der Fake-Loop
 (`@uacc/adapter-testkit/fake-loop`) ist die Vorlage und läuft in den E2E-Specs.
+
+## aSPARK-Factory (`@uacc/loop-aspark-factory`)
+
+Der Hub ist ein Leitstand-Client einer Linie (AsyncAPI 0.9.0, alle Nachrichten `v:1`). Pro Session ein MQTT-Client
+`uacc-<sessionId>`, abonniert wird nur die gewählte Linie (Option `line`).
+
+| Topic | im Hub |
+|---|---|
+| `agent/<line>/info` | `loop.info` (Betriebsart, Aktivität); `status:offline` (Last Will) = `loop.broken`, Status `down` |
+| `…/<session>/state`, `…/progress` | `loop.state`, `loop.progress` (Aufgaben, Phase, Gate policy/review/ci/merge) |
+| `agent/<line>/stats`, `…/report` | `loop.stats`, `loop.report` (Bericht über 2 KB als Blob) |
+| `…/<session>/ask` | Rückfrage auf dem Handy; Antwort nach `…/answer` (`allow`/`deny`, bei Fragen Indizes + Notizen) |
+| `agent/<line>/command` | `pause`, `resume`, `set-mode`, `work` (nur Issue-Nummer); geprüft gegen `commands[]` der Linie |
+
+Grenzen: kein `allow-always` (v1 der Factory); „Nein“ auf eine Frage kennt das Protokoll nicht, die Linie handelt dann
+nach ihrem `timeoutAction`. Das Passwort steht nie in der Config, nur `passwordFile`. Tests: echter `mosquitto`
+auf Zufallsport (`packages/loops/aspark-factory/test/aspark.test.ts`), übersprungen, wenn er fehlt.

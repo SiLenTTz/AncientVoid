@@ -11,6 +11,8 @@
     "packages/*/test",
     "packages/adapters/*/src",
     "packages/adapters/*/test",
+    "packages/loops/*/src",
+    "packages/loops/*/test",
     "apps/hub/src",
     "apps/hub/test",
     "apps/hubctl/src",
