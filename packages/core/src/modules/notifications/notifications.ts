@@ -50,6 +50,13 @@ export function notificationFor(event: NormalizedEvent, ctx: NotificationContext
       };
     case "session.steer_pending_approval":
       return { level: "warning", title: `${where} · Freigabe nötig`, detail: "Eine Antwort wartet in den Freigaben.", kind };
+    // EPIC-P19: ein Loop meldet selbst, wann er eine Person braucht oder gestört ist (AC-P19-2, K9).
+    case "loop.hold":
+      return { level: "warning", title: `${where} · Loop wartet auf dich`, detail: text(payload.reason), kind };
+    case "loop.broken":
+      return { level: "error", title: `${where} · Loop gestört`, detail: text(payload.reason), kind };
+    case "loop.notify":
+      return { level: "warning", title: `${where} · Loop eskaliert (Stufe ${text(payload.level) ?? "?"})`, detail: text(payload.reason), kind };
     case "session.budget_exceeded":
     case "session.daily_cap_exceeded":
       return { level: "warning", title: `${where} · Budget erreicht, pausiert`, detail: null, kind };

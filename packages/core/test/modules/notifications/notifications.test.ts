@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { Adapter } from "@uacc/contracts";
 import { basicFeatures } from "@uacc/contracts";
 import { providerErrorEvent } from "@uacc/contracts";
+import { notificationFor } from "../../../src/modules/notifications/index.ts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
 import { ProcessRunner } from "@uacc/workers";
 
@@ -75,3 +76,19 @@ describe("notifications feed (ADR-0015)", () => {
     }
   });
 });
+
+describe("Loop-Benachrichtigungen (EPIC-P19, AC-P19-2)", () => {
+  const ev = (payload: Record<string, unknown>) => ({ seq: 1, ts: "t", sessionId: "s", type: "system", summary: "x", payload, blobRef: null }) as never;
+  const ctx = { adapter: "loop:securesight-factory", project: "/p/securesight", recentProviderError: false };
+
+  it("ein Halt für eine Person, eine Störung und eine Eskalation erreichen das Handy", () => {
+    expect(notificationFor(ev({ kind: "loop.hold", reason: "Gates dreimal rot" }), ctx)).toEqual({ level: "warning", title: "securesight · Loop wartet auf dich", detail: "Gates dreimal rot", kind: "loop.hold" });
+    expect(notificationFor(ev({ kind: "loop.broken", reason: "Watchdog ausgefallen" }), ctx)).toMatchObject({ level: "error", title: "securesight · Loop gestört", detail: "Watchdog ausgefallen" });
+    expect(notificationFor(ev({ kind: "loop.notify", level: "2", reason: "gates-rot" }), ctx)).toMatchObject({ level: "warning", title: "securesight · Loop eskaliert (Stufe 2)" });
+  });
+
+  it("Routinemeldungen (Info, Fortschritt, Wiederherstellung) bleiben im Verlauf", () => {
+    for (const kind of ["loop.info", "loop.progress", "loop.state", "loop.recovered", "loop.transcript"]) expect(notificationFor(ev({ kind }), ctx)).toBeNull();
+  });
+});
+
