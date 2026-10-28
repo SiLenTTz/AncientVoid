@@ -39,6 +39,7 @@ export function misplacedWorkspaces(root) {
   const dirs = (pkg.workspaces ?? []).flatMap((pattern) => {
     if (!pattern.endsWith("/*")) return [join(root, pattern)];
     const base = join(root, pattern.slice(0, -2));
+    if (!existsSync(base)) return [];
     return readdirSync(base, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => join(base, d.name));
   });
   const wrong = [];

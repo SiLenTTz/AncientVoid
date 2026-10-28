@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { probeHarnesses, HARNESS_CATALOG, spawnProbeRunner } from "@uacc/core";
-import type { ModelOption } from "@uacc/contracts";
+import { isLoopAdapter, type ModelOption } from "@uacc/contracts";
 import type { RouteContext } from "../../route-context.ts";
 
 /** Adapters, model catalog, quota and harness inventory (ADR-0004, ADR-0012, ADR-0018). */
@@ -8,7 +8,8 @@ export function registerHarnessRoutes(app: FastifyInstance, ctx: RouteContext): 
   const { deps } = ctx;
 
   app.get("/api/adapters", async () =>
-    deps.registry.list().map((a) => ({
+    // EPIC-P19: Loop-Shims (`loop:<id>`) gehören in die Loop-Auswahl, nicht in die Adapter-Liste.
+    deps.registry.list().filter((a) => !isLoopAdapter(a.id)).map((a) => ({
       id: a.id,
       version: a.adapter.version,
       capabilities: a.capabilities,

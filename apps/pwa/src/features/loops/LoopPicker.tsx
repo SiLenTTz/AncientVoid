@@ -1,20 +1,25 @@
 import { useEffect, useState } from "preact/hooks";
 import type { LoopInfo, LoopSpec } from "@uacc/contracts";
 import type { hubApi } from "../../shared/api.ts";
+import { defaultLoopSpec } from "./loop-form.ts";
 
 /**
- * EPIC-P19: Auswahl „Loop / Dark Factory“ im Start-Formular. Die Liste kommt
- * vom Hub (Fähigkeiten, nie festverdrahtet); ein Loop ohne Connector bleibt
- * sichtbar und gesperrt, mit dem Grund daneben — kein stilles Verschwinden.
+ * EPIC-P19: Auswahl „Loop / Dark Factory“ im Start-Formular. Die Liste und alle Felder kommen vom Hub
+ * (Fähigkeiten des Connectors, nie festverdrahtet). Ein Loop ohne Connector bleibt sichtbar und gesperrt,
+ * mit dem Grund daneben — kein stilles Verschwinden. Betriebsarten mit Außenwirkung brauchen ein Häkchen.
  */
 export function LoopPicker({
   api,
   value,
+  confirmed,
   onChange,
+  onConfirmed,
 }: {
   api: Pick<typeof hubApi, "loops">;
   value: LoopSpec | null;
-  onChange: (next: LoopSpec | null) => void;
+  confirmed: boolean;
+  onChange: (next: LoopSpec | null, info: LoopInfo | null) => void;
+  onConfirmed: (yes: boolean) => void;
 }) {
   const [loops, setLoops] = useState<LoopInfo[] | null>(null);
   useEffect(() => {
@@ -31,7 +36,12 @@ export function LoopPicker({
   if (!loops || loops.length === 0) return null;
 
   const chosen = value ? loops.find((l) => l.id === value.id) : undefined;
+  const caps = chosen?.capabilities ?? null;
+  const set = (patch: Partial<LoopSpec>) => value && chosen && onChange({ ...value, ...patch }, chosen);
+  const setOption = (key: string, v: string) => set({ options: { ...value?.options, [key]: v } });
+  const risky = !!(value?.mode && caps?.riskyModes.includes(value.mode));
   const blocked = loops.filter((l) => !l.available);
+
   return (
     <div class="loop-picker">
       <label>
@@ -40,10 +50,9 @@ export function LoopPicker({
           aria-label="Loop"
           value={value?.id ?? ""}
           onChange={(e) => {
-            const id = (e.target as HTMLSelectElement).value;
-            const next = loops.find((l) => l.id === id);
-            // Voreinstellungen der Optionen kommen vom Loop; `dark` o. Ä. ist nie die Vorgabe.
-            onChange(next ? { id: next.id, options: Object.fromEntries(next.options.map((o) => [o.key, o.default])) } : null);
+            const next = loops.find((l) => l.id === (e.target as HTMLSelectElement).value);
+            onConfirmed(false);
+            onChange(next ? defaultLoopSpec(next) : null, next ?? null);
           }}
         >
           <option value="">kein Loop</option>
@@ -55,22 +64,68 @@ export function LoopPicker({
           ))}
         </select>
       </label>
-      {chosen?.options.map((o) => (
-        <label key={o.key}>
-          {o.label}
-          <select
-            aria-label={o.label}
-            value={value?.options?.[o.key] ?? o.default}
-            onChange={(e) => onChange({ id: chosen.id, options: { ...value?.options, [o.key]: (e.target as HTMLSelectElement).value } })}
-          >
-            {o.values.map((v) => (
-              <option key={v.value} value={v.value}>
-                {v.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      ))}
+      {caps && value && (
+        <>
+          <div class="dim loop-note">Adapter, Modell und Modus bestimmt der Loop selbst.</div>
+          {caps.modes.length > 0 && (
+            <label>
+              Betriebsart
+              <select
+                aria-label="Betriebsart"
+                value={value.mode ?? ""}
+                onChange={(e) => {
+                  onConfirmed(false);
+                  set({ mode: (e.target as HTMLSelectElement).value });
+                }}
+              >
+                {caps.modes.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                    {caps.riskyModes.includes(m) ? " (ändert Fremdsysteme)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {caps.orchestrators.length > 0 && (
+            <label>
+              Orchestrator
+              <select aria-label="Orchestrator" value={value.orchestrator ?? ""} onChange={(e) => set({ orchestrator: (e.target as HTMLSelectElement).value })}>
+                {caps.orchestrators.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {caps.options.map((o) => (
+            <label key={o.key}>
+              {o.label}
+              {o.required ? " *" : ""}
+              {o.kind === "select" ? (
+                <select aria-label={o.label} value={value.options?.[o.key] ?? ""} onChange={(e) => setOption(o.key, (e.target as HTMLSelectElement).value)}>
+                  {o.choices?.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              ) : o.kind === "toggle" ? (
+                <input type="checkbox" aria-label={o.label} checked={value.options?.[o.key] === "true"} onChange={(e) => setOption(o.key, (e.target as HTMLInputElement).checked ? "true" : "false")} />
+              ) : (
+                <input type="text" aria-label={o.label} placeholder={o.placeholder ?? ""} value={value.options?.[o.key] ?? ""} onInput={(e) => setOption(o.key, (e.target as HTMLInputElement).value)} autocapitalize="off" autocorrect="off" spellcheck={false} />
+              )}
+            </label>
+          ))}
+          {risky && (
+            <label class="loop-confirm">
+              <input type="checkbox" aria-label="Außenwirkung bestätigen" checked={confirmed} onChange={(e) => onConfirmed((e.target as HTMLInputElement).checked)} />
+              In „{value.mode}“ ändert der Loop Fremdsysteme (z. B. Merges). Ich weiß das und will starten.
+            </label>
+          )}
+        </>
+      )}
       {blocked.length > 0 && (
         <ul class="loop-reasons dim">
           {blocked.map((l) => (

@@ -1,7 +1,8 @@
 import { takeHandOver } from "../../shared/media.ts";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { LoopPicker } from "../loops/LoopPicker.tsx";
-import type { LoopSpec } from "@uacc/contracts";
+import type { LoopInfo, LoopSpec } from "@uacc/contracts";
+import { loopBlocker } from "../loops/loop-form.ts";
 import { hubApi, hostApi, type AdapterInfo, type DiscoveredProject, type FleetHost, type ModelOption, type SessionRecord } from "../../shared/api.ts";
 import type { AttachmentRecord } from "../../shared/api.ts";
 import { ApiContext } from "../../shared/api-context.ts";
@@ -48,6 +49,9 @@ export function CreateSession({
   }, [adapters]);
   const [project, setProject] = useState("");
   const [loop, setLoop] = useState<LoopSpec | null>(null);
+  const [loopInfo, setLoopInfo] = useState<LoopInfo | null>(null);
+  const [loopConfirmed, setLoopConfirmed] = useState(false);
+  const loopBlock = loopBlocker(loopInfo, loop, loopConfirmed);
   // EPIC-P10.5: a video result handed over from the media page.
   const [attachments, setAttachments] = useState<AttachmentRecord[]>(() => takeHandOver("new"));
   const [prompt, setPromptState] = useState(() => localStorage.getItem(PROMPT_KEY) ?? "");
@@ -165,9 +169,8 @@ export function CreateSession({
       // field itself is untouched (createSession still accepts it) for P2
       // to build on for API-key-billed adapters.
       const rec = await api.createSession({
-        adapter,
+        ...(loop ? { loop } : { adapter }),
         project,
-        ...(loop ? { loop } : {}),
         ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
         ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
         ...(skill || mode ? { args: { ...(skill ? { [skill.kind]: skill.name } : {}), ...(mode ? { permissionMode: mode } : {}) } } : {}),
@@ -199,6 +202,9 @@ export function CreateSession({
           </select>
         </label>
       )}
+      <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); }} />
+      {!loop && (
+        <>
       <label>
         Adapter
         <select value={adapter} onChange={(e) => setAdapter((e.target as HTMLSelectElement).value)}>
@@ -210,7 +216,6 @@ export function CreateSession({
           ))}
         </select>
       </label>
-      <LoopPicker api={api} value={loop} onChange={setLoop} />
       {features?.toolGate === "bypass" && (
         <div class="tool-gate warn">{adapter}: Tools laufen ungefragt, ohne Rückfrage an dich.</div>
       )}
@@ -251,6 +256,8 @@ export function CreateSession({
             />
           )}
         </label>
+      )}
+        </>
       )}
       <label>
         Projekt
@@ -304,12 +311,13 @@ export function CreateSession({
           onUseRecommendation={(item) => setSkill(item)}
           attachments={attachments}
           onAttachmentsChange={setAttachments}
-          onSubmit={busy || !project ? undefined : () => void submit()}
+          onSubmit={busy || !project || loopBlock ? undefined : () => void submit()}
         />
       </label>
       {error && <div style="color: var(--err)">{error}</div>}
-      <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />
-      <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy || !project}>
+      {!loop && <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />}
+      {loopBlock && loop && <div class="dim loop-block">{loopBlock}</div>}
+      <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy || !project || !!loopBlock}>
         {busy ? "lädt…" : "Starten"}
       </button>
     </div>
