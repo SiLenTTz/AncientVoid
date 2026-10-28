@@ -42,3 +42,37 @@ Freitext) und gehen als strukturierte Antwort zurück. Messlatten: K2 (Latenz), 
 
 ## 6. Definition of Done
 `npm run gate` grün, jede UI-Funktion mit Spec, ADR für Contract-Änderungen (Übergabe, Metriken), Hub neu gestartet, `retro`.
+
+## Retro (2026-10-28)
+
+Zeitraum 2026-10-27 bis 2026-10-28, vier Aufgaben (Commits `9ec36ef`, `6f4f489`, `587929b`, `36d8f82`), dazu der Auslöser-Bug BUG-0075 (MR !219, !225).
+
+**AK-Matrix: 3 🟢 / 1 🟡 / 0 🔴 / 0 ⚪**
+
+- AC-P21-1: 🟢 — Beleg: `e2e/specs/layout-desktop.spec.ts:32` (Rail ≤ 64 px), Gate 223 E2E inkl. Mobile-Specs grün (MR !222).
+  Bemerkung: Der Dokument-Scroll bei 1600×900 hatte als Ursache einen veralteten PWA-Build, zusätzlich per CSS abgesichert.
+- AC-P21-2: 🟢 — Beleg: `packages/core/test/modules/handover/handover.test.ts`, `e2e/specs/harness.spec.ts:186` (Übergabetext), ADR-0039 (MR !226).
+- AC-P21-3: 🟢 — Beleg: `packages/core/test/modules/runs/session-turn-metrics.test.ts` (Wiederaufbau aus JSONL), `e2e/specs/progress.spec.ts` „ab 5 Läufen“ (MR !223).
+- AC-P21-4: 🟡 — Beleg: `e2e/specs/harness.spec.ts:142` (claude), `:154` (acp), `:318` (codex): Frage wird beantwortet, die Antwort erreicht den Harness.
+  Bemerkung: Ein Spec, der die offene Frage über einen Reload hinweg prüft, fehlt; nicht belegt, daher nicht 🟢.
+
+**Premortem: 2 eingetreten / 2 nicht eingetreten**
+
+- Risiko 3 (Rail bricht Specs/Handy): eingetreten im Kleinen, `oberflaeche.spec.ts` brauchte einen neuen Locator (`.notif-gear`); Handy-Specs blieben grün.
+- Risiko 4 (Formular blockiert Harness): eingetreten als echter Fehler, nicht als Timeout: Die erste „nur ein resync“-Fassung verlor das erste Event (~1 von 3 E2E rot), bisektiert, MR !225.
+- Risiko 1 und 2: nicht eingetreten (Übergabetext ≤ 3500 Zeichen mit Schwärzung; Schätzung zeigt „ab 5 Läufen“ statt einer Zahl).
+
+**Erkenntnisse**
+
+1. Die gemeldeten „Session-Abbrüche“ waren eine Hub-Absturzschleife, kein Provider-Problem — Beleg: BUG-0075.
+2. Bisektieren fand die eigene Regression schnell, weil jeder Fix ein eigener Commit war — Beleg: BUG-0075 „Fix“.
+3. Zwei Flakes hatten kleine, reproduzierbare Ursachen, sobald man `--repeat-each` nutzte: ein Test startete das echte `opencode` (MR !228), ein Sprachbefehl-Test wartete auf ein Zitat im schon geschlossenen Dialog (6 von 12 rot, Fix in MR !230).
+4. Parallele Sessions vergaben dieselbe Bug-Nummer (0072) — Beleg: BUG-0075 „Nummer“, MR !231.
+5. Der Hub hatte keine Frühwarnung vor dem OOM — Beleg: MR !229 (`checks.memory`).
+
+**Action Items**
+
+- AI-P21-1: Spec „offene Frage überlebt Reload“ — zurück als: Aufgabe in einem Folge-Epic (AC-P21-4 auf 🟢).
+- AI-P21-2: Bug-Nummern vor dem Anlegen gegen `origin` und offene MRs prüfen — zurück als: Eintrag in `bugs/README.md` / Skill `bug-report`.
+- AI-P21-3: Roll-out auf `silenttz-server` (`scripts/fleet-deploy.sh`) und `evox2` — zurück als: offene DoD-Zeile dieses Epics; von Jan später gewünscht.
+- AI-P21-4: Nach dem Merge von !218 BUG-0074 auf `done` mit Verweis auf BUG-0075 — zurück als: Bug-Update.
