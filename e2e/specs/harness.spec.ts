@@ -218,6 +218,23 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(app.locator(".handover-bar")).toHaveCount(0);
   });
 
+  test("T21.2: der Übergabetext lässt sich auf Klick vom Ziel-Modell straffen und wieder zurücknehmen", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "Baue die Suche um FEHLER" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const bar = app.locator(".handover-bar");
+    await bar.getByRole("button", { name: /An anderen Provider übergeben/ }).click();
+    const tighten = bar.getByRole("button", { name: "Mit Modell straffen" });
+    await expect(tighten).toBeDisabled();
+    await bar.getByLabel("Ziel-Provider").selectOption("opencode");
+    const text = bar.getByLabel("Übergabetext");
+    await text.fill("mach die suche schneller");
+    await tighten.click();
+    await expect(text).toHaveValue(/^Ziel: mach die suche schneller\nScope:/);
+    await bar.getByRole("button", { name: "Rückgängig" }).click();
+    await expect(text).toHaveValue("mach die suche schneller");
+  });
+
   test("T7.2: die Tool-Anfrage steht auch in der Freigabe-Warteschlange", async ({ app, hub }) => {
     await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
     await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();

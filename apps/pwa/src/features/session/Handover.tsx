@@ -33,6 +33,9 @@ function HandoverForm({ session, api, onCancel, onHandedOver }: { session: Sessi
   const [models, setModels] = useState<{ id: string }[]>([]);
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [tightening, setTightening] = useState(false);
+  // Der Text vor dem Straffen — „Rückgängig“ stellt ihn wieder her.
+  const [beforeTighten, setBeforeTighten] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,6 +59,22 @@ function HandoverForm({ session, api, onCancel, onHandedOver }: { session: Sessi
       alive = false;
     };
   }, [api, target, canPickModel]);
+
+  // Optional und nur auf Klick: das Ziel-Modell formuliert den Text neu. Der Text geht dafür an dieses Ziel
+  // (ADR-0039: ohnehin das, was es als erste Eingabe bekäme); die Schwärzung von Schlüsseln lief schon im Entwurf.
+  const tighten = async () => {
+    setTightening(true);
+    setError(null);
+    try {
+      const result = await api.enhancePrompt(target, session.project, prompt);
+      setBeforeTighten(prompt);
+      setPrompt(result.enhanced.slice(0, 3500));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Straffen fehlgeschlagen");
+    } finally {
+      setTightening(false);
+    }
+  };
 
   const go = async () => {
     setBusy(true);
@@ -100,6 +119,14 @@ function HandoverForm({ session, api, onCancel, onHandedOver }: { session: Sessi
       </label>
       {error && <div class="error">{error}</div>}
       <div class="approval-actions">
+        <button type="button" class={tightening ? "btn busy" : "btn"} disabled={busy || tightening || !target || !prompt.trim()} onClick={() => void tighten()} title={target ? `Der Text geht dafür an ${target}` : "Zuerst ein Ziel wählen"}>
+          {tightening ? "formuliert…" : "Mit Modell straffen"}
+        </button>
+        {beforeTighten !== null && (
+          <button type="button" class="btn" onClick={() => { setPrompt(beforeTighten); setBeforeTighten(null); }}>
+            Rückgängig
+          </button>
+        )}
         <button type="button" class={busy ? "btn primary busy" : "btn primary"} disabled={busy || !target || !prompt.trim()} onClick={() => void go()}>
           {busy ? "startet…" : "Übergeben"}
         </button>
