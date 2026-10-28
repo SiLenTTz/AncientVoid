@@ -41,8 +41,13 @@ import {
   cursorDiscoverySource,
   defaultClaudeDir,
   defaultCursorUserDir,
+  defaultMakiDir,
+  defaultOmpDir,
   defaultOpencodeDataDir,
+  defaultPiDir,
+  makiDiscoverySource,
   opencodeDiscoverySource,
+  piFamilyDiscoverySource,
   type HubConfig,
 } from "@uacc/core";
 import { TmuxRunner, ProcessRunner } from "@uacc/workers";
@@ -68,6 +73,13 @@ function discoverySources(config: HubConfig): DiscoverySource[] {
   if (config.discovery.cursorUserDir || existsSync(cursorUserDir)) sources.push(cursorDiscoverySource(cursorUserDir));
   const opencodeDataDir = config.discovery.opencodeDataDir ? resolve(config.discovery.opencodeDataDir) : defaultOpencodeDataDir();
   if (config.discovery.opencodeDataDir || existsSync(opencodeDataDir)) sources.push(opencodeDiscoverySource(opencodeDataDir, config.projectRoots));
+  // ADR-0041: pi, oh-my-pi and maki — each only when its store exists (or is configured).
+  const piDir = config.discovery.piDir ? resolve(config.discovery.piDir) : defaultPiDir();
+  if (config.discovery.piDir || existsSync(piDir)) sources.push(piFamilyDiscoverySource("pi", piDir, config.projectRoots));
+  const ompDir = config.discovery.ompDir ? resolve(config.discovery.ompDir) : defaultOmpDir();
+  if (config.discovery.ompDir || existsSync(ompDir)) sources.push(piFamilyDiscoverySource("omp", ompDir, config.projectRoots));
+  const makiDir = config.discovery.makiDir ? resolve(config.discovery.makiDir) : defaultMakiDir();
+  if (config.discovery.makiDir || existsSync(makiDir)) sources.push(makiDiscoverySource(makiDir, config.projectRoots));
   return sources;
 }
 

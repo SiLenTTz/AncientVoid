@@ -166,6 +166,38 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     expect(rec.status).toBe("idle");
   });
 
+  test("pi, oh-my-pi und maki: Sessions erscheinen mit Titel; nur ein registrierter Harness bietet Fortsetzen an (ADR-0041)", async ({ app, hub }) => {
+    const line = (o: unknown) => `${JSON.stringify(o)}\n`;
+    const msg = (text: string) => line({ type: "message", message: { role: "user", content: [{ type: "text", text }] } });
+    const piId = "01a18324-aaaa-7000-8000-000000000001";
+    const ompId = "01a18324-bbbb-7000-8000-000000000002";
+    mkdirSync(join(hub.root, "pi-sessions", "--p--"), { recursive: true });
+    mkdirSync(join(hub.root, "omp-sessions", "-p"), { recursive: true });
+    mkdirSync(join(hub.root, "maki-sessions"), { recursive: true });
+    writeFileSync(join(hub.root, "pi-sessions", "--p--", `t_${piId}.jsonl`), line({ type: "session", id: piId, cwd: hub.alpha }) + msg("Pi: Login prüfen"));
+    writeFileSync(join(hub.root, "omp-sessions", "-p", `t_${ompId}.jsonl`), line({ type: "title", v: 1, title: "Omp: Importer reparieren", pad: " ".repeat(120) }) + line({ type: "session", id: ompId, cwd: hub.alpha }) + msg("egal"));
+    writeFileSync(
+      join(hub.root, "maki-sessions", "MakiSession1.jsonl"),
+      line({ t: "header", v: 2, id: "MakiSession1", model: "zai/glm-5.3", cwd: hub.alpha, created_at: 1 }) + line({ t: "msg", d: { role: "user", content: [{ type: "text", text: "Maki: Doku schreiben" }] } }) + line({ t: "meta", title: "Maki: Doku schreiben", updated_at: 2 }),
+    );
+    for (const f of [join(hub.root, "pi-sessions", "--p--", `t_${piId}.jsonl`), join(hub.root, "omp-sessions", "-p", `t_${ompId}.jsonl`), join(hub.root, "maki-sessions", "MakiSession1.jsonl")]) utimesSync(f, new Date(Date.now() - 3600_000), new Date(Date.now() - 3600_000));
+
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    await expandAllGroups(app);
+    const pi = app.locator(".discovered-row").filter({ hasText: "Pi: Login prüfen" });
+    const omp = app.locator(".discovered-row").filter({ hasText: "Omp: Importer reparieren" });
+    const maki = app.locator(".discovered-row").filter({ hasText: "Maki: Doku schreiben" });
+    await expect(pi).toContainText("pi");
+    await expect(omp).toContainText("omp");
+    await expect(maki).toContainText("maki");
+    // pi ist im Test-Hub registriert, omp und maki nicht: ohne Adapter kein Fortsetzen
+    await expect(pi.getByRole("button", { name: "Fortsetzen", exact: true })).toBeVisible();
+    await expect(omp.getByRole("button", { name: "Fortsetzen", exact: true })).toHaveCount(0);
+    await expect(maki.getByRole("button", { name: "Fortsetzen", exact: true })).toHaveCount(0);
+    await app.getByLabel("Sessions durchsuchen").fill("importer");
+    await expect(app.locator(".discovered-row")).toHaveCount(1);
+  });
+
   test("mehr als eine Seite wird mit „Mehr laden“ vollständig", async ({ app, hub }) => {
     externalClaude(hub, "-home-user-viele", Array.from({ length: 55 }, (_, i) => `viele-${i}`));
     await app.getByRole("button", { name: "Gefunden" }).click();

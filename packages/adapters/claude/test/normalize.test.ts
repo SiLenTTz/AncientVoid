@@ -149,6 +149,13 @@ describe("Buchhaltungszeilen des Transkripts (ADR-0040)", () => {
     },
   );
 
+  it("Text der Person im importierten Transkript ist ein user-Event, kein assistant", () => {
+    const events = normalizeClaudeLine({ type: "user", message: { role: "user", content: [{ type: "text", text: "Mach weiter" }] } });
+    expect(events).toEqual([{ type: "user", summary: "Mach weiter", payload: { text: "Mach weiter" } }]);
+    expect(normalizeClaudeLine({ type: "user", message: { role: "user", content: [{ type: "text", text: "  " }] } })).toEqual([]);
+    expect(normalizeClaudeLine({ type: "assistant", message: { content: [{ type: "text", text: "Klar" }] } })[0]!.type).toBe("assistant");
+  });
+
   it("ein wirklich unbekannter Typ bleibt laut", () => {
     const events = normalizeClaudeLine({ type: "etwas-neues" });
     expect(events[0]!.summary).toContain("unhandled stream-json type");

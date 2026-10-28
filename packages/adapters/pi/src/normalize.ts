@@ -101,7 +101,7 @@ function normalize(rec: Record_): EmittedEvent[] {
   if (IGNORED.has(type)) return [];
   switch (type) {
     case "session":
-      return [{ type: "system", summary: "pi: Session gestartet", payload: { kind: "pi.session", piSessionId: rec.id } }];
+      return [{ type: "system", summary: "pi: Session gestartet", payload: { kind: "pi.session", piSessionId: rec.id, ...(typeof rec.id === "string" && rec.id ? { nativeSessionId: rec.id } : {}) } }];
     case "message_update":
       return normalizeUpdate((rec.assistantMessageEvent ?? {}) as Record_);
     case "message_end": {

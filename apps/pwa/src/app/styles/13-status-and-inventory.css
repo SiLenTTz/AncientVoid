@@ -127,3 +127,4 @@
 .discovery-actions { gap: 8px; justify-content: flex-start; margin-top: 6px; }
 .chip.live { color: var(--warn); border-color: var(--warn); }
 .discovery-id { overflow-wrap: anywhere; font-size: 11px; }
+.discovery-hint { font-size: 12px; margin-top: 6px; }
