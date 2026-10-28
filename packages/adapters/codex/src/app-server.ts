@@ -98,7 +98,21 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
             const last = (params.tokenUsage as { last?: { inputTokens?: number; cachedInputTokens?: number; outputTokens?: number; totalTokens?: number } })?.last;
             if (last) {
               const cost = estimateCostUsd(state.model, last);
-              ctx.emit({ type: "system", summary: `codex: ${last.totalTokens ?? "?"} Tokens`, payload: { kind: "codex.token_usage" }, ...(typeof last.totalTokens === "number" ? { tokensEst: last.totalTokens } : {}), ...(cost !== undefined ? { costUsd: cost, costSource: "estimated" as const } : {}) });
+              // usage.input/output (ADR-0032): die Kontextfüllung der PWA —
+              // ohne sie bleibt der Kontextbalken der Session „unbekannt“,
+              // obwohl der app-server die Zahl längst gemeldet hat.
+              ctx.emit({
+                type: "system",
+                summary: `codex: ${last.totalTokens ?? "?"} Tokens`,
+                payload: {
+                  kind: "codex.token_usage",
+                  ...(typeof last.inputTokens === "number" || typeof last.outputTokens === "number"
+                    ? { usage: { ...(typeof last.inputTokens === "number" ? { input: last.inputTokens } : {}), ...(typeof last.outputTokens === "number" ? { output: last.outputTokens } : {}) } }
+                    : {}),
+                },
+                ...(typeof last.totalTokens === "number" ? { tokensEst: last.totalTokens } : {}),
+                ...(cost !== undefined ? { costUsd: cost, costSource: "estimated" as const } : {}),
+              });
             }
             break;
           }

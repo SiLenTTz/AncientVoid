@@ -91,4 +91,17 @@ test.describe("Fortschritt und Kontingent im Lauf", () => {
     await app.goto(`${hub.origin}/#/sessions/${limited}`);
     await expect(app.locator(".run-quota.err")).toHaveText("5 h: erschöpft · frei ab 2026-09-23 15:00:00");
   });
+
+  test("Kontextfenster als Balken: pi meldet Füllung und Fenstergröße (ADR-0032)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "pi", prompt: "kurzer Lauf" });
+    // pi.usage trägt die gemeldete Füllung, pi.model die Fenstergröße —
+    // erst wenn beide da sind, darf der Balken etwas füllen (nicht raten).
+    await hub.until(async () => (await hub.events(id)).some((e) => (e.payload as { kind?: string }).kind === "pi.usage"), "usage gemeldet");
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.locator(".ctx-bar")).not.toHaveClass(/unknown/);
+    await expect(app.locator(".run-tokens")).toContainText(/Kontext \d+ %/);
+    await expect(app.locator(".run-tokens")).toContainText(/Σ [\d.]+ Tokens/);
+    // Die Modell-Ansage (pi.model) steht in der Kopfzeile, nicht erst im Verlauf.
+    await expect(app.locator(".session-head, .topbar").first()).toContainText("evo/qwen-e2e");
+  });
 });

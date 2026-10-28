@@ -29,7 +29,7 @@ import { estimateText, formatMinutes, quotaSummary, runProgress } from "./run-pr
 import { ContextBar } from "./ContextBar.tsx";
 import { LoopBadge, LoopPanel } from "../loops/LoopPanel.tsx";
 import { deriveLoopView } from "../loops/loop-view.ts";
-import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, tokenText } from "./run-stats.ts";
+import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, latestModelName, tokenText } from "./run-stats.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
 import { EventRow } from "./EventRow.tsx";
 import { DiffPane } from "./DiffPane.tsx";
@@ -609,11 +609,7 @@ export function SessionTail({
   if (draft.state === "saved" || draft.state === "local") settledDraft.current = draft.state;
   else if (draft.state === "idle") settledDraft.current = null;
   const draftShown = settledDraft.current;
-  const modelLabel =
-    session.model ??
-    [...events]
-      .reverse()
-      .find((event) => ["opencode.model", "acp.model", "pi.model"].includes(String((event.payload as { kind?: unknown }).kind)))?.payload.model;
+  const modelLabel = session.model ?? latestModelName(events);
   // 2026-10-26: the model is ALWAYS visible — the adapter's own event wins
   // (it names what really runs), then the record (session choice or the
   // registration's configured default), else the honest "Standardmodell".

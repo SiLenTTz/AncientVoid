@@ -28,20 +28,31 @@ export function turnTokenStats(events: readonly NormalizedEvent[]): SessionToken
   for (const e of events) {
     if (typeof e.tokensEst === "number") tokens += e.tokensEst;
     const input = usageInput(e);
-    if (input !== null) context = input;
+    // Auch laufend: der Balken zeigt die letzte gemeldete Füllung, nicht
+    // erst ab dem ersten beendeten Zug (sonst „unbekannt" mitten im Zug,
+    // obwohl der Provider Zahlen geschickt hat).
+    if (input !== null) {
+      context = input;
+      lastContext = input;
+    }
     if (e.type === "system" && (e.payload as { kind?: unknown }).kind === "session.turn_end") {
       turns.push({ endSeq: e.seq, tokens, contextTokens: context });
-      lastContext = context ?? lastContext;
       tokens = 0;
     }
   }
   return { turns, lastContextTokens: lastContext };
 }
 
+/** Zwei reale Formate: die meisten Adapter melden `usage.input` (claude,
+ * cursor, acp, pi), codex exec hingegen `usage.inputTokens` (camelCase,
+ * aus seinem normalizedUsage) — beide sind eine gemeldete Füllung. */
 function usageInput(e: NormalizedEvent): number | null {
   const usage = (e.payload as { usage?: unknown }).usage;
-  const input = (usage as { input?: unknown } | null)?.input;
-  return typeof input === "number" ? input : null;
+  if (!usage || typeof usage !== "object") return null;
+  const input = (usage as { input?: unknown }).input;
+  if (typeof input === "number") return input;
+  const inputTokens = (usage as { inputTokens?: unknown }).inputTokens;
+  return typeof inputTokens === "number" ? inputTokens : null;
 }
 
 /** Turns that closed between two visible events — the row a filtered list
@@ -50,14 +61,32 @@ export function turnsClosedBetween(turns: readonly TurnStats[], prevSeq: number,
   return turns.filter((t) => t.endSeq > prevSeq && (nextSeq === null || t.endSeq < nextSeq));
 }
 
-/** The session's current model is its LATEST announce (acp.model /
- * opencode.model, ADR-0032) — its window or none. An older model's window
- * is not this model's window, so it never shines through. */
+/** Die Modell-Ansagen der Adapter, die eines dieser Events emitieren —
+ * Cursor gehört dazu: adapter-cursor meldet `cursor.model` mit echter
+ * Fenstergröße (contextWindowFor), derselbe Vertrag wie acp/pi/opencode. */
+export const MODEL_EVENT_KINDS = ["acp.model", "opencode.model", "pi.model", "cursor.model"] as const;
+
+/** Die session's current model is its LATEST announce — its window or none.
+ * An older model's window is not this model's window, so it never shines
+ * through. */
 export function contextWindowFromEvents(events: readonly NormalizedEvent[]): number | null {
   for (let i = events.length - 1; i >= 0; i--) {
     const payload = events[i]!.payload as { kind?: unknown; contextWindowTokens?: unknown };
-    if (payload.kind === "acp.model" || payload.kind === "opencode.model" || payload.kind === "pi.model") {
+    if ((MODEL_EVENT_KINDS as readonly string[]).includes(String(payload.kind))) {
       return typeof payload.contextWindowTokens === "number" ? payload.contextWindowTokens : null;
+    }
+  }
+  return null;
+}
+
+/** Der zuletzt angekündigte Modellname (Kopfzeile der Session-Ansicht) —
+ * dieselbe Event-Auswahl wie contextWindowFromEvents, damit Fenster und
+ * Name nie aus zwei verschiedenen Ankündigungen stammen. */
+export function latestModelName(events: readonly NormalizedEvent[]): string | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const payload = events[i]!.payload as { kind?: unknown; model?: unknown };
+    if ((MODEL_EVENT_KINDS as readonly string[]).includes(String(payload.kind)) && typeof payload.model === "string" && payload.model) {
+      return payload.model;
     }
   }
   return null;
