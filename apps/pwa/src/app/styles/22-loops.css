@@ -54,3 +54,10 @@
 .gate-failed { color: var(--bad, #f85149); }
 .loop-notices { margin: 0; padding-left: 18px; font-size: 0.85em; }
 .loop-report pre { white-space: pre-wrap; max-height: 40vh; overflow: auto; }
+.loop-onboard {
+  display: grid;
+  gap: 8px;
+  border: 1px dashed var(--border, #30363d);
+  border-radius: 8px;
+  padding: 8px 10px;
+}

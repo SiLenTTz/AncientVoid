@@ -32,6 +32,21 @@ describe("deriveLoopView (T19.6)", () => {
     expect(deriveLoopView([...base, ev({ kind: "loop.recovered", what: "hold" })]).hold).toBeNull();
   });
 
+  it("bei mehreren Sessions einer Linie zählt die, an der gerade gearbeitet wird", () => {
+    const v = deriveLoopView([
+      ev({ kind: "loop.state", session: "neu", state: "working" }),
+      ev({ kind: "loop.progress", session: "neu", done: 2, total: 5 }),
+      ev({ kind: "loop.progress", session: "alt", done: 6, total: 6 }),
+    ]);
+    expect(v.progress).toMatchObject({ done: 2, total: 5 });
+    expect(deriveLoopView([ev({ kind: "loop.progress", session: "alt", done: 6, total: 6 })]).progress).toMatchObject({ done: 6 });
+  });
+
+  it("Hermes: Freigaben des Orchestrators (nur Wahrheitswerte) und Hinweis", () => {
+    const v = deriveLoopView([ev({ kind: "loop.progress", source: "hermes", done: 1, total: 2, userGates: { push: false, merge: true, junk: "x" }, gateNote: "kein Push" })]);
+    expect(v.orchestrator).toEqual({ userGates: { push: false, merge: true }, note: "kein Push" });
+  });
+
   it("Stats, Bericht (Text oder Blob), Eskalationen (die letzten fünf)", () => {
     const notices = Array.from({ length: 7 }, (_, i) => ev({ kind: "loop.notify", level: "2", reason: `r${i}`, at: "t" }));
     const v = deriveLoopView([ev({ kind: "loop.stats", completed: 3, inProgress: 1 }), ev({ kind: "loop.report", blob: "abc", counts: { merged: 2, kaputt: "x" } }), ...notices]);

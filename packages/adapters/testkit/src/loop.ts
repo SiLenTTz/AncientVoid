@@ -1,4 +1,4 @@
-import { EmittedEvent, LOOP_CONTROLS, type LoopConnector, type LoopStartSpec } from "@uacc/contracts";
+import { EmittedEvent, LOOP_CONTROLS, LOOP_NEW, type LoopConnector, type LoopStartSpec } from "@uacc/contracts";
 import { makeRecordingContext, waitFor, type ContractTestResult, type RecordingContext } from "./helpers.ts";
 
 export interface LoopContractOptions {
@@ -48,6 +48,19 @@ export async function runLoopContractTests(
       if (!o.key || !o.label) throw new Error("option braucht key und label");
       if (o.kind === "select" && !o.choices?.length) throw new Error(`select-Option „${o.key}“ ohne choices`);
     }
+  });
+
+  await check("onboarding: Felder stimmig, onboard() vorhanden und lehnt ein leeres Geheimnis laut ab", async () => {
+    const ob = connector.capabilities().onboarding;
+    if (!ob) return;
+    if (!connector.capabilities().options.some((o) => o.key === ob.optionKey && o.kind === "select" && o.choices?.some((c) => c.value === LOOP_NEW))) {
+      throw new Error("onboarding.optionKey muss eine select-Option mit der Auswahl LOOP_NEW sein");
+    }
+    if (!ob.fields.length || !ob.secret.label) throw new Error("onboarding braucht fields und secret.label");
+    if (!connector.onboard) throw new Error("onboarding angeboten, aber onboard() fehlt");
+    const res = await connector.onboard({ options: {}, secret: "" }, new AbortController().signal);
+    if (res.ok) throw new Error("onboard() ohne Angaben und Geheimnis darf nicht gelingen");
+    if (!res.detail) throw new Error("Ablehnung ohne Grund (fail loud)");
   });
 
   const ctx = makeRecordingContext();

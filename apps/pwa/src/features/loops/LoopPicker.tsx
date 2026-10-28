@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type { LoopInfo, LoopSpec } from "@uacc/contracts";
 import type { hubApi } from "../../shared/api.ts";
-import { defaultLoopSpec } from "./loop-form.ts";
+import { defaultLoopSpec, isOnboarding, type OnboardDraft } from "./loop-form.ts";
 
 /**
  * EPIC-P19: Auswahl „Loop / Dark Factory“ im Start-Formular. Die Liste und alle Felder kommen vom Hub
@@ -14,12 +14,19 @@ export function LoopPicker({
   confirmed,
   onChange,
   onConfirmed,
+  onboard,
+  onOnboard,
+  reload = 0,
 }: {
   api: Pick<typeof hubApi, "loops">;
   value: LoopSpec | null;
   confirmed: boolean;
   onChange: (next: LoopSpec | null, info: LoopInfo | null) => void;
   onConfirmed: (yes: boolean) => void;
+  onboard: OnboardDraft;
+  onOnboard: (next: OnboardDraft) => void;
+  /** Wird hochgezählt, wenn sich die Linien geändert haben (nach dem Anbinden). */
+  reload?: number;
 }) {
   const [loops, setLoops] = useState<LoopInfo[] | null>(null);
   useEffect(() => {
@@ -32,7 +39,7 @@ export function LoopPicker({
     return () => {
       live = false;
     };
-  }, [api]);
+  }, [api, reload]);
   if (!loops || loops.length === 0) return null;
 
   const chosen = value ? loops.find((l) => l.id === value.id) : undefined;
@@ -118,6 +125,34 @@ export function LoopPicker({
               )}
             </label>
           ))}
+          {caps.onboarding && isOnboarding(chosen ?? null, value) && (
+            <fieldset class="loop-onboard">
+              <legend>{caps.onboarding.label}</legend>
+              {caps.onboarding.fields.map((f) => (
+                <label key={f.key}>
+                  {f.label}
+                  {f.required ? " *" : ""}
+                  {f.kind === "select" ? (
+                    <select aria-label={f.label} value={onboard.values[f.key] ?? f.choices?.[0]?.value ?? ""} onChange={(e) => onOnboard({ ...onboard, values: { ...onboard.values, [f.key]: (e.target as HTMLSelectElement).value } })}>
+                      {f.choices?.map((c) => (
+                        <option key={c.value} value={c.value}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input type="text" aria-label={f.label} placeholder={f.placeholder ?? ""} value={onboard.values[f.key] ?? ""} onInput={(e) => onOnboard({ ...onboard, values: { ...onboard.values, [f.key]: (e.target as HTMLInputElement).value } })} autocapitalize="off" autocorrect="off" spellcheck={false} />
+                  )}
+                </label>
+              ))}
+              <label>
+                {caps.onboarding.secret.label} *
+                <input type="password" aria-label={caps.onboarding.secret.label} autocomplete="off" value={onboard.secret} onInput={(e) => onOnboard({ ...onboard, secret: (e.target as HTMLInputElement).value })} />
+              </label>
+              {caps.onboarding.secret.hint && <div class="dim">{caps.onboarding.secret.hint}</div>}
+              <div class="dim">Beim Starten legt der Hub die Linie an (factoryctl) und startet dann die Session. Das Token wird nicht gespeichert.</div>
+            </fieldset>
+          )}
           {risky && (
             <label class="loop-confirm">
               <input type="checkbox" aria-label="Außenwirkung bestätigen" checked={confirmed} onChange={(e) => onConfirmed((e.target as HTMLInputElement).checked)} />

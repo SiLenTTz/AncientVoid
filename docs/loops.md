@@ -31,12 +31,15 @@ Start-Formular ──POST /api/sessions {loop}──▶ Hub ──▶ Session mi
 
 ```json
 "loops": [
-  { "id": "aspark-factory",      "module": "@uacc/loop-aspark-factory",      "config": { "url": "mqtt://127.0.0.1:1883", "username": "uacc-leitstand", "passwordFile": "~/.config/uacc/aspark-mqtt.key" } },
-  { "id": "securesight-factory", "module": "@uacc/loop-securesight-factory", "config": { "pollMs": 5000 } }
+  { "id": "aspark-factory", "module": "@uacc/loop-aspark-factory", "config": {
+      "url": "mqtt://127.0.0.1:1883", "username": "leitstand",
+      "passwordEnvFile": "~/.aspark-factory/factory.env", "passwordKey": "MQTT_LEITSTAND_PASSWORD",
+      "factoryctl": "/pfad/zu/aSPARK-Factory/factoryctl", "factoryHome": "~/.aspark-factory" } },
+  { "id": "securesight-factory", "module": "@uacc/loop-securesight-factory", "config": {} }
 ]
 ```
 
-Schlüssel nur als Datei (`passwordFile`), nie als Wert in der Konfiguration. Ein Loop, der nicht lädt, bleibt in der Auswahl
+Schlüssel nur als Datei (`passwordFile`, oder bei aSPARK ein Schlüssel in `factory.env`), nie als Wert in der Konfiguration. Ein Loop, der nicht lädt, bleibt in der Auswahl
 sichtbar, gesperrt, mit dem Grund. Ohne Eintrag steht er als „nicht eingerichtet“ da.
 
 ## API
@@ -65,14 +68,21 @@ Der Hub ist ein Leitstand-Client einer Linie (AsyncAPI 0.9.0, alle Nachrichten `
 | `…/<session>/ask` | Rückfrage auf dem Handy; Antwort nach `…/answer` (`allow`/`deny`, bei Fragen Indizes + Notizen) |
 | `agent/<line>/command` | `pause`, `resume`, `set-mode`, `work` (nur Issue-Nummer); geprüft gegen `commands[]` der Linie |
 
+**Neues Repo anbinden.** Mit `factoryctl` in der Config zeigt die Startauswahl „Linie“ die vorhandenen Linien (`~/.aspark-factory/lines`)
+und „Neues Repo anbinden …“. Dort Repo (`owner/name`, GitLab `group/…/name`), Name der Linie (leer = Repo-Name), Art, Betriebsart
+(ohne dark) und optional den GitLab-Server angeben und das Repo-Token eintragen. Beim Starten ruft der Hub `factoryctl new …`
+(Token über stdin, nie gespeichert oder geloggt) und startet dann die Session auf der neuen Linie; die Linie meldet sich wenige Sekunden später. Einmalig vorher
+im Terminal: `./factoryctl setup` (Claude-Token, Broker); fehlt es, nennt der Hub den Befehl. Dasselbe geht ohne Session über
+`POST /api/loops/aspark-factory/onboard`.
+
 Grenzen: kein `allow-always` (v1 der Factory); „Nein“ auf eine Frage kennt das Protokoll nicht, die Linie handelt dann
 nach ihrem `timeoutAction`. Das Passwort steht nie in der Config, nur `passwordFile`. Tests: echter `mosquitto`
 auf Zufallsport (`packages/loops/aspark-factory/test/aspark.test.ts`), übersprungen, wenn er fehlt.
 
 ## securesight-Factory (`@uacc/loop-securesight-factory`)
 
-Ein Projekt = ein Loop (Projektwurzel = die gewählte Projektauswahl, sie braucht `scripts/betrieb.py`). Der Hub liest alle
-`pollMs` (Standard 15 s) und **schreibt nichts**; der Supervisor darf nur lesen und eskalieren, `notify-ack` und Fortsetzen
+Ein Projekt = ein Loop (Projektwurzel = die gewählte Projektauswahl, sie braucht `scripts/betrieb.py`). Der Hub ruft den Supervisor alle
+`pollMs` (Standard 15 s, höchstens 30 s) und liest Dateien live (fs.watch, sonst alle 2 s) und **schreibt nichts**; der Supervisor darf nur lesen und eskalieren, `notify-ack` und Fortsetzen
 macht die Person im Projekt.
 
 | Quelle | im Hub |
@@ -80,7 +90,7 @@ macht die Person im Projekt.
 | `betrieb.py supervisor-status --json` | `loop.info` (Betriebsart, Iteration, Watchdog), Prüfungen als Gate `gates`; Exit 3 = `loop.hold` (Status degraded), Exit 4 = Watchdog ausgefallen, 5/Schemafehler = `loop.broken` |
 | `.harness/notify/*.json` | `loop.notify` (Stufe, Grund, Lauf) einmal je Datei |
 | `.harness/transcript/*.ndjson` | `loop.transcript`, ab Start des Loops (keine Vorgeschichte), Schema 1 und 2, Cursor je Datei |
-| `.harnez/progress.json` | `loop.progress` (Story, Aufgabe, Phase) |
+| `.factory/progress.json` (früher `.harnez/`) | `loop.progress` (Story, Aufgabe, Phase) |
 | `~/.hermes/ralph/<epic>-state.json` | nur bei Orchestrator `hermes` (+ Option `epic`): `loop.progress` mit `source: hermes` |
 
 Konfiguration: `python`, `pollMs`, `hermesDir`. Jede Quelle fällt einzeln aus: ihr Fehler wird `loop.broken`, die anderen laufen weiter.
@@ -93,5 +103,5 @@ Statistik und Tagesbericht. Alles wird aus den `loop.*`-Ereignissen der Session 
 nicht gemeldet hat, bleibt leer. Pause/Weiter und der Wechsel der Betriebsart gehen als Steuerbefehl an den Connector, eine
 Betriebsart mit Außenwirkung wird vorher bestätigt. Fragen des Loops erscheinen in der Freigaben-Ansicht.
 
-Bekannte Lücke: `loop.hold` löst noch keine Benachrichtigung aus (nur Ereignis und Abzeichen); sie ist AC-P19-2 und steht in T19.7.
+`loop.hold`, `loop.broken` und `loop.notify` lösen zusätzlich eine Benachrichtigung aus (Glocke und Push).
 

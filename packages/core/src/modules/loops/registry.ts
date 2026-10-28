@@ -1,3 +1,4 @@
+import { LOOP_NEW } from "@uacc/contracts";
 import type { LoopConnector, LoopInfo, LoopOption, LoopSpec, LoopStartSpec } from "@uacc/contracts";
 
 /**
@@ -57,6 +58,7 @@ export class LoopRegistry {
     for (const o of caps.options) {
       const value = options[o.key];
       if (o.required && !value?.trim()) throw new Error(`Option „${o.label}“ fehlt`);
+      if (value === LOOP_NEW) throw new Error(`„${o.label}“: das neue Repo muss erst angebunden werden`);
       if (value !== undefined && o.kind === "select" && !o.choices?.some((c) => c.value === value)) throw new Error(`Option „${o.label}“ hat keinen Wert „${value}“`);
     }
     return loop;

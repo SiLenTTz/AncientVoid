@@ -21,6 +21,8 @@ export interface LoopView {
   report: { text: string | null; blob: string | null; counts: Record<string, number> } | null;
   notices: { level: string; reason: string; at: string }[];
   lastCommand: string | null;
+  /** Freigaben des Orchestrators (Hermes `user_gates`): Name → erteilt. */
+  orchestrator: { userGates: Record<string, boolean>; note: string | null } | null;
 }
 
 const str = (x: unknown): string | null => (typeof x === "string" && x ? x : null);
@@ -32,7 +34,9 @@ const num = (x: unknown): number | null => (typeof x === "number" && Number.isFi
  * `loop.recovered` nimmt eine Störung oder den Halt zurück.
  */
 export function deriveLoopView(events: readonly NormalizedEvent[]): LoopView {
-  const v: LoopView = { line: null, mode: null, activity: null, paused: false, progress: null, gate: null, hold: null, broken: [], stats: null, report: null, notices: [], lastCommand: null };
+  const sessionState = new Map<string, string>();
+  const progressOf = new Map<string, NonNullable<LoopView["progress"]>>();
+  const v: LoopView = { line: null, mode: null, activity: null, paused: false, progress: null, gate: null, hold: null, broken: [], stats: null, report: null, notices: [], lastCommand: null, orchestrator: null };
   for (const e of events) {
     if (e.type !== "system") continue;
     const p = e.payload as Record<string, unknown>;
@@ -45,10 +49,23 @@ export function deriveLoopView(events: readonly NormalizedEvent[]): LoopView {
         v.activity = str(p.activity) ?? str(p.iterationStatus) ?? v.activity;
         if (str(p.activity)) v.paused = p.activity === "paused";
         break;
+      case "loop.state": {
+        const session = str(p.session);
+        if (session && str(p.state)) sessionState.set(session, str(p.state)!);
+        break;
+      }
       case "loop.progress": {
         const done = num(p.done);
         const total = num(p.total);
-        if (done !== null && total !== null) v.progress = { done, total, phase: str(p.phase), step: str(p.step), source: str(p.source) };
+        if (p.source === "hermes") {
+          const raw = (p.userGates ?? {}) as Record<string, unknown>;
+          v.orchestrator = { userGates: Object.fromEntries(Object.entries(raw).flatMap(([k, g]) => (typeof g === "boolean" ? [[k, g]] : []))), note: str(p.gateNote) };
+        }
+        if (done !== null && total !== null) {
+          v.progress = { done, total, phase: str(p.phase), step: str(p.step), source: str(p.source) };
+          const session = str(p.session);
+          if (session) progressOf.set(session, v.progress);
+        }
         const g = p.gate as Record<string, unknown> | undefined;
         if (g && str(g.name) && str(g.state)) v.gate = { name: str(g.name)!, state: str(g.state)!, ...(str(g.detail) ? { detail: str(g.detail)! } : {}) };
         break;
@@ -87,6 +104,11 @@ export function deriveLoopView(events: readonly NormalizedEvent[]): LoopView {
         break;
       }
     }
+  }
+  // Mehrere Sessions einer Linie: gezeigt wird die, an der gerade gearbeitet wird; sonst die zuletzt gemeldete.
+  for (const [session, state] of sessionState) {
+    const live = progressOf.get(session);
+    if ((state === "working" || state === "waiting") && live) v.progress = live;
   }
   return v;
 }
