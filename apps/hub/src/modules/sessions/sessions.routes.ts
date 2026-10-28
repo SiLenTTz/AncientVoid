@@ -21,6 +21,9 @@ const CreateSessionBody = z.object({
   args: z.record(z.string(), z.unknown()).optional(),
   /** Adoption (ADR-0011): continue an externally discovered session. */
   adoptNativeSessionId: z.string().min(1).optional(),
+  /** ADR-0040: continue as a copy with its own id; overview title of the adoption. */
+  adoptFork: z.boolean().optional(),
+  title: z.string().min(1).max(120).optional(),
   /** Read-only mirror (ADR-0011 Erweiterung): show an observed opencode
    * session's conversation without adopting or running anything. */
   mirrorNativeSessionId: z.string().min(1).optional(),

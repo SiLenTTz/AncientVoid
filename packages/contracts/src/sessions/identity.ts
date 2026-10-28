@@ -32,6 +32,14 @@ export interface DiscoveredSession {
   fork: boolean;
   /** Set for a subagent transcript whose parent session id is known. */
   parentSessionId: string | null;
+  /** ADR-0040: what the session is about — provider title, else the first
+   * prompt. Display only, never identity. Absent = source cannot tell. */
+  title?: string | null;
+  /** ADR-0040: the last thing said in it (≤ 160 chars), display only. */
+  preview?: string | null;
+  /** ADR-0040: an external harness wrote to it moments ago — probably still
+   * open there. Continuing it must fork, not share the transcript. */
+  live?: boolean;
 }
 
 export interface DiscoverySource {

@@ -14,7 +14,7 @@ import { ToolPermissions, type ToolGate } from "./tool-permissions.ts";
 import type { ApprovalService } from "../approvals/index.ts";
 import { buildSessionSummary } from "../reporting/index.ts";
 import { createConsoleLogger } from "../../platform/index.ts";
-import { dedupeDiscovered, pageDiscovered } from "../discovery/index.ts";
+import { dedupeDiscovered, filterDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
 import { notificationFor } from "../notifications/index.ts";
 import { deriveTurnMetrics, TurnMetricStore } from "../runs/index.ts";
@@ -285,6 +285,7 @@ export class SessionManager {
     sources: readonly DiscoverySource[] = [],
     cursor = 0,
     limit = 50,
+    query: { q?: string; adapter?: string } = {},
   ): Promise<{ items: DiscoveredSession[]; nextCursor: number | null }> {
     const external: DiscoveredSession[] = [];
     for (const source of sources) external.push(...(await source.list()));
@@ -295,7 +296,7 @@ export class SessionManager {
     // first, never the source's oldest scan order. Items without a
     // timestamp sink; ISO-8601 compares chronologically as a string.
     merged.sort((a, b) => (b.observedAt ?? "").localeCompare(a.observedAt ?? ""));
-    return pageDiscovered(merged, cursor, limit);
+    return pageDiscovered(filterDiscovered(merged, query), cursor, limit);
   }
 
   async hasLiveWorker(sessionId: string): Promise<boolean> {
@@ -461,12 +462,12 @@ export class SessionManager {
       logOffset: null,
       parentSessionId: null,
       observedAt: null,
-      fork: false,
+      fork: parsed.adoptNativeSessionId !== undefined && parsed.adoptFork === true,
       inputRevision: 0,
       writerClient: null,
       writerLeaseUntil: null,
       archived: false,
-      title: parsed.prompt ? sessionTitle(parsed.prompt) : null,
+      title: parsed.prompt ? sessionTitle(parsed.prompt) : (parsed.title ?? null),
       titleSource: "auto",
     };
     await this.store.initSession(record.id);
@@ -522,7 +523,7 @@ export class SessionManager {
       // never had this history — importHistory tells the adapter to emit
       // the load replay instead of discarding it (BUG-0036 is recovery's
       // silence, not adoption's).
-      startSpec = { ...startSpec, args: { ...startSpec.args, resumeSessionId: parsed.adoptNativeSessionId, importHistory: true } };
+      startSpec = { ...startSpec, args: { ...startSpec.args, resumeSessionId: parsed.adoptNativeSessionId, importHistory: true, ...(parsed.adoptFork ? { forkSession: true } : {}) } };
     }
     if (skillName) {
       session.skillName = skillName;
@@ -1982,6 +1983,9 @@ export class SessionManager {
       unsupportedResume: unsupportedResume(record.resumeVersion),
       fork: record.fork,
       parentSessionId: record.parentSessionId,
+      title: record.title,
+      preview: record.lastActivity?.text ?? null,
+      live: record.status === "working" || record.status === "starting",
     };
   }
 

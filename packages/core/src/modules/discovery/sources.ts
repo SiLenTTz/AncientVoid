@@ -8,6 +8,10 @@ import {
   type DiscoveredSession,
   type DiscoverySource,
 } from "@uacc/contracts";
+import { readClaudeMeta } from "./claude-meta.ts";
+
+/** ADR-0040: a transcript written this recently is probably open in another harness. */
+export const LIVE_WINDOW_MS = 90_000;
 
 /**
  * Claude Code layout verified in adapter-claude-clip (Linux, 2026-09-19).
@@ -52,6 +56,7 @@ function claudeItem(
   observedAt: string,
   parentSessionId: string | null,
   status: string,
+  extra: Pick<DiscoveredSession, "title" | "preview" | "live"> = {},
 ): DiscoveredSession {
   const unsupported = status === "unsupported-format";
   return {
@@ -68,6 +73,7 @@ function claudeItem(
     unsupportedResume: unsupported,
     fork: false,
     parentSessionId,
+    ...extra,
   };
 }
 
@@ -120,7 +126,9 @@ export function scanClaudeSessions(claudeDir: string, now = new Date().toISOStri
       }
       const at = observed(st.mtimeMs, now);
       if (st.isFile() && name.endsWith(".jsonl")) {
-        out.push(claudeItem(projectName, name.slice(0, -".jsonl".length), at, null, "observed"));
+        const meta = readClaudeMeta(path, st);
+        const live = Date.parse(now) - st.mtimeMs < LIVE_WINDOW_MS;
+        out.push(claudeItem(projectName, name.slice(0, -".jsonl".length), at, null, "observed", { ...meta, live }));
         continue;
       }
       if (st.isFile()) {
@@ -258,6 +266,7 @@ function opencodeItem(
   observedAt: string,
   parentSessionId: string | null,
   status: string,
+  title: string | null = null,
 ): DiscoveredSession {
   const unsupported = status === "unsupported-format";
   return {
@@ -274,6 +283,7 @@ function opencodeItem(
     unsupportedResume: unsupported,
     fork: false,
     parentSessionId,
+    title,
   };
 }
 
@@ -317,12 +327,14 @@ export function scanOpencodeSessions(
       if (!columns.has(required)) return [opencodeItem(dataDir, "unknown:schema", now, null, "unsupported-format")];
     }
     const parentColumn = columns.has("parent_id") ? "parent_id" : null;
-    const sql = `SELECT id, directory, time_created, time_updated${parentColumn ? `, ${parentColumn} AS parentId` : ""} FROM session`;
+    const titleColumn = columns.has("title") ? ", title" : "";
+    const sql = `SELECT id, directory, time_created, time_updated${titleColumn}${parentColumn ? `, ${parentColumn} AS parentId` : ""} FROM session`;
     const rows = db.prepare(sql).all() as {
       id?: string;
       directory?: string | null;
       time_created?: number | string;
       time_updated?: number | string;
+      title?: string | null;
       parentId?: string | null;
     }[];
     return rows.flatMap((row) => {
@@ -338,7 +350,9 @@ export function scanOpencodeSessions(
       // people's business — hide them unless no roots are configured.
       if (allowed && !allowed.some((root) => project === root || project.startsWith(root + "/"))) return [];
       const parent = parentColumn && row.parentId ? row.parentId : null;
-      return [opencodeItem(project, row.id, updated, parent, "observed")];
+      // opencode names untitled sessions "New session - <ISO date>" — that says nothing.
+      const title = row.title && !/^New session - /i.test(row.title) ? row.title.replace(/\s+/g, " ").trim().slice(0, 80) : null;
+      return [opencodeItem(project, row.id, updated, parent, "observed", title)];
     });
   } catch {
     return [opencodeItem(dataDir, "unknown:schema", now, null, "unsupported-format")];

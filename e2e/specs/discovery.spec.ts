@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { Page } from "@playwright/test";
@@ -7,10 +7,10 @@ import type { TestHub } from "../support/hub.ts";
 
 /** Claude Code names a project dir after its cwd. Discovery only shows projects
  * under a configured root (7c5f168), so the name starts with the munged root. */
-function externalClaude(hub: TestHub, project: string, ids: string[]): string {
+function externalClaude(hub: TestHub, project: string, ids: string[], content?: (id: string) => string): string {
   const dir = join(hub.root, "claude", "projects", hub.projectsDir.replace(/[^a-zA-Z0-9]/g, "-") + project);
   mkdirSync(dir, { recursive: true });
-  for (const id of ids) writeFileSync(join(dir, `${id}.jsonl`), `{"type":"user","sessionId":"${id}"}\n`);
+  for (const id of ids) writeFileSync(join(dir, `${id}.jsonl`), content?.(id) ?? `{"type":"user","sessionId":"${id}"}\n`);
   return dir;
 }
 
@@ -106,7 +106,8 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
 
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expandAllGroups(app);
-    const row = app.locator(".discovered-row").filter({ hasText: "ses_e2e_mirror" });
+    const row = app.locator(".discovered-row").filter({ hasText: "E2E Spiegel" });
+    await expect(row).toContainText("ses_e2e_mirror");
     await row.getByRole("button", { name: "Spiegeln" }).click();
     await expect(app.locator(".session-topbar")).toContainText("opencode");
     // exact same text, in the hub chat — read-only mirror, nothing ran
@@ -115,6 +116,54 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
     const events = await hub.events(id);
     expect(events.some((e) => e.type === "user" && (e.payload as { text?: string }).text?.includes("Frage vom Terminal"))).toBe(true);
+  });
+
+  test("die Zeile nennt Titel und letzte Nachricht; die Suche findet sie, auch auf einer späteren Seite (ADR-0040)", async ({ app, hub }) => {
+    const line = (o: unknown) => `${JSON.stringify(o)}\n`;
+    const dir = externalClaude(hub, "-home-user-titel", ["11111111-aaaa-4aaa-8aaa-111111111111"], (id) =>
+      line({ type: "user", message: { role: "user", content: "Baue den Login um" }, sessionId: id }) +
+      line({ type: "ai-title", aiTitle: "Login-Umbau mit Tokenmaske" }) +
+      line({ type: "last-prompt", lastPrompt: "Kannst du die Maske nach der Prüfung öffnen?" }),
+    );
+    expect(dir).toContain("titel");
+    // 55 weitere ältere Sessions drängen den Treffer auf Seite 2
+    externalClaude(hub, "-home-user-fueller", Array.from({ length: 55 }, (_, i) => `fueller-${i}`));
+    const old = new Date(Date.now() - 3600_000);
+    for (let i = 0; i < 55; i++) utimesSync(join(hub.root, "claude", "projects", hub.projectsDir.replace(/[^a-zA-Z0-9]/g, "-") + "-home-user-fueller", `fueller-${i}.jsonl`), old, old);
+    utimesSync(join(dir, "11111111-aaaa-4aaa-8aaa-111111111111.jsonl"), new Date(Date.now() - 7200_000), new Date(Date.now() - 7200_000));
+
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    await expect(app.locator(".discovered-row")).toHaveCount(50);
+    await expect(app.getByText("Login-Umbau mit Tokenmaske")).toHaveCount(0);
+    await app.getByLabel("Sessions durchsuchen").fill("tokenmaske");
+    const row = app.locator(".discovered-row");
+    await expect(row).toHaveCount(1);
+    await expect(row).toContainText("Login-Umbau mit Tokenmaske");
+    await expect(row).toContainText("Kannst du die Maske nach der Prüfung öffnen?");
+    await expect(row).toContainText("11111111-aaaa-4aaa-8aaa-111111111111");
+    await app.getByLabel("Sessions durchsuchen").fill("gibt-es-nicht");
+    await expect(app.getByText("keine Session passt zur Suche")).toBeVisible();
+  });
+
+  test("eine eben geschriebene Session ist als „läuft gerade woanders“ markiert und wird als Kopie fortgesetzt (ADR-0040)", async ({ app, hub }) => {
+    const sid = "22222222-bbbb-4bbb-8bbb-222222222222";
+    const mungedAlpha = hub.alpha.replace(/[^a-zA-Z0-9]/g, "-");
+    const dir = join(hub.root, "claude", "projects", mungedAlpha);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, `${sid}.jsonl`), `{"type":"ai-title","aiTitle":"Gerade offen im Terminal"}\n`);
+
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    await expandAllGroups(app);
+    const row = app.locator(".discovered-row").filter({ hasText: "Gerade offen im Terminal" });
+    await expect(row.getByText("läuft gerade woanders")).toBeVisible();
+    await expect(row.getByRole("button", { name: "Fortsetzen", exact: true })).toHaveCount(0);
+    await row.getByRole("button", { name: "Als Kopie fortsetzen" }).click();
+    await expect(app.locator(".session-topbar")).toContainText("claude");
+    const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
+    const rec = (await hub.api<{ title: string | null; fork: boolean; status: string }>(`/api/sessions/${id}`)).body;
+    expect(rec).toMatchObject({ title: "Gerade offen im Terminal", fork: true });
+    // ohne Prompt startet nichts: die Session wartet zwischen den Zügen
+    expect(rec.status).toBe("idle");
   });
 
   test("mehr als eine Seite wird mit „Mehr laden“ vollständig", async ({ app, hub }) => {

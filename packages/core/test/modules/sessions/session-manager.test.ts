@@ -1299,4 +1299,48 @@ describe("SessionManager adoption (BUG-0039)", () => {
       db.close();
     }
   });
+
+  it("ADR-0040: Kopie und Titel der Übernahme werden an den Adapter und in den Record gegeben, discover sucht darin", async () => {
+    const seen: SessionSpec[] = [];
+    const fake: Adapter = {
+      id: "fake-claude",
+      version: "0.0.1",
+      capabilities() {
+        return { reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures() };
+      },
+      async start(spec: SessionSpec, ctx: AdapterContext) {
+        seen.push(spec);
+        return { sessionId: ctx.sessionId };
+      },
+      async status() {
+        return { state: "healthy" };
+      },
+      async steer() {
+        return { ok: true };
+      },
+      async stop() {},
+    };
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("fake-claude", () => fake);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "fake-claude", project: dir, adoptNativeSessionId: "n-42", adoptFork: true, title: "Mobile-hub Session-Abbrüche" });
+      expect(seen[0]!.args).toMatchObject({ resumeSessionId: "n-42", forkSession: true });
+      expect(manager.get(record.id)).toMatchObject({ title: "Mobile-hub Session-Abbrüche", fork: true, nativeSessionId: "n-42" });
+
+      const hit = await manager.discover([], 0, 50, { q: "abbrüche" });
+      expect(hit.items.map((i) => i.hubSessionId)).toEqual([record.id]);
+      expect(hit.items[0]).toMatchObject({ title: "Mobile-hub Session-Abbrüche", fork: true });
+      expect((await manager.discover([], 0, 50, { q: "nichts davon" })).items).toEqual([]);
+
+      const plain = await manager.create({ adapter: "fake-claude", project: dir, adoptNativeSessionId: "n-43" });
+      expect(seen[1]!.args).not.toHaveProperty("forkSession");
+      expect(manager.get(plain.id)?.fork).toBe(false);
+    } finally {
+      await manager.shutdown();
+      db.close();
+    }
+  });
 });
