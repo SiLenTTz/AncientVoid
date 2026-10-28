@@ -7,6 +7,7 @@ area: adapters
 instance: dev
 commit: ""
 forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/merge_requests/245"
+work-item: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/30"
 epic: ""
 created: 2026-10-28
 reporter: "Maki (Session e2e84c77)"
@@ -93,6 +94,6 @@ Nachwirkung (stale-forever statt sofort-falsch).
 
 ## Handoff
 
-- [ ] Datei im Index [`README.md`](README.md)
-- [ ] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` oder offen lassen
+- [x] Datei im Index [`README.md`](README.md)
+- [x] GitLab-Issue angelegt (Link oben)
+- [x] `bugfix` gelaufen (Fix in !245, Gates grün)
