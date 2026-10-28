@@ -1,5 +1,5 @@
 /** Wartezeit vor dem n-ten resync für dieselbe Lücke: eine Lücke ist oft nur ein Event, das beim ersten Lesen
- * noch nicht auf der Platte stand — sofort, dann mit Abstand. Danach gibt der Client auf (kein Dauerfeuer, BUG-0072). */
+ * noch nicht auf der Platte stand — sofort, dann mit Abstand. Danach gibt der Client auf (kein Dauerfeuer, BUG-0075). */
 export const RESYNC_BACKOFF_MS = [0, 250, 750, 2000, 5000] as const;
 
 export function resyncDelayMs(attempt: number): number {
