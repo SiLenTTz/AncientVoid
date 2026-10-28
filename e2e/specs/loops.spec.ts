@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { test, expect } from "../support/fixtures.ts";
 
 /**
@@ -55,5 +56,42 @@ test.describe("Loop / Dark Factory im Start-Formular", () => {
     await hub.until(async () => (await hub.events(record!.id)).some((e) => (e.payload as { kind?: string }).kind === "loop.info"), "loop.info");
     const info = (await hub.events(record!.id)).find((e) => (e.payload as { kind?: string }).kind === "loop.info");
     expect(info?.payload).toMatchObject({ line: "alpha", mode: "scharf" });
+  });
+
+  const startLoop = async (app: Page, goal = "") => {
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Loop", { exact: true }).selectOption("fake-loop");
+    await app.getByLabel("Line").fill("alpha");
+    if (goal) await app.getByPlaceholder("Refactore den Auth-Flow…").fill(goal);
+    await app.getByRole("button", { name: "Starten" }).click();
+    await expect(app).toHaveURL(/#\/sessions\//);
+  };
+
+  test("Kopf-Abzeichen und Panel zeigen Betriebsart, Fortschritt und Gate; Pause und Betriebsart gehen an den Loop (T19.6)", async ({ app }) => {
+    await startLoop(app);
+    await expect(app.locator(".session-top-meta .loop-badge")).toHaveText("Loop · fake-loop · ruhig");
+    await expect(app.locator(".loop-panel")).toContainText("1 von 3 Aufgaben · bauen");
+    await expect(app.locator(".loop-gate")).toContainText("policy: bestanden");
+    await expect(app.locator(".loop-bar")).toHaveAttribute("aria-valuenow", "33");
+
+    await app.getByRole("button", { name: "Pausieren" }).click();
+    await expect(app.getByRole("button", { name: "Weiter" })).toBeVisible();
+    await expect(app.locator(".session-top-meta .loop-badge")).toHaveText("Loop · fake-loop · ruhig · pausiert");
+    await app.getByRole("button", { name: "Weiter" }).click();
+    await expect(app.getByRole("button", { name: "Pausieren" })).toBeVisible();
+
+    // Betriebsart mit Außenwirkung: ohne Bestätigung bleibt sie, wie sie war.
+    app.once("dialog", (d) => void d.dismiss());
+    await app.getByLabel("Betriebsart des Loops").selectOption("scharf");
+    await expect(app.locator(".session-top-meta .loop-badge")).toHaveText("Loop · fake-loop · ruhig");
+    app.once("dialog", (d) => void d.accept());
+    await app.getByLabel("Betriebsart des Loops").selectOption("scharf");
+    await expect(app.locator(".session-top-meta .loop-badge")).toHaveText("Loop · fake-loop · scharf");
+  });
+
+  test("ein gestörter Loop fällt sofort auf: Abzeichen und Warnung mit Grund (T19.6)", async ({ app }) => {
+    await startLoop(app, "FEHLER");
+    await expect(app.locator(".loop-alert.bad")).toContainText("Loop gestört: offline");
+    await expect(app.locator(".session-top-meta .loop-badge")).toHaveText("Loop · fake-loop · ruhig · gestört");
   });
 });

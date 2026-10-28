@@ -85,3 +85,13 @@ macht die Person im Projekt.
 
 Konfiguration: `python`, `pollMs`, `hermesDir`. Jede Quelle fällt einzeln aus: ihr Fehler wird `loop.broken`, die anderen laufen weiter.
 
+## Oberfläche
+
+Eine Loop-Session zeigt im Kopf das Abzeichen „Loop · Name · Betriebsart“ (rot bei Störung, gelb bei Halt oder Pause) und
+darunter das Panel: Fortschritt, Gate, Halt (`loop.hold`), Störungen (`loop.broken`, bis `loop.recovered`), Eskalationen,
+Statistik und Tagesbericht. Alles wird aus den `loop.*`-Ereignissen der Session gefaltet (`deriveLoopView`); was der Loop
+nicht gemeldet hat, bleibt leer. Pause/Weiter und der Wechsel der Betriebsart gehen als Steuerbefehl an den Connector, eine
+Betriebsart mit Außenwirkung wird vorher bestätigt. Fragen des Loops erscheinen in der Freigaben-Ansicht.
+
+Bekannte Lücke: `loop.hold` löst noch keine Benachrichtigung aus (nur Ereignis und Abzeichen); sie ist AC-P19-2 und steht in T19.7.
+
