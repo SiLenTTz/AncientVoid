@@ -1,7 +1,7 @@
 # EPIC-P19 — Loop / Dark Factory: securesight-factory und aSPARK-Factory als wählbare Loops
 
 **Status:** Gerüst gebaut (2026-10-28, Auftrag von Jan): Katalog, `GET /api/loops`, Policy `loops.start`, Auswahl im Start-Formular.
-**Offen:** der Connector T19.5 (eigenes Paket unter `packages/loops/`) und das Loop-Panel T19.6; bis dahin sind beide Loops sichtbar, gesperrt und begründet ·
+**Offen:** das Loop-Panel T19.6 und die Messläufe T19.7; bis dahin sind beide Loops sichtbar, gesperrt und begründet ·
 **Phase:** P19 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P15 Modus-/Steuermuster,
 P17 Resume-Referenzen und Worker-Marker auf). Präzedenz wie P13/P14/P17: unabhängiges Epic neben offenen Abnahmen.
 P18 (Desktop-Workspace) ist seit 2026-10-27 gemergt, das Gating ist damit kein Hindernis mehr. Offen bleibt die Bestätigung des ADR.
@@ -82,8 +82,11 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
   Last Will, `v≠1`, kaputtem JSON und Brokerverlust, Berichte >2 KB als Blob (K5), beantwortete Fragen im Cursor (K7).
   Getestet gegen einen echten Mosquitto (11 Tests, Skip wenn er fehlt). Offen: die Anleitung für den Hub-MQTT-Nutzer
   (nicht ausgeführt) steht in MR 4 mit der Konfiguration. K1, K9 messen wir erst gegen eine laufende Linie.
-- [ ] **T19.5 — Loop `securesight-factory`.** Supervisor-Status, Notify, Transcript, Progress,
-  Orchestrator `self | hermes` (Hermes lesend), Fortsetzen als Tipp. K2, K7, K9.
+- [x] **T19.5 — Loop `securesight-factory`.** *Erledigt 2026-10-28* (Paket `@uacc/loop-securesight-factory`, keine Fremdabhängigkeit):
+  Supervisor-Status per `execFile` (Exit 3 → `loop.hold`, 4/5 → `loop.broken`), Notify-Dateien, Transcript mit Byte-Cursor je Datei
+  (ab Start, halbe Zeile wartet, ≤200 Zeilen je Durchlauf), `progress.json`, Orchestrator `self | hermes` (Hermes nur lesend,
+  Option `epic`). Der Hub schreibt nichts ins Projekt (Test vergleicht das Verzeichnis vorher/nachher), jeder Befehl wird abgelehnt.
+  Getestet gegen ein Temp-Projekt mit kleinem Python-Stand-in für `betrieb.py` (9 Tests). Fortsetzen bleibt ein Tipp in MR 4. K2, K7, K9 messen wir erst gegen das echte Projekt.
 - [~] **T19.6 — PWA.** *Teilweise:* Zeile „Loop“ im Start-Formular, Optionen aus den Fähigkeiten, gesperrt mit Grund (Spec `loops.spec.ts`). Offen: Kopf-Abzeichen, Loop-Panel, Bestätigungsdialog. Auswahl-Flow, Fähigkeiten-getriebene Optionen, Kopf-Abzeichen,
   Loop-Panel, Bestätigungsdialog. E2E-Specs. K10, AC-P8-5 (Mobil unverändert).
 - [ ] **T19.7 — Messläufe und Doku.** K1/K2/K7/K9 nach Skill `messlauf`, `docs/loops.md`,

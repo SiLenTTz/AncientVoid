@@ -68,3 +68,20 @@ Der Hub ist ein Leitstand-Client einer Linie (AsyncAPI 0.9.0, alle Nachrichten `
 Grenzen: kein `allow-always` (v1 der Factory); „Nein“ auf eine Frage kennt das Protokoll nicht, die Linie handelt dann
 nach ihrem `timeoutAction`. Das Passwort steht nie in der Config, nur `passwordFile`. Tests: echter `mosquitto`
 auf Zufallsport (`packages/loops/aspark-factory/test/aspark.test.ts`), übersprungen, wenn er fehlt.
+
+## securesight-Factory (`@uacc/loop-securesight-factory`)
+
+Ein Projekt = ein Loop (Projektwurzel = die gewählte Projektauswahl, sie braucht `scripts/betrieb.py`). Der Hub liest alle
+`pollMs` (Standard 15 s) und **schreibt nichts**; der Supervisor darf nur lesen und eskalieren, `notify-ack` und Fortsetzen
+macht die Person im Projekt.
+
+| Quelle | im Hub |
+|---|---|
+| `betrieb.py supervisor-status --json` | `loop.info` (Betriebsart, Iteration, Watchdog), Prüfungen als Gate `gates`; Exit 3 = `loop.hold` (Status degraded), Exit 4 = Watchdog ausgefallen, 5/Schemafehler = `loop.broken` |
+| `.harness/notify/*.json` | `loop.notify` (Stufe, Grund, Lauf) einmal je Datei |
+| `.harness/transcript/*.ndjson` | `loop.transcript`, ab Start des Loops (keine Vorgeschichte), Schema 1 und 2, Cursor je Datei |
+| `.harnez/progress.json` | `loop.progress` (Story, Aufgabe, Phase) |
+| `~/.hermes/ralph/<epic>-state.json` | nur bei Orchestrator `hermes` (+ Option `epic`): `loop.progress` mit `source: hermes` |
+
+Konfiguration: `python`, `pollMs`, `hermesDir`. Jede Quelle fällt einzeln aus: ihr Fehler wird `loop.broken`, die anderen laufen weiter.
+
