@@ -16,6 +16,8 @@
 //   LANGSAM   keep the turn open for 60 s
 //   DENKEN    a thinking block whose text the provider withholds (empty + signature), then the answer
 //   ZUEGIG    keep the turn open for 3 s, then answer normally (EPIC-P15: queue)
+//   JANEIN    the answer is a yes/no question — for the PWA's QuickConfirm
+//             buttons (answer without typing)
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -109,7 +111,9 @@ if (prompt.includes("FRAGE")) {
   tail = answer.behavior === "allow" ? ` · Gewählt: ${Object.values(answer.updatedInput.answers ?? {}).join(", ")}` : ` · keine Antwort: ${answer.message}`;
 }
 
-const text = `Antwort auf: ${prompt.split("\n").pop()} · Claude ${model}${tail}`;
+const text = prompt.includes("JANEIN")
+  ? "Soll ich die Änderung committen?"
+  : `Antwort auf: ${prompt.split("\n").pop()} · Claude ${model}${tail}`;
 assistant([{ type: "text", text }]);
 emit({
   type: "result",

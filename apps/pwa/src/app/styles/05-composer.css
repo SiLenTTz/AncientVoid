@@ -186,6 +186,20 @@
   flex: 0 0 auto;
 }
 
+/* Ja/Nein-Rückfrage (QuickConfirm): eine Zeile über dem Composer, nur
+ * solange das Antwortfeld leer ist — klickbares „Ja“/„Nein“ statt Tippen. */
+.quick-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0 6px;
+}
+
+.quick-confirm .chip {
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
 .template-chip {
   display: inline-flex;
   align-items: center;

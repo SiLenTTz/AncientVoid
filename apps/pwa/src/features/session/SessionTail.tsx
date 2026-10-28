@@ -22,6 +22,7 @@ import { takeHandOver } from "../../shared/media.ts";
 import { openCommandBar } from "../commands/CommandBar.tsx";
 import { getSeen, markSeen, seenKey } from "../../shared/seen.ts";
 import { loadTail, saveTail } from "./tail-cache.ts";
+import { QuickConfirm, lastAssistantQuestion } from "./QuickConfirm.tsx";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { estimateText, formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
@@ -568,15 +569,15 @@ export function SessionTail({
     }
   };
 
-  const sendReply = async (takeover = false, queue = false) => {
-    if (!reply.trim() && replyAttachments.length === 0) return;
+  const sendText = async (text: string, takeover = false, queue = false) => {
+    if (!text.trim() && replyAttachments.length === 0) return;
     setReplyBusy(true);
     setReplyError("");
     setLeaseHeld(false);
     try {
-      if (pendingInput.current?.text !== reply) pendingInput.current = { text: reply, id: newInputId() };
+      if (pendingInput.current?.text !== text) pendingInput.current = { text, id: newInputId() };
       const ids = replyAttachments.map((a) => a.id);
-      const ack = await api.steer(session.id, { kind: "prompt", text: reply, ...(ids.length ? { attachmentIds: ids } : {}) }, pendingInput.current.id, takeover, queue);
+      const ack = await api.steer(session.id, { kind: "prompt", text, ...(ids.length ? { attachmentIds: ids } : {}) }, pendingInput.current.id, takeover, queue);
       if (ack.ok) {
         if (queue) setQueueTick((t) => t + 1);
         pendingInput.current = null;
@@ -598,9 +599,10 @@ export function SessionTail({
     }
   };
 
+  const sendReply = (takeover = false, queue = false) => sendText(reply, takeover, queue);
+  const showReply = steerSupported;
   // T1.6-3/AC-P1.6-2: no back-arrow up top anymore — "Übersicht" in the
   // dock below is the one way back, reachable from anywhere with one tap.
-  const showReply = steerSupported;
   // BUG-0049: "saving" is a moment between two saves, not a state worth a message — keep showing the last
   // settled one, otherwise the line folds away and back at every pause while typing and pushes the dock.
   const settledDraft = useRef<"saved" | "local" | null>(null);
@@ -616,6 +618,9 @@ export function SessionTail({
   // (it names what really runs), then the record (session choice or the
   // registration's configured default), else the honest "Standardmodell".
   const shownModel = typeof modelLabel === "string" && modelLabel ? modelLabel : typeof session.model === "string" && session.model ? session.model : "Standardmodell";
+  // Ja/Nein-Rückfrage: die letzte Assistant-Nachricht endet auf „?“ —
+  // QuickConfirm bietet dann Ja/Nein, solange das Antwortfeld leer ist.
+  const agentQuestion = lastAssistantQuestion(shownEvents);
   const TABS: { id: typeof activeTab; label: string; icon: TabIconName; show: () => void }[] = [
     { id: "chat", label: "Chat", icon: "chat", show: showChatTab },
     { id: "verlauf", label: "Verlauf", icon: "verlauf", show: showVerlaufTab },
@@ -929,6 +934,9 @@ export function SessionTail({
             {showReply && <PcOpenNotice sessionId={session.id} api={api} resume={adapterResume} />}
             {showReply && <QueueList sessionId={session.id} api={api} refreshKey={queueTick} />}
             {showReply && !draft.conflict && <ReplyTemplates value={reply} onPick={setReply} />}
+            {showReply && !draft.conflict && !reply.trim() && agentQuestion && (
+              <QuickConfirm disabled={replyBusy || !online} onAnswer={(text) => void sendText(text)} />
+            )}
             {showReply && (
               <Composer
                 value={reply}
