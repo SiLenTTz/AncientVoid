@@ -56,6 +56,10 @@ UMask=0077
 # unterdrückt Restart weiterhin.
 Restart=always
 RestartSec=3
+# BUG-0072: die tmux-Worker liegen im cgroup dieses Dienstes. Der Standard (control-group) tötet sie bei
+# jedem Neustart und jedem Absturz und bricht laufende Züge ab. "process" stoppt nur den Hub selbst,
+# der neue Hub übernimmt die Worker (ADR-0014).
+KillMode=process
 
 [Install]
 WantedBy=default.target

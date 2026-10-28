@@ -44,7 +44,8 @@ Sessions, Events, Projekte, Skills, Suche, Freigaben und Meldungen erreichen.
 ## Aktualisieren
 
 `scripts/fleet-deploy.sh` erneut ausführen. Der Neustart stoppt keine
-Session; laufende Züge werden übernommen (ADR-0014).
+Session; laufende Züge werden übernommen (ADR-0014). Das gilt erst, seit die Dienstdatei
+`KillMode=process` setzt (BUG-0072): ältere Installationen bekommen es mit demselben Aufruf.
 
 ## Entfernen oder sperren
 

@@ -95,8 +95,10 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0068](bug-0068-lange-antwort-im-chat-gekuerzt.md) | Antworten über 4 KB zeigt der Chat nur mit 200 Zeichen | done | S2 | pwa | [#23](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/23) |
 | [BUG-0069](bug-0069-worktree-testet-pakete-von-main.md) | Gates im Session-Worktree testen die `@uacc/*`-Pakete des Haupt-Checkouts | done | S2 | core, e2e | [#24](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/24) |
 | [BUG-0070](bug-0070-claude-tool-progress-heartbeat-spam.md) | Claude-Heartbeats (`tool_progress`) füllen den Verlauf mit „unhandled stream-json type“ | done | S3 | adapters | [#25](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/25) |
-||||||| 21706d8
 | [BUG-0071](bug-0071-kachel-kuerzel-veralteter-zustand.md) | Zwei Kachel-Kürzel kurz hintereinander: das zweite arbeitet auf dem Zustand vor dem ersten | done | S3 | pwa | [#26](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/26) |
+| [BUG-0072](bug-0072-hub-neustart-toetet-worker.md) | Neustart oder Absturz des Hub-Dienstes tötet die Worker und bricht laufende Züge ab | done | S2 | ops | [#27](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/27) |
+| [BUG-0073](bug-0073-desktop-starter-zweiter-hub.md) | Der Desktop-Starter „UACC“ startet einen zweiten Hub neben dem Dienst | done | S2 | ops | [#28](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/28) |
+| [BUG-0074](bug-0074-hub-heap-oom-absturz.md) | Der Hub stürzt wiederholt mit „JavaScript heap out of memory“ ab | done | S1 | core | [#29](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/29) |
 | [BUG-0075](bug-0075-hub-oom-resync-schleife.md) | Hub stürzt alle ~2 Min. mit Heap-OOM ab (Resync-Schleife, unsortierte Events) | done | S1 | core, server, pwa | — |
 
 Die nächste freie Nummer ist **0076**.

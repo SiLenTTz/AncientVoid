@@ -74,10 +74,13 @@ Environment=PATH=%h/.local/share/mise/shims:%h/.local/bin:/usr/local/bin:/usr/bi
 ExecStart=$(command -v node) apps/hub/src/main.ts
 # BUG-0029: logs and data stay private to the user.
 UMask=0077
-# BUG-0037: restart also after a clean SIGTERM exit; explicit
-# `systemctl --user stop` still suppresses restarts.
+# BUG-0037: restart also after a clean SIGTERM exit; an explicit systemctl stop still suppresses restarts.
 Restart=always
 RestartSec=3
+# BUG-0072: the tmux workers live in this unit's cgroup. The default (control-group) kills them on every
+# restart or crash and cuts running turns off; "process" stops only the hub itself, the new hub adopts
+# the workers (ADR-0014).
+KillMode=process
 
 [Install]
 WantedBy=default.target
