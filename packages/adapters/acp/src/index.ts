@@ -34,7 +34,7 @@ const run = promisify(execFile);
  * decided on the phone (`ctx.requestToolPermission`).
  *
  * Config (hub.config.json → adapters[].config):
- *   preset:  "copilot" | "opencode" | "dsh" | "maki" — known command lines (below),
+ *   preset:  "copilot" | "opencode" | "dsh" | "maki" | "omp" — known command lines (below),
  *   command: the agent command line (overrides the preset),
  *   env:     extra environment for the agent,
  *   label:   name in summaries and errors (default: preset or "acp"),
@@ -77,10 +77,13 @@ export const ACP_PRESETS = {
   // maki 0.6.5 (maki.sh): `maki acp` fragt Rechte im Client ab, `question` wird zum ACP-Formular.
   // Provider/Thinking kommen aus ~/.config/maki (providers.toml, init.lua); Key per envFiles.
   maki: { command: ["maki", "acp"], env: {} },
+  // oh-my-pi (omp 18.13.3, a pi fork): `omp acp` answers initialize with loadSession and session fork/resume/list
+  // (live 2026-10-28). Credentials come from ~/.omp or the provider's env var (ZHIPU_API_KEY via envFiles).
+  omp: { command: ["omp", "acp"], env: {} },
 } as const satisfies Record<string, { command: string[]; env: Record<string, string>; models?: boolean; images?: boolean }>;
 
 const AcpConfig = z.object({
-  preset: z.enum(["copilot", "opencode", "dsh", "maki"]).optional(),
+  preset: z.enum(["copilot", "opencode", "dsh", "maki", "omp"]).optional(),
   command: z.array(z.string().min(1)).min(1).optional(),
   env: z.record(z.string(), z.string()).default({}),
   /** Umgebungsvariable → Datei mit dem Wert (`~/` aufgelöst); Schlüssel stehen so nie in der Config. */
@@ -349,11 +352,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
    * has it. Returns false when the agent cannot load at all.
    * BUG-0039: `emit` flips it for adoptions — an observed session's
    * history exists only in this replay, so it must reach the stream. */
-  async function resumeNative(state: AgentSession, ctx: AdapterContext, native: string, canLoad: boolean, emit = false): Promise<boolean> {
+  async function resumeNative(state: AgentSession, ctx: AdapterContext, native: string, canLoad: boolean, emit = false, model?: string): Promise<boolean> {
     if (!canLoad) return false;
     if (!emit) state.replay = true;
+    let loaded: SessionModels;
     try {
-      await state.conn.request("session/load", { sessionId: native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs);
+      loaded = ((await state.conn.request("session/load", { sessionId: native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs)) ?? {}) as SessionModels;
     } finally {
       state.replay = false;
       const buffered = state.mapper.flush();
@@ -361,6 +365,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     }
     state.acpSessionId = native;
     announce(ctx, native);
+    // ADR-0041: a loaded session runs on whatever model it used last — maki fell back to one the account may not
+    // use (403 on the first prompt, live 2026-10-28). The configured model is applied; if it is not on offer,
+    // that is said and the session keeps its own (unlike a new session, nothing is refused here).
+    if (model) await selectModel(state, ctx, native, loaded, model, false);
     return true;
   }
 
@@ -368,10 +376,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     const res = (await state.conn.request("session/new", { cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs)) as { sessionId: string } & SessionModels;
     state.acpSessionId = res.sessionId;
     announce(ctx, res.sessionId);
-    if (!model) return;
+    if (model) await selectModel(state, ctx, res.sessionId, res, model, true);
+  }
+
+  /** Put the agent on `model` (ADR-0018 modelChoice "start"). `strict`: a model that is not offered fails the start. */
+  async function selectModel(state: AgentSession, ctx: AdapterContext, sessionId: string, offered: SessionModels, model: string, strict: boolean): Promise<void> {
     // dsh registers routes from its settings right after boot: the answer
     // may predate them, a config_option_update follows (seen live).
-    const find = () => (state.configOptions ? pickModel({ configOptions: state.configOptions }, model) : null) ?? pickModel(res, model);
+    const find = () => (state.configOptions ? pickModel({ configOptions: state.configOptions }, model) : null) ?? pickModel(offered, model);
     let set = find();
     for (const until = Date.now() + MODEL_WAIT_MS; !set && Date.now() < until; set = find()) {
       await new Promise<void>((resolve) => {
@@ -383,8 +395,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       });
       state.onConfig = null;
     }
-    if (!set) throw new Error(`${label}: Modell „${model}" wird nicht angeboten`);
-    await state.conn.request(set.method, { sessionId: res.sessionId, ...set.params }, cfg.startupTimeoutMs);
+    if (!set) {
+      if (strict) throw new Error(`${label}: Modell „${model}" wird nicht angeboten`);
+      ctx.emit({ type: "system", summary: `${label}: Modell „${model}" wird nicht angeboten — die Session bleibt bei ihrem eigenen`, payload: { kind: "acp.model_unavailable", model } });
+      return;
+    }
+    await state.conn.request(set.method, { sessionId, ...set.params }, cfg.startupTimeoutMs);
     // ADR-0032: the window of THIS model — config table first, then the
     // curated one; rides the event so the PWA needs no adapter roundtrip.
     const window = resolveContextWindow(model, set.value, cfg.contextWindows);
@@ -483,7 +499,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const caps = await initialize(state);
       // BUG-0036: resumeNative silences the load replay; an agent without
       // load support starts a fresh context, visibly.
-      if (!(await resumeNative(state, ctx, entry.native, caps.loadSession))) {
+      if (!(await resumeNative(state, ctx, entry.native, caps.loadSession, false, cfg.model))) {
         if (caps.resume) {
           state.replay = true;
           try {
@@ -537,7 +553,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     async models(): Promise<ModelOption[]> {
       // dsh ≥ 0.2 has no listing command; its ACP session offers every provider and model.
       // maki 0.6.5: `maki models` exits 0 with empty output; `maki acp` lists them (live 2026-10-28).
-      if (!cfg.modelsCommand && (cfg.preset === "dsh" || cfg.preset === "maki") && command) return probeModelCatalog(command, env);
+      if (!cfg.modelsCommand && (cfg.preset === "dsh" || cfg.preset === "maki" || cfg.preset === "omp") && command) return probeModelCatalog(command, env);
       const cmd = cfg.modelsCommand ?? (command?.at(-1) === "acp" ? [...command.slice(0, -1), "models"] : undefined);
       if (!cmd) return [];
       const { stdout } = await run(cmd[0]!, cmd.slice(1), { timeout: 20_000, maxBuffer: 1024 * 1024 });
@@ -559,7 +575,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const startArgs = (spec.args ?? {}) as { resumeSessionId?: unknown; importHistory?: unknown };
       const resume = startArgs.resumeSessionId;
       try {
-        if (typeof resume === "string" && resume && (await resumeNative(state, ctx, resume, caps.loadSession, startArgs.importHistory === true))) {
+        if (typeof resume === "string" && resume && (await resumeNative(state, ctx, resume, caps.loadSession, startArgs.importHistory === true, spec.model ?? cfg.model))) {
           // loaded — the prompt (if any) continues the old conversation
         } else {
           if (typeof resume === "string" && resume) {
