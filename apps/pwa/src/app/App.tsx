@@ -16,6 +16,8 @@ import { Settings } from "../features/settings/Settings.tsx";
 import { CreateSession } from "../features/new-session/CreateSession.tsx";
 import { MediaPage } from "../features/media/MediaPage.tsx";
 import { DesktopPage } from "../features/desktop/DesktopPage.tsx";
+import { publishHubStatus } from "../features/shell/hub-status.ts";
+import { getLastSession } from "../features/shell/last-session.ts";
 
 export function App({
   onOpen,
@@ -69,11 +71,21 @@ export function App({
         setAdapters(a);
         failedPolls.current = 0;
         setError("");
+        publishHubStatus({ connected: true, error: "", lastOkAt: Date.now(), sessions: fleet.sessions, hosts: fleet.hosts });
         hubApi
           .approvals("pending")
-          .then((pending) => alive && setPendingApprovals(pending.length))
+          .then((pending) => {
+            if (!alive) return;
+            setPendingApprovals(pending.length);
+            publishHubStatus({ pendingApprovals: pending.length });
+          })
           // 501: dieser Hub hat keine Freigaben — echte 0. Sonst den letzten Stand behalten.
-          .catch((err: unknown) => alive && err instanceof Error && /^501|not configured/.test(err.message) && setPendingApprovals(0));
+          .catch((err: unknown) => {
+            if (alive && err instanceof Error && /^501|not configured/.test(err.message)) {
+              setPendingApprovals(0);
+              publishHubStatus({ pendingApprovals: 0 });
+            }
+          });
         // T1.5-3/ADR-0004: one usage snapshot per known adapter, not per
         // session — fetched alongside the existing poll, not a second
         // independent timer.
@@ -84,7 +96,11 @@ export function App({
         setUsage(Object.fromEntries(usageEntries));
       } catch (err) {
         failedPolls.current += 1;
-        if (alive && failedPolls.current >= 2) setError(err instanceof Error ? err.message : "load failed");
+        if (alive && failedPolls.current >= 2) {
+          const message = err instanceof Error ? err.message : "load failed";
+          setError(message);
+          publishHubStatus({ connected: false, error: message });
+        }
       }
     };
     void tick();
@@ -99,7 +115,12 @@ export function App({
   return (
     <div class="app-page">
       <div class="topbar">
-        <h1>UACC</h1>
+        {/* EPIC-P23 T23.1: "UACC" leads to the overview from everywhere, the last session marked there. */}
+        <h1>
+          <button class="brand-link" type="button" title="Zur Übersicht" onClick={() => setPage("dashboard")}>
+            UACC
+          </button>
+        </h1>
         <div style="display: flex; gap: 10px; align-items: center">
           {/* Real user feedback (2026-09-19): provider/quota detail used to
            * sit inline on the Dashboard, dominating small screens before
@@ -170,6 +191,7 @@ export function App({
             pendingApprovals={pendingApprovals}
             onOpenApprovals={() => setPage("approvals")}
             onOpenDiscovery={() => setPage("discovery")}
+            lastSession={getLastSession()}
           />
         ))}
 

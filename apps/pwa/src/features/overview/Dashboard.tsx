@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
 import type { FleetHost, SessionRecord } from "../../shared/api.ts";
-import { hostApi } from "../../shared/api.ts";
+import { hostApi, remoteHost } from "../../shared/api.ts";
+import { isLastSession, type LastSession } from "../shell/last-session.ts";
 import { compareByActivity, IDLE_STILL_ACTIVE_MS, lastActivityAt, sessionsForOverview } from "./session-list.ts";
 import { metricView, totalCostText } from "../../shared/metrics.ts";
 import { ago, statusLabel } from "../../shared/status.ts";
@@ -42,6 +43,8 @@ export interface DashboardProps {
   onOpenApprovals?: () => void;
   /** T5.3: all found sessions, including external provider sessions. */
   onOpenDiscovery?: () => void;
+  /** EPIC-P23 T23.1: the session worked in last on this device — marked and brought into view. */
+  lastSession?: LastSession | null;
 }
 
 /**
@@ -95,7 +98,12 @@ function matches(s: SessionRecord, q: string): boolean {
   return q.toLowerCase().split(/\s+/).every((w) => hay.includes(w));
 }
 
-export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, onOpenApprovals, onOpenDiscovery }: DashboardProps) {
+export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, onOpenApprovals, onOpenDiscovery, lastSession = null }: DashboardProps) {
+  // Once per visit (not per 3 s poll): bring the remembered session into view.
+  const hasSessions = sessions.length > 0;
+  useEffect(() => {
+    document.querySelector(".session-card[aria-current]")?.scrollIntoView?.({ block: "nearest" });
+  }, [lastSession?.sessionId, hasSessions]);
   const fleet = hosts.length > 1;
   const [showArchived, setShowArchived] = useState(false);
   const [override, setOverride] = useState<Record<string, Partial<SessionRecord>>>({});
@@ -249,6 +257,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
                     session={s}
                     hosts={hosts ?? []}
                     onOpen={onOpen}
+                    isLast={isLastSession(lastSession, s.id, remoteHost(s.hostId))}
                     onArchive={archive}
                     onPin={pin}
                     onDelete={remove}
@@ -271,6 +280,7 @@ function SessionRow({
   session,
   hosts,
   onOpen,
+  isLast,
   onArchive,
   onPin,
   onDelete,
@@ -278,6 +288,7 @@ function SessionRow({
   session: SessionRecord;
   hosts: FleetHost[];
   onOpen: (s: SessionRecord, opts?: { newTile?: boolean }) => void;
+  isLast: boolean;
   onArchive: (s: SessionRecord) => void;
   onPin: (s: SessionRecord) => void;
   onDelete: (s: SessionRecord) => void;
@@ -287,7 +298,7 @@ function SessionRow({
   const unseen = isUnseen(seenKey(session.hostId ?? "", session.id), session.lastSeq);
   const project = projectName(session.project);
   return (
-    <div class={`card session-card ${glow}${unseen ? " unseen" : ""}`}>
+    <div class={`card session-card ${glow}${unseen ? " unseen" : ""}${isLast ? " last-active" : ""}`} aria-current={isLast ? "true" : undefined}>
       <button class="session-open" type="button" onClick={(ev) => onOpen(session, { newTile: ev.ctrlKey || ev.metaKey })}>
         <div class="row">
           <strong class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? `${project} — ohne Auftrag`}</strong>

@@ -11,6 +11,8 @@ import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
 import { applyCtxMotion, applyScale, ctxMotionOn, getScale, installScaleShortcuts } from "./ui-scale.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
 import { TileWorkspace } from "../features/workspace/TileWorkspace.tsx";
+import { StatusBar } from "../features/shell/StatusBar.tsx";
+import { rememberSession } from "../features/shell/last-session.ts";
 import { openInNewTile, openSession, parseWorkspace, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
 import type { Page } from "./Dock.tsx";
 import "./styles/index.css";
@@ -206,6 +208,7 @@ function Main() {
     setWs(next);
     localStorage.setItem(WORKSPACE_KEY, serializeWorkspace(next));
     const focused = visibleTiles(next)[next.focus];
+    rememberSession(focused ?? null);
     const hash = focused ? sessionHash(focused.sessionId, focused.hostId) : pageHash(route.view === "list" ? route.page : "dashboard");
     if (location.hash !== hash) history.replaceState(null, "", hash);
   };
@@ -215,6 +218,11 @@ function Main() {
     const next = openSession(ws, tileRefOf(route.session));
     if (next !== ws && (next.focus !== ws.focus || next.slots !== ws.slots)) changeWorkspace(next);
   }, [wide, route]);
+
+  // EPIC-P23 T23.1: a deep link or a reload on a session counts as "worked in last", too.
+  useEffect(() => {
+    if (route.view === "tail") rememberSession(tileRefOf(route.session));
+  }, [route]);
 
   if (!ready) return <TokenGate onReady={() => void becomeReady()} rejected={gateError} />;
 
@@ -260,10 +268,12 @@ function Main() {
               }}
             />
           </section>
+          <StatusBar focused={visibleTiles(ws)[ws.focus] ?? null} onOpenApprovals={() => (location.hash = pageHash("approvals"))} />
         </div>
       ) : route.view === "list" ? (
         <App
           onOpen={(session) => {
+            rememberSession(tileRefOf(session));
             location.hash = sessionHash(session.id, remoteHost(session.hostId));
             setRoute({ view: "tail", session });
           }}
