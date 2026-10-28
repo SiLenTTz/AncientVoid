@@ -47,14 +47,14 @@ Freitext) und gehen als strukturierte Antwort zurück. Messlatten: K2 (Latenz), 
 
 Zeitraum 2026-10-27 bis 2026-10-28, vier Aufgaben (Commits `9ec36ef`, `6f4f489`, `587929b`, `36d8f82`), dazu der Auslöser-Bug BUG-0075 (MR !219, !225).
 
-**AK-Matrix: 3 🟢 / 1 🟡 / 0 🔴 / 0 ⚪**
+**AK-Matrix: 4 🟢 / 0 🟡 / 0 🔴 / 0 ⚪** (AC-P21-4 nachträglich 🟢, siehe unten)
 
 - AC-P21-1: 🟢 — Beleg: `e2e/specs/layout-desktop.spec.ts:32` (Rail ≤ 64 px), Gate 223 E2E inkl. Mobile-Specs grün (MR !222).
   Bemerkung: Der Dokument-Scroll bei 1600×900 hatte als Ursache einen veralteten PWA-Build, zusätzlich per CSS abgesichert.
 - AC-P21-2: 🟢 — Beleg: `packages/core/test/modules/handover/handover.test.ts`, `e2e/specs/harness.spec.ts:186` (Übergabetext), ADR-0039 (MR !226).
 - AC-P21-3: 🟢 — Beleg: `packages/core/test/modules/runs/session-turn-metrics.test.ts` (Wiederaufbau aus JSONL), `e2e/specs/progress.spec.ts` „ab 5 Läufen“ (MR !223).
-- AC-P21-4: 🟡 — Beleg: `e2e/specs/harness.spec.ts:142` (claude), `:154` (acp), `:318` (codex): Frage wird beantwortet, die Antwort erreicht den Harness.
-  Bemerkung: Ein Spec, der die offene Frage über einen Reload hinweg prüft, fehlt; nicht belegt, daher nicht 🟢.
+- AC-P21-4: 🟢 (nachgezogen 2026-10-28) — Beleg: `e2e/specs/harness.spec.ts:142` (claude), `:154` (acp), `:318` (codex): Frage wird beantwortet, die Antwort erreicht den Harness.
+  Bemerkung: Zunächst 🟡, weil der Reload-Beleg fehlte. Nachgeliefert: `harness.spec.ts` „AC-P21-4: eine offene Frage überlebt einen Reload“ (4 von 4 Läufen).
 
 **Premortem: 2 eingetreten / 2 nicht eingetreten**
 
@@ -72,7 +72,7 @@ Zeitraum 2026-10-27 bis 2026-10-28, vier Aufgaben (Commits `9ec36ef`, `6f4f489`,
 
 **Action Items**
 
-- AI-P21-1: Spec „offene Frage überlebt Reload“ — zurück als: Aufgabe in einem Folge-Epic (AC-P21-4 auf 🟢).
+- AI-P21-1: Spec „offene Frage überlebt Reload“ — **erledigt 2026-10-28**.
 - AI-P21-2: Bug-Nummern vor dem Anlegen gegen `origin` und offene MRs prüfen — zurück als: Eintrag in `bugs/README.md` / Skill `bug-report`.
 - AI-P21-3: Roll-out auf `silenttz-server` (`scripts/fleet-deploy.sh`) und `evox2` — zurück als: offene DoD-Zeile dieses Epics; von Jan später gewünscht.
-- AI-P21-4: Nach dem Merge von !218 BUG-0074 auf `done` mit Verweis auf BUG-0075 — zurück als: Bug-Update.
+- AI-P21-4: Nach dem Merge von !218 BUG-0074 auf `done` mit Verweis auf BUG-0075 — **erledigt 2026-10-28** (!218 gemergt).
