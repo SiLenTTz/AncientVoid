@@ -59,6 +59,13 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     note(ctx, "loop.broken", `aSPARK ${run.line}: ${reason}`, { loop: "aspark-factory", line: run.line, reason });
   };
 
+  const recover = (run: Run, ctx: AdapterContext) => {
+    if (!run.broken) return;
+    const reason = run.broken;
+    run.broken = null;
+    note(ctx, "loop.recovered", `aSPARK ${run.line}: wieder in Ordnung`, { loop: "aspark-factory", line: run.line, reason, all: true });
+  };
+
   async function answer(run: Run, session: string, body: Answer): Promise<void> {
     await run.client.publishAsync(topics.answer(run.line, session), JSON.stringify(body), { qos: 1 });
   }
@@ -121,8 +128,9 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       breakLoop(run, ctx, `${topic}: ${decoded.reason}`);
       return;
     }
-    run.broken = null;
     const m = decoded.value;
+    // Offline hebt nur eine neue Info mit status online auf; sonst bliebe die Linie nach einer beliebigen Nachricht „gesund“.
+    if (run.broken && (!run.broken.startsWith("Linie offline") || (where.kind === "info" && m.status !== "offline"))) recover(run, ctx);
     switch (where.kind) {
       case "info": {
         run.info = m;
@@ -202,7 +210,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
         if (!run.closed) breakLoop(run, ctx, "Verbindung zum Broker verloren");
       });
       client.on("connect", () => {
-        if (run.broken === "Verbindung zum Broker verloren") run.broken = null;
+        if (run.broken === "Verbindung zum Broker verloren") recover(run, ctx);
       });
       ctx.signal.addEventListener("abort", () => void client.endAsync(true).catch(() => undefined), { once: true });
       await client.subscribeAsync(topics.subscriptions(line), { qos: 1 });

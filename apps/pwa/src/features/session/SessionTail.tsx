@@ -26,6 +26,8 @@ import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { estimateText, formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
 import { ContextBar } from "./ContextBar.tsx";
+import { LoopBadge, LoopPanel } from "../loops/LoopPanel.tsx";
+import { deriveLoopView } from "../loops/loop-view.ts";
 import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, tokenText } from "./run-stats.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
 import { EventRow } from "./EventRow.tsx";
@@ -398,6 +400,8 @@ export function SessionTail({
   }, [session.adapter]);
   const progress = runProgress(events, status, now);
   const providerFailure = observerOnly ? null : currentProviderFailure(events);
+  const isLoop = session.adapter.startsWith("loop:");
+  const loopView = useMemo(() => (isLoop ? deriveLoopView(events) : null), [isLoop, events]);
   // T21.3: measured turns of the same adapter/model — fetched when a turn starts, never guessed client-side.
   const [estimate, setEstimate] = useState<RunEstimate | null>(null);
   useEffect(() => {
@@ -660,7 +664,7 @@ export function SessionTail({
             <div class="session-top-title">{title ?? session.project.split("/").pop()}</div>
           )}
           <div class="dim session-top-meta">
-            {session.project.split("/").pop()} · {session.adapter} · {shownModel} ·{" "}
+            {session.project.split("/").pop()} · {loopView ? <LoopBadge adapter={session.adapter} view={loopView} /> : session.adapter} · {loopView ? "" : `${shownModel} · `}
             {session.hostId ? (hostNames.get(session.hostId) ?? (session.hostId === "local" ? "dieser Rechner" : session.hostId.slice(0, 8))) : "dieser Rechner"} ·{" "}
             <span class={`pill ${status}`} data-status={status}>{statusLabel(status)}</span>
           </div>
@@ -776,6 +780,8 @@ export function SessionTail({
         </div>
         <ContextBar fill={tokenStats.lastContextTokens} windowTokens={windowTokens} />
       </div>
+
+      {loopView && <LoopPanel sessionId={session.id} adapter={session.adapter} view={loopView} disabled={observerOnly || status === "stopped"} api={api} onError={setReplyError} />}
 
       <div
         ref={tailRef}

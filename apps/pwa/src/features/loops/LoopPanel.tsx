@@ -1,0 +1,147 @@
+import { useEffect, useState } from "preact/hooks";
+import type { LoopInfo } from "@uacc/contracts";
+import type { hubApi } from "../../shared/api.ts";
+import type { LoopView } from "./loop-view.ts";
+import { loopBadge } from "./loop-view.ts";
+
+const GATE_STATE: Record<string, string> = { running: "läuft", passed: "bestanden", failed: "fehlgeschlagen" };
+
+/** Kopf-Abzeichen der Session: Loop, Name, Betriebsart — Störung und Halt fallen sofort auf. */
+export function LoopBadge({ adapter, view }: { adapter: string; view: LoopView }) {
+  const badge = loopBadge(adapter, view);
+  return <span class={`loop-badge ${badge.tone}`}>{badge.text}</span>;
+}
+
+/**
+ * EPIC-P19 T19.6: das Loop-Panel einer Session. Zeigt nur, was der Loop gemeldet hat (Fortschritt, Gate, Halt,
+ * Störungen, Bericht), und bietet nur die Befehle an, die der Connector kann. Eine Betriebsart mit Außenwirkung
+ * wird vor dem Wechsel bestätigt.
+ */
+export function LoopPanel({
+  sessionId,
+  adapter,
+  view,
+  disabled,
+  api,
+  onError,
+}: {
+  sessionId: string;
+  adapter: string;
+  view: LoopView;
+  disabled: boolean;
+  api: Pick<typeof hubApi, "loops" | "steer">;
+  onError: (message: string) => void;
+}) {
+  const loopId = adapter.replace(/^loop:/, "");
+  const [info, setInfo] = useState<LoopInfo | null>(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .loops()
+      .then((all) => live && setInfo(all.find((l) => l.id === loopId) ?? null))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [api, loopId]);
+
+  const caps = info?.capabilities ?? null;
+  const send = async (input: Parameters<typeof api.steer>[1]) => {
+    try {
+      const ack = await api.steer(sessionId, input);
+      if (!ack.ok) onError(ack.detail ?? "Der Loop hat den Befehl abgelehnt.");
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Befehl fehlgeschlagen.");
+    }
+  };
+  const changeMode = (mode: string) => {
+    if (caps?.riskyModes.includes(mode) && !confirm(`Betriebsart „${mode}“ hat Außenwirkung (z. B. Merge ohne Mensch). Wirklich wechseln?`)) return;
+    void send({ kind: "configure", permissionMode: mode });
+  };
+
+  const p = view.progress;
+  const pct = p && p.total > 0 ? Math.round((p.done / p.total) * 100) : 0;
+  return (
+    <section class="loop-panel" aria-label="Loop">
+      <div class="loop-head">
+        <LoopBadge adapter={adapter} view={view} />
+        {view.line && <span class="dim">Linie {view.line}</span>}
+        {view.activity && <span class="dim">{view.activity}</span>}
+      </div>
+      {view.broken.length > 0 && (
+        <div class="loop-alert bad" role="alert">
+          Loop gestört: {view.broken.join(" · ")}
+        </div>
+      )}
+      {view.hold && (
+        <div class="loop-alert warn" role="status">
+          Der Loop wartet auf eine Person: {view.hold}
+        </div>
+      )}
+      {p && (
+        <div class="loop-progress">
+          <div class="loop-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Fortschritt des Loops">
+            <div style={`width: ${pct}%`} />
+          </div>
+          <span>
+            {p.done} von {p.total} Aufgaben
+            {p.phase ? ` · ${p.phase}` : ""}
+            {p.step ? ` · ${p.step}` : ""}
+            {p.source === "hermes" ? " (Hermes)" : ""}
+          </span>
+        </div>
+      )}
+      {view.gate && (
+        <div class="loop-gate">
+          Gate <strong>{view.gate.name}</strong>: <span class={`gate-${view.gate.state}`}>{GATE_STATE[view.gate.state] ?? view.gate.state}</span>
+        </div>
+      )}
+      {view.stats && (
+        <div class="dim">
+          {view.stats.completed} Features fertig · {view.stats.inProgress} in Arbeit
+        </div>
+      )}
+      {view.notices.length > 0 && (
+        <ul class="loop-notices">
+          {view.notices.map((n, i) => (
+            <li key={i}>
+              Eskalation {n.level}: {n.reason}
+            </li>
+          ))}
+        </ul>
+      )}
+      {view.report && (
+        <details class="loop-report">
+          <summary>
+            Tagesbericht
+            {Object.keys(view.report.counts).length > 0 ? ` (${Object.entries(view.report.counts).map(([k, n]) => `${k} ${n}`).join(", ")})` : ""}
+          </summary>
+          {view.report.text ? <pre>{view.report.text}</pre> : <p class="dim">Der volle Text liegt als Blob im Verlauf.</p>}
+        </details>
+      )}
+      {caps && caps.controls.length > 0 && (
+        <div class="loop-controls">
+          {caps.controls.includes("pause") && caps.controls.includes("resume") && (
+            <button class="btn" type="button" disabled={disabled} onClick={() => void send({ kind: view.paused ? "resume" : "park" })}>
+              {view.paused ? "Weiter" : "Pausieren"}
+            </button>
+          )}
+          {caps.controls.includes("setMode") && caps.modes.length > 0 && (
+            <label>
+              Betriebsart
+              <select aria-label="Betriebsart des Loops" disabled={disabled} value={view.mode ?? ""} onChange={(e) => changeMode((e.target as HTMLSelectElement).value)}>
+                {view.mode === null && <option value="">unbekannt</option>}
+                {caps.modes.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                    {caps.riskyModes.includes(m) ? " (Außenwirkung)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}

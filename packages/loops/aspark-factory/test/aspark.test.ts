@@ -191,6 +191,11 @@ describe.skipIf(!hasMosquitto)("aSPARK-Connector gegen einen echten Mosquitto (T
     expect(await connector.status(handle)).toMatchObject({ state: "broken" });
     await publish("agent/kappa/s1/progress", "{kaputt");
     await waitFor(() => ctx.events.some((e) => String((e.payload as { reason?: string }).reason).includes("kein gültiges JSON")));
+    // Wieder online: die Warnung wird zurückgenommen, vorher nicht (eine fremde Nachricht heilt kein Offline).
+    expect(kinds(ctx)).not.toContain("loop.recovered");
+    await publish("agent/kappa/info", { ...info, line: "kappa", ts: "2026-10-28T11:00:00Z" });
+    await waitFor(() => kinds(ctx).includes("loop.recovered"));
+    expect(await connector.status(handle)).toEqual({ state: "healthy" });
   });
 
   it("start ohne gültige Linie scheitert laut, ein nicht erreichbarer Broker ebenso", async () => {

@@ -1,7 +1,7 @@
 # EPIC-P19 — Loop / Dark Factory: securesight-factory und aSPARK-Factory als wählbare Loops
 
-**Status:** Gerüst gebaut (2026-10-28, Auftrag von Jan): Katalog, `GET /api/loops`, Policy `loops.start`, Auswahl im Start-Formular.
-**Offen:** das Loop-Panel T19.6 und die Messläufe T19.7; bis dahin sind beide Loops sichtbar, gesperrt und begründet ·
+**Status:** Gebaut (2026-10-28, Auftrag von Jan): Contract, Core, beide Connectors (`packages/loops/*`), Auswahl, Kopf-Abzeichen und Loop-Panel.
+**Offen:** die Messläufe T19.7 gegen echte Systeme und der Push bei `loop.hold`; ein Loop ohne Eintrag in `loops[]` bleibt sichtbar, gesperrt und begründet ·
 **Phase:** P19 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P15 Modus-/Steuermuster,
 P17 Resume-Referenzen und Worker-Marker auf). Präzedenz wie P13/P14/P17: unabhängiges Epic neben offenen Abnahmen.
 P18 (Desktop-Workspace) ist seit 2026-10-27 gemergt, das Gating ist damit kein Hindernis mehr. Offen bleibt die Bestätigung des ADR.
@@ -87,10 +87,14 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
   (ab Start, halbe Zeile wartet, ≤200 Zeilen je Durchlauf), `progress.json`, Orchestrator `self | hermes` (Hermes nur lesend,
   Option `epic`). Der Hub schreibt nichts ins Projekt (Test vergleicht das Verzeichnis vorher/nachher), jeder Befehl wird abgelehnt.
   Getestet gegen ein Temp-Projekt mit kleinem Python-Stand-in für `betrieb.py` (9 Tests). Fortsetzen bleibt ein Tipp in MR 4. K2, K7, K9 messen wir erst gegen das echte Projekt.
-- [~] **T19.6 — PWA.** *Teilweise:* Zeile „Loop“ im Start-Formular, Optionen aus den Fähigkeiten, gesperrt mit Grund (Spec `loops.spec.ts`). Offen: Kopf-Abzeichen, Loop-Panel, Bestätigungsdialog. Auswahl-Flow, Fähigkeiten-getriebene Optionen, Kopf-Abzeichen,
-  Loop-Panel, Bestätigungsdialog. E2E-Specs. K10, AC-P8-5 (Mobil unverändert).
-- [ ] **T19.7 — Messläufe und Doku.** K1/K2/K7/K9 nach Skill `messlauf`, `docs/loops.md`,
-  Matrix-Eintrag.
+- [x] **T19.6 — PWA.** *Erledigt 2026-10-28:* Zeile „Loop“ im Start-Formular (Optionen aus den Fähigkeiten, gesperrt mit Grund),
+  Kopf-Abzeichen „Loop · Name · Betriebsart“ (Störung/Halt/Pause vorn), Loop-Panel (Fortschritt, Gate, Halt, Störungen,
+  Eskalationen, Statistik, Bericht, Pause/Weiter, Betriebsart mit Bestätigung bei Außenwirkung). Der Zustand wird nur aus den
+  `loop.*`-Ereignissen gefaltet (`deriveLoopView`, 5 Unit-Tests); Specs in `loops.spec.ts` (5 Tests). Fragen laufen über die
+  bestehende Freigaben-Ansicht. K10, AC-P8-5.
+- [~] **T19.7 — Messläufe und Doku.** *Teilweise:* `docs/loops.md` mit beiden Connectors und der Oberfläche. Offen: die Messläufe
+  K1/K2/K7/K9 nach Skill `messlauf` (brauchen eine laufende Linie bzw. ein echtes harnez-Projekt), Benachrichtigung bei `loop.hold`
+  (AC-P19-2: heute nur Ereignis und Abzeichen, kein Push), Matrix-Eintrag.
 
 ## 5. Acceptance Criteria
 
