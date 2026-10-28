@@ -22,7 +22,6 @@ describe.skipIf(!hasPython)("securesight-Connector gegen ein Temp-Projekt (T19.5
   const setStatus = (exit: number, body: unknown = healthy) => writeFileSync(join(root, "scripts", "status.json"), JSON.stringify({ exit, body }));
   const tr = () => join(root, ".harness", "transcript", "s1.ndjson");
   const rec = (seq: number, extra: Record<string, unknown> = {}) => `${JSON.stringify({ schema_version: "2", at: "2026-10-28T09:00:00Z", seq, session: "s1", role: "llm", kind: "assistant_text", detail: `Zug ${seq}`, source: "claude", ...extra })}\n`;
-  const kinds = (ctx: { events: { payload?: unknown }[] }) => ctx.events.map((e) => (e.payload as { kind?: string }).kind);
   const of = (ctx: { events: { payload?: unknown }[] }, k: string) => ctx.events.filter((e) => (e.payload as { kind?: string }).kind === k).map((e) => e.payload as Record<string, unknown>);
 
   beforeEach(() => {
