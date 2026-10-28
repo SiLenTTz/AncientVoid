@@ -1,4 +1,4 @@
-import type { SttStreamTicket } from "@uacc/contracts";
+import type { LoopInfo, LoopSpec, SttStreamTicket } from "@uacc/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -660,6 +660,8 @@ function createHubApi(P: (path: string) => string) {
   return {
   health: () => api<{ ok: boolean; serverTime: string }>(P("/api/health")),
   adapters: () => api<AdapterInfo[]>(P("/api/adapters")),
+  /** EPIC-P19: Loops / Dark Factories und ob sie startbar sind. */
+  loops: () => api<LoopInfo[]>(P("/api/loops")),
   /** T7.10: a file into the hub — raw bytes, name in a header. */
   uploadAttachment: async (file: File): Promise<AttachmentRecord> => {
     const res = await fetch(P("/api/attachments"), {
@@ -792,6 +794,8 @@ function createHubApi(P: (path: string) => string) {
   createSession: (body: {
     adapter: string;
     project: string;
+    /** EPIC-P19: Loop / Dark Factory; ohne Angabe startet die Session wie bisher. */
+    loop?: LoopSpec;
     prompt?: string;
     model?: string;
     budgetUsd?: number | null;

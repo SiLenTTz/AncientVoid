@@ -1,7 +1,7 @@
 # ADR-0038 — Loop / Dark Factory als Auswahldimension (Loop-Connector-Contract)
 
-**Status:** **vorgeschlagen — wartet auf Bestätigung durch Jan.** Es gibt keine
-Implementierung. · **Betrifft:** EPIC-P19, `@uacc/contracts` (neu `loops/`,
+**Status:** **vorgeschlagen; das Gerüst (Katalog, Route, Policy, Auswahl) ist seit 2026-10-28 auf Wunsch von Jan gebaut,
+die Connectors sind es nicht.** Die Entscheidungen unten gelten, solange Jan nicht widerspricht. · **Betrifft:** EPIC-P19, `@uacc/contracts` (neu `loops/`,
 additiv `SessionSpec`), `packages/core` (Modul `loops`), Hub-Routen, PWA
 (Start-Formular, Session-Kopf), neue Pakete `packages/loops/*` ·
 **Grundlage:** [Analyse 2026-10-27](../loop-analyse-2026-10-27.md)
