@@ -119,7 +119,7 @@ konfigurierten Adapter und deren Fähigkeiten ausgeben. Bei einem Fleet-Peer
 zusätzlich `/api/fleet` prüfen; ein unerreichbarer oder inkompatibler Peer ist
 kein erfolgreicher Installationsnachweis.
 
-**Speicher-Wächter (BUG-0072/0074):** `/api/health` meldet unter `checks.memory` den Heap-Füllstand
+**Speicher-Wächter (BUG-0074/0075):** `/api/health` meldet unter `checks.memory` den Heap-Füllstand
 des Hub-Prozesses. Ab 60 % des V8-Heap-Limits steht `status: "degraded"` mit Klartext, ab 80 % ist die
 Stufe `critical`. Der Hub schreibt Stufenwechsel (`hub heap ok → warn`) ins Log, alle 30 s geprüft. Ein
 dauerhaft steigender Wert ist ein Leck: Hub neu starten (Worker überleben, `KillMode=process`) und den

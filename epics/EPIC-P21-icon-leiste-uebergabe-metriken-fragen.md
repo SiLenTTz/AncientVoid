@@ -3,7 +3,7 @@
 **Status:** Code abgeschlossen 2026-10-28 (T21.1–T21.4), Roll-out und Retro offen · **Phase:** P21 · **Abhängigkeit:** fachlich keine; baut auf P18/P20 (Kacheln, Oberfläche),
 ADR-0015 (Provider-Fehler), ADR-0023 (ehrliche Metriken) und dem Adapter-Contract (`questions`, Resume-Referenzen ADR-0036) auf.
 
-Auslöser: Wunsch von Jan vom 2026-10-27. Die Session-Abbrüche waren eine Hub-Absturzschleife (BUG-0072); danach: Desktop wirkt unfertig
+Auslöser: Wunsch von Jan vom 2026-10-27. Die Session-Abbrüche waren eine Hub-Absturzschleife (BUG-0075); danach: Desktop wirkt unfertig
 (App scrollt, Tabs statt Icon-Leiste, Kürzel nur Text), Login-Ablauf und Rate-Limit sollen erkannt werden und die Session soll sich an
 einen anderen Provider/Harness übergeben lassen, Läufe sollen gemessen werden (Dauer je Token) für eine Restzeit-Schätzung, Fragen
 der Harnesses sollen sauber beantwortbar sein.

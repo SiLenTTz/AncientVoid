@@ -1,18 +1,18 @@
 ---
-id: BUG-0072
+id: BUG-0075
 slug: hub-oom-resync-schleife
-status: in-progress
+status: done
 severity: S1
 area: core, server, pwa
 instance: dev
 commit: ""
-forge: ""
+forge: "MR !219, !225, !229"
 epic: ""
 created: 2026-10-27
 reporter: claude
 ---
 
-# BUG-0072 — Hub stürzt alle ~2 Minuten mit Heap-OOM ab (Resync-Schleife)
+# BUG-0075 — Hub stürzt alle ~2 Minuten mit Heap-OOM ab (Resync-Schleife)
 
 ## Gesehen
 
@@ -44,3 +44,13 @@ Der Hub bleibt bei einigen hundert MB und bedient offene Tabs ohne Neustart.
 ## Verifikation
 
 Hub nach dem Fix 8+ Minuten bei ~215 MB RSS, 0 Neustarts, 0 OOM. Provider-Smoke (9 Adapter) grün bis auf Aider (kein Modell konfiguriert). `npm test` 911 grün, Lint und Typecheck grün, E2E 203 grün (1 Spec flaky unter Volllast, einzeln grün).
+
+## Nummer
+
+Dieser Bug hieß kurz BUG-0072 (in den Commit-Texten von !219, !225 und !229 so zu lesen) und wurde am 2026-10-28 auf **BUG-0075** umnummeriert,
+weil die parallel entstandene MR !218 die Nummern 0072 bis 0074 belegt. Dort beschreibt BUG-0074 denselben Absturz als Symptom mit „Ursache offen“:
+Ursache und Fix stehen hier. Nach dem Merge von !218 gehört BUG-0074 auf `done` mit Verweis auf BUG-0075.
+
+## Nachtrag: Frühwarnung
+
+Heap-Wächter (`checks.memory` in `/api/health`, Stufenwechsel im Log), damit ein künftiges Leck vor dem OOM auffällt: MR !229.
