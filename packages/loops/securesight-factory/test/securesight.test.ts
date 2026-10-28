@@ -93,6 +93,10 @@ describe.skipIf(!hasPython)("securesight-Connector gegen ein Temp-Projekt (T19.5
     expect(await connector.status(handle)).toMatchObject({ state: "broken", detail: "Watchdog ausgefallen" });
     setStatus(5, {});
     await waitFor(() => of(ctx, "loop.broken").some((p) => String(p.reason).includes("Exit 5")), 3000);
+    setStatus(0);
+    await waitFor(() => of(ctx, "loop.recovered").some((p) => String(p.reason).includes("Exit 5")), 3000);
+    expect(await connector.status(handle)).toEqual({ state: "healthy" });
+    expect(of(ctx, "loop.recovered").some((p) => p.what === "hold")).toBe(true);
     await connector.stop(handle, ctx);
   });
 

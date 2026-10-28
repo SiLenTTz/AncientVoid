@@ -91,6 +91,14 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     if (changed(run, `broken:${key}`, reason)) note(ctx, "loop.broken", `securesight: ${reason}`, { reason });
   };
 
+  /** Eine Störung, die eben noch gemeldet war, ist weg: die Oberfläche nimmt die Warnung zurück. */
+  const recovered = (run: Run, ctx: AdapterContext, key: string) => {
+    const reason = run.last.get(`broken:${key}`);
+    if (reason === undefined) return;
+    run.last.delete(`broken:${key}`);
+    note(ctx, "loop.recovered", `securesight: ${key} wieder in Ordnung`, { reason: JSON.parse(reason) as string });
+  };
+
   async function pollSupervisor(run: Run, ctx: AdapterContext): Promise<void> {
     const r = await runSupervisor(python, run.root);
     const j = r.json;
@@ -104,7 +112,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       broken(run, ctx, "supervisor", run.health.detail ?? "");
       return;
     }
-    run.last.delete("broken:supervisor");
+    recovered(run, ctx, "supervisor");
     const iteration = obj(j.iteration);
     const hold = obj(j.human_hold);
     const gates = obj(j.last_gates);
@@ -123,8 +131,8 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       if (changed(run, "hold", reason)) note(ctx, "loop.hold", `securesight wartet auf eine Person: ${reason}`, { reason });
     } else {
       run.health = { state: "healthy" };
-      run.last.delete("hold");
-      run.last.delete("broken:watchdog");
+      if (run.last.delete("hold")) note(ctx, "loop.recovered", "securesight: keine Person mehr gefragt", { what: "hold" });
+      recovered(run, ctx, "watchdog");
     }
   }
 
@@ -191,6 +199,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       if (doc.reason === "invalid") broken(run, ctx, "progress", "progress.json ist kein gültiges JSON");
       return;
     }
+    recovered(run, ctx, "progress");
     const v = doc.value;
     if (v.schema_version !== "1") return broken(run, ctx, "progress", `progress.json: Schema ${String(v.schema_version)} statt 1`);
     const now = obj(v.now);
@@ -205,7 +214,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       broken(run, ctx, "hermes", doc.reason === "missing" ? `Hermes-Zustand für „${run.epic}“ nicht gefunden` : "Hermes-Zustand ist kein gültiges JSON");
       return;
     }
-    run.last.delete("broken:hermes");
+    recovered(run, ctx, "hermes");
     const v = doc.value;
     const payload = compact({ done: n(v.tasks_done), total: n(v.tasks_total), status: s(v.status, 40), step: s(v.current_task, 100), gateFails: n(v.gate_fails) });
     if (changed(run, "hermes", payload)) note(ctx, "loop.progress", `Hermes ${payload.status ?? "?"}: ${payload.done ?? 0} von ${payload.total ?? 0}`, { source: "hermes", epic: run.epic, ...payload });
