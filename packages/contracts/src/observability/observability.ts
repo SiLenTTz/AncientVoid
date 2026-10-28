@@ -34,6 +34,14 @@ export interface HubHealthCheck {
 
 export type HubHealthStatus = "ok" | "degraded" | "down";
 
+/** BUG-0074/0075: Heap-Füllstand des Hub-Prozesses — früh warnen statt erst am OOM zu sterben. */
+export interface HubMemoryCheck extends HubHealthCheck {
+  level: "ok" | "warn" | "critical";
+  heapUsedMb: number;
+  heapLimitMb: number;
+  rssMb: number;
+}
+
 export interface HubHealthSessions {
   live: number;
   total: number;
@@ -55,6 +63,7 @@ export interface HubHealthReport {
   checks: {
     database: HubHealthCheck;
     eventStore: HubHealthCheck;
+    memory?: HubMemoryCheck;
   };
 }
 

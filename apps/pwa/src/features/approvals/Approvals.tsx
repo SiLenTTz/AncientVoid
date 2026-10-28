@@ -43,52 +43,97 @@ function toolInputText(raw: string): string {
   }
 }
 
-/** T7.2: a provider question — pick an option (or several), or answer freely. */
-function QuestionForm({ questions, busy, onAnswer, onReject }: { questions: ToolQuestion[]; busy: boolean; onAnswer: (answers: Record<string, string>) => void; onReject: () => void }) {
+/**
+ * T7.2/T21.4: a provider question — the hybrid of what the harnesses do. Header chip and option
+ * descriptions (claude), single vs. several choices stated plainly (claude/opencode), an own answer
+ * that replaces the pick (codex "Other"), digit keys per question (terminal UIs), Enter sends once
+ * everything is answered, and the summary of what will be sent stays visible (maki).
+ */
+export function QuestionForm({ questions, busy, onAnswer, onReject }: { questions: ToolQuestion[]; busy: boolean; onAnswer: (answers: Record<string, string>) => void; onReject: () => void }) {
   const [picked, setPicked] = useState<Record<string, string[]>>({});
   const [free, setFree] = useState<Record<string, string>>({});
   const toggle = (q: ToolQuestion, label: string) =>
     setPicked((prev) => {
       const now = prev[q.question] ?? [];
-      const next = q.multiSelect ? (now.includes(label) ? now.filter((l) => l !== label) : [...now, label]) : [label];
+      const next = q.multiSelect ? (now.includes(label) ? now.filter((l) => l !== label) : [...now, label]) : now.includes(label) ? [] : [label];
       return { ...prev, [q.question]: next };
     });
-  const answers = Object.fromEntries(
-    questions.map((q) => [q.question, free[q.question]?.trim() || (picked[q.question] ?? []).join(", ")]),
-  );
-  const complete = questions.every((q) => answers[q.question]);
+  // An own answer replaces the pick — it is what the person actually wrote.
+  const answers = Object.fromEntries(questions.map((q) => [q.question, free[q.question]?.trim() || (picked[q.question] ?? []).join(", ")]));
+  const answered = questions.filter((q) => answers[q.question]).length;
+  const complete = answered === questions.length;
+  const send = () => {
+    if (complete && !busy) onAnswer(answers);
+  };
+  const onKey = (q: ToolQuestion) => (e: KeyboardEvent) => {
+    if ((e.target as HTMLElement).tagName === "INPUT" || e.ctrlKey || e.metaKey || e.altKey) return;
+    const n = /^[1-9]$/.test(e.key) ? Number(e.key) - 1 : -1;
+    if (n >= 0 && q.options[n]) {
+      e.preventDefault();
+      toggle(q, q.options[n]!.label);
+    }
+  };
   return (
     <div class="question-form">
+      {questions.length > 1 && (
+        <div class="question-progress" aria-live="polite">
+          {answered} von {questions.length} beantwortet
+        </div>
+      )}
       {questions.map((q) => (
-        <div key={q.question} class="question">
+        <div key={q.question} class={`question${answers[q.question] ? " answered" : ""}`} onKeyDown={onKey(q)}>
+          {q.header && <span class="question-header">{q.header}</span>}
           <div class="question-text">{q.question}</div>
-          <div class="choice-row">
-            {q.options.map((o, i) => (
-              <button
-                key={o.label}
-                type="button"
-                class={`choice ${(picked[q.question] ?? []).includes(o.label) ? "active" : ""}`}
-                title={o.description}
-                onClick={() => toggle(q, o.label)}
-              >
-                <span class="choice-index">{i + 1}</span>
-                <span class="choice-body">
-                  <span class="choice-label">{o.label}</span>
-                  {o.description && <span class="choice-desc">{o.description}</span>}
-                </span>
-              </button>
-            ))}
+          {q.options.length > 0 && <div class="question-hint dim">{q.multiSelect ? "Mehrere möglich" : "Eine Antwort"} · Taste 1–{Math.min(q.options.length, 9)}</div>}
+          <div class="choice-row" role="group" aria-label={q.question}>
+            {q.options.map((o, i) => {
+              const on = (picked[q.question] ?? []).includes(o.label) && !free[q.question]?.trim();
+              return (
+                <button
+                  key={o.label}
+                  type="button"
+                  aria-pressed={on}
+                  class={`choice ${on ? "active" : ""}`}
+                  title={o.description}
+                  onClick={() => {
+                    setFree((prev) => ({ ...prev, [q.question]: "" }));
+                    toggle(q, o.label);
+                  }}
+                >
+                  <span class="choice-index">{i + 1}</span>
+                  <span class="choice-body">
+                    <span class="choice-label">{o.label}</span>
+                    {o.description && <span class="choice-desc">{o.description}</span>}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <input
             class="question-free"
             placeholder="Eigene Antwort…"
             value={free[q.question] ?? ""}
             onInput={(e) => setFree((prev) => ({ ...prev, [q.question]: (e.target as HTMLInputElement).value }))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
           />
         </div>
       ))}
+      {complete && questions.length > 1 && (
+        <ul class="question-summary dim" aria-label="Zusammenfassung">
+          {questions.map((q) => (
+            <li key={q.question}>
+              {q.question} → <strong>{answers[q.question]}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
       <div class="approval-actions">
-        <button class={busy ? "btn primary busy" : "btn primary"} disabled={busy || !complete} onClick={() => onAnswer(answers)}>
+        <button class={busy ? "btn primary busy" : "btn primary"} disabled={busy || !complete} onClick={send}>
           {busy ? "lädt…" : "Antworten"}
         </button>
         <button class="btn danger" disabled={busy} onClick={onReject}>

@@ -37,6 +37,8 @@ describe("acp adapter (T7.2)", () => {
     expect(ACP_PRESETS.copilot.command).toEqual(["copilot", "--acp"]);
     expect(JSON.parse(ACP_PRESETS.opencode.env.OPENCODE_CONFIG_CONTENT).permission).toEqual({ edit: "ask", bash: "ask", webfetch: "ask" });
     expect(ACP_PRESETS.dsh.env.DSH_PERMISSION_MODE).toBe("read-only");
+    expect(ACP_PRESETS.maki.command).toEqual(["maki", "acp"]);
+    expect(createAdapter({ preset: "maki" }).capabilities().features).toMatchObject({ toolGate: "native", modelChoice: "start" });
     expect(createAdapter({ preset: "copilot" }).capabilities().features.modelChoice).toBe("none");
     expect(createAdapter({ preset: "dsh" }).capabilities().features).toMatchObject({ toolGate: "native", followUp: true, interrupt: true, modelChoice: "start" });
     expect(createAdapter({ command: ["x"], permissions: "reject" }).capabilities().features.toolGate).toBe("allowlist");
@@ -77,6 +79,41 @@ describe("acp adapter (T7.2)", () => {
     expect(texts(ctx.events, "assistant")[0]).toContain("Ausgabe hallo-acp (allow-once)");
     const result = ctx.events.find((e) => e.type === "tool_result");
     expect(result?.payload).toMatchObject({ isError: false, content: "hallo-acp" });
+  });
+
+  it("elicitation/create wird zum Fragen-Formular des Handys und die Antwort passt zum Schema (T21.4)", async () => {
+    const asked: ToolPermissionRequest[] = [];
+    const turns: string[] = [];
+    const ctx = makeRecordingContext({
+      workdir: process.cwd(),
+      spawnWorker: (cmd, o) => new ProcessRunner().spawn({ name: "acp-test", cwd: process.cwd(), cmd, ...(o?.env ? { env: o.env } : {}) }),
+      requestToolPermission: async (req: ToolPermissionRequest) => {
+        asked.push(req);
+        return { behavior: "allow" as const, updatedInput: { ...req.input, answers: { "Wie soll es weitergehen?: Strategie": "x", Strategie: "Gründlich", Teile: "API-Teil, ui, doku", "Sicher?": "Ja", Anzahl: "3,0" } } };
+      },
+      turn: (state: "working" | "idle") => turns.push(state),
+    } as Partial<AdapterContext>);
+    await createAdapter({ command: [agent] }).start({ adapter: "acp", project: process.cwd(), prompt: "Bitte FRAGE" }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    const questions = (asked[0]!.input as { questions: { question: string; options: { label: string }[]; multiSelect: boolean; header?: string }[] }).questions;
+    expect(asked[0]!.toolName).toBe("AskUserQuestion");
+    expect(questions.map((q) => q.question)).toEqual(["Strategie", "Teile", "Sicher?", "Anzahl"]);
+    expect(questions[0]).toMatchObject({ header: "Wie soll es weitergehen?", multiSelect: false });
+    expect(questions[0]!.options.map((o) => o.label)).toEqual(["Schnell", "Gründlich"]);
+    expect(questions[1]).toMatchObject({ multiSelect: true });
+    expect(questions[2]!.options.map((o) => o.label)).toEqual(["Ja", "Nein"]);
+    // Anzeige-Namen gehen zurück auf Schema-Werte; ganze Zahl; Mehrfachwahl als Liste
+    const reply = texts(ctx.events, "assistant").join("");
+    expect(reply).toContain('"action":"accept"');
+    expect(reply).toContain('"content":{"strategie":"gruendlich","teile":["ui","doku"],"sicher":true,"anzahl":3}');
+  });
+
+  it("elicitation/create ohne Hub-Antwortweg wird abgelehnt statt zu hängen", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    await createAdapter({ command: [agent] }).start({ adapter: "acp", project: process.cwd(), prompt: "Bitte FRAGE" }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    expect(texts(ctx.events, "assistant").join("")).toContain('"action":"decline"');
   });
 
   it("a permission request with only the call id shows the tool from the earlier update (dsh)", async () => {
@@ -448,6 +485,11 @@ describe("acp attachments (T7.10)", () => {
   it("dsh preset: models() lists every provider/model over ACP instead of the removed `--profile models`", async () => {
     // `command` replaces dsh's command line, the preset still selects the ACP catalog path.
     const adapter = createAdapter({ preset: "dsh", command: [agent] });
+    const models = await adapter.models!();
+    expect(models.map((m) => m.id)).toEqual(expect.arrayContaining(["cloud/gross", "lokal/glm-5.3"]));
+  });
+  it("maki preset: `maki models` prints nothing, so models() asks the ACP session for the catalog", async () => {
+    const adapter = createAdapter({ preset: "maki", command: [agent] });
     const models = await adapter.models!();
     expect(models.map((m) => m.id)).toEqual(expect.arrayContaining(["cloud/gross", "lokal/glm-5.3"]));
   });

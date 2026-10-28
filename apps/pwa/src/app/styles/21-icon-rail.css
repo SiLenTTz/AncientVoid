@@ -1,0 +1,133 @@
+/* Icon-Leisten: Handy bleibt wie es war (Text-Dock, Text-Tabs), ab 1280 px werden Dock und
+ * Kachel-Tabs zu schmalen Icon-Leisten; die Beschriftung bleibt im DOM (Tooltip, Screenreader, E2E). */
+.dock-item .tab-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.subtabs-wrap:not(.tile-rail) .tab-icon {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  /* Das Fenster selbst scrollt nie; es scrollen nur Liste, Kachel und Verlauf. */
+  html:has(.split),
+  body:has(.split) {
+    overflow: hidden;
+  }
+
+  /* Globale Navigation: feste Leiste am linken Rand. */
+  #app:has(.split) {
+    padding-left: 68px;
+  }
+
+  .split-list .dock-stack {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: auto;
+    width: 56px;
+    margin: 0;
+    border-right: 1px solid var(--bg-chip);
+  }
+
+  .split-list .dock {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 12px 0 0;
+    border-top: 0;
+  }
+
+  .split-list .dock-item {
+    flex: none;
+    min-height: 48px;
+    padding: 0;
+    justify-content: center;
+    border-left: 2px solid transparent;
+  }
+
+  .split-list .dock-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+
+  .split-list .dock-item:hover,
+  .tile-rail button:hover {
+    color: var(--fg);
+  }
+
+  .split-list .dock-item .lb,
+  .tile-rail .lb {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* Kachel: Ansichten als Leiste links neben dem Inhalt. */
+  .tile .session-live {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .tile .session-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tile-rail {
+    flex: none;
+    flex-direction: column;
+    width: 44px;
+    margin-right: 8px;
+    gap: 2px;
+    padding-top: 6px;
+    border-top: 0;
+    border-right: 1px solid var(--bg-chip);
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    z-index: 2;
+  }
+
+  .tile-rail button {
+    flex: none;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    min-height: 44px;
+    border-bottom: 0;
+    border-left: 2px solid transparent;
+  }
+
+  .tile-rail button.active {
+    border-left-color: var(--accent);
+  }
+}
+
+.tile-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.tile-actions .chip {
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tile-actions .chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tile-actions .tile-keys {
+  margin-left: 8px;
+}

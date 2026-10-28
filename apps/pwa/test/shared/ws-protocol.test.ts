@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { newEvents, shouldResync } from "../../src/shared/ws-protocol.ts";
+import { newEvents, resyncDelayMs, shouldResync } from "../../src/shared/ws-protocol.ts";
 
 describe("shouldResync (T4.5-5)", () => {
+  it("wiederholt einen nicht schließenden resync mit Backoff und gibt nach 5 Versuchen auf", () => {
+    expect(shouldResync(405, 407, false, 0)).toBe(true);
+    expect(shouldResync(405, 407, false, 4)).toBe(true);
+    expect(shouldResync(405, 407, false, 5)).toBe(false);
+    expect(shouldResync(405, 407, true, 5)).toBe(false);
+    expect([0, 1, 2, 3, 4, 9].map(resyncDelayMs)).toEqual([0, 250, 750, 2000, 5000, 5000]);
+  });
+
+
   it("resyncs when the server flagged a drop", () => {
     expect(shouldResync(10, 11, true)).toBe(true);
   });

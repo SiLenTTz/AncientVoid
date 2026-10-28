@@ -29,6 +29,7 @@ describe("collectHealth (T4.5-4)", () => {
       expect(report.status).toBe("ok");
       expect(report.checks.database.ok).toBe(true);
       expect(report.checks.eventStore.ok).toBe(true);
+      expect(report.checks.memory).toMatchObject({ level: "ok", ok: true });
       expect(report.sessions.total).toBe(0);
       expect(report.adapters.some((a) => a.id === "dummy")).toBe(true);
       expect(report.uptimeSec).toBeGreaterThanOrEqual(1);

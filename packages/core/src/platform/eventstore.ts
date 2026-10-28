@@ -21,6 +21,8 @@ import { dirname, join } from "node:path";
  * Durability (premortem P0-3): batched fsync — flush at most every
  * FSYNC_INTERVAL_MS or every FSYNC_MAX_EVENTS events, whichever first.
  */
+const SEQ_PREFIX = /^\{"seq":(\d+),/;
+const TAIL_SLACK = 256;
 const FSYNC_INTERVAL_MS = 100;
 const FSYNC_MAX_EVENTS = 50;
 const PREVIEW_CHARS = 256;
@@ -96,27 +98,34 @@ export class EventStore {
   async append(sessionId: string, events: NormalizedEvent[]): Promise<NormalizedEvent[]> {
     if (events.length === 0) return events;
     const enforced: NormalizedEvent[] = [];
-    for (const ev of events) {
-      const raw = JSON.stringify(ev.payload ?? {});
-      if (raw.length <= MAX_EVENT_PAYLOAD_BYTES || ev.blobRef) {
-        enforced.push(ev);
-        continue;
+    // Blob-Offload gehört in die Kette: sonst überholt ein Event mit großem
+    // Payload (async writeBlob) seine kleineren Nachfolger und landet mit
+    // niedrigerer seq HINTER ihnen auf der Platte — der Client sah eine
+    // Lücke und schickte endlos resync (Heap-OOM-Schleife des Hubs).
+    await this.chain(sessionId, async () => {
+      for (const ev of events) {
+        const raw = JSON.stringify(ev.payload ?? {});
+        if (raw.length <= MAX_EVENT_PAYLOAD_BYTES || ev.blobRef) {
+          enforced.push(ev);
+          continue;
+        }
+        const blob = await this.writeBlob(sessionId, raw);
+        enforced.push({
+          ...ev,
+          payload: {
+            truncated: true,
+            bytes: blob.bytes,
+            preview: raw.slice(0, PREVIEW_CHARS),
+          },
+          blobRef: blobRefToString(blob),
+        });
       }
-      const blob = await this.writeBlob(sessionId, raw);
-      enforced.push({
-        ...ev,
-        payload: {
-          truncated: true,
-          bytes: blob.bytes,
-          preview: raw.slice(0, PREVIEW_CHARS),
-        },
-        blobRef: blobRefToString(blob),
-      });
-    }
-    await this.appendLines(
-      sessionId,
-      enforced.map((e) => JSON.stringify(e)),
-    );    const last = this.seqCache.get(sessionId);
+      await this.appendLinesLocked(
+        sessionId,
+        enforced.map((e) => JSON.stringify(e)),
+      );
+    });
+    const last = this.seqCache.get(sessionId);
     const lastEnforced = enforced[enforced.length - 1];
     if (lastEnforced && (last === undefined || lastEnforced.seq >= last)) {
       this.seqCache.set(sessionId, lastEnforced.seq);
@@ -208,8 +217,36 @@ export class EventStore {
 
   /** Events after a given seq (pagination for resync + REST tail). */
   async tail(sessionId: string, afterSeq: number, limit = 500): Promise<NormalizedEvent[]> {
-    const all = await this.replay(sessionId);
-    return all.filter((e) => e.seq > afterSeq).slice(0, limit);
+    // Streamt statt replay(): ein Reconnect pagt mit 100 Events/Seite, das
+    // alte "alles parsen, dann filtern" war pro Seite O(Datei) und hat den
+    // Hub bei parallelen Tabs/Kacheln in den Heap-OOM getrieben.
+    const events: NormalizedEvent[] = [];
+    if (limit <= 0) return events;
+    const input = createReadStream(this.eventsPath(sessionId));
+    try {
+      const rl = createInterface({ input, crlfDelay: Infinity });
+      for await (const line of rl) {
+        if (!line.trim()) continue;
+        // Schneller Pfad: Zeilen beginnen mit {"seq":N, — alte überspringen
+        // ohne JSON/zod.
+        const m = SEQ_PREFIX.exec(line);
+        if (m && Number(m[1]) <= afterSeq) continue;
+        try {
+          const parsed = NormalizedEvent.safeParse(JSON.parse(line));
+          if (parsed.success && parsed.data.seq > afterSeq) events.push(parsed.data);
+        } catch {
+          // torn write (kill -9) — line incomplete, skip
+        }
+        // Altbestand kann lokal unsortiert sein (siehe append): etwas über
+        // das Limit hinaus lesen, dann nach seq sortieren.
+        if (events.length >= limit + TAIL_SLACK) break;
+      }
+    } catch {
+      // fehlende Datei etc. — liefert, was bis dahin gelesen wurde
+    } finally {
+      input.destroy();
+    }
+    return events.sort((x, y) => x.seq - y.seq).slice(0, limit);
   }
 
   async lastSeq(sessionId: string): Promise<number> {

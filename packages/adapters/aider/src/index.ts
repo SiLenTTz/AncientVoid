@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { z } from "zod";
 import type {
   Adapter,
@@ -52,6 +54,12 @@ import type {
 const AiderConfig = z.object({
   command: z.string().min(1).default("aider"),
   extraArgs: z.array(z.string()).default([]),
+  /** Standard-Modell; ohne spec.model und ohne dies verweigert der Adapter den Start. */
+  model: z.string().min(1).optional(),
+  /** OpenAI-kompatibler Endpunkt (setzt OPENAI_API_BASE), z. B. Z.AI für GLM. */
+  apiBase: z.string().url().optional(),
+  /** Datei mit dem API-Key (setzt OPENAI_API_KEY); `~/` wird aufgelöst. Der Key steht nie in der Config. */
+  apiKeyFile: z.string().min(1).optional(),
 });
 type AiderConfig = z.infer<typeof AiderConfig>;
 
@@ -61,6 +69,10 @@ interface SessionMeta {
 
 export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapter {
   const cfg: AiderConfig = AiderConfig.parse(config ?? {});
+  const providerEnv = (): Record<string, string> => ({
+    ...(cfg.apiBase ? { OPENAI_API_BASE: cfg.apiBase } : {}),
+    ...(cfg.apiKeyFile ? { OPENAI_API_KEY: readFileSync(cfg.apiKeyFile.replace(/^~(?=\/)/, homedir()), "utf8").trim() } : {}),
+  });
   const procs = new Map<string, WorkerProcess>();
   const sessions = new Map<string, SessionMeta>();
 
@@ -120,7 +132,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // Point 3: refuse to risk the 5-minute OAuth hang. A real,
       // named failure now beats a session that silently sits at
       // "starting" for five minutes with no visible cause.
-      if (!spec.model) {
+      const model = spec.model ?? cfg.model;
+      if (!model) {
         ctx.emit({
           type: "system",
           summary: "aider: refused to start — no model configured (would otherwise hang on an interactive OAuth prompt)",
@@ -130,8 +143,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       }
       const meta: SessionMeta = { healthy: true };
       const proc = await ctx.spawnWorker(
-        buildArgs(spec.prompt ?? "", spec.model),
-        spec.env ? { env: spec.env } : undefined,
+        buildArgs(spec.prompt ?? "", model),
+        { env: { ...providerEnv(), ...spec.env } },
       );
       attach(ctx.sessionId, proc, ctx, meta);
       const handle: SessionHandle = {

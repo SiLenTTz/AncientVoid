@@ -277,11 +277,14 @@ test.describe("Sprache (T1.5, T3.10)", () => {
   test("AC-P10-3: „schreibe stopp“ und „nicht stoppen“ stoppen nichts; „zeig wartende Sessions“ läuft sofort", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite LANGSAM" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    const speak = async (text: string) => {
+    const speak = async (text: string, opts: { immediate?: boolean } = {}) => {
       await app.evaluate((t) => ((globalThis as unknown as { __speech: string }).__speech = t), text);
       await app.getByLabel("Weitere Aktionen").click();
       await app.locator(".session-menu").getByRole("button", { name: "Sprachbefehl" }).click();
       await app.getByTitle("Tippen zum Sprechen").click();
+      // Ein Befehl, der sofort läuft, navigiert weg und schließt den Dialog — das Zitat ist dann nicht mehr da
+      // (Flake: 6 von 12 Läufen, 2026-10-28). Sein Beleg ist die Navigation unten.
+      if (opts.immediate) return;
       // The spoken text, as the RESULT paragraph — not the example chips,
       // which may carry the same command word-for-word (strict-mode
       // violation when both matched, first seen 2026-10-26).
@@ -299,7 +302,7 @@ test.describe("Sprache (T1.5, T3.10)", () => {
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("stopp");
     await expect(statusPill(app)).not.toHaveAttribute("data-status", "stopped");
 
-    await speak("Zeig wartende Sessions");
+    await speak("Zeig wartende Sessions", { immediate: true });
     await expect(app).toHaveURL(/#\/$/);
     expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).not.toBe("stopped");
   });

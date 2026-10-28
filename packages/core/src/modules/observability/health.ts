@@ -1,4 +1,5 @@
 import type { HubHealthCheck, HubHealthReport, HubHealthStatus } from "@uacc/contracts";
+import { memoryCheck } from "./memory.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { SessionManager } from "../sessions/index.ts";
 
@@ -49,7 +50,9 @@ export async function collectHealth(deps: HealthDeps): Promise<HubHealthReport> 
   }));
 
   let status: HubHealthStatus = "ok";
+  const memory = memoryCheck();
   if (!database.ok || !eventStore.ok) status = "down";
+  else if (!memory.ok) status = "degraded";
 
   return {
     ok: status !== "down",
@@ -58,6 +61,6 @@ export async function collectHealth(deps: HealthDeps): Promise<HubHealthReport> 
     uptimeSec: Math.max(0, Math.round((Date.now() - deps.startedAt) / 1000)),
     adapters,
     sessions: counts,
-    checks: { database, eventStore },
+    checks: { database, eventStore, memory },
   };
 }

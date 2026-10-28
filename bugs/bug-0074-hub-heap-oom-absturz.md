@@ -1,7 +1,7 @@
 ---
 id: BUG-0074
 slug: hub-heap-oom-absturz
-status: open
+status: done
 severity: S1
 area: core
 instance: prod
@@ -75,3 +75,7 @@ Sessions nicht mehr, die Ursache bleibt offen.
 - [x] Datei im Index [`README.md`](README.md)
 - [x] GitLab-Issue angelegt (Link oben)
 - [ ] `bugfix` offen, Ursache unbekannt
+
+## Auflösung (2026-10-28)
+
+Ursache und Fix stehen in [BUG-0075](bug-0075-hub-oom-resync-schleife.md): unsortierte Events plus Resync-Schleife der PWA. Frühwarnung: `checks.memory` in `/api/health` (MR !229).

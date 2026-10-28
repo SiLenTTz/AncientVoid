@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { z } from "zod";
+import { contentFromAnswers, fieldsFromSchema } from "./elicitation.ts";
 import {
   basicFeatures,
   promptWithAttachments,
@@ -31,7 +34,7 @@ const run = promisify(execFile);
  * decided on the phone (`ctx.requestToolPermission`).
  *
  * Config (hub.config.json → adapters[].config):
- *   preset:  "copilot" | "opencode" | "dsh" — known command lines (below),
+ *   preset:  "copilot" | "opencode" | "dsh" | "maki" — known command lines (below),
  *   command: the agent command line (overrides the preset),
  *   env:     extra environment for the agent,
  *   label:   name in summaries and errors (default: preset or "acp"),
@@ -71,12 +74,17 @@ export const ACP_PRESETS = {
   // dsh 0.2.1 answers initialize with promptCapabilities.image=false: images reach it as
   // the OCR text of the attachment (live checked 2026-10-21), not as image blocks.
   dsh: { command: ["dsh", "--profile", "acp"], env: { DSH_PERMISSION_MODE: "read-only" }, images: false },
+  // maki 0.6.5 (maki.sh): `maki acp` fragt Rechte im Client ab, `question` wird zum ACP-Formular.
+  // Provider/Thinking kommen aus ~/.config/maki (providers.toml, init.lua); Key per envFiles.
+  maki: { command: ["maki", "acp"], env: {} },
 } as const satisfies Record<string, { command: string[]; env: Record<string, string>; models?: boolean; images?: boolean }>;
 
 const AcpConfig = z.object({
-  preset: z.enum(["copilot", "opencode", "dsh"]).optional(),
+  preset: z.enum(["copilot", "opencode", "dsh", "maki"]).optional(),
   command: z.array(z.string().min(1)).min(1).optional(),
   env: z.record(z.string(), z.string()).default({}),
+  /** Umgebungsvariable → Datei mit dem Wert (`~/` aufgelöst); Schlüssel stehen so nie in der Config. */
+  envFiles: z.record(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/), z.string().min(1)).default({}),
   label: z.string().min(1).optional(),
   permissions: z.enum(["hub", "reject"]).default("hub"),
   model: z.string().min(1).optional(),
@@ -179,7 +187,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const preset = cfg.preset ? ACP_PRESETS[cfg.preset] : undefined;
   const command = cfg.command ?? (preset ? [...preset.command] : undefined);
   if (!command) throw new Error("acp adapter: config needs `preset` or `command`");
-  const env = { ...(preset?.env ?? {}), ...cfg.env };
+  const env: Record<string, string> = { ...(preset?.env ?? {}), ...cfg.env };
+  for (const [name, file] of Object.entries(cfg.envFiles)) env[name] = readFileSync(file.replace(/^~(?=\/)/, homedir()), "utf8").trim();
   const label = cfg.label ?? cfg.preset ?? "acp";
   const sessions = new Map<string, AgentSession>();
   /** BUG-0060: sessions restored after a hub restart with no surviving agent. The agent (and its
@@ -278,6 +287,15 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
             state.pendingPermissions--;
           }
         }
+        if (method === "elicitation/create") {
+          armStuckWatch(state, ctx);
+          state.pendingPermissions++;
+          try {
+            return await answerElicitation(ctx, params as { mode?: unknown; message?: unknown; requestedSchema?: unknown; toolCallId?: unknown });
+          } finally {
+            state.pendingPermissions--;
+          }
+        }
         throw new RpcError(-32601, `${method} wird vom Hub nicht angeboten`);
       },
       // A prompt sent by the hub before a restart ends here — the turn is over.
@@ -315,7 +333,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   async function initialize(state: AgentSession): Promise<{ loadSession: boolean; resume: boolean }> {
     const init = (await state.conn.request(
       "initialize",
-      { protocolVersion: PROTOCOL_VERSION, clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false }, clientInfo: { name: "uacc-hub", version: "0.1.0" } },
+      { protocolVersion: PROTOCOL_VERSION, clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false, elicitation: { form: {} } }, clientInfo: { name: "uacc-hub", version: "0.1.0" } },
       cfg.startupTimeoutMs,
     )) as { agentCapabilities?: { loadSession?: boolean; sessionCapabilities?: { resume?: unknown }; promptCapabilities?: { image?: boolean } } };
     state.images = init.agentCapabilities?.promptCapabilities?.image === true;
@@ -436,6 +454,21 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         });
         }
 
+  /** T21.4: an agent's form (`elicitation/create`) becomes the phone's question form. URL mode is not offered. */
+  async function answerElicitation(ctx: AdapterContext, params: { mode?: unknown; message?: unknown; requestedSchema?: unknown; toolCallId?: unknown }): Promise<unknown> {
+    if (params.mode !== undefined && params.mode !== "form") throw new RpcError(-32602, "elicitation: nur der Formular-Modus wird angeboten");
+    if (!ctx.requestToolPermission) return { action: "decline" };
+    const fields = fieldsFromSchema(typeof params.message === "string" ? params.message : "", (params.requestedSchema ?? {}) as Parameters<typeof fieldsFromSchema>[1]);
+    if (fields.length === 0) return { action: "decline" };
+    const answer = await ctx.requestToolPermission({
+      toolName: "AskUserQuestion",
+      input: { questions: fields.map((f) => f.question) },
+      ...(typeof params.toolCallId === "string" ? { toolUseId: params.toolCallId } : {}),
+    });
+    if (answer.behavior !== "allow") return { action: "decline" };
+    return { action: "accept", content: contentFromAnswers(fields, (answer.updatedInput.answers ?? {}) as Record<string, string>) };
+  }
+
   async function spawnAgent(ctx: AdapterContext, extraEnv?: Record<string, string>): Promise<WorkerProcess> {
     return ctx.spawnWorker(command!, { stdin: "pipe", persistent: true, env: { ...env, ...extraEnv } });
   }
@@ -503,7 +536,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
      * adapter-opencode's parseModelList (kept local, 8 lines). */
     async models(): Promise<ModelOption[]> {
       // dsh ≥ 0.2 has no listing command; its ACP session offers every provider and model.
-      if (!cfg.modelsCommand && cfg.preset === "dsh" && command) return probeModelCatalog(command, env);
+      // maki 0.6.5: `maki models` exits 0 with empty output; `maki acp` lists them (live 2026-10-28).
+      if (!cfg.modelsCommand && (cfg.preset === "dsh" || cfg.preset === "maki") && command) return probeModelCatalog(command, env);
       const cmd = cfg.modelsCommand ?? (command?.at(-1) === "acp" ? [...command.slice(0, -1), "models"] : undefined);
       if (!cmd) return [];
       const { stdout } = await run(cmd[0]!, cmd.slice(1), { timeout: 20_000, maxBuffer: 1024 * 1024 });

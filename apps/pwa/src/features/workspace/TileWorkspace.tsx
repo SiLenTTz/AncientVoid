@@ -72,7 +72,25 @@ export function TileWorkspace({
             <LayoutGlyph layout={layout} />
           </button>
         ))}
-        <span class="tile-keys dim">Alt+1–4 Fokus · Alt+Shift+1–4 tauschen · Alt+L Layout · Alt+W leeren · Strg-Klick: neue Kachel</span>
+        {/* Dieselben Aktionen wie die Tastenkürzel, damit sie auch per Tipp gehen (Tablet, Touch). */}
+        <div class="tile-actions" role="group" aria-label="Kachel-Aktionen">
+          <button type="button" class="chip" title="Fokus auf die vorige Kachel (Alt+1–4 wählt direkt)" disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + count - 1) % count))}>
+            ‹ Fokus
+          </button>
+          <button type="button" class="chip" title="Fokus auf die nächste Kachel (Alt+1–4 wählt direkt)" disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + 1) % count))}>
+            Fokus ›
+          </button>
+          <button type="button" class="chip" title="Kachel mit der nächsten tauschen (Alt+Shift+1–4)" disabled={count < 2} onClick={() => onChange(swapWith(ws, (ws.focus + 1) % count))}>
+            ⇄ Tauschen
+          </button>
+          <button type="button" class="chip" title="Nächstes Layout (Alt+L)" onClick={() => onChange(cycleLayout(ws, 1))}>
+            ⟳ Layout
+          </button>
+          <button type="button" class="chip" title="Fokussierte Kachel leeren (Alt+W)" onClick={() => onChange(closeTile(ws, ws.focus))}>
+            ✕ Leeren
+          </button>
+          <span class="tile-keys dim">Tastatur: Alt+1–4 · Alt+Shift+1–4 · Alt+L · Alt+W · Strg-Klick: neue Kachel</span>
+        </div>
       </div>
       <div class={`tile-grid layout-${ws.layout.replace("+", "p")}`}>
         {visibleTiles(ws).map((ref, i) => (

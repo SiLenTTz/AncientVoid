@@ -1,0 +1,10 @@
+/* EPIC-P19: Loop-Auswahl im Start-Formular */
+.loop-picker {
+  display: grid;
+  gap: 8px;
+}
+.loop-reasons {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85em;
+}

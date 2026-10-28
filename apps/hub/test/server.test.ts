@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { describe, expect, it, beforeAll, afterAll, vi } from "vitest";
 import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -506,6 +506,8 @@ describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
   });
 
   it("falls back to opencode when the adapter has no native enhancer", async () => {
+    // Hermetisch: das echte `opencode` der Maschine (Netz, Login) ließ den Test sporadisch ins Timeout laufen.
+    vi.stubEnv("PATH", "");
     const { app, token, cleanup } = await buildApp([]);
     try {
       const res = await app.inject({
@@ -515,9 +517,10 @@ describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
         payload: { adapter: "dummy", text: "hello", project: "/tmp" },
       });
       // 2026-10-25: fallback to opencode — never "no enhancer wired up".
-      expect([200, 502]).toContain(res.statusCode);
+      expect(res.statusCode).toBe(502);
       expect(res.json().error ?? "").not.toContain("no enhancer wired up");
     } finally {
+      vi.unstubAllEnvs();
       await app.close().catch(() => undefined);
       await cleanup();
     }

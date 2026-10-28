@@ -1,4 +1,4 @@
-import type { SttStreamTicket } from "@uacc/contracts";
+import type { LoopInfo, LoopSpec, SttStreamTicket } from "@uacc/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -492,6 +492,16 @@ export interface PcState {
 }
 
 /** EPIC-P15 T15.3: a prompt held back until the turn ends. */
+/** EPIC-P21 T21.3: what comparable finished turns say about a running one. */
+export interface RunEstimate {
+  state: "no-data" | "too-few" | "ok";
+  n: number;
+  basis: "model" | "adapter" | "none";
+  medianMs: number | null;
+  p80Ms: number | null;
+  tokensPerSec: number | null;
+}
+
 export interface QueuedPrompt {
   id: string;
   text: string;
@@ -650,6 +660,8 @@ function createHubApi(P: (path: string) => string) {
   return {
   health: () => api<{ ok: boolean; serverTime: string }>(P("/api/health")),
   adapters: () => api<AdapterInfo[]>(P("/api/adapters")),
+  /** EPIC-P19: Loops / Dark Factories und ob sie startbar sind. */
+  loops: () => api<LoopInfo[]>(P("/api/loops")),
   /** T7.10: a file into the hub — raw bytes, name in a header. */
   uploadAttachment: async (file: File): Promise<AttachmentRecord> => {
     const res = await fetch(P("/api/attachments"), {
@@ -782,6 +794,8 @@ function createHubApi(P: (path: string) => string) {
   createSession: (body: {
     adapter: string;
     project: string;
+    /** EPIC-P19: Loop / Dark Factory; ohne Angabe startet die Session wie bisher. */
+    loop?: LoopSpec;
     prompt?: string;
     model?: string;
     budgetUsd?: number | null;
@@ -911,6 +925,11 @@ function createHubApi(P: (path: string) => string) {
   /** EPIC-P15 T15.4: is this session open in a terminal at the PC? */
   sessionPc: (id: string) => api<PcState>(P(`/api/sessions/${id}/pc`)),
   /** EPIC-P15 T15.3: prompts waiting for the running turn. */
+  /** EPIC-P21 T21.2: proposal for handing a session to another provider. */
+  handoverDraft: (id: string) =>
+    api<{ prompt: string; adapter: string; model: string | null; reason: { category: string; title: string; detail: string } | null }>(P(`/api/sessions/${id}/handover`)),
+  handover: (id: string, body: { adapter: string; model?: string; prompt: string }) => api<SessionRecord>(P(`/api/sessions/${id}/handover`), { method: "POST", body: JSON.stringify(body) }),
+  runEstimate: (id: string) => api<RunEstimate>(P(`/api/sessions/${id}/estimate`)),
   sessionQueue: (id: string) => api<QueuedPrompt[]>(P(`/api/sessions/${id}/queue`)),
   removeQueued: (id: string, queueId: string) => api<{ ok: boolean }>(P(`/api/sessions/${id}/queue/${queueId}`), { method: "DELETE" }),
   steer: async (id: string, input: SteerInput, inputId?: string, takeover = false, queue = false): Promise<Ack> => {

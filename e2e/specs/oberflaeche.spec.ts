@@ -10,7 +10,7 @@ const scaleOf = (app: Page) => app.evaluate(() => Number(document.documentElemen
 
 test.describe("Zahnrad neben der Glocke (EPIC-P20 T20.3)", () => {
   test("Mobil: das Zahnrad steht links neben der Glocke und öffnet die Einstellungen", async ({ app }) => {
-    const gear = app.getByRole("button", { name: "Einstellungen", exact: true });
+    const gear = app.locator(".notif-gear");
     const bell = app.locator(".notif-bell");
     await expect(gear).toBeVisible();
     const [g, b] = await Promise.all([gear.boundingBox(), bell.boundingBox()]);
@@ -22,7 +22,7 @@ test.describe("Zahnrad neben der Glocke (EPIC-P20 T20.3)", () => {
   });
 
   test("per Tastatur erreichbar, Name vorhanden", async ({ app }) => {
-    await app.getByRole("button", { name: "Einstellungen", exact: true }).focus();
+    await app.locator(".notif-gear").focus();
     await app.keyboard.press("Enter");
     await expect(app).toHaveURL(/#\/einstellungen$/);
   });
@@ -34,7 +34,7 @@ test.describe("Zahnrad neben der Glocke (EPIC-P20 T20.3)", () => {
       await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Ecke" });
       await app.getByRole("button", { name: "Liste einklappen" }).click();
       await expect(app.locator(".split-list")).toBeHidden();
-      const gear = app.getByRole("button", { name: "Einstellungen", exact: true });
+      const gear = app.locator(".notif-gear.corner");
       const box = await gear.boundingBox();
       expect(box!.x + box!.width).toBeGreaterThan(1600 - 60);
       await gear.click();

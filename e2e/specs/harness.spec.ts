@@ -150,6 +150,60 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte FRAGE · Claude .* · Gewählt: Grün/)).toBeVisible();
   });
 
+  test("T21.4: ein ACP-Formular (elicitation) wird zum Fragen-Dialog, die Antwort passt zum Schema", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "Bitte FRAGE" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const card = app.locator(".session-approvals .approval-card");
+    await expect(card.locator(".question-text")).toHaveText(["Strategie", "Teile", "Sicher?", "Anzahl"]);
+    await expect(card.locator(".question-header").first()).toHaveText("Wie soll es weitergehen?");
+    await expect(card.locator(".question-progress")).toHaveText("0 von 4 beantwortet");
+    await expect(card.getByRole("button", { name: "Antworten" })).toBeDisabled();
+
+    const pick = (question: string, label: RegExp) => card.locator(".question").filter({ hasText: question }).locator(".choice-label", { hasText: label }).click();
+    await pick("Strategie", /^Gründlich$/);
+    await pick("Teile", /^ui$/);
+    await pick("Teile", /^doku$/);
+    await pick("Sicher?", /^Ja$/);
+    // Ziffern-Taste wählt, Eigene Antwort ersetzt die Wahl, Enter sendet.
+    await card.locator(".question").filter({ hasText: "Anzahl" }).locator(".question-free").fill("3");
+    await expect(card.locator(".question-progress")).toHaveText("4 von 4 beantwortet");
+    await expect(card.locator(".question-summary")).toContainText("Teile → ui, doku");
+    await card.locator(".question").filter({ hasText: "Anzahl" }).locator(".question-free").press("Enter");
+    await expect(app.locator(".tail-scroll").getByText(/"content":\{"strategie":"gruendlich","teile":\["ui","doku"\],"sicher":true,"anzahl":3\}/)).toBeVisible();
+  });
+
+  test("T21.2: Rate-Limit wird erkannt, die Arbeit geht mit einem Tipp an einen anderen Provider", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "Baue die Suche um FEHLER" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const bar = app.locator(".handover-bar");
+    await expect(bar).toContainText("Rate-Limit des Providers");
+    await bar.getByRole("button", { name: /An anderen Provider übergeben/ }).click();
+
+    // Ohne Zielwahl startet nichts; der Text ist sichtbar und änderbar.
+    await expect(bar.getByRole("button", { name: "Übergeben", exact: true })).toBeDisabled();
+    const text = bar.getByLabel("Übergabetext");
+    await expect(text).toHaveValue(/Grund: Rate-Limit des Providers/);
+    await expect(text).toHaveValue(/Ursprünglicher Auftrag:\nBaue die Suche um FEHLER/);
+    // Der Text ist änderbar — gesendet wird, was dasteht.
+    await text.fill("Mach mit der Suche weiter, die Tests fehlen noch.");
+    await bar.getByLabel("Ziel-Provider").selectOption("opencode");
+    await bar.getByRole("button", { name: "Übergeben", exact: true }).click();
+
+    await expect(app).toHaveURL(new RegExp(`#/sessions/(?!${id})`));
+    await app.getByRole("button", { name: "Verlauf" }).click();
+    await expect(app.locator(".tail-scroll")).toContainText("Übernommen von acp");
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Mach mit der Suche weiter, die Tests fehlen noch\./)).toBeVisible();
+
+    // Die Ausgangssession zeigt, wohin die Arbeit ging, und das Banner verschwindet.
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Verlauf" }).click();
+    await expect(app.locator(".tail-scroll")).toContainText("Übergeben an opencode");
+    await expect(app.locator(".handover-bar")).toHaveCount(0);
+  });
+
   test("T7.2: die Tool-Anfrage steht auch in der Freigabe-Warteschlange", async ({ app, hub }) => {
     await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
     await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();

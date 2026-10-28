@@ -1,7 +1,11 @@
+import { sessionHash } from "../../app/route.ts";
+import { HandoverBar } from "./Handover.tsx";
+import { currentProviderFailure } from "./handover.ts";
+import { TabIcon, type TabIconName } from "../../shared/TabIcon.tsx";
 import { Fragment } from "preact";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiContext } from "../../shared/api-context.ts";
-import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord, type HarnessFeatures } from "../../shared/api.ts";
+import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord, type HarnessFeatures, type RunEstimate } from "../../shared/api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "../../shared/ws.ts";
 import { Composer } from "../composer/Composer.tsx";
 import { SessionConfigure } from "./SessionConfigure.tsx";
@@ -20,7 +24,7 @@ import { getSeen, markSeen, seenKey } from "../../shared/seen.ts";
 import { loadTail, saveTail } from "./tail-cache.ts";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
-import { formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
+import { estimateText, formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
 import { ContextBar } from "./ContextBar.tsx";
 import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, tokenText } from "./run-stats.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
@@ -393,6 +397,17 @@ export function SessionTail({
     };
   }, [session.adapter]);
   const progress = runProgress(events, status, now);
+  const providerFailure = observerOnly ? null : currentProviderFailure(events);
+  // T21.3: measured turns of the same adapter/model — fetched when a turn starts, never guessed client-side.
+  const [estimate, setEstimate] = useState<RunEstimate | null>(null);
+  useEffect(() => {
+    if (status !== "working") return;
+    let alive = true;
+    api.runEstimate(session.id).then((e) => alive && setEstimate(e)).catch(() => alive && setEstimate(null));
+    return () => {
+      alive = false;
+    };
+  }, [api, session.id, status === "working"]);
   const quota = quotaSummary(quotaUsage, events);
   // ADR-0032: tokens per finished turn + the current context fill; the
   // window of the chosen model (model announce) beats the static adapter value.
@@ -597,6 +612,20 @@ export function SessionTail({
   // (it names what really runs), then the record (session choice or the
   // registration's configured default), else the honest "Standardmodell".
   const shownModel = typeof modelLabel === "string" && modelLabel ? modelLabel : typeof session.model === "string" && session.model ? session.model : "Standardmodell";
+  const TABS: { id: typeof activeTab; label: string; icon: TabIconName; show: () => void }[] = [
+    { id: "chat", label: "Chat", icon: "chat", show: showChatTab },
+    { id: "verlauf", label: "Verlauf", icon: "verlauf", show: showVerlaufTab },
+    { id: "bericht", label: "Bericht", icon: "bericht", show: showBerichtTab },
+    { id: "diff", label: "Diff", icon: "diff", show: showDiffTab },
+    { id: "suche", label: "Suche", icon: "suche", show: showSucheTab },
+    { id: "code", label: "Code", icon: "code", show: showCodeTab },
+  ];
+  const tabButtons = TABS.map((t) => (
+    <button key={t.id} type="button" class={activeTab === t.id ? "active" : ""} title={t.label} aria-current={activeTab === t.id ? "page" : undefined} onClick={t.show}>
+      <TabIcon name={t.icon} />
+      <span class="lb">{t.label}</span>
+    </button>
+  ));
   const showVerlaufFilterBar = activeTab === "verlauf";
 
   return (
@@ -605,6 +634,9 @@ export function SessionTail({
      * as an active overview card — "this agent is working" must be visible
      * from any tab (chat/diff/code), not only from the small status pill. */}
     <div data-tab={activeTab} class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}`}>
+      {/* Desktop-Kachel: Ansichten als Icon-Leiste links, am Handy bleiben sie im Dock unten. */}
+      {tile && <nav class="subtabs-wrap tile-rail" aria-label="Ansichten">{tabButtons}</nav>}
+      <div class="session-main">
       {/* T8.5: back, what this is, Stop apart from Senden, the rest in ⋯ */}
       <div class="topbar session-topbar">
         <button class="btn back-btn" type="button" aria-label="Zur Übersicht" onClick={() => onNavigate("dashboard")}>
@@ -728,6 +760,7 @@ export function SessionTail({
               {progress.medianTurnMs !== null
                 ? ` · Zug hier meist ${formatMinutes(progress.medianTurnMs)} (${progress.turnCount} gelaufen)`
                 : " · ohne Plan kein Fortschritt messbar"}
+              {estimateText(estimate, progress.elapsedMs) ? ` · ${estimateText(estimate, progress.elapsedMs)}` : ""}
             </div>
           ))}
         {/* One line, never wrapping: quota, then the always-present token line
@@ -836,6 +869,16 @@ export function SessionTail({
               Beobachtung beenden
             </button>
           </div>
+        )}
+        {providerFailure && (
+          <HandoverBar
+            failure={providerFailure}
+            session={record}
+            api={api}
+            onHandedOver={(created) => {
+              location.hash = sessionHash(created.id, remoteHost(session.hostId));
+            }}
+          />
         )}
         <SessionApprovals sessionId={session.id} api={api} />
         {!controlsFolded && !observerOnly && (
@@ -947,28 +990,10 @@ export function SessionTail({
             ))}
           </div>
         )}
-        <div class="subtabs-wrap">
-          <button class={activeTab === "chat" ? "active" : ""} onClick={showChatTab}>
-            Chat
-          </button>
-          <button class={activeTab === "verlauf" ? "active" : ""} onClick={showVerlaufTab}>
-            Verlauf
-          </button>
-          <button class={activeTab === "bericht" ? "active" : ""} onClick={showBerichtTab}>
-            Bericht
-          </button>
-          <button class={activeTab === "diff" ? "active" : ""} onClick={showDiffTab}>
-            Diff
-          </button>
-          <button class={activeTab === "suche" ? "active" : ""} onClick={showSucheTab}>
-            Suche
-          </button>
-          <button class={activeTab === "code" ? "active" : ""} onClick={showCodeTab}>
-            Code
-          </button>
-        </div>
+        {!tile && <nav class="subtabs-wrap" aria-label="Ansichten">{tabButtons}</nav>}
       </div>
       <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} sessionId={session.id} />
+      </div>
     </div>
     </ApiContext.Provider>
   );
