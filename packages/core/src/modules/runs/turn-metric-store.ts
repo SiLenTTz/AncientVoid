@@ -62,8 +62,15 @@ export class TurnMetricStore {
     return (this.db.prepare("SELECT * FROM turn_metrics WHERE session_id = ? ORDER BY turn").all(sessionId) as unknown as Row[]).map(toMetric);
   }
 
-  /** The newest comparable turns: same adapter+model when there are enough, else the adapter alone. */
-  estimate(adapter: string, model: string | null): RunEstimate {
+  /**
+   * The newest comparable turns, most specific first: this session's own turns (same task, same rhythm),
+   * then same adapter+model, else the adapter alone. Each step needs enough turns of its own (R9.7).
+   */
+  estimate(adapter: string, model: string | null, sessionId?: string): RunEstimate {
+    if (sessionId) {
+      const own = estimateRun(this.listBySession(sessionId), "session");
+      if (own.state === "ok") return own;
+    }
     if (model) {
       const rows = this.db
         .prepare("SELECT * FROM turn_metrics WHERE adapter = ? AND model = ? ORDER BY ended_at DESC LIMIT 200")

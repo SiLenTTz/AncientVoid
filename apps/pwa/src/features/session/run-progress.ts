@@ -165,7 +165,7 @@ export function formatMinutes(ms: number): string {
 export function estimateText(est: RunEstimate | null, elapsedMs: number): string | null {
   if (!est || est.state === "no-data") return null;
   if (est.state === "too-few" || est.medianMs === null || est.p80Ms === null) return `Schätzung ab 5 Läufen (bisher ${est.n})`;
-  const basis = `${est.n} Läufe${est.basis === "adapter" ? ", dieser Harness" : ", dieses Modell"}`;
+  const basis = `${est.n} Läufe${est.basis === "session" ? ", diese Session" : est.basis === "adapter" ? ", dieser Harness" : ", dieses Modell"}`;
   if (elapsedMs > est.p80Ms) return `länger als 80 % der Läufe (${formatMinutes(est.p80Ms)}) · ${basis}`;
   const remaining = Math.max(0, est.medianMs - elapsedMs);
   return `≈ noch ${formatMinutes(remaining)} · typisch ${formatMinutes(est.medianMs)}, bis ${formatMinutes(est.p80Ms)} · ${basis}`;

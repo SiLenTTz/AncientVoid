@@ -145,6 +145,7 @@ describe("estimateText (EPIC-P21 T21.3)", () => {
   it("Restzeit = Median − bisher, mit Streuung und Datenbasis", () => {
     expect(estimateText(ok, 60_000)).toBe("≈ noch 4 min · typisch 5 min, bis 8 min · 12 Läufe, dieses Modell");
     expect(estimateText({ ...ok, basis: "adapter" }, 60_000)).toContain("dieser Harness");
+    expect(estimateText({ ...ok, basis: "session" }, 60_000)).toContain("12 Läufe, diese Session");
   });
   it("über dem P80 heißt es länger als üblich, nie eine negative Restzeit", () => {
     expect(estimateText(ok, 600_000)).toBe("länger als 80 % der Läufe (8 min) · 12 Läufe, dieses Modell");

@@ -496,7 +496,7 @@ export interface PcState {
 export interface RunEstimate {
   state: "no-data" | "too-few" | "ok";
   n: number;
-  basis: "model" | "adapter" | "none";
+  basis: "session" | "model" | "adapter" | "none";
   medianMs: number | null;
   p80Ms: number | null;
   tokensPerSec: number | null;
