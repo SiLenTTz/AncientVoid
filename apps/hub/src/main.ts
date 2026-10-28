@@ -29,6 +29,7 @@ import {
   WebAuthnStore,
   WorktreeManager,
   createJsonLogger,
+  watchMemory,
   InMemoryMetrics,
   loadConfig,
   loadReportingSinks,
@@ -189,6 +190,14 @@ async function main(): Promise<void> {
   // T8.3 (ADR-0026): Web Push — off until a person turns it on.
   const push = new PushService(db, settings, { hostId: config.hostId ?? toHostId(hostname()), subject: config.push.subject });
   sessions.onNotification((n) => push.notify(n));
+  // BUG-0072/0074: der Hub starb an Heap-OOM ohne Vorwarnung — Stufenwechsel stehen jetzt im Log und in /api/health.
+  watchMemory((check, previous) =>
+    logger[check.level === "critical" ? "error" : check.level === "warn" ? "warn" : "info"](`hub heap ${previous} → ${check.level}`, {
+      heapUsedMb: check.heapUsedMb,
+      heapLimitMb: check.heapLimitMb,
+      rssMb: check.rssMb,
+    }),
+  );
   const tessdataDir = config.ocr.tessdataDir ? resolve(config.ocr.tessdataDir) : undefined;
   const attachments = new AttachmentStore(db, resolve(dataDir, "attachments"), () => ({ gemini: settings.gemini(), ...(tessdataDir ? { tessdataDir } : {}) }));
 
