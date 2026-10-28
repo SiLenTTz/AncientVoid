@@ -6,7 +6,7 @@ severity: S1
 area: adapters
 instance: dev
 commit: ""
-forge: ""
+forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/merge_requests/245"
 epic: ""
 created: 2026-10-28
 reporter: "Maki (Session e2e84c77)"
