@@ -24,6 +24,11 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
+  // ADR-0041: only a registered adapter can continue a found session.
+  const [registered, setRegistered] = useState<ReadonlySet<string> | null>(null);
+  useEffect(() => {
+    hubApi.adapters().then((list) => setRegistered(new Set(list.map((a) => a.id)))).catch(() => setRegistered(null));
+  }, []);
 
   const load = async (from: number, q = query) => {
     setBusy(true);
@@ -129,7 +134,7 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
             </span>
           </summary>
           {group.sessions.map((s) => (
-            <DiscoveredRow key={`${s.hostId}|${s.adapter}|${s.nativeSessionId ?? s.hubSessionId}`} item={s} onOpen={open} onAdopt={adopt} onMirror={s.adapter === "opencode" ? mirror : undefined} />
+            <DiscoveredRow key={`${s.hostId}|${s.adapter}|${s.nativeSessionId ?? s.hubSessionId}`} item={s} onOpen={open} onAdopt={registered === null || registered.has(s.adapter) ? adopt : undefined} onMirror={s.adapter === "opencode" ? mirror : undefined} />
           ))}
         </details>
       ))}
@@ -144,6 +149,9 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
 
 /** First line of the card: what the session is about. A bare id is the last
  * resort — and says so, instead of looking like a name. */
+/** Harnesses that can continue a session as a copy with its own id (`--fork-session`, `--fork`). */
+export const COPY_CAPABLE = new Set(["claude", "pi"]);
+
 export function discoveryHeading(item: Pick<DiscoveredSession, "title" | "nativeSessionId" | "hubSessionId">): { text: string; untitled: boolean } {
   if (item.title) return { text: item.title, untitled: false };
   const id = item.nativeSessionId ?? item.hubSessionId ?? "";
@@ -174,7 +182,10 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
       </div>
     </>
   );
-  const canContinue = Boolean(onAdopt && item.nativeSessionId && !unknown);
+  const copyCapable = COPY_CAPABLE.has(item.adapter);
+  // A live session of a harness that cannot fork would have two writers: wait until it is closed over there.
+  const blockedByLive = Boolean(item.live) && !copyCapable;
+  const canContinue = Boolean(onAdopt && item.nativeSessionId && !unknown && !blockedByLive);
   return (
     <div class="card session-card discovered-row">
       {item.hubSessionId ? (
@@ -190,17 +201,20 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
               <button
                 class="btn"
                 type="button"
-                onClick={() => onAdopt!(item, Boolean(item.live))}
+                onClick={() => onAdopt!(item, Boolean(item.live) && copyCapable)}
                 title={item.live ? "Läuft gerade woanders — der Hub setzt eine Kopie mit eigener ID fort, das Original bleibt unberührt" : "Session in den Hub übernehmen und fortsetzen"}
               >
                 {item.live ? "Als Kopie fortsetzen" : "Fortsetzen"}
               </button>
-              {!item.live && (
+              {!item.live && copyCapable && (
                 <button class="btn subtle" type="button" onClick={() => onAdopt!(item, true)} title="Eigene Kopie fortsetzen — das Original bleibt unverändert">
                   Als Kopie
                 </button>
               )}
             </div>
+          )}
+          {blockedByLive && onAdopt && !unknown && (
+            <div class="dim discovery-hint">Läuft gerade woanders — dieser Harness kann keine Kopie fortsetzen. Erst dort beenden, dann hier fortsetzen.</div>
           )}
           {onMirror && item.nativeSessionId && !unknown && (
             <button

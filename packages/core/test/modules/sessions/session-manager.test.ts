@@ -612,6 +612,50 @@ describe("SessionManager", () => {
     }
   });
 
+  it("ADR-0041: die Übernahme der Originalsession läuft im Projekt, die Kopie im Worktree", async () => {
+    const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-adoptrepo-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-adoptout-"));
+    await execFileAsync("git", ["-C", repoDir, "init", "-q", "-b", "main"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@uacc.local"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "uacc test"]);
+    await writeFile(join(repoDir, "a.txt"), "hi\n");
+    await execFileAsync("git", ["-C", repoDir, "add", "a.txt"]);
+    await execFileAsync("git", ["-C", repoDir, "commit", "-q", "-m", "initial"]);
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    const seen: string[] = [];
+    registry.register("adopt-test", () => ({
+      id: "adopt-test",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: false, interrupt: false }) }),
+      async start(_spec, ctx) {
+        seen.push(ctx.workdir);
+        return { sessionId: ctx.sessionId };
+      },
+      async steer() {
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" as const };
+      },
+      async stop() {},
+    }));
+    const worktrees = new WorktreeManager(worktreesOut);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner(), undefined, worktrees);
+    try {
+      const inPlace = await manager.create({ adapter: "adopt-test", project: repoDir, adoptNativeSessionId: "native-1" });
+      const copy = await manager.create({ adapter: "adopt-test", project: repoDir, adoptNativeSessionId: "native-2", adoptFork: true });
+      expect(seen[0]).toBe(repoDir);
+      expect(seen[1]).toBe(worktrees.pathFor(copy.id));
+      expect(inPlace.worktreeSha).toBeNull();
+    } finally {
+      await manager.shutdown();
+      await rm(repoDir, { recursive: true, force: true });
+      await rm(worktreesOut, { recursive: true, force: true });
+    }
+  });
+
   it("BUG-0027: stop keeps a worktree that holds work, and Weiter continues in it", async () => {
     const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-keep-"));
     const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-keepout-"));
@@ -1338,6 +1382,41 @@ describe("SessionManager adoption (BUG-0039)", () => {
       const plain = await manager.create({ adapter: "fake-claude", project: dir, adoptNativeSessionId: "n-43" });
       expect(seen[1]!.args).not.toHaveProperty("forkSession");
       expect(manager.get(plain.id)?.fork).toBe(false);
+    } finally {
+      await manager.shutdown();
+      db.close();
+    }
+  });
+
+  it("ADR-0041: eine externe Zeile aus dem Worktree einer Hub-Session ist keine zweite Session", async () => {
+    const fake: Adapter = {
+      id: "fake-wt",
+      version: "0.0.1",
+      capabilities() {
+        return { reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures() };
+      },
+      async start(_spec: SessionSpec, ctx: AdapterContext) {
+        return { sessionId: ctx.sessionId };
+      },
+      async status() {
+        return { state: "healthy" };
+      },
+      async steer() {
+        return { ok: true };
+      },
+      async stop() {},
+    };
+    const db = new HubDatabase(":memory:");
+    const registry = new AdapterRegistry();
+    registry.register("fake-wt", () => fake);
+    const manager = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
+    try {
+      const own = await manager.create({ adapter: "fake-wt", project: dir });
+      const row = (project: string, native: string) =>
+        ({ hubSessionId: null, project, adapter: "pi", status: "observed", controlMode: "observed", harness: "cli", hostId: "local", nativeSessionId: native, resumeVersion: 1, observedAt: "2026-10-28T10:00:00.000Z", unsupportedResume: false, fork: false, parentSessionId: null }) as const;
+      const source = { id: "t", list: async () => [row(`${dir}/data/worktrees/${own.id}`, "a"), row(`${dir}/data/worktrees/${"0".repeat(8)}-0000-0000-0000-${"0".repeat(12)}`, "b"), row("/work/app", "c")] };
+      const { items } = await manager.discover([source], 0, 50);
+      expect(items.filter((i) => i.hubSessionId === null).map((i) => i.nativeSessionId).sort()).toEqual(["b", "c"]);
     } finally {
       await manager.shutdown();
       db.close();

@@ -39,6 +39,8 @@ describe("acp adapter (T7.2)", () => {
     expect(ACP_PRESETS.dsh.env.DSH_PERMISSION_MODE).toBe("read-only");
     expect(ACP_PRESETS.maki.command).toEqual(["maki", "acp"]);
     expect(createAdapter({ preset: "maki" }).capabilities().features).toMatchObject({ toolGate: "native", modelChoice: "start" });
+    expect(ACP_PRESETS.omp.command).toEqual(["omp", "acp"]);
+    expect(createAdapter({ preset: "omp" }).capabilities().features).toMatchObject({ toolGate: "native", modelChoice: "start" });
     expect(createAdapter({ preset: "copilot" }).capabilities().features.modelChoice).toBe("none");
     expect(createAdapter({ preset: "dsh" }).capabilities().features).toMatchObject({ toolGate: "native", followUp: true, interrupt: true, modelChoice: "start" });
     expect(createAdapter({ command: ["x"], permissions: "reject" }).capabilities().features.toolGate).toBe("allowlist");
@@ -409,6 +411,23 @@ describe("acp adapter (T7.2)", () => {
     expect(ctx.events.some((e) => e.type === "tool_use")).toBe(true);
     // no prompt went along — nothing is running, the session sits between turns
     expect(turns).toEqual([]);
+    await adapter.stop(handle, ctx);
+  });
+
+  it("ADR-0041: eine geladene Session bekommt das konfigurierte Modell (maki lief sonst auf einem gesperrten letzten Modell)", async () => {
+    const ctx = context({ turns: [] });
+    const adapter = createAdapter({ command: [agent], label: "fake", model: "lokal/klein" });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), args: { resumeSessionId: "acp_alt_1234", importHistory: true } }, ctx);
+    const model = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model");
+    expect(model?.payload).toMatchObject({ model: "lokal/klein", value: '["lokal","klein"]' });
+    await adapter.stop(handle, ctx);
+  });
+
+  it("ADR-0041: ein beim Laden nicht angebotenes Modell sagt es und lässt die Session am Leben", async () => {
+    const ctx = context({ turns: [] });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), model: "gibts/nicht", args: { resumeSessionId: "acp_alt_1234" } }, ctx);
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "acp.model_unavailable")).toBe(true);
     await adapter.stop(handle, ctx);
   });
 

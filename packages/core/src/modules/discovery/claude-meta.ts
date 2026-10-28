@@ -1,4 +1,4 @@
-import { closeSync, openSync, readSync } from "node:fs";
+import { clip, headAndTail } from "./text.ts";
 
 /**
  * Title and last words of a Claude Code transcript (ADR-0040). Transcripts
@@ -21,40 +21,6 @@ const cache = new Map<string, { mtimeMs: number; size: number; meta: ClaudeTrans
 
 /** Text the CLI injects as "user" turns — not something the person said. */
 const WRAPPER = /^(?:<(?:command-|local-command|system-reminder|bash-|task-notification)|Caveat:|\[Request interrupted)/;
-
-function clip(text: string, max: number): string | null {
-  const flat = text.replace(/\s+/g, " ").trim();
-  if (!flat) return null;
-  return flat.length > max ? `${flat.slice(0, max - 1).trimEnd()}…` : flat;
-}
-
-function readWindow(path: string, position: number, length: number): string {
-  const fd = openSync(path, "r");
-  try {
-    const buffer = Buffer.alloc(length);
-    const read = readSync(fd, buffer, 0, length, position);
-    return buffer.toString("utf8", 0, read);
-  } finally {
-    closeSync(fd);
-  }
-}
-
-function entries(window: string, dropFirst: boolean, dropLast: boolean): Record<string, unknown>[] {
-  const lines = window.split("\n");
-  if (dropFirst) lines.shift();
-  if (dropLast) lines.pop();
-  const out: Record<string, unknown>[] = [];
-  for (const line of lines) {
-    if (!line.startsWith("{")) continue;
-    try {
-      const value = JSON.parse(line) as unknown;
-      if (value && typeof value === "object") out.push(value as Record<string, unknown>);
-    } catch {
-      // torn line at a window edge or a corrupt line — never fatal for a title
-    }
-  }
-  return out;
-}
 
 function userText(entry: Record<string, unknown>): string | null {
   if (entry.type !== "user" || entry.isMeta === true || entry.isSidechain === true) return null;
@@ -94,13 +60,7 @@ export function readClaudeMeta(path: string, stat: { size: number; mtimeMs: numb
   if (hit && hit.mtimeMs === stat.mtimeMs && hit.size === stat.size) return hit.meta;
   let meta: ClaudeTranscriptMeta = { title: null, preview: null };
   try {
-    const headLength = Math.min(stat.size, HEAD_BYTES);
-    const head = entries(readWindow(path, 0, headLength), false, stat.size > headLength);
-    const tailStart = Math.max(0, stat.size - TAIL_BYTES);
-    const tail =
-      tailStart === 0
-        ? entries(readWindow(path, 0, stat.size), false, false)
-        : entries(readWindow(path, tailStart, stat.size - tailStart), true, false);
+    const { head, tail } = headAndTail(path, stat.size, HEAD_BYTES, TAIL_BYTES);
     meta = extractClaudeMeta(head, tail);
   } catch {
     // unreadable file: the row stays, just without a title (K9 — the scan reports the file itself)

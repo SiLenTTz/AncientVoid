@@ -252,6 +252,8 @@ const THINKING_WITHHELD = "Claude hat nachgedacht — der Anbieter liefert den T
 function normalizeContentBlock(block: ContentBlock, role: "assistant" | "user"): EmittedEvent[] {
   switch (block.type) {
     case "text":
+      // ADR-0041: in an imported transcript the person's own turns are text blocks of role user.
+      if (role === "user") return (block.text ?? "").trim() ? [{ type: "user", summary: summarize(block.text ?? ""), payload: { text: block.text ?? "" } }] : [];
       return [{ type: "assistant", summary: summarize(block.text ?? ""), payload: { text: block.text ?? "" } }];
     case "thinking":
       if (!block.thinking?.trim()) return [{ type: "thinking", summary: THINKING_WITHHELD, payload: { text: "", redacted: true } }];

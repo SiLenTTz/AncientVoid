@@ -153,7 +153,8 @@ function handle(msg) {
         update(loaded, { sessionUpdate: "tool_call_update", toolCallId: "call_replay", status: "failed", content: [{ type: "content", content: { type: "text", text: "The user rejected permission to use this specific tool call." } }] });
         update(loaded, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Notiert — Replay der alten Antwort." } });
       }
-      return send({ id, result: null });
+      // Like maki/omp: the answer to session/load lists the models, the loaded session sits on its last-used one.
+      return send({ id, result: loaded ? { configOptions: [MODEL_OPTION(JSON.stringify(["cloud", "gross"]))] } : null });
     }
     case "session/prompt":
       return void prompt(id, params);

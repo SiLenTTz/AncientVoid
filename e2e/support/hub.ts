@@ -158,7 +158,7 @@ export class TestHub {
       ...(this.options.assistantUrl ? { assistant: { model: { url: this.options.assistantUrl, model: "e2e-model" } } } : {}),
       media: { ytDlp: join(binDir, "yt-dlp") },
       server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
-      discovery: { claudeDir: join(this.root, "claude"), claudeCommand: join(binDir, "claude"), cursorUserDir: join(this.root, "cursor"), opencodeDataDir: this.root },
+      discovery: { claudeDir: join(this.root, "claude"), claudeCommand: join(binDir, "claude"), cursorUserDir: join(this.root, "cursor"), opencodeDataDir: this.root, piDir: join(this.root, "pi-sessions"), ompDir: join(this.root, "omp-sessions"), makiDir: join(this.root, "maki-sessions") },
       // EPIC-P19: ein deterministischer Loop ohne Fremdsystem (Fake aus dem Testkit).
       loops: [
         { id: "fake-loop", module: "@uacc/adapter-testkit/fake-loop" },

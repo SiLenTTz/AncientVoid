@@ -199,6 +199,10 @@ export const HubConfig = z.object({
       claudeCommand: z.string().min(1).default("claude"),
       cursorUserDir: z.string().min(1).optional(),
       opencodeDataDir: z.string().min(1).optional(),
+      /** ADR-0041: session stores of pi, oh-my-pi (omp) and maki; default = the tools' own locations. */
+      piDir: z.string().min(1).optional(),
+      ompDir: z.string().min(1).optional(),
+      makiDir: z.string().min(1).optional(),
     })
     .prefault({}),
 });

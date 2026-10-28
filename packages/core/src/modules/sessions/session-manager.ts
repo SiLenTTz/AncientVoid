@@ -289,8 +289,14 @@ export class SessionManager {
   ): Promise<{ items: DiscoveredSession[]; nextCursor: number | null }> {
     const external: DiscoveredSession[] = [];
     for (const source of sources) external.push(...(await source.list()));
-    const merged = dedupeDiscovered([...this.list().map((record) => this.toDiscovered(record)), ...external]).filter(
-      (item) => !(item.hubSessionId === null && (item.adapter === "cursor-clip" || item.adapter === "claude-clip")),
+    const records = this.list();
+    const hubIds = new Set(records.map((record) => record.id));
+    const merged = dedupeDiscovered([...records.map((record) => this.toDiscovered(record)), ...external]).filter(
+      (item) =>
+        !(item.hubSessionId === null && (item.adapter === "cursor-clip" || item.adapter === "claude-clip")) &&
+        // ADR-0041: a run inside one of this hub's own worktrees IS that hub session — listing the harness's
+        // file as a second, "external" row (older sessions never reported a native id) only doubles it.
+        !(item.hubSessionId === null && hubIds.has(/\/data\/worktrees\/([0-9a-f-]{36})(?:\/|$)/.exec(item.project)?.[1] ?? "")),
     );
     // BUG-0035: page 1 is what the user opens — the most recently observed
     // first, never the source's oldest scan order. Items without a
@@ -492,7 +498,10 @@ export class SessionManager {
     // not an error — surfaced as its own system event rather than silently
     // running unisolated (AGENTS.md Regel 6).
     // EPIC-P19: ein Loop arbeitet im Projekt des Loop-Systems selbst, eine Hub-Kopie davon wäre die falsche Stelle.
-    if (this.worktrees && !isLoopAdapter(record.adapter)) {
+    // ADR-0041: die Übernahme der Originalsession (ohne Kopie) läuft dort weiter, wo sie entstand — omp bricht
+    // `session/load` aus einem anderen Verzeichnis ab, und die Session gehört ohnehin diesem Projekt.
+    const adoptsInPlace = parsed.adoptNativeSessionId !== undefined && parsed.adoptFork !== true;
+    if (this.worktrees && !isLoopAdapter(record.adapter) && !adoptsInPlace) {
       try {
         const created = await this.worktrees.create(record.id, record.project);
         if (created) {
@@ -509,7 +518,7 @@ export class SessionManager {
     }
     if (!session.worktreeIsolated) {
       await this.emitSystem(session, "session.no_worktree_isolation", {
-        reason: isLoopAdapter(record.adapter) ? "loop works in its own project" : this.worktrees ? "project is not a git repo" : "worktree isolation not configured",
+        reason: isLoopAdapter(record.adapter) ? "loop works in its own project" : adoptsInPlace ? "adopted session continues in its own project" : this.worktrees ? "project is not a git repo" : "worktree isolation not configured",
       });
     }
 
