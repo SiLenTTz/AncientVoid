@@ -1,0 +1,83 @@
+---
+id: BUG-0077
+slug: e2e-uebersicht-spec-einmalig-unter-last
+status: open
+severity: S3
+area: e2e
+instance: dev
+commit: "f4e14a2"
+forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/31"
+epic: ""
+created: 2026-10-28
+reporter: "Maki (Session e2e84c77)"
+---
+
+# BUG-0077 — E2E-Übersichts-Spec fiel einmal unter voller Suite-Last
+
+## Gesehen
+
+Im voller `npm run test:e2e`-Lauf (2026-10-28, ~18:22, Branch
+fix/pwa-metriken-luecken, mobile-Projekt) fiel
+`e2e/specs/session.spec.ts:76 › T8.1: die Übersicht ordnet nach „Braucht
+dich", „Aktiv", „Zuletzt" …` **einmal** mit „element(s) not found" (auto-wait
+10 s abgelaufen). Kein Zusammenhang mit den Änderungen des Branches
+(Metrik-Anzeigen; der Spec berührt keine davon).
+
+## Erwartet
+
+Der Spec besteht deterministisch — oder sein Timing-Fenster ist so
+bemessen, dass Suite-Last (parallele Worker, PWA-Build, ~240 weitere
+Tests) es nicht sprengt.
+
+## Repro
+
+1. `npm run test:e2e` (volle Suite) — beim ersten Lauf nach dem Auftreten
+   zweimal grün (242/247 passed).
+2. Gezielt unter Last: `npx playwright test e2e/specs/session.spec.ts -g
+   "die Übersicht ordnet" --repeat-each=6 --workers=4` → 6/6 grün;
+   `--repeat-each=10 --workers=8` → 10/10 grün (Laufzeit stabil ~22 s).
+
+**Nicht reproduziert** — 18 Wiederholungen nach dem Vorfall, alle grün.
+
+**Häufigkeit:** einmalig (1 von ~20 Beobachtungen des Specs).
+
+## Umgebung
+
+| Feld | Wert |
+|---|---|
+| Instanz | lokal (E2E-TestHub, mobile-Projekt) |
+| Commit | `f4e14a2` |
+| Node-Version | ≥ 22.5 |
+| Adapter | dummy, claude (Stand-in mit MCP-Permission-Brücke) |
+| Repro-Weg | E2E |
+
+## Logs
+
+```text
+Error: expect(locator).toBeVisible() failed
+Locator: … (auto-wait, Timeout: 10000ms) — element(s) not found
+```
+
+(Kein Trace archiviert — test-results wurden vom Folge-Lauf überschrieben.)
+
+## Tests
+
+| Ring | Befehl / Datei | Stand vor dem Fix |
+|---|---|---|
+| E2E | `e2e/specs/session.spec.ts:76` | grün (18/18 nach Vorfall) |
+
+## Eingrenzung
+
+Offen. Verdacht: Last-Pfad — der Spec wartet auf die Freigabe-Karte der
+claude-Stand-in-Session (`WERKZEUG` → MCP-Brücke → Approval), mehrere
+Assertionen nutzen das 10-s-Default-Fenster; der Spec braucht unbelastet
+~22 s. Ohne Repro kein Fix (bugfix-Regel: keine Symptom-Patches auf
+Vermutung). Nächster Schritt bei erneutem Auftreten: Trace sichern
+(`--trace on`), dann Timeout an der engsten Assertion gezielt erhöhen
+oder Settlement explizit abwarten.
+
+## Handoff
+
+- [x] Datei im Index [`README.md`](README.md)
+- [x] GitLab-Issue angelegt (Link oben)
+- [ ] `bugfix` oder offen lassen
