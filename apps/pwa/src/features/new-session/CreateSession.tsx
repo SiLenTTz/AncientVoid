@@ -2,7 +2,7 @@ import { takeHandOver } from "../../shared/media.ts";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { LoopPicker } from "../loops/LoopPicker.tsx";
 import type { LoopInfo, LoopSpec } from "@uacc/contracts";
-import { loopBlocker } from "../loops/loop-form.ts";
+import { emptyOnboard, isOnboarding, loopBlocker, type OnboardDraft } from "../loops/loop-form.ts";
 import { hubApi, hostApi, type AdapterInfo, type DiscoveredProject, type FleetHost, type ModelOption, type SessionRecord } from "../../shared/api.ts";
 import type { AttachmentRecord } from "../../shared/api.ts";
 import { ApiContext } from "../../shared/api-context.ts";
@@ -51,7 +51,10 @@ export function CreateSession({
   const [loop, setLoop] = useState<LoopSpec | null>(null);
   const [loopInfo, setLoopInfo] = useState<LoopInfo | null>(null);
   const [loopConfirmed, setLoopConfirmed] = useState(false);
-  const loopBlock = loopBlocker(loopInfo, loop, loopConfirmed);
+  const [onboard, setOnboard] = useState<OnboardDraft>(emptyOnboard);
+  const [loopReload, setLoopReload] = useState(0);
+  const [onboardNote, setOnboardNote] = useState("");
+  const loopBlock = loopBlocker(loopInfo, loop, loopConfirmed, onboard);
   // EPIC-P10.5: a video result handed over from the media page.
   const [attachments, setAttachments] = useState<AttachmentRecord[]>(() => takeHandOver("new"));
   const [prompt, setPromptState] = useState(() => localStorage.getItem(PROMPT_KEY) ?? "");
@@ -168,8 +171,21 @@ export function CreateSession({
       // anything real (see the Kontingent display instead). The contract
       // field itself is untouched (createSession still accepts it) for P2
       // to build on for API-key-billed adapters.
+      let startLoop = loop;
+      // Neues Repo: erst die Linie einrichten (factoryctl), dann die Session auf ihr starten.
+      const ob = loopInfo?.capabilities?.onboarding;
+      if (loop && ob && isOnboarding(loopInfo, loop)) {
+        setOnboardNote("Linie wird angelegt … das kann eine Minute dauern.");
+        const made = await api.onboardLoop(loop.id, { options: onboard.values, secret: onboard.secret });
+        setOnboardNote("");
+        if (!made.ok) throw new Error(made.detail);
+        startLoop = { ...loop, options: { ...loop.options, [ob.optionKey]: made.options[ob.optionKey] ?? "" } };
+        setLoop(startLoop);
+        setOnboard(emptyOnboard);
+        setLoopReload((n) => n + 1);
+      }
       const rec = await api.createSession({
-        ...(loop ? { loop } : { adapter }),
+        ...(startLoop ? { loop: startLoop } : { adapter }),
         project,
         ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
         ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
@@ -180,6 +196,7 @@ export function CreateSession({
       localStorage.setItem(LAST_KEY, JSON.stringify({ host, adapter, project }));
       onCreated(rec);
     } catch (err) {
+      setOnboardNote("");
       setError(err instanceof Error ? err.message : "create failed");
     } finally {
       setBusy(false);
@@ -202,7 +219,7 @@ export function CreateSession({
           </select>
         </label>
       )}
-      <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); }} />
+      <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); setOnboard(emptyOnboard); }} onboard={onboard} onOnboard={setOnboard} reload={loopReload} />
       {!loop && (
         <>
       <label>
@@ -317,6 +334,7 @@ export function CreateSession({
       {error && <div style="color: var(--err)">{error}</div>}
       {!loop && <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />}
       {loopBlock && loop && <div class="dim loop-block">{loopBlock}</div>}
+      {onboardNote && <div class="dim loop-note" role="status">{onboardNote}</div>}
       <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy || !project || !!loopBlock}>
         {busy ? "lädt…" : "Starten"}
       </button>

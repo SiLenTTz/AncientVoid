@@ -1,4 +1,4 @@
-import type { LoopInfo, LoopSpec, SttStreamTicket } from "@uacc/contracts";
+import type { LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket } from "@uacc/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -662,6 +662,17 @@ function createHubApi(P: (path: string) => string) {
   adapters: () => api<AdapterInfo[]>(P("/api/adapters")),
   /** EPIC-P19: Loops / Dark Factories und ob sie startbar sind. */
   loops: () => api<LoopInfo[]>(P("/api/loops")),
+  /** EPIC-P19: ein Repo für einen Loop einrichten. Das Geheimnis geht nur in diesen einen Aufruf; abgelehnt = `ok: false` mit Grund. */
+  onboardLoop: async (id: string, body: { options: Record<string, string>; secret: string }): Promise<LoopOnboardResult> => {
+    const res = await fetch(P(`/api/loops/${encodeURIComponent(id)}/onboard`), {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify(body),
+    });
+    const out = (await res.json().catch(() => null)) as { ok?: unknown; error?: string } | null;
+    if (out && typeof out.ok === "boolean") return out as LoopOnboardResult;
+    return { ok: false, detail: out?.error ?? `${res.status} ${res.statusText}` };
+  },
   /** T7.10: a file into the hub — raw bytes, name in a header. */
   uploadAttachment: async (file: File): Promise<AttachmentRecord> => {
     const res = await fetch(P("/api/attachments"), {

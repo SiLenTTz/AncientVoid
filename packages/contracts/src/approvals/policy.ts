@@ -37,6 +37,7 @@ export const POLICY_OPERATIONS = [
   "read",
   "sessions.create",
   "loops.start",
+  "loops.onboard",
   "sessions.prompt",
   "sessions.park",
   "sessions.stop",
@@ -72,6 +73,8 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "sessions.create": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny" },
   /** EPIC-P19 (AC-P19-8): ein Loop hat Außenwirkung (Merge in `dark`) — nur ein Mensch am eigenen Gerät. */
   "loops.start": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny" },
+  /** Legt eine Linie mit Repo-Token an (Außenwirkung auf dem Host): nur ein Mensch. */
+  "loops.onboard": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny" },
   "sessions.prompt": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny" },
   "sessions.park": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny" },
   "sessions.stop": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny" },

@@ -1,3 +1,4 @@
+import { LOOP_NEW } from "@uacc/contracts";
 import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopStartSpec, SessionHandle } from "@uacc/contracts";
 
 /**
@@ -7,7 +8,9 @@ import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector
  */
 export function createLoopConnector(_config?: Readonly<Record<string, unknown>>): LoopConnector {
   const state = new Map<string, { mode: string; paused: boolean; closed: boolean; step: number }>();
-  const caps: LoopCapabilities = {
+  /** „Eingerichtete Linien“ des Fake-Loops; `onboard` fügt eine hinzu (Token „geheim“). */
+  const lines = new Set(["alpha"]);
+  const capabilities = (): LoopCapabilities => ({
     agents: "external",
     intake: ["issues"],
     modes: ["ruhig", "scharf"],
@@ -16,15 +19,24 @@ export function createLoopConnector(_config?: Readonly<Record<string, unknown>>)
     controls: ["pause", "resume", "setMode", "workNext"],
     gates: ["policy", "ci"],
     asks: "permission+question",
-    options: [{ key: "line", label: "Line", kind: "text", required: true, placeholder: "z. B. alpha" }],
-  };
+    options: [{ key: "line", label: "Line", kind: "select", required: true, choices: [...[...lines].map((l) => ({ value: l, label: l })), { value: LOOP_NEW, label: "Neues Repo anbinden …" }] }],
+    onboarding: { optionKey: "line", label: "Neues Repo anbinden", fields: [{ key: "name", label: "Name der Linie", kind: "text", required: true, placeholder: "z. B. beta" }], secret: { label: "Repo-Token" } },
+  });
   const note = (ctx: AdapterContext, kind: string, summary: string, payload: Record<string, unknown>) =>
     ctx.emit({ type: "system", summary, payload: { kind, ...payload } });
 
   return {
     id: "fake-loop",
     version: "0.1.0",
-    capabilities: () => caps,
+    capabilities,
+
+    async onboard(input) {
+      const name = input.options.name?.trim() ?? "";
+      if (!/^[a-z][a-z0-9-]{0,19}$/.test(name)) return { ok: false, detail: "Name der Linie: a–z, 0–9, - " };
+      if (input.secret !== "geheim") return { ok: false, detail: "Der Token wurde abgelehnt" };
+      lines.add(name);
+      return { ok: true, options: { line: name } };
+    },
 
     async start(spec: LoopStartSpec, ctx: AdapterContext, io: LoopIo): Promise<SessionHandle> {
       const resumed = (io.resume as { step?: number } | null)?.step ?? 0;
@@ -50,11 +62,11 @@ export function createLoopConnector(_config?: Readonly<Record<string, unknown>>)
     async control(handle: SessionHandle, input: LoopControlInput, ctx: AdapterContext): Promise<Ack> {
       const s = state.get(handle.sessionId);
       if (!s) return { ok: false, detail: "unbekanntes Handle" };
-      if (!caps.controls.includes(input.kind)) return { ok: false, detail: `Befehl „${input.kind}“ wird nicht angeboten` };
+      if (!capabilities().controls.includes(input.kind)) return { ok: false, detail: `Befehl „${input.kind}“ wird nicht angeboten` };
       if (input.kind === "pause") s.paused = true;
       if (input.kind === "resume") s.paused = false;
       if (input.kind === "setMode") {
-        if (!caps.modes.includes(input.mode)) return { ok: false, detail: `Betriebsart „${input.mode}“ unbekannt` };
+        if (!capabilities().modes.includes(input.mode)) return { ok: false, detail: `Betriebsart „${input.mode}“ unbekannt` };
         s.mode = input.mode;
       }
       note(ctx, "loop.command", `Befehl ${input.kind}`, { command: input.kind, mode: s.mode, paused: s.paused, ...(input.kind === "workNext" && input.text ? { text: input.text } : {}) });

@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, watch, type FSWatcher } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopStartSpec, SessionHandle } from "@uacc/contracts";
@@ -17,6 +17,8 @@ const CAPABILITIES: LoopCapabilities = {
   options: [{ key: "epic", label: "Hermes-Epic", kind: "text", placeholder: "nur mit Orchestrator hermes, z. B. epic-12" }],
 };
 
+const FAST_MS = 2000;
+const KEEP_KEYS = 40;
 const TRANSCRIPT_SCHEMAS = ["1", "2"];
 const MAX_LINES_PER_POLL = 200;
 const KEEP_NOTIFIED = 200;
@@ -25,18 +27,24 @@ const EPIC_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
 interface Cursor {
   offsets: Record<string, number>;
   notified: string[];
+  /** K7: schon Gemeldetes (Dedupe-Schlüssel) überlebt einen Hub-Neustart, damit nichts doppelt kommt. */
+  last: Record<string, string>;
 }
 
 interface Run {
   root: string;
   orchestrator: "self" | "hermes";
   epic: string | null;
-  cursor: Cursor;
-  timer: NodeJS.Timeout | null;
-  polling: boolean;
+  cursor: Pick<Cursor, "offsets" | "notified">;
+  timers: NodeJS.Timeout[];
+  closeWatch: (() => void) | null;
+  busy: { slow: boolean; fast: boolean };
+  /** Erster Durchlauf ohne gespeicherte Position: vorhandene Transcripts nur ab jetzt, spätere Dateien von vorn. */
+  seeding: boolean;
   closed: boolean;
   health: HealthReport;
   last: Map<string, string>;
+  io: LoopIo;
 }
 
 interface Supervisor {
@@ -68,23 +76,27 @@ const compact = <T extends Record<string, unknown>>(o: T): T => Object.fromEntri
 
 /**
  * ADR-0038: beobachtet EIN securesight-harnez-Projekt (Option `project` = Projektwurzel). Der Hub liest nur:
- * `scripts/betrieb.py supervisor-status --json`, `.harness/notify`, `.harness/transcript`, `.harnez/progress.json`
+ * `scripts/betrieb.py supervisor-status --json`, `.harness/notify`, `.harness/transcript`, `.factory/progress.json` (früher `.harnez/`)
  * und bei Orchestrator `hermes` den Zustand unter `~/.hermes/ralph`. Er schreibt nichts in das Projekt
  * (der Supervisor darf nur lesen und eskalieren; Fortsetzen bleibt Sache der Person).
- * Konfiguration: `python` (Standard python3), `pollMs` (Standard 15000), `hermesDir`.
+ * Konfiguration: `python` (Standard python3), `pollMs` (Supervisor, Standard 15000), `hermesDir`.
  */
 export function createLoopConnector(config: Readonly<Record<string, unknown>> = {}): LoopConnector {
   const runs = new Map<string, Run>();
   const python = typeof config.python === "string" && config.python ? config.python : "python3";
-  const pollMs = typeof config.pollMs === "number" && config.pollMs >= 20 ? config.pollMs : 15_000;
+  // Obergrenze 30 s: AC-P19-4 verlangt `loop.broken` bei Watchdog-Ausfall in unter 60 s.
+  const pollMs = typeof config.pollMs === "number" && config.pollMs >= 20 ? Math.min(config.pollMs, 30_000) : 15_000;
   const hermesDir = typeof config.hermesDir === "string" && config.hermesDir ? config.hermesDir : join(homedir(), ".hermes", "ralph");
 
   const note = (ctx: AdapterContext, kind: string, summary: string, payload: Record<string, unknown>) =>
     ctx.emit({ type: "system", summary: summary.slice(0, 200), payload: { loop: "securesight-factory", kind, ...payload } });
+  const save = (run: Run) => run.io.saveCursor({ offsets: run.cursor.offsets, notified: run.cursor.notified, last: Object.fromEntries([...run.last].slice(-KEEP_KEYS)) });
   const changed = (run: Run, key: string, value: unknown): boolean => {
     const next = JSON.stringify(value);
     if (run.last.get(key) === next) return false;
+    run.last.delete(key);
     run.last.set(key, next);
+    save(run);
     return true;
   };
   const broken = (run: Run, ctx: AdapterContext, key: string, reason: string) => {
@@ -96,6 +108,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     const reason = run.last.get(`broken:${key}`);
     if (reason === undefined) return;
     run.last.delete(`broken:${key}`);
+    save(run);
     note(ctx, "loop.recovered", `securesight: ${key} wieder in Ordnung`, { reason: JSON.parse(reason) as string });
   };
 
@@ -131,12 +144,15 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       if (changed(run, "hold", reason)) note(ctx, "loop.hold", `securesight wartet auf eine Person: ${reason}`, { reason });
     } else {
       run.health = { state: "healthy" };
-      if (run.last.delete("hold")) note(ctx, "loop.recovered", "securesight: keine Person mehr gefragt", { what: "hold" });
+      if (run.last.delete("hold")) {
+        save(run);
+        note(ctx, "loop.recovered", "securesight: keine Person mehr gefragt", { what: "hold" });
+      }
       recovered(run, ctx, "watchdog");
     }
   }
 
-  async function pollNotify(run: Run, ctx: AdapterContext, io: LoopIo): Promise<void> {
+  async function pollNotify(run: Run, ctx: AdapterContext): Promise<void> {
     const names = await listFiles(under(run.root, ".harness", "notify"), /^[\w.-]+\.json$/);
     let touched = false;
     for (const name of names) {
@@ -155,17 +171,17 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       run.cursor.notified = [...run.cursor.notified, name].slice(-KEEP_NOTIFIED);
       touched = true;
     }
-    if (touched) io.saveCursor(run.cursor);
+    if (touched) save(run);
   }
 
-  async function pollTranscript(run: Run, ctx: AdapterContext, io: LoopIo): Promise<void> {
+  async function pollTranscript(run: Run, ctx: AdapterContext): Promise<void> {
     const dir = under(run.root, ".harness", "transcript");
     let budget = MAX_LINES_PER_POLL;
     let touched = false;
     for (const name of await listFiles(dir, /^[\w.-]+\.ndjson$/)) {
       if (budget <= 0) break;
       const known = run.cursor.offsets[name];
-      const tail = await tailLines(under(dir, name), known ?? null, budget);
+      const tail = await tailLines(under(dir, name), known ?? (run.seeding ? null : 0), budget);
       const lines = tail.lines;
       const consumed = tail.offset;
       budget -= lines.length;
@@ -190,11 +206,13 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
         touched = true;
       }
     }
-    if (touched) io.saveCursor(run.cursor);
+    if (touched) save(run);
   }
 
   async function pollProgress(run: Run, ctx: AdapterContext): Promise<void> {
-    const doc = await readJson(under(run.root, ".harnez", "progress.json"));
+    // Seit der Umbenennung (Iteration 0055) liegt der Fahrplan unter .factory/, ältere Projekte haben noch .harnez/.
+    let doc = await readJson(under(run.root, ".factory", "progress.json"));
+    if (!doc.ok && doc.reason === "missing") doc = await readJson(under(run.root, ".harnez", "progress.json"));
     if (!doc.ok) {
       if (doc.reason === "invalid") broken(run, ctx, "progress", "progress.json ist kein gültiges JSON");
       return;
@@ -216,22 +234,27 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     }
     recovered(run, ctx, "hermes");
     const v = doc.value;
-    const payload = compact({ done: n(v.tasks_done), total: n(v.tasks_total), status: s(v.status, 40), step: s(v.current_task, 100), gateFails: n(v.gate_fails) });
+    // Freigaben des Orchestrators: Hermes schreibt `user_gates` (früher `user-gates`) als { push: false, note: "…" }.
+    const gates = obj(v.user_gates ?? v["user-gates"]);
+    const userGates = Object.fromEntries(Object.entries(gates).flatMap(([k, val]) => (typeof val === "boolean" ? [[k.slice(0, 40), val]] : [])).slice(0, 8));
+    const payload = compact({ done: n(v.tasks_done), total: n(v.tasks_total), status: s(v.status, 40), step: s(v.current_task, 100), gateFails: n(v.gate_fails), userGates: Object.keys(userGates).length > 0 ? userGates : undefined, gateNote: s(gates.note, 200) });
     if (changed(run, "hermes", payload)) note(ctx, "loop.progress", `Hermes ${payload.status ?? "?"}: ${payload.done ?? 0} von ${payload.total ?? 0}`, { source: "hermes", epic: run.epic, ...payload });
   }
 
-  async function poll(run: Run, ctx: AdapterContext, io: LoopIo): Promise<void> {
-    if (run.polling || run.closed) return;
-    run.polling = true;
+  /**
+   * Zwei Takte: Dateien (Notify, Transcript, Fortschritt) sind billig und müssen live wirken — sie werden beim Ändern
+   * (fs.watch) und sonst alle 2 s gelesen. Der Supervisor-Aufruf startet einen Python-Prozess und läuft im `pollMs`-Takt.
+   */
+  async function sweep(run: Run, ctx: AdapterContext, group: "slow" | "fast"): Promise<void> {
+    if (run.busy[group] || run.closed) return;
+    run.busy[group] = true;
     try {
       // Jede Quelle für sich: fällt eine aus, zeigen die anderen weiter (Regel 6: der Ausfall wird sichtbar, nicht still).
-      for (const [name, step] of [
-        ["supervisor", () => pollSupervisor(run, ctx)],
-        ["notify", () => pollNotify(run, ctx, io)],
-        ["transcript", () => pollTranscript(run, ctx, io)],
-        ["progress", () => pollProgress(run, ctx)],
-        ["hermes", () => pollHermes(run, ctx)],
-      ] as const) {
+      const steps: [string, () => Promise<void>][] =
+        group === "slow"
+          ? [["supervisor", () => pollSupervisor(run, ctx)], ["hermes", () => pollHermes(run, ctx)]]
+          : [["notify", () => pollNotify(run, ctx)], ["transcript", () => pollTranscript(run, ctx)], ["progress", () => pollProgress(run, ctx)]];
+      for (const [name, step] of steps) {
         try {
           await step();
         } catch (err) {
@@ -239,9 +262,39 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
         }
       }
     } finally {
-      run.polling = false;
+      run.busy[group] = false;
     }
   }
+
+  /** Beobachtet die Verzeichnisse; fehlt eines noch, greift der 2-s-Takt. Gibt eine Funktion zum Schließen zurück. */
+  function watchFiles(run: Run, ctx: AdapterContext): () => void {
+    let debounce: NodeJS.Timeout | null = null;
+    const kick = () => {
+      if (debounce) return;
+      debounce = setTimeout(() => {
+        debounce = null;
+        void sweep(run, ctx, "fast");
+      }, 40);
+    };
+    const watchers: FSWatcher[] = [];
+    for (const dir of [[".harness", "notify"], [".harness", "transcript"], [".factory"], [".harnez"]]) {
+      try {
+        watchers.push(watch(under(run.root, ...dir), kick));
+      } catch {
+        /* Verzeichnis gibt es (noch) nicht */
+      }
+    }
+    return () => {
+      if (debounce) clearTimeout(debounce);
+      for (const w of watchers) w.close();
+    };
+  }
+
+  const closeRun = (run: Run) => {
+    run.closed = true;
+    for (const t of run.timers) clearInterval(t);
+    run.closeWatch?.();
+  };
 
   return {
     id: "securesight-factory",
@@ -259,18 +312,24 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
         orchestrator,
         epic,
         cursor: { offsets: { ...(resumed?.offsets ?? {}) }, notified: [...(resumed?.notified ?? [])] },
-        timer: null,
-        polling: false,
+        io,
+        timers: [],
+        closeWatch: null,
+        busy: { slow: false, fast: false },
+        seeding: resumed === null || resumed === undefined,
         closed: false,
         health: { state: "degraded", detail: "noch nicht gelesen" },
-        last: new Map(),
+        last: new Map(Object.entries(resumed?.last ?? {})),
       };
       runs.set(ctx.sessionId, run);
       // Erster Durchlauf gleich im start(): der Hub sieht sofort, ob das Projekt lesbar ist.
-      await poll(run, ctx, io);
-      run.timer = setInterval(() => void poll(run, ctx, io), pollMs);
-      run.timer.unref();
-      ctx.signal.addEventListener("abort", () => run.timer && clearInterval(run.timer), { once: true });
+      await sweep(run, ctx, "slow");
+      await sweep(run, ctx, "fast");
+      run.seeding = false;
+      run.timers = [setInterval(() => void sweep(run, ctx, "slow"), pollMs), setInterval(() => void sweep(run, ctx, "fast"), FAST_MS)];
+      for (const t of run.timers) t.unref();
+      run.closeWatch = watchFiles(run, ctx);
+      ctx.signal.addEventListener("abort", () => closeRun(run), { once: true });
       return { sessionId: ctx.sessionId, meta: { project: spec.project, orchestrator, ...(epic ? { epic } : {}) } };
     },
 
@@ -286,8 +345,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     async stop(handle: SessionHandle): Promise<void> {
       const run = runs.get(handle.sessionId);
       if (!run || run.closed) return;
-      run.closed = true;
-      if (run.timer) clearInterval(run.timer);
+      closeRun(run);
     },
   };
 }

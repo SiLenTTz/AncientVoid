@@ -13,6 +13,21 @@ export interface LoopOption {
   placeholder?: string;
 }
 
+/** Wert einer Auswahl-Option, der in der Oberfläche „Neues Repo anbinden“ öffnet (siehe `LoopOnboarding`). */
+export const LOOP_NEW = "+neu";
+
+/**
+ * Loops, die erst für ein Repo eingerichtet werden müssen (aSPARK: `factoryctl new`), bieten ein Onboarding an:
+ * Felder plus ein Geheimnis (Repo-Token), das nur durchgereicht wird — nie gespeichert, geloggt oder in Ereignissen.
+ */
+export interface LoopOnboarding {
+  /** Schlüssel der Option, deren Wert `LOOP_NEW` das Formular öffnet (z. B. "line"). */
+  optionKey: string;
+  label: string;
+  fields: readonly LoopOption[];
+  secret: { label: string; hint?: string };
+}
+
 export interface LoopCapabilities {
   /** Wer die Agenten ausführt: "external" = das Loop-System selbst (beide ersten Loops). "hub" ist reserviert. */
   agents: "external" | "hub";
@@ -31,6 +46,8 @@ export interface LoopCapabilities {
   asks: "none" | "permission" | "permission+question";
   /** Felder des Start-Formulars über Betriebsart und Orchestrator hinaus. */
   options: readonly LoopOption[];
+  /** Nur Loops mit Einrichtung pro Repo. */
+  onboarding?: LoopOnboarding;
 }
 
 /** Startauswahl, wie der Connector sie sieht (Projekt und Ziel kommen vom Hub). */
@@ -41,6 +58,10 @@ export interface LoopStartSpec {
   orchestrator?: string;
   options: Record<string, string>;
 }
+
+export type LoopOnboardResult =
+  | { ok: true; /** Werte für die Startauswahl, z. B. { line: "web" }. */ options: Record<string, string>; detail?: string }
+  | { ok: false; detail: string };
 
 export type LoopControlInput =
   | { kind: "pause" }
@@ -67,6 +88,8 @@ export interface LoopConnector {
   start(spec: LoopStartSpec, ctx: AdapterContext, io: LoopIo): Promise<SessionHandle>;
   control(handle: SessionHandle, input: LoopControlInput, ctx: AdapterContext): Promise<Ack>;
   status(handle: SessionHandle): Promise<HealthReport>;
+  /** Richtet das Loop-System für ein Repo ein (nur mit `capabilities().onboarding`). Wirft nie; Fehler als `ok: false`. */
+  onboard?(input: { options: Record<string, string>; secret: string }, signal: AbortSignal): Promise<LoopOnboardResult>;
   /** Trennt den Hub vom Loop. Das Loop-System selbst läuft weiter (nur beobachtet/gesteuert, nie beendet). */
   stop(handle: SessionHandle, ctx: AdapterContext): Promise<void>;
 }

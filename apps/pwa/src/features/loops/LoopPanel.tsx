@@ -4,7 +4,7 @@ import type { hubApi } from "../../shared/api.ts";
 import type { LoopView } from "./loop-view.ts";
 import { loopBadge } from "./loop-view.ts";
 
-const GATE_STATE: Record<string, string> = { running: "läuft", passed: "bestanden", failed: "fehlgeschlagen" };
+const GATE_STATE: Record<string, string> = { running: "läuft", passed: "bestanden", pass: "bestanden", failed: "fehlgeschlagen", fail: "fehlgeschlagen" };
 
 /** Kopf-Abzeichen der Session: Loop, Name, Betriebsart — Störung und Halt fallen sofort auf. */
 export function LoopBadge({ adapter, view }: { adapter: string; view: LoopView }) {
@@ -93,7 +93,14 @@ export function LoopPanel({
       )}
       {view.gate && (
         <div class="loop-gate">
-          Gate <strong>{view.gate.name}</strong>: <span class={`gate-${view.gate.state}`}>{GATE_STATE[view.gate.state] ?? view.gate.state}</span>
+          Gate <strong>{view.gate.name}</strong>: <span class={`gate-${view.gate.state === "pass" ? "passed" : view.gate.state === "fail" ? "failed" : view.gate.state}`}>{GATE_STATE[view.gate.state] ?? view.gate.state}</span>
+        </div>
+      )}
+      {view.orchestrator && Object.keys(view.orchestrator.userGates).length > 0 && (
+        <div class="loop-gate">
+          Freigaben des Orchestrators:{" "}
+          {Object.entries(view.orchestrator.userGates).map(([k, ok]) => `${k} ${ok ? "ja" : "nein"}`).join(" · ")}
+          {view.orchestrator.note && <div class="dim">{view.orchestrator.note}</div>}
         </div>
       )}
       {view.stats && (

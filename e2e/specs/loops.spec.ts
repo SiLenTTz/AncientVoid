@@ -6,16 +6,16 @@ import { test, expect } from "../support/fixtures.ts";
  * eingerichteten Connector stehen sichtbar, aber gesperrt und begründet da; der Fake-Loop des Testkits ist startbar.
  */
 test.describe("Loop / Dark Factory im Start-Formular", () => {
-  test("aSPARK-Factory und securesight-factory stehen in der Auswahl, gesperrt und begründet @desktop", async ({ app }) => {
+  test("aSPARK-Factory steht ohne Anbindung gesperrt und begründet in der Auswahl, securesight-factory ist wählbar @desktop", async ({ app }) => {
     await app.getByRole("button", { name: "Neue Session" }).click();
     const loop = app.getByLabel("Loop", { exact: true });
     await expect(loop).toBeVisible();
     await expect(loop).toHaveValue("");
-    await expect(loop.locator("option")).toHaveText(["kein Loop", "aSPARK-Factory (nicht verbunden)", "securesight-factory (nicht verbunden)", "fake-loop"]);
-    await expect(loop.locator("option[value=aspark-factory]")).toHaveAttribute("disabled", "");
-    await expect(loop.locator("option[value=securesight-factory]")).toHaveAttribute("disabled", "");
+    // In der Test-Fixture ist securesight-factory angebunden (K7-Spec), aSPARK nicht.
+    await expect(loop.locator("option")).toHaveText(["kein Loop", "aSPARK-Factory (nicht verbunden)", "securesight-factory", "fake-loop"]);
+    await expect(loop.locator("option[value='aspark-factory']")).toHaveAttribute("disabled", "");
+    await expect(loop.getByRole("option", { name: "securesight-factory" })).toBeEnabled();
     await expect(app.locator(".loop-reasons")).toContainText("aSPARK-Factory: nicht eingerichtet");
-    await expect(app.locator(".loop-reasons")).toContainText("securesight-factory: nicht eingerichtet");
   });
 
   test("ohne Loop startet die Session wie bisher (AC-P19-5)", async ({ app }) => {
@@ -37,10 +37,8 @@ test.describe("Loop / Dark Factory im Start-Formular", () => {
     const betriebsart = app.getByLabel("Betriebsart");
     await expect(betriebsart).toHaveValue("ruhig");
     const start = app.getByRole("button", { name: "Starten" });
-    // Pflichtoption fehlt.
-    await expect(start).toBeDisabled();
-    await expect(app.locator(".loop-block")).toHaveText("Line fehlt");
-    await app.getByLabel("Line").fill("alpha");
+    // Die Linie ist eine Auswahl der vorhandenen; die erste ist voreingestellt.
+    await expect(app.getByLabel("Line")).toHaveValue("alpha");
     await expect(start).toBeEnabled();
     // Riskant: ohne Häkchen kein Start.
     await betriebsart.selectOption("scharf");
@@ -61,7 +59,6 @@ test.describe("Loop / Dark Factory im Start-Formular", () => {
   const startLoop = async (app: Page, goal = "") => {
     await app.getByRole("button", { name: "Neue Session" }).click();
     await app.getByLabel("Loop", { exact: true }).selectOption("fake-loop");
-    await app.getByLabel("Line").fill("alpha");
     if (goal) await app.getByPlaceholder("Refactore den Auth-Flow…").fill(goal);
     await app.getByRole("button", { name: "Starten" }).click();
     await expect(app).toHaveURL(/#\/sessions\//);
@@ -93,5 +90,77 @@ test.describe("Loop / Dark Factory im Start-Formular", () => {
     await startLoop(app, "FEHLER");
     await expect(app.locator(".loop-alert.bad")).toContainText("Loop gestört: offline");
     await expect(app.locator(".session-top-meta .loop-badge")).toHaveText("Loop · fake-loop · ruhig · gestört");
+  });
+
+  test("Neues Repo anbinden: Felder und Token, abgelehntes Token bleibt im Formular, dann startet die Session auf der neuen Linie", async ({ app, hub }) => {
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Loop", { exact: true }).selectOption("fake-loop");
+    await app.getByLabel("Line").selectOption("+neu");
+    const start = app.getByRole("button", { name: "Starten" });
+    await expect(app.locator(".loop-onboard")).toBeVisible();
+    await expect(start).toBeDisabled();
+    await expect(app.locator(".loop-block")).toHaveText("Name der Linie fehlt");
+    await app.getByLabel("Name der Linie").fill("beta");
+    await expect(app.locator(".loop-block")).toHaveText("Repo-Token fehlt");
+    const token = app.getByLabel("Repo-Token");
+    await expect(token).toHaveAttribute("type", "password");
+
+    await token.fill("falsch");
+    await start.click();
+    await expect(app.getByText("Der Token wurde abgelehnt")).toBeVisible();
+    await expect(app).not.toHaveURL(/#\/sessions\//);
+    expect(await hub.sessions()).toHaveLength(0);
+
+    await token.fill("geheim");
+    await start.click();
+    await expect(app).toHaveURL(/#\/sessions\//);
+    const [record] = await hub.sessions();
+    expect(record?.adapter).toBe("loop:fake-loop");
+    await hub.until(async () => (await hub.events(record!.id)).some((e) => (e.payload as { kind?: string }).kind === "loop.info"), "loop.info");
+    const events = JSON.stringify(await hub.events(record!.id));
+    expect(events).toContain('"line":"beta"');
+    expect(events).not.toContain("geheim");
+  });
+
+  test("K7: Hub-Neustart mitten im Loop — Zustand bleibt, nichts doppelt, nichts fehlt (echter securesight-Connector, AC-P19-3)", async ({ hub }) => {
+    const { spawnSync } = await import("node:child_process");
+    test.skip(spawnSync("python3", ["--version"], { stdio: "ignore" }).error !== undefined, "python3 fehlt");
+    const { appendFileSync, mkdirSync, writeFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const project = join(hub.projectsDir, "securesight-demo");
+    for (const d of ["scripts", ".harness/notify", ".harness/transcript", ".factory"]) mkdirSync(join(project, d), { recursive: true });
+    writeFileSync(join(project, "scripts", "betrieb.py"), 'import json\nprint(json.dumps({"schema_version":"1","mode":"a","iteration":{"id":"7","status":"running"},"human_hold":{"active":False,"reason":None},"last_gates":{"result":"pass","at":"t"},"watchdog":{"running":True}}))\n');
+    writeFileSync(join(project, ".factory", "progress.json"), JSON.stringify({ schema_version: "1", total: 4, done: 1, now: { story: "S-1", task: "T-1", phase: "bauen" } }));
+    writeFileSync(join(project, ".harness", "notify", "20261028-1.json"), JSON.stringify({ schema_version: "1", escalation_level: "1", reason_ref: "gates-rot", at: "t", run_id: "r1" }));
+    const transcript = join(project, ".harness", "transcript", "s1.ndjson");
+    const line = (seq: number) => `${JSON.stringify({ schema_version: "2", at: "t", seq, session: "s1", role: "llm", kind: "assistant_text", detail: `Zug ${seq}`, source: "claude" })}\n`;
+    writeFileSync(transcript, line(0));
+
+    const res = await hub.api<{ id?: string }>("/api/sessions", { body: { project, loop: { id: "securesight-factory" } } });
+    expect(res.status).toBe(201);
+    const id = res.body.id!;
+    const loopEvents = async () => (await hub.events(id)).filter((e) => String(e.payload.kind ?? "").startsWith("loop."));
+    const count = async (kind: string) => (await loopEvents()).filter((e) => e.payload.kind === kind).length;
+    await hub.until(async () => (await count("loop.info")) >= 1 && (await count("loop.notify")) >= 1, "Loop meldet sich");
+    appendFileSync(transcript, line(1) + line(2));
+    await hub.until(async () => (await count("loop.transcript")) === 2, "zwei Zeilen im Verlauf");
+    const before = await loopEvents();
+
+    const ms = await hub.restart("SIGKILL");
+    console.info(`K7 Loop: Neustart bis Hub antwortet ${ms} ms`);
+    expect(ms).toBeLessThan(3000); // AC-P19-3: Neustart < 3 s
+    await hub.until(async () => (await hub.events(id)).some((e) => e.payload.kind === "session.recovered"), "Session wiederhergestellt");
+    appendFileSync(transcript, line(3));
+    await hub.until(async () => (await count("loop.transcript")) === 3, "neue Zeile nach dem Neustart");
+    await new Promise((r) => setTimeout(r, 1500)); // Zeit für etwaige Doppelmeldungen
+
+    const after = await loopEvents();
+    // nichts fehlt: alles von vorher ist unverändert da; nichts doppelt: je Art genau wie vorher, nur die neue Zeile kommt dazu
+    expect(after.slice(0, before.length).map((e) => [e.seq, e.summary])).toEqual(before.map((e) => [e.seq, e.summary]));
+    expect(after.length - before.length).toBe(1);
+    expect(after.at(-1)?.payload).toMatchObject({ kind: "loop.transcript", seq: 3, detail: "Zug 3" });
+    expect(await count("loop.info")).toBe(1);
+    expect(await count("loop.notify")).toBe(1);
+    expect(await count("loop.progress")).toBe(before.filter((e) => e.payload.kind === "loop.progress").length);
   });
 });

@@ -1,12 +1,16 @@
-import { readFileSync } from "node:fs";
 import mqtt, { type MqttClient } from "mqtt";
+import { readFileSync } from "node:fs";
+import { LOOP_NEW } from "@uacc/contracts";
 import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopStartSpec, SessionHandle } from "@uacc/contracts";
+import { expandHome, knownLines, onboardLine, ONBOARDING, readEnvValue } from "./factory.ts";
 import { answerQuestions, classify, decode, infoPayload, int, LEGACY_COMMANDS, LINE_PATTERN, MODES, progressPayload, readQuestions, statePayload, statsPayload, str, topics, type Answer } from "./protocol.ts";
 
 const REPORT_INLINE_BYTES = 2000;
 const KEEP_ANSWERED = 50;
+/** Wie viele Dedupe-Schlüssel der Cursor behält (Info, Statistik, Bericht, je Session Zustand/Fortschritt). */
+const KEEP_KEYS = 40;
 
-const CAPABILITIES: LoopCapabilities = {
+const BASE_CAPABILITIES: LoopCapabilities = {
   agents: "external",
   intake: ["issues"],
   modes: MODES,
@@ -22,12 +26,32 @@ interface Run {
   client: MqttClient;
   line: string;
   closed: boolean;
-  /** Letzter Vertragsbruch der Linie; löscht sich, sobald sie wieder sauber meldet. */
-  broken: string | null;
+  /** Offene Störungen je Quelle (Topic, "connection", "ask:<session>"); jede löst sich, sobald ihre Quelle wieder sauber meldet. */
+  broken: Map<string, string>;
   info: Record<string, unknown> | null;
   answered: string[];
   pending: Set<string>;
   last: Map<string, string>;
+  io: LoopIo;
+}
+
+/** Verbindet oder scheitert laut: ohne Antwort in 8 s (oder mit Fehler beim ersten Versuch) gibt es eine Meldung statt eines endlosen Wiederverbindens. */
+function connect(url: string, opts: mqtt.IClientOptions): Promise<MqttClient> {
+  return new Promise((resolve, reject) => {
+    const client = mqtt.connect(url, { ...opts, connectTimeout: 5000, reconnectPeriod: 2000 });
+    const fail = (err: Error) => {
+      clearTimeout(timer);
+      void client.endAsync(true).catch(() => undefined);
+      reject(new Error(`MQTT-Broker ${url} nicht erreichbar: ${err.message || "keine Antwort"}`));
+    };
+    const timer = setTimeout(() => fail(new Error("keine Antwort in 8 s")), 8000);
+    client.once("error", fail);
+    client.once("connect", () => {
+      clearTimeout(timer);
+      client.off("error", fail);
+      resolve(client);
+    });
+  });
 }
 
 /**
@@ -41,29 +65,49 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
   const url = typeof config.url === "string" && config.url ? config.url : "mqtt://127.0.0.1:1883";
   const username = typeof config.username === "string" && config.username ? config.username : undefined;
   const passwordFile = typeof config.passwordFile === "string" && config.passwordFile ? config.passwordFile : undefined;
+  // Das Leitstand-Passwort steht bei factoryctl in factory.env: dieselbe Datei, ein Schlüssel, nie in der Hub-Config.
+  const passwordEnvFile = typeof config.passwordEnvFile === "string" && config.passwordEnvFile ? config.passwordEnvFile : undefined;
+  const passwordKey = typeof config.passwordKey === "string" && config.passwordKey ? config.passwordKey : "MQTT_LEITSTAND_PASSWORD";
+  const factoryctl = typeof config.factoryctl === "string" && config.factoryctl ? config.factoryctl : undefined;
+  const factoryHome = typeof config.factoryHome === "string" && config.factoryHome ? config.factoryHome : "~/.aspark-factory";
+  const python = typeof config.python === "string" && config.python ? config.python : "python3";
+
+  /** Mit factoryctl: die Linien der Factory zur Auswahl plus „Neues Repo anbinden“; ohne: Linienname als Text. */
+  const capabilities = (): LoopCapabilities => {
+    if (!factoryctl) return BASE_CAPABILITIES;
+    const choices = [...knownLines(factoryHome).map((l) => ({ value: l.name, label: `${l.name} — ${l.repo} (${l.mode})` })), { value: LOOP_NEW, label: "Neues Repo anbinden …" }];
+    return { ...BASE_CAPABILITIES, options: [{ key: "line", label: "Linie", kind: "select", required: true, choices }], onboarding: ONBOARDING };
+  };
 
   const note = (ctx: AdapterContext, kind: string, summary: string, payload: Record<string, unknown>) =>
     ctx.emit({ type: "system", summary: summary.slice(0, 200), payload: { kind, ...payload } });
 
   /** Nur bei Änderung melden: retained Nachrichten kommen nach jedem Wiederverbinden erneut. */
+  /** K7: beantwortete Fragen, schon Gemeldetes und der Störungszustand überleben einen Hub-Neustart, damit nichts doppelt kommt. */
+  const persist = (run: Run) => run.io.saveCursor({ answered: run.answered, last: Object.fromEntries([...run.last].slice(-KEEP_KEYS)), broken: Object.fromEntries(run.broken) });
+
   const changed = (run: Run, key: string, value: unknown): boolean => {
     const next = JSON.stringify(value);
     if (run.last.get(key) === next) return false;
+    run.last.delete(key); // neu einsortieren: die ältesten Schlüssel fallen zuerst heraus
     run.last.set(key, next);
+    persist(run);
     return true;
   };
 
-  const breakLoop = (run: Run, ctx: AdapterContext, reason: string) => {
-    if (run.broken === reason) return;
-    run.broken = reason;
+  const breakLoop = (run: Run, ctx: AdapterContext, key: string, reason: string) => {
+    if (run.broken.get(key) === reason) return;
+    run.broken.set(key, reason);
+    persist(run);
     note(ctx, "loop.broken", `aSPARK ${run.line}: ${reason}`, { loop: "aspark-factory", line: run.line, reason });
   };
 
-  const recover = (run: Run, ctx: AdapterContext) => {
-    if (!run.broken) return;
-    const reason = run.broken;
-    run.broken = null;
-    note(ctx, "loop.recovered", `aSPARK ${run.line}: wieder in Ordnung`, { loop: "aspark-factory", line: run.line, reason, all: true });
+  const recover = (run: Run, ctx: AdapterContext, key: string) => {
+    const reason = run.broken.get(key);
+    if (reason === undefined) return;
+    run.broken.delete(key);
+    persist(run);
+    note(ctx, "loop.recovered", `aSPARK ${run.line}: wieder in Ordnung`, { loop: "aspark-factory", line: run.line, reason });
   };
 
   async function answer(run: Run, session: string, body: Answer): Promise<void> {
@@ -80,16 +124,16 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       return;
     }
     if (!ctx.requestToolPermission) {
-      breakLoop(run, ctx, "Der Hub kann keine Rückfragen stellen");
+      breakLoop(run, ctx, `ask:${session}`, "Der Hub kann keine Rückfragen stellen");
       return;
     }
     const questions = kind === "question" ? readQuestions(msg) : null;
     if (kind === "question" && !questions) {
-      breakLoop(run, ctx, `Frage ${id} hat kein gültiges questions[]`);
+      breakLoop(run, ctx, `ask:${session}`, `Frage ${id} hat kein gültiges questions[]`);
       return;
     }
     if (kind !== "question" && kind !== "permission") {
-      breakLoop(run, ctx, `Frage ${id} mit unbekannter Art „${String(kind)}“`);
+      breakLoop(run, ctx, `ask:${session}`, `Frage ${id} mit unbekannter Art „${String(kind)}“`);
       return;
     }
     run.pending.add(id);
@@ -110,7 +154,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
         note(ctx, "loop.ask.declined", `Frage ${id} nicht beantwortet, die Linie handelt nach timeoutAction`, { id, session, timeoutAction: str(msg.timeoutAction, 20) });
       }
       run.answered = [...run.answered, id].slice(-KEEP_ANSWERED);
-      io.saveCursor({ answered: run.answered });
+      persist(run);
     } catch (err) {
       ctx.log("warn", "aSPARK: Antwort auf Frage fehlgeschlagen", { id, error: err instanceof Error ? err.message : String(err) });
       note(ctx, "loop.ask.failed", `Antwort auf Frage ${id} fehlgeschlagen`, { id, session });
@@ -125,17 +169,17 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     if (raw.byteLength === 0) return; // leere retained Nachricht = Frage/Zustand geräumt
     const decoded = decode(raw);
     if (!decoded.ok) {
-      breakLoop(run, ctx, `${topic}: ${decoded.reason}`);
+      breakLoop(run, ctx, topic, `${topic}: ${decoded.reason}`);
       return;
     }
     const m = decoded.value;
-    // Offline hebt nur eine neue Info mit status online auf; sonst bliebe die Linie nach einer beliebigen Nachricht „gesund“.
-    if (run.broken && (!run.broken.startsWith("Linie offline") || (where.kind === "info" && m.status !== "offline"))) recover(run, ctx);
+    // Eine Störung hebt nur eine saubere Nachricht derselben Quelle auf (Offline: eine Info mit status online).
+    if (!(where.kind === "info" && m.status === "offline")) recover(run, ctx, topic);
     switch (where.kind) {
       case "info": {
         run.info = m;
         if (m.status === "offline") {
-          breakLoop(run, ctx, "Linie offline (Last Will)");
+          breakLoop(run, ctx, topic, "Linie offline (Last Will)");
           return;
         }
         const payload = infoPayload(m);
@@ -144,6 +188,12 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       }
       case "state": {
         const payload = statePayload(where.session, m);
+        // Retained Zustände abgeschlossener Sessions kommen bei jedem Start in Massen: ein erstes „fertig/Fehler/leer“ bleibt still.
+        const firstSeen = !run.last.has(`state:${where.session}`);
+        if (firstSeen && ["done", "error", "idle"].includes(String(payload.state))) {
+          run.last.set(`state:${where.session}`, JSON.stringify(payload));
+          return;
+        }
         if (changed(run, `state:${where.session}`, payload)) note(ctx, "loop.state", `Session ${where.session}: ${payload.state ?? "?"}`, { loop: "aspark-factory", ...payload });
         return;
       }
@@ -187,30 +237,38 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
   return {
     id: "aspark-factory",
     version: "0.1.0",
-    capabilities: () => CAPABILITIES,
+    capabilities,
+
+    ...(factoryctl ? { onboard: (input: { options: Record<string, string>; secret: string }, signal: AbortSignal) => onboardLine({ factoryctl, home: factoryHome, python }, input, signal) } : {}),
 
     async start(spec: LoopStartSpec, ctx: AdapterContext, io: LoopIo): Promise<SessionHandle> {
       const line = spec.options.line?.trim() ?? "";
+      if (line === LOOP_NEW) throw new Error("Das neue Repo muss erst angebunden werden");
       if (!LINE_PATTERN.test(line)) throw new Error("Option „line“ fehlt oder ist kein Linienname (a–z, 0–9, -)");
-      const password = passwordFile ? readFileSync(passwordFile, "utf8").trim() : undefined;
-      const client = await mqtt.connectAsync(url, {
-        clientId: `uacc-${ctx.sessionId}`,
-        ...(username ? { username } : {}),
-        ...(password ? { password } : {}),
-        connectTimeout: 5000,
-        reconnectPeriod: 2000,
-      });
-      const resume = (io.resume as { answered?: unknown } | null)?.answered;
-      const run: Run = { client, line, closed: false, broken: null, info: null, answered: Array.isArray(resume) ? resume.filter((x): x is string => typeof x === "string") : [], pending: new Set(), last: new Map() };
+      const password = passwordFile ? readFileSync(expandHome(passwordFile), "utf8").trim() : passwordEnvFile ? readEnvValue(passwordEnvFile, passwordKey) : undefined;
+      const client = await connect(url, { clientId: `uacc-${ctx.sessionId}`, ...(username ? { username } : {}), ...(password ? { password } : {}) });
+      const saved = (io.resume ?? {}) as { answered?: unknown; last?: unknown; broken?: unknown };
+      const last = typeof saved.last === "object" && saved.last !== null ? Object.entries(saved.last).filter((e): e is [string, string] => typeof e[1] === "string") : [];
+      const run: Run = {
+        client,
+        line,
+        closed: false,
+        broken: new Map(typeof saved.broken === "object" && saved.broken !== null ? Object.entries(saved.broken).filter((e): e is [string, string] => typeof e[1] === "string") : []),
+        info: null,
+        answered: Array.isArray(saved.answered) ? saved.answered.filter((x): x is string => typeof x === "string") : [],
+        pending: new Set(),
+        last: new Map(last),
+        io,
+      };
       runs.set(ctx.sessionId, run);
       client.on("message", (topic, payload) => {
         onMessage(run, ctx, io, topic, payload).catch((err) => ctx.log("error", "aSPARK: Nachricht nicht verarbeitet", { topic, error: err instanceof Error ? err.message : String(err) }));
       });
       client.on("close", () => {
-        if (!run.closed) breakLoop(run, ctx, "Verbindung zum Broker verloren");
+        if (!run.closed) breakLoop(run, ctx, "connection", "Verbindung zum Broker verloren");
       });
       client.on("connect", () => {
-        if (run.broken === "Verbindung zum Broker verloren") recover(run, ctx);
+        recover(run, ctx, "connection");
       });
       ctx.signal.addEventListener("abort", () => void client.endAsync(true).catch(() => undefined), { once: true });
       await client.subscribeAsync(topics.subscriptions(line), { qos: 1 });
@@ -220,7 +278,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     async control(handle: SessionHandle, input: LoopControlInput, ctx: AdapterContext): Promise<Ack> {
       const run = runs.get(handle.sessionId);
       if (!run || run.closed) return { ok: false, detail: "nicht verbunden" };
-      if (!CAPABILITIES.controls.includes(input.kind)) return { ok: false, detail: `Befehl „${input.kind}“ wird nicht angeboten` };
+      if (!capabilities().controls.includes(input.kind)) return { ok: false, detail: `Befehl „${input.kind}“ wird nicht angeboten` };
       if (!run.info) return { ok: false, detail: `Linie „${run.line}“ hat sich noch nicht gemeldet` };
       let body: Record<string, unknown>;
       if (input.kind === "setMode") {
@@ -247,8 +305,10 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       const run = runs.get(handle.sessionId);
       if (!run || run.closed) return { state: "down", detail: "getrennt" };
       if (!run.client.connected) return { state: "down", detail: "Broker nicht erreichbar" };
-      if (run.broken?.startsWith("Linie offline")) return { state: "down", detail: run.broken };
-      if (run.broken) return { state: "broken", detail: run.broken };
+      const reasons = [...run.broken.values()];
+      const breach = reasons.find((r) => !r.startsWith("Linie offline"));
+      if (breach) return { state: "broken", detail: breach };
+      if (reasons.length > 0) return { state: "down", detail: reasons[0] ?? "Linie offline" };
       return run.info ? { state: "healthy" } : { state: "degraded", detail: "Linie hat sich noch nicht gemeldet" };
     },
 

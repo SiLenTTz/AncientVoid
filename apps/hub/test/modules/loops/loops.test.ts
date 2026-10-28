@@ -54,7 +54,8 @@ describe("loops (EPIC-P19)", () => {
     expect(loops.map((l) => l.id)).toEqual(["aspark-factory", "securesight-factory", "fake-loop"]);
     expect(loops.filter((l) => !l.available).every((l) => (l.reason ?? "").includes("nicht eingerichtet"))).toBe(true);
     expect(loops.find((l) => l.id === "fake-loop")).toMatchObject({ available: true, capabilities: { modes: ["ruhig", "scharf"] } });
-    expect(JSON.stringify(loops)).not.toMatch(/password|secret|token/i);
+    // Beschriftungen wie „Repo-Token“ sind in Ordnung; Konfigurationswerte und Pfade zu Schlüsseln dürfen nie in der Antwort stehen.
+    expect(JSON.stringify(loops)).not.toMatch(/passwordFile|passwordEnvFile|apiKey|geheim/i);
   });
 
   it("ein Start mit nicht angebundenem Loop wird laut abgelehnt, es entsteht keine Session", async () => {
@@ -82,7 +83,7 @@ describe("loops (EPIC-P19)", () => {
   });
 
   it("adapter und loop zusammen oder keines von beiden: 400", async () => {
-    expect((await call("POST", "/api/sessions", human, { adapter: "dummy", project: dir, loop: { id: "fake-loop", options: { line: "a" } } })).status).toBe(400);
+    expect((await call("POST", "/api/sessions", human, { adapter: "dummy", project: dir, loop: { id: "fake-loop", options: { line: "alpha" } } })).status).toBe(400);
     expect((await call("POST", "/api/sessions", human, { project: dir })).status).toBe(400);
   });
 
@@ -103,7 +104,7 @@ describe("loops (EPIC-P19)", () => {
     const missing = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "fake-loop" } });
     expect(missing.status).toBe(422);
     expect(String(missing.body.error)).toContain("Option „Line“ fehlt");
-    const mode = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "fake-loop", mode: "dark", options: { line: "a" } } });
+    const mode = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "fake-loop", mode: "dark", options: { line: "alpha" } } });
     expect(String(mode.body.error)).toContain("Betriebsart „dark“");
   });
 
@@ -116,4 +117,43 @@ describe("loops (EPIC-P19)", () => {
     expect(events.find((e) => e.payload?.kind === "loop.command")?.payload).toMatchObject({ mode: "scharf" });
     expect(events.find((e) => e.payload?.kind === "tool.permission_requested")?.payload).toMatchObject({ toolName: "AskUserQuestion" });
   });
+
+  it("Onboarding: ein Mensch richtet eine Linie ein, danach ist sie startbar; das Token taucht nirgends auf (EPIC-P19)", async () => {
+    const before = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "fake-loop", options: { line: "beta" } } });
+    expect(before.status).toBe(422);
+    const res = await call("POST", "/api/loops/fake-loop/onboard", human, { options: { name: "beta" }, secret: "geheim" });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, options: { line: "beta" } });
+    expect(JSON.stringify(res.body)).not.toContain("geheim");
+    const after = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "fake-loop", options: { line: "beta" } } });
+    expect(after.status).toBe(201);
+  });
+
+  it("Onboarding: abgelehntes Token = 422 mit Grund; fehlendes Geheimnis = 400; unbekannter Loop = 404; Agenten = 403", async () => {
+    expect(await call("POST", "/api/loops/fake-loop/onboard", human, { options: { name: "beta" }, secret: "falsch" })).toMatchObject({ status: 422, body: { ok: false, detail: "Der Token wurde abgelehnt" } });
+    expect((await call("POST", "/api/loops/fake-loop/onboard", human, { options: { name: "beta" } })).status).toBe(400);
+    expect((await call("POST", "/api/loops/aspark-factory/onboard", human, { options: {}, secret: "x" })).status).toBe(404);
+    expect((await call("POST", "/api/loops/fake-loop/onboard", agent, { options: { name: "beta" }, secret: "geheim" })).status).toBe(403);
+  });
+
+  it("die Auswahl „Neues Repo anbinden“ startet nie eine Session, bevor angebunden ist", async () => {
+    const res = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "fake-loop", options: { line: "+neu" } } });
+    expect(res.status).toBe(422);
+    expect(String(res.body.error)).toContain("angebunden");
+    expect(sessions.list()).toHaveLength(0);
+  });
+
+  it("AC-P19-8: ein Agenten-Token kann die Betriebsart einer Loop-Session nicht wechseln und nicht fortsetzen", async () => {
+    const created = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "fake-loop", mode: "ruhig", options: { line: "alpha" } } });
+    const id = String(created.body.id);
+    for (const body of [{ kind: "configure", permissionMode: "scharf" }, { kind: "resume" }]) {
+      const res = await call("POST", `/api/sessions/${id}/steer`, agent, body);
+      expect(res.status).toBe(422);
+    }
+    // der Loop hat nichts davon gesehen
+    await new Promise((r) => setTimeout(r, 200));
+    const cmds = ((await call("GET", `/api/sessions/${id}/events?limit=200`, human)).body as unknown as { payload?: { kind?: string } }[]).filter((e) => e.payload?.kind === "loop.command");
+    expect(cmds).toHaveLength(0);
+  });
 });
+

@@ -1,7 +1,7 @@
 # EPIC-P19 — Loop / Dark Factory: securesight-factory und aSPARK-Factory als wählbare Loops
 
 **Status:** Gebaut (2026-10-28, Auftrag von Jan): Contract, Core, beide Connectors (`packages/loops/*`), Auswahl, Kopf-Abzeichen und Loop-Panel.
-**Offen:** die Messläufe T19.7 gegen echte Systeme und der Push bei `loop.hold`; ein Loop ohne Eintrag in `loops[]` bleibt sichtbar, gesperrt und begründet ·
+**Offen:** die manuelle Abnahme (echtes Repo mit Token, wartende Frage am Handy, K1 gesamt); ein Loop ohne Eintrag in `loops[]` bleibt sichtbar, gesperrt und begründet ·
 **Phase:** P19 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P15 Modus-/Steuermuster,
 P17 Resume-Referenzen und Worker-Marker auf). Präzedenz wie P13/P14/P17: unabhängiges Epic neben offenen Abnahmen.
 P18 (Desktop-Workspace) ist seit 2026-10-27 gemergt, das Gating ist damit kein Hindernis mehr. Offen bleibt die Bestätigung des ADR.
@@ -92,9 +92,12 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
   Eskalationen, Statistik, Bericht, Pause/Weiter, Betriebsart mit Bestätigung bei Außenwirkung). Der Zustand wird nur aus den
   `loop.*`-Ereignissen gefaltet (`deriveLoopView`, 5 Unit-Tests); Specs in `loops.spec.ts` (5 Tests). Fragen laufen über die
   bestehende Freigaben-Ansicht. K10, AC-P8-5.
-- [~] **T19.7 — Messläufe und Doku.** *Teilweise:* `docs/loops.md` mit beiden Connectors und der Oberfläche. Offen: die Messläufe
-  K1/K2/K7/K9 nach Skill `messlauf` (brauchen eine laufende Linie bzw. ein echtes harnez-Projekt), Benachrichtigung bei `loop.hold`
-  (AC-P19-2: heute nur Ereignis und Abzeichen, kein Push), Matrix-Eintrag.
+- [x] **T19.7 — Messläufe und Doku.** *Erledigt 2026-10-28:* [Messlauf](../docs/messlauf/2026-10-28-p19-loops.md) (K2, K9, K7, K1-Maschinenanteil),
+  `docs/loops.md`, ADR-Nachtrag. `loop.hold`, `loop.broken` und `loop.notify` lösen Benachrichtigungen aus. K1 gesamt (Push, Biometrie)
+  und echte Läufe (neues Repo mit Token, wartende Frage) sind offen und stehen als manuelle Abnahme im Messlauf.
+- [x] **T19.8 — Repo anbinden (Nachtrag).** Onboarding im Contract (`LoopOnboarding`, `onboard()`), Route `POST /api/loops/:id/onboard`
+  (Policy `loops.onboard`), aSPARK geht `factoryctl new` selbst durch (Token über stdin), Formular „Neues Repo anbinden“ in der
+  Startauswahl; Leitstand-Passwort aus `factory.env`; `.factory/` nach der Umbenennung von securesight; Hermes-Freigaben im Panel.
 
 ## 5. Acceptance Criteria
 
@@ -153,3 +156,55 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
 - Die fremden Repos sind unverändert (Prüfung: `git status` dort sauber gegenüber dem
   Ausgangsstand).
 - `retro` am Ende, Abschnitt in dieser Datei.
+
+## Retro
+
+Stand 2026-10-28 · Commits `^ F core/loops/pwa … (EPIC-P19 T19.1–T19.8)`, MR !236, !238, !239, !240 und der Nachtrag-MR · Messlauf: [2026-10-28-p19-loops.md](../docs/messlauf/2026-10-28-p19-loops.md)
+
+AK-Matrix: 3 🟢 / 5 🟡 / 0 🔴 / 0 ⚪
+
+```text
+AC-P19-1: 🟡 teilweise
+  Beleg: aspark.test.ts „Rückfrage (permission) …“, „Rückfrage (question) …“, „… dieselbe Frage nur einmal“; Messlauf K1 (42 ms / 58 ms)
+  Bemerkung: Maschinenanteil und Einmaligkeit belegt; Push + Biometrie am Handy (p95 < 5 s gesamt) nicht gemessen; „bereits beantwortet“ als eigene Anzeige gibt es nicht.
+AC-P19-2: 🟡 teilweise
+  Beleg: securesight.test.ts „K2: 30 Transcript-Zeilen …“ (p95 41 ms, 60-s-Lauf); „Exit 3 …“ (10,3 s); notifications.test.ts „Loop-Benachrichtigungen“
+  Bemerkung: Connector und Benachrichtigung erfüllt; der Weg bis in den Browser ist hier nicht neu gemessen (P18: p95 91 ms).
+AC-P19-3: 🟢 erfüllt
+  Beleg: loops.spec.ts „K7: Hub-Neustart mitten im Loop …“ (724 ms, nichts doppelt, nichts fehlt); aspark.test.ts „K7: nach dem Neustart …“
+AC-P19-4: 🟡 teilweise
+  Beleg: aspark.test.ts „Last Will (offline), v≠1 und kaputtes JSON …“ (0 ms); securesight.test.ts „unbekanntes Schema …“, „Exit 3/4/5“; Messlauf K9 (13 s bei Standardtakt)
+  Bemerkung: Grund und Zeit belegt; „alle anderen Sessions ungestört“ hat keinen eigenen Test (die Störung ist ein Ereignis der eigenen Session).
+AC-P19-5: 🟢 erfüllt
+  Beleg: loops.spec.ts „ohne Loop startet die Session wie bisher“; gesamtes E2E-Gate grün (232 bestanden, 2 übersprungen)
+AC-P19-6: 🟡 teilweise
+  Beleg: `.dependency-cruiser.cjs` Regel `loops-only-contracts` (`npm run check:arch` grün); loops.test.ts „GET /api/loops …“; loops.spec.ts „Neues Repo anbinden“ (kein Token in Ereignissen); aspark.test.ts „… Token geht nur über stdin“
+  Bemerkung: die Regel ist nicht durch einen absichtlich verbotenen Import als rot belegt; kein Log-Leak-Test.
+AC-P19-7: 🟡 teilweise
+  Beleg: securesight.test.ts „Orchestrator hermes liest den Zustand …“ (inkl. `user_gates`); loop-view.test.ts „Hermes: Freigaben …“
+  Bemerkung: Stand-in und Panel belegt; die Wahl im Start-Formular hat keinen eigenen E2E-Test.
+AC-P19-8: 🟢 erfüllt
+  Beleg: loops.test.ts „ein Agenten-Token … nicht starten“ und „AC-P19-8: … Betriebsart … nicht wechseln und nicht fortsetzen“; Policy-Operationen `loops.start`, `loops.onboard` (nur Mensch)
+```
+
+Premortem: 2 eingetreten (1, 5) / 6 nicht eingetreten
+
+- **Eingetreten (1):** securesight benannte sich während der Arbeit um (Iteration 0055: `.harnez/` → `.factory/`); der Connector liest beide Orte (`securesight.test.ts` „nach der Umbenennung …“), unbekannte Schemata werden `loop.broken`.
+- **Eingetreten (5):** die echte Betriebsart von securesight ist `a`, die von aSPARK `autonomous`/`dark`: Werte bleiben providereigen (`Messlauf: Echte Systeme`).
+- Nicht eingetreten: 2 (nicht live geprüft), 3 (Policy + Bestätigung, AC-P19-8), 4, 6, 7, 8.
+
+Erkenntnisse:
+
+1. Echte Systeme zeigten, was Stand-ins nicht zeigten: retained Zustände aller alten aSPARK-Sessions fluteten den Verlauf, und mehrere Sessions je Linie machten „den“ Fortschritt mehrdeutig — Beleg: Lauf gegen den lokalen Broker, `aspark.test.ts` „… Abgeschlossene Sessions … bleiben still“, `loop-view.test.ts` „bei mehreren Sessions …“.
+2. Eine Störung braucht eine Quelle, sonst „heilt“ jede fremde Nachricht sie — Beleg: `aspark.test.ts` „Last Will …“ (Störungen je Topic, `loop.recovered` je Quelle).
+3. K7 verlangt, dass nicht nur Leseposition, sondern auch „schon Gemeldetes“ im Cursor liegt — Beleg: `securesight.test.ts` „K7 …“, E2E „K7: Hub-Neustart …“.
+4. Der Hub kann `factoryctl` ohne Terminal bedienen (Token über stdin, eigene Sitzung) — Beleg: Probelauf gegen die echte `factoryctl` mit ungültigem Token (HTTP 401, nichts angelegt), `aspark.test.ts` „Repo anbinden über factoryctl“.
+
+Action Items:
+
+- AI-P19-1: Handy-Abnahme K1 gesamt (Push, Biometrie, Antwort am Broker) und „bereits beantwortet“-Anzeige — zurück als: nächste Epic-Aufgabe (manuelle Abnahme).
+- AI-P19-2: Negativtest für `loops-only-contracts` (verbotener Import → rot) und ein Log-Leak-Test — zurück als: nächste Epic-Aufgabe.
+- AI-P19-3: E2E für die Orchestrator-Wahl im Start-Formular (securesight, hermes + Epic) — zurück als: nächste Epic-Aufgabe.
+- AI-P19-4: eigener MQTT-Nutzer mit enger ACL statt `leitstand`, sobald der Broker nicht mehr nur lokal erreichbar ist — zurück als: ADR (Nachtrag 2026-10-28, Frage 2).
+
+Artefakt: epics/EPIC-P19-loop-dark-factory.md ## Retro

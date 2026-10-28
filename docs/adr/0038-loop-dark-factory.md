@@ -270,3 +270,23 @@ Adapter · Modell · Modus: „vom Loop bestimmt“ (ausgegraut, mit Begründung
 5. **Reihenfolge:** Erst `aspark-factory` (klarer MQTT-Vertrag, passt 1:1 auf
    Freigaben) oder erst `securesight-factory`? Empfehlung: `aspark-factory` zuerst.
 6. ~~Epic-Gating~~ erledigt: P18 ist seit 2026-10-27 gemergt, P19 darf nach Bestätigung dieses ADR starten.
+
+## Nachtrag 2026-10-28: Einrichtung pro Repo und Umsetzung
+
+- **Onboarding im Contract.** `LoopCapabilities.onboarding` (Felder + ein Geheimnis) und `LoopConnector.onboard()` richten ein
+  Loop-System für ein neues Repo ein. Der Hub-Endpunkt `POST /api/loops/:id/onboard` ist die Policy-Operation `loops.onboard`
+  (nur Mensch). Das Geheimnis geht nur durch diesen einen Aufruf: nicht in Config, Ereignisse, Logs oder Fehlertexte. Die Auswahl
+  `LOOP_NEW` („+neu“) in der Startauswahl öffnet das Formular; vor dem Anbinden startet keine Session (422).
+- **aSPARK geht die `factoryctl`-Schritte selbst.** Der Connector ruft `factoryctl new <linie> --repo … [--type] [--mode]
+  [--gitlab-url]` und reicht das Repo-Token über stdin an dessen Prompt (`getpass`, ohne Terminal: eigene Sitzung). `setup`
+  (Claude-Token, Broker) fragt mehrere Geheimnisse und bleibt eine einmalige Handlung im Terminal; fehlt es, nennt der Hub den
+  Befehl. Eine vorhandene Linie für dasselbe Repo wird übernommen, für ein anderes Repo abgelehnt. Betriebsart `dark` gibt es beim
+  Anbinden nicht; sie wird später mit Bestätigung gesetzt.
+- **Frage 2 (eigener MQTT-Nutzer) abweichend entschieden:** Der Connector nutzt den vorhandenen Nutzer `leitstand` aus `factoryctl
+  setup` (Passwort aus `factory.env`, Schlüssel `MQTT_LEITSTAND_PASSWORD`, nie in der Hub-Config). Dessen ACL ist weiter als im
+  Entwurf (`agent/#` lesen und schreiben). Das ist für einen lokalen Broker vertretbar; ein eigener Nutzer bleibt möglich, wenn der
+  Broker außerhalb des Rechners erreichbar wird.
+- **securesight-harnez heißt jetzt securesight-factory** (Iteration 0055): der Fahrplan liegt unter `.factory/`; der Connector liest
+  `.factory/progress.json` und fällt auf `.harnez/progress.json` zurück. `scripts/betrieb.py` und `.harness/` bleiben.
+- **Benachrichtigungen:** `loop.hold`, `loop.broken` und `loop.notify` lösen eine Hub-Benachrichtigung aus (ADR-0015-Pfad).
+
