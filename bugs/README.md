@@ -100,5 +100,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0073](bug-0073-desktop-starter-zweiter-hub.md) | Der Desktop-Starter „UACC“ startet einen zweiten Hub neben dem Dienst | done | S2 | ops | [#28](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/28) |
 | [BUG-0074](bug-0074-hub-heap-oom-absturz.md) | Der Hub stürzt wiederholt mit „JavaScript heap out of memory“ ab | done | S1 | core | [#29](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/29) |
 | [BUG-0075](bug-0075-hub-oom-resync-schleife.md) | Hub stürzt alle ~2 Min. mit Heap-OOM ab (Resync-Schleife, unsortierte Events) | done | S1 | core, server, pwa | — |
+| [BUG-0076](bug-0076-pi-fehlerstatus-nach-erfolgreichem-turn.md) | pi: fehlerfreier Folgelauf bleibt `status:error` (stale `healthy=false`) | done | S1 | adapters | — |
 
 Die nächste freie Nummer ist **0076**.
