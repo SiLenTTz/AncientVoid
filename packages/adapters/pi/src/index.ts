@@ -90,6 +90,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   function attach(ctx: AdapterContext, proc: WorkerProcess, meta: SessionMeta) {
+    // Reset per new process: a stale `healthy=false` from a *previous*
+    // one-shot turn's abnormal exit must not stick once a fresh process
+    // (this steer()'s continuation) actually ran and exited cleanly —
+    // same BUG-0008/BUG-0076 lesson as adapter-claude: pi is one-shot per
+    // turn, the session between turns is idle, not down.
+    meta.healthy = true;
     // BUG-0065: `--mode json` streams thinking, tool calls and results;
     // each finished block is emitted live instead of one text at exit.
     const stream = createPiStream();

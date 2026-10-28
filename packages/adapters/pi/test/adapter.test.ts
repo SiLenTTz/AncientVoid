@@ -116,6 +116,40 @@ describe("pi adapter prompt argv (BUG-0066)", () => {
   });
 });
 
+describe("pi adapter health (BUG-0076)", () => {
+  function fakeExitProcess(code: number): WorkerProcess {
+    const exitCbs = new Set<(code: number | null) => void>();
+    setTimeout(() => {
+      for (const cb of exitCbs) cb(code);
+    }, 0);
+    return {
+      onStdout: () => undefined,
+      onStderr: () => undefined,
+      onExit: (cb) => exitCbs.add(cb),
+      write: () => undefined,
+      kill: async () => undefined,
+      exited: () => new Promise((resolve) => exitCbs.add((c) => resolve({ code: c }))),
+    };
+  }
+
+  it("ein fehlerfreier Turn nach einem gescheiterten ist wieder healthy — kein Error-Altbestand", async () => {
+    const adapter = createAdapter({});
+    const codes = [3, 0];
+    const ctx = makeRecordingContext({ spawnWorker: async () => fakeExitProcess(codes.shift() ?? 0) });
+    const handle = await adapter.start({ adapter: "pi", project: process.cwd(), prompt: "geht schief" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "pi.turn_end"));
+    // Der erste Turn endete abnorm (Exit 3) — down ist hier korrekt.
+    expect((await adapter.status(handle)).state).toBe("down");
+
+    const ack = await adapter.steer(handle, { kind: "prompt", text: "nochmal" }, ctx);
+    expect(ack.ok).toBe(true);
+    await waitFor(() => ctx.events.filter((e) => (e.payload as { kind?: string }).kind === "pi.turn_end").length >= 2);
+    // BUG-0076: der neue Prozess lief fehlerfrei (Exit 0) — status() muss
+    // healthy melden, sonst setzt der Hub-Heartbeat die Session erneut auf error.
+    expect((await adapter.status(handle)).state).toBe("healthy");
+  });
+});
+
 describe("pi adapter streams the json run (BUG-0065)", () => {
   it("Thinking und Tool-Aufruf kommen ins Event-Log, während pi noch läuft", async () => {
     let out: (chunk: string) => void = () => undefined;
