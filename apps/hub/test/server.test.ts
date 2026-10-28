@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll, vi } from "vitest";
-import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, readFile, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
@@ -1172,6 +1172,35 @@ describe("hub server — /api/search* routes (T3.8)", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(escape.statusCode).toBe(404);
+  });
+
+  it("/api/search/docs lists every markdown doc with its first heading, without qmd", async () => {
+    await writeFile(join(dir, "readme.md"), "# Lesemich\n\nInhalt", "utf8");
+    await mkdir(join(dir, "docs", "adr"), { recursive: true });
+    await writeFile(join(dir, "docs", "adr", "0001.md"), "# Erste Entscheidung\n", "utf8");
+    await writeFile(join(dir, "docs", "ohne-titel.md"), "nur Text", "utf8");
+    await writeFile(join(dir, "ignored.txt"), "kein Markdown", "utf8");
+    await mkdir(join(dir, "node_modules", "dep"), { recursive: true });
+    await writeFile(join(dir, "node_modules", "dep", "pack.md"), "# weg hier", "utf8");
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/search/docs?project=${encodeURIComponent(dir)}`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const docs = res.json().docs as { path: string; title: string | null }[];
+    const paths = docs.map((d) => d.path);
+    // Der qmd-Test derselben Suite kann ein „note.md“ hinterlassen — hier
+    // zählt, was dieser Test anlegt (und was nie auftaucht).
+    expect(paths).toContain("readme.md");
+    expect(paths).toContain("docs/adr/0001.md");
+    expect(paths).toContain("docs/ohne-titel.md");
+    expect(paths).not.toContain("ignored.txt");
+    expect(paths.some((p) => p.startsWith("node_modules/"))).toBe(false);
+    expect(paths).toEqual([...paths].sort((a, b) => a.localeCompare(b)));
+    expect(docs.find((d) => d.path === "readme.md")?.title).toBe("Lesemich");
+    expect(docs.find((d) => d.path === "docs/ohne-titel.md")?.title).toBeNull();
   });
 });
 

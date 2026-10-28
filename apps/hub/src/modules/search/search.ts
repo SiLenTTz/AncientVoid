@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createHash } from "node:crypto";
-import { realpath, readFile, stat } from "node:fs/promises";
+import { realpath, readFile, readdir, stat, open } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 /**
@@ -286,5 +286,64 @@ export async function removeIndex(projectPath: string): Promise<void> {
   const name = collectionNameFor(projectPath);
   if (await collectionExists(name)) {
     await execFileAsync("qmd", ["collection", "remove", name]);
+  }
+}
+
+export interface ProjectDoc {
+  path: string;
+  /** Erste `# `-Überschrift der Datei — ehrlich null, wenn keine existiert. */
+  title: string | null;
+  bytes: number;
+}
+
+/** Verzeichnisse, die niemals Dokumente beisteuern — VCS- und Paket-Innereien
+ * sind keine Doku, und node_modules wäre jede Abhängigkeit mal laut. */
+const DOC_SKIP_DIRS = new Set([".git", "node_modules"]);
+
+/**
+ * Alle Markdown-Dokumente eines Projekts, strukturiert gelistet — die
+ * Dokumentübersicht der Suchansicht (die Liste braucht kein qmd, nur
+ * die .md-Dateien die der Index ebenfalls erfasst). Schließt das dataDir
+ * aus, wenn es im Projekt liegt (BUG-0014: Worktree-Kopien), und liest pro
+ * Datei nur die ersten Zeilen für den Titel.
+ */
+export async function listProjectDocs(projectPath: string, excludeRelDirs: readonly string[] = []): Promise<ProjectDoc[]> {
+  const realProject = await realpath(projectPath).catch(() => null);
+  if (!realProject) return [];
+  const excluded = new Set(excludeRelDirs);
+  const docs: ProjectDoc[] = [];
+  const walk = async (absDir: string, relDir: string): Promise<void> => {
+    const entries = await readdir(absDir, { withFileTypes: true }).catch(() => []);
+    for (const entry of entries) {
+      const rel = relDir ? `${relDir}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        if (DOC_SKIP_DIRS.has(entry.name) || excluded.has(rel)) continue;
+        await walk(join(absDir, entry.name), rel);
+      } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) {
+        const abs = join(absDir, entry.name);
+        const info = await stat(abs).catch(() => null);
+        if (!info || info.size > MAX_VIEWABLE_FILE_BYTES) continue;
+        docs.push({ path: rel, title: await docTitle(abs), bytes: info.size });
+      }
+    }
+  };
+  await walk(realProject, "");
+  docs.sort((a, b) => a.path.localeCompare(b.path));
+  return docs;
+}
+
+async function docTitle(absPath: string): Promise<string | null> {
+  const handle = await open(absPath, "r").catch(() => null);
+  if (!handle) return null;
+  try {
+    const buffer = Buffer.alloc(4096);
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+    for (const line of buffer.subarray(0, bytesRead).toString("utf8").split("\n")) {
+      const heading = /^#\s+(.+?)\s*$/.exec(line);
+      if (heading) return heading[1]!;
+    }
+    return null;
+  } finally {
+    await handle.close();
   }
 }

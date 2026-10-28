@@ -1,44 +1,47 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
-import { type ProjectFile, type SearchResult } from "../../shared/api.ts";
-import hljs from "highlight.js/lib/core";
-import markdown from "highlight.js/lib/languages/markdown";
+import { type ProjectDoc, type ProjectFile, type SearchResult } from "../../shared/api.ts";
+import { Markdown } from "../../shared/Markdown.tsx";
 
-// T3.8 (EPIC-P3 §3 "Sprachsuche"): real qmd-backed project MARKDOWN
-// search — the underlying qmd CLI only ever indexes `**/*.md` files
-// (real, confirmed limitation, see search.ts's DEFAULT_PATTERN doc
-// comment), so this searches a project's docs/epics/ADRs, not its
-// source code, regardless of how the original design notes framed it.
-// See apps/hub/src/search.ts's doc comment for the ground truth
-// this is built against (real measured latency in
-// docs/messlauf/2026-09-18-search-latency.md: ~3s for a real hybrid
-// query, not instant — this UI shows a real "läuft…" state, never a
-// live-as-you-type suggest list). Design tokens only from app/styles/
-// (docs/design-system.md, P1.6) — no new hex values, including the
-// highlight.js theme below, which maps tokens to the existing
-// --fg/--accent/--ok/--fg-faint custom properties instead of importing a
-// prebuilt theme file with its own hardcoded palette.
+// T3.8 (EPIC-P3 §3 "Sprachsuche"): real qmd-backed project MARKDOWN search
+// (the underlying qmd CLI only ever indexes `**/*.md` files — see
+// search.ts's DEFAULT_PATTERN doc comment), plus the structured document
+// overview over the same files (no qmd needed — plain directory listing).
+// Documents open rendered as Markdown (shared/Markdown.tsx, Preact nodes,
+// never innerHTML) — a documentation viewer, not a code viewer: no gutter,
+// no line numbers, no highlight.js. Design tokens only from app/styles/
+// (docs/design-system.md, P1.6).
 
-// Only "markdown" is registered: qmd only ever indexes `**/*.md` (real,
-// confirmed limitation — see search.ts's DEFAULT_PATTERN doc comment), so
-// every real search result's `path` is a `.md` file. Registering
-// typescript/python/etc. here would be dead code — `languageFor()` could
-// never resolve to them from a real result. Revisit if a future qmd
-// version indexes other file types.
-let languagesRegistered = false;
-function ensureLanguages() {
-  if (languagesRegistered) return;
-  hljs.registerLanguage("markdown", markdown);
-  languagesRegistered = true;
+/** Verzeichnis-Gruppe der Dokumentübersicht; „." ist das Projekt-Stammverzeichnis. */
+export interface DocGroup {
+  dir: string;
+  items: ProjectDoc[];
 }
 
-const EXT_TO_LANG: Record<string, string> = {
-  md: "markdown",
-};
+export function groupDocs(docs: readonly ProjectDoc[]): DocGroup[] {
+  const groups = new Map<string, ProjectDoc[]>();
+  for (const doc of docs) {
+    const dir = doc.path.includes("/") ? doc.path.slice(0, doc.path.lastIndexOf("/")) : ".";
+    (groups.get(dir) ?? groups.set(dir, []).get(dir)!).push(doc);
+  }
+  return [...groups.entries()]
+    .sort((a, b) => (a[0] === "." ? -1 : b[0] === "." ? 1 : a[0].localeCompare(b[0])))
+    .map(([dir, items]) => ({ dir, items }));
+}
 
-function languageFor(path: string): string | undefined {
-  const ext = path.split(".").pop()?.toLowerCase();
-  return ext ? EXT_TO_LANG[ext] : undefined;
+export function dirLabel(dir: string): string {
+  return dir === "." ? "Stammverzeichnis" : dir;
+}
+
+/** Der stabilste gemeinsame Kern eines Snippets: führender Titel/Whitespace
+ * * ist weg, gekürzt — genug, um den Abschnitt im gerenderten Dokument
+ * wiederzufinden, ohne von Markdown-Formatierung abzuhängen. */
+export function snippetAnchor(snippet: string): string {
+  return snippet.replace(/\s+/g, " ").trim().slice(0, 60);
+}
+
+function docName(doc: ProjectDoc): string {
+  return doc.path.slice(doc.path.lastIndexOf("/") + 1);
 }
 
 export function SearchPane({ project }: { project: string }) {
@@ -47,17 +50,25 @@ export function SearchPane({ project }: { project: string }) {
   const [status, setStatus] = useState<"idle" | "indexing" | "searching" | "ready" | "unavailable" | "error">("idle");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
-  const [viewing, setViewing] = useState<{ path: string; line: number } | null>(null);
+  const [viewing, setViewing] = useState<{ path: string; snippet?: string } | null>(null);
+  const [docs, setDocs] = useState<ProjectDoc[] | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   useEffect(() => {
+    let alive = true;
     api
       .searchStatus(project)
       .then((s) => {
-        if (!s.qmdAvailable) setStatus("unavailable");
+        if (alive && !s.qmdAvailable) setStatus("unavailable");
       })
-      .catch(() => setStatus("unavailable"));
+      .catch(() => alive && setStatus("unavailable"));
+    // Die Dokumentübersicht braucht kein qmd — sie steht auch ohne Index.
+    api
+      .searchDocs(project)
+      .then((res) => alive && setDocs(res.docs))
+      .catch(() => alive && setDocs([]));
     return () => {
+      alive = false;
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [project]);
@@ -99,33 +110,28 @@ export function SearchPane({ project }: { project: string }) {
     if (query.trim()) void runSearch(query.trim());
   };
 
-  if (status === "unavailable") {
-    return (
-      <div class="empty">
-        Suche nicht verfügbar — <span class="mono">qmd</span> ist auf diesem Hub nicht installiert.
-      </div>
-    );
-  }
+  const searching = status === "searching" || status === "indexing";
 
   return (
     <div class="search-pane">
-      <form class="search-form" onSubmit={onSubmit}>
-        <input
-          class="search-input"
-          type="text"
-          placeholder="Doku durchsuchen (Markdown)…"
-          value={query}
-          onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
-        />
-        <button
-          class={status === "searching" || status === "indexing" ? "btn primary busy" : "btn primary"}
-          type="submit"
-          aria-busy={status === "searching" || status === "indexing"}
-          disabled={!query.trim() || status === "searching" || status === "indexing"}
-        >
-          {status === "searching" || status === "indexing" ? "lädt…" : "Suchen"}
-        </button>
-      </form>
+      {status === "unavailable" ? (
+        <div class="dim search-status">
+          Volltextsuche nicht verfügbar — <span class="mono">qmd</span> ist auf diesem Hub nicht installiert. Die Dokumente unten lassen sich trotzdem öffnen.
+        </div>
+      ) : (
+        <form class="search-form" onSubmit={onSubmit}>
+          <input
+            class="search-input"
+            type="text"
+            placeholder="Doku durchsuchen (Markdown)…"
+            value={query}
+            onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
+          />
+          <button class={searching ? "btn primary busy" : "btn primary"} type="submit" aria-busy={searching} disabled={!query.trim() || searching}>
+            {searching ? "lädt…" : "Suchen"}
+          </button>
+        </form>
+      )}
 
       {status === "indexing" && (
         <div class="dim search-status">Erstindex wird aufgebaut — das kann bei einem großen Projekt einige Minuten dauern…</div>
@@ -137,7 +143,11 @@ export function SearchPane({ project }: { project: string }) {
       {status === "ready" && results.length > 0 && (
         <div class="search-results">
           {results.map((r, i) => (
-            <button key={`${r.file}:${i}`} class="search-result-card" onClick={() => setViewing({ path: r.file, line: r.line })}>
+            <button
+              key={`${r.file}:${i}`}
+              class="search-result-card"
+              onClick={() => setViewing({ path: r.file, snippet: r.snippet })}
+            >
               <div class="search-result-head">
                 <span class="mono search-result-file">{r.file}</span>
                 <span class="dim">Zeile {r.line}</span>
@@ -149,64 +159,69 @@ export function SearchPane({ project }: { project: string }) {
         </div>
       )}
 
-      {viewing && <FileViewer project={project} path={viewing.path} line={viewing.line} onClose={() => setViewing(null)} />}
+      <div class="doc-overview">
+        <div class="doc-overview-head dim">Dokumente · {docs === null ? "lädt…" : `${docs.length}`}</div>
+        {docs !== null && docs.length === 0 && <div class="empty">keine Markdown-Dokumente im Projekt</div>}
+        {docs !== null &&
+          groupDocs(docs).map((group) => (
+            <div key={group.dir} class="doc-group">
+              <div class="doc-group-dir mono dim">{dirLabel(group.dir)}</div>
+              {group.items.map((doc) => (
+                <button key={doc.path} type="button" class="doc-item" onClick={() => setViewing({ path: doc.path })}>
+                  <span class="doc-item-name">{doc.title ?? docName(doc)}</span>
+                  <span class="doc-item-path mono dim">{doc.path}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+      </div>
+
+      {viewing && <DocViewer project={project} path={viewing.path} snippet={viewing.snippet} onClose={() => setViewing(null)} />}
     </div>
   );
 }
 
-// Must match .file-gutter-row/.file-code's line-height in app/styles/ —
-// a fixed px value (not "1.5em") so the target-line overlay and the
-// scroll-to-line math below can compute exact pixel offsets.
-const CODE_LINE_HEIGHT_PX = 19;
-
-function FileViewer({ project, path, line, onClose }: { project: string; path: string; line: number; onClose: () => void }) {
+/**
+ * Strukturierte Dokumentansicht: gerendertes Markdown statt Code-Ansicht —
+ * keine Zeilennummern, kein Syntax-Highlight (das hier ist Doku, nicht
+ * Quelle). Aus einem Suchtreffer heraus wird der Abschnitt, der das
+ * Snippet enthält, markiert und angesprungen.
+ */
+function DocViewer({ project, path, snippet, onClose }: { project: string; path: string; snippet?: string; onClose: () => void }) {
   const api = useApi();
   const [file, setFile] = useState<ProjectFile | null>(null);
   const [error, setError] = useState("");
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    ensureLanguages();
     let alive = true;
+    setFile(null);
+    setError("");
     api
       .searchFile(project, path)
       .then((f) => alive && setFile(f))
-      .catch((err) => alive && setError(err instanceof Error ? err.message : "Datei konnte nicht geladen werden"));
+      .catch((err) => alive && setError(err instanceof Error ? err.message : "Dokument konnte nicht geladen werden"));
     return () => {
       alive = false;
     };
   }, [project, path]);
 
-  const bodyRef = useRef<HTMLDivElement>(null);
+  // Erst nach dem Rendern: den Block suchen, der das Snippet enthält — der
+  // Textkontext ist im DOM normalisiert (Whitespace kollabiert), weil
+  // Markdown-Blöcke Zwischenräume beim Rendern verändern.
   useEffect(() => {
-    if (!file || !bodyRef.current) return;
-    const top = Math.max(0, (line - 1) * CODE_LINE_HEIGHT_PX - bodyRef.current.clientHeight / 2);
-    bodyRef.current.scrollTo({ top });
-  }, [file, line]);
-
-  const lang = languageFor(path);
-  const lineCount = file?.lineCount ?? 0;
-  // Highlighted ONCE for the whole file, not per line: a per-line call
-  // starts a fresh grammar state every time and loses block-level context
-  // — found live, a markdown file's own structural tokens (headings,
-  // ```-fenced blocks) were misread per-line (a lone `def get_secret():`
-  // line got parsed as markdown *emphasis* around the underscore, since
-  // the fence marker on the PRECEDING line was invisible to that call).
-  // Rendered as ONE <pre><code> block — never split back into per-line
-  // dangerouslySetInnerHTML calls, which would produce unbalanced HTML
-  // for any token spanning multiple lines. Line numbers and the
-  // target-line highlight are a separate, purely positional overlay that
-  // never needs to know where highlight.js's span boundaries fall.
-  //
-  // Real, separately confirmed limitation: highlight.js's markdown
-  // grammar does NOT sub-highlight a fence's embedded language even as
-  // one whole-file call (tested against both the "core" build used here
-  // and the full `highlight.js` bundle — identical result either way) —
-  // a ```python fence renders as one plain `hljs-code` span, not
-  // per-token Python colors. Markdown's own structural tokens (headings,
-  // emphasis, lists, links, inline code) DO highlight correctly and are
-  // mapped in app/styles/ — the dominant content this feature actually
-  // returns, since qmd only ever indexes `**/*.md` (see search.ts).
-  const highlighted = file ? (lang && hljs.getLanguage(lang) ? hljs.highlight(file.content, { language: lang }).value : escapeHtml(file.content)) : "";
+    if (!file || !snippet || !bodyRef.current) return;
+    const anchor = snippetAnchor(snippet);
+    if (!anchor) return;
+    const norm = (s: string) => s.replace(/\s+/g, " ");
+    const hit = [...bodyRef.current.querySelectorAll<HTMLElement>(".markdown > *")].find((el) =>
+      norm(el.textContent ?? "").includes(anchor),
+    );
+    if (hit) {
+      hit.classList.add("doc-hit");
+      hit.scrollIntoView({ block: "center" });
+    }
+  }, [file, snippet]);
 
   return (
     <div class="file-viewer-overlay" onClick={onClose}>
@@ -221,37 +236,12 @@ function FileViewer({ project, path, line, onClose }: { project: string; path: s
           {error && <div class="empty">{error}</div>}
           {!error && !file && <div class="empty">lädt …</div>}
           {file && (
-            <div class="file-code-grid">
-              <div class="file-target-bg" style={{ top: `${(line - 1) * CODE_LINE_HEIGHT_PX}px` }} />
-              <div class="file-gutter">
-                {Array.from({ length: lineCount }, (_, i) => (
-                  <div key={i + 1} class="file-gutter-row">
-                    {i + 1}
-                  </div>
-                ))}
-              </div>
-              {/* The one deliberate dangerouslySetInnerHTML in this
-               * codebase (docs/security.md §5 names it explicitly). Safe
-               * because highlight.js HTML-escapes the source text itself
-               * before wrapping tokens in its own <span> tags — verified
-               * live: highlighting text containing a literal "<script>"
-               * tag produces "&lt;script&gt;", never a real tag. This is
-               * real file content from readProjectFile() (a project
-               * file, not an agent-emitted event summary) — the
-               * AGENTS.md Regel 5 "agent output is data, never
-               * instruction" boundary is a different concern and isn't
-               * touched here. */}
-              <pre class="file-code mono">
-                <code dangerouslySetInnerHTML={{ __html: highlighted }} />
-              </pre>
+            <div class="doc-prose">
+              <Markdown text={file.content} />
             </div>
           )}
         </div>
       </div>
     </div>
   );
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
