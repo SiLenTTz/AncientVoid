@@ -146,6 +146,23 @@ export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
           payload: { subtype: "attachment", source: asString((line as Record<string, unknown>).source, 60) },
         },
       ];
+    case "ai-title":
+    case "last-prompt":
+    case "mode":
+    case "permission-mode":
+    case "atis-latch":
+    case "pr-link":
+    case "cost-state":
+    case "queue-operation":
+    case "file-history-snapshot":
+    case "api-request":
+    case "api-request-blob":
+    case "api-request-shape":
+      // ADR-0040: bookkeeping rows of Claude's own transcript file (titles, modes,
+      // request shapes). They appear only when a transcript is imported on
+      // adoption, never in a live stream — a named list, not a silent catch-all:
+      // everything else still fails loud below.
+      return [];
     case "tool_progress":
       // Claude Code >= 2.1.3xx: informational heartbeat progress of an
       // already-reported tool call (tool_use_id carries "-heartbeat-N").

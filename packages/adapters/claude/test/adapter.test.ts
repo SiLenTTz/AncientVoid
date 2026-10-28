@@ -435,6 +435,41 @@ describe("Fortsetzen: Wächter und Transkript-Import (Live-Fund 2026-09-28)", ()
     expect(result).toBeGreaterThan(marker);
   });
 
+  it("ADR-0040: eine Übernahme ohne Prompt startet keinen Prozess — der nächste Zug setzt fort", async () => {
+    const sid = "485d0730-cd5d-43a9-8fdb-232219f80f1d";
+    const calls: string[][] = [];
+    const ctx = makeRecordingContext({ spawnWorker: async (cmd) => { calls.push(cmd); return fakeClaudeProcess(loadFixture("trivial-text.jsonl")); } });
+    const adapter = createAdapter({ claudeDir: "/nirgendwo" });
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", args: { resumeSessionId: sid } }, ctx);
+    expect(calls).toHaveLength(0);
+    await adapter.steer(handle, { kind: "prompt", text: "weiter" }, ctx);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain("--resume");
+    expect(calls[0]).toContain(sid);
+    expect(calls[0]).not.toContain("--fork-session");
+  });
+
+  it("ADR-0040: forkSession setzt nur den ersten Zug als Kopie fort, danach läuft die Kopie selbst", async () => {
+    const sid = "485d0730-cd5d-43a9-8fdb-232219f80f1d";
+    const calls: string[][] = [];
+    const ctx = makeRecordingContext({ spawnWorker: async (cmd) => { calls.push(cmd); return fakeClaudeProcess(loadFixture("trivial-text.jsonl")); } });
+    const adapter = createAdapter({ claudeDir: "/nirgendwo" });
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", args: { resumeSessionId: sid, forkSession: true } }, ctx);
+    await adapter.steer(handle, { kind: "prompt", text: "eins" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+    await adapter.steer(handle, { kind: "prompt", text: "zwei" }, ctx);
+    expect(calls[0]).toContain("--fork-session");
+    expect(calls[1]).not.toContain("--fork-session");
+  });
+
+  it("ADR-0040: forkSession mit Prompt forkt schon beim Start", async () => {
+    const sid = "485d0730-cd5d-43a9-8fdb-232219f80f1d";
+    const calls: string[][] = [];
+    const ctx = makeRecordingContext({ spawnWorker: async (cmd) => { calls.push(cmd); return fakeClaudeProcess(loadFixture("trivial-text.jsonl")); } });
+    await createAdapter({ claudeDir: "/nirgendwo" }).start({ adapter: "claude", project: "/tmp", prompt: "los", args: { resumeSessionId: sid, forkSession: true } }, ctx);
+    expect(calls[0]).toContain("--fork-session");
+  });
+
   it("ohne Transkript gibt es eine sichtbare Notiz statt Stillstand", async () => {
     const sid = "00000000-0000-4000-8000-000000000000";
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(loadFixture("trivial-text.jsonl")) });

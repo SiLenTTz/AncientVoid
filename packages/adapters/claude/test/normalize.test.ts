@@ -141,6 +141,20 @@ describe("neue Top-Level-Typen der Claude-CLI (BUG-0040)", () => {
   });
 });
 
+describe("Buchhaltungszeilen des Transkripts (ADR-0040)", () => {
+  it.each(["ai-title", "last-prompt", "mode", "permission-mode", "atis-latch", "pr-link", "cost-state", "queue-operation", "file-history-snapshot", "api-request", "api-request-blob", "api-request-shape"])(
+    "%s ist bekannt und erzeugt kein Rausch-Event",
+    (type) => {
+      expect(normalizeClaudeLine({ type })).toEqual([]);
+    },
+  );
+
+  it("ein wirklich unbekannter Typ bleibt laut", () => {
+    const events = normalizeClaudeLine({ type: "etwas-neues" });
+    expect(events[0]!.summary).toContain("unhandled stream-json type");
+  });
+});
+
 describe("ADR-0033: Modus und Modell aus dem Init-Event", () => {
   it("nimmt model und permissionMode in die Nutzdaten des Init-Events auf", () => {
     const [event] = normalizeClaudeLine({ type: "system", subtype: "init", cwd: "/x", model: "claude-sonnet-5-5", permissionMode: "auto", tools: ["Bash"], claude_code_version: "2.1.288" });
