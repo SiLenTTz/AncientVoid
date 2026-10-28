@@ -52,6 +52,11 @@ export const SessionSpec = z.object({
    * refuse this via refuseSpec (unsupportedResume).
    */
   adoptNativeSessionId: z.string().min(1).optional(),
+  /** ADR-0040: continue the adopted session as a copy with its own id, so a
+   * run still open elsewhere is not written by two processes. */
+  adoptFork: z.boolean().optional(),
+  /** ADR-0040: overview title for an adopted session (display only). */
+  title: z.string().min(1).max(120).optional(),
   /** Read-only mirror (ADR-0011 Erweiterung): show an externally observed
    * opencode session's conversation in the hub chat without adopting it —
    * history and updates come from opencode's own store, nothing is run. */

@@ -6,9 +6,12 @@ export function registerDiscoveryRoutes(app: FastifyInstance, ctx: RouteContext)
   const { deps } = ctx;
 
   app.get("/api/discovery", async (req) => {
-    const q = req.query as { cursor?: string; limit?: string };
+    const q = req.query as { cursor?: string; limit?: string; q?: string; adapter?: string };
     const cursor = Number(q.cursor ?? 0);
     const limit = Number(q.limit ?? 50);
-    return deps.sessions.discover(deps.discoverySources ?? [], Number.isFinite(cursor) ? cursor : 0, Number.isFinite(limit) ? limit : 50);
+    return deps.sessions.discover(deps.discoverySources ?? [], Number.isFinite(cursor) ? cursor : 0, Number.isFinite(limit) ? limit : 50, {
+      ...(q.q ? { q: q.q.slice(0, 200) } : {}),
+      ...(q.adapter ? { adapter: q.adapter } : {}),
+    });
   });
 }

@@ -23,11 +23,12 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
   const [cursor, setCursor] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
 
-  const load = async (from: number) => {
+  const load = async (from: number, q = query) => {
     setBusy(true);
     try {
-      const page = await hubApi.discovery(from);
+      const page = await hubApi.discovery(from, 50, q.trim() ? { q: q.trim() } : {});
       setItems((prev) => (from === 0 ? page.items : [...(prev ?? []), ...page.items]));
       setCursor(page.nextCursor);
       setError("");
@@ -38,9 +39,11 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
     }
   };
 
+  // ADR-0040: the hub searches before it pages — a hit on page 9 is found, too.
   useEffect(() => {
-    void load(0);
-  }, []);
+    const handle = setTimeout(() => void load(0, query), items === null ? 0 : 300);
+    return () => clearTimeout(handle);
+  }, [query]);
 
   const groups = groupDiscovery(items ?? []);
 
@@ -55,7 +58,7 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
   /** Adoption (ADR-0011): hub-managed continuation of an observed session.
    * A subagent transcript is not continuable itself — its parent run is
    * (the subagent's work is part of that conversation). */
-  const adopt = async (item: DiscoveredSession) => {
+  const adopt = async (item: DiscoveredSession, asCopy: boolean) => {
     const native = item.parentSessionId ?? item.nativeSessionId;
     if (!native) return;
     setBusy(true);
@@ -64,6 +67,8 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
         adapter: item.adapter,
         project: item.project,
         adoptNativeSessionId: native,
+        ...(asCopy ? { adoptFork: true } : {}),
+        ...(item.title ? { title: item.title } : {}),
       });
       onOpen(record);
       setError("");
@@ -96,18 +101,27 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
   };
 
   if (items === null) return <div class="empty">{error || "lade…"}</div>;
+  const searching = query.trim() !== "";
   const unsupported = items.filter((i) => i.status === "unsupported-format").length;
 
   return (
     <div class="discovery">
+      <input
+        class="discovery-search"
+        type="search"
+        placeholder="Sessions durchsuchen: Titel, letzte Nachricht, Projekt …"
+        aria-label="Sessions durchsuchen"
+        value={query}
+        onInput={(e) => setQuery((e.currentTarget as HTMLInputElement).value)}
+      />
       <div class="dashboard-summary dim">
         <span>{items.length} gefunden</span>
         {unsupported > 0 && <span class="badge risk-destructive">{unsupported} unbekanntes Format</span>}
       </div>
       {error && <div class="reply-error">{error}</div>}
-      {items.length === 0 && <div class="empty">keine Sessions gefunden</div>}
+      {items.length === 0 && <div class="empty">{searching ? "keine Session passt zur Suche" : "keine Sessions gefunden"}</div>}
       {groups.map((group, i) => (
-        <details key={group.project} class="project-tile" open={i === 0}>
+        <details key={`${group.project}|${searching}`} class="project-tile" open={i === 0 || searching}>
           <summary class="project-tile-header">
             <span class="project-tile-name">{group.project}</span>
             <span class="dim">
@@ -128,26 +142,39 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
   );
 }
 
-function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSession; onOpen: (id: string) => void; onAdopt?: (item: DiscoveredSession) => void; onMirror?: (item: DiscoveredSession) => void }) {
+/** First line of the card: what the session is about. A bare id is the last
+ * resort — and says so, instead of looking like a name. */
+export function discoveryHeading(item: Pick<DiscoveredSession, "title" | "nativeSessionId" | "hubSessionId">): { text: string; untitled: boolean } {
+  if (item.title) return { text: item.title, untitled: false };
+  const id = item.nativeSessionId ?? item.hubSessionId ?? "";
+  return { text: id ? `Ohne Titel · ${id.slice(0, 8)}` : "Ohne Titel", untitled: true };
+}
+
+function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSession; onOpen: (id: string) => void; onAdopt?: (item: DiscoveredSession, asCopy: boolean) => void; onMirror?: (item: DiscoveredSession) => void }) {
   const unknown = item.status === "unsupported-format";
+  const heading = discoveryHeading(item);
   const body = (
     <>
       <div class="row">
-        <strong>{item.adapter}</strong>
+        <strong class={heading.untitled ? "discovery-title dim" : "discovery-title"}>{heading.text}</strong>
         <span class={`pill ${unknown ? "error" : item.status}`}>{unknown ? "unbekanntes Format" : item.status}</span>
       </div>
+      {item.preview && item.preview !== item.title && <div class="discovery-preview dim">{item.preview}</div>}
       <div class="row dim">
-        <span class="mono">{item.nativeSessionId ?? item.hubSessionId ?? "—"}</span>
+        <span>{item.adapter}</span>
         <span>{observedAgo(item.observedAt)}</span>
       </div>
       <div class="provider-card-chips">
         <span class="chip subtle">{item.hubSessionId ? "Hub" : "extern · nur beobachtet"}</span>
         <span class="chip subtle">{item.harness}</span>
+        {item.live && !item.hubSessionId && <span class="chip live" title="Wurde eben erst geschrieben — vermutlich noch in einem Terminal offen">läuft gerade woanders</span>}
         {item.parentSessionId && <span class="chip subtle">Subagent von {item.parentSessionId.slice(0, 8)}</span>}
         {item.fork && <span class="chip subtle">Fork</span>}
+        <span class="chip subtle mono discovery-id">{item.nativeSessionId ?? item.hubSessionId ?? "—"}</span>
       </div>
     </>
   );
+  const canContinue = Boolean(onAdopt && item.nativeSessionId && !unknown);
   return (
     <div class="card session-card discovered-row">
       {item.hubSessionId ? (
@@ -157,15 +184,23 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
       ) : (
         <div class="session-open">
           {body}
-          {onAdopt && item.nativeSessionId && !unknown && (
-            <button
-              class="btn"
-              type="button"
-              onClick={() => onAdopt(item)}
-              title="Session in den Hub übernehmen und fortsetzen"
-            >
-              Fortsetzen
-            </button>
+          {canContinue && (
+            <div class="row discovery-actions">
+              {/* A transcript another process is writing right now is never shared: the copy has its own id. */}
+              <button
+                class="btn"
+                type="button"
+                onClick={() => onAdopt!(item, Boolean(item.live))}
+                title={item.live ? "Läuft gerade woanders — der Hub setzt eine Kopie mit eigener ID fort, das Original bleibt unberührt" : "Session in den Hub übernehmen und fortsetzen"}
+              >
+                {item.live ? "Als Kopie fortsetzen" : "Fortsetzen"}
+              </button>
+              {!item.live && (
+                <button class="btn subtle" type="button" onClick={() => onAdopt!(item, true)} title="Eigene Kopie fortsetzen — das Original bleibt unverändert">
+                  Als Kopie
+                </button>
+              )}
+            </div>
           )}
           {onMirror && item.nativeSessionId && !unknown && (
             <button

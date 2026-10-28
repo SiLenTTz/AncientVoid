@@ -276,6 +276,10 @@ export interface DiscoveredSession {
   unsupportedResume: boolean;
   fork: boolean;
   parentSessionId: string | null;
+  /** ADR-0040: what it is about, what was said last, open in another harness right now. */
+  title?: string | null;
+  preview?: string | null;
+  live?: boolean;
 }
 
 export interface DiscoveryPage {
@@ -727,7 +731,8 @@ function createHubApi(P: (path: string) => string) {
   }) => api<{ ok: boolean }>(P("/api/prompt-optimizer/feedback"), { method: "POST", body: JSON.stringify(entry) }),
   sessions: () => api<SessionRecord[]>(P("/api/sessions")),
   session: (id: string) => api<SessionRecord>(P(`/api/sessions/${id}`)),
-  discovery: (cursor = 0, limit = 50) => api<DiscoveryPage>(P(`/api/discovery?cursor=${cursor}&limit=${limit}`)),
+  discovery: (cursor = 0, limit = 50, filter: { q?: string; adapter?: string } = {}) =>
+    api<DiscoveryPage>(P(`/api/discovery?cursor=${cursor}&limit=${limit}${filter.q ? `&q=${encodeURIComponent(filter.q)}` : ""}${filter.adapter ? `&adapter=${encodeURIComponent(filter.adapter)}` : ""}`)),
   inventory: () => api<{ items: HarnessInventoryEntry[] }>(P("/api/inventory")),
   fleet: () => api<FleetOverview>(P("/api/fleet")),
   fleetHello: () => api<{ hostId: string; protocolVersion: number }>(P("/api/fleet/hello")),
@@ -814,6 +819,9 @@ function createHubApi(P: (path: string) => string) {
     args?: { skill?: string; agent?: string; permissionMode?: string };
     /** Adoption (ADR-0011): continue an externally discovered session. */
     adoptNativeSessionId?: string;
+    /** ADR-0040: continue as a copy (a run still open elsewhere is not shared) and keep its title. */
+    adoptFork?: boolean;
+    title?: string;
     /** Read-only mirror (ADR-0011 Erweiterung): show an observed opencode
      * session's chat without adopting or running anything. */
     mirrorNativeSessionId?: string;

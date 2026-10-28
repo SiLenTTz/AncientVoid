@@ -65,6 +65,9 @@ const ClaudeSessionArgs = z
     skill: z.string().min(1).optional(),
     agent: z.string().min(1).optional(),
     resumeSessionId: z.string().min(1).optional(),
+    /** ADR-0040: continue the resumed session as a copy with its own id (`--fork-session`),
+     * for a run that is still open in another harness. First turn only. */
+    forkSession: z.boolean().optional(),
     /** ADR-0033: one of PERMISSION_MODES. */
     permissionMode: z.string().min(1).optional(),
   })
@@ -78,6 +81,8 @@ interface SessionMeta {
   /** ADR-0033: reapplied to every turn, changeable through `configure`. */
   permissionMode?: string | undefined;
   model?: string | undefined;
+  /** ADR-0040: the next turn forks the resumed session; cleared once it ran. */
+  forkNext?: boolean | undefined;
   healthy: boolean;
   degraded: boolean;
   /** Reapplied to every prompt (initial and steer) — a skill choice is
@@ -136,9 +141,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     extra: string[] = [],
     mode?: string,
     modelOnResume = false,
+    fork = false,
   ): string[] {
     const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", ...extra];
     if (resumeSessionId) args.push("--resume", resumeSessionId);
+    if (resumeSessionId && fork) args.push("--fork-session");
     if (agent && !resumeSessionId) args.push("--agent", agent);
     if (model && (!resumeSessionId || modelOnResume)) args.push("--model", model);
     // ADR-0033: the session's mode beats an operator's --permission-mode in extraArgs.
@@ -306,14 +313,24 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         throw new Error(`Claude kann „${resumeSessionId}" nicht fortsetzen — keine Session-ID (UUID). Subagent-Verläufe gehören zu ihrer Haupt-Session.`);
       }
       const permissionMode = args.success ? (args.data?.permissionMode ?? cfg.permissionMode) : cfg.permissionMode;
-      const meta: SessionMeta = { healthy: true, degraded: false, skill, permissionMode, model: spec.model, ...(resumeSessionId ? { resumeSessionId } : {}) };
+      const forkNext = Boolean(resumeSessionId && args.success && args.data?.forkSession);
+      const meta: SessionMeta = { healthy: true, degraded: false, skill, permissionMode, model: spec.model, forkNext, ...(resumeSessionId ? { resumeSessionId } : {}) };
       const att = withAttachments(spec.prompt ?? "", spec.attachments);
       // Where the continued conversation happened: its transcript becomes
       // the hub's history, so the phone shows where the run stands without
       // asking the agent first. Awaited — history before the new turn.
       if (resumeSessionId) await importTranscript(ctx, spec.project, resumeSessionId, cfg.claudeDir);
+      if (resumeSessionId && !spec.prompt?.trim() && !spec.attachments?.length) {
+        // ADR-0040: an adoption without a first prompt has no turn. `claude -p ""
+        // --resume` is not "just open it" — it looks for a deferred tool call and
+        // dies with "No deferred tool marker" (live 2026-10-27). Idle between
+        // turns, like recover(): the next steer resumes (and forks, if asked).
+        sessions.set(ctx.sessionId, meta);
+        return { sessionId: ctx.sessionId };
+      }
+      meta.forkNext = false;
       const proc = await ctx.spawnWorker(
-        buildArgs(withSkill(att.prompt, skill), resumeSessionId, agentPersona, spec.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], permissionMode, true),
+        buildArgs(withSkill(att.prompt, skill), resumeSessionId, agentPersona, spec.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], permissionMode, true, forkNext),
         workerEnv(spec.env),
       );
       attach(ctx.sessionId, proc, ctx, meta);
@@ -333,8 +350,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           // session's skill (if any) is reapplied to every turn; --agent
           // is deliberately NOT re-added here (see buildArgs' doc comment).
           const att = withAttachments(input.text, input.attachments);
+          const fork = meta?.forkNext === true;
+          if (meta) meta.forkNext = false;
           const proc = await ctx.spawnWorker(
-            buildArgs(withSkill(att.prompt, meta?.skill), meta?.resumeSessionId, undefined, meta?.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], meta?.permissionMode, true),
+            buildArgs(withSkill(att.prompt, meta?.skill), meta?.resumeSessionId, undefined, meta?.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], meta?.permissionMode, true, fork),
             workerEnv(undefined),
           );
           attach(handle.sessionId, proc, ctx, meta ?? { healthy: true, degraded: false });
@@ -434,11 +453,13 @@ async function importTranscript(ctx: AdapterContext, project: string, resumeSess
         return [];
       }
     });
-    const cut = events.length > TRANSCRIPT_IMPORT_LIMIT ? events.slice(-TRANSCRIPT_IMPORT_LIMIT) : events;
+    // ADR-0040: attachment notes carry no conversation — they must not use up the window.
+    const shown = events.filter((e) => e.payload?.subtype !== "attachment");
+    const cut = shown.length > TRANSCRIPT_IMPORT_LIMIT ? shown.slice(-TRANSCRIPT_IMPORT_LIMIT) : shown;
     ctx.emit({
       type: "system",
-      summary: `claude: Verlauf aus Transkript übernommen (${cut.length} von ${events.length} Events, ${resumeSessionId.slice(0, 8)})`,
-      payload: { kind: "claude.transcript_imported", session: resumeSessionId, imported: cut.length, total: events.length },
+      summary: `claude: Verlauf aus Transkript übernommen (${cut.length} von ${shown.length} Events, ${resumeSessionId.slice(0, 8)})`,
+      payload: { kind: "claude.transcript_imported", session: resumeSessionId, imported: cut.length, total: shown.length },
     });
     for (const e of cut) ctx.emit(e);
   } catch (err) {

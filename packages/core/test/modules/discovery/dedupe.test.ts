@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { DiscoveredSession } from "@uacc/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
-import { dedupeDiscovered } from "../../../src/modules/discovery/dedupe.ts";
+import { dedupeDiscovered, filterDiscovered } from "../../../src/modules/discovery/dedupe.ts";
 import { ProcessRunner } from "@uacc/workers";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
 
@@ -169,5 +169,33 @@ describe("SessionManager.discover", () => {
       db.close();
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("Titel und Suche (ADR-0040)", () => {
+  it("der Hub-Eintrag gewinnt, leiht sich aber Titel, Vorschau und live vom externen Fund", () => {
+    const hub = item({ hubSessionId: "hub-1", adapter: "claude", nativeSessionId: "n-1", title: null });
+    const external = item({ hubSessionId: null, adapter: "claude", nativeSessionId: "n-1", title: "Session-Abbrüche", preview: "Mach weiter", live: true });
+    const [merged, ...rest] = dedupeDiscovered([external, hub]);
+    expect(rest).toHaveLength(0);
+    expect(merged).toMatchObject({ hubSessionId: "hub-1", title: "Session-Abbrüche", preview: "Mach weiter", live: true });
+  });
+
+  it("ein fehlgeschlagener Hub-Eintrag (error) verdeckt die externe Session nicht", () => {
+    const failed = item({ hubSessionId: "hub-x", adapter: "claude", nativeSessionId: "n-9", status: "error" });
+    const external = item({ hubSessionId: null, adapter: "claude", nativeSessionId: "n-9", status: "observed", controlMode: "observed", title: "Noch da" });
+    const merged = dedupeDiscovered([failed, external]);
+    expect(merged.map((m) => m.hubSessionId)).toEqual(["hub-x", null]);
+  });
+
+  it("filterDiscovered sucht in Titel, Vorschau, Projekt und ID, alle Wörter müssen passen", () => {
+    const a = item({ hubSessionId: null, adapter: "claude", nativeSessionId: "aaa", title: "Login umbauen", preview: "teste den Token", project: "/x/mobile-hub" });
+    const b = item({ hubSessionId: null, adapter: "opencode", nativeSessionId: "bbb", title: "Doku", project: "/x/andere" });
+    expect(filterDiscovered([a, b], { q: "login token" })).toEqual([a]);
+    expect(filterDiscovered([a, b], { q: "MOBILE" })).toEqual([a]);
+    expect(filterDiscovered([a, b], { q: "bbb" })).toEqual([b]);
+    expect(filterDiscovered([a, b], { adapter: "opencode" })).toEqual([b]);
+    expect(filterDiscovered([a, b], {})).toEqual([a, b]);
+    expect(filterDiscovered([a, b], { q: "gibtsnicht" })).toEqual([]);
   });
 });
