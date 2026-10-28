@@ -38,8 +38,8 @@ export const RunEstimate = z.object({
   state: z.enum(["no-data", "too-few", "ok"]),
   /** Comparable finished turns the numbers come from. */
   n: z.number().int().nonnegative(),
-  /** "model" = same adapter and model, "adapter" = same adapter only. */
-  basis: z.enum(["model", "adapter", "none"]),
+  /** "session" = this session's own earlier turns, "model" = same adapter and model, "adapter" = same adapter only. */
+  basis: z.enum(["session", "model", "adapter", "none"]),
   medianMs: z.number().nullable(),
   p80Ms: z.number().nullable(),
   /** Median tokens per second over comparable turns that reported tokens. */

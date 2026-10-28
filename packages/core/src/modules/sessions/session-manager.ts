@@ -1429,7 +1429,7 @@ export class SessionManager {
   /** Typical duration of a turn for this session's adapter/model — null for an unknown session. */
   runEstimate(sessionId: string): RunEstimate | null {
     const record = this.live.get(sessionId)?.record ?? this.list().find((r) => r.id === sessionId);
-    return record ? this.turnMetricStore.estimate(record.adapter, record.model) : null;
+    return record ? this.turnMetricStore.estimate(record.adapter, record.model, sessionId) : null;
   }
 
   turnMetrics(sessionId: string): TurnMetric[] {

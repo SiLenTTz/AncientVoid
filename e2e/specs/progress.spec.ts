@@ -69,7 +69,7 @@ test.describe("Fortschritt und Kontingent im Lauf", () => {
 
     await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "Messung sieben WARTE12" } });
     await app.reload();
-    await expect(app.locator(".run-progress")).toContainText(/≈ noch .+ · typisch .+ · \d+ Läufe, (dieser Harness|dieses Modell)/);
+    await expect(app.locator(".run-progress")).toContainText(/≈ noch .+ · typisch .+ · \d+ Läufe, (diese Session|dieser Harness|dieses Modell)/);
   });
 
   test("die ganze Session-Ansicht trägt den aktiven Rahmen wie die Übersichtskarte", async ({ app, hub }) => {

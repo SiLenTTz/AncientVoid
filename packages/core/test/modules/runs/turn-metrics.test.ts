@@ -81,5 +81,10 @@ describe("TurnMetricStore", () => {
     expect(store.estimate("claude", "haiku")).toMatchObject({ state: "ok", basis: "adapter", n: 5 });
     expect(store.estimate("codex", null)).toMatchObject({ state: "no-data" });
     expect(store.summary()).toEqual([{ adapter: "claude", model: "opus", turns: 5, medianMs: 3000 }]);
+    // Eigene Züge der Session haben Vorrang, aber erst ab 5 — sonst gilt weiter Modell/Adapter.
+    store.replaceSession("s2", [1, 2, 3, 4, 5].map((n) => row(n, n * 10_000, "claude", "opus", "s2")));
+    expect(store.estimate("claude", "opus", "s2")).toMatchObject({ state: "ok", basis: "session", n: 5, medianMs: 30_000 });
+    store.replaceSession("s3", [1, 2].map((n) => row(n, 99_000, "claude", "opus", "s3")));
+    expect(store.estimate("claude", "opus", "s3")).toMatchObject({ basis: "model" });
   });
 });
