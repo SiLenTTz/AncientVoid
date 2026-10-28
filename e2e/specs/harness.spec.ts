@@ -150,6 +150,20 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte FRAGE · Claude .* · Gewählt: Grün/)).toBeVisible();
   });
 
+  test("AC-P21-4: eine offene Frage überlebt einen Reload, danach erreicht die Antwort den Harness", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "claude", prompt: "Bitte FRAGE" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.locator(".session-approvals .approval-card .question-text")).toHaveText("Welche Farbe soll das Logo haben?");
+    await app.reload();
+    await app.getByRole("button", { name: "Chat" }).click();
+    const card = app.locator(".session-approvals .approval-card");
+    await expect(card.locator(".question-text")).toHaveText("Welche Farbe soll das Logo haben?");
+    await card.getByRole("button", { name: "Grün" }).click();
+    await card.getByRole("button", { name: "Antworten" }).click();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte FRAGE · Claude .* · Gewählt: Grün/)).toBeVisible();
+  });
+
   test("T21.4: ein ACP-Formular (elicitation) wird zum Fragen-Dialog, die Antwort passt zum Schema", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "acp", prompt: "Bitte FRAGE" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
