@@ -125,6 +125,13 @@ export interface ProjectFile {
   lineCount: number;
 }
 
+/** Ein Dokument der Übersicht — Pfad, erste Überschrift, Größe. */
+export interface ProjectDoc {
+  path: string;
+  title: string | null;
+  bytes: number;
+}
+
 /** T7.6: which checkout a code view shows. */
 export interface WorkspaceIdentity {
   kind: "session" | "project";
@@ -753,6 +760,7 @@ function createHubApi(P: (path: string) => string) {
     api<SearchResponse>(P(`/api/search?project=${encodeURIComponent(project)}&q=${encodeURIComponent(q)}`)),
   searchFile: (project: string, path: string) =>
     api<ProjectFile>(P(`/api/search/file?project=${encodeURIComponent(project)}&path=${encodeURIComponent(path)}`)),
+  searchDocs: (project: string) => api<{ docs: ProjectDoc[] }>(P(`/api/search/docs?project=${encodeURIComponent(project)}`)),
   /** T2.4/T2.6: the approval queue. 501 (approvals not configured on this
    * hub) is treated as "no queue" by callers, not a hard error — see
    * Approvals.tsx. */

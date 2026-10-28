@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { isProjectPathAllowed } from "@uacc/core";
-import { ensureIndexed, indexStatus, isQmdAvailable, readProjectFile, relativeDataDir, searchProject } from "./search.ts";
+import { ensureIndexed, indexStatus, isQmdAvailable, listProjectDocs, readProjectFile, relativeDataDir, searchProject } from "./search.ts";
 import type { RouteContext } from "../../route-context.ts";
 
 /** Local project search over qmd (T3.8). */
@@ -60,5 +60,19 @@ export function registerSearchRoutes(app: FastifyInstance, ctx: RouteContext): v
     const file = await readProjectFile(project, path);
     if (!file) return reply.code(404).send({ error: "file not found, not a regular file, or outside the project" });
     return file;
+  });
+
+  // Dokumentübersicht der Suchansicht: alle Markdown-Dateien des Projekts,
+  // ohne qmd (nur Dateisystem) — read-class wie die Suche selbst.
+  app.get("/api/search/docs", async (req, reply) => {
+    const { project } = req.query as { project?: string };
+    if (!project) return reply.code(400).send({ error: "project query param required" });
+    if (!(await isProjectPathAllowed(project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    // BUG-0014: gleiche dataDir-Aussparung wie die Suche — Worktree-Kopien
+    // sind keine eigenen Dokumente.
+    const excludeRelDirs = deps.dataDir ? [relativeDataDir(project, deps.dataDir)].filter((d): d is string => d !== undefined) : [];
+    return { docs: await listProjectDocs(project, excludeRelDirs) };
   });
 }

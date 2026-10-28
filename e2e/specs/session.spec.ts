@@ -240,7 +240,11 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(hit).toBeVisible({ timeout: 20_000 });
     await hit.click();
     // Der Satz steht auch im Suchtreffer: auf breiten Fenstern bleibt die Trefferliste neben der Datei sichtbar.
-    await expect(app.locator("code", { hasText: "Das Handbuch beschreibt den Handoff zwischen PC und Handy." })).toBeVisible();
+    // Die Datei öffnet gerendert als Markdown (Dokumentansicht, kein Code-Viewer) — der
+    // Trefferabschnitt ist markiert und angesteuert.
+    await expect(app.locator(".file-viewer .markdown").getByText("Das Handbuch beschreibt den Handoff zwischen PC und Handy.")).toBeVisible();
+    await expect(app.locator(".doc-hit")).toBeVisible();
+    await expect(app.locator(".file-gutter, .file-code")).toHaveCount(0);
   });
 
   test("ein Provider-Absturz bleibt im Verlauf sichtbar", async ({ app, hub }) => {
