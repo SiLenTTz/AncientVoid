@@ -25,7 +25,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   // route with the caller's own token — that route's policy decides.
   if (path.startsWith("/api/commands/")) return "read";
   if (/^\/api\/sessions\/[^/]+\/actions\/[^/]+$/.test(path)) return "actions.run";
-  if (path === "/api/sessions") return "sessions.create";
+  if (path === "/api/sessions") return (body as { loop?: unknown } | undefined)?.loop ? "loops.start" : "sessions.create";
   if (/^\/api\/sessions\/[^/]+\/steer$/.test(path)) {
     const kind = (body as { kind?: unknown } | undefined)?.kind;
     return kind === "park" ? "sessions.park" : kind === "stop" ? "sessions.stop" : "sessions.prompt";

@@ -1,7 +1,7 @@
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
 import type { ClaudeLive, PlannerModelConfig, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
-import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills } from "@uacc/core";
+import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@uacc/core";
 import { DEFAULT_HOST_ID } from "@uacc/contracts";
 import type { ActionDefinition, HubMetrics, DiscoverySource, SessionRecord } from "@uacc/contracts";
 import { TMUX_PREFIX } from "@uacc/workers";
@@ -47,6 +47,8 @@ export interface RouteDeps {
   assistantModel?: PlannerModelConfig;
   /** T7.6: actions from hub.config.json (`actions`). */
   actions?: ActionDefinition[];
+  /** EPIC-P19: Loops (Dark Factory). Ohne Angabe: der Katalog, noch ohne angebundene Connectors. */
+  loops?: LoopRegistry;
 }
 
 /**
@@ -123,8 +125,9 @@ export function createRouteContext(deps: RouteDeps) {
 
   const startedAt = deps.startedAt ?? Date.now();
   const hostId = deps.hostId ?? DEFAULT_HOST_ID;
+  const loops = deps.loops ?? new LoopRegistry();
 
-  return { deps, projectRoots, hostId, hostLabel: deps.hostLabel, startedAt, catalogRootFor, skillsFor, callerLabel, withAttachCmd, webauthnRoutes, indexingInFlight };
+  return { deps, loops, projectRoots, hostId, hostLabel: deps.hostLabel, startedAt, catalogRootFor, skillsFor, callerLabel, withAttachCmd, webauthnRoutes, indexingInFlight };
 }
 
 export type RouteContext = ReturnType<typeof createRouteContext>;

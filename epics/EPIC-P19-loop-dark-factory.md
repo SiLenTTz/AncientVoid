@@ -1,6 +1,7 @@
 # EPIC-P19 — Loop / Dark Factory: securesight-factory und aSPARK-Factory als wählbare Loops
 
-**Status:** Planungsentwurf — **wartet auf Bestätigung von [ADR-0038](../docs/adr/0038-loop-dark-factory.md)**; kein Code vorher ·
+**Status:** Gerüst gebaut (2026-10-28, Auftrag von Jan): Katalog, `GET /api/loops`, Policy `loops.start`, Auswahl im Start-Formular.
+**Offen:** die Connectors T19.4/T19.5 (brauchen die Fremdsysteme) und alles danach; bis dahin sind beide Loops sichtbar, gesperrt und begründet ·
 **Phase:** P19 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P15 Modus-/Steuermuster,
 P17 Resume-Referenzen und Worker-Marker auf). Präzedenz wie P13/P14/P17: unabhängiges Epic neben offenen Abnahmen.
 P18 (Desktop-Workspace) ist seit 2026-10-27 gemergt, das Gating ist damit kein Hindernis mehr. Offen bleibt die Bestätigung des ADR.
@@ -69,17 +70,17 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
 
 ## 4. Aufgaben
 
-- [ ] **T19.1 — Loop-Contract und Testkit.** `contracts/loops`, Zod-Schemas,
-  `SessionSpec.loop` mit `refine`, `runLoopContractTests()`. K5, K7.
-- [ ] **T19.2 — Core-Modul `loops`.** Registry, `loopAsAdapter`, Spalte `loop_id`,
+- [~] **T19.1 — Loop-Contract und Testkit.** *Teilweise (2026-10-28):* `contracts/loops` (`LoopSpec`, `LoopInfo`) und `loop` im
+  Start-Body. Offen: `LoopConnector`, `SessionSpec.loop`, `runLoopContractTests()`. K5, K7.
+- [~] **T19.2 — Core-Modul `loops`.** *Teilweise:* `LoopRegistry` (Katalog, `markConnected`, Prüfung der Startauswahl). Offen: `loopAsAdapter`, Spalte `loop_id`, Recovery. Registry, `loopAsAdapter`, Spalte `loop_id`,
   Event `session.loop`/`loop.cursor`, Recovery. K7.
-- [ ] **T19.3 — Hub-Route und Policy.** `GET /api/loops`, Start mit `loop`, Policy-Operationen,
+- [x] **T19.3 — Hub-Route und Policy.** *Erledigt 2026-10-28* (Audit-Event bei Betriebsartwechsel gehört zu T19.4/T19.5). `GET /api/loops`, Start mit `loop`, Policy-Operationen,
   Audit-Event bei Betriebsartwechsel. `check:arch`-Regel.
 - [ ] **T19.4 — Loop `aspark-factory`.** MQTT-Leitstand-Client, Fragen und Antworten, Befehle,
   `loop.broken`. Dokumentierte Anleitung für den Hub-MQTT-Nutzer (nicht ausgeführt). K1, K5, K7, K9.
 - [ ] **T19.5 — Loop `securesight-factory`.** Supervisor-Status, Notify, Transcript, Progress,
   Orchestrator `self | hermes` (Hermes lesend), Fortsetzen als Tipp. K2, K7, K9.
-- [ ] **T19.6 — PWA.** Auswahl-Flow, Fähigkeiten-getriebene Optionen, Kopf-Abzeichen,
+- [~] **T19.6 — PWA.** *Teilweise:* Zeile „Loop“ im Start-Formular, Optionen aus den Fähigkeiten, gesperrt mit Grund (Spec `loops.spec.ts`). Offen: Kopf-Abzeichen, Loop-Panel, Bestätigungsdialog. Auswahl-Flow, Fähigkeiten-getriebene Optionen, Kopf-Abzeichen,
   Loop-Panel, Bestätigungsdialog. E2E-Specs. K10, AC-P8-5 (Mobil unverändert).
 - [ ] **T19.7 — Messläufe und Doku.** K1/K2/K7/K9 nach Skill `messlauf`, `docs/loops.md`,
   Matrix-Eintrag.

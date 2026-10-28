@@ -1,5 +1,7 @@
 import { takeHandOver } from "../../shared/media.ts";
 import { useEffect, useMemo, useState } from "preact/hooks";
+import { LoopPicker } from "../loops/LoopPicker.tsx";
+import type { LoopSpec } from "@uacc/contracts";
 import { hubApi, hostApi, type AdapterInfo, type DiscoveredProject, type FleetHost, type ModelOption, type SessionRecord } from "../../shared/api.ts";
 import type { AttachmentRecord } from "../../shared/api.ts";
 import { ApiContext } from "../../shared/api-context.ts";
@@ -45,6 +47,7 @@ export function CreateSession({
     if (adapters.length > 0 && !adapters.some((a) => a.id === adapter)) setAdapter(adapters[0]!.id);
   }, [adapters]);
   const [project, setProject] = useState("");
+  const [loop, setLoop] = useState<LoopSpec | null>(null);
   // EPIC-P10.5: a video result handed over from the media page.
   const [attachments, setAttachments] = useState<AttachmentRecord[]>(() => takeHandOver("new"));
   const [prompt, setPromptState] = useState(() => localStorage.getItem(PROMPT_KEY) ?? "");
@@ -164,6 +167,7 @@ export function CreateSession({
       const rec = await api.createSession({
         adapter,
         project,
+        ...(loop ? { loop } : {}),
         ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
         ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
         ...(skill || mode ? { args: { ...(skill ? { [skill.kind]: skill.name } : {}), ...(mode ? { permissionMode: mode } : {}) } } : {}),
@@ -206,6 +210,7 @@ export function CreateSession({
           ))}
         </select>
       </label>
+      <LoopPicker api={api} value={loop} onChange={setLoop} />
       {features?.toolGate === "bypass" && (
         <div class="tool-gate warn">{adapter}: Tools laufen ungefragt, ohne Rückfrage an dich.</div>
       )}

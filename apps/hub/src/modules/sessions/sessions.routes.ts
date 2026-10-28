@@ -1,4 +1,4 @@
-import { AttachmentId, SaveDraftInput, ToolPermissionRequest, type SteerInput } from "@uacc/contracts";
+import { AttachmentId, LoopSpec, SaveDraftInput, ToolPermissionRequest, type SteerInput } from "@uacc/contracts";
 import type { FastifyInstance } from "fastify";
 import { DraftStore, isProjectPathAllowed } from "@uacc/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
@@ -25,6 +25,8 @@ const CreateSessionBody = z.object({
   mirrorNativeSessionId: z.string().min(1).optional(),
   /** T7.10: uploaded files for the first prompt. */
   attachmentIds: z.array(AttachmentId).max(20).optional(),
+  /** EPIC-P19: Loop / Dark Factory. Ohne Angabe verhält sich der Start wie vorher. */
+  loop: LoopSpec.optional(),
 });
 
 const SteerBody = z.intersection(
@@ -82,6 +84,14 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     // Symlink escapes are resolved away, not just string-prefix-checked.
     if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    // AC-P19-8: `loops.start` ist in der Policy-Tabelle nur für Menschen erlaubt (der Hook hat den Rest schon mit 403 beendet).
+    if (parsed.data.loop) {
+      try {
+        ctx.loops.assertStartable(parsed.data.loop);
+      } catch (err) {
+        return reply.code(422).send({ error: err instanceof Error ? err.message : "loop not startable" });
+      }
     }
     // T7.4: an agent only requests — a human starts it from the queue.
     if (req.policy?.decision === "approve") {
