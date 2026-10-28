@@ -43,6 +43,13 @@ module.exports = {
       to: { path: "^(apps/|packages/(core|workers)/)" },
     },
     {
+      name: "loops-only-contracts",
+      severity: "error",
+      comment: "EPIC-P19 / AC-P19-6: Loop-Connectoren sehen den Hub nur über @uacc/contracts, nie core, workers oder server.",
+      from: { path: "^packages/loops/[^/]+/src/" },
+      to: { path: "^(apps/|packages/(core|workers|adapters)/)" },
+    },
+    {
       name: "pwa-no-hub-internals",
       severity: "error",
       comment: "The PWA talks to the hub over HTTP/WS only; it mirrors the types it needs.",

@@ -159,6 +159,8 @@ export class TestHub {
       media: { ytDlp: join(binDir, "yt-dlp") },
       server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
       discovery: { claudeDir: join(this.root, "claude"), claudeCommand: join(binDir, "claude"), cursorUserDir: join(this.root, "cursor"), opencodeDataDir: this.root },
+      // EPIC-P19: ein deterministischer Loop ohne Fremdsystem (Fake aus dem Testkit).
+      loops: [{ id: "fake-loop", module: "@uacc/adapter-testkit/fake-loop" }],
       adapters: [
         {
           id: "dummy",

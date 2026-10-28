@@ -19,6 +19,16 @@ export const AdapterRegistration = z.object({
 });
 export type AdapterRegistration = z.infer<typeof AdapterRegistration>;
 
+/** EPIC-P19: ein Loop (Dark Factory); das Modul exportiert `createLoopConnector(config?)`. */
+export const LoopRegistration = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]{0,39}$/),
+  module: z.string().min(1),
+  /** Connector-eigene Konfiguration; Schlüssel nur als Datei (`passwordFile`), nie als Wert. */
+  config: z.record(z.string(), z.unknown()).optional(),
+  enabled: z.boolean().default(true),
+});
+export type LoopRegistration = z.infer<typeof LoopRegistration>;
+
 /** T4.1/ADR-0009: same module-specifier shape as AdapterRegistration
  * (package name / relative / absolute path), resolved through the same
  * resolveAdapterModule() — but the module exports `createSink(config?) =>
@@ -53,6 +63,8 @@ export const HubConfig = z.object({
     })
     .prefault({}),
   adapters: z.array(AdapterRegistration).default([]),
+  /** EPIC-P19: Loops / Dark Factories (Connector-Module). */
+  loops: z.array(LoopRegistration).default([]),
   /** Worker runner kind: "tmux" (default) | "process". */
   workerRunner: z.enum(["tmux", "process"]).default("tmux"),
   /** T1.5-4: host paths to scan (depth 1) for git repos to offer as

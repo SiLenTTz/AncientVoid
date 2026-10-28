@@ -4,7 +4,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
+import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
 import { discoverProjects, FleetStore } from "@uacc/core";
 import type { HubMetrics, DiscoverySource } from "@uacc/contracts";
 import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@uacc/contracts";
@@ -44,6 +44,8 @@ export interface HubAppDeps {
   assistantModel?: PlannerModelConfig;
   /** T7.6: registered actions from the config. */
   actions?: ActionDefinition[];
+  /** EPIC-P19: Loops / Dark Factories (optional: ohne Angabe nur der gesperrte Katalog). */
+  loops?: LoopRegistry;
   /** T2.4: optional, mirrors SessionManager's own optional approvals —
    * omitting it disables the /api/approvals routes (501), not a crash. */
   approvals?: ApprovalService;

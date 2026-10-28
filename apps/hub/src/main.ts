@@ -30,6 +30,9 @@ import {
   WorktreeManager,
   createJsonLogger,
   watchMemory,
+  LoopRegistry,
+  loadLoops,
+  loopAsAdapter,
   InMemoryMetrics,
   loadConfig,
   loadReportingSinks,
@@ -116,6 +119,15 @@ async function main(): Promise<void> {
   }
   if (config.adapters.length > 0) {
     await registry.loadAll(config.adapters, configPath);
+  }
+  // EPIC-P19: Loops / Dark Factories. Jeder geladene Connector wird als interner Adapter `loop:<id>` registriert.
+  const loops = new LoopRegistry();
+  if (config.loops.length > 0) {
+    for (const error of await loadLoops(loops, config.loops, configPath)) logger.warn("loop not loaded", { error });
+  }
+  for (const info of loops.list()) {
+    const connector = loops.connector(info.id);
+    if (connector) registry.register(`loop:${connector.id}`, () => loopAsAdapter(connector, { stateDir: resolve(dataDir, "loops") }), undefined, `loop:${connector.id}`);
   }
   logger.info("adapters loaded", {
     adapters: registry.list().map((a) => `${a.id}@${a.adapter.version}`).join(", ") || "(none)",
@@ -245,6 +257,7 @@ async function main(): Promise<void> {
     ...(config.server.pwaDir ? { pwaDir: resolve(config.server.pwaDir) } : {}),
     projectRoots: config.projectRoots.map((root) => resolve(root)),
     actions: config.actions,
+    loops,
     ...(assistantModel ? { assistantModel } : {}),
     ...(config.stt ? { stt: {
       url: config.stt.url,

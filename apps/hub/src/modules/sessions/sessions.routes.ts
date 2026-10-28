@@ -1,13 +1,14 @@
-import { AttachmentId, LoopSpec, SaveDraftInput, ToolPermissionRequest, type SteerInput } from "@uacc/contracts";
+import { AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@uacc/contracts";
 import type { FastifyInstance } from "fastify";
-import { DraftStore, isProjectPathAllowed } from "@uacc/core";
+import { DraftStore, isProjectPathAllowed, toStartSpec } from "@uacc/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { ENV_VAR_NAME } from "@uacc/contracts";
 import { z } from "zod";
 import type { RouteContext } from "../../route-context.ts";
 
 const CreateSessionBody = z.object({
-  adapter: z.string().min(1),
+  // Mit `loop` bestimmt der Loop den internen Adapter; ohne `loop` ist `adapter` Pflicht (unten geprüft).
+  adapter: z.string().min(1).optional(),
   project: z.string().min(1),
   prompt: z.string().optional(),
   model: z.string().optional(),
@@ -78,6 +79,12 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid session spec", issues: parsed.error.issues });
     }
+    if (!parsed.data.adapter && !parsed.data.loop) {
+      return reply.code(400).send({ error: "invalid session spec: adapter oder loop ist Pflicht" });
+    }
+    if (parsed.data.adapter && parsed.data.loop) {
+      return reply.code(400).send({ error: "invalid session spec: entweder adapter oder loop, nicht beides" });
+    }
     // T1.5-4/AC-P1.5-5: a client (a phone on the tailnet) never gets to
     // start a session outside the configured roots — ADR-0001's allowlist
     // pattern ("never trust a client-supplied path at face value").
@@ -86,21 +93,25 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
     // AC-P19-8: `loops.start` ist in der Policy-Tabelle nur für Menschen erlaubt (der Hook hat den Rest schon mit 403 beendet).
+    // Der Loop wird zur Session des internen Adapters `loop:<id>`; seine Auswahl steht in `args.loop`.
+    let body: typeof parsed.data & { adapter: string } = { ...parsed.data, adapter: parsed.data.adapter ?? "" };
     if (parsed.data.loop) {
       try {
         ctx.loops.assertStartable(parsed.data.loop);
       } catch (err) {
         return reply.code(422).send({ error: err instanceof Error ? err.message : "loop not startable" });
       }
+      const { loop, ...rest } = parsed.data;
+      body = { ...rest, adapter: loopAdapterId(loop.id), args: { ...rest.args, [LOOP_ARG]: toStartSpec(loop, { project: rest.project, goal: rest.prompt }) } };
     }
     // T7.4: an agent only requests — a human starts it from the queue.
     if (req.policy?.decision === "approve") {
-      const ack = await deps.sessions.requestAgentAction("session.create", null, parsed.data, req.policy.actor);
+      const ack = await deps.sessions.requestAgentAction("session.create", null, body, req.policy.actor);
       return reply.code(ack.approvalId ? 202 : 422).send(ack);
     }
     try {
-      await catalogRootFor(parsed.data.project);
-      const { attachmentIds, ...spec } = parsed.data;
+      await catalogRootFor(body.project);
+      const { attachmentIds, ...spec } = body;
       const attachments = attachmentIds?.length ? await resolveAttachments(attachmentIds) : undefined;
       const record = await deps.sessions.create({ ...spec, ...(attachments ? { attachments } : {}) }, callerLabel(req) ?? undefined);
       return reply.code(201).send({ ...record, hostId });

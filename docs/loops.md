@@ -1,25 +1,53 @@
 # Loops / Dark Factory (EPIC-P19, ADR-0038)
 
 Beim Start einer Session lässt sich ein **Loop** wählen (Zeile „Loop“ im Start-Formular, PWA).
-Ein Loop ist ein eigenständiges System, das seine Agenten selbst ausführt; der Hub zeigt und steuert es.
+Ein Loop ist ein eigenständiges System, das seine Agenten selbst ausführt; der Hub zeigt, beantwortet Fragen und steuert.
 
-## Stand (2026-10-28)
+## So hängt es zusammen
 
-| Loop | Transport | Stand |
-|---|---|---|
-| `aspark-factory` (aSPARK-Factory) | MQTT-Leitstand | sichtbar, **gesperrt** — Connector T19.4 fehlt |
-| `securesight-factory` (Adapter `securesight-harnez`) | CLI und Dateien, Orchestrator `self` oder `hermes` | sichtbar, **gesperrt** — Connector T19.5 fehlt |
+```text
+Start-Formular ──POST /api/sessions {loop}──▶ Hub ──▶ Session mit Adapter "loop:<id>"
+                                               │         (loopAsAdapter, Snapshot für K7)
+                                               ▼
+                                     LoopConnector (packages/loops/<name>)
+                                               ▼
+                                  Loop-System (MQTT-Broker bzw. Dateien/CLI)
+```
 
-Gesperrt heißt: in der Auswahl sichtbar mit Grund, der Start wird vom Hub mit 422 abgelehnt. Der Adapter
-`securesight-harnez` läuft unabhängig davon weiter als normaler Harness.
+- Der **Connector** sieht nur `@uacc/contracts` (`check:arch`-Regel `loops-only-contracts`).
+- Die Session trägt den internen Adapter `loop:<id>`; EventStore, Recovery, Freigaben, Push und PWA laufen unverändert.
+  Die Adapter-Liste (`/api/adapters`) führt diese Shims nicht; sie stehen in `GET /api/loops`.
+- Die Auswahl des Start-Formulars steht als `args.loop` im Event `session.created`.
+- **Ohne Worktree:** ein Loop arbeitet im Projekt des Loop-Systems selbst.
+- **Steuern über den normalen Weg:** Pause/Fortsetzen = `park`/`resume`, Betriebsart = „Modus“ (`configure`), „nächste Aufgabe“ = Prompt.
+- **Wiederanlauf (K7):** je Session liegt `data/loops/<sessionId>.json` (Startvorgabe + Leseposition). Nach einem Hub-Neustart
+  liest der Connector ab dort weiter — nichts doppelt, nichts fehlt.
+- **Ereignisse:** `system`-Events mit `payload.kind` = `loop.info | loop.state | loop.progress | loop.gate | loop.stats | loop.report |
+  loop.broken | loop.command | loop.notify`. Inhalte, die der Loop als Agenten-Output liefert, erscheinen als normale Chat-Events.
+- **Fragen** des Loops kommen als Freigaben (`AskUserQuestion` bzw. Tool-Freigabe) in die vorhandene Ansicht; Antwort nur einmalig
+  `allow`/`deny` bzw. Auswahl, nie „immer erlauben“.
+
+## Einrichten (`hub.config.json`)
+
+```json
+"loops": [
+  { "id": "aspark-factory",      "module": "@uacc/loop-aspark-factory",      "config": { "url": "mqtt://127.0.0.1:1883", "username": "uacc-leitstand", "passwordFile": "~/.config/uacc/aspark-mqtt.key" } },
+  { "id": "securesight-factory", "module": "@uacc/loop-securesight-factory", "config": { "pollMs": 5000 } }
+]
+```
+
+Schlüssel nur als Datei (`passwordFile`), nie als Wert in der Konfiguration. Ein Loop, der nicht lädt, bleibt in der Auswahl
+sichtbar, gesperrt, mit dem Grund. Ohne Eintrag steht er als „nicht eingerichtet“ da.
 
 ## API
 
-- `GET /api/loops` — Liste mit `available`, `reason`, Optionen (ohne Secrets).
-- `POST /api/sessions` mit `loop: { id, options? }` — nur für Menschen (Policy `loops.start`); ein Agenten-Token bekommt 403,
-  ein nicht angebundener oder unbekannter Loop 422, eine Option außerhalb der Fähigkeiten 422.
+- `GET /api/loops` — Liste mit `available`, `reason` und den Fähigkeiten des Connectors (Betriebsarten, riskante Betriebsarten,
+  Orchestratoren, Steuerbefehle, Optionen). Keine Secrets.
+- `POST /api/sessions` mit `loop: { id, mode?, orchestrator?, options? }` statt `adapter` — nur für Menschen (Policy `loops.start`);
+  ein Agenten-Token bekommt 403, ein nicht angebundener oder unbekannter Loop 422, eine Auswahl außerhalb der Fähigkeiten 422.
 
-## Einen Connector anbinden
+## Einen Connector schreiben
 
-Ein Connector meldet sich beim `LoopRegistry` mit `markConnected(id)` an; ab dann ist der Loop startbar. Die Schnittstelle
-`LoopConnector` selbst (T19.1) und die Pakete unter `packages/loops/*` stehen noch aus.
+`createLoopConnector(config?) => LoopConnector` exportieren (`packages/contracts/src/loops/connector.ts`) und
+`runLoopContractTests(createLoopConnector, …)` aus `@uacc/adapter-testkit` grün bekommen. Der Fake-Loop
+(`@uacc/adapter-testkit/fake-loop`) ist die Vorlage und läuft in den E2E-Specs.

@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
+import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, LoopRegistry, SessionManager, TokenService, loopAsAdapter } from "@uacc/core";
+import { createFakeLoopConnector } from "@uacc/adapter-testkit";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
 import { ProcessRunner } from "@uacc/workers";
 import type { FastifyInstance } from "fastify";
@@ -27,8 +28,15 @@ describe("loops (EPIC-P19)", () => {
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });
     const tokens = new TokenService(db);
+    // Wie main.ts: der Connector wird als interner Adapter `loop:<id>` registriert.
+    const loops = new LoopRegistry();
+    const fake = createFakeLoopConnector();
+    loops.register(fake);
+    registry.register(`loop:${fake.id}`, () => loopAsAdapter(fake, { stateDir: join(dir, "loops") }));
+    const approvals = new ApprovalService(db);
     sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
-    app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, projectRoots: [dir] });
+    sessions.enableToolPermissions({ approvals, timeoutMs: 60_000 });
+    app = await createHubApp({ sessions, tokens, registry, approvals, loops, auth: { tokens, enforceTailnetIdentity: false }, projectRoots: [dir] });
     human = tokens.issue("pixel").token;
     agent = tokens.issue("agent:mcp").token;
   });
@@ -42,28 +50,28 @@ describe("loops (EPIC-P19)", () => {
   it("GET /api/loops nennt beide Loops, ehrlich als nicht startbar und mit Grund", async () => {
     const res = await call("GET", "/api/loops", human);
     expect(res.status).toBe(200);
-    const loops = res.body as unknown as { id: string; label: string; available: boolean; reason?: string; options: { key: string }[] }[];
-    expect(loops.map((l) => l.id)).toEqual(["aspark-factory", "securesight-factory"]);
-    expect(loops.every((l) => !l.available && (l.reason ?? "").includes("Connector"))).toBe(true);
-    expect(loops.find((l) => l.id === "securesight-factory")?.options[0]?.key).toBe("orchestrator");
+    const loops = res.body as unknown as { id: string; label: string; available: boolean; reason?: string; capabilities: { modes: string[] } | null }[];
+    expect(loops.map((l) => l.id)).toEqual(["aspark-factory", "securesight-factory", "fake-loop"]);
+    expect(loops.filter((l) => !l.available).every((l) => (l.reason ?? "").includes("nicht eingerichtet"))).toBe(true);
+    expect(loops.find((l) => l.id === "fake-loop")).toMatchObject({ available: true, capabilities: { modes: ["ruhig", "scharf"] } });
     expect(JSON.stringify(loops)).not.toMatch(/password|secret|token/i);
   });
 
   it("ein Start mit nicht angebundenem Loop wird laut abgelehnt, es entsteht keine Session", async () => {
-    const res = await call("POST", "/api/sessions", human, { adapter: "dummy", project: dir, loop: { id: "aspark-factory" } });
+    const res = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "aspark-factory" } });
     expect(res.status).toBe(422);
     expect(String(res.body.error)).toContain("aSPARK-Factory");
-    expect(String(res.body.error)).toContain("Connector");
+    expect(String(res.body.error)).toContain("nicht eingerichtet");
     expect(sessions.list()).toHaveLength(0);
   });
 
   it("ein unbekannter Loop ist 422, eine kaputte Kennung 400", async () => {
-    expect((await call("POST", "/api/sessions", human, { adapter: "dummy", project: dir, loop: { id: "gibtsnicht" } })).status).toBe(422);
-    expect((await call("POST", "/api/sessions", human, { adapter: "dummy", project: dir, loop: { id: "../x" } })).status).toBe(400);
+    expect((await call("POST", "/api/sessions", human, { project: dir, loop: { id: "gibtsnicht" } })).status).toBe(422);
+    expect((await call("POST", "/api/sessions", human, { project: dir, loop: { id: "../x" } })).status).toBe(400);
   });
 
   it("AC-P19-8: ein Agenten-Token kann keinen Loop starten, auch nicht beantragen", async () => {
-    const res = await call("POST", "/api/sessions", agent, { adapter: "dummy", project: dir, loop: { id: "securesight-factory" } });
+    const res = await call("POST", "/api/sessions", agent, { project: dir, loop: { id: "fake-loop", options: { line: "alpha" } } });
     expect(res.status).toBe(403);
     expect(sessions.list()).toHaveLength(0);
   });
@@ -71,5 +79,41 @@ describe("loops (EPIC-P19)", () => {
   it("AC-P19-5: ohne Loop startet die Session wie vorher", async () => {
     const res = await call("POST", "/api/sessions", human, { adapter: "dummy", project: dir, prompt: "hallo" });
     expect(res.status).toBe(201);
+  });
+
+  it("adapter und loop zusammen oder keines von beiden: 400", async () => {
+    expect((await call("POST", "/api/sessions", human, { adapter: "dummy", project: dir, loop: { id: "fake-loop", options: { line: "a" } } })).status).toBe(400);
+    expect((await call("POST", "/api/sessions", human, { project: dir })).status).toBe(400);
+  });
+
+  it("ein startbarer Loop wird zur Session des internen Adapters, ohne Worktree, mit Info-Ereignis", async () => {
+    const res = await call("POST", "/api/sessions", human, { project: dir, prompt: "los", loop: { id: "fake-loop", mode: "ruhig", options: { line: "alpha" } } });
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ adapter: "loop:fake-loop", status: "working" });
+    const id = String(res.body.id);
+    const events = (await call("GET", `/api/sessions/${id}/events`, human)).body as unknown as { payload?: { kind?: string; line?: string; reason?: string } }[];
+    expect(events.find((e) => e.payload?.kind === "loop.info")?.payload).toMatchObject({ line: "alpha" });
+    expect(events.some((e) => e.payload?.kind === "session.no_worktree_isolation" && e.payload.reason === "loop works in its own project")).toBe(true);
+    // die interne Adapter-Id taucht in der normalen Adapter-Liste nicht auf
+    const adapters = (await call("GET", "/api/adapters", human)).body as unknown as { id: string }[];
+    expect(adapters.some((a) => a.id.startsWith("loop:"))).toBe(false);
+  });
+
+  it("fehlende Pflichtoption und unbekannte Betriebsart sind 422 mit Grund", async () => {
+    const missing = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "fake-loop" } });
+    expect(missing.status).toBe(422);
+    expect(String(missing.body.error)).toContain("Option „Line“ fehlt");
+    const mode = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "fake-loop", mode: "dark", options: { line: "a" } } });
+    expect(String(mode.body.error)).toContain("Betriebsart „dark“");
+  });
+
+  it("die Betriebsart wechselt über den normalen Modus-Weg (configure), eine Rückfrage landet in den Freigaben", async () => {
+    const res = await call("POST", "/api/sessions", human, { project: dir, prompt: "FRAGE", loop: { id: "fake-loop", options: { line: "alpha" } } });
+    const id = String(res.body.id);
+    const steer = await call("POST", `/api/sessions/${id}/steer`, human, { kind: "configure", permissionMode: "scharf" });
+    expect(steer.status).toBe(200);
+    const events = (await call("GET", `/api/sessions/${id}/events`, human)).body as unknown as { payload?: { kind?: string; mode?: string; toolName?: string } }[];
+    expect(events.find((e) => e.payload?.kind === "loop.command")?.payload).toMatchObject({ mode: "scharf" });
+    expect(events.find((e) => e.payload?.kind === "tool.permission_requested")?.payload).toMatchObject({ toolName: "AskUserQuestion" });
   });
 });

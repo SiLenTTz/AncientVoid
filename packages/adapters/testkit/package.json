@@ -5,7 +5,8 @@
   "type": "module",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./fake-loop": "./src/fake-loop.ts"
   },
   "scripts": {
     "typecheck": "tsc -p ../../.. --noEmit",

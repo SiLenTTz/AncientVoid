@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric } from "@uacc/contracts";
-import { countMetrics, emptyMetricCounters, metricsState, promptWithAttachments, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, unsupportedResume } from "@uacc/contracts";
+import { countMetrics, emptyMetricCounters, metricsState, promptWithAttachments, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume } from "@uacc/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
@@ -490,7 +490,8 @@ export class SessionManager {
     // genuinely non-git project directory) is a real, honest fallback —
     // not an error — surfaced as its own system event rather than silently
     // running unisolated (AGENTS.md Regel 6).
-    if (this.worktrees) {
+    // EPIC-P19: ein Loop arbeitet im Projekt des Loop-Systems selbst, eine Hub-Kopie davon wäre die falsche Stelle.
+    if (this.worktrees && !isLoopAdapter(record.adapter)) {
       try {
         const created = await this.worktrees.create(record.id, record.project);
         if (created) {
@@ -507,7 +508,7 @@ export class SessionManager {
     }
     if (!session.worktreeIsolated) {
       await this.emitSystem(session, "session.no_worktree_isolation", {
-        reason: this.worktrees ? "project is not a git repo" : "worktree isolation not configured",
+        reason: isLoopAdapter(record.adapter) ? "loop works in its own project" : this.worktrees ? "project is not a git repo" : "worktree isolation not configured",
       });
     }
 

@@ -792,7 +792,8 @@ function createHubApi(P: (path: string) => string) {
       P(`/api/sessions/${id}/events?afterSeq=${afterSeq}&limit=${limit}`),
     ),
   createSession: (body: {
-    adapter: string;
+    /** Entweder `adapter` oder `loop` (EPIC-P19). */
+    adapter?: string;
     project: string;
     /** EPIC-P19: Loop / Dark Factory; ohne Angabe startet die Session wie bisher. */
     loop?: LoopSpec;

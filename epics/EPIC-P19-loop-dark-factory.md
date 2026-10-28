@@ -1,7 +1,7 @@
 # EPIC-P19 — Loop / Dark Factory: securesight-factory und aSPARK-Factory als wählbare Loops
 
 **Status:** Gerüst gebaut (2026-10-28, Auftrag von Jan): Katalog, `GET /api/loops`, Policy `loops.start`, Auswahl im Start-Formular.
-**Offen:** die Connectors T19.4/T19.5 (brauchen die Fremdsysteme) und alles danach; bis dahin sind beide Loops sichtbar, gesperrt und begründet ·
+**Offen:** die Connectors T19.4/T19.5 (eigene Pakete unter `packages/loops/`) und das Loop-Panel T19.6; bis dahin sind beide Loops sichtbar, gesperrt und begründet ·
 **Phase:** P19 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P15 Modus-/Steuermuster,
 P17 Resume-Referenzen und Worker-Marker auf). Präzedenz wie P13/P14/P17: unabhängiges Epic neben offenen Abnahmen.
 P18 (Desktop-Workspace) ist seit 2026-10-27 gemergt, das Gating ist damit kein Hindernis mehr. Offen bleibt die Bestätigung des ADR.
@@ -70,10 +70,11 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
 
 ## 4. Aufgaben
 
-- [~] **T19.1 — Loop-Contract und Testkit.** *Teilweise (2026-10-28):* `contracts/loops` (`LoopSpec`, `LoopInfo`) und `loop` im
-  Start-Body. Offen: `LoopConnector`, `SessionSpec.loop`, `runLoopContractTests()`. K5, K7.
-- [~] **T19.2 — Core-Modul `loops`.** *Teilweise:* `LoopRegistry` (Katalog, `markConnected`, Prüfung der Startauswahl). Offen: `loopAsAdapter`, Spalte `loop_id`, Recovery. Registry, `loopAsAdapter`, Spalte `loop_id`,
-  Event `session.loop`/`loop.cursor`, Recovery. K7.
+- [x] **T19.1 — Loop-Contract und Testkit.** *Erledigt 2026-10-28:* `contracts/loops` (`LoopConnector`, `LoopCapabilities`, `LoopSpec`,
+  `LoopInfo`), `loop` im Start-Body, `runLoopContractTests()` und `fake-loop` im Testkit. K5, K7.
+- [x] **T19.2 — Core-Modul `loops`.** *Erledigt 2026-10-28:* `LoopRegistry`, `loopAsAdapter` (Snapshot mit Startvorgabe und Cursor
+  unter `data/loops/`, Recovery daraus), `loops[]` in der Config, Laden per `loadLoops`. Event `session.loop` und Spalte `loop_id` sind
+  entfallen: die Zuordnung steckt im Adapter-Namen `loop:<id>`. K7.
 - [x] **T19.3 — Hub-Route und Policy.** *Erledigt 2026-10-28* (Audit-Event bei Betriebsartwechsel gehört zu T19.4/T19.5). `GET /api/loops`, Start mit `loop`, Policy-Operationen,
   Audit-Event bei Betriebsartwechsel. `check:arch`-Regel.
 - [ ] **T19.4 — Loop `aspark-factory`.** MQTT-Leitstand-Client, Fragen und Antworten, Befehle,

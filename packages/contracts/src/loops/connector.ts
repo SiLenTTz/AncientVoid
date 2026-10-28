@@ -1,0 +1,79 @@
+import type { Ack, AdapterContext, HealthReport, SessionHandle } from "../harness/adapter.ts";
+
+/** Steuerbefehle, die ein Loop anbieten kann. Der Hub zeigt nur, was `capabilities().controls` nennt. */
+export const LOOP_CONTROLS = ["pause", "resume", "setMode", "workNext"] as const;
+export type LoopControl = (typeof LOOP_CONTROLS)[number];
+
+export interface LoopOption {
+  key: string;
+  label: string;
+  kind: "select" | "text" | "toggle";
+  choices?: readonly { value: string; label: string }[];
+  required?: boolean;
+  placeholder?: string;
+}
+
+export interface LoopCapabilities {
+  /** Wer die Agenten ausführt: "external" = das Loop-System selbst (beide ersten Loops). "hub" ist reserviert. */
+  agents: "external" | "hub";
+  /** Woher die Arbeit kommt. */
+  intake: readonly ("prompt" | "issues" | "backlog")[];
+  /** Eigene Betriebsarten, providereigene Namen (werden nicht vereinheitlicht, ADR-0033-Muster). */
+  modes: readonly string[];
+  /** Betriebsarten mit Außenwirkung (Merge, Commit): die Oberfläche fragt vor dem Start nach. */
+  riskyModes: readonly string[];
+  /** Wählbare Orchestratoren (harnez: self | hermes). Leer = keine Wahl. */
+  orchestrators: readonly string[];
+  controls: readonly LoopControl[];
+  /** Gates, die der Loop meldet (aSPARK dark: policy|review|ci|merge). Nur Anzeige. */
+  gates: readonly string[];
+  /** Fragen des Loops, die der Hub beantworten darf. */
+  asks: "none" | "permission" | "permission+question";
+  /** Felder des Start-Formulars über Betriebsart und Orchestrator hinaus. */
+  options: readonly LoopOption[];
+}
+
+/** Startauswahl, wie der Connector sie sieht (Projekt und Ziel kommen vom Hub). */
+export interface LoopStartSpec {
+  project: string;
+  goal?: string;
+  mode?: string;
+  orchestrator?: string;
+  options: Record<string, string>;
+}
+
+export type LoopControlInput =
+  | { kind: "pause" }
+  | { kind: "resume" }
+  | { kind: "setMode"; mode: string }
+  | { kind: "workNext"; text?: string };
+
+/** Der Hub hält die Leseposition des Connectors (K7): beim Wiederanlauf kommt sie zurück. */
+export interface LoopIo {
+  /** Letzte gespeicherte Position oder null beim ersten Start. */
+  resume: unknown;
+  /** Position sichern; der Aufrufer schreibt sie in den Snapshot der Session. */
+  saveCursor(cursor: unknown): void;
+}
+
+/**
+ * Ein Connector verbindet den Hub mit EINEM Loop-System (ADR-0038). Er sieht nur den
+ * AdapterContext, nie Hub-Interna. Alles Fremde ist Daten: nichts davon wird als Anweisung gelesen.
+ */
+export interface LoopConnector {
+  readonly id: string;
+  readonly version: string;
+  capabilities(): LoopCapabilities;
+  start(spec: LoopStartSpec, ctx: AdapterContext, io: LoopIo): Promise<SessionHandle>;
+  control(handle: SessionHandle, input: LoopControlInput, ctx: AdapterContext): Promise<Ack>;
+  status(handle: SessionHandle): Promise<HealthReport>;
+  /** Trennt den Hub vom Loop. Das Loop-System selbst läuft weiter (nur beobachtet/gesteuert, nie beendet). */
+  stop(handle: SessionHandle, ctx: AdapterContext): Promise<void>;
+}
+
+export type LoopConnectorFactory = (config?: Readonly<Record<string, unknown>>) => LoopConnector;
+
+/** Formprüfung eines geladenen Moduls (Muster `isValidAdapterFactory`). */
+export function isValidLoopFactory(mod: unknown): mod is { createLoopConnector: LoopConnectorFactory } {
+  return typeof mod === "object" && mod !== null && typeof (mod as { createLoopConnector?: unknown }).createLoopConnector === "function";
+}
