@@ -101,6 +101,17 @@ const ACP_PRESET_COMMANDS: Record<string, readonly SlashCommand[]> = {
   ],
 };
 
+/** maki über die init.lua-Brücke (ADR-0042/P25): run_command führt diese
+ * aus; ein erfolgreicher Command-Zug endet mit stopReason "refusal"
+ * (Nachricht verworfen, Modell nie gefragt — Stub-Beweis 2026-10-29,
+ * docs/slash-commands-analyse-2026-10-29.md). Unbekannte Commands reicht
+ * die Brücke als Chat durch, damit sichtbar bleibt, dass nichts ging. */
+const MAKI_BRIDGE_COMMANDS: readonly SlashCommand[] = [
+  { name: "/compact", description: "Kontext komprimieren, optional mit Anleitung", scope: "both" },
+  { name: "/new", description: "Neue maki-Session mit frischem Kontext", scope: "both" },
+  { name: "/rename", description: "Session umbenennen (neuer Titel als Text)", scope: "both" },
+];
+
 const AcpConfig = z.object({
   preset: z.enum(["copilot", "opencode", "dsh", "maki", "omp"]).optional(),
   command: z.array(z.string().min(1)).min(1).optional(),
@@ -114,6 +125,11 @@ const AcpConfig = z.object({
   startupTimeoutMs: z.number().int().positive().default(120_000),
   /** BUG-0032: silence window within a busy turn before the hub cancels. */
   stuckTurnMs: z.number().int().min(0).default(1_800_000),
+  /** ADR-0042/P25: maki dispatcht Commands im getriebenen Modus nur mit der
+   *  init.lua-Brücke auf dem Host. Die Brücke ist Rechner-Config — erst
+   *  dieses Flag deklariert Commands für diese Registration; ohne Flag
+   *  bleibt die Liste leer (fail loud für Hosts ohne Brücke). */
+  bridgeCommands: z.boolean().default(false),
   /** ADR-0032: context window of the models this instance runs — nobody
    * reports it in band; configured here, shown as a percentage then. */
   contextWindowTokens: z.number().int().positive().optional(),
@@ -469,7 +485,21 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           },
           ...(total !== undefined ? { tokensEst: total } : {}),
         });
-        if (r.stopReason === "refusal") ctx.emit(providerErrorEvent(label, "Der Agent hat die Anfrage abgelehnt (refusal)."));
+        if (r.stopReason === "refusal") {
+          // maki-Brücke: ein mit "/" beginnender Prompt wird dort per run_command
+          // ausgeführt und der Zug verworfen — refusal ist dann Erfolg, kein
+          // Fehler (Stub-Beweis 2026-10-29). Nur mit bridgeCommands-Flag ehrlich.
+          if (cfg.bridgeCommands && text.trimStart().startsWith("/")) {
+            const cmd = text.trimStart().split(/\s/, 1)[0] ?? text.trim();
+            ctx.emit({
+              type: "system",
+              summary: `${label}: Command ${cmd} über die Brücke beendet (refusal = kein Modellturn)`,
+              payload: { kind: "acp.command_executed", command: cmd, stopReason: "refusal" },
+            });
+          } else {
+            ctx.emit(providerErrorEvent(label, "Der Agent hat die Anfrage abgelehnt (refusal)."));
+          }
+        }
       })
       .catch((err: unknown) => {
         if (state.turnSeq !== seq) return;
@@ -555,7 +585,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         steer: true,
         usage: false,
         ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),
-        ...(cfg.preset && ACP_PRESET_COMMANDS[cfg.preset] ? { commands: ACP_PRESET_COMMANDS[cfg.preset] } : {}),
+        ...(cfg.preset === "maki"
+          ? cfg.bridgeCommands
+            ? { commands: MAKI_BRIDGE_COMMANDS }
+            : {}
+          : cfg.preset && ACP_PRESET_COMMANDS[cfg.preset]
+            ? { commands: ACP_PRESET_COMMANDS[cfg.preset] }
+            : {}),
         nativeDiscovery: "none",
         nativeResume: "none",
         // ADR-0018: tools are asked per call through request_permission —
