@@ -15,10 +15,31 @@ test.describe("Eingabefeld (QoL 2026-10-29)", () => {
     await field.fill(Array.from({ length: 10 }, (_, i) => `Zeile ${i + 1} mit etwas Text`).join("\n"));
     const after = (await field.boundingBox())!.height;
     expect(after).toBeGreaterThan(before + 100);
-    // Leeren setzt die Höhe zurück.
+    // Leeren setzt die Höhe zurück — nach dem Blur, sonst gilt das Fokus-Minimum.
     await field.fill("");
+    await field.evaluate((el) => el.blur());
     const cleared = (await field.boundingBox())!.height;
     expect(cleared).toBeLessThan(after - 100);
+  });
+
+  test("Maximieren-Button macht das Feld groß und wieder klein", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const field = app.getByPlaceholder("Antworten…");
+    const vh = await app.evaluate(() => window.innerHeight);
+    const idle = (await field.boundingBox())!.height;
+    expect(idle).toBeLessThan(vh * 0.2); // im Ruhestand klein …
+
+    await app.getByRole("button", { name: "Eingabe maximieren" }).click();
+    const big = (await field.boundingBox())!.height;
+    expect(big).toBeGreaterThanOrEqual(vh * 0.6); // … auf Tipp deutlich über 33 %
+    await app.getByRole("button", { name: "Eingabe verkleinern" }).click();
+    const back = (await field.boundingBox())!.height;
+    expect(back).toBeLessThan(big - 150);
+    // Und der Weg dazwischen bleibt: Text wächst ins Feld (Auto-Grow, MR !257).
+    await field.fill(Array.from({ length: 8 }, (_, i) => `Zeile ${i + 1}`).join("\n"));
+    const grown = (await field.boundingBox())!.height;
+    expect(grown).toBeGreaterThan(idle + 60);
   });
 });
 
