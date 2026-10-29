@@ -6,6 +6,7 @@ import { recognizeOnce, speechRecognitionSupported } from "../../shared/speech.t
 import { LocalRecorder, recordingSupported, sttStatus } from "../../shared/local-stt.ts";
 import { type PromptRecommendation } from "../../shared/api.ts";
 import { saveSelectedSkill, saveSelectedWorkflow } from "./SkillOverlay.tsx";
+import { applySuggestion, commandsForScope, slashNotice, slashSuggestions, type SlashCommand } from "./slash.ts";
 import { AttachmentPicker } from "../attachments/Attachments.tsx";
 import type { AttachmentRecord } from "../../shared/api.ts";
 
@@ -38,6 +39,8 @@ export function Composer({
   fieldId,
   onSubmit,
   adapterEnhance,
+  commands,
+  commandScope,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -69,8 +72,23 @@ export function Composer({
    * up (from /api/adapters). undefined = hub didn't say → legacy id-set
    * fallback above. */
   adapterEnhance?: boolean;
+  /** ADR-0042: the adapter's declared slash commands (from /api/adapters).
+   * undefined = older hub without the field — no autocomplete, but the
+   * honest "not declared" notice still applies to a "…" first word. */
+  commands?: readonly SlashCommand[];
+  /** Which surface this composer is: Neu-Session filters scope "start",
+   * a session reply filters "steer". */
+  commandScope?: "start" | "steer";
 }) {
   const api = useApi();
+  // ADR-0042: slash layer — suggestions while typing the first "/word",
+  // a visible notice for anything not declared (fail loud, no silent
+  // "command" that really goes out as chat text).
+  const scopedCommands = useMemo(() => commandsForScope(commands, commandScope ?? "steer"), [commands, commandScope]);
+  const suggestions = useMemo(() => slashSuggestions(value, scopedCommands), [value, scopedCommands]);
+  const slashHint = slashNotice(value, scopedCommands);
+  const [slashIndex, setSlashIndex] = useState(0);
+  useEffect(() => setSlashIndex(0), [suggestions.length]);
   const valueRef = useRef(value);
   valueRef.current = value;
   const onChangeRef = useRef(onChange);
@@ -312,6 +330,25 @@ export function Composer({
           touchField(fieldId);
         }}
         onKeyDown={(e) => {
+          // ADR-0042: ↑/↓ wählt in der Vorschlagsliste, Enter übernimmt —
+          // nur solange die Liste offen ist; danach bleibt Enter ein Zeilenumbruch.
+          if (suggestions.length > 0) {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setSlashIndex((i) => (i + 1) % suggestions.length);
+              return;
+            }
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setSlashIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
+              return;
+            }
+            if (e.key === "Enter" && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+              e.preventDefault();
+              onChange(applySuggestion(value, suggestions[slashIndex] ?? suggestions[0]!));
+              return;
+            }
+          }
           if (onSubmit && (e.metaKey || e.ctrlKey) && e.key === "Enter" && !disabled) {
             e.preventDefault();
             onSubmit();
@@ -319,6 +356,24 @@ export function Composer({
         }}
         title={onSubmit ? "⌘/Ctrl+Enter senden" : undefined}
       />
+      {suggestions.length > 0 && (
+        <div class="composer-notice slash-list" role="listbox" aria-label="Commands">
+          {suggestions.map((c, i) => (
+            <button
+              key={c.name}
+              type="button"
+              class={i === slashIndex ? "btn primary" : "btn"}
+              role="option"
+              aria-selected={i === slashIndex}
+              style="margin: 2px 4px 2px 0"
+              onClick={() => onChange(applySuggestion(value, c))}
+            >
+              {c.name} — {c.description}
+            </button>
+          ))}
+        </div>
+      )}
+      {slashHint && <div class="composer-notice dim">{slashHint}</div>}
       {recording && <div class="composer-notice dim">🔴 Aufnahme — tippe „Stopp“, wenn du fertig bist (bleibt auf deinen Rechnern)</div>}
       {recording && sttStreamNotice && <div class="composer-notice dim">{sttStreamNotice}</div>}
       {recording && sttPartial && <div class="composer-notice stt-partial" role="status" aria-live="polite">Vorschau (wird nicht ausgeführt): {sttPartial}</div>}

@@ -8,6 +8,7 @@ import { ApiContext } from "../../shared/api-context.ts";
 import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord, type HarnessFeatures, type RunEstimate } from "../../shared/api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "../../shared/ws.ts";
 import { Composer } from "../composer/Composer.tsx";
+import type { SlashCommand } from "../composer/slash.ts";
 import { SessionConfigure } from "./SessionConfigure.tsx";
 import { QueueList } from "./QueueList.tsx";
 import { PcOpenNotice } from "./PcOpenNotice.tsx";
@@ -182,6 +183,8 @@ export function SessionTail({
   }, [api]);
   // ADR-0036: the adapter's declared external continuation command.
   const [adapterResume, setAdapterResume] = useState<{ argv: string[]; ref: "native" | "token" } | undefined>(undefined);
+  // ADR-0042: die gemeldeten Slash-Commands des Adapters fürs Antwortfeld.
+  const [adapterCommands, setAdapterCommands] = useState<readonly SlashCommand[] | undefined>(undefined);
   /** ADR-0032: the model's context window — configured on the adapter,
    * without it the context chip names no percentage. */
   const [contextWindow, setContextWindow] = useState<number | null>(null);
@@ -222,6 +225,7 @@ export function SessionTail({
           setReportNumbersReal(info?.capabilities.cost ?? false);
           setAdapterEnhance(typeof info?.enhance === "boolean" ? info.enhance : undefined);
           setAdapterResume(info?.capabilities.resume);
+          setAdapterCommands(info?.capabilities.commands);
           setContextWindow(typeof info?.capabilities.contextWindowTokens === "number" ? info.capabilities.contextWindowTokens : null);
         })
         .catch(() => {
@@ -943,6 +947,8 @@ export function SessionTail({
                 adapter={session.adapter}
                 project={session.project}
                 adapterEnhance={adapterEnhance}
+                commands={adapterCommands}
+                commandScope="steer"
                 onSubmit={
                   !replyBusy && online && (reply.trim() || replyAttachments.length > 0)
                     ? () => void sendReply()
