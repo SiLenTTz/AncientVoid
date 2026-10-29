@@ -132,3 +132,91 @@ Command-Dateien `/project:<name>`/`/user:<name>`, Lua
 `register_command`/`run_command`). Ob UACC sie über den ACP-/headless-
 Pfad auslösen kann, ist der zentrale offene Verifikationspunkt — nicht
 die Existenz, sondern der Dispatch von außen.
+
+## Nachtrag 2026-10-29 — maki live geprüft: nativ ja, getrieben nein, Brücke bewiesen
+
+**Auftrag:** „Hat maki /commands nativ, und welche Built-ins? Sonst Konzept
+und Umsetzung eigener Commands." („naki" ist kein bekanntes Harness —
+gemeint und geprüft ist maki, maki.sh, lokal installiert als 0.6.5.)
+
+### 1. Nativ: ja (Belege)
+
+- **Built-ins (25):** /compact, /new, /fork, /help, /usage, /queue, /model,
+  /theme, /mcp, /login, /cd, /btw, /yolo, /fast, /workflow, /exit, /reload,
+  /trust, /packupdate, /packdel, /memory, /rename, /sessions, /tasks,
+  /thinking — Quelle: maki.sh/docs/commands/ (vollständige Tabelle); das
+  installierte Binary (`strings`, 0.6.5, nicht gestrippt) enthält dieselbe
+  Registry samt Beschreibungen und „can only be run by you"-Marker für
+  /yolo, /trust, /packupdate, /packdel.
+- **Custom Commands:** Markdown-Dateien; Fundstellen `~/.config/maki/commands/`
+  (+ legacy `~/.maki/commands/`), `~/.claude/commands/`, Projekt-Walk
+  `.maki/commands/` + `.claude/commands/` (cwd→git-root, Projekt schlägt
+  User); Palette `/project:<name>`/`/user:<name>`; Frontmatter, `$ARGUMENTS`;
+  `--no-commands` überspringt alles (maki --help). **/clear ist kein
+  Built-in** — die Doku zeigt es nur als Alias-Beispiel auf /new.
+- **Lua:** `maki.api.register_command` / `run_command` (Grant-geprüft,
+  Matrix in docs/commands/#plugin-access: /compact + Custom-Commands
+  brauchen `agent`+`session_write`, /new+/fork `session_write`).
+
+### 2. Getrieben (UACC-Pfad): nein — live bewiesen
+
+Methodik: HOME-/XDG-Sandbox, eigener OpenAI-protokoll-Provider auf
+127.0.0.1-Stub (providers.toml erlaubt http auf Loopback), Custom-Command
+`/user:probe-hello` in der Sandbox. Der Stub loggt jede Anfrage mit dem
+User-Content — damit ist trennscharf sichtbar, ob ein "/…"-Prompt als
+Command **ausgeführt** (keine/wandlungsfreie Anfrage) oder als **Chat-Text**
+an das Modell geht. Ohne echte Keys, ohne Kosten.
+
+| Pfad | Prompt | Stub sah | Befund |
+|---|---|---|---|
+| `maki -p` | `/definitely-not-a-command` | `user="/definitely-not-a-command"` | Chat |
+| `maki -p` | `/new` | `user="/new"` | Chat |
+| `maki -p` | `/user:probe-hello welt` | `user="/user:probe-hello welt"` | Chat — Custom-Dateien werden getrieben ebenfalls **nicht** expandiert |
+| `maki acp` (UACC-Preset) | `/user:probe-hello from-acp` | `user="/user:probe-hello from-acp"` | Chat |
+| `maki acp` | `/definitely-not-a-command` | `user="/definitely-not-a-command"` | Chat |
+
+Der Provider-Gate läuft vor jeder Prompt-Behandlung; Slash-Text im
+getriebenen Prompt ist maki 0.6.5 schlicht eine Chat-Nachricht.
+
+### 3. Brücke: `agent.user_message`-Slot — Konzept UND Beweis
+
+maki-Hooks (maki.sh/docs/hooks/) bieten `agent.user_message`: feuert,
+bevor das Modell die Nachricht sieht, mit `source: "tui"|"acp"|"headless"|"plugin"`;
+Rückgabe `nil, reason` verwirft die Nachricht (Modell sieht sie nie),
+`run_command` führt jeden Slash-Command grant-geprüft aus. Rezept (init.lua,
+Grants in plugin.toml: alles — der Slot verlangt jede Permission):
+
+```lua
+local DRIVEN = { acp = true, headless = true }
+maki.api.set_slot("agent.user_message", function(prev, msg, ctx)
+  if DRIVEN[msg.source] and msg.text:sub(1, 1) == "/" then
+    local cmdline = msg.text:match("^%s*(/%S+.-)%s*$")
+    if cmdline then
+      local ok, err = maki.api.run_command(cmdline)
+      return nil, ok and ("Command " .. cmdline .. " ausgeführt (UACC-Brücke)")
+                or ("Command " .. cmdline .. " nicht ausführbar: " .. tostring(err))
+    end
+  end
+  return prev(msg, ctx)
+end)
+```
+
+**Beweis (Sandbox, Stub-Log + ACP-Ergebnis):** ACP `"/new"` →
+`stopReason:"refusal"`, **keine** Anfrage an den Stub (Command lief lokal,
+Modell unberührt); ACP `"hallo brücke"` → `end_turn`, Anfrage mit dem
+unveränderten Text (Kontrolle); unbekannter Command → refusal ohne Anfrage.
+
+Grenzen, ehrlich: Der Drop-Reason erscheint im ACP-Stream nicht als
+Agent-Nachricht — der Zug endet mit `refusal`; die Wirkung (z. B. neue
+Session) ist der Beleg. Die Brücke ist **Nutzer-Config je Rechner**
+(~/.config/maki), kein Repo-Code; Injection-grenze bleibt gewahrt, weil der
+Slot nur auf User-Nachrichten mit Source acp/headless reagiert —
+Agent-Output läuft nie durch `agent.user_message`.
+
+### 4. Konsequenzen fürs Repo
+
+- ACP-Preset **maki deklariert weiter nichts** (fail-loud war richtig, jetzt
+  live belegt statt „unklar").
+- Wer die Brücke installiert hat, kann Commands nutzen; eine spätere
+  Deklaration im Preset (konfigurierbar) ist Folgeaufgabe, erst nach
+  Installation beim Nutzer ehrlich.

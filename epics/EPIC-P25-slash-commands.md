@@ -46,10 +46,15 @@ von OpenCode, Claude und so weiter integrieren."
   Spec: Autocomplete → übernehmen → ausgeführt-Event; ungelisteter Slash
   → Hinweis; Adapter ohne Liste → Hinweis.
 - [x] **T25.6 — Doku; Verifikationsreste offen.** docs/adapters.md
-  Commands-Spalte mit Evidenz-Level (done). Live-Verifikation der
-  deklarierten Listen je CLI sowie Prüfung der „unklar"-CLIs (opencode
-  run, codex exec, cursor -p, pi rpc, maki acp/headless) bleibt Folge-
-  auftrag — deklariert wird erst nach Beleg (R9.7-Standard).
+  Commands-Spalte mit Evidenz-Level (done). **maki live geprüft 2026-10-29
+  (negativ):** nativ hat maki Commands (25 Built-ins, Custom-Dateien, Lua),
+  getrieben (`-p` und `maki acp`) nicht — Stub-Beweis; Opt-in-Brücke über
+  den `agent.user_message`-Slot dokumentiert
+  ([Analyse-Nachtrag](../docs/slash-commands-analyse-2026-10-29.md)).
+  Live-Verifikation der deklarierten Listen (claude/aider/copilot/omp) und
+  Prüfung der restlichen „unklar"-CLIs (opencode run, codex exec,
+  cursor -p, pi rpc) bleibt Folgeauftrag — deklariert wird erst nach
+  Beleg (R9.7-Standard).
 
 ## Acceptance Criteria
 
