@@ -204,19 +204,23 @@ Handy aus voll arbeitsfähig".
   Fixture-**Inhalt** ist bewusst synthetisch (echte Cursor-Chat-Historie
   ist private Nutzerdaten, gehört nicht in dieses Repo) — das Schema selbst
   ist real. In `hub.config.json` registriert, README-Matrix aktualisiert.
-- [ ] **T3.6** Whisper.cpp-Server-Anbindung + Domänen-Prompt + Latenz-Messung (K6)
+- [x] **T3.6** Whisper.cpp-Server-Anbindung + Domänen-Prompt + Latenz-Messung (K6)
   — *Vermerk (P1.5):* Der Sprach-MVP wurde nach
   [`EPIC-P1.5-control-center-ux.md`](EPIC-P1.5-control-center-ux.md) T1.5-7
   vorgezogen, dort aber bewusst mit **Browser-STT zuerst** (Begründung: keine
-  Serverinfrastruktur nötig, umgeht Premortem-Risiko 1 dieser Phase). T3.6
-  bleibt bestehen als lokaler Ersatzpfad für Geräte/Browser ohne native STT und
-  als Antwort auf den Datenschutz-Einwand aus P1.5 §3.3.
-- [ ] **T3.7** Browser-STT-Fallback + Geräte-Fähigkeits-Matrix (welches Handy kann was)
+  Serverinfrastruktur nötig, umgeht Premortem-Risiko 1 dieser Phase).
+  — *Abgeschlossen via P10/T12.10 (Häkchen 2026-10-29):* Der lokale Pfad ist
+  seit ADR-0028/ADR-0032 Realität — Hub-transkribiertes Diktat über den
+  Whisper-Endpunkt (`/api/stt`, `stt.streaming`-Proxy, `apps/pwa/src/shared/local-stt.ts`),
+  K6-Messwerte belegt (p95 5,24 s für 3,81-s-Diktate; Streaming-Prototyp
+  919 ms bis zum ersten Delta). Offen bleibt allein die Geräte-Abnahme in T12.4.
+- [x] **T3.7** Browser-STT-Fallback + Geräte-Fähigkeits-Matrix (welches Handy kann was)
   — *Vermerk (P1.5):* vorgezogen und dort umgesetzt als
   [`EPIC-P1.5`](EPIC-P1.5-control-center-ux.md) T1.5-7 (inkl.
   Geräte-Fähigkeits-Matrix und K6-Messlauf). Hier nur noch historisch geführt;
-  offen bleibt in P3 allein die Rolle als *Fallback* gegenüber T3.6, nachdem
-  P1.5 die Reihenfolge umgekehrt hat.
+  die Fallback-Rolle gegenüber T3.6 kehrte sich um: Der lokale Pfad (T3.6) ist
+  Primärweg, der Browser-STT (`speech.ts`) bleibt Fallback ohne lokalen
+  Recognizer — umgesetzt in P10 (ADR-0028). Häkchen 2026-10-29 nachgezogen.
 - [x] **T3.8** Sprachsuche-Frontend (S5) + Projekt-Index-Service + Egress-CI-Test.
   **Echter, real installierter lokaler Search-Stack gefunden statt Qdrant
   neu aufgesetzt:** `qmd` (npm `@tobilu/qmd` v2.8.3) — echte lokale
