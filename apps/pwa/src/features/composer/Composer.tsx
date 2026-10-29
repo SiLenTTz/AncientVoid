@@ -100,15 +100,23 @@ export function Composer({
   // (resize:vertical) bleibt, bis der Inhalt wieder Platz braucht.
   // max-height deckelt, danach scrollt das Feld.
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // Nutzerwunsch 2026-10-29 (Handy): Maximieren-Button — große Schreibfläche
+  // statt Mikro-Feld; im expanded-Zustand setzt CSS die Höhe, Auto-Grow
+  // greift dann nicht ein (offsetHeight ist schon groß).
+  const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
-    if (!value) {
+    if (!value && !expanded) {
       el.style.height = "";
       return;
     }
     if (el.scrollHeight > el.offsetHeight) el.style.height = `${el.scrollHeight}px`;
-  }, [value]);
+  }, [value, expanded]);
+  // Kollaps: explizite Höhe wegwerfen, damit Feld-/Fokus-Maße wieder gelten.
+  useEffect(() => {
+    if (!expanded) inputRef.current?.style.setProperty("height", "");
+  }, [expanded]);
   const supported = speechRecognitionSupported();
   const [listening, setListening] = useState(false);
   const [micError, setMicError] = useState("");
@@ -329,7 +337,7 @@ export function Composer({
           : "Nutzen gilt für diesen Prompt. Speichern merkt sie als Standard für das Projekt.";
 
   return (
-    <div class="composer">
+    <div class={`composer${expanded ? " expanded" : ""}`}>
       <textarea
         ref={inputRef}
         class="composer-input"
@@ -471,6 +479,17 @@ export function Composer({
             <AttachmentPicker attachments={attachments} onChange={onAttachmentsChange} {...(disabled !== undefined ? { disabled } : {})} />
           </span>
         )}
+        <button
+          class="btn"
+          type="button"
+          aria-pressed={expanded}
+          aria-label={expanded ? "Eingabe verkleinern" : "Eingabe maximieren"}
+          title={expanded ? "Eingabe wieder verkleinern" : "Eingabe groß machen"}
+          disabled={disabled}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "⤡" : "⤢"}
+        </button>
         <button
           class={listening ? "btn busy" : "btn"}
           type="button"

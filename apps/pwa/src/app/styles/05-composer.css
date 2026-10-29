@@ -20,6 +20,20 @@
   min-width: 0;
 }
 
+/* Nutzerwunsch 2026-10-29 (Handy): große Schreibfläche. Bewusst NICHT als
+ * :focus-Regel: der Layout-Sprung bei jedem Fokus hat 8 bestehende
+ * Handyn flows gebrochen (Kausalitätsnachweis im MR !258) — stattdessen
+ * wächst das Feld automatisch mit dem Text (Auto-Grow oben) und der
+ * Maximieren-Button macht es auf Tipp groß. */
+
+/* Maximieren-Button: große Schreibfläche; Auto-Grow-Deckel gilt dann nicht. */
+.composer.expanded .composer-input {
+  height: 75vh;
+  height: 75dvh;
+  min-height: 50vh;
+  max-height: none;
+}
+
 .composer-actions {
   display: flex;
   flex-wrap: wrap;
