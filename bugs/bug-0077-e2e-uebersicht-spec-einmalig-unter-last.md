@@ -39,7 +39,25 @@ Tests) es nicht sprengt.
 
 **Nicht reproduziert** — 18 Wiederholungen nach dem Vorfall, alle grün.
 
-**Häufigkeit:** einmalig (1 von ~20 Beobachtungen des Specs).
+**2026-10-29 (Session e20ab9c2): reproduziert — 1×.** Unter
+`--repeat-each=10 --workers=8` fiel derselbe Test 1× („1 failed / 9
+passed", mobile-Projekt), direkt im ersten Lastlauf des Tages. Danach
+116 weitere Ausführungen ohne Wiederholung: 10/10, 36/36, 5× 10/10 und
+20/20 mit `--workers=12`, dazu drei volle Suite-Läufe des Tages (243,
+253, 256 passed) — alles grün. Der Fehlerdetail-Locator des Fehlschlags
+wurde nicht aufbewahrt (nur der Testname im Lauf-Log; nachfolgende Läufe
+haben `test-results/` geleert, das Trace-Archiv ist damit weg).
+
+**Repro-Anleitung (geschärft):** Lastloop fahren —
+`npx playwright test e2e/specs/session.spec.ts -g "die Übersicht ordnet" --repeat-each=10 --workers=8` —
+und bei Fehlschlag **sofort** `test-results/*/trace.zip` sichern, bevor
+ein neuer Lauf das Verzeichnis leert. Ohne Trace/Locator kein bugfix —
+nicht raten.
+
+**Häufigkeit:** selten und lastabhängig (2026-10-28: 1/20; 2026-10-29:
+1/126 am selben Tag). Ungeprüfte Hypothese: Timeout der Freigabe-Karte
+(`.session-approvals .approval-card`, auto-wait 10 s) unter
+CPU-Konkurrenz der Parallel-Hubs — erst mit Trace bewertbar.
 
 ## Umgebung
 
