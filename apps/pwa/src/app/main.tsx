@@ -9,6 +9,7 @@ import { pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts
 import { applyTheme, getTheme } from "./theme.ts";
 import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
 import { applyCtxMotion, applyScale, ctxMotionOn, getScale, installScaleShortcuts } from "./ui-scale.ts";
+import { captureShareTarget, storeShareInbox } from "./share-inbox.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
 import { TileWorkspace } from "../features/workspace/TileWorkspace.tsx";
 import { StatusBar } from "../features/shell/StatusBar.tsx";
@@ -297,6 +298,15 @@ function Main() {
       )}
     </>
   );
+}
+
+// AI-P9-2: aus dem Teilen-Menü einer anderen App — Query aufräumen und
+// direkt auf "Neu" landen, der Auftrag wird vorbefüllt. Läuft vor dem
+// ersten Render, damit Token-Gate und Offline-Start denselben Zustand sehen.
+const shared = captureShareTarget(location.search);
+if (shared) {
+  storeShareInbox(shared.text);
+  history.replaceState(null, "", "/#/neu");
 }
 
 render(<Main />, document.getElementById("app")!);
