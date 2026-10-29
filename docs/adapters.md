@@ -209,7 +209,8 @@ wurde; Picker-Commands nie. Der Testkit prüft die Form. Aktueller Stand:
 | acp copilot | /compact, /usage (both) | documented (ACP-Server führt Built-ins als Prompt-Text) |
 | acp omp | /new, /compact (both) | documented (Internals: Dispatch auch im ACP-Modus) |
 | dummy | /compact (both) | Testdouble fürs Testkit/E2E |
-| opencode, codex, cursor, pi, hermes, acp dsh/maki | — (nichts deklariert) | kein getriebener Beleg — Verifikation T25.6; PWA zeigt „keine /Commands" |
+| opencode, codex, cursor, pi, hermes, acp dsh | — (nichts deklariert) | kein getriebener Beleg — Verifikation T25.6; PWA zeigt „keine /Commands" |
+| acp maki | — (nichts deklariert) | **live geprüft 2026-10-29, negativ**: maki hat nativ 25 Built-ins + Custom-Command-Dateien (maki.sh/docs/commands), aber `-p` und `maki acp` senden "/…" als Chat-Text an das Modell (Stub-Beweis, [Analyse-Nachtrag](slash-commands-analyse-2026-10-29.md)). Opt-in-Brücke über den `agent.user_message`-Lua-Slot, ebenda |
 
 ## Skill-/Agent-Übergabe (`SessionSpec.args`, ADR-0005)
 
