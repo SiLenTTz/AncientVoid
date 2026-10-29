@@ -80,8 +80,9 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
 - [x] **T19.4 — Loop `aspark-factory`.** *Erledigt 2026-10-28* (Paket `@uacc/loop-aspark-factory`, einzige Abhängigkeit `mqtt`):
   MQTT-Leitstand-Client, Fragen und Antworten (permission und question), Befehle gegen `commands[]`, `loop.broken` bei
   Last Will, `v≠1`, kaputtem JSON und Brokerverlust, Berichte >2 KB als Blob (K5), beantwortete Fragen im Cursor (K7).
-  Getestet gegen einen echten Mosquitto (11 Tests, Skip wenn er fehlt). Offen: die Anleitung für den Hub-MQTT-Nutzer
-  (nicht ausgeführt) steht in MR 4 mit der Konfiguration. K1, K9 messen wir erst gegen eine laufende Linie.
+  Getestet gegen einen echten Mosquitto (11 Tests, Skip wenn er fehlt). Die Anleitung für den Hub-MQTT-Nutzer
+  (Nutzer + ACL, Zugangsdaten via `passwordEnvFile`, Auswahl, Vorab-Check) liegt seit 2026-10-29 in
+  [`docs/aspark-factory-mqtt.md`](../docs/aspark-factory-mqtt.md). K1, K9 messen wir erst gegen eine laufende Linie.
 - [x] **T19.5 — Loop `securesight-factory`.** *Erledigt 2026-10-28* (Paket `@uacc/loop-securesight-factory`, keine Fremdabhängigkeit):
   Supervisor-Status per `execFile` (Exit 3 → `loop.hold`, 4/5 → `loop.broken`), Notify-Dateien, Transcript mit Byte-Cursor je Datei
   (ab Start, halbe Zeile wartet, ≤200 Zeilen je Durchlauf), `progress.json`, Orchestrator `self | hermes` (Hermes nur lesend,
