@@ -263,32 +263,61 @@ a {
   padding-bottom: 8px;
 }
 
-.tile-grid.layout-2v,
-.tile-glyph.layout-2v {
-  grid-template-columns: 1fr 1fr;
+/* QoL 2026-10-29: Track-Template kommt inline aus TileWorkspace (gezogene
+ * Anteile); hier nur die Platzierung. Kacheln sind <section>, Divider sind
+ * <div> — nth-of-type zählt daher nur Kacheln. Spur 2 ist die Divider-Spur. */
+
+.tile-grid.layout-2v > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+.tile-grid.layout-2v > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
+.tile-grid.layout-2v > .tile-divider.col { grid-column: 2; grid-row: 1 / -1; }
+
+.tile-grid.layout-2h > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+.tile-grid.layout-2h > .tile:nth-of-type(2) { grid-column: 1; grid-row: 3; }
+.tile-grid.layout-2h > .tile-divider.row { grid-column: 1 / -1; grid-row: 2; }
+
+.tile-grid.layout-1p2 > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1 / span 3; }
+.tile-grid.layout-1p2 > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
+.tile-grid.layout-1p2 > .tile:nth-of-type(3) { grid-column: 3; grid-row: 3; }
+.tile-grid.layout-1p2 > .tile-divider.col { grid-column: 2; grid-row: 1 / -1; }
+.tile-grid.layout-1p2 > .tile-divider.row { grid-column: 3; grid-row: 2; }
+
+.tile-grid.layout-2x2 > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+.tile-grid.layout-2x2 > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
+.tile-grid.layout-2x2 > .tile:nth-of-type(3) { grid-column: 1; grid-row: 3; }
+.tile-grid.layout-2x2 > .tile:nth-of-type(4) { grid-column: 3; grid-row: 3; }
+.tile-grid.layout-2x2 > .tile-divider.col { grid-column: 2; grid-row: 1 / -1; }
+.tile-grid.layout-2x2 > .tile-divider.row { grid-column: 1 / -1; grid-row: 2; }
+
+.tile-divider {
+  --divider-line: 2px;
+  position: relative;
+  border-radius: 1px;
+  background: transparent;
+  touch-action: none;
+  user-select: none;
+}
+.tile-divider::after {
+  content: "";
+  position: absolute;
+  background: var(--bg-chip);
+  border-radius: 1px;
+  transition: background 0.1s;
+}
+.tile-divider.col { cursor: col-resize; }
+.tile-divider.col::after { left: calc(50% - var(--divider-line) / 2); top: 10%; bottom: 10%; width: var(--divider-line); }
+.tile-divider.row { cursor: row-resize; }
+.tile-divider.row::after { top: calc(50% - var(--divider-line) / 2); left: 10%; right: 10%; height: var(--divider-line); }
+.tile-divider:hover::after,
+.tile-divider:active::after {
+  background: var(--fg-dim);
 }
 
-.tile-grid.layout-2h,
-.tile-glyph.layout-2h {
-  grid-template-rows: 1fr 1fr;
-}
-
-.tile-grid.layout-1p2,
-.tile-glyph.layout-1p2 {
-  grid-template-columns: 1.35fr 1fr;
-  grid-template-rows: 1fr 1fr;
-}
-
-.tile-grid.layout-1p2 > :first-child,
-.tile-glyph.layout-1p2 > :first-child {
-  grid-row: 1 / span 2;
-}
-
-.tile-grid.layout-2x2,
-.tile-glyph.layout-2x2 {
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-}
+/* Die Mini-Glyphen in den Layout-Buttons behalten ihre festen Templates. */
+.tile-glyph.layout-2v { grid-template-columns: 1fr 1fr; }
+.tile-glyph.layout-2h { grid-template-rows: 1fr 1fr; }
+.tile-glyph.layout-1p2 { grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr 1fr; }
+.tile-glyph.layout-1p2 > :first-child { grid-row: 1 / span 2; }
+.tile-glyph.layout-2x2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
 
 .tile {
   position: relative;
