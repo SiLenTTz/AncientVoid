@@ -326,7 +326,7 @@ export interface HarnessFeatures {
 export interface AdapterInfo {
   id: string;
   version: string;
-  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; contextWindowTokens?: number | null; features: HarnessFeatures; /** ADR-0036: external continuation command; absent = none declared. */ resume?: { argv: string[]; ref: "native" | "token" } };
+  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; contextWindowTokens?: number | null; features: HarnessFeatures; /** ADR-0036: external continuation command; absent = none declared. */ resume?: { argv: string[]; ref: "native" | "token" }; /** ADR-0042: slash commands the harness provably executes when driven; absent/empty = none — show that honestly. */ commands?: readonly { name: string; description: string; scope: "start" | "steer" | "both" }[] };
   /** BUG-0061: server-side truth whether "Verbessern" has a one-shot
    * enhancer for this registration. Absent = older hub → the composer's
    * legacy id-set fallback decides. */

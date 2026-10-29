@@ -337,6 +337,8 @@ export function CreateSession({
           adapter={adapter}
           project={project}
           adapterEnhance={adapters.find((a) => a.id === adapter)?.enhance}
+          commands={adapters.find((a) => a.id === adapter)?.capabilities.commands}
+          commandScope="start"
           onUseRecommendation={(item) => setSkill(item)}
           attachments={attachments}
           onAttachmentsChange={setAttachments}

@@ -125,7 +125,25 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     capabilities(): AdapterCapabilities {
       // cost/usage: false — no structured signal for either was ever
       // observed (see doc comment point 4), not guessed as present.
-      return { reasoning: false, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: { followUp: false, interrupt: true, toolGate: "bypass", questions: false, modelChoice: "start", modelSwitch: false, permissionModes: [], skills: false, agents: false, images: false, files: false, contextFork: false } };
+      // ADR-0042 (EPIC-P25): documented — `--message` runs in-chat "/"
+      // commands too (aider.chat/docs/usage/scripting). scope: start only —
+      // followUp is false, there is no steer channel to send them later.
+      return {
+        reasoning: false,
+        tools: true,
+        cost: false,
+        steer: true,
+        usage: false,
+        nativeDiscovery: "none",
+        nativeResume: "none",
+        commands: [
+          { name: "/clear", description: "Chat-Historie leeren (Dateien bleiben geladen)", scope: "start" },
+          { name: "/reset", description: "Historie leeren und alle Dateien entfernen", scope: "start" },
+          { name: "/add", description: "Dateien zur Session hinzufügen (Pfade als Text)", scope: "start" },
+          { name: "/tokens", description: "Token-Nutzung anzeigen", scope: "start" },
+        ],
+        features: { followUp: false, interrupt: true, toolGate: "bypass", questions: false, modelChoice: "start", modelSwitch: false, permissionModes: [], skills: false, agents: false, images: false, files: false, contextFork: false },
+      };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

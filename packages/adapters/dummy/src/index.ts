@@ -63,7 +63,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     version: "0.1.0",
 
     capabilities(): AdapterCapabilities {
-      return { reasoning: true, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: { followUp: true, interrupt: true, toolGate: "none", questions: false, modelChoice: "none", modelSwitch: false, permissionModes: [], skills: false, agents: false, images: false, files: false, contextFork: false } };
+      // ADR-0042 (EPIC-P25): one sample command so contract tests and E2E
+      // can exercise the whole pipe — a test double, not a claim about a CLI.
+      return { reasoning: true, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", commands: [{ name: "/compact", description: "Kontext komprimieren (Testdouble)", scope: "both" }], features: { followUp: true, interrupt: true, toolGate: "none", questions: false, modelChoice: "none", modelSwitch: false, permissionModes: [], skills: false, agents: false, images: false, files: false, contextFork: false } };
     },
 
     async start(_spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {

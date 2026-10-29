@@ -75,6 +75,19 @@ export async function runContractTests(
         throw new Error("capabilities.resume.ref must be native or token");
       }
     }
+    // ADR-0042: declared slash commands must be well-formed — the kit checks
+    // the shape, the evidence level (documented/live) stays a declaration
+    // duty documented in docs/adapters.md (same split as `resume`).
+    if (caps.commands !== undefined) {
+      const seen = new Set<string>();
+      for (const c of caps.commands) {
+        if (!/^\/[a-z0-9][a-z0-9-]*$/.test(c.name)) throw new Error(`capabilities.commands: "${c.name}" must be a slash name like /compact (lowercase [a-z0-9-])`);
+        if (seen.has(c.name)) throw new Error(`capabilities.commands: duplicate "${c.name}"`);
+        seen.add(c.name);
+        if (typeof c.description !== "string" || !c.description.trim()) throw new Error(`capabilities.commands: "${c.name}" needs a description`);
+        if (c.scope !== "start" && c.scope !== "steer" && c.scope !== "both") throw new Error(`capabilities.commands: "${c.name}" scope must be start|steer|both`);
+      }
+    }
     // ADR-0018: the per-function matrix, and no promise the tools can't keep.
     const f = caps.features;
     if (!f) throw new Error("capabilities.features missing (ADR-0018)");

@@ -15,6 +15,7 @@ import {
   type PromptAttachment,
   type SessionHandle,
   type SessionSpec,
+  type SlashCommand,
   type SteerInput,
   type WorkerProcess,
 } from "@uacc/contracts";
@@ -81,6 +82,24 @@ export const ACP_PRESETS = {
   // (live 2026-10-28). Credentials come from ~/.omp or the provider's env var (ZHIPU_API_KEY via envFiles).
   omp: { command: ["omp", "acp"], env: {} },
 } as const satisfies Record<string, { command: string[]; env: Record<string, string>; models?: boolean; images?: boolean }>;
+
+/** ADR-0042 (EPIC-P25 T25.2): slash commands each ACP harness provably
+ * dispatches when the driver sends them as ordinary prompt text. Declared
+ * only where the harness documents it — copilot's ACP server executes
+ * built-in slash commands from a text block (docs.github.com …/acp-server,
+ * picker commands excluded), omp dispatches its built-in registry in ACP
+ * mode too (slash-command-internals.md). opencode/dsh/maki: no driven-mode
+ * evidence yet → nothing declared, the PWA says so (fail loud, T25.6). */
+const ACP_PRESET_COMMANDS: Record<string, readonly SlashCommand[]> = {
+  copilot: [
+    { name: "/compact", description: "Verlauf komprimieren", scope: "both" },
+    { name: "/usage", description: "Gemessene Nutzung anzeigen", scope: "both" },
+  ],
+  omp: [
+    { name: "/new", description: "Neue Session mit frischem Kontext", scope: "both" },
+    { name: "/compact", description: "Kontext komprimieren, optional mit Anleitung", scope: "both" },
+  ],
+};
 
 const AcpConfig = z.object({
   preset: z.enum(["copilot", "opencode", "dsh", "maki", "omp"]).optional(),
@@ -536,6 +555,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         steer: true,
         usage: false,
         ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),
+        ...(cfg.preset && ACP_PRESET_COMMANDS[cfg.preset] ? { commands: ACP_PRESET_COMMANDS[cfg.preset] } : {}),
         nativeDiscovery: "none",
         nativeResume: "none",
         // ADR-0018: tools are asked per call through request_permission —
