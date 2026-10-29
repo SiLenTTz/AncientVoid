@@ -81,6 +81,20 @@ export interface AdapterResume {
 }
 
 /**
+ * ADR-0042: a slash command the harness provably executes when driven
+ * by the hub — declared only with evidence (documented for the driven mode
+ * or live-verified); picker-only commands are never declared.
+ */
+export interface SlashCommand {
+  /** With leading "/", lowercase `[a-z0-9-]`. */
+  name: string;
+  description: string;
+  /** "start": only as the session's first prompt (aider `--message`, no
+   * follow-up); "steer": only as a follow-up; "both": everywhere. */
+  scope: "start" | "steer" | "both";
+}
+
+/**
  * What an adapter can do. Surfaced in dashboards, README matrix and the
  * MCP gateway catalog. Be honest — capabilities are promises (aSPARK lesson).
  */
@@ -113,6 +127,10 @@ export interface AdapterCapabilities {
   /** ADR-0018: the per-function matrix. `steer` stays as the short form
    * (`followUp || interrupt`). */
   features: HarnessFeatures;
+  /** ADR-0042: slash commands the CLI executes in the driven mode, sent
+   * as normal prompt text over start/steer. Absent/empty = none proven —
+   * the PWA says so instead of silently passing a slash as chat text. */
+  commands?: readonly SlashCommand[];
 }
 
 export type HealthState = "healthy" | "degraded" | "down" | "broken";
