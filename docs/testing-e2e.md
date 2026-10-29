@@ -53,7 +53,7 @@ startet in etwa einer Sekunde.
 ## Aufbau
 
 ```text
-playwright.config.ts          Projekte: mobile (Pixel 7, alle Specs), desktop (nur @desktop)
+playwright.config.ts          Projekte: mobile (Pixel 7, alle Specs), tablet (800×1280 Touch, nur @tablet), desktop (nur @desktop)
 e2e/support/hub.ts            TestHub: start, kill, restart, api, events, until
 e2e/support/fixtures.ts       Fixtures hub, hubOptions, app; jeder Test scheitert bei pageerror
 e2e/support/global-setup.ts   baut die PWA
@@ -65,7 +65,7 @@ e2e/specs/*.spec.ts           Specs nach Bereich
 
 ```bash
 npx playwright install chromium     # einmalig
-npm run test:e2e                    # ganze Suite, beide Projekte
+npm run test:e2e                    # ganze Suite, alle Projekte
 npx playwright test e2e/specs/steer.spec.ts --project=mobile
 npx playwright test --repeat-each=3 # Flacker-Suche vor einem MR mit neuen Specs
 npx playwright show-report          # HTML-Bericht mit Trace, Screenshot, Video der Fehlschläge
