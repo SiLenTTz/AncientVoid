@@ -210,7 +210,7 @@ wurde; Picker-Commands nie. Der Testkit prüft die Form. Aktueller Stand:
 | acp omp | /new, /compact (both) | documented (Internals: Dispatch auch im ACP-Modus) |
 | dummy | /compact (both) | Testdouble fürs Testkit/E2E |
 | opencode, codex, cursor, pi, hermes, acp dsh | — (nichts deklariert) | kein getriebener Beleg — Verifikation T25.6; PWA zeigt „keine /Commands" |
-| acp maki | — (nichts deklariert) | **live geprüft 2026-10-29, negativ**: maki hat nativ 25 Built-ins + Custom-Command-Dateien (maki.sh/docs/commands), aber `-p` und `maki acp` senden "/…" als Chat-Text an das Modell (Stub-Beweis, [Analyse-Nachtrag](slash-commands-analyse-2026-10-29.md)). Opt-in-Brücke über den `agent.user_message`-Lua-Slot, ebenda |
+| acp maki | nur mit `bridgeCommands: true` | **live geprüft 2026-10-29**: nativ hat maki 25 Built-ins, aber `-p`/`maki acp` senden "/…" als Chat-Text (Stub-Beweis, [Analyse-Nachtrag](slash-commands-analyse-2026-10-29.md)). Mit installierter init.lua-Brücke + `bridgeCommands: true` in der Registration: /compact, /new, /rename (beide Scopes); ein ausgeführter Command endet als `refusal` → Adapter-Event „über die Brücke ausgeführt". Ohne Flag: nichts deklariert (fail loud) |
 
 ## Skill-/Agent-Übergabe (`SessionSpec.args`, ADR-0005)
 

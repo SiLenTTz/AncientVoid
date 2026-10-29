@@ -220,3 +220,15 @@ Agent-Output läuft nie durch `agent.user_message`.
 - Wer die Brücke installiert hat, kann Commands nutzen; eine spätere
   Deklaration im Preset (konfigurierbar) ist Folgeaufgabe, erst nach
   Installation beim Nutzer ehrlich.
+
+### Nachtrag 2 (2026-10-29, abends): Loader-Regel für Brücken-Layer
+
+Beim Feinschliff der Brücke live gefunden: maki **überspringt Layer mit
+mehr als einer `prev`-Aufrufstelle still** (deterministisch im A/B
+nachgewiesen: identischer Code, nur der Fehlerzweig `return prev(...)`
+statt `return nil, …` → Layer feuert nie, "/new" geht als Chat durch).
+Konsequenz für jede Brücke dieser Form: **genau ein** `prev`-Aufruf am
+Ende; Fehler- und Erfolgsfall droppen. Auch: `io.*` ist in der
+Plugin-Sandbox nicht verfügbar (Debug-Ausgaben dort laufen ins Leere,
+der Layer wird übersprungen). Beides ist Upstream-wissenswert — siehe
+Contributor-Idee in §5.
