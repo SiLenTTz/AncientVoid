@@ -1,4 +1,5 @@
 import { takeHandOver } from "../../shared/media.ts";
+import { takeShareInbox } from "../../app/share-inbox.ts";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { LoopPicker } from "../loops/LoopPicker.tsx";
 import type { LoopInfo, LoopSpec } from "@uacc/contracts";
@@ -63,6 +64,17 @@ export function CreateSession({
     if (p) localStorage.setItem(PROMPT_KEY, p);
     else localStorage.removeItem(PROMPT_KEY);
   };
+  // AI-P9-2: ein Share aus einer anderen App füllt den Auftrag einmalig
+  // vor — ungesendeter eigener Text bleibt, Geteiltes wird angehängt.
+  useEffect(() => {
+    const shared = takeShareInbox();
+    if (!shared) return;
+    setPromptState((p) => {
+      const next = p ? `${p}\n\n${shared}` : shared;
+      localStorage.setItem(PROMPT_KEY, next);
+      return next;
+    });
+  }, []);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
