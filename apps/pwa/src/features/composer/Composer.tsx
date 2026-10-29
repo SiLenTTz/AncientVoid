@@ -95,6 +95,20 @@ export function Composer({
   onChangeRef.current = onChange;
   const handle = useMemo(() => ({ get: () => valueRef.current, set: (t: string) => onChangeRef.current(t) }), []);
   useEffect(() => (fieldId ? registerField(fieldId, handle) : undefined), [fieldId]);
+  // QoL 2026-10-29 (K2): das Feld wächst mit dem Text, damit lange Eingaben
+  // ganz lesbar sind — aber nur nach oben: manuell gezogene Größe
+  // (resize:vertical) bleibt, bis der Inhalt wieder Platz braucht.
+  // max-height deckelt, danach scrollt das Feld.
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    if (!value) {
+      el.style.height = "";
+      return;
+    }
+    if (el.scrollHeight > el.offsetHeight) el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
   const supported = speechRecognitionSupported();
   const [listening, setListening] = useState(false);
   const [micError, setMicError] = useState("");
@@ -317,6 +331,7 @@ export function Composer({
   return (
     <div class="composer">
       <textarea
+        ref={inputRef}
         class="composer-input"
         value={value}
         onInput={(e) => onChange((e.target as HTMLTextAreaElement).value)}

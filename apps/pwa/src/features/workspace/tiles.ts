@@ -20,6 +20,10 @@ export interface Workspace {
   layout: Layout;
   slots: (TileRef | null)[];
   focus: number;
+  /** QoL 2026-10-29: gezogene Kachelgrößen — Anteil der ersten Spalte
+   * (zweispaltige Layouts) bzw. ersten Zeile (zweizeilige) als Bruchteil,
+   * je auf 0.2–0.8 geklemmt. Ohne Angabe gilt der Layout-Default. */
+  sizes?: { col?: number; row?: number };
 }
 
 const COUNT: Record<Layout, number> = { "1": 1, "2v": 2, "2h": 2, "1+2": 3, "2x2": 4 };
@@ -104,6 +108,22 @@ export function closeTile(ws: Workspace, index: number): Workspace {
   return put(ws, index, null);
 }
 
+export const MIN_TILE_SHARE = 0.2;
+export const MAX_TILE_SHARE = 0.8;
+
+/** Wirksame Anteile inklusive Layout-Default („1+2“ startet 1.35:1). */
+export function tileFractions(ws: Workspace): { col: number; row: number } {
+  const clamp = (v: number | undefined, d: number) =>
+    typeof v === "number" && Number.isFinite(v) ? Math.min(MAX_TILE_SHARE, Math.max(MIN_TILE_SHARE, v)) : d;
+  return { col: clamp(ws.sizes?.col, ws.layout === "1+2" ? 0.575 : 0.5), row: clamp(ws.sizes?.row, 0.5) };
+}
+
+/** Ein beendeter Divider-Zug: Anteil speichern (geklemmt auf 0.2–0.8). */
+export function resizeTile(ws: Workspace, axis: "col" | "row", fraction: number): Workspace {
+  const f = Math.min(MAX_TILE_SHARE, Math.max(MIN_TILE_SHARE, fraction));
+  return { ...ws, sizes: { ...ws.sizes, [axis]: f } };
+}
+
 export function serializeWorkspace(ws: Workspace): string {
   return JSON.stringify(ws);
 }
@@ -124,8 +144,15 @@ export function parseWorkspace(raw: string | null): Workspace {
   } catch {
     return emptyWorkspace();
   }
-  const { layout, slots, focus } = (data ?? {}) as { layout?: unknown; slots?: unknown; focus?: unknown };
+  const { layout, slots, focus, sizes } = (data ?? {}) as { layout?: unknown; slots?: unknown; focus?: unknown; sizes?: unknown };
   if (!LAYOUTS.includes(layout as Layout) || !Array.isArray(slots)) return emptyWorkspace();
   const ws: Workspace = { layout: layout as Layout, slots: [0, 1, 2, 3].map((i) => tileRef(slots[i])), focus: 0 };
-  return focusTile(ws, typeof focus === "number" ? focus : 0);
+  const sized =
+    sizes && typeof sizes === "object"
+      ? {
+          ...(typeof (sizes as { col?: unknown }).col === "number" ? { col: (sizes as { col: number }).col } : {}),
+          ...(typeof (sizes as { row?: unknown }).row === "number" ? { row: (sizes as { row: number }).row } : {}),
+        }
+      : undefined;
+  return focusTile({ ...ws, ...(sized && (sized.col !== undefined || sized.row !== undefined) ? { sizes: sized } : {}) }, typeof focus === "number" ? focus : 0);
 }

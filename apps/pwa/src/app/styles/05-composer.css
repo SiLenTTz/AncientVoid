@@ -13,6 +13,8 @@
   font: inherit;
   resize: vertical;
   min-height: 44px;
+  /* QoL 2026-10-29: Auto-Wachstum mit Deckel — danach scrollt das Feld. */
+  max-height: min(26rem, 60vh);
   width: 100%;
   max-width: 100%;
   min-width: 0;

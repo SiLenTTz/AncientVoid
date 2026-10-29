@@ -3,7 +3,7 @@ import { hostApi, type SessionRecord } from "../../shared/api.ts";
 import { SessionTail } from "../session/SessionTail.tsx";
 import type { Page } from "../../app/Dock.tsx";
 import type { CodeTarget } from "../../app/route.ts";
-import { closeTile, cycleLayout, focusTile, LAYOUT_LABELS, LAYOUTS, setLayout, swapWith, tileCount, visibleTiles, type Layout, type TileRef, type Workspace } from "./tiles.ts";
+import { closeTile, cycleLayout, focusTile, LAYOUT_LABELS, LAYOUTS, resizeTile, setLayout, swapWith, tileCount, tileFractions, visibleTiles, type Layout, type TileRef, type Workspace } from "./tiles.ts";
 
 /** Tiles below this height start with the controls folded (P18 premortem 3). */
 const COMPACT_TILE_PX = 800;
@@ -53,6 +53,39 @@ export function TileWorkspace({
   const stacked = ws.layout === "2h" || ws.layout === "2x2" || ws.layout === "1+2";
   const compact = stacked && window.innerHeight / 2 < COMPACT_TILE_PX;
 
+  // QoL 2026-10-29 (K2): Kacheln per Divider-Zug größer/kleiner — der Zug
+  // läuft über einen lokalen Override (kein State-Stampede während des
+  // Ziehens), commit und Persistenz erst am Ende über onChange.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<{ axis: "col" | "row"; fraction: number } | null>(null);
+  const fractions = tileFractions(ws);
+  const col = drag?.axis === "col" ? drag.fraction : fractions.col;
+  const row = drag?.axis === "row" ? drag.fraction : fractions.row;
+  const startDrag = (axis: "col" | "row") => (e: PointerEvent) => {
+    e.preventDefault();
+    const grid = gridRef.current;
+    if (!grid) return;
+    const rect = grid.getBoundingClientRect();
+    const clampTo = (f: number) => Math.min(0.8, Math.max(0.2, f));
+    const from = (ev: PointerEvent) => clampTo(axis === "col" ? (ev.clientX - rect.left) / rect.width : (ev.clientY - rect.top) / rect.height);
+    const move = (ev: PointerEvent) => setDrag({ axis, fraction: from(ev) });
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setDrag(null);
+      onChange(resizeTile(latest.current, axis, from(ev)));
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    setDrag({ axis, fraction: from(e) });
+  };
+  const template = (() => {
+    // Spalten: erste Kachel `col`, Divider-Spur, Rest; Zeilen analog.
+    const cols = ws.layout === "2v" || ws.layout === "1+2" || ws.layout === "2x2" ? `${col}fr 10px ${1 - col}fr` : "1fr";
+    const rows = ws.layout === "2h" || ws.layout === "1+2" || ws.layout === "2x2" ? `${row}fr 10px ${1 - row}fr` : "1fr";
+    return { gridTemplateColumns: cols, gridTemplateRows: rows } as const;
+  })();
+
   return (
     <div class="tile-workspace">
       <div class="tile-bar" role="toolbar" aria-label="Kachel-Layout">
@@ -92,7 +125,7 @@ export function TileWorkspace({
           <span class="tile-keys dim">Tastatur: Alt+1–4 · Alt+Shift+1–4 · Alt+L · Alt+W · Strg-Klick: neue Kachel</span>
         </div>
       </div>
-      <div class={`tile-grid layout-${ws.layout.replace("+", "p")}`}>
+      <div ref={gridRef} class={`tile-grid layout-${ws.layout.replace("+", "p")}`} style={template}>
         {visibleTiles(ws).map((ref, i) => (
           <Tile
             key={i}
@@ -107,6 +140,26 @@ export function TileWorkspace({
             {...(initialCode && ref?.sessionId === initialCode.sessionId ? { initialCode: initialCode.code } : {})}
           />
         ))}
+        {/* Divider nach den Kacheln — <div> neben <section>, damit die
+         * nth-of-type-Platzierung der Kacheln unberührt bleibt. */}
+        {(ws.layout === "2v" || ws.layout === "1+2" || ws.layout === "2x2") && (
+          <div
+            class="tile-divider col"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Kachelbreite ändern"
+            onPointerDown={startDrag("col")}
+          />
+        )}
+        {ws.layout !== "1" && ws.layout !== "2v" && (
+          <div
+            class={`tile-divider row${ws.layout === "1+2" ? " right-only" : ""}`}
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Kachelhöhe ändern"
+            onPointerDown={startDrag("row")}
+          />
+        )}
       </div>
     </div>
   );
