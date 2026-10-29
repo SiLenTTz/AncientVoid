@@ -189,6 +189,28 @@ show` und der „PC offen"-Hinweis rendern den Befehl. Beziehung zu
 `nativeResume`: unabhängig — jenes beschreibt In-Hub-Steuerung, dieses die
 Fortsetzung außerhalb.
 
+## Slash-Commands deklarieren (`commands`, ADR-0042)
+
+`capabilities().commands?: readonly SlashCommand[]` listet die Commands,
+die die CLI **im getriebenen Modus** ausführt — gesendet als normaler
+Prompt-Text über `start`/`steer`, kein eigener Kanal. Shape:
+`{ name: "/compact", description, scope: "start"|"steer"|"both" }`;
+`scope` folgt den Fähigkeiten des Adapters (aider ohne followUp → nur
+`start`). Der Composer bietet genau diese an (scope-gefiltert) und meldet
+alles andere sichtbar als normalen Text — Fail loud statt stiller
+Fehlleitung. Beleg-Regel wie bei `resume`: deklariert wird nur, was die
+Harness-Doku für den getriebenen Modus zusagt oder was live verifiziert
+wurde; Picker-Commands nie. Der Testkit prüft die Form. Aktueller Stand:
+
+| Adapter/Harness | Commands | Evidenz |
+|---|---|---|
+| claude | /clear, /compact (both) | documented (headless: Slash-Prompts in `-p`, Picker ausgenommen) — Live-Check T25.6 offen |
+| aider | /clear, /reset, /add, /tokens (start) | documented (`--message` führt In-Chat-/Commands) |
+| acp copilot | /compact, /usage (both) | documented (ACP-Server führt Built-ins als Prompt-Text) |
+| acp omp | /new, /compact (both) | documented (Internals: Dispatch auch im ACP-Modus) |
+| dummy | /compact (both) | Testdouble fürs Testkit/E2E |
+| opencode, codex, cursor, pi, hermes, acp dsh/maki | — (nichts deklariert) | kein getriebener Beleg — Verifikation T25.6; PWA zeigt „keine /Commands" |
+
 ## Skill-/Agent-Übergabe (`SessionSpec.args`, ADR-0005)
 
 Es gibt **keinen** eigenen Contract-Kanal für „starte mit Skill X" — jeder
