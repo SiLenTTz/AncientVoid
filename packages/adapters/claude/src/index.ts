@@ -272,6 +272,15 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // session" — same flag this adapter itself spawns (start --resume),
         // and the one PcOpenNotice showed live (ADR-0034).
         resume: { argv: ["claude", "--resume", "{sessionId}"], ref: "native" },
+        // ADR-0042 (EPIC-P25): documented — headless `-p` evaluates slash
+        // prompts, picker-based commands excluded (code.claude.com/docs/en/
+        // headless + /en/commands: /clear, /compact are argument-based, not
+        // pickers). Live verification per CLI is T25.6; until then this is
+        // the documented level, honestly marked in docs/adapters.md.
+        commands: [
+          { name: "/clear", description: "Gesprächsverlauf leeren — neuer Kontext in derselben Session", scope: "both" },
+          { name: "/compact", description: "Kontext komprimieren, optional mit Anleitung als Text", scope: "both" },
+        ],
         // ADR-0018. Hub prompts: every tool that needs a decision is asked
         // on the phone (native). Off: `claude -p` denies every tool that
         // would ask — a fixed list (settings/--allowedTools), nobody asked.
