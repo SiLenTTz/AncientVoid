@@ -152,13 +152,13 @@ describe("securesight-Onboarding über factory init (T26.4, EPIC-P26)", () => {
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-  /** Fake-CLI: `init` gibt die Datei aus (oder stderr+Exit 1), alles andere den Fortschritt.
-   * Mit `factoryHome` wird der Shim der echten Installation nachgebildet (FACTORY_HOME-Zeile)
-   * und dort eine Standard-Policy angelegt — Basis für die Modell-Override-Tests. */
+  /** Fake-CLI: `init` gibt die Datei aus (oder stderr+Exit 1), alles andere den
+   * Fortschritt. Mit `factoryHome` trägt der Shim wie die echte Installation
+   * eine FACTORY_HOME-Zeile. */
   const makeBin = (initFile: string | null, initErr?: string, factoryHome?: string) => {
     const bin = join(dir, "factory.sh");
     const init = initErr !== undefined ? `printf '%s' '${initErr}' >&2; exit 1` : `cat '${initFile}'`;
-    writeFileSync(bin, `#!/bin/sh\n${factoryHome ? `FACTORY_HOME='${factoryHome}'\n` : ""}if [ \"$1\" = \"init\" ]; then printf '%s\\n' \"$@\" > '${join(dir, "init-args.txt")}'; ${init}; exit 0; fi\ncat '${join(dir, "progress-out.json")}'\n`, { mode: 0o755 });
+    writeFileSync(bin, `#!/bin/sh\n${factoryHome ? `FACTORY_HOME='${factoryHome}'\n` : ""}if [ "$1" = "init" ]; then printf '%s\\n' "$@" > '${join(dir, "init-args.txt")}'; ${init}; exit 0; fi\ncat '${join(dir, "progress-out.json")}'\n`, { mode: 0o755 });
     return bin;
   };
   const writeInit = (doc: unknown) => {
@@ -167,26 +167,6 @@ describe("securesight-Onboarding über factory init (T26.4, EPIC-P26)", () => {
     return file;
   };
   const onboard = (bin: string, options: Record<string, string>) => createLoopConnector({ factory: bin, pollMs: 40 }).onboard?.({ options }, new AbortController().signal);
-
-  /** Standard-Policy der Factory, wie sie der Connector vorfindet und patcht. */
-  const makeFactoryHome = () => {
-    const home = join(dir, "factory-home");
-    mkdirSync(join(home, "policies"), { recursive: true });
-    writeFileSync(
-      join(home, "policies", "modell-routing.json"),
-      JSON.stringify({
-        schema_version: "1",
-        default_provider: "anthropic",
-        tiers: {
-          planung: { model: "claude-opus-5-5", effort: "high" },
-          mittel: { model: "claude-sonnet-5-5", effort: "medium" },
-          einfach: { model: "claude-haiku-5-5", effort: "low" },
-        },
-        providers: { zai: { base_url: "https://api.z.ai/api/anthropic", key_path: "~/.k", key_field: "zai-coding-plan.key", tier_models: { planung: "glm-5.3", mittel: "glm-5.3", einfach: "glm-5.3-flash" } } },
-      }),
-    );
-    return home;
-  };
 
   it("factory init ohne Geheimnis: Checkliste als detail, Anbindung schaltet auf „bestehend“", async () => {
     const bin = makeBin(writeInit({ root: "/x", checkliste: ["git: ok", "ready: alle wirkungs-pruefungen gruen — lauf kann starten"] }));
