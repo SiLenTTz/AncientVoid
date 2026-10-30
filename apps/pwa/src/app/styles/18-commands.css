@@ -11,7 +11,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(640px, calc(100vw - 16px));
+  width: min(640px, calc(100vw / var(--ui-zoom, 1) - 16px));
   max-height: calc((100dvh / var(--ui-zoom, 1)) - 32px);
   overflow-y: auto;
   display: grid;

@@ -61,3 +61,26 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     await expect(app.locator(".toast.success").filter({ hasText: "Verbindung zum Hub wieder da" })).toBeVisible({ timeout: 15_000 });
   });
 });
+
+test.describe("Benachrichtigungen bei UI-Skalierung (Nutzerfund 2026-10-30)", () => {
+  // Telefonbreite: erst hier fällt die ungeteilte 100vw-Breite aus dem Bild.
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("das Panel bleibt bei 140 % Skalierung im Bildschirm und die ✕ bleibt erreichbar", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+    await expect(app.getByRole("button", { name: /Benachrichtigungen/ })).toBeVisible();
+    await app.evaluate(() => localStorage.setItem("uacc.uiScale", "1.4"));
+    await app.reload();
+    await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
+    const panel = app.locator(".notif-panel");
+    await expect(panel).toBeVisible();
+    const vw = await app.evaluate(() => window.innerWidth);
+    const box = (await panel.boundingBox())!;
+    // zoom skaliert die gerenderte Größe — beide Kanten müssen im Viewport bleiben.
+    expect(box.x).toBeGreaterThanOrEqual(-0.5);
+    expect(box.x + box.width).toBeLessThanOrEqual(vw + 0.5);
+    const close = (await panel.locator(".notif-panel-head .btn").boundingBox())!;
+    expect(close.x).toBeGreaterThanOrEqual(-0.5);
+    expect(close.x + close.width).toBeLessThanOrEqual(vw + 0.5);
+  });
+});
