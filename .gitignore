@@ -16,6 +16,7 @@ data/
 .env
 .env.*
 hub.config.json
+hub.config.json.bak*
 hub.config.local.json
 device-tokens.txt
 
