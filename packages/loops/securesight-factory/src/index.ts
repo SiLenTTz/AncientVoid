@@ -1,12 +1,23 @@
-import { execFile } from "node:child_process";
-import { existsSync, watch, type FSWatcher } from "node:fs";
+import { execFile, execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, watch, writeFileSync, type FSWatcher } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { LOOP_NEW } from "@uacc/contracts";
 import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopOnboardResult, LoopStartSpec, SessionHandle } from "@uacc/contracts";
 import { listFiles, readJson, tailLines, under } from "./files.ts";
 
-const CAPABILITIES: LoopCapabilities = {
+/** Standard-Modellauswahl je Provider (factory-Policy 2026-10); via
+ * `loops[].config.models` in hub.config.json ersetzbar. Der Wert „provider/model“
+ * wird beim Anbinden in den Projekt-Override `policies/modell-routing.json`
+ * geschrieben — der factory-eigene, dokumentierte Mechanismus (routing.py),
+ * kein Eingriff in die Factory-Installation. */
+const DEFAULT_MODELS: Record<"anthropic" | "zai", string[]> = {
+  anthropic: ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
+  zai: ["glm-5.3", "glm-5.3-flash"],
+};
+const PROVIDER_LABEL: Record<"anthropic" | "zai", string> = { anthropic: "Anthropic", zai: "Z.ai" };
+
+const capabilitiesFor = (models: Record<"anthropic" | "zai", string[]>): LoopCapabilities => ({
   agents: "external",
   intake: ["backlog"],
   modes: [],
@@ -27,12 +38,43 @@ const CAPABILITIES: LoopCapabilities = {
       { key: "prd", label: "PRD (Datei/Ordner, optional)", kind: "text", placeholder: "/pfad/zur/prd.md" },
       { key: "modus", label: "Betriebsmodus", kind: "select", required: true, choices: [{ value: "a", label: "a — merged automatisch (Außenwirkung)" }, { value: "b", label: "b" }] },
       { key: "provider", label: "Provider", kind: "select", required: true, choices: [{ value: "anthropic", label: "Anthropic" }, { value: "zai", label: "Z.ai" }] },
+      // Nutzerwunsch 2026-10-30: Modell out of the box im Hub wählbar — ohne
+      // Änderung an der factory-CLI. Wahl überschreibt ggf. den Provider.
+      {
+        key: "modell",
+        label: "Modell",
+        kind: "select",
+        choices: [{ value: "", label: "Standard-Routing der Factory" }, ...(Object.keys(models) as ("anthropic" | "zai")[]).flatMap((p) => models[p].map((m) => ({ value: `${p}/${m}`, label: `${m} (${PROVIDER_LABEL[p]})` })))],
+      },
     ],
     // AC-P26-9: Harness-Wahl (claude|maki) bleibt ausgeblendet, bis die installierte factory-CLI
     // Fähigkeiten meldet (factory capabilities --json, Schnittstellenwunsch 1) — kein Rateversuch aus der Version.
     notes: ["Harness-Wahl (claude/maki): ausgeblendet — die installierte factory-CLI meldet keine Fähigkeiten („factory capabilities“ fehlt noch)."],
   },
-};
+});
+
+/** Pfad zur Standard-Policy der installierten Factory: der Shim der nicht
+ * editierbaren Installation trägt FACTORY_HOME in Zeile 3; daneben fallback
+ * die editable Installation (policies/ neben der Binärdatei). */
+function factoryPolicySource(factoryBin: string): string | null {
+  const quote = (s: string) => `'${s.replace(/'/g, "'\\''")}'`;
+  let bin = factoryBin;
+  try {
+    bin = execFileSync("sh", ["-c", `command -v -- ${quote(factoryBin)} 2>/dev/null || printf %s ${quote(factoryBin)}`], { encoding: "utf8" }).trim().split("\n")[0] || factoryBin;
+  } catch {
+    /* Pfad bleibt wie konfiguriert */
+  }
+  try {
+    const home = readFileSync(bin, "utf8").match(/^FACTORY_HOME='([^']+)'/m);
+    if (home) return join(home[1]!, "policies", "modell-routing.json");
+  } catch {
+    /* keine lesbare Binärdatei — editable Layout versuchen */
+  }
+  for (const candidate of [join(dirname(bin), "..", "policies", "modell-routing.json"), join(dirname(bin), "policies", "modell-routing.json")]) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
 
 const FAST_MS = 2000;
 const KEEP_KEYS = 40;
@@ -122,6 +164,19 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
   const runs = new Map<string, Run>();
   const python = typeof config.python === "string" && config.python ? config.python : "python3";
   const factoryBin = typeof config.factory === "string" && config.factory ? config.factory : "factory";
+  // Modellauswahl des Anbindungs-Formulars (Nutzerwunsch 2026-10-30):
+  // `loops[].config.models` überschreibt die Standardliste je Provider.
+  const models: Record<"anthropic" | "zai", string[]> = {
+    anthropic: [...DEFAULT_MODELS.anthropic],
+    zai: [...DEFAULT_MODELS.zai],
+  };
+  if (config.models !== null && typeof config.models === "object" && !Array.isArray(config.models)) {
+    for (const p of ["anthropic", "zai"] as const) {
+      const list = (config.models as Record<string, unknown>)[p];
+      if (Array.isArray(list) && list.length > 0 && list.every((m) => typeof m === "string" && m.trim())) models[p] = list.map((m) => (m as string).trim());
+    }
+  }
+  const CAPABILITIES = capabilitiesFor(models);
   // Obergrenze 30 s: AC-P19-4 verlangt `loop.broken` bei Watchdog-Ausfall in unter 60 s.
   const pollMs = typeof config.pollMs === "number" && config.pollMs >= 20 ? Math.min(config.pollMs, 30_000) : 15_000;
   // Projektmodus (REQ-2903 Dead-Man-Signal): älterer Heartbeat ohne Phase-Wechsel ⇒ „wartet ohne Fortschritt“, nie „läuft“.
@@ -442,11 +497,65 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       const root = (input.options.root ?? "").trim();
       const prd = (input.options.prd ?? "").trim();
       const modus = (input.options.modus ?? "").trim();
-      const provider = (input.options.provider ?? "").trim();
+      let provider = (input.options.provider ?? "").trim();
+      // Modellwahl „provider/model“: ein gültiges Modell bestimmt auch den Provider
+      // für factory init (explizite Wahl schlägt das Provider-Feld, im Detail begründet).
+      const modellRaw = (input.options.modell ?? "").trim();
+      let modellProvider: "anthropic" | "zai" | null = null;
+      let modellName = "";
+      if (modellRaw) {
+        const slash = modellRaw.indexOf("/");
+        const candidate = slash > 0 ? (modellRaw.slice(0, slash) as "anthropic" | "zai") : null;
+        modellName = slash > 0 ? modellRaw.slice(slash + 1) : "";
+        if (candidate !== "anthropic" && candidate !== "zai") return { ok: false, detail: "Modell: „anbieter/modell“ erwartet (anbieter anthropic oder zai)" };
+        if (!modellName || !models[candidate].includes(modellName)) return { ok: false, detail: `Modell „${modellName || "?"}“ gehört nicht zur Auswahl von ${candidate}` };
+        modellProvider = candidate;
+        provider = candidate;
+      }
       if (!root.startsWith("/") || root.includes("\0")) return { ok: false, detail: "Projektpfad fehlt oder ist nicht absolut" };
       if (prd && (!prd.startsWith("/") || prd.includes("\0"))) return { ok: false, detail: "PRD-Pfad muss absolut sein (oder leer)" };
       if (modus !== "a" && modus !== "b") return { ok: false, detail: "Betriebsmodus „a“ oder „b“ fehlt" };
       if (provider !== "anthropic" && provider !== "zai") return { ok: false, detail: "Provider „anthropic“ oder „zai“ fehlt" };
+      // Projekt-Override der Modell-Routing-Policy: die installierte Standard-Policy
+      // kopieren und nur die Modelle patchen — die Factory lädt den Projekt-Override
+      // als Ganzes (routing.py mischt nie), deshalb keine Teilüberschreibung.
+      const modellOverride = (): { ok: true } | { ok: false; detail: string } => {
+        if (!modellProvider || !modellName) return { ok: true };
+        const source = factoryPolicySource(factoryBin);
+        if (!source) return { ok: false, detail: "Modell gewählt, aber die Standard-Policy der Factory (FACTORY_HOME/policies/modell-routing.json) wurde nicht gefunden" };
+        let doc: Record<string, unknown>;
+        try {
+          doc = JSON.parse(readFileSync(source, "utf8")) as Record<string, unknown>;
+        } catch (err) {
+          return { ok: false, detail: `Standard-Policy unlesbar: ${err instanceof Error ? err.message : String(err)}` };
+        }
+        const tiers = doc.tiers as Record<string, { model?: string } | undefined> | undefined;
+        if (!tiers || !["planung", "mittel", "einfach"].every((t) => tiers[t])) return { ok: false, detail: "Standard-Policy ohne die Stufen planung/mittel/einfach — Override nicht geschrieben" };
+        if (modellProvider === "anthropic") {
+          for (const tier of ["planung", "mittel", "einfach"]) tiers[tier]!.model = modellName;
+        }
+        if (modellProvider === "zai") {
+          const providers = (doc.providers ?? {}) as Record<string, Record<string, unknown>>;
+          providers.zai = {
+            // Standard-Z.ai-Profil der Factory-Policy (api.z.ai, Coding-Plan-Key) — nur
+            // gesetzt, wenn die Vorlage selbst keinen Z.ai-Block mitbringt.
+            base_url: "https://api.z.ai/api/anthropic",
+            key_path: "~/.local/share/opencode/auth.json",
+            key_field: "zai-coding-plan.key",
+            ...providers.zai,
+            tier_models: { planung: modellName, mittel: modellName, einfach: modellName },
+          };
+          doc.providers = providers;
+        }
+        doc.default_provider = modellProvider;
+        try {
+          mkdirSync(join(root, "policies"), { recursive: true });
+          writeFileSync(join(root, "policies", "modell-routing.json"), `${JSON.stringify(doc, null, 2)}\n`);
+        } catch (err) {
+          return { ok: false, detail: `policies/modell-routing.json nicht schreibbar: ${err instanceof Error ? err.message : String(err)}` };
+        }
+        return { ok: true };
+      };
       return await new Promise((resolve) => {
         execFile(factoryBin, ["init", "--root", root, "--modus", modus, "--provider", provider, ...(prd ? ["--from-prd", prd] : [])], { timeout: 120_000, maxBuffer: 1024 * 1024, signal }, (err, stdout, stderr) => {
           if (signal.aborted) return resolve({ ok: false, detail: "abgebrochen" });
@@ -460,9 +569,12 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
             /* Fehlerfall unten */
           }
           if (!doc) return resolve({ ok: false, detail: "factory init: stdout ist kein JSON (Vertrag v1 verletzt)" });
+          const override = modellOverride();
+          if (!override.ok) return resolve({ ok: false, detail: override.detail });
           const lines = Array.isArray(doc.checkliste) ? doc.checkliste.filter((l): l is string => typeof l === "string") : [];
           const ready = lines.some((l) => l.startsWith("ready:"));
-          resolve({ ok: true, options: { anbindung: "bestehend" }, detail: `${lines.join(" · ").slice(0, 400)}${ready ? "" : " · noch nicht bereit"}` });
+          const modellDetail = modellProvider && modellName ? ` · modell: ${modellName} (${modellProvider}) für alle Stufen — policies/modell-routing.json` : "";
+          resolve({ ok: true, options: { anbindung: "bestehend" }, detail: `${lines.join(" · ").slice(0, 400)}${ready ? "" : " · noch nicht bereit"}${modellDetail}` });
         });
       });
     },

@@ -64,6 +64,33 @@ Nie-dem-Client-Pfad-vertrauen-Muster wie ADR-0001. Leere `projectRoots`
 (Default) bedeutet: kein Root konfiguriert, die PWA fällt auf ein
 Freitextfeld für den Projektpfad zurück, kein Endpunkt lehnt dann etwas ab.
 
+## Loops (`loops[].config`)
+
+```jsonc
+"loops": [
+  {
+    "id": "securesight-factory",
+    "module": "@uacc/loop-securesight-factory",
+    "config": {
+      "models": {                       // optional — überschreibt die Standardliste
+        "anthropic": ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
+        "zai": ["glm-5.3", "glm-5.3-flash"]
+      }
+    }
+  }
+]
+```
+
+Die Modellwahl steht im Anbindungs-Formular („Factory-Projekt einrichten“)
+direkt bereit — Wert `anbieter/modell`, Vorgabe „Standard-Routing der
+Factory“ schreibt nichts. Eine gewählte Modell bestimmt auch den Provider
+für `factory init` und wird als Projekt-Override
+`<projekt>/policies/modell-routing.json` geschrieben (der factory-eigene,
+dokumentierte Mechanismus — die Factory lädt den Projekt-Override als
+Ganzes; kein Eingriff in die Factory-Installation). Gilt für alle drei
+Stufen (planung/mittel/einfach). `python`, `pollMs`, `staleAfterS` und
+`hermesDir` sind weitere Connector-Optionen.
+
 ## Device-Tokens
 
 ```bash
