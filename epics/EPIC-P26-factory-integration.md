@@ -145,7 +145,7 @@ sie (Fähigkeiten werden ausgeblendet, fehlende Felder als „unbekannt“ gezei
 - [x] **T26.1 — Schnittstellenvertrag und Fixtures.** `docs/factory-schnittstelle.md`;
   Fixtures aus einem echten `factory init` und einem echten Lauf mit Fortschritt
   (anonymisiert, secret-gescannt, nie Roh-Logs). K7, K9.
-- [ ] **T26.2 — ADR-0043.** Treiber/Beobachter, Start-Flow (A/B/C), Allowlist,
+- [x] **T26.2 — ADR-0043.** Treiber/Beobachter, Start-Flow (A/B/C), Allowlist,
   Modi `repo|project`. Contract-Änderungen nur additiv.
 - [ ] **T26.3 — Connector-Modus `project`.** Erkennung, Quellen, `schema_version`-
   Prüfung, Ausfall je Quelle ⇒ `loop.broken`; Regression Modus `repo`. K2, K9.
