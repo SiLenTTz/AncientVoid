@@ -33,6 +33,7 @@ interface Cursor {
 
 interface Run {
   root: string;
+  mode: "repo" | "project";
   orchestrator: "self" | "hermes";
   epic: string | null;
   cursor: Pick<Cursor, "offsets" | "notified">;
@@ -42,6 +43,8 @@ interface Run {
   /** Erster Durchlauf ohne gespeicherte Position: vorhandene Transcripts nur ab jetzt, spätere Dateien von vorn. */
   seeding: boolean;
   closed: boolean;
+  /** Projektmodus: `factory progress show` war im letzten Takt lesbar — nur dann darf eine andere Quelle `healthy` setzen. */
+  progressOk: boolean;
   health: HealthReport;
   last: Map<string, string>;
   io: LoopIo;
@@ -69,6 +72,23 @@ function runSupervisor(python: string, root: string): Promise<Supervisor> {
   });
 }
 
+/** Vertrag v1 (docs/factory-schnittstelle.md): stdout ist genau eine JSON-Zeile; stderr ist Menschencheckliste. */
+function runFactory(bin: string, root: string, args: string[]): Promise<Supervisor> {
+  return new Promise((resolve) => {
+    execFile(bin, args, { cwd: root, timeout: 15_000, maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
+      const exit = err ? (typeof (err as { code?: unknown }).code === "number" ? ((err as { code: number }).code) : -1) : 0;
+      let json: Record<string, unknown> | null = null;
+      try {
+        const parsed: unknown = JSON.parse(stdout);
+        if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) json = parsed as Record<string, unknown>;
+      } catch {
+        /* Fehlerfall unten */
+      }
+      resolve({ exit, json, ...(exit !== 0 ? { error: (stderr || String(err)).slice(0, 200) } : {}) });
+    });
+  });
+}
+
 const s = (x: unknown, max = 200): string | undefined => (typeof x === "string" ? (x.length > max ? `${x.slice(0, max - 1)}…` : x) : undefined);
 const n = (x: unknown): number | undefined => (typeof x === "number" && Number.isFinite(x) && x >= 0 ? x : undefined);
 const obj = (x: unknown): Record<string, unknown> => (typeof x === "object" && x !== null && !Array.isArray(x) ? (x as Record<string, unknown>) : {});
@@ -84,8 +104,11 @@ const compact = <T extends Record<string, unknown>>(o: T): T => Object.fromEntri
 export function createLoopConnector(config: Readonly<Record<string, unknown>> = {}): LoopConnector {
   const runs = new Map<string, Run>();
   const python = typeof config.python === "string" && config.python ? config.python : "python3";
+  const factoryBin = typeof config.factory === "string" && config.factory ? config.factory : "factory";
   // Obergrenze 30 s: AC-P19-4 verlangt `loop.broken` bei Watchdog-Ausfall in unter 60 s.
   const pollMs = typeof config.pollMs === "number" && config.pollMs >= 20 ? Math.min(config.pollMs, 30_000) : 15_000;
+  // Projektmodus (REQ-2903 Dead-Man-Signal): älterer Heartbeat ohne Phase-Wechsel ⇒ „wartet ohne Fortschritt“, nie „läuft“.
+  const staleAfterS = typeof config.staleAfterS === "number" && config.staleAfterS >= 10 ? config.staleAfterS : 300;
   const hermesDir = typeof config.hermesDir === "string" && config.hermesDir ? config.hermesDir : join(homedir(), ".hermes", "ralph");
 
   const note = (ctx: AdapterContext, kind: string, summary: string, payload: Record<string, unknown>) =>
@@ -241,9 +264,99 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     if (changed(run, "hermes", payload)) note(ctx, "loop.progress", `Hermes ${payload.status ?? "?"}: ${payload.done ?? 0} von ${payload.total ?? 0}`, { source: "hermes", epic: run.epic, ...payload });
   }
 
+  async function pollProgressShow(run: Run, ctx: AdapterContext): Promise<void> {
+    const r = await runFactory(factoryBin, run.root, ["progress", "show"]);
+    if (r.exit !== 0 || !r.json) {
+      run.progressOk = false;
+      run.health = { state: "broken", detail: r.error ?? `factory progress show unlesbar (Exit ${r.exit})` };
+      broken(run, ctx, "progress-show", run.health.detail ?? "factory progress show unlesbar");
+      return;
+    }
+    const v = r.json;
+    if (v.schema_version !== "1") {
+      run.progressOk = false;
+      run.health = { state: "broken", detail: `factory progress show: Schema ${String(v.schema_version)} statt 1` };
+      broken(run, ctx, "progress-show", run.health.detail ?? "");
+      return;
+    }
+    recovered(run, ctx, "progress-show");
+    run.progressOk = true;
+    const now = obj(v.now);
+    const payload = compact({ done: n(v.done), total: n(v.total), phase: s(now.phase, 40), feature: s(now.story, 100), step: s(now.task, 100) });
+    if (changed(run, "progress", payload)) note(ctx, "loop.progress", `${payload.done ?? 0} von ${payload.total ?? 0} Aufgaben${payload.phase ? ` · ${payload.phase}` : ""}`, { source: "factory", ...payload });
+  }
+
+  async function pollLaufStatus(run: Run, ctx: AdapterContext): Promise<void> {
+    const doc = await readJson(under(run.root, ".factory", "lauf-status.json"));
+    if (!doc.ok) {
+      if (doc.reason === "missing") {
+        if (run.progressOk) run.health = { state: "healthy" }; // lesbares Projekt, noch kein Lauf
+        return;
+      }
+      return broken(run, ctx, "lauf-status", "lauf-status.json ist kein gültiges JSON");
+    }
+    recovered(run, ctx, "lauf-status");
+    const v = doc.value;
+    if (v.schema_version !== "1") return broken(run, ctx, "lauf-status", `lauf-status.json: Schema ${String(v.schema_version)} statt 1`);
+    const hb = n(v.heartbeat_at);
+    const payload = compact({ task: s(v.task, 100), phase: s(v.phase, 40) });
+    if (changed(run, "lauf", payload)) note(ctx, "loop.info", `Lauf ${payload.task ?? "?"} · Phase ${payload.phase ?? "?"}`, { source: "lauf-status", ...payload });
+    if (hb !== undefined) {
+      const age = Math.max(0, Math.floor(Date.now() / 1000 - hb));
+      if (age > staleAfterS) {
+        const reason = `wartet ohne Fortschritt (Heartbeat ${age} s alt, Phase ${payload.phase ?? "?"})`;
+        if (run.progressOk) run.health = { state: "degraded", detail: reason }; // broken (progress show) wird nie maskiert
+        if (changed(run, "stale", reason)) note(ctx, "loop.hold", `securesight: ${reason}`, { reason });
+        return;
+      }
+      if (run.last.delete("stale")) {
+        save(run);
+        note(ctx, "loop.recovered", "securesight: Heartbeat wieder frisch", { what: "stale" });
+      }
+    }
+    if (run.progressOk) run.health = { state: "healthy" };
+  }
+
+  async function pollEvidence(run: Run, ctx: AdapterContext): Promise<void> {
+    const dir = under(run.root, ".factory", "evidence");
+    let touched = false;
+    for (const name of await listFiles(dir, /^(bootstrap|lauf-ende)-fehler\.json$/)) {
+      if (run.cursor.notified.includes(name)) continue;
+      const doc = await readJson(under(dir, name));
+      if (!doc.ok) {
+        if (doc.reason === "invalid") broken(run, ctx, `evidence:${name}`, `Fehlerbeleg ${name} ist kein gültiges JSON`);
+        continue;
+      }
+      const v = doc.value;
+      if (v.schema_version !== "1") {
+        broken(run, ctx, `evidence:${name}`, `Fehlerbeleg ${name}: Schema ${String(v.schema_version)} statt 1`);
+      } else {
+        const art = name === "bootstrap-fehler.json" ? "Bootstrap" : "Lauf-Ende";
+        note(ctx, "loop.notify", `Fehlerbeleg ${art}: ${s(v.grund, 120) ?? "?"}`, compact({ level: "factory", reason: s(v.grund, 200), at: s(v.zeit, 40), fundstelle: s(v.fundstelle, 120) }));
+      }
+      run.cursor.notified = [...run.cursor.notified, name].slice(-KEEP_NOTIFIED);
+      touched = true;
+    }
+    if (touched) save(run);
+  }
+
+  async function pollIntake(run: Run, ctx: AdapterContext): Promise<void> {
+    const doc = await readJson(under(run.root, ".factory", "intake", "state.json"));
+    if (!doc.ok) {
+      if (doc.reason === "invalid") broken(run, ctx, "intake", "intake/state.json ist kein gültiges JSON");
+      return;
+    }
+    recovered(run, ctx, "intake");
+    const v = doc.value;
+    if (v.schema_version !== "1") return broken(run, ctx, "intake", `intake/state.json: Schema ${String(v.schema_version)} statt 1`);
+    const payload = compact({ status: s(v.status, 40), ready: v.execution_ready === true, next: s(v.next_action, 120) });
+    if (changed(run, "intake", payload)) note(ctx, "loop.info", `Intake: ${payload.status ?? "?"}${payload.ready ? " · ausführungsbereit" : ""}`, { source: "intake", ...payload });
+  }
+
   /**
-   * Zwei Takte: Dateien (Notify, Transcript, Fortschritt) sind billig und müssen live wirken — sie werden beim Ändern
-   * (fs.watch) und sonst alle 2 s gelesen. Der Supervisor-Aufruf startet einen Python-Prozess und läuft im `pollMs`-Takt.
+   * Zwei Takte: Dateien sind billig und müssen live wirken — sie werden beim Ändern
+   * (fs.watch) und sonst alle 2 s gelesen. Prozesse (Supervisor im Modus repo, factory-CLI
+   * im Modus project) laufen im `pollMs`-Takt.
    */
   async function sweep(run: Run, ctx: AdapterContext, group: "slow" | "fast"): Promise<void> {
     if (run.busy[group] || run.closed) return;
@@ -251,9 +364,13 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     try {
       // Jede Quelle für sich: fällt eine aus, zeigen die anderen weiter (Regel 6: der Ausfall wird sichtbar, nicht still).
       const steps: [string, () => Promise<void>][] =
-        group === "slow"
-          ? [["supervisor", () => pollSupervisor(run, ctx)], ["hermes", () => pollHermes(run, ctx)]]
-          : [["notify", () => pollNotify(run, ctx)], ["transcript", () => pollTranscript(run, ctx)], ["progress", () => pollProgress(run, ctx)]];
+        run.mode === "repo"
+          ? group === "slow"
+            ? [["supervisor", () => pollSupervisor(run, ctx)], ["hermes", () => pollHermes(run, ctx)]]
+            : [["notify", () => pollNotify(run, ctx)], ["transcript", () => pollTranscript(run, ctx)], ["progress", () => pollProgress(run, ctx)]]
+          : group === "slow"
+            ? [["progress-show", () => pollProgressShow(run, ctx)], ["lauf-status", () => pollLaufStatus(run, ctx)]]
+            : [["evidence", () => pollEvidence(run, ctx)], ["intake", () => pollIntake(run, ctx)]];
       for (const [name, step] of steps) {
         try {
           await step();
@@ -277,7 +394,9 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       }, 40);
     };
     const watchers: FSWatcher[] = [];
-    for (const dir of [[".harness", "notify"], [".harness", "transcript"], [".factory"], [".harnez"]]) {
+    const dirs: string[][] =
+      run.mode === "repo" ? [[".harness", "notify"], [".harness", "transcript"], [".factory"], [".harnez"]] : [[".factory"], [".factory", "evidence"]];
+    for (const dir of dirs) {
       try {
         watchers.push(watch(under(run.root, ...dir), kick));
       } catch {
@@ -302,13 +421,18 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     capabilities: () => CAPABILITIES,
 
     async start(spec: LoopStartSpec, ctx: AdapterContext, io: LoopIo): Promise<SessionHandle> {
-      if (!existsSync(under(spec.project, "scripts", "betrieb.py"))) throw new Error(`„${spec.project}“ ist kein securesight-harnez-Projekt (scripts/betrieb.py fehlt)`);
-      const orchestrator = spec.orchestrator === "hermes" ? "hermes" : "self";
+      // Schnittstelle v1: repo = scripts/betrieb.py (Factory-Repo selbst), project = .factory/config.json ohne betrieb.py.
+      const hasBetrieb = existsSync(under(spec.project, "scripts", "betrieb.py"));
+      const hasFactory = existsSync(under(spec.project, ".factory", "config.json"));
+      if (!hasBetrieb && !hasFactory) throw new Error(`„${spec.project}“ ist kein securesight-factory-Projekt (weder scripts/betrieb.py noch .factory/config.json vorhanden)`);
+      const mode: "repo" | "project" = hasBetrieb ? "repo" : "project";
+      const orchestrator = mode === "repo" && spec.orchestrator === "hermes" ? "hermes" : "self";
       const epic = spec.options.epic?.trim() || null;
       if (orchestrator === "hermes" && (!epic || !EPIC_PATTERN.test(epic))) throw new Error("Orchestrator hermes braucht die Option „epic“ (Name des Hermes-Epics)");
       const resumed = io.resume as Partial<Cursor> | null;
       const run: Run = {
         root: spec.project,
+        mode,
         orchestrator,
         epic,
         cursor: { offsets: { ...(resumed?.offsets ?? {}) }, notified: [...(resumed?.notified ?? [])] },
@@ -318,6 +442,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
         busy: { slow: false, fast: false },
         seeding: resumed === null || resumed === undefined,
         closed: false,
+        progressOk: false,
         health: { state: "degraded", detail: "noch nicht gelesen" },
         last: new Map(Object.entries(resumed?.last ?? {})),
       };
@@ -330,7 +455,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       for (const t of run.timers) t.unref();
       run.closeWatch = watchFiles(run, ctx);
       ctx.signal.addEventListener("abort", () => closeRun(run), { once: true });
-      return { sessionId: ctx.sessionId, meta: { project: spec.project, orchestrator, ...(epic ? { epic } : {}) } };
+      return { sessionId: ctx.sessionId, meta: { project: spec.project, mode, orchestrator, ...(epic ? { epic } : {}) } };
     },
 
     async control(_handle: SessionHandle, input: LoopControlInput): Promise<Ack> {

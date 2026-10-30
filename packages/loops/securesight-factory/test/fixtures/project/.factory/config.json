@@ -1,0 +1,47 @@
+{
+  "schema_version": "1",
+  "default_branch": "master",
+  "image": "build",
+  "suites": {
+    "js": {
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=junit",
+        "--test-reporter-destination={junit}",
+        "{filter}"
+      ],
+      "timeout": 600
+    }
+  },
+  "protect": [
+    "^tests?/",
+    "(^|/)test_[^/]*\\.py$",
+    "\\.test\\.[cm]?[jt]s$",
+    "^package(-lock)?\\.json$",
+    "^pyproject\\.toml$",
+    "^requirements[^/]*\\.txt$",
+    "(^|/)conftest\\.py$"
+  ],
+  "allow": [],
+  "instruction_files": [
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".cursorrules",
+    ".github/copilot-instructions.md",
+    "GEMINI.md"
+  ],
+  "remote_push": false,
+  "auto_merge": true,
+  "mode": "a",
+  "forge": {
+    "type": "forgejo",
+    "url": "http://127.0.0.1:3000",
+    "repository": ""
+  },
+  "_hinweis": "Suiten, Schutzpfade (Regex) und Allowlist anpassen; remote_push/auto_merge true fuer MR-Flow; Aenderungen committen — es gilt der Basis-Commit.",
+  "modus": "a",
+  "provider": "zai",
+  "quelle": "flag",
+  "auto_resume": true
+}

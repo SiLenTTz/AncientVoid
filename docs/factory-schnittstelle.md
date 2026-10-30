@@ -113,7 +113,7 @@ einen Menschen mit Bestätigungsdialog auslösen (AC-P26-5).
 | `init.json` | echt: `factory init --modus a --provider zai` (2026-10-30, bd8228d), root-Pfad anonymisiert |
 | `init-status.json` | echt: `factory init --status` |
 | `progress-show-initial.json` | echt: `factory progress show` direkt nach init |
-| `.factory/intake-state.json` | echt: Kopie aus demselben Lauf |
+| `.factory/intake/state.json` | echt: Kopie aus demselben Lauf |
 | `.factory/lauf-status.json` | echt: erzeugt von `harness.bootstrap.lauf_status()` |
 | `.factory/evidence/bootstrap-fehler.json` | echt: erzeugt von `harness.bootstrap.fehlerbeleg()` |
 | `.factory/evidence/lauf-ende-fehler.json` | abgeleitet: gleiches Schema (`bootstrap.py:340`), `grund`/`fundstelle` aus dem dokumentierten Auslösepfad — wird beim ersten echten Lauf ersetzt (T26.10/T26.11) |
