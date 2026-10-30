@@ -109,7 +109,7 @@ README/AGENTS registriert. Ein Endpunkt ohne Client und ohne Test zählt nicht.
 - [x] **T4.5-5 — Bestandstests und E2E.** Unit: Logger-Redaction, Metrics,
   Theme, WS-Resync-Lücke. Integration: health-Form, ready, metrics, bestehender
   Server-Pfad bleibt grün. E2E: TokenGate → gültiges Token → Dashboard
-  („UACC") gegen echten Hub + gebaute PWA; skip ohne Chromium. K10 (Auth-Hülle).
+  („AncientVoid") gegen echten Hub + gebaute PWA; skip ohne Chromium. K10 (Auth-Hülle).
 - [x] **T4.5-6 — CI und Erreichbarkeit.** `npm test` schließt Unit+Integration
   plus E2E-Skip ein; `npm run test:e2e` explizit. `hubctl health` verträgt
   additive Felder. README/AGENTS/gates aktualisieren. K8-loadtest unverändert.

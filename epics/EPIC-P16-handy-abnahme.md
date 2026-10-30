@@ -42,7 +42,7 @@ Gemessen am 2026-10-09, Pixel 9 Pro XL, Chrome 154, Commit `8661491`,
 **Kernliste, Hochformat (60 Tests, 8,5 min):** 51 bestanden, 4 übersprungen
 (drei Diktat-Tests wegen des Mikrofon-Dialogs, Offline wegen des blockierten
 Service Workers), 5 fehlgeschlagen. Alle fünf scheitern vor dem Ablauf an der
-Überschrift „UACC“: die Token-Seite steht da, das Feld ist gefüllt, kein
+Überschrift „AncientVoid“: die Token-Seite steht da, das Feld ist gefüllt, kein
 Fehlertext (BUG-0054). Dieselben Abläufe sind im selben Lauf sonst grün.
 
 **DevTools (ein Volllauf von drei):** nach den ersten Tests Timeout

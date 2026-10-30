@@ -2,7 +2,7 @@
 
 ## Was das ist
 
-UACC (`mobile-hub`): local-first Hub, um Coding-Agenten vom Handy zu
+AncientVoid: local-first Hub, um Coding-Agenten vom Handy zu
 überwachen/steuern. Basis-Dokumente: `epics/` (PRD + Epics P0–P4.5, Planungsentwürfe P5–P12) —
 **lesen, bevor Features gebaut werden.** Epic-Gating: P(n) startet erst,
 wenn die Exit-Kriterien von P(n-1) grün sind.

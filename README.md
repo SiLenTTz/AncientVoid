@@ -1,10 +1,10 @@
-# UACC — Unified AI-Agent Command Center
+# AncientVoid
 
-**mobile-hub** ist ein local-first, vendor-neutrales Command Center: alle
+**AncientVoid** ist ein local-first, vendor-neutrales Command Center: alle
 Coding-Agenten auf allen eigenen Rechnern vom Handy aus überwachen, steuern
 und auditieren — über Tailscale, ohne öffentlichen Port, ohne Cloud.
 
-> Basis: PRD UACC v1.0 (12.09.2026) — siehe [`epics/`](./epics/).
+> Basis: PRD „AncientVoid“ v1.0 (12.09.2026) — siehe [`epics/`](./epics/).
 > **Frisch geklont? Setup-Route: [`docs/onboarding.md`](./docs/onboarding.md)** (Menschen & Agenten, inkl. ehrlicher Fertig-Tabelle).
 > Status (Audit 2026-09-21): **Hub-Kern und große Teile von P0–P4 implementiert,
 > Produkt-Gates noch offen.** Echte Handy-/Offline-/Push-Abnahmen, Swarm,

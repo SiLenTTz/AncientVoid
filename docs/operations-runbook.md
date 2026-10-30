@@ -42,7 +42,7 @@ startet, legt ein User-Unit an — gleiche Weise wie
 ```ini
 # ~/.config/systemd/user/uacc-hub.service  (Pfade anpassen)
 [Unit]
-Description=UACC mobile-hub
+Description=AncientVoid
 After=network-online.target
 
 [Service]

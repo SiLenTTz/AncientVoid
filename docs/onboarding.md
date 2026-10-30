@@ -58,7 +58,7 @@ Als Dienst (`~/.config/systemd/user/uacc-hub.service`, minimal):
 
 ```ini
 [Unit]
-Description=UACC mobile-hub
+Description=AncientVoid
 [Service]
 WorkingDirectory=<checkout>
 ExecStart=<node> apps/hub/src/main.ts
@@ -89,7 +89,7 @@ Bereit ist der Hub, wenn `GET /api/health` und `/api/ready` grün antworten.
 3. **Laufende Sessions** von pi/oh-my-pi/maki werden erkannt und können
    übernommen werden (Discovery, P22/P24) — nichts einzutragen.
 4. **Loops/Factories:** Loop-Pakete (`packages/loops/*`) mitbringen bzw. per
-   Config referenzieren. Die Factory-Steuerung aus UACC heraus ist P26 und
+   Config referenzieren. Die Factory-Steuerung aus AncientVoid heraus ist P26 und
    **noch nicht** schaltbar (siehe Tabelle oben).
 
 ## 7. Als Agent beitragen (PR-Workflow)

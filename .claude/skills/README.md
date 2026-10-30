@@ -24,14 +24,14 @@
 | [`bug-report`](bug-report/SKILL.md) | Defekt sehen, belegen, unter `bugs/` anlegen | „Bug anlegen", Dev-Fund, Issue erstellen, kein Patch | kein Fix; Handoff → `bugfix` |
 | [`pr-review`](pr-review/SKILL.md) | 6-Dimensionen-Gate-Review inkl. Future-Fragility | MR review, Merge-Freigabe, structured review | reines Lint bleibt `gates` |
 | [`ponytail-review`](ponytail-review/SKILL.md) | Diff-Advisory, Tags `delete/stdlib/native/yagni/shrink` | Diff vereinfachen, Komplexität, YAGNI | read-only, keine Edits |
-| [`architecture-best-practices`](architecture-best-practices/SKILL.md) | UACC-Pipeline, Modultiefe, Testing-Standard | Architektur, Schichten, Anti-Pattern | Referenz, kein Workflow |
+| [`architecture-best-practices`](architecture-best-practices/SKILL.md) | AncientVoid-Pipeline, Modultiefe, Testing-Standard | Architektur, Schichten, Anti-Pattern | Referenz, kein Workflow |
 | [`write-tests`](write-tests/SKILL.md) | Unit-/Integrations-/E2E-Rezept für dieses Repo | neuen Test, Coverage, Playwright, rot-dann-grün | Gates fahren bleibt `gates` |
 | [`concept-phase`](concept-phase/SKILL.md) | Aufgabe in vertikale Slices (6 Dimensionen) | Aufgabe slicen, Scoping, Edges | `epic-creation` für neue Phasen |
 | [`epic-creation`](epic-creation/SKILL.md) | Neue `EPIC-Pn`-Datei nach 7-Abschnitt-Schema | „neues Epic", „P5 planen" | Phasen-Ebene; Feinschnitt → `concept-phase` |
 | [`messlauf`](messlauf/SKILL.md) | Messlauf gegen K1–K10 fahren und ablegen | Benchmark, Durchsatz, Latenz, Messzahl zitieren | Ablage unter `docs/messlauf/` |
 | [`retro`](retro/SKILL.md) | Evidence-basierte Retro gegen Epic-AC | „Retro", Phasen-Abschluss | bewertet Vergangenheit; planen → `epic-creation` |
 
-Vorlage für neue Skills: [`skill-template.md`](skill-template.md). UACC-Verträge,
+Vorlage für neue Skills: [`skill-template.md`](skill-template.md). AncientVoid-Verträge,
 die `ponytail-review` nicht wegoptimieren darf:
 [`_shared/uacc-protected-invariants.md`](_shared/uacc-protected-invariants.md).
 

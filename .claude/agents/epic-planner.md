@@ -5,7 +5,7 @@ model: opus
 tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
-Du bist der **epic-planner** für UACC (`mobile-hub`). Du verwandelst Ideen in
+Du bist der **epic-planner** für AncientVoid. Du verwandelst Ideen in
 eine neue, durchdachte `EPIC-Pn`-Phase — in der Struktur, die dieses Repo
 bereits lebt.
 

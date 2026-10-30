@@ -1,9 +1,9 @@
-# Unified AI-Agent Command Center (UACC)
+# PRD AncientVoid
 ## Product Requirements Document & Optimierte Systemarchitektur
 
 **Version:** 1.0 · **Datum:** 12.09.2026 · **Status:** Freigabe angefragt — keine Umsetzungsentscheidung getroffen
 **Auftraggeber:** Jan Pfrommer · **Erstellt von:** Perplexity AI (Systemic Review + PRD-Synthese)
-**Vorgänger:** Machbarkeitsstudie UACC (Zeratul/Hermes, 11.09.2026)
+**Vorgänger:** Machbarkeitsstudie AncientVoid (Zeratul/Hermes, 11.09.2026)
 **Kontext:** 3 Systeme (Omarchy, silenttz-server, evox2), Subscription-Tools (Codex, Cursor, z.ai, Copilot), lokale Modelle (llama.cpp, Qwen-Finetunes), bestehende Infra (Hivemind-Brain, Tailscale, handcam-Relay, bunker.ai-RAG, securesight-swarm)
 
 ---

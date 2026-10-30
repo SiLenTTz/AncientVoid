@@ -1,6 +1,6 @@
 ---
 name: messlauf
-description: Faehrt einen Messlauf gegen die UACC-Messlatten (K1-K10, PRD §9) und legt ihn nachvollziehbar ab. Aktiv bei Messlauf, Benchmark, Durchsatzmessung, Latenzmessung, oder immer dann, wenn eine Messzahl (z.B. "605 ev/s", "K6 <= 1,5s") zitiert werden soll.
+description: Faehrt einen Messlauf gegen die AncientVoid-Messlatten (K1-K10, PRD §9) und legt ihn nachvollziehbar ab. Aktiv bei Messlauf, Benchmark, Durchsatzmessung, Latenzmessung, oder immer dann, wenn eine Messzahl (z.B. "605 ev/s", "K6 <= 1,5s") zitiert werden soll.
 ---
 
 # Skill: messlauf

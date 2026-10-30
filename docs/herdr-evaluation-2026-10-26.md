@@ -1,6 +1,6 @@
-# Herdr-Evaluation — Ersatz oder Ergänzung für den mobile-hub?
+# Herdr-Evaluation — Ersatz oder Ergänzung für AncientVoid?
 
-**Datum:** 2026-10-26 · **Anlass:** „Wäre es sinnvoll, Herdr in den mobile-hub
+**Datum:** 2026-10-26 · **Anlass:** „Wäre es sinnvoll, Herdr in AncientVoid
 zu übernehmen bzw. die Logik dahinter zu ersetzen? Auf den Hosts soll dann nur
 herdr laufen, Steuerung über SSH + Tailscale von jedem Device.“
 
@@ -8,8 +8,8 @@ herdr laufen, Steuerung über SSH + Tailscale von jedem Device.“
 
 **Ersetzen: nein. Das würde das Kernprodukt (Handy-Steuerung mit Push, Sprache,
 Offline, strukturierten Events) gegen einen Terminal-Multiplexer tauschen und
-genau die Fähigkeiten opfern, die mobile-hub einzigartig machen. Die Ressourcen-
-und Zuverlässigkeitsthese hält der Prüfung nicht stand: mobile-hub trennt
+genau die Fähigkeiten opfern, die AncientVoid einzigartig machen. Die Ressourcen-
+und Zuverlässigkeitsthese hält der Prüfung nicht stand: AncientVoid trennt
 Hub-Prozess und Terminal-Server (tmux) — Herdr vereint beides in *einem*
 Prozess, dessen Crash/Update alle Panes kostet.**
 
@@ -58,7 +58,7 @@ weil Herdr Screens liest statt strukturierter Events.
 
 ## 2. Architektur-Vergleich
 
-| Aspekt | mobile-hub | Herdr |
+| Aspekt | AncientVoid | Herdr |
 |---|---|---|
 | Persistenz-Layer | tmux (eigener, getrennter Prozess pro Host) | Herdr-Server (ein Prozess hält PTYs **und** Steuerung) |
 | Hub/Steuerung | Node-Hub (`uacc-hub`, systemd) mit REST/WS + PWA | Client-TUI + CLI/Socket lokal oder über SSH |
@@ -72,29 +72,29 @@ weil Herdr Screens liest statt strukturierter Events.
 
 ## 3. Deine Thesen im Detail
 
-### 3.1 „Herdr funktioniert im Endeffekt wie unser mobile-hub“ — teilweise
+### 3.1 „Herdr funktioniert im Endeffekt wie unser AncientVoid“ — teilweise
 
 **Verwandt ist die Persistenz-Idee**: Agenten in echten Terminals überleben
-das Loslassen des Clients. Genau das tut mobile-hub schon heute mit tmux-
+das Loslassen des Clients. Genau das tut AncientVoid schon heute mit tmux-
 Workern — Herdr erfindet das Rad nicht anders, es ist dasselbe Rad (PTYs im
 Hintergrundprozess), nur mit Status-Erkennung und hübscher TUI obendrauf.
 
-**Nicht vergleichbar ist die Datenqualität**: mobile-hub-Adapter bekommen
+**Nicht vergleichbar ist die Datenqualität**: AncientVoid-Adapter bekommen
 strukturierte Events (Turn-Ergebnisse, Tool-Aufrufe, Diffs, Kosten) direkt
 vom CLI-Protokoll. Herdr liest den Bildschirm. Für „welcher Agent ist
-blocked?“ reicht das; für mobile-hubs Kernversprechen (Auditierbare Historie
+blocked?“ reicht das; für AncientVoids Kernversprechen (Auditierbare Historie
 K7, Budgets/Kontingente, Diff-Approvals mit Policy, Suche über Verläufe)
 ist Screen-Text ein deutlicher Rückschritt.
 
-**Und nicht vergleichbar ist der Zugang**: mobile-hub ist exakt für das
+**Und nicht vergleichbar ist der Zugang**: AncientVoid ist exakt für das
 Handy gebaut (Push im Sperrbildschirm, Diktat, Offline, Einhand-Dock).
-Herdr hat dafür schlicht nichts — und der wichtigste mobile-hub-Use-Case
+Herdr hat dafür schlicht nichts — und der wichtigste AncientVoid-Use-Case
 („Agent antwortet, Handy vibriert, Daumen entscheidet“) würde bei reinem
 SSH+TUI vollständig wegfallen.
 
 ### 3.2 „Zuverlässiger“ — spricht mehr dagegen als dafür
 
-- **Prozess-Topologie**: Bei mobile-hub sind Hub-Prozess und Terminal-Server
+- **Prozess-Topologie**: Bei AncientVoid sind Hub-Prozess und Terminal-Server
   **getrennt** (tmux). Stürzt der Hub oder wird er aktualisiert, laufen die
   Züge weiter und werden adoptiert (dokumentiert in `docs/fleet.md`:
   „Neustart stoppt keine Session; laufende Züge werden übernommen“). Bei
@@ -103,10 +103,10 @@ SSH+TUI vollständig wegfallen.
   soll, ist offiziell experimentell. tmux ist außerdem ein extrem
   abgehärteter, unabhängiger Prozess.
 - **Restore nach Reboot**: beide landen bei „Agenten mit `--resume` neu
-  starten“ — mobile-hub hat das (P5 Handoff/Recovery) genauso wie Herdrs
+  starten“ — AncientVoid hat das (P5 Handoff/Recovery) genauso wie Herdrs
   native session restore. Unterm Strich Parität, kein Herdr-Vorteil.
 - **Battle-Testing**: Hier gewinnt Herdr klar (1,6 Mio. Installationen gegen
-  Solo-Projekt). Aber mobile-hub hat eine disziplinierte E2E-/Gate-Kette,
+  Solo-Projekt). Aber AncientVoid hat eine disziplinierte E2E-/Gate-Kette,
   837 Unit/Integration-Tests und null offene Bugs — die Zuverlässigkeitslücke,
   die Herdr schließen soll, ist im Repo nicht sichtbar. **Konkret:** Wenn dir
   etwas Spezifisches unzuverlässig erscheint, ist das ein `bug-report`-Fall —
@@ -124,7 +124,7 @@ SSH+TUI vollständig wegfallen.
 - Der dominierende Ressourcenverbraucher auf jedem Host sind die **Agent-CLIs
   selbst** (Model-Clients, Node/Python-Runtimes). Die bleiben in jedem
   Szenario identisch.
-- Einzige harte Zahl, die wir haben: mobile-hub belegt unter K8-Volllast
+- Einzige harte Zahl, die wir haben: AncientVoid belegt unter K8-Volllast
   (20 Sessions × 30 ev/s, 604 ev/s gemessen) **169 MB RSS** — Idle real
   weniger. Die zu erwartende Ersparnis pro Host liegt also vermutlich im
   Bereich „weniger als der Lasttest insgesamt verbraucht“. Das ist ein
@@ -137,7 +137,7 @@ SSH+TUI vollständig wegfallen.
 
 ### 3.4 „SSH + Tailscale von jedem Device“ — Device-Matrix entscheidet
 
-| Device | mobile-hub (PWA über `tailscale serve`) | Herdr (SSH/Tailscale) |
+| Device | AncientVoid (PWA über `tailscale serve`) | Herdr (SSH/Tailscale) |
 |---|---|---|
 | Eigene PCs/Laptops | ✅ Browser | ✅ nativer Client (beste Experience) |
 | Handy (gesperrt, unterwegs, einhändig) | ✅ Push, Offline-Cache, Diktat | ❌ Terminal-App + TUI-Bedienung, kein Push |
@@ -151,7 +151,7 @@ gilt heute schon für die PWA, mit deutlich niedrigerer Einrichtungs-Hürde.
 
 ## 4. Verlustbilanz bei einer Ersetzung
 
-Was beim Ersetzen der mobile-hub-Logik durch Herdr **wegfällt** (alles gebaut
+Was beim Ersetzen der AncientVoid-Logik durch Herdr **wegfällt** (alles gebaut
 und im Alltag erprobt):
 
 - Push-Benachrichtigung bei Approval/Rückfrage (ADR-0026) — der Kern des
@@ -168,11 +168,11 @@ und im Alltag erprobt):
   unverändert in Panes
 
 Dem steht gegenüber: ein sehr guter Terminal-Multiplexer mit Agent-Status,
-den man auf dem PC nutzen **kann**, ohne mobile-hub zu ersetzen.
+den man auf dem PC nutzen **kann**, ohne AncientVoid zu ersetzen.
 
 ## 5. Optionen und Empfehlung
 
-### Option A — Herdr ersetzt mobile-hub ❌ (nicht empfohlen)
+### Option A — Herdr ersetzt AncientVoid ❌ (nicht empfohlen)
 Kostet das Kernprodukt für eine Ressourcen-Ersparnis, die ungemessen und
 vermutlich klein ist, und für eine Zuverlässigkeitsthese, deren Prüfung
 (Prozess-Topologie) eher für den Status quo spricht. Alles Fleet-/Mobile-
@@ -200,14 +200,14 @@ seriöser Ausbau eher eine Epic (P17-Kandidat, mit Premortem).
 ### Option C — Ideen aus Herdr übernehmen (jetzt, gering) ✅
 Unabhängig von B lohnen sich drei Gedanken als ADR-/Epic-Anregungen:
 1. **Stabile Pane-/Session-Referenzen** für Worker (Herdrs
-   `HERDR_PANE_ID` + `pane.report_agent_session`) — mobile-hub hat Session-
+   `HERDR_PANE_ID` + `pane.report_agent_session`) — AncientVoid hat Session-
    Adoption; ein stabiler Umgebungs-Marker je Worker könnte Recovery-Pfade robuster
    machen (K7).
 2. **`agent wait`-Semantik** (server-owned, pinned occupant, keine Doppel-
    Submission bei Timeout) als Muster für eigene Wait-Operationen.
 3. **Offizielle Resume-Referenzen**: Herdr sammelt pro Agent den Resume-
    Befehl (`claude --resume <id>` …) über „offizielle Integrationen“. Die
-   Liste ist auch für mobile-hubs Adapter ein guter Katalog, um Resume-Pfade
+   Liste ist auch für AncientVoids Adapter ein guter Katalog, um Resume-Pfade
    einheitlich zu hinterlegen.
 
 ### Empfehlung
@@ -221,7 +221,7 @@ Unabhängig von B lohnen sich drei Gedanken als ADR-/Epic-Anregungen:
    der Hosts — alles ohne Architekturwechsel.
 
 Falls du Herdr trotzdem täglich auf dem PC nutzen willst: Das geht nebenbei,
-ohne Konflikt — mobile-hub-Worker (tmux) und Herdr-Panes können auf
+ohne Konflikt — AncientVoid-Worker (tmux) und Herdr-Panes können auf
 verschiedenen Hosts (oder sogar getrennten Sessions desselben Hosts)
 koexistieren. Nur *im selben Terminal* sollten Agenten nicht doppelt
 verwaltet werden (ein Orchestrierer pro Agent-Prozess).

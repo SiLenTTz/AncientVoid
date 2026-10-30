@@ -1,13 +1,13 @@
 ---
 name: bugfix
-description: Reproduce-Fix-Re-verify-Finalize-Playbook für Defekte im UACC-Hub (contracts, core, workers, server, adapter, pwa). Aktiv, wenn ein Bug zu reproduzieren, ein Defekt zu fixen oder ein Issue zu investigate ist. Immer diesen Skill nutzen. Handoff an pr-review, nicht selbst mergen.
+description: Reproduce-Fix-Re-verify-Finalize-Playbook für Defekte im AncientVoid-Hub (contracts, core, workers, server, adapter, pwa). Aktiv, wenn ein Bug zu reproduzieren, ein Defekt zu fixen oder ein Issue zu investigate ist. Immer diesen Skill nutzen. Handoff an pr-review, nicht selbst mergen.
 ---
 
 # Skill: bugfix
 
 Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). Branch/Commit/MR:
 [`git-workflow`](../git-workflow/SKILL.md). Gates: [`gates`](../gates/SKILL.md).
-UACC-Verträge: [`.claude/skills/_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md).
+AncientVoid-Verträge: [`.claude/skills/_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md).
 
 ## Zweck
 
@@ -31,7 +31,7 @@ Fehlt die Datei unter `bugs/`: zuerst [`bug-report`](../bug-report/SKILL.md).
 
 - ✅ Reproduce **vor** Fix, Re-verify **nach** Fix.
 - ✅ Root-cause: nenne `file:line`, das den Bug erzeugt — nicht das Symptom.
-- ✅ Smallest correct fix. UACC-Invarianten nicht umgehen.
+- ✅ Smallest correct fix. AncientVoid-Invarianten nicht umgehen.
 - ✅ Bug-Fix-Test muss **ohne Fix scheitern**, mit Fix grün sein.
 - ❌ Never self-merge, never force-push, never `--no-verify`.
 - ❌ Kein Symptom-Patch (Retry-Schleife, `catch { }` leer), der die Ursache lässt.

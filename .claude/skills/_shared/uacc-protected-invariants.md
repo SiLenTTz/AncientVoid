@@ -1,4 +1,4 @@
-# UACC-Protected Invariants
+# AncientVoid-Protected Invariants
 
 > **Vertrag, den `ponytail-review` nie als `delete`/`yagni` flaggt.** Bei
 > Treffer gilt `architecture-guard:`. Querschnitts-Regeln:

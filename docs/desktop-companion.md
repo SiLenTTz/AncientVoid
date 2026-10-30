@@ -24,7 +24,7 @@ Als Dienst (`~/.config/systemd/user/uacc-companion.service`):
 
 ```ini
 [Unit]
-Description=UACC Desktop-Companion
+Description=AncientVoid Desktop-Companion
 After=graphical-session.target
 
 [Service]
