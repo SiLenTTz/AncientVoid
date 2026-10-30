@@ -369,3 +369,19 @@ a {
   justify-items: center;
   text-align: center;
 }
+
+/* Markieren → Auto-Zwischenablage (2026-10-30): kurze Rückmeldung, dass die
+   Auswahl bereits im Clipboard steht — kein zweiter Tap auf Kopieren nötig. */
+.copy-flash {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--accent, #2f81f7);
+  color: #fff;
+  font-size: 13px;
+  pointer-events: none;
+}
