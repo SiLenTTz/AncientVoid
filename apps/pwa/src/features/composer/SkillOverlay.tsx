@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
-import { type SkillOrAgent } from "../../shared/api.ts";
+import { type HarnessFeatures, type SkillOrAgent } from "../../shared/api.ts";
 
 
 export interface SelectedSkill {
@@ -30,6 +30,15 @@ export function loadSelectedSkill(project: string): SelectedSkill | null {
 export function saveSelectedSkill(project: string, selection: SelectedSkill | null): void {
   if (selection) localStorage.setItem(storageKey(project), JSON.stringify(selection));
   else localStorage.removeItem(storageKey(project));
+}
+
+/** BUG-0078: die gemerkte Auswahl gilt nur für Adapter, die ihre Art
+ * unterstützen — sonst sendet der Start ein Argument, das der Hub für
+ * diesen Adapter zu Recht verweigert („maki kennt keine Agenten."). */
+export function rememberedSkill(project: string, features: Pick<HarnessFeatures, "skills" | "agents"> | undefined): SelectedSkill | null {
+  const selection = loadSelectedSkill(project);
+  if (!selection) return null;
+  return selection.kind === "skill" ? (features?.skills ? selection : null) : features?.agents ? selection : null;
 }
 
 function workflowKey(project: string): string {

@@ -102,5 +102,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0075](bug-0075-hub-oom-resync-schleife.md) | Hub stürzt alle ~2 Min. mit Heap-OOM ab (Resync-Schleife, unsortierte Events) | done | S1 | core, server, pwa | — |
 | [BUG-0076](bug-0076-pi-fehlerstatus-nach-erfolgreichem-turn.md) | pi: fehlerfreier Folgelauf bleibt `status:error` (stale `healthy=false`) | done | S1 | adapters | — |
 | [BUG-0077](bug-0077-e2e-uebersicht-spec-einmalig-unter-last.md) | E2E-Übersichts-Spec fiel einmal unter voller Suite-Last (nicht reproduziert) | wont-fix | S3 | e2e | — |
+| [BUG-0078](bug-0078-neue-session-stale-agent-auswahl.md) | Gemerkter Skill/Agent blockiert Session-Start bei Adaptern ohne Unterstützung („maki kennt keine Agenten.“) | done | S2 | pwa | [#32](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/32) |
 
-Die nächste freie Nummer ist **0078**.
+Die nächste freie Nummer ist **0079**.
