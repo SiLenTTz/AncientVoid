@@ -12,7 +12,9 @@ describe("acp capabilities().commands — maki-Brücke (bridgeCommands)", () => 
   it("mit Flag: genau die Brücken-Commands, wohlgeformt", () => {
     const caps = createAdapter({ preset: "maki", bridgeCommands: true }).capabilities();
     const names = (caps.commands ?? []).map((c) => c.name);
-    expect(names).toEqual(["/compact", "/new", "/rename"]);
+    // BUG-0079: deklariert ist nur, was der Adapter belegt ausführt —
+    // /compact und /rename haben im getriebenen Modus keinen Beleg.
+    expect(names).toEqual(["/new"]);
     for (const c of caps.commands ?? []) {
       expect(c.scope).toBe("both");
       expect(c.description.length).toBeGreaterThan(3);

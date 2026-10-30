@@ -1,0 +1,43 @@
+#!/usr/bin/env node
+// BUG-0079-Testfixture: minimaler ACP-Server, der jede JSON-RPC-Methode in
+// die Datei $UACC_BRIDGE_LOG zeichnet. Nur initialize/session/new/
+// session/prompt/session/load werden beantwortet — mehr braucht der Test
+// nicht. Absichtlich dumm: keine Befehlssemantik, nur Protokoll.
+import { appendFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+
+const LOG = process.env.UACC_BRIDGE_LOG ?? "/tmp/uacc-bridge-agent.log";
+let buffer = "";
+let n = 0;
+const send = (msg) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...msg })}\n`);
+
+process.stdin.on("data", (d) => {
+  buffer += d;
+  let i;
+  while ((i = buffer.indexOf("\n")) >= 0) {
+    const line = buffer.slice(0, i);
+    buffer = buffer.slice(i + 1);
+    if (!line.trim()) continue;
+    try { handle(JSON.parse(line)); } catch { /* keine gültige Zeile */ }
+  }
+});
+
+function handle(req) {
+  appendFileSync(LOG, `${req.method}\n`);
+  if ("id" in req) {
+    switch (req.method) {
+      case "initialize":
+        send({ id: req.id, result: { protocolVersion: 1, serverCapabilities: {} } });
+        break;
+      case "session/new":
+        n += 1;
+        send({ id: req.id, result: { sessionId: `bridge-sess-${n}-${randomUUID().slice(0, 6)}` } });
+        break;
+      case "session/prompt":
+        send({ id: req.id, result: { stopReason: "end_turn" } });
+        break;
+      default:
+        send({ id: req.id, result: {} });
+    }
+  }
+}

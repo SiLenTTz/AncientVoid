@@ -101,15 +101,13 @@ const ACP_PRESET_COMMANDS: Record<string, readonly SlashCommand[]> = {
   ],
 };
 
-/** maki über die init.lua-Brücke (ADR-0042/P25): run_command führt diese
- * aus; ein erfolgreicher Command-Zug endet mit stopReason "refusal"
- * (Nachricht verworfen, Modell nie gefragt — Stub-Beweis 2026-10-29,
- * docs/slash-commands-analyse-2026-10-29.md). Unbekannte Commands reicht
- * die Brücke als Chat durch, damit sichtbar bleibt, dass nichts ging. */
+/** maki über den ACP-Pfad (ADR-0042/P25): /new öffnet eine frische ACP-
+ * Session — live belegt 2026-10-30 gegen maki 0.6.5 (BUG-0079). Die frühere
+ * init.lua-Brücke ist für ACP tot: maki feuert agent.user_message dort nie
+ * und run_command braucht eine UI. /compact und /rename sind nicht mehr
+ * deklariert — ADR-0042 deklariert nur, was belegt ausgeführt wird. */
 const MAKI_BRIDGE_COMMANDS: readonly SlashCommand[] = [
-  { name: "/compact", description: "Kontext komprimieren, optional mit Anleitung", scope: "both" },
   { name: "/new", description: "Neue maki-Session mit frischem Kontext", scope: "both" },
-  { name: "/rename", description: "Session umbenennen (neuer Titel als Text)", scope: "both" },
 ];
 
 const AcpConfig = z.object({
@@ -446,10 +444,34 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     });
   }
 
+  /** BUG-0079: deklarierte Commands führt der Adapter selbst aus — kein
+   * Modellturn, sichtbares acp.command_executed. Rückgabe true = behandelt.
+   * Undeklarierte Slashes durchreichen (sichtbar als Chat, nichts still). */
+  function runBridgeCommand(state: AgentSession, ctx: AdapterContext, text: string): boolean {
+    if (!cfg.bridgeCommands || !text.trimStart().startsWith("/")) return false;
+    const cmd = text.trimStart().split(/\s/, 1)[0] ?? text.trim();
+    if (cmd !== "/new") return false;
+    void state.conn
+      .request("session/new", { cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs)
+      .then((res) => {
+        const sid = (res as { sessionId: string }).sessionId;
+        state.acpSessionId = sid;
+        ctx.emit({ type: "system", summary: `${label}: Command /new ausgeführt — frischer Kontext (Session ${sid.slice(0, 8)}…)`, payload: { kind: "acp.command_executed", command: "/new", stopReason: "ok" } });
+      })
+      .catch((err: unknown) => {
+        ctx.emit(providerErrorEvent(label, `/new gescheitert: ${err instanceof Error ? err.message : String(err)}`));
+      });
+    return true;
+  }
+
   function drainQueue(state: AgentSession, ctx: AdapterContext): void {
     if (state.busy || !state.healthy) return;
     const next = state.queued.shift();
     if (!next) return;
+    if (runBridgeCommand(state, ctx, next.text)) {
+      drainQueue(state, ctx);
+      return;
+    }
     ctx.emit({ type: "system", summary: `${label}: wartende Nachricht wird jetzt zugestellt`, payload: { kind: "acp.queued_delivered", remaining: state.queued.length } });
     runTurn(state, ctx, next.text, next.attachments);
   }
@@ -665,6 +687,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
                 woken.queued.push({ text: input.text, ...(input.attachments?.length ? { attachments: input.attachments } : {}) });
                 return { ok: true, detail: "in der Warteschlange — wird nach dem Zug gesendet" };
               }
+              if (runBridgeCommand(woken, ctx, input.text)) return { ok: true, detail: "Command ausgeführt — kein Modellturn" };
               runTurn(woken, ctx, input.text, input.attachments);
               return { ok: true };
             } catch (err) {
@@ -680,6 +703,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
             ctx.emit({ type: "system", summary: `${label}: Nachricht wartet bis der Zug endet (${state.queued.length} in der Warteschlange)`, payload: { kind: "acp.queued", queued: state.queued.length } });
             return { ok: true, detail: "in der Warteschlange — wird nach dem Zug gesendet" };
           }
+          if (runBridgeCommand(state, ctx, input.text)) return { ok: true, detail: "Command ausgeführt — kein Modellturn" };
           runTurn(state, ctx, input.text, input.attachments);
           return { ok: true };
         }
