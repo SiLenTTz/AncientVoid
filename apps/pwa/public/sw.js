@@ -4,11 +4,11 @@
  * with an X-UACC-Cached-At timestamp so the UI can badge "Daten vom <ts>".
  * Versioned cache — hard-bust by bumping CACHE_VERSION on deploy.
  */
-const CACHE_VERSION = "uacc-v3";
+const CACHE_VERSION = "uacc-v4";
 // T8.2: API projections live apart from the shell, so a token change can
 // drop them without touching the app itself.
 const API_CACHE = "uacc-api";
-const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon.svg"];
+const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -131,7 +131,7 @@ self.addEventListener("push", (event) => {
       // One notification per hub notification, even if it arrives twice.
       tag: data.id ? `uacc-${data.hostId ?? ""}-${data.id}` : "uacc-test",
       data: { url },
-      icon: "/icons/icon.svg",
+      icon: "/icons/icon-192.png",
     }),
   );
 });

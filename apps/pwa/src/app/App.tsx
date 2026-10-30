@@ -118,6 +118,7 @@ export function App({
         {/* EPIC-P23 T23.1: "UACC" leads to the overview from everywhere, the last session marked there. */}
         <h1>
           <button class="brand-link" type="button" title="Zur Übersicht" onClick={() => setPage("dashboard")}>
+            <img class="brand-logo" src="/assets/logo.webp" alt="" width="28" height="28" />
             UACC
           </button>
         </h1>

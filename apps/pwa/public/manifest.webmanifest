@@ -1,7 +1,7 @@
 {
-  "name": "UACC Hub",
-  "short_name": "UACC",
-  "description": "Unified AI-Agent Command Center — supervise and steer coding agents from mobile.",
+  "name": "AncientVoid",
+  "short_name": "AncientVoid",
+  "description": "AncientVoid — Coding-Agenten vom Handy überwachen und steuern.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0e14",
@@ -10,14 +10,36 @@
   "share_target": {
     "action": "/",
     "method": "GET",
-    "params": { "title": "title", "text": "text", "url": "url" }
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
   },
   "icons": [
     {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

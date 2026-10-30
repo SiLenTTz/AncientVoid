@@ -167,3 +167,6 @@
 .brand-link { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer; }
 .brand-link:hover { color: var(--accent); }
 .session-card.last-active { border-left: 3px solid var(--accent); }
+.brand-link { display: inline-flex; align-items: center; gap: 8px; }
+.brand-logo { border-radius: 6px; object-fit: cover; }
+.login-artwork { width: 100%; height: auto; border-radius: 8px; aspect-ratio: 16 / 9; object-fit: cover; }
