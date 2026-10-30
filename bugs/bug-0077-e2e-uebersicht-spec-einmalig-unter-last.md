@@ -1,7 +1,7 @@
 ---
 id: BUG-0077
 slug: e2e-uebersicht-spec-einmalig-unter-last
-status: open
+status: wont-fix
 severity: S3
 area: e2e
 instance: dev
@@ -94,8 +94,28 @@ Vermutung). Nächster Schritt bei erneutem Auftreten: Trace sichern
 (`--trace on`), dann Timeout an der engsten Assertion gezielt erhöhen
 oder Settlement explizit abwarten.
 
+## Schließung (2026-10-30, wont-fix)
+
+**Evidenz:** Voller `npm run test:e2e`-Lauf auf `main` (2f9224a):
+266 passed / 0 failed (2 sichtbar geskippt). Geschärfte Lastloop aus der
+Repro-Anleitung — `--repeat-each=10 --workers=8` — zusätzlich 10/10 grün
+(~22 s pro Ausführung). Der specifische Spec (`session.spec.ts:76`,
+mobile-Projekt) lief in allen Läufen grün.
+
+**Entscheidung:** wont-fix. Der Flake trat zweimal an zwei Tagen auf
+(2026-10-28: 1/20; 2026-10-29: 1/126) und ist in den rund 130
+darauffolgenden Ausführungen (29.10.: 116 weitere; 30.10.: Suite und
+Lastloop) nicht wieder aufgetreten; ein Fehlerdetail-Locator/Trace
+existiert nicht. Ein Timeout- oder Settlement-Eingriff wäre ein
+Symptom-Patch auf Vermutung — genau das, was die Eingrenzung ausschließt.
+
+**Bei Wiederkehr:** neuen Bug anlegen (nächste freie Nummer siehe
+[`README.md`](README.md)), beim Fehlschlag **sofort**
+`test-results/*/trace.zip` sichern (vor dem nächsten Lauf) und dort
+referenzieren. Die Repro-Anleitung oben bleibt gültig.
+
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
 - [x] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` oder offen lassen
+- [x] wont-fix geschlossen (2026-10-30) — siehe Abschnitt „Schließung“
