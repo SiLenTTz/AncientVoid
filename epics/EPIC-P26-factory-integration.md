@@ -142,7 +142,7 @@ sie (Fähigkeiten werden ausgeblendet, fehlende Felder als „unbekannt“ gezei
 
 ## 4. Aufgaben
 
-- [ ] **T26.1 — Schnittstellenvertrag und Fixtures.** `docs/factory-schnittstelle.md`;
+- [x] **T26.1 — Schnittstellenvertrag und Fixtures.** `docs/factory-schnittstelle.md`;
   Fixtures aus einem echten `factory init` und einem echten Lauf mit Fortschritt
   (anonymisiert, secret-gescannt, nie Roh-Logs). K7, K9.
 - [ ] **T26.2 — ADR-0043.** Treiber/Beobachter, Start-Flow (A/B/C), Allowlist,

@@ -1,0 +1,7 @@
+{
+  "schema_version": "1",
+  "status": "intake",
+  "execution_ready": false,
+  "source_mode": "repo_inventory",
+  "next_action": "Inventar pruefen, erste kleine Aufgabe und Orakel festlegen; dann factory task new."
+}

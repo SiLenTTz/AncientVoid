@@ -1,0 +1,6 @@
+{
+  "schema_version": "1",
+  "zeit": "2026-10-30T11:58:56.315145+00:00",
+  "grund": "permission_denials: 1 aufruf(e) abgelehnt bei lauf-ende (subtype 'error') ohne task-fortschritt in .factory/",
+  "fundstelle": "claude-log.ndjson:result"
+}
