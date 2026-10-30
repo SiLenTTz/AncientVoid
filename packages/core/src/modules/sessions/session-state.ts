@@ -162,13 +162,16 @@ export async function nativeIdFromWorkerLog(dataDir: string, sessionId: string):
 
 export const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   idle: ["working", "waiting_approval", "parked", "stopping", "stopped", "error"],
-  starting: ["working", "idle", "waiting_approval", "error", "stopping", "stopped"],
-  working: ["idle", "waiting_approval", "parked", "stopping", "stopped", "error"],
+  starting: ["working", "idle", "waiting_approval", "error", "stopping", "stopped", "interrupted"],
+  working: ["idle", "waiting_approval", "parked", "stopping", "stopped", "error", "interrupted"],
   // T7.2: a provider process may still end while a tool request waits.
-  waiting_approval: ["working", "idle", "parked", "stopping", "stopped", "error"],
-  parked: ["working", "stopping", "stopped", "error"],
+  waiting_approval: ["working", "idle", "parked", "stopping", "stopped", "error", "interrupted"],
+  parked: ["working", "stopping", "stopped", "error", "interrupted"],
   stopping: ["stopped", "error"],
   stopped: ["working"],
+  // ADR-0044: the run was cut off — resume goes back to working, a failed
+  // resume fails loud into error (never silently back to interrupted).
+  interrupted: ["working", "stopping", "stopped", "error"],
   // ADR-0015: a failed turn (quota, rate limit, provider outage) is not a
   // dead session — the next prompt may start a new turn.
   error: ["stopping", "stopped", "working"],
