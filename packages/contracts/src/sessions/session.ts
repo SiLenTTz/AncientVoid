@@ -11,6 +11,10 @@ export const SESSION_STATUSES = [
   "parked",
   "stopping",
   "stopped",
+  /** ADR-0044: the run was cut off (worker kill, hub restart, adapter down
+   * without an agent error) — the agent did not fail. Consumers must render
+   * unknown statuses as text, never crash (defensive rule). */
+  "interrupted",
   "error",
 ] as const;
 

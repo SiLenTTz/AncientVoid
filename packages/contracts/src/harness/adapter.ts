@@ -78,6 +78,14 @@ export interface AdapterResume {
    * discovery); "token" = the adapter-internal resume handle (shown as a
    * placeholder — the hub never interprets `SessionHandle.internal`). */
   ref: "native" | "token";
+  /** ADR-0044: the hub may spawn this template itself for in-chat
+   * "Weitermachen" after an interrupt, substituting placeholders with
+   * hub-known ids only. Absent = display-only (ADR-0036 unchanged). */
+  hub?: true;
+  /** ADR-0044: auto-resume after an interrupt is allowed for this adapter.
+   * Requires `hub`; absent = manual resume only. Declared only with
+   * evidence that the CLI continues the session identically. */
+  auto?: true;
 }
 
 /**
