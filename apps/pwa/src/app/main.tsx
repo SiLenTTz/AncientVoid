@@ -63,7 +63,8 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
 
   return (
     <div class="card form-grid" style="margin-top: 20vh">
-      <h2 style="margin: 0">UACC Hub</h2>
+      <img class="login-artwork" src="/assets/artwork-tempel.webp" alt="" width="1280" height="720" />
+      <h2 style="margin: 0">Anmeldung bei AncientVoid</h2>
       <p class="dim" style="margin: 0">
         Device-Token eingeben (wird beim Start des Hubs via <code>hubctl token issue</code> erzeugt).
       </p>

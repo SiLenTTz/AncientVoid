@@ -183,9 +183,9 @@ Standard `127.0.0.1` (`compose.yaml:15`). Alle Nachrichten tragen `v: 1`.
   Sekundärquelle: drei dokumentierte Betriebsunfälle, PRs #9–#11, inzwischen mit
   Start-Cleanup behoben; nicht gegen den Code geprüft).
 
-## 4. Abbildung auf UACC
+## 4. Abbildung auf AncientVoid
 
-| Konzept | harnez | aSPARK-Factory | UACC heute |
+| Konzept | harnez | aSPARK-Factory | AncientVoid heute |
 |---|---|---|---|
 | Wer führt Agenten aus | Executor `claude -p` im Container (S04), Orchestrator Hermes extern | Claude Agent SDK im Line-Container | Adapter (`AdapterContext`, tmux-Worker) |
 | Arbeitsquelle | Aufgaben-Verträge, `stories.md`, Epics | Issues mit Label | Prompt der Session |
@@ -202,7 +202,7 @@ Standard `127.0.0.1` (`compose.yaml:15`). Alle Nachrichten tragen `v: 1`.
    `securesight-harnez`: ein opencode-ACP-Agent mit Modell `zai-coding-plan/glm-5.3`,
    **nicht** der Harnez-Loop. Loops brauchen einen eigenen Namensraum. **Gelöst am 2026-10-27 (Jan):** der Adapter bleibt
    der Harness `securesight-harnez`, der Loop heißt `securesight-factory`.
-2. **ASPARK-Fragen haben schon die Form der UACC-Freigaben.** `permission`
+2. **ASPARK-Fragen haben schon die Form der AncientVoid-Freigaben.** `permission`
    ≙ `ToolPermissionRequest`, `question` ≙ `ToolQuestion` (beide stammen aus dem
    Claude-SDK-Tool `AskUserQuestion`). Ein neuer Freigabe-Vertrag ist nicht nötig.
 3. **K5 passt zufällig genau:** aSPARK kürzt Fragen selbst auf 4.096 Byte. Mit dem

@@ -249,7 +249,7 @@ Handy aus voll arbeitsfähig".
   Collection im Nutzer-Index, nicht nur die über `-c` benannte (dieses
   Flag filtert nur Suchergebnisse, nicht `update`s Scope). Ein Aufruf
   hätte die private "SiLenT_Tz brain"-Notizen-Collection des Nutzers bei
-  jeder UACC-Suche ungefragt mit-gescannt — deshalb bewusst **kein
+  jeder AncientVoid-Suche ungefragt mit-gescannt — deshalb bewusst **kein
   Datei-Watcher gebaut** (`ensureIndexed()` ruft `collection add` nur
   einmalig beim ersten Aufruf; neue/geänderte Dateien in einem bereits
   indizierten Projekt werden nicht automatisch nachgezogen — eine echte,

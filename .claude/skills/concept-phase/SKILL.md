@@ -51,7 +51,7 @@ Phase.
 
 ### Sechs Scoping-Dimensionen
 
-| Dimension | Frage | UACC-Beispiel |
+| Dimension | Frage | AncientVoid-Beispiel |
 |---|---|---|
 | Fidelity | Wie echt muss der Slice sein? | Dummy-Adapter-Fixture vs. echter Claude-CLI-Stream |
 | Scope | Was ist drin / bewusst draußen? | Steer ohne Approval-Queue (kommt erst P2) |

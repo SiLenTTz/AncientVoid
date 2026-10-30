@@ -224,9 +224,9 @@ describe("desktop backends (T11.1)", () => {
   });
 
   it("sway: the focused leaf of the tree", async () => {
-    const tree = { id: 1, nodes: [{ id: 2, nodes: [{ id: 5, focused: true, app_id: "zenity", name: "UACC-Test", pid: 7 }] }] };
+    const tree = { id: 1, nodes: [{ id: 2, nodes: [{ id: 5, focused: true, app_id: "zenity", name: "AncientVoid-Test", pid: 7 }] }] };
     const s = new SwayBackend(async () => JSON.stringify(tree));
-    expect(await s.focus()).toEqual({ id: "5", app: "zenity", title: "UACC-Test", pid: 7 });
+    expect(await s.focus()).toEqual({ id: "5", app: "zenity", title: "AncientVoid-Test", pid: 7 });
   });
 
   it("wtype: one process per action, text after --, a delay per key, undo as ctrl+z, select-all as ctrl+a", async () => {

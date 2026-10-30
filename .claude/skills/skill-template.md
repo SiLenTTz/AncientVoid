@@ -37,7 +37,7 @@ Konkrete Schritte, Kommandos, Artefakte.
 
 Deterministische Form, die ein Mensch oder ein nachfolgender Skill lesen kann.
 
-## Protected Invariants (UACC)
+## Protected Invariants (AncientVoid)
 
 Nur Advisory-Skills. Verweis, keine Duplikation:
 
@@ -46,7 +46,7 @@ Nur Advisory-Skills. Verweis, keine Duplikation:
 ## Determinismus-Checkliste
 
 - [ ] Jeder Claim ist durch ein Kommando oder eine Datei belegbar.
-- [ ] Keine RAG/Python/React-Bezüge (mobile-hub ist ein TS-Monorepo).
+- [ ] Keine RAG/Python/React-Bezüge (AncientVoid ist ein TS-Monorepo).
 - [ ] `AGENTS.md` referenziert, nicht kopiert.
 
 ## Verweise

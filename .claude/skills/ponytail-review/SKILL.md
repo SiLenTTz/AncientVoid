@@ -1,6 +1,6 @@
 ---
 name: ponytail-review
-description: Diff-Level-Advisory für Komplexitäts-Reduktion mit Tags delete/stdlib/native/yagni/shrink plus architecture-guard für UACC-Invariants. Aktiv bei Diff vereinfachen, YAGNI, Over-Engineering. Read-only, keine Edits.
+description: Diff-Level-Advisory für Komplexitäts-Reduktion mit Tags delete/stdlib/native/yagni/shrink plus architecture-guard für AncientVoid-Invariants. Aktiv bei Diff vereinfachen, YAGNI, Over-Engineering. Read-only, keine Edits.
 ---
 
 # Skill: ponytail-review
@@ -36,7 +36,7 @@ Tags mit Ersatz. Nichts wird geschrieben.
 
 ### Tag-Sprache
 
-| Tag | Bedeutung | UACC-Beispiel |
+| Tag | Bedeutung | AncientVoid-Beispiel |
 |---|---|---|
 | `delete` | tot, unbenutzt | ein zweiter, ungenutzter EventStore-Kappungs-Pfad |
 | `stdlib` | Handarbeit, die die Plattform kann | eigener Retry-Loop statt `AbortSignal` |
@@ -54,7 +54,7 @@ L<line>: <tag> <what>. <replacement>.
 Eine Zeile pro Fund. Keine Prosa-Einleitung. Am Ende eine Zeile
 `net: ~-<N> lines possible` falls abschätzbar.
 
-## Protected Invariants (UACC)
+## Protected Invariants (AncientVoid)
 
 Siehe [`_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md):
 `AdapterContext`-Grenze, K5-Kappung, K7-Recovery-Pfad, `NormalizedEvent`-Schema,

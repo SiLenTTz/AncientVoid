@@ -59,7 +59,7 @@ export function registerFleetRoutes(app: FastifyInstance, deps: { fleet: FleetSt
     let remote: FleetHello;
     try {
       const res = await httpJson<FleetHello>(`${url}/api/fleet/hello`);
-      if (res.status !== 200 || typeof res.body?.hostId !== "string") return reply.code(422).send({ error: `no UACC hub at ${url}` });
+      if (res.status !== 200 || typeof res.body?.hostId !== "string") return reply.code(422).send({ error: `no AncientVoid hub at ${url}` });
       remote = res.body;
     } catch (err) {
       return reply.code(422).send({ error: `hub not reachable: ${err instanceof Error ? err.message : String(err)}` });

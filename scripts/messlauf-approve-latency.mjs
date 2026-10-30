@@ -72,7 +72,7 @@ const app = await createHubApp({
   registry,
   auth: { tokens, enforceTailnetIdentity: false },
   approvals,
-  webauthn: { store: webauthnStore, config: { rpId: "localhost", rpName: "UACC messlauf", origin: ORIGIN } },
+  webauthn: { store: webauthnStore, config: { rpId: "localhost", rpName: "AncientVoid messlauf", origin: ORIGIN } },
   pwaDir: resolve(repoRoot, "apps/pwa/dist"),
 });
 await app.listen({ port: PORT, host: "127.0.0.1" });

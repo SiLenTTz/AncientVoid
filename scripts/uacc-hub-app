@@ -1,5 +1,5 @@
 #!/bin/bash
-# UACC Hub als Desktop-App: stellt sicher, dass GENAU EIN Hub läuft, und öffnet die PWA im App-Fenster.
+# AncientVoid als Desktop-App: stellt sicher, dass GENAU EIN Hub läuft, und öffnet die PWA im App-Fenster.
 # Der Hub bleibt danach unabhängig vom Fenster laufen (liefert auch das Handy mit).
 #
 # BUG-0073: Ist der Dienst uacc-hub.service installiert, startet dieser Starter ihn über systemd und
@@ -24,7 +24,7 @@ else
   NODE="$HOME/.local/share/mise/shims/node"
   [ -x "$NODE" ] || NODE="node"
   if [ ! -d "$REPO" ]; then
-    notify-send "UACC Hub" "Repo nicht gefunden: $REPO" 2>/dev/null || true
+    notify-send "AncientVoid" "Repo nicht gefunden: $REPO" 2>/dev/null || true
     exec omarchy-launch-webapp "$URL"
   fi
   cd "$REPO" || exec omarchy-launch-webapp "$URL"

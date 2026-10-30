@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# UACC — Tailscale serve setup (P0, AC-P0-3).
+# AncientVoid — Tailscale serve setup (P0, AC-P0-3).
 # Exposes the hub on https://<host>.<tailnet>.ts.net without any public port.
 #
 #   scripts/setup-tailscale-serve.sh [port]

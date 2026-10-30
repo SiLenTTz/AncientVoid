@@ -99,7 +99,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     await app.getByRole("button", { name: "Jetzt übernehmen" }).click();
     await expect(app.locator(".apply-result.ok")).toContainText("nach main");
     expect(readFileSync(`${hub.alpha}/e2e-change.txt`, "utf8")).toContain("geändert durch E2E");
-    expect(execFileSync("git", ["-C", hub.alpha, "log", "--format=%s", "-1"], { encoding: "utf8" })).toContain("UACC: Lege eine DATEI an");
+    expect(execFileSync("git", ["-C", hub.alpha, "log", "--format=%s", "-1"], { encoding: "utf8" })).toContain("AncientVoid: Lege eine DATEI an");
     await expect(app.locator(".toast.success").filter({ hasText: "ins Projekt übernommen" })).toBeVisible();
 
     await app.getByRole("button", { name: "Ins Projekt übernehmen" }).click();

@@ -46,7 +46,7 @@ export const test = base.extend<Fixtures>({
   app: async ({ page, hub }, use) => {
     await signIn(page, hub);
     await page.goto(hub.origin);
-    await expect(page.getByRole("heading", { name: "UACC", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "AncientVoid", exact: true })).toBeVisible();
     await use(page);
   },
 });

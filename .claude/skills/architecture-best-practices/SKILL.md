@@ -1,11 +1,11 @@
 ---
 name: architecture-best-practices
-description: UACC-Architektur-Referenz (Adapter.start → ctx.emit → EventStore → WS/SSE → PWA), Modultiefe-Vokabular, Testing-Standard, Bug-Fix-Test muss ohne Fix scheitern. Aktiv bei Architekturfragen, Schichten, Anti-Pattern, "wo gehört das hin?".
+description: AncientVoid-Architektur-Referenz (Adapter.start → ctx.emit → EventStore → WS/SSE → PWA), Modultiefe-Vokabular, Testing-Standard, Bug-Fix-Test muss ohne Fix scheitern. Aktiv bei Architekturfragen, Schichten, Anti-Pattern, "wo gehört das hin?".
 ---
 
 # Skill: architecture-best-practices
 
-Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). UACC-Verträge:
+Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). AncientVoid-Verträge:
 [`.claude/skills/_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md).
 Advisory dazu: [`ponytail-review`](../ponytail-review/SKILL.md).
 
@@ -39,7 +39,7 @@ bezahlt sind. Kein Workflow; eine Referenz, die andere Skills anwenden.
 
 ## Phasen/Prozess
 
-### UACC-Pipeline
+### AncientVoid-Pipeline
 
 ```text
 Adapter.start(spec, ctx) → ctx.emit(EmittedEvent)
@@ -124,7 +124,7 @@ Good: <bestehendes Muster im Repo, mit Pfad>
 Avoid: <Anti-Pattern, das die Frage riskiert>
 ```
 
-## Protected Invariants (UACC)
+## Protected Invariants (AncientVoid)
 
 Siehe [`_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md).
 

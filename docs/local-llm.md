@@ -28,7 +28,7 @@ Restart=on-failure
 ```
 
 **Geteilte Maschine:** `halogen-starten.sh` (securesight, Halogen) beendet
-beim Start *alle* `llama-server`, um Speicher freizumachen — auch UACC Text
+beim Start *alle* `llama-server`, um Speicher freizumachen — auch AncientVoid Text
 und Vision. Das ist gewollt und wird nicht bekämpft (`Restart=on-failure`
 startet nach einem sauberen Beenden nicht neu). Danach beide Dienste explizit
 starten:
@@ -150,5 +150,5 @@ und eine echte Harness-Session sind damit nicht abgenommen.
 
 - **aider** mit dem lokalen Modell nicht live abgenommen (aider hat kein
   Tool-Gate, `--yes-always`).
-- UACC Text- und Visionmodell sind geladen; größere Modelle (Qwen3.5-122B-A10B)
+- AncientVoid Text- und Visionmodell sind geladen; größere Modelle (Qwen3.5-122B-A10B)
   gehören zu anderen Diensten und teilen denselben Unified Memory.

@@ -35,7 +35,7 @@ const CursorClipConfig = z.object({
   pollIntervalMs: z.number().int().positive().default(2000),
   /** Bounded backfill on start() so a freshly attached session isn't
    * blank — NOT a full history replay (a real conversation can have
-   * thousands of bubbles; replaying all of them into a UACC session tail
+   * thousands of bubbles; replaying all of them into an AncientVoid session tail
    * on every hub restart would itself be a K5/K7-shaped problem). "Clip"
    * means attach live, see recent context, then follow — not "replay
    * everything ever said". */

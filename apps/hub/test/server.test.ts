@@ -839,7 +839,7 @@ describe("hub server — WebAuthn routes (T2.5)", () => {
       registry,
       auth: { tokens, enforceTailnetIdentity: false },
       approvals,
-      webauthn: { store: webauthnStore, config: { rpId: "localhost", rpName: "UACC test", origin: "http://localhost" } },
+      webauthn: { store: webauthnStore, config: { rpId: "localhost", rpName: "AncientVoid test", origin: "http://localhost" } },
     });
     return { app, tokens, cleanup: () => rm(dir, { recursive: true, force: true }) };
   }

@@ -88,7 +88,7 @@ export function normalizeClaudeClipLine(raw: unknown): EmittedEvent[] {
     }
 
     // Real, purely internal interactive-CLI bookkeeping — no conversational
-    // content, no state a UACC session viewer could meaningfully show.
+    // content, no state an AncientVoid session viewer could meaningfully show.
     // Deliberately skipped (not "unhandled" — recognized and judged
     // uninteresting), so a real session's tail isn't flooded with one
     // system-noise line per keystroke-adjacent internal event.

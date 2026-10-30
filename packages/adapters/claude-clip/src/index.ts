@@ -45,7 +45,7 @@ const ClaudeClipConfig = z.object({
   /** Bounded backfill on start() — same reasoning as cursor-clip's
    * `seedBubbles`: a real transcript can be tens of megabytes (this
    * session's own file is one example); replaying it all into a fresh
-   * UACC session tail on every attach would itself be a K5/K7-shaped
+   * AncientVoid session tail on every attach would itself be a K5/K7-shaped
    * problem. "Clip" means attach live, see recent context, then follow. */
   seedLines: z.number().int().nonnegative().default(30),
 });

@@ -175,7 +175,7 @@ Geschwister-Repos (`mobile-hub`, `custom-rag`, weitere) nebeneinander.
   `packages/server/src/routes.ts:41-47`).
 - **Sicherheitsmuster aus ADR-0001 übernehmen** (dort für `swarm` beschrieben:
   „Client sendet nur einen `allowlist_key`, nie einen Pfad; Server löst gegen
-  `roots` auf, Symlink-Escape wird verweigert"). Für UACC heißt das: Ist
+  `roots` auf, Symlink-Escape wird verweigert"). Für AncientVoid heißt das: Ist
   `projectRoots` gesetzt, muss `POST /api/sessions` einen Pfad außerhalb der
   Roots ablehnen. Ist `projectRoots` leer, bleibt das heutige Verhalten
   unverändert (keine Breaking Change für bestehende Configs).

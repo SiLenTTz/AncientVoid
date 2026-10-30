@@ -1,4 +1,4 @@
-# Contributing zu UACC
+# Contributing zu AncientVoid
 
 Danke, dass du beisteuern willst! Dieses Projekt lebt von der Modulgrenze —
 wenn du sie respektierst, ist dein Beitrag fast immer klein und lokal.

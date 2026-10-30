@@ -163,7 +163,14 @@
   .split-list .dock-stack { bottom: 28px; }
 }
 
-/* EPIC-P23 T23.1: "UACC" ist ein Knopf in Überschriftsoptik; die zuletzt benutzte Session trägt einen Rand. */
+/* EPIC-P23 T23.1: "AncientVoid" ist ein Knopf in Überschriftsoptik; die zuletzt benutzte Session trägt einen Rand. */
 .brand-link { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer; }
 .brand-link:hover { color: var(--accent); }
 .session-card.last-active { border-left: 3px solid var(--accent); }
+.brand-link { display: inline-flex; align-items: center; gap: 8px; }
+.brand-logo { border-radius: 6px; object-fit: cover; }
+.login-artwork { width: 100%; height: auto; border-radius: 8px; aspect-ratio: 16 / 9; object-fit: cover; }
+/* Phone: Logo statt Wortmarke — der Name bleibt für Screenreader (und Tests) erhalten, die Kopfzeile reicht sonst nicht für Status/PC/Medien. */
+@media (max-width: 639px) {
+  .brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}

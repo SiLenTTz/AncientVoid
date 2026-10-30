@@ -7,7 +7,7 @@ description: Structured Gate-Review mit 6 Dimensionen (Requirements blocking, Ar
 
 Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). Messung:
 [`gates`](../gates/SKILL.md). Komplexitäts-Linse (advisory):
-[`ponytail-review`](../ponytail-review/SKILL.md). UACC-Verträge:
+[`ponytail-review`](../ponytail-review/SKILL.md). AncientVoid-Verträge:
 [`.claude/skills/_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md).
 
 ## Zweck
@@ -85,7 +85,7 @@ $D | grep "^+" | grep -nE "child_process\.(exec|spawn)\(" -- packages/adapters/*
 $D | grep "^+" | grep -nE "\beval\(|\bnew Function\("
 ```
 
-Zusätzlich UACC-spezifisch: prüfen, ob irgendein neuer Code Agenten-Output
+Zusätzlich AncientVoid-spezifisch: prüfen, ob irgendein neuer Code Agenten-Output
 (Event-`payload`, `summary`) als Instruktion interpretiert statt als Daten
 rendert — das ist die Prompt-Injection-Grenze aus `AGENTS.md`
 ("Datadir & Sicherheit"). Jeder Treffer ist ein Befund der Handwerksachse —

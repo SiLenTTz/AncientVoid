@@ -118,7 +118,7 @@ export const HubConfig = z.object({
         .string()
         .max(1000)
         .default(
-          "UACC, Session, Codex, Claude, opencode, TypeScript, JavaScript, Vitest, pytest, npm, pnpm, Pull Request, Branch, main, Rebase, Merge, Commit, Push, Worktree, Git Status, Diff, Build, Deploy, Logs, Cache, Cloud, Adapter, Hub, Tailnet, PWA, API, WebSocket, Service Worker, Docker, Container, llama.cpp, Gatekeeper, Readme, Doku, Kontingent, Unit-Test, Bug, Refactoring.",
+          "AncientVoid, Session, Codex, Claude, opencode, TypeScript, JavaScript, Vitest, pytest, npm, pnpm, Pull Request, Branch, main, Rebase, Merge, Commit, Push, Worktree, Git Status, Diff, Build, Deploy, Logs, Cache, Cloud, Adapter, Hub, Tailnet, PWA, API, WebSocket, Service Worker, Docker, Container, llama.cpp, Gatekeeper, Readme, Doku, Kontingent, Unit-Test, Bug, Refactoring.",
         ),
       timeoutMs: z.number().int().min(1000).max(120_000).default(30_000),
       /** T12.10 (ADR-0032): optional local PCM16 streaming endpoint. */
@@ -172,7 +172,7 @@ export const HubConfig = z.object({
   webauthn: z
     .object({
       rpId: z.string().default("localhost"),
-      rpName: z.string().default("UACC"),
+      rpName: z.string().default("AncientVoid"),
       origin: z.string().default("http://localhost:7373"),
     })
     .prefault({}),

@@ -2,7 +2,7 @@
   "name": "@uacc/pwa",
   "version": "0.1.0",
   "private": true,
-  "description": "UACC mobile PWA — projection renderer for hub deltas (dark-first, offline-tolerant).",
+  "description": "AncientVoid mobile PWA — projection renderer for hub deltas (dark-first, offline-tolerant).",
   "type": "module",
   "scripts": {
     "dev": "vite",

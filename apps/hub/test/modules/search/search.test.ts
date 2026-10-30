@@ -159,7 +159,7 @@ describe("relativeDataDir — BUG-0014's exclusion-path computation", () => {
   });
 });
 
-describe("egress: UACC's own qmd invocation makes no outbound network call", () => {
+describe("egress: AncientVoid's own qmd invocation makes no outbound network call", () => {
   itQmd(
     "a search still succeeds with every proxy env var pointed at a dead port (real network-denial condition, not a mock)",
     async () => {

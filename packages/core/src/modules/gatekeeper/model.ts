@@ -22,12 +22,12 @@ export const GATEKEEPER_GRAMMAR = [
 ].join("\n");
 
 /**
- * Rewritten for UACC (T7.9) and calibrated on our own requests: the first
+ * Rewritten for AncientVoid (T7.9) and calibrated on our own requests: the first
  * version warned on ordinary worktree reads and asked for the passkey on
  * `rm -rf node_modules` (docs/messlauf/2026-09-24-gatekeeper.md). The
  * examples below are NOT taken from the labelled test set.
  */
-export const GATEKEEPER_PROMPT = `You are Laya, the System-1 gatekeeper of UACC — a hub that lets one person steer AI coding agents from a phone.
+export const GATEKEEPER_PROMPT = `You are Laya, the System-1 gatekeeper of AncientVoid — a hub that lets one person steer AI coding agents from a phone.
 An agent is about to run ONE tool call. A human sees your label before deciding. You never approve anything; you only label, so the human looks closely where it matters and is not disturbed where it does not.
 
 Context:

@@ -1,4 +1,4 @@
-# Slash-Commands (/clear, /new …) in UACC — Analyse und Integrationswege
+# Slash-Commands (/clear, /new …) in AncientVoid — Analyse und Integrationswege
 
 **Datum:** 2026-10-29 · **Anlass:** Nutzerauftrag (Session e20ab9c2):
 „/commands wie /clear oder /new von OpenCode, Claude usw. integrieren;
@@ -10,7 +10,7 @@ Entscheidungsgrundlage; der Epic-Entwurf folgt auf Freigabe.
 
 1. Können Slash-Commands der Harness-CLIs vom Hub aus **ausgeführt**
    werden (nicht als Chat-Text interpretiert)?
-2. Wie bringt UACC sie in die PWA — ohne Adapter-Isolation, K5 oder den
+2. Wie bringt AncientVoid sie in die PWA — ohne Adapter-Isolation, K5 oder den
    Prompt-Injektions-Schutz (PRD §8.5) zu verletzen?
 3. Was ist mit Harnesses ohne eigenes Command-System?
 
@@ -91,7 +91,7 @@ glaubt, der Kontext sei geleert. Verstößt gegen „Fail loud".
 ### Weg C — Nachziehen für Harnesses ohne Commands
 
 - **maki:** Hat selbst ein reiches System (Built-ins, Command-Dateien,
-  `register_command`). Für UACC genügt Verifikation des Dispatch im
+  `register_command`). Für AncientVoid genügt Verifikation des Dispatch im
   ACP-/headless-Pfad (Weg B.3). Falls maki dort nicht dispatcht: ein
   kleines maki-Plugin, das Commands über `maki.api.run_command` aus einer
   definierten Nachricht ausführt, wäre der saubere Hebel — Infrastructure
@@ -129,7 +129,7 @@ verifizierenden CLIs (T2 dominiert).
 
 **Antwort auf die maki-Frage:** Ja, maki.sh hat /commands (Built-ins,
 Command-Dateien `/project:<name>`/`/user:<name>`, Lua
-`register_command`/`run_command`). Ob UACC sie über den ACP-/headless-
+`register_command`/`run_command`). Ob AncientVoid sie über den ACP-/headless-
 Pfad auslösen kann, ist der zentrale offene Verifikationspunkt — nicht
 die Existenz, sondern der Dispatch von außen.
 
@@ -158,7 +158,7 @@ gemeint und geprüft ist maki, maki.sh, lokal installiert als 0.6.5.)
   Matrix in docs/commands/#plugin-access: /compact + Custom-Commands
   brauchen `agent`+`session_write`, /new+/fork `session_write`).
 
-### 2. Getrieben (UACC-Pfad): nein — live bewiesen
+### 2. Getrieben (AncientVoid-Pfad): nein — live bewiesen
 
 Methodik: HOME-/XDG-Sandbox, eigener OpenAI-protokoll-Provider auf
 127.0.0.1-Stub (providers.toml erlaubt http auf Loopback), Custom-Command
@@ -172,7 +172,7 @@ an das Modell geht. Ohne echte Keys, ohne Kosten.
 | `maki -p` | `/definitely-not-a-command` | `user="/definitely-not-a-command"` | Chat |
 | `maki -p` | `/new` | `user="/new"` | Chat |
 | `maki -p` | `/user:probe-hello welt` | `user="/user:probe-hello welt"` | Chat — Custom-Dateien werden getrieben ebenfalls **nicht** expandiert |
-| `maki acp` (UACC-Preset) | `/user:probe-hello from-acp` | `user="/user:probe-hello from-acp"` | Chat |
+| `maki acp` (AncientVoid-Preset) | `/user:probe-hello from-acp` | `user="/user:probe-hello from-acp"` | Chat |
 | `maki acp` | `/definitely-not-a-command` | `user="/definitely-not-a-command"` | Chat |
 
 Der Provider-Gate läuft vor jeder Prompt-Behandlung; Slash-Text im
@@ -193,7 +193,7 @@ maki.api.set_slot("agent.user_message", function(prev, msg, ctx)
     local cmdline = msg.text:match("^%s*(/%S+.-)%s*$")
     if cmdline then
       local ok, err = maki.api.run_command(cmdline)
-      return nil, ok and ("Command " .. cmdline .. " ausgeführt (UACC-Brücke)")
+      return nil, ok and ("Command " .. cmdline .. " ausgeführt (AncientVoid-Brücke)")
                 or ("Command " .. cmdline .. " nicht ausführbar: " .. tostring(err))
     end
   end

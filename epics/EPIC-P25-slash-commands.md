@@ -1,4 +1,4 @@
-# EPIC-P25 — Slash-Commands: Harness-Commands steuerbar in UACC
+# EPIC-P25 — Slash-Commands: Harness-Commands steuerbar in AncientVoid
 
 **Status:** in Umsetzung (2026-10-29, sofortiger Auftrag nach der Analyse) · **Phase:** P25 · **Dauer:** ~1 Agenten-Woche (Mechanik) + Verifikationsreste · **Abhängigkeit:** fachlich keine; baut auf ADR-0042 und der [Analyse vom 2026-10-29](../docs/slash-commands-analyse-2026-10-29.md) auf. Läuft neben den offenen P12-Abnahmen (Präzedenz P13/P14/P17).
 

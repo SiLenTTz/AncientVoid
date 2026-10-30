@@ -1,6 +1,6 @@
 ---
 name: write-tests
-description: Schreibt Unit-, Integrations- und E2E-Tests nach der UACC-Testpyramide. Aktiv bei neuem Test, Coverage-Lücke, „wie teste ich das", Playwright, adapter-testkit, rot-dann-grün.
+description: Schreibt Unit-, Integrations- und E2E-Tests nach der AncientVoid-Testpyramide. Aktiv bei neuem Test, Coverage-Lücke, „wie teste ich das", Playwright, adapter-testkit, rot-dann-grün.
 ---
 
 # Skill: write-tests

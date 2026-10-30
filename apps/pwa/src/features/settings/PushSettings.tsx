@@ -63,7 +63,7 @@ export function PushSettings() {
       )}
       {state?.enabled && (
         <>
-          {support === "unsupported" && <div class="push-status warn">Dieser Browser kann hier kein Push. Auf dem iPhone: UACC erst „Zum Home-Bildschirm“ hinzufügen und von dort öffnen.</div>}
+          {support === "unsupported" && <div class="push-status warn">Dieser Browser kann hier kein Push. Auf dem iPhone: AncientVoid erst „Zum Home-Bildschirm“ hinzufügen und von dort öffnen.</div>}
           {support === "denied" && <div class="push-status err">Benachrichtigungen sind für diese Seite blockiert — in den Browser- bzw. Geräteeinstellungen erlauben.</div>}
           {support === "ok" && (
             <div class="row" style="gap: 8px; flex-wrap: wrap; justify-content: flex-start">

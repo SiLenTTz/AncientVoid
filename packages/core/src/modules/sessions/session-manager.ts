@@ -1052,7 +1052,7 @@ export class SessionManager {
     if (!this.worktrees || record.worktreeSha === null || !existsSync(this.worktrees.pathFor(sessionId)) || !session) {
       return { ok: false, detail: "Diese Session arbeitet direkt im Projektordner, es gibt nichts zu übernehmen." };
     }
-    const message = `UACC: ${record.title ?? `Session ${sessionId.slice(0, 8)}`}`;
+    const message = `AncientVoid: ${record.title ?? `Session ${sessionId.slice(0, 8)}`}`;
     const result = await this.worktrees.apply(sessionId, record.project, message);
     if (result.ok) {
       await this.emitSystem(session, "session.applied", { into: result.into, commit: result.commit, files: result.files, actor: actor ?? null });
