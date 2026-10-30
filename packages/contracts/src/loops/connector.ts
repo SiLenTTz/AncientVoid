@@ -27,6 +27,8 @@ export interface LoopOnboarding {
   label: string;
   fields: readonly LoopOption[];
   secret?: { label: string; hint?: string };
+  /** Hinweiszeilen unter den Feldern (z. B. warum eine Wahl ausgeblendet bleibt, AC-P26-9). */
+  notes?: readonly string[];
 }
 
 export interface LoopCapabilities {

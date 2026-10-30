@@ -206,3 +206,11 @@ describe("securesight-Onboarding über factory init (T26.4, EPIC-P26)", () => {
     expect(missing).toMatchObject({ ok: false, detail: expect.any(String) });
   });
 });
+
+describe("Harness-Wahl ausgeblendet mit Grund (T26.7, AC-P26-9)", () => {
+  it("Capabilities nennen keinen Harness, aber einen Grund in onboarding.notes", () => {
+    const caps = createLoopConnector().capabilities();
+    expect(caps.options.some((o) => o.key === "harness")).toBe(false);
+    expect(caps.onboarding?.notes?.some((n) => n.includes("Harness-Wahl") && n.includes("ausgeblendet"))).toBe(true);
+  });
+});
