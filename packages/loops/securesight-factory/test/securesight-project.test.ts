@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -152,11 +152,13 @@ describe("securesight-Onboarding über factory init (T26.4, EPIC-P26)", () => {
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-  /** Fake-CLI: `init` gibt die Datei aus (oder stderr+Exit 1), alles andere den Fortschritt. */
-  const makeBin = (initFile: string | null, initErr?: string) => {
+  /** Fake-CLI: `init` gibt die Datei aus (oder stderr+Exit 1), alles andere den
+   * Fortschritt. Mit `factoryHome` trägt der Shim wie die echte Installation
+   * eine FACTORY_HOME-Zeile. */
+  const makeBin = (initFile: string | null, initErr?: string, factoryHome?: string) => {
     const bin = join(dir, "factory.sh");
     const init = initErr !== undefined ? `printf '%s' '${initErr}' >&2; exit 1` : `cat '${initFile}'`;
-    writeFileSync(bin, `#!/bin/sh\nif [ "$1" = "init" ]; then ${init}; exit 0; fi\ncat '${join(dir, "progress-out.json")}'\n`, { mode: 0o755 });
+    writeFileSync(bin, `#!/bin/sh\n${factoryHome ? `FACTORY_HOME='${factoryHome}'\n` : ""}if [ "$1" = "init" ]; then printf '%s\\n' "$@" > '${join(dir, "init-args.txt")}'; ${init}; exit 0; fi\ncat '${join(dir, "progress-out.json")}'\n`, { mode: 0o755 });
     return bin;
   };
   const writeInit = (doc: unknown) => {
@@ -213,4 +215,98 @@ describe("Harness-Wahl ausgeblendet mit Grund (T26.7, AC-P26-9)", () => {
     expect(caps.options.some((o) => o.key === "harness")).toBe(false);
     expect(caps.onboarding?.notes?.some((n) => n.includes("Harness-Wahl") && n.includes("ausgeblendet"))).toBe(true);
   });
+});
+
+describe("Modellwahl beim Anbinden: Projekt-Override policies/modell-routing.json (Nutzerwunsch 2026-10-30)", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "uacc-factory-modell-"));
+    writeFileSync(join(dir, "init-out.json"), JSON.stringify({ checkliste: ["ready: alle gruen"] }));
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  const onboard = (bin: string, options: Record<string, string>) => createLoopConnector({ factory: bin, pollMs: 40 }).onboard?.({ options }, new AbortController().signal);
+  const initOut = () => join(dir, "init-out.json");
+
+  it("Capabilities: Modell-Auswahl steht im Anbindungs-Formular, Standard zuerst", () => {
+    const caps = createLoopConnector().capabilities();
+    const modell = caps.onboarding?.fields.find((f) => f.key === "modell");
+    expect(modell?.kind).toBe("select");
+    expect(modell?.choices?.[0]).toMatchObject({ value: "", label: expect.stringContaining("Standard-Routing") });
+    expect(modell?.choices?.map((c) => c.value)).toContain("zai/glm-5.3");
+    expect(modell?.choices?.map((c) => c.value)).toContain("anthropic/claude-opus-5-5");
+  });
+
+  it("zai-Modell bestimmt den Provider für factory init und schreibt den Override für alle Stufen", async () => {
+    const home = makeFactoryHome();
+    const bin = join(dir, "factory.sh");
+    writeFileSync(bin, `#!/bin/sh\nFACTORY_HOME='${home}'\nif [ "$1" = "init" ]; then printf '%s\\n' "$@" > '${join(dir, "args.txt")}'; cat '${initOut()}'; exit 0; fi\n`, { mode: 0o755 });
+    const project = join(dir, "proj");
+    const res = await onboard(bin, { root: project, modus: "a", provider: "anthropic", modell: "zai/glm-5.3" });
+    expect(res).toMatchObject({ ok: true });
+    expect(res?.ok && res.detail).toContain("modell: glm-5.3 (zai)");
+    // Modell schlägt das Provider-Feld: init läuft mit zai.
+    expect(readFileSync(join(dir, "args.txt"), "utf8").split("\n").join(" ")).toContain("--provider zai");
+    const policy = JSON.parse(readFileSync(join(project, "policies", "modell-routing.json"), "utf8"));
+    expect(policy.default_provider).toBe("zai");
+    expect(policy.providers.zai.tier_models).toEqual({ planung: "glm-5.3", mittel: "glm-5.3", einfach: "glm-5.3" });
+    // tiers bleiben beim Anthropic-Standard — der zai-Pfad läuft über tier_models.
+    expect(policy.tiers.mittel.model).toBe("claude-sonnet-5-5");
+  });
+
+  it("anthropic-Modell patcht die Stufen, ohne zai-Profil anzufassen", async () => {
+    const home = makeFactoryHome();
+    const bin = join(dir, "factory.sh");
+    writeFileSync(bin, `#!/bin/sh\nFACTORY_HOME='${home}'\nif [ "$1" = "init" ]; then cat '${initOut()}'; exit 0; fi\n`, { mode: 0o755 });
+    const project = join(dir, "proj");
+    const res = await onboard(bin, { root: project, modus: "a", provider: "anthropic", modell: "anthropic/claude-opus-5-5" });
+    expect(res).toMatchObject({ ok: true });
+    const policy = JSON.parse(readFileSync(join(project, "policies", "modell-routing.json"), "utf8"));
+    for (const tier of ["planung", "mittel", "einfach"]) expect(policy.tiers[tier].model).toBe("claude-opus-5-5");
+    expect(policy.default_provider).toBe("anthropic");
+    expect(policy.providers.zai.tier_models.einfach).toBe("glm-5.3-flash");
+  });
+
+  it("ohne Modellwahl wird kein Override geschrieben", async () => {
+    const home = makeFactoryHome();
+    const bin = join(dir, "factory.sh");
+    writeFileSync(bin, `#!/bin/sh\nFACTORY_HOME='${home}'\nif [ "$1" = "init" ]; then cat '${initOut()}'; exit 0; fi\n`, { mode: 0o755 });
+    const project = join(dir, "proj");
+    const res = await onboard(bin, { root: project, modus: "a", provider: "anthropic", modell: "" });
+    expect(res).toMatchObject({ ok: true });
+    expect(existsSync(join(project, "policies"))).toBe(false);
+  });
+
+  it("ungültiges Modell oder unauffindbare Standard-Policy scheitern laut", async () => {
+    const home = makeFactoryHome();
+    const binOk = join(dir, "factory-ok.sh");
+    writeFileSync(binOk, `#!/bin/sh\nFACTORY_HOME='${home}'\nif [ "$1" = "init" ]; then cat '${initOut()}'; exit 0; fi\n`, { mode: 0o755 });
+    expect(await onboard(binOk, { root: "/tmp/p", modus: "a", provider: "zai", modell: "openai/x" })).toMatchObject({ ok: false });
+    expect(await onboard(binOk, { root: "/tmp/p", modus: "a", provider: "zai", modell: "zai/glm-4" })).toMatchObject({ ok: false });
+
+    const binOhneHome = join(dir, "factory-ohne.sh");
+    writeFileSync(binOhneHome, `#!/bin/sh\nif [ "$1" = "init" ]; then cat '${initOut()}'; exit 0; fi\n`, { mode: 0o755 });
+    const res = await onboard(binOhneHome, { root: "/tmp/p", modus: "a", provider: "zai", modell: "zai/glm-5.3" });
+    expect(res).toMatchObject({ ok: false });
+    expect(res && !res.ok && res.detail).toContain("Standard-Policy");
+  });
+
+  function makeFactoryHome(): string {
+    const home = join(dir, "factory-home");
+    mkdirSync(join(home, "policies"), { recursive: true });
+    writeFileSync(
+      join(home, "policies", "modell-routing.json"),
+      JSON.stringify({
+        schema_version: "1",
+        default_provider: "anthropic",
+        tiers: {
+          planung: { model: "claude-opus-5-5", effort: "high" },
+          mittel: { model: "claude-sonnet-5-5", effort: "medium" },
+          einfach: { model: "claude-haiku-5-5", effort: "low" },
+        },
+        providers: { zai: { base_url: "https://api.z.ai/api/anthropic", key_path: "~/.k", key_field: "zai-coding-plan.key", tier_models: { planung: "glm-5.3", mittel: "glm-5.3", einfach: "glm-5.3-flash" } } },
+      }),
+    );
+    return home;
+  }
 });
