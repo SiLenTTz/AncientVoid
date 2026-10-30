@@ -28,6 +28,27 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     expect(record?.adapter).toBe("opencode");
   });
 
+  test("Projektauswahl zuerst: Pfad wird vorbelegt, folgt der Auswahl und bleibt überschreibbar @desktop", async ({ app, hub }) => {
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    // Die Projektauswahl ist das erste Feld des Formulars — vor Loop und Adapter.
+    const first = app.locator(".form-grid > label").first();
+    await expect(first).toContainText("Projekt");
+    // Das vorausgewählte Projekt füllt den Pfad automatisch: Start ohne jede Pfad-Eingabe.
+    const pfad = app.getByLabel("Pfad");
+    await expect(pfad).toHaveValue(hub.alpha);
+    // Anderes Projekt gewählt: der Pfad folgt der Auswahl.
+    await app.getByLabel("Projekt").selectOption(hub.beta);
+    await expect(pfad).toHaveValue(hub.beta);
+    // Manueller Override bleibt möglich — der eigene Pfad wird zur Session.
+    await pfad.fill(hub.projectsDir);
+    await app.getByPlaceholder("Refactore den Auth-Flow…").fill("Ohne Pfadtippen gestartet");
+    await app.getByRole("button", { name: "Starten" }).click();
+    await expect(app).toHaveURL(/#\/sessions\//);
+    const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
+    const detail = await hub.api<{ project: string }>(`/api/sessions/${id}`);
+    expect(detail.body.project).toBe(hub.projectsDir);
+  });
+
   test("Startprompt und eigene Antworten stehen im Chat, in Reihenfolge @desktop", async ({ app, hub }) => {
     await app.getByRole("button", { name: "Neue Session" }).click();
     await app.getByLabel("Adapter").selectOption("opencode");
