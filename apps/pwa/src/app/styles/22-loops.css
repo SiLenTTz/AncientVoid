@@ -9,6 +9,13 @@
   font-size: 0.85em;
 }
 
+/* Warum der Start noch nicht geht: laut am Knopf, kein graues Flüstern —
+ * „es passiert nichts“ war der Nutzerfund 2026-10-30. */
+.loop-block.warn {
+  color: var(--warn, #d29922);
+  font-size: 12px;
+}
+
 /* EPIC-P19 T19.6: Kopf-Abzeichen und Loop-Panel in der Session */
 .loop-badge {
   display: inline-block;

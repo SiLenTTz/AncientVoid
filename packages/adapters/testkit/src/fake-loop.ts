@@ -20,7 +20,18 @@ export function createLoopConnector(_config?: Readonly<Record<string, unknown>>)
     gates: ["policy", "ci"],
     asks: "permission+question",
     options: [{ key: "line", label: "Line", kind: "select", required: true, choices: [...[...lines].map((l) => ({ value: l, label: l })), { value: LOOP_NEW, label: "Neues Repo anbinden …" }] }],
-    onboarding: { optionKey: "line", label: "Neues Repo anbinden", fields: [{ key: "name", label: "Name der Linie", kind: "text", required: true, placeholder: "z. B. beta" }], secret: { label: "Repo-Token" } },
+    onboarding: {
+      optionKey: "line",
+      label: "Neues Repo anbinden",
+      // „art“ spiegelt die echten Connectors (aSPARK „Art“, securesight
+      // „Betriebsmodus“/„Provider“): Pflicht-Selects, die ihre erste Wahl
+      // anzeigen — der Start darf daran nicht scheitern (2026-10-30).
+      fields: [
+        { key: "art", label: "Art", kind: "select", required: true, choices: [{ value: "projekt", label: "Projekt" }, { value: "umgebung", label: "Umgebung" }] },
+        { key: "name", label: "Name der Linie", kind: "text", required: true, placeholder: "z. B. beta" },
+      ],
+      secret: { label: "Repo-Token" },
+    },
   });
   const note = (ctx: AdapterContext, kind: string, summary: string, payload: Record<string, unknown>) =>
     ctx.emit({ type: "system", summary, payload: { kind, ...payload } });

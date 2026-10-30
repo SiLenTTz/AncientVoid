@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type { LoopInfo, LoopSpec } from "@uacc/contracts";
 import type { hubApi } from "../../shared/api.ts";
-import { defaultLoopSpec, isOnboarding, type OnboardDraft } from "./loop-form.ts";
+import { defaultLoopSpec, isOnboarding, onboardSelectDefaults, type OnboardDraft } from "./loop-form.ts";
 
 /**
  * EPIC-P19: Auswahl „Loop / Dark Factory“ im Start-Formular. Die Liste und alle Felder kommen vom Hub
@@ -44,6 +44,16 @@ export function LoopPicker({
 
   const chosen = value ? loops.find((l) => l.id === value.id) : undefined;
   const caps = chosen?.capabilities ?? null;
+  // Öffnet die Auswahl das Anbindungs-Formular, gehören die angezeigten
+  // Select-Vorgaben auch in den Zustand (sonst blockiert „… fehlt“ trotz
+  // gefülltem Dropdown — der Startknopf wirkt dann einfach tot).
+  const onboardCaps = caps?.onboarding ?? null;
+  const onboardOpen = !!(onboardCaps && value && isOnboarding(chosen ?? null, value));
+  useEffect(() => {
+    if (!onboardCaps || !onboardOpen) return;
+    const values = onboardSelectDefaults(onboardCaps, onboard.values);
+    if (values !== onboard.values) onOnboard({ ...onboard, values });
+  }, [onboardCaps, onboardOpen, onboard]);
   const set = (patch: Partial<LoopSpec>) => value && chosen && onChange({ ...value, ...patch }, chosen);
   const setOption = (key: string, v: string) => set({ options: { ...value?.options, [key]: v } });
   const risky = !!(value?.mode && caps?.riskyModes.includes(value.mode));

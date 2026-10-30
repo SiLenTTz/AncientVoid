@@ -1,5 +1,5 @@
 import { LOOP_NEW } from "@uacc/contracts";
-import type { LoopInfo, LoopSpec } from "@uacc/contracts";
+import type { LoopInfo, LoopOnboarding, LoopSpec } from "@uacc/contracts";
 
 /** Eingaben des Formulars „Neues Repo anbinden“ — das Geheimnis bleibt im Speicher dieses Formulars. */
 export interface OnboardDraft {
@@ -27,6 +27,19 @@ export function defaultLoopSpec(info: LoopInfo): LoopSpec {
     if (o.kind === "toggle") options[o.key] = "false";
   }
   return { id: info.id, ...(mode ? { mode } : {}), ...(orchestrator ? { orchestrator } : {}), options };
+}
+
+/** Pflicht-Selects des Anbindungsformulars zeigen ihre erste Wahl ohnehin an —
+ * dieser Wert muss auch im Zustand stehen, sonst blockiert der Start mit
+ * „… fehlt“, obwohl das Dropdown gefüllt aussieht (aSPARK „Art“, securesight
+ * „Betriebsmodus“/„Provider“; Nutzerfund 2026-10-30: „Starten tut nichts“). */
+export function onboardSelectDefaults(onboarding: LoopOnboarding, values: Record<string, string>): Record<string, string> {
+  const patch: Record<string, string> = {};
+  for (const f of onboarding.fields) {
+    if (f.kind === "select" && f.choices?.[0] && !values[f.key]?.trim()) patch[f.key] = f.choices[0].value;
+  }
+  if (Object.keys(patch).length === 0) return values;
+  return { ...values, ...patch };
 }
 
 /** Was vor dem Start noch fehlt — null heißt: startbar. Die Antwort ist ein Satz für die Oberfläche. */

@@ -360,7 +360,7 @@ export function CreateSession({
       </label>
       {error && <div style="color: var(--err)">{error}</div>}
       {!loop && <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />}
-      {loopBlock && loop && <div class="dim loop-block">{loopBlock}</div>}
+      {loopBlock && loop && <div class="loop-block warn" role="alert">{loopBlock}</div>}
       {onboardNote && <div class="dim loop-note" role="status">{onboardNote}</div>}
       <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy || !project || !!loopBlock}>
         {busy ? "lädt…" : "Starten"}
