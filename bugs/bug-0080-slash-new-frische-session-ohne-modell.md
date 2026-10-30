@@ -1,7 +1,7 @@
 ---
 id: BUG-0080
 slug: slash-new-frische-session-ohne-modell
-status: open
+status: done
 severity: S2
 area: adapters
 instance: dev
@@ -93,8 +93,29 @@ Fix-Skizze (smallest correct): `/new`-Zweig über `newSession(state, ctx,
 cfg.model)` laufen lassen (dann inkl. announce + Modellwahl + Fehlerbehandlung
 an einem Ort) statt des duplizierten Roh-Requests.
 
+## Abschluss (2026-10-30)
+
+**Root-Cause:** `packages/adapters/acp/src/index.ts:455` — der `/new`-Zweig in
+`runBridgeCommand()` rief `session/new` roh auf und umging `newSession()`
+(`:408–413`), den einzigen Ort, an dem `selectModel()` das konfigurierte
+Modell setzt. Die Frischsession startete auf makis Default (`zai/glm-5-code`),
+der Key darf nur `zai/glm-5.3` → ZHIPU 403 → maki RPC „Internal error" →
+`provider.error`-Event; die erste Nachricht war verloren.
+
+**Fix (smallest correct):** `/new` läuft über `newSession(state, ctx,
+cfg.model)` — Modellwahl, announce und Fehlerbehandlung an einem Ort statt
+dupliziertem Roh-Request. Streng: wird das Modell nicht angeboten, scheitert
+`/new` laut (provider.error) statt still auf ein falsches zu fallen.
+
+**Verify:** Neuer Test `bridge-commands.test.ts` „BUG-0080: /new wählt das
+konfigurierte Modell auf der Frischsession" — rot ohne Fix (nur 1
+`session/set_config_option` vom Start), grün mit Fix (2. Set mit `value:
+stub/good` auf neuer sessionId). Stub um maki-form configOptions erweitert.
+ACP-Suite 46/46 grün. Live-Verifikation nach Hub-Restart ausstehend
+(Rezept: /new → Nachricht → normale Antwort statt provider.error).
+
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
 - [x] GitLab-Issue angelegt ([#34](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/34))
-- [ ] `bugfix`
+- [x] `bugfix` (Fix + Test, MR siehe Historie)

@@ -39,7 +39,13 @@ describe("acp bridge commands (BUG-0079)", () => {
     return { adapter, ctx, handle: handle! };
   }
 
-  const methods = () => readFileSync(log, "utf8").trim().split("\n");
+  const lines = () =>
+    readFileSync(log, "utf8")
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => JSON.parse(l) as { m: string; p: Record<string, unknown> | null });
+  const methods = () => lines().map((l) => l.m);
 
   it("führt /new als neue ACP-Session aus — ohne Modellturn, sichtbar als Event", async () => {
     const { adapter, ctx, handle } = await setup();
@@ -61,6 +67,32 @@ describe("acp bridge commands (BUG-0079)", () => {
     await adapter.steer(handle, { kind: "prompt", text: "hallo nach /new" }, ctx);
     await waitFor(() => methods().filter((m) => m === "session/prompt").length > promptCountBefore, 5000);
     expect(ctx.events.some((e) => e.type === "assistant" && String(e.summary ?? "").includes("/new"))).toBe(false);
+  }, 20_000);
+
+  it("BUG-0080: /new wählt das konfigurierte Modell auf der Frischsession", async () => {
+    writeFileSync(log, "");
+    const adapter = createAdapter({ command: [process.execPath, agent], bridgeCommands: true, model: "stub/good", label: "BridgeModel" });
+    const ctx = makeRecordingContext({
+      spawnWorker: (cmd, o) =>
+        runner.spawn({ name: "bridge-agent-model", cwd: process.cwd(), cmd, env: { ...process.env, ...(o?.env ?? {}), UACC_BRIDGE_LOG: log } }),
+    });
+    const handle = await adapter.start({ adapter: adapter.id, project: process.cwd(), prompt: "start" }, ctx);
+    await waitFor(() => methods().includes("session/prompt"), 5000);
+    // Initial-Start setzt das konfigurierte Modell bereits (Start-Session).
+    const firstSet = lines().find((l) => l.m === "session/set_config_option");
+    expect(firstSet?.p?.value).toBe("stub/good");
+
+    const ack = await adapter.steer(handle!, { kind: "prompt", text: "/new" }, ctx);
+    expect(ack.ok).toBe(true);
+    await waitFor(() => ctx.events.some((e) => e.payload?.kind === "acp.command_executed"), 5000);
+
+    // Ohne Fix bleibt es bei EINEM Set (Start) — die Frischsession liefe auf
+    // dem Default-Modell (live: zai/glm-5-code → ZHIPU 403, BUG-0080).
+    const sets = lines().filter((l) => l.m === "session/set_config_option");
+    expect(sets.length).toBeGreaterThanOrEqual(2);
+    const fresh = sets.at(-1)!.p!;
+    expect(fresh.value).toBe("stub/good");
+    expect(fresh.sessionId).not.toBe(firstSet!.p!.sessionId);
   }, 20_000);
 
   it("undeklarierte Slashes bleiben Chat (kein Still-Fehlleiten)", async () => {
