@@ -75,6 +75,33 @@ export function SessionTail({
   const hostKey = remoteHost(session.hostId) ?? "local";
   const [cached] = useState(() => loadTail(hostKey, session.id));
   const [online, setOnline] = useState(() => navigator.onLine);
+  // Markieren → Auto-Zwischenablage (Nutzer-Anforderung 2026-10-30): eine
+  // fertige Textauswahl im Verlauf landet ohne Kopieren-Knopf in der
+  // Clipboard — pointerup ist die Nutzer-Geste, die writeText erlaubt.
+  // Auswahl außerhalb des Verlaufs (z. B. Eingabefeld) bleibt unberührt.
+  const [copyFlash, setCopyFlash] = useState(false);
+  useEffect(() => {
+    let flashTimer: number | undefined;
+    const onUp = () => {
+      const el = tailRef.current;
+      const sel = window.getSelection();
+      const text = sel?.toString() ?? "";
+      if (!el || !sel || !text.trim() || !el.contains(sel.anchorNode)) return;
+      void navigator.clipboard
+        ?.writeText(text)
+        .then(() => {
+          setCopyFlash(true);
+          window.clearTimeout(flashTimer);
+          flashTimer = window.setTimeout(() => setCopyFlash(false), 1200);
+        })
+        .catch(() => undefined); // kein Clipboard (insecure context) — Kopieren-Button bleibt der Weg
+    };
+    document.addEventListener("pointerup", onUp);
+    return () => {
+      document.removeEventListener("pointerup", onUp);
+      window.clearTimeout(flashTimer);
+    };
+  }, []);
   useEffect(() => {
     const up = () => setOnline(true);
     const down = () => setOnline(false);
@@ -642,7 +669,7 @@ export function SessionTail({
     {/* 2026-10-26: the whole session view carries the same traveling border
      * as an active overview card — "this agent is working" must be visible
      * from any tab (chat/diff/code), not only from the small status pill. */}
-    <div data-tab={activeTab} class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}`}>
+    <div data-tab={activeTab} class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}`}>{copyFlash && <div class="copy-flash" role="status">In Zwischenablage kopiert</div>}
       {/* Desktop-Kachel: Ansichten als Icon-Leiste links, am Handy bleiben sie im Dock unten. */}
       {tile && <nav class="subtabs-wrap tile-rail" aria-label="Ansichten">{tabButtons}</nav>}
       <div class="session-main">
