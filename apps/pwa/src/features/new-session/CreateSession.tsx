@@ -220,6 +220,56 @@ export function CreateSession({
   return (
     <ApiContext.Provider value={api}>
     <div class="card form-grid">
+      {/* Projekt zuerst: jede weitere Angabe (Pfad, gemerkter Skill,
+          Workflow) hängt an ihm — der Pfad wird aus der Auswahl vorbelegt
+          und bleibt darunter überschreibbar. */}
+      <label>
+        Projekt
+        {projects === null ? (
+          <input disabled placeholder="lade…" />
+        ) : projects.length > 0 ? (
+          <select
+            value={projects.some((p) => p.path === project) ? project : ""}
+            onChange={(e) => setProject((e.target as HTMLSelectElement).value)}
+          >
+            {projects.every((p) => p.path !== project) && <option value="">eigener Pfad (siehe unten)</option>}
+            {projects.map((p) => (
+              <option key={p.path} value={p.path}>
+                {p.name}
+                {p.branch ? ` (${p.branch})` : ""}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span class="dim" style="font-size: 11px">
+            keine Projekt-Wurzeln konfiguriert — siehe docs/configuration.md
+          </span>
+        )}
+      </label>
+      {projects !== null && projects.length > 0 && (
+        <div style={{ display: "flex", gap: 6 }}>
+          <input
+            value={newProject}
+            onInput={(e) => setNewProject((e.target as HTMLInputElement).value)}
+            placeholder="neues Projekt (Name)"
+            style={{ flex: 1 }}
+          />
+          <button type="button" disabled={!newProject.trim() || creating} onClick={createNewProject}>
+            {creating ? "…" : "+ Anlegen"}
+          </button>
+        </div>
+      )}
+      <label>
+        Pfad
+        <input
+          value={project}
+          onInput={(e) => setProject((e.target as HTMLInputElement).value)}
+          placeholder="/home/user/repo"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck={false}
+        />
+      </label>
       {hosts.length > 1 && (
         <label>
           Host
@@ -290,45 +340,6 @@ export function CreateSession({
       )}
         </>
       )}
-      <label>
-        Projekt
-        {projects === null ? (
-          <input disabled placeholder="lade…" />
-        ) : projects.length > 0 ? (
-          <>
-            <select value={project} onChange={(e) => setProject((e.target as HTMLSelectElement).value)}>
-              {projects.map((p) => (
-                <option key={p.path} value={p.path}>
-                  {p.name}
-                  {p.branch ? ` (${p.branch})` : ""}
-                </option>
-              ))}
-            </select>
-            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-              <input
-                value={newProject}
-                onInput={(e) => setNewProject((e.target as HTMLInputElement).value)}
-                placeholder="neues Projekt (Name)"
-                style={{ flex: 1 }}
-              />
-              <button type="button" disabled={!newProject.trim() || creating} onClick={createNewProject}>
-                {creating ? "…" : "+ Anlegen"}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <input
-              value={project}
-              onInput={(e) => setProject((e.target as HTMLInputElement).value)}
-              placeholder="/home/user/repo"
-            />
-            <span class="dim" style="font-size: 11px">
-              keine Projekt-Wurzeln konfiguriert — siehe docs/configuration.md
-            </span>
-          </>
-        )}
-      </label>
       <label>
         Prompt (optional)
         <Composer
