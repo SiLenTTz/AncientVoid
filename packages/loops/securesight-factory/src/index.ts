@@ -23,7 +23,7 @@ const CAPABILITIES: LoopCapabilities = {
     optionKey: "anbindung",
     label: "Factory-Projekt einrichten (factory init)",
     fields: [
-      { key: "root", label: "Projektpfad (absolut)", kind: "text", required: true, placeholder: "/pfad/zum/projekt" },
+      { key: "root", label: "Projektpfad (absolut)", kind: "text", required: true, placeholder: "/pfad/zum/projekt", prefill: "project" },
       { key: "prd", label: "PRD (Datei/Ordner, optional)", kind: "text", placeholder: "/pfad/zur/prd.md" },
       { key: "modus", label: "Betriebsmodus", kind: "select", required: true, choices: [{ value: "a", label: "a — merged automatisch (Außenwirkung)" }, { value: "b", label: "b" }] },
       { key: "provider", label: "Provider", kind: "select", required: true, choices: [{ value: "anthropic", label: "Anthropic" }, { value: "zai", label: "Z.ai" }] },

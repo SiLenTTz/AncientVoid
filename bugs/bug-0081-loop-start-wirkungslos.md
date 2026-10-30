@@ -1,7 +1,7 @@
 # BUG-0081 — Loop-Start im neuen Session-Dialog „tut nichts"
 
 - **Gemeldet:** 2026-10-30, Nutzer (Handy, echter Hub, Loops aSPARK-Factory/securesight-factory)
-- **Status:** gefixt (MR folgt)
+- **Status:** gefixt (MR !280; Folgeschritt Projektpfad-Vorbelegung: ADR-0045)
 - **Komponente:** PWA `apps/pwa/src/features/loops/` + `new-session/CreateSession.tsx`
 
 ## Beobachtet
@@ -23,9 +23,11 @@ drei Fallen mit deaktiviertem Start:
    `onboard.values[f.key]` und meldet „… fehlt“, obwohl das Dropdown gefüllt
    aussieht. Nutzerfüllung bringt nichts, solange er das Select nicht selbst
    anfasst.
-3. Im selben Formular fehlt danach der Projektpfad — der oben im Dialog
-   längst gewählt ist (separate Eingabe, hier nicht mitgefixt: brauchte eine
-   Contract-Erweiterung `prefill: "project"` + ADR).
+3. Im selben Formular fehlte danach der Projektpfad — der oben im Dialog
+   längst gewählt ist. Als Folgeschritt umgesetzt: `prefill: "project"`
+   ([ADR-0045](../docs/adr/0045-loop-onboarding-prefill-project.md)) — das
+   Onboarding-Feld „Projektpfad“ füllt sich aus der Dialog-Auswahl, eine
+   eigene Eingabe gewinnt.
 
 Erwartet: Der Start-Knopf nennt den Grund laut und erkennbar; angezeigte
 Select-Vorgaben gelten als gewählt.
@@ -51,4 +53,7 @@ Select-Vorgaben gelten als gewählt.
 ## Verwandt
 
 - Minimale Eingaben: die Loop-Auswahl wird jetzt zusätzlich gemerkt wie
-  Host/Adapter/Projekt (T8.4-Familie) — separater Feature-Commit im selben MR.
+  Host/Adapter/Projekt (T8.4-Familie) — separater Feature-Commit in MR !280.
+- ADR-0045: Onboarding-Felder mit `prefill: "project"` bekommen den
+  Projektpfad des Dialogs vorbefüllt (securesight „Projektpfad (absolut)“;
+  aSPARK bewusst ohne — „Repo“ ist ein Slug, kein Pfad).

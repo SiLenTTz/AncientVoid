@@ -29,6 +29,9 @@ export function createLoopConnector(_config?: Readonly<Record<string, unknown>>)
       fields: [
         { key: "art", label: "Art", kind: "select", required: true, choices: [{ value: "projekt", label: "Projekt" }, { value: "umgebung", label: "Umgebung" }] },
         { key: "name", label: "Name der Linie", kind: "text", required: true, placeholder: "z. B. beta" },
+        // ADR-0045: securesight „Projektpfad“ nachgebildet — Vorbelegung aus
+        // der Projektauswahl des Dialogs (rot/grün-Deckung in loops.spec).
+        { key: "root", label: "Projektpfad", kind: "text", required: true, prefill: "project" },
       ],
       secret: { label: "Repo-Token" },
     },

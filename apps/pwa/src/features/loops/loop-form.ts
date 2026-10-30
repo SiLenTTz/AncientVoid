@@ -42,6 +42,37 @@ export function onboardSelectDefaults(onboarding: LoopOnboarding, values: Record
   return { ...values, ...patch };
 }
 
+/** `prefill: "project"`-Felder (ADR-0045) bekommen den im Dialog gewählten
+ * Projektpfad — solange sie leer sind oder genau den letzten von uns
+ * gesetzten Wert halten (eine eigene Eingabe gewinnt immer). `filled` merkt,
+ * was wir zuletzt eingetragen haben; der Aufrufer hält es neben dem Zustand. */
+export function onboardProjectDefaults(
+  onboarding: LoopOnboarding,
+  values: Record<string, string>,
+  project: string,
+  filled: Record<string, string> = {},
+): { values: Record<string, string>; filled: Record<string, string> } {
+  const fields = onboarding.fields.filter((f) => f.prefill === "project");
+  if (fields.length === 0 || !project) return { values, filled };
+  const nowFilled = { ...filled };
+  let next: Record<string, string> | null = null;
+  for (const f of fields) {
+    const cur = values[f.key] ?? "";
+    if (cur && filled[f.key] !== cur) {
+      nowFilled[f.key] = ""; // eigene Eingabe — nicht mehr unsere
+      continue;
+    }
+    if (cur === project) {
+      nowFilled[f.key] = project;
+      continue;
+    }
+    next ??= { ...values };
+    next[f.key] = project;
+    nowFilled[f.key] = project;
+  }
+  return next ? { values: next, filled: nowFilled } : { values, filled: nowFilled };
+}
+
 /** Was vor dem Start noch fehlt — null heißt: startbar. Die Antwort ist ein Satz für die Oberfläche. */
 export function loopBlocker(info: LoopInfo | null, spec: LoopSpec | null, confirmed: boolean, onboard: OnboardDraft = emptyOnboard): string | null {
   if (!info || !spec) return null;

@@ -16,6 +16,15 @@ export interface LoopOption {
 /** Wert einer Auswahl-Option, der in der Oberfläche „Neues Repo anbinden“ öffnet (siehe `LoopOnboarding`). */
 export const LOOP_NEW = "+neu";
 
+/** Onboarding-Feld: ein `LoopOption` plus semantischer Vorbelegung (ADR-0045).
+ * `prefill: "project"` heißt: Die Oberfläche setzt den Projektpfad der im
+ * Start-Dialog gewählten Auswahl ein (nur solange der Nutzer selbst nichts
+ * getippt hat). Damit rät die PWA nicht aus Labels, sondern der Connector
+ * erklärt sein Feld (BUG-0081-Folge: securesight „Projektpfad (absolut)“). */
+export interface LoopOnboardingField extends LoopOption {
+  prefill?: "project";
+}
+
 /**
  * Loops, die erst für ein Repo eingerichtet werden müssen (aSPARK: `factoryctl new`, securesight: `factory init`),
  * bieten ein Onboarding an: Felder plus optional ein Geheimnis (aSPARK: Repo-Token), das nur durchgereicht wird —
@@ -25,7 +34,7 @@ export interface LoopOnboarding {
   /** Schlüssel der Option, deren Wert `LOOP_NEW` das Formular öffnet (z. B. "line"). */
   optionKey: string;
   label: string;
-  fields: readonly LoopOption[];
+  fields: readonly LoopOnboardingField[];
   secret?: { label: string; hint?: string };
   /** Hinweiszeilen unter den Feldern (z. B. warum eine Wahl ausgeblendet bleibt, AC-P26-9). */
   notes?: readonly string[];
