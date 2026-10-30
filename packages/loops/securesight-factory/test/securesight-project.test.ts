@@ -144,3 +144,65 @@ describe("securesight-Connector im Modus project (T26.3, EPIC-P26)", () => {
     await connector.stop(handle, ctx);
   });
 });
+
+describe("securesight-Onboarding über factory init (T26.4, EPIC-P26)", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "uacc-factory-onboard-"));
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  /** Fake-CLI: `init` gibt die Datei aus (oder stderr+Exit 1), alles andere den Fortschritt. */
+  const makeBin = (initFile: string | null, initErr?: string) => {
+    const bin = join(dir, "factory.sh");
+    const init = initErr !== undefined ? `printf '%s' '${initErr}' >&2; exit 1` : `cat '${initFile}'`;
+    writeFileSync(bin, `#!/bin/sh\nif [ "$1" = "init" ]; then ${init}; exit 0; fi\ncat '${join(dir, "progress-out.json")}'\n`, { mode: 0o755 });
+    return bin;
+  };
+  const writeInit = (doc: unknown) => {
+    const file = join(dir, "init-out.json");
+    writeFileSync(file, typeof doc === "string" ? doc : JSON.stringify(doc));
+    return file;
+  };
+  const onboard = (bin: string, options: Record<string, string>) => createLoopConnector({ factory: bin, pollMs: 40 }).onboard?.({ options }, new AbortController().signal);
+
+  it("factory init ohne Geheimnis: Checkliste als detail, Anbindung schaltet auf „bestehend“", async () => {
+    const bin = makeBin(writeInit({ root: "/x", checkliste: ["git: ok", "ready: alle wirkungs-pruefungen gruen — lauf kann starten"] }));
+    const res = await onboard(bin, { root: "/tmp/proj", modus: "a", provider: "zai" });
+    expect(res).toMatchObject({ ok: true, options: { anbindung: "bestehend" } });
+    expect(res?.ok && res.detail).toContain("ready:");
+    expect(res?.ok && res.detail).not.toContain("noch nicht bereit");
+  });
+
+  it("ohne gemeldetes ready bleibt der Hinweis „noch nicht bereit“ (REQ-3001)", async () => {
+    const bin = makeBin(writeInit({ root: "/x", checkliste: ["git: ok", "intake: intake"] }));
+    const res = await onboard(bin, { root: "/tmp/proj", modus: "b", provider: "anthropic" });
+    expect(res?.ok && res.detail).toContain("noch nicht bereit");
+  });
+
+  it("PRD-Pfad wird durchgereicht; Validierung schlägt laut fehl, bevor die CLI läuft", async () => {
+    const bin = makeBin(writeInit({ checkliste: [] }));
+    for (const [options, grund] of [
+      [{ modus: "a", provider: "zai" }, "Projektpfad"],
+      [{ root: "relativ/pfad", modus: "a", provider: "zai" }, "Projektpfad"],
+      [{ root: "/tmp/p", modus: "x", provider: "zai" }, "Betriebsmodus"],
+      [{ root: "/tmp/p", modus: "a", provider: "openai" }, "Provider"],
+      [{ root: "/tmp/p", prd: "rel.md", modus: "a", provider: "zai" }, "PRD-Pfad"],
+    ] as [Record<string, string>, string][]) {
+      const res = await onboard(bin, options);
+      expect(res).toMatchObject({ ok: false });
+      expect(res && !res.ok && res.detail).toContain(grund);
+    }
+  });
+
+  it("factory init scheitert: stderr als Grund, stdout ohne JSON und fehlendes Binary laut abgelehnt", async () => {
+    const fail = await onboard(makeBin(null, "git nicht gefunden"), { root: "/tmp/p", modus: "a", provider: "zai" });
+    expect(fail).toMatchObject({ ok: false, detail: expect.stringContaining("git nicht gefunden") });
+
+    const noJson = await onboard(makeBin(writeInit("nicht json")), { root: "/tmp/p", modus: "a", provider: "zai" });
+    expect(noJson).toMatchObject({ ok: false, detail: expect.stringContaining("kein JSON") });
+
+    const missing = await createLoopConnector({ factory: "/existiert/nicht/factory", pollMs: 40 }).onboard?.({ options: { root: "/tmp/p", modus: "a", provider: "zai" } }, new AbortController().signal);
+    expect(missing).toMatchObject({ ok: false, detail: expect.any(String) });
+  });
+});

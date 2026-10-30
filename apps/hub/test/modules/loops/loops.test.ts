@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, LoopRegistry, SessionManager, TokenService, loopAsAdapter } from "@uacc/core";
 import { createFakeLoopConnector } from "@uacc/adapter-testkit";
 import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { createLoopConnector } from "@uacc/loop-securesight-factory";
 import { ProcessRunner } from "@uacc/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../../src/app.ts";
@@ -14,6 +15,7 @@ describe("loops (EPIC-P19)", () => {
   let dir: string;
   let app: FastifyInstance;
   let sessions: SessionManager;
+  let loops: LoopRegistry;
   let human: string;
   let agent: string;
 
@@ -29,7 +31,7 @@ describe("loops (EPIC-P19)", () => {
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });
     const tokens = new TokenService(db);
     // Wie main.ts: der Connector wird als interner Adapter `loop:<id>` registriert.
-    const loops = new LoopRegistry();
+    loops = new LoopRegistry();
     const fake = createFakeLoopConnector();
     loops.register(fake);
     registry.register(`loop:${fake.id}`, () => loopAsAdapter(fake, { stateDir: join(dir, "loops") }));
@@ -127,6 +129,24 @@ describe("loops (EPIC-P19)", () => {
     expect(JSON.stringify(res.body)).not.toContain("geheim");
     const after = await call("POST", "/api/sessions", human, { project: dir, loop: { id: "fake-loop", options: { line: "beta" } } });
     expect(after.status).toBe(201);
+  });
+
+  it("Onboarding ohne Geheimnis: securesight factory init braucht kein Secret (T26.4, EPIC-P26)", async () => {
+    const binDir = await mkdtemp(join(tmpdir(), "uacc-factory-init-"));
+    const bin = join(binDir, "factory.sh");
+    await writeFile(bin, `#!/bin/sh\nif [ "$1" = "init" ]; then printf '%s' '{"root":"/x","checkliste":["git: ok","ready: lauf kann starten"]}'; exit 0; fi\nprintf '%s' '{"schema_version":"1","total":0,"done":0,"stories":[],"now":null,"updated_at":null,"events":[]}'\n`, { mode: 0o755 });
+    try {
+      const connector = createLoopConnector({ factory: bin });
+      loops.register(connector);
+      const res = await call("POST", "/api/loops/securesight-factory/onboard", human, { options: { root: "/tmp/proj", modus: "a", provider: "zai" } });
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ ok: true, options: { anbindung: "bestehend" } });
+      expect(JSON.stringify(res.body)).toContain("ready:");
+      // Agent bleibt draußen (AC-P26-5)
+      expect((await call("POST", "/api/loops/securesight-factory/onboard", agent, { options: { root: "/tmp/proj", modus: "a", provider: "zai" } })).status).toBe(403);
+    } finally {
+      await rm(binDir, { recursive: true, force: true });
+    }
   });
 
   it("Onboarding: abgelehntes Token = 422 mit Grund; fehlendes Geheimnis = 400; unbekannter Loop = 404; Agenten = 403", async () => {

@@ -145,12 +145,16 @@ export function LoopPicker({
                   )}
                 </label>
               ))}
-              <label>
-                {caps.onboarding.secret.label} *
-                <input type="password" aria-label={caps.onboarding.secret.label} autocomplete="off" value={onboard.secret} onInput={(e) => onOnboard({ ...onboard, secret: (e.target as HTMLInputElement).value })} />
-              </label>
-              {caps.onboarding.secret.hint && <div class="dim">{caps.onboarding.secret.hint}</div>}
-              <div class="dim">Beim Starten legt der Hub die Linie an (factoryctl) und startet dann die Session. Das Token wird nicht gespeichert.</div>
+              {caps.onboarding.secret && (
+                <>
+                  <label>
+                    {caps.onboarding.secret.label} *
+                    <input type="password" aria-label={caps.onboarding.secret.label} autocomplete="off" value={onboard.secret} onInput={(e) => onOnboard({ ...onboard, secret: (e.target as HTMLInputElement).value })} />
+                  </label>
+                  {caps.onboarding.secret.hint && <div class="dim">{caps.onboarding.secret.hint}</div>}
+                </>
+              )}
+              <div class="dim">Beim Starten richtet der Hub das Loop-System ein und startet dann die Session. {caps.onboarding.secret ? "Das Token wird nicht gespeichert." : ""}</div>
             </fieldset>
           )}
           {risky && (

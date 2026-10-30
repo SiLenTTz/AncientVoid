@@ -149,7 +149,7 @@ sie (Fähigkeiten werden ausgeblendet, fehlende Felder als „unbekannt“ gezei
   Modi `repo|project`. Contract-Änderungen nur additiv.
 - [x] **T26.3 — Connector-Modus `project`.** Erkennung, Quellen, `schema_version`-
   Prüfung, Ausfall je Quelle ⇒ `loop.broken`; Regression Modus `repo`. K2, K9.
-- [ ] **T26.4 — Onboarding.** `onboard()` für `securesight-factory`, Route und
+- [x] **T26.4 — Onboarding.** `onboard()` für `securesight-factory`, Route und
   Formular „Factory-Projekt anlegen“, Checkliste als Ergebnis, Fehler sichtbar.
 - [ ] **T26.5 — Start-Flow.** `POST /api/factory/start` (Policy), verknüpfte Sessions,
   Stop-Semantik, Recovery aus dem JSONL (K7).

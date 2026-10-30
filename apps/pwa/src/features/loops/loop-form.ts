@@ -37,7 +37,7 @@ export function loopBlocker(info: LoopInfo | null, spec: LoopSpec | null, confir
   const ob = caps.onboarding;
   if (ob && isOnboarding(info, spec)) {
     for (const f of ob.fields) if (f.required && !onboard.values[f.key]?.trim()) return `${f.label} fehlt`;
-    if (!onboard.secret.trim()) return `${ob.secret.label} fehlt`;
+    if (ob.secret && !onboard.secret.trim()) return `${ob.secret.label} fehlt`;
   }
   for (const o of caps.options) {
     if (ob && o.key === ob.optionKey && isOnboarding(info, spec)) continue;
