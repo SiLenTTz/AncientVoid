@@ -451,12 +451,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     if (!cfg.bridgeCommands || !text.trimStart().startsWith("/")) return false;
     const cmd = text.trimStart().split(/\s/, 1)[0] ?? text.trim();
     if (cmd !== "/new") return false;
-    void state.conn
-      .request("session/new", { cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs)
-      .then((res) => {
-        const sid = (res as { sessionId: string }).sessionId;
-        state.acpSessionId = sid;
-        ctx.emit({ type: "system", summary: `${label}: Command /new ausgeführt — frischer Kontext (Session ${sid.slice(0, 8)}…)`, payload: { kind: "acp.command_executed", command: "/new", stopReason: "ok" } });
+    // BUG-0080: newSession() statt Roh-Request — nur dort wählt selectModel()
+    // das konfigurierte Modell; die Frischsession lief sonst auf makis
+    // Default (live: glm-5-code → ZHIPU 403 → „Internal error").
+    void newSession(state, ctx, cfg.model)
+      .then(() => {
+        const sid = state.acpSessionId;
+        if (sid) ctx.emit({ type: "system", summary: `${label}: Command /new ausgeführt — frischer Kontext (Session ${sid.slice(0, 8)}…)`, payload: { kind: "acp.command_executed", command: "/new", stopReason: "ok" } });
       })
       .catch((err: unknown) => {
         ctx.emit(providerErrorEvent(label, `/new gescheitert: ${err instanceof Error ? err.message : String(err)}`));

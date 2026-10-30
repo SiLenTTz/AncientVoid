@@ -23,7 +23,7 @@ process.stdin.on("data", (d) => {
 });
 
 function handle(req) {
-  appendFileSync(LOG, `${req.method}\n`);
+  appendFileSync(LOG, `${JSON.stringify({ m: req.method, p: req.params ?? null })}\n`);
   if ("id" in req) {
     switch (req.method) {
       case "initialize":
@@ -31,7 +31,21 @@ function handle(req) {
         break;
       case "session/new":
         n += 1;
-        send({ id: req.id, result: { sessionId: `bridge-sess-${n}-${randomUUID().slice(0, 6)}` } });
+        send({
+          id: req.id,
+          result: {
+            sessionId: `bridge-sess-${n}-${randomUUID().slice(0, 6)}`,
+            // BUG-0080: maki-Form — jede neue Session startet auf einem
+            // Default-Modell; der Adapter muss das konfigurierte wählen.
+            configOptions: [{
+              id: "model",
+              category: "model",
+              type: "select",
+              currentValue: "stub/default",
+              options: [{ value: "stub/default", name: "stub/default" }, { value: "stub/good", name: "stub/good" }],
+            }],
+          },
+        });
         break;
       case "session/prompt":
         send({ id: req.id, result: { stopReason: "end_turn" } });
