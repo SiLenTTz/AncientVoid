@@ -1,7 +1,7 @@
 ---
 id: BUG-0079
 slug: maki-slash-bridge-fuehrt-commands-nicht-aus
-status: open
+status: done
 severity: S2
 area: adapters
 instance: dev
@@ -81,31 +81,46 @@ Integrationstest (rot) gehört in den bugfix; Markierung „Stub-Beweis" in
 `index.ts:490` und T25.6-Rest („Live-Verifikation offen") haben die Lücke
 bereits angekündigt.
 
-## Eingrenzung
+## Eingrenzung → Root-cause (belegt 2026-10-30, bugfix)
 
-Fakten: Adapter-Config korrekt (`bridgeCommands: true`), Commands deklariert
-(`index.ts:109–113`), Prompt kam sauber mit führendem `/` an (seq 2169),
-Brücke installiert (`init.lua` mit `set_slot("agent.user_message", …)`,
-`DRIVEN = {acp, headless}`), `prev` genau einmal aufgerufen
-(Loader-Regel beachtet). Trotzdem: Modellturn gelaufen, Nachricht nicht
-verworfen.
+Diagnosesonde (Log-Zeile im Slot-Einstieg von init.lua) klärte die Hypothesen:
 
-Hypothesen (ungeordnet, bugfix klärt):
+- **RC1 — Slot feuert im ACP-Modus nie (H1):** unter `maki -p` loggt die
+  Sonde (source=headless), unter `maki acp` (Handshake-Test mit
+  session/prompt) bleibt sie still. Die Layer-Mechanik läuft für ACP-Prompts
+  nicht — die Brücke sieht getriebene Prompts gar nicht.
+- **RC2 — run_command braucht eine UI:** der headless-Lauf lieferte
+  `Command /new nicht ausfuehrbar: no interactive UI attached`. Auch ein
+  feuender Slot könnte im getriebenen Modus nicht ausfuehren.
 
-- **H1**: `maki acp` lädt `init.lua`-Slot-Layer gar nicht (Layer-Mechanik nur
-  im TUI/-p-Pfad).
-- **H2**: `msg.source` ist im ACP-Pfad weder `"acp"` noch `"headless"`
-  (anderer Quellstring → `DRIVEN[msg.source]` falsch).
-- **H3**: maki-Update nach 2026-10-29 hat `set_slot`/`run_command`-Semantik
-  geändert (API-Drift), Layer still inaktiv.
+Die init.lua-Brücke ist für ACP damit per Design tot (maki 0.6.5). H2/H3
+sind damit gegenstandslos.
 
-Nächster Schritt: Diagnose-Sonde — init.lua temporär um eine Zeile ergänzen,
-die bei Slot-Aufruf eine Markierung schreibt (Datei/Log), dann `/new` über
-den Hub senden und prüfen: Slot gefeuert? `msg.source`? `run_command`-Return?
-Erst dann patchen.
+## Fix (MR !274, main 16cd32f)
+
+- **Adapter-seitige Ausführung** (`runBridgeCommand`,
+  `packages/adapters/acp/src/index.ts`): `/new` öffnet über die bestehende
+  ACP-Verbindung eine frische Session (`session/new`, live belegt) und
+  emittiert `acp.command_executed` — kein Modellturn. Wirkt in steer (beide
+  Pfade) und drainQueue.
+- **Ehrliche Deklaration (ADR-0042):** `MAKI_BRIDGE_COMMANDS` nur noch
+  `/new`; `/compact` und `/rename` haben im getriebenen Modus keinen Beleg
+  und sind entfernt (commands.test.ts angepasst).
+- Undeklarierte Slashes bleiben Chat — sichtbar, nichts still.
+- init.lua unverändert (Sonde entfernt); für ACP irrelevant geworden.
+
+## Verify
+
+- Neu `packages/adapters/acp/test/bridge-commands.test.ts` (3 Tests gegen
+  echten Fixture-ACP-Prozess mit RPC-Log): **rot vor dem Fix** (nur der
+  /new-Fall), **grün danach**; Contract-Suite weiter grün.
+- Volles Gate auf dem Branch: Unit **1127/1127**, Lint, Typecheck,
+  check:arch grün; E2E **270/270** (inkl. neuer selection-copy-Spec —
+  Nutzer-Anforderung „Markieren → Auto-Zwischenablage" vom selben Tag,
+  mitgemerged als `^ F pwa:` auf demselben Branch).
 
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
 - [x] GitLab-Issue angelegt ([#33](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/33))
-- [ ] `bugfix`
+- [x] `bugfix` (MR !274, Root-cause + Verify oben)
