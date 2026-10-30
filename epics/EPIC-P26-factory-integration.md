@@ -1,6 +1,20 @@
 # EPIC-P26 — Factory-Integration: Projekt anlegen, Lauf auslösen, beobachten, steuern
 
-**Status:** offen (Planung 2026-10-30, Auftrag von Jan) · **Phase:** P26 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine offene — baut auf P19 (Loop-Contract und Connector, gebaut; manuelle Abnahme offen), P7 (Rückfragen/Freigaben) und P25 (Slash-Befund) auf; Präzedenz P13/P14/P17/P19 (läuft neben offenen Abnahmen). Factory-seitig: `securesight-factory` `main` ab `bd8228d` (CLI `factory` installiert).
+**Status:** offen (Planung 2026-10-30, Auftrag von Jan; Umsetzung T26.5 laufend seit 2026-10-30 abends) · **Phase:** P26 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine offene — baut auf P19 (Loop-Contract und Connector, gebaut; manuelle Abnahme offen), P7 (Rückfragen/Freigaben) und P25 (Slash-Befund) auf; Präzedenz P13/P14/P17/P19 (läuft neben offenen Abnahmen). Factory-seitig: `securesight-factory` `main` ab `bd8228d` (CLI `factory` installiert); Gegenstück-Planentwurf factory-seitig: [docs/plaene/0057-aussen-schnittstelle-entwurf](../../../securesight-factory/docs/plaene/0057-aussen-schnittstelle-entwurf/auftrag.md) (E57, Branch `plan/0057-aussen-schnittstelle` — deren Gate derzeit rot auf unverändertem HEAD, Commit wartet).
+
+## Befunde 2026-10-30 abends (Nachtrag zur Bestandsaufnahme)
+
+- **Loop-Start verwirft den Auftrag:** Session `eb0f764a` (Loop securesight,
+  Projekt mobile-hub) zeigte „0 von 0 Aufgaben", „Intake: intake", danach
+  Stillstand — `spec.goal` geht in den beobachtenden Connector (Nutzerauftrag
+  „AncientVoid-Rename" nie angekommen). Genau die Lücke, die T26.5 schließt:
+  der Start-Flow legt den Treiber an, der `/factory` **mit Auftrag** ausführt.
+- **Audit der 13 uncommitted Dateien auf `main`** (Nutzerauftrag 2026-10-30):
+  `.claude/settings.json` + `.claude/skills/factory/SKILL.md` committet
+  (Treiber-Grundlage); die 11 `.factory/`-Dateien eines abgebrochenen
+  Onboarding-Tests verworfen (Intake nie ausführungsbereit, „PRD" war nur ein
+  CONTRIBUTING-Import; über `factory init` jederzeit neu erzeugbar). Der
+  offene Testauftrag (Projekt umbenennen) bleibt für T26.11 dokumentiert.
 
 Auslöser: Wunsch von Jan vom 2026-10-30: „ … über uacc (mobile-hub) manuell die
 factory antriggern und das epic abarbeiten lassen … Anschließend erstelle ich ein
@@ -153,6 +167,13 @@ sie (Fähigkeiten werden ausgeblendet, fehlende Felder als „unbekannt“ gezei
   Formular „Factory-Projekt anlegen“, Checkliste als Ergebnis, Fehler sichtbar.
 - [ ] **T26.5 — Start-Flow.** `POST /api/factory/start` (Policy), verknüpfte Sessions,
   Stop-Semantik, Recovery aus dem JSONL (K7).
+  *Teilumsetzung 2026-10-30 abends:* Route, Policy `factory.start` (nur Menschen),
+  Treiber mit `/factory <Auftrag>`-Prompt, Beobachter mit `options.driver`
+  (Loop-Snapshot, K7), `factory.linkage`-Ereignis auf beiden Sessions, Rollback
+  des Treibers bei scheiterndem Beobachter; PWA-Dialog startet darüber für
+  securesight „bestehend“. Integrationstests + E2E `factory.spec.ts` grün.
+  *Offen:* `end_run`/Treiber-Ende-Anzeige (mit T26.6), Komplett-Verifikation K7
+  Restart mitten im Factory-Lauf (mit T26.10).
 - [ ] **T26.6 — Steuerung.** Allowlist, Bestätigungsdialog, Audit-Event,
   Agent-Token-Ablehnung (Policy-Test).
 - [x] **T26.7 — Provider-/Harness-Wahl.** Provider sofort; Harness nur bei gemeldeter

@@ -38,6 +38,8 @@ export const POLICY_OPERATIONS = [
   "sessions.create",
   "loops.start",
   "loops.onboard",
+  "factory.start",
+  "factory.control",
   "sessions.prompt",
   "sessions.park",
   "sessions.stop",
@@ -75,6 +77,10 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "loops.start": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny" },
   /** Legt eine Linie mit Repo-Token an (Außenwirkung auf dem Host): nur ein Mensch. */
   "loops.onboard": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny" },
+  /** ADR-0043 (T26.5): Factory-Lauf = Treiber-Session im Projekt + Beobachter — Außenwirkung, nur ein Mensch. */
+  "factory.start": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny" },
+  /** ADR-0043 (T26.6): Steuerung aus fester Allowlist (Modus, Fortsetzen, Lauf beenden) — nur ein Mensch, jeder Befehl auditiert. */
+  "factory.control": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny" },
   "sessions.prompt": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny" },
   "sessions.park": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny" },
   "sessions.stop": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny" },

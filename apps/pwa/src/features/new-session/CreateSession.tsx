@@ -198,14 +198,21 @@ export function CreateSession({
         setOnboard(emptyOnboard);
         setLoopReload((n) => n + 1);
       }
-      const rec = await api.createSession({
-        ...(startLoop ? { loop: startLoop } : { adapter }),
-        project,
-        ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
-        ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
-        ...(skill || mode ? { args: { ...(skill ? { [skill.kind]: skill.name } : {}), ...(mode ? { permissionMode: mode } : {}) } } : {}),
-        ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
-      });
+      // EPIC-P26 T26.5 (ADR-0043): securesight „bestehend“ startet den
+      // Factory-Lauf — Treiber (/factory mit dem Auftrag als Prompt) plus
+      // verknüpfter Beobachter. Der Loop-Dialog liefert Projekt und Auftrag,
+      // die Factory entscheidet Adapter/Modell selbst (EPIC-P19 bleibt).
+      const factoryRun = startLoop?.id === "securesight-factory" && !isOnboarding(loopInfo, startLoop);
+      const rec = factoryRun
+        ? (await api.factoryStart({ project, ...(prompt ? { goal: prompt } : {}) })).observer
+        : await api.createSession({
+            ...(startLoop ? { loop: startLoop } : { adapter }),
+            project,
+            ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
+            ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
+            ...(skill || mode ? { args: { ...(skill ? { [skill.kind]: skill.name } : {}), ...(mode ? { permissionMode: mode } : {}) } } : {}),
+            ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
+          });
       localStorage.removeItem(PROMPT_KEY);
       localStorage.setItem(LAST_KEY, JSON.stringify({ host, adapter, project, loop: startLoop }));
       onCreated(rec);
