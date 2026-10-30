@@ -8,7 +8,7 @@ import { hubApi, hostApi, type AdapterInfo, type DiscoveredProject, type FleetHo
 import type { AttachmentRecord } from "../../shared/api.ts";
 import { ApiContext } from "../../shared/api-context.ts";
 import { Composer } from "../composer/Composer.tsx";
-import { SkillPicker, loadSelectedSkill, loadSelectedWorkflow, type SelectedSkill } from "../composer/SkillOverlay.tsx";
+import { SkillPicker, loadSelectedWorkflow, rememberedSkill, type SelectedSkill } from "../composer/SkillOverlay.tsx";
 
 const LAST_KEY = "uacc.newSession.last";
 const PROMPT_KEY = "uacc.newSession.prompt";
@@ -162,9 +162,11 @@ export function CreateSession({
   // T1.5-10: the last skill/agent chosen FOR THIS PROJECT is always the
   // default (user's own requirement — "so dass man nicht immer auswählen
   // muss aber kann") — reloaded whenever the selected project changes.
+  // BUG-0078: only for adapters that support its kind, otherwise the hub
+  // would refuse the whole start (the picker stays hidden there).
   useEffect(() => {
-    setSkill(project ? loadSelectedSkill(project) : null);
-  }, [project]);
+    setSkill(rememberedSkill(project, features));
+  }, [project, features]);
 
   const withWorkflow = (text: string): string => {
     if (skill || !project) return text;
