@@ -154,6 +154,7 @@ export function LoopPicker({
                   {caps.onboarding.secret.hint && <div class="dim">{caps.onboarding.secret.hint}</div>}
                 </>
               )}
+              {caps.onboarding.notes?.map((n) => <div class="dim">{n}</div>)}
               <div class="dim">Beim Starten richtet der Hub das Loop-System ein und startet dann die Session. {caps.onboarding.secret ? "Das Token wird nicht gespeichert." : ""}</div>
             </fieldset>
           )}

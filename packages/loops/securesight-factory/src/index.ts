@@ -28,6 +28,9 @@ const CAPABILITIES: LoopCapabilities = {
       { key: "modus", label: "Betriebsmodus", kind: "select", required: true, choices: [{ value: "a", label: "a — merged automatisch (Außenwirkung)" }, { value: "b", label: "b" }] },
       { key: "provider", label: "Provider", kind: "select", required: true, choices: [{ value: "anthropic", label: "Anthropic" }, { value: "zai", label: "Z.ai" }] },
     ],
+    // AC-P26-9: Harness-Wahl (claude|maki) bleibt ausgeblendet, bis die installierte factory-CLI
+    // Fähigkeiten meldet (factory capabilities --json, Schnittstellenwunsch 1) — kein Rateversuch aus der Version.
+    notes: ["Harness-Wahl (claude/maki): ausgeblendet — die installierte factory-CLI meldet keine Fähigkeiten („factory capabilities“ fehlt noch)."],
   },
 };
 

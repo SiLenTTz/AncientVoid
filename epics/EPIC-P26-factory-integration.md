@@ -155,7 +155,7 @@ sie (Fähigkeiten werden ausgeblendet, fehlende Felder als „unbekannt“ gezei
   Stop-Semantik, Recovery aus dem JSONL (K7).
 - [ ] **T26.6 — Steuerung.** Allowlist, Bestätigungsdialog, Audit-Event,
   Agent-Token-Ablehnung (Policy-Test).
-- [ ] **T26.7 — Provider-/Harness-Wahl.** Provider sofort; Harness nur bei gemeldeter
+- [x] **T26.7 — Provider-/Harness-Wahl.** Provider sofort; Harness nur bei gemeldeter
   Fähigkeit, sonst ausgeblendet mit Grund.
 - [ ] **T26.8 — PWA-Ansicht Projektmodus.** Fortschritt, Fehlerbelege, Init-/Intake-
   Checkliste, Verknüpfungsstatus; Zustand nur aus `loop.*`-Events gefaltet.
