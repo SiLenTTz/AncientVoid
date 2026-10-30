@@ -122,6 +122,36 @@ test.describe("Loop / Dark Factory im Start-Formular", () => {
     expect(events).not.toContain("geheim");
   });
 
+  test("Anbindungs-Formular: Pflicht-Selects gelten als gewählt, der Start-Grund steht laut am Knopf (2026-10-30)", async ({ app }) => {
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Loop", { exact: true }).selectOption("fake-loop");
+    await app.getByLabel("Line").selectOption("+neu");
+    // „Art“ zeigt „Projekt“ an — und das zählt: der Start scheitert nie an „Art fehlt“.
+    await expect(app.getByLabel("Art", { exact: true })).toHaveValue("projekt");
+    const blocker = app.locator(".loop-block");
+    await expect(blocker).toBeVisible();
+    await expect(blocker).not.toContainText("Art fehlt");
+    await expect(blocker).toContainText("Name der Linie fehlt");
+    await expect(app.getByRole("button", { name: "Starten" })).toBeDisabled();
+    // Der Grund ist eine Warnung am Knopf, kein graues Flüstern („es passiert nichts“).
+    await expect(blocker).toHaveClass(/warn/);
+  });
+
+  test("Die zuletzt gestartete Loop-Auswahl steht beim nächsten Anlegen wieder da", async ({ app }) => {
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Loop", { exact: true }).selectOption("fake-loop");
+    await app.getByLabel("Line").selectOption("alpha");
+    await app.getByPlaceholder("Refactore den Auth-Flow…").fill("Loop-Merken");
+    await app.getByRole("button", { name: "Starten" }).click();
+    await expect(app).toHaveURL(/#\/sessions\//);
+    await app.getByLabel("Zur Übersicht").click();
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    // T8.4-Familie: auch der Loop wird gemerkt — Line und Betriebsart gleich mit.
+    await expect(app.getByLabel("Loop", { exact: true })).toHaveValue("fake-loop");
+    await expect(app.getByLabel("Line")).toHaveValue("alpha");
+    await expect(app.getByLabel("Betriebsart")).toHaveValue("ruhig");
+  });
+
   test("K7: Hub-Neustart mitten im Loop — Zustand bleibt, nichts doppelt, nichts fehlt (echter securesight-Connector, AC-P19-3)", async ({ hub }) => {
     const { spawnSync } = await import("node:child_process");
     test.skip(spawnSync("python3", ["--version"], { stdio: "ignore" }).error !== undefined, "python3 fehlt");

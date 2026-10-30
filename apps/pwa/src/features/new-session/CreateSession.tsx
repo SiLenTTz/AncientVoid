@@ -13,9 +13,9 @@ import { SkillPicker, loadSelectedWorkflow, rememberedSkill, type SelectedSkill 
 const LAST_KEY = "uacc.newSession.last";
 const PROMPT_KEY = "uacc.newSession.prompt";
 
-function readLast(): { host?: string | null; adapter?: string; project?: string } {
+function readLast(): { host?: string | null; adapter?: string; project?: string; loop?: LoopSpec | null } {
   try {
-    return (JSON.parse(localStorage.getItem(LAST_KEY) ?? "{}") ?? {}) as { host?: string | null; adapter?: string; project?: string };
+    return (JSON.parse(localStorage.getItem(LAST_KEY) ?? "{}") ?? {}) as { host?: string | null; adapter?: string; project?: string; loop?: LoopSpec | null };
   } catch {
     return {};
   }
@@ -207,7 +207,7 @@ export function CreateSession({
         ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
       });
       localStorage.removeItem(PROMPT_KEY);
-      localStorage.setItem(LAST_KEY, JSON.stringify({ host, adapter, project }));
+      localStorage.setItem(LAST_KEY, JSON.stringify({ host, adapter, project, loop: startLoop }));
       onCreated(rec);
     } catch (err) {
       setOnboardNote("");
@@ -283,7 +283,7 @@ export function CreateSession({
           </select>
         </label>
       )}
-      <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); setOnboard(emptyOnboard); }} onboard={onboard} onOnboard={setOnboard} reload={loopReload} />
+      <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); setOnboard(emptyOnboard); }} onboard={onboard} onOnboard={setOnboard} reload={loopReload} initial={last.loop ?? null} />
       {!loop && (
         <>
       <label>
@@ -360,7 +360,7 @@ export function CreateSession({
       </label>
       {error && <div style="color: var(--err)">{error}</div>}
       {!loop && <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />}
-      {loopBlock && loop && <div class="dim loop-block">{loopBlock}</div>}
+      {loopBlock && loop && <div class="loop-block warn" role="alert">{loopBlock}</div>}
       {onboardNote && <div class="dim loop-note" role="status">{onboardNote}</div>}
       <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy || !project || !!loopBlock}>
         {busy ? "lädt…" : "Starten"}

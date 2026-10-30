@@ -1,7 +1,7 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import type { LoopInfo, LoopSpec } from "@uacc/contracts";
 import type { hubApi } from "../../shared/api.ts";
-import { defaultLoopSpec, isOnboarding, type OnboardDraft } from "./loop-form.ts";
+import { defaultLoopSpec, isOnboarding, onboardSelectDefaults, type OnboardDraft } from "./loop-form.ts";
 
 /**
  * EPIC-P19: Auswahl „Loop / Dark Factory“ im Start-Formular. Die Liste und alle Felder kommen vom Hub
@@ -17,6 +17,7 @@ export function LoopPicker({
   onboard,
   onOnboard,
   reload = 0,
+  initial = null,
 }: {
   api: Pick<typeof hubApi, "loops">;
   value: LoopSpec | null;
@@ -27,8 +28,13 @@ export function LoopPicker({
   onOnboard: (next: OnboardDraft) => void;
   /** Wird hochgezählt, wenn sich die Linien geändert haben (nach dem Anbinden). */
   reload?: number;
+  /** T8.4-Familie: zuletzt gestartete Loop-Auswahl — wird einmalig nach dem
+   * Laden der Liste wiederhergestellt; eine eigene Wahl des Nutzers gewinnt. */
+  initial?: LoopSpec | null;
 }) {
   const [loops, setLoops] = useState<LoopInfo[] | null>(null);
+  // Hat der Nutzer selbst gewählt (auch „kein Loop“), schlägt die Erinnerung nicht mehr zu.
+  const touched = useRef(false);
   useEffect(() => {
     let live = true;
     api
@@ -40,10 +46,28 @@ export function LoopPicker({
       live = false;
     };
   }, [api, reload]);
+  useEffect(() => {
+    if (!loops || touched.current || !initial) return;
+    const found = loops.find((l) => l.id === initial.id);
+    if (!found || !found.available) return;
+    touched.current = true;
+    onChange(initial, found);
+    // onChange kommt aus dem Eltern-Formular und wechselt pro Render — nur beim ersten Laden restored.
+  }, [loops]);
   if (!loops || loops.length === 0) return null;
 
   const chosen = value ? loops.find((l) => l.id === value.id) : undefined;
   const caps = chosen?.capabilities ?? null;
+  // Öffnet die Auswahl das Anbindungs-Formular, gehören die angezeigten
+  // Select-Vorgaben auch in den Zustand (sonst blockiert „… fehlt“ trotz
+  // gefülltem Dropdown — der Startknopf wirkt dann einfach tot).
+  const onboardCaps = caps?.onboarding ?? null;
+  const onboardOpen = !!(onboardCaps && value && isOnboarding(chosen ?? null, value));
+  useEffect(() => {
+    if (!onboardCaps || !onboardOpen) return;
+    const values = onboardSelectDefaults(onboardCaps, onboard.values);
+    if (values !== onboard.values) onOnboard({ ...onboard, values });
+  }, [onboardCaps, onboardOpen, onboard]);
   const set = (patch: Partial<LoopSpec>) => value && chosen && onChange({ ...value, ...patch }, chosen);
   const setOption = (key: string, v: string) => set({ options: { ...value?.options, [key]: v } });
   const risky = !!(value?.mode && caps?.riskyModes.includes(value.mode));
@@ -58,6 +82,7 @@ export function LoopPicker({
           value={value?.id ?? ""}
           onChange={(e) => {
             const next = loops.find((l) => l.id === (e.target as HTMLSelectElement).value);
+            touched.current = true;
             onConfirmed(false);
             onChange(next ? defaultLoopSpec(next) : null, next ?? null);
           }}
