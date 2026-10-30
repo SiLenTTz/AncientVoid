@@ -56,7 +56,7 @@ export async function runLoopContractTests(
     if (!connector.capabilities().options.some((o) => o.key === ob.optionKey && o.kind === "select" && o.choices?.some((c) => c.value === LOOP_NEW))) {
       throw new Error("onboarding.optionKey muss eine select-Option mit der Auswahl LOOP_NEW sein");
     }
-    if (!ob.fields.length || !ob.secret.label) throw new Error("onboarding braucht fields und secret.label");
+    if (!ob.fields.length || (ob.secret && !ob.secret.label)) throw new Error("onboarding braucht fields und (falls gesetzt) secret.label");
     if (!connector.onboard) throw new Error("onboarding angeboten, aber onboard() fehlt");
     const res = await connector.onboard({ options: {}, secret: "" }, new AbortController().signal);
     if (res.ok) throw new Error("onboard() ohne Angaben und Geheimnis darf nicht gelingen");

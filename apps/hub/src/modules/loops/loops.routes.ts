@@ -18,9 +18,9 @@ export function registerLoopsRoutes(app: FastifyInstance, ctx: RouteContext): vo
       return { ok: false, detail: "Dieser Loop braucht keine Einrichtung pro Repo" };
     }
     const { options, secret } = req.body ?? {};
-    if (typeof options !== "object" || options === null || typeof secret !== "string" || !secret.trim()) {
+    if (typeof options !== "object" || options === null || (onboarding.secret && (typeof secret !== "string" || !secret.trim()))) {
       reply.code(400);
-      return { ok: false, detail: `${onboarding.secret.label} fehlt` };
+      return { ok: false, detail: onboarding.secret ? `${onboarding.secret.label} fehlt` : "Angaben fehlen" };
     }
     if (busy) {
       reply.code(409);
@@ -28,7 +28,7 @@ export function registerLoopsRoutes(app: FastifyInstance, ctx: RouteContext): vo
     }
     busy = true;
     try {
-      const result = await connector.onboard({ options, secret }, AbortSignal.timeout(ONBOARD_TIMEOUT_MS));
+      const result = await connector.onboard({ options, ...(secret === undefined ? {} : { secret }) }, AbortSignal.timeout(ONBOARD_TIMEOUT_MS));
       if (!result.ok) reply.code(422);
       return result;
     } finally {

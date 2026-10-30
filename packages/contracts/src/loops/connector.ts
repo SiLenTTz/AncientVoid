@@ -17,15 +17,16 @@ export interface LoopOption {
 export const LOOP_NEW = "+neu";
 
 /**
- * Loops, die erst für ein Repo eingerichtet werden müssen (aSPARK: `factoryctl new`), bieten ein Onboarding an:
- * Felder plus ein Geheimnis (Repo-Token), das nur durchgereicht wird — nie gespeichert, geloggt oder in Ereignissen.
+ * Loops, die erst für ein Repo eingerichtet werden müssen (aSPARK: `factoryctl new`, securesight: `factory init`),
+ * bieten ein Onboarding an: Felder plus optional ein Geheimnis (aSPARK: Repo-Token), das nur durchgereicht wird —
+ * nie gespeichert, geloggt oder in Ereignissen. Loops ohne Geheimnis (securesight) lassen `secret` weg.
  */
 export interface LoopOnboarding {
   /** Schlüssel der Option, deren Wert `LOOP_NEW` das Formular öffnet (z. B. "line"). */
   optionKey: string;
   label: string;
   fields: readonly LoopOption[];
-  secret: { label: string; hint?: string };
+  secret?: { label: string; hint?: string };
 }
 
 export interface LoopCapabilities {
@@ -89,7 +90,7 @@ export interface LoopConnector {
   control(handle: SessionHandle, input: LoopControlInput, ctx: AdapterContext): Promise<Ack>;
   status(handle: SessionHandle): Promise<HealthReport>;
   /** Richtet das Loop-System für ein Repo ein (nur mit `capabilities().onboarding`). Wirft nie; Fehler als `ok: false`. */
-  onboard?(input: { options: Record<string, string>; secret: string }, signal: AbortSignal): Promise<LoopOnboardResult>;
+  onboard?(input: { options: Record<string, string>; secret?: string }, signal: AbortSignal): Promise<LoopOnboardResult>;
   /** Trennt den Hub vom Loop. Das Loop-System selbst läuft weiter (nur beobachtet/gesteuert, nie beendet). */
   stop(handle: SessionHandle, ctx: AdapterContext): Promise<void>;
 }

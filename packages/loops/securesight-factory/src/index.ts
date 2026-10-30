@@ -2,7 +2,8 @@ import { execFile } from "node:child_process";
 import { existsSync, watch, type FSWatcher } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopStartSpec, SessionHandle } from "@uacc/contracts";
+import { LOOP_NEW } from "@uacc/contracts";
+import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopOnboardResult, LoopStartSpec, SessionHandle } from "@uacc/contracts";
 import { listFiles, readJson, tailLines, under } from "./files.ts";
 
 const CAPABILITIES: LoopCapabilities = {
@@ -14,7 +15,20 @@ const CAPABILITIES: LoopCapabilities = {
   controls: [],
   gates: ["gates"],
   asks: "none",
-  options: [{ key: "epic", label: "Hermes-Epic", kind: "text", placeholder: "nur mit Orchestrator hermes, z. B. epic-12" }],
+  options: [
+    { key: "epic", label: "Hermes-Epic", kind: "text", placeholder: "nur mit Orchestrator hermes, z. B. epic-12" },
+    { key: "anbindung", label: "Anbindung", kind: "select", choices: [{ value: "bestehend", label: "bestehendes Factory-Projekt beobachten" }, { value: LOOP_NEW, label: "Factory-Projekt anlegen/rekonfigurieren (factory init)" }] },
+  ],
+  onboarding: {
+    optionKey: "anbindung",
+    label: "Factory-Projekt einrichten (factory init)",
+    fields: [
+      { key: "root", label: "Projektpfad (absolut)", kind: "text", required: true, placeholder: "/pfad/zum/projekt" },
+      { key: "prd", label: "PRD (Datei/Ordner, optional)", kind: "text", placeholder: "/pfad/zur/prd.md" },
+      { key: "modus", label: "Betriebsmodus", kind: "select", required: true, choices: [{ value: "a", label: "a — merged automatisch (Außenwirkung)" }, { value: "b", label: "b" }] },
+      { key: "provider", label: "Provider", kind: "select", required: true, choices: [{ value: "anthropic", label: "Anthropic" }, { value: "zai", label: "Z.ai" }] },
+    ],
+  },
 };
 
 const FAST_MS = 2000;
@@ -419,6 +433,36 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     id: "securesight-factory",
     version: "0.1.0",
     capabilities: () => CAPABILITIES,
+
+    /** T26.4 (ADR-0043 §5): factory init über die CLI (Vertrag v1) — der Hub setzt kein Trust und keine Berechtigungen selbst. */
+    async onboard(input: { options: Record<string, string>; secret?: string }, signal: AbortSignal): Promise<LoopOnboardResult> {
+      const root = (input.options.root ?? "").trim();
+      const prd = (input.options.prd ?? "").trim();
+      const modus = (input.options.modus ?? "").trim();
+      const provider = (input.options.provider ?? "").trim();
+      if (!root.startsWith("/") || root.includes("\0")) return { ok: false, detail: "Projektpfad fehlt oder ist nicht absolut" };
+      if (prd && (!prd.startsWith("/") || prd.includes("\0"))) return { ok: false, detail: "PRD-Pfad muss absolut sein (oder leer)" };
+      if (modus !== "a" && modus !== "b") return { ok: false, detail: "Betriebsmodus „a“ oder „b“ fehlt" };
+      if (provider !== "anthropic" && provider !== "zai") return { ok: false, detail: "Provider „anthropic“ oder „zai“ fehlt" };
+      return await new Promise((resolve) => {
+        execFile(factoryBin, ["init", "--root", root, "--modus", modus, "--provider", provider, ...(prd ? ["--from-prd", prd] : [])], { timeout: 120_000, maxBuffer: 1024 * 1024, signal }, (err, stdout, stderr) => {
+          if (signal.aborted) return resolve({ ok: false, detail: "abgebrochen" });
+          const exit = err ? (typeof (err as { code?: unknown }).code === "number" ? (err as { code: number }).code : -1) : 0;
+          if (exit !== 0) return resolve({ ok: false, detail: (stderr || (err instanceof Error ? err.message : "") || stdout || `Exit ${exit}`).trim().slice(0, 300) });
+          let doc: Record<string, unknown> | null = null;
+          try {
+            const parsed: unknown = JSON.parse(stdout);
+            doc = typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
+          } catch {
+            /* Fehlerfall unten */
+          }
+          if (!doc) return resolve({ ok: false, detail: "factory init: stdout ist kein JSON (Vertrag v1 verletzt)" });
+          const lines = Array.isArray(doc.checkliste) ? doc.checkliste.filter((l): l is string => typeof l === "string") : [];
+          const ready = lines.some((l) => l.startsWith("ready:"));
+          resolve({ ok: true, options: { anbindung: "bestehend" }, detail: `${lines.join(" · ").slice(0, 400)}${ready ? "" : " · noch nicht bereit"}` });
+        });
+      });
+    },
 
     async start(spec: LoopStartSpec, ctx: AdapterContext, io: LoopIo): Promise<SessionHandle> {
       // Schnittstelle v1: repo = scripts/betrieb.py (Factory-Repo selbst), project = .factory/config.json ohne betrieb.py.

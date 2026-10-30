@@ -674,7 +674,7 @@ function createHubApi(P: (path: string) => string) {
   /** EPIC-P19: Loops / Dark Factories und ob sie startbar sind. */
   loops: () => api<LoopInfo[]>(P("/api/loops")),
   /** EPIC-P19: ein Repo für einen Loop einrichten. Das Geheimnis geht nur in diesen einen Aufruf; abgelehnt = `ok: false` mit Grund. */
-  onboardLoop: async (id: string, body: { options: Record<string, string>; secret: string }): Promise<LoopOnboardResult> => {
+  onboardLoop: async (id: string, body: { options: Record<string, string>; secret?: string }): Promise<LoopOnboardResult> => {
     const res = await fetch(P(`/api/loops/${encodeURIComponent(id)}/onboard`), {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
