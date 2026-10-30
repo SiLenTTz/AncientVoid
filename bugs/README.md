@@ -103,6 +103,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0076](bug-0076-pi-fehlerstatus-nach-erfolgreichem-turn.md) | pi: fehlerfreier Folgelauf bleibt `status:error` (stale `healthy=false`) | done | S1 | adapters | — |
 | [BUG-0077](bug-0077-e2e-uebersicht-spec-einmalig-unter-last.md) | E2E-Übersichts-Spec fiel einmal unter voller Suite-Last (nicht reproduziert) | wont-fix | S3 | e2e | — |
 | [BUG-0078](bug-0078-neue-session-stale-agent-auswahl.md) | Gemerkter Skill/Agent blockiert Session-Start bei Adaptern ohne Unterstützung („maki kennt keine Agenten.“) | done | S2 | pwa | [#32](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/32) |
-| [BUG-0079](bug-0079-maki-slash-bridge-fuehrt-commands-nicht-aus.md) | maki-Slash-Brücke führt deklarierte Commands nicht aus („/new" kam nur als Chat an) | open | S2 | adapters | [#33](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/33) |
+| [BUG-0079](bug-0079-maki-slash-bridge-fuehrt-commands-nicht-aus.md) | maki-Slash-Brücke führte deklarierte Commands nicht aus („/new" kam nur als Chat an) | done | S2 | adapters | [#33](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/33) |
 
 Die nächste freie Nummer ist **0080**.
