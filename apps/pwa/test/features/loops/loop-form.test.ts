@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LoopInfo, LoopCapabilities, LoopOnboarding } from "@uacc/contracts";
-import { loopBlocker, onboardSelectDefaults } from "../../../src/features/loops/loop-form.ts";
+import { loopBlocker, onboardProjectDefaults, onboardSelectDefaults } from "../../../src/features/loops/loop-form.ts";
 
 const caps = (over: Partial<LoopCapabilities>): LoopCapabilities => ({ agents: "external", intake: ["backlog"], modes: [], riskyModes: [], orchestrators: [], controls: [], gates: [], asks: "none", options: [], ...over });
 const info = (c: LoopCapabilities): LoopInfo => ({ id: "x", label: "X", description: "", transport: "cli", available: true, capabilities: c });
@@ -44,5 +44,35 @@ describe("onboardSelectDefaults: angezeigte Select-Vorgaben gelten als gewählt 
     const spec = { id: "x", options: { line: "+neu" } };
     const draft = { values: onboardSelectDefaults(onboarding, {}), secret: "" };
     expect(loopBlocker(i, spec, true, draft)).toBe("Projektpfad fehlt");
+  });
+});
+
+describe("onboardProjectDefaults: prefill „project“ füllt aus der Dialog-Auswahl (ADR-0045)", () => {
+  const onboarding: LoopOnboarding = {
+    optionKey: "anbindung",
+    label: "Factory-Projekt einrichten",
+    fields: [{ key: "root", label: "Projektpfad (absolut)", kind: "text", required: true, prefill: "project" }],
+  };
+
+  it("leeres Feld bekommt den Projektpfad, Buchhaltung hält ihn fest", () => {
+    const r = onboardProjectDefaults(onboarding, {}, "/repos/alpha");
+    expect(r.values).toEqual({ root: "/repos/alpha" });
+    expect(r.filled).toEqual({ root: "/repos/alpha" });
+  });
+
+  it("Wechselt die Projektauswahl, folgt ein unberührtes Feld; die eigene Eingabe gewinnt", () => {
+    const first = onboardProjectDefaults(onboarding, {}, "/repos/alpha");
+    const second = onboardProjectDefaults(onboarding, first.values, "/repos/beta", first.filled);
+    expect(second.values).toEqual({ root: "/repos/beta" });
+    const own = { root: "/eigener/pfad" };
+    const third = onboardProjectDefaults(onboarding, own, "/repos/beta", second.filled);
+    expect(third.values).toBe(own);
+    expect(third.filled.root).toBe("");
+  });
+
+  it("ohne prefill-Felder oder ohne Projektpfad passiert nichts", () => {
+    const plain: LoopOnboarding = { optionKey: "x", label: "X", fields: [{ key: "repo", label: "Repo", kind: "text", required: true }] };
+    expect(onboardProjectDefaults(plain, {}, "/p").values).toEqual({});
+    expect(onboardProjectDefaults(onboarding, {}, "").values).toEqual({});
   });
 });

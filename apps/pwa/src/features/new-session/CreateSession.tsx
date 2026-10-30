@@ -283,7 +283,7 @@ export function CreateSession({
           </select>
         </label>
       )}
-      <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); setOnboard(emptyOnboard); }} onboard={onboard} onOnboard={setOnboard} reload={loopReload} initial={last.loop ?? null} />
+      <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); setOnboard(emptyOnboard); }} onboard={onboard} onOnboard={setOnboard} reload={loopReload} initial={last.loop ?? null} project={project} />
       {!loop && (
         <>
       <label>

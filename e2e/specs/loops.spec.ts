@@ -137,6 +137,23 @@ test.describe("Loop / Dark Factory im Start-Formular", () => {
     await expect(blocker).toHaveClass(/warn/);
   });
 
+  test("Anbindungs-Formular: Projektpfad kommt aus der Projektauswahl, eigene Eingabe gewinnt (ADR-0045)", async ({ app, hub }) => {
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Loop", { exact: true }).selectOption("fake-loop");
+    await app.getByLabel("Line").selectOption("+neu");
+    const pfad = app.getByLabel("Projektpfad");
+    // Der Pfad des oben gewählten Projekts steht sofort da — kein Tippen.
+    await expect(pfad).toHaveValue(hub.alpha);
+    const projekt = app.locator(".form-grid > label").first().locator("select");
+    // Ein Wechsel der Projektauswahl oben zieht das Feld mit, solange unberührt.
+    await projekt.selectOption(hub.beta);
+    await expect(pfad).toHaveValue(hub.beta);
+    // Die eigene Eingabe gewinnt und bleibt bei weiterem Projektwechsel.
+    await pfad.fill("/eigener/pfad");
+    await projekt.selectOption(hub.alpha);
+    await expect(pfad).toHaveValue("/eigener/pfad");
+  });
+
   test("Die zuletzt gestartete Loop-Auswahl steht beim nächsten Anlegen wieder da", async ({ app }) => {
     await app.getByRole("button", { name: "Neue Session" }).click();
     await app.getByLabel("Loop", { exact: true }).selectOption("fake-loop");

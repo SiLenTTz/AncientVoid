@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { LoopInfo, LoopSpec } from "@uacc/contracts";
 import type { hubApi } from "../../shared/api.ts";
-import { defaultLoopSpec, isOnboarding, onboardSelectDefaults, type OnboardDraft } from "./loop-form.ts";
+import { defaultLoopSpec, isOnboarding, onboardProjectDefaults, onboardSelectDefaults, type OnboardDraft } from "./loop-form.ts";
 
 /**
  * EPIC-P19: Auswahl „Loop / Dark Factory“ im Start-Formular. Die Liste und alle Felder kommen vom Hub
@@ -18,6 +18,7 @@ export function LoopPicker({
   onOnboard,
   reload = 0,
   initial = null,
+  project = "",
 }: {
   api: Pick<typeof hubApi, "loops">;
   value: LoopSpec | null;
@@ -31,6 +32,9 @@ export function LoopPicker({
   /** T8.4-Familie: zuletzt gestartete Loop-Auswahl — wird einmalig nach dem
    * Laden der Liste wiederhergestellt; eine eigene Wahl des Nutzers gewinnt. */
   initial?: LoopSpec | null;
+  /** ADR-0045: aktueller Projektpfad des Start-Dialogs — füllt Onboarding-Felder
+   * mit `prefill: "project"` vor, solange der Nutzer dort selbst nichts tippt. */
+  project?: string;
 }) {
   const [loops, setLoops] = useState<LoopInfo[] | null>(null);
   // Hat der Nutzer selbst gewählt (auch „kein Loop“), schlägt die Erinnerung nicht mehr zu.
@@ -63,11 +67,14 @@ export function LoopPicker({
   // gefülltem Dropdown — der Startknopf wirkt dann einfach tot).
   const onboardCaps = caps?.onboarding ?? null;
   const onboardOpen = !!(onboardCaps && value && isOnboarding(chosen ?? null, value));
+  const prefilled = useRef<Record<string, string>>({});
   useEffect(() => {
     if (!onboardCaps || !onboardOpen) return;
-    const values = onboardSelectDefaults(onboardCaps, onboard.values);
+    const withProject = onboardProjectDefaults(onboardCaps, onboard.values, project, prefilled.current);
+    prefilled.current = withProject.filled;
+    const values = onboardSelectDefaults(onboardCaps, withProject.values);
     if (values !== onboard.values) onOnboard({ ...onboard, values });
-  }, [onboardCaps, onboardOpen, onboard]);
+  }, [onboardCaps, onboardOpen, onboard, project]);
   const set = (patch: Partial<LoopSpec>) => value && chosen && onChange({ ...value, ...patch }, chosen);
   const setOption = (key: string, v: string) => set({ options: { ...value?.options, [key]: v } });
   const risky = !!(value?.mode && caps?.riskyModes.includes(value.mode));
