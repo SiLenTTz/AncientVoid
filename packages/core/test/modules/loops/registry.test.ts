@@ -36,3 +36,13 @@ describe("LoopRegistry", () => {
     expect(() => loops.assertStartable({ id: "fake-loop", options: { line: "a", zufall: "x" } })).toThrow(/kennt die Option „zufall“/);
   });
 });
+
+describe("assertStartable: reservierte Hub-Option „driver“ (ADR-0043, EPIC-P26 T26.5)", () => {
+  it("die Treiber-Verknüpfung ist keine Connector-Option und wird nicht abgelehnt", () => {
+    const loops = new LoopRegistry();
+    loops.register(createFakeLoopConnector());
+    expect(() => loops.assertStartable({ id: "fake-loop", options: { line: "alpha", driver: "eb0f764a-0000" } })).not.toThrow();
+    // unverändert: jede andere unbekannte Option bleibt laut abgelehnt
+    expect(() => loops.assertStartable({ id: "fake-loop", options: { line: "alpha", zufall: "x" } })).toThrow(/kennt die Option „zufall“/);
+  });
+});

@@ -53,6 +53,8 @@ export class LoopRegistry {
     if (spec.orchestrator !== undefined && !caps.orchestrators.includes(spec.orchestrator)) throw new Error(`Orchestrator „${spec.orchestrator}“ gibt es bei „${loop.label}“ nicht`);
     const options = spec.options ?? {};
     for (const key of Object.keys(options)) {
+      // ADR-0043: hub-interne Verknüpfung Treiber↔Beobachter — kein Connector-Feld, nie im Startformular.
+      if (key === "driver") continue;
       if (!caps.options.some((o) => o.key === key)) throw new Error(`„${loop.label}“ kennt die Option „${key}“ nicht`);
     }
     for (const o of caps.options) {

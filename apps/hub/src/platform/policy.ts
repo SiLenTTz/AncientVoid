@@ -26,6 +26,9 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (path.startsWith("/api/commands/")) return "read";
   if (/^\/api\/sessions\/[^/]+\/actions\/[^/]+$/.test(path)) return "actions.run";
   if (/^\/api\/loops\/[^/]+\/onboard$/.test(path)) return "loops.onboard";
+  // ADR-0043: Factory-Lauf starten/steuern — Außenwirkung, nur Menschen (Policy-Tabelle).
+  if (path === "/api/factory/start") return "factory.start";
+  if (/^\/api\/factory\/[^/]+\/command$/.test(path)) return "factory.control";
   if (path === "/api/sessions") return (body as { loop?: unknown } | undefined)?.loop ? "loops.start" : "sessions.create";
   if (/^\/api\/sessions\/[^/]+\/steer$/.test(path)) {
     const kind = (body as { kind?: unknown } | undefined)?.kind;

@@ -839,6 +839,13 @@ function createHubApi(P: (path: string) => string) {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  /** EPIC-P26 T26.5 (ADR-0043): Factory-Lauf — legt Treiber (`/factory`-Prompt,
+   * Claude im Projekt) und verknüpften Beobachter (Loop project-Modus) an. */
+  factoryStart: (body: { project: string; goal?: string }) =>
+    api<{ driver: SessionRecord; observer: SessionRecord }>(P("/api/factory/start"), {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   // Real, serious bug found live-testing T3.10's voice-stop directive:
   // this sent no body at all, but api()'s content-type: application/json
   // header is unconditional — Fastify rejects that combination with a
