@@ -1,8 +1,8 @@
 {
-  "name": "mobile-hub",
+  "name": "ancientvoid",
   "version": "0.1.0",
   "private": true,
-  "description": "UACC — Unified AI-Agent Command Center. Local-first, vendor-neutral hub to supervise and steer coding agents from mobile.",
+  "description": "AncientVoid. Local-first, vendor-neutral hub to supervise and steer coding agents from mobile.",
   "type": "module",
   "license": "MIT",
   "engines": {

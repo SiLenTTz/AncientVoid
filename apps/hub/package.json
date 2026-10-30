@@ -1,7 +1,7 @@
 {
   "name": "@uacc/hub",
   "version": "0.1.0",
-  "description": "UACC hub daemon: REST/WS API with device-token auth, WS delta protocol (seq/gap/resync/drop-on-slow), static PWA serving.",
+  "description": "AncientVoid hub daemon: REST/WS API with device-token auth, WS delta protocol (seq/gap/resync/drop-on-slow), static PWA serving.",
   "type": "module",
   "license": "MIT",
   "exports": {

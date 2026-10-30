@@ -1,5 +1,5 @@
 /**
- * EPIC-P23 T23.1: the session a person worked in last, per device. "UACC" leads to the overview and
+ * EPIC-P23 T23.1: the session a person worked in last, per device. "AncientVoid" leads to the overview and
  * this session is marked there. A session that no longer exists simply marks nothing.
  */
 const KEY = "uacc.lastSession";

@@ -60,7 +60,7 @@ export function FleetSettings() {
     setScanning(false);
     const link = parsePairLink(text);
     if (!link) {
-      setMessage({ ok: false, text: "Das ist kein UACC-Einladungscode." });
+      setMessage({ ok: false, text: "Das ist kein AncientVoid-Einladungscode." });
       return;
     }
     setUrl(link.url);

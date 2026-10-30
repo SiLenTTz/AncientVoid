@@ -3,12 +3,12 @@
  * "unbekannt statt geraten"). codex-cli reports token usage (input/cached
  * input/output/reasoning) but never a native cost figure anywhere in its
  * `--json` stream (verified against real captures, see normalize.ts) — the
- * numbers below are UACC's own estimate, not a value codex itself vouches
+ * numbers below are AncientVoid's own estimate, not a value codex itself vouches
  * for.
  *
  * Source: https://developers.openai.com/api/docs/pricing (fetched
  * 2026-09-15, "Specialized models" / Codex section, "Standard" tier — not
- * "Fast mode", which UACC's codex adapter never requests). Only
+ * "Fast mode", which AncientVoid's codex adapter never requests). Only
  * "gpt-5.3-codex" is listed there as of this date; no plain "gpt-5-codex"
  * entry exists any more (superseded). Prices in USD per 1,000,000 tokens.
  *

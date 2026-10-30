@@ -37,7 +37,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
  * (that flag is documented as a *search-result* filter, not an `update`
  * scope). Calling it from the hub would silently re-scan a user's
  * unrelated personal qmd collections (e.g. a private notes vault) on
- * every UACC search — an unacceptable side effect. So `ensureIndexed()`
+ * every AncientVoid search — an unacceptable side effect. So `ensureIndexed()`
  * only ever calls `collection add` ONCE (when the collection doesn't
  * exist yet) and `embed` (verified scoped correctly to `-c <name>`) on
  * every call after that. Real consequence, stated plainly: new or changed
@@ -104,7 +104,7 @@ export function resetQmdAvailabilityCache(): void {
 /** Stable, collision-resistant, space-free collection name derived from
  * the real absolute project path — qmd collection names with spaces are
  * real (the user's own "SiLenT_Tz brain" collection has one) but harder
- * to pass safely through argv boundaries, so UACC's own collections never
+ * to pass safely through argv boundaries, so AncientVoid's own collections never
  * use them. */
 export function collectionNameFor(projectPath: string): string {
   return "uacc-" + createHash("sha256").update(projectPath).digest("hex").slice(0, 16);

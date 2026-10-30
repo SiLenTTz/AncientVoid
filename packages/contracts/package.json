@@ -1,7 +1,7 @@
 {
   "name": "@uacc/contracts",
   "version": "0.1.0",
-  "description": "Shared contracts for UACC: NormalizedEvent, Adapter interface, worker and server protocols. Zero runtime dependencies beyond zod.",
+  "description": "Shared contracts for AncientVoid: NormalizedEvent, Adapter interface, worker and server protocols. Zero runtime dependencies beyond zod.",
   "type": "module",
   "license": "MIT",
   "exports": {

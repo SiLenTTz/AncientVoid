@@ -1,7 +1,7 @@
 {
   "name": "@uacc/core",
   "version": "0.1.0",
-  "description": "UACC hub kernel: EventStore (JSONL + blobs), SessionManager lifecycle, adapter registry with dynamic module loading, SQLite persistence.",
+  "description": "AncientVoid hub kernel: EventStore (JSONL + blobs), SessionManager lifecycle, adapter registry with dynamic module loading, SQLite persistence.",
   "type": "module",
   "license": "MIT",
   "exports": {

@@ -3,15 +3,15 @@ import { test, expect } from "../support/fixtures.ts";
 test.describe("Desktop-Navigation (EPIC-P23)", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("AC-P23-1: Klick auf UACC führt in die Übersicht, die zuletzt aktive Session ist markiert und bleibt es nach Reload @desktop", async ({ app, hub }) => {
+  test("AC-P23-1: Klick auf AncientVoid führt in die Übersicht, die zuletzt aktive Session ist markiert und bleibt es nach Reload @desktop", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Erste Aufgabe" });
     await hub.createSession({ adapter: "opencode", project: hub.beta, prompt: "Zweite Aufgabe" });
     await app.locator(".split-list .session-card").filter({ hasText: "Erste Aufgabe" }).locator(".session-open").click();
     await expect(app.locator(".split-detail .session-top-title")).toHaveText("Erste Aufgabe");
-    // von einer anderen Seite aus: Einstellungen, dann UACC
+    // von einer anderen Seite aus: Einstellungen, dann AncientVoid
     await app.locator(".split-list .dock-item").last().click();
     await expect(app).toHaveURL(/#\/einstellungen/);
-    await app.getByRole("button", { name: "UACC", exact: true }).click();
+    await app.getByRole("button", { name: "AncientVoid", exact: true }).click();
     await expect(app).toHaveURL(/#\/$|#$|#\/uebersicht/);
     const marked = app.locator(".split-list .session-card[aria-current]");
     await expect(marked).toHaveCount(1);
@@ -19,7 +19,7 @@ test.describe("Desktop-Navigation (EPIC-P23)", () => {
     // wer eine andere Session fokussiert, ändert die Markierung
     await app.locator(".split-list .session-card").filter({ hasText: "Zweite Aufgabe" }).locator(".session-open").click();
     await expect(app.locator(".split-detail .session-top-title")).toHaveText("Zweite Aufgabe");
-    await app.getByRole("button", { name: "UACC", exact: true }).click();
+    await app.getByRole("button", { name: "AncientVoid", exact: true }).click();
     await expect(app.locator(".split-list .session-card[aria-current]")).toContainText("Zweite Aufgabe");
     await app.reload();
     await expect(app.locator(".split-list .session-card[aria-current]")).toContainText("Zweite Aufgabe");

@@ -44,7 +44,7 @@ export const INTENT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-export const PLANNER_PROMPT = `You turn one instruction of a person into ONE action of UACC, a hub that steers AI coding sessions from a phone. Answer as JSON {"op", "slots"}.
+export const PLANNER_PROMPT = `You turn one instruction of a person into ONE action of AncientVoid, a hub that steers AI coding sessions from a phone. Answer as JSON {"op", "slots"}.
 Actions (op → meaning; slots):
 ${Object.values(COMMANDS)
   .map((c) => `- ${c.id}: ${c.label}; slots: ${Object.keys(c.params).join(", ")}`)

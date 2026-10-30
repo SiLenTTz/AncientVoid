@@ -105,7 +105,7 @@ export class WorktreeManager {
     await git(path, "add", "-A");
     const staged = await git(path, "diff", "--cached", "--quiet").then(() => false).catch(() => true);
     const identity = async (cwd: string) =>
-      git(cwd, "config", "user.email").then(() => [] as string[]).catch(() => ["-c", "user.name=UACC Hub", "-c", "user.email=hub@uacc.local"]);
+      git(cwd, "config", "user.email").then(() => [] as string[]).catch(() => ["-c", "user.name=AncientVoid", "-c", "user.email=hub@uacc.local"]);
     const gitAs = async (cwd: string, args: string[]) => execFileAsync("git", ["-C", cwd, ...(await identity(cwd)), ...args]);
     if (staged) await gitAs(path, ["commit", "-q", "-m", message]);
     const { stdout: pending } = await git(projectPath, "log", "--format=%H", `HEAD..${branch}`);

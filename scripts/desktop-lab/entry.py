@@ -13,7 +13,7 @@ GTK3 = "--gtk3" in sys.argv
 gi.require_version("Gtk", "3.0" if GTK3 else "4.0")
 from gi.repository import GLib, Gtk  # noqa: E402
 
-title = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else "UACC-Lab"
+title = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else "AncientVoid-Lab"
 password = "--password" in sys.argv
 
 

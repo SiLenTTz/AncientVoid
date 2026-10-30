@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * hubctl — reference client for the UACC hub.
+ * hubctl — reference client for the AncientVoid hub.
  *
  *   UACC_URL=https://hub.tailnet.ts.net UACC_TOKEN=… hubctl sessions
  *   hubctl tail <sessionId> -f
@@ -42,7 +42,7 @@ export function formatHealth(h: {
 }
 
 function usage(): never {
-  console.log(`hubctl — UACC reference client
+  console.log(`hubctl — AncientVoid reference client
 
 Usage:
   hubctl health

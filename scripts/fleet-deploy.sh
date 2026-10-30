@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# EPIC-P6 T6.5: install or update a UACC hub on another machine of the fleet.
+# EPIC-P6 T6.5: install or update an AncientVoid hub on another machine of the fleet.
 #
 #   scripts/fleet-deploy.sh <ssh-target> <host-id> <tailnet-ip> <project-root> [adapters-json]
 #
@@ -64,7 +64,7 @@ else
 fi
 cat > "$HOME/.config/systemd/user/uacc-hub.service" <<UNIT
 [Unit]
-Description=UACC hub ($host_id)
+Description=AncientVoid hub ($host_id)
 After=network-online.target
 
 [Service]

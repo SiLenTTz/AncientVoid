@@ -115,11 +115,11 @@ export function App({
   return (
     <div class="app-page">
       <div class="topbar">
-        {/* EPIC-P23 T23.1: "UACC" leads to the overview from everywhere, the last session marked there. */}
+        {/* EPIC-P23 T23.1: "AncientVoid" leads to the overview from everywhere, the last session marked there. */}
         <h1>
           <button class="brand-link" type="button" title="Zur Übersicht" onClick={() => setPage("dashboard")}>
             <img class="brand-logo" src="/assets/logo.webp" alt="" width="28" height="28" />
-            UACC
+            <span class="brand-name">AncientVoid</span>
           </button>
         </h1>
         <div style="display: flex; gap: 10px; align-items: center">

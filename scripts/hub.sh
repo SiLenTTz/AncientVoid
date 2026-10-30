@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# UACC — hub daemon lifecycle for local dev (P0).
+# AncientVoid — hub daemon lifecycle for local dev (P0).
 #   scripts/hub.sh start|stop|status|logs
 set -euo pipefail
 cd "$(dirname "$0")/.."

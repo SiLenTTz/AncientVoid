@@ -39,7 +39,7 @@ test.describe("Branding (ADR-0046)", () => {
     expect((await app.request.get(`${hub.origin}${favicon}`)).ok()).toBeTruthy();
     const apple = await app.locator('link[rel="apple-touch-icon"]').getAttribute("href");
     expect((await app.request.get(`${hub.origin}${apple}`)).ok()).toBeTruthy();
-    const brand = app.locator("button.brand-link");
+    const brand = app.getByRole("button", { name: "AncientVoid", exact: true });
     await expect(brand).toBeVisible();
     const logo = brand.locator("img.brand-logo");
     await expect(logo).toBeVisible();

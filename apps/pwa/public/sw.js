@@ -1,5 +1,5 @@
 /*
- * UACC service worker — K10: offline tolerance.
+ * AncientVoid service worker — K10: offline tolerance.
  * Network-first for API projections; on failure serve the cached projection
  * with an X-UACC-Cached-At timestamp so the UI can badge "Daten vom <ts>".
  * Versioned cache — hard-bust by bumping CACHE_VERSION on deploy.
@@ -110,9 +110,9 @@ async function networkFirstApi(req, url) {
 // T8.3 (ADR-0026): a push is only a hint — an opaque id and a category.
 // The text is fixed here; what happened is loaded after login in the app.
 const PUSH_TEXT = {
-  approval: { title: "UACC — Freigabe nötig", body: "Eine Session wartet auf deine Entscheidung." },
-  error: { title: "UACC — Fehler", body: "In einer Session ist etwas schiefgegangen." },
-  done: { title: "UACC — Zug fertig", body: "Eine Session wartet auf deinen nächsten Schritt." },
+  approval: { title: "AncientVoid — Freigabe nötig", body: "Eine Session wartet auf deine Entscheidung." },
+  error: { title: "AncientVoid — Fehler", body: "In einer Session ist etwas schiefgegangen." },
+  done: { title: "AncientVoid — Zug fertig", body: "Eine Session wartet auf deinen nächsten Schritt." },
 };
 
 self.addEventListener("push", (event) => {
@@ -122,7 +122,7 @@ self.addEventListener("push", (event) => {
   } catch {
     data = {};
   }
-  const text = data.test ? { title: "UACC — Test", body: "Push kommt auf diesem Gerät an." } : PUSH_TEXT[data.category] ?? PUSH_TEXT.error;
+  const text = data.test ? { title: "AncientVoid — Test", body: "Push kommt auf diesem Gerät an." } : PUSH_TEXT[data.category] ?? PUSH_TEXT.error;
   const host = data.hostId && data.hostId !== "local" ? `/hosts/${encodeURIComponent(data.hostId)}` : "";
   const url = data.sessionId ? `/#${host}/sessions/${encodeURIComponent(data.sessionId)}` : "/#/";
   event.waitUntil(

@@ -99,13 +99,13 @@ const web = createServer((req, res) => {
 await new Promise((r) => web.listen(0, "127.0.0.1", r));
 async function startChromium() {
   const port = web.address().port;
-  const html = `<title>UACC-Web</title><input id=f autofocus style="width:90%;font-size:20px"><script>f.addEventListener('keydown',e=>{if(e.key==='Enter'){fetch('http://127.0.0.1:${port}/',{method:'POST',body:f.value,mode:'no-cors'});f.value=''}})</script>`;
+  const html = `<title>AncientVoid-Web</title><input id=f autofocus style="width:90%;font-size:20px"><script>f.addEventListener('keydown',e=>{if(e.key==='Enter'){fetch('http://127.0.0.1:${port}/',{method:'POST',body:f.value,mode:'no-cors'});f.value=''}})</script>`;
   const page = join(rt, "field.html");
   writeFileSync(page, html);
   const profile = mkdtempSync(join(tmpdir(), "uacc-chromium-"));
   const p = spawn("chromium", ["--ozone-platform=wayland", `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check", "--disable-sync", "--disable-extensions", `--app=file://${page}`], { stdio: "ignore" });
   children.push(p);
-  const con = await waitFocus((f) => /UACC-Web/.test(f.name ?? ""), "chromium");
+  const con = await waitFocus((f) => /AncientVoid-Web/.test(f.name ?? ""), "chromium");
   await sleep(1500); // page + autofocus
   return con;
 }
@@ -182,7 +182,7 @@ async function flows(name, conId, read, correction) {
 
 try {
   // AC-P11-1: three apps, ten flows each (the last three as corrections where the field allows).
-  const gtk = await startGtk("gtk4", "UACC-GTK4");
+  const gtk = await startGtk("gtk4", "AncientVoid-GTK4");
   await flows("GTK4-Feld", gtk.id, () => lines.get("gtk4"), true);
   const foot = await startFoot("uacc-foot");
   await flows("foot (Terminal)", foot.con.id, foot.read, false);
@@ -239,7 +239,7 @@ try {
   // AC-P11-4: password fields (AT-SPI role) are refused — GTK4 and GTK3.
   report.password = [];
   for (const [label, extra] of [["GTK4", ["--password"]], ["GTK3", ["--password", "--gtk3"]]]) {
-    const pw = await startGtk(`pw-${label}`, `UACC-Zugang-${label}`, extra);
+    const pw = await startGtk(`pw-${label}`, `AncientVoid-Zugang-${label}`, extra);
     await sleep(800);
     const pr = await act(pw.id, { kind: "insert", text: "hunter2" });
     report.password.push({ toolkit: label, status: pr.status, detail: pr.detail });
@@ -247,7 +247,7 @@ try {
   }
 
   // GTK3 as its own cell: does wtype's text reach a GTK3 field here?
-  const g3 = await startGtk("gtk3", "UACC-GTK3", ["--gtk3"]);
+  const g3 = await startGtk("gtk3", "AncientVoid-GTK3", ["--gtk3"]);
   let g3ok = 0;
   for (const text of TEXTS.slice(0, 3)) {
     const before = lines.get("gtk3").length;

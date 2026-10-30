@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * UACC hub daemon entry.
+ * AncientVoid hub daemon entry.
  *
  *   UACC_CONFIG=./hub.config.json node src/main.ts
  *
