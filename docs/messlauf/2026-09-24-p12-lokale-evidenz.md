@@ -44,7 +44,7 @@ Sessions unter Sprachlast) bleibt offen.
 
 ## K8 über zwei Fleet-Hosts (AI-P6-3)
 
-`UACC_TOKEN=<home device token> node scripts/messlauf-p12-fleet-k8.mjs`
+`ANCIENTVOID_TOKEN=<home device token> node scripts/messlauf-p12-fleet-k8.mjs`
 startete zwei isolierte Sidecar-Hubs mit temporären Datadir-Pfaden und je zehn
 Dummy-Sessions bei 30 Ereignissen/s. Der Heim-Hub leitete Anlegen und Lesen
 über die Fleet-API weiter. Nach dem Lauf wurden Sessions gestoppt, Peers
@@ -103,7 +103,7 @@ Produktivdatengröße.
   `permissionPrompts: "hub"`; OpenCode wurde vom `--auto`-CLI-Adapter auf den
   ACP-Preset `opencode` mit nativen Hub-Freigaben umgestellt. Die bisherige
   lokale Konfiguration liegt außerhalb des Repos unter
-  `/home/silenttz/.config/uacc/config-backups/` (Modus `0600`); die aktive
+  `/home/silenttz/.config/ancientvoid/config-backups/` (Modus `0600`); die aktive
   `hub.config.json` ist ebenfalls Modus `0600`. Die getrackte Beispielconfig
   enthält keine Bypass-Flags.
 - Neustart hat 7 gespeicherte Sessions wiederhergestellt (0 Fehler). Der
@@ -125,10 +125,10 @@ Produktivdatengröße.
   späteren Statusprüfung wurden deren Werte einmal in einer internen
   Tool-Ausgabe sichtbar; beide wurden daraufhin widerrufen und erneut rotiert.
   Die aktuellen Einmalwerte liegen geschützt unter
-  `/home/silenttz/.config/uacc/rotated-2026-09-24/device-tokens.txt` (Modus
+  `/home/silenttz/.config/ancientvoid/rotated-2026-09-24/device-tokens.txt` (Modus
   `0600`). Der aktuelle `pixel`-Token muss noch auf den Clients eingespielt
   und anschließend geprüft werden.
-- `/tmp/uacc-hub.log` wurde nach dem Stop mit `shred -u -n 1` entfernt; der
+- `/tmp/ancientvoid-hub.log` wurde nach dem Stop mit `shred -u -n 1` entfernt; der
   Remote-Host `silenttz-server` hatte kein gleichnamiges Log. Der neu
   gestartete Log liegt mit Modus `0600` vor.
 - `silenttz-server` wurde per einmaligem Invite neu gekoppelt. `/api/fleet`
@@ -145,10 +145,10 @@ Produktivdatengröße.
 
 Nach ausdrücklicher Nutzerfreigabe wurde der lokale Hub am 2026-09-24 erneut
 sauber gestoppt. Verifiziert: PID-Datei und Port 7373 geschlossen, SQLite-WAL
-und SHM entfernt. `/tmp/uacc-hub.log` war Modus `0600` und wurde nach dem Stop
+und SHM entfernt. `/tmp/ancientvoid-hub.log` war Modus `0600` und wurde nach dem Stop
 mit `shred -u -n 1` entfernt. Der Hub bleibt für den Gerätewechsel bewusst aus.
 Das bestehende Tokenarchiv unter
-`/home/silenttz/.config/uacc/rotated-2026-09-24/device-tokens.txt` ist
+`/home/silenttz/.config/ancientvoid/rotated-2026-09-24/device-tokens.txt` ist
 vorhanden, nicht leer und Modus `0600`; die Tokens wurden nicht ein zweites
 Mal rotiert, damit die noch einzuspielenden Client-Tokens gültig bleiben (Stand
 dieser damaligen Prüfung).
@@ -171,7 +171,7 @@ live geprüft bzw. geändert:
   Port 7373 und PID-Lock waren frei. Kein Prozess hielt DB/WAL/SHM offen.
 - `diag` und `pixel` wurden erneut widerrufen und ausgestellt. Die neuen
   Klartextwerte liegen ausschließlich in
-  `~/.config/uacc/rotated-2026-09-24/device-tokens.txt` (77 Byte, Modus
+  `~/.config/ancientvoid/rotated-2026-09-24/device-tokens.txt` (77 Byte, Modus
   `0600`); beide SHA-256-Hashes wurden gegen die aktiven DB-Zeilen geprüft.
   Die Werte sind noch nicht auf dem Handy bzw. anderen Clients eingespielt.
 - `silenttz-server` wurde über den SSH-Alias mit frischem Einmal-Invite neu
@@ -185,13 +185,13 @@ live geprüft bzw. geändert:
   `Permission denied (publickey,password)` abgewiesen. Es wurde weder ein
   Token widerrufen noch der Peer verändert. Die Fleet-Rotation bleibt offen,
   bis ein gezielter Service-/Admin-Zugang vorliegt.
-- `/tmp/uacc-hub.log` war bereits nicht vorhanden; es wurde in diesem Schritt
+- `/tmp/ancientvoid-hub.log` war bereits nicht vorhanden; es wurde in diesem Schritt
   keine Logdatei gelöscht. `data/hub.db` bestand `PRAGMA integrity_check` und
   `PRAGMA wal_checkpoint(TRUNCATE)` (busy=0); anschließend lagen keine
   WAL/SHM-Dateien oder offenen DB-Handles vor.
 
 Nach den Credential-Änderungen wurde ein neues verschlüsseltes Produktivbackup
-`~/.local/share/uacc/backups/uacc-2026-09-24-after-rotation.uaccbak`
+`~/.local/share/ancientvoid/backups/ancientvoid-2026-09-24-after-rotation.ancientvoidbak`
 erstellt (852.535 Byte, Modus `0600`). Der isolierte Restore bestätigte
 `integrity_check=ok`, sieben Sessions (eine `error`, sechs `stopped`), die
 aktiven Labels `diag`/`pixel`, beide Fleet-Peer-Zeilen und Modus `0700` für das
@@ -208,7 +208,7 @@ gestoppt und das temporäre Log entfernt. Dabei zeigte sich, dass die alte
 Startumleitung unter Benutzer-umask ein Log mit Modus `0644` anlegen konnte
 (BUG-0029). `hub.sh` setzt nun `umask 077` und erzwingt Modus `0600`; erneuter
 Start bei umask `0022` ergab Modus `0600` und Health 200. Der Hub ist wieder
-aus, Port/PID/WAL/SHM sind frei, und `/tmp/uacc-hub.log` ist entfernt.
+aus, Port/PID/WAL/SHM sind frei, und `/tmp/ancientvoid-hub.log` ist entfernt.
 
 Offen bleiben das Einspielen und Prüfen der aktuellen lokalen Tokens auf den
 Geräten. Der Scan belegt die Journals seit dem jeweiligen verfügbaren Zeitraum,
@@ -219,17 +219,17 @@ Task nicht öffentlich geschaltet.
 
 Direkte, hostkey-geprüfte SSH-Verbindung zu `evox2` über dessen Tailscale-IP
 und den hinterlegten Alias. Vor dem Eingriff: `halogen-server`,
-`halogen-live-proxy` und `halogen-waechter` aktiv, `uacc-llama` inaktiv,
-`uacc-stt` aktiv, 56 GiB RAM verfügbar. Das über die Desktop-Datei gestartete
+`halogen-live-proxy` und `halogen-waechter` aktiv, `ancientvoid-llama` inaktiv,
+`ancientvoid-stt` aktiv, 56 GiB RAM verfügbar. Das über die Desktop-Datei gestartete
 `halogen-starten.sh` liegt unter
 `/srv/securesight.ai/Desktop-Admin/Model Inference/`; es stoppt
 `qwen35-122b-server`, `bunker-llama`, `bunker-llama-router` und alle Prozesse
 namens `llama-server`, bevor es Halogen/Proxy/Wächter startet. Deshalb ist
-`uacc-llama` ein expliziter Folgeschritt.
+`ancientvoid-llama` ein expliziter Folgeschritt.
 
-`systemctl --user start --no-block uacc-llama` wurde danach ausgeführt. Live
+`systemctl --user start --no-block ancientvoid-llama` wurde danach ausgeführt. Live
 geprüft: Halogen-Units und Proxy blieben aktiv; zwei `llama-server`-Prozesse;
-`uacc-llama` aktiv; `GET /health` HTTP 200; authentifiziertes
+`ancientvoid-llama` aktiv; `GET /health` HTTP 200; authentifiziertes
 `GET /v1/models` HTTP 200 mit Modellkennung `qwen3-coder`. Nach dem Laden
 meldete evox2 89 GiB belegt und 34 GiB verfügbar von 123 GiB Unified Memory.
 Es wurden keine Modellserver gestoppt. Auf dem Home-Dateisystem sind 53 GiB
@@ -239,7 +239,7 @@ frei (94 % belegt), relevant für T12.11-Modellartefakte.
 
 Das synthetische Piper-E2E-Diktat `e2e/live/fixtures/diktat-npm-test.webm`
 (3,81 s) wurde in 16-kHz-Mono-WAV konvertiert und 20-mal parallel direkt an den lokalen
-`uacc-stt`-Dienst auf evox2 geschickt. 20/20 Antworten waren HTTP 200 mit
+`ancientvoid-stt`-Dienst auf evox2 geschickt. 20/20 Antworten waren HTTP 200 mit
 nichtleerem Text. End-to-End am Backend: p50 2,81 s, p90 4,95 s, p95 5,24 s,
 Maximum 5,53 s; alle Requests endeten in 5,57 s. Das liegt über der
 2-s-Schwelle, ist aber nur ein synthetischer Backend-Baseline-Lauf: Hub-
@@ -283,9 +283,9 @@ aktive tmux-Worker gesichert. Ein einzelner verwaister FIFO unter
 keinen tmux-Worker; der `/proc/*/fd`-Scan fand keinen offenen Handle auf die
 FIFO-Inode. Sie enthält keine
 gespeicherten Logdaten; nur dieser FIFO-Eintrag wurde entfernt. Das
-AES-256-GCM-Archiv `~/.local/share/uacc/backups/uacc-2026-09-24.uaccbak` ist
+AES-256-GCM-Archiv `~/.local/share/ancientvoid/backups/ancientvoid-2026-09-24.ancientvoidbak` ist
 852.537 Byte groß und hat Modus `0600`; die Schlüsseldatei
-`~/.config/uacc/backup.key` liegt separat mit Modus `0600` auf einem anderen
+`~/.config/ancientvoid/backup.key` liegt separat mit Modus `0600` auf einem anderen
 Dateisystem als das Datadir. Der Restore in ein temporäres neues Datadir
 bestand Entschlüsselungs-, SQLite-Integritäts- und Referenzprüfungen
 (`integrity_check: ok`), enthielt 7 Sessions und 713 summierte `last_seq`-
@@ -319,7 +319,7 @@ Events enthalten `session.recovery_failed`; der tmux-Worker ist nicht mehr
 vorhanden. Der zugehörige Worktree blieb erhalten (`README.md` geändert,
 `index.html` untracked). Es wurde keine neue Session gestartet. Der spätere
 Der erste Backup-Versuch wurde durch die verwaiste FIFO
-`data/workers/uacc-821b0ec8-6e5b-4238-ab27-7dc8ad5c62cc.log.in` abgewiesen.
+`data/workers/ancientvoid-821b0ec8-6e5b-4238-ab27-7dc8ad5c62cc.log.in` abgewiesen.
 Nach Bestätigung, dass kein Prozess sie geöffnet hielt, wurde nur die FIFO
 entfernt; sie enthielt keine gespeicherten Daten. Der Worktree mit den
 uncommitteten Änderungen (`README.md` geändert, `index.html` neu) blieb
@@ -342,10 +342,10 @@ ENOSPC und Retention-Löschlauf.
   späteren Statusprüfung wurden deren Werte einmal in einer internen
   Tool-Ausgabe sichtbar; beide wurden daraufhin widerrufen und erneut rotiert.
   Die aktuellen Einmalwerte liegen geschützt unter
-  `/home/silenttz/.config/uacc/rotated-2026-09-24/device-tokens.txt` (Modus
+  `/home/silenttz/.config/ancientvoid/rotated-2026-09-24/device-tokens.txt` (Modus
   `0600`). Der aktuelle `pixel`-Token muss noch auf den Clients eingespielt
   und anschließend geprüft werden.
-- `/tmp/uacc-hub.log` wurde nach dem Stop mit `shred -u -n 1` entfernt; der
+- `/tmp/ancientvoid-hub.log` wurde nach dem Stop mit `shred -u -n 1` entfernt; der
   Remote-Host `silenttz-server` hatte kein gleichnamiges Log. Der neu
   gestartete Log liegt mit Modus `0600` vor.
 - `silenttz-server` wurde per einmaligem Invite neu gekoppelt. `/api/fleet`
@@ -362,10 +362,10 @@ ENOSPC und Retention-Löschlauf.
 
 Nach ausdrücklicher Nutzerfreigabe wurde der lokale Hub am 2026-09-24 erneut
 sauber gestoppt. Verifiziert: PID-Datei und Port 7373 geschlossen, SQLite-WAL
-und SHM entfernt. `/tmp/uacc-hub.log` war Modus `0600` und wurde nach dem Stop
+und SHM entfernt. `/tmp/ancientvoid-hub.log` war Modus `0600` und wurde nach dem Stop
 mit `shred -u -n 1` entfernt. Der Hub bleibt für den Gerätewechsel bewusst aus.
 Das bestehende Tokenarchiv unter
-`/home/silenttz/.config/uacc/rotated-2026-09-24/device-tokens.txt` ist
+`/home/silenttz/.config/ancientvoid/rotated-2026-09-24/device-tokens.txt` ist
 vorhanden, nicht leer und Modus `0600`; die Tokens wurden nicht ein zweites
 Mal rotiert, damit die noch einzuspielenden Client-Tokens gültig bleiben (Stand
 dieser damaligen Prüfung).
@@ -388,7 +388,7 @@ live geprüft bzw. geändert:
   Port 7373 und PID-Lock waren frei. Kein Prozess hielt DB/WAL/SHM offen.
 - `diag` und `pixel` wurden erneut widerrufen und ausgestellt. Die neuen
   Klartextwerte liegen ausschließlich in
-  `~/.config/uacc/rotated-2026-09-24/device-tokens.txt` (77 Byte, Modus
+  `~/.config/ancientvoid/rotated-2026-09-24/device-tokens.txt` (77 Byte, Modus
   `0600`); beide SHA-256-Hashes wurden gegen die aktiven DB-Zeilen geprüft.
   Die Werte sind noch nicht auf dem Handy bzw. anderen Clients eingespielt.
 - `silenttz-server` wurde über den SSH-Alias mit frischem Einmal-Invite neu
@@ -402,13 +402,13 @@ live geprüft bzw. geändert:
   `Permission denied (publickey,password)` abgewiesen. Es wurde weder ein
   Token widerrufen noch der Peer verändert. Die Fleet-Rotation bleibt offen,
   bis ein gezielter Service-/Admin-Zugang vorliegt.
-- `/tmp/uacc-hub.log` war bereits nicht vorhanden; es wurde in diesem Schritt
+- `/tmp/ancientvoid-hub.log` war bereits nicht vorhanden; es wurde in diesem Schritt
   keine Logdatei gelöscht. `data/hub.db` bestand `PRAGMA integrity_check` und
   `PRAGMA wal_checkpoint(TRUNCATE)` (busy=0); anschließend lagen keine
   WAL/SHM-Dateien oder offenen DB-Handles vor.
 
 Nach den Credential-Änderungen wurde ein neues verschlüsseltes Produktivbackup
-`~/.local/share/uacc/backups/uacc-2026-09-24-after-rotation.uaccbak`
+`~/.local/share/ancientvoid/backups/ancientvoid-2026-09-24-after-rotation.ancientvoidbak`
 erstellt (852.535 Byte, Modus `0600`). Der isolierte Restore bestätigte
 `integrity_check=ok`, sieben Sessions (eine `error`, sechs `stopped`), die
 aktiven Labels `diag`/`pixel`, beide Fleet-Peer-Zeilen und Modus `0700` für das
@@ -425,7 +425,7 @@ gestoppt und das temporäre Log entfernt. Dabei zeigte sich, dass die alte
 Startumleitung unter Benutzer-umask ein Log mit Modus `0644` anlegen konnte
 (BUG-0029). `hub.sh` setzt nun `umask 077` und erzwingt Modus `0600`; erneuter
 Start bei umask `0022` ergab Modus `0600` und Health 200. Der Hub ist wieder
-aus, Port/PID/WAL/SHM sind frei, und `/tmp/uacc-hub.log` ist entfernt.
+aus, Port/PID/WAL/SHM sind frei, und `/tmp/ancientvoid-hub.log` ist entfernt.
 
 Offen bleiben das Einspielen und Prüfen der aktuellen lokalen Tokens auf den
 Geräten. Der Scan belegt die Journals seit dem jeweiligen verfügbaren Zeitraum,
@@ -440,15 +440,15 @@ Q4_K_M-Modell (1.929.901.056 Byte, SHA-256
 der Q8_0-mmproj (844.757.728 Byte, SHA-256
 `980c9b2f78c04e6cff93d277ada09e768394f112d75db3b4e9dea8a69f9fb904`)
 geladen. Beide Dateien sowie beide API-Schlüssel haben Modus `0600`; der
-schlüsselgeschützte Dienst `uacc-vision` ist auf Tailnet-IP `:8095` aktiv.
+schlüsselgeschützte Dienst `ancientvoid-vision` ist auf Tailnet-IP `:8095` aktiv.
 `GET /v1/models` wurde ohne Schlüssel mit HTTP 401 und mit Schlüssel mit
 HTTP 200 beantwortet.
-UACC-Text, STT, Halogen-Server, Live-Proxy und Wächter blieben aktiv. Nach
+AncientVoid-Text, STT, Halogen-Server, Live-Proxy und Wächter blieben aktiv. Nach
 dem Vision-Modellstart standen 29 GiB von 123 GiB Unified Memory verfügbar;
 im Home-Dateisystem blieben 51 GiB frei.
 
 Die lokale Hub-Config wurde mit geschütztem Vorher-Backup um `media.vision`
-ergänzt (`qwen-vl`, `apiKeyFile: ~/.config/uacc/vision.key`) und auf
+ergänzt (`qwen-vl`, `apiKeyFile: ~/.config/ancientvoid/vision.key`) und auf
 `maxFrames: 30` gesetzt. `HubConfig`-Parsing war erfolgreich. Für die
 Stichprobe extrahierte FFmpeg 30 gleichmäßig verteilte JPEGs aus
 `packages/core/test/fixtures/media/slides.mp4` (18 s, 469.636 Byte). Die
@@ -524,7 +524,7 @@ Dateien / 637 Tests grün; Playwright 151 bestanden, 2 sichtbar übersprungen.
 
 Das synthetische Piper-E2E-Diktat `e2e/live/fixtures/diktat-npm-test.webm`
 (3,81 s) wurde in 16-kHz-Mono-WAV konvertiert und 20-mal parallel direkt an den lokalen
-`uacc-stt`-Dienst auf evox2 geschickt. 20/20 Antworten waren HTTP 200 mit
+`ancientvoid-stt`-Dienst auf evox2 geschickt. 20/20 Antworten waren HTTP 200 mit
 nichtleerem Text. End-to-End am Backend: p50 2,81 s, p90 4,95 s, p95 5,24 s,
 Maximum 5,53 s; alle Requests endeten in 5,57 s. Das liegt über der
 2-s-Schwelle, ist aber nur ein synthetischer Backend-Baseline-Lauf: Hub-
@@ -587,7 +587,7 @@ Engine-/Workflow-Code umfassen `run.started` (`graph`, `task`),
 Damit lassen sich Ereignisnamen und diese Quell-Payloads statisch zuordnen;
 ein echter Lauf bzw. dessen JSONL wurde dabei nicht abgerufen.
 
-Blocker für einen sicheren UACC-Freigabefluss: `ApprovalRequest` speichert
+Blocker für einen sicheren AncientVoid-Freigabefluss: `ApprovalRequest` speichert
 `request_id`, `node`, `reason`, `diff_preview` und `created_at`, doch die
 Engine emittiert bei `approval.requested` nur `{node}`. `RunSummary`/`RunDetail`
 geben ebenfalls nur `pending_approval: bool` heraus. Das Admin-geschützte

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { STT_STREAM_MAX_ACTIVE, STT_STREAM_MAX_AUDIO_BYTES, STT_STREAM_MAX_BUFFERED_BYTES, STT_STREAM_MAX_EVENT_BYTES, STT_STREAM_MAX_PENDING_TICKETS, STT_STREAM_MAX_TEXT_BYTES, STT_STREAM_TICKET_TTL_MS, type SttStreamEvent, type SttStreamTicket } from "@uacc/contracts";
+import { STT_STREAM_MAX_ACTIVE, STT_STREAM_MAX_AUDIO_BYTES, STT_STREAM_MAX_BUFFERED_BYTES, STT_STREAM_MAX_EVENT_BYTES, STT_STREAM_MAX_PENDING_TICKETS, STT_STREAM_MAX_TEXT_BYTES, STT_STREAM_TICKET_TTL_MS, type SttStreamEvent, type SttStreamTicket } from "@ancientvoid/contracts";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import WebSocket, { type RawData } from "ws";
 import { extractToken } from "../../platform/auth.ts";

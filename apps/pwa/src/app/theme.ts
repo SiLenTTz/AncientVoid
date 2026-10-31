@@ -1,4 +1,4 @@
-const THEME_KEY = "uacc.theme";
+const THEME_KEY = "ancientvoid.theme";
 
 export type Theme = "dark" | "light";
 

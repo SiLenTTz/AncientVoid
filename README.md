@@ -21,15 +21,15 @@ Alles ist über Verträge (Contracts) gesteckt, nichts ist im Hub hartverdrahtet
 
 | Baustein | Package | Erweiterbar durch |
 |---|---|---|
-| Verträge (Events, Adapter, Worker, WS-Protokoll) | `@uacc/contracts` | — (Stabilitätsgarantie) |
-| Hub-Kern (EventStore, Sessions, Registry, DB) | `@uacc/core` | interne Erweiterung via ADR |
-| Worker-Runner (tmux / child_process) | `@uacc/workers` | eigene Runner (WSL, remote, …) |
-| **Adapter** (Provider, Coding-Tools, lokale Modelle) | `@uacc/adapter-*` | **eigene Endpunkte — s. unten** |
-| Adapter-Testkit (Contract-Tests) | `@uacc/adapter-testkit` | — |
-| Daemon (REST/WS, Auth, PWA-Serving) | `@uacc/server` | — |
-| CLI-Referenzclient | `@uacc/hubctl` | — |
-| PWA (dark-first, offline-tolerant) | `@uacc/pwa` | — |
-| MCP-Gateway-Sidecar (T4.6, default **aus**) | `@uacc/gateway-mcp` | eigene Operationen — s. [dessen README](apps/gateway-mcp/README.md) |
+| Verträge (Events, Adapter, Worker, WS-Protokoll) | `@ancientvoid/contracts` | — (Stabilitätsgarantie) |
+| Hub-Kern (EventStore, Sessions, Registry, DB) | `@ancientvoid/core` | interne Erweiterung via ADR |
+| Worker-Runner (tmux / child_process) | `@ancientvoid/workers` | eigene Runner (WSL, remote, …) |
+| **Adapter** (Provider, Coding-Tools, lokale Modelle) | `@ancientvoid/adapter-*` | **eigene Endpunkte — s. unten** |
+| Adapter-Testkit (Contract-Tests) | `@ancientvoid/adapter-testkit` | — |
+| Daemon (REST/WS, Auth, PWA-Serving) | `@ancientvoid/server` | — |
+| CLI-Referenzclient | `@ancientvoid/hubctl` | — |
+| PWA (dark-first, offline-tolerant) | `@ancientvoid/pwa` | — |
+| MCP-Gateway-Sidecar (T4.6, default **aus**) | `@ancientvoid/gateway-mcp` | eigene Operationen — s. [dessen README](apps/gateway-mcp/README.md) |
 
 ### Eigene Endpunkte anbinden (der normale Weg, kein Fork nötig)
 
@@ -100,11 +100,11 @@ node apps/hub/src/main.ts            # lauscht auf 127.0.0.1:7373
 node apps/hubctl/src/cli.ts token issue "pixel-9" --db data/hub.db
 
 # Session erzeugen / tailen
-UACC_TOKEN=<token> node apps/hubctl/src/cli.ts sessions
-UACC_TOKEN=<token> node apps/hubctl/src/cli.ts tail <sessionId> -f
+ANCIENTVOID_TOKEN=<token> node apps/hubctl/src/cli.ts sessions
+ANCIENTVOID_TOKEN=<token> node apps/hubctl/src/cli.ts tail <sessionId> -f
 
 # PWA bauen (wird vom Hub unter / ausgeliefert, sobald gebaut)
-npm -w @uacc/pwa run build
+npm -w @ancientvoid/pwa run build
 
 # Fürs Handy: über Tailscale serve exponieren (kein öffentlicher Port!)
 scripts/setup-tailscale-serve.sh
@@ -120,7 +120,7 @@ Verschlüsselte Sicherungen: [Backup/Restore-Runbook](docs/backup-restore.md).
 | K5 | Event-Payload ≤ 4 KB, Rest in Blobs | EventStore-Kappung + `blob_ref`, Property-getestet |
 | K7 | kill -9 → 100 % State-Restore < 3 s | JSONL-Replay + Snapshot + `adapter.recover()` |
 | K8 | 20 Sessions × 30 ev/s ohne Verlust | `npm run loadtest` (grün: 605 ev/s aggregiert) |
-| K10 | PWA offline: letzte Projektion + Zeitstempel | Service Worker mit `X-UACC-Cached-At` |
+| K10 | PWA offline: letzte Projektion + Zeitstempel | Service Worker mit `X-AncientVoid-Cached-At` |
 
 ## Sicherheit (PRD §8)
 

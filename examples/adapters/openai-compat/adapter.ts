@@ -17,7 +17,7 @@
  *     }
  *   }
  *
- * The ONLY thing an adapter is allowed to touch is @uacc/contracts —
+ * The ONLY thing an adapter is allowed to touch is @ancientvoid/contracts —
  * everything else the hub provides via AdapterContext.
  */
 import { z } from "zod";
@@ -30,7 +30,7 @@ import type {
   SessionHandle,
   SessionSpec,
   SteerInput,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 
 const EndpointConfig = z.object({
   baseUrl: z.string().url(),

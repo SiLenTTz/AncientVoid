@@ -1,5 +1,5 @@
 import { isAbsolute, relative, resolve } from "node:path";
-import { QUESTION_TOOLS, stricterGate, stricterRisk, type RuleVerdict, type SecurityGate, type ToolRisk } from "@uacc/contracts";
+import { QUESTION_TOOLS, stricterGate, stricterRisk, type RuleVerdict, type SecurityGate, type ToolRisk } from "@ancientvoid/contracts";
 
 /**
  * T7.9: fixed rules — the floor under the model. They catch the obvious
@@ -13,7 +13,7 @@ const FETCH_TOOLS = new Set(["WebFetch", "WebSearch", "Web-Abruf", "webfetch", "
 const SHELL_TOOLS = new Set(["Bash", "Shell", "bash", "shell", "commandExecution", "execute", "terminal"]);
 
 /** Secrets and places an agent has no business reading or writing. */
-const SECRET = /(\.ssh\/|id_(rsa|ed25519|ecdsa)|\.gnupg|\.aws\/credentials|\.netrc|\.npmrc|\.pypirc|\.docker\/config\.json|\/etc\/shadow|\.env\b|secrets?\.(json|ya?ml|toml)|\.kube\/config|\.config\/gh\/hosts|uacc.*\.db|hub\.db|keychain|\bprintenv\b|\benv\s*(\||>|$))/i;
+const SECRET = /(\.ssh\/|id_(rsa|ed25519|ecdsa)|\.gnupg|\.aws\/credentials|\.netrc|\.npmrc|\.pypirc|\.docker\/config\.json|\/etc\/shadow|\.env\b|secrets?\.(json|ya?ml|toml)|\.kube\/config|\.config\/gh\/hosts|ancientvoid.*\.db|hub\.db|keychain|\bprintenv\b|\benv\s*(\||>|$))/i;
 const NETWORK = /\b(curl|wget|nc|ncat|netcat|scp|sftp|rsync|ssh|ftp|telnet|socat|Invoke-WebRequest|iwr)\b/i;
 const UPLOAD = /(\s-d\s|\s--data(-\w+)?[\s=]|\s-F\s|\s--form\b|\s-T\s|\s--upload-file\b|-X\s*(POST|PUT|PATCH)|\bscp\b|\brsync\b.*:|\bnc\b.*\d+\s*<|\|\s*(curl|nc|wget)\b)/i;
 const PIPE_TO_SHELL = /(curl|wget)[^|]*\|\s*(sudo\s+)?(ba|z|da)?sh\b|\beval\s+"?\$\((curl|wget)/i;

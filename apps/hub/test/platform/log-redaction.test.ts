@@ -3,8 +3,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Writable } from "node:stream";
-import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { createHubApp, redactUrl } from "../../src/app.ts";
 
 describe("no credentials in logs (BUG-0028, AC-P6-2)", () => {
@@ -16,7 +16,7 @@ describe("no credentials in logs (BUG-0028, AC-P6-2)", () => {
   });
 
   it("the request log never contains a token from the URL", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-redact-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-redact-"));
     const lines: string[] = [];
     const logStream = new Writable({
       write(chunk, _enc, cb) {

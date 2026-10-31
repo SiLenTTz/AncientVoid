@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { makeRecordingContext } from "@uacc/adapter-testkit";
+import { makeRecordingContext } from "@ancientvoid/adapter-testkit";
 import { createAdapter } from "../src/index.ts";
 import { transcriptEvents } from "../src/transcript.ts";
 import { createPiStream } from "../src/normalize.ts";

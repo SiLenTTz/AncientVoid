@@ -10,7 +10,7 @@ import type {
   SessionSpec,
   SteerInput,
   WorkerProcess,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 import { normalizeCodexLine, summarize } from "./normalize.ts";
 import { createAppServerAdapter } from "./app-server.ts";
 

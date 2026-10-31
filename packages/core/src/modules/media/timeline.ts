@@ -1,4 +1,4 @@
-import { parseTimestamp, type Chapter, type TranscriptSegment } from "@uacc/contracts";
+import { parseTimestamp, type Chapter, type TranscriptSegment } from "@ancientvoid/contracts";
 
 /**
  * T10.5.3/T10.5.5: pure helpers for the timeline — subtitles in, compact

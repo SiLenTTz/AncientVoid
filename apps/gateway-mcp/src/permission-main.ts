@@ -4,16 +4,16 @@
  * per-session MCP config the hub writes (mode 0600, token inside — never on
  * a command line).
  *
- *   UACC_HUB_URL=http://127.0.0.1:7373 UACC_BRIDGE_TOKEN=… UACC_SESSION_ID=…
+ *   ANCIENTVOID_HUB_URL=http://127.0.0.1:7373 ANCIENTVOID_BRIDGE_TOKEN=… ANCIENTVOID_SESSION_ID=…
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { buildPermissionServer } from "./permission.ts";
 
-const hubUrl = process.env.UACC_HUB_URL;
-const token = process.env.UACC_BRIDGE_TOKEN;
-const sessionId = process.env.UACC_SESSION_ID;
+const hubUrl = process.env.ANCIENTVOID_HUB_URL;
+const token = process.env.ANCIENTVOID_BRIDGE_TOKEN;
+const sessionId = process.env.ANCIENTVOID_SESSION_ID;
 if (!hubUrl || !token || !sessionId) {
-  console.error("[uacc-permission] UACC_HUB_URL, UACC_BRIDGE_TOKEN and UACC_SESSION_ID are required.");
+  console.error("[ancientvoid-permission] ANCIENTVOID_HUB_URL, ANCIENTVOID_BRIDGE_TOKEN and ANCIENTVOID_SESSION_ID are required.");
   process.exit(1);
 }
 await buildPermissionServer({ hubUrl, token, sessionId }).connect(new StdioServerTransport());

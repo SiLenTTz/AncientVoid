@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CommandContext } from "@uacc/contracts";
+import { CommandContext } from "@ancientvoid/contracts";
 import { planCommand } from "../../../src/index.ts";
 import { CASES, DATA, type Expect } from "./eval-set.ts";
 

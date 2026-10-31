@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
  * Smoke test against a RUNNING hub (after each epic: restart, then this).
  * Read-only: no session is started, nothing is decided, nothing costs.
  *
- *   UACC_LIVE_URL=http://127.0.0.1:7373 UACC_LIVE_TOKEN=… npx playwright test -c playwright.live.config.ts
+ *   ANCIENTVOID_LIVE_URL=http://127.0.0.1:7373 ANCIENTVOID_LIVE_TOKEN=… npx playwright test -c playwright.live.config.ts
  *
  * `npm run test:live` issues a temporary device token and revokes it.
  */

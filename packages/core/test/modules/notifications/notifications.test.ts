@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Adapter } from "@uacc/contracts";
-import { basicFeatures } from "@uacc/contracts";
-import { providerErrorEvent } from "@uacc/contracts";
+import type { Adapter } from "@ancientvoid/contracts";
+import { basicFeatures } from "@ancientvoid/contracts";
+import { providerErrorEvent } from "@ancientvoid/contracts";
 import { notificationFor } from "../../../src/modules/notifications/index.ts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
-import { ProcessRunner } from "@uacc/workers";
+import { ProcessRunner } from "@ancientvoid/workers";
 
 /** One worker per turn; "LIMIT" makes the provider fail with a quota error. */
 function provider(): Adapter {
@@ -47,7 +47,7 @@ async function waitFor(check: () => boolean): Promise<void> {
 
 describe("notifications feed (ADR-0015)", () => {
   it("records errors, finished turns and approvals once, readable and in order", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-notif-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-notif-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("fake", provider);

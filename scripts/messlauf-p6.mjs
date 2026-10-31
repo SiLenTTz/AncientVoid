@@ -2,7 +2,7 @@
 /**
  * Messlauf EPIC-P6 (T6.5) against the real fleet over the tailnet.
  *
- *   UACC_TOKEN=<device token of the home hub> node scripts/messlauf-p6.mjs <step>
+ *   ANCIENTVOID_TOKEN=<device token of the home hub> node scripts/messlauf-p6.mjs <step>
  *
  * Steps: sessions (AC-P6-1, K8) · routing (AC-P6-2, K1) · outage (AC-P6-3, 5 min)
  *        revoke (AC-P6-4) · incompatible (AC-P6-5) · logs (credentials, AC-P6-2)
@@ -20,13 +20,13 @@ import { DatabaseSync } from "node:sqlite";
 import WebSocket from "ws";
 
 const HOME = "http://127.0.0.1:7373";
-const TOKEN = process.env.UACC_TOKEN ?? "";
+const TOKEN = process.env.ANCIENTVOID_TOKEN ?? "";
 const HOSTS = {
-  "silenttz-server": { ssh: "silenttz@silenttz-server.tail6d2826.ts.net", project: "/home/silenttz/uacc-alpha" },
-  evox2: { ssh: "securesight@evox2-securesight.tail6d2826.ts.net", project: "/home/securesight/uacc-projects/uacc-alpha" },
+  "silenttz-server": { ssh: "silenttz@silenttz-server.tail6d2826.ts.net", project: "/home/silenttz/ancientvoid-alpha" },
+  evox2: { ssh: "securesight@evox2-securesight.tail6d2826.ts.net", project: "/home/securesight/ancientvoid-projects/ancientvoid-alpha" },
 };
-const REMOTE_HUBCTL = "cd ~/mobile-hub && node apps/hubctl/src/cli.ts";
-const REMOTE_DB = "--db ~/.local/share/uacc/hub.db";
+const REMOTE_HUBCTL = "cd ~/AncientVoid && node apps/hubctl/src/cli.ts";
+const REMOTE_DB = "--db ~/.local/share/ancientvoid/hub.db";
 
 function api(path, init = {}) {
   const payload = init.body === undefined ? undefined : JSON.stringify(init.body);
@@ -96,11 +96,11 @@ async function sessionsStep() {
   }
   const keys = last.sessions.map((s) => `${s.hostId}/${s.id}`);
   const perHost = Object.fromEntries(last.hosts.map((h) => [h.hostId, `${h.sessions} (${h.state})`]));
-  const alphaHosts = new Set(last.sessions.filter((s) => s.project.endsWith("/uacc-alpha")).map((s) => s.hostId));
+  const alphaHosts = new Set(last.sessions.filter((s) => s.project.endsWith("/ancientvoid-alpha")).map((s) => s.hostId));
   console.log("AC-P6-1 / K8 — Flottenübersicht");
   console.log("  pro Host:", JSON.stringify(perHost));
   console.log(`  gesamt: ${last.sessions.length}, doppelte Schlüssel: ${keys.length - new Set(keys).size}`);
-  console.log(`  gleichnamiges Projekt uacc-alpha getrennt auf: ${[...alphaHosts].sort().join(", ")}`);
+  console.log(`  gleichnamiges Projekt ancientvoid-alpha getrennt auf: ${[...alphaHosts].sort().join(", ")}`);
   console.log("  GET /api/fleet:", stats(times));
   const ok = last.sessions.length >= 20 && last.hosts.every((h) => h.state === "reachable" && h.sessions >= 2) && keys.length === new Set(keys).size && alphaHosts.size === 2;
   console.log(`  verdict: ${ok ? "PASS" : "FAIL"}`);
@@ -153,7 +153,7 @@ async function outageStep() {
   if (ack.status !== 200) throw new Error("steer before outage failed");
   const before = (await api(`/api/hosts/${host}/sessions/${target.id}/events?limit=2000`)).body.map((e) => `${e.seq}|${e.type}|${e.summary}`);
   const syncedBefore = hostOf(await fleet(), host).lastSyncAt;
-  ssh(host, "systemctl --user stop uacc-hub");
+  ssh(host, "systemctl --user stop ancientvoid-hub");
   const t0 = Date.now();
   let checks = 0;
   let othersOk = 0;
@@ -169,7 +169,7 @@ async function outageStep() {
     checks++;
     await sleep(30_000);
   }
-  ssh(host, "systemctl --user start uacc-hub");
+  ssh(host, "systemctl --user start ancientvoid-hub");
   const reconnectStart = Date.now();
   await until(async () => hostOf(await fleet(), host).state === "reachable", `${host} back`, 60_000);
   const reconnectMs = Date.now() - reconnectStart;
@@ -267,9 +267,9 @@ async function logsStep() {
     }
   };
   const sources = {
-    omarchy: readFileSync("/tmp/uacc-hub.log", "utf8").split("\n").filter((l) => stamp(l) >= since).join("\n"),
+    omarchy: readFileSync("/tmp/ancientvoid-hub.log", "utf8").split("\n").filter((l) => stamp(l) >= since).join("\n"),
   };
-  for (const host of Object.keys(HOSTS)) sources[host] = ssh(host, "journalctl --user -u uacc-hub --no-pager --since today");
+  for (const host of Object.keys(HOSTS)) sources[host] = ssh(host, "journalctl --user -u ancientvoid-hub --no-pager --since today");
   let leaks = 0;
   for (const [name, text] of Object.entries(sources)) {
     const raw = (text.match(/[?&]token=(?!\[redacted\])[A-Za-z0-9_-]{8,}/g) ?? []).length;
@@ -283,7 +283,7 @@ async function logsStep() {
 const steps = { sessions: sessionsStep, routing: routingStep, outage: outageStep, revoke: revokeStep, incompatible: incompatibleStep, logs: logsStep };
 const step = steps[process.argv[2] ?? ""];
 if (!step || !TOKEN) {
-  console.error(`usage: UACC_TOKEN=… node scripts/messlauf-p6.mjs ${Object.keys(steps).join("|")}`);
+  console.error(`usage: ANCIENTVOID_TOKEN=… node scripts/messlauf-p6.mjs ${Object.keys(steps).join("|")}`);
   process.exit(2);
 }
 await step();

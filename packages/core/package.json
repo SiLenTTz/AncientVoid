@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/core",
+  "name": "@ancientvoid/core",
   "version": "0.1.0",
   "description": "AncientVoid hub kernel: EventStore (JSONL + blobs), SessionManager lifecycle, adapter registry with dynamic module loading, SQLite persistence.",
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
     "fflate": "^0.8.3",
     "web-push": "^3.6.7",
     "zod": "^4.6.5"

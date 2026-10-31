@@ -3,7 +3,7 @@
  * session (last event seq seen here). Per device on purpose: the phone
  * has not read what the PC showed.
  */
-const KEY = "uacc.seen";
+const KEY = "ancientvoid.seen";
 
 type SeenMap = Record<string, number>;
 

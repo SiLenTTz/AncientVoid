@@ -17,9 +17,9 @@ reporter: "Claude Sonnet 5 (Session 012Ga2NDi683xR9E63StoN7T)"
 ## Gesehen
 
 `docs/adapters.md` und `AGENTS.md` nennen `runContractTests()` aus
-`@uacc/adapter-testkit` als **die** Pflichtprüfung vor Hub-Integration
-("Adapter bekommen die Suite aus `@uacc/adapter-testkit` — grün =
-hub-integrierbar"). Beim Bau von `@uacc/adapter-claude` (T1.2, EPIC-P1)
+`@ancientvoid/adapter-testkit` als **die** Pflichtprüfung vor Hub-Integration
+("Adapter bekommen die Suite aus `@ancientvoid/adapter-testkit` — grün =
+hub-integrierbar"). Beim Bau von `@ancientvoid/adapter-claude` (T1.2, EPIC-P1)
 zeigte sich: `runContractTests()` erzeugt seinen `AdapterContext` intern
 fest über `makeRecordingContext()` ohne Override-Möglichkeit
 (`packages/adapter-testkit/src/index.ts:107`), und dessen
@@ -47,7 +47,7 @@ Adapter seine eigene, parallele Lifecycle-Test-Infrastruktur nachbauen muss.
 ```bash
 # In packages/adapter-claude/test (oder jedem neuen Adapter mit spawnWorker):
 node -e '
-import("@uacc/adapter-testkit").then(async ({ runContractTests }) => {
+import("@ancientvoid/adapter-testkit").then(async ({ runContractTests }) => {
   import("../src/index.ts").then(async ({ createAdapter }) => {
     const results = await runContractTests(createAdapter);
     console.log(results.find(r => r.name.startsWith("start()")));

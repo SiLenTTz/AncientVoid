@@ -3,10 +3,10 @@ import { createServer, type Server } from "node:http";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { ProcessRunner } from "@uacc/workers";
-import { createHubApp } from "@uacc/hub";
+import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createHubApp } from "@ancientvoid/hub";
 import { askHub } from "../src/permission.ts";
 
 /** T7.2: the bridge claude starts — against a real, listening hub. */
@@ -17,7 +17,7 @@ describe("permission bridge (T7.2)", () => {
   });
 
   async function realHub() {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-bridge-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-bridge-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });

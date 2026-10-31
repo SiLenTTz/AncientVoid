@@ -1,9 +1,9 @@
 import { readdir, readlink } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
-import { DEFAULT_SERVER, discoverTmuxServers, listServerWorkers } from "@uacc/workers";
-import { HubDatabase, pruneWorktrees, scanWorktrees, WorktreeManager, type WorktreeEntry, type WorktreeSessionRow } from "@uacc/core";
+import { DEFAULT_SERVER, discoverTmuxServers, listServerWorkers } from "@ancientvoid/workers";
+import { HubDatabase, pruneWorktrees, scanWorktrees, WorktreeManager, type WorktreeEntry, type WorktreeSessionRow } from "@ancientvoid/core";
 
-/** T17.6/ADR-0037: a live uacc worker carrying this session's @uacc_session
+/** T17.6/ADR-0037: a live ancientvoid worker carrying this session's @ancientvoid_session
  * marker — prune's primary "in use" signal. Exact session identity, works
  * even when the pane process has left the worktree directory. */
 async function markerInUse(servers: readonly string[], sessionId: string): Promise<boolean> {
@@ -82,7 +82,7 @@ export async function runWorktrees(args: string[], print: (text: string) => void
   const free = entries.filter((e) => e.prunable).reduce((sum, e) => sum + e.sizeBytes, 0);
   print(`${entries.length} Worktrees, ${mib(total)}; entfernbar: ${entries.filter((e) => e.prunable).length} (${mib(free)})`);
   if (heuristicHits > 0) {
-    print(`Hinweis: ${heuristicHits} Worktree(s) nur über cwd-Heuristik als aktiv erkannt — kein @uacc_session-Marker (Hub vor T17.5?)`);
+    print(`Hinweis: ${heuristicHits} Worktree(s) nur über cwd-Heuristik als aktiv erkannt — kein @ancientvoid_session-Marker (Hub vor T17.5?)`);
   }
   if (sub === "list") return;
   const apply = args.includes("--apply");

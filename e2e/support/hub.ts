@@ -66,8 +66,8 @@ function makeProject(root: string, name: string, readme: string, extra: Record<s
     writeFileSync(join(dir, path), content);
   }
   git(dir, "init", "-q", "-b", "main");
-  git(dir, "-c", "user.email=e2e@uacc.local", "-c", "user.name=e2e", "add", "-A");
-  git(dir, "-c", "user.email=e2e@uacc.local", "-c", "user.name=e2e", "commit", "-q", "-m", "init");
+  git(dir, "-c", "user.email=e2e@ancientvoid.local", "-c", "user.name=e2e", "add", "-A");
+  git(dir, "-c", "user.email=e2e@ancientvoid.local", "-c", "user.name=e2e", "commit", "-q", "-m", "init");
   return dir;
 }
 
@@ -95,7 +95,7 @@ export class TestHub {
   private constructor(options: HubOptions) {
     this.options = options;
     // Short prefix: tmux socket paths are limited to ~100 bytes.
-    this.root = mkdtempSync(join(tmpdir(), "uacc-e2e-"));
+    this.root = mkdtempSync(join(tmpdir(), "ancientvoid-e2e-"));
     this.dataDir = join(this.root, "data");
     this.projectsDir = join(this.root, "projects");
     this.tmuxDir = join(this.root, "tmux");
@@ -161,13 +161,13 @@ export class TestHub {
       discovery: { claudeDir: join(this.root, "claude"), claudeCommand: join(binDir, "claude"), cursorUserDir: join(this.root, "cursor"), opencodeDataDir: this.root, piDir: join(this.root, "pi-sessions"), ompDir: join(this.root, "omp-sessions"), makiDir: join(this.root, "maki-sessions") },
       // EPIC-P19: ein deterministischer Loop ohne Fremdsystem (Fake aus dem Testkit).
       loops: [
-        { id: "fake-loop", module: "@uacc/adapter-testkit/fake-loop" },
-        { id: "securesight-factory", module: "@uacc/loop-securesight-factory", config: { pollMs: 500 } },
+        { id: "fake-loop", module: "@ancientvoid/adapter-testkit/fake-loop" },
+        { id: "securesight-factory", module: "@ancientvoid/loop-securesight-factory", config: { pollMs: 500 } },
       ],
       adapters: [
         {
           id: "dummy",
-          module: "@uacc/adapter-dummy",
+          module: "@ancientvoid/adapter-dummy",
           config: { eventsPerSecond: 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
         },
         {
@@ -176,43 +176,43 @@ export class TestHub {
           // stand-in from PATH. No spec starts a session on it (the
           // stand-in speaks headless, not ACP).
           id: "deepseek",
-          module: "@uacc/adapter-acp",
+          module: "@ancientvoid/adapter-acp",
           config: { preset: "dsh" },
         },
         {
           id: "opencode",
-          module: "@uacc/adapter-opencode",
+          module: "@ancientvoid/adapter-opencode",
           config: { command: join(binDir, "opencode"), model: "e2e/fake-model" },
         },
         {
           // T7.8: a stand-in claude CLI with the real stream-json shapes.
           id: "claude",
-          module: "@uacc/adapter-claude",
+          module: "@ancientvoid/adapter-claude",
           config: { command: join(binDir, "claude"), claudeDir: join(this.root, "claude") },
         },
         {
           // T7.2: codex in app-server mode (stand-in, real v2 protocol).
           id: "codex",
-          module: "@uacc/adapter-codex",
+          module: "@ancientvoid/adapter-codex",
           config: { command: join(binDir, "codex") },
         },
         {
           // T7.5: an observer — reads Claude transcripts, cannot steer.
           id: "claude-clip",
-          module: "@uacc/adapter-claude-clip",
+          module: "@ancientvoid/adapter-claude-clip",
           config: { claudeDir: join(this.root, "claude"), pollIntervalMs: 200 },
         },
         {
           // cursor-agent CLI stand-in: claude-style stream-json, --resume,
           // --list-models (adapter-cursor).
           id: "cursor",
-          module: "@uacc/adapter-cursor",
+          module: "@ancientvoid/adapter-cursor",
           config: { command: join(binDir, "cursor-agent"), model: "auto" },
         },
         {
           // BUG-0065/0066: pi coding agent stand-in (`pi -p --mode json`).
           id: "pi",
-          module: "@uacc/adapter-pi",
+          module: "@ancientvoid/adapter-pi",
           config: { command: join(binDir, "pi"), model: "evo/qwen-e2e", contextWindowTokens: 131072 },
         },
         {
@@ -220,7 +220,7 @@ export class TestHub {
           // Harnez pattern: a configured default model plus a listing
           // command, so the start form shows a dropdown with the default.
           id: "acp",
-          module: "@uacc/adapter-acp",
+          module: "@ancientvoid/adapter-acp",
           config: {
             command: [join(binDir, "acp-agent")],
             label: "ACP-Agent",
@@ -257,8 +257,8 @@ export class TestHub {
   private async boot(): Promise<void> {
     const env: NodeJS.ProcessEnv = {
       ...process.env,
-      UACC_CONFIG: this.configPath,
-      UACC_LOG: "warn",
+      ANCIENTVOID_CONFIG: this.configPath,
+      ANCIENTVOID_LOG: "warn",
       PATH: `${binDir}:${process.env.PATH ?? ""}`,
       TMUX_TMPDIR: this.tmuxDir,
       QMD_E2E_STATE: join(this.root, "qmd-state.json"),

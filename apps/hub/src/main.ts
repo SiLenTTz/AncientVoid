@@ -2,16 +2,16 @@
 /**
  * AncientVoid hub daemon entry.
  *
- *   UACC_CONFIG=./hub.config.json node src/main.ts
+ *   ANCIENTVOID_CONFIG=./hub.config.json node src/main.ts
  *
  * Boot order (P0): config → db → adapters → recovery (K7) → HTTP/WS → PWA.
  */
 import { chmodSync, mkdirSync, existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir, hostname } from "node:os";
-import { toHostId } from "@uacc/contracts";
+import { toHostId } from "@ancientvoid/contracts";
 import { resolve } from "node:path";
-import type { WorkerRunner, DiscoverySource } from "@uacc/contracts";
+import type { WorkerRunner, DiscoverySource } from "@ancientvoid/contracts";
 import {
   Gatekeeper,
   PushService,
@@ -49,16 +49,16 @@ import {
   opencodeDiscoverySource,
   piFamilyDiscoverySource,
   type HubConfig,
-} from "@uacc/core";
-import { TmuxRunner, ProcessRunner } from "@uacc/workers";
-import type { AdapterFactory } from "@uacc/contracts";
+} from "@ancientvoid/core";
+import { TmuxRunner, ProcessRunner } from "@ancientvoid/workers";
+import type { AdapterFactory } from "@ancientvoid/contracts";
 import { createHubApp } from "./app.ts";
 import { createPermissionBridge } from "./modules/approvals/permission-bridge.ts";
 
 // `dummy` used to be hardcoded here, always visible in every real hub's
 // adapter list/status rows regardless of whether anyone wanted it — real
 // user feedback (2026-09-19): looks like test clutter next to genuine
-// providers. It's a completely normal adapter otherwise (@uacc/adapter-dummy,
+// providers. It's a completely normal adapter otherwise (@ancientvoid/adapter-dummy,
 // same registration path as claude/codex/etc.) — add it to
 // hub.config.json's own `adapters` array, same as any other adapter, when
 // you actually want it for local testing.
@@ -87,7 +87,7 @@ async function main(): Promise<void> {
   // Hub data includes local credentials and user content; future files,
   // WAL/SHM sidecars, worker logs and attachment directories stay private.
   process.umask(0o077);
-  const configPath = resolve(process.env.UACC_CONFIG ?? "hub.config.json");
+  const configPath = resolve(process.env.ANCIENTVOID_CONFIG ?? "hub.config.json");
   const { config } = await loadConfig(configPath);
   const dataDir = resolve(config.dataDir);
   mkdirSync(dataDir, { recursive: true, mode: 0o700 });
@@ -98,8 +98,8 @@ async function main(): Promise<void> {
   // real, honestly-documented default (isProjectPathAllowed() then
   // accepts any path — packages/core/src/projects.ts), but it was silent
   // at startup, unlike every other security-relevant default this hub
-  // already warns about (UACC_EXPOSE, WebAuthn's localhost-only rpId).
-  const logger = createJsonLogger({ fields: { service: "uacc-hub" } });
+  // already warns about (ANCIENTVOID_EXPOSE, WebAuthn's localhost-only rpId).
+  const logger = createJsonLogger({ fields: { service: "ancientvoid-hub" } });
   const metrics = new InMemoryMetrics();
   const startedAt = Date.now();
 
@@ -306,14 +306,14 @@ async function main(): Promise<void> {
     hostLabel: config.hostLabel ?? hostname(),
   });
 
-  const listen = config.server.host === "127.0.0.1" && process.env.UACC_EXPOSE === "1"
+  const listen = config.server.host === "127.0.0.1" && process.env.ANCIENTVOID_EXPOSE === "1"
     ? "0.0.0.0"
     : config.server.host;
   await app.listen({ port: config.server.port, host: listen });
   logger.info("listening", { host: config.server.host, port: config.server.port, dataDir });
   const resumed = media?.resume() ?? 0;
   if (resumed) logger.info("media jobs resumed", { count: resumed });
-  if (config.server.host === "127.0.0.1" && !process.env.UACC_EXPOSE) {
+  if (config.server.host === "127.0.0.1" && !process.env.ANCIENTVOID_EXPOSE) {
     logger.info("bound to loopback — expose via tailscale serve, never via public bind");
   }
 
@@ -335,7 +335,7 @@ async function main(): Promise<void> {
 
 main().catch(async (err) => {
   await releaseHubPidLock?.();
-  createJsonLogger({ fields: { service: "uacc-hub" } }).error("fatal", {
+  createJsonLogger({ fields: { service: "ancientvoid-hub" } }).error("fatal", {
     err: err instanceof Error ? err.message : String(err),
   });
   process.exit(1);

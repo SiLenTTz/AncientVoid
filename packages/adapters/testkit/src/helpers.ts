@@ -1,4 +1,4 @@
-import type { AdapterContext, EmittedEvent } from "@uacc/contracts";
+import type { AdapterContext, EmittedEvent } from "@ancientvoid/contracts";
 
 /** In-memory AdapterContext capturing everything an adapter does. */
 export interface RecordingContext extends AdapterContext {

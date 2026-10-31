@@ -21,22 +21,22 @@ describe("Dienstdatei des Hubs (BUG-0072)", () => {
 });
 
 describe("Desktop-Starter (BUG-0073)", () => {
-  const launcher = read("scripts/uacc-hub-app");
+  const launcher = read("scripts/ancientvoid-hub-app");
 
   it("startet über systemd, wenn die Dienstdatei da ist, statt einen zweiten Hub neben dem Dienst zu starten", () => {
-    expect(launcher).toMatch(/systemctl --user start uacc-hub\.service/);
-    expect(launcher).toMatch(/systemctl --user cat uacc-hub\.service/);
+    expect(launcher).toMatch(/systemctl --user start ancientvoid-hub\.service/);
+    expect(launcher).toMatch(/systemctl --user cat ancientvoid-hub\.service/);
   });
 
   it("ein eigener Hub-Prozess nur als Rückfall ohne Dienstdatei", () => {
     const before = launcher.slice(0, launcher.indexOf("setsid"));
-    expect(before).toMatch(/systemctl --user cat uacc-hub\.service/);
+    expect(before).toMatch(/systemctl --user cat ancientvoid-hub\.service/);
   });
 });
 
 describe("Heredoc der Dienstdatei", () => {
   it("enthält keine Backticks und kein $(…) außer dem Node-Pfad: im unquoted Heredoc würden sie ausgeführt", () => {
-    const m = /cat > "\$HOME\/\.config\/systemd\/user\/uacc-hub\.service" <<UNIT\n([\s\S]*?)\nUNIT\n/.exec(read("scripts/fleet-deploy.sh"));
+    const m = /cat > "\$HOME\/\.config\/systemd\/user\/ancientvoid-hub\.service" <<UNIT\n([\s\S]*?)\nUNIT\n/.exec(read("scripts/fleet-deploy.sh"));
     expect(m).not.toBeNull();
     const body = m[1].replace("$(command -v node)", "").replaceAll("$host_id", "").replaceAll("$HOME", "");
     expect(body).not.toMatch(/`/);

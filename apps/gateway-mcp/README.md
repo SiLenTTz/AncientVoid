@@ -1,4 +1,4 @@
-# `@uacc/gateway-mcp` — MCP sidecar (T4.6/T4.7, EPIC-P4)
+# `@ancientvoid/gateway-mcp` — MCP sidecar (T4.6/T4.7, EPIC-P4)
 
 Exposes the hub to an MCP-speaking agent (e.g. Claude Desktop, or Claude
 Code itself) through exactly three meta-tools — never more, per the
@@ -27,8 +27,8 @@ this process yourself, with your own real credentials:
 # Issue a real device token for the gateway (it's a device like any other)
 node apps/hubctl/src/cli.ts token issue "mcp-gateway" --db data/hub.db
 
-UACC_GATEWAY_URL=http://127.0.0.1:7373 \
-UACC_GATEWAY_TOKEN=<the token from above> \
+ANCIENTVOID_GATEWAY_URL=http://127.0.0.1:7373 \
+ANCIENTVOID_GATEWAY_TOKEN=<the token from above> \
 npm run gateway-mcp
 ```
 
@@ -38,12 +38,12 @@ for a client using an `mcpServers` JSON config:
 ```json
 {
   "mcpServers": {
-    "uacc-hub": {
+    "ancientvoid-hub": {
       "command": "node",
       "args": ["apps/gateway-mcp/src/main.ts"],
       "env": {
-        "UACC_GATEWAY_URL": "http://127.0.0.1:7373",
-        "UACC_GATEWAY_TOKEN": "<real device token>"
+        "ANCIENTVOID_GATEWAY_URL": "http://127.0.0.1:7373",
+        "ANCIENTVOID_GATEWAY_TOKEN": "<real device token>"
       }
     }
   }

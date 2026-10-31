@@ -1,4 +1,4 @@
-import type { SaveDraftInput, SessionDraft } from "@uacc/contracts";
+import type { SaveDraftInput, SessionDraft } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 interface DraftRow {

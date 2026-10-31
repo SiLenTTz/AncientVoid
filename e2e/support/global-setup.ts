@@ -4,5 +4,5 @@ import { repoRoot } from "./hub.ts";
 /** The hub serves apps/pwa/dist — build it fresh so the gate never
  * tests a stale bundle. */
 export default function globalSetup(): void {
-  execFileSync("npm", ["-w", "@uacc/pwa", "run", "build"], { cwd: repoRoot, stdio: "inherit" });
+  execFileSync("npm", ["-w", "@ancientvoid/pwa", "run", "build"], { cwd: repoRoot, stdio: "inherit" });
 }

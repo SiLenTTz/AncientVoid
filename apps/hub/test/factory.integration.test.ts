@@ -3,10 +3,10 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
-import { EventStore, HubDatabase, LoopRegistry, SessionManager, AdapterRegistry, TokenService, loopAsAdapter } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { createLoopConnector } from "@uacc/loop-securesight-factory";
+import { EventStore, HubDatabase, LoopRegistry, SessionManager, AdapterRegistry, TokenService, loopAsAdapter } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
+import { createLoopConnector } from "@ancientvoid/loop-securesight-factory";
 import { createHubApp } from "../src/app.ts";
 
 /**
@@ -24,7 +24,7 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
   let project: string;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-factory-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-factory-"));
     project = join(dir, "projects", "proj");
     await mkdir(join(project, ".factory"), { recursive: true });
     await writeFile(join(project, ".factory", "config.json"), "{}\n");

@@ -64,7 +64,7 @@ Fenster tippt.
      Passwortfeld in der App.
    - Optional erlaubt `--allow` nur bestimmte Apps.
 6. **Not-Stopp lokal:**
-   - `uacc-companion stop` über einen Unix-Socket im Runtime-Verzeichnis,
+   - `ancientvoid-companion stop` über einen Unix-Socket im Runtime-Verzeichnis,
      als Hyprland-Keybind gedacht.
    - Beendet das Tippen sofort (gemessen p50 28–48 ms, max 89 ms bis zur
      Rückmeldung).

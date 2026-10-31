@@ -4,13 +4,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { attachmentKind } from "@uacc/contracts";
+import { attachmentKind } from "@ancientvoid/contracts";
 import { extractText, officeText } from "../../../src/modules/attachments/extract.ts";
 import { AttachmentStore } from "../../../src/modules/attachments/store.ts";
 import { HubDatabase } from "../../../src/platform/db.ts";
 
 const fixtures = fileURLToPath(new URL("../../fixtures/attachments/", import.meta.url));
-const tessdata = join(homedir(), ".local/share/uacc/tessdata");
+const tessdata = join(homedir(), ".local/share/ancientvoid/tessdata");
 const opts = existsSync(join(tessdata, "deu.traineddata")) ? { tessdataDir: tessdata } : {};
 const file = (name: string) => join(fixtures, name);
 
@@ -55,7 +55,7 @@ describe("attachment extraction (T7.10)", () => {
   });
 
   it("an image without text says what would help — Gemini only with a key", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-blank-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-blank-"));
     const { execFileSync } = await import("node:child_process");
     execFileSync("magick", ["-size", "200x200", "xc:white", join(dir, "leer.png")]);
     const r = await extractText("image", join(dir, "leer.png"), "leer.png", "image/png", opts);
@@ -80,7 +80,7 @@ describe("attachment extraction (T7.10)", () => {
   });
 
   it("store: one file per content hash, extraction state on the record, resolve for adapters", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-att-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-att-"));
     const store = new AttachmentStore(new HubDatabase(":memory:"), dir, () => opts);
     const bytes = readFileSync(file("text.pdf"));
     const a = await store.save(bytes, "../../etc/rechnung.pdf", "application/pdf");

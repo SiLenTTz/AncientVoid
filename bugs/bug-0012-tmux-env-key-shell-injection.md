@@ -23,7 +23,7 @@ die per `tmux respawn-pane` im Pane-Shell ausgeführt wird, so:
 const envPrefix = Object.entries(spec.env ?? {})
   .map(([k, v]) => `${k}='${v.replaceAll("'", "")}'`)
   .join(" ");
-const shellCmd = `env ${envPrefix} ${cmdLine}; echo "__UACC_EXIT__$?"`;
+const shellCmd = `env ${envPrefix} ${cmdLine}; echo "__ANCIENTVOID_EXIT__$?"`;
 ```
 
 Nur der **Wert** (`v`) wird (unvollständig — Anführungszeichen wurden
@@ -39,15 +39,15 @@ aider, copilot).
 dann echt durch `/bin/sh` ausgeführt):
 
 ```js
-const spec = { env: { 'X=$(touch /tmp/uacc-pwned)': 'y' } };
-// envPrefix = "X=$(touch /tmp/uacc-pwned)='y'"
+const spec = { env: { 'X=$(touch /tmp/ancientvoid-pwned)': 'y' } };
+// envPrefix = "X=$(touch /tmp/ancientvoid-pwned)='y'"
 ```
 ```
-$ sh -c "env X=\$(touch /tmp/uacc-pwned)='y' echo hi; echo done"
+$ sh -c "env X=\$(touch /tmp/ancientvoid-pwned)='y' echo hi; echo done"
 hi
 done
-$ ls -la /tmp/uacc-pwned
--rw-r--r-- 1 silenttz silenttz 0 ... /tmp/uacc-pwned
+$ ls -la /tmp/ancientvoid-pwned
+-rw-r--r-- 1 silenttz silenttz 0 ... /tmp/ancientvoid-pwned
 ```
 
 Die Datei wurde real angelegt — die Command-Substitution im "Schlüssel"
@@ -99,7 +99,7 @@ Datenkorruption, direkt neben dem echten Fund, im selben Fix mitbehoben.
 - Value-Quotierung korrigiert (`shellQuote()`, dieselbe
   POSIX-`'...'`-Escaping-Technik, die für `cmd`-Argumente bereits existierte).
 - Defense in depth an der API-Grenze: `ENV_VAR_NAME`-Regex neu in
-  `@uacc/contracts` (`packages/contracts/src/session.ts`), angewendet auf
+  `@ancientvoid/contracts` (`packages/contracts/src/session.ts`), angewendet auf
   `SessionSpec.env`s Schlüssel-Schema UND auf `CreateSessionBody.env` in
   `packages/server/src/routes.ts` — ein bösartiger Key bekommt jetzt einen
   sauberen 400 statt eines tiefen `session.start_failed`.

@@ -55,7 +55,7 @@ packages/                   Bibliotheken
 5. Die PWA importiert weder `core` noch den Hub, nur Typen, die sie selbst spiegelt.
 6. Keine Zyklen zwischen Modulen.
 
-Paketnamen (`@uacc/*`) bleiben stabil; nur der Server heißt jetzt `@uacc/hub`.
+Paketnamen (`@ancientvoid/*`) bleiben stabil; nur der Server heißt jetzt `@ancientvoid/hub`.
 
 ## Migration
 

@@ -16,7 +16,7 @@ reporter: nutzer (Handy)
 
 ## Gesehen
 
-Für Sessions des DeepSeek Harness (Adapter-Registration `deepseek`, `@uacc/adapter-acp` mit dsh-Preset) ist der Button „Verbessern“ im Composer ausgegraut („Für diesen Adapter nicht verfügbar“); ein direkter Aufruf der Route scheitert mit `no enhancer wired up for adapter "deepseek"`.
+Für Sessions des DeepSeek Harness (Adapter-Registration `deepseek`, `@ancientvoid/adapter-acp` mit dsh-Preset) ist der Button „Verbessern“ im Composer ausgegraut („Für diesen Adapter nicht verfügbar“); ein direkter Aufruf der Route scheitert mit `no enhancer wired up for adapter "deepseek"`.
 
 ## Erwartet
 
@@ -39,7 +39,7 @@ Voraussetzung: lokaler Hub läuft (`127.0.0.1:7373`), Adapter `deepseek` registr
 | Instanz | lokal (`127.0.0.1:7373`) |
 | Commit | `e373e0b` (Worktree) |
 | Node-Version | 26.7.0 |
-| Adapter | `deepseek` (`@uacc/adapter-acp`, preset dsh, dsh 0.2.1-rc.2) |
+| Adapter | `deepseek` (`@ancientvoid/adapter-acp`, preset dsh, dsh 0.2.1-rc.2) |
 | Repro-Weg | Hub-Route (PWA-Button-Pfad) + PWA-Zustand |
 
 ## Logs
@@ -68,7 +68,7 @@ stdout ist allein die fertige Antwort, Diagnostik geht nach stderr; es gibt kein
 | Unit | `apps/hub/test/modules/prompts/enhance.test.ts` | grün, kennt dsh nicht |
 | Route | `apps/hub/test/server.test.ts` (`POST /api/prompt-enhance`) | grün, prüft nur 400/422 |
 
-Ohne Fix rot sein müsste: ein Test, der `enhanceFlavorFor("deepseek", "@uacc/adapter-acp", {preset:"dsh"})` → `"dsh"` verlangt, und einer, der `/api/adapters` ein `enhance:true` für diese Registration meldet. Beide in `enhance.test.ts` bzw. `server.test.ts` ergänzt (bugfix).
+Ohne Fix rot sein müsste: ein Test, der `enhanceFlavorFor("deepseek", "@ancientvoid/adapter-acp", {preset:"dsh"})` → `"dsh"` verlangt, und einer, der `/api/adapters` ein `enhance:true` für diese Registration meldet. Beide in `enhance.test.ts` bzw. `server.test.ts` ergänzt (bugfix).
 
 ## Eingrenzung
 

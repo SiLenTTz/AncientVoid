@@ -16,7 +16,7 @@ reporter: "Claude Opus 5.5 (Gate-Lauf neben dem echten Hub)"
 
 ## Gesehen
 
-Neben dem laufenden echten Hub (eigene `uacc-*`-Session auf dem
+Neben dem laufenden echten Hub (eigene `ancientvoid-*`-Session auf dem
 Standard-tmux-Server) liefen zwei tmux-Tests in den Timeout: `exited()` eines
 per `kill("SIGKILL")` beendeten Workers kam nie. Isoliert (eigener
 tmux-Server, der mit der letzten Session endet) grün.
@@ -29,8 +29,8 @@ Server läuft.
 ## Repro
 
 ```bash
-tmux new-session -d -s uacc-probe-x "sleep 30"; tmux kill-session -t uacc-probe-x
-tmux display-message -p -t uacc-probe-x '#{pane_dead}'; echo $?   # → leer, Exit 0
+tmux new-session -d -s ancientvoid-probe-x "sleep 30"; tmux kill-session -t ancientvoid-probe-x
+tmux display-message -p -t ancientvoid-probe-x '#{pane_dead}'; echo $?   # → leer, Exit 0
 ```
 
 (tmux 3.7c, während eine andere Session auf dem Server läuft.)

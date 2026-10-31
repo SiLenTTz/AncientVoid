@@ -28,14 +28,14 @@ Kompatibilitätsschicht), ein neuer globaler State-Store „weil praktisch".
 | Situation | Skill |
 |---|---|
 | Defekt | `bugfix` (Repro im Browser) |
-| Messung | `gates` (`npm -w @uacc/pwa run build` + `npm run typecheck`) |
+| Messung | `gates` (`npm -w @ancientvoid/pwa run build` + `npm run typecheck`) |
 | Architektur | `architecture-best-practices` |
 | Commit / MR | `git-workflow` → Handoff `pr-review` |
 
 ## Hard Rules
 
 - K10 (PRD §9): Offline zeigt die letzte Projektion + Zeitstempel; Service
-  Worker liefert `X-UACC-Cached-At`.
+  Worker liefert `X-AncientVoid-Cached-At`.
 - TypeScript strict.
 - Kein neuer globaler State-Store ohne Grund — bestehende Patterns
   (`apps/pwa/src/{App,SessionTail,ws,api}.ts*`) lesen, bevor etwas Neues

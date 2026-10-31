@@ -1,5 +1,5 @@
-import { LOOP_NEW } from "@uacc/contracts";
-import type { LoopInfo, LoopOnboarding, LoopSpec } from "@uacc/contracts";
+import { LOOP_NEW } from "@ancientvoid/contracts";
+import type { LoopInfo, LoopOnboarding, LoopSpec } from "@ancientvoid/contracts";
 
 /** Eingaben des Formulars „Neues Repo anbinden“ — das Geheimnis bleibt im Speicher dieses Formulars. */
 export interface OnboardDraft {

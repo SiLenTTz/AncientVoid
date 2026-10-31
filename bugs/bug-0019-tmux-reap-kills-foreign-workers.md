@@ -16,7 +16,7 @@ reporter: "Claude Opus 5.5 (Vorbereitung E2E-Gate)"
 
 ## Gesehen
 
-`TmuxRunner.reapOrphans(keep)` tötet jede tmux-Session mit Präfix `uacc-`,
+`TmuxRunner.reapOrphans(keep)` tötet jede tmux-Session mit Präfix `ancientvoid-`,
 die nicht in `keep` steht. Alle Hubs benutzen den Standard-tmux-Server des
 Nutzers. Damit gilt:
 
@@ -52,12 +52,12 @@ den Nutzer-Server nicht zu treffen.
 
 `TmuxRunner` hat einen `owner` (Default: SHA-256 des aufgelösten
 Log-Verzeichnisses, also pro `dataDir` stabil über Neustarts). `spawn()`
-setzt die Session-Option `@uacc_owner`. `list()` und damit
+setzt die Session-Option `@ancientvoid_owner`. `list()` und damit
 `reapOrphans()`/`hasLiveWorker()` sehen nur eigene Worker.
 
 Übergang: Worker, die ein älterer Hub ohne Markierung gestartet hat, gelten
 als fremd. Sie werden weder adoptiert noch getötet. Nach einem Update
-einmalig von Hand beenden (`tmux ls`, `tmux kill-session -t uacc-…`).
+einmalig von Hand beenden (`tmux ls`, `tmux kill-session -t ancientvoid-…`).
 
 ## Tests
 

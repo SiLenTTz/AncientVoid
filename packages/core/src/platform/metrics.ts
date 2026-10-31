@@ -1,4 +1,4 @@
-import type { HubMetrics, HubMetricsSnapshot } from "@uacc/contracts";
+import type { HubMetrics, HubMetricsSnapshot } from "@ancientvoid/contracts";
 
 /** In-process counters. Process restart resets them — not K7 state (ADR-0010). */
 export class InMemoryMetrics implements HubMetrics {

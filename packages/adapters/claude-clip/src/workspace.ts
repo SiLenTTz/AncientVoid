@@ -8,13 +8,13 @@ import { join } from "node:path";
  * transcript per session under `~/.claude/projects/<sanitized-cwd>/`, where
  * `<sanitized-cwd>` is the session's real working directory with every `/`
  * replaced by `-`. Confirmed against this exact repo (directory
- * `-mnt-omarchy-data-30-repos-arch-arbeitsbaeume-mobile-hub`) and against
+ * `-mnt-omarchy-data-30-repos-arch-arbeitsbaeume-AncientVoid`) and against
  * two of the hub's own T2.1 worktree sessions, which got their own
  * subpath-keyed directories automatically — same mechanism, no
  * hub-specific plumbing.
  *
  * NOTE — the encoding is real but one-way and ambiguous: a literal `-` that
- * is already part of a path segment (this repo's own "mobile-hub") is
+ * is already part of a path segment (this repo's own "AncientVoid") is
  * indistinguishable in the directory name from a converted `/`. That is
  * fine for this adapter's actual job — computing the directory name FROM a
  * known real cwd is fully deterministic — but the reverse (directory name

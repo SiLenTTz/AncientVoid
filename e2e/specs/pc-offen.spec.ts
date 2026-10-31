@@ -28,11 +28,11 @@ test.describe("Am PC offen", () => {
     await expect(app.getByPlaceholder("Antworten…")).toBeVisible();
     await expect(app.locator(".pc-open-notice")).toHaveCount(0);
 
-    writeFileSync(agentsFile, JSON.stringify([{ pid: 4711, cwd: "/p/x", kind: "interactive", startedAt: 1, sessionId: native, name: "mobile-hub-fc", status: "idle" }]));
+    writeFileSync(agentsFile, JSON.stringify([{ pid: 4711, cwd: "/p/x", kind: "interactive", startedAt: 1, sessionId: native, name: "AncientVoid-fc", status: "idle" }]));
     // ClaudeLive hält `claude agents` 3 s im Speicher: erst danach sieht der Hub die neue Datei.
     await app.waitForTimeout(3500);
     await app.reload();
-    await expect(app.locator(".pc-open-notice")).toContainText("Am PC offen (mobile-hub-fc)");
+    await expect(app.locator(".pc-open-notice")).toContainText("Am PC offen (AncientVoid-fc)");
     await expect(app.locator(".pc-open-notice code")).toContainText(`claude --resume ${native}`);
   });
 
@@ -50,7 +50,7 @@ test.describe("Am PC offen", () => {
     const id = await hub.createSession({ adapter: "claude", prompt: "Hallo" });
     await hub.until(async () => (await nativeId(hub, id)) !== "", "native session id");
     const native = await nativeId(hub, id);
-    writeFileSync(agentsFile, JSON.stringify([{ pid: 4711, cwd: "/p/x", kind: "interactive", startedAt: 1, sessionId: native, name: "mobile-hub-fc", status: "idle" }]));
+    writeFileSync(agentsFile, JSON.stringify([{ pid: 4711, cwd: "/p/x", kind: "interactive", startedAt: 1, sessionId: native, name: "AncientVoid-fc", status: "idle" }]));
 
     let pcCalls = 0;
     let noteCalls = 0;

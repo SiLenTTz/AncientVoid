@@ -57,9 +57,9 @@ Tool-Output-Zitaten, nicht aus echten Events).
 
 | Feld | Wert |
 |---|---|
-| Instanz | lokal (systemd `uacc-hub.service`, Haupt-Checkout) |
+| Instanz | lokal (systemd `ancientvoid-hub.service`, Haupt-Checkout) |
 | Commit | `843a238` (main) |
-| Adapter | `@uacc/adapter-acp`, preset `maki`, `bridgeCommands: true` |
+| Adapter | `@ancientvoid/adapter-acp`, preset `maki`, `bridgeCommands: true` |
 | Brücke | `~/.config/maki/init.lua` installiert (Slot `agent.user_message`, 2026-10-29) |
 | Repro-Weg | PWA (Nutzer) + EventStore-Nachweis |
 

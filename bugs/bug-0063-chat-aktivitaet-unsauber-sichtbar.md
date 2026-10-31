@@ -26,7 +26,7 @@ Die Session-Ansicht zeigt „Agent arbeitet gerade“ mit derselben Klarheit und
 
 Voraussetzung: eine Session im Status `working` (hier: dieselbe Live-Session `b66c47db…`).
 
-1. Übersicht öffnen: Karte der Session hat den laufenden Rahmen (`uacc-border-chase`, sichtbar in Bewegung).
+1. Übersicht öffnen: Karte der Session hat den laufenden Rahmen (`ancientvoid-border-chase`, sichtbar in Bewegung).
 2. Session öffnen (Chat): der Pill `.session-topbar .pill.working` (`SessionTail.tsx:512`) ist statisch — keine Bewegung, kein Puls.
 
 **Ergebnis nach Schritt 2:** Kein Bewegungssignal im Chat; der Status ist nur lesbar, nicht sichtbar.
@@ -58,7 +58,7 @@ Vorschlag: E2E-Erweiterung in `e2e/specs/harness.spec.ts` — während `working`
 
 ## Eingrenzung
 
-`apps/pwa/src/app/styles/03-session-cards.css` — die bestehende `uacc-border-chase`-Animation ist nicht auf `.pill.working` / `.pill.waiting_approval` in der Session-Ansicht angewendet.
+`apps/pwa/src/app/styles/03-session-cards.css` — die bestehende `ancientvoid-border-chase`-Animation ist nicht auf `.pill.working` / `.pill.waiting_approval` in der Session-Ansicht angewendet.
 
 ## Handoff
 

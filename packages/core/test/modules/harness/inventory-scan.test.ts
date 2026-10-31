@@ -30,7 +30,7 @@ describe("probeHarnesses (T5.1)", () => {
 
 describe("scanClaudeSessions (T5.3)", () => {
   it("lists transcripts, keeps a subagent parent, and shows an unknown file", () => {
-    const root = mkdtempSync(join(tmpdir(), "uacc-claude-scan-"));
+    const root = mkdtempSync(join(tmpdir(), "ancientvoid-claude-scan-"));
     const project = join(root, "projects", "-tmp-demo");
     mkdirSync(join(project, "sess-1", "subagents"), { recursive: true });
     mkdirSync(join(project, "memory"), { recursive: true });
@@ -48,7 +48,7 @@ describe("scanClaudeSessions (T5.3)", () => {
   });
 
   it("maps a munged project dir back to the known path — unknown names stay raw", () => {
-    const root = mkdtempSync(join(tmpdir(), "uacc-claude-unmunge-"));
+    const root = mkdtempSync(join(tmpdir(), "ancientvoid-claude-unmunge-"));
     // underscores become dashes too (observed live: /mnt/omarchy_data → -mnt-omarchy-data)
     const project = join(root, "projects", "-mnt-repos-my-proj");
     mkdirSync(project, { recursive: true });
@@ -56,14 +56,14 @@ describe("scanClaudeSessions (T5.3)", () => {
     const items = scanClaudeSessions(root, "2026-09-22T00:00:00.000Z", ["/mnt/repos/anders", "/mnt/repos_my-proj"]);
     expect(items.find((item) => item.nativeSessionId === "s")?.project).toBe("/mnt/repos_my-proj");
     // ohne Treffer bleibt der gemungte Name sichtbar (fail loud, nie gedroppt)
-    const unknownRoot = mkdtempSync(join(tmpdir(), "uacc-claude-unmunge2-"));
+    const unknownRoot = mkdtempSync(join(tmpdir(), "ancientvoid-claude-unmunge2-"));
     mkdirSync(join(unknownRoot, "projects", "-tmp-wohin"), { recursive: true });
     writeFileSync(join(unknownRoot, "projects", "-tmp-wohin", "s.jsonl"), "{}\n");
     expect(scanClaudeSessions(unknownRoot, "2026-09-22T00:00:00.000Z", []).find((item) => item.nativeSessionId === "s")?.project).toBe("-tmp-wohin");
   });
 
   it("resolves a nested project under a root back to its real path (BUG-0057)", async () => {
-    const base = mkdtempSync(join(tmpdir(), "uacc-claude-nested-"));
+    const base = mkdtempSync(join(tmpdir(), "ancientvoid-claude-nested-"));
     const projectRoot = join(base, "work");
     const real = join(projectRoot, "30_repos", "my-proj_uxt");
     mkdirSync(real, { recursive: true }); // der Walk löst gegen echte Verzeichnisse auf
@@ -76,7 +76,7 @@ describe("scanClaudeSessions (T5.3)", () => {
   });
 
   it("hides sessions outside the configured roots — tmp stays out (User-Vorgabe 2026-10-20)", async () => {
-    const base = mkdtempSync(join(tmpdir(), "uacc-claude-filter-"));
+    const base = mkdtempSync(join(tmpdir(), "ancientvoid-claude-filter-"));
     const projectRoot = join(base, "work");
     const inside = join(projectRoot, "mine");
     const outside = join(base, "tmp-clutter");
@@ -98,7 +98,7 @@ describe("scanClaudeSessions (T5.3)", () => {
 
 describe("scanCursorComposers (T5.3)", () => {
   it("reads composers read-only and keeps a parent column when the schema has one", () => {
-    const root = mkdtempSync(join(tmpdir(), "uacc-cursor-scan-"));
+    const root = mkdtempSync(join(tmpdir(), "ancientvoid-cursor-scan-"));
     const dbPath = join(root, "globalStorage", "state.vscdb");
     mkdirSync(join(root, "globalStorage"), { recursive: true });
     const db = new DatabaseSync(dbPath);
@@ -120,7 +120,7 @@ describe("scanCursorComposers (T5.3)", () => {
   });
 
   it("stays visible when the schema is not the known one", () => {
-    const root = mkdtempSync(join(tmpdir(), "uacc-cursor-bad-"));
+    const root = mkdtempSync(join(tmpdir(), "ancientvoid-cursor-bad-"));
     mkdirSync(join(root, "globalStorage"), { recursive: true });
     const db = new DatabaseSync(join(root, "globalStorage", "state.vscdb"));
     db.exec("CREATE TABLE other (id TEXT)");
@@ -132,7 +132,7 @@ describe("scanCursorComposers (T5.3)", () => {
 
 describe("scanOpencodeSessions", () => {
   it("reads sessions read-only and keeps parent_id as parentSessionId", () => {
-    const root = mkdtempSync(join(tmpdir(), "uacc-opencode-scan-"));
+    const root = mkdtempSync(join(tmpdir(), "ancientvoid-opencode-scan-"));
     const db = new DatabaseSync(join(root, "opencode.db"));
     db.exec(`
       CREATE TABLE session (
@@ -166,14 +166,14 @@ describe("scanOpencodeSessions", () => {
   });
 
   it("stays visible when the db is missing", () => {
-    const root = mkdtempSync(join(tmpdir(), "uacc-opencode-scan-"));
+    const root = mkdtempSync(join(tmpdir(), "ancientvoid-opencode-scan-"));
     const items = scanOpencodeSessions(root, "2026-09-22T00:00:00.000Z");
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ status: "unsupported-format", unsupportedResume: true, nativeSessionId: "unknown:missing-db" });
   });
 
   it("stays visible when the schema is not the known one", () => {
-    const root = mkdtempSync(join(tmpdir(), "uacc-opencode-scan-"));
+    const root = mkdtempSync(join(tmpdir(), "ancientvoid-opencode-scan-"));
     const db = new DatabaseSync(join(root, "opencode.db"));
     db.exec("CREATE TABLE other (id TEXT)");
     db.close();

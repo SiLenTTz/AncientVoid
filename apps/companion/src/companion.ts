@@ -1,4 +1,4 @@
-import { credentialTarget, type DeliveredDesktopAction, type DesktopFocus } from "@uacc/contracts";
+import { credentialTarget, type DeliveredDesktopAction, type DesktopFocus } from "@ancientvoid/contracts";
 import { exec, type Exec, type FocusBackend, type FocusInfo, type InputBackend } from "./backends.ts";
 
 export * from "./backends.ts";

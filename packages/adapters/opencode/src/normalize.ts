@@ -1,4 +1,4 @@
-import { providerErrorEvent, type EmittedEvent } from "@uacc/contracts";
+import { providerErrorEvent, type EmittedEvent } from "@ancientvoid/contracts";
 
 /**
  * Maps one parsed line of `opencode run --format json` output to zero or

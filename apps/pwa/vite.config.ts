@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: process.env.UACC_PROXY ?? "http://127.0.0.1:7373",
+        target: process.env.ANCIENTVOID_PROXY ?? "http://127.0.0.1:7373",
         ws: true,
       },
     },

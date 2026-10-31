@@ -10,16 +10,16 @@
  *   {
  *     "module": "./examples/reporting-sinks/webhook/sink.ts",
  *     "config": {
- *       "url": "https://example.com/uacc-digest",
+ *       "url": "https://example.com/ancientvoid-digest",
  *       "headers": { "Authorization": "Bearer <token>" }
  *     }
  *   }
  *
- * The ONLY thing a reporting sink is allowed to touch is @uacc/contracts —
+ * The ONLY thing a reporting sink is allowed to touch is @ancientvoid/contracts —
  * same rule as adapters (AGENTS.md).
  */
 import { z } from "zod";
-import type { ReportingSink } from "@uacc/contracts";
+import type { ReportingSink } from "@ancientvoid/contracts";
 
 const WebhookSinkConfig = z.object({
   url: z.string().url(),

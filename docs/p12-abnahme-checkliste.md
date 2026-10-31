@@ -51,7 +51,7 @@ schließt keine Zelle (AC-P12-4: „Nicht vorhandener Zugriff ist kein Pass“).
 ## E. Code-Arbeit, die tatsächlich noch fehlt
 
 Nichts Blockierendes in P12. Nebenbefunde aus dem Statusreport vom 2026-10-08
-(Worktree-Retention der `uacc/*`-Sessions) sind keine P12-Abnahmen; sie stehen in
+(Worktree-Retention der `ancientvoid/*`-Sessions) sind keine P12-Abnahmen; sie stehen in
 [EPIC-P14](../epics/EPIC-P14-session-worktree-hygiene.md).
 
 ## Reihenfolge-Empfehlung

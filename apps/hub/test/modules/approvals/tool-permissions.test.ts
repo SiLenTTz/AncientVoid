@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../../src/app.ts";
 import { createPermissionBridge } from "../../../src/modules/approvals/permission-bridge.ts";
@@ -29,7 +29,7 @@ describe("native tool permissions (T7.2)", () => {
   }
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-tools-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-tools-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });
@@ -44,9 +44,9 @@ describe("native tool permissions (T7.2)", () => {
     // What the hub writes for claude: an MCP config (0600) with a session-bound token.
     const { mcpConfigPath } = await bridge(sessionId);
     expect((await stat(mcpConfigPath)).mode & 0o777).toBe(0o600);
-    const config = JSON.parse(await readFile(mcpConfigPath, "utf8")) as { mcpServers: { uacc: { env: Record<string, string> } } };
-    bridgeToken = config.mcpServers.uacc.env.UACC_BRIDGE_TOKEN!;
-    expect(config.mcpServers.uacc.env.UACC_SESSION_ID).toBe(sessionId);
+    const config = JSON.parse(await readFile(mcpConfigPath, "utf8")) as { mcpServers: { ancientvoid: { env: Record<string, string> } } };
+    bridgeToken = config.mcpServers.ancientvoid.env.ANCIENTVOID_BRIDGE_TOKEN!;
+    expect(config.mcpServers.ancientvoid.env.ANCIENTVOID_SESSION_ID).toBe(sessionId);
   });
 
   afterEach(async () => {
@@ -111,7 +111,7 @@ describe("native tool permissions (T7.2)", () => {
 
 describe("tool permission timeout (T7.2)", () => {
   it("no decision in time answers deny — never allow", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-tools-timeout-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-tools-timeout-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });

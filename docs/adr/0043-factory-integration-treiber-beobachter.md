@@ -34,7 +34,7 @@ abgelehnt — Muster `loops.start`, ADR-0038/P19) legt **beide** Sessions an:
 
 Verworfen: **B** — der Connector startet den Treiber selbst via
 `ctx.spawnWorker`: bricht die Kapselung „`packages/loops/*` importiert nur
-`@uacc/contracts`" und würde Adapter-Internas (SessionManager) in einen Loop
+`@ancientvoid/contracts`" und würde Adapter-Internas (SessionManager) in einen Loop
 ziehen (verstößt gegen AC-P19-6). **C** — Nutzer legt beide Sessions von Hand
 an: kein neuer Code, aber kein „sauber integriert" (Jans Kriterium) und keine
 Verknüpfungs-/Stop-Garantien.
@@ -92,7 +92,7 @@ gemeldtem `ready` (REQ-3001). Der Hub setzt weder Trust noch Berechtigungen.
 - Der Hub bekommt mit `/api/factory/*` eine zweite menschen-exklusive
   Ressourcenfamilie neben `loops.onboard` — gleiche Policy-Mechanik, kein
   neues Auth-Modell.
-- `packages/loops/securesight-factory` bleibt auf `@uacc/contracts`
+- `packages/loops/securesight-factory` bleibt auf `@ancientvoid/contracts`
   beschränkt; die Orchestrierung (zwei Sessions, Verknüpfung, Stop) liegt in
   Core/Server — Kapselung aus ADR-0038 bleibt intakt.
 - Treiber-Exit muss dem Beobachter signalisiert werden (Core → Loop-Adapter →

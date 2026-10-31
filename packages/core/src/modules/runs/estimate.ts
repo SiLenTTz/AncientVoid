@@ -1,4 +1,4 @@
-import { MIN_TURNS_FOR_ESTIMATE, type RunEstimate, type TurnMetric } from "@uacc/contracts";
+import { MIN_TURNS_FOR_ESTIMATE, type RunEstimate, type TurnMetric } from "@ancientvoid/contracts";
 
 function quantile(sorted: readonly number[], q: number): number {
   const idx = (sorted.length - 1) * q;

@@ -1,4 +1,4 @@
-import { basicFeatures, type Adapter, type AdapterContext, type SessionSpec } from "@uacc/contracts";
+import { basicFeatures, type Adapter, type AdapterContext, type SessionSpec } from "@ancientvoid/contracts";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -11,8 +11,8 @@ import { SessionManager } from "../../../src/modules/sessions/session-manager.ts
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { HubDatabase } from "../../../src/platform/db.ts";
 import { WorktreeManager } from "../../../src/modules/workspace/worktree.ts";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 
 const execFileAsync = promisify(execFile);
 
@@ -44,14 +44,14 @@ describe("SessionManager", () => {
   let dir: string;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-sm-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-sm-"));
   });
   afterAll(async () => {
     await rm(dir, { recursive: true, force: true });
   });
 
   it("2026-10-26: ohne Modellauswahl trägt die Session das Default-Modell der Registration", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-sm-defaultmodel-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-sm-defaultmodel-"));
     // dummy verbietet Modellauswahl (modelChoice "none") — dieser Inline-
     // Adapter erlaubt sie, wie es pi/opencode/claude tun.
     const choosy: Adapter = {
@@ -560,11 +560,11 @@ describe("SessionManager", () => {
   });
 
   it("T2.1: a git-repo project gets real worktree isolation — commits land off the main checkout, cleaned up on stop", async () => {
-    const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-wtrepo-"));
-    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-wtout-"));
+    const repoDir = await mkdtemp(join(tmpdir(), "ancientvoid-sm-wtrepo-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "ancientvoid-sm-wtout-"));
     await execFileAsync("git", ["-C", repoDir, "init", "-q", "-b", "main"]);
-    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@uacc.local"]);
-    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "uacc test"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@ancientvoid.local"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "ancientvoid test"]);
     await writeFile(join(repoDir, "a.txt"), "hi\n");
     await execFileAsync("git", ["-C", repoDir, "add", "a.txt"]);
     await execFileAsync("git", ["-C", repoDir, "commit", "-q", "-m", "initial"]);
@@ -613,11 +613,11 @@ describe("SessionManager", () => {
   });
 
   it("ADR-0041: die Übernahme der Originalsession läuft im Projekt, die Kopie im Worktree", async () => {
-    const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-adoptrepo-"));
-    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-adoptout-"));
+    const repoDir = await mkdtemp(join(tmpdir(), "ancientvoid-sm-adoptrepo-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "ancientvoid-sm-adoptout-"));
     await execFileAsync("git", ["-C", repoDir, "init", "-q", "-b", "main"]);
-    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@uacc.local"]);
-    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "uacc test"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@ancientvoid.local"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "ancientvoid test"]);
     await writeFile(join(repoDir, "a.txt"), "hi\n");
     await execFileAsync("git", ["-C", repoDir, "add", "a.txt"]);
     await execFileAsync("git", ["-C", repoDir, "commit", "-q", "-m", "initial"]);
@@ -657,11 +657,11 @@ describe("SessionManager", () => {
   });
 
   it("BUG-0027: stop keeps a worktree that holds work, and Weiter continues in it", async () => {
-    const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-keep-"));
-    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-keepout-"));
+    const repoDir = await mkdtemp(join(tmpdir(), "ancientvoid-sm-keep-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "ancientvoid-sm-keepout-"));
     await execFileAsync("git", ["-C", repoDir, "init", "-q", "-b", "main"]);
-    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@uacc.local"]);
-    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "uacc test"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@ancientvoid.local"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "ancientvoid test"]);
     await writeFile(join(repoDir, "a.txt"), "hi\n");
     await execFileAsync("git", ["-C", repoDir, "add", "a.txt"]);
     await execFileAsync("git", ["-C", repoDir, "commit", "-q", "-m", "initial"]);
@@ -695,7 +695,7 @@ describe("SessionManager", () => {
       await manager.stop(dirty.id);
       expect(existsSync(join(dirtyPath, "index.html"))).toBe(true);
       const kept = (await manager.tail(dirty.id, 0)).find((e) => (e.payload as { kind?: string }).kind === "session.worktree_kept");
-      expect(kept?.payload).toMatchObject({ path: dirtyPath, branch: `uacc/${dirty.id}` });
+      expect(kept?.payload).toMatchObject({ path: dirtyPath, branch: `ancientvoid/${dirty.id}` });
       expect((await manager.steer(dirty.id, { kind: "prompt", text: "weiter" })).ok).toBe(true);
       expect(workdirs.at(-1)).toBe(dirtyPath);
       expect(existsSync(join(dirtyPath, "index.html"))).toBe(true);
@@ -708,7 +708,7 @@ describe("SessionManager", () => {
       await execFileAsync("git", ["-C", committedPath, "-c", "user.email=t@u", "-c", "user.name=t", "commit", "-q", "-m", "work"]);
       await manager.stop(committed.id);
       expect(existsSync(committedPath)).toBe(true);
-      const { stdout: branches } = await execFileAsync("git", ["-C", repoDir, "branch", "--list", `uacc/${committed.id}`]);
+      const { stdout: branches } = await execFileAsync("git", ["-C", repoDir, "branch", "--list", `ancientvoid/${committed.id}`]);
       expect(branches.trim()).not.toBe("");
 
       // A clean worktree still goes away (disk hygiene, T2.1).
@@ -724,11 +724,11 @@ describe("SessionManager", () => {
 
 
   it("EPIC-P14 T14.1: archive removes a clean worktree, keeps one with work, and a later prompt brings it back", async () => {
-    const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-arch-"));
-    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-archout-"));
+    const repoDir = await mkdtemp(join(tmpdir(), "ancientvoid-sm-arch-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "ancientvoid-sm-archout-"));
     await execFileAsync("git", ["-C", repoDir, "init", "-q", "-b", "main"]);
-    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@uacc.local"]);
-    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "uacc test"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@ancientvoid.local"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "ancientvoid test"]);
     await writeFile(join(repoDir, "a.txt"), "hi\n");
     await execFileAsync("git", ["-C", repoDir, "add", "a.txt"]);
     await execFileAsync("git", ["-C", repoDir, "commit", "-q", "-m", "initial"]);
@@ -779,7 +779,7 @@ describe("SessionManager", () => {
       await manager.archive(dirty.id, true);
       expect(existsSync(join(dirtyPath, "index.html"))).toBe(true);
       const kept = (await manager.tail(dirty.id, 0)).find((e) => (e.payload as { kind?: string }).kind === "session.worktree_kept");
-      expect(kept?.payload).toMatchObject({ path: dirtyPath, branch: `uacc/${dirty.id}`, reason: "work" });
+      expect(kept?.payload).toMatchObject({ path: dirtyPath, branch: `ancientvoid/${dirty.id}`, reason: "work" });
 
       // A commit on the session branch counts as work, too.
       const committed = await manager.create({ adapter: "wt-arch", project: repoDir });
@@ -787,7 +787,7 @@ describe("SessionManager", () => {
       const committedPath = worktrees.pathFor(committed.id);
       await writeFile(join(committedPath, "b.txt"), "b\n");
       await execFileAsync("git", ["-C", committedPath, "add", "b.txt"]);
-      await execFileAsync("git", ["-C", committedPath, "-c", "user.email=t@uacc.local", "-c", "user.name=t", "commit", "-q", "-m", "agent"]);
+      await execFileAsync("git", ["-C", committedPath, "-c", "user.email=t@ancientvoid.local", "-c", "user.name=t", "commit", "-q", "-m", "agent"]);
       await manager.archive(committed.id, true);
       expect(existsSync(join(committedPath, "b.txt"))).toBe(true);
 
@@ -806,11 +806,11 @@ describe("SessionManager", () => {
   });
 
   it("EPIC-P14 T14.1: archive keeps the worktree of a session whose long-lived worker has it as cwd", async () => {
-    const repoDir = await mkdtemp(join(tmpdir(), "uacc-sm-arch2-"));
-    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-arch2out-"));
+    const repoDir = await mkdtemp(join(tmpdir(), "ancientvoid-sm-arch2-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "ancientvoid-sm-arch2out-"));
     await execFileAsync("git", ["-C", repoDir, "init", "-q", "-b", "main"]);
-    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@uacc.local"]);
-    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "uacc test"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.email", "t@ancientvoid.local"]);
+    await execFileAsync("git", ["-C", repoDir, "config", "user.name", "ancientvoid test"]);
     await writeFile(join(repoDir, "a.txt"), "hi\n");
     await execFileAsync("git", ["-C", repoDir, "add", "a.txt"]);
     await execFileAsync("git", ["-C", repoDir, "commit", "-q", "-m", "initial"]);
@@ -854,7 +854,7 @@ describe("SessionManager", () => {
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 5, autoStopAfterEvents: 1 });
-    const worktreesOut = await mkdtemp(join(tmpdir(), "uacc-sm-wtout-nongit-"));
+    const worktreesOut = await mkdtemp(join(tmpdir(), "ancientvoid-sm-wtout-nongit-"));
     const worktrees = new WorktreeManager(worktreesOut);
     const manager = new SessionManager(db, store, registry, new ProcessRunner(), undefined, worktrees);
     try {
@@ -1047,7 +1047,7 @@ describe("SessionManager — reporting sink dispatch (T4.1, ADR-0009)", () => {
   let dir: string;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-sm-digest-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-sm-digest-"));
   });
   afterAll(async () => {
     await rm(dir, { recursive: true, force: true });
@@ -1207,7 +1207,7 @@ describe("SessionManager — reporting sink dispatch (T4.1, ADR-0009)", () => {
       await manager.stop(record.id);
       expect(manager.get(record.id)?.status).toBe("stopped");
       await mkdir(join(dir, "workers"), { recursive: true });
-      await writeFile(join(dir, "workers", `uacc-${record.id}.log`), '{"sessionID":"ses_kept"}\n');
+      await writeFile(join(dir, "workers", `ancientvoid-${record.id}.log`), '{"sessionID":"ses_kept"}\n');
       const ack = await manager.steer(record.id, { kind: "prompt", text: "weiter" });
       expect(ack.ok).toBe(true);
       expect(manager.get(record.id)?.status).toBe("working");
@@ -1224,7 +1224,7 @@ describe("SessionManager mirror (ADR-0011 Erweiterung)", () => {
   let dir: string;
   let dataDir: string;
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-mirror-sm-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-mirror-sm-"));
     dataDir = join(dir, "opencode-data");
     await mkdir(dataDir, { recursive: true });
     const { DatabaseSync } = await import("node:sqlite");
@@ -1298,7 +1298,7 @@ describe("SessionManager mirror (ADR-0011 Erweiterung)", () => {
 describe("SessionManager adoption (BUG-0039)", () => {
   let dir: string;
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-adopt-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-adopt-"));
   });
   afterAll(async () => {
     await rm(dir, { recursive: true, force: true });

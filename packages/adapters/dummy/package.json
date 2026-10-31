@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/adapter-dummy",
+  "name": "@ancientvoid/adapter-dummy",
   "version": "0.1.0",
   "description": "Reference dummy adapter: synthetic event generator for load tests (K8), blob offload tests (K5) and crash recovery (K7).",
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
     "zod": "^4.6.5"
   }
 }

@@ -35,7 +35,7 @@ zeigt, was gerade läuft.
 **Ergebnis nach Schritt 2:** Seite 1 = 9 Hub-Sessions + die ~41 ältesten
 externen (Scan-Reihenfolge der DB), die heutige Session fehlt. Der Scan
 selbst ist aktuell und korrekt (`scanOpencodeSessions`: neuester Eintrag
-„mobile-hub", beobachtet zur Laufzeit der Abfrage).
+„AncientVoid", beobachtet zur Laufzeit der Abfrage).
 
 **Häufigkeit:** immer (reine Sortier-/Paging-Logik)
 
@@ -60,7 +60,7 @@ die zwei jüngsten liefern, nicht die zwei ersten der Eingabereihenfolge.
 - [ ] GitLab-Issue angelegt (Link oben)
 - [ ] `bugfix` oder offen lassen
 
-## Fix (verifiziert 2026-10-03, Ralph mobile-hub-bugfrei)
+## Fix (verifiziert 2026-10-03, Ralph AncientVoid-bugfrei)
 
 - Fix: `890d62c`/`b95f91c` (^ B core/discovery: Entdecken führt die
   zuletzt beobachteten Sessions auf (BUG-0035) + Claude-Munging-Fix,

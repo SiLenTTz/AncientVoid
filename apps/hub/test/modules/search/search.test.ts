@@ -37,7 +37,7 @@ afterAll(async () => {
 });
 
 async function makeTestProject(files: Record<string, string>): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "uacc-search-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "ancientvoid-search-test-"));
   for (const [name, content] of Object.entries(files)) {
     await mkdir(join(dir, name, ".."), { recursive: true }).catch(() => undefined);
     await writeFile(join(dir, name), content, "utf8");
@@ -145,7 +145,7 @@ describe("relativeDataDir — BUG-0014's exclusion-path computation", () => {
 
   it("returns undefined when dataDir is outside the project — never excludes the wrong thing", () => {
     expect(relativeDataDir("/home/x/project", "/home/x/other/data")).toBeUndefined();
-    expect(relativeDataDir("/home/x/project", "/var/lib/uacc/data")).toBeUndefined();
+    expect(relativeDataDir("/home/x/project", "/var/lib/ancientvoid/data")).toBeUndefined();
   });
 
   it("returns undefined when dataDir IS the project itself — excluding '.' would drop everything", () => {
@@ -192,7 +192,7 @@ describe("egress: AncientVoid's own qmd invocation makes no outbound network cal
 
 describe("readProjectFile — traversal defense, size cap, real content", () => {
   it("reads a real file inside the project", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-search-file-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-search-file-"));
     await writeFile(join(dir, "a.txt"), "line1\nline2\nline3", "utf8");
     const file = await readProjectFile(dir, "a.txt");
     expect(file).toEqual({ path: "a.txt", content: "line1\nline2\nline3", lineCount: 3 });
@@ -200,8 +200,8 @@ describe("readProjectFile — traversal defense, size cap, real content", () => 
   });
 
   it("refuses a path that escapes the project directory", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-search-file-"));
-    const outside = await mkdtemp(join(tmpdir(), "uacc-search-outside-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-search-file-"));
+    const outside = await mkdtemp(join(tmpdir(), "ancientvoid-search-outside-"));
     await writeFile(join(outside, "secret.txt"), "nope", "utf8");
     const file = await readProjectFile(dir, `../${outside.split("/").pop()}/secret.txt`);
     expect(file).toBeNull();
@@ -210,7 +210,7 @@ describe("readProjectFile — traversal defense, size cap, real content", () => 
   });
 
   it("refuses a file over the size cap", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-search-file-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-search-file-"));
     await writeFile(join(dir, "big.txt"), "x".repeat(1_000_001), "utf8");
     const file = await readProjectFile(dir, "big.txt");
     expect(file).toBeNull();
@@ -218,7 +218,7 @@ describe("readProjectFile — traversal defense, size cap, real content", () => 
   });
 
   it("returns null for a missing file instead of throwing", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-search-file-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-search-file-"));
     expect(await readProjectFile(dir, "does-not-exist.txt")).toBeNull();
     await rm(dir, { recursive: true, force: true });
   });

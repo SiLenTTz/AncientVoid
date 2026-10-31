@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { NormalizedEvent, TurnMetric } from "@uacc/contracts";
+import type { NormalizedEvent, TurnMetric } from "@ancientvoid/contracts";
 import { HubDatabase } from "../../../src/platform/db.ts";
 import { deriveTurnMetrics, estimateRun, TurnMetricStore } from "../../../src/modules/runs/index.ts";
 

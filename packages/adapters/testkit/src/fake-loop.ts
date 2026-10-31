@@ -1,5 +1,5 @@
-import { LOOP_NEW } from "@uacc/contracts";
-import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopStartSpec, SessionHandle } from "@uacc/contracts";
+import { LOOP_NEW } from "@ancientvoid/contracts";
+import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopStartSpec, SessionHandle } from "@ancientvoid/contracts";
 
 /**
  * Ein deterministischer Loop für Tests und die E2E-Läufe (kein Fremdsystem). Er meldet Info, Zustand und Fortschritt,

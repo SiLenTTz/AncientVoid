@@ -14,8 +14,8 @@ export function Settings({ onSwitchToken }: { onSwitchToken: () => void }) {
   const [motion, setMotion] = useState<boolean>(ctxMotionOn());
   useEffect(() => {
     const on = (e: Event) => setScaleState((e as CustomEvent<number>).detail);
-    window.addEventListener("uacc:scale", on);
-    return () => window.removeEventListener("uacc:scale", on);
+    window.addEventListener("ancientvoid:scale", on);
+    return () => window.removeEventListener("ancientvoid:scale", on);
   }, []);
   const [projectCount, setProjectCount] = useState<number | null>(null);
   // T2.5: null = unknown/loading, undefined = webauthn not configured on

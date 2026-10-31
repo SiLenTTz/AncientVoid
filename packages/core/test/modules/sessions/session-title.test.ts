@@ -3,8 +3,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry, sessionTitle } from "../../../src/index.ts";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 
 describe("session titles for the overview", () => {
   it("takes the first line that says something", () => {
@@ -16,7 +16,7 @@ describe("session titles for the overview", () => {
   });
 
   it("stores it with the session and survives a restart; a first reply fills an empty one", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-title-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-title-"));
     const dbFile = join(dir, "hub.db");
     const db = new HubDatabase(dbFile);
     const registry = new AdapterRegistry();

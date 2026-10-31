@@ -8,7 +8,7 @@ description: Structured Gate-Review mit 6 Dimensionen (Requirements blocking, Ar
 Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). Messung:
 [`gates`](../gates/SKILL.md). Komplexitäts-Linse (advisory):
 [`ponytail-review`](../ponytail-review/SKILL.md). AncientVoid-Verträge:
-[`.claude/skills/_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md).
+[`.claude/skills/_shared/ancientvoid-protected-invariants.md`](../_shared/ancientvoid-protected-invariants.md).
 
 ## Zweck
 
@@ -71,8 +71,8 @@ Merge-Konflikt gegen `origin/main` ist Blocker.
 | 0 Requirements (blocking) | Jedes AC ↔ Code oder Test | Issue/Epic-Task vs. Diff-Matrix |
 | A Tests | betroffene Packages | `npm test` |
 | B Lint/Types | ESLint + tsc | `npm run lint && npm run typecheck` |
-| C PWA-Build | nur bei `apps/pwa/**` | `npm -w @uacc/pwa run build` |
-| D Architektur | Contract-/AdapterContext-Grenzen, Invarianten | Diff + `_shared/uacc-protected-invariants.md`; optional `ponytail-review` |
+| C PWA-Build | nur bei `apps/pwa/**` | `npm -w @ancientvoid/pwa run build` |
+| D Architektur | Contract-/AdapterContext-Grenzen, Invarianten | Diff + `_shared/ancientvoid-protected-invariants.md`; optional `ponytail-review` |
 
 #### Gate E — Sekret- und Injektionsscan auf den **hinzugefügten** Zeilen
 
@@ -95,15 +95,15 @@ auch wenn er erklärbar ist.
 
 1. **Requirements-Fit (blocking)** — jedes AC erfüllt oder begründet offen.
 2. **Architektur** — Contracts-first, `AdapterContext`-Isolation, keine
-   Imports aus `@uacc/core`/`@uacc/server` in Adaptern.
+   Imports aus `@ancientvoid/core`/`@ancientvoid/server` in Adaptern.
 3. **Edge Cases** — Adapter-Crash mitten in Session, Blob-Grenzen, K5/K7/K8.
 4. **Implementierungsqualität** — smallest correct, keine Spekulation.
 5. **Determinism** — Tests ohne Fix rot denkbar; keine Flakes, keine
    Timing-Races (siehe `packages/core/test/sessionmanager.test.ts` als
    bekanntes Beispiel für ein knapp bemessenes Timing-Fenster).
 6. **Future-Fragility (Pflicht)** — explizit zu:
-   - Contract-Bruch in `@uacc/contracts` ohne ADR
-   - Adapter importiert `@uacc/core`/`@uacc/server` oder umgeht `AdapterContext`
+   - Contract-Bruch in `@ancientvoid/contracts` ohne ADR
+   - Adapter importiert `@ancientvoid/core`/`@ancientvoid/server` oder umgeht `AdapterContext`
    - Event-Payload > 4 KB ohne `ctx.blob()` (K5)
    - Neuer State ohne Recovery-Pfad / kein `adapter.recover()` (K7)
    - Stiller Drop unbekannter Provider-Events statt `system`-Event ("Fail loud")

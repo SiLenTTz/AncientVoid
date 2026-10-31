@@ -16,7 +16,7 @@ reporter: jan
 
 ## Gesehen
 
-Der mobile Hub war vom Handy nicht mehr erreichbar. `uacc-hub.service`
+Der mobile Hub war vom Handy nicht mehr erreichbar. `ancientvoid-hub.service`
 stand auf `inactive (dead)` — seit 01:08:45 Uhr, rund 6 Stunden, ohne
 Neustart. Der Prozess hatte sich um 01:08:45 per SIGTERM sauber beendet
 (`code=exited, status=0/SUCCESS`). Zeitgleich (~01:05) warfen mehrere
@@ -55,16 +55,16 @@ von systemd: `on-failure` restartet Clean-Exits nicht).
 ```text
 Sep 29 01:08:45 omarchy node[3736448]: {"msg":"shutting down","signal":"SIGTERM"}
 Sep 29 01:08:45 omarchy node[3736448]: {"msg":"stopping hub","keepWorkers":true}
-Sep 29 01:08:45 omarchy systemd[1276]: uacc-hub.service: Consumed 28min …
+Sep 29 01:08:45 omarchy systemd[1276]: ancientvoid-hub.service: Consumed 28min …
    Process: 3736448 ExecStart=… (code=exited, status=0/SUCCESS)
 ```
 
-Kein `Stopping uacc-hub.service`-Eintrag davor — der SIGTERM kam nicht
+Kein `Stopping ancientvoid-hub.service`-Eintrag davor — der SIGTERM kam nicht
 von einem expliziten `systemctl stop`.
 
 ## Eingrenzung
 
-`~/.config/systemd/user/uacc-hub.service` (bzw. das Unit-Template in
+`~/.config/systemd/user/ancientvoid-hub.service` (bzw. das Unit-Template in
 `scripts/fleet-deploy.sh` und das Runbook-Beispiel in
 `docs/operations-runbook.md`): `Restart=on-failure`.
 

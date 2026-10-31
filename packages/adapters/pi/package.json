@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/adapter-pi",
+  "name": "@ancientvoid/adapter-pi",
   "version": "0.1.0",
   "description": "aider adapter (P3, T3.13): spawns `aider --message`, unproven \u2014 see src/index.ts's doc comment for why.",
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
     "zod": "^4.6.5"
   }
 }

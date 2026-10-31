@@ -6,7 +6,7 @@ description: AncientVoid-Architektur-Referenz (Adapter.start → ctx.emit → Ev
 # Skill: architecture-best-practices
 
 Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). AncientVoid-Verträge:
-[`.claude/skills/_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md).
+[`.claude/skills/_shared/ancientvoid-protected-invariants.md`](../_shared/ancientvoid-protected-invariants.md).
 Advisory dazu: [`ponytail-review`](../ponytail-review/SKILL.md).
 
 ## Zweck
@@ -23,7 +23,7 @@ bezahlt sind. Kein Workflow; eine Referenz, die andere Skills anwenden.
 
 ## Hard Rules
 
-- ✅ Contracts first: alles Geteilte liegt in `@uacc/contracts`.
+- ✅ Contracts first: alles Geteilte liegt in `@ancientvoid/contracts`.
 - ✅ Adapter sehen nur `AdapterContext` — keine Hub-Internas.
 - ✅ Bug-Fix-Test muss ohne Fix scheitern.
 - ✅ EventStore-Pipeline nicht in einer Funktion mit Adapter-Logik mischen.
@@ -64,7 +64,7 @@ Anti-Pattern.
 
 ### Anti-Pattern (mindestens)
 
-1. Adapter importiert `@uacc/core` oder `@uacc/server` direkt.
+1. Adapter importiert `@ancientvoid/core` oder `@ancientvoid/server` direkt.
 2. Adapter spawnt `child_process` direkt statt `ctx.spawnWorker`.
 3. `capabilities()`, die mehr verspricht als der Code hält (Ehrlichkeitsklausel,
    README Adapter-Status-Matrix).
@@ -96,7 +96,7 @@ durchreicht — kostet Lernaufwand und liefert nichts zurück.
    genau einen Provider wäre einer.
 3. **Die Schnittstelle ist die Testfläche.** Test und Aufrufer kreuzen
    dieselbe Naht. Wer am Test vorbei ins Innere greifen muss, hat das Modul
-   falsch geschnitten — nicht den Test. `@uacc/adapter-testkit` prüft genau
+   falsch geschnitten — nicht den Test. `@ancientvoid/adapter-testkit` prüft genau
    diese Naht (`AdapterContext`), nicht Adapter-Internas.
 
 Für den Rückbau bestehender Schichten gilt derselbe Maßstab; das Werkzeug
@@ -105,7 +105,7 @@ dafür ist [`ponytail-review`](../ponytail-review/SKILL.md).
 ### Testing
 
 Rezept und Dateilagen: [`write-tests`](../write-tests/SKILL.md).
-- vitest (forks pool), Contract-Tests via `@uacc/adapter-testkit`.
+- vitest (forks pool), Contract-Tests via `@ancientvoid/adapter-testkit`.
 - Neuer Bug: Test zuerst, rot ohne Fix, grün mit Fix.
 - **Ein Test, der beim ersten Lauf sofort grün ist, hat nichts bewiesen.**
   Entweder prüft er die falsche Stelle, oder der Bug ist nicht reproduziert.
@@ -126,7 +126,7 @@ Avoid: <Anti-Pattern, das die Frage riskiert>
 
 ## Protected Invariants (AncientVoid)
 
-Siehe [`_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md).
+Siehe [`_shared/ancientvoid-protected-invariants.md`](../_shared/ancientvoid-protected-invariants.md).
 
 ## Determinismus-Checkliste
 

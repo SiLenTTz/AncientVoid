@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { LoopInfo, LoopCapabilities, LoopOnboarding } from "@uacc/contracts";
+import type { LoopInfo, LoopCapabilities, LoopOnboarding } from "@ancientvoid/contracts";
 import { loopBlocker, onboardProjectDefaults, onboardSelectDefaults } from "../../../src/features/loops/loop-form.ts";
 
 const caps = (over: Partial<LoopCapabilities>): LoopCapabilities => ({ agents: "external", intake: ["backlog"], modes: [], riskyModes: [], orchestrators: [], controls: [], gates: [], asks: "none", options: [], ...over });

@@ -14,9 +14,9 @@ tmux, Tailscale, SSH-Schlüssel des Heim-Rechners, `loginctl enable-linger`.
 scripts/fleet-deploy.sh <user>@<name>.<tailnet>.ts.net <host-id> <tailnet-ip> <projekt-wurzel> [adapter-json]
 ```
 
-- Code nach `~/mobile-hub`, Konfig `~/.config/uacc/hub.config.json` (nur beim
-  ersten Mal geschrieben), Daten `~/.local/share/uacc`, Dienst
-  `systemctl --user … uacc-hub`.
+- Code nach `~/AncientVoid`, Konfig `~/.config/ancientvoid/hub.config.json` (nur beim
+  ersten Mal geschrieben), Daten `~/.local/share/ancientvoid`, Dienst
+  `systemctl --user … ancientvoid-hub`.
 - Der Hub lauscht **nur auf der Tailnet-IP**, Port 7373 — im LAN und im
   Internet nicht erreichbar. Anfragen brauchen trotzdem ein Token.
 - Adapter nur für CLIs, die dort installiert und angemeldet sind; das JSON
@@ -24,7 +24,7 @@ scripts/fleet-deploy.sh <user>@<name>.<tailnet>.ts.net <host-id> <tailnet-ip> <p
 
 ## Koppeln
 
-1. Auf dem neuen Rechner: `cd ~/mobile-hub && node apps/hubctl/src/cli.ts fleet invite --db ~/.local/share/uacc/hub.db`
+1. Auf dem neuen Rechner: `cd ~/AncientVoid && node apps/hubctl/src/cli.ts fleet invite --db ~/.local/share/ancientvoid/hub.db`
    (oder dessen PWA → Einstellungen → „Einladungscode erzeugen“).
 2. In der PWA des Heim-Hubs → Einstellungen → „Host hinzufügen“:
    Adresse `http://<name>.<tailnet>.ts.net:7373`, Code eingeben.
@@ -52,9 +52,9 @@ Session; laufende Züge werden übernommen (ADR-0014). Das gilt erst, seit die D
 - Heim-PWA → Einstellungen → Host „Entfernen“: vergisst den Host und
   widerruft das Token dort.
 - Nur sperren, auf dem anderen Rechner:
-  `node apps/hubctl/src/cli.ts token revoke fleet:<heim-host-id> --db ~/.local/share/uacc/hub.db`
+  `node apps/hubctl/src/cli.ts token revoke fleet:<heim-host-id> --db ~/.local/share/ancientvoid/hub.db`
   — neue Anfragen sofort abgelehnt, offene Streams binnen 5 s beendet.
-- Dienst entfernen: `systemctl --user disable --now uacc-hub`.
+- Dienst entfernen: `systemctl --user disable --now ancientvoid-hub`.
 
 ## Aktuelle Flotte (2026-09-23)
 

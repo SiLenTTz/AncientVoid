@@ -26,8 +26,8 @@ Recovery unter 3 s bei diesem Bestand.
 
 ## Repro
 
-1. Hub neu starten (`systemctl --user restart uacc-hub`).
-2. `journalctl --user -u uacc-hub` nach `recovery exceeded K7 budget` durchsuchen.
+1. Hub neu starten (`systemctl --user restart ancientvoid-hub`).
+2. `journalctl --user -u ancientvoid-hub` nach `recovery exceeded K7 budget` durchsuchen.
 
 **Ergebnis nach Schritt 2:** `elapsedMs` ≈ 12.600.
 

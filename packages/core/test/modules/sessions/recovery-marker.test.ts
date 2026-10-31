@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { basicFeatures, type Adapter, type AdapterContext } from "@uacc/contracts";
-import { TmuxRunner } from "@uacc/workers";
+import { basicFeatures, type Adapter, type AdapterContext } from "@ancientvoid/contracts";
+import { TmuxRunner } from "@ancientvoid/workers";
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { EventStore } from "../../../src/platform/eventstore.ts";
 import { HubDatabase } from "../../../src/platform/db.ts";
 import { SessionManager } from "../../../src/modules/sessions/session-manager.ts";
 
 /** EPIC-P17 AC-P17-1: after a hub kill + restart, 100 % of the surviving
- * tmux workers are mapped back to their session via the @uacc_session
+ * tmux workers are mapped back to their session via the @ancientvoid_session
  * marker (ADR-0037) — with TWO different adapters, inside K7's 3 s budget.
  * Skips visibly without tmux (ADR-0002 pattern). */
 const hasTmux = (await new TmuxRunner(join(tmpdir(), "probe")).isAvailable()).valueOf();
@@ -53,8 +53,8 @@ function sleepingAdapter(id: string): Adapter {
 }
 
 describe("AC-P17-1: Marker-Zuordnung nach Hub-Restart", () => {
-  itTmux("100 % der laufenden Worker werden über @uacc_session zugeordnet (2 Adapter × 2, K7 < 3 s)", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-recmarker-"));
+  itTmux("100 % der laufenden Worker werden über @ancientvoid_session zugeordnet (2 Adapter × 2, K7 < 3 s)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-recmarker-"));
     const logs = join(dir, "workers");
     const registry = new AdapterRegistry();
     registry.register("sleepa", () => sleepingAdapter("sleepa"));

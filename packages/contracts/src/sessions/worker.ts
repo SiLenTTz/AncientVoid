@@ -6,10 +6,10 @@ import type { WorkerProcess } from "../harness/adapter.ts";
  * child_process, WSL, remote) can be plugged without touching adapters.
  */
 export interface WorkerSpec {
-  /** Unique worker name; the tmux runner prefixes it with "uacc-". */
+  /** Unique worker name; the tmux runner prefixes it with "ancientvoid-". */
   name: string;
   /** T17.5/ADR-0037: hub session id this worker belongs to — written as the
-   * tmux session option @uacc_session and pane env UACC_SESSION_ID. Identity
+   * tmux session option @ancientvoid_session and pane env ANCIENTVOID_SESSION_ID. Identity
    * after a hub restart comes from this marker; `name` is only the fallback.
    * Values are hub-internal ids (randomUUID), never user input. */
   sessionId?: string;
@@ -27,10 +27,10 @@ export interface WorkerInfo {
   name: string;
   /** Full session name including prefix, if runner uses namespacing. */
   fullName: string;
-  /** T17.5/ADR-0037: the hub session id from @uacc_session, when the
+  /** T17.5/ADR-0037: the hub session id from @ancientvoid_session, when the
    * runner sets it. Absent = pre-marker worker (fallback path). */
   sessionId?: string;
-  /** T17.5/ADR-0037: stable per-spawn worker id (@uacc_worker, randomUUID). */
+  /** T17.5/ADR-0037: stable per-spawn worker id (@ancientvoid_worker, randomUUID). */
   workerId?: string;
   pid?: number;
   createdAt?: number;

@@ -1,4 +1,4 @@
-const ZOOM_KEY = "uacc.pinch-zoom";
+const ZOOM_KEY = "ancientvoid.pinch-zoom";
 
 /**
  * Nutzerwunsch 2026-09-28: nie Fokus-Zoom beim Antippen, nie horizontales

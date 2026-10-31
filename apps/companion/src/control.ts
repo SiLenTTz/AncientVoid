@@ -5,11 +5,11 @@ import type { Companion } from "./companion.ts";
 
 /**
  * T11.5 / AC-P11-3: the local emergency stop. A unix socket in the user's
- * runtime dir takes "stop", "resume" and "status" — bind `uacc-companion
- * stop` to a key (Hyprland: `bind = SUPER SHIFT, ESCAPE, exec, uacc-companion stop`).
+ * runtime dir takes "stop", "resume" and "status" — bind `ancientvoid-companion
+ * stop` to a key (Hyprland: `bind = SUPER SHIFT, ESCAPE, exec, ancientvoid-companion stop`).
  */
 export function socketPath(env: NodeJS.ProcessEnv = process.env): string {
-  return join(env.XDG_RUNTIME_DIR ?? "/tmp", "uacc-companion.sock");
+  return join(env.XDG_RUNTIME_DIR ?? "/tmp", "ancientvoid-companion.sock");
 }
 
 export function serveControl(companion: Companion, path = socketPath()): Server {

@@ -1,4 +1,4 @@
-import { STT_STREAM_MAX_BUFFERED_BYTES, type SttStreamEvent } from "@uacc/contracts";
+import { STT_STREAM_MAX_BUFFERED_BYTES, type SttStreamEvent } from "@ancientvoid/contracts";
 import { hubApi } from "./api.ts";
 
 const SAMPLE_RATE = 16_000;
@@ -53,7 +53,7 @@ export class LocalSttStream {
       if (this.context.sampleRate !== SAMPLE_RATE) throw new Error("Das Gerät kann Audio nicht lokal auf 16 kHz verarbeiten.");
       await this.context.audioWorklet.addModule("/pcm-capture.worklet.js");
       this.source = this.context.createMediaStreamSource(stream);
-      this.processor = new AudioWorkletNode(this.context, "uacc-pcm16-capture", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+      this.processor = new AudioWorkletNode(this.context, "ancientvoid-pcm16-capture", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
       this.processor.port.onmessage = (event: MessageEvent<ArrayBuffer>) => this.acceptSamples(new Int16Array(event.data));
       this.source.connect(this.processor);
       this.processor.connect(this.context.destination);

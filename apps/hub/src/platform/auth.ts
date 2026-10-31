@@ -1,6 +1,6 @@
-import { BRIDGE_TOKEN_PREFIX, COMPANION_TOKEN_PREFIX, FLEET_TOKEN_PREFIX, bridgeTokenAllows, companionTokenAllows, isFleetRoutable } from "@uacc/contracts";
+import { BRIDGE_TOKEN_PREFIX, COMPANION_TOKEN_PREFIX, FLEET_TOKEN_PREFIX, bridgeTokenAllows, companionTokenAllows, isFleetRoutable } from "@ancientvoid/contracts";
 import type { FastifyRequest, FastifyReply } from "fastify";
-import type { TokenService } from "@uacc/core";
+import type { TokenService } from "@ancientvoid/core";
 
 /**
  * Auth (PRD §8): Tailnet-only deployment, device-token bearer auth.

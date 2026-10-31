@@ -18,7 +18,7 @@ reporter: agent
 
 Claude-Sessions aus tiefer verschachtelten Projekten erscheinen in der
 Discovery-Liste (PWA „Entdecken", `hubctl discover`) mit dem gemunged
-Verzeichnisnamen (z. B. `-mnt-omarchy-data-30-repos-arch-arbeitsbaeume-mobile-hub`)
+Verzeichnisnamen (z. B. `-mnt-omarchy-data-30-repos-arch-arbeitsbaeume-AncientVoid`)
 statt dem echten Pfad — sie werden dadurch nicht der bekannten Projektgruppe
 zugeordnet und sind schlechter wiederzuerkennen.
 
@@ -33,12 +33,12 @@ die ihren echten `directory`-Pfad zeigen.
 Voraussetzung: `~/.claude/projects` enthält Projekte tiefer als eine Ebene
 unter einem `projectRoots`-Root; Hub mit passendem `hub.config.json`.
 
-1. `UACC_CONFIG=… node apps/hub/src/main.ts` starten
-2. `UACC_URL=… UACC_TOKEN=… node apps/hubctl/src/cli.ts discover`
+1. `ANCIENTVOID_CONFIG=… node apps/hub/src/main.ts` starten
+2. `ANCIENTVOID_URL=… ANCIENTVOID_TOKEN=… node apps/hubctl/src/cli.ts discover`
 
 **Ergebnis nach Schritt 2:** Claude-Zeilen mit `project:
-"-mnt-omarchy-data-30-repos-arch-arbeitsbaeume-mobile-hub"` statt
-`"/mnt/omarchy_data/30_repos/arch/arbeitsbaeume/mobile-hub"`. Auf der
+"-mnt-omarchy-data-30-repos-arch-arbeitsbaeume-AncientVoid"` statt
+`"/mnt/omarchy_data/30_repos/arch/arbeitsbaeume/AncientVoid"`. Auf der
 Repro-Maschine: 174 Projektverzeichnisse, alle gemunged; nur direkte
 Root-/Home-Kinder würden entrütschelt.
 

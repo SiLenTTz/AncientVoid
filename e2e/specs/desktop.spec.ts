@@ -98,6 +98,6 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
   test("ohne Companion: die Seite erklärt die Einrichtung", async ({ app }) => {
     await app.getByRole("button", { name: "PC", exact: true }).click();
     await expect(app.locator(".desktop-setup")).toContainText("Kein PC verbunden");
-    await expect(app.locator(".desktop-setup")).toContainText("uacc-companion stop");
+    await expect(app.locator(".desktop-setup")).toContainText("ancientvoid-companion stop");
   });
 });

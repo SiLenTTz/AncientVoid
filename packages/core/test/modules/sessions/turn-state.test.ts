@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Adapter } from "@uacc/contracts";
-import { basicFeatures } from "@uacc/contracts";
+import type { Adapter } from "@ancientvoid/contracts";
+import { basicFeatures } from "@ancientvoid/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
-import { ProcessRunner } from "@uacc/workers";
+import { ProcessRunner } from "@ancientvoid/workers";
 
 /** Like every real CLI adapter: one worker process per turn. */
 function oneProcessPerTurn(): Adapter {
@@ -40,7 +40,7 @@ async function waitFor(check: () => boolean, what: string): Promise<void> {
 
 describe("turn state (T5.4)", () => {
   it("is working while a turn runs and idle between turns", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-turns-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-turns-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("turns", oneProcessPerTurn);
@@ -66,7 +66,7 @@ describe("turn state (T5.4)", () => {
   });
 
   it("a failed turn does not look idle", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-turns-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-turns-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("turns", oneProcessPerTurn);
@@ -83,7 +83,7 @@ describe("turn state (T5.4)", () => {
   });
 
   it("after a failed turn in error state, the next prompt runs again (ADR-0015)", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-turns-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-turns-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("turns", () => ({ ...oneProcessPerTurn(), status: async () => ({ state: "down" as const }) }));
@@ -104,7 +104,7 @@ describe("turn state (T5.4)", () => {
   });
 
   it("a planned shutdown that keeps workers leaves sessions as they are", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-turns-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-turns-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     let stops = 0;

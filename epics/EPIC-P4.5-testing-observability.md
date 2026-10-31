@@ -54,14 +54,14 @@ Suite fehlt").
 | Integration | dieselbe Lage, Dateiname `*.integration.test.ts` oder bestehender Server-/Gateway-Test | vitest, echter `createHubApp` + Dummy | immer, CI-Gate |
 | E2E | `e2e/**/*.test.ts` | vitest + Playwright Chromium | lokal Pflicht wenn Browser da; CI skippt ohne Browser (ADR-0002-Muster), nicht still |
 
-`@uacc/adapter-testkit` bleibt die Adapter-Naht. Ein Bug-Fix-Test muss ohne Fix
+`@ancientvoid/adapter-testkit` bleibt die Adapter-Naht. Ein Bug-Fix-Test muss ohne Fix
 scheitern (`architecture-best-practices`). Timing-Tests warten auf ein Signal,
 nicht auf `setTimeout`.
 
 ### Logging
 
-Kein zweites Framework. `HubLogger` in `@uacc/contracts` ist die Naht;
-Implementierung in `@uacc/core` schreibt JSON-Lines nach stdout. Fastify behält
+Kein zweites Framework. `HubLogger` in `@ancientvoid/contracts` ist die Naht;
+Implementierung in `@ancientvoid/core` schreibt JSON-Lines nach stdout. Fastify behält
 pino, mit Redaction von `authorization`/`cookie`/`token`. `AdapterContext.log`
 ändert die Signatur nicht — Core leitet in den HubLogger weiter. Default in Tests
 bleibt console-kompatibel, damit bestehende Suites nicht umgeschrieben werden.
@@ -96,7 +96,7 @@ README/AGENTS registriert. Ein Endpunkt ohne Client und ohne Test zählt nicht.
   verweisen darauf. Unit/Integration/E2E, Dateilagen, Kommandos, Skip-Muster,
   rot-dann-grün, Adapter-Testkit, kein Cloud-Egress im Test. K5/K7.
 - [x] **T4.5-2 — Observability-Contract + ADR.** `HubLogger`, `HubMetrics`,
-  `HubHealthReport` in `@uacc/contracts`; ADR-0010. Keine Änderung an
+  `HubHealthReport` in `@ancientvoid/contracts`; ADR-0010. Keine Änderung an
   `AdapterContext.log`. K5/K7.
 - [x] **T4.5-3 — Logger und Metrics im Kern.** JSON-Logger mit Redaction;
   In-Process-Zähler; SessionManager/main ersetzen Roh-`console.*` an den

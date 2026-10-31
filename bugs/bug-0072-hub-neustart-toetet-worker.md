@@ -16,7 +16,7 @@ reporter: jan
 
 ## Gesehen
 
-Läufe werden „regelmäßig unterbrochen“. Nach jedem Neustart des systemd-Dienstes `uacc-hub.service` stehen die tmux-Sessions der Worker
+Läufe werden „regelmäßig unterbrochen“. Nach jedem Neustart des systemd-Dienstes `ancientvoid-hub.service` stehen die tmux-Sessions der Worker
 mit der Startzeit des Hubs da (08:11:15 bei Hub-Start 08:11:14), sie wurden neu angelegt statt übernommen. Die Doku verspricht das Gegenteil
 (`docs/fleet.md`: „Der Neustart stoppt keine Session; laufende Züge werden übernommen“, ADR-0014).
 
@@ -28,8 +28,8 @@ Ein Neustart oder Absturz des Hubs stoppt nur den Hub. Die Worker laufen weiter,
 
 Ohne den Produktiv-Hub anzufassen, mit zwei transienten Units und eigenem tmux-Socket:
 
-1. `systemd-run --user --unit=uacc-killtest-control-group -p KillMode=control-group bash -c "tmux -L k new-session -d -s worker 'sleep 900'; exec sleep 900"`
-2. `systemctl --user restart uacc-killtest-control-group`, danach `tmux -L k ls`.
+1. `systemd-run --user --unit=ancientvoid-killtest-control-group -p KillMode=control-group bash -c "tmux -L k new-session -d -s worker 'sleep 900'; exec sleep 900"`
+2. `systemctl --user restart ancientvoid-killtest-control-group`, danach `tmux -L k ls`.
 3. Dasselbe mit `-p KillMode=process`.
 
 **Ergebnis nach Schritt 2:** `control-group`: die Session ist neu (Erstellzeit 16:17:43 → 16:17:45), der alte tmux-Server wurde getötet.
@@ -49,10 +49,10 @@ Ohne den Produktiv-Hub anzufassen, mit zwei transienten Units und eigenem tmux-S
 ## Logs
 
 ```text
-$ systemd-cgls --user-unit uacc-hub.service
+$ systemd-cgls --user-unit ancientvoid-hub.service
 ├─ node apps/hub/src/main.ts
-├─ tmux new-session -d -s uacc-587a143d-… -c … "sleep 300"
-└─ sh -c "cat >> …/workers/uacc-587a143d-….log"
+├─ tmux new-session -d -s ancientvoid-587a143d-… -c … "sleep 300"
+└─ sh -c "cat >> …/workers/ancientvoid-587a143d-….log"
 [control-group] vorher:  worker: 1 windows (created … 16:17:43)
 [control-group] nachher: worker: 1 windows (created … 16:17:45)
 [process]       vorher:  worker: 1 windows (created … 16:17:46)

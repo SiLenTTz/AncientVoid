@@ -87,7 +87,7 @@ sie Alt brauchen. Plain-Tasten sind tabu, sonst kollidieren sie mit dem Tippen.
 entschärfen sind: `document.getElementById(anchor)` (Sprungmarken wie
 `seit-letztem-besuch`, Tool-Anker) muss im Kachel-Container suchen statt im
 Dokument, und es gibt globale Tastenkürzel (⌘/Ctrl+Enter) und
-`localStorage`-Schalter (`uacc.controlsHidden`). Jede Kachel öffnet ihren
+`localStorage`-Schalter (`ancientvoid.controlsHidden`). Jede Kachel öffnet ihren
 eigenen Tail-WebSocket. Das ist dasselbe wie vier Tabs, nur sichtbar.
 
 ## 4. Aufgaben

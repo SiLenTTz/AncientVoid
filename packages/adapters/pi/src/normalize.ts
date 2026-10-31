@@ -1,4 +1,4 @@
-import { providerErrorEvent, type EmittedEvent } from "@uacc/contracts";
+import { providerErrorEvent, type EmittedEvent } from "@ancientvoid/contracts";
 
 /**
  * BUG-0065: maps `pi -p --mode json` (pi 1.4.0, docs/json.md) to events.

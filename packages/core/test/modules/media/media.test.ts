@@ -3,7 +3,7 @@ import { copyFile, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/pro
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { formatTimestamp, mediaResultMarkdown, parseTimestamp, timestampLink, type MediaResult } from "@uacc/contracts";
+import { formatTimestamp, mediaResultMarkdown, parseTimestamp, timestampLink, type MediaResult } from "@ancientvoid/contracts";
 import { AttachmentStore, HubDatabase, MediaJobs, runTool, type MediaJobsOptions, type ToolRunner } from "../../../src/index.ts";
 import { checkMediaUrl } from "../../../src/modules/media/tools.ts";
 import { cleanOcr } from "../../../src/modules/media/jobs.ts";
@@ -227,7 +227,7 @@ describe("media jobs (EPIC-P10.5)", () => {
   }
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-media-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-media-"));
     db = new HubDatabase(":memory:");
     attachments = new AttachmentStore(db, join(dir, "attachments"));
     whisperCalls = [];

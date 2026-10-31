@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { PushSubscribeInput } from "@uacc/contracts";
-import type { PushService, TokenService } from "@uacc/core";
+import { PushSubscribeInput } from "@ancientvoid/contracts";
+import type { PushService, TokenService } from "@ancientvoid/core";
 import { extractToken } from "../../platform/auth.ts";
 
 /** T8.3 (ADR-0026): Web Push — switch, subscriptions, test. */

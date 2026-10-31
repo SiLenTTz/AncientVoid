@@ -35,7 +35,7 @@ Jede Einstellung ist pro Gerät (`localStorage`), außer sie ändert den Hub (da
 
 | Einstellung | Warum | Prio |
 |---|---|---|
-| Standardfilter (Überwachen / Debuggen / Lesen) | Steht heute in `localStorage` (`uacc.filter`), aber nur über die Tabs änderbar. | A |
+| Standardfilter (Überwachen / Debuggen / Lesen) | Steht heute in `localStorage` (`ancientvoid.filter`), aber nur über die Tabs änderbar. | A |
 | Thinking und Tool-Ausgaben standardmäßig eingeklappt | Bei pi/claude sind Verläufe mit Dutzenden Tool-Aufrufen sonst lang. Seit BUG-0065 zeigt pi sie vollständig. | A |
 | Markdown-Darstellung an/aus („Rohtext“) | Wer Antworten kopieren und prüfen will, braucht den Rohtext. Seit BUG-0067 wird gerendert. | B |
 | Anzahl gehaltener Zeilen (Standard 500, Hintergrund-Kachel 150) | Speicher und Rendering (K2) bei vier Kacheln. | C |

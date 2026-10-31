@@ -129,7 +129,7 @@ test.describe("Desktop-Workspace: Kacheln ohne Fokus (EPIC-P18 T18.6)", () => {
     await hub.until(async () => (await hub.events(id)).length >= 200, "200 events");
     await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Nachbar" });
     const cardOf = (text: string) => app.locator(".split-list .session-card").filter({ hasText: text }).locator(".session-open");
-    await app.evaluate(() => localStorage.setItem("uacc.filter", "debuggen"));
+    await app.evaluate(() => localStorage.setItem("ancientvoid.filter", "debuggen"));
     await app.reload();
     await app.locator(".split-list .session-card").first().waitFor();
     await app.locator(".split-list .session-card").filter({ hasNotText: "Aufgabe Nachbar" }).locator(".session-open").click();

@@ -1,5 +1,5 @@
-import type { TranscriptSegment } from "@uacc/contracts";
-import { parseTimestamp } from "@uacc/contracts";
+import type { TranscriptSegment } from "@ancientvoid/contracts";
+import { parseTimestamp } from "@ancientvoid/contracts";
 
 /**
  * EPIC-P10.5: the services a media job may ask — whisper.cpp for speech,
@@ -39,7 +39,7 @@ export const GEMINI_HOST = "generativelanguage.googleapis.com";
 
 /** whisper-server with timestamps (`verbose_json`); `offsetMs` shifts a chunk into place. */
 export async function whisperSegments(server: WhisperServer, wav: Uint8Array, language: string, offsetMs: number, signal?: AbortSignal): Promise<{ segments: TranscriptSegment[]; language: string | null }> {
-  const boundary = `----uaccmedia${Date.now()}`;
+  const boundary = `----ancientvoidmedia${Date.now()}`;
   const field = (name: string, value: string) => `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;
   const body = Buffer.concat([
     Buffer.from(field("response_format", "verbose_json") + field("language", language) + `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="a.wav"\r\nContent-Type: audio/wav\r\n\r\n`),

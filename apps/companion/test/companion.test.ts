@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, DesktopService, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, DesktopService, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../hub/src/app.ts";
 import { Companion, HyprlandBackend, HyprlandInput, SwayBackend, WtypeInput, type FocusBackend, type FocusInfo, type InputBackend } from "../src/companion.ts";
@@ -76,7 +76,7 @@ describe("desktop companion against a real hub (T11.2/T11.3/T11.5)", () => {
   };
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-companion-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-companion-"));
     const db = new HubDatabase(":memory:");
     tokens = new TokenService(db);
     const registry = new AdapterRegistry();

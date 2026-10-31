@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { CodeMatch, CodeSearchMode } from "@uacc/contracts";
+import type { CodeMatch, CodeSearchMode } from "@ancientvoid/contracts";
 
 const run = promisify(execFile);
 

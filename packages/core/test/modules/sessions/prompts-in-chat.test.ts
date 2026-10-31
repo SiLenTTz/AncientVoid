@@ -2,17 +2,17 @@ import { describe, expect, it } from "vitest";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { NormalizedEvent } from "@uacc/contracts";
+import type { NormalizedEvent } from "@ancientvoid/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry, ApprovalService } from "../../../src/index.ts";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 
 const prompts = (events: NormalizedEvent[]) =>
   events.filter((e) => e.type === "user").map((e) => (e.payload as { text?: string }).text);
 
 describe("the user's own inputs appear in the chat", () => {
   it("records the start prompt and every reply once, as typed", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-prompts-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-prompts-"));
     const project = join(dir, "proj");
     await mkdir(join(project, ".claude", "skills", "neon"), { recursive: true });
     await writeFile(join(project, ".claude", "skills", "neon", "SKILL.md"), "---\nname: neon\ndescription: x\n---\nGEHEIMER SKILLTEXT\n");
@@ -42,7 +42,7 @@ describe("the user's own inputs appear in the chat", () => {
   });
 
   it("an approved reply appears once, after the approval", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-prompts-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-prompts-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 5, autoStopAfterEvents: 0 });

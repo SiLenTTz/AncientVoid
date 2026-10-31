@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import { DEFAULT_PUSH_HOSTS, PUSH_KIND_CATEGORY, inQuietHours, pushHostAllowed, type HubNotification, type PushPayload, type PushSubscribeInput, type PushSubscriptionView } from "@uacc/contracts";
+import { DEFAULT_PUSH_HOSTS, PUSH_KIND_CATEGORY, inQuietHours, pushHostAllowed, type HubNotification, type PushPayload, type PushSubscribeInput, type PushSubscriptionView } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 interface Row {
@@ -134,7 +134,7 @@ export class PushService {
   }
 
   private async deliver(r: Row, payload: string, notificationId: number | null): Promise<boolean> {
-    const vapid = { subject: this.opts.subject ?? "mailto:uacc@localhost", publicKey: this.settings.get("push.vapidPublic") ?? "", privateKey: this.settings.get("push.vapidPrivate") ?? "" };
+    const vapid = { subject: this.opts.subject ?? "mailto:ancientvoid@localhost", publicKey: this.settings.get("push.vapidPublic") ?? "", privateKey: this.settings.get("push.vapidPrivate") ?? "" };
     const now = this.now().toISOString();
     // Claimed before sending: a second notify() for the same id sends nothing.
     if (notificationId !== null) this.db.prepare("UPDATE push_subscriptions SET last_notification_id = MAX(last_notification_id, ?) WHERE id = ?").run(notificationId, r.id);

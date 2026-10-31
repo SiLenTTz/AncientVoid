@@ -3,9 +3,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { once } from "node:events";
-import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
+import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
 import WebSocket, { WebSocketServer } from "ws";
-import { ProcessRunner } from "@uacc/workers";
+import { ProcessRunner } from "@ancientvoid/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../../src/app.ts";
 import { projectVocabulary } from "../../../src/modules/voice/stt.routes.ts";
@@ -43,7 +43,7 @@ describe("local speech-to-text route (T10.2)", () => {
   const seen: string[] = [];
 
   async function build(withStt: boolean, withStreaming = false) {
-    dir = await mkdtemp(join(tmpdir(), "uacc-stt-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-stt-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     const tokens = new TokenService(db);
@@ -174,6 +174,6 @@ describe("local speech-to-text route (T10.2)", () => {
   });
 
   it("project names become vocabulary, spoken and written alike", () => {
-    expect(projectVocabulary(["/home/x/mobile-hub", "/srv/custom-rag/", "/a/b/mobile-hub", "/x"])).toBe("mobile-hub, custom-rag");
+    expect(projectVocabulary(["/home/x/AncientVoid", "/srv/custom-rag/", "/a/b/AncientVoid", "/x"])).toBe("AncientVoid, custom-rag");
   });
 });

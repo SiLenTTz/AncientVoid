@@ -23,7 +23,7 @@ describe("AdapterRegistry", () => {
   let dir: string;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-reg-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-reg-"));
     const adaptersDir = join(dir, "adapters");
     await mkdir(adaptersDir, { recursive: true });
     await writeFile(join(adaptersDir, "custom.mjs"), CUSTOM_ADAPTER);

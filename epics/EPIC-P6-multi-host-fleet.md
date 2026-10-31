@@ -94,7 +94,7 @@ BUG-0028 (Tokens im Request-Log), behoben. Gate: `npm run gate` grün
 | Risiko | Eingetreten? | Beleg |
 |---|---|---|
 | 1. Zentrale Übersicht wird Ausfallpunkt | nein | Messlauf `revoke`: evox2 bei gestopptem Heim-Hub bedienbar; jeder Hub hat seine PWA |
-| 2. Falscher Host bei gleichem Projektnamen | nein | `uacc-alpha` auf zwei Hosts getrennt; Eingaben 20/20 richtig |
+| 2. Falscher Host bei gleichem Projektnamen | nein | `ancientvoid-alpha` auf zwei Hosts getrennt; Eingaben 20/20 richtig |
 | 3. Netzausfall tarnt sich als Providerfehler | nein | Host-Zustände (offline/veraltet) getrennt von `provider.error` (ADR-0015) |
 | 4. WSL-Neustart ändert Erreichbarkeit | nicht prüfbar | kein WSL-Host; Wiederanmeldung nach Neustart für Linux belegt (584 ms) |
 
@@ -113,5 +113,5 @@ BUG-0028 (Tokens im Request-Log), behoben. Gate: `npm run gate` grün
 | AI-P6-1 | WSL-Host in die Flotte aufnehmen (z. B. bmax), Abnahme AC-P6-5 WSL-Teil und Premortem 4 | EPIC-P12 T12.4 |
 | AI-P6-2 | QR-Code für den Einladungscode (Handy scannt statt tippt) | ✅ erledigt 2026-09-23 (`InviteQr.tsx`, E2E „AI-P6-2 … scannen und verbinden“) |
 | AI-P6-3 | Last über die Weiterleitung (K8, 30 ev/s × Sessions über zwei Hosts) | EPIC-P12 T12.2 |
-| AI-P6-4 | Vorhandene Tokens rotieren und `/tmp/uacc-hub.log` leeren (BUG-0028) — vor der Veröffentlichung | EPIC-P12 T12.7 |
+| AI-P6-4 | Vorhandene Tokens rotieren und `/tmp/ancientvoid-hub.log` leeren (BUG-0028) — vor der Veröffentlichung | EPIC-P12 T12.7 |
 

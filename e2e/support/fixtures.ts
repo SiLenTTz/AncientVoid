@@ -30,7 +30,7 @@ export const test = base.extend<Fixtures>({
   // Every test fails on an uncaught exception in the PWA — a crash that
   // happens to leave the asserted text on screen is still a crash.
   page: async ({ page, hub }, use) => {
-    // Mit UACC_E2E_CDP (scripts/phone-e2e.mjs) ist der Browser das echte Handy statt des Playwright-Browsers.
+    // Mit ANCIENTVOID_E2E_CDP (scripts/phone-e2e.mjs) ist der Browser das echte Handy statt des Playwright-Browsers.
     const tab = phone.active ? await openPhoneTab(hub.port) : null;
     const target = tab ? tab.page : page;
     const errors: string[] = [];
@@ -56,7 +56,7 @@ export async function signIn(page: Page, hub: TestHub): Promise<void> {
   // A recycled port still holds the previous hub's token, and the gate then
   // stays up with that token filled (BUG-0054).
   await page.addInitScript((token) => {
-    localStorage.setItem("uacc.token", token);
+    localStorage.setItem("ancientvoid.token", token);
   }, hub.token);
 }
 

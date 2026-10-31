@@ -29,7 +29,7 @@ Detail-Doks; sie dupliziert sie nicht.
 ## 2. Installieren
 
 ```bash
-git clone <repo> && cd mobile-hub
+git clone <repo> && cd AncientVoid
 npm install          # richtet auch den commit-msg-Hook ein
 npm test             # Sanity: Suite muss grün sein (skips ok)
 ```
@@ -43,18 +43,18 @@ cp apps/hub/hub.config.example.json hub.config.json
 - Details/Felder: [`configuration.md`](configuration.md). Eigene Config ist
   git-ignored — **keine Secrets committen**.
 - API-Keys gehören in Dateien und werden per `envFiles` referenziert
-  (Beispiel maki: `"envFiles": { "ZHIPU_API_KEY": "~/.config/uacc/glm-coding.key" }`)
+  (Beispiel maki: `"envFiles": { "ZHIPU_API_KEY": "~/.config/ancientvoid/glm-coding.key" }`)
   — Schlüssel stehen so nie in der Config.
-- Alternativer Config-Pfad: `UACC_CONFIG=<pfad>`.
+- Alternativer Config-Pfad: `ANCIENTVOID_CONFIG=<pfad>`.
 
 ## 4. PWA bauen und starten
 
 ```bash
-npm -w @uacc/pwa run build     # einmalig (config.server.pwaDir)
+npm -w @ancientvoid/pwa run build     # einmalig (config.server.pwaDir)
 node apps/hub/src/main.ts      # Manuell
 ```
 
-Als Dienst (`~/.config/systemd/user/uacc-hub.service`, minimal):
+Als Dienst (`~/.config/systemd/user/ancientvoid-hub.service`, minimal):
 
 ```ini
 [Unit]
@@ -72,8 +72,8 @@ Bereit ist der Hub, wenn `GET /api/health` und `/api/ready` grün antworten.
 ## 5. Verbinden
 
 - **PWA:** `http://127.0.0.1:7373` (port wie config). Von unterwegs: Tailscale +
-  `UACC_EXPOSE=1`-Hinweis in [`configuration.md` §Tailscale](configuration.md).
-- **CLI:** `UACC_TOKEN=<device-token> node apps/hubctl/src/cli.ts sessions`
+  `ANCIENTVOID_EXPOSE=1`-Hinweis in [`configuration.md` §Tailscale](configuration.md).
+- **CLI:** `ANCIENTVOID_TOKEN=<device-token> node apps/hubctl/src/cli.ts sessions`
 
 ## 6. Eigene Tools anbinden (nichts am Code ändern)
 

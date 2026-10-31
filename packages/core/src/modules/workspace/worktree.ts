@@ -105,7 +105,7 @@ export class WorktreeManager {
     await git(path, "add", "-A");
     const staged = await git(path, "diff", "--cached", "--quiet").then(() => false).catch(() => true);
     const identity = async (cwd: string) =>
-      git(cwd, "config", "user.email").then(() => [] as string[]).catch(() => ["-c", "user.name=AncientVoid", "-c", "user.email=hub@uacc.local"]);
+      git(cwd, "config", "user.email").then(() => [] as string[]).catch(() => ["-c", "user.name=AncientVoid", "-c", "user.email=hub@ancientvoid.local"]);
     const gitAs = async (cwd: string, args: string[]) => execFileAsync("git", ["-C", cwd, ...(await identity(cwd)), ...args]);
     if (staged) await gitAs(path, ["commit", "-q", "-m", message]);
     const { stdout: pending } = await git(projectPath, "log", "--format=%H", `HEAD..${branch}`);
@@ -128,12 +128,12 @@ export class WorktreeManager {
   }
 
   private branchName(sessionId: string): string {
-    return `uacc/${sessionId}`;
+    return `ancientvoid/${sessionId}`;
   }
 
   /**
    * Creates `<baseDir>/<sessionId>` as a new worktree of `projectPath` on a
-   * fresh branch `uacc/<sessionId>`, pinned at the project's current HEAD.
+   * fresh branch `ancientvoid/<sessionId>`, pinned at the project's current HEAD.
    * Returns null (no throw) when `projectPath` isn't a git repo at all —
    * that is the documented, honest non-isolation fallback, not an error.
    */

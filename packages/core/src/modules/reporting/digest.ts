@@ -1,4 +1,4 @@
-import type { DigestLesson, DigestLessonKind, NormalizedEvent, SessionRecord, SessionMetricsState, SessionSummary } from "@uacc/contracts";
+import type { DigestLesson, DigestLessonKind, NormalizedEvent, SessionRecord, SessionMetricsState, SessionSummary } from "@ancientvoid/contracts";
 
 /**
  * T4.2 (EPIC-P4 §3 "Digest-Pipeline") / ADR-0009 — turns one completed

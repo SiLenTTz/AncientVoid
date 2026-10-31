@@ -20,7 +20,7 @@ const HELD_OUT = [
   ["Mach die Freigaben-Seite auf", overview, "nav.open"],
   ["Öffne bitte die Session zum Login", overview, "session.open"],
   ["Spring zur Build-Session", overview, "session.open"],
-  ["Starte Claude für mobile-hub: Lies die Architektur-Doku", overview, "session.create"],
+  ["Starte Claude für AncientVoid: Lies die Architektur-Doku", overview, "session.create"],
   ["Mach eine neue Codex-Session im Projekt beta auf: Tests", overview, "session.create"],
   ["Fang mit opencode in beta an: README prüfen", overview, "session.create"],
   ["Antworte der Doku-Session: gerne auch englisch", overview, "session.prompt"],

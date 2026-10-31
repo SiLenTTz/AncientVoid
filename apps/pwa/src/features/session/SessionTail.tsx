@@ -143,7 +143,7 @@ export function SessionTail({
   // A choice the person made is kept.
   const [controlsHidden, setControlsHidden] = useState(() => {
     if (tile) return tile.compact;
-    const stored = localStorage.getItem("uacc.controlsHidden");
+    const stored = localStorage.getItem("ancientvoid.controlsHidden");
     return stored === null ? window.innerHeight < SHORT_VIEWPORT_PX : stored === "1";
   });
   // EPIC-P18: a layout change that makes this tile small folds it too.
@@ -161,7 +161,7 @@ export function SessionTail({
   // T1.6-3: Chat/Verlauf are the new dock sub-tabs — Chat is exactly the
   // existing "lesen" preset, Verlauf is "ueberwachen"/"debuggen" with a
   // small switcher inside it. `filter` stays the single source of truth
-  // (unchanged uacc.filter localStorage key, AC-P1.6-1) so a returning
+  // (unchanged ancientvoid.filter localStorage key, AC-P1.6-1) so a returning
   // user's last preset — including which tab that implies — still loads
   // correctly; lastVerlaufFilter only remembers which of the two Verlauf
   // presets to restore when hopping back from Chat.
@@ -348,7 +348,7 @@ export function SessionTail({
   }, [activeTab, session.id, session.adapter]);
 
   useEffect(() => {
-    localStorage.setItem("uacc.filter", filter);
+    localStorage.setItem("ancientvoid.filter", filter);
     if (filter !== "lesen") setLastVerlaufFilter(filter);
   }, [filter]);
 
@@ -467,7 +467,7 @@ export function SessionTail({
     }
     setControlsHidden((hidden) => {
       // A tile's fold is that tile's; the single view keeps the device choice.
-      if (!tile) localStorage.setItem("uacc.controlsHidden", hidden ? "0" : "1");
+      if (!tile) localStorage.setItem("ancientvoid.controlsHidden", hidden ? "0" : "1");
       return !hidden;
     });
   };
@@ -531,12 +531,12 @@ export function SessionTail({
   // T9.4: "Such im Code nach …" lands here.
   useEffect(() => {
     const check = () => {
-      const pending = JSON.parse(sessionStorage.getItem("uacc.pendingCodeSearch") ?? "null") as { sessionId?: string } | null;
+      const pending = JSON.parse(sessionStorage.getItem("ancientvoid.pendingCodeSearch") ?? "null") as { sessionId?: string } | null;
       if (pending?.sessionId === session.id) setActiveTab("code");
     };
     check();
-    window.addEventListener("uacc:code-search", check);
-    return () => window.removeEventListener("uacc:code-search", check);
+    window.addEventListener("ancientvoid:code-search", check);
+    return () => window.removeEventListener("ancientvoid:code-search", check);
   }, [session.id]);
   const [pinned, setPinned] = useState(session.pinned === true);
   const [renaming, setRenaming] = useState(false);

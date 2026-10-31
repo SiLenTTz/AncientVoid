@@ -36,13 +36,13 @@ Hub-Crash (K7). Ohne `recover` gilt eine Session nach Crash als `error`
 ### ACP-Harnesses ohne eigenen Code
 
 Jeder Agent, der das Agent Client Protocol spricht, läuft über
-`@uacc/adapter-acp` — nur Konfiguration:
+`@ancientvoid/adapter-acp` — nur Konfiguration:
 
 ```json
-{ "id": "copilot-acp", "module": "@uacc/adapter-acp", "config": { "preset": "copilot" } }
-{ "id": "opencode-acp", "module": "@uacc/adapter-acp", "config": { "preset": "opencode" } }
-{ "id": "dsh", "module": "@uacc/adapter-acp", "config": { "preset": "dsh" } }
-{ "id": "mein-agent", "module": "@uacc/adapter-acp", "config": { "command": ["mein-agent", "--acp"], "label": "Mein Agent" } }
+{ "id": "copilot-acp", "module": "@ancientvoid/adapter-acp", "config": { "preset": "copilot" } }
+{ "id": "opencode-acp", "module": "@ancientvoid/adapter-acp", "config": { "preset": "opencode" } }
+{ "id": "dsh", "module": "@ancientvoid/adapter-acp", "config": { "preset": "dsh" } }
+{ "id": "mein-agent", "module": "@ancientvoid/adapter-acp", "config": { "command": ["mein-agent", "--acp"], "label": "Mein Agent" } }
 ```
 
 **dsh (DeepSeek Harness, `dst` ist nur dessen Terminal-Oberfläche):** Der Hub startet
@@ -85,7 +85,7 @@ eigene opencode-Instanz registriert — mit Default-Modell und damit
 Modell-Dropdown im Startformular:
 
 ```json
-{ "id": "securesight-harnez", "module": "@uacc/adapter-acp",
+{ "id": "securesight-harnez", "module": "@ancientvoid/adapter-acp",
   "config": { "preset": "opencode", "label": "SecureSight Harnez", "model": "zai-coding-plan/glm-5.3" } }
 ```
 
@@ -111,7 +111,7 @@ Harness meldet sie im Band. Der Input-Token-Anteil der letzten Anfrage
 (`payload.usage.input` auf dem Zugende-Event) ist die gemessene Füllung;
 die PWA zeigt daraus „Kontext x %" nur, wenn beide Zahlen echt sind.
 
-**Je Modell statt je Instanz**: `@uacc/models` pflegt eine kuratierte
+**Je Modell statt je Instanz**: `@ancientvoid/models` pflegt eine kuratierte
 Tabelle (`contextWindowFor`, Quelle models.dev — dieselbe Datenbank, die
 opencode nutzt; Stand im Quellverlauf). Der Adapter legt das Fenster des
 gewählten Modells auf sein `acp.model`-/`opencode.model`-Event
@@ -122,14 +122,14 @@ Rohwert). Wichtig z. B. bei GLM: glm-4.7 hat 204.800 Tokens, glm-5.2/5.3
 1.000.000 — eine Zahl je Instanz wäre falsch. Unbekannte Modelle bleiben
 ohne Fenster, die PWA zeigt dann keine Prozentzahl.
 
-## Hermes Agent (CLI) — `@uacc/adapter-hermes` (P13)
+## Hermes Agent (CLI) — `@ancientvoid/adapter-hermes` (P13)
 
 Hermes Agent (Nous Research) als vollwertiger CLI-Adapter — gleiche Form
 wie claude print mode: **ein Prozess pro Zug**, native Resume über die
 Session-ID.
 
 ```json
-{ "id": "hermes", "module": "@uacc/adapter-hermes",
+{ "id": "hermes", "module": "@ancientvoid/adapter-hermes",
   "config": { "command": "/pfad/zu/hermes", "extraArgs": [] } }
 ```
 
@@ -234,11 +234,11 @@ Start und markiert den Adapter als nicht geladen.
 ## Testen (Pflicht vor Integration)
 
 ```bash
-npm i @uacc/adapter-testkit
+npm i @ancientvoid/adapter-testkit
 ```
 
 ```ts
-import { runContractTests, assertContractGreen } from "@uacc/adapter-testkit";
+import { runContractTests, assertContractGreen } from "@ancientvoid/adapter-testkit";
 import { createAdapter } from "./adapter.ts";
 
 const results = await runContractTests(createAdapter);
@@ -281,7 +281,7 @@ Das Skript (siehe Kopfkommentar für Details):
 Ein sauberer Scan heißt „nichts hat auf ein bekanntes Secret-Muster
 gepasst" — nicht „nichts Sensibles enthalten". Datei vor dem Commit lesen.
 
-In Tests: `checkFixture(path, normalizeFn)` aus `@uacc/adapter-testkit`
+In Tests: `checkFixture(path, normalizeFn)` aus `@ancientvoid/adapter-testkit`
 lädt die Fixture, wendet den Normalizer auf jede Zeile an und prüft jedes
 Ergebnis-Event gegen den `NormalizedEvent`-Contract (Schema, Summary-Länge)
 — das ist der geteilte Teil dieses Musters. Die Mapping-Logik selbst bleibt
@@ -293,7 +293,7 @@ String-Handling, keine eigene Bibliothek wert).
 
 1. **Lokale Datei/Ordner**: `"module": "./adapters/my-provider/adapter.ts"`
    (relativ zur Config-Datei).
-2. **npm-Paket**: `"module": "uacc-adapter-foo"` — exportiere
+2. **npm-Paket**: `"module": "ancientvoid-adapter-foo"` — exportiere
    `createAdapter`.
 3. **Fork/PR**: Adapter nach `packages/adapter-<id>/`, Registrierung als
    Built-in + Eintrag in der README-Status-Matrix (ehrlich: `unproven`, bis
@@ -301,7 +301,7 @@ String-Handling, keine eigene Bibliothek wert).
 
 ## Anti-Patterns (Review-Blocker)
 
-- Imports aus `@uacc/core` / `@uacc/server` oder direkter Dateisystem-Zugriff
+- Imports aus `@ancientvoid/core` / `@ancientvoid/server` oder direkter Dateisystem-Zugriff
   auf Hub-Daten.
 - Eigenes `child_process.spawn` statt `ctx.spawnWorker`.
 - Polling-Schleifen ohne `ctx.signal`-Abbruch.

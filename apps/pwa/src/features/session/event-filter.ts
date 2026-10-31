@@ -65,7 +65,7 @@ export const FILTERS: { id: FilterPreset; label: string; keep: (e: NormalizedEve
  * roundtrip, survives reload via localStorage, and is per-device by
  * construction (each browser has its own storage). */
 export function loadFilter(): FilterPreset {
-  const stored = localStorage.getItem("uacc.filter");
+  const stored = localStorage.getItem("ancientvoid.filter");
   return stored === "lesen" || stored === "ueberwachen" || stored === "debuggen" ? stored : "ueberwachen";
 }
 

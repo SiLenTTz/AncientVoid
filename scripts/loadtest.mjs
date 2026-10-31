@@ -27,7 +27,7 @@ const { EventStore, SessionManager, AdapterRegistry, HubDatabase } = await impor
 const { ProcessRunner } = await import("../packages/workers/src/process.ts");
 const { createAdapter } = await import("../packages/adapters/dummy/src/index.ts");
 
-const dir = await mkdtemp(join(tmpdir(), "uacc-load-"));
+const dir = await mkdtemp(join(tmpdir(), "ancientvoid-load-"));
 const db = new HubDatabase(":memory:");
 const store = new EventStore(dir);
 const registry = new AdapterRegistry();

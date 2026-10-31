@@ -1,4 +1,4 @@
-import type { LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket } from "@uacc/contracts";
+import type { LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -53,13 +53,13 @@ export interface SessionRecord {
   lastActivity?: { text: string; type: string; at: string } | null;
 }
 
-/** T2.4/ADR-0007 — mirrors `@uacc/contracts`'s ApprovalRequest, same
+/** T2.4/ADR-0007 — mirrors `@ancientvoid/contracts`'s ApprovalRequest, same
  * duplication convention this file already uses for SessionRecord etc.
  * `read`-class never appears here — it's free and never queued. */
 export type ApprovalClass = "read" | "write" | "destructive";
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "timed_out";
 
-/** T7.2 — mirrors `@uacc/contracts`'s ToolQuestion (claude AskUserQuestion). */
+/** T7.2 — mirrors `@ancientvoid/contracts`'s ToolQuestion (claude AskUserQuestion). */
 export interface ToolQuestion {
   question: string;
   header?: string;
@@ -304,7 +304,7 @@ export interface HarnessInventoryEntry {
   evidence: string;
 }
 
-/** ADR-0018 — mirrors `@uacc/contracts`'s HarnessFeatures. */
+/** ADR-0018 — mirrors `@ancientvoid/contracts`'s HarnessFeatures. */
 export type ToolGate = "native" | "sandbox" | "allowlist" | "bypass" | "none";
 export interface HarnessFeatures {
   followUp: boolean;
@@ -393,7 +393,7 @@ export interface PromptRecommendation {
   draft: string | null;
 }
 
-/** EPIC-P11 — mirrors `@uacc/contracts`'s desktop types (ADR-0031). */
+/** EPIC-P11 — mirrors `@ancientvoid/contracts`'s desktop types (ADR-0031). */
 export interface DesktopFocus {
   id: string;
   app: string;
@@ -425,7 +425,7 @@ export interface DesktopAction {
   createdAt: string;
 }
 
-/** EPIC-P10.5 — mirrors `@uacc/contracts`'s media types (ADR-0030). */
+/** EPIC-P10.5 — mirrors `@ancientvoid/contracts`'s media types (ADR-0030). */
 export type MediaStep = "fetch" | "probe" | "audio" | "frames" | "vision" | "merge" | "summarize";
 export interface MediaStepState {
   status: "pending" | "running" | "done" | "skipped" | "failed";
@@ -475,7 +475,7 @@ export interface MediaInfo {
   limits: { maxBytes: number };
 }
 
-/** T7.10 — mirrors `@uacc/contracts`'s AttachmentRecord. */
+/** T7.10 — mirrors `@ancientvoid/contracts`'s AttachmentRecord. */
 export interface AttachmentRecord {
   id: string;
   name: string;
@@ -534,7 +534,7 @@ export interface EnhanceResult {
   latencyMs: number;
 }
 
-const TOKEN_KEY = "uacc.token";
+const TOKEN_KEY = "ancientvoid.token";
 
 export function getToken(): string {
   return localStorage.getItem(TOKEN_KEY) ?? "";
@@ -544,8 +544,8 @@ export function setToken(token: string): void {
   // T8.2/AC-P8-4: another token is another person's device state — drafts
   // and cached views of the previous one must not show up.
   if (localStorage.getItem(TOKEN_KEY) !== token) {
-    for (const key of Object.keys(localStorage)) if (key.startsWith("uacc.draft.") || key.startsWith("uacc.newSession") || key.startsWith("uacc.tail.")) localStorage.removeItem(key);
-    void caches?.delete?.("uacc-api").catch(() => undefined);
+    for (const key of Object.keys(localStorage)) if (key.startsWith("ancientvoid.draft.") || key.startsWith("ancientvoid.newSession") || key.startsWith("ancientvoid.tail.")) localStorage.removeItem(key);
+    void caches?.delete?.("ancientvoid-api").catch(() => undefined);
   }
   localStorage.setItem(TOKEN_KEY, token);
 }
@@ -605,7 +605,7 @@ export interface SessionDraft {
   device: string | null;
 }
 
-const CLIENT_KEY = "uacc.clientId";
+const CLIENT_KEY = "ancientvoid.clientId";
 
 function randomId(): string {
   return typeof crypto.randomUUID === "function"
@@ -646,10 +646,10 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
-  const cachedAt = res.headers.get("X-UACC-Cached-At");
+  const cachedAt = res.headers.get("X-AncientVoid-Cached-At");
   if (cachedAt) {
     document.dispatchEvent(
-      new CustomEvent("uacc:stale-data", { detail: cachedAt }),
+      new CustomEvent("ancientvoid:stale-data", { detail: cachedAt }),
     );
   }
   if (!res.ok) {

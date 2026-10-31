@@ -1,4 +1,4 @@
-import { isValidLoopFactory } from "@uacc/contracts";
+import { isValidLoopFactory } from "@ancientvoid/contracts";
 import { resolveAdapterModule } from "../../platform/index.ts";
 import type { LoopRegistration } from "../../platform/index.ts";
 import type { LoopRegistry } from "./registry.ts";

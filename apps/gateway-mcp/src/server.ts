@@ -11,7 +11,7 @@ import { callHub, type HubClientConfig } from "./hub-client.ts";
  * erweitert").
  */
 export function buildGatewayServer(cfg: HubClientConfig): McpServer {
-  const server = new McpServer({ name: "uacc-hub-gateway", version: "0.1.0" });
+  const server = new McpServer({ name: "ancientvoid-hub-gateway", version: "0.1.0" });
 
   server.registerTool(
     "hub_search",

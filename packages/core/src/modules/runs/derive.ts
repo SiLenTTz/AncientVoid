@@ -1,4 +1,4 @@
-import type { NormalizedEvent, TurnMetric } from "@uacc/contracts";
+import type { NormalizedEvent, TurnMetric } from "@ancientvoid/contracts";
 
 interface Identity {
   sessionId: string;

@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, readdir, readFile, rm, stat, utimes, writeFile } from "
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { Writable } from "node:stream";
-import { EventStore, HubDatabase } from "@uacc/core";
+import { EventStore, HubDatabase } from "@ancientvoid/core";
 import { createBackup, pruneBackups, restoreBackup } from "../src/backup.ts";
 
 describe("hubctl encrypted backup and restore (T12.3)", () => {
@@ -16,9 +16,9 @@ describe("hubctl encrypted backup and restore (T12.3)", () => {
   });
 
   async function fixture() {
-    root = await mkdtemp(join(tmpdir(), "uacc-backup-"));
+    root = await mkdtemp(join(tmpdir(), "ancientvoid-backup-"));
     const source = join(root, "data");
-    const output = join(root, "full.uaccbak");
+    const output = join(root, "full.ancientvoidbak");
     const restore = join(root, "restored");
     const key = join(root, "backup.key");
     const config = join(root, "hub.config.json");
@@ -80,7 +80,7 @@ describe("hubctl encrypted backup and restore (T12.3)", () => {
     expect(await readFile(join(f.restore, "workers", "s_test", "worker.log"), "utf8")).toBe("worker log");
     expect(await readFile(join(f.restore, "worktrees", "s_test", "work.txt"), "utf8")).toBe("worktree state");
     expect(JSON.parse(await readFile(f.configOut, "utf8"))).toMatchObject({ dataDir: f.restore });
-    await expect(readFile(join(f.restore, ".uacc-hub.pid"))).rejects.toThrow();
+    await expect(readFile(join(f.restore, ".ancientvoid-hub.pid"))).rejects.toThrow();
   });
 
   it("publishes the restored datadir and SQLite database with private permissions", async () => {
@@ -115,7 +115,7 @@ describe("hubctl encrypted backup and restore (T12.3)", () => {
 
   it("does not back up a live hub", async () => {
     const f = await fixture();
-    await writeFile(join(f.source, ".uacc-hub.pid"), `${process.pid}\n`);
+    await writeFile(join(f.source, ".ancientvoid-hub.pid"), `${process.pid}\n`);
     await expect(createBackup({ dataDir: f.source, configFile: f.config, outputFile: f.output, keyFile: f.key }))
       .rejects.toThrow("Hub läuft noch");
   });
@@ -141,9 +141,9 @@ describe("hubctl encrypted backup and restore (T12.3)", () => {
     process.env.TMUX_TMPDIR = socketDir;
     delete process.env.TMUX;
     try {
-      execFileSync("tmux", ["new-session", "-d", "-s", "uacc-backup-test", "sleep", "60"]);
+      execFileSync("tmux", ["new-session", "-d", "-s", "ancientvoid-backup-test", "sleep", "60"]);
       const owner = createHash("sha256").update(resolve(f.source, "workers")).digest("hex").slice(0, 16);
-      execFileSync("tmux", ["set-option", "-t", "uacc-backup-test", "@uacc_owner", owner]);
+      execFileSync("tmux", ["set-option", "-t", "ancientvoid-backup-test", "@ancientvoid_owner", owner]);
       await expect(createBackup({ dataDir: f.source, configFile: f.config, outputFile: f.output, keyFile: f.key }))
         .rejects.toThrow("tmux-Worker dieses Hubs läuft noch");
     } finally {
@@ -156,21 +156,21 @@ describe("hubctl encrypted backup and restore (T12.3)", () => {
   });
 
   it("previews backup retention and deletes only beyond the explicit keep count", async () => {
-    root = await mkdtemp(join(tmpdir(), "uacc-backup-retention-"));
+    root = await mkdtemp(join(tmpdir(), "ancientvoid-backup-retention-"));
     const archiveDir = join(root, "archives");
     await mkdir(archiveDir);
     for (let i = 0; i < 3; i++) {
-      const path = join(archiveDir, `backup-${i}.uaccbak`);
+      const path = join(archiveDir, `backup-${i}.ancientvoidbak`);
       await writeFile(path, `archive ${i}`);
       const time = new Date(Date.UTC(2026, 0, i + 1));
       await utimes(path, time, time);
     }
     const preview = await pruneBackups({ directory: archiveDir, keep: 1 });
-    expect(preview.map((path) => path.split("/").at(-1))).toEqual(["backup-0.uaccbak", "backup-1.uaccbak"]);
+    expect(preview.map((path) => path.split("/").at(-1))).toEqual(["backup-0.ancientvoidbak", "backup-1.ancientvoidbak"]);
     expect(await readdir(archiveDir)).toHaveLength(3);
     const removed = await pruneBackups({ directory: archiveDir, keep: 1, apply: true });
     expect(removed).toEqual(preview);
-    expect(await readdir(archiveDir)).toEqual(["backup-2.uaccbak"]);
+    expect(await readdir(archiveDir)).toEqual(["backup-2.ancientvoidbak"]);
   });
 
   it("cleans the partial archive when the destination refuses further writes", async () => {
@@ -192,8 +192,8 @@ describe("hubctl encrypted backup and restore (T12.3)", () => {
       stdio: "pipe",
     })).toThrow();
     await expect(readFile(f.output)).rejects.toThrow();
-    expect((await readdir(root)).filter((name) => name.startsWith(".uacc-backup-"))).toEqual([]);
-    await expect(readFile(join(f.source, ".uacc-hub.pid"))).rejects.toThrow();
+    expect((await readdir(root)).filter((name) => name.startsWith(".ancientvoid-backup-"))).toEqual([]);
+    await expect(readFile(join(f.source, ".ancientvoid-hub.pid"))).rejects.toThrow();
   });
 
   it("cleans the partial archive when the output filesystem reports ENOSPC", async () => {
@@ -204,7 +204,7 @@ describe("hubctl encrypted backup and restore (T12.3)", () => {
       () => new Writable({ write(_chunk, _encoding, callback) { callback(noSpace); } }),
     )).rejects.toMatchObject({ code: "ENOSPC" });
     await expect(readFile(f.output)).rejects.toThrow();
-    expect((await readdir(root)).filter((name) => name.startsWith(".uacc-backup-"))).toEqual([]);
-    await expect(readFile(join(f.source, ".uacc-hub.pid"))).rejects.toThrow();
+    expect((await readdir(root)).filter((name) => name.startsWith(".ancientvoid-backup-"))).toEqual([]);
+    await expect(readFile(join(f.source, ".ancientvoid-hub.pid"))).rejects.toThrow();
   });
 });

@@ -176,7 +176,7 @@ das war der Hauptgrund für den Branch-Wildwuchs vor der Hygiene-Regel.
   (Source-Branch weg).
 - Draft-MRs ohne Fortschritt schließen; Unique-Commits ohne MR entweder MR
   öffnen oder Branch löschen (kein „vielleicht später“-Friedhof).
-- `uacc/*`-Worktrees gehören zum Hub-Session-Lifecycle, nicht zur
+- `ancientvoid/*`-Worktrees gehören zum Hub-Session-Lifecycle, nicht zur
   Feature-Branch-Liste — nicht mit `git branch -D` wegräumen, solange die
   Session lebt.
 - Periodisch: `git branch -a`, alles ohne offene MR und ohne Commits vor

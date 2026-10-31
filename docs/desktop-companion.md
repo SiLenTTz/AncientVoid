@@ -11,8 +11,8 @@ für die Passwortfeld-Erkennung über AT-SPI.
 
 ```bash
 # 1. Token nur für den Companion (erreicht nichts außer seinen eigenen Routen)
-node apps/hubctl/src/cli.ts token issue companion:omarchy | tail -1 > ~/.config/uacc/companion.token
-chmod 600 ~/.config/uacc/companion.token
+node apps/hubctl/src/cli.ts token issue companion:omarchy | tail -1 > ~/.config/ancientvoid/companion.token
+chmod 600 ~/.config/ancientvoid/companion.token
 
 # 2. Starten (Hub auf demselben Rechner; sonst --hub http://<tailnet-ip>:7373)
 node apps/companion/src/cli.ts run --hub http://127.0.0.1:7373
@@ -20,7 +20,7 @@ node apps/companion/src/cli.ts run --hub http://127.0.0.1:7373
 #   --no-atspi                    ohne Passwortfeld-Abfrage (schneller, weniger sicher)
 ```
 
-Als Dienst (`~/.config/systemd/user/uacc-companion.service`):
+Als Dienst (`~/.config/systemd/user/ancientvoid-companion.service`):
 
 ```ini
 [Unit]
@@ -28,7 +28,7 @@ Description=AncientVoid Desktop-Companion
 After=graphical-session.target
 
 [Service]
-ExecStart=/usr/bin/node %h/…/mobile-hub/apps/companion/src/cli.ts run --hub http://127.0.0.1:7373
+ExecStart=/usr/bin/node %h/…/AncientVoid/apps/companion/src/cli.ts run --hub http://127.0.0.1:7373
 Restart=on-failure
 
 [Install]
@@ -62,7 +62,7 @@ der Companion beendet sich mit Meldung.
 ## Labor (Tests ohne deinen Desktop)
 
 `scripts/messlauf-desktop.mjs` startet ein headless sway in einem eigenen
-`XDG_RUNTIME_DIR` (sway/wlroots ohne root entpackt nach `~/uacc-companion-lab`:
+`XDG_RUNTIME_DIR` (sway/wlroots ohne root entpackt nach `~/ancientvoid-companion-lab`:
 Pakete `sway`, `wlroots0.20`, `xcb-util-wm`, `seatd`, `libdisplay-info`,
 `libliftoff`, `xcb-util-errors` von einem Arch-Spiegel, `tar --zstd -xf`).
 Dort laufen foot, ein GTK4-/GTK3-Feld (`scripts/desktop-lab/entry.py`) und

@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
-import type { ModelOption } from "@uacc/contracts";
+import type { ModelOption } from "@ancientvoid/contracts";
 
 type Option = { value: string; name?: string };
 type Group = { group?: string; name?: string; options?: Option[] };

@@ -21,7 +21,7 @@ const reasonPart = (text: string) => JSON.stringify({ type: "reasoning", text })
 describe("opencode mirror reader", () => {
   let dir: string;
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-mirror-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-mirror-"));
     const db = fixtureDb(dir);
     db.prepare("INSERT INTO session VALUES (?,?,?,?,?)").run("ses_a", "/proj/x", "Fix the thing", 1000, 9000);
     db.prepare("INSERT INTO message VALUES (?,?,?,?,?)").run("m1", "ses_a", 1000, 1000, userMsg("user"));

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import type { LoopInfo, LoopSpec } from "@uacc/contracts";
+import type { LoopInfo, LoopSpec } from "@ancientvoid/contracts";
 import type { hubApi } from "../../shared/api.ts";
 import { defaultLoopSpec, isOnboarding, onboardProjectDefaults, onboardSelectDefaults, type OnboardDraft } from "./loop-form.ts";
 

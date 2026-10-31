@@ -1,7 +1,7 @@
 # ADR-0045 — Loop-Onboarding: semantische Vorbelegung `prefill: "project"`
 
 **Status:** akzeptiert · **Betrifft:** `LoopOnboardingField` (Erweiterung in
-`packages/contracts/src/loops/connector.ts`), `@uacc/loop-securesight-factory`,
+`packages/contracts/src/loops/connector.ts`), `@ancientvoid/loop-securesight-factory`,
 PWA `LoopPicker`/`loop-form.ts` · Folge aus [BUG-0081](../../bugs/bug-0081-loop-start-wirkungslos.md)
 
 ## Kontext

@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, rmSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
+import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
 import { createAdapter } from "../src/index.ts";
 import { sanitizeCwdToProjectDirName } from "../src/workspace.ts";
 

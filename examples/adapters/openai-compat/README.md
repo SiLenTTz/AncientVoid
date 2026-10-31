@@ -32,7 +32,7 @@ llama.cpp server · LM Studio · Ollama · vLLM · Gateway-Proxys.
 3. Contract-Tests laufen lassen (Pflicht vor Contribution):
 
 ```ts
-import { runContractTests, assertContractGreen } from "@uacc/adapter-testkit";
+import { runContractTests, assertContractGreen } from "@ancientvoid/adapter-testkit";
 import { createAdapter } from "./adapter.ts";
 
 const results = await runContractTests(createAdapter);
@@ -71,7 +71,7 @@ Config-Wert, kein Codepfad, der noch fehlt.
 
 ## Regeln
 
-- Nur `@uacc/contracts` importieren — alles andere kommt über `AdapterContext`.
+- Nur `@ancientvoid/contracts` importieren — alles andere kommt über `AdapterContext`.
 - Große Outputs (Reasoning, Tool-Output) via `ctx.blob()` auslagern (K5).
 - `ctx.signal` respektieren — Stop/Park muss sofort durchgreifen.
 - `capabilities()` ehrlich ausfüllen — sie ist ein Versprechen, kein Marketing.

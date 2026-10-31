@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { OperationKind, OperationState, PendingOperation } from "@uacc/contracts";
+import type { OperationKind, OperationState, PendingOperation } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 interface OperationRow {

@@ -40,13 +40,13 @@ Der Hub bleibt bei einigen hundert MB und stürzt nicht ab.
 | Instanz | Produktiv-Hub omarchy, Node 26.7.0, Linux 7.2 |
 | Commit | `21706d8` (davor Stand von 08:11) |
 | Sessions | 52 (39 live), Adapter claude, codex, opencode, pi, hermes u. a. |
-| Repro-Weg | Journal (`journalctl --user -u uacc-hub`), kein Klickweg |
+| Repro-Weg | Journal (`journalctl --user -u ancientvoid-hub`), kein Klickweg |
 
 ## Logs
 
 ```text
 12:08:51 node[3461788]: FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
-12:11:00 systemd: uacc-hub.service: Main process exited, code=dumped, status=6/ABRT
+12:11:00 systemd: ancientvoid-hub.service: Main process exited, code=dumped, status=6/ABRT
 12:11:00 systemd: Consumed 3min 47.108s CPU time over 1min 52.600s wall clock time, 4.5G memory peak
 09:13:43 systemd: Consumed 17min 19.577s CPU time over 1h 2min 28.715s wall clock time, 4.4G memory peak   (erster Absturz)
 ```

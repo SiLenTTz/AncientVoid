@@ -32,7 +32,7 @@ zurückgesetzt wird (`CreateSession.tsx:112`).
 
 Voraussetzung: Hub läuft (`127.0.0.1:7373`), Adapter claude (agents+skills)
 und maki registriert; für ein Projekt liegt eine gemerkte Auswahl vor
-(`localStorage["uacc.skill.<project>"]`, gesetzt über den Skill-Picker oder
+(`localStorage["ancientvoid.skill.<project>"]`, gesetzt über den Skill-Picker oder
 Empfehlungs-Übernahme im Composer).
 
 1. Mit claude für Projekt P einen Agenten auswählen → wird pro Projekt
@@ -59,10 +59,10 @@ unterstützender Adapter); registrierte Features live abgefragt: nur claude
 
 | Feld | Wert |
 |---|---|
-| Instanz | lokal (`127.0.0.1:7373`, systemd `uacc-hub.service`, Start 09:14) |
+| Instanz | lokal (`127.0.0.1:7373`, systemd `ancientvoid-hub.service`, Start 09:14) |
 | Commit | `2f9224a` (Dienst-Start); Analyse auf `origin/main` `4f5d43a` |
 | Node-Version | 26.7.0 (mise) |
-| Adapter | maki (via `@uacc/adapter-acp`, preset maki), claude |
+| Adapter | maki (via `@ancientvoid/adapter-acp`, preset maki), claude |
 | Repro-Weg | HTTP-API (= exakter PWA-`createSession`-Body), PWA-Pfad im Code nachvollzogen |
 
 ## Logs

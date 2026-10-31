@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { credentialTarget, type CompanionState, type DeliveredDesktopAction, type DesktopAction, type DesktopActionRequest, type DesktopInputMode, type DesktopResult } from "@uacc/contracts";
+import { credentialTarget, type CompanionState, type DeliveredDesktopAction, type DesktopAction, type DesktopActionRequest, type DesktopInputMode, type DesktopResult } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 /**

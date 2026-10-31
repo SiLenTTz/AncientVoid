@@ -9,11 +9,11 @@ describe("discoverProjects (T1.5-4)", () => {
   let outsideDir: string;
 
   beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), "uacc-projects-"));
-    outsideDir = await mkdtemp(join(tmpdir(), "uacc-outside-"));
+    root = await mkdtemp(join(tmpdir(), "ancientvoid-projects-"));
+    outsideDir = await mkdtemp(join(tmpdir(), "ancientvoid-outside-"));
 
     // A real git repo (has .git, has a symbolic HEAD).
-    const repo = join(root, "mobile-hub");
+    const repo = join(root, "AncientVoid");
     await mkdir(join(repo, ".git"), { recursive: true });
     await writeFile(join(repo, ".git", "HEAD"), "ref: refs/heads/main\n");
 
@@ -45,12 +45,12 @@ describe("discoverProjects (T1.5-4)", () => {
     const { projects, warnings } = await discoverProjects([root]);
     expect(warnings).toEqual([]);
     const names = projects.map((p) => p.name).sort();
-    expect(names).toEqual(["custom-rag", "mobile-hub"]);
+    expect(names).toEqual(["AncientVoid", "custom-rag"]);
   });
 
   it("reads the branch from a symbolic HEAD, null for a detached one", async () => {
     const { projects } = await discoverProjects([root]);
-    const mobileHub = projects.find((p) => p.name === "mobile-hub");
+    const mobileHub = projects.find((p) => p.name === "AncientVoid");
     const customRag = projects.find((p) => p.name === "custom-rag");
     expect(mobileHub?.branch).toBe("main");
     expect(customRag?.branch).toBeNull();
@@ -58,8 +58,8 @@ describe("discoverProjects (T1.5-4)", () => {
 
   it("returns path as an absolute, directly session-creatable path", async () => {
     const { projects } = await discoverProjects([root]);
-    const mobileHub = projects.find((p) => p.name === "mobile-hub");
-    expect(mobileHub?.path).toBe(join(root, "mobile-hub"));
+    const mobileHub = projects.find((p) => p.name === "AncientVoid");
+    expect(mobileHub?.path).toBe(join(root, "AncientVoid"));
   });
 
   it("warns (not crashes, not a silent empty result) on a non-existent root", async () => {
@@ -76,9 +76,9 @@ describe("isProjectPathAllowed (T1.5-4, AC-P1.5-5)", () => {
   let repo: string;
 
   beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), "uacc-allow-root-"));
-    outsideDir = await mkdtemp(join(tmpdir(), "uacc-allow-outside-"));
-    repo = join(root, "mobile-hub");
+    root = await mkdtemp(join(tmpdir(), "ancientvoid-allow-root-"));
+    outsideDir = await mkdtemp(join(tmpdir(), "ancientvoid-allow-outside-"));
+    repo = join(root, "AncientVoid");
     await mkdir(join(repo, ".git"), { recursive: true });
     await symlink(outsideDir, join(root, "escape-link"));
   });

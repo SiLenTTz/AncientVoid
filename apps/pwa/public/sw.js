@@ -1,13 +1,13 @@
 /*
  * AncientVoid service worker — K10: offline tolerance.
  * Network-first for API projections; on failure serve the cached projection
- * with an X-UACC-Cached-At timestamp so the UI can badge "Daten vom <ts>".
+ * with an X-AncientVoid-Cached-At timestamp so the UI can badge "Daten vom <ts>".
  * Versioned cache — hard-bust by bumping CACHE_VERSION on deploy.
  */
-const CACHE_VERSION = "uacc-v4";
+const CACHE_VERSION = "ancientvoid-v4";
 // T8.2: API projections live apart from the shell, so a token change can
 // drop them without touching the app itself.
-const API_CACHE = "uacc-api";
+const API_CACHE = "ancientvoid-api";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
@@ -84,7 +84,7 @@ async function networkFirstApi(req, url) {
       // Keep when it was fetched: offline, the UI says "Daten vom <that>".
       const body = await res.clone().blob();
       const headers = new Headers(res.headers);
-      headers.set("X-UACC-Stored-At", new Date().toISOString());
+      headers.set("X-AncientVoid-Stored-At", new Date().toISOString());
       caches.open(API_CACHE).then((c) => c.put(req, new Response(body, { status: res.status, statusText: res.statusText, headers })));
     }
     return res;
@@ -96,7 +96,7 @@ async function networkFirstApi(req, url) {
         statusText: cached.statusText,
         headers: {
           ...Object.fromEntries(cached.headers.entries()),
-          "X-UACC-Cached-At": cached.headers.get("X-UACC-Stored-At") ?? new Date(0).toISOString(),
+          "X-AncientVoid-Cached-At": cached.headers.get("X-AncientVoid-Stored-At") ?? new Date(0).toISOString(),
         },
       });
     }
@@ -129,7 +129,7 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(text.title, {
       body: text.body,
       // One notification per hub notification, even if it arrives twice.
-      tag: data.id ? `uacc-${data.hostId ?? ""}-${data.id}` : "uacc-test",
+      tag: data.id ? `ancientvoid-${data.hostId ?? ""}-${data.id}` : "ancientvoid-test",
       data: { url },
       icon: "/icons/icon-192.png",
     }),
@@ -152,6 +152,6 @@ self.addEventListener("notificationclick", (event) => {
 // next start (it holds the token, this worker does not).
 self.addEventListener("pushsubscriptionchange", (event) => {
   event.waitUntil(
-    self.clients.matchAll({ type: "window" }).then((wins) => wins.forEach((w) => w.postMessage({ type: "uacc:push-resubscribe" }))),
+    self.clients.matchAll({ type: "window" }).then((wins) => wins.forEach((w) => w.postMessage({ type: "ancientvoid:push-resubscribe" }))),
   );
 });

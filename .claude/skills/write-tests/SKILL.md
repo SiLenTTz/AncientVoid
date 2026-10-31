@@ -21,7 +21,7 @@ rot. Dieser Skill ist das Rezept; er ersetzt keine Fachentscheidung.
 - neuen Unit-/Integrations-/E2E-Test schreiben
 - „wie teste ich das", Coverage-Lücke, Regression
 - Playwright, TokenGate, echter Hub, Dummy-Session
-- Adapter-Contract (`@uacc/adapter-testkit`)
+- Adapter-Contract (`@ancientvoid/adapter-testkit`)
 
 **Nicht benutzen, wenn:** nur Gates fahren (`gates`); ein Defekt zuerst
 reproduziert und dann gefixt werden soll (`bugfix` — der ruft diesen Skill
@@ -53,7 +53,7 @@ für den Test).
 | Reine Funktion, Contract, Redaction, Parser? | Unit | `packages/<pkg>/test/<name>.test.ts` |
 | Mehrere Module + echter Hub/DB/EventStore? | Integration | `packages/<pkg>/test/<name>.integration.test.ts` oder bestehender `server.test.ts` / `hub-exec-integration.test.ts` |
 | Browser, UI-Ablauf, echter Hub-Roundtrip? | E2E | `e2e/specs/<bereich>.spec.ts` |
-| Neuer Adapter hub-integrierbar? | Contract | `runAdapterContract(adapter)` aus `@uacc/adapter-testkit` |
+| Neuer Adapter hub-integrierbar? | Contract | `runAdapterContract(adapter)` aus `@ancientvoid/adapter-testkit` |
 
 Bestehende Dateien (`server.test.ts`, `sessionmanager.test.ts`) nicht
 umbenennen, nur neue Tests der Konvention folgen lassen.
@@ -112,7 +112,7 @@ Fehlt Chromium, scheitert der Lauf laut. Eine bekannte Lücke ist
 ### 5. Adapter
 
 ```ts
-import { runAdapterContract } from "@uacc/adapter-testkit";
+import { runAdapterContract } from "@ancientvoid/adapter-testkit";
 import { createAdapter } from "../src/index.ts";
 
 const results = await runAdapterContract(createAdapter());

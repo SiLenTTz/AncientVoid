@@ -31,7 +31,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
       await hub.until(async () => (await hub.events(id)).some((e) => e.type === "tool_use"), "worker running");
       await app.goto(`${hub.origin}/#/sessions/${id}`);
       await app.getByRole("button", { name: "Bericht" }).click();
-      await expect(app.locator(".attach-cmd-card code")).toHaveText(`tmux attach -t uacc-${id}`);
+      await expect(app.locator(".attach-cmd-card code")).toHaveText(`tmux attach -t ancientvoid-${id}`);
       await app.getByRole("button", { name: "Stop" }).click();
       await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "stopped");
       await expect(app.locator(".attach-cmd-card")).toHaveCount(0);
@@ -73,7 +73,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     expect(workdir).not.toBe(hub.alpha);
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Bericht" }).click();
-    await expect(app.locator(".worktree-card")).toContainText(`uacc/${id}`);
+    await expect(app.locator(".worktree-card")).toContainText(`ancientvoid/${id}`);
     await expect(app.locator(".worktree-card")).toContainText("nicht in alpha");
     await expect(app.locator(".worktree-path")).toHaveText(workdir);
     await expect(app.locator(".worktree-open")).toHaveText(`code ${workdir}`);

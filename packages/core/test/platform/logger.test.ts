@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REDACT_LOG_KEYS } from "@uacc/contracts";
+import { REDACT_LOG_KEYS } from "@ancientvoid/contracts";
 import { createJsonLogger, redactFields } from "../../src/platform/logger.ts";
 
 describe("redactFields (T4.5-3 / AC-P4.5-3)", () => {

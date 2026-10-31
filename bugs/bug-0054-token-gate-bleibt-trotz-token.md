@@ -16,9 +16,9 @@ reporter: jan
 
 ## Gesehen
 
-Auf dem Pixel 9 Pro XL bleibt die Seite auf „UACC Hub“ / „Verbinden“ stehen. Im
+Auf dem Pixel 9 Pro XL bleibt die Seite auf „AncientVoid Hub“ / „Verbinden“ stehen. Im
 Token-Feld steht bereits ein Wert, es gibt keine Fehlermeldung, die Übersicht
-(Überschrift „UACC“) erscheint nicht. Der Test bricht in der Anmeldung ab,
+(Überschrift „AncientVoid“) erscheint nicht. Der Test bricht in der Anmeldung ab,
 bevor der eigentliche Ablauf beginnt.
 
 ## Erwartet
@@ -36,7 +36,7 @@ auf dem PC, Port per `adb reverse`). Die Specs sind die des Projekts `phone`.
 2. Warten, bis ein Test die Übersicht öffnen will.
 
 **Ergebnis:** in Lauf 9 (2026-10-09, 8,5 min, 60 Tests) fünf Abbrüche, alle an
-derselben Stelle (`e2e/support/fixtures.ts`, Überschrift „UACC“ nicht sichtbar),
+derselben Stelle (`e2e/support/fixtures.ts`, Überschrift „AncientVoid“ nicht sichtbar),
 der Accessibility-Baum zeigte die Token-Seite mit bereits gefülltem Feld und
 ohne Fehlertext. Dieselben Abläufe sind im selben Lauf sonst grün (51 bestanden).
 Lauf 6: zwei solche Abbrüche, direkt danach einzeln grün. Lauf 8: ein solcher
@@ -61,12 +61,12 @@ Quelle: `/tmp/phone-run9.log`, erster Fehlschlag. Hub-Start
 
 ```text
 Error: expect(locator).toBeVisible() failed
-Locator: getByRole('heading', { name: 'UACC', exact: true })
+Locator: getByRole('heading', { name: 'AncientVoid', exact: true })
 Timeout: 10000ms
 Error: element(s) not found
 ```
 
-Accessibility-Baum zum selben Zeitpunkt: Überschrift „UACC Hub“, Textfeld
+Accessibility-Baum zum selben Zeitpunkt: Überschrift „AncientVoid Hub“, Textfeld
 „Device-Token“ mit Inhalt, Knopf „Verbinden“, kein Fehlertext.
 
 ## Tests
@@ -100,4 +100,4 @@ den Grund in die Token-Seite zu schreiben.
 
 Nach dem Fix: `e2e/specs/auth.spec.ts` „BUG-0054“ grün (Mobile-Projekt).
 Kernliste auf dem Pixel 9 Pro XL, Hochformat, 2026-10-09: 56 bestanden,
-4 übersprungen, kein Abbruch an der Überschrift „UACC“.
+4 übersprungen, kein Abbruch an der Überschrift „AncientVoid“.

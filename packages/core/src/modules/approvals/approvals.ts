@@ -1,5 +1,5 @@
 import { randomUUID, createHmac } from "node:crypto";
-import { ToolAssessment, type ApprovalClass, type ApprovalRequest, type ApprovalStatus } from "@uacc/contracts";
+import { ToolAssessment, type ApprovalClass, type ApprovalRequest, type ApprovalStatus } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 /**

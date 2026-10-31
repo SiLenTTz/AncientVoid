@@ -1,10 +1,10 @@
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { ClaudeLive, PlannerModelConfig, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
-import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@uacc/core";
-import { DEFAULT_HOST_ID } from "@uacc/contracts";
-import type { ActionDefinition, HubMetrics, DiscoverySource, SessionRecord } from "@uacc/contracts";
-import { TMUX_PREFIX } from "@uacc/workers";
+import type { ClaudeLive, PlannerModelConfig, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@ancientvoid/core";
+import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
+import { DEFAULT_HOST_ID } from "@ancientvoid/contracts";
+import type { ActionDefinition, HubMetrics, DiscoverySource, SessionRecord } from "@ancientvoid/contracts";
+import { TMUX_PREFIX } from "@ancientvoid/workers";
 import { extractToken } from "./platform/auth.ts";
 import { createWebAuthnRoutes, type WebAuthnConfig } from "./modules/identity/webauthn.ts";
 
@@ -114,7 +114,7 @@ export function createRouteContext(deps: RouteDeps) {
     const workdir = deps.sessions.workdirOf(session.id);
     const worktree =
       session.worktreeSha !== null && workdir && workdir !== session.project
-        ? { path: workdir, branch: `uacc/${session.id}` }
+        ? { path: workdir, branch: `ancientvoid/${session.id}` }
         : null;
     // ADR-0017: every session of this hub carries this hub's host id.
     const withOpen = { ...session, hostId, ...(openCmd ? { openCmd } : {}), ...(worktree ? { worktree } : {}) };

@@ -9,7 +9,7 @@ import { getSessionDiff, getSessionFileHunks } from "../../../src/modules/sessio
 const execFileAsync = promisify(execFile);
 
 async function initRepo(): Promise<{ dir: string; cleanup: () => Promise<void> }> {
-  const dir = await mkdtemp(join(tmpdir(), "uacc-diff-"));
+  const dir = await mkdtemp(join(tmpdir(), "ancientvoid-diff-"));
   await execFileAsync("git", ["init", "-q", dir]);
   await execFileAsync("git", ["-C", dir, "config", "user.email", "test@example.com"]);
   await execFileAsync("git", ["-C", dir, "config", "user.name", "Test"]);
@@ -87,7 +87,7 @@ describe("getSessionDiff — real git repo, no mocking", () => {
   });
 
   it("names the failure for a non-git directory instead of throwing", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-diff-nongit-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-diff-nongit-"));
     try {
       const result = await getSessionDiff(dir);
       expect(result.files).toEqual([]);
@@ -121,7 +121,7 @@ describe("getSessionDiff — real git repo, no mocking", () => {
   });
 
   it("T2.2: extracts git's own real function-context as the hunk's function anchor", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-diff-fn-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-diff-fn-"));
     try {
       await execFileAsync("git", ["init", "-q", dir]);
       await execFileAsync("git", ["-C", dir, "config", "user.email", "t@e.com"]);
@@ -159,7 +159,7 @@ describe("getSessionDiff — real git repo, no mocking", () => {
   });
 
   it("T2.2 (K3): a diff over the 50 KB threshold collapses hunk bodies to a preview; expand-on-tap fetches the full hunk", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-diff-k3-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-diff-k3-"));
     try {
       await execFileAsync("git", ["init", "-q", dir]);
       await execFileAsync("git", ["-C", dir, "config", "user.email", "t@e.com"]);
@@ -186,7 +186,7 @@ describe("getSessionDiff — real git repo, no mocking", () => {
   });
 
   it("T2.9 (K3 gate, AC-P2-2): a real 2 MB diff keeps the initial response ≤ 50 KB; expand-on-tap still delivers the rest correctly", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-diff-k3-gate-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-diff-k3-gate-"));
     try {
       await execFileAsync("git", ["init", "-q", dir]);
       await execFileAsync("git", ["-C", dir, "config", "user.email", "t@e.com"]);

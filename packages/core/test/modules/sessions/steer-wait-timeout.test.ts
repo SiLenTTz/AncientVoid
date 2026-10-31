@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { basicFeatures, type Ack, type Adapter, type AdapterContext, type SteerInput } from "@uacc/contracts";
-import { ProcessRunner } from "@uacc/workers";
+import { basicFeatures, type Ack, type Adapter, type AdapterContext, type SteerInput } from "@ancientvoid/contracts";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { EventStore } from "../../../src/platform/eventstore.ts";
 import { HubDatabase } from "../../../src/platform/db.ts";
@@ -110,7 +110,7 @@ async function waitFor(check: () => boolean, ms = 4000): Promise<void> {
 }
 
 async function setup(registry: AdapterRegistry, steerWaitMs: number) {
-  const dir = await mkdtemp(join(tmpdir(), "uacc-steerwait-"));
+  const dir = await mkdtemp(join(tmpdir(), "ancientvoid-steerwait-"));
   const db = new HubDatabase(":memory:");
   const sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner(), undefined, undefined, undefined, null, [], { steerWaitMs });
   const done = async () => {

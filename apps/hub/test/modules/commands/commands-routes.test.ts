@@ -3,9 +3,9 @@ import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../../src/app.ts";
 
@@ -24,7 +24,7 @@ describe("text commands (T9.2/T9.3)", () => {
   const ctx = (extra: Record<string, unknown> = {}) => ({ page: "dashboard", ...extra });
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-cmd-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-cmd-"));
     for (const name of ["alpha", "beta"]) {
       const p = join(dir, name);
       await mkdir(p);
@@ -155,7 +155,7 @@ describe("text commands (T9.2/T9.3)", () => {
       ["Stoppe die Session", here, "session.stop", true],
       ["Analysiere das Video https://www.youtube.com/watch?v=katalog", ctx(), "media.analyze", false],
     ];
-    const { COMMANDS } = await import("@uacc/contracts");
+    const { COMMANDS } = await import("@ancientvoid/contracts");
     expect(new Set(FLOWS.map((f) => f[2]))).toEqual(new Set(Object.keys(COMMANDS)));
     for (const [text, context, op, mustSucceed] of FLOWS) {
       const plan = await call("/api/commands/plan", human, { text, context });

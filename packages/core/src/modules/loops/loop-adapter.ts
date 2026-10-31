@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { basicFeatures, loopAdapterId } from "@uacc/contracts";
-import type { Ack, Adapter, AdapterCapabilities, AdapterContext, HealthReport, LoopConnector, LoopStartSpec, SessionHandle, SessionSpec, SteerInput } from "@uacc/contracts";
+import { basicFeatures, loopAdapterId } from "@ancientvoid/contracts";
+import type { Ack, Adapter, AdapterCapabilities, AdapterContext, HealthReport, LoopConnector, LoopStartSpec, SessionHandle, SessionSpec, SteerInput } from "@ancientvoid/contracts";
 
 interface Snapshot {
   spec: LoopStartSpec;

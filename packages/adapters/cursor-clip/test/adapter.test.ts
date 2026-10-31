@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
+import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
 import { createAdapter } from "../src/index.ts";
 import { SUPPORTED_BUBBLE_VERSION } from "../src/normalize.ts";
 

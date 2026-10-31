@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/adapter-cursor",
+  "name": "@ancientvoid/adapter-cursor",
   "version": "0.1.0",
   "description": "cursor adapter: the cursor-agent CLI as a one-shot-per-turn worker (stream-json), native --resume, model catalog via --list-models.",
   "type": "module",
@@ -12,8 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0",
-    "@uacc/models": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
+    "@ancientvoid/models": "0.1.0",
     "zod": "^4.6.5"
   }
 }

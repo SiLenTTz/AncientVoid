@@ -1,4 +1,4 @@
-import type { Ack, AdapterContext, SessionRecord, SessionStatus } from "@uacc/contracts";
+import type { Ack, AdapterContext, SessionRecord, SessionStatus } from "@ancientvoid/contracts";
 import type { LiveSession } from "./session-state.ts";
 
 /** What the budget guard may do with sessions — nothing more (ADR-0020). */

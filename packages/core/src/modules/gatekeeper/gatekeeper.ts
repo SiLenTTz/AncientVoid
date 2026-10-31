@@ -1,4 +1,4 @@
-import { combineAssessment, type ToolAssessment } from "@uacc/contracts";
+import { combineAssessment, type ToolAssessment } from "@ancientvoid/contracts";
 import { assessByRules } from "./rules.ts";
 import { askGatekeeperModel, type GatekeeperModelConfig } from "./model.ts";
 

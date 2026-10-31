@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { isProjectPathAllowed } from "@uacc/core";
+import { isProjectPathAllowed } from "@ancientvoid/core";
 import { ensureIndexed, indexStatus, isQmdAvailable, listProjectDocs, readProjectFile, relativeDataDir, searchProject } from "./search.ts";
 import type { RouteContext } from "../../route-context.ts";
 

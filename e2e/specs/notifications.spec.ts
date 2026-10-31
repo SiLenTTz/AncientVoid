@@ -69,7 +69,7 @@ test.describe("Benachrichtigungen bei UI-Skalierung (Nutzerfund 2026-10-30)", ()
   test("das Panel bleibt bei 140 % Skalierung im Bildschirm und die ✕ bleibt erreichbar", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await expect(app.getByRole("button", { name: /Benachrichtigungen/ })).toBeVisible();
-    await app.evaluate(() => localStorage.setItem("uacc.uiScale", "1.4"));
+    await app.evaluate(() => localStorage.setItem("ancientvoid.uiScale", "1.4"));
     await app.reload();
     await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
     const panel = app.locator(".notif-panel");

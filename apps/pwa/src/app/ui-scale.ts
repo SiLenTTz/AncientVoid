@@ -6,8 +6,8 @@
  * heights are divided by it (02-layout.css), otherwise a zoomed layout grows
  * past the screen.
  */
-const SCALE_KEY = "uacc.uiScale";
-const MOTION_KEY = "uacc.ctxMotion";
+const SCALE_KEY = "ancientvoid.uiScale";
+const MOTION_KEY = "ancientvoid.ctxMotion";
 
 export const SCALE_MIN = 0.7;
 export const SCALE_MAX = 2;
@@ -38,7 +38,7 @@ export function setScale(scale: number): number {
   if (next === 1) localStorage.removeItem(SCALE_KEY);
   else localStorage.setItem(SCALE_KEY, String(next));
   applyScale(next);
-  window.dispatchEvent(new CustomEvent("uacc:scale", { detail: next }));
+  window.dispatchEvent(new CustomEvent("ancientvoid:scale", { detail: next }));
   return next;
 }
 

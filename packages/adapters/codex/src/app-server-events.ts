@@ -1,4 +1,4 @@
-import type { EmittedEvent, UsageQuota } from "@uacc/contracts";
+import type { EmittedEvent, UsageQuota } from "@ancientvoid/contracts";
 import { summarize } from "./normalize.ts";
 
 /**

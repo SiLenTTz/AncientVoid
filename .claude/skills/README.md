@@ -33,7 +33,7 @@
 
 Vorlage für neue Skills: [`skill-template.md`](skill-template.md). AncientVoid-Verträge,
 die `ponytail-review` nicht wegoptimieren darf:
-[`_shared/uacc-protected-invariants.md`](_shared/uacc-protected-invariants.md).
+[`_shared/ancientvoid-protected-invariants.md`](_shared/ancientvoid-protected-invariants.md).
 
 ## Bewusst nicht übernommen
 

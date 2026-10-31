@@ -20,7 +20,7 @@ Installationsfehlern:
 
 - "spawns a command and streams stdout lines" — `pipe-pane`-Capture bleibt
   leer (`[]` statt der erwarteten drei Zeilen).
-- "lists only uacc-prefixed workers and reaps orphans" — die gerade
+- "lists only ancientvoid-prefixed workers and reaps orphans" — die gerade
   gespawnte Session taucht in `tmux list-sessions` nicht auf.
 - "kill terminates a worker" — Timeout nach 15 s beim Warten auf den
   Exit-Marker.

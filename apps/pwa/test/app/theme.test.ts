@@ -37,6 +37,6 @@ describe("theme (T4.5-5)", () => {
     applyTheme("light");
     expect(getTheme()).toBe("light");
     expect(dataset.theme).toBe("light");
-    expect(mem.get("uacc.theme")).toBe("light");
+    expect(mem.get("ancientvoid.theme")).toBe("light");
   });
 });

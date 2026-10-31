@@ -9,7 +9,7 @@ import type {
   SessionHandle,
   SessionSpec,
   SteerInput,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 import { normalizeClaudeClipLine } from "./normalize.ts";
 import { defaultClaudeDir, findMostRecentSessionFile, findProjectDir, findSessionFileById } from "./workspace.ts";
 
@@ -33,7 +33,7 @@ import { defaultClaudeDir, findMostRecentSessionFile, findProjectDir, findSessio
  *
  * IMPORTANT: uses `spec.project` (the raw request field), never
  * `ctx.workdir` — same reasoning as cursor-clip: T2.1's worktree isolation
- * would otherwise hand this adapter a freshly created `uacc/<sessionId>`
+ * would otherwise hand this adapter a freshly created `ancientvoid/<sessionId>`
  * worktree path that no real `claude` invocation has ever run in and thus
  * has no transcript directory for. Claude Code is watching the REAL
  * directory the user actually ran it in.

@@ -1,4 +1,4 @@
-import { COMMANDS, USER_ONLY_FLOWS, type CommandContext, type CommandId, type PlanQuestion, type PlanStep } from "@uacc/contracts";
+import { COMMANDS, USER_ONLY_FLOWS, type CommandContext, type CommandId, type PlanQuestion, type PlanStep } from "@ancientvoid/contracts";
 import type { Intent } from "./parse.ts";
 
 /** What the resolver may look at — IDs, names, states; never event text. */

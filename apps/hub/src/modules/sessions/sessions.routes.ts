@@ -1,8 +1,8 @@
-import { AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@uacc/contracts";
+import { AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@ancientvoid/contracts";
 import type { FastifyInstance } from "fastify";
-import { DraftStore, isProjectPathAllowed, toStartSpec } from "@uacc/core";
+import { DraftStore, isProjectPathAllowed, toStartSpec } from "@ancientvoid/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
-import { ENV_VAR_NAME } from "@uacc/contracts";
+import { ENV_VAR_NAME } from "@ancientvoid/contracts";
 import { z } from "zod";
 import type { RouteContext } from "../../route-context.ts";
 
@@ -13,7 +13,7 @@ const CreateSessionBody = z.object({
   prompt: z.string().optional(),
   model: z.string().optional(),
   budgetUsd: z.number().positive().nullable().optional(),
-  // ENV_VAR_NAME (@uacc/contracts): rejects a malicious env KEY here,
+  // ENV_VAR_NAME (@ancientvoid/contracts): rejects a malicious env KEY here,
   // early, with a clean 400 — see SessionSpec's own doc comment and
   // TmuxRunner.spawn()'s matching runtime guard (defense in depth, same
   // pattern, same regex, single source of truth).

@@ -6,11 +6,11 @@
  * Compositor-only by construction: the conic-gradient itself is STATIC
  * (defined once), the only animated property is `transform: rotate()` on
  * a pseudo-element — no per-frame paint/mask recompute, same K2 budget as
- * the old box-shadow pulse. `@property --uacc-glow-angle` registers the
+ * the old box-shadow pulse. `@property --ancientvoid-glow-angle` registers the
  * custom property as an interpolatable <angle> so the rotation is a smooth
  * compositor animation, not a discrete jump. A static ambient glow
  * (ordinary box-shadow, unanimated) sits behind it for a soft bloom. */
-@property --uacc-glow-angle {
+@property --ancientvoid-glow-angle {
   syntax: "<angle>";
   inherits: false;
   initial-value: 0deg;
@@ -44,12 +44,12 @@
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: uacc-border-chase var(--glow-dur) linear infinite;
+  animation: ancientvoid-border-chase var(--glow-dur) linear infinite;
 }
 
 .session-card.st-working::after {
   background: conic-gradient(
-    from var(--uacc-glow-angle),
+    from var(--ancientvoid-glow-angle),
     transparent 0deg,
     transparent 270deg,
     color-mix(in srgb, var(--ok) 85%, transparent) 320deg,
@@ -61,7 +61,7 @@
 .session-card.st-waiting::after {
   animation-duration: calc(var(--glow-dur) * 0.55);
   background: conic-gradient(
-    from var(--uacc-glow-angle),
+    from var(--ancientvoid-glow-angle),
     transparent 0deg,
     transparent 250deg,
     color-mix(in srgb, var(--warn) 85%, transparent) 310deg,
@@ -70,9 +70,9 @@
   );
 }
 
-@keyframes uacc-border-chase {
+@keyframes ancientvoid-border-chase {
   to {
-    --uacc-glow-angle: 360deg;
+    --ancientvoid-glow-angle: 360deg;
   }
 }
 
@@ -102,12 +102,12 @@
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: uacc-border-chase var(--glow-dur) linear infinite;
+  animation: ancientvoid-border-chase var(--glow-dur) linear infinite;
 }
 
 .session-live.st-working::after {
   background: conic-gradient(
-    from var(--uacc-glow-angle),
+    from var(--ancientvoid-glow-angle),
     transparent 0deg,
     transparent 270deg,
     color-mix(in srgb, var(--ok) 85%, transparent) 320deg,
@@ -119,7 +119,7 @@
 .session-live.st-waiting::after {
   animation-duration: calc(var(--glow-dur) * 0.55);
   background: conic-gradient(
-    from var(--uacc-glow-angle),
+    from var(--ancientvoid-glow-angle),
     transparent 0deg,
     transparent 250deg,
     color-mix(in srgb, var(--warn) 85%, transparent) 310deg,
@@ -152,12 +152,12 @@
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: uacc-border-chase var(--glow-dur) linear infinite;
+  animation: ancientvoid-border-chase var(--glow-dur) linear infinite;
 }
 
 .pill.working::after {
   background: conic-gradient(
-    from var(--uacc-glow-angle),
+    from var(--ancientvoid-glow-angle),
     transparent 0deg,
     transparent 270deg,
     color-mix(in srgb, var(--ok) 85%, transparent) 320deg,
@@ -169,7 +169,7 @@
 .pill.waiting_approval::after {
   animation-duration: calc(var(--glow-dur) * 0.55);
   background: conic-gradient(
-    from var(--uacc-glow-angle),
+    from var(--ancientvoid-glow-angle),
     transparent 0deg,
     transparent 250deg,
     color-mix(in srgb, var(--warn) 85%, transparent) 310deg,
@@ -208,9 +208,9 @@
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: uacc-border-chase var(--glow-dur) linear infinite;
+  animation: ancientvoid-border-chase var(--glow-dur) linear infinite;
   background: conic-gradient(
-    from var(--uacc-glow-angle),
+    from var(--ancientvoid-glow-angle),
     transparent 0deg,
     transparent 270deg,
     color-mix(in srgb, var(--accent) 85%, transparent) 320deg,

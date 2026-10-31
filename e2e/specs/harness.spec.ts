@@ -84,18 +84,18 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await app.getByRole("button", { name: "Chat" }).click();
     const card = app.locator(".session-approvals .approval-card");
     await expect(card).toContainText("Bash");
-    await expect(card.locator(".tool-input")).toHaveText("echo hallo-uacc");
+    await expect(card.locator(".tool-input")).toHaveText("echo hallo-ancientvoid");
     // T7.9: the gatekeeper's label (rules only in this hub) — a hint, no decision.
     await expect(card.locator(".assessment")).toContainText("Laya: unauffällig");
     await expect(card.locator(".assessment")).toContainText("Regeln");
     await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "waiting_approval");
     expect((await hub.events(id)).filter((e) => e.type === "tool_result")).toHaveLength(0);
     await card.getByRole("button", { name: "Erlauben" }).click();
-    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte WERKZEUG · Claude .* · Ausgabe hallo-uacc/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte WERKZEUG · Claude .* · Ausgabe hallo-ancientvoid/)).toBeVisible();
     await expect(card).toHaveCount(0);
     await app.getByRole("button", { name: "Verlauf" }).click();
     await expect(app.locator(".event.tool_use")).toHaveCount(1);
-    await expect(app.locator(".event.tool_use")).toContainText("echo hallo-uacc");
+    await expect(app.locator(".event.tool_use")).toContainText("echo hallo-ancientvoid");
     await hub.until(async () => (await hub.api<{ costUsd: number }>(`/api/sessions/${id}`)).body.costUsd > 0, "cost");
   });
 
@@ -238,7 +238,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
   test("T7.2: die Tool-Anfrage steht auch in der Freigabe-Warteschlange", async ({ app, hub }) => {
     await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
     await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();
-    const card = app.locator(".approval-card").filter({ hasText: "echo hallo-uacc" });
+    const card = app.locator(".approval-card").filter({ hasText: "echo hallo-ancientvoid" });
     await card.getByRole("button", { name: "Erlauben" }).click();
     await expect(app.getByText("keine offenen Freigaben")).toBeVisible();
   });

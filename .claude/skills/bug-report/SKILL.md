@@ -56,7 +56,7 @@ Zwei mögliche Wege, je nachdem wo das Symptom sitzt:
 - **PWA (Browser):** Hub lokal starten (`node apps/hub/src/main.ts`),
   PWA bauen/öffnen, den Weg klicken. Nach dem Fehlverhalten: Konsole,
   Netzwerk-Tab, Screenshot nur bei Layout-Bugs (nicht committen).
-- **`hubctl` (CLI):** `UACC_TOKEN=<token> node apps/hubctl/src/cli.ts
+- **`hubctl` (CLI):** `ANCIENTVOID_TOKEN=<token> node apps/hubctl/src/cli.ts
   sessions` / `tail <sessionId> -f` — Repro über Kommandozeile, Output
   zitieren.
 

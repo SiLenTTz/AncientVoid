@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { strFromU8, unzipSync } from "fflate";
-import type { AttachmentKind, ExtractionMethod } from "@uacc/contracts";
+import type { AttachmentKind, ExtractionMethod } from "@ancientvoid/contracts";
 
 const run = promisify(execFile);
 
@@ -63,7 +63,7 @@ async function pdfText(file: string): Promise<string> {
 
 /** Scanned PDF: render pages (max 20) and OCR them. */
 async function pdfOcr(file: string, opts: ExtractOptions): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "uacc-ocr-"));
+  const dir = await mkdtemp(join(tmpdir(), "ancientvoid-ocr-"));
   try {
     await run("pdftoppm", ["-r", "200", "-png", "-l", "20", file, join(dir, "p")], { timeout: 300_000 });
     const pages = (await readdir(dir)).filter((f) => f.endsWith(".png")).sort();

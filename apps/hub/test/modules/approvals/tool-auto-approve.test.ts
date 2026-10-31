@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../../src/app.ts";
 import { createPermissionBridge } from "../../../src/modules/approvals/permission-bridge.ts";
@@ -24,7 +24,7 @@ describe("toolApprovals: auto", () => {
   };
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-autotools-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-autotools-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });
@@ -37,7 +37,7 @@ describe("toolApprovals: auto", () => {
     device = tokens.issue("pixel").token;
     sessionId = (await sessions.create({ adapter: "dummy", project: dir })).id;
     const { mcpConfigPath } = await bridge(sessionId);
-    bridgeToken = (JSON.parse(await readFile(mcpConfigPath, "utf8")) as { mcpServers: { uacc: { env: Record<string, string> } } }).mcpServers.uacc.env.UACC_BRIDGE_TOKEN!;
+    bridgeToken = (JSON.parse(await readFile(mcpConfigPath, "utf8")) as { mcpServers: { ancientvoid: { env: Record<string, string> } } }).mcpServers.ancientvoid.env.ANCIENTVOID_BRIDGE_TOKEN!;
   });
 
   afterEach(async () => {

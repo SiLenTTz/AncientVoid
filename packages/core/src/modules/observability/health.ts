@@ -1,4 +1,4 @@
-import type { HubHealthCheck, HubHealthReport, HubHealthStatus } from "@uacc/contracts";
+import type { HubHealthCheck, HubHealthReport, HubHealthStatus } from "@ancientvoid/contracts";
 import { memoryCheck } from "./memory.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { SessionManager } from "../sessions/index.ts";

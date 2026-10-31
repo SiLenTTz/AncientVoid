@@ -24,11 +24,11 @@ als Anweisung.
 
 | Dienst | Zustand | Beleg |
 |---|---|---|
-| `uacc-hub.service` (systemd `--user`, `Restart=always`) | aktiv seit 08:11:14, 0 Restarts | `systemctl --user show` |
+| `ancientvoid-hub.service` (systemd `--user`, `Restart=always`) | aktiv seit 08:11:14, 0 Restarts | `systemctl --user show` |
 | Hub-Prozess | Node 26.7.0, `apps/hub/src/main.ts`, Port 7373 (127.0.0.1) | `ss -ltnp`, `systemctl status` |
 | Health | `GET /api/health` → 200, `database` und `eventStore` ok, 11 Adapter geladen, 52 Sessions (39 live) | `curl` 08:15 |
 | PWA | wird als statisches `apps/pwa/dist` vom Hub ausgeliefert, gebaut 21:21:11 (26.10.), also **nach** dem letzten PWA-Commit auf `main` (7b3558c, 21:19:57) | `stat`, `git log -- apps/pwa` |
-| Worker | tmux (`workerRunner: tmux`), die Sessions wurden beim Hub-Start wiederhergestellt (tmux-Sessions `uacc-*` von 08:11) | `tmux ls` |
+| Worker | tmux (`workerRunner: tmux`), die Sessions wurden beim Hub-Start wiederhergestellt (tmux-Sessions `ancientvoid-*` von 08:11) | `tmux ls` |
 | Erreichbarkeit | lokal `http://127.0.0.1:7373/`, Tailnet `https://omarchy.tail6d2826.ts.net/` (Tailscale Serve → 7373) | `tailscale serve status` |
 
 Der Hub wurde 10 Sekunden nach dem letzten Commit auf dem lokalen `main`

@@ -1,4 +1,4 @@
-import type { EmittedEvent } from "@uacc/contracts";
+import type { EmittedEvent } from "@ancientvoid/contracts";
 
 /**
  * ACP `session/update` → NormalizedEvents (schema: @agentclientprotocol/sdk

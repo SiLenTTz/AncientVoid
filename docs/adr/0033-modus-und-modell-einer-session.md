@@ -1,6 +1,6 @@
 # ADR-0033 — Modus und Modell einer Session wählen und wechseln
 
-**Status:** akzeptiert · **Betrifft:** EPIC-P15, `@uacc/contracts` (Adapter-Contract,
+**Status:** akzeptiert · **Betrifft:** EPIC-P15, `@ancientvoid/contracts` (Adapter-Contract,
 additiv), SessionManager, Hub `/api/sessions/:id/steer`, Claude-Adapter, PWA
 
 ## Kontext

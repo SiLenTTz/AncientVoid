@@ -17,7 +17,7 @@ CLIs kann per nativer Session-ID fortsetzen.
 ## Entscheidung
 
 1. **Runner.** `WorkerRunner.adopt?(name)` nimmt einen eigenen, noch
-   vorhandenen Worker wieder auf (`@uacc_owner`, BUG-0019). Der TmuxRunner
+   vorhandenen Worker wieder auf (`@ancientvoid_owner`, BUG-0019). Der TmuxRunner
    schreibt beim Ausliefern vollständiger Zeilen die Byte-Position nach
    `<log>.offset`; `adopt()` liest ab dort weiter. Der ProcessRunner hat
    kein `adopt` — seine Worker enden mit dem Hub.

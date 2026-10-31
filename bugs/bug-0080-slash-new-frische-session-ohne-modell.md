@@ -32,7 +32,7 @@ seq 16  15:34:51  user    "Ja"
 seq 18  15:34:51  system  provider.error — title "Fehler beim Provider", raw "Internal error"
 ```
 
-Worker-Log (`data/workers/uacc-f413d422….log`):
+Worker-Log (`data/workers/ancientvoid-f413d422….log`):
 
 ```text
 Z128  session/new → ok, sessionId CgYfd3oo…, model currentValue: "zai/glm-5-code"
@@ -60,8 +60,8 @@ normal beantwortet. Die Modellauswahl ist Teil des Session-Starts
 
 | Feld | Wert |
 |---|---|
-| Instanz | lokal (systemd uacc-hub, Restart 15:58:42, main `e49af07`) |
-| Adapter | `@uacc/adapter-acp`, preset `maki`, model `zai/glm-5.3` |
+| Instanz | lokal (systemd ancientvoid-hub, Restart 15:58:42, main `e49af07`) |
+| Adapter | `@ancientvoid/adapter-acp`, preset `maki`, model `zai/glm-5.3` |
 | Provider-Key | darf glm-5.3, nicht glm-5-code (ZHIPU 403, Code 1220) |
 | Repro-Weg | PWA (Nutzer) + EventStore/Worker-Log |
 

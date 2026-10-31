@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { extractToken } from "../../platform/auth.ts";
-import { DecideApprovalInput, ApprovalStatus } from "@uacc/contracts";
+import { DecideApprovalInput, ApprovalStatus } from "@ancientvoid/contracts";
 import { z } from "zod";
 import type { RouteContext } from "../../route-context.ts";
 

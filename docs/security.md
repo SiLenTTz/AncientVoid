@@ -11,7 +11,7 @@ Test, keine Absichtserklärung ohne Beleg.
 ### 1. Netz — kein öffentlicher Port
 
 `apps/hub/src/main.ts` bindet standardmäßig `127.0.0.1`; ein
-öffentliches Binden erfordert das explizite `UACC_EXPOSE=1`-Opt-in. Der
+öffentliches Binden erfordert das explizite `ANCIENTVOID_EXPOSE=1`-Opt-in. Der
 vorgesehene Zugriffsweg ist `tailscale serve`
 (`scripts/setup-tailscale-serve.sh`) — kein Reverse-Proxy, kein
 öffentlicher DNS-Eintrag. PWA-Auth: optional Tailnet-Identität
@@ -39,7 +39,7 @@ mitgeschickt wird.
 **Bekannte, benannte Lücke:** `SessionManager.create()`
 (Session-Start) ist trotz EPIC-P2 §3s Klassentabelle
 („Session starten" als write-Beispiel) nie tatsächlich gegated worden —
-nur Steer-Prompt und Budget-Top-up sind es real. `@uacc/gateway-mcp`
+nur Steer-Prompt und Budget-Top-up sind es real. `@ancientvoid/gateway-mcp`
 exponiert `session.create`/`stop`/`park` deshalb bewusst nicht (siehe
 dessen `operations.ts`), um diese Lücke nicht über eine neue Oberfläche
 zu vergrößern.
@@ -67,7 +67,7 @@ durch Zod-Schemas (`CreateSessionBody`, `SteerBody`,
 richtig, aber unvollständig — `SessionSpec.env`s **Schlüssel** liefen bis
 zu diesem Fund komplett ungeprüft in `TmuxRunner.spawn()`s Shell-String
 ein, ein reales, live reproduziertes RCE. Jetzt geschlossen:
-`ENV_VAR_NAME`-Schema (`@uacc/contracts`) an der API-Grenze plus
+`ENV_VAR_NAME`-Schema (`@ancientvoid/contracts`) an der API-Grenze plus
 `SAFE_ENV_KEY`-Validierung direkt in `TmuxRunner` selbst — siehe
 [BUG-0012](../bugs/bug-0012-tmux-env-key-shell-injection.md).
 

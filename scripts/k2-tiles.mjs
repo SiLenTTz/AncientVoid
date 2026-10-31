@@ -14,9 +14,9 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLAYWRIGHT_MODULE =
-  process.env.UACC_PLAYWRIGHT_MODULE ??
+  process.env.ANCIENTVOID_PLAYWRIGHT_MODULE ??
   "/home/silenttz/.local/share/mise/installs/npm-playwright/latest/node_modules/playwright/index.mjs";
-const CHROMIUM_PATH = process.env.UACC_CHROMIUM_PATH ?? "/usr/bin/chromium";
+const CHROMIUM_PATH = process.env.ANCIENTVOID_CHROMIUM_PATH ?? "/usr/bin/chromium";
 const { chromium } = await import(PLAYWRIGHT_MODULE);
 
 const RATE = 30;
@@ -30,7 +30,7 @@ const { ProcessRunner } = await import(join(repoRoot, "packages/workers/src/proc
 const { createAdapter } = await import(join(repoRoot, "packages/adapters/dummy/src/index.ts"));
 const { createHubApp } = await import(join(repoRoot, "apps/hub/src/index.ts"));
 
-const dir = await mkdtemp(join(tmpdir(), "uacc-k2t-"));
+const dir = await mkdtemp(join(tmpdir(), "ancientvoid-k2t-"));
 const db = new HubDatabase(":memory:");
 const store = new EventStore(dir);
 const registry = new AdapterRegistry();
@@ -58,9 +58,9 @@ const browser = await chromium.launch({ executablePath: CHROMIUM_PATH, args: ["-
 const page = await browser.newPage({ viewport: { width: 2560, height: 1440 } });
 await page.addInitScript(
   ([tok, ws]) => {
-    localStorage.setItem("uacc.token", tok);
-    localStorage.setItem("uacc.workspace", ws);
-    localStorage.setItem("uacc.filter", "debuggen"); // every event renders
+    localStorage.setItem("ancientvoid.token", tok);
+    localStorage.setItem("ancientvoid.workspace", ws);
+    localStorage.setItem("ancientvoid.filter", "debuggen"); // every event renders
   },
   [token, JSON.stringify({ layout: TILES === 1 ? "1" : TILES === 2 ? "2v" : TILES === 3 ? "1+2" : "2x2", slots: ids.map((sessionId) => ({ sessionId })), focus: 0 })],
 );

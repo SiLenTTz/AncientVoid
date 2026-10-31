@@ -7,12 +7,12 @@ import { HubDatabase } from "../../../src/platform/db.ts";
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { SessionManager } from "../../../src/modules/sessions/session-manager.ts";
 import { collectHealth } from "../../../src/modules/observability/health.ts";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 
 describe("collectHealth (T4.5-4)", () => {
   it("reports ok when db and event store probe succeed", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-health-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-health-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -41,7 +41,7 @@ describe("collectHealth (T4.5-4)", () => {
   });
 
   it("goes down when the event store probe fails", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-health-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-health-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();

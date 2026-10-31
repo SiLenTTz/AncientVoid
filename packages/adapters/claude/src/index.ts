@@ -11,8 +11,8 @@ import type {
   SessionSpec,
   SteerInput,
   WorkerProcess,
-} from "@uacc/contracts";
-import { promptWithAttachments } from "@uacc/contracts";
+} from "@ancientvoid/contracts";
+import { promptWithAttachments } from "@ancientvoid/contracts";
 import { normalizeClaudeLine } from "./normalize.ts";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";

@@ -3,8 +3,8 @@ import { execFileSync } from "node:child_process";
 import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { WorkerProcess } from "@uacc/contracts";
-import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
+import type { WorkerProcess } from "@ancientvoid/contracts";
+import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
 import { createAdapter } from "../src/index.ts";
 
 /**
@@ -89,7 +89,7 @@ describe("pi adapter prompt argv (BUG-0066)", () => {
   // replaced by a script that prints its argv — so the test sees exactly
   // what pi would receive, quoting included.
   function argvPi(): string {
-    const dir = mkdtempSync(join(tmpdir(), "uacc-pi-argv-"));
+    const dir = mkdtempSync(join(tmpdir(), "ancientvoid-pi-argv-"));
     const bin = join(dir, "pi");
     writeFileSync(bin, `#!/bin/sh\nexec "${process.execPath}" -e 'process.stdout.write(JSON.stringify(process.argv.slice(1)))' -- "$@"\n`);
     chmodSync(bin, 0o755);

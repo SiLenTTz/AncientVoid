@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { NormalizedEvent } from "@uacc/contracts";
+import type { NormalizedEvent } from "@ancientvoid/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 
 class CountingStore extends EventStore {
   replays = 0;
@@ -16,7 +16,7 @@ class CountingStore extends EventStore {
 }
 
 async function hubWithStoppedSession(register = true) {
-  const dir = await mkdtemp(join(tmpdir(), "uacc-lazy-"));
+  const dir = await mkdtemp(join(tmpdir(), "ancientvoid-lazy-"));
   const dbFile = join(dir, "hub.db");
   const firstDb = new HubDatabase(dbFile);
   const firstRegistry = new AdapterRegistry();

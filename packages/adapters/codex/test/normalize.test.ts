@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { checkFixture } from "@uacc/adapter-testkit";
+import { checkFixture } from "@ancientvoid/adapter-testkit";
 import { normalizeCodexLine } from "../src/normalize.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -9,7 +9,7 @@ const fixture = (name: string) => join(here, "fixtures", name);
 
 describe("normalizeCodexLine — real captured stream-json (codex-cli 0.153.4)", () => {
   it("maps every line of the trivial-text fixture to schema-valid events", () => {
-    // checkFixture (T1.4, @uacc/adapter-testkit) loads the fixture, runs
+    // checkFixture (T1.4, @ancientvoid/adapter-testkit) loads the fixture, runs
     // every line through the normalizer, and asserts schema-validity —
     // the generic half of this check; provider-specific assertions follow.
     const events = checkFixture(fixture("trivial-text.jsonl"), normalizeCodexLine);
@@ -49,11 +49,11 @@ describe("normalizeCodexLine — real captured stream-json (codex-cli 0.153.4)",
 
     const toolUse = events.filter((e) => e.type === "tool_use");
     expect(toolUse).toHaveLength(1);
-    expect(toolUse[0]!.summary).toContain("echo hello-uacc");
+    expect(toolUse[0]!.summary).toContain("echo hello-ancientvoid");
 
     const toolResult = events.filter((e) => e.type === "tool_result");
     expect(toolResult).toHaveLength(1);
-    expect(toolResult[0]!.payload).toMatchObject({ isError: false, exitCode: 0, content: "hello-uacc\n" });
+    expect(toolResult[0]!.payload).toMatchObject({ isError: false, exitCode: 0, content: "hello-ancientvoid\n" });
 
     const assistantText = events.filter((e) => e.type === "assistant").map((e) => e.summary);
     expect(assistantText).toContain("done");

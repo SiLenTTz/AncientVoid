@@ -29,7 +29,7 @@ streamt Events live (T0.11, README Quick-Start-Beispiel).
 
 1. Hub-Server lokal starten (`node packages/server/src/main.ts` o. ä.),
    Token ausstellen, Session anlegen.
-2. `UACC_URL=http://127.0.0.1:<port> UACC_TOKEN=<token> node packages/hubctl/src/cli.ts tail <sessionId> -f`
+2. `ANCIENTVOID_URL=http://127.0.0.1:<port> ANCIENTVOID_TOKEN=<token> node packages/hubctl/src/cli.ts tail <sessionId> -f`
 
 **Ergebnis:** sofortiger Absturz mit `TypeError: Invalid URL`, keine
 Verbindung, keine Events.

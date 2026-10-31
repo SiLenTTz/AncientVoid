@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { AttachmentId, MAX_ATTACHMENT_BYTES } from "@uacc/contracts";
-import { DEFAULT_GEMINI_MODEL, type AttachmentStore, type SettingsStore } from "@uacc/core";
+import { AttachmentId, MAX_ATTACHMENT_BYTES } from "@ancientvoid/contracts";
+import { DEFAULT_GEMINI_MODEL, type AttachmentStore, type SettingsStore } from "@ancientvoid/core";
 
 /**
  * T7.10 (ADR-0022): files into sessions. Upload as raw bytes (the file name

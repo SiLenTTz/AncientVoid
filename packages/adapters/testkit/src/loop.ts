@@ -1,4 +1,4 @@
-import { EmittedEvent, LOOP_CONTROLS, LOOP_NEW, type LoopConnector, type LoopStartSpec } from "@uacc/contracts";
+import { EmittedEvent, LOOP_CONTROLS, LOOP_NEW, type LoopConnector, type LoopStartSpec } from "@ancientvoid/contracts";
 import { makeRecordingContext, waitFor, type ContractTestResult, type RecordingContext } from "./helpers.ts";
 
 export interface LoopContractOptions {

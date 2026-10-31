@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { discoverProjects } from "@uacc/core";
+import { discoverProjects } from "@ancientvoid/core";
 import type { RouteContext } from "../../route-context.ts";
 
 /** Project discovery under the configured roots (T1.5-4). */

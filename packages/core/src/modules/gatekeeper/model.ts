@@ -1,5 +1,5 @@
 import { isAbsolute, relative, resolve } from "node:path";
-import { SECURITY_GATES, TOOL_RISKS, type ModelVerdict, type SecurityGate, type ToolRisk } from "@uacc/contracts";
+import { SECURITY_GATES, TOOL_RISKS, type ModelVerdict, type SecurityGate, type ToolRisk } from "@ancientvoid/contracts";
 
 /**
  * T7.9: the model half of the gatekeeper — an OpenAI-compatible llama.cpp

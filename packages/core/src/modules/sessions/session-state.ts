@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Adapter, NormalizedEvent, SessionHandle, SessionRecord, SessionStatus } from "@uacc/contracts";
+import type { Adapter, NormalizedEvent, SessionHandle, SessionRecord, SessionStatus } from "@ancientvoid/contracts";
 
 export const WRITER_LEASE_MS = 30_000;
 
@@ -152,7 +152,7 @@ export function nativeIdFromEvents(events: readonly NormalizedEvent[]): string |
 
 export async function nativeIdFromWorkerLog(dataDir: string, sessionId: string): Promise<string | undefined> {
   try {
-    const text = await readFile(join(dataDir, "workers", `uacc-${sessionId}.log`), "utf8");
+    const text = await readFile(join(dataDir, "workers", `ancientvoid-${sessionId}.log`), "utf8");
     const ids = [...text.matchAll(/"session(?:ID|_id)"\s*:\s*"([^"]+)"/g)];
     return ids.at(-1)?.[1];
   } catch {

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { EmittedEvent, SessionStatus, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, ToolQuestion } from "@uacc/contracts";
-import { QUESTION_TOOLS, requiresPasskey, ToolQuestion as ToolQuestionSchema, type ToolAssessment } from "@uacc/contracts";
+import type { EmittedEvent, SessionStatus, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, ToolQuestion } from "@ancientvoid/contracts";
+import { QUESTION_TOOLS, requiresPasskey, ToolQuestion as ToolQuestionSchema, type ToolAssessment } from "@ancientvoid/contracts";
 import type { ApprovalService, OperationStore } from "../approvals/index.ts";
 import type { LiveSession } from "./session-state.ts";
 

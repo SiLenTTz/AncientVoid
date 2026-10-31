@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { resolve } from "node:path";
-import { CodeSearchMode, type ActionDefinition, type WorkspaceIdentity } from "@uacc/contracts";
-import { ActionRunner, BUILTIN_ACTIONS, detectedActions, isProjectPathAllowed, readCodeFile, searchCode, workspaceIdentity } from "@uacc/core";
+import { CodeSearchMode, type ActionDefinition, type WorkspaceIdentity } from "@ancientvoid/contracts";
+import { ActionRunner, BUILTIN_ACTIONS, detectedActions, isProjectPathAllowed, readCodeFile, searchCode, workspaceIdentity } from "@ancientvoid/core";
 import { getSessionDiff } from "../sessions/diff.ts";
 import { relativeDataDir } from "../search/search.ts";
 import type { RouteContext } from "../../route-context.ts";

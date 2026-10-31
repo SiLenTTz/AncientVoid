@@ -5,10 +5,10 @@ import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService, ApprovalService } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { createHubApp } from "@uacc/hub";
+import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService, ApprovalService } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
+import { createHubApp } from "@ancientvoid/hub";
 import { buildGatewayServer } from "../src/server.ts";
 
 /**
@@ -31,7 +31,7 @@ describe("gateway-mcp hub_exec — real hub, real HTTP, real MCP client", () => 
   let humanToken: string;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-gw-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-gw-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();

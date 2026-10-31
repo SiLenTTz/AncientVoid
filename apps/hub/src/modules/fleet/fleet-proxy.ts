@@ -2,9 +2,9 @@ import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import WebSocket from "ws";
-import type { FleetStore, SessionManager, TokenService } from "@uacc/core";
-import type { HubMetrics } from "@uacc/contracts";
-import { isFleetRoutable } from "@uacc/contracts";
+import type { FleetStore, SessionManager, TokenService } from "@ancientvoid/core";
+import type { HubMetrics } from "@ancientvoid/contracts";
+import { isFleetRoutable } from "@ancientvoid/contracts";
 import { createTailHandler } from "../sessions/ws.ts";
 
 const FORWARD_TIMEOUT_MS = 10_000;

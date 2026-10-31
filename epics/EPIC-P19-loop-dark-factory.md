@@ -25,7 +25,7 @@ dazu, ohne den Hub zu ändern.
 ## 2. Scope (In / Out)
 
 **In:**
-- **Contract** `@uacc/contracts/loops` (`LoopConnector`, `LoopCapabilities`, `LoopSpec`,
+- **Contract** `@ancientvoid/contracts/loops` (`LoopConnector`, `LoopCapabilities`, `LoopSpec`,
   `LoopControl`), `SessionSpec.loop`, Spalte `sessions.loop_id`, Event `session.loop`;
   Testkit-Suite `runLoopContractTests()`.
 - **Core-Modul `loops`:** Registry aus `hub.config.json` (`loops[]`), `loopAsAdapter()`,
@@ -52,7 +52,7 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
   über `index.ts`), Verträge `packages/contracts/src/loops/`, Routen
   `apps/hub/src/modules/loops/loops.routes.ts`, PWA `apps/pwa/src/features/loops/`,
   Implementierungen `packages/loops/<name>/`. `npm run check:arch` bekommt die Regel
-  „`packages/loops/*` importiert nur `@uacc/contracts`“.
+  „`packages/loops/*` importiert nur `@ancientvoid/contracts`“.
 - **aSPARK-Abbildung** (Analyse §3.4): `ask.permission` → `requestToolPermission`,
   `ask.question` → `AskUserQuestion` mit `ToolQuestion[]`. Antwort nur `allow`/`deny`
   einmalig. `state`/`info` → `loop.state`/`loop.info`. `progress` → `loop.progress` und
@@ -77,13 +77,13 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
   entfallen: die Zuordnung steckt im Adapter-Namen `loop:<id>`. K7.
 - [x] **T19.3 — Hub-Route und Policy.** *Erledigt 2026-10-28* (Audit-Event bei Betriebsartwechsel gehört zu T19.4/T19.5). `GET /api/loops`, Start mit `loop`, Policy-Operationen,
   Audit-Event bei Betriebsartwechsel. `check:arch`-Regel.
-- [x] **T19.4 — Loop `aspark-factory`.** *Erledigt 2026-10-28* (Paket `@uacc/loop-aspark-factory`, einzige Abhängigkeit `mqtt`):
+- [x] **T19.4 — Loop `aspark-factory`.** *Erledigt 2026-10-28* (Paket `@ancientvoid/loop-aspark-factory`, einzige Abhängigkeit `mqtt`):
   MQTT-Leitstand-Client, Fragen und Antworten (permission und question), Befehle gegen `commands[]`, `loop.broken` bei
   Last Will, `v≠1`, kaputtem JSON und Brokerverlust, Berichte >2 KB als Blob (K5), beantwortete Fragen im Cursor (K7).
   Getestet gegen einen echten Mosquitto (11 Tests, Skip wenn er fehlt). Die Anleitung für den Hub-MQTT-Nutzer
   (Nutzer + ACL, Zugangsdaten via `passwordEnvFile`, Auswahl, Vorab-Check) liegt seit 2026-10-29 in
   [`docs/aspark-factory-mqtt.md`](../docs/aspark-factory-mqtt.md). K1, K9 messen wir erst gegen eine laufende Linie.
-- [x] **T19.5 — Loop `securesight-factory`.** *Erledigt 2026-10-28* (Paket `@uacc/loop-securesight-factory`, keine Fremdabhängigkeit):
+- [x] **T19.5 — Loop `securesight-factory`.** *Erledigt 2026-10-28* (Paket `@ancientvoid/loop-securesight-factory`, keine Fremdabhängigkeit):
   Supervisor-Status per `execFile` (Exit 3 → `loop.hold`, 4/5 → `loop.broken`), Notify-Dateien, Transcript mit Byte-Cursor je Datei
   (ab Start, halbe Zeile wartet, ≤200 Zeilen je Durchlauf), `progress.json`, Orchestrator `self | hermes` (Hermes nur lesend,
   Option `epic`). Der Hub schreibt nichts ins Projekt (Test vergleicht das Verzeichnis vorher/nachher), jeder Befehl wird abgelehnt.
@@ -114,7 +114,7 @@ oder Lines (das bleibt `factoryctl`), Änderungen am Repo `securesight-harnez` (
   laufen ungestört.
 - **AC-P19-5:** Loop `keiner` verhält sich exakt wie vorher. `layout.spec.ts` und alle
   Mobile-Specs bleiben grün.
-- **AC-P19-6 (Kapselung):** `check:arch` schlägt bei einem Import aus `@uacc/core`/`@uacc/server`
+- **AC-P19-6 (Kapselung):** `check:arch` schlägt bei einem Import aus `@ancientvoid/core`/`@ancientvoid/server`
   in `packages/loops/*` fehl. Kein Secret in Events, API-Antworten und Logs (Leak-Test).
 - **AC-P19-7 (Orchestrator):** Die Hermes-Wahl ist Konfiguration des Loops (Start-Formular →
   `session.loop` → Connector). Ein Stand-in liefert Ralph-State-Dateien, die Oberfläche zeigt

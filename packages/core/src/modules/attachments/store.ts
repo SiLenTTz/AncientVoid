@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, access } from "node:fs/promises";
 import { join } from "node:path";
-import { attachmentKind, MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_TEXT_CHARS, type AttachmentExtraction, type AttachmentKind, type AttachmentRecord, type PromptAttachment } from "@uacc/contracts";
+import { attachmentKind, MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_TEXT_CHARS, type AttachmentExtraction, type AttachmentKind, type AttachmentRecord, type PromptAttachment } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 import { extractText, type ExtractOptions } from "./extract.ts";
 

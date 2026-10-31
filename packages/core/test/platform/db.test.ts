@@ -34,7 +34,7 @@ describe("HubDatabase", () => {
   });
 
   it("keeps database files and newly created directories private under umask 0022 without changing existing directory modes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-db-mode-"));
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-db-mode-"));
     const dataDir = join(root, "new", "data");
     const previousUmask = process.umask(0o022);
     let db: HubDatabase | undefined;
@@ -67,7 +67,7 @@ describe("TokenService", () => {
   let dir: string;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-tok-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-tok-"));
   });
   afterAll(async () => {
     await rm(dir, { recursive: true, force: true });

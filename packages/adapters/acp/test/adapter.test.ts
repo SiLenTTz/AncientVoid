@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { chmodSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { AdapterContext, EmittedEvent, ToolPermissionRequest } from "@uacc/contracts";
-import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
-import { ProcessRunner } from "@uacc/workers";
+import type { AdapterContext, EmittedEvent, ToolPermissionRequest } from "@ancientvoid/contracts";
+import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { ACP_PRESETS, createAdapter, pickModel } from "../src/index.ts";
-import { JsonRpcConnection as AcpConnection } from "@uacc/adapter-jsonrpc";
+import { JsonRpcConnection as AcpConnection } from "@ancientvoid/adapter-jsonrpc";
 import { UpdateMapper } from "../src/normalize.ts";
 
 const agent = fileURLToPath(new URL("../../../../e2e/support/bin/acp-agent", import.meta.url));

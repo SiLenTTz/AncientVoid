@@ -3,7 +3,7 @@
 **Status:** abgeschlossen 2026-10-26 (Ralph-Lauf; Belege im Abschluss-MR) · **Phase:** P17 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P5-Recovery, P7-Tool-Parität und P15-Steuerung auf; P13/P14-Präzedenz: unabhängiges Epic neben laufenden P12-Abnahmen).
 
 Auslöser: [Herdr-Evaluation 2026-10-26](../docs/herdr-evaluation-2026-10-26.md),
-Entscheidung desselben Tages — mobile-hub bleibt, Herdr ersetzt nichts; übernommen
+Entscheidung desselben Tages — AncientVoid bleibt, Herdr ersetzt nichts; übernommen
 werden nur die drei Ideen, die ohne Architekturwechsel in bestehende Strukturen
 passen (Option C des Reports). Kein Screen-Scraping, keine Herdr-Integration.
 
@@ -36,12 +36,12 @@ Herdr-Betrachtung sichtbar gemacht hat:
   Resume-Befehl + Session-Referenz" (Regel 1: Adapter-Contract-Änderung
   braucht ADR in `docs/adr/`).
 - Resume-Deklaration in den Adaptern, deren CLI einen echten Resume-Pfad hat;
-  `@uacc/adapter-testkit` prüft die Deklaration (Suite grün = hub-integrierbar).
+  `@ancientvoid/adapter-testkit` prüft die Deklaration (Suite grün = hub-integrierbar).
 - Nutzung der Referenz: „PC offen"-Hinweis (ADR-0034), `hubctl show` und
   Handoff nennen den konkreten Fortsetzungs-Befehl statt generischem Text.
 - Steer-/Reply-Waits: occupant-pinned, mit harten Timeouts; ein Timeout kann
   nie eine zweite Submission auslösen (Idempotenz über `inputId` weitergeführt).
-- `UACC_*`-env-Marker je tmux-Pane (Worker-Runner), **allowlist-validiert**
+- `ANCIENTVOID_*`-env-Marker je tmux-Pane (Worker-Runner), **allowlist-validiert**
   (BUG-0012: unvalidierte env-Keys waren RCE) — Adoption und `worktrees prune`
   erkennen Worker primär über den Marker, Heuristik nur noch Fallback.
 - Recovery-/Prune-Tests gegen echte tmux-Worker (skippt sichtbar ohne tmux,
@@ -55,7 +55,7 @@ werden nur genauer, nicht neu erfunden); Retention/Zeitfenster für Worker.
 ## 3. Design-Details
 
 - **Resume-Katalog als Contract, nicht als Wissenshäufchen.** Ein Feld in der
-  Adapter-Capability-Deklaration (`@uacc/contracts`), z. B.
+  Adapter-Capability-Deklaration (`@ancientvoid/contracts`), z. B.
   `resume: { command: string[]; sessionRef: "native" | "transcript" }`.
   Adapter ohne belegten echten Handlauf deklarieren **nichts** — kein
   Resume-Versprechen ohne Beleg (R9.7-Geist: nichts erfinden). Vorlage für
@@ -68,7 +68,7 @@ werden nur genauer, nicht neu erfunden); Retention/Zeitfenster für Worker.
   Timeouts sind Pflicht (kein unbegrenzter Wait im Server), Fehler sind
   Events (fail loud, Regel 6).
 - **Marker statt Heuristik.** Worker-Runner setzt beim Spawn
-  `UACC_SESSION_ID`/`UACC_WORKER_ID` (Werte sind `crypto.randomUUID()` bzw.
+  `ANCIENTVOID_SESSION_ID`/`ANCIENTVOID_WORKER_ID` (Werte sind `crypto.randomUUID()` bzw.
   Session-IDs — keine Nutzereingabe); die tmux-Liste liest die Env beim
   Reapen. Keys kommen nur aus der Allowlist — Konfig-Werte fließen nie in
   env-Keys (BUG-0012). Heuristik (cwd-Matching) bleibt als erkennbarer
@@ -94,7 +94,7 @@ werden nur genauer, nicht neu erfunden); Retention/Zeitfenster für Worker.
   Referenz im laufenden Zug; Timeout endet mit sichtbarem Fehler-Event;
   erneute Einreichung nach Timeout ist eindeutig (inputId). Unit-Tests mit
   absichtlichem Timeout + Spec in `e2e/specs/pause-queue.spec.ts`. K2.
-- [x] **T17.5 — Stabile `UACC_*`-Pane-Marker.** Worker-Runner setzt sie,
+- [x] **T17.5 — Stabile `ANCIENTVOID_*`-Pane-Marker.** Worker-Runner setzt sie,
   tmux-Adapter liest sie; Allowlist-Validierung mit BUG-0012-Muster-Test
   (ungültige/Injections-Keys → fail loud, kein Spawn). K7, K9-Geist
   (Bruchbarkeit sichtbar).

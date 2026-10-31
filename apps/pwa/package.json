@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/pwa",
+  "name": "@ancientvoid/pwa",
   "version": "0.1.0",
   "private": true,
   "description": "AncientVoid mobile PWA — projection renderer for hub deltas (dark-first, offline-tolerant).",

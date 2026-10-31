@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import type { WorkerProcess } from "@uacc/contracts";
-import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
+import type { WorkerProcess } from "@ancientvoid/contracts";
+import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
 import { createAdapter, parseModelList } from "../src/index.ts";
 
 // Same testkit gap as adapter-claude/adapter-codex (see their test files'
@@ -237,7 +237,7 @@ describe("opencode model catalog (ADR-0018)", () => {
 describe("opencode attachments (T7.10)", () => {
   it("images and PDFs as -f files, text files in the prompt", async () => {
     const calls: string[][] = [];
-    const { makeRecordingContext } = await import("@uacc/adapter-testkit");
+    const { makeRecordingContext } = await import("@ancientvoid/adapter-testkit");
     const ctx = makeRecordingContext({ spawnWorker: async (cmd) => { calls.push(cmd); throw new Error("stop here"); } });
     await createAdapter().start({
       adapter: "opencode",

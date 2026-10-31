@@ -32,7 +32,7 @@ entfernbar.
 1. `node scripts/messlauf-p7.mjs acp-gate opencode` (mit echtem
    `opencode acp`, das Tasks stellt).
 2. Danach `ps aux | grep "opencode acp"` und
-   `ls /tmp/uacc-p7-*/tmux-*/default`.
+   `ls /tmp/ancientvoid-p7-*/tmux-*/default`.
 
 **Ergebnis nach Schritt 2:** Worker-Prozesse und tmux-Server des
 Wegwerf-Roots bleiben bestehen. `stop()` in `bootHub()`
@@ -47,14 +47,14 @@ eigenen tmux-Server (E2E macht das richtig: `e2e/support/hub.ts:263`).
 
 | Feld | Wert |
 |---|---|
-| Instanz | dev (Messlauf-Temp-Roots `/tmp/uacc-p7-*`) |
+| Instanz | dev (Messlauf-Temp-Roots `/tmp/ancientvoid-p7-*`) |
 | Commit | `2715b81` |
 | Adapter | acp (preset `opencode`) |
 | Repro-Weg | Messlauf-Skript |
 
 ## Logs
 
-Aufräumen am 26.09.: 48 Prozesse mit Logpfaden unter `/tmp/uacc-p7-*`
+Aufräumen am 26.09.: 48 Prozesse mit Logpfaden unter `/tmp/ancientvoid-p7-*`
 terminiert, 14 leere tmux-Server gekillt, 21 Temp-Roots entfernt;
 ~2,5 GB RSS frei. Die 3 Live-Worker des Produktions-Hubs blieben unberührt.
 
@@ -72,7 +72,7 @@ Unit-Tests der Orphan-Erkennung (`packages/workers/src/orphans.ts`).
 
 `scripts/messlauf-p7.mjs:71` — `stop()` ohne `tmux kill-server`, ohne
 Warten auf Prozessende. Systemisch: tmux-Sessions tragen keine
-`@uacc_logdir`-Marke (nur `@uacc_owner`, packages/workers/src/tmux.ts:243),
+`@ancientvoid_logdir`-Marke (nur `@ancientvoid_owner`, packages/workers/src/tmux.ts:243),
 also kann kein Werkzeug Verwaiste sicher erkennen.
 
 ## Handoff
@@ -81,11 +81,11 @@ also kann kein Werkzeug Verwaiste sicher erkennen.
 - [ ] GitLab-Issue angelegt (Link oben)
 - [ ] `bugfix` oder offen lassen
 
-## Fix (verifiziert 2026-10-03, Ralph mobile-hub-bugfrei)
+## Fix (verifiziert 2026-10-03, Ralph AncientVoid-bugfrei)
 
 - Fix: `e73dba4` (^ B workers: verwaiste Hub-Worker erkennen und entfernen
   (BUG-0034), MR !129) — `packages/workers/src/orphans.ts` (Erkennung über
-  `@uacc_logdir`-Marke), hubctl-Command zum Aufräumen, messlauf-p7.mjs
+  `@ancientvoid_logdir`-Marke), hubctl-Command zum Aufräumen, messlauf-p7.mjs
   räumt tmux-Server beim stop() ab.
 - Verifikation: `npx vitest run packages/workers/test/orphans.test.ts`
   → 6/6 grün (live nachgefahren 2026-10-03).

@@ -46,7 +46,7 @@ Phase.
    Adapter-Isolation?
 6. **Edges** — Adapter-Crash, leere Session, Blob-Grenzen, WS-Verbindungsabbruch.
 7. **Subtasks** — vertikale Slices, je 1–4 h, testbar.
-8. **Tests** — vitest; Contract-Suite (`@uacc/adapter-testkit`) wenn ein
+8. **Tests** — vitest; Contract-Suite (`@ancientvoid/adapter-testkit`) wenn ein
    Adapter betroffen ist.
 
 ### Sechs Scoping-Dimensionen
@@ -57,7 +57,7 @@ Phase.
 | Scope | Was ist drin / bewusst draußen? | Steer ohne Approval-Queue (kommt erst P2) |
 | Reuse vs Replace | Was bleibt, was weicht? | bestehender `WorkerRunner` (tmux) wiederverwenden |
 | Edges | Was darf nicht still scheitern? | Adapter-Crash mitten in Session, WS-Verbindungsabbruch |
-| Dependencies | Was blockiert den Slice? | `@uacc/contracts`-Version, P2-Approval-Queue |
+| Dependencies | Was blockiert den Slice? | `@ancientvoid/contracts`-Version, P2-Approval-Queue |
 | Non-functional | Latenz, Ressourcen | K5/K7/K8-Messlatten, Tailscale-Latenz |
 
 ## Output-Format

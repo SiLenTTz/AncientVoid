@@ -16,7 +16,7 @@ import {
   type MediaResult,
   type MediaStep,
   type TranscriptSegment,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 import type { AttachmentStore } from "../attachments/store.ts";
 import { chatJson, describeFrameGemini, describeFrameOpenAi, GEMINI_HOST, geminiJson, hostOf, transcribeGemini, whisperSegments, type FrameReading, type GeminiModel, type OpenAiModel, type WhisperServer } from "./models.ts";

@@ -1,4 +1,4 @@
-import { providerErrorEvent, type EmittedEvent } from "@uacc/contracts";
+import { providerErrorEvent, type EmittedEvent } from "@ancientvoid/contracts";
 import { estimateCostUsd } from "./pricing.ts";
 
 /**

@@ -5,7 +5,7 @@ type LockKind = "hub" | "backup";
 
 /** The hub and backup share one exclusive data-directory lock. */
 async function acquireDataDirLock(dataDir: string, kind: LockKind): Promise<() => Promise<void>> {
-  const path = resolve(dataDir, ".uacc-hub.pid");
+  const path = resolve(dataDir, ".ancientvoid-hub.pid");
   const recoveryDir = `${path}.recovering`;
   try {
     await lstat(recoveryDir);

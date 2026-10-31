@@ -4,7 +4,7 @@ import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventStore } from "../../src/platform/eventstore.ts";
-import { EVENT_TYPES, type NormalizedEvent } from "@uacc/contracts";
+import { EVENT_TYPES, type NormalizedEvent } from "@ancientvoid/contracts";
 
 function ev(seq: number, payload: Record<string, unknown> = {}): NormalizedEvent {
   return {
@@ -23,7 +23,7 @@ describe("EventStore", () => {
   let store: EventStore;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-test-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-test-"));
     store = new EventStore(dir);
     await store.initSession("s1");
   });
@@ -59,7 +59,7 @@ describe("EventStore", () => {
   });
 
   it("T2.9 (K5 property test): every real event type stays ≤4KB on disk, blob round-trips byte-identical, regardless of payload shape/size", async () => {
-    // "über alle Event-Typen" — EVENT_TYPES from @uacc/contracts, not a
+    // "über alle Event-Typen" — EVENT_TYPES from @ancientvoid/contracts, not a
     // hand-picked subset, so a ninth type added later is covered for
     // free. fast-check explores payload shape/size per type; each run
     // gets its own session so seq/offloading from one run can't leak

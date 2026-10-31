@@ -1,4 +1,4 @@
-import type { Ack, AdapterContext, PendingOperation, PromptAttachment, SteerInput } from "@uacc/contracts";
+import type { Ack, AdapterContext, PendingOperation, PromptAttachment, SteerInput } from "@ancientvoid/contracts";
 import type { ApprovalService, OperationStore } from "../approvals/index.ts";
 import type { LiveSession } from "./session-state.ts";
 

@@ -34,7 +34,7 @@ export const MAX_AUDIO_BYTES = 8 * 1024 * 1024;
 
 async function toWav(audio: Buffer, mime: string): Promise<Buffer> {
   if (mime.includes("wav") && audio.subarray(0, 4).toString() === "RIFF") return audio;
-  const dir = await mkdtemp(join(tmpdir(), "uacc-stt-"));
+  const dir = await mkdtemp(join(tmpdir(), "ancientvoid-stt-"));
   try {
     const src = join(dir, "in");
     const out = join(dir, "out.wav");
@@ -46,7 +46,7 @@ async function toWav(audio: Buffer, mime: string): Promise<Buffer> {
   }
 }
 
-/** Project names as spoken ("mobile hub") and written ("mobile-hub"). */
+/** Project-name vocabulary for STT matching (directory names, capped at 40). */
 export function projectVocabulary(paths: readonly string[]): string {
   const names = [...new Set(paths.map((p) => p.split("/").filter(Boolean).pop() ?? "").filter((n) => n.length > 1))];
   return names.slice(0, 40).join(", ");
@@ -77,7 +77,7 @@ export function registerSttRoutes(app: FastifyInstance, cfg: SttConfig | undefin
         return reply.code(422).send({ error: `Aufnahme nicht lesbar (${err instanceof Error ? err.message.slice(0, 80) : "ffmpeg"})` });
       }
       const converted = Date.now();
-      const boundary = `----uacc${started}`;
+      const boundary = `----ancientvoid${started}`;
       const field = (name: string, value: string) => `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;
       // T10.2: the configured words plus this hub's project names.
       const vocabulary = [cfg.vocabulary, projectVocabulary(await projects().catch(() => []))].filter(Boolean).join(" ");

@@ -1,4 +1,4 @@
-import type { HarnessFeatures, SessionSpec, SteerInput } from "@uacc/contracts";
+import type { HarnessFeatures, SessionSpec, SteerInput } from "@ancientvoid/contracts";
 
 /**
  * ADR-0018: the server refuses what a harness can't do, before the adapter

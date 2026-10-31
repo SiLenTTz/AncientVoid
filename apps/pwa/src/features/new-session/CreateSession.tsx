@@ -2,7 +2,7 @@ import { takeHandOver } from "../../shared/media.ts";
 import { takeShareInbox } from "../../app/share-inbox.ts";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { LoopPicker } from "../loops/LoopPicker.tsx";
-import type { LoopInfo, LoopSpec } from "@uacc/contracts";
+import type { LoopInfo, LoopSpec } from "@ancientvoid/contracts";
 import { emptyOnboard, isOnboarding, loopBlocker, type OnboardDraft } from "../loops/loop-form.ts";
 import { hubApi, hostApi, type AdapterInfo, type DiscoveredProject, type FleetHost, type ModelOption, type SessionRecord } from "../../shared/api.ts";
 import type { AttachmentRecord } from "../../shared/api.ts";
@@ -10,8 +10,8 @@ import { ApiContext } from "../../shared/api-context.ts";
 import { Composer } from "../composer/Composer.tsx";
 import { SkillPicker, loadSelectedWorkflow, rememberedSkill, type SelectedSkill } from "../composer/SkillOverlay.tsx";
 
-const LAST_KEY = "uacc.newSession.last";
-const PROMPT_KEY = "uacc.newSession.prompt";
+const LAST_KEY = "ancientvoid.newSession.last";
+const PROMPT_KEY = "ancientvoid.newSession.prompt";
 
 function readLast(): { host?: string | null; adapter?: string; project?: string; loop?: LoopSpec | null } {
   try {

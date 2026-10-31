@@ -2,8 +2,8 @@ import { execFile, execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, watch, writeFileSync, type FSWatcher } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { LOOP_NEW } from "@uacc/contracts";
-import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopOnboardResult, LoopStartSpec, SessionHandle } from "@uacc/contracts";
+import { LOOP_NEW } from "@ancientvoid/contracts";
+import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopOnboardResult, LoopStartSpec, SessionHandle } from "@ancientvoid/contracts";
 import { listFiles, readJson, tailLines, under } from "./files.ts";
 
 /** Standard-Modellauswahl je Provider (factory-Policy 2026-10); via

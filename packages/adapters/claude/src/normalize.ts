@@ -1,4 +1,4 @@
-import { providerErrorEvent, type EmittedEvent, type UsageQuota } from "@uacc/contracts";
+import { providerErrorEvent, type EmittedEvent, type UsageQuota } from "@ancientvoid/contracts";
 
 /**
  * Maps one parsed line of `claude --output-format stream-json` output to

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SessionRecord, type NormalizedEvent } from "@uacc/contracts";
+import { SessionRecord, type NormalizedEvent } from "@ancientvoid/contracts";
 import { buildSessionSummary, archiveRefFor } from "../../../src/modules/reporting/digest.ts";
 
 function record(overrides?: Partial<SessionRecord>): SessionRecord {

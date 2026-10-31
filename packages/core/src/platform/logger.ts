@@ -1,4 +1,4 @@
-import { REDACT_LOG_KEYS, type HubLogger, type LogFields, type LogLevel } from "@uacc/contracts";
+import { REDACT_LOG_KEYS, type HubLogger, type LogFields, type LogLevel } from "@ancientvoid/contracts";
 
 const REDACT_SET = new Set<string>(REDACT_LOG_KEYS);
 const REDACTED = "[redacted]";

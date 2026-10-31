@@ -77,7 +77,7 @@ fehl und besteht damit.
 - [x] GitLab-Issue angelegt
 - [x] `bugfix` läuft
 
-## Fix (verifiziert 2026-10-03, Ralph mobile-hub-bugfrei)
+## Fix (verifiziert 2026-10-03, Ralph AncientVoid-bugfrei)
 
 - Fix: `2f2676f` (^ B pwa: Tokenmaske nach Prüfung öffnen (BUG-0031)) —
   `becomeReady()` in `apps/pwa/src/app/main.tsx` öffnet die Tokenmaske

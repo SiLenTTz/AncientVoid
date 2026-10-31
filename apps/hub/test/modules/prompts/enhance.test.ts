@@ -105,18 +105,18 @@ describe("parseDshEnhanceOutput + enhanceFlavorFor (BUG-0061)", () => {
   });
 
   it("resolves a dsh ACP registration by preset or command, not by the free-form id", () => {
-    expect(enhanceFlavorFor("deepseek", "@uacc/adapter-acp", { preset: "dsh" })).toBe("dsh");
-    expect(enhanceFlavorFor("whatever", "@uacc/adapter-acp", { command: ["dsh", "--profile", "acp"] })).toBe("dsh");
+    expect(enhanceFlavorFor("deepseek", "@ancientvoid/adapter-acp", { preset: "dsh" })).toBe("dsh");
+    expect(enhanceFlavorFor("whatever", "@ancientvoid/adapter-acp", { command: ["dsh", "--profile", "acp"] })).toBe("dsh");
   });
 
   it("keeps the id-based flavors and refuses everything it cannot prove", () => {
     expect(enhanceFlavorFor("claude")).toBe("claude");
-    expect(enhanceFlavorFor("codex", "@uacc/adapter-codex")).toBe("codex");
+    expect(enhanceFlavorFor("codex", "@ancientvoid/adapter-codex")).toBe("codex");
     expect(enhanceFlavorFor("opencode")).toBe("opencode");
     // Same ACP module, different harness: copilot/opencode presets have
     // their own id-based flavor only — no silent dsh headless call.
-    expect(enhanceFlavorFor("deepseek", "@uacc/adapter-acp", { preset: "copilot" })).toBeNull();
-    expect(enhanceFlavorFor("deepseek", "@uacc/adapter-acp", {})).toBeNull();
+    expect(enhanceFlavorFor("deepseek", "@ancientvoid/adapter-acp", { preset: "copilot" })).toBeNull();
+    expect(enhanceFlavorFor("deepseek", "@ancientvoid/adapter-acp", {})).toBeNull();
     expect(enhanceFlavorFor("deepseek", undefined, { preset: "dsh" })).toBeNull();
     expect(enhanceFlavorFor("dummy")).toBeNull();
   });
