@@ -1,6 +1,8 @@
 # ADR-0046 — Umbenennung des Produkts in „AncientVoid“
 
-**Status:** akzeptiert · **Betrifft:** Anzeigename in PWA/Manifest/Doku/CLI-Texten,
+**Status:** akzeptiert · Punkt 2 (Bezeichner-Ausnahmen) am 2026-10-31 **superseded
+durch [ADR-0047](0047-bezeichner-umbenennung-ancientvoid.md)** — Bezeichner folgen
+jetzt doch dem Produktnamen. · **Betrifft:** Anzeigename in PWA/Manifest/Doku/CLI-Texten,
 Branding-Assets (`apps/pwa/public`) · **Messlatten-Bezug:** K7 (bestehende Datadirs
 und Tokens bleiben nutzbar)
 
