@@ -6,7 +6,7 @@ severity: S3
 area: server, pwa
 instance: dev
 commit: "e373e0b"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/16"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/16"
 epic: ""
 created: 2026-10-21
 reporter: nutzer (Handy)
@@ -79,5 +79,5 @@ Ohne Fix rot sein müsste: ein Test, der `enhanceFlavorFor("deepseek", "@ancient
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [x] GitLab-Issue angelegt ([#16](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/16))
+- [x] GitLab-Issue angelegt ([#16](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/16))
 - [x] `bugfix` (direkt im selben Lauf beauftragt)

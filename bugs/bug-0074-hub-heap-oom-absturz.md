@@ -6,7 +6,7 @@ severity: S1
 area: core
 instance: prod
 commit: "21706d8"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/29"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/29"
 epic: "P17"
 created: 2026-10-27
 reporter: jan

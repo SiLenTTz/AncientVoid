@@ -44,9 +44,11 @@ Pfade in einem Zug konsistent zu machen.
    - Prosa und Historie (`bugs/`, `docs/messlauf/`, Epics): `UACC`/`mobile-hub`
      → `AncientVoid`, kleingeschriebene Bezeichner entsprechend.
 2. **Bewusst NICHT umbenannt (bleiben aus ADR-0046):**
-   - GitLab-Projektpfad und -URLs (`SiLenT_Tz/mobile-hub`): nach außen
-     wirksam, eigenständige Freigabe; GitLab leitet nach einer UI-Umbenennung
-     um, dann können die Strings folgen.
+   - Der GitLab-Projektpfad wurde noch am 2026-10-31 durch den Nutzer selbst
+     in `SiLenT_Tz/AncientVoid` umbenannt; die URL-Strings im Repo folgen
+     dem (GitLab leitet den alten Pfad um). Der lokale Remote heißt weiterhin
+     `SiLenT_Tz/mobile-hub` — funktioniert über die Weiterleitung, Umpointen
+     ist dem Nutzer überlassen.
    - Der Wortlaut von ADR-0046 selbst (historischer Zusammenhang; Punkt-2-Liste
      zitiert die damals alten Namen als Fakt).
 3. **Lokale Migration (gleicher Zug, dokumentierter Ablauf):**

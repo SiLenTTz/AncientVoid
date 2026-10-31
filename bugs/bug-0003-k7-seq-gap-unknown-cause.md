@@ -6,7 +6,7 @@ severity: S2
 area: core
 instance: dev
 commit: "3fecebc"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/3"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/3"
 epic: EPIC-P0
 created: 2026-09-14
 reporter: "Claude Sonnet 5 (Session 012Ga2NDi683xR9E63StoN7T)"
@@ -17,7 +17,7 @@ reporter: "Claude Sonnet 5 (Session 012Ga2NDi683xR9E63StoN7T)"
 ## Gesehen
 
 Auf GitLabs CI-Runner (`k8s.saas-linux-small-amd64`, Pipeline
-[2846580126](https://gitlab.com/SiLenT_Tz/mobile-hub/-/pipelines/2846580126))
+[2846580126](https://gitlab.com/SiLenT_Tz/AncientVoid/-/pipelines/2846580126))
 schlug der K7-Test fehl — nicht mit einem `waitFor`-Timeout (BUG-0001, dort
 behoben), sondern mit einer **echten Lücke in der persistierten
 Event-Sequenz**:
@@ -65,8 +65,8 @@ I/O-Störung auf dem Runner.
 |---|---|
 | Instanz | GitLab CI, `k8s.saas-linux-small-amd64` (SaaS-Runner) |
 | Commit | `3fecebc` |
-| Pipeline | https://gitlab.com/SiLenT_Tz/mobile-hub/-/pipelines/2846580126 |
-| Job | https://gitlab.com/SiLenT_Tz/mobile-hub/-/jobs/16482521543 |
+| Pipeline | https://gitlab.com/SiLenT_Tz/AncientVoid/-/pipelines/2846580126 |
+| Job | https://gitlab.com/SiLenT_Tz/AncientVoid/-/jobs/16482521543 |
 | Repro-Weg | reiner `npm test` in CI — kein PWA/hubctl-Pfad |
 
 ## Logs

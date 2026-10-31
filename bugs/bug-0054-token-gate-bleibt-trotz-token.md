@@ -6,7 +6,7 @@ severity: S3
 area: pwa
 instance: dev
 commit: "8661491"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/12"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/12"
 epic: "P16"
 created: 2026-10-09
 reporter: jan

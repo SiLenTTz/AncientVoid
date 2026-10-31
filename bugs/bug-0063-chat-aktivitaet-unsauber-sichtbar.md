@@ -6,7 +6,7 @@ severity: S3
 area: pwa
 instance: dev
 commit: "995f2df"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/18"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/18"
 epic: ""
 created: 2026-10-21
 reporter: nutzer (Handy)
@@ -63,5 +63,5 @@ Vorschlag: E2E-Erweiterung in `e2e/specs/harness.spec.ts` — während `working`
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [x] GitLab-Issue angelegt ([#18](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/18))
+- [x] GitLab-Issue angelegt ([#18](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/18))
 - [x] `bugfix` (im selben Lauf beauftragt)

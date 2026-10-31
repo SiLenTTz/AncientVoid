@@ -6,7 +6,7 @@ severity: S3
 area: core
 instance: dev
 commit: "9b6bdde"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/15"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/15"
 epic: ""
 created: 2026-10-20
 reporter: agent

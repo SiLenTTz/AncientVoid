@@ -6,7 +6,7 @@ severity: S3
 area: adapters
 instance: prod
 commit: "43f43d0"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/25"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/25"
 epic: "P7"
 created: 2026-10-27
 reporter: hermes

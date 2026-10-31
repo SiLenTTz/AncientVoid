@@ -16,7 +16,7 @@ lokalen Änderungen. Das ist keine Geräte- oder Fleet-Abnahme.
 - AC-P8-4 Tokenwechsel: 3/3 gezielte Playwright-Wiederholungen.
 
 Der GitLab-Remote-Lauf ist aktuell nicht ausführbar: Pipeline
-[#2878277157](https://gitlab.com/SiLenT_Tz/mobile-hub/-/pipelines/2878277157)
+[#2878277157](https://gitlab.com/SiLenT_Tz/AncientVoid/-/pipelines/2878277157)
 auf `main` wurde am 2026-09-24 mit `ci_quota_exceeded` beendet; `verify` und
 `e2e` starteten jeweils mit Laufzeit 0. Gemäß T12.6 gilt in diesem Fall das
 vollständige lokale `npm run gate` mit MR-Evidenz als Merge-Evidenz. Das ist

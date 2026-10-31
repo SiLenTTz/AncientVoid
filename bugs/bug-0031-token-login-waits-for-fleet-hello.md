@@ -6,7 +6,7 @@ severity: S3
 area: pwa
 instance: dev
 commit: "97285d6"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/12"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/12"
 epic: P12
 created: 2026-09-25
 reporter: Codex

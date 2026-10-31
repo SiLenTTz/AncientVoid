@@ -6,7 +6,7 @@ severity: S2
 area: pwa
 instance: dev
 commit: "2f9224a"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/32"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/32"
 epic: ""
 created: 2026-10-30
 reporter: "Maki (Session 3cc3df35)"

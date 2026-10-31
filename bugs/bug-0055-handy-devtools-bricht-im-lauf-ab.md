@@ -6,7 +6,7 @@ severity: S3
 area: e2e
 instance: dev
 commit: "8661491"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/13"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/13"
 epic: "P16"
 created: 2026-10-09
 reporter: jan

@@ -6,7 +6,7 @@ severity: S3
 area: e2e
 instance: dev
 commit: "f4e14a2"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/31"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/31"
 epic: ""
 created: 2026-10-28
 reporter: "Maki (Session e2e84c77)"

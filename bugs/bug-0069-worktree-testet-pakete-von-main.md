@@ -6,7 +6,7 @@ severity: S2
 area: core, e2e
 instance: dev
 commit: "ff97c65"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/24"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/24"
 epic: "P14"
 created: 2026-10-27
 reporter: claude

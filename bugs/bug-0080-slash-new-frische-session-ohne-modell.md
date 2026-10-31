@@ -6,7 +6,7 @@ severity: S2
 area: adapters
 instance: dev
 commit: "e49af07"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/34"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/34"
 epic: "EPIC-P25"
 created: 2026-10-30
 reporter: "Jan (Session f413d422, PWA)"
@@ -117,5 +117,5 @@ ACP-Suite 46/46 grün. Live-Verifikation nach Hub-Restart ausstehend
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [x] GitLab-Issue angelegt ([#34](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/34))
+- [x] GitLab-Issue angelegt ([#34](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/34))
 - [x] `bugfix` (Fix + Test, MR siehe Historie)

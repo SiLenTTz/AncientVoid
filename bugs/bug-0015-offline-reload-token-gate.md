@@ -6,7 +6,7 @@ severity: S2
 area: pwa
 instance: dev
 commit: "80f8696"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/11"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/11"
 epic: "EPIC-P0 AC-P0-4 (K10); EPIC-P8 T8.2"
 created: 2026-09-21
 reporter: "Codex, Remote-Control-Audit"
@@ -88,7 +88,7 @@ nicht zuverlässig abgebildet. Dieser zweite Befund ist hier nur Code-Review.
 ## Handoff
 
 - [x] Datei im Index.
-- [x] GitLab-Issue [#11](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/11) angelegt.
+- [x] GitLab-Issue [#11](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/11) angelegt.
 - [ ] Fix über `bugfix`; blockiert ursprüngliche K10-Abnahme.
 
 ## Behebung (2026-09-24, EPIC-P8 T8.2)
