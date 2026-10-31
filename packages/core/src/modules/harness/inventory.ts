@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import type { HarnessCatalogEntry, HarnessInventoryEntry } from "@uacc/contracts";
+import type { HarnessCatalogEntry, HarnessInventoryEntry } from "@ancientvoid/contracts";
 
 const VERSION_RE = /\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?/;
 
@@ -85,7 +85,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     args: ["--version"],
     discovery: "missing",
     resume: "implemented-unverified",
-    evidence: "dsh (DeepSeek Harness) runs through @uacc/adapter-acp (`--profile acp`, ADR-0018): sandboxed read-only, every escalation asks on the phone. No external session scan.",
+    evidence: "dsh (DeepSeek Harness) runs through @ancientvoid/adapter-acp (`--profile acp`, ADR-0018): sandboxed read-only, every escalation asks on the phone. No external session scan.",
   },
   {
     id: "maki",
@@ -94,7 +94,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     args: ["--version"],
     discovery: "verified",
     resume: "verified",
-    evidence: "maki (maki.sh) runs through @uacc/adapter-acp (`maki acp`, preset maki). ADR-0041: external sessions read from ~/.local/state/maki/sessions (header/meta lines, maki 0.6.5); live 2026-10-28: found with title, adopted via ACP session/load, history imported, answered from the adopted context. A session open in another maki process is locked by maki itself.",
+    evidence: "maki (maki.sh) runs through @ancientvoid/adapter-acp (`maki acp`, preset maki). ADR-0041: external sessions read from ~/.local/state/maki/sessions (header/meta lines, maki 0.6.5); live 2026-10-28: found with title, adopted via ACP session/load, history imported, answered from the adopted context. A session open in another maki process is locked by maki itself.",
   },
   {
     id: "omp",
@@ -104,7 +104,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     openArgs: ["--resume", "{id}"],
     discovery: "verified",
     resume: "verified",
-    evidence: "oh-my-pi (omp) runs through @uacc/adapter-acp (`omp acp`, preset omp). ADR-0041: external sessions read from ~/.omp/agent/sessions (pi-family JSONL, omp 18.13.3); live 2026-10-28: found, adopted in place via ACP session/load (omp refuses to load from another directory), answered from the adopted context.",
+    evidence: "oh-my-pi (omp) runs through @ancientvoid/adapter-acp (`omp acp`, preset omp). ADR-0041: external sessions read from ~/.omp/agent/sessions (pi-family JSONL, omp 18.13.3); live 2026-10-28: found, adopted in place via ACP session/load (omp refuses to load from another directory), answered from the adopted context.",
   },
 ];
 

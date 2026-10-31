@@ -3,9 +3,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
-import { EventStore, HubDatabase, SessionManager, AdapterRegistry, TokenService, InMemoryMetrics } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { EventStore, HubDatabase, SessionManager, AdapterRegistry, TokenService, InMemoryMetrics } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 import { createHubApp } from "../../../src/app.ts";
 
 describe("observability endpoints (T4.5-4 / AC-P4.5-2)", () => {
@@ -16,7 +16,7 @@ describe("observability endpoints (T4.5-4 / AC-P4.5-2)", () => {
   let sessions: SessionManager;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-obs-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-obs-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -92,7 +92,7 @@ describe("observability endpoints (T4.5-4 / AC-P4.5-2)", () => {
 
 describe("ready 503 when a check is red (T4.5-4)", () => {
   it("returns 503 and ok:false when the event store probe throws", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-ready-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-ready-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();

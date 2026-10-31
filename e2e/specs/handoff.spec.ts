@@ -11,7 +11,7 @@ import type { TestHub } from "../support/hub.ts";
 async function device(browser: Browser, hub: TestHub, kind: "phone" | "pc"): Promise<Page> {
   const context = await browser.newContext(kind === "phone" ? devices["Pixel 7"] : devices["Desktop Chrome"]);
   const page = await context.newPage();
-  await page.addInitScript((token) => localStorage.setItem("uacc.token", token), hub.token);
+  await page.addInitScript((token) => localStorage.setItem("ancientvoid.token", token), hub.token);
   return page;
 }
 

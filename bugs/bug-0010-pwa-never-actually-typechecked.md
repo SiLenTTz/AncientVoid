@@ -6,7 +6,7 @@ severity: S2
 area: pwa
 instance: dev
 commit: ""
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/10"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/10"
 epic: EPIC-P1.5
 created: 2026-09-15
 reporter: "Claude Sonnet 5 (Session 012Ga2NDi683xR9E63StoN7T)"
@@ -19,10 +19,10 @@ reporter: "Claude Sonnet 5 (Session 012Ga2NDi683xR9E63StoN7T)"
 Beim Vorbereiten von T1.5-3 (Budget-Feld entfernen, Kontingent-Anzeige) fiel
 auf: `tsconfig.json` (Repo-Root) schließt `packages/pwa` explizit aus
 (`"exclude": ["packages/pwa"]`), und `.gitlab-ci.yml` führte bislang **weder**
-`npm -w @uacc/pwa run typecheck` (den gab es nicht einmal als Skript) **noch**
-`npm -w @uacc/pwa run build` aus — nur `npm run typecheck` (root, ohne PWA)
+`npm -w @ancientvoid/pwa run typecheck` (den gab es nicht einmal als Skript) **noch**
+`npm -w @ancientvoid/pwa run build` aus — nur `npm run typecheck` (root, ohne PWA)
 und `npm test`/`npm run lint`. Der `gates`-Skill selbst behauptet in seiner
-eigenen Tabelle: „`packages/pwa/** → npm -w @uacc/pwa run build + npm run
+eigenen Tabelle: „`packages/pwa/** → npm -w @ancientvoid/pwa run build + npm run
 typecheck`" — das war nie wahr, weil `npm run typecheck` die PWA gar nicht
 erreicht.
 
@@ -73,7 +73,7 @@ Zufall beim nächsten Feature-Task.
 git stash  # oder auf einen Commit vor diesem Fix
 npx tsc -p packages/pwa/tsconfig.json --noEmit   # 7 echte Fehler
 grep -n "typecheck" packages/pwa/package.json     # kein Skript vorhanden
-grep -n "@uacc/pwa" .gitlab-ci.yml                 # kein Treffer
+grep -n "@ancientvoid/pwa" .gitlab-ci.yml                 # kein Treffer
 ```
 
 **Häufigkeit:** dauerhaft — kein Zufall, eine seit T0/T1 bestehende
@@ -98,7 +98,7 @@ Konfigurationslücke.
 
 | Ring | Befehl / Datei | Stand vor dem Fix |
 |---|---|---|
-| — | `npm -w @uacc/pwa run typecheck` | existierte nicht |
+| — | `npm -w @ancientvoid/pwa run typecheck` | existierte nicht |
 | — | `.gitlab-ci.yml` `verify`-Stage | keine PWA-Zeile |
 
 ## Fix
@@ -109,12 +109,12 @@ Konfigurationslücke.
    `packages/contracts/src/session.ts`); `AdapterInfo.capabilities` um
    `usage: boolean` ergänzt (T1.5-2).
 3. `packages/pwa/package.json`: `"typecheck": "tsc -p . --noEmit"` ergänzt.
-4. `.gitlab-ci.yml`: `npm -w @uacc/pwa run typecheck` **und**
-   `npm -w @uacc/pwa run build` in die `verify`-Stage aufgenommen — beide
+4. `.gitlab-ci.yml`: `npm -w @ancientvoid/pwa run typecheck` **und**
+   `npm -w @ancientvoid/pwa run build` in die `verify`-Stage aufgenommen — beide
    liefen vorher überhaupt nicht in CI.
 
 Verifiziert: `npx tsc -p packages/pwa/tsconfig.json --noEmit` läuft jetzt
-sauber (Exit 0), `npm -w @uacc/pwa run build` weiterhin grün.
+sauber (Exit 0), `npm -w @ancientvoid/pwa run build` weiterhin grün.
 
 ## Handoff
 

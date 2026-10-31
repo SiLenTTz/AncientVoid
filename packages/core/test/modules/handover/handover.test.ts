@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Adapter, NormalizedEvent } from "@uacc/contracts";
-import { basicFeatures } from "@uacc/contracts";
+import type { Adapter, NormalizedEvent } from "@ancientvoid/contracts";
+import { basicFeatures } from "@ancientvoid/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
 import { buildHandoverPrompt, HANDOVER_PROMPT_MAX, redactSecrets } from "../../../src/modules/handover/index.ts";
-import { ProcessRunner } from "@uacc/workers";
+import { ProcessRunner } from "@ancientvoid/workers";
 
 let seq = 0;
 const ev = (type: NormalizedEvent["type"], payload: Record<string, unknown> = {}, summary = type as string): NormalizedEvent => ({
@@ -72,7 +72,7 @@ const quiet = (id: string): Adapter => ({
 
 describe("SessionManager.handover (EPIC-P21 T21.2)", () => {
   it("startet die neue Session beim anderen Adapter, verlinkt beide und schlägt den Grund vor", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-handover-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-handover-"));
     const registry = new AdapterRegistry();
     registry.register("alt", () => quiet("alt"));
     registry.register("neu", () => quiet("neu"));

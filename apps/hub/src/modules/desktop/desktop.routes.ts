@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { COMPANION_TOKEN_PREFIX, CompanionStateReport, DesktopActionRequest, DesktopResult } from "@uacc/contracts";
-import type { DesktopService, TokenService } from "@uacc/core";
+import { COMPANION_TOKEN_PREFIX, CompanionStateReport, DesktopActionRequest, DesktopResult } from "@ancientvoid/contracts";
+import type { DesktopService, TokenService } from "@ancientvoid/core";
 import { extractToken } from "../../platform/auth.ts";
 
 /**

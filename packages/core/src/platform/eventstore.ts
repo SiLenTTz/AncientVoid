@@ -4,7 +4,7 @@ import {
   NormalizedEvent,
   blobRefToString,
   type BlobRef,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 import { createReadStream } from "node:fs";
 import { mkdir, open, readFile, readdir, rm, writeFile, type FileHandle } from "node:fs/promises";
 import { createInterface } from "node:readline";

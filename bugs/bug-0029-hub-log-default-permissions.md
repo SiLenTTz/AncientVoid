@@ -16,7 +16,7 @@ reporter: Codex
 
 ## Gesehen
 
-Ein Start des lokalen Hubs legte `/tmp/uacc-hub.log` mit Modus `0644` an.
+Ein Start des lokalen Hubs legte `/tmp/ancientvoid-hub.log` mit Modus `0644` an.
 
 ## Erwartet
 
@@ -27,7 +27,7 @@ Das Hub-Log soll nur für den ausführenden Benutzer lesbar und schreibbar sein 
 Voraussetzung: lokaler Hub gestoppt, Standard-umask `0022`.
 
 1. `scripts/hub.sh start`
-2. `stat -c '%a' /tmp/uacc-hub.log`
+2. `stat -c '%a' /tmp/ancientvoid-hub.log`
 
 **Ergebnis nach Schritt 2:** `644`.
 
@@ -52,7 +52,7 @@ mit `shred -u -n 1` entfernt. Es wurden keine Loginhalte in diesen Report kopier
 
 | Ring | Befehl / Datei | Stand vor dem Fix |
 |---|---|---|
-| Integration | `scripts/hub.sh start` + `stat -c '%a' /tmp/uacc-hub.log` | reproduziert: `644` |
+| Integration | `scripts/hub.sh start` + `stat -c '%a' /tmp/ancientvoid-hub.log` | reproduziert: `644` |
 | Shell unit | nicht vorhanden | nicht vorhanden |
 
 Der Start/Stop-Messlauf soll nach dem Fix `600` melden und den Port sowie die

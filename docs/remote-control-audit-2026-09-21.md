@@ -1,4 +1,4 @@
-# Mobile Hub: Bestandsaufnahme und Weg zur vollständigen Fernsteuerung
+# AncientVoid: Bestandsaufnahme und Weg zur vollständigen Fernsteuerung
 
 **Stand:** 2026-09-21 · **Codebasis:** `80f8696` · **Auftrag:** aktueller
 Nutzerwunsch nach allen Sessions, PC↔Handy-Kontinuität, AI-Eingabe und Sprache.
@@ -31,7 +31,7 @@ die vorhandene Repo-Evidenz, keinen neuen Live-Test dieser Untersuchung.
 | Aktueller Arbeitsbaum: `npm test` | 325/325 Tests, 36 Dateien grün |
 | Aktueller Arbeitsbaum: `npm run lint` | grün |
 | Aktueller Arbeitsbaum: `npm run typecheck` | rot: TS2554 im WIP `adapter-claude-clip/src/index.ts:193` und `test/adapter.test.ts:200` |
-| `npm -w @uacc/pwa run build` | grün |
+| `npm -w @ancientvoid/pwa run build` | grün |
 | Eingecheckter Stand im isolierten Worktree | erster Testlauf: 306/307; tmux-stdout-Test liefert `[]` statt drei Zeilen. Vollständiger Wiederholungslauf: 307/307 (34 Dateien), danach Lint und Typecheck grün; keine Test-/Codeänderung |
 | Browser: Offline-Neuladen | Fehler reproduziert, [BUG-0015](../bugs/bug-0015-offline-reload-token-gate.md) |
 

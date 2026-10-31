@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * BUG-0069: a hub session worktree lives under <main-checkout>/data/worktrees/,
- * so without its own node_modules every `@uacc/*` import resolves upward to
+ * so without its own node_modules every `@ancientvoid/*` import resolves upward to
  * the MAIN checkout's packages — the gate then tests main's code and goes
  * green on changes it never loaded. Fail loud before any test runs.
  *
  *   npm run check:workspace-links
- *   node scripts/check-workspace-links.mjs --fix   (links node_modules/@uacc/*
+ *   node scripts/check-workspace-links.mjs --fix   (links node_modules/@ancientvoid/*
  *     to this checkout; third-party deps keep resolving upward)
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync } from "node:fs";
@@ -47,7 +47,7 @@ export function misplacedWorkspaces(root) {
     const file = join(dir, "package.json");
     if (!existsSync(file)) continue;
     const { name } = JSON.parse(readFileSync(file, "utf8"));
-    if (!name?.startsWith("@uacc/")) continue;
+    if (!name?.startsWith("@ancientvoid/")) continue;
     const resolved = lookup(root, name);
     if (resolved !== realpathSync(dir)) wrong.push({ name, resolved, expected: dir });
   }
@@ -65,8 +65,8 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
   if (wrong.length > 0) {
     console.error(`check:workspace-links: ${wrong.length} Workspace-Paket(e) laden nicht aus diesem Checkout (${root}):`);
     for (const w of wrong) console.error(`  ${w.name}: ${w.resolved ?? "nicht gefunden"} (erwartet ${w.expected})`);
-    console.error("\nIm Session-Worktree: `node scripts/check-workspace-links.mjs --fix` setzt node_modules/@uacc/* auf diesen Checkout (BUG-0069).");
+    console.error("\nIm Session-Worktree: `node scripts/check-workspace-links.mjs --fix` setzt node_modules/@ancientvoid/* auf diesen Checkout (BUG-0069).");
     process.exit(1);
   }
-  console.log(`check:workspace-links: alle @uacc/*-Pakete aus ${root}`);
+  console.log(`check:workspace-links: alle @ancientvoid/*-Pakete aus ${root}`);
 }

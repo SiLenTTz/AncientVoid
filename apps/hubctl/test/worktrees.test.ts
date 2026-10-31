@@ -6,8 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { execFileSync } from "node:child_process";
-import { HubDatabase, WorktreeManager } from "@uacc/core";
-import { TmuxRunner } from "@uacc/workers";
+import { HubDatabase, WorktreeManager } from "@ancientvoid/core";
+import { TmuxRunner } from "@ancientvoid/workers";
 import { cwdInside, runWorktrees } from "../src/worktrees.ts";
 
 const git = promisify(execFile);
@@ -23,7 +23,7 @@ describe("hubctl worktrees (EPIC-P14 T14.2/T14.3)", () => {
   });
 
   it("cwdInside sees a process whose cwd is inside the directory, and not after it exits", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-cwd-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-cwd-"));
     dirs.push(dir);
     await mkdir(join(dir, "sub"));
     expect(await cwdInside(dir)).toBe(false);
@@ -42,13 +42,13 @@ describe("hubctl worktrees (EPIC-P14 T14.2/T14.3)", () => {
   });
 
   async function fixture() {
-    const root = await mkdtemp(join(tmpdir(), "uacc-wtctl-"));
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-wtctl-"));
     dirs.push(root);
     const repo = join(root, "repo");
     await mkdir(repo);
     await git("git", ["-C", repo, "init", "-q", "-b", "main"]);
-    await git("git", ["-C", repo, "config", "user.email", "t@uacc.local"]);
-    await git("git", ["-C", repo, "config", "user.name", "uacc test"]);
+    await git("git", ["-C", repo, "config", "user.email", "t@ancientvoid.local"]);
+    await git("git", ["-C", repo, "config", "user.name", "ancientvoid test"]);
     await writeFile(join(repo, "a.txt"), "hi\n");
     await git("git", ["-C", repo, "add", "a.txt"]);
     await git("git", ["-C", repo, "commit", "-q", "-m", "initial"]);
@@ -98,8 +98,8 @@ describe("hubctl worktrees (EPIC-P14 T14.2/T14.3)", () => {
     const { dbPath, worktrees, add } = await fixture();
     await add("dddddddd-marker", "idle", 1); // archived + clean → prunable without protection
     const path = worktrees.pathFor("dddddddd-marker");
-    execFileSync("tmux", ["new-session", "-d", "-s", "uacc-dddddddd-marker", "-c", path, "bash", "-c", "cd /; sleep 30"], { stdio: "ignore" });
-    execFileSync("tmux", ["set-option", "-t", "uacc-dddddddd-marker", "@uacc_session", "dddddddd-marker"], { stdio: "ignore" });
+    execFileSync("tmux", ["new-session", "-d", "-s", "ancientvoid-dddddddd-marker", "-c", path, "bash", "-c", "cd /; sleep 30"], { stdio: "ignore" });
+    execFileSync("tmux", ["set-option", "-t", "ancientvoid-dddddddd-marker", "@ancientvoid_session", "dddddddd-marker"], { stdio: "ignore" });
     try {
       const out: string[] = [];
       await runWorktrees(["prune", "--apply", "--db", dbPath], (t) => out.push(t));
@@ -107,7 +107,7 @@ describe("hubctl worktrees (EPIC-P14 T14.2/T14.3)", () => {
       expect(out.join("\n")).toContain("Prozess aktiv — bleibt"); // listed as protected
       expect(out.filter((l) => l.startsWith("entfernt")).some((l) => l.includes("dddddddd"))).toBe(false); // never removed
     } finally {
-      execFileSync("tmux", ["kill-session", "-t", "uacc-dddddddd-marker"], { stdio: "ignore" });
+      execFileSync("tmux", ["kill-session", "-t", "ancientvoid-dddddddd-marker"], { stdio: "ignore" });
     }
     const out: string[] = [];
     await runWorktrees(["prune", "--apply", "--db", dbPath], (t) => out.push(t));

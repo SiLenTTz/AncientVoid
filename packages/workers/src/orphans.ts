@@ -7,7 +7,7 @@
  *   is a whole orphan — killed as a server (the messlauf pattern: one
  *   dedicated server per throwaway root).
  * - The default server carries the production hub's workers: a session is
- *   orphaned only when its `@uacc_logdir` no longer exists on disk.
+ *   orphaned only when its `@ancientvoid_logdir` no longer exists on disk.
  *   Sessions without that marker (older hubs) stay — never guess.
  */
 import { spawn } from "node:child_process";
@@ -24,7 +24,7 @@ export interface ServerWorkers {
     name: string;
     owner: string;
     logDir: string | null;
-    /** T17.5/ADR-0037: @uacc_session marker, when the spawning hub set it. */
+    /** T17.5/ADR-0037: @ancientvoid_session marker, when the spawning hub set it. */
     sessionId?: string;
     /** T17.6: pane cwd (#{pane_current_path}) — prune's fallback signal. */
     cwd?: string;
@@ -36,7 +36,7 @@ export interface OrphanDecision {
   killSessions: { server: string; name: string }[];
 }
 
-/** Every tmux server a uacc worker could live in: the user's default plus
+/** Every tmux server a ancientvoid worker could live in: the user's default plus
  * every /tmp root that carries a tmux socket (the throwaway pattern). */
 export function discoverTmuxServers(tmp: string = tmpdir(), uid: number = process.getuid?.() ?? 0): string[] {
   const roots: string[] = [];
@@ -77,18 +77,18 @@ function tmux(server: string, args: string[]): Promise<{ code: number; stdout: s
   });
 }
 
-/** One server's uacc sessions with their owner and log dir. */
+/** One server's ancientvoid sessions with their owner and log dir. */
 export async function listServerWorkers(server: string): Promise<ServerWorkers> {
   const res = await tmux(server, [
     "list-sessions",
     "-F",
-    "#{session_name}\t#{@uacc_owner}\t#{@uacc_logdir}\t#{@uacc_session}\t#{pane_current_path}",
+    "#{session_name}\t#{@ancientvoid_owner}\t#{@ancientvoid_logdir}\t#{@ancientvoid_session}\t#{pane_current_path}",
   ]);
   if (res.code !== 0) return { server, sessions: [] };
   const sessions = res.stdout
     .trim()
     .split("\n")
-    .filter((l) => l.startsWith("uacc-"))
+    .filter((l) => l.startsWith("ancientvoid-"))
     .map((l) => {
       const [name, owner, logDir, sessionId, cwd] = l.split("\t");
       return {
@@ -103,14 +103,14 @@ export async function listServerWorkers(server: string): Promise<ServerWorkers> 
   return { server, sessions };
 }
 
-/** Roots of running hubs: their UACC_CONFIG's directory (a hub lives in
+/** Roots of running hubs: their ANCIENTVOID_CONFIG's directory (a hub lives in
  * its config's root — throwaway and production alike). Same user only. */
 export function liveHubRoots(readEnviron: (pid: number) => string | null = readProcEnviron, pids: readonly number[] = processPids()): Set<string> {
   const roots = new Set<string>();
   for (const pid of pids) {
     const environ = readEnviron(pid);
     if (environ === null) continue;
-    const match = /UACC_CONFIG=([^\0]+)/.exec(environ);
+    const match = /ANCIENTVOID_CONFIG=([^\0]+)/.exec(environ);
     if (match) roots.add(dirname(match[1]!));
   }
   return roots;

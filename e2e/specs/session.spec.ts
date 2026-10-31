@@ -156,7 +156,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(app.locator(".event.tool_result")).toHaveCount(1);
     // The filter is stored by an effect after render — wait for it, as a
     // user's reload never lands inside the same frame.
-    await expect.poll(() => app.evaluate(() => localStorage.getItem("uacc.filter"))).toBe("debuggen");
+    await expect.poll(() => app.evaluate(() => localStorage.getItem("ancientvoid.filter"))).toBe("debuggen");
     await app.reload();
     await app.getByRole("button", { name: "Verlauf" }).click();
     await expect(app.getByRole("button", { name: "Debuggen" })).toHaveClass(/active/);

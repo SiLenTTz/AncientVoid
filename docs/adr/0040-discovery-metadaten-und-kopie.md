@@ -6,7 +6,7 @@ PWA `features/discovery/`, EPIC-P22
 
 ## Kontext
 „Gefunden“ listete nur Adapter, Status und die rohe Provider-ID. Wer eine Session aufgreifen wollte (z. B. die laufende Claude-Session
-am mobile-hub), konnte sie nicht erkennen. Zwei Fehler kamen dazu, beide am 2026-10-27 live gesehen:
+am AncientVoid), konnte sie nicht erkennen. Zwei Fehler kamen dazu, beide am 2026-10-27 live gesehen:
 1. Übernahme **ohne Prompt** startete `claude -p "" --resume <id>`. Die CLI sucht dann eine offene Tool-Freigabe und endet mit
    „No deferred tool marker found in the resumed session“ — die Hub-Session stand sofort auf `error` (zwei Versuche, gleiche Meldung).
 2. Eine Session, die in einem Terminal noch offen ist, hätte das Transkript mit dem Hub-Prozess geteilt (zwei Schreiber).

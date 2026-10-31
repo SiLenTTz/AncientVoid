@@ -5,7 +5,7 @@
 ## Befunde 2026-10-30 abends (Nachtrag zur Bestandsaufnahme)
 
 - **Loop-Start verwirft den Auftrag:** Session `eb0f764a` (Loop securesight,
-  Projekt mobile-hub) zeigte „0 von 0 Aufgaben", „Intake: intake", danach
+  Projekt AncientVoid) zeigte „0 von 0 Aufgaben", „Intake: intake", danach
   Stillstand — `spec.goal` geht in den beobachtenden Connector (Nutzerauftrag
   „AncientVoid-Rename" nie angekommen). Genau die Lücke, die T26.5 schließt:
   der Start-Flow legt den Treiber an, der `/factory` **mit Auftrag** ausführt.
@@ -16,9 +16,9 @@
   CONTRIBUTING-Import; über `factory init` jederzeit neu erzeugbar). Der
   offene Testauftrag (Projekt umbenennen) bleibt für T26.11 dokumentiert.
 
-Auslöser: Wunsch von Jan vom 2026-10-30: „ … über uacc (mobile-hub) manuell die
+Auslöser: Wunsch von Jan vom 2026-10-30: „ … über ancientvoid (AncientVoid) manuell die
 factory antriggern und das epic abarbeiten lassen … Anschließend erstelle ich ein
-Testprojekt mit der factory über uacc. … schreiben, dass wir dort alles sauber
+Testprojekt mit der factory über ancientvoid. … schreiben, dass wir dort alles sauber
 integriert haben für die factory.“ Bezug: [EPIC-P19](EPIC-P19-loop-dark-factory.md),
 [ADR-0038](../docs/adr/0038-loop-dark-factory.md), [docs/loops.md](../docs/loops.md).
 
@@ -107,7 +107,7 @@ Empfehlung **A** — Core-Orchestrierung: ein `POST /api/factory/start` (Policy
 „Mensch ja, Agent nein“) legt zwei verknüpfte Sessions an (Treiber + Beobachter),
 speichert die Verknüpfung im JSONL (K7) und startet den Treiber mit `/factory`.
 *Alternative B:* der Connector startet den Treiber selbst über `ctx.spawnWorker`
-(bricht die Kapselung „`packages/loops/*` importiert nur `@uacc/contracts`“).
+(bricht die Kapselung „`packages/loops/*` importiert nur `@ancientvoid/contracts`“).
 *Alternative C:* der Nutzer startet beide Sessions von Hand (kein neuer Code,
 aber kein „sauber integriert“). Der ADR entscheidet; A ist vorgemerkt, weil die
 Kapselung (AC-P19-6) erhalten bleibt.

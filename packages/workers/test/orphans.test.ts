@@ -9,62 +9,62 @@ describe("decideOrphans (BUG-0034) — rein", () => {
     {
       server: DEFAULT_SERVER,
       sessions: [
-        { name: "uacc-live", owner: "a", logDir: "/hub/data/workers" },
-        { name: "uacc-gone", owner: "b", logDir: "/tmp/weg/data/workers" },
-        { name: "uacc-unmarked", owner: "c", logDir: null },
+        { name: "ancientvoid-live", owner: "a", logDir: "/hub/data/workers" },
+        { name: "ancientvoid-gone", owner: "b", logDir: "/tmp/weg/data/workers" },
+        { name: "ancientvoid-unmarked", owner: "c", logDir: null },
       ],
     },
-    { server: "/tmp/uacc-p7-alt", sessions: [{ name: "uacc-x", owner: "d", logDir: "/tmp/uacc-p7-alt/data/workers" }] },
-    { server: "/tmp/uacc-p7-live", sessions: [{ name: "uacc-y", owner: "e", logDir: "/tmp/uacc-p7-live/data/workers" }] },
+    { server: "/tmp/ancientvoid-p7-alt", sessions: [{ name: "ancientvoid-x", owner: "d", logDir: "/tmp/ancientvoid-p7-alt/data/workers" }] },
+    { server: "/tmp/ancientvoid-p7-live", sessions: [{ name: "ancientvoid-y", owner: "e", logDir: "/tmp/ancientvoid-p7-live/data/workers" }] },
   ];
 
   it("killt ganze Wegwerf-Server ohne lebenden Hub, einzeln nur Tote im Standard-Server", () => {
-    const live = new Set(["/tmp/uacc-p7-live", "/hub"]);
-    const exists = (d: string) => d.startsWith("/hub") || d.startsWith("/tmp/uacc-p7-live") || d.startsWith("/tmp/uacc-p7-alt");
+    const live = new Set(["/tmp/ancientvoid-p7-live", "/hub"]);
+    const exists = (d: string) => d.startsWith("/hub") || d.startsWith("/tmp/ancientvoid-p7-live") || d.startsWith("/tmp/ancientvoid-p7-alt");
     const d = decideOrphans(servers, live, exists);
-    expect(d.killServers).toEqual(["/tmp/uacc-p7-alt"]);
-    expect(d.killSessions).toEqual([{ server: DEFAULT_SERVER, name: "uacc-gone" }]);
+    expect(d.killServers).toEqual(["/tmp/ancientvoid-p7-alt"]);
+    expect(d.killSessions).toEqual([{ server: DEFAULT_SERVER, name: "ancientvoid-gone" }]);
   });
 
   it("ohne Marke wird nie geraten — unmarkierte Sessions bleiben", () => {
     const d = decideOrphans(servers, new Set(), () => false);
-    expect(d.killSessions.some((s) => s.name === "uacc-unmarked")).toBe(false);
+    expect(d.killSessions.some((s) => s.name === "ancientvoid-unmarked")).toBe(false);
   });
 
   it("leere Server (nur Socket-Hülle) werden nicht gekillt — kein Nutzen, kein Risiko", () => {
-    const d = decideOrphans([{ server: "/tmp/uacc-leer", sessions: [] }], new Set(), () => true);
+    const d = decideOrphans([{ server: "/tmp/ancientvoid-leer", sessions: [] }], new Set(), () => true);
     expect(d.killServers).toEqual([]);
   });
 
-  it("liveHubRoots liest UACC_CONFIG aus /proc-artigen Umgebungen", () => {
+  it("liveHubRoots liest ANCIENTVOID_CONFIG aus /proc-artigen Umgebungen", () => {
     const roots = liveHubRoots(
-      () => "PATH=/usr/bin\0UACC_CONFIG=/tmp/uacc-p7-live/hub.config.json\0",
+      () => "PATH=/usr/bin\0ANCIENTVOID_CONFIG=/tmp/ancientvoid-p7-live/hub.config.json\0",
       [42],
     );
-    expect([...roots]).toEqual(["/tmp/uacc-p7-live"]);
+    expect([...roots]).toEqual(["/tmp/ancientvoid-p7-live"]);
     expect([...liveHubRoots(() => "PATH=/usr/bin\0", [42])]).toEqual([]);
   });
 });
 
 describe("discoverTmuxServers + findOrphanedWorkers (BUG-0034) — integration", () => {
   it("findet Socket-Roots und erkennt den eigenen Wegwerf-Server als Waisen", async () => {
-    const parent = mkdtempSync(join(tmpdir(), "uacc-orph-parent-"));
-    const root = join(parent, "uacc-orph");
+    const parent = mkdtempSync(join(tmpdir(), "ancientvoid-orph-parent-"));
+    const root = join(parent, "ancientvoid-orph");
     mkdirSync(root, { recursive: true });
     try {
       const { execFileSync } = await import("node:child_process");
-      execFileSync("tmux", ["-f", "/dev/null", "new-session", "-d", "-s", "uacc-orphantest", "sleep 5"], {
+      execFileSync("tmux", ["-f", "/dev/null", "new-session", "-d", "-s", "ancientvoid-orphantest", "sleep 5"], {
         env: { ...process.env, TMUX_TMPDIR: root, TMUX: "" },
         stdio: "ignore",
       });
       // T17.5/ADR-0037: the marker columns a marker-based prune reads.
-      execFileSync("tmux", ["set-option", "-t", "uacc-orphantest", "@uacc_session", "sess-42"], {
+      execFileSync("tmux", ["set-option", "-t", "ancientvoid-orphantest", "@ancientvoid_session", "sess-42"], {
         env: { ...process.env, TMUX_TMPDIR: root, TMUX: "" },
         stdio: "ignore",
       });
       expect(discoverTmuxServers(parent)).toContain(root);
       const listed = await listServerWorkers(root);
-      expect(listed.sessions.map((s) => s.name)).toEqual(["uacc-orphantest"]);
+      expect(listed.sessions.map((s) => s.name)).toEqual(["ancientvoid-orphantest"]);
       expect(listed.sessions[0]?.sessionId).toBe("sess-42");
       expect(listed.sessions[0]?.cwd).toBeTruthy(); // #{pane_current_path}
       // kein lebender Hub in diesem Root → die ganze Server-Entscheidung

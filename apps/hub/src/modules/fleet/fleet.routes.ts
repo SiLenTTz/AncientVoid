@@ -1,8 +1,8 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import type { FleetStore, TokenService } from "@uacc/core";
-import { peerView } from "@uacc/core";
-import { FLEET_PROTOCOL_VERSION, FLEET_TOKEN_PREFIX, HOST_ID_PATTERN, type FleetHello, type FleetHostView, type SessionRecord } from "@uacc/contracts";
+import type { FleetStore, TokenService } from "@ancientvoid/core";
+import { peerView } from "@ancientvoid/core";
+import { FLEET_PROTOCOL_VERSION, FLEET_TOKEN_PREFIX, HOST_ID_PATTERN, type FleetHello, type FleetHostView, type SessionRecord } from "@ancientvoid/contracts";
 import { hostname } from "node:os";
 import { extractToken } from "../../platform/auth.ts";
 import { httpJson } from "../../platform/http-json.ts";

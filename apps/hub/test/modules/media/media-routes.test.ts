@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, ApprovalService, AttachmentStore, EventStore, HubDatabase, MediaJobs, SessionManager, SettingsStore, TokenService } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, ApprovalService, AttachmentStore, EventStore, HubDatabase, MediaJobs, SessionManager, SettingsStore, TokenService } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../../src/app.ts";
 
@@ -19,7 +19,7 @@ describe("media routes (T10.5.1/T10.5.6)", () => {
   let agent: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-media-routes-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-media-routes-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     const tokens = new TokenService(db);

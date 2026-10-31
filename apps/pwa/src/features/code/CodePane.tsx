@@ -41,9 +41,9 @@ export function CodePane({ sessionId, hostId, initial, onOpenDiff }: { sessionId
   queryRef.current = query;
   useEffect(() => registerField("code_query", { get: () => queryRef.current, set: setQuery }), []);
   useEffect(() => {
-    const pending = JSON.parse(sessionStorage.getItem("uacc.pendingCodeSearch") ?? "null") as { sessionId?: string; text?: string } | null;
+    const pending = JSON.parse(sessionStorage.getItem("ancientvoid.pendingCodeSearch") ?? "null") as { sessionId?: string; text?: string } | null;
     if (pending?.sessionId !== sessionId || !pending.text) return;
-    sessionStorage.removeItem("uacc.pendingCodeSearch");
+    sessionStorage.removeItem("ancientvoid.pendingCodeSearch");
     setQuery(pending.text);
     setMode("symbol");
     void api.codeSearch(sessionId, pending.text, "symbol").then(setResult).catch((err) => setError(err instanceof Error ? err.message : "Suche fehlgeschlagen"));

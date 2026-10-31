@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/hub",
+  "name": "@ancientvoid/hub",
   "version": "0.1.0",
   "description": "AncientVoid hub daemon: REST/WS API with device-token auth, WS delta protocol (seq/gap/resync/drop-on-slow), static PWA serving.",
   "type": "module",
@@ -8,7 +8,7 @@
     ".": "./src/index.ts"
   },
   "bin": {
-    "uacc-hub": "./src/main.ts"
+    "ancientvoid-hub": "./src/main.ts"
   },
   "scripts": {
     "dev": "node --watch src/main.ts",
@@ -20,15 +20,15 @@
     "@fastify/static": "^10.1.4",
     "@fastify/websocket": "^11.0.1",
     "@simplewebauthn/server": "^14.0.2",
-    "@uacc/adapter-dummy": "0.1.0",
-    "@uacc/contracts": "0.1.0",
-    "@uacc/core": "0.1.0",
-    "@uacc/workers": "0.1.0",
+    "@ancientvoid/adapter-dummy": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
+    "@ancientvoid/core": "0.1.0",
+    "@ancientvoid/workers": "0.1.0",
     "fastify": "^5.12.5",
     "ws": "^8.21.3",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@uacc/loop-securesight-factory": "0.1.0"
+    "@ancientvoid/loop-securesight-factory": "0.1.0"
   }
 }

@@ -8,11 +8,11 @@ seine eigene CLI und einen gültigen Login auf genau diesem Host.
 ## Neuer Hub
 
 ```sh
-git clone <repo-url> mobile-hub
-cd mobile-hub
+git clone <repo-url> AncientVoid
+cd AncientVoid
 node --version                  # mindestens 22.5
 npm ci
-npm -w @uacc/pwa run build
+npm -w @ancientvoid/pwa run build
 cp apps/hub/hub.config.example.json hub.config.json
 chmod 600 hub.config.json
 ```
@@ -40,14 +40,14 @@ startet, legt ein User-Unit an — gleiche Weise wie
 [`fleet-deploy.sh`](../scripts/fleet-deploy.sh) es auf Peers tut:
 
 ```ini
-# ~/.config/systemd/user/uacc-hub.service  (Pfade anpassen)
+# ~/.config/systemd/user/ancientvoid-hub.service  (Pfade anpassen)
 [Unit]
 Description=AncientVoid
 After=network-online.target
 
 [Service]
-WorkingDirectory=/pfad/zum/mobile-hub
-Environment=UACC_CONFIG=/pfad/zum/mobile-hub/hub.config.json
+WorkingDirectory=/pfad/zum/AncientVoid
+Environment=ANCIENTVOID_CONFIG=/pfad/zum/AncientVoid/hub.config.json
 Environment=PATH=%h/.local/share/mise/shims:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=%h/.local/share/mise/shims/node apps/hub/src/main.ts
 UMask=0077
@@ -68,7 +68,7 @@ WantedBy=default.target
 ```sh
 systemctl --user daemon-reload
 loginctl enable-linger "$USER"   # startet auch ohne Anmeldung beim Boot
-systemctl --user enable --now uacc-hub.service
+systemctl --user enable --now ancientvoid-hub.service
 ```
 
 Ist das Unit installiert, delegieren `scripts/hub.sh start|stop|status|logs`
@@ -76,7 +76,7 @@ an `systemctl`/`journalctl` — nie zwei Hubs auf einem Port.
 
 Für einen dauerhaften Fleet-Peer nutze
 [`fleet-deploy.sh`](../scripts/fleet-deploy.sh): der User-Service heißt
-`uacc-hub`, braucht aktives `loginctl enable-linger` und bindet an die
+`ancientvoid-hub`, braucht aktives `loginctl enable-linger` und bindet an die
 Tailnet-IP. Der Heim-Hub bleibt auf Loopback und wird für HTTPS mit
 `scripts/setup-tailscale-serve.sh` veröffentlicht; keine Router-Portfreigabe
 und kein öffentlicher Bind.
@@ -86,11 +86,11 @@ den Klartext nur einmal:
 
 ```sh
 umask 077
-mkdir -p ~/.config/uacc/device-tokens
+mkdir -p ~/.config/ancientvoid/device-tokens
 DATA_DIR=/path/to/data
 node apps/hubctl/src/cli.ts token issue phone --db "$DATA_DIR/hub.db" \
-  > ~/.config/uacc/device-tokens/phone.txt
-chmod 600 ~/.config/uacc/device-tokens/phone.txt
+  > ~/.config/ancientvoid/device-tokens/phone.txt
+chmod 600 ~/.config/ancientvoid/device-tokens/phone.txt
 ```
 
 Öffne die Hub-PWA am Gerät und verbinde es mit dem Token. Für einen Fleet-Peer
@@ -108,13 +108,13 @@ den Dienst-, Datenbank- und Adapterzustand:
 scripts/hub.sh status
 
 # Fleet-/systemd-Dienst
-systemctl --user status uacc-hub
-journalctl --user -u uacc-hub --since -15min --no-pager
+systemctl --user status ancientvoid-hub
+journalctl --user -u ancientvoid-hub --since -15min --no-pager
 
 # Authentifizierte Hub-Prüfungen
-UACC_URL=http://127.0.0.1:7373 UACC_TOKEN=<device-token> \
+ANCIENTVOID_URL=http://127.0.0.1:7373 ANCIENTVOID_TOKEN=<device-token> \
   node apps/hubctl/src/cli.ts health
-UACC_URL=http://127.0.0.1:7373 UACC_TOKEN=<device-token> \
+ANCIENTVOID_URL=http://127.0.0.1:7373 ANCIENTVOID_TOKEN=<device-token> \
   node apps/hubctl/src/cli.ts adapters
 ```
 
@@ -173,7 +173,7 @@ aktive Provider-Züge vorher im Hub; ein geplanter Stop lässt tmux-Worker
 absichtlich weiterlaufen.
 
 1. Hub sauber stoppen (`scripts/hub.sh stop` oder
-   `systemctl --user stop uacc-hub`).
+   `systemctl --user stop ancientvoid-hub`).
 2. Mit [`backup-restore.md`](backup-restore.md) ein verschlüsseltes Backup
    erstellen und dessen Schlüssel separat sichern.
 3. Auf den geprüften Commit aktualisieren (`git fetch`, dann den gewünschten

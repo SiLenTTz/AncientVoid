@@ -1,5 +1,5 @@
 import { describe, it } from "vitest";
-import { runContractTests, assertContractGreen } from "@uacc/adapter-testkit";
+import { runContractTests, assertContractGreen } from "@ancientvoid/adapter-testkit";
 import { createAdapter } from "../src/index.ts";
 
 describe("dummy adapter contract", () => {

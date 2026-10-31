@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Adapter, SlashCommand } from "@uacc/contracts";
-import { basicFeatures } from "@uacc/contracts";
+import type { Adapter, SlashCommand } from "@ancientvoid/contracts";
+import { basicFeatures } from "@ancientvoid/contracts";
 import { runContractTests } from "../src/index.ts";
 
 /** ADR-0042 (EPIC-P25 T25.1): the kit validates declared slash commands. */

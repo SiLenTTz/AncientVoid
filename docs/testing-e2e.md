@@ -21,7 +21,7 @@ Gate wieder.
 |---|---|---|
 | Hub | echter Prozess `apps/hub/src/main.ts`, eigene Konfig | derselbe Boot-Pfad wie in Produktion (Config → DB → Adapter → Recovery → HTTP/WS) |
 | PWA | frischer Build aus `apps/pwa/dist`, Chromium | `globalSetup` baut vor jedem Lauf neu, nie ein altes Bundle |
-| Adapter | echte `@uacc/adapter-dummy` und `@uacc/adapter-opencode` | Adapter-, Worker- und Resume-Code läuft unverändert |
+| Adapter | echte `@ancientvoid/adapter-dummy` und `@ancientvoid/adapter-opencode` | Adapter-, Worker- und Resume-Code läuft unverändert |
 | Worker | `ProcessRunner`, pro Test umschaltbar auf `TmuxRunner` | tmux läuft auf einem **eigenen** tmux-Server (`TMUX_TMPDIR`) |
 | Provider-CLI | [`e2e/support/bin/opencode`](../e2e/support/bin/opencode) | spricht dasselbe `run --format json`-Protokoll, ohne Cloud und Kosten |
 | Suche | [`e2e/support/bin/qmd`](../e2e/support/bin/qmd) | eigener Index je Test, der echte qmd-Index bleibt unberührt |
@@ -75,7 +75,7 @@ npm run gate                        # typecheck + lint + vitest + E2E
 Fehlt Chromium, scheitert der Lauf laut. Es gibt kein stilles Überspringen.
 
 **In einem Hub-Session-Worktree** (`data/worktrees/<id>/`) fehlen eigene
-`node_modules/@uacc/*`. Node fände dann die Pakete des Haupt-Checkouts, und
+`node_modules/@ancientvoid/*`. Node fände dann die Pakete des Haupt-Checkouts, und
 der E2E-Hub liefe mit dem Code von `main` (BUG-0069). `test:e2e` und `gate`
 brechen deshalb vorher mit `check:workspace-links` ab.
 `node scripts/check-workspace-links.mjs --fix` setzt die Links auf den Worktree.

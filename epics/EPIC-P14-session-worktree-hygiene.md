@@ -22,7 +22,7 @@ Per `git status` und `rev-list <worktreeSha>..HEAD` über alle 24 Verzeichnisse:
 **20 sauber, 4 mit uncommitteten Änderungen (alle 4 archiviert, 2 davon
 `stopped` — dort hat BUG-0027 die Arbeit bewusst behalten), keiner mit Commits
 vor seinem Basis-SHA.** Die 4 sind Arbeit, die **nie** automatisch verschwinden
-darf. Die Verzeichnisse hängen an vier Repos (`--git-common-dir`): 15 `mobile-hub`,
+darf. Die Verzeichnisse hängen an vier Repos (`--git-common-dir`): 15 `AncientVoid`,
 7 `securesight-harnez`, je 1 `harnez_test_moorhuhn-harness` und
 `tetris-reloaded`.
 

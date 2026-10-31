@@ -6,7 +6,7 @@ severity: S3
 area: core
 instance: dev
 commit: "e25901f"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/2"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/2"
 epic: EPIC-P0
 created: 2026-09-14
 reporter: "Claude Sonnet 5 (Session 012Ga2NDi683xR9E63StoN7T)"

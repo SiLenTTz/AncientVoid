@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { LoopInfo, LoopOnboardResult } from "@uacc/contracts";
+import type { LoopInfo, LoopOnboardResult } from "@ancientvoid/contracts";
 import type { RouteContext } from "../../route-context.ts";
 
 const ONBOARD_TIMEOUT_MS = 180_000;

@@ -6,7 +6,7 @@ severity: S2
 area: adapters
 instance: dev
 commit: "843a238"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/33"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/33"
 epic: "EPIC-P25"
 created: 2026-10-30
 reporter: "Jan (Session 3cc3df35, PWA)"
@@ -57,9 +57,9 @@ Tool-Output-Zitaten, nicht aus echten Events).
 
 | Feld | Wert |
 |---|---|
-| Instanz | lokal (systemd `uacc-hub.service`, Haupt-Checkout) |
+| Instanz | lokal (systemd `ancientvoid-hub.service`, Haupt-Checkout) |
 | Commit | `843a238` (main) |
-| Adapter | `@uacc/adapter-acp`, preset `maki`, `bridgeCommands: true` |
+| Adapter | `@ancientvoid/adapter-acp`, preset `maki`, `bridgeCommands: true` |
 | Brücke | `~/.config/maki/init.lua` installiert (Slot `agent.user_message`, 2026-10-29) |
 | Repro-Weg | PWA (Nutzer) + EventStore-Nachweis |
 
@@ -122,5 +122,5 @@ sind damit gegenstandslos.
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [x] GitLab-Issue angelegt ([#33](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/33))
+- [x] GitLab-Issue angelegt ([#33](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/33))
 - [x] `bugfix` (MR !274, Root-cause + Verify oben)

@@ -19,13 +19,13 @@ brechen (AGENTS.md Regel 2).
 
 ## Entscheidung
 
-1. **Neuer Contract** `@uacc/contracts` / `observability.ts`:
+1. **Neuer Contract** `@ancientvoid/contracts` / `observability.ts`:
    - `HubLogger` — `debug|info|warn|error` plus `child(fields)`.
    - `HubMetrics` — `inc` / `gauge` / `snapshot()`.
    - `HubHealthReport` — additives Schema für `/api/health` (`ok`,
      `adapters`, `serverTime` bleiben; dazu `status`, `uptimeSec`,
      `sessions`, `checks`).
-2. **Eine Implementierung** in `@uacc/core`, nicht in `@uacc/server`.
+2. **Eine Implementierung** in `@ancientvoid/core`, nicht in `@ancientvoid/server`.
    Server und `hubctl` konsumieren den Contract. Adapter bleiben bei
    `ctx.log(level, msg, extra)` — Core leitet das in den Logger.
 3. **Kein Prometheus/OTel.** JSON-Lines nach stdout und ein auth-pflichtiges

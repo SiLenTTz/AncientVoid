@@ -26,7 +26,7 @@ zu verletzen.
    nicht gespeichert. Die Policy-Operation `voice.transcribe` gilt nur für
    Menschen und die Flotte. Agenten und Bridge werden abgelehnt.
 3. **Modell:** whisper.cpp `large-v3-turbo` q5_0 mit Vulkan auf evox2, als
-   systemd-User-Dienst `uacc-stt`, nur im Tailnet. Mit Vokabular-Prompt
+   systemd-User-Dienst `ancientvoid-stt`, nur im Tailnet. Mit Vokabular-Prompt
    (konfigurierte Wörter plus Projektnamen des Hubs) hatte es im Messlauf
    `docs/messlauf/2026-09-24-p10-stt.md` die beste Fachbegriff-Quote (44/59)
    und die niedrigste WER auf Fachdiktat (11,9 %). Dabei lag es bei rund
@@ -58,7 +58,7 @@ zu verletzen.
 ## Folgen
 
 - Der Hub braucht `ffmpeg` im PATH, wenn `stt` gesetzt ist.
-- `uacc-stt` hat keine eigene Authentifizierung. Er lauscht nur auf der
+- `ancientvoid-stt` hat keine eigene Authentifizierung. Er lauscht nur auf der
   Tailnet-IP. Wer ihn woanders betreibt, muss ihn davor schützen.
 - Die Fachbegriff-Quote (74–80 % auf einer synthetischen Stimme) liegt unter
   dem Ziel von 90 %. Der Nachweis auf echten Geräten ist P12 T12.4.

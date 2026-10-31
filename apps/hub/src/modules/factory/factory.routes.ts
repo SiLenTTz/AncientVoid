@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { LOOP_ARG, loopAdapterId } from "@uacc/contracts";
-import { isProjectPathAllowed, toStartSpec } from "@uacc/core";
+import { LOOP_ARG, loopAdapterId } from "@ancientvoid/contracts";
+import { isProjectPathAllowed, toStartSpec } from "@ancientvoid/core";
 import type { RouteContext } from "../../route-context.ts";
 
 const FACTORY_LOOP = "securesight-factory";

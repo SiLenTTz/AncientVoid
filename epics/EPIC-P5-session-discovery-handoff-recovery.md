@@ -245,7 +245,7 @@ Gate zum Abschluss: `npm run gate` grün (vitest 453, E2E 92 + 4 `fixme`/skip).
 1. **Das E2E-Gate gegen einen echten Hub fand Fehler, die Unit-Tests nie sahen** — BUG-0020 (Diff ohne neue Dateien), BUG-0021 (Skill-Kette), BUG-0023/0024 (Chat-Duplikate, vermischte Verläufe) kamen alle aus Specs, nicht aus Nutzung.
 2. **Der Handtest fand die schwersten Fehler** — BUG-0026 (nur die ältesten 100 Events) und die Frage „warum sehe ich nichts im Repo“, die zu BUG-0027 (Datenverlust) führte. Automatisierung ersetzt den Handlauf nicht; sie macht ihn billiger.
 3. **Einspielen ist Teil des Fixes.** BUG-0027 wurde beim Deploy vom alten Prozess ausgelöst. Seither: geplanter Neustart stoppt nichts (ADR-0014 Nachtrag), und Fixes im Stop-Pfad werden mit `kill -9` eingespielt (`bugs/bug-0027-…` „Vorfall“).
-4. **Geteilte Infrastruktur braucht Eigentumsnachweis.** tmux-Server und Test-Läufe teilten sich Ressourcen mit dem echten Hub (BUG-0019, BUG-0025); gelöst mit `@uacc_owner` und exakten Session-Zielen.
+4. **Geteilte Infrastruktur braucht Eigentumsnachweis.** tmux-Server und Test-Läufe teilten sich Ressourcen mit dem echten Hub (BUG-0019, BUG-0025); gelöst mit `@ancientvoid_owner` und exakten Session-Zielen.
 5. **Ehrliche Signale statt geschätzter Zahlen** trugen: Fortschritt nur aus der To-do-Liste des Agenten, Fehler nur aus dem Text der CLI (ADR-0015); an echten Prompts nachgemessen (Skill-Vorschläge: 5 falsche → 0).
 
 ### Action Items

@@ -1,4 +1,4 @@
-/** @uacc/core public API — one line per module (ADR-0020). */
+/** @ancientvoid/core public API — one line per module (ADR-0020). */
 export * from "./platform/index.ts";
 export * from "./modules/reporting/index.ts";
 export * from "./modules/workspace/index.ts";

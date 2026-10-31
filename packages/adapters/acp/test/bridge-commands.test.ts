@@ -3,8 +3,8 @@ import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
-import { ProcessRunner } from "@uacc/workers";
+import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { createAdapter } from "../src/index.ts";
 
 const agent = fileURLToPath(new URL("./bridge-agent", import.meta.url));
@@ -21,7 +21,7 @@ describe("acp bridge commands (BUG-0079)", () => {
   let runner: ProcessRunner;
 
   beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "uacc-bridge-"));
+    dir = mkdtempSync(join(tmpdir(), "ancientvoid-bridge-"));
     log = join(dir, "rpc.log");
     writeFileSync(log, "");
     runner = new ProcessRunner();
@@ -32,7 +32,7 @@ describe("acp bridge commands (BUG-0079)", () => {
     const adapter = createAdapter({ command: [process.execPath, agent], bridgeCommands: true, label: "BridgeTest" });
     const ctx = makeRecordingContext({
       spawnWorker: (cmd, o) =>
-        runner.spawn({ name: "bridge-agent", cwd: process.cwd(), cmd, env: { ...process.env, ...(o?.env ?? {}), UACC_BRIDGE_LOG: log } }),
+        runner.spawn({ name: "bridge-agent", cwd: process.cwd(), cmd, env: { ...process.env, ...(o?.env ?? {}), ANCIENTVOID_BRIDGE_LOG: log } }),
     });
     const handle = await adapter.start({ adapter: adapter.id, project: process.cwd(), prompt: "start" }, ctx);
     await waitFor(() => readFileSync(log, "utf8").includes("session/prompt"), 5000);
@@ -74,7 +74,7 @@ describe("acp bridge commands (BUG-0079)", () => {
     const adapter = createAdapter({ command: [process.execPath, agent], bridgeCommands: true, model: "stub/good", label: "BridgeModel" });
     const ctx = makeRecordingContext({
       spawnWorker: (cmd, o) =>
-        runner.spawn({ name: "bridge-agent-model", cwd: process.cwd(), cmd, env: { ...process.env, ...(o?.env ?? {}), UACC_BRIDGE_LOG: log } }),
+        runner.spawn({ name: "bridge-agent-model", cwd: process.cwd(), cmd, env: { ...process.env, ...(o?.env ?? {}), ANCIENTVOID_BRIDGE_LOG: log } }),
     });
     const handle = await adapter.start({ adapter: adapter.id, project: process.cwd(), prompt: "start" }, ctx);
     await waitFor(() => methods().includes("session/prompt"), 5000);
@@ -109,7 +109,7 @@ describe("acp bridge commands (BUG-0079)", () => {
     const adapter = createAdapter({ command: [process.execPath, agent], label: "BridgeOff" });
     const ctx = makeRecordingContext({
       spawnWorker: (cmd, o) =>
-        runner.spawn({ name: "bridge-agent-off", cwd: process.cwd(), cmd, env: { ...process.env, ...(o?.env ?? {}), UACC_BRIDGE_LOG: log } }),
+        runner.spawn({ name: "bridge-agent-off", cwd: process.cwd(), cmd, env: { ...process.env, ...(o?.env ?? {}), ANCIENTVOID_BRIDGE_LOG: log } }),
     });
     const handle = await adapter.start({ adapter: adapter.id, project: process.cwd(), prompt: "start" }, ctx);
     await waitFor(() => readFileSync(log, "utf8").includes("session/prompt"), 5000);

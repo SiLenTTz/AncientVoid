@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SESSION_STATUSES, SessionStatus } from "@uacc/contracts";
+import { SESSION_STATUSES, SessionStatus } from "@ancientvoid/contracts";
 import { VALID_TRANSITIONS } from "../../../src/modules/sessions/session-state.ts";
 
 /** ADR-0044 (EPIC-P27 T27.2): Status `interrupted` — additiv, Übergänge

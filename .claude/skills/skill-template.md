@@ -41,7 +41,7 @@ Deterministische Form, die ein Mensch oder ein nachfolgender Skill lesen kann.
 
 Nur Advisory-Skills. Verweis, keine Duplikation:
 
-[`.claude/skills/_shared/uacc-protected-invariants.md`](../../../.claude/skills/_shared/uacc-protected-invariants.md)
+[`.claude/skills/_shared/ancientvoid-protected-invariants.md`](../../../.claude/skills/_shared/ancientvoid-protected-invariants.md)
 
 ## Determinismus-Checkliste
 

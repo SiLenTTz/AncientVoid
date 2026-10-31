@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/workers",
+  "name": "@ancientvoid/workers",
   "version": "0.1.0",
   "description": "WorkerRunner implementations: tmux-backed (default, attachable) and plain child_process fallback.",
   "type": "module",
@@ -14,6 +14,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0"
+    "@ancientvoid/contracts": "0.1.0"
   }
 }

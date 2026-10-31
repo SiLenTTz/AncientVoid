@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { collectHealth } from "@uacc/core";
-import { FLEET_PROTOCOL_VERSION } from "@uacc/contracts";
-import type { FleetHello } from "@uacc/contracts";
+import { collectHealth } from "@ancientvoid/core";
+import { FLEET_PROTOCOL_VERSION } from "@ancientvoid/contracts";
+import type { FleetHello } from "@ancientvoid/contracts";
 import type { RouteContext } from "../../route-context.ts";
 
 /** Reported to other hubs in /api/fleet/hello. */

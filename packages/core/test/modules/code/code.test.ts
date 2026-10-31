@@ -3,15 +3,15 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ActionDefinition, actionArgv, type EmittedEvent } from "@uacc/contracts";
+import { ActionDefinition, actionArgv, type EmittedEvent } from "@ancientvoid/contracts";
 import { ActionRunner, BUILTIN_ACTIONS, containedFile, definitionPattern, detectedActions, readCodeFile, searchCode, workspaceIdentity } from "../../../src/index.ts";
 
 let root: string;
 let outside: string;
 
 beforeAll(() => {
-  root = mkdtempSync(join(tmpdir(), "uacc-code-"));
-  outside = mkdtempSync(join(tmpdir(), "uacc-outside-"));
+  root = mkdtempSync(join(tmpdir(), "ancientvoid-code-"));
+  outside = mkdtempSync(join(tmpdir(), "ancientvoid-outside-"));
   mkdirSync(join(root, "src"));
   mkdirSync(join(root, "tools"));
   writeFileSync(join(root, "src/auth.ts"), ["import { z } from \"zod\";", "", "// uses parseToken below", "export function parseToken(raw: string): string {", "  return raw.trim();", "}", "", "const x = parseToken(\" a \");", ""].join("\n"));
@@ -48,7 +48,7 @@ describe("code search (T7.6, AC-P7-6)", () => {
   });
 
   it("git grep is the fallback without ripgrep — same anchors", async () => {
-    const bin = mkdtempSync(join(tmpdir(), "uacc-bin-"));
+    const bin = mkdtempSync(join(tmpdir(), "ancientvoid-bin-"));
     symlinkSync(execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim(), join(bin, "git"));
     const path = process.env.PATH;
     process.env.PATH = bin;

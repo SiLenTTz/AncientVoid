@@ -3,10 +3,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
-import { FLEET_PROTOCOL_VERSION } from "@uacc/contracts";
-import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { FLEET_PROTOCOL_VERSION } from "@ancientvoid/contracts";
+import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 import { createHubApp } from "../../../src/app.ts";
 
 describe("fleet identity (T6.1, ADR-0017)", () => {
@@ -16,7 +16,7 @@ describe("fleet identity (T6.1, ADR-0017)", () => {
   let token = "";
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-fleet-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-fleet-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 5, autoStopAfterEvents: 1 });

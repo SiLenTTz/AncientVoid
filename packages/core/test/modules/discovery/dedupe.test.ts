@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { DiscoveredSession } from "@uacc/contracts";
+import type { DiscoveredSession } from "@ancientvoid/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
 import { dedupeDiscovered, filterDiscovered } from "../../../src/modules/discovery/dedupe.ts";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 
 function item(partial: Partial<DiscoveredSession> & Pick<DiscoveredSession, "adapter" | "nativeSessionId" | "hubSessionId">): DiscoveredSession {
   return {
@@ -45,7 +45,7 @@ describe("dedupeDiscovered (AC-P5-1)", () => {
 
 describe("SessionManager.discover", () => {
   it("filters clip observers out — IDE chats carry no value in the list (user decision 2026-09-28); hub-managed ones stay", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-disc-noclip-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-disc-noclip-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -80,7 +80,7 @@ describe("SessionManager.discover", () => {
   });
 
   it("BUG-0035: leads with the most recently observed — page 1 shows what runs now", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-disc-sort-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-disc-sort-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -116,7 +116,7 @@ describe("SessionManager.discover", () => {
   });
 
   it("lists 20 hub sessions plus one external and one unsupported resume inside 10s, without duplicates", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-disc-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-disc-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -189,10 +189,10 @@ describe("Titel und Suche (ADR-0040)", () => {
   });
 
   it("filterDiscovered sucht in Titel, Vorschau, Projekt und ID, alle Wörter müssen passen", () => {
-    const a = item({ hubSessionId: null, adapter: "claude", nativeSessionId: "aaa", title: "Login umbauen", preview: "teste den Token", project: "/x/mobile-hub" });
+    const a = item({ hubSessionId: null, adapter: "claude", nativeSessionId: "aaa", title: "Login umbauen", preview: "teste den Token", project: "/x/AncientVoid" });
     const b = item({ hubSessionId: null, adapter: "opencode", nativeSessionId: "bbb", title: "Doku", project: "/x/andere" });
     expect(filterDiscovered([a, b], { q: "login token" })).toEqual([a]);
-    expect(filterDiscovered([a, b], { q: "MOBILE" })).toEqual([a]);
+    expect(filterDiscovered([a, b], { q: "ANCIENTVOID" })).toEqual([a]);
     expect(filterDiscovered([a, b], { q: "bbb" })).toEqual([b]);
     expect(filterDiscovered([a, b], { adapter: "opencode" })).toEqual([b]);
     expect(filterDiscovered([a, b], {})).toEqual([a, b]);

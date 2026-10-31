@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { EmittedEvent, TOOL_GATES, type Adapter, type AdapterContext, type SessionSpec } from "@uacc/contracts";
+import { EmittedEvent, TOOL_GATES, type Adapter, type AdapterContext, type SessionSpec } from "@ancientvoid/contracts";
 
 /**
  * Adapter test kit — the hub's contract, executable.

@@ -1,7 +1,7 @@
 # ADR-0032 — Lokale STT-Teiltranskripte über einen Hub-Proxy
 
 **Status:** akzeptiert · **Betrifft:** P12 T12.10, P10 AC-P10-2,
-`@uacc/contracts`, Hub `/api/stt`, PWA Push-to-talk
+`@ancientvoid/contracts`, Hub `/api/stt`, PWA Push-to-talk
 
 ## Kontext
 
@@ -59,7 +59,7 @@ Streaming-Backend neben dem bestehenden Whisper-Komplettclip-Pfad.
 - T12.10 bleibt offen, bis auf Zielgerät und Zielhost 100 warme Kurzbefehle
   sowie echte VAD-/Abbruch-/Negativfälle gemessen sind und AC-P10-2 erfüllt
   ist. Der CPU-Prototyp belegt nur die Transport-/Modellmachbarkeit.
-- Die Hub-/PWA-WebSocket-Verträge liegen in `@uacc/contracts`; Teiltranskripte
+- Die Hub-/PWA-WebSocket-Verträge liegen in `@ancientvoid/contracts`; Teiltranskripte
   werden absichtlich nicht als EventStore-Events gespeichert.
 
 ## Quellen

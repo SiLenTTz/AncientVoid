@@ -8,7 +8,7 @@
 // AC-P11-3 (local stop) and the password refusal (AC-P11-4).
 //
 //   node scripts/messlauf-desktop.mjs [out.json]
-// Env: UACC_SWAY_LAB (default ~/uacc-companion-lab: usr/bin/sway, usr/lib)
+// Env: ANCIENTVOID_SWAY_LAB (default ~/ancientvoid-companion-lab: usr/bin/sway, usr/lib)
 import { spawn, execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync, chmodSync, existsSync } from "node:fs";
 import { createServer } from "node:http";
@@ -21,13 +21,13 @@ import { Companion, SwayBackend, WtypeInput, atspiRole, exec } from "../apps/com
 import { sendControl, serveControl } from "../apps/companion/src/control.ts";
 
 const out = process.argv[2] ?? join(tmpdir(), "messlauf-desktop.json");
-const LAB = process.env.UACC_SWAY_LAB ?? join(homedir(), "uacc-companion-lab");
+const LAB = process.env.ANCIENTVOID_SWAY_LAB ?? join(homedir(), "ancientvoid-companion-lab");
 if (!existsSync(join(LAB, "usr/bin/sway"))) throw new Error(`kein sway unter ${LAB}`);
 const repo = new URL("..", import.meta.url).pathname;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---- an isolated compositor: nothing here reaches the person's desktop ----
-const rt = mkdtempSync(join(tmpdir(), "uacc-wl-"));
+const rt = mkdtempSync(join(tmpdir(), "ancientvoid-wl-"));
 chmodSync(rt, 0o700);
 for (const k of ["WAYLAND_DISPLAY", "DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE", "SWAYSOCK"]) delete process.env[k];
 process.env.XDG_RUNTIME_DIR = rt;
@@ -102,7 +102,7 @@ async function startChromium() {
   const html = `<title>AncientVoid-Web</title><input id=f autofocus style="width:90%;font-size:20px"><script>f.addEventListener('keydown',e=>{if(e.key==='Enter'){fetch('http://127.0.0.1:${port}/',{method:'POST',body:f.value,mode:'no-cors'});f.value=''}})</script>`;
   const page = join(rt, "field.html");
   writeFileSync(page, html);
-  const profile = mkdtempSync(join(tmpdir(), "uacc-chromium-"));
+  const profile = mkdtempSync(join(tmpdir(), "ancientvoid-chromium-"));
   const p = spawn("chromium", ["--ozone-platform=wayland", `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check", "--disable-sync", "--disable-extensions", `--app=file://${page}`], { stdio: "ignore" });
   children.push(p);
   const con = await waitFocus((f) => /AncientVoid-Web/.test(f.name ?? ""), "chromium");
@@ -111,7 +111,7 @@ async function startChromium() {
 }
 
 // ---- hub + companion ------------------------------------------------------
-const dir = mkdtempSync(join(tmpdir(), "uacc-desk-hub-"));
+const dir = mkdtempSync(join(tmpdir(), "ancientvoid-desk-hub-"));
 const db = new HubDatabase(":memory:");
 const tokens = new TokenService(db);
 const registry = new AdapterRegistry();
@@ -184,7 +184,7 @@ try {
   // AC-P11-1: three apps, ten flows each (the last three as corrections where the field allows).
   const gtk = await startGtk("gtk4", "AncientVoid-GTK4");
   await flows("GTK4-Feld", gtk.id, () => lines.get("gtk4"), true);
-  const foot = await startFoot("uacc-foot");
+  const foot = await startFoot("ancientvoid-foot");
   await flows("foot (Terminal)", foot.con.id, foot.read, false);
   const chrome = await startChromium();
   await flows("Chromium-Feld", chrome.id, () => posted, true);

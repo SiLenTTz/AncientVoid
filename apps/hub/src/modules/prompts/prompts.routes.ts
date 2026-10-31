@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { isProjectPathAllowed, recommendForPrompt, writeProjectArtifact } from "@uacc/core";
+import { isProjectPathAllowed, recommendForPrompt, writeProjectArtifact } from "@ancientvoid/core";
 import { enhancePrompt } from "./enhance.ts";
 import { appendOptimizerFeedback } from "./optimizer-feedback.ts";
 import { z } from "zod";

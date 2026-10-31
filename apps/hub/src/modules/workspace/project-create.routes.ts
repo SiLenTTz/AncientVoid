@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { createProject } from "@uacc/core";
+import { createProject } from "@ancientvoid/core";
 import { spawn } from "node:child_process";
 import type { RouteContext } from "../../route-context.ts";
 

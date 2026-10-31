@@ -9,7 +9,7 @@ describe("resolveSkillChain", () => {
   let project: string;
 
   beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), "uacc-chain-"));
+    root = await mkdtemp(join(tmpdir(), "ancientvoid-chain-"));
     project = join(root, "proj");
     await mkdir(join(root, ".claude", "skills", "task"), { recursive: true });
     await writeFile(join(root, ".claude", "skills", "task", "SKILL.md"), "---\nname: task\ndescription: form\n---\nBASE\n");

@@ -16,7 +16,7 @@ reporter: jan
 
 ## Gesehen
 
-Eine opencode-Session über `@uacc/adapter-acp` (preset `opencode`) blieb
+Eine opencode-Session über `@ancientvoid/adapter-acp` (preset `opencode`) blieb
 26 h im Status `working` stecken, ohne dass der Hub es bemerkte oder
 sich erholen konnte; weitere Prompts wurden abgelehnt.
 
@@ -28,12 +28,12 @@ laut als `provider.error` sichtbar und die Session wird wieder `idle`.
 
 ## Repro
 
-Voraussetzung: Hub mit Adapter `{"module": "@uacc/adapter-acp", "preset": "opencode"}`,
+Voraussetzung: Hub mit Adapter `{"module": "@ancientvoid/adapter-acp", "preset": "opencode"}`,
 Agent, dessen Tool-Aufruf (hier: `task`-Subagenten) nie zurückkommt.
 
 Live beobachtet (Session `6f03a88e-e411-4e77-a416-a84425a4c7ca`, 2026-09-25):
 
-1. Prompt „Den aktuellen Stand des UACC-Hubs bewerten …" gesendet.
+1. Prompt „Den aktuellen Stand des AncientVoid-Hubs bewerten …" gesendet.
 2. Agent rief 21:40–22:06 Tools auf, zuletzt drei `task`-Subagenten
    (`tool_call … status: in_progress`), die nie beendet wurden.
 3. Um 22:16 und 22:21 zweimal „Wo hängst du? Warum kommt keine Antwort?"
@@ -61,7 +61,7 @@ Mechanismus deterministisch)
 
 ## Logs
 
-`data/workers/uacc-6f03a88e-….log` (Auszug, letzte Meldungen):
+`data/workers/ancientvoid-6f03a88e-….log` (Auszug, letzte Meldungen):
 
 ```text
 22:06:19 {"method":"session/update","params":{"update":{"sessionUpdate":"tool_call","toolCallId":"call_ff20f889…","title":"task","status":"pending"}}}
@@ -91,7 +91,7 @@ true). Vorschlag: `packages/adapters/acp/test/adapter.test.ts` erweitern.
 ## Eingrenzung
 
 `packages/adapters/acp/src/index.ts:267` — `conn.request("session/prompt", …)`
-ohne `timeoutMs` (`@uacc/adapter-jsonrpc` default 0 = unbegrenzt). Dazu:
+ohne `timeoutMs` (`@ancientvoid/adapter-jsonrpc` default 0 = unbegrenzt). Dazu:
 `index.ts:348-352` (`status()` ignoriert `busy`), `index.ts:334`
 (Steer-Abfuhr während busy). Ein absolutes Request-Timeout allein wäre
 falsch (legitim lange Züge mit Tool-Aktivität); nötig ist eine
@@ -104,7 +104,7 @@ Inaktivitäts-Wachhund, den jede Agent-Meldung (auch
 - [ ] GitLab-Issue angelegt (Link oben)
 - [ ] `bugfix` oder offen lassen
 
-## Fix (verifiziert 2026-10-03, Ralph mobile-hub-bugfrei)
+## Fix (verifiziert 2026-10-03, Ralph AncientVoid-bugfrei)
 
 - Fix: `407f9fb` (^ B acp: stumme Züge nach Frist abbrechen (BUG-0032),
   MR !124) — Inaktivitäts-Wachhund `stuckTurnMs` (Default 30 min):

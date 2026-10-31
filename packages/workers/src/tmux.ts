@@ -3,9 +3,9 @@ import { createHash, randomUUID } from "node:crypto";
 import { open, readFile, stat, mkdir, rm, writeFile } from "node:fs/promises";
 import { watch } from "node:fs";
 import { join, resolve } from "node:path";
-import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@uacc/contracts";
+import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@ancientvoid/contracts";
 
-export const TMUX_PREFIX = "uacc-";
+export const TMUX_PREFIX = "ancientvoid-";
 
 /**
  * BUG (found by an independent red-team review, 2026-09-18, T4.10): the
@@ -27,7 +27,7 @@ const SAFE_ENV_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 /** T17.5/ADR-0037: env keys the runner itself owns as pane markers. A caller
  * putting them into spec.env would fake another session's identity —
  * refused like an illegal key, same BUG-0012 reasoning (fail loud, no spawn). */
-const RESERVED_ENV_KEYS = new Set(["UACC_SESSION_ID", "UACC_WORKER_ID"]);
+const RESERVED_ENV_KEYS = new Set(["ANCIENTVOID_SESSION_ID", "ANCIENTVOID_WORKER_ID"]);
 
 /** T17.5: marker values are hub-internal ids (randomUUID / session ids).
  * Operationally "never user input" means: one token, nothing a tmux format
@@ -166,7 +166,7 @@ class FileTailer {
 
 /**
  * tmux-backed WorkerRunner (ADR-P0-3): workers survive daemon restarts and
- * are attachable for emergency debugging (`tmux attach -t uacc-<session>`).
+ * are attachable for emergency debugging (`tmux attach -t ancientvoid-<session>`).
  * Pane output is captured via pipe-pane into a log file the WorkerProcess tails.
  */
 export class TmuxRunner implements WorkerRunner {
@@ -174,7 +174,7 @@ export class TmuxRunner implements WorkerRunner {
 
   private readonly logDir: string;
   /** BUG-0019: every hub shares the user's default tmux server. A worker
-   * carries its owner as the session option `@uacc_owner`; list() and
+   * carries its owner as the session option `@ancientvoid_owner`; list() and
    * reapOrphans() only see the workers of this runner, so a second hub
    * (tests, E2E, another data dir) never kills a live worker it does not
    * own. Workers without the option are foreign too. */
@@ -240,7 +240,7 @@ export class TmuxRunner implements WorkerRunner {
     const envPrefix = Object.entries(spec.env ?? {})
       .map(([k, v]) => `${k}=${shellQuote(v)}`)
       .join(" ");
-    let shellCmd = `env ${envPrefix} ${cmdLine}; echo "__UACC_EXIT__$?"`;
+    let shellCmd = `env ${envPrefix} ${cmdLine}; echo "__ANCIENTVOID_EXIT__$?"`;
     if (spec.stdin === "pipe") {
       // T7.2: stdin from a FIFO the pane itself holds open read-write (fd 3):
       // writers (this hub, the next one after a restart) come and go without
@@ -249,7 +249,7 @@ export class TmuxRunner implements WorkerRunner {
       const fifo = stdinPath(logPath);
       const res = await new Promise<number>((done) => spawn("mkfifo", ["-m", "600", fifo]).on("exit", (code) => done(code ?? 1)));
       if (res !== 0) throw new Error(`tmux spawn failed: mkfifo ${fifo}`);
-      shellCmd = `sh -c ${shellQuote(`exec 3<>${shellQuote(fifo)}; env ${envPrefix} ${cmdLine} <&3; echo "__UACC_EXIT__$?"`)}`;
+      shellCmd = `sh -c ${shellQuote(`exec 3<>${shellQuote(fifo)}; env ${envPrefix} ${cmdLine} <&3; echo "__ANCIENTVOID_EXIT__$?"`)}`;
     }
 
     // 1. Create the session with a placeholder — so options can be applied
@@ -271,18 +271,18 @@ export class TmuxRunner implements WorkerRunner {
       throw new Error(`tmux spawn failed: ${res.stderr.trim()}`);
     }
     try {
-      await execTmux(["set-option", "-t", full, "@uacc_owner", this.owner]);
+      await execTmux(["set-option", "-t", full, "@ancientvoid_owner", this.owner]);
       // BUG-0034: where this worker's logs live — a prune recognizes an
       // orphan in the default server by its log dir being gone.
-      await execTmux(["set-option", "-t", full, "@uacc_logdir", this.logDir]);
+      await execTmux(["set-option", "-t", full, "@ancientvoid_logdir", this.logDir]);
       // T17.5/ADR-0037: stable identity for adoption (T17.6) and prune.
       // Session OPTION (readable via list-sessions -F — what list(), adopt()
       // and orphans read) AND pane ENV (inherited by the respawned process,
       // readable via /proc/<pid>/environ and by the worker itself).
-      await execTmux(["set-option", "-t", full, "@uacc_session", sessionId]);
-      await execTmux(["set-option", "-t", full, "@uacc_worker", workerId]);
-      await execTmux(["set-environment", "-t", full, "UACC_SESSION_ID", sessionId]);
-      await execTmux(["set-environment", "-t", full, "UACC_WORKER_ID", workerId]);
+      await execTmux(["set-option", "-t", full, "@ancientvoid_session", sessionId]);
+      await execTmux(["set-option", "-t", full, "@ancientvoid_worker", workerId]);
+      await execTmux(["set-environment", "-t", full, "ANCIENTVOID_SESSION_ID", sessionId]);
+      await execTmux(["set-environment", "-t", full, "ANCIENTVOID_WORKER_ID", workerId]);
       // 2. Keep the pane after exit so pipe-pane can flush the tail reliably.
       await execTmux(["set-option", "-t", full, "remain-on-exit", "on"]);
       // 3. Capture pane output (stdout+stderr interleaved) into the log file.
@@ -303,7 +303,7 @@ export class TmuxRunner implements WorkerRunner {
    * delivered. Null when there is no such worker.
    */
   async adopt(sessionId: string): Promise<WorkerProcess | null> {
-    // T17.6/ADR-0037: the @uacc_session marker is the primary identity —
+    // T17.6/ADR-0037: the @ancientvoid_session marker is the primary identity —
     // the tmux session name is only the fallback (pre-T17.5 worker) and
     // that fallback is logged, never silent.
     const workers = await this.list();
@@ -311,7 +311,7 @@ export class TmuxRunner implements WorkerRunner {
     const target = marked ?? workers.find((w) => w.fullName === this.fullName(sessionId)) ?? null;
     if (!target) return null;
     if (!marked) {
-      this.log?.("warn", "adopt without @uacc_session marker — fell back to name heuristic", { sessionId, fullName: target.fullName });
+      this.log?.("warn", "adopt without @ancientvoid_session marker — fell back to name heuristic", { sessionId, fullName: target.fullName });
     }
     const full = target.fullName;
     // A renamed session keeps writing its ORIGINAL log (pipe-pane holds the
@@ -359,7 +359,7 @@ export class TmuxRunner implements WorkerRunner {
     const stdoutReplay: string[] = [];
 
     tailer.onLine((line) => {
-      if (line.includes("__UACC_EXIT__")) return;
+      if (line.includes("__ANCIENTVOID_EXIT__")) return;
       const chunk = `${line}\n`;
       if (stdoutCbs.size === 0) stdoutReplay.push(chunk);
       else for (const cb of stdoutCbs) cb(chunk);
@@ -376,7 +376,7 @@ export class TmuxRunner implements WorkerRunner {
       for (let i = 0; i < 8; i++) {
         try {
           const content = await readFile(logPath, "utf8");
-          const m = content.match(/__UACC_EXIT__(\d+)/);
+          const m = content.match(/__ANCIENTVOID_EXIT__(\d+)/);
           if (m) {
             exitCode = Number(m[1]);
             break;
@@ -443,7 +443,7 @@ export class TmuxRunner implements WorkerRunner {
     const res = await execTmux([
       "list-sessions",
       "-F",
-      "#{session_name}|#{pane_pid}|#{session_created}|#{@uacc_owner}|#{@uacc_session}|#{@uacc_worker}",
+      "#{session_name}|#{pane_pid}|#{session_created}|#{@ancientvoid_owner}|#{@ancientvoid_session}|#{@ancientvoid_worker}",
     ]).catch(() => null);
     if (!res || res.code !== 0) return [];
     return res.stdout

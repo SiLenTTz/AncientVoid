@@ -1,6 +1,6 @@
 import { createHash, randomInt } from "node:crypto";
-import type { FleetPeerView } from "@uacc/contracts";
-import { FLEET_TOKEN_PREFIX } from "@uacc/contracts";
+import type { FleetPeerView } from "@ancientvoid/contracts";
+import { FLEET_TOKEN_PREFIX } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 import type { TokenService } from "../identity/index.ts";
 

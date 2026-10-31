@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { open, realpath, stat } from "node:fs/promises";
 import { extname, isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
-import { CODE_FILE_MAX_BYTES, type CodeFile, type WorkspaceIdentity } from "@uacc/contracts";
+import { CODE_FILE_MAX_BYTES, type CodeFile, type WorkspaceIdentity } from "@ancientvoid/contracts";
 
 const run = promisify(execFile);
 

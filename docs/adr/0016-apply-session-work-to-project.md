@@ -7,7 +7,7 @@
 ## Kontext
 
 Isolierte Sessions (T2.1) arbeiten in `data/worktrees/<id>` auf
-`uacc/<id>`. Im Handtest 2026-09-23 waren die Änderungen im Projektordner
+`ancientvoid/<id>`. Im Handtest 2026-09-23 waren die Änderungen im Projektordner
 unsichtbar, und es gab keinen Weg zurück außer Git von Hand.
 
 ## Entscheidung
@@ -15,9 +15,9 @@ unsichtbar, und es gab keinen Weg zurück außer Git von Hand.
 1. Nur zwischen Zügen (nicht `working`/`starting`).
 2. Projektordner muss sauber sein — sonst Ablehnung mit den Dateinamen;
    eigene Änderungen des Nutzers werden nie überschrieben.
-3. Im Worktree `git add -A` und Commit `UACC: <Titel>` (Identität des Repos,
-   sonst `UACC Hub <hub@uacc.local>`), dann im Projekt
-   `git merge --no-ff uacc/<id>` in den ausgecheckten Branch.
+3. Im Worktree `git add -A` und Commit `AncientVoid: <Titel>` (Identität des Repos,
+   sonst `AncientVoid Hub <hub@ancientvoid.local>`), dann im Projekt
+   `git merge --no-ff ancientvoid/<id>` in den ausgecheckten Branch.
 4. Konflikt → `merge --abort`, Meldung mit Dateien, Projekt unverändert.
 5. Worktree und Session bleiben; erneutes Übernehmen merged nur Neues.
    Ein vollständig übernommener, sauberer Worktree darf beim Stop weg.

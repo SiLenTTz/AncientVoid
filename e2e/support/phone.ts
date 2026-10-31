@@ -5,11 +5,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { abortReason, quarterFromDumpsys } from "../../scripts/phone-run-guard.mjs";
 
-const deadFlag = join(tmpdir(), "uacc-phone-cdp-dead");
+const deadFlag = join(tmpdir(), "ancientvoid-phone-cdp-dead");
 
 /**
  * Das echte Handy als Browser der E2E-Specs. `scripts/phone-e2e.mjs` leitet Chromes DevTools-Socket
- * des Handys per `adb forward` auf den PC und setzt UACC_E2E_CDP und UACC_PHONE_SERIAL.
+ * des Handys per `adb forward` auf den PC und setzt ANCIENTVOID_E2E_CDP und ANCIENTVOID_PHONE_SERIAL.
  *
  * Die Tests laufen gegen einen eigenen Test-Hub auf dem PC (nie gegen deinen Hub): sein Port wird per
  * `adb reverse` auf dem Handy als http://127.0.0.1:PORT erreichbar — derselbe Ursprung wie am PC und
@@ -17,8 +17,8 @@ const deadFlag = join(tmpdir(), "uacc-phone-cdp-dead");
  * ihn wieder; bestehende Tabs des Handys werden nicht angefasst.
  */
 export const phone = {
-  cdp: process.env.UACC_E2E_CDP ?? "",
-  serial: process.env.UACC_PHONE_SERIAL ?? "",
+  cdp: process.env.ANCIENTVOID_E2E_CDP ?? "",
+  serial: process.env.ANCIENTVOID_PHONE_SERIAL ?? "",
   get active(): boolean {
     return this.cdp !== "";
   },
@@ -79,7 +79,7 @@ export async function openPhoneTab(hubPort: number): Promise<PhoneTab> {
   const turned = abortReason({
     quarter: quarterFromDumpsys(adb("shell", "dumpsys", "window", "displays")),
     cdpDown: false,
-    lockPortrait: process.env.UACC_PHONE_LOCK_PORTRAIT === "1",
+    lockPortrait: process.env.ANCIENTVOID_PHONE_LOCK_PORTRAIT === "1",
   });
   if (turned) endPhoneRun(turned);
 

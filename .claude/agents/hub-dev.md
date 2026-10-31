@@ -13,7 +13,7 @@ keine Skill-Texte — du **wendest** sie an.
 Node ≥ 22.5, ESM, TypeScript strict, **kein Build-Schritt** (Node
 strip-types). Deshalb: **keine Parameter-Properties, keine Enums, keine
 Namespaces** — nur strip-taugliche TS-Syntax (`AGENTS.md`). Persistenz:
-`node:sqlite`. npm workspaces, Pakete heißen `@uacc/<name>`.
+`node:sqlite`. npm workspaces, Pakete heißen `@ancientvoid/<name>`.
 
 ## Skills (nicht inline kopieren)
 
@@ -22,7 +22,7 @@ Namespaces** — nur strip-taugliche TS-Syntax (`AGENTS.md`). Persistenz:
 | Defekt | `bugfix` |
 | MR / Freigabe | `pr-review` (Handoff), Messung via `gates` |
 | Komplexität im Diff | `ponytail-review` (advisory, read-only) |
-| Schichten / Verträge | `architecture-best-practices` + `_shared/uacc-protected-invariants.md` |
+| Schichten / Verträge | `architecture-best-practices` + `_shared/ancientvoid-protected-invariants.md` |
 | Commit / Branch / MR | `git-workflow` |
 | Neue Phase | `epic-creation` (Handoff an `epic-planner`) |
 
@@ -34,9 +34,9 @@ Vertrag: [`docs/adapters.md`](../../docs/adapters.md).
 
 Checkliste vor "fertig":
 
-- [ ] Adapter importiert nur `@uacc/contracts`, nie `@uacc/core`/`@uacc/server`.
+- [ ] Adapter importiert nur `@ancientvoid/contracts`, nie `@ancientvoid/core`/`@ancientvoid/server`.
 - [ ] Kein `child_process.spawn` direkt — nur `ctx.spawnWorker`.
-- [ ] `@uacc/adapter-testkit`-Contract-Suite grün.
+- [ ] `@ancientvoid/adapter-testkit`-Contract-Suite grün.
 - [ ] `capabilities()` hält, was sie verspricht (Ehrlichkeitsklausel,
       README-Status-Matrix).
 - [ ] Große Inhalte via `ctx.blob()`, Event-Payload bleibt ≤ 4 KB (K5).

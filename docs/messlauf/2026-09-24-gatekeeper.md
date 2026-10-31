@@ -63,5 +63,5 @@ Verbleibende Abweichungen (v2 + Pfad-Hinweis):
 - **44 Anfragen** reichen, um grobe Fehler zu zeigen, nicht für eine Quote auf
   eine Nachkommastelle.
 - **Laufzeit auf geteilter Maschine.** `halogen-starten.sh` beendet alle
-  `llama-server`. Ist `uacc-llama` weg, fällt jede Einstufung auf
+  `llama-server`. Ist `ancientvoid-llama` weg, fällt jede Einstufung auf
   Regeln + WARNING zurück (im Test belegt).

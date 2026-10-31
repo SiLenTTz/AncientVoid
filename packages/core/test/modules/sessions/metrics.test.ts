@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Adapter, SessionMetricsState } from "@uacc/contracts";
-import { basicFeatures } from "@uacc/contracts";
+import type { Adapter, SessionMetricsState } from "@ancientvoid/contracts";
+import { basicFeatures } from "@ancientvoid/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
 import { rowToRecord, type SessionRow } from "../../../src/modules/sessions/session-row.ts";
-import { ProcessRunner } from "@uacc/workers";
+import { ProcessRunner } from "@ancientvoid/workers";
 
 /** One worker per turn; "KOSTEN" in the prompt reports a provider cost. */
 function billedSometimes(): Adapter {
@@ -43,7 +43,7 @@ async function waitFor(check: () => boolean, what: string): Promise<void> {
 
 describe("honest session metrics (T7.7, ADR-0023)", () => {
   it("a turn without a cost report makes the sum partial; tokens never reported stay unknown — persisted", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-metrics-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-metrics-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("billed", billedSometimes);

@@ -10,7 +10,7 @@ import { pageHash, sessionHash } from "../../app/route.ts";
  */
 const STATUS_TEXT: Record<MediaJob["status"], string> = { queued: "wartet", running: "läuft", done: "fertig", failed: "fehlgeschlagen", cancelled: "abgebrochen" };
 const STEP_ICON: Record<string, string> = { pending: "·", running: "…", done: "✓", skipped: "–", failed: "✗" };
-const SELECTED = "uacc.mediaJob";
+const SELECTED = "ancientvoid.mediaJob";
 
 function StepList({ job }: { job: MediaJob }) {
   return (

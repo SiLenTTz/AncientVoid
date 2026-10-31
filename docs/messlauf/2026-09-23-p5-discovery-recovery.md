@@ -8,7 +8,7 @@
 - Node v26.7.0, Linux 7.1.9-arch1-2 x86_64, 16 Kerne, Maschine sonst in Ruhe
 - Hub: echter Prozess `packages/server/src/main.ts` über `TestHub`
   (`e2e/support/hub.ts`): eigenes Datenverzeichnis, SQLite-Datei, ProcessRunner
-- Adapter: `@uacc/adapter-dummy` (20 ev/s), kein Provider, keine Netzzeit
+- Adapter: `@ancientvoid/adapter-dummy` (20 ev/s), kein Provider, keine Netzzeit
 - Stand enthält BUG-0016 bis BUG-0021 und T5.5 (Übernahme)
 
 ## Kommandos
@@ -59,7 +59,7 @@ beim Öffnen geladen).
 node scripts/messlauf-p5.mjs recovery-provider --runs 5
 ```
 
-Echter `@uacc/adapter-opencode`, TmuxRunner, nachgebauter CLI
+Echter `@ancientvoid/adapter-opencode`, TmuxRunner, nachgebauter CLI
 (`e2e/support/bin/opencode`). Pro Lauf 5 Sessions, deren Zug beim
 `kill -9` noch läuft (`WARTE2`); nach dem Neustart je ein weiterer Prompt.
 

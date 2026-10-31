@@ -1,5 +1,5 @@
-import type { TurnMetric, RunEstimate } from "@uacc/contracts";
-import { MIN_TURNS_FOR_ESTIMATE } from "@uacc/contracts";
+import type { TurnMetric, RunEstimate } from "@ancientvoid/contracts";
+import { MIN_TURNS_FOR_ESTIMATE } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/db.ts";
 import { estimateRun } from "./estimate.ts";
 

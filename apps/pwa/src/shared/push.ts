@@ -11,7 +11,7 @@ function keyBytes(base64url: string): Uint8Array {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
-const PREFS = "uacc.pushPrefs";
+const PREFS = "ancientvoid.pushPrefs";
 
 export interface PushPrefs {
   quiet: { from: number; to: number } | null;

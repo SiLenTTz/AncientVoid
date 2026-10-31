@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Adapter, WorkerProcess } from "@uacc/contracts";
-import { basicFeatures } from "@uacc/contracts";
+import type { Adapter, WorkerProcess } from "@ancientvoid/contracts";
+import { basicFeatures } from "@ancientvoid/contracts";
 import { runContractTests } from "../src/index.ts";
 
 function spawnAdapter(): Adapter {

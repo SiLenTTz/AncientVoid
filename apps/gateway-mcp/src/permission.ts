@@ -6,7 +6,7 @@ import { z } from "zod";
 /**
  * T7.2 / ADR-0018 §3: the permission bridge. claude runs it through
  * `--mcp-config` and calls its one tool before every tool that needs a
- * decision (`--permission-prompt-tool mcp__uacc__permission`). The bridge
+ * decision (`--permission-prompt-tool mcp__ancientvoid__permission`). The bridge
  * hands the request to the hub and waits for the phone's answer.
  *
  * It carries a token bound to one session that may only ask and wait
@@ -105,7 +105,7 @@ export async function askHub(
 export const PERMISSION_TOOL = "permission";
 
 export function buildPermissionServer(cfg: BridgeConfig): McpServer {
-  const server = new McpServer({ name: "uacc", version: "0.1.0" });
+  const server = new McpServer({ name: "ancientvoid", version: "0.1.0" });
   server.registerTool(
     PERMISSION_TOOL,
     {

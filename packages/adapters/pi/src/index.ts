@@ -10,7 +10,7 @@ import {
   type SessionSpec,
   type SteerInput,
   type WorkerProcess,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { createPiStream } from "./normalize.ts";

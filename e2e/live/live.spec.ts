@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 
-const url = process.env.UACC_LIVE_URL ?? "http://127.0.0.1:7373";
-const token = process.env.UACC_LIVE_TOKEN ?? "";
+const url = process.env.ANCIENTVOID_LIVE_URL ?? "http://127.0.0.1:7373";
+const token = process.env.ANCIENTVOID_LIVE_TOKEN ?? "";
 
 async function open(page: Page, hash = ""): Promise<void> {
-  await page.addInitScript((t) => localStorage.setItem("uacc.token", t), token);
+  await page.addInitScript((t) => localStorage.setItem("ancientvoid.token", t), token);
   await page.goto(`${url}/${hash}`);
 }
 
@@ -16,7 +16,7 @@ async function api<T>(path: string): Promise<T> {
 }
 
 test.describe("Live-Hub (nur lesend)", () => {
-  test.skip(!token, "UACC_LIVE_TOKEN fehlt");
+  test.skip(!token, "ANCIENTVOID_LIVE_TOKEN fehlt");
 
   test("Übersicht, Flotte und Status laden", async ({ page }) => {
     const hosts = await api<{ hostId: string; reachable?: boolean; state?: string }[] | { hosts: { hostId: string }[] }>("/api/fleet");

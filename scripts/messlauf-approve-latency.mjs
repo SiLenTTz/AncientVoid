@@ -53,7 +53,7 @@ const { ProcessRunner } = await import("../packages/workers/src/process.ts");
 const { createAdapter } = await import("../packages/adapters/dummy/src/index.ts");
 const { createHubApp } = await import("../apps/hub/src/app.ts");
 
-const dir = await mkdtemp(join(tmpdir(), "uacc-messlauf-approve-"));
+const dir = await mkdtemp(join(tmpdir(), "ancientvoid-messlauf-approve-"));
 const db = new HubDatabase(":memory:");
 const store = new EventStore(dir);
 const registry = new AdapterRegistry();
@@ -97,7 +97,7 @@ await cdp.send("WebAuthn.addVirtualAuthenticator", {
 });
 
 await page.goto(ORIGIN);
-await page.evaluate((t) => localStorage.setItem("uacc.token", t), token);
+await page.evaluate((t) => localStorage.setItem("ancientvoid.token", t), token);
 await page.reload();
 await page.waitForTimeout(500);
 // Local UMD bundle (already a real dependency of apps/pwa, same

@@ -68,7 +68,7 @@ describe("recommendForPrompt", () => {
 
 describe("writeProjectArtifact", () => {
   it("writes a skill once and refuses to overwrite it", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-artifact-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-artifact-"));
     try {
       const written = await writeProjectArtifact(dir, {
         kind: "skill",
@@ -87,7 +87,7 @@ describe("writeProjectArtifact", () => {
   });
 
   it("rejects a name that is not a slug", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-artifact-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-artifact-"));
     try {
       await expect(writeProjectArtifact(dir, { kind: "agent", name: "../etc", draft: "x" })).rejects.toThrow(/invalid artifact name/);
     } finally {

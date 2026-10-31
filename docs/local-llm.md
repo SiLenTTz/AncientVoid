@@ -11,19 +11,19 @@ Server spricht die OpenAI-API inkl. Tool-Calls (`--jinja`).
 
 | | |
 |---|---|
-| Binärdatei | `~/uacc-llm/llama/llama-server` (llama.cpp b11149, Linux Vulkan x64) |
-| Modell | `~/uacc-llm/models/Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL.gguf` (Unsloth, 17,7 GB) |
+| Binärdatei | `~/ancientvoid-llm/llama/llama-server` (llama.cpp b11149, Linux Vulkan x64) |
+| Modell | `~/ancientvoid-llm/models/Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL.gguf` (Unsloth, 17,7 GB) |
 | Alias | `qwen3-coder` |
 | Adresse | `http://100.65.133.28:8081/v1` — nur Tailnet-IP |
-| Schlüssel | `~/uacc-llm/key` (0600), per `--api-key-file` (nicht in der Prozessliste) |
-| Unit | `systemctl --user {status,restart} uacc-llama` (Linger aktiv) |
+| Schlüssel | `~/ancientvoid-llm/key` (0600), per `--api-key-file` (nicht in der Prozessliste) |
+| Unit | `systemctl --user {status,restart} ancientvoid-llama` (Linger aktiv) |
 
 ```ini
-# ~/.config/systemd/user/uacc-llama.service
+# ~/.config/systemd/user/ancientvoid-llama.service
 [Service]
-WorkingDirectory=%h/uacc-llm/llama
-Environment=LD_LIBRARY_PATH=%h/uacc-llm/llama
-ExecStart=%h/uacc-llm/llama/llama-server -m %h/uacc-llm/models/Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL.gguf --alias qwen3-coder --host 100.65.133.28 --port 8081 --api-key-file %h/uacc-llm/key --jinja -ngl 99 -c 65536 --parallel 2 -fa on --metrics
+WorkingDirectory=%h/ancientvoid-llm/llama
+Environment=LD_LIBRARY_PATH=%h/ancientvoid-llm/llama
+ExecStart=%h/ancientvoid-llm/llama/llama-server -m %h/ancientvoid-llm/models/Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL.gguf --alias qwen3-coder --host 100.65.133.28 --port 8081 --api-key-file %h/ancientvoid-llm/key --jinja -ngl 99 -c 65536 --parallel 2 -fa on --metrics
 Restart=on-failure
 ```
 
@@ -34,7 +34,7 @@ startet nach einem sauberen Beenden nicht neu). Danach beide Dienste explizit
 starten:
 
 ```sh
-systemctl --user start uacc-llama uacc-vision
+systemctl --user start ancientvoid-llama ancientvoid-vision
 ```
 
 Der RAG-Dienst auf Port 8001 bleibt unberührt.
@@ -49,7 +49,7 @@ Durchsatz und Messbedingungen: [Messlauf P7](messlauf/2026-09-24-p7-harness-gate
 ```json
 {
   "id": "opencode-lokal",
-  "module": "@uacc/adapter-acp",
+  "module": "@ancientvoid/adapter-acp",
   "config": {
     "preset": "opencode",
     "label": "opencode+lokal",
@@ -75,7 +75,7 @@ llm-pi-ai:
 ```
 
 ```json
-{ "id": "dsh-lokal", "module": "@uacc/adapter-acp", "config": { "preset": "dsh", "model": "evox2/qwen3-coder", "env": { "DSH_HOME": "/pfad/zu/dsh-home" } } }
+{ "id": "dsh-lokal", "module": "@ancientvoid/adapter-acp", "config": { "preset": "dsh", "model": "evox2/qwen3-coder", "env": { "DSH_HOME": "/pfad/zu/dsh-home" } } }
 ```
 
 Das Modell wird beim Start über ACP `session/set_config_option` gewählt
@@ -89,7 +89,7 @@ alles Weitere fragt am Handy.
 Derselbe Server bewertet Tool-Anfragen ([ADR-0024](adr/0024-tool-gatekeeper.md)):
 
 ```json
-"gatekeeper": { "model": { "url": "http://100.65.133.28:8081/v1", "model": "qwen3-coder", "apiKeyFile": "~/.config/uacc/llama.key" } }
+"gatekeeper": { "model": { "url": "http://100.65.133.28:8081/v1", "model": "qwen3-coder", "apiKeyFile": "~/.config/ancientvoid/llama.key" } }
 ```
 
 Ohne `model` laufen nur die Regeln. Ist der Server weg (z. B. nach
@@ -97,9 +97,9 @@ Ohne `model` laufen nur die Regeln. Ist der Server weg (z. B. nach
 
 ## Spracherkennung (P10)
 
-Auf evox2 läuft zusätzlich `uacc-stt`, ein systemd-User-Dienst
+Auf evox2 läuft zusätzlich `ancientvoid-stt`, ein systemd-User-Dienst
 ([ADR-0028](adr/0028-local-stt.md)). Er startet `whisper-server` aus
-`~/uacc-stt/whisper.cpp` (Vulkan-Build) mit `ggml-large-v3-turbo-q5_0.bin`
+`~/ancientvoid-stt/whisper.cpp` (Vulkan-Build) mit `ggml-large-v3-turbo-q5_0.bin`
 und lauscht nur auf der Tailnet-IP, Port 8094. Er hat keinen Schlüssel.
 
 ```json
@@ -118,22 +118,22 @@ Medien-Jobs ([ADR-0030](adr/0030-media-jobs.md)) nutzen dieselben Dienste:
 `stt` für Sprache und `assistant.model` (bzw. den Gatekeeper-Server) für
 Kapitel und Zusammenfassung. Auf evox2 läuft zusätzlich
 [Qwen2.5-VL-3B-Instruct-GGUF](https://huggingface.co/ggml-org/Qwen2.5-VL-3B-Instruct-GGUF)
-über llama.cpp mit separatem mmproj. `uacc-vision` lauscht auf
+über llama.cpp mit separatem mmproj. `ancientvoid-vision` lauscht auf
 der Tailnet-IP `100.65.133.28:8095`, nutzt den Alias `qwen-vl` und akzeptiert
-Anfragen nur mit eigenem Schlüssel `~/uacc-llm/vision.key` (0600). Die
+Anfragen nur mit eigenem Schlüssel `~/ancientvoid-llm/vision.key` (0600). Die
 Modellartefakte liegen außerhalb des Repositories unter
-`~/uacc-llm/models/`; der Hub-Schlüssel liegt in
-`~/.config/uacc/vision.key` (0600). Hub-Konfiguration:
+`~/ancientvoid-llm/models/`; der Hub-Schlüssel liegt in
+`~/.config/ancientvoid/vision.key` (0600). Hub-Konfiguration:
 
 ```json
-"media": { "vision": { "url": "http://100.65.133.28:8095/v1", "model": "qwen-vl", "apiKeyFile": "~/.config/uacc/vision.key" }, "maxDurationSec": 1800, "maxFrames": 30, "keepSource": false }
+"media": { "vision": { "url": "http://100.65.133.28:8095/v1", "model": "qwen-vl", "apiKeyFile": "~/.config/ancientvoid/vision.key" }, "maxDurationSec": 1800, "maxFrames": 30, "keepSource": false }
 ```
 
-Der User-Service `~/.config/systemd/user/uacc-vision.service` startet
-`llama-server` mit `-m ~/uacc-llm/models/Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf`,
-`--mmproj ~/uacc-llm/models/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf`,
+Der User-Service `~/.config/systemd/user/ancientvoid-vision.service` startet
+`llama-server` mit `-m ~/ancientvoid-llm/models/Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf`,
+`--mmproj ~/ancientvoid-llm/models/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf`,
 `--alias qwen-vl`, `--host 100.65.133.28`, `--port 8095`,
-`--api-key-file ~/uacc-llm/vision.key`, `--jinja`, `-ngl 99`, `-c 8192`,
+`--api-key-file ~/ancientvoid-llm/vision.key`, `--jinja`, `-ngl 99`, `-c 8192`,
 `--parallel 1`, `-fa on`, `--cache-ram 0` und `--metrics`. Der Dienst ist
 aktiviert und startet nach einem Host-Neustart automatisch.
 
@@ -141,7 +141,7 @@ Ohne `vision` gibt es für Bilder nur OCR (tesseract). Gemini wird nur für
 Jobs gefragt, bei denen in der PWA „Cloud erlauben“ gesetzt ist.
 Messwerte: [Messlauf P10.5](messlauf/2026-09-24-p10.5-media.md).
 
-Der 3B-Dienst ist mit Halogen und `uacc-llama` parallel geladen. Nach dem
+Der 3B-Dienst ist mit Halogen und `ancientvoid-llama` parallel geladen. Nach dem
 Laden standen auf evox2 29 GiB von 123 GiB als verfügbar zur Verfügung. Die
 Messung nutzte das 18-s-Slides-Fixture; Langvideos, gleichzeitige Media-Jobs
 und eine echte Harness-Session sind damit nicht abgenommen.

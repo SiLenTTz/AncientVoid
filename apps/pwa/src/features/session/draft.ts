@@ -20,7 +20,7 @@ interface LocalDraft {
 }
 
 export function draftKey(hostKey: string, sessionId: string): string {
-  return `uacc.draft.${hostKey}.${sessionId}`;
+  return `ancientvoid.draft.${hostKey}.${sessionId}`;
 }
 
 function readLocal(key: string): LocalDraft | null {

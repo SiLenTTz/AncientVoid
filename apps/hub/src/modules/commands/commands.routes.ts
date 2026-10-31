@@ -1,8 +1,8 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { CommandContext, TRANSFORMS, type CommandPlan, type PlanStep, type StepResult } from "@uacc/contracts";
-import { parseCommand, planCommand, resolveIntent, type Intent, type PlannerModelConfig, type ResolveData } from "@uacc/core";
+import { CommandContext, TRANSFORMS, type CommandPlan, type PlanStep, type StepResult } from "@ancientvoid/contracts";
+import { parseCommand, planCommand, resolveIntent, type Intent, type PlannerModelConfig, type ResolveData } from "@ancientvoid/core";
 import type { RouteContext } from "../../route-context.ts";
 
 /**

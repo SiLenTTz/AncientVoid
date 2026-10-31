@@ -41,7 +41,7 @@ const { ProcessRunner } = await import("../packages/workers/src/process.ts");
 const { createAdapter } = await import("../packages/adapters/dummy/src/index.ts");
 const { createHubApp } = await import("../apps/hub/src/app.ts");
 
-const dir = await mkdtemp(join(tmpdir(), "uacc-messlauf-"));
+const dir = await mkdtemp(join(tmpdir(), "ancientvoid-messlauf-"));
 const db = new HubDatabase(":memory:");
 const store = new EventStore(dir);
 const registry = new AdapterRegistry();
@@ -70,7 +70,7 @@ sessions.subscribe(record.id, (events) => {
 // The real hubctl CLI, real WS transport — this is t1.
 const hubctl = spawn(process.execPath, [join(repoRoot, "apps/hubctl/src/cli.ts"), "tail", record.id, "-f"], {
   cwd: repoRoot,
-  env: { ...process.env, UACC_URL: baseUrl, UACC_TOKEN: token },
+  env: { ...process.env, ANCIENTVOID_URL: baseUrl, ANCIENTVOID_TOKEN: token },
 });
 
 const receivedAt = new Map();

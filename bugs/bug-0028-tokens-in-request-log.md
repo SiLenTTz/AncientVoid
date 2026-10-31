@@ -16,7 +16,7 @@ reporter: "Claude Opus 5.5 (Prüfung AC-P6-2)"
 
 ## Gesehen
 
-`/tmp/uacc-hub.log` des echten Hubs enthielt 14 Einträge der Form
+`/tmp/ancientvoid-hub.log` des echten Hubs enthielt 14 Einträge der Form
 `"url":"/api/events/<id>/tail?token=<Geräte-Token>"`. WebSocket-Clients
 (PWA, `hubctl tail`, jetzt auch die Flotten-Weiterleitung) melden sich per
 `?token=` an; Fastifys Standard-Serializer loggt die URL unverändert. Die
@@ -28,7 +28,7 @@ Kein Token in Logs (AC-P6-2, `docs/security.md`).
 
 ## Repro
 
-Hub mit `UACC_LOG=info`, Session öffnen → Log enthält `?token=…`.
+Hub mit `ANCIENTVOID_LOG=info`, Session öffnen → Log enthält `?token=…`.
 
 **Häufigkeit:** bei jedem Öffnen einer Session.
 
@@ -41,7 +41,7 @@ Hub mit `UACC_LOG=info`, Session öffnen → Log enthält `?token=…`.
 Eigener `req`-Serializer: `redactUrl()` ersetzt `token`/`access_token` im
 Query durch `[redacted]`.
 
-**Nachsorge beim Nutzer:** vorhandene Logs (`/tmp/uacc-hub.log`) enthalten
+**Nachsorge beim Nutzer:** vorhandene Logs (`/tmp/ancientvoid-hub.log`) enthalten
 alte Tokens — Log leeren und die betroffenen Geräte-Tokens rotieren
 (`hubctl token revoke <label>`, neu ausstellen).
 

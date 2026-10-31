@@ -1,4 +1,4 @@
-import { MetricCounters, metricsState, type SessionRecord, type SessionMetricsState } from "@uacc/contracts";
+import { MetricCounters, metricsState, type SessionRecord, type SessionMetricsState } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 /** Raw SQLite row shape (snake_case) for the sessions table. */

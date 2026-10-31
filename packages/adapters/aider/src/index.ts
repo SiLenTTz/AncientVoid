@@ -11,7 +11,7 @@ import type {
   SessionSpec,
   SteerInput,
   WorkerProcess,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 
 /**
  * aider adapter (P3, T3.13). Real, verified installation gap and CLI

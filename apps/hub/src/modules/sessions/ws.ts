@@ -6,9 +6,9 @@ import {
   WsClientMessage,
   type NormalizedEvent,
   type WsServerMessage,
-} from "@uacc/contracts";
-import type { SessionManager, TokenService } from "@uacc/core";
-import type { HubMetrics } from "@uacc/contracts";
+} from "@ancientvoid/contracts";
+import type { SessionManager, TokenService } from "@ancientvoid/core";
+import type { HubMetrics } from "@ancientvoid/contracts";
 
 /**
  * BUG-0007: a socket that can't drain fast enough (throttled network, not

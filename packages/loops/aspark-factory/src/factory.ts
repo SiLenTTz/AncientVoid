@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { LoopOnboardResult, LoopOnboarding } from "@uacc/contracts";
+import type { LoopOnboardResult, LoopOnboarding } from "@ancientvoid/contracts";
 
 /**
  * Anbindung an `factoryctl` der aSPARK-Factory: bestehende Linien lesen und ein neues Repo einrichten

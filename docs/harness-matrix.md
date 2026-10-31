@@ -108,4 +108,4 @@ Der Heim-Hub weicht von der Standard-Konfiguration ab: claude mit
   [local-llm.md](local-llm.md)).
 - `swarm`: kommt mit T7.5.
 
-**maki (2026-10-27):** `preset: "maki"` startet `maki acp` (Rechte-Abfragen im Client, `question` als ACP-Formular). Installation `~/.local/bin/maki`. Provider-Plan und Thinking stehen in `~/.config/maki/providers.toml` (`[zai] plan = "coding"`) und `init.lua` (`always_thinking = "high"`, GLM-5.3 verlangt low/high/max). Der Key kommt per `envFiles: { ZHIPU_API_KEY: "~/.config/uacc/glm-coding.key" }`. Live: Hub-Session antwortet „OK“ (glm-5.3).
+**maki (2026-10-27):** `preset: "maki"` startet `maki acp` (Rechte-Abfragen im Client, `question` als ACP-Formular). Installation `~/.local/bin/maki`. Provider-Plan und Thinking stehen in `~/.config/maki/providers.toml` (`[zai] plan = "coding"`) und `init.lua` (`always_thinking = "high"`, GLM-5.3 verlangt low/high/max). Der Key kommt per `envFiles: { ZHIPU_API_KEY: "~/.config/ancientvoid/glm-coding.key" }`. Live: Hub-Session antwortet „OK“ (glm-5.3).

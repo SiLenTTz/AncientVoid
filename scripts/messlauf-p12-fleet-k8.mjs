@@ -5,7 +5,7 @@
  * fleet proxy, on two isolated temporary Hub instances. Production Hub
  * configs and datadirs are not modified.
  *
- *   UACC_TOKEN=<home device token> node scripts/messlauf-p12-fleet-k8.mjs
+ *   ANCIENTVOID_TOKEN=<home device token> node scripts/messlauf-p12-fleet-k8.mjs
  */
 import { execFileSync } from "node:child_process";
 import { Buffer } from "node:buffer";
@@ -13,7 +13,7 @@ import { randomUUID } from "node:crypto";
 import WebSocket from "ws";
 
 const HOME = "http://127.0.0.1:7373";
-const TOKEN = process.env.UACC_TOKEN ?? "";
+const TOKEN = process.env.ANCIENTVOID_TOKEN ?? "";
 const RATE = 30;
 const SECONDS = 10;
 const PER_HOST = 10;
@@ -77,7 +77,7 @@ async function ready(url, timeoutMs = 30_000) {
 
 function prepare(host) {
   const hostId = `p12k8-${host.key}-${runId}`;
-  const base = `/tmp/uacc-p12-k8-${runId}-${host.key}`;
+  const base = `/tmp/ancientvoid-p12-k8-${runId}-${host.key}`;
   const encoded = (value) => Buffer.from(value).toString("base64");
   const ip = ssh(host, "tailscale ip -4").trim().split("\n").at(-1);
   check(/^\d{1,3}(?:\.\d{1,3}){3}$/.test(ip), `${host.key}: could not read Tailnet IPv4`);
@@ -100,13 +100,13 @@ const config = {
   workerRunner: 'process',
   projectRoots: [],
   server: { host: ip, port: Number(port) },
-  adapters: [{ id: 'dummy', module: '@uacc/adapter-dummy', config: { eventsPerSecond: ${RATE} } }],
+  adapters: [{ id: 'dummy', module: '@ancientvoid/adapter-dummy', config: { eventsPerSecond: ${RATE} } }],
 };
 writeFileSync(path, JSON.stringify(config, null, 2) + '\\n', { mode: 0o600 });
 chmodSync(path, 0o600);
 NODE
-cd "$HOME/mobile-hub"
-UACC_CONFIG="$config" nohup node apps/hub/src/main.ts >"$base/hub.log" 2>&1 < /dev/null &
+cd "$HOME/AncientVoid"
+ANCIENTVOID_CONFIG="$config" nohup node apps/hub/src/main.ts >"$base/hub.log" 2>&1 < /dev/null &
 echo "$!" > "$base/pid"
 chmod 600 "$base/pid"
 `;
@@ -118,7 +118,7 @@ chmod 600 "$base/pid"
 
 async function pair(item) {
   await ready(item.url);
-  const output = ssh(item, `cd ~/mobile-hub && node apps/hubctl/src/cli.ts fleet invite --db ${item.base}/data/hub.db`);
+  const output = ssh(item, `cd ~/AncientVoid && node apps/hubctl/src/cli.ts fleet invite --db ${item.base}/data/hub.db`);
   const code = output.trim().split("\n").at(-1).trim();
   check(/^[A-Z0-9-]{8,}$/.test(code), `${item.key}: invite output was not recognized`);
   const res = await api("/api/fleet/peers", { method: "POST", body: { url: item.url, code } });
@@ -196,7 +196,7 @@ rm -rf -- "$base"
 }
 
 async function main() {
-  check(TOKEN, "UACC_TOKEN is required");
+  check(TOKEN, "ANCIENTVOID_TOKEN is required");
   const health = await fetch(`${HOME}/api/health`, { headers: authHeaders(), signal: AbortSignal.timeout(5000) });
   check(health.ok, `home Hub health returned ${health.status}`);
   const before = await api("/api/fleet/peers");

@@ -27,7 +27,7 @@ Origin) und der README-Status ist einen Monat alt.
 | Offene Bugs (`bugs/`) | ✅ **0 offen** — alle 63 `done` |
 | `test.fixme` in `e2e/` | ✅ keines vorhanden |
 | TODO/FIXME im Produktionscode | ✅ keines (nur ein Tool-Name-Regex in der PWA) |
-| Laufende Instanz | ✅ `systemctl --user uacc-hub` = active, PWA auf `127.0.0.1:7373`, `/api/health` implementiert (auth-frei, korrekt) |
+| Laufende Instanz | ✅ `systemctl --user ancientvoid-hub` = active, PWA auf `127.0.0.1:7373`, `/api/health` implementiert (auth-frei, korrekt) |
 | Produktivdaten | `data/` = 378 MB (SQLite + WAL, JSONL, Blobs, Backups, Medien) |
 | Konfigurierte Adapter (Produktion) | 11: claude, codex, hermes, opencode (ACP), aider, copilot, cursor-clip, deepseek (ACP/dsh), securesight-harnez (ACP), cursor, pi |
 

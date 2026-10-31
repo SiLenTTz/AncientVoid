@@ -9,7 +9,7 @@ import type {
   SessionSpec,
   SteerInput,
   WorkerProcess,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 
 /**
  * Hermes Agent CLI adapter (P13, T13.1).

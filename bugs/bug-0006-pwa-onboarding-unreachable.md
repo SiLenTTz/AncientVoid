@@ -6,7 +6,7 @@ severity: S1
 area: server
 instance: dev
 commit: ""
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/6"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/6"
 epic: EPIC-P1
 created: 2026-09-15
 reporter: "Claude Sonnet 5 (Session 012Ga2NDi683xR9E63StoN7T)"

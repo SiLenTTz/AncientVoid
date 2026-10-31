@@ -2,16 +2,16 @@
 /**
  * hubctl — reference client for the AncientVoid hub.
  *
- *   UACC_URL=https://hub.tailnet.ts.net UACC_TOKEN=… hubctl sessions
+ *   ANCIENTVOID_URL=https://hub.tailnet.ts.net ANCIENTVOID_TOKEN=… hubctl sessions
  *   hubctl tail <sessionId> -f
  *   hubctl token issue "pixel-9"          (issues against local hub DB file)
  */
 import { pathToFileURL } from "node:url";
-import type { NormalizedEvent } from "@uacc/contracts";
-import { DEFAULT_SERVER, findOrphanedWorkers, pruneOrphanedWorkers } from "@uacc/workers";
+import type { NormalizedEvent } from "@ancientvoid/contracts";
+import { DEFAULT_SERVER, findOrphanedWorkers, pruneOrphanedWorkers } from "@ancientvoid/workers";
 
-const BASE = process.env.UACC_URL ?? "http://127.0.0.1:7373";
-const TOKEN = process.env.UACC_TOKEN ?? "";
+const BASE = process.env.ANCIENTVOID_URL ?? "http://127.0.0.1:7373";
+const TOKEN = process.env.ANCIENTVOID_TOKEN ?? "";
 
 /** Exported for unit testing — building this by hand (vs. the URL API) is
  * exactly how BUG-0005 (ws:://host, an invalid URL) slipped in unnoticed. */
@@ -58,8 +58,8 @@ Usage:
   hubctl token revoke <label> [--db <hub.db>]
   hubctl fleet invite [--db <hub.db>]     one-time code for another hub to pair (10 min)
   hubctl fleet peers [--db <hub.db>]      hubs this one is paired with
-  hubctl workers list                     verwaiste uacc-Worker anzeigen (lokal, BUG-0034)
-  hubctl workers prune                    verwaigte uacc-Worker entfernen (lokal)
+  hubctl workers list                     verwaiste ancientvoid-Worker anzeigen (lokal, BUG-0034)
+  hubctl workers prune                    verwaigte ancientvoid-Worker entfernen (lokal)
   hubctl worktrees [--db <hub.db>]        Session-Worktrees mit Zustand und Größe (lokal, EPIC-P14)
   hubctl worktrees prune [--apply] [--db <hub.db>]   saubere Worktrees beendeter/archivierter Sessions; Trockenlauf ohne --apply
   hubctl backup create --config <hub.config.json> --out <file> --key-file <file>
@@ -67,8 +67,8 @@ Usage:
   hubctl backup prune --dir <archive-dir> --keep <count> [--apply]   preview unless --apply
 
 Env:
-  UACC_URL   hub base url (default http://127.0.0.1:7373)
-  UACC_TOKEN device token`);
+  ANCIENTVOID_URL   hub base url (default http://127.0.0.1:7373)
+  ANCIENTVOID_TOKEN device token`);
   process.exit(1);
 }
 
@@ -236,17 +236,17 @@ async function main(): Promise<void> {
         // T7.4: an agent token (e.g. for the MCP gateway) may read and
         // request, never act on its own — every write waits for a human.
         const label = args.includes("--agent") && !name.startsWith("agent:") ? `agent:${name}` : name;
-        const { TokenService, HubDatabase } = await import("@uacc/core");
+        const { TokenService, HubDatabase } = await import("@ancientvoid/core");
         const tokens = new TokenService(new HubDatabase(dbPath));
         const issued = tokens.issue(label);
         console.log(`token for "${label}" (shown once):\n  ${issued.token}`);
       } else if (sub === "list") {
-        const { TokenService, HubDatabase } = await import("@uacc/core");
+        const { TokenService, HubDatabase } = await import("@ancientvoid/core");
         const tokens = new TokenService(new HubDatabase(dbPath));
         for (const t of tokens.list()) console.log(`${t.label}  created=${t.createdAt} lastUsed=${t.lastUsedAt ?? "never"}`);
       } else if (sub === "revoke") {
         const label = args[1] ?? usage();
-        const { TokenService, HubDatabase } = await import("@uacc/core");
+        const { TokenService, HubDatabase } = await import("@ancientvoid/core");
         const tokens = new TokenService(new HubDatabase(dbPath));
         console.log(`revoked: ${tokens.revoke(label)}`);
       } else {
@@ -259,7 +259,7 @@ async function main(): Promise<void> {
       const sub = args[0] ?? usage();
       const dbIdx = args.indexOf("--db");
       const dbPath = dbIdx >= 0 ? (args[dbIdx + 1] ?? "data/hub.db") : "data/hub.db";
-      const { TokenService, HubDatabase, FleetStore } = await import("@uacc/core");
+      const { TokenService, HubDatabase, FleetStore } = await import("@ancientvoid/core");
       const db = new HubDatabase(dbPath);
       const fleet = new FleetStore(db, new TokenService(db));
       if (sub === "invite") {
@@ -284,7 +284,7 @@ async function main(): Promise<void> {
         const configFile = option("--config");
         const outputFile = option("--out");
         const keyFile = option("--key-file");
-        const { loadConfig } = await import("@uacc/core");
+        const { loadConfig } = await import("@ancientvoid/core");
         const { config } = await loadConfig(configFile);
         await createBackup({ dataDir: config.dataDir, configFile, outputFile, keyFile });
         console.log(`verschlüsseltes Backup erstellt: ${outputFile}`);
@@ -317,13 +317,13 @@ async function main(): Promise<void> {
       // machine the tmux servers live on.
       const sub = args[0];
       if (sub !== "list" && sub !== "prune") {
-        console.log("hubctl workers list   verwaiste uacc-Worker anzeigen (tmux-Server und -Sessions)");
-        console.log("hubctl workers prune  verwaigte uacc-Worker entfernen");
+        console.log("hubctl workers list   verwaiste ancientvoid-Worker anzeigen (tmux-Server und -Sessions)");
+        console.log("hubctl workers prune  verwaigte ancientvoid-Worker entfernen");
         break;
       }
       const found = sub === "prune" ? await pruneOrphanedWorkers() : await findOrphanedWorkers();
       if (found.killServers.length === 0 && found.killSessions.length === 0) {
-        console.log("keine verwaisten uacc-Worker");
+        console.log("keine verwaisten ancientvoid-Worker");
         break;
       }
       for (const server of found.killServers) console.log(`${sub === "prune" ? "tmux-Server entfernt" : "verwaister tmux-Server"}: ${server}`);

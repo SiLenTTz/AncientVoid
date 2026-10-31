@@ -1,4 +1,4 @@
-class UaccPcm16Capture extends AudioWorkletProcessor {
+class AncientVoidPcm16Capture extends AudioWorkletProcessor {
   process(inputs, outputs) {
     const input = inputs[0]?.[0];
     if (input?.length) {
@@ -14,4 +14,4 @@ class UaccPcm16Capture extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor("uacc-pcm16-capture", UaccPcm16Capture);
+registerProcessor("ancientvoid-pcm16-capture", AncientVoidPcm16Capture);

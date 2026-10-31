@@ -18,9 +18,9 @@ import {
   type SlashCommand,
   type SteerInput,
   type WorkerProcess,
-} from "@uacc/contracts";
-import { JsonRpcConnection as AcpConnection, RpcError } from "@uacc/adapter-jsonrpc";
-import { resolveContextWindow } from "@uacc/models";
+} from "@ancientvoid/contracts";
+import { JsonRpcConnection as AcpConnection, RpcError } from "@ancientvoid/adapter-jsonrpc";
+import { resolveContextWindow } from "@ancientvoid/models";
 import { UpdateMapper, type SessionUpdate } from "./normalize.ts";
 import { probeModelCatalog } from "./catalog.ts";
 import { execFile } from "node:child_process";
@@ -133,7 +133,7 @@ const AcpConfig = z.object({
   contextWindowTokens: z.number().int().positive().optional(),
   /** ADR-0032: per-model context windows — substring-matched over the
    * wanted model and the agent's raw value; wins over the built-in table
-   * (@uacc/models, Quelle models.dev). */
+   * (@ancientvoid/models, Quelle models.dev). */
   contextWindows: z.record(z.string().min(1), z.number().int().positive()).default({}),
   /** Model catalog for the start form: a command printing one
    * `provider/model` per line. Derived for opencode (`opencode models`). */
@@ -369,7 +369,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   async function initialize(state: AgentSession): Promise<{ loadSession: boolean; resume: boolean }> {
     const init = (await state.conn.request(
       "initialize",
-      { protocolVersion: PROTOCOL_VERSION, clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false, elicitation: { form: {} } }, clientInfo: { name: "uacc-hub", version: "0.1.0" } },
+      { protocolVersion: PROTOCOL_VERSION, clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false, elicitation: { form: {} } }, clientInfo: { name: "ancientvoid-hub", version: "0.1.0" } },
       cfg.startupTimeoutMs,
     )) as { agentCapabilities?: { loadSession?: boolean; sessionCapabilities?: { resume?: unknown }; promptCapabilities?: { image?: boolean } } };
     state.images = init.agentCapabilities?.promptCapabilities?.image === true;

@@ -61,7 +61,7 @@ weil Herdr Screens liest statt strukturierter Events.
 | Aspekt | AncientVoid | Herdr |
 |---|---|---|
 | Persistenz-Layer | tmux (eigener, getrennter Prozess pro Host) | Herdr-Server (ein Prozess hält PTYs **und** Steuerung) |
-| Hub/Steuerung | Node-Hub (`uacc-hub`, systemd) mit REST/WS + PWA | Client-TUI + CLI/Socket lokal oder über SSH |
+| Hub/Steuerung | Node-Hub (`ancientvoid-hub`, systemd) mit REST/WS + PWA | Client-TUI + CLI/Socket lokal oder über SSH |
 | Agent-Anbindung | 11 Adapter mit **strukturierten Events** (stream-json, ACP, JSONL: Turns, Diffs, Budgets, Tools) | 22 erkannte CLIs, Status via **Screen-Lesen** (detection), alternativer Screen-History-Scroll |
 | Mobile | PWA: Push (ADR-0026), Diktat/STT (K6), Offline-Cache (K10), Einhand-UI | — (Terminal-App nötig; kein Web/Mobile) |
 | Approval/Freigaben | Strukturierte Approval-Events + Hub-Policy (`permissionPrompts: hub`), Gatekeeper (ADR-0024) | `blocked`-Erkennung + `agent send-keys` (Tasten an den Dialog) |
@@ -117,7 +117,7 @@ SSH+TUI vollständig wegfallen.
 
 ### 3.3 „Ressourcenschonender“ — plausibel im Detail, aber klein und ungemessen
 
-- Was auf einem Fleet-Host entfiele: der Node-Hub-Prozess (`uacc-hub`) samt
+- Was auf einem Fleet-Host entfiele: der Node-Hub-Prozess (`ancientvoid-hub`) samt
   Adapter-Kindprozessen. Was hinzukäme: der Herdr-Server (Rust, sparsam, aber
   kein Null-Ressourcen-Prozess). tmux läuft heute schon — Herdr ersetzt es,
   spart es also nicht zusätzlich ein.
@@ -184,7 +184,7 @@ läuft nur `herdr-server`; der Heim-Hub spricht über SSH
 `herdr --machine <id> agent list/prompt/wait/read --json` bzw. die Socket-API
 (`events.subscribe`, `session.snapshot`, `agent.*`). Der Hub bleibt Mobile-
 Frontend + EventStore + Policy; Herdr wird zur Worker-Runner-Alternative neben
-tmux — die Runner-Schnittstelle (`@uacc/workers`) ist genau dafür gedacht.
+tmux — die Runner-Schnittstelle (`@ancientvoid/workers`) ist genau dafür gedacht.
 **Vorher klären (ADR-pflichtig):**
 - Wo kommen strukturierte Events her? Screen-Parsing liefert keine Diffs/
   Budgets/Tool-Calls in Contract-Qualität → Sessions auf Herdr-Hosts hätten

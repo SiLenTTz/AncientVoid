@@ -1,4 +1,4 @@
-import type { NormalizedEvent } from "@uacc/contracts";
+import type { NormalizedEvent } from "@ancientvoid/contracts";
 
 /** K5: the prompt travels as a user event — it must stay under the 4 KB payload limit. */
 export const HANDOVER_PROMPT_MAX = 3500;

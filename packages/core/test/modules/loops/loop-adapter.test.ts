@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createFakeLoopConnector, makeRecordingContext } from "@uacc/adapter-testkit";
+import { createFakeLoopConnector, makeRecordingContext } from "@ancientvoid/adapter-testkit";
 import { loopAsAdapter } from "../../../src/modules/loops/loop-adapter.ts";
 
 const kinds = (events: { payload?: unknown }[]) => events.map((e) => (e.payload as { kind?: string })?.kind);
@@ -10,7 +10,7 @@ const kinds = (events: { payload?: unknown }[]) => events.map((e) => (e.payload 
 describe("loopAsAdapter (T19.2)", () => {
   let dir: string;
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-loop-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-loop-"));
   });
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true });

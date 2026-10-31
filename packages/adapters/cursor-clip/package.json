@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/adapter-cursor-clip",
+  "name": "@ancientvoid/adapter-cursor-clip",
   "version": "0.1.0",
   "description": "cursor-clip adapter (P3, T3.5): read-only observation of a live Cursor Editor conversation via its own state.vscdb — never drives Cursor, may-break by design (K9).",
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
     "zod": "^4.6.5"
   }
 }

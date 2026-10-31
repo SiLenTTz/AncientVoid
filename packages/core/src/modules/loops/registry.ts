@@ -1,5 +1,5 @@
-import { LOOP_NEW } from "@uacc/contracts";
-import type { LoopConnector, LoopInfo, LoopOption, LoopSpec, LoopStartSpec } from "@uacc/contracts";
+import { LOOP_NEW } from "@ancientvoid/contracts";
+import type { LoopConnector, LoopInfo, LoopOption, LoopSpec, LoopStartSpec } from "@ancientvoid/contracts";
 
 /**
  * Bekannte Loops (EPIC-P19). Sie stehen in der Auswahl, sobald dieser Katalog sie kennt; startbar werden sie

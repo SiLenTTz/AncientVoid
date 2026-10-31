@@ -7,7 +7,7 @@
  * Playwright die Specs des Projekts `phone` darin ausführen. Es ändert keine Handy-Einstellungen
  * und entsperrt nichts. Jeder Test öffnet einen eigenen Tab und schließt ihn wieder.
  *
- * Umgebung: UACC_PHONE_SERIAL wählt ein bestimmtes Gerät.
+ * Umgebung: ANCIENTVOID_PHONE_SERIAL wählt ein bestimmtes Gerät.
  */
 /* global fetch, AbortSignal */
 import { execFileSync, spawnSync } from "node:child_process";
@@ -16,13 +16,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { quarterFromDumpsys } from "./phone-run-guard.mjs";
 
-const deadFlag = join(tmpdir(), "uacc-phone-cdp-dead");
+const deadFlag = join(tmpdir(), "ancientvoid-phone-cdp-dead");
 rmSync(deadFlag, { force: true });
 
 const adbRaw = (args, opts = {}) => execFileSync("adb", args, { encoding: "utf8", timeout: 20_000, ...opts });
 
 function pickSerial() {
-  if (process.env.UACC_PHONE_SERIAL) return process.env.UACC_PHONE_SERIAL;
+  if (process.env.ANCIENTVOID_PHONE_SERIAL) return process.env.ANCIENTVOID_PHONE_SERIAL;
   const lines = adbRaw(["devices"]).split("\n").slice(1).filter((l) => /\tdevice$/.test(l));
   if (lines.length === 0) throw new Error("Kein Handy per adb verbunden (`adb devices` ist leer).");
   return lines[0].split("\t")[0];
@@ -117,7 +117,7 @@ console.log(`${PACKAGE}: ${socket} → 127.0.0.1:${port}`);
 const args = ["playwright", "test", "--project=phone", "--workers=1", ...passthrough];
 const result = spawnSync("npx", args, {
   stdio: "inherit",
-  env: { ...process.env, UACC_E2E_CDP: `http://127.0.0.1:${port}`, UACC_PHONE_SERIAL: serial, UACC_PHONE_LOCK_PORTRAIT: "1" },
+  env: { ...process.env, ANCIENTVOID_E2E_CDP: `http://127.0.0.1:${port}`, ANCIENTVOID_PHONE_SERIAL: serial, ANCIENTVOID_PHONE_LOCK_PORTRAIT: "1" },
 });
 try {
   adb("forward", "--remove", `tcp:${port}`);

@@ -44,8 +44,8 @@ describe("askTitleModel", () => {
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { basicFeatures, type Adapter, type AdapterContext } from "@uacc/contracts";
-import { ProcessRunner } from "@uacc/workers";
+import { basicFeatures, type Adapter, type AdapterContext } from "@ancientvoid/contracts";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { EventStore } from "../../../src/platform/eventstore.ts";
 import { HubDatabase } from "../../../src/platform/db.ts";
@@ -94,7 +94,7 @@ describe("EPIC-P15 T15.5: KI-Titel am SessionManager", () => {
     }) as unknown as typeof fetch,
   });
   const setup = async (title: string, calls: { n: number }) => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-aititle-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-aititle-"));
     const { registry, answer } = answering();
     const sessions = new SessionManager(new HubDatabase(":memory:"), new EventStore(dir), registry, new ProcessRunner());
     sessions.enableAiTitles(modelWith(title, calls));
@@ -162,7 +162,7 @@ describe("EPIC-P15 T15.5: KI-Titel am SessionManager", () => {
     } finally {
       await none.done();
     }
-    const dir = await mkdtemp(join(tmpdir(), "uacc-aititle-off-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-aititle-off-"));
     const { registry, answer } = answering();
     const sessions = new SessionManager(new HubDatabase(":memory:"), new EventStore(dir), registry, new ProcessRunner());
     try {

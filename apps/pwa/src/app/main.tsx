@@ -102,8 +102,8 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
 }
 
 const WIDE = "(min-width: 1280px)";
-const WORKSPACE_KEY = "uacc.workspace";
-const LIST_COLLAPSED_KEY = "uacc.listCollapsed";
+const WORKSPACE_KEY = "ancientvoid.workspace";
+const LIST_COLLAPSED_KEY = "ancientvoid.listCollapsed";
 
 function tileRefOf(session: SessionRecord): TileRef {
   const host = remoteHost(session.hostId);
@@ -154,7 +154,7 @@ function Main() {
         // T8.3: a rotated push subscription is registered again.
         void resyncPush();
         navigator.serviceWorker?.addEventListener("message", (e) => {
-          if ((e.data as { type?: string })?.type === "uacc:push-resubscribe") void resyncPush();
+          if ((e.data as { type?: string })?.type === "ancientvoid:push-resubscribe") void resyncPush();
         });
       })
       .catch((err) => {
@@ -174,9 +174,9 @@ function Main() {
     };
     const onOnline = () => setStaleAt(null);
     window.addEventListener("online", onOnline);
-    document.addEventListener("uacc:stale-data", onStale);
+    document.addEventListener("ancientvoid:stale-data", onStale);
     return () => {
-      document.removeEventListener("uacc:stale-data", onStale);
+      document.removeEventListener("ancientvoid:stale-data", onStale);
       window.removeEventListener("online", onOnline);
     };
   }, []);

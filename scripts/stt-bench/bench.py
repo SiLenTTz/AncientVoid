@@ -42,7 +42,7 @@ def squash(text: str) -> str:
 
 
 # Words a developer dictates; a Whisper prompt biases towards their spelling.
-VOCAB = "AncientVoid, Session, Codex, Claude, opencode, TypeScript, JavaScript, Vitest, pytest, npm, pnpm, Pull Request, Branch, main, Rebase, Merge, Commit, Push, Worktree, Git Status, Diff, Build, Deploy, Logs, Cache, Cloud, Adapter, Hub, Tailnet, PWA, API, WebSocket, Service Worker, Docker, Container, llama.cpp, Gatekeeper, Readme, Doku, Kontingent, Unit-Test, Bug, Refactoring. mobile-hub"
+VOCAB = "AncientVoid, Session, Codex, Claude, opencode, TypeScript, JavaScript, Vitest, pytest, npm, pnpm, Pull Request, Branch, main, Rebase, Merge, Commit, Push, Worktree, Git Status, Diff, Build, Deploy, Logs, Cache, Cloud, Adapter, Hub, Tailnet, PWA, API, WebSocket, Service Worker, Docker, Container, llama.cpp, Gatekeeper, Readme, Doku, Kontingent, Unit-Test, Bug, Refactoring. AncientVoid"
 
 
 class WhisperCpp:
@@ -67,7 +67,7 @@ class WhisperCpp:
                 time.sleep(0.5)
 
     def transcribe(self, wav: Path) -> str:
-        boundary = "----uacc"
+        boundary = "----ancientvoid"
         parts = [
             f"--{boundary}\r\nContent-Disposition: form-data; name=\"response_format\"\r\n\r\njson\r\n",
             f"--{boundary}\r\nContent-Disposition: form-data; name=\"language\"\r\n\r\nde\r\n",
@@ -138,7 +138,7 @@ def main():
     ap.add_argument("--audio", required=True)
     ap.add_argument("--refs", required=True)
     ap.add_argument("--engines", required=True)
-    ap.add_argument("--root", default=str(Path.home() / "uacc-stt"))
+    ap.add_argument("--root", default=str(Path.home() / "ancientvoid-stt"))
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 

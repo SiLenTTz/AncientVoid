@@ -6,9 +6,9 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import mqtt, { type MqttClient } from "mqtt";
-import { LOOP_NEW } from "@uacc/contracts";
-import type { LoopConnector, ToolPermissionRequest } from "@uacc/contracts";
-import { assertContractGreen, makeRecordingContext, runLoopContractTests, waitFor } from "@uacc/adapter-testkit";
+import { LOOP_NEW } from "@ancientvoid/contracts";
+import type { LoopConnector, ToolPermissionRequest } from "@ancientvoid/contracts";
+import { assertContractGreen, makeRecordingContext, runLoopContractTests, waitFor } from "@ancientvoid/adapter-testkit";
 import { createLoopConnector } from "../src/index.ts";
 
 const hasMosquitto = spawnSync("mosquitto", ["-h"], { stdio: "ignore" }).error === undefined;
@@ -34,7 +34,7 @@ describe.skipIf(!hasMosquitto)("aSPARK-Connector gegen einen echten Mosquitto (T
 
   beforeAll(async () => {
     const port = await freePort();
-    const conf = join(mkdtempSync(join(tmpdir(), "uacc-mosq-")), "m.conf");
+    const conf = join(mkdtempSync(join(tmpdir(), "ancientvoid-mosq-")), "m.conf");
     writeFileSync(conf, `listener ${port} 127.0.0.1\nallow_anonymous true\n`);
     broker = spawn("mosquitto", ["-c", conf], { stdio: "ignore" });
     url = `mqtt://127.0.0.1:${port}`;
@@ -251,7 +251,7 @@ describe("Repo anbinden über factoryctl (Onboarding)", () => {
   const ctl = fileURLToPath(new URL("./support/factoryctl", import.meta.url));
   let home: string;
   beforeEach(() => {
-    home = mkdtempSync(join(tmpdir(), "uacc-factory-"));
+    home = mkdtempSync(join(tmpdir(), "ancientvoid-factory-"));
     writeFileSync(join(home, "factory.env"), "MQTT_LEITSTAND_PASSWORD=pw\n");
   });
   afterEach(() => rmSync(home, { recursive: true, force: true }));
@@ -308,7 +308,7 @@ describe("Repo anbinden über factoryctl (Onboarding)", () => {
   });
 
   it.skipIf(!hasMosquitto)("das Leitstand-Passwort kommt aus factory.env; ein Broker mit Anmeldung nimmt es an, ohne wird laut abgelehnt", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "uacc-mosq-auth-"));
+    const dir = mkdtempSync(join(tmpdir(), "ancientvoid-mosq-auth-"));
     spawnSync("mosquitto_passwd", ["-b", "-c", join(dir, "pw"), "leitstand", "pw-aus-factory-env"]);
     const port = await freePort();
     writeFileSync(join(dir, "m.conf"), `listener ${port} 127.0.0.1\nallow_anonymous false\npassword_file ${join(dir, "pw")}\n`);

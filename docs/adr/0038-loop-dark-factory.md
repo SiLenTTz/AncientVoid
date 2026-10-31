@@ -1,7 +1,7 @@
 # ADR-0038 — Loop / Dark Factory als Auswahldimension (Loop-Connector-Contract)
 
 **Status:** **vorgeschlagen; das Gerüst (Katalog, Route, Policy, Auswahl) ist seit 2026-10-28 auf Wunsch von Jan gebaut,
-die Connectors sind es nicht.** Die Entscheidungen unten gelten, solange Jan nicht widerspricht. · **Betrifft:** EPIC-P19, `@uacc/contracts` (neu `loops/`,
+die Connectors sind es nicht.** Die Entscheidungen unten gelten, solange Jan nicht widerspricht. · **Betrifft:** EPIC-P19, `@ancientvoid/contracts` (neu `loops/`,
 additiv `SessionSpec`), `packages/core` (Modul `loops`), Hub-Routen, PWA
 (Start-Formular, Session-Kopf), neue Pakete `packages/loops/*` ·
 **Grundlage:** [Analyse 2026-10-27](../loop-analyse-2026-10-27.md)
@@ -176,7 +176,7 @@ aSPARK-`ask` wird auf das bestehende `ctx.requestToolPermission` abgebildet:
   in `hub.config.json` bzw. im Hub-Secret-Speicher, nie in Event-Payloads, nie in
   API-Antworten, nie in Logs (Leak-Test wie bei den Provider-Schlüsseln).
 - **Kapselung durch die Architekturprüfung:** `packages/loops/*` dürfen nur
-  `@uacc/contracts` importieren; eine neue `dependency-cruiser`-Regel (analog zu den
+  `@ancientvoid/contracts` importieren; eine neue `dependency-cruiser`-Regel (analog zu den
   Adaptern) macht das im Gate (`npm run check:arch`) sichtbar.
 
 ### 9. Pakete und Namen
@@ -185,8 +185,8 @@ aSPARK-`ask` wird auf das bestehende `ctx.requestToolPermission` abgebildet:
 packages/contracts/src/loops/              Contract, Zod-Schemas
 packages/core/src/modules/loops/           Registry (hub.config.json: loops[]), loopAsAdapter
 apps/hub/src/modules/loops/loops.routes.ts GET /api/loops, Gesundheit je Loop
-packages/loops/aspark-factory/             @uacc/loop-aspark-factory
-packages/loops/securesight-factory/         @uacc/loop-securesight-factory
+packages/loops/aspark-factory/             @ancientvoid/loop-aspark-factory
+packages/loops/securesight-factory/         @ancientvoid/loop-securesight-factory
 packages/adapters/testkit/                 + runLoopContractTests()
 apps/pwa/src/features/loops/               Start-Optionen, Loop-Panel
 ```
@@ -200,7 +200,7 @@ nicht Sache des Hubs. Die Oberfläche kennzeichnet Loops mit einem Typ-Abzeichen
 ### 10. Abhängigkeit für MQTT
 
 Empfehlung: das reine JavaScript-Paket **`mqtt`** (MIT, kein natives Modul, passt zu
-„Persistenz/Laufzeit ohne native Module“), nur im Paket `@uacc/loop-aspark-factory`.
+„Persistenz/Laufzeit ohne native Module“), nur im Paket `@ancientvoid/loop-aspark-factory`.
 Alternative `mosquitto_sub`/`mosquitto_pub` als Worker: keine Abhängigkeit im Hub, aber
 Systempaket nötig und das Passwort stünde in der Prozessliste. **Neue Abhängigkeit
 braucht Jans Freigabe** (Frage 3).
@@ -260,7 +260,7 @@ Adapter · Modell · Modus: „vom Loop bestimmt“ (ausgegraut, mit Begründung
    Connector Hermes **startet** (Kind-Prozess über `spawnWorker`) oder **nur
    beobachtet**. Empfehlung für v1: nur beobachten.
 2. **Eigener Hub-Nutzer für aSPARK:** Darf ich im Entwurf einen eigenen MQTT-Nutzer
-   „uacc-leitstand“ mit ACL (nur Lesen auf `agent/#`, Schreiben auf `…/answer` und
+   „ancientvoid-leitstand“ mit ACL (nur Lesen auf `agent/#`, Schreiben auf `…/answer` und
    `…/command`) vorsehen? Ihn anzulegen wäre ein Schritt in `~/.aspark-factory`, den
    ich **nicht** ausführe, sondern als Anleitung dokumentiere.
 3. **Neue Abhängigkeit `mqtt`** (Empfehlung) oder `mosquitto_sub`-Worker?

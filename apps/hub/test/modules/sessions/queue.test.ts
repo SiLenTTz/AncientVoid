@@ -3,9 +3,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
-import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { basicFeatures, type Adapter } from "@uacc/contracts";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { basicFeatures, type Adapter } from "@ancientvoid/contracts";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { createHubApp } from "../../../src/app.ts";
 
 /** EPIC-P15 T15.3: Vormerken und Pause über die HTTP-Routen. */
@@ -16,7 +16,7 @@ describe("hub route — Warteschlange und Pause", () => {
   const prompts: string[] = [];
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-queue-route-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-queue-route-"));
     const adapter: Adapter = {
       id: "turny",
       version: "0.0.1",

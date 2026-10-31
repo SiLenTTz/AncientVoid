@@ -17,12 +17,12 @@ describe("EPIC-P14 worktree hygiene", () => {
   });
 
   async function setup() {
-    const repo = await mkdtemp(join(tmpdir(), "uacc-wh-repo-"));
-    const out = await mkdtemp(join(tmpdir(), "uacc-wh-out-"));
+    const repo = await mkdtemp(join(tmpdir(), "ancientvoid-wh-repo-"));
+    const out = await mkdtemp(join(tmpdir(), "ancientvoid-wh-out-"));
     dirs.push(repo, out);
     await git("git", ["-C", repo, "init", "-q", "-b", "main"]);
-    await git("git", ["-C", repo, "config", "user.email", "t@uacc.local"]);
-    await git("git", ["-C", repo, "config", "user.name", "uacc test"]);
+    await git("git", ["-C", repo, "config", "user.email", "t@ancientvoid.local"]);
+    await git("git", ["-C", repo, "config", "user.name", "ancientvoid test"]);
     await writeFile(join(repo, "a.txt"), "hi\n");
     await git("git", ["-C", repo, "add", "a.txt"]);
     await git("git", ["-C", repo, "commit", "-q", "-m", "initial"]);

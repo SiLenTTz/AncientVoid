@@ -65,7 +65,7 @@ describe("scanProjectSkills — real repo inventory (T1.5-10, AC-P1.5-10)", () =
 
 describe("scanProjectSkills — synthetic edge cases", () => {
   async function freshDir(): Promise<{ dir: string; cleanup: () => Promise<void> }> {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-skills-"));
     return { dir, cleanup: () => rm(dir, { recursive: true, force: true }) };
   }
 

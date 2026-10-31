@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { combineAssessment, gateRank, riskRank, type SecurityGate, type ToolRisk } from "@uacc/contracts";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { ProcessRunner } from "@uacc/workers";
+import { combineAssessment, gateRank, riskRank, type SecurityGate, type ToolRisk } from "@ancientvoid/contracts";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { AdapterRegistry, ApprovalService, assessByRules, EventStore, Gatekeeper, GATEKEEPER_GRAMMAR, HubDatabase, SessionManager, valueConfidence } from "../../../src/index.ts";
 
 interface Labelled {
@@ -120,7 +120,7 @@ describe("gatekeeper model call (T7.9)", () => {
 
 describe("tool approval with the gatekeeper (T7.9)", () => {
   it("a critical request becomes a passkey approval, labelled on the card and in the timeline", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-gk-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-gk-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });

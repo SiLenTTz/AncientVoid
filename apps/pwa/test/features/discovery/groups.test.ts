@@ -25,9 +25,9 @@ describe("groupDiscovery", () => {
       item({ project: "/repos/alt-proj", observedAt: "2026-09-20T10:00:00.000Z" }),
       item({ project: "/repos/harnez/sub", observedAt: "2026-09-28T14:00:00.000Z" }),
       item({ project: "/repos/harnez/sub", observedAt: "2026-09-28T09:00:00.000Z" }),
-      item({ project: "/repos/mobile-hub", observedAt: "2026-09-28T13:00:00.000Z" }),
+      item({ project: "/repos/AncientVoid", observedAt: "2026-09-28T13:00:00.000Z" }),
     ]);
-    expect(groups.map((g) => g.project)).toEqual(["sub", "mobile-hub", "alt-proj"]);
+    expect(groups.map((g) => g.project)).toEqual(["sub", "AncientVoid", "alt-proj"]);
     expect(groups[0]!.newestAt).toBe("2026-09-28T14:00:00.000Z");
     expect(groups[0]!.sessions.map((s) => s.observedAt)).toEqual(["2026-09-28T14:00:00.000Z", "2026-09-28T09:00:00.000Z"]);
   });
@@ -36,9 +36,9 @@ describe("groupDiscovery", () => {
     const groups = groupDiscovery([
       item({ project: "/mnt/omarchy_data/30_repos/arch/arbeitsbaeume/securesight-harnez", observedAt: "2026-09-28T14:00:00.000Z" }),
       item({ project: "/mnt/omarchy_data/30_repos/arch/arbeitsbaeume/securesight-harnez", observedAt: "2026-09-28T12:00:00.000Z" }),
-      item({ project: "/mnt/omarchy_data/30_repos/arch/arbeitsbaeume/mobile-hub", observedAt: "2026-09-28T13:00:00.000Z" }),
+      item({ project: "/mnt/omarchy_data/30_repos/arch/arbeitsbaeume/AncientVoid", observedAt: "2026-09-28T13:00:00.000Z" }),
     ]);
-    expect(groups.map((g) => g.project)).toEqual(["securesight-harnez", "mobile-hub"]);
+    expect(groups.map((g) => g.project)).toEqual(["securesight-harnez", "AncientVoid"]);
     expect(groups[0]!.sessions).toHaveLength(2);
   });
 });

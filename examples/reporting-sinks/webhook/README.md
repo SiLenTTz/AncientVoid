@@ -15,7 +15,7 @@ any other specific consumer exists.
 {
   "module": "./examples/reporting-sinks/webhook/sink.ts",
   "config": {
-    "url": "https://example.com/uacc-digest",
+    "url": "https://example.com/ancientvoid-digest",
     "headers": { "Authorization": "Bearer <token>" },
     "timeoutMs": 5000
   }

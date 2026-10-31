@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import type { LoopInfo } from "@uacc/contracts";
+import type { LoopInfo } from "@ancientvoid/contracts";
 import type { hubApi } from "../../shared/api.ts";
 import type { LoopView } from "./loop-view.ts";
 import { loopBadge } from "./loop-view.ts";

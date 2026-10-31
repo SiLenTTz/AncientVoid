@@ -12,7 +12,7 @@ wird, damit T3.1 nicht bei Null anfängt und die aktuell offene Lücke
 (Steer/Approval) nicht übersehen wird.
 
 **Fragilität dieser Quelle:** Die Pfade unten gelten nur, solange
-`custom-rag` als Geschwister-Checkout neben `mobile-hub` liegt. Bevor T3.1
+`custom-rag` als Geschwister-Checkout neben `AncientVoid` liegt. Bevor T3.1
 umgesetzt wird, gegenprüfen, ob die Struktur noch existiert — Domain-Code in
 Fremdrepos verschiebt sich.
 
@@ -54,17 +54,17 @@ im Request**, nur ein `allowlist_key`), `decide_run`
 Zwei getrennte Ströme:
 
 1. **Strukturierter Event-Log** (`RunEvent{seq, kind, at, node, payload}`) —
-   direkt vergleichbar mit UACCs `NormalizedEvent`.
+   direkt vergleichbar mit AncientVoids `NormalizedEvent`.
 2. **Live-Bus** (`RunLiveBus`) für rohe Engine-Ausgabezeilen: `seq` (monoton
    je Kanal), `kind` (`"live.line"`/`"live.done"`/`"gap"`), nie-blockierendes
    Publizieren mit **Drop-Oldest bei voller Queue** + explizitem
    `gap`-Marker statt stillem Verlust — konzeptionell fast identisch zu
-   UACCs eigenem K5/K8-Anspruch ("nie blockieren", "Verlust sichtbar
+   AncientVoids eigenem K5/K8-Anspruch ("nie blockieren", "Verlust sichtbar
    machen").
 
-## Mapping-Hinweise für `@uacc/adapter-swarm`
+## Mapping-Hinweise für `@ancientvoid/adapter-swarm`
 
-- UACCs `EVENT_TYPES` (`user|assistant|thinking|tool_use|tool_result|gate|
+- AncientVoids `EVENT_TYPES` (`user|assistant|thinking|tool_use|tool_result|gate|
   error|system`, `packages/contracts/src/event.ts`) enthält bereits
   **`"gate"`** als First-Class-Typ — die Contracts sind für diese
   Integration schon vorbereitet. Jedes `GateResult` (name, passed, blocking,
@@ -75,14 +75,14 @@ Zwei getrennte Ströme:
 - `run_allowlist.yaml`-Muster (Client sendet nur einen `allowlist_key`, nie
   einen Pfad; Server löst gegen `roots` auf, Symlink-Escape wird verweigert)
   ist ein direkt übernehmenswertes **Sicherheitsmuster** für den
-  `swarm`-Adapter — passt zu UACCs eigenem Anspruch "Freie Shell vom Handy:
+  `swarm`-Adapter — passt zu AncientVoids eigenem Anspruch "Freie Shell vom Handy:
   nein — nur registrierte Adapter-Operationen" (README "Sicherheit").
 - `capabilities()` des künftigen Adapters lässt sich direkt ableiten:
   `{reasoning: true, tools: true, cost: true, steer: true}`.
 
 ## Offene Abhängigkeit: Steer/Approval-Lücke
 
-UACCs `SteerInput` (`packages/contracts/src/adapter.ts`) kennt nur
+AncientVoids `SteerInput` (`packages/contracts/src/adapter.ts`) kennt nur
 `prompt|stop|park|resume` — es gibt **keinen** "approve/reject Gate X"-Steer-
 Typ. Swarms `decide_run` (approve/reject/override mit Pflicht-`reason` bei
 override) hat keine 1:1-Entsprechung im aktuellen Contract.
@@ -129,7 +129,7 @@ Struktur ist real, aber an mehreren Stellen anders als hier notiert:
   — kein Dateisystempfad, wie oben beschrieben.
 - Jede Cockpit-Route verlangt real `Depends(require_admin)` — der Adapter
   bräuchte ein **eigenes, separates Credential** für `custom-rag`s
-  Admin-Auth, das UACC nicht besitzt und das hier nicht erfunden wird.
+  Admin-Auth, das AncientVoid nicht besitzt und das hier nicht erfunden wird.
 - **Real nicht auffindbar in der verfügbaren Zeit:** das konkrete
   Vokabular der `RunEvent.kind`-Werte (wie z. B. „plan_created" oder
   „edit_applied" tatsächlich heißen) — die Events werden aus einem
@@ -139,7 +139,7 @@ Struktur ist real, aber an mehreren Stellen anders als hier notiert:
   Rahmen dieser Session.
 
 **Konsequenz für T3.1:** Ein Normalizer, der `RunEvent.kind`-Werte auf
-UACCs `EVENT_TYPES` abbildet, ohne die echten Werte zu kennen, wäre
+AncientVoids `EVENT_TYPES` abbildet, ohne die echten Werte zu kennen, wäre
 genau das geratene Mapping, das R9.7 ausschließt — eine falsche Zuordnung
 würde reale Swarm-Events später still falsch kategorisieren. T3.1 bleibt
 deshalb bewusst **nicht implementiert**, mit einem jetzt korrigierten,

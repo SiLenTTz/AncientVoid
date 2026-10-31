@@ -7,7 +7,7 @@ description: Diff-Level-Advisory für Komplexitäts-Reduktion mit Tags delete/st
 
 Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md) (Regel 5, "Kein
 Scope-Creep"). Invariants:
-[`.claude/skills/_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md).
+[`.claude/skills/_shared/ancientvoid-protected-invariants.md`](../_shared/ancientvoid-protected-invariants.md).
 
 ## Zweck
 
@@ -56,7 +56,7 @@ Eine Zeile pro Fund. Keine Prosa-Einleitung. Am Ende eine Zeile
 
 ## Protected Invariants (AncientVoid)
 
-Siehe [`_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md):
+Siehe [`_shared/ancientvoid-protected-invariants.md`](../_shared/ancientvoid-protected-invariants.md):
 `AdapterContext`-Grenze, K5-Kappung, K7-Recovery-Pfad, `NormalizedEvent`-Schema,
 kein direktes `child_process.spawn` in Adaptern — werden nicht wegoptimiert.
 

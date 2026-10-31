@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../../src/app.ts";
 
@@ -23,7 +23,7 @@ describe("drafts (T8.4)", () => {
   }
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-drafts-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-drafts-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });

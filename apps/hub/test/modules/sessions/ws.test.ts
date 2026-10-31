@@ -3,9 +3,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { WebSocket } from "ws";
-import { EventStore, SessionManager, AdapterRegistry, HubDatabase } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { EventStore, SessionManager, AdapterRegistry, HubDatabase } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 import { createTailHandler } from "../../../src/modules/sessions/ws.ts";
 
 /**
@@ -38,7 +38,7 @@ function fakeSocket() {
 
 describe("ws.ts createTailHandler — BUG-0007 network-aware drop-on-slow", () => {
   async function setup() {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-ws-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-ws-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();

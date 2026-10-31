@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { checkFixture } from "@uacc/adapter-testkit";
+import { checkFixture } from "@ancientvoid/adapter-testkit";
 import { normalizeOpencodeLine } from "../src/normalize.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));

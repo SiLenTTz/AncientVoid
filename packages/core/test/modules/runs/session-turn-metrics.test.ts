@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Adapter } from "@uacc/contracts";
-import { basicFeatures } from "@uacc/contracts";
+import type { Adapter } from "@ancientvoid/contracts";
+import { basicFeatures } from "@ancientvoid/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
-import { ProcessRunner } from "@uacc/workers";
+import { ProcessRunner } from "@ancientvoid/workers";
 
 const oneProcessPerTurn = (): Adapter => ({
   id: "turns",
@@ -35,7 +35,7 @@ async function waitFor(check: () => boolean | Promise<boolean>, what: string): P
 
 describe("Zug-Messwerte im SessionManager (EPIC-P21 T21.3)", () => {
   it("jeder beendete Zug wird gemessen; nach Verlust der Tabelle baut der Backfill sie aus dem JSONL neu", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-turnmetrics-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-turnmetrics-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("turns", oneProcessPerTurn);

@@ -1,4 +1,4 @@
-import { COMMANDS, FIELDS, PAGES, SESSION_FILTERS, TRANSFORMS, type CommandContext } from "@uacc/contracts";
+import { COMMANDS, FIELDS, PAGES, SESSION_FILTERS, TRANSFORMS, type CommandContext } from "@ancientvoid/contracts";
 import type { Intent } from "./parse.ts";
 
 /**

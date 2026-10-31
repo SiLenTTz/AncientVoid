@@ -135,7 +135,7 @@
   "set": "dev"
  },
  {
-  "text": "starte claude im projekt mobile-hub",
+  "text": "starte claude im projekt AncientVoid",
   "label": "session.create",
   "set": "dev"
  },
@@ -160,7 +160,7 @@
   "set": "dev"
  },
  {
-  "text": "kick off codex in mobile-hub: update deps",
+  "text": "kick off codex in AncientVoid: update deps",
   "label": "session.create",
   "set": "dev"
  },
@@ -455,7 +455,7 @@
   "set": "dev"
  },
  {
-  "text": "Starte Codex in Projekt beta, nein, in mobile-hub: Tests",
+  "text": "Starte Codex in Projekt beta, nein, in AncientVoid: Tests",
   "label": "session.create",
   "set": "dev"
  },
@@ -540,7 +540,7 @@
   "set": "heldout"
  },
  {
-  "text": "Starte Claude für mobile-hub: Lies die Architektur-Doku",
+  "text": "Starte Claude für AncientVoid: Lies die Architektur-Doku",
   "label": "session.create",
   "set": "heldout"
  },

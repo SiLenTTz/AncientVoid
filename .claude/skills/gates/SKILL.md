@@ -23,8 +23,8 @@ Dann nur die Spalten fahren, die betroffen sind.
 | Geändert | Zu fahren |
 |---|---|
 | `packages/contracts/**` | alles (Contract-Änderung propagiert in jedes Package) + ADR-Pflicht (`AGENTS.md` Regel 1) |
-| `packages/adapters/*/**` | `npm test -w <package>` + `@uacc/adapter-testkit`-Contract-Suite |
-| `apps/pwa/**` | `npm -w @uacc/pwa run build` + `npm run typecheck` + `npm run test:e2e` |
+| `packages/adapters/*/**` | `npm test -w <package>` + `@ancientvoid/adapter-testkit`-Contract-Suite |
+| `apps/pwa/**` | `npm -w @ancientvoid/pwa run build` + `npm run typecheck` + `npm run test:e2e` |
 | `e2e/**` | `npm run test:e2e` (scheitert laut ohne Chromium: `npx playwright install chromium`) |
 | `apps/hub/src/modules/*`, `packages/core/src/modules/sessions/*`, `packages/adapters/*` | zusätzlich `npm run test:e2e` |
 | Epic- oder Bugfix-MR | `npm run gate` (alles, inkl. E2E) |
@@ -40,7 +40,7 @@ npm run gate              # typecheck + lint + test + test:e2e
 npm run lint              # eslint .
 npm run typecheck         # tsc -p . --noEmit
 npm run loadtest          # K8: 20 Sessions × 30 ev/s
-npm -w @uacc/pwa run build  # nur bei PWA-Änderungen
+npm -w @ancientvoid/pwa run build  # nur bei PWA-Änderungen
 ```
 
 `npm test`, `npm run lint`, `npm run typecheck` sind laut `AGENTS.md` Pflicht

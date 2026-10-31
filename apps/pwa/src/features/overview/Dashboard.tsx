@@ -114,11 +114,11 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
   const [query, setQuery] = useState("");
   const [allRecent, setAllRecent] = useState(false);
   // T9.4: "Zeig wartende Sessions" narrows the overview; the chip undoes it.
-  const [statusFilter, setStatusFilter] = useState(() => sessionStorage.getItem("uacc.overviewFilter") ?? "all");
+  const [statusFilter, setStatusFilter] = useState(() => sessionStorage.getItem("ancientvoid.overviewFilter") ?? "all");
   useEffect(() => {
     const on = (e: Event) => setStatusFilter(String((e as CustomEvent<string>).detail ?? "all"));
-    window.addEventListener("uacc:overview-filter", on);
-    return () => window.removeEventListener("uacc:overview-filter", on);
+    window.addEventListener("ancientvoid:overview-filter", on);
+    return () => window.removeEventListener("ancientvoid:overview-filter", on);
   }, []);
   const queryRef = useRef(query);
   queryRef.current = query;
@@ -217,7 +217,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
           type="button"
           class="chip active status-filter"
           onClick={() => {
-            sessionStorage.removeItem("uacc.overviewFilter");
+            sessionStorage.removeItem("ancientvoid.overviewFilter");
             setStatusFilter("all");
           }}
         >

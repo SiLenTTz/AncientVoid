@@ -2,13 +2,13 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import type { WorkerProcess } from "@uacc/contracts";
-import { EmittedEvent } from "@uacc/contracts";
-import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
+import type { WorkerProcess } from "@ancientvoid/contracts";
+import { EmittedEvent } from "@ancientvoid/contracts";
+import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
 import { createAdapter } from "../src/index.ts";
 
 /**
- * `@uacc/adapter-testkit`'s `runContractTests()` cannot exercise this
+ * `@ancientvoid/adapter-testkit`'s `runContractTests()` cannot exercise this
  * adapter: its internal AdapterContext always throws on `spawnWorker`
  * (testkit/src/index.ts:39) with no override hook, so any adapter that
  * actually spawns a worker — as every real (non-dummy) adapter must — fails
@@ -356,13 +356,13 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
         calls.push({ cmd, ...(opts?.env ? { env: opts.env } : {}) });
         return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
       },
-      permissionBridge: async () => ({ mcpConfigPath: "/data/bridges/s.mcp.json", toolName: "mcp__uacc__permission" }),
+      permissionBridge: async () => ({ mcpConfigPath: "/data/bridges/s.mcp.json", toolName: "mcp__ancientvoid__permission" }),
     });
     const adapter = createAdapter();
     const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "hallo" }, ctx);
     await adapter.steer(handle, { kind: "prompt", text: "weiter" }, ctx);
     for (const call of calls) {
-      expect(call.cmd.join(" ")).toContain("--mcp-config /data/bridges/s.mcp.json --permission-prompt-tool mcp__uacc__permission");
+      expect(call.cmd.join(" ")).toContain("--mcp-config /data/bridges/s.mcp.json --permission-prompt-tool mcp__ancientvoid__permission");
       expect(call.env?.MCP_TOOL_TIMEOUT).toBe("3600000");
     }
     expect(calls).toHaveLength(2);

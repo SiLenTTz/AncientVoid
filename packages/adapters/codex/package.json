@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/adapter-codex",
+  "name": "@ancientvoid/adapter-codex",
   "version": "0.1.0",
   "description": "codex adapter (P1): spawns `codex exec --json`, maps its event stream to NormalizedEvent.",
   "type": "module",
@@ -12,8 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/adapter-jsonrpc": "0.1.0",
-    "@uacc/contracts": "0.1.0",
+    "@ancientvoid/adapter-jsonrpc": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
     "zod": "^4.6.5"
   }
 }

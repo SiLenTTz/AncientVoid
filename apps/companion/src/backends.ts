@@ -1,7 +1,7 @@
 import { execFile, spawn } from "node:child_process";
 import { createConnection } from "node:net";
 import { join } from "node:path";
-import type { DesktopInputMode } from "@uacc/contracts";
+import type { DesktopInputMode } from "@ancientvoid/contracts";
 
 /**
  * EPIC-P11 (ADR-0031): what the companion needs from the desktop — which

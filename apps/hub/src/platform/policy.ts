@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { policyFor, type PolicyDecision, type PolicyOperation } from "@uacc/contracts";
-import type { TokenService } from "@uacc/core";
+import { policyFor, type PolicyDecision, type PolicyOperation } from "@ancientvoid/contracts";
+import type { TokenService } from "@ancientvoid/core";
 import { extractToken } from "./auth.ts";
 
 /**

@@ -6,7 +6,7 @@ severity: S2
 area: adapters
 instance: dev
 commit: "e49af07"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/34"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/34"
 epic: "EPIC-P25"
 created: 2026-10-30
 reporter: "Jan (Session f413d422, PWA)"
@@ -32,7 +32,7 @@ seq 16  15:34:51  user    "Ja"
 seq 18  15:34:51  system  provider.error — title "Fehler beim Provider", raw "Internal error"
 ```
 
-Worker-Log (`data/workers/uacc-f413d422….log`):
+Worker-Log (`data/workers/ancientvoid-f413d422….log`):
 
 ```text
 Z128  session/new → ok, sessionId CgYfd3oo…, model currentValue: "zai/glm-5-code"
@@ -60,8 +60,8 @@ normal beantwortet. Die Modellauswahl ist Teil des Session-Starts
 
 | Feld | Wert |
 |---|---|
-| Instanz | lokal (systemd uacc-hub, Restart 15:58:42, main `e49af07`) |
-| Adapter | `@uacc/adapter-acp`, preset `maki`, model `zai/glm-5.3` |
+| Instanz | lokal (systemd ancientvoid-hub, Restart 15:58:42, main `e49af07`) |
+| Adapter | `@ancientvoid/adapter-acp`, preset `maki`, model `zai/glm-5.3` |
 | Provider-Key | darf glm-5.3, nicht glm-5-code (ZHIPU 403, Code 1220) |
 | Repro-Weg | PWA (Nutzer) + EventStore/Worker-Log |
 
@@ -117,5 +117,5 @@ ACP-Suite 46/46 grün. Live-Verifikation nach Hub-Restart ausstehend
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [x] GitLab-Issue angelegt ([#34](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/34))
+- [x] GitLab-Issue angelegt ([#34](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/34))
 - [x] `bugfix` (Fix + Test, MR siehe Historie)

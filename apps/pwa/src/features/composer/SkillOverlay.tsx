@@ -9,7 +9,7 @@ export interface SelectedSkill {
 }
 
 function storageKey(project: string): string {
-  return `uacc.skill.${project}`;
+  return `ancientvoid.skill.${project}`;
 }
 
 /** Per-project remembered default (T1.6's loadFilter() pattern) — the
@@ -42,7 +42,7 @@ export function rememberedSkill(project: string, features: Pick<HarnessFeatures,
 }
 
 function workflowKey(project: string): string {
-  return `uacc.workflow.${project}`;
+  return `ancientvoid.workflow.${project}`;
 }
 
 export function loadSelectedWorkflow(project: string): string | null {

@@ -10,12 +10,12 @@ wenn die Exit-Kriterien von P(n-1) grün sind.
 ## Architektur-Regeln (nicht verhandelbar)
 
 1. **Contracts first.** Alles, was Komponenten teilen, liegt in
-   `@uacc/contracts` und ist öffentlicher API-Stabilität unterworfen.
+   `@ancientvoid/contracts` und ist öffentlicher API-Stabilität unterworfen.
    Änderungen am Adapter-/Event-/Worker-Contract brauchen ein ADR in
    `docs/adr/`.
 2. **Adapter sehen nur `AdapterContext`** (`emit`, `blob`, `spawnWorker`,
    `log`, `signal`, `workdir`, `sessionId`). Keine Hub-Internas, keine
-   Imports aus `@uacc/core` oder `@uacc/server` in Adaptern.
+   Imports aus `@ancientvoid/core` oder `@ancientvoid/server` in Adaptern.
 3. **K5-Disziplin:** Payloads ≤ 4 KB; alles Große via `ctx.blob()` auslagern.
    Der EventStore erzwingt es, Adaptern soll es trotzdem nicht egal sein.
 4. **K7-Disziplin:** Zustand ist aus JSONL + Snapshot rekonstruierbar. Jede
@@ -31,7 +31,7 @@ wenn die Exit-Kriterien von P(n-1) grün sind.
   (Node strip-types). Deshalb: **keine Parameter-Properties, keine Enums,
   keine Namespaces** — nur strip-taugliche TS-Syntax. PWA baut via Vite.
 - Imports mit `.ts`-Endung (`./foo.ts`), `import type` wo möglich.
-- npm workspaces; neue Pakete nach `packages/`, Name `@uacc/<name>`.
+- npm workspaces; neue Pakete nach `packages/`, Name `@ancientvoid/<name>`.
 - Persistenz: `node:sqlite` (keine nativen Module).
 - Zeitstempel ISO-8601 UTC. IDs: `crypto.randomUUID()`.
 - Kommentare sparsam, auf Deutsch oder Englisch, Warum statt Was.
@@ -51,7 +51,7 @@ npm run lint             # eslint
 npm run typecheck        # tsc --noEmit
 npm run gate             # typecheck + lint + test + test:e2e
 npm run loadtest         # K8: 20 Sessions × 30 ev/s
-npm -w @uacc/pwa run build
+npm -w @ancientvoid/pwa run build
 ```
 
 Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
@@ -68,7 +68,7 @@ UI-Funktion oder neuer Ablauf = neuer oder erweiterter Spec in `e2e/specs/`.
   `apps/hub/test/server.test.ts`).
 - E2E in `e2e/` (Playwright Chromium). Fehlt der Browser, skippt der Test
   sichtbar — analog tmux / ADR-0002. Nicht als Pass zählen.
-- Adapter bekommen die Suite aus `@uacc/adapter-testkit` — grün =
+- Adapter bekommen die Suite aus `@ancientvoid/adapter-testkit` — grün =
   hub-integrierbar.
 - tmux-Tests skipped automatisch, wenn tmux fehlt.
 - Fixtures für echte CLI-Streams (P1): aufgezeichnet, anonymisiert,
@@ -94,7 +94,7 @@ sie duplizieren nichts hier, sie wenden es an. Index: `.claude/skills/README.md`
 - Neue Phase: Skill `epic-creation` bzw. Agent `epic-planner` — Vorbild `epics/EPIC-P3-adapter-flotte-sprachsuche.md`, Premortem nie überspringen.
 - Tests schreiben: Skill `write-tests`.
 - Architekturfragen/Schichten: Skill `architecture-best-practices`.
-- Diff wirkt überkonstruiert: Skill `ponytail-review` (Tags `delete`/`stdlib`/`native`/`yagni`/`shrink`, Invarianten via `_shared/uacc-protected-invariants.md`).
+- Diff wirkt überkonstruiert: Skill `ponytail-review` (Tags `delete`/`stdlib`/`native`/`yagni`/`shrink`, Invarianten via `_shared/ancientvoid-protected-invariants.md`).
 
 Kein Branch für nicht angewiesene Arbeit (unter einer stehenden
 Autonomie-Anweisung für eine Aufgabe/ein Epic ist ein Branch **pro

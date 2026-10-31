@@ -20,7 +20,7 @@ export function captureShareTarget(search: string): { text: string } | null {
   return parts.length > 0 ? { text: parts.join("\n\n") } : null;
 }
 
-const KEY = "uacc.share.inbox";
+const KEY = "ancientvoid.share.inbox";
 
 export function storeShareInbox(text: string): void {
   try {

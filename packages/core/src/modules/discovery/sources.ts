@@ -7,7 +7,7 @@ import {
   DEFAULT_HOST_ID,
   type DiscoveredSession,
   type DiscoverySource,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 import { readClaudeMeta } from "./claude-meta.ts";
 
 /** ADR-0040: a transcript written this recently is probably open in another harness. */

@@ -28,7 +28,7 @@ K7: Zustand in unter 3 s wiederhergestellt.
 ## Repro
 
 1. Hub mit ~30 nicht beendeten Sessions (darunter ACP-/Codex-/Cursor-Sessions) neu starten.
-2. `journalctl --user -u uacc-hub | grep "recovery"`.
+2. `journalctl --user -u ancientvoid-hub | grep "recovery"`.
 
 **Ergebnis nach Schritt 2:** `elapsedMs` ≈ 12.600.
 

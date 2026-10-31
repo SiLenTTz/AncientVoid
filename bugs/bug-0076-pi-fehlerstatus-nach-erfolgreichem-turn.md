@@ -6,8 +6,8 @@ severity: S1
 area: adapters
 instance: dev
 commit: ""
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/merge_requests/245"
-work-item: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/30"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/245"
+work-item: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/30"
 epic: ""
 created: 2026-10-28
 reporter: "Maki (Session e2e84c77)"

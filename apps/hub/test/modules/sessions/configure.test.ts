@@ -3,9 +3,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
-import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { basicFeatures, type Adapter, type SteerInput } from "@uacc/contracts";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { basicFeatures, type Adapter, type SteerInput } from "@ancientvoid/contracts";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { createHubApp } from "../../../src/app.ts";
 
 /** ADR-0033: POST /api/sessions/:id/steer { kind: "configure" } und der Default beim Anlegen. */
@@ -16,7 +16,7 @@ describe("hub route — Modus und Modell (ADR-0033)", () => {
   const steered: SteerInput[] = [];
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-configure-route-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-configure-route-"));
     const adapter: Adapter = {
       id: "modal",
       version: "0.0.1",

@@ -1,6 +1,6 @@
 # ADR-0036 — Resume-Referenzen im Adapter-Contract
 
-**Status:** akzeptiert · **Betrifft:** EPIC-P17 T17.2/T17.3, `AdapterCapabilities.resume`, `hubctl show`, PcOpenNotice, `@uacc/adapter-testkit`
+**Status:** akzeptiert · **Betrifft:** EPIC-P17 T17.2/T17.3, `AdapterCapabilities.resume`, `hubctl show`, PcOpenNotice, `@ancientvoid/adapter-testkit`
 
 ## Kontext
 

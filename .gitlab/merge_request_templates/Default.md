@@ -40,7 +40,7 @@ hier ausdrücklich benannt, nicht stillschweigend übergangen.
 ## Future-Fragility (eine Zeile pro Punkt, „nicht betroffen" zählt)
 
 - Contract-Bruch ohne ADR:
-- Adapter importiert `@uacc/core`/`@uacc/server` oder umgeht `AdapterContext`:
+- Adapter importiert `@ancientvoid/core`/`@ancientvoid/server` oder umgeht `AdapterContext`:
 - Event-Payload > 4 KB ohne `ctx.blob()` (K5):
 - Neuer State ohne Recovery-Pfad (K7):
 - Stiller Drop unbekannter Provider-Events statt `system`-Event:

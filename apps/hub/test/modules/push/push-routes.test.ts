@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, EventStore, HubDatabase, PushService, SessionManager, SettingsStore, TokenService } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, EventStore, HubDatabase, PushService, SessionManager, SettingsStore, TokenService } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../../src/app.ts";
 
@@ -22,7 +22,7 @@ describe("push routes (T8.3)", () => {
   }
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-push-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-push-"));
     const db = new HubDatabase(":memory:");
     const tokens = new TokenService(db);
     const registry = new AdapterRegistry();

@@ -6,7 +6,7 @@ severity: S3
 area: pwa
 instance: dev
 commit: "995f2df"
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/17"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/17"
 epic: ""
 created: 2026-10-21
 reporter: nutzer (Handy)
@@ -68,5 +68,5 @@ Rot ohne Fix: ein Test, bei dem zwischen zwei Plan-Snapshots 15 min vergehen und
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [x] GitLab-Issue angelegt ([#17](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/17))
+- [x] GitLab-Issue angelegt ([#17](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/17))
 - [x] `bugfix` (im selben Lauf beauftragt)

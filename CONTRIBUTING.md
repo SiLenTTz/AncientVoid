@@ -11,7 +11,7 @@ ist ein einzelnes Modul:
 
 ```ts
 // adapters/my-provider/adapter.ts
-import type { Adapter, AdapterContext, SessionHandle } from "@uacc/contracts";
+import type { Adapter, AdapterContext, SessionHandle } from "@ancientvoid/contracts";
 
 export function createAdapter(config?: Record<string, unknown>): Adapter {
   return {
@@ -43,7 +43,7 @@ Beispiel: [`examples/adapters/openai-compat/`](./examples/adapters/openai-compat
 
 | Du willst … | Ort |
 |---|---|
-| Adapter beisteuern (npm-Paket `uacc-adapter-*`) | `docs/adapters.md` |
+| Adapter beisteuern (npm-Paket `ancientvoid-adapter-*`) | `docs/adapters.md` |
 | Adapter-Verhalten verändern/erweitern | `packages/contracts/src/adapter.ts` + ADR |
 | Anderen Worker-Runner (z. B. WSL, remote) | `packages/workers/` (`WorkerRunner`-Interface) |
 | Frontend | `apps/pwa/` (Preact, bewusst klein) |
@@ -52,7 +52,7 @@ Beispiel: [`examples/adapters/openai-compat/`](./examples/adapters/openai-compat
 ## Verpflichtend für jeden Beitrag
 
 1. `npm test && npm run lint && npm run typecheck` — grün.
-2. Adapter: Contract-Suite aus `@uacc/adapter-testkit` grün (siehe
+2. Adapter: Contract-Suite aus `@ancientvoid/adapter-testkit` grün (siehe
    `packages/adapters/dummy/test/contract.test.ts` als Vorlage).
 3. Keine Secrets, keine Roh-Logs. `data/` bleibt git-ignored.
 4. Neue Komponenten brauchen Contract-Bezug (AGENTS.md, Regel 1 & 5).
@@ -60,7 +60,7 @@ Beispiel: [`examples/adapters/openai-compat/`](./examples/adapters/openai-compat
 
 ## Contract-Stabilität
 
-`@uacc/contracts` ist öffentliche API. Breaking Changes dort brauchen ein ADR
+`@ancientvoid/contracts` ist öffentliche API. Breaking Changes dort brauchen ein ADR
 (`docs/adr/NNN-*.md`) und eine Major-Version. Alles andere ist intern und darf
 sich bewegen.
 
@@ -95,7 +95,7 @@ und verschwindet nach dem Merge.
 | Lebensdauer | Ein Branch = eine Aufgabe = eine MR. Nach Merge löschen (lokal + remote). |
 | Ziel von MRs | Standard-Ziel ist **`main`**. Stacked MRs auf einen Integrations-Branch nur als Ausnahme (Epic-Kette), und die Kette muss zeitnah nach `main` landen. |
 | Keine Zombies | Fertige/gemergte Branches nicht liegen lassen. Stale Remote-Refs: `git fetch --prune`. |
-| `uacc/*` | Session-Worktrees des Hubs — nicht von Hand als Feature-Branches behandeln; Aufräumen über den Hub/`git worktree remove`, nicht über MR-Hygiene. |
+| `ancientvoid/*` | Session-Worktrees des Hubs — nicht von Hand als Feature-Branches behandeln; Aufräumen über den Hub/`git worktree remove`, nicht über MR-Hygiene. |
 
 ### Post-Merge (Pflicht, jedes Mal)
 
@@ -126,7 +126,7 @@ aufräumen und bei Bedarf remote nachziehen.
 git branch -r | grep -v 'origin/main\|origin/HEAD'
 
 # Lokale Branches ohne offenen Nutzen (manuell prüfen)
-git branch --format='%(refname:short)' | grep -v '^main$\|^uacc/'
+git branch --format='%(refname:short)' | grep -v '^main$\|^ancientvoid/\|^uacc/'
 
 # Commits auf einem Branch, die nicht in main sind
 git log --oneline main..<branch>

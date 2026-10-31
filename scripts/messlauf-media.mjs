@@ -29,7 +29,7 @@ const VIDEOS = [
 ];
 const TOO_LONG = "https://www.youtube.com/watch?v=gEroPpvQyNc";
 
-const root = mkdtempSync(join(tmpdir(), "uacc-messlauf-media-"));
+const root = mkdtempSync(join(tmpdir(), "ancientvoid-messlauf-media-"));
 const db = new HubDatabase(join(root, "hub.db"));
 const attachments = new AttachmentStore(db, join(root, "attachments"));
 const media = new MediaJobs(db, {

@@ -1,7 +1,7 @@
 import mqtt, { type MqttClient } from "mqtt";
 import { readFileSync } from "node:fs";
-import { LOOP_NEW } from "@uacc/contracts";
-import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopStartSpec, SessionHandle } from "@uacc/contracts";
+import { LOOP_NEW } from "@ancientvoid/contracts";
+import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopStartSpec, SessionHandle } from "@ancientvoid/contracts";
 import { expandHome, knownLines, onboardLine, ONBOARDING, readEnvValue } from "./factory.ts";
 import { answerQuestions, classify, decode, infoPayload, int, LEGACY_COMMANDS, LINE_PATTERN, MODES, progressPayload, readQuestions, statePayload, statsPayload, str, topics, type Answer } from "./protocol.ts";
 
@@ -246,7 +246,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
       if (line === LOOP_NEW) throw new Error("Das neue Repo muss erst angebunden werden");
       if (!LINE_PATTERN.test(line)) throw new Error("Option „line“ fehlt oder ist kein Linienname (a–z, 0–9, -)");
       const password = passwordFile ? readFileSync(expandHome(passwordFile), "utf8").trim() : passwordEnvFile ? readEnvValue(passwordEnvFile, passwordKey) : undefined;
-      const client = await connect(url, { clientId: `uacc-${ctx.sessionId}`, ...(username ? { username } : {}), ...(password ? { password } : {}) });
+      const client = await connect(url, { clientId: `ancientvoid-${ctx.sessionId}`, ...(username ? { username } : {}), ...(password ? { password } : {}) });
       const saved = (io.resume ?? {}) as { answered?: unknown; last?: unknown; broken?: unknown };
       const last = typeof saved.last === "object" && saved.last !== null ? Object.entries(saved.last).filter((e): e is [string, string] => typeof e[1] === "string") : [];
       const run: Run = {

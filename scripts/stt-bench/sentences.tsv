@@ -1,5 +1,5 @@
 id	text	terms
-t01	Starte eine neue Session mit Codex im Projekt mobile hub.	Session|Codex|mobile hub
+t01	Starte eine neue Session mit Codex im Projekt AncientVoid.	Session|Codex|AncientVoid
 t02	Führe bitte die Tests mit npm test aus und zeig mir die Fehler.	npm test
 t03	Erstelle einen Pull Request für den Branch feature login.	Pull Request|Branch
 t04	Der Worktree liegt unter data worktrees, prüfe den Git Status.	Worktree|Git Status

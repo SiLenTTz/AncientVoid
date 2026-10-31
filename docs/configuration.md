@@ -1,6 +1,6 @@
 # Konfiguration
 
-Der Hub liest `UACC_CONFIG` (Pfad) oder standardmäßig `./hub.config.json`.
+Der Hub liest `ANCIENTVOID_CONFIG` (Pfad) oder standardmäßig `./hub.config.json`.
 Vorlage: `apps/hub/hub.config.example.json`. Die eigene Config ist
 git-ignored — keine Secrets committen.
 
@@ -22,7 +22,7 @@ git-ignored — keine Secrets committen.
   "adapters": [
     {
       "id": "dummy",                      // Name für SessionSpec.adapter
-      "module": "@uacc/adapter-dummy",    // npm-Paket oder relativer Dateipfad
+      "module": "@ancientvoid/adapter-dummy",    // npm-Paket oder relativer Dateipfad
       "enabled": true,
       "config": { "eventsPerSecond": 5 }  // adapterspezifisch (zod-validiert im Adapter)
     }
@@ -70,7 +70,7 @@ Freitextfeld für den Projektpfad zurück, kein Endpunkt lehnt dann etwas ab.
 "loops": [
   {
     "id": "securesight-factory",
-    "module": "@uacc/loop-securesight-factory",
+    "module": "@ancientvoid/loop-securesight-factory",
     "config": {
       "models": {                       // optional — überschreibt die Standardliste
         "anthropic": ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
@@ -117,7 +117,7 @@ Requests durchgehen.
 
 | Var | Default | Zweck |
 |---|---|---|
-| `UACC_CONFIG` | `./hub.config.json` | Config-Pfad |
-| `UACC_LOG` | `info` | Fastify-Log-Level |
-| `UACC_EXPOSE` | – | `1` = auf 0.0.0.0 binden (Container; eigenes Risiko) |
-| `UACC_URL` / `UACC_TOKEN` | – | hubctl-Ziel + Auth |
+| `ANCIENTVOID_CONFIG` | `./hub.config.json` | Config-Pfad |
+| `ANCIENTVOID_LOG` | `info` | Fastify-Log-Level |
+| `ANCIENTVOID_EXPOSE` | – | `1` = auf 0.0.0.0 binden (Container; eigenes Risiko) |
+| `ANCIENTVOID_URL` / `ANCIENTVOID_TOKEN` | – | hubctl-Ziel + Auth |

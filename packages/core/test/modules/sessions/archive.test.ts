@@ -3,12 +3,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AdapterRegistry, EventStore, HubDatabase, SessionManager } from "../../../src/index.ts";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 
 describe("setArchived", () => {
   it("keeps the flag across a later read and does not drop the session", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-arch-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-arch-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();

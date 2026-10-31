@@ -1,4 +1,4 @@
-import type { EmittedEvent } from "@uacc/contracts";
+import type { EmittedEvent } from "@ancientvoid/contracts";
 
 /**
  * Maps one parsed line of a real Claude Code session transcript

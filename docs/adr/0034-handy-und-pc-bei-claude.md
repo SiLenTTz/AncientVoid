@@ -6,7 +6,7 @@ Hub `GET /api/sessions/:id/pc`, `discovery.claudeCommand`, PWA
 ## Kontext
 
 Beobachtung aus dem Betrieb: Eingaben, die am PC in einer Claude-Session gemacht werden, erscheinen im
-Mobile Hub — Eingaben vom Handy erscheinen am PC nicht. Der Entwurf einer Nachricht dagegen ist
+AncientVoid — Eingaben vom Handy erscheinen am PC nicht. Der Entwurf einer Nachricht dagegen ist
 bereits geräteübergreifend synchron (`DraftStore`, Revision und Lease).
 
 Ursache (gegen claude 2.1.288 geprüft): Der Hub liest das Transcript der PC-Session mit (deshalb sind PC-Eingaben

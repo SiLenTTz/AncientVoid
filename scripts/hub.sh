@@ -3,8 +3,8 @@
 #   scripts/hub.sh start|stop|status|logs
 set -euo pipefail
 cd "$(dirname "$0")/.."
-PIDFILE="/tmp/uacc-hub.pid"
-LOG="/tmp/uacc-hub.log"
+PIDFILE="/tmp/ancientvoid-hub.pid"
+LOG="/tmp/ancientvoid-hub.log"
 
 start() {
   if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
@@ -15,8 +15,8 @@ start() {
   touch "$LOG"
   chmod 600 "$LOG"
   # BUG-0034: absolute, so `hubctl workers prune` can match this hub's root
-  # against /proc/<pid>/environ (UACC_CONFIG) and never treat it as orphaned.
-  UACC_CONFIG="${UACC_CONFIG:-$(pwd)/hub.config.json}" \
+  # against /proc/<pid>/environ (ANCIENTVOID_CONFIG) and never treat it as orphaned.
+  ANCIENTVOID_CONFIG="${ANCIENTVOID_CONFIG:-$(pwd)/hub.config.json}" \
     setsid node apps/hub/src/main.ts >>"$LOG" 2>&1 < /dev/null &
   local pid=$!
   echo "$pid" > "$PIDFILE"
@@ -74,9 +74,9 @@ case "${1:-}" in
   start|stop|status)
     # A installed user unit wins over the dev daemon — never two hubs on
     # one port (the unit also survives reboots, this script does not).
-    if systemctl --user cat uacc-hub.service >/dev/null 2>&1; then
-      echo "-> systemd: systemctl --user ${1} uacc-hub.service"
-      systemctl --user "${1}" uacc-hub.service || true
+    if systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1; then
+      echo "-> systemd: systemctl --user ${1} ancientvoid-hub.service"
+      systemctl --user "${1}" ancientvoid-hub.service || true
       exit 0
     fi
     ;;
@@ -87,9 +87,9 @@ case "${1:-}" in
   stop) stop ;;
   status) status ;;
   logs)
-    if systemctl --user cat uacc-hub.service >/dev/null 2>&1; then
-      echo "-> systemd: journalctl --user -u uacc-hub.service -f"
-      exec journalctl --user -u uacc-hub.service -f
+    if systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1; then
+      echo "-> systemd: journalctl --user -u ancientvoid-hub.service -f"
+      exec journalctl --user -u ancientvoid-hub.service -f
     fi
     tail -f "$LOG"
     ;;

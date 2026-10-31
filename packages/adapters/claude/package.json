@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/adapter-claude",
+  "name": "@ancientvoid/adapter-claude",
   "version": "0.1.0",
   "description": "Reference claude adapter (P1): spawns `claude -p --output-format stream-json`, maps its event stream to NormalizedEvent.",
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
     "zod": "^4.6.5"
   }
 }

@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, LoopRegistry, SessionManager, TokenService, loopAsAdapter } from "@uacc/core";
-import { createFakeLoopConnector } from "@uacc/adapter-testkit";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
-import { createLoopConnector } from "@uacc/loop-securesight-factory";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, ApprovalService, EventStore, HubDatabase, LoopRegistry, SessionManager, TokenService, loopAsAdapter } from "@ancientvoid/core";
+import { createFakeLoopConnector } from "@ancientvoid/adapter-testkit";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
+import { createLoopConnector } from "@ancientvoid/loop-securesight-factory";
+import { ProcessRunner } from "@ancientvoid/workers";
 import type { FastifyInstance } from "fastify";
 import { createHubApp } from "../../../src/app.ts";
 
@@ -25,7 +25,7 @@ describe("loops (EPIC-P19)", () => {
   }
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-loops-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-loops-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });
@@ -132,7 +132,7 @@ describe("loops (EPIC-P19)", () => {
   });
 
   it("Onboarding ohne Geheimnis: securesight factory init braucht kein Secret (T26.4, EPIC-P26)", async () => {
-    const binDir = await mkdtemp(join(tmpdir(), "uacc-factory-init-"));
+    const binDir = await mkdtemp(join(tmpdir(), "ancientvoid-factory-init-"));
     const bin = join(binDir, "factory.sh");
     await writeFile(bin, `#!/bin/sh\nif [ "$1" = "init" ]; then printf '%s' '{"root":"/x","checkliste":["git: ok","ready: lauf kann starten"]}'; exit 0; fi\nprintf '%s' '{"schema_version":"1","total":0,"done":0,"stories":[],"now":null,"updated_at":null,"events":[]}'\n`, { mode: 0o755 });
     try {

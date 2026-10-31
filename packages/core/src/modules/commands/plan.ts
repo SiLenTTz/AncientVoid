@@ -1,4 +1,4 @@
-import type { CommandContext, CommandPlan } from "@uacc/contracts";
+import type { CommandContext, CommandPlan } from "@ancientvoid/contracts";
 import { parseCommand, type Intent } from "./parse.ts";
 import { resolveIntent, type ResolveData } from "./resolve.ts";
 import { askPlannerModel, type PlannerModelConfig } from "./model.ts";

@@ -115,7 +115,7 @@ Sessions, lauffähig auf evox2 (Windows/WSL), das lazy-disclosed MCP-Gateway (Me
   nicht zugreifbar. Kein Code geschrieben, der auf einer nie geprüften
   WSL2-Umgebung „sollte funktionieren" behauptet.
 - [x] **T4.6** MCP-Gateway-Sidecar mit 3 Meta-Tools + Allowlist-Anbindung.
-  Neues Package `@uacc/gateway-mcp` (echtes `@modelcontextprotocol/sdk`,
+  Neues Package `@ancientvoid/gateway-mcp` (echtes `@modelcontextprotocol/sdk`,
   nicht selbst gebaut) — `hub_search`/`hub_describe`/`hub_exec` gegen eine
   feste, in `src/operations.ts` geführte Operationen-Liste (6 reale
   Hub-Endpunkte: Sessions lesen/tailen/diffen, Freigaben lesen,
@@ -173,7 +173,7 @@ Sessions, lauffähig auf evox2 (Windows/WSL), das lazy-disclosed MCP-Gateway (Me
     Shell-Injection (Command-Substitution im "Schlüssel" legte real eine
     Datei an). Gefixt: `SAFE_ENV_KEY`-Validierung vor jeder I/O in
     `TmuxRunner` selbst, plus ein `ENV_VAR_NAME`-Schema in
-    `@uacc/contracts` als frühe 400-Ablehnung an der API-Grenze
+    `@ancientvoid/contracts` als frühe 400-Ablehnung an der API-Grenze
     (Defense in depth, eine Quelle für beide). Value-Quotierung im
     selben Fund korrigiert (löschte vorher still eingebettete `'`
     statt sie zu escapen). 4 neue Tests, echter `tmux`-Pane, kein Mock.

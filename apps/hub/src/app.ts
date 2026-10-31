@@ -1,13 +1,13 @@
-import type { ActionDefinition } from "@uacc/contracts";
+import type { ActionDefinition } from "@ancientvoid/contracts";
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@uacc/core";
-import { discoverProjects, FleetStore } from "@uacc/core";
-import type { HubMetrics, DiscoverySource } from "@uacc/contracts";
-import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@uacc/contracts";
+import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@ancientvoid/core";
+import { discoverProjects, FleetStore } from "@ancientvoid/core";
+import type { HubMetrics, DiscoverySource } from "@ancientvoid/contracts";
+import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@ancientvoid/contracts";
 import type { WebAuthnConfig } from "./modules/identity/webauthn.ts";
 import { authHook, type AuthOptions } from "./platform/auth.ts";
 import { registerRoutes } from "./routes.ts";
@@ -90,7 +90,7 @@ export function redactUrl(url: string): string {
 export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
-      level: process.env.UACC_LOG ?? "info",
+      level: process.env.ANCIENTVOID_LOG ?? "info",
       ...(deps.logStream ? { stream: deps.logStream } : {}),
       // BUG-0028: WebSocket clients authenticate with ?token= — the default
       // request serializer logged it verbatim.
@@ -167,4 +167,4 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   return app;
 }
 
-export { WS_PROTOCOL_VERSION } from "@uacc/contracts";
+export { WS_PROTOCOL_VERSION } from "@ancientvoid/contracts";

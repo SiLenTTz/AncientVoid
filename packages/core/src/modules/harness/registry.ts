@@ -1,12 +1,12 @@
-import type { Adapter, AdapterCapabilities, AdapterFactory } from "@uacc/contracts";
-import { basicFeatures, isValidAdapterFactory } from "@uacc/contracts";
+import type { Adapter, AdapterCapabilities, AdapterFactory } from "@ancientvoid/contracts";
+import { basicFeatures, isValidAdapterFactory } from "@ancientvoid/contracts";
 import { resolveAdapterModule, type AdapterRegistration } from "../../platform/index.ts";
 
 /**
  * Adapter registry — the extension point of the hub (PRD §4.2).
  *
  * Adapters are normal modules exporting `createAdapter(config?)`. They can be
- *  - built-in packages from this repo (`@uacc/adapter-dummy`, …),
+ *  - built-in packages from this repo (`@ancientvoid/adapter-dummy`, …),
  *  - any npm package,
  *  - a local file/directory referenced from hub.config.json.
  *

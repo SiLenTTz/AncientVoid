@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { EmittedEvent } from "@uacc/contracts";
+import type { EmittedEvent } from "@ancientvoid/contracts";
 
 /**
  * ADR-0041: a pi session file (`<sessions>/<project>/<timestamp>_<uuid>.jsonl`) as hub events — the

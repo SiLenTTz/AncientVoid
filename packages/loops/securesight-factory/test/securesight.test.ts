@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { assertContractGreen, makeRecordingContext, runLoopContractTests, waitFor } from "@uacc/adapter-testkit";
+import { assertContractGreen, makeRecordingContext, runLoopContractTests, waitFor } from "@ancientvoid/adapter-testkit";
 import { createLoopConnector } from "../src/index.ts";
 
 const hasPython = spawnSync("python3", ["--version"], { stdio: "ignore" }).error === undefined;
@@ -25,7 +25,7 @@ describe.skipIf(!hasPython)("securesight-Connector gegen ein Temp-Projekt (T19.5
   const of = (ctx: { events: { payload?: unknown }[] }, k: string) => ctx.events.filter((e) => (e.payload as { kind?: string }).kind === k).map((e) => e.payload as Record<string, unknown>);
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), "uacc-harnez-"));
+    root = mkdtempSync(join(tmpdir(), "ancientvoid-harnez-"));
     for (const d of ["scripts", ".harness/notify", ".harness/transcript", ".harnez"]) mkdirSync(join(root, d), { recursive: true });
     writeFileSync(join(root, "scripts", "betrieb.py"), FAKE_BETRIEB);
     setStatus(0);

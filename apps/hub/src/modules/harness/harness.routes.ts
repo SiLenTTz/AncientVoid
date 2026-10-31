@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { probeHarnesses, HARNESS_CATALOG, spawnProbeRunner } from "@uacc/core";
-import { isLoopAdapter, type ModelOption } from "@uacc/contracts";
+import { probeHarnesses, HARNESS_CATALOG, spawnProbeRunner } from "@ancientvoid/core";
+import { isLoopAdapter, type ModelOption } from "@ancientvoid/contracts";
 import type { RouteContext } from "../../route-context.ts";
 
 /** Adapters, model catalog, quota and harness inventory (ADR-0004, ADR-0012, ADR-0018). */

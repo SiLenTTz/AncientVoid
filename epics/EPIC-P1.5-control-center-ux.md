@@ -160,7 +160,7 @@ denkbare Eingabe und gleichzeitig ein Pfad, den der Client frei bestimmt.
 
 Reale Struktur auf der Zielmaschine: unter
 `/mnt/omarchy_data/30_repos/arch/arbeitsbaeume/` liegen mehrere
-Geschwister-Repos (`mobile-hub`, `custom-rag`, weitere) nebeneinander.
+Geschwister-Repos (`AncientVoid`, `custom-rag`, weitere) nebeneinander.
 „Automatisch erkannt" heißt deshalb:
 
 - Neues Feld `projectRoots: string[]` in `HubConfig`
@@ -241,7 +241,7 @@ Registry. Gescannt wird die Konvention, die dieses Repo selbst benutzt:
 - `<projekt>/.claude/agents/<name>.md` — YAML-Frontmatter mit `name`,
   `description`, `model` (real geprüft, z. B. `.claude/agents/hub-dev.md`)
 
-Reale Zählung in `mobile-hub` zum Planungszeitpunkt: **11 Skills** mit
+Reale Zählung in `AncientVoid` zum Planungszeitpunkt: **11 Skills** mit
 `SKILL.md` (`architecture-best-practices`, `bugfix`, `bug-report`,
 `concept-phase`, `epic-creation`, `gates`, `git-workflow`, `messlauf`,
 `ponytail-review`, `pr-review`, `retro`) und **3 Agents** (`epic-planner`,
@@ -257,7 +257,7 @@ vorgesehen (`kind: "skill" | "agent" | "workflow"`), aber erst befüllt, wenn
 eine reale Konvention belegt ist. Keine erfundene Verzeichnisstruktur.
 
 **Entschieden (Nutzer-Rückfrage 2):** Der Default-Speicher „zuletzt gewählt"
-ist **pro Projekt**, nicht global — Schlüssel z. B. `uacc.skill.<projekt-id>`.
+ist **pro Projekt**, nicht global — Schlüssel z. B. `ancientvoid.skill.<projekt-id>`.
 Speicherort ist gerätelokales `localStorage`, exakt wie der Filter-State aus
 T1.6 (`packages/pwa/src/SessionTail.tsx`, `loadFilter()`): kein
 Server-Roundtrip, überlebt Reload, ist von Natur aus gerätespezifisch.
@@ -357,7 +357,7 @@ Komponente — und nicht zweimal derselbe Code.
   wie Sessions/Adapter (kein zweiter Timer). **K10:** `packages/pwa/public/sw.js`
   cached jetzt auch `/api/adapters/:id/usage` (bisher nur `/api/sessions`) —
   die bereits bestehende globale „Daten vom … (offline)"-Anzeige
-  (`main.tsx`, `uacc:stale-data`) deckt die Kontingent-Zeile damit automatisch
+  (`main.tsx`, `ancientvoid:stale-data`) deckt die Kontingent-Zeile damit automatisch
   mit ab, kein zweiter, redundanter Alters-Indikator nötig.
   **Echt im Browser geprüft** (Playwright, nicht nur `vite build`): Create-Form
   zeigt kein „Budget" mehr, Dashboard zeigt reale Werte einer echten
@@ -400,7 +400,7 @@ Komponente — und nicht zweimal derselbe Code.
   nur `vite build`, P1-Retro Erkenntnis 2): `hub.config.json` mit
   `projectRoots` auf das echte Geschwister-Verzeichnis gesetzt, Dropdown
   zeigt real alle 7 gefundenen Repos mit ihren tatsächlichen Branches
-  (`aSPARK (docs/metrics-third-machine)`, `custom-rag (dev)`, `mobile-hub
+  (`aSPARK (docs/metrics-third-machine)`, `custom-rag (dev)`, `AncientVoid
   (main)`, …) — Screenshot verifiziert, dark theme und Handy-Breite intakt.
 - [x] **T1.5-6** **Prompt-Composer-Komponente + `hubApi.steer()`.** Neue
   `packages/pwa/src/Composer.tsx`: Textfeld + Aktionsreihe, eingesetzt an
@@ -523,13 +523,13 @@ Komponente — und nicht zweimal derselbe Code.
   echte Datei in `skills.test.ts` (`bug-report`s Beschreibung ≠ `">-"`, exakt
   der reale Text) plus ein synthetischer Fall. Nach Fix per echtem
   Server-Neustart + Playwright erneut geprüft: Overlay zeigt jetzt `bug-report`s
-  vollen Text (Screenshot `/tmp/uacc-pwa-verify/skill-overlay-open.png`).
+  vollen Text (Screenshot `/tmp/ancientvoid-pwa-verify/skill-overlay-open.png`).
   **(b) Overlay-UI** (`packages/pwa/src/SkillOverlay.tsx`, `SkillPicker`):
   Chip zeigt die aktuelle Auswahl **immer sichtbar** (auch bei geschlossenem
   Overlay), öffnet auf Tap eine Liste aller Skills/Agents mit Beschreibung,
   „Ohne Skill/Agent senden" bleibt jederzeit erreichbar. Zuletzt gewählter
   Eintrag ist **pro Projekt** vorbelegt (`localStorage`-Key
-  `uacc.skill.<project>`, Muster wie `loadFilter()` in `SessionTail.tsx`) —
+  `ancientvoid.skill.<project>`, Muster wie `loadFilter()` in `SessionTail.tsx`) —
   live per Playwright bestätigt: 14 Einträge sichtbar, Auswahl von `bugfix`
   persistiert, Chip zeigt `Skill: bugfix`. Für `codex` (kein belegter
   Mechanismus laut T1.5-9) zeigt der Picker ehrlich „für diesen Adapter nicht
@@ -545,7 +545,7 @@ Komponente — und nicht zweimal derselbe Code.
   und `args:{skill:"bugfix"}` über die echte HTTP-API angelegt, per Playwright
   im Tail bestätigt — `#1 · system session.created · Gestartet mit Skill:
   bugfix` erscheint sichtbar (Screenshot
-  `/tmp/uacc-pwa-verify/tail-skill-badge-scrolled.png`), kein Prompttext wurde
+  `/tmp/ancientvoid-pwa-verify/tail-skill-badge-scrolled.png`), kein Prompttext wurde
   dabei umgeschrieben. **Bewusste Scope-Entscheidung:** der
   Folge-Prompt-Composer in `SessionTail.tsx` (T1.5-6, `steer()`) bekommt
   **keinen** eigenen Skill-Picker. Begründung: `--agent` wirkt laut ADR-0005
@@ -556,7 +556,7 @@ Komponente — und nicht zweimal derselbe Code.
   `steer()` wendet weiterhin automatisch den beim Start gewählten Skill erneut
   an (`withSkill()` in `adapter-claude/src/index.ts`, aus T1.5-9), das war
   bereits ausreichend. Gates nach Fix: `npm test` 134/134 grün, `npm run
-  lint`/`npm run typecheck` sauber, `npm -w @uacc/pwa run build`/`typecheck`
+  lint`/`npm run typecheck` sauber, `npm -w @ancientvoid/pwa run build`/`typecheck`
   sauber.
 - [x] **T1.5-11** **Registrierung & Erreichbarkeit** (DoD-Teil, nicht Kosmetik).
   Alle Stellen aktualisiert: `projectRoots` dokumentiert in
@@ -605,7 +605,7 @@ Komponente — und nicht zweimal derselbe Code.
   (Create-Form ohne Budget-Feld).
 - **AC-P1.5-4: 🟢 erfüllt.** Mit `projectRoots: ["/mnt/omarchy_data/30_repos/arch/arbeitsbaeume"]`
   listet `GET /api/projects` genau die direkten Unterverzeichnisse mit `.git`
-  (u. a. `mobile-hub`, `custom-rag`) — kein Nicht-Repo, kein Eintrag aus Tiefe 2,
+  (u. a. `AncientVoid`, `custom-rag`) — kein Nicht-Repo, kein Eintrag aus Tiefe 2,
   kein Eintrag außerhalb der Roots. Ein nicht existierender Root erzeugt eine
   sichtbare Warnung statt einer stillen Leerliste. Beleg: T1.5-4s echter
   `curl`-Lauf gegen alle 7 echten Geschwister-Repos, `projects.test.ts` (9 Tests).
@@ -640,7 +640,7 @@ Komponente — und nicht zweimal derselbe Code.
   ist immer erreichbar, und die Optimierung läuft **nie** ungefragt. Das
   gewählte Enhancer-Backend ist mit Messwerten (Latenz, Kontingent-Wirkung)
   begründet dokumentiert.
-- **AC-P1.5-10: 🟢 erfüllt.** Für das Projekt `mobile-hub` listet das Overlay genau die real
+- **AC-P1.5-10: 🟢 erfüllt.** Für das Projekt `AncientVoid` listet das Overlay genau die real
   vorhandenen Einträge: **11 Skills** (aus `.claude/skills/*/SKILL.md`) und
   **3 Agents** (aus `.claude/agents/*.md`) — ohne `_shared/`, ohne
   `.claude/skills/README.md`, ohne `skill-template.md`. Ein Projekt ohne
@@ -652,7 +652,7 @@ Komponente — und nicht zweimal derselbe Code.
   nächsten Öffnen **desselben** Projekts vorausgewählt und bei einem **anderen**
   Projekt nicht (Per-Projekt-Speicher, überlebt Reload). Die aktuelle Auswahl ist
   ohne Öffnen des Overlays sichtbar und lässt sich mit einer Interaktion ändern
-  oder abwählen. Beleg: `SkillOverlay.tsx` (`uacc.skill.<project>`-Key),
+  oder abwählen. Beleg: `SkillOverlay.tsx` (`ancientvoid.skill.<project>`-Key),
   Playwright `skill-selected.png` (Chip zeigt „Skill: bugfix" nach Auswahl,
   ohne Overlay sichtbar).
 - **AC-P1.5-12: 🟢 erfüllt.** Nach dem Absenden ist im Tail nachvollziehbar, mit welchem

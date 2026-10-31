@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, hostApi, type HubNotification } from "../../shared/api.ts";
 import { pageHash, sessionHash } from "../../app/route.ts";
 
-const READ_KEY = "uacc.notifications.readUpTo";
+const READ_KEY = "ancientvoid.notifications.readUpTo";
 /** EPIC-P6: read marks of other hosts, { hostId: lastReadId }. */
-const PEER_READ_KEY = "uacc.notifications.readByHost";
+const PEER_READ_KEY = "ancientvoid.notifications.readByHost";
 const POLL_MS = 4000;
 /** BUG-0049: a short blip (a few seconds) is no outage — announce "nicht erreichbar" (and later "wieder da") only after this many failed polls in a row. */
 const HUB_DOWN_AFTER = 3;

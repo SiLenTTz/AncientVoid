@@ -45,7 +45,7 @@ module.exports = {
     {
       name: "loops-only-contracts",
       severity: "error",
-      comment: "EPIC-P19 / AC-P19-6: Loop-Connectoren sehen den Hub nur über @uacc/contracts, nie core, workers oder server.",
+      comment: "EPIC-P19 / AC-P19-6: Loop-Connectoren sehen den Hub nur über @ancientvoid/contracts, nie core, workers oder server.",
       from: { path: "^packages/loops/[^/]+/src/" },
       to: { path: "^(apps/|packages/(core|workers|adapters)/)" },
     },

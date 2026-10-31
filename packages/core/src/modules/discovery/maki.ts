@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { DEFAULT_HOST_ID, type DiscoveredSession, type DiscoverySource } from "@uacc/contracts";
+import { DEFAULT_HOST_ID, type DiscoveredSession, type DiscoverySource } from "@ancientvoid/contracts";
 import { clip, headAndTail, messageText, outsideRoots } from "./text.ts";
 
 /**

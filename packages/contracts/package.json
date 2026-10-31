@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/contracts",
+  "name": "@ancientvoid/contracts",
   "version": "0.1.0",
   "description": "Shared contracts for AncientVoid: NormalizedEvent, Adapter interface, worker and server protocols. Zero runtime dependencies beyond zod.",
   "type": "module",

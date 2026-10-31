@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
+import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { createHubApp } from "../../../src/app.ts";
 
 describe("prompt recommendation", () => {
   it("matches a project skill, proposes a file when nothing fits, and writes it once", async () => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-reco-"));
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-reco-"));
     const project = join(root, "demo");
     await mkdir(join(project, ".claude", "skills", "bugfix"), { recursive: true });
     await writeFile(
@@ -61,7 +61,7 @@ describe("prompt recommendation", () => {
       expect(body.mode).toBe("create");
       expect(body.kind).toBe("skill");
 
-      const outside = await mkdtemp(join(tmpdir(), "uacc-reco-out-"));
+      const outside = await mkdtemp(join(tmpdir(), "ancientvoid-reco-out-"));
       const denied = await app.inject({
         method: "POST",
         url: "/api/prompt-recommendation",

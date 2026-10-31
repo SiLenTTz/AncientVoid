@@ -59,7 +59,7 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     const open = async () => {
       const context = await browser.newContext();
       const page = await context.newPage();
-      await page.addInitScript((token) => localStorage.setItem("uacc.token", token), hub.token);
+      await page.addInitScript((token) => localStorage.setItem("ancientvoid.token", token), hub.token);
       await page.goto(`${hub.origin}/#/sessions/${id}`);
       await page.getByPlaceholder("Antworten…").fill("Wer zuerst kommt");
       return page;
@@ -104,7 +104,7 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
       (pill) => getComputedStyle(pill, "::after").animationName,
       await app.locator(".session-topbar .pill.working").elementHandle(),
     );
-    expect(anim).toBe("uacc-border-chase");
+    expect(anim).toBe("ancientvoid-border-chase");
     await expect(app).toHaveURL(new RegExp(`#/sessions/${id}$`));
     await app.getByRole("button", { name: "Stop" }).click();
     await expect(statusPill(app)).toHaveAttribute("data-status", "stopped");

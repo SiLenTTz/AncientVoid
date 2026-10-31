@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/loop-aspark-factory",
+  "name": "@ancientvoid/loop-aspark-factory",
   "version": "0.1.0",
   "description": "Loop connector for the aSPARK factory (ADR-0038): observes and steers a line over its MQTT Leitstand protocol (AsyncAPI 0.9.0).",
   "type": "module",
@@ -12,10 +12,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
     "mqtt": "5.16.1"
   },
   "devDependencies": {
-    "@uacc/adapter-testkit": "0.1.0"
+    "@ancientvoid/adapter-testkit": "0.1.0"
   }
 }

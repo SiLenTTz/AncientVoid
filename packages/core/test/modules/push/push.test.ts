@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inQuietHours, pushHostAllowed, type HubNotification } from "@uacc/contracts";
+import { inQuietHours, pushHostAllowed, type HubNotification } from "@ancientvoid/contracts";
 import { HubDatabase, PushService, SettingsStore, type PushSender } from "../../../src/index.ts";
 
 const sub = (endpoint = "https://fcm.googleapis.com/fcm/send/abc") => ({ endpoint, keys: { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" } });

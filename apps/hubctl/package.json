@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/hubctl",
+  "name": "@ancientvoid/hubctl",
   "version": "0.1.0",
   "description": "Reference CLI client for the AncientVoid hub (list/show/tail/tokens) — also the debugging tool of choice.",
   "type": "module",
@@ -12,8 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0",
-    "@uacc/core": "0.1.0",
-    "@uacc/workers": "0.1.0"
+    "@ancientvoid/contracts": "0.1.0",
+    "@ancientvoid/core": "0.1.0",
+    "@ancientvoid/workers": "0.1.0"
   }
 }

@@ -21,9 +21,9 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLAYWRIGHT_MODULE =
-  process.env.UACC_PLAYWRIGHT_MODULE ??
+  process.env.ANCIENTVOID_PLAYWRIGHT_MODULE ??
   "/home/silenttz/.local/share/mise/installs/npm-playwright/latest/node_modules/playwright/index.mjs";
-const CHROMIUM_PATH = process.env.UACC_CHROMIUM_PATH ?? "/usr/bin/chromium";
+const CHROMIUM_PATH = process.env.ANCIENTVOID_CHROMIUM_PATH ?? "/usr/bin/chromium";
 const { chromium } = await import(PLAYWRIGHT_MODULE);
 
 const RATE = 30;
@@ -40,7 +40,7 @@ const { ProcessRunner } = await import(join(repoRoot, "packages/workers/src/proc
 const { createAdapter } = await import(join(repoRoot, "packages/adapters/dummy/src/index.ts"));
 const { createHubApp } = await import(join(repoRoot, "apps/hub/src/index.ts"));
 
-const dir = await mkdtemp(join(tmpdir(), "uacc-k2-"));
+const dir = await mkdtemp(join(tmpdir(), "ancientvoid-k2-"));
 const db = new HubDatabase(":memory:");
 const store = new EventStore(dir);
 const registry = new AdapterRegistry();

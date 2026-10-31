@@ -28,7 +28,7 @@ describe("zuletzt aktive Session (T23.1)", () => {
     rememberSession({ sessionId: "a" });
     rememberSession(null);
     expect(getLastSession()).toEqual({ sessionId: "a" });
-    store.set("uacc.lastSession", "{kaputt");
+    store.set("ancientvoid.lastSession", "{kaputt");
     expect(getLastSession()).toBeNull();
   });
 

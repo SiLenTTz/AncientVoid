@@ -1,7 +1,7 @@
 import { useState } from "preact/hooks";
 
 /** T8.4: frequent replies one tap away — they fill the field, never send. */
-const KEY = "uacc.templates";
+const KEY = "ancientvoid.templates";
 const DEFAULTS = ["Weiter", "Führe die Tests aus und behebe Fehler", "Fasse den Stand kurz zusammen"];
 
 function load(): string[] {

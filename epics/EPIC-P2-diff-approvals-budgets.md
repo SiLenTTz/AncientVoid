@@ -63,7 +63,7 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
 
 - [x] **T2.1** Worktree-Manager in SessionManager (create/cleanup, Konflikt-Strategie,
   Disk-Quota pro Worktree). `packages/core/src/worktree.ts` — echtes
-  `git worktree add -b uacc/<sessionId> <path> <baseSha>` gegen ein reales
+  `git worktree add -b ancientvoid/<sessionId> <path> <baseSha>` gegen ein reales
   Test-Repo (kein Mock), Branch pro Session als Konflikt-Strategie
   (eindeutige Session-UUID → nie kollidierende Branch-/Verzeichnisnamen).
   In `SessionManager.create()`/`stop()` verdrahtet: `AdapterContext.workdir`
@@ -314,7 +314,7 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
     Objekterstellung ohne Spread des internen Akkumulators.
   - **K5** (`packages/core/test/eventstore.test.ts`, neuer Test, echtes
     `fast-check`-Property-Testing, `numRuns: 50`): iteriert über
-    `EVENT_TYPES` aus `@uacc/contracts` (alle acht echten Typen, nicht
+    `EVENT_TYPES` aus `@ancientvoid/contracts` (alle acht echten Typen, nicht
     eine Hand-Auswahl) × zufällig geformte/große Payloads, prüft für
     jede Kombination die reale JSONL-Zeilengröße (< 4096 Byte) und
     Blob-Auslagerung/-Rückgewinnung.
@@ -391,7 +391,7 @@ Sicherheits-Walkthrough dokumentiert (Bedrohungsliste aus PRD §8 abgehakt).
 
 1. **Netz — Kein öffentlicher Port, Tailscale-only.** 🟢 `packages/server/
    src/main.ts` bindet standardmäßig `127.0.0.1`, öffentliches Binden nur
-   über das explizite `UACC_EXPOSE=1`-Opt-in (seit P0, unverändert). PWA-
+   über das explizite `ANCIENTVOID_EXPOSE=1`-Opt-in (seit P0, unverändert). PWA-
    Auth: Tailnet-Identität (`enforceTailnetIdentity` + `TAILSCALE_LOGIN_
    HEADER`-Prüfung in `auth.ts`) + Device-Token (`TokenService`) + optional
    WebAuthn (T2.5, real, diese Phase).

@@ -13,9 +13,9 @@ verify:
     - npm ci
     - npm rebuild esbuild
     - npm run typecheck
-    - npm -w @uacc/pwa run typecheck
+    - npm -w @ancientvoid/pwa run typecheck
     - npm run lint
-    - npm -w @uacc/pwa run build
+    - npm -w @ancientvoid/pwa run build
     - npm test
     - npm run loadtest -- --sessions 10 --rate 20 --seconds 4
   cache:

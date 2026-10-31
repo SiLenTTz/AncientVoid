@@ -7,7 +7,7 @@ import {
 } from "@simplewebauthn/server";
 import { isoBase64URL } from "@simplewebauthn/server/helpers";
 import type { RegistrationResponseJSON, AuthenticationResponseJSON } from "@simplewebauthn/server";
-import type { WebAuthnStore } from "@uacc/core";
+import type { WebAuthnStore } from "@ancientvoid/core";
 
 /**
  * T2.5 (EPIC-P2 §3): real WebAuthn registration + assertion for

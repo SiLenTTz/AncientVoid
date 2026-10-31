@@ -16,7 +16,7 @@ Brain-spezifischer Code, kein Vault-Pfad, keine Neuronen-Struktur im OSS-Kern
 
 ## Entscheidung
 
-Neuer Contract in `@uacc/contracts` (`packages/contracts/src/reporting.ts`):
+Neuer Contract in `@ancientvoid/contracts` (`packages/contracts/src/reporting.ts`):
 
 ```ts
 export type ReportingSink = (summary: SessionSummary) => void | Promise<void>;

@@ -12,7 +12,7 @@ describe("prompt-optimizer feedback storage (T3.9 Learning-Loop) — real file I
   });
 
   it("appends entries as real JSONL, readable back byte-for-byte", async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-optfb-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-optfb-"));
     await appendOptimizerFeedback(dir, {
       adapter: "claude",
       project: "/tmp/repo",
@@ -47,13 +47,13 @@ describe("prompt-optimizer feedback storage (T3.9 Learning-Loop) — real file I
   });
 
   it("readOptimizerFeedback returns an empty array, not an error, when nothing was ever recorded", async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-optfb-empty-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-optfb-empty-"));
     const entries = await readOptimizerFeedback(dir);
     expect(entries).toEqual([]);
   });
 
   it("creates the data directory if it doesn't exist yet (a fresh hub's first optimizer decision)", async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-optfb-fresh-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-optfb-fresh-"));
     const nested = join(dir, "nested", "data");
     await appendOptimizerFeedback(nested, {
       adapter: "claude",

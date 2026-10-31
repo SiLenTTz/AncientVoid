@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import WebSocket from "ws";
 import type { FastifyInstance } from "fastify";
-import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 import { createHubApp } from "../../../src/app.ts";
 
 interface EventsMsg {
@@ -48,7 +48,7 @@ describe("WS history beyond one page (BUG-0026)", () => {
   let base = "";
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-wshist-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-wshist-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 100, autoStopAfterEvents: 0 });

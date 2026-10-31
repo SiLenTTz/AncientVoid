@@ -4,7 +4,7 @@ h02	Push den Branch und öffne danach einen Pull Request.	Push|Branch|Pull Reque
 h03	Der Build auf main ist seit dem letzten Merge rot.	Build|main|Merge
 h04	Leere den Cache vom Service Worker und prüfe die Logs.	Cache|Service Worker|Logs
 h05	Codex soll einen Unit-Test für den Adapter schreiben.	Codex|Unit-Test|Adapter
-h06	Starte opencode im Projekt mobile hub mit dem lokalen Modell.	opencode|mobile hub|Modell
+h06	Starte opencode im Projekt AncientVoid mit dem lokalen Modell.	opencode|AncientVoid|Modell
 h07	Der Gatekeeper hat den Docker Befehl als Warnung markiert.	Gatekeeper|Docker|Warnung
 h08	Mach ein Refactoring der WebSocket Verbindung im Hub.	Refactoring|WebSocket|Hub
 h09	Wie viel Kontingent hat Claude noch für heute?	Kontingent|Claude

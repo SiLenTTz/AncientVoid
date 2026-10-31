@@ -8,4 +8,4 @@ db="${2:-./data/hub.db}"
 label="live-smoke-$(date +%s)"
 token=$(node apps/hubctl/src/cli.ts token issue "$label" --db "$db" | grep -v "^token for" | tr -d '[:space:]')
 trap 'node apps/hubctl/src/cli.ts token revoke "$label" --db "$db" >/dev/null' EXIT
-UACC_LIVE_URL="$url" UACC_LIVE_TOKEN="$token" npx playwright test -c playwright.live.config.ts
+ANCIENTVOID_LIVE_URL="$url" ANCIENTVOID_LIVE_TOKEN="$token" npx playwright test -c playwright.live.config.ts

@@ -57,7 +57,7 @@ test.describe("Zoom der Oberfläche (EPIC-P20 T20.2)", () => {
     expect(await scaleOf(app)).toBe(1.1);
     await app.keyboard.press("Control+0");
     expect(await scaleOf(app)).toBe(1);
-    await expect.poll(() => app.evaluate(() => localStorage.getItem("uacc.uiScale"))).toBeNull();
+    await expect.poll(() => app.evaluate(() => localStorage.getItem("ancientvoid.uiScale"))).toBeNull();
   });
 
   test("Strg + Mausrad vergrößert und verkleinert, Grenzen 70 % und 200 %", async ({ app }) => {
@@ -65,11 +65,11 @@ test.describe("Zoom der Oberfläche (EPIC-P20 T20.2)", () => {
     for (let i = 0; i < 3; i++) await app.mouse.wheel(0, -120);
     await app.keyboard.up("Control");
     await expect.poll(() => scaleOf(app)).toBeGreaterThan(1);
-    await app.evaluate(() => localStorage.setItem("uacc.uiScale", "0.7"));
+    await app.evaluate(() => localStorage.setItem("ancientvoid.uiScale", "0.7"));
     await app.reload();
     await app.keyboard.press("Control+Minus");
     expect(await scaleOf(app)).toBe(0.7);
-    await app.evaluate(() => localStorage.setItem("uacc.uiScale", "2"));
+    await app.evaluate(() => localStorage.setItem("ancientvoid.uiScale", "2"));
     await app.reload();
     await app.keyboard.press("Control+Equal");
     expect(await scaleOf(app)).toBe(2);
@@ -91,7 +91,7 @@ test.describe("Zoom der Oberfläche (EPIC-P20 T20.2)", () => {
   for (const scale of [0.7, 1.5]) {
     test(`bei ${Math.round(scale * 100)} % liegt die Oberfläche vollständig im Bild (kein Seiten-Scrollbalken, Antwortfeld sichtbar)`, async ({ app, hub }) => {
       const id = await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Zoom" });
-      await app.evaluate((s) => localStorage.setItem("uacc.uiScale", String(s)), scale);
+      await app.evaluate((s) => localStorage.setItem("ancientvoid.uiScale", String(s)), scale);
       await app.goto(`${hub.origin}/#/sessions/${id}`);
       await app.reload();
       await expect(app.getByPlaceholder("Antworten…").first()).toBeVisible();

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { basicFeatures, type Adapter, type SessionSpec, type SteerInput } from "@uacc/contracts";
-import { ProcessRunner } from "@uacc/workers";
+import { basicFeatures, type Adapter, type SessionSpec, type SteerInput } from "@ancientvoid/contracts";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { refuseSpec, refuseSteer } from "../../../src/modules/harness/features.ts";
 import { EventStore } from "../../../src/platform/eventstore.ts";
@@ -60,7 +60,7 @@ describe("ADR-0033 SessionManager", () => {
     return { calls, registry };
   }
   const make = async (registry: AdapterRegistry, defaultMode: string | null) => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-configure-"));
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-configure-"));
     const db = new HubDatabase(":memory:");
     const sessions = new SessionManager(db, new EventStore(root), registry, new ProcessRunner(), undefined, undefined, undefined, null, [], {}, undefined, defaultMode);
     return { root, db, sessions, done: async () => { await sessions.shutdown(); await rm(root, { recursive: true, force: true }); } };

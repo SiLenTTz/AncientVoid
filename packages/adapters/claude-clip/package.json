@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/adapter-claude-clip",
+  "name": "@ancientvoid/adapter-claude-clip",
   "version": "0.1.0",
   "description": "claude-clip adapter (P3, T3.15): read-only observation of a real Claude Code session (hub-spawned or started independently in the user's own terminal) via its own ~/.claude/projects/<cwd>/<sessionId>.jsonl transcript — never drives Claude Code, may-break by design (K9), same pattern as adapter-cursor-clip.",
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
     "zod": "^4.6.5"
   }
 }

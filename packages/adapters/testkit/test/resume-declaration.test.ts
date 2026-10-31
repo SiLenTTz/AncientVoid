@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Adapter, AdapterCapabilities, SessionSpec, AdapterContext } from "@uacc/contracts";
+import type { Adapter, AdapterCapabilities, SessionSpec, AdapterContext } from "@ancientvoid/contracts";
 import { runContractTests } from "../src/index.ts";
 
 /**

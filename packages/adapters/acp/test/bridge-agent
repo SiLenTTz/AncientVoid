@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // BUG-0079-Testfixture: minimaler ACP-Server, der jede JSON-RPC-Methode in
-// die Datei $UACC_BRIDGE_LOG zeichnet. Nur initialize/session/new/
+// die Datei $ANCIENTVOID_BRIDGE_LOG zeichnet. Nur initialize/session/new/
 // session/prompt/session/load werden beantwortet — mehr braucht der Test
 // nicht. Absichtlich dumm: keine Befehlssemantik, nur Protokoll.
 import { appendFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 
-const LOG = process.env.UACC_BRIDGE_LOG ?? "/tmp/uacc-bridge-agent.log";
+const LOG = process.env.ANCIENTVOID_BRIDGE_LOG ?? "/tmp/ancientvoid-bridge-agent.log";
 let buffer = "";
 let n = 0;
 const send = (msg) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...msg })}\n`);

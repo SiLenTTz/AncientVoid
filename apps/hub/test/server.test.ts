@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
 import { WebSocket } from "ws";
-import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService, ApprovalService, WebAuthnStore } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService, ApprovalService, WebAuthnStore } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 import { createHubApp } from "../src/app.ts";
 import { isQmdAvailable, removeIndex } from "../src/modules/search/search.ts";
 
@@ -17,7 +17,7 @@ describe("hub server", () => {
   let baseUrl: string;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-srv-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -258,7 +258,7 @@ describe("hub server", () => {
     const { execFile } = await import("node:child_process");
     const { promisify } = await import("node:util");
     const execFileAsync = promisify(execFile);
-    const repo = await mkdtempFs(join(tmpdir(), "uacc-diff-repo-"));
+    const repo = await mkdtempFs(join(tmpdir(), "ancientvoid-diff-repo-"));
     await execFileAsync("git", ["init", "-q", repo]);
     await execFileAsync("git", ["-C", repo, "config", "user.email", "test@example.com"]);
     await execFileAsync("git", ["-C", repo, "config", "user.name", "Test"]);
@@ -289,7 +289,7 @@ describe("hub server", () => {
 
 describe("hub server — pwaDir resolution (BUG-0009)", () => {
   async function buildApp(pwaDir?: string) {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-pwa-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-pwa-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -325,18 +325,18 @@ describe("hub server — pwaDir resolution (BUG-0009)", () => {
   });
 
   it("a valid pwaDir serves the SPA shell for non-/api/ routes", async () => {
-    const pwaDir = await mkdtemp(join(tmpdir(), "uacc-pwa-dist-"));
-    await import("node:fs/promises").then((fs) => fs.writeFile(join(pwaDir, "index.html"), "<!doctype html><title>uacc</title>"));
+    const pwaDir = await mkdtemp(join(tmpdir(), "ancientvoid-pwa-dist-"));
+    await import("node:fs/promises").then((fs) => fs.writeFile(join(pwaDir, "index.html"), "<!doctype html><title>ancientvoid</title>"));
     const { app, cleanup } = await buildApp(pwaDir);
     try {
       const root = await app.inject({ method: "GET", url: "/" });
       expect(root.statusCode).toBe(200);
-      expect(root.body).toContain("uacc");
+      expect(root.body).toContain("ancientvoid");
       // SPA fallback: any non-/api/ path (client-side routing) serves the
       // same shell, not a 404.
       const spaRoute = await app.inject({ method: "GET", url: "/some/client/route" });
       expect(spaRoute.statusCode).toBe(200);
-      expect(spaRoute.body).toContain("uacc");
+      expect(spaRoute.body).toContain("ancientvoid");
     } finally {
       await app.close().catch(() => undefined);
       await cleanup();
@@ -347,7 +347,7 @@ describe("hub server — pwaDir resolution (BUG-0009)", () => {
 
 describe("hub server — project auto-discovery (T1.5-4, AC-P1.5-4/5)", () => {
   async function buildApp(projectRoots: string[]) {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-projects-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-projects-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -366,8 +366,8 @@ describe("hub server — project auto-discovery (T1.5-4, AC-P1.5-4/5)", () => {
   }
 
   it("GET /api/projects lists real repos under a configured root", async () => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-projects-root-"));
-    const repo = join(root, "mobile-hub");
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-projects-root-"));
+    const repo = join(root, "AncientVoid");
     await import("node:fs/promises").then((fs) => fs.mkdir(join(repo, ".git"), { recursive: true }));
     const { app, token, cleanup } = await buildApp([root]);
     try {
@@ -379,7 +379,7 @@ describe("hub server — project auto-discovery (T1.5-4, AC-P1.5-4/5)", () => {
       expect(res.statusCode).toBe(200);
       const body = res.json() as { projects: { name: string; path: string }[]; warnings: string[] };
       expect(body.warnings).toEqual([]);
-      expect(body.projects.map((p) => p.name)).toEqual(["mobile-hub"]);
+      expect(body.projects.map((p) => p.name)).toEqual(["AncientVoid"]);
       expect(body.projects[0]!.path).toBe(repo);
     } finally {
       await app.close().catch(() => undefined);
@@ -389,8 +389,8 @@ describe("hub server — project auto-discovery (T1.5-4, AC-P1.5-4/5)", () => {
   });
 
   it("POST /api/sessions rejects a project path outside the configured roots", async () => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-projects-root-"));
-    const outside = await mkdtemp(join(tmpdir(), "uacc-projects-outside-"));
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-projects-root-"));
+    const outside = await mkdtemp(join(tmpdir(), "ancientvoid-projects-outside-"));
     const { app, token, cleanup } = await buildApp([root]);
     try {
       const res = await app.inject({
@@ -409,8 +409,8 @@ describe("hub server — project auto-discovery (T1.5-4, AC-P1.5-4/5)", () => {
   });
 
   it("POST /api/sessions accepts a project path inside a configured root", async () => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-projects-root-"));
-    const repo = join(root, "mobile-hub");
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-projects-root-"));
+    const repo = join(root, "AncientVoid");
     await import("node:fs/promises").then((fs) => fs.mkdir(repo, { recursive: true }));
     const { app, token, cleanup } = await buildApp([root]);
     try {
@@ -431,14 +431,14 @@ describe("hub server — project auto-discovery (T1.5-4, AC-P1.5-4/5)", () => {
 
 describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
   async function buildApp(projectRoots: string[]) {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-enhance-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-enhance-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, {});
     // BUG-0061: a dsh ACP registration under a free-form id — same shape
-    // as a real hub.config.json entry (module @uacc/adapter-acp, preset dsh).
-    registry.register("deepseek", createDummy, { preset: "dsh" }, "@uacc/adapter-acp");
+    // as a real hub.config.json entry (module @ancientvoid/adapter-acp, preset dsh).
+    registry.register("deepseek", createDummy, { preset: "dsh" }, "@ancientvoid/adapter-acp");
     const sessions = new SessionManager(db, store, registry, new ProcessRunner());
     const tokens = new TokenService(db);
     const token = tokens.issue("test-device").token;
@@ -486,8 +486,8 @@ describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
   });
 
   it("422s when the project path is outside configured projectRoots — same guard as session creation", async () => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-enhance-root-"));
-    const outside = await mkdtemp(join(tmpdir(), "uacc-enhance-outside-"));
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-enhance-root-"));
+    const outside = await mkdtemp(join(tmpdir(), "ancientvoid-enhance-outside-"));
     const { app, token, cleanup } = await buildApp([root]);
     try {
       const res = await app.inject({
@@ -529,7 +529,7 @@ describe("hub server — POST /api/prompt-enhance (T1.5-8)", () => {
 
 describe("hub server — GET /api/skills (T1.5-10)", () => {
   async function buildApp(projectRoots: string[]) {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-skills-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -559,8 +559,8 @@ describe("hub server — GET /api/skills (T1.5-10)", () => {
   });
 
   it("422s when the project is outside configured projectRoots", async () => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-skills-root-"));
-    const outside = await mkdtemp(join(tmpdir(), "uacc-skills-outside-"));
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-skills-root-"));
+    const outside = await mkdtemp(join(tmpdir(), "ancientvoid-skills-outside-"));
     const { app, token, cleanup } = await buildApp([root]);
     try {
       const res = await app.inject({
@@ -578,7 +578,7 @@ describe("hub server — GET /api/skills (T1.5-10)", () => {
   });
 
   it("returns a real project's skills/agents when the project is allowed", async () => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-skills-root-"));
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-skills-root-"));
     const repo = join(root, "repo");
     const skillDir = join(repo, ".claude", "skills", "demo");
     await import("node:fs/promises").then((fs) => fs.mkdir(skillDir, { recursive: true }));
@@ -616,7 +616,7 @@ describe("hub server — GET /api/skills (T1.5-10)", () => {
 
 describe("hub server — approval queue, real end-to-end (T2.4/T2.6, ADR-0007)", () => {
   async function buildApp() {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-approvals-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-approvals-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -824,7 +824,7 @@ describe("hub server — WebAuthn routes (T2.5)", () => {
   // real ceremony: option-generation shape, and refusing to proceed
   // without a registered credential.
   async function buildApp() {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-webauthn-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-webauthn-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -910,7 +910,7 @@ describe("hub server — WebAuthn routes (T2.5)", () => {
 
 describe("hub server — budget top-up (T2.7)", () => {
   async function buildApp(withApprovals: boolean) {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-budget-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-budget-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -1017,7 +1017,7 @@ describe("hub server — budget top-up (T2.7)", () => {
 
 describe("hub server — POST /api/prompt-optimizer/feedback (T3.9)", () => {
   it("501s when no dataDir is configured", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-optfb-501-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-optfb-501-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -1041,8 +1041,8 @@ describe("hub server — POST /api/prompt-optimizer/feedback (T3.9)", () => {
   });
 
   it("really writes a local JSONL entry when dataDir is configured — real file, no mock", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-optfb-"));
-    const dataDir = await mkdtemp(join(tmpdir(), "uacc-srv-optfb-data-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-optfb-"));
+    const dataDir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-optfb-data-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -1096,7 +1096,7 @@ describe("hub server — /api/search* routes (T3.8)", () => {
   let token: string;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-srv-search-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-search-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -1206,7 +1206,7 @@ describe("hub server — /api/search* routes (T3.8)", () => {
 
 describe("hub server — session attachCmd (real user request 2026-09-19: same session on desktop + phone)", () => {
   it("omits attachCmd when the hub isn't tmux-backed — the default test setup (ProcessRunner)", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-attach-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-attach-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -1229,7 +1229,7 @@ describe("hub server — session attachCmd (real user request 2026-09-19: same s
   });
 
   it("includes the real tmux attach command only when the runner lists a live worker", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-srv-attach-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-srv-attach-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -1240,7 +1240,7 @@ describe("hub server — session attachCmd (real user request 2026-09-19: same s
       kind: "process",
       isAvailable: () => runner.isAvailable(),
       spawn: (spec) => runner.spawn(spec),
-      list: async () => [...listed].map((name) => ({ name, fullName: `uacc-${name}` })),
+      list: async () => [...listed].map((name) => ({ name, fullName: `ancientvoid-${name}` })),
       killByName: async () => undefined,
       reapOrphans: async () => [],
     });
@@ -1255,10 +1255,10 @@ describe("hub server — session attachCmd (real user request 2026-09-19: same s
       expect(hidden.json().attachCmd).toBeUndefined();
       listed.add(record.id);
       const res = await app.inject({ method: "GET", url: `/api/sessions/${record.id}`, headers: { authorization: `Bearer ${token}` } });
-      expect(res.json().attachCmd).toBe(`tmux attach -t uacc-${record.id}`);
+      expect(res.json().attachCmd).toBe(`tmux attach -t ancientvoid-${record.id}`);
 
       const list = await app.inject({ method: "GET", url: "/api/sessions", headers: { authorization: `Bearer ${token}` } });
-      expect(list.json()[0].attachCmd).toBe(`tmux attach -t uacc-${record.id}`);
+      expect(list.json()[0].attachCmd).toBe(`tmux attach -t ancientvoid-${record.id}`);
 
       await sessions.stop(record.id);
       const afterStop = await app.inject({ method: "GET", url: `/api/sessions/${record.id}`, headers: { authorization: `Bearer ${token}` } });

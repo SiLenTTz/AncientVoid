@@ -12,7 +12,7 @@
   "adapters": [
     {
       "id": "dummy",
-      "module": "@uacc/adapter-dummy",
+      "module": "@ancientvoid/adapter-dummy",
       "config": {
         "eventsPerSecond": 5,
         "giantEvery": 0,
@@ -25,7 +25,7 @@
     {
       "$comment": "Read-only observer for Claude Code sessions started outside AncientVoid. Enable only on a host with the matching ~/.claude/projects transcript store; it never sends prompts to Claude Code.",
       "id": "claude-clip",
-      "module": "@uacc/adapter-claude-clip",
+      "module": "@ancientvoid/adapter-claude-clip",
       "enabled": false,
       "config": {
         "pollIntervalMs": 1500,

@@ -1,5 +1,5 @@
 import { getHeapStatistics } from "node:v8";
-import type { HubMemoryCheck } from "@uacc/contracts";
+import type { HubMemoryCheck } from "@ancientvoid/contracts";
 
 /** Anteil des V8-Heap-Limits, ab dem gewarnt bzw. kritisch gemeldet wird. */
 export const MEMORY_WARN_RATIO = 0.6;

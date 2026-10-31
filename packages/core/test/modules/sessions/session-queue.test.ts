@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { basicFeatures, type Adapter, type AdapterContext, type SteerInput } from "@uacc/contracts";
-import { ProcessRunner } from "@uacc/workers";
+import { basicFeatures, type Adapter, type AdapterContext, type SteerInput } from "@ancientvoid/contracts";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { EventStore } from "../../../src/platform/eventstore.ts";
 import { HubDatabase } from "../../../src/platform/db.ts";
@@ -62,7 +62,7 @@ async function waitFor(check: () => boolean | Promise<boolean>, ms = 4000): Prom
 }
 
 const setup = async (dbFile?: string, root?: string) => {
-  const dir = root ?? (await mkdtemp(join(tmpdir(), "uacc-queue-")));
+  const dir = root ?? (await mkdtemp(join(tmpdir(), "ancientvoid-queue-")));
   const { steered, registry, endTurn } = fakeAdapter();
   const db = new HubDatabase(dbFile ?? ":memory:");
   const sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
@@ -169,7 +169,7 @@ describe("Vormerken", () => {
   });
 
   it("überlebt einen Hub-Neustart (K7): nach der Recovery geht der Eintrag raus", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-queue-restart-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-queue-restart-"));
     const file = join(dir, "hub.db");
     const first = await setup(file, dir);
     try {

@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ACTION_OUTPUT_MAX_CHARS, ActionDefinition, actionArgv, type ActionRun, type EmittedEvent } from "@uacc/contracts";
+import { ACTION_OUTPUT_MAX_CHARS, ActionDefinition, actionArgv, type ActionRun, type EmittedEvent } from "@ancientvoid/contracts";
 
 /** Read-only git actions every worktree has. */
 export const BUILTIN_ACTIONS: ActionDefinition[] = [

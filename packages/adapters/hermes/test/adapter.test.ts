@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { WorkerProcess } from "@uacc/contracts";
-import { makeRecordingContext, waitFor } from "@uacc/adapter-testkit";
+import type { WorkerProcess } from "@ancientvoid/contracts";
+import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
 import { createAdapter, extractSessionId, splitModelSpec, buildHermesArgs } from "../src/index.ts";
 
 // Same testkit gap as adapter-aider (see its test file's doc comment):

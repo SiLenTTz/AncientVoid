@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { EventStore, HubDatabase, SessionManager, TokenService, AdapterRegistry, claudeDiscoverySource } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
+import { EventStore, HubDatabase, SessionManager, TokenService, AdapterRegistry, claudeDiscoverySource } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { createHubApp } from "../../../src/app.ts";
 
 describe("GET /api/inventory and discovery sources", () => {
   it("returns probed cells without calling a real binary, and lists a scanned transcript", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-inv-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-inv-"));
     const claude = join(dir, "claude");
     const project = join(claude, "projects", "-tmp-demo");
     await mkdir(project, { recursive: true });

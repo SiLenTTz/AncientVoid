@@ -14,7 +14,7 @@ Start-Formular ──POST /api/sessions {loop}──▶ Hub ──▶ Session mi
                                   Loop-System (MQTT-Broker bzw. Dateien/CLI)
 ```
 
-- Der **Connector** sieht nur `@uacc/contracts` (`check:arch`-Regel `loops-only-contracts`).
+- Der **Connector** sieht nur `@ancientvoid/contracts` (`check:arch`-Regel `loops-only-contracts`).
 - Die Session trägt den internen Adapter `loop:<id>`; EventStore, Recovery, Freigaben, Push und PWA laufen unverändert.
   Die Adapter-Liste (`/api/adapters`) führt diese Shims nicht; sie stehen in `GET /api/loops`.
 - Die Auswahl des Start-Formulars steht als `args.loop` im Event `session.created`.
@@ -31,11 +31,11 @@ Start-Formular ──POST /api/sessions {loop}──▶ Hub ──▶ Session mi
 
 ```json
 "loops": [
-  { "id": "aspark-factory", "module": "@uacc/loop-aspark-factory", "config": {
+  { "id": "aspark-factory", "module": "@ancientvoid/loop-aspark-factory", "config": {
       "url": "mqtt://127.0.0.1:1883", "username": "leitstand",
       "passwordEnvFile": "~/.aspark-factory/factory.env", "passwordKey": "MQTT_LEITSTAND_PASSWORD",
       "factoryctl": "/pfad/zu/aSPARK-Factory/factoryctl", "factoryHome": "~/.aspark-factory" } },
-  { "id": "securesight-factory", "module": "@uacc/loop-securesight-factory", "config": {} }
+  { "id": "securesight-factory", "module": "@ancientvoid/loop-securesight-factory", "config": {} }
 ]
 ```
 
@@ -52,13 +52,13 @@ sichtbar, gesperrt, mit dem Grund. Ohne Eintrag steht er als „nicht eingericht
 ## Einen Connector schreiben
 
 `createLoopConnector(config?) => LoopConnector` exportieren (`packages/contracts/src/loops/connector.ts`) und
-`runLoopContractTests(createLoopConnector, …)` aus `@uacc/adapter-testkit` grün bekommen. Der Fake-Loop
-(`@uacc/adapter-testkit/fake-loop`) ist die Vorlage und läuft in den E2E-Specs.
+`runLoopContractTests(createLoopConnector, …)` aus `@ancientvoid/adapter-testkit` grün bekommen. Der Fake-Loop
+(`@ancientvoid/adapter-testkit/fake-loop`) ist die Vorlage und läuft in den E2E-Specs.
 
-## aSPARK-Factory (`@uacc/loop-aspark-factory`)
+## aSPARK-Factory (`@ancientvoid/loop-aspark-factory`)
 
 Der Hub ist ein Leitstand-Client einer Linie (AsyncAPI 0.9.0, alle Nachrichten `v:1`). Pro Session ein MQTT-Client
-`uacc-<sessionId>`, abonniert wird nur die gewählte Linie (Option `line`).
+`ancientvoid-<sessionId>`, abonniert wird nur die gewählte Linie (Option `line`).
 
 | Topic | im Hub |
 |---|---|
@@ -79,7 +79,7 @@ Grenzen: kein `allow-always` (v1 der Factory); „Nein“ auf eine Frage kennt d
 nach ihrem `timeoutAction`. Das Passwort steht nie in der Config, nur `passwordFile`. Tests: echter `mosquitto`
 auf Zufallsport (`packages/loops/aspark-factory/test/aspark.test.ts`), übersprungen, wenn er fehlt.
 
-## securesight-Factory (`@uacc/loop-securesight-factory`)
+## securesight-Factory (`@ancientvoid/loop-securesight-factory`)
 
 Ein Projekt = ein Loop (Projektwurzel = die gewählte Projektauswahl, sie braucht `scripts/betrieb.py`). Der Hub ruft den Supervisor alle
 `pollMs` (Standard 15 s, höchstens 30 s) und liest Dateien live (fs.watch, sonst alle 2 s) und **schreibt nichts**; der Supervisor darf nur lesen und eskalieren, `notify-ack` und Fortsetzen

@@ -73,8 +73,8 @@ Kein `bypass` gilt je als Ersatz für `native`. Die Harness-Matrix
 ### 3. Native Wege je Harness (T7.2)
 
 - **Claude:** Der Hub startet `claude -p` mit `--permission-prompt-tool
-  mcp__uacc__permission` und einer `--mcp-config`, die einen kleinen
-  stdio-MCP-Server des Hubs startet (`uacc-permission`). Dieser Server stellt
+  mcp__ancientvoid__permission` und einer `--mcp-config`, die einen kleinen
+  stdio-MCP-Server des Hubs startet (`ancientvoid-permission`). Dieser Server stellt
   jede Anfrage per HTTP an den Hub (Session-gebundenes Token) und wartet auf die
   Entscheidung. Der Weg braucht kein stdin und funktioniert deshalb mit tmux
   und nach einem Hub-Neustart (ADR-0014).

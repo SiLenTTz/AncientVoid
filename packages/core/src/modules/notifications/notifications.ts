@@ -1,4 +1,4 @@
-import type { NormalizedEvent, NotificationLevel } from "@uacc/contracts";
+import type { NormalizedEvent, NotificationLevel } from "@ancientvoid/contracts";
 
 export interface NotificationDraft {
   level: NotificationLevel;

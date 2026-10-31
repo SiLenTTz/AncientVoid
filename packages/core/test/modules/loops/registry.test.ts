@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createFakeLoopConnector } from "@uacc/adapter-testkit";
+import { createFakeLoopConnector } from "@ancientvoid/adapter-testkit";
 import { LoopRegistry, NOT_CONFIGURED_REASON } from "../../../src/modules/loops/registry.ts";
 
 describe("LoopRegistry", () => {

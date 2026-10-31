@@ -1,4 +1,4 @@
-import type { EmittedEvent } from "@uacc/contracts";
+import type { EmittedEvent } from "@ancientvoid/contracts";
 
 /**
  * Decodes Cursor's own `cursorDiskKV` JSON blobs into EmittedEvents.

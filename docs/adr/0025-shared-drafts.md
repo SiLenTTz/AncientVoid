@@ -24,7 +24,7 @@ Die gelten erst beim Senden, vorher gibt es nichts.
    „Deren übernehmen“ oder „Meinen behalten“. Gleicher Inhalt von zwei
    Geräten ist kein Konflikt.
 3. **Lokal zuerst:** Jede Eingabe landet sofort in `localStorage`
-   (`uacc.draft.<host>.<session>`, mit `dirty`) und nach 700 ms auf dem Hub.
+   (`ancientvoid.draft.<host>.<session>`, mit `dirty`) und nach 700 ms auf dem Hub.
    Offline bleibt sie lokal, der Hinweis lautet dann „nur auf diesem Gerät“.
    Beim Öffnen entscheidet `reconcile()`: lokale ungesendete Änderung auf
    derselben Revision wird nachgeschoben, beide geändert ergibt einen

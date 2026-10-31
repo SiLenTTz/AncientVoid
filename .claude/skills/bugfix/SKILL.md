@@ -7,7 +7,7 @@ description: Reproduce-Fix-Re-verify-Finalize-Playbook für Defekte im AncientVo
 
 Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). Branch/Commit/MR:
 [`git-workflow`](../git-workflow/SKILL.md). Gates: [`gates`](../gates/SKILL.md).
-AncientVoid-Verträge: [`.claude/skills/_shared/uacc-protected-invariants.md`](../_shared/uacc-protected-invariants.md).
+AncientVoid-Verträge: [`.claude/skills/_shared/ancientvoid-protected-invariants.md`](../_shared/ancientvoid-protected-invariants.md).
 
 ## Zweck
 

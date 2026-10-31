@@ -3,7 +3,7 @@ import { DesktopService, HubDatabase } from "../../../src/index.ts";
 
 /** EPIC-P11 (ADR-0031): the hub's queue for the desktop companion. */
 describe("desktop service (T11.2)", () => {
-  const focus = { id: "0xabc", app: "foot", title: "~/mobile-hub", revision: 7 };
+  const focus = { id: "0xabc", app: "foot", title: "~/AncientVoid", revision: 7 };
   const state = (over: Record<string, unknown> = {}) => ({ backend: "sway", focus, locked: false, paused: false, blocked: null, version: "0.1.0", ...over });
 
   function setup(now = { t: Date.parse("2026-09-24T10:00:00Z") }) {
@@ -16,7 +16,7 @@ describe("desktop service (T11.2)", () => {
     const { d, db } = setup();
     d.report("omarchy", state());
     const a = d.request({ companion: "omarchy", kind: "insert", text: "Hallo PC", target: { id: "0xabc", revision: 7 } }, "pixel");
-    expect(a).toMatchObject({ status: "pending", textLength: 8, target: { app: "foot", title: "~/mobile-hub" } });
+    expect(a).toMatchObject({ status: "pending", textLength: 8, target: { app: "foot", title: "~/AncientVoid" } });
     const first = await d.next("omarchy", 0);
     expect(first.actions).toHaveLength(1);
     expect(first.actions[0]).toMatchObject({ id: a.id, text: "Hallo PC", status: "delivered" });
@@ -74,7 +74,7 @@ describe("desktop service (T11.2)", () => {
     expect(() => d.request({ companion: "omarchy", kind: "insert", text: "x", target: { id: "0xabc", revision: 7 } }, "p")).toThrow(/Passwort/);
     d.report("omarchy", state({ focus: { ...focus, title: "Authentication Required — Password for silenttz" } }));
     expect(() => d.request({ companion: "omarchy", kind: "insert", text: "x", target: { id: "0xabc", revision: 7 } }, "p")).toThrow(/Passwort/);
-    d.report("omarchy", state({ focus: { ...focus, title: "login.ts — mobile-hub — Code" } }));
+    d.report("omarchy", state({ focus: { ...focus, title: "login.ts — AncientVoid — Code" } }));
     expect(d.companions()[0]!.blocked).toBeNull(); // an editor with login.ts is not a login prompt
     now.t += 16_000;
     expect(d.companions()[0]!.online).toBe(false);

@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/adapter-jsonrpc",
+  "name": "@ancientvoid/adapter-jsonrpc",
   "version": "0.1.0",
   "description": "JSON-RPC 2.0 over newline-delimited stdio for adapters with a persistent agent process (ACP, codex app-server).",
   "type": "module",

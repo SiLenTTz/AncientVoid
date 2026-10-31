@@ -15,8 +15,8 @@ export function runClientStep(c: Record<string, string | number | boolean | null
     return "geöffnet";
   }
   if (op === "sessions.show") {
-    sessionStorage.setItem("uacc.overviewFilter", String(c.filter ?? "all"));
-    window.dispatchEvent(new CustomEvent("uacc:overview-filter", { detail: c.filter }));
+    sessionStorage.setItem("ancientvoid.overviewFilter", String(c.filter ?? "all"));
+    window.dispatchEvent(new CustomEvent("ancientvoid:overview-filter", { detail: c.filter }));
     location.hash = pageHash("dashboard");
     return "gefiltert";
   }
@@ -25,9 +25,9 @@ export function runClientStep(c: Record<string, string | number | boolean | null
     return "geöffnet";
   }
   if (op === "code.search") {
-    sessionStorage.setItem("uacc.pendingCodeSearch", JSON.stringify({ sessionId: c.sessionId, text: c.text }));
+    sessionStorage.setItem("ancientvoid.pendingCodeSearch", JSON.stringify({ sessionId: c.sessionId, text: c.text }));
     location.hash = sessionHash(String(c.sessionId), remoteHost(String(c.hostId ?? "")));
-    window.dispatchEvent(new CustomEvent("uacc:code-search"));
+    window.dispatchEvent(new CustomEvent("ancientvoid:code-search"));
     return "gesucht";
   }
   return "";
@@ -35,7 +35,7 @@ export function runClientStep(c: Record<string, string | number | boolean | null
 
 /** Open the command bar from anywhere. */
 export function openCommandBar(): void {
-  window.dispatchEvent(new CustomEvent("uacc:command-bar"));
+  window.dispatchEvent(new CustomEvent("ancientvoid:command-bar"));
 }
 
 /**
@@ -64,10 +64,10 @@ export function CommandBar() {
     };
     const openIt = () => setOpen(true);
     window.addEventListener("keydown", key);
-    window.addEventListener("uacc:command-bar", openIt);
+    window.addEventListener("ancientvoid:command-bar", openIt);
     return () => {
       window.removeEventListener("keydown", key);
-      window.removeEventListener("uacc:command-bar", openIt);
+      window.removeEventListener("ancientvoid:command-bar", openIt);
     };
   }, []);
   useEffect(() => {

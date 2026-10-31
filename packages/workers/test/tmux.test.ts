@@ -13,7 +13,7 @@ describe("TmuxRunner", () => {
   let runner: TmuxRunner;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-tmux-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-tmux-"));
     runner = new TmuxRunner(join(dir, "logs"));
   });
   afterAll(async () => {
@@ -106,7 +106,7 @@ describe("TmuxRunner", () => {
     expect(code).toBe(7);
   });
 
-  itTmux("lists only uacc-prefixed workers and reaps orphans", async () => {
+  itTmux("lists only ancientvoid-prefixed workers and reaps orphans", async () => {
     await runner.spawn({
       name: "test-orphan",
       cwd: dir,
@@ -121,7 +121,7 @@ describe("TmuxRunner", () => {
   });
 
   itTmux("BUG-0019: never reaps a worker another hub owns", async () => {
-    const otherDir = await mkdtemp(join(tmpdir(), "uacc-tmux-other-"));
+    const otherDir = await mkdtemp(join(tmpdir(), "ancientvoid-tmux-other-"));
     const other = new TmuxRunner(join(otherDir, "logs"));
     try {
       await other.spawn({ name: "test-foreign", cwd: otherDir, cmd: ["bash", "-c", "sleep 30"] });
@@ -210,14 +210,14 @@ describe("TmuxRunner", () => {
   // T17.5 (AC-P17-4), BUG-0012-Muster: reserved marker keys fail loudly
   // before tmux is ever touched; marker values are validated as hub ids.
   // Runs without itTmux for the same reason as C-1 above.
-  it("rejects reserved UACC_* marker keys and non-id marker values without touching tmux", async () => {
+  it("rejects reserved ANCIENTVOID_* marker keys and non-id marker values without touching tmux", async () => {
     const sentinel = join(dir, "pwned-marker");
     await expect(
       runner.spawn({
         name: "test-marker-inject",
         cwd: dir,
         cmd: ["true"],
-        env: { UACC_SESSION_ID: `$(touch ${sentinel})` },
+        env: { ANCIENTVOID_SESSION_ID: `$(touch ${sentinel})` },
       }),
     ).rejects.toThrow(/reserved for hub markers/);
     await expect(stat(sentinel)).rejects.toThrow();
@@ -226,12 +226,12 @@ describe("TmuxRunner", () => {
     );
   });
 
-  itTmux("T17.5: spawn sets @uacc_session/@uacc_worker and the pane process sees UACC_* env", async () => {
+  itTmux("T17.5: spawn sets @ancientvoid_session/@ancientvoid_worker and the pane process sees ANCIENTVOID_* env", async () => {
     const proc = await runner.spawn({
       name: "11111111-marker",
       sessionId: "11111111-marker",
       cwd: dir,
-      cmd: ["bash", "-c", "echo S=$UACC_SESSION_ID W=$UACC_WORKER_ID; sleep 5"],
+      cmd: ["bash", "-c", "echo S=$ANCIENTVOID_SESSION_ID W=$ANCIENTVOID_WORKER_ID; sleep 5"],
     });
     const lines: string[] = [];
     proc.onStdout((c) => lines.push(...c.split("\n").map((l) => l.trim()).filter(Boolean)));
@@ -259,7 +259,7 @@ describe("TmuxRunner", () => {
     await adopted!.kill("SIGKILL");
 
     await runner.spawn({ name: "33333333-old", cwd: dir, cmd: ["bash", "-c", "sleep 5"] });
-    await tmux0(["set-option", "-t", `${TMUX_PREFIX}33333333-old`, "-u", "@uacc_session"]); // simulate a pre-T17.5 worker
+    await tmux0(["set-option", "-t", `${TMUX_PREFIX}33333333-old`, "-u", "@ancientvoid_session"]); // simulate a pre-T17.5 worker
     const byName = await restart.adopt("33333333-old");
     expect(byName).not.toBeNull();
     expect(warns.some((m) => m.includes("name heuristic"))).toBe(true); // fallback is logged, never silent

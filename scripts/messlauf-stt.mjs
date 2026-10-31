@@ -11,19 +11,19 @@ import { join, resolve } from "node:path";
 
 const [dir, refsPath, sttUrl = "http://100.65.133.28:8094/inference", roundsArg = "3"] = process.argv.slice(2);
 const repo = resolve(import.meta.dirname, "..");
-const root = mkdtempSync(join(tmpdir(), "uacc-stt-"));
+const root = mkdtempSync(join(tmpdir(), "ancientvoid-stt-"));
 const port = 7398;
 const config = join(root, "hub.config.json");
 // The hub's own projects feed the vocabulary (T10.2) — like on the live hub.
 const projects = join(root, "projects");
-for (const name of ["mobile-hub", "custom-rag"]) {
+for (const name of ["AncientVoid", "custom-rag"]) {
   const p = join(projects, name);
   execFileSync("mkdir", ["-p", p]);
   execFileSync("git", ["init", "-q"], { cwd: p });
 }
 writeFileSync(config, JSON.stringify({ dataDir: join(root, "data"), workerRunner: "process", projectRoots: [projects], server: { host: "127.0.0.1", port }, adapters: [], stt: { url: sttUrl } }));
 const token = execFileSync(process.execPath, [join(repo, "apps/hubctl/src/cli.ts"), "token", "issue", "stt", "--db", join(root, "data", "hub.db")], { encoding: "utf8" }).split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("token for"));
-const hub = spawn(process.execPath, [join(repo, "apps/hub/src/main.ts")], { cwd: repo, env: { ...process.env, UACC_CONFIG: config }, stdio: "ignore" });
+const hub = spawn(process.execPath, [join(repo, "apps/hub/src/main.ts")], { cwd: repo, env: { ...process.env, ANCIENTVOID_CONFIG: config }, stdio: "ignore" });
 for (let i = 0; i < 80; i++) {
   try {
     if ((await fetch(`http://127.0.0.1:${port}/api/health`)).ok) break;

@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { basicFeatures, type Adapter } from "@uacc/contracts";
+import { basicFeatures, type Adapter } from "@ancientvoid/contracts";
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { EventStore } from "../../../src/platform/eventstore.ts";
 import { HubDatabase } from "../../../src/platform/db.ts";
 import { SessionManager } from "../../../src/modules/sessions/session-manager.ts";
 import { refuseSpec, refuseSteer } from "../../../src/modules/harness/features.ts";
-import { ProcessRunner } from "@uacc/workers";
+import { ProcessRunner } from "@ancientvoid/workers";
 
 describe("ADR-0018: the server refuses what a harness can't do", () => {
   it("names the reason for model, agent, follow-up and park", () => {
@@ -29,7 +29,7 @@ describe("ADR-0018: the server refuses what a harness can't do", () => {
   });
 
   it("SessionManager refuses before the adapter sees the request", async () => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-features-"));
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-features-"));
     const calls: string[] = [];
     const adapter: Adapter = {
       id: "observer",

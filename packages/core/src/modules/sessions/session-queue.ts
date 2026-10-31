@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { PromptAttachment } from "@uacc/contracts";
+import type { PromptAttachment } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 /** EPIC-P15 T15.3: a prompt waiting for the running turn to end. */

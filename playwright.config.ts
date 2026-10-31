@@ -56,9 +56,9 @@ export default defineConfig({
       grep: /@tablet/,
     },
     { name: "desktop", use: { ...devices["Desktop Chrome"] }, grep: /@desktop/ },
-    // Das echte Handy per adb/CDP: `npm run test:phone` setzt UACC_E2E_CDP.
+    // Das echte Handy per adb/CDP: `npm run test:phone` setzt ANCIENTVOID_E2E_CDP.
     // Ohne das hängt das Projekt nicht am Gate — sonst laufen dieselben Specs
     // lokal ohne Gerätefläche und scheitern an der Desktop-Breite.
-    ...(process.env.UACC_E2E_CDP ? [{ name: "phone", testMatch: PHONE_SPECS, retries: 0 }] : []),
+    ...(process.env.ANCIENTVOID_E2E_CDP ? [{ name: "phone", testMatch: PHONE_SPECS, retries: 0 }] : []),
   ],
 });

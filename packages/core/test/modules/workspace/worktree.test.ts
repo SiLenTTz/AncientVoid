@@ -11,8 +11,8 @@ const execFileAsync = promisify(execFile);
 
 async function initRealRepo(dir: string): Promise<string> {
   await execFileAsync("git", ["-C", dir, "init", "-q", "-b", "main"]);
-  await execFileAsync("git", ["-C", dir, "config", "user.email", "test@uacc.local"]);
-  await execFileAsync("git", ["-C", dir, "config", "user.name", "uacc test"]);
+  await execFileAsync("git", ["-C", dir, "config", "user.email", "test@ancientvoid.local"]);
+  await execFileAsync("git", ["-C", dir, "config", "user.name", "ancientvoid test"]);
   await writeFile(join(dir, "a.txt"), "hello\n");
   await execFileAsync("git", ["-C", dir, "add", "a.txt"]);
   await execFileAsync("git", ["-C", dir, "commit", "-q", "-m", "initial"]);
@@ -27,9 +27,9 @@ describe("WorktreeManager — against a real git repo, not a mock", () => {
   let realHeadSha: string;
 
   beforeAll(async () => {
-    repoDir = await mkdtemp(join(tmpdir(), "uacc-wt-repo-"));
-    nonGitDir = await mkdtemp(join(tmpdir(), "uacc-wt-nongit-"));
-    worktreesDir = await mkdtemp(join(tmpdir(), "uacc-wt-out-"));
+    repoDir = await mkdtemp(join(tmpdir(), "ancientvoid-wt-repo-"));
+    nonGitDir = await mkdtemp(join(tmpdir(), "ancientvoid-wt-nongit-"));
+    worktreesDir = await mkdtemp(join(tmpdir(), "ancientvoid-wt-out-"));
     realHeadSha = await initRealRepo(repoDir);
   });
 
@@ -56,7 +56,7 @@ describe("WorktreeManager — against a real git repo, not a mock", () => {
 
     // real git state: worktree is on its own branch, main repo untouched
     const { stdout: branch } = await execFileAsync("git", ["-C", result!.path, "branch", "--show-current"]);
-    expect(branch.trim()).toBe("uacc/session-real-1");
+    expect(branch.trim()).toBe("ancientvoid/session-real-1");
     const { stdout: mainBranch } = await execFileAsync("git", ["-C", repoDir, "branch", "--show-current"]);
     expect(mainBranch.trim()).toBe("main");
 
@@ -76,7 +76,7 @@ describe("WorktreeManager — against a real git repo, not a mock", () => {
 
     await wt.remove("session-real-2", repoDir);
     expect(existsSync(result!.path)).toBe(false);
-    const { stdout: branches } = await execFileAsync("git", ["-C", repoDir, "branch", "--list", "uacc/session-real-2"]);
+    const { stdout: branches } = await execFileAsync("git", ["-C", repoDir, "branch", "--list", "ancientvoid/session-real-2"]);
     expect(branches.trim()).toBe("");
   });
 

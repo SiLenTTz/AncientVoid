@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { basicFeatures, type Adapter } from "@uacc/contracts";
-import { ProcessRunner } from "@uacc/workers";
+import { basicFeatures, type Adapter } from "@ancientvoid/contracts";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { EventStore } from "../../../src/platform/eventstore.ts";
 import { HubDatabase } from "../../../src/platform/db.ts";
@@ -43,7 +43,7 @@ describe("recoverAll arbeitet parallel", () => {
   };
 
   it("zwölf Sessions brauchen nicht zwölf Wartezeiten, höchstens sechs laufen gleichzeitig", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-recpar-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-recpar-"));
     const file = join(dir, "hub.db");
     const first = new SessionManager(new HubDatabase(file), new EventStore(dir), make({ now: 0, max: 0 }), new ProcessRunner());
     const ids: string[] = [];
@@ -69,7 +69,7 @@ describe("recoverAll arbeitet parallel", () => {
   });
 
   it("ein fehlschlagender Adapter reißt die anderen nicht mit und wird gezählt", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-recpar-fail-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-recpar-fail-"));
     const file = join(dir, "hub.db");
     const first = new SessionManager(new HubDatabase(file), new EventStore(dir), make({ now: 0, max: 0 }), new ProcessRunner());
     for (let i = 0; i < 8; i++) await first.create({ adapter: "slowrec", project: dir });
@@ -85,7 +85,7 @@ describe("recoverAll arbeitet parallel", () => {
     }
   });
   it("eine zu langsame Recovery nennt, welcher Adapter und welche Sessions die Zeit kosten", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-recdetail-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-recdetail-"));
     const file = join(dir, "hub.db");
     const first = new SessionManager(new HubDatabase(file), new EventStore(dir), make({ now: 0, max: 0 }), new ProcessRunner());
     for (let i = 0; i < 8; i++) await first.create({ adapter: "slowrec", project: dir });

@@ -1,4 +1,4 @@
-import type { CommandContext } from "@uacc/contracts";
+import type { CommandContext } from "@ancientvoid/contracts";
 import type { ResolveData } from "../../../src/index.ts";
 
 /**
@@ -20,7 +20,7 @@ export const DATA: ResolveData = {
   projects: [
     { hostId: "omarchy", path: "/p/alpha" },
     { hostId: "omarchy", path: "/p/beta" },
-    { hostId: "omarchy", path: "/p/mobile-hub" },
+    { hostId: "omarchy", path: "/p/AncientVoid" },
     { hostId: "silenttz-server", path: "/p/alpha" },
     { hostId: "evox2", path: "/p/gamma" },
     { hostId: "evox2", path: "/p/custom-rag" },
@@ -81,7 +81,7 @@ export const CASES: [string, Partial<CommandContext>, Expect][] = [
   ["geh zu Doku ergänzen", overview, { op: "session.open", args: { sessionId: "s5" } }],
   // --- start ---
   ["Starte Codex in Projekt beta: Tests für den Login schreiben", overview, { op: "session.create", args: { adapter: "codex", project: "/p/beta", hostId: "omarchy", text: "Tests für den Login schreiben" } }],
-  ["starte claude im projekt mobile-hub", overview, { op: "session.create", args: { adapter: "claude", project: "/p/mobile-hub" } }],
+  ["starte claude im projekt AncientVoid", overview, { op: "session.create", args: { adapter: "claude", project: "/p/AncientVoid" } }],
   ["Start opencode on gamma", overview, { question: "adapter" }],
   ["Starte Codex in alpha: Lint fixen", overview, { question: "project" }],
   ["Starte Codex in alpha auf silenttz-server: Lint fixen", overview, { op: "session.create", args: { adapter: "codex", hostId: "silenttz-server", project: "/p/alpha", text: "Lint fixen" } }],
@@ -91,7 +91,7 @@ export const CASES: [string, Partial<CommandContext>, Expect][] = [
   ["start codex", overview, { question: "project" }],
   ["launch deepseek in gamma: Benchmarks laufen lassen", overview, { op: "session.create", args: { adapter: "acp", project: "/p/gamma" } }],
   ["Starte bitte opencode im Projekt beta: README kürzen", overview, { op: "session.create", args: { adapter: "opencode", project: "/p/beta", text: "README kürzen" } }],
-  ["kick off codex in mobile-hub: update deps", overview, { op: "session.create", args: { adapter: "codex", project: "/p/mobile-hub", text: "update deps" } }],
+  ["kick off codex in AncientVoid: update deps", overview, { op: "session.create", args: { adapter: "codex", project: "/p/AncientVoid", text: "update deps" } }],
   // --- answer ---
   ["Antworte dort: bitte auch die Randfälle", inS1, { op: "session.prompt", args: { sessionId: "s1", text: "bitte auch die Randfälle" } }],
   ["antworte: ja, mach weiter", inS1, { op: "session.prompt", args: { sessionId: "s1", text: "ja, mach weiter" } }],
@@ -160,7 +160,7 @@ export const CASES: [string, Partial<CommandContext>, Expect][] = [
   ["zeig mir mein Token", overview, { refusal: true }],
   ["wechsle das passwort", overview, { refusal: true }],
   // --- corrections and noise ---
-  ["Starte Codex in Projekt beta, nein, in mobile-hub: Tests", overview, { op: "session.create", args: { adapter: "codex" } }],
+  ["Starte Codex in Projekt beta, nein, in AncientVoid: Tests", overview, { op: "session.create", args: { adapter: "codex" } }],
   ["Hallo, wie geht's?", overview, { none: true }],
   ["", overview, { none: true }],
   ["asdf qwer", overview, { none: true }],

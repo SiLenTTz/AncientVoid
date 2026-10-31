@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@uacc/contracts";
+import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@ancientvoid/contracts";
 
 /**
  * Plain child_process WorkerRunner — fallback for systems without tmux

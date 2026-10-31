@@ -12,7 +12,7 @@ AC-P7-2 (K1)
 - **„Handy“:** das Skript entscheidet über `POST /api/approvals/:id/decide`,
   denselben Weg wie die Freigabe-Karte der PWA.
 - **Lokales Modell:** evox2 (AMD Strix Halo, 123 GB Unified Memory),
-  llama.cpp b11149 Vulkan als systemd-`--user`-Unit `uacc-llama`, Modell
+  llama.cpp b11149 Vulkan als systemd-`--user`-Unit `ancientvoid-llama`, Modell
   `Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL.gguf` (Unsloth, Q4_K_XL), Alias
   `qwen3-coder`, `-c 65536 --parallel 2 -fa on --jinja`, nur auf der
   Tailnet-IP `100.65.133.28:8081` mit API-Schlüssel. Details:
@@ -85,5 +85,5 @@ Nachträgen (Prompt-Cache aktiv).
 - **Kein Seed.** Temperatur und Sampler des Harness bestimmen die Antworten;
   ein Seed wurde nicht gesetzt.
 - **Geteilte Maschine.** evox2 betreibt weitere Modelle; `halogen-starten.sh`
-  beendet beim Start alle `llama-server` (auch `uacc-llama`). Zahlen gelten
+  beendet beim Start alle `llama-server` (auch `ancientvoid-llama`). Zahlen gelten
   für den Zustand „beide Server geladen“.

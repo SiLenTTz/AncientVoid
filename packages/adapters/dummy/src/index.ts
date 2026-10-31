@@ -8,8 +8,8 @@ import type {
   SessionHandle,
   SessionSpec,
   SteerInput,
-} from "@uacc/contracts";
-import { EVENT_TYPES, type EventType } from "@uacc/contracts";
+} from "@ancientvoid/contracts";
+import { EVENT_TYPES, type EventType } from "@ancientvoid/contracts";
 
 /**
  * Dummy adapter — the reference implementation of the Adapter contract.

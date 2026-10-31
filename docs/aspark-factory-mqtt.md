@@ -14,7 +14,7 @@ nur Rechte auf die Topics seiner Linie (`<line>` = Linienname, z. B.
 
 ```text
 # mosquitto ACL (Bsp.) — Hub darf lesen und antworten, sonst nichts
-user uacc-hub
+user ancientvoid-hub
 topic read         agent/<line>/#
 topic write        agent/<line>/command
 topic write        agent/<line>/+/answer
@@ -43,7 +43,7 @@ topic write        agent/<line>/+/answer
       "connector": "aspark-factory",
       "config": {
         "url": "mqtt://leitstand.example:1883",
-        "username": "uacc-hub",
+        "username": "ancientvoid-hub",
         "passwordEnvFile": "/pfad/zur/factory.env",
         "passwordKey": "MQTT_LEITSTAND_PASSWORD"
       }
@@ -78,7 +78,7 @@ Zufallsport und überspringen sich sichtbar, wenn er fehlt:
 
 ```bash
 mosquitto -h   # installiert?
-npm -w @uacc/loop-aspark-factory test
+npm -w @ancientvoid/loop-aspark-factory test
 ```
 
 Berichte über 2 KB landen als Blob (K5); beantwortete Fragen und

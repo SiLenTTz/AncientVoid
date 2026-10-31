@@ -5,10 +5,10 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Adapter } from "@uacc/contracts";
-import { basicFeatures } from "@uacc/contracts";
+import type { Adapter } from "@ancientvoid/contracts";
+import { basicFeatures } from "@ancientvoid/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry, WorktreeManager } from "../../../src/index.ts";
-import { ProcessRunner } from "@uacc/workers";
+import { ProcessRunner } from "@ancientvoid/workers";
 
 const git = promisify(execFile);
 
@@ -33,8 +33,8 @@ function idle(): Adapter {
 }
 
 async function setup() {
-  const repo = await mkdtemp(join(tmpdir(), "uacc-apply-repo-"));
-  const out = await mkdtemp(join(tmpdir(), "uacc-apply-wt-"));
+  const repo = await mkdtemp(join(tmpdir(), "ancientvoid-apply-repo-"));
+  const out = await mkdtemp(join(tmpdir(), "ancientvoid-apply-wt-"));
   await git("git", ["-C", repo, "init", "-q", "-b", "main"]);
   await git("git", ["-C", repo, "config", "user.email", "dev@example.com"]);
   await git("git", ["-C", repo, "config", "user.name", "Dev"]);

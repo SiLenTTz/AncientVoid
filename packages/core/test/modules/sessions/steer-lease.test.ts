@@ -3,12 +3,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 
 describe("steer idempotency and recovery honesty (AC-P5-3 / AC-P5-4)", () => {
   it("applies one input id once and rejects a stale revision or foreign lease", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-steer-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-steer-"));
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -54,7 +54,7 @@ describe("steer idempotency and recovery honesty (AC-P5-3 / AC-P5-4)", () => {
   });
 
   it("T5.5: an explicit takeover moves the lease to the new device, once", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-takeover-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-takeover-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 5, autoStopAfterEvents: 0 });
@@ -95,7 +95,7 @@ describe("steer idempotency and recovery honesty (AC-P5-3 / AC-P5-4)", () => {
   });
 
   it("does not call a session controllable when recover() returns null", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-rec-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-rec-"));
     const dbFile = join(dir, "hub.db");
     const firstDb = new HubDatabase(dbFile);
     const store = new EventStore(dir);

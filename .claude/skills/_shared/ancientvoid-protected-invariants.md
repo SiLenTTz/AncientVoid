@@ -23,11 +23,11 @@ Diese Datei ist die einzige Liste. `ponytail-review` verweist hierher.
 
 Ein Adapter sieht nur `AdapterContext` (`emit`, `blob`, `spawnWorker`, `log`,
 `signal`, `workdir`, `sessionId`) — keine Hub-Internas, keine Imports aus
-`@uacc/core` oder `@uacc/server` (`AGENTS.md` Regel 2).
+`@ancientvoid/core` oder `@ancientvoid/server` (`AGENTS.md` Regel 2).
 
-**Guard:** jeder Import in `packages/adapter-*/src/**` gegen `@uacc/core`
-oder `@uacc/server` ist ein Blocker im Review.
-**Nicht guard:** `@uacc/contracts`-Imports — das ist genau die erlaubte Naht.
+**Guard:** jeder Import in `packages/adapter-*/src/**` gegen `@ancientvoid/core`
+oder `@ancientvoid/server` ist ein Blocker im Review.
+**Nicht guard:** `@ancientvoid/contracts`-Imports — das ist genau die erlaubte Naht.
 
 ## 2 — K5 (Event-Payload ≤ 4 KB)
 
@@ -48,7 +48,7 @@ Recovery-Pfad — entweder über `adapter.recover()` oder durch bewusste
 Dokumentation, warum die Session nach einem Hub-Crash als `error` gilt.
 
 **Guard:** `recover()`-Implementierungen und die Snapshot/Replay-Logik in
-`@uacc/core`.
+`@ancientvoid/core`.
 **Nicht guard:** ein `recover()`, das nichts tut außer `return null` —
 das ist eine ehrliche Nichtimplementierung, kein Invariant-Bruch.
 

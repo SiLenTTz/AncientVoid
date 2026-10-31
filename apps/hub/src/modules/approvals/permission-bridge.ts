@@ -1,13 +1,13 @@
 import { chmod, mkdir, writeFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { BRIDGE_TOKEN_PREFIX } from "@uacc/contracts";
-import type { TokenService } from "@uacc/core";
+import { BRIDGE_TOKEN_PREFIX } from "@ancientvoid/contracts";
+import type { TokenService } from "@ancientvoid/core";
 
 const BRIDGE_MAIN = fileURLToPath(new URL("../../../../gateway-mcp/src/permission-main.ts", import.meta.url));
 
 /** claude's name for the bridge's tool: `mcp__<server>__<tool>`. */
-export const PERMISSION_PROMPT_TOOL = "mcp__uacc__permission";
+export const PERMISSION_PROMPT_TOOL = "mcp__ancientvoid__permission";
 
 /**
  * T7.2: per session an MCP config (mode 0600) that starts the permission
@@ -30,10 +30,10 @@ export function createPermissionBridge(opts: { tokens: TokenService; hubUrl: str
       await mkdir(opts.dir, { recursive: true, mode: 0o700 });
       const config = {
         mcpServers: {
-          uacc: {
+          ancientvoid: {
             command: process.execPath,
             args: [BRIDGE_MAIN],
-            env: { UACC_HUB_URL: opts.hubUrl, UACC_BRIDGE_TOKEN: token, UACC_SESSION_ID: sessionId },
+            env: { ANCIENTVOID_HUB_URL: opts.hubUrl, ANCIENTVOID_BRIDGE_TOKEN: token, ANCIENTVOID_SESSION_ID: sessionId },
           },
         },
       };

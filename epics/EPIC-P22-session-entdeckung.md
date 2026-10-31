@@ -2,7 +2,7 @@
 
 **Status:** Code abgeschlossen 2026-10-28, Live-Abnahme am Handy offen · **Phase:** P22 · **Abhängigkeit:** P5 (Entdeckung, Übernahme, ADR-0011), P21 (Übergabe)
 
-Auslöser: Wunsch von Jan vom 2026-10-28. „Gefunden“ zeigt nur IDs; die laufende mobile-hub-Session mit Claude ließ sich nicht erkennen und nicht sauber aufgreifen.
+Auslöser: Wunsch von Jan vom 2026-10-28. „Gefunden“ zeigt nur IDs; die laufende AncientVoid-Session mit Claude ließ sich nicht erkennen und nicht sauber aufgreifen.
 
 ## 1. Ziel
 Jede entdeckte Session sagt, **worum** es geht (Titel, letzte Nachricht), ist **durchsuchbar**, zeigt, ob sie **gerade woanders offen** ist, und lässt sich

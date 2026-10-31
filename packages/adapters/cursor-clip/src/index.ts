@@ -11,7 +11,7 @@ import type {
   SessionHandle,
   SessionSpec,
   SteerInput,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 import { decodeBubble, decodeComposerData } from "./normalize.ts";
 import { defaultUserDir, findMostRecentComposerId, findWorkspaceId, openReadOnly, verifySchema } from "./workspace.ts";
 
@@ -25,7 +25,7 @@ import { defaultUserDir, findMostRecentComposerId, findWorkspaceId, openReadOnly
  *
  * IMPORTANT: uses `spec.project` (the raw request field), never
  * `ctx.workdir` — T2.1's worktree isolation would otherwise hand this
- * adapter a freshly created `uacc/<sessionId>` worktree path that Cursor
+ * adapter a freshly created `ancientvoid/<sessionId>` worktree path that Cursor
  * has never heard of and has no `workspace.json` for. Cursor is watching
  * the REAL project directory the user actually opened it on.
  */

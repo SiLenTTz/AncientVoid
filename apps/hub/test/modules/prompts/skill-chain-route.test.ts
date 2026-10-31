@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@uacc/core";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 import { createHubApp } from "../../../src/app.ts";
 
 describe("skill chain on session start (BUG-0021, T5.10)", () => {
   it("loads the base catalog even when nobody listed skills before", async () => {
-    const root = await mkdtemp(join(tmpdir(), "uacc-chain-route-"));
+    const root = await mkdtemp(join(tmpdir(), "ancientvoid-chain-route-"));
     const project = join(root, "alpha");
     await mkdir(join(project, ".claude", "skills", "neon"), { recursive: true });
     await writeFile(

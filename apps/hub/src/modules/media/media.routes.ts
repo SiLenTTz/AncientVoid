@@ -4,8 +4,8 @@ import { readFile, rm } from "node:fs/promises";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { Readable } from "node:stream";
-import { MediaJobFields, MediaJobRequest } from "@uacc/contracts";
-import { runTool, type MediaJobs, type SettingsStore } from "@uacc/core";
+import { MediaJobFields, MediaJobRequest } from "@ancientvoid/contracts";
+import { runTool, type MediaJobs, type SettingsStore } from "@ancientvoid/core";
 
 /**
  * EPIC-P10.5 (ADR-0030): video analysis. A link (yt-dlp) or an upload

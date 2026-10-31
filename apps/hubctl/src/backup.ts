@@ -6,9 +6,9 @@ import { createInterface } from "node:readline";
 import type { Writable } from "node:stream";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
-import { acquireBackupLock, HubDatabase } from "@uacc/core";
+import { acquireBackupLock, HubDatabase } from "@ancientvoid/core";
 
-const MAGIC = Buffer.from("UACCBK01", "ascii");
+const MAGIC = Buffer.from("AncientVoidBK01", "ascii");
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
 const TAG_BYTES = 16;
@@ -106,7 +106,7 @@ function waitForTar(child: ReturnType<typeof spawn>): Promise<void> {
 }
 
 async function assertHubStopped(dataDir: string, ownsBackupLock = false): Promise<void> {
-  const lock = join(dataDir, ".uacc-hub.pid");
+  const lock = join(dataDir, ".ancientvoid-hub.pid");
   let lockText: string | undefined;
   try {
     lockText = await readFile(lock, "utf8");
@@ -146,7 +146,7 @@ async function assertHubStopped(dataDir: string, ownsBackupLock = false): Promis
 async function assertNoActiveWorkers(dataDir: string): Promise<void> {
   const owner = createHash("sha256").update(resolve(dataDir, "workers")).digest("hex").slice(0, 16);
   const result = await new Promise<{ code: number | null; stdout: string; stderr: string }>((resolvePromise, reject) => {
-    const child = spawn("tmux", ["list-panes", "-a", "-F", "#{@uacc_owner}|#{pane_dead}"], { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn("tmux", ["list-panes", "-a", "-F", "#{@ancientvoid_owner}|#{pane_dead}"], { stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     child.stdout?.setEncoding("utf8").on("data", (chunk: string) => { stdout += chunk; });
@@ -261,9 +261,9 @@ export async function createBackup(options: CreateBackupOptions, outputStream: (
     const config = await readFile(configFile);
     const parent = dirname(outputFile);
     await mkdir(parent, { recursive: true, mode: 0o700 });
-    tmpDir = await mkdtemp(join(parent, ".uacc-backup-"));
+    tmpDir = await mkdtemp(join(parent, ".ancientvoid-backup-"));
     const tmpFile = join(tmpDir, "archive.tmp");
-    const configName = `.uacc-config-${randomBytes(8).toString("hex")}.json`;
+    const configName = `.ancientvoid-config-${randomBytes(8).toString("hex")}.json`;
     await writeFile(join(tmpDir, configName), config, { mode: 0o600 });
     const salt = randomBytes(SALT_BYTES);
     const iv = randomBytes(IV_BYTES);
@@ -273,7 +273,7 @@ export async function createBackup(options: CreateBackupOptions, outputStream: (
     await writeFile(tmpFile, Buffer.concat([MAGIC, salt, iv]), { flag: "wx", mode: 0o600 });
     const child = spawn("tar", [
       "--create", "--gzip", "--file", "-",
-      "--exclude=./.uacc-hub.pid",
+      "--exclude=./.ancientvoid-hub.pid",
       "--directory", dataDir, ".",
       "--directory", tmpDir,
       `--transform=s,^${configName}$,config/hub.config.json,`,
@@ -331,7 +331,7 @@ export async function restoreBackup(options: RestoreBackupOptions): Promise<void
     decipher.setAuthTag(tag);
     const parent = dirname(targetDir);
     await mkdir(parent, { recursive: true, mode: 0o700 });
-    stagingRoot = await mkdtemp(join(parent, ".uacc-restore-"));
+    stagingRoot = await mkdtemp(join(parent, ".ancientvoid-restore-"));
     const tarFile = join(stagingRoot, "archive.tar.gz");
     const extracted = join(stagingRoot, "data");
     const start = HEADER_BYTES;
@@ -368,13 +368,13 @@ export async function restoreBackup(options: RestoreBackupOptions): Promise<void
   }
 }
 
-/** List old `.uaccbak` archives, deleting only when the caller opts in. */
+/** List old `.ancientvoidbak` archives, deleting only when the caller opts in. */
 export async function pruneBackups(options: PruneBackupsOptions): Promise<string[]> {
   if (!Number.isSafeInteger(options.keep) || options.keep < 1) throw new Error("Aufbewahrung muss mindestens 1 Backup betragen.");
   const directory = resolve(options.directory);
   const candidates = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith(".uaccbak")) continue;
+    if (!entry.isFile() || !entry.name.endsWith(".ancientvoidbak")) continue;
     const path = join(directory, entry.name);
     const info = await lstat(path);
     if (info.isFile() && !info.isSymbolicLink()) candidates.push({ path, name: entry.name, mtimeMs: info.mtimeMs });

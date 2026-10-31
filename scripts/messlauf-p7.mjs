@@ -52,20 +52,20 @@ async function until(check, label, timeoutMs = Number(process.env.MESSLAUF_TIMEO
 }
 
 async function bootHub(adapters) {
-  const root = mkdtempSync(join(tmpdir(), "uacc-p7-"));
+  const root = mkdtempSync(join(tmpdir(), "ancientvoid-p7-"));
   const projects = join(root, "projects");
   const project = join(projects, "gate-probe");
   mkdirSync(project, { recursive: true });
   execFileSync("git", ["init", "-q", "-b", "main"], { cwd: project });
   writeFileSync(join(project, "README.md"), "# gate probe\n");
   execFileSync("git", ["add", "-A"], { cwd: project });
-  execFileSync("git", ["-c", "user.email=p7@uacc", "-c", "user.name=p7", "commit", "-qm", "init"], { cwd: project });
+  execFileSync("git", ["-c", "user.email=p7@ancientvoid", "-c", "user.name=p7", "commit", "-qm", "init"], { cwd: project });
   const config = join(root, "hub.config.json");
   writeFileSync(config, JSON.stringify({ dataDir: join(root, "data"), workerRunner: "tmux", projectRoots: [projects], server: { host: "127.0.0.1", port: PORT }, adapters }, null, 2));
   const token = execFileSync(process.execPath, [join(repo, "apps/hubctl/src/cli.ts"), "token", "issue", "messlauf", "--db", join(root, "data", "hub.db")], { encoding: "utf8" })
     .split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("token for"));
   const log = join(root, "hub.log");
-  const child = spawn(process.execPath, [join(repo, "apps/hub/src/main.ts")], { cwd: repo, env: { ...process.env, UACC_CONFIG: config, TMUX_TMPDIR: root }, stdio: ["ignore", "ignore", "pipe"] });
+  const child = spawn(process.execPath, [join(repo, "apps/hub/src/main.ts")], { cwd: repo, env: { ...process.env, ANCIENTVOID_CONFIG: config, TMUX_TMPDIR: root }, stdio: ["ignore", "ignore", "pipe"] });
   child.stderr.on("data", (c) => writeFileSync(log, c, { flag: "a" }));
   await until(async () => (await http("GET", "/api/health", token).catch(() => ({ status: 0 }))).status === 200, "hub up", 20_000);
   // BUG-0034: full teardown — the hub keeps tmux workers alive on purpose
@@ -137,7 +137,7 @@ async function runClaude(hub, prompt, decide, further = null, adapter = "claude"
 }
 
 if (step === "claude-gate") {
-  const hub = await bootHub([{ id: "claude", module: "@uacc/adapter-claude", config: { extraArgs: ["--model", "sonnet"] } }]);
+  const hub = await bootHub([{ id: "claude", module: "@ancientvoid/adapter-claude", config: { extraArgs: ["--model", "sonnet"] } }]);
   const results = [];
   try {
     // 1. allow: the tool runs with the approved argument
@@ -184,8 +184,8 @@ if (step === "claude-gate") {
   }
   const hub = await bootHub([
     step === "codex-gate"
-      ? { id: "agent", module: "@uacc/adapter-codex", config: { mode: "app-server", ...extra } }
-      : { id: "agent", module: "@uacc/adapter-acp", config: acpConfig },
+      ? { id: "agent", module: "@ancientvoid/adapter-codex", config: { mode: "app-server", ...extra } }
+      : { id: "agent", module: "@ancientvoid/adapter-acp", config: acpConfig },
   ]);
   const results = [];
   const t0 = Date.now();
@@ -214,7 +214,7 @@ if (step === "claude-gate") {
   if (harness === "dsh") {
     // DeepSeek harness: its pi-ai adapter takes a hand-declared
     // OpenAI-compatible route from settings.yaml; the key stays in the env.
-    const home = mkdtempSync(join(tmpdir(), "uacc-dsh-"));
+    const home = mkdtempSync(join(tmpdir(), "ancientvoid-dsh-"));
     writeFileSync(
       join(home, "settings.yaml"),
       [
@@ -245,7 +245,7 @@ if (step === "claude-gate") {
     };
     adapterConfig = { preset: "opencode", label: "opencode+lokal", env: { OPENCODE_CONFIG_CONTENT: JSON.stringify(opencodeConfig) } };
   }
-  const hub = await bootHub([{ id: "agent", module: "@uacc/adapter-acp", config: adapterConfig }]);
+  const hub = await bootHub([{ id: "agent", module: "@ancientvoid/adapter-acp", config: adapterConfig }]);
   const results = [];
   const t0 = Date.now();
   try {

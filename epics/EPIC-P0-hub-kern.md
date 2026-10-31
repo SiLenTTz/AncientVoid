@@ -42,7 +42,7 @@ einbaut, verletzt den Scope.
 - **ADR-P0-2: JSONL + SQLite, keine Eventstore-DB.** Begründung: grep-able, diff-able,
   Brain-kompatibel, kein weiterer Dienst. SQLite dient Indizes/State, JSONL ist Wahrheit.
 - **ADR-P0-3: tmux, nicht child_process direkt.** Begründung: attachbar für Notfall-Debug
-  (`tmux attach -t uacc-<session>`), überlebt Daemon-Restart, bewährtes Worker-Pattern
+  (`tmux attach -t ancientvoid-<session>`), überlebt Daemon-Restart, bewährtes Worker-Pattern
   (ccswarm/herdr-Muster).
 - **ADR-P0-4: PWA ist Projektions-Renderer.** Kein State-Monolith im Client; Server sendet
   Deltas mit Sequenznummern, Client resynct bei Gap.
@@ -77,7 +77,7 @@ Regel: `payload` darf niemals > 4 KB sein — Überschuss geht in Blob + `blob_r
 - [x] **T0.6** Adapter-Contract + Dummy — `packages/contracts/src/adapter.ts`, `packages/adapter-dummy/src/index.ts` (`eventsPerSecond` 1–100, `giantEvery`/`giantBytes`, alle Event-Typen im `TYPE_CYCLE`)
 - [x] **T0.7** HTTP/WS-Server — `packages/server/src/routes.ts`, `auth.ts` (Device-Token + Tailnet-Identität), `server.test.ts` deckt 401/400/201
 - [x] **T0.8** Tailscale-serve-Skript — `scripts/setup-tailscale-serve.sh` vorhanden; **Erreichbarkeit selbst nicht verifiziert** (siehe AC-P0-3 in der Retro)
-- [x] **T0.9** PWA-Gerüst — `packages/pwa/` (Manifest, `public/sw.js` mit `X-UACC-Cached-At`, dark-first `styles.css`); gebaut (`dist/` vorhanden), **nicht** im echten Browser gegen Offline getestet (siehe AC-P0-4)
+- [x] **T0.9** PWA-Gerüst — `packages/pwa/` (Manifest, `public/sw.js` mit `X-AncientVoid-Cached-At`, dark-first `styles.css`); gebaut (`dist/` vorhanden), **nicht** im echten Browser gegen Offline getestet (siehe AC-P0-4)
 - [x] **T0.10** WS-Delta-Protokoll — `packages/contracts/src/wire.ts` (Seq, `dropped`-Flag), `packages/server/src/ws.ts:14-107` (Gap-Detection, `resync`); Test: `server.test.ts > WS resync: client-requested replay from store fills gaps`
 - [x] **T0.11** `hubctl`-CLI — `packages/hubctl/src/cli.ts` (`sessions`, `tail -f`, `token issue`); End-zu-Ende-Latenz gemessen, siehe AC-P0-5 (dabei BUG-0005 gefunden: `tail -f` konnte vorher gar nicht per WS verbinden — behoben, jetzt mit Tests, die hubctl vorher komplett fehlten)
 - [x] **T0.12** Lasttest-Harness — `scripts/loadtest.mjs` (20 Sessions × 30 ev/s, seq-Gap-Check); README nennt „605 ev/s aggregiert" als letzten Lauf, aber ohne Prüfstand/Datum/Commit dokumentiert — verstößt gegen die eigene `messlauf`-Regel (Action Item unten)
@@ -141,7 +141,7 @@ AC-P0-3: 🟡 teilweise
 
 AC-P0-4 (K10): 🟡 teilweise
   Beleg: packages/pwa/public/sw.js:1-66 — Service-Worker-Logik
-  (network-first für /api/, Cache-Fallback mit X-UACC-Cached-At-Header,
+  (network-first für /api/, Cache-Fallback mit X-AncientVoid-Cached-At-Header,
   versionierter Cache) entspricht der AC-Beschreibung.
   Bemerkung: Kein Browser-Test durchgeführt (WLAN aus, Badge sichtbar, kein
   White-Screen) — reine Code-Lektüre, keine Laufzeit-Evidenz.

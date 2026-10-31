@@ -1,5 +1,5 @@
 {
-  "name": "@uacc/loop-securesight-factory",
+  "name": "@ancientvoid/loop-securesight-factory",
   "version": "0.1.0",
   "description": "Loop connector for the securesight factory (securesight-harnez, ADR-0038): observes supervisor status, notifications, transcript and progress; writes nothing.",
   "type": "module",
@@ -12,9 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@uacc/contracts": "0.1.0"
+    "@ancientvoid/contracts": "0.1.0"
   },
   "devDependencies": {
-    "@uacc/adapter-testkit": "0.1.0"
+    "@ancientvoid/adapter-testkit": "0.1.0"
   }
 }

@@ -4,8 +4,8 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertContractGreen, makeRecordingContext, runLoopContractTests, waitFor } from "@uacc/adapter-testkit";
-import type { SessionHandle } from "@uacc/contracts";
+import { assertContractGreen, makeRecordingContext, runLoopContractTests, waitFor } from "@ancientvoid/adapter-testkit";
+import type { SessionHandle } from "@ancientvoid/contracts";
 import { createLoopConnector } from "../src/index.ts";
 
 const FIXTURES = fileURLToPath(new URL("./fixtures/project", import.meta.url));
@@ -25,7 +25,7 @@ describe("securesight-Connector im Modus project (T26.3, EPIC-P26)", () => {
   const of = (ctx: { events: { payload?: unknown }[] }, k: string) => ctx.events.filter((e) => (e.payload as { kind?: string }).kind === k).map((e) => e.payload as Record<string, unknown>);
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), "uacc-factory-project-"));
+    root = mkdtempSync(join(tmpdir(), "ancientvoid-factory-project-"));
     cpSync(FIXTURES, root, { recursive: true });
     bin = fakeFactoryBin(root);
     setProgress({ schema_version: "1", total: 0, done: 0, stories: [], now: null, updated_at: null, events: [] });
@@ -118,7 +118,7 @@ describe("securesight-Connector im Modus project (T26.3, EPIC-P26)", () => {
   });
 
   it("Erkennung: Verzeichnis ohne betrieb.py und ohne .factory/config.json wird abgelehnt", async () => {
-    const empty = mkdtempSync(join(tmpdir(), "uacc-factory-leer-"));
+    const empty = mkdtempSync(join(tmpdir(), "ancientvoid-factory-leer-"));
     try {
       const connector = createLoopConnector({ pollMs: 40 });
       await expect(connector.start({ project: empty, options: {} }, makeRecordingContext(), { resume: null, saveCursor: () => {} })).rejects.toThrow(/kein securesight-factory-Projekt/);
@@ -148,7 +148,7 @@ describe("securesight-Connector im Modus project (T26.3, EPIC-P26)", () => {
 describe("securesight-Onboarding über factory init (T26.4, EPIC-P26)", () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "uacc-factory-onboard-"));
+    dir = mkdtempSync(join(tmpdir(), "ancientvoid-factory-onboard-"));
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -220,7 +220,7 @@ describe("Harness-Wahl ausgeblendet mit Grund (T26.7, AC-P26-9)", () => {
 describe("Modellwahl beim Anbinden: Projekt-Override policies/modell-routing.json (Nutzerwunsch 2026-10-30)", () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "uacc-factory-modell-"));
+    dir = mkdtempSync(join(tmpdir(), "ancientvoid-factory-modell-"));
     writeFileSync(join(dir, "init-out.json"), JSON.stringify({ checkliste: ["ready: alle gruen"] }));
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));

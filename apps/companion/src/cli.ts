@@ -7,8 +7,8 @@ import { sendControl, serveControl } from "./control.ts";
 
 /**
  * EPIC-P11 (ADR-0031):
- *   uacc-companion run --hub http://127.0.0.1:7373 --token-file ~/.config/uacc/companion.token [--allow foot,code] [--backend auto|hyprland|sway]
- *   uacc-companion stop | resume | status
+ *   ancientvoid-companion run --hub http://127.0.0.1:7373 --token-file ~/.config/ancientvoid/companion.token [--allow foot,code] [--backend auto|hyprland|sway]
+ *   ancientvoid-companion stop | resume | status
  * The token comes from `hubctl token issue companion:<pc-name>`.
  */
 const [cmd, ...rest] = process.argv.slice(2);
@@ -24,7 +24,7 @@ if (cmd === "stop" || cmd === "resume" || cmd === "status") {
     args: rest,
     options: {
       hub: { type: "string", default: "http://127.0.0.1:7373" },
-      "token-file": { type: "string", default: `${homedir()}/.config/uacc/companion.token` },
+      "token-file": { type: "string", default: `${homedir()}/.config/ancientvoid/companion.token` },
       allow: { type: "string" },
       backend: { type: "string", default: "auto" },
       "no-atspi": { type: "boolean", default: false },
@@ -52,7 +52,7 @@ if (cmd === "stop" || cmd === "resume" || cmd === "status") {
   };
   process.on("SIGINT", end);
   process.on("SIGTERM", end);
-  console.log(`uacc-companion: ${focus.name} → ${values.hub} (Not-Stopp: uacc-companion stop)`);
+  console.log(`ancientvoid-companion: ${focus.name} → ${values.hub} (Not-Stopp: ancientvoid-companion stop)`);
   await companion.run();
   control.close();
   if (companion.exitReason) {
@@ -60,6 +60,6 @@ if (cmd === "stop" || cmd === "resume" || cmd === "status") {
     process.exit(3);
   }
 } else {
-  console.error("usage: uacc-companion run [--hub URL] [--token-file F] [--allow app,app] [--backend auto|hyprland|sway] | stop | resume | status");
+  console.error("usage: ancientvoid-companion run [--hub URL] [--token-file F] [--allow app,app] [--backend auto|hyprland|sway] | stop | resume | status");
   process.exit(64);
 }

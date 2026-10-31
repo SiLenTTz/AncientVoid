@@ -9,7 +9,7 @@ import type {
   SessionSpec,
   SteerInput,
   WorkerProcess,
-} from "@uacc/contracts";
+} from "@ancientvoid/contracts";
 import { normalizeCopilotLine, extractResultSessionId } from "./normalize.ts";
 
 /**

@@ -23,7 +23,7 @@ feste Klassen ein. Das langsame System 2, also der Mensch, entscheidet.
    außerhalb des Worktrees und Prompt-Injection. Sie laufen immer, auch ohne
    Modell. Das Modell kann nie unter sie gehen.
 3. **Lokales Modell:** OpenAI-kompatibler llama.cpp-Server auf eigener
-   Hardware (T7.5). Der Prompt ist auf UACC umgeschrieben: Worktree-Grenzen,
+   Hardware (T7.5). Der Prompt ist auf AncientVoid umgeschrieben: Worktree-Grenzen,
    Geheimnisse, ADR-0007-Passkey, „nie freigeben“. Dazu kommen Beispiele, die
    nicht aus dem Testsatz stammen, und ein deterministischer Pfad-Hinweis
    (innen/außen). Kein Cloud-Egress.

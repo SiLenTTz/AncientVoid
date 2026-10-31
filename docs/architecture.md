@@ -25,9 +25,9 @@ als einzige Schnittstelle; `npm run check:arch` (im Gate) prüft die Grenzen.
 
 ```
 apps/                            lauffähige Programme
-  hub/src/        (@uacc/hub)    app.ts, routes.ts, route-context.ts,
+  hub/src/        (@ancientvoid/hub)    app.ts, routes.ts, route-context.ts,
                                  modules/<modul>/<modul>.routes.ts + Dienste, platform/
-  pwa/src/        (@uacc/pwa)    app/ (Rahmen, Styles), features/<feature>/, shared/
+  pwa/src/        (@ancientvoid/pwa)    app/ (Rahmen, Styles), features/<feature>/, shared/
   hubctl/  gateway-mcp/
 packages/                        Bibliotheken
   contracts/src/<modul>/         Verträge
@@ -48,23 +48,23 @@ Host-Schnittstelle).
 ## Pakete & Abhängigkeitsrichtung
 
 ```
-@uacc/contracts   ← @uacc/core ← @uacc/hub → PWA (nur HTTP/WS)
+@ancientvoid/contracts   ← @ancientvoid/core ← @ancientvoid/hub → PWA (nur HTTP/WS)
        ↑              ↑
-       ├── @uacc/workers (WorkerRunner-Implementierungen)
-       ├── @uacc/adapter-* (packages/adapters/<name>)
-       └── @uacc/adapter-testkit (Contract-Suite für Fremd-Adapter)
+       ├── @ancientvoid/workers (WorkerRunner-Implementierungen)
+       ├── @ancientvoid/adapter-* (packages/adapters/<name>)
+       └── @ancientvoid/adapter-testkit (Contract-Suite für Fremd-Adapter)
 ```
 
 Regeln:
 
 - Abhängigkeiten zeigen **nur zu contracts**, nie quer zwischen
   Implementierungspaketen.
-- Adapter (auch Fremd-Adapter) importieren ausschließlich `@uacc/contracts`.
+- Adapter (auch Fremd-Adapter) importieren ausschließlich `@ancientvoid/contracts`.
 - Der Hub kennt Adapter nur über die Registry (Built-ins + dynamisches Laden).
 
 ## Kernkomponenten
 
-### EventStore (`@uacc/core`)
+### EventStore (`@ancientvoid/core`)
 
 - Kanonisch: `data/sessions/<id>/events.jsonl`, append-only, eine Zeile pro
   `NormalizedEvent`.
@@ -75,7 +75,7 @@ Regeln:
   genug für kill -9 ohne I/O-Thrashing bei 30 ev/s (Premortem P0-3).
 - `replay()` überspringt defekte/torn Zeilen (Crash-Resilienz).
 
-### SessionManager (`@uacc/core`)
+### SessionManager (`@ancientvoid/core`)
 
 - Lifecycle-Statusmaschine: `idle → starting → working → waiting_approval →
   parked → stopping → stopped / error` (illegale Transitionen werfen).
@@ -84,22 +84,22 @@ Regeln:
   `adapter.recover()` + tmux-Orphan-Reaping. Restore-Ziel < 3 s.
 - Adapter bekommen nur `AdapterContext` — emit/blob/spawnWorker/log/signal.
 
-### AdapterRegistry (`@uacc/core`)
+### AdapterRegistry (`@ancientvoid/core`)
 
 - Built-ins (`dummy`) + `hub.config.json`-Einträge, dynamisch geladen via
   `import()` (relativer Pfad → File-URL; sonst npm-Package-Name).
 - Shape-Check beim Laden (`createAdapter(config)` vorhanden?) — kaputte
   Adapter failen laut beim Hub-Start.
 
-### WorkerRunner (`@uacc/workers`)
+### WorkerRunner (`@ancientvoid/workers`)
 
-- `TmuxRunner` (Default): Session `uacc-<sessionId>`, `remain-on-exit` +
+- `TmuxRunner` (Default): Session `ancientvoid-<sessionId>`, `remain-on-exit` +
   `respawn-pane` (race-frei), Output via `pipe-pane` in Log-Datei (getailt),
-  Exit-Marker `__UACC_EXIT__<code>`, attach-fähig für Notfall-Debug.
+  Exit-Marker `__ANCIENTVOID_EXIT__<code>`, attach-fähig für Notfall-Debug.
 - `ProcessRunner` (Fallback ohne tmux): plain child_process, kein
   Restart-Überleben — explizit dokumentierter Trade-off.
 
-### Hub (`@uacc/hub`, `apps/hub`)
+### Hub (`@ancientvoid/hub`, `apps/hub`)
 
 - Fastify, REST (`/api/health`, `/api/adapters`, `/api/sessions*`,
   `/api/tokens*`) + WS `/api/events/:id/tail`.
@@ -130,13 +130,13 @@ Regeln:
   `dropped:true` gesetzt → Client resynct. Kein Backpressure-Lag (K2).
 - Statisches Serving der gebauten PWA (`pwaDir`), SPA-Fallback.
 
-### PWA (`@uacc/pwa`)
+### PWA (`@ancientvoid/pwa`)
 
 - Preact + Vite, dark-first, Thumb-Zone-Aktionen unten.
 - Session-Liste (Auto-Refresh), Session-Tail mit gerätelokalen Filtern
   (localStorage), WS-Gap-Resync, Reconnect mit Backoff.
 - Service Worker: Network-First für `/api/sessions`, Fallback auf Cache mit
-  `X-UACC-Cached-At` → Badge „Daten vom <Zeitstempel>" (K10).
+  `X-AncientVoid-Cached-At` → Badge „Daten vom <Zeitstempel>" (K10).
 
 ## Persistenz-Schema (SQLite, `node:sqlite`)
 
@@ -165,8 +165,8 @@ README-Tabelle.
 ### Worktree-Isolation & Diff-Engine (P2, T2.1/T2.2)
 
 Jede Session mit einem echten Git-Projekt bekommt ein eigenes
-`git worktree` auf einem `uacc/<sessionId>`-Branch, gepinnt an den echten
-`base_sha` (`@uacc/core`s `WorktreeManager`) — `SessionRecord.worktreeSha`
+`git worktree` auf einem `ancientvoid/<sessionId>`-Branch, gepinnt an den echten
+`base_sha` (`@ancientvoid/core`s `WorktreeManager`) — `SessionRecord.worktreeSha`
 trägt diesen Wert, `AdapterContext.workdir`/`spawnWorker`'s `cwd` zeigen
 auf den Worktree, nicht mehr auf den rohen Projektpfad. Ein Nicht-Git-Pfad
 ist ein ehrlicher, sichtbarer Fallback (`session.no_worktree_isolation`),
@@ -210,7 +210,7 @@ Session, nicht nur die auslösende.
 
 ### MCP-Gateway-Sidecar (P4, T4.6/T4.7)
 
-`@uacc/gateway-mcp` — ein separater, **nie vom Hub selbst gestarteter**
+`@ancientvoid/gateway-mcp` — ein separater, **nie vom Hub selbst gestarteter**
 Prozess (`apps/hub/src/main.ts` importiert ihn nicht, AC-P4-5:
 default aus). Exponiert genau drei Meta-Tools (`hub_search`/
 `hub_describe`/`hub_exec`, echtes `@modelcontextprotocol/sdk`) gegen eine

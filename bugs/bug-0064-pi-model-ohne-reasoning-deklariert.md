@@ -6,7 +6,7 @@ severity: S3
 area: agent-tooling
 instance: dev
 commit: ""
-forge: "https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/19"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/19"
 epic: ""
 created: 2026-10-26
 reporter: nutzer (Pi-Session, Desktop)
@@ -118,5 +118,5 @@ nicht im Repo** — auf einer anderen Maschine ist der Defekt wieder da.
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [x] GitLab-Issue angelegt ([#19](https://gitlab.com/SiLenT_Tz/mobile-hub/-/work_items/19))
+- [x] GitLab-Issue angelegt ([#19](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/19))
 - [x] `bugfix` nicht nötig — keine Produktcode-Änderung in diesem Lauf

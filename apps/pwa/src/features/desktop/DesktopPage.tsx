@@ -121,8 +121,8 @@ export function DesktopPage() {
       <div class="card desktop-setup">
         <h2>Am PC eintippen</h2>
         <p>Kein PC verbunden. So richtest du den Companion ein (auf dem PC):</p>
-        <pre class="desktop-cmd">{"node apps/hubctl/src/cli.ts token issue companion:mein-pc > ~/.config/uacc/companion.token\nnode apps/companion/src/cli.ts run --hub http://127.0.0.1:7373"}</pre>
-        <p class="dim">Not-Stopp am PC: „uacc-companion stop“ (z. B. auf Super+Shift+Esc legen).</p>
+        <pre class="desktop-cmd">{"node apps/hubctl/src/cli.ts token issue companion:mein-pc > ~/.config/ancientvoid/companion.token\nnode apps/companion/src/cli.ts run --hub http://127.0.0.1:7373"}</pre>
+        <p class="dim">Not-Stopp am PC: „ancientvoid-companion stop“ (z. B. auf Super+Shift+Esc legen).</p>
       </div>
     );
 
@@ -152,7 +152,7 @@ export function DesktopPage() {
             "kein Fenster im Fokus"
           )}
         </div>
-        {c?.paused && <div class="reply-error">Not-Stopp am PC aktiv — dort mit „uacc-companion resume“ freigeben.</div>}
+        {c?.paused && <div class="reply-error">Not-Stopp am PC aktiv — dort mit „ancientvoid-companion resume“ freigeben.</div>}
         {c?.locked && <div class="reply-error">Bildschirm am PC gesperrt.</div>}
         {c?.blocked && <div class="reply-error">{c.blocked}</div>}
       </div>

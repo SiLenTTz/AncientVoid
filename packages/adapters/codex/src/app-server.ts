@@ -14,8 +14,8 @@ import {
   type SessionSpec,
   type SteerInput,
   type WorkerProcess,
-} from "@uacc/contracts";
-import { JsonRpcConnection, RpcError } from "@uacc/adapter-jsonrpc";
+} from "@ancientvoid/contracts";
+import { JsonRpcConnection, RpcError } from "@ancientvoid/adapter-jsonrpc";
 import { itemCompleted, itemStarted, planEvent, quotaOf, toolOf, type CodexItem } from "./app-server-events.ts";
 import { estimateCostUsd } from "./pricing.ts";
 
@@ -155,7 +155,7 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
   }
 
   async function initialize(state: ServerSession): Promise<void> {
-    await state.conn.request("initialize", { clientInfo: { name: "uacc-hub", version: "0.1.0" } }, 60_000);
+    await state.conn.request("initialize", { clientInfo: { name: "ancientvoid-hub", version: "0.1.0" } }, 60_000);
     state.conn.notify("initialized", {});
     // ADR-0004: the account quota, once per session start.
     void state.conn.request("account/rateLimits/read", {}, 20_000).catch(() => undefined);
@@ -299,7 +299,7 @@ export function listModels(commandName: string): Promise<ModelOption[]> {
       reject(err);
     });
     void (async () => {
-      await conn.request("initialize", { clientInfo: { name: "uacc-hub", version: "0.1.0" } });
+      await conn.request("initialize", { clientInfo: { name: "ancientvoid-hub", version: "0.1.0" } });
       conn.notify("initialized", {});
       const res = (await conn.request("model/list", {})) as { data?: { id: string; displayName?: string; hidden?: boolean }[] };
       clearTimeout(timer);

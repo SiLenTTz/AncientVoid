@@ -13,7 +13,7 @@ Messlatte zu erfinden.
   lokal gecachtem Embedding-Modell `embeddinggemma-300M-Q8_0.gguf`
   (`~/.cache/qmd/models/`) — kein Modell-Download während der Messung
 - Test-Collection: eine eigens für diesen Messlauf angelegte
-  `qmd collection` über `mobile-hub`s eigene `**/*.md`-Dateien (5 Dokumente,
+  `qmd collection` über `AncientVoid`s eigene `**/*.md`-Dateien (5 Dokumente,
   18 Chunks, danach wieder entfernt — kein Rest im echten Nutzer-Index)
 - Query: `"worktree isolation approval"` (real, gegen echten Repo-Inhalt
   passend)
@@ -21,9 +21,9 @@ Messlatte zu erfinden.
 ## Kommando
 
 ```bash
-qmd search "worktree isolation approval" -c uacc-messlauf --format json -n 5 --full-path
-qmd query $'lex: worktree isolation approval\nvec: worktree isolation approval' -c uacc-messlauf --format json -n 5 --full-path --no-rerank
-qmd query "worktree isolation approval" -c uacc-messlauf --format json -n 5 --full-path
+qmd search "worktree isolation approval" -c ancientvoid-messlauf --format json -n 5 --full-path
+qmd query $'lex: worktree isolation approval\nvec: worktree isolation approval' -c ancientvoid-messlauf --format json -n 5 --full-path --no-rerank
+qmd query "worktree isolation approval" -c ancientvoid-messlauf --format json -n 5 --full-path
 ```
 
 Gemessen mit Bashs eingebautem `time` um jeden Aufruf.

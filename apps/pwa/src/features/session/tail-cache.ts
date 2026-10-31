@@ -5,7 +5,7 @@ import type { NormalizedEvent } from "../../shared/ws.ts";
  * so an opened session still reads offline. Shown only until live events
  * arrive, always with the time they are from.
  */
-const INDEX = "uacc.tail.index";
+const INDEX = "ancientvoid.tail.index";
 const KEEP_SESSIONS = 10;
 const KEEP_EVENTS = 150;
 
@@ -14,7 +14,7 @@ export interface CachedTail {
   events: NormalizedEvent[];
 }
 
-const key = (hostKey: string, id: string) => `uacc.tail.${hostKey}.${id}`;
+const key = (hostKey: string, id: string) => `ancientvoid.tail.${hostKey}.${id}`;
 
 export function loadTail(hostKey: string, id: string): CachedTail | null {
   try {

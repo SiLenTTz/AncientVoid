@@ -11,9 +11,9 @@ import type {
   SessionSpec,
   SteerInput,
   WorkerProcess,
-} from "@uacc/contracts";
-import { basicFeatures, promptWithAttachments } from "@uacc/contracts";
-import { contextWindowFor } from "@uacc/models";
+} from "@ancientvoid/contracts";
+import { basicFeatures, promptWithAttachments } from "@ancientvoid/contracts";
+import { contextWindowFor } from "@ancientvoid/models";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { normalizeCursorLine, type CursorLine } from "./normalize.ts";

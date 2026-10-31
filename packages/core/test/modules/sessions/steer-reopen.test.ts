@@ -3,13 +3,13 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
-import { ProcessRunner } from "@uacc/workers";
-import { createAdapter as createDummy } from "@uacc/adapter-dummy";
+import { ProcessRunner } from "@ancientvoid/workers";
+import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 
 /** A stopped session that takes a prompt starts the provider again. That
  * reopen must obey the same input-id / lease rules as a live steer. */
 async function stoppedSession() {
-  const dir = await mkdtemp(join(tmpdir(), "uacc-reopen-"));
+  const dir = await mkdtemp(join(tmpdir(), "ancientvoid-reopen-"));
   const db = new HubDatabase(":memory:");
   const registry = new AdapterRegistry();
   let starts = 0;

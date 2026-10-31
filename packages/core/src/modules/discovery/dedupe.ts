@@ -1,4 +1,4 @@
-import { discoveryDedupeKey, type DiscoveredSession } from "@uacc/contracts";
+import { discoveryDedupeKey, type DiscoveredSession } from "@ancientvoid/contracts";
 
 /**
  * Hub records win over a later external observation of the same native id.

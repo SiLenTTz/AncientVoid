@@ -1,6 +1,6 @@
 import type { AttachmentRecord, MediaStep } from "./api.ts";
 
-/** EPIC-P10.5: the helpers of `@uacc/contracts` media, mirrored for the PWA. */
+/** EPIC-P10.5: the helpers of `@ancientvoid/contracts` media, mirrored for the PWA. */
 export const MEDIA_STEP_LABELS: Record<MediaStep, string> = {
   fetch: "Quelle holen",
   probe: "Prüfen",
@@ -42,7 +42,7 @@ export function timestampLink(url: string | null, ms: number): string | null {
  * A result handed to a session: the new-session form or an open session
  * picks it up once (`target` = "new" or a session id).
  */
-const PENDING = "uacc.pendingAttachments";
+const PENDING = "ancientvoid.pendingAttachments";
 
 export function handOver(target: string, attachment: AttachmentRecord): void {
   sessionStorage.setItem(PENDING, JSON.stringify({ target, attachments: [attachment] }));

@@ -1,15 +1,15 @@
-import { ActionDefinition } from "@uacc/contracts";
+import { ActionDefinition } from "@ancientvoid/contracts";
 import { z } from "zod";
-import type { AdapterFactory, ReportingSink } from "@uacc/contracts";
+import type { AdapterFactory, ReportingSink } from "@ancientvoid/contracts";
 
 export const AdapterRegistration = z.object({
   /** Adapter id as referenced by SessionSpec.adapter. */
   id: z.string().min(1),
   /**
    * Module specifier resolving to an adapter factory:
-   *  - package name: "@uacc/adapter-claude" or any npm package
+   *  - package name: "@ancientvoid/adapter-claude" or any npm package
    *  - relative path: "./adapters/my-provider/index.ts" (relative to config file)
-   *  - absolute path: "/opt/uacc/adapters/custom.mjs"
+   *  - absolute path: "/opt/ancientvoid/adapters/custom.mjs"
    */
   module: z.string().min(1),
   /** Adapter-specific config passed to the factory. */
@@ -68,7 +68,7 @@ export const HubConfig = z.object({
   /** Worker runner kind: "tmux" (default) | "process". */
   workerRunner: z.enum(["tmux", "process"]).default("tmux"),
   /** T1.5-4: host paths to scan (depth 1) for git repos to offer as
-   * session projects — see @uacc/core's discoverProjects(). Empty means
+   * session projects — see @ancientvoid/core's discoverProjects(). Empty means
    * unconfigured: the PWA falls back to a free-text path (BUG-0006
    * lesson — don't make a fresh hub unusable), and POST /api/sessions
    * accepts any project path (pre-T1.5-4 behavior, unchanged). */
@@ -145,7 +145,7 @@ export const HubConfig = z.object({
     })
     .prefault({}),
   /** T8.3 (ADR-0026): VAPID contact the push services see. */
-  push: z.object({ subject: z.string().regex(/^(mailto:|https:)/).default("mailto:uacc@localhost") }).prefault({}),
+  push: z.object({ subject: z.string().regex(/^(mailto:|https:)/).default("mailto:ancientvoid@localhost") }).prefault({}),
   /** T7.9 (ADR-0024): System-1 gatekeeper for tool requests. The rules
    * always run; `model` adds a local llama.cpp judgement (OpenAI API). */
   gatekeeper: z

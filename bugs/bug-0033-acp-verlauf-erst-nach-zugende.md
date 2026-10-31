@@ -31,7 +31,7 @@ nicht zugestellt erkennbar.
 
 ## Repro
 
-Voraussetzung: Session über `@uacc/adapter-acp` (preset `opencode`),
+Voraussetzung: Session über `@ancientvoid/adapter-acp` (preset `opencode`),
 PWA geöffnet, Tab „Lesen"/Chat.
 
 1. Prompt senden, der eine längere Antwort ohne Tool-Call erzeugt.
@@ -76,7 +76,7 @@ ebenfalls nicht.
 EventStore Session `6f03a88e-…`: nach `#22-24 tool_use task({})`
 (22:06) kamen bis zum Park am nächsten Tag keine Assistant-Events mehr,
 obwohl der Worker-Log weitere `agent_message_chunk`-Zeilen enthält
-(auszugweise in `data/workers/uacc-6f03a88e-….log`).
+(auszugweise in `data/workers/ancientvoid-6f03a88e-….log`).
 
 ## Tests
 
@@ -107,7 +107,7 @@ streamt, die Zugende-Antwort aber verzögert — erwartet ein
 - [ ] GitLab-Issue angelegt (Link oben)
 - [ ] `bugfix` oder offen lassen
 
-## Fix (verifiziert 2026-10-03, Ralph mobile-hub-bugfrei)
+## Fix (verifiziert 2026-10-03, Ralph AncientVoid-bugfrei)
 
 - Fix: `8c2401e` (^ B acp: gepufferte Chunks live in den Verlauf liefern
   (BUG-0033), MR !125) + `a06cc4b` (^ F pwa: abgelehnte Eingaben und

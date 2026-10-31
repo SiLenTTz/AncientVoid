@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { basicFeatures, type Adapter, type AdapterContext } from "@uacc/contracts";
-import { ProcessRunner } from "@uacc/workers";
+import { basicFeatures, type Adapter, type AdapterContext } from "@ancientvoid/contracts";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { ApprovalService } from "../../../src/modules/approvals/index.ts";
 import { EventStore } from "../../../src/platform/eventstore.ts";
@@ -50,7 +50,7 @@ type Internals = { live: Map<string, { record: { status: string } }> };
 
 describe("BUG-0048 waiting_approval ohne offene Freigabe", () => {
   it("geht bei Aktivität des Providers zurück auf working", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-heal-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-heal-"));
     const { registry, ctxs } = setup();
     const db = new HubDatabase(":memory:");
     const sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
@@ -66,7 +66,7 @@ describe("BUG-0048 waiting_approval ohne offene Freigabe", () => {
   });
 
   it("bleibt bei einer wirklich offenen Tool-Freigabe auf waiting_approval", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-heal-open-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-heal-open-"));
     const { registry, ctxs } = setup();
     const db = new HubDatabase(":memory:");
     const sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
@@ -86,7 +86,7 @@ describe("BUG-0048 waiting_approval ohne offene Freigabe", () => {
   });
 
   it("die Recovery setzt eine verwaiste Freigabe-Anzeige zurück (kein Zug überlebt: idle)", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "uacc-heal-recover-"));
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-heal-recover-"));
     const file = join(dir, "hub.db");
     const first = setup();
     const db1 = new HubDatabase(file);

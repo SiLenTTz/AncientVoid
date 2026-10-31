@@ -1,4 +1,4 @@
-import type { EmittedEvent } from "@uacc/contracts";
+import type { EmittedEvent } from "@ancientvoid/contracts";
 
 /**
  * Maps one parsed line of `copilot --output-format json` output to zero or

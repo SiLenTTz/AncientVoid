@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { EmittedEvent } from "@uacc/contracts";
+import type { EmittedEvent } from "@ancientvoid/contracts";
 import { loadFixtureLines, assertFixtureEventsValid, checkFixture } from "../src/index.ts";
 
 /**
@@ -16,7 +16,7 @@ describe("fixture helpers", () => {
   let dir: string;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-testkit-fixture-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-testkit-fixture-"));
   });
   afterAll(async () => {
     await rm(dir, { recursive: true, force: true });

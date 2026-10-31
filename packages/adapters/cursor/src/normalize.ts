@@ -1,4 +1,4 @@
-import type { EmittedEvent } from "@uacc/contracts";
+import type { EmittedEvent } from "@ancientvoid/contracts";
 
 /**
  * cursor-agent stream-json (one JSON object per line, claude-code shape —

@@ -18,7 +18,7 @@ reporter: "Claude Opus 5.5 (Analyse zur Nutzerfrage „Änderungen nicht im Repo
 
 `SessionManager.stop()` rief für jede isolierte Session
 `WorktreeManager.remove()` auf: `git worktree remove --force` und
-`git branch -D uacc/<id>`. Nicht committete Dateien (im echten Lauf
+`git branch -D ancientvoid/<id>`. Nicht committete Dateien (im echten Lauf
 `index.html`, 27 KB Tetris) und Commits auf dem Session-Branch wären
 unwiederbringlich weg. „Weiter“ legte danach einen frischen Worktree ab dem
 Projektstand an — der Agent hätte ohne seine Arbeit weitergemacht.
@@ -69,12 +69,12 @@ Worktree von Session 821b0ec8 (tetris-reloaded, `index.html` 27 552 B,
 
 **Wiederhergestellt** aus OpenCodes eigenem Snapshot-Repo
 (`~/.local/share/opencode/snapshot/3f1fe4d…/cde1247…`, Tree `843cde6`, letzter
-Stand des Laufs): Worktree und Branch `uacc/821b0ec8…` am alten Ort neu
+Stand des Laufs): Worktree und Branch `ancientvoid/821b0ec8…` am alten Ort neu
 angelegt, Dateien byte-identisch zurückgeschrieben (SHA-1 geprüft), README
 zusätzlich gegen das letzte `write`-Event (seq 97) im Hub-Verlauf verglichen.
 Git-Status wie vorher: ` M README.md`, `?? index.html`.
 
 **Lehre:** Ein Fix gegen Datenverlust im Stop-Pfad darf nicht per sauberem
 Herunterfahren eingespielt werden, solange der alte Prozess läuft. Dafür
-`kill -9 $(cat /tmp/uacc-hub.pid)` und dann `scripts/hub.sh start` — der Hub
+`kill -9 $(cat /tmp/ancientvoid-hub.pid)` und dann `scripts/hub.sh start` — der Hub
 übernimmt laufende tmux-Züge (ADR-0014), ohne Stop-Pfad.

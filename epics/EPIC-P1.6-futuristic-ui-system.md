@@ -140,7 +140,7 @@ oben nötig.
 
 Jede bestehende `SessionTail`-Fähigkeit — Thinking-Collapse, Tool-Use/
 Tool-Result-Anchor-Jump, K5-Blob-Warnung bei großen `tool_result`s,
-WS-Gap-Resync, Reconnect-Backoff, `uacc:stale-data`-Badge — wandert
+WS-Gap-Resync, Reconnect-Backoff, `ancientvoid:stale-data`-Badge — wandert
 unverändert in den Verlauf-Reiter. Nichts davon wird beim Umbau neu
 geschrieben; siehe Premortem 1 und AC-P1.6-1.
 
@@ -206,14 +206,14 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   jetzt tatsächlich JetBrains Mono (`packages/pwa/index.html`) — vorher nur
   als Fallback-**Name** im Font-Stack genannt, nie als Webfont geladen
   (echter Fund). **Live gegen die echte PWA geprüft** (nicht nur den
-  Mockup): Server neu gebaut (`npm -w @uacc/pwa run build`), echte Session
+  Mockup): Server neu gebaut (`npm -w @ancientvoid/pwa run build`), echte Session
   mit frischem Device-Token über Playwright geöffnet — `body`-Hintergrund
   real `rgb(8, 9, 11)` (= `#08090b`), `.topbar h1` real mit
   `font-family: Orbitron, …` gerendert (Screenshot
   `t1.6-1-real-app-dark.png`); `[data-theme="light"]` real umgeschaltet
   und ebenfalls korrekt (Screenshot `t1.6-1-real-app-light.png`) — beide
   Modi über echte Session-Karten/Buttons/Pills, nicht nur den Root-Wert.
-  Gates: `npm run lint`/`typecheck`, `npm -w @uacc/pwa run build`/
+  Gates: `npm run lint`/`typecheck`, `npm -w @ancientvoid/pwa run build`/
   `typecheck` grün.
 - [x] **T1.6-2** Bottom-Dock-Navigation in `App.tsx` (ersetzt Top-Icon-
   Buttons) + neue Einstellungen-Seite (Dark/Light-Umschalter, Geräte-Token
@@ -246,7 +246,7 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   „Einstellungen" sind jetzt aus jeder Session heraus mit einem Tap
   erreichbar (`main.tsx`s Routing um `initialPage`/`onNavigate` erweitert,
   `App` merkt sich, mit welcher Seite es geöffnet wurde). `filter`
-  (localStorage `uacc.filter`) bleibt die einzige Quelle der Wahrheit —
+  (localStorage `ancientvoid.filter`) bleibt die einzige Quelle der Wahrheit —
   `tab` ist rein daraus abgeleitet (`lesen` → Chat, sonst → Verlauf), ein
   `lastVerlaufFilter`-State merkt sich beim Wechsel zurück zu Chat, welcher
   der beiden Verlauf-Unterfilter (Überwachen/Debuggen) beim nächsten
@@ -300,7 +300,7 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   gebaut** — als offener Punkt hier benannt, nicht still ausgelassen. „Tests"
   zeigt „nicht erfasst" (kein Adapter meldet ein strukturiertes Signal,
   §3.3). **Live gegen eine echte `claude`-Session geprüft** (echter
-  API-Call, `/mnt/.../uacc-bericht-test`-Testrepo, danach entfernt): Bericht
+  API-Call, `/mnt/.../ancientvoid-bericht-test`-Testrepo, danach entfernt): Bericht
   zeigt reale $0,0656 Kosten, reale 279 Tokens, reale 1 geänderte Datei
   (`notes.txt`, „hello" → „hello\nworld"), reales Kontingent-Fenster —
   jede Zahl gegen die Rohantwort der jeweiligen echten API gegengeprüft
@@ -366,12 +366,12 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   Engine) + `::-webkit-scrollbar*`. Status-Glow auf `.session-card`.
   **Überarbeitet nach echtem Live-Feedback am fertigen Handy-Test:** die
   erste Fassung war ein pulsierender `box-shadow` um die ganze Karte
-  (`uacc-glow-good`/`-warn`) — auf Wunsch ersetzt durch ein Licht, das
-  tatsächlich am Kartenrand entlangläuft (`uacc-border-chase`), statt
+  (`ancientvoid-glow-good`/`-warn`) — auf Wunsch ersetzt durch ein Licht, das
+  tatsächlich am Kartenrand entlangläuft (`ancientvoid-border-chase`), statt
   gleichmäßig zu pulsieren. Umgesetzt als rotierendes `::after` mit
   **statischem** `conic-gradient` (nicht animiert) und `-webkit-mask`/
   `mask-composite: exclude`, um nur den Rand sichtbar zu machen — die
-  **einzige** animierte Eigenschaft ist eine `@property --uacc-glow-angle`
+  **einzige** animierte Eigenschaft ist eine `@property --ancientvoid-glow-angle`
   (registriert als `<angle>` für weiche Interpolation), rotiert über
   `transform`-äquivalente Compositor-Arbeit, kein Paint/Mask-Neuaufbau pro
   Frame (derselbe K2-Maßstab wie die vorige Pulsieren-Fassung). Ein
@@ -385,7 +385,7 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
   unterschiedlichen Rand-Positionen (`border-chase-1.png` oben-links,
   `border-chase-2.png` unten) — es läuft tatsächlich um die Karte, kein
   statischer Effekt; `getComputedStyle(...,"::after")` bestätigt real
-  `animationName: uacc-border-chase`; unter emuliertem `reduced-motion`
+  `animationName: ancientvoid-border-chase`; unter emuliertem `reduced-motion`
   liefert dieselbe Prüfung real `content:"none"`. `scrollbar-color` löst
   weiterhin real zur Akzentfarbe auf. Gates: `npm test` 142/142,
   `lint`/`typecheck`, PWA `build`/`typecheck` grün.
@@ -479,7 +479,7 @@ UI-Elemente übernehmen diese Tokens, statt neue Hex-Werte einzuführen").
 - **AC-P1.6-9: 🟢 erfüllt.** Alle Glow-/Scanline-Animationen verschwinden vollständig
   unter `prefers-reduced-motion: reduce` (kein Rest-Flackern), verifiziert
   per Playwright mit emuliertem `reduced-motion` gegen eine echte
-  `working`-Session (`animationName` real `none` statt `uacc-glow-good`).
+  `working`-Session (`animationName` real `none` statt `ancientvoid-glow-good`).
 
 ## 6. Premortem
 
@@ -527,6 +527,6 @@ Alle ACs grün **und**:
 - Migrations-Checkliste (§3.2/AC-P1.6-1) vollständig abgehakt, mit
   Testnamen belegt — keine Fähigkeit nur „vermutlich noch da".
 - `npm test`, `npm run lint`, `npm run typecheck`,
-  `npm -w @uacc/pwa run build`/`typecheck` grün.
+  `npm -w @ancientvoid/pwa run build`/`typecheck` grün.
 - Danach — **nicht vorher** — der gemeinsame Live-Handy-Test, der P1.5s
   offene DoD-Zeile (AC-P1.5-1, AC-P1.5-8) mit erledigt.

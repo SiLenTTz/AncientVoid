@@ -16,7 +16,7 @@ reporter: claude
 
 ## Gesehen
 
-`uacc-hub.service` lief in eine Absturzschleife (`JavaScript heap out of memory`, 166 Node-Reports am 2026-10-27, davor 79 Neustarts). Sessions brachen dadurch dauernd ab.
+`ancientvoid-hub.service` lief in eine Absturzschleife (`JavaScript heap out of memory`, 166 Node-Reports am 2026-10-27, davor 79 Neustarts). Sessions brachen dadurch dauernd ab.
 
 ## Erwartet
 

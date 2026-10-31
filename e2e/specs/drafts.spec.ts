@@ -18,7 +18,7 @@ test.describe("Entwürfe (T8.4, AC-P8-4)", () => {
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Bitte noch die Randfälle");
 
     const other = await (await browser.newContext()).newPage();
-    await other.addInitScript((t) => localStorage.setItem("uacc.token", t), hub.token);
+    await other.addInitScript((t) => localStorage.setItem("ancientvoid.token", t), hub.token);
     await other.goto(`${hub.origin}/#/sessions/${id}`);
     await expect(other.getByPlaceholder("Antworten…")).toHaveValue("Bitte noch die Randfälle");
     // Only typing — no turn was started by either device.
@@ -98,7 +98,7 @@ test.describe("Entwürfe (T8.4, AC-P8-4)", () => {
     await app.getByPlaceholder("Antworten…").fill("Privater Entwurf");
     await expect(app.locator(".draft-state")).toContainText("gespeichert");
     await app.waitForTimeout(1200);
-    const before = await app.evaluate(() => Object.keys((globalThis as unknown as { localStorage: Record<string, unknown> }).localStorage).filter((k) => k.startsWith("uacc.draft.") || k.startsWith("uacc.tail.")));
+    const before = await app.evaluate(() => Object.keys((globalThis as unknown as { localStorage: Record<string, unknown> }).localStorage).filter((k) => k.startsWith("ancientvoid.draft.") || k.startsWith("ancientvoid.tail.")));
     expect(before.length).toBeGreaterThan(0);
     const other = execFileSync(process.execPath, [join(repoRoot, "apps/hubctl/src/cli.ts"), "token", "issue", "zweites-geraet", "--db", join(hub.dataDir, "hub.db")], { encoding: "utf8" })
       .split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("token for"))!;
@@ -140,7 +140,7 @@ test.describe("Entwürfe (T8.4, AC-P8-4)", () => {
       }
       await app.unroute("**/api/fleet/hello");
     }
-    const after = await app.evaluate(() => Object.keys((globalThis as unknown as { localStorage: Record<string, unknown> }).localStorage).filter((k) => k.startsWith("uacc.draft.") || k.startsWith("uacc.tail.")));
+    const after = await app.evaluate(() => Object.keys((globalThis as unknown as { localStorage: Record<string, unknown> }).localStorage).filter((k) => k.startsWith("ancientvoid.draft.") || k.startsWith("ancientvoid.tail.")));
     expect(after).toEqual([]);
   });
 });

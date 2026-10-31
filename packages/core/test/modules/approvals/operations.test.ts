@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { basicFeatures, type Adapter, type NormalizedEvent } from "@uacc/contracts";
-import { ProcessRunner } from "@uacc/workers";
+import { basicFeatures, type Adapter, type NormalizedEvent } from "@ancientvoid/contracts";
+import { ProcessRunner } from "@ancientvoid/workers";
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { ApprovalService } from "../../../src/modules/approvals/approvals.ts";
 import { EventStore } from "../../../src/platform/eventstore.ts";
@@ -75,7 +75,7 @@ describe("durable approval-gated operations (T7.3)", () => {
   }
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "uacc-ops-"));
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-ops-"));
     prompts.length = 0;
   });
   afterEach(async () => {

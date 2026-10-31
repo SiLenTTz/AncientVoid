@@ -13,30 +13,30 @@ Lege den Schlüssel außerhalb des Datadirs und der Sicherung ab. Mindestens
 
 ```sh
 umask 077
-openssl rand -base64 36 > ~/.config/uacc/backup.key
-chmod 600 ~/.config/uacc/backup.key
+openssl rand -base64 36 > ~/.config/ancientvoid/backup.key
+chmod 600 ~/.config/ancientvoid/backup.key
 ```
 
-Stoppe den Hub sauber mit `systemctl --user stop uacc-hub` (oder dem passenden
-Dienstnamen). Der Hub entfernt dann `.uacc-hub.pid`; das Backup verweigert
+Stoppe den Hub sauber mit `systemctl --user stop ancientvoid-hub` (oder dem passenden
+Dienstnamen). Der Hub entfernt dann `.ancientvoid-hub.pid`; das Backup verweigert
 aktive Hubs, verwaiste Locks, laufende tmux-Worker und SQLite-WAL/SHM-Dateien.
 Geplantes Hub-Stoppen lässt tmux-Worker absichtlich weiterlaufen. Beende
 laufende Sessions vor dem Service-Stop im Hub. Falls ein Worker bewusst
-abgebrochen werden soll, beendet `tmux kill-session -t uacc-<session-id>` den
+abgebrochen werden soll, beendet `tmux kill-session -t ancientvoid-<session-id>` den
 Prozess; nicht gespeicherte Änderungen dieses Laufs können dabei verloren
 gehen.
 
 ```sh
 node apps/hubctl/src/cli.ts backup create \
-  --config ~/.config/uacc/hub.config.json \
-  --out /mnt/backup/uacc-2026-09-24.uaccbak \
-  --key-file ~/.config/uacc/backup.key
+  --config ~/.config/ancientvoid/hub.config.json \
+  --out /mnt/backup/ancientvoid-2026-09-24.ancientvoidbak \
+  --key-file ~/.config/ancientvoid/backup.key
 ```
 
 Das Ziel darf noch nicht existieren und muss außerhalb des Datadirs liegen.
 Archive und temporäre Dateien werden mit Dateimodus `0600` angelegt. Es gibt
 keine automatische Rotation. `prune` zeigt standardmäßig nur an, was über der
-expliziten Aufbewahrungszahl liegt; erst `--apply` löscht alte `.uaccbak`-
+expliziten Aufbewahrungszahl liegt; erst `--apply` löscht alte `.ancientvoidbak`-
 Dateien:
 
 ```sh
@@ -56,10 +56,10 @@ existierenden Datenpfad und ein neues Config-Ziel:
 
 ```sh
 node apps/hubctl/src/cli.ts backup restore \
-  --archive /mnt/backup/uacc-2026-09-24.uaccbak \
-  --data-dir ~/.local/share/uacc-restored \
-  --config-out ~/.config/uacc/hub-restored.config.json \
-  --key-file ~/.config/uacc/backup.key
+  --archive /mnt/backup/ancientvoid-2026-09-24.ancientvoidbak \
+  --data-dir ~/.local/share/ancientvoid-restored \
+  --config-out ~/.config/ancientvoid/hub-restored.config.json \
+  --key-file ~/.config/ancientvoid/backup.key
 ```
 
 Restore entschlüsselt zuerst in ein privates Staging-Verzeichnis, prüft

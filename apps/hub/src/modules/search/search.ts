@@ -107,7 +107,7 @@ export function resetQmdAvailabilityCache(): void {
  * to pass safely through argv boundaries, so AncientVoid's own collections never
  * use them. */
 export function collectionNameFor(projectPath: string): string {
-  return "uacc-" + createHash("sha256").update(projectPath).digest("hex").slice(0, 16);
+  return "ancientvoid-" + createHash("sha256").update(projectPath).digest("hex").slice(0, 16);
 }
 
 async function collectionExists(name: string): Promise<boolean> {
@@ -257,7 +257,7 @@ export interface ProjectFile {
  * resolves both the project root AND the requested file through
  * `realpath` and requires the file to genuinely land inside the resolved
  * project directory — the same traversal defense as
- * `@uacc/core`'s `isProjectPathAllowed`, applied one level deeper (a file
+ * `@ancientvoid/core`'s `isProjectPathAllowed`, applied one level deeper (a file
  * within an already-allowed project, not the project root itself).
  * Returns `null` for anything outside the project, missing, or too large
  * to hand a mobile client — never throws on attacker input.
