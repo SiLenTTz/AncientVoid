@@ -32,11 +32,15 @@ export function defaultLoopSpec(info: LoopInfo): LoopSpec {
 /** Pflicht-Selects des Anbindungsformulars zeigen ihre erste Wahl ohnehin an —
  * dieser Wert muss auch im Zustand stehen, sonst blockiert der Start mit
  * „… fehlt“, obwohl das Dropdown gefüllt aussieht (aSPARK „Art“, securesight
- * „Betriebsmodus“/„Provider“; Nutzerfund 2026-10-30: „Starten tut nichts“). */
+ * „Betriebsmodus“/„Provider“; Nutzerfund 2026-10-30: „Starten tut nichts“).
+ * Eine leere erste Wahl (securesight „Modell“: „Standard-Routing“) wird nicht
+ * gepatcht: Sie trägt nichts bei, und als Patch erzeugte sie bei jedem Render
+ * ein neues Objekt — endloser Render-Loop, die PWA fror ein (BUG-0083). */
 export function onboardSelectDefaults(onboarding: LoopOnboarding, values: Record<string, string>): Record<string, string> {
   const patch: Record<string, string> = {};
   for (const f of onboarding.fields) {
-    if (f.kind === "select" && f.choices?.[0] && !values[f.key]?.trim()) patch[f.key] = f.choices[0].value;
+    const first = f.kind === "select" ? f.choices?.[0]?.value : undefined;
+    if (first?.trim() && !values[f.key]?.trim()) patch[f.key] = first;
   }
   if (Object.keys(patch).length === 0) return values;
   return { ...values, ...patch };

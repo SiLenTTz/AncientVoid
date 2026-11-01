@@ -105,5 +105,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0078](bug-0078-neue-session-stale-agent-auswahl.md) | Gemerkter Skill/Agent blockiert Session-Start bei Adaptern ohne Unterstützung („maki kennt keine Agenten.“) | done | S2 | pwa | [#32](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/32) |
 | [BUG-0079](bug-0079-maki-slash-bridge-fuehrt-commands-nicht-aus.md) | maki-Slash-Brücke führte deklarierte Commands nicht aus („/new" kam nur als Chat an) | done | S2 | adapters | [#33](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/33) |
 | [BUG-0080](bug-0080-slash-new-frische-session-ohne-modell.md) | Erste Nachricht nach /new stirbt an falschem Modell (403 → „Internal error") | done | S2 | adapters | [#34](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/34) |
+| [BUG-0081](bug-0081-loop-start-wirkungslos.md) | Loop-Start im neuen Session-Dialog „tut nichts" (Blocker überlesbar, Pflicht-Selects galten nicht als gewählt) | done | S2 | pwa | — |
+| [BUG-0082](bug-0082-notif-panel-ui-zoom.md) | Benachrichtigungs-Panel ragt bei UI-Zoom aus dem Bildschirm | done | S3 | pwa | — |
+| [BUG-0083](bug-0083-pwa-freeze-securesight-anbindungsformular.md) | securesight-Anbindungsformular friert die PWA ein (endloser Render-Loop durch leere Modell-Vorgabe) | done | S1 | pwa | — |
 
-Die nächste freie Nummer ist **0081**.
+Die nächste freie Nummer ist **0084**.
