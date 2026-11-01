@@ -1,7 +1,7 @@
 # BUG-0083 — securesight-Anbindungsformular friert die PWA ein („App abgestürzt" bei Provider-Wahl Z.ai)
 
 - **Gemeldet:** 2026-11-01, Nutzer (Handy, echter Hub, Loop securesight-factory, Anbindung „+neu")
-- **Status:** gefixt (siehe Handoff)
+- **Status:** gefixt ([MR !287](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/287))
 - **Komponente:** PWA `apps/pwa/src/features/loops/loop-form.ts` + `LoopPicker.tsx`
 
 ## Beobachtet
