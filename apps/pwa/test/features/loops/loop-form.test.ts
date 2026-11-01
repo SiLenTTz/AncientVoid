@@ -45,6 +45,24 @@ describe("onboardSelectDefaults: angezeigte Select-Vorgaben gelten als gewählt 
     const draft = { values: onboardSelectDefaults(onboarding, {}), secret: "" };
     expect(loopBlocker(i, spec, true, draft)).toBe("Projektpfad fehlt");
   });
+
+  it("eine leere erste Wahl (securesight „Modell“, BUG-0083) ist Fixpunkt: kein neues Objekt, kein endloser Render-Loop", () => {
+    const mitLeererWahl: LoopOnboarding = {
+      optionKey: "anbindung",
+      label: "Factory-Projekt einrichten",
+      fields: [
+        { key: "modus", label: "Betriebsmodus", kind: "select", required: true, choices: [{ value: "a", label: "a" }] },
+        { key: "provider", label: "Provider", kind: "select", required: true, choices: [{ value: "anthropic", label: "Anthropic" }, { value: "zai", label: "Z.ai" }] },
+        { key: "modell", label: "Modell", kind: "select", choices: [{ value: "", label: "Standard-Routing der Factory" }, { value: "zai/glm-5.3", label: "glm-5.3 (Z.ai)" }] },
+      ],
+    };
+    const first = onboardSelectDefaults(mitLeererWahl, {});
+    expect(first).toEqual({ modus: "a", provider: "anthropic" });
+    // Der erneute Durchlauf über das eigene Ergebnis darf nichts Neues anlegen —
+    // sonst setzt der Effect in LoopPicker bei jedem Render einen neuen Zustand.
+    expect(onboardSelectDefaults(mitLeererWahl, first)).toBe(first);
+    expect(onboardSelectDefaults(mitLeererWahl, { ...first, provider: "zai" })).toEqual({ modus: "a", provider: "zai" });
+  });
 });
 
 describe("onboardProjectDefaults: prefill „project“ füllt aus der Dialog-Auswahl (ADR-0045)", () => {
