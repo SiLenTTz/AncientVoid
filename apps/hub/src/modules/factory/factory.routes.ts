@@ -38,6 +38,7 @@ export function registerFactoryRoutes(app: FastifyInstance, ctx: RouteContext): 
       const driver = await deps.sessions.create(
         { adapter: DRIVER_ADAPTER, project, prompt: goal?.trim() ? `/factory ${goal.trim()}` : "/factory" },
         actor,
+        { workInProject: true },
       );
       try {
         // 2. Beobachter — Verknüpfung in options.driver, damit sie im Loop-Snapshot überlebt (K7).

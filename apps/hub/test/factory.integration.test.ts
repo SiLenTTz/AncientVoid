@@ -1,9 +1,10 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
-import { EventStore, HubDatabase, LoopRegistry, SessionManager, AdapterRegistry, TokenService, loopAsAdapter } from "@ancientvoid/core";
+import { EventStore, HubDatabase, LoopRegistry, SessionManager, AdapterRegistry, TokenService, loopAsAdapter, WorktreeManager } from "@ancientvoid/core";
 import { ProcessRunner } from "@ancientvoid/workers";
 import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 import { createLoopConnector } from "@ancientvoid/loop-securesight-factory";
@@ -12,9 +13,8 @@ import { createHubApp } from "../src/app.ts";
 /**
  * EPIC-P26 T26.5 / ADR-0043: `POST /api/factory/start` legt Treiber (Claude,
  * erster Prompt `/factory`) und Beobachter (Loop project-Modus) verknüpft an.
- * Der Treiber ist hier der Dummy unter dem produktiven Adapter-Namen — die
- * Route fordert `claude` namentlich (ADR-0043 3.1), der Test fälscht nur den
- * Bauch, nicht den Namen.
+ * Die Treiber sind Dummys unter den produktiven Namen claude/maki;
+ * Auswahl, Skill-Auflösung, Workdir und HTTP-Vertrag bleiben echt.
  */
 describe("Factory-Start (T26.5, ADR-0043)", () => {
   let dir: string;
@@ -22,12 +22,15 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
   let token: string;
   let tokens: TokenService;
   let project: string;
+  let sessions: SessionManager;
 
   beforeAll(async () => {
     dir = await mkdtemp(join(tmpdir(), "ancientvoid-factory-"));
     project = join(dir, "projects", "proj");
     await mkdir(join(project, ".factory"), { recursive: true });
     await writeFile(join(project, ".factory", "config.json"), "{}\n");
+    execFileSync("git", ["init", "-q", project]);
+    execFileSync("git", ["-C", project, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-qm", "init"]);
     const db = new HubDatabase(":memory:");
     const store = new EventStore(join(dir, "events"));
     const securesight = createLoopConnector({ pollMs: 40 });
@@ -36,7 +39,7 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
     registry.register("loop:securesight-factory", () => loopAsAdapter(securesight, { stateDir: join(dir, "loops") }), undefined, "loop:securesight-factory");
     const loops = new LoopRegistry();
     loops.register(securesight);
-    const sessions = new SessionManager(db, store, registry, new ProcessRunner());
+    sessions = new SessionManager(db, store, registry, new ProcessRunner(), undefined, new WorktreeManager(join(dir, "worktrees")));
     tokens = new TokenService(db);
     token = tokens.issue("test-device").token;
     app = await createHubApp({
@@ -52,6 +55,7 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
   });
 
   afterAll(async () => {
+    await sessions.shutdown();
     await app.close().catch(() => undefined);
     await rm(dir, { recursive: true, force: true });
   });
@@ -65,10 +69,11 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
 
   it("legt Treiber mit /factory-Auftrag und verknüpften Beobachter an (AC-P26-2 Kern)", async () => {
     const res = await app.inject(authed({ project, goal: "README zusammenfassen" }, token));
-    expect(res.statusCode).toBe(201);
+    expect(res.statusCode, res.body).toBe(201);
     const { driver, observer } = res.json() as { driver: { id: string; adapter: string; project: string }; observer: { id: string; adapter: string; project: string } };
     expect(driver.adapter).toBe("claude");
     expect(driver.project).toBe(project);
+    expect((driver as { worktreeSha?: string | null }).worktreeSha).toBeNull();
     expect(observer.adapter).toBe("loop:securesight-factory");
     expect(observer.project).toBe(project);
 
@@ -130,6 +135,7 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
       expect(records[0]).toMatchObject({ adapter: "claude" });
       expect(["stopped", "stopping", "idle"]).toContain(records[0]!.status);
     } finally {
+      await sessions2.shutdown();
       await app2.close().catch(() => undefined);
     }
   });
