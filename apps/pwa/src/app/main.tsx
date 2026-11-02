@@ -245,6 +245,7 @@ function Main() {
             <NotificationCenter />
             <App
               onOpen={(session, opts) => {
+                setRoute({ view: "tail", session });
                 const ref = tileRefOf(session);
                 changeWorkspace(opts?.newTile ? openInNewTile(ws, ref) : openSession(ws, ref));
               }}

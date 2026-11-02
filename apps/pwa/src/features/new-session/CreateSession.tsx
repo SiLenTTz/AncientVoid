@@ -1,6 +1,6 @@
 import { takeHandOver } from "../../shared/media.ts";
 import { takeShareInbox } from "../../app/share-inbox.ts";
-import { useEffect, useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { LoopPicker } from "../loops/LoopPicker.tsx";
 import type { LoopInfo, LoopSpec } from "@ancientvoid/contracts";
 import { emptyOnboard, isOnboarding, loopBlocker, type OnboardDraft } from "../loops/loop-form.ts";
@@ -76,6 +76,7 @@ export function CreateSession({
     });
   }, []);
   const [error, setError] = useState("");
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
   // T-PJ1: inline project creation (git init in first projectRoot)
@@ -181,6 +182,8 @@ export function CreateSession({
   }, [loop?.id, adapter]);
 
   const submit = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError("");
     try {
@@ -207,7 +210,7 @@ export function CreateSession({
       // verknüpfter Beobachter. Die Treiberwahl bleibt erhalten (ADR-0048).
       const factoryRun = startLoop?.id === "securesight-factory" && !isOnboarding(loopInfo, startLoop);
       const rec = factoryRun
-        ? (await api.factoryStart({ project, adapter, ...(modelChoice && model.trim() ? { model: model.trim() } : {}), ...(prompt ? { goal: prompt } : {}) })).observer
+        ? (await api.factoryStart({ project, adapter, ...(modelChoice && model.trim() ? { model: model.trim() } : {}), ...(prompt ? { goal: prompt } : {}) })).driver
         : await api.createSession({
             ...(startLoop ? { loop: startLoop } : { adapter }),
             project,
@@ -223,6 +226,7 @@ export function CreateSession({
       setOnboardNote("");
       setError(err instanceof Error ? err.message : "create failed");
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   };

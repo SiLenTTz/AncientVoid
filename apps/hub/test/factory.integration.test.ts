@@ -55,6 +55,7 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
     token = tokens.issue("test-device").token;
     app = await createHubApp({
       sessions,
+      hostId: "factory-host",
       tokens,
       registry,
       auth: { tokens, enforceTailnetIdentity: false },
@@ -83,6 +84,8 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
     expect(res.statusCode, res.body).toBe(201);
     const { driver, observer } = res.json() as { driver: { id: string; adapter: string; project: string }; observer: { id: string; adapter: string; project: string } };
     expect(driver.adapter).toBe("claude");
+    expect(res.json().driver.hostId).toBe("factory-host");
+    expect(res.json().observer.hostId).toBe("factory-host");
     expect(driver.project).toBe(project);
     expect((driver as { worktreeSha?: string | null }).worktreeSha).toBeNull();
     expect(observer.adapter).toBe("loop:securesight-factory");
@@ -114,6 +117,28 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
     const events = (await app.inject({ method: "GET", url: `/api/sessions/${driver.id}/events`, headers: { authorization: `Bearer ${token}` } })).json();
     expect(makiPrompt).toContain("Nutze factory progress show.");
     expect(events.some((e: { type: string; payload: { text?: string } }) => e.type === "user" && e.payload.text === "/factory Produkt bauen")).toBe(true);
+    const again = await app.inject(authed({ project: root, adapter: "maki" }, token));
+    expect(again.statusCode).toBe(409);
+  });
+
+  it("lehnt maki ohne Factory-Skill vor dem Anlegen der Sessions laut ab", async () => {
+    const root = join(dir, "projects", "missing-skill");
+    await mkdir(join(root, ".factory"), { recursive: true });
+    await writeFile(join(root, ".factory/config.json"), "{}");
+    const list = () => app.inject({ method: "GET", url: "/api/sessions", headers: { authorization: `Bearer ${token}` } });
+    const before = (await list()).json().length;
+    const res = await app.inject(authed({ project: root, adapter: "maki" }, token));
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error).toContain("Factory-Skill fehlt");
+    expect((await list()).json()).toHaveLength(before);
+  });
+
+  it("verhindert parallele Starts desselben Projekts", async () => {
+    const root = join(dir, "projects", "parallel");
+    await mkdir(join(root, ".factory"), { recursive: true });
+    await writeFile(join(root, ".factory/config.json"), "{}");
+    const results = await Promise.all([app.inject(authed({ project: root }, token)), app.inject(authed({ project: root }, token))]);
+    expect(results.map((r) => r.statusCode).sort()).toEqual([201, 409]);
   });
 
   it("ein Agent-Token darf keinen Factory-Lauf starten (Policy factory.start, AC-P26-5)", async () => {
