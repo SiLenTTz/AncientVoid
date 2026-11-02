@@ -1,4 +1,4 @@
-import { BRIDGE_TOKEN_PREFIX, COMPANION_TOKEN_PREFIX, FLEET_TOKEN_PREFIX, bridgeTokenAllows, companionTokenAllows, isFleetRoutable } from "@ancientvoid/contracts";
+import { BRIDGE_TOKEN_PREFIX, COMPANION_TOKEN_PREFIX, DISPLAY_TOKEN_PREFIX, FLEET_TOKEN_PREFIX, bridgeTokenAllows, companionTokenAllows, displayTokenAllows, isFleetRoutable } from "@ancientvoid/contracts";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import type { TokenService } from "@ancientvoid/core";
 
@@ -26,8 +26,9 @@ export function checkAuth(req: FastifyRequest, opts: AuthOptions): { ok: true } 
   // T7.2: the permission bridge runs on this machine and talks to the hub
   // directly, not through tailscale serve.
   // EPIC-P11: so does a desktop companion on the hub's own machine.
+  // ADR-0048: and a status display's bridge process (USB on this machine).
   const tokenLabel = token !== null ? (opts.tokens.identify(token)?.label ?? "") : "";
-  const bridgeOnLoopback = (tokenLabel.startsWith(BRIDGE_TOKEN_PREFIX) || tokenLabel.startsWith(COMPANION_TOKEN_PREFIX)) && /^(127\.|::1$|::ffff:127\.)/.test(req.ip);
+  const bridgeOnLoopback = (tokenLabel.startsWith(BRIDGE_TOKEN_PREFIX) || tokenLabel.startsWith(COMPANION_TOKEN_PREFIX) || tokenLabel.startsWith(DISPLAY_TOKEN_PREFIX)) && /^(127\.|::1$|::ffff:127\.)/.test(req.ip);
   if (opts.enforceTailnetIdentity && !req.headers[TAILSCALE_LOGIN_HEADER] && !bridgeOnLoopback) {
     return { ok: false, status: 401, reason: "missing tailnet identity (serve via tailscale)" };
   }
@@ -47,6 +48,10 @@ export function checkAuth(req: FastifyRequest, opts: AuthOptions): { ok: true } 
   // EPIC-P11: the companion fetches its work and reports — nothing else.
   if (label.startsWith(COMPANION_TOKEN_PREFIX) && !companionTokenAllows(path)) {
     return { ok: false, status: 403, reason: "companion token not allowed here" };
+  }
+  // ADR-0048: a display reads the hub's state and decides write approvals — nothing else.
+  if (label.startsWith(DISPLAY_TOKEN_PREFIX) && !displayTokenAllows(req.method, path)) {
+    return { ok: false, status: 403, reason: "display token not allowed here" };
   }
   return { ok: true };
 }

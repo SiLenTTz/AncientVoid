@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { extractToken } from "../../platform/auth.ts";
-import { DecideApprovalInput, ApprovalStatus } from "@ancientvoid/contracts";
+import { DecideApprovalInput, ApprovalStatus, actorKind } from "@ancientvoid/contracts";
 import { z } from "zod";
 import type { RouteContext } from "../../route-context.ts";
 
@@ -58,6 +58,11 @@ export function registerApprovalsRoutes(app: FastifyInstance, ctx: RouteContext)
     if (!identity) return reply.code(401).send({ error: "invalid device token" });
     // T7.2: a provider question needs its answer before it can be released.
     const pendingRequest = deps.approvals.get(id);
+    // ADR-0048: a display decides `write` approvals without a reason — a
+    // `destructive` one (biometrics) or one that needs words stays on the phone.
+    if (actorKind(identity.label) === "display" && pendingRequest && (pendingRequest.class !== "write" || pendingRequest.reasonRequired || pendingRequest.action === "tool.question")) {
+      return reply.code(403).send({ error: "Nicht am Display entscheidbar: bitte am Handy bestätigen." });
+    }
     if (pendingRequest?.action === "tool.question" && parsed.data.decision === "approve") {
       const answers = parsed.data.answers ?? {};
       if (Object.keys(answers).length === 0) return reply.code(422).send({ ok: false, detail: "Antwort fehlt." });

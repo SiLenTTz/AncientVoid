@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { POLICY, POLICY_OPERATIONS, actorKind, policyFor } from "../../src/approvals/policy.ts";
+import { displayTokenAllows } from "../../src/approvals/display.ts";
 
 describe("policy table (T7.4)", () => {
   it("reads the actor from the token label", () => {
@@ -8,6 +9,7 @@ describe("policy table (T7.4)", () => {
     expect(actorKind("bridge:abc")).toBe("bridge");
     expect(actorKind("fleet:omarchy")).toBe("fleet");
     expect(actorKind("companion:omarchy")).toBe("companion");
+    expect(actorKind("display:nyx")).toBe("display");
     expect(actorKind(null)).toBe("human");
   });
 
@@ -36,5 +38,21 @@ describe("policy table (T7.4)", () => {
     expect(policyFor("desktop.act", "pixel-9")).toBe("allow");
     expect(policyFor("desktop.act", "agent:mcp")).toBe("deny");
     expect(policyFor("desktop.act", "fleet:omarchy")).toBe("deny");
+  });
+
+  it("ADR-0048: a display reads and decides approvals — nothing else, and never as a writer", () => {
+    for (const op of POLICY_OPERATIONS) expect(POLICY[op].display, op).toBe(op === "read" || op === "approvals.decide" ? "allow" : "deny");
+    expect(policyFor("approvals.decide", "display:nyx")).toBe("allow");
+    expect(policyFor("sessions.stop", "display:nyx")).toBe("deny");
+    expect(policyFor("tokens.manage", "display:nyx")).toBe("deny");
+  });
+
+  it("ADR-0048: the display token reaches only the read routes and the write-decide route", () => {
+    for (const [m, p] of [["GET", "/api/sessions"], ["GET", "/api/sessions/s1"], ["GET", "/api/approvals"], ["GET", "/api/approvals/a1"], ["GET", "/api/notifications"], ["POST", "/api/approvals/a1/decide"]] as const) {
+      expect(displayTokenAllows(m, p), `${m} ${p}`).toBe(true);
+    }
+    for (const [m, p] of [["POST", "/api/sessions"], ["POST", "/api/sessions/s1/stop"], ["POST", "/api/approvals/a1/webauthn/decide"], ["GET", "/api/tokens"], ["GET", "/api/sessions/s1/events"], ["DELETE", "/api/approvals/a1"]] as const) {
+      expect(displayTokenAllows(m, p), `${m} ${p}`).toBe(false);
+    }
   });
 });
