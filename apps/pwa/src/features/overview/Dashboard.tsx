@@ -301,7 +301,7 @@ function SessionRow({
     <div class={`card session-card ${glow}${unseen ? " unseen" : ""}${isLast ? " last-active" : ""}`} aria-current={isLast ? "true" : undefined}>
       <button class="session-open" type="button" onClick={(ev) => onOpen(session, { newTile: ev.ctrlKey || ev.metaKey })}>
         <div class="row">
-          <strong class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? `${project} — ohne Auftrag`}</strong>
+          <strong class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? (session.adapter === "loop:securesight-factory" ? `Factory-Beobachter · ${project}` : `${project} — ohne Auftrag`)}</strong>
           <span class={`pill ${session.status}`} data-status={session.status}>
             {statusLabel(session.status)}
           </span>

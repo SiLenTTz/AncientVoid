@@ -108,8 +108,9 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
     await writeFile(join(root, ".claude/skills/factory/SKILL.md"), "# Factory\nNutze factory progress show.");
     const res = await app.inject(authed({ project: root, goal: "Produkt bauen", adapter: "maki", model: "zai/glm-5.3" }, token));
     expect(res.statusCode, res.body).toBe(201);
-    const { driver } = res.json();
-    expect(driver).toMatchObject({ adapter: "maki", model: "zai/glm-5.3" });
+    const { driver, observer } = res.json();
+    expect(driver).toMatchObject({ adapter: "maki", model: "zai/glm-5.3", title: "Factory · Produkt bauen" });
+    expect(observer.title).toBe("Factory-Beobachter · Produkt bauen");
     const events = (await app.inject({ method: "GET", url: `/api/sessions/${driver.id}/events`, headers: { authorization: `Bearer ${token}` } })).json();
     expect(makiPrompt).toContain("Nutze factory progress show.");
     expect(events.some((e: { type: string; payload: { text?: string } }) => e.type === "user" && e.payload.text === "/factory Produkt bauen")).toBe(true);

@@ -49,7 +49,7 @@ const capabilitiesFor = (models: Record<"anthropic" | "zai", string[]>): LoopCap
     ],
     // AC-P26-9: Harness-Wahl (claude|maki) bleibt ausgeblendet, bis die installierte factory-CLI
     // Fähigkeiten meldet (factory capabilities --json, Schnittstellenwunsch 1) — kein Rateversuch aus der Version.
-    notes: ["Harness-Wahl (claude/maki): ausgeblendet — die installierte factory-CLI meldet keine Fähigkeiten („factory capabilities“ fehlt noch)."],
+    notes: ["Harness-Wahl der Factory-Worker (unabhängig vom Hub-Treiber): ausgeblendet — die installierte factory-CLI meldet keine Fähigkeiten („factory capabilities“ fehlt noch)."],
   },
 });
 

@@ -45,12 +45,15 @@ export function registerFactoryRoutes(app: FastifyInstance, ctx: RouteContext): 
         actor,
         { workInProject: true },
       );
+      const label = (goal?.trim().split("\n")[0] || project.split("/").pop() || "Lauf");
+      deps.sessions.setMeta(driver.id, { title: `Factory · ${label}`.slice(0, 120) });
       try {
         // 2. Beobachter — Verknüpfung in options.driver, damit sie im Loop-Snapshot überlebt (K7).
         const observer = await deps.sessions.create(
           {
             adapter: loopAdapterId(FACTORY_LOOP),
             project,
+            title: `Factory-Beobachter · ${label}`.slice(0, 120),
             args: { [LOOP_ARG]: toStartSpec({ ...loopSpec, options: { ...loopSpec.options, driver: driver.id } }, { project, goal }) },
           },
           actor,

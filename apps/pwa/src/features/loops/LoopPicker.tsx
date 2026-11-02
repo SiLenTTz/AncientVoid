@@ -105,7 +105,7 @@ export function LoopPicker({
       </label>
       {caps && value && (
         <>
-          <div class="dim loop-note">Adapter, Modell und Modus bestimmt der Loop selbst.</div>
+          <div class="dim loop-note">{value.id === "securesight-factory" ? "Ein Lauf besteht aus Treiber (Chat) und Beobachter (Fortschritt). Adapter und Modell unten wählen den Treiber; die Factory-Worker nutzen das Routing im Projekt." : "Adapter, Modell und Modus bestimmt der Loop selbst."}</div>
           {caps.modes.length > 0 && (
             <label>
               Betriebsart
