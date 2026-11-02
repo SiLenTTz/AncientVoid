@@ -23,6 +23,7 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
   let tokens: TokenService;
   let project: string;
   let sessions: SessionManager;
+  let makiPrompt: string | undefined;
 
   beforeAll(async () => {
     dir = await mkdtemp(join(tmpdir(), "ancientvoid-factory-"));
@@ -39,6 +40,16 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
     registry.register("loop:securesight-factory", () => loopAsAdapter(securesight, { stateDir: join(dir, "loops") }), undefined, "loop:securesight-factory");
     const loops = new LoopRegistry();
     loops.register(securesight);
+    registry.register("maki", (config) => {
+      const dummy = createDummy(config);
+      return { ...dummy, start: (spec, context) => {
+        makiPrompt = spec.prompt;
+        return dummy.start(spec, context);
+      }, capabilities: () => {
+        const caps = dummy.capabilities();
+        return { ...caps, features: { ...caps.features, modelChoice: "start" } };
+      } };
+    }, { eventsPerSecond: 100, autoStopAfterEvents: 5 });
     sessions = new SessionManager(db, store, registry, new ProcessRunner(), undefined, new WorktreeManager(join(dir, "worktrees")));
     tokens = new TokenService(db);
     token = tokens.issue("test-device").token;
@@ -87,6 +98,21 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
       const link = events.json().find((e: { payload: { kind?: string } }) => e.payload?.kind === "factory.linkage");
       expect(link?.payload.factory).toMatchObject({ role, partner: role === "driver" ? observer.id : driver.id });
     }
+  });
+
+  it("übernimmt maki/Z.ai, lädt den Factory-Skill und benennt beide Rollen", async () => {
+    const root = join(dir, "projects", "maki");
+    await mkdir(join(root, ".factory"), { recursive: true });
+    await writeFile(join(root, ".factory/config.json"), "{}");
+    await mkdir(join(root, ".claude/skills/factory"), { recursive: true });
+    await writeFile(join(root, ".claude/skills/factory/SKILL.md"), "# Factory\nNutze factory progress show.");
+    const res = await app.inject(authed({ project: root, goal: "Produkt bauen", adapter: "maki", model: "zai/glm-5.3" }, token));
+    expect(res.statusCode, res.body).toBe(201);
+    const { driver } = res.json();
+    expect(driver).toMatchObject({ adapter: "maki", model: "zai/glm-5.3" });
+    const events = (await app.inject({ method: "GET", url: `/api/sessions/${driver.id}/events`, headers: { authorization: `Bearer ${token}` } })).json();
+    expect(makiPrompt).toContain("Nutze factory progress show.");
+    expect(events.some((e: { type: string; payload: { text?: string } }) => e.type === "user" && e.payload.text === "/factory Produkt bauen")).toBe(true);
   });
 
   it("ein Agent-Token darf keinen Factory-Lauf starten (Policy factory.start, AC-P26-5)", async () => {

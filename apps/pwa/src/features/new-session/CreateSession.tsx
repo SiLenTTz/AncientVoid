@@ -176,6 +176,10 @@ export function CreateSession({
     return text.startsWith(line) ? text : `${line}${text}`;
   };
 
+  useEffect(() => {
+    if (loop?.id === "securesight-factory" && !["claude", "maki"].includes(adapter)) setAdapter("claude");
+  }, [loop?.id, adapter]);
+
   const submit = async () => {
     setBusy(true);
     setError("");
@@ -200,11 +204,10 @@ export function CreateSession({
       }
       // EPIC-P26 T26.5 (ADR-0043): securesight „bestehend“ startet den
       // Factory-Lauf — Treiber (/factory mit dem Auftrag als Prompt) plus
-      // verknüpfter Beobachter. Der Loop-Dialog liefert Projekt und Auftrag,
-      // die Factory entscheidet Adapter/Modell selbst (EPIC-P19 bleibt).
+      // verknüpfter Beobachter. Die Treiberwahl bleibt erhalten (ADR-0048).
       const factoryRun = startLoop?.id === "securesight-factory" && !isOnboarding(loopInfo, startLoop);
       const rec = factoryRun
-        ? (await api.factoryStart({ project, ...(prompt ? { goal: prompt } : {}) })).observer
+        ? (await api.factoryStart({ project, adapter, ...(modelChoice && model.trim() ? { model: model.trim() } : {}), ...(prompt ? { goal: prompt } : {}) })).observer
         : await api.createSession({
             ...(startLoop ? { loop: startLoop } : { adapter }),
             project,
@@ -291,12 +294,12 @@ export function CreateSession({
         </label>
       )}
       <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); setOnboard(emptyOnboard); }} onboard={onboard} onOnboard={setOnboard} reload={loopReload} initial={last.loop ?? null} project={project} />
-      {!loop && (
+      {(!loop || loop.id === "securesight-factory") && (
         <>
       <label>
-        Adapter
+        {loop ? "Factory-Treiber" : "Adapter"}
         <select value={adapter} onChange={(e) => setAdapter((e.target as HTMLSelectElement).value)}>
-          {adapters.map((a) => (
+          {adapters.filter((a) => !loop || ["claude", "maki"].includes(a.id)).map((a) => (
             <option key={a.id} value={a.id}>
               {a.id}
               {a.capabilities.features && !a.capabilities.features.followUp ? " (nur beobachten)" : ""}
@@ -307,7 +310,7 @@ export function CreateSession({
       {features?.toolGate === "bypass" && (
         <div class="tool-gate warn">{adapter}: Tools laufen ungefragt, ohne Rückfrage an dich.</div>
       )}
-      {modes.length > 0 && (
+      {!loop && modes.length > 0 && (
         <label>
           Modus
           <select aria-label="Modus" value={mode} onChange={(e) => setMode((e.target as HTMLSelectElement).value)}>
@@ -322,7 +325,7 @@ export function CreateSession({
       )}
       {modelChoice && (
         <label>
-          Modell
+          {loop ? "Treiber-Modell" : "Modell"}
           {catalog && catalog.length > 0 ? (
             <select value={model} onChange={(e) => setModel((e.target as HTMLSelectElement).value)}>
               <option value="">Standard des Harness</option>

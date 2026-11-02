@@ -12,6 +12,8 @@ const binDir = resolve(import.meta.dirname, "bin");
 export interface HubOptions {
   /** "process" (default) or "tmux" — the tmux runner gets a private tmux server. */
   runner?: "process" | "tmux";
+  /** Factory-Tests: maki über den lokalen ACP-Prozess registrieren. */
+  maki?: boolean;
   /** Park steer prompts behind the approval queue (T2.4). */
   requireStepApprovals?: boolean;
   /** Dummy adapter: events per turn before it stops generating (0 = endless). */
@@ -215,6 +217,16 @@ export class TestHub {
           module: "@ancientvoid/adapter-pi",
           config: { command: join(binDir, "pi"), model: "evo/qwen-e2e", contextWindowTokens: 131072 },
         },
+        ...(this.options.maki ? [{
+          id: "maki",
+          module: "@ancientvoid/adapter-acp",
+          config: {
+            preset: "maki",
+            command: [join(binDir, "acp-agent")],
+            model: "lokal/klein",
+            modelsCommand: [process.execPath, "-e", "process.stdout.write('lokal/klein\\nlokal/glm-5.3\\n')"],
+          },
+        }] : []),
         {
           // T7.2: an ACP harness (stand-in agent, real protocol) — with the
           // Harnez pattern: a configured default model plus a listing

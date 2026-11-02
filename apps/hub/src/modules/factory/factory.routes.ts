@@ -1,10 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { LOOP_ARG, loopAdapterId } from "@ancientvoid/contracts";
-import { isProjectPathAllowed, toStartSpec } from "@ancientvoid/core";
+import { isProjectPathAllowed, toStartSpec, resolveSkillChain } from "@ancientvoid/core";
 import type { RouteContext } from "../../route-context.ts";
 
 const FACTORY_LOOP = "securesight-factory";
-/** ADR-0043 3.1: nur `claude` treibt — der projektlokale /factory-Skill ist eine Claude-Konvention (P25-Befund). */
+/** Rückwärtskompatibler Standard; maki bekommt den Skill als Prompt statt als Slash. */
 const DRIVER_ADAPTER = "claude";
 
 /**
@@ -18,8 +18,10 @@ const DRIVER_ADAPTER = "claude";
 export function registerFactoryRoutes(app: FastifyInstance, ctx: RouteContext): void {
   const { deps, hostId, projectRoots, catalogRootFor, callerLabel } = ctx;
 
-  app.post<{ Body: { project?: unknown; goal?: unknown } }>("/api/factory/start", async (req, reply) => {
-    const { project, goal } = req.body ?? {};
+  app.post<{ Body: { project?: unknown; goal?: unknown; adapter?: unknown; model?: unknown } }>("/api/factory/start", async (req, reply) => {
+    const { project, goal, adapter = DRIVER_ADAPTER, model } = req.body ?? {};
+    if (adapter !== "claude" && adapter !== "maki") return reply.code(400).send({ error: "Factory-Treiber muss claude oder maki sein" });
+    if (model !== undefined && (typeof model !== "string" || !model.trim())) return reply.code(400).send({ error: "model muss Text sein" });
     if (typeof project !== "string" || !project.trim()) return reply.code(400).send({ error: "project fehlt" });
     if (goal !== undefined && typeof goal !== "string") return reply.code(400).send({ error: "goal muss Text sein" });
     if (!(await isProjectPathAllowed(project, projectRoots))) {
@@ -35,8 +37,11 @@ export function registerFactoryRoutes(app: FastifyInstance, ctx: RouteContext): 
     await catalogRootFor(project);
     try {
       // 1. Treiber — normaler Prompt-Weg, kein Sonderkanal (ADR-0043 1.).
+      const command = goal?.trim() ? `/factory ${goal.trim()}` : "/factory";
+      const skill = adapter === "maki" ? await resolveSkillChain(project, "factory") : null;
+      if (adapter === "maki" && !skill) return reply.code(422).send({ error: "Factory-Skill fehlt im Projekt; zuerst factory init ausführen" });
       const driver = await deps.sessions.create(
-        { adapter: DRIVER_ADAPTER, project, prompt: goal?.trim() ? `/factory ${goal.trim()}` : "/factory" },
+        { adapter, project, prompt: command, ...(skill ? { args: { skill: "factory" } } : {}), ...(model ? { model } : {}) },
         actor,
         { workInProject: true },
       );
