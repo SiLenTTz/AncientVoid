@@ -109,5 +109,9 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0082](bug-0082-notif-panel-ui-zoom.md) | Benachrichtigungs-Panel ragt bei UI-Zoom aus dem Bildschirm | done | S3 | pwa | — |
 | [BUG-0083](bug-0083-pwa-freeze-securesight-anbindungsformular.md) | securesight-Anbindungsformular friert die PWA ein (endloser Render-Loop durch leere Modell-Vorgabe) | done | S1 | pwa | — |
 | [BUG-0084](bug-0084-live-smoke-spezifische-locator-mehrdeutig.md) | Live-Smoke: Locator „Status"/„Einstellungen" mehrdeutig gegen den bevölkerten Live-Hub | open | S3 | e2e | — |
+| [BUG-0085](bug-0085-factory-rollen-ohne-titel.md) | Factory-Beobachter erscheint ohne Auftrag | done | S2 | pwa | [#35](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/35) |
+| [BUG-0086](bug-0086-factory-start-doppelte-laeufe.md) | Factory-Start bleibt im Formular und erzeugt doppelte Läufe | done | S2 | pwa | [#36](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/36) |
+| [BUG-0087](bug-0087-factory-start-verwirft-maki.md) | Factory-Start verwirft maki und Modellwahl | done | S2 | server | [#37](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/37) |
+| [BUG-0088](bug-0088-factory-treiber-falscher-workdir.md) | Factory-Treiber arbeitet außerhalb des beobachteten Projekts | done | S2 | core | [#38](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/38) |
 
-Die nächste freie Nummer ist **0085**.
+Die nächste freie Nummer ist **0089**.

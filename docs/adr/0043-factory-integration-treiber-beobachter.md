@@ -3,6 +3,8 @@
 **Status:** angenommen (2026-10-30) · **Epic:** [EPIC-P26](../../epics/EPIC-P26-factory-integration.md)
 · **Schnittstelle:** [factory-schnittstelle](../factory-schnittstelle.md) v1
 
+Treiberwahl und Projektpfad präzisiert durch [ADR-0048](0048-factory-treiberwahl-und-projektpfad.md).
+
 ## Kontext
 
 Ein Factory-Lauf im Projektmodus besteht aus zwei Rollen (EPIC-P26 §3.1):

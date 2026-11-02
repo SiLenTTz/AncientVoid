@@ -839,9 +839,9 @@ function createHubApi(P: (path: string) => string) {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  /** EPIC-P26 T26.5 (ADR-0043): Factory-Lauf — legt Treiber (`/factory`-Prompt,
-   * Claude im Projekt) und verknüpften Beobachter (Loop project-Modus) an. */
-  factoryStart: (body: { project: string; goal?: string }) =>
+  /** EPIC-P26 T26.5 (ADR-0043): Factory-Lauf — legt Treiber (Factory-Skill,
+   * Claude/maki im Projekt) und verknüpften Beobachter (Loop project-Modus) an. */
+  factoryStart: (body: { project: string; goal?: string; adapter?: string; model?: string }) =>
     api<{ driver: SessionRecord; observer: SessionRecord }>(P("/api/factory/start"), {
       method: "POST",
       body: JSON.stringify(body),

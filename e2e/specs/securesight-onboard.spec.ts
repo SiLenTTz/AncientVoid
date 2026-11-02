@@ -29,9 +29,9 @@ test.describe("securesight-Anbindung: Formular bleibt reagierend", () => {
 
     // Auch die Modellwahl (Nutzerwunsch 2026-10-30) bleibt bedienbar, ohne
     // dass die Vorgabe „Standard-Routing“ einen Zustands-Loop auslöst.
-    await expect(app.getByLabel("Modell")).toHaveValue("");
-    await app.getByLabel("Modell").selectOption("zai/glm-5.3");
-    await expect(app.getByLabel("Modell")).toHaveValue("zai/glm-5.3");
+    await expect(app.getByLabel("Modell", { exact: true })).toHaveValue("");
+    await app.getByLabel("Modell", { exact: true }).selectOption("zai/glm-5.3");
+    await expect(app.getByLabel("Modell", { exact: true })).toHaveValue("zai/glm-5.3");
 
     // Das Formular lebt noch: zurück auf Anthropic ist möglich.
     await app.getByLabel("Provider").selectOption("anthropic");

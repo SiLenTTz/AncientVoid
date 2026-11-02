@@ -81,11 +81,13 @@ mehrere parallele Factory-Läufe je Projekt; ein Hub-eigener Loop-Treiber
 
 ### 3.1 Zwei Rollen, eine Fachsprache
 
-- **Treiber** = eine normale Claude-Session (Adapter `claude`) im Projektverzeichnis,
-  die den projektlokalen Skill `/factory` ausführt. Nur `claude` taugt: maki führt
-  Slash-Commands im getriebenen Modus nicht aus (P25-Befund, 2026-10-29), und der
-  Skill ist eine Claude-Konvention. Freigaben und Rückfragen des Treibers laufen
-  über die bestehende Freigaben-Ansicht (P7) — **nicht** über Notify-Dateien.
+- **Treiber** = eine normale Claude- oder maki-Session im Projektverzeichnis.
+  Claude führt `/factory` aus; maki erhält den projektlokalen Skill über die
+  bestehende Hub-Skill-Kette als Prompt (`args.skill`). Die frühere Festlegung
+  auf Claude ist durch [ADR-0048](../docs/adr/0048-factory-treiberwahl-und-projektpfad.md)
+  präzisiert (BUG-0087/0088, 2026-11-02). Die Wahl des Treibers und seines Modells
+  ist unabhängig vom Factory-Worker-Routing. Freigaben und Rückfragen des Treibers
+  laufen über die bestehende Freigaben-Ansicht (P7).
 - **Beobachter** = Loop-Session `securesight-factory` im Modus `project`. Sie liest
   Dateien und `factory progress show`, **schreibt nichts ins Projekt** (der P19-Test
   „Verzeichnis vorher/nachher“ gilt weiter).

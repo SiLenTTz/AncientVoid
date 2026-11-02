@@ -432,6 +432,13 @@ export function SessionTail({
   }, [session.adapter]);
   const progress = runProgress(events, status, now);
   const providerFailure = observerOnly ? null : currentProviderFailure(events);
+  const factoryLink = useMemo(() => {
+    for (const e of events) {
+      const p = e.payload as { kind?: string; factory?: { role?: string; partner?: string } };
+      if (p.kind === "factory.linkage" && typeof p.factory?.partner === "string" && ["driver", "observer"].includes(p.factory.role ?? "")) return p.factory;
+    }
+    return null;
+  }, [events]);
   const isLoop = session.adapter.startsWith("loop:");
   const loopView = useMemo(() => (isLoop ? deriveLoopView(events) : null), [isLoop, events]);
   // T21.3: measured turns of the same adapter/model — fetched when a turn starts, never guessed client-side.
@@ -813,6 +820,7 @@ export function SessionTail({
         <ContextBar fill={tokenStats.lastContextTokens} windowTokens={windowTokens} />
       </div>
 
+      {factoryLink?.partner && <div class="loop-note">Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
       {loopView && <LoopPanel sessionId={session.id} adapter={session.adapter} view={loopView} disabled={observerOnly || status === "stopped"} api={api} onError={setReplyError} />}
 
       <div

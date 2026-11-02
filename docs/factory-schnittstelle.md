@@ -10,7 +10,7 @@ mitgeführt (Version hier =_maximum der gelesenen Schemata_).
 Rollen: Der **Hub liest** Dateien und ruft dokumentierte CLI-Kommandos auf
 (`execFile`, feste Argumentliste, Zeitlimit). Der **Hub schreibt nie** in
 Projektdateien; gesetzt wird ausschließlich durch `factory init` (vom Menschen
-ausgelöst) und den Treiber (Claude-Session mit `/factory`). Provider-Keys,
+ausgelöst) und den Treiber (Claude mit `/factory` oder maki mit der Hub-Skill-Kette, [ADR-0048](adr/0048-factory-treiberwahl-und-projektpfad.md)). Provider-Keys,
 Trust und Berechtigungen liegen allein bei der Factory — der Hub liest,
 speichert und loggt sie nie (AC-P26-7).
 

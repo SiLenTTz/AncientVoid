@@ -419,7 +419,7 @@ export class SessionManager {
    * site, every test) renders as `actor: null` — "no caller identity
    * available", not "system" or a guess.
    */
-  async create(spec: unknown, actor?: string): Promise<SessionRecord> {
+  async create(spec: unknown, actor?: string, options: { workInProject?: boolean } = {}): Promise<SessionRecord> {
     const requested = SessionSpecSchema.parse(spec);
     if (requested.mirrorNativeSessionId) return this.createMirror(requested, actor);
     const registered = this.registry.require(requested.adapter);
@@ -501,7 +501,7 @@ export class SessionManager {
     // ADR-0041: die Übernahme der Originalsession (ohne Kopie) läuft dort weiter, wo sie entstand — omp bricht
     // `session/load` aus einem anderen Verzeichnis ab, und die Session gehört ohnehin diesem Projekt.
     const adoptsInPlace = parsed.adoptNativeSessionId !== undefined && parsed.adoptFork !== true;
-    if (this.worktrees && !isLoopAdapter(record.adapter) && !adoptsInPlace) {
+    if (this.worktrees && !options.workInProject && !isLoopAdapter(record.adapter) && !adoptsInPlace) {
       try {
         const created = await this.worktrees.create(record.id, record.project);
         if (created) {
@@ -518,7 +518,7 @@ export class SessionManager {
     }
     if (!session.worktreeIsolated) {
       await this.emitSystem(session, "session.no_worktree_isolation", {
-        reason: isLoopAdapter(record.adapter) ? "loop works in its own project" : adoptsInPlace ? "adopted session continues in its own project" : this.worktrees ? "project is not a git repo" : "worktree isolation not configured",
+        reason: options.workInProject ? "factory driver works in its own project" : isLoopAdapter(record.adapter) ? "loop works in its own project" : adoptsInPlace ? "adopted session continues in its own project" : this.worktrees ? "project is not a git repo" : "worktree isolation not configured",
       });
     }
 
