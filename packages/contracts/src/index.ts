@@ -9,6 +9,7 @@ export * from "./approvals/approval.ts";
 export * from "./approvals/operation.ts";
 export * from "./approvals/tool-permission.ts";
 export * from "./approvals/policy.ts";
+export * from "./approvals/display.ts";
 export * from "./approvals/gatekeeper.ts";
 export * from "./attachments/attachment.ts";
 export * from "./reporting/reporting.ts";

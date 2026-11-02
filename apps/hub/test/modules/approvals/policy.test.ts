@@ -15,6 +15,8 @@ describe("actor policy (T7.4)", () => {
   let sessions: SessionManager;
   let human: string;
   let agent: string;
+  let display: string;
+  let approvals: ApprovalService;
 
   async function call(method: "GET" | "POST" | "DELETE", url: string, token: string, payload?: unknown) {
     const res = await app.inject({ method, url, headers: { authorization: `Bearer ${token}` }, ...(payload !== undefined ? { payload: payload as object } : {}) });
@@ -26,13 +28,14 @@ describe("actor policy (T7.4)", () => {
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });
-    const approvals = new ApprovalService(db);
+    approvals = new ApprovalService(db);
     const tokens = new TokenService(db);
     sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
     sessions.enableToolPermissions({ approvals, timeoutMs: 60_000 });
     app = await createHubApp({ sessions, tokens, registry, approvals, auth: { tokens, enforceTailnetIdentity: false }, projectRoots: [dir] });
     human = tokens.issue("pixel").token;
     agent = tokens.issue("agent:mcp").token;
+    display = tokens.issue("display:nyx").token;
   });
 
   afterEach(async () => {
@@ -100,5 +103,32 @@ describe("actor policy (T7.4)", () => {
     ] as const) {
       expect((await call(method, url, agent, {})).status, `${method} ${url}`).toBe(403);
     }
+  });
+
+  it("ADR-0048: a display decides a write approval, but not a destructive or reason-required one, and reaches nothing else", async () => {
+    const s = await sessions.create({ adapter: "dummy", project: dir });
+    expect((await call("GET", "/api/sessions", display)).status).toBe(200);
+    expect((await call("GET", "/api/approvals", display)).status).toBe(200);
+    for (const [method, url] of [
+      ["POST", "/api/sessions"],
+      ["POST", `/api/sessions/${s.id}/stop`],
+      ["POST", `/api/sessions/${s.id}/steer`],
+      ["POST", "/api/tokens"],
+      ["GET", "/api/tokens"],
+      ["GET", `/api/sessions/${s.id}/events`],
+    ] as const) {
+      expect((await call(method, url, display, {})).status, `${method} ${url}`).toBe(403);
+    }
+    const write = approvals.create(s.id, "write", "steer.prompt", "Prompt senden");
+    const destructive = approvals.create(s.id, "destructive", "session.delete", "Löschen", true);
+    const needsReason = approvals.create(s.id, "write", "budget.increase", "Budget erhöhen", true);
+    expect((await call("POST", `/api/approvals/${destructive.id}/decide`, display, { decision: "approve" })).status).toBe(403);
+    expect((await call("POST", `/api/approvals/${needsReason.id}/decide`, display, { decision: "approve" })).status).toBe(403);
+    expect((await call("POST", `/api/approvals/${destructive.id}/webauthn/decide`, display, { decision: "approve" })).status).toBe(403);
+    expect(approvals.get(destructive.id)?.status).toBe("pending");
+    expect(approvals.get(needsReason.id)?.status).toBe("pending");
+    const ok = await call("POST", `/api/approvals/${write.id}/decide`, display, { decision: "approve" });
+    expect(ok.status).toBe(200);
+    expect(approvals.get(write.id)).toMatchObject({ status: "approved", decidedByLabel: "display:nyx" });
   });
 });
