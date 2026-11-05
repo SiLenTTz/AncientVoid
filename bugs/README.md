@@ -113,5 +113,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0086](bug-0086-factory-start-doppelte-laeufe.md) | Factory-Start bleibt im Formular und erzeugt doppelte Läufe | done | S2 | pwa | [#36](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/36) |
 | [BUG-0087](bug-0087-factory-start-verwirft-maki.md) | Factory-Start verwirft maki und Modellwahl | done | S2 | server | [#37](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/37) |
 | [BUG-0088](bug-0088-factory-treiber-falscher-workdir.md) | Factory-Treiber arbeitet außerhalb des beobachteten Projekts | done | S2 | core | [#38](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/38) |
+| [BUG-0089](bug-0089-e2e-ci-host-label.md) | Konfigurierter eigener Host-Name wird in Fleet ignoriert | done | S3 | server | [#39](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/39) |
 
-Die nächste freie Nummer ist **0089**.
+Die nächste freie Nummer ist **0090**.

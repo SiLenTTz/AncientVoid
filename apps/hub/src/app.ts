@@ -133,7 +133,7 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   registerSttRoutes(app, deps.stt, async () => (await discoverProjects(projectRoots)).projects.map((p) => p.path));
   const fleet = deps.fleet ?? new FleetStore(deps.tokens.database, deps.tokens);
   const hostId = deps.hostId ?? DEFAULT_HOST_ID;
-  registerFleetRoutes(app, { fleet, tokens: deps.tokens, hostId });
+  registerFleetRoutes(app, { fleet, tokens: deps.tokens, hostId, ...(deps.hostLabel ? { hostLabel: deps.hostLabel } : {}) });
   registerFleetProxy(app, { fleet, hostId, sessions: deps.sessions, tokens: deps.tokens, ...(deps.metrics ? { metrics: deps.metrics } : {}) });
   registerWs(app, deps.sessions, deps.metrics, deps.tokens);
 
