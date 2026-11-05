@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { tmpdir, hostname } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
 import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
@@ -17,7 +17,7 @@ interface Hub {
   dir: string;
 }
 
-async function hub(hostId: string, port = 0): Promise<Hub> {
+async function hub(hostId: string, port = 0, hostLabel?: string): Promise<Hub> {
   const dir = await mkdtemp(join(tmpdir(), `ancientvoid-${hostId}-`));
   const db = new HubDatabase(":memory:");
   const registry = new AdapterRegistry();
@@ -25,7 +25,7 @@ async function hub(hostId: string, port = 0): Promise<Hub> {
   const sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
   const tokens = new TokenService(db);
   const token = tokens.issue("phone").token;
-  const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, hostId });
+  const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, hostId, ...(hostLabel ? { hostLabel } : {}) });
   await app.listen({ port, host: "127.0.0.1" });
   return { app, url: `http://127.0.0.1:${(app.server.address() as { port: number }).port}`, token, tokens, sessions, dir };
 }
@@ -42,7 +42,7 @@ async function call<T>(h: Hub, path: string, body?: unknown): Promise<{ status: 
 
 interface Fleet {
   self: string;
-  hosts: { hostId: string; self: boolean; state: string; lastSyncAt: string | null; sessions: number }[];
+  hosts: { hostId: string; label?: string; self: boolean; state: string; lastSyncAt: string | null; sessions: number }[];
   sessions: { id: string; hostId: string; project: string }[];
 }
 
@@ -51,7 +51,7 @@ describe("fleet overview (T6.3, AC-P6-1/AC-P6-3)", () => {
   let peer: Hub;
 
   beforeAll(async () => {
-    home = await hub("omarchy");
+    home = await hub("omarchy", 0, "Configured home label");
     peer = await hub("silenttz-server");
     const invite = await call<{ code: string }>(peer, "/api/fleet/invites", {});
     expect((await call(home, "/api/fleet/peers", { url: peer.url, code: invite.body.code })).status).toBe(201);
@@ -63,6 +63,15 @@ describe("fleet overview (T6.3, AC-P6-1/AC-P6-3)", () => {
       await h.app.close().catch(() => undefined);
       await rm(h.dir, { recursive: true, force: true });
     }
+  });
+
+  it("BUG-0089: own overview label respects hostLabel, consistent with hello; default remains hostname", async () => {
+    const own = (await call<Fleet>(home, "/api/fleet")).body.hosts.find(h => h.self);
+    expect(own?.label).toBe("Configured home label");
+    const hello = await home.app.inject({ method: "GET", url: "/api/fleet/hello" });
+    expect(hello.json().label).toBe(own?.label);
+    const fallback = (await call<Fleet>(peer, "/api/fleet")).body.hosts.find(h => h.self);
+    expect(fallback?.label).toBe(hostname());
   });
 
   it("lists every host's sessions with its host id, same project names apart", async () => {

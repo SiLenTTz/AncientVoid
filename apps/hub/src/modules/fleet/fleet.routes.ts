@@ -31,7 +31,7 @@ export function normalizePeerUrl(raw: string): string | null {
  * pairs with other hubs by redeeming theirs. Peer tokens never leave the
  * server.
  */
-export function registerFleetRoutes(app: FastifyInstance, deps: { fleet: FleetStore; tokens: TokenService; hostId: string }): void {
+export function registerFleetRoutes(app: FastifyInstance, deps: { fleet: FleetStore; tokens: TokenService; hostId: string; hostLabel?: string }): void {
   let window = { start: Date.now(), failures: 0 };
 
   app.post("/api/fleet/invites", async (_req, reply) => reply.code(201).send(deps.fleet.createInvite()));
@@ -88,7 +88,7 @@ export function registerFleetRoutes(app: FastifyInstance, deps: { fleet: FleetSt
     const own = ownRes.statusCode === 200 ? (ownRes.json() as SessionRecord[]) : [];
     const now = new Date().toISOString();
     const hosts: FleetHostView[] = [
-      { hostId: deps.hostId, label: hostname(), self: true, url: null, state: "reachable", lastSyncAt: now, detail: null, sessions: own.length },
+      { hostId: deps.hostId, label: deps.hostLabel ?? hostname(), self: true, url: null, state: "reachable", lastSyncAt: now, detail: null, sessions: own.length },
     ];
     const sessions: SessionRecord[] = [...own];
     const results = await Promise.all(
