@@ -826,7 +826,10 @@ export function SessionTail({
       <div
         ref={tailRef}
         class="tail-scroll"
-        onWheel={() => (userInputAt.current = Date.now())}
+        onWheel={(event) => {
+          userInputAt.current = Date.now();
+          if (event.deltaY < 0) stickRef.current = false;
+        }}
         onTouchMove={() => (userInputAt.current = Date.now())}
         onPointerDown={() => (userInputAt.current = Date.now())}
         onKeyDown={() => (userInputAt.current = Date.now())}
