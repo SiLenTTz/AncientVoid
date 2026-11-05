@@ -5,6 +5,11 @@
 # fehlende Voraussetzungen sind nie grün (Skip-Bericht im e2e-Job).
 stages: [verify, e2e]
 
+variables:
+  # check:commits vergleicht mit origin/main — GitLabs Default-GIT_DEPTH
+  # (50) holt die Refs nicht, der Check würde still skippen. Voller Clone.
+  GIT_DEPTH: 0
+
 default:
   image: node:26
   tags: [av-docker]
