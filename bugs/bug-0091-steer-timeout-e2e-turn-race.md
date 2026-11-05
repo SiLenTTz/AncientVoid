@@ -43,11 +43,13 @@ Folgeprompt auf den tatsächlichen Session-Status `idle` warten.
 
 Rot vor Fix mit verspätetem Turn-Ende: HTTP 200 statt erwartetem 422.
 Danach dieselben Assertions mit Status-`idle`-Vorbedingung dreifach grün
-(zusammen mit Desktop-/Scroll-Specs: 36/36). Voller Gate/MR folgen. Repro über
+(zusammen mit Desktop-/Scroll-Specs: 36/36). Voller Gate und MR siehe unten. Repro über
 Playwright, keine produktiven Provider oder Roh-Logs.
 
 Gemeinsamer Abschluss-Gate der getrennten CI-Blocker-Fixes: `npm run gate`
 grün; 1152 Unit-/Integrationstests, 285 E2E-Pässe, zwei bestehende Mobile-
 Handoff-Skips mit grünen Desktop-Gegenstücken. Keine Testlimits verändert.
-Jeder Fix wird separat committet/gemerged; P27 erhält danach einen erneuten
-vollständigen Gate des kombinierten Stands.
+Der Fix wurde separat gemergt; der abschließende kombinierte P27-Gate
+bestand mit 1181 Tests und 295 E2E-Pässen (zwei bekannte Mobile-Handoff-Skips).
+
+Abgeschlossen über [MR !296](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/296).

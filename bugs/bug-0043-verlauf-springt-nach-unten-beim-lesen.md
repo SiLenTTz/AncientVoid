@@ -86,3 +86,5 @@ Browser-Scroll bleiben echte Playwright-/Browser-Aktionen.
 Verifiziert: Desktop-/Timeout-/Scroll-Specs gemeinsam dreifach 36/36; voller
 gemeinsamer Arbeitsbaum-Gate der CI-Blocker-Fixes grün (1152 Unit-/Integration,
 285 E2E-Pässe, zwei bekannte Mobile-Handoff-Skips mit grünen Desktop-Läufen).
+
+Abgeschlossen über [MR !297](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/297).

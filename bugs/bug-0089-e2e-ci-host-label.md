@@ -66,7 +66,7 @@ Keine Roh-Logs oder Token-Artefakte übernommen. Links:
 Gezielte Browser-Probe mit absichtlich von `hostId` abweichendem `label`:
 Assertions schlagen ohne Fix fehl. Nach Änderung müssen dieselben Fleet-Flows
 funktionieren, einschließlich Ausfall eines Peers und Bedienung des lokalen Hubs.
-Danach gesamtes lokales Gate und CI erneut.
+Das vollständige lokale Gate wurde danach erneut geprüft; CI-Quota siehe P27-Abnahme.
 
 ## Fix und Verifikation
 
@@ -75,10 +75,12 @@ bleibt `hostname()` der Default. Der Browser-Test verwendet bewusst einen von
 `hostId` und OS-Namen verschiedenen Anzeigenamen.
 
 Rot vor Fix: `npm test -- apps/hub/test/modules/fleet/fleet-aggregate.test.ts`,
-ein Fehler / drei Pässe. Gates und MR werden nach Verifikation ergänzt.
+ein Fehler / drei Pässe. MR und Abschlussnachweis siehe unten.
 
 Gemeinsamer Abschluss-Gate der getrennten CI-Blocker-Fixes: `npm run gate`
 grün; 1152 Unit-/Integrationstests, 285 E2E-Pässe, zwei bestehende Mobile-
 Handoff-Skips mit grünen Desktop-Gegenstücken. Keine Testlimits verändert.
-Jeder Fix wird separat committet/gemerged; P27 erhält danach einen erneuten
-vollständigen Gate des kombinierten Stands.
+Der Fix wurde separat gemergt; der abschließende kombinierte P27-Gate
+bestand mit 1181 Tests und 295 E2E-Pässen (zwei bekannte Mobile-Handoff-Skips).
+
+Abgeschlossen über [MR !294](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/294).
