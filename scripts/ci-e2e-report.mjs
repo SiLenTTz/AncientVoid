@@ -14,8 +14,11 @@ import { pathToFileURL } from "node:url";
 const repoRoot = resolve(import.meta.dirname, "..");
 
 export function parseJUnit(xml) {
-  const suite = xml.match(/<testsuite\b[^>]*>/)?.[0] ?? "";
-  const int = (name) => Number(suite.match(new RegExp(`\\b${name}="(-?\\d+)"`))?.[1] ?? 0);
+  // Playwright schreibt je <testsuite> pro Spec-Datei — über alle summieren,
+  // nicht nur die erste lesen (Lauf 3034262577 zeigte sonst „3 Tests“).
+  const suites = [...xml.matchAll(/<testsuite\b[^>]*>/g)].map((m) => m[0]);
+  const sum = (name) =>
+    suites.reduce((acc, suite) => acc + (Number(suite.match(new RegExp(`\\b${name}="(-?\\d+)"`))?.[1] ?? 0)), 0);
   // An <testcase> splitten: jedes Segment trägt seine Attribute bis zum
   // ersten ">" und danach den Rumpf — selbstschließende Tags bleiben eigenständig.
   const segments = xml.split(/<testcase\b/).slice(1);
@@ -32,9 +35,9 @@ export function parseJUnit(xml) {
   }
   // Selbst zählen, falls der Reporter Summary-Attribute nicht setzt.
   return {
-    tests: int("tests") || segments.length,
-    failures: Math.max(int("failures"), [...xml.matchAll(/<failure\b/g)].length),
-    errors: Math.max(int("errors"), [...xml.matchAll(/<error\b/g)].length),
+    tests: sum("tests") || segments.length,
+    failures: Math.max(sum("failures"), [...xml.matchAll(/<failure\b/g)].length),
+    errors: Math.max(sum("errors"), [...xml.matchAll(/<error\b/g)].length),
     skipped,
   };
 }

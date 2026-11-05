@@ -42,6 +42,25 @@ describe("ci-e2e-report (EPIC-P28 T28.4)", () => {
     expect(buildReport({ tests: 3, failures: 0, errors: 0, skipped: [] }, { sha: "abc", runner: "r", pipeline: "p", image: "node:26", node: "v26", playwright: "^1" })).toContain("**Grün**");
   });
 
+  it("summiert über alle testsuites (Playwright: eine je Spec-Datei)", () => {
+    const playwright = `<?xml version="1.0"?>
+<testsuites name="e2e" tests="5" failures="0" errors="0" skipped="1">
+  <testsuite name="e2e/specs/klein.spec.ts" tests="3" failures="0" errors="0" skipped="1" timestamp="2026-11-06">
+    <testcase classname="e2e/specs/klein.spec.ts" name="a"/>
+    <testcase classname="e2e/specs/klein.spec.ts" name="b"><skipped><![CDATA[Handoff nur Desktop]]></skipped></testcase>
+    <testcase classname="e2e/specs/klein.spec.ts" name="c"/>
+  </testsuite>
+  <testsuite name="e2e/specs/gross.spec.ts" tests="2" failures="0" errors="0" skipped="0">
+    <testcase classname="e2e/specs/gross.spec.ts" name="x"/>
+    <testcase classname="e2e/specs/gross.spec.ts" name="y"/>
+  </testsuite>
+</testsuites>`;
+    const data = parseJUnit(playwright);
+    expect(data.tests).toBe(5);
+    expect(data.failures).toBe(0);
+    expect(data.skipped).toEqual(["e2e/specs/klein.spec.ts › b"]);
+  });
+
   it("schlägt fehl, wenn die JUnit-Datei fehlt (fail loud)", () => {
     const dir = mkdtempSync(join(tmpdir(), "ancientvoid-ci-report-"));
     const heard = [];
