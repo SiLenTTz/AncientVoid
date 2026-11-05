@@ -27,6 +27,28 @@ test.describe("Verlauf scrollt und liegt über dem Dock", () => {
     expect(await app.locator(".tail-scroll").evaluate((el) => Math.round(el.scrollTop))).toBeLessThan(260); // nicht nach unten gesprungen
   });
 
+  test("BUG-0043: nach oben drehen löst die Leseposition schon vor der Scroll-Meldung @desktop", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await openVerlauf(app, hub.origin, id);
+    await expect.poll(() => count(app)).toBeGreaterThan(30);
+    // Fault injection: the wheel arrives, while scroll notifications are delayed.
+    await app.locator(".tail-scroll").evaluate(el => {
+      el.setAttribute("data-delay-scroll", "yes");
+      el.addEventListener("scroll", event => {
+        if (el.hasAttribute("data-delay-scroll")) event.stopImmediatePropagation();
+      }, { capture: true });
+    });
+    try {
+      await app.locator(".tail-scroll").hover();
+      await app.mouse.wheel(0, -100_000);
+      const before = await count(app);
+      await expect.poll(() => count(app)).toBeGreaterThan(before + 15);
+      expect(await app.locator(".tail-scroll").evaluate(el => Math.round(el.scrollTop))).toBeLessThan(260);
+    } finally {
+      await app.locator(".tail-scroll").evaluate(el => el.removeAttribute("data-delay-scroll"));
+    }
+  });
+
   test("BUG-0043: wer unten ist, bleibt unten, solange neue Events kommen", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await openVerlauf(app, hub.origin, id);

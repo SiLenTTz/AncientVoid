@@ -67,3 +67,22 @@ weil auch Layout-Änderungen scroll-Ereignisse auslösen.
 
 - [x] Datei im Index [`README.md`](README.md)
 - [x] Fix in derselben MR
+
+## Nachtrag 05.11.2026 — verzögerte Scroll-Meldung (CI-Abschluss P27)
+
+Im GitLab-Job 17778072745 trat der Fehler erneut auf; die Regression ist
+lokal mit zurückgehaltenen Scroll-Meldungen reproduziert: Trotz tatsächlichem
+Wheel nach oben zieht das nächste Event die Liste auf Position 4339 statt
+unter 260. Vor Fix roter E2E `nach oben drehen ... vor der Scroll-Meldung`.
+
+Ursache: `onWheel` markierte nur die Uhrzeit; `stickRef` blieb bis zur späteren
+Scroll-Meldung aktiv. Ein vorher eintreffendes neues Event konnte deshalb
+weiter ans Ende scrollen. Der Wheel nach oben löst das Mitlaufen jetzt sofort;
+das normale Scroll-Signal aktiviert es beim Erreichen des Endes wieder.
+Keine Grenzwerte oder bestehenden Assertions geändert. Die Fault-Injection
+hält ausschließlich im Test die Scroll-Benachrichtigung zurück; Eingabe und
+Browser-Scroll bleiben echte Playwright-/Browser-Aktionen.
+
+Verifiziert: Desktop-/Timeout-/Scroll-Specs gemeinsam dreifach 36/36; voller
+gemeinsamer Arbeitsbaum-Gate der CI-Blocker-Fixes grün (1152 Unit-/Integration,
+285 E2E-Pässe, zwei bekannte Mobile-Handoff-Skips mit grünen Desktop-Läufen).
