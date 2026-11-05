@@ -114,6 +114,7 @@ scripts/setup-tailscale-serve.sh
 
 Betrieb, Updates und Rückkehr: [Installations-Runbook](docs/operations-runbook.md).
 Verschlüsselte Sicherungen: [Backup/Restore-Runbook](docs/backup-restore.md).
+CI-Runner, Ausfallpfad und Fehlerklassifikation: [CI-Runbook](docs/ci-runbook.md).
 
 ## Messlatten (Auszug, PRD §9)
 

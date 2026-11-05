@@ -38,11 +38,13 @@ wenn die Exit-Kriterien von P(n-1) grün sind.
 
 ## Kommandos
 
-> **GitLab-CI ist nicht verlässlich** (Free-Abo: Pipelines schlagen sporadisch
-> fehl, REST-Merge-Endpoint liefert gern 404 — Merge via GraphQL
-> `mergeRequestAccept` funktioniert). Qualität zählt nur über die **lokalen**
-> Gates unten; eine rote GitLab-Pipeline ohne lokales Gegenbild ist kein
-> Merge-Blocker.
+> **GitLab-Shared-Runner-Kontingent ist begrenzt** (Free-Abo: 400
+> Compute-Minuten/Monat). Pipelines laufen deshalb auf dem eigenen
+> Projekt-Runner `av-docker` (ADR-0049, Betrieb siehe `docs/ci-runbook.md`)
+> und sind davon unabhängig. Fällt der Runner aus, bleibt die Pipeline
+> sichtbar `pending` — Qualität zählt weiterhin über die **lokalen** Gates
+> unten; eine rote oder nie gestartete Pipeline ist kein Merge-Blocker,
+> sondern wird nach dem Runbook nachgezogen. Niemals als Pass zählen.
 
 ```bash
 npm test                 # vitest (Unit/Integration)
