@@ -50,6 +50,13 @@ CI-Variablen mit Secrets im Projekt.
 - **Neustart nach Reboot:** Container läuft mit `--restart unless-stopped`,
   `docker.service` ist enabled — der Runner kommt nach dem Boot von selbst
   zurück. Bis dahin bleiben neue Pipelines sichtbar `pending` (ehrlich).
+- **Keine schweren lokalen Läufe parallel zum Runner:** Der Runner teilt sich
+  CPU/IO mit dem Alltagshost. Ein parallel laufender Volllauf (ci-repro,
+  loadtest, komplette Testsuite) hat am 05.11.2026 zweimal den
+  timing-sensiblen K7-Recovery-Test zum Scheitern gebracht
+  ([BUG-0092](../bugs/bug-0092-k7-recovery-test-flaky-parallel-last.md)).
+  Schwere lokale Läufe erst starten, wenn kein Build-Container aktiv ist
+  (`docker ps`), oder sequentiell nacheinander.
 - **Runner aktualisieren:**
   `docker stop ancientvoid-ci-runner && docker rm ancientvoid-ci-runner`,
   dann `docker pull gitlab/gitlab-runner:v<x.y.z>` und Start wie in
