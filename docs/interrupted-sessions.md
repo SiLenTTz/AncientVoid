@@ -68,3 +68,8 @@ der Hub interpretiert weder Handle-Inhalte noch Agent-Output als Befehle.
 - `e2e/specs/interrupted-session.spec.ts`: echter Hub mit Dummy-Testadapter
   und deterministischem Worker-Verlust, Mobile/Desktop, dreifach geprüft.
 - [E2E-Gate](testing-e2e.md), [ADR-0044](adr/0044-interrupted-sessions-status.md).
+
+Auch nach mehreren Fortsetzungen unterscheidet Recovery die aktuelle
+Laufgeneration von früheren abgeschlossenen Unterbrechungen. Beim neuen Start
+werden alte Kontexte abgebrochen und deren Worker-Zähler verworfen.
+Archivieren übernimmt den auslösenden Akteur in das Stop-Audit.

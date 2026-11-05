@@ -309,7 +309,7 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     const body = z.object({ archived: z.boolean() }).safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: "archived boolean required" });
     try {
-      return { ...(await deps.sessions.archive(id, body.data.archived)), hostId };
+      return { ...(await deps.sessions.archive(id, body.data.archived, callerLabel(req) ?? undefined)), hostId };
     } catch (err) {
       const message = err instanceof Error ? err.message : "archive failed";
       if (message.startsWith("unknown session")) return reply.code(404).send({ error: message });

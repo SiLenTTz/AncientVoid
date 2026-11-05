@@ -15,6 +15,7 @@ async function fixture(options: { persistent?: boolean; native?: boolean; resume
   let ctx!: AdapterContext;
   let exit!: (code: number | null) => void;
   let starts = 0;
+  let crashed = false;
   const digests: SessionSummary[] = [];
   const runner: WorkerRunner = {
     kind: "test", isAvailable: async () => true, list: async () => [], reapOrphans: async () => [], killByName: async () => {},
@@ -43,15 +44,16 @@ async function fixture(options: { persistent?: boolean; native?: boolean; resume
   const registry = new AdapterRegistry();
   registry.register(adapter.id, () => adapter);
   const manager = new SessionManager(db, store, registry, runner, 60_000, undefined, undefined, null, [async summary => { digests.push(summary); }], { autoResumeInterrupted: options.auto ?? false });
-  cleanup.push(async () => { await manager.shutdown(); db.close(); await rm(dir, { recursive: true, force: true }); });
+  cleanup.push(async () => { await manager.shutdown({ keepWorkers: crashed }); db.close(); await rm(dir, { recursive: true, force: true }); });
   const record = await manager.create({ adapter: adapter.id, project: dir, prompt: "work" });
   const events = () => manager.tail(record.id, 0);
   const wait = async (check: () => Promise<boolean>) => {
     for (let i = 0; i < 200; i++) { if (await check()) return; await new Promise((r) => setTimeout(r, 10)); }
-    throw new Error("interruption was not recorded");
+    throw new Error("lifecycle condition was not recorded");
   };
   const interrupt = async () => { exit(null); await wait(async () => (await events()).some(e => e.payload.kind === "session.turn_end")); };
-  return { dir, db, store, registry, runner, manager, record, events, wait, interrupt, digests, exit: (code: number | null) => exit(code), context: () => ctx, emit: (error = false) => ctx.emit(error ? { type: "error", summary: "agent failed", payload: {} } : { type: "system", summary: "provider failed", payload: { kind: "provider.error" } }), starts: () => starts };
+  const crash = async () => { crashed = true; await manager.shutdown({ keepWorkers: true }); };
+  return { crash, exitCallback: () => exit, dir, db, store, registry, runner, manager, record, events, wait, interrupt, digests, exit: (code: number | null) => exit(code), context: () => ctx, emit: (error = false) => ctx.emit(error ? { type: "error", summary: "agent failed", payload: {} } : { type: "system", summary: "provider failed", payload: { kind: "provider.error" } }), starts: () => starts };
 }
 const resume: AdapterResume = { argv: ["test", "--resume", "{sessionId}"], ref: "native", hub: true, auto: true };
 
@@ -118,7 +120,7 @@ describe("P27 interruption lifecycle", () => {
     const waiting = await f.manager.create({ adapter: "interrupt-test", project: f.dir, prompt: "wait" });
     f.manager.enableToolPermissions({ approvals: new ApprovalService(f.db), timeoutMs: 60_000 });
     await f.manager.requestToolPermission(waiting.id, { toolName: "Bash", input: { command: "ls" } });
-    await f.manager.shutdown({ keepWorkers: true });
+    await f.crash();
     const second = new SessionManager(f.db, new EventStore(f.dir), f.registry, f.runner);
     cleanup.push(() => second.shutdown({ keepWorkers: true }));
     const t = performance.now();
@@ -135,7 +137,7 @@ describe("P27 interruption lifecycle", () => {
   it("K7: restart completes an interruption whose final turn_end was not written", async () => {
     const f = await fixture();
     await f.interrupt();
-    await f.manager.shutdown({ keepWorkers: true });
+    await f.crash();
     const partial = (await f.events()).filter(e => e.payload.kind !== "session.turn_end");
     await writeFile(join(f.dir, "sessions", f.record.id, "events.jsonl"), partial.map(e => JSON.stringify(e)).join("\n") + "\n");
     const second = new SessionManager(f.db, new EventStore(f.dir), f.registry, f.runner);
@@ -146,6 +148,38 @@ describe("P27 interruption lifecycle", () => {
     expect(events.filter(e => e.payload.kind === "session.turn_end")).toHaveLength(1);
     expect(events.map(e => e.seq)).toEqual(events.map((_, i) => i + 1));
     expect(second.get(f.record.id)?.status).toBe("interrupted");
+  });
+
+  it("K7: an older completed interruption cannot hide a new interrupted resumed turn", async () => {
+    const f = await fixture({ resume });
+    await f.interrupt();
+    expect((await f.manager.resume(f.record.id, "phone")).ok).toBe(true);
+    await f.crash();
+    // The second interruption persisted status, then the hub died before its marker.
+    f.db.prepare("UPDATE sessions SET status = 'interrupted' WHERE id = ?").run(f.record.id);
+    const second = new SessionManager(f.db, new EventStore(f.dir), f.registry, f.runner);
+    cleanup.push(() => second.shutdown({ keepWorkers: true }));
+    await second.recoverAll();
+    await second.recoverAll();
+    const events = await second.tail(f.record.id, 0);
+    expect(events.filter(e => e.payload.kind === "session.interrupted")).toHaveLength(2);
+    expect(events.filter(e => e.payload.kind === "session.turn_end")).toHaveLength(2);
+    expect(events.at(-1)?.payload).toMatchObject({ kind: "session.turn_end", reason: "interrupted" });
+  });
+
+  it("a reopened stopped run counts only its fresh workers, including a late old exit", async () => {
+    const f = await fixture();
+    const oldExit = f.exitCallback();
+    await f.manager.stop(f.record.id, "phone");
+    expect((await f.manager.steer(f.record.id, { kind: "prompt", text: "continue" }, "phone")).ok).toBe(true);
+    vi.useFakeTimers();
+    try {
+      oldExit(null);
+      f.exit(0);
+      await vi.advanceTimersByTimeAsync(500);
+    } finally { vi.useRealTimers(); }
+    await f.wait(async () => f.manager.get(f.record.id)?.status === "idle");
+    await f.wait(async () => (await f.events()).some(e => e.payload.kind === "session.turn_end"));
   });
 
   it("native resume is serialized and uses only the recorded provider id", async () => {
@@ -181,7 +215,8 @@ describe("P27 interruption lifecycle", () => {
     await f.interrupt();
     expect(await f.manager.resume(f.record.id, "phone")).toMatchObject({ ok: false, detail: expect.stringContaining("nicht nativ") });
     expect(f.starts()).toBe(1);
-    await f.manager.archive(f.record.id, true);
+    await f.manager.archive(f.record.id, true, "phone");
+    expect((await f.events()).findLast(e => e.payload.kind === "session.stopped")?.payload.actor).toBe("phone");
     expect(f.manager.get(f.record.id)).toMatchObject({ status: "stopped", archived: true });
   });
 

@@ -34,9 +34,11 @@ export class SessionInterruption {
     const events = await this.host.replay(session.record.id);
     const interrupted = events.findLast(e => e.payload.kind === "session.interrupted");
     const end = events.findLast(e => e.payload.kind === "session.turn_end");
-    if (interrupted && end && end.seq > interrupted.seq) return;
-    if (!interrupted) await this.host.emit(session, "session.interrupted", {
-      reason: "hub_restart", since: session.record.updatedAt, lastTurnId: null,
+    const start = events.findLast(e => e.payload.kind === "session.prompt" || e.payload.kind === "session.resumed" || e.payload.kind === "session.created");
+    const current = interrupted && (!start || interrupted.seq > start.seq) ? interrupted : undefined;
+    if (current && end && end.seq > current.seq) return;
+    if (!current) await this.host.emit(session, "session.interrupted", {
+      reason: "hub_restart", since: session.record.updatedAt, lastTurnId: start ? String(start.seq) : null,
     });
     await this.host.emit(session, "session.turn_end", { code: null, reason: "interrupted" });
     this.host.digest(session);

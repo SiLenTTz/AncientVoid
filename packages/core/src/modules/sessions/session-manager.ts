@@ -395,11 +395,11 @@ export class SessionManager {
    * stays (and the session says why) while a turn runs, while a long-lived
    * worker has it as cwd, or when it holds work (BUG-0027: `hasWork`).
    */
-  async archive(sessionId: string, archived: boolean): Promise<SessionRecord> {
+  async archive(sessionId: string, archived: boolean, actor?: string): Promise<SessionRecord> {
     await this.interruption.settled(sessionId);
     if (archived && this.get(sessionId)?.status === "interrupted") {
       this.openStopped(sessionId);
-      await this.stop(sessionId);
+      await this.stop(sessionId, actor);
     }
     const record = this.setArchived(sessionId, archived);
     if (archived) await this.tidyWorktree(sessionId);
@@ -799,7 +799,10 @@ export class SessionManager {
     input: Extract<SteerInput, { kind: "prompt" }>,
     actor?: string,
   ): Promise<Ack> {
+    session.abort.abort();
     session.abort = new AbortController();
+    session.activeWorkers = 0;
+    session.persistentWorker = false;
     if (!session.skillName || !session.record.nativeSessionId) {
       const events = await this.store.replay(session.record.id);
       if (!session.skillName) {
@@ -871,7 +874,10 @@ export class SessionManager {
     }
     const native = session.record.nativeSessionId;
     if (!native) return { ok: false, detail: "Provider-Session unbekannt — natives Fortsetzen nicht möglich." };
+    session.abort.abort();
     session.abort = new AbortController();
+    session.activeWorkers = 0;
+    session.persistentWorker = false;
     await this.ensureWorkdir(session);
     await this.setStatus(session, "working");
     await this.emitSystem(session, "session.resumed", { actor: actor ?? null, nativeSessionId: native });
