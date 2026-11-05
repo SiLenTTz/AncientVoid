@@ -44,6 +44,11 @@ verify:
   cache:
     key:
       files: [package-lock.json]
+      # Getrennter Cache-Schlüssel: Der e2e-Job cached die Chromium-Binaries
+      # unter .cache/ms-playwright im Projektordner — ein gemeinsames Archiv
+      # würde sie in den verify-Workspace laden und eslint . linten (Lauf
+      # 3034317742: 252 Fehler aus Browser-JS).
+      prefix: "verify-"
     paths: [.npm/]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -82,6 +87,7 @@ e2e:
   cache:
     key:
       files: [package-lock.json]
+      prefix: "e2e-"
     paths: [.npm/, .cache/ms-playwright/]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
