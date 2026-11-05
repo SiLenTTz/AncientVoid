@@ -114,5 +114,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0087](bug-0087-factory-start-verwirft-maki.md) | Factory-Start verwirft maki und Modellwahl | done | S2 | server | [#37](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/37) |
 | [BUG-0088](bug-0088-factory-treiber-falscher-workdir.md) | Factory-Treiber arbeitet außerhalb des beobachteten Projekts | done | S2 | core | [#38](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/38) |
 | [BUG-0089](bug-0089-e2e-ci-host-label.md) | Konfigurierter eigener Host-Name wird in Fleet ignoriert | done | S3 | server | [#39](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/39) |
+| [BUG-0090](bug-0090-desktop-e2e-wartet-auf-auftrag.md) | Desktop-E2E prüft Taste vor Ausführung | done | S3 | e2e | [#40](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/40) |
 
-Die nächste freie Nummer ist **0090**.
+Die nächste freie Nummer ist **0091**.
