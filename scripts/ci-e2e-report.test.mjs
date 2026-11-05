@@ -60,7 +60,14 @@ describe("ci-e2e-report (EPIC-P28 T28.4)", () => {
   it("schreibt den Bericht und bleibt bei grünem Lauf Exit-null", () => {
     const dir = mkdtempSync(join(tmpdir(), "ancientvoid-ci-report-"));
     writeFileSync(join(dir, "e2e-junit.xml"), green);
-    main({ junitPath: join(dir, "e2e-junit.xml"), reportPath: join(dir, "e2e-report.md") });
+    const was = process.env.CI_COMMIT_SHA;
+    process.env.CI_COMMIT_SHA = "0000000000000000000000000000000000000000";
+    try {
+      main({ junitPath: join(dir, "e2e-junit.xml"), reportPath: join(dir, "e2e-report.md") });
+    } finally {
+      if (was === undefined) delete process.env.CI_COMMIT_SHA;
+      else process.env.CI_COMMIT_SHA = was;
+    }
     expect(readFileSync(join(dir, "e2e-report.md"), "utf-8")).toContain("**Grün**");
     expect(process.exitCode).toBeUndefined();
   });

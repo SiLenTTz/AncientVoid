@@ -25,9 +25,11 @@ inner='set -euo pipefail
 # Quelle frisch kopieren: kein host-node_modules, kein alter dist —
 # nur .git bleibt für check:commits (merge-base gegen origin/main).
 mkdir -p /work
+# --no-same-owner: alles gehört root im Container, sonst verweigert git
+# (dubious ownership) und check:commits überspringt still.
 tar -cf - -C /src --exclude=./node_modules --exclude=./apps/pwa/dist \
   --exclude=./test-results --exclude=./playwright-report \
-  --exclude=./ci-artifacts --exclude=./data . | tar -xf - -C /work
+  --exclude=./ci-artifacts --exclude=./data . | tar -xf - -C /work --no-same-owner
 cd /work
 node --version && npm --version
 apt-get update -qq && apt-get install -y -qq tmux git ffmpeg poppler-utils \
