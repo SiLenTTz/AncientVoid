@@ -176,7 +176,7 @@ async function main(): Promise<void> {
     config.dailyCapUsd,
     reportingSinks,
     // T17.4: the steer wait travels with the rest of the observability bag.
-    { logger: logger.child({ component: "sessions" }), metrics, steerWaitMs: config.steerWaitMs },
+    { logger: logger.child({ component: "sessions" }), metrics, autoResumeInterrupted: config.autoResumeInterrupted, steerWaitMs: config.steerWaitMs },
     opencodeDataDir,
     config.defaultPermissionMode,
   );

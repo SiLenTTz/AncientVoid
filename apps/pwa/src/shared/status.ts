@@ -8,6 +8,7 @@ const LABEL: Record<string, string> = {
   parked: "pausiert",
   stopped: "beendet",
   error: "Fehler",
+  interrupted: "unterbrochen",
 };
 
 export function statusLabel(status: string): string {

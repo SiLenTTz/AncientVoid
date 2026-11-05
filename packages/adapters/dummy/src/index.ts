@@ -30,6 +30,8 @@ import { EVENT_TYPES, type EventType } from "@ancientvoid/contracts";
  */
 
 const DummyConfig = z.object({
+  /** P27 synthetic native-resume declaration, enabled only in test configs. */
+  hubResume: z.boolean().default(false),
   eventsPerSecond: z.number().int().min(1).max(100).default(5),
   cycleTypes: z.boolean().default(true),
   giantEvery: z.number().int().min(0).default(0),
@@ -65,10 +67,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     capabilities(): AdapterCapabilities {
       // ADR-0042 (EPIC-P25): one sample command so contract tests and E2E
       // can exercise the whole pipe — a test double, not a claim about a CLI.
-      return { reasoning: true, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", commands: [{ name: "/compact", description: "Kontext komprimieren (Testdouble)", scope: "both" }], features: { followUp: true, interrupt: true, toolGate: "none", questions: false, modelChoice: "none", modelSwitch: false, permissionModes: [], skills: false, agents: false, images: false, files: false, contextFork: false } };
+      return { ...(cfg.hubResume ? { resume: { argv: ["dummy", "--resume", "{sessionId}"], ref: "native" as const, hub: true as const, auto: true as const } } : {}), reasoning: true, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: cfg.hubResume ? "native" : "none", commands: [{ name: "/compact", description: "Kontext komprimieren (Testdouble)", scope: "both" }], features: { followUp: true, interrupt: true, toolGate: "none", questions: false, modelChoice: "none", modelSwitch: false, permissionModes: [], skills: false, agents: false, images: false, files: false, contextFork: false } };
     },
 
     async start(_spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
+      if (cfg.hubResume) {
+        if (_spec.args?.resumeSessionId && _spec.args.resumeSessionId !== ctx.sessionId) throw new Error("dummy: unknown native session id");
+        ctx.emit({ type: "system", summary: "dummy native identity", payload: { nativeSessionId: ctx.sessionId } });
+      }
       if (cfg.failStart) throw new Error("dummy adapter: configured failStart=true");
       const handle: DummyHandle = {
         sessionId: ctx.sessionId,

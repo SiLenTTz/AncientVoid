@@ -58,6 +58,17 @@ describe("actor policy (T7.4)", () => {
     expect(sessions.operation(approvalId)).toMatchObject({ state: "done" });
   });
 
+  it("P27: native resume is human-only through both HTTP entry points", async () => {
+    const s = await sessions.create({ adapter: "dummy", project: dir });
+    for (const token of [agent, display]) {
+      expect((await call("POST", `/api/sessions/${s.id}/resume`, token, {})).status).toBe(403);
+      expect((await call("POST", `/api/sessions/${s.id}/steer`, token, { kind: "resume" })).status).toBe(403);
+    }
+    expect((await call("POST", `/api/sessions/${s.id}/resume`, human, {})).status).toBe(422);
+    expect((await call("POST", "/api/sessions/missing/resume", human, {})).status).toBe(404);
+    expect(sessions.get(s.id)?.status).toBe("working");
+  });
+
   it("stop: immediate for the human, a request for the agent", async () => {
     const a = await sessions.create({ adapter: "dummy", project: dir });
     const b = await sessions.create({ adapter: "dummy", project: dir });

@@ -39,7 +39,7 @@ export function deriveTurnMetrics(events: readonly NormalizedEvent[], who: Ident
             costUsd: cost,
             events: count,
             toolCalls: tools,
-            outcome: failed || (typeof code === "number" && code !== 0) ? "error" : "ok",
+            outcome: failed || e.payload.reason === "interrupted" || e.payload.reason === "error" || (typeof code === "number" && code !== 0) ? "error" : "ok",
           });
         }
       }

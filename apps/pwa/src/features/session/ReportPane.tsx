@@ -22,7 +22,7 @@ export function ReportPane({
   /** ADR-0032: { fill, window } in tokens — null when nothing was reported. */
   context: { fill: number | null; window: number | null } | null;
 }) {
-  const running = status !== "stopped" && status !== "error";
+  const running = status !== "stopped" && status !== "error" && status !== "interrupted";
   const durationMs = new Date(record.updatedAt).getTime() - new Date(createdAt).getTime();
   const suffix = running ? " (bisher)" : "";
   const cost = metricView(record, "cost", formatUsd, numbersReal);
@@ -31,7 +31,7 @@ export function ReportPane({
 
   return (
     <div>
-      <span class={`status-chip ${running ? "pending" : "done"}`}>{running ? "● läuft" : "✓ abgeschlossen"}</span>
+      <span class={`status-chip ${running ? "pending" : "done"}`}>{status === "interrupted" ? "Unterbrochen — Zug abgebrochen" : running ? "● läuft" : "✓ abgeschlossen"}</span>
       {status === "parked" && record.parkReason === "budget" && <BudgetTopUp sessionId={record.id} currentBudgetUsd={record.budgetUsd} />}
       <div class="kv-list">
         <div class="kv-row">

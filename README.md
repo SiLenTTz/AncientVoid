@@ -15,6 +15,8 @@ und auditieren — über Tailscale, ohne öffentlichen Port, ohne Cloud.
 > Siehe [Bestandsaufnahme mit Evidenz und UI-/Laya-Bewertung](docs/remote-control-audit-2026-09-21.md)
 > und [Planungs-Epics P5–P12](epics/README.md). Diese sind geplant, nicht umgesetzt.
 
+Unterbrochene Sessions: [Gründe, Fortsetzen und Archivieren](docs/interrupted-sessions.md) (P27).
+
 ## Modularität — das Kernversprechen
 
 Alles ist über Verträge (Contracts) gesteckt, nichts ist im Hub hartverdrahtet:

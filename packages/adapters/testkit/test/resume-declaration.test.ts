@@ -82,4 +82,21 @@ describe("resume declaration check (ADR-0036)", () => {
     expect(check.ok).toBe(false);
     expect(check.detail).toMatch(/argv/);
   });
+  it("ADR-0044: rejects auto without hub opt-in", async () => {
+    const check = await capabilitiesCheck({ argv: ["x", "{sessionId}"], ref: "native", auto: true });
+    expect(check.ok).toBe(false);
+    expect(check.detail).toMatch(/auto.*hub/);
+  });
+
+  it("ADR-0044: token handles remain display-only", async () => {
+    const check = await capabilitiesCheck({ argv: ["x", "{token}"], ref: "token", hub: true });
+    expect(check.ok).toBe(false);
+    expect(check.detail).toMatch(/hub.*native/);
+  });
+
+  it("ADR-0044: accepts the explicit native hub/auto declaration", async () => {
+    const check = await capabilitiesCheck({ argv: ["x", "{sessionId}"], ref: "native", hub: true, auto: true });
+    expect(check.ok).toBe(true);
+  });
+
 });

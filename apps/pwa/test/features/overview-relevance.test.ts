@@ -23,6 +23,7 @@ describe("EPIC-P15 T15.6: relevante Sessions zuerst", () => {
     const old = { lastActivity: { text: "x", type: "assistant", at: ago(10 * 24 * 3600_000) } };
     expect(sectionOf(session({ ...old, status: "waiting_approval" }), NOW)).toBe("braucht");
     expect(sectionOf(session({ ...old, status: "error" }), NOW)).toBe("braucht");
+    expect(sectionOf(session({ ...old, status: "interrupted" }), NOW)).toBe("braucht");
     expect(sectionOf(session({ ...old, pinned: true }), NOW)).toBe("pins");
   });
 

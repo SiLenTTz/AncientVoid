@@ -54,10 +54,10 @@ function turnDurationsMs(events: readonly NormalizedEvent[]): number[] {
   let promptTs: number | null = null;
   for (const e of events) {
     const kind = (e.payload as { kind?: unknown }).kind;
-    if (kind === "session.prompt") promptTs = Date.parse(e.ts);
+    if (kind === "session.prompt" || kind === "session.resumed") promptTs = Date.parse(e.ts);
     else if (kind === "session.turn_end" && promptTs !== null) {
       const span = Date.parse(e.ts) - promptTs;
-      if (span >= 1000) durations.push(span);
+      if (span >= 1000 && e.payload.reason !== "interrupted" && e.payload.reason !== "error") durations.push(span);
       promptTs = null;
     }
   }
@@ -75,7 +75,7 @@ export function runProgress(events: readonly NormalizedEvent[], status: string, 
   if (status !== "working") return null;
   let start = 0;
   for (let i = events.length - 1; i >= 0; i--) {
-    if ((events[i]!.payload as { kind?: unknown }).kind === "session.prompt") {
+    if (["session.prompt", "session.resumed"].includes(String(events[i]!.payload.kind))) {
       start = i;
       break;
     }

@@ -81,7 +81,7 @@ type Section = "braucht" | "pins" | "aktiv" | "zuletzt";
 
 /** T8.1: what needs you first, then what runs, then what happened. */
 export function sectionOf(s: SessionRecord, now: number = Date.now()): Section {
-  if (s.status === "waiting_approval" || s.status === "error") return "braucht";
+  if (s.status === "waiting_approval" || s.status === "error" || s.status === "interrupted") return "braucht";
   if (s.pinned) return "pins";
   if (s.status === "starting" || s.status === "working") return "aktiv";
   // EPIC-P15 T15.6: an idle session nobody has touched for half a day is history, not "active".

@@ -285,6 +285,13 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
   });
 
 
+  app.post("/api/sessions/:id/resume", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ ok: false, detail: "unknown session" });
+    const ack = await deps.sessions.resume(id, callerLabel(req) ?? undefined);
+    return ack.ok ? ack : reply.code(422).send(ack);
+  });
+
   app.post("/api/sessions/:id/stop", async (req, reply) => {
     const { id } = req.params as { id: string };
     if (req.policy?.decision === "approve") {

@@ -1,3 +1,4 @@
+import { InterruptedBanner } from "./InterruptedBanner.tsx";
 import { sessionHash } from "../../app/route.ts";
 import { HandoverBar } from "./Handover.tsx";
 import { currentProviderFailure } from "./handover.ts";
@@ -209,7 +210,7 @@ export function SessionTail({
     };
   }, [api]);
   // ADR-0036: the adapter's declared external continuation command.
-  const [adapterResume, setAdapterResume] = useState<{ argv: string[]; ref: "native" | "token" } | undefined>(undefined);
+  const [adapterResume, setAdapterResume] = useState<{ argv: string[]; ref: "native" | "token"; hub?: true } | undefined>(undefined);
   // ADR-0042: die gemeldeten Slash-Commands des Adapters fürs Antwortfeld.
   const [adapterCommands, setAdapterCommands] = useState<readonly SlashCommand[] | undefined>(undefined);
   /** ADR-0032: the model's context window — configured on the adapter,
@@ -821,6 +822,17 @@ export function SessionTail({
       </div>
 
       {factoryLink?.partner && <div class="loop-note">Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
+      {status === "interrupted" && <InterruptedBanner events={events} since={record.updatedAt} canResume={adapterResume?.hub === true} onResume={async () => {
+        const ack = await api.resumeSession(session.id);
+        if (!ack.ok) throw new Error(ack.detail ?? "Fortsetzen fehlgeschlagen.");
+        const updated = await api.session(session.id);
+        setStatus(updated.status);
+        setRecord(updated);
+      }} onArchive={async () => {
+        const updated = await api.setArchived(session.id, true);
+        setArchived(updated.archived === true);
+        setStatus(updated.status);
+      }} />}
       {loopView && <LoopPanel sessionId={session.id} adapter={session.adapter} view={loopView} disabled={observerOnly || status === "stopped"} api={api} onError={setReplyError} />}
 
       <div

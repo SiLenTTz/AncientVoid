@@ -74,6 +74,8 @@ export async function runContractTests(
       if (caps.resume.ref !== "native" && caps.resume.ref !== "token") {
         throw new Error("capabilities.resume.ref must be native or token");
       }
+      if (caps.resume.auto && !caps.resume.hub) throw new Error("resume.auto requires resume.hub");
+      if (caps.resume.hub && caps.resume.ref !== "native") throw new Error("resume.hub requires a native ref");
     }
     // ADR-0042: declared slash commands must be well-formed — the kit checks
     // the shape, the evidence level (documented/live) stays a declaration

@@ -196,3 +196,14 @@
     display: none;
   }
 }
+
+.interrupted-banner {
+  flex: 0 0 auto;
+  margin: 8px 12px;
+  padding: 12px;
+  border: 1px solid var(--warn);
+  border-radius: 10px;
+  background: var(--bg-elev);
+}
+.interrupted-banner p { margin: 6px 0; overflow-wrap: anywhere; }
+.interrupted-banner .row { gap: 8px; flex-wrap: wrap; }

@@ -511,7 +511,7 @@ describe("SessionManager", () => {
     }
   });
 
-  it("T1.9/AC-P1-5: heartbeat detects a down adapter (status=error, visible adapter.down event)", async () => {
+  it("T1.9/AC-P1-5: heartbeat detects a down adapter (status=interrupted, visible adapter.down event)", async () => {
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
     const registry = new AdapterRegistry();
@@ -543,7 +543,7 @@ describe("SessionManager", () => {
       await manager.runHeartbeat();
 
       const after = manager.get(record.id)!;
-      expect(after.status).toBe("error");
+      expect(after.status).toBe("interrupted");
       const events = await manager.tail(record.id, 0);
       const downEvent = events.find((e) => (e.payload as { kind?: string }).kind === "adapter.down");
       expect(downEvent).toBeDefined();
