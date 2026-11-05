@@ -1,4 +1,4 @@
-# ADR-0044 — Unterbrochene Sessions: Status `interrupted` und befristete Resume-Spawn-Erlaubnis
+# ADR-0044 — Unterbrochene Sessions: Status `interrupted` und explizite Hub-Resume-Erlaubnis
 
 **Status:** akzeptiert · **Betrifft:** EPIC-P27, `SESSION_STATUSES`, `session.interrupted`-Event, `VALID_TRANSITIONS`, `AdapterResume` (Erweiterung von [ADR-0036](0036-resume-referenzen-im-adapter-contract.md)), PWA/hubctl Defensive-Regel
 
@@ -32,7 +32,7 @@ unterbrechen laufende Agenten-Sessions hart. Ist-Zustand (Belege in
    `reason: "worker_exit" | "hub_restart" | "adapter_down"` (Pflichtfeld).
    System-kind ist bereits eine freie Zeichenkette — keine Event-Schema-
    Änderung, K5 bleibt enforcement-seitig unberührt.
-3. **`turn.end { reason: "interrupted" }`** schließt den offenen Zug beim
+3. **`session.turn_end { reason: "interrupted", code: null }`** schließt den offenen Zug beim
    Interrupt ab — ehrlicher Abbruch statt Fake-„done" oder hängendem Zug.
 4. **Klassifikationsgrenze:** `interrupted` heißt „abgeschnitten, nicht
    versagt". `adapter_down` nur, wenn **kein** Agent-Fehlerereignis vorliegt;
@@ -40,20 +40,25 @@ unterbrechen laufende Agenten-Sessions hart. Ist-Zustand (Belege in
    `working|starting` mit nachweislich totem Worker um —
    `parked|waiting_approval` bleiben unberührt (keine Über-Klassifikation,
    K7).
-5. **Befristete Spawn-Erlaubnis für Resume (Amendment zu ADR-0036):**
+5. **Explizite Hub-Resume-Erlaubnis (Amendment zu ADR-0036, präzisiert 05.11.2026):**
    `AdapterResume` erhält zwei additive, belegbasierte Opt-in-Flags:
    ```ts
    interface AdapterResume {
      argv: string[];
      ref: "native" | "token";
-     hub?: true;   // Hub darf das Template für „Weitermachen" selbst spawnen
+     hub?: true;   // Adapter.start ohne neuen Prompt setzt die native Session fort
      auto?: true;  // Auto-Resume nach Interrupt erlaubt (erfordert hub)
    }
    ```
-   Ohne `hub` gilt ADR-0036 unverändert: display-only. Der Hub spawnt nur
-   deklarierte Templates mit Hub-seitig substituierten Platzhaltern — argv
-   stammt aus dem Adapter-Contract (kuratiert), **nie aus Agent-Output**
-   (Prompt-Injektions-Grenze, PRD §8.5), ohne Shell.
+   Ohne `hub` gilt ADR-0036 unverändert: display-only. Mit `hub` und
+   `ref: "native"` garantiert der Adapter: `start()` mit
+   `args.resumeSessionId` aus der gespeicherten Provider-ID und **ohne**
+   neuen Prompt setzt dieselbe Session über das Adapter-Protokoll fort.
+   Der Adapter baut argv und liest den Stream wie beim normalen Start;
+   der Hub führt die externen Anzeige-Templates niemals direkt aus.
+   Ein nackter Template-Spawn würde Stream-Parser und Session-Handle umgehen.
+   `ref: "token"` bleibt Anzeige, weil der Hub interne Handles nicht interpretiert.
+   Agent-Output bleibt Daten, keine Befehle (PRD §8.5).
 6. **Policy:** Resume (manuell wie automatisch) löst nur ein Mensch aus bzw.
    nur mit Config-Freigabe — Agenten dürfen sich nicht selbst wiederanlaufen
    (Analogie zur human-only-Steuer-Allowlist in ADR-0043). Auto-Resume
@@ -86,3 +91,31 @@ unterbrechen laufende Agenten-Sessions hart. Ist-Zustand (Belege in
 - `resume.auto` aktiviert der Hub ausschließlich testseitig für `dummy`;
   produktive Adapter deklarieren es nur mit Live-Beleg der identischen
   Fortsetzung (Nachweis im Adapter-Testkit).
+
+## Umsetzungskonkretisierung vom 05.11.2026
+
+- HTTP `POST /api/sessions/:id/resume` und der bestehende `steer(kind=resume)`
+  verwenden die gemeinsame Policy `sessions.resume`: Mensch/Fleet ja,
+  Agent/Bridge/Display/Companion nein. Core erzwingt dieselbe Akteursgrenze
+  für unterbrochene Sessions, einschließlich Prompt-Fallback.
+- `autoResumeInterrupted` ist standardmäßig `false` und braucht zusätzlich
+  `resume.hub`, `resume.ref=native` und `resume.auto`. Ausschließlich der
+  synthetische Dummy deklariert dies mit Testkonfiguration `hubResume:true`;
+  produktive Adapter behalten ihre Anzeige-Templates ohne Hub-Opt-in.
+- Das bestehende Journal-Kind `session.turn_end` ist die konkrete Schreibweise
+  von `turn.end` im Epic. Abbrüche erzeugen weder Erfolgsbenachrichtigung noch
+  erfolgreiche Laufmessung. Der Digest referenziert das Interrupt-Ereignis.
+- Ein altes `waiting_approval` mit wirklich offener Tool-Freigabe bleibt
+  erhalten; die bestehende BUG-0048-Heilung verwaister Anzeigen bleibt gültig.
+- Resume wird mit anderen Eingaben serialisiert. Es wartet auf das Aufräumen
+  des alten Transports; alte Adapter-Kontexte dürfen nach Abort keine Events
+  oder Turn-Wechsel in den fortgesetzten Lauf schreiben.
+
+Die Typen `SessionInterruptionReason` und `SessionInterruptionPayload` liegen in
+`@ancientvoid/contracts`; Core und PWA teilen dieselbe Ereignis-Bedeutung.
+Der Digest wird am Journal-Ende des unterbrochenen Zugs eingefroren, bevor eine
+automatische Fortsetzung weitere Events schreibt.
+
+Ein Restore eines bereits gespeicherten `interrupted` startet keinen zweiten
+Resume-Versuch: Ein fehlendes abschließendes `session.turn_end` wird aus dem
+Journal erkannt und genau einmal ergänzt; der Nutzer entscheidet danach.
