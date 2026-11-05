@@ -1,6 +1,6 @@
 # EPIC-P27 — Unterbrochene Sessions: sichtbar, bewertbar, fortsetzbar
 
-**Status:** offen · **Phase:** P27 · **Dauer:** ~1 Agenten-Woche · **Abhängigkeit:** fachlich keine offene zu P26 (läuft parallel daneben — Präzedenz P13/P14/P17); baut auf P5-Recovery, P15-Steuerung (`park`/`resume`, Archive) und P17-Resume-Referenzen ([ADR-0036](../docs/adr/0036-resume-referenzen-im-adapter-contract.md)) auf.
+**Status:** abgeschlossen (05.11.2026); Code über MR !293 gemergt, alle AC lokal belegt · **Phase:** P27 · **Dauer:** ~1 Agenten-Woche · **Abhängigkeit:** fachlich keine offene zu P26 (läuft parallel daneben — Präzedenz P13/P14/P17); baut auf P5-Recovery, P15-Steuerung (`park`/`resume`, Archive) und P17-Resume-Referenzen ([ADR-0036](../docs/adr/0036-resume-referenzen-im-adapter-contract.md)) auf.
 
 Auslöser: Betrieb 2026-10-28/30 — Hub-Abstürze (BUG-0074/0075) und Worker-Tötung
 bei Hub-Neustart (BUG-0072) haben laufende Agenten-Sessions hart unterbrochen.
@@ -24,7 +24,7 @@ sie deklarativ sicher anbietet — nie auf Vermutung.
 
 **In:** Statuswert `interrupted` + System-Event `session.interrupted` mit Grund
 (`worker_exit` · `hub_restart` · `adapter_down`); Turn-Abschluss bei Interrupt
-(`turn.end { reason: "interrupted" }`) für korrekten Endreport/Digest;
+(`session.turn_end { reason: "interrupted" }`) für korrekten Endreport/Digest;
 Chat-Banner mit Grund + Buttons Weitermachen/Archivieren; Übersichts-Badge;
 Server-Route `POST /api/sessions/:id/resume` mit Mensch-ja/Agent-nein-Policy;
 hubctl-Anzeige; optionaler Contract-Schalter `resume.auto` (additiv); E2E-Spec
@@ -90,7 +90,7 @@ trotz „falschem“ altem Status in historischen Daten (Migration nur lesend).
 - **Hub-Restart (K7):** Restore erkennt persistiertes `working|starting` +
   toten Worker → `interrupted (hub_restart)`; `parked|waiting_approval`
   bleiben unberührt (keine Über-Klassifikation).
-- **Offener Zug:** bei Interrupt wird `turn.end { reason: "interrupted" }`
+- **Offener Zug:** bei Interrupt wird `session.turn_end { reason: "interrupted" }`
   emittiert, damit Digest/ReportPane den Zug abschließen — kein Fake-„done",
   sondern ehrlicher Abbruch-Grund im Report.
 
@@ -99,8 +99,9 @@ trotz „falschem“ altem Status in historischen Daten (Migration nur lesend).
 - Chat-Banner bei `interrupted`: Grund, Zeitpunkt, letzter Zug; Buttons
   **[Weitermachen]** **[Archivieren]** (Archiv: bestehende Route).
 - `POST /api/sessions/:id/resume`: Hub prüft die ADR-0036-Deklaration —
-  deklariert → native Resume-Aufruf (argv aus dem Contract, nie aus
-  Agent-Output, PRD §8.5-Grenze); nicht deklariert → ehrlicher Hinweis
+  mit `hub:true` und `ref:native` deklariert → nativer Resume-Aufruf über
+  `Adapter.start({ args: { resumeSessionId } })` ohne neuen Prompt
+  (ADR-0044-Konkretisierung vom 05.11.2026; argv/Stream bleiben beim Adapter); nicht deklariert → ehrlicher Hinweis
   „Dieser Adapter kann nicht nativ fortsetzen" + Option „Neue Nachricht mit
   Kontext" statt stiller Fehlleitung.
 - Policy: nur Mensch darf Resume auslösen (kein Agent-Self-Resume) —
@@ -123,30 +124,30 @@ das `session.interrupted`-Event im Verlauf; Doku im CLI-Help.
 
 ## 4. Aufgaben (Checkliste T27.m)
 
-- [ ] **T27.1** Ist-Analyse-Verifikation per Test: K7-Restore über `working` +
+- [x] **T27.1** Ist-Analyse-Verifikation per Test: K7-Restore über `working` +
   totem Worker (heute: bleibt `working`) — roter Test als Anker, Aussage in
       ADR-0044 fixieren. Messlatte: K7.
-- [ ] **T27.2** ADR-0044 + Contract: Status `interrupted`, Event
+- [x] **T27.2** ADR-0044 + Contract: Status `interrupted`, Event
   `session.interrupted`, Transitions, `resume.auto` (optional), PWA/hubctl-
       Defensive-Regel für unbekannte Status. Messlatte: K5 (Event-Payload).
-- [ ] **T27.3** Core-Erkennung: `worker_exit`/`hub_restart`/`adapter_down` +
-  `turn.end(interrupted)` + Report/Digest-Abschluss; Unit- + Integrationstests
+- [x] **T27.3** Core-Erkennung: `worker_exit`/`hub_restart`/`adapter_down` +
+  `session.turn_end(interrupted)` + Report/Digest-Abschluss; Unit- + Integrationstests
   (BUG-0072/74/75-Szenarien als Fixtures). Messlatte: K7, K8 (kein
       Durchsatz-Rückschritt).
-- [ ] **T27.4** Server-Route `/resume` + Policy (Mensch ja/Agent nein) +
+- [x] **T27.4** Server-Route `/resume` + Policy (Mensch ja/Agent nein) +
   hubctl-Anzeige/Doku. Messlatte: K1-Geist (API-Latenz unauffällig).
-- [ ] **T27.5** PWA: Banner, Buttons Weitermachen/Archivieren,
+- [x] **T27.5** PWA: Banner, Buttons Weitermachen/Archivieren,
   Übersichts-Badge, Fail-loud bei unbekanntem Status. Messlatte: K2, K10.
-- [ ] **T27.6** E2E `e2e/specs/interrupted-session.spec.ts`: Kill → Banner →
+- [x] **T27.6** E2E `e2e/specs/interrupted-session.spec.ts`: Kill → Banner →
   Weitermachen (dummy, `resume.auto`) und Archivieren; Endreport zeigt
-  `turn.end(interrupted)`. Deterministische Kill-Route statt SIGKILL-Rennen
-  (BUG-0077-Lektion). Gates voll grün.
+  `session.turn_end(interrupted)`. Deterministischer Worker-Abbruch im Testadapter statt SIGKILL-Rennen
+  (BUG-0077-Lektion). Lokales Gate vollständig grün.
 
 ## 5. Acceptance Criteria (AC-P27-k)
 
 1. Ein hart gekillter Worker (kein Stop-Kommando) führt zu Status
    `interrupted` mit Grund `worker_exit`; der offene Zug endet mit
-   `turn.end { reason: "interrupted" }`; Endreport/Digest schließen korrekt
+   `session.turn_end { reason: "interrupted" }`; Endreport/Digest schließen korrekt
    ab (Beleg: Integrationstest).
 2. Hub-Restart über `working`-Sessions: nach Restore sind alle Sessions
    korrekt klassifiziert (`interrupted (hub_restart)` bzw. unangetastet
@@ -197,3 +198,153 @@ das `session.interrupted`-Event im Verlauf; Doku im CLI-Help.
 - Keine neue State-Quelle ohne Recovery-Pfad (K7): `interrupted` folgt
   allein aus JSONL-Events, ist replaybar.
 - Retro (`retro`-Skill) nach Abschluss.
+
+## Umsetzung und Review vom 05.11.2026
+
+ADR-0044 war mit Status/Transitions und `resume.hub`/`resume.auto` bereits
+vorhanden. Die Umsetzung konkretisiert natives Resume über den Adapter-Start
+(ohne neuen Prompt), statt einen Anzeige-Befehl ohne Stream-Parser zu spawnen.
+Produktive Adapter bleiben ohne Hub-Resume-Opt-in. Handbuch:
+[Unterbrochene Sessions](../docs/interrupted-sessions.md).
+
+### AC-Nachweise
+
+| AC | Beleg |
+|---|---|
+| AC-P27-1 | `interrupted-session.integration.test.ts`: `worker exit completes a cut-off turn` (kurzlebig/persistent), `an explicit agent/provider error remains error`; `session.turn_end` genau einmal, Laufmesswert `error`, kein Erfolgshinweis, Digest mit Abbruchgrund |
+| AC-P27-2 | dieselbe Suite: `dead workers after restart are classified within K7` (< 3000 ms), echte offene Tool-Freigabe + `parked` unverändert; `restart completes an interruption whose final turn_end was not written` (Journal-Reparatur ohne Seq-Lücke/Duplikat); bestehender tmux-Marker-Recovery-Test |
+| AC-P27-3 | `e2e/specs/interrupted-session.spec.ts`: Worker-Verlust → Banner → Bericht → Weitermachen → erneuter Verlust → Archivieren; echter Hub, eigene Daten, Dummy mit echtem Worker, Mobile + Desktop |
+| AC-P27-4 | Core: `undeclared resume stays interrupted with an honest refusal`; E2E `ehrliche Meldung, Archivieren funktioniert trotzdem`; fehlende Provider-ID startet keinen neuen Lauf |
+| AC-P27-5 | `apps/hubctl/test/interrupted.integration.test.ts`: echte CLI-Prozesse gegen lokalen HTTP-Testserver (`sessions`, `tail`), Status und Grund sichtbar |
+| AC-P27-6 | Core-Matrix Config × Deklaration, fehlendes Hub-Opt-in im Testkit rot; E2E `Dummy läuft nur mit deklarierter und konfigurierter Freigabe weiter`; Agent über beide HTTP-Eingänge 403 (Policy-Test) |
+| AC-P27-7 | E2E `unbekannter Status bleibt als Text sichtbar`, CLI-Integration mit `future_status`; keine uncaught PWA-Exceptions (Fixture-Gate) |
+| AC-P27-8 | `npm run gate` am Code `28fb33d`: 1181 Unit-/Integrationstests, 295 E2E-Pässe, zwei bestehende Mobile-Handoff-Skips (Desktop-Gegenstücke grün); Typecheck/Lint/Links/Commits/Architektur/Matrix und PWA-Build grün. CI-Kontingentfehler separat unter P28 erfasst; Skips sind keine Pässe |
+
+### Verhaltenspräzisierungen
+
+- Erwartete Worker-Exits nach explizitem Pause-Signal unterbrechen nicht; ein
+  neuer Worker bekommt eine neue Lebensdauer. Abgebrochene Kontexte können
+  weder Events noch Turn-Wechsel in den fortgesetzten Zug schreiben.
+- Die gespeicherte Queue bleibt nach Interrupt erhalten und wartet auf einen
+  menschlichen Folgeauftrag; erst nach dessen Zugende wird sie abgearbeitet.
+- Der Digest wird am beendeten Journal-Abschnitt eingefroren, auch bei
+  gleichzeitigem Auto-Resume. Die PWA beginnt Zeit/Plan des fortgesetzten Zugs
+  bei `session.resumed`; sie übernimmt keinen alten Fortschritt als aktuellen.
+- `waiting_approval` mit echter offener Freigabe bleibt erhalten. Verwaiste
+  Freigabeanzeigen werden weiterhin nach BUG-0048 geheilt.
+
+### Review (pr-review, sechs Dimensionen)
+
+1. Requirements: alle acht AC lokal belegt (Matrix oben); der CI-Exit gehört zu P28, nicht zur P27-DoD.
+2. Architektur: gemeinsame Interrupt-Typen und Actor-Policy in Contracts;
+   ADR-0044 konkretisiert die Opt-in-Semantik. Fachlogik im Sessions-Modul,
+   HTTP im Sessions-Routenmodul, Banner im Session-Feature.
+3. Edges: geplanter Stop/Pause, unerwarteter Exit, expliziter Provider-Fehler,
+   Neustart mit lebendem/totem Worker, doppelte Resume-Eingabe, fehlende ID,
+   Resume-Fehler, alte Kontexte, unvollständiger Journal-Abschluss getestet.
+4. Qualität: vorhandener Adapter-Start/Steer-/EventStore-Pfad bleibt die Naht;
+   kein zweiter CLI-Parser und kein Shell-Template-Interpreter.
+5. Determinismus: erste neue Core-Suite 12 rot / 1 grün vor Implementierung;
+   Testkit-Negativproben und Resume-Zeitanzeige ebenfalls rot-dann-grün.
+   Neue E2Es dreifach geprüft; Test-Hook liegt ausschließlich in `e2e/support`.
+6. Future-Fragility: Contract additiv + ADR; Adapter bleiben auf AdapterContext
+   beschränkt; kleine Interrupt-Payloads + bestehendes K5-Enforcement; Zustand
+   aus Journal/Snapshot, einschließlich Reparatur eines fehlenden Turn-Endes;
+   unbekannte Provider-Ausfälle bleiben sichtbar, bewusst abgebrochene alte
+   Kontexte schreiben nicht in einen neuen Lauf.
+
+### Lokaler Abschlussnachweis
+
+Code-Stand: `28fb33dba83e44133b71cbb218a662f6fb3b5715`.
+ADR-Präzisierung zuvor gemergt: [!292](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/292).
+Implementierung: [!293](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/293),
+gemergt als `db39814ed6b8500c9c6f6f4326e563a184fd4109`.
+
+- Finales `npm run gate`: Exit 0; 170 Testdateien / 1181 Tests bestanden;
+  E2E 295 bestanden / zwei bestehende Mobile-Handoff-Skips, deren Desktop-Läufe
+  bestanden. Die P27-Specs haben keine Skips. PWA-Build im globalSetup grün;
+  Typecheck, Lint, Links, Commits, Architektur und Adapter-Matrix grün.
+- Neue Specs dreifach: 30/30 bestanden (fünf Fälle × Mobile/Desktop × drei Läufe).
+- K8: `npm run loadtest`, 20 × 30 Events/s × 10 s; 6100 Events ohne Verlust,
+  ~599 Events/s aggregiert, 143 MB RSS. Kein reduziertes Limit.
+- `npm run check:commits` nach den abschließenden Code-Commits erneut grün.
+  Der erste Code-Commit trägt `@`, weil dessen voller E2E-Lauf noch lief;
+  der finale Korrektur-Commit `28fb33d` trägt nach dem grünen Gate `^`.
+- Die früheren roten Repros wurden behoben und im finalen Gate geprüft,
+  nicht durch Retries oder reduzierte Assertions als grün gewertet.
+
+### Externer CI-Befund für P28
+
+Die MR-Pipeline [3033543422](https://gitlab.com/SiLenT_Tz/AncientVoid/-/pipelines/3033543422)
+prüfte den finalen Code-SHA `28fb33d`. Sowohl
+[verify 17784041304](https://gitlab.com/SiLenT_Tz/AncientVoid/-/jobs/17784041304)
+als auch [e2e 17784041305](https://gitlab.com/SiLenT_Tz/AncientVoid/-/jobs/17784041305)
+scheiterten mit `ci_quota_exceeded`. Der frühere E2E-Job
+[17780335324](https://gitlab.com/SiLenT_Tz/AncientVoid/-/jobs/17780335324)
+hatte denselben Infrastrukturfehler. Die Runner-Abfrage ergab ausschließlich
+Shared-Runner, keinen eigenen Projekt-Runner. Kein solcher Job zählt als Pass.
+
+Nach AGENTS.md blockiert dieser externe Fehler den lokal belegten Merge nicht.
+P27 fordert in seiner DoD das lokale Gate; der zusätzliche grüne Pipeline-Job
+ist ein Exit von **P28**. Die zunächst angenommene zusätzliche P27-CI-Sperre
+war eine falsche Zuordnung und wurde beim Abschluss korrigiert. Es wurden
+weder Merge-Regeln geändert noch Credits gekauft oder Runner registriert.
+Kapazitätsentscheidung und belastbare CI-Wiederholungen gehen nach P28.
+
+### Abschlussnachprüfung der Laufgenerationen
+
+Drei zusätzliche Negativproben waren vor der Korrektur rot (18/21 grün),
+danach alle 21 gezielten Core-Integrationstests grün:
+
+- Ein älterer abgeschlossener Interrupt darf einen neu begonnenen, erneut
+  unterbrochenen Resume-Zug nicht verdecken. Recovery ordnet Marker und
+  Turn-Ende der aktuellen Start-/Resume-Grenze zu und ergänzt genau einmal.
+- Nach Stop/Weiter beginnt der Worker-Zähler bei null. Ein verspäteter Exit
+  der abgebrochenen alten Generation kann weder zählen noch den neuen Lauf
+  offen halten; der neue saubere Exit führt wieder nach `idle`.
+- Archivieren einer unterbrochenen Session übernimmt den authentifizierten
+  Akteur bis in das `session.stopped`-Audit-Ereignis.
+
+Vor dem erneuten P27-Abschluss wurden bestehende CI-Blocker separat korrigiert:
+[!294](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/294) (BUG-0089,
+konfiguriertes eigenes Fleet-Label),
+[!295](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/295) (BUG-0090,
+Desktop-Auftrag erst nach Ausführung prüfen),
+[!296](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/296) (BUG-0091,
+Timeout-Probe wartet auf den vorherigen Turn-Abschluss),
+[!297](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/297) (BUG-0043,
+Mausrad löst Mitlaufen vor verzögertem Scroll-Signal).
+Jeder Fix hat einen roten Repro, eine eigene MR und Post-Merge-Branch-Cleanup;
+keine Limits, Retries oder Skip-Regeln wurden entschärft.
+
+## Retro (05.11.2026)
+
+AC-P27-1 bis AC-P27-8: **8 erfüllt**, jeweils mit Testbeleg in der obigen
+AC-Matrix; maßgeblich ist der finale Code `28fb33d` mit vollständigem lokalen
+Gate. ADR !292 wurde vor dem Contract-/Runtime-Merge !293 gemergt. Runbook,
+CLI-Hilfe und README verlinken den Ablauf; Journal/Snapshot bleiben die einzige
+persistente Zustandsquelle.
+
+Erkenntnisse und Premortem-Abgleich:
+
+1. Die Grenze zwischen Abbruch und Provider-Fehler bleibt prüfbar: die Tests
+   `an explicit agent/provider error remains error` und die geplante
+   Pause-/Stop-Abgrenzung sichern Premortem 1 ab.
+2. Native Fortsetzung braucht eine echte Adapter-Naht: ADR-0044 / !292 und
+   die Opt-in-Matrix verhindern geratenes Auto-Resume (Premortem 2).
+3. Unbekannter Status bleibt sichtbar; CLI-Integration und Browser-Spec
+   belegen die defensive Darstellung (Premortem 3).
+4. Eine ältere Unterbrechung verdeckte im roten Repro einen neuen offenen
+   Resume-Zug. `28fb33d` repariert genau dessen Journal-Grenze; 21 gezielte
+   Integrationstests sichern K7 ab (Premortem 4 konkret eingetreten).
+5. Die neuen Worker-Abbruch-Specs liefen 30/30 ohne Timing-Skips
+   (Premortem 5 nicht eingetreten). Bestehende andere E2E-Rennen wurden über
+   !295/!296/!297 separat behoben; CI-Kapazität bleibt davon unabhängig.
+
+Action Items:
+
+- **AI-P27-1:** Quota-/Job-Befunde in das Gate-Inventar übernehmen — Ziel:
+  [P28 T28.1](EPIC-P28-reproduzierbare-ci.md); konkrete Job-IDs stehen oben.
+- **AI-P27-2:** Isolierte Ausführung samt Host-/Kostenentscheidung und drei
+  vollständigen CI-Nachweisen herstellen — Ziel: P28 T28.2/T28.5. Keine
+  externe Einrichtung ohne die dort verlangte Betriebsentscheidung.
