@@ -64,8 +64,15 @@ e2e:
     - npm ci
     - npm rebuild esbuild
     - npx playwright install --with-deps chromium
-    - npm run test:e2e
-    - node scripts/ci-e2e-report.mjs
+    # Bericht auch bei rotem E2E erzeugen (Fehler-/Skip-Klassifikation als
+    # Artefakt); grün ist der Job nur, wenn Playwright UND Bericht grün sind
+    # (EPIC-P28 T28.4 — fehlender Bericht ist nie grün).
+    - |
+      e2e=0
+      rep=0
+      npm run test:e2e || e2e=$?
+      node scripts/ci-e2e-report.mjs || rep=$?
+      [ "$e2e" = "0" ] && [ "$rep" = "0" ]
   artifacts:
     when: always
     expire_in: 14 days
