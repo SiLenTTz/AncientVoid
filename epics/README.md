@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe P5–P24)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P33)
 
 **Erstellt:** 12.09.2026 · **Basis:** PRD AncientVoid v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
@@ -62,6 +62,31 @@ ohne ADR bei späterer Implementierung. Schätzungen ohne G0-Restarbeit.
 oder technisch blockierte Fähigkeit verhindert diesen Claim; Monitor-only und
 Kontext-Fork zählen nicht als native 1:1-Steuerung. Mac ist bisher Demo-Kontext,
 kein bestätigter zusätzlicher Zielhost.
+
+## Paseo-Impulse — Planungsentwürfe vom 2026-11-05
+
+Ausdrücklicher Planungsauftrag auf Basis der
+[Vergleichsanalyse](../docs/2026-11-05_paseo-vs-ancientvoid.md).
+[Bestandskorrekturen, Quellen und Entscheidungsregister](../docs/2026-11-05_paseo-umsetzungsplanung.md)
+erläutern den Umfang. **Alle sechs Epics sind Planungsentwürfe, Umsetzung gesperrt.**
+Die Planung hebt keine Vorgänger-Abnahme auf; P27 und dessen wirksame
+Vorgänger-Exits müssen vor Start von P28 nachweislich grün sein. Historische
+Statuszeilen gelten nicht als aktueller Abschlussnachweis.
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P28 — Reproduzierbare CI](EPIC-P28-reproduzierbare-ci.md) | Diagnose, isolierter Runner, vollständige Gate-/K8-Evidenz | P27 samt Vorgänger-Exits grün | 1–2 |
+| [P29 — Worktree-Workspace-Runtime](EPIC-P29-worktree-workspace-runtime.md) | Manifest, Dateiübernahme, Setup/Teardown, Services/Ports, mobiler Zugang | P28 grün; P2/P14/P26 geprüft | 3–5 |
+| [P30 — Adapter-/Sink-Plugins](EPIC-P30-adapter-sink-plugins.md) | Manifest, lokale/Git-Installation, Testkit, sicherer Lifecycle | P29 grün | 2–3 |
+| [P31 — ACP-Provider-Katalog](EPIC-P31-acp-provider-katalog.md) | kuratierte Provider, explizite Probe, getrennte Fähigkeitsnachweise | P30 grün | 2–3 |
+| [P32 — Mobile-Client-Entscheidung](EPIC-P32-mobile-client-entscheidung.md) | Gerätebefund + Go/No-go; optional interne Android-Shell | P31 grün, P12/P16 geprüft | 0,5–1; optional +2–4 |
+| [P33 — Englischer Einstieg](EPIC-P33-englische-einstiegsdokumentation.md) | Bedarfsentscheid, README/Contracts/Quickstart; keine Publikation | P32-Exit ausdrücklich abgenommen | 0,5–1,5 |
+
+Neue Kette: **P27 → P28 → P29 → P30 → P31 → P32 → P33**.
+Bei P32/P33 ist ein dokumentierter Evaluations-Exit (No-go/vertagt) vom
+Implementierungsabschluss getrennt. Keine Antwort ist kein Go. Bei P32-Go
+wartet P33 auch auf den Implementierungs-Exit; bei Vertagung muss der gültige
+Evaluations-Exit ausdrücklich festgehalten werden. Keine automatische App-/OSS-Freigabe.
 
 ## Reihenfolge & Gating
 
