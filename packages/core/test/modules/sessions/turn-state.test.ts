@@ -16,6 +16,7 @@ function oneProcessPerTurn(): Adapter {
     version: "0.0.1",
     capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
     async start(spec, ctx) {
+      if (spec.prompt?.includes("AGENT_ERROR")) ctx.emit({ type: "error", summary: "agent failed", payload: {} });
       await spawnTurn(ctx, spec.prompt ?? "");
       return { sessionId: ctx.sessionId };
     },
@@ -65,7 +66,7 @@ describe("turn state (T5.4)", () => {
     }
   });
 
-  it("a failed turn does not look idle", async () => {
+  it("a worker cut off without an agent error becomes interrupted", async () => {
     const dir = await mkdtemp(join(tmpdir(), "ancientvoid-turns-"));
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
@@ -73,8 +74,8 @@ describe("turn state (T5.4)", () => {
     const manager = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
     try {
       const record = await manager.create({ adapter: "turns", project: dir, prompt: "FAIL" });
-      await new Promise((r) => setTimeout(r, 800));
-      expect(manager.get(record.id)?.status).toBe("working");
+      await waitFor(() => manager.get(record.id)?.status === "interrupted", "unexpected exit classified");
+      expect(manager.get(record.id)?.status).toBe("interrupted");
     } finally {
       await manager.shutdown();
       db.close();
@@ -89,8 +90,8 @@ describe("turn state (T5.4)", () => {
     registry.register("turns", () => ({ ...oneProcessPerTurn(), status: async () => ({ state: "down" as const }) }));
     const manager = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
     try {
-      const record = await manager.create({ adapter: "turns", project: dir, prompt: "FAIL" });
-      await new Promise((r) => setTimeout(r, 500));
+      const record = await manager.create({ adapter: "turns", project: dir, prompt: "FAIL AGENT_ERROR" });
+      await waitFor(() => manager.get(record.id)?.status === "error", "agent failure classified");
       await manager.runHeartbeat();
       expect(manager.get(record.id)?.status).toBe("error");
       expect((await manager.steer(record.id, { kind: "prompt", text: "nochmal" })).ok).toBe(true);

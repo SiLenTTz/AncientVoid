@@ -10,6 +10,17 @@ const todos = (statuses: string[], tool = "todowrite") =>
   ({ id: "t", tool, input: { todos: statuses.map((status, i) => ({ content: `Aufgabe ${i}`, status })) } });
 
 describe("runProgress", () => {
+  it("P27: native resume starts a fresh elapsed clock and never reuses the interrupted plan", () => {
+    const events = [
+      ev(1, 0, "user", { kind: "session.prompt" }),
+      ev(2, 10, "tool_use", todos(["completed", "pending"])),
+      ev(3, 20, "system", { kind: "session.turn_end", reason: "interrupted" }),
+      ev(4, 100, "system", { kind: "session.resumed" }),
+    ];
+    expect(runProgress(events, "interrupted", Date.parse(at(110)))).toBeNull();
+    expect(runProgress(events, "working", Date.parse(at(110)))).toMatchObject({ elapsedMs: 10_000, source: "none", turnCount: 0 });
+  });
+
   it("counts the agent's own plan and estimates the rest from measured velocity", () => {
     const events = [
       ev(1, 0, "user", { kind: "session.prompt", text: "los" }),

@@ -28,6 +28,14 @@ describe("policy table (T7.4)", () => {
     expect(policyFor("tools.ask", "pixel-9"), "a human never answers in the provider's place").toBe("deny");
   });
 
+  it("P27: resume is an explicit human decision, never an agent self-resume", () => {
+    expect(policyFor("sessions.resume", "pixel-9")).toBe("allow");
+    expect(policyFor("sessions.resume", "fleet:home")).toBe("allow");
+    for (const label of ["agent:mcp", "bridge:s1", "display:nyx", "companion:pc"]) {
+      expect(policyFor("sessions.resume", label)).toBe("deny");
+    }
+  });
+
   it("the emergency stop stays immediate for a human", () => {
     expect(policyFor("sessions.stop", "pixel-9")).toBe("allow");
     expect(policyFor("sessions.stop", "agent:mcp")).toBe("approve");

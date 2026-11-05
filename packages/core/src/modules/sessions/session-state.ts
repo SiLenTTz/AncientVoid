@@ -45,6 +45,8 @@ export interface LiveSession {
   skillName?: string;
   /** T5.4: provider workers of this session that have not exited yet. */
   activeWorkers?: number;
+  /** Expected exits of per-turn workers killed by an explicit park. */
+  parkGeneration?: number;
   /** T5.6: result of ctx.adoptWorker() during recover(), if it was asked. */
   adopted?: boolean;
   /** EPIC-P14: a long-lived worker (ACP, app-server) has the worktree as its
@@ -120,7 +122,8 @@ export function activityOf(event: Pick<NormalizedEvent, "type" | "summary" | "pa
       break;
     case "system":
       if (kind === "provider.error") text = `Fehler: ${oneLine((event.payload as { title?: string }).title ?? event.summary)}`;
-      else if (kind === "session.turn_end") text = "Zug beendet — wartet auf dich";
+      else if (kind === "session.interrupted") text = `Unterbrochen: ${String(event.payload.reason)}`;
+      else if (kind === "session.turn_end") text = event.payload.reason === "interrupted" ? "Zug unterbrochen — braucht dich" : "Zug beendet — wartet auf dich";
       else if (kind === "session.stopped") text = "Beendet";
       break;
   }

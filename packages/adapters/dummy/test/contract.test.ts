@@ -3,9 +3,9 @@ import { runContractTests, assertContractGreen } from "@ancientvoid/adapter-test
 import { createAdapter } from "../src/index.ts";
 
 describe("dummy adapter contract", () => {
-  it("passes the hub contract suite", async () => {
+  it.each([false, true])("passes the hub contract suite (hubResume=%s)", async (hubResume) => {
     const results = await runContractTests(createAdapter, {
-      config: { eventsPerSecond: 20, autoStopAfterEvents: 3 },
+      config: { hubResume, eventsPerSecond: 20, autoStopAfterEvents: 3 },
     });
     for (const r of results) {
       if (!r.ok) console.error(`  ✗ ${r.name}: ${r.detail}`);

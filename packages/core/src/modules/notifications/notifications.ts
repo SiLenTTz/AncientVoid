@@ -39,7 +39,10 @@ export function notificationFor(event: NormalizedEvent, ctx: NotificationContext
       return ctx.recentProviderError
         ? null
         : { level: "error", title: `${where} · ${ctx.adapter} antwortet nicht`, detail: text(payload.detail), kind };
+    case "session.interrupted":
+      return { level: "warning", title: `${where} · Session unterbrochen`, detail: text(payload.reason), kind };
     case "session.turn_end":
+      if (payload.reason === "interrupted" || payload.reason === "error") return null;
       return { level: "success", title: `${where} · Zug fertig`, detail: `${ctx.adapter} wartet auf den nächsten Prompt.`, kind };
     case "tool.permission_requested":
       return {

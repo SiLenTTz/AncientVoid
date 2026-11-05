@@ -326,7 +326,7 @@ export interface HarnessFeatures {
 export interface AdapterInfo {
   id: string;
   version: string;
-  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; contextWindowTokens?: number | null; features: HarnessFeatures; /** ADR-0036: external continuation command; absent = none declared. */ resume?: { argv: string[]; ref: "native" | "token" }; /** ADR-0042: slash commands the harness provably executes when driven; absent/empty = none — show that honestly. */ commands?: readonly { name: string; description: string; scope: "start" | "steer" | "both" }[] };
+  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; contextWindowTokens?: number | null; features: HarnessFeatures; /** ADR-0036: external continuation command; absent = none declared. */ resume?: { argv: string[]; ref: "native" | "token"; hub?: true; auto?: true }; /** ADR-0042: slash commands the harness provably executes when driven; absent/empty = none — show that honestly. */ commands?: readonly { name: string; description: string; scope: "start" | "steer" | "both" }[] };
   /** BUG-0061: server-side truth whether "Verbessern" has a one-shot
    * enhancer for this registration. Absent = older hub → the composer's
    * legacy id-set fallback decides. */
@@ -653,8 +653,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     );
   }
   if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string };
-    throw Object.assign(new Error(body.error ?? `${res.status} ${res.statusText}`), { status: res.status });
+    const body = (await res.json().catch(() => ({}))) as { error?: string; detail?: string };
+    throw Object.assign(new Error(body.error ?? body.detail ?? `${res.status} ${res.statusText}`), { status: res.status });
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
@@ -868,6 +868,8 @@ function createHubApi(P: (path: string) => string) {
       detail?: string;
     };
   },
+  resumeSession: (id: string) =>
+    api<{ ok: boolean; detail?: string }>(P(`/api/sessions/${id}/resume`), { method: "POST", body: "{}" }),
   stopSession: (id: string) =>
     api<{ ok: boolean }>(P(`/api/sessions/${id}/stop`), { method: "POST", body: "{}" }),
   /** T8.6: rename and pin. */

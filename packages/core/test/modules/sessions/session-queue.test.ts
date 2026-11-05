@@ -168,7 +168,7 @@ describe("Vormerken", () => {
     }
   });
 
-  it("überlebt einen Hub-Neustart (K7): nach der Recovery geht der Eintrag raus", async () => {
+  it("überlebt einen Hub-Neustart (K7): wartet nach Interrupt auf menschliches Fortsetzen", async () => {
     const dir = await mkdtemp(join(tmpdir(), "ancientvoid-queue-restart-"));
     const file = join(dir, "hub.db");
     const first = await setup(file, dir);
@@ -181,6 +181,11 @@ describe("Vormerken", () => {
       try {
         expect(second.sessions.queued(id).map((q) => q.text)).toEqual(["nach dem Neustart"]);
         await second.sessions.recoverAll();
+        expect(second.sessions.get(id)?.status).toBe("interrupted");
+        expect(prompts(second.steered)).toEqual([]);
+        expect(second.sessions.queued(id)).toHaveLength(1);
+        await second.sessions.steer(id, { kind: "prompt", text: "Mensch setzt fort" }, "jan");
+        second.endTurn(id);
         await waitFor(() => prompts(second.steered).length === 1);
         expect(prompts(second.steered)).toEqual(["nach dem Neustart"]);
         expect(second.sessions.queued(id)).toEqual([]);

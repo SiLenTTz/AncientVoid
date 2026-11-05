@@ -168,7 +168,7 @@ describe("loops (EPIC-P19)", () => {
     const id = String(created.body.id);
     for (const body of [{ kind: "configure", permissionMode: "scharf" }, { kind: "resume" }]) {
       const res = await call("POST", `/api/sessions/${id}/steer`, agent, body);
-      expect(res.status).toBe(422);
+      expect(res.status).toBe(body.kind === "resume" ? 403 : 422);
     }
     // der Loop hat nichts davon gesehen
     await new Promise((r) => setTimeout(r, 200));

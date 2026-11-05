@@ -23,6 +23,7 @@ const SYSTEM_KIND_TO_LESSON: Partial<Record<string, DigestLessonKind>> = {
   "session.start_failed": "failure",
   "session.recovery_failed": "failure",
   "adapter.down": "failure",
+  "session.interrupted": "failure",
   "session.parked": "decision",
 };
 

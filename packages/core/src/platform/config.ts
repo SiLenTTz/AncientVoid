@@ -94,6 +94,8 @@ export const HubConfig = z.object({
   /** EPIC-P17 T17.4: how long the hub waits for an adapter to take a
    * steer before answering "outcome unknown" (event session.steer_timeout).
    * A timeout never triggers a second submission of the same input id. */
+  /** ADR-0044: opt-in; also requires the adapter resume.auto declaration. */
+  autoResumeInterrupted: z.boolean().default(false),
   steerWaitMs: z.number().int().min(100).max(600_000).default(30_000),
   /** T7.10: local OCR — a tessdata dir with extra languages (e.g. deu),
    * set up by scripts/setup-ocr.sh without root. */

@@ -47,12 +47,12 @@ function usage(): never {
 Usage:
   hubctl health
   hubctl adapters
-  hubctl sessions
+  hubctl sessions                         includes interrupted/unknown status as text
   hubctl discover
   hubctl inventory
   hubctl show <sessionId>
   hubctl events <sessionId> [afterSeq]
-  hubctl tail <sessionId> [-f]
+  hubctl tail <sessionId> [-f]             includes session.interrupted and its reason
   hubctl token issue <label> [--agent|--display] [--db <hub.db>]   (--agent: label agent:<label>, writes need approval; --display: label display:<label>, reads and decides write approvals only)
   hubctl token list [--db <hub.db>]
   hubctl token revoke <label> [--db <hub.db>]

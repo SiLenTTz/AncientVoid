@@ -3,6 +3,16 @@ import { SessionMetricsState } from "./metrics.ts";
 import type { PromptAttachment } from "../attachments/attachment.ts";
 import { CONTROL_MODES, DEFAULT_HOST_ID, HARNESS_TARGETS, RESUME_SCHEMA_VERSION } from "./identity.ts";
 
+/** ADR-0044: shared system-event vocabulary, additive to the session status. */
+export type SessionInterruptionReason = "worker_exit" | "hub_restart" | "adapter_down";
+
+export interface SessionInterruptionPayload {
+  kind: "session.interrupted";
+  reason: SessionInterruptionReason;
+  since: string;
+  lastTurnId: string | null;
+}
+
 export const SESSION_STATUSES = [
   "idle",
   "starting",

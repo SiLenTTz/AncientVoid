@@ -1,7 +1,8 @@
+import { SessionInterruption } from "./session-interruption.ts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric } from "@ancientvoid/contracts";
-import { countMetrics, emptyMetricCounters, metricsState, promptWithAttachments, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume } from "@ancientvoid/contracts";
+import { actorKind, countMetrics, emptyMetricCounters, metricsState, promptWithAttachments, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume } from "@ancientvoid/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
@@ -27,6 +28,7 @@ import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/in
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 
 export interface SessionManagerObservability {
+  autoResumeInterrupted?: boolean;
   logger?: HubLogger;
   metrics?: HubMetrics;
   /** K7 budget for recoverAll in ms (default 3000); tests lower it. */
@@ -87,6 +89,8 @@ function defaultModelOf(registered: { config?: Readonly<Record<string, unknown>>
 }
 
 export class SessionManager {
+  private readonly interruption: SessionInterruption;
+  private readonly autoResumeInterrupted: boolean;
   private readonly live = new Map<string, LiveSession>();
   private readonly usageByAdapter = new Map<string, AdapterUsageSnapshot>();
   /** ADR-0019: approval-gated prompts and budget top-ups. */
@@ -156,6 +160,16 @@ export class SessionManager {
     /** ADR-0033: the mode new sessions start in, where the adapter offers it. */
     defaultPermissionMode: string | null = null,
   ) {
+    this.autoResumeInterrupted = observability.autoResumeInterrupted ?? false;
+    this.interruption = new SessionInterruption({
+      replay: (id) => this.store.replay(id),
+      setStatus: (session, status) => this.setStatus(session, status),
+      emit: (session, kind, payload) => this.emitSystem(session, kind, payload),
+      digest: (session) => this.dispatchDigest(session),
+      stop: (session) => session.adapter.stop(session.handle!, this.makeContext(session)),
+      autoResume: (session) => this.autoResumeInterrupted && this.registry.get(session.record.adapter)?.capabilities.resume?.auto === true
+        ? this.resume(session.record.id, "auto-resume") : Promise.resolve({ ok: false }),
+    });
     this.defaultPermissionMode = defaultPermissionMode;
     this.queue = new SessionQueue(db);
     this.turnMetricStore = new TurnMetricStore(db);
@@ -217,7 +231,7 @@ export class SessionManager {
     try {
       for (const session of this.live.values()) {
         if (!session.handle) continue;
-        const terminal = session.record.status === "stopped" || session.record.status === "error";
+        const terminal = session.record.status === "stopped" || session.record.status === "error" || session.record.status === "interrupted" || (session.record.status === "parked" && !session.persistentWorker);
         if (terminal) continue;
         let report;
         try {
@@ -229,7 +243,9 @@ export class SessionManager {
           report = { state: "broken" as const, detail: err instanceof Error ? err.message : String(err) };
         }
         if (report.state === "down" || report.state === "broken") {
-          await this.setStatus(session, "error").catch(() => undefined);
+          if (isLoopAdapter(session.record.adapter) || !VALID_TRANSITIONS[session.record.status].includes("interrupted")) {
+            await this.setStatus(session, "error");
+          } else await this.interruption.interrupt(session, "adapter_down");
           await this.emitSystem(session, "adapter.down", {
             state: report.state,
             detail: report.detail ?? null,
@@ -379,7 +395,12 @@ export class SessionManager {
    * stays (and the session says why) while a turn runs, while a long-lived
    * worker has it as cwd, or when it holds work (BUG-0027: `hasWork`).
    */
-  async archive(sessionId: string, archived: boolean): Promise<SessionRecord> {
+  async archive(sessionId: string, archived: boolean, actor?: string): Promise<SessionRecord> {
+    await this.interruption.settled(sessionId);
+    if (archived && this.get(sessionId)?.status === "interrupted") {
+      this.openStopped(sessionId);
+      await this.stop(sessionId, actor);
+    }
     const record = this.setArchived(sessionId, archived);
     if (archived) await this.tidyWorktree(sessionId);
     return record;
@@ -717,7 +738,7 @@ export class SessionManager {
     const record = this.get(sessionId);
     // "error" too: a dead run (hub restart, crashed worker) must stay
     // continuable — the user's way back into a session is a new prompt.
-    if (!record || (record.status !== "stopped" && record.status !== "error")) return undefined;
+    if (!record || (record.status !== "stopped" && record.status !== "error" && record.status !== "interrupted")) return undefined;
     const registered = this.registry.get(record.adapter);
     if (!registered) return undefined;
     const isolated =
@@ -778,7 +799,10 @@ export class SessionManager {
     input: Extract<SteerInput, { kind: "prompt" }>,
     actor?: string,
   ): Promise<Ack> {
+    session.abort.abort();
     session.abort = new AbortController();
+    session.activeWorkers = 0;
+    session.persistentWorker = false;
     if (!session.skillName || !session.record.nativeSessionId) {
       const events = await this.store.replay(session.record.id);
       if (!session.skillName) {
@@ -827,6 +851,54 @@ export class SessionManager {
     }
   }
 
+  /** ADR-0044: serialize native resume with every other session input. */
+  resume(sessionId: string, actor?: string): Promise<Ack> {
+    const previous = this.steerQueue.get(sessionId) ?? Promise.resolve();
+    const run = previous.then(() => this.resumeNow(sessionId, actor));
+    const settled = run.then(() => undefined, () => undefined);
+    this.steerQueue.set(sessionId, settled);
+    void settled.then(() => { if (this.steerQueue.get(sessionId) === settled) this.steerQueue.delete(sessionId); });
+    return run;
+  }
+
+  private async resumeNow(sessionId: string, actor?: string): Promise<Ack> {
+    if (actorKind(actor) !== "human" && actorKind(actor) !== "fleet") return { ok: false, detail: "Nur Menschen dürfen unterbrochene Sessions fortsetzen." };
+    await this.interruption.settled(sessionId);
+    const session = this.openStopped(sessionId);
+    if (!session || session.record.status !== "interrupted") return { ok: false, detail: "Session ist nicht unterbrochen." };
+    const declaration = this.registry.get(session.record.adapter)?.capabilities.resume;
+    if (!declaration?.hub || declaration.ref !== "native") {
+      const detail = "Dieser Adapter kann nicht nativ fortsetzen. Neue Nachricht mit Kontext senden oder archivieren.";
+      await this.emitSystem(session, "session.resume_unsupported", { detail });
+      return { ok: false, detail };
+    }
+    const native = session.record.nativeSessionId;
+    if (!native) return { ok: false, detail: "Provider-Session unbekannt — natives Fortsetzen nicht möglich." };
+    session.abort.abort();
+    session.abort = new AbortController();
+    session.activeWorkers = 0;
+    session.persistentWorker = false;
+    await this.ensureWorkdir(session);
+    await this.setStatus(session, "working");
+    await this.emitSystem(session, "session.resumed", { actor: actor ?? null, nativeSessionId: native });
+    try {
+      session.handle = await session.adapter.start({
+        adapter: session.record.adapter, project: session.record.project,
+        ...(session.record.model ? { model: session.record.model } : {}),
+        args: { resumeSessionId: native, ...(session.record.permissionMode ? { permissionMode: session.record.permissionMode } : {}) },
+      }, this.makeContext(session));
+      session.record.controlMode = "controllable";
+      this.persist(session.record);
+      return { ok: true };
+    } catch (err) {
+      await this.setStatus(session, "error");
+      const detail = err instanceof Error ? err.message : String(err);
+      await this.emitSystem(session, "session.resume_failed", { detail });
+      await this.emitSystem(session, "session.turn_end", { code: null, reason: "error" });
+      return { ok: false, detail };
+    }
+  }
+
   /** Steers of one session run one after another. Input-id, revision and
    * lease checks only hold if no second steer passes them while the first
    * is still awaiting (BUG-0017: two clients reopened a stopped run twice). */
@@ -847,6 +919,7 @@ export class SessionManager {
   private async steerNow(sessionId: string, input: SteerInput, actor?: string, meta?: SteerMeta): Promise<Ack> {
     // A mirror is a read-only view (ADR-0011 Erweiterung): nothing may be
     // steered, stopped or parked into opencode's session — loudly refused.
+    if (input.kind === "prompt" || input.kind === "resume") await this.interruption.settled(sessionId);
     const mirrorRecord = this.get(sessionId);
     if (mirrorRecord?.controlMode === "mirror") {
       return { ok: false, detail: "Spiegel-Session ist nur lesbar — zum Weiterarbeiten übernehmen" };
@@ -856,6 +929,10 @@ export class SessionManager {
       const record = this.get(sessionId);
       if (record?.status === "stopped") return { ok: false, detail: `adapter "${record.adapter}" not registered` };
       return { ok: false, detail: "session not live" };
+    }
+    if (session.record.status === "interrupted") {
+      if (actorKind(actor) !== "human" && actorKind(actor) !== "fleet") return { ok: false, detail: "Nur Menschen dürfen unterbrochene Sessions fortsetzen." };
+      if (input.kind === "resume") return this.resumeNow(sessionId, actor);
     }
     if (!session.handle && input.kind !== "prompt" && input.kind !== "configure") return { ok: false, detail: "session not live" };
     if (meta?.inputId && this.hasSeenInput(sessionId, meta.inputId)) {
@@ -1015,6 +1092,8 @@ export class SessionManager {
     for (const event of events) {
       const kind = (event.payload as { kind?: unknown }).kind;
       if (kind === "provider.error") this.lastProviderError.set(session.record.id, Date.now());
+      // The interruption already notified the person; adapter.down is supporting evidence.
+      if (kind === "adapter.down" && session.record.status === "interrupted") continue;
       const draft = notificationFor(event, {
         adapter: session.record.adapter,
         project: session.record.project,
@@ -1319,10 +1398,12 @@ export class SessionManager {
    * silent drop (AGENTS.md Regel 6 "fail loud"). */
   private dispatchDigest(session: LiveSession): void {
     if (this.reportingSinks.length === 0) return;
+    // A resume may begin while the journal flushes; the digest belongs to this boundary.
+    const record = { ...session.record };
     void (async () => {
-      await this.store.flush(session.record.id);
-      const events = await this.store.replay(session.record.id);
-      const summary = buildSessionSummary(session.record, events);
+      await this.store.flush(record.id);
+      const events = (await this.store.replay(record.id)).filter(e => e.seq <= record.lastSeq);
+      const summary = buildSessionSummary(record, events);
       for (const sink of this.reportingSinks) {
         try {
           await sink(summary);
@@ -1355,6 +1436,7 @@ export class SessionManager {
     // real, existing adapter-level pause mechanism (adapter-dummy already
     // implements it) — every park (manual, budget, daily-cap) now uses it
     // before the hub status changes underneath it.
+    session.parkGeneration = (session.parkGeneration ?? 0) + 1;
     if (session.handle) {
       try {
         await session.adapter.steer(session.handle, { kind: "park" }, this.makeContext(session));
@@ -1498,6 +1580,10 @@ export class SessionManager {
         budgetWarned: record.budgetUsd !== null && record.costUsd >= record.budgetUsd * 0.8,
       };
       this.live.set(record.id, session);
+      if (record.status === "interrupted") {
+        await this.interruption.repair(session);
+        return "recovered";
+      }
 
       if (!registered) {
         await this.setStatus(session, "error");
@@ -1514,12 +1600,11 @@ export class SessionManager {
             this.makeContext(session),
           );
           session.handle = handle;
-          if (handle) keepWorkers.push(record.id);
-          // T5.6: resumable, but no turn survived the restart — between turns.
-          if (handle && session.adopted === false && session.record.status === "working") {
-            await this.setStatus(session, "idle");
-          }
         }
+        if ((record.status === "working" || record.status === "starting") && (session.adopted === false || !session.handle)) {
+          await this.interruption.interrupt(session, "hub_restart");
+        }
+        if (session.handle) keepWorkers.push(record.id);
         if (!session.handle) {
           session.record.controlMode = "observed";
           this.persist(session.record);
@@ -1614,9 +1699,10 @@ export class SessionManager {
   }
 
   private makeContext(session: LiveSession): AdapterContext {
+    const signal = session.abort.signal;
     return {
       sessionId: session.record.id,
-      signal: session.abort.signal,
+      signal,
       workdir: session.workdir,
       log: (level, msg, extra) => {
         const logger = this.logger.child({
@@ -1626,6 +1712,7 @@ export class SessionManager {
         logger[level](msg, extra);
       },
       emit: (event: EmittedEvent) => {
+        if (signal.aborted) return;
         void this.emitEvents(session, [event]).catch((err) => this.handleEmitFailure(session, event, err));
       },
       blob: async (data: string | Uint8Array): Promise<BlobRef> => {
@@ -1646,18 +1733,24 @@ export class SessionManager {
         });
         // ADR-0013 Nachtrag: a persistent agent is not a turn — the adapter
         // reports turns through ctx.turn().
-        if (opts?.persistent) session.persistentWorker = true;
-        else await this.trackTurn(session, proc);
+        if (opts?.persistent) {
+          session.persistentWorker = true;
+          this.trackPersistentWorker(session, proc, signal);
+        } else await this.trackTurn(session, proc);
         return proc;
       },
       adoptWorker: async (opts) => {
         const proc = (await this.runner.adopt?.(session.record.id)) ?? null;
         session.adopted = proc !== null;
-        if (proc && opts?.persistent) session.persistentWorker = true;
+        if (proc && opts?.persistent) {
+          session.persistentWorker = true;
+          this.trackPersistentWorker(session, proc, signal);
+        }
         if (proc && !opts?.persistent) await this.trackTurn(session, proc);
         return proc;
       },
       turn: (state) => {
+        if (signal.aborted) return;
         void this.adapterTurn(session, state).catch((err) => this.logger.warn("turn state not recorded", { sessionId: session.record.id, err: String(err) }));
       },
       get nativeSessionId() {
@@ -1832,7 +1925,7 @@ export class SessionManager {
 
   private async emitSystem(session: LiveSession, kind: string, payload: Record<string, unknown>): Promise<void> {
     await this.emitEvents(session, [
-      { type: "system", summary: kind, payload: { kind, ...payload } },
+      { type: "system", summary: kind === "session.interrupted" ? `${kind}: ${String(payload.reason)}` : kind, payload: { kind, ...payload } },
     ]);
     await this.store.saveSnapshot(session.record.id, this.snapshotOf(session));
   }
@@ -1885,16 +1978,35 @@ export class SessionManager {
   private async trackTurn(session: LiveSession, proc: WorkerProcess): Promise<void> {
     session.activeWorkers = (session.activeWorkers ?? 0) + 1;
     if (session.record.status === "idle" || session.record.status === "error") await this.setStatus(session, "working");
+    const signal = session.abort.signal;
+    const parkGeneration = session.parkGeneration ?? 0;
     proc.onExit((code) => {
+      if (signal.aborted) return;
       session.activeWorkers = Math.max(0, (session.activeWorkers ?? 1) - 1);
-      if (code !== 0) return;
+      if (parkGeneration !== (session.parkGeneration ?? 0)) return;
+      if (code !== 0) {
+        this.scheduleInterruption(session, signal);
+        return;
+      }
       setTimeout(() => {
-        if ((session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
+        if (signal.aborted || (session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
         void this.setStatus(session, "idle")
           .then(() => this.emitSystem(session, "session.turn_end", { code }))
           .catch((err) => this.logger.warn("turn end not recorded", { sessionId: session.record.id, err: String(err) }));
       }, TURN_END_SETTLE_MS).unref();
     });
+  }
+
+  private trackPersistentWorker(session: LiveSession, proc: WorkerProcess, signal: AbortSignal): void {
+    proc.onExit(() => this.scheduleInterruption(session, signal));
+  }
+
+  private scheduleInterruption(session: LiveSession, signal: AbortSignal): void {
+    // Give the adapter's exit callback time to journal a provider error.
+    setTimeout(() => {
+      if (signal.aborted || (session.activeWorkers ?? 0) > 0) return;
+      void this.interruption.interrupt(session, "worker_exit").catch((err) => this.logger.error("interruption not recorded", { sessionId: session.record.id, err: String(err) }));
+    }, TURN_END_SETTLE_MS).unref();
   }
 
   private async setStatus(session: LiveSession, status: SessionStatus): Promise<void> {

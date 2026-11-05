@@ -113,6 +113,7 @@ describe("steer idempotency and recovery honesty (AC-P5-3 / AC-P5-4)", () => {
       const result = await second.recoverAll();
       expect(result.uncontrolled).toBeGreaterThanOrEqual(1);
       expect(second.get(record.id)?.controlMode).toBe("observed");
+      expect(second.get(record.id)?.status).toBe("interrupted");
       expect(result.reaped).not.toContain(record.id);
     } finally {
       await second.shutdown();
