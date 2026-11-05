@@ -11,6 +11,7 @@ class FakeDesktop implements FocusBackend, InputBackend {
   current: FocusInfo | null = { id: "w1", app: "foot", title: "~/projekt — bash", pid: 1 };
   typed = "";
   keys: string[] = [];
+  keyGate: Promise<void> = Promise.resolve();
   inputModes: string[] = [];
   targets: (string | undefined)[] = [];
   async focus() {
@@ -25,6 +26,7 @@ class FakeDesktop implements FocusBackend, InputBackend {
     this.targets.push(targetId);
   }
   async key(key: string) {
+    await this.keyGate;
     this.keys.push(key);
   }
   async selectAll() {
@@ -37,6 +39,7 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
     const desk = new FakeDesktop();
     const companion = new Companion({ hub: hub.origin, token: hub.extraToken("companion:e2e-pc"), focus: desk, input: desk, focusMs: 30 });
     const running = companion.run();
+    let releaseKey = () => {};
     try {
       await app.getByRole("button", { name: "PC", exact: true }).click();
       await expect(app).toHaveURL(/#\/pc$/);
@@ -62,8 +65,11 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
       expect(desk.typed).toBe("npm test -- --run äöüzielgenau");
       expect(desk.inputModes).toEqual(["targeted-paste", "targeted-paste"]);
       expect(desk.targets).toEqual(["w1", "w1"]);
+      desk.keyGate = new Promise<void>(resolve => { releaseKey = resolve; });
       await app.getByRole("button", { name: "↵ Enter" }).click();
       await expect(app.locator(".desktop-action").first()).toContainText("Taste Return");
+      releaseKey();
+      await expect(app.locator(".desktop-action").first()).toContainText("fertig");
       expect(desk.keys).toEqual(["Return"]);
 
       // Focus moves between what the page shows and the tap: nothing is typed.
@@ -90,6 +96,7 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
       await expect(app.getByRole("button", { name: "Eintippen" })).toBeEnabled();
       expect(desk.typed).toBe("npm test -- --run äöüzielgenau");
     } finally {
+      releaseKey();
       companion.shutdown();
       await running.catch(() => undefined);
     }

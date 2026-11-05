@@ -8,6 +8,7 @@
 // Keywords in the prompt:
 //   WERKZEUG  a shell command that asks first (item/commandExecution/requestApproval)
 //   FRAGE     a question (item/tool/requestUserInput, Rot/Grün)
+//   SPAETES_ENDE  completes one second after its assistant message (turn-end race regression)
 //   LANGSAM   the turn runs until interrupted
 //   STUMM     turn/start is never answered — the hub's steer wait hits its
 //             hard timeout (EPIC-P17 T17.4 / AC-P17-3)
@@ -62,6 +63,7 @@ async function turn(threadId, turnId, text) {
   }
   notify("item/completed", { threadId, turnId, completedAtMs: Date.now(), item: { type: "reasoning", id: randomUUID(), summary: ["Kurz überlegt."], content: [] } });
   notify("item/completed", { threadId, turnId, completedAtMs: Date.now(), item: { type: "agentMessage", id: randomUUID(), text: `Antwort auf: ${text} · Codex${tail}` } });
+  if (text.includes("SPAETES_ENDE")) await sleep(1000);
   notify("thread/tokenUsage/updated", { threadId, turnId, tokenUsage: { last: { inputTokens: 100, cachedInputTokens: 0, outputTokens: 20, reasoningOutputTokens: 0, totalTokens: 120 }, total: { inputTokens: 100, cachedInputTokens: 0, outputTokens: 20, reasoningOutputTokens: 0, totalTokens: 120 } } });
   notify("turn/completed", { threadId, turn: { id: turnId, status: "completed", items: [] } });
 }

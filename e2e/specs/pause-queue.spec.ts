@@ -64,8 +64,9 @@ test.describe("Steer-Timeout (AC-P17-3)", () => {
 
   test("eine hängende Antwort endet mit Timeout-Event und wird nie doppelt gesendet", async ({ hub }) => {
     test.setTimeout(90_000);
-    const id = await hub.createSession({ adapter: "codex", prompt: "erste Frage" });
+    const id = await hub.createSession({ adapter: "codex", prompt: "erste Frage SPAETES_ENDE" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "erste Antwort", 30_000);
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "erster Zug abgeschlossen", 30_000);
 
     const body = { kind: "prompt", text: "STUMM zweite Frage", inputId: "stumm-1" };
     const first = await hub.api<{ ok: boolean; detail?: string }>(`/api/sessions/${id}/steer`, { method: "POST", body });

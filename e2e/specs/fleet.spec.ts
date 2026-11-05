@@ -2,7 +2,7 @@ import { test, expect, signIn } from "../support/fixtures.ts";
 import { TestHub } from "../support/hub.ts";
 
 test.describe("Flotte (EPIC-P6)", () => {
-  test.use({ hubOptions: { hostId: "omarchy" } });
+  test.use({ hubOptions: { hostId: "omarchy", label: "e2e-home-label" } });
 
   test("T6.1-Spike: zwei echte Hubs melden sich mit eigener Host-ID und Protokoll", async ({ hub }) => {
     const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
@@ -122,10 +122,10 @@ test.describe("Flotte (EPIC-P6)", () => {
       await peer.until(async () => (await peer.api<{ status: string }>(`/api/sessions/${remote}`)).body.status === "idle", "remote idle");
 
       await app.reload();
-      await expect(app.locator(".host-chip").filter({ hasText: "omarchy" })).toContainText("verbunden");
+      await expect(app.locator(".host-chip").filter({ hasText: "e2e-home-label" })).toContainText("verbunden");
       await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
       await expect(app.locator(".session-where").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
-      // the own host shows its real label (hostname), not a hardcoded name
+      // The configured display label is independent of the host id and OS hostname.
       const overview = await hub.api<{ hosts: { self: boolean; label?: string }[] }>("/api/fleet");
       const selfLabel = overview.body.hosts.find((h) => h.self)?.label ?? "dieser Rechner";
       await expect(app.locator(".session-where").filter({ hasText: `${selfLabel} · alpha` })).toBeVisible();
@@ -178,7 +178,7 @@ test.describe("Flotte (EPIC-P6)", () => {
       await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText(/veraltet · Stand \d\d:\d\d/, { timeout: 15_000 });
       await expect(app.locator(".session-where").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
 
-      await app.locator(".session-card").filter({ hasText: "omarchy · alpha" }).locator(".session-open").click();
+      await app.locator(".session-card").filter({ hasText: "e2e-home-label · alpha" }).locator(".session-open").click();
       await app.getByRole("button", { name: "Chat" }).click();
       await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Lokal/)).toBeVisible();
       await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${local}`)).body.status === "idle", "idle");
