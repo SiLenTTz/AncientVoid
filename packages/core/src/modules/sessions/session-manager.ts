@@ -983,6 +983,16 @@ export class SessionManager {
       return { ok: true, detail: "queued" };
     }
     let delivered = input;
+    // BUG-0100: Ein Zug, dessen letzter Worker beendet ist, während die
+    // Abschluss-Klassifizierung (250 ms) noch läuft, würde einen Prompt an
+    // das tote Handle verlieren (CI-Lauf 3038014959). Erst den abgeschnittenen
+    // Zug sauber abschließen (turn_end), dann normal weitermachen.
+    // workerExitPending unterscheidet den toten Zwischenzustand von
+    // in-proc-Adaptern, die nie einen Worker-Prozess haben.
+    if (input.kind === "prompt" && session.workerExitPending && (session.record.status === "working" || session.record.status === "starting")) {
+      await this.interruption.interrupt(session, "worker_exit");
+      session.workerExitPending = false;
+    }
     const reopening = input.kind === "prompt" && (session.record.status === "stopped" || !session.handle);
     if (input.kind === "prompt" && session.skillName && !reopening) {
       delivered = { ...input, text: await this.promptWithSkill(session, input.text) };
@@ -1995,12 +2005,14 @@ export class SessionManager {
 
   private async trackTurn(session: LiveSession, proc: WorkerProcess): Promise<void> {
     session.activeWorkers = (session.activeWorkers ?? 0) + 1;
+    session.workerExitPending = false;
     if (session.record.status === "idle" || session.record.status === "error") await this.setStatus(session, "working");
     const signal = session.abort.signal;
     const parkGeneration = session.parkGeneration ?? 0;
     proc.onExit((code) => {
       if (signal.aborted) return;
       session.activeWorkers = Math.max(0, (session.activeWorkers ?? 1) - 1);
+      if ((session.activeWorkers ?? 0) === 0) session.workerExitPending = true;
       if (parkGeneration !== (session.parkGeneration ?? 0)) return;
       if (code !== 0) {
         this.scheduleInterruption(session, signal);

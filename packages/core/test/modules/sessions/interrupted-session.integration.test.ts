@@ -92,7 +92,7 @@ describe("P27 interruption lifecycle", () => {
     expect((await f.events()).some(e => e.payload.kind === "session.interrupted")).toBe(false);
   });
 
-  it("a follow-up prompt right after a failed exit stays error (BUG-0095)", async () => {
+  it("a follow-up prompt right after a failed exit completes the old turn and runs again (BUG-0095, BUG-0100)", async () => {
     const f = await fixture();
     f.emit(false);
     await f.wait(async () => (await f.events()).some(e => e.payload.kind === "provider.error"));
@@ -101,14 +101,32 @@ describe("P27 interruption lifecycle", () => {
       f.exit(1); // fehlerhafter Worker-Exit; die Klassifizierung wartet 250 ms
       // Der Mensch sendet den Folgeprompt, bevor die Klassifizierung läuft —
       // im CI-Rennen (Pipeline 3034339525) schob dieser Prompt die
-      // Journal-Grenze und verwandelte den Fehler-Exit in interrupted.
+      // Journal-Grenze und verwandelte den Fehler-Exit in interrupted
+      // (BUG-0095); in Pipeline 3038014959 verpuffte er am toten Handle
+      // (BUG-0100). Jetzt wird der alte Zug sauber mit turn_end(error)
+      // abgeschlossen und die Session macht mit einem neuen Lauf weiter.
       await f.manager.steer(f.record.id, { kind: "prompt", text: "Jetzt wieder" }, "phone");
       await vi.advanceTimersByTimeAsync(600);
     } finally { vi.useRealTimers(); }
     await f.wait(async () => (await f.events()).some(e => e.payload.kind === "session.turn_end"));
-    expect(f.manager.get(f.record.id)?.status).toBe("error");
     expect((await f.events()).some(e => e.payload.kind === "session.interrupted")).toBe(false);
     expect((await f.events()).find(e => e.payload.kind === "session.turn_end")?.payload).toMatchObject({ reason: "error" });
+    await f.wait(async () => f.starts() === 2);
+    expect(f.manager.get(f.record.id)?.status).toBe("working");
+  });
+
+  it("a prompt after the error classification starts a new run (BUG-0100)", async () => {
+    const f = await fixture();
+    f.emit(false);
+    await f.wait(async () => (await f.events()).some(e => e.payload.kind === "provider.error"));
+    await f.interrupt(); // Klassifizierung abgeschlossen: Status error, totes Handle
+    expect(f.manager.get(f.record.id)?.status).toBe("error");
+    const ack = await f.manager.steer(f.record.id, { kind: "prompt", text: "Jetzt wieder" }, "phone");
+    expect(ack.ok).toBe(true);
+    // Ohne Fix lief der Prompt über steer auf das tote Handle ins Leere —
+    // der Adapter startete nie wieder (Zähler blieb 1, CI-Lauf 3038014959).
+    expect(f.starts()).toBe(2);
+    expect(f.manager.get(f.record.id)?.status).toBe("working");
   });
 
   it("explicit park does not misclassify the expected worker exit", async () => {
