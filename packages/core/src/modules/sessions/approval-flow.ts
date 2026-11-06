@@ -16,6 +16,9 @@ export interface ApprovalFlowHost {
   createSession(spec: unknown, actor?: string): Promise<{ id: string }>;
   stopSession(sessionId: string, actor?: string): Promise<Ack>;
   parkSession(sessionId: string, actor?: string): Promise<Ack>;
+  /** EPIC-P29 T29.3: eine freigegebene workspace.setup-Operation — Zeichnen
+   * der Zustimmung, Setup, dann Agentenstart mit dem Original-StartSpec. */
+  resolveWorkspaceSetup(op: PendingOperation, decidedByLabel?: string): Promise<Ack>;
 }
 
 /** T7.4: requests an agent may make — each waits for a human. */
@@ -140,6 +143,8 @@ export class ApprovalFlow {
       } else if (op.kind === "budget.increase") {
         const { newBudgetUsd } = op.payload as { newBudgetUsd: number };
         ack = await this.host.applyBudgetTopUp(op.sessionId, newBudgetUsd, decidedByLabel);
+      } else if (op.kind === "workspace.setup") {
+        ack = await this.host.resolveWorkspaceSetup(op, decidedByLabel);
       } else {
         ack = { ok: false, detail: `no dispatcher for ${op.kind}` };
       }

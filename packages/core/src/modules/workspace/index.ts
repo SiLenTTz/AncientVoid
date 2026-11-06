@@ -5,6 +5,15 @@ export { resolveManifest, sha256, type ResolvedManifest } from "./manifest-resol
 export { ManifestApprovalStore, gateManifest, type ManifestApprovalInput, type ManifestApprovalRecord, type ManifestGate } from "./manifest-approval.ts";
 export { copyIncludedFiles, DEFAULT_INCLUDE_LIMITS, type IncludeCopyReport, type IncludeCopyLimits } from "./include-copy.ts";
 export {
+  WorkspaceRuntime,
+  foldWorkspaceState,
+  type WorkspaceEmit,
+  type WorkspaceRunInput,
+  type WorkspaceRunResult,
+  type WorkspaceOperationKind,
+  type FoldedWorkspaceState,
+} from "./workspace-runtime.ts";
+export {
   pruneWorktrees,
   scanWorktrees,
   type PruneResult,

@@ -403,6 +403,27 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 28,
+    name: "workspace-operations",
+    // EPIC-P29 T29.3 (ADR-0051 §3): Setup/Retry/Teardown als persistente
+    // Operationen. `dispatching` überlebt den Crash — Recovery markiert
+    // `uncertain` (needs_attention), niemals wird blind neu ausgeführt.
+    sql: `
+      CREATE TABLE workspace_operations (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        state TEXT NOT NULL,
+        manifest_hash TEXT NOT NULL,
+        step TEXT,
+        actor TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE INDEX workspace_operations_session ON workspace_operations (session_id, created_at);
+    `,
+  },
 ];
 
 export class HubDatabase {

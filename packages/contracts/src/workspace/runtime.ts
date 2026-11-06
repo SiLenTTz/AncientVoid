@@ -24,6 +24,7 @@ export const MAX_WORKSPACE_DETAIL_CHARS = 500;
 
 /** Die `workspace.*`-Systemevents (Kind im Payload, siehe `session.*`-Vorbild). */
 export const WORKSPACE_EVENT_KINDS = [
+  "workspace.approval_required",
   "workspace.preparing",
   "workspace.ready",
   "workspace.failed",
