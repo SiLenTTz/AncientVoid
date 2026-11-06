@@ -1,11 +1,11 @@
 ---
 id: BUG-0098
 slug: dock-buttons-abgeschnitten
-status: open
+status: done
 severity: S2
 area: pwa
 instance: live (Nutzerbericht 06.11.2026)
-commit: "2aa4d54"
+commit: "5064db39"
 epic: ""
 created: 2026-11-06
 reporter: "Nutzer"
