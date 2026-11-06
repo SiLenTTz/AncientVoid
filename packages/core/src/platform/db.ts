@@ -377,6 +377,16 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX turn_metrics_adapter ON turn_metrics (adapter, model, ended_at);
     `,
   },
+  {
+    id: 26,
+    name: "session-persistent-worker",
+    // ADR-0050/BUG-0092: K7-Recovery ruft adapter.recover() nur für offene
+    // Züge oder Sessions mit persistentem Adapter-Prozess — das Flag muss
+    // den Hub-Crash überleben.
+    sql: `
+      ALTER TABLE sessions ADD COLUMN persistent_worker INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];
 
 export class HubDatabase {

@@ -36,6 +36,7 @@ export interface SessionRow {
   metric_counters: string;
   last_activity: string | null;
   pinned: number;
+  persistent_worker: number;
 }
 
 function activity(raw: string | null | undefined): SessionRecord["lastActivity"] {
@@ -91,6 +92,7 @@ export function rowToRecord(row: SessionRow): SessionRecord {
     metrics: metricsState(counters(row.metric_counters)),
     lastActivity: activity(row.last_activity),
     pinned: row.pinned === 1,
+    persistentWorker: row.persistent_worker === 1,
   };
 }
 
@@ -101,9 +103,9 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
          id, adapter, project, worktree_sha, model, status, created_at, budget_usd, adapter_version, last_seq,
          cost_usd, updated_at, tokens_est, park_reason, control_mode, harness, host_id, native_session_id,
          resume_version, log_offset, parent_session_id, observed_at, fork, input_revision, writer_client, writer_lease_until,
-         archived, title, metric_counters, last_activity, pinned, permission_mode, title_source
+         archived, title, metric_counters, last_activity, pinned, permission_mode, title_source, persistent_worker
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          status = excluded.status,
          model = excluded.model,
@@ -133,7 +135,8 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
          last_activity = excluded.last_activity,
          pinned = excluded.pinned,
          permission_mode = excluded.permission_mode,
-         title_source = excluded.title_source`,
+         title_source = excluded.title_source,
+         persistent_worker = excluded.persistent_worker`,
     )
     .run(
       record.id,
@@ -169,5 +172,6 @@ export function persistRecord(db: HubDatabase, record: SessionRecord): void {
       record.pinned ? 1 : 0,
       record.permissionMode,
       record.titleSource,
+      record.persistentWorker ? 1 : 0,
     );
 }

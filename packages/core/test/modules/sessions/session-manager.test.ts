@@ -325,6 +325,47 @@ describe("SessionManager", () => {
     }
   });
 
+  it("BUG-0092: nach Recovery läuft für beendete Züge keine Generation mehr", async () => {
+    const kdir = await mkdtemp(join(tmpdir(), "ancientvoid-k7-idle-"));
+    let second: ReturnType<typeof makeManager> | undefined;
+    let first: ReturnType<typeof makeManager> | undefined;
+    try {
+      first = makeManager(kdir, { eventsPerSecond: 100, autoStopAfterEvents: 3 }, "k7-idle.db");
+      const firstManager = first.manager;
+      const ids = await Promise.all(
+        Array.from({ length: 3 }, (_, i) => firstManager.create({ adapter: "dummy", project: kdir, prompt: `job ${i}` })),
+      );
+      // Zug-Ende abwarten: auto-stop UND der damit gemeldete Status idle
+      // (ctx.turn("idle") — BUG-0092) müssen persistiert sein.
+      await waitFor(async () => {
+        for (const r of ids) if (firstManager.get(r.id)?.status !== "idle") return false;
+        return true;
+      });
+      await first.store.flush();
+      const before = new Map<string, number>(ids.map((r) => [r.id, 0]));
+      for (const r of ids) before.set(r.id, (await firstManager.tail(r.id, 0)).length);
+
+      // Hohe Event-Rate: Falls die Recovery fälschlich eine Generation
+      // startet (10-ms-Intervall bei 100/s), hat sie im Fenster unten sicher
+      // emittiert.
+      second = makeManager(kdir, { eventsPerSecond: 100 }, "k7-idle.db");
+      await second.manager.recoverAll();
+      // Bewusstes Zeitfenster: beweist, dass NICHTS läuft (Abwesenheit über
+      // Zeit, kein Rennen um einen frühen Lesezeitpunkt).
+      await new Promise((r) => setTimeout(r, 300));
+      for (const r of ids) {
+        const after = await second!.manager.tail(r.id, 0);
+        expect(after.slice(before.get(r.id)!).every((e) => e.type === "system"), `non-system events after recovery in ${r.id}`).toBe(true);
+        expect(after.some((e) => e.summary === "dummy: generation restarted after recovery"), `generator restarted in ${r.id}`).toBe(false);
+        expect(second!.manager.get(r.id)?.status).toBe("idle");
+      }
+    } finally {
+      await second?.manager.shutdown().catch(() => undefined);
+      await first?.manager.shutdown().catch(() => undefined);
+      await rm(kdir, { recursive: true, force: true });
+    }
+  });
+
   it("K7 (AC-P0-1): recovers 5 concurrent sessions, byte-identical, restore < 3s", async () => {
     const SESSION_COUNT = 5;
     const first = makeManager(dir, { eventsPerSecond: 20, autoStopAfterEvents: 10 }, "k7-5.db");
@@ -1187,11 +1228,11 @@ describe("SessionManager — reporting sink dispatch (T4.1, ADR-0009)", () => {
       await second.manager.recoverAll();
       const ack = await second.manager.steer(record.id, { kind: "prompt", text: "again" });
       expect(ack.ok).toBe(true);
-      // What reached the adapter (dummy.prompt), not the chat message.
-      const steered = (await second.manager.tail(record.id, 0)).find(
-        (e) => (e.payload as { kind?: string }).kind === "dummy.prompt",
-      );
-      const text = (steered?.payload as { text?: string }).text ?? "";
+      // Nach der K7-Recovery (ADR-0050) hat eine beendete Session kein
+      // Adapter-Handle mehr — der Prompt geht als Neustart raus, nicht als
+      // steer-Event. Was beim Adapter ankam, steht in seen (start-Wrapper):
+      // die Skill-Kette muss wieder davorstehen.
+      const text = seen.at(-1) ?? "";
       expect(text).toContain("FORM");
       expect(text).toContain("DELTA");
       expect(text.endsWith("again")).toBe(true);

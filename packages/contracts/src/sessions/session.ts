@@ -131,6 +131,12 @@ export const SessionRecord = z.object({
   writerLeaseUntil: z.string().nullable().default(null),
   /** Hidden from the overview list. The session and its events stay. */
   archived: z.boolean().default(false),
+  /** ADR-0050: die Session hatte beim letzten Persistieren einen
+   * langlebigen Adapter-Prozess (persistent worker, z. B. ACP-App-Server).
+   * K7-Recovery ruft adapter.recover() nur auf, wenn vor dem Crash ein Zug
+   * offen war oder dies hier gesetzt ist — sonst wäre eine beendete Session
+   * nach dem Restart fälschlich wieder am Laufen (BUG-0092). */
+  persistentWorker: z.boolean().default(false),
   /** First line of the start prompt, for the overview. Null when the
    * session started without one (or before titles existed). */
   title: z.string().nullable().default(null),

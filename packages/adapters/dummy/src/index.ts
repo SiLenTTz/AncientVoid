@@ -188,6 +188,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           summary: "dummy: auto-stop reached",
           payload: { emitted: n },
         });
+        // BUG-0092: Das Zug-Ende melden wie echte Adapter (ADR-0013) —
+        // sonst bleibt der persistierte Status "working" und die K7-Recovery
+        // startet nach einem Hub-Crash eine neue Generation, obwohl der Zug
+        // beendet war.
+        ctx.turn?.("idle");
       }
     }, interval);
     timer.unref();
