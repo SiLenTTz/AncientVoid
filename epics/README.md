@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P33)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P34)
 
 **Erstellt:** 12.09.2026 · **Basis:** PRD AncientVoid v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
@@ -87,6 +87,15 @@ Bei P32/P33 ist ein dokumentierter Evaluations-Exit (No-go/vertagt) vom
 Implementierungsabschluss getrennt. Keine Antwort ist kein Go. Bei P32-Go
 wartet P33 auch auf den Implementierungs-Exit; bei Vertagung muss der gültige
 Evaluations-Exit ausdrücklich festgehalten werden. Keine automatische App-/OSS-Freigabe.
+
+## Arbeitsfläche — Planungsentwurf vom 2026-11-06
+
+Eigenständiges UI-Epic auf Wunsch von Jan, außerhalb der Kette P28 → P33
+(Präzedenz P13/P14/P17–P23). **Der Start braucht eine ausdrückliche Freigabe.**
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P34 — Arbeitsfläche und eigene Fenster](EPIC-P34-arbeitsflaeche-und-fenster.md) | Navigation bereinigt, Einstellungen neu mit Farbwähler und Schriftwahl, Session-Erkennung mit echten Projekten plus Codex/Hermes und neuem Design, Kacheln und Werkzeuge als eigene Fenster — **offen** | keine fachliche (P18/P20/P22/P23 als Basis) | 2–3 |
 
 ## Reihenfolge & Gating
 
