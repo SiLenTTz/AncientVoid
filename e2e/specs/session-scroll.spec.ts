@@ -78,7 +78,6 @@ test.describe("Verlauf scrollt und liegt über dem Dock", () => {
     await hub.until(async () => (await hub.events(id)).some((e) => e.summary === "dummy: auto-stop reached"), "done", 40_000);
     await openVerlauf(app, hub.origin, id);
     await expect(app.getByText("dummy: auto-stop reached")).toBeVisible();
-
     const check = async (label: string) => {
       await expect.poll(async () => (await overlap(app)).list, { message: `${label}: Liste unter Dock` }).toBeLessThanOrEqual(1);
       await expect.poll(async () => (await overlap(app)).last, { message: `${label}: letzte Nachricht unter Dock` }).toBeLessThanOrEqual(1);
@@ -88,5 +87,35 @@ test.describe("Verlauf scrollt und liegt über dem Dock", () => {
     await check("minimiert");
     await app.getByLabel("Steuerung einblenden").click();
     await check("wieder offen");
+  });
+
+  test("BUG-0097: mit UI-Zoom scrollt nur der Chat — die Seite nicht, die Liste bleibt über dem Dock", async ({ app, hub }) => {
+    // Der Nutzerzoom (EPIC-P20 T20.2) steht vor dem App-Boot: applyScale()
+    // liest ihn beim Laden. Unter html-zoom misst die Tail-Höhenmessung
+    // visuelle Pixel und setzte die Höhe in Layout-Pixeln — der Chat wurde
+    // um den Zoomfaktor zu hoch, lief unter den Dock und schob die Seite.
+    await app.addInitScript(() => localStorage.setItem("ancientvoid.uiScale", "1.3"));
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Hallo" });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.summary === "dummy: auto-stop reached"), "done", 40_000);
+    // Erst ein echter Reload bootet die App mit dem Zoom (applyScale liest
+    // ihn beim Laden; ein Hash-Wechsel allein lädt nicht neu).
+    await app.goto(`${hub.origin}/#/`);
+    await app.reload();
+    await openVerlauf(app, hub.origin, id);
+    await expect(app.getByText("dummy: auto-stop reached")).toBeVisible();
+    // Der Chat selbst muss scrollen (Inhalt > Fläche), sonst prüft der Test
+    // gegen eine leere Fläche.
+    await expect.poll(async () => app.locator(".tail-scroll").evaluate((el) => el.scrollHeight - el.clientHeight)).toBeGreaterThan(60);
+    const { list, pageScrollable } = await app.evaluate(() => {
+      const se = document.scrollingElement!;
+      const tail = document.querySelector(".tail-scroll") as HTMLElement;
+      const dock = document.querySelector(".dock-stack") as HTMLElement;
+      return {
+        list: Math.round(tail.getBoundingClientRect().bottom - dock.getBoundingClientRect().top),
+        pageScrollable: se.scrollHeight > se.clientHeight + 1,
+      };
+    });
+    expect(pageScrollable, "die Sessionseite selbst darf nicht scrollen").toBe(false);
+    expect(list, "Liste ragt unter den Dock").toBeLessThanOrEqual(1);
   });
 });
