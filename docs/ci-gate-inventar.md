@@ -135,7 +135,25 @@ eingehalten).
 
 ## 5. Nachweislauf-Register (drei aufeinanderfolgende grüne Läufe)
 
-Nachgerüstet in [EPIC-P28](../epics/EPIC-P28-reproduzierbare-ci.md),
-Abschnitt Abschlussnachweise: SHA-gebundene Pipeline-IDs, darunter ein
-kalter Lauf (ohne Runner-Cache), sowie die Negativproben (absichtlich
-fehlerhafter Test, fehlender Chromium → Rot).
+Am finalen Code-Stand `8895473` (06.11.2026), ohne manuelles Reparieren
+dazwischen; der Runner läuft bewusst ohne Cache — jeder Lauf ist ein
+Kaltlauf:
+
+| # | Pipeline | verify | e2e | Ergebnis |
+|---|---|---|---|---|
+| 1 | [3034503993](https://gitlab.com/SiLenT_Tz/AncientVoid/-/pipelines/3034503993) | 17791487079 | 17791487080 | grün (272 s / 1437 s) |
+| 2 | [3034576007](https://gitlab.com/SiLenT_Tz/AncientVoid/-/pipelines/3034576007) | 17791961090 | 17791961091 | grün (273 s / 1412 s) |
+| 3 | [3034631425](https://gitlab.com/SiLenT_Tz/AncientVoid/-/pipelines/3034631425) | 17792342051 | 17792342052 | grün (357 s / 1403 s) |
+
+Negativproben (Wegwerf-Branches, danach gelöscht; „sauberer Commit erneut“
+= Lauf 1 der Tabelle):
+
+- Absichtlich roter Test: [3034156367](https://gitlab.com/SiLenT_Tz/AncientVoid/-/pipelines/3034156367)
+  — verify 17788907093 `script_failure` durch den Probetest, e2e skipped.
+- Fehlender Chromium: [3034156417](https://gitlab.com/SiLenT_Tz/AncientVoid/-/pipelines/3034156417)
+  — verify grün, e2e 17788907283 `script_failure` („Executable doesn’t
+  exist“, 284 failed/8 passed), kein stiller Skip.
+
+Vorgängerläufe mit den gefundenen und behobenen Defekten (BUG-0092–0096,
+Cache-Pollution, Berichts-Zählung) stehen im
+[Epic-Abschluss](../epics/EPIC-P28-reproduzierbare-ci.md).

@@ -50,6 +50,15 @@ CI-Variablen mit Secrets im Projekt.
 - **Neustart nach Reboot:** Container läuft mit `--restart unless-stopped`,
   `docker.service` ist enabled — der Runner kommt nach dem Boot von selbst
   zurück. Bis dahin bleiben neue Pipelines sichtbar `pending` (ehrlich).
+- **Bewusst ohne Runner-Cache:** Der Runner speichert keine Cache-Archive
+  (Verzeichnis `/cache` bleibt leer); jeder Job macht ein vollständiges
+  `npm ci` aus dem `package-lock.json` und lädt Chromium frisch. Das ist
+  gewollt: Jeder Lauf ist damit ein Kaltlauf (EPIC-P28 Premortem 2 — ein
+  Cache kann fehlende Pakete nicht kaschieren) und die Laufzeit bleibt
+  ehrlich (~5 min verify, ~24 min e2e). Soll Cache später aktiviert werden,
+  sind getrennte Schlüssel pro Job Pflicht (Cache-Pollution-Lektion aus
+  Lauf 3034317742: Chromium-Binaries im verify-Workspace ließen `eslint .`
+  über Browser-JS stolpern).
 - **Keine schweren lokalen Läufe parallel zum Runner:** Der Runner teilt sich
   CPU/IO mit dem Alltagshost. Ein parallel laufender Volllauf (ci-repro,
   loadtest, komplette Testsuite) hat am 05.11.2026 zweimal den
