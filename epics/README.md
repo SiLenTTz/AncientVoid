@@ -76,7 +76,7 @@ Statuszeilen gelten nicht als aktueller Abschlussnachweis.
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
 | [P28 — Reproduzierbare CI](EPIC-P28-reproduzierbare-ci.md) | Diagnose, isolierter Runner, vollständige Gate-/K8-Evidenz — **abgeschlossen (06.11.2026)**: selbstverwalteter Docker-Runner `av-docker` ([ADR-0049](../docs/adr/0049-selbstverwalteter-ci-runner.md)), Gate-Parität inkl. K8 20×30 in `verify`, Skip-Bericht in `e2e`, zwei Negativproben rot, drei SHA-gebundene grüne Gesamtläufe (8895473), 5 CI-Funde als BUG-0092–0096 | P27 samt Vorgänger-Exits grün | 1–2 |
-| [P29 — Worktree-Workspace-Runtime](EPIC-P29-worktree-workspace-runtime.md) | Manifest, Dateiübernahme, Setup/Teardown, Services/Ports, mobiler Zugang | P28 grün; P2/P14/P26 geprüft | 3–5 |
+| [P29 — Worktree-Workspace-Runtime](EPIC-P29-worktree-workspace-runtime.md) | Manifest, Dateiübernahme, Setup/Teardown, Services/Ports, mobiler Zugang — **in Umsetzung (T29.1 abgeschlossen 06.11.2026: ADR-0051 + Contracts, Abnahme vor T29.2 ausstehend)** | P28 grün; P2/P14/P26 geprüft | 3–5 |
 | [P30 — Adapter-/Sink-Plugins](EPIC-P30-adapter-sink-plugins.md) | Manifest, lokale/Git-Installation, Testkit, sicherer Lifecycle | P29 grün | 2–3 |
 | [P31 — ACP-Provider-Katalog](EPIC-P31-acp-provider-katalog.md) | kuratierte Provider, explizite Probe, getrennte Fähigkeitsnachweise | P30 grün | 2–3 |
 | [P32 — Mobile-Client-Entscheidung](EPIC-P32-mobile-client-entscheidung.md) | Gerätebefund + Go/No-go; optional interne Android-Shell | P31 grün, P12/P16 geprüft | 0,5–1; optional +2–4 |

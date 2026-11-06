@@ -1,6 +1,7 @@
 # EPIC-P29 — Worktree-Workspaces mit Manifest, Setup und Services
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P29
+**Status:** in Umsetzung — T29.1 abgeschlossen (06.11.2026), T29.2 wartet auf
+Abnahme von ADR-0051 und Contracts · **Phase:** P29
 **Dauer:** 3–5 Agenten-Wochen (ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P28-Exit-Kriterien grün; P2/P14/ADR-0016 sowie P19/P26-Integrationsstand geprüft.
 
@@ -96,8 +97,16 @@ Factory-Beobachter dürfen kein zweites Setup im Projekt auslösen (P26).
 
 ## 4. Aufgaben (Checkliste T29.m)
 
-- [ ] **T29.1** Bestands-/P26-Abgleich, ADR, Manifest-/Status-/API-Verträge
+- [x] **T29.1** Bestands-/P26-Abgleich, ADR, Manifest-/Status-/API-Verträge
   und Migrationsregel spezifizieren; Fixtures für altes Verhalten. **K5/K7**.
+  *Abgeschlossen 06.11.2026:* [ADR-0051](../docs/adr/0051-workspace-manifest-runtime.md)
+  (Manifest v1, Hash-Freigabe über Actor-Policy, Zustände, Ports/Ownership,
+  K5/K7, Migrationsregel, P26-Regel), Contracts
+  [`workspace/manifest.ts`](../packages/contracts/src/workspace/manifest.ts) +
+  [`workspace/runtime.ts`](../packages/contracts/src/workspace/runtime.ts)
+  (19 Tests), Fixture
+  [`manifest-absent.test.ts`](../packages/core/test/modules/workspace/manifest-absent.test.ts)
+  pinnt das alte Verhalten; Bestandsabgleich unten.
 - [ ] **T29.2** Manifest-Resolver + Hash-Freigabe + sichere Dateikopie bauen;
   Tests für fehlendes Manifest, ungültige Version, Symlink, Traversal,
   Secret-Redaktion und geänderten Hash. **K5/K7**, PRD §8.5.
@@ -156,3 +165,47 @@ Infrastrukturfehler gemäß AGENTS.md gesondert bewertet, nie als Pass.
 Jede neue UI-Funktion/jeder Ablauf mit Spec in `e2e/specs/`, mobiler Live-Lauf
 und Recovery-Probe dokumentiert. Manifest-Beispiel ohne Secrets, PWA-Einstieg,
 hubctl-Hilfe und Konfig-Dokumentation erreichbar; keine alten Worktrees migriert.
+
+## Umsetzung T29.1 — Bestandsabgleich und Verträge (06.11.2026)
+
+### Vorgängercheck mit Code-/Test-Evidenz (vor T29.1, wie gefordert)
+
+| Prüfling | Evidenz am Code (nicht Statuszeile) | Konsequenz für P29 |
+|---|---|---|
+| P28 grün | Retro mit 3 SHA-gebundenen Läufen am Stand `8895473`; Gate am aktuellen Trunk `69f834b` (test/lint/typecheck) im Zuge dieses Tasks grün gelaufen | Epic-Start freigegeben |
+| P2/T2.1 WorktreeManager | `packages/core/src/modules/workspace/worktree.ts` (create/remove/hasWork/apply/Quota/Reap) + `worktree.test.ts`, `session-manager.test.ts` (T2.1-Test) | bleibt unangetastet; P29 hängt daran an |
+| P14 Hygiene | `worktree-hygiene.ts` (prunable nur clean+ungenutzt+beendet), `worktree-hygiene.test.ts`, `apps/hubctl/test/worktrees.test.ts` | P14 bleibt letzte Löschbarriere; Archivierung läuft durch P14-Prüfungen |
+| ADR-0016 Apply | `worktree.ts:apply()` + `worktree-apply.test.ts` | unverändert; ersetzt nicht den MR-Workflow |
+| P19/P26-Integrationsstand | Guard `session-manager.ts:526` (`isLoopAdapter`/`workInProject`/`adoptsInPlace` → kein Worktree); `loops.test.ts` („loop works in its own project"), `factory.integration.test.ts` (Treiber-`worktreeSha` null), `factory.routes.ts` (Policy `factory.start`, nur Menschen) | Workspace-Setup nur an worktree-isolierten Sessions; Beobachter/Treiber lösen nie ein zweites Setup aus (ADR-0051 §8) |
+
+### Gelieferte Verträge
+
+- **ADR-0051** (vorgeschlagen; Abnahme vor T29.2): Manifest
+  `ancientvoid.workspace.json` v1 strict, argv-Schritte mit Frist, Include als
+  relative Liste, Services mit Fixport/`"auto"` + Readiness-Pfad; Lesen an
+  der Basis-SHA; menschliche Hash-Freigabe über die Actor-Policy (ADR-0021);
+  `needs_attention` statt blindem Re-Run (ADR-0019-Muster); Loopback-Bind,
+  Ownership per pid+argv+`ANCIENTVOID_WORKSPACE_SESSION_ID` — Portnummer
+  allein ist kein Eigentumsnachweis; Preview nur authentifiziert auf
+  registrierte Services, bis zur Abnahme blockiert.
+- **Contracts** `packages/contracts/src/workspace/{manifest,runtime}.ts`:
+  Manifest-Schema (strict, Grenzen für argv/Timeouts/Ports/Anzahlen, Include-
+  Pfadform ohne Traversal/Globs/`.git`/`data`), Zustands-/Event-Vertrag
+  (`workspace.*`, K5-gekapselte `WorkspaceFailure` mit Log-Blob-Referenz),
+  `WorkspaceStatus`/Ownership (K7-Faltung), Freigabe-Payload (strict, nie
+  Dateiinhalte), API-Pfade (Status/Retry/Logs/Preview).
+- **Migrationsregel (verbindlich):** keine Migration bestehender
+  `data/worktrees/<sessionId>`; ohne Manifest gilt der T2.1-Pfad unverändert;
+  bestehende Sessions erhalten keinen Workspace-Status.
+- **Fixtures für altes Verhalten:**
+  `packages/core/test/modules/workspace/manifest-absent.test.ts` — Git-Projekt
+  ohne Manifest → Worktree wie seit T2.1, kein `workspace.*`-Event, Cleanup
+  bei Stop; Nicht-Git-Projekt → `session.no_worktree_isolation` mit Grund.
+  Die Fixture iteriert `WORKSPACE_EVENT_KINDS` und bleibt damit auch für
+  später hinzugekommene Event-Kinds scharf (AC-P29-5).
+
+### Ausstehend
+
+T29.2 startet erst nach ausdrücklicher Abnahme von ADR-0051 und den Contracts
+(DoD); die Feldnamen sind damit verbindlich, Änderungen nur additiv bzw. über
+eine neue `schemaVersion`.
