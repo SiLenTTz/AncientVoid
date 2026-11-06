@@ -108,6 +108,12 @@
   margin: 0 auto;
   background: var(--bg-elev);
   z-index: 10;
+  /* BUG-0098: Mit voller Steuerung (Konfiguration, Warteschlange,
+   * Vorlagen, Eingabe) auf kleinem Screen lief der fixierte Dock über den
+   * oberen Rand — die obersten Buttons waren abgeschnitten statt bedienbar.
+   * Der Dock begrenzt seine Höhe auf den Screen und scrollt selbst. */
+  max-height: calc(100dvh / var(--ui-zoom, 1));
+  overflow-y: auto;
 }
 
 .dock {
