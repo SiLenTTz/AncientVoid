@@ -52,3 +52,16 @@ unteres Padding der Liste. Lens-Scrollbar-Stile wie für den Chat.
 ## Nachweis
 
 Siehe MR.
+
+## Nachtrag (06.11.2026, Nutzerbericht „Scrollbar bei nur 4 Sessions")
+
+Das Dock-Padding von 86 px lag INNERHALB der scrollenden Liste und war damit
+scrollbarer Leerraum unter der letzten Karte — bei wenigen Sessions
+erschien eine Scrollbar, obwohl alle Karten sichtbar waren, und beim
+Scrollen lief man 86 px „ins Leere". Außerdem hielt die Übersicht 86 px
+frei, obwohl auf ihr nur der GlobalDock (~64 px) steht — die
+Session-Steuerung gehört zur Session-Seite. Korrigiert: Freiraum als
+Padding der Shell-Spalte außerhalb des Scroll-Inhalts, auf die echte
+GlobalDock-Höhe (64 px + Safe-Area) verkleinert. E2E-Nachtrag rot-dann-grün
+(4 Sessions, 412×710): alt rot (Liste scrollbar trotz sichtbarer Karten),
+neu grün (583/583, kein Leerraum).

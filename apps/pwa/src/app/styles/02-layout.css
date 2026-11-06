@@ -62,20 +62,22 @@ body::-webkit-scrollbar-thumb:hover,
 /* BUG-0099: Als installierte App (PWA-Fenster) scrollt das Fenster nie —
  * die Session-Liste der Übersicht scrollt zwischen Topbar und Dock wie der
  * Chat in der Session. Nur die Dashboard-Route wird zur Shell-Spalte;
- * Nebenseiten (Einstellungen, Status, Medien …) bleiben wie bisher. */
+ * Nebenseiten (Einstellungen, Status, Medien …) bleiben wie bisher.
+ * BUG-0099-Nachtrag: Der Dock-Freiraum liegt als Padding AUSSERHALB der
+ * scrollenden Liste — als inneres Padding machte er 86 px scrollbaren
+ * Leerraum unter der letzten Karte; und die Übersicht hält nur den
+ * GlobalDock frei (~64 px), nicht die Session-Steuerung. */
 .app-page:has(> .dashboard) {
   display: flex;
   flex-direction: column;
   height: calc(100dvh / var(--ui-zoom, 1) - env(safe-area-inset-top));
-  padding-bottom: 0;
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
 
 .app-page:has(> .dashboard) > .dashboard {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* Freihaltung für den fixierten Dock (Steuerelement, GlobalDock). */
-  padding-bottom: calc(86px + env(safe-area-inset-bottom));
 }
 
 a {
