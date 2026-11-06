@@ -47,6 +47,11 @@ export interface LiveSession {
   activeWorkers?: number;
   /** Expected exits of per-turn workers killed by an explicit park. */
   parkGeneration?: number;
+  /** BUG-0100: der letzte Worker des aktuellen Zugs ist beendet — die
+   * Abschluss-Klassifizierung (250 ms) oder das Zugende läuft noch. Ein
+   * Prompt in diesem Fenster gehört in einen neuen Lauf, nicht an das
+   * tote Handle. In-proc-Adapter ohne Worker setzen das nie. */
+  workerExitPending?: boolean;
   /** T5.6: result of ctx.adoptWorker() during recover(), if it was asked. */
   adopted?: boolean;
   /** EPIC-P14: a long-lived worker (ACP, app-server) has the worktree as its
