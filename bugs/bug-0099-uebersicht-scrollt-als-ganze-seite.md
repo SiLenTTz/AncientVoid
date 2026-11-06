@@ -1,11 +1,11 @@
 ---
 id: BUG-0099
 slug: uebersicht-scrollt-als-ganze-seite
-status: open
+status: done
 severity: S2
 area: pwa
 instance: live (Nutzerbericht 06.11.2026, installierte Omarchy-Web-App)
-commit: "acff1767"
+commit: "5d879829"
 epic: ""
 created: 2026-11-06
 reporter: "Nutzer"

@@ -17,7 +17,6 @@ test.describe("Übersicht scrollt im Fenster-Layout", () => {
     const m = await app.evaluate(() => {
       const se = document.scrollingElement!;
       const list = document.querySelector(".dashboard") as HTMLElement;
-      const page = document.querySelector(".app-page") as HTMLElement;
       return {
         pageScrollable: se.scrollHeight > se.clientHeight + 1,
         listScrollable: list.scrollHeight > list.clientHeight + 1,
