@@ -387,6 +387,22 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE sessions ADD COLUMN persistent_worker INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    id: 27,
+    name: "workspace-manifest-approvals",
+    // EPIC-P29 T29.2 (ADR-0051 §2): menschliche Hash-Freigabe pro Projekt —
+    // ein geänderter Manifest-Hash braucht eine neue Zustimmung.
+    sql: `
+      CREATE TABLE workspace_manifest_approvals (
+        project TEXT NOT NULL,
+        manifest_hash TEXT NOT NULL,
+        base_sha TEXT NOT NULL,
+        approved_by TEXT NOT NULL,
+        approved_at TEXT NOT NULL,
+        PRIMARY KEY (project, manifest_hash)
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

@@ -27,6 +27,10 @@ export const WORKSPACE_TIMEOUT_MS_MIN = 1_000;
 export const WORKSPACE_TIMEOUT_MS_MAX = 600_000;
 export const WORKSPACE_PORT_MIN = 1_024;
 export const WORKSPACE_PORT_MAX = 65_535;
+/** Obergrenze des Manifests selbst (Byte, Rohdatei an der Basis-SHA) — der Resolver lehnt Größeres laut ab. */
+export const WORKSPACE_MANIFEST_MAX_BYTES = 64 * 1024;
+/** Budget der Dateiübernahme: Summe der Dateigrößen (ADR-0051 §1: Anzahl/Bytes begrenzt). */
+export const WORKSPACE_INCLUDE_MAX_BYTES = 32 * 1024 * 1024;
 
 /** argv ohne Shell: Programm plus Argumente, jedes einzeln nicht-leer. */
 export const WorkspaceArgv = z
