@@ -1,11 +1,11 @@
 ---
 id: BUG-0100
 slug: prompt-an-fehler-session-lauft-ins-leere
-status: open
+status: done
 severity: S2
 area: core
 instance: ci
-commit: "dee6c0f"
+commit: "a4a96814"
 epic: ""
 created: 2026-11-06
 reporter: "P28-CI (Lauf 3038014959)"
@@ -37,19 +37,24 @@ Fehler emittieren, auf Status `error` warten (Klassifizierung abgeschlossen,
 wie im CI-Lauf), dann steuern — ohne Fix bleibt der Adapter-Start-Zähler
 bei 1 (kein neuer Lauf, Ack trotzdem ok), mit Fix startet die Session neu.
 
-## Ursache
+## Ursache (präzisiert nach Analyse)
 
-`packages/core/src/modules/sessions/session-manager.ts` (steer, Bedingung
-`reopening`): `status === "stopped" || !session.handle` — der Status
-`error` fehlt. Nach fehlerhaftem Worker-Exit mit abgeschlossener
-Klassifizierung hängt ein totes Handle an der Session: Der Prompt geht an
-`adapter.steer(totes Handle)`, das ins Leere läuft.
+`packages/core/src/modules/sessions/session-manager.ts` (steer): Der
+Interrupt-Recorder nullt das Handle erst NACH abgeschlossener
+Klassifizierung — ein Prompt im 250-ms-Fenster davor (Status noch
+working, Handle noch da) lief über `adapter.steer` auf den toten Worker
+und verpuffte. Die ursprüngliche Vermutung („error fehlt in der
+Reopen-Bedingung") war es nicht: Nach abgeschlossener Klassifizierung
+reopen't die Session bereits korrekt (Handle null).
 
 ## Fix
 
-`error` in die Reopen-Bedingung aufnehmen — ein Prompt nach Fehler startet
-über `continueStopped` einen neuen Zug (dieselbe Naht wie bei `stopped`,
-inkl. Skill-Kette).
+`trackTurn` markiert `workerExitPending`, sobald der letzte Worker des
+Zugs beendet ist; ein Prompt in diesem Zustand schließt den abgeschnittenen
+Zug sauber ab (turn_end über die BUG-0095-Grenzregel) und läuft über
+`continueStopped` in einen neuen Lauf — dieselbe Naht wie bei `stopped`,
+inkl. Skill-Kette. In-proc-Adapter ohne Worker-Prozess setzen das Flag nie
+(BUG-0033-Refuser-Fall unberührt).
 
 ## Nachweis
 
