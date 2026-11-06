@@ -209,3 +209,6 @@ hubctl-Hilfe und Konfig-Dokumentation erreichbar; keine alten Worktrees migriert
 T29.2 startet erst nach ausdrücklicher Abnahme von ADR-0051 und den Contracts
 (DoD); die Feldnamen sind damit verbindlich, Änderungen nur additiv bzw. über
 eine neue `schemaVersion`.
+
+**Abnahme 06.11.2026 (Jan):** ADR-0051 und die Contracts sind ohne Änderungen
+angenommen — T29.2 freigegeben.

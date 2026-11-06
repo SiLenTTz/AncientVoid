@@ -1,6 +1,6 @@
 # ADR-0051 — Workspace-Manifest-Runtime: Verträge, Vertrauensgrenze, Migrationsregel
 
-**Status:** vorgeschlagen (Abnahme vor T29.2, EPIC-P29 DoD) · **Betrifft:**
+**Status:** akzeptiert (06.11.2026, Abnahme durch Jan vor T29.2) · **Betrifft:**
 `packages/contracts/src/workspace/` (neu), Core-Workspace-Modul
 (`packages/core/src/modules/workspace/`), Workspace-Routen
 (`apps/hub/src/modules/workspace/`), PWA `apps/pwa/src/features/workspace/`
