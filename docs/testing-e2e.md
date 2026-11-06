@@ -7,13 +7,17 @@ einen **echten Hub-Prozess**. Es ist ein Epic-Gate: Ein Epic gilt erst als
 abgeschlossen, wenn `npm run gate` lokal und der Job `e2e` in der Pipeline
 grün sind (siehe [`epics/README.md`](../epics/README.md), Gating).
 
-**Kontingent-Ausnahme (T12.6):** Meldet GitLab `ci_quota_exceeded`, bevor
-Jobs gestartet wurden, darf ein vollständiges lokales `npm run gate` als
-Merge-Evidenz dienen. Der MR muss den lokalen Lauf mit Branch/Commit,
-Ergebnis und sichtbaren Skips verlinken und den fehlenden Remote-Lauf nennen.
-Ein fehlgeschlagener Quoten-Job wird dabei nie als grüner CI-Lauf ausgegeben.
-Sobald Runner oder Kontingent wieder verfügbar sind, gilt das normale Remote-
-Gate wieder.
+**Kontingent-Ausnahme (T12.6, präzisiert durch P28):** Meldet GitLab
+`ci_quota_exceeded`, bevor Jobs gestartet wurden, darf ein vollständiges
+lokales `npm run gate` als Merge-Evidenz dienen. Der MR muss den lokalen Lauf
+mit Branch/Commit, Ergebnis und sichtbaren Skips verlinken und den fehlenden
+Remote-Lauf nennen. Ein fehlgeschlagener Quoten-Job wird dabei nie als grüner
+CI-Lauf ausgegeben. Sobald Runner oder Kontingent wieder verfügbar sind, gilt
+das normale Remote-Gate wieder. Seit [ADR-0049](adr/0049-selbstverwalteter-ci-runner.md)
+laufen die Pipelines auf dem eigenen Projekt-Runner `av-docker` und sind nicht
+mehr kontingentabhängig; die Ausnahme gilt damit nur noch bei echten
+Runner-/GitLab-Ausfällen — der Ausfallpfad dafür steht im
+[CI-Runbook](ci-runbook.md), inklusive lokalem Container-Repro.
 
 ## Was echt ist und was nachgebaut
 

@@ -13,6 +13,9 @@ export default tseslint.config(
       // Playwright E2E gate output (HTML report bundles, traces).
       "playwright-report/**",
       "test-results/**",
+      // CI: PLAYWRIGHT_BROWSERS_PATH liegt im Projektordner ($CI_PROJECT_DIR/
+      // .cache) — Browser-Binaries sind kein Quellcode (P28-Cache-Trennung).
+      ".cache/**",
       // Real bug found live (2026-09-19): `data/` (dataDir, gitignored —
       // SQLite, JSONL, worker logs, and every session's T2.1 git worktree,
       // itself a full checkout of this whole repo) was never excluded, so

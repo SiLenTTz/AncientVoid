@@ -38,8 +38,11 @@ test.describe("Eingabefeld (QoL 2026-10-29)", () => {
     expect(back).toBeLessThan(big - 150);
     // Und der Weg dazwischen bleibt: Text wächst ins Feld (Auto-Grow, MR !257).
     await field.fill(Array.from({ length: 8 }, (_, i) => `Zeile ${i + 1}`).join("\n"));
-    const grown = (await field.boundingBox())!.height;
-    expect(grown).toBeGreaterThan(idle + 60);
+    // BUG-0094: Auto-Grow greift erst nach dem React-Re-Render — die Höhe
+    // pollend abwarten statt sofort messen (CI-Timing schlug sonst zu).
+    await expect
+      .poll(async () => (await field.boundingBox())!.height, { timeout: 5_000 })
+      .toBeGreaterThan(idle + 60);
   });
 });
 

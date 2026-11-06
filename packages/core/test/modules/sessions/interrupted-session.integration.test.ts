@@ -92,6 +92,25 @@ describe("P27 interruption lifecycle", () => {
     expect((await f.events()).some(e => e.payload.kind === "session.interrupted")).toBe(false);
   });
 
+  it("a follow-up prompt right after a failed exit stays error (BUG-0095)", async () => {
+    const f = await fixture();
+    f.emit(false);
+    await f.wait(async () => (await f.events()).some(e => e.payload.kind === "provider.error"));
+    vi.useFakeTimers();
+    try {
+      f.exit(1); // fehlerhafter Worker-Exit; die Klassifizierung wartet 250 ms
+      // Der Mensch sendet den Folgeprompt, bevor die Klassifizierung läuft —
+      // im CI-Rennen (Pipeline 3034339525) schob dieser Prompt die
+      // Journal-Grenze und verwandelte den Fehler-Exit in interrupted.
+      await f.manager.steer(f.record.id, { kind: "prompt", text: "Jetzt wieder" }, "phone");
+      await vi.advanceTimersByTimeAsync(600);
+    } finally { vi.useRealTimers(); }
+    await f.wait(async () => (await f.events()).some(e => e.payload.kind === "session.turn_end"));
+    expect(f.manager.get(f.record.id)?.status).toBe("error");
+    expect((await f.events()).some(e => e.payload.kind === "session.interrupted")).toBe(false);
+    expect((await f.events()).find(e => e.payload.kind === "session.turn_end")?.payload).toMatchObject({ reason: "error" });
+  });
+
   it("explicit park does not misclassify the expected worker exit", async () => {
     const f = await fixture();
     await f.manager.park(f.record.id, "phone");

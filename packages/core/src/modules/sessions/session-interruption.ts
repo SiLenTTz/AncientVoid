@@ -47,8 +47,14 @@ export class SessionInterruption {
   private async record(session: LiveSession, reason: SessionInterruptionReason): Promise<void> {
     if (!["working", "starting", "waiting_approval", "parked"].includes(session.record.status)) return;
     const events = await this.host.replay(session.record.id);
-    // A previous failed turn must not poison a later successful resume.
-    const boundary = events.findLastIndex(e => e.payload.kind === "session.turn_end" || e.payload.kind === "session.prompt" || e.payload.kind === "session.resumed");
+    // Der abgeschnittene Zug beginnt mit dem ERSTEN prompt/resumed nach dem
+    // letzten turn_end. Menschliche Folgeprompts, die noch in dem offenen Zug
+    // eingingen (steer/Queue, P27), verschieben diese Grenze nicht — sonst
+    // würde ein Fehler-Exit durch schnelle Folgeeingaben zu „interrupted“
+    // statt „error“ (BUG-0095, CI-Lauf 3034339525). Ein vorheriger fehlge-
+    // schlagener Zug bleibt hinter seinem turn_end unsichtbar (P27-Regel).
+    const lastEnd = events.findLastIndex(e => e.payload.kind === "session.turn_end");
+    const boundary = events.findIndex((e, i) => i > lastEnd && (e.payload.kind === "session.prompt" || e.payload.kind === "session.resumed"));
     const failed = events.slice(Math.max(0, boundary)).some(e => e.type === "error" || e.payload.kind === "provider.error");
     // A stop/park can have won while replay was in flight.
     if (!["working", "starting", "waiting_approval", "parked"].includes(session.record.status)) return;

@@ -32,7 +32,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  workers: process.env.CI ? 2 : 4,
+  // CI: 1 Worker statt 2 — der Projekt-Runner teilt sich 8 CPUs mit je zwei
+  // echten Hubs und Chromium pro Test (ADR-0049); Parallellast erzeugte
+  // Timing-Fenster (BUG-0093/0094/0095). Keine Retries, keine gelockerten
+  // Assertions — nur der Parallelitätsgrad der geteilten Hardware angepasst.
+  workers: process.env.CI ? 1 : 4,
   timeout: 45_000,
   expect: { timeout: 10_000 },
   reporter: process.env.CI

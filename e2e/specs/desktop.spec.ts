@@ -62,6 +62,9 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
       await app.getByLabel("Text für den PC").fill("zielgenau");
       await app.getByRole("button", { name: "Eintippen" }).click();
       await expect(app.locator(".desktop-action").first()).toContainText("fertig");
+      // BUG-0093: „fertig" stammt ggf. noch vom vorherigen Auftrag — auf den
+      // auftragspezifischen Abschluss (9 Zeichen) warten, dann erst prüfen.
+      await expect(app.locator(".desktop-action").first()).toContainText("9 Zeichen in foot getippt");
       expect(desk.typed).toBe("npm test -- --run äöüzielgenau");
       expect(desk.inputModes).toEqual(["targeted-paste", "targeted-paste"]);
       expect(desk.targets).toEqual(["w1", "w1"]);
