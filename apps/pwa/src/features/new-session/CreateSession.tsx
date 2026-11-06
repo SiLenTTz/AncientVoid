@@ -21,6 +21,14 @@ function readLast(): { host?: string | null; adapter?: string; project?: string;
   }
 }
 
+/** BUG-0096: Die Merkung ist die stärkste Quelle für den Start-Adapter —
+ * die Adapterliste kann beim Mount noch leer sein (async Abruf), und der
+ * alte Fallback („dummy“/erster Eintrag) blieb dann für immer stehen, weil
+ * der Nachlade-Effekt einen gültig erscheinenden Wert nie korrigierte. */
+export function initialAdapter(last: { adapter?: string } | undefined, adapters: readonly { id: string }[]): string {
+  return last?.adapter ?? adapters[0]?.id ?? "dummy";
+}
+
 export function CreateSession({
   adapters: localAdapters,
   hosts,
@@ -44,7 +52,7 @@ export function CreateSession({
     if (!remote) return;
     api.adapters().then(setRemoteAdapters).catch(() => setRemoteAdapters([]));
   }, [api, remote]);
-  const [adapter, setAdapter] = useState(last.adapter && adapters.some((a) => a.id === last.adapter) ? last.adapter : (adapters[0]?.id ?? "dummy"));
+  const [adapter, setAdapter] = useState(initialAdapter(last, adapters));
   useEffect(() => {
     if (adapters.length > 0 && !adapters.some((a) => a.id === adapter)) setAdapter(adapters[0]!.id);
   }, [adapters]);
