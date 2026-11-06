@@ -150,9 +150,20 @@ Factory-Beobachter dürfen kein zweites Setup im Projekt auslösen (P26).
   nach Neustart `probing`, Prüfung asynchron, Restore unblockiert. Stop auf
   session stop/delete (nur eigene); Logs als gekapzte Schwänze + Blob (K5).
   8 neue Tests mit echten Prozessen; Details unten.
-- [ ] **T29.5** Recovery + Archivierung mit P14 verbinden; Hard-Kill mit
+- [x] **T29.5** Recovery + Archivierung mit P14 verbinden; Hard-Kill mit
   laufendem Service und dirty Worktree prüfen, keine fremden Prozesse
   beenden, keine neue Setup-Ausführung. **K7/K8**.
+  *Abgeschlossen 07.11.2026:* Teardown läuft **genau einmal** pro Session
+  (Journal-Gedächtnis) und dort, wo der Worktree noch existiert — im
+  `stop()` vor der P14-Entscheidung; `archive()` beendet Rest-Services,
+  wiederholt nie, prüft dann mit P14. `workspace.archived` nur bei
+  wirklich entferntem Worktree; Teardown-Fehler hält ihn fest
+  (`session.worktree_kept {reason:"teardown"}` + `workspace.cleanup_failed`),
+  dirty bleibt auffindbar. Hard-Kill-Test: laufender Service + dirty
+  Worktree → Recovery adoptiert den Dienst (Marker), **kein** zweites
+  Setup (genau ein `preparing`), Archivieren stoppt den adoptierten Dienst
+  und behält die Arbeit. `delete()` räumt Workspace-Zeilen mit weg.
+  Details unten.
 - [ ] **T29.6** Authentifizierten mobilen HTTP-Service-Zugang samt
   PWA-Status/Logs/Retry und hubctl-Befehlen liefern; Token/Origin/
   Pfad-/Host-Isolation sowie Offline-Zeitstempel testen. **K2/K5/K10**.
@@ -311,6 +322,30 @@ angenommen — T29.2 freigegeben.
   Hard-Kill mitten im Dispatch mit Recovery-Verifikation. Gates: 1239
   Unit-/Integrationstests (180 Dateien), E2E 299 passed / 2 skipped,
   typecheck/lint/check:arch grün (Lauf 07.11.2026).
+
+### Umsetzung T29.5 — Archivierung mit P14, Hard-Kill-Fälle (07.11.2026)
+
+- **Teardown-Ordnung:** Der genehmigte Teardown läuft in `stop()` — dort,
+  wo der Worktree garantiert noch existiert — und genau einmal pro Session
+  (Journal merkt sich `teardown`-Operationen; ein früherer Fehlschlag
+  blockiert jede spätere Entsorgung). `archive()` beendet nur noch
+  Rest-Services (z. B. nach Crash adoptierte), wiederholt keinen Teardown
+  und übergibt dann an die unveränderten P14-Prüfungen (`tidyWorktree`).
+- **Sichtbarkeit:** `workspace.archived` feuert nur, wenn der Worktree
+  wirklich entfernt wurde; bei Teardown-Fehler bleibt er mit Grund
+  (`cleanup_failed` + `worktree_kept {reason:"teardown"}`), bei Arbeit
+  wegen BUG-0027 — beides auffindbar, nie still entsorgt.
+- **Hard-Kill (K7/K8):** Echt getestet mit laufendem HTTP-Service und
+  dirty Worktree: Recovery adoptiert den Dienst über den Umgebungsmarker
+  (asynchrones `probing` → `ready`), es läuft **kein zweites Setup**
+  (genau ein `workspace.preparing` im Strom), der Agent bleibt gesperrt;
+  Archivieren beendet den adoptierten Dienst und behält die ungesicherte
+  Arbeit. Fremde Prozesse werden nie angefasst (T29.4-Negativtest deckt
+  die Stop- und die Adoptionsseite ab).
+- **Hygiene:** `delete()` entfernt Workspace-Journal und -Servicezeilen
+  mit der Session.
+- Gates: 1251 Unit-/Integrationstests (182 Dateien, 4 neue), E2E komplett
+  grün (299 passed / 2 skipped von 301), typecheck/lint grün (07.11.2026).
 
 ### Umsetzung T29.4 — Services, Ports, Readiness (07.11.2026)
 

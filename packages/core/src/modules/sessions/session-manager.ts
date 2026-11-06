@@ -413,8 +413,57 @@ export class SessionManager {
       await this.stop(sessionId, actor);
     }
     const record = this.setArchived(sessionId, archived);
-    if (archived) await this.tidyWorktree(sessionId);
+    if (archived) {
+      // EPIC-P29 T29.5 (ADR-0051 §3): eigene Services beenden, genehmigten
+      // Teardown ausführen (idempotent — genau einmal), DANACH die
+      // P14-Prüfungen. Teardown-Fehler ⇒ Worktree bleibt mit Grund.
+      const live = this.live.get(sessionId);
+      if (live) {
+        await this.workspaceServices
+          .stopAll(sessionId, (kind, payload) => this.emitSystem(live, kind, payload))
+          .catch((err) => this.logger.warn("service stop on archive failed", { sessionId, err: err instanceof Error ? err.message : String(err) }));
+      }
+      const teardown = await this.teardownWorkspaceOnce(sessionId, actor);
+      if (teardown === "failed") return record;
+      await this.tidyWorktree(sessionId);
+      const folded = live?.workspace ?? (live ? foldWorkspaceState(await this.store.replay(sessionId)) : null);
+      if (live && folded && this.worktrees && !existsSync(this.worktrees.pathFor(sessionId))) {
+        await this.emitSystem(live, "workspace.archived", { manifestHash: folded.manifestHash ?? null });
+      }
+    }
     return record;
+  }
+
+  /**
+   * EPIC-P29 T29.5: genehmigte Teardown-Schritte — genau einmal pro Session
+   * (Journal-Gedächtnis), nur solange der Worktree existiert. `failed` heißt:
+   * workspace.cleanup_failed ist emittiert, der Worktree muss bleiben.
+   * `none` = kein Workspace/kein Worktree (Migrationsregel).
+   */
+  private async teardownWorkspaceOnce(sessionId: string, actor?: string): Promise<"none" | "ok" | "failed"> {
+    const live = this.live.get(sessionId) ?? this.openStopped(sessionId);
+    const record = live?.record ?? this.get(sessionId);
+    if (!live || !record || !this.worktrees || record.worktreeSha === null) return "none";
+    if (!existsSync(this.worktrees.pathFor(sessionId))) return "none"; // schon entsorgt — nichts zu tun
+    if (live.workspace === undefined) {
+      const folded = foldWorkspaceState(await this.store.replay(sessionId));
+      if (!folded) return "none";
+      live.workspace = { phase: folded.phase, manifestHash: folded.manifestHash ?? "", baseSha: record.worktreeSha, pendingApprovalId: null };
+    }
+    const prior = this.workspaces.listJournal(sessionId).filter((row) => row.kind === "teardown").at(-1);
+    if (prior) return prior.state === "failed" ? "failed" : "ok"; // genau einmal, Ergebnis bleibt
+    const resolved = await resolveManifest(record.project, record.worktreeSha);
+    if (resolved.status !== "ok" || !(resolved.manifest.teardown ?? []).length) return "ok"; // nichts deklariert
+    const result = await this.workspaces.runTeardown({
+      sessionId,
+      project: record.project,
+      manifest: resolved.manifest,
+      manifestHash: live.workspace.manifestHash || resolved.manifestHash,
+      worktreePath: this.worktrees.pathFor(sessionId),
+      actor: actor ?? null,
+      emit: (kind, payload) => this.emitSystem(live, kind, payload),
+    });
+    return result.ok ? "ok" : "failed";
   }
 
   private async tidyWorktree(sessionId: string): Promise<void> {
@@ -1604,6 +1653,9 @@ export class SessionManager {
       await this.workspaceServices
         .stopAll(sessionId, (kind, payload) => this.emitSystem(session, kind, payload))
         .catch((err) => this.logger.warn("service stop failed", { sessionId, err: err instanceof Error ? err.message : String(err) }));
+      // EPIC-P29 T29.5: genehmigter Teardown läuft hier, solange der
+      // Worktree existiert — Scheitern hält ihn fest (workspace.cleanup_failed).
+      const teardown = await this.teardownWorkspaceOnce(sessionId, actor).catch(() => "failed" as const);
       // T2.1: clean up the isolated worktree once the adapter is done with
       // it — but only a clean one. BUG-0027: `remove --force` + `branch -D`
       // destroyed every uncommitted file and commit an agent had made.
@@ -1612,7 +1664,13 @@ export class SessionManager {
       // reason to leave the session stuck in "stopping".
       if (session.worktreeIsolated && this.worktrees) {
         try {
-          if (await this.worktrees.hasWork(session.record.id, session.record.worktreeSha, session.record.project)) {
+          if (teardown === "failed") {
+            await this.emitSystem(session, "session.worktree_kept", {
+              path: this.worktrees.pathFor(session.record.id),
+              branch: this.worktrees.branchFor(session.record.id),
+              reason: "teardown",
+            });
+          } else if (await this.worktrees.hasWork(session.record.id, session.record.worktreeSha, session.record.project)) {
             await this.emitSystem(session, "session.worktree_kept", {
               path: this.worktrees.pathFor(session.record.id),
               branch: this.worktrees.branchFor(session.record.id),
@@ -1669,6 +1727,10 @@ export class SessionManager {
     // T17.4: no attempt can settle for a deleted session — its reserved
     // input ids would leak into the map forever.
     this.inFlightInputs.delete(sessionId);
+    // EPIC-P29: Workspace-Journal und -Servicezeilen gehören zur Session —
+    // sie gehen mit ihr, sonst wachsen verwaiste Zeilen.
+    this.db.prepare("DELETE FROM workspace_services WHERE session_id = ?").run(sessionId);
+    this.db.prepare("DELETE FROM workspace_operations WHERE session_id = ?").run(sessionId);
     this.db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
     this.metrics?.inc("sessions_deleted");
     this.logger.info("session deleted", { sessionId, adapter: record.adapter });
