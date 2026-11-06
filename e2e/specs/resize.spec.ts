@@ -13,8 +13,13 @@ test.describe("Eingabefeld (QoL 2026-10-29)", () => {
     expect(await field.evaluate((el) => getComputedStyle(el).resize)).toBe("vertical");
     const before = (await field.boundingBox())!.height;
     await field.fill(Array.from({ length: 10 }, (_, i) => `Zeile ${i + 1} mit etwas Text`).join("\n"));
+    // BUG-0094-Nachtrag: Auto-Grow greift erst nach dem Re-Render — pollend
+    // abwarten statt sofort messen (dasselbe Rennen wie im Maximieren-Test,
+    // CI-Lauf 3036020478 machte es hier rot). Erst danach die Höhe entnehmen.
+    await expect
+      .poll(async () => (await field.boundingBox())!.height, { timeout: 5_000 })
+      .toBeGreaterThan(before + 100);
     const after = (await field.boundingBox())!.height;
-    expect(after).toBeGreaterThan(before + 100);
     // Leeren setzt die Höhe zurück — nach dem Blur, sonst gilt das Fokus-Minimum.
     await field.fill("");
     await field.evaluate((el) => el.blur());

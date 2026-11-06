@@ -46,3 +46,13 @@ messen — gleiche Schwelle (`idle + 60`), keine Assertion entschärft.
 
 Rot: Job 17789203120. Grün: Spec lokal 3/3 nach Fix; folgende CI-Läufe im
 Epic-Abschluss P28.
+
+## Nachtrag (06.11.2026): dieselbe Messung im ersten Test
+
+CI-Lauf [3036020478](https://gitlab.com/SiLen_T_Tz/AncientVoid/-/pipelines/3036020478)
+(Job 17801750063) zeigte dasselbe Rennen im Test „wächst mit langem Text und
+bleibt manuell resize-bar" (`resize.spec.ts:8`): sofortige `boundingBox()`-
+Messung nach `fill()`, `Expected > 162.59, Received 62.59`. Zweiter Fix-Lauf
+(`fix/resize-autogrow-erste-messung`): auch diese Messung pollt auf die
+gewachsene Höhe, entnimmt den Wert erst danach und hält die
+Zurücksetz-Assertion unverändert (`cleared < after - 100`).
