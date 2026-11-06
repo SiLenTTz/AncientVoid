@@ -5,6 +5,25 @@ und dessen Aktualisierung. Node.js 22.5 oder neuer ist erforderlich; Node 24
 und 26 sind im Fleet-Betrieb geprüft. Jeder echte Provider braucht zusätzlich
 seine eigene CLI und einen gültigen Login auf genau diesem Host.
 
+## Desktop-App (Omarchy/Chromium)
+
+Der Launcher liegt **außerhalb des Repos** auf dem Host (`~/.local/…`) und
+wird von Hand angelegt — der Start Baut auf dem systemd-Hub auf:
+
+- `~/.local/bin/ancientvoid-app` — wartet auf `http://127.0.0.1:7373`,
+  startet bei Bedarf `systemctl --user start ancientvoid-hub.service`
+  (kein eigener Node-Prozess, kein zweiter Hub!) und übergibt die URL an
+  `omarchy-launch-webapp` (Chromium-`--app`-Fenster, Standard-Profil mit
+  Device-Token).
+- `~/.local/share/applications/ancientvoid.desktop` — Name „AncientVoid“,
+  Icon `~/.local/share/icons/ancientvoid.png` (aus
+  `apps/pwa/public/icons/icon-512.png`).
+- Nach einem PWA-Rebuild (`npm -w @ancientvoid/pwa run build`) + Hub-Restart
+  das App-Fenster **komplett schließen und neu öffnen** — ein laufendes
+  Fenster lädt auch über „Neustart des Fensters“ nicht automatisch neu
+  (beobachtet 2026-11-06: null Asset-Anfragen im Hub-Log). Im Zweifel im
+  Fenster einmal Strg+R drücken; der Service Worker ist network-first.
+
 ## Neuer Hub
 
 ```sh

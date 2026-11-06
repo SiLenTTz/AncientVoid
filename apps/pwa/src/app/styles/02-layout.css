@@ -74,6 +74,15 @@ body::-webkit-scrollbar-thumb:hover,
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
 
+/* BUG-0099-Nachtrag 2: harte Garantie für die installierte App — das
+ * Fenster (html/body) scrollt auf der Übersicht prinzipbedingt nie, egal
+ * was über der Shell steht (Offline-Banner) oder welche Reste ein altes
+ * Fenster mitbringt. Die Liste scrollt ausschließlich intern. */
+html:has(.app-page > .dashboard),
+html:has(.app-page > .dashboard) body {
+  overflow: hidden;
+}
+
 .app-page:has(> .dashboard) > .dashboard {
   flex: 1;
   min-height: 0;

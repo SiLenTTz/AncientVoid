@@ -52,5 +52,9 @@ test.describe("Übersicht scrollt im Fenster-Layout", () => {
     });
     expect(m.pageScrollable, "das App-Fenster selbst darf nicht scrollen").toBe(false);
     expect(m.listScrollable, "4 Sessions brauchen keine Listen-Scrollbar").toBe(false);
+    // BUG-0099-Nachtrag 2: Das Fenster ist auf der Übersicht prinzipbedingt
+    // geklemmt — selbst ein Element über der Shell (z. B. Offline-Banner)
+    // kann keinen Body-Scroll mehr erzeugen.
+    expect(await app.evaluate(() => getComputedStyle(document.documentElement).overflow + "/" + getComputedStyle(document.body).overflow)).toBe("hidden/hidden");
   });
 });
