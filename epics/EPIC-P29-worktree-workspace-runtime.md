@@ -120,9 +120,21 @@ Factory-Beobachter dürfen kein zweites Setup im Projekt auslösen (P26).
   reguläre+gitignorierte Dateien, kein Symlink/Traversal/`.git`/`data`, kein
   Überschreiben Verfolgter, Anzahl/Byte-Budget, Bericht ohne Inhalte). 16 neue
   Tests; Details unten.
-- [ ] **T29.3** Setup/Retry/Teardown als persistente Operationen integrieren;
+- [x] **T29.3** Setup/Retry/Teardown als persistente Operationen integrieren;
   Timeout, Teilfehler, Crash vor/nach externem Effekt und manuelle
   Auflösung testen, kein blindes Re-Run. **K7/K8**.
+  *Abgeschlossen 07.11.2026:* `WorkspaceRuntime`
+  ([`workspace-runtime.ts`](../packages/core/src/modules/workspace/workspace-runtime.ts),
+  Journal-Migration 28) führt Setup-Schritte sequenziell mit Frist aus
+  (argv, kein Shell); Fehler nennen Schritt/Exitcode/Timeout + Log-Blob
+  (K5). SessionManager: Gate nach Worktree-Anlage — Freigabe über die
+  bestehende Approval-Queue (Operation `workspace.setup`, ADR-0019:
+  höchstens einmal, Crash-Dispatch → uncertain), Setup vor dem Agenten
+  (AC-P29-3), Guards gegen Prompts/Resume/Continue in unvorbereiteten
+  Workspaces, Recovery faltet Phase aus Events (K7) und markiert hängen
+  gebliebene Journalzeilen `needs_attention` (genau ein Event, idempotent,
+  nie Auto-Re-Run). Retry nur menschlich. Teardown-Engine steht, Archiv-
+  Anbindung folgt mit T29.5. 12 neue Tests; Details unten.
 - [ ] **T29.4** Service-Worker, Port-Vergabe/Readiness und begrenzte Logs;
   zwei echte Prozesse parallel, belegter Fixport, Bind-Race, fehlende
   Readiness und fremder Prozess als Negativfälle. **K2/K5/K8**.
@@ -249,3 +261,41 @@ angenommen — T29.2 freigegeben.
 - **Gefundene Git-Semantik** (für T29.3+ festgehalten): `git add -A`
   überspringt ignorierte Dateien (Fixtures müssen erzwingen), und getrackte
   Dateien gelten für `check-ignore` nie als ignoriert.
+
+### Umsetzung T29.3 — persistente Setup-Operationen (06.–07.11.2026)
+
+- **Engine** (`WorkspaceRuntime`, Journal-Tabelle `workspace_operations`,
+  Migration 28): Reihenfolge fest verdrahtet — erst die dauerhafte
+  `dispatching`-Marke, dann das Event, dann der Effekt. Fehler-Events
+  tragen `WorkspaceFailure` (Schritt, exit/timeout, Exitcode, gekappter
+  Ausgaben-Schwanz, Log-Blob-Referenz — K5). Teardown läuft als eigene
+  Operation (`tearing_down` → `cleanup_failed`); Archiv-Anbindung T29.5.
+- **Start-Flow** (`session-manager.ts`): mit Manifest an der Basis-SHA
+  läuft Freigabe → Include-Kopie → Setup VOR dem Agentenstart; der Agent
+  startet nie in einem unvorbereiteten Workspace (AC-P29-3). Freigabe über
+  die bestehende Approval-Queue (write-Klasse, Aktion `workspace.setup`,
+  24-h-Frist) mit Operationssatz inkl. Original-StartSpec — die Entscheidung
+  setzt nach einem Hub-Crash sauber fort (ADR-0019-Catch-up führt eine
+  genehmigte, nie gestartete Operation genau einmal aus). Include-Kopie
+  schlägt komplett fehl (fail loud), wenn ein Eintrag abgelehnt wird.
+- **Crash-Semantik (K7):** Recovery faltet die Workspace-Phase aus den
+  Events (`foldWorkspaceState`) und markiert hängen gebliebene
+  Journalzeilen `uncertain` + `workspace.needs_attention` — idempotent,
+  nie Auto-Re-Run; der ADR-0019-Teil (Operation `dispatching` → uncertain)
+  greift zusätzlich. Auf Manifest-Freigabe wartende Sessions bleiben nach
+  Recovery steuerbar (kein „observed"), abgelehnte/abgelaufene Freigaben
+  werden laut `workspace.failed`.
+- **Guards:** Prompts (steer), natives Resume und Continue gestoppter
+  Sessions verweigern bei Phase ≠ ready mit Grund; nach Worktree-Neuanlage
+  (EPIC-P14-Prune/Archiv) läuft das genehmigte Setup erneut (gleicher Hash,
+  Journal-Art `retry`), ein geändertes Manifest verlangt einen neuen Start.
+  `retryWorkspaceSetup` nur nach `failed`/`needs_attention`, danach
+  steuerbar (stopped), kein Fake-working.
+- **Tests:** Engine (Erfolg, Exit, Timeout, Teilfehler, Teardown-Fehler,
+  Journal, Crash-Idempotenz, Faltung) + Integration über den echten
+  Freigabe-Pfad (decide → applyApproved): warten ohne Agent, Setup im
+  Worktree + Include + Start erst bei ready, genau-einmal, Fehler + Retry
+  mit menschlichem Fix, ungültiges Manifest ohne Freigabe-Anfrage,
+  Hard-Kill mitten im Dispatch mit Recovery-Verifikation. Gates: 1239
+  Unit-/Integrationstests (180 Dateien), E2E 299 passed / 2 skipped,
+  typecheck/lint/check:arch grün (Lauf 07.11.2026).
