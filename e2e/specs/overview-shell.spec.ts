@@ -30,4 +30,27 @@ test.describe("Übersicht scrollt im Fenster-Layout", () => {
     await expect(app.locator(".session-card").last()).toBeVisible();
     expect(await app.evaluate(() => window.scrollY)).toBe(0);
   });
+
+  test("BUG-0099-Nachtrag: bei wenigen Sessions zeigt die Liste keine Scrollbar", async ({ app, hub }) => {
+    for (let i = 0; i < 4; i++) {
+      await hub.createSession({ adapter: "dummy", prompt: `Wenige ${i + 1}` });
+    }
+    // Knappes Fenster (Zoom 1): Mit dem Dock-Padding INNERHALB der Liste
+    // (alter Code, 86 px) erschien hier eine Scrollbar, obwohl alle Karten
+    // sichtbar waren — scrollbarer Leerraum unter der letzten Karte.
+    await app.setViewportSize({ width: 412, height: 710 });
+    await app.goto(`${hub.origin}/#/`);
+    await app.reload();
+    await expect(app.locator(".dashboard .session-card").first()).toBeVisible();
+    const m = await app.evaluate(() => {
+      const se = document.scrollingElement!;
+      const list = document.querySelector(".dashboard") as HTMLElement;
+      return {
+        pageScrollable: se.scrollHeight > se.clientHeight + 1,
+        listScrollable: list.scrollHeight > list.clientHeight + 1,
+      };
+    });
+    expect(m.pageScrollable, "das App-Fenster selbst darf nicht scrollen").toBe(false);
+    expect(m.listScrollable, "4 Sessions brauchen keine Listen-Scrollbar").toBe(false);
+  });
 });
