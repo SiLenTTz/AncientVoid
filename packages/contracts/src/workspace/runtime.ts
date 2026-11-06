@@ -31,6 +31,7 @@ export const WORKSPACE_EVENT_KINDS = [
   "workspace.needs_attention",
   "workspace.service_ready",
   "workspace.service_failed",
+  "workspace.service_stopped",
   "workspace.tearing_down",
   "workspace.archived",
   "workspace.cleanup_failed",
@@ -53,6 +54,9 @@ export type WorkspaceFailure = z.infer<typeof WorkspaceFailure>;
 
 /** Umgebungsmarker, den der Hub jedem Service mitgibt — Teil des Eigentumsnachweises (Port allein genügt nie). */
 export const WORKSPACE_OWNERSHIP_ENV = "ANCIENTVOID_WORKSPACE_SESSION_ID";
+
+/** Port-Übergabe an Auto-Port-Services: der Hub vergibt und schreibt ihn in diese Variable. */
+export const WORKSPACE_SERVICE_PORT_ENV = "ANCIENTVOID_WORKSPACE_PORT";
 
 /** Persistenter Eigentumsnachweis eines Service-Prozesses (K7: aus Snapshot rekonstruierbar). */
 export interface WorkspaceServiceOwnership {

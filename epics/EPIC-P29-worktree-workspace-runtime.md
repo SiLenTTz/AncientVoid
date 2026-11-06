@@ -135,9 +135,21 @@ Factory-Beobachter dürfen kein zweites Setup im Projekt auslösen (P26).
   gebliebene Journalzeilen `needs_attention` (genau ein Event, idempotent,
   nie Auto-Re-Run). Retry nur menschlich. Teardown-Engine steht, Archiv-
   Anbindung folgt mit T29.5. 12 neue Tests; Details unten.
-- [ ] **T29.4** Service-Worker, Port-Vergabe/Readiness und begrenzte Logs;
+- [x] **T29.4** Service-Worker, Port-Vergabe/Readiness und begrenzte Logs;
   zwei echte Prozesse parallel, belegter Fixport, Bind-Race, fehlende
   Readiness und fremder Prozess als Negativfälle. **K2/K5/K8**.
+  *Abgeschlossen 07.11.2026:* `ServiceSupervisor`
+  ([`workspace-services.ts`](../packages/core/src/modules/workspace/workspace-services.ts),
+  Tabelle `workspace_services`, Migration 29) startet detached Prozesse mit
+  Datendatei-Logs und Umgebungsmarker; Auto-Port über Loopback-Vergabe mit
+  Nachtest (begrenztes Retry), Fixport-Kollision = Fehler ohne jeden Kill;
+  Readiness als HTTP-2xx/3xx-Sonde (ohne Pfad: am Leben nach Settle);
+  Ownership = pid+argv+Marker über `/proc` — nicht Beweisbares wird nie
+  angefasst. `workspace.ready` erst, wenn alle Dienste bereit (Services
+  laufen in der Runtime-Operation zwischen Setup und ready). K7-Adoption:
+  nach Neustart `probing`, Prüfung asynchron, Restore unblockiert. Stop auf
+  session stop/delete (nur eigene); Logs als gekapzte Schwänze + Blob (K5).
+  8 neue Tests mit echten Prozessen; Details unten.
 - [ ] **T29.5** Recovery + Archivierung mit P14 verbinden; Hard-Kill mit
   laufendem Service und dirty Worktree prüfen, keine fremden Prozesse
   beenden, keine neue Setup-Ausführung. **K7/K8**.
@@ -298,4 +310,36 @@ angenommen — T29.2 freigegeben.
   mit menschlichem Fix, ungültiges Manifest ohne Freigabe-Anfrage,
   Hard-Kill mitten im Dispatch mit Recovery-Verifikation. Gates: 1239
   Unit-/Integrationstests (180 Dateien), E2E 299 passed / 2 skipped,
+  typecheck/lint/check:arch grün (Lauf 07.11.2026).
+
+### Umsetzung T29.4 — Services, Ports, Readiness (07.11.2026)
+
+- **Lifecycle in einer Operation:** Include-Kopie, Setup-Schritte und
+  Services laufen jetzt gemeinsam in der Runtime-Operation (Journal deckt
+  auch Services); `workspace.ready` feuert erst, wenn alle deklarierten
+  Dienste bereit sind — der Agent startet nie früher (AC-P29-3).
+- **Supervisor** (`workspace-services.ts`, Migration 29): detached
+  Prozesse, stdio in Datendatei-Logs (`data/services/<sid>/<svc>.log`),
+  Umgebungsmarker `ANCIENTVOID_WORKSPACE_SESSION_ID` + Port-Übergabe über
+  `ANCIENTVOID_WORKSPACE_PORT`. Auto-Port: Loopback-Bind-Vergabe mit
+  Nachtest (3 Versuche); Fixport belegt → `service_failed {kind:"port"}`
+  ohne jeden Kill. Readiness: HTTP 2xx/3xx-Poll bis Frist; ohne Pfad gilt
+  „nach 500 ms noch am Leben" als bereit.
+- **Ownership (ADR-0051 §4):** pid + argv + Marker, gelesen über `/proc`.
+  Nicht nachweisbar eigen ⇒ nie adoptieren, nie stoppen (Linux-Only ehrlich:
+  ohne `/proc` gibt es keine Adoption). K7-Restore: Zeile → `probing`,
+  Prüfung asynchron, kein Blocken; Adoptions-Test mit echtem Server und
+  zweitem Supervisor auf derselben DB.
+- **Negativfälle alle echt getestet:** zwei parallele Dienste mit
+  getrennten Ports und eigenen Antworten; belegter Fixport (fremder
+  Listener bleibt unberührt und antwortet weiter); 404-Readiness →
+  `timeout` mit Log-Blob und <4-KB-Event (K5); sofortiger Exit → `exit`;
+  Ownership-Zeile auf fremden `sleep` → nie getötet.
+- **Integration:** `stop()` und `delete()` beenden eigene Services, bevor
+  der Worktree geprüft/entfernt wird (ihr cwd würde jede Entsorgung als
+  „in Benutzung" blocken); `workspaceStatus()` liefert die K7-Projektion
+  (Phase gefaltet, Service-Zeilen) — Route/Anzeige folgt in T29.6.
+- Gates: 1247 Unit-/Integrationstests (181 Dateien), E2E komplett grün
+  (299 passed / 2 skipped von 301 gesamt — ein erster Lauf zeigte 297 ohne
+  Fehlschlag, vollständiger Zweitlauf mit korrekter Gesamtzahl grün),
   typecheck/lint/check:arch grün (Lauf 07.11.2026).

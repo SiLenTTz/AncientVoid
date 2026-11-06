@@ -1,13 +1,13 @@
 import { SessionInterruption } from "./session-interruption.ts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceSetupApproval } from "@ancientvoid/contracts";
-import { actorKind, countMetrics, emptyMetricCounters, metricsState, promptWithAttachments, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume, MAX_WORKSPACE_DETAIL_CHARS } from "@ancientvoid/contracts";
+import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus } from "@ancientvoid/contracts";
+import { actorKind, countMetrics, emptyMetricCounters, metricsState, promptWithAttachments, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume } from "@ancientvoid/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
 import type { WorktreeManager } from "../workspace/index.ts";
-import { WorkspaceRuntime, ManifestApprovalStore, copyIncludedFiles, foldWorkspaceState, gateManifest, resolveManifest } from "../workspace/index.ts";
+import { WorkspaceRuntime, ManifestApprovalStore, ServiceSupervisor, foldWorkspaceState, gateManifest, resolveManifest } from "../workspace/index.ts";
 import { refuseSpec, refuseSteer } from "../harness/index.ts";
 import { OperationStore } from "../approvals/index.ts";
 import { ApprovalFlow, type AgentActionKind } from "./approval-flow.ts";
@@ -118,8 +118,9 @@ export class SessionManager {
   private readonly registry: AdapterRegistry;
   private readonly runner: WorkerRunner;
   private readonly worktrees: WorktreeManager | undefined;
-  /** EPIC-P29 (ADR-0051): Setup/Teardown-Operationen, Hash-Freigaben. */
+  /** EPIC-P29 (ADR-0051): Setup/Teardown-Operationen, Hash-Freigaben, Services. */
   private readonly workspaces: WorkspaceRuntime;
+  private readonly workspaceServices: ServiceSupervisor;
   private readonly manifestApprovals: ManifestApprovalStore;
   private readonly approvals: ApprovalService | undefined;
   private readonly recoveryBudgetMs: number;
@@ -185,7 +186,8 @@ export class SessionManager {
     this.runner = runner;
     this.worktrees = worktrees;
     this.approvals = approvals;
-    this.workspaces = new WorkspaceRuntime(db, store);
+    this.workspaceServices = new ServiceSupervisor(db, store, store.directory());
+    this.workspaces = new WorkspaceRuntime(db, store, this.workspaceServices);
     this.manifestApprovals = new ManifestApprovalStore(db);
     this.operationStore = new OperationStore(db);
     this.budget = new BudgetGuard(
@@ -687,7 +689,7 @@ export class SessionManager {
     return false;
   }
 
-  /** Include-Kopie + Setup-Schritte; `false` = Fehler (Event + error-Status). */
+  /** Include-Kopie + Setup-Schritte + Services; `false` = Fehler (Event + error-Status). */
   private async runWorkspaceSetup(
     session: LiveSession,
     manifest: WorkspaceManifest,
@@ -697,22 +699,10 @@ export class SessionManager {
     kind: "setup" | "retry",
   ): Promise<boolean> {
     session.workspace = { phase: "preparing", manifestHash, baseSha, pendingApprovalId: null };
-    const include = manifest.include ?? [];
-    if (include.length > 0) {
-      const report = await copyIncludedFiles(session.record.project, session.workdir, include);
-      if (report.rejected.length > 0) {
-        await this.failWorkspace(session, manifestHash, baseSha, {
-          step: "include",
-          kind: "include",
-          detail: report.rejected.map((r) => `${r.path}: ${r.reason}`).join("; ").slice(0, MAX_WORKSPACE_DETAIL_CHARS),
-          logBlobRef: null,
-        });
-        return false;
-      }
-    }
     const result = await this.workspaces.runSetup(
       {
         sessionId: session.record.id,
+        project: session.record.project,
         manifest,
         manifestHash,
         worktreePath: session.workdir,
@@ -800,6 +790,34 @@ export class SessionManager {
   private workspaceBlocked(session: LiveSession): string | null {
     if (!session.workspace || session.workspace.phase === "ready") return null;
     return `Workspace ist nicht bereit (${session.workspace.phase}) — erst Freigabe/Retry (EPIC-P29)`;
+  }
+
+  /**
+   * EPIC-P29 T29.4: Workspace-Status einer Session — Faltung aus den Events
+   * (K7) plus Service-Zeilen; `null` ohne Manifest (Migrationsregel). Die
+   * Route/Anzeige (T29.6) serviert genau das.
+   */
+  async workspaceStatus(sessionId: string): Promise<WorkspaceStatus | null> {
+    const folded = foldWorkspaceState(await this.store.replay(sessionId));
+    if (!folded) return null;
+    const session = this.live.get(sessionId);
+    const record = this.get(sessionId);
+    const services = this.workspaceServices.list(sessionId);
+    return {
+      sessionId,
+      phase: (session?.workspace?.phase ?? folded.phase) as WorkspaceStatus["phase"],
+      baseSha: record?.worktreeSha ?? session?.workspace?.baseSha ?? "",
+      manifestHash: folded.manifestHash ?? session?.workspace?.manifestHash ?? "",
+      services: services.map((row) => ({
+        id: row.service_id,
+        state: row.state as WorkspaceServiceStatus["state"],
+        port: row.port,
+        pid: row.pid,
+        updatedAt: row.updated_at,
+      })),
+      operationId: this.workspaces.listJournal(sessionId).at(-1)?.id ?? null,
+      updatedAt: services.at(-1)?.updated_at ?? "",
+    };
   }
 
   /**
@@ -1580,6 +1598,12 @@ export class SessionManager {
     try {
       if (session.handle) await session.adapter.stop(session.handle, this.makeContext(session));
     } finally {
+      // EPIC-P29 T29.4: eigene Services zuerst beenden — nur nachgewiesen
+      // eigene Prozesse (ADR-0051 §4); ihr cwd liegt im Worktree und würde
+      // jede saubere Entsorgung als "in Benutzung" blocken.
+      await this.workspaceServices
+        .stopAll(sessionId, (kind, payload) => this.emitSystem(session, kind, payload))
+        .catch((err) => this.logger.warn("service stop failed", { sessionId, err: err instanceof Error ? err.message : String(err) }));
       // T2.1: clean up the isolated worktree once the adapter is done with
       // it — but only a clean one. BUG-0027: `remove --force` + `branch -D`
       // destroyed every uncommitted file and commit an agent had made.
@@ -1628,6 +1652,11 @@ export class SessionManager {
       live.abort.abort();
       this.live.delete(sessionId);
     }
+    // EPIC-P29: Services gehören zur Session — auch beim Löschen werden nur
+    // nachweisbar eigene Prozesse beendet, dann erst der Worktree entfernt.
+    await this.workspaceServices
+      .stopAll(sessionId, (kind, payload) => (live ? this.emitSystem(live, kind, payload) : Promise.resolve()))
+      .catch((err) => this.logger.warn("service stop on delete failed", { sessionId, err: err instanceof Error ? err.message : String(err) }));
     if (record.worktreeSha !== null && this.worktrees) {
       try {
         if (existsSync(this.worktrees.pathFor(sessionId))) await this.worktrees.remove(sessionId, record.project);
@@ -1843,6 +1872,11 @@ export class SessionManager {
       }
       const unclear = await this.workspaces.reconcileAfterCrash(record.id, (kind, payload) => this.emitSystem(session, kind, payload));
       if (unclear > 0 && session.workspace) session.workspace.phase = "needs_attention";
+      // EPIC-P29 T29.4: Services als `probing` markieren und asynchron
+      // adoptieren/prüfen — blockiert den Restore nicht (ADR-0051 §5, K7).
+      if (this.workspaceServices.list(record.id).length > 0) {
+        this.workspaceServices.reconcile(record.id, (kind, payload) => this.emitSystem(session, kind, payload));
+      }
       if (foldedWorkspace && record.status === "waiting_approval") {
         // EPIC-P29: eine auf Manifest-Freigabe wartende Session hat nichts
         // zu adoptieren — Journal/Phase wiederherstellen, dem Menschen

@@ -14,6 +14,11 @@ export {
   type FoldedWorkspaceState,
 } from "./workspace-runtime.ts";
 export {
+  ServiceSupervisor,
+  type ServiceStartContext,
+  type ServiceOutcome,
+} from "./workspace-services.ts";
+export {
   pruneWorktrees,
   scanWorktrees,
   type PruneResult,

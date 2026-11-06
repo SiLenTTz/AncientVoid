@@ -227,26 +227,61 @@ describe("EPIC-P29 T29.3: SessionManager-Integration", () => {
       f.register(registry2);
       const manager2 = new SessionManager(new HubDatabase(dbPath), new EventStore(f.eventsDir), registry2, new ProcessRunner(), undefined, f.worktrees, f.approvals);
       try {
-        if (process.env.AV_P29_DEBUG) console.log("[p29-t] vor recoverAll");
         const recovered = await manager2.recoverAll();
-        if (process.env.AV_P29_DEBUG) console.log("[p29-t] nach recoverAll", JSON.stringify(recovered));
         const eventKinds = await kinds(manager2, record.id);
-        if (process.env.AV_P29_DEBUG) console.log("[p29-t] events", JSON.stringify(eventKinds));
         expect(recovered.recovered).toBeGreaterThan(0);
         expect(eventKinds).toContain("workspace.needs_attention");
         expect(eventKinds).not.toContain("session.started"); // kein Agent, kein zweites Setup
         expect(eventKinds.filter((k) => k === "workspace.preparing")).toHaveLength(0); // kein Auto-Re-Run
         const blocked = await manager2.steer(record.id, { kind: "prompt", text: "weiter" }, "jan");
-        if (process.env.AV_P29_DEBUG) console.log("[p29-t] steer", JSON.stringify(blocked));
         expect(blocked.ok).toBe(false); // Phase needs_attention blockiert
       } finally {
-        if (process.env.AV_P29_DEBUG) console.log("[p29-t] shutdown manager2");
         await manager2.shutdown();
-        if (process.env.AV_P29_DEBUG) console.log("[p29-t] shutdown ok");
       }
     } finally {
       await f.cleanup();
       await rm(dbDir, { recursive: true, force: true });
+    }
+  });
+
+  it("Service-Manifest: nach Freigabe laufen Setup und Service, Stop beides", async () => {
+    const service = [
+      "node",
+      "-e",
+      "require('http').createServer((q,r)=>{r.end('ws-a')}).listen(Number(process.env.ANCIENTVOID_WORKSPACE_PORT),'127.0.0.1')",
+    ];
+    const manifest = JSON.stringify({
+      schemaVersion: 1,
+      setup: [{ id: "touch", argv: ["touch", "bereit.txt"], timeoutMs: 10_000 }],
+      services: [{ id: "web", argv: service, readiness: { path: "/", timeoutMs: 8_000 } }],
+    });
+    const f = await fixture("svc", manifest);
+    try {
+      const record = await f.manager.create({ adapter: "p29-sm", project: f.repo, prompt: "los" });
+      const request = f.approvals.list("pending").find((a) => a.sessionId === record.id)!;
+      f.approvals.decide(request.id, "approve", "test-token", "jan");
+      const applied = await f.manager.applyApproved(request.id, "jan");
+      expect(applied.ok).toBe(true);
+      // Agent startet erst, wenn der Service bereit ist (workspace.ready danach)
+      const eventKinds = await kinds(f.manager, record.id);
+      expect(eventKinds).toContain("workspace.service_ready");
+      expect(eventKinds.indexOf("workspace.service_ready")).toBeLessThan(eventKinds.indexOf("session.started"));
+      expect(f.seen.started).toBe(1);
+
+      const status = await f.manager.workspaceStatus(record.id);
+      expect(status?.phase).toBe("ready");
+      const port = status?.services[0]?.port ?? 0; // Status-API-Anker (T29.6 serviert genau das)
+      expect(port).toBeGreaterThan(0);
+      expect(await (await fetch(`http://127.0.0.1:${port}/`)).text()).toBe("ws-a");
+
+      await f.manager.stop(record.id);
+      const afterStop = await kinds(f.manager, record.id);
+      expect(afterStop).toContain("workspace.service_stopped");
+      const probe = await fetch(`http://127.0.0.1:${port}/`).then(() => "up", () => "down");
+      expect(probe).toBe("down"); // Dienst wirklich beendet
+      expect(f.manager.get(record.id)!.status).toBe("stopped");
+    } finally {
+      await f.cleanup();
     }
   });
 });

@@ -5,6 +5,8 @@ import type { WorkspaceEventKind, WorkspaceFailure, WorkspaceManifest, Workspace
 import { MAX_WORKSPACE_DETAIL_CHARS } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/db.ts";
 import type { EventStore } from "../../platform/eventstore.ts";
+import { copyIncludedFiles } from "./include-copy.ts";
+import type { ServiceSupervisor } from "./workspace-services.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -22,6 +24,7 @@ export type WorkspaceEmit = (kind: WorkspaceEventKind, payload: Record<string, u
 
 export interface WorkspaceRunInput {
   sessionId: string;
+  project: string;
   manifest: WorkspaceManifest;
   manifestHash: string;
   worktreePath: string;
@@ -49,10 +52,12 @@ export type WorkspaceOperationKind = (typeof WORKSPACE_OPERATION_KINDS)[number];
 export class WorkspaceRuntime {
   private readonly db: HubDatabase;
   private readonly store: EventStore;
+  private readonly services: ServiceSupervisor;
 
-  constructor(db: HubDatabase, store: EventStore) {
+  constructor(db: HubDatabase, store: EventStore, services: ServiceSupervisor) {
     this.db = db;
     this.store = store;
+    this.services = services;
   }
 
   /** Setup-Schritte (oder Retry — gleiche Semantik, eigene Journal-Art). */
@@ -107,12 +112,45 @@ export class WorkspaceRuntime {
       .prepare("INSERT INTO workspace_operations (id, session_id, kind, state, manifest_hash, actor, created_at, updated_at) VALUES (?, ?, ?, 'dispatching', ?, ?, ?, ?)")
       .run(operationId, input.sessionId, kind, input.manifestHash, input.actor, now, now);
     if (startEvent) await input.emit(startEvent, { operationId, manifestHash: input.manifestHash });
+    // ADR-0051 §2: explizite Dateiübernahme vor dem Setup — ein abgelehnter
+    // Eintrag lässt den ganzen Workspace laut scheitern, nie halbkopiert.
+    if ((input.manifest.include ?? []).length > 0) {
+      const report = await copyIncludedFiles(input.project, input.worktreePath, input.manifest.include ?? []);
+      if (report.rejected.length > 0) {
+        const failure: WorkspaceFailure = {
+          step: "include",
+          kind: "include",
+          detail: report.rejected.map((r) => `${r.path}: ${r.reason}`).join("; ").slice(0, MAX_WORKSPACE_DETAIL_CHARS),
+          logBlobRef: null,
+        };
+        this.mark(operationId, "failed", "include");
+        await input.emit(failEvent, { failure, operationId, manifestHash: input.manifestHash });
+        return { ok: false, operationId, failure };
+      }
+    }
     for (const step of steps ?? []) {
       const failure = await this.execStep(step, input);
       if (failure) {
         this.mark(operationId, "failed", step.id);
         await input.emit(failEvent, { failure, operationId, manifestHash: input.manifestHash });
         return { ok: false, operationId, failure };
+      }
+    }
+    // ADR-0051 §3: Services erst nach dem Setup — `workspace.ready` feuert
+    // erst, wenn alle deklarierten Dienste bereit sind (AC-P29-3).
+    if (kind !== "teardown" && (input.manifest.services ?? []).length > 0) {
+      const started = await this.services.startAll({
+        sessionId: input.sessionId,
+        worktreePath: input.worktreePath,
+        manifest: input.manifest,
+        manifestHash: input.manifestHash,
+        emit: input.emit,
+      });
+      if (!started.ok) {
+        const bad = started.outcomes.find((o) => !o.ok)!.failure!;
+        this.mark(operationId, "failed", bad.step);
+        await input.emit(failEvent, { failure: bad, operationId, manifestHash: input.manifestHash });
+        return { ok: false, operationId, failure: bad };
       }
     }
     this.mark(operationId, "done", null);

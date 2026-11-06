@@ -424,6 +424,27 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX workspace_operations_session ON workspace_operations (session_id, created_at);
     `,
   },
+  {
+    id: 29,
+    name: "workspace-services",
+    // EPIC-P29 T29.4 (ADR-0051 §4): Eigentumsnachweis je Service — pid+argv+
+    // Umgebungsmarker; die Portnummer allein ist keiner. `probing` = Readiness
+    // wird nach dem K7-Restore asynchron geprüft.
+    sql: `
+      CREATE TABLE workspace_services (
+        session_id TEXT NOT NULL,
+        service_id TEXT NOT NULL,
+        pid INTEGER NOT NULL,
+        argv TEXT NOT NULL,
+        port INTEGER,
+        readiness_path TEXT,
+        state TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (session_id, service_id)
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

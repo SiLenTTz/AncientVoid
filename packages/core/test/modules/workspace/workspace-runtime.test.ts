@@ -6,6 +6,7 @@ import type { WorkspaceEventKind, WorkspaceManifest } from "@ancientvoid/contrac
 import { HubDatabase } from "../../../src/platform/db.ts";
 import { EventStore } from "../../../src/platform/eventstore.ts";
 import { WorkspaceRuntime, foldWorkspaceState, type WorkspaceEmit } from "../../../src/modules/workspace/workspace-runtime.ts";
+import { ServiceSupervisor } from "../../../src/modules/workspace/workspace-services.ts";
 
 function collector(): { events: { kind: WorkspaceEventKind; payload: Record<string, unknown> }[]; emit: WorkspaceEmit } {
   const events: { kind: WorkspaceEventKind; payload: Record<string, unknown> }[] = [];
@@ -19,7 +20,8 @@ async function setupRuntime(tag: string): Promise<{ runtime: WorkspaceRuntime; d
   const worktree = join(dir, "wt");
   await mkdir(worktree, { recursive: true });
   const db = new HubDatabase(":memory:");
-  return { runtime: new WorkspaceRuntime(db, new EventStore(dir)), db, dir, worktree };
+  const store = new EventStore(dir);
+  return { runtime: new WorkspaceRuntime(db, store, new ServiceSupervisor(db, store, dir)), db, dir, worktree };
 }
 
 describe("EPIC-P29 T29.3: WorkspaceRuntime (ADR-0051 §3)", () => {
@@ -29,6 +31,7 @@ describe("EPIC-P29 T29.3: WorkspaceRuntime (ADR-0051 §3)", () => {
       const { events, emit } = collector();
       const result = await runtime.runSetup({
         sessionId: "s1",
+        project: worktree,
         manifest: manifest([{ id: "touch", argv: ["touch", "marker.txt"], timeoutMs: 10_000 }]),
         manifestHash: "abc",
         worktreePath: worktree,
@@ -50,6 +53,7 @@ describe("EPIC-P29 T29.3: WorkspaceRuntime (ADR-0051 §3)", () => {
       const { events, emit } = collector();
       const result = await runtime.runSetup({
         sessionId: "s2",
+        project: worktree,
         manifest: manifest([{ id: "boom", argv: ["sh", "-c", "echo schief >&2; exit 3"], timeoutMs: 10_000 }]),
         manifestHash: "abc",
         worktreePath: worktree,
@@ -76,6 +80,7 @@ describe("EPIC-P29 T29.3: WorkspaceRuntime (ADR-0051 §3)", () => {
       const { emit } = collector();
       const result = await runtime.runSetup({
         sessionId: "s3",
+        project: worktree,
         manifest: manifest([{ id: "hang", argv: ["sleep", "5"], timeoutMs: 500 }]),
         manifestHash: "abc",
         worktreePath: worktree,
@@ -96,6 +101,7 @@ describe("EPIC-P29 T29.3: WorkspaceRuntime (ADR-0051 §3)", () => {
       const { emit } = collector();
       const result = await runtime.runSetup({
         sessionId: "s4",
+        project: worktree,
         manifest: manifest([
           { id: "eins", argv: ["touch", "teil.txt"], timeoutMs: 10_000 },
           { id: "zwei", argv: ["exit", "7"], timeoutMs: 10_000 },
@@ -142,6 +148,7 @@ describe("EPIC-P29 T29.3: WorkspaceRuntime (ADR-0051 §3)", () => {
       const { events, emit } = collector();
       const result = await runtime.runTeardown({
         sessionId: "s6",
+        project: worktree,
         manifest: { schemaVersion: 1, teardown: [{ id: "drop", argv: ["exit", "1"], timeoutMs: 10_000 }] },
         manifestHash: "abc",
         worktreePath: worktree,
