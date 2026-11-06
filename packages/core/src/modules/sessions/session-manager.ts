@@ -496,6 +496,7 @@ export class SessionManager {
       archived: false,
       title: parsed.prompt ? sessionTitle(parsed.prompt) : (parsed.title ?? null),
       titleSource: "auto",
+      persistentWorker: false,
     };
     await this.store.initSession(record.id);
     this.persist(record);
@@ -666,6 +667,7 @@ export class SessionManager {
       archived: false,
       title: first.info.title ?? sessionTitle(nativeId),
       titleSource: "auto",
+      persistentWorker: false,
     };
     await this.store.initSession(record.id);
     this.persist(record);
@@ -1584,6 +1586,15 @@ export class SessionManager {
         await this.interruption.repair(session);
         return "recovered";
       }
+      // ADR-0050/BUG-0092: Bei beendeten Zügen ohne persistenten Adapter-
+      // Prozess (idle, geparkt) lief vor dem Crash nichts, das adoptiert
+      // werden könnte — adapter.recover() hätte dem Adapter einen NEUEN
+      // Lauf gestartet. Journal/Status wiederherstellen, steuerbar lassen;
+      // ein neuer Prompt startet normal über steer.
+      if (!record.persistentWorker && (record.status === "idle" || record.status === "parked")) {
+        await this.emitSystem(session, "session.recovered", { events: events.length, lastSeq, controllable: true });
+        return "recovered";
+      }
 
       if (!registered) {
         await this.setStatus(session, "error");
@@ -1735,6 +1746,11 @@ export class SessionManager {
         // reports turns through ctx.turn().
         if (opts?.persistent) {
           session.persistentWorker = true;
+          // ADR-0050: persistiert, damit die K7-Recovery nach einem Crash
+          // weiß, dass adapter.recover() auch ohne offenen Zug sinnvoll ist
+          // (Adoption des weiterlaufenden Prozesses).
+          session.record.persistentWorker = true;
+          this.persist(session.record);
           this.trackPersistentWorker(session, proc, signal);
         } else await this.trackTurn(session, proc);
         return proc;
@@ -1744,6 +1760,8 @@ export class SessionManager {
         session.adopted = proc !== null;
         if (proc && opts?.persistent) {
           session.persistentWorker = true;
+          session.record.persistentWorker = true;
+          this.persist(session.record);
           this.trackPersistentWorker(session, proc, signal);
         }
         if (proc && !opts?.persistent) await this.trackTurn(session, proc);
