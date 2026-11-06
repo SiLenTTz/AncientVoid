@@ -107,9 +107,19 @@ Factory-Beobachter dürfen kein zweites Setup im Projekt auslösen (P26).
   (19 Tests), Fixture
   [`manifest-absent.test.ts`](../packages/core/test/modules/workspace/manifest-absent.test.ts)
   pinnt das alte Verhalten; Bestandsabgleich unten.
-- [ ] **T29.2** Manifest-Resolver + Hash-Freigabe + sichere Dateikopie bauen;
+- [x] **T29.2** Manifest-Resolver + Hash-Freigabe + sichere Dateikopie bauen;
   Tests für fehlendes Manifest, ungültige Version, Symlink, Traversal,
   Secret-Redaktion und geänderten Hash. **K5/K7**, PRD §8.5.
+  *Abgeschlossen 06.11.2026:* Resolver liest an der Basis-SHA
+  ([`manifest-resolver.ts`](../packages/core/src/modules/workspace/manifest-resolver.ts),
+  Arbeitsverzeichnis-Änderungen wirkungslos), Hash-Freigabe pro Projekt in
+  SQLite-Tabelle `workspace_manifest_approvals` (Migration 27,
+  [`manifest-approval.ts`](../packages/core/src/modules/workspace/manifest-approval.ts),
+  Gate `gateManifest`), sichere Übernahme
+  ([`include-copy.ts`](../packages/core/src/modules/workspace/include-copy.ts):
+  reguläre+gitignorierte Dateien, kein Symlink/Traversal/`.git`/`data`, kein
+  Überschreiben Verfolgter, Anzahl/Byte-Budget, Bericht ohne Inhalte). 16 neue
+  Tests; Details unten.
 - [ ] **T29.3** Setup/Retry/Teardown als persistente Operationen integrieren;
   Timeout, Teilfehler, Crash vor/nach externem Effekt und manuelle
   Auflösung testen, kein blindes Re-Run. **K7/K8**.
@@ -212,3 +222,30 @@ eine neue `schemaVersion`.
 
 **Abnahme 06.11.2026 (Jan):** ADR-0051 und die Contracts sind ohne Änderungen
 angenommen — T29.2 freigegeben.
+
+### Umsetzung T29.2 — Resolver, Freigabe, Übernahme (06.11.2026)
+
+- **Resolver** (`manifest-resolver.ts`): `git show <baseSha>:…` statt
+  Arbeitsverzeichnis — nachträglich umgeschriebene Manifeste ändern das
+  Verhalten laufender Workspaces nicht (Test pinnen das). Fehlendes Manifest
+  = `{status:"none"}` (alter T2.1-Pfad, kein Fehler); ungültige Version,
+  kaputtes JSON, unbekannte Felder, > 64 KiB = `invalid` mit gekappter
+  Ursache (fail loud, K5-tauglich). Hash = sha256 des exakten Inhalts.
+- **Hash-Freigabe** (`manifest-approval.ts` + Migration 27): Schlüssel
+  `(project, manifestHash)` — gleicher Inhalt keine zweite Zustimmung,
+  geänderter Hash genau eine neue (Tests: ohne Freigabe, mit Freigabe,
+  geänderter Hash, anderes Projekt, Neustart-Persistenz). `gateManifest()`
+  liefert `invalid | approval_required (Anzeige-Payload, nie Inhalte) | ok`;
+  `approve()` ist ein von Route/Policy (Mensch, ADR-0021) aufrufbarer
+  Baustein — kein Ereignis-Konsument, Agentenausgaben registrieren nichts.
+- **Sichere Übernahme** (`include-copy.ts`): Pfadform aus dem Vertrag
+  (Traversal/Globs/absolut/`.git`/`data`), lstat verlangt reguläre Datei,
+  Symlinks abgelehnt, realpath-Kontainment verhindert Ausbrechen über
+  Symlink-Verzeichnisse, verfolgte Worktree-Dateien werden nie überschrieben
+  (Check vor der Ignore-Prüfung — Git meldet getrackte Dateien nie als
+  „ignored", so nennt der Fund die schärfere Ursache), `git check-ignore`
+  verlangt opt-in, Anzahl/Byte-Budget (256/32 MiB, überschreibbar im Test).
+  Bericht führt Pfade+Bytes, nie Inhalte (Secret-Redaktion getestet, PRD §8.5).
+- **Gefundene Git-Semantik** (für T29.3+ festgehalten): `git add -A`
+  überspringt ignorierte Dateien (Fixtures müssen erzwingen), und getrackte
+  Dateien gelten für `check-ignore` nie als ignoriert.
