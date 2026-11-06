@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P33)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P34)
 
 **Erstellt:** 12.09.2026 · **Basis:** PRD AncientVoid v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
@@ -82,11 +82,20 @@ Statuszeilen gelten nicht als aktueller Abschlussnachweis.
 | [P32 — Mobile-Client-Entscheidung](EPIC-P32-mobile-client-entscheidung.md) | Gerätebefund + Go/No-go; optional interne Android-Shell | P31 grün, P12/P16 geprüft | 0,5–1; optional +2–4 |
 | [P33 — Englischer Einstieg](EPIC-P33-englische-einstiegsdokumentation.md) | Bedarfsentscheid, README/Contracts/Quickstart; keine Publikation | P32-Exit ausdrücklich abgenommen | 0,5–1,5 |
 
-Neue Kette: **P27 → P28 → P29 → P30 → P31 → P32 → P33**.
+Neue Kette: **P27 → P28 → P29 → P34 → P30 → P31 → P32 → P33** (P34 auf Entscheidung vom 2026-11-07 eingeschoben, siehe unten; P30 wartet damit zusätzlich auf P34).
 Bei P32/P33 ist ein dokumentierter Evaluations-Exit (No-go/vertagt) vom
 Implementierungsabschluss getrennt. Keine Antwort ist kein Go. Bei P32-Go
 wartet P33 auch auf den Implementierungs-Exit; bei Vertagung muss der gültige
 Evaluations-Exit ausdrücklich festgehalten werden. Keine automatische App-/OSS-Freigabe.
+
+## Arbeitsfläche — eingeplant am 2026-11-07
+
+UI-Epic auf Wunsch von Jan, in die Kette zwischen P29 und P30 geschoben. Es
+startet, sobald P29 abgeschlossen ist; P30 wartet auf P34.
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P34 — Arbeitsfläche und eigene Fenster](EPIC-P34-arbeitsflaeche-und-fenster.md) | Navigation bereinigt, Einstellungen neu mit Farbwähler und Schriftwahl, Session-Erkennung mit echten Projekten plus Codex/Hermes und neuem Design, Kacheln und Werkzeuge als eigene Fenster — **offen, nicht gestartet** | P29 grün (P18/P20/P22/P23 als Basis) | 2–3 |
 
 ## Reihenfolge & Gating
 
