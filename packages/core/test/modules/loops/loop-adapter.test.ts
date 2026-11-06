@@ -13,7 +13,10 @@ describe("loopAsAdapter (T19.2)", () => {
     dir = await mkdtemp(join(tmpdir(), "ancientvoid-loop-"));
   });
   afterEach(async () => {
-    await rm(dir, { recursive: true, force: true });
+    // maxRetries: Der Loop-Worker einer Recovery kann beim Aufräumen noch
+    // Dateien schreiben — ohne Retry fiel rm sporadisch mit ENOTEMPTY
+    // (CI-Lauf 3034470769, sonst nirgends reproduzierbar).
+    await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
 
   const spec = { adapter: "loop:fake-loop", project: "/tmp/x", prompt: "los", args: { loop: { project: "/tmp/x", mode: "ruhig", options: { line: "alpha" } } } };
