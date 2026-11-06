@@ -1,10 +1,17 @@
 # EPIC-P34 — Arbeitsfläche: klare Navigation, schöne Einstellungen, bessere Session-Erkennung, eigene Fenster
 
-**Status:** Planungsentwurf vom 06.11.2026, Umsetzung nicht gestartet · **Phase:** P34 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine; baut auf P18 (Kacheln), P20 (Zoom, Einstellungen), P22/P24 (Erkennung), P23 (Desktop-Navigation). Präzedenz wie P13/P14/P17–P23: eigenständiges UI-Epic neben der Kette P29 → P33. **Der Start braucht Jans ausdrückliche Freigabe**, weil P29 noch läuft und P33 nicht abgeschlossen ist; die Freigabe wird hier mit Datum eingetragen.
+**Status:** eingeplant, Umsetzung nicht gestartet · **Phase:** P34 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** P29-Exit-Kriterien grün. Fachlich baut es auf P18 (Kacheln), P20 (Zoom, Einstellungen), P22/P24 (Erkennung) und P23 (Desktop-Navigation) auf.
+
+**Einordnung (Entscheidung Jan, 07.11.2026):** P34 wird zwischen P29 und P30 geschoben, die Kette lautet P29 → P34 → P30 → P31 → P32 → P33. P34 startet, sobald P29 abgeschlossen ist; P30 wartet auf P34. Die Nummer bleibt P34, damit bestehende Verweise stabil bleiben.
 
 Auslöser: Wunsch von Jan vom 06.11.2026.
 
 > Voice im Side-Menü ist überflüssig, Medien gehört ins Side-Menü, PC in die Einstellungen. Die Einstellungen sehen unschön aus: bessere Struktur, symmetrischer, einfach zu nutzen. Akzentfarbe per Modal wie in GIMP, Schriftgröße und -art mit direkter Vorschau. Die Session-Erkennung funktioniert nicht wirklich gut und wirkt unsymmetrisch und gestaucht. Einzelne Chat-Kacheln als neue Fenster aus der App ziehen, um mehrere Bildschirme in Sessions und Tools zu verwandeln.
+
+**Entscheidungen vom 07.11.2026 (Jan):**
+
+- Die Empfehlungen aus der Planung gelten: Erkennung nach Variante A (Signal-Deck), T34.1 und T34.2 zuerst, `⧉`-Knopf als Zusage und Ziehgeste nach Spike.
+- Sprachzugang außerhalb einer Session wird nicht gebraucht und fällt ersatzlos weg, auch am Handy, samt Tests und Doku (§3.1).
 
 ## 1. Ziel
 
@@ -33,7 +40,7 @@ Die Befunde stammen aus dem Code und aus Zählungen auf diesem Rechner. Screensh
 ## 2. Scope (In / Out)
 
 **In:**
-- Voice aus dem `GlobalDock`, Medien ins `GlobalDock`, PC in die Einstellungen, Kopfzeile entschlackt.
+- Voice aus dem `GlobalDock` und das globale Voice-Sheet samt Tests und Doku entfernen, Medien ins `GlobalDock`, PC in die Einstellungen, Kopfzeile entschlackt.
 - Werkzeugfläche am Desktop: Einstellungen, Entdeckt, Medien, PC und Status nutzen die Detailspalte.
 - Einstellungen neu: feste Gruppen, gemeinsames Zeilenraster, echte Schalter.
 - Akzentfarbe mit Farbwähler-Modal nach GIMP-Art, Schriftart und -größe mit Live-Vorschau, alles pro Gerät und je Theme, selbst ausgelieferte Schriften.
@@ -62,7 +69,20 @@ Nachher Dock: Übersicht · Neue Session · Entdeckt · Medien · Einstellungen
         Kopf: ✦ · Status · ●
 ```
 
-Medien übernimmt den Platz von Voice, die untere Leiste am Handy behält also fünf Einträge. Die Hash-Routen `#/medien` und `#/pc` sowie die Sprachbefehle in `commands/parse.ts` bleiben bestehen, damit Lesezeichen und „öffne PC“ weiter funktionieren. PC wird in den Einstellungen unter „Geräte“ eingebettet. Das globale `VoiceSheet` in `App.tsx` entfällt samt `onVoice`; `navigation.spec.ts` wird angepasst, die Composer-Tests bleiben unverändert.
+Medien übernimmt den Platz von Voice, die untere Leiste am Handy behält also fünf Einträge. Die Hash-Routen `#/medien` und `#/pc` sowie die Befehle in `commands/parse.ts` bleiben bestehen, damit Lesezeichen und „öffne PC“ weiter funktionieren. PC wird in den Einstellungen unter „Geräte“ eingebettet. 
+**Aufräumen des globalen Voice-Zugangs (auf Desktop und Handy):**
+
+| Stelle | Änderung |
+|---|---|
+| `app/App.tsx` | `VoiceSheet`-Import und -Rendering sowie `voiceOpen` entfernen |
+| `app/Dock.tsx` | Eintrag und Prop `onVoice` entfernen, veraltete Kommentare korrigieren |
+| `shared/TabIcon.tsx` | Icon `voice` entfernen, sofern es dann ungenutzt ist |
+| `features/voice/VoiceSheet.tsx` | Das Sheet gibt es nur noch in der Session: Prop `sessionId` und Kommentare auf diesen Stand bringen |
+| `e2e/specs/navigation.spec.ts` | Test „das Voice-Sheet öffnet und schließt sich“ entfernen; dazu prüfen, dass das Dock keinen Voice-Eintrag mehr hat |
+| Session-Specs | Öffnen und Schließen des Sheets in der Session absichern, damit diese Abdeckung nicht mit dem globalen Test verschwindet |
+| `docs/testing-e2e.md` | Zeile zur Navigation auf den neuen Stand bringen |
+
+Bleiben unverändert: Voice-Taste im Composer, Voice-Sheet in der Session samt `voice-local.spec.ts` und dem Sprachblock in `workspace.spec.ts`, die Befehle der Kommandozeile (`✦`). Historische ADRs, Messläufe und der Abschnitt „Herkunft“ in `docs/design-system.md` werden nicht umgeschrieben.
 
 ### 3.2 Werkzeugfläche am Desktop (T34.2)
 
@@ -154,13 +174,13 @@ Fläche und Farbton-Leiste funktionieren mit Maus, Touch (Pointer Events) und Pf
 
 Änderungen an `DiscoveredSession` brauchen ein ADR (Fortschreibung von ADR-0040).
 
-**Kreative Vorschläge fürs Design** (alle mit vorhandenen Tokens, Leitstand-Charakter bleibt):
+**Design: Variante A ist entschieden (Jan, 07.11.2026).** Geprüfte Vorschläge, alle mit vorhandenen Tokens und Leitstand-Charakter:
 
 | Variante | Idee | Einschätzung |
 |---|---|---|
-| **A: Signal-Deck** (Empfehlung) | Kopf mit vier Kennzahl-Kacheln, die zugleich Filter sind; gleich hohe Karten im Raster, links eine Signalkante je Zustand, aktive Sessions pulsieren dezent. | Löst „unsymmetrisch“ direkt, passt zu Status-Glow, am Handy einspaltig |
-| B: Zeitachse | Vertikale Spur nach Heute/Gestern/Woche, Karten hängen als Knoten daran. | Schön für „was lief zuletzt“, aber Projekte treten zurück |
-| C: Radar | Live-Sessions als Punkte im Radar, darunter die Liste. | Maximaler Blickfang, wenig Nutzen und Risiko für K2 und Barrierefreiheit |
+| **A: Signal-Deck** (gewählt) | Kopf mit vier Kennzahl-Kacheln, die zugleich Filter sind; gleich hohe Karten im Raster, links eine Signalkante je Zustand, aktive Sessions pulsieren dezent. | Löst „unsymmetrisch“ direkt, passt zu Status-Glow, am Handy einspaltig |
+| B: Zeitachse | Vertikale Spur nach Heute/Gestern/Woche, Karten hängen als Knoten daran. | Verworfen: schön für „was lief zuletzt“, aber Projekte treten zurück |
+| C: Radar | Live-Sessions als Punkte im Radar, darunter die Liste. | Verworfen: maximaler Blickfang, wenig Nutzen und Risiko für K2 und Barrierefreiheit |
 
 ```text
 ┌──────────┬──────────┬──────────┬──────────┐   Variante A
@@ -178,7 +198,7 @@ Fläche und Farbton-Leiste funktionieren mit Maus, Touch (Pointer Events) und Pf
 └────────────────────┘ └────────────────────┘
 ```
 
-Status steht als Signalkante und kurzes Etikett, nie nur als Farbe. ID, Fork und Harness wandern ins `⋯`-Menü mit „ID kopieren“. Alle Aktionen liegen in derselben Zeile. Die Bewegung folgt `prefers-reduced-motion`. T34.9 startet mit einem klickbaren Mock zur Auswahl durch Jan; Variante A ist der Standard, falls keine andere gewählt wird.
+Status steht als Signalkante und kurzes Etikett, nie nur als Farbe. ID, Fork und Harness wandern ins `⋯`-Menü mit „ID kopieren“. Alle Aktionen liegen in derselben Zeile. Die Bewegung folgt `prefers-reduced-motion`.
 
 ### 3.8 Eigene Fenster (T34.10–T34.12)
 
@@ -208,7 +228,7 @@ Der Spike läuft in Chromium auf Hyprland (Jans System) und in Firefox. Sein Erg
 
 Ein Branch je Aufgabe. Reihenfolge: T34.1 und T34.2 zuerst, weil alle anderen auf der Fläche aufbauen. T34.7–T34.9 und T34.10–T34.12 können danach parallel laufen.
 
-- [ ] **T34.1** Navigation: Voice aus dem Dock und globales `VoiceSheet` raus, Medien mit neuem Icon ins Dock, Kopfzeile bereinigen, PC-Zugang in die Einstellungen. Routen und Sprachbefehle bleiben. `navigation.spec.ts`, `desktop.spec.ts`, `media.spec.ts`.
+- [ ] **T34.1** Navigation: globalen Voice-Zugang nach der Tabelle in §3.1 vollständig entfernen (Code, Tests, Doku), Medien mit neuem Icon ins Dock, Kopfzeile bereinigen, PC-Zugang in die Einstellungen. Routen und Befehle bleiben. `navigation.spec.ts`, `desktop.spec.ts`, `media.spec.ts`, Session-Spec fürs Voice-Sheet.
 - [ ] **T34.2** Werkzeugfläche am Desktop inklusive Vorher-/Nachher-Screenshots; Kacheln bleiben gemountet. Neuer Spec: WebSocket und Entwurf überleben das Öffnen der Einstellungen. Messlatte: K2.
 - [ ] **T34.3** Einstellungen neu: Gruppen, Raster, `SettingsSection`/`SettingRow`/`Switch`; Fleet-, Push-, Gemini- und PC-Inhalte eingegliedert. Spec für Raster (gleiche Spaltenbreite am Desktop, einspaltig am Handy, kein horizontales Scrollen).
 - [ ] **T34.4** `appearance.ts`: Zustand, Validierung, Kontrast, Anwenden vor dem ersten Paint, `storage`-Sync. Unit-Tests inklusive kaputter Werte.
@@ -216,7 +236,7 @@ Ein Branch je Aufgabe. Reihenfolge: T34.1 und T34.2 zuerst, weil alle anderen au
 - [ ] **T34.6** Schrift: Token-Trennung (`--font-ui`), Schriftdateien bündeln und Google-Link entfernen, Codemod (160 Stellen), Auswahl und Größe mit Vorschau. E2E: Diff bleibt bei proportionaler UI-Schrift monospace; Offline-Lauf (K10); 100 % bleibt optisch gleich.
 - [ ] **T34.7** Erkennung Daten: `cwd`, Worktree-Bündelung, Gruppe „Temporär & Automatisch“, Subagenten an der Hauptsession, `live` gemessen. ADR (Fortschreibung ADR-0040), Fixtures anonymisiert. Messlatten: K7, K9, R9.7.
 - [ ] **T34.8** Scanner für Codex und Hermes, in `apps/hub/src/main.ts` registriert, Fixtures aufgezeichnet, anonymisiert und secret-gescannt. Resume nur mit Beleg (ADR-0036). Scan-Zeit mit den echten Mengen gemessen.
-- [ ] **T34.9** Erkennung Design: klickbarer Mock, Wahl durch Jan, Umsetzung mit gleich hohen Karten, Kennzahl-Filtern, Provider-Chips, `⋯`-Menü. `discovery.spec.ts` erweitert.
+- [ ] **T34.9** Erkennung Design nach Variante A: gleich hohe Karten, Kennzahl-Filter, Provider-Chips, `⋯`-Menü. `discovery.spec.ts` erweitert.
 - [ ] **T34.10** Fenster-Grundlage: Spike, ADR (Fensterprotokoll, `noopener`, Recovery), `PopoutShell`, `⧉`-Knopf für Kacheln und Werkzeuge, `detached` in `tiles.ts`, Abzeichen in der Liste, Rückkehr. E2E mit zwei Playwright-Seiten.
 - [ ] **T34.11** Ziehgeste aus der Kachel im vom Spike belegten Umfang, Fallback sichtbar; optional Bildschirmwahl per Window-Management-API.
 - [ ] **T34.12** Robustheit: Heartbeat und Absturzerkennung, Wiederherstellen nach Reload, blockierte Pop-ups melden, Offline-Verhalten. Messlauf K2 mit vier Fenstern (Skill `messlauf`), K1 im eigenen Fenster.
@@ -224,7 +244,7 @@ Ein Branch je Aufgabe. Reihenfolge: T34.1 und T34.2 zuerst, weil alle anderen au
 
 ## 5. Acceptance Criteria
 
-- **AC-P34-1:** Das Dock enthält auf Desktop und Handy Übersicht, Neue Session, Entdeckt, Medien, Einstellungen. Die Kopfzeile enthält weder Medien noch PC. PC ist aus den Einstellungen erreichbar, `#/pc` und `#/medien` funktionieren weiter, die Voice-Taste im Composer ebenfalls.
+- **AC-P34-1:** Das Dock enthält auf Desktop und Handy Übersicht, Neue Session, Entdeckt, Medien, Einstellungen. Die Kopfzeile enthält weder Medien noch PC. PC ist aus den Einstellungen erreichbar, `#/pc` und `#/medien` funktionieren weiter. Außerhalb einer Session gibt es keinen Voice-Zugang und keinen Code oder Test mehr dafür; Voice-Taste und Voice-Sheet in der Session funktionieren unverändert.
 - **AC-P34-2:** Am Desktop nutzen Einstellungen, Entdeckt, Medien, PC und Status die volle Detailbreite. Beim Öffnen und Schließen baut keine Kachel ihre WebSocket-Verbindung neu auf, und ein angefangener Entwurf bleibt erhalten.
 - **AC-P34-3:** Die Einstellungen zeigen die Gruppen aus §3.3 in zwei gleich breiten Spalten (ab 1280 px) und einspaltig am Handy; alle Bedienelemente einer Spalte fluchten; bestehende Funktionen (Passkey, Token, Push, Flotte, Gemini) sind weiter erreichbar.
 - **AC-P34-4:** Der Farbwähler ändert die Akzentfarbe live per Fläche, Farbton und Hex/RGB/HSV. Abbrechen oder Esc stellt exakt den alten Wert wieder her; Übernehmen übersteht einen Reload; Dunkel und Hell behalten eigene Werte; Text auf der Akzentfläche erreicht mindestens 4,5:1; Status-Farben bleiben unverändert.
@@ -248,7 +268,7 @@ Ein Branch je Aufgabe. Reihenfolge: T34.1 und T34.2 zuerst, weil alle anderen au
 6. **Verwaiste Fenster-Einträge nach Absturz.** Die Session bliebe dauerhaft als „eigenes Fenster“ markiert und wäre unerreichbar. *Mitigation:* Heartbeat-Timeout gibt frei; `detached` ist nur ein Hinweis und wird beim Start gegen echte `hello`-Antworten abgeglichen (K7).
 7. **Die Erkennung versteckt etwas Wichtiges oder wird langsam.** Der Rauschfilter könnte echte Arbeit in `/tmp` verschlucken, 1 670+ Transkripte plus Codex und Hermes kosten Zeit. *Mitigation:* einklappen statt filtern, Zähler und Suche bleiben, Scan-Zeit in T34.8 gemessen, Cache nach mtime und Größe wie bei Claude.
 8. **Falsches Fortsetzen bei neuen Scannern.** Ein geratenes Resume-Argument könnte fremde Sessions verändern oder doppelte Schreiber erzeugen. *Mitigation:* nur belegte Resume-Wege, sonst „nur beobachtet“; `blockedByLive` bleibt.
-9. **Konflikte mit laufenden Branches.** P29 („mobiler Zugang“) und andere fassen ebenfalls die PWA an. *Mitigation:* kleine MRs je Aufgabe, jeweils frisch von `main`; der Codemod direkt vor dem Merge neu erzeugt statt rebased.
+9. **Konflikte mit laufenden Branches.** Andere offene Branches fassen ebenfalls die PWA an; P29 ist dann zwar abgeschlossen, sein „mobiler Zugang“ ändert aber die Ausgangslage. *Mitigation:* vor dem Start Ist-Aufnahme und Pfade gegen den Stand nach P29 prüfen; kleine MRs je Aufgabe, jeweils frisch von `main`; der Codemod direkt vor dem Merge neu erzeugt statt rebased.
 
 ## 7. Definition of Done
 
