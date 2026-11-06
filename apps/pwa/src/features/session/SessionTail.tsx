@@ -388,9 +388,16 @@ export function SessionTail({
       const dock = dockRef.current;
       if (!tail || !dock) return;
       // EPIC-P18: in a tile the list ends at the tile's bottom, not the window's.
+      // BUG-0097: Dokument-Koordinaten statt viewport-relative — sonst friert
+      // ein einmal gescrollter Zustand die Höhe ein. Und unter html-zoom
+      // (ui-scale) messen die Rects visuelle Pixel: die Höhe wird deshalb
+      // durch --ui-zoom geteilt, sonst läuft der Chat unter den Dock und
+      // schiebt die Seite über das Viewport.
       const frame = tail.closest<HTMLElement>("[data-tile]");
-      const bottom = frame ? frame.getBoundingClientRect().bottom : window.innerHeight;
-      const available = bottom - tail.getBoundingClientRect().top - dock.getBoundingClientRect().height - 8;
+      const scrollY = window.scrollY;
+      const tailTop = tail.getBoundingClientRect().top + scrollY;
+      const bottom = frame ? frame.getBoundingClientRect().bottom + scrollY : window.innerHeight + scrollY;
+      const available = bottom - tailTop - dock.getBoundingClientRect().height - 8;
       setTailMaxHeight(Math.max(48, Math.floor(available))); // BUG-0053: no floor above what is free — the list must not slide under the dock
     };
     measure();
@@ -853,7 +860,7 @@ export function SessionTail({
           if (el.scrollHeight - el.clientHeight - el.scrollTop < 48) stickRef.current = true;
           else if (Date.now() - userInputAt.current < 800) stickRef.current = false;
         }}
-        style={`overflow-y: auto; max-height: ${tailMaxHeight !== null ? `${tailMaxHeight}px` : "60vh"}`}
+        style={`overflow-y: auto; max-height: ${tailMaxHeight !== null ? `calc(${tailMaxHeight}px / var(--ui-zoom, 1))` : "60vh"}`}
       >
         {activeTab === "bericht" ? (
           <ReportPane
