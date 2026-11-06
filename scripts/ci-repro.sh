@@ -31,6 +31,8 @@ tar -cf - -C /src --exclude=./node_modules --exclude=./apps/pwa/dist \
   --exclude=./test-results --exclude=./playwright-report \
   --exclude=./ci-artifacts --exclude=./data . | tar -xf - -C /work --no-same-owner
 cd /work
+# CI-Bedingungen wie in der Pipeline (PLAYWRIGHT: 1 Worker, junit, forbidOnly)
+export CI=1
 node --version && npm --version
 apt-get update -qq && apt-get install -y -qq tmux git ffmpeg poppler-utils \
   tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep > /dev/null
