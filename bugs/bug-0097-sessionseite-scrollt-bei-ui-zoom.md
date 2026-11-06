@@ -1,11 +1,11 @@
 ---
 id: BUG-0097
 slug: sessionseite-scrollt-bei-ui-zoom
-status: open
+status: done
 severity: S2
 area: pwa
 instance: live (Nutzerbericht 06.11.2026)
-commit: "ea692893"
+commit: "3d751071"
 epic: ""
 created: 2026-11-06
 reporter: "Nutzer"
