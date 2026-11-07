@@ -53,3 +53,38 @@ export function groupDiscovery(items: readonly DiscoveredSession[]): ProjectGrou
       return { project: g.project, sessions: top, subagents, total: g.all.length, newestAt: g.newestAt, temporary: g.temporary };
     });
 }
+
+/**
+ * EPIC-P34 T34.9: der eine Zustand einer Karte — er bestimmt Signalkante, Etikett und Kennzahl-Filter.
+ * Reihenfolge: ein unbekanntes Format und eine Hub-Session gehen vor „läuft woanders“; eine Session, die der Hub
+ * nicht fortsetzen kann (kein Beleg, ADR-0036), ist „nur beobachtet“.
+ */
+export type DiscoveryState = "live" | "hub" | "resumable" | "observed" | "unknown";
+
+export function discoveryState(item: Pick<DiscoveredSession, "status" | "hubSessionId" | "live" | "unsupportedResume">): DiscoveryState {
+  if (item.status === "unsupported-format") return "unknown";
+  if (item.hubSessionId) return "hub";
+  if (item.live) return "live";
+  return item.unsupportedResume ? "observed" : "resumable";
+}
+
+export function stateCounts(items: readonly DiscoveredSession[]): Record<DiscoveryState, number> {
+  const counts: Record<DiscoveryState, number> = { live: 0, hub: 0, resumable: 0, observed: 0, unknown: 0 };
+  for (const item of items) counts[discoveryState(item)]++;
+  return counts;
+}
+
+export function adapterCounts(items: readonly DiscoveredSession[]): { adapter: string; count: number }[] {
+  const map = new Map<string, number>();
+  for (const item of items) map.set(item.adapter, (map.get(item.adapter) ?? 0) + 1);
+  return [...map].map(([adapter, count]) => ({ adapter, count })).sort((a, b) => b.count - a.count || a.adapter.localeCompare(b.adapter));
+}
+
+export interface DiscoveryFilter {
+  state: DiscoveryState | null;
+  adapters: ReadonlySet<string>;
+}
+
+export function filterDiscovery(items: readonly DiscoveredSession[], filter: DiscoveryFilter): DiscoveredSession[] {
+  return items.filter((i) => (filter.state === null || discoveryState(i) === filter.state) && (filter.adapters.size === 0 || filter.adapters.has(i.adapter)));
+}

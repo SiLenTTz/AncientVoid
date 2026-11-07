@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DiscoveredSession } from "../../../src/shared/api.ts";
-import { groupDiscovery, TEMPORARY_GROUP } from "../../../src/features/discovery/groups.ts";
+import { adapterCounts, discoveryState, filterDiscovery, groupDiscovery, stateCounts, TEMPORARY_GROUP } from "../../../src/features/discovery/groups.ts";
 
 function item(partial: Partial<DiscoveredSession> & Pick<DiscoveredSession, "observedAt" | "project">): DiscoveredSession {
   return {
@@ -62,5 +62,32 @@ describe("groupDiscovery", () => {
     expect(group!.subagents.main1!.map((s) => s.nativeSessionId)).toEqual(["agent-1"]);
     // Der Zähler der Gruppe zählt alles Gefundene, auch die versteckten Subagenten.
     expect(group!.total).toBe(3);
+  });
+});
+
+describe("Kennzahlen und Filter (EPIC-P34 T34.9)", () => {
+  const base = { observedAt: "2026-11-07T10:00:00.000Z", project: "/r/App" };
+  const items = [
+    item({ ...base, nativeSessionId: "a", adapter: "claude", live: true }),
+    item({ ...base, nativeSessionId: "b", adapter: "claude" }),
+    item({ ...base, nativeSessionId: "c", adapter: "codex", unsupportedResume: true }),
+    item({ ...base, nativeSessionId: "d", adapter: "claude", hubSessionId: "hub-1", live: true }),
+    item({ ...base, nativeSessionId: "e", adapter: "pi", status: "unsupported-format", unsupportedResume: true }),
+  ];
+
+  it("jede Session hat genau einen Zustand; unbekanntes Format und Hub gehen vor live", () => {
+    expect(items.map(discoveryState)).toEqual(["live", "resumable", "observed", "hub", "unknown"]);
+  });
+
+  it("zählt je Zustand und je Provider (größter zuerst)", () => {
+    expect(stateCounts(items)).toEqual({ live: 1, resumable: 1, observed: 1, hub: 1, unknown: 1 });
+    expect(adapterCounts(items)).toEqual([{ adapter: "claude", count: 3 }, { adapter: "codex", count: 1 }, { adapter: "pi", count: 1 }]);
+  });
+
+  it("filtert nach Zustand und nach Providern; ohne Auswahl bleibt alles", () => {
+    expect(filterDiscovery(items, { state: null, adapters: new Set() })).toHaveLength(5);
+    expect(filterDiscovery(items, { state: "live", adapters: new Set() }).map((i) => i.nativeSessionId)).toEqual(["a"]);
+    expect(filterDiscovery(items, { state: null, adapters: new Set(["codex", "pi"]) }).map((i) => i.nativeSessionId)).toEqual(["c", "e"]);
+    expect(filterDiscovery(items, { state: "resumable", adapters: new Set(["codex"]) })).toEqual([]);
   });
 });

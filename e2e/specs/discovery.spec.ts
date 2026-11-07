@@ -84,7 +84,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await expect(project.locator("> summary")).toContainText("3 Sessionen");
     await expect(project.locator(".discovered-row").filter({ hasText: "Aufgabe wt-1" })).toContainText("Worktree feat-abc");
     // Der Subagent steht unter wt-1 statt als gleichrangige Karte.
-    await expect(project.locator(".discovery-thread").filter({ hasText: "Aufgabe wt-1" }).locator(".discovery-subagents summary")).toHaveText("1 Subagent");
+    await expect(project.locator(".discovery-thread").filter({ hasText: "Aufgabe wt-1" }).locator(".discovery-subagents > summary")).toHaveText("1 Subagent");
     // Rauschen: eigene Gruppe am Ende, eingeklappt, Zähler sichtbar.
     const noise = tiles.last();
     await expect(noise.locator("> summary")).toContainText("Temporär & Automatisch");
@@ -119,6 +119,85 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await expect(codex).toContainText("Nur beobachtet");
     await expect(codex.getByRole("button", { name: /Fortsetzen/ })).toHaveCount(0);
     await expect(rows.filter({ hasText: "Hermes Aufgabe E2E" })).toContainText("hermes");
+  });
+
+  /** Je ein Fund pro Zustand: läuft woanders (frisch), fortsetzbar (alt), nur beobachtet (Codex), im Hub. */
+  async function seedStates(hub: TestHub) {
+    const cwdLine = (id: string, text: string) => `{"type":"user","sessionId":"${id}","cwd":${JSON.stringify(hub.alpha)},"message":{"role":"user","content":"${text}"}}\n`;
+    const dir = join(hub.root, "claude", "projects", "-roh-zustaende");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "frisch.jsonl"), cwdLine("frisch", "Gerade offen"));
+    writeFileSync(join(dir, "alt.jsonl"), cwdLine("alt", "Lange Aufgabe mit einem recht langen Titel, der über mehrere Zeilen laufen muss und deshalb gekürzt wird, damit die Karte gleich hoch bleibt"));
+    const old = new Date(Date.now() - 3 * 3600_000);
+    utimesSync(join(dir, "alt.jsonl"), old, old);
+    const codexDir = join(hub.root, "codex-sessions", "2026", "11", "06");
+    mkdirSync(codexDir, { recursive: true });
+    const id = "01a00000-0000-7000-8000-00000000d3d3";
+    const rollout = join(codexDir, `rollout-2026-11-06T09-00-00-${id}.jsonl`);
+    writeFileSync(rollout, `{"type":"session_meta","payload":{"id":"${id}","cwd":${JSON.stringify(hub.alpha)},"source":"vscode"}}\n`);
+    utimesSync(rollout, old, old);
+    await hub.createSession({ adapter: "dummy" });
+  }
+
+  test("EPIC-P34 T34.9: Kennzahl-Kacheln zählen und filtern, Provider-Chips filtern, Zustand steht als Text", async ({ app, hub }) => {
+    await seedStates(hub);
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    const kpi = (name: string) => app.locator(".discovery-kpi").filter({ hasText: name });
+    await expect(kpi("Läuft gerade").locator(".discovery-kpi-count")).toHaveText("1");
+    await expect(kpi("Fortsetzbar").locator(".discovery-kpi-count")).toHaveText("1");
+    await expect(kpi("Nur beobachtet").locator(".discovery-kpi-count")).toHaveText("1");
+    await expect(kpi("Im Hub").locator(".discovery-kpi-count")).toHaveText("1");
+    await expandAllGroups(app);
+    const rows = app.locator(".discovered-row");
+    await expect(rows).toHaveCount(4);
+    await expect(rows.filter({ hasText: "Gerade offen" }).locator(".discovery-state")).toHaveText("läuft gerade woanders");
+
+    await kpi("Nur beobachtet").click();
+    await expect(kpi("Nur beobachtet")).toHaveAttribute("aria-pressed", "true");
+    await expect(rows).toHaveCount(1);
+    await expect(app.getByText("1 von 4 gefunden")).toBeVisible();
+    await kpi("Nur beobachtet").click();
+    await expect(rows).toHaveCount(4);
+
+    await app.getByRole("button", { name: /^claude/ }).click();
+    await expect(rows).toHaveCount(2);
+    await app.getByRole("button", { name: /^claude/ }).click();
+    await kpi("Im Hub").click();
+    await kpi("Läuft gerade").click();
+    await expect(app.getByText("keine Session passt zum Filter")).toHaveCount(0);
+    await expect(rows).toHaveCount(1);
+  });
+
+  test("EPIC-P34 T34.9: alle Karten einer Gruppe sind gleich hoch, nichts läuft seitwärts über @desktop", async ({ app, hub }) => {
+    await seedStates(hub);
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    await expandAllGroups(app);
+    const cards = app.locator(".discovery-card");
+    await expect(cards).toHaveCount(4);
+    const geometry = await cards.evaluateAll((els) => els.map((el) => ({ h: Math.round(el.getBoundingClientRect().height), top: Math.round(el.getBoundingClientRect().top), right: el.getBoundingClientRect().right })));
+    expect(new Set(geometry.map((g) => g.h)).size, JSON.stringify(geometry)).toBe(1);
+    expect(await app.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    // Am Desktop stehen mindestens zwei Karten nebeneinander (Raster), am Handy eine Spalte über die ganze Breite.
+    const columns = new Set(geometry.map((g) => g.top)).size < geometry.length;
+    expect(columns).toBe((app.viewportSize()?.width ?? 0) >= 900);
+  });
+
+  test("EPIC-P34 T34.9: das ⋯-Menü zeigt ID und Harness und kopiert die ID @desktop", async ({ app, hub }) => {
+    await app.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await seedStates(hub);
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    await expandAllGroups(app);
+    const card = app.locator(".discovered-row").filter({ hasText: "Lange Aufgabe" });
+    await expect(card.locator(".card-menu-body")).toBeHidden();
+    await card.getByLabel("Weitere Angaben und Aktionen").click();
+    await expect(card.locator(".card-menu-body")).toContainText("alt");
+    await expect(card.locator(".card-menu-body")).toContainText("cli");
+    await card.getByRole("button", { name: "ID kopieren" }).click();
+    await expect(card.getByRole("button", { name: "Kopiert" })).toBeVisible();
+    expect(await app.evaluate(() => navigator.clipboard.readText())).toBe("alt");
+    // Aktionen und Menü liegen in derselben Zeile.
+    const [action, menu] = await Promise.all([card.getByRole("button", { name: "Fortsetzen", exact: true }).boundingBox(), card.getByLabel("Weitere Angaben und Aktionen").boundingBox()]);
+    expect(Math.abs((action!.y + action!.height / 2) - (menu!.y + menu!.height / 2))).toBeLessThan(6);
   });
 
   test("AC-P5-1: 20 Sessions, je zwei pro Projekt, sind binnen 10 s vollständig sichtbar", async ({ app, hub }, info) => {
