@@ -41,6 +41,18 @@ describe("policy table (T7.4)", () => {
     expect(policyFor("sessions.stop", "agent:mcp")).toBe("approve");
   });
 
+  it("EPIC-P29 T29.6: Workspace-Retry ist menschlich (ADR-0051 §3) — Preview sehen Mensch und Fleet-Handy", () => {
+    expect(policyFor("workspace.retry", "pixel-9")).toBe("allow");
+    for (const label of ["agent:mcp", "bridge:s1", "display:nyx", "companion:pc", "fleet:home"]) {
+      expect(policyFor("workspace.retry", label)).toBe("deny");
+    }
+    expect(policyFor("workspace.preview", "pixel-9")).toBe("allow");
+    expect(policyFor("workspace.preview", "fleet:home")).toBe("allow");
+    for (const label of ["agent:mcp", "bridge:s1", "display:nyx", "companion:pc"]) {
+      expect(policyFor("workspace.preview", label)).toBe("deny");
+    }
+  });
+
   it("EPIC-P11: the companion does its one job and nothing else; only a person makes it type", () => {
     for (const op of POLICY_OPERATIONS) expect(POLICY[op].companion, op).toBe(op === "desktop.companion" ? "allow" : "deny");
     expect(policyFor("desktop.act", "pixel-9")).toBe("allow");

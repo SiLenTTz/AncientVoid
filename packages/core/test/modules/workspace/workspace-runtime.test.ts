@@ -172,7 +172,36 @@ describe("EPIC-P29 T29.3: WorkspaceRuntime (ADR-0051 §3)", () => {
       { payload: { kind: "workspace.ready", manifestHash: "h1" } },
       { payload: { kind: "session.started" } },
     ];
-    expect(foldWorkspaceState(events)).toEqual({ phase: "ready", manifestHash: "h1" });
+    expect(foldWorkspaceState(events)).toEqual({ phase: "ready", manifestHash: "h1", failure: null, serviceFailures: {} });
     expect(foldWorkspaceState([{ payload: { kind: "session.created" } }])).toBeNull();
+  });
+
+  it("T29.6-Faltung: Fehler der Phase und je Service wandern in die Projektion und werden geheilt", async () => {
+    const failure = { step: "install", kind: "exit", exitCode: 1, logBlobRef: "sha256:abc" };
+    const failed = foldWorkspaceState([
+      { payload: { kind: "workspace.preparing", manifestHash: "h1" } },
+      { payload: { kind: "workspace.failed", manifestHash: "h1", failure } },
+    ]);
+    expect(failed).toMatchObject({ phase: "failed", failure });
+    // Retry: preparing/ready räumen den Fehler weg — kein altbackener Alarm.
+    const healed = foldWorkspaceState([
+      { payload: { kind: "workspace.failed", manifestHash: "h1", failure } },
+      { payload: { kind: "workspace.preparing", manifestHash: "h1" } },
+      { payload: { kind: "workspace.ready", manifestHash: "h1" } },
+    ]);
+    expect(healed).toMatchObject({ phase: "ready", failure: null });
+    // Service-Fehler bleiben pro Service stehen, ready/stopped nimmt sie zurück.
+    const svc = foldWorkspaceState([
+      { payload: { kind: "workspace.ready", manifestHash: "h1" } },
+      { payload: { kind: "workspace.service_failed", serviceId: "web", failure: { step: "web", kind: "port" } } },
+      { payload: { kind: "workspace.service_ready", serviceId: "api" } },
+    ]);
+    expect(svc?.serviceFailures).toEqual({ web: { step: "web", kind: "port" } });
+    const svcHealed = foldWorkspaceState([
+      { payload: { kind: "workspace.ready", manifestHash: "h1" } },
+      { payload: { kind: "workspace.service_failed", serviceId: "web", failure: { step: "web", kind: "port" } } },
+      { payload: { kind: "workspace.service_ready", serviceId: "web" } },
+    ]);
+    expect(svcHealed?.serviceFailures).toEqual({});
   });
 });

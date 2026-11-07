@@ -105,6 +105,35 @@ describe("EPIC-P29 T29.4: ServiceSupervisor (ADR-0051 §4)", () => {
     }
   });
 
+  it("T29.6: Logs liefern den gekappten Schwanz pro Service; unbekannte IDs sind null", async () => {
+    const f = await rig("logs");
+    try {
+      const { emit } = collector();
+      const manifest: WorkspaceManifest = {
+        schemaVersion: 1,
+        services: [{ id: "noisy", argv: httpService("logsvc"), readiness: { path: "/" } }],
+      };
+      const result = await f.supervisor.startAll({ sessionId: "s1", worktreePath: f.dir, manifest, manifestHash: "h", emit });
+      expect(result.ok).toBe(true);
+      const logs = await f.supervisor.logs("s1", "noisy");
+      expect(logs).not.toBeNull();
+      expect(logs!.serviceId).toBe("noisy");
+      expect(logs!.updatedAt).toBe(f.supervisor.list("s1")[0]!.updated_at);
+      // dienst schreibt nach dem Start nichts mehr in die Logdatei — der
+      // Schwanz bleibt leer, aber die Form steht (K5: nie die ganze Datei)
+      expect(logs!.tail.length).toBeLessThanOrEqual(8_000);
+      expect(typeof logs!.truncated).toBe("boolean");
+      expect(await f.supervisor.logs("s1", "gibtsnicht")).toBeNull();
+      expect(await f.supervisor.logs("andere-session", "noisy")).toBeNull();
+      // gezielter Service-Zugriff (Proxy-Ziel): genau der eine, mit Port und Zustand
+      expect(f.supervisor.service("s1", "noisy")).toMatchObject({ serviceId: "noisy", state: "ready" });
+      expect(f.supervisor.service("s1", "noisy")!.port).toBeGreaterThan(0);
+      expect(f.supervisor.service("s1", "gibtsnicht")).toBeNull();
+    } finally {
+      await f.cleanup();
+    }
+  });
+
   it("belegter Fixport: Fehler statt Start — der fremde Dienst bleibt unangetastet", async () => {
     const f = await rig("fixed");
     const blocker = createServer();

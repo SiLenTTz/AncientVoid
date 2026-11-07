@@ -5,11 +5,19 @@ import {
   WORKSPACE_FAILURE_KINDS,
   WORKSPACE_OWNERSHIP_ENV,
   WORKSPACE_PHASES,
+  WORKSPACE_PREVIEW_MAX_PENDING_TICKETS,
+  WORKSPACE_PREVIEW_PROXY_TIMEOUT_MS,
+  WORKSPACE_PREVIEW_TICKET_TTL_MS,
+  WORKSPACE_PREVIEW_MAX_BYTES,
   WORKSPACE_PROXY_PATH,
+  WORKSPACE_LOGS_TAIL_CHARS,
   WORKSPACE_SERVICE_STATES,
   WORKSPACE_TEARDOWN_PHASES,
   WorkspaceFailure,
+  WorkspacePreviewTicket,
+  WorkspaceServiceLogs,
   WorkspaceSetupApproval,
+  workspacePreviewTicketPath,
   workspaceRetryPath,
   workspaceServiceLogsPath,
   workspaceStatusPath,
@@ -56,7 +64,22 @@ describe("EPIC-P29 T29.1: Workspace-Laufzeitvertrag (ADR-0051)", () => {
     expect(workspaceStatusPath("s1")).toBe("/api/sessions/s1/workspace");
     expect(workspaceRetryPath("s1")).toBe("/api/sessions/s1/workspace/retry");
     expect(workspaceServiceLogsPath("s1", "web")).toBe("/api/sessions/s1/workspace/services/web/logs");
+    expect(workspacePreviewTicketPath("s1", "web")).toBe("/api/sessions/s1/workspace/services/web/preview-ticket");
     expect(WORKSPACE_PROXY_PATH).toBe("/api/sessions/:id/workspace/services/:serviceId/proxy");
+  });
+
+  it("T29.6: Preview-Ticket ist kurzlebig, begrenzt und nackter JSON-Text — Logs gekappt (K5)", () => {
+    expect(WORKSPACE_PREVIEW_TICKET_TTL_MS).toBeLessThanOrEqual(5 * 60_000);
+    expect(WORKSPACE_PREVIEW_MAX_PENDING_TICKETS).toBeLessThanOrEqual(128);
+    expect(WORKSPACE_PREVIEW_PROXY_TIMEOUT_MS).toBeLessThanOrEqual(30_000);
+    expect(WORKSPACE_PREVIEW_MAX_BYTES).toBeLessThanOrEqual(64 * 1024 * 1024);
+    expect(WORKSPACE_LOGS_TAIL_CHARS).toBeLessThanOrEqual(16_000);
+    // Ticket-Payload: nichts außer dem Ticket selbst und dem Ablauf — keine
+    // Ziel-URL, kein Feld, über das ein Client den Proxy diverted.
+    expect(WorkspacePreviewTicket.safeParse({ ticket: "t".repeat(43), expiresAt: Date.now() + 1000 }).success).toBe(true);
+    expect(WorkspacePreviewTicket.safeParse({ ticket: "t", expiresAt: 1, target: "http://127.0.0.1:9/" }).success).toBe(false);
+    expect(WorkspaceServiceLogs.safeParse({ serviceId: "web", tail: "zeile\n", truncated: false, updatedAt: "2026-11-07T10:00:00Z" }).success).toBe(true);
+    expect(WorkspaceServiceLogs.safeParse({ serviceId: "web", tail: "x".repeat(WORKSPACE_LOGS_TAIL_CHARS + 1), truncated: true, updatedAt: "2026-11-07T10:00:00Z" }).success).toBe(false);
   });
 
   it("Ownership-Umgebungsmarker ist benannt (Prozess-Eigentum, nicht Portnummer)", () => {

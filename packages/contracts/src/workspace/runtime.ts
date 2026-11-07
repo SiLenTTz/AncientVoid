@@ -119,3 +119,31 @@ export const workspaceServiceLogsPath = (sessionId: string, serviceId: string): 
  * kein freier URL-Parameter. Bis zur Abnahme bleibt der Zugang blockiert.
  */
 export const WORKSPACE_PROXY_PATH = "/api/sessions/:id/workspace/services/:serviceId/proxy";
+
+/** T29.6: kurzlebiges, gebundenes Ticket für Preview-Anfragen ohne Bearer (iframe). */
+export const workspacePreviewTicketPath = (sessionId: string, serviceId: string): string =>
+  `/api/sessions/${sessionId}/workspace/services/${serviceId}/preview-ticket`;
+
+/** TTL der Preview-Tickets: kurz genug, dass einlecktes Ticket schnell wertlos ist. */
+export const WORKSPACE_PREVIEW_TICKET_TTL_MS = 5 * 60_000;
+/** Obergrenze offener Tickets pro Hub (DoS-Bremse, STT-Muster). */
+export const WORKSPACE_PREVIEW_MAX_PENDING_TICKETS = 64;
+/** Frist einer einzelnen Proxy-Weiterleitung. */
+export const WORKSPACE_PREVIEW_PROXY_TIMEOUT_MS = 15_000;
+/** Obergrenze einer Proxy-Antwort (16 MiB, wie Fleet-Forward). */
+export const WORKSPACE_PREVIEW_MAX_BYTES = 16 * 1024 * 1024;
+/** K5: Logs-Antwort der Route — Schwanz in Zeichen, nie die ganze Datei. */
+export const WORKSPACE_LOGS_TAIL_CHARS = 8_000;
+
+/** Das Ticket für eine Preview-Session: nur der Wert und sein Ablauf (ms seit Epoch). */
+export const WorkspacePreviewTicket = z.object({ ticket: z.string().min(20).max(128), expiresAt: z.number().int().positive() }).strict();
+export type WorkspacePreviewTicket = z.infer<typeof WorkspacePreviewTicket>;
+
+/** Logs eines Services als gekappter Schwanz (T29.6, K5). */
+export const WorkspaceServiceLogs = z.object({
+  serviceId: z.string().min(1).max(80),
+  tail: z.string().max(WORKSPACE_LOGS_TAIL_CHARS),
+  truncated: z.boolean(),
+  updatedAt: z.string(),
+}).strict();
+export type WorkspaceServiceLogs = z.infer<typeof WorkspaceServiceLogs>;

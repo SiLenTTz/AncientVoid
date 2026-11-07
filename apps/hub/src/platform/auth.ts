@@ -14,6 +14,21 @@ export interface AuthOptions {
 
 export const TAILSCALE_LOGIN_HEADER = "tailscale-user-login";
 
+/**
+ * EPIC-P29 T29.6: die Preview-Route des Workspace-Proxys. Ein iframe kann
+ * keinen Bearer-Header setzen — diese eine URL authentifiziert sich mit dem
+ * kurzlebigen, gebundenen Ticket aus der preview-ticket-Route (STT-Muster).
+ * Freistellung NUR mit `ticket=`-Parameter und nur für GET/HEAD; ohne
+ * gültiges Ticket antwortet die Route selbst mit 401.
+ */
+const WORKSPACE_PROXY_TICKET_PATH = /^\/api\/sessions\/[0-9a-fA-F-]{36}\/workspace\/services\/[a-z][a-z0-9-]{0,39}\/proxy(\/[^?]*)?$/;
+
+export function isWorkspaceProxyTicketRequest(method: string, url: string): boolean {
+  if (method !== "GET" && method !== "HEAD") return false;
+  const [path, query = ""] = url.split("?");
+  return (method === "GET" || method === "HEAD") && WORKSPACE_PROXY_TICKET_PATH.test(path ?? "") && query.split("&").some((part) => part === "ticket" || part === "ticket=" || part.startsWith("ticket="));
+}
+
 export function extractToken(req: FastifyRequest): string | null {
   const header = req.headers.authorization;
   if (header?.startsWith("Bearer ")) return header.slice("Bearer ".length).trim();
@@ -64,6 +79,9 @@ export function authHook(opts: AuthOptions) {
     // STT WebSocket upgrades authenticate with a short-lived, single-use
     // ticket instead of putting the reusable device token in the URL.
     if (req.method === "GET" && path === "/api/stt/stream") return;
+    // EPIC-P29 T29.6: preview iframe — ticket statt Bearer (s. oben). Die
+    // Route prüft das Ticket selbst; jeder andere /api/-Pfad bleibt dicht.
+    if (isWorkspaceProxyTicketRequest(req.method, req.url)) return;
     // ADR-0017: hello tells other hubs who this is; no data, no token needed.
     // Pairing is guarded by its one-time code, not a device token.
     if (path === "/api/health" || path === "/api/ready" || path === "/api/fleet/hello" || path === "/api/fleet/pair") return;

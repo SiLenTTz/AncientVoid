@@ -123,6 +123,9 @@ export class SessionManager {
   private readonly workspaceServices: ServiceSupervisor;
   private readonly manifestApprovals: ManifestApprovalStore;
   private readonly approvals: ApprovalService | undefined;
+  /** EPIC-P29: die Manifest-Freigabe hängt an der immer vorhandenen Queue —
+   * unabhängig von `requireStepApprovals` (das steuert nur steer.prompt). */
+  private workspaceApprovals: ApprovalService | undefined;
   private readonly recoveryBudgetMs: number;
   private readonly mirrorDataDir: string;
   private readonly defaultPermissionMode: string | null;
@@ -408,9 +411,11 @@ export class SessionManager {
    */
   async archive(sessionId: string, archived: boolean, actor?: string): Promise<SessionRecord> {
     await this.interruption.settled(sessionId);
+    let servicesAlreadyStopped = false;
     if (archived && this.get(sessionId)?.status === "interrupted") {
       this.openStopped(sessionId);
       await this.stop(sessionId, actor);
+      servicesAlreadyStopped = true;
     }
     const record = this.setArchived(sessionId, archived);
     if (archived) {
@@ -418,7 +423,7 @@ export class SessionManager {
       // Teardown ausführen (idempotent — genau einmal), DANACH die
       // P14-Prüfungen. Teardown-Fehler ⇒ Worktree bleibt mit Grund.
       const live = this.live.get(sessionId);
-      if (live) {
+      if (live && !servicesAlreadyStopped) {
         await this.workspaceServices
           .stopAll(sessionId, (kind, payload) => this.emitSystem(live, kind, payload))
           .catch((err) => this.logger.warn("service stop on archive failed", { sessionId, err: err instanceof Error ? err.message : String(err) }));
@@ -719,13 +724,14 @@ export class SessionManager {
       await this.failWorkspace(session, resolved.manifestHash, baseSha, { step: "manifest", kind: "unknown", detail: gate.reason, logBlobRef: null });
       return false;
     }
-    if (!this.approvals) {
+    const approvalQueue = this.workspaceApprovals ?? this.approvals;
+    if (!approvalQueue) {
       await this.failWorkspace(session, resolved.manifestHash, baseSha, { step: "approval", kind: "unknown", detail: "Workspace-Manifest braucht eine menschliche Freigabe — es ist keine Freigabe-Warteschlange konfiguriert.", logBlobRef: null });
       return false;
     }
     const { manifest } = gate.approval;
     const summary = `Workspace-Manifest ${gate.approval.manifestHash.slice(0, 12)}… für ${session.record.project.split("/").pop()}: ${manifest.setup?.length ?? 0} Setup-Schritte, ${manifest.include?.length ?? 0} Dateien, ${manifest.services?.length ?? 0} Services`;
-    const request = this.approvals.create(session.record.id, "write", "workspace.setup", summary, false, 24 * 60 * 60 * 1000);
+    const request = approvalQueue.create(session.record.id, "write", "workspace.setup", summary, false, 24 * 60 * 60 * 1000);
     this.operationStore.create(request.id, session.record.id, "workspace.setup", { approval: gate.approval, startSpec }, session.record.inputRevision, actor ?? null);
     session.workspace = { phase: "approval_required", manifestHash: gate.approval.manifestHash, baseSha, pendingApprovalId: request.id };
     await this.setStatus(session, "waiting_approval");
@@ -862,11 +868,27 @@ export class SessionManager {
         state: row.state as WorkspaceServiceStatus["state"],
         port: row.port,
         pid: row.pid,
+        ...(folded.serviceFailures[row.service_id] ? { failure: folded.serviceFailures[row.service_id] } : {}),
         updatedAt: row.updated_at,
       })),
+      ...(folded.failure ? { failure: folded.failure } : {}),
       operationId: this.workspaces.listJournal(sessionId).at(-1)?.id ?? null,
       updatedAt: services.at(-1)?.updated_at ?? "",
     };
+  }
+
+  /**
+   * EPIC-P29 T29.6: ein registrierter Service (Proxy-Ziel) oder null.
+   */
+  workspaceService(sessionId: string, serviceId: string): { serviceId: string; state: string; port: number | null; pid: number | null } | null {
+    return this.workspaceServices.service(sessionId, serviceId);
+  }
+
+  /**
+   * EPIC-P29 T29.6: gekappter Log-Schwanz eines Service (K5) — null ohne Zeile.
+   */
+  async workspaceServiceLogs(sessionId: string, serviceId: string): Promise<{ serviceId: string; tail: string; truncated: boolean; updatedAt: string } | null> {
+    return this.workspaceServices.logs(sessionId, serviceId);
   }
 
   /**
@@ -1609,6 +1631,15 @@ export class SessionManager {
     );
   }
 
+  /**
+   * EPIC-P29 / ADR-0051 §2: die Manifest-Freigabe läuft über die echte,
+   * immer vorhandene Queue — der Server verdrahtet sie unabhängig von
+   * `requireStepApprovals` (gleiche Figur wie enableToolPermissions).
+   */
+  enableWorkspaceApprovals(approvals: ApprovalService): void {
+    this.workspaceApprovals = approvals;
+  }
+
   /** T7.4: see ApprovalFlow.requestAgentAction. */
   requestAgentAction(kind: AgentActionKind, sessionId: string | null, payload: Record<string, unknown>, actor: string): Promise<Ack & { approvalId?: string }> {
     return this.flow.requestAgentAction(kind, sessionId, payload, actor);
@@ -2278,7 +2309,7 @@ export class SessionManager {
     // EPIC-P29: Warten auf eine Manifest-Freigabe ist echtes Warten — kein
     // Tool-Rest, der "geheilt" werden dürfte. Abgelehnt/abgelaufen wird
     // laut fehlerhaft; entschieden (approved) gehört der Operation.
-    const wsApproval = this.approvals?.list().find((a) => a.sessionId === session.record.id && a.action === "workspace.setup");
+    const wsApproval = (this.workspaceApprovals ?? this.approvals)?.list().find((a) => a.sessionId === session.record.id && a.action === "workspace.setup");
     if (wsApproval) {
       if (wsApproval.status === "pending") return;
       if (wsApproval.status === "rejected" || wsApproval.status === "timed_out") {

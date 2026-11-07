@@ -4,7 +4,7 @@ import { readFile, mkdir } from "node:fs/promises";
 import { createServer, type Server } from "node:net";
 import { join } from "node:path";
 import type { WorkspaceFailure, WorkspaceManifest, WorkspaceService, WorkspaceServiceState } from "@ancientvoid/contracts";
-import { WORKSPACE_OWNERSHIP_ENV, WORKSPACE_SERVICE_PORT_ENV } from "@ancientvoid/contracts";
+import { WORKSPACE_LOGS_TAIL_CHARS, WORKSPACE_OWNERSHIP_ENV, WORKSPACE_SERVICE_PORT_ENV } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/db.ts";
 import type { EventStore } from "../../platform/eventstore.ts";
 import type { WorkspaceEmit } from "./workspace-runtime.ts";
@@ -139,6 +139,26 @@ export class ServiceSupervisor {
       .all(sessionId) as unknown as ServiceRow[];
   }
 
+  /** Genau ein registrierter Service (T29.6: Proxy-Ziel — Port aus der Zeile, nie aus einem Request). */
+  service(sessionId: string, serviceId: string): { serviceId: string; state: string; port: number | null; pid: number | null } | null {
+    const row = this.list(sessionId).find((r) => r.service_id === serviceId);
+    if (!row) return null;
+    return { serviceId: row.service_id, state: row.state, port: row.port, pid: row.pid };
+  }
+
+  /** T29.6: gekappter Log-Schwanz eines Service (K5) — null, wenn es die Zeile nicht gibt. */
+  async logs(sessionId: string, serviceId: string): Promise<{ serviceId: string; tail: string; truncated: boolean; updatedAt: string } | null> {
+    const row = this.list(sessionId).find((r) => r.service_id === serviceId);
+    if (!row) return null;
+    const raw = await this.readTail(sessionId, serviceId, WORKSPACE_LOGS_TAIL_CHARS * 4);
+    return {
+      serviceId,
+      tail: raw.length > WORKSPACE_LOGS_TAIL_CHARS ? raw.slice(-WORKSPACE_LOGS_TAIL_CHARS) : raw,
+      truncated: raw.length > WORKSPACE_LOGS_TAIL_CHARS,
+      updatedAt: row.updated_at,
+    };
+  }
+
   private async startOne(ctx: ServiceStartContext, service: WorkspaceService): Promise<ServiceOutcome> {
     const argv = service.argv;
     const fixed = service.port !== undefined && service.port !== "auto" ? service.port : null;
@@ -220,12 +240,17 @@ export class ServiceSupervisor {
   private async logTail(sessionId: string, serviceId?: string): Promise<string> {
     const rows = serviceId ? this.list(sessionId).filter((r) => r.service_id === serviceId) : this.list(sessionId);
     if (rows.length === 0) return "";
-    const file = await this.logFileFor(sessionId, rows[0]!.service_id);
+    return this.readTail(sessionId, rows[0]!.service_id, LOG_TAIL_BYTES);
+  }
+
+  /** Liest die letzten `bytes` Bytes der Logdatei eines Service (utf8, gekappt). */
+  private async readTail(sessionId: string, serviceId: string, bytes: number): Promise<string> {
+    const file = await this.logFileFor(sessionId, serviceId);
     const fd = await open(file, "r").catch(() => null);
     if (!fd) return "";
     try {
       const size = (await fd.stat()).size;
-      const start = Math.max(0, size - LOG_TAIL_BYTES);
+      const start = Math.max(0, size - bytes);
       const buffer = Buffer.alloc(size - start);
       await fd.read(buffer, 0, buffer.length, start);
       return buffer.toString("utf8");

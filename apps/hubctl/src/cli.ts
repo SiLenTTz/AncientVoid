@@ -62,6 +62,10 @@ Usage:
   hubctl workers prune                    verwaigte ancientvoid-Worker entfernen (lokal)
   hubctl worktrees [--db <hub.db>]        Session-Worktrees mit Zustand und Größe (lokal, EPIC-P14)
   hubctl worktrees prune [--apply] [--db <hub.db>]   saubere Worktrees beendeter/archivierter Sessions; Trockenlauf ohne --apply
+  hubctl workspace <sessionId>                      Workspace-Phase/Services (EPIC-P29)
+  hubctl workspace logs <sessionId> <serviceId>     Service-Logs (gekürzter Schwanz)
+  hubctl workspace retry <sessionId>                menschlicher Retry nach fehlgeschlagenem Setup
+  hubctl workspace preview <sessionId> <serviceId>  Preview-URL mit 5-Minuten-Ticket
   hubctl backup create --config <hub.config.json> --out <file> --key-file <file>
   hubctl backup restore --archive <file> --data-dir <empty-dir> --config-out <file> --key-file <file>
   hubctl backup prune --dir <archive-dir> --keep <count> [--apply]   preview unless --apply
@@ -87,6 +91,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   }
   return (await res.json()) as T;
 }
+export { api };
 
 interface SessionRow {
   id: string;
@@ -311,6 +316,11 @@ async function main(): Promise<void> {
     case "worktrees": {
       const { runWorktrees } = await import("./worktrees.ts");
       await runWorktrees(args);
+      break;
+    }
+    case "workspace": {
+      const { runWorkspace } = await import("./workspace.ts");
+      await runWorkspace(args);
       break;
     }
     case "workers": {

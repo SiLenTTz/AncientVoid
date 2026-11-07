@@ -166,6 +166,8 @@ describe("EPIC-P29 T29.3: SessionManager-Integration", () => {
       expect(f.manager.get(record.id)!.status).toBe("error");
       const failed = (await f.manager.tail(record.id, 0)).find((e) => (e.payload as { kind?: string }).kind === "workspace.failed");
       expect(failed?.payload).toMatchObject({ failure: { step: "include" } }); // .env fehlt im Quellprojekt
+      // T29.6: die Projektion trägt denselben Fehler (PWA/hubctl zeigen ihn)
+      expect(await f.manager.workspaceStatus(record.id)).toMatchObject({ phase: "failed", failure: { step: "include" } });
 
       // Retry ohne Umgebungsänderung scheitert wieder — kein Selbstbetrug
       const early = await f.manager.retryWorkspaceSetup(record.id, "jan");
@@ -176,6 +178,9 @@ describe("EPIC-P29 T29.3: SessionManager-Integration", () => {
       const retry = await f.manager.retryWorkspaceSetup(record.id, "jan");
       expect(retry.ok).toBe(true);
       expect((await kinds(f.manager, record.id)).at(-1)).toBe("workspace.ready");
+      const healed = await f.manager.workspaceStatus(record.id);
+      expect(healed?.phase).toBe("ready");
+      expect(healed?.failure).toBeUndefined(); // geheilter Workspace zeigt den alten Fehler nicht mehr
       expect(f.manager.get(record.id)!.status).toBe("stopped"); // steuerbar, kein Fake-working
       // Guard offen: ein neuer Start desselben (jetzt genehmigten) Projekts
       // läuft ohne erneute Freigabe durch und startet den Agenten wirklich.
@@ -184,6 +189,47 @@ describe("EPIC-P29 T29.3: SessionManager-Integration", () => {
       expect(f.manager.get(second.id)!.status).toBe("working");
       expect(await kinds(f.manager, second.id)).toContain("workspace.ready");
     } finally {
+      await f.cleanup();
+    }
+  });
+
+  it("T29.6: Manifest-Freigabe läuft über die immer verdrahtete Queue — ohne approvals-Konstruktorparameter", async () => {
+    // Der echte Hub übergibt `approvals` nur bei requireStepApprovals im
+    // Konstruktor (steer.prompt-Gate) und verdrahtet die Manifest-Freigabe
+    // separat — sonst könnte auf einem Standard-Hub kein Manifest starten.
+    const f = await fixture("queue", JSON.stringify({ schemaVersion: 1, setup: [{ id: "noop", argv: ["true"], timeoutMs: 5_000 }] }));
+    let bareEvents = "";
+    try {
+      bareEvents = await mkdtemp(join(tmpdir(), "av-p29q-"));
+      const registry = new AdapterRegistry();
+      registry.register("p29-sm", () => ({
+        id: "p29-sm",
+        version: "0.0.1",
+        capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: false, interrupt: false }) }),
+        async start(_spec, ctx) {
+          return { sessionId: ctx.sessionId };
+        },
+        async steer() {
+          return { ok: true };
+        },
+        async status() {
+          return { state: "healthy" as const };
+        },
+        async stop() {},
+      }));
+      const bare = new SessionManager(new HubDatabase(":memory:"), new EventStore(bareEvents), registry, new ProcessRunner(), undefined, f.worktrees, undefined);
+      const other = new ApprovalService(new HubDatabase(":memory:"));
+      bare.enableWorkspaceApprovals(other);
+      const record = await bare.create({ adapter: "p29-sm", project: f.repo, prompt: "los" });
+      expect(bare.get(record.id)!.status).toBe("waiting_approval");
+      const request = other.list("pending").find((a) => a.sessionId === record.id && a.action === "workspace.setup");
+      expect(request).toBeDefined();
+      other.decide(request!.id, "approve", "test-token", "jan");
+      expect((await bare.applyApproved(request!.id, "jan")).ok).toBe(true);
+      expect(bare.get(record.id)!.status).toBe("working");
+      await bare.shutdown();
+    } finally {
+      await rm(bareEvents, { recursive: true, force: true }).catch(() => undefined);
       await f.cleanup();
     }
   });

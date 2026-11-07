@@ -13,6 +13,7 @@ import type { SlashCommand } from "../composer/slash.ts";
 import { SessionConfigure } from "./SessionConfigure.tsx";
 import { QueueList } from "./QueueList.tsx";
 import { PcOpenNotice } from "./PcOpenNotice.tsx";
+import { WorkspaceRuntimePane } from "../workspace/runtime/WorkspaceRuntimePane.tsx";
 import type { Page } from "../../app/Dock.tsx";
 import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
@@ -45,7 +46,7 @@ const BACKGROUND_FLUSH_MS = 50;
 /** Rows a tile without focus keeps in the DOM. */
 const BACKGROUND_ROWS = 150;
 /** Tabs that read rather than talk: the composer folds away in a desktop tile. */
-const READING_TABS: ReadonlySet<string> = new Set(["diff", "bericht", "suche", "code"]);
+const READING_TABS: ReadonlySet<string> = new Set(["diff", "bericht", "suche", "code", "umgebung"]);
 
 /** EPIC-P18: set when this view is one tile of the desktop workspace —
  * several SessionTails then share one page. */
@@ -174,7 +175,7 @@ export function SessionTail({
   // filter split above — it replaces the event list with a summary pane
   // instead of filtering it, so it needs its own bit of state rather than
   // being derived from `filter` like Chat/Verlauf are.
-  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "suche" | "code">(() =>
+  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "suche" | "code" | "umgebung">(() =>
     initialCode ? "code" : loadFilter() === "lesen" ? "chat" : "verlauf",
   );
 
@@ -365,6 +366,7 @@ export function SessionTail({
   const showDiffTab = () => setActiveTab("diff");
   const showSucheTab = () => setActiveTab("suche");
   const showCodeTab = () => setActiveTab("code");
+  const showUmgebungTab = () => setActiveTab("umgebung");
 
   // Follow new events only where they are shown — in Bericht/Diff/Suche/
   // Code a running session used to scroll the search field away (T7.6).
@@ -449,6 +451,16 @@ export function SessionTail({
   }, [events]);
   const isLoop = session.adapter.startsWith("loop:");
   const loopView = useMemo(() => (isLoop ? deriveLoopView(events) : null), [isLoop, events]);
+  // EPIC-P29 T29.6: Seq des letzten workspace.*-Events — die Umgebungsansicht
+  // refresht daran (kein eigener Timer neben dem 3-s-Session-Poll).
+  const workspaceSeq = useMemo(() => {
+    let seq = 0;
+    for (const e of events) {
+      const kind = (e.payload as { kind?: unknown }).kind;
+      if (typeof kind === "string" && kind.startsWith("workspace.")) seq = e.seq;
+    }
+    return seq;
+  }, [events]);
   // T21.3: measured turns of the same adapter/model — fetched when a turn starts, never guessed client-side.
   const [estimate, setEstimate] = useState<RunEstimate | null>(null);
   useEffect(() => {
@@ -670,6 +682,7 @@ export function SessionTail({
     { id: "diff", label: "Diff", icon: "diff", show: showDiffTab },
     { id: "suche", label: "Suche", icon: "suche", show: showSucheTab },
     { id: "code", label: "Code", icon: "code", show: showCodeTab },
+    { id: "umgebung", label: "Umgebung", icon: "umgebung", show: showUmgebungTab },
   ];
   const tabButtons = TABS.map((t) => (
     <button key={t.id} type="button" class={activeTab === t.id ? "active" : ""} title={t.label} aria-current={activeTab === t.id ? "page" : undefined} onClick={t.show}>
@@ -878,6 +891,8 @@ export function SessionTail({
           <SearchPane project={session.project} />
         ) : activeTab === "code" ? (
           <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} {...(initialCode ? { initial: initialCode } : {})} onOpenDiff={showDiffTab} />
+        ) : activeTab === "umgebung" ? (
+          <WorkspaceRuntimePane sessionId={session.id} refreshSeq={workspaceSeq} />
         ) : visible.length === 0 ? (
           <div class="empty">
             {status === "working" || status === "starting"

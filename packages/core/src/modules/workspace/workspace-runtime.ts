@@ -200,26 +200,50 @@ export class WorkspaceRuntime {
   }
 }
 
-/** K7-Faltung: die letzte workspace.*-Event-Art bestimmt die Phase. */
+/** K7-Faltung: die letzte workspace.*-Event-Art bestimmt die Phase; Fehler
+ * (Workspace + Services) wandern aus den Events in die Projektion, damit
+ * Status/Anzeige Schritt, Exitcode und Logreferenz zeigen (AC-P29-3). */
 export interface FoldedWorkspaceState {
   phase: "approval_required" | "preparing" | "ready" | "failed" | "needs_attention";
   manifestHash: string | null;
+  failure: WorkspaceFailure | null;
+  serviceFailures: Record<string, WorkspaceFailure>;
 }
 
+const asFailure = (raw: unknown): WorkspaceFailure | null =>
+  typeof raw === "object" && raw !== null && typeof (raw as { step?: unknown }).step === "string" ? (raw as WorkspaceFailure) : null;
+
 export function foldWorkspaceState(events: readonly { payload?: unknown }[]): FoldedWorkspaceState | null {
-  let last: FoldedWorkspaceState | null = null;
-  let lastHash: string | null = null;
+  let seen = false;
+  let phase: FoldedWorkspaceState["phase"] | null = null;
+  let manifestHash: string | null = null;
+  let failure: WorkspaceFailure | null = null;
+  const serviceFailures: Record<string, WorkspaceFailure> = {};
   for (const event of events) {
-    const payload = event.payload as { kind?: unknown; manifestHash?: unknown } | undefined;
+    const payload = event.payload as { kind?: unknown; manifestHash?: unknown; failure?: unknown; serviceId?: unknown } | undefined;
     const kind = payload?.kind;
     if (typeof kind !== "string" || !kind.startsWith("workspace.")) continue;
-    const phase = phaseOfKind(kind);
-    if (!phase) continue;
-    const hash = payload?.manifestHash;
-    last = { phase, manifestHash: typeof hash === "string" ? hash : lastHash };
-    lastHash = last.manifestHash;
+    const nextPhase = phaseOfKind(kind);
+    if (!nextPhase) {
+      // Servicezustand: Fehler pro Service merken, ready/stopped räumt ihn
+      // weg — aber nur im Kontext eines Workspace (vor preparing gibt es keinen).
+      if (!seen) continue;
+      const serviceId = payload?.serviceId;
+      if (typeof serviceId !== "string") continue;
+      if (kind === "workspace.service_failed") {
+        const serviceFailure = asFailure(payload?.failure);
+        if (serviceFailure) serviceFailures[serviceId] = serviceFailure;
+      } else if (kind === "workspace.service_ready" || kind === "workspace.service_stopped") {
+        delete serviceFailures[serviceId];
+      }
+      continue;
+    }
+    seen = true;
+    phase = nextPhase;
+    if (typeof payload?.manifestHash === "string") manifestHash = payload.manifestHash;
+    failure = nextPhase === "failed" ? asFailure(payload?.failure) : null;
   }
-  return last;
+  return seen && phase !== null ? { phase, manifestHash, failure, serviceFailures } : null;
 }
 
 function phaseOfKind(kind: string): FoldedWorkspaceState["phase"] | null {

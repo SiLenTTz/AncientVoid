@@ -180,6 +180,10 @@ async function main(): Promise<void> {
     opencodeDataDir,
     config.defaultPermissionMode,
   );
+  // EPIC-P29 / ADR-0051 §2: die Manifest-Freigabe braucht die Queue IMMER —
+  // `requireStepApprovals` steuert nur das steer.prompt-Gate, nicht ob ein
+  // Workspace überhaupt startet (gleiche Figur wie enableToolPermissions).
+  sessions.enableWorkspaceApprovals(approvals);
 
   // T7.2 / ADR-0018 §3: providers ask before a tool runs — always through
   // the approval queue, independent of requireStepApprovals.
