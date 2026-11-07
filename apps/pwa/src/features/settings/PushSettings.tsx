@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { hubApi, type PushState } from "../../shared/api.ts";
+import { SettingRow, SettingsSection, Switch } from "./parts.tsx";
 import { pushSupport, readPrefs, subscribeThisDevice, unsubscribeThisDevice, writePrefs } from "../../shared/push.ts";
 
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
@@ -48,18 +49,16 @@ export function PushSettings() {
   };
 
   return (
-    <div class="card form-grid push-settings">
-      <h2 style="margin: 0">Benachrichtigungen</h2>
-      <p class="dim" style="margin: 0">
+    <SettingsSection title="Benachrichtigungen" class="push-settings">
+      <p class="dim settings-intro">
         Push geht über den Dienst des Browser-Herstellers (Google, Apple, Mozilla, Microsoft) und verlässt damit das Tailnet. Übertragen wird nur eine Kennung — kein Prompt, kein Befehl, nichts auf dem Sperrbildschirm außer „Freigabe nötig“, „Fehler“ oder „Zug fertig“. Die Glocke bleibt die vollständige Liste.
       </p>
       {error && <div class="reply-error">{error}</div>}
       {info && <div class="dim">{info}</div>}
       {state && (
-        <label class="row" style="justify-content: flex-start; gap: 8px">
-          <input type="checkbox" checked={state.enabled} onChange={(e) => void run(() => hubApi.setPushEnabled((e.target as HTMLInputElement).checked))} />
-          Push auf diesem Hub erlauben
-        </label>
+        <SettingRow label="Push auf diesem Hub" hint="aus, bis du es einschaltest">
+          <Switch label="Push auf diesem Hub erlauben" checked={state.enabled} onChange={(next) => void run(() => hubApi.setPushEnabled(next))} />
+        </SettingRow>
       )}
       {state?.enabled && (
         <>
@@ -86,21 +85,21 @@ export function PushSettings() {
               )}
             </div>
           )}
-          <label class="row" style="justify-content: flex-start; gap: 8px">
-            <input type="checkbox" checked={prefs.done} onChange={(e) => save({ ...prefs, done: (e.target as HTMLInputElement).checked })} />
-            Auch wenn ein Zug fertig ist (sonst nur Freigaben und Fehler)
-          </label>
-          <label class="row" style="justify-content: flex-start; gap: 8px; flex-wrap: wrap">
-            <input type="checkbox" checked={prefs.quiet !== null} onChange={(e) => save({ ...prefs, quiet: (e.target as HTMLInputElement).checked ? { from: 22 * 60, to: 7 * 60 } : null })} />
-            Ruhezeit
-            {prefs.quiet && (
+          <SettingRow label="Auch bei fertigem Zug" hint="sonst nur Freigaben und Fehler">
+            <Switch label="Auch wenn ein Zug fertig ist (sonst nur Freigaben und Fehler)" checked={prefs.done} onChange={(next) => save({ ...prefs, done: next })} />
+          </SettingRow>
+          <SettingRow label="Ruhezeit">
+            <span class="quiet-control">
+              <Switch label="Ruhezeit" checked={prefs.quiet !== null} onChange={(next) => save({ ...prefs, quiet: next ? { from: 22 * 60, to: 7 * 60 } : null })} />
+              {prefs.quiet && (
               <>
                 <input type="time" aria-label="Ruhe ab" value={hhmm(prefs.quiet.from)} onInput={(e) => save({ ...prefs, quiet: { ...prefs.quiet!, from: minutes((e.target as HTMLInputElement).value) } })} />
                 bis
                 <input type="time" aria-label="Ruhe bis" value={hhmm(prefs.quiet.to)} onInput={(e) => save({ ...prefs, quiet: { ...prefs.quiet!, to: minutes((e.target as HTMLInputElement).value) } })} />
               </>
-            )}
-          </label>
+              )}
+            </span>
+          </SettingRow>
           {mine.length > 0 && support === "ok" && (
             <button class="btn" type="button" onClick={() => void run(() => subscribeThisDevice(state.publicKey!), "Einstellungen übernommen.")}>
               Einstellungen für dieses Gerät übernehmen
@@ -128,6 +127,6 @@ export function PushSettings() {
           )}
         </>
       )}
-    </div>
+    </SettingsSection>
   );
 }

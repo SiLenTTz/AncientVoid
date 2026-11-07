@@ -96,8 +96,11 @@ await cdp.send("WebAuthn.addVirtualAuthenticator", {
   },
 });
 
+// K1_WINDOW=1 (EPIC-P34 T34.12): Messung im eigenen Popout-Fenster der Session statt im Hauptfenster.
+const START_URL = process.env.K1_WINDOW === "1" ? `${ORIGIN}/?window=1#/sessions/${record.id}` : ORIGIN;
 await page.goto(ORIGIN);
 await page.evaluate((t) => localStorage.setItem("ancientvoid.token", t), token);
+await page.goto(START_URL);
 await page.reload();
 await page.waitForTimeout(500);
 // Local UMD bundle (already a real dependency of apps/pwa, same

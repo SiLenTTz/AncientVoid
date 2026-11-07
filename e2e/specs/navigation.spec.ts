@@ -27,7 +27,7 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
 
   test("das helle Design bleibt nach einem Reload", async ({ app }) => {
     await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
-    await app.getByRole("button", { name: "☾ Dunkel" }).click();
+    await app.locator(".segmented").getByRole("button", { name: "Hell" }).click();
     await expect(app.locator("html")).toHaveAttribute("data-theme", "light");
     await app.reload();
     await expect(app.locator("html")).toHaveAttribute("data-theme", "light");
@@ -40,10 +40,24 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
     await expect(app.getByRole("button", { name: "Passkey registrieren" })).toBeVisible();
   });
 
-  test("das Voice-Sheet öffnet und schließt sich", async ({ app }) => {
-    await app.getByRole("button", { name: "Voice" }).click();
-    await expect(app.getByText("Sprachbefehl", { exact: true })).toBeVisible();
-    await app.getByRole("button", { name: "✕" }).click();
-    await expect(app.getByText("Sprachbefehl", { exact: true })).toHaveCount(0);
+  // EPIC-P34 T34.1 (AC-P34-1): Voice außerhalb einer Session entfällt, Medien rückt ins Dock, PC in die Einstellungen.
+  // Das Voice-Sheet in der Session deckt weiter workspace.spec.ts ab („Sprache“).
+  test("AC-P34-1: das Dock führt Medien statt Voice, die Kopfzeile nur Befehl und Status @desktop", async ({ app }) => {
+    await expect(app.locator(".dock .lb")).toHaveText(["Übersicht", "Neue Session", "Entdeckt", "Medien", "Einstellungen"]);
+    await expect(app.locator(".dock").getByRole("button", { name: "Voice" })).toHaveCount(0);
+    const head = app.locator(".topbar").first();
+    await expect(head.getByRole("button", { name: "Medien" })).toHaveCount(0);
+    await expect(head.getByRole("button", { name: "PC", exact: true })).toHaveCount(0);
+    await expect(head.getByRole("button", { name: "Status" })).toBeVisible();
+    await app.locator(".dock").getByRole("button", { name: "Medien" }).click();
+    await expect(app).toHaveURL(/#\/medien$/);
+    await expect(app.locator(".media-caps")).toBeVisible();
+  });
+
+  test("AC-P34-1: die Direktlinks #/pc und #/medien funktionieren weiter", async ({ app, hub }) => {
+    await app.goto(`${hub.origin}/#/pc`);
+    await expect(app.locator(".desktop-setup, .desktop-head").first()).toBeVisible();
+    await app.goto(`${hub.origin}/#/medien`);
+    await expect(app.locator(".media-caps")).toBeVisible();
   });
 });

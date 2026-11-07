@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
 import type { FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi, remoteHost } from "../../shared/api.ts";
+import { targetKey } from "../windows/protocol.ts";
+import { useOpenWindows } from "../windows/windows.ts";
 import { isLastSession, type LastSession } from "../shell/last-session.ts";
 import { compareByActivity, IDLE_STILL_ACTIVE_MS, lastActivityAt, sessionsForOverview } from "./session-list.ts";
 import { metricView, totalCostText } from "../../shared/metrics.ts";
@@ -99,6 +101,7 @@ function matches(s: SessionRecord, q: string): boolean {
 }
 
 export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, onOpenApprovals, onOpenDiscovery, lastSession = null }: DashboardProps) {
+  const windowKeys = new Set(Object.values(useOpenWindows()).map((e) => targetKey(e.target)));
   // Once per visit (not per 3 s poll): bring the remembered session into view.
   const hasSessions = sessions.length > 0;
   useEffect(() => {
@@ -258,6 +261,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
                     hosts={hosts ?? []}
                     onOpen={onOpen}
                     isLast={isLastSession(lastSession, s.id, remoteHost(s.hostId))}
+                    inWindow={windowKeys.has(targetKey({ kind: "session", sessionId: s.id, ...(remoteHost(s.hostId) ? { hostId: remoteHost(s.hostId)! } : {}) }))}
                     onArchive={archive}
                     onPin={pin}
                     onDelete={remove}
@@ -281,10 +285,13 @@ function SessionRow({
   hosts,
   onOpen,
   isLast,
+  inWindow,
   onArchive,
   onPin,
   onDelete,
 }: {
+  /** EPIC-P34 T34.10: die Session läuft in einem eigenen Fenster. */
+  inWindow: boolean;
   session: SessionRecord;
   hosts: FleetHost[];
   onOpen: (s: SessionRecord, opts?: { newTile?: boolean }) => void;
@@ -306,6 +313,11 @@ function SessionRow({
             {statusLabel(session.status)}
           </span>
         </div>
+        {inWindow && (
+          <div class="session-window">
+            <span class="badge-window" title="Ein Klick holt das Fenster nach vorn">⧉ eigenes Fenster</span>
+          </div>
+        )}
         <div class="session-where dim">
           {/* 2026-10-26: host and model are always visible — readable host
            * label (fallback short id), model or the honest "Standardmodell"

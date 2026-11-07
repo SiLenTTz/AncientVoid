@@ -10,7 +10,7 @@ const PATHS = {
   uebersicht: "M4 5h7v7H4zM13 5h7v4h-7zM13 11h7v8h-7zM4 14h7v5H4z",
   neu: "M12 5v14M5 12h14",
   entdeckt: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM15.5 8.5l-2 5-5 2 2-5z",
-  voice: "M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM6 11a6 6 0 0 0 12 0M12 17v4",
+  medien: "M4 6h16v12H4zM10 9.5v5l4.5-2.5z",
   einstellungen: "M4 7h10M18 7h2M4 17h2M10 17h10M16 4v6M8 14v6",
 } as const;
 

@@ -1,0 +1,295 @@
+/* EPIC-P34 T34.9 — Erkennung als Signal-Deck: Kennzahl-Kacheln als Filter, gleich hohe Karten, Signalkante je Zustand.
+ * Zustandsfarben (Etikett steht immer zusätzlich als Text): läuft woanders = warn, fortsetzbar = ok, Hub = Akzent,
+ * nur beobachtet = gedämpft, unbekanntes Format = err. */
+.discovery {
+  --state-live: var(--warn);
+  --state-resumable: var(--ok);
+  --state-hub: var(--accent);
+  --state-observed: var(--fg-faint);
+  --state-unknown: var(--err);
+  container-type: inline-size;
+}
+
+.discovery-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--bg-chip);
+  background: var(--bg-chip);
+  color: inherit;
+  font: inherit;
+}
+
+.discovery-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.discovery-kpi {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--bg-chip);
+  border-left: 3px solid var(--state-observed);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.discovery-kpi.state-live { border-left-color: var(--state-live); }
+.discovery-kpi.state-resumable { border-left-color: var(--state-resumable); }
+.discovery-kpi.state-hub { border-left-color: var(--state-hub); }
+
+.discovery-kpi[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+
+.discovery-kpi:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.discovery-kpi-count {
+  font-family: var(--font-display);
+  font-size: calc(22px * var(--font-scale, 1));
+  line-height: 1.1;
+}
+
+.discovery-kpi-label {
+  font-size: calc(11px * var(--font-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--fg-dim);
+}
+
+.discovery-providers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.discovery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.discovery-thread {
+  display: contents;
+}
+
+/* Subagenten stehen unter ihrer Hauptsession über die ganze Rasterbreite. */
+.discovery-subagents {
+  grid-column: 1 / -1;
+  margin: -4px 0 0 16px;
+  padding-left: 10px;
+  border-left: 2px solid var(--bg-chip);
+}
+
+.discovery-subagents > .discovery-card {
+  margin-top: 8px;
+}
+
+.discovery-card {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 12px 10px 14px;
+  border-left: 3px solid var(--state-observed);
+}
+
+.discovery-card.state-live { border-left-color: var(--state-live); }
+.discovery-card.state-resumable { border-left-color: var(--state-resumable); }
+.discovery-card.state-hub { border-left-color: var(--state-hub); }
+.discovery-card.state-unknown { border-left-color: var(--state-unknown); }
+
+.discovery-card.state-live::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--state-live);
+  animation: ancientvoid-discovery-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes ancientvoid-discovery-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discovery-card.state-live::before {
+    animation: none;
+  }
+}
+
+.discovery-card .session-open {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 4px;
+  cursor: default;
+}
+
+.discovery-card button.session-open {
+  cursor: pointer;
+}
+
+.discovery-head {
+  display: grid;
+  gap: 2px;
+}
+
+/* Titel: höchstens zwei Zeilen, der Platz dafür bleibt auch bei kurzen Titeln. */
+.discovery-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  /* Größe fest benannt: `.dim` setzt eine eigene, und die Höhe hängt an `em`. */
+  font-size: calc(14px * var(--font-scale, 1));
+  line-height: 1.35;
+  height: calc(2 * 1.35em);
+}
+
+.discovery-state {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  font-size: calc(11px * var(--font-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--state-observed);
+}
+
+.discovery-state.state-live { color: var(--state-live); }
+.discovery-state.state-resumable { color: var(--state-resumable); }
+.discovery-state.state-hub { color: var(--state-hub); }
+.discovery-state.state-unknown { color: var(--state-unknown); }
+
+.discovery-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: calc(12px * var(--font-scale, 1));
+  line-height: 1.4;
+  height: calc(2 * 1.4em);
+}
+
+.discovery-meta {
+  display: flex;
+  gap: 4px 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.discovery-meta > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Alle Aktionen liegen in einer Zeile; die Zeile behält ihre Höhe, auch ohne Aktion. */
+.discovery-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+}
+
+/* Ein Hinweis darf die Zeile nicht höher machen: eine Zeile, der volle Text steht im Tooltip. */
+.discovery-hint {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.card-menu {
+  position: relative;
+  margin-left: auto;
+}
+
+.card-menu > summary {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius-sm);
+  color: var(--fg-dim);
+  cursor: pointer;
+  list-style: none;
+}
+
+.card-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.card-menu[open] > summary {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.card-menu-body {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 5;
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+  max-width: min(80vw, 320px);
+  padding: 10px;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: var(--shadow-elev);
+}
+
+.card-menu-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.discovery-id {
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-size: calc(11px * var(--font-scale, 1));
+}
+
+
+@container (max-width: 560px) {
+  .discovery-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Gruppenkopf: Pfeil und Name links, Zähler rechts (die Kopfzeile verteilt sonst drei Teile gleichmäßig). */
+.discovery .project-tile-name {
+  margin-right: auto;
+}

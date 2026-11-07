@@ -9,6 +9,8 @@ import { clip, headAndTail } from "./text.ts";
 export interface ClaudeTranscriptMeta {
   title: string | null;
   preview: string | null;
+  /** EPIC-P34 T34.7: Arbeitsverzeichnis laut Transkript (absolut) — das echte Projekt. */
+  cwd: string | null;
 }
 
 const HEAD_BYTES = 96 * 1024;
@@ -49,16 +51,18 @@ export function extractClaudeMeta(head: Record<string, unknown>[], tail: Record<
   const firstPrompt = head.map(userText).find((t) => t !== null) ?? null;
   const lastPrompt = lastOf(tail, "last-prompt", "lastPrompt") ?? tail.map(userText).filter((t) => t !== null).pop() ?? null;
   const title = lastOf(tail, "ai-title", "aiTitle") ?? lastOf(head, "ai-title", "aiTitle") ?? firstPrompt;
+  const cwd = head.map((e) => e.cwd).find((c): c is string => typeof c === "string" && c.startsWith("/")) ?? null;
   return {
     title: title ? clip(title.split("\n").find((l) => l.trim()) ?? title, TITLE_MAX) : null,
     preview: lastPrompt ? clip(lastPrompt, PREVIEW_MAX) : null,
+    cwd,
   };
 }
 
 export function readClaudeMeta(path: string, stat: { size: number; mtimeMs: number }): ClaudeTranscriptMeta {
   const hit = cache.get(path);
   if (hit && hit.mtimeMs === stat.mtimeMs && hit.size === stat.size) return hit.meta;
-  let meta: ClaudeTranscriptMeta = { title: null, preview: null };
+  let meta: ClaudeTranscriptMeta = { title: null, preview: null, cwd: null };
   try {
     const { head, tail } = headAndTail(path, stat.size, HEAD_BYTES, TAIL_BYTES);
     meta = extractClaudeMeta(head, tail);

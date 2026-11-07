@@ -41,7 +41,11 @@ import {
   cursorDiscoverySource,
   defaultClaudeDir,
   defaultCursorUserDir,
+  codexDiscoverySource,
+  defaultCodexDir,
+  defaultHermesDir,
   defaultMakiDir,
+  hermesDiscoverySource,
   defaultOmpDir,
   defaultOpencodeDataDir,
   defaultPiDir,
@@ -65,11 +69,11 @@ import { createPermissionBridge } from "./modules/approvals/permission-bridge.ts
 const BUILTIN_ADAPTERS: Record<string, AdapterFactory> = {};
 let releaseHubPidLock: (() => Promise<void>) | undefined;
 
-function discoverySources(config: HubConfig): DiscoverySource[] {
+function discoverySources(config: HubConfig, claudeLive: ClaudeLive): DiscoverySource[] {
   const sources: DiscoverySource[] = [];
   const claudeDir = config.discovery.claudeDir ? resolve(config.discovery.claudeDir) : defaultClaudeDir();
   const cursorUserDir = config.discovery.cursorUserDir ? resolve(config.discovery.cursorUserDir) : defaultCursorUserDir();
-  if (config.discovery.claudeDir || existsSync(claudeDir)) sources.push(claudeDiscoverySource(claudeDir, config.projectRoots));
+  if (config.discovery.claudeDir || existsSync(claudeDir)) sources.push(claudeDiscoverySource(claudeDir, config.projectRoots, claudeLive));
   if (config.discovery.cursorUserDir || existsSync(cursorUserDir)) sources.push(cursorDiscoverySource(cursorUserDir));
   const opencodeDataDir = config.discovery.opencodeDataDir ? resolve(config.discovery.opencodeDataDir) : defaultOpencodeDataDir();
   if (config.discovery.opencodeDataDir || existsSync(opencodeDataDir)) sources.push(opencodeDiscoverySource(opencodeDataDir, config.projectRoots));
@@ -80,6 +84,11 @@ function discoverySources(config: HubConfig): DiscoverySource[] {
   if (config.discovery.ompDir || existsSync(ompDir)) sources.push(piFamilyDiscoverySource("omp", ompDir, config.projectRoots));
   const makiDir = config.discovery.makiDir ? resolve(config.discovery.makiDir) : defaultMakiDir();
   if (config.discovery.makiDir || existsSync(makiDir)) sources.push(makiDiscoverySource(makiDir, config.projectRoots));
+  // EPIC-P34 T34.8: Codex und Hermes, ebenfalls nur lesend.
+  const codexDir = config.discovery.codexDir ? resolve(config.discovery.codexDir) : defaultCodexDir();
+  if (config.discovery.codexDir || existsSync(codexDir)) sources.push(codexDiscoverySource(codexDir, config.projectRoots));
+  const hermesDir = config.discovery.hermesDir ? resolve(config.discovery.hermesDir) : defaultHermesDir();
+  if (config.discovery.hermesDir || existsSync(hermesDir)) sources.push(hermesDiscoverySource(hermesDir, config.projectRoots));
   return sources;
 }
 
@@ -89,6 +98,7 @@ async function main(): Promise<void> {
   process.umask(0o077);
   const configPath = resolve(process.env.ANCIENTVOID_CONFIG ?? "hub.config.json");
   const { config } = await loadConfig(configPath);
+  const claudeLive = new ClaudeLive(config.discovery.claudeCommand);
   const dataDir = resolve(config.dataDir);
   mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   chmodSync(dataDir, 0o700);
@@ -304,8 +314,8 @@ async function main(): Promise<void> {
     // above — see HubConfig.webauthn's doc comment for why the shipped
     // rpId/origin defaults only work for local dev.
     webauthn: { store: new WebAuthnStore(db), config: config.webauthn },
-    discoverySources: discoverySources(config),
-    claudeLive: new ClaudeLive(config.discovery.claudeCommand),
+    discoverySources: discoverySources(config, claudeLive),
+    claudeLive,
     hostId: config.hostId ?? toHostId(hostname()),
     hostLabel: config.hostLabel ?? hostname(),
   });

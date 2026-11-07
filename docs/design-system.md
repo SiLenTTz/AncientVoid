@@ -52,8 +52,13 @@ Kontingent-Balken und Primär-Buttons nutzen `--accent`, Session-Status nutzt
 | `--font-mono` | `"JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace` | Fließtext **und** Daten — dieses Projekt war seit P0 monospace-first, T1.6-1 lädt die bisher nur als Fallback-Name genannte Schrift jetzt tatsächlich (`apps/pwa/index.html`) |
 | `--tracking-label` | `0.1em` | Großbuchstaben-Labels (Status-Badges, Reiter) |
 
-Geladen über Google Fonts (`fonts.googleapis.com`/`fonts.gstatic.com`, per
-CSP erlaubt): `Orbitron:wght@500;700;800` + `JetBrains+Mono:wght@400;500`.
+Alle Schriften werden seit EPIC-P34 T34.6 selbst ausgeliefert (`@fontsource/*`, nur
+`latin`, importiert in `styles/index.css`) — kein Fremd-Host, offline über den Service Worker.
+`--font-ui` (Text und Bedienung) und `--font-code` (Code, Diff, Tool-Ausgabe; `--font-mono` ist
+ein Alias darauf) sind getrennt und über Einstellungen → Schrift wählbar; `--font-scale`
+(0,85–1,3) skaliert jede Textgröße (`calc(Npx * var(--font-scale, 1))`). Wahlmöglichkeiten:
+JetBrains Mono (Standard), IBM Plex Mono, Systemschrift für Code; zusätzlich Inter, Atkinson
+Hyperlegible, Systemschrift für die Oberfläche. Orbitron bleibt fest für Marke und Überschriften.
 
 ## Form & Bewegung
 
@@ -71,6 +76,28 @@ sagen, welchen Zustand sie zeigt. Nur `box-shadow`/`opacity`/`transform`
 (compositor-freundlich, kein Layout-Reflow). Jede Animation muss unter
 `prefers-reduced-motion: reduce` vollständig verschwinden (K2-Schutz, siehe
 EPIC-P1.6 AC-P1.6-8/9).
+
+## Akzentfarbe (EPIC-P34 T34.5)
+
+`--accent` ist pro Theme (dunkel/hell) überschreibbar: Einstellungen → Darstellung → Farbwähler (Farbfeld, Reglerstreifen,
+Hex). `appearance.ts` hält die Wahl in `localStorage`, `accentInk()` wählt Schwarz oder Weiß als Schriftfarbe auf dem Akzent
+nach Kontrast, `accentWarnings()` warnt bei zu geringem Kontrast zum Hintergrund, statt die Wahl zu verbieten. Alle
+Akzentflächen leiten Töne per `color-mix()` aus `--accent` ab, kein fester Amber-Hex in neuen Regeln.
+
+## Erkennung (`26-discovery.css`, EPIC-P34 T34.9)
+
+Kopf mit KPI-Kacheln (gefunden / aktiv / übernommen / Rauschen) und Anbieter-Chips, darunter Projektgruppen mit gleich hohen
+Karten (Raster 2/2/1/1 nach Breite). Zustand einer Zeile wird als Text **und** Farbe gezeigt (live, ruht, übernommen,
+nur lesbar), nie nur als Farbe. Temporäre Funde bündelt die Gruppe „Temporär“, Subagents hängen unter ihrer Eltern-Session.
+Kartenhöhen und Schriftgrößen sind fest, damit ein Hinweis die Reihe nicht verschiebt.
+
+## Eigene Fenster (`27-popout.css`, EPIC-P34 T34.10–T34.12)
+
+Die Popout-Hülle (`/?window=1#/…`) zeigt nur Kopfzeile mit Titel, „In die App zurück“ und die Kachel oder Werkzeugfläche,
+ohne Liste und ohne Dock; sie schreibt nie den Arbeitsbereich. Das Hauptfenster markiert ausgelagerte Kacheln mit dem
+Abzeichen „⧉ eigenes Fenster“. Die Leiste „Wiederherstellen“ (RestoreBar) erscheint, wenn ein Fenster fehlt oder nicht mehr
+antwortet (Heartbeat 3 s, Ablauf 10 s) und öffnet je Klick genau eines. Theme und Akzent folgen dem Hauptfenster über das
+`storage`-Ereignis. Blockierte Pop-ups erscheinen als sichtbare Meldung mit Knopf, nie still.
 
 ## Belege (Mockup-Screenshots)
 

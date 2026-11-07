@@ -224,13 +224,13 @@ export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRe
       ) : (
         <div class="approval-summary">{req.summary}</div>
       )}
-      <div class="dim" style="font-size: 11px">
+      <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
         Session {req.sessionId.slice(0, 8)} · {req.action}
       </div>
 
       {pending && req.tool?.questions && (
         <>
-          {error && <div style="color: var(--err); font-size: 12px">{error}</div>}
+          {error && <div style="color: var(--err); font-size: calc(12px * var(--font-scale, 1))">{error}</div>}
           <QuestionForm questions={req.tool.questions} busy={busy} onAnswer={(answers) => void decide("approve", answers)} onReject={() => void decide("reject")} />
         </>
       )}
@@ -244,7 +244,7 @@ export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRe
               onInput={(e) => setReason((e.target as HTMLTextAreaElement).value)}
             />
           )}
-          {error && <div style="color: var(--err); font-size: 12px">{error}</div>}
+          {error && <div style="color: var(--err); font-size: calc(12px * var(--font-scale, 1))">{error}</div>}
           <div class="approval-actions">
             {destructive ? (
               <>
@@ -279,9 +279,9 @@ export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRe
         </>
       )}
 
-      {!pending && req.reason && <div class="dim" style="font-size: 11px; margin-top: 4px">Begründung: {req.reason}</div>}
+      {!pending && req.reason && <div class="dim" style="font-size: calc(11px * var(--font-scale, 1)); margin-top: 4px">Begründung: {req.reason}</div>}
       {!pending && req.decidedByLabel && (
-        <div class="dim" style="font-size: 11px">
+        <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
           entschieden von {req.decidedByLabel} · signiert {req.signature ? "✓" : "—"}
         </div>
       )}

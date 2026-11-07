@@ -15,7 +15,7 @@
 }
 
 .approval-group-heading {
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   color: var(--fg-faint);
@@ -35,7 +35,7 @@
 }
 
 .approval-countdown {
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale, 1));
   color: var(--fg-dim);
 }
 
@@ -61,7 +61,7 @@
 }
 
 .approval-summary {
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
 }
 
 .approval-reason {
@@ -92,7 +92,7 @@
   background: var(--bg-chip);
   border-radius: var(--radius-sm);
   padding: 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   margin: 6px 0;
 }
 .tool-badge {
@@ -129,7 +129,7 @@
   border-radius: var(--radius);
   border-left: 3px solid var(--ok);
   background: var(--bg-elev);
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
 }
 
 .assessment.gate-WARNING {
@@ -160,7 +160,7 @@
 /* T21.4: question form — header chip, hints, progress, summary */
 .question-header {
   display: inline-block;
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale, 1));
   font-weight: 600;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
@@ -171,11 +171,11 @@
   margin-bottom: 4px;
 }
 .question-hint {
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale, 1));
   margin-bottom: 4px;
 }
 .question-progress {
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   color: var(--fg-dim);
 }
 .question.answered .question-text::after {
@@ -185,7 +185,7 @@
 .question-summary {
   margin: 0;
   padding-left: 18px;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
 }
 
 /* T21.2: provider failure with handover */
@@ -205,11 +205,11 @@
 .handover-form label {
   display: grid;
   gap: 4px;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   color: var(--fg-dim);
 }
 .handover-form textarea {
   width: 100%;
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
 }

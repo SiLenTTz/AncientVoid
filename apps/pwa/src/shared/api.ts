@@ -287,6 +287,9 @@ export interface DiscoveredSession {
   title?: string | null;
   preview?: string | null;
   live?: boolean;
+  /** ADR-0052: Worktree-Name (project ist das Hauptprojekt) und Rauschen unter /tmp. */
+  worktree?: string | null;
+  temporary?: boolean;
 }
 
 export interface DiscoveryPage {

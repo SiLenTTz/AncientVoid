@@ -18,6 +18,15 @@ export interface CodeTarget {
 export type ListPage = "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery" | "media" | "pc";
 const PAGE_SLUG: Record<ListPage, string> = { dashboard: "", new: "neu", settings: "einstellungen", approvals: "freigaben", status: "status", discovery: "gefunden", media: "medien", pc: "pc" };
 
+/** EPIC-P34 T34.2: Seiten, die am Desktop die Detailspalte füllen. Übersicht, Neu und Freigaben bleiben in der Liste (K1-Weg). */
+export const TOOL_PAGE_IDS = ["settings", "discovery", "media", "pc", "status"] as const;
+export type ToolPageId = (typeof TOOL_PAGE_IDS)[number];
+const TOOL_PAGES: ReadonlySet<ListPage> = new Set<ListPage>(TOOL_PAGE_IDS);
+
+export function isToolPage(page: ListPage): page is ToolPageId {
+  return TOOL_PAGES.has(page);
+}
+
 export function pageHash(page: ListPage): string {
   return `#/${PAGE_SLUG[page]}`;
 }

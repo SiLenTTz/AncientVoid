@@ -14,7 +14,7 @@ describe("extractClaudeMeta (ADR-0040)", () => {
       [user("Erste Frage")],
       [{ type: "ai-title", aiTitle: "Mobile-hub Session-Abbrüche" }, { type: "last-prompt", lastPrompt: "Mach\n deine   Empfehlung" }],
     );
-    expect(meta).toEqual({ title: "Mobile-hub Session-Abbrüche", preview: "Mach deine Empfehlung" });
+    expect(meta).toEqual({ title: "Mobile-hub Session-Abbrüche", preview: "Mach deine Empfehlung", cwd: null });
   });
 
   it("fällt ohne ai-title auf den ersten echten Prompt zurück und überspringt CLI-Hüllen", () => {
@@ -27,7 +27,12 @@ describe("extractClaudeMeta (ADR-0040)", () => {
 
   it("Tool-Ergebnisse und Subagent-Turns sind keine Nutzereingabe", () => {
     const meta = extractClaudeMeta([user([{ type: "tool_result", content: "x" }]), user("intern", { isSidechain: true })], []);
-    expect(meta).toEqual({ title: null, preview: null });
+    expect(meta).toEqual({ title: null, preview: null, cwd: null });
+  });
+
+  it("nimmt cwd aus der ersten Zeile, die eines trägt", () => {
+    expect(extractClaudeMeta([{ type: "permission-mode" }, user("x", { cwd: "/r/App" })], []).cwd).toBe("/r/App");
+    expect(extractClaudeMeta([user("x", { cwd: "relativ" })], []).cwd).toBeNull();
   });
 
   it("kürzt Titel auf 80 und Vorschau auf 160 Zeichen", () => {
@@ -53,7 +58,7 @@ describe("readClaudeMeta und Scan", () => {
     const filler = line(user("füller ".repeat(200)));
     writeFileSync(file, line(user("Allererste Frage")) + filler.repeat(2500) + line({ type: "ai-title", aiTitle: "Titel am Ende" }) + line({ type: "last-prompt", lastPrompt: "Letztes Wort" }));
     expect(statSync(file).size).toBeGreaterThan(600 * 1024);
-    expect(readClaudeMeta(file, statSync(file))).toEqual({ title: "Titel am Ende", preview: "Letztes Wort" });
+    expect(readClaudeMeta(file, statSync(file))).toEqual({ title: "Titel am Ende", preview: "Letztes Wort", cwd: null });
   });
 
   it("merkt sich das Ergebnis je Dateiversion und liest bei Änderung neu", () => {

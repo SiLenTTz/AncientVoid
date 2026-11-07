@@ -1,0 +1,130 @@
+/* EPIC-P34 T34.10 — eigenes Fenster: nur Kopfzeile und Inhalt, keine Liste, kein Dock. */
+.popout-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--bg);
+}
+
+.popout-shell > .popout-tile,
+.popout-shell > .popout-tool {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.popout-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--bg-chip);
+}
+
+.popout-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--font-scale, 1));
+  letter-spacing: var(--tracking-label);
+}
+
+.popout-tile {
+  border: 0;
+  border-radius: 0;
+  padding-inline: max(12px, calc((100% - 1200px) / 2));
+}
+
+.popout-tool {
+  position: relative;
+  min-height: 0;
+}
+
+/* Abzeichen und Meldung im Hauptfenster */
+.badge-window {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 0 6px;
+  font-size: calc(11px * var(--font-scale, 1));
+}
+
+.popout-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 48px;
+  z-index: 20;
+  max-width: 360px;
+  padding: 10px 12px;
+  border: 1px solid var(--warn);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.tile-popout,
+.tool-pane-popout {
+  background: none;
+  border: 0;
+  color: var(--fg-faint);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tile-popout:hover,
+.tool-pane-popout:hover {
+  color: var(--accent);
+}
+
+/* Ziehgriff der Kachel (T34.11): nur Zeiger; die Tastatur nimmt ⧉. */
+.tile-grip {
+  flex: 1;
+  margin-inline: 8px;
+  color: var(--fg-faint);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-grip:active {
+  cursor: grabbing;
+}
+
+.tile.drag-out {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tile.drag-out .tile-grip {
+  color: var(--accent);
+}
+
+.restore-bar {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: min(92vw, 720px);
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.popout-offline {
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--warn);
+  color: var(--warn);
+  font-size: calc(12px * var(--font-scale, 1));
+}

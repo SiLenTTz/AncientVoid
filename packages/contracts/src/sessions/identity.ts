@@ -40,6 +40,10 @@ export interface DiscoveredSession {
   /** ADR-0040: an external harness wrote to it moments ago — probably still
    * open there. Continuing it must fork, not share the transcript. */
   live?: boolean;
+  /** ADR-0052: Name des Worktrees, in dem die Session lief; `project` ist dann das Hauptprojekt. Fehlt = kein Worktree bekannt. */
+  worktree?: string | null;
+  /** ADR-0052: Pfad unter /tmp oder Fabrik-Kopie — die UI klappt es ein, löscht es nie. */
+  temporary?: boolean;
 }
 
 export interface DiscoverySource {

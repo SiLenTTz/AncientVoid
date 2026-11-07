@@ -33,7 +33,7 @@
   object-fit: cover;
 }
 .fleet-invite code {
-  font-size: 18px;
+  font-size: calc(18px * var(--font-scale, 1));
   letter-spacing: 0.08em;
 }
 .fleet-message.ok {
@@ -58,7 +58,7 @@
 
 /* T7.3: outcome of an approved action */
 .approval-outcome {
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   margin-top: 4px;
 }
 .approval-outcome.failed {

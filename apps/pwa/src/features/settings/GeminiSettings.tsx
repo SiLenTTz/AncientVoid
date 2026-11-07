@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import { SettingRow, SettingsSection } from "./parts.tsx";
 import { hubApi } from "../../shared/api.ts";
 
 /**
@@ -39,12 +40,11 @@ export function GeminiSettings() {
   };
 
   return (
-    <div class="card form-grid gemini-settings">
-      <div class="settings-row">
-        <span>Gemini · Bilder und Scans lesen</span>
+    <SettingsSection title="Dienste" class="gemini-settings">
+      <SettingRow label="Gemini · Bilder und Scans lesen">
         <span class={state?.configured ? "gemini-state ok" : "gemini-state dim"}>{state === null ? "…" : state.configured ? "Schlüssel hinterlegt ✓" : "kein Schlüssel"}</span>
-      </div>
-      <div class="dim" style="font-size: 12px">
+      </SettingRow>
+      <div class="dim settings-intro">
         Nur wenn die lokale Auslese (OCR, PDF, Office) nichts findet, geht die Datei an Google. Kostenloser Schlüssel: aistudio.google.com → „Get API key“.
       </div>
       <label>
@@ -66,6 +66,6 @@ export function GeminiSettings() {
         )}
       </div>
       {message && <div class={message.ok ? "fleet-message ok" : "fleet-message reply-error"}>{message.text}</div>}
-    </div>
+    </SettingsSection>
   );
 }

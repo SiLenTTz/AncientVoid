@@ -4,7 +4,9 @@
 // a header link next to the connection dot — not from the dock. The
 // dock's slots matched the T1.6 mockup exactly; "discovery" (2026-09-27)
 // became a fifth dock item so hub-external sessions are reachable in one
-// tap from every list page. `active` simply never
+// tap from every list page. EPIC-P34 T34.1: "media" took the place of the
+// global voice sheet (voice lives in the session only); "pc" moved into the
+// settings. `active` simply never
 // highlights any dock button while either page is open (same as
 // `active === null` inside a session tail).
 import { TabIcon } from "../shared/TabIcon.tsx";
@@ -19,17 +21,7 @@ import type { ListPage as Page } from "./route.ts";
  * current page" there, same as no browser tab is highlighted while a modal
  * is open.
  */
-export function GlobalDock({
-  active,
-  onNavigate,
-  onVoice,
-}: {
-  active: Page | null;
-  onNavigate: (page: Page) => void;
-  /** T1.6-7 — opens the global voice-command sheet. Not a Page: it's an
-   * overlay on top of whatever's currently showing, not a destination. */
-  onVoice: () => void;
-}) {
+export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavigate: (page: Page) => void }) {
   return (
     <nav class="dock">
       <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} title="Übersicht" onClick={() => onNavigate("dashboard")}>
@@ -41,8 +33,8 @@ export function GlobalDock({
       <button class={`dock-item ${active === "discovery" ? "active" : ""}`} title="Entdeckt" onClick={() => onNavigate("discovery")}>
         <TabIcon name="entdeckt" /><span class="lb">Entdeckt</span>
       </button>
-      <button class="dock-item" title="Voice" onClick={onVoice}>
-        <TabIcon name="voice" /><span class="lb">Voice</span>
+      <button class={`dock-item ${active === "media" ? "active" : ""}`} title="Medien: Videos analysieren" onClick={() => onNavigate("media")}>
+        <TabIcon name="medien" /><span class="lb">Medien</span>
       </button>
       <button class={`dock-item ${active === "settings" ? "active" : ""}`} title="Einstellungen" onClick={() => onNavigate("settings")}>
         <TabIcon name="einstellungen" /><span class="lb">Einstellungen</span>

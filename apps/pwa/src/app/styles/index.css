@@ -1,5 +1,20 @@
 /* Global stylesheet, split by topic (ADR-0020). The order below IS the
  * cascade order of the former styles.css — keep it when adding a file. */
+/* EPIC-P34 T34.6: alle Schriften selbst ausgeliefert (kein Fremd-Host, offline über den Service Worker).
+ * Nur die Gewichte, die die Oberfläche nutzt; geladen wird eine Datei erst, wenn Text sie braucht. */
+@import "@fontsource/orbitron/latin-500.css";
+@import "@fontsource/orbitron/latin-700.css";
+@import "@fontsource/orbitron/latin-800.css";
+@import "@fontsource/jetbrains-mono/latin-400.css";
+@import "@fontsource/jetbrains-mono/latin-500.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+@import "@fontsource/ibm-plex-mono/latin-700.css";
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-700.css";
+@import "@fontsource/atkinson-hyperlegible/latin-400.css";
+@import "@fontsource/atkinson-hyperlegible/latin-700.css";
 @import "./01-base.css";
 @import "./02-layout.css";
 @import "./03-session-cards.css";
@@ -23,3 +38,8 @@
 @import "./21-icon-rail.css";
 @import "./22-loops.css";
 @import "./23-workspace-runtime.css";
+@import "./23-tool-pane.css";
+@import "./24-settings.css";
+@import "./25-color-picker.css";
+@import "./26-discovery.css";
+@import "./27-popout.css";

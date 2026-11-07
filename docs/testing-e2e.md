@@ -137,13 +137,18 @@ Offline-Test (Service Worker), Kamera/QR, Push, zweiter Hub oder zweiter Browser
 | Bereich | Spec | Abgedeckt |
 |---|---|---|
 | Anmeldung | `auth` | Token-Eingabe, falsches Token, Reload, Klartext, Token wechseln |
-| Navigation | `navigation` | Dock, Status-Seite mit Fähigkeiten, Theme bleibt, Einstellungen, Voice-Sheet |
+| Navigation | `navigation` | Dock (Medien statt Voice), Kopfzeile, Direktlinks, Status-Seite mit Fähigkeiten, Theme bleibt, Einstellungen |
+| Werkzeugfläche | `tool-pane` | Detailspalte am Desktop, Kacheln bleiben gemountet (WebSocket-Zähler, Entwurf), Esc, Handy ohne Fläche |
+| Akzentfarbe | `accent-color` | Farbwähler-Modal: live, Abbrechen, Übernehmen, Reload, je Theme, Zurücksetzen, Kontrast-Warnung |
+| Schrift | `appearance-font` | Keine Fremd-Host-Anfragen, 14/16 px bei 100 %, Oberflächenschrift live, Code/Diff bleiben Festbreite, Größen-Stepper mit Grenzen, Reload, Zurücksetzen |
+| Eigene Fenster | `windows` | ⧉ an Kachel und Werkzeug, Ziehgriff über den Fensterrand, schlanke Hülle ohne Dock, Abzeichen in der Liste, Klick holt das Fenster nach vorn, „In die App zurück“, kein Schreiben des Arbeitsbereichs durch das Fenster, Wiederanmeldung nach Neuladen, blockiertes Pop-up gemeldet |
+| Einstellungen | `settings-layout` | acht Gruppen, zwei gleich breite Spalten, fluchtende Bedienelemente, Handy einspaltig, Schalter, Theme |
 | Sessions | `session` | Anlegen per UI, Gruppierung, Verlauf-Filter, Karten, Längenlimit, Bericht, Diff, Suche, Provider-Absturz |
 | Steuern | `steer` | Antwort, Stop, Weiter mit derselben Provider-Session, Doppeltipp, zwei Geräte, abgelehnte Antwort |
 | Handoff | `handoff` | PC → Handy → PC (live und nach Stop), gleiche native ID und gleiches Arbeitsverzeichnis |
 | Unterbrechung | `interrupted-session` | Worker-Ausfall, Abbruchbericht, natives Fortsetzen, Archivieren, fehlende Deklaration, Hub-Neustart, Auto-Resume, unbekannter Status; Mobile + Desktop |
 | Neustart | `recovery` | Kill -9 mit exakter Event-Sequenz, gestoppte Session nach Neustart, Fortsetzen nach Kill zwischen Zügen, Übernahme eines laufenden Zugs unter tmux, geplanter Neustart ohne Stop, Arbeit bleibt erhalten |
-| Gefunden, Inventar | `discovery` | 20 Sessions binnen 10 s (AC-P5-1), Dedup, Subagent, unbekanntes Format, „Mehr laden“, Harness-Inventar |
+| Gefunden, Inventar | `discovery` | 20 Sessions binnen 10 s (AC-P5-1), Dedup, Subagent, unbekanntes Format, „Mehr laden“, Harness-Inventar; EPIC-P34: Worktree-Bündelung, Temporär-Gruppe, Codex/Hermes, Kennzahl- und Provider-Filter, gleich hohe Karten, ⋯-Menü |
 | Links, Attach, Native-Open | `deeplink` | Deep-Link nach Reload, unbekannter Link, Attach nur mit laufendem tmux-Worker, Terminal-Befehl nur zwischen Zügen, Kopieren in die Zwischenablage, Worktree-Pfad, „Ins Projekt übernehmen“ |
 | Layout | `layout` | letzte Nachricht nie unter der Steuerung, Steuerung aus-/einblendbar |
 | Meldungen | `notifications` | Kontingent/Serverfehler als rote Karte oben rechts und im Chat, Weiter nach Fehler, Zug fertig, Glocke, Hub weg/wieder da |

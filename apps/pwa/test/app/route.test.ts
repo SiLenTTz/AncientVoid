@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codeHash, pageHash, parseAppHash, sessionHash } from "../../src/app/route.ts";
+import { codeHash, isToolPage, pageHash, parseAppHash, sessionHash, type ListPage } from "../../src/app/route.ts";
 
 describe("session hash route (AC-P5-5)", () => {
   it("round-trips a session id", () => {
@@ -21,6 +21,20 @@ describe("session hash route (AC-P5-5)", () => {
     const hash = codeHash("s1", "src/a b/ä.ts", 42, "evox2");
     expect(parseAppHash(hash)).toEqual({ view: "tail", hostId: "evox2", sessionId: "s1", code: { path: "src/a b/ä.ts", line: 42 } });
     expect(parseAppHash(codeHash("s1", "README.md", null))).toEqual({ view: "tail", sessionId: "s1", code: { path: "README.md", line: null } });
+  });
+});
+
+describe("Werkzeugseiten (EPIC-P34 T34.2)", () => {
+  it("Einstellungen, Entdeckt, Medien, PC und Status füllen die Detailspalte; Übersicht, Neu und Freigaben bleiben in der Liste", () => {
+    const tools: ListPage[] = ["settings", "discovery", "media", "pc", "status"];
+    const listed: ListPage[] = ["dashboard", "new", "approvals"];
+    for (const page of tools) expect(isToolPage(page), page).toBe(true);
+    for (const page of listed) expect(isToolPage(page), page).toBe(false);
+  });
+
+  it("die Direktlinks #/pc und #/medien bleiben gültig (AC-P34-1)", () => {
+    expect(parseAppHash("#/pc")).toEqual({ view: "list", page: "pc" });
+    expect(parseAppHash("#/medien")).toEqual({ view: "list", page: "media" });
   });
 });
 

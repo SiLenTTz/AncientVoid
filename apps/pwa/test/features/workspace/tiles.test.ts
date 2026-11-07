@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closeTile, cycleLayout, emptyWorkspace, focusTile, openInNewTile, openSession, parseWorkspace, serializeWorkspace, setLayout, swapWith, tileCount, visibleTiles } from "../../../src/features/workspace/tiles.ts";
+import { closeTile, detachTile, isDetached, reattach, cycleLayout, emptyWorkspace, focusTile, openInNewTile, openSession, parseWorkspace, serializeWorkspace, setLayout, swapWith, tileCount, visibleTiles } from "../../../src/features/workspace/tiles.ts";
 
 const a = { sessionId: "a" };
 const b = { sessionId: "b" };
@@ -87,5 +87,33 @@ describe("Kachel-Zustand (T18.2)", () => {
     expect(parseWorkspace(JSON.stringify({ layout: "9x9", slots: [], focus: 7 }))).toEqual(emptyWorkspace());
     ws = parseWorkspace(JSON.stringify({ layout: "2v", slots: [{ sessionId: "a" }, { sessionId: 5 }, null, null], focus: 1 }));
     expect(visibleTiles(ws)).toEqual([a, null]);
+  });
+});
+
+describe("Abgelöste Kacheln (EPIC-P34 T34.10)", () => {
+  it("ablösen leert die Kachel und merkt die Session; zurückholen öffnet sie wieder", () => {
+    let ws = openSession(setLayout(emptyWorkspace(), "2v"), a);
+    ws = openSession(ws, b);
+    ws = detachTile(ws, 0);
+    expect(visibleTiles(ws)).toEqual([null, b]);
+    expect(isDetached(ws, a)).toBe(true);
+    ws = reattach(ws, a);
+    expect(isDetached(ws, a)).toBe(false);
+    expect(visibleTiles(ws).some((t) => t?.sessionId === "a")).toBe(true);
+  });
+
+  it("eine leere Kachel löst nichts ab; doppeltes Ablösen führt die Session nur einmal", () => {
+    const ws = setLayout(emptyWorkspace(), "2v");
+    expect(detachTile(ws, 1)).toBe(ws);
+    const once = detachTile(openSession(ws, a), 0);
+    expect(once.detached).toEqual([a]);
+    expect(reattach(reattach(once, a), a).detached ?? []).toEqual([]);
+  });
+
+  it("detached übersteht Speichern und Laden; alte Stände ohne das Feld bleiben gültig", () => {
+    const ws = detachTile(openSession(emptyWorkspace(), c), 0);
+    expect(parseWorkspace(serializeWorkspace(ws)).detached).toEqual([c]);
+    expect(parseWorkspace(JSON.stringify({ layout: "1", slots: [a, null, null, null], focus: 0 })).detached).toBeUndefined();
+    expect(parseWorkspace(JSON.stringify({ layout: "1", slots: [null, null, null, null], focus: 0, detached: [{ sessionId: 5 }, "x", a] })).detached).toEqual([a]);
   });
 });
