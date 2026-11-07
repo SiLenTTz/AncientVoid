@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { applyTheme, getTheme, type Theme } from "../../app/theme.ts";
 import { applyCtxMotion, ctxMotionOn, getScale, setScale, SCALE_MAX, SCALE_MIN, SCALE_STEP } from "../../app/ui-scale.ts";
+import { AccentSetting } from "./AccentPicker.tsx";
 import { SettingRow, SettingsSection, Segmented, Switch } from "./parts.tsx";
 
 /** Gruppe „Darstellung“: Theme, Zoom, Bewegung. Akzent und Schrift kommen mit T34.5/T34.6 hierher. */
@@ -31,6 +32,7 @@ export function AppearanceSettings() {
           }}
         />
       </SettingRow>
+      <AccentSetting />
       <SettingRow label="Zoom der Oberfläche" hint="Strg + Mausrad, Strg + / − , Strg + 0">
         <span class="scale-control">
           <button class="btn" aria-label="Kleiner" disabled={scale <= SCALE_MIN} onClick={() => setScale(scale - SCALE_STEP)}>
