@@ -221,8 +221,24 @@ export interface SessionDiffFile {
   hunks: DiffHunk[];
 }
 
-export interface SessionDiffResult {
+/** AC-P2-1: ein Commit seit baseRef mit eigenem per-File-Diff — die
+ * Diff-Ansicht gliedert danach in einen Abschnitt pro Commit. */
+export interface DiffCommit {
+  sha: string;
+  shortSha: string;
+  author: string;
+  date: string;
+  subject: string;
   files: SessionDiffFile[];
+}
+
+export interface SessionDiffResult {
+  /** Seit AC-P2-1 nur der uncommittete Rest seit HEAD — der committete
+   * Teil liegt in `commits[]`. */
+  files: SessionDiffFile[];
+  /** AC-P2-1: Commits seit baseRef, ältester zuerst. */
+  commits: DiffCommit[];
+  commitsTruncated?: boolean;
   patch: string;
   truncated: boolean;
   /** T2.2: the real ref this diff was computed against — the session's
@@ -812,8 +828,14 @@ function createHubApi(P: (path: string) => string) {
   runAction: (sessionId: string, actionId: string, params: Record<string, string>) =>
     api<ActionRun>(P(`/api/sessions/${sessionId}/actions/${encodeURIComponent(actionId)}`), { method: "POST", body: JSON.stringify({ params }) }),
   actionRun: (sessionId: string, runId: string) => api<ActionRun>(P(`/api/sessions/${sessionId}/actions/runs/${runId}`)),
-  sessionDiffHunk: (id: string, path: string) =>
-    api<{ path: string; hunks: DiffHunk[] }>(P(`/api/sessions/${id}/diff/hunk?path=${encodeURIComponent(path)}`)),
+  /** T2.2 expand-on-tap: full hunks for one file, after /diff collapsed
+   * them under K3. `commit` lädt den Hunk aus genau diesem
+   * Commit-Abschnitt (AC-P2-1), ohne ihn gegen das Arbeitsverzeichnis
+   * aufzulösen. */
+  sessionDiffHunk: (id: string, path: string, commit?: string) =>
+    api<{ path: string; hunks: DiffHunk[] }>(
+      P(`/api/sessions/${id}/diff/hunk?path=${encodeURIComponent(path)}${commit ? `&commit=${commit}` : ""}`),
+    ),
   events: (id: string, afterSeq = 0, limit = 500) =>
     api<{ seq: number; type: string; summary: string; ts: string; payload: unknown; blobRef: string | null }[]>(
       P(`/api/sessions/${id}/events?afterSeq=${afterSeq}&limit=${limit}`),

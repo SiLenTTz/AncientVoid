@@ -104,7 +104,8 @@ describe("getSessionDiff — real git repo, no mocking", () => {
       // Commit a real change on top of base — `git diff HEAD` would show
       // nothing (working tree matches the new HEAD); diffing against the
       // real base_sha must still show it, exactly as T2.1's worktree base
-      // requires.
+      // requires. Seit AC-P2-1 zeigt sich der committete Teil als
+      // Commit-Abschnitt in `commits[]`, nicht mehr in `files`.
       await writeFile(join(dir, "a.txt"), "line1\ncommitted change\n");
       await execFileAsync("git", ["-C", dir, "commit", "-aqm", "second"]);
 
@@ -113,8 +114,101 @@ describe("getSessionDiff — real git repo, no mocking", () => {
 
       const againstBase = await getSessionDiff(dir, baseSha.trim());
       expect(againstBase.baseRef).toBe(baseSha.trim());
-      expect(againstBase.files).toMatchObject([{ path: "a.txt" }]);
+      expect(againstBase.commits).toHaveLength(1);
+      expect(againstBase.commits[0]).toMatchObject({ subject: "second", author: "Test" });
+      expect(againstBase.commits[0]!.files).toMatchObject([{ path: "a.txt", additions: 1, deletions: 1 }]);
+      expect(againstBase.commits[0]!.files[0]!.hunks[0]!.body).toContain("+committed change");
+      // Der uncommittete Rest ist leer — alles hängt im Commit-Abschnitt.
+      expect(againstBase.files).toEqual([]);
       expect(againstBase.patch).toContain("+committed change");
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it("AC-P2-1: drei Commits → drei Abschnitte in chronologischer Reihenfolge, Basis exakt base_sha", async () => {
+    const { dir, cleanup } = await initRepo();
+    try {
+      const { stdout: baseSha } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: dir });
+      // Drei echte Commits, je eigene Datei — wie eine Session, die pro
+      // Schritt committet (Commit-Policy aus P2 §6-Premortem 3).
+      for (const [name, subject] of [["eins", "feat: erste Datei"], ["zwei", "feat: zweite Datei"], ["drei", "fix: dritte Datei"]] as const) {
+        await writeFile(join(dir, `${name}.txt`), `${name}\n`);
+        await execFileAsync("git", ["-C", dir, "add", `${name}.txt`]);
+        await execFileAsync("git", ["-C", dir, "commit", "-qm", subject]);
+      }
+
+      const result = await getSessionDiff(dir, baseSha.trim());
+      expect(result.error).toBeUndefined();
+      expect(result.baseRef).toBe(baseSha.trim());
+      expect(result.commits.map((c) => c.subject)).toEqual(["feat: erste Datei", "feat: zweite Datei", "fix: dritte Datei"]);
+      expect(result.commits.map((c) => c.files.map((f) => f.path))).toEqual([["eins.txt"], ["zwei.txt"], ["drei.txt"]]);
+      // Kurzer SHA gehört zum vollen.
+      for (const c of result.commits) expect(c.sha.startsWith(c.shortSha)).toBe(true);
+      expect(result.files).toEqual([]);
+      expect(result.commitsTruncated).toBeUndefined();
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it("AC-P2-1: Commits und uncommitteter Rest bleiben getrennt (gleiche Datei in beidem)", async () => {
+    const { dir, cleanup } = await initRepo();
+    try {
+      const { stdout: baseSha } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: dir });
+      await writeFile(join(dir, "a.txt"), "line1\ncommitted\n");
+      await execFileAsync("git", ["-C", dir, "commit", "-aqm", "committed step"]);
+      await writeFile(join(dir, "a.txt"), "line1\ncommitted\nplus uncommitted\n");
+      await writeFile(join(dir, "neu.txt"), "untracked\n");
+
+      const result = await getSessionDiff(dir, baseSha.trim());
+      expect(result.commits).toHaveLength(1);
+      expect(result.commits[0]!.files[0]!.hunks[0]!.body).toContain("+committed");
+      expect(result.commits[0]!.files[0]!.hunks[0]!.body).not.toContain("plus uncommitted");
+      expect(result.files.map((f) => f.path).sort()).toEqual(["a.txt", "neu.txt"]);
+      expect(result.files.find((f) => f.path === "a.txt")!.hunks[0]!.body).toContain("plus uncommitted");
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it("AC-P2-1 (K3/AC-P2-2): Commit- und Workdir-Abschnitte kollabieren gemeinsam, Payload bleibt ≤ 50 KB", async () => {
+    const { dir, cleanup } = await initRepo();
+    try {
+      const { stdout: baseSha } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: dir });
+      const big = Array.from({ length: 4000 }, (_, i) => `line ${i} changed with padding`).join("\n") + "\n";
+      await writeFile(join(dir, "big.txt"), big);
+      await execFileAsync("git", ["-C", dir, "add", "big.txt"]);
+      await execFileAsync("git", ["-C", dir, "commit", "-qm", "big commit"]);
+      await writeFile(join(dir, "work.txt"), big);
+
+      const result = await getSessionDiff(dir, baseSha.trim());
+      expect(result.truncated).toBe(true);
+      expect(result.commits[0]!.files[0]!.hunks[0]!.collapsed).toBe(true);
+      expect(result.files[0]!.hunks[0]!.collapsed).toBe(true);
+      expect(result.patch).toBe("");
+      const payload = JSON.stringify({ files: result.files, commits: result.commits, patch: result.patch });
+      expect(Buffer.byteLength(payload, "utf8")).toBeLessThanOrEqual(50_000);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it("AC-P2-1: expand-on-tap lädt einen Commit-Hunk gegen sha^..sha, nicht gegen das Arbeitsverzeichnis", async () => {
+    const { dir, cleanup } = await initRepo();
+    try {
+      const { stdout: baseSha } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: dir });
+      await writeFile(join(dir, "a.txt"), "line1\ncommitted change\n");
+      await execFileAsync("git", ["-C", dir, "commit", "-aqm", "committed"]);
+      // Nachträgliche uncommittete Änderung an derselben Datei: Das
+      // Expandieren des Commit-Hunks muss DIESEN Stand liefern.
+      await writeFile(join(dir, "a.txt"), "line1\ncommitted change\nlater workdir edit\n");
+
+      const result = await getSessionDiff(dir, baseSha.trim());
+      const sha = result.commits[0]!.sha;
+      const commitHunks = await getSessionFileHunks(dir, "a.txt", baseSha.trim(), sha);
+      expect(commitHunks[0]!.body).toContain("+committed change");
+      expect(commitHunks[0]!.body).not.toContain("later workdir edit");
     } finally {
       await cleanup();
     }

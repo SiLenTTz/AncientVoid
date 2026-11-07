@@ -31,6 +31,7 @@
     "messlauf:p5-recovery": "node scripts/messlauf-p5.mjs recovery",
     "messlauf:p5-recovery-provider": "node scripts/messlauf-p5.mjs recovery-provider --runs 5",
     "check:adapter-matrix": "node scripts/check-adapter-matrix.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
     "check:commits": "node scripts/check-commits.mjs",
     "check:arch": "depcruise apps packages --config .dependency-cruiser.cjs",
     "prepare": "node scripts/setup-git.mjs",

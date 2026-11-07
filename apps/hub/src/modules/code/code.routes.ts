@@ -67,8 +67,17 @@ export function registerCodeRoutes(app: FastifyInstance, ctx: RouteContext): voi
     let changed: { additions: number; deletions: number } | null = null;
     if (t.identity.kind === "session") {
       const diff = await getSessionDiff(t.root, t.base).catch(() => null);
-      const file = diff?.files.find((f) => f.path === q.path);
-      if (file) changed = { additions: file.additions, deletions: file.deletions };
+      // AC-P2-1: eine Datei kann in Commits UND uncommittet geändert
+      // sein — die +/- einer Datei sind die Summe über alle Abschnitte.
+      const touched = [...(diff?.commits ?? []).flatMap((c) => c.files), ...(diff?.files ?? [])].filter(
+        (f) => f.path === q.path,
+      );
+      if (touched.length > 0) {
+        changed = touched.reduce(
+          (acc, f) => ({ additions: acc.additions + f.additions, deletions: acc.deletions + f.deletions }),
+          { additions: 0, deletions: 0 },
+        );
+      }
     }
     const file = await readCodeFile(t.root, q.path, t.identity, changed);
     if (!file) return reply.code(404).send({ error: "file not found, not a regular file, or outside the workspace" });

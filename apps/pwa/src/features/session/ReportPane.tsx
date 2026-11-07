@@ -27,7 +27,13 @@ export function ReportPane({
   const suffix = running ? " (bisher)" : "";
   const cost = metricView(record, "cost", formatUsd, numbersReal);
   const tokens = metricView(record, "tokens", (n) => n.toLocaleString("de-DE"), numbersReal);
-  const filesChanged = diff ? (diff.error ? diff.error : `${diff.files.length}${suffix}`) : "lädt …";
+  // AC-P2-1: `diff.files` trägt seit den Commit-Abschnitten nur den
+  // uncommitteten Rest — „Dateien geändert" zählt die Union mit den
+  // Commit-Dateien (dedupliziert pro Pfad).
+  const changedFiles = diff
+    ? new Set([...(diff.commits ?? []).flatMap((c) => c.files.map((f) => f.path)), ...diff.files.map((f) => f.path)]).size
+    : 0;
+  const filesChanged = diff ? (diff.error ? diff.error : `${changedFiles}${suffix}`) : "lädt …";
 
   return (
     <div>

@@ -30,6 +30,9 @@ verify:
     - npm run check:commits
     - npm run check:arch
     - npm run check:adapter-matrix
+    # AC-P1-6 (AI-P1-2): Secret-Scan als wiederholtes Gate — schützt auch
+    # manuell hinzugefügte/editierte Fixtures, nicht nur den Capture-Zeitpunkt.
+    - npm run check:secrets
     - npm -w @ancientvoid/pwa run build
     - mkdir -p test-results
     - npx vitest run --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml
