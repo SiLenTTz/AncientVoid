@@ -137,7 +137,7 @@ Offline-Test (Service Worker), Kamera/QR, Push, zweiter Hub oder zweiter Browser
 | Bereich | Spec | Abgedeckt |
 |---|---|---|
 | Anmeldung | `auth` | Token-Eingabe, falsches Token, Reload, Klartext, Token wechseln |
-| Navigation | `navigation` | Dock, Status-Seite mit Fähigkeiten, Theme bleibt, Einstellungen, Voice-Sheet |
+| Navigation | `navigation` | Dock (Medien statt Voice), Kopfzeile, Direktlinks, Status-Seite mit Fähigkeiten, Theme bleibt, Einstellungen |
 | Sessions | `session` | Anlegen per UI, Gruppierung, Verlauf-Filter, Karten, Längenlimit, Bericht, Diff, Suche, Provider-Absturz |
 | Steuern | `steer` | Antwort, Stop, Weiter mit derselben Provider-Session, Doppeltipp, zwei Geräte, abgelehnte Antwort |
 | Handoff | `handoff` | PC → Handy → PC (live und nach Stop), gleiche native ID und gleiches Arbeitsverzeichnis |

@@ -5,7 +5,8 @@ import { commandContext, field, type FieldId } from "../../shared/command-contex
 import { runClientStep } from "../commands/CommandBar.tsx";
 
 /**
- * T1.6-7 → T3.10 — global voice-command entry point (Voice dock item).
+ * T1.6-7 → T3.10 — voice-command sheet. Since EPIC-P34 T34.1 it opens from the session menu
+ * ("Sprachbefehl") only; the global Voice dock item is gone.
  * Reuses T1.5-7's recognizeOnce() as-is (same Web Speech API call, same
  * 10s timeout for a browser that never fires a callback — see speech.ts's
  * own doc comment for why that guard exists).
@@ -35,16 +36,7 @@ import { runClientStep } from "../commands/CommandBar.tsx";
  * something waits for "Bestätigen"; "nicht stoppen" and questions do nothing. */
 const EXAMPLE_COMMANDS = ["Zeig wartende Sessions", "Stopp", "Budget auf 5 Dollar"];
 
-export function VoiceSheet({
-  open,
-  onClose,
-  sessionId,
-}: {
-  open: boolean;
-  onClose: () => void;
-  /** Kept for callers; the planner reads the open session from the context. */
-  sessionId?: string;
-}) {
+export function VoiceSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [state, setState] = useState<"idle" | "listening" | "done">("idle");
   const [result, setResult] = useState<SpeechResult | null>(null);
   const [plan, setPlan] = useState<CommandPlan | null>(null);
@@ -52,7 +44,6 @@ export function VoiceSheet({
   const [busy, setBusy] = useState(false);
   const [actionResult, setActionResult] = useState<string | null>(null);
   const alive = useRef(true);
-  void sessionId;
 
   useEffect(() => {
     alive.current = true;

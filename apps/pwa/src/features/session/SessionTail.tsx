@@ -1065,7 +1065,7 @@ export function SessionTail({
         )}
         {!tile && <nav class="subtabs-wrap" aria-label="Ansichten">{tabButtons}</nav>}
       </div>
-      <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} sessionId={session.id} />
+      <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} />
       </div>
     </div>
     </ApiContext.Provider>

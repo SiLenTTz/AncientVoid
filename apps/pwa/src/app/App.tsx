@@ -5,7 +5,6 @@ import { GlobalDock, type Page } from "./Dock.tsx";
 import { pageHash } from "./route.ts";
 import { setHere } from "../shared/command-context.ts";
 import { openCommandBar } from "../features/commands/CommandBar.tsx";
-import { VoiceSheet } from "../features/voice/VoiceSheet.tsx";
 import { ApprovalQueuePane } from "../features/approvals/Approvals.tsx";
 import { StatusPage } from "../features/status/StatusPage.tsx";
 import { DiscoveryPane } from "../features/discovery/Discovery.tsx";
@@ -16,6 +15,7 @@ import { Settings } from "../features/settings/Settings.tsx";
 import { CreateSession } from "../features/new-session/CreateSession.tsx";
 import { MediaPage } from "../features/media/MediaPage.tsx";
 import { DesktopPage } from "../features/desktop/DesktopPage.tsx";
+import { PcInput } from "../features/settings/PcInput.tsx";
 import { publishHubStatus } from "../features/shell/hub-status.ts";
 import { getLastSession } from "../features/shell/last-session.ts";
 
@@ -46,7 +46,6 @@ export function App({
   // the mockup review). Settings didn't exist as a destination before.
   // T1.6-3: initialPage lets SessionTail's dock jump straight to "new" or
   // "settings" instead of always landing back on the dashboard.
-  const [voiceOpen, setVoiceOpen] = useState(false);
   // T2.6: pending-approval count for the Dashboard banner. A 501 (no
   // ApprovalService configured on this hub) is a real, common state, not
   // an error to surface — same "feature genuinely absent" handling as
@@ -130,12 +129,6 @@ export function App({
           <button class="link-btn command-open" type="button" onClick={openCommandBar} aria-label="Auftrag in Worten (Strg+K)" title="Auftrag in Worten (Strg+K)">
             ✦
           </button>
-          <button class="link-btn" onClick={() => setPage("media")} title="Videos analysieren">
-            Medien
-          </button>
-          <button class="link-btn" onClick={() => setPage("pc")} title="Am PC eintippen">
-            PC
-          </button>
           <button class="link-btn" onClick={() => setPage("status")} title="Provider-Status">
             Status
           </button>
@@ -168,6 +161,7 @@ export function App({
           <FleetSettings />
           <PushSettings />
           <GeminiSettings />
+          <PcInput />
         </>
       )}
 
@@ -196,10 +190,8 @@ export function App({
           />
         ))}
 
-      <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} />
-
       <div class="dock-stack">
-        <GlobalDock active={page} onNavigate={setPage} onVoice={() => setVoiceOpen(true)} />
+        <GlobalDock active={page} onNavigate={setPage} />
       </div>
     </div>
   );
