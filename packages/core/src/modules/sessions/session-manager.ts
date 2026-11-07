@@ -2,7 +2,7 @@ import { SessionInterruption } from "./session-interruption.ts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus } from "@ancientvoid/contracts";
-import { actorKind, countMetrics, emptyMetricCounters, metricsState, promptWithAttachments, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume } from "@ancientvoid/contracts";
+import { actorKind, classifyProviderError, countMetrics, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume } from "@ancientvoid/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
@@ -1233,6 +1233,12 @@ export class SessionManager {
       await this.setStatus(session, "error");
       const detail = err instanceof Error ? err.message : String(err);
       await this.emitSystem(session, "session.resume_failed", { detail });
+      // EPIC-P35 T35.4: eine erkennbare Provider-Ursache bekommt die
+      // handlungs­fähige Kategorie (ADR-0015); interne Fehler bleiben ohne —
+      // nichts wird passend gerechnet.
+      if (classifyProviderError(detail).category !== "unknown") {
+        await this.emitEvents(session, [providerErrorEvent(session.record.adapter, detail)]);
+      }
       await this.emitSystem(session, "session.turn_end", { code: null, reason: "error" });
       return { ok: false, detail };
     }
