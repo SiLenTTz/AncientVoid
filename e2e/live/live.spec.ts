@@ -24,7 +24,10 @@ test.describe("Live-Hub (nur lesend)", () => {
     await expect(page.locator(".dashboard")).toBeVisible();
     // T8.1: sections instead of a cost line (costs only when reported).
     await expect(page.locator(".session-section, .dashboard .empty").first()).toBeVisible();
-    await page.getByRole("button", { name: "Status" }).click();
+    // BUG-0084: „Status“ matchte zusätzlich den Session-Knopf „Gate-Status
+    // prüfen und Stand“ — exact deckt nur den Header-Link (Text „Status“,
+    // title „Provider-Status“ wird vom Text-Inhalt überstimmt).
+    await page.getByRole("button", { name: "Status", exact: true }).click();
     await expect(page.locator(".inventory-table")).toBeVisible();
     expect(JSON.stringify(hosts)).toContain("hostId");
   });
@@ -49,7 +52,10 @@ test.describe("Live-Hub (nur lesend)", () => {
     const settings = await api<Record<string, unknown>>("/api/settings");
     expect(JSON.stringify(settings)).not.toMatch(/AIza[0-9A-Za-z_-]{20,}/);
     await open(page);
-    await page.getByRole("button", { name: "Einstellungen" }).click();
+    // BUG-0084: das Benachrichtigungs-⚙ trägt dasselbe aria-label
+    // „Einstellungen“ (Notifications.tsx) wie der Dock-Knopf — deshalb
+    // scoped auf die globale Navigation (.dock), nicht auf die ganze Seite.
+    await page.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     await expect(page.getByText(/Gemini/).first()).toBeVisible();
   });
 
