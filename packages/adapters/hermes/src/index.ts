@@ -285,7 +285,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // trägt die native Session in args.resumeSessionId (ADR-0044) — hier
       // ohnehin der einzige Unterschied: der erste Prompt setzt sie fort.
       const resumeArg = spec.args && typeof spec.args === "object" ? (spec.args as { resumeSessionId?: unknown }).resumeSessionId : undefined;
-      meta.nativeSessionId = typeof resumeArg === "string" && resumeArg ? resumeArg : spec.adoptNativeSessionId;
+      const adopted = typeof resumeArg === "string" && resumeArg ? resumeArg : spec.adoptNativeSessionId;
+      if (adopted) {
+        meta.nativeSessionId = adopted;
+        if (!spec.prompt) {
+          // EPIC-P35 T35.3: sichtbar übernommen — der nächste Prompt setzt fort.
+          ctx.emit({ type: "system", summary: `hermes: Session ${adopted} übernommen — der nächste Prompt setzt sie fort`, payload: { kind: "hermes.session_adopted", nativeSessionId: adopted } });
+        }
+      }
       sessions.set(ctx.sessionId, meta);
       if (spec.prompt) {
         await spawnTurn(ctx.sessionId, spec.prompt, spec, ctx, meta);
