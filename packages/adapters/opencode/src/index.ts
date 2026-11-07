@@ -13,7 +13,7 @@ import type {
   WorkerProcess,
 } from "@ancientvoid/contracts";
 import { promptWithAttachments } from "@ancientvoid/contracts";
-import { contextWindowFor } from "@ancientvoid/models";
+import { contextWindowFor, modelsFromCommand, resolveContextWindow } from "@ancientvoid/models";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { normalizeOpencodeLine } from "./normalize.ts";
@@ -56,6 +56,12 @@ const OpencodeConfig = z.object({
   /** Passed as `--model` when the session does not name one. The live
    * default observed 2026-09-22 was `zai-coding-plan/glm-5.3`. */
   model: z.string().min(1).optional(),
+  /** ADR-0054 (EPIC-P35 T35.7): listendes Kommando für den Modell-Katalog —
+   * Überschreibung des abgeleiteten `<command> models`. */
+  modelsCommand: z.array(z.string().min(1)).min(1).optional(),
+  /** ADR-0054: Kontextfenster-Overrides — Konfiguration schlägt die kuratierte
+   * Tabelle (ADR-0032). */
+  contextWindows: z.record(z.string().min(1), z.number().int().positive()).default({}),
 });
 type OpencodeConfig = z.infer<typeof OpencodeConfig>;
 
@@ -179,8 +185,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     },
 
     /** ADR-0018: `opencode models` lists every model the configured
-     * providers offer (read-only listing, not a worker). */
+     * providers offer (read-only listing, not a worker). ADR-0054: ein
+     * konfiguriertes `modelsCommand` geht durch den geteilten Parser
+     * (Labels/bare Ids erlaubt), der native Pfad bleibt bei parseModelList. */
     async models(): Promise<ModelOption[]> {
+      if (cfg.modelsCommand) return modelsFromCommand(cfg.modelsCommand);
       const { stdout } = await run(cfg.command, ["models"], { timeout: 20_000, maxBuffer: 1024 * 1024 });
       return parseModelList(stdout);
     },
@@ -201,8 +210,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const meta: SessionMeta = { healthy: true, ...(resumeSessionId ? { resumeSessionId } : {}) };
       const model = spec.model ?? cfg.model;
       if (model) {
-        // ADR-0032: the curated window of this model rides the announce.
-        const window = contextWindowFor(model);
+        // ADR-0032/0054: the curated window of this model rides the announce;
+        // `contextWindows` aus der Konfiguration schlägt die Tabelle.
+        const window = resolveContextWindow(model, undefined, cfg.contextWindows);
         ctx.emit({
           type: "system",
           summary: `OpenCode · ${model}`,

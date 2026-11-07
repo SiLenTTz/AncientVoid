@@ -13,6 +13,7 @@ import type {
   WorkerProcess,
 } from "@ancientvoid/contracts";
 import { promptWithAttachments } from "@ancientvoid/contracts";
+import { modelsFromCommand } from "@ancientvoid/models";
 import { normalizeClaudeLine } from "./normalize.ts";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
@@ -43,6 +44,9 @@ const ClaudeConfig = z.object({
   /** ADR-0032: context window of the models this instance runs (tokens),
    * configured — claude does not report it in band. */
   contextWindowTokens: z.number().int().positive().optional(),
+  /** ADR-0054 (EPIC-P35 T35.7): listendes Kommando für den Modell-Katalog —
+   * schlägt die dokumentierten Aliase; ohne Config bleiben die Aliase. */
+  modelsCommand: z.array(z.string().min(1)).min(1).optional(),
   /** Where Claude Code keeps its transcripts (~/.claude by default) — the
    * continued run's history is imported from there into the hub's tail. */
   claudeDir: z.string().min(1).optional(),
@@ -302,8 +306,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     },
 
     /** ADR-0018: the aliases `claude --help` names (2.1.280) — each
-     * resolves to the latest model of that line. */
+     * resolves to the latest model of that line. ADR-0054: `modelsCommand`
+     * aus der Konfiguration schlägt die Aliase. */
     async models(): Promise<ModelOption[]> {
+      if (cfg.modelsCommand) return modelsFromCommand(cfg.modelsCommand);
       return [
         { id: "fable", label: "Fable" },
         { id: "opus", label: "Opus" },

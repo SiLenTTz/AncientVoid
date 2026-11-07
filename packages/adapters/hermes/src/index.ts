@@ -5,11 +5,13 @@ import type {
   AdapterContext,
   Ack,
   HealthReport,
+  ModelOption,
   SessionHandle,
   SessionSpec,
   SteerInput,
   WorkerProcess,
 } from "@ancientvoid/contracts";
+import { modelsFromCommand } from "@ancientvoid/models";
 
 /**
  * Hermes Agent CLI adapter (P13, T13.1).
@@ -50,6 +52,9 @@ import type {
 const HermesConfig = z.object({
   command: z.string().min(1).default("hermes"),
   extraArgs: z.array(z.string()).default([]),
+  /** ADR-0054 (EPIC-P35 T35.7): listendes Kommando für den Modell-Katalog —
+   * ohne Config bleibt die Modellwahl freie Eingabe. */
+  modelsCommand: z.array(z.string().min(1)).min(1).optional(),
 });
 type HermesConfig = z.infer<typeof HermesConfig>;
 
@@ -240,6 +245,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const adapter: Adapter = {
     id: "hermes",
     version: "0.1.0",
+
+    /** ADR-0054: Katalog ausschließlich aus der Konfiguration. */
+    async models(): Promise<ModelOption[]> {
+      return cfg.modelsCommand ? modelsFromCommand(cfg.modelsCommand) : [];
+    },
 
     capabilities(): AdapterCapabilities {
       // Honest, live-verified 2026-10-03:

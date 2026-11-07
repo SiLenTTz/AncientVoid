@@ -6,12 +6,14 @@ import type {
   Ack,
   EmittedEvent,
   HealthReport,
+  ModelOption,
   SessionHandle,
   SessionSpec,
   SteerInput,
   WorkerProcess,
 } from "@ancientvoid/contracts";
 import { normalizeCodexLine, summarize } from "./normalize.ts";
+import { modelsFromCommand } from "@ancientvoid/models";
 import { createAppServerAdapter } from "./app-server.ts";
 
 /**
@@ -46,6 +48,10 @@ const CodexConfig = z.object({
    * native approvals, questions, model catalog and quota (ADR-0018 §3).
    * "exec" — one `codex exec` per turn, tools only sandboxed. */
   mode: z.enum(["exec", "app-server"]).default("app-server"),
+  /** ADR-0054 (EPIC-P35 T35.7): listendes Kommando für den Modell-Katalog.
+   * Kein Default — für codex ist keins verifiziert, ohne Config bleibt die
+   * Modellwahl freie Eingabe (Durchreichen an die CLI). */
+  modelsCommand: z.array(z.string().min(1)).min(1).optional(),
   /** app-server only: when codex asks before a command or file change. */
   approvalPolicy: z.enum(["untrusted", "on-request", "never"]).default("untrusted"),
 });
@@ -240,6 +246,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           files: false,
           contextFork: false,
         } };
+    },
+
+    /** ADR-0054: Katalog ausschließlich aus der Konfiguration — ohne
+     * `modelsCommand` bleibt die Modellwahl freie Eingabe. */
+    async models(): Promise<ModelOption[]> {
+      return cfg.modelsCommand ? modelsFromCommand(cfg.modelsCommand) : [];
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
