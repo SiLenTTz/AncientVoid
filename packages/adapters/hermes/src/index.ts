@@ -260,7 +260,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         nativeResume: "native",
         // ADR-0036: "verified live via --resume <sid>" (P13 hand-run, the
         // comment above) — the exact external continuation invocation.
-        resume: { argv: ["hermes", "--resume", "{sessionId}"], ref: "native" },
+        // EPIC-P35 T35.3: `hub: true` — promptlose Übernahme bleibt idle, der
+        // nächste Prompt setzt mit --resume fort.
+        resume: { argv: ["hermes", "--resume", "{sessionId}"], ref: "native", hub: true },
         features: {
           followUp: true,
           interrupt: true,
@@ -279,8 +281,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
       const meta: SessionMeta = { healthy: true };
       // Adoption (ADR-0011): continue an externally observed hermes session
-      // with the first prompt.
-      if (spec.adoptNativeSessionId) meta.nativeSessionId = spec.adoptNativeSessionId;
+      // with the first prompt. EPIC-P35 T35.3: „Weitermachen“ nach Unterbrechung
+      // trägt die native Session in args.resumeSessionId (ADR-0044) — hier
+      // ohnehin der einzige Unterschied: der erste Prompt setzt sie fort.
+      const resumeArg = spec.args && typeof spec.args === "object" ? (spec.args as { resumeSessionId?: unknown }).resumeSessionId : undefined;
+      meta.nativeSessionId = typeof resumeArg === "string" && resumeArg ? resumeArg : spec.adoptNativeSessionId;
       sessions.set(ctx.sessionId, meta);
       if (spec.prompt) {
         await spawnTurn(ctx.sessionId, spec.prompt, spec, ctx, meta);
