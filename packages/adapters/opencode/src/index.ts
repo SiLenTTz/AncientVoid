@@ -13,7 +13,7 @@ import type {
   WorkerProcess,
 } from "@ancientvoid/contracts";
 import { promptWithAttachments } from "@ancientvoid/contracts";
-import { contextWindowFor, modelsFromCommand, resolveContextWindow } from "@ancientvoid/models";
+import { modelsFromCommand, resolveContextWindow } from "@ancientvoid/models";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { normalizeOpencodeLine } from "./normalize.ts";
