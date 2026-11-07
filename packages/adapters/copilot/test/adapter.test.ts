@@ -71,6 +71,27 @@ describe("copilot adapter — lifecycle against real captured streams", () => {
     expect(spawnedCmds[0]).toContain("--allow-all-tools");
   });
 
+  it("EPIC-P35 T35.3: start mit resumeSessionId ohne Prompt bleibt idle — der nächste Prompt setzt mit -r fort (hub-Resume)", async () => {
+    const spawnedCmds: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawnedCmds.push(cmd);
+        return fakeCopilotProcess(loadFixture("trivial-say-ok.jsonl"));
+      },
+    });
+    const adapter = createAdapter();
+    expect(adapter.capabilities().resume).toMatchObject({ ref: "native", hub: true });
+
+    const handle = await adapter.start({ adapter: "copilot", project: "/tmp", args: { resumeSessionId: "cop_idle" } }, ctx);
+    expect(spawnedCmds).toHaveLength(0);
+    expect((await adapter.status(handle)).state).toBe("healthy");
+
+    await adapter.steer(handle, { kind: "prompt", text: "weiter" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    expect(spawnedCmds[0]).toContain("-r");
+    expect(spawnedCmds[0]).toContain("cop_idle");
+  });
+
   it("steer(prompt) continues via -r <id> captured from the real terminal result line's sessionId", async () => {
     const spawnedCmds: string[][] = [];
     const ctx = makeRecordingContext({
