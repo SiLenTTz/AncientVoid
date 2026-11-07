@@ -128,3 +128,13 @@
   color: var(--warn);
   font-size: calc(12px * var(--font-scale, 1));
 }
+
+/* BUG-0103: das eigene Fenster nutzt die ganze Fläche — nicht die 680-px-Handyspalte von #app. */
+#app:has(.popout-shell) {
+  max-width: none;
+  padding: 0;
+}
+
+.popout-shell .dock-stack {
+  max-width: none;
+}

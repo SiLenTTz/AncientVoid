@@ -35,6 +35,9 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     await expect(popup.locator(".session-topbar")).toBeVisible();
     // Schlanke Hülle: weder Dock noch Liste noch Kachel-Tasten.
     await expect(popup.locator(".dock, .split-list, .tile-bar")).toHaveCount(0);
+    // BUG-0103: ganze Fensterfläche, nicht die 680-px-Handyspalte.
+    const width = await popup.evaluate(() => ({ app: document.getElementById("app")!.clientWidth, win: window.innerWidth }));
+    expect(width.app).toBe(width.win);
 
     // Hauptfenster: Kachel frei, Abzeichen in der Liste, Stand gemerkt.
     await expect(app.locator('[data-tile="1"] .tile-empty')).toBeVisible();

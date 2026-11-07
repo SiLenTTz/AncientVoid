@@ -39,3 +39,9 @@ describe("classifyProviderError (ADR-0015)", () => {
     expect(event.summary).toBe("opencode: Kontingent erschöpft (5 h)");
   });
 });
+
+describe("BUG-0102 maki-Verbindungsfehler", () => {
+  it("klassifiziert „could not connect“ als Netzwerk", () => {
+    expect(classifyProviderError("Internal error: could not connect, check the server is running and the base URL is correct").category).toBe("network");
+  });
+});

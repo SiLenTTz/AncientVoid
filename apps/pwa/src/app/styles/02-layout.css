@@ -87,6 +87,13 @@ html:has(.app-page > .dashboard) body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* BUG-0103: In der Übersicht scrollt NUR die Session-Liste — die Spalte
+ * darum scrollte zusätzlich und zeigte einen zweiten Balken. */
+.split-list:has(.app-page > .dashboard) {
+  overflow-y: hidden;
 }
 
 a {
@@ -229,6 +236,7 @@ a {
 .split-list,
 .split-detail {
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
   position: relative;
 }
