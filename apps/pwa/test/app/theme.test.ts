@@ -20,6 +20,8 @@ Object.defineProperty(globalThis, "document", {
   configurable: true,
   value: { documentElement: { dataset } },
 });
+const fired: string[] = [];
+Object.defineProperty(globalThis, "window", { configurable: true, value: { dispatchEvent: (e: Event) => fired.push(e.type) } });
 
 const { getTheme, applyTheme } = await import("../../src/app/theme.ts");
 
@@ -38,5 +40,11 @@ describe("theme (T4.5-5)", () => {
     expect(getTheme()).toBe("light");
     expect(dataset.theme).toBe("light");
     expect(mem.get("ancientvoid.theme")).toBe("light");
+  });
+
+  it("meldet den Wechsel, damit die Akzentfarbe je Theme nachzieht (EPIC-P34 T34.4)", () => {
+    fired.length = 0;
+    applyTheme("dark");
+    expect(fired).toEqual(["ancientvoid:theme"]);
   });
 });

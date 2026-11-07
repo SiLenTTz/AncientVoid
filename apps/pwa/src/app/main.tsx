@@ -7,6 +7,7 @@ import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
 import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
+import { initAppearance } from "./appearance.ts";
 import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
 import { applyCtxMotion, applyScale, ctxMotionOn, getScale, installScaleShortcuts } from "./ui-scale.ts";
 import { captureShareTarget, storeShareInbox } from "./share-inbox.ts";
@@ -23,6 +24,8 @@ import "./styles/index.css";
 // never flashes dark first — index.html's data-theme="dark" was previously
 // the only value that ever existed.
 applyTheme(getTheme());
+// EPIC-P34 T34.4: Akzentfarbe, Schrift und Größe dieses Geräts, ebenfalls vor dem ersten Paint.
+initAppearance();
 applyPinchZoom(pinchZoomAllowed());
 // EPIC-P20: UI scale (Ctrl+wheel, Ctrl +/−/0) and the context-bar shimmer, before the first paint.
 applyScale(getScale());

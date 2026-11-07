@@ -14,4 +14,6 @@ export function getTheme(): Theme {
 export function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem(THEME_KEY, theme);
+  // EPIC-P34 T34.4: die Akzentfarbe gilt je Theme (appearance.ts hört darauf).
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("ancientvoid:theme", { detail: theme }));
 }
