@@ -208,6 +208,8 @@ export const HubConfig = z.object({
       /** EPIC-P34 T34.8: Codex-Rollouts (`~/.codex/sessions`) und Hermes (`~/.hermes`, darin `state.db`). */
       codexDir: z.string().min(1).optional(),
       hermesDir: z.string().min(1).optional(),
+      /** EPIC-P35 T35.5: GitHub Copilot CLI (`~/.copilot`, darin `session-store.db`). */
+      copilotDir: z.string().min(1).optional(),
     })
     .prefault({}),
 });

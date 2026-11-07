@@ -6,5 +6,6 @@ export { ClaudeLive, parseClaudeAgents, type AgentsRunner, type ClaudeLiveSessio
 export { defaultOmpDir, defaultPiDir, findPiFamilySessionFile, piFamilyDiscoverySource, scanPiFamilySessions } from "./pi-family.ts";
 export { codexDiscoverySource, defaultCodexDir, scanCodexSessions } from "./codex.ts";
 export { defaultHermesDir, hermesDiscoverySource, scanHermesSessions } from "./hermes.ts";
+export { copilotDiscoverySource, defaultCopilotDir, scanCopilotSessions } from "./copilot.ts";
 export { classifyProject, type ProjectOrigin } from "./project-origin.ts";
 export { defaultMakiDir, makiDiscoverySource, scanMakiSessions } from "./maki.ts";

@@ -43,6 +43,8 @@ import {
   defaultCursorUserDir,
   codexDiscoverySource,
   defaultCodexDir,
+  defaultCopilotDir,
+  copilotDiscoverySource,
   defaultHermesDir,
   defaultMakiDir,
   hermesDiscoverySource,
@@ -89,6 +91,9 @@ function discoverySources(config: HubConfig, claudeLive: ClaudeLive): DiscoveryS
   if (config.discovery.codexDir || existsSync(codexDir)) sources.push(codexDiscoverySource(codexDir, config.projectRoots));
   const hermesDir = config.discovery.hermesDir ? resolve(config.discovery.hermesDir) : defaultHermesDir();
   if (config.discovery.hermesDir || existsSync(hermesDir)) sources.push(hermesDiscoverySource(hermesDir, config.projectRoots));
+  // EPIC-P35 T35.5: Copilot-Store, ebenfalls nur lesend.
+  const copilotDir = config.discovery.copilotDir ? resolve(config.discovery.copilotDir) : defaultCopilotDir();
+  if (config.discovery.copilotDir || existsSync(copilotDir)) sources.push(copilotDiscoverySource(copilotDir, config.projectRoots));
   return sources;
 }
 
