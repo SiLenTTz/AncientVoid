@@ -77,6 +77,28 @@ sagen, welchen Zustand sie zeigt. Nur `box-shadow`/`opacity`/`transform`
 `prefers-reduced-motion: reduce` vollständig verschwinden (K2-Schutz, siehe
 EPIC-P1.6 AC-P1.6-8/9).
 
+## Akzentfarbe (EPIC-P34 T34.5)
+
+`--accent` ist pro Theme (dunkel/hell) überschreibbar: Einstellungen → Darstellung → Farbwähler (Farbfeld, Reglerstreifen,
+Hex). `appearance.ts` hält die Wahl in `localStorage`, `accentInk()` wählt Schwarz oder Weiß als Schriftfarbe auf dem Akzent
+nach Kontrast, `accentWarnings()` warnt bei zu geringem Kontrast zum Hintergrund, statt die Wahl zu verbieten. Alle
+Akzentflächen leiten Töne per `color-mix()` aus `--accent` ab, kein fester Amber-Hex in neuen Regeln.
+
+## Erkennung (`26-discovery.css`, EPIC-P34 T34.9)
+
+Kopf mit KPI-Kacheln (gefunden / aktiv / übernommen / Rauschen) und Anbieter-Chips, darunter Projektgruppen mit gleich hohen
+Karten (Raster 2/2/1/1 nach Breite). Zustand einer Zeile wird als Text **und** Farbe gezeigt (live, ruht, übernommen,
+nur lesbar), nie nur als Farbe. Temporäre Funde bündelt die Gruppe „Temporär“, Subagents hängen unter ihrer Eltern-Session.
+Kartenhöhen und Schriftgrößen sind fest, damit ein Hinweis die Reihe nicht verschiebt.
+
+## Eigene Fenster (`27-popout.css`, EPIC-P34 T34.10–T34.12)
+
+Die Popout-Hülle (`/?window=1#/…`) zeigt nur Kopfzeile mit Titel, „In die App zurück“ und die Kachel oder Werkzeugfläche,
+ohne Liste und ohne Dock; sie schreibt nie den Arbeitsbereich. Das Hauptfenster markiert ausgelagerte Kacheln mit dem
+Abzeichen „⧉ eigenes Fenster“. Die Leiste „Wiederherstellen“ (RestoreBar) erscheint, wenn ein Fenster fehlt oder nicht mehr
+antwortet (Heartbeat 3 s, Ablauf 10 s) und öffnet je Klick genau eines. Theme und Akzent folgen dem Hauptfenster über das
+`storage`-Ereignis. Blockierte Pop-ups erscheinen als sichtbare Meldung mit Knopf, nie still.
+
 ## Belege (Mockup-Screenshots)
 
 Die Werte oben sind aus der vom Nutzer gewählten „Futuristisch"-Mockup-
