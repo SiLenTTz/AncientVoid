@@ -57,6 +57,13 @@ describe("check-secrets — keine False Positives auf bekanntem Muster", () => {
 });
 
 describe("check-secrets — scanFiles", () => {
+  it("überspringt ausdrücklich erlaubte Werte (Allowlist)", () => {
+    // Der gepflanzte Test-Fake aus FAKES ist der einzige Allowlist-Eintrag —
+    // rot, wenn jemand die Allowlist still aushöhlt oder der Fake sich ändert.
+    const lines = [`const k = "${FAKES["private-key"]}";`];
+    expect(scanText((i) => lines[i] ?? "", lines.length, "fake.ts")).toEqual([]);
+  });
+
   it("findet einen gepflanzten Key in einer echten Datei, überspringt Binärdateien", async () => {
     const dir = await mkdtemp(join(tmpdir(), "av-secrets-"));
     try {
