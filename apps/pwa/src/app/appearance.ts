@@ -1,4 +1,4 @@
-import { getTheme, type Theme } from "./theme.ts";
+import { getTheme, THEME_KEY, type Theme } from "./theme.ts";
 
 /**
  * EPIC-P34 T34.4: Akzentfarbe, Schriftart und Schriftgröße als Gerätevorliebe, wie Theme und Zoom.
@@ -241,7 +241,9 @@ export function initAppearance(): () => void {
   const reapply = () => applyAppearance(getAppearance(), getTheme());
   reapply();
   const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY || e.key === null) {
+    // EPIC-P34 T34.12: ein Themewechsel in einem anderen Fenster erreicht dieses ohne Neuladen.
+    if (e.key === THEME_KEY || e.key === null) document.documentElement.dataset.theme = getTheme();
+    if (e.key === KEY || e.key === THEME_KEY || e.key === null) {
       reapply();
       window.dispatchEvent(new CustomEvent(APPEARANCE_EVENT, { detail: getAppearance() }));
     }

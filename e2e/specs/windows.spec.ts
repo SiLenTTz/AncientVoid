@@ -129,4 +129,91 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     await expect(app.locator('[data-tile="1"] .tile-empty')).toBeVisible();
     await popup.close();
   });
+
+  test("AC-P34-11: Theme, Akzent und Schrift erreichen ein offenes Fenster ohne Neuladen @desktop", async ({ app, hub, context }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Sync Aufgabe" });
+    await card(app, "Sync Aufgabe").click();
+    const popupP = context.waitForEvent("page");
+    await app.getByRole("button", { name: "Kachel 1 in eigenem Fenster öffnen" }).click();
+    const popup = await popupP;
+    await expect(popup.locator(".session-topbar")).toBeVisible();
+    await expect(popup.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await app.locator(".segmented").getByRole("button", { name: "Hell" }).click();
+    await expect(popup.locator("html")).toHaveAttribute("data-theme", "light");
+    await app.getByRole("radiogroup", { name: "Schriftart Oberfläche" }).getByRole("radio", { name: /Inter/ }).click();
+    await expect.poll(() => popup.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--font-ui"))).toContain("Inter");
+    await app.getByRole("button", { name: /Akzentfarbe wählen/ }).click();
+    await app.getByRole("dialog", { name: /Akzentfarbe/ }).getByLabel("Hex", { exact: true }).fill("#33aaff");
+    await app.getByRole("dialog", { name: /Akzentfarbe/ }).getByRole("button", { name: "Übernehmen" }).click();
+    await expect.poll(() => popup.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim())).toBe("#33aaff");
+    await popup.close();
+  });
+
+  test("AC-P34-10: ein geschlossenes Fenster gibt seine Session frei, die Leiste bietet Wiederherstellen an @desktop", async ({ app, hub, context }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Wieder Aufgabe" });
+    await card(app, "Wieder Aufgabe").click();
+    const popupP = context.waitForEvent("page");
+    await app.getByRole("button", { name: "Kachel 1 in eigenem Fenster öffnen" }).click();
+    const popup = await popupP;
+    await expect(app.locator(".badge-window")).toBeVisible();
+
+    await popup.close();
+    await expect(app.locator(".badge-window")).toHaveCount(0);
+    const bar = app.locator(".restore-bar");
+    await expect(bar).toContainText("1 Fenster");
+    // Wiederherstellen: ein Klick, ein Fenster.
+    const againP = context.waitForEvent("page");
+    await bar.getByRole("button", { name: /öffnen/ }).click();
+    const again = await againP;
+    await expect(again.locator(".session-topbar")).toBeVisible();
+    await expect(bar).toHaveCount(0);
+    await expect(app.locator(".badge-window")).toBeVisible();
+    await again.close();
+
+    // Verwerfen: die Session ist frei und lässt sich wieder in einer Kachel öffnen.
+    await expect(bar).toBeVisible();
+    await bar.getByRole("button", { name: "Verwerfen" }).click();
+    await expect(bar).toHaveCount(0);
+    await card(app, "Wieder Aufgabe").click();
+    await expect(app.locator('[data-tile="1"] .session-topbar')).toBeVisible();
+  });
+
+  test("AC-P34-10: ein hängendes Fenster (keine Herzschläge, kein bye) fällt nach der Frist aus dem Register @desktop", async ({ app, hub, context }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Absturz Aufgabe" });
+    await card(app, "Absturz Aufgabe").click();
+    const popupP = context.waitForEvent("page");
+    await app.getByRole("button", { name: "Kachel 1 in eigenem Fenster öffnen" }).click();
+    const popup = await popupP;
+    await expect(app.locator(".badge-window")).toBeVisible();
+    // Ein hängendes oder abgestürztes Fenster sendet weder Herzschläge noch `bye`: hier werden nur die Herzschläge verschluckt.
+    await popup.evaluate(() => {
+      const post = BroadcastChannel.prototype.postMessage;
+      BroadcastChannel.prototype.postMessage = function (message: unknown) {
+        if ((message as { type?: string })?.type === "heartbeat") return;
+        return post.call(this, message);
+      };
+    });
+    // Frist: 10 s ohne Herzschlag (Protokoll), plus Prüfintervall.
+    await expect(app.locator(".badge-window")).toHaveCount(0, { timeout: 16_000 });
+    await expect(app.locator(".restore-bar")).toContainText("1 Fenster");
+    await card(app, "Absturz Aufgabe").click();
+    await expect(app.locator('[data-tile="1"] .session-topbar')).toBeVisible();
+    await expect(app.locator(".restore-bar")).toHaveCount(0);
+  });
+
+  test("Offline: das Fenster sagt es, statt still zu veralten @desktop", async ({ app, hub, context }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Offline Aufgabe" });
+    await card(app, "Offline Aufgabe").click();
+    const popupP = context.waitForEvent("page");
+    await app.getByRole("button", { name: "Kachel 1 in eigenem Fenster öffnen" }).click();
+    const popup = await popupP;
+    await expect(popup.locator(".session-topbar")).toBeVisible();
+    await context.setOffline(true);
+    await expect(popup.locator(".popout-offline")).toBeVisible();
+    await context.setOffline(false);
+    await expect(popup.locator(".popout-offline")).toHaveCount(0);
+    await popup.close();
+  });
 });

@@ -87,6 +87,19 @@ export function PopoutShell() {
   }, []);
   useToolData(target?.kind === "tool");
 
+  // Offline: das Fenster sagt es, statt still zu veralten (der Tail verbindet sich selbst neu).
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+
   const giveBack = () => {
     if (target) postWindowMessage({ type: "return", id, target });
     window.close();
@@ -102,6 +115,7 @@ export function PopoutShell() {
           In die App zurück
         </button>
       </header>
+      {!online && <div class="popout-offline" role="status">Offline — dieses Fenster zeigt den letzten Stand und verbindet sich neu, sobald das Netz wieder da ist.</div>}
       {target.kind === "session" ? (
         error ? (
           <div class="empty">{error}</div>

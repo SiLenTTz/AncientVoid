@@ -1,4 +1,4 @@
-const THEME_KEY = "ancientvoid.theme";
+export const THEME_KEY = "ancientvoid.theme";
 
 export type Theme = "dark" | "light";
 

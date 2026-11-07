@@ -14,12 +14,14 @@ import { captureShareTarget, storeShareInbox } from "./share-inbox.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
 import { TileWorkspace } from "../features/workspace/TileWorkspace.tsx";
 import { StatusBar } from "../features/shell/StatusBar.tsx";
+import { getHubStatus } from "../features/shell/hub-status.ts";
 import { ToolPane } from "../features/shell/ToolPane.tsx";
 import { rememberSession } from "../features/shell/last-session.ts";
+import { RestoreBar } from "../features/windows/RestoreBar.tsx";
 import { PopoutShell } from "../features/windows/PopoutShell.tsx";
 import type { DropPoint } from "../features/windows/drag.ts";
 import { focusWindowFor, isPopoutWindow, onWindowMessage, openPopout, startWindowHub } from "../features/windows/windows.ts";
-import { detachTile, openInNewTile, openSession, parseWorkspace, reattach, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
+import { detachTile, forgetDetached, openInNewTile, openSession, parseWorkspace, reattach, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
 import type { Page } from "./Dock.tsx";
 import "./styles/index.css";
 
@@ -260,7 +262,9 @@ function Main() {
     // EPIC-P34 T34.10: läuft die Session in einem eigenen Fenster, kommt dieses nach vorn — kein zweiter Composer.
     if (focusWindowFor({ kind: "session", sessionId: ref.sessionId, ...(ref.hostId ? { hostId: ref.hostId } : {}) })) return;
     setRoute({ view: "tail", session });
-    changeWorkspace(opts?.newTile ? openInNewTile(ws, ref) : openSession(ws, ref));
+    // Kein Fenster mehr da (geschlossen, abgestürzt): die Session gehört wieder in eine Kachel.
+    const base = forgetDetached(ws, ref);
+    changeWorkspace(opts?.newTile ? openInNewTile(base, ref) : openSession(base, ref));
   };
   // A deep link or Back to a session lands in the workspace too.
   useEffect(() => {
@@ -286,6 +290,18 @@ function Main() {
         </div>
       )}
       <CommandBar />
+      {wide && (
+        <RestoreBar
+          ws={ws}
+          sessions={getHubStatus().sessions}
+          onOpen={(ref) => {
+            void openPopout({ kind: "session", sessionId: ref.sessionId, ...(ref.hostId ? { hostId: ref.hostId } : {}) }).then((result) => {
+              if (result === "blocked") setPopoutNotice(blockedNotice);
+            });
+          }}
+          onDiscard={(refs) => changeWorkspace(refs.reduce((acc, ref) => forgetDetached(acc, ref), ws))}
+        />
+      )}
       {popoutNotice && (
         <div class="popout-notice" role="alert">
           {popoutNotice}{" "}
