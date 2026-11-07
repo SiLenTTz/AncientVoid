@@ -56,15 +56,15 @@ test.describe("Schrift (EPIC-P34 T34.6)", () => {
 
   test("Schriftgröße per Stepper, Grenzen, Zurücksetzen auf 100 %", async ({ app }) => {
     await openSettings(app);
-    await app.getByRole("button", { name: "Schrift vergrößern" }).click();
+    await app.getByRole("button", { name: "Schriftgröße erhöhen" }).click();
     await expect(app.locator(".font-scale-value")).toHaveText("105 %");
     await expect.poll(() => size(app, "body")).toBe("14.7px");
     await app.getByRole("button", { name: "Schriftgröße zurücksetzen" }).click();
     await expect(app.locator(".font-scale-value")).toHaveText("100 %");
     expect(await size(app, "body")).toBe("14px");
-    for (let i = 0; i < 3; i++) await app.getByRole("button", { name: "Schrift verkleinern" }).click();
+    for (let i = 0; i < 3; i++) await app.getByRole("button", { name: "Schriftgröße verringern" }).click();
     await expect(app.locator(".font-scale-value")).toHaveText("85 %");
-    await expect(app.getByRole("button", { name: "Schrift verkleinern" })).toBeDisabled();
+    await expect(app.getByRole("button", { name: "Schriftgröße verringern" })).toBeDisabled();
   });
 
   test("Zurücksetzen in der Vorschau stellt Standardwerte her", async ({ app }) => {
