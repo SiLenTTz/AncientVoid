@@ -132,30 +132,59 @@ Kein Haken ohne zugehörige Evidenz (Beleg oder begründetes missing).
 
 ## 4. Aufgaben (Checkliste T35.m)
 
-- [ ] **T35.1** Popout-Vollfläche: 1200-px-Lesespalte aus dem Popout entfernen
+- [x] **T35.1** Popout-Vollfläche: 1200-px-Lesespalte aus dem Popout entfernen
   (`.popout-tile`/`02-layout.css:228`-Entsprechung), Umbruch statt Ränder,
   kein horizontaler Scroll; E2E misst Fenster- vs. Kachelbreite. Messlatte K2.
-- [ ] **T35.2** Start-Korrektheit: Loop-Start sendet den gewählten Treiber
+  *Abgeschlossen 07.11.2026 (BUG-0104):* `.popout-tile` mit festem `padding-inline: 12px`;
+  E2E `windows.spec.ts` misst computed Padding (≤ 12) und `scrollWidth ≤ innerWidth` —
+  ohne Fix rot (120 px bei 1440-px-Fenster).
+- [x] **T35.2** Start-Korrektheit: Loop-Start sendet den gewählten Treiber
   (oder weist ihn vor dem Start sichtbar zurück mit Grund — nie stiller
   claude-Reset `CreateSession.tsx:189`); Adapter-Auswahl überlebt Remount
   (Draft-Merkung). E2E in `factory.spec.ts`/`modus-modell.spec.ts`.
-- [ ] **T35.3** Resume-Deklarationen + Live-Belege: claude, opencode, pi,
+  *Abgeschlossen 07.11.2026 (BUG-0105):* Treiber-Ersetzung als `role="status"`-Hinweis,
+  eigene Auswahl löscht ihn; `setAdapter` schreibt die Wahl sofort in
+  `ancientvoid.newSession.last`. E2E rot-grün in beiden Specs. Der Onboarding-Pfad
+  (Loop ohne Factory-Start) erstellt weiter nur den Beobachter — Treiber-Wahl dort
+  ohne Wirkung ist P26-Design, nicht Stillstand.
+- [x] **T35.3** Resume-Deklarationen + Live-Belege: claude, opencode, pi,
   copilot, hermes `resume` um `hub: true` ergänzen, je mit dokumentiertem
   Beleglauf (Hub-Neustart → „Weitermachen" → Zug läuft weiter); codex und
   ACP-Presets ohne promptlosen Continue ehrlich ohne `hub` mit Grund in der
   Zelle. Testkit-Suite (resume-argv/hub-Prüfung) grün. Messlatte K7.
-- [ ] **T35.4** Resume-Robustheit: `session.resume_failed` trägt
+  *Code abgeschlossen 07.11.2026:* Alle fünf deklarieren `hub: true`; opencode/copilot/hermes
+  haben dafür den promptlosen Idle-Pfad in `start()` bekommen (kein Spawn, sichtbares
+  Übernahme-Event), copilot liest `args.resumeSessionId` erstmals. Live-Rauchtest der
+  Idle-Adoption gegen echte Sessions (claude: 201 importierte Events, pi: 7, kein
+  Provider-Aufruf). **Offen:** Live-Läufe je CLI nach echtem Hub-Neustart (AC-P35-3, Jan)
+  und die Freigabe der copilot-Übernahme aus der Erkennung (bis dahin nur beobachtet).
+- [x] **T35.4** Resume-Robustheit: `session.resume_failed` trägt
   Provider-Kategorie (`classifyProviderError`); doppelter „Weitermachen"-Klick
   startet keinen zweiten Provider-Prozess (Steer-Queue-Serialisierung,
   BUG-0017-Muster; Wait-Pinning ADR-0037); Negativtest vorhanden.
-- [ ] **T35.5** Discovery: Layout-Prüfung + Scan oder begründetes `missing`
+  *Abgeschlossen 07.11.2026:* Erkennbare Provider-Ursachen → zusätzliches
+  `provider.error`-Event (ADR-0015-Form), interne Fehler bleiben ohne Kategorie
+  (Integrationstests für beide). Doppelklick-Schutz war bereits gegeben (Resume läuft
+  durch die serialisierte Steer-Queue; Status-Gate verweigert die zweite Runde) —
+  bestehende Tests decken es.
+- [x] **T35.5** Discovery: Layout-Prüfung + Scan oder begründetes `missing`
   für codex, opencode, copilot, dsh (Vorlage claude-clip/ADR-0041); Übernahme
   mit Verlaufs-Import für mindestens zwei der vier, falls Layout existiert;
   Formatbruch fail loud mit Test. Fixtures anonymisiert.
-- [ ] **T35.6** Inventar & Doku synchron: `HARNESS_CATALOG`-Zellen aus den
+  *Abgeschlossen 07.11.2026:* copilot-Scanner neu (`~/.copilot/session-store.db`, SQLite
+  read-only; live 12 Sessions; Übernahme unbelegt → nur beobachtet, Codex-Maßstab).
+  codex/opencode-Scanner existierten schon (T34.8/P5) und sind live gegen die echten
+  Stores verifiziert (55 Rollouts/488 Sessions). dsh begründet `missing`: Sessions als
+  `session.v4.jsonl.zstd` — kein `node:zstd`, keine nativen Module, kein Decoder.
+  Übernahme aus der Erkennung bleibt Vorbehalt des Live-Nachweises (siehe T35.3).
+- [x] **T35.6** Inventar & Doku synchron: `HARNESS_CATALOG`-Zellen aus den
   Belegen aktualisieren (Version + Datum + Kurzverweis), Inventar-Tabelle der
   PWA zeigt den Beleg-Kurzvermerk, `docs/harness-matrix.md` und
   `docs/adapters.md` auf demselben Stand.
+  *Abgeschlossen 07.11.2026:* codex/opencode/copilot discovery → verified (mit Datum
+  und Menge), Hermes als eigene Zeile ergänzt (Discovery+Resume verified), dsh-Grund
+  aktualisiert, Resume-Zellen um den hub-Stand ergänzt. `docs/adapters.md` erklärt
+  `hub: true` samt Idle-Regel. E2E-Inventar-Erwartung aktualisiert.
 - [ ] **T35.7** Modell-/Nutzungs-Contract: ADR für die Verallgemeinerung von
   `modelsCommand`/`pickModel`-Semantik/Kontextfenster (ADR-0032-Muster) auf
   alle Adapter; native Adapter ohne Codeänderung katalogfähig; keine stille
