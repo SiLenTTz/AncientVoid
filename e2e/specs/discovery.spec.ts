@@ -356,7 +356,9 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await app.getByRole("button", { name: "Status" }).click();
     const row = app.locator(".inventory-table tr").filter({ hasText: "opencode" });
     await expect(row).toContainText("1.2.3-e2e");
-    await expect(row.locator(".support").first()).toHaveText("fehlt");
+    // EPIC-P35 T35.6: opencode discovery ist belegt (SQLite-Scanner, live
+    // 2026-11-07) — beide Zellen ehrlich grün, statt alter „fehlt"-Reste.
+    await expect(row.locator(".support").first()).toHaveText("belegt");
     await expect(row.locator(".support").nth(1)).toHaveText("belegt");
     // deepseek = dsh via ACP (ADR-0018) — probed like any CLI, honest cells
     await expect(app.locator(".inventory-table tr").filter({ hasText: "deepseek" })).toContainText("gebaut, unbelegt");

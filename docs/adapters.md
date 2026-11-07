@@ -189,6 +189,18 @@ show` und der „PC offen"-Hinweis rendern den Befehl. Beziehung zu
 `nativeResume`: unabhängig — jenes beschreibt In-Hub-Steuerung, dieses die
 Fortsetzung außerhalb.
 
+**`hub: true` (ADR-0044, EPIC-P35 T35.3):** Der Adapter opt-in't zusätzlich in
+das hub-seitige „Weitermachen" nach einer Unterbrechung. Voraussetzung: der
+Adapter nimmt `start({ args: { resumeSessionId } })` **ohne Prompt** an und
+bleibt dabei idle (kein Prozess, keinFake-Zug) — der nächste Prompt setzt die
+native Session fort. Aktuell deklariert: claude, opencode, pi, copilot, hermes
+sowie maki/omp über ACP (BUG-0101). codex nicht — `codex exec resume` braucht
+einen Prompt; ACP-Presets ohne Beleg bleiben draußen. Die promptlose
+Übernahme meldet jeder Adapter als sichtbares System-Event (fail loud); ein
+gescheitertes Fortsetzen trägt eine erkennbare Provider-Ursache als
+`provider.error` (T35.4). Live-Läufe je CLI nach Hub-Neustart: ausstehend
+(Aufgabe AC-P35-3).
+
 ## Slash-Commands deklarieren (`commands`, ADR-0042)
 
 `capabilities().commands?: readonly SlashCommand[]` listet die Commands,
