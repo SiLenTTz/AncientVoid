@@ -26,6 +26,9 @@ const execFileAsync = promisify(execFile);
 const K3_THRESHOLD_BYTES = 50_000;
 const HUNK_PREVIEW_LINES = 3;
 const MAX_PATCH_BYTES = 200_000;
+/** AC-P2-1: Sessions mit extrem vielen Commits kappen wir hier — ältere
+ * bleiben über `commitsTruncated` sichtbar benannt, nie still verschwunden. */
+const MAX_COMMITS = 200;
 
 export interface DiffHunk {
   header: string;
@@ -47,8 +50,30 @@ export interface SessionDiffFile {
   hunks: DiffHunk[];
 }
 
-export interface SessionDiffResult {
+/** AC-P2-1: ein Commit seit baseRef, ältester zuerst, mit seinem eigenen
+ * per-File-Diff (`sha^..sha`) — die Diff-Ansicht zeigt so einen Abschnitt
+ * pro Commit statt einen gemischten Klumpen. Commits ohne eigene Änderungen
+ * (z. B. Merges) tauchen hier nicht auf: ein Abschnitt zeigt Änderungen. */
+export interface DiffCommit {
+  sha: string;
+  shortSha: string;
+  author: string;
+  /** ISO-8601, Autor-Datum wie im git log. */
+  date: string;
+  subject: string;
   files: SessionDiffFile[];
+}
+
+export interface SessionDiffResult {
+  /** Seit AC-P2-1 ausschließlich der NICHT committete Rest seit HEAD
+   * (inkl. untracked, BUG-0020) — der committete Teil liegt in `commits[]`.
+   * Ohne Commits im Bereich ist das exakt die alte Form. */
+  files: SessionDiffFile[];
+  /** AC-P2-1: Commits seit baseRef, ältester zuerst. */
+  commits: DiffCommit[];
+  /** true, wenn mehr als MAX_COMMITS Commits existierten — dann fehlen
+   * die ältesten, sichtbar benannt statt still gedroppt. */
+  commitsTruncated?: boolean;
   patch: string;
   /** true if either the raw patch text was capped (pre-T2.2 behavior) or
    * any hunk was collapsed under K3 — "not everything is in this payload". */
@@ -61,6 +86,49 @@ export interface SessionDiffResult {
   /** Set when the project isn't a git repo (or has no changes) — a real,
    * named reason, never a silently empty result pretending nothing changed. */
   error?: string;
+}
+
+interface CommitMeta {
+  sha: string;
+  shortSha: string;
+  author: string;
+  date: string;
+  subject: string;
+}
+
+/** `git log baseRef..HEAD` als Metadaten-Liste, ältester zuerst. Schlägt in
+ * einem Repo ohne jeden Commit fehl — Aufrufer fängt das (hier: über den
+ * gemeinsamen try/catch in getSessionDiff). */
+async function commitsSince(projectPath: string, baseRef: string): Promise<CommitMeta[]> {
+  const { stdout } = await execFileAsync(
+    "git",
+    ["-C", projectPath, "log", `${baseRef}..HEAD`, "--reverse", "--format=%H%x1f%h%x1f%an%x1f%aI%x1f%s"],
+    { timeout: 5000, maxBuffer: 1024 * 1024 },
+  );
+  return stdout
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [sha, shortSha, author, date, ...subject] = line.split("\x1f");
+      return { sha: sha!, shortSha: shortSha!, author: author!, date: date!, subject: subject.join("\x1f") };
+    });
+}
+
+/** Per-Commit-Diff `sha^..sha` in derselben Struktur wie der Workdir-Teil.
+ * Untracked-Handling ist hier bewusst unnötig: Committetes liegt per
+ * Definition im Baum. */
+async function commitFiles(projectPath: string, sha: string): Promise<{ files: SessionDiffFile[]; patch: string }> {
+  const { stdout: numstat } = await execFileAsync("git", ["-C", projectPath, "diff", "--numstat", `${sha}^`, sha], {
+    timeout: 5000,
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  const { stdout: patch } = await execFileAsync("git", ["-C", projectPath, "diff", `${sha}^`, sha], {
+    timeout: 5000,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  const blocks = splitByFileBlocks(patch);
+  const files = parseNumstat(numstat).map((f, i) => ({ ...f, hunks: parseHunks(blocks[i] ?? "") }));
+  return { files, patch };
 }
 
 const HUNK_HEADER_RE = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@ ?(.*)$/;
@@ -225,22 +293,45 @@ export async function getSessionDiff(projectPath: string, worktreeBaseSha?: stri
   // repo). Diffing against `worktreeBaseSha` when the session is
   // isolated (T2.1) shows everything since the session's real base,
   // committed or not — that's what "what did this session change" means
-  // once every session commits on its own branch.
+  // once every session commits on its own branch. Seit AC-P2-1 ist der
+  // committete Teil davon in `commits[]` gegliedert; `files` trägt nur
+  // noch den uncommitteten Rest seit HEAD.
   const baseRef = worktreeBaseSha ?? "HEAD";
   try {
-    const { numstat, patch } = await realGitDiff(projectPath, baseRef);
-    const statFiles = parseNumstat(numstat);
-    if (statFiles.length === 0) {
-      return { files: [], patch: "", truncated: false, baseRef, error: "keine Änderungen im Arbeitsverzeichnis" };
+    const workdir = await realGitDiff(projectPath, "HEAD");
+    const metas = baseRef === "HEAD" ? [] : await commitsSince(projectPath, baseRef);
+    const commitsTruncated = metas.length > MAX_COMMITS;
+    let commits: DiffCommit[] = [];
+    const commitPatches: string[] = [];
+    for (const meta of metas.slice(0, MAX_COMMITS)) {
+      const { files, patch } = await commitFiles(projectPath, meta.sha);
+      commitPatches.push(patch);
+      if (files.length > 0) commits.push({ ...meta, files });
     }
-    const perFileBlocks = splitByFileBlocks(patch);
-    const totalBytes = Buffer.byteLength(patch, "utf8");
+    const statFiles = parseNumstat(workdir.numstat);
+    if (statFiles.length === 0 && commits.length === 0) {
+      return { files: [], commits: [], patch: "", truncated: false, baseRef, error: "keine Änderungen im Arbeitsverzeichnis" };
+    }
+    const perFileBlocks = splitByFileBlocks(workdir.patch);
+    // K3 gilt für die ganze Antwort: Workdir- UND Commit-Abschnitte
+    // kollabieren gemeinsam, sobald die Summe aller Patches über der
+    // Schwelle liegt (AC-P2-2 misst die gesamte initiale Payload).
+    const totalBytes =
+      Buffer.byteLength(workdir.patch, "utf8") + commitPatches.reduce((sum, p) => sum + Buffer.byteLength(p, "utf8"), 0);
     const overK3 = totalBytes > K3_THRESHOLD_BYTES;
     const files: SessionDiffFile[] = statFiles.map((f, i) => {
       const raw = perFileBlocks[i];
       const hunks = raw ? parseHunks(raw) : [];
       return { ...f, hunks: overK3 ? collapseForK3(hunks) : hunks };
     });
+    if (overK3) {
+      commits = commits.map((c) => ({ ...c, files: c.files.map((f) => ({ ...f, hunks: collapseForK3(f.hunks) })) }));
+    }
+    // Legacy-Rohtext (liest keine PWA-Komponente seit T2.3): committete
+    // Patches vor den uncommitteten, in chronologischer Reihenfolge —
+    // inhaltlich äquivalent zu einem `git diff baseRef`, nur bereits
+    // berechnet, statt einen dritten git-Aufruf zu machen.
+    const fullPatch = commitPatches.join("") + workdir.patch;
     const truncatedPatch = totalBytes > MAX_PATCH_BYTES;
     // T2.9/AC-P2-2 real gap found while building the K3 gate test: `patch`
     // used to stay capped at MAX_PATCH_BYTES (200 KB) independently of
@@ -254,7 +345,9 @@ export async function getSessionDiff(projectPath: string, worktreeBaseSha?: stri
     // carry — it's dropped instead of independently truncated.
     return {
       files,
-      patch: overK3 ? "" : truncatedPatch ? patch.slice(0, MAX_PATCH_BYTES) : patch,
+      commits,
+      ...(commitsTruncated ? { commitsTruncated } : {}),
+      patch: overK3 ? "" : truncatedPatch ? fullPatch.slice(0, MAX_PATCH_BYTES) : fullPatch,
       truncated: truncatedPatch || overK3,
       baseRef,
     };
@@ -263,19 +356,32 @@ export async function getSessionDiff(projectPath: string, worktreeBaseSha?: stri
     // sessions in tests, or a plain non-repo directory) — a named error,
     // not a thrown 500 or a dishonest empty-but-successful result.
     const message = err instanceof Error ? err.message : String(err);
-    return { files: [], patch: "", truncated: false, baseRef, error: `git diff fehlgeschlagen: ${message.slice(0, 200)}` };
+    return { files: [], commits: [], patch: "", truncated: false, baseRef, error: `git diff fehlgeschlagen: ${message.slice(0, 200)}` };
   }
 }
 
 /**
  * T2.2 expand-on-tap: recomputes one file's hunks in full (never
  * collapsed), for the PWA to fetch after a K3-collapsed hunk is tapped.
+ * Mit `commitSha` (AC-P2-1) wird der Hunk gegen DIESEN Commit geladen
+ * (`sha^..sha`) — ein Kollaps im Commit-Abschnitt expandiert also gegen
+ * den Commit, nicht gegen das Arbeitsverzeichnis.
  */
 export async function getSessionFileHunks(
   projectPath: string,
   filePath: string,
   worktreeBaseSha?: string | null,
+  commitSha?: string,
 ): Promise<DiffHunk[]> {
+  if (commitSha) {
+    const { stdout: patch } = await execFileAsync(
+      "git",
+      ["-C", projectPath, "diff", `${commitSha}^`, commitSha, "--", filePath],
+      { timeout: 5000, maxBuffer: 8 * 1024 * 1024 },
+    );
+    const [raw] = splitByFileBlocks(patch);
+    return raw ? parseHunks(raw) : [];
+  }
   const baseRef = worktreeBaseSha ?? "HEAD";
   const { patch } = await realGitDiff(projectPath, baseRef, filePath);
   const [raw] = splitByFileBlocks(patch);

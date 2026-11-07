@@ -148,6 +148,40 @@
   margin: 10px 0 4px;
 }
 
+/* AC-P2-1: ein Abschnitt pro Commit — Kurz-SHA, Betreff, Autor·Datum. */
+.diff-commit-section {
+  margin-bottom: 8px;
+}
+
+.diff-commit-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  border-top: 1px solid var(--bg-chip);
+  padding: 8px 0 2px;
+  margin-bottom: 4px;
+}
+
+.diff-commit-sha {
+  color: var(--accent, var(--fg-faint));
+}
+
+.diff-commit-subject {
+  font-weight: 600;
+}
+
+.diff-commit-meta {
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.diff-section-heading {
+  border-top: 1px solid var(--bg-chip);
+  padding-top: 8px;
+  margin: 8px 0 4px;
+  font-weight: 600;
+}
+
 .hunk-card {
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius);

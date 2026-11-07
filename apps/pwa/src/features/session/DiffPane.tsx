@@ -1,6 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
-import { type SessionDiffResult, type DiffHunk } from "../../shared/api.ts";
+import { type SessionDiffResult, type SessionDiffFile, type DiffCommit, type DiffHunk } from "../../shared/api.ts";
 import { diffLineClass, isOneSided, pairHunkLines } from "./diff-lines.ts";
 
 /**
@@ -14,11 +14,15 @@ export function HunkCard({
   path,
   hunk,
   index,
+  commit,
 }: {
   sessionId: string;
   path: string;
   hunk: DiffHunk;
   index: number;
+  /** AC-P2-1: Hunk gehört zu diesem Commit-Abschnitt — Expand lädt ihn
+   * gegen sha^..sha statt gegen das Arbeitsverzeichnis. */
+  commit?: string;
 }) {
   const api = useApi();
   const [expanded, setExpanded] = useState<DiffHunk | null>(null);
@@ -30,7 +34,7 @@ export function HunkCard({
   const onExpand = async () => {
     setLoading(true);
     try {
-      const res = await api.sessionDiffHunk(sessionId, path);
+      const res = await api.sessionDiffHunk(sessionId, path, commit);
       const full = res.hunks[index];
       if (full) setExpanded(full);
     } catch {
@@ -75,9 +79,47 @@ export function HunkCard({
 /** The anchor of a file's hunks — the list on the left jumps to it. */
 const fileAnchor = (index: number) => `diff-file-${index}`;
 
+function CommitHeading({ commit }: { commit: DiffCommit }) {
+  return (
+    <div class="diff-commit-heading">
+      <span class="mono diff-commit-sha">{commit.shortSha}</span>
+      <span class="diff-commit-subject">{commit.subject}</span>
+      <span class="dim diff-commit-meta">
+        {commit.author} · {new Date(commit.date).toLocaleString("de-DE")}
+      </span>
+    </div>
+  );
+}
+
 export function DiffPane({ diff, sessionId }: { diff: SessionDiffResult | null; sessionId: string }) {
   if (diff === null) return <div class="empty">lädt …</div>;
   if (diff.error) return <div class="empty">{diff.error}</div>;
+  // AC-P2-1: ein Abschnitt pro Commit (ältester zuerst), danach der
+  // uncommittete Rest. `diff.files` trägt seit der Umstellung nur noch
+  // den uncommitteten Teil — die Sprungliste links ist die Union aus
+  // beiden, dedupliziert pro Pfad (eine Datei kann in einem Commit UND
+  // uncommittet geändert sein).
+  const commits = diff.commits ?? [];
+  const union: SessionDiffFile[] = [];
+  const seen = new Set<string>();
+  for (const f of [...commits.flatMap((c) => c.files), ...diff.files]) {
+    if (seen.has(f.path)) continue;
+    seen.add(f.path);
+    union.push(f);
+  }
+  const anchorOf = new Map(union.map((f, i) => [f.path, i]));
+  const groups = (files: SessionDiffFile[], commit?: string) =>
+    files.map((f) => {
+      const i = anchorOf.get(f.path) ?? 0;
+      return f.binary || f.hunks.length === 0 ? null : (
+        <div key={f.path} class="diff-file-group" id={fileAnchor(i)}>
+          <div class="diff-file-heading mono">{f.path}</div>
+          {f.hunks.map((h, j) => (
+            <HunkCard key={`${f.path}:${j}`} sessionId={sessionId} path={f.path} hunk={h} index={j} commit={commit} />
+          ))}
+        </div>
+      );
+    });
   // EPIC-P20 T20.1: from 1280 px the file list sits beside the code (CSS), a click jumps to
   // the file. The phone keeps the stacked list; the rows only gain a jump there.
   const jump = (index: number) => {
@@ -87,7 +129,7 @@ export function DiffPane({ diff, sessionId }: { diff: SessionDiffResult | null; 
   return (
     <div class="diff-pane">
       <div class="diff-files">
-        {diff.files.map((f, i) => (
+        {union.map((f, i) => (
           <div
             key={f.path}
             class="diff-file-row"
@@ -115,19 +157,24 @@ export function DiffPane({ diff, sessionId }: { diff: SessionDiffResult | null; 
       <div class="diff-main">
         {diff.truncated && (
           <div class="dim" style="margin: 8px 0">
-            Große Hunks gekürzt — „ganzer Hunk" antippen, um einen einzelnen vollständig zu laden.
+            Große Hunks gekürzt — „ganzer Hunk“ antippen, um einen einzelnen vollständig zu laden.
           </div>
         )}
-        {diff.files.map((f, i) =>
-          f.binary || f.hunks.length === 0 ? null : (
-            <div key={f.path} class="diff-file-group" id={fileAnchor(i)}>
-              <div class="diff-file-heading mono">{f.path}</div>
-              {f.hunks.map((h, j) => (
-                <HunkCard key={`${f.path}:${j}`} sessionId={sessionId} path={f.path} hunk={h} index={j} />
-              ))}
-            </div>
-          ),
+        {diff.commitsTruncated && (
+          <div class="dim" style="margin: 8px 0">
+            Mehr als 200 Commits seit {diff.baseRef} — nur die jüngsten werden gegliedert.
+          </div>
         )}
+        {commits.map((c) => (
+          <section key={c.sha} class="diff-commit-section">
+            <CommitHeading commit={c} />
+            {groups(c.files, c.sha)}
+          </section>
+        ))}
+        {commits.length > 0 && diff.files.length > 0 && (
+          <div class="diff-section-heading">Nicht committete Änderungen</div>
+        )}
+        {groups(diff.files)}
       </div>
     </div>
   );

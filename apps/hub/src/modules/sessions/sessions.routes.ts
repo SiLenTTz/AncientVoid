@@ -159,13 +159,23 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     // only ever passed to `execFile` with an argument array, never a
     // shell, so it cannot inject a command — it can only ask git about a
     // path that doesn't exist, which git reports as an empty result).
+    // AC-P2-1: `commit` expandiert einen Hunk aus einem Commit-Abschnitt
+    // gegen genau diesen Commit. Nur Format-Prüfung, keine
+    // Bereichs-Mitgliedschaft: Der Token-Inhaber darf den gesamten
+    // Worktree des Projekts ohnehin über /api/code/file lesen — ein
+    // beliebiges sha^..sha im selben Repo legt nichts offen, was dieser
+    // Pficht nicht schon freigibt (BUG-0013-Lektion: nie interpolieren,
+    // hier reine Argument-Übergabe an execFile).
     const { id } = req.params as { id: string };
-    const q = req.query as { path?: string };
+    const q = req.query as { path?: string; commit?: string };
     if (!q.path || q.path.includes("..")) return reply.code(400).send({ error: "invalid path" });
+    if (q.commit !== undefined && !/^[0-9a-f]{6,40}$/.test(q.commit)) {
+      return reply.code(422).send({ error: "commit muss ein SHA (6–40 Hex-Zeichen) sein" });
+    }
     const session = deps.sessions.get(id);
     if (!session) return reply.code(404).send({ error: "unknown session" });
     const workdir = deps.sessions.workdirOf(id) ?? session.project;
-    const hunks = await getSessionFileHunks(workdir, q.path, session.worktreeSha);
+    const hunks = await getSessionFileHunks(workdir, q.path, session.worktreeSha, q.commit);
     return { path: q.path, hunks };
   });
 
