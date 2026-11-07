@@ -61,6 +61,19 @@ export interface LiveSession {
   titlePrompt?: string;
   /** EPIC-P15 T15.5: the model was asked once already (success or not). */
   aiTitleTried?: boolean;
+  /** EPIC-P29 (ADR-0051): der Workspace-Zustand dieser Session — nur gesetzt,
+   * wenn am Basis-SHA ein Manifest existiert. In-Memory; die Wahrheit liegt
+   * in den workspace.*-Events (K7-Faltung `foldWorkspaceState`). */
+  workspace?: LiveWorkspaceState;
+}
+
+/** EPIC-P29: Phase vor/während/nach Setup; `pendingApprovalId` nur bei
+ * `approval_required` gesetzt. */
+export interface LiveWorkspaceState {
+  phase: "approval_required" | "preparing" | "ready" | "failed" | "needs_attention";
+  manifestHash: string;
+  baseSha: string;
+  pendingApprovalId: string | null;
 }
 
 /** A turn counts as over only if no new worker starts within this window —

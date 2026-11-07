@@ -9,9 +9,7 @@
 import { pathToFileURL } from "node:url";
 import type { NormalizedEvent } from "@ancientvoid/contracts";
 import { DEFAULT_SERVER, findOrphanedWorkers, pruneOrphanedWorkers } from "@ancientvoid/workers";
-
-const BASE = process.env.ANCIENTVOID_URL ?? "http://127.0.0.1:7373";
-const TOKEN = process.env.ANCIENTVOID_TOKEN ?? "";
+import { BASE, TOKEN, api } from "./api.ts";
 
 /** Exported for unit testing — building this by hand (vs. the URL API) is
  * exactly how BUG-0005 (ws:://host, an invalid URL) slipped in unnoticed. */
@@ -62,6 +60,10 @@ Usage:
   hubctl workers prune                    verwaigte ancientvoid-Worker entfernen (lokal)
   hubctl worktrees [--db <hub.db>]        Session-Worktrees mit Zustand und Größe (lokal, EPIC-P14)
   hubctl worktrees prune [--apply] [--db <hub.db>]   saubere Worktrees beendeter/archivierter Sessions; Trockenlauf ohne --apply
+  hubctl workspace <sessionId>                      Workspace-Phase/Services (EPIC-P29)
+  hubctl workspace logs <sessionId> <serviceId>     Service-Logs (gekürzter Schwanz)
+  hubctl workspace retry <sessionId>                menschlicher Retry nach fehlgeschlagenem Setup
+  hubctl workspace preview <sessionId> <serviceId>  Preview-URL mit 5-Minuten-Ticket
   hubctl backup create --config <hub.config.json> --out <file> --key-file <file>
   hubctl backup restore --archive <file> --data-dir <empty-dir> --config-out <file> --key-file <file>
   hubctl backup prune --dir <archive-dir> --keep <count> [--apply]   preview unless --apply
@@ -71,23 +73,7 @@ Env:
   ANCIENTVOID_TOKEN device token`);
   process.exit(1);
 }
-
-async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...(TOKEN ? { authorization: `Bearer ${TOKEN}` } : {}),
-      ...(init?.headers ?? {}),
-    },
-  });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(`${res.status} ${res.statusText}: ${body.error ?? ""}`);
-  }
-  return (await res.json()) as T;
-}
-
+ 
 interface SessionRow {
   id: string;
   adapter: string;
@@ -311,6 +297,11 @@ async function main(): Promise<void> {
     case "worktrees": {
       const { runWorktrees } = await import("./worktrees.ts");
       await runWorktrees(args);
+      break;
+    }
+    case "workspace": {
+      const { runWorkspace } = await import("./workspace.ts");
+      await runWorkspace(args);
       break;
     }
     case "workers": {
