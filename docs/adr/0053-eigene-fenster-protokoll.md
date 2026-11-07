@@ -22,6 +22,11 @@ und den Ursprung. Das Token liegt bereits im gemeinsamen `localStorage`.
 6. **Hauptfenster optional:** Fenster laufen allein weiter. Ein neu gestartetes Hauptfenster sendet `ping`, alle Fenster antworten mit `hello`.
 7. **Reihenfolge von `bye`:** `pagehide` sendet `bye`, auch bei einem Neuladen des Fensters; das Hauptfenster entfernt deshalb `detached` nicht auf `bye` (das Wiederherstellen ist T34.12).
 
+8. **Ziehgeste (T34.11):** am Griff `⠿` der Kachel gedrückt halten und über den Fensterrand ziehen; der Zeiger bleibt erfasst (`setPointerCapture`), die Kachel zeigt
+   „Loslassen öffnet ein eigenes Fenster“, beim Loslassen außerhalb öffnet `window.open` mit `left`/`top` der Abwurfstelle (Bildschirmkoordinaten). Loslassen im Fenster oder Abbruch tut nichts.
+   Rückfall: gelingt das Öffnen nicht (Nutzeraktion abgelaufen oder Pop-up blockiert), meldet die App es mit dem Knopf „Fenster öffnen“ — ein Klick ist eine frische Nutzeraktion.
+   Die Geste ist nur für den Zeiger; per Tastatur und Touch gilt `⧉`. Bildschirmwahl über die Window-Management-API ist **nicht gebaut** (optional laut Plan, nur Chromium mit Berechtigung).
+
 ## Spike (T34.10) — was gemessen wurde und was nicht
 | Frage | Ergebnis |
 |---|---|
@@ -29,7 +34,8 @@ und den Ursprung. Das Token liegt bereits im gemeinsamen `localStorage`.
 | Blockiert der Browser das Pop-up wirklich? | **Nicht gemessen:** Playwright schaltet den Pop-up-Blocker ab. Der Pfad „kein `hello` ⇒ blockiert“ ist per E2E mit überschriebenem `window.open` belegt, nicht gegen einen echten Blocker. |
 | Hyprland/Wayland: Fensterposition und -platzierung | **Nicht gemessen** (kein Compositor in der Testumgebung). Annahme laut Plan: das Programm darf seine Position nicht setzen, den Ort bestimmt der Compositor (Fensterregel). Das gehört in Jans Live-Abnahme (AC-P34-13). |
 | Firefox | **Nicht gemessen** (nicht installiert). |
-| Window-Management-API (Bildschirmwahl) | **Nicht gemessen**; nur Chromium mit Berechtigung, optional (T34.11). |
+| Window-Management-API (Bildschirmwahl) | **Nicht gemessen und nicht gebaut**; nur Chromium mit Berechtigung, optional (T34.11). |
+| Zug über den Fensterrand | **Chromium (Playwright, echte Mausereignisse außerhalb des Viewports), gemessen:** die Ereignisse erreichen den erfassten Griff, `clientX < 0` wird erkannt, das Loslassen öffnet das Fenster (E2E `windows.spec.ts`). |
 
 Folge für die Ziehgeste (T34.11): sie wird gebaut, soweit Chromium es belegt, mit sichtbarem Rückfall auf den `⧉`-Knopf. Der Knopf ist die zugesicherte Funktion.
 

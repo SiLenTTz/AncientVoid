@@ -71,3 +71,29 @@
 .tool-pane-popout:hover {
   color: var(--accent);
 }
+
+/* Ziehgriff der Kachel (T34.11): nur Zeiger; die Tastatur nimmt ⧉. */
+.tile-grip {
+  flex: 1;
+  margin-inline: 8px;
+  color: var(--fg-faint);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-grip:active {
+  cursor: grabbing;
+}
+
+.tile.drag-out {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tile.drag-out .tile-grip {
+  color: var(--accent);
+}

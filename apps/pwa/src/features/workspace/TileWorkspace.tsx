@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { hostApi, type SessionRecord } from "../../shared/api.ts";
 import { SessionTail } from "../session/SessionTail.tsx";
 import type { Page } from "../../app/Dock.tsx";
+import { pointerOutside, type DropPoint } from "../windows/drag.ts";
 import type { CodeTarget } from "../../app/route.ts";
 import { closeTile, cycleLayout, focusTile, LAYOUT_LABELS, LAYOUTS, resizeTile, setLayout, swapWith, tileCount, tileFractions, visibleTiles, type Layout, type TileRef, type Workspace } from "./tiles.ts";
 
@@ -19,7 +20,7 @@ export function TileWorkspace({
   onPopout,
 }: {
   /** EPIC-P34 T34.10: die Session der Kachel in ein eigenes Fenster legen. */
-  onPopout?: (index: number) => void;
+  onPopout?: (index: number, drop?: DropPoint) => void;
   listCollapsed: boolean;
   onToggleList: () => void;
   ws: Workspace;
@@ -139,7 +140,7 @@ export function TileWorkspace({
             compact={compact && !(ws.layout === "1+2" && i === 0)}
             onFocus={() => i !== ws.focus && onChange(focusTile(ws, i))}
             onClose={() => onChange(closeTile(ws, i))}
-            {...(onPopout ? { onPopout: () => onPopout(i) } : {})}
+            {...(onPopout ? { onPopout: (drop?: DropPoint) => onPopout(i, drop) } : {})}
             onNavigate={onNavigate}
             {...(initialCode && ref?.sessionId === initialCode.sessionId ? { initialCode: initialCode.code } : {})}
           />
@@ -191,7 +192,7 @@ function Tile({
   onNavigate,
   initialCode,
 }: {
-  onPopout?: () => void;
+  onPopout?: (drop?: DropPoint) => void;
   initialCode?: CodeTarget;
   index: number;
   tileRef: TileRef | null;
@@ -204,6 +205,27 @@ function Tile({
 }) {
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [missing, setMissing] = useState(false);
+  // EPIC-P34 T34.11: am Griff aus dem Fenster ziehen. Der Zeiger bleibt erfasst, auch außerhalb des Fensters.
+  const [dragOut, setDragOut] = useState(false);
+  const startGrip = (e: PointerEvent) => {
+    if (!onPopout || e.button !== 0) return;
+    const grip = e.currentTarget as HTMLElement;
+    grip.setPointerCapture(e.pointerId);
+    const outside = (ev: PointerEvent) => pointerOutside(ev.clientX, ev.clientY, { width: window.innerWidth, height: window.innerHeight });
+    const move = (ev: PointerEvent) => setDragOut(outside(ev));
+    const end = (ev: PointerEvent, drop: boolean) => {
+      grip.removeEventListener("pointermove", move);
+      grip.removeEventListener("pointerup", up);
+      grip.removeEventListener("pointercancel", cancel);
+      setDragOut(false);
+      if (drop && outside(ev)) onPopout({ left: ev.screenX, top: ev.screenY });
+    };
+    const up = (ev: PointerEvent) => end(ev, true);
+    const cancel = (ev: PointerEvent) => end(ev, false);
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", up);
+    grip.addEventListener("pointercancel", cancel);
+  };
   useEffect(() => {
     setSession(null);
     setMissing(false);
@@ -220,7 +242,7 @@ function Tile({
 
   return (
     <section
-      class={`tile${focused ? " focused" : ""}`}
+      class={`tile${focused ? " focused" : ""}${dragOut ? " drag-out" : ""}`}
       data-tile={index + 1}
       aria-label={`Kachel ${index + 1}`}
       onPointerDownCapture={onFocus}
@@ -230,7 +252,12 @@ function Tile({
         <div class="tile-head">
           <span class="tile-no">{index + 1}</span>
           {onPopout && (
-            <button type="button" class="tile-popout" aria-label={`Kachel ${index + 1} in eigenem Fenster öffnen`} title="In eigenem Fenster öffnen" onClick={onPopout}>
+            <span class="tile-grip" aria-hidden="true" title="Aus dem Fenster ziehen: eigenes Fenster (Alternative: ⧉)" onPointerDown={startGrip}>
+              ⠿ {dragOut ? "Loslassen öffnet ein eigenes Fenster" : ""}
+            </span>
+          )}
+          {onPopout && (
+            <button type="button" class="tile-popout" aria-label={`Kachel ${index + 1} in eigenem Fenster öffnen`} title="In eigenem Fenster öffnen" onClick={() => onPopout()}>
               ⧉
             </button>
           )}

@@ -17,6 +17,7 @@ import { StatusBar } from "../features/shell/StatusBar.tsx";
 import { ToolPane } from "../features/shell/ToolPane.tsx";
 import { rememberSession } from "../features/shell/last-session.ts";
 import { PopoutShell } from "../features/windows/PopoutShell.tsx";
+import type { DropPoint } from "../features/windows/drag.ts";
 import { focusWindowFor, isPopoutWindow, onWindowMessage, openPopout, startWindowHub } from "../features/windows/windows.ts";
 import { detachTile, openInNewTile, openSession, parseWorkspace, reattach, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
 import type { Page } from "./Dock.tsx";
@@ -224,6 +225,7 @@ function Main() {
   const latest = useRef({ ws, changeWorkspace });
   latest.current = { ws, changeWorkspace };
   const [popoutNotice, setPopoutNotice] = useState("");
+  const [retryPopout, setRetryPopout] = useState<(() => void) | null>(null);
   useEffect(() => {
     const stop = startWindowHub();
     const off = onWindowMessage((msg) => {
@@ -237,11 +239,15 @@ function Main() {
     };
   }, []);
   const blockedNotice = "Das Fenster wurde nicht geöffnet. Der Browser blockiert Pop-ups für diese Seite — bitte erlauben und noch einmal versuchen.";
-  const popoutTile = async (index: number) => {
+  const popoutTile = async (index: number, drop?: DropPoint) => {
     const ref = latest.current.ws.slots[index];
     if (!ref) return;
-    const result = await openPopout({ kind: "session", sessionId: ref.sessionId, ...(ref.hostId ? { hostId: ref.hostId } : {}) });
-    if (result === "blocked") setPopoutNotice(blockedNotice);
+    const result = await openPopout({ kind: "session", sessionId: ref.sessionId, ...(ref.hostId ? { hostId: ref.hostId } : {}) }, drop);
+    if (result === "blocked") {
+      setPopoutNotice(blockedNotice);
+      // Rückfall der Ziehgeste: die Nutzeraktion kann abgelaufen sein — ein Klick auf den Knopf ist eine frische.
+      setRetryPopout(() => () => void popoutTile(index));
+    }
     else {
       setPopoutNotice("");
       latest.current.changeWorkspace(detachTile(latest.current.ws, index));
@@ -283,6 +289,18 @@ function Main() {
       {popoutNotice && (
         <div class="popout-notice" role="alert">
           {popoutNotice}{" "}
+          {retryPopout && (
+            <button
+              type="button"
+              class="btn"
+              onClick={() => {
+                setPopoutNotice("");
+                retryPopout();
+              }}
+            >
+              Fenster öffnen
+            </button>
+          )}{" "}
           <button type="button" class="link-btn" onClick={() => setPopoutNotice("")}>
             Schließen
           </button>
@@ -308,7 +326,7 @@ function Main() {
               }
               ws={ws}
               onChange={changeWorkspace}
-              onPopout={(index) => void popoutTile(index)}
+              onPopout={(index, drop) => void popoutTile(index, drop)}
               {...(route.view === "tail" && route.code ? { initialCode: { sessionId: route.session.id, code: route.code } } : {})}
               onNavigate={(page) => {
                 location.hash = pageHash(page);

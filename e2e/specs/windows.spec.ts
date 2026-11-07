@@ -99,4 +99,34 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     await expect(app.locator('[data-tile="1"] .session-topbar')).toBeVisible();
     expect(JSON.parse((await app.evaluate(() => localStorage.getItem("ancientvoid.workspace")))!).detached).toBeUndefined();
   });
+
+  test("AC-P34-9: eine Kachel am Griff aus dem Fenster ziehen öffnet sie in einem eigenen Fenster @desktop", async ({ app, hub, context }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Zieh Aufgabe" });
+    await card(app, "Zieh Aufgabe").click();
+    await expect(app.locator('[data-tile="1"] .session-topbar')).toBeVisible();
+    const grip = app.locator('[data-tile="1"] .tile-grip');
+    const box = (await grip.boundingBox())!;
+    const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+    // Innerhalb des Fensters losgelassen: nichts passiert.
+    await app.mouse.move(from.x, from.y);
+    await app.mouse.down();
+    await app.mouse.move(from.x + 200, from.y + 100, { steps: 6 });
+    await app.mouse.up();
+    await expect(app.locator('[data-tile="1"] .session-topbar')).toBeVisible();
+    expect(JSON.parse((await app.evaluate(() => localStorage.getItem("ancientvoid.workspace")))!).detached).toBeUndefined();
+
+    // Über den Fensterrand hinaus losgelassen: eigenes Fenster.
+    const popupP = context.waitForEvent("page");
+    await app.mouse.move(from.x, from.y);
+    await app.mouse.down();
+    await app.mouse.move(from.x - 40, from.y, { steps: 4 });
+    await app.mouse.move(-60, from.y, { steps: 8 });
+    await expect(app.locator('[data-tile="1"].drag-out')).toBeVisible();
+    await app.mouse.up();
+    const popup = await popupP;
+    await expect(popup.locator(".session-topbar")).toBeVisible();
+    await expect(app.locator('[data-tile="1"] .tile-empty')).toBeVisible();
+    await popup.close();
+  });
 });

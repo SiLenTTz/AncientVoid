@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import { dropFeatures, type DropPoint } from "./drag.ts";
 import { applyWindowMessage, parseWindowMessage, popoutUrl, pruneWindows, targetKey, WINDOW_CHANNEL, windowFor, type WindowMessage, type WindowRegistry, type WindowTarget } from "./protocol.ts";
 
 /**
@@ -83,7 +84,7 @@ const HELLO_WAIT_MS = 3000;
  * `noopener`: Das Fenster hat keinen Bezug zum Öffner (ein voller Tail bremst sonst den Haupt-Thread, K2); `window.open`
  * liefert dann immer `null`. Ob es aufging, zeigt allein das `hello` — bleibt es aus, blockiert der Browser Pop-ups.
  */
-export function openPopout(target: WindowTarget): Promise<PopoutResult> {
+export function openPopout(target: WindowTarget, drop?: DropPoint): Promise<PopoutResult> {
   const existing = windowFor(registry, target);
   if (existing) {
     postWindowMessage({ type: "focus", id: existing.id });
@@ -103,7 +104,7 @@ export function openPopout(target: WindowTarget): Promise<PopoutResult> {
       if (msg.type === "hello" && targetKey(msg.target) === key) finish("opened");
     });
     const timer = setTimeout(() => finish("blocked"), HELLO_WAIT_MS);
-    window.open(popoutUrl(target), "_blank", "popup,noopener,noreferrer");
+    window.open(popoutUrl(target), "_blank", dropFeatures(drop));
   });
 }
 
