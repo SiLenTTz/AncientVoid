@@ -37,7 +37,10 @@ export const RULES = [
  * Nur nachweislich gefälschte/platzhalterhafte Werte, nie "vielleicht echt".
  */
 const ALLOWED = new Set([
-  // (aktuell leer — ein Eintrag hier braucht einen Warum-Kommentar)
+  // Gepflanzter Test-Fake aus scripts/check-secrets.test.mjs (positive probe
+  // für die private-key-Regel): Standard-PEM-Header ohne Key-Body, im
+  // Testfile absichtlich enthalten — kein echtes Geheimnis.
+  "-----BEGIN OPENSSH PRIVATE KEY-----",
 ]);
 
 /**
