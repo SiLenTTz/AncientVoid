@@ -22,6 +22,15 @@ export class RpcError extends Error {
   }
 }
 
+/** BUG-0102: JSON-RPC „Internal error" trägt die eigentliche Ursache in
+ * `error.data` — ohne sie sieht der Nutzer nur die nackte Hülle. */
+function rpcErrorText(err: { message?: string; data?: unknown }): string {
+  const base = err.message ?? "ACP-Fehler";
+  const d = err.data;
+  const detail = typeof d === "string" ? d : d === undefined || d === null ? "" : JSON.stringify(d);
+  return detail && !base.includes(detail) ? `${base}: ${detail}` : base;
+}
+
 export class JsonRpcConnection {
   private nextId = 1;
   private buffer = "";
@@ -82,7 +91,7 @@ export class JsonRpcConnection {
   }
 
   private handleLine(line: string): void {
-    let msg: { id?: unknown; method?: unknown; params?: unknown; result?: unknown; error?: { code?: number; message?: string } };
+    let msg: { id?: unknown; method?: unknown; params?: unknown; result?: unknown; error?: { code?: number; message?: string; data?: unknown } };
     try {
       msg = JSON.parse(line) as typeof msg;
     } catch {
@@ -112,7 +121,7 @@ export class JsonRpcConnection {
       return;
     }
     this.pending.delete(msg.id as number);
-    if (msg.error) waiting.reject(new RpcError(msg.error.code ?? -32603, msg.error.message ?? "ACP-Fehler"));
+    if (msg.error) waiting.reject(new RpcError(msg.error.code ?? -32603, rpcErrorText(msg.error)));
     else waiting.resolve(msg.result);
   }
 }

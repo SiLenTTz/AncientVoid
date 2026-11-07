@@ -31,6 +31,27 @@ test.describe("Übersicht scrollt im Fenster-Layout", () => {
     expect(await app.evaluate(() => window.scrollY)).toBe(0);
   });
 
+  test("BUG-0103: im Desktop-Layout scrollt nur die Session-Liste, nie horizontal @desktop", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 1440, height: 900 });
+    for (let i = 0; i < 18; i++) {
+      await hub.createSession({ adapter: "dummy", prompt: `Übersicht ${i + 1}` });
+    }
+    await app.goto(`${hub.origin}/#/`);
+    await expect(app.locator(".split-list .dashboard .session-card")).toHaveCount(18);
+    const m = await app.evaluate(() => {
+      const scrolls = (el: Element) => {
+        const o = getComputedStyle(el).overflowY;
+        return (o === "auto" || o === "scroll") && el.scrollHeight > el.clientHeight + 1;
+      };
+      const col = document.querySelector(".split-list")!;
+      const list = document.querySelector(".split-list .dashboard")!;
+      return { colOverflow: getComputedStyle(col).overflowY, colScrolls: scrolls(col), listScrolls: scrolls(list), colX: col.scrollWidth > col.clientWidth + 1 };
+    });
+    expect(m.listScrolls, "die Session-Liste scrollt").toBe(true);
+    expect(m.colOverflow, "die Spalte darum scrollt nicht zusätzlich").toBe("hidden");
+    expect(m.colX, "nie horizontal").toBe(false);
+  });
+
   test("BUG-0099-Nachtrag: bei wenigen Sessions zeigt die Liste keine Scrollbar", async ({ app, hub }) => {
     for (let i = 0; i < 4; i++) {
       await hub.createSession({ adapter: "dummy", prompt: `Wenige ${i + 1}` });

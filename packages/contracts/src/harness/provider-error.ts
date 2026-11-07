@@ -40,7 +40,7 @@ export function classifyProviderError(raw: string, ref?: string): ProviderErrorI
   if (/\b40[13]\b|unauthori[sz]ed|forbidden|invalid.*(api.?key|token)|authentication|not logged in|login required/i.test(text)) {
     return { category: "auth", title: "Anmeldung beim Provider fehlgeschlagen", detail: `Die CLI ist nicht (mehr) angemeldet oder der Schlüssel ist ungültig. Am PC neu anmelden.${refNote}` };
   }
-  if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|fetch failed|network|socket hang up/i.test(text)) {
+  if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|fetch failed|network|socket hang up|could not connect|connection refused/i.test(text)) {
     return { category: "network", title: "Keine Verbindung zum Provider", detail: `Netzwerk oder DNS des Hubs prüfen, dann erneut senden.${refNote}` };
   }
   if (/unexpected server error|\b5\d\d\b|overloaded|internal server error|service unavailable|bad gateway/i.test(text)) {
