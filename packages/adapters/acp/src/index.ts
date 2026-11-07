@@ -197,6 +197,9 @@ interface AgentSession {
   busy: boolean;
   mapper: UpdateMapper;
   healthy: boolean;
+  /** Stop läuft (stop() tötet den Prozess): der Exit macht die Session dann
+   * absichtlich zu — nicht weckbar (EPIC-P35, dormant-on-exit). */
+  stopping?: boolean;
   /** From initialize: the agent takes image content blocks. */
   images: boolean;
   /** Tool calls seen in updates — some agents (dsh) ask with the id only. */
@@ -360,7 +363,17 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         ctx.emit({ type: "system", summary: `${label}: ${state.queued.length} wartende Nachricht(en) verworfen — Agent-Prozess beendet`, payload: { kind: "acp.queued_dropped", count: state.queued.length } });
         state.queued = [];
       }
-      if (sessions.get(sessionId) === state) sessions.delete(sessionId);
+      if (sessions.get(sessionId) === state) {
+        sessions.delete(sessionId);
+        // EPIC-P35: endet der Agent zwischen Zügen von selbst (opencode acp
+        // tat das nach dem geladenen Zug, live 07.11.2026), bleibt die Session
+        // weckbar (BUG-0060-Weg): der nächste Prompt startet den Agenten und
+        // lädt die Konversation — statt „Session neu starten“.
+        if (state.acpSessionId && !state.stopping) {
+          dormant.set(sessionId, { native: state.acpSessionId });
+          ctx.emit({ type: "system", summary: `${label}: Agent-Prozess beendet — startet mit dem nächsten Prompt erneut`, payload: { kind: "acp.dormant_exit", nativeSessionId: state.acpSessionId } });
+        }
+      }
     });
     sessions.set(sessionId, state);
     return state;
@@ -621,11 +634,17 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // this adapter's protocol — start({args:{resumeSessionId}}) without a
         // prompt loads the old conversation (session/load, ADR-0041 live
         // 2026-10-28: history imported, answered from the adopted context).
+        // EPIC-P35 (07.11.2026): opencode meldet loadSession im Handshake und
+        // lädt promptlos (live: Resume lud die Konversation, Kontext da). Der
+        // Agent endet danach von selbst — seitdem macht dormant-on-exit die
+        // Session weckbar: der nächste Prompt startet ihn und lädt erneut
+        // (live zweimal belegt, Codewort aus dem Vorzug erinnert).
         // hub:true frees the PWA's „Weitermachen"; argv stays display-only
-        // (ADR-0036) with the CLI's real --resume flag. Presets without that
-        // evidence stay undeclared — the honest state, continuable via prompt.
-        ...(cfg.preset === "maki" || cfg.preset === "omp"
-          ? { resume: { argv: [command?.[0] ?? cfg.preset, "--resume", "{sessionId}"], ref: "native" as const, hub: true as const } }
+        // (ADR-0036) with the CLI's real --session flag. Presets without that
+        // evidence (dsh, copilot, custom) stay undeclared — the honest state,
+        // continuable via prompt.
+        ...(cfg.preset === "maki" || cfg.preset === "omp" || cfg.preset === "opencode"
+          ? { resume: { argv: [command?.[0] ?? cfg.preset, cfg.preset === "opencode" ? "--session" : "--resume", "{sessionId}"], ref: "native" as const, hub: true as const } }
           : {}),
         // ADR-0018: tools are asked per call through request_permission —
         // as far as the agent asks (see the presets and docs/harness-matrix.md).
@@ -771,6 +790,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       dormant.delete(handle.sessionId);
       const state = sessions.get(handle.sessionId);
       if (!state) return;
+      state.stopping = true;
       if (state.acpSessionId) state.conn.notify("session/cancel", { sessionId: state.acpSessionId });
       await state.proc.kill("SIGTERM");
       await state.proc.kill("SIGKILL");
