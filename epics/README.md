@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P34)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P35)
 
 **Erstellt:** 12.09.2026 · **Basis:** PRD AncientVoid v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
@@ -82,7 +82,7 @@ Statuszeilen gelten nicht als aktueller Abschlussnachweis.
 | [P32 — Mobile-Client-Entscheidung](EPIC-P32-mobile-client-entscheidung.md) | Gerätebefund + Go/No-go; optional interne Android-Shell | P31 grün, P12/P16 geprüft | 0,5–1; optional +2–4 |
 | [P33 — Englischer Einstieg](EPIC-P33-englische-einstiegsdokumentation.md) | Bedarfsentscheid, README/Contracts/Quickstart; keine Publikation | P32-Exit ausdrücklich abgenommen | 0,5–1,5 |
 
-Neue Kette: **P27 → P28 → P29 → P34 → P30 → P31 → P32 → P33** (P34 auf Entscheidung vom 2026-11-07 eingeschoben, siehe unten; P30 wartet damit zusätzlich auf P34).
+Neue Kette: **P27 → P28 → P29 → P34 → P35 → P30 → P31 → P32 → P33** (P34 auf Entscheidung vom 2026-11-07 eingeschoben, P35 auf Auftrag vom 2026-11-07, siehe unten; P30 wartet damit zusätzlich auf P34 und P35).
 Bei P32/P33 ist ein dokumentierter Evaluations-Exit (No-go/vertagt) vom
 Implementierungsabschluss getrennt. Keine Antwort ist kein Go. Bei P32-Go
 wartet P33 auch auf den Implementierungs-Exit; bei Vertagung muss der gültige
@@ -96,6 +96,17 @@ startet, sobald P29 abgeschlossen ist; P30 wartet auf P34.
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
 | [P34 — Arbeitsfläche und eigene Fenster](EPIC-P34-arbeitsflaeche-und-fenster.md) | Navigation bereinigt, Einstellungen neu mit Farbwähler und Schriftwahl, Session-Erkennung mit echten Projekten plus Codex/Hermes und neuem Design, Kacheln und Werkzeuge als eigene Fenster — **umgesetzt, Gate grün; Live-Abnahme AC-P34-13 (Jan) offen** | P29 grün (P18/P20/P22/P23 als Basis) | 2–3 |
+
+## Harness-Parität — eingeplant am 2026-11-07
+
+Auftrag von Jan nach Nutzermeldung (Resume-Probleme, Popout-Ränder,
+gewählter Harness startete nicht, Inventar-Zellen unbelegt). P35 schließt an
+die P34-Implementierung an; die offene Live-Abnahme AC-P34-13 wird gemeinsam
+mit der P35-Abnahme gemacht. P30/P31 bauen auf dem P35-Contract-Muster auf.
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P35 — Harness-Parität: Fortsetzen, Erkennung, Provider-Modularität](EPIC-P35-harness-paritaet-fortsetzen-provider.md) | „Weitermachen“ mit Live-Beleg je CLI (oder ehrlich begründet), Discovery-Lücken belegt oder begründet, Popout-Vollfläche, gewählter Harness startet tatsächlich, Modell-/Custom-Provider-Muster als Contract-Standard (Fundament für P30/P31) | P34-Implementierung grün (Live-Abnahme AC-P34-13 gemeinsam) | 2–3 |
 
 ## Reihenfolge & Gating
 
