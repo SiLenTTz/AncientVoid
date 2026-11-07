@@ -387,6 +387,64 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE sessions ADD COLUMN persistent_worker INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    id: 27,
+    name: "workspace-manifest-approvals",
+    // EPIC-P29 T29.2 (ADR-0051 §2): menschliche Hash-Freigabe pro Projekt —
+    // ein geänderter Manifest-Hash braucht eine neue Zustimmung.
+    sql: `
+      CREATE TABLE workspace_manifest_approvals (
+        project TEXT NOT NULL,
+        manifest_hash TEXT NOT NULL,
+        base_sha TEXT NOT NULL,
+        approved_by TEXT NOT NULL,
+        approved_at TEXT NOT NULL,
+        PRIMARY KEY (project, manifest_hash)
+      );
+    `,
+  },
+  {
+    id: 28,
+    name: "workspace-operations",
+    // EPIC-P29 T29.3 (ADR-0051 §3): Setup/Retry/Teardown als persistente
+    // Operationen. `dispatching` überlebt den Crash — Recovery markiert
+    // `uncertain` (needs_attention), niemals wird blind neu ausgeführt.
+    sql: `
+      CREATE TABLE workspace_operations (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        state TEXT NOT NULL,
+        manifest_hash TEXT NOT NULL,
+        step TEXT,
+        actor TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE INDEX workspace_operations_session ON workspace_operations (session_id, created_at);
+    `,
+  },
+  {
+    id: 29,
+    name: "workspace-services",
+    // EPIC-P29 T29.4 (ADR-0051 §4): Eigentumsnachweis je Service — pid+argv+
+    // Umgebungsmarker; die Portnummer allein ist keiner. `probing` = Readiness
+    // wird nach dem K7-Restore asynchron geprüft.
+    sql: `
+      CREATE TABLE workspace_services (
+        session_id TEXT NOT NULL,
+        service_id TEXT NOT NULL,
+        pid INTEGER NOT NULL,
+        argv TEXT NOT NULL,
+        port INTEGER,
+        readiness_path TEXT,
+        state TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (session_id, service_id)
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

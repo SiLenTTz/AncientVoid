@@ -39,6 +39,10 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (/^\/api\/sessions\/[^/]+\/budget$/.test(path)) return "sessions.budget";
   if (/^\/api\/sessions\/[^/]+\/apply$/.test(path)) return "sessions.apply";
   if (/^\/api\/sessions\/[^/]+\/(archive|meta)$/.test(path)) return "sessions.archive";
+  // EPIC-P29 T29.6: Workspace-Retry führt genehmigte argv erneut aus —
+  // nur ein Mensch (ADR-0051 §3); Preview-Ticket ebenso an die Person gebunden.
+  if (/^\/api\/sessions\/[^/]+\/workspace\/retry$/.test(path)) return "workspace.retry";
+  if (/^\/api\/sessions\/[^/]+\/workspace\/services\/[^/]+\/preview-ticket$/.test(path)) return "workspace.preview";
   if (/^\/api\/approvals\/[^/]+\/(decide|webauthn\/)/.test(path)) return "approvals.decide";
   if (path.startsWith("/api/tokens") || path.startsWith("/api/webauthn/register")) return "tokens.manage";
   if (path === "/api/fleet/pairing") return "fleet.unpair";

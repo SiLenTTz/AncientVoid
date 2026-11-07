@@ -1,4 +1,4 @@
-import type { LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket } from "@ancientvoid/contracts";
+import type { LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -873,6 +873,16 @@ function createHubApi(P: (path: string) => string) {
   },
   resumeSession: (id: string) =>
     api<{ ok: boolean; detail?: string }>(P(`/api/sessions/${id}/resume`), { method: "POST", body: "{}" }),
+  /** EPIC-P29 T29.6: Workspace-Status (K7-Projektion), Logs, menschlicher Retry, Preview-Ticket. */
+  workspaceStatus: (id: string) => api<WorkspaceStatus>(P(`/api/sessions/${id}/workspace`)),
+  workspaceServiceLogs: (id: string, serviceId: string) =>
+    api<WorkspaceServiceLogs>(P(`/api/sessions/${id}/workspace/services/${encodeURIComponent(serviceId)}/logs`)),
+  workspaceRetry: (id: string) =>
+    api<{ ok: boolean; detail?: string }>(P(`/api/sessions/${id}/workspace/retry`), { method: "POST", body: "{}" }),
+  workspacePreviewTicket: (id: string, serviceId: string) =>
+    api<WorkspacePreviewTicket>(P(`/api/sessions/${id}/workspace/services/${encodeURIComponent(serviceId)}/preview-ticket`), { method: "POST", body: "{}" }),
+  /** Die Proxy-Basis für iframes: Ticket statt Bearer (ADR-0051 §6). */
+  workspaceProxyBase: (id: string, serviceId: string) => P(`/api/sessions/${id}/workspace/services/${encodeURIComponent(serviceId)}/proxy`),
   stopSession: (id: string) =>
     api<{ ok: boolean }>(P(`/api/sessions/${id}/stop`), { method: "POST", body: "{}" }),
   /** T8.6: rename and pin. */

@@ -51,6 +51,10 @@ export const POLICY_OPERATIONS = [
   "sessions.budget",
   "sessions.apply",
   "sessions.archive",
+  /** EPIC-P29 T29.6: Setup-Retry führt genehmigte argv erneut aus — der Mensch entscheidet (ADR-0051 §3). */
+  "workspace.retry",
+  /** EPIC-P29 T29.6: Preview-Ticket für einen registrierten Service — das Handy des Menschen (auch via Fleet). */
+  "workspace.preview",
   "approvals.decide",
   "tokens.manage",
   "fleet.manage",
@@ -93,6 +97,10 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "sessions.budget": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny", display: "deny" },
   "sessions.apply": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   "sessions.archive": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
+  /** T29.6/ADR-0051 §3: „Retry nur menschlich" — keine zweite Ausführung durch Agenten, Displays oder die Fleet. */
+  "workspace.retry": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
+  /** T29.6/ADR-0051 §6: Preview eines registrierten Service — ein Mensch (ggf. über den Heim-Hub), sonst niemand. */
+  "workspace.preview": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   "approvals.decide": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "allow" },
   "tokens.manage": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   "fleet.manage": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },

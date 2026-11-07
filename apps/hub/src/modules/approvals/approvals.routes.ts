@@ -87,8 +87,9 @@ export function registerApprovalsRoutes(app: FastifyInstance, ctx: RouteContext)
       await deps.sessions.applyApprovedSteer(result.request!.id, identity.label).catch((err) => {
         req.log.error({ err }, "applyApprovedSteer failed after a real approval");
       });
-    } else if (result.request!.status === "approved" && ["session.create", "session.stop", "session.park"].includes(result.request!.action)) {
-      // T7.4: an agent's request, released by this human.
+    } else if (result.request!.status === "approved" && ["session.create", "session.stop", "session.park", "workspace.setup"].includes(result.request!.action)) {
+      // T7.4: an agent's request, released by this human. EPIC-P29: auch die
+      // Manifest-Freigabe — Setup läuft, dann startet der Agent (ADR-0051 §2).
       await deps.sessions.applyApproved(result.request!.id, identity.label).catch((err) => {
         req.log.error({ err }, "applyApproved failed after a real approval");
       });
