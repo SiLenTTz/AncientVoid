@@ -13,7 +13,7 @@
  * „es passiert nichts“ war der Nutzerfund 2026-10-30. */
 .loop-block.warn {
   color: var(--warn, #d29922);
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
 }
 
 /* EPIC-P19 T19.6: Kopf-Abzeichen und Loop-Panel in der Session */

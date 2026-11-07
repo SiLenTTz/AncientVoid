@@ -90,7 +90,7 @@ export function WorktreeCard({
   const openInEditor = host ? `code --remote ssh-remote+${host} ${shellQuote(worktree.path)}` : `code ${shellQuote(worktree.path)}`;
   return (
     <div class="card worktree-card">
-      <div class="dim" style="font-size: 12px; margin-bottom: 6px">
+      <div class="dim" style="font-size: calc(12px * var(--font-scale, 1)); margin-bottom: 6px">
         Die Änderungen dieser Session liegen in einem eigenen Git-Worktree{host ? ` auf ${host}` : ""}, nicht in {project.split("/").pop()}.
         Branch <span class="mono">{worktree.branch}</span>.
       </div>
@@ -104,7 +104,7 @@ export function WorktreeCard({
       </div>
       {confirming ? (
         <div class="apply-confirm">
-          <div class="dim" style="font-size: 12px">
+          <div class="dim" style="font-size: calc(12px * var(--font-scale, 1))">
             Committet alle Änderungen auf {worktree.branch} und merged sie in den ausgecheckten Branch von {projectName}.
           </div>
           <div class="row" style="gap: 8px">
@@ -145,14 +145,14 @@ export function ContinueCard({ openCmd, host = null }: { openCmd?: string | unde
   const link = typeof location === "undefined" ? "" : location.href;
   return (
     <div class="card continue-card">
-      <div class="dim" style="font-size: 12px; margin-bottom: 6px">Weiterarbeiten auf einem anderen Gerät</div>
+      <div class="dim" style="font-size: calc(12px * var(--font-scale, 1)); margin-bottom: 6px">Weiterarbeiten auf einem anderen Gerät</div>
       <div class="attach-cmd-row">
         <code class="mono continue-link">{link}</code>
         <CopyButton text={link} />
       </div>
       {openCmd ? (
         <>
-          <div class="dim" style="font-size: 12px; margin: 8px 0 6px">
+          <div class="dim" style="font-size: calc(12px * var(--font-scale, 1)); margin: 8px 0 6px">
             {host ? `Im Terminal, per SSH auf ${host}` : "Im Terminal am PC"}, dieselbe Provider-Session. Solange sie dort läuft, hier nichts senden.
           </div>
           <div class="attach-cmd-row">
@@ -161,7 +161,7 @@ export function ContinueCard({ openCmd, host = null }: { openCmd?: string | unde
           </div>
         </>
       ) : (
-        <div class="dim continue-none" style="font-size: 11px; margin-top: 6px">
+        <div class="dim continue-none" style="font-size: calc(11px * var(--font-scale, 1)); margin-top: 6px">
           Terminal-Befehl erscheint zwischen zwei Zügen, sobald die Provider-Session bekannt ist.
         </div>
       )}
@@ -183,7 +183,7 @@ export function AttachCmdRow({ cmd }: { cmd: string }) {
   };
   return (
     <div class="card attach-cmd-card">
-      <div class="dim" style="font-size: 12px; margin-bottom: 6px">
+      <div class="dim" style="font-size: calc(12px * var(--font-scale, 1)); margin-bottom: 6px">
         Am Desktop weiterarbeiten — dieselbe Session, nicht eine Kopie. Funktioniert
         sicher, während der Agent gerade aktiv einen Zug ausführt; dazwischen evtl.
         „session not found", falls gerade kein Prozess läuft:

@@ -1,6 +1,6 @@
 /* T9.4: one text entry for the hub (✦, Ctrl/Cmd+K). A dialog on purpose. */
 .command-open {
-  font-size: 18px;
+  font-size: calc(18px * var(--font-scale, 1));
   min-width: 40px;
   min-height: 40px;
 }
@@ -41,7 +41,7 @@
 
 .command-field {
   flex-basis: 100%;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
 }
 
 .command-refusal {
@@ -73,7 +73,7 @@
 
 .command-risk {
   flex: 0 0 auto;
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale, 1));
   padding: 1px 6px;
   border-radius: var(--radius-sm);
   background: var(--bg-chip);
@@ -90,7 +90,7 @@
 }
 
 .command-planner {
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale, 1));
 }
 
 .command-result.ok {
@@ -110,7 +110,7 @@
 .command-before,
 .command-after {
   white-space: pre-wrap;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   padding: 6px 8px;
   border-radius: var(--radius);
   background: var(--bg);

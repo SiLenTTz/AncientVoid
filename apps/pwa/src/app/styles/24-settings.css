@@ -37,7 +37,7 @@
 .settings-section h3 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--fg-dim);
@@ -60,7 +60,7 @@
 .settings-intro {
   margin: 0;
   padding: 10px 0;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   border-bottom: 1px solid var(--bg-chip);
 }
 
@@ -71,7 +71,7 @@
   gap: 12px;
   padding: 10px 0;
   border-bottom: 1px solid var(--bg-chip);
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
 }
 
 .settings-body > :last-child {
@@ -89,7 +89,7 @@
 }
 
 .setting-hint {
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale, 1));
   overflow-wrap: anywhere;
 }
 
@@ -222,7 +222,7 @@
   background: var(--bg);
   color: var(--fg-dim);
   font: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   cursor: pointer;
 }
 
@@ -248,7 +248,7 @@
 
 .setting-details > summary {
   padding: 10px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   cursor: pointer;
 }
 

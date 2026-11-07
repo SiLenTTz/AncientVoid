@@ -24,7 +24,7 @@
 
 /* ADR-0018: how tools are released — a warning when they run unasked. */
 .tool-gate {
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
 }
 .tool-gate.warn {
   color: var(--warn);
@@ -41,7 +41,7 @@
 
 .attach-cmd-row code {
   flex: 1;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   white-space: nowrap;
 }
 
@@ -52,7 +52,7 @@
 .inventory-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
 }
 .inventory-table th,
 .inventory-table td {
@@ -84,7 +84,7 @@
   border-top: 1px solid var(--bg-chip);
   color: var(--fg-dim);
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   line-height: 1;
   padding: 4px 0;
   min-height: 24px;
@@ -117,7 +117,7 @@
 .push-device {
   padding: 6px 0;
   border-top: 1px solid var(--bg-chip);
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
 }
 
 /* ADR-0040: Entdeckung zeigt Titel und letzte Nachricht statt Rohdaten-IDs. */
@@ -126,5 +126,5 @@
 .discovery-preview { margin: 2px 0 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .discovery-actions { gap: 8px; justify-content: flex-start; margin-top: 6px; }
 .chip.live { color: var(--warn); border-color: var(--warn); }
-.discovery-id { overflow-wrap: anywhere; font-size: 11px; }
-.discovery-hint { font-size: 12px; margin-top: 6px; }
+.discovery-id { overflow-wrap: anywhere; font-size: calc(11px * var(--font-scale, 1)); }
+.discovery-hint { font-size: calc(12px * var(--font-scale, 1)); margin-top: 6px; }

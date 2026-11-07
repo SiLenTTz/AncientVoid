@@ -108,7 +108,7 @@ a {
 
 .topbar h1 {
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: calc(15px * var(--font-scale, 1));
   font-weight: 700;
   margin: 0;
   letter-spacing: var(--tracking-label);
@@ -212,7 +212,7 @@ a {
   padding: 4px 8px;
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   margin-right: 6px;
 }
 
@@ -279,7 +279,7 @@ a {
 
 .tile-keys {
   margin-left: auto;
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale, 1));
 }
 
 .tile-glyph {
@@ -380,7 +380,7 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 4px 0 0;
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale, 1));
   color: var(--fg-faint);
 }
 
@@ -392,7 +392,7 @@ a {
   background: none;
   border: none;
   color: var(--fg-dim);
-  font-size: 16px;
+  font-size: calc(16px * var(--font-scale, 1));
   line-height: 1;
   padding: 2px 6px;
   cursor: pointer;
@@ -422,6 +422,6 @@ a {
   border-radius: 999px;
   background: var(--accent, #2f81f7);
   color: #fff;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   pointer-events: none;
 }

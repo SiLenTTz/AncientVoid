@@ -1,7 +1,7 @@
 /* T1.5-10 skill/agent picker + overlay */
 .skill-chip {
   text-align: left;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
 }
 
 .overlay-backdrop {

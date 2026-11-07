@@ -62,21 +62,21 @@
 .voice-state {
   text-align: center;
   font-weight: 700;
-  font-size: 15px;
+  font-size: calc(15px * var(--font-scale, 1));
   margin: 4px 0 2px;
 }
 
 .voice-example {
   text-align: center;
   color: var(--fg-dim);
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   margin: 0 0 10px;
 }
 
 .preview-tag {
   display: block;
   text-align: center;
-  font-size: 10px;
+  font-size: calc(10px * var(--font-scale, 1));
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -133,14 +133,14 @@
   border: none;
   color: var(--fg-dim);
   font: inherit;
-  font-size: 10.5px;
+  font-size: calc(10.5px * var(--font-scale, 1));
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
 }
 
 .dock-item .ic {
-  font-size: 17px;
+  font-size: calc(17px * var(--font-scale, 1));
 }
 
 .dock-item.active {
@@ -154,7 +154,7 @@
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px solid var(--bg-chip);
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
 }
 
 .settings-row:last-of-type {
@@ -169,7 +169,7 @@
 .session-topbar .back-btn {
   flex: 0 0 auto;
   padding: 6px 10px;
-  font-size: 18px;
+  font-size: calc(18px * var(--font-scale, 1));
   line-height: 1;
 }
 
@@ -181,7 +181,7 @@
 }
 
 .session-top-meta {
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -214,7 +214,7 @@
   min-height: 44px;
   display: grid;
   place-items: center;
-  font-size: 20px;
+  font-size: calc(20px * var(--font-scale, 1));
   border-radius: var(--radius);
 }
 

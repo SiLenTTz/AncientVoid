@@ -138,7 +138,7 @@ function AttachmentViewer({ attachment, onClose }: { attachment: AttachmentRef; 
           <div class="dim">lädt…</div>
         ) : text.text ? (
           <>
-            <div class="dim" style="font-size: 11px">Ausgelesen · {extractionLabel(text)}</div>
+            <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">Ausgelesen · {extractionLabel(text)}</div>
             <pre class="attachment-text">{text.text}</pre>
           </>
         ) : (

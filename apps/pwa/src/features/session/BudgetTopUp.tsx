@@ -57,7 +57,7 @@ export function BudgetTopUp({ sessionId, currentBudgetUsd }: { sessionId: string
       <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy}>
         {busy ? "lädt…" : "Budget erhöhen"}
       </button>
-      {message && <div class="dim" style="font-size: 12px">{message}</div>}
+      {message && <div class="dim" style="font-size: calc(12px * var(--font-scale, 1))">{message}</div>}
     </div>
   );
 }

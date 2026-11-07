@@ -240,7 +240,7 @@ export function VoiceSheet({ open, onClose }: { open: boolean; onClose: () => vo
             „{cmd}"
           </button>
         ))}
-        <p class="dim" style="margin: 6px 0 0; font-size: 12px">
+        <p class="dim" style="margin: 6px 0 0; font-size: calc(12px * var(--font-scale, 1))">
           Alles, was die Texteingabe (✦) versteht, geht auch gesprochen. Freigaben und Schlüssel bleiben ein Tippen.
         </p>
       </div>

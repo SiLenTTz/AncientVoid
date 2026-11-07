@@ -413,11 +413,11 @@ export function Composer({
       {preview && (
         <div class="enhance-preview">
           <div class="enhance-preview-col">
-            <div class="dim" style="font-size: 11px">Original</div>
+            <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">Original</div>
             <div class="enhance-preview-text">{preview.original}</div>
           </div>
           <div class="enhance-preview-col">
-            <div class="dim" style="font-size: 11px">
+            <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
               Verbessert
               {preview.costUsd !== undefined ? ` · $${preview.costUsd.toFixed(4)}` : ""} ·{" "}
               {(preview.latencyMs / 1000).toFixed(1)}s
@@ -437,13 +437,13 @@ export function Composer({
 
       {recommendation && (
         <div class="recommend-card">
-          <div class="dim" style="font-size: 11px">
+          <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
             {recommendation.mode === "match" ? `Empfehlung · ${kindLabel}` : `Vorschlag · ${kindLabel} anlegen`}
           </div>
           <strong>{recommendation.name}</strong>
-          <div class="dim" style="font-size: 12px">{recommendation.description}</div>
-          <div class="dim" style="font-size: 11px">{recommendation.reason}</div>
-          <div class="dim" style="font-size: 11px">{recommendNote}</div>
+          <div class="dim" style="font-size: calc(12px * var(--font-scale, 1))">{recommendation.description}</div>
+          <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">{recommendation.reason}</div>
+          <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">{recommendNote}</div>
           {recommendError && <div class="composer-notice err">{recommendError}</div>}
           <div class="row">
             <button class="btn" type="button" disabled={recommendBusy} onClick={() => setRecommendation(null)}>

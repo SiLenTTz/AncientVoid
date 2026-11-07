@@ -263,7 +263,7 @@ export function CreateSession({
             ))}
           </select>
         ) : (
-          <span class="dim" style="font-size: 11px">
+          <span class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
             keine Projekt-Wurzeln konfiguriert — siehe docs/configuration.md
           </span>
         )}

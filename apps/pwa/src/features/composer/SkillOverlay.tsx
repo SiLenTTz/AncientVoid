@@ -155,9 +155,9 @@ export function SkillPicker({
                   >
                     <div class="row" style="justify-content: space-between">
                       <strong>{item.name}</strong>
-                      <span class="dim" style="font-size: 10px">{item.kind}</span>
+                      <span class="dim" style="font-size: calc(10px * var(--font-scale, 1))">{item.kind}</span>
                     </div>
-                    <div class="dim" style="font-size: 11px">{item.description}</div>
+                    <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">{item.description}</div>
                   </button>
                 ))}
               </div>
