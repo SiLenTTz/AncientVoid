@@ -47,6 +47,20 @@ describe("acp adapter (T7.2)", () => {
     expect(() => createAdapter({})).toThrow("preset");
   });
 
+  it("BUG-0101: maki/omp deklarieren natives Hub-Resume (ADR-0041-Beleg, ADR-0044-Opt-in)", () => {
+    // start({args:{resumeSessionId}}) ohne Prompt lädt die alte Konversation
+    // (session/load) — der belegte Pfad darf „Weitermachen" freischalten.
+    expect(createAdapter({ preset: "maki" }).capabilities().resume).toEqual({ argv: ["maki", "--resume", "{sessionId}"], ref: "native", hub: true });
+    expect(createAdapter({ preset: "omp" }).capabilities().resume).toEqual({ argv: ["omp", "--resume", "{sessionId}"], ref: "native", hub: true });
+    // ein eigener Aufruf zeigt die echte Binary im Anzeige-Template
+    expect(createAdapter({ preset: "maki", command: ["maki-nightly", "acp"] }).capabilities().resume).toEqual({ argv: ["maki-nightly", "--resume", "{sessionId}"], ref: "native", hub: true });
+    // ohne Beleg keine Deklaration — das ist der ehrliche Zustand (ADR-0036)
+    expect(createAdapter({ preset: "dsh" }).capabilities().resume).toBeUndefined();
+    expect(createAdapter({ preset: "copilot" }).capabilities().resume).toBeUndefined();
+    expect(createAdapter({ preset: "opencode" }).capabilities().resume).toBeUndefined();
+    expect(createAdapter({ command: [agent] }).capabilities().resume).toBeUndefined();
+  });
+
   it("a turn: whole messages (not token events), thinking, native id, turn signals, tokens", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });

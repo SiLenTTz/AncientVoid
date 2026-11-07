@@ -617,6 +617,16 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
             : {}),
         nativeDiscovery: "none",
         nativeResume: "none",
+        // BUG-0101/ADR-0044: maki and omp continue a recorded session through
+        // this adapter's protocol — start({args:{resumeSessionId}}) without a
+        // prompt loads the old conversation (session/load, ADR-0041 live
+        // 2026-10-28: history imported, answered from the adopted context).
+        // hub:true frees the PWA's „Weitermachen"; argv stays display-only
+        // (ADR-0036) with the CLI's real --resume flag. Presets without that
+        // evidence stay undeclared — the honest state, continuable via prompt.
+        ...(cfg.preset === "maki" || cfg.preset === "omp"
+          ? { resume: { argv: [command?.[0] ?? cfg.preset, "--resume", "{sessionId}"], ref: "native" as const, hub: true as const } }
+          : {}),
         // ADR-0018: tools are asked per call through request_permission —
         // as far as the agent asks (see the presets and docs/harness-matrix.md).
         // T7.10: images as content blocks when the agent says it takes them,
