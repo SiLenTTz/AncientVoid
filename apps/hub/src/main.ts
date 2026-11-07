@@ -41,7 +41,11 @@ import {
   cursorDiscoverySource,
   defaultClaudeDir,
   defaultCursorUserDir,
+  codexDiscoverySource,
+  defaultCodexDir,
+  defaultHermesDir,
   defaultMakiDir,
+  hermesDiscoverySource,
   defaultOmpDir,
   defaultOpencodeDataDir,
   defaultPiDir,
@@ -80,6 +84,11 @@ function discoverySources(config: HubConfig, claudeLive: ClaudeLive): DiscoveryS
   if (config.discovery.ompDir || existsSync(ompDir)) sources.push(piFamilyDiscoverySource("omp", ompDir, config.projectRoots));
   const makiDir = config.discovery.makiDir ? resolve(config.discovery.makiDir) : defaultMakiDir();
   if (config.discovery.makiDir || existsSync(makiDir)) sources.push(makiDiscoverySource(makiDir, config.projectRoots));
+  // EPIC-P34 T34.8: Codex und Hermes, ebenfalls nur lesend.
+  const codexDir = config.discovery.codexDir ? resolve(config.discovery.codexDir) : defaultCodexDir();
+  if (config.discovery.codexDir || existsSync(codexDir)) sources.push(codexDiscoverySource(codexDir, config.projectRoots));
+  const hermesDir = config.discovery.hermesDir ? resolve(config.discovery.hermesDir) : defaultHermesDir();
+  if (config.discovery.hermesDir || existsSync(hermesDir)) sources.push(hermesDiscoverySource(hermesDir, config.projectRoots));
   return sources;
 }
 

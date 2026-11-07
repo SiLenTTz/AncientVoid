@@ -10,8 +10,7 @@ import {
 } from "@ancientvoid/contracts";
 import { readClaudeMeta } from "./claude-meta.ts";
 import type { ClaudeLive } from "./claude-live.ts";
-import { classifyProject, type ProjectOrigin } from "./project-origin.ts";
-import { outsideRoots } from "./text.ts";
+import { classifyProject, clearTemporaryUnderRoots, type ProjectOrigin } from "./project-origin.ts";
 
 /** ADR-0040: a transcript written this recently is probably open in another harness. */
 export const LIVE_WINDOW_MS = 90_000;
@@ -410,19 +409,7 @@ export function claudeDiscoverySource(claudeDir: string, knownProjectRoots: read
         }
         item.project = project;
       }
-      // EPIC-P34: ein Pfad unter einer konfigurierten Wurzel ist Arbeit des Nutzers, auch wenn die Wurzel selbst unter /tmp liegt.
-      for (const item of items) {
-        if (!item.temporary) continue;
-        // Ein nicht zurückgeführter Ordnername wird über das gemungte Wurzel-Präfix zugeordnet (wie im Filter unten).
-        const ownWork = knownProjectRoots.some((root) => {
-          const abs = resolve(root);
-          const munged = abs.replace(/[^a-zA-Z0-9]/g, "-");
-          // Fabrik-Kopien bleiben Rauschen, auch unter einer Wurzel; nur der Ort (/tmp) wird durch die Wurzel aufgehoben.
-          if (!outsideRoots(item.project, [abs])) return !item.project.slice(abs.length).split("/").some((seg) => seg.startsWith("harnez-exec-"));
-          return (item.project.startsWith("-") && (item.project === munged || item.project.startsWith(`${munged}-`)));
-        });
-        if (ownWork) item.temporary = false;
-      }
+      clearTemporaryUnderRoots(items, knownProjectRoots);
       // Same policy as opencode (ADR-0011): sessions outside the configured
       // roots are other people's business — hide them, but only when roots
       // are configured at all. Unresolved munged names are judged by their

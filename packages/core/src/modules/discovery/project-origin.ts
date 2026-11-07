@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { outsideRoots } from "./text.ts";
 
 /**
  * EPIC-P34 T34.7: wo eine Session wirklich hingehört. Das Arbeitsverzeichnis (`cwd`) aus dem Transkript ist die
@@ -53,4 +54,22 @@ export function classifyProject(cwd: string, readGitFile: GitFileReader = defaul
   }
   if (git) return { project: git.main, worktree: git.name, temporary: isTemporary(git.main) || isTemporary(path) };
   return { project: path, worktree: null, temporary: isTemporary(path) };
+}
+
+/**
+ * Ein Pfad unter einer konfigurierten Projektwurzel ist Arbeit des Nutzers, auch wenn die Wurzel selbst unter /tmp liegt:
+ * die Wurzel hebt die Orts-Regel auf. Fabrik-Kopien (`harnez-exec-*`) bleiben Rauschen. Ein nicht zurückgeführter
+ * Ordnername wird über sein gemungtes Wurzel-Präfix zugeordnet (wie der Wurzel-Filter in `claudeDiscoverySource`).
+ */
+export function clearTemporaryUnderRoots(items: { project: string; temporary?: boolean }[], roots: readonly string[]): void {
+  for (const item of items) {
+    if (!item.temporary) continue;
+    const own = roots.some((root) => {
+      const abs = resolve(root);
+      if (!outsideRoots(item.project, [abs])) return !item.project.slice(abs.length).split("/").some((seg) => seg.startsWith("harnez-exec-"));
+      const munged = abs.replace(/[^a-zA-Z0-9]/g, "-");
+      return item.project.startsWith("-") && (item.project === munged || item.project.startsWith(`${munged}-`));
+    });
+    if (own) item.temporary = false;
+  }
 }

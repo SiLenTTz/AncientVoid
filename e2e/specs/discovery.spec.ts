@@ -94,6 +94,33 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await expect(noise.locator(".discovered-row")).toContainText("fab-1");
   });
 
+  test("EPIC-P34 T34.8: Codex- und Hermes-Sessions werden gefunden, Codex nur beobachtet @desktop", async ({ app, hub }) => {
+    const codexDir = join(hub.root, "codex-sessions", "2026", "11", "06");
+    mkdirSync(codexDir, { recursive: true });
+    const id = "01a00000-0000-7000-8000-00000000e2e1";
+    const row = (o: unknown) => `${JSON.stringify(o)}\n`;
+    writeFileSync(
+      join(codexDir, `rollout-2026-11-06T09-00-00-${id}.jsonl`),
+      row({ type: "session_meta", payload: { id, cwd: hub.alpha, source: "vscode" } }) +
+        row({ type: "response_item", payload: { type: "message", role: "user", content: [{ type: "input_text", text: "Codex Aufgabe E2E" }] } }),
+    );
+    const hermes = join(hub.root, "hermes-home");
+    mkdirSync(hermes, { recursive: true });
+    const db = new DatabaseSync(join(hermes, "state.db"));
+    db.exec("CREATE TABLE sessions (id TEXT PRIMARY KEY, source TEXT NOT NULL, started_at REAL NOT NULL, cwd TEXT, title TEXT)");
+    db.prepare("INSERT INTO sessions (id, source, started_at, cwd, title) VALUES (?,?,?,?,?)").run("20261106_090000_e2e", "cli", 1_790_000_000, hub.alpha, "Hermes Aufgabe E2E");
+    db.close();
+
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    await expandAllGroups(app);
+    const rows = app.locator(".discovered-row");
+    const codex = rows.filter({ hasText: "Codex Aufgabe E2E" });
+    await expect(codex).toContainText("codex");
+    await expect(codex).toContainText("Nur beobachtet");
+    await expect(codex.getByRole("button", { name: /Fortsetzen/ })).toHaveCount(0);
+    await expect(rows.filter({ hasText: "Hermes Aufgabe E2E" })).toContainText("hermes");
+  });
+
   test("AC-P5-1: 20 Sessions, je zwei pro Projekt, sind binnen 10 s vollständig sichtbar", async ({ app, hub }, info) => {
     for (const project of [hub.alpha, hub.beta]) for (let i = 0; i < 5; i++) await hub.createSession({ adapter: "dummy", project });
     for (let p = 1; p <= 5; p++) externalClaude(hub, `-home-user-extern-${p}`, [`ext-${p}-a`, `ext-${p}-b`]);

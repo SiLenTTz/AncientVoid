@@ -205,6 +205,9 @@ export const HubConfig = z.object({
       piDir: z.string().min(1).optional(),
       ompDir: z.string().min(1).optional(),
       makiDir: z.string().min(1).optional(),
+      /** EPIC-P34 T34.8: Codex-Rollouts (`~/.codex/sessions`) und Hermes (`~/.hermes`, darin `state.db`). */
+      codexDir: z.string().min(1).optional(),
+      hermesDir: z.string().min(1).optional(),
     })
     .prefault({}),
 });

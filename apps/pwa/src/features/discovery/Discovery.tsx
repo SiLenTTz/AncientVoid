@@ -200,7 +200,7 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
   const copyCapable = COPY_CAPABLE.has(item.adapter);
   // A live session of a harness that cannot fork would have two writers: wait until it is closed over there.
   const blockedByLive = Boolean(item.live) && !copyCapable;
-  const canContinue = Boolean(onAdopt && item.nativeSessionId && !unknown && !blockedByLive);
+  const canContinue = Boolean(onAdopt && item.nativeSessionId && !unknown && !blockedByLive && !item.unsupportedResume);
   return (
     <div class="card session-card discovered-row">
       {item.hubSessionId ? (
@@ -227,6 +227,9 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
                 </button>
               )}
             </div>
+          )}
+          {item.unsupportedResume && !unknown && (
+            <div class="dim discovery-hint">Nur beobachtet — Fortsetzen ist für {item.adapter} nicht belegt (ADR-0036).</div>
           )}
           {blockedByLive && onAdopt && !unknown && (
             <div class="dim discovery-hint">Läuft gerade woanders — dieser Harness kann keine Kopie fortsetzen. Erst dort beenden, dann hier fortsetzen.</div>
