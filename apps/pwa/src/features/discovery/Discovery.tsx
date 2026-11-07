@@ -126,16 +126,30 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
       {error && <div class="reply-error">{error}</div>}
       {items.length === 0 && <div class="empty">{searching ? "keine Session passt zur Suche" : "keine Sessions gefunden"}</div>}
       {groups.map((group, i) => (
-        <details key={`${group.project}|${searching}`} class="project-tile" open={i === 0 || searching}>
+        <details key={`${group.project}|${searching}`} class="project-tile" open={(i === 0 && !group.temporary) || searching}>
           <summary class="project-tile-header">
             <span class="project-tile-name">{group.project}</span>
             <span class="dim">
-              {group.sessions.length} Session{group.sessions.length === 1 ? "" : "en"} · zuletzt {observedAgo(group.newestAt)}
+              {group.total} Session{group.total === 1 ? "" : "en"} · zuletzt {observedAgo(group.newestAt)}
             </span>
           </summary>
-          {group.sessions.map((s) => (
-            <DiscoveredRow key={`${s.hostId}|${s.adapter}|${s.nativeSessionId ?? s.hubSessionId}`} item={s} onOpen={open} onAdopt={registered === null || registered.has(s.adapter) ? adopt : undefined} onMirror={s.adapter === "opencode" ? mirror : undefined} />
-          ))}
+          {group.sessions.map((s) => {
+            const row = (x: DiscoveredSession) => <DiscoveredRow key={`${x.hostId}|${x.adapter}|${x.nativeSessionId ?? x.hubSessionId}`} item={x} onOpen={open} onAdopt={registered === null || registered.has(x.adapter) ? adopt : undefined} onMirror={x.adapter === "opencode" ? mirror : undefined} />;
+            const subs = (s.nativeSessionId && group.subagents[s.nativeSessionId]) || [];
+            return (
+              <div key={`${s.hostId}|${s.adapter}|${s.nativeSessionId ?? s.hubSessionId}`} class="discovery-thread">
+                {row(s)}
+                {subs.length > 0 && (
+                  <details class="discovery-subagents">
+                    <summary class="dim">
+                      {subs.length} Subagent{subs.length === 1 ? "" : "en"}
+                    </summary>
+                    {subs.map(row)}
+                  </details>
+                )}
+              </div>
+            );
+          })}
         </details>
       ))}
       {cursor !== null && (
@@ -176,6 +190,7 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
         <span class="chip subtle">{item.hubSessionId ? "Hub" : "extern · nur beobachtet"}</span>
         <span class="chip subtle">{item.harness}</span>
         {item.live && !item.hubSessionId && <span class="chip live" title="Wurde eben erst geschrieben — vermutlich noch in einem Terminal offen">läuft gerade woanders</span>}
+        {item.worktree && <span class="chip subtle" title="Lief in einem Worktree des Projekts">Worktree {item.worktree.slice(0, 12)}</span>}
         {item.parentSessionId && <span class="chip subtle">Subagent von {item.parentSessionId.slice(0, 8)}</span>}
         {item.fork && <span class="chip subtle">Fork</span>}
         <span class="chip subtle mono discovery-id">{item.nativeSessionId ?? item.hubSessionId ?? "—"}</span>

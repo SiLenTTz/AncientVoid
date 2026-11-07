@@ -55,3 +55,10 @@
 .tool-pane-body {
   padding-top: 12px;
 }
+
+/* EPIC-P34 T34.7: Subagenten eingerückt unter ihrer Hauptsession. */
+.discovery-subagents {
+  margin: 0 0 8px 16px;
+  padding-left: 10px;
+  border-left: 2px solid var(--bg-chip);
+}

@@ -18,8 +18,15 @@ function externalClaude(hub: TestHub, project: string, ids: string[], content?: 
  * expanded — tests flip every folded group open before asserting rows.
  * One at a time: the closed-set shrinks with every click. */
 async function expandAllGroups(app: Page) {
+  await app.locator(".project-tile").first().waitFor();
   for (let i = 0; i < 20; i++) {
     const next = app.locator(".project-tile:not([open]) > summary").first();
+    if ((await next.count()) === 0) break;
+    await next.click();
+  }
+  // Subagenten stehen eingeklappt unter ihrer Hauptsession (EPIC-P34 T34.7).
+  for (let i = 0; i < 20; i++) {
+    const next = app.locator(".discovery-subagents:not([open]) > summary").first();
     if ((await next.count()) === 0) break;
     await next.click();
   }
@@ -53,6 +60,38 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await rows.filter({ hasText: own }).locator(".session-open").click();
     await expect(app).toHaveURL(new RegExp(`#/sessions/${own}`));
     await expect(app.locator(".session-topbar")).toContainText("dummy");
+  });
+
+  test("EPIC-P34 T34.7: Worktrees landen beim Hauptprojekt, Rauschen steht eingeklappt in „Temporär & Automatisch“, Subagenten hängen an der Hauptsession @desktop", async ({ app, hub }) => {
+    const cwdLine = (id: string, cwd: string) => `{"type":"user","sessionId":"${id}","cwd":${JSON.stringify(cwd)},"message":{"role":"user","content":"Aufgabe ${id}"}}\n`;
+    const at = (name: string, id: string, cwd: string) => {
+      const dir = join(hub.root, "claude", "projects", name);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, `${id}.jsonl`), cwdLine(id, cwd));
+      return dir;
+    };
+    at("-roh-haupt", "haupt-1", hub.alpha);
+    const wt = at("-roh-worktree", "wt-1", `${hub.alpha}/data/worktrees/feat-abc`);
+    at("-roh-fabrik", "fab-1", `${hub.alpha}/harnez-exec-7`);
+    mkdirSync(join(wt, "wt-1", "subagents"), { recursive: true });
+    writeFileSync(join(wt, "wt-1", "subagents", "agent-5.jsonl"), "{}\n");
+
+    await app.getByRole("button", { name: "Gefunden" }).click();
+    const tiles = app.locator(".project-tile");
+    await expect(tiles).toHaveCount(2);
+    const project = tiles.first();
+    await expect(project.locator("> summary")).toContainText(hub.alpha.split("/").pop()!);
+    await expect(project.locator("> summary")).toContainText("3 Sessionen");
+    await expect(project.locator(".discovered-row").filter({ hasText: "Aufgabe wt-1" })).toContainText("Worktree feat-abc");
+    // Der Subagent steht unter wt-1 statt als gleichrangige Karte.
+    await expect(project.locator(".discovery-thread").filter({ hasText: "Aufgabe wt-1" }).locator(".discovery-subagents summary")).toHaveText("1 Subagent");
+    // Rauschen: eigene Gruppe am Ende, eingeklappt, Zähler sichtbar.
+    const noise = tiles.last();
+    await expect(noise.locator("> summary")).toContainText("Temporär & Automatisch");
+    await expect(noise.locator("> summary")).toContainText("1 Session");
+    await expect(noise).not.toHaveAttribute("open", "");
+    await noise.locator("> summary").click();
+    await expect(noise.locator(".discovered-row")).toContainText("fab-1");
   });
 
   test("AC-P5-1: 20 Sessions, je zwei pro Projekt, sind binnen 10 s vollständig sichtbar", async ({ app, hub }, info) => {

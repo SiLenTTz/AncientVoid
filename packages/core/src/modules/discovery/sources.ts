@@ -9,6 +9,9 @@ import {
   type DiscoverySource,
 } from "@ancientvoid/contracts";
 import { readClaudeMeta } from "./claude-meta.ts";
+import type { ClaudeLive } from "./claude-live.ts";
+import { classifyProject, type ProjectOrigin } from "./project-origin.ts";
+import { outsideRoots } from "./text.ts";
 
 /** ADR-0040: a transcript written this recently is probably open in another harness. */
 export const LIVE_WINDOW_MS = 90_000;
@@ -56,7 +59,7 @@ function claudeItem(
   observedAt: string,
   parentSessionId: string | null,
   status: string,
-  extra: Pick<DiscoveredSession, "title" | "preview" | "live"> = {},
+  extra: Pick<DiscoveredSession, "title" | "preview" | "live" | "worktree" | "temporary"> = {},
 ): DiscoveredSession {
   const unsupported = status === "unsupported-format";
   return {
@@ -89,7 +92,19 @@ export function unMungeProject(munged: string, knownProjects: readonly string[])
   return munged;
 }
 
-export function scanClaudeSessions(claudeDir: string, now = new Date().toISOString(), knownProjects: readonly string[] = []): DiscoveredSession[] {
+/** Echtes Projekt einer Session: `cwd` aus dem Transkript; fehlt es, bleibt der (so gut es geht zurückgeführte) Ordnername. */
+function originOf(cwd: string | null, fallback: string): ProjectOrigin {
+  if (cwd) return classifyProject(cwd);
+  return { project: fallback, worktree: null, temporary: fallback.startsWith("-tmp-") || fallback.startsWith("/tmp/") };
+}
+
+export function scanClaudeSessions(
+  claudeDir: string,
+  now = new Date().toISOString(),
+  knownProjects: readonly string[] = [],
+  /** Sitzungs-IDs, die `claude agents` als offen meldet — auch still gewordene Terminals (EPIC-P34 T34.7). */
+  liveIds: ReadonlySet<string> = new Set(),
+): DiscoveredSession[] {
   if (!existsSync(claudeDir)) {
     return [claudeItem(claudeDir, "unknown:missing-dir", now, null, "unsupported-format")];
   }
@@ -115,6 +130,8 @@ export function scanClaudeSessions(claudeDir: string, now = new Date().toISOStri
       out.push(claudeItem(projectName, `unknown:${projectName}`, now, null, "unsupported-format"));
       continue;
     }
+    // Dateien vor Ordnern: Subagenten erben das Projekt ihrer Hauptsession.
+    entries.sort((a, b) => Number(b.endsWith(".jsonl")) - Number(a.endsWith(".jsonl")));
     for (const name of entries) {
       if (name === "memory") continue;
       const path = join(projectDir, name);
@@ -127,8 +144,10 @@ export function scanClaudeSessions(claudeDir: string, now = new Date().toISOStri
       const at = observed(st.mtimeMs, now);
       if (st.isFile() && name.endsWith(".jsonl")) {
         const meta = readClaudeMeta(path, st);
-        const live = Date.parse(now) - st.mtimeMs < LIVE_WINDOW_MS;
-        out.push(claudeItem(projectName, name.slice(0, -".jsonl".length), at, null, "observed", { ...meta, live }));
+        const id = name.slice(0, -".jsonl".length);
+        const live = Date.parse(now) - st.mtimeMs < LIVE_WINDOW_MS || liveIds.has(id);
+        const origin = originOf(meta.cwd, projectName);
+        out.push(claudeItem(origin.project, id, at, null, "observed", { title: meta.title, preview: meta.preview, live, worktree: origin.worktree, temporary: origin.temporary }));
         continue;
       }
       if (st.isFile()) {
@@ -146,6 +165,14 @@ export function scanClaudeSessions(claudeDir: string, now = new Date().toISOStri
         }
       }
       if (agents.length > 0) {
+        const parentPath = join(projectDir, `${name}.jsonl`);
+        let parentCwd: string | null = null;
+        try {
+          parentCwd = readClaudeMeta(parentPath, statSync(parentPath)).cwd;
+        } catch {
+          // Hauptsession fehlt: der Ordnername bleibt
+        }
+        const origin = originOf(parentCwd, projectName);
         for (const agent of agents) {
           const agentPath = join(sub, agent);
           let agentStat;
@@ -156,7 +183,7 @@ export function scanClaudeSessions(claudeDir: string, now = new Date().toISOStri
           }
           if (!agentStat.isFile()) continue;
           out.push(
-            claudeItem(projectName, agent.slice(0, -".jsonl".length), observed(agentStat.mtimeMs, now), name, "observed"),
+            claudeItem(origin.project, agent.slice(0, -".jsonl".length), observed(agentStat.mtimeMs, now), name, "observed", { worktree: origin.worktree, temporary: origin.temporary }),
           );
         }
         continue;
@@ -361,13 +388,15 @@ export function scanOpencodeSessions(
   }
 }
 
-export function claudeDiscoverySource(claudeDir: string, knownProjectRoots: readonly string[] = []): DiscoverySource {
+export function claudeDiscoverySource(claudeDir: string, knownProjectRoots: readonly string[] = [], liveSessions?: Pick<ClaudeLive, "list">): DiscoverySource {
   return {
     id: "claude-projects",
     // The candidates for un-munging are computed per scan, not once: roots
     // and their projects change while the hub runs.
     list: async () => {
-      const items = await scanClaudeSessions(claudeDir, new Date().toISOString(), await knownProjectCandidates(knownProjectRoots));
+      // Fällt `claude agents` aus, bleibt es beim 90-s-Fenster (ClaudeLive hält die letzte gute Liste, BUG-0049).
+      const liveIds = new Set((await liveSessions?.list())?.map((s) => s.sessionId));
+      const items = await scanClaudeSessions(claudeDir, new Date().toISOString(), await knownProjectCandidates(knownProjectRoots), liveIds);
       // Exact candidates only cover roots and direct children — deeper
       // projects (BUG-0057) need a filesystem walk from the roots.
       const roots = [...new Set([...knownProjectRoots.map((r) => resolve(r)), homedir()])];
@@ -380,6 +409,19 @@ export function claudeDiscoverySource(claudeDir: string, knownProjectRoots: read
           resolved.set(item.project, project);
         }
         item.project = project;
+      }
+      // EPIC-P34: ein Pfad unter einer konfigurierten Wurzel ist Arbeit des Nutzers, auch wenn die Wurzel selbst unter /tmp liegt.
+      for (const item of items) {
+        if (!item.temporary) continue;
+        // Ein nicht zurückgeführter Ordnername wird über das gemungte Wurzel-Präfix zugeordnet (wie im Filter unten).
+        const ownWork = knownProjectRoots.some((root) => {
+          const abs = resolve(root);
+          const munged = abs.replace(/[^a-zA-Z0-9]/g, "-");
+          // Fabrik-Kopien bleiben Rauschen, auch unter einer Wurzel; nur der Ort (/tmp) wird durch die Wurzel aufgehoben.
+          if (!outsideRoots(item.project, [abs])) return !item.project.slice(abs.length).split("/").some((seg) => seg.startsWith("harnez-exec-"));
+          return (item.project.startsWith("-") && (item.project === munged || item.project.startsWith(`${munged}-`)));
+        });
+        if (ownWork) item.temporary = false;
       }
       // Same policy as opencode (ADR-0011): sessions outside the configured
       // roots are other people's business — hide them, but only when roots
