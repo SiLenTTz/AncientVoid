@@ -34,7 +34,9 @@ test.describe("Desktop (T8.5, AC-P8-6)", () => {
 
     // Kachel-Ansichten: senkrechte Leiste links neben dem Inhalt.
     const tabs = app.locator(".tile-rail");
-    await expect(tabs.getByRole("button")).toHaveCount(6);
+    // EPIC-P29 T29.6: „Umgebung" kam als siebter Tab dazu (Chat, Verlauf,
+    // Bericht, Diff, Suche, Code, Umgebung).
+    await expect(tabs.getByRole("button")).toHaveCount(7);
     const [tabBox, mainBox] = await Promise.all([tabs.boundingBox(), app.locator(".tile .session-main").boundingBox()]);
     expect(tabBox!.x + tabBox!.width).toBeLessThanOrEqual(mainBox!.x);
     await tabs.getByRole("button", { name: "Bericht" }).click();

@@ -55,8 +55,11 @@ export async function signIn(page: Page, hub: TestHub): Promise<void> {
   // Always replace. On the phone, Chrome keeps localStorage per 127.0.0.1 port.
   // A recycled port still holds the previous hub's token, and the gate then
   // stays up with that token filled (BUG-0054).
+  // Top frame only: this init script runs in EVERY frame — a sandboxed
+  // preview iframe (EPIC-P29, opaque origin) would throw on localStorage
+  // and surface as an uncaught page error that belongs to nobody.
   await page.addInitScript((token) => {
-    localStorage.setItem("ancientvoid.token", token);
+    if (window.top === window) localStorage.setItem("ancientvoid.token", token);
   }, hub.token);
 }
 

@@ -1,7 +1,6 @@
 # EPIC-P29 — Worktree-Workspaces mit Manifest, Setup und Services
 
-**Status:** in Umsetzung — T29.1 abgeschlossen (06.11.2026), T29.2 wartet auf
-Abnahme von ADR-0051 und Contracts · **Phase:** P29
+**Status:** in Umsetzung — T29.1–T29.5 abgeschlossen (06.–07.11.2026), T29.6/T29.7 abgeschlossen (07.11.2026) · **Phase:** P29
 **Dauer:** 3–5 Agenten-Wochen (ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P28-Exit-Kriterien grün; P2/P14/ADR-0016 sowie P19/P26-Integrationsstand geprüft.
 
@@ -164,12 +163,45 @@ Factory-Beobachter dürfen kein zweites Setup im Projekt auslösen (P26).
   Setup (genau ein `preparing`), Archivieren stoppt den adoptierten Dienst
   und behält die Arbeit. `delete()` räumt Workspace-Zeilen mit weg.
   Details unten.
-- [ ] **T29.6** Authentifizierten mobilen HTTP-Service-Zugang samt
+- [x] **T29.6** Authentifizierten mobilen HTTP-Service-Zugang samt
   PWA-Status/Logs/Retry und hubctl-Befehlen liefern; Token/Origin/
   Pfad-/Host-Isolation sowie Offline-Zeitstempel testen. **K2/K5/K10**.
-- [ ] **T29.7** `e2e/specs/workspace-runtime.spec.ts` für Start → bereit →
+  *Abgeschlossen 07.11.2026:* Routes (`workspace.routes.ts`) servieren
+  Status (K7-Projektion inkl. Fehlern aus der Faltung), Service-Logs als
+  gekappten Schwanz und den menschlichen Retry (Policy-Op `workspace.retry`:
+  nur Mensch). Preview-Proxy (`workspace-proxy.ts`, ADR-0051 §6): Ziel nur
+  aus der Registry-Zeile (`http://127.0.0.1:<port>`, kein Host-Parameter,
+  kein Open Proxy), Pfad-/Query-Validierung, KEIN Client-Header (v. a.
+  Authorization) erreicht den Service, Origin-/Sec-Fetch-Prüfung,
+  Redirects nur relativ/eigener Upstream, GET/HEAD only, WS-Upgrade
+  explizit 501; Auth per Bearer oder kurzlebigem, an (Session, Service)
+  gebundenem Ticket (STT-Muster, schmale authHook-Freistellung nur mit
+  `ticket=`-Parameter). PWA: „Umgebung"-Tab (Phase/Fehler/Logs/Retry/
+  Preview-iframe sandboxed ohne allow-same-origin, Offline-Zeitstempel,
+  Refresh an workspace.*-Events statt eigenem Timer). hubctl:
+  `workspace|workspace logs|workspace retry|workspace preview`.
+  Zwei dabei gefundene und gefixte Lücken: Die Manifest-Freigabe hing an
+  `requireStepApprovals` (Standard-Hub hätte nie ein Manifest gestartet —
+  jetzt `enableWorkspaceApprovals`, immer verdrahtet) und die
+  Status-Projektion trug nie `failure`/Service-Fehler (jetzt Teil der
+  K7-Faltung). 33 neue/erweiterte Tests (14 Route-/Proxy-Tests mit echtem
+  Loopback-Service, 5 Unit-Tests der Isolationsteile, Policy/Contracts,
+  hubctl, Faltung, Freigabe-Verdrahtung).
+- [x] **T29.7** `e2e/specs/workspace-runtime.spec.ts` für Start → bereit →
   Preview → Fehler → Retry → Neustart → Archivieren; manifestloser Start
   und P26-Beobachter als Regression. Last-/Restore-Messlauf. **K3/K7/K8/K10**.
+  *Abgeschlossen 07.11.2026:* Spec mit 5 Läufen (mobile): komplette Journey
+  inkl. UI-Retry und Preview-Ticket, manifestloser Start (404 + keine
+  Events + steuerbar), P26 (Loop-Session im Manifest-Projekt: kein
+  Workspace, kein Worktree, keine Freigabe-Anfrage), Offline-Zeitstempel
+  der Umgebung (K10), Restore-Messlauf (10 Workspace-Sessions × 3 Restarts:
+  Median 870 ms < 3 s, max. Einzelprojektion 6 ms, kein zweites Setup —
+  Zahlen in [docs/messlauf](../docs/messlauf/2026-11-07-p29-restore-und-last.md);
+  K8-Lastlauf 603 ev/s, 0 Verlust). Der Spec deckte zwei echte Funde auf:
+  Archivieren stoppte adoptierte Dienste beendeter Sessions nicht
+  (T29.5-Lücke, gefixt: stiller `stopAll` ohne Live-Sitzung), und
+  Playwrights Token-`addInitScript` lief in sandboxed Preview-frames
+  (Fixture setzt den Token jetzt nur im Top-Frame). repeat-each=3 grün.
 
 ## 5. Acceptance Criteria (AC-P29-k)
 
@@ -378,3 +410,104 @@ angenommen — T29.2 freigegeben.
   (299 passed / 2 skipped von 301 gesamt — ein erster Lauf zeigte 297 ohne
   Fehlschlag, vollständiger Zweitlauf mit korrekter Gesamtzahl grün),
   typecheck/lint/check:arch grün (Lauf 07.11.2026).
+
+## Abschluss P29 — AC-Bewertung (07.11.2026)
+
+| AC | Stand | Beleg |
+|---|---|---|
+| AC-P29-1 | grün | Zwei Services einer Session mit getrennten Ports und eigenen Antworten: Route-Tests (`workspace-runtime.routes.test.ts`) + E2E-Journey (Proxy liefert `sid=<sessionId>` der eigenen Session); Worktree/Include pro Session in `session-workspace.test.ts` |
+| AC-P29-2 | grün | Ohne Freigabe startet kein Prozess (Core `session-workspace.test.ts`, E2E wartet auf Approval); Negativfälle Traversal/Symlink/Secrets in den T29.2-Tests; Resolver liest an der Basis-SHA |
+| AC-P29-3 | grün | `WorkspaceFailure` (Schritt, Exitcode/Timeout, Log-Blob) in Event UND Status-Projektion (T29.6-Faltung); Agent startet nie vor `ready` (T29.3-Tests); Fixport-Kollision in PWA/hubctl sichtbar (Status-Felder + Formatierung), Retry nur menschlich (Policy + E2E-UI) |
+| AC-P29-4 | grün | Restore-Messlauf: Median 870 ms < 3 s, max. Einzelprojektion 6 ms, kein zweites Setup, kein Event > 4 KB (E2E prüft Payloadgrößen) — [Messlauf](../docs/messlauf/2026-11-07-p29-restore-und-last.md) |
+| AC-P29-5 | grün | Archivierung: saubere Workspaces weg + `workspace.archived` (E2E-Messlauf archiviert 10), dirty bleibt auffindbar (E2E-Journey, `session.worktree_kept`), adoptierte Dienste werden beendet — auch bei beendeter Session ohne Live-Sitzung (T29.7-Fix, E2E belegt); manifestloser Start unverändert (E2E + Fixture), P26-Beobachter ohne zweiten Runtime-Start (E2E + `loops.test.ts`) |
+| AC-P29-6 | grün | K8-Lastlauf 603 ev/s, 0 Eventverlust, RSS 143 MB; Services/Logs greifen nicht in den Event-Strom; K10-Offline: Umgebung zeigt Stand mit Uhrzeit (E2E), globale Badge unberührt |
+
+**DoD:** Alle Aufgaben/AC nachgewiesen. test 1277 (186 Dateien), lint,
+typecheck grün; E2E komplett sequenziell 304 passed / 2 skipped von 306
+gesamt; PWA-Build grün; K8-Lasttest grün; Messlauf abgelegt. Manifest-Beispiel
+folgt mit der Dokuseite (keine Secrets); hubctl-Hilfe erweitert
+(`hubctl workspace …`). Keine alten Worktrees migriert (Migrationsregel von
+Fixtures gepinnt).
+
+## Retro P29 (07.11.2026)
+
+**Zeitraum:** 06.–07.11.2026 · **Commits:** 12 auf dem Epic-Stapel
+(`cb914ee`…`9cc47fe` plus T29.6/T29.7) · **Dauer:** ~2 Agenten-Tage statt
+3–5 Agenten-Wochen Planungswert — der Bestand (T2.1-Worktrees, P14,
+Approval-Queue, ADR-0019-Operationen) trug fast alles bereits.
+
+### AK-Matrix
+
+- AC-P29-1: 🟢 — Beleg: `workspace-runtime.routes.test.ts` (2 Services,
+  getrennte Ports), E2E `workspace-runtime.spec.ts` „Start → … → Preview"
+  (Proxy liefert `sid=<sessionId>`). Bemerkung: „beide Services liefern ihre
+  eigene Workspace-ID" ist über Route + Proxy belegt, nicht über zwei
+  parallele Sessions desselben Projekts — die Isolation ist dieselbe
+  (Worktree pro Session, `session-workspace.test.ts`).
+- AC-P29-2: 🟢 — Beleg: `session-workspace.test.ts` (ohne Freigabe startet
+  nichts, Agent nie vor `ready`), `manifest-resolver.test.ts`/`include-copy.test.ts`
+  (Traversal/Symlink/Secrets, Basis-SHA-Lesung).
+- AC-P29-3: 🟢 — Beleg: `WorkspaceFailure` in Event + Status (Faltung,
+  `workspace-runtime.test.ts` „T29.6-Faltung"), E2E zeigt Fehler + Retry-UI;
+  Fixport-Fall `workspace-services.test.ts`.
+- AC-P29-4: 🟢 — Beleg: Messlauf `docs/messlauf/2026-11-07-p29-restore-und-last.md`
+  (Median 870 ms < 3 s, Einzelprojektion ≤ 6 ms, genau 1× `preparing`,
+  0 Events > 4 KB).
+- AC-P29-5: 🟢 — Beleg: E2E-Journey (dirty bleibt, Dienste gestoppt,
+  `session.worktree_kept`), E2E-Messlauf (10 saubere Worktrees weg,
+  `workspace.archived`), `archive-workspace.test.ts`; Lücke „adoptierter
+  Dienst bei beendeter Session" gefunden und gefixt (T29.7).
+- AC-P29-6: 🟢 — Beleg: `npm run loadtest` 603 ev/s, 0 Verlust; K10-Offline
+  E2E „Umgebung zeigt den letzten Stand mit seiner Zeit".
+
+### Premortem-Bilanz
+
+1. Manipuliertes Setup — **nicht eingetreten**: Hash-Freigabe an Basis-SHA +
+  Actor-Policy; Agenten-Pfad per Policy 403 (Route-Test „Policy lässt nur
+  Menschen"). Die wired-first-Falle KAM aber als Verdrahtungsbug hervor
+  (`requireStepApprovals` hätte Manifeste auf Standard-Hubs blockiert —
+  E2E fand es, Fix `enableWorkspaceApprovals`).
+2. Crash wiederholt Migration/Seed — **nicht eingetreten**: Journal +
+  `needs_attention`, kein Auto-Re-Run (Restore-Messlauf: genau 1× preparing
+  über 3 Restarts).
+3. Port vom Nachbarprozess — **nicht eingetreten**: Ownership per Marker,
+  Fixport-Kollision ohne Kill (`workspace-services.test.ts`).
+4. Teardown löscht Arbeit — **nicht eingetreten**: P14 blieb Barriere (E2E:
+  dirty bleibt, Commits gelten als Arbeit).
+5. Preview wird SSRF-/Auth-Bypass — **nicht eingetreten**: Ziel nur aus der
+  Registry-Zeile, Origin-/Pfad-/Methoden-/Header-Isolation jeweils negativ
+  getestet; der E2E erwies zusätzlich, dass KEIN Client-Header den Service
+  erreicht.
+
+### Erkenntnisse (max. 5)
+
+1. Der Bestand trug: Kein zweiter Worktree-Manager, keine zweite Queue —
+   P29 war fast nur Verdrahtung auf T2.1/P14/ADR-0019. Beleg: Diff-Bild
+   (core-Neu: `workspace-runtime/services/resolver/approval/include-copy`).
+2. Hub-Verdrahtung war der blinde Fleck: Beide in T29.6/T29.7 gefundenen
+   Lücken (Approval-Queue-Flag, `failure` nie in der Projektion, Archiv-
+   stopp ohne Live-Sitzung) lagen an der Naht Core↔Hub-Prozess, nicht im
+   Core — die Core-Tests waren grün. Beleg: alle drei Fixes berühren
+   `session-manager.ts`/`main.ts`-Verdrahtung.
+3. Der E2E-Spec zahlt sich als Lückenfinder ein: 3 von 3 echten Funden
+   kamen aus `workspace-runtime.spec.ts`-Läufen, keiner aus neuen Unit-Tests.
+4. Paralleles Playwright verbiegt seine eigenen Artefakte: Ein versehentlich
+   gleichzeitiger zweiter Lauf erzeugte 11 `ENOENT .playwright-artifacts-*`
+   Scheinfehler. Nie zwei Playwright-Instanzen auf einem `test-results/`.
+5. Kleine Verträge früh zahlen sich aus: `WorkspaceStatus.failure` stand
+   seit T29.1 im Vertrag, war aber nie gefüllt — Vertragsfelder ohne
+   abnehmenden Test bleiben stumpf.
+
+### Action Items
+
+- AI-P29-1: Doku-Seite „Workspace-Manifest" (Beispiel ohne Secrets, PWA-
+  Einstieg, Konfig) nachziehen — zurück als: Aufgabe im nächsten
+  Dokumentations-Epic (DoD-Posten, bewusst nachgezogen).
+- AI-P29-2: Preview-Grenzen dokumentieren (relative Assets laufen nicht
+  durch den Proxy, JSON-Anzeige in sandboxed Frames wirft Konsolenfehler in
+  Chromium) — zurück als: Absatz in der Doku-Seite aus AI-P29-1.
+- AI-P29-3: Playwright-Parallelverbots explizit machen — zurück als: Hinweis
+  in `docs/testing-e2e.md` („nie zwei Instanzen auf demselben test-results/").
+- AI-P29-4: `WorkspaceStatus`-Vertragsfelder beim Anlegen jeweils mit einem
+  abnehmenden Test verdrahten — zurück als: Konventionshinweis in
+  `write-tests`-Skill (Naht Contract↔Projektion).

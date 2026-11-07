@@ -419,14 +419,24 @@ export class SessionManager {
     }
     const record = this.setArchived(sessionId, archived);
     if (archived) {
-      // EPIC-P29 T29.5 (ADR-0051 §3): eigene Services beenden, genehmigten
-      // Teardown ausführen (idempotent — genau einmal), DANACH die
-      // P14-Prüfungen. Teardown-Fehler ⇒ Worktree bleibt mit Grund.
+      // EPIC-P29 T29.5/T29.7 (ADR-0051 §3): eigene Services beenden — auch
+      // adoptierte einer BEENDETEN Session ohne Live-Sitzung (Hard-Kill nach
+      // Zugende; ohne diesen Zweig überlebte der Dienst die Archivierung —
+      // E2E workspace-runtime deckt den Fall). Dann genehmigter Teardown
+      // (idempotent — genau einmal), DANACH die P14-Prüfungen. Teardown-
+      // Fehler ⇒ Worktree bleibt mit Grund.
       const live = this.live.get(sessionId);
+      const servicesRunning = this.workspaceServices.list(sessionId).some((row) => row.state === "starting" || row.state === "ready" || row.state === "probing");
       if (live && !servicesAlreadyStopped) {
         await this.workspaceServices
           .stopAll(sessionId, (kind, payload) => this.emitSystem(live, kind, payload))
           .catch((err) => this.logger.warn("service stop on archive failed", { sessionId, err: err instanceof Error ? err.message : String(err) }));
+      } else if (!live && servicesRunning) {
+        // ohne Live-Sitzung: trotzdem beenden — ohne Events, der Zustand
+        // steht in den Service-Zeilen (die K7-Projektion liest die DB-Zeilen).
+        await this.workspaceServices.stopAll(sessionId, async () => undefined).catch((err) =>
+          this.logger.warn("service stop on archive failed", { sessionId, err: err instanceof Error ? err.message : String(err) }),
+        );
       }
       const teardown = await this.teardownWorkspaceOnce(sessionId, actor);
       if (teardown === "failed") return record;
