@@ -6,6 +6,7 @@ import {
   type AdapterContext,
   type Ack,
   type HealthReport,
+  type ModelOption,
   type SessionHandle,
   type SessionSpec,
   type SteerInput,
@@ -13,6 +14,7 @@ import {
 } from "@ancientvoid/contracts";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { contextWindowFor, modelsFromCommand } from "@ancientvoid/models";
 import { createPiStream } from "./normalize.ts";
 import { findSessionFile, isSessionId, readTranscript } from "./transcript.ts";
 
@@ -39,8 +41,14 @@ const PiConfig = z.object({
    * either, pi runs its own default and the hub says so honestly. */
   model: z.string().min(1).optional(),
   /** ADR-0032: the model's context window in tokens, from pi's own
-   * models.json (`contextWindow`) — pi does not report it in the stream. */
+   * models.json (`contextWindow`) — pi does not report it in the stream.
+   * ADR-0054: `contextWindows` löst pro Modell auf (Konfiguration schlägt
+   * die kuratierte Tabelle) und gewinnt über den einzelnen Wert. */
   contextWindowTokens: z.number().int().positive().optional(),
+  contextWindows: z.record(z.string().min(1), z.number().int().positive()).default({}),
+  /** ADR-0054 (EPIC-P35 T35.7): listendes Kommando für den Modell-Katalog —
+   * ohne Config bleibt die Modellwahl freie Eingabe. */
+  modelsCommand: z.array(z.string().min(1)).min(1).optional(),
   /** ADR-0041: where pi keeps its session files (adoption looks sessions up here). Default: pi's own. */
   sessionsDir: z.string().min(1).optional(),
 });
@@ -129,6 +137,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     id: "pi",
     version: "0.1.0",
 
+    /** ADR-0054: Katalog ausschließlich aus der Konfiguration — ohne
+     * `modelsCommand` bleibt die Modellwahl freie Eingabe. */
+    async models(): Promise<ModelOption[]> {
+      return cfg.modelsCommand ? modelsFromCommand(cfg.modelsCommand) : [];
+    },
+
     capabilities(): AdapterCapabilities {
       return {
         reasoning: true,
@@ -193,10 +207,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const model = spec.model ?? cfg.model;
       sessionModels.set(ctx.sessionId, model);
       if (model) {
+        // ADR-0054: Fenster pro Modell auflösen — `contextWindows`-Map schlägt
+        // den einzelnen Wert, der schlägt die kuratierte Tabelle (ADR-0032).
+        const overrideHit = Object.entries(cfg.contextWindows).find(([needle]) => model.toLowerCase().includes(needle.toLowerCase()));
+        const window = overrideHit?.[1] ?? cfg.contextWindowTokens ?? contextWindowFor(model) ?? undefined;
         ctx.emit({
           type: "system",
           summary: `pi: Modell ${model}`,
-          payload: { kind: "pi.model", model, ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}) },
+          payload: { kind: "pi.model", model, ...(window !== undefined ? { contextWindowTokens: window } : {}) },
         });
       }
       const proc = await ctx.spawnWorker(

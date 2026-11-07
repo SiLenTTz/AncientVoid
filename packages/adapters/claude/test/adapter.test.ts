@@ -76,6 +76,20 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     expect(typeof adapter.recover).toBe("function");
   });
 
+  it("EPIC-P35 T35.7/ADR-0054: modelsCommand schlägt die dokumentierten Aliase; ohne Config bleiben sie", async () => {
+    expect(await createAdapter().models!()).toEqual([
+      { id: "fable", label: "Fable" },
+      { id: "opus", label: "Opus" },
+      { id: "sonnet", label: "Sonnet" },
+      { id: "haiku", label: "Haiku" },
+    ]);
+    const configured = createAdapter({ modelsCommand: ["printf", "zai/glm-5.3\tGLM 5.3\nclaude-fable"] });
+    expect(await configured.models!()).toEqual([
+      { id: "zai/glm-5.3", label: "GLM 5.3" },
+      { id: "claude-fable" },
+    ]);
+  });
+
   it("start() emits schema-valid events from a chunked, split-mid-line stream", async () => {
     const content = loadFixture("tool-use.jsonl");
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(content, 37) });

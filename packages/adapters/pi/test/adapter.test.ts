@@ -215,4 +215,14 @@ describe("pi context window (ADR-0032)", () => {
   it("ohne Konfiguration bleibt die Größe unbekannt", () => {
     expect(createAdapter({}).capabilities().contextWindowTokens).toBeUndefined();
   });
+
+  it("EPIC-P35 T35.7/ADR-0054: contextWindows-Map schlägt Einzelwert und Tabelle; Tabelle füllt Lücken", async () => {
+    const { ctx } = recording();
+    await createAdapter({ model: EVOX2, contextWindowTokens: 131072, contextWindows: { "flash-next": 65_536 } }).start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx);
+    expect(ctx.events.find((e) => e.payload.kind === "pi.model")?.payload).toMatchObject({ contextWindowTokens: 65_536 });
+    // Ohne jede Konfiguration greift die kuratierte Tabelle (qwen3.8 → 1 M).
+    const { ctx: ctx2 } = recording();
+    await createAdapter({ model: EVOX2 }).start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx2);
+    expect(ctx2.events.find((e) => e.payload.kind === "pi.model")?.payload).toMatchObject({ contextWindowTokens: 1_000_000 });
+  });
 });

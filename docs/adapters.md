@@ -311,6 +311,49 @@ String-Handling, keine eigene Bibliothek wert).
    Built-in + Eintrag in der README-Status-Matrix (ehrlich: `unproven`, bis
    Fixtures + Contract-Tests grün sind).
 
+## Custom-Provider ohne Code (EPIC-P35 T35.8, ADR-0054)
+
+Ein neuer Provider/ein neues Modell braucht **keinen Adapter-Code**, wenn ein
+vorhandener Adapter das CLI erreicht. Zwei Pfade:
+
+**1. ACP-fähige CLI** — zweite Registration desselben Adapters mit eigenem
+Kommando und Label (live belegt 07.11.2026: „Mein Zweit-OpenCode“ auf
+`opencode acp`, Session antwortete regulär):
+
+```json
+{
+  "id": "mein-agent",
+  "module": "@ancientvoid/adapter-acp",
+  "config": {
+    "command": ["<cli>", "acp"],
+    "label": "Mein Zweit-OpenCode",
+    "envFiles": { "ZHIPU_API_KEY": "~/.config/ancientvoid/glm-coding.key" },
+    "stuckTurnMs": 600000
+  }
+}
+```
+
+`command` ersetzt das Preset (copilot/opencode/dsh/maki/omp); `label` Name im
+Startformular; `envFiles` hält Schlüssel aus der Config draußen. Der Eintrag
+erscheint wie jeder Adapter, mit den ehrlichen Fähigkeiten des Protokolls
+(ohne Beleg deklariert ACP kein hub-Resume — oben nachlesen).
+
+**2. Modell-Katalog ohne Code** — `modelsCommand` (ADR-0054) für claude,
+codex, pi, copilot, hermes und opencode: ein Kommando, das ein Modell pro
+Zeile druckt (`provider/modell` oder nackte Id, optionales Label nach Tab):
+
+```json
+{ "id": "pi", "module": "@ancientvoid/adapter-pi",
+  "config": { "model": "evo-evox2/…", "modelsCommand": ["pi", "models"],
+              "contextWindows": { "flash-next": 65536 } } }
+```
+
+Ohne `modelsCommand` bleibt die Modellwahl freie Eingabe (Durchreichen an die
+CLI — ein unbekanntes Modell scheitert sichtbar beim Provider, nie still als
+Ersatzmodell). `contextWindows` (opencode, pi) schlägt die kuratierte
+Tabelle aus ADR-0032. Die Abgrenzung zu P30 (Plugin-Distribution) und P31
+(kurativer ACP-Katalog mit Probe) steht in ADR-0054.
+
 ## Anti-Patterns (Review-Blocker)
 
 - Imports aus `@ancientvoid/core` / `@ancientvoid/server` oder direkter Dateisystem-Zugriff

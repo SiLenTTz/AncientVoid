@@ -90,3 +90,50 @@ export function resolveContextWindow(modelId: string, rawValue: string | undefin
   }
   return contextWindowFor(modelId) ?? (rawValue !== undefined ? contextWindowFor(rawValue) : null);
 }
+
+/**
+ * ADR-0054 (EPIC-P35 T35.7): a model catalog from a listing command — the
+ * config-driven source every adapter shares. One model per line, either
+ * `provider/model` or a bare id; an optional label follows a tab. Anything
+ * else (warnings, headers, empty lines) is skipped, never guessed into a model.
+ */
+export interface ListedModel {
+  id: string;
+  label?: string;
+}
+
+const MODEL_LINE = /^[\w@:.-]+(?:\/[\w@:.-]+)?$/;
+
+export function parseModelLines(stdout: string): ListedModel[] {
+  const out: ListedModel[] = [];
+  const seen = new Set<string>();
+  for (const raw of stdout.split("\n")) {
+    const [idPart, labelPart] = raw.split("\t");
+    const id = (idPart ?? "").trim();
+    if (!id || id.startsWith("#") || !MODEL_LINE.test(id) || seen.has(id)) continue;
+    seen.add(id);
+    const label = labelPart?.trim();
+    out.push(label ? { id, label } : { id });
+  }
+  return out;
+}
+
+/** Runs the listing command read-only (no worker, no session, no cost) and
+ * parses its stdout. Errors propagate visibly — an empty list must be the
+ * command's honest answer, never a swallowed failure. */
+export async function modelsFromCommand(
+  command: readonly string[],
+  opts: { env?: Readonly<Record<string, string>>; timeoutMs?: number } = {},
+): Promise<ListedModel[]> {
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const run = promisify(execFile);
+  const [cmd, ...args] = command;
+  if (!cmd) throw new Error("modelsFromCommand: leeres Kommando");
+  const { stdout } = await run(cmd, args, {
+    timeout: opts.timeoutMs ?? 20_000,
+    maxBuffer: 1024 * 1024,
+    ...(opts.env ? { env: { ...process.env, ...opts.env } } : {}),
+  });
+  return parseModelLines(stdout);
+}

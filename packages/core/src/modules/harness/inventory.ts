@@ -15,9 +15,9 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     args: ["--version"],
     openArgs: ["--resume", "{id}"],
     discovery: "verified",
-    resume: "implemented-unverified",
+    resume: "verified",
     evidence:
-      "Read-only ~/.claude/projects/<key>/<id>.jsonl (claude-clip, Linux 2026-09-19). Adapter uses --resume. Hub-,Weitermachen' (promptlose Übernahme, EPIC-P35 T35.3) implementiert und am echten Transkript geprüft (Idle, kein Spawn); Live-Lauf nach Hub-Neustart ausstehend.",
+      "Read-only ~/.claude/projects/<key>/<id>.jsonl (claude-clip, Linux 2026-09-19). Resume --resume + hub-,Weitermachen' live belegt 2026-11-07 (EPIC-P35 T35.3): Worker mitten im Zug gekillt → interrupted → Weitermachen → Codewort KIESEL-7 aus dem vorabgesetzten Zug erinnert; native Session blieb dieselbe.",
   },
   {
     id: "codex",
@@ -39,7 +39,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     discovery: "verified",
     resume: "verified",
     evidence:
-      "SQLite-Store ~/.local/share/opencode/opencode.db (session/message/part, Layout 2026-08-31 verifiziert); Scanner live 2026-11-07: 488 Sessions. Resume via --session verified by hand 2026-09-23 (tetris-reloaded, zai-coding-plan/glm-5.3, session 821b0ec8) plus E2E handoff/recovery; hub-,Weitermachen' (promptlose Übernahme, EPIC-P35 T35.3) implementiert.",
+      "SQLite-Store ~/.local/share/opencode/opencode.db (session/message/part, Layout 2026-08-31 verifiziert); Scanner live 2026-11-07: 488 Sessions. Resume via --session verified by hand 2026-09-23 (tetris-reloaded, zai-coding-plan/glm-5.3, session 821b0ec8) plus E2E handoff/recovery; hub-,Weitermachen' live belegt 2026-11-07 (EPIC-P35 T35.3): Worker-Kill mitten im Zug → Weitermachen → Codewort NEBEL-11 erinnert.",
   },
   {
     id: "pi",
@@ -48,8 +48,8 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     args: ["--version"],
     openArgs: ["--session", "{id}"],
     discovery: "verified",
-    resume: "implemented-unverified",
-    evidence: "ADR-0041: external sessions read from ~/.pi/agent/sessions (JSONL, pi 1.4.0, checked on disk 2026-10-28); resume via `pi --session <file>`, copy via `--fork`. Hub-,Weitermachen' (promptlose Übernahme mit Verlaufsimport, EPIC-P35 T35.3) implementiert und an echter Session geprüft (Idle, kein Spawn); Live-Lauf ausstehend.",
+    resume: "verified",
+    evidence: "ADR-0041: external sessions read from ~/.pi/agent/sessions (JSONL, pi 1.4.0, checked on disk 2026-10-28); resume via `pi --session <file>`, copy via `--fork`. hub-,Weitermachen' live belegt 2026-11-07 (EPIC-P35 T35.3): Worker-Kill → Weitermachen → Codewort QUARZ-3 erinnert; pi führt den abgebrochenen Zug zuerst zu Ende (Queue des CLI), der Folgeprompt antwortet aus dem übernommenen Kontext.",
   },
   {
     id: "copilot",
@@ -58,9 +58,9 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     args: ["--version"],
     openArgs: ["--resume", "{id}"],
     discovery: "verified",
-    resume: "implemented-unverified",
+    resume: "verified",
     evidence:
-      "SQLite-Store ~/.copilot/session-store.db (sessions/turns, ISO-Zeiten; EPIC-P35 T35.5, live 2026-11-07 mit copilot 1.0.104: 12 Sessions). Übernahme einer fremden Session Ende-zu-Ende unbelegt — nur beobachtet. Adapter setzt mit -r fort; hub-,Weitermachen' (promptlose Übernahme, EPIC-P35 T35.3) implementiert, Live-Lauf ausstehend.",
+      "SQLite-Store ~/.copilot/session-store.db (sessions/turns, ISO-Zeiten; EPIC-P35 T35.5, live 2026-11-07 mit copilot 1.0.104: 12 Sessions). Übernahme aus der Erkennung live belegt (Adoption ,93ba3d3d… „remember the number 42“ → Antwort „42“); hub-,Weitermachen' live belegt (Worker-Kill → Weitermachen → Codewort LAVA-9).",
   },
   {
     id: "aider",
@@ -99,7 +99,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     discovery: "verified",
     resume: "verified",
     evidence:
-      "Hermes Agent 0.21.0: read-only Scanner für ~/.hermes/state.db (sessions/messages, EPIC-P34 T34.8; 1 277 Sitzungen gemessen 2026-11-07, cron/subagent gefiltert). Resume via --resume <sid> live belegt (P13-Handlauf 2026-10-03); hub-,Weitermachen' (promptlose Übernahme, EPIC-P35 T35.3) implementiert.",
+      "Hermes Agent 0.21.0: read-only Scanner für ~/.hermes/state.db (sessions/messages, EPIC-P34 T34.8; 1 277 Sitzungen gemessen 2026-11-07, cron/subagent gefiltert). Resume via --resume <sid> live belegt (P13-Handlauf 2026-10-03); hub-,Weitermachen' live belegt 2026-11-07 (EPIC-P35 T35.3): Worker-Kill → Weitermachen → Codewort DELTA-5 erinnert.",
   },
   {
     id: "maki",

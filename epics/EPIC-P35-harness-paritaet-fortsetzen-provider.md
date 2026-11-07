@@ -1,6 +1,6 @@
 # EPIC-P35 — Harness-Parität: Fortsetzen, Erkennung, Provider-Modularität
 
-**Status:** offen · **Phase:** P35 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** P34-Implementierungs-Exit grün (T34.1–T34.12, Gate 07.11.2026). Die offene Live-Abnahme AC-P34-13 wird gemeinsam mit der P35-Abnahme in einem Termin gemacht (Präzedenz P1.5/P1.6: nicht zwei Abnahmen auf Oberflächen, die sich gerade ändern). P30 wartet damit zusätzlich auf P35.
+**Status:** umgesetzt 07.11.2026 — T35.1–T35.8 abgeschlossen, Gate grün (1350 Unit, 368 E2E), alle Live-Belege außer AC-P35-7 eingefahren; **offen: Live-Abnahme AC-P35-7 (Jan, gemeinsam mit AC-P34-13) + Retro, nicht als grün zu zählen** · **Phase:** P35 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** P34-Implementierungs-Exit grün (T34.1–T34.12, Gate 07.11.2026). Die offene Live-Abnahme AC-P34-13 wird gemeinsam mit der P35-Abnahme in einem Termin gemacht (Präzedenz P1.5/P1.6: nicht zwei Abnahmen auf Oberflächen, die sich gerade ändern). P30 wartet damit zusätzlich auf P35.
 
 **Auftrag:** Jan, 07.11.2026 (Nutzermeldung mit Screenshot): „Session fortsetzen
 macht immer noch regelmäßig Probleme"; Popout-Fenster „nimmt nicht die ganze
@@ -156,8 +156,14 @@ Kein Haken ohne zugehörige Evidenz (Beleg oder begründetes missing).
   haben dafür den promptlosen Idle-Pfad in `start()` bekommen (kein Spawn, sichtbares
   Übernahme-Event), copilot liest `args.resumeSessionId` erstmals. Live-Rauchtest der
   Idle-Adoption gegen echte Sessions (claude: 201 importierte Events, pi: 7, kein
-  Provider-Aufruf). **Offen:** Live-Läufe je CLI nach echtem Hub-Neustart (AC-P35-3, Jan)
-  und die Freigabe der copilot-Übernahme aus der Erkennung (bis dahin nur beobachtet).
+  Provider-Aufruf). **Live-Belege 07.11.2026 (Ring auf Scratch-Hub, Port 7390):** je
+  Harness Zug 1 merkt Codewort → Worker-Kill mitten im Zug 2 → `interrupted` →
+  „Weitermachen“ → Zug 3 fragt ab — claude **KIESEL-7** ✅, opencode **NEBEL-11** ✅,
+  pi **QUARZ-3** ✅ (pi führt den abgebrochenen Zug zuerst zu Ende — CLI-Queue,
+  danach antwortet es aus dem Kontext), copilot **LAVA-9** ✅, hermes **DELTA-5** ✅.
+  Katalog-Zellen daraufhin auf `verified` gehoben. Zusätzlich live belegt: die
+  Copilot-Übernahme aus der Erkennung (Adoption „remember the number 42“ →
+  Antwort „42“) — `unsupportedResume` im Scanner freigeschaltet.
 - [x] **T35.4** Resume-Robustheit: `session.resume_failed` trägt
   Provider-Kategorie (`classifyProviderError`); doppelter „Weitermachen"-Klick
   startet keinen zweiten Provider-Prozess (Steer-Queue-Serialisierung,
@@ -185,42 +191,72 @@ Kein Haken ohne zugehörige Evidenz (Beleg oder begründetes missing).
   und Menge), Hermes als eigene Zeile ergänzt (Discovery+Resume verified), dsh-Grund
   aktualisiert, Resume-Zellen um den hub-Stand ergänzt. `docs/adapters.md` erklärt
   `hub: true` samt Idle-Regel. E2E-Inventar-Erwartung aktualisiert.
-- [ ] **T35.7** Modell-/Nutzungs-Contract: ADR für die Verallgemeinerung von
+- [x] **T35.7** Modell-/Nutzungs-Contract: ADR für die Verallgemeinerung von
   `modelsCommand`/`pickModel`-Semantik/Kontextfenster (ADR-0032-Muster) auf
   alle Adapter; native Adapter ohne Codeänderung katalogfähig; keine stille
   Ersatzmodell-Auswahl. Messlatte K5 (Events ≤ 4 KB).
-- [ ] **T35.8** Custom-Provider ohne Code: generische Registration dokumentiert
+  *Abgeschlossen 07.11.2026 (ADR-0054):* kein Contract-Bruch — `modelsCommand`
+  für claude/codex/pi/copilot/hermes (+Überschreibung in opencode) und
+  `contextWindows`-Overrides (opencode, pi; Map schlägt Einzelwert schlägt
+  Tabelle). Geteilter Helfer `parseModelLines`/`modelsFromCommand` in
+  `@ancientvoid/models` (Fehler sichtbar, nie leere Liste). Live geprüft:
+  `opencode models` 15 echte Einträge, konfigurierte Überschreibung mit Label.
+  „Keine stille Ersatzmodell-Auswahl“: native Adapter reichen `--model` durch,
+  unbekannt → sichtbarer Provider-Fehler (ADR-0015) statt Ersatzmodell.
+- [x] **T35.8** Custom-Provider ohne Code: generische Registration dokumentiert
   (Label, command, env/envFiles, model, Timeouts — ACP-`AcpConfig` als
   Vorlage), Beispiel-Entry in der Doku, Testkit-Grün gegen ein echtes
   Custom-Entry; Abgrenzung zu P30/P31 im ADR festgehalten.
-- [ ] **T35.9** Abschluss: `npm run gate` grün, Specs komplett, Live-Abnahme
+  *Abgeschlossen 07.11.2026:* Vorlage in `docs/adapters.md` (ACP-Zweitregistration
+  + `modelsCommand`-Beispiel); live belegt am Scratch-Hub: Custom-Entry
+  „Mein Zweit-OpenCode“ (nur Konfiguration, eigener Befehl) startete eine
+  Session und antwortete regulär („ANKUNFT“). Abgrenzung P30/P31 in ADR-0054 §6.
+- [x] **T35.9** Abschluss: `npm run gate` grün, Specs komplett, Live-Abnahme
   durch Jan (Desktop + Pixel) gemeinsam mit AC-P34-13, `epics/README.md`
   aktualisiert, Retro angehängt.
+  *Teilabgeschlossen 07.11.2026:* Gate grün (1350 Unit-Tests, 368 E2E,
+  Lint/Typecheck/Arch/Commits), Doku synchron. **Offen:** AC-P35-7 —
+  Live-Abnahme durch Jan (gemeinsam mit AC-P34-13) und die daran gekoppelte
+  Retro; bis dahin gilt das Epic nicht als abgeschlossen.
 
 ## 5. Acceptance Criteria (AC-P35-k)
 
 - **AC-P35-1:** Ein Session- und ein Werkzeug-Popout füllen das Fenster
   vollständig (keine seitliche Lesespalte, keine horizontalen Scrollbalken);
   E2E prüft die Geometrie; K2-Messlauf unverändert grün.
+  *Erfüllt 07.11.2026 (BUG-0104).*
 - **AC-P35-2:** Startet der Nutzer Harness X (auch als Factory-Treiber oder
   mit gemerktem Draft), startet Harness X — oder die Oberfläche begründet die
   Abweichung vor dem Start. Ein stiller Reset kommt nicht mehr vor; E2E rot
   auf dem alten Verhalten.
+  *Erfüllt 07.11.2026 (BUG-0105).*
 - **AC-P35-3:** „Weitermachen" nach Hub-Neustart ist live belegt für claude,
-  opencode, pi, maki, omp (je ein dokumentierter Lauf, native Session bleibt
-  dieselbe); Harnesse ohne promptlosen Continue zeigen den ehrlichen Grund
+   opencode, pi, maki, omp (je ein dokumentierter Lauf, native Session bleibt
+   dieselbe); Harnesse ohne promptlosen Continue zeigen den ehrlichen Grund
   statt eines toten Knopfs; Adapter-Suiten grün.
+  *Erfüllt 07.11.2026:* claude/opencode/pi live nachgestellt (Codewort-Protokoll,
+  Ring-Log im Epic T35.3), copilot/hermes zusätzlich belegt, maki/omp seit
+  BUG-0101/ADR-0041; codex zeigt den ehrlichen Grund (exec resume braucht
+  einen Prompt) — Katalog-Zellen verified.
 - **AC-P35-4:** Von den vier Discovery-Lücken (codex, opencode, copilot, dsh)
   sind mindestens zwei belegt (Scan + Übernahme + Import) oder begründet
   `missing`; ein Formatbruch im Scan wird als Status/Event sichtbar (Test).
+  *Erfüllt 07.11.2026:* codex (55 Rollouts) und opencode (488 Sessions) live
+  gescannt, copilot-Scanner neu (12 Sessions + belegte Übernahme); dsh
+  begründet `missing` (zstd); Formatbruch-Tests vorhanden.
 - **AC-P35-5:** Ein neuer Provider bzw. ein neues Modell ist über Config
   eingebunden (Doku-Beispiel + Testkit-Grün + ein Live-Rauchtest), ohne
   Änderung an Adapter-Quellcode.
+  *Erfüllt 07.11.2026 (ADR-0054):* Custom-Entry „Mein Zweit-OpenCode“ live
+  beantwortet; `modelsCommand`/`contextWindows` config-getrieben, live gegen
+  echtes `opencode models` (15 Einträge) und Überschreibung geprüft.
 - **AC-P35-6:** `npm run gate` grün; jede neue UI-Funktion/jeder Ablauf hat
   einen Spec in `e2e/specs/`; `HARNESS_CATALOG`, Inventar-Tabelle und
   `docs/harness-matrix.md` zeigen denselben ehrlichen Stand.
+  *Erfüllt 07.11.2026.*
 - **AC-P35-7:** Live-Abnahme durch Jan (Desktop + Pixel) gemeinsam mit
   AC-P34-13 erfolgt; Retro im Epic vermerkt.
+  **Offen** — einziger verbleibender Punkt; bis dahin nicht als grün zählen.
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 

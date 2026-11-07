@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contextWindowFor, resolveContextWindow } from "../src/index.ts";
+import { contextWindowFor, modelsFromCommand, parseModelLines, resolveContextWindow } from "../src/index.ts";
 
 describe("contextWindowFor (ADR-0032, Quelle models.dev 2026-09-26)", () => {
   it("kennt die GLM-Familie inklusive provider-Präfix und Suffixe", () => {
@@ -32,25 +32,43 @@ describe("contextWindowFor (ADR-0032, Quelle models.dev 2026-09-26)", () => {
     expect(contextWindowFor("gemini-3.8-flash")).toBe(1_048_576);
     expect(contextWindowFor("kimi-k3")).toBe(1_048_576);
   });
+});
 
-  it("unbekannt bleibt unbekannt — nie geraten", () => {
-    expect(contextWindowFor("jev-1.13")).toBeNull();
-    expect(contextWindowFor("custom/Mein-Modell")).toBeNull();
-    expect(contextWindowFor("")).toBeNull();
+/** ADR-0054 (EPIC-P35 T35.7): config-getriebene Modell-Kataloge für Adapter. */
+describe("parseModelLines (ADR-0054)", () => {
+  it("liest provider/model und nackte ids, optional Label nach Tab", () => {
+    expect(parseModelLines("zai/glm-5.3\nsonnet\tAnthropic Sonnet\nlokal/klein")).toEqual([
+      { id: "zai/glm-5.3" },
+      { id: "sonnet", label: "Anthropic Sonnet" },
+      { id: "lokal/klein" },
+    ]);
+  });
+
+  it("überspringt Warnungen, Kopfzeilen, Leerzeilen und Doppelte", () => {
+    expect(parseModelLines("Warning: something\n# Kommentar\n\nzai/glm-5.3\nzai/glm-5.3\n12 models")).toEqual([{ id: "zai/glm-5.3" }]);
   });
 });
 
-describe("resolveContextWindow — Konfiguration schlägt Tabelle", () => {
-  it("Override gewinnt gegen die Kuratierte Liste", () => {
-    expect(resolveContextWindow("zai-coding-plan/glm-5.3", undefined, { glm: 123_456 })).toBe(123_456);
+describe("modelsFromCommand (ADR-0054)", () => {
+  it("führt das Kommando read-only aus und parst die Zeilen (printf statt echter CLI)", async () => {
+    const models = await modelsFromCommand(["printf", "lokal/gross\nlokal/klein"]);
+    expect(models).toEqual([{ id: "lokal/gross" }, { id: "lokal/klein" }]);
+  });
+
+  it("ein Fehlschlag wird sichtbar, nie als leere Liste geschluckt", async () => {
+    await expect(modelsFromCommand(["false"])).rejects.toThrow();
+  });
+});
+
+describe("resolveContextWindow (ADR-0032/0054)", () => {
+  it("Konfiguration schlägt die Tabelle, Tabelle schlägt unbekannt", () => {
+    expect(resolveContextWindow("zai/glm-5.3", undefined, { "glm-5.3": 42 })).toBe(42);
+    expect(resolveContextWindow("zai/glm-5.3", undefined, {})).toBe(1_000_000);
+    expect(resolveContextWindow("völlig/unbekannt", undefined, {})).toBeNull();
   });
 
   it("matcht auch den Rohwert (JSON-Paar wie bei manchen Agenten)", () => {
     expect(resolveContextWindow("lokal/glm-5.3", '["lokal","glm-5.3"]', { lokal: 555 })).toBe(555);
     expect(resolveContextWindow("lokal/klein", '["lokal","klein"]', {})).toBeNull();
-  });
-
-  it("ohne Override gilt die Tabelle", () => {
-    expect(resolveContextWindow("glm-5.3", undefined, {})).toBe(1_000_000);
   });
 });

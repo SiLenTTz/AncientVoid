@@ -14,6 +14,7 @@
   "dependencies": {
     "@ancientvoid/adapter-jsonrpc": "0.1.0",
     "@ancientvoid/contracts": "0.1.0",
+    "@ancientvoid/models": "0.1.0",
     "zod": "^4.6.5"
   }
 }

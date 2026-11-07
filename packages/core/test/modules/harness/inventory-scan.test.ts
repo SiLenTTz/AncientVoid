@@ -19,7 +19,7 @@ describe("probeHarnesses (T5.1)", () => {
     const codex = items.find((item) => item.id === "codex");
     const aider = items.find((item) => item.id === "aider");
     const deepseek = items.find((item) => item.id === "deepseek");
-    expect(claude).toMatchObject({ version: "2.1.263", discovery: "verified", resume: "implemented-unverified" });
+    expect(claude).toMatchObject({ version: "2.1.263", discovery: "verified", resume: "verified" });
     expect(claude?.evidence).toContain("Probe: 2.1.263.");
     // EPIC-P35 T35.6: codex discovery ist belegt (Rollout-Scanner T34.8) — eine
     // fehlende Binary lügt die Zelle nicht zurück, sie ergänzt nur den Probe-Vermerk.
