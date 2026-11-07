@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { chmodSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { AdapterContext, EmittedEvent, ToolPermissionRequest } from "@ancientvoid/contracts";
+import type { AdapterContext, EmittedEvent, ToolPermissionRequest, WorkerProcess } from "@ancientvoid/contracts";
 import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
 import { ProcessRunner } from "@ancientvoid/workers";
 import { ACP_PRESETS, createAdapter, pickModel } from "../src/index.ts";
@@ -47,17 +47,19 @@ describe("acp adapter (T7.2)", () => {
     expect(() => createAdapter({})).toThrow("preset");
   });
 
-  it("BUG-0101: maki/omp deklarieren natives Hub-Resume (ADR-0041-Beleg, ADR-0044-Opt-in)", () => {
+  it("BUG-0101/EPIC-P35: maki/omp/opencode deklarieren natives Hub-Resume (ADR-0041-Beleg, ADR-0044-Opt-in)", () => {
     // start({args:{resumeSessionId}}) ohne Prompt lädt die alte Konversation
     // (session/load) — der belegte Pfad darf „Weitermachen" freischalten.
     expect(createAdapter({ preset: "maki" }).capabilities().resume).toEqual({ argv: ["maki", "--resume", "{sessionId}"], ref: "native", hub: true });
     expect(createAdapter({ preset: "omp" }).capabilities().resume).toEqual({ argv: ["omp", "--resume", "{sessionId}"], ref: "native", hub: true });
+    // EPIC-P35 (07.11.2026): opencode meldet loadSession im Handshake und lädt
+    // promptlos — live belegt (Worker-Kill → Weitermachen → Kontext da).
+    expect(createAdapter({ preset: "opencode" }).capabilities().resume).toEqual({ argv: ["opencode", "--session", "{sessionId}"], ref: "native", hub: true });
     // ein eigener Aufruf zeigt die echte Binary im Anzeige-Template
     expect(createAdapter({ preset: "maki", command: ["maki-nightly", "acp"] }).capabilities().resume).toEqual({ argv: ["maki-nightly", "--resume", "{sessionId}"], ref: "native", hub: true });
     // ohne Beleg keine Deklaration — das ist der ehrliche Zustand (ADR-0036)
     expect(createAdapter({ preset: "dsh" }).capabilities().resume).toBeUndefined();
     expect(createAdapter({ preset: "copilot" }).capabilities().resume).toBeUndefined();
-    expect(createAdapter({ preset: "opencode" }).capabilities().resume).toBeUndefined();
     expect(createAdapter({ command: [agent] }).capabilities().resume).toBeUndefined();
   });
 
@@ -80,6 +82,37 @@ describe("acp adapter (T7.2)", () => {
     // follow-up in the same agent process
     expect(await adapter.steer(handle, { kind: "prompt", text: "Nochmal" }, ctx)).toEqual({ ok: true });
     await waitFor(() => texts(ctx.events, "assistant").length === 2);
+    await adapter.stop(handle, ctx);
+  });
+
+  it("EPIC-P35: endet der Agent zwischen Zügen von selbst, startet der nächste Prompt ihn mit geladener Konversation (dormant, BUG-0060-Weg)", async () => {
+    const procs: WorkerProcess[] = [];
+    const runner = new ProcessRunner();
+    const ctx = makeRecordingContext({
+      workdir: process.cwd(),
+      spawnWorker: async (cmd: string[], o: { env?: Record<string, string> }) => {
+        const proc = await runner.spawn({ name: "acp-test", cwd: process.cwd(), cmd, ...(o?.env ? { env: o.env } : {}) });
+        procs.push(proc);
+        return proc;
+      },
+    } as Partial<AdapterContext>);
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "Erste Frage" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    expect(procs).toHaveLength(1);
+
+    // Der Agent-Prozess endet von selbst zwischen Zügen (live beobachtet bei
+    // opencode acp nach dem geladenen Zug, 07.11.2026): die Session bleibt
+    // weckbar, das steht als Ereignis im Tail — fail loud, kein stiller Tod.
+    await procs[0]!.kill("SIGKILL");
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "acp.dormant_exit"));
+
+    const ack = await adapter.steer(handle, { kind: "prompt", text: "Zweite Frage" }, ctx);
+    expect(ack.ok).toBe(true);
+    await waitFor(() => texts(ctx.events, "assistant").length === 2);
+    // Ein neuer Agent wurde gestartet und die native Konversation geladen.
+    expect(procs).toHaveLength(2);
+    expect(texts(ctx.events, "assistant")[1]).toContain("Zweite Frage");
     await adapter.stop(handle, ctx);
   });
 

@@ -39,7 +39,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     discovery: "verified",
     resume: "verified",
     evidence:
-      "SQLite-Store ~/.local/share/opencode/opencode.db (session/message/part, Layout 2026-08-31 verifiziert); Scanner live 2026-11-07: 488 Sessions. Resume via --session verified by hand 2026-09-23 (tetris-reloaded, zai-coding-plan/glm-5.3, session 821b0ec8) plus E2E handoff/recovery; hub-,Weitermachen' live belegt 2026-11-07 (EPIC-P35 T35.3): Worker-Kill mitten im Zug → Weitermachen → Codewort NEBEL-11 erinnert.",
+      "SQLite-Store ~/.local/share/opencode/opencode.db (session/message/part, Layout 2026-08-31 verifiziert); Scanner live 2026-11-07: 488 Sessions. Resume via --session verified by hand 2026-09-23 (tetris-reloaded, zai-coding-plan/glm-5.3, session 821b0ec8) plus E2E handoff/recovery; hub-,Weitermachen' live belegt 2026-11-07 (EPIC-P35 T35.3): Worker-Kill mitten im Zug → Weitermachen → Codewort NEBEL-11 erinnert. ACP-Preset ebenso (EPIC-P35): session/load promptlos, Agent-Ende danach macht die Session weckbar (dormant-on-exit) — Kontext zweimal live belegt.",
   },
   {
     id: "pi",
