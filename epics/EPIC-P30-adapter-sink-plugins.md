@@ -2,7 +2,7 @@
 
 **Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P30
 **Dauer:** 2–3 Agenten-Wochen (ohne Vorgänger-Restarbeit)
-**Abhängigkeit:** P29-Exit-Kriterien grün; bestehende Adapter-/Reporting-Verträge geprüft.
+**Abhängigkeit:** P29- und P34-Exit-Kriterien grün (P34 seit 07.11.2026 eingeschoben); bestehende Adapter-/Reporting-Verträge geprüft.
 
 Quelle: [Vergleichsanalyse vom 05.11.2026](../docs/2026-11-05_paseo-vs-ancientvoid.md), §5; [Planungsgrundlage und Quellen](../docs/2026-11-05_paseo-umsetzungsplanung.md).
 
