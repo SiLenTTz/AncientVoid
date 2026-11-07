@@ -5,7 +5,7 @@ import { SessionTail } from "../features/session/SessionTail.tsx";
 import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
 import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
-import { pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
+import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
 import { applyCtxMotion, applyScale, ctxMotionOn, getScale, installScaleShortcuts } from "./ui-scale.ts";
@@ -13,6 +13,7 @@ import { captureShareTarget, storeShareInbox } from "./share-inbox.ts";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
 import { TileWorkspace } from "../features/workspace/TileWorkspace.tsx";
 import { StatusBar } from "../features/shell/StatusBar.tsx";
+import { ToolPane } from "../features/shell/ToolPane.tsx";
 import { rememberSession } from "../features/shell/last-session.ts";
 import { openInNewTile, openSession, parseWorkspace, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
 import type { Page } from "./Dock.tsx";
@@ -214,6 +215,13 @@ function Main() {
     const hash = focused ? sessionHash(focused.sessionId, focused.hostId) : pageHash(route.view === "list" ? route.page : "dashboard");
     if (location.hash !== hash) history.replaceState(null, "", hash);
   };
+  // EPIC-P34 T34.2: a tool page (settings, media …) fills the detail column on a wide screen.
+  const toolPage = route.view === "list" && isToolPage(route.page) ? route.page : null;
+  const openFromList = (session: SessionRecord, opts?: { newTile?: boolean }) => {
+    setRoute({ view: "tail", session });
+    const ref = tileRefOf(session);
+    changeWorkspace(opts?.newTile ? openInNewTile(ws, ref) : openSession(ws, ref));
+  };
   // A deep link or Back to a session lands in the workspace too.
   useEffect(() => {
     if (!wide || route.view !== "tail") return;
@@ -243,18 +251,11 @@ function Main() {
         <div class={`split${listCollapsed ? " list-collapsed" : ""}`}>
           <aside class="split-list">
             <NotificationCenter />
-            <App
-              onOpen={(session, opts) => {
-                setRoute({ view: "tail", session });
-                const ref = tileRefOf(session);
-                changeWorkspace(opts?.newTile ? openInNewTile(ws, ref) : openSession(ws, ref));
-              }}
-              ready={() => setReady(false)}
-              page={route.view === "list" ? route.page : "dashboard"}
-            />
+            <App wide onOpen={openFromList} ready={() => setReady(false)} page={route.view === "list" ? route.page : "dashboard"} />
           </aside>
           <section class="split-detail">
             {/* EPIC-P18: up to four sessions as tiles. */}
+            <div class="tile-host" {...({ inert: toolPage !== null } as object)}>
             <TileWorkspace
               listCollapsed={listCollapsed}
               onToggleList={() =>
@@ -270,6 +271,17 @@ function Main() {
                 location.hash = pageHash(page);
               }}
             />
+            </div>
+            {toolPage && (
+              <ToolPane
+                page={toolPage}
+                onClose={() => {
+                  location.hash = pageHash("dashboard");
+                }}
+                onOpen={(session) => openFromList(session)}
+                onSwitchToken={() => setReady(false)}
+              />
+            )}
           </section>
           <StatusBar focused={visibleTiles(ws)[ws.focus] ?? null} onOpenApprovals={() => (location.hash = pageHash("approvals"))} />
         </div>

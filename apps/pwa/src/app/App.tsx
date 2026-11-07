@@ -2,20 +2,16 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, type AdapterInfo, type AdapterUsage, type FleetHost, type SessionRecord } from "../shared/api.ts";
 import { Dashboard } from "../features/overview/Dashboard.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
-import { pageHash } from "./route.ts";
+import { isToolPage, pageHash } from "./route.ts";
 import { setHere } from "../shared/command-context.ts";
 import { openCommandBar } from "../features/commands/CommandBar.tsx";
 import { ApprovalQueuePane } from "../features/approvals/Approvals.tsx";
 import { StatusPage } from "../features/status/StatusPage.tsx";
 import { DiscoveryPane } from "../features/discovery/Discovery.tsx";
-import { FleetSettings } from "../features/fleet/Fleet.tsx";
-import { GeminiSettings } from "../features/settings/GeminiSettings.tsx";
-import { PushSettings } from "../features/settings/PushSettings.tsx";
-import { Settings } from "../features/settings/Settings.tsx";
+import { SettingsPage } from "../features/settings/SettingsPage.tsx";
 import { CreateSession } from "../features/new-session/CreateSession.tsx";
 import { MediaPage } from "../features/media/MediaPage.tsx";
 import { DesktopPage } from "../features/desktop/DesktopPage.tsx";
-import { PcInput } from "../features/settings/PcInput.tsx";
 import { publishHubStatus } from "../features/shell/hub-status.ts";
 import { getLastSession } from "../features/shell/last-session.ts";
 
@@ -23,13 +19,17 @@ export function App({
   onOpen,
   ready,
   page,
+  wide = false,
 }: {
   /** `newTile`: Ctrl/⌘-click — open next to the others (EPIC-P18). */
   onOpen: (session: SessionRecord, opts?: { newTile?: boolean }) => void;
   ready: () => void;
   /** T8.1: the page comes from the URL (#/neu, #/status …). */
   page: Page;
+  /** EPIC-P34 T34.2: on a wide screen the tool pages live in the detail column (ToolPane); the list stays the list. */
+  wide?: boolean;
 }) {
+  const shown: Page = wide && isToolPage(page) ? "dashboard" : page;
   useEffect(() => setHere({ page, sessionId: null, hostId: null, sessionRevision: null }), [page]);
   const setPage = (p: Page) => {
     location.hash = pageHash(p);
@@ -92,7 +92,9 @@ export function App({
           a.map(async (adapter) => [adapter.id, await hubApi.adapterUsage(adapter.id)] as const),
         );
         if (!alive) return;
-        setUsage(Object.fromEntries(usageEntries));
+        const usageByAdapter = Object.fromEntries(usageEntries);
+        setUsage(usageByAdapter);
+        publishHubStatus({ adapters: a, usage: usageByAdapter });
       } catch (err) {
         failedPolls.current += 1;
         if (alive && failedPolls.current >= 2) {
@@ -147,7 +149,7 @@ export function App({
         </div>
       )}
 
-      {page === "new" && (
+      {shown === "new" && (
         <CreateSession
           adapters={adapters}
           hosts={hosts}
@@ -155,27 +157,19 @@ export function App({
         />
       )}
 
-      {page === "settings" && (
-        <>
-          <Settings onSwitchToken={ready} />
-          <FleetSettings />
-          <PushSettings />
-          <GeminiSettings />
-          <PcInput />
-        </>
-      )}
+      {shown === "settings" && <SettingsPage onSwitchToken={ready} />}
 
-      {page === "approvals" && <ApprovalQueuePane />}
+      {shown === "approvals" && <ApprovalQueuePane />}
 
-      {page === "status" && <StatusPage adapters={adapters} usage={usage} />}
+      {shown === "status" && <StatusPage adapters={adapters} usage={usage} />}
 
-      {page === "discovery" && <DiscoveryPane onOpen={onOpen} />}
+      {shown === "discovery" && <DiscoveryPane onOpen={onOpen} />}
 
-      {page === "media" && <MediaPage sessions={sessions ?? []} />}
+      {shown === "media" && <MediaPage sessions={sessions ?? []} />}
 
-      {page === "pc" && <DesktopPage />}
+      {shown === "pc" && <DesktopPage />}
 
-      {page === "dashboard" &&
+      {shown === "dashboard" &&
         (sessions === null ? (
           <div class="empty">lade…</div>
         ) : (
