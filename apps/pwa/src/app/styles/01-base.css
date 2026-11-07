@@ -22,7 +22,11 @@
   --glow-blur: 20px;
   --glow-dur: 1.6s;
   --font-display: "Orbitron", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace;
+  /* EPIC-P34 T34.6: Oberflächen- und Codeschrift getrennt. `--font-mono` bleibt der Name für Code
+   * und folgt `--font-code`; appearance.ts überschreibt beide nur, wenn der Nutzer wählt. */
+  --font-ui: "JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace;
+  --font-code: "JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace;
+  --font-mono: var(--font-code);
   --tracking-label: 0.1em;
   color-scheme: dark;
 }
@@ -53,7 +57,7 @@ body {
   padding: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: calc(14px * var(--font-scale, 1));
   line-height: 1.45;
   -webkit-tap-highlight-color: transparent;
@@ -91,4 +95,24 @@ body {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* EPIC-P34 T34.6: Flächen mit Code-Charakter folgen der Codeschrift, auch wenn die Oberfläche proportional ist. */
+pre,
+code,
+kbd,
+samp,
+.mono,
+.event-detail,
+.command-before,
+.command-after,
+.search-result-snippet,
+.action-output,
+.markdown .md-code,
+.code-lines,
+.hunk-body-unified,
+.hunk-body-split,
+.hunk-split-cell,
+.tool-input {
+  font-family: var(--font-code);
 }

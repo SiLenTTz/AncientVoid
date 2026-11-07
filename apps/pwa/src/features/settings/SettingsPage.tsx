@@ -1,7 +1,9 @@
 import { FleetSettings } from "../fleet/Fleet.tsx";
 import { AppearanceSettings } from "./AppearanceSettings.tsx";
 import { DevicesSettings } from "./DevicesSettings.tsx";
+import { FontSettings } from "./FontSettings.tsx";
 import { GeminiSettings } from "./GeminiSettings.tsx";
+import { PreviewSettings } from "./PreviewSettings.tsx";
 import { PushSettings } from "./PushSettings.tsx";
 import { SecuritySettings } from "./SecuritySettings.tsx";
 
@@ -17,6 +19,8 @@ export function SettingsPage({ onSwitchToken }: { onSwitchToken: () => void }) {
       <div class="settings-cols">
         <div class="settings-col">
           <AppearanceSettings />
+          <FontSettings />
+          <PreviewSettings />
           <PushSettings />
         </div>
         <div class="settings-col">

@@ -139,7 +139,9 @@ Offline-Test (Service Worker), Kamera/QR, Push, zweiter Hub oder zweiter Browser
 | Anmeldung | `auth` | Token-Eingabe, falsches Token, Reload, Klartext, Token wechseln |
 | Navigation | `navigation` | Dock (Medien statt Voice), Kopfzeile, Direktlinks, Status-Seite mit Fähigkeiten, Theme bleibt, Einstellungen |
 | Werkzeugfläche | `tool-pane` | Detailspalte am Desktop, Kacheln bleiben gemountet (WebSocket-Zähler, Entwurf), Esc, Handy ohne Fläche |
-| Einstellungen | `settings-layout` | sechs Gruppen, zwei gleich breite Spalten, fluchtende Bedienelemente, Handy einspaltig, Schalter, Theme |
+| Akzentfarbe | `accent-color` | Farbwähler-Modal: live, Abbrechen, Übernehmen, Reload, je Theme, Zurücksetzen, Kontrast-Warnung |
+| Schrift | `appearance-font` | Keine Fremd-Host-Anfragen, 14/16 px bei 100 %, Oberflächenschrift live, Code/Diff bleiben Festbreite, Größen-Stepper mit Grenzen, Reload, Zurücksetzen |
+| Einstellungen | `settings-layout` | acht Gruppen, zwei gleich breite Spalten, fluchtende Bedienelemente, Handy einspaltig, Schalter, Theme |
 | Sessions | `session` | Anlegen per UI, Gruppierung, Verlauf-Filter, Karten, Längenlimit, Bericht, Diff, Suche, Provider-Absturz |
 | Steuern | `steer` | Antwort, Stop, Weiter mit derselben Provider-Session, Doppeltipp, zwei Geräte, abgelehnte Antwort |
 | Handoff | `handoff` | PC → Handy → PC (live und nach Stop), gleiche native ID und gleiches Arbeitsverzeichnis |
