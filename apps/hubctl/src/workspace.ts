@@ -1,5 +1,5 @@
 import type { WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
-import { api } from "./cli.ts";
+import { api } from "./api.ts";
 
 /**
  * EPIC-P29 T29.6: `hubctl workspace …` — Status, Logs, menschlicher Retry
