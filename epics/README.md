@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P45)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P46)
 
 **Erstellt:** 12.09.2026 · **Basis:** PRD AncientVoid v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
@@ -125,7 +125,8 @@ Provider-Katalog P31; P32 erhält die aktuelle PWA-Präferenz.
 | [P36 — Diff-Review](EPIC-P36-diff-review-feedback.md) | Notizen und gesammeltes Agenten-Feedback; vorhandene Zustellung auditieren | P33 grün | 1–2 |
 | [P37 — GitLab-Kontext](EPIC-P37-gitlab-review-ci.md) | Issues, MRs, CI und Review-Rückgabe | P36 grün | 2–3 |
 | [P38 — Session-Arbeitsort](EPIC-P38-session-arbeitsort.md) | Eigener Worktree oder Projekt direkt; Sandbox getrennt | P37 grün | 1–2 |
-| [P39 — Browser-Testarbeitsplatz](EPIC-P39-browser-testarbeitsplatz.md) | Host-Chromium in PWA, Tests und Design-Feedback | P38 grün | 3–5 |
+| [P46 — Projekt-Explorer/Dateiansicht](EPIC-P46-projekt-explorer-dateiansicht.md) | Rechte Sidebar, vollständige Datei-/Formatansichten und Sprachdiagnosen | P38 grün | 3–5 |
+| [P39 — Browser-Testarbeitsplatz](EPIC-P39-browser-testarbeitsplatz.md) | Host-Chromium in PWA, Tests und Design-Feedback | P46 grün | 3–5 |
 | [P40 — Hermes-Orchestrierung](EPIC-P40-hermes-orchestrierung.md) | Gemischte Harnesses/Provider mit Tasks, Dispatches, Fragen | P39 grün | 3–5 |
 | [P41 — Automationen](EPIC-P41-automationen.md) | Zeitpläne, Prechecks, Laufhistorie, Recovery | P40 grün | 2–3 |
 | [P42 — Android-Testgeräte](EPIC-P42-android-testgeraete.md) | AVD-/Host-Spike, Bild/Input und Android-Tests | P41 grün | 0,5–1 + 2–4 |
@@ -133,9 +134,12 @@ Provider-Katalog P31; P32 erhält die aktuelle PWA-Präferenz.
 | [P44 — UI-Plugins](EPIC-P44-plugin-panels-themes.md) | Panels/Themes als Erweiterung des P30-Lifecycles | P43 grün | 2–3 |
 | [P45 — Zugangsevaluation](EPIC-P45-zugang-ohne-tailnet-evaluation.md) | Transport/Account-Optionen; expliziter Go/No-go/vertagt-Entscheid | P44 grün | 0,5–1 |
 
-Erweiterte Kette: **P27 → P28 → P29 → P34 → P35 → P30 → P31 → P32 → P33 → P36 → P37 → P38 → P39 → P40 → P41 → P42 → P43 → P44 → P45**.
+Erweiterte Kette: **P27 → P28 → P29 → P34 → P35 → P30 → P31 → P32 → P33 → P36 → P37 → P38 → P46 → P39 → P40 → P41 → P42 → P43 → P44 → P45**.
 P32/P33 brauchen weiterhin einen ausdrücklich gültigen Evaluations-/Umsetzungs-Exit;
 PWA-Präferenz allein schließt sie nicht. AC-P34-13/AC-P35-7 bleiben offen.
+P46 wurde auf den Folgeauftrag vom 08.11.2026 zwischen P38 und P39 eingefügt:
+rechte Projekt-Sidebar, komplette Dateiansicht und echte Sprachdiagnosen
+waren in P43 nicht abgedeckt. Bestehende Epic-Nummern bleiben stabil.
 P45 endet mit Evaluation und erfasst den ausdrücklichen Nutzerentscheid getrennt;
 ohne Antwort bleibt der Entscheid offen. Eine spätere Implementierung benötigt
 einen eigenen Auftrag und Umfang. Zahlen sind grobe Größenordnungen, keine

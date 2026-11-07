@@ -2,7 +2,7 @@
 
 **Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P39
 **Dauer:** 3–5 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
-**Abhängigkeit:** P38 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
+**Abhängigkeit:** P46 mit nachweislich grünen Exit-Kriterien (auf Folgeauftrag vom 08.11.2026 nach P38 eingeschoben); wirksame Vorgänger-Abnahmen bleiben bindend.
 
 Quelle: [Orca-Vergleich](../docs/2026-11-08_orca-vs-ancientvoid.md) und [Planungsgrundlage mit Übernahmeregister](../docs/2026-11-08_orca-epic-planung.md).
 **Planungsauftrag 08.11.2026:** Nutzer beauftragt diese Epics ausdrücklich vor Abschluss der Vorgänger. Das erlaubt Planung, keine Implementierung und keine Aufhebung des Epic-Gatings. Vor T39.1 aktuellen Code-/Test-/Abnahmestand prüfen; historische Überschriften reichen nicht.
@@ -22,7 +22,7 @@ Einen von AV verwalteten Browser pro Arbeitskontext in der PWA öffnen, bedienen
 Spike vergleicht serverseitigen Chromium mit Screenshot-/Frame-Stream und Eingabekanal gegen kooperative instrumentierte Preview. Ziel ist ein eigener nutzbarer Browser in AV, auch für Seiten mit Frame-Sperren. Die PWA selbst kann keinen Chromium-Prozess starten. MVP: Host-Worker besitzt Browser/Context, PWA zeigt begrenzten Frame-Stream; kein öffentlicher CDP-Port. Bandbreite/Lesbarkeit/Input-Latenz auf Pixel/Tailscale messen; unbrauchbares Streaming blockiert Vollausbau und wird nicht als fertiger Browser gezählt. Headless-Modus zuerst; headed nur bei belegtem Bedarf.
 
 ### 3.2 Nähte und Trennung
-P29 Preview bleibt bestehen. Browser-Service in eigenem `core`-Modul mit Worker-/Browser-Grenze, Contracts `contracts/src/browser/`, Routen `modules/browser/`, UI `features/browser/`. Ob Hilfspaket nötig ist, im ADR am Spike entscheiden. Keine Playwright-/Browser-Imports in Provider-Adaptern; Agenten nutzen registrierte Browseroperationen über Gateway/Hub. Registry verknüpft BrowserContext mit Host/Session/Arbeitsort aus P38 und P29-Service. Separater Context/Profile je Workspace; Testkontext und manuelle Nutzung nicht gleichzeitig unkontrolliert schreiben lassen.
+P29 Preview bleibt bestehen. P46 liefert den Projektbaum und passive Datei-Viewer; der Browser ergänzt echte Navigation/Interaktion, kein zweiter Dateibrowser. Browser-Service in eigenem `core`-Modul mit Worker-/Browser-Grenze, Contracts `contracts/src/browser/`, Routen `modules/browser/`, UI `features/browser/`. Ob Hilfspaket nötig ist, im ADR am Spike entscheiden. Keine Playwright-/Browser-Imports in Provider-Adaptern; Agenten nutzen registrierte Browseroperationen über Gateway/Hub. Registry verknüpft BrowserContext mit Host/Session/Arbeitsort aus P38 und P29-Service. Separater Context/Profile je Workspace; Testkontext und manuelle Nutzung nicht gleichzeitig unkontrolliert schreiben lassen.
 
 ### 3.3 Ziel- und Eingabekontrolle
 Standardziele sind registrierte Workspace-Services. Weitere Test-Origins nur explizit konfigurieren/freigeben. Navigations-/Redirect-/Download-/WebSocket-Ziele, DNS-Rebinding und privilegierte lokale Endpunkte begrenzen; keine Browser-OS-/Hub-Admin-URL durch Agenten. P29-Proxy nicht zum allgemeinen Proxy erweitern. Cookies/Storage bleiben im Kontext, nicht AV-Gerätetoken; Browserprofil nie aus persönlichem Chromium importieren. Eingaben/Uploads als schema-validierte Operationen. Stop beendet Kontext/Worker nach Ownership, keine fremden Browser.

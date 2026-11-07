@@ -7,7 +7,7 @@ Quelle: [Vergleich mit Code-Evidenz](2026-11-08_orca-vs-ancientvoid.md).
 
 ## 1. Nutzerentscheidungen und offene Fragen
 
-Auftrag vom 08.11.2026: Diff-Feedback und GitLab-Kontext sind gewünscht. Ein eigener Browser in AV soll Tests und visuelles Feedback ermöglichen; bei Session-Erstellung soll zwischen isolierter Arbeit und echtem Projekt gewählt werden können. Hermes soll als Orchestrator unterschiedliche Harnesses/Provider steuern können. Automationen, Android-Emulator, Plugins und sauberere UI mit mehr Styling sollen als neue Epics aufgenommen werden. Orca-Quellen sollen konkrete Wiederverwendung erleichtern und unnötige Recherche/Tokenaufwand sparen.
+Auftrag vom 08.11.2026: Diff-Feedback und GitLab-Kontext sind gewünscht. Im Folgeauftrag desselben Tages fordert der Nutzer zusätzlich eine rechte Projekt-Datei-Sidebar, vollständige Dateiansichten unabhängig vom Format sowie Syntax-Highlighting und Fehlererkennung wie in VS Code; dieser bisher nicht abgedeckte Scope wird P46. Ein eigener Browser in AV soll Tests und visuelles Feedback ermöglichen; bei Session-Erstellung soll zwischen isolierter Arbeit und echtem Projekt gewählt werden können. Hermes soll als Orchestrator unterschiedliche Harnesses/Provider steuern können. Automationen, Android-Emulator, Plugins und sauberere UI mit mehr Styling sollen als neue Epics aufgenommen werden. Orca-Quellen sollen konkrete Wiederverwendung erleichtern und unnötige Recherche/Tokenaufwand sparen.
 
 Festgelegt:
 
@@ -36,7 +36,7 @@ Der Bericht korrigiert ältere, heute überholte Aussagen der ersten Paseo-Analy
 
 ## 3. Neue Epics und Abhängigkeiten
 
-Die bestehende Kette **P27 → P28 → P29 → P34 → P35 → P30 → P31 → P32 → P33** bleibt bestehen. Diese Planung hängt **P36 → P37 → P38 → P39 → P40 → P41 → P42 → P43 → P44 → P45** an. Reihenfolge ist Planungsstand, keine Startfreigabe; Umpriorisierung wird später ausdrücklich dokumentiert. Keine stillschweigende Ausnahme vom Epic-Gating.
+Die bestehende Kette **P27 → P28 → P29 → P34 → P35 → P30 → P31 → P32 → P33** bleibt bestehen. Diese Planung hängt **P36 → P37 → P38 → P46 → P39 → P40 → P41 → P42 → P43 → P44 → P45** an. P46 wird auf den Folgeauftrag zwischen P38 und P39 eingefügt; bestehende Nummern bleiben stabil. Reihenfolge ist Planungsstand, keine Startfreigabe; Umpriorisierung wird später ausdrücklich dokumentiert. Keine stillschweigende Ausnahme vom Epic-Gating.
 
 P32/P33 dürfen nur mit ausdrücklich dokumentiertem gültigem Evaluations-/Umsetzungs-Exit passieren. Die Präferenz PWA schließt allein weder P32 noch P33 ab. P36 verlangt P33-Exit und dessen wirksame Vorgänger; offene AC-P34-13/AC-P35-7 bleiben bindend. Es gibt keine Abnahme durch Schweigen.
 
@@ -45,7 +45,8 @@ P32/P33 dürfen nur mit ausdrücklich dokumentiertem gültigem Evaluations-/Umse
 | [P36 — Diff-Review](../epics/EPIC-P36-diff-review-feedback.md) | Notizen, Sammelauftrag, veraltete Anker, vorhandene Zustellung auditieren | P2/P15/P27 | 1–2 |
 | [P37 — GitLab-Kontext](../epics/EPIC-P37-gitlab-review-ci.md) | Issues/MRs/CI/Threads und gezielte Rückgabe an Agenten | P28/P36 | 2–3 |
 | [P38 — Session-Arbeitsort](../epics/EPIC-P38-session-arbeitsort.md) | Worktree oder Projekt direkt, sichtbare Wahl und Ownership | P14/P29 | 1–2 |
-| [P39 — Browser](../epics/EPIC-P39-browser-testarbeitsplatz.md) | Host-Chromium in PWA, Tests/Artefakte und Design-Auswahl | P29/P36/P38 | 3–5 |
+| [P46 — Projekt-Explorer/Dateiansicht](../epics/EPIC-P46-projekt-explorer-dateiansicht.md) | Rechte Sidebar, vollständige Source/Preview/Hex-Ansichten, Sprachdiagnosen | P38, vorhandene Code-/Attachment-Pfade | 3–5 |
+| [P39 — Browser](../epics/EPIC-P39-browser-testarbeitsplatz.md) | Host-Chromium in PWA, Tests/Artefakte und Design-Auswahl | P29/P36/P38/P46 | 3–5 |
 | [P40 — Hermes-Orchestrierung](../epics/EPIC-P40-hermes-orchestrierung.md) | Aufgaben/Versuche/Fragen, gemischte Harnesses, klare Lifecycle-Autorität | P19/P26/P31/P35/P38/P39 | 3–5 |
 | [P41 — Automationen](../epics/EPIC-P41-automationen.md) | Zeitpläne, Precheck, Historie, genau ein zuständiger Scheduler | P38/P40 | 2–3 |
 | [P42 — Android-Testgeräte](../epics/EPIC-P42-android-testgeraete.md) | AVD, Ansicht/Input und reproduzierbare Android-Tests | P39, Hardware-/SDK-Spike | 0,5–1 + 2–4 |
@@ -62,6 +63,12 @@ Die PWA ist Oberfläche, Chromium läuft als verwalteter Prozess auf dem AV-Ausf
 P29s iframe-Preview bleibt für einfache Services sinnvoll. Sie wird nicht durch Entfernen der Sandbox und Öffnen eines beliebigen Proxy-Ziels zum „Browser“ umetikettiert. P39 prüft Bandbreite, Eingabelatenz, Lesbarkeit und Hostlast auf Desktop/Pixel. Getrennte Cookies/Storage, definierte Testziele, kein öffentlicher CDP-Port und keine Nutzung persönlicher Browserprofile sind Teil des Designs. Browserausfall darf Session-Restore/Not-Stopp nicht blockieren.
 
 Android-Emulator ist eine andere Fähigkeit als mobiles Chromium-Viewport. P42 führt Android-API, App-Build und Gerätestartzustand als Nachweis. Reale Pixel-/Push-/Biometrie-Abnahmen P12/P16 werden dadurch nicht ersetzt.
+
+### Nachtrag: Dateibaum/Viewer/Diagnosen (P46)
+
+Der aktuelle `CodeFile`-Contract lädt höchstens 1 MiB und liefert Binärdateien ohne Anzeige; `CodePane` ist suchorientiert und lädt bei abgeschnittenem Inhalt nicht den Rest. Der Highlighting-Bestand in anderen Views ist keine vollständige Dateiansicht. P46 ergänzt daher explizit die rechte Sidebar für alle berechtigten Projektdateien, revisioniertes Nachladen bis EOF, Code-/Dokument-/Medien-Viewer und vollständigen Byte-/Hex-Fallback für unbekannte Formate. Sidebar/Viewer sind zunächst lesend; keine implizite Autosave-/Dateimutationsfunktion.
+
+„Wie VS Code“ wird durch konkrete Abnahmen ersetzt: Syntaxfarben plus JSON-Parserfehler, tatsächliche TS/JS-Projektdiagnose, Python-Checker und Fehlerliste mit revisionsgenauer Navigation. Orcas Monaco-Doku empfiehlt für Typechecker/Linter Terminals; diese AV-Diagnosefläche ist zusätzlicher Nutzerumfang. Monaco ist ein Desktop-Kandidat, keine zugesagte Voll-IDE. Die [offizielle README](https://github.com/microsoft/monaco-editor) erklärt fehlenden Mobile-Support und fehlende allgemeine VS-Code-Extension-Kompatibilität; deshalb Desktop/Pixel-Spike und schlanker mobiler Fallback mit derselben Diagnose-API. P39 bleibt zuständig für aktiven Browser/Testablauf, P43 für Gestaltung und P44 für spätere optionale Viewer-Erweiterungen.
 
 ## 5. Was sich aus Orca tatsächlich übernehmen lässt
 
@@ -111,6 +118,9 @@ Das folgende Register wurde aus dem analysierten Checkout erzeugt. Es belegt die
 | [cloud/packages/relay-contract/package.json](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/cloud/packages/relay-contract/package.json) | `8aecb74b91bf1c5614ce4cac65de03cc12e980987422a69bf837535443ebb661` |
 | [docs/site/content/docs/agents/native-chat.mdx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/docs/site/content/docs/agents/native-chat.mdx) | `b6fe4864e22dae3eb36e8b5c3312e0225f392085a7a1509deb9bdfc14fd56390` |
 | [docs/site/content/docs/browser/design-mode.mdx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/docs/site/content/docs/browser/design-mode.mdx) | `4e6c8d177cd228a44840b823e7f6051348d6f09de3e9e5d5a1bd7577f55679f1` |
+| [docs/site/content/docs/editing/file-explorer.mdx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/docs/site/content/docs/editing/file-explorer.mdx) | `0b2ee9b882e3684fcf60d45401fad659e199be09d13c21cf42c44953758388a4` |
+| [docs/site/content/docs/editing/monaco.mdx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/docs/site/content/docs/editing/monaco.mdx) | `e026133b8eb1ebb9ef08516cb44bd349aa0d81a214e2e77a9396ca9ce394b220` |
+| [docs/site/content/docs/editing/viewers.mdx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/docs/site/content/docs/editing/viewers.mdx) | `e7a2cf2a408b576af371679904d9a6d73c883c50d783276982a42961e1a8119b` |
 | [docs/site/content/docs/model/orca-yaml.mdx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/docs/site/content/docs/model/orca-yaml.mdx) | `cbdd61b8422d24dd193524ea1c4f40e8453c44eff08231476e3d4aff81b9b985` |
 | [docs/site/content/docs/model/quick-open.mdx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/docs/site/content/docs/model/quick-open.mdx) | `1d837363803c5fdda58c43cc82dd4286ab8dc938471a36526c7231001496096f` |
 | [docs/site/content/docs/model/worktrees.mdx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/docs/site/content/docs/model/worktrees.mdx) | `e62d90317c541c1f429fba9c2d403600b1246986ea935e1cdd1c59ffa3280f42` |
@@ -136,11 +146,15 @@ Das folgende Register wurde aus dem analysierten Checkout erzeugt. Es belegt die
 | [src/main/runtime/rpc/orchestration-task-dispatch-invariant.test.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/main/runtime/rpc/orchestration-task-dispatch-invariant.test.ts) | `6f2f29e51f75ce545523acf7ff50b2761d4314406dc33531e9e0b4f34a0f6c1a` |
 | [src/main/runtime/rpc/server/pairing/device-registry-save-race.test.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/main/runtime/rpc/server/pairing/device-registry-save-race.test.ts) | `20f168a1db1f9abf44a23138896424b9130aca61f65e91e60653d8d2ebec1260` |
 | [src/main/source-control/hosted-review-creation-gitlab-self-hosted.test.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/main/source-control/hosted-review-creation-gitlab-self-hosted.test.ts) | `b02567c918c23a6f817b673b4e1043a7566acca25b1913a7db79c2b345e8320b` |
+| [src/renderer/src/components/right-sidebar/file-explorer/panel/FileExplorer.tsx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/renderer/src/components/right-sidebar/file-explorer/panel/FileExplorer.tsx) | `f9be4405fb2d9ecfb3b46fe70d8e8501c485d97f6acb89a62421df0aacdca9ef` |
 | [src/renderer/src/store/slices/diff-comments/diff-comment-persistence.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/renderer/src/store/slices/diff-comments/diff-comment-persistence.ts) | `908d21f9d814114fadf1f20314bbdc66225cb32b25fc84349dd56f3af211e208` |
 | [src/shared/automation-schedule-dst.test.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/automation-schedule-dst.test.ts) | `db9419b49b305cb82630d57913abcc9e422ed8cec744f6ad301d86f0f5043568` |
 | [src/shared/automation-schedule-occurrences.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/automation-schedule-occurrences.ts) | `c30f9aaa9a322e36d300a42f18151cf4793b46cce315a9a3bf259d3fb2897c0f` |
 | [src/shared/automation-schedule-parsing.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/automation-schedule-parsing.ts) | `31600605e50d013e6840b843daa94320b315509c943d891174cad4cb437af774` |
 | [src/shared/diff-comment-types.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/diff-comment-types.ts) | `9ed52e7b43f83f82638b9879a2ce26debd7b8e226703b4c00a9bf98d4ddd1b07` |
+| [src/shared/editor-language/editor-language-detect.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/editor-language/editor-language-detect.ts) | `0d8590a61c7cd49042032eabbd9e93db54f98ba1ac01b044d1483c22f28e1770` |
+| [src/shared/file-name-sort.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/file-name-sort.ts) | `a7b5afd462cc44f9563227d01849de73875b07043043091637fe70acbb49cac6` |
+| [src/shared/filesystem-entry-types.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/filesystem-entry-types.ts) | `7cc930c3d1efa45e830a1fd9b04d064aab113d0ca578246882d4d4a45969952e` |
 | [src/shared/plugins/artifacts/plugin-theme-artifact.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/plugins/artifacts/plugin-theme-artifact.ts) | `f4acd1da36752b964cc0fd2d9b4b95bb2f7e9322ee34d3a5604311a69493cbb9` |
 | [src/shared/plugins/capabilities/plugin-capabilities.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/plugins/capabilities/plugin-capabilities.ts) | `866e8281bfcee3391591cd8ea3455580c555a76dee650a1ad668a8784e7cae53` |
 | [src/shared/plugins/manifest/plugin-manifest-fields.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/plugins/manifest/plugin-manifest-fields.ts) | `4eaab11a766e35bb7a782d175f33dee64de98342f0bcd865a79f49059a30cf6e` |
@@ -150,7 +164,7 @@ Das folgende Register wurde aus dem analysierten Checkout erzeugt. Es belegt die
 
 | Idee | Entscheidung in diesem Auftrag |
 |---|---|
-| Eigene Desktop-IDE/Monaco-Vollausbau | Nicht geplant; PWA-Arbeitsplatz und Quellenübergabe zuerst |
+| Vollständige Desktop-IDE/Dateimutationen | Nicht geplant; P46 ergänzt ausdrücklich Source-/Formatviewer und Diagnosen in der PWA, Monaco als Desktop-Kandidat mit mobilem Fallback |
 | Native Mobile-App | Kein neuer Auftrag, PWA bleibt; P32 nur bei später belegtem Bedarf und Nutzer-Go |
 | Mehr Providerlogos | P31/P35; Fähigkeiten je Harness nachweisen |
 | Hersteller-Account/Cloudpflicht | Nicht entschieden; nur P45-Evaluation |
@@ -164,6 +178,6 @@ Das folgende Register wurde aus dem analysierten Checkout erzeugt. Es belegt die
 
 ## 7. Review und Abschluss dieses Planungsauftrags
 
-Auftrag ist erfüllt, wenn zehn vollständige Epic-Entwürfe (sieben Abschnitte, konkrete Tasks/AC/Premortem/DoD), Index, P30/P32-Abgleich und belastbare Übernahmereferenzen vorliegen. Keine Implementierung, neue aktive Config oder voreilige Architektur-ADR. Browser, Direct-Modus und Hermes erhalten explizite Ownership-/Recovery-/Befugnisgrenzen. Reale Abnahmen und offene Nutzerentscheidungen bleiben offen.
+Auftrag ist erfüllt, wenn elf vollständige Epic-Entwürfe (sieben Abschnitte, konkrete Tasks/AC/Premortem/DoD), Index, P30/P32-Abgleich und belastbare Übernahmereferenzen vorliegen. Keine Implementierung, neue aktive Config oder voreilige Architektur-ADR. Browser, Dateibaum/Viewer/Diagnosen, Direct-Modus und Hermes erhalten explizite Ownership-/Recovery-/Befugnisgrenzen. Reale Abnahmen und offene Nutzerentscheidungen bleiben offen.
 
 Vor Commit die repo-weit geforderten `npm test`, `npm run lint`, `npm run typecheck`; Dokumentationslinks/Schema/Quellpfade separat prüfen. Das bestätigt die Verträglichkeit der Planung mit dem heutigen Repo, nicht die Fertigstellung der geplanten Funktionen. Bei späterer Implementierung gilt pro Epic das volle Gate inkl. E2E, tatsächlicher Infrastruktur-/Provider-/Gerätenachweise und Skip ≠ Pass.
