@@ -171,7 +171,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       return { reasoning: true, tools: true, cost: true, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native",
         // ADR-0036: `opencode --help`: "--session, -s string — Session ID to
         // continue"; buildArgs() passes the same flag on a resumed run.
-        resume: { argv: ["opencode", "--session", "{sessionId}"], ref: "native" },
+        // EPIC-P35 T35.3: `hub: true` — `--session` continuation live belegt
+        // (2026-09-23, Tetris-Handlauf), die promptlose Übernahme (start ohne
+        // Prompt) ist der Idle-Pfad wie recover() ohne Worker.
+        resume: { argv: ["opencode", "--session", "{sessionId}"], ref: "native", hub: true },
         features: { followUp: true, interrupt: true, toolGate: cfg.extraArgs.includes("--auto") ? "bypass" : "allowlist", questions: false, modelChoice: "start", modelSwitch: false, permissionModes: [], skills: true, agents: true, images: true, files: true, contextFork: false } };
     },
 
@@ -207,6 +210,17 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         });
       }
       const w = withFiles(spec.prompt ?? "", spec.attachments);
+      if (resumeSessionId && !w.prompt.trim() && w.files.length === 0) {
+        // EPIC-P35 T35.3 (ADR-0044): promptlose Übernahme nach „Weitermachen“ —
+        // wie recover() ohne Worker: kein Prozess, der nächste Prompt setzt fort.
+        sessions.set(ctx.sessionId, meta);
+        ctx.emit({
+          type: "system",
+          summary: `opencode: Session ${resumeSessionId.slice(0, 12)} übernommen — der nächste Prompt setzt sie fort`,
+          payload: { kind: "opencode.session_adopted", nativeSessionId: resumeSessionId },
+        });
+        return { sessionId: ctx.sessionId };
+      }
       const proc = await ctx.spawnWorker(buildArgs(w.prompt, resumeSessionId, agent, model, w.files), spec.env ? { env: spec.env } : undefined);
       attach(ctx.sessionId, proc, ctx, meta);
       const handle: SessionHandle = {
