@@ -52,6 +52,7 @@ type CopilotConfig = z.infer<typeof CopilotConfig>;
 const CopilotSessionArgs = z
   .object({
     agent: z.string().min(1).optional(),
+    resumeSessionId: z.string().min(1).optional(),
   })
   .optional();
 
@@ -143,15 +144,32 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // usage: false — session.usage_checkpoint has no fraction-of-quota +
       // resetsAt (ADR-0004's UsageQuota shape), only cumulative raw
       // counters — R9.7, not guessed into the wrong shape.
-      return { reasoning: false, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native", features: { followUp: true, interrupt: true, toolGate: "bypass", questions: false, modelChoice: "start", modelSwitch: false, permissionModes: [], skills: false, agents: true, images: false, files: false, contextFork: false } };
+      return { reasoning: false, tools: true, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "native",
+        // EPIC-P35 T35.3: `hub: true` — die -r-Fortsetzung ist live belegt
+        // (README-Kommentar oben, Session-Id bleibt bei Resume identisch);
+        // die promptlose Übernahme bleibt wie recover() ohne Worker idle.
+        resume: { argv: ["copilot", "--resume", "{sessionId}"], ref: "native", hub: true },
+        features: { followUp: true, interrupt: true, toolGate: "bypass", questions: false, modelChoice: "start", modelSwitch: false, permissionModes: [], skills: false, agents: true, images: false, files: false, contextFork: false } };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
       const args = CopilotSessionArgs.safeParse(spec.args);
       const agent = args.success ? args.data?.agent : undefined;
-      const meta: SessionMeta = { healthy: true };
+      const resumeSessionId = args.success ? args.data?.resumeSessionId : undefined;
+      const meta: SessionMeta = { healthy: true, ...(resumeSessionId ? { resumeSessionId } : {}) };
+      if (resumeSessionId && !spec.prompt?.trim() && !spec.attachments?.length) {
+        // EPIC-P35 T35.3 (ADR-0044): promptlose Übernahme nach „Weitermachen“ —
+        // kein Prozess, der nächste Prompt setzt mit -r fort.
+        sessions.set(ctx.sessionId, meta);
+        ctx.emit({
+          type: "system",
+          summary: `copilot: Session ${resumeSessionId.slice(0, 12)} übernommen — der nächste Prompt setzt sie fort`,
+          payload: { kind: "copilot.session_adopted", nativeSessionId: resumeSessionId },
+        });
+        return { sessionId: ctx.sessionId };
+      }
       const proc = await ctx.spawnWorker(
-        buildArgs(spec.prompt ?? "", undefined, agent, spec.model),
+        buildArgs(spec.prompt ?? "", resumeSessionId, agent, spec.model),
         spec.env ? { env: spec.env } : undefined,
       );
       attach(ctx.sessionId, proc, ctx, meta);

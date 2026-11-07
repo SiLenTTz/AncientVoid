@@ -175,6 +175,27 @@ describe("opencode adapter — lifecycle against a real captured stream", () => 
     );
   });
 
+  it("EPIC-P35 T35.3: start mit resumeSessionId ohne Prompt bleibt idle — kein leerer Prompt, der nächste Prompt setzt fort (hub-Resume)", async () => {
+    const spawnedCmds: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawnedCmds.push(cmd);
+        return fakeOpencodeProcess(loadFixture("trivial-read.jsonl"));
+      },
+    });
+    const adapter = createAdapter();
+    expect(adapter.capabilities().resume).toMatchObject({ ref: "native", hub: true });
+
+    const handle = await adapter.start({ adapter: "opencode", project: "/tmp", args: { resumeSessionId: "ses_idle" } }, ctx);
+    expect(spawnedCmds).toHaveLength(0);
+    expect((await adapter.status(handle)).state).toBe("healthy");
+
+    await adapter.steer(handle, { kind: "prompt", text: "weiter" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    expect(spawnedCmds[0]).toContain("--session");
+    expect(spawnedCmds[0]).toContain("ses_idle");
+  });
+
   it("a non-zero exit sets status down; a clean one-shot exit does not", async () => {
     const ctx = makeRecordingContext({
       spawnWorker: async () => fakeOpencodeProcess(loadFixture("trivial-read.jsonl"), 0),

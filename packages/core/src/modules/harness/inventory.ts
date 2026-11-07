@@ -17,7 +17,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     discovery: "verified",
     resume: "implemented-unverified",
     evidence:
-      "Read-only ~/.claude/projects/<key>/<id>.jsonl (claude-clip, Linux 2026-09-19). Adapter uses --resume. PC-phone handoff is not accepted.",
+      "Read-only ~/.claude/projects/<key>/<id>.jsonl (claude-clip, Linux 2026-09-19). Adapter uses --resume. Hub-,Weitermachen' (promptlose Übernahme, EPIC-P35 T35.3) implementiert und am echten Transkript geprüft (Idle, kein Spawn); Live-Lauf nach Hub-Neustart ausstehend.",
   },
   {
     id: "codex",
@@ -25,9 +25,10 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     command: "codex",
     args: ["--version"],
     openArgs: ["resume", "{id}"],
-    discovery: "missing",
+    discovery: "verified",
     resume: "implemented-unverified",
-    evidence: "No verified on-disk discovery layout. Adapter continues a captured thread via codex exec resume.",
+    evidence:
+      "Rollout-Scanner (EPIC-P34 T34.8): ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl, live 2026-11-07 55 Rollouts mit Titel. Übernahme bleibt unbelegt — der Adapter nimmt keine fremde Thread-ID an (nur beobachtet); `codex exec resume` braucht einen Prompt, deshalb kein hub-,Weitermachen'.",
   },
   {
     id: "opencode",
@@ -35,10 +36,10 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     command: "opencode",
     args: ["--version"],
     openArgs: ["--session", "{id}"],
-    discovery: "missing",
+    discovery: "verified",
     resume: "verified",
     evidence:
-      "No verified external session scan. Resume via --session verified by hand 2026-09-23 (tetris-reloaded, zai-coding-plan/glm-5.3, session 821b0ec8: Weiter, hub restart, PC/phone) plus E2E handoff/recovery.",
+      "SQLite-Store ~/.local/share/opencode/opencode.db (session/message/part, Layout 2026-08-31 verifiziert); Scanner live 2026-11-07: 488 Sessions. Resume via --session verified by hand 2026-09-23 (tetris-reloaded, zai-coding-plan/glm-5.3, session 821b0ec8) plus E2E handoff/recovery; hub-,Weitermachen' (promptlose Übernahme, EPIC-P35 T35.3) implementiert.",
   },
   {
     id: "pi",
@@ -48,7 +49,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     openArgs: ["--session", "{id}"],
     discovery: "verified",
     resume: "implemented-unverified",
-    evidence: "ADR-0041: external sessions read from ~/.pi/agent/sessions (JSONL, pi 1.4.0, checked on disk 2026-10-28); resume via `pi --session <file>`, copy via `--fork`.",
+    evidence: "ADR-0041: external sessions read from ~/.pi/agent/sessions (JSONL, pi 1.4.0, checked on disk 2026-10-28); resume via `pi --session <file>`, copy via `--fork`. Hub-,Weitermachen' (promptlose Übernahme mit Verlaufsimport, EPIC-P35 T35.3) implementiert und an echter Session geprüft (Idle, kein Spawn); Live-Lauf ausstehend.",
   },
   {
     id: "copilot",
@@ -56,9 +57,10 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     command: "copilot",
     args: ["--version"],
     openArgs: ["--resume", "{id}"],
-    discovery: "missing",
+    discovery: "verified",
     resume: "implemented-unverified",
-    evidence: "No verified external session scan. Adapter passes -r with a captured session id.",
+    evidence:
+      "SQLite-Store ~/.copilot/session-store.db (sessions/turns, ISO-Zeiten; EPIC-P35 T35.5, live 2026-11-07 mit copilot 1.0.104: 12 Sessions). Übernahme einer fremden Session Ende-zu-Ende unbelegt — nur beobachtet. Adapter setzt mit -r fort; hub-,Weitermachen' (promptlose Übernahme, EPIC-P35 T35.3) implementiert, Live-Lauf ausstehend.",
   },
   {
     id: "aider",
@@ -85,7 +87,19 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     args: ["--version"],
     discovery: "missing",
     resume: "implemented-unverified",
-    evidence: "dsh (DeepSeek Harness) runs through @ancientvoid/adapter-acp (`--profile acp`, ADR-0018): sandboxed read-only, every escalation asks on the phone. No external session scan.",
+    evidence:
+      "dsh (DeepSeek Harness) runs through @ancientvoid/adapter-acp (`--profile acp`, ADR-0018): sandboxed read-only, every escalation asks on the phone. Sessions liegen als ~/.dsh/sessions/<projekt>/session-<uuid>/session.v4.jsonl.zstd — ohne zstd-Decoder kein lesender Scan (kein node:zstd, keine nativen Module; geprüft 2026-11-07), bewusst missing.",
+  },
+  {
+    id: "hermes",
+    harness: "cli",
+    command: "hermes",
+    args: ["--version"],
+    openArgs: ["--resume", "{id}"],
+    discovery: "verified",
+    resume: "verified",
+    evidence:
+      "Hermes Agent 0.21.0: read-only Scanner für ~/.hermes/state.db (sessions/messages, EPIC-P34 T34.8; 1 277 Sitzungen gemessen 2026-11-07, cron/subagent gefiltert). Resume via --resume <sid> live belegt (P13-Handlauf 2026-10-03); hub-,Weitermachen' (promptlose Übernahme, EPIC-P35 T35.3) implementiert.",
   },
   {
     id: "maki",

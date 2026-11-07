@@ -8,7 +8,7 @@ import { AdapterRegistry, EventStore, HubDatabase, SessionManager, ApprovalServi
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => { for (const dispose of cleanup.splice(0).reverse()) await dispose(); });
 
-async function fixture(options: { persistent?: boolean; native?: boolean; resume?: AdapterResume; auto?: boolean; failResume?: boolean; stopGate?: Promise<void> } = {}) {
+async function fixture(options: { persistent?: boolean; native?: boolean; resume?: AdapterResume; auto?: boolean; failResume?: boolean | string; stopGate?: Promise<void> } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "av-interrupted-"));
   const db = new HubDatabase(join(dir, "hub.db"));
   const store = new EventStore(dir);
@@ -31,7 +31,7 @@ async function fixture(options: { persistent?: boolean; native?: boolean; resume
     capabilities: () => ({ reasoning: false, tools: false, cost: false, usage: false, steer: true, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }), ...(options.resume ? { resume: options.resume } : {}) }),
     async start(spec, context) {
       starts++;
-      if (spec.args?.resumeSessionId && options.failResume) throw new Error("resume failed");
+      if (spec.args?.resumeSessionId && options.failResume) throw new Error(typeof options.failResume === "string" ? options.failResume : "resume failed");
       if (spec.args?.resumeSessionId) expect(spec.args.resumeSessionId).toBe("native-123");
       ctx = context;
       if (options.native !== false) ctx.emit({ type: "system", summary: "native id", payload: { nativeSessionId: "native-123" } });
@@ -280,6 +280,23 @@ describe("P27 interruption lifecycle", () => {
     expect((await f.manager.resume(f.record.id, "phone")).ok).toBe(false);
     expect(f.manager.get(f.record.id)?.status).toBe("error");
     expect((await f.events()).some(e => e.payload.kind === "session.resume_failed")).toBe(true);
+  });
+
+  it("EPIC-P35 T35.4: eine erkennbare Provider-Ursache des gescheiterten Fortsetzens trägt die Kategorie (ADR-0015)", async () => {
+    const f = await fixture({ resume, failResume: "Error: usage limit reached for 5 hours, reset at 2026-11-07 20:00:00 +01:00" });
+    await f.interrupt();
+    expect((await f.manager.resume(f.record.id, "phone")).ok).toBe(false);
+    const providerError = (await f.events()).find(e => e.payload.kind === "provider.error");
+    expect(providerError?.payload).toMatchObject({ category: "quota", title: expect.stringContaining("Kontingent") });
+    expect(providerError?.summary).toContain("interrupt-test");
+  });
+
+  it("EPIC-P35 T35.4: ein interner Resume-Fehler bleibt ohne Provider-Kategorie — nichts wird passend gerechnet", async () => {
+    const f = await fixture({ resume, failResume: "workdir konnte nicht vorbereitet werden" });
+    await f.interrupt();
+    expect((await f.manager.resume(f.record.id, "phone")).ok).toBe(false);
+    expect((await f.events()).some(e => e.payload.kind === "session.resume_failed")).toBe(true);
+    expect((await f.events()).some(e => e.payload.kind === "provider.error")).toBe(false);
   });
 
   it("auto-resume keeps the interrupted digest at its own journal boundary", async () => {

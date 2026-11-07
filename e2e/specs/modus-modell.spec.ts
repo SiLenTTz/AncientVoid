@@ -64,4 +64,19 @@ test.describe("Modus und Modell", () => {
     await expect(app.getByLabel("Modus")).toBeVisible();
     await expect(app.getByLabel("Modus").locator("option")).toContainText(["Standard des Hubs", "auto", "manual", "plan"]);
   });
+
+  test("die gewählte Adapter-Wahl überlebt Neuladen und Rückkehr — sie gilt ab dem Klick, nicht erst ab dem Start (BUG-0105, EPIC-P35 T35.2)", async ({ app, hub }) => {
+    await app.goto(hub.origin);
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByRole("combobox", { name: "Adapter", exact: true }).selectOption("codex");
+    await app.reload();
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await expect(app.getByRole("combobox", { name: "Adapter", exact: true })).toHaveValue("codex");
+
+    // Auch über Navigation (Remount ohne Reload) bleibt die Wahl stehen.
+    await app.getByRole("combobox", { name: "Adapter", exact: true }).selectOption("pi");
+    await app.getByRole("button", { name: "Übersicht" }).click();
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await expect(app.getByRole("combobox", { name: "Adapter", exact: true })).toHaveValue("pi");
+  });
 });

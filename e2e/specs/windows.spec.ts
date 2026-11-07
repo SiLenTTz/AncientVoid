@@ -38,6 +38,14 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     // BUG-0103: ganze Fensterfläche, nicht die 680-px-Handyspalte.
     const width = await popup.evaluate(() => ({ app: document.getElementById("app")!.clientWidth, win: window.innerWidth }));
     expect(width.app).toBe(width.win);
+    // BUG-0104: auch die Kachel selbst nutzt die Fläche — keine mitwachsende
+    // Lesespalte (1200-px-Zentrierung), kein horizontaler Scroll.
+    const geo = await popup.evaluate(() => {
+      const tile = document.querySelector(".popout-tile")!;
+      return { pad: parseFloat(getComputedStyle(tile).paddingLeft), scrollW: document.documentElement.scrollWidth, win: window.innerWidth };
+    });
+    expect(geo.pad).toBeLessThanOrEqual(12);
+    expect(geo.scrollW).toBeLessThanOrEqual(geo.win);
 
     // Hauptfenster: Kachel frei, Abzeichen in der Liste, Stand gemerkt.
     await expect(app.locator('[data-tile="1"] .tile-empty')).toBeVisible();

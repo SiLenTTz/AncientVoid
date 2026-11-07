@@ -87,4 +87,20 @@ test.describe("Factory-Lauf über den Hub (T26.5, ADR-0043)", () => {
     expect(duplicate.status).toBe(409);
     expect((await hub.api<unknown[]>("/api/sessions")).body).toHaveLength(2);
   });
+
+  test("@desktop eine ersetzte Treiber-Wahl wird gesagt, nicht still getauscht (BUG-0105, EPIC-P35 T35.2)", async ({ app, hub }) => {
+    const project = join(hub.projectsDir, "factory-notice");
+    mkdirSync(join(project, ".factory"), { recursive: true });
+    writeFileSync(join(project, ".factory/config.json"), "{}");
+    execSync("git init -q", { cwd: project });
+
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    // Zuerst codex wählen (ohne Loop ist jeder Adapter wählbar), dann den
+    // Factory-Loop: nur claude/maki sind Treiber — die Ersetzung muss anstehen.
+    await app.getByRole("combobox", { name: "Adapter", exact: true }).selectOption("codex");
+    await app.locator(".form-grid > label").first().locator("select").selectOption(project);
+    await app.getByLabel("Loop", { exact: true }).selectOption("securesight-factory");
+    await expect(app.getByRole("combobox", { name: "Factory-Treiber", exact: true })).toHaveValue("claude");
+    await expect(app.getByRole("status").filter({ hasText: "codex" })).toContainText("claude oder maki");
+  });
 });

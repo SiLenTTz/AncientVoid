@@ -17,11 +17,16 @@ describe("probeHarnesses (T5.1)", () => {
     const items = await probeHarnesses(HARNESS_CATALOG, runner);
     const claude = items.find((item) => item.id === "claude");
     const codex = items.find((item) => item.id === "codex");
+    const aider = items.find((item) => item.id === "aider");
     const deepseek = items.find((item) => item.id === "deepseek");
     expect(claude).toMatchObject({ version: "2.1.263", discovery: "verified", resume: "implemented-unverified" });
     expect(claude?.evidence).toContain("Probe: 2.1.263.");
-    expect(codex).toMatchObject({ version: null, discovery: "missing" });
+    // EPIC-P35 T35.6: codex discovery ist belegt (Rollout-Scanner T34.8) — eine
+    // fehlende Binary lügt die Zelle nicht zurück, sie ergänzt nur den Probe-Vermerk.
+    expect(codex).toMatchObject({ version: null, discovery: "verified" });
     expect(codex?.evidence).toContain("Probe: binary missing.");
+    expect(aider).toMatchObject({ version: null, discovery: "missing" });
+    expect(aider?.evidence).toContain("Probe: binary missing.");
     // deepseek = dsh via ACP (ADR-0018): probing the binary, honest cells
     expect(deepseek).toMatchObject({ version: null, discovery: "missing", resume: "implemented-unverified" });
     expect(deepseek?.evidence).toContain("Probe: binary missing.");
