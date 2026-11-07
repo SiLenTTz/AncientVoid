@@ -1,0 +1,73 @@
+/* EPIC-P34 T34.10 — eigenes Fenster: nur Kopfzeile und Inhalt, keine Liste, kein Dock. */
+.popout-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+  background: var(--bg);
+}
+
+.popout-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--bg-chip);
+}
+
+.popout-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--font-scale, 1));
+  letter-spacing: var(--tracking-label);
+}
+
+.popout-tile {
+  border: 0;
+  border-radius: 0;
+  padding-inline: max(12px, calc((100% - 1200px) / 2));
+}
+
+.popout-tool {
+  position: relative;
+  min-height: 0;
+}
+
+/* Abzeichen und Meldung im Hauptfenster */
+.badge-window {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 0 6px;
+  font-size: calc(11px * var(--font-scale, 1));
+}
+
+.popout-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 48px;
+  z-index: 20;
+  max-width: 360px;
+  padding: 10px 12px;
+  border: 1px solid var(--warn);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.tile-popout,
+.tool-pane-popout {
+  background: none;
+  border: 0;
+  color: var(--fg-faint);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tile-popout:hover,
+.tool-pane-popout:hover {
+  color: var(--accent);
+}

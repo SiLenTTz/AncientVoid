@@ -16,7 +16,10 @@ export function TileWorkspace({
   initialCode,
   listCollapsed,
   onToggleList,
+  onPopout,
 }: {
+  /** EPIC-P34 T34.10: die Session der Kachel in ein eigenes Fenster legen. */
+  onPopout?: (index: number) => void;
   listCollapsed: boolean;
   onToggleList: () => void;
   ws: Workspace;
@@ -136,6 +139,7 @@ export function TileWorkspace({
             compact={compact && !(ws.layout === "1+2" && i === 0)}
             onFocus={() => i !== ws.focus && onChange(focusTile(ws, i))}
             onClose={() => onChange(closeTile(ws, i))}
+            {...(onPopout ? { onPopout: () => onPopout(i) } : {})}
             onNavigate={onNavigate}
             {...(initialCode && ref?.sessionId === initialCode.sessionId ? { initialCode: initialCode.code } : {})}
           />
@@ -183,9 +187,11 @@ function Tile({
   compact,
   onFocus,
   onClose,
+  onPopout,
   onNavigate,
   initialCode,
 }: {
+  onPopout?: () => void;
   initialCode?: CodeTarget;
   index: number;
   tileRef: TileRef | null;
@@ -223,6 +229,11 @@ function Tile({
       {tileRef && (
         <div class="tile-head">
           <span class="tile-no">{index + 1}</span>
+          {onPopout && (
+            <button type="button" class="tile-popout" aria-label={`Kachel ${index + 1} in eigenem Fenster öffnen`} title="In eigenem Fenster öffnen" onClick={onPopout}>
+              ⧉
+            </button>
+          )}
           <button type="button" class="tile-close" aria-label={`Kachel ${index + 1} leeren`} title="Kachel leeren (Alt+W)" onClick={onClose}>
             ×
           </button>

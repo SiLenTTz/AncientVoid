@@ -1,5 +1,5 @@
 import { render } from "preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { App } from "./App.tsx";
 import { SessionTail } from "../features/session/SessionTail.tsx";
 import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
@@ -16,7 +16,9 @@ import { TileWorkspace } from "../features/workspace/TileWorkspace.tsx";
 import { StatusBar } from "../features/shell/StatusBar.tsx";
 import { ToolPane } from "../features/shell/ToolPane.tsx";
 import { rememberSession } from "../features/shell/last-session.ts";
-import { openInNewTile, openSession, parseWorkspace, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
+import { PopoutShell } from "../features/windows/PopoutShell.tsx";
+import { focusWindowFor, isPopoutWindow, onWindowMessage, openPopout, startWindowHub } from "../features/windows/windows.ts";
+import { detachTile, openInNewTile, openSession, parseWorkspace, reattach, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
 import type { Page } from "./Dock.tsx";
 import "./styles/index.css";
 
@@ -218,11 +220,40 @@ function Main() {
     const hash = focused ? sessionHash(focused.sessionId, focused.hostId) : pageHash(route.view === "list" ? route.page : "dashboard");
     if (location.hash !== hash) history.replaceState(null, "", hash);
   };
+  // EPIC-P34 T34.10: eigene Fenster. Der Kanal-Handler läuft über Referenzen, damit er immer den neuesten Stand sieht.
+  const latest = useRef({ ws, changeWorkspace });
+  latest.current = { ws, changeWorkspace };
+  const [popoutNotice, setPopoutNotice] = useState("");
+  useEffect(() => {
+    const stop = startWindowHub();
+    const off = onWindowMessage((msg) => {
+      if (msg.type !== "return" || msg.target.kind !== "session") return;
+      const ref: TileRef = msg.target.hostId ? { sessionId: msg.target.sessionId, hostId: msg.target.hostId } : { sessionId: msg.target.sessionId };
+      latest.current.changeWorkspace(reattach(latest.current.ws, ref));
+    });
+    return () => {
+      off();
+      stop();
+    };
+  }, []);
+  const blockedNotice = "Das Fenster wurde nicht geöffnet. Der Browser blockiert Pop-ups für diese Seite — bitte erlauben und noch einmal versuchen.";
+  const popoutTile = async (index: number) => {
+    const ref = latest.current.ws.slots[index];
+    if (!ref) return;
+    const result = await openPopout({ kind: "session", sessionId: ref.sessionId, ...(ref.hostId ? { hostId: ref.hostId } : {}) });
+    if (result === "blocked") setPopoutNotice(blockedNotice);
+    else {
+      setPopoutNotice("");
+      latest.current.changeWorkspace(detachTile(latest.current.ws, index));
+    }
+  };
   // EPIC-P34 T34.2: a tool page (settings, media …) fills the detail column on a wide screen.
   const toolPage = route.view === "list" && isToolPage(route.page) ? route.page : null;
   const openFromList = (session: SessionRecord, opts?: { newTile?: boolean }) => {
-    setRoute({ view: "tail", session });
     const ref = tileRefOf(session);
+    // EPIC-P34 T34.10: läuft die Session in einem eigenen Fenster, kommt dieses nach vorn — kein zweiter Composer.
+    if (focusWindowFor({ kind: "session", sessionId: ref.sessionId, ...(ref.hostId ? { hostId: ref.hostId } : {}) })) return;
+    setRoute({ view: "tail", session });
     changeWorkspace(opts?.newTile ? openInNewTile(ws, ref) : openSession(ws, ref));
   };
   // A deep link or Back to a session lands in the workspace too.
@@ -249,6 +280,14 @@ function Main() {
         </div>
       )}
       <CommandBar />
+      {popoutNotice && (
+        <div class="popout-notice" role="alert">
+          {popoutNotice}{" "}
+          <button type="button" class="link-btn" onClick={() => setPopoutNotice("")}>
+            Schließen
+          </button>
+        </div>
+      )}
       {wide ? (
         // T8.5 (AC-P8-6): from 1280 px list and session side by side.
         <div class={`split${listCollapsed ? " list-collapsed" : ""}`}>
@@ -269,6 +308,7 @@ function Main() {
               }
               ws={ws}
               onChange={changeWorkspace}
+              onPopout={(index) => void popoutTile(index)}
               {...(route.view === "tail" && route.code ? { initialCode: { sessionId: route.session.id, code: route.code } } : {})}
               onNavigate={(page) => {
                 location.hash = pageHash(page);
@@ -283,6 +323,15 @@ function Main() {
                 }}
                 onOpen={(session) => openFromList(session)}
                 onSwitchToken={() => setReady(false)}
+                onPopout={() => {
+                  void openPopout({ kind: "tool", page: toolPage }).then((result) => {
+                    if (result === "blocked") setPopoutNotice(blockedNotice);
+                    else {
+                      setPopoutNotice("");
+                      location.hash = pageHash("dashboard");
+                    }
+                  });
+                }}
               />
             )}
           </section>
@@ -326,7 +375,8 @@ if (shared) {
   history.replaceState(null, "", "/#/neu");
 }
 
-render(<Main />, document.getElementById("app")!);
+// EPIC-P34 T34.10: `/?window=1` ist ein eigenes Fenster — nur die schlanke Hülle, nie das Hauptfenster.
+render(isPopoutWindow() ? <PopoutShell /> : <Main />, document.getElementById("app")!);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

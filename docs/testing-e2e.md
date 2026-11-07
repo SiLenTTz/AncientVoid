@@ -141,6 +141,7 @@ Offline-Test (Service Worker), Kamera/QR, Push, zweiter Hub oder zweiter Browser
 | Werkzeugfläche | `tool-pane` | Detailspalte am Desktop, Kacheln bleiben gemountet (WebSocket-Zähler, Entwurf), Esc, Handy ohne Fläche |
 | Akzentfarbe | `accent-color` | Farbwähler-Modal: live, Abbrechen, Übernehmen, Reload, je Theme, Zurücksetzen, Kontrast-Warnung |
 | Schrift | `appearance-font` | Keine Fremd-Host-Anfragen, 14/16 px bei 100 %, Oberflächenschrift live, Code/Diff bleiben Festbreite, Größen-Stepper mit Grenzen, Reload, Zurücksetzen |
+| Eigene Fenster | `windows` | ⧉ an Kachel und Werkzeug, schlanke Hülle ohne Dock, Abzeichen in der Liste, Klick holt das Fenster nach vorn, „In die App zurück“, kein Schreiben des Arbeitsbereichs durch das Fenster, Wiederanmeldung nach Neuladen, blockiertes Pop-up gemeldet |
 | Einstellungen | `settings-layout` | acht Gruppen, zwei gleich breite Spalten, fluchtende Bedienelemente, Handy einspaltig, Schalter, Theme |
 | Sessions | `session` | Anlegen per UI, Gruppierung, Verlauf-Filter, Karten, Längenlimit, Bericht, Diff, Suche, Provider-Absturz |
 | Steuern | `steer` | Antwort, Stop, Weiter mit derselben Provider-Session, Doppeltipp, zwei Geräte, abgelehnte Antwort |

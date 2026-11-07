@@ -24,6 +24,8 @@ export interface Workspace {
    * (zweispaltige Layouts) bzw. ersten Zeile (zweizeilige) als Bruchteil,
    * je auf 0.2–0.8 geklemmt. Ohne Angabe gilt der Layout-Default. */
   sizes?: { col?: number; row?: number };
+  /** EPIC-P34 T34.10: Sessions, die in einem eigenen Fenster laufen. Fehlt in alten Ständen. */
+  detached?: TileRef[];
 }
 
 const COUNT: Record<Layout, number> = { "1": 1, "2v": 2, "2h": 2, "1+2": 3, "2x2": 4 };
@@ -124,6 +126,32 @@ export function resizeTile(ws: Workspace, axis: "col" | "row", fraction: number)
   return { ...ws, sizes: { ...ws.sizes, [axis]: f } };
 }
 
+export function isDetached(ws: Workspace, ref: TileRef): boolean {
+  return (ws.detached ?? []).some((d) => same(d, ref));
+}
+
+/** Die Kachel wandert in ein eigenes Fenster: Platz frei, Session wird vermerkt. */
+export function detachTile(ws: Workspace, index: number): Workspace {
+  const ref = ws.slots[index];
+  if (!ref) return ws;
+  const detached = isDetached(ws, ref) ? (ws.detached ?? []) : [...(ws.detached ?? []), ref];
+  return { ...put(ws, index, null), focus: ws.focus, detached };
+}
+
+/** „In die App zurück“: aus der Liste der Fenster nehmen und wieder in eine Kachel öffnen. */
+export function reattach(ws: Workspace, ref: TileRef): Workspace {
+  const rest = (ws.detached ?? []).filter((d) => !same(d, ref));
+  const { detached: _old, ...base } = ws;
+  return openSession(rest.length > 0 ? { ...base, detached: rest } : base, ref);
+}
+
+/** Ein Fenster, das nicht mehr antwortet, ist keine Ablage mehr: nur aus der Liste nehmen. */
+export function forgetDetached(ws: Workspace, ref: TileRef): Workspace {
+  const rest = (ws.detached ?? []).filter((d) => !same(d, ref));
+  const { detached: _old, ...base } = ws;
+  return rest.length > 0 ? { ...base, detached: rest } : base;
+}
+
 export function serializeWorkspace(ws: Workspace): string {
   return JSON.stringify(ws);
 }
@@ -144,7 +172,7 @@ export function parseWorkspace(raw: string | null): Workspace {
   } catch {
     return emptyWorkspace();
   }
-  const { layout, slots, focus, sizes } = (data ?? {}) as { layout?: unknown; slots?: unknown; focus?: unknown; sizes?: unknown };
+  const { layout, slots, focus, sizes, detached } = (data ?? {}) as { layout?: unknown; slots?: unknown; focus?: unknown; sizes?: unknown; detached?: unknown };
   if (!LAYOUTS.includes(layout as Layout) || !Array.isArray(slots)) return emptyWorkspace();
   const ws: Workspace = { layout: layout as Layout, slots: [0, 1, 2, 3].map((i) => tileRef(slots[i])), focus: 0 };
   const sized =
@@ -154,5 +182,6 @@ export function parseWorkspace(raw: string | null): Workspace {
           ...(typeof (sizes as { row?: unknown }).row === "number" ? { row: (sizes as { row: number }).row } : {}),
         }
       : undefined;
-  return focusTile({ ...ws, ...(sized && (sized.col !== undefined || sized.row !== undefined) ? { sizes: sized } : {}) }, typeof focus === "number" ? focus : 0);
+  const away = Array.isArray(detached) ? detached.map(tileRef).filter((r): r is TileRef => r !== null) : [];
+  return focusTile({ ...ws, ...(sized && (sized.col !== undefined || sized.row !== undefined) ? { sizes: sized } : {}), ...(away.length > 0 ? { detached: away } : {}) }, typeof focus === "number" ? focus : 0);
 }

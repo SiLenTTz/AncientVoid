@@ -1,0 +1,129 @@
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { getToken, hostApi, hubApi, remoteHost, type AdapterUsage, type FleetHost, type SessionRecord } from "../../shared/api.ts";
+import { parseAppHash, type ToolPageId, TOOL_PAGE_IDS } from "../../app/route.ts";
+import { SessionTail } from "../session/SessionTail.tsx";
+import { ToolPane } from "../shell/ToolPane.tsx";
+import { publishHubStatus } from "../shell/hub-status.ts";
+import { HEARTBEAT_MS, type WindowTarget } from "./protocol.ts";
+import { onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "./windows.ts";
+
+function targetFromHash(hash: string): WindowTarget | null {
+  const route = parseAppHash(hash);
+  if (route.view === "tail") return { kind: "session", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
+  return (TOOL_PAGE_IDS as readonly string[]).includes(route.page) ? { kind: "tool", page: route.page as ToolPageId } : null;
+}
+
+/** Werkzeugseiten lesen ihre Daten aus dem Hub-Status, den im Hauptfenster `App` füllt — hier füllt ihn das Fenster selbst. */
+function useToolData(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    let alive = true;
+    const tick = async () => {
+      try {
+        const [fleet, adapters] = await Promise.all([
+          hubApi.fleet().catch(async () => ({ self: "", hosts: [] as FleetHost[], sessions: await hubApi.sessions() })),
+          hubApi.adapters(),
+        ]);
+        const usage = Object.fromEntries(await Promise.all(adapters.map(async (a) => [a.id, await hubApi.adapterUsage(a.id)] as const))) as Record<string, AdapterUsage>;
+        if (alive) publishHubStatus({ connected: true, error: "", lastOkAt: Date.now(), sessions: fleet.sessions, hosts: fleet.hosts, adapters, usage });
+      } catch (err) {
+        if (alive) publishHubStatus({ connected: false, error: err instanceof Error ? err.message : "load failed" });
+      }
+    };
+    void tick();
+    const timer = setInterval(tick, 5000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [active]);
+}
+
+/**
+ * EPIC-P34 T34.10: die schlanke Hülle eines eigenen Fensters — eine Session oder eine Werkzeugseite ohne Dock, Liste
+ * und Kachel-Tasten. Sie schreibt nie `ancientvoid.workspace` und nie den Hash des Hauptfensters; ihr einziger Draht
+ * ins Hauptfenster ist der Kanal (ADR-0053).
+ */
+export function PopoutShell() {
+  const target = useMemo(() => targetFromHash(location.hash), []);
+  const id = useRef(crypto.randomUUID()).current;
+  const [session, setSession] = useState<SessionRecord | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!target) return;
+    const stop = startWindowHub();
+    const hello = () => postWindowMessage({ type: "hello", id, target });
+    hello();
+    const beat = setInterval(() => postWindowMessage({ type: "heartbeat", id }), HEARTBEAT_MS);
+    const off = onWindowMessage((msg) => {
+      if (msg.type === "ping") hello();
+      if (msg.type === "focus" && msg.id === id) {
+        window.focus();
+        // Prüfbar ohne Bildschirm: Browser dürfen `focus()` ohne Nutzeraktion verweigern.
+        document.documentElement.dataset.focusRequests = String(Number(document.documentElement.dataset.focusRequests ?? "0") + 1);
+      }
+    });
+    const bye = () => postWindowMessage({ type: "bye", id });
+    window.addEventListener("pagehide", bye);
+    return () => {
+      clearInterval(beat);
+      off();
+      window.removeEventListener("pagehide", bye);
+      bye();
+      stop();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (target?.kind !== "session") return;
+    hostApi(target.hostId)
+      .session(target.sessionId)
+      .then((s) => {
+        setSession(s);
+        document.title = `⧉ ${s.title ?? s.project.split("/").pop() ?? "Session"}`;
+      })
+      .catch(() => setError("Diese Session gibt es nicht mehr oder sie ist nicht erreichbar."));
+  }, []);
+  useToolData(target?.kind === "tool");
+
+  const giveBack = () => {
+    if (target) postWindowMessage({ type: "return", id, target });
+    window.close();
+  };
+
+  if (!target) return <div class="popout-shell"><div class="empty">Dieses Fenster hat kein Ziel.</div></div>;
+  if (!getToken()) return <div class="popout-shell"><div class="empty">Nicht angemeldet — bitte im Hauptfenster anmelden und dieses Fenster neu laden.</div></div>;
+  return (
+    <div class="popout-shell">
+      <header class="popout-bar">
+        <span class="popout-title">⧉ {target.kind === "tool" ? "Werkzeug" : (session?.title ?? "Session")}</span>
+        <button type="button" class="btn" onClick={giveBack}>
+          In die App zurück
+        </button>
+      </header>
+      {target.kind === "session" ? (
+        error ? (
+          <div class="empty">{error}</div>
+        ) : session ? (
+          <section class="tile popout-tile" data-tile="1" aria-label="Session">
+            <SessionTail key={session.id} session={session} onNavigate={() => undefined} tile={{ active: true, compact: false }} />
+          </section>
+        ) : (
+          <div class="empty dim">lädt…</div>
+        )
+      ) : (
+        <div class="popout-tool">
+          <ToolPane
+            page={target.page}
+            onClose={giveBack}
+            onOpen={(s) => void openPopout({ kind: "session", sessionId: s.id, ...(remoteHost(s.hostId) ? { hostId: remoteHost(s.hostId)! } : {}) })}
+            onSwitchToken={() => location.reload()}
+            closeLabel="In die App zurück"
+            escCloses={false}
+          />
+        </div>
+      )}
+    </div>
+  );
+}

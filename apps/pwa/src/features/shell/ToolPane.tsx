@@ -26,29 +26,46 @@ export function ToolPane({
   onClose,
   onOpen,
   onSwitchToken,
+  onPopout,
+  closeLabel = "Schließen",
+  escCloses = true,
 }: {
   page: ListPage;
   onClose: () => void;
   onOpen: (session: SessionRecord) => void;
   onSwitchToken: () => void;
+  /** EPIC-P34 T34.10: die Seite in ein eigenes Fenster legen (fehlt im Fenster selbst). */
+  onPopout?: () => void;
+  closeLabel?: string;
+  /** Im eigenen Fenster schließt Esc nichts: das Fenster gibt man mit dem Knopf zurück. */
+  escCloses?: boolean;
 }) {
   const hub = useHubStatus();
   useEffect(() => {
     // A dialog inside the pane (colour picker, T34.5) handles Esc itself and marks the event.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !e.defaultPrevented) onClose();
+      if (escCloses && e.key === "Escape" && !e.defaultPrevented) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, escCloses]);
   const title = TITLES[page] ?? "";
   return (
     <section class="tool-pane" aria-label={title}>
       <header class="tool-pane-head">
         <h2>{title}</h2>
-        <button type="button" class="tool-pane-close" aria-label="Schließen" title="Schließen (Esc)" onClick={onClose}>
-          ×
-        </button>
+        <span class="tool-pane-actions">
+          {onPopout && (
+            <button type="button" class="tool-pane-popout" aria-label="In eigenem Fenster öffnen" title="In eigenem Fenster öffnen" onClick={onPopout}>
+              ⧉
+            </button>
+          )}
+          {escCloses && (
+            <button type="button" class="tool-pane-close" aria-label={closeLabel} title={`${closeLabel} (Esc)`} onClick={onClose}>
+              ×
+            </button>
+          )}
+        </span>
       </header>
       <div class="tool-pane-body">
         {page === "settings" && <SettingsPage onSwitchToken={onSwitchToken} />}
