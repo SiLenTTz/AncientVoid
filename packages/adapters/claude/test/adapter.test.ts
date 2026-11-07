@@ -65,6 +65,9 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
       nativeResume: "native",
     });
     expect(adapter.capabilities().features).toMatchObject({ followUp: true, interrupt: true, toolGate: "native", questions: true, skills: true, agents: true, modelChoice: "start" });
+    // EPIC-P35 T35.3: „Weitermachen“ nach Unterbrechung — der Idle-Pfad
+    // (start ohne Prompt, ADR-0040) ist die hub-fähige promptlose Übernahme.
+    expect(adapter.capabilities().resume).toMatchObject({ ref: "native", hub: true });
     expect(createAdapter({ permissionPrompts: "off" }).capabilities().features).toMatchObject({ toolGate: "allowlist", questions: false });
     // ADR-0018: the flag the live hub runs with means every tool runs unasked.
     expect(createAdapter({ extraArgs: ["--dangerously-skip-permissions"] }).capabilities().features.toolGate).toBe("bypass");

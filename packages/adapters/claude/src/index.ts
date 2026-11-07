@@ -271,7 +271,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // ADR-0036: `claude --help`: "--resume <session-id>, continues that
         // session" — same flag this adapter itself spawns (start --resume),
         // and the one PcOpenNotice showed live (ADR-0034).
-        resume: { argv: ["claude", "--resume", "{sessionId}"], ref: "native" },
+        // EPIC-P35 T35.3: `hub: true` — die promptlose Übernahme (start ohne
+        // Prompt bleibt idle, ADR-0040) macht „Weitermachen“ hub-fähig.
+        resume: { argv: ["claude", "--resume", "{sessionId}"], ref: "native", hub: true },
         // ADR-0042 (EPIC-P25): documented — headless `-p` evaluates slash
         // prompts, picker-based commands excluded (code.claude.com/docs/en/
         // headless + /en/commands: /clear, /compact are argument-based, not

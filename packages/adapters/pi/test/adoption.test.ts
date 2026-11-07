@@ -46,6 +46,10 @@ describe("pi: Session aus der Datei übernehmen (ADR-0041)", () => {
     expect(events[0]!.payload).toMatchObject({ kind: "pi.session", nativeSessionId: ID });
   });
 
+  it("EPIC-P35 T35.3: die promptlose Übernahme ist als hub-Resume deklariert („Weitermachen“)", () => {
+    expect(createAdapter({}).capabilities().resume).toMatchObject({ ref: "native", hub: true });
+  });
+
   it("ohne Prompt startet kein Prozess; der erste Prompt setzt mit --session <Datei> fort, jeder weitere ebenso", async () => {
     const root = store();
     const calls: string[][] = [];
