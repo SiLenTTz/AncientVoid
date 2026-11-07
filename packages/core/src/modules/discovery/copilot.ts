@@ -12,10 +12,10 @@ import { clip, outsideRoots } from "./text.ts";
  * `turns` mit user_message/assistant_response) — live verifiziert am 07.11.2026
  * (copilot 1.0.104, Linux; WAL daneben, `mode=ro` reicht).
  *
- * Fortsetzen wird **nicht** angeboten (`unsupportedResume`): `-r <id>` setzt zwar
- * fort (Adapter, live belegt), aber die Übernahme einer fremden Session über die
- * Erkennung ist Ende-zu-Ende unbelegt — derselbe Maßstab wie beim Codex-Scanner
- * (EPIC-P34 T34.8): ohne Beleg „nur beobachtet“.
+ * Fortsetzen ist belegt (EPIC-P35 T35.3, 07.11.2026): Übernahme einer fremden
+ * Session aus der Erkennung (Adoption `93ba3d3d…` „remember the number 42“ →
+ * `-r <id>` → Antwort „42“) und „Weitermachen“ nach Worker-Kill mitten im Zug
+ * (Codewort LAVA-9 erinnert).
  */
 export function defaultCopilotDir(): string {
   return process.env.COPILOT_HOME ?? join(homedir(), ".copilot");
@@ -92,9 +92,9 @@ export function scanCopilotSessions(dir: string, now = new Date().toISOString(),
         harness: "cli",
         hostId: DEFAULT_HOST_ID,
         nativeSessionId: row.id,
-        resumeVersion: 0,
+        resumeVersion: 1,
         observedAt,
-        unsupportedResume: true,
+        unsupportedResume: false,
         fork: false,
         parentSessionId: null,
         title: title ? clip(title, 80) : null,

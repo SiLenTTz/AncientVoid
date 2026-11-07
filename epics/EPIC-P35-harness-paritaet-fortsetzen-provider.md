@@ -156,8 +156,14 @@ Kein Haken ohne zugehörige Evidenz (Beleg oder begründetes missing).
   haben dafür den promptlosen Idle-Pfad in `start()` bekommen (kein Spawn, sichtbares
   Übernahme-Event), copilot liest `args.resumeSessionId` erstmals. Live-Rauchtest der
   Idle-Adoption gegen echte Sessions (claude: 201 importierte Events, pi: 7, kein
-  Provider-Aufruf). **Offen:** Live-Läufe je CLI nach echtem Hub-Neustart (AC-P35-3, Jan)
-  und die Freigabe der copilot-Übernahme aus der Erkennung (bis dahin nur beobachtet).
+  Provider-Aufruf). **Live-Belege 07.11.2026 (Ring auf Scratch-Hub, Port 7390):** je
+  Harness Zug 1 merkt Codewort → Worker-Kill mitten im Zug 2 → `interrupted` →
+  „Weitermachen“ → Zug 3 fragt ab — claude **KIESEL-7** ✅, opencode **NEBEL-11** ✅,
+  pi **QUARZ-3** ✅ (pi führt den abgebrochenen Zug zuerst zu Ende — CLI-Queue,
+  danach antwortet es aus dem Kontext), copilot **LAVA-9** ✅, hermes **DELTA-5** ✅.
+  Katalog-Zellen daraufhin auf `verified` gehoben. Zusätzlich live belegt: die
+  Copilot-Übernahme aus der Erkennung (Adoption „remember the number 42“ →
+  Antwort „42“) — `unsupportedResume` im Scanner freigeschaltet.
 - [x] **T35.4** Resume-Robustheit: `session.resume_failed` trägt
   Provider-Kategorie (`classifyProviderError`); doppelter „Weitermachen"-Klick
   startet keinen zweiten Provider-Prozess (Steer-Queue-Serialisierung,
@@ -207,8 +213,8 @@ Kein Haken ohne zugehörige Evidenz (Beleg oder begründetes missing).
   Abweichung vor dem Start. Ein stiller Reset kommt nicht mehr vor; E2E rot
   auf dem alten Verhalten.
 - **AC-P35-3:** „Weitermachen" nach Hub-Neustart ist live belegt für claude,
-  opencode, pi, maki, omp (je ein dokumentierter Lauf, native Session bleibt
-  dieselbe); Harnesse ohne promptlosen Continue zeigen den ehrlichen Grund
+   opencode, pi, maki, omp (je ein dokumentierter Lauf, native Session bleibt
+   dieselbe); Harnesse ohne promptlosen Continue zeigen den ehrlichen Grund
   statt eines toten Knopfs; Adapter-Suiten grün.
 - **AC-P35-4:** Von den vier Discovery-Lücken (codex, opencode, copilot, dsh)
   sind mindestens zwei belegt (Scan + Übernahme + Import) oder begründet

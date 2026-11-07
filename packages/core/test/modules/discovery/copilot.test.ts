@@ -24,7 +24,7 @@ function store(): { dir: string; db: DatabaseSync } {
 }
 
 describe("Copilot-Scanner (EPIC-P35 T35.5)", () => {
-  it("liefert Titel, Vorschau, Projekt und Zweig; Übernahme bleibt unbelegt (nur beobachtet)", () => {
+  it("liefert Titel, Vorschau, Projekt; Übernahme ist live belegt (T35.3: Adoption + Weitermachen)", () => {
     const { dir, db } = store();
     db.prepare("INSERT INTO sessions (id, cwd, branch, summary, created_at, updated_at) VALUES (?,?,?,?,?,?)").run(
       "290f52b9-f677-46ee-b54b-ba2b8b3d923d",
@@ -50,7 +50,8 @@ describe("Copilot-Scanner (EPIC-P35 T35.5)", () => {
       title: "Auth-Flow refactoren",
       preview: "Refactore den Auth-Flow",
       status: "observed",
-      unsupportedResume: true,
+      unsupportedResume: false,
+      resumeVersion: 1,
       live: false,
     });
     expect(item!.observedAt).toBe("2026-11-06T10:05:00.000Z");
