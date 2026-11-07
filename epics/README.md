@@ -106,7 +106,7 @@ mit der P35-Abnahme gemacht. P30/P31 bauen auf dem P35-Contract-Muster auf.
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
-| [P35 — Harness-Parität: Fortsetzen, Erkennung, Provider-Modularität](EPIC-P35-harness-paritaet-fortsetzen-provider.md) | „Weitermachen“ mit Live-Beleg je CLI (oder ehrlich begründet), Discovery-Lücken belegt oder begründet, Popout-Vollfläche, gewählter Harness startet tatsächlich, Modell-/Custom-Provider-Muster als Contract-Standard (Fundament für P30/P31) | P34-Implementierung grün (Live-Abnahme AC-P34-13 gemeinsam) | 2–3 |
+| [P35 — Harness-Parität: Fortsetzen, Erkennung, Provider-Modularität](EPIC-P35-harness-paritaet-fortsetzen-provider.md) | „Weitermachen“ live belegt für claude/opencode/pi/maki/omp/copilot/hermes, Discovery-Lücken belegt oder begründet (copilot-Scanner neu, dsh zstd-begründet), Popout-Vollfläche, gewählter Harness startet tatsächlich, Modell-/Custom-Provider-Muster als Config-Standard (ADR-0054, Fundament für P30/P31) — **umgesetzt 07.11.2026, Gate grün; Live-Abnahme AC-P35-7 (Jan, gemeinsam mit AC-P34-13) offen** | P34-Implementierung grün (Live-Abnahme gemeinsam) | 2–3 |
 
 ## Reihenfolge & Gating
 

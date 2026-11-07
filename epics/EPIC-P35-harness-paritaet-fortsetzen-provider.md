@@ -1,6 +1,6 @@
 # EPIC-P35 — Harness-Parität: Fortsetzen, Erkennung, Provider-Modularität
 
-**Status:** offen · **Phase:** P35 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** P34-Implementierungs-Exit grün (T34.1–T34.12, Gate 07.11.2026). Die offene Live-Abnahme AC-P34-13 wird gemeinsam mit der P35-Abnahme in einem Termin gemacht (Präzedenz P1.5/P1.6: nicht zwei Abnahmen auf Oberflächen, die sich gerade ändern). P30 wartet damit zusätzlich auf P35.
+**Status:** umgesetzt 07.11.2026 — T35.1–T35.8 abgeschlossen, Gate grün (1350 Unit, 368 E2E), alle Live-Belege außer AC-P35-7 eingefahren; **offen: Live-Abnahme AC-P35-7 (Jan, gemeinsam mit AC-P34-13) + Retro, nicht als grün zu zählen** · **Phase:** P35 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** P34-Implementierungs-Exit grün (T34.1–T34.12, Gate 07.11.2026). Die offene Live-Abnahme AC-P34-13 wird gemeinsam mit der P35-Abnahme in einem Termin gemacht (Präzedenz P1.5/P1.6: nicht zwei Abnahmen auf Oberflächen, die sich gerade ändern). P30 wartet damit zusätzlich auf P35.
 
 **Auftrag:** Jan, 07.11.2026 (Nutzermeldung mit Screenshot): „Session fortsetzen
 macht immer noch regelmäßig Probleme"; Popout-Fenster „nimmt nicht die ganze
@@ -211,34 +211,52 @@ Kein Haken ohne zugehörige Evidenz (Beleg oder begründetes missing).
   + `modelsCommand`-Beispiel); live belegt am Scratch-Hub: Custom-Entry
   „Mein Zweit-OpenCode“ (nur Konfiguration, eigener Befehl) startete eine
   Session und antwortete regulär („ANKUNFT“). Abgrenzung P30/P31 in ADR-0054 §6.
-- [ ] **T35.9** Abschluss: `npm run gate` grün, Specs komplett, Live-Abnahme
+- [x] **T35.9** Abschluss: `npm run gate` grün, Specs komplett, Live-Abnahme
   durch Jan (Desktop + Pixel) gemeinsam mit AC-P34-13, `epics/README.md`
   aktualisiert, Retro angehängt.
+  *Teilabgeschlossen 07.11.2026:* Gate grün (1350 Unit-Tests, 368 E2E,
+  Lint/Typecheck/Arch/Commits), Doku synchron. **Offen:** AC-P35-7 —
+  Live-Abnahme durch Jan (gemeinsam mit AC-P34-13) und die daran gekoppelte
+  Retro; bis dahin gilt das Epic nicht als abgeschlossen.
 
 ## 5. Acceptance Criteria (AC-P35-k)
 
 - **AC-P35-1:** Ein Session- und ein Werkzeug-Popout füllen das Fenster
   vollständig (keine seitliche Lesespalte, keine horizontalen Scrollbalken);
   E2E prüft die Geometrie; K2-Messlauf unverändert grün.
+  *Erfüllt 07.11.2026 (BUG-0104).*
 - **AC-P35-2:** Startet der Nutzer Harness X (auch als Factory-Treiber oder
   mit gemerktem Draft), startet Harness X — oder die Oberfläche begründet die
   Abweichung vor dem Start. Ein stiller Reset kommt nicht mehr vor; E2E rot
   auf dem alten Verhalten.
+  *Erfüllt 07.11.2026 (BUG-0105).*
 - **AC-P35-3:** „Weitermachen" nach Hub-Neustart ist live belegt für claude,
    opencode, pi, maki, omp (je ein dokumentierter Lauf, native Session bleibt
    dieselbe); Harnesse ohne promptlosen Continue zeigen den ehrlichen Grund
   statt eines toten Knopfs; Adapter-Suiten grün.
+  *Erfüllt 07.11.2026:* claude/opencode/pi live nachgestellt (Codewort-Protokoll,
+  Ring-Log im Epic T35.3), copilot/hermes zusätzlich belegt, maki/omp seit
+  BUG-0101/ADR-0041; codex zeigt den ehrlichen Grund (exec resume braucht
+  einen Prompt) — Katalog-Zellen verified.
 - **AC-P35-4:** Von den vier Discovery-Lücken (codex, opencode, copilot, dsh)
   sind mindestens zwei belegt (Scan + Übernahme + Import) oder begründet
   `missing`; ein Formatbruch im Scan wird als Status/Event sichtbar (Test).
+  *Erfüllt 07.11.2026:* codex (55 Rollouts) und opencode (488 Sessions) live
+  gescannt, copilot-Scanner neu (12 Sessions + belegte Übernahme); dsh
+  begründet `missing` (zstd); Formatbruch-Tests vorhanden.
 - **AC-P35-5:** Ein neuer Provider bzw. ein neues Modell ist über Config
   eingebunden (Doku-Beispiel + Testkit-Grün + ein Live-Rauchtest), ohne
   Änderung an Adapter-Quellcode.
+  *Erfüllt 07.11.2026 (ADR-0054):* Custom-Entry „Mein Zweit-OpenCode“ live
+  beantwortet; `modelsCommand`/`contextWindows` config-getrieben, live gegen
+  echtes `opencode models` (15 Einträge) und Überschreibung geprüft.
 - **AC-P35-6:** `npm run gate` grün; jede neue UI-Funktion/jeder Ablauf hat
   einen Spec in `e2e/specs/`; `HARNESS_CATALOG`, Inventar-Tabelle und
   `docs/harness-matrix.md` zeigen denselben ehrlichen Stand.
+  *Erfüllt 07.11.2026.*
 - **AC-P35-7:** Live-Abnahme durch Jan (Desktop + Pixel) gemeinsam mit
   AC-P34-13 erfolgt; Retro im Epic vermerkt.
+  **Offen** — einziger verbleibender Punkt; bis dahin nicht als grün zählen.
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 
