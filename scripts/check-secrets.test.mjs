@@ -11,7 +11,10 @@ import { scanText, scanFiles } from "./check-secrets.mjs";
 // Regel, schlägt ihr positiver Fall.
 
 const FAKES = {
-  "private-key": "-----BEGIN OPENSSH PRIVATE KEY-----",
+  // Konkatenation statt Literal: Ein vollständiger PEM-Header im Quelltext
+  // würde den eigenen Repo-Scan auslösen (der OPENSSH-Header ist der eine
+  // Allowlist-Eintrag für den gepflanzten getrackten Fake).
+  "private-key": "-----BEGIN RSA " + "PRIVATE KEY-----",
   "github-pat": "ghp_" + "a".repeat(36),
   "gitlab-pat": "glpat-" + "ab12cd34ef56gh78ij90",
   "openai-key": "sk-" + "p".repeat(40),
@@ -58,9 +61,9 @@ describe("check-secrets — keine False Positives auf bekanntem Muster", () => {
 
 describe("check-secrets — scanFiles", () => {
   it("überspringt ausdrücklich erlaubte Werte (Allowlist)", () => {
-    // Der gepflanzte Test-Fake aus FAKES ist der einzige Allowlist-Eintrag —
-    // rot, wenn jemand die Allowlist still aushöhlt oder der Fake sich ändert.
-    const lines = [`const k = "${FAKES["private-key"]}";`];
+    // Der einzige Allowlist-Eintrag — rot, wenn jemand die Allowlist still
+    // aushöhlt (dann findet der Scanner den getrackten Test-Fake wieder).
+    const lines = ['const k = "-----BEGIN OPENSSH PRIVATE KEY-----";'];
     expect(scanText((i) => lines[i] ?? "", lines.length, "fake.ts")).toEqual([]);
   });
 
