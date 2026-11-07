@@ -290,3 +290,46 @@ Ein Branch je Aufgabe. Reihenfolge: T34.1 und T34.2 zuerst, weil alle anderen au
 - **Erreichbarkeit:** Farbwähler, Schrift, PC und Medien sind ohne URL-Kenntnis erreichbar; Codex- und Hermes-Scanner sind in `main.ts` registriert; der `⧉`-Knopf ist in jeder Kachel sichtbar.
 - Messlauf K2 mit vier Fenstern abgelegt, K1 und K8 belegt, Hub auf der Flotte neu ausgerollt.
 - Live-Abnahme AC-P34-13 durch Jan erfolgt, `epics/README.md` aktualisiert, Retro angehängt.
+
+## Retro
+
+*Stand 07.11.2026, Gate auf `0575df4` grün (Unit 1333 von 1333, E2E 363 bestanden, 2 übersprungen). 18 Commits ohne Merge, T34.1–T34.13 an einem Tag in einem Worktree (`80bdb03` … `0575df4`). Belege für Funktionstests sind die Specs in `e2e/specs/` und die Unit-Tests der jeweiligen Pakete; die Bewertung unten ist bewusst zurückhaltend.*
+
+### AK-Matrix
+
+| AC | Stand | Beleg | Bemerkung |
+|---|---|---|---|
+| 1 Dock/Kopfzeile | 🟢 | `dock-visibility.spec.ts`, `navigation.spec.ts`, `80bdb03` | |
+| 2 Volle Detailbreite | 🟢 | `tool-pane.spec.ts`, `ddf6207` | WebSocket-Zähler und Entwurf geprüft |
+| 3 Einstellungen symmetrisch | 🟢 | `settings-layout.spec.ts`, `5f8184a` | acht Gruppen statt sechs (Schrift, Vorschau kamen mit T34.6 dazu) |
+| 4 Farbwähler | 🟢 | `accent-color.spec.ts`, `b0a1839` | |
+| 5 Schrift | 🟡 | `appearance-font.spec.ts`, `4d9c4ff` | „offline ohne Fremd-Host“ nur live geprüft (Link aus `index.html` entfernt, Build enthält die `woff2`), kein automatischer Test |
+| 6 Echte Projekte | 🟢 | `project-origin.test.ts`, `groups.test.ts`, `discovery.spec.ts`, `0dd8305` | |
+| 7 Codex/Hermes | 🟢 | `codex-hermes.test.ts` mit anonymisierten Fixtures, `831faf1` | Fixtures statt echter Home-Verzeichnisse; Scan-Zeit auf echten Daten nicht als Zahl abgelegt |
+| 8 Gleich hohe Karten | 🟢 | `discovery.spec.ts` (390/1280/2560 px), `41956c9` | |
+| 9 Eigenes Fenster | 🟢 | `windows.spec.ts` (zwei echte Seiten, Token nicht in URL), `d3f78e0` | nur Chromium |
+| 10 Pop-up/Absturz | 🟢 | `windows.spec.ts`, `protocol.test.ts`, `91eea9d` | Absturz als „Heartbeats verschluckt“ simuliert, kein echter Prozessabsturz |
+| 11 Reload/Sync | 🟢 | `windows.spec.ts` (Theme-Sync mutationsgeprüft), `91eea9d` | Wiederherstellung nach Browser-Neustart über Hinweis/Leiste, nur im Test mit neuem Kontext |
+| 12 Messlauf | 🟡 | `docs/messlauf/2026-11-07-p34-k2-vier-fenster.md`, `fa9a495` | K2 Lauf 4: 0 / 72.284; Lauf 3 im selben Aufbau 66 Überschreitungen bei Load 19. K1 p95 13 ms, K8 603 ev/s. Eine Maschine, hohe Fremdlast |
+| 13 Live-Abnahme Jan | 🔴 | — | offen, **nicht als grün zählen**: Hyprland-Zweitmonitor, Desktop, Pixel |
+
+AK-Matrix: 10 🟢 / 2 🟡 / 1 🔴 / 0 ⚪.
+
+### Premortem
+
+Eingetreten: Nr. 2 (Codemod: der Aria-Namenskonflikt „Größer“ fiel in `oberflaeche.spec` auf, `949b357`), Nr. 5 (Mehrfenster-Last: der erste Messaufbau zeigte 1-s-Verzögerung, die Ursache war aber der Aufbau, nicht die App), Nr. 9 (Konflikt mit P29 beim Merge: `index.css`, ADR-Nummern kollidierten nicht). Nicht eingetreten (soweit prüfbar): Nr. 1, 3, 6, 7, 8. Nr. 4 (Hyprland) bleibt **ungeprüft** bis AC-13.
+
+### Erkenntnisse
+
+1. **Die Messmethode kann ein Ergebnis fälschen.** Lauf 1 und 2 (Tabs in einem Kontext) zeigten ein scheinbares K2-Versagen, Ursache war Hintergrund-Sichtbarkeit; erst die Probe mit einem Kontext je Fenster trennte das. Beleg: Bericht, Tabelle „Alle Läufe“.
+2. **K2 ist auf dieser Maschine nicht stabil grün.** Lauf 3 und 4 unterscheiden sich nur durch Fremdlast. Beleg: Bericht; Load 9–20 während aller Läufe.
+3. **Mechanische Änderungen in eigenen Commits zahlen sich aus.** Der Schrift-Codemod (`7e871e6`) war getrennt vom Verhalten (`4d9c4ff`) und blieb bei 100 % unverändert.
+4. **Typecheck und Mutationsproben fanden echte Fehler früh** (`onClick={onPopout}` reichte das Klick-Ereignis als Abwurfpunkt weiter; Theme-Sync und Workspace-Schreibzugriff sind mutationsgeprüft).
+5. **Das Gate hat einen Fehler gefangen, den Einzelläufe nicht sahen:** ESLint-Ausnahme für das neue Skript fehlte (`0575df4`); lokal hatte ich nur Teilmengen geprüft.
+
+### Action Items
+
+- AI-P34-1: Automatischer Offline-Test der gebündelten Schriften (keine Anfrage an Fremd-Host, Service Worker) — zurück als: Aufgabe in einem nächsten UI-Epic oder Bug, falls Jan Abweichungen sieht.
+- AI-P34-2: K2 mit vier Fenstern auf ruhiger Maschine mindestens dreimal wiederholen und die Streuung ablegen — zurück als: Aufgabe vor Release (Messlauf-Nachtrag in `docs/messlauf/`).
+- AI-P34-3: Live-Abnahme AC-P34-13 durch Jan (Hyprland-Zweitmonitor, Firefox, Pixel) und Blocker-Verhalten messen — zurück als: ADR-0053-Nachtrag mit Ergebnis.
+- AI-P34-4: Skripte vor dem Commit mit `npm run lint` (nicht nur Teilmengen) prüfen — zurück als: Ergänzung im Skill `messlauf` (neue Skripte brauchen Eintrag in `eslint.config`).
