@@ -191,14 +191,26 @@ Kein Haken ohne zugehörige Evidenz (Beleg oder begründetes missing).
   und Menge), Hermes als eigene Zeile ergänzt (Discovery+Resume verified), dsh-Grund
   aktualisiert, Resume-Zellen um den hub-Stand ergänzt. `docs/adapters.md` erklärt
   `hub: true` samt Idle-Regel. E2E-Inventar-Erwartung aktualisiert.
-- [ ] **T35.7** Modell-/Nutzungs-Contract: ADR für die Verallgemeinerung von
+- [x] **T35.7** Modell-/Nutzungs-Contract: ADR für die Verallgemeinerung von
   `modelsCommand`/`pickModel`-Semantik/Kontextfenster (ADR-0032-Muster) auf
   alle Adapter; native Adapter ohne Codeänderung katalogfähig; keine stille
   Ersatzmodell-Auswahl. Messlatte K5 (Events ≤ 4 KB).
-- [ ] **T35.8** Custom-Provider ohne Code: generische Registration dokumentiert
+  *Abgeschlossen 07.11.2026 (ADR-0054):* kein Contract-Bruch — `modelsCommand`
+  für claude/codex/pi/copilot/hermes (+Überschreibung in opencode) und
+  `contextWindows`-Overrides (opencode, pi; Map schlägt Einzelwert schlägt
+  Tabelle). Geteilter Helfer `parseModelLines`/`modelsFromCommand` in
+  `@ancientvoid/models` (Fehler sichtbar, nie leere Liste). Live geprüft:
+  `opencode models` 15 echte Einträge, konfigurierte Überschreibung mit Label.
+  „Keine stille Ersatzmodell-Auswahl“: native Adapter reichen `--model` durch,
+  unbekannt → sichtbarer Provider-Fehler (ADR-0015) statt Ersatzmodell.
+- [x] **T35.8** Custom-Provider ohne Code: generische Registration dokumentiert
   (Label, command, env/envFiles, model, Timeouts — ACP-`AcpConfig` als
   Vorlage), Beispiel-Entry in der Doku, Testkit-Grün gegen ein echtes
   Custom-Entry; Abgrenzung zu P30/P31 im ADR festgehalten.
+  *Abgeschlossen 07.11.2026:* Vorlage in `docs/adapters.md` (ACP-Zweitregistration
+  + `modelsCommand`-Beispiel); live belegt am Scratch-Hub: Custom-Entry
+  „Mein Zweit-OpenCode“ (nur Konfiguration, eigener Befehl) startete eine
+  Session und antwortete regulär („ANKUNFT“). Abgrenzung P30/P31 in ADR-0054 §6.
 - [ ] **T35.9** Abschluss: `npm run gate` grün, Specs komplett, Live-Abnahme
   durch Jan (Desktop + Pixel) gemeinsam mit AC-P34-13, `epics/README.md`
   aktualisiert, Retro angehängt.
