@@ -251,6 +251,58 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(file.locator(".diff-add-count")).toHaveText("+1");
   });
 
+  test("AC-P2-1: der Diff gliedert drei Commits als drei Abschnitte mit Betreff", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
+    const workdir = String((await hub.events(id)).find((e) => e.payload.kind === "session.created")?.payload.workdir);
+    expect(workdir).toBeTruthy();
+    // Drei echte Commits im Session-Worktree — wie eine Session, die pro
+    // Schritt committet. Der Adapter selbst committet nicht (siehe Test
+    // oben: e2e-change.txt erscheint uncommittet).
+    const { execFile } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const { writeFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const git = promisify(execFile);
+    const identity = ["-c", "user.email=e2e@local", "-c", "user.name=E2E"];
+    const subjects = ["feat: erster Schritt", "feat: zweiter Schritt", "fix: dritter Schritt"];
+    for (const [i, subject] of subjects.entries()) {
+      // Ein echter Inhalt pro Commit — `add -A` allein hätte ab dem
+      // zweiten Commit nichts mehr zu committen.
+      await writeFile(join(workdir, `schritt-${i}.txt`), `${subject}\n`);
+      await git("git", ["-C", workdir, ...identity, "add", "-A"]);
+      await git("git", ["-C", workdir, ...identity, "commit", "-qm", subject]);
+    }
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Diff" }).click();
+    const headings = app.locator(".diff-commit-heading");
+    await expect(headings).toHaveCount(3);
+    await expect(headings.nth(0)).toContainText("feat: erster Schritt");
+    await expect(headings.nth(1)).toContainText("feat: zweiter Schritt");
+    await expect(headings.nth(2)).toContainText("fix: dritter Schritt");
+    // Die Datei des ersten Commits ist über die Sprungliste erreichbar …
+    await expect(app.locator(".diff-file-row").filter({ hasText: "e2e-change.txt" })).toBeVisible();
+    // … und weil alles committet ist, gibt es keinen uncommitteten Rest.
+    await expect(app.getByText("Nicht committete Änderungen")).toHaveCount(0);
+  });
+
+  test("AC-P1-4: das gewählte Verlauf-Preset überlebt ein Neuladen der Seite", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "dummy reply");
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    // Verlauf ist der Default-Tab, Standard-Preset ist „Überwachen“.
+    const chips = app.locator(".filter-bar .chip");
+    await expect(chips.filter({ hasText: "Überwachen" })).toHaveClass(/active/);
+    await chips.filter({ hasText: "Debuggen" }).click();
+    await expect(chips.filter({ hasText: "Debuggen" })).toHaveClass(/active/);
+    // AC-P1-4: Reload-Persistenz durch localStorage („ancientvoid.filter“)
+    // — der ursprüngliche P1-Rest, der nie durch einen echten Reload-Klick
+    // beobachtet wurde.
+    await app.reload();
+    await expect(chips.filter({ hasText: "Debuggen" })).toHaveClass(/active/);
+    await expect(chips.filter({ hasText: "Überwachen" })).not.toHaveClass(/active/);
+  });
+
   test("die Suche findet Text in der Projekt-Doku und öffnet die Datei", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
