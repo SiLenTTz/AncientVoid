@@ -10,6 +10,13 @@ Abnahmen; P2/P3 dokumentierte Teillücken; P4 externe und Release-Restarbeit.
 Der Offline-Reload-Fehler [BUG-0015](../bugs/bug-0015-offline-reload-token-gate.md)
 blockiert K10. Historische grüne Überschriften sind keine Vollumfang-Freigabe.
 
+**Nachtrag 2026-11-07:** BUG-0015 ist gefixt (`80f8696`); die autonomen
+P0–P4.5-Restpunkte sind geschlossen (AC-P2-1 Commit-Gliederung, AC-P1-6
+Secret-Scan-Gate, AC-P1-4-Preset-Reload — MR !319); sämtliche verbleibenden
+Live-/Geräte-/Provider-/Extern-Abnahmen sind konsolidiert in
+[EPIC-P36](EPIC-P36-endabnahme.md) (Nutzentscheid: Abnahmen gebündelt am
+Ende, nachdem alles andere abgeschlossen ist).
+
 ## Enthaltene Epics
 
 | Datei | Phase | Titel | Dauer (Agenten-Wochen) |
@@ -42,19 +49,19 @@ ohne ADR bei späterer Implementierung. Schätzungen ohne G0-Restarbeit.
 | [P10 — Echtzeit-Sprache und Laya](EPIC-P10-realtime-voice-laya.md) | lokale Streaming-STT, gemessene Laya-Entscheidung | P9 grün | 1–3 |
 | [P10.5 — Medien- und Video-Analyse](EPIC-P10.5-media-video-analysis.md) | YouTube/Videos: Transkript, Schlüsselbilder, Kapitel, Zusammenfassung als Session-Material | P7 T7.10 + P10 grün | 1–3 |
 | [P11 — Desktop-Companion](EPIC-P11-desktop-companion.md) | systemweite Eingabe und definierte GUI-Flows | P10 grün | 2–4 |
-| [P12 — Betriebsreife](EPIC-P12-operational-readiness.md) | Verschlüsseltes Produktivbackup + isolierter Restore belegt; Code und Doku gemergt (!112–!115); **offen: externe Geräte-/Provider-Abnahmen** (T12.1–T12.5, T12.7, T12.8, T12.10, T12.12) | P11 abgeschlossen mit Restnachweisen | 1–2 |
+| [P12 — Betriebsreife](EPIC-P12-operational-readiness.md) | Verschlüsseltes Produktivbackup + isolierter Restore belegt; Code und Doku gemergt (!112–!115); **offen: externe Geräte-/Provider-Abnahmen — gebündelt in [EPIC-P36](EPIC-P36-endabnahme.md)** (T12.1–T12.5, T12.7, T12.8, T12.10, T12.12 → T36.x); P36 grün = P12 grün | P11 abgeschlossen mit Restnachweisen | 1–2 |
 | [P13 — Hermes-Adapter](EPIC-P13-hermes-adapter.md) | Hermes Agent als CLI-Adapter (Spawn/Resume/Events, live verifiziert 03.10.2026) — **abgeschlossen 2026-10-03** (Ralph-Loop) | P3-Adaptermuster | 1 |
-| [P14 — Session-Worktree-Hygiene](EPIC-P14-session-worktree-hygiene.md) | Archivieren räumt saubere Worktrees auf, `hubctl worktrees [prune]` — **abgeschlossen 2026-10-08** (produktiver `prune --apply` steht aus) | keine fachliche (BUG-0027 behoben) | 0,5 |
+| [P14 — Session-Worktree-Hygiene](EPIC-P14-session-worktree-hygiene.md) | Archivieren räumt saubere Worktrees auf, `hubctl worktrees [prune]` — **abgeschlossen 2026-10-08** (produktiver `prune --apply` → EPIC-P36 T36.6) | keine fachliche (BUG-0027 behoben) | 0,5 |
 | [P15 — Session-Steuerung](EPIC-P15-session-steuerung.md) | Modus/Modell wählen, Pause, Queue, Sync Handy↔PC, klare Titel — **Code abgeschlossen 2026-10-09** (ADR-0033/0034/0035; Live-Sync am PC offen, Entscheidung bei Jan) | keine offene | 1–2 |
-| [P16 — Handy-Abnahme](EPIC-P16-handy-abnahme.md) | E2E auf dem Pixel 9 Pro XL: Token-Seite, DevTools-Abbruch, Code-Suche; Querformat-Lauf nicht als Produktbefund — **offen** | P15-Code liegt; P12-Geräteabnahme bleibt offen | 0,5–1 |
+| [P16 — Handy-Abnahme](EPIC-P16-handy-abnahme.md) | E2E auf dem Pixel 9 Pro XL: Token-Seite, DevTools-Abbruch, Code-Suche; Querformat-Lauf nicht als Produktbefund — **abgeschlossen; Restabnahmen (T16.5/T16.8) → EPIC-P36 T36.1** | P15-Code liegt; P12-Geräteabnahme bleibt offen | 0,5–1 |
 | [P17 — Laufzeit-Robustheit](EPIC-P17-laufzeit-robuheit.md) | Resume-Referenzen im Adapter-Contract, Wait-Pinning/-Idempotenz, stabile `ANCIENTVOID_*`-Pane-Marker (Herdr-Ideen, Option C der [Evaluation 2026-10-26](../docs/herdr-evaluation-2026-10-26.md)) — **abgeschlossen 2026-10-26** (ADR-0036/0037; AC-P17-1: 100 % Marker-Zuordnung in 282 ms) | keine fachliche (P13/P14-Präzedenz, läuft neben P12) | 1–1,5 |
 | [P18 — Desktop-Workspace](EPIC-P18-desktop-workspace.md) | Widescreen ohne 1680-px-Deckel, bis zu vier Sessions als Kacheln (Layouts 1/2/1+2/2×2), Tastatur nach Hyprland-Art, Persistenz pro Gerät, K2 mit vier Kacheln — **offen** | keine fachliche (baut auf P8-Split, AC-P8-6) | 1–1,5 |
-| [P19 — Loop / Dark Factory](EPIC-P19-loop-dark-factory.md) | Auswahldimension „Loop“: `securesight-factory` (vormals Entwurfsname securesight-harnez; Orchestrator `self`/Hermes) und `aSPARK-Factory` (MQTT-Leitstand, Modus dark) als austauschbare `LoopConnector`-Pakete ([ADR-0038](../docs/adr/0038-loop-dark-factory.md), [Analyse](../docs/loop-analyse-2026-10-27.md)) — **gebaut seit 2026-10-28 (T19.1–T19.8: Contract, `loopAsAdapter`, beide Connectors, Auswahl, Abzeichen, Panel); Messlauf und Retro 2026-10-28 (3 🟢 / 5 🟡), manuelle Handy-Abnahme offen** | keine fachliche (P13/P14/P17-Präzedenz); P18 noch offen, Gating-Frage im ADR | 2–3 |
-| [P24 — pi, omp, maki](EPIC-P24-pi-omp-maki.md) | Erkennung und Übernahme von pi-, oh-my-pi- und maki-Sessions — **Code abgeschlossen, Live-Abnahme offen** | P5, P22 | 0,5 |
+| [P19 — Loop / Dark Factory](EPIC-P19-loop-dark-factory.md) | Auswahldimension „Loop“: `securesight-factory` (vormals Entwurfsname securesight-harnez; Orchestrator `self`/Hermes) und `aSPARK-Factory` (MQTT-Leitstand, Modus dark) als austauschbare `LoopConnector`-Pakete ([ADR-0038](../docs/adr/0038-loop-dark-factory.md), [Analyse](../docs/loop-analyse-2026-10-27.md)) — **gebaut seit 2026-10-28 (T19.1–T19.8: Contract, `loopAsAdapter`, beide Connectors, Auswahl, Abzeichen, Panel); Messlauf und Retro 2026-10-28 (3 🟢 / 5 🟡), manuelle Handy-Abnahme → EPIC-P36 T36.7** | keine fachliche (P13/P14/P17-Präzedenz); P18 noch offen, Gating-Frage im ADR | 2–3 |
+| [P24 — pi, omp, maki](EPIC-P24-pi-omp-maki.md) | Erkennung und Übernahme von pi-, oh-my-pi- und maki-Sessions — **Code abgeschlossen; Live-Abnahme → EPIC-P36 T36.7** | P5, P22 | 0,5 |
 | [P23 — Desktop-Navigation, Reste](EPIC-P23-desktop-navigation-reste.md) | „AncientVoid“ führt in die Übersicht (letzte Session markiert), einheitliche Statusleiste am Desktop — **Code abgeschlossen** | P18, P20, P21 | 0,5 |
-| [P22 — Session-Entdeckung](EPIC-P22-session-entdeckung.md) | Titel/Vorschau/„läuft woanders“, Suche vor dem Paging, Übernahme ohne Prompt und als Kopie — **Code abgeschlossen, Live-Abnahme offen** | P5, P21 | 0,5 |
+| [P22 — Session-Entdeckung](EPIC-P22-session-entdeckung.md) | Titel/Vorschau/„läuft woanders“, Suche vor dem Paging, Übernahme ohne Prompt und als Kopie — **Code abgeschlossen; Live-Abnahme → EPIC-P36 T36.7** | P5, P21 | 0,5 |
 | [P21 — Icon-Leisten, Übergabe, Metriken, Fragen](EPIC-P21-icon-leiste-uebergabe-metriken-fragen.md) | Desktop-Icon-Leisten und klickbare Kürzel (fertig), Provider-Ausfall erkennen und übergeben, Lauf-Metriken mit Restzeit-Schätzung, Fragen-Dialog — **Code abgeschlossen** | keine fachliche | 1–2 |
-| [P25 — Slash-Commands](EPIC-P25-slash-commands.md) | Harness-Commands (/clear, /compact …) steuerbar im Composer: `capabilities().commands` ([ADR-0042](../docs/adr/0042-slash-commands-im-adapter-contract.md), [Analyse](../docs/slash-commands-analyse-2026-10-29.md)), Autocomplete scope-gefiltert, Fail-loud-Hinweis statt stiller Fehlleitung — **Mechanik abgeschlossen 2026-10-29; Live-Verifikation der CLI-Listen offen (T25.6-Rest)** | keine fachliche | ~1 |
+| [P25 — Slash-Commands](EPIC-P25-slash-commands.md) | Harness-Commands (/clear, /compact …) steuerbar im Composer: `capabilities().commands` ([ADR-0042](../docs/adr/0042-slash-commands-im-adapter-contract.md), [Analyse](../docs/slash-commands-analyse-2026-10-29.md)), Autocomplete scope-gefiltert, Fail-loud-Hinweis statt stiller Fehlleitung — **Mechanik abgeschlossen 2026-10-29; Live-Verifikation der CLI-Listen (T25.6-Rest) → EPIC-P36 T36.7** | keine fachliche | ~1 |
 | [P26 — Factory-Integration](EPIC-P26-factory-integration.md) | `securesight-factory` Ende-zu-Ende aus AncientVoid: Projekt anlegen (PRD → `factory init`), Lauf auslösen (Treiber-Session `/factory` + Beobachter-Loop), beobachten, Rückfragen beantworten, human-only steuern; Connector-Modus `project` (Zielprojekte ohne `betrieb.py`), Namensbereinigung — **offen (Planung 2026-10-30)** | keine fachliche offene (P19 gebaut, manuelle Abnahme offen; P7, P25) | 2–3 |
 | [P27 — Unterbrochene Sessions](EPIC-P27-interrupted-sessions.md) | Unterbrechungen (Worker-Kill, Hub-Restart, Adapter-Down) als Status `interrupted` mit Grund sichtbar machen, offene Züge ordentlich per `session.turn_end(interrupted)` abschließen (Endreport stimmt), im Chat Weitermachen (ADR-0036-Resume, Mensch-ja/Agent-nein) oder Archivieren anbieten; Auto-Resume nur deklarativ sicher (`resume.auto`) — **abgeschlossen (05.11.2026, [MR !293](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/293), 1181 Tests / 295 E2E-Pässe, K8 grün); CI-Quota-Befund an P28 übergeben** | keine fachliche offene (P5/P15/P17 als Basis; parallel zu P26, Präzedenz P13/P14/P17) | ~1 |
 
@@ -82,7 +89,7 @@ Statuszeilen gelten nicht als aktueller Abschlussnachweis.
 | [P32 — Mobile-Client-Entscheidung](EPIC-P32-mobile-client-entscheidung.md) | Gerätebefund + Go/No-go; optional interne Android-Shell | P31 grün, P12/P16 geprüft | 0,5–1; optional +2–4 |
 | [P33 — Englischer Einstieg](EPIC-P33-englische-einstiegsdokumentation.md) | Bedarfsentscheid, README/Contracts/Quickstart; keine Publikation | P32-Exit ausdrücklich abgenommen | 0,5–1,5 |
 
-Neue Kette: **P27 → P28 → P29 → P34 → P35 → P30 → P31 → P32 → P33** (P34 auf Entscheidung vom 2026-11-07 eingeschoben, P35 auf Auftrag vom 2026-11-07, siehe unten; P30 wartet damit zusätzlich auf P34 und P35).
+Neue Kette: **P27 → P28 → P29 → P34 → P35 → P30 → P31 → P32 → P33 → P36** (P34 auf Entscheidung vom 2026-11-07 eingeschoben, P35 auf Auftrag vom 2026-11-07, P36 Endabnahme als Schluss — Live-Abnahmen gebündelt am Ende, Nutzentscheid 2026-11-07; P30 wartet damit zusätzlich auf P34 und P35).
 Bei P32/P33 ist ein dokumentierter Evaluations-Exit (No-go/vertagt) vom
 Implementierungsabschluss getrennt. Keine Antwort ist kein Go. Bei P32-Go
 wartet P33 auch auf den Implementierungs-Exit; bei Vertagung muss der gültige
@@ -95,7 +102,7 @@ startet, sobald P29 abgeschlossen ist; P30 wartet auf P34.
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
-| [P34 — Arbeitsfläche und eigene Fenster](EPIC-P34-arbeitsflaeche-und-fenster.md) | Navigation bereinigt, Einstellungen neu mit Farbwähler und Schriftwahl, Session-Erkennung mit echten Projekten plus Codex/Hermes und neuem Design, Kacheln und Werkzeuge als eigene Fenster — **umgesetzt, Gate grün; Live-Abnahme AC-P34-13 (Jan) offen** | P29 grün (P18/P20/P22/P23 als Basis) | 2–3 |
+| [P34 — Arbeitsfläche und eigene Fenster](EPIC-P34-arbeitsflaeche-und-fenster.md) | Navigation bereinigt, Einstellungen neu mit Farbwähler und Schriftwahl, Session-Erkennung mit echten Projekten plus Codex/Hermes und neuem Design, Kacheln und Werkzeuge als eigene Fenster — **umgesetzt, Gate grün; Live-Abnahme AC-P34-13 (Jan) → EPIC-P36 T36.7** | P29 grün (P18/P20/P22/P23 als Basis) | 2–3 |
 
 ## Harness-Parität — eingeplant am 2026-11-07
 
@@ -106,11 +113,26 @@ mit der P35-Abnahme gemacht. P30/P31 bauen auf dem P35-Contract-Muster auf.
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
-| [P35 — Harness-Parität: Fortsetzen, Erkennung, Provider-Modularität](EPIC-P35-harness-paritaet-fortsetzen-provider.md) | „Weitermachen“ live belegt für claude/opencode/pi/maki/omp/copilot/hermes, Discovery-Lücken belegt oder begründet (copilot-Scanner neu, dsh zstd-begründet), Popout-Vollfläche, gewählter Harness startet tatsächlich, Modell-/Custom-Provider-Muster als Config-Standard (ADR-0054, Fundament für P30/P31) — **umgesetzt 07.11.2026, Gate grün; Live-Abnahme AC-P35-7 (Jan, gemeinsam mit AC-P34-13) offen** | P34-Implementierung grün (Live-Abnahme gemeinsam) | 2–3 |
+| [P35 — Harness-Parität: Fortsetzen, Erkennung, Provider-Modularität](EPIC-P35-harness-paritaet-fortsetzen-provider.md) | „Weitermachen“ live belegt für claude/opencode/pi/maki/omp/copilot/hermes, Discovery-Lücken belegt oder begründet (copilot-Scanner neu, dsh zstd-begründet), Popout-Vollfläche, gewählter Harness startet tatsächlich, Modell-/Custom-Provider-Muster als Config-Standard (ADR-0054, Fundament für P30/P31) — **umgesetzt 07.11.2026, Gate grün; Live-Abnahme AC-P35-7 (Jan, gemeinsam mit AC-P34-13) → EPIC-P36 T36.7** | P34-Implementierung grün (Live-Abnahme gemeinsam) | 2–3 |
+
+## Endabnahme — beauftragt am 2026-11-07
+
+Nutzentscheid von Jan: Live-Abnahmen erst, wenn alle aktuellen offenen
+Punkte, Bugs und Epics abgeschlossen sind — gebündelt in einem eigenen
+Epic. Alle verstreuten Geräte-/Provider-/Extern-/Betriebs-Abnahmen aus
+P0–P4.5, P12, P14, P16, P19, P22, P24, P25, P34 und P35 sind dort per
+Herkunfts-ID konsolidiert; die Ursprungs-Epics sind per Verweis geschlossen.
+Vorbereitung (T36.8-Checklisten, Staging-Smoke) ist autonom machbar, die
+Abnahmen selbst brauchen Jan bzw. echte Umgebung. Kein Start von P36 vor
+abgeschlossener Restkette.
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P36 — Endabnahme](EPIC-P36-endabnahme.md) | eine geplante Abnahme-Runde: Handy über WAN (K10/K1), K6-Sprachmessung, Provider-Handläufe inkl. Swarm, externe Systeme + WSL (kein bmax — Trading-Maschine), Lizenz- und v0.1-Release-Entscheidung, 24-h-Dauerlauf/Restore/Rollback, UI-Flow-Abnahmen (AC-P34-13/AC-P35-7 gemeinsam) — **offen** | alle übrigen Epics/Aufgaben/Bugs abgeschlossen | 0,5–1 + Abnahme-Termine |
 
 ## Reihenfolge & Gating
 
-Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4 → P4.5 → P5 → P6 → P7 → P8 → P9 → P10 → P10.5 → P11 → P12 → P13 → P14 → P15 → P16 → P17 → P18 → P19 → P21 → P22 → P23 → P24 → P26** (P13/P14/P17/P18/P19 unabhängig: Adaptermuster aus P3, Worktree-Hygiene bzw. Laufzeit-Robustheit auf bestehendem P5/P7/P15-Code; P16 ist die Handy-Liste, kein Start vor geklärter P12-Abnahme).
+Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4 → P4.5 → P5 → P6 → P7 → P8 → P9 → P10 → P10.5 → P11 → P12 → P13 → P14 → P15 → P16 → P17 → P18 → P19 → P21 → P22 → P23 → P24 → P26 → … → P36** (P13/P14/P17/P18/P19 unabhängig: Adaptermuster aus P3, Worktree-Hygiene bzw. Laufzeit-Robustheit auf bestehendem P5/P7/P15-Code; P16 ist die Handy-Liste, kein Start vor geklärter P12-Abnahme).
 
 Jedes Epic endet mit messbarem Exit-Kriterium. Das folgende Epic startet erst,
 wenn alle Exit-Kriterien des Vorgängers grün sind (Eval-Frage-Regel aus PRD §9.1.6).

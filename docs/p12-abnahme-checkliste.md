@@ -1,7 +1,8 @@
-# P12 — Abnahme-Checkliste (Stand 2026-10-08)
+# P12 — Abnahme-Checkliste (Stand 2026-11-07)
 
-Zweck: die offenen Punkte aus [EPIC-P12](../epics/EPIC-P12-operational-readiness.md)
-nach **was fehlt** sortieren. Fast nichts davon ist noch Programmierarbeit; es
+Zweck: Ausführungsprotokoll zu [EPIC-P36 — Endabnahme](../epics/EPIC-P36-endabnahme.md)
+für die Punkte, die ursprünglich aus [EPIC-P12](../epics/EPIC-P12-operational-readiness.md)
+stammen (Konsolidierung 2026-11-07). Fast nichts davon ist noch Programmierarbeit; es
 fehlen Geräte, Zugänge oder deine Mitwirkung. Evidenz gehört in einen Messlauf
 unter `docs/messlauf/` (Skill `messlauf`); ein isolierter oder simulierter Lauf
 schließt keine Zelle (AC-P12-4: „Nicht vorhandener Zugriff ist kein Pass“).
@@ -32,7 +33,7 @@ schließt keine Zelle (AC-P12-4: „Nicht vorhandener Zugriff ist kein Pass“).
 | T12.1 | Claude-native Permission-Turns | Wochenkontingent war erschöpft; nach Reset wiederholen |
 | T12.8 | Swarm-Adapter live | Admin-Credential und `swarm_cockpit`-Feature fehlen; keine echte Lauf-JSONL |
 | T12.7 | `evox2`-Fleet-Credential rotieren | Dienstzugriff |
-| T12.4 / AI-P6-1 | WSL-Host (z. B. bmax) in die Flotte | Host-Zugang |
+| T12.4 / AI-P6-1 | WSL-Host in die Flotte — kein bmax (Trading-Maschine, Nutzentscheid 2026-11-07), Host offen → EPIC-P36 T36.4 | Host-Zugang |
 | T12.4 / AI-P5-1 | Handläufe Claude Code, Codex, Copilot (EPIC-P5 §12.4) | Provider-Konten |
 
 ## D. Braucht Betriebszeit oder Datenmenge (keine neue Technik)

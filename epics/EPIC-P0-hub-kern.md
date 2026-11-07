@@ -1,6 +1,6 @@
 # EPIC-P0 — Hub-Kern: Sessions, EventStore, tmux-Worker, Tailscale-serve, PWA-Gerüst
 
-**Status:** 🟡 mechanisch fertig, 2 ACs unverifiziert (siehe Retro) · **Phase:** P0 · **Dauer:** 1 Agenten-Woche · **Priorität:** P0 (Blocker für alles)
+**Status:** abgeschlossen (2026-11-07, Nachtrag zur Retro) — AC-P0-3 ist seit P6 durch echten Tailnet-Betrieb belegt (Messlauf `2026-09-23-p6-fleet`, Hub nur auf Tailnet-IP, K1 15 ms Remote-Median); AC-P0-4s Geräte-Offline-Abnahme (Flugmodus) ist an [EPIC-P36 T36.1](EPIC-P36-endabnahme.md) verwiesen, der Code-Teil (BUG-0015, `80f8696`/P8 T8.2) ist gefixt · **Phase:** P0 · **Dauer:** 1 Agenten-Woche · **Priorität:** P0 (Blocker für alles)
 **Ziel-Machine:** Omarchy (Entwicklung), silenttz-server (Staging) · **Evox2:** explizit out of scope
 
 ---
