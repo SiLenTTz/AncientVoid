@@ -1,6 +1,6 @@
 import { takeHandOver } from "../../shared/media.ts";
 import { takeShareInbox } from "../../app/share-inbox.ts";
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { LoopPicker } from "../loops/LoopPicker.tsx";
 import type { LoopInfo, LoopSpec } from "@ancientvoid/contracts";
 import { emptyOnboard, isOnboarding, loopBlocker, type OnboardDraft } from "../loops/loop-form.ts";
@@ -52,7 +52,17 @@ export function CreateSession({
     if (!remote) return;
     api.adapters().then(setRemoteAdapters).catch(() => setRemoteAdapters([]));
   }, [api, remote]);
-  const [adapter, setAdapter] = useState(initialAdapter(last, adapters));
+  const [adapter, setAdapterState] = useState(initialAdapter(last, adapters));
+  // BUG-0105: die Wahl gilt ab dem Klick, nicht erst ab dem Start — ein Remount
+  // darf sie nicht auf den zuletzt gestarteten Adapter zurückwerfen.
+  const setAdapter = useCallback((id: string) => {
+    setAdapterState(id);
+    try {
+      localStorage.setItem(LAST_KEY, JSON.stringify({ ...readLast(), adapter: id }));
+    } catch {
+      /* Speicher gesperrt/voll: Wahl bleibt Komponentenzustand (Merkung beim Submit). */
+    }
+  }, []);
   useEffect(() => {
     if (adapters.length > 0 && !adapters.some((a) => a.id === adapter)) setAdapter(adapters[0]!.id);
   }, [adapters]);
@@ -185,9 +195,18 @@ export function CreateSession({
     return text.startsWith(line) ? text : `${line}${text}`;
   };
 
+  // BUG-0105: nur claude/maki sind Factory-Treiber — eine ersetzte Wahl wird
+  // gesagt (fail loud), nie still getauscht.
+  const [replacedDriver, setReplacedDriver] = useState<string | null>(null);
   useEffect(() => {
-    if (loop?.id === "securesight-factory" && !["claude", "maki"].includes(adapter)) setAdapter("claude");
-  }, [loop?.id, adapter]);
+    setReplacedDriver(null);
+  }, [loop?.id]);
+  useEffect(() => {
+    if (loop?.id === "securesight-factory" && !["claude", "maki"].includes(adapter)) {
+      setReplacedDriver(adapter);
+      setAdapter("claude");
+    }
+  }, [loop?.id, adapter, setAdapter]);
 
   const submit = async () => {
     if (submitting.current) return;
@@ -310,7 +329,7 @@ export function CreateSession({
         <>
       <label>
         {loop ? "Factory-Treiber" : "Adapter"}
-        <select value={adapter} onChange={(e) => setAdapter((e.target as HTMLSelectElement).value)}>
+        <select value={adapter} onChange={(e) => { setReplacedDriver(null); setAdapter((e.target as HTMLSelectElement).value); }}>
           {adapters.filter((a) => !loop || ["claude", "maki"].includes(a.id)).map((a) => (
             <option key={a.id} value={a.id}>
               {a.id}
@@ -319,6 +338,11 @@ export function CreateSession({
           ))}
         </select>
       </label>
+      {loop?.id === "securesight-factory" && replacedDriver && (
+        <div class="tool-gate warn" role="status">
+          Factory-Treiber läuft nur mit claude oder maki — „{replacedDriver}“ wurde ersetzt.
+        </div>
+      )}
       {features?.toolGate === "bypass" && (
         <div class="tool-gate warn">{adapter}: Tools laufen ungefragt, ohne Rückfrage an dich.</div>
       )}
