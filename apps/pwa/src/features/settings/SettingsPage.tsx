@@ -1,18 +1,31 @@
 import { FleetSettings } from "../fleet/Fleet.tsx";
+import { AppearanceSettings } from "./AppearanceSettings.tsx";
+import { DevicesSettings } from "./DevicesSettings.tsx";
 import { GeminiSettings } from "./GeminiSettings.tsx";
-import { PcInput } from "./PcInput.tsx";
 import { PushSettings } from "./PushSettings.tsx";
-import { Settings } from "./Settings.tsx";
+import { SecuritySettings } from "./SecuritySettings.tsx";
 
-/** Die Einstellungen als eine Seite — dieselbe am Handy (Listenseite) und am Desktop (Werkzeugfläche). */
+/**
+ * Die Einstellungen als eine Seite — dieselbe am Handy (Listenseite) und am Desktop (Werkzeugfläche).
+ * Zwei gleich breite Spalten, sobald der Platz reicht (Container-Abfrage, nicht Fenster-Abfrage:
+ * in der Werkzeugfläche ist der Platz nicht die Fensterbreite). Die Reihenfolge der DOM-Knoten
+ * ist zugleich die Reihenfolge am Handy.
+ */
 export function SettingsPage({ onSwitchToken }: { onSwitchToken: () => void }) {
   return (
     <div class="settings-page">
-      <Settings onSwitchToken={onSwitchToken} />
-      <FleetSettings />
-      <PushSettings />
-      <GeminiSettings />
-      <PcInput />
+      <div class="settings-cols">
+        <div class="settings-col">
+          <AppearanceSettings />
+          <PushSettings />
+        </div>
+        <div class="settings-col">
+          <DevicesSettings />
+          <FleetSettings />
+          <GeminiSettings />
+          <SecuritySettings onSwitchToken={onSwitchToken} />
+        </div>
+      </div>
     </div>
   );
 }

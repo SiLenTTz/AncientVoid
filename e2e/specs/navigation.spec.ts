@@ -27,7 +27,7 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
 
   test("das helle Design bleibt nach einem Reload", async ({ app }) => {
     await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
-    await app.getByRole("button", { name: "☾ Dunkel" }).click();
+    await app.locator(".segmented").getByRole("button", { name: "Hell" }).click();
     await expect(app.locator("html")).toHaveAttribute("data-theme", "light");
     await app.reload();
     await expect(app.locator("html")).toHaveAttribute("data-theme", "light");

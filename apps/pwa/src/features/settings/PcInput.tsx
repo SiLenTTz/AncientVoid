@@ -9,7 +9,7 @@ import { DesktopPage } from "../desktop/DesktopPage.tsx";
 export function PcInput() {
   const [open, setOpen] = useState(false);
   return (
-    <details class="card pc-input" onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
+    <details class="setting-details pc-input" onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
       <summary>PC-Eingabe</summary>
       {open && <DesktopPage />}
     </details>

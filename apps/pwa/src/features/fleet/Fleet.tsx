@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { hubApi, type FleetPeer } from "../../shared/api.ts";
 import { InviteQr, QrScanner } from "./InviteQr.tsx";
 import { pairLink, parsePairLink } from "./pair-link.ts";
+import { SettingRow, SettingsSection } from "../settings/parts.tsx";
 
 /**
  * T6.2 / ADR-0017: pair this hub with others. On the other hub, create a
@@ -79,21 +80,20 @@ export function FleetSettings() {
   };
 
   return (
-    <div class="card form-grid fleet-settings">
-      <div class="settings-row">
-        <span>Flotte · dieser Hub</span>
+    <SettingsSection title="Flotte" class="fleet-settings">
+      <SettingRow label="Dieser Hub" hint="Name in der Flotte">
         <span class="mono dim fleet-self">{self ?? "…"}</span>
-      </div>
+      </SettingRow>
 
       {peers && peers.length > 0 && (
         <div class="fleet-peers">
           {peers.map((p) => (
-            <div key={p.hostId} class="fleet-peer settings-row">
-              <span>
+            <div key={p.hostId} class="fleet-peer setting-row">
+              <span class="setting-label">
                 <strong>{p.hostId}</strong> <span class="mono dim">{p.url}</span>
               </span>
               {confirmRemove === p.hostId ? (
-                <span class="row" style="gap: 6px">
+                <span class="row setting-control" style="gap: 6px">
                   <button class="btn danger" type="button" onClick={() => void removePeer(p.hostId)}>
                     Wirklich entfernen
                   </button>
@@ -102,9 +102,11 @@ export function FleetSettings() {
                   </button>
                 </span>
               ) : (
-                <button class="btn" type="button" onClick={() => setConfirmRemove(p.hostId)}>
-                  Entfernen
-                </button>
+                <span class="setting-control">
+                  <button class="btn" type="button" onClick={() => setConfirmRemove(p.hostId)}>
+                    Entfernen
+                  </button>
+                </span>
               )}
             </div>
           ))}
@@ -128,12 +130,11 @@ export function FleetSettings() {
       </button>
       {message && <div class={message.ok ? "fleet-message ok" : "fleet-message reply-error"}>{message.text}</div>}
 
-      <div class="settings-row">
-        <span>Diesen Hub von einem anderen aus verbinden</span>
+      <SettingRow label="Diesen Hub von einem anderen aus verbinden">
         <button class="btn" type="button" onClick={() => void createInvite()}>
           Einladungscode erzeugen
         </button>
-      </div>
+      </SettingRow>
       {invite && (
         <div class="fleet-invite">
           <InviteQr text={pairLink(location.origin, invite.code)} />
@@ -147,6 +148,6 @@ export function FleetSettings() {
           </span>
         </div>
       )}
-    </div>
+    </SettingsSection>
   );
 }
