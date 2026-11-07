@@ -1,6 +1,6 @@
 # EPIC-P2 — Diff-Ansicht, Approval-Gates, Budgets, Messlatten im CI
 
-**Status:** abgeschlossen (2026-11-07) — T2.1–T2.10 umgesetzt; die AC-P2-1-Teillücke „Diff gruppiert nach Datei, nicht nach Commit-Grenzen" ist geschlossen: `getSessionDiff()` liefert `commits[]`-Abschnitte (je `sha^..sha`), die PWA rendert einen Abschnitt pro Commit, K3 gilt weiter für die Gesamtpayload (MR !319, E2E „drei Commit-Abschnitte"); die biometrische Mobilfreigabe über WAN am Gerät ist an [EPIC-P36 T36.1](EPIC-P36-endabnahme.md) verwiesen ·
+**Status:** abgeschlossen (2026-11-07) — T2.1–T2.10 umgesetzt; die AC-P2-1-Teillücke „Diff gruppiert nach Datei, nicht nach Commit-Grenzen" ist geschlossen: `getSessionDiff()` liefert `commits[]`-Abschnitte (je `sha^..sha`), die PWA rendert einen Abschnitt pro Commit, K3 gilt weiter für die Gesamtpayload (MR !319, E2E „drei Commit-Abschnitte"); die biometrische Mobilfreigabe über WAN am Gerät ist an [EPIC-P35 (Endabnahme-Block) T35.10](EPIC-P35-harness-paritaet-fortsetzen-provider.md) verwiesen ·
 **Phase:** P2 · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** P1 grün
 
 ---

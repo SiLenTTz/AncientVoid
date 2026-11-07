@@ -1,6 +1,6 @@
 # EPIC-P16 — Handy-Abnahme der E2E-Specs
 
-**Status:** abgeschlossen mit Restabnahmen in [EPIC-P36](EPIC-P36-endabnahme.md) (T16.5 zweiter Origin und T16.8 → T36.1) · **Phase:** P16 · **Dauer:** 0,5–1 Agenten-Woche · **Abhängigkeit:** P15-Code liegt (ADR-0034-Entscheidung offen). P12-Geräteabnahme (T12.4) ist offen; dieser Epic wiederholt sie nicht, er hält fest, was der automatische Lauf auf dem Pixel 9 Pro XL am 2026-10-09 gesehen hat. Umsetzung startet nicht, bevor P12-Exit und die ADR-0034-Entscheidung geklärt sind — die Datei ist die Liste, kein Freibrief.
+**Status:** abgeschlossen mit Restabnahmen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) (T16.5 zweiter Origin und T16.8 → T35.10) · **Phase:** P16 · **Dauer:** 0,5–1 Agenten-Woche · **Abhängigkeit:** P15-Code liegt (ADR-0034-Entscheidung offen). P12-Geräteabnahme (T12.4) ist offen; dieser Epic wiederholt sie nicht, er hält fest, was der automatische Lauf auf dem Pixel 9 Pro XL am 2026-10-09 gesehen hat. Umsetzung startet nicht, bevor P12-Exit und die ADR-0034-Entscheidung geklärt sind — die Datei ist die Liste, kein Freibrief.
 
 Auslöser: Volllauf der PWA auf dem echten Handy (Chrome, `adb`/CDP, Test-Hub
 auf dem PC, nie der persönliche Hub). Kernliste Hochformat: 51 bestanden,

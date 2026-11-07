@@ -1,6 +1,6 @@
 # P12 — Abnahme-Checkliste (Stand 2026-11-07)
 
-Zweck: Ausführungsprotokoll zu [EPIC-P36 — Endabnahme](../epics/EPIC-P36-endabnahme.md)
+Zweck: Ausführungsprotokoll zu [EPIC-P35 — Endabnahme-Block §8](../epics/EPIC-P35-harness-paritaet-fortsetzen-provider.md)
 für die Punkte, die ursprünglich aus [EPIC-P12](../epics/EPIC-P12-operational-readiness.md)
 stammen (Konsolidierung 2026-11-07). Fast nichts davon ist noch Programmierarbeit; es
 fehlen Geräte, Zugänge oder deine Mitwirkung. Evidenz gehört in einen Messlauf
@@ -33,7 +33,7 @@ schließt keine Zelle (AC-P12-4: „Nicht vorhandener Zugriff ist kein Pass“).
 | T12.1 | Claude-native Permission-Turns | Wochenkontingent war erschöpft; nach Reset wiederholen |
 | T12.8 | Swarm-Adapter live | Admin-Credential und `swarm_cockpit`-Feature fehlen; keine echte Lauf-JSONL |
 | T12.7 | `evox2`-Fleet-Credential rotieren | Dienstzugriff |
-| T12.4 / AI-P6-1 | WSL-Host in die Flotte — kein bmax (Trading-Maschine, Nutzentscheid 2026-11-07), Host offen → EPIC-P36 T36.4 | Host-Zugang |
+| T12.4 / AI-P6-1 | WSL-Host in die Flotte — kein bmax (Trading-Maschine, Nutzentscheid 2026-11-07), Host offen → EPIC-P35 (Endabnahme-Block) T35.13 | Host-Zugang |
 | T12.4 / AI-P5-1 | Handläufe Claude Code, Codex, Copilot (EPIC-P5 §12.4) | Provider-Konten |
 
 ## D. Braucht Betriebszeit oder Datenmenge (keine neue Technik)

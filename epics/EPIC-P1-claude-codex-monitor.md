@@ -1,6 +1,6 @@
 # EPIC-P1 — Adapter claude + codex, Monitor-Dashboard, Chat-Tail mit Filtern
 
-**Status:** abgeschlossen (2026-11-07, Nachtrag zur Retro) — AC-P1-5s Push-Teil ist durch P8 real (`modules/push`, `push.spec.ts`; Geräte-Push → P36 T36.1); AC-P1-6 ist als CI-Gate geschlossen (`npm run check:secrets` in `verify`, MR !319); AC-P1-4s Reload-Persistenz ist per E2E belegt (MR !319); AC-P1-1s Live-Handläufe inkl. ±10-%-Kostenabgleich → [EPIC-P36 T36.3](EPIC-P36-endabnahme.md); AI-P1-3 (Resume-Matrix) im Kern durch P27/ADR-0036 erfüllt, AI-P1-4 durch ADR-0004/ADR-0023 · **Phase:** P1 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** P0 grün
+**Status:** abgeschlossen (2026-11-07, Nachtrag zur Retro) — AC-P1-5s Push-Teil ist durch P8 real (`modules/push`, `push.spec.ts`; Geräte-Push → EPIC-P35 (Endabnahme-Block) T35.10); AC-P1-6 ist als CI-Gate geschlossen (`npm run check:secrets` in `verify`, MR !319); AC-P1-4s Reload-Persistenz ist per E2E belegt (MR !319); AC-P1-1s Live-Handläufe inkl. ±10-%-Kostenabgleich → [EPIC-P35 (Endabnahme-Block) T35.12](EPIC-P35-harness-paritaet-fortsetzen-provider.md); AI-P1-3 (Resume-Matrix) im Kern durch P27/ADR-0036 erfüllt, AI-P1-4 durch ADR-0004/ADR-0023 · **Phase:** P1 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** P0 grün
 **Ziel-Machines:** Omarchy (Prio 1), silenttz-server (Prio 2, gleiches Image)
 
 ---

@@ -1,6 +1,6 @@
 # EPIC-P35 — Harness-Parität: Fortsetzen, Erkennung, Provider-Modularität
 
-**Status:** umgesetzt 07.11.2026 — T35.1–T35.8 abgeschlossen, Gate grün (1350 Unit, 368 E2E), alle Live-Belege außer AC-P35-7 eingefahren; **offen: Live-Abnahme AC-P35-7 (Jan, gemeinsam mit AC-P34-13) + Retro, nicht als grün zu zählen** · **Phase:** P35 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** P34-Implementierungs-Exit grün (T34.1–T34.12, Gate 07.11.2026). Die offene Live-Abnahme AC-P34-13 wird gemeinsam mit der P35-Abnahme in einem Termin gemacht (Präzedenz P1.5/P1.6: nicht zwei Abnahmen auf Oberflächen, die sich gerade ändern). P30 wartet damit zusätzlich auf P35.
+**Status:** umgesetzt 07.11.2026 — T35.1–T35.8 abgeschlossen, Gate grün (1350 Unit, 368 E2E), alle Live-Belege außer AC-P35-7 eingefahren; **seit 2026-11-07 hängt der Endabnahme-Block (T35.10–T35.17) an diesem Epic** — P35 bleibt offen, bis der Block abgenommen ist; AC-P35-7 läuft dort als Teil von T35.16 · **Phase:** P35 · **Dauer:** 2–3 Agenten-Wochen + Abnahme-Termine · **Abhängigkeit:** P34-Implementierungs-Exit grün (T34.1–T34.12, Gate 07.11.2026). Die offene Live-Abnahme AC-P34-13 wird gemeinsam mit der P35-Abnahme in einem Termin gemacht (Präzedenz P1.5/P1.6: nicht zwei Abnahmen auf Oberflächen, die sich gerade ändern). P30 wartet damit zusätzlich auf P35.
 
 **Auftrag:** Jan, 07.11.2026 (Nutzermeldung mit Screenshot): „Session fortsetzen
 macht immer noch regelmäßig Probleme"; Popout-Fenster „nimmt nicht die ganze
@@ -294,3 +294,109 @@ nachgezogen; jede neue Funktion/jeder Ablauf mit Spec in `e2e/specs/`;
 `HARNESS_CATALOG`, PWA-Inventar, `docs/harness-matrix.md`, `docs/adapters.md`
 auf gleichem Stand; ADRs für Contract-Änderungen; Live-Abnahme (gemeinsam mit
 AC-P34-13) durch Jan; `epics/README.md` aktualisiert; Retro angehängt.
+
+## 8. Endabnahme-Block (konsolidiert 2026-11-07 — hängt an P35, kein eigenes Epic)
+
+> **Nutzentscheid 2026-11-07:** „Live-Abnahmen erst machen, sobald alle
+> aktuellen offenen Punkte, Bugs und Epics abgeschlossen sind — dafür ein
+> eigenes Endabnahme-Thema; die betroffenen AK überall entsprechend schließen."
+> Die Nummer P36 wurde bewusst **nicht** vergeben (kommende Epics brauchen
+> die Nummern); der Block hängt als Abschluss an P35 und wird hier
+> abgearbeitet. Alle verstreuten Geräte-/Provider-/Extern-/Betriebs-Abnahmen
+> aus P0–P4.5, P12, P14, P16, P19, P22, P24, P25, P34 und P35 (AC-P35-7)
+> sind hier per Herkunfts-ID konsolidiert; die Ursprungs-Epics sind per
+> Verweis geschlossen (G0 bleibt: Aufgaben am Ursprung unangehakt).
+> [`docs/p12-abnahme-checkliste.md`](../docs/p12-abnahme-checkliste.md)
+> bleibt Ausführungsprotokoll. Vorbereitung (Checklisten, Staging-Smoke) ist
+> autonom machbar; die Abnahmen brauchen Jan bzw. echte Umgebung. Kein Start
+> vor abgeschlossener Restkette.
+
+### 8.1 Aufgaben (T35.10–T35.17)
+
+- [ ] **T35.10 — Geräte-Abnahme Handy über WAN.** (aus T12.1/T12.4/T12.7,
+  T16.5, AC-P0-4, AC-P1-5, AC-P1.5-1, P1.6-DoD) Echtes Pairing über
+  Tailnet/WAN, PC↔Handy↔PC-Kontinuität, Session vom Handy starten und
+  Kontingent sehen, Offline/Flugmodus mit K10-Zeitstempel, Push im
+  Hintergrund/Sperrbildschirm, 200 % Text, TalkBack/VoiceOver, Anhang aus
+  dem Teilen-Menü, zweiter Origin (Fleet/Handoff/Entwürfe), Fairphone
+  (gesperrt, Flugmodus), Gerätetokens einspielen und rotieren. K1/K7/K10.
+- [ ] **T35.11 — Sprach- und K6-Gerätemessung.** (aus T12.4/AI-P10-1,
+  T12.10, AC-P1.5-8, AC-P3-3, AC-P10-2) ≥ 20 Fachbegriff-Diktate je
+  Zielgerät mit echter Stimme: Headset, Störgeräusch, Permission-Deny,
+  Coldstart, WAN. Streaming-STT mit endpointing/VAD auf Zielhosts
+  installieren/konfigurieren und je Gerät 100 warme Kurzbefehle messen
+  (erstes Teiltranskript p95 ≤ 500 ms ab Sprachbeginn); `stt.streaming`
+  danach erst standardmäßig an. K6.
+- [ ] **T35.12 — Provider-Handläufe und Swarm.** (aus T12.4/AI-P5-1, T12.8,
+  AC-P1-1-Rest, T3.1, T3.3-Rest, T7.5-Rest) Handläufe Claude Code, Codex,
+  Copilot über die PWA inkl. ±10-%-Kostenabgleich, danach deren
+  Resume-Zellen `verified`; Swarm-Adapter live gegen das Cockpit (braucht
+  Admin-Credential/`swarm_cockpit`-Freischaltung und eine echte
+  Lauf-JSONL); aider live mit dem lokalen Modell (`--yes-always` braucht
+  ausdrückliche Nutzerfreigabe); Live-Probe des OpenAI-kompatiblen
+  Beispiel-Adapters gegen die echte llama.cpp-Instanz. K1/K2.
+- [ ] **T35.13 — Externe Systeme und WSL.** (aus T4.3, T4.4, T4.5, AC-P4-4,
+  AI-P6-1/AC-P6-5-WSL-Teil) Hermes-Skill `agent-hub` dünn gegen echten
+  Hermes; Gengar-Status-Board-Anbindung mit realen Zugangsdaten; WSL-Host
+  in die Flotte aufnehmen und Hub-in-WSL2 vom Handy aus abnehmen. Der Host
+  ist noch nicht bestimmt — **bmax ist ausdrücklich kein Kandidat**
+  (Trading-Maschine, nicht als Host eingetragen; Nutzentscheid 2026-11-07).
+- [ ] **T35.14 — Release-Entscheidungen.** (aus T4.8, T4.11) Lizenz
+  festlegen und LICENSE-File committen (Rechts-/Geschäftsentscheidung,
+  Jan); v0.1-Tag + Changelog + Fixtures-Hygiene-Abschluss (der Repo-weite
+  Secret-Scan steht seit MR !319 als Gate). Öffentliche, schwer rückgängig
+  zu machende Aktionen nur mit expliziter Bestätigung.
+- [ ] **T35.15 — Betriebs-Abnahmen.** (aus T12.2, T12.3, T12.5, T12.12,
+  P14-Rest) 24-h-Dauerlauf mit ≥ 20 Sessions inkl. Netz-/Hub-/Modell-Ausfall
+  (bestätigt nebenbei den FileTailer-Fix aus EPIC-P4.5 §8); K2/K8 unter
+  echter Sprachlast; Restore-Latenz/ENOSPC/Retention-Löschlauf; Update &
+  Rollback der Produktivinstanz; Desktop-Leck-Messung 0/50 am echten
+  Hyprland-Desktop; produktiver `hubctl worktrees prune --apply` (löscht
+  Daten — Entscheidung Jan). K2/K7/K8/K9/K10.
+- [ ] **T35.16 — Abnahme der gebauten UI-Flows.** (aus P19, P22, P24,
+  T25.6, AC-P34-13, AC-P35-7) Loop-Abnahme mit echtem Repo/Token, wartender
+  Frage am Handy und K1 gesamt; Session-Entdeckung/Übernahme live am
+  Handy; pi/omp/maki Live-Abnahme; Slash-Command-CLI-Listen live
+  verifizieren (`capabilities().commands`); Arbeitsfläche/Eigene Fenster
+  am Desktop mit Jan abnehmen (**AC-P34-13 + AC-P35-7 gemeinsam in einem
+  Termin**, Präzedenz P1.5/P1.6).
+- [ ] **T35.17 — Abschluss.** Abnahme-Checkliste vollständig, jede
+  Herkunfts-AK am Ursprungsepic als `erfüllt via P35` vermerkt (oder mit
+  dokumentierter Nutzentscheidung ⚪), K1–K10-Matrix belegt, Retro am
+  Epic-File.
+
+### 8.2 Acceptance Criteria des Blocks (AC-P35-8 – AC-P35-12)
+
+- **AC-P35-8:** Jede in T35.10–T35.16 referenzierte Herkunfts-AK ist
+  erledigt mit Beleg (Messlauf, Checklisten-Zeile mit Datum, Commit oder
+  Testname) oder per dokumentierter Nutzentscheidung geschlossen — es
+  existiert keine still offene.
+- **AC-P35-9:** Die Geräte-Abnahmen (T35.10/T35.11) liefen über
+  WAN/Tailnet am echten Zielgerät, nicht über adb/Loopback; die
+  Umgebung (Hub-Version, Token, Tailnet) ist im jeweiligen Beleg
+  festgehalten.
+- **AC-P35-10:** Nach der letzten Abnahme ist `npm run gate` grün und es
+  existiert kein offenes `test.fixme` ohne Bug-/Task-Referenz.
+- **AC-P35-11:** Lizenz (LICENSE-File) und v0.1-Tag sind entschieden und
+  committet/tagged — oder das Nicht-Release ist als Nutzentscheidung
+  dokumentiert.
+- **AC-P35-12:** Retro-Sektion an dieser Datei; Ursprungs-Epics zeigen
+  überall den Finalzustand (kein „offen (irgendwo)" mehr).
+
+### 8.3 Premortem-Zusatz (Endabnahme)
+
+1. *Die Abnahme-Termine verschieben sich endlos, weil immer noch ein Epic
+   „fast fertig" ist.* Mitigation: Startkriterium ist der Nutzentscheid-Modus
+   „alles andere zu"; Termine werden als erste Aufgabe gelegt, nicht als
+   letzte; Vorbereitung läuft parallel zu den Rest-Epics.
+2. *Die Geräte-Umgebung driftet vor dem Termin (Tailnet, Tokens,
+   Hub-Version).* Mitigation: T35.10-Vorbereitung endet mit einem Smoke-Lauf
+   gegen den Staging-Hub am selben Gerät; Abweichung = Blocker vor dem
+   Termin, nicht während.
+3. *Eine Fund-Flut während der Abnahme kippt die ganze Runde.* Mitigation:
+   Defekte sofort als `bugs/bug-NNNN` mit Repro, Abnahme läuft weiter; pro
+   AK zählt der Beleg, nicht die Abwesenheit aller Bugs.
+4. *„Fast fertig"-Täuschung: 29 von 30 AK grün, die letzte blockiert den
+   Release unbegrenzt.* Mitigation: T35.14 trennt Entscheidung von
+   Umsetzung; ein dokumentiertes No-go (z. B. Lizenz vertagt) ist ein
+   gültiger Abschluss für AC-P35-11, kein verstecktes Rot.
