@@ -2,7 +2,7 @@
 
 **Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P30
 **Dauer:** 2–3 Agenten-Wochen (ohne Vorgänger-Restarbeit)
-**Abhängigkeit:** P29- und P34-Exit-Kriterien grün (P34 seit 07.11.2026 eingeschoben); bestehende Adapter-/Reporting-Verträge geprüft.
+**Abhängigkeit:** P29-, P34- und P35-Exit-Kriterien grün (Index-Kette seit 07.11.2026); bestehende Adapter-/Reporting-Verträge geprüft.
 
 Quelle: [Vergleichsanalyse vom 05.11.2026](../docs/2026-11-05_paseo-vs-ancientvoid.md), §5; [Planungsgrundlage und Quellen](../docs/2026-11-05_paseo-umsetzungsplanung.md).
 
@@ -30,6 +30,19 @@ Auto-Updates, ungefragte Downloads, sichere Sandbox für beliebigen Fremdcode,
 Hot-Swap laufender Sessions oder neue Loop-Plugin-Gattung.
 
 ## 3. Design-Details
+
+### Orca-Abgleich vom 08.11.2026
+
+P30 bleibt auf Adapter-/Sink-Installation und Lifecycle begrenzt. Nutzer möchte
+auch UI-/Theme-Plugins; diese erweitern später denselben Installer in
+[P44](EPIC-P44-plugin-panels-themes.md), kein zweites Plugin-System.
+Konkrete gepinnte Referenzen: [Manifestfelder](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/plugins/manifest/plugin-manifest-fields.ts)
+und [begrenztes Manifestlesen](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/main/plugins/plugin-manifest-file.ts).
+ID-/Pfadvalidierung und Read-Budget sind kleine Port-Kandidaten; Orcas generiertes
+Manifest-/Electron-/UI-System nicht übernehmen. Imports/Unterlizenzen vor Port
+prüfen und MIT-Notice erhalten, siehe [Übernahmerezept](../docs/2026-11-08_orca-epic-planung.md).
+P35s konfigurierbare Modelle bleiben Fundament für P31. Keine Scope-Erweiterung
+oder neue Startfreigabe für P30 durch diese Referenzen.
 
 ### 3.1 Vorhandene Nähte
 

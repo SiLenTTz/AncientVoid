@@ -12,6 +12,13 @@ Planung vor grünen Vorgängern, aber keinen Implementierungsstart. Vor T*.1
 Vorgänger-AC mit aktueller Code-/Test-Evidenz prüfen; historische Statuszeilen
 reichen nicht. Keine neue Ausnahme von AGENTS.md durch diesen Entwurf.
 
+**Nutzerpräferenz 08.11.2026:** PWA bleibt. Dieser Evaluationsentwurf ist kein
+Auftrag für einen nativen Client; dessen optionale Umsetzung bleibt bis zu
+späterem konkretem Bedarf und ausdrücklichem Go gesperrt. Die Präferenz allein
+hakt T32.1/T32.2 und offene Geräteabnahmen nicht ab. Zugang ohne Tailscale ist
+unabhängig vom Clienttyp und wird nur in [P45](EPIC-P45-zugang-ohne-tailnet-evaluation.md)
+bewertet. Voidwarden bleibt separater Companion einschließlich Sprachausgabe.
+
 ## 1. Ziel
 
 Am tatsächlichen Mobilbedarf entscheiden, ob eine native Shell die PWA sinnvoll
