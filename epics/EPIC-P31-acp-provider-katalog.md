@@ -1,6 +1,6 @@
 # EPIC-P31 — ACP-Provider-Katalog mit ehrlichen Fähigkeitsnachweisen
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P31
+**Status:** Planungsentwurf · **Umsetzung:** gesperrt (umpriorisiert 2026-11-08: läuft nach P36, Nutzerentscheid) · **Phase:** P31
 **Dauer:** 2–3 Agenten-Wochen (ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P30-Exit-Kriterien grün; P7/P24/P25-Restnachweise geprüft.
 
