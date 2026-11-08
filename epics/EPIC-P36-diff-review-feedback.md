@@ -128,3 +128,75 @@ Geprüft am Code (nicht Codelektüre-Verdacht, belegt durch bestehende Tests):
 `diff-comment-types.ts` (kleine Typen, AV-Contracts) —
 [ADR-0055](../docs/adr/0055-review-notizen-sammelfeedback.md) „Kontext".
 Keine Übernahme aus Journal/Unsent-Send-Hold (AV hat EventStore/Steer schon).
+
+## 10. Retro (2026-11-08)
+
+**Zeitraum/Umfang:** 08.11.2026, eine Session · 8 Commits (5765666…89fac5d)
+inkl. E2E-Race-Fix und T36.6-Doku · MR !326, Pipeline 3041805411 grün
+(verify + e2e 372/2 Skip in CI).
+
+### AK-Matrix
+
+- AC-P36-1: 🟢 — Beleg: `reviews.integration.test.ts` „Notizen überstehen
+  einen Hub-Neustart" (file-basierte DB + `recoverAll`), E2E
+  `hub.restart("SIGKILL")`; Zwei-Commit-Kollision `validate.test.ts`
+  („gleiche Datei/Zeile in zwei Commit-Abschnitten").
+- AC-P36-2: 🟢 — Beleg: Integration „Sammelversand … genau einmal"
+  (zweiter identischer Send → `steered.length` unverändert), „Empfänger ohne
+  followUp … Empfängerwahl"; Bezüge via `formatReviewNoteRef` im Prompt
+  (`prompt.ts`).
+- AC-P36-3: 🟢 — Beleg: `validate.test.ts` (Basis-/HEAD-Wechsel, Datei weg,
+  binär, geänderten/verschobenen Inhalt); E2E „Revision → veralteter Anker"
+  inkl. API-422 und deaktivierter Auswahl.
+- AC-P36-4: 🟢 — Beleg: keine neuen Session-Events (ADR-0055 §5 — K5
+  unverändert, `eventstore.test.ts` weiter grün); Diff-Route/K3-Kappung
+  unangetastet; `SEND_INLINE_HARD_CAP_CHARS` + `promptNeedsAttachment`
+  (`reviews.routes.ts`).
+- AC-P36-5: 🟢 — Beleg: E2E „Offline: Notiz bleibt lokal …" (Outbox mit
+  Zeitstempel, Online-Nachzug); Integration „veralteter Anker … API-Fehler
+  behalten Entwurf" (`sendDetail`).
+- AC-P36-6: 🟢 — Beleg: §8 Zustell-Audit mit Code-Referenzen
+  (`session-queue.ts` take()-at-most-once, `session-manager.ts:1287–1304`
+  Dedupe/In-Flight); explizit kein Exactly-once-Claim.
+
+### Premortem-Bilanz
+
+1. **Zeilen wandern, Feedback trifft falschen Code** — eingetreten als
+   Annahme und per Design entschärft: Teilstring-Match („beta" in
+   „beta geändert") wäre der echte Fehltreffer gewesen; gefixt auf
+   zeilengenauen Vergleich (`validate.ts` `linesOnSide`), E2E beweist die
+   Veraltet-Markierung.
+2. **Sammelversand doppelt** — nicht eingetreten: Dedupe über Steer-inputId
+   belegt (Integration, s. o.).
+3. **Review wird zweite Chat-Engine** — nicht eingetreten: kein eigener
+   Versandpfad, `sessions.steer` inkl. Policy; Queue unberührt
+   (`reviews.routes.ts` ruft nur `steer`).
+4. **Große Diffs lähmen Handy** — nicht eingetreten: Diff-Payload-/K3-Pfad
+   unverändert; Notiz-Ausschnitte auf 400 Zeichen begrenzt
+  (`REVIEW_EXCERPT_MAX_CHARS`).
+
+### Erkenntnisse
+
+1. Der 5-s-Diff-Cache der Ankerprüfung macht Neubewertungen verzögert
+   sichtbar — E2E braucht pollende Reloads; Nutzer bemerkt davon nichts,
+   Tests müssen es wissen (`review-feedback.spec.ts` Reload-Schleife).
+2. `goto` mit neuem Hash lädt die PWA nicht neu — eingefrorene Ansicht
+   täuschte einen Validierungsbug vor (Beleg: Debug-Lauf mit
+   `pwaReviewsFetches` konstant).
+3. Branch-Disziplin: `git checkout -b` ohne Basis lief vom falschen Zweig
+   — !323 enthielt ungewollt P36-Code; behoben durch neuen Branch-Namen
+   statt History-Rewrite (!324). Implizite Faustregel: Basis immer nennen.
+4. Runner-Queue (Concurrency 1) dominiert die Taktrate: redundante
+   Branch-Pipelines zu canceln spart je ~35 min; BUG-0092-Fensterregel
+   (keine schweren lokalen Läufe neben CI) hat zweimal das Timing bestimmt.
+
+### Action Items
+
+- AI-P36-1: BUG-0106 (tool-pane-Esc-CI-Flake) beobachten, bei Reproduktion
+  Rot-Grün-Fix — zurück als: bugs/bug-0106-tool-pane-esc-flake.md (open).
+- AI-P36-2: Mobile-Anker-Auswahl im echten Gerät-Handling prüfen
+  (Langzeilen, TalkBack) — zurück als: Endabnahme-Block T35.16
+  (EPIC-P35 §8).
+- AI-P36-3: P37 kann an `ReviewScope`/`ReviewNote` andocken; bei
+  Diff-Typ-Vereinheitlichung in Contracts ADR anpassen — zurück als:
+  EPIC-P37-Planung bzw. neues ADR.
