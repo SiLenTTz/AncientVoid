@@ -300,9 +300,9 @@ AC-P34-13) durch Jan; `epics/README.md` aktualisiert; Retro angehängt.
 > **Nutzentscheid 2026-11-07:** „Live-Abnahmen erst machen, sobald alle
 > aktuellen offenen Punkte, Bugs und Epics abgeschlossen sind — dafür ein
 > eigenes Endabnahme-Thema; die betroffenen AK überall entsprechend schließen."
-> Die Nummer P36 wurde bewusst **nicht** vergeben (kommende Epics brauchen
-> die Nummern); der Block hängt als Abschluss an P35 und wird hier
-> abgearbeitet. Alle verstreuten Geräte-/Provider-/Extern-/Betriebs-Abnahmen
+> Er ist bewusst **kein eigenes Epic**: Die Nummern P36+ gehören den
+> Orca-Planungen (P36–P46, main seit 2026-11-08), und der Block gehört
+> fachlich als Abschluss zu P35 — er wird hier abgearbeitet. Alle verstreuten Geräte-/Provider-/Extern-/Betriebs-Abnahmen
 > aus P0–P4.5, P12, P14, P16, P19, P22, P24, P25, P34 und P35 (AC-P35-7)
 > sind hier per Herkunfts-ID konsolidiert; die Ursprungs-Epics sind per
 > Verweis geschlossen (G0 bleibt: Aufgaben am Ursprung unangehakt).
