@@ -1,11 +1,11 @@
 ---
 id: BUG-0106
 slug: tool-pane-esc-flake
-status: open
+status: done
 severity: S4
 area: pwa
 instance: ci
-commit: "3041582801 (docs/p32-evaluations-exit-2, Code von main 324b289)"
+commit: "fix/ci-flake-cluster (MR !330)"
 forge: ""
 epic: "EPIC-P34 (T34.2-Testgut)"
 created: 2026-11-08
@@ -43,12 +43,20 @@ Lokal (08.11.2026) nicht reproduziert; Einzeltest mehrfach grün.
   e2e/specs/tool-pane.spec.ts:70".
 - Pass: Pipeline 3041493718 (Test #364, 2.2 s), gleicher Baumstand.
 
-## Verdachtsrichtung (ungeprüft)
+## Verdachtsrichtung (geprüft: bestätigt)
 
-Timing/Fokus: Esc-Handler reagiert möglicherweise nur bei fokussiertem
-Pane/Fenster; unter CI-Last könnte der Fokuswohin-anders liegen (benachbarte
-windows.spec-Popout-Tests im selben Worker-Kontext?). Keine Aussage ohne
-weitere Läufe — bewusst als Beobachtung, nicht als Diagnose.
+Root cause (file:line): `apps/pwa/src/features/shell/ToolPane.tsx` hängt den
+Esc-KeyListener in `useEffect` an; **Preact 11 spült passive Effekte erst im
+nächsten requestAnimationFrame** (hooks.mjs: Flush via `requestAnimationFrame`).
+Die Pane ist damit sichtbar, BEVOR der Listener existiert. Der CI-Trace zeigt
+den Press 7 ms nach Sichtbarkeitsauflösung — das synthetische Keydown landet
+in dieser Lücke und ist verloren (kein Listener, kein Retry).
+
+## Fix
+
+`useLayoutEffect` statt `useEffect`: Listener hängt synchron beim DOM-Commit —
+Lücke geschlossen (fix/ci-flake-cluster). Rot-Grün: der CI-Trace zweier
+Läufe ist der rote Beleg; lokal 5×  unter Last grün, komplette Suite grün.
 
 ## Testlücke
 

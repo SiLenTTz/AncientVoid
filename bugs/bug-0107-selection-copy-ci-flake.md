@@ -1,11 +1,11 @@
 ---
 id: BUG-0107
 slug: selection-copy-ci-flake
-status: open
+status: done
 severity: S4
 area: pwa
 instance: ci
-commit: "Pipeline 17841782330 (fix/reviews-test-git-init-await, Code = main-Stand)"
+commit: "fix/ci-flake-cluster (MR !330)"
 forge: ""
 epic: "EPIC-P9-2-Testgut (AI-P9-2-Umfeld)"
 created: 2026-11-08
@@ -38,17 +38,29 @@ Komplettläufen. Lokal nicht reproduziert.
 - Pass: Pipeline 3041493718 Test #206 (2,0 s), Pipeline 3041805411 (✓),
   lokaler Lauf 372 passed.
 
-## Verdachtsrichtung (geprüft: Host-Last)
+## Root causes und Fixes (fix/ci-flake-cluster, alle mit Trace-/Code-Beleg)
 
-Nachtrag 08.11.2026 (Retry-Kette MR !328): Der Flake gehört zu einem
-**CI-Instabilitätscluster** — vier verschiedene, jeweils unveränderte Tests
-fielen einzeln über vier Komplettläufe, alle in anderen Läufen desselben
-Tages grün: tool-pane:70 (2×, BUG-0106), selection-copy:10 (dieser Bug),
-auth:43 mobile (auch schon Pipeline von !321 am 08.11. früh), skill-picker
-workspace:208. Der Runner `av-docker` teilt sich den Alltagshost (Last 6–8
-von 16 Kernen durch Desktop-Arbeit: Streaming/Browser/Dienste) — die
-BUG-0092-Klasse (timing-sensible E2E unter Nebenlast), jetzt nicht mehr nur
-bei lokalen Vollläufen, sondern im CI-Betrieb selbst.
+Drei unabhängige Ursachen, alle unter Host-Last:
+
+1. **selection-copy:10** — `SessionTail.tsx` schluckte eine transient
+   abgelehnte `clipboard.writeText` still (`.catch(() => undefined)`), obwohl
+   der Feature-Vertrag „Auswahl wird nie still verloren, Flash ist der Beleg"
+   lautet. Fix: `copy-selection.ts:copyWithRetry` — genau ein gebundener
+   Retry; rot-grün unit-getestet (3 Tests), Flash weiterhin nur bei echtem
+   Erfolg.
+2. **workspace:208 (Skill-Picker)** — Trace/Snapshot: Sheet zeigte
+   „project query param required". `SkillOverlay.tsx` feuerte die
+   Skills-Abfrage beim Öffnen mit Projekt "" (Projektliste unter Last noch
+   nicht geladen) und nie nach. Fix: Abfrage nur mit Projekt + Effect-Refetch
+   beim Eintreffen/Wechsel des Projekts; leerer Zustand sagt „Projekt wird
+   noch geladen …".
+3. **auth:43** — „Tearing down hub exceeded the test timeout":
+   `e2e/support/hub.ts:kill()` wartete unbegrenzt auf SIGTERM-Shutdown.
+   Fix: 5 s Grace, dann SIGKILL (Test-Hub, keine Produkt-Semantik).
+
+Der vierte Cluster-Beobachtungspunkt (auth:43 auch in !321) ist mit 3.
+abgedeckt; der Verbessern/Empfehlung-Flake (workspace:174, Pipeline 14:22)
+teilt die Last-Ursache-Klasse, trat einmalig auf und bleibt beobachtet.
 
 ## Testlücke
 
