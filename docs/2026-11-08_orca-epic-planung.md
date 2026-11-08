@@ -38,6 +38,12 @@ Der Bericht korrigiert ältere, heute überholte Aussagen der ersten Paseo-Analy
 
 Die bestehende Kette **P27 → P28 → P29 → P34 → P35 → P30 → P31 → P32 → P33** bleibt bestehen. Diese Planung hängt **P36 → P37 → P38 → P46 → P39 → P40 → P41 → P42 → P43 → P44 → P45** an. P46 wird auf den Folgeauftrag zwischen P38 und P39 eingefügt; bestehende Nummern bleiben stabil. Reihenfolge ist Planungsstand, keine Startfreigabe; Umpriorisierung wird später ausdrücklich dokumentiert. Keine stillschweigende Ausnahme vom Epic-Gating.
 
+**Umpriorisierung 2026-11-08 (Nutzerentscheid Jan):** P30 und P31 laufen nach
+P36; P32 ist mit dem Evaluations-Exit „vertagt" abgeschlossen
+([Entscheidungsdokument](2026-11-08_p32-evaluations-exit.md)). Gültige Kette
+ab P35: **P35 → P32 (Evaluations-Exit) → P33 → P36 → P30 → P31 → P37 → …**
+Live-Abnahmen bleiben gebündelt im Endabnahme-Block (EPIC-P35 §8).
+
 P32/P33 dürfen nur mit ausdrücklich dokumentiertem gültigem Evaluations-/Umsetzungs-Exit passieren. Die Präferenz PWA schließt allein weder P32 noch P33 ab. P36 verlangt P33-Exit und dessen wirksame Vorgänger; offene AC-P34-13/AC-P35-7 bleiben bindend. Es gibt keine Abnahme durch Schweigen.
 
 | Epic | Ergebnis | Fachliche Basis zusätzlich zum linearen Vorgänger | Grober Umfang (Agenten-Wochen) |

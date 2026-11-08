@@ -2,7 +2,7 @@
 
 **Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P33
 **Dauer:** 0,5–1,5 Agenten-Wochen (ohne Vorgänger-Restarbeit)
-**Abhängigkeit:** P32-Evaluations-Exit explizit abgenommen; bei Go auch Implementierungs-Exit grün, sonst Vertagung dokumentiert.
+**Abhängigkeit:** P32-Evaluations-Exit explizit abgenommen; bei Go auch Implementierungs-Exit grün, sonst Vertagung dokumentiert. — *Erfüllt 08.11.2026: P32-Evaluations-Exit „vertagt" abgenommen ([Entscheidungsdokument](../docs/2026-11-08_p32-evaluations-exit.md)); kein Go, damit ist kein Implementierungs-Exit nötig.*
 
 Quelle: [Vergleichsanalyse vom 05.11.2026](../docs/2026-11-05_paseo-vs-ancientvoid.md), §5; [Planungsgrundlage und Quellen](../docs/2026-11-05_paseo-umsetzungsplanung.md).
 

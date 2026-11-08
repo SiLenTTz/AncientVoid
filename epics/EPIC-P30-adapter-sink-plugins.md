@@ -1,6 +1,6 @@
 # EPIC-P30 — Installierbare Adapter- und Reporting-Sink-Plugins
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P30
+**Status:** Planungsentwurf · **Umsetzung:** gesperrt (umpriorisiert 2026-11-08: läuft nach P36, Nutzerentscheid) · **Phase:** P30
 **Dauer:** 2–3 Agenten-Wochen (ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P29-, P34- und P35-Exit-Kriterien grün (Index-Kette seit 07.11.2026); bestehende Adapter-/Reporting-Verträge geprüft.
 

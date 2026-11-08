@@ -1,6 +1,6 @@
 # EPIC-P32 — Optionaler nativer Mobile-Client mit Bedarfsentscheid
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P32
+**Status:** Evaluations-Exit „vertagt" 2026-11-08 ([Entscheidungsdokument](../docs/2026-11-08_p32-evaluations-exit.md)) · Umsetzung T32.3–T32.6: gesperrt bis ausdrückliches neues Go · **Phase:** P32
 **Dauer:** 0,5–1 Evaluation; optional 2–4 Umsetzung Agenten-Wochen (ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P31-Exit-Kriterien grün; P12/P16-Geräteabnahmen und P8/P10-Funktionen geprüft.
 
@@ -76,11 +76,17 @@ Start explizit Evaluation als gültigen P32-Exit dokumentieren.
 
 ## 4. Aufgaben (Checkliste T32.m)
 
-- [ ] **T32.1** P12/P16-Abgleich und PWA-Messprotokoll (Gerät/OS/Browser,
+- [x] **T32.1** P12/P16-Abgleich und PWA-Messprotokoll (Gerät/OS/Browser,
   Netz-/Lockzustand, Fehlversuche, K1/K6/K10) erstellen. **K1/K6/K10**.
-- [ ] **T32.2** Entscheidungsdokument mit Bedarf, Alternativen, Kosten,
+  — *Erledigt 08.11.2026:* Abgleich, Befundmatrix und Messprotokoll-Gerüst im
+  [Entscheidungsdokument](../docs/2026-11-08_p32-evaluations-exit.md) §2/§3;
+  gerätegebundene Ausführung (M1–M6) bleibt unter T35.10/T35.11 offen und
+  geht in deren Abnahme ein.
+- [x] **T32.2** Entscheidungsdokument mit Bedarf, Alternativen, Kosten,
   Push-/Datenschutzpfad und Nutzerentscheid; bei No-go/vertagt begründeten
   Evaluations-Exit festhalten. **K1/K6/K10**.
+  — *Erledigt 08.11.2026:* Nutzerentscheid „vertagt";
+  [Entscheidungsdokument](../docs/2026-11-08_p32-evaluations-exit.md).
 - [ ] **T32.3 (nur Go)** ADR + minimales App-Gerüst, Pairing/Keystore,
   Origin-/Bridge-Grenzen und Versionsfehler prüfen. **K5/K7/K10**.
 - [ ] **T32.4 (nur Go)** Nur beschlossene native Brücken bauen; Push-
@@ -126,3 +132,15 @@ Pipeline-Job `e2e` grün bzw. Infrastrukturfehler nach AGENTS.md separat belegt;
 jede neue UI-Funktion/jeder Ablauf mit Spec in `e2e/specs/`, native Grenzen
 zusätzlich instrumentiert und auf Gerät geprüft. Client/Installationshilfe
 auffindbar. Evaluation allein darf nie als ausgelieferte App bezeichnet werden.
+
+## 8. Evaluations-Exit (2026-11-08)
+
+Nutzerentscheid (Jan, 08.11.2026): **vertagt** — kein Go für einen nativen
+Client. Bedarfsbefund, P12/P16-Abgleich, Messprotokoll-Gerüst (M1–M6 für die
+Endabnahmesession T35.10/T35.11), Alternativen/Kosten und Push-/Datenschutzpfad:
+[Entscheidungsdokument](../docs/2026-11-08_p32-evaluations-exit.md). T32.3–T32.6
+bleiben gesperrt; ein späteres Go braucht einen neuen ausdrücklichen Auftrag
+(Re-Evaluation-Trigger: M1–M6-Befund). AC-P32-1 ist damit erfüllt (Evaluations-
+Teil); AC-P32-2–4 sind Go-vorbehalten und entfallen. P33 startet auf diesem
+Exit (§3.3); P30/P31 wurden per Nutzentscheid vom 08.11.2026 nach P36
+verschoben ([Epic-Index](README.md)).
