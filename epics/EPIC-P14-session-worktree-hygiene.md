@@ -1,6 +1,6 @@
 # EPIC-P14 — Session-Worktree-Hygiene (Archivieren räumt saubere Worktrees auf)
 
-**Status:** Code abgeschlossen (2026-10-08); produktiver `prune --apply` steht aus (Entscheidung Jan, löscht Daten) · **Phase:** P14 · **Dauer:** 0,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine (BUG-0027 ist behoben, `WorktreeManager.hasWork()` existiert). Läuft neben der blockierten P12; T12.5 (24-h-Dauerlauf) profitiert davon, setzt es aber nicht formal voraus.
+**Status:** abgeschlossen mit einem Rest in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md): produktiver `prune --apply` (Entscheidung Jan, löscht Daten) → T35.15; Code seit 2026-10-08 fertig · **Phase:** P14 · **Dauer:** 0,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine (BUG-0027 ist behoben, `WorktreeManager.hasWork()` existiert). Läuft neben der blockierten P12; T12.5 (24-h-Dauerlauf) profitiert davon, setzt es aber nicht formal voraus.
 
 Auslöser: Statusreport vom 2026-10-08. `data/worktrees/` hält 24 Verzeichnisse
 (309 MB).

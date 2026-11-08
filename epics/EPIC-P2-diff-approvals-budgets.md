@@ -1,7 +1,7 @@
 # EPIC-P2 — Diff-Ansicht, Approval-Gates, Budgets, Messlatten im CI
 
-**Status:** grün (T2.1–T2.10 umgesetzt, AC-P2-1 mit benannter Teillücke —
-siehe §5) · **Phase:** P2 · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** P1 grün
+**Status:** abgeschlossen (2026-11-07) — T2.1–T2.10 umgesetzt; die AC-P2-1-Teillücke „Diff gruppiert nach Datei, nicht nach Commit-Grenzen" ist geschlossen: `getSessionDiff()` liefert `commits[]`-Abschnitte (je `sha^..sha`), die PWA rendert einen Abschnitt pro Commit, K3 gilt weiter für die Gesamtpayload (MR !319, E2E „drei Commit-Abschnitte"); die biometrische Mobilfreigabe über WAN am Gerät ist an [EPIC-P35 (Endabnahme-Block) T35.10](EPIC-P35-harness-paritaet-fortsetzen-provider.md) verwiesen ·
+**Phase:** P2 · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** P1 grün
 
 ---
 
@@ -337,14 +337,15 @@ Wichtig: Der Approve-Button schreibt einen **signierten Eintrag** (Device-Token-
 
 - **AC-P2-1:** Session erzeugt 3 Commits in isoliertem Worktree → Diff-Ansicht zeigt 3
   Abschnitte, Basis ist exakt `base_sha`, Haupt-Repo bleibt unberührt.
-  🟡 **Teilweise**: Worktree-Isolation + exakter `base_sha` + „Haupt-Repo
-  unberührt" sind real erfüllt und getestet (T2.1: echte Commits in einem
-  Worktree ändern nachweislich nicht den Haupt-Checkout). **Offen:** die
-  Diff-Ansicht gruppiert nach **Datei** (T2.2/T2.3s Hunk-Karten), nicht
-  nach **Commit-Grenzen** — „3 Abschnitte" für 3 Commits ist nicht gebaut;
-  `getSessionDiff()` diff't `base_sha..Arbeitsverzeichnis` als Ganzes,
-  ohne die dazwischenliegenden Commit-Grenzen aufzulösen. Ehrlich als
-  Lücke geführt statt stillschweigend als erfüllt markiert.
+  🟢 **Erfüllt (2026-11-07, MR !319):** Die Diff-Ansicht gruppiert seit dem
+  Commit-Gliederungs-Umbau nach Commit-Grenzen — `getSessionDiff()` liefert
+  `commits[]` (ältester zuerst, je `sha^..sha`), die PWA rendert einen
+  Abschnitt pro Commit (Kurz-SHA/Betreff/Autor) plus „Nicht committete
+  Änderungen"; `files` trägt den uncommitteten Rest. Belegt durch
+  `apps/hub/test/modules/sessions/diff.test.ts` („AC-P2-1: drei Commits →
+  drei Abschnitte …") und E2E `session.spec.ts` („AC-P2-1: der Diff gliedert
+  drei Commits als drei Abschnitte mit Betreff" — echte Commits im
+  Session-Worktree gegen den echten Hub).
 - **AC-P2-2 (K3):** Diff mit 2 MB Änderungen → initiale Payload ≤ 50 KB, Expand liefert
   Rest korrekt nach.
 - **AC-P2-3 (K1):** Biometrisches Approven eines force-push aus der Queue: Push →
