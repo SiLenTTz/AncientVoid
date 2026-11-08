@@ -88,16 +88,26 @@ export function SkillPicker({
     if (selection && !supported) onChange(null);
   }, [supported]);
 
+  // BUG-0107 (Skill-Picker-Flake): Die Abfrage feuerte beim Öffnen mit
+  // projekt-"" (Projektliste noch nicht geladen) → 400 „project query param
+  // required" dauerhaft im Sheet, kein Nachfeuern. Jetzt: erst mit Projekt
+  // fragen und automatisch nachfeuern, wenn das Projekt eintrifft/wechselt.
+  useEffect(() => {
+    if (!open || items !== null || !project || error) return;
+    let alive = true;
+    api
+      .skills(project)
+      .then((res) => alive && setItems(res.items))
+      .catch((err) => alive && setError(err instanceof Error ? err.message : "Skills konnten nicht geladen werden"));
+    return () => {
+      alive = false;
+    };
+  }, [open, project, items, error]);
+
   const openOverlay = () => {
     if (!supported) return;
     setError("");
     setOpen(true);
-    if (items === null) {
-      api
-        .skills(project)
-        .then((res) => setItems(res.items))
-        .catch((err) => setError(err instanceof Error ? err.message : "Skills konnten nicht geladen werden"));
-    }
   };
 
   const pick = (item: SkillOrAgent) => {
@@ -138,7 +148,9 @@ export function SkillPicker({
               </button>
             </div>
             {error && <div style="color: var(--err)">{error}</div>}
-            {items === null && !error ? (
+            {!project && items === null ? (
+              <div class="dim">Projekt wird noch geladen …</div>
+            ) : items === null && !error ? (
               <div class="dim">lade…</div>
             ) : items && items.length === 0 ? (
               <div class="dim">Keine Skills/Agents in diesem Projekt gefunden.</div>
