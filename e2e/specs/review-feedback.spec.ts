@@ -89,6 +89,9 @@ test.describe("Review-Feedback am Diff (EPIC-P36)", () => {
     await writeFile(join(workdir, "offline-target.txt"), "eins\nzwei\n");
 
     await openDiff(app, hub, id);
+    // Diff muss vollständig geladen sein, BEVOR offline geschaltet wird —
+    // sonst scheitert der Fetch offline und es gibt keine anklickbaren Zeilen.
+    await expect(app.locator(".diff-file-row").filter({ hasText: "offline-target.txt" })).toBeVisible();
     await app.context().setOffline(true);
     await app.getByRole("button", { name: "Notiz an Zeilen" }).click();
     await app.locator(".review-pickable").filter({ hasText: "zwei" }).first().click();
