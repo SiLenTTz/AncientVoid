@@ -1,6 +1,6 @@
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { ClaudeLive, PlannerModelConfig, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner } from "@ancientvoid/core";
+import type { ClaudeLive, PlannerModelConfig, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore } from "@ancientvoid/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
 import { DEFAULT_HOST_ID } from "@ancientvoid/contracts";
 import type { ActionDefinition, HubMetrics, DiscoverySource, SessionRecord } from "@ancientvoid/contracts";
@@ -49,6 +49,9 @@ export interface RouteDeps {
   actions?: ActionDefinition[];
   /** EPIC-P19: Loops (Dark Factory). Ohne Angabe: der Katalog, noch ohne angebundene Connectors. */
   loops?: LoopRegistry;
+  /** EPIC-P36: Review-Notizen zur Diff-Ansicht (Journal+Snapshot, ADR-0055).
+   * Ohne Angabe antworten die Review-Routen 501-artig (siehe Approvals-Muster). */
+  reviews?: ReviewStore;
 }
 
 /**
