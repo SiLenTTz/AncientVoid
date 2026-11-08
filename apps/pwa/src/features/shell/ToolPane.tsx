@@ -1,4 +1,4 @@
-import { useEffect } from "preact/hooks";
+import { useEffect, useLayoutEffect } from "preact/hooks";
 import type { SessionRecord } from "../../shared/api.ts";
 import type { ListPage } from "../../app/route.ts";
 import { DesktopPage } from "../desktop/DesktopPage.tsx";
@@ -41,8 +41,13 @@ export function ToolPane({
   escCloses?: boolean;
 }) {
   const hub = useHubStatus();
-  useEffect(() => {
-    // A dialog inside the pane (colour picker, T34.5) handles Esc itself and marks the event.
+  // BUG-0106: Preact 11 spült passive Effekte erst im nächsten
+  // requestAnimationFrame — die Pane ist schon sichtbar, bevor dieser
+  // Keydown-Listener hängt, und ein sofortiges Esc (unter CI-Last) ging
+  // ins Leere. useLayoutEffect hängt den Listener synchron beim DOM-Commit.
+  // Ein Dialog in der Pane (Farbwähler, T34.5) behandelt Esc selbst und
+  // markiert das Event (defaultPrevented).
+  useLayoutEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (escCloses && e.key === "Escape" && !e.defaultPrevented) onClose();
     };
