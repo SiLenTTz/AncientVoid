@@ -101,7 +101,9 @@ describe("reviews routes (integration)", () => {
     const base = await mkdtemp(join(tmpdir(), "av-reviews-int-"));
     repo = join(base, "proj");
     hubDir = join(base, "hub");
-    await execFile("git", ["init", "-b", "main", repo]);
+    // execAsync (promisifiziert) — rohes execFile wartet nicht: in CI verlor
+    // `config` das Rennen gegen das noch laufende init („not in a git directory“).
+    await execAsync("git", ["init", "-b", "main", repo]);
     await execAsync("git", ["-C", repo, "config", "user.email", "test@ancientvoid.local"]);
     await git(repo, "config", "user.name", "Test");
     await writeFile(join(repo, "src-app.ts"), ["line1", "line2", "line3", "line4", "line5"].join("\n") + "\n");
@@ -125,7 +127,7 @@ describe("reviews routes (integration)", () => {
   });
 
   afterAll(async () => {
-    await app.close().catch(() => undefined);
+    await app?.close().catch(() => undefined);
     await rm(join(repo, ".."), { recursive: true, force: true });
   });
 
@@ -151,7 +153,7 @@ describe("reviews routes (integration)", () => {
   });
 
   it("Notizen überstehen einen Hub-Neustart (K7, AC-P36-1)", async () => {
-    await app.close();
+    await app!.close();
     app = await buildApp();
     setAuth();
     const list = await app.inject({ method: "GET", url: `/api/sessions/${sessionId}/reviews`, headers: auth });
