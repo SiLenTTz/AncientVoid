@@ -59,8 +59,13 @@ Drei unabhängige Ursachen, alle unter Host-Last:
    Fix: 5 s Grace, dann SIGKILL (Test-Hub, keine Produkt-Semantik).
 
 Der vierte Cluster-Beobachtungspunkt (auth:43 auch in !321) ist mit 3.
-abgedeckt; der Verbessern/Empfehlung-Flake (workspace:174, Pipeline 14:22)
-teilt die Last-Ursache-Klasse, trat einmalig auf und bleibt beobachtet.
+abgedeckt. Fünftes Mitglied während des Fix-MRs selbst (Pipeline 3042625158):
+**resize:8** — das Schrumpfen des Eingabefelds nach dem Leeren wurde sofort
+gemessen, obwohl Auto-Grow/-Shrink erst nach dem Re-Render greift; das
+Wachsen hatte dieselbe Race bereits per `expect.poll` (BUG-0094-Nachtrag).
+Fix: dieselbe Poll-Form auch fürs Schrumpfen. Der
+Verbessern/Empfehlung-Flake (workspace:174) trat einmalig auf und bleibt
+beobachtet.
 
 ## Testlücke
 

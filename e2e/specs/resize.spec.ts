@@ -23,8 +23,13 @@ test.describe("Eingabefeld (QoL 2026-10-29)", () => {
     // Leeren setzt die Höhe zurück — nach dem Blur, sonst gilt das Fokus-Minimum.
     await field.fill("");
     await field.evaluate((el) => el.blur());
-    const cleared = (await field.boundingBox())!.height;
-    expect(cleared).toBeLessThan(after - 100);
+    // BUG-0107-Nachtrag: dasselbe Rennen wie beim Wachsen darüber — auch das
+    // Zurücksetzen greift erst nach dem Re-Render; unter CI-Last war die alte
+    // Höhe noch nicht geschrumpft (erwartet <123, gemessen 223, Pipeline
+    // 3042625158). Pollend abwarten statt sofort messen.
+    await expect
+      .poll(async () => (await field.boundingBox())!.height, { timeout: 5_000 })
+      .toBeLessThan(after - 100);
   });
 
   test("Maximieren-Button macht das Feld groß und wieder klein", async ({ app, hub }) => {
