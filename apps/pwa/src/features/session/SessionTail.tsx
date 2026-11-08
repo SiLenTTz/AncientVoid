@@ -1,4 +1,5 @@
 import { InterruptedBanner } from "./InterruptedBanner.tsx";
+import { copyWithRetry } from "./copy-selection.ts";
 import { sessionHash } from "../../app/route.ts";
 import { HandoverBar } from "./Handover.tsx";
 import { currentProviderFailure } from "./handover.ts";
@@ -89,14 +90,17 @@ export function SessionTail({
       const sel = window.getSelection();
       const text = sel?.toString() ?? "";
       if (!el || !sel || !text.trim() || !el.contains(sel.anchorNode)) return;
-      void navigator.clipboard
-        ?.writeText(text)
-        .then(() => {
-          setCopyFlash(true);
-          window.clearTimeout(flashTimer);
-          flashTimer = window.setTimeout(() => setCopyFlash(false), 1200);
-        })
-        .catch(() => undefined); // kein Clipboard (insecure context) — Kopieren-Button bleibt der Weg
+      // BUG-0107: transient abgelehntes writeText wurde still geschluckt —
+      // der Flash ist der Beleg fürs Kopieren, ein Einzel-Retry gehört dazu.
+      if (navigator.clipboard) {
+        void copyWithRetry(text, (t) => navigator.clipboard!.writeText(t))
+          .then((ok) => {
+            if (!ok) return; // kein Clipboard (insecure context) — Kopieren-Button bleibt der Weg
+            setCopyFlash(true);
+            window.clearTimeout(flashTimer);
+            flashTimer = window.setTimeout(() => setCopyFlash(false), 1200);
+          });
+      }
     };
     document.addEventListener("pointerup", onUp);
     return () => {
