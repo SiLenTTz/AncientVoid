@@ -1,7 +1,27 @@
 import { useMemo, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type SessionDiffResult, type SessionDiffFile, type DiffCommit, type DiffHunk } from "../../shared/api.ts";
-import { diffLineClass, isOneSided, pairHunkLines } from "./diff-lines.ts";
+import { isOneSided, mapHunkLines, pairHunkLines, type MappedDiffLine } from "./diff-lines.ts";
+
+/** EPIC-P36: Zeilen-Anker für Review-Notizen. DiffPane bleibt Renderer —
+ * Auswahlzustand und Notizlogik liegen in DiffReview.tsx. */
+export interface LinePick {
+  path: string;
+  /** AC-P2-1: Commit-Abschnitt, zu dem die Zeile gehört (uncommittet → undefined). */
+  commit?: string;
+  side: "old" | "new";
+  line: number;
+  text: string;
+}
+
+export interface ReviewHooks {
+  pickEnabled: boolean;
+  onLinePick?: (pick: LinePick) => void;
+  /** Aktuell markierter Bereich (gleicher Pfad/Commit) oder null. */
+  picked: { path: string; commit?: string; side: "old" | "new"; start: number; end: number } | null;
+  /** Anzahl Notizen je Datei (Badge in der Dateiliste). */
+  noteCount: (path: string) => number;
+}
 
 /**
  * T1.6-5 → T2.3 (EPIC-P2 §4): per-file hunk cards, replacing the raw
@@ -15,6 +35,7 @@ export function HunkCard({
   hunk,
   index,
   commit,
+  review,
 }: {
   sessionId: string;
   path: string;
@@ -23,6 +44,7 @@ export function HunkCard({
   /** AC-P2-1: Hunk gehört zu diesem Commit-Abschnitt — Expand lädt ihn
    * gegen sha^..sha statt gegen das Arbeitsverzeichnis. */
   commit?: string;
+  review?: ReviewHooks;
 }) {
   const api = useApi();
   const [expanded, setExpanded] = useState<DiffHunk | null>(null);
@@ -30,6 +52,7 @@ export function HunkCard({
   const active = expanded ?? hunk;
   const rows = useMemo(() => pairHunkLines(active.body), [active.body]);
   const oneSided = useMemo(() => isOneSided(rows), [rows]);
+  const mapped = useMemo(() => mapHunkLines(active), [active]);
 
   const onExpand = async () => {
     setLoading(true);
@@ -42,6 +65,12 @@ export function HunkCard({
     } finally {
       setLoading(false);
     }
+  };
+
+  const isPicked = (line: MappedDiffLine): boolean => {
+    if (!review?.picked || review.picked.path !== path || review.picked.commit !== commit) return false;
+    const n = review.picked.side === "old" ? line.oldLine : line.newLine;
+    return n !== null && n >= review.picked.start && n <= review.picked.end;
   };
 
   return (
@@ -58,11 +87,29 @@ export function HunkCard({
         )}
       </div>
       <div class="hunk-body-unified mono">
-        {active.body.split("\n").map((line, i) => (
-          <div key={i} class={diffLineClass(line)}>
-            {line}
-          </div>
-        ))}
+        {mapped.map((line, i) => {
+          const cls = line.type === "add" ? "diff-line-add" : line.type === "del" ? "diff-line-del" : "diff-line-ctx";
+          const picked = isPicked(line);
+          const clickable = review?.pickEnabled && review.onLinePick;
+          return (
+            <div
+              key={i}
+              class={`${cls}${picked ? " review-picked" : ""}${clickable ? " review-pickable" : ""}`}
+              onClick={
+                clickable
+                  ? () => {
+                      const side = review.picked?.side ?? "new";
+                      const n = side === "old" ? line.oldLine : line.newLine;
+                      if (n !== null) review.onLinePick!({ path, commit, side, line: n, text: line.text });
+                    }
+                  : undefined
+              }
+            >
+              {line.type === "add" ? "+" : line.type === "del" ? "-" : " "}
+              {line.text}
+            </div>
+          );
+        })}
       </div>
       <div class="hunk-body-split mono">
         {rows.map((row, i) => (
@@ -91,7 +138,16 @@ function CommitHeading({ commit }: { commit: DiffCommit }) {
   );
 }
 
-export function DiffPane({ diff, sessionId }: { diff: SessionDiffResult | null; sessionId: string }) {
+export function DiffPane({
+  diff,
+  sessionId,
+  review,
+}: {
+  diff: SessionDiffResult | null;
+  sessionId: string;
+  /** EPIC-P36: optionale Review-Hooks — ohne sie rendert DiffPane wie vorher. */
+  review?: ReviewHooks;
+}) {
   if (diff === null) return <div class="empty">lädt …</div>;
   if (diff.error) return <div class="empty">{diff.error}</div>;
   // AC-P2-1: ein Abschnitt pro Commit (ältester zuerst), danach der
@@ -113,9 +169,12 @@ export function DiffPane({ diff, sessionId }: { diff: SessionDiffResult | null; 
       const i = anchorOf.get(f.path) ?? 0;
       return f.binary || f.hunks.length === 0 ? null : (
         <div key={f.path} class="diff-file-group" id={fileAnchor(i)}>
-          <div class="diff-file-heading mono">{f.path}</div>
+          <div class="diff-file-heading mono">
+            {f.path}
+            {review && review.noteCount(f.path) > 0 && <span class="review-note-badge">{review.noteCount(f.path)}</span>}
+          </div>
           {f.hunks.map((h, j) => (
-            <HunkCard key={`${f.path}:${j}`} sessionId={sessionId} path={f.path} hunk={h} index={j} commit={commit} />
+            <HunkCard key={`${f.path}:${j}`} sessionId={sessionId} path={f.path} hunk={h} index={j} commit={commit} review={review} />
           ))}
         </div>
       );

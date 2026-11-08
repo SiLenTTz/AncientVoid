@@ -320,3 +320,221 @@
 .hunk-card.one-sided .hunk-body-unified {
   display: block;
 }
+
+/* ============================================================
+   EPIC-P36: Review-Notizen am Diff (ADR-0055) — Auswahl, Panel,
+   Badges, Sammelversand-Dialog. Mobile-first, Desktop via Breite.
+   ============================================================ */
+
+.diff-review-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+}
+.review-pick-btn {
+  border: 1px solid var(--border, #2a2f3a);
+  background: transparent;
+  color: inherit;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.review-pick-btn.active {
+  border-color: var(--accent, #6ea8fe);
+  color: var(--accent, #6ea8fe);
+}
+.review-picked-info {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.review-note-entry {
+  display: flex;
+  gap: 6px;
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+.review-note-entry input[type="text"] {
+  flex: 1;
+}
+.review-save-btn {
+  border: 1px solid var(--border, #2a2f3a);
+  background: var(--accent, #6ea8fe);
+  color: #0b0d12;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.review-save-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Anker-Auswahl im Diff-Körper */
+.review-pickable {
+  cursor: crosshair;
+}
+.review-picked {
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 28%, transparent);
+  outline: 1px solid var(--accent, #6ea8fe);
+}
+
+/* Notiz-Badge am Dateikopf */
+.review-note-badge {
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent, #6ea8fe);
+  color: #0b0d12;
+  font-size: 11px;
+}
+
+/* Panel mit Notizen */
+.review-panel {
+  margin-top: 12px;
+  border-top: 1px solid var(--border, #2a2f3a);
+  padding-top: 8px;
+}
+.review-panel h3 {
+  margin: 4px 0;
+  font-size: 14px;
+}
+.review-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px;
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 10px;
+  margin: 6px 0;
+}
+.review-note.stale {
+  border-style: dashed;
+  opacity: 0.85;
+}
+.review-note.outboxed {
+  align-items: center;
+  font-size: 13px;
+}
+.review-note-body {
+  flex: 1;
+  min-width: 0;
+}
+.review-note-ref {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.review-note-text {
+  margin: 4px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.review-note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  align-items: center;
+}
+.review-note-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.review-note-actions button {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #2a2f3a);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.review-status {
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid var(--border, #2a2f3a);
+}
+.review-status.draft { color: var(--warn, #e2b93b); }
+.review-status.sent { color: #7ad97a; }
+.review-status.open { color: var(--accent, #6ea8fe); }
+.review-status.done { color: #9aa3b2; }
+.review-stale-badge {
+  color: var(--danger, #ff7a7a);
+  font-size: 11px;
+}
+.review-unclear-badge {
+  color: var(--warn, #e2b93b);
+  font-size: 11px;
+}
+.review-warn {
+  color: var(--warn, #e2b93b);
+  font-size: 12px;
+  margin: 4px 0;
+}
+.review-warn-inline {
+  color: var(--danger, #ff7a7a);
+  font-size: 11px;
+}
+
+/* Sammelversand */
+.review-send-bar {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.review-send-btn {
+  border: 1px solid var(--accent, #6ea8fe);
+  background: var(--accent, #6ea8fe);
+  color: #0b0d12;
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.review-send-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.review-send-dialog {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+.review-send-dialog .modal-card {
+  background: var(--panel, #12151d);
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 12px;
+  padding: 14px;
+  width: min(640px, 92vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.review-recipient {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.review-prompt-preview {
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 40vh;
+}
+.review-send-dialog .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

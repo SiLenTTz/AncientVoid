@@ -35,7 +35,7 @@ import { deriveLoopView } from "../loops/loop-view.ts";
 import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, latestModelName, tokenText } from "./run-stats.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
 import { EventRow } from "./EventRow.tsx";
-import { DiffPane } from "./DiffPane.tsx";
+import { DiffReview } from "./DiffReview.tsx";
 import { ReportPane } from "./ReportPane.tsx";
 import { SessionApprovals } from "./SessionApprovals.tsx";
 
@@ -886,7 +886,7 @@ export function SessionTail({
             context={{ fill: tokenStats.lastContextTokens, window: windowTokens }}
           />
         ) : activeTab === "diff" ? (
-          <DiffPane diff={diff} sessionId={session.id} />
+          <DiffReview diff={diff} session={session} />
         ) : activeTab === "suche" ? (
           <SearchPane project={session.project} />
         ) : activeTab === "code" ? (
