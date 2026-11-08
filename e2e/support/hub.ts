@@ -314,7 +314,19 @@ export class TestHub {
     if (!child || child.exitCode !== null) return;
     const exited = new Promise((r) => child.once("exit", r));
     child.kill(signal);
-    await exited;
+    if (signal !== "SIGKILL") {
+      // BUG-0106/0107 (auth-Flake): Unter Host-Last übersteigt der
+      // SIGTERM-Shutdown (Sessions sauber stoppen, fsync) die Restzeit
+      // des Test-Timeouts — „Tearing down hub exceeded …". Begrenzter
+      // Grace (5 s), dann hart beenden: Test-Hub, keine Produkt-Semantik.
+      await Promise.race([exited, new Promise((r) => setTimeout(r, 5_000))]);
+      if (child.exitCode === null) {
+        child.kill("SIGKILL");
+        await exited;
+      }
+    } else {
+      await exited;
+    }
     this.child = undefined;
   }
 
