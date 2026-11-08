@@ -80,7 +80,7 @@ Statuszeilen gelten nicht als aktueller Abschlussnachweis.
 | [P30 — Adapter-/Sink-Plugins](EPIC-P30-adapter-sink-plugins.md) | Manifest, lokale/Git-Installation, Testkit, sicherer Lifecycle | P29 und P34 grün | 2–3 |
 | [P31 — ACP-Provider-Katalog](EPIC-P31-acp-provider-katalog.md) | kuratierte Provider, explizite Probe, getrennte Fähigkeitsnachweise | P30 grün | 2–3 |
 | [P32 — Mobile-Client-Entscheidung](EPIC-P32-mobile-client-entscheidung.md) | Gerätebefund + Go/No-go; optional interne Android-Shell — **Evaluations-Exit „vertagt" 2026-11-08** ([Dokument](../docs/2026-11-08_p32-evaluations-exit.md)); T32.3–T32.6 gesperrt bis neues Go | P12/P16 geprüft (P31 per Umpriorisierung 08.11.2026 nach P36) | 0,5–1; optional +2–4 |
-| [P33 — Englischer Einstieg](EPIC-P33-englische-einstiegsdokumentation.md) | Bedarfsentscheid, README/Contracts/Quickstart; keine Publikation | P32-Evaluations-Exit „vertagt" abgenommen (08.11.2026) | 0,5–1,5 |
+| [P33 — Englischer Einstieg](EPIC-P33-englische-einstiegsdokumentation.md) | Bedarfsentscheid, README/Contracts/Quickstart; keine Publikation — **Evaluations-Exit „vertagt" 2026-11-08** (kein Go erteilt, keine Übersetzung ausgeliefert); T33.2–T33.4 gesperrt bis Go | P32-Evaluations-Exit „vertagt" abgenommen (08.11.2026) | 0,5–1,5 |
 
 Neue Kette: **P27 → P28 → P29 → P34 → P35 → P30 → P31 → P32 → P33** (P34 auf Entscheidung vom 2026-11-07 eingeschoben, P35 auf Auftrag vom 2026-11-07, siehe unten; P30 wartet damit zusätzlich auf P34 und P35).
 Bei P32/P33 ist ein dokumentierter Evaluations-Exit (No-go/vertagt) vom
