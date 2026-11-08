@@ -1,6 +1,6 @@
 # EPIC-P33 — Englische Einstiegsdokumentation und OSS-Bereitschaft
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P33
+**Status:** Evaluations-Exit „vertagt" 2026-11-08 (kein Go erteilt — siehe §8) · Umsetzung T33.2–T33.4: gesperrt bis ausdrückliches Go · **Phase:** P33
 **Dauer:** 0,5–1,5 Agenten-Wochen (ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P32-Evaluations-Exit explizit abgenommen; bei Go auch Implementierungs-Exit grün, sonst Vertagung dokumentiert. — *Erfüllt 08.11.2026: P32-Evaluations-Exit „vertagt" abgenommen ([Entscheidungsdokument](../docs/2026-11-08_p32-evaluations-exit.md)); kein Go, damit ist kein Implementierungs-Exit nötig.*
 
@@ -69,9 +69,15 @@ separater ausdrücklicher Nutzerentscheidung, kein Nebeneffekt von Dokuarbeit.
 
 ## 4. Aufgaben (Checkliste T33.m)
 
-- [ ] **T33.1** Bedarf und englischen Mindestumfang mit Nutzer entscheiden;
+- [x] **T33.1** Bedarf und englischen Mindestumfang mit Nutzer entscheiden;
   P4/P12-Restarbeit referenzieren, Abschluss Evaluation vs. Lieferung
   kennzeichnen. **K5/K7/K8**, PRD §9.
+  — *Erledigt 08.11.2026 als Evaluations-Exit:* Bedarfsfrage gestellt
+  (Session 08.11.2026); kein Go erteilt — keine Antwort ist kein Go. Nutzerwille
+  der Session lag auf P36 („Vorgänger zuerst" für P32/P33-Exits, dann P36).
+  P4/P12-Restarbeit: unverändert offen unter Original-IDs, gebündelt im
+  [Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) §8
+  (T35.14 Lizenz/Tag, T35.10–T35.17). Abschluss = Evaluation, keine Lieferung.
 - [ ] **T33.2 (bei Go)** README.en.md/Quickstart gegen frisches temporäres
   Datadir ausführen; Link aus deutscher README. Node-Version und alle
   tatsächlich nötigen Befehle protokollieren. **K7/K10**.
@@ -114,3 +120,15 @@ Infrastrukturfehler nach AGENTS.md separat bewertet. Jede neue UI-Funktion/
 jeder Ablauf hat einen Spec in `e2e/specs/`; bestehende Abläufe nur dokumentiert,
 keine sinnlosen UI-Tests für übersetzte Prosa. Englischer Einstieg aus README
 und CONTRIBUTING erreichbar; offene OSS-Arbeit nicht als erledigt markiert.
+
+## 8. Evaluations-Exit (2026-11-08)
+
+Nutzerentscheid-Vermerk (Jan, 08.11.2026, Session mit P36-Auftrag): kein Go für
+die englische Einstiegsdokumentation — die Bedarfsfrage (T33.1) wurde gestellt
+und nicht bejaht; „keine Antwort ist kein Go" (Epic-Index-Regel). Damit ist
+dieser **Evaluations-Exit „vertagt"** der gültige P33-Abschluss gemäß §3.1
+(„Bei Vertagung nur Evaluations-Exit, keine angeblich fertige Doku"):
+T33.2–T33.4 bleiben gesperrt bis zu einem ausdrücklichen neuen Auftrag (dann
+an aktuellen Contracts/Exports prüfen — Premortem 1). Deutsch bleibt
+ADR-/Epic-Sprache. Für P36 ist dieser Exit der Vorgänger-Nachweis (Epic-Index,
+Zeile P36). Keine Übersetzung ausgeliefert, keine Publikation, keine OSS-Claims.
