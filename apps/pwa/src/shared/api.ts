@@ -247,6 +247,38 @@ export interface SessionDiffResult {
   error?: string;
 }
 
+/** EPIC-P36 / ADR-0055: eine Review-Notiz mit Diff-Identität (PWA-Kopie
+ * des Contract-Typs, wie SessionDiffResult — der PWA-Client bleibt vom
+ * Hub-Paket entkoppelt). */
+export type ReviewNoteStatus = "draft" | "sent" | "open" | "done";
+export type ReviewAnchorState = "valid" | "stale" | "unclear";
+
+export interface ReviewNoteView {
+  id: string;
+  sessionId: string;
+  basis: {
+    baseRef: string;
+    headSha: string | null;
+    scope: { kind: "commit"; sha: string } | { kind: "uncommitted" };
+  };
+  anchor: { path: string; side: "old" | "new"; startLine: number; endLine: number; excerpt: string };
+  text: string;
+  status: ReviewNoteStatus;
+  createdAt: string;
+  updatedAt: string;
+  sentAt: string | null;
+  operationId: string | null;
+  sendDetail: string | null;
+  anchorState: ReviewAnchorState;
+  staleReason: string | null;
+}
+
+export interface CreateReviewNoteBody {
+  basis: { baseRef: string; headSha?: string | null; scope: { kind: "commit"; sha: string } | { kind: "uncommitted" } };
+  anchor: ReviewNoteView["anchor"];
+  text: string;
+}
+
 /** ADR-0017 — one host in the fleet overview. */
 export interface FleetHost {
   hostId: string;
@@ -771,6 +803,29 @@ function createHubApi(P: (path: string) => string) {
     api<{ ok: boolean }>(P(`/api/fleet/peers/${encodeURIComponent(hostId)}`), { method: "DELETE", body: "{}" }),
   notifications: (after = 0) => api<{ items: HubNotification[]; lastId: number }>(P(`/api/notifications?after=${after}`)),
   sessionDiff: (id: string) => api<SessionDiffResult>(P(`/api/sessions/${id}/diff`)),
+  /** EPIC-P36: Review-Notizen zur Diff-Ansicht (ADR-0055). */
+  sessionReviews: (id: string) => api<{ items: ReviewNoteView[]; journalSkippedLines: number }>(P(`/api/sessions/${id}/reviews`)),
+  createReviewNote: (id: string, body: CreateReviewNoteBody) =>
+    api<{ note: ReviewNoteView }>(P(`/api/sessions/${id}/reviews`), { method: "POST", body: JSON.stringify(body) }),
+  updateReviewNote: (id: string, noteId: string, text: string) =>
+    api<{ note: ReviewNoteView }>(P(`/api/sessions/${id}/reviews/${noteId}`), { method: "PATCH", body: JSON.stringify({ text }) }),
+  deleteReviewNote: (id: string, noteId: string) =>
+    api<{ ok: boolean }>(P(`/api/sessions/${id}/reviews/${noteId}`), { method: "DELETE", body: "{}" }),
+  setReviewNoteStatus: (id: string, noteId: string, status: ReviewNoteStatus) =>
+    api<{ note: ReviewNoteView }>(P(`/api/sessions/${id}/reviews/${noteId}/status`), { method: "POST", body: JSON.stringify({ status }) }),
+  /** Vorschau des gebündelten Prompts — derselbe Code, der später versendet. */
+  previewReviewFeedback: (id: string, noteIds: string[]) =>
+    api<{ prompt: string; needsAttachment: boolean }>(P(`/api/sessions/${id}/reviews/preview`), { method: "POST", body: JSON.stringify({ noteIds }) }),
+  sendReviewFeedback: async (id: string, body: { noteIds: string[]; targetSessionId?: string; operationId: string }): Promise<{ ok: boolean; detail?: string; prompt?: string }> => {
+    const res = await fetch(P(`/api/sessions/${id}/reviews/send`), {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify(body),
+    });
+    const parsed = (await res.json().catch(() => ({}))) as { ok?: boolean; detail?: string; prompt?: string };
+    if (typeof parsed.ok === "boolean" && parsed.ok) return { ok: true, prompt: parsed.prompt };
+    return { ok: false, detail: parsed.detail ?? `${res.status} ${res.statusText}` };
+  },
   /** T3.8: real qmd-backed project search. A 501 (qmd not installed on
    * this host) is a real, expected state for a fresh/minimal deployment —
    * callers show it as "Suche nicht verfügbar", not a hard error. */

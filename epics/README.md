@@ -122,7 +122,7 @@ Provider-Katalog P31; P32 erhält die aktuelle PWA-Präferenz.
 
 | Epic | Ergebnis | Vorgänger-Exit | Agenten-Wochen |
 |---|---|---|---|
-| [P36 — Diff-Review](EPIC-P36-diff-review-feedback.md) | Notizen und gesammeltes Agenten-Feedback; vorhandene Zustellung auditieren | P33 grün | 1–2 |
+| [P36 — Diff-Review](EPIC-P36-diff-review-feedback.md) | Notizen und gesammeltes Agenten-Feedback; vorhandene Zustellung auditieren — **umgesetzt 08.11.2026** (ADR-0055, T36.1–T36.6, Gate grün; Live-Journey am Gerät → Endabnahme-Block T35.16) | P33 grün (Evaluations-Exit vertagt 08.11.2026) | 1–2 |
 | [P37 — GitLab-Kontext](EPIC-P37-gitlab-review-ci.md) | Issues, MRs, CI und Review-Rückgabe | P36 grün | 2–3 |
 | [P38 — Session-Arbeitsort](EPIC-P38-session-arbeitsort.md) | Eigener Worktree oder Projekt direkt; Sandbox getrennt | P37 grün | 1–2 |
 | [P46 — Projekt-Explorer/Dateiansicht](EPIC-P46-projekt-explorer-dateiansicht.md) | Rechte Sidebar, vollständige Datei-/Formatansichten und Sprachdiagnosen | P38 grün | 3–5 |

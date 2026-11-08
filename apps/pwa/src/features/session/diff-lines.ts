@@ -9,6 +9,36 @@ export function diffLineClass(line: string): string {
   return "diff-line-ctx";
 }
 
+/** EPIC-P36: eine Unified-Zeile mit ihren echten Seiten-Nummern — Basis
+ * für Review-Anker (Zeile im Diff antippen → old/new-Nummer + Text). */
+export interface MappedDiffLine {
+  type: "ctx" | "add" | "del";
+  text: string;
+  oldLine: number | null;
+  newLine: number | null;
+}
+
+export function mapHunkLines(hunk: { oldStart: number; newStart: number; body: string }): MappedDiffLine[] {
+  const out: MappedDiffLine[] = [];
+  let oldLine = hunk.oldStart;
+  let newLine = hunk.newStart;
+  for (const raw of hunk.body.split("\n")) {
+    if (raw.startsWith("\\")) continue;
+    if (raw.startsWith("-")) {
+      out.push({ type: "del", text: raw.slice(1), oldLine, newLine: null });
+      oldLine += 1;
+    } else if (raw.startsWith("+")) {
+      out.push({ type: "add", text: raw.slice(1), oldLine: null, newLine });
+      newLine += 1;
+    } else if (raw.startsWith(" ")) {
+      out.push({ type: "ctx", text: raw.slice(1), oldLine, newLine });
+      oldLine += 1;
+      newLine += 1;
+    }
+  }
+  return out;
+}
+
 export interface SplitCell {
   type: "ctx" | "add" | "del" | "empty";
   text: string;

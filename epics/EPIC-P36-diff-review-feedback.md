@@ -1,8 +1,8 @@
 # EPIC-P36 — Diff-Review mit gesammeltem Agenten-Feedback
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P36
+**Status:** umgesetzt 2026-11-08 (T36.1–T36.6, Gate grün; Live-Journey am echten Gerät → Endabnahme-Block T35.16) · **Phase:** P36
 **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
-**Abhängigkeit:** P33 (nach ausdrücklich gültigem P32-/P33-Evaluations-/Umsetzungs-Exit) mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
+**Abhängigkeit:** P33 (nach ausdrücklich gültigem P32-/P33-Evaluations-/Umsetzungs-Exit) mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend. — *Erfüllt 08.11.2026: P32- und P33-Evaluations-Exit „vertagt" ausdrücklich dokumentiert und abgenommen (MR !324/!325, jeweils [Entscheidungsdokument](../docs/2026-11-08_p32-evaluations-exit.md) bzw. EPIC-P33 §8); P30/P31-Umpriorisierung nach P36 im Index. Vor T36.1 wurde der Bestand frisch geprüft (Queue/Ack/Interrupted-Mechanik am Code, nicht an historischen Überschriften).*
 
 Quelle: [Orca-Vergleich](../docs/2026-11-08_orca-vs-ancientvoid.md) und [Planungsgrundlage mit Übernahmeregister](../docs/2026-11-08_orca-epic-planung.md).
 **Planungsauftrag 08.11.2026:** Nutzer beauftragt diese Epics ausdrücklich vor Abschluss der Vorgänger. Das erlaubt Planung, keine Implementierung und keine Aufhebung des Epic-Gatings. Vor T36.1 aktuellen Code-/Test-/Abnahmestand prüfen; historische Überschriften reichen nicht.
@@ -42,21 +42,50 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 
 ## 4. Aufgaben (Checkliste T36.m)
 
-- [ ] **T36.1** Bestands-/Queue-Audit und Review-ADR/Contracts einschließlich Diff-Identität und Operations-ID; Crashfenster reproduzierbar prüfen. **K3/K5/K7**.
-- [ ] **T36.2** Notizspeicher, Statusfaltung und Restore; gleiche Datei/Zeile in verschiedenen Commit-Abschnitten, veraltete, umbenannte/gelöschte Dateien und große/binary Hunks testen. **K3/K5/K7**.
-- [ ] **T36.3** Mobile/ Desktop-Notizen mit Bereichsauswahl, Liste, Vorschau, Empfängerwahl und manueller Erledigung in bestehende Diff-Ansicht integrieren. **K1/K2/K3**.
-- [ ] **T36.4** Sammelversand über vorhandene Policy und Queue; Doppelklick, verlorene Antwort, Adapterfehler und fehlende Capability prüfen. **K5/K7/K9-Geist**.
-- [ ] **T36.5** `e2e/specs/review-feedback.spec.ts`: Notieren → Restart → Senden → Revision → erneute Prüfung; Offline und veralteter Anker. **K3/K7/K10**.
-- [ ] **T36.6** Gate, PWA-Build, echte mobile/desktop Review-Journey und Doku/Registrierung abschließen. **K1/K2/K3/K5/K7/K10**.
+- [x] **T36.1** Bestands-/Queue-Audit und Review-ADR/Contracts einschließlich Diff-Identität und Operations-ID; Crashfenster reproduzierbar prüfen. **K3/K5/K7**.
+  — *Erledigt 08.11.2026:* [ADR-0055](../docs/adr/0055-review-notizen-sammelfeedback.md),
+  `packages/contracts/src/reviews/review.ts`. Audit-Befund unten (§8).
+- [x] **T36.2** Notizspeicher, Statusfaltung und Restore; gleiche Datei/Zeile in verschiedenen Commit-Abschnitten, veraltete, umbenannte/gelöschte Dateien und große/binary Hunks testen. **K3/K5/K7**.
+  — *Erledigt:* `packages/core/src/modules/reviews/` (Journal+Snapshot, K7),
+  `apps/hub/src/modules/reviews/validate.ts`; Tests:
+  `packages/core/test/modules/reviews/review-store.test.ts` (9),
+  `apps/hub/test/modules/reviews/validate.test.ts` (14: Rename/Löschung,
+  binär, K3-gekürzt → unclear, Zwei-Commit-Kollision, verschobener Anker).
+- [x] **T36.3** Mobile/ Desktop-Notizen mit Bereichsauswahl, Liste, Vorschau, Empfängerwahl und manueller Erledigung in bestehende Diff-Ansicht integrieren. **K1/K2/K3**.
+  — *Erledigt:* `apps/pwa/src/features/session/DiffReview.tsx` um den
+  unveränderten Renderer `DiffPane.tsx`; Bereichsauswahl per Zeilen-Tipp mit
+  echten Seiten-Nummern (`diff-lines.ts:mapHunkLines`), Notiz-Badges,
+  Status-Chips, Offline-Outbox mit Zeitstempel.
+- [x] **T36.4** Sammelversand über vorhandene Policy und Queue; Doppelklick, verlorene Antwort, Adapterfehler und fehlende Capability prüfen. **K5/K7/K9-Geist**.
+  — *Erledigt:* `apps/hub/src/modules/reviews/reviews.routes.ts` — Versand
+  über `sessions.steer` mit `inputId=operationId` (Dedupe/In-Flight/Revision
+  unverändert übernommen), `refuseSteer` laut bei fehlendem `followUp`, Agenten
+  403. Tests: `apps/hub/test/modules/reviews/reviews.integration.test.ts` (6:
+  Doppelversand, Empfängerwahl, Stale-Refusal, Neustart-K7, Status/Löschen).
+- [x] **T36.5** `e2e/specs/review-feedback.spec.ts`: Notieren → Restart → Senden → Revision → erneute Prüfung; Offline und veralteter Anker. **K3/K7/K10**.
+  — *Erledigt:* 2 Specs grün (mobile): Notieren→SIGKILL-Restart→Senden→
+  Revision→veraltet+unversendbar (API 422) und Offline-Outbox→Online-Nachzug.
+- [x] **T36.6** Gate, PWA-Build, echte mobile/desktop Review-Journey und Doku/Registrierung abschließen. **K1/K2/K3/K5/K7/K10**.
+  — *Erledigt (Agentenanteil):* `npm run gate` grün (1402 Unit/Integration,
+  E2E-Suite, Lint, Typecheck, arch/commits/adapter-matrix), PWA-Build grün,
+  ADR-0055 + Registrierung (Contracts-Export, Hub-Routen, PWA-Feature,
+  E2E-Spec). *Echte Journey am Pixel/Desktop:* bewusst im Endabnahme-Block
+  T35.16 aufgegangen — zählt hier nicht als grün.
 
 ## 5. Acceptance Criteria (AC-P36-k)
 
 - **AC-P36-1:** Drei Notizen an zwei Dateien bleiben nach Hub-/Client-Neustart mit Bezug und Status erhalten; gleiche Datei/Zeile in zwei Commit-Abschnitten kollidiert nicht.
+  — *Erfüllt 08.11.2026:* Hub-Restart in Integration (`reviews.integration.test.ts`, SIGKILL-artiger App-Neubau mit `recoverAll`) und E2E (`hub.restart("SIGKILL")`); Zwei-Commit-Kollision in `validate.test.ts` + `review-store.test.ts`.
 - **AC-P36-2:** Ein Sammelauftrag enthält nur gewählte Notizen, nachvollziehbare Datei-/Diff-Bezüge und erreicht den gewählten Harness; zweiter Klick dupliziert ihn nicht.
+  — *Erfüllt:* nur `noteIds` der Auswahl; Bezüge via `formatReviewNoteRef` in Prompt/Vorschau; Dedupe-Beweis: zweiter identischer Send → `steered.length` unverändert (Integration); Empfängerwahl erreicht Ziel-Session, `followUp`-los wird laut abgelehnt.
 - **AC-P36-3:** Veränderter Diff, Datei-Rename oder fehlender Anker wird sichtbar als veraltet/ungeklärt behandelt.
+  — *Erfüllt:* `validate.ts` (Basis/HEAD/Inhalt/Rename/Löschung/binär → stale mit Grund; K3-gekürzte Hunks → unclear); E2E Revision → Badge + Checkbox aus + API-422.
 - **AC-P36-4:** Events ≤4 KB und erste Diff-Antwort ≤50 KB; Anhänge/Hunks werden gezielt nachgeladen.
+  — *Erfüllt:* keine neuen Session-Events (ADR-0055 §5); Diff-Route und K3-Kappung unverändert (`diff.ts`, bestehende Tests); große Pakete als Attachment statt Inline (`SEND_INLINE_HARD_CAP_CHARS`, `promptNeedsAttachment`); Hunk-Nachladen unverändert über `/diff/hunk`.
 - **AC-P36-5:** Offline entstehen keine angeblich gesendeten Aufträge; API-Fehler erhalten Entwurf und zeigen Ursache.
+  — *Erfüllt:* Offline-Outbox mit Zeitstempel, Versand offline gesperrt (E2E); fehlgeschlagener Versand → `sendDetail` an der Notiz, Status bleibt Entwurf (Integration: Stale-Refusal und followUp-Verweigerung).
 - **AC-P36-6:** Zustell-Audit dokumentiert vorhandene Garantien und offene Befunde; kein Exactly-once-Claim gegenüber fremden CLIs.
+  — *Erfüllt:* Audit unten §8.
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 
@@ -68,3 +97,34 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 ## 7. Definition of Done
 
 Alle T36.* und AC-P36-* mit aktueller Evidenz, Vorgänger-Exit ausdrücklich grün. `npm run gate` und PWA-Build grün; Pipeline-Job `e2e` grün bzw. Infrastrukturfall nach `docs/ci-runbook.md` nachgezogen, niemals als Pass gezählt. Jede neue UI-Funktion/jeder Ablauf hat einen Spec in `e2e/specs/`; benötigte echte Browser-/Provider-/Geräte-Nachweise separat, Skip ≠ Pass. Neue APIs/Tools/Ansichten sind registriert, in Hub/PWA/hubctl erreichbar und dokumentiert. ADR vor Contract-Änderung, K5/K7/K8 entsprechend Scope nachgewiesen; keine offene TODO ohne Epic-Bezug. Übernommene Orca-Teile mit Commit/Pfad/Hash/Lizenz/Änderungsnotiz und eigenen Tests gemäß Planungsgrundlage.
+
+## 8. Zustell-Audit (T36.1, AC-P36-6) — Stand 08.11.2026
+
+Geprüft am Code (nicht Codelektüre-Verdacht, belegt durch bestehende Tests):
+
+**Vorhandene Garantien (unverändert übernommen, kein zweites System):**
+- `SessionQueue.take()` löscht vor dem Versand (at-most-once, `session-queue.ts`);
+  Ergebnis wird als `session.dequeued {ok, detail}` sichtbar. Queue überlebt
+  Hub-Neustart (`session-queue.test.ts`:171, K7).
+- `steer`-Dedupe: `hasSeenInput` → „duplicate input ignored" (idempotent),
+  In-Flight → 422 „outcome unknown", Revision → Konflikt, Writer-Lease;
+  `session_inputs` persistiert (`session-manager.ts:1287–1304`, AC-P17-3).
+  Der Review-Sammelversand nutzt exakt diese Mechanik via `inputId=operationId`.
+- Crash/Interrupt: Unterbrechungen laufen über das Journal in Status
+  `interrupted` mit Grund (ADR-0044, `InterruptedBanner`), Auto-Resume nur
+  deklarativ. Ein unklarer Sendeaufgang blockiert blindes Retry (gleiche
+  Operations-ID; PWA zeigt „Zustellung unklar").
+
+**Offene Befunde (benannt, nicht behoben — kein neues Zustell-Epic):**
+- Crashfenster zwischen `take()` und Adapter-Übergabe: ein dort verlorenes
+  Queue-Element ist **at-most-once-Verlust**, begrenzt sichtbar über den
+  `interrupted`-Status desselben Hubs. Kein reproduzierbarer Verlust ohne
+  Crash → kein Bug mit eigener ID; Exactly-once wird gegenüber fremden CLIs
+  ausdrücklich NICHT beansprucht.
+- Fremde CLIs (claude -p & Co.) bestätigen keine Zustellung semantisch —
+  `steer`-Ack ist Prozess-Accept, keine CLI-Garantie.
+
+**Orca-Übernahme:** kein Code portiert; nur das Datenmodell-Denkmuster aus
+`diff-comment-types.ts` (kleine Typen, AV-Contracts) —
+[ADR-0055](../docs/adr/0055-review-notizen-sammelfeedback.md) „Kontext".
+Keine Übernahme aus Journal/Unsent-Send-Hold (AV hat EventStore/Steer schon).

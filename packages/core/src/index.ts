@@ -8,6 +8,7 @@ export * from "./modules/observability/index.ts";
 export * from "./modules/discovery/index.ts";
 export * from "./modules/harness/index.ts";
 export * from "./modules/approvals/index.ts";
+export * from "./modules/reviews/index.ts";
 export * from "./modules/identity/index.ts";
 export * from "./modules/notifications/index.ts";
 export * from "./modules/runs/index.ts";

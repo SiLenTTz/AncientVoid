@@ -34,6 +34,7 @@ import {
   loadLoops,
   loopAsAdapter,
   InMemoryMetrics,
+  ReviewStore,
   loadConfig,
   loadReportingSinks,
   ClaudeLive,
@@ -281,6 +282,8 @@ async function main(): Promise<void> {
     sessions,
     tokens,
     registry,
+    // EPIC-P36 / ADR-0055: Review-Notizen — Journal+Snapshot unter dataDir/reviews.
+    reviews: new ReviewStore(resolve(dataDir, "reviews")),
     auth: {
       tokens,
       enforceTailnetIdentity: config.server.enforceTailnetIdentity,
