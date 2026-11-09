@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P46)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P49)
 
 **Erstellt:** 12.09.2026 · **Basis:** PRD AncientVoid v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
@@ -151,6 +151,22 @@ P45 endet mit Evaluation und erfasst den ausdrücklichen Nutzerentscheid getrenn
 ohne Antwort bleibt der Entscheid offen. Eine spätere Implementierung benötigt
 einen eigenen Auftrag und Umfang. Zahlen sind grobe Größenordnungen, keine
 Terminzusage. Browser/Emulator-Spikes sind kein fertiger Feature-Exit.
+
+## Nutzerauftrag vom 10.11.2026 — Übersicht, Repo-Graph, Knowledge Vault
+
+Ausdrücklicher Implementierungsauftrag von Jan (gleiche Form wie P36-Präzedenz:
+Auftrag erlaubt Umsetzung, hebt keine offenen Abnahmen auf). Offene
+Live-Abnahmen (Endabnahme-Block T35.16, P46-Reste T46.1/T46.9) bleiben
+unberührt; der offene Popout-Rest aus T46.8 wird in P48 mitgebaut und bei
+Abschluss in EPIC-P46 nachgetragen.
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P47 — Übersicht: Sessions/Projekte/Hosts](EPIC-P47-uebersicht-sessions-projekte-hosts.md) | Ansichtsumschalter in der Übersicht, Projekt-/Host-Ansichten, Host-Chips und duplizierte Einstellungen-Schaltfläche weg | keine fachliche offene (P6/P34/P35/P46-Basis) | 0,5 |
+| [P48 — Repo-Graph](EPIC-P48-repo-graph-pulsierendes-netz.md) | Pulsierendes Datei-Netz im Chat-Fenster (Import-/Verweiskanten, Farbgruppen, tote Dateien, Diagnosen rot), Datei-Tab, Popout-Ziele `graph`/`file` | P47; P46-Dateizugriff/Diagnosen; ADR-0053-Fenster | 2–3 |
+| [P49 — Knowledge Vault](EPIC-P49-knowledge-vault-notizen.md) | Notizen-Tab mit Ordnerwahl (SettingsStore), Markdown-Editor mit Revision-Guard, Vault-Popout | P47; P48 (Popout-/Datei-Tab-Muster) | 1–2 |
+
+Reihenfolge: **P47 → P48 → P49** (jeweils eigener Feature-Branch/MR nach main).
 
 ## Reihenfolge & Gating
 
