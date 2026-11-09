@@ -5,14 +5,14 @@ import { HubDatabase, PushService, SettingsStore, type PushSender } from "../../
 const sub = (endpoint = "https://fcm.googleapis.com/fcm/send/abc") => ({ endpoint, keys: { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" } });
 const note = (id: number, kind: string): HubNotification => ({ id, sessionId: "s1", level: "warning", title: "Freigabe nötig", detail: "rm -rf dist", kind, createdAt: "x" });
 
-function setup(opts: { status?: number; now?: Date } = {}) {
+function setup(opts: { status?: number; now?: Date; statuses?: number[] } = {}) {
   const db = new HubDatabase(":memory:");
   const sent: { endpoint: string; payload: string }[] = [];
   const sender: PushSender = async (s, payload) => {
     sent.push({ endpoint: s.endpoint, payload });
-    return { statusCode: opts.status ?? 201 };
+    return { statusCode: opts.statuses?.shift() ?? opts.status ?? 201 };
   };
-  const push = new PushService(db, new SettingsStore(db), { sender, hostId: "omarchy", ...(opts.now ? { now: () => opts.now! } : {}) });
+  const push = new PushService(db, new SettingsStore(db), { sender, retryDelaysMs: [0, 0], hostId: "omarchy", ...(opts.now ? { now: () => opts.now! } : {}) });
   return { db, push, sent };
 }
 
@@ -49,6 +49,21 @@ describe("Web Push (T8.3, ADR-0026)", () => {
     expect(await push.notify(note(4, "session.turn_end"))).toBe(1);
     expect(push.list("pixel")[0]).toMatchObject({ service: "fcm.googleapis.com", mine: true, lastError: null });
     expect(push.list("pixel")[0]!.lastOkAt).not.toBeNull();
+  });
+
+  it("transient push-service failures are retried; a rejection is not", async () => {
+    const flaky = setup({ statuses: [503, 429, 201] });
+    flaky.push.setEnabled(true);
+    flaky.push.subscribe(sub(), "pixel");
+    expect(await flaky.push.notify(note(1, "tool.permission_requested"))).toBe(1);
+    expect(flaky.sent).toHaveLength(3);
+    expect(flaky.push.list("pixel")[0]!.lastError).toBeNull();
+
+    const rejected = setup({ status: 403 });
+    rejected.push.setEnabled(true);
+    rejected.push.subscribe(sub(), "pixel");
+    expect(await rejected.push.notify(note(1, "tool.permission_requested"))).toBe(0);
+    expect(rejected.sent).toHaveLength(1);
   });
 
   it("quiet hours hold pushes; the inbox keeps them", async () => {

@@ -491,27 +491,57 @@ export function Composer({
           {expanded ? "⤡" : "⤢"}
         </button>
         <button
-          class={listening ? "btn busy" : "btn"}
+          class={listening ? "btn icon-btn busy" : recording ? "btn icon-btn recording" : "btn icon-btn"}
           type="button"
           aria-busy={listening}
+          aria-label={listening ? "lädt…" : recording ? "Stopp" : "Voice"}
           onClick={toggleMic}
           disabled={disabled || (!supported && !(localStt.available && recordingSupported())) || listening}
           title={localStt.available ? `Spracheingabe lokal (${localStt.engine ?? "whisper"})` : supported ? "Spracheingabe (Browser, meist Cloud)" : "Browser unterstützt keine Spracherkennung"}
         >
-          {listening ? "lädt…" : recording ? "Stopp" : "Voice"}
+          {listening ? "…" : recording ? <StopGlyph /> : <MicGlyph />}
         </button>
         <button
-          class={enhancing ? "btn busy" : "btn"}
+          class={enhancing ? "btn icon-btn busy" : "btn icon-btn"}
           type="button"
           aria-busy={enhancing}
+          aria-label={enhancing ? "lädt…" : "Verbessern"}
           onClick={enhance}
           disabled={disabled || !enhanceSupported || enhancing || !value.trim()}
           title={enhanceSupported ? "Prompt verbessern (kostet echtes Kontingent)" : "Für diesen Adapter nicht verfügbar"}
         >
-          {enhancing ? "lädt…" : "Verbessern"}
+          {enhancing ? "…" : <WandGlyph />}
         </button>
         {extraActions}
       </div>
     </div>
+  );
+}
+
+const glyph = { viewBox: "0 0 24 24", width: 20, height: 20, fill: "none", stroke: "currentColor", "stroke-width": 1.8, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": true } as const;
+
+function MicGlyph() {
+  return (
+    <svg {...glyph}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
+    </svg>
+  );
+}
+
+function StopGlyph() {
+  return (
+    <svg {...glyph}>
+      <rect x="6.5" y="6.5" width="11" height="11" rx="2" />
+    </svg>
+  );
+}
+
+/** Zauberstab mit Funken. */
+function WandGlyph() {
+  return (
+    <svg {...glyph}>
+      <path d="M4 20 15 9M14 6l4 4M17.5 3v3M16 4.5h3M20.5 11v2M19.5 12h2M8 4v2M7 5h2" />
+    </svg>
   );
 }

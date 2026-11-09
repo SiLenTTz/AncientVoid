@@ -32,7 +32,11 @@ export interface PushOptions {
   subject?: string;
   hostId?: string;
   now?: () => Date;
+  /** Waits before re-sending after a transient failure (timeout, 429, 5xx); tests pass zeros. */
+  retryDelaysMs?: readonly number[];
 }
+
+type Delivery = "ok" | "transient" | "failed";
 
 type Settings = { get(key: string): string | null; set(key: string, value: string | null): void };
 
@@ -113,10 +117,18 @@ export class PushService {
     const payload: PushPayload = { id: n.id, category, sessionId: n.sessionId, hostId: this.opts.hostId ?? "local" };
     const rows = this.db.prepare("SELECT * FROM push_subscriptions WHERE gone = 0 AND last_notification_id < ?").all(n.id) as unknown as Row[];
     let sent = 0;
+    const body = JSON.stringify(payload);
     for (const r of rows) {
       if (category === "done" && r.done !== 1) continue;
       if (inQuietHours(r.quiet ? JSON.parse(r.quiet) : null, this.now())) continue;
-      if (await this.deliver(r, JSON.stringify(payload), n.id)) sent++;
+      let result = await this.deliver(r, body, n.id);
+      // A flaky mobile push service must not swallow an approval request: retry transient failures.
+      for (const wait of this.opts.retryDelaysMs ?? [2_000, 10_000, 30_000]) {
+        if (result !== "transient") break;
+        await new Promise((resolve) => setTimeout(resolve, wait));
+        result = await this.deliver(r, body, null);
+      }
+      if (result === "ok") sent++;
     }
     return sent;
   }
@@ -127,13 +139,13 @@ export class PushService {
     let sent = 0;
     const errors: string[] = [];
     for (const r of rows) {
-      if (await this.deliver(r, JSON.stringify({ id: 0, category: "done", sessionId: "", hostId: this.opts.hostId ?? "local", test: true }), null)) sent++;
+      if ((await this.deliver(r, JSON.stringify({ id: 0, category: "done", sessionId: "", hostId: this.opts.hostId ?? "local", test: true }), null)) === "ok") sent++;
       else errors.push(this.list(device).find((v) => v.id === r.id)?.lastError ?? "Fehler");
     }
     return { sent, errors };
   }
 
-  private async deliver(r: Row, payload: string, notificationId: number | null): Promise<boolean> {
+  private async deliver(r: Row, payload: string, notificationId: number | null): Promise<Delivery> {
     const vapid = { subject: this.opts.subject ?? "mailto:ancientvoid@localhost", publicKey: this.settings.get("push.vapidPublic") ?? "", privateKey: this.settings.get("push.vapidPrivate") ?? "" };
     const now = this.now().toISOString();
     // Claimed before sending: a second notify() for the same id sends nothing.
@@ -142,14 +154,15 @@ export class PushService {
       const res = await (this.opts.sender ?? webPushSender)({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }, payload, vapid);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         this.db.prepare("UPDATE push_subscriptions SET last_ok_at = ?, last_error = NULL WHERE id = ?").run(now, r.id);
-        return true;
+        return "ok";
       }
       this.fail(r.id, res.statusCode, `Push-Dienst antwortete ${res.statusCode}`, now);
+      return transient(res.statusCode) ? "transient" : "failed";
     } catch (err) {
       const status = (err as { statusCode?: number }).statusCode;
       this.fail(r.id, status, status ? `Push-Dienst antwortete ${status}` : err instanceof Error ? err.message.slice(0, 160) : "Senden fehlgeschlagen", now);
+      return status === undefined || transient(status) ? "transient" : "failed";
     }
-    return false;
   }
 
   private fail(id: number, status: number | undefined, message: string, at: string): void {
@@ -160,4 +173,9 @@ export class PushService {
   private now(): Date {
     return this.opts.now?.() ?? new Date();
   }
+}
+
+/** Worth another try: rate limit and server-side trouble, not "gone" or "rejected". */
+function transient(status: number): boolean {
+  return status === 429 || status >= 500;
 }

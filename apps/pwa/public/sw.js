@@ -4,7 +4,7 @@
  * with an X-AncientVoid-Cached-At timestamp so the UI can badge "Daten vom <ts>".
  * Versioned cache — hard-bust by bumping CACHE_VERSION on deploy.
  */
-const CACHE_VERSION = "ancientvoid-v4";
+const CACHE_VERSION = "ancientvoid-v5";
 // T8.2: API projections live apart from the shell, so a token change can
 // drop them without touching the app itself.
 const API_CACHE = "ancientvoid-api";
@@ -132,6 +132,12 @@ self.addEventListener("push", (event) => {
       tag: data.id ? `ancientvoid-${data.hostId ?? ""}-${data.id}` : "ancientvoid-test",
       data: { url },
       icon: "/icons/icon-192.png",
+      badge: "/icons/favicon-32.png",
+      // Approvals block an agent: stay on screen and buzz; finished turns stay quiet.
+      vibrate: data.category === "approval" ? [200, 100, 200] : data.category === "error" ? [120, 60, 120] : [80],
+      requireInteraction: data.category === "approval",
+      renotify: true,
+      timestamp: Date.now(),
     }),
   );
 });
@@ -142,7 +148,16 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
       const win = wins.find((w) => new URL(w.url).origin === self.location.origin);
-      if (win) return win.focus().then(() => win.navigate(url));
+      // navigate() fails on some mobile PWAs: tell the app to route, fall back to opening a window.
+      if (win) {
+        return win
+          .focus()
+          .then(() => {
+            win.postMessage({ type: "ancientvoid:navigate", url });
+            return win.navigate(url).catch(() => undefined);
+          })
+          .catch(() => self.clients.openWindow(url));
+      }
       return self.clients.openWindow(url);
     }),
   );

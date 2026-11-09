@@ -47,6 +47,22 @@
   font-size: calc(13px * var(--font-scale, 1));
 }
 
+/* Voice und Verbessern als Icon-Knöpfe: spart Breite auf kleinen Displays, Touch-Ziel bleibt ≥ 40 px. */
+.composer-actions .btn.icon-btn {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+}
+
+.composer-actions .btn.icon-btn.recording {
+  color: var(--err, #e5484d);
+  border-color: currentColor;
+}
+
 /* T7.5: observer sessions — say why there is no Stop. */
 .composer-actions .observer-note {
   flex: 2 1 0;
