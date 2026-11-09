@@ -1,0 +1,36 @@
+/* ADR-0060: Dialog „Eigenes Modell oder Endpunkt“ am Modell-Dropdown. */
+.custom-model-dialog {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: 8px;
+}
+.custom-model-dialog .modal-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: 12px;
+  padding: 14px;
+  width: min(520px, 100%);
+  max-height: calc(100dvh / var(--ui-zoom, 1) - 16px);
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+}
+.custom-model-dialog .modal-card h3 {
+  margin: 0;
+}
+.custom-model-dialog .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.custom-model-list {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--bg-chip);
+  padding-top: 8px;
+}

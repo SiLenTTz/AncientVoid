@@ -14,7 +14,7 @@ import {
 } from "@ancientvoid/contracts";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { contextWindowFor, modelsFromCommand } from "@ancientvoid/models";
+import { contextWindowFor, modelsFromCommand, parseModelTable } from "@ancientvoid/models";
 import { createPiStream } from "./normalize.ts";
 import { findSessionFile, isSessionId, readTranscript } from "./transcript.ts";
 
@@ -137,10 +137,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     id: "pi",
     version: "0.1.0",
 
-    /** ADR-0054: Katalog ausschließlich aus der Konfiguration — ohne
-     * `modelsCommand` bleibt die Modellwahl freie Eingabe. */
+    /** ADR-0054/0060: Katalog aus `modelsCommand` oder, ohne Konfiguration, aus `pi --list-models`
+     * (geprüft 2026-11-09, pi 1.4.0). */
     async models(): Promise<ModelOption[]> {
-      return cfg.modelsCommand ? modelsFromCommand(cfg.modelsCommand) : [];
+      // `pi --list-models` zeigt nur Provider mit nutzbarer Anmeldung (pi docs/models.md); ein eigener
+      // `modelsCommand` liefert Zeilen `provider/model`.
+      return cfg.modelsCommand ? modelsFromCommand(cfg.modelsCommand) : modelsFromCommand([cfg.command, "--list-models"], { parse: parseModelTable });
     },
 
     capabilities(): AdapterCapabilities {

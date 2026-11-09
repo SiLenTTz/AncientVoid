@@ -1,6 +1,6 @@
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { ClaudeLive, PlannerModelConfig, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService } from "@ancientvoid/core";
+import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService } from "@ancientvoid/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
 import { DEFAULT_HOST_ID } from "@ancientvoid/contracts";
@@ -13,6 +13,8 @@ import { createWebAuthnRoutes, type WebAuthnConfig } from "./modules/identity/we
 export interface RouteDeps {
   /** T7.10: uploaded files (optional — a hub without them refuses attachment ids). */
   attachments?: AttachmentStore;
+  /** ADR-0060: Hub-Einstellungen (Register eigener Modelle). */
+  settings?: SettingsStore;
   sessions: SessionManager;
   tokens: TokenService;
   registry: AdapterRegistry;

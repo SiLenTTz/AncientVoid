@@ -348,7 +348,12 @@ Zeile druckt (`provider/modell` oder nackte Id, optionales Label nach Tab):
               "contextWindows": { "flash-next": 65536 } } }
 ```
 
-Ohne `modelsCommand` bleibt die Modellwahl freie Eingabe (Durchreichen an die
+pi braucht dafür keine Config mehr: ohne `modelsCommand` listet es `pi --list-models`
+(ADR-0060). **Eigene Modelle und Endpunkte** legt die App an („＋ Eigenes Modell /
+Endpunkt“ am Modell-Dropdown): ein Eintrag im Hub-Register (alle oder gewählte
+Harnesses) bzw. für pi ein Provider in `~/.pi/agent/models.json` — siehe ADR-0060.
+
+Ohne `modelsCommand` bleibt die Modellwahl sonst freie Eingabe (Durchreichen an die
 CLI — ein unbekanntes Modell scheitert sichtbar beim Provider, nie still als
 Ersatzmodell). `contextWindows` (opencode, pi) schlägt die kuratierte
 Tabelle aus ADR-0032. Die Abgrenzung zu P30 (Plugin-Distribution) und P31

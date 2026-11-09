@@ -118,12 +118,34 @@ export function parseModelLines(stdout: string): ListedModel[] {
   return out;
 }
 
+/**
+ * `pi --list-models` prints a table: `provider  model  context  max-out  thinking  images`
+ * (live 2026-11-09, pi 1.4.0). Rows become `provider/model`; the header, warnings and
+ * anything that is not two bare tokens stay out — an unknown shape yields no models, never guesses.
+ */
+export function parseModelTable(stdout: string): ListedModel[] {
+  const out: ListedModel[] = [];
+  const seen = new Set<string>();
+  const cell = /^[\w@:.+-]+$/;
+  const lines = stdout.split("\n").map((l) => l.trim().split(/\s+/));
+  const header = lines[0];
+  if (header?.[0] !== "provider" || header[1] !== "model") return out;
+  for (const [provider, model, context] of lines.slice(1)) {
+    if (!provider || !model || !cell.test(provider) || !cell.test(model)) continue;
+    const id = `${provider}/${model}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(context && /^[\d.]+[KM]?$/i.test(context) ? { id, label: `${id} · ${context} Kontext` } : { id });
+  }
+  return out;
+}
+
 /** Runs the listing command read-only (no worker, no session, no cost) and
  * parses its stdout. Errors propagate visibly — an empty list must be the
  * command's honest answer, never a swallowed failure. */
 export async function modelsFromCommand(
   command: readonly string[],
-  opts: { env?: Readonly<Record<string, string>>; timeoutMs?: number } = {},
+  opts: { env?: Readonly<Record<string, string>>; timeoutMs?: number; parse?: (stdout: string) => ListedModel[] } = {},
 ): Promise<ListedModel[]> {
   const { execFile } = await import("node:child_process");
   const { promisify } = await import("node:util");
@@ -135,5 +157,5 @@ export async function modelsFromCommand(
     maxBuffer: 1024 * 1024,
     ...(opts.env ? { env: { ...process.env, ...opts.env } } : {}),
   });
-  return parseModelLines(stdout);
+  return (opts.parse ?? parseModelLines)(stdout);
 }

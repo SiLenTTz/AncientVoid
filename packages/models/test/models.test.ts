@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contextWindowFor, modelsFromCommand, parseModelLines, resolveContextWindow } from "../src/index.ts";
+import { contextWindowFor, modelsFromCommand, parseModelLines, parseModelTable, resolveContextWindow } from "../src/index.ts";
 
 describe("contextWindowFor (ADR-0032, Quelle models.dev 2026-09-26)", () => {
   it("kennt die GLM-Familie inklusive provider-Präfix und Suffixe", () => {
@@ -70,5 +70,21 @@ describe("resolveContextWindow (ADR-0032/0054)", () => {
   it("matcht auch den Rohwert (JSON-Paar wie bei manchen Agenten)", () => {
     expect(resolveContextWindow("lokal/glm-5.3", '["lokal","glm-5.3"]', { lokal: 555 })).toBe(555);
     expect(resolveContextWindow("lokal/klein", '["lokal","klein"]', {})).toBeNull();
+  });
+});
+
+describe("parseModelTable (pi --list-models, live 2026-11-09)", () => {
+  it("macht aus Tabellenzeilen provider/model und nimmt den Kontext ins Label", () => {
+    const out = "provider   model                  context  max-out  thinking  images\nevo-evox2  halogen-qwen3.8-iq4xs  131.1K   32.8K    yes       no\nanthropic  claude-opus-5-5        1M       64K      yes       yes\n";
+    expect(parseModelTable(out)).toEqual([
+      { id: "evo-evox2/halogen-qwen3.8-iq4xs", label: "evo-evox2/halogen-qwen3.8-iq4xs · 131.1K Kontext" },
+      { id: "anthropic/claude-opus-5-5", label: "anthropic/claude-opus-5-5 · 1M Kontext" },
+    ]);
+  });
+
+  it("erkennt ein unbekanntes Format nicht an — keine geratenen Modelle", () => {
+    expect(parseModelTable("No models available.\n")).toEqual([]);
+    expect(parseModelTable("")).toEqual([]);
+    expect(parseModelTable("model provider\nx y 1K\n")).toEqual([]);
   });
 });

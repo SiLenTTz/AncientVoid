@@ -444,6 +444,22 @@ export interface ModelOption {
   label?: string;
 }
 
+/** ADR-0060: Eintrag im Hub-Register eigener Modelle. */
+export interface CustomModel {
+  id: string;
+  label?: string;
+  adapters: string[];
+}
+
+export interface PiProviderBody {
+  name: string;
+  baseUrl: string;
+  api: "openai-completions" | "anthropic-messages" | "google-generative-ai";
+  apiKey?: string;
+  models: { id: string; name?: string; contextWindow?: number; reasoning?: boolean }[];
+  replace?: boolean;
+}
+
 /** ADR-0004 — account-level usage/quota window, e.g. claude's real
  * "five_hour"/"seven_day". `id` is a free string, not an enum. */
 export interface UsageWindow {
@@ -824,7 +840,13 @@ function createHubApi(P: (path: string) => string) {
     api<{ gemini: { configured: boolean; model: string } }>(P("/api/settings/gemini"), { method: "PUT", body: JSON.stringify(body) }),
   /** ADR-0018: null when the adapter has no catalog (free text then);
    * defaultModel is the registration's configured model. */
-  adapterModels: (id: string) => api<{ models: ModelOption[] | null; defaultModel: string | null }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
+  adapterModels: (id: string) => api<{ models: ModelOption[] | null; defaultModel: string | null; customIds?: string[] }>(P(`/api/adapters/${encodeURIComponent(id)}/models`)),
+  /** ADR-0060: eigene Modelle (Hub-Register) und Endpunkte (pi). */
+  customModels: () => api<{ items: CustomModel[] }>(P("/api/models/custom")),
+  addCustomModel: (body: { id: string; label?: string; adapters: string[] }) => api<{ ok: boolean; model: CustomModel }>(P("/api/models/custom"), { method: "POST", body: JSON.stringify(body) }),
+  removeCustomModel: (id: string) => api<{ ok: boolean }>(P(`/api/models/custom?id=${encodeURIComponent(id)}`), { method: "DELETE" }),
+  addPiProvider: (adapterId: string, body: PiProviderBody) =>
+    api<{ ok: boolean; created: boolean; backup: string | null }>(P(`/api/adapters/${encodeURIComponent(adapterId)}/provider`), { method: "POST", body: JSON.stringify(body) }),
   adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
   projects: () => api<ProjectDiscoveryResult>(P("/api/projects")),
   /** T-PJ1: create a project (git init) in the first projectRoot. */

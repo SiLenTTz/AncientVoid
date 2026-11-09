@@ -54,7 +54,7 @@ test.describe("Handoff PC ↔ Handy (AC-P5-2) @desktop", () => {
 
     await send(pc, "Zug 3 am PC");
     await expect(pc.getByText("Ein anderes Gerät schreibt gerade in diese Session.")).toBeVisible();
-    await pc.getByRole("button", { name: "Übernehmen" }).click();
+    await pc.getByRole("button", { name: "Übernehmen", exact: true }).click();
     await expect(pc.locator(".tail-scroll").getByText(/Antwort auf: Zug 3 am PC/)).toBeVisible();
     await expect(phone.locator(".tail-scroll").getByText(/Antwort auf: Zug 3 am PC/)).toBeVisible();
 
@@ -85,7 +85,7 @@ test.describe("Handoff PC ↔ Handy (AC-P5-2) @desktop", () => {
     await phone.getByRole("button", { name: "Stop" }).click();
     await expect(pc.locator(".topbar .pill")).toHaveAttribute("data-status", "stopped");
     await send(pc, "Zug 3 am PC");
-    await pc.getByRole("button", { name: "Übernehmen" }).click();
+    await pc.getByRole("button", { name: "Übernehmen", exact: true }).click();
     await expect(pc.locator(".tail-scroll").getByText(/Antwort auf: Zug 3 am PC .*\(fortgesetzt\)/)).toBeVisible();
 
     const all = turns(await hub.events(id));

@@ -11,7 +11,20 @@
 //   KONTEXT-WARN / KONTEXT-FEHLER  context fill of 84 % / 96 % of the 131072 window (EPIC-P20)
 //   MARKDOWN  a formatted answer with an injection attempt (BUG-0067)
 //   LANG  an answer over the 4 KB event limit (BUG-0068), ends with ENDE-DER-ANTWORT
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 const argv = process.argv.slice(2);
+// `pi --list-models` (pi 1.4.0): Tabelle mit den Modellen anmeldebereiter Provider; die Eigenen aus models.json kommen dazu.
+if (argv[0] === "--list-models") {
+  const rows = ["provider   model                context  max-out  thinking  images", "evo        qwen-e2e             131.1K   32.8K    yes       no"];
+  try {
+    const doc = JSON.parse(readFileSync(join(process.env.PI_CODING_AGENT_DIR ?? "", "models.json"), "utf8"));
+    for (const [name, p] of Object.entries(doc.providers ?? {})) for (const m of p.models ?? []) rows.push(`${name}  ${m.id}  ${m.contextWindow ?? 0}  -  ${m.reasoning ? "yes" : "no"}  no`);
+  } catch {}
+  console.log(rows.join("\n"));
+  process.exit(0);
+}
 const sep = argv.indexOf("--");
 const messages = sep >= 0 ? argv.slice(sep + 1) : [];
 if (argv[0] !== "-p" || argv[1] !== "--mode" || argv[2] !== "json" || messages.length !== 1) {
