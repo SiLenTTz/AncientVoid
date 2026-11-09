@@ -1,7 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { resolve } from "node:path";
+import { createReadStream } from "node:fs";
+import { basename, resolve } from "node:path";
 import { CodeSearchMode, type ActionDefinition, type WorkspaceIdentity } from "@ancientvoid/contracts";
-import { ActionRunner, BUILTIN_ACTIONS, detectedActions, isProjectPathAllowed, readCodeFile, searchCode, workspaceIdentity } from "@ancientvoid/core";
+import { ActionRunner, BUILTIN_ACTIONS, detectedActions, fileMeta, isProjectPathAllowed, listTree, mimeOf, readCodeFile, readRange, resolveFile, searchCode, workspaceIdentity } from "@ancientvoid/core";
 import { getSessionDiff } from "../sessions/diff.ts";
 import { relativeDataDir } from "../search/search.ts";
 import type { RouteContext } from "../../route-context.ts";
@@ -82,6 +83,82 @@ export function registerCodeRoutes(app: FastifyInstance, ctx: RouteContext): voi
     const file = await readCodeFile(t.root, q.path, t.identity, changed);
     if (!file) return reply.code(404).send({ error: "file not found, not a regular file, or outside the workspace" });
     return file;
+  });
+
+  // EPIC-P46 (ADR-0058): Projekt-Explorer. Gleiche Zielwahl (session=/project=) und Containment wie oben.
+  app.get("/api/code/tree", async (req, reply) => {
+    const q = req.query as { path?: string; offset?: string; limit?: string; ignored?: string };
+    const t = await target(req, reply);
+    if (!t) return;
+    const listing = await listTree(t.root, q.path ?? "", t.identity, {
+      offset: Number(q.offset ?? 0) || 0,
+      ...(Number(q.limit) > 0 ? { limit: Number(q.limit) } : {}),
+      ignored: q.ignored === "1",
+    });
+    return listing ?? reply.code(404).send({ error: "Ordner nicht gefunden, nicht lesbar oder außerhalb des Projekts" });
+  });
+
+  app.get("/api/code/meta", async (req, reply) => {
+    const q = req.query as { path?: string };
+    if (!q.path) return reply.code(400).send({ error: "path required" });
+    const t = await target(req, reply);
+    if (!t) return;
+    const meta = await fileMeta(t.root, q.path, t.identity);
+    return meta ?? reply.code(404).send({ error: "file not found, not a regular file, or outside the workspace" });
+  });
+
+  app.get("/api/code/range", async (req, reply) => {
+    const q = req.query as { path?: string; offset?: string; length?: string; rev?: string; as?: string; encoding?: string };
+    if (!q.path) return reply.code(400).send({ error: "path required" });
+    if (q.as !== "text" && q.as !== "bytes") return reply.code(400).send({ error: "as must be text or bytes" });
+    const encoding = q.encoding === "utf-16le" || q.encoding === "utf-16be" ? q.encoding : "utf-8";
+    const t = await target(req, reply);
+    if (!t) return;
+    const res = await readRange(t.root, q.path, {
+      offset: Number(q.offset ?? 0) || 0,
+      ...(Number(q.length) > 0 ? { length: Number(q.length) } : {}),
+      ...(q.rev ? { revision: q.rev } : {}),
+      as: q.as,
+      encoding,
+    });
+    if (res.ok) return res.range;
+    if (res.reason === "revision_changed") return reply.code(409).send({ error: "Die Datei hat sich geändert — neu laden.", revision: res.revision });
+    return reply.code(404).send({ error: "file not found, not a regular file, or outside the workspace" });
+  });
+
+  /** Originalbytes mit Range-Unterstützung (Medien-Seek, Download). Immer als passiver Inhalt: nosniff + Sandbox-CSP. */
+  app.get("/api/code/raw", async (req, reply) => {
+    const q = req.query as { path?: string; rev?: string; download?: string };
+    if (!q.path) return reply.code(400).send({ error: "path required" });
+    const t = await target(req, reply);
+    if (!t) return;
+    const file = await resolveFile(t.root, q.path);
+    if (!file) return reply.code(404).send({ error: "file not found, not a regular file, or outside the workspace" });
+    if (q.rev && q.rev !== file.revision) return reply.code(409).send({ error: "Die Datei hat sich geändert — neu laden.", revision: file.revision });
+    const { mime, family } = mimeOf(file.rel);
+    const range = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range ?? ""));
+    let start = 0;
+    let end = file.size - 1;
+    if (range) {
+      if (range[1] !== "") {
+        start = Number(range[1]);
+        if (range[2] !== "") end = Math.min(Number(range[2]), file.size - 1);
+      } else if (range[2] !== "") {
+        start = Math.max(file.size - Number(range[2]), 0);
+      }
+      if (start > end || start >= file.size) return reply.code(416).header("content-range", `bytes */${file.size}`).send();
+    }
+    reply
+      .code(range ? 206 : 200)
+      .header("accept-ranges", "bytes")
+      .header("x-content-type-options", "nosniff")
+      .header("content-security-policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'")
+      .header("etag", `"${file.revision}"`)
+      .header("content-length", String(file.size === 0 ? 0 : end - start + 1))
+      .header("content-type", q.download === "1" || (family === null && mime === "application/octet-stream") ? "application/octet-stream" : mime)
+      .header("content-disposition", `${q.download === "1" ? "attachment" : "inline"}; filename*=UTF-8''${encodeURIComponent(basename(file.rel))}`);
+    if (range) reply.header("content-range", `bytes ${start}-${end}/${file.size}`);
+    return reply.send(file.size === 0 ? Buffer.alloc(0) : createReadStream(file.real, { start, end }));
   });
 
   async function actionsFor(sessionId: string): Promise<{ root: string; actions: ActionDefinition[] } | null> {

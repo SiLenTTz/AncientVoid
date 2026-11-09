@@ -1,4 +1,4 @@
-import type { LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { FileMeta, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -956,6 +956,20 @@ function createHubApi(P: (path: string) => string) {
     api<CodeSearchResult>(P(`/api/code/search?session=${encodeURIComponent(sessionId)}&q=${encodeURIComponent(q)}&mode=${mode}`)),
   codeFile: (sessionId: string, path: string) =>
     api<CodeFile>(P(`/api/code/file?session=${encodeURIComponent(sessionId)}&path=${encodeURIComponent(path)}`)),
+  /** EPIC-P46 (ADR-0058): Explorer. `target` = `session=<id>` oder `project=<pfad>`. */
+  codeTree: (target: string, path: string, offset = 0, ignored = false) =>
+    api<TreeListing>(P(`/api/code/tree?${target}&path=${encodeURIComponent(path)}&offset=${offset}${ignored ? "&ignored=1" : ""}`)),
+  codeMeta: (target: string, path: string) => api<FileMeta>(P(`/api/code/meta?${target}&path=${encodeURIComponent(path)}`)),
+  codeRange: (target: string, path: string, opts: { offset: number; length?: number; rev: string; as: "text" | "bytes"; encoding?: string }) =>
+    api<FileRange>(
+      P(`/api/code/range?${target}&path=${encodeURIComponent(path)}&offset=${opts.offset}${opts.length ? `&length=${opts.length}` : ""}&rev=${opts.rev}&as=${opts.as}${opts.encoding ? `&encoding=${opts.encoding}` : ""}`),
+    ),
+  /** Originalbytes als Object-URL — der Token bleibt im Header, nie in einer URL. */
+  codeRawUrl: async (target: string, path: string, rev: string): Promise<string> => {
+    const res = await fetch(P(`/api/code/raw?${target}&path=${encodeURIComponent(path)}&rev=${rev}`), { headers: { authorization: `Bearer ${getToken()}` } });
+    if (!res.ok) throw new Error(res.status === 409 ? "Die Datei hat sich geändert — neu laden." : `${res.status}`);
+    return URL.createObjectURL(await res.blob());
+  },
   sessionActions: (sessionId: string) => api<{ actions: ActionDefinition[]; runs: ActionRun[] }>(P(`/api/sessions/${sessionId}/actions`)),
   runAction: (sessionId: string, actionId: string, params: Record<string, string>) =>
     api<ActionRun>(P(`/api/sessions/${sessionId}/actions/${encodeURIComponent(actionId)}`), { method: "POST", body: JSON.stringify({ params }) }),
