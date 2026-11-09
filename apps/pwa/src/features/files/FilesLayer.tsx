@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
-import { hubApi } from "../../shared/api.ts";
-import { getHubStatus } from "../shell/hub-status.ts";
+import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
+import { getHubStatus, useHubStatus } from "../shell/hub-status.ts";
 import { FilesSidebar, type FocusedSession } from "./FilesSidebar.tsx";
 import { loadFilesState, saveFilesState, type FilesState } from "./files-model.ts";
 
@@ -11,7 +11,9 @@ import { loadFilesState, saveFilesState, type FilesState } from "./files-model.t
  */
 export function FilesLayer({ wide, focusedSessionId }: { wide: boolean; focusedSessionId: string | null }) {
   const [state, setState] = useState<FilesState>(loadFilesState);
-  const [projects, setProjects] = useState<{ name: string; path: string }[]>([]);
+  const hubStatus = useHubStatus();
+  const reachableHosts = hubStatus.hosts.filter((h) => remoteHost(h.hostId) && h.state === "reachable").map((h) => `${h.hostId}:${h.label ?? ""}`).join(",");
+  const [projects, setProjects] = useState<{ name: string; path: string; hostId?: string; hostLabel?: string }[]>([]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -30,8 +32,20 @@ export function FilesLayer({ wide, focusedSessionId }: { wide: boolean; focusedS
 
   useEffect(() => {
     if (!state.open) return;
-    hubApi.projects().then((r) => setProjects(r.projects.map((p) => ({ name: p.name, path: p.path })))).catch(() => setProjects([]));
-  }, [state.open]);
+    let alive = true;
+    hubApi.projects().then((r) => alive && setProjects((prev) => [...r.projects.map((p) => ({ name: p.name, path: p.path })), ...prev.filter((p) => p.hostId)])).catch(() => undefined);
+    // Andere Maschinen der Flotte: Projekte über deren eigene Hub-API, nur erreichbare Hosts.
+    for (const h of getHubStatus().hosts) {
+      const id = remoteHost(h.hostId);
+      if (!id || h.state !== "reachable") continue;
+      hostApi(id).projects().then((r) => {
+        if (!alive) return;
+        const label = h.label ?? id.slice(0, 8);
+        setProjects((prev) => [...prev.filter((p) => p.hostId !== id), ...r.projects.map((p) => ({ name: p.name, path: p.path, hostId: id, hostLabel: label }))]);
+      }).catch(() => undefined);
+    }
+    return () => { alive = false; };
+  }, [state.open, reachableHosts]);
 
   const session = focusedSessionId ? getHubStatus().sessions.find((s) => s.id === focusedSessionId) : undefined;
   const focused: FocusedSession | null = session

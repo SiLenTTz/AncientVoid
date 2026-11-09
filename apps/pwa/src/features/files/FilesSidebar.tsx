@@ -101,7 +101,7 @@ export function FilesSidebar({
   state: FilesState;
   onChange: (next: FilesState) => void;
   focused: FocusedSession | null;
-  projects: { name: string; path: string }[];
+  projects: { name: string; path: string; hostId?: string; hostLabel?: string }[];
   mobile: boolean;
 }) {
   const [identity, setIdentity] = useState<TreeListing["identity"] | null>(null);
@@ -117,7 +117,7 @@ export function FilesSidebar({
   const roots = useMemo(() => {
     const list: FilesRoot[] = [];
     if (focused) list.push({ kind: "session", id: focused.id, label: `Session: ${focused.label}${remoteHost(focused.hostId) ? " (andere Maschine)" : ""}`, ...(remoteHost(focused.hostId) ? { hostId: remoteHost(focused.hostId) } : {}) });
-    for (const p of projects) list.push({ kind: "project", path: p.path, label: `Projekt: ${p.name}` });
+    for (const p of projects) list.push({ kind: "project", path: p.path, label: `Projekt: ${p.name}${p.hostLabel ? ` (${p.hostLabel})` : ""}`, ...(p.hostId ? { hostId: p.hostId } : {}) });
     return list;
   }, [focused?.id, focused?.hostId, projects]);
 

@@ -24,6 +24,17 @@ export function FileViewer({ target, path, hostId = null, sessionId = null, onCh
   const [diag, setDiag] = useState<DiagnosticsResult | null>(null);
   const [jump, setJump] = useState<Jump | null>(null);
   const [showDiag, setShowDiag] = useState(false);
+  const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -67,6 +78,10 @@ export function FileViewer({ target, path, hostId = null, sessionId = null, onCh
           {meta.family === "text" && local && <button type="button" class={showDiag ? "chip active" : "chip"} aria-pressed={showDiag} onClick={() => setShowDiag(!showDiag)}>Diagnose</button>}
           <DownloadButton api={api} target={target} meta={meta} />
         </span>
+      </div>
+      <div class="dim file-note" data-testid="file-freshness" role="status">
+        Stand der Datei: {new Date(meta.mtimeMs).toLocaleString("de-DE")} · Revision {meta.revision.slice(0, 8)}
+        {!online && " · offline — nur bereits geladene Abschnitte, weitere Bereiche folgen nach Reconnect"}
       </div>
       {stale && (
         <div class="files-stale" role="alert">

@@ -8,7 +8,7 @@ import { CSV_MAX_BYTES, guessDelimiter, jsonNodes, parseDelimited, parseMarkdown
  * EPIC-P46 T46.6 (ADR-0058 §8): strukturierte Ansichten. Dateiinhalt wird nie als HTML interpretiert — Preact
  * erzeugt nur Text-Knoten; SVG läuft passiv als <img>, HTML in einem Sandbox-iframe ohne Rechte.
  */
-export type RenderKind = "markdown" | "json" | "table" | "notebook" | "svg" | "html" | "archive" | "office";
+export type RenderKind = "markdown" | "json" | "yaml" | "table" | "notebook" | "svg" | "html" | "archive" | "office";
 
 const OFFICE = new Set(["docx", "xlsx", "pptx", "odt", "ods", "odp"]);
 const ARCHIVE = new Set(["zip", "jar", "whl", "apk"]);
@@ -18,6 +18,7 @@ export function renderKindOf(meta: FileMeta): RenderKind | null {
   if (meta.family === "text") {
     if (ext === "md" || ext === "markdown") return "markdown";
     if (ext === "json") return "json";
+    if (ext === "yaml" || ext === "yml") return "yaml";
     if (ext === "csv" || ext === "tsv") return "table";
     if (ext === "ipynb") return "notebook";
     if (ext === "svg") return "svg";
@@ -131,6 +132,7 @@ function TextRendered({ api, target, meta, kind, onStale }: { api: HubApi; targe
       return <div class="files-error" role="status">Kein gültiges JSON: {err instanceof Error ? err.message : "Syntaxfehler"}. „Text“ zeigt die Datei unverändert.</div>;
     }
   }
+  if (kind === "yaml") return <YamlTree text={text} />;
   if (kind === "table") {
     const rows = parseDelimited(text, guessDelimiter(meta.path, text.slice(0, 2000)));
     const shown = rows.slice(0, 2001);
@@ -213,4 +215,23 @@ function OfficeView({ api, target, meta }: { api: HubApi; target: string; meta: 
       {res.sections.map((s, k) => <section key={k}><h3>{s.title}</h3><pre class="nb-out">{s.text}</pre></section>)}
     </div>
   );
+}
+
+/** YAML-Struktur: js-yaml lazy, Standard-Schema (keine Konstruktoren/Tags); Fehler werden benannt, nie geraten. */
+function YamlTree({ text }: { text: string }) {
+  const [state, setState] = useState<{ node: JsonNode } | { error: string } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    import("js-yaml")
+      .then((y) => {
+        const docs: unknown[] = [];
+        y.loadAll(text, (d: unknown) => docs.push(d));
+        if (alive) setState({ node: jsonNodes(docs.length === 1 ? docs[0] : docs, docs.length === 1 ? "$" : `$ (${docs.length} Dokumente)`) });
+      })
+      .catch((err) => alive && setState({ error: err instanceof Error ? err.message.split("\n")[0]! : "YAML-Syntaxfehler" }));
+    return () => { alive = false; };
+  }, [text]);
+  if (!state) return <div class="empty">lädt …</div>;
+  if ("error" in state) return <div class="files-error" role="status">Kein gültiges YAML: {state.error}. „Text“ zeigt die Datei unverändert.</div>;
+  return <div class="json-view" data-testid="yaml-view"><JsonTree node={state.node} open /></div>;
 }

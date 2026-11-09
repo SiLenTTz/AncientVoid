@@ -68,6 +68,8 @@ die Grenze und löst weder RAM noch Revisionskonsistenz.
    mit CSP-Meta, ZIP als Inhaltsverzeichnis aus dem Zentralverzeichnis
    (`/api/code/archive`, kein Entpacken; ZIP64 ehrlich abgelehnt), Office als
    Textauszug je Folie/Tabelle (`/api/code/office`, „keine Layout-Wiedergabe“).
+   YAML als Strukturbaum über js-yaml (lazy, Standard-Schema ohne Tags;
+   Syntaxfehler werden benannt, mehrere Dokumente als Liste).
    PDF ohne eingebauten Viewer und nicht abspielbare Medien zeigen Download/Hex
    statt einer leeren Fläche. Es gibt keine lokalen Converter.
 9. **Diagnosen (T46.7).** Nur auf ausdrücklichen Klick (`POST /api/diagnostics/run`).
@@ -86,7 +88,8 @@ die Grenze und löst weder RAM noch Revisionskonsistenz.
 10. **Flotte.** `FLEET_ROUTABLE` enthält die Lese-Endpunkte
     `/api/code/{tree,meta,range,raw,find,line,archive,office}`, nicht
     `actions`/`search`/Diagnose. Die PWA spricht über `hostApi(hostId)`;
-    Sessions anderer Maschinen sind als Quelle wählbar. Der Weiterleiter reicht
+    Sessions **und Projekte** erreichbarer anderer Maschinen sind als Quelle wählbar
+    (Projektliste über deren `/api/projects`, Beschriftung „(Host)“). Der Weiterleiter reicht
     keinen `Range`-Header durch und hat `MAX_FORWARD_BYTES`: Raw/Blob ist
     remote nur bis dahin möglich, Text/Hex laufen über `range` (immer
     revisionsgebunden).
@@ -108,13 +111,16 @@ die Grenze und löst weder RAM noch Revisionskonsistenz.
   auf dem Handy nicht zu rechtfertigen; für Anzeige genügen Zeilen + hljs.
   Gerätemessung (K2/K8 auf dem Pixel) steht aus.
 
-## Nicht Teil dieses Stands (EPIC-P46 bleibt bis zur Abnahme offen)
+## Nicht Teil dieses Stands
 
-- **Pixel-Abnahme** und K2/K8 auf dem Gerät; Popout-Fenster; Offline-Bereichsstatus.
-- **Remote-Projekte:** Remote-*Sessions* sind wählbar, die Projektliste anderer
-  Hosts wird noch nicht angeboten.
-- Python/Typprüfung über konfigurierte Checker (pyright/ruff), YAML-Parser,
-  Mermaid-Renderer: bewusst nicht ohne eigene Abhängigkeits-/Trust-Entscheidung.
+- **Geräte-Abnahme** (Pixel, K2/K8 auf dem Handy): bewusst später, Epic-Exit
+  bis dahin „umgesetzt, Abnahme offen“.
+- Popout-Fenster, File-Watcher statt 5-s-Poll, „alle Treffer“-Liste der Suche,
+  konfigurierte Python-Checker (pyright/ruff, eigene Trust-Entscheidung),
+  Mermaid-Renderer (eigene Abhängigkeits-Entscheidung), Range-Weiterleitung
+  für Remote-Raw: nicht im Scope von P46; Anzeige nutzt dafür Text/Hex über
+  revisionsgebundene Ranges. Offline zeigt der Viewer Stand/Revision der
+  Datei und benennt, dass nur bereits geladene Abschnitte verfügbar sind.
 
 ## Folgen
 
