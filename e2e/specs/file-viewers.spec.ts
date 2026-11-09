@@ -80,6 +80,18 @@ test.describe("Datei-Ansichten (EPIC-P46)", () => {
     expect(await app.evaluate(() => (window as unknown as { __nb?: number }).__nb)).toBeUndefined();
   });
 
+  test("YAML-Struktur (lazy js-yaml), Syntaxfehler benannt; Stand der Datei sichtbar", async ({ app, hub }) => {
+    writeFileSync(join(hub.alpha, "c.yaml"), "name: x\nliste:\n  - 1\n  - 2\n");
+    writeFileSync(join(hub.alpha, "kaputt.yml"), "a: [1, 2\nb: : :\n");
+    await openFile(app, hub, "c.yaml");
+    await expect(app.getByTestId("file-freshness")).toContainText("Revision");
+    await view(app, "Ansicht").click();
+    await expect(app.getByTestId("yaml-view")).toContainText("liste");
+    await openFile(app, hub, "kaputt.yml");
+    await view(app, "Ansicht").click();
+    await expect(app.getByRole("status").filter({ hasText: "Kein gültiges YAML" })).toBeVisible();
+  });
+
   test("SVG als passives Bild, HTML im Sandbox-iframe: Skripte laufen nicht", async ({ app, hub }) => {
     writeFileSync(join(hub.alpha, "s.svg"), '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><script>window.__svg=1</script><rect width="10" height="10"/></svg>');
     writeFileSync(join(hub.alpha, "p.html"), "<h1>Seite</h1><script>window.parent.__html = 1; document.title='x'</script>");
