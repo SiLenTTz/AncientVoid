@@ -1,4 +1,4 @@
-import { AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@ancientvoid/contracts";
+import { AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, WorkspaceMode, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@ancientvoid/contracts";
 import type { FastifyInstance } from "fastify";
 import { DraftStore, isProjectPathAllowed, toStartSpec } from "@ancientvoid/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
@@ -29,6 +29,9 @@ const CreateSessionBody = z.object({
   mirrorNativeSessionId: z.string().min(1).optional(),
   /** T7.10: uploaded files for the first prompt. */
   attachmentIds: z.array(AttachmentId).max(20).optional(),
+  /** ADR-0057: Arbeitsort; ohne Angabe eigener Worktree. `confirmDirty` bestätigt einen Start in ungesicherten Änderungen. */
+  workspaceMode: WorkspaceMode.optional(),
+  confirmDirty: z.boolean().optional(),
   /** EPIC-P19: Loop / Dark Factory. Ohne Angabe verhält sich der Start wie vorher. */
   loop: LoopSpec.optional(),
 });
@@ -126,6 +129,26 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
   });
 
 
+  // ADR-0057: Arbeitsort vor dem Start prüfen (read-only) — Pfad nur innerhalb der projectRoots.
+  app.get("/api/workspace/preview", async (req, reply) => {
+    const { project } = req.query as { project?: string };
+    if (!project) return reply.code(400).send({ error: "project fehlt" });
+    if (!(await isProjectPathAllowed(project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    try {
+      return await deps.sessions.workplacePreview(project);
+    } catch (err) {
+      return reply.code(422).send({ error: err instanceof Error ? err.message : "Projekt nicht lesbar" });
+    }
+  });
+
+  app.get("/api/sessions/:id/workplace", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const status = await deps.sessions.workplaceStatus(id);
+    return status ?? reply.code(404).send({ error: "unknown session" });
+  });
+
   app.get("/api/sessions/:id/events", async (req, reply) => {
     const { id } = req.params as { id: string };
     const q = req.query as { afterSeq?: string; limit?: string };
@@ -148,7 +171,12 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     const session = deps.sessions.get(id);
     if (!session) return reply.code(404).send({ error: "unknown session" });
     const workdir = deps.sessions.workdirOf(id) ?? session.project;
-    return getSessionDiff(workdir, session.worktreeSha);
+    // ADR-0057: bei direktem Arbeitsort ist die Start-HEAD die Basis, bestehende Dirty-Pfade werden gekennzeichnet.
+    const baseline = session.workspaceBaseline;
+    const diff = await getSessionDiff(workdir, session.worktreeSha ?? baseline?.head ?? null);
+    return baseline
+      ? { ...diff, baseline: { dirtyAtStart: baseline.dirty, dirtyTruncated: baseline.dirtyTruncated, headAtStart: baseline.head, branchAtStart: baseline.branch } }
+      : diff;
   });
 
 

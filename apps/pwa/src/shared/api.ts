@@ -10,6 +10,11 @@ export interface SessionRecord {
   model: string | null;
   /** ADR-0033: the permission mode the session runs in; absent on older hubs. */
   permissionMode?: string | null;
+  /** ADR-0011: wer die Session führt; `mirror` = nur beobachtet (kein Arbeitsort). */
+  controlMode?: "observed" | "managed" | "controllable" | "mirror";
+  /** ADR-0057: belegter Arbeitsort; `unknown` = Altdaten ohne Beleg, fehlt auf älteren Hubs. */
+  workspaceMode?: "worktree" | "direct" | "unknown";
+  workspaceBaseline?: { checkoutId: string; head: string | null; branch: string | null; dirty: string[]; dirtyTruncated: boolean } | null;
   budgetUsd: number | null;
   adapterVersion: string;
   lastSeq: number;
@@ -232,7 +237,29 @@ export interface DiffCommit {
   files: SessionDiffFile[];
 }
 
+export interface WorkspacePreview {
+  checkoutId: string;
+  isGit: boolean;
+  worktreePossible: boolean;
+  branch: string | null;
+  head: string | null;
+  dirty: string[];
+  dirtyTruncated: boolean;
+  /** Session-Id des aktuellen AV-Schreibers im direkten Checkout, sonst null. */
+  heldBy: string | null;
+}
+
+export interface WorkplaceStatus {
+  mode: "worktree" | "direct" | "unknown";
+  path: string;
+  baseline: SessionRecord["workspaceBaseline"];
+  drift: { headMoved: boolean; branchChanged: boolean; head: string | null; branch: string | null } | null;
+  leaseGeneration: number | null;
+}
+
 export interface SessionDiffResult {
+  /** ADR-0057: bei „Projekt direkt“ — beim Start schon geänderte Pfade gehören nicht der Session. */
+  baseline?: { dirtyAtStart: string[]; dirtyTruncated: boolean; headAtStart: string | null; branchAtStart: string | null };
   /** Seit AC-P2-1 nur der uncommittete Rest seit HEAD — der committete
    * Teil liegt in `commits[]`. */
   files: SessionDiffFile[];
@@ -955,6 +982,9 @@ function createHubApi(P: (path: string) => string) {
     model?: string;
     budgetUsd?: number | null;
     args?: { skill?: string; agent?: string; permissionMode?: string };
+    /** ADR-0057: Arbeitsort; ohne Angabe eigener Worktree. */
+    workspaceMode?: "worktree" | "direct";
+    confirmDirty?: boolean;
     /** Adoption (ADR-0011): continue an externally discovered session. */
     adoptNativeSessionId?: string;
     /** ADR-0040: continue as a copy (a run still open elsewhere is not shared) and keep its title. */
@@ -969,6 +999,9 @@ function createHubApi(P: (path: string) => string) {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  /** ADR-0057: was „Projekt direkt“ hier bedeutet (read-only). */
+  workspacePreview: (project: string) => api<WorkspacePreview>(P(`/api/workspace/preview?project=${encodeURIComponent(project)}`)),
+  workplace: (id: string) => api<WorkplaceStatus>(P(`/api/sessions/${id}/workplace`)),
   /** EPIC-P26 T26.5 (ADR-0043): Factory-Lauf — legt Treiber (Factory-Skill,
    * Claude/maki im Projekt) und verknüpften Beobachter (Loop project-Modus) an. */
   factoryStart: (body: { project: string; goal?: string; adapter?: string; model?: string }) =>

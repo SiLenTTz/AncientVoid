@@ -1,0 +1,14 @@
+.workplace-choice { border: 1px solid var(--border, #333); border-radius: 8px; padding: 8px 10px; }
+.workplace-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 480px) { .workplace-cards { grid-template-columns: 1fr; } }
+.workplace-card { display: flex; flex-direction: column; gap: 2px; padding: 8px; border: 1px solid var(--border, #333); border-radius: 8px; cursor: pointer; }
+.workplace-card.active { border-color: var(--accent, #7aa2f7); }
+.workplace-card input { margin-bottom: 2px; }
+.workplace-note { margin: 6px 0 0; font-size: 0.85em; }
+.workplace-detail { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; font-size: 0.9em; }
+.workplace-warn { border-left: 3px solid var(--warn, #e0af68); padding: 4px 8px; }
+.workplace-warn ul { margin: 4px 0; padding-left: 18px; }
+.workplace-confirm { display: flex; gap: 6px; align-items: flex-start; }
+.workplace-badge { font-size: 0.8em; padding: 0 6px; border-radius: 6px; border: 1px solid var(--border, #444); }
+.workplace-badge.warn { border-color: var(--warn, #e0af68); }
+.diff-preexisting { font-size: 0.8em; margin-left: 6px; color: var(--warn, #e0af68); }

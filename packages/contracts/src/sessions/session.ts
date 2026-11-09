@@ -43,6 +43,29 @@ export type SessionStatus = (typeof SESSION_STATUSES)[number];
  */
 export const ENV_VAR_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+/**
+ * ADR-0057 (EPIC-P38): wo eine Session Dateien ändert. `worktree` = eigener
+ * Git-Worktree, `direct` = im vorhandenen Projekt-Checkout, `unknown` = nur
+ * für Altdaten ohne Beleg (sichtbarer Klärungsbedarf, nie geraten). Ein
+ * Worktree isoliert Git-Dateien, keine Prozess-/Netzwerkrechte — die
+ * Harness-Sandbox/der Permission-Mode ist davon unabhängig.
+ */
+export const WORKSPACE_MODES = ["worktree", "direct"] as const;
+export const WorkspaceMode = z.enum(WORKSPACE_MODES);
+export type WorkspaceMode = z.infer<typeof WorkspaceMode>;
+
+/** Zustand des Checkouts beim Start einer direkten Session (Diff-Baseline, ADR-0057 §4). */
+export const WorkspaceBaseline = z.object({
+  /** Kanonischer Checkout (realpath der Git-Toplevel-Ebene bzw. des Ordners). */
+  checkoutId: z.string().min(1),
+  head: z.string().nullable(),
+  branch: z.string().nullable(),
+  /** Beim Start bereits geänderte Pfade (porcelain), gekappt — gehören nicht der Session. */
+  dirty: z.array(z.string()).max(200),
+  dirtyTruncated: z.boolean().default(false),
+});
+export type WorkspaceBaseline = z.infer<typeof WorkspaceBaseline>;
+
 /** Adapter-neutral session creation request (API body / hubctl input). */
 export const SessionSpec = z.object({
   /** Registered adapter id (e.g. "dummy", "claude", "codex"). */
@@ -55,6 +78,11 @@ export const SessionSpec = z.object({
   model: z.string().optional(),
   /** Hard budget cap in USD (enforced from P2; stored from P0). */
   budgetUsd: z.number().positive().nullable().optional(),
+  /** ADR-0057: Arbeitsort. Fehlt = eigener Worktree (Standard; Nicht-Git-Projekte
+   * fallen sichtbar auf direkt zurück). Explizit `worktree` auf Nicht-Git scheitert vor Spawn. */
+  workspaceMode: WorkspaceMode.optional(),
+  /** ADR-0057: ausdrückliche Bestätigung, in einem Checkout mit ungesicherten Änderungen zu starten. */
+  confirmDirty: z.boolean().optional(),
   /** Additional env vars for the session worker. */
   env: z.record(z.string().regex(ENV_VAR_NAME), z.string()).optional(),
   /** Adapter-specific free-form arguments, validated by the adapter itself. */
@@ -87,6 +115,10 @@ export const SessionRecord = z.object({
   adapter: z.string().min(1),
   project: z.string().min(1),
   worktreeSha: z.string().nullable(),
+  /** ADR-0057: belegter Arbeitsort; `unknown` nur für Altdaten (needs_attention in der UI). */
+  workspaceMode: z.enum(["worktree", "direct", "unknown"]).default("unknown"),
+  /** ADR-0057: Checkout-Zustand beim Start einer direkten Session; sonst null. */
+  workspaceBaseline: WorkspaceBaseline.nullable().default(null),
   model: z.string().nullable(),
   /** ADR-0033: the permission mode this session runs in (provider-specific
    * name), null when the adapter has none. */

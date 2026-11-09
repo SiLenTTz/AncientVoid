@@ -7,7 +7,7 @@ import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
 import type { WorktreeManager } from "../workspace/index.ts";
-import { WorkspaceRuntime, ManifestApprovalStore, ServiceSupervisor, foldWorkspaceState, gateManifest, resolveManifest } from "../workspace/index.ts";
+import { WorkspaceRuntime, ManifestApprovalStore, ServiceSupervisor, CheckoutLeaseStore, canonicalCheckout, checkoutState, foldWorkspaceState, gateManifest, resolveManifest } from "../workspace/index.ts";
 import { refuseSpec, refuseSteer } from "../harness/index.ts";
 import { OperationStore } from "../approvals/index.ts";
 import { ApprovalFlow, type AgentActionKind } from "./approval-flow.ts";
@@ -122,6 +122,8 @@ export class SessionManager {
   private readonly workspaces: WorkspaceRuntime;
   private readonly workspaceServices: ServiceSupervisor;
   private readonly manifestApprovals: ManifestApprovalStore;
+  /** ADR-0057: ein AV-Schreiber pro direktem Checkout. */
+  private readonly checkoutLeases: CheckoutLeaseStore;
   private readonly approvals: ApprovalService | undefined;
   /** EPIC-P29: die Manifest-Freigabe hängt an der immer vorhandenen Queue —
    * unabhängig von `requireStepApprovals` (das steuert nur steer.prompt). */
@@ -192,6 +194,7 @@ export class SessionManager {
     this.workspaceServices = new ServiceSupervisor(db, store, store.directory());
     this.workspaces = new WorkspaceRuntime(db, store, this.workspaceServices);
     this.manifestApprovals = new ManifestApprovalStore(db);
+    this.checkoutLeases = new CheckoutLeaseStore(db);
     this.operationStore = new OperationStore(db);
     this.budget = new BudgetGuard(
       {
@@ -419,6 +422,7 @@ export class SessionManager {
     }
     const record = this.setArchived(sessionId, archived);
     if (archived) {
+      this.checkoutLeases.release(sessionId); // ADR-0057: das direkte Projekt selbst bleibt unangetastet
       // EPIC-P29 T29.5/T29.7 (ADR-0051 §3): eigene Services beenden — auch
       // adoptierte einer BEENDETEN Session ohne Live-Sitzung (Hard-Kill nach
       // Zugende; ohne diesen Zweig überlebte der Dienst die Archivierung —
@@ -530,12 +534,18 @@ export class SessionManager {
     const parsed = permissionMode ? { ...requested, args: { ...requested.args, permissionMode } } : requested;
     const refused = refuseSpec(registered.capabilities.features, parsed.adapter, parsed);
     if (refused) throw new Error(refused);
+    const adoptsInPlace = parsed.adoptNativeSessionId !== undefined && parsed.adoptFork !== true;
+    // ADR-0057: Arbeitsort-Wahl vor Spawn prüfen — nicht unterstützte Kombinationen scheitern hier, nicht mitten im Start.
+    const id = randomUUID();
+    const place = await this.resolveWorkplace(id, parsed, { workInProject: options.workInProject === true, adoptsInPlace });
     const now = new Date().toISOString();
     const record: SessionRecord = {
-      id: randomUUID(),
+      id,
       adapter: parsed.adapter,
       project: parsed.project,
       worktreeSha: null,
+      workspaceMode: place.mode,
+      workspaceBaseline: place.baseline,
       // 2026-10-26: a session without an explicit model still shows WHICH
       // model runs — the registration's configured default (e.g. pi → the
       // evox2 qwen) fills the record; without any default it stays null and
@@ -597,9 +607,8 @@ export class SessionManager {
     // EPIC-P19: ein Loop arbeitet im Projekt des Loop-Systems selbst, eine Hub-Kopie davon wäre die falsche Stelle.
     // ADR-0041: die Übernahme der Originalsession (ohne Kopie) läuft dort weiter, wo sie entstand — omp bricht
     // `session/load` aus einem anderen Verzeichnis ab, und die Session gehört ohnehin diesem Projekt.
-    const adoptsInPlace = parsed.adoptNativeSessionId !== undefined && parsed.adoptFork !== true;
     let worktreeCreated: { path: string; baseSha: string } | null = null;
-    if (this.worktrees && !options.workInProject && !isLoopAdapter(record.adapter) && !adoptsInPlace) {
+    if (this.worktrees && place.mode === "worktree" && !isLoopAdapter(record.adapter)) {
       try {
         const created = await this.worktrees.create(record.id, record.project);
         if (created) {
@@ -616,8 +625,11 @@ export class SessionManager {
       }
     }
     if (!session.worktreeIsolated) {
+      // ADR-0057: der tatsächliche Arbeitsort steht im Record — auch beim sichtbaren Fallback (kein Git / Worktree-Fehler).
+      record.workspaceMode = "direct";
+      this.persist(record);
       await this.emitSystem(session, "session.no_worktree_isolation", {
-        reason: options.workInProject ? "factory driver works in its own project" : isLoopAdapter(record.adapter) ? "loop works in its own project" : adoptsInPlace ? "adopted session continues in its own project" : this.worktrees ? "project is not a git repo" : "worktree isolation not configured",
+        reason: place.explicitDirect ? "Projekt direkt gewählt" : options.workInProject ? "factory driver works in its own project" : isLoopAdapter(record.adapter) ? "loop works in its own project" : adoptsInPlace ? "adopted session continues in its own project" : this.worktrees ? "project is not a git repo" : "worktree isolation not configured",
       });
     }
 
@@ -655,6 +667,7 @@ export class SessionManager {
       adapterVersion: record.adapterVersion,
       project: record.project,
       workdir: session.workdir,
+      workspaceMode: record.workspaceMode,
       model: record.model,
       budgetUsd: record.budgetUsd,
       // T1.5-10/AC-P1.5-12: whatever skill/agent was requested must stay
@@ -680,6 +693,117 @@ export class SessionManager {
     const adoptedIdle = parsed.adoptNativeSessionId !== undefined && !parsed.prompt && !parsed.attachments?.length;
     await this.launchAdapter(session, startSpec, adoptedIdle);
     return { ...record };
+  }
+
+  /**
+   * ADR-0057 §3: Arbeitsort einer neuen Session festlegen und absichern, bevor
+   * irgendetwas gestartet wird. Direkt gewählt (explizit) heißt: kanonischer
+   * Checkout, Schreib-Lease, Dirty-Bestätigung, Baseline. Alles andere
+   * (Standard, Loop, Factory, Übernahme) behält sein bisheriges Verhalten.
+   */
+  private async resolveWorkplace(
+    sessionId: string,
+    spec: SessionSpec,
+    ctx: { workInProject: boolean; adoptsInPlace: boolean },
+  ): Promise<{ mode: "worktree" | "direct"; baseline: SessionRecord["workspaceBaseline"]; explicitDirect: boolean }> {
+    const inPlace = ctx.workInProject || ctx.adoptsInPlace || isLoopAdapter(spec.adapter);
+    if (spec.workspaceMode === "worktree" && inPlace) {
+      throw new Error("Arbeitsort „Eigener Worktree“ ist für diesen Start nicht möglich: er arbeitet immer im Projekt selbst.");
+    }
+    if (spec.workspaceMode !== "direct") {
+      if (spec.workspaceMode === "worktree") {
+        const { isGit } = await canonicalCheckout(spec.project).catch(() => ({ isGit: false }));
+        if (!isGit || !this.worktrees) throw new Error("Arbeitsort „Eigener Worktree“ braucht ein Git-Projekt — wähle „Projekt direkt“.");
+      }
+      return { mode: inPlace ? "direct" : "worktree", baseline: null, explicitDirect: false };
+    }
+    let checkout: Awaited<ReturnType<typeof canonicalCheckout>>;
+    try {
+      checkout = await canonicalCheckout(spec.project);
+    } catch {
+      throw new Error("Projektordner nicht lesbar — „Projekt direkt“ nicht möglich.");
+    }
+    const state = await checkoutState(checkout.checkoutId);
+    if (state.dirty.length > 0 && spec.confirmDirty !== true) {
+      const shown = state.dirty.slice(0, 5).join(", ");
+      throw new Error(`Das Projekt hat ungesicherte Änderungen (${shown}${state.dirty.length > 5 ? ", …" : ""}). Direkt starten nur nach ausdrücklicher Bestätigung.`);
+    }
+    const lease = this.checkoutLeases.acquire(checkout.checkoutId, sessionId, (owner) => this.holdsCheckout(owner));
+    if (!lease.ok) throw new Error(`In diesem Projekt schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}). Erst beenden oder einen eigenen Worktree wählen.`);
+    return {
+      mode: "direct",
+      explicitDirect: true,
+      baseline: { checkoutId: checkout.checkoutId, head: state.head, branch: state.branch, dirty: state.dirty, dirtyTruncated: state.dirtyTruncated },
+    };
+  }
+
+  /** ADR-0057: darf diese Session ihren direkten Checkout noch beschreiben? (Recovery vor Freigabe) */
+  private holdsCheckout(sessionId: string): boolean {
+    const record = this.get(sessionId);
+    return record !== undefined && !record.archived && record.status !== "stopped" && record.status !== "error" && record.status !== "interrupted";
+  }
+
+  /**
+   * ADR-0057: eine direkte Session erwirbt ihre Lease neu, wenn sie weiterläuft
+   * (Resume/„Weiter“). Konflikt → sichtbarer Fehler, kein stiller Fork oder Wechsel.
+   */
+  private claimDirectCheckout(session: LiveSession): string | null {
+    const baseline = session.record.workspaceBaseline;
+    if (session.record.workspaceMode !== "direct" || !baseline) return null;
+    const lease = this.checkoutLeases.acquire(baseline.checkoutId, session.record.id, (owner) => owner !== session.record.id && this.holdsCheckout(owner));
+    return lease.ok ? null : `In diesem Projekt schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}).`;
+  }
+
+  /** ADR-0057 / „Neue Session“: was würde „Projekt direkt“ hier bedeuten? Read-only, startet nichts. */
+  async workplacePreview(project: string): Promise<{
+    checkoutId: string;
+    isGit: boolean;
+    worktreePossible: boolean;
+    branch: string | null;
+    head: string | null;
+    dirty: string[];
+    dirtyTruncated: boolean;
+    heldBy: string | null;
+  }> {
+    const checkout = await canonicalCheckout(project);
+    const state = await checkoutState(checkout.checkoutId);
+    const lease = this.checkoutLeases.get(checkout.checkoutId);
+    return {
+      checkoutId: checkout.checkoutId,
+      isGit: checkout.isGit,
+      worktreePossible: checkout.isGit && this.worktrees !== undefined,
+      branch: state.branch,
+      head: state.head,
+      dirty: state.dirty,
+      dirtyTruncated: state.dirtyTruncated,
+      heldBy: lease && this.holdsCheckout(lease.sessionId) ? lease.sessionId : null,
+    };
+  }
+
+  /** ADR-0057: aktueller Checkout gegen die Start-Baseline (Drift von HEAD/Branch, neu hinzugekommene Änderungen). */
+  async workplaceStatus(sessionId: string): Promise<{
+    mode: SessionRecord["workspaceMode"];
+    baseline: SessionRecord["workspaceBaseline"];
+    path: string;
+    drift: { headMoved: boolean; branchChanged: boolean; head: string | null; branch: string | null } | null;
+    leaseGeneration: number | null;
+  } | undefined> {
+    const record = this.get(sessionId);
+    if (!record) return undefined;
+    const base = record.workspaceBaseline;
+    const lease = base ? this.checkoutLeases.get(base.checkoutId) : null;
+    let drift = null;
+    if (base) {
+      const now = await checkoutState(base.checkoutId);
+      drift = { headMoved: now.head !== base.head, branchChanged: now.branch !== base.branch, head: now.head, branch: now.branch };
+    }
+    return {
+      mode: record.workspaceMode,
+      baseline: base,
+      path: this.workdirOf(sessionId) ?? record.project,
+      drift,
+      leaseGeneration: lease && lease.sessionId === sessionId ? lease.generation : null,
+    };
   }
 
   /** EPIC-P29: der Adapter-Start, aus create() extrahiert — auch die
@@ -921,6 +1045,8 @@ export class SessionManager {
       adapter: parsed.adapter,
       project: first.info.project ?? parsed.project,
       worktreeSha: null,
+      workspaceMode: "unknown",
+      workspaceBaseline: null,
       model: null,
       permissionMode: null,
       status: "idle",
@@ -1060,6 +1186,8 @@ export class SessionManager {
    * EPIC-P29: returns whether the worktree was (re-)created — a fresh
    * worktree lacks the workspace's declared files and steps. */
   private async ensureWorkdir(session: LiveSession): Promise<boolean> {
+    // ADR-0057: ein direkter Arbeitsort wird nie angelegt, ersetzt oder durch einen Worktree ausgetauscht.
+    if (session.record.workspaceMode === "direct") return false;
     if (!this.worktrees || existsSync(session.workdir)) return false;
     let recreated = false;
     try {
@@ -1135,6 +1263,8 @@ export class SessionManager {
         if (native) session.record.nativeSessionId = native;
       }
     }
+    const occupied = this.claimDirectCheckout(session);
+    if (occupied) return { ok: false, detail: occupied };
     const recreated = await this.ensureWorkdir(session);
     // EPIC-P29: ein frisch wiederangelegter Worktree hat die deklarierten
     // Dateien/Schritte nicht — Setup (gleicher, bereits genehmigter Hash)
@@ -1206,6 +1336,8 @@ export class SessionManager {
     session.abort = new AbortController();
     session.activeWorkers = 0;
     session.persistentWorker = false;
+    const occupied = this.claimDirectCheckout(session);
+    if (occupied) return { ok: false, detail: occupied };
     const recreated = await this.ensureWorkdir(session);
     // EPIC-P29: natives Fortsetzen braucht ebenfalls einen vorbereiteten
     // Workspace — bei Neuanlage des Worktree läuft das genehmigte Setup
@@ -1363,7 +1495,11 @@ export class SessionManager {
       if (reopened.ok) await this.commitSteer(session, meta, foreignWriter, actor);
       return reopened;
     }
-    if (delivered.kind === "prompt") await this.ensureWorkdir(session);
+    if (delivered.kind === "prompt") {
+      const occupied = this.claimDirectCheckout(session);
+      if (occupied) return { ok: false, detail: occupied };
+      await this.ensureWorkdir(session);
+    }
     const ack = await this.submitAndWait(
       session,
       meta,
@@ -1732,6 +1868,7 @@ export class SessionManager {
         }
       }
       await this.setStatus(session, "stopped");
+      this.checkoutLeases.release(sessionId); // ADR-0057: Stop gibt nur die Lease frei, nie das Projekt
       await this.emitSystem(session, "session.stopped", { actor: actor ?? null });
       this.metrics?.inc("sessions_stopped");
       this.logger.info("session stopped", { sessionId, adapter: session.record.adapter });
@@ -1769,6 +1906,7 @@ export class SessionManager {
         this.logger.warn("worktree removal on delete failed", { sessionId, err: err instanceof Error ? err.message : String(err) });
       }
     }
+    this.checkoutLeases.release(sessionId);
     await this.store.destroySession(sessionId);
     this.queue.clear(sessionId);
     // T17.4: no attempt can settle for a deleted session — its reserved

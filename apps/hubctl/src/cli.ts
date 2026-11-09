@@ -81,11 +81,12 @@ interface SessionRow {
   status: string;
   createdAt: string;
   lastSeq: number;
+  workspaceMode?: string;
 }
 
 function printSession(s: SessionRow): void {
   const short = s.id.slice(0, 8);
-  console.log(`${short}  ${s.status.padEnd(18)} ${s.adapter.padEnd(10)} #${String(s.lastSeq).padEnd(6)} ${s.project}`);
+  console.log(`${short}  ${s.status.padEnd(18)} ${s.adapter.padEnd(10)} ${(s.workspaceMode ?? "unknown").padEnd(8)} #${String(s.lastSeq).padEnd(6)} ${s.project}`);
 }
 
 async function* followWs(sessionId: string): AsyncGenerator<NormalizedEvent> {
@@ -179,6 +180,14 @@ async function main(): Promise<void> {
       const id = args[0] ?? usage();
       const s = await api<SessionRow>(`/api/sessions/${id}`);
       console.log(JSON.stringify(s, null, 2));
+      // ADR-0057: Arbeitsort samt Drift gegen die Start-Baseline (read-only).
+      try {
+        const place = await api<{ mode: string; path: string; drift: { headMoved: boolean; branchChanged: boolean } | null }>(`/api/sessions/${id}/workplace`);
+        const drift = place.drift ? (place.drift.headMoved || place.drift.branchChanged ? " (Drift: HEAD/Branch haben sich seit dem Start bewegt)" : " (kein Drift)") : "";
+        console.log(`workplace: ${place.mode} ${place.path}${drift}`);
+      } catch {
+        // ältere Hubs kennen die Route nicht
+      }
       // ADR-0036 (EPIC-P17 T17.3): the adapter's declared external
       // continuation command — display-only, placeholders stay visible.
       try {

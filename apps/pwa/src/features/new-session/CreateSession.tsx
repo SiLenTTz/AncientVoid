@@ -1,3 +1,4 @@
+import { WorkplaceChoice, type WorkplaceMode } from "./WorkplaceChoice.tsx";
 import { takeHandOver } from "../../shared/media.ts";
 import { takeShareInbox } from "../../app/share-inbox.ts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
@@ -120,6 +121,11 @@ export function CreateSession({
     }
   };
   const [skill, setSkill] = useState<SelectedSkill | null>(null);
+  // EPIC-P38: Arbeitsort — Standard eigener Worktree; „direkt“ nur bewusst gewählt.
+  const [workplace, setWorkplace] = useState<WorkplaceMode>("worktree");
+  const [confirmDirty, setConfirmDirty] = useState(false);
+  const [workplaceBlocked, setWorkplaceBlocked] = useState(false);
+  useEffect(() => setConfirmDirty(false), [project, workplace]);
   // ADR-0018: a model picker only where the harness takes one at start,
   // filled from its catalog when it has one, else free text.
   const features = adapters.find((a) => a.id === adapter)?.capabilities.features;
@@ -251,6 +257,8 @@ export function CreateSession({
             ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
             ...(skill || mode ? { args: { ...(skill ? { [skill.kind]: skill.name } : {}), ...(mode ? { permissionMode: mode } : {}) } } : {}),
             ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
+            // Loops arbeiten immer im Projekt des Loop-Systems — dort gibt es keine Arbeitsort-Wahl.
+            ...(startLoop ? {} : { workspaceMode: workplace, ...(workplace === "direct" && confirmDirty ? { confirmDirty: true } : {}) }),
           });
       localStorage.removeItem(PROMPT_KEY);
       localStorage.setItem(LAST_KEY, JSON.stringify({ host, adapter, project, loop: startLoop }));
@@ -410,11 +418,14 @@ export function CreateSession({
           onSubmit={busy || !project || loopBlock ? undefined : () => void submit()}
         />
       </label>
+      {!loop && project && (
+        <WorkplaceChoice api={api} project={project} mode={workplace} onMode={setWorkplace} confirmDirty={confirmDirty} onConfirmDirty={setConfirmDirty} onBlockedChange={setWorkplaceBlocked} />
+      )}
       {error && <div role="alert" style="color: var(--err)">{error}</div>}
       {!loop && <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />}
       {loopBlock && loop && <div class="loop-block warn" role="alert">{loopBlock}</div>}
       {onboardNote && <div class="dim loop-note" role="status">{onboardNote}</div>}
-      <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy || !project || !!loopBlock}>
+      <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy || !project || !!loopBlock || (!loop && workplaceBlocked)}>
         {busy ? "lädt…" : "Starten"}
       </button>
     </div>

@@ -445,6 +445,24 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 30,
+    name: "session-workspace-mode",
+    // EPIC-P38 T38.1 (ADR-0057): belegter Arbeitsort je Session. Migrationsregel:
+    // ein gesetzter worktree_sha belegt "worktree"; alles andere bleibt NULL
+    // (= "unknown", sichtbarer Klärungsbedarf) — nichts wird geraten.
+    sql: `
+      ALTER TABLE sessions ADD COLUMN workspace_mode TEXT;
+      ALTER TABLE sessions ADD COLUMN workspace_baseline TEXT;
+      UPDATE sessions SET workspace_mode = 'worktree' WHERE worktree_sha IS NOT NULL;
+      CREATE TABLE checkout_leases (
+        checkout_id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        generation INTEGER NOT NULL,
+        acquired_at TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {
