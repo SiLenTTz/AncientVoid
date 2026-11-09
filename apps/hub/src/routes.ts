@@ -19,6 +19,7 @@ import { registerFactoryRoutes } from "./modules/factory/factory.routes.ts";
 import { registerCommandRoutes } from "./modules/commands/commands.routes.ts";
 import { registerReviewsRoutes } from "./modules/reviews/reviews.routes.ts";
 import { registerForgeRoutes } from "./modules/forge/forge.routes.ts";
+import { registerBrowserRoutes } from "./modules/browser/browser.routes.ts";
 
 /** Composition of every module's HTTP routes (ADR-0020). */
 export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
@@ -42,4 +43,5 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
   registerCommandRoutes(app, ctx, deps.assistantModel ? { model: deps.assistantModel } : {});
   registerReviewsRoutes(app, ctx);
   registerForgeRoutes(app, ctx);
+  registerBrowserRoutes(app, ctx);
 }

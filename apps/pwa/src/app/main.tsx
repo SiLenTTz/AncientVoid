@@ -18,6 +18,7 @@ import { getHubStatus } from "../features/shell/hub-status.ts";
 import { ToolPane } from "../features/shell/ToolPane.tsx";
 import { rememberSession } from "../features/shell/last-session.ts";
 import { FilesLayer } from "../features/files/FilesLayer.tsx";
+import { BrowserLayer } from "../features/browser/BrowserLayer.tsx";
 import { RestoreBar } from "../features/windows/RestoreBar.tsx";
 import { PopoutShell } from "../features/windows/PopoutShell.tsx";
 import type { DropPoint } from "../features/windows/drag.ts";
@@ -371,6 +372,7 @@ function Main() {
             )}
           </section>
           <FilesLayer wide focusedSessionId={visibleTiles(ws)[ws.focus]?.sessionId ?? null} />
+          <BrowserLayer focusedSessionId={visibleTiles(ws)[ws.focus]?.sessionId ?? null} />
           <StatusBar focused={visibleTiles(ws)[ws.focus] ?? null} onOpenApprovals={() => (location.hash = pageHash("approvals"))} />
         </div>
       ) : route.view === "list" ? (
@@ -399,6 +401,7 @@ function Main() {
         />
       )}
       {!wide && <FilesLayer wide={false} focusedSessionId={route.view === "tail" ? route.session.id : null} />}
+      {!wide && <BrowserLayer focusedSessionId={route.view === "tail" ? route.session.id : null} />}
     </>
   );
 }

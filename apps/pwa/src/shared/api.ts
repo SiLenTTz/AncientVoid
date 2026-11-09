@@ -1,4 +1,4 @@
-import type { DiagnosticsResult, FileMeta, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DiagnosticsResult, FileMeta, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -973,6 +973,29 @@ function createHubApi(P: (path: string) => string) {
     api<FileRange>(
       P(`/api/code/range?${target}&path=${encodeURIComponent(path)}&offset=${opts.offset}${opts.length ? `&length=${opts.length}` : ""}&rev=${opts.rev}&as=${opts.as}${opts.encoding ? `&encoding=${opts.encoding}` : ""}`),
     ),
+  /** EPIC-P39 (ADR-0059): Browser-Arbeitsplatz einer Session (lokal auf dem Host der Session). */
+  browserStatus: (id: string) => api<BrowserStatus>(P(`/api/sessions/${id}/browser`)),
+  browserOpen: (id: string, url?: string) => api<BrowserStatus>(P(`/api/sessions/${id}/browser/open`), { method: "POST", body: JSON.stringify(url ? { url } : {}) }),
+  browserAction: (id: string, action: BrowserAction) => api<BrowserStatus>(P(`/api/sessions/${id}/browser/action`), { method: "POST", body: JSON.stringify({ action }) }),
+  browserClose: (id: string) => api<BrowserStatus>(P(`/api/sessions/${id}/browser/close`), { method: "POST", body: "{}" }),
+  /** Standbild als Object-URL (Token im Header); `null` = Browser nicht offen. */
+  browserFrame: async (id: string): Promise<string | null> => {
+    const res = await fetch(P(`/api/sessions/${id}/browser/frame`), { headers: { authorization: `Bearer ${getToken()}` }, cache: "no-store" });
+    if (res.status === 204) return null;
+    if (!res.ok) throw new Error(`${res.status}`);
+    return URL.createObjectURL(await res.blob());
+  },
+  browserBlobUrl: async (path: string): Promise<string> => {
+    const res = await fetch(P(path), { headers: { authorization: `Bearer ${getToken()}` } });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return URL.createObjectURL(await res.blob());
+  },
+  browserTests: (id: string) => api<{ runs: BrowserTestRun[] }>(P(`/api/sessions/${id}/browser/tests`)),
+  browserRunTest: (id: string, test: BrowserTestCase) => api<BrowserTestRun>(P(`/api/sessions/${id}/browser/tests`), { method: "POST", body: JSON.stringify({ test }) }),
+  browserAbortTest: (id: string, runId: string) => api<{ ok: boolean }>(P(`/api/sessions/${id}/browser/tests/${runId}/abort`), { method: "POST", body: "{}" }),
+  browserPick: (id: string, x: number, y: number) => api<BrowserPick>(P(`/api/sessions/${id}/browser/pick`), { method: "POST", body: JSON.stringify({ x, y }) }),
+  browserFeedbackPreview: (id: string, input: BrowserFeedbackInput) => api<{ prompt: string; screenshot: boolean }>(P(`/api/sessions/${id}/browser/feedback/preview`), { method: "POST", body: JSON.stringify(input) }),
+  browserFeedbackSend: (id: string, input: BrowserFeedbackInput) => api<{ ok: boolean }>(P(`/api/sessions/${id}/browser/feedback/send`), { method: "POST", body: JSON.stringify(input) }),
   /** Byte-Offset des Anfangs von Zeile `line` (Revision-gebunden). */
   codeLine: (target: string, path: string, line: number, rev: string) =>
     api<{ revision: string; offset: number; line: number }>(P(`/api/code/line?${target}&path=${encodeURIComponent(path)}&line=${line}&rev=${rev}`)),

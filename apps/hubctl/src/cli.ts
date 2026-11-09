@@ -64,6 +64,8 @@ Usage:
   hubctl workspace logs <sessionId> <serviceId>     Service-Logs (gekürzter Schwanz)
   hubctl workspace retry <sessionId>                menschlicher Retry nach fehlgeschlagenem Setup
   hubctl workspace preview <sessionId> <serviceId>  Preview-URL mit 5-Minuten-Ticket
+  hubctl browser <sessionId>                        Browser-Status/Ziele/Console (EPIC-P39, nur Lesen)
+  hubctl browser tests <sessionId>                  Testläufe mit Status (EPIC-P39)
   hubctl backup create --config <hub.config.json> --out <file> --key-file <file>
   hubctl backup restore --archive <file> --data-dir <empty-dir> --config-out <file> --key-file <file>
   hubctl backup prune --dir <archive-dir> --keep <count> [--apply]   preview unless --apply
@@ -311,6 +313,21 @@ async function main(): Promise<void> {
     case "workspace": {
       const { runWorkspace } = await import("./workspace.ts");
       await runWorkspace(args);
+      break;
+    }
+    case "browser": {
+      // EPIC-P39: nur lesen — Bedienen und Testen sind Menschen-Aktionen der PWA (Policy, ADR-0059).
+      if (args[0] === "tests") {
+        const id = args[1] ?? usage();
+        const { runs } = await api<{ runs: { id: string; name: string; state: string; viewport: string; startedAt: string; note: string | null }[] }>(`/api/sessions/${id}/browser/tests`);
+        if (runs.length === 0) console.log("keine Testläufe");
+        for (const r of runs) console.log(`${r.id.slice(0, 8)} ${r.state.padEnd(9)} ${r.viewport.padEnd(8)} ${r.startedAt} ${r.name}${r.note ? ` — ${r.note}` : ""}`);
+        break;
+      }
+      const id = args[0] ?? usage();
+      const st = await api<{ state: string; url: string | null; viewport: string; allowedOrigins: string[]; unavailableReason: string | null; log: unknown[] }>(`/api/sessions/${id}/browser`);
+      console.log(`browser: ${st.state}${st.unavailableReason ? ` (${st.unavailableReason})` : ""} url=${st.url ?? "-"} viewport=${st.viewport} console=${st.log.length}`);
+      console.log(`ziele: ${st.allowedOrigins.join(", ") || "keine (kein laufender Workspace-Service, keine browserOrigins)"}`);
       break;
     }
     case "workers": {

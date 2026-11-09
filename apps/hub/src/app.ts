@@ -4,7 +4,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore } from "@ancientvoid/core";
+import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
 import { discoverProjects, FleetStore } from "@ancientvoid/core";
 import type { HubMetrics, DiscoverySource } from "@ancientvoid/contracts";
@@ -52,6 +52,8 @@ export interface HubAppDeps {
   reviews?: ReviewStore;
   /** EPIC-P46 (ADR-0058 §9): Projekt-Freigaben für Diagnose-Prüfer. */
   trust?: ProjectTrustStore;
+  /** EPIC-P39 (ADR-0059): Browser-Arbeitsplatz. */
+  browser?: BrowserService;
   /** EPIC-P37 (ADR-0056): Forge-Dienst — ohne Angabe ehrliche Abschaltung. */
   forge?: ForgeService;
   /** T2.4: optional, mirrors SessionManager's own optional approvals —

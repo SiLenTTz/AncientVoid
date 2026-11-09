@@ -78,3 +78,19 @@
 .nb-cell { margin: 8px 0; border-left: 3px solid var(--bg-chip); padding-left: 8px; }
 .nb-img, .file-media { max-width: 100%; height: auto; }
 .file-html { width: 100%; height: 60vh; border: 1px solid var(--bg-chip); background: #fff; }
+
+/* EPIC-P39 (ADR-0059): Browser-Arbeitsplatz */
+.browser-toggle { position: fixed; right: 0; top: 62%; z-index: 30; writing-mode: vertical-rl; padding: 10px 4px; border: 1px solid var(--bg-chip); border-right: 0; border-radius: var(--radius-sm) 0 0 var(--radius-sm); background: var(--bg-card, #1a1a1a); color: var(--fg); cursor: pointer; }
+.browser-panel { position: fixed; z-index: 61; right: 0; bottom: 0; top: 4dvh; width: min(760px, 100vw); display: flex; flex-direction: column; gap: 6px; padding: 8px; overflow: auto; border: 1px solid var(--bg-chip); border-radius: 12px 0 0 0; background: var(--bg-card, #151515); }
+.browser-head, .browser-bar, .browser-tools, .browser-tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.browser-head .chip { margin-left: auto; }
+.browser-url { display: flex; gap: 6px; flex: 1 1 260px; }
+.browser-url input, .browser-type input { flex: 1 1 auto; min-width: 0; }
+.browser-type { display: flex; gap: 6px; }
+.browser-frame { width: 100%; height: auto; border: 1px solid var(--bg-chip); cursor: pointer; background: #fff; }
+.browser-frame.picking { cursor: crosshair; outline: 2px solid var(--accent, #7aa2f7); }
+.browser-pick { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--bg-chip); border-radius: var(--radius-sm); }
+.browser-log, .browser-runs { list-style: none; margin: 0; padding: 0; }
+.browser-log li, .browser-runs > li { padding: 3px 0; border-bottom: 1px solid var(--bg-chip); font-size: 0.88em; word-break: break-word; }
+.log-blocked, .run-failed { color: var(--err, #f7768e); } .run-passed { color: var(--ok, #9ece6a); } .run-unknown, .run-aborted { color: var(--warn, #e0af68); }
+.browser-test-editor { width: 100%; font-size: 0.82em; }

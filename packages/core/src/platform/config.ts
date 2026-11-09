@@ -97,6 +97,9 @@ export const HubConfig = z.object({
   /** ADR-0044: opt-in; also requires the adapter resume.auto declaration. */
   autoResumeInterrupted: z.boolean().default(false),
   steerWaitMs: z.number().int().min(100).max(600_000).default(30_000),
+  /** EPIC-P39 (ADR-0059): zusätzliche Test-Origins für den Browser-Arbeitsplatz (z. B. "http://127.0.0.1:5173");
+   * Standardziele sind nur die registrierten Workspace-Services der Session. */
+  browserOrigins: z.array(z.string().url()).max(20).default([]),
   /** T7.10: local OCR — a tessdata dir with extra languages (e.g. deu),
    * set up by scripts/setup-ocr.sh without root. */
   ocr: z.object({ tessdataDir: z.string().optional() }).default({}),
