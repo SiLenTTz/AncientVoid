@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Page } from "@playwright/test";
 import { test, expect } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
 
@@ -30,7 +31,7 @@ async function startRun(hub: TestHub, project: string): Promise<{ driver: string
 const setProgress = (project: string, value: Record<string, unknown>) => writeFileSync(join(project, ".factory", "stand-in.json"), JSON.stringify(value));
 
 test.describe("Factory-Onboarding (AC-P26-1)", () => {
-  async function openForm(app: import("@playwright/test").Page, project: string) {
+  async function openForm(app: Page, project: string) {
     await app.getByRole("button", { name: "Neue Session" }).click();
     await app.locator(".form-grid > label").first().locator("select").selectOption(project);
     await app.getByLabel("Loop", { exact: true }).selectOption("securesight-factory");
