@@ -79,14 +79,14 @@ Weitere Provider: dort ergänzen, den Schlüssel in `~/.dsh/.env` ablegen; sie e
 Sie sind im Hub eigene Adapter (`claude`, `codex`, `cursor`, `copilot`) und am Handy wie am PC verfügbar,
 aber nicht als Provider in `dst`.
 
-Ein Befehls-Framework ohne eigenes Binary (z. B. der SecureSight-Harnez,
+Ein Befehls-Framework ohne eigenes Binary (z. B. der SecureSight-Factory,
 der als Slash-Commands in Claude-Code/opencode-Sessions lebt) wird als
 eigene opencode-Instanz registriert — mit Default-Modell und damit
 Modell-Dropdown im Startformular:
 
 ```json
-{ "id": "securesight-harnez", "module": "@ancientvoid/adapter-acp",
-  "config": { "preset": "opencode", "label": "SecureSight Harnez", "model": "zai-coding-plan/glm-5.3" } }
+{ "id": "securesight-factory", "module": "@ancientvoid/adapter-acp",
+  "config": { "preset": "opencode", "label": "SecureSight Factory", "model": "zai-coding-plan/glm-5.3" } }
 ```
 
 `model` ist der Default (im Dropdown vorausgewählt und markiert, läuft bei

@@ -50,7 +50,7 @@ describe.skipIf(!hasPython)("securesight-Connector gegen ein Temp-Projekt (T19.5
     writeFileSync(join(root, ".harness", "notify", "20261028T090000-2.json"), JSON.stringify({ schema_version: "1", escalation_level: "2", reason_ref: "gates-rot", at: "2026-10-28T09:00:00Z", run_id: "r1" }));
     const { ctx, connector, handle } = await connect();
     expect(of(ctx, "loop.info")[0]).toMatchObject({ mode: "autonom", iteration: "it-4", iterationStatus: "running", watchdog: "läuft" });
-    expect(of(ctx, "loop.progress")).toEqual(expect.arrayContaining([expect.objectContaining({ gate: { name: "gates", state: "passed", detail: "2026-10-28T09:00:00Z" } }), expect.objectContaining({ source: "harnez", done: 3, total: 8, phase: "bauen", feature: "S-2", step: "T-5" })]));
+    expect(of(ctx, "loop.progress")).toEqual(expect.arrayContaining([expect.objectContaining({ gate: { name: "gates", state: "passed", detail: "2026-10-28T09:00:00Z" } }), expect.objectContaining({ source: "factory", done: 3, total: 8, phase: "bauen", feature: "S-2", step: "T-5" })]));
     expect(of(ctx, "loop.notify")[0]).toMatchObject({ level: "2", reason: "gates-rot", run: "r1" });
     expect(await connector.status(handle)).toEqual({ state: "healthy" });
     await connector.stop(handle, ctx);
@@ -82,7 +82,7 @@ describe.skipIf(!hasPython)("securesight-Connector gegen ein Temp-Projekt (T19.5
     mkdirSync(join(root, ".factory"));
     writeFileSync(join(root, ".factory", "progress.json"), JSON.stringify({ schema_version: "1", total: 4, done: 1, now: { story: "S-1", task: "T-1", phase: "planen" } }));
     const neu = await connect();
-    expect(of(neu.ctx, "loop.progress").find((p) => p.source === "harnez")).toMatchObject({ done: 1, total: 4, phase: "planen" });
+    expect(of(neu.ctx, "loop.progress").find((p) => p.source === "factory")).toMatchObject({ done: 1, total: 4, phase: "planen" });
     await neu.connector.stop(neu.handle, neu.ctx);
   });
 

@@ -154,7 +154,7 @@ const obj = (x: unknown): Record<string, unknown> => (typeof x === "object" && x
 const compact = <T extends Record<string, unknown>>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 
 /**
- * ADR-0038: beobachtet EIN securesight-harnez-Projekt (Option `project` = Projektwurzel). Der Hub liest nur:
+ * ADR-0038: beobachtet EIN securesight-factory-Projekt (Option `project` = Projektwurzel). Der Hub liest nur:
  * `scripts/betrieb.py supervisor-status --json`, `.harness/notify`, `.harness/transcript`, `.factory/progress.json` (früher `.harnez/`)
  * und bei Orchestrator `hermes` den Zustand unter `~/.hermes/ralph`. Er schreibt nichts in das Projekt
  * (der Supervisor darf nur lesen und eskalieren; Fortsetzen bleibt Sache der Person).
@@ -317,7 +317,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
     if (v.schema_version !== "1") return broken(run, ctx, "progress", `progress.json: Schema ${String(v.schema_version)} statt 1`);
     const now = obj(v.now);
     const payload = compact({ done: n(v.done), total: n(v.total), phase: s(now.phase, 40), feature: s(now.story, 100), step: s(now.task, 100) });
-    if (changed(run, "progress", payload)) note(ctx, "loop.progress", `${payload.done ?? 0} von ${payload.total ?? 0} Aufgaben${payload.phase ? ` · ${payload.phase}` : ""}`, { source: "harnez", ...payload });
+    if (changed(run, "progress", payload)) note(ctx, "loop.progress", `${payload.done ?? 0} von ${payload.total ?? 0} Aufgaben${payload.phase ? ` · ${payload.phase}` : ""}`, { source: "factory", ...payload });
   }
 
   async function pollHermes(run: Run, ctx: AdapterContext): Promise<void> {
@@ -557,7 +557,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
         return { ok: true };
       };
       return await new Promise((resolve) => {
-        execFile(factoryBin, ["init", "--root", root, "--modus", modus, "--provider", provider, ...(prd ? ["--from-prd", prd] : [])], { timeout: 120_000, maxBuffer: 1024 * 1024, signal }, (err, stdout, stderr) => {
+        execFile(factoryBin, ["init", "--root", root, ...(input.options.reconfigure === "1" ? ["--reconfigure"] : []), "--modus", modus, "--provider", provider, ...(prd ? ["--from-prd", prd] : [])], { timeout: 120_000, maxBuffer: 1024 * 1024, signal }, (err, stdout, stderr) => {
           if (signal.aborted) return resolve({ ok: false, detail: "abgebrochen" });
           const exit = err ? (typeof (err as { code?: unknown }).code === "number" ? (err as { code: number }).code : -1) : 0;
           if (exit !== 0) return resolve({ ok: false, detail: (stderr || (err instanceof Error ? err.message : "") || stdout || `Exit ${exit}`).trim().slice(0, 300) });
@@ -574,7 +574,7 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
           const lines = Array.isArray(doc.checkliste) ? doc.checkliste.filter((l): l is string => typeof l === "string") : [];
           const ready = lines.some((l) => l.startsWith("ready:"));
           const modellDetail = modellProvider && modellName ? ` · modell: ${modellName} (${modellProvider}) für alle Stufen — policies/modell-routing.json` : "";
-          resolve({ ok: true, options: { anbindung: "bestehend" }, detail: `${lines.join(" · ").slice(0, 400)}${ready ? "" : " · noch nicht bereit"}${modellDetail}` });
+          resolve({ ok: true, ready, options: { anbindung: "bestehend" }, detail: `${lines.join(" · ").slice(0, 400)}${ready ? "" : " · noch nicht bereit"}${modellDetail}` });
         });
       });
     },

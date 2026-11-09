@@ -24,13 +24,18 @@ export function LoopPanel({
   disabled,
   api,
   onError,
+  factory,
+  hostId,
 }: {
   sessionId: string;
   adapter: string;
   view: LoopView;
   disabled: boolean;
-  api: Pick<typeof hubApi, "loops" | "steer">;
+  api: Pick<typeof hubApi, "loops" | "steer" | "session" | "factoryCommand">;
   onError: (message: string) => void;
+  /** EPIC-P26: Verknüpfung dieser Session mit dem Factory-Treiber, aus `factory.linkage` gelesen. */
+  factory?: { role: string; partner: string } | null;
+  hostId?: string | null;
 }) {
   const loopId = adapter.replace(/^loop:/, "");
   const [info, setInfo] = useState<LoopInfo | null>(null);
@@ -46,6 +51,31 @@ export function LoopPanel({
   }, [api, loopId]);
 
   const caps = info?.capabilities ?? null;
+  // Treiber-Status wird gelesen, nicht geraten: endet nur der Treiber, darf der Beobachter nicht „läuft“ zeigen.
+  const driverId = factory?.role === "observer" ? factory.partner : null;
+  const [driverStatus, setDriverStatus] = useState<string | null>(null);
+  useEffect(() => {
+    if (!driverId) return;
+    let live = true;
+    const read = () => api.session(driverId).then((r) => live && setDriverStatus(r.status)).catch(() => live && setDriverStatus(null));
+    void read();
+    const timer = setInterval(() => void read(), 5000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [api, driverId]);
+  const driverEnded = driverStatus !== null && ["stopped", "error", "interrupted"].includes(driverStatus);
+  const [modus, setModus] = useState<"a" | "b">("b");
+  const [provider, setProvider] = useState<"anthropic" | "zai">("anthropic");
+  const [busy, setBusy] = useState(false);
+  const command = async (body: Parameters<typeof api.factoryCommand>[1], question?: string) => {
+    if (question && !confirm(question)) return;
+    setBusy(true);
+    const ack = await api.factoryCommand(sessionId, body);
+    setBusy(false);
+    if (!ack.ok) onError(ack.detail ?? "Der Befehl wurde abgelehnt.");
+  };
   const send = async (input: Parameters<typeof api.steer>[1]) => {
     try {
       const ack = await api.steer(sessionId, input);
@@ -76,6 +106,79 @@ export function LoopPanel({
       {view.hold && (
         <div class="loop-alert warn" role="status">
           Der Loop wartet auf eine Person: {view.hold}
+        </div>
+      )}
+      {factory && (
+        <div class="loop-factory" aria-label="Factory-Projekt">
+          <div>
+            Verknüpfung:{" "}
+            {driverId ? (
+              <>
+                Treiber{" "}
+                <a href={`#/${hostId ? `hosts/${encodeURIComponent(hostId)}/` : ""}sessions/${encodeURIComponent(driverId)}`}>öffnen</a>
+                {" · "}
+                <span class={driverEnded ? "gate-failed" : "gate-passed"}>{driverStatus === null ? "Status unbekannt" : driverEnded ? "Treiber beendet" : "Treiber läuft"}</span>
+              </>
+            ) : (
+              "Treiber-Session"
+            )}
+          </div>
+          {driverEnded && (
+            <div class="loop-alert warn" role="status">
+              Der Treiber ist beendet — der Lauf geht nicht weiter. Der Fortschritt unten ist der letzte gemeldete Stand, kein „fertig“.
+            </div>
+          )}
+          <div>
+            Intake:{" "}
+            {view.intake ? (
+              <>
+                {view.intake.status ?? "unbekannt"} · {view.intake.ready ? "ausführungsbereit" : "noch nicht ausführungsbereit"}
+                {view.intake.next ? ` · nächste Aktion: ${view.intake.next}` : ""}
+              </>
+            ) : (
+              "noch nicht gemeldet"
+            )}
+          </div>
+          {view.lauf && (
+            <div>
+              Lauf: {view.lauf.task ?? "?"} · Phase {view.lauf.phase ?? "?"}
+            </div>
+          )}
+          <div class="loop-controls">
+            <button class="btn" type="button" disabled={busy} onClick={() => void command({ command: "resume" })}>
+              Fortsetzen
+            </button>
+            <button class="btn" type="button" disabled={busy} onClick={() => void command({ command: "end_run" }, "Lauf beenden? Treiber und Beobachter werden gestoppt.")}>
+              Lauf beenden
+            </button>
+            <label>
+              Betriebsart
+              <select aria-label="Betriebsart der Factory" value={modus} onChange={(e) => setModus((e.target as HTMLSelectElement).value as "a" | "b")}>
+                <option value="b">b</option>
+                <option value="a">a — merged automatisch (Außenwirkung)</option>
+              </select>
+            </label>
+            <label>
+              Provider
+              <select aria-label="Provider der Factory" value={provider} onChange={(e) => setProvider((e.target as HTMLSelectElement).value as "anthropic" | "zai")}>
+                <option value="anthropic">Anthropic</option>
+                <option value="zai">Z.ai</option>
+              </select>
+            </label>
+            <button
+              class="btn"
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void command(
+                  { command: "set_mode", modus, provider, ...(modus === "a" ? { confirm: true } : {}) },
+                  modus === "a" ? "Betriebsart „a“ merged automatisch, ohne dass ein Mensch freigibt. Wirklich wechseln?" : undefined,
+                )
+              }
+            >
+              Betriebsart setzen
+            </button>
+          </div>
         </div>
       )}
       {p && (
@@ -113,6 +216,7 @@ export function LoopPanel({
           {view.notices.map((n, i) => (
             <li key={i}>
               Eskalation {n.level}: {n.reason}
+              {n.fundstelle ? ` (${n.fundstelle})` : ""}
             </li>
           ))}
         </ul>

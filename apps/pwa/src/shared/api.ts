@@ -976,6 +976,14 @@ function createHubApi(P: (path: string) => string) {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  /** T26.6: feste Allowlist (end_run, resume, set_mode); Betriebsart `a` braucht `confirm`. */
+  factoryCommand: async (id: string, body: { command: "end_run" | "resume" | "set_mode"; modus?: "a" | "b"; provider?: "anthropic" | "zai"; confirm?: boolean }): Promise<{ ok: boolean; detail?: string }> => {
+    try {
+      return await api<{ ok: boolean; detail?: string }>(P(`/api/factory/${id}/command`), { method: "POST", body: JSON.stringify(body) });
+    } catch (err) {
+      return { ok: false, detail: err instanceof Error ? err.message : "Befehl fehlgeschlagen" };
+    }
+  },
   // Real, serious bug found live-testing T3.10's voice-stop directive:
   // this sent no body at all, but api()'s content-type: application/json
   // header is unconditional — Fastify rejects that combination with a

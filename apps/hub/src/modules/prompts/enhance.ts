@@ -272,7 +272,7 @@ export function parseDshEnhanceOutput(stdout: string): Omit<EnhanceResult, "late
 
 /** Which one-shot enhancer a registration can use, derived from the
  * registry (module + config), not from a hardcoded adapter id — ids are
- * free-form in hub.config.json ("deepseek", "securesight-harnez", …),
+ * free-form in hub.config.json ("deepseek", "securesight-factory", …),
  * BUG-0061. */
 export type EnhanceFlavor = "claude" | "codex" | "opencode" | "dsh";
 

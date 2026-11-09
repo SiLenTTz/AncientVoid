@@ -16,6 +16,15 @@ const DRIVER_ADAPTER = "claude";
  * Ereignis auf beiden Sessions. Scheitert der Beobachter, wird der Treiber
  * wieder beendet — kein halbgareller Lauf. Policy `factory.start`: nur Menschen.
  */
+/** T26.6 / ADR-0043 §Steuerung: feste Allowlist, nur Menschen (Policy `factory.control`). */
+const FACTORY_COMMANDS = ["end_run", "resume", "set_mode"] as const;
+type FactoryCommand = (typeof FACTORY_COMMANDS)[number];
+/** Betriebsart mit Außenwirkung: `a` merged automatisch (docs/factory-schnittstelle.md). */
+const RISKY_MODUS = "a";
+const REFUSED: Record<string, string> = {
+  notify_ack: "notify-ack gibt es nur im Modus repo (betrieb.py) und ist im Projektmodus nicht angebunden",
+};
+
 export function registerFactoryRoutes(app: FastifyInstance, ctx: RouteContext): void {
   const starting = new Set<string>();
   const { deps, hostId, projectRoots, catalogRootFor, callerLabel } = ctx;
@@ -85,5 +94,67 @@ export function registerFactoryRoutes(app: FastifyInstance, ctx: RouteContext): 
     } finally {
       starting.delete(root);
     }
+  });
+  /** Verknüpfung (Treiber ↔ Beobachter) aus dem JSONL lesen (K7) — nie aus dem Speicher geraten. */
+  async function linkageOf(id: string): Promise<{ driver: string; observer: string } | null> {
+    const events = await deps.sessions.tail(id, 0, 200);
+    for (const e of events) {
+      const p = e.payload as { kind?: string; factory?: { role?: string; partner?: string } };
+      if (p.kind !== "factory.linkage" || typeof p.factory?.partner !== "string") continue;
+      return p.factory.role === "driver" ? { driver: id, observer: p.factory.partner } : { driver: p.factory.partner, observer: id };
+    }
+    return null;
+  }
+
+  app.post<{ Params: { id: string }; Body: { command?: unknown; confirm?: unknown; modus?: unknown; provider?: unknown } }>("/api/factory/:id/command", async (req, reply) => {
+    const { id } = req.params;
+    const { command, confirm, modus, provider } = req.body ?? {};
+    if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
+    const actor = callerLabel(req) ?? "unbekannt";
+    const link = await linkageOf(id);
+    if (!link) return reply.code(422).send({ error: "Diese Session gehört zu keinem Factory-Lauf" });
+    const audit = (outcome: string, detail?: string) =>
+      Promise.all(
+        [link.driver, link.observer].map((sid) =>
+          deps.sessions.recordHubEvents(sid, [
+            { type: "system", summary: `Factory-Befehl ${String(command)}: ${outcome}`, payload: { kind: "factory.command", factory: { command: String(command).slice(0, 40), actor, outcome, ...(detail ? { detail: detail.slice(0, 200) } : {}) } } },
+          ]),
+        ),
+      ).then(() => undefined);
+
+    if (typeof command !== "string" || !(FACTORY_COMMANDS as readonly string[]).includes(command)) {
+      const reason = (typeof command === "string" && REFUSED[command]) || "Befehl nicht in der Allowlist (end_run, resume, set_mode)";
+      await audit("abgelehnt", reason);
+      return reply.code(422).send({ error: reason });
+    }
+    const cmd = command as FactoryCommand;
+
+    if (cmd === "end_run") {
+      // Beide Sessions: endet nur der Treiber, zeigte der Beobachter sonst einen Lauf, den es nicht mehr gibt.
+      const acks = await Promise.all([link.driver, link.observer].map((sid) => deps.sessions.stop(sid, actor).catch((err: unknown) => ({ ok: false, detail: err instanceof Error ? err.message : String(err) }))));
+      const failed = acks.filter((a) => !a.ok);
+      await audit(failed.length ? "teilweise" : "ok", failed.map((a) => a.detail).join("; "));
+      return reply.code(failed.length === acks.length ? 422 : 200).send({ ok: failed.length === 0, ...(failed.length ? { detail: failed.map((a) => a.detail).join("; ") } : {}) });
+    }
+
+    if (cmd === "resume") {
+      const ack = await deps.sessions.steer(link.driver, { kind: "prompt", text: "/factory" }, actor).catch((err: unknown) => ({ ok: false, detail: err instanceof Error ? err.message : String(err) }));
+      await audit(ack.ok ? "ok" : "fehlgeschlagen", ack.detail);
+      return reply.code(ack.ok ? 200 : 422).send(ack);
+    }
+
+    // set_mode: nur Projektmodus — `factory init --reconfigure`, der Hub schreibt selbst nichts ins Projekt.
+    if (modus !== "a" && modus !== "b") return reply.code(400).send({ error: "modus a oder b fehlt" });
+    if (provider !== "anthropic" && provider !== "zai") return reply.code(400).send({ error: "provider anthropic oder zai fehlt" });
+    if (modus === RISKY_MODUS && confirm !== true) {
+      await audit("bestätigung fehlt", `modus ${modus}`);
+      return reply.code(409).send({ error: "Betriebsart a merged automatisch (Außenwirkung) und braucht eine Bestätigung", needsConfirm: true });
+    }
+    const observer = deps.sessions.get(link.observer);
+    const connector = ctx.loops.connector(FACTORY_LOOP);
+    if (!observer || !connector?.onboard) return reply.code(422).send({ error: "Der Beobachter-Loop kann nicht rekonfiguriert werden" });
+    const result = await connector.onboard({ options: { root: observer.project, modus, provider, reconfigure: "1" } }, AbortSignal.timeout(120_000));
+    await audit(result.ok ? "ok" : "fehlgeschlagen", `modus ${modus}${result.detail ? ` · ${result.detail}` : ""}`);
+    return reply.code(result.ok ? 200 : 422).send(result);
   });
 }

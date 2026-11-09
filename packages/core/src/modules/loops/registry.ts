@@ -7,7 +7,7 @@ import type { LoopConnector, LoopInfo, LoopOption, LoopSpec, LoopStartSpec } fro
  */
 const CATALOG: readonly Pick<LoopInfo, "id" | "label" | "description" | "transport">[] = [
   { id: "aspark-factory", label: "aSPARK-Factory", description: "Docker-Lines mit MQTT-Leitstand, Betriebsart dark = Dark Factory.", transport: "mqtt" },
-  { id: "securesight-factory", label: "securesight-factory", description: "Harnez-Loop-Runner mit Watchdog (Adapter securesight-harnez), Orchestrator wählbar.", transport: "cli" },
+  { id: "securesight-factory", label: "securesight-factory", description: "Factory-Loop mit Watchdog (Repo-Modus) und Projektmodus über die factory-CLI, Orchestrator wählbar.", transport: "cli" },
 ];
 
 export const NOT_CONFIGURED_REASON = "nicht eingerichtet — Eintrag in loops[] von hub.config.json fehlt (docs/loops.md)";

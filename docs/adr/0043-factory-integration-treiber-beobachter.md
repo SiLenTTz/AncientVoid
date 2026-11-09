@@ -104,3 +104,16 @@ gemeldtem `ready` (REQ-3001). Der Hub setzt weder Trust noch Berechtigungen.
 - Tests: Policy-Test (Agent 403, auch kein Antrag), Recovery-Test
   (Hub-Neustart, beide Sessions + Verknüpfung < 3 s, AC-P26-6),
   Allowlist-Ablehnung laut, Audit-Event bei jedem Befehl.
+
+## Nachtrag 2026-11-09 (Umsetzung T26.5–T26.10)
+
+- **Steuerung:** `POST /api/factory/:id/command` mit der Allowlist `end_run`, `resume`, `set_mode`; Betriebsart `a` nur mit
+  `confirm: true`; `notify_ack` bleibt dem Modus `repo` vorbehalten und wird im Projektmodus abgelehnt. Audit als
+  `factory.command` auf beiden Sessions, auch bei Ablehnung. `set_mode` nutzt `onboard()` mit der Option `reconfigure`
+  (`factory init --reconfigure`); der Hub schreibt selbst nichts ins Projekt.
+- **Contract (additiv):** `LoopOnboardResult` (ok) trägt optional `ready`. `false` heißt: eingerichtet, aber nicht bereit —
+  die Oberfläche startet dann keinen Lauf. Fehlt das Feld, ändert sich nichts (aSPARK).
+- **Abweichung zu „Konsequenzen“:** „Treiber beendet“ wird nicht als eigenes Loop-Ereignis signalisiert, sondern vom Panel aus dem
+  persistierten Status der verknüpften Treiber-Session gelesen (alle 5 s). Der Zustand ist damit aus dem JSONL rekonstruierbar
+  (K7), ohne Core → Loop-Adapter-Kanal.
+- **Nicht umgesetzt:** Fähigkeitsabfrage `factory capabilities` (Factory-Wunsch 1) — die Harness-Wahl bleibt ausgeblendet (AC-P26-9).

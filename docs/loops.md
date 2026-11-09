@@ -105,3 +105,21 @@ Betriebsart mit Außenwirkung wird vorher bestätigt. Fragen des Loops erscheine
 
 `loop.hold`, `loop.broken` und `loop.notify` lösen zusätzlich eine Benachrichtigung aus (Glocke und Push).
 
+## securesight-factory im Projektmodus und Steuerung (EPIC-P26, ADR-0043)
+
+- **Zwei Sessions, ein Lauf:** „Lauf starten“ (`POST /api/factory/start`) legt einen **Treiber** (Claude/maki, erster
+  Prompt `/factory <Auftrag>`) und den **Beobachter** (Loop `securesight-factory`, Modus `project`) an. Die Verknüpfung steht
+  als `factory.linkage` auf beiden Sessions (JSONL, K7). Der Beobachter liest nur (`factory progress show`,
+  `.factory/lauf-status.json`, Fehlerbelege, Intake) und schreibt nichts ins Projekt.
+- **Anzeige:** Das Loop-Panel der Beobachter-Session zeigt Verknüpfung (Treiber läuft/beendet), Intake-Zustand
+  (ausführungsbereit oder nicht), Lauf, Fortschritt, Fehlerbelege und Störungen — alles aus `loop.*`-Ereignissen bzw. dem
+  gelesenen Treiber-Status. Endet nur der Treiber, steht dort „Treiber beendet“, nie „fertig“.
+- **Steuerung** (`POST /api/factory/:id/command`, Policy `factory.control`, nur Menschen): feste Allowlist
+  `end_run` (beendet beide Sessions), `resume` (`/factory` an den Treiber), `set_mode` (`factory init --reconfigure`; Betriebsart `a`
+  merged automatisch und verlangt eine Bestätigung). Alles andere, auch `notify_ack` im Projektmodus, wird mit Grund abgelehnt.
+  Jeder Befehl — auch ein abgelehnter — erzeugt ein `factory.command`-Ereignis auf beiden Sessions.
+- **Einrichtung:** Das Formular „Factory-Projekt anlegen“ ruft `factory init`; ein Fehler zeigt den Grund der Factory,
+  „nicht bereit“ zeigt die Checkliste und startet **keinen** Lauf. Der Hub setzt weder Trust noch Berechtigungen.
+- **Namen:** „harnez“ steht nur noch im dokumentierten `.harnez/`-Lesefallback; `npm run check:names` (im Gate) prüft das.
+- **Abnahme:** E2E `e2e/specs/factory-lauf.spec.ts` und Messlauf `docs/messlauf/2026-11-09-p26-factory.md` laufen gegen eine
+  Attrappe der `factory`-CLI. Die manuelle Abnahme mit der echten Factory (AC-P26-10) bleibt `not_run`.

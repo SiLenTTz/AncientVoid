@@ -2,7 +2,8 @@ import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { EventStore, HubDatabase, LoopRegistry, SessionManager, AdapterRegistry, TokenService, loopAsAdapter, WorktreeManager } from "@ancientvoid/core";
 import { ProcessRunner } from "@ancientvoid/workers";
@@ -16,6 +17,8 @@ import { createHubApp } from "../src/app.ts";
  * Die Treiber sind Dummys unter den produktiven Namen claude/maki;
  * Auswahl, Skill-Auflösung, Workdir und HTTP-Vertrag bleiben echt.
  */
+const STAND_IN = resolve(import.meta.dirname, "../../../e2e/support/bin/factory");
+
 describe("Factory-Start (T26.5, ADR-0043)", () => {
   let dir: string;
   let app: FastifyInstance;
@@ -34,7 +37,7 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
     execFileSync("git", ["-C", project, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-qm", "init"]);
     const db = new HubDatabase(":memory:");
     const store = new EventStore(join(dir, "events"));
-    const securesight = createLoopConnector({ pollMs: 40 });
+    const securesight = createLoopConnector({ pollMs: 40, factory: STAND_IN });
     const registry = new AdapterRegistry();
     registry.register("claude", createDummy, { eventsPerSecond: 100, autoStopAfterEvents: 5 });
     registry.register("loop:securesight-factory", () => loopAsAdapter(securesight, { stateDir: join(dir, "loops") }), undefined, "loop:securesight-factory");
@@ -190,5 +193,121 @@ describe("Factory-Start (T26.5, ADR-0043)", () => {
       await sessions2.shutdown();
       await app2.close().catch(() => undefined);
     }
+  });
+  describe("Steuerung (T26.6, AC-P26-5)", () => {
+    const post = (id: string, body: Record<string, unknown>, as = token) => app.inject({ method: "POST", url: `/api/factory/${id}/command`, headers: { authorization: `Bearer ${as}` }, payload: body });
+    const events = async (id: string) => (await app.inject({ method: "GET", url: `/api/sessions/${id}/events`, headers: { authorization: `Bearer ${token}` } })).json() as { type: string; payload: { kind?: string; text?: string; factory?: { command?: string; outcome?: string; actor?: string } } }[];
+    const audits = async (id: string) => (await events(id)).filter((e) => e.payload?.kind === "factory.command").map((e) => e.payload.factory!);
+
+    async function startRun(name: string): Promise<{ driver: string; observer: string; root: string }> {
+      const root = join(dir, "projects", name);
+      await mkdir(join(root, ".factory"), { recursive: true });
+      await writeFile(join(root, ".factory/config.json"), JSON.stringify({ schema_version: "1", modus: "b" }));
+      const res = await app.inject(authed({ project: root, goal: "Lauf" }, token));
+      expect(res.statusCode, res.body).toBe(201);
+      return { driver: res.json().driver.id, observer: res.json().observer.id, root };
+    }
+
+    it("ein Agent-Token kann keinen Befehl auslösen (Policy factory.control), es entsteht kein Audit-Ereignis", async () => {
+      const run = await startRun("ctl-agent");
+      const agent = tokens.issue("agent:ctl").token;
+      const res = await post(run.observer, { command: "end_run" }, agent);
+      expect(res.statusCode).toBe(403);
+      expect(res.json().error).toContain("factory.control");
+      expect(await audits(run.observer)).toHaveLength(0);
+      expect(sessions.get(run.driver)?.status).not.toBe("stopped");
+    });
+
+    it("alles außerhalb der Allowlist wird mit Grund abgelehnt und auditiert", async () => {
+      const run = await startRun("ctl-allow");
+      const res = await post(run.observer, { command: "rm_rf" });
+      expect(res.statusCode).toBe(422);
+      expect(res.json().error).toContain("Allowlist");
+      const ack = await post(run.driver, { command: "notify_ack" });
+      expect(ack.statusCode).toBe(422);
+      expect(ack.json().error).toContain("Modus repo");
+      // Das Audit steht auf beiden Sessions des Laufs, mit Akteur und Ergebnis.
+      for (const id of [run.driver, run.observer]) {
+        expect((await audits(id)).map((a) => a.outcome)).toEqual(["abgelehnt", "abgelehnt"]);
+      }
+    });
+
+    it("Betriebsart a ohne Bestätigung → 409 und Projekt bleibt unverändert; mit Bestätigung rekonfiguriert die Factory", async () => {
+      const run = await startRun("ctl-mode");
+      const before = readFileSync(join(run.root, ".factory/config.json"), "utf8");
+      const denied = await post(run.observer, { command: "set_mode", modus: "a", provider: "anthropic" });
+      expect(denied.statusCode).toBe(409);
+      expect(denied.json().needsConfirm).toBe(true);
+      expect(readFileSync(join(run.root, ".factory/config.json"), "utf8")).toBe(before);
+      const ok = await post(run.observer, { command: "set_mode", modus: "a", provider: "anthropic", confirm: true });
+      expect(ok.statusCode, ok.body).toBe(200);
+      expect(JSON.parse(readFileSync(join(run.root, ".factory/config.json"), "utf8"))).toMatchObject({ modus: "a", auto_merge: true });
+      expect((await audits(run.driver)).map((a) => a.outcome)).toEqual(["bestätigung fehlt", "ok"]);
+      // Betriebsart b braucht keine Bestätigung.
+      expect((await post(run.observer, { command: "set_mode", modus: "b", provider: "zai" })).statusCode).toBe(200);
+    });
+
+    it("Fortsetzen schickt /factory an den Treiber, Beenden stoppt beide Sessions", async () => {
+      const run = await startRun("ctl-end");
+      const resume = await post(run.observer, { command: "resume" });
+      expect(resume.statusCode, resume.body).toBe(200);
+      expect((await events(run.driver)).filter((e) => e.type === "user" && e.payload.text === "/factory").length).toBeGreaterThanOrEqual(1);
+      const end = await post(run.driver, { command: "end_run" });
+      expect(end.statusCode, end.body).toBe(200);
+      expect(sessions.get(run.driver)?.status).toBe("stopped");
+      expect(sessions.get(run.observer)?.status).toBe("stopped");
+      expect((await audits(run.observer)).at(-1)).toMatchObject({ command: "end_run", outcome: "ok" });
+    });
+
+    it("eine Session ohne Factory-Verknüpfung wird abgelehnt", async () => {
+      const plain = await app.inject({ method: "POST", url: "/api/sessions", headers: { authorization: `Bearer ${token}` }, payload: { adapter: "claude", project } });
+      const res = await post(plain.json().id, { command: "end_run" });
+      expect(res.statusCode).toBe(422);
+      expect(res.json().error).toContain("Factory-Lauf");
+    });
+  });
+  describe("Secrets und Schreibgrenze (AC-P26-7)", () => {
+    const tree = (root: string): Record<string, string> => {
+      const out: Record<string, string> = {};
+      const walk = (d: string) => {
+        for (const name of readdirSync(d)) {
+          if (name === ".git") continue;
+          const p = join(d, name);
+          if (statSync(p).isDirectory()) walk(p);
+          else out[p.slice(root.length)] = readFileSync(p, "utf8");
+        }
+      };
+      walk(root);
+      return out;
+    };
+
+    it("kein Schlüssel aus dem Projekt gelangt in Events oder API-Antworten, und der Hub schreibt nichts ins Projekt", async () => {
+      const SECRET = "sk-LEAK-0123456789";
+      const root = join(dir, "projects", "leak");
+      await mkdir(join(root, ".factory", "intake"), { recursive: true });
+      await writeFile(join(root, ".factory/config.json"), JSON.stringify({ schema_version: "1", modus: "b", api_key: SECRET }));
+      await writeFile(join(root, ".factory/intake/state.json"), JSON.stringify({ schema_version: "1", status: "ready", execution_ready: true, next_action: "los", token: SECRET }));
+      await writeFile(join(root, ".factory/lauf-status.json"), JSON.stringify({ schema_version: "1", task: "T-1", phase: "bauen", heartbeat_at: Math.floor(Date.now() / 1000), secret: SECRET }));
+      await mkdir(join(root, ".factory/evidence"), { recursive: true });
+      await writeFile(join(root, ".factory/evidence/bootstrap-fehler.json"), JSON.stringify({ schema_version: "1", zeit: "2026-11-09T10:00:00Z", grund: "trust fehlt", fundstelle: "init", key: SECRET }));
+      const before = tree(root);
+
+      const res = await app.inject(authed({ project: root, goal: "Lauf" }, token));
+      expect(res.statusCode, res.body).toBe(201);
+      const { driver, observer } = res.json() as { driver: { id: string }; observer: { id: string } };
+      await new Promise((r) => setTimeout(r, 600)); // mehrere Poll-Takte des Beobachters (pollMs 40)
+
+      const bodies = [res.body];
+      for (const id of [driver.id, observer.id]) {
+        bodies.push((await app.inject({ method: "GET", url: `/api/sessions/${id}/events`, headers: { authorization: `Bearer ${token}` } })).body);
+        bodies.push((await app.inject({ method: "GET", url: `/api/sessions/${id}`, headers: { authorization: `Bearer ${token}` } })).body);
+      }
+      bodies.push((await app.inject({ method: "GET", url: "/api/loops", headers: { authorization: `Bearer ${token}` } })).body);
+      for (const b of bodies) expect(b).not.toContain(SECRET);
+      // Der Beobachter hat gelesen (Fehlerbeleg angekommen) …
+      expect(bodies.join("\n")).toContain("trust fehlt");
+      // … und nichts geschrieben: der Projektbaum ist byte-gleich.
+      expect(tree(root)).toEqual(before);
+    });
   });
 });
