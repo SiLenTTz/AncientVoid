@@ -478,6 +478,69 @@ describe("acp adapter (T7.2)", () => {
     await adapter.stop(handle, ctx);
   });
 
+  it("ADR-0061: maki und omp wechseln das Modell in der laufenden Session — der nächste Zug läuft darauf", async () => {
+    for (const preset of ["maki", "omp"] as const) {
+      expect(createAdapter({ preset }).capabilities().features).toMatchObject({ modelChoice: "start", modelSwitch: true });
+    }
+    expect(createAdapter({ preset: "copilot" }).capabilities().features).toMatchObject({ modelChoice: "none", modelSwitch: false });
+
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "eins" }, ctx);
+    await waitFor(() => turns.filter((t) => t === "idle").length >= 1);
+    expect(await adapter.steer(handle, { kind: "configure", model: "lokal/klein" }, ctx)).toEqual({ ok: true });
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.payload).toMatchObject({ model: "lokal/klein", value: '["lokal","klein"]' });
+    await adapter.steer(handle, { kind: "prompt", text: "zwei" }, ctx);
+    await waitFor(() => turns.filter((t) => t === "idle").length >= 2);
+    expect(texts(ctx.events, "assistant")[1]).toContain('Modell ["lokal","klein"]');
+    await adapter.stop(handle, ctx);
+  });
+
+  it("ADR-0061: ein nicht angebotenes Modell beim Wechsel wird abgelehnt — sichtbar, die Session bleibt auf ihrem", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "eins" }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    const ack = await adapter.steer(handle, { kind: "configure", model: "gibts/nicht" }, ctx);
+    expect(ack.ok).toBe(false);
+    expect(ack.detail).toContain("gibts/nicht");
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "acp.model_unavailable")).toBe(true);
+    expect((await adapter.steer(handle, { kind: "configure", permissionMode: "auto" }, ctx)).ok).toBe(false);
+    await adapter.stop(handle, ctx);
+  });
+
+  it("ADR-0061: der Wechsel mitten im Zug wird abgelehnt statt still verschluckt", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "LANGSAM eins" }, ctx);
+    const ack = await adapter.steer(handle, { kind: "configure", model: "lokal/klein" }, ctx);
+    expect(ack.ok).toBe(false);
+    expect(ack.detail).toMatch(/Zug/);
+    await adapter.stop(handle, ctx);
+  });
+
+  it("ADR-0061: eine geweckte Session läuft auf dem Modell der Session (ctx.model), nicht auf dem Config-Default", async () => {
+    const runner = new ProcessRunner();
+    const ctx = makeRecordingContext({
+      workdir: process.cwd(),
+      nativeSessionId: "acp_alt_1234",
+      model: "lokal/klein",
+      adoptWorker: async () => null,
+      spawnWorker: (cmd, o) => runner.spawn({ name: "acp-wake-model", cwd: process.cwd(), cmd, ...(o?.env ? { env: o.env } : {}) }),
+      turn: () => {},
+    } as Partial<AdapterContext>);
+    // Config-Default ist ein anderes Modell — das der Session gewinnt.
+    const adapter = createAdapter({ command: [agent], label: "fake", model: "cloud/gross" });
+    const handle = await adapter.recover!("wake-model", 1, ctx);
+    await adapter.steer(handle!, { kind: "prompt", text: "nach dem Neustart" }, ctx);
+    await waitFor(() => texts(ctx.events, "assistant").length >= 1);
+    expect(ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.model")?.payload).toMatchObject({ model: "lokal/klein" });
+    await adapter.stop(handle!, ctx);
+  });
+
   it("a failed prompt becomes a readable provider error (ADR-0015)", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });

@@ -206,6 +206,8 @@ interface AgentSession {
   calls: Map<string, ToolCallInfo>;
   /** Latest `config_option_update` — can be newer than the session/new answer. */
   configOptions: SessionModels["configOptions"];
+  /** ADR-0061: what session/new|load offered — the basis for a later model switch. */
+  offered?: SessionModels;
   onConfig: (() => void) | null;
   /** BUG-0032: every runTurn bump; a stale turn's late answers are ignored. */
   turnSeq: number;
@@ -229,6 +231,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const env: Record<string, string> = { ...(preset?.env ?? {}), ...cfg.env };
   for (const [name, file] of Object.entries(cfg.envFiles)) env[name] = readFileSync(file.replace(/^~(?=\/)/, homedir()), "utf8").trim();
   const label = cfg.label ?? cfg.preset ?? "acp";
+  /** ADR-0018/0061: a preset without a model option (copilot) offers neither a start choice nor a switch. */
+  const modelChoice = (): "start" | "none" => (preset && "models" in preset && !preset.models ? "none" : "start");
   const sessions = new Map<string, AgentSession>();
   /** BUG-0060: sessions restored after a hub restart with no surviving agent. The agent (and its
    * history load) starts with the next prompt, not at recovery — 17 ACP sessions took 65 s. */
@@ -411,6 +415,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     }
     state.acpSessionId = native;
     announce(ctx, native);
+    state.offered = loaded;
     // ADR-0041: a loaded session runs on whatever model it used last — maki fell back to one the account may not
     // use (403 on the first prompt, live 2026-10-28). The configured model is applied; if it is not on offer,
     // that is said and the session keeps its own (unlike a new session, nothing is refused here).
@@ -422,11 +427,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     const res = (await state.conn.request("session/new", { cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs)) as { sessionId: string } & SessionModels;
     state.acpSessionId = res.sessionId;
     announce(ctx, res.sessionId);
+    state.offered = res;
     if (model) await selectModel(state, ctx, res.sessionId, res, model, true);
   }
 
   /** Put the agent on `model` (ADR-0018 modelChoice "start"). `strict`: a model that is not offered fails the start. */
-  async function selectModel(state: AgentSession, ctx: AdapterContext, sessionId: string, offered: SessionModels, model: string, strict: boolean): Promise<void> {
+  async function selectModel(state: AgentSession, ctx: AdapterContext, sessionId: string, offered: SessionModels, model: string, strict: boolean): Promise<boolean> {
+    state.offered = offered;
     // dsh registers routes from its settings right after boot: the answer
     // may predate them, a config_option_update follows (seen live).
     const find = () => (state.configOptions ? pickModel({ configOptions: state.configOptions }, model) : null) ?? pickModel(offered, model);
@@ -444,7 +451,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     if (!set) {
       if (strict) throw new Error(`${label}: Modell „${model}" wird nicht angeboten`);
       ctx.emit({ type: "system", summary: `${label}: Modell „${model}" wird nicht angeboten — die Session bleibt bei ihrem eigenen`, payload: { kind: "acp.model_unavailable", model } });
-      return;
+      return false;
     }
     await state.conn.request(set.method, { sessionId, ...set.params }, cfg.startupTimeoutMs);
     // ADR-0032: the window of THIS model — config table first, then the
@@ -455,6 +462,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       summary: `${label} · ${model}`,
       payload: { kind: "acp.model", model, value: set.value, ...(window !== null ? { contextWindowTokens: window } : {}) },
     });
+    return true;
   }
 
   /** BUG-0079: deklarierte Commands führt der Adapter selbst aus — kein
@@ -584,7 +592,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const caps = await initialize(state);
       // BUG-0036: resumeNative silences the load replay; an agent without
       // load support starts a fresh context, visibly.
-      if (!(await resumeNative(state, ctx, entry.native, caps.loadSession, false, cfg.model))) {
+      // ADR-0061: the session's own model (hub record) before the registration's default.
+      const model = ctx.model ?? cfg.model;
+      if (!(await resumeNative(state, ctx, entry.native, caps.loadSession, false, model))) {
         if (caps.resume) {
           state.replay = true;
           try {
@@ -596,7 +606,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           state.acpSessionId = entry.native;
           announce(ctx, entry.native);
         } else {
-          await newSession(state, ctx);
+          await newSession(state, ctx, model);
           ctx.emit({ type: "system", summary: `${label}: Agent kann Sessions nicht laden — neuer Kontext`, payload: { kind: "acp.context_lost" } });
         }
       }
@@ -650,7 +660,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // as far as the agent asks (see the presets and docs/harness-matrix.md).
         // T7.10: images as content blocks when the agent says it takes them,
         // otherwise (and for other files) their text.
-        features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist", images: !(preset && "images" in preset && !preset.images), files: true, modelChoice: preset && "models" in preset && !preset.models ? "none" : "start" }),
+        features: basicFeatures({ toolGate: cfg.permissions === "hub" ? "native" : "allowlist", images: !(preset && "images" in preset && !preset.images), files: true, modelChoice: modelChoice(), modelSwitch: modelChoice() === "start" }),
       };
     },
 
@@ -747,8 +757,22 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         case "stop":
           await adapter.stop(handle, ctx);
           return { ok: true };
-        case "configure":
-          return { ok: false, detail: "acp: Modus und Modell lassen sich in dieser Session nicht wechseln" };
+        case "configure": {
+          // ADR-0061: Modellwechsel über dieselbe Auswahl wie beim Start; Modi kennt ACP hier nicht.
+          if (input.permissionMode !== undefined) return { ok: false, detail: `${label}: Modus lässt sich in dieser Session nicht wechseln` };
+          if (input.model === undefined) return { ok: true };
+          if (modelChoice() !== "start") return { ok: false, detail: `${label}: Modell lässt sich nicht wechseln` };
+          // Schlafende Session: der Hub trägt das Modell ein, `wake()` wendet es beim nächsten Prompt an.
+          if (!state) return dormant.has(handle.sessionId) ? { ok: true, detail: "wird beim nächsten Prompt angewandt" } : { ok: false, detail: `${label}: keine laufende Session` };
+          if (!state.acpSessionId) return { ok: false, detail: `${label}: Session startet noch` };
+          if (state.busy) return { ok: false, detail: `${label}: Modellwechsel erst nach dem laufenden Zug` };
+          try {
+            if (await selectModel(state, ctx, state.acpSessionId, state.offered ?? {}, input.model, false)) return { ok: true };
+          } catch (err) {
+            return { ok: false, detail: `${label}: Modellwechsel fehlgeschlagen — ${err instanceof Error ? err.message : String(err)}` };
+          }
+          return { ok: false, detail: `${label}: Modell „${input.model}" wird nicht angeboten — die Session bleibt bei ihrem eigenen` };
+        }
         case "resume":
           return { ok: false, detail: `${label}: weiter geht es mit einem neuen Prompt` };
       }

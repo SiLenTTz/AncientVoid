@@ -211,6 +211,12 @@ Kein Haken ohne zugehörige Evidenz (Beleg oder begründetes missing).
   + `modelsCommand`-Beispiel); live belegt am Scratch-Hub: Custom-Entry
   „Mein Zweit-OpenCode“ (nur Konfiguration, eigener Befehl) startete eine
   Session und antwortete regulär („ANKUNFT“). Abgrenzung P30/P31 in ADR-0054 §6.
+- [x] **T35.8a** Nachtrag Modellwahl maki/omp (Nutzerauftrag 2026-11-10; Messlatten K7/K5, „fail loud“):
+  ACP-Presets wechseln das Modell in der laufenden Session (`configure`, `modelSwitch`), und eine geweckte
+  Session behält ihr Modell (`AdapterContext.model`) statt auf den Config-Default zurückzufallen — ADR-0061.
+  Live ohne Providerkosten belegt (maki: `zai/glm-5.3` → `glm-5.3-flash`; omp: `glm-5.1` → `glm-4.7`; unbekanntes
+  Modell → `ok:false` + `acp.model_unavailable`). Kein neuer Konfigurationsweg: `config.model` (Adapter),
+  Start-Formular/`configure` (Session), ADR-0054/0060 (Katalog, eigene Modelle).
 - [x] **T35.9** Abschluss: `npm run gate` grün, Specs komplett, Live-Abnahme
   durch Jan (Desktop + Pixel) gemeinsam mit AC-P34-13, `epics/README.md`
   aktualisiert, Retro angehängt.
