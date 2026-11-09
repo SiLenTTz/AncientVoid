@@ -47,3 +47,8 @@ Ablauf, **nur in einem Wegwerf-Projekt, nie produktiv**:
 8. Hub mit SIGKILL beenden, neu starten: Verknüpfung und Operationen sind zurück.
 
 Ergebnis mit Datum und Commit im Epic unter T37.6 festhalten.
+
+Automatisiert: `node --experimental-strip-types scripts/forge-real-acceptance.ts <git-url-des-wegwerf-projekts>`
+(klont, pusht einen `accept/p37-*`-Branch, öffnet einen Draft-MR, fährt Schritte 3–8, räumt MR/Branch auf,
+schreibt `/tmp/forge-abnahme.md`). Schritt „Trace lesbar“ wird als **SKIP** berichtet, wenn der Job nie lief
+(`ci_quota_exceeded`, kein Runner) — das zählt nie als Pass; Wiederholung, sobald ein Runner Jobs ausführt.

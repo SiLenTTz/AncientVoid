@@ -212,6 +212,9 @@ describe("forge routes (integration, glab-Stub)", () => {
     });
     expect(send.statusCode).toBe(422);
     expect(send.json().detail).toContain("MR-SHA hat sich geändert");
+    // Der Cache darf die Drift nicht weiter verdecken: die Übersicht zeigt sofort den neuen SHA.
+    const after = await app.inject({ method: "GET", url: `/api/sessions/${sessionId}/forge/overview`, headers: auth });
+    expect(after.json().mr.sha).toBe("bbbb000000000000000000000000000000000000");
   });
 
   it("Draft-MR-Plan ist read-only und nennt Branch, Commits und Remote", async () => {
