@@ -1,6 +1,6 @@
 # EPIC-P26 — Factory-Integration: Projekt anlegen, Lauf auslösen, beobachten, steuern
 
-**Status:** offen (Planung 2026-10-30, Auftrag von Jan; Umsetzung T26.5 laufend seit 2026-10-30 abends) · **Phase:** P26 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine offene — baut auf P19 (Loop-Contract und Connector, gebaut; manuelle Abnahme offen), P7 (Rückfragen/Freigaben) und P25 (Slash-Befund) auf; Präzedenz P13/P14/P17/P19 (läuft neben offenen Abnahmen). Factory-seitig: `securesight-factory` `main` ab `bd8228d` (CLI `factory` installiert); Gegenstück-Planentwurf factory-seitig: [docs/plaene/0057-aussen-schnittstelle-entwurf](../../../securesight-factory/docs/plaene/0057-aussen-schnittstelle-entwurf/auftrag.md) (E57, Branch `plan/0057-aussen-schnittstelle` — deren Gate derzeit rot auf unverändertem HEAD, Commit wartet).
+**Status:** Code abgeschlossen 2026-11-09 (T26.1–T26.10 gebaut, AC-P26-1…9 belegt); **offen:** T26.11/AC-P26-10 — manuelle Abnahme mit der echten Factory, `not_run` (Planung 2026-10-30, Auftrag von Jan) · **Phase:** P26 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine offene — baut auf P19 (Loop-Contract und Connector, gebaut; manuelle Abnahme offen), P7 (Rückfragen/Freigaben) und P25 (Slash-Befund) auf; Präzedenz P13/P14/P17/P19 (läuft neben offenen Abnahmen). Factory-seitig: `securesight-factory` `main` ab `bd8228d` (CLI `factory` installiert); Gegenstück-Planentwurf factory-seitig: [docs/plaene/0057-aussen-schnittstelle-entwurf](../../../securesight-factory/docs/plaene/0057-aussen-schnittstelle-entwurf/auftrag.md) (E57, Branch `plan/0057-aussen-schnittstelle` — deren Gate derzeit rot auf unverändertem HEAD, Commit wartet).
 
 ## Befunde 2026-10-30 abends (Nachtrag zur Bestandsaufnahme)
 
@@ -167,25 +167,24 @@ sie (Fähigkeiten werden ausgeblendet, fehlende Felder als „unbekannt“ gezei
   Prüfung, Ausfall je Quelle ⇒ `loop.broken`; Regression Modus `repo`. K2, K9.
 - [x] **T26.4 — Onboarding.** `onboard()` für `securesight-factory`, Route und
   Formular „Factory-Projekt anlegen“, Checkliste als Ergebnis, Fehler sichtbar.
-- [ ] **T26.5 — Start-Flow.** `POST /api/factory/start` (Policy), verknüpfte Sessions,
+- [x] **T26.5 — Start-Flow.** `POST /api/factory/start` (Policy), verknüpfte Sessions,
   Stop-Semantik, Recovery aus dem JSONL (K7).
   *Teilumsetzung 2026-10-30 abends:* Route, Policy `factory.start` (nur Menschen),
   Treiber mit `/factory <Auftrag>`-Prompt, Beobachter mit `options.driver`
   (Loop-Snapshot, K7), `factory.linkage`-Ereignis auf beiden Sessions, Rollback
   des Treibers bei scheiterndem Beobachter; PWA-Dialog startet darüber für
   securesight „bestehend“. Integrationstests + E2E `factory.spec.ts` grün.
-  *Offen:* `end_run`/Treiber-Ende-Anzeige (mit T26.6), Komplett-Verifikation K7
-  Restart mitten im Factory-Lauf (mit T26.10).
-- [ ] **T26.6 — Steuerung.** Allowlist, Bestätigungsdialog, Audit-Event,
+  *Nachgezogen 2026-11-09:* `end_run` und Treiber-Ende-Anzeige (T26.6/T26.8), K7-Neustart mitten im Lauf (E2E `factory-lauf.spec.ts`, Messlauf T26.10).
+- [x] **T26.6 — Steuerung.** Allowlist, Bestätigungsdialog, Audit-Event,
   Agent-Token-Ablehnung (Policy-Test).
 - [x] **T26.7 — Provider-/Harness-Wahl.** Provider sofort; Harness nur bei gemeldeter
   Fähigkeit, sonst ausgeblendet mit Grund.
-- [ ] **T26.8 — PWA-Ansicht Projektmodus.** Fortschritt, Fehlerbelege, Init-/Intake-
+- [x] **T26.8 — PWA-Ansicht Projektmodus.** Fortschritt, Fehlerbelege, Init-/Intake-
   Checkliste, Verknüpfungsstatus; Zustand nur aus `loop.*`-Events gefaltet.
-- [ ] **T26.9 — Namensbereinigung und Docs.** Meldungen, `docs/loops.md`,
+- [x] **T26.9 — Namensbereinigung und Docs.** Meldungen, `docs/loops.md`,
   Registry-Text, EPIC-P19, README-Matrix; Prüfskript mit Allowlist für den
   dokumentierten `.harnez/`-Fallback.
-- [ ] **T26.10 — Stand-in-Factory, E2E, Messlauf.** `factory`-Attrappe, Specs in
+- [x] **T26.10 — Stand-in-Factory, E2E, Messlauf.** `factory`-Attrappe, Specs in
   `e2e/specs/`, Messlauf (K2, K7, K9), `docs/messlauf/…`.
 - [ ] **T26.11 — Manuelle Abnahme mit Testprojekt.** Ablauf am Handy/PC (siehe
   AC-P26-10); bleibt `not_run`, bis Jan bestätigt.
@@ -256,3 +255,21 @@ Adapter-/Loop-Matrix aktualisiert. Erreichbarkeit: der Loop `securesight-factory
 Modus `project` ist in `hub.config.json` registriert und im Start-Formular wählbar.
 Offene Reste (z. B. Fähigkeitsabfrage der Factory, Live-Abnahme am Handy) bleiben
 sichtbar dokumentiert, kein „done“ über ungesehene Läufe.
+
+## 8. Retro (2026-11-09)
+
+| AC | Status | Beleg |
+|---|---|---|
+| AC-P26-1 Onboarding | 🟢 | E2E `factory-lauf.spec.ts` (Fehlergrund, „nicht bereit“ ohne Lauf, bereit); `onboard()`-Tests; additives `ready` im Contract (ADR-0043 Nachtrag) |
+| AC-P26-2 Start | 🟢 | `factory.integration.test.ts`, E2E; Panel-Latenz Median 788 ms bei Takt 500 ms (`docs/messlauf/2026-11-09-p26-factory.md`) — Standardtakt 15 s nicht gemessen |
+| AC-P26-3 Modus project | 🟢 | `securesight-project.test.ts`, Regression `securesight.test.ts` (Modus repo) |
+| AC-P26-4 K9 | 🟢 | E2E „Störung ist laut“ (kaputtes JSON, Schema 9), Messlauf 514 ms Median; fehlendes Binary im Connector-Test |
+| AC-P26-5 Außenwirkung | 🟢 | Integrationstests: Agent-Token 403 (`factory.control`), Allowlist-Ablehnung, Audit auf beiden Sessions, Betriebsart a nur mit Bestätigung; E2E Dialog |
+| AC-P26-6 K7 | 🟢 | E2E „Hub-Crash mitten im Lauf“; Messlauf 8× SIGKILL, 824 ms Median, Ids/Verknüpfung/Seqs unverändert |
+| AC-P26-7 Secrets | 🟢 | Integrationstest „Secrets und Schreibgrenze“ (kein Schlüssel in Events/API, Projektbaum byte-gleich) |
+| AC-P26-8 Namen | 🟢 | `npm run check:names` im Gate (Allowlist: `.harnez/`-Fallback, `harnez-exec-*`, Retros/ADRs) |
+| AC-P26-9 Fähigkeiten | 🟢 | Harness-Wahl ausgeblendet mit Grund (T26.7); `factory capabilities` existiert nicht — kein Rateversuch |
+| AC-P26-10 manuelle Abnahme | ⚪ `not_run` | braucht die echte Factory und Jan; Ablauf wie im AC beschrieben |
+
+**Ehrliche Grenzen:** Alle Läufe nutzen die Attrappe `e2e/support/bin/factory`; die echte Factory (Trust-/Berechtigungs-Hänger, echte Fehlerbelege) ist ungeprüft. Der Messlauf lief mit Takt 500 ms und Fremdlast.
+**Offen:** T26.11 (Abnahme, in P35 T35.16 gebündelt zu führen), Fähigkeitsabfrage der Factory (Wunsch 1–3 in §3.6).
