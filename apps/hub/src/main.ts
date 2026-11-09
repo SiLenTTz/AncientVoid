@@ -60,6 +60,7 @@ import {
 import { TmuxRunner, ProcessRunner } from "@ancientvoid/workers";
 import type { AdapterFactory } from "@ancientvoid/contracts";
 import { createHubApp } from "./app.ts";
+import { ForgeService } from "./modules/forge/forge-service.ts";
 import { createPermissionBridge } from "./modules/approvals/permission-bridge.ts";
 
 // `dummy` used to be hardcoded here, always visible in every real hub's
@@ -284,6 +285,14 @@ async function main(): Promise<void> {
     registry,
     // EPIC-P36 / ADR-0055: Review-Notizen — Journal+Snapshot unter dataDir/reviews.
     reviews: new ReviewStore(resolve(dataDir, "reviews")),
+    // EPIC-P37 / ADR-0056: Forge (GitLab) — Kommando aus der Config (E2E: Stub);
+    // tokenFile-Fehler failen laut beim Boot, nie still.
+    forge: new ForgeService({
+      dataRoot: dataDir,
+      command: config.forge.gitlab.command,
+      ...(config.forge.gitlab.host ? { host: config.forge.gitlab.host } : {}),
+      ...(config.forge.gitlab.tokenFile ? { tokenFile: config.forge.gitlab.tokenFile } : {}),
+    }),
     auth: {
       tokens,
       enforceTailnetIdentity: config.server.enforceTailnetIdentity,

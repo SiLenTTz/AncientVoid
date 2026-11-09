@@ -34,8 +34,8 @@ const asStatus = (v: unknown): ForgePipelineStatus => {
 };
 
 export function encodeProjectId(ref: { projectId: number; projectPath?: string | undefined }): string {
-  // numerische IDs direkt; Pfade URL-kodiert mit %2F
-  return ref.projectPath ? encodeURIComponent(ref.projectPath) : String(ref.projectId);
+  // Numerische ID bevorzugt (stabiler); Pfade URL-kodiert mit %2F als Fallback
+  return ref.projectId > 0 ? String(ref.projectId) : encodeURIComponent(ref.projectPath ?? "");
 }
 
 const username = (v: unknown): string => (typeof v === "object" && v !== null ? str((v as Raw).username) : "");

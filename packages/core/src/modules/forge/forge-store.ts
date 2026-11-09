@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ForgeLink, ForgeMrRef, ForgeOperation, ForgeOperationState } from "@ancientvoid/contracts";
+import type { ForgeLink, ForgeMrRef, ForgeOperation } from "@ancientvoid/contracts";
 
 /**
  * EPIC-P37 / ADR-0056 §7: Verknüpfungen und Operationen aus Journal + Snapshot

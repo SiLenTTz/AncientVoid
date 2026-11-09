@@ -50,10 +50,14 @@ async function git(workdir: string, args: string[]): Promise<string> {
   return stdout.trim();
 }
 
-/** `git remote get-url origin` — null, wenn kein Origin existiert. */
+/**
+ * Konfigurierte origin-URL — bewusst `git config` statt `git remote get-url`:
+ * get-url wendet url.insteadOf-Umschreibungen an und würde lokale Test-Origins
+ * verraten; die Identität soll die vom Nutzer konfigurierte sein.
+ */
 export async function remoteUrl(workdir: string): Promise<string | null> {
   try {
-    const url = await git(workdir, ["remote", "get-url", "origin"]);
+    const url = await git(workdir, ["config", "--get", "remote.origin.url"]);
     return url.length > 0 ? url : null;
   } catch {
     return null;

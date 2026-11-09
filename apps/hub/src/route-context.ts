@@ -2,6 +2,7 @@ import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
 import type { ClaudeLive, PlannerModelConfig, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore } from "@ancientvoid/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
+import type { ForgeService } from "./modules/forge/forge-service.ts";
 import { DEFAULT_HOST_ID } from "@ancientvoid/contracts";
 import type { ActionDefinition, HubMetrics, DiscoverySource, SessionRecord } from "@ancientvoid/contracts";
 import { TMUX_PREFIX } from "@ancientvoid/workers";
@@ -52,6 +53,9 @@ export interface RouteDeps {
   /** EPIC-P36: Review-Notizen zur Diff-Ansicht (Journal+Snapshot, ADR-0055).
    * Ohne Angabe antworten die Review-Routen 501-artig (siehe Approvals-Muster). */
   reviews?: ReviewStore;
+  /** EPIC-P37 (ADR-0056): Forge-Dienst (GitLab im Session-Kontext) — ohne
+   * Angabe antworten die Forge-Routen ehrlich mit "nicht eingerichtet". */
+  forge?: ForgeService;
 }
 
 /**

@@ -70,6 +70,16 @@ export default tseslint.config(
     },
   },
   {
+    // EPIC-P37: glab-Stub für Integrationstests/E2E — Node-Skript mit Shebang
+    files: ["apps/hub/test/fixtures/glab-stub.mjs"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+      },
+    },
+  },
+  {
     // Same reasoning as scripts/k2-frame-lag.mjs above.
     files: ["scripts/messlauf-approve-latency.mjs"],
     languageOptions: {
