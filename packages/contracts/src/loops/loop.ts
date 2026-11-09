@@ -8,7 +8,7 @@ export type LoopId = z.infer<typeof LoopId>;
 /** Was der Client beim Start mitschickt. Betriebsart und Orchestrator sind providereigene Namen. */
 export const LoopSpec = z.object({
   id: LoopId,
-  /** „Betriebsart“ des Loops (aSPARK: manual|supervised|autonomous|dark, harnez: a|b). */
+  /** „Betriebsart“ des Loops (aSPARK: manual|supervised|autonomous|dark, securesight-factory: a|b). */
   mode: z.string().min(1).max(40).optional(),
   orchestrator: z.string().min(1).max(40).optional(),
   /** Weitere Felder aus `capabilities.options`; Werte sind Text (Schalter: "true"/"false"). */

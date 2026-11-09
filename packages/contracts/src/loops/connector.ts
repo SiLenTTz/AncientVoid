@@ -49,7 +49,7 @@ export interface LoopCapabilities {
   modes: readonly string[];
   /** Betriebsarten mit Außenwirkung (Merge, Commit): die Oberfläche fragt vor dem Start nach. */
   riskyModes: readonly string[];
-  /** Wählbare Orchestratoren (harnez: self | hermes). Leer = keine Wahl. */
+  /** Wählbare Orchestratoren (securesight-factory: self | hermes). Leer = keine Wahl. */
   orchestrators: readonly string[];
   controls: readonly LoopControl[];
   /** Gates, die der Loop meldet (aSPARK dark: policy|review|ci|merge). Nur Anzeige. */
@@ -72,7 +72,9 @@ export interface LoopStartSpec {
 }
 
 export type LoopOnboardResult =
-  | { ok: true; /** Werte für die Startauswahl, z. B. { line: "web" }. */ options: Record<string, string>; detail?: string }
+  | { ok: true; /** Werte für die Startauswahl, z. B. { line: "web" }. */ options: Record<string, string>; detail?: string;
+      /** Additiv (ADR-0043 §5, EPIC-P26): `false` = Einrichtung lief, das System meldet aber „nicht bereit“ — die Oberfläche startet dann keinen Lauf. Fehlt das Feld, gilt der Lauf als startbar. */
+      ready?: boolean }
   | { ok: false; detail: string };
 
 export type LoopControlInput =
