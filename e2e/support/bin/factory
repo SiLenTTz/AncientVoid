@@ -1,0 +1,57 @@
+#!/usr/bin/env node
+// E2E-Stand-in für die `factory`-CLI (EPIC-P26 T26.10, docs/factory-schnittstelle.md v1). Kein Netz, kein
+// Provider, kein Trust: es legt nur an, was `factory init` anlegt, und meldet, was `progress show` meldet.
+// Verhalten steuert der Test über Dateien im Projekt (nie über Umgebungsvariablen des Hubs):
+//   .stand-in-fail-init   existiert → `init` scheitert mit Exit 3 und Grund auf stderr (kein Trust)
+//   .stand-in-not-ready   existiert → Checkliste ohne „ready:“-Zeile
+//   .factory/stand-in.json → { done, total, now:{phase,story,task}, schema_version?, garbage? } für `progress show`
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const argv = process.argv.slice(2);
+const flag = (name) => {
+  const i = argv.indexOf(name);
+  return i >= 0 ? argv[i + 1] : undefined;
+};
+const line = (obj) => process.stdout.write(`${JSON.stringify(obj)}\n`);
+
+if (argv[0] === "init") {
+  const root = flag("--root");
+  if (!root) {
+    console.error("fake factory: --root fehlt");
+    process.exit(2);
+  }
+  if (existsSync(join(root, ".stand-in-fail-init"))) {
+    console.error("trust: ✘ Workspace nicht vertraut (Stand-in) — in Claude Code einmal bestätigen");
+    process.exit(3);
+  }
+  const reconfigure = argv.includes("--reconfigure");
+  const config = join(root, ".factory", "config.json");
+  if (existsSync(config) && !reconfigure) {
+    console.error("Projekt ist bereits angelegt (--reconfigure nutzen)");
+    process.exit(2);
+  }
+  mkdirSync(join(root, ".factory", "intake"), { recursive: true });
+  mkdirSync(join(root, ".claude", "skills", "factory"), { recursive: true });
+  const modus = flag("--modus") ?? "b";
+  const provider = flag("--provider") ?? "anthropic";
+  writeFileSync(config, `${JSON.stringify({ schema_version: "1", modus, provider, auto_merge: modus === "a" })}\n`);
+  writeFileSync(join(root, ".factory", "intake", "state.json"), JSON.stringify({ schema_version: "1", status: "intake", execution_ready: false, next_action: "erste Aufgabe festlegen" }));
+  writeFileSync(join(root, ".claude", "skills", "factory", "SKILL.md"), "# Factory (Stand-in)\nNutze `factory progress show`.\n");
+  const ready = !existsSync(join(root, ".stand-in-not-ready"));
+  const checkliste = ["git: ok", "provider: ok", ready ? "trust: ok" : "trust: ✘ ausstehend", "intake: offen", ready ? "ready: Lauf kann starten" : "next: Trust bestätigen"];
+  console.error(`factory bootstrap-checkliste: ${checkliste.join(" | ")}`);
+  line({ root, created: [".factory/config.json"], skill: [".claude/skills/factory/SKILL.md"], wizard: { modus, provider, quelle: "stand-in" }, checkliste });
+} else if (argv[0] === "progress" && argv[1] === "show") {
+  const root = process.cwd();
+  const file = join(root, ".factory", "stand-in.json");
+  const cfg = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
+  if (cfg.garbage) {
+    process.stdout.write("das ist kein json\n");
+  } else {
+    line({ schema_version: cfg.schema_version ?? "1", total: cfg.total ?? 0, done: cfg.done ?? 0, stories: [], now: cfg.now ?? null, updated_at: null, events: [] });
+  }
+} else {
+  console.error(`fake factory: nicht unterstützt: ${argv.join(" ")}`);
+  process.exit(2);
+}

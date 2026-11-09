@@ -274,7 +274,7 @@ test.describe("ACP-Harness (T7.2)", () => {
     await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 42 Tokens · Kontext 0 % · frei 999.970 von 1.000.000");
   });
 
-  test("Startformular: Modellkatalog als Dropdown, konfigurierter Default vorausgewählt (Harnez-Muster)", async ({ app, hub }) => {
+  test("Startformular: Modellkatalog als Dropdown, konfigurierter Default vorausgewählt (Factory-Muster)", async ({ app, hub }) => {
     await app.goto(`${hub.origin}/#/`);
     await app.getByRole("button", { name: "Neue Session" }).click();
     await app.getByLabel("Adapter").selectOption("acp");

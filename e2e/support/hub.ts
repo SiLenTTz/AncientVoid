@@ -167,7 +167,7 @@ export class TestHub {
       // EPIC-P19: ein deterministischer Loop ohne Fremdsystem (Fake aus dem Testkit).
       loops: [
         { id: "fake-loop", module: "@ancientvoid/adapter-testkit/fake-loop" },
-        { id: "securesight-factory", module: "@ancientvoid/loop-securesight-factory", config: { pollMs: 500 } },
+        { id: "securesight-factory", module: "@ancientvoid/loop-securesight-factory", config: { pollMs: 500, factory: join(binDir, "factory") } },
       ],
       adapters: [
         {
@@ -232,7 +232,7 @@ export class TestHub {
         }] : []),
         {
           // T7.2: an ACP harness (stand-in agent, real protocol) — with the
-          // Harnez pattern: a configured default model plus a listing
+          // Factory pattern: a configured default model plus a listing
           // command, so the start form shows a dropdown with the default.
           id: "acp",
           module: "@ancientvoid/adapter-acp",
