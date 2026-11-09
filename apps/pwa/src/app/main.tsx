@@ -165,7 +165,14 @@ function Main() {
         // T8.3: a rotated push subscription is registered again.
         void resyncPush();
         navigator.serviceWorker?.addEventListener("message", (e) => {
-          if ((e.data as { type?: string })?.type === "ancientvoid:push-resubscribe") void resyncPush();
+          const msg = e.data as { type?: string; url?: string };
+          if (msg?.type === "ancientvoid:push-resubscribe") void resyncPush();
+          // Notification tap in an already open app: route by hash (navigate() is unreliable on mobile).
+          if (msg?.type === "ancientvoid:navigate" && msg.url?.startsWith("/#")) location.hash = msg.url.slice(1);
+        });
+        // A phone suspends the app for hours; re-register the subscription when it comes back.
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") void resyncPush();
         });
       })
       .catch((err) => {
