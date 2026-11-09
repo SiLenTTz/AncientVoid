@@ -1,0 +1,40 @@
+#!/usr/bin/env node
+// E2E stand-in for glab (EPIC-P37, ADR-0056): nur `glab api <pfad>` per GET, mit festen
+// Antworten für ein Projekt team/proj (ID 42) und MR !7. Kein Netz, kein Token, keine Mutation —
+// jede andere Form endet mit Exit 1, damit ein Test nie versehentlich "schreibt".
+const argv = process.argv.slice(2);
+if (argv[0] !== "api" || argv.length !== 2) {
+  console.error(`fake glab: nicht unterstützt: ${argv.join(" ")}`);
+  process.exit(1);
+}
+const url = new URL(`http://x/${argv[1]}`);
+const path = decodeURIComponent(url.pathname.slice(1));
+const page = Number(url.searchParams.get("page") ?? 1);
+const list = (items) => (page === 1 ? items : []);
+const out = (value) => process.stdout.write(typeof value === "string" ? value : JSON.stringify(value));
+const user = { username: "jan" };
+const SHA = "abcdef0123456789abcdef0123456789abcdef01";
+
+if (path === "projects/team/proj" || path === "projects/42") {
+  out({ id: 42, path_with_namespace: "team/proj", web_url: "https://gitlab.example/team/proj" });
+} else if (path === "projects/42/merge_requests/7") {
+  out({ title: "Draft: Forge E2E", state: "opened", draft: true, source_branch: "feat/forge-e2e", target_branch: "main", sha: SHA, web_url: "https://gitlab.example/team/proj/-/merge_requests/7", author: user, references: { full: "team/proj!7" } });
+} else if (path === "projects/42/pipelines") {
+  out(list([{ id: 500, iid: 5, status: "failed", sha: SHA, ref: "feat/forge-e2e", web_url: "https://gitlab.example/team/proj/-/pipelines/500", created_at: "2026-11-09T10:00:00Z" }]));
+} else if (path === "projects/42/pipelines/500/jobs") {
+  out(list([
+    { id: 900, name: "verify", status: "failed", stage: "test", web_url: "u" },
+    { id: 901, name: "lint", status: "success", stage: "test", web_url: "u" },
+  ]));
+} else if (path === "projects/42/pipelines/500/bridges") {
+  out(list([{ id: 902, name: "bridge:e2e", status: "failed", stage: "test", downstream_pipeline: { id: 501 }, web_url: "u" }]));
+} else if (path === "projects/42/merge_requests/7/discussions") {
+  out(list([{ id: "d1", notes: [{ author: user, body: "Bitte den Fehler in verify beheben", system: false, resolvable: true, resolved: false }] }]));
+} else if (path === "projects/42/issues") {
+  out(list([{ iid: 3, title: "Forge-Issue", description: "Beschreibung", state: "opened", author: user, web_url: "u", labels: ["bug"] }]));
+} else if (path === "projects/42/jobs/900/trace") {
+  out("$ npm test\nFEHLER: erwartet 1, erhalten 2\n");
+} else {
+  console.error(`404 Not Found: ${path}`);
+  process.exit(1);
+}
