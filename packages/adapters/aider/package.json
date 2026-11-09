@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "aider adapter (P3, T3.13): spawns `aider --message`, unproven — see src/index.ts's doc comment for why.",
   "type": "module",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "exports": {
     ".": "./src/index.ts"
   },

@@ -342,8 +342,8 @@ AC-P34-13) durch Jan; `epics/README.md` aktualisiert; Retro angehängt.
   ist noch nicht bestimmt — **bmax ist ausdrücklich kein Kandidat**
   (Trading-Maschine, nicht als Host eingetragen; Nutzentscheid 2026-11-07).
 - [ ] **T35.14 — Release-Entscheidungen.** (aus T4.8, T4.11) Lizenz
-  festlegen und LICENSE-File committen (Rechts-/Geschäftsentscheidung,
-  Jan); v0.1-Tag + Changelog + Fixtures-Hygiene-Abschluss (der Repo-weite
+  (**erledigt 2026-11-09: PolyForm Noncommercial 1.0.0, `LICENSE` committet**);
+  v0.1-Tag + Changelog + Fixtures-Hygiene-Abschluss (der Repo-weite
   Secret-Scan steht seit MR !319 als Gate). Öffentliche, schwer rückgängig
   zu machende Aktionen nur mit expliziter Bestätigung.
 - [ ] **T35.15 — Betriebs-Abnahmen.** (aus T12.2, T12.3, T12.5, T12.12,

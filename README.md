@@ -134,4 +134,4 @@ CI-Runner, Ausfallpfad und Fehlerklassifikation: [CI-Runbook](docs/ci-runbook.md
 
 ## Lizenz
 
-MIT (Disposition in P4 final; s. PRD OD-Punkte). Bis dahin: alle Beiträge unter MIT.
+[PolyForm Noncommercial 1.0.0](LICENSE) — private und nicht-kommerzielle Nutzung erlaubt, kommerzielle Nutzung nicht. Keine OSI-Open-Source-Lizenz (Entscheidung Jan, 2026-11-09, T4.8).

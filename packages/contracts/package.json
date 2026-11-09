@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Shared contracts for AncientVoid: NormalizedEvent, Adapter interface, worker and server protocols. Zero runtime dependencies beyond zod.",
   "type": "module",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "exports": {
     ".": "./src/index.ts",
     "./event": "./src/event.ts",

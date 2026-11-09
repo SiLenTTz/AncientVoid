@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "T4.6/T4.7 (EPIC-P4): MCP sidecar exposing the hub via 3 meta-tools (hub_search/hub_describe/hub_exec). Opt-in, never started by the hub itself — see src/main.ts's doc comment.",
   "type": "module",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "exports": {
     ".": "./src/index.ts"
   },

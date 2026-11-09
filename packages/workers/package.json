@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "WorkerRunner implementations: tmux-backed (default, attachable) and plain child_process fallback.",
   "type": "module",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "exports": {
     ".": "./src/index.ts",
     "./tmux": "./src/tmux.ts",

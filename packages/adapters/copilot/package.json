@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "GitHub Copilot CLI adapter (P3, T3.4): spawns `copilot -p ... --output-format json`, maps its real event stream to NormalizedEvent.",
   "type": "module",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "exports": {
     ".": "./src/index.ts"
   },
