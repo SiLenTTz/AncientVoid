@@ -18,6 +18,9 @@ test.describe("Pause und Warteschlange", () => {
     const id = await hub.createSession({ adapter: "claude", prompt: "ZUEGIG erste Frage" });
     await open(app, hub.origin, id);
     await app.getByPlaceholder("Antworten…").fill("zweite Frage danach");
+    // Während des Zugs ersetzt Vormerken den Senden-Knopf — es gibt keinen zweiten daneben.
+    await expect(app.getByRole("button", { name: "Senden" })).toHaveCount(0);
+    await expect(app.getByRole("button", { name: "Vormerken" })).toHaveCount(1);
     await app.getByRole("button", { name: "Vormerken" }).click();
     await expect(app.locator(".queue-list")).toContainText("zweite Frage danach");
     // ... und sie geht nach dem Zugende genau einmal raus:

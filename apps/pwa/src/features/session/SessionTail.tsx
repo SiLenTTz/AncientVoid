@@ -664,6 +664,7 @@ export function SessionTail({
   };
 
   const sendReply = (takeover = false, queue = false) => sendText(reply, takeover, queue);
+  const running = status === "working" || status === "starting" || status === "waiting_approval";
   const showReply = steerSupported;
   // T1.6-3/AC-P1.6-2: no back-arrow up top anymore — "Übersicht" in the
   // dock below is the one way back, reachable from anywhere with one tap.
@@ -1033,31 +1034,34 @@ export function SessionTail({
                 commandScope="steer"
                 onSubmit={
                   !replyBusy && online && (reply.trim() || replyAttachments.length > 0)
-                    ? () => void sendReply()
+                    ? () => void sendReply(false, running)
                     : undefined
                 }
                 attachments={replyAttachments}
                 onAttachmentsChange={setReplyAttachments}
                 extraActions={
                   <>
-                    {(status === "working" || status === "starting" || status === "waiting_approval") && (
+                    {running ? (
+                      // Läuft ein Zug, ersetzt Vormerken den Senden-Knopf — kein zweiter Knopf daneben.
                       <button
-                        class="btn"
+                        class={replyBusy ? "btn primary busy" : "btn primary"}
+                        aria-busy={replyBusy}
                         type="button"
                         onClick={() => void sendReply(false, true)}
                         disabled={replyBusy || !online || (!reply.trim() && replyAttachments.length === 0)}
                       >
-                        Vormerken
+                        {replyBusy ? "lädt…" : "Vormerken"}
+                      </button>
+                    ) : (
+                      <button
+                        class={replyBusy ? "btn primary busy" : "btn primary"}
+                        aria-busy={replyBusy}
+                        onClick={() => void sendReply()}
+                        disabled={replyBusy || !online || (!reply.trim() && replyAttachments.length === 0)}
+                      >
+                        {replyBusy ? "lädt…" : status === "stopped" || status === "parked" ? "Weiter" : "Senden"}
                       </button>
                     )}
-                    <button
-                      class={replyBusy ? "btn primary busy" : "btn primary"}
-                      aria-busy={replyBusy}
-                      onClick={() => void sendReply()}
-                      disabled={replyBusy || !online || (!reply.trim() && replyAttachments.length === 0)}
-                    >
-                      {replyBusy ? "lädt…" : status === "stopped" || status === "parked" ? "Weiter" : "Senden"}
-                    </button>
                   </>
                 }
               />

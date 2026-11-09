@@ -65,8 +65,14 @@
 .toast-stack {
   display: grid;
   gap: 6px;
-  /* Room on the right for the bell. */
-  margin: calc(env(safe-area-inset-top) + 8px) 56px 6px 0;
+  /* Room on the right for bell AND gear (8 + 36 + 8 + 36 + 8 px), else the ✕ lies on a round button. */
+  margin: calc(env(safe-area-inset-top) + 8px) calc(96px + env(safe-area-inset-right)) 6px 0;
+}
+/* The phone's session header has no gear (see above): only the bell to clear. */
+@media (max-width: 639px) {
+  body:has(.session-topbar) .toast-stack {
+    margin-right: calc(56px + env(safe-area-inset-right));
+  }
 }
 
 .toast-stack:empty {
@@ -115,8 +121,9 @@
   right: max(8px, calc((100vw / var(--ui-zoom, 1) - 680px) / 2 + 8px));
   z-index: 35;
   width: min(380px, calc(100vw / var(--ui-zoom, 1) - 16px));
-  max-height: 70vh;
+  max-height: min(70vh, calc(100dvh / var(--ui-zoom, 1) - env(safe-area-inset-top) - 68px));
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--bg-elev);
   border: 1px solid var(--bg-chip);
   border-radius: 12px;
@@ -124,7 +131,22 @@
   display: grid;
   gap: 6px;
 }
+/* Phone: pinned to both edges instead of a computed right offset, so a wider layout viewport
+ * (page overflow, pinch zoom, safe areas) can never push the ✕ out of reach. */
+@media (max-width: 639px) {
+  .notif-panel {
+    left: calc(8px + env(safe-area-inset-left));
+    right: calc(8px + env(safe-area-inset-right));
+    width: auto;
+  }
+}
 .notif-panel-head {
+  position: sticky;
+  top: -8px;
+  z-index: 1;
+  background: var(--bg-elev);
+  margin: -8px -8px 0;
+  padding: 12px 12px 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;

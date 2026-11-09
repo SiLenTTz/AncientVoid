@@ -87,7 +87,7 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     await hub.api(`/api/sessions/${id}/stop`, { body: {} });
     await hub.kill("SIGTERM");
     await app.getByPlaceholder("Antworten…").fill("Hub ist weg");
-    await app.getByRole("button", { name: /Senden|Weiter/ }).click();
+    await app.getByRole("button", { name: /Senden|Weiter|Vormerken/ }).click();
     await expect(app.locator(".reply-error")).toBeVisible();
   });
 

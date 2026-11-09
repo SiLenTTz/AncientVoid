@@ -83,4 +83,40 @@ test.describe("Benachrichtigungen bei UI-Skalierung (Nutzerfund 2026-10-30)", ()
     expect(close.x).toBeGreaterThanOrEqual(-0.5);
     expect(close.x + close.width).toBeLessThanOrEqual(vw + 0.5);
   });
+
+  for (const scale of ["1", "1.2", "1.6"]) {
+    test(`Panel liegt bei ${Math.round(Number(scale) * 100)} % vollständig im Bild (alle vier Kanten)`, async ({ app, hub }) => {
+      await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+      await expect(app.getByRole("button", { name: /Benachrichtigungen/ })).toBeVisible();
+      await app.evaluate((v) => localStorage.setItem("ancientvoid.uiScale", v), scale);
+      await app.reload();
+      await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
+      const panel = app.locator(".notif-panel");
+      await expect(panel).toBeVisible();
+      const { vw, vh } = await app.evaluate(() => ({ vw: window.innerWidth, vh: window.innerHeight }));
+      for (const box of [(await panel.boundingBox())!, (await panel.locator(".notif-panel-head .btn").boundingBox())!]) {
+        expect(box.x).toBeGreaterThanOrEqual(-0.5);
+        expect(box.y).toBeGreaterThanOrEqual(-0.5);
+        expect(box.x + box.width).toBeLessThanOrEqual(vw + 0.5);
+        expect(box.y + box.height).toBeLessThanOrEqual(vh + 0.5);
+      }
+    });
+
+    test(`Meldung oben überdeckt die Glocke nicht bei ${Math.round(Number(scale) * 100)} %`, async ({ app, hub }) => {
+      await app.evaluate((v) => localStorage.setItem("ancientvoid.uiScale", v), scale);
+      await app.reload();
+      await hub.createSession({ adapter: "opencode", prompt: "Bitte KONTINGENT" });
+      const toast = app.locator(".toast.error").first();
+      await expect(toast).toBeVisible();
+      const close = (await toast.locator(".toast-close").boundingBox())!;
+      // Glocke und (wo sichtbar) Zahnrad liegen fest oben rechts — die ✕ der Meldung darf keines davon berühren.
+      for (const name of [".notif-bell", ".notif-gear"]) {
+        const target = app.locator(name);
+        if (!(await target.isVisible())) continue;
+        const box = (await target.boundingBox())!;
+        const overlaps = close.x < box.x + box.width && close.x + close.width > box.x && close.y < box.y + box.height && close.y + close.height > box.y;
+        expect(overlaps, `✕ ${JSON.stringify(close)} vs ${name} ${JSON.stringify(box)}`).toBe(false);
+      }
+    });
+  }
 });
