@@ -1,6 +1,6 @@
 # EPIC-P1 — Adapter claude + codex, Monitor-Dashboard, Chat-Tail mit Filtern
 
-**Status:** abgeschlossen (2026-11-07, Nachtrag zur Retro) — AC-P1-5s Push-Teil ist durch P8 real (`modules/push`, `push.spec.ts`; Geräte-Push → EPIC-P35 (Endabnahme-Block) T35.10); AC-P1-6 ist als CI-Gate geschlossen (`npm run check:secrets` in `verify`, MR !319); AC-P1-4s Reload-Persistenz ist per E2E belegt (MR !319); AC-P1-1s Live-Handläufe inkl. ±10-%-Kostenabgleich → [EPIC-P35 (Endabnahme-Block) T35.12](EPIC-P35-harness-paritaet-fortsetzen-provider.md); AI-P1-3 (Resume-Matrix) im Kern durch P27/ADR-0036 erfüllt, AI-P1-4 durch ADR-0004/ADR-0023 · **Phase:** P1 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** P0 grün
+**Status:** Code abgeschlossen, Live-Teile offen (T35.10/T35.12) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · (2026-11-07, Nachtrag zur Retro) — AC-P1-5s Push-Teil ist durch P8 real (`modules/push`, `push.spec.ts`; Geräte-Push → EPIC-P35 (Endabnahme-Block) T35.10); AC-P1-6 ist als CI-Gate geschlossen (`npm run check:secrets` in `verify`, MR !319); AC-P1-4s Reload-Persistenz ist per E2E belegt (MR !319); AC-P1-1s Live-Handläufe inkl. ±10-%-Kostenabgleich → [EPIC-P35 (Endabnahme-Block) T35.12](EPIC-P35-harness-paritaet-fortsetzen-provider.md); AI-P1-3 (Resume-Matrix) im Kern durch P27/ADR-0036 erfüllt, AI-P1-4 durch ADR-0004/ADR-0023 · **Phase:** P1 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** P0 grün
 **Ziel-Machines:** Omarchy (Prio 1), silenttz-server (Prio 2, gleiches Image)
 
 ---
@@ -231,3 +231,12 @@ unverifizierbar mangels Daten (#2), 1 nur teilweise mitigiert (#3).
 
 (BUG-0004, weiterhin offen, ist keine neue Erkenntnis dieser Retro — bereits
 mit eigener Frist „vor T3.x" versehen, hier nur zur Vollständigkeit erwähnt.)
+
+## Retro-Nachtrag Abnahmestand (2026-11-09)
+
+Read-only-Abgleich der Epic-Datei gegen Repo-Stand (`git log`, Gate-Skripte, `epics/EPIC-P35-*.md` §8.1). Keine offenen MRs.
+
+- **Status:** Code abgeschlossen, Live-Teile offen (T35.10/T35.12)
+- **Belegt:** AC-P1-6 als Gate `npm run check:secrets` (MR !319); AC-P1-4 Reload-Persistenz per E2E (MR !319); Push-Code in `modules/push` (P8)
+- **Offen:** AC-P1-1 Live-Handläufe + ±10-%-Kostenabgleich → T35.12; AC-P1-5 Geräte-Push → T35.10
+- **Gating:** Nachfolger-Epics laufen unter der dokumentierten Umpriorisierung; die Restpunkte sind im P35-Endabnahme-Block gebündelt und werden dort abgenommen, nicht hier erneut abgehakt.

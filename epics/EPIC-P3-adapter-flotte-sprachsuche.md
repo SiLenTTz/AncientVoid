@@ -1,6 +1,6 @@
 # EPIC-P3 — Adapter-Flotte (swarm/zai/local-llm/opencode/aider), cursor-clip, Sprachsuche & Prompt-Composer
 
-**Status:** abgeschlossen (2026-11-07) — T3.2, T3.4–T3.5, T3.8–T3.14 umgesetzt; T3.6/T3.7 historisch, nach P1.5 vorgezogen und via P10/ADR-0028/0032 abgehakt. Die verbliebenen Reste laufen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md): T3.1 (Swarm) → T35.12 (Admin-Credential/Feature-Freischalt und echte Lauf-JSONL fehlen), T3.3s Live-Probe gegen eine echte OpenAI-kompatible Instanz → T35.12 (die Substanz — lokales Modell via llama.cpp — ist seit P7 T7.5/T12.9 real betrieben), AC-P3-3s K6-Gerätemessung → T35.11. AC-P3-1s „sechs Provider-Typen parallel" ist durch die dokumentierte Bestandskorrektur ersetzt (Vorbemerkung 2026-09-18: zai-Router existierte nicht, Flotte stattdessen auf 13 Adaptern gewachsen) ·
+**Status:** teilweise offen (T35.12) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · (2026-11-07) — T3.2, T3.4–T3.5, T3.8–T3.14 umgesetzt; T3.6/T3.7 historisch, nach P1.5 vorgezogen und via P10/ADR-0028/0032 abgehakt. Die verbliebenen Reste laufen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md): T3.1 (Swarm) → T35.12 (Admin-Credential/Feature-Freischalt und echte Lauf-JSONL fehlen), T3.3s Live-Probe gegen eine echte OpenAI-kompatible Instanz → T35.12 (die Substanz — lokales Modell via llama.cpp — ist seit P7 T7.5/T12.9 real betrieben), AC-P3-3s K6-Gerätemessung → T35.11. AC-P3-1s „sechs Provider-Typen parallel" ist durch die dokumentierte Bestandskorrektur ersetzt (Vorbemerkung 2026-09-18: zai-Router existierte nicht, Flotte stattdessen auf 13 Adaptern gewachsen) ·
 **Phase:** P3 · **Dauer:** 1,5 Agenten-Wochen · **Abhängigkeit:** P2 grün
 
 ---
@@ -472,3 +472,12 @@ Handy aus voll arbeitsfähig".
 Alle ACs + Adapter-Matrix automatisch generiert + Domänen-Test-Set für STT versioniert +
 Learning-Loop-Datenformat dokumentiert (für spätere Brain-Integration) + keine
 Cursor-Abhängigkeit in irgendeinem Exit-Kriterium anderer Epics.
+
+## Retro-Nachtrag Abnahmestand (2026-11-09)
+
+Read-only-Abgleich der Epic-Datei gegen Repo-Stand (`git log`, Gate-Skripte, `epics/EPIC-P35-*.md` §8.1). Keine offenen MRs.
+
+- **Status:** teilweise offen (T35.12)
+- **Belegt:** 13/15 Aufgaben abgehakt
+- **Offen:** T3.1 Swarm live (Admin-Credential, echte Lauf-JSONL); T3.3 Live-Probe gegen llama.cpp → T35.12
+- **Gating:** Nachfolger-Epics laufen unter der dokumentierten Umpriorisierung; die Restpunkte sind im P35-Endabnahme-Block gebündelt und werden dort abgenommen, nicht hier erneut abgehakt.

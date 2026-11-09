@@ -1,6 +1,6 @@
 # EPIC-P4.5 — Testing, Logging und Monitoring
 
-**Status:** grün (T4.5-1–T4.5-6 umgesetzt, AC-P4.5-1–5 belegt). Der einzige Verweis aus der Retro — der 24-h-Dauerlauf, der den FileTailer-Fix (§8) endgültig bestätigt — läuft als T35.15 in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md). · **Phase:** P4.5 · **Dauer:** 0,5–1 Agenten-Wochen · **Abhängigkeit:** P4 soweit autonom grün (T4.1/T4.2/T4.6/T4.7/T4.9/T4.10). P4s externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) sind bewusst offen und laufen in EPIC-P35 (Endabnahme-Block) T35.13/T35.14.
+**Status:** grün, 24-h-Dauerlauf offen (T35.15) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „grün“ · (T4.5-1–T4.5-6 umgesetzt, AC-P4.5-1–5 belegt). Der einzige Verweis aus der Retro — der 24-h-Dauerlauf, der den FileTailer-Fix (§8) endgültig bestätigt — läuft als T35.15 in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md). · **Phase:** P4.5 · **Dauer:** 0,5–1 Agenten-Wochen · **Abhängigkeit:** P4 soweit autonom grün (T4.1/T4.2/T4.6/T4.7/T4.9/T4.10). P4s externe Restpunkte (T4.3/T4.4/T4.5/T4.8/T4.11) sind bewusst offen und laufen in EPIC-P35 (Endabnahme-Block) T35.13/T35.14.
 
 **Vorbemerkung (2026-09-21) — bewusste Umpriorisierung, kein umgangenes Gate:**
 P5–P12 sind Planungsentwürfe und laut Index erst nach vollständig grünem P4/G0
@@ -193,3 +193,12 @@ lokaler Merge nach main.
 Premortem: Redaction-Keys sind eine Quelle (`REDACT_LOG_KEYS`); Ready-503 ist getestet; E2E skippt sichtbar; Metrics ohne Snapshot (ADR-0010).
 
 Action Items: P12-T12.2 kann den FileTailer-Fix als erledigt streichen, sobald ein Dauerlauf denselben Pfad nochmal sieht. Kein neues Epic.
+
+## Retro-Nachtrag Abnahmestand (2026-11-09)
+
+Read-only-Abgleich der Epic-Datei gegen Repo-Stand (`git log`, Gate-Skripte, `epics/EPIC-P35-*.md` §8.1). Keine offenen MRs.
+
+- **Status:** grün, 24-h-Dauerlauf offen (T35.15)
+- **Belegt:** T4.5-1..6, AC-P4.5-1..5 belegt (siehe §9)
+- **Offen:** 24-h-Dauerlauf bestätigt FileTailer-Fix → T35.15
+- **Gating:** Nachfolger-Epics laufen unter der dokumentierten Umpriorisierung; die Restpunkte sind im P35-Endabnahme-Block gebündelt und werden dort abgenommen, nicht hier erneut abgehakt.

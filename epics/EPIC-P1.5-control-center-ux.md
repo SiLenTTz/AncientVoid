@@ -1,6 +1,6 @@
 # EPIC-P1.5 — Control-Center-UX: Kontingent statt Budget, Projekt-Autoerkennung, Sprach-Composer, Skill-Overlay
 
-**Status:** abgeschlossen und in P1.6/P10 aufgegangen (konsolidiert 2026-10-29); die beiden 🟡-Reste laufen seit 2026-11-07 in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md): AC-P1.5-1 (Session vom Handy über Tailscale starten) → T35.10, AC-P1.5-8 (K6-Gerätemessung mit echter Stimme) → T35.11 · **Phase:** P1.5 (bewusst zwischen P1 und P2 eingeschoben) · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** P1 mechanisch fertig (Adapter `claude`/`codex` live verifiziert)
+**Status:** Code abgeschlossen, Geräteabnahme offen (T35.10/T35.11) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · und in P1.6/P10 aufgegangen (konsolidiert 2026-10-29); die beiden 🟡-Reste laufen seit 2026-11-07 in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md): AC-P1.5-1 (Session vom Handy über Tailscale starten) → T35.10, AC-P1.5-8 (K6-Gerätemessung mit echter Stimme) → T35.11 · **Phase:** P1.5 (bewusst zwischen P1 und P2 eingeschoben) · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** P1 mechanisch fertig (Adapter `claude`/`codex` live verifiziert)
 
 > **Konsolidierung 2026-10-29 (Zustands-Scan):** Alle Aufgaben T1.5-1 – T1.5-11 sind umgesetzt (siehe Häkchen unten). Der alte Status „offen" war ein Relikt: Die formale DoD-Live-Abnahme der *ursprünglichen* P1.5-Oberfläche entfiel, weil der Nutzer sie nach der ersten Nutzung verwarf und durch P1.6 ersetzte (Begründung: `epics/README.md` §„Ausnahme P1.6", Vorbemerkung in [`EPIC-P1.6`](EPIC-P1.6-futuristic-ui-system.md)). Der offene K6-Rest aus T1.5-7 (Handy-Messung) ist in P10/T12.10 weitergeführt. Kein separates P1.5-Exit mehr zu erfüllen.
 **Ziel-Machine:** Omarchy (Entwicklung + reale Nutzung), silenttz-server (Staging)
@@ -767,3 +767,12 @@ Alle ACs grün **und**:
   Ticket-Referenz; Premortem-Mitigationen, wo testbar, als Tests abgebildet
   (mindestens: Root-Escape, Symlink-Escape, „Usage wird nie über Sessions
   summiert", Scanner ignoriert `_shared`/`README.md`/`skill-template.md`).
+
+## Retro-Nachtrag Abnahmestand (2026-11-09)
+
+Read-only-Abgleich der Epic-Datei gegen Repo-Stand (`git log`, Gate-Skripte, `epics/EPIC-P35-*.md` §8.1). Keine offenen MRs.
+
+- **Status:** Code abgeschlossen, Geräteabnahme offen (T35.10/T35.11)
+- **Belegt:** T1.5-1..11 abgehakt; Oberfläche durch P1.6 ersetzt
+- **Offen:** AC-P1.5-1 Session vom Handy über Tailscale → T35.10; AC-P1.5-8 K6 mit echter Stimme → T35.11
+- **Gating:** Nachfolger-Epics laufen unter der dokumentierten Umpriorisierung; die Restpunkte sind im P35-Endabnahme-Block gebündelt und werden dort abgenommen, nicht hier erneut abgehakt.

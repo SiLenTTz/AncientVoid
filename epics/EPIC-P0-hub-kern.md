@@ -1,6 +1,6 @@
 # EPIC-P0 — Hub-Kern: Sessions, EventStore, tmux-Worker, Tailscale-serve, PWA-Gerüst
 
-**Status:** abgeschlossen (2026-11-07, Nachtrag zur Retro) — AC-P0-3 ist seit P6 durch echten Tailnet-Betrieb belegt (Messlauf `2026-09-23-p6-fleet`, Hub nur auf Tailnet-IP, K1 15 ms Remote-Median); AC-P0-4s Geräte-Offline-Abnahme (Flugmodus) ist an [EPIC-P35 (Endabnahme-Block) T35.10](EPIC-P35-harness-paritaet-fortsetzen-provider.md) verwiesen, der Code-Teil (BUG-0015, `80f8696`/P8 T8.2) ist gefixt · **Phase:** P0 · **Dauer:** 1 Agenten-Woche · **Priorität:** P0 (Blocker für alles)
+**Status:** Code abgeschlossen, Geräteabnahme offen (T35.10) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · (2026-11-07, Nachtrag zur Retro) — AC-P0-3 ist seit P6 durch echten Tailnet-Betrieb belegt (Messlauf `2026-09-23-p6-fleet`, Hub nur auf Tailnet-IP, K1 15 ms Remote-Median); AC-P0-4s Geräte-Offline-Abnahme (Flugmodus) ist an [EPIC-P35 (Endabnahme-Block) T35.10](EPIC-P35-harness-paritaet-fortsetzen-provider.md) verwiesen, der Code-Teil (BUG-0015, `80f8696`/P8 T8.2) ist gefixt · **Phase:** P0 · **Dauer:** 1 Agenten-Woche · **Priorität:** P0 (Blocker für alles)
 **Ziel-Machine:** Omarchy (Entwicklung), silenttz-server (Staging) · **Evox2:** explizit out of scope
 
 ---
@@ -254,3 +254,12 @@ AI-P0-6: ✅ erledigt (Doku-Weg, nicht Fix-Weg) — tmux im CI-Image
 P1 ist durch diese Retro **nicht blockiert** — AI-P0-1, -3, -5, -6 sind
 sinnvoll parallel zu P1 erledigbar, AI-P0-2 hängt an externer
 Infrastruktur (Zielmaschine mit Tailscale), nicht an P1s Scope.
+
+## Retro-Nachtrag Abnahmestand (2026-11-09)
+
+Read-only-Abgleich der Epic-Datei gegen Repo-Stand (`git log`, Gate-Skripte, `epics/EPIC-P35-*.md` §8.1). Keine offenen MRs.
+
+- **Status:** Code abgeschlossen, Geräteabnahme offen (T35.10)
+- **Belegt:** AC-P0-1..3 belegt (Messlauf `docs/messlauf/2026-09-23-p6-fleet.md`); BUG-0015-Code-Fix in `53c6ea7`/`df445e9` (T8.2)
+- **Offen:** AC-P0-4 Flugmodus/K10 am Gerät → T35.10
+- **Gating:** Nachfolger-Epics laufen unter der dokumentierten Umpriorisierung; die Restpunkte sind im P35-Endabnahme-Block gebündelt und werden dort abgenommen, nicht hier erneut abgehakt.
