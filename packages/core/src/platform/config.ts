@@ -103,6 +103,21 @@ export const HubConfig = z.object({
   /** T7.6: registered actions (tests, tools) offered in every session,
    * next to the built-in git reads and the project's own test command. */
   actions: z.array(ActionDefinition).default([]),
+  /** EPIC-P37 (ADR-0056): GitLab im Session-Kontext. Default: lokales glab
+   * des Betriebsnutzers; E2E setzt `command` auf einen Stub. */
+  forge: z
+   .object({
+     gitlab: z
+       .object({
+         command: z.string().min(1).default("glab"),
+         /** Default-Host, wenn ein Remote nicht eindeutig ist (selten). */
+         host: z.string().min(3).max(253).optional(),
+         /** Token als Dateireferenz (erste Zeile) — nie in der Config selbst. */
+         tokenFile: z.string().min(1).optional(),
+       })
+       .default({ command: "glab" }),
+   })
+   .default({ gitlab: { command: "glab" } }),
   /** T9.2 (ADR-0027): local model for text commands and text edits;
    * absent → the gatekeeper's model, if any. Never a cloud fallback. */
   assistant: z

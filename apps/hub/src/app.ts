@@ -5,6 +5,7 @@ import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore } from "@ancientvoid/core";
+import type { ForgeService } from "./modules/forge/forge-service.ts";
 import { discoverProjects, FleetStore } from "@ancientvoid/core";
 import type { HubMetrics, DiscoverySource } from "@ancientvoid/contracts";
 import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@ancientvoid/contracts";
@@ -47,8 +48,10 @@ export interface HubAppDeps {
   /** EPIC-P19: Loops / Dark Factories (optional: ohne Angabe nur der gesperrte Katalog). */
   loops?: LoopRegistry;
   /** EPIC-P36: Review-Notizen (Journal+Snapshot, ADR-0055). Ohne Angabe
-   * bleiben die Review-Routen aus (501-Muster wie Approvals). */
+   * bleiben die Review-Routen aus (501-Muster wie Approvals/WebAuthn). */
   reviews?: ReviewStore;
+  /** EPIC-P37 (ADR-0056): Forge-Dienst — ohne Angabe ehrliche Abschaltung. */
+  forge?: ForgeService;
   /** T2.4: optional, mirrors SessionManager's own optional approvals —
    * omitting it disables the /api/approvals routes (501), not a crash. */
   approvals?: ApprovalService;

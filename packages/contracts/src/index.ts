@@ -31,3 +31,4 @@ export * from "./loops/connector.ts";
 export * from "./workspace/manifest.ts";
 export * from "./workspace/runtime.ts";
 export * from "./reviews/review.ts";
+export * from "./forge/forge.ts";
