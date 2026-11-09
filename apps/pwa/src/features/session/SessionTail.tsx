@@ -12,6 +12,7 @@ import { connectTail, type NormalizedEvent, type TailConnection } from "../../sh
 import { Composer } from "../composer/Composer.tsx";
 import type { SlashCommand } from "../composer/slash.ts";
 import { SessionConfigure } from "./SessionConfigure.tsx";
+import { WorkplaceBadge } from "./WorkplaceBadge.tsx";
 import { QueueList } from "./QueueList.tsx";
 import { PcOpenNotice } from "./PcOpenNotice.tsx";
 import { WorkspaceRuntimePane } from "../workspace/runtime/WorkspaceRuntimePane.tsx";
@@ -733,6 +734,7 @@ export function SessionTail({
             {session.project.split("/").pop()} · {loopView ? <LoopBadge adapter={session.adapter} view={loopView} /> : session.adapter} · {loopView ? "" : `${shownModel} · `}
             {session.hostId ? (hostNames.get(session.hostId) ?? (session.hostId === "local" ? "dieser Rechner" : session.hostId.slice(0, 8))) : "dieser Rechner"} ·{" "}
             <span class={`pill ${status}`} data-status={status}>{statusLabel(status)}</span>
+            {session.controlMode !== "mirror" && <>{" · "}<WorkplaceBadge session={record} /></>}
           </div>
         </div>
         {!observerOnly && features?.interrupt && (status === "working" || status === "starting" || status === "waiting_approval") && (

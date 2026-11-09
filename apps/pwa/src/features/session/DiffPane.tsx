@@ -163,6 +163,7 @@ export function DiffPane({
     seen.add(f.path);
     union.push(f);
   }
+  const preexisting = new Set(diff.baseline?.dirtyAtStart ?? []);
   const anchorOf = new Map(union.map((f, i) => [f.path, i]));
   const groups = (files: SessionDiffFile[], commit?: string) =>
     files.map((f) => {
@@ -171,6 +172,7 @@ export function DiffPane({
         <div key={f.path} class="diff-file-group" id={fileAnchor(i)}>
           <div class="diff-file-heading mono">
             {f.path}
+            {preexisting.has(f.path) && <span class="diff-preexisting" title="Schon vor dem Start geändert — nicht von dieser Session">vor Start geändert</span>}
             {review && review.noteCount(f.path) > 0 && <span class="review-note-badge">{review.noteCount(f.path)}</span>}
           </div>
           {f.hunks.map((h, j) => (
@@ -187,6 +189,11 @@ export function DiffPane({
   };
   return (
     <div class="diff-pane">
+      {diff.baseline && diff.baseline.dirtyAtStart.length > 0 && (
+        <div class="workplace-warn" role="note">
+          Projekt direkt: {diff.baseline.dirtyAtStart.length}{diff.baseline.dirtyTruncated ? "+" : ""} Datei(en) waren beim Start schon geändert und sind markiert — sie zählen nicht als Leistung der Session.
+        </div>
+      )}
       <div class="diff-files">
         {union.map((f, i) => (
           <div

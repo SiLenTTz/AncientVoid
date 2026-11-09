@@ -65,6 +65,9 @@ export interface DiffCommit {
 }
 
 export interface SessionDiffResult {
+  /** ADR-0057: bei „Projekt direkt“ — Pfade, die beim Start schon geändert waren (gehören nicht der Session),
+   * und ob HEAD/Branch seither gewandert sind. Fehlt bei Worktree-Sessions. */
+  baseline?: { dirtyAtStart: string[]; dirtyTruncated: boolean; headAtStart: string | null; branchAtStart: string | null };
   /** Seit AC-P2-1 ausschließlich der NICHT committete Rest seit HEAD
    * (inkl. untracked, BUG-0020) — der committete Teil liegt in `commits[]`.
    * Ohne Commits im Bereich ist das exakt die alte Form. */
