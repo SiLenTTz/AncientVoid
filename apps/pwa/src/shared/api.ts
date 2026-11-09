@@ -279,6 +279,34 @@ export interface CreateReviewNoteBody {
   text: string;
 }
 
+
+/** EPIC-P37 / ADR-0056: Forge (GitLab) — PWA-Kopien der Contract-Typen. */
+export type ForgePipelineStatus = string;
+export interface ForgeMrRef { host: string; projectId: number; projectPath?: string; mrIid: number }
+export interface ForgePipelineSummary { id: number; iid: number | null; status: ForgePipelineStatus; sha: string | null; ref: string; webUrl: string; createdAt: string | null }
+export interface ForgeJobSummary { id: number; name: string; status: ForgePipelineStatus; stage: string; kind: "job" | "bridge"; downstreamPipelineId: number | null; allowFailure: boolean; webUrl: string }
+export interface ForgeThreadNote { author: string; body: string; system: boolean; createdAt: string | null }
+export interface ForgeThread { id: string; resolved: boolean; notes: ForgeThreadNote[] }
+export interface ForgeMrSummary { ref: ForgeMrRef; title: string; state: string; draft: boolean; sourceBranch: string; targetBranch: string; sha: string | null; webUrl: string; author: string; updatedAt: string | null }
+export interface ForgeIssueSummary { host: string; projectId: number; iid: number; title: string; description: string; state: string; author: string; webUrl: string; labels: string[] }
+export interface ForgeLink { sessionId: string; mr: ForgeMrRef; lastSha: string | null; lastFetchedAt: string | null; createdAt: string }
+export interface ForgeOperation { id: string; kind: "feedback_send" | "draft_mr"; state: "pending" | "done" | "failed" | "uncertain"; sha: string | null; pipelineId: number | null; jobId: number | null; detail: string | null; createdAt: string; updatedAt: string }
+export interface ForgeTraceView { jobId: number; pipelineId: number | null; sha: string | null; fetchedAt: string; sizeBytes: number; truncated: boolean; preview: string }
+export interface ForgeOverview {
+  link: ForgeLink | null;
+  sessionBranch: string | null;
+  sessionHead: string | null;
+  mr: ForgeMrSummary | null;
+  pipelines: ForgePipelineSummary[];
+  pipelineStaleError?: string | null;
+  cachedAt: string | null;
+  staleError: string | null;
+  shaDrift: boolean;
+  journalSkippedLines: number;
+}
+export interface DraftMrPlan { branch: string; commitsAhead: Array<{ sha: string; subject: string }>; pushNeeded: boolean; host: string; projectId: number | null; projectPath: string; targetBranch: string; suggestedTitle: string; sessionTitle: string | null }
+export interface DraftMrResult { ok: boolean; webUrl: string | null; detail: string | null; state: "pending" | "done" | "failed" | "uncertain" }
+
 /** ADR-0017 — one host in the fleet overview. */
 export interface FleetHost {
   hostId: string;
@@ -804,6 +832,28 @@ function createHubApi(P: (path: string) => string) {
   notifications: (after = 0) => api<{ items: HubNotification[]; lastId: number }>(P(`/api/notifications?after=${after}`)),
   sessionDiff: (id: string) => api<SessionDiffResult>(P(`/api/sessions/${id}/diff`)),
   /** EPIC-P36: Review-Notizen zur Diff-Ansicht (ADR-0055). */
+  /** EPIC-P37: Forge (GitLab) im Session-Kontext. */
+  forgeOverview: (id: string) => api<ForgeOverview>(P(`/api/sessions/${id}/forge/overview`)),
+  forgeLink: (id: string, url: string) =>
+    api<{ link: ForgeLink }>(P(`/api/sessions/${id}/forge/link`), { method: "POST", body: JSON.stringify({ url }) }),
+  forgeUnlink: (id: string) => api<{ ok: boolean }>(P(`/api/sessions/${id}/forge/link`), { method: "DELETE", body: "{}" }),
+  forgeJobs: (id: string, pipelineId: number) =>
+    api<{ items: ForgeJobSummary[]; cachedAt: string; staleError: string | null }>(P(`/api/sessions/${id}/forge/jobs?pipelineId=${pipelineId}`)),
+  forgeThreads: (id: string) =>
+    api<{ items: ForgeThread[]; truncated: boolean; cachedAt: string; staleError: string | null }>(P(`/api/sessions/${id}/forge/threads`)),
+  forgeTrace: (id: string, jobId: number, pipelineId: number | null) =>
+    api<ForgeTraceView>(P(`/api/sessions/${id}/forge/trace?jobId=${jobId}${pipelineId !== null ? `&pipelineId=${pipelineId}` : ""}`)),
+  forgeIssues: (id: string) =>
+    api<{ host: string; projectId: number; items: ForgeIssueSummary[]; truncated: boolean; cachedAt: string; staleError: string | null }>(P(`/api/sessions/${id}/forge/issues`)),
+  forgeFeedbackPreview: (id: string, body: { finding: string; pipelineId?: number; jobId?: number; threadId?: string }) =>
+    api<{ prompt: string }>(P(`/api/sessions/${id}/forge/feedback/preview`), { method: "POST", body: JSON.stringify(body) }),
+  forgeFeedbackSend: (id: string, body: { operationId: string; finding: string; pipelineId?: number; jobId?: number; threadId?: string }) =>
+    api<{ ok: boolean; prompt?: string; detail?: string }>(P(`/api/sessions/${id}/forge/feedback`), { method: "POST", body: JSON.stringify(body) }),
+  forgeMrPlan: (id: string) => api<DraftMrPlan>(P(`/api/sessions/${id}/forge/mr/plan`), { method: "POST", body: "{}" }),
+  forgeMrCreate: (id: string, body: { operationId: string; title: string; description: string; targetBranch: string; push: boolean }) =>
+    api<DraftMrResult>(P(`/api/sessions/${id}/forge/mr/create`), { method: "POST", body: JSON.stringify(body) }),
+  forgeOperations: (id: string) =>
+    api<{ items: ForgeOperation[]; journalSkippedLines: number }>(P(`/api/sessions/${id}/forge/operations`)),
   sessionReviews: (id: string) => api<{ items: ReviewNoteView[]; journalSkippedLines: number }>(P(`/api/sessions/${id}/reviews`)),
   createReviewNote: (id: string, body: CreateReviewNoteBody) =>
     api<{ note: ReviewNoteView }>(P(`/api/sessions/${id}/reviews`), { method: "POST", body: JSON.stringify(body) }),

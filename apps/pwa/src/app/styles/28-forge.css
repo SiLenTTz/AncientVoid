@@ -1,0 +1,221 @@
+/* EPIC-P37 T37.3 — GitLab-Tab (MR, Pipelines, Threads, Feedback, Draft-MR). Zustand steht immer auch als Text im Chip,
+ * Farbe ist nur Zusatzsignal. Grundmuster wie 11-report-and-diff.css (Tokens, Dialog). */
+.forge-panel {
+  display: grid;
+  gap: 12px;
+  container-type: inline-size;
+}
+
+.fp-section {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.fp-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.fp-row.right {
+  justify-content: flex-end;
+}
+
+.fp-link-row {
+  display: flex;
+  gap: 8px;
+}
+.fp-link-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bg-chip);
+  background: var(--bg-chip);
+  color: inherit;
+  font: inherit;
+}
+
+.fp-btn {
+  padding: 8px 12px;
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bg-chip);
+  background: var(--bg-chip);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+.fp-btn.primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.fp-btn.small {
+  padding: 4px 8px;
+  min-height: 28px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+.fp-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.fp-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: calc(12px * var(--font-scale, 1));
+  white-space: nowrap;
+}
+.fp-ok {
+  color: var(--ok);
+}
+.fp-fail,
+.fp-fail-text {
+  color: var(--err);
+}
+.fp-run {
+  color: var(--accent);
+}
+.fp-neutral {
+  color: var(--fg-dim);
+}
+.fp-warn {
+  padding: 8px 10px;
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  color: var(--warn);
+}
+
+.fp-meta {
+  font-size: calc(12px * var(--font-scale, 1));
+}
+.fp-cached {
+  font-size: calc(11px * var(--font-scale, 1));
+}
+.fp-mr-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.fp-mr-title {
+  font-weight: 600;
+}
+
+.fp-pipeline-list,
+.fp-issue-list,
+.fp-jobs,
+.fp-commits {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fp-pipeline-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.fp-pipeline-row:hover,
+.fp-pipeline-row.open {
+  background: var(--bg-chip);
+}
+.fp-job {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+}
+
+.fp-thread {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius-sm);
+}
+.fp-note {
+  padding-left: 8px;
+  border-left: 2px solid var(--bg-chip);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.fp-note.system {
+  color: var(--fg-faint);
+}
+
+.fp-finding {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bg-chip);
+  background: var(--bg-chip);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+.fp-preview,
+.fp-plan {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 40vh;
+  overflow: auto;
+}
+
+.fp-op {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fp-trace-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+.fp-trace-dialog .modal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(760px, 94vw);
+  max-height: 85vh;
+  padding: 14px;
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 12px;
+  background: var(--bg-elev);
+}
+.fp-trace {
+  margin: 0;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: calc(12px * var(--font-scale, 1));
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 60vh;
+}

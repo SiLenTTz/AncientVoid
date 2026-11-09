@@ -111,8 +111,8 @@ describe("Reader-Abbildungen", () => {
 
   it("fetchJobs mischt Jobs und Bridges (beide Endpunkte)", async () => {
     const run = fakeRunner({
-      [`projects/team%2Fproj/pipelines/5/jobs`]: [{ id: 1, name: "verify", status: "success", stage: "test", web_url: "u" }],
-      [`projects/team%2Fproj/pipelines/5/bridges`]: [{ id: 2, name: "bridge", status: "failed", stage: "test", downstream_pipeline: { id: 6 }, web_url: "u" }],
+      [`projects/42/pipelines/5/jobs`]: [{ id: 1, name: "verify", status: "success", stage: "test", web_url: "u" }],
+      [`projects/42/pipelines/5/bridges`]: [{ id: 2, name: "bridge", status: "failed", stage: "test", downstream_pipeline: { id: 6 }, web_url: "u" }],
     });
     const jobs = await fetchJobs(run, ref, 5);
     expect(jobs.map((j) => j.kind).sort()).toEqual(["bridge", "job"]);
@@ -120,7 +120,7 @@ describe("Reader-Abbildungen", () => {
 
   it("fetchPipelines sortiert jüngste zuerst und paginiert", async () => {
     const run = fakeRunner({
-      [`projects/team%2Fproj/pipelines`]: [
+      [`projects/42/pipelines`]: [
         { id: 3, iid: 3, status: "running", sha: "cccc000000000000000000000000000000000000", ref: "feat/x", web_url: "u3" },
         { id: 9, iid: 9, status: "failed", sha: "dddd000000000000000000000000000000000000", ref: "feat/x", web_url: "u9" },
         { id: 1, iid: 1, status: "success", sha: "aaaa000000000000000000000000000000000000", ref: "feat/x", web_url: "u1" },
@@ -140,7 +140,7 @@ describe("Reader-Abbildungen", () => {
 
   it("fetchThreads filtert leere Diskussionen und resolveProject liest path_with_namespace", async () => {
     const run = fakeRunner({
-      [`projects/team%2Fproj/merge_requests/7/discussions`]: [{ id: "a", notes: [{ author: {}, body: "hi", system: false }] }, { id: "b", notes: [] }],
+      [`projects/42/merge_requests/7/discussions`]: [{ id: "a", notes: [{ author: {}, body: "hi", system: false }] }, { id: "b", notes: [] }],
       [`projects/team%2Fproj`]: { id: 42, path_with_namespace: "team/proj", web_url: "https://gitlab.example/team/proj" },
     });
     const threads = await fetchThreads(run, ref);

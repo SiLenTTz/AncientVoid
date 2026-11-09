@@ -37,6 +37,7 @@ import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextW
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
 import { EventRow } from "./EventRow.tsx";
 import { DiffReview } from "./DiffReview.tsx";
+import { ForgePanel } from "../forge/ForgePanel.tsx";
 import { ReportPane } from "./ReportPane.tsx";
 import { SessionApprovals } from "./SessionApprovals.tsx";
 
@@ -47,7 +48,7 @@ const BACKGROUND_FLUSH_MS = 50;
 /** Rows a tile without focus keeps in the DOM. */
 const BACKGROUND_ROWS = 150;
 /** Tabs that read rather than talk: the composer folds away in a desktop tile. */
-const READING_TABS: ReadonlySet<string> = new Set(["diff", "bericht", "suche", "code", "umgebung"]);
+const READING_TABS: ReadonlySet<string> = new Set(["diff", "forge", "bericht", "suche", "code", "umgebung"]);
 
 /** EPIC-P18: set when this view is one tile of the desktop workspace —
  * several SessionTails then share one page. */
@@ -179,7 +180,7 @@ export function SessionTail({
   // filter split above — it replaces the event list with a summary pane
   // instead of filtering it, so it needs its own bit of state rather than
   // being derived from `filter` like Chat/Verlauf are.
-  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "suche" | "code" | "umgebung">(() =>
+  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "forge" | "suche" | "code" | "umgebung">(() =>
     initialCode ? "code" : loadFilter() === "lesen" ? "chat" : "verlauf",
   );
 
@@ -684,6 +685,7 @@ export function SessionTail({
     { id: "verlauf", label: "Verlauf", icon: "verlauf", show: showVerlaufTab },
     { id: "bericht", label: "Bericht", icon: "bericht", show: showBerichtTab },
     { id: "diff", label: "Diff", icon: "diff", show: showDiffTab },
+    { id: "forge", label: "GitLab", icon: "forge", show: () => setActiveTab("forge") },
     { id: "suche", label: "Suche", icon: "suche", show: showSucheTab },
     { id: "code", label: "Code", icon: "code", show: showCodeTab },
     { id: "umgebung", label: "Umgebung", icon: "umgebung", show: showUmgebungTab },
@@ -891,6 +893,8 @@ export function SessionTail({
           />
         ) : activeTab === "diff" ? (
           <DiffReview diff={diff} session={session} />
+        ) : activeTab === "forge" ? (
+          <ForgePanel session={session} onOpenSession={(id) => { location.hash = sessionHash(id, remoteHost(session.hostId)); }} />
         ) : activeTab === "suche" ? (
           <SearchPane project={session.project} />
         ) : activeTab === "code" ? (
