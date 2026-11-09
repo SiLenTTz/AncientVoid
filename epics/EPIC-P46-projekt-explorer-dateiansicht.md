@@ -1,6 +1,6 @@
 # EPIC-P46 — Rechte Projekt-Sidebar, vollständige Dateiansicht und Diagnosen
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P46
+**Status:** in Umsetzung seit 2026-11-09 (P38 umgesetzt) — Teilstand: T46.2–T46.5 und der Kern von T46.6 gebaut (ADR-0058), offen: T46.1 (Monaco-Spike), T46.7 (Syntaxfarben/Diagnosen), Rest von T46.6/T46.8, Remote-Hosts, Pixel-Abnahme · **Phase:** P46
 **Dauer:** 3–5 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P38-Exit nachweislich grün; fachlich P3/P7 Codeansicht, P34/P35 Fenster und P36 Feedback geprüft. Auf Folgeauftrag vom 08.11.2026 zwischen P38 und P39 eingeplant; P39 wartet auf P46. Nummern bestehender Epics bleiben stabil.
 
@@ -80,14 +80,14 @@ Gepinnt auf `bdeb388d75120b6e36dd619291286de0cc9aae02`; Hash-/Lizenz-/Importreze
 ## 4. Aufgaben (Checkliste T46.m)
 
 - [ ] **T46.1** Bestand, Dateifamilien/Sprachen-Matrix und Desktop-/Pixel-Spike für Monaco versus mobilen Viewer; konkrete Ressourcen-/Bundlebudgets im ADR festhalten. **K1/K2/K5/K8**.
-- [ ] **T46.2** Contracts/ADR für Workspace-Tree, revisionierte File-Range/Metadaten/Viewer und Diagnosen; bestehende CodeFile-API kompatibel erhalten. **K3/K5/K7**.
-- [ ] **T46.3** Lazy/paginierte Tree-API, Root-/Host-/Worktree-Containment, Filter und Watch-/Overflow-Recovery; tiefe Ordner, symlink loop/outside und Rechtefehler prüfen. **K2/K5/K7/K8**.
-- [ ] **T46.4** Rechte Sidebar/Touch-Drawer, Root-Auswahl, Tabs/Popouts, natürliche Sortierung und Gitstatus; kein Draft-/Tail-/Approval-Verlust beim Rootwechsel. **K1/K2/K7/K10**.
-- [ ] **T46.5** Vollständiger Text-/Bytezugriff mit Chunk-/Range-/Encoding-/Revision-Tests; >1 MiB bis zum Ende, UTF-16/Emoji/CRLF, Änderung während Nachladen, große/unknown Binary und Download-Abbruch. **K2/K5/K7/K8**.
-- [ ] **T46.6** Viewer-Router und Formatmatrix gemäß §3.4, Quell-/Hex-Fallback, passive Preview und sichere vorhandene lokale Converter mit sichtbaren Capabilities; keine Notebook-/Macro-/HTML-Script-Ausführung beim Anzeigen. **K2/K3/K5/K10**.
+- [x] **T46.2** Contracts/ADR für Workspace-Tree, revisionierte File-Range/Metadaten/Viewer und Diagnosen; bestehende CodeFile-API kompatibel erhalten. **K3/K5/K7**. — ADR-0058, `contracts/code/explorer.ts` (additiv, `CodeFile` unverändert)
+- [x] **T46.3** Lazy/paginierte Tree-API, Root-/Host-/Worktree-Containment, Filter und Watch-/Overflow-Recovery; tiefe Ordner, symlink loop/outside und Rechtefehler prüfen. **K2/K5/K7/K8**. — `listTree` (lazy, paginiert, dotfiles/untracked/ignoriert, `.git`/Ausbruchs-Links gesperrt); Revalidierung per 5-s-Poll statt Watcher; Remote-Hosts offen
+- [x] **T46.4** Rechte Sidebar/Touch-Drawer, Root-Auswahl, Tabs/Popouts, natürliche Sortierung und Gitstatus; kein Draft-/Tail-/Approval-Verlust beim Rootwechsel. **K1/K2/K7/K10**. — rechte Sidebar/Drawer, Root-Auswahl (gepinnt), Tabs, Gitstatus; Popout offen
+- [x] **T46.5** Vollständiger Text-/Bytezugriff mit Chunk-/Range-/Encoding-/Revision-Tests; >1 MiB bis zum Ende, UTF-16/Emoji/CRLF, Änderung während Nachladen, große/unknown Binary und Download-Abbruch. **K2/K5/K7/K8**. — `/meta` + `/range` + `/raw`; Tests > 1 MiB, UTF-16/Emoji/CRLF, Revisionswechsel, Hex bis letztes Byte
+- [ ] **T46.6** Viewer-Router und Formatmatrix gemäß §3.4, Quell-/Hex-Fallback, passive Preview und sichere vorhandene lokale Converter mit sichtbaren Capabilities; keine Notebook-/Macro-/HTML-Script-Ausführung beim Anzeigen. **K2/K3/K5/K10**. — **teilweise:** Text/Hex/Bild/Audio/Video/PDF/Download gebaut; Markdown/Mermaid/HTML/JSON-Struktur/Notebook/Office/Archive offen
 - [ ] **T46.7** Syntaxfarben/Dateisuche/Go-to/Wrap und Diagnoseadapter (JSON, TS/JS Projekt, Python) samt Fehlerliste, Checkerzustand und stale-Revision-/Positionsprüfung; keine ungefragten Toolinstallationen. **K1/K2/K5/K7**.
 - [ ] **T46.8** Datei-/Diagnoseauswahl als Quellenpaket an P36, gerätelokaler Tree-/Tab-Restore und Offline-Bereichsstatus; P39/P43/P44-Verträge abstimmen. **K3/K5/K7/K10**.
-- [ ] **T46.9** `e2e/specs/project-explorer.spec.ts`, `file-viewers.spec.ts`, `file-diagnostics.spec.ts`: echter Hub/Projektwechsel, letzte Datei-/Bytebereiche, Formate, Fehler/Gegenprobe, Agentenänderung, Restart; echte Pixel-Abnahme, Gate/PWA-Build/K2/K8. **K1/K2/K3/K5/K7/K8/K10**.
+- [ ] **T46.9** `e2e/specs/project-explorer.spec.ts`, `file-viewers.spec.ts`, `file-diagnostics.spec.ts`: echter Hub/Projektwechsel, letzte Datei-/Bytebereiche, Formate, Fehler/Gegenprobe, Agentenänderung, Restart; echte Pixel-Abnahme, Gate/PWA-Build/K2/K8. **K1/K2/K3/K5/K7/K8/K10**. — **teilweise:** `e2e/specs/project-explorer.spec.ts` (Baum, Datei > 1 MiB, Revisionsänderung, Hex, Bild, Reload); `file-viewers`/`file-diagnostics` offen
 
 ## 5. Acceptance Criteria (AC-P46-k)
 
