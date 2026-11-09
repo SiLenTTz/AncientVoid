@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Loop connector for the securesight factory (securesight-harnez, ADR-0038): observes supervisor status, notifications, transcript and progress; writes nothing.",
   "type": "module",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "exports": {
     ".": "./src/index.ts"
   },

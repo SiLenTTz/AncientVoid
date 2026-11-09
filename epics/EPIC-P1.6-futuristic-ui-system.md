@@ -1,6 +1,6 @@
 # EPIC-P1.6 — Futuristisches UI-System: Bottom-Dock, Bericht, Design-System-Referenz
 
-**Status:** abgeschlossen (2026-11-07) — alle 9 Aufgaben und 9 ACs grün; der offene DoD-Punkt „gemeinsamer Live-Handy-Test" (schließt AC-P1.5-1/AC-P1.5-8 mit) ist als T35.10/T35.11 an [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) verwiesen · **Phase:** P1.6 (zwischen P1.5 und P2 eingeschoben) · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** P1.5 funktional grün (siehe Vorbemerkung)
+**Status:** Code abgeschlossen, Handy-Test offen (T35.10/T35.11) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · (2026-11-07) — alle 9 Aufgaben und 9 ACs grün; der offene DoD-Punkt „gemeinsamer Live-Handy-Test" (schließt AC-P1.5-1/AC-P1.5-8 mit) ist als T35.10/T35.11 an [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) verwiesen · **Phase:** P1.6 (zwischen P1.5 und P2 eingeschoben) · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** P1.5 funktional grün (siehe Vorbemerkung)
 
 ---
 
@@ -530,3 +530,12 @@ Alle ACs grün **und**:
   `npm -w @ancientvoid/pwa run build`/`typecheck` grün.
 - Danach — **nicht vorher** — der gemeinsame Live-Handy-Test, der P1.5s
   offene DoD-Zeile (AC-P1.5-1, AC-P1.5-8) mit erledigt.
+
+## Retro-Nachtrag Abnahmestand (2026-11-09)
+
+Read-only-Abgleich der Epic-Datei gegen Repo-Stand (`git log`, Gate-Skripte, `epics/EPIC-P35-*.md` §8.1). Keine offenen MRs.
+
+- **Status:** Code abgeschlossen, Handy-Test offen (T35.10/T35.11)
+- **Belegt:** 9/9 Aufgaben, 9/9 ACs grün
+- **Offen:** gemeinsamer Live-Handy-Test → T35.10/T35.11
+- **Gating:** Nachfolger-Epics laufen unter der dokumentierten Umpriorisierung; die Restpunkte sind im P35-Endabnahme-Block gebündelt und werden dort abgenommen, nicht hier erneut abgehakt.

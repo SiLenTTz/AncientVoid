@@ -1,6 +1,6 @@
 # EPIC-P4 — Brain-Integration, evox2/Windows, MCP-Gateway, OSS-Aufbereitung
 
-**Status:** abgeschlossen mit Externalen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) (2026-11-07) — autonom umsetzbar war grün: T4.1/T4.2/T4.6/T4.7/T4.9/T4.10. Die fünf bewusst offenen Punkte laufen dort gebündelt: T4.3/T4.4 (agent-hub-Skill, Gengar — externer Zugang) → T35.13, T4.5 (WSL2, Host noch unbestimmt, **kein bmax** — Trading-Maschine, Nutzentscheid 2026-11-07) → T35.13, T4.8 (Lizenz) und T4.11 (v0.1-Tag/Changelog) → T35.14. AC-P4-6s „Secret-Scan des gesamten Repos" ist seit MR !319 als wiederholtes CI-Gate real (`npm run check:secrets`, aktuell 0 Treffer über 1039 getrackte Dateien). · **Phase:** P4 · **Dauer:** 1–2
+**Status:** offen mit externen Punkten (T35.13/T35.14) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · mit Externalen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) (2026-11-07) — autonom umsetzbar war grün: T4.1/T4.2/T4.6/T4.7/T4.9/T4.10. Die fünf bewusst offenen Punkte laufen dort gebündelt: T4.3/T4.4 (agent-hub-Skill, Gengar — externer Zugang) → T35.13, T4.5 (WSL2, Host noch unbestimmt, **kein bmax** — Trading-Maschine, Nutzentscheid 2026-11-07) → T35.13, T4.8 (Lizenz) und T4.11 (v0.1-Tag/Changelog) → T35.14. AC-P4-6s „Secret-Scan des gesamten Repos" ist seit MR !319 als wiederholtes CI-Gate real (`npm run check:secrets`, aktuell 0 Treffer über 1039 getrackte Dateien). · **Phase:** P4 · **Dauer:** 1–2
 Agenten-Wochen · **Abhängigkeit:** P3 grün
 
 ---
@@ -139,8 +139,8 @@ Sessions, lauffähig auf evox2 (Windows/WSL), das lazy-disclosed MCP-Gateway (Me
   Tools. Ein viertes Tool lässt den Test nicht automatisch scheitern
   (dafür müsste es auch das Budget sprengen), aber der Test wird bei
   jeder Änderung neu real gemessen, nicht nur einmalig behauptet.
-- [ ] **T4.8** Lizenz-Entscheidung + Header-Sweep + DCO/CLA-Frage klären —
-  **bewusst nicht autonom entschieden**: eine Lizenzwahl ist eine
+- [x] **T4.8** Lizenz-Entscheidung + Header-Sweep + DCO/CLA-Frage klären —
+  **entschieden 2026-11-09 (Jan): PolyForm Noncommercial 1.0.0** (`LICENSE`, README, `license`-Felder; privat/nicht-kommerziell, keine OSI-Lizenz; Header-Sweep und DCO/CLA entfallen bei Solo-Projekt). Vorher bewusst nicht autonom entschieden: eine Lizenzwahl ist eine
   rechtliche/geschäftliche Entscheidung des Repo-Eigentümers, keine
   technische Implementierungsfrage — hier nicht einseitig auf MIT/Apache-2.0
   festgelegt und über den Header-Sweep durchgesetzt, obwohl README das seit
@@ -237,3 +237,12 @@ Sessions, lauffähig auf evox2 (Windows/WSL), das lazy-disclosed MCP-Gateway (Me
 
 Alle ACs + v0.1 getaggt + Docs ohne TBD + Adapter-Matrix ehrlich + kein einziger
 Brain-spezifischer Codepfad im OSS-Kern + Post-Release-Retro-Termin im Kalender.
+
+## Retro-Nachtrag Abnahmestand (2026-11-09)
+
+Read-only-Abgleich der Epic-Datei gegen Repo-Stand (`git log`, Gate-Skripte, `epics/EPIC-P35-*.md` §8.1). Keine offenen MRs.
+
+- **Status:** offen mit externen Punkten (T35.13/T35.14)
+- **Belegt:** T4.1/T4.2/T4.6/T4.7/T4.9/T4.10 grün
+- **Offen:** T4.3 Hermes-Skill, T4.4 Gengar, T4.5 WSL2 → T35.13; T4.11 Release → T35.14; AC-P4-4 (T4.8 Lizenz entschieden 2026-11-09)
+- **Gating:** Nachfolger-Epics laufen unter der dokumentierten Umpriorisierung; die Restpunkte sind im P35-Endabnahme-Block gebündelt und werden dort abgenommen, nicht hier erneut abgehakt.

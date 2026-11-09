@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "AncientVoid hub daemon: REST/WS API with device-token auth, WS delta protocol (seq/gap/resync/drop-on-slow), static PWA serving.",
   "type": "module",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "exports": {
     ".": "./src/index.ts"
   },

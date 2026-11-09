@@ -1,6 +1,6 @@
 # EPIC-P2 — Diff-Ansicht, Approval-Gates, Budgets, Messlatten im CI
 
-**Status:** abgeschlossen (2026-11-07) — T2.1–T2.10 umgesetzt; die AC-P2-1-Teillücke „Diff gruppiert nach Datei, nicht nach Commit-Grenzen" ist geschlossen: `getSessionDiff()` liefert `commits[]`-Abschnitte (je `sha^..sha`), die PWA rendert einen Abschnitt pro Commit, K3 gilt weiter für die Gesamtpayload (MR !319, E2E „drei Commit-Abschnitte"); die biometrische Mobilfreigabe über WAN am Gerät ist an [EPIC-P35 (Endabnahme-Block) T35.10](EPIC-P35-harness-paritaet-fortsetzen-provider.md) verwiesen ·
+**Status:** Code abgeschlossen, Geräteabnahme offen (T35.10) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · (2026-11-07) — T2.1–T2.10 umgesetzt; die AC-P2-1-Teillücke „Diff gruppiert nach Datei, nicht nach Commit-Grenzen" ist geschlossen: `getSessionDiff()` liefert `commits[]`-Abschnitte (je `sha^..sha`), die PWA rendert einen Abschnitt pro Commit, K3 gilt weiter für die Gesamtpayload (MR !319, E2E „drei Commit-Abschnitte"); die biometrische Mobilfreigabe über WAN am Gerät ist an [EPIC-P35 (Endabnahme-Block) T35.10](EPIC-P35-harness-paritaet-fortsetzen-provider.md) verwiesen ·
 **Phase:** P2 · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** P1 grün
 
 ---
@@ -430,3 +430,12 @@ Sicherheits-Walkthrough dokumentiert (Bedrohungsliste aus PRD §8 abgehakt).
 
 **Ergebnis:** 6/6 Punkte real erfüllt und mit Beleg (Test, Datei:Zeile oder
 Messlauf) unterlegt — keiner nur behauptet.
+
+## Retro-Nachtrag Abnahmestand (2026-11-09)
+
+Read-only-Abgleich der Epic-Datei gegen Repo-Stand (`git log`, Gate-Skripte, `epics/EPIC-P35-*.md` §8.1). Keine offenen MRs.
+
+- **Status:** Code abgeschlossen, Geräteabnahme offen (T35.10)
+- **Belegt:** T2.1..T2.10 abgehakt; Diff nach Commit-Abschnitten (MR !319, E2E)
+- **Offen:** biometrische Mobilfreigabe über WAN am Gerät
+- **Gating:** Nachfolger-Epics laufen unter der dokumentierten Umpriorisierung; die Restpunkte sind im P35-Endabnahme-Block gebündelt und werden dort abgenommen, nicht hier erneut abgehakt.

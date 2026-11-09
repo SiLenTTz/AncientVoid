@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "cursor adapter: the cursor-agent CLI as a one-shot-per-turn worker (stream-json), native --resume, model catalog via --list-models.",
   "type": "module",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "exports": {
     ".": "./src/index.ts"
   },

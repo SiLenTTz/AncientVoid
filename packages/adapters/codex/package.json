@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "codex adapter (P1): spawns `codex exec --json`, maps its event stream to NormalizedEvent.",
   "type": "module",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "exports": {
     ".": "./src/index.ts"
   },
