@@ -1,4 +1,24 @@
 import { test, expect } from "../support/fixtures.ts";
+import type { Page } from "@playwright/test";
+import type { TestHub } from "../support/hub.ts";
+
+/** Pollt, bis die Gelesen-Marke der Session den letzten Event-Stand im Gerätespeicher hat — statt eines festen Schlafs gegen den 1,5-s-Debounce. */
+async function seenMarked(app: Page, hub: TestHub, sessionId: string): Promise<void> {
+  const lastSeq = (await hub.api<{ lastSeq: number }>(`/api/sessions/${sessionId}`)).body.lastSeq;
+  await expect
+    .poll(
+      () =>
+        app.evaluate(
+          ([id, seq]) => {
+            const map = JSON.parse(localStorage.getItem("ancientvoid.seen") ?? "{}") as Record<string, number>;
+            return Object.entries(map).some(([key, value]) => key.endsWith(`:${id}`) && value >= (seq as number));
+          },
+          [sessionId, lastSeq] as const,
+        ),
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+}
 
 test.describe("Kleine Hilfen (T8.6)", () => {
   test("neu seit dem letzten Besuch: Marke auf der Karte, Trenner und Sprung in der Session", async ({ app, hub }) => {
@@ -7,7 +27,7 @@ test.describe("Kleine Hilfen (T8.6)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Chat" }).click();
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Erster Zug/)).toBeVisible();
-    await app.waitForTimeout(1700); // read cursor is written after 1.5 s
+    await seenMarked(app, hub, id); // read cursor is written 1.5 s after the last event
     await app.getByLabel("Zur Übersicht").click();
     await expect(app.locator(".session-card .new-badge")).toHaveCount(0);
 
@@ -19,7 +39,7 @@ test.describe("Kleine Hilfen (T8.6)", () => {
     // The divider sits right before the new turn.
     const after = app.locator(".new-divider + .event");
     await expect(after).toBeVisible();
-    await app.waitForTimeout(1700);
+    await seenMarked(app, hub, id);
     await app.getByLabel("Zur Übersicht").click();
     await expect(app.locator(".session-card .new-badge")).toHaveCount(0);
   });
