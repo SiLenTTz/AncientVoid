@@ -8,7 +8,7 @@ import { CSV_MAX_BYTES, guessDelimiter, jsonNodes, parseDelimited, parseMarkdown
  * EPIC-P46 T46.6 (ADR-0058 §8): strukturierte Ansichten. Dateiinhalt wird nie als HTML interpretiert — Preact
  * erzeugt nur Text-Knoten; SVG läuft passiv als <img>, HTML in einem Sandbox-iframe ohne Rechte.
  */
-export type RenderKind = "markdown" | "json" | "yaml" | "table" | "notebook" | "svg" | "html" | "archive" | "office";
+export type RenderKind = "markdown" | "mermaid" | "json" | "yaml" | "table" | "notebook" | "svg" | "html" | "archive" | "office";
 
 const OFFICE = new Set(["docx", "xlsx", "pptx", "odt", "ods", "odp"]);
 const ARCHIVE = new Set(["zip", "jar", "whl", "apk"]);
@@ -17,6 +17,7 @@ export function renderKindOf(meta: FileMeta): RenderKind | null {
   const ext = meta.path.toLowerCase().split(".").pop() ?? "";
   if (meta.family === "text") {
     if (ext === "md" || ext === "markdown") return "markdown";
+    if (ext === "mmd" || ext === "mermaid") return "mermaid";
     if (ext === "json") return "json";
     if (ext === "yaml" || ext === "yml") return "yaml";
     if (ext === "csv" || ext === "tsv") return "table";
@@ -81,10 +82,11 @@ function MdBlockView({ block }: { block: MdBlock }) {
     case "rule": return <hr />;
     case "code":
       return (
-        <figure class="md-code">
-          {block.lang === "mermaid" && <figcaption class="dim">Mermaid-Diagramm als Quelltext — kein Renderer eingebunden.</figcaption>}
-          <pre><code>{block.text}</code></pre>
-        </figure>
+        block.lang === "mermaid" ? (
+          <MermaidBlock source={block.text} />
+        ) : (
+          <figure class="md-code"><pre><code>{block.text}</code></pre></figure>
+        )
       );
     case "list": {
       const L = block.ordered ? "ol" : "ul";
@@ -133,6 +135,7 @@ function TextRendered({ api, target, meta, kind, onStale }: { api: HubApi; targe
     }
   }
   if (kind === "yaml") return <YamlTree text={text} />;
+  if (kind === "mermaid") return <MermaidBlock source={text} />;
   if (kind === "table") {
     const rows = parseDelimited(text, guessDelimiter(meta.path, text.slice(0, 2000)));
     const shown = rows.slice(0, 2001);
@@ -234,4 +237,44 @@ function YamlTree({ text }: { text: string }) {
   if (!state) return <div class="empty">lädt …</div>;
   if ("error" in state) return <div class="files-error" role="status">Kein gültiges YAML: {state.error}. „Text“ zeigt die Datei unverändert.</div>;
   return <div class="json-view" data-testid="yaml-view"><JsonTree node={state.node} open /></div>;
+}
+
+let mermaidSeq = 0;
+/**
+ * Mermaid lazy (großer Chunk, nur bei Bedarf), securityLevel „strict“; das SVG wird nie ins DOM gehängt, sondern als
+ * passives <img> (Blob) gezeigt — keine Skripte, keine Event-Handler. Fehler/Ablehnung → Quelltext mit Grund.
+ */
+function MermaidBlock({ source }: { source: string }) {
+  const [state, setState] = useState<{ url: string } | { error: string } | null>(null);
+  const [showSource, setShowSource] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    let made: string | null = null;
+    setState(null);
+    if (source.length > 100_000) {
+      setState({ error: "Diagramm-Quelltext größer als 100 000 Zeichen — nicht gerendert." });
+      return;
+    }
+    import("mermaid")
+      .then(async (m) => {
+        m.default.initialize({ startOnLoad: false, securityLevel: "strict", theme: "dark" });
+        const { svg } = await m.default.render(`mmd-${++mermaidSeq}`, source);
+        made = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+        if (alive) setState({ url: made });
+      })
+      .catch((err) => alive && setState({ error: err instanceof Error ? err.message.split("\n")[0]! : "Diagramm nicht renderbar" }));
+    return () => {
+      alive = false;
+      if (made) URL.revokeObjectURL(made);
+    };
+  }, [source]);
+  return (
+    <figure class="md-code mermaid-block" data-testid="mermaid-block">
+      {state && "error" in state && <div class="dim" role="status">Mermaid nicht gerendert: {state.error} — Quelltext:</div>}
+      {!state && <figcaption class="dim">Diagramm wird gerendert …</figcaption>}
+      {state && "url" in state && !showSource && <img class="file-media mermaid-img" src={state.url} alt="Mermaid-Diagramm" />}
+      {(showSource || !state || "error" in state) && <pre><code>{source}</code></pre>}
+      {state && "url" in state && <button type="button" class="chip" onClick={() => setShowSource(!showSource)}>{showSource ? "Diagramm" : "Quelltext"}</button>}
+    </figure>
+  );
 }

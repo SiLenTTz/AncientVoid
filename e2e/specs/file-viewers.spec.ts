@@ -47,7 +47,7 @@ test.describe("Datei-Ansichten (EPIC-P46)", () => {
     await expect(app.getByTestId("file-text").locator('[data-line="2"] .hljs-comment')).toBeVisible();
   });
 
-  test("Markdown: eigener Renderer, <script> und javascript:-Links bleiben Text; Mermaid nur als Quelltext", async ({ app, hub }) => {
+  test("Markdown: eigener Renderer, <script> und javascript:-Links bleiben Text; Mermaid als passives Bild", async ({ app, hub }) => {
     writeFileSync(join(hub.alpha, "doc.md"), "# Titel\n\n<script>window.__pwned = 1</script>\n\n[böse](javascript:alert(1))\n\n```mermaid\ngraph TD; A-->B\n```\n\n- eins\n- zwei\n");
     await openFile(app, hub, "doc.md");
     await view(app, "Ansicht").click();
@@ -55,7 +55,7 @@ test.describe("Datei-Ansichten (EPIC-P46)", () => {
     await expect(md.locator("h2")).toHaveText("Titel");
     await expect(md).toContainText("<script>window.__pwned = 1</script>");
     await expect(md.locator("a[href^='javascript']")).toHaveCount(0);
-    await expect(md).toContainText("kein Renderer eingebunden");
+    await expect(md.getByTestId("mermaid-block").locator("img.mermaid-img")).toBeVisible({ timeout: 30_000 });
     expect(await app.evaluate(() => (window as unknown as { __pwned?: number }).__pwned)).toBeUndefined();
   });
 

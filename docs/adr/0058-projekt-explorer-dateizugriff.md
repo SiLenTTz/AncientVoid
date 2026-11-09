@@ -61,8 +61,10 @@ die Grenze und löst weder RAM noch Revisionskonsistenz.
    sind an die Revision gebunden (409 bei Änderung).
 8. **Strukturierte Ansichten (T46.6).** Eigener kleiner Markdown-Parser, dessen
    Ausgabe Datenstrukturen sind (Preact-Text-Knoten, nie `innerHTML` aus
-   Dateiinhalt; Links nur `http(s)`/`mailto`/relativ). Mermaid wird als
-   Quelltext mit Hinweis „kein Renderer“ gezeigt. JSON-Baum, CSV/TSV-Tabelle
+   Dateiinhalt; Links nur `http(s)`/`mailto`/relativ). Mermaid (auch `.mmd`) rendert lazy
+   über `mermaid` (Chunk ≈ 84 kB + Nachlader, `securityLevel: "strict"`); das SVG
+   wird nie ins DOM gehängt, sondern als passives `<img>`-Blob gezeigt, bei
+   Fehler/Übergröße (> 100 000 Zeichen) bleibt der Quelltext mit Grund. JSON-Baum, CSV/TSV-Tabelle
    (≤ 2 MiB), Notebook nur lesend (Text-/PNG-Ausgaben, HTML-/Skriptausgaben
    benannt, nicht dargestellt), SVG als `<img>`, HTML im `sandbox=""`-iframe
    mit CSP-Meta, ZIP als Inhaltsverzeichnis aus dem Zentralverzeichnis
@@ -117,7 +119,7 @@ die Grenze und löst weder RAM noch Revisionskonsistenz.
   bis dahin „umgesetzt, Abnahme offen“.
 - Popout-Fenster, File-Watcher statt 5-s-Poll, „alle Treffer“-Liste der Suche,
   konfigurierte Python-Checker (pyright/ruff, eigene Trust-Entscheidung),
-  Mermaid-Renderer (eigene Abhängigkeits-Entscheidung), Range-Weiterleitung
+  Range-Weiterleitung
   für Remote-Raw: nicht im Scope von P46; Anzeige nutzt dafür Text/Hex über
   revisionsgebundene Ranges. Offline zeigt der Viewer Stand/Revision der
   Datei und benennt, dass nur bereits geladene Abschnitte verfügbar sind.
