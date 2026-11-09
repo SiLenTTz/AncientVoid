@@ -32,6 +32,8 @@ export interface HubOptions {
   assistantUrl?: string;
   /** EPIC-P17 T17.4: the hub's steer wait (config field steerWaitMs). */
   steerWaitMs?: number;
+  /** EPIC-P39: zusätzliche Test-Origins für den Browser-Arbeitsplatz (Config browserOrigins). */
+  browserOrigins?: string[];
 }
 
 export interface ApiResult<T> {
@@ -154,6 +156,7 @@ export class TestHub {
       projectRoots: [this.projectsDir],
       requireStepApprovals: this.options.requireStepApprovals ?? false,
       ...(this.options.steerWaitMs !== undefined ? { steerWaitMs: this.options.steerWaitMs } : {}),
+      ...(this.options.browserOrigins ? { browserOrigins: this.options.browserOrigins } : {}),
       ...(this.options.sttUrl ? { stt: {
         url: this.options.sttUrl,
         engine: "whisper-e2e",

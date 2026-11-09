@@ -36,6 +36,7 @@ import {
   InMemoryMetrics,
   ReviewStore,
   ProjectTrustStore,
+  BrowserService,
   loadConfig,
   loadReportingSinks,
   ClaudeLive,
@@ -280,8 +281,21 @@ async function main(): Promise<void> {
     .then((n) => logger.info("turn metrics backfilled", { sessions: n }))
     .catch((err) => logger.warn("turn metrics backfill failed", { err: err instanceof Error ? err.message : String(err) }));
 
+  // EPIC-P39 / ADR-0059: Browser-Arbeitsplatz. Ziele = Loopback-Ports der laufenden Workspace-Services der Session
+  // plus config.browserOrigins; Contexts beendeter/archivierter Sessions räumt der Dienst selbst ab.
+  const browser = new BrowserService({
+    dataDir,
+    extraOrigins: config.browserOrigins,
+    portsFor: async (id) => ((await sessions.workspaceStatus(id).catch(() => null))?.services ?? []).filter((s) => s.state === "ready" && s.port !== null).map((s) => s.port as number),
+    isActive: (id) => {
+      const rec = sessions.get(id);
+      return Boolean(rec) && !rec!.archived && !["stopped", "error"].includes(rec!.status);
+    },
+  });
+
   const app = await createHubApp({
     sessions,
+    browser,
     tokens,
     registry,
     // EPIC-P36 / ADR-0055: Review-Notizen — Journal+Snapshot unter dataDir/reviews.
@@ -357,6 +371,7 @@ async function main(): Promise<void> {
     // the next start takes them over instead of stopping every session.
     const keepWorkers = runner.kind === "tmux";
     logger.info("stopping hub", { keepWorkers });
+    await browser.closeAll().catch(() => undefined);
     await sessions.shutdown({ keepWorkers }).catch(() => undefined);
     await app.close().catch(() => undefined);
     db.close();

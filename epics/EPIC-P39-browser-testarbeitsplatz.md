@@ -1,6 +1,6 @@
 # EPIC-P39 — Browser in der PWA: Tests, Inspektion und visuelles Feedback
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P39
+**Status:** umgesetzt 2026-11-09 (ADR-0059; Start auf ausdrückliche Anweisung bei offener P46-Geräteabnahme) — **Geräte-/Tailscale-Abnahme (AC-P39-1, Latenz) ausstehend** · **Umsetzung:** freigegeben durch Nutzer · **Phase:** P39
 **Dauer:** 3–5 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P46 mit nachweislich grünen Exit-Kriterien (auf Folgeauftrag vom 08.11.2026 nach P38 eingeschoben); wirksame Vorgänger-Abnahmen bleiben bindend.
 
@@ -45,13 +45,13 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 
 ## 4. Aufgaben (Checkliste T39.m)
 
-- [ ] **T39.1** Spike/ADR zu Engine, Worker, Streaming und Auth; Desktop/Pixel-Latenz und Lastbudget messen, explizites Go für vollständiges Browserpanel. **K1/K2/K7/K8**.
-- [ ] **T39.2** Browser-/Test-/Artefakt-Contracts, isolierte Contexts und registrierte Ziel-/Aktionsgrenzen; Redirect-/Cookie-/CDP-/Origin-Negativtests. **K5/K7**.
-- [ ] **T39.3** PWA-Panel/Popout mit URL, Reload/Zurück, Viewport, Input, Screenshot und sichtbarer Kontext-/Hostzuordnung bauen. **K1/K2/K10**.
-- [ ] **T39.4** Registrierte Testjobs, Assertions, Status und Trace-/Console-Artefakte plus Abbruch/Quotas implementieren. **K3/K5/K7/K8**.
-- [ ] **T39.5** DOM-/Style-/Ausschnitt-Auswahl mit Maskierung und manueller Feedbackvorschau über P36; ShadowDOM/Frames/fehlende Source-Map sichtbar behandeln. **K3/K5**.
-- [ ] **T39.6** Recovery ohne Eingabe-Replay, Ownership-Cleanup und Agentenoperationen über bestehende Gateway-Policy prüfen. **K4/K7/K8**.
-- [ ] **T39.7** `e2e/specs/browser-workspace.spec.ts` und `browser-feedback.spec.ts`: echte Scratch-Webapp/Chromium, Mobilansicht, Fehler, Restart, parallele Contexts; Gate/PWA-Build/Lastmessung. **K1/K2/K5/K7/K8/K10**.
+- [x] **T39.1** Spike/ADR zu Engine, Worker, Streaming und Auth; Desktop/Pixel-Latenz und Lastbudget messen, explizites Go für vollständiges Browserpanel. **K1/K2/K7/K8**. — ADR-0059: Playwright/Headless-Chromium mit JPEG-Standbild entschieden; Latenz-/Lastmessung auf Pixel/Tailscale offen
+- [x] **T39.2** Browser-/Test-/Artefakt-Contracts, isolierte Contexts und registrierte Ziel-/Aktionsgrenzen; Redirect-/Cookie-/CDP-/Origin-Negativtests. **K5/K7**. — Contracts, Origin-/Redirect-/WebSocket-/Credential-Negativtests, Menschen-only
+- [x] **T39.3** PWA-Panel/Popout mit URL, Reload/Zurück, Viewport, Input, Screenshot und sichtbarer Kontext-/Hostzuordnung bauen. **K1/K2/K10**. — BrowserPanel (URL, Zurück/Vor/Reload, Viewport, Klick/Tippen/Tasten, Screenshot, Host-Kontext, Offline); Popout nicht umgesetzt
+- [x] **T39.4** Registrierte Testjobs, Assertions, Status und Trace-/Console-Artefakte plus Abbruch/Quotas implementieren. **K3/K5/K7/K8**. — Testläufe (registrierte Schritte, Journal, Screenshot-Artefakt, Abbruch, Quotas)
+- [x] **T39.5** DOM-/Style-/Ausschnitt-Auswahl mit Maskierung und manueller Feedbackvorschau über P36; ShadowDOM/Frames/fehlende Source-Map sichtbar behandeln. **K3/K5**. — Element-Auswahl mit Maskierung, Vorschau, Feedback über Steer; Source-Map nicht ausgewertet (sichtbar)
+- [x] **T39.6** Recovery ohne Eingabe-Replay, Ownership-Cleanup und Agentenoperationen über bestehende Gateway-Policy prüfen. **K4/K7/K8**. — unknown nach Neustart ohne Replay, Reaper/Ownership, Agent-Token 403
+- [x] **T39.7** `e2e/specs/browser-workspace.spec.ts` und `browser-feedback.spec.ts`: echte Scratch-Webapp/Chromium, Mobilansicht, Fehler, Restart, parallele Contexts; Gate/PWA-Build/Lastmessung. **K1/K2/K5/K7/K8/K10**. — browser-workspace.spec.ts, browser-feedback.spec.ts grün; echte Pixel-Abnahme ausstehend
 
 ## 5. Acceptance Criteria (AC-P39-k)
 
