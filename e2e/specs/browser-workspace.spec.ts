@@ -28,6 +28,7 @@ test.describe("Browser-Arbeitsplatz (EPIC-P39)", () => {
   test("Scratch-App sehen, bedienen (Klick, Tippen, Viewport) und Zielgrenzen respektieren @desktop", async ({ app, hub }) => {
     const id = await openBrowser(app, hub);
     await expect(app.getByTestId("browser-origins")).toContainText(scratch.origin);
+    await expect(app.getByTestId("browser-mode")).toContainText("headless");
     await start(app, `${scratch.origin}/`);
     const frame = app.getByTestId("browser-frame");
     await expect(frame).toBeVisible({ timeout: 30_000 });

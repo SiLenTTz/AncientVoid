@@ -72,3 +72,14 @@ describe("Design-Feedback", () => {
     expect(text).not.toContain("Styles (Auswahl)");
   });
 });
+
+import { chromiumLaunchOptions } from "../../../src/modules/browser/browser-service.ts";
+describe("Start-Optionen sichtbar/unsichtbar", () => {
+  it("beide Modi behalten die Netz-Einschränkung (nur Loopback auflösbar)", () => {
+    for (const headless of [true, false]) {
+      const o = chromiumLaunchOptions(headless);
+      expect(o.headless).toBe(headless);
+      expect(o.args.join(" ")).toContain("MAP * ~NOTFOUND, EXCLUDE 127.0.0.1");
+    }
+  });
+});

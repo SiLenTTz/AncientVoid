@@ -107,6 +107,7 @@ function BrowserPanel({ sessionId, label, hostId, onClose }: { sessionId: string
           </>
         )}
       </div>
+      {status && <div class="dim" data-testid="browser-mode">{status.headless ? "Modus: unsichtbar (headless) — du siehst das Bild hier." : "Modus: sichtbares Chromium-Fenster auf dem Host — das Bild hier ist dasselbe Fenster."}</div>}
       {status && status.allowedOrigins.length > 0 && <div class="dim browser-origins" data-testid="browser-origins">Erreichbar: {status.allowedOrigins.join(", ")}</div>}
       {status && status.allowedOrigins.length === 0 && <div class="dim">Kein freigegebenes Ziel: der Workspace hat keinen laufenden Service (Manifest) und es sind keine browserOrigins konfiguriert.</div>}
       <div class="browser-tabs" role="tablist">

@@ -74,6 +74,13 @@ P39 (AC-P39-1, T39.1-Latenz) sind ebenfalls offen.
    daher keine Lizenz-/Hash-Notiz nötig.
 8. **hubctl:** `hubctl browser <session>` und `hubctl browser tests <session>` (nur Lesen).
 
+9. **Sichtbarer Modus.** Config `browserHeadless: false` startet Chromium mit sichtbarem Fenster auf dem
+   Host (braucht eine Anzeige; sonst `unavailable` mit Hinweis auf `browserHeadless`). Die PWA zeigt weiter
+   dasselbe Fenster als Bild, `BrowserStatus.headless` und die Modus-Zeile im Panel benennen den Modus.
+   Ziel-/Netzgrenzen sind in beiden Modi identisch (`chromiumLaunchOptions`, getestet). Der sichtbare
+   Modus wurde in diesem Stand nur über die Start-Optionen und den Fehlerpfad getestet, nicht als
+   Live-Lauf mit Anzeige (E2E läuft headless).
+
 ## Messung / Budgets
 
 Frame ≈ JPEG q60 (Größenordnung 20–80 KB je Seite), Abruf 2 Bilder/s im Panel, nie im Eventstrom.
@@ -82,7 +89,7 @@ Pixel/Tailscale (Latenz, Lesbarkeit, Last mit K1/K2/K7/K8) steht aus.
 
 ## Nicht Teil dieses Stands
 
-- Geräte-/Tailscale-Abnahme (AC-P39-1, Latenzmessung), headed Modus, Popout-Fenster,
+- Geräte-/Tailscale-Abnahme (AC-P39-1, Latenzmessung), Live-Test des sichtbaren Modus mit Anzeige, Popout-Fenster,
   Sessions anderer Maschinen, Trace/Video-Artefakte (nur Screenshot), Source-Map-Auswertung,
   Frame-Inhalte fremder iframes, Agenten-Operationen über das Gateway (bewusst Menschen-only).
 
