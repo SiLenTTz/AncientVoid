@@ -28,7 +28,7 @@ describe("ADR-0033 feature gate", () => {
 
 describe("ADR-0033 SessionManager", () => {
   function setup(opts: { modes?: readonly string[]; modelSwitch?: boolean; refuse?: boolean } = {}) {
-    const calls: { start: SessionSpec[]; steer: SteerInput[] } = { start: [], steer: [] };
+    const calls: { start: SessionSpec[]; steer: SteerInput[]; steerModel: (string | null | undefined)[] } = { start: [], steer: [], steerModel: [] };
     const adapter: Adapter = {
       id: "modal",
       version: "0.0.1",
@@ -46,8 +46,9 @@ describe("ADR-0033 SessionManager", () => {
         calls.start.push(spec);
         return { sessionId: ctx.sessionId };
       },
-      async steer(_h, input) {
+      async steer(_h, input, ctx) {
         calls.steer.push(input);
+        calls.steerModel.push(ctx.model);
         return opts.refuse ? { ok: false, detail: "nein" } : { ok: true };
       },
       async status() {
@@ -114,6 +115,21 @@ describe("ADR-0033 SessionManager", () => {
       expect(db.prepare("SELECT permission_mode, model FROM sessions WHERE id = ?").get(record.id)).toMatchObject({ permission_mode: "manual", model: "sonnet" });
       const event = (await sessions.tail(record.id, 0)).find((e) => (e.payload as { kind?: string }).kind === "session.configured");
       expect(event?.payload).toMatchObject({ model: "sonnet", permissionMode: "manual", actor: "jan" });
+    } finally {
+      await done();
+    }
+  });
+
+  it("ADR-0061: der Adapter sieht das aktuelle Modell der Session im Kontext — auch nach configure", async () => {
+    const { calls, registry } = setup();
+    const { root, sessions, done } = await make(registry, null);
+    try {
+      const record = await sessions.create({ adapter: "modal", project: root, model: "haiku" });
+      await sessions.steer(record.id, { kind: "prompt", text: "eins" });
+      await sessions.steer(record.id, { kind: "configure", model: "sonnet" });
+      await sessions.steer(record.id, { kind: "prompt", text: "zwei" });
+      // prompt, configure (läuft noch auf dem alten), prompt (schon auf dem neuen)
+      expect(calls.steerModel).toEqual(["haiku", "haiku", "sonnet"]);
     } finally {
       await done();
     }

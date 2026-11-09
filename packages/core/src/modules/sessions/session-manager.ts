@@ -2323,6 +2323,10 @@ export class SessionManager {
       get nativeSessionId() {
         return session.record.nativeSessionId;
       },
+      // ADR-0061: the session's recorded model (kept current by configure()).
+      get model() {
+        return session.record.model;
+      },
       ...(this.tools?.bridge ? { permissionBridge: () => this.tools!.bridge!(session.record.id) } : {}),
       ...(this.tools ? { requestToolPermission: (req: ToolPermissionRequest) => this.awaitToolPermission(session, req) } : {}),
     };
