@@ -294,8 +294,9 @@ test.describe("ACP-Harness (T7.2)", () => {
     const id = await hub.createSession({ adapter: "acp", prompt: "Arbeite LANGSAM" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Chat" }).click();
-    await app.getByPlaceholder("Antworten…").fill("Zwischendurch!");
-    await app.getByRole("button", { name: "Senden" }).click();
+    // Die UI bietet während des Zugs nur Vormerken an; der Adapter-Pfad (BUG-0033) wird direkt über die Steer-Route geprüft.
+    await expect(app.getByRole("button", { name: "Senden" })).toHaveCount(0);
+    await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "Zwischendurch!" } });
     // The turn still runs — the message is queued, visibly in the chat.
     await expect(app.locator(".tail-scroll").getByText(/wartet bis der Zug endet/)).toBeVisible();
     await app.getByRole("button", { name: "Stop" }).click();

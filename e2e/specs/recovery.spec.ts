@@ -26,8 +26,8 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
       const recovered = after.find((e) => e.payload.kind === "session.recovered");
       expect(recovered?.payload.controllable).toBe(true);
 
-      await app.getByPlaceholder("Antworten…").fill("nach dem Neustart");
-      await app.getByRole("button", { name: "Senden" }).click();
+      // Der dummy-Zug läuft weiter: die UI bietet dann nur Vormerken — Steuerbarkeit wird über die Route geprüft.
+      await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "nach dem Neustart" } });
       await hub.until(async () => (await hub.events(id)).some((e) => e.type === "user" && e.payload.text === "nach dem Neustart"), "steer after restart");
     });
   });
