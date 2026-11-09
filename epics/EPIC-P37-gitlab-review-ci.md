@@ -47,7 +47,7 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 - [x] **T37.3** PWA-Panel und Issue→Session-Start mit Quellreferenz integrieren; aktuelle Branch-/MR-SHA ständig erkennbar. **K1/K2/K7**.
 - [x] **T37.4** Gezielte CI-/Review-Rückgabe über P36 mit Log-Blob, veraltetem SHA-Fall und Auswahlvorschau bauen. **K3/K5/K7**.
 - [x] **T37.5** Bestätigte Draft-MR-Erstellung, Git-Regelprüfung und Retry-Abgleich; keine Duplikate bei Antwortverlust. **K5/K7**.
-- [ ] **T37.6** `e2e/specs/forge-review.spec.ts`, echte isolierte GitLab-Projekt-Abnahme (keine Produktiv-Mutation), Gate und Runbook. **K1/K3/K5/K7/K10**. — Spec (`forge-review.spec.ts`) und Runbook gebaut 2026-11-09; **offen:** echte isolierte GitLab-Abnahme (Runbook §3)
+- [ ] **T37.6** `e2e/specs/forge-review.spec.ts`, echte isolierte GitLab-Projekt-Abnahme (keine Produktiv-Mutation), Gate und Runbook. **K1/K3/K5/K7/K10**. — Spec (`forge-review.spec.ts`) und Runbook gebaut 2026-11-09; **echte Abnahme 2026-11-09 gegen `SiLenT_Tz/ancientvoidtesthub` (`scripts/forge-real-acceptance.ts`): 17 Prüfungen bestanden (MR/Draft/Branch→Ziel/Head=Pipeline-SHA/Fail-Job/Bridge/Feedback-Vorschau+Senden/Stale→422+shaDrift/Plan read-only/Draft-MR idempotent nach SIGKILL/Link+Operations wiederhergestellt); **offen:** Trace-Lesbarkeit gegen einen echten Job — Job lief nie (`ci_quota_exceeded`, Shared-Runner-Kontingent leer, kein Runner am Testprojekt); als SKIP berichtet, nicht als Pass. Fund: Forge-Cache verdeckte SHA-Drift → `invalidate` bei Drift
 
 ## 5. Acceptance Criteria (AC-P37-k)
 

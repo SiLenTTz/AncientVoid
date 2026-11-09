@@ -233,6 +233,9 @@ export function registerForgeRoutes(app: FastifyInstance, ctx: RouteContext): vo
       return reply.code(502).send({ ok: false, detail: `MR nicht prüfbar: ${errDetail(err)}` });
     }
     if (shaDrifted(currentSha, link.lastSha)) {
+      // Die Ansicht muss den neuen Stand sofort zeigen (sonst hält der 30-s-Cache den alten und „Ansicht aktualisieren“ läuft ins Leere).
+      forge.invalidate(`mr:${link.mr.host}/${link.mr.projectId}/${link.mr.mrIid}`);
+      forge.invalidate(`pipelines:${link.mr.host}/${link.mr.projectId}`);
       return reply.code(422).send({ ok: false, detail: `MR-SHA hat sich geändert (${(link.lastSha ?? "?").slice(0, 8)} → ${(currentSha ?? "?").slice(0, 8)}) — Ansicht aktualisieren und Befund prüfen` });
     }
 
