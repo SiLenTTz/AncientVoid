@@ -19,7 +19,10 @@ export interface LoopView {
   broken: string[];
   stats: { completed: number; inProgress: number } | null;
   report: { text: string | null; blob: string | null; counts: Record<string, number> } | null;
-  notices: { level: string; reason: string; at: string }[];
+  notices: { level: string; reason: string; at: string; fundstelle?: string }[];
+  /** Projektmodus (securesight `project`): Intake-Zustand und Lauf, nur wie gemeldet. */
+  intake: { status: string | null; ready: boolean; next: string | null } | null;
+  lauf: { task: string | null; phase: string | null } | null;
   lastCommand: string | null;
   /** Freigaben des Orchestrators (Hermes `user_gates`): Name → erteilt. */
   orchestrator: { userGates: Record<string, boolean>; note: string | null } | null;
@@ -36,7 +39,7 @@ const num = (x: unknown): number | null => (typeof x === "number" && Number.isFi
 export function deriveLoopView(events: readonly NormalizedEvent[]): LoopView {
   const sessionState = new Map<string, string>();
   const progressOf = new Map<string, NonNullable<LoopView["progress"]>>();
-  const v: LoopView = { line: null, mode: null, activity: null, paused: false, progress: null, gate: null, hold: null, broken: [], stats: null, report: null, notices: [], lastCommand: null, orchestrator: null };
+  const v: LoopView = { line: null, mode: null, activity: null, paused: false, progress: null, gate: null, hold: null, broken: [], stats: null, report: null, notices: [], intake: null, lauf: null, lastCommand: null, orchestrator: null };
   for (const e of events) {
     if (e.type !== "system") continue;
     const p = e.payload as Record<string, unknown>;
@@ -44,6 +47,8 @@ export function deriveLoopView(events: readonly NormalizedEvent[]): LoopView {
     if (!kind?.startsWith("loop.")) continue;
     switch (kind) {
       case "loop.info":
+        if (p.source === "intake") v.intake = { status: str(p.status), ready: p.ready === true, next: str(p.next) };
+        if (p.source === "lauf-status") v.lauf = { task: str(p.task), phase: str(p.phase) };
         v.line = str(p.line) ?? v.line;
         v.mode = str(p.mode) ?? v.mode;
         v.activity = str(p.activity) ?? str(p.iterationStatus) ?? v.activity;
@@ -92,7 +97,7 @@ export function deriveLoopView(events: readonly NormalizedEvent[]): LoopView {
         else v.broken = v.broken.filter((r) => r !== str(p.reason));
         break;
       case "loop.notify":
-        v.notices = [...v.notices, { level: str(p.level) ?? "?", reason: str(p.reason) ?? "", at: str(p.at) ?? e.ts }].slice(-5);
+        v.notices = [...v.notices, { level: str(p.level) ?? "?", reason: str(p.reason) ?? "", at: str(p.at) ?? e.ts, ...(str(p.fundstelle) ? { fundstelle: str(p.fundstelle)! } : {}) }].slice(-5);
         break;
       case "loop.command": {
         const c = str(p.command);

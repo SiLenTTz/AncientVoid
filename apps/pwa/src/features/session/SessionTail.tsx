@@ -859,7 +859,7 @@ export function SessionTail({
         setArchived(updated.archived === true);
         setStatus(updated.status);
       }} />}
-      {loopView && <LoopPanel sessionId={session.id} adapter={session.adapter} view={loopView} disabled={observerOnly || status === "stopped"} api={api} onError={setReplyError} />}
+      {loopView && <LoopPanel sessionId={session.id} adapter={session.adapter} view={loopView} disabled={observerOnly || status === "stopped"} api={api} onError={setReplyError} factory={factoryLink?.role && factoryLink.partner ? { role: factoryLink.role, partner: factoryLink.partner } : null} hostId={remoteHost(session.hostId) ?? null} />}
 
       <div
         ref={tailRef}

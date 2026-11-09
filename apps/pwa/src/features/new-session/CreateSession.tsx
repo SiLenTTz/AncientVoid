@@ -231,6 +231,12 @@ export function CreateSession({
         setLoop(startLoop);
         setOnboard(emptyOnboard);
         setLoopReload((n) => n + 1);
+        // AC-P26-1 / Premortem 2: „bereit“ nur, wenn die Factory es meldet — sonst die Checkliste zeigen und nicht starten.
+        if (made.ready === false) {
+          setOnboardNote(`Projekt eingerichtet, aber noch nicht bereit: ${made.detail ?? "Checkliste der Factory prüfen"}. Es wurde kein Lauf gestartet — nach der Klärung erneut „Starten“.`);
+          return;
+        }
+        if (made.detail) setOnboardNote(`Einrichtung: ${made.detail}`);
       }
       // EPIC-P26 T26.5 (ADR-0043): securesight „bestehend“ startet den
       // Factory-Lauf — Treiber (/factory mit dem Auftrag als Prompt) plus
@@ -404,7 +410,7 @@ export function CreateSession({
           onSubmit={busy || !project || loopBlock ? undefined : () => void submit()}
         />
       </label>
-      {error && <div style="color: var(--err)">{error}</div>}
+      {error && <div role="alert" style="color: var(--err)">{error}</div>}
       {!loop && <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />}
       {loopBlock && loop && <div class="loop-block warn" role="alert">{loopBlock}</div>}
       {onboardNote && <div class="dim loop-note" role="status">{onboardNote}</div>}
