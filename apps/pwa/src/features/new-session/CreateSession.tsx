@@ -1,4 +1,5 @@
 import { WorkplaceChoice, type WorkplaceMode } from "./WorkplaceChoice.tsx";
+import { CustomModelDialog } from "./CustomModelDialog.tsx";
 import { takeHandOver } from "../../shared/media.ts";
 import { takeShareInbox } from "../../app/share-inbox.ts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
@@ -137,10 +138,16 @@ export function CreateSession({
   useEffect(() => setMode(""), [adapter]);
   const [catalog, setCatalog] = useState<ModelOption[] | null>(null);
   const [defaultModel, setDefaultModel] = useState<string | null>(null);
+  // ADR-0060: eigene Modelle/Endpunkte; `catalogTick` lädt den Katalog nach dem Anlegen neu.
+  const [customIds, setCustomIds] = useState<string[]>([]);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [catalogTick, setCatalogTick] = useState(0);
+  const pendingPick = useRef<string | null>(null);
   useEffect(() => {
     setModel("");
     setCatalog(null);
     setDefaultModel(null);
+    setCustomIds([]);
     if (!modelChoice) return;
     let alive = true;
     api
@@ -149,15 +156,18 @@ export function CreateSession({
         if (!alive) return;
         setCatalog(res.models);
         setDefaultModel(res.defaultModel);
+        setCustomIds(res.customIds ?? []);
         // The registration's default is what "Standard des Harness" runs —
         // preselect it so the dropdown shows the actual model from the start.
-        if (typeof res.defaultModel === "string" && res.defaultModel) setModel(res.defaultModel);
+        if (pendingPick.current) setModel(pendingPick.current);
+        else if (typeof res.defaultModel === "string" && res.defaultModel) setModel(res.defaultModel);
+        pendingPick.current = null;
       })
       .catch(() => alive && setCatalog(null));
     return () => {
       alive = false;
     };
-  }, [adapter, modelChoice, api]);
+  }, [adapter, modelChoice, api, catalogTick]);
 
   useEffect(() => {
     let alive = true;
@@ -383,6 +393,7 @@ export function CreateSession({
                 <option key={m.id} value={m.id}>
                   {m.label ?? m.id}
                   {m.id === defaultModel ? " (Standard)" : ""}
+                  {customIds.includes(m.id) ? " · eigenes" : ""}
                 </option>
               ))}
             </select>
@@ -397,6 +408,23 @@ export function CreateSession({
             />
           )}
         </label>
+      )}
+      {modelChoice && (
+        <button class="btn" type="button" onClick={() => setCustomOpen(true)} style="justify-self: start">
+          ＋ Eigenes Modell / Endpunkt
+        </button>
+      )}
+      {customOpen && (
+        <CustomModelDialog
+          adapter={adapter}
+          canEndpoint={adapter === "pi"}
+          api={api}
+          onClose={() => setCustomOpen(false)}
+          onChanged={(pick) => {
+            if (pick) pendingPick.current = pick;
+            setCatalogTick((t) => t + 1);
+          }}
+        />
       )}
         </>
       )}

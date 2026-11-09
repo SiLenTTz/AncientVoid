@@ -284,6 +284,8 @@ export class TestHub {
       PATH: `${binDir}:${process.env.PATH ?? ""}`,
       TMUX_TMPDIR: this.tmuxDir,
       QMD_E2E_STATE: join(this.root, "qmd-state.json"),
+      // ADR-0060: „Endpunkt anlegen“ schreibt in pi's models.json — nie in die echte des Nutzers.
+      PI_CODING_AGENT_DIR: join(this.root, "pi-agent"),
     };
     delete env.TMUX;
     const log = createWriteStream(this.logPath, { flags: "a" });
