@@ -100,6 +100,8 @@ export const HubConfig = z.object({
   /** EPIC-P39 (ADR-0059): zusätzliche Test-Origins für den Browser-Arbeitsplatz (z. B. "http://127.0.0.1:5173");
    * Standardziele sind nur die registrierten Workspace-Services der Session. */
   browserOrigins: z.array(z.string().url()).max(20).default([]),
+  /** EPIC-P39: false = sichtbares Chromium-Fenster auf dem Host (braucht eine Anzeige); die PWA zeigt weiter das Bild. */
+  browserHeadless: z.boolean().default(true),
   /** T7.10: local OCR — a tessdata dir with extra languages (e.g. deu),
    * set up by scripts/setup-ocr.sh without root. */
   ocr: z.object({ tessdataDir: z.string().optional() }).default({}),

@@ -50,6 +50,8 @@ export interface BrowserServiceOptions {
   maxContexts?: number;
   /** Ownership-Cleanup: Contexts beendeter/archivierter/gelöschter Sessions werden vom Reaper geschlossen. */
   isActive?: (sessionId: string) => boolean;
+  /** false = sichtbares Fenster auf dem Host (braucht Anzeige); Standard true. */
+  headless?: boolean;
   /** Test-Naht: eigener Launcher statt Playwright. */
   launcher?: () => Promise<Browser>;
 }
@@ -75,6 +77,15 @@ interface ActiveTest {
 const now = () => new Date().toISOString();
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
+/** Start-Optionen; sichtbar oder unsichtbar, die Netz-/Zielgrenzen sind in beiden Modi gleich. */
+export function chromiumLaunchOptions(headless: boolean): { headless: boolean; args: string[] } {
+  return {
+    headless,
+    // Netzwerkebene zusätzlich zur Request-Prüfung: nur Loopback wird aufgelöst (DNS-Rebinding, Exfiltration).
+    args: ["--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost", "--disable-background-networking", "--no-first-run"],
+  };
+}
+
 export class BrowserService {
   private readonly dataDir: string;
   private readonly extra: string[];
@@ -82,6 +93,7 @@ export class BrowserService {
   private readonly maxContexts: number;
   private readonly launcher: () => Promise<Browser>;
   private readonly isActive: (sessionId: string) => boolean;
+  private readonly headless: boolean;
   private browser: Browser | null = null;
   private launching: Promise<Browser> | null = null;
   private unavailable: string | null = null;
@@ -97,17 +109,14 @@ export class BrowserService {
     this.portsFor = opts.portsFor;
     this.maxContexts = opts.maxContexts ?? BROWSER_MAX_CONTEXTS;
     this.isActive = opts.isActive ?? (() => true);
+    this.headless = opts.headless ?? true;
     this.launcher = opts.launcher ?? (() => this.launchChromium());
   }
 
   // ---- Browser-Prozess ---------------------------------------------------------------------------------------
   private async launchChromium(): Promise<Browser> {
     const { chromium } = await import("playwright");
-    return chromium.launch({
-      headless: true,
-      // Netzwerkebene zusätzlich zur Request-Prüfung: nur Loopback wird aufgelöst (DNS-Rebinding, Exfiltration).
-      args: ["--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost", "--disable-background-networking", "--no-first-run"],
-    });
+    return chromium.launch(chromiumLaunchOptions(this.headless));
   }
 
   private async ensureBrowser(): Promise<Browser> {
@@ -123,7 +132,8 @@ export class BrowserService {
         return b;
       })
       .catch((err) => {
-        this.unavailable = clip(err instanceof Error ? err.message.split("\n")[0]! : String(err), 300);
+        const hint = this.headless ? "" : " — der sichtbare Modus braucht eine Anzeige auf dem Host (browserHeadless: true schaltet zurück)";
+        this.unavailable = clip(`${err instanceof Error ? err.message.split("\n")[0]! : String(err)}${hint}`, 300);
         throw new BrowserError("unavailable", `Browser nicht verfügbar: ${this.unavailable}`);
       })
       .finally(() => {
@@ -255,7 +265,7 @@ export class BrowserService {
       testRunning: this.runningFor(sessionId),
     };
     if (!l) {
-      return { ...base, state: this.unavailable ? "unavailable" : "closed", unavailableReason: this.unavailable, url: null, title: null, viewport: "desktop", canBack: false, canForward: false, log: [], openedAt: null };
+      return { ...base, state: this.unavailable ? "unavailable" : "closed", unavailableReason: this.unavailable, url: null, title: null, viewport: "desktop", headless: this.headless, canBack: false, canForward: false, log: [], openedAt: null };
     }
     // Navigation API (Chromium): ehrlicher Zustand statt immer aktiver Knöpfe.
     const nav = await l.page.evaluate(() => {
@@ -265,6 +275,7 @@ export class BrowserService {
     return {
       ...base,
       state: "open",
+      headless: this.headless,
       unavailableReason: null,
       url: l.page.url() === "about:blank" ? null : l.page.url(),
       title: await l.page.title().catch(() => null),

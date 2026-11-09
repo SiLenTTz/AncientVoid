@@ -194,7 +194,18 @@ describe("ohne Chromium", () => {
     const svc = new BrowserService({ dataDir: mkdtempSync(join(tmpdir(), "av-p39u-")), portsFor: async () => [1], launcher: async () => { throw new Error("Executable doesn't exist"); } });
     await expect(svc.open("x")).rejects.toMatchObject({ code: "unavailable" });
     const st = await svc.status("x");
+    expect(st.headless).toBe(true);
     expect(st.state).toBe("unavailable");
     expect(st.unavailableReason).toContain("Executable");
+  });
+});
+
+describe("sichtbarer Modus ohne Anzeige", () => {
+  it("scheitert mit Hinweis auf browserHeadless statt still", async () => {
+    const svc = new BrowserService({ dataDir: mkdtempSync(join(tmpdir(), "av-p39h-")), portsFor: async () => [1], headless: false, launcher: async () => { throw new Error("Missing X server or $DISPLAY"); } });
+    await expect(svc.open("x")).rejects.toMatchObject({ code: "unavailable" });
+    const st = await svc.status("x");
+    expect(st.headless).toBe(false);
+    expect(st.unavailableReason).toContain("browserHeadless");
   });
 });

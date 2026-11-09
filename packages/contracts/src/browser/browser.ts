@@ -47,6 +47,8 @@ export const BrowserStatus = z.object({
   url: z.string().nullable(),
   title: z.string().nullable(),
   viewport: BrowserViewportName,
+  /** `false` = sichtbares Fenster auf dem Host (Config browserHeadless). */
+  headless: z.boolean().default(true),
   /** Ursprünge, die dieser Context erreichen darf (registrierte Services + explizit freigegebene). */
   allowedOrigins: z.array(z.string()),
   canBack: z.boolean(),

@@ -34,6 +34,8 @@ export interface HubOptions {
   steerWaitMs?: number;
   /** EPIC-P39: zusätzliche Test-Origins für den Browser-Arbeitsplatz (Config browserOrigins). */
   browserOrigins?: string[];
+  /** EPIC-P39: false = sichtbares Fenster (nur mit Anzeige; in E2E nicht genutzt). */
+  browserHeadless?: boolean;
 }
 
 export interface ApiResult<T> {

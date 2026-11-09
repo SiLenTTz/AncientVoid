@@ -286,6 +286,7 @@ async function main(): Promise<void> {
   const browser = new BrowserService({
     dataDir,
     extraOrigins: config.browserOrigins,
+    headless: config.browserHeadless,
     portsFor: async (id) => ((await sessions.workspaceStatus(id).catch(() => null))?.services ?? []).filter((s) => s.state === "ready" && s.port !== null).map((s) => s.port as number),
     isActive: (id) => {
       const rec = sessions.get(id);
