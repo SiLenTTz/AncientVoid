@@ -1,4 +1,4 @@
-import type { FileMeta, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { DiagnosticsResult, FileMeta, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -743,6 +743,15 @@ export function steerRejectText(detail: string | undefined): string {
   return detail ?? "Antwort wurde abgelehnt";
 }
 
+export interface FileFeedbackItem {
+  path: string;
+  revision: string;
+  startLine: number;
+  endLine: number;
+  note: string;
+  diagnostic?: { code: string | null; message: string; source: string };
+}
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -964,6 +973,30 @@ function createHubApi(P: (path: string) => string) {
     api<FileRange>(
       P(`/api/code/range?${target}&path=${encodeURIComponent(path)}&offset=${opts.offset}${opts.length ? `&length=${opts.length}` : ""}&rev=${opts.rev}&as=${opts.as}${opts.encoding ? `&encoding=${opts.encoding}` : ""}`),
     ),
+  /** Byte-Offset des Anfangs von Zeile `line` (Revision-gebunden). */
+  codeLine: (target: string, path: string, line: number, rev: string) =>
+    api<{ revision: string; offset: number; line: number }>(P(`/api/code/line?${target}&path=${encodeURIComponent(path)}&line=${line}&rev=${rev}`)),
+  /** Nächster Treffer ab Byte-Offset, hostseitig über die ganze Datei. */
+  codeFind: (target: string, path: string, q: string, from: number, rev: string, cs: boolean) =>
+    api<{ found: boolean; revision: string; lineOffset?: number; line?: number; column?: number; length?: number; scannedBytes?: number }>(
+      P(`/api/code/find?${target}&path=${encodeURIComponent(path)}&q=${encodeURIComponent(q)}&from=${from}&rev=${rev}${cs ? "&cs=1" : ""}`),
+    ),
+  codeArchive: (target: string, path: string) =>
+    api<{ revision: string; entries: { name: string; size: number; compressedSize: number; directory: boolean; encrypted: boolean }[]; total: number; truncated: boolean }>(
+      P(`/api/code/archive?${target}&path=${encodeURIComponent(path)}`),
+    ),
+  codeOffice: (target: string, path: string) =>
+    api<{ revision: string; sections: { title: string; text: string }[]; note: string }>(P(`/api/code/office?${target}&path=${encodeURIComponent(path)}`)),
+  /** Diagnose: nur auf ausdrücklichen Klick; Freigabe gilt pro Projekt. */
+  diagnosticsRun: (target: string, path: string) =>
+    api<DiagnosticsResult>(P(`/api/diagnostics/run?${target}&path=${encodeURIComponent(path)}`), { method: "POST", body: "{}" }),
+  diagnosticsTrust: (target: string) => api<ProjectTrust>(P(`/api/diagnostics/trust?${target}`)),
+  diagnosticsSetTrust: (target: string, trusted: boolean) =>
+    api<ProjectTrust>(P(`/api/diagnostics/trust?${target}`), { method: "POST", body: JSON.stringify({ trusted }) }),
+  fileFeedbackPreview: (sessionId: string, items: FileFeedbackItem[]) =>
+    api<{ prompt: string; stale: { path: string; reason: string | null }[] }>(P(`/api/sessions/${sessionId}/files/feedback/preview`), { method: "POST", body: JSON.stringify({ items }) }),
+  fileFeedbackSend: (sessionId: string, items: FileFeedbackItem[], operationId: string) =>
+    api<{ ok: boolean }>(P(`/api/sessions/${sessionId}/files/feedback/send`), { method: "POST", body: JSON.stringify({ items, operationId }) }),
   /** Originalbytes als Object-URL — der Token bleibt im Header, nie in einer URL. */
   codeRawUrl: async (target: string, path: string, rev: string): Promise<string> => {
     const res = await fetch(P(`/api/code/raw?${target}&path=${encodeURIComponent(path)}&rev=${rev}`), { headers: { authorization: `Bearer ${getToken()}` } });

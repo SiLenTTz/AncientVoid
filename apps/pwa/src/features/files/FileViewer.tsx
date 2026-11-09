@@ -1,39 +1,48 @@
 import { useEffect, useState } from "preact/hooks";
-import type { FileMeta } from "@ancientvoid/contracts";
-import { hubApi } from "../../shared/api.ts";
-import { BLOB_MAX_BYTES, HEX_PAGE_BYTES, TEXT_PAGE_BYTES, formatBytes, hexRows, metaSummary } from "./files-model.ts";
+import type { DiagnosticsResult, FileMeta } from "@ancientvoid/contracts";
+import { hostApi, type HubApi } from "../../shared/api.ts";
+import { BLOB_MAX_BYTES, HEX_PAGE_BYTES, formatBytes, hexRows, metaSummary } from "./files-model.ts";
+import { DiagnosticsPanel } from "./DiagnosticsPanel.tsx";
+import { FeedbackPanel } from "./FeedbackPanel.tsx";
+import { RenderedView, renderKindOf } from "./RenderedViews.tsx";
+import { SourceView, type Jump } from "./SourceView.tsx";
 
-type Mode = "preview" | "source" | "hex";
+type Mode = "preview" | "rendered" | "source" | "hex";
 
 /**
  * EPIC-P46 T46.5/T46.6 (ADR-0058): eine Datei bis zum letzten Byte — immer genau ein Abschnitt im DOM
  * (Speicherbudget), jeder Abschnitt an die Revision gebunden. Änderungen während des Lesens werden gemeldet,
  * nie gemischt. Medien als Blob (nur bis BLOB_MAX_BYTES), alles andere über Quelltext/Hex.
  */
-export function FileViewer({ target, path, onChangedOnDisk }: { target: string; path: string; onChangedOnDisk?: () => void }) {
+export function FileViewer({ target, path, hostId = null, sessionId = null, onChangedOnDisk }: { target: string; path: string; hostId?: string | null; sessionId?: string | null; onChangedOnDisk?: () => void }) {
+  const api = hostApi(hostId);
   const [meta, setMeta] = useState<FileMeta | null>(null);
   const [error, setError] = useState("");
   const [stale, setStale] = useState(false);
   const [mode, setMode] = useState<Mode>("source");
   const [reload, setReload] = useState(0);
+  const [diag, setDiag] = useState<DiagnosticsResult | null>(null);
+  const [jump, setJump] = useState<Jump | null>(null);
+  const [showDiag, setShowDiag] = useState(false);
 
   useEffect(() => {
     let alive = true;
     setMeta(null);
     setError("");
     setStale(false);
-    hubApi
+    setDiag(null);
+    api
       .codeMeta(target, path)
       .then((m) => {
         if (!alive) return;
         setMeta(m);
-        setMode(m.family === "text" ? "source" : m.family === "binary" ? "hex" : "preview");
+        setMode(renderKindOf(m) && m.family !== "text" ? "rendered" : m.family === "text" ? "source" : m.family === "binary" ? "hex" : "preview");
       })
       .catch((err) => alive && setError(err instanceof Error ? err.message : "Datei nicht lesbar"));
     return () => {
       alive = false;
     };
-  }, [target, path, reload]);
+  }, [target, path, reload, hostId]);
 
   const markStale = () => {
     setStale(true);
@@ -42,6 +51,8 @@ export function FileViewer({ target, path, onChangedOnDisk }: { target: string; 
 
   if (error) return <div class="files-error" role="alert">{error}</div>;
   if (!meta) return <div class="empty">lädt …</div>;
+  const kind = renderKindOf(meta);
+  const local = !hostId;
   const canPreview = meta.family === "image" || meta.family === "pdf" || meta.family === "audio" || meta.family === "video";
   return (
     <div class="file-viewer" data-testid="file-viewer">
@@ -49,10 +60,12 @@ export function FileViewer({ target, path, onChangedOnDisk }: { target: string; 
         <span class="mono file-viewer-path" title={meta.path}>{meta.path}</span>
         <span class="dim">{metaSummary(meta)}</span>
         <span class="file-viewer-modes" role="group" aria-label="Ansicht">
+          {kind && <button type="button" class={mode === "rendered" ? "chip active" : "chip"} onClick={() => setMode("rendered")}>Ansicht</button>}
           {canPreview && <button type="button" class={mode === "preview" ? "chip active" : "chip"} onClick={() => setMode("preview")}>Vorschau</button>}
           {meta.family === "text" && <button type="button" class={mode === "source" ? "chip active" : "chip"} onClick={() => setMode("source")}>Text</button>}
           <button type="button" class={mode === "hex" ? "chip active" : "chip"} onClick={() => setMode("hex")}>Hex</button>
-          <DownloadButton target={target} meta={meta} />
+          {meta.family === "text" && local && <button type="button" class={showDiag ? "chip active" : "chip"} aria-pressed={showDiag} onClick={() => setShowDiag(!showDiag)}>Diagnose</button>}
+          <DownloadButton api={api} target={target} meta={meta} />
         </span>
       </div>
       {stale && (
@@ -61,9 +74,14 @@ export function FileViewer({ target, path, onChangedOnDisk }: { target: string; 
           <button type="button" class="btn" onClick={() => setReload((n) => n + 1)}>Neu laden</button>
         </div>
       )}
-      {mode === "source" && meta.family === "text" && <TextPages target={target} meta={meta} onStale={markStale} />}
-      {mode === "hex" && <HexPages target={target} meta={meta} onStale={markStale} />}
-      {mode === "preview" && canPreview && <MediaPreview target={target} meta={meta} />}
+      {showDiag && meta.family === "text" && local && (
+        <DiagnosticsPanel api={api} target={target} meta={meta} result={diag} onResult={setDiag} onJump={(line, column) => { setMode("source"); setJump({ line, column, nonce: Date.now() }); }} />
+      )}
+      {mode === "source" && meta.family === "text" && <SourceView api={api} target={target} meta={meta} onStale={markStale} diagnostics={diag} jump={jump} />}
+      {mode === "rendered" && kind && <RenderedView api={api} target={target} meta={meta} kind={kind} onStale={markStale} />}
+      {mode === "hex" && <HexPages api={api} target={target} meta={meta} onStale={markStale} />}
+      {mode === "preview" && canPreview && <MediaPreview api={api} target={target} meta={meta} onUnplayable={() => setMode("hex")} />}
+      <FeedbackPanel api={api} sessionId={local ? sessionId : null} />
     </div>
   );
 }
@@ -101,55 +119,7 @@ function Pager({ offset, length, total, hasPrev, hasNext, onPrev, onNext, onJump
   );
 }
 
-function TextPages({ target, meta, onStale }: { target: string; meta: FileMeta; onStale: () => void }) {
-  const [page, setPage] = useState<{ offset: number; length: number; text: string; nextOffset: number | null } | null>(null);
-  const [trail, setTrail] = useState<number[]>([]);
-  const [at, setAt] = useState(meta.bomBytes);
-  const [error, setError] = useState("");
-  const [wrap, setWrap] = useState(false);
-  const guard = useRevisionGuard(onStale);
-  useEffect(() => {
-    let alive = true;
-    setError("");
-    hubApi
-      .codeRange(target, meta.path, { offset: at, length: TEXT_PAGE_BYTES, rev: meta.revision, as: "text", encoding: meta.encoding })
-      .then((r) => alive && setPage({ offset: r.offset, length: r.length, text: r.text ?? "", nextOffset: r.nextOffset }))
-      .catch((err) => alive && setError(guard(err)));
-    return () => {
-      alive = false;
-    };
-  }, [target, meta.path, meta.revision, at]);
-  if (error) return <div class="files-error" role="alert">{error}</div>;
-  if (!page) return <div class="empty">lädt …</div>;
-  return (
-    <>
-      <Pager
-        offset={page.offset}
-        length={page.length}
-        total={meta.bytes}
-        hasPrev={trail.length > 0}
-        hasNext={page.nextOffset !== null}
-        onPrev={() => {
-          const prev = trail[trail.length - 1]!;
-          setTrail(trail.slice(0, -1));
-          setAt(prev);
-        }}
-        onNext={() => {
-          setTrail([...trail, at]);
-          setAt(page.nextOffset!);
-        }}
-        onJump={(byte) => {
-          setTrail([...trail, at]);
-          setAt(Math.max(byte, meta.bomBytes));
-        }}
-      />
-      <label class="dim file-wrap"><input type="checkbox" checked={wrap} onChange={(e) => setWrap((e.target as HTMLInputElement).checked)} /> Zeilen umbrechen</label>
-      <pre class={wrap ? "file-text wrap" : "file-text"} data-testid="file-text" tabIndex={0}>{page.text}</pre>
-    </>
-  );
-}
-
-function HexPages({ target, meta, onStale }: { target: string; meta: FileMeta; onStale: () => void }) {
+function HexPages({ api, target, meta, onStale }: { api: HubApi; target: string; meta: FileMeta; onStale: () => void }) {
   const [at, setAt] = useState(0);
   const [rows, setRows] = useState<{ offset: string; hex: string; ascii: string }[] | null>(null);
   const [len, setLen] = useState(0);
@@ -158,7 +128,7 @@ function HexPages({ target, meta, onStale }: { target: string; meta: FileMeta; o
   useEffect(() => {
     let alive = true;
     setError("");
-    hubApi
+    api
       .codeRange(target, meta.path, { offset: at, length: HEX_PAGE_BYTES, rev: meta.revision, as: "bytes" })
       .then((r) => {
         if (!alive) return;
@@ -190,7 +160,8 @@ function HexPages({ target, meta, onStale }: { target: string; meta: FileMeta; o
   );
 }
 
-function MediaPreview({ target, meta }: { target: string; meta: FileMeta }) {
+function MediaPreview({ api, target, meta, onUnplayable }: { api: HubApi; target: string; meta: FileMeta; onUnplayable: () => void }) {
+  const [playError, setPlayError] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const tooBig = meta.bytes > BLOB_MAX_BYTES;
@@ -198,7 +169,7 @@ function MediaPreview({ target, meta }: { target: string; meta: FileMeta }) {
     if (tooBig) return;
     let alive = true;
     let made: string | null = null;
-    hubApi
+    api
       .codeRawUrl(target, meta.path, meta.revision)
       .then((u) => {
         made = u;
@@ -214,14 +185,26 @@ function MediaPreview({ target, meta }: { target: string; meta: FileMeta }) {
   if (tooBig) return <div class="files-error" role="status">{formatBytes(meta.bytes)} ist zu groß für eine Vorschau (Grenze {formatBytes(BLOB_MAX_BYTES)}). Die Hex-Ansicht liest die Datei bis zum letzten Byte.</div>;
   if (error) return <div class="files-error" role="alert">{error} — Hex zeigt die Originalbytes.</div>;
   if (!url) return <div class="empty">lädt …</div>;
+  if (playError) {
+    return (
+      <div class="files-error" role="status">
+        Dieser Browser kann die Datei nicht abspielen/anzeigen (Codec/Format). Download oder Hex zeigen die Originalbytes.{" "}
+        <button type="button" class="btn" onClick={onUnplayable}>Hex öffnen</button>
+      </div>
+    );
+  }
   // Passiv: <img>/<audio>/<video> führen keine Skripte aus; PDF nur im sandboxed iframe ohne Rechte.
-  if (meta.family === "image") return <img class="file-media" src={url} alt={meta.path} />;
-  if (meta.family === "audio") return <audio class="file-media" src={url} controls />;
-  if (meta.family === "video") return <video class="file-media" src={url} controls />;
+  if (meta.family === "image") return <img class="file-media" src={url} alt={meta.path} onError={() => setPlayError(true)} />;
+  if (meta.family === "audio") return <audio class="file-media" src={url} controls onError={() => setPlayError(true)} />;
+  if (meta.family === "video") return <video class="file-media" src={url} controls onError={() => setPlayError(true)} />;
+  // PDF braucht einen eingebauten Viewer; ohne ihn bleibt der Download (kein stilles Leerfeld).
+  if (typeof navigator !== "undefined" && navigator.pdfViewerEnabled === false) {
+    return <div class="files-error" role="status">Dieser Browser zeigt PDFs nicht inline an — bitte „Download“ nutzen.</div>;
+  }
   return <iframe class="file-pdf" title={meta.path} src={url} sandbox="" />;
 }
 
-function DownloadButton({ target, meta }: { target: string; meta: FileMeta }) {
+function DownloadButton({ api, target, meta }: { api: HubApi; target: string; meta: FileMeta }) {
   const [busy, setBusy] = useState(false);
   if (meta.bytes > BLOB_MAX_BYTES * 4) return <span class="dim" title="Zu groß für den Browser-Speicher — Hex liest bis zum letzten Byte">kein Download</span>;
   return (
@@ -232,7 +215,7 @@ function DownloadButton({ target, meta }: { target: string; meta: FileMeta }) {
       onClick={async () => {
         setBusy(true);
         try {
-          const url = await hubApi.codeRawUrl(target, meta.path, meta.revision);
+          const url = await api.codeRawUrl(target, meta.path, meta.revision);
           const a = document.createElement("a");
           a.href = url;
           a.download = meta.path.split("/").pop() ?? "datei";

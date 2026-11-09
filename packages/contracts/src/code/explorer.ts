@@ -79,5 +79,7 @@ export const FileRange = z.object({
   /** Genau eines von beiden gesetzt, je nach `as`. */
   text: z.string().nullable(),
   base64: z.string().nullable(),
+  /** Zeilennummer (1-basiert), bei der `text` beginnt; nur bei `as=text`. */
+  startLine: z.number().int().positive().nullable().default(null),
 });
 export type FileRange = z.infer<typeof FileRange>;

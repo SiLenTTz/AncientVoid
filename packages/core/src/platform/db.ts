@@ -463,6 +463,18 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 31,
+    name: "trusted-projects",
+    // EPIC-P46 T46.7 (ADR-0058 §9): Freigabe für Diagnose-Prüfer, die Projektcode starten.
+    sql: `
+      CREATE TABLE trusted_projects (
+        project TEXT PRIMARY KEY,
+        trusted_by TEXT,
+        trusted_at TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {

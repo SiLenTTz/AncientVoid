@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { TreeEntry, TreeListing } from "@ancientvoid/contracts";
-import { hubApi, remoteHost } from "../../shared/api.ts";
+import { hostApi, remoteHost } from "../../shared/api.ts";
 import { FileViewer } from "./FileViewer.tsx";
 import { rootKey, rootTarget, saveFilesState, type FilesRoot, type FilesState } from "./files-model.ts";
 
@@ -13,12 +13,13 @@ export interface FocusedSession {
 const GIT_MARK: Record<NonNullable<TreeEntry["git"]>, string> = { modified: "M", added: "A", deleted: "D", untracked: "U", ignored: "I", conflict: "!" };
 
 /** Kinder eines geöffneten Ordners, seitenweise nachgeladen — nie rekursiv (ADR-0058 §2). */
-function Folder({ target, path, depth, showIgnored, onOpenFile, activePath }: { target: string; path: string; depth: number; showIgnored: boolean; onOpenFile: (path: string) => void; activePath: string | null }) {
+function Folder({ hostId, target, path, depth, showIgnored, onOpenFile, activePath }: { hostId: string | null; target: string; path: string; depth: number; showIgnored: boolean; onOpenFile: (path: string) => void; activePath: string | null }) {
   const [pages, setPages] = useState<TreeListing[]>([]);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
+  const api = hostApi(hostId);
   const load = (offset: number, fresh: boolean) =>
-    hubApi
+    api
       .codeTree(target, path, offset, showIgnored)
       .then((l) => {
         setError("");
@@ -67,7 +68,7 @@ function Folder({ target, path, depth, showIgnored, onOpenFile, activePath }: { 
               {e.blocked && <span class="dim files-why">{e.blocked}</span>}
               {e.git && <span class={`files-git git-${e.git}`} title={e.git}>{GIT_MARK[e.git]}</span>}
             </button>
-            {isDir && expanded && <Folder target={target} path={e.path} depth={depth + 1} showIgnored={showIgnored} onOpenFile={onOpenFile} activePath={activePath} />}
+            {isDir && expanded && <Folder hostId={hostId} target={target} path={e.path} depth={depth + 1} showIgnored={showIgnored} onOpenFile={onOpenFile} activePath={activePath} />}
           </li>
         );
       })}
@@ -115,7 +116,7 @@ export function FilesSidebar({
 
   const roots = useMemo(() => {
     const list: FilesRoot[] = [];
-    if (focused && !remoteHost(focused.hostId)) list.push({ kind: "session", id: focused.id, label: `Session: ${focused.label}` });
+    if (focused) list.push({ kind: "session", id: focused.id, label: `Session: ${focused.label}${remoteHost(focused.hostId) ? " (andere Maschine)" : ""}`, ...(remoteHost(focused.hostId) ? { hostId: remoteHost(focused.hostId) } : {}) });
     for (const p of projects) list.push({ kind: "project", path: p.path, label: `Projekt: ${p.name}` });
     return list;
   }, [focused?.id, focused?.hostId, projects]);
@@ -129,7 +130,7 @@ export function FilesSidebar({
   useEffect(() => {
     if (!root) return setIdentity(null);
     let alive = true;
-    hubApi.codeTree(rootTarget(root), "", 0, false).then((l) => alive && setIdentity(l.identity)).catch(() => alive && setIdentity(null));
+    hostApi(root.hostId).codeTree(rootTarget(root), "", 0, false).then((l) => alive && setIdentity(l.identity)).catch(() => alive && setIdentity(null));
     return () => {
       alive = false;
     };
@@ -212,9 +213,9 @@ export function FilesSidebar({
           </div>
           <div class="files-body">
             {showFile && viewing ? (
-              <FileViewer key={`${viewing.rootKey}:${viewing.path}`} target={rootTarget(root)} path={viewing.path} />
+              <FileViewer key={`${viewing.rootKey}:${viewing.path}`} hostId={root.hostId ?? null} sessionId={root.kind === "session" ? root.id : null} target={rootTarget(root)} path={viewing.path} />
             ) : (
-              <Folder key={`${rKey}:${state.showIgnored}`} target={rootTarget(root)} path="" depth={0} showIgnored={state.showIgnored} onOpenFile={openFile} activePath={viewing?.path ?? null} />
+              <Folder key={`${rKey}:${state.showIgnored}`} hostId={root.hostId ?? null} target={rootTarget(root)} path="" depth={0} showIgnored={state.showIgnored} onOpenFile={openFile} activePath={viewing?.path ?? null} />
             )}
           </div>
         </>

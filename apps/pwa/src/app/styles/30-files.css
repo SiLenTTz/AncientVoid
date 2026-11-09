@@ -38,3 +38,43 @@
 .file-text.wrap { white-space: pre-wrap; word-break: break-word; }
 .file-media { max-width: 100%; max-height: 70vh; display: block; margin: 6px auto; }
 .file-pdf { width: 100%; height: 70vh; border: 0; background: #fff; }
+
+/* EPIC-P46 T46.6/T46.7 (ADR-0058 §7–§11): Zeilennummern, Syntaxfarben, strukturierte Ansichten, Diagnose, Feedback */
+.file-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 2px 6px; }
+.file-find { flex: 1 1 140px; min-width: 100px; }
+.file-find-note, .file-note { padding: 2px 8px; font-size: 0.85em; }
+.file-code { margin: 0; padding: 4px 0; font: 0.82em/1.4 var(--font-mono, ui-monospace, monospace); overflow: auto; tab-size: 4; }
+.file-line { display: flex; white-space: pre; }
+.file-code.wrap .file-line { white-space: pre-wrap; word-break: break-word; }
+.file-ln { flex: 0 0 4.2em; text-align: right; padding: 0 8px 0 0; background: none; border: 0; color: var(--fg-dim); cursor: pointer; font: inherit; user-select: none; position: sticky; left: 0; }
+.file-lt { flex: 1 1 auto; padding-right: 8px; }
+.file-line.sel, .file-line.focus { background: var(--bg-chip); }
+.file-line.has-diag .file-ln { color: var(--err, #f7768e); font-weight: 600; }
+.file-col-mark { background: var(--warn, #e0af68); color: #000; }
+.file-code .hljs-comment, .file-code .hljs-quote { color: var(--fg-dim); font-style: italic; }
+.file-code .hljs-keyword, .file-code .hljs-selector-tag, .file-code .hljs-built_in { color: #bb9af7; }
+.file-code .hljs-string, .file-code .hljs-regexp, .file-code .hljs-addition { color: #9ece6a; }
+.file-code .hljs-number, .file-code .hljs-literal, .file-code .hljs-attr { color: #ff9e64; }
+.file-code .hljs-title, .file-code .hljs-function, .file-code .hljs-name { color: #7aa2f7; }
+.file-code .hljs-type, .file-code .hljs-class { color: #2ac3de; }
+.file-code .hljs-deletion { color: var(--err, #f7768e); }
+.diag-panel, .feedback-panel { margin: 4px 6px; padding: 6px 8px; border: 1px solid var(--bg-chip); border-radius: var(--radius-sm); }
+.diag-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.diag-list { list-style: none; margin: 6px 0 0; padding: 0; max-height: 30vh; overflow: auto; }
+.diag-list li { display: flex; gap: 6px; align-items: baseline; padding: 2px 0; }
+.diag-jump { font-family: var(--font-mono, monospace); background: none; border: 0; color: var(--accent, #7aa2f7); cursor: pointer; text-decoration: underline; }
+.diag-error .diag-jump { color: var(--err, #f7768e); }
+.feedback-panel ul { list-style: none; margin: 4px 0; padding: 0; }
+.feedback-panel li { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
+.md-view, .json-view, .nb-view, .archive-view, .office-view, .file-table-wrap { padding: 6px 10px; overflow: auto; max-height: 100%; }
+.md-view pre, .nb-src, .nb-out { margin: 4px 0; padding: 6px; overflow: auto; background: var(--bg-chip); font-size: 0.85em; white-space: pre-wrap; }
+.md-view blockquote { margin: 4px 0; padding-left: 10px; border-left: 3px solid var(--bg-chip); color: var(--fg-dim); }
+.file-table { border-collapse: collapse; font-size: 0.85em; }
+.file-table th, .file-table td { border: 1px solid var(--bg-chip); padding: 2px 6px; text-align: left; vertical-align: top; }
+.json-branch .json-children { margin-left: 14px; }
+.json-toggle { background: none; border: 0; color: var(--fg); cursor: pointer; font: inherit; padding: 0; }
+.json-key { color: #7aa2f7; }
+.json-string { color: #9ece6a; } .json-number { color: #ff9e64; } .json-boolean, .json-null { color: #bb9af7; }
+.nb-cell { margin: 8px 0; border-left: 3px solid var(--bg-chip); padding-left: 8px; }
+.nb-img, .file-media { max-width: 100%; height: auto; }
+.file-html { width: 100%; height: 60vh; border: 1px solid var(--bg-chip); background: #fff; }
