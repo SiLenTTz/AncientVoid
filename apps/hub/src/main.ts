@@ -35,6 +35,7 @@ import {
   loopAsAdapter,
   InMemoryMetrics,
   ReviewStore,
+  ProjectTrustStore,
   loadConfig,
   loadReportingSinks,
   ClaudeLive,
@@ -285,6 +286,8 @@ async function main(): Promise<void> {
     registry,
     // EPIC-P36 / ADR-0055: Review-Notizen — Journal+Snapshot unter dataDir/reviews.
     reviews: new ReviewStore(resolve(dataDir, "reviews")),
+    // EPIC-P46 / ADR-0058 §9: Freigaben für Diagnose-Prüfer, die Projektcode starten.
+    trust: new ProjectTrustStore(db),
     // EPIC-P37 / ADR-0056: Forge (GitLab) — Kommando aus der Config (E2E: Stub);
     // tokenFile-Fehler failen laut beim Boot, nie still.
     forge: new ForgeService({

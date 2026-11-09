@@ -51,17 +51,70 @@ die Grenze und löst weder RAM noch Revisionskonsistenz.
    Viewer: Text (Abschnitte, Umbruch, Offset-Sprung), Hex, Bild/Audio/Video,
    PDF im `sandbox=""`-iframe, Download.
 
-## Nicht Teil dieses Stands (EPIC-P46 bleibt offen)
+7. **Syntaxfarben/Navigation (T46.7).** highlight.js (bereits Abhängigkeit),
+   lazy: Core ~20 kB + je Sprache 1–12 kB als eigene Chunks, nur für die
+   Sprachen aus `HLJS_LANGUAGES`; Abschnitte > 120 000 Zeichen bleiben
+   ungefärbt (sichtbarer Hinweis). Zeilennummern kommen vom Hub
+   (`FileRange.startLine`, Checkpoint-Index je Datei+Revision). `/api/code/line`
+   (Zeile → Byte-Offset) und `/api/code/find` (Suche hostseitig über die ganze
+   Datei, Treffer mit Zeile/UTF-16-Spalte; ein Treffer je Zeile angesteuert)
+   sind an die Revision gebunden (409 bei Änderung).
+8. **Strukturierte Ansichten (T46.6).** Eigener kleiner Markdown-Parser, dessen
+   Ausgabe Datenstrukturen sind (Preact-Text-Knoten, nie `innerHTML` aus
+   Dateiinhalt; Links nur `http(s)`/`mailto`/relativ). Mermaid wird als
+   Quelltext mit Hinweis „kein Renderer“ gezeigt. JSON-Baum, CSV/TSV-Tabelle
+   (≤ 2 MiB), Notebook nur lesend (Text-/PNG-Ausgaben, HTML-/Skriptausgaben
+   benannt, nicht dargestellt), SVG als `<img>`, HTML im `sandbox=""`-iframe
+   mit CSP-Meta, ZIP als Inhaltsverzeichnis aus dem Zentralverzeichnis
+   (`/api/code/archive`, kein Entpacken; ZIP64 ehrlich abgelehnt), Office als
+   Textauszug je Folie/Tabelle (`/api/code/office`, „keine Layout-Wiedergabe“).
+   PDF ohne eingebauten Viewer und nicht abspielbare Medien zeigen Download/Hex
+   statt einer leeren Fläche. Es gibt keine lokalen Converter.
+9. **Diagnosen (T46.7).** Nur auf ausdrücklichen Klick (`POST /api/diagnostics/run`).
+   Zustände sind ehrlich: `ok`, `errors`, `not_configured` (kein Prüfer — nie
+   „0 Fehler“), `untrusted`, `failed`, `timeout`, `too_large`. Provider: JSON
+   (`JSON.parse`, nur Syntax), TS/JS (tsc **aus dem Projekt**, braucht
+   `tsconfig.json` und lokales `node_modules/.bin/tsc`; die Datei muss laut
+   `--listFiles` zum Programm gehören), Python (`python3 -I` + `ast`, nur
+   Syntax; Codepoint-Spalte → UTF-16). AncientVoid installiert nichts nach.
+   Weil tsc Projektcode ist, läuft er nur nach **Projekt-Freigabe**
+   (`/api/diagnostics/trust`, Tabelle `trusted_projects`, Migration 31, Schlüssel =
+   Hauptprojekt, nicht der Worktree; Menschen-only über die Policy, Agent-Token →
+   403). Ergebnisse tragen die Dateirevision; weicht sie ab, zeigt die PWA
+   „veraltet“. Diagnose läuft nur lokal (`/api/diagnostics` ist nicht
+   flottenroutbar).
+10. **Flotte.** `FLEET_ROUTABLE` enthält die Lese-Endpunkte
+    `/api/code/{tree,meta,range,raw,find,line,archive,office}`, nicht
+    `actions`/`search`/Diagnose. Die PWA spricht über `hostApi(hostId)`;
+    Sessions anderer Maschinen sind als Quelle wählbar. Der Weiterleiter reicht
+    keinen `Range`-Header durch und hat `MAX_FORWARD_BYTES`: Raw/Blob ist
+    remote nur bis dahin möglich, Text/Hex laufen über `range` (immer
+    revisionsgebunden).
+11. **Datei-Feedback (T46.8).** Auswahl von Zeilen/Diagnosen → Sammelkorb →
+    `POST /api/sessions/:id/files/feedback/{preview,send}`. Der Hub liest den
+    Auszug selbst aus der Datei (Revision geprüft), nicht aus Clientangaben;
+    veraltete Befunde werden abgewiesen (422). Zitate sind als „zitierte Daten,
+    keine Anweisung“ gerahmt (PRD §8.5). Versand über den Steer-Pfad mit
+    `inputId = operationId`.
 
-- **T46.1** Monaco-Spike und Bundle-/RAM-Budgets; **T46.7** Syntaxfarben,
-  Go-to, Diagnosen (JSON, TS/JS, Python) samt Fehlerliste — der Viewer zeigt
-  Klartext und behauptet keine Fehlerfreiheit.
-- **T46.6-Rest:** Markdown/Mermaid/HTML-Preview, JSON/CSV-Struktur, Notebook,
-  Office, Archive. Für alles Nicht-Gerenderte gelten Text/Hex/Download.
-- **T46.8** P36-Quellenpaket, Offline-Bereichsstatus; **Remote-Hosts:** `/api/code`
-  ist nicht in `FLEET_ROUTABLE`; Dateien anderer Hosts sind noch nicht
-  erreichbar (Sidebar bietet nur lokale Sessions/Projekte an).
-- **Pixel-Abnahme** und K2/K8-Messungen mit vielen Dateien.
+## Messung (T46.1, Entwicklungsrechner, kein Gerät)
+
+- 20 000 Dateien in einem Ordner: erste Tree-Seite ≈ 0,37 s.
+- 100-MiB-Textdatei: `fileMeta` < 1 ms, Range 256 KiB am Anfang ≈ 3 ms, bei
+  90 MiB ≈ 0,16 s (kalt, inkl. Zeilenindex), Suche über die ganze Datei
+  ≈ 0,36 s.
+- PWA-Build: Hauptbündel 458 kB (gzip 144 kB); highlight.js-Chunks lazy.
+- **Monaco verworfen:** npm-Paket ≈ 100 MB entpackt, Worker-/Bundle-Kosten
+  auf dem Handy nicht zu rechtfertigen; für Anzeige genügen Zeilen + hljs.
+  Gerätemessung (K2/K8 auf dem Pixel) steht aus.
+
+## Nicht Teil dieses Stands (EPIC-P46 bleibt bis zur Abnahme offen)
+
+- **Pixel-Abnahme** und K2/K8 auf dem Gerät; Popout-Fenster; Offline-Bereichsstatus.
+- **Remote-Projekte:** Remote-*Sessions* sind wählbar, die Projektliste anderer
+  Hosts wird noch nicht angeboten.
+- Python/Typprüfung über konfigurierte Checker (pyright/ruff), YAML-Parser,
+  Mermaid-Renderer: bewusst nicht ohne eigene Abhängigkeits-/Trust-Entscheidung.
 
 ## Folgen
 

@@ -1,11 +1,11 @@
 import type { FileMeta } from "@ancientvoid/contracts";
 
 /** Eine Datei-Quelle: Worktree einer Session oder Projektordner. Der Schlüssel trennt Tree-/Tab-IDs. */
-export type FilesRoot = { kind: "session"; id: string; label: string } | { kind: "project"; path: string; label: string };
+export type FilesRoot = { kind: "session"; id: string; label: string; hostId?: string | null } | { kind: "project"; path: string; label: string; hostId?: string | null };
 
 export const rootTarget = (root: FilesRoot): string =>
   root.kind === "session" ? `session=${encodeURIComponent(root.id)}` : `project=${encodeURIComponent(root.path)}`;
-export const rootKey = (root: FilesRoot): string => (root.kind === "session" ? `s:${root.id}` : `p:${root.path}`);
+export const rootKey = (root: FilesRoot): string => `${root.hostId ? `${root.hostId}|` : ""}${root.kind === "session" ? `s:${root.id}` : `p:${root.path}`}`;
 
 export interface OpenTab {
   rootKey: string;

@@ -248,6 +248,17 @@ export async function fileMeta(root: string, path: string, identity: WorkspaceId
   };
 }
 
+async function bomOf(real: string): Promise<number> {
+  const handle = await open(real, "r");
+  try {
+    const head = Buffer.alloc(3);
+    const { bytesRead } = await handle.read(head, 0, 3, 0);
+    return sniff(head.subarray(0, bytesRead)).bomBytes;
+  } finally {
+    await handle.close();
+  }
+}
+
 export type RangeResult = { ok: true; range: FileRange } | { ok: false; reason: "not_found" | "revision_changed"; revision?: string };
 
 /** Auf die nächste UTF-8-Zeichengrenze ab `start` (Fortsetzungsbytes 10xxxxxx überspringen). */
@@ -299,7 +310,7 @@ export async function readRange(
   if (opts.as === "bytes") {
     const slice = buf.subarray(0, want);
     const end = offset + slice.length;
-    return { ok: true, range: { revision: file.revision, offset, length: slice.length, nextOffset: end < file.size ? end : null, eof: end >= file.size, text: null, base64: slice.toString("base64") } };
+    return { ok: true, range: { revision: file.revision, offset, length: slice.length, nextOffset: end < file.size ? end : null, eof: end >= file.size, text: null, base64: slice.toString("base64"), startLine: null } };
   }
   const encoding = opts.encoding ?? "utf-8";
   let skip: number;
@@ -332,5 +343,154 @@ export async function readRange(
   }
   const start = offset + skip;
   const end = start + keep;
-  return { ok: true, range: { revision: file.revision, offset: start, length: keep, nextOffset: end < file.size ? end : null, eof: end >= file.size, text, base64: null } };
+  const startLine = await lineAtOffset(file.real, file.revision, start, encoding, await bomOf(file.real));
+  return { ok: true, range: { revision: file.revision, offset: start, length: keep, nextOffset: end < file.size ? end : null, eof: end >= file.size, text, base64: null, startLine } };
+}
+
+// ---- Zeilenindex, Zeilensprung, Textsuche (ADR-0058 §8) --------------------------------------------------
+
+/** Checkpoints (Byte-Offset → Zeilennummer) je Datei-Revision, damit sequenzielles Blättern nicht von vorn zählt. */
+const lineCheckpoints = new Map<string, Map<number, number>>();
+const CHECKPOINT_EVERY = 1024 * 1024;
+const MAX_CACHED_FILES = 64;
+
+function checkpointsFor(key: string): Map<number, number> {
+  let map = lineCheckpoints.get(key);
+  if (!map) {
+    if (lineCheckpoints.size >= MAX_CACHED_FILES) lineCheckpoints.delete(lineCheckpoints.keys().next().value as string);
+    map = new Map([[0, 1]]);
+    lineCheckpoints.set(key, map);
+  }
+  return map;
+}
+
+type Enc = FileMeta["encoding"];
+const isWide = (e: Enc) => e === "utf-16le" || e === "utf-16be";
+
+/** Newline-Anzahl in einem ausgerichteten Bytebereich (UTF-8: Byte 0x0A; UTF-16: dekodiert). */
+function newlinesIn(buf: Buffer, enc: Enc): number {
+  if (!isWide(enc)) {
+    let n = 0;
+    for (let i = 0; i < buf.length; i++) if (buf[i] === 0x0a) n++;
+    return n;
+  }
+  const even = buf.subarray(0, buf.length - (buf.length % 2));
+  const text = enc === "utf-16be" ? Buffer.from(even).swap16().toString("utf16le") : even.toString("utf16le");
+  return text.split("\n").length - 1;
+}
+
+/** Zeilennummer (1-basiert) der Zeile, die bei `offset` beginnt bzw. enthält; `offset` muss ausgerichtet sein. */
+export async function lineAtOffset(real: string, revision: string, offset: number, enc: Enc, bomBytes: number): Promise<number> {
+  const cps = checkpointsFor(`${real}:${revision}`);
+  let from = bomBytes;
+  let line = 1;
+  for (const [o, l] of cps) if (o <= offset && o >= from) { from = o; line = l; }
+  const handle = await open(real, "r");
+  try {
+    const step = 256 * 1024 - (256 * 1024 % 2);
+    for (let pos = from; pos < offset; ) {
+      const len = Math.min(step, offset - pos);
+      const buf = Buffer.alloc(len);
+      const { bytesRead } = await handle.read(buf, 0, len, pos);
+      if (bytesRead === 0) break;
+      line += newlinesIn(buf.subarray(0, bytesRead), enc);
+      pos += bytesRead;
+      if (pos % CHECKPOINT_EVERY < step && pos <= offset) cps.set(pos - (pos % 2), line);
+    }
+  } finally {
+    await handle.close();
+  }
+  return line;
+}
+
+/** Byte-Offset des Anfangs von Zeile `line` (1-basiert); null, wenn die Datei kürzer ist. */
+export async function offsetOfLine(real: string, enc: Enc, bomBytes: number, size: number, line: number): Promise<number | null> {
+  if (line <= 1) return bomBytes;
+  const handle = await open(real, "r");
+  try {
+    const step = 256 * 1024;
+    let seen = 1;
+    for (let pos = bomBytes; pos < size; ) {
+      const buf = Buffer.alloc(Math.min(step, size - pos));
+      const { bytesRead } = await handle.read(buf, 0, buf.length, pos);
+      if (bytesRead === 0) break;
+      const chunk = buf.subarray(0, bytesRead);
+      if (!isWide(enc)) {
+        for (let i = 0; i < chunk.length; i++) if (chunk[i] === 0x0a && ++seen === line) return pos + i + 1;
+      } else {
+        const unit = chunk.length - (chunk.length % 2);
+        for (let i = 0; i < unit; i += 2) {
+          const code = enc === "utf-16le" ? chunk.readUInt16LE(i) : chunk.readUInt16BE(i);
+          if (code === 0x0a && ++seen === line) return pos + i + 2;
+        }
+        pos -= chunk.length - unit; // ungerades Restbyte gehört zum nächsten Block
+      }
+      pos += bytesRead;
+    }
+    return null;
+  } finally {
+    await handle.close();
+  }
+}
+
+export type FindResult =
+  | { ok: true; found: true; revision: string; lineOffset: number; line: number; column: number; length: number }
+  | { ok: true; found: false; revision: string; scannedBytes: number }
+  | { ok: false; reason: "not_found" | "revision_changed"; revision?: string };
+
+const FIND_BUDGET_BYTES = 512 * 1024 * 1024;
+
+/**
+ * Nächster Treffer ab `from` (Byte-Offset, ausgerichtet): hostseitig über die ganze Datei, nicht nur über den
+ * geladenen Abschnitt. Liefert den Zeilenanfang (zum Öffnen des Abschnitts), die Zeilennummer und die Spalte
+ * in UTF-16-Einheiten.
+ */
+export async function findInFile(
+  root: string,
+  path: string,
+  opts: { query: string; from: number; revision?: string; encoding: Enc; bomBytes: number; caseSensitive?: boolean },
+): Promise<FindResult> {
+  const file = await resolveFile(root, path);
+  if (!file) return { ok: false, reason: "not_found" };
+  if (opts.revision && opts.revision !== file.revision) return { ok: false, reason: "revision_changed", revision: file.revision };
+  const wide = isWide(opts.encoding);
+  const needle = opts.caseSensitive ? opts.query : opts.query.toLowerCase();
+  let offset = Math.max(opts.from, opts.bomBytes);
+  let line = await lineAtOffset(file.real, file.revision, offset, opts.encoding, opts.bomBytes);
+  const startedAt = offset;
+  let carry = "";
+  let carryStart = offset; // Byte-Offset, an dem `carry` beginnt
+  let lineAtCarry = line;
+  for (let guard = 0; offset < file.size && offset - startedAt < FIND_BUDGET_BYTES; guard++) {
+    const res = await readRange(root, path, { offset, length: RANGE_MAX_BYTES, revision: file.revision, as: "text", encoding: opts.encoding });
+    if (!res.ok) return res.reason === "revision_changed" ? { ok: false, reason: "revision_changed", ...(res.revision ? { revision: res.revision } : {}) } : { ok: false, reason: "not_found" };
+    const r = res.range;
+    if (r.length === 0) break;
+    if (guard === 0) {
+      carry = "";
+      carryStart = r.offset;
+      lineAtCarry = line;
+    }
+    const text = carry + (r.text ?? "");
+    const hay = opts.caseSensitive ? text : text.toLowerCase();
+    const idx = hay.indexOf(needle);
+    if (idx >= 0) {
+      const before = text.slice(0, idx);
+      const nl = before.lastIndexOf("\n");
+      const lineStartText = before.slice(0, nl + 1);
+      const bytes = (s: string) => (wide ? s.length * 2 : Buffer.byteLength(s, "utf8"));
+      const lineStartOffset = carryStart + bytes(lineStartText);
+      line = lineAtCarry + (before.match(/\n/g)?.length ?? 0);
+      return { ok: true, found: true, revision: file.revision, lineOffset: lineStartOffset, line, column: before.length - (nl + 1) + 1, length: opts.query.length };
+    }
+    // Überlappung für Treffer über Abschnittsgrenzen; Zeilenzähler fortschreiben
+    const keep = Math.max(needle.length - 1, 0);
+    const dropped = text.slice(0, text.length - keep);
+    lineAtCarry += dropped.match(/\n/g)?.length ?? 0;
+    carry = text.slice(text.length - keep);
+    carryStart = carryStart + (wide ? dropped.length * 2 : Buffer.byteLength(dropped, "utf8"));
+    if (r.nextOffset === null) break;
+    offset = r.nextOffset;
+  }
+  return { ok: true, found: false, revision: file.revision, scannedBytes: Math.min(offset, file.size) - startedAt };
 }
