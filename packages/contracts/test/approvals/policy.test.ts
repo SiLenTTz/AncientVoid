@@ -76,3 +76,11 @@ describe("policy table (T7.4)", () => {
     }
   });
 });
+
+describe("policy table — prompt cost loop (BUG-0110)", () => {
+  it("enhance/recommendation/feedback is no read for agents: it costs money and writes learning data", () => {
+    expect(policyFor("prompt.enhance", "agent:mcp")).toBe("deny");
+    expect(policyFor("prompt.enhance", "pixel-9")).toBe("allow");
+    expect(policyFor("prompt.enhance", "fleet:home")).toBe("allow");
+  });
+});
