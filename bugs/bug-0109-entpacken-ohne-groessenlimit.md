@@ -1,12 +1,12 @@
 ---
 id: BUG-0109
 slug: entpacken-ohne-groessenlimit
-status: open
+status: done
 severity: S3
 area: core
 instance: dev
 commit: "7d0ab0b"
-forge: ""
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/43"
 epic: "EPIC-P7 T7.10 / ADR-0022 (Attachments)"
 created: 2026-11-10
 reporter: "Sicherheitsaudit (pi)"
@@ -82,7 +82,7 @@ Rekord des Bomben-Anhangs: `extraction {status: done, method: office, chars: 102
 
 | Ring | Befehl / Datei | Stand vor dem Fix |
 |---|---|---|
-| Unit | vorzuschlagen: `packages/core/test/attachments-extract-bomb.test.ts` — `officeText()` an einer aufblasbaren ZIP (~50 MB entpackt, begrenzter Input) muss mit definiertem Fehler/Leerergebnis enden, ohne den halben Arbeitsspeicher zu belegen | nicht vorhanden; müsste ohne Fix rot sein |
+| Unit | `packages/core/test/modules/attachments/extract-bomb.test.ts` — `officeText()` mit ungenutztem Bomben-Eintrag entpackt ihn nicht (Filter-Weißbox); benötigter Part über Limit (128 MB) wirft definiert | rot ohne Fix ( kein Filter, kein Wurf), grün mit Fix |
 | Contract (`adapter-testkit`) | n. z. | |
 
 ## Eingrenzung
@@ -95,5 +95,17 @@ Rekord des Bomben-Anhangs: `extraction {status: done, method: office, chars: 102
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [ ] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` oder offen lassen
+- [x] GitLab-Issue angelegt (Link oben)
+- [x] `bugfix` oder offen lassen
+
+## Fix (verifiziert 2026-11-10, pi/halogen-qwen3.8)
+
+- Fix: Commit `6d3d999` — `officeText()` entpackt per `unzipSync`-Filter nur
+  noch die Parts, die es tatsächlich liest (ungebrauchte Bomben-Einträge
+  werden nie inflatiert), und wirft für einen benötigten Part über
+  128 MB Limit definiert (sichtbares `extraction.status=failed` statt
+  V8-String-Crash/RSS-Spike). Bestehende Fixture-Tests (DOCX/XLSX/PPTX)
+  bleiben grün.
+- Verifikation: `npx vitest run packages/core/test/modules/attachments/`
+  grün (8/8, neuer Test rot ohne Fix); volles Gate `npm run gate` grün
+  (inkl. e2e 425 passed / 2 skipped).
