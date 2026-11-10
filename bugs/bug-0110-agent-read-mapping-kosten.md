@@ -1,12 +1,12 @@
 ---
 id: BUG-0110
 slug: agent-read-mapping-kosten
-status: open
+status: done
 severity: S4
 area: server
 instance: dev
 commit: "7d0ab0b"
-forge: ""
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/44"
 epic: "EPIC-P7 T7.4 / EPIC-P1.5 §3.4 / EPIC-P3 §3 (Learning-Loop)"
 created: 2026-11-10
 reporter: "Sicherheitsaudit (pi)"
@@ -79,8 +79,9 @@ JSONL-Auszug (ohne Secrets): Zeile mit `"adapter":"dummy","decision":"accepted"`
 
 | Ring | Befehl / Datei | Stand vor dem Fix |
 |---|---|---|
-| Contract | `packages/contracts/test/approvals/policy.test.ts` (Tabelle selbst) | grün — das Problem steckt in der Tabelle/Zuordnung, nicht in ihrer Umsetzung |
-| Integration | vorzuschlagen: `apps/hub/test/policy-agent-cost-actions.integration.test.ts` — Agent-Token auf `POST /api/prompt-optimizer/feedback` erwartet Approval/403, nicht 200 | nicht vorhanden; müsste ohne Fix rot sein |
+| Contract | `packages/contracts/test/approvals/policy.test.ts` — neue Operation `prompt.enhance`: agent deny, human/fleet allow; bestehende Invarianten-Tests (agent nie allow außer `read`, display nur read+decide) bleiben grün | rot ohne Fix (Operation fehlte), grün mit Fix |
+| Unit | `apps/hub/test/platform/policy-prompt-cost.test.ts` — die drei Pfade mappen auf `prompt.enhance`, nicht mehr auf `read` | rot ohne Fix (`read`), grün mit Fix |
+| Integration | `apps/hub/test/platform/policy-prompt-cost.test.ts` — Agent-Token auf `POST /api/prompt-optimizer/feedback` → 403; Mensch-Token → 200 (Guard gegen Über-Blocken) | rot ohne Fix (200 für Agent), grün mit Fix |
 
 ## Eingrenzung
 
@@ -94,5 +95,22 @@ bei Fleet-Pairing.
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [ ] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` oder offen lassen
+- [x] GitLab-Issue angelegt (Link oben)
+- [x] `bugfix` oder offen lassen
+
+## Fix (verifiziert 2026-11-11, pi/halogen-qwen3.8)
+
+- Fix: `prompt-enhance`/`prompt-recommendation`/`prompt-optimizer/feedback`
+  sind in `operationOf()` nicht mehr auf `read` gemappt, sondern auf die neue
+  Contract-Operation `prompt.enhance`. Tabellenwert identisch zu `read` für
+  human/fleet/bridge/companion; `agent: deny` (der eigentliche Befund) und
+  `display: deny` — Letzteres, weil die bestehende ADR-0048-Invariante
+  („display reads and decides — nothing else“) sonst verletzt wäre; kein
+  Display-Client ruft diese Endpunkte auf.
+- Nebenwirkung: Agenten können die drei Endpunkte nicht mehr ohne menschliche
+  Instanz erreichen (403); ein `approve`-Pfad (Approval-Queue) wäre die
+  Komfortstufe, ist aber nicht Teil dieses Fixes — Safety zuerst, YAGNI.
+- Verifikation: rote Tests zuerst (Contract + Hub-Unit + Integration, oben),
+  dann grün; volles Gate `npm run gate` grün (1572 Tests, e2e 432 passed /
+  2 skipped — ein review-feedback-Flake im ersten Lauf, im Wiederholungs-
+  lauf grün).
