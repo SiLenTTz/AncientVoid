@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { TreeEntry, TreeListing } from "@ancientvoid/contracts";
 import { hostApi, remoteHost } from "../../shared/api.ts";
 import { FileViewer } from "./FileViewer.tsx";
+import { openPopout } from "../windows/windows.ts";
 import { rootKey, rootTarget, saveFilesState, type FilesRoot, type FilesState } from "./files-model.ts";
 
 export interface FocusedSession {
@@ -201,6 +202,17 @@ export function FilesSidebar({
                   <button type="button" role="tab" aria-selected={Boolean(showFile) && state.active === index} class={showFile && state.active === index ? "chip active" : "chip"} title={t.path} onClick={() => { update({ active: index }); setView("file"); }}>
                     {t.path.split("/").pop()}
                   </button>
+                  {root.kind === "session" && (
+                    <button
+                      type="button"
+                      class="files-tab-popout"
+                      aria-label={`${t.path} in eigenes Fenster`}
+                      title="In eigenes Fenster"
+                      onClick={() => void openPopout({ kind: "file", sessionId: root.id, path: t.path, ...(root.hostId ? { hostId: root.hostId } : {}) })}
+                    >
+                      ⧉
+                    </button>
+                  )}
                   <button type="button" class="files-tab-close" aria-label={`${t.path} schließen`} onClick={() => closeTab(index)}>×</button>
                 </span>
               );

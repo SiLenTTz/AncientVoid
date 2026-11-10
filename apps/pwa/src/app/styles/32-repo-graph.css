@@ -1,0 +1,148 @@
+/* EPIC-P48 (ADR-0062 §3.4): Repo-Graph-Canvas — Layout, Legende, Diagnose-Fläche.
+ * Farben kommen aus CSS-Variablen (--accent, --graph-code, --graph-config,
+ * --graph-other, --err); hier steht nur Struktur und Zustand. */
+
+.graph-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.graph-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  flex-wrap: wrap;
+}
+
+.graph-legend {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.graph-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.85em;
+  background: var(--bg-chip);
+}
+
+.graph-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.graph-dot-doc { background: var(--accent, #7aa2f7); }
+.graph-dot-code { background: var(--graph-code, #9ece6a); }
+.graph-dot-config { background: var(--graph-config, #e0af68); }
+.graph-dot-other { background: var(--graph-other, #a9b1d6); }
+
+.graph-chip-dead {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.graph-check {
+  white-space: nowrap;
+}
+
+.graph-banner {
+  margin: 0 8px 6px;
+  padding: 4px 8px;
+  border-left: 3px solid var(--warn, #e0af68);
+  font-size: 0.9em;
+}
+
+.graph-diag {
+  margin: 0 8px 6px;
+  padding: 6px 8px;
+  font-size: 0.9em;
+  border: 1px solid var(--bg-chip);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.graph-diag-source-untrusted,
+.graph-diag-source-failed,
+.graph-diag-source-timeout { color: var(--err, #f7768e); }
+.graph-diag-source-errors { color: var(--err, #f7768e); font-weight: 600; }
+.graph-diag-source-not_configured { opacity: 0.7; }
+
+.graph-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.graph-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none; /* 1-Finger-Pan/Tap geht an den Canvas, nicht an die Seite */
+  cursor: crosshair;
+}
+
+.graph-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.graph-tooltip {
+  position: absolute;
+  z-index: 1;
+  max-width: 60%;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--bg-panel, #1a1b26);
+  border: 1px solid var(--bg-chip);
+  font-size: 0.85em;
+  pointer-events: none;
+}
+
+.graph-tooltip-path {
+  font-family: var(--mono, monospace);
+  word-break: break-all;
+}
+
+/* DOM-Hit-Flächen (E2E/Tastatur): transparent über dem Canvas, nur Klick/Fokus. */
+.graph-node-hits {
+  position: absolute;
+  inset: 0;
+}
+
+.graph-node-hits-dragging {
+  pointer-events: none; /* Panning geht durch, kein Flackern von Hit-Buttons */
+}
+
+.graph-node-hit {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+}
+
+.graph-node-hit:focus-visible {
+  opacity: 1;
+  outline: 1px solid var(--accent, #7aa2f7);
+  border-radius: 50%;
+}
+
+.graph-node-hit.dead {
+  opacity: 0;
+}

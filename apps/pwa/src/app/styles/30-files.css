@@ -11,6 +11,9 @@
 .files-tabs { display: flex; gap: 4px; padding: 0 6px 6px; overflow-x: auto; align-items: center; }
 .files-tab { display: inline-flex; align-items: center; }
 .files-tab-close { background: none; border: 0; color: var(--fg-dim); cursor: pointer; padding: 0 4px; }
+/* EPIC-P48: Datei-Tab in eigenes Fenster (T46.8-Rest) — gleiche Fläche wie ×. */
+.files-tab-popout { background: none; border: 0; color: var(--fg-dim); cursor: pointer; padding: 0 4px; }
+.files-tab-popout:hover { color: var(--accent); }
 .files-ignored { margin-left: auto; white-space: nowrap; font-size: 0.85em; }
 .files-body { flex: 1; min-height: 0; overflow: auto; padding: 0 4px 8px; }
 .files-tree { list-style: none; margin: 0; padding: 0; }

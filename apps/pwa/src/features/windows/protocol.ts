@@ -1,4 +1,4 @@
-import { pageHash, sessionHash, TOOL_PAGE_IDS, type ToolPageId } from "../../app/route.ts";
+import { fileHash, graphHash, pageHash, sessionHash, TOOL_PAGE_IDS, type ToolPageId } from "../../app/route.ts";
 
 /**
  * EPIC-P34 T34.10 (ADR-0053): Abstimmung zwischen dem Hauptfenster und eigenen Fenstern über
@@ -10,7 +10,11 @@ export const HEARTBEAT_MS = 3000;
 /** Zwei verpasste Herzschläge plus Puffer. */
 export const WINDOW_TTL_MS = 10_000;
 
-export type WindowTarget = { kind: "session"; sessionId: string; hostId?: string } | { kind: "tool"; page: ToolPageId };
+export type WindowTarget =
+  | { kind: "session"; sessionId: string; hostId?: string }
+  | { kind: "tool"; page: ToolPageId }
+  | { kind: "graph"; sessionId: string; hostId?: string }
+  | { kind: "file"; sessionId: string; path: string; hostId?: string };
 
 export type WindowMessage =
   | { type: "hello"; id: string; target: WindowTarget }
@@ -29,21 +33,33 @@ export interface WindowEntry {
 export type WindowRegistry = Record<string, WindowEntry>;
 
 export function targetKey(target: WindowTarget): string {
-  return target.kind === "tool" ? `tool:${target.page}` : `session:${target.hostId ?? ""}|${target.sessionId}`;
+  if (target.kind === "tool") return `tool:${target.page}`;
+  const host = target.hostId ?? "";
+  if (target.kind === "graph") return `graph:${host}|${target.sessionId}`;
+  if (target.kind === "file") return `file:${host}|${target.sessionId}|${target.path}`;
+  return `session:${host}|${target.sessionId}`;
 }
 
 /** Das Token steht nie in der URL — es liegt im gemeinsamen localStorage. */
 export function popoutUrl(target: WindowTarget): string {
-  const hash = target.kind === "tool" ? pageHash(target.page) : sessionHash(target.sessionId, target.hostId);
-  return `/?window=1${hash}`;
+  if (target.kind === "tool") return `/?window=1${pageHash(target.page)}`;
+  if (target.kind === "graph") return `/?window=1${graphHash(target.sessionId, target.hostId)}`;
+  if (target.kind === "file") return `/?window=1${fileHash(target.sessionId, target.path, target.hostId)}`;
+  return `/?window=1${sessionHash(target.sessionId, target.hostId)}`;
 }
 
 function parseTarget(raw: unknown): WindowTarget | null {
   if (!raw || typeof raw !== "object") return null;
-  const t = raw as { kind?: unknown; sessionId?: unknown; hostId?: unknown; page?: unknown };
+  const t = raw as { kind?: unknown; sessionId?: unknown; hostId?: unknown; page?: unknown; path?: unknown };
   if (t.kind === "tool") return (TOOL_PAGE_IDS as readonly unknown[]).includes(t.page) ? { kind: "tool", page: t.page as ToolPageId } : null;
   if (t.kind === "session" && typeof t.sessionId === "string" && t.sessionId) {
     return typeof t.hostId === "string" && t.hostId ? { kind: "session", sessionId: t.sessionId, hostId: t.hostId } : { kind: "session", sessionId: t.sessionId };
+  }
+  if (t.kind === "graph" && typeof t.sessionId === "string" && t.sessionId) {
+    return typeof t.hostId === "string" && t.hostId ? { kind: "graph", sessionId: t.sessionId, hostId: t.hostId } : { kind: "graph", sessionId: t.sessionId };
+  }
+  if (t.kind === "file" && typeof t.sessionId === "string" && t.sessionId && typeof t.path === "string" && t.path) {
+    return typeof t.hostId === "string" && t.hostId ? { kind: "file", sessionId: t.sessionId, path: t.path, hostId: t.hostId } : { kind: "file", sessionId: t.sessionId, path: t.path };
   }
   return null;
 }

@@ -1,4 +1,4 @@
-import type { BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DiagnosticsResult, FileMeta, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DiagnosticsResult, FileMeta, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -1032,6 +1032,9 @@ function createHubApi(P: (path: string) => string) {
     ),
   codeOffice: (target: string, path: string) =>
     api<{ revision: string; sections: { title: string; text: string }[]; note: string }>(P(`/api/code/office?${target}&path=${encodeURIComponent(path)}`)),
+  /** EPIC-P48 (ADR-0062): Repo-Graph und Diagnose-Überlagerung; `target` wie Code-Routen. */
+  graph: (target: string) => api<GraphReport>(P(`/api/graph?${target}`)),
+  graphDiagnose: (target: string) => api<GraphDiagnosis>(P(`/api/graph/diagnose?${target}`), { method: "POST", body: "{}" }),
   /** Diagnose: nur auf ausdrücklichen Klick; Freigabe gilt pro Projekt. */
   diagnosticsRun: (target: string, path: string) =>
     api<DiagnosticsResult>(P(`/api/diagnostics/run?${target}&path=${encodeURIComponent(path)}`), { method: "POST", body: "{}" }),

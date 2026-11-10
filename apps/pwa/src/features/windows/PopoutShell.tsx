@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { getToken, hostApi, hubApi, remoteHost, type AdapterUsage, type FleetHost, type SessionRecord } from "../../shared/api.ts";
 import { parseAppHash, type ToolPageId, TOOL_PAGE_IDS } from "../../app/route.ts";
 import { SessionTail } from "../session/SessionTail.tsx";
+import { GraphPane } from "../graph/GraphPane.tsx";
+import { FileViewer } from "../files/FileViewer.tsx";
 import { ToolPane } from "../shell/ToolPane.tsx";
 import { publishHubStatus } from "../shell/hub-status.ts";
 import { HEARTBEAT_MS, type WindowTarget } from "./protocol.ts";
@@ -9,7 +11,11 @@ import { onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "
 
 function targetFromHash(hash: string): WindowTarget | null {
   const route = parseAppHash(hash);
-  if (route.view === "tail") return { kind: "session", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
+  if (route.view === "tail") {
+    if (route.tab === "graph") return { kind: "graph", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
+    if (route.tab === "datei" && route.file) return { kind: "file", sessionId: route.sessionId, path: route.file, ...(route.hostId ? { hostId: route.hostId } : {}) };
+    return { kind: "session", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
+  }
   return (TOOL_PAGE_IDS as readonly string[]).includes(route.page) ? { kind: "tool", page: route.page as ToolPageId } : null;
 }
 
@@ -76,12 +82,13 @@ export function PopoutShell() {
   }, []);
 
   useEffect(() => {
-    if (target?.kind !== "session") return;
+    if (target?.kind !== "session" && target?.kind !== "graph" && target?.kind !== "file") return;
     hostApi(target.hostId)
       .session(target.sessionId)
       .then((s) => {
         setSession(s);
-        document.title = `⧉ ${s.title ?? s.project.split("/").pop() ?? "Session"}`;
+        const label = s.title ?? s.project.split("/").pop() ?? "Session";
+        document.title = `⧉ ${target.kind === "graph" ? `Graph · ${label}` : target.kind === "file" ? `${target.path.split("/").pop()} · ${label}` : label}`;
       })
       .catch(() => setError("Diese Session gibt es nicht mehr oder sie ist nicht erreichbar."));
   }, []);
@@ -110,7 +117,9 @@ export function PopoutShell() {
   return (
     <div class="popout-shell">
       <header class="popout-bar">
-        <span class="popout-title">⧉ {target.kind === "tool" ? "Werkzeug" : (session?.title ?? "Session")}</span>
+        <span class="popout-title">
+          ⧉ {target.kind === "tool" ? "Werkzeug" : target.kind === "graph" ? `Repo-Graph · ${session?.title ?? "Session"}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : (session?.title ?? "Session")}
+        </span>
         <button type="button" class="btn" onClick={giveBack}>
           In die App zurück
         </button>
@@ -125,6 +134,27 @@ export function PopoutShell() {
           </section>
         ) : (
           <div class="empty dim">lädt…</div>
+        )
+      ) : target.kind === "graph" ? (
+        error ? (
+          <div class="empty">{error}</div>
+        ) : (
+          // EPIC-P48: Der Graph des eigenen Fensters öffnet Dateien als weitere eigene Fenster.
+          <div class="popout-graph">
+            <GraphPane
+              target={`session=${encodeURIComponent(target.sessionId)}`}
+              hostId={target.hostId ?? null}
+              onOpenFile={(path) => void openPopout({ kind: "file", sessionId: target.sessionId, path, ...(target.hostId ? { hostId: target.hostId } : {}) })}
+            />
+          </div>
+        )
+      ) : target.kind === "file" ? (
+        error ? (
+          <div class="empty">{error}</div>
+        ) : (
+          <div class="popout-file">
+            <FileViewer target={`session=${encodeURIComponent(target.sessionId)}`} path={target.path} hostId={target.hostId ?? null} />
+          </div>
         )
       ) : (
         <div class="popout-tool">

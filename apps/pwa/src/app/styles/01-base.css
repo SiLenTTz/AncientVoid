@@ -28,6 +28,10 @@
   --font-code: "JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace;
   --font-mono: var(--font-code);
   --tracking-label: 0.1em;
+  /* EPIC-P48 (ADR-0062): Graph-Gruppenfarben — doc läuft auf --accent. */
+  --graph-code: #5cc8ff;
+  --graph-config: #b58cff;
+  --graph-other: #8d95a3;
   color-scheme: dark;
 }
 
@@ -43,6 +47,9 @@
   --ok: #158c62;
   --warn: #9a6a06;
   --err: #c72d3d;
+  --graph-code: #1072b0;
+  --graph-config: #7a4fd1;
+  --graph-other: #565d6e;
   --shadow-elev: 0 0 0 1px var(--bg-chip), 0 14px 28px -18px rgba(20, 20, 40, 0.2);
   color-scheme: light;
 }

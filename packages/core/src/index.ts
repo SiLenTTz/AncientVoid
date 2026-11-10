@@ -26,3 +26,4 @@ export * from "./modules/custom-models/index.ts";
 export * from "./modules/commands/index.ts";
 export * from "./modules/media/index.ts";
 export * from "./modules/desktop/index.ts";
+export * from "./modules/graph/index.ts";

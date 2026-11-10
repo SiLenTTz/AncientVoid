@@ -5,7 +5,7 @@ import { SessionTail } from "../features/session/SessionTail.tsx";
 import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
 import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
-import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget } from "./route.ts";
+import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { initAppearance } from "./appearance.ts";
 import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
@@ -147,7 +147,7 @@ function Main() {
       .catch(() => setSelfHostId(null));
   };
   const [route, setRoute] = useState<
-    { view: "list"; page: Page } | { view: "tail"; session: SessionRecord; code?: CodeTarget }
+    { view: "list"; page: Page } | { view: "tail"; session: SessionRecord; code?: CodeTarget; tab?: TailTab; file?: string }
   >({ view: "list", page: "dashboard" });
 
   useEffect(() => {
@@ -209,7 +209,9 @@ function Main() {
       }
       hostApi(parsed.hostId)
         .session(parsed.sessionId)
-        .then((session) => setRoute({ view: "tail", session, ...(parsed.code ? { code: parsed.code } : {}) }))
+        .then((session) =>
+          setRoute({ view: "tail", session, ...(parsed.code ? { code: parsed.code } : {}), ...(parsed.tab ? { tab: parsed.tab } : {}), ...(parsed.file ? { file: parsed.file } : {}) }),
+        )
         .catch(() => setRoute({ view: "list", page: "dashboard" }));
     };
     openFromHash();
@@ -353,6 +355,7 @@ function Main() {
               onChange={changeWorkspace}
               onPopout={(index, drop) => void popoutTile(index, drop)}
               {...(route.view === "tail" && route.code ? { initialCode: { sessionId: route.session.id, code: route.code } } : {})}
+              {...(route.view === "tail" && route.tab ? { initialTabView: { sessionId: route.session.id, tab: route.tab, ...(route.file ? { file: route.file } : {}) } } : {})}
               onNavigate={(page) => {
                 location.hash = pageHash(page);
               }}
@@ -402,6 +405,7 @@ function Main() {
           key={route.session.id}
           session={route.session}
           {...(route.code ? { initialCode: route.code } : {})}
+          {...(route.view === "tail" && route.tab ? { initialTab: route.tab, ...(route.file ? { initialFile: route.file } : {}) } : {})}
           onNavigate={(page) => {
             location.hash = pageHash(page);
           }}

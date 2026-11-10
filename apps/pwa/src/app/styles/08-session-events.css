@@ -207,3 +207,6 @@
 }
 .interrupted-banner p { margin: 6px 0; overflow-wrap: anywhere; }
 .interrupted-banner .row { gap: 8px; flex-wrap: wrap; }
+
+/* EPIC-P48: Herauslösen-Werkzeugzeile im Graph-/Datei-Tab der Session. */
+.graph-pane-tools { display: flex; justify-content: flex-end; gap: 6px; padding: 2px 6px; }

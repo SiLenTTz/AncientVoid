@@ -15,6 +15,7 @@ export function TileWorkspace({
   onChange,
   onNavigate,
   initialCode,
+  initialTabView,
   listCollapsed,
   onToggleList,
   onPopout,
@@ -28,6 +29,8 @@ export function TileWorkspace({
   onNavigate: (page: Page) => void;
   /** T7.6 code anchor from the URL, for the tile showing that session. */
   initialCode?: { sessionId: string; code: CodeTarget };
+  /** EPIC-P48: Graph-/Datei-Tab aus der URL, für die Kachel dieser Session. */
+  initialTabView?: { sessionId: string; tab: "graph" | "datei"; file?: string };
 }) {
   const count = tileCount(ws.layout);
   // BUG-0071: the handler works on the NEWEST state, not the one of its last render — two shortcuts
@@ -143,6 +146,7 @@ export function TileWorkspace({
             {...(onPopout ? { onPopout: (drop?: DropPoint) => onPopout(i, drop) } : {})}
             onNavigate={onNavigate}
             {...(initialCode && ref?.sessionId === initialCode.sessionId ? { initialCode: initialCode.code } : {})}
+            {...(initialTabView && ref?.sessionId === initialTabView.sessionId ? { initialTabView } : {})}
           />
         ))}
         {/* Divider nach den Kacheln — <div> neben <section>, damit die
@@ -191,9 +195,11 @@ function Tile({
   onPopout,
   onNavigate,
   initialCode,
+  initialTabView,
 }: {
   onPopout?: (drop?: DropPoint) => void;
   initialCode?: CodeTarget;
+  initialTabView?: { sessionId: string; tab: "graph" | "datei"; file?: string };
   index: number;
   tileRef: TileRef | null;
   focused: boolean;
@@ -280,7 +286,7 @@ function Tile({
           </button>
         </div>
       ) : session ? (
-        <SessionTail key={session.id} session={session} onNavigate={onNavigate} tile={{ active, compact }} {...(initialCode ? { initialCode } : {})} />
+        <SessionTail key={session.id} session={session} onNavigate={onNavigate} tile={{ active, compact }} {...(initialCode ? { initialCode } : {})} {...(initialTabView ? { initialTab: initialTabView.tab, ...(initialTabView.file ? { initialFile: initialTabView.file } : {}) } : {})} />
       ) : (
         <div class="empty tile-empty dim">lädt…</div>
       )}

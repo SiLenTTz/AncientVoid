@@ -186,6 +186,80 @@ async function tscDiagnostics(root: string, realFile: string, relPath: string, o
   return job;
 }
 
+/** EPIC-P48 (ADR-0062 §4): tsc einmal pro tsconfig für den ganzen Graph —
+ * gleiche Regeln wie tscDiagnostics (nur projekteigenes Binary, Trust-Gate,
+ * Lock pro tsconfig), aber Meldungen aller Dateien statt einer. */
+export async function tscProjectDiagnostics(
+  root: string,
+  tsconfigs: readonly string[],
+  opts: DiagnosticsOptions,
+): Promise<{ source: { name: string; state: "ok" | "errors" | "not_configured" | "untrusted" | "timeout" | "failed"; detail: string | null }; diagnostics: Diagnostic[] }> {
+  const realRoot = await realpath(root);
+  const all: Diagnostic[] = [];
+  const notes: string[] = [];
+  let anyErrors = false;
+  let ran = false;
+  let sawTimeout = false;
+  let sawFailure = false;
+  for (const rel of tsconfigs) {
+    const abs = resolve(realRoot, rel);
+    const bin = await findUp(dirname(abs), realRoot, join("node_modules", ".bin", "tsc"));
+    if (!bin) {
+      notes.push(`Kein lokales TypeScript für ${rel}`);
+      continue;
+    }
+    if (!opts.trusted) {
+      notes.push("Projekt nicht freigegeben (tsc stammt aus dem Projekt — Freigabe wie P46 nötig)");
+      continue;
+    }
+    const cwd = dirname(abs);
+    const prior = tscLocks.get(abs) ?? Promise.resolve();
+    const job = prior.catch(() => undefined).then(async () => {
+      let stdout = "";
+      let timedOut = false;
+      try {
+        stdout = (await run(bin, ["--noEmit", "--pretty", "false", "-p", abs], {
+          cwd,
+          timeout: TSC_TIMEOUT_MS,
+          maxBuffer: 64 * 1024 * 1024,
+          env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", LANG: "C.UTF-8", NODE_OPTIONS: "--max-old-space-size=2048" },
+        })).stdout;
+      } catch (err) {
+        const failure = err as { stdout?: string; killed?: boolean; signal?: string };
+        if (failure.killed || failure.signal === "SIGTERM") timedOut = true;
+        else if (typeof failure.stdout === "string" && failure.stdout !== "") stdout = failure.stdout;
+        else return { state: "failed" as const, stdout: "" };
+      }
+      return timedOut ? { state: "timeout" as const, stdout } : { state: "ok" as const, stdout };
+    });
+    tscLocks.set(abs, job);
+    const res = await job;
+    if (res.state === "failed") {
+      sawFailure = true;
+      continue;
+    }
+    if (res.state === "timeout") {
+      sawTimeout = true;
+      continue;
+    }
+    ran = true;
+    const parsed = parseTsc(res.stdout, cwd, realRoot);
+    if (parsed.all.some((d) => d.severity === "error")) anyErrors = true;
+    for (const d of parsed.all.slice(0, MAX_DIAGS)) all.push(d);
+  }
+  if (!ran && sawTimeout) return { source: { name: "tsc (Projekt)", state: "timeout", detail: `tsc brauchte länger als ${TSC_TIMEOUT_MS / 1000} s — kein Ergebnis.` }, diagnostics: [] };
+  if (!ran && sawFailure) return { source: { name: "tsc (Projekt)", state: "failed", detail: "tsc nicht ausführbar." }, diagnostics: [] };
+  if (!ran && !opts.trusted && tsconfigs.length > 0 && notes.length > 0 && notes.every((n) => n.includes("freigegeben") || n.includes("Kein lokales"))) {
+    const untrustedRunnable = tsconfigs.length > notes.filter((n) => n.includes("Kein lokales")).length;
+    return {
+      source: { name: "tsc (Projekt)", state: untrustedRunnable ? "untrusted" : "not_configured", detail: notes.join(" · ") || null },
+      diagnostics: [],
+    };
+  }
+  if (!ran) return { source: { name: "tsc (Projekt)", state: "not_configured", detail: notes.length > 0 ? notes.join(" · ") : "Keine tsconfig im Graph." }, diagnostics: [] };
+  return { source: { name: "tsc (Projekt)", state: anyErrors ? "errors" : "ok", detail: notes.length > 0 ? notes.join(" · ") : null }, diagnostics: all };
+}
+
 /**
  * Prüft eine Datei mit dem passenden Provider. Es gibt nur ehrliche Zustände: `ok` heißt „Provider vollständig
  * gelaufen, keine Fehler“ — fehlt ein Provider, ist es `not_configured`, nie „0 Fehler“.

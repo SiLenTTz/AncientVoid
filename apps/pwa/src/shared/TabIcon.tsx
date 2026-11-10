@@ -13,6 +13,8 @@ const PATHS = {
   medien: "M4 6h16v12H4zM10 9.5v5l4.5-2.5z",
   einstellungen: "M4 7h10M18 7h2M4 17h2M10 17h10M16 4v6M8 14v6",
   forge: "M7 4v10M7 14a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM17 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm0 0v1c0 3-2 4-5 4H9",
+  graph: "M5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM19 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6.5 15.5L10.5 10M14 8.5l3.5 5M7 19h10",
+  datei: "M6 3h8l4 4v14H6zM14 3v4h4",
 } as const;
 
 export type TabIconName = keyof typeof PATHS;
