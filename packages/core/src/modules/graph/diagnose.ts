@@ -1,7 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import { extname, join } from "node:path";
 import type { GraphDiagFile, GraphDiagSource } from "@ancientvoid/contracts";
-import { tscProjectDiagnostics } from "../diagnostics/run.ts";
+import { tscProjectDiagnostics } from "../diagnostics/index.ts";
 
 const JSON_MAX_BYTES = 8 * 1024 * 1024;
 const TS_EXT: Record<string, true> = { ".ts": true, ".tsx": true, ".mts": true, ".cts": true, ".js": true, ".jsx": true, ".mjs": true, ".cjs": true };
