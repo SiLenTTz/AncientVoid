@@ -53,7 +53,10 @@ test.describe("Übersicht scrollt im Fenster-Layout", () => {
   });
 
   test("BUG-0099-Nachtrag: bei wenigen Sessions zeigt die Liste keine Scrollbar", async ({ app, hub }) => {
-    for (let i = 0; i < 4; i++) {
+    // EPIC-P47: die Umschalter-Zeile (Sessions/Projekte/Hosts) kostet eine
+    // Kartenhöhe — der Rand nach unten ist mit drei Karten knapp wie früher
+    // mit vieren; Phantom-Scrollbar durchs Dock-Padding bleibt der Fehler.
+    for (let i = 0; i < 3; i++) {
       await hub.createSession({ adapter: "dummy", prompt: `Wenige ${i + 1}` });
     }
     // Knappes Fenster (Zoom 1): Mit dem Dock-Padding INNERHALB der Liste
@@ -77,5 +80,51 @@ test.describe("Übersicht scrollt im Fenster-Layout", () => {
     // geklemmt — selbst ein Element über der Shell (z. B. Offline-Banner)
     // kann keinen Body-Scroll mehr erzeugen.
     expect(await app.evaluate(() => getComputedStyle(document.documentElement).overflow + "/" + getComputedStyle(document.body).overflow)).toBe("hidden/hidden");
+  });
+});
+
+test.describe("Übersichts-Ansichten (EPIC-P47)", () => {
+  test("Toggle wechselt Sessions → Projekte → Hosts und behält die Wahl über Reload", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "dummy", prompt: "Für die Ansichten" });
+    await app.goto(`${hub.origin}/#/`);
+    await expect(app.locator(".overview-switch-btn")).toHaveText(["Sessions", "Projekte", "Hosts"]);
+    await expect(app.locator(".session-card").first()).toBeVisible();
+
+    await app.locator(".overview-switch-btn", { hasText: "Projekte" }).click();
+    await expect(app.locator(".project-card")).toHaveCount(2); // TestHub legt alpha und beta an
+    await expect(app.locator(".session-card")).toHaveCount(0);
+
+    await app.locator(".overview-switch-btn", { hasText: "Hosts" }).click();
+    await expect(app.locator(".host-card").first()).toBeVisible();
+
+    await app.reload();
+    await expect(app.locator(".host-card").first()).toBeVisible(); // gerätelokal gemerkt
+  });
+
+  test("Host-Karte filtert die Session-Ansicht, Chip löst den Filter", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "dummy", prompt: "Hostfilter" });
+    await app.goto(`${hub.origin}/#/`);
+    await app.locator(".overview-switch-btn", { hasText: "Hosts" }).click();
+    await app.locator(".host-card .session-open").first().click();
+    await expect(app.locator(".session-card").first()).toBeVisible();
+    const chip = app.locator(".chip.status-filter", { hasText: "Host" });
+    await expect(chip).toBeVisible();
+    await chip.click();
+    await expect(app.locator(".chip.status-filter", { hasText: "Host" })).toHaveCount(0);
+    await expect(app.locator(".session-card").first()).toBeVisible();
+  });
+
+  test("Projekt-Karte pins den Projekt-Root im Dateibaum", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 1440, height: 900 });
+    await app.goto(`${hub.origin}/#/`);
+    await app.locator(".overview-switch-btn", { hasText: "Projekte" }).click();
+    await app.locator(".project-card .session-open").first().click();
+    await expect(app.locator('[data-testid="files-sidebar"]')).toBeVisible();
+    const root = await app.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem("ancientvoid.files.v1") ?? "null") as { root: { kind: string; path?: string } } | null;
+      return raw?.root ?? null;
+    });
+    expect(root?.kind).toBe("project");
+    expect(root?.path).toContain(hub.alpha);
   });
 });

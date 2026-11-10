@@ -4,42 +4,20 @@ import type { Page } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** EPIC-P20: Zoom, Einstellungen-Zahnrad, schimmernde Kontextleiste. */
+/** EPIC-P20: Zoom, schimmernde Kontextleiste. EPIC-P47: Einstellungen nur im Dock. */
 
 const scaleOf = (app: Page) => app.evaluate(() => Number(document.documentElement.style.zoom || "1"));
 
-test.describe("Zahnrad neben der Glocke (EPIC-P20 T20.3)", () => {
-  test("Mobil: das Zahnrad steht links neben der Glocke und öffnet die Einstellungen", async ({ app }) => {
-    const gear = app.locator(".notif-gear");
-    const bell = app.locator(".notif-bell");
-    await expect(gear).toBeVisible();
-    const [g, b] = await Promise.all([gear.boundingBox(), bell.boundingBox()]);
-    expect(g!.x + g!.width).toBeLessThanOrEqual(b!.x + 1);
-    expect(Math.abs(g!.y - b!.y)).toBeLessThan(2);
-    await gear.click();
+test.describe("Einstellungen ohne Zahnrad-Duplikat (EPIC-P47 T47.4)", () => {
+  test("kein Einstellungen-Zahnrad neben der Glocke mehr", async ({ app }) => {
+    await expect(app.locator(".notif-gear")).toHaveCount(0);
+    await expect(app.locator(".notif-bell")).toBeVisible();
+  });
+
+  test("Einstellungen bleiben über das Dock erreichbar", async ({ app }) => {
+    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     await expect(app).toHaveURL(/#\/einstellungen$/);
     await expect(app.getByText("Zoom der Oberfläche")).toBeVisible();
-  });
-
-  test("per Tastatur erreichbar, Name vorhanden", async ({ app }) => {
-    await app.locator(".notif-gear").focus();
-    await app.keyboard.press("Enter");
-    await expect(app).toHaveURL(/#\/einstellungen$/);
-  });
-
-  test.describe("Desktop mit eingeklappter Liste", () => {
-    test.use({ viewport: { width: 1600, height: 900 } });
-
-    test("Glocke und Zahnrad wandern in die Fensterecke, die Einstellungen bleiben erreichbar", async ({ app, hub }) => {
-      await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Ecke" });
-      await app.getByRole("button", { name: "Liste einklappen" }).click();
-      await expect(app.locator(".split-list")).toBeHidden();
-      const gear = app.locator(".notif-gear.corner");
-      const box = await gear.boundingBox();
-      expect(box!.x + box!.width).toBeGreaterThan(1600 - 60);
-      await gear.click();
-      await expect(app).toHaveURL(/#\/einstellungen$/);
-    });
   });
 });
 

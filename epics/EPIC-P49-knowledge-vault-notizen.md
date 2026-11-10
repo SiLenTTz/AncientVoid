@@ -19,11 +19,11 @@ Ein eigener Tab in der App-Navigation öffnet den Knowledge Vault: einen vom Men
 
 ### 3.1 Bestand und Einbauorte
 
-- **Es existiert kein Schreibpfad für Dateien im Hub** (geprüft: `/api/code/*` read-only per ADR-0058; einzige Schreiber sind Skills-Artefakt `writeProjectArtifact`, Forge-Log, STT-Tmp). Der Vault ist eine **bewusst neue, eng begrenzte Schreibfläche** mit eigenem ADR-0062 und eigenem Containment-Root — Projekt-/Worktree-Dateien bleiben read-only.
+- **Es existiert kein Schreibpfad für Dateien im Hub** (geprüft: `/api/code/*` read-only per ADR-0058; einzige Schreiber sind Skills-Artefakt `writeProjectArtifact`, Forge-Log, STT-Tmp). Der Vault ist eine **bewusst neue, eng begrenzte Schreibfläche** mit eigenem ADR-0063 und eigenem Containment-Root — Projekt-/Worktree-Dateien bleiben read-only.
 - SettingsStore (SQLite, `apps/hub/src/main.ts:236`, Keys wie `gemini.apiKey`, Routes `apps/hub/src/modules/attachments/attachments.routes.ts:67-72` mit inline-zod, Capability `settings.manage` `apps/hub/src/platform/policy.ts:52`): Muster für `vault.root` — GET/PUT ohne Restart.
 - Navigation: ListPage-Erweiterung `apps/pwa/src/app/route.ts:18-24` (`PAGE_SLUG`, `TOOL_PAGE_IDS`), Render-Zweig `App.tsx`/`ToolPane.tsx:10-71`, Dock-Item `app/Dock.tsx:24-43` (Muster: `media`/`pc`). Tab-Icon in `shared/TabIcon.tsx` registrieren.
 - Anzeige/Editor: `apps/pwa/src/features/files/FileViewer.tsx` (Modi, Revision-Guard `useRevisionGuard` :115-120), Markdown-Renderer `render-model.ts`/`RenderedViews.tsx` (eigenes `parseMarkdown`, Mermaid passiv), Range/Meta-APIs `api.ts:993-997`. Editor = Textfläche + Vorschau-Umschalter + Speichern mit `PUT …&rev=` (409-Stale-Banner wie FileViewer).
-- Popout: `WindowTarget` aus P48 erweitert um `{kind:"vault", path}` (ADR-0061-Muster); `PopoutShell` lädt Vault-Datei eigenständig per HTTP.
+- Popout: `WindowTarget` aus P48 erweitert um `{kind:"vault", path}` (ADR-0062-Muster); `PopoutShell` lädt Vault-Datei eigenständig per HTTP.
 
 ### 3.2 Vault-API und Sicherheit
 
@@ -45,7 +45,7 @@ Ein eigener Tab in der App-Navigation öffnet den Knowledge Vault: einen vom Men
 
 ## 4. Aufgaben (Checkliste T49.m)
 
-- [ ] **T49.1** ADR-0062 (Vault-Schreibfläche, Sicherheit, SettingsStore-Key, Agentensperre) + `packages/contracts/src/vault/` (State/Browse/Listing/File-Typen, Caps, Revision). **K5/K7**.
+- [ ] **T49.1** ADR-0063 (Vault-Schreibfläche, Sicherheit, SettingsStore-Key, Agentensperre) + `packages/contracts/src/vault/` (State/Browse/Listing/File-Typen, Caps, Revision). **K5/K7**.
 - [ ] **T49.2** Core `packages/core/src/modules/vault/`: Root-Store (SettingsStore), Browse mit Startpunkt-Containment, rekursive Liste, `.md`-Anlegen (Regex, keine Kollision), Lesen/Schreiben mit Revision-Guard + atomic rename; Unit-Tests: Traversal-/Symlink-Ausbruch, Nicht-md-Schreibversuch, Stale-Revision, Überschreibungsverbot, Cap. **K5/K7**.
 - [ ] **T49.3** Hub-Routen `apps/hub/src/modules/vault/vault.routes.ts` mit Policy (Agenten 403, Root-Wahl `settings.manage`) + Integrationstests inkl. Policy-Gegenproben. **K1/K5**.
 - [ ] **T49.4** PWA Dock-Tab `notizen` + Erst-Öffnen-Picker + Einstellungszeile; Liste mit Ordner-/Typ-Kennzeichnung. **K1/K10**.
@@ -63,7 +63,7 @@ Ein eigener Tab in der App-Navigation öffnet den Knowledge Vault: einen vom Men
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 
-1. Neue Schreibfläche wird Angriffsfläche → eigener Containment-Root, realpath beidseitig, `.md`-Only, Agenten-403, keine frei eingebbaren Pfade (nur Browse), ADR-0062 vor Merge.
+1. Neue Schreibfläche wird Angriffsfläche → eigener Containment-Root, realpath beidseitig, `.md`-Only, Agenten-403, keine frei eingebbaren Pfade (nur Browse), ADR-0063 vor Merge.
 2. Nutzer wählt Riesen-Ordner (z. B. Home) und die Liste explodiert → rekursive Liste mit Entry-Cap + ehrlicher Truncation-Anzeige; Suche erst bei Bedarf.
 3. Zwei Fenster editieren dieselbe Notiz → Revision-Guard (409) + sichtbares Stale-Banner; bewusst kein Merge-Versprechen.
 4. Vault wird zweite Einstellungs-/UI-Logik → SettingsStore-Muster und Dock-/ToolPane-/FileViewer-Bestand wiederverwenden, keine neue Config-Datei, kein Restart.

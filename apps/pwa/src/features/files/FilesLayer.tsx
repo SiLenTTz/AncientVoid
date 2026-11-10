@@ -30,6 +30,21 @@ export function FilesLayer({ wide, focusedSessionId }: { wide: boolean; focusedS
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // EPIC-P47 T47.2: Karte der Projekt-Ansicht pins diesen Root und öffnet die Sidebar.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const detail = (e as CustomEvent<{ kind: string; path: string; label: string }>).detail;
+      if (!detail || detail.kind !== "project") return;
+      setState((s) => {
+        const next = { ...s, open: true, root: { kind: "project" as const, path: detail.path, label: detail.label } };
+        saveFilesState(next);
+        return next;
+      });
+    };
+    window.addEventListener("ancientvoid:files-open-root", on);
+    return () => window.removeEventListener("ancientvoid:files-open-root", on);
+  }, []);
+
   useEffect(() => {
     if (!state.open) return;
     let alive = true;

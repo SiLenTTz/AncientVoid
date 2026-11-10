@@ -109,14 +109,10 @@ test.describe("Benachrichtigungen bei UI-Skalierung (Nutzerfund 2026-10-30)", ()
       const toast = app.locator(".toast.error").first();
       await expect(toast).toBeVisible();
       const close = (await toast.locator(".toast-close").boundingBox())!;
-      // Glocke und (wo sichtbar) Zahnrad liegen fest oben rechts — die ✕ der Meldung darf keines davon berühren.
-      for (const name of [".notif-bell", ".notif-gear"]) {
-        const target = app.locator(name);
-        if (!(await target.isVisible())) continue;
-        const box = (await target.boundingBox())!;
-        const overlaps = close.x < box.x + box.width && close.x + close.width > box.x && close.y < box.y + box.height && close.y + close.height > box.y;
-        expect(overlaps, `✕ ${JSON.stringify(close)} vs ${name} ${JSON.stringify(box)}`).toBe(false);
-      }
+      // Die Glocke liegt fest oben rechts — die ✕ der Meldung darf sie nicht berühren.
+      const box = (await app.locator(".notif-bell").boundingBox())!;
+      const overlaps = close.x < box.x + box.width && close.x + close.width > box.x && close.y < box.y + box.height && close.y + close.height > box.y;
+      expect(overlaps, `✕ ${JSON.stringify(close)} vs Glocke ${JSON.stringify(box)}`).toBe(false);
     });
   }
 });

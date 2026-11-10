@@ -135,3 +135,18 @@
   color: var(--accent);
   margin-right: 4px;
 }
+
+/* EPIC-P47 T47.1: Ansichtsumschalter Sessions/Projekte/Hosts */
+.overview-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+
+/* T47.2/T47.3: Projekt- und Host-Karten teilen das Session-Kartenlayout. */
+.project-card .pill,
+.host-card .pill {
+  flex-shrink: 0;
+}

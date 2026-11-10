@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, hostApi, type HubNotification } from "../../shared/api.ts";
-import { pageHash, sessionHash } from "../../app/route.ts";
+import { sessionHash } from "../../app/route.ts";
 
 const READ_KEY = "ancientvoid.notifications.readUpTo";
 /** EPIC-P6: read marks of other hosts, { hostId: lastReadId }. */
@@ -171,10 +171,7 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
   };
 
   return (
-    <>
-      <button class={`notif-gear${corner ? " corner" : ""}`} type="button" aria-label="Einstellungen" title="Einstellungen" onClick={() => (location.hash = pageHash("settings"))}>
-        ⚙
-      </button>
+      <>
       <button
         class={`notif-bell${corner ? " corner" : ""}`}
         type="button"

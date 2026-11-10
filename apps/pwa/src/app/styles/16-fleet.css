@@ -40,22 +40,6 @@
   color: var(--ok);
 }
 
-/* EPIC-P6 fleet: host strip on the overview */
-.fleet-hosts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 4px 0 8px;
-}
-.host-chip.stale,
-.host-chip.unauthorized {
-  color: var(--warn);
-}
-.host-chip.offline,
-.host-chip.incompatible {
-  color: var(--err);
-}
-
 /* T7.3: outcome of an approved action */
 .approval-outcome {
   font-size: calc(12px * var(--font-scale, 1));
