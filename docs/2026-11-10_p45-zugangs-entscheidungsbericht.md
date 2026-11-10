@@ -3,7 +3,7 @@
 Ergebnis der Evaluation aus [EPIC-P45](../epics/EPIC-P45-zugang-ohne-tailnet-evaluation.md)
 (T45.2–T45.4). Bestand: [p45-zugangsbestand](2026-11-10_p45-zugangsbestand.md).
 **Dies ist Bewertung, kein Beschluss.** Der Nutzerentscheid (Go/No-go/vertagt) ist
-getrennt zu erfassen (AC-P45-5) und liegt **nicht** vor — Status: **offen, kein Implementierungsstart**.
+getrennt zu erfassen (AC-P45-5) und liegt seit 2026-11-10 vor: **No-go für öffentlichen Zugang** (§7), kein Implementierungsstart.
 
 ## 1. Was ein Account löst — und was nicht (AC-P45-2)
 
@@ -88,6 +88,11 @@ Push-Neuaufbau. Mittel: Zertifikatsverwaltung. Niedrig: Status quo.
 
 ## 7. Nutzerentscheid (T45.5)
 
-**Offen.** Keine Antwort gilt nicht als Go. Bis zu einer ausdrücklichen Entscheidung
-(Go / No-go / vertagt) wird nichts implementiert und nichts am bestehenden Zugang geändert.
-Einzutragen: Datum · Entscheid · Begründung.
+**2026-11-10 · No-go für öffentlich erreichbaren Zugang.** Der Nutzer will den Hub
+ausdrücklich nicht öffentlich stellen. Damit entfallen die Varianten B (öffentlicher
+Tunnel-/HTTPS-Endpunkt) und C (selbst betriebener Relay). Es gibt kein Implementierungsepic.
+
+- Der bestehende Zugang (Variante A: Loopback + `tailscale serve`, Device-Token) bleibt unverändert.
+- Variante D (LAN + eigenes Zertifikat) wurde nicht angefordert; bei Bedarf eigener Auftrag.
+- Wiedervorlage nur auf neuen ausdrücklichen Auftrag; die Befunde aus §4 (Tailnet-Header ist
+  hinter fremdem Proxy fälschbar, `?token=` in Logs) gelten dann als Ausgangslage.
