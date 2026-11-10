@@ -37,7 +37,10 @@ export default defineConfig({
   // echten Hubs und Chromium pro Test (ADR-0049); Parallellast erzeugte
   // Timing-Fenster (BUG-0093/0094/0095). Keine Retries, keine gelockerten
   // Assertions — nur der Parallelitätsgrad der geteilten Hardware angepasst.
-  workers: process.env.CI ? 1 : 4,
+  // Lokal (BUG-0111): 2 statt 4 — die Maschine ist geteilter Dev-Desktop;
+  // 4 Worker × (Hub + Chromium) auf einem 16-Core-Desktop schoben den
+  // Nutzer-Browser in den Immediate-Crash (SIGTRAP, Crashpad-Dumps 09.09.–01.11.).
+  workers: process.env.CI ? 1 : 2,
   timeout: 45_000,
   expect: { timeout: 10_000 },
   reporter: process.env.CI

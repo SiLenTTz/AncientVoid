@@ -35,7 +35,10 @@ Runner-/GitLab-Ausfällen — der Ausfallpfad dafür steht im
 
 Jeder Test bekommt einen **eigenen Hub** (Port, Daten, Projekte, Token,
 tmux-Server). Tests teilen keinen Zustand und laufen parallel. Ein Hub
-startet in etwa einer Sekunde.
+startet in etwa einer Sekunde. Die lokale Parallelität ist auf 2 Worker
+begrenzt (BUG-0111) — die Entwicklungsmaschine ist geteilter Desktop, und
+4 Worker × (Hub + Chromium) haben den Nutzer-Browser bereits in den
+Immediate-Crash geschoben; auf dem CI-Runner gilt 1 (ADR-0049).
 
 ### Stichworte für den nachgebauten `opencode`
 

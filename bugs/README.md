@@ -119,5 +119,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0108](bug-0108-policy-fail-open-leeres-label.md) | Token mit leerem Label umgeht die komplette Policy-Tabelle | done | S3 | server | [#42](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/42) |
 | [BUG-0109](bug-0109-entpacken-ohne-groessenlimit.md) | Office-Expacken ohne Entpackgrößenlimit (Decompression-Bombe) | done | S3 | core | [#43](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/43) |
 | [BUG-0110](bug-0110-agent-read-mapping-kosten.md) | Agent-Token löst Kosten-/Schreib-Endpunkte ohne Approval aus | done | S4 | server | [#44](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/44) |
+| [BUG-0111](bug-0111-brave-crash-unter-voller-testlast.md) | Brave fällt unter voller lokaler Testlast aus (Renderer-SIGTRAP) | done | S3 | e2e | [#45](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/45) |
 
-Die nächste freie Nummer ist **0111**.
+Die nächste freie Nummer ist **0112**.
