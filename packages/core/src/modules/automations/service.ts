@@ -103,9 +103,9 @@ export class AutomationService {
     const previous = this.store.definition(id);
     if (!previous) return null;
     const next = DefinitionSchema.parse({ ...(input as object), id: previous.id }) as AutomationDefinition;
+    this.validatePrompt(next, promptText, false);
     const material = JSON.stringify({ ...previous, enabled: next.enabled, generation: previous.generation }) !== JSON.stringify({ ...next, generation: previous.generation });
     const stored = this.store.upsertDefinition(material ? { ...next, enabled: false } : next, new Date(this.now()).toISOString());
-    if (material && promptText !== undefined) this.writeBlob(promptText);
     return stored;
   }
 
@@ -126,15 +126,21 @@ export class AutomationService {
   }
 
   private storeDefinition(definition: AutomationDefinition, promptText: string | undefined, isNew: boolean): void {
+    this.validatePrompt(definition, promptText, isNew);
+    this.store.upsertDefinition(definition, new Date(this.now()).toISOString());
+  }
+
+  private validatePrompt(definition: AutomationDefinition, promptText: string | undefined, isNew: boolean): void {
     if (definition.target.kind === "session") {
       if (isNew && promptText === undefined) throw new Error("Session-Ziel ohne Prompt-Text: der Blob-Abgleich ist nicht möglich.");
       if (promptText !== undefined) {
         const sha = createHash("sha256").update(promptText).digest("hex");
         if (sha !== definition.target.promptBlobSha256) throw new Error(`Prompt-Blob passt nicht zur Definition: ${sha} != ${definition.target.promptBlobSha256}`);
         this.writeBlob(promptText);
+      } else if (this.blobText(definition.target.promptBlobSha256) === null) {
+        throw new Error("Prompt-Blob fehlt: Update braucht den passenden Prompt-Text.");
       }
     }
-    this.store.upsertDefinition(definition, new Date(this.now()).toISOString());
   }
 
   private writeBlob(text: string): void {
