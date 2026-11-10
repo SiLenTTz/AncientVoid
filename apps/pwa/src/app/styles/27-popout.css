@@ -44,6 +44,15 @@
   min-height: 0;
 }
 
+/* EPIC-P48: Graph und Datei füllen das eigene Fenster wie eine Werkzeugseite. */
+.popout-shell > .popout-graph,
+.popout-shell > .popout-file {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
 /* Abzeichen und Meldung im Hauptfenster */
 .badge-window {
   color: var(--accent);
