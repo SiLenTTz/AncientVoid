@@ -93,6 +93,7 @@ export class AutomationService {
   /** Neue Definition: immer deaktiviert — die Aktivierung ist die menschliche Freigabe. */
   create(input: DefinitionInput, promptText?: string): AutomationDefinition {
     const definition = DefinitionSchema.parse(input);
+    definition.enabled = false;
     this.storeDefinition(definition, promptText, true);
     return this.store.definition(definition.id)!;
   }

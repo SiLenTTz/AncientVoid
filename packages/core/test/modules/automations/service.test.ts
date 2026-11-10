@@ -57,6 +57,11 @@ async function harness(opts: { ok?: boolean } = {}): Promise<Harness> {
 }
 
 describe("automation service (T41.4)", () => {
+  it("does not accept activation supplied during creation", async () => {
+    const h = await harness();
+    expect(h.service.create(definition({ enabled: true }), PROMPT).enabled).toBe(false);
+  });
+
   it("starts disabled, validates the prompt blob and dispatches run-now with the blob text", async () => {
     const h = await harness();
     const created = h.service.create(definition(), PROMPT);
