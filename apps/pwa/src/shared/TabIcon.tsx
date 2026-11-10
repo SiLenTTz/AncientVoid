@@ -15,6 +15,7 @@ const PATHS = {
   forge: "M7 4v10M7 14a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM17 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm0 0v1c0 3-2 4-5 4H9",
   graph: "M5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM19 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6.5 15.5L10.5 10M14 8.5l3.5 5M7 19h10",
   datei: "M6 3h8l4 4v14H6zM14 3v4h4",
+  notizen: "M7 3h10v14l-3.5 4L10 17H7zM10 8h5M10 12h5",
 } as const;
 
 export type TabIconName = keyof typeof PATHS;

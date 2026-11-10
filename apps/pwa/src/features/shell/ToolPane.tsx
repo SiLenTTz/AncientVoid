@@ -6,6 +6,7 @@ import { DiscoveryPane } from "../discovery/Discovery.tsx";
 import { MediaPage } from "../media/MediaPage.tsx";
 import { SettingsPage } from "../settings/SettingsPage.tsx";
 import { StatusPage } from "../status/StatusPage.tsx";
+import { VaultPane } from "../vault/VaultPane.tsx";
 import { useHubStatus } from "./hub-status.ts";
 
 const TITLES: Partial<Record<ListPage, string>> = {
@@ -14,6 +15,7 @@ const TITLES: Partial<Record<ListPage, string>> = {
   media: "Medien",
   pc: "Am PC eintippen",
   status: "Provider-Status",
+  vault: "Notizen",
 };
 
 /**
@@ -26,6 +28,7 @@ export function ToolPane({
   onClose,
   onOpen,
   onSwitchToken,
+  vaultFile = null,
   onPopout,
   closeLabel = "Schließen",
   escCloses = true,
@@ -34,7 +37,8 @@ export function ToolPane({
   onClose: () => void;
   onOpen: (session: SessionRecord) => void;
   onSwitchToken: () => void;
-  /** EPIC-P34 T34.10: die Seite in ein eigenes Fenster legen (fehlt im Fenster selbst). */
+  /** EPIC-P49: Datei-Deep-Link für die Vault-Seite. */
+  vaultFile?: string | null;
   onPopout?: () => void;
   closeLabel?: string;
   /** Im eigenen Fenster schließt Esc nichts: das Fenster gibt man mit dem Knopf zurück. */
@@ -78,6 +82,8 @@ export function ToolPane({
         {page === "media" && <MediaPage sessions={hub.sessions} />}
         {page === "pc" && <DesktopPage />}
         {page === "status" && <StatusPage adapters={hub.adapters} usage={hub.usage} />}
+
+        {page === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
       </div>
     </section>
   );

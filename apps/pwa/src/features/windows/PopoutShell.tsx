@@ -5,12 +5,14 @@ import { SessionTail } from "../session/SessionTail.tsx";
 import { GraphPane } from "../graph/GraphPane.tsx";
 import { FileViewer } from "../files/FileViewer.tsx";
 import { ToolPane } from "../shell/ToolPane.tsx";
+import { VaultPane } from "../vault/VaultPane.tsx";
 import { publishHubStatus } from "../shell/hub-status.ts";
 import { HEARTBEAT_MS, type WindowTarget } from "./protocol.ts";
 import { onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "./windows.ts";
 
 function targetFromHash(hash: string): WindowTarget | null {
   const route = parseAppHash(hash);
+  if (route.view === "list" && route.page === "vault") return route.vaultFile ? { kind: "vault", path: route.vaultFile } : { kind: "vault" };
   if (route.view === "tail") {
     if (route.tab === "graph") return { kind: "graph", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
     if (route.tab === "datei" && route.file) return { kind: "file", sessionId: route.sessionId, path: route.file, ...(route.hostId ? { hostId: route.hostId } : {}) };
@@ -118,7 +120,7 @@ export function PopoutShell() {
     <div class="popout-shell">
       <header class="popout-bar">
         <span class="popout-title">
-          ⧉ {target.kind === "tool" ? "Werkzeug" : target.kind === "graph" ? `Repo-Graph · ${session?.title ?? "Session"}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : (session?.title ?? "Session")}
+          ⧉ {target.kind === "tool" ? "Werkzeug" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "graph" ? `Repo-Graph · ${session?.title ?? "Session"}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : (session?.title ?? "Session")}
         </span>
         <button type="button" class="btn" onClick={giveBack}>
           In die App zurück
@@ -156,6 +158,11 @@ export function PopoutShell() {
             <FileViewer target={`session=${encodeURIComponent(target.sessionId)}`} path={target.path} hostId={target.hostId ?? null} />
           </div>
         )
+      ) : target.kind === "vault" ? (
+        // EPIC-P49: Der Vault lädt seine Daten selbst — dasselbe Ziel wie der Tab, als Fenster.
+        <div class="popout-tool">
+          <VaultPane {...(target.path ? { initialFile: target.path } : {})} />
+        </div>
       ) : (
         <div class="popout-tool">
           <ToolPane

@@ -1,4 +1,4 @@
-import { fileHash, graphHash, pageHash, sessionHash, TOOL_PAGE_IDS, type ToolPageId } from "../../app/route.ts";
+import { fileHash, graphHash, pageHash, sessionHash, TOOL_PAGE_IDS, vaultFileHash, type ToolPageId } from "../../app/route.ts";
 
 /**
  * EPIC-P34 T34.10 (ADR-0053): Abstimmung zwischen dem Hauptfenster und eigenen Fenstern über
@@ -14,7 +14,8 @@ export type WindowTarget =
   | { kind: "session"; sessionId: string; hostId?: string }
   | { kind: "tool"; page: ToolPageId }
   | { kind: "graph"; sessionId: string; hostId?: string }
-  | { kind: "file"; sessionId: string; path: string; hostId?: string };
+  | { kind: "file"; sessionId: string; path: string; hostId?: string }
+  | { kind: "vault"; path?: string };
 
 export type WindowMessage =
   | { type: "hello"; id: string; target: WindowTarget }
@@ -34,6 +35,7 @@ export type WindowRegistry = Record<string, WindowEntry>;
 
 export function targetKey(target: WindowTarget): string {
   if (target.kind === "tool") return `tool:${target.page}`;
+  if (target.kind === "vault") return `vault:${target.path ?? ""}`;
   const host = target.hostId ?? "";
   if (target.kind === "graph") return `graph:${host}|${target.sessionId}`;
   if (target.kind === "file") return `file:${host}|${target.sessionId}|${target.path}`;
@@ -45,6 +47,7 @@ export function popoutUrl(target: WindowTarget): string {
   if (target.kind === "tool") return `/?window=1${pageHash(target.page)}`;
   if (target.kind === "graph") return `/?window=1${graphHash(target.sessionId, target.hostId)}`;
   if (target.kind === "file") return `/?window=1${fileHash(target.sessionId, target.path, target.hostId)}`;
+  if (target.kind === "vault") return `/?window=1${target.path ? vaultFileHash(target.path) : pageHash("vault")}`;
   return `/?window=1${sessionHash(target.sessionId, target.hostId)}`;
 }
 
@@ -60,6 +63,9 @@ function parseTarget(raw: unknown): WindowTarget | null {
   }
   if (t.kind === "file" && typeof t.sessionId === "string" && t.sessionId && typeof t.path === "string" && t.path) {
     return typeof t.hostId === "string" && t.hostId ? { kind: "file", sessionId: t.sessionId, path: t.path, hostId: t.hostId } : { kind: "file", sessionId: t.sessionId, path: t.path };
+  }
+  if (t.kind === "vault") {
+    return typeof t.path === "string" && t.path ? { kind: "vault", path: t.path } : { kind: "vault" };
   }
   return null;
 }

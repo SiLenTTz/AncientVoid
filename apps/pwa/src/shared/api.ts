@@ -1,4 +1,4 @@
-import type { BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DiagnosticsResult, FileMeta, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DiagnosticsResult, FileMeta, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -1035,6 +1035,14 @@ function createHubApi(P: (path: string) => string) {
   /** EPIC-P48 (ADR-0062): Repo-Graph und Diagnose-Überlagerung; `target` wie Code-Routen. */
   graph: (target: string) => api<GraphReport>(P(`/api/graph?${target}`)),
   graphDiagnose: (target: string) => api<GraphDiagnosis>(P(`/api/graph/diagnose?${target}`), { method: "POST", body: "{}" }),
+  /** EPIC-P49 (ADR-0063): Knowledge Vault — Menschenfläche, Agenten bekommen 403. */
+  vaultState: () => api<VaultState>(P("/api/vault/state")),
+  vaultBrowse: (path?: string) => api<VaultBrowse>(P(`/api/vault/browse${path ? `?path=${encodeURIComponent(path)}` : ""}`)),
+  vaultSetRoot: (path: string) => api<VaultState>(P("/api/vault/root"), { method: "PUT", body: JSON.stringify({ path }) }),
+  vaultFiles: () => api<VaultListing>(P("/api/vault/files")),
+  vaultCreate: (name: string) => api<VaultFile>(P("/api/vault/files"), { method: "POST", body: JSON.stringify({ name }) }),
+  vaultRead: (path: string) => api<VaultRead>(P(`/api/vault/file?path=${encodeURIComponent(path)}`)),
+  vaultSave: (path: string, text: string, rev: string) => api<VaultRead>(P(`/api/vault/file?path=${encodeURIComponent(path)}&rev=${rev}`), { method: "PUT", body: JSON.stringify({ text }) }),
   /** Diagnose: nur auf ausdrücklichen Klick; Freigabe gilt pro Projekt. */
   diagnosticsRun: (target: string, path: string) =>
     api<DiagnosticsResult>(P(`/api/diagnostics/run?${target}&path=${encodeURIComponent(path)}`), { method: "POST", body: "{}" }),

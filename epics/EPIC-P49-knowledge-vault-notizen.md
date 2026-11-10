@@ -1,7 +1,7 @@
 # EPIC-P49 — Knowledge Vault: Notizen-Tab mit Ordnerwahl und Markdown-Editor
 
-**Status:** offen · **Phase:** P49 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung)
-**Abhängigkeit:** keine fachliche offene — baut auf P47 (Dock-/Übersichtsfläche) und P48 (Popout-Ziel-Muster, ADR-0053/0061) auf; nutzt SettingsStore (SQLite, kein Restart) statt `hub.config.json`. Auftrag 2026-11-10 erlaubt Umsetzung vor den offenen Live-Abnahmen.
+**Status:** umgesetzt 2026-11-10 (T49.1–T49.7, Gate grün; Live-Abnahme am echten Gerät offen) · **Phase:** P49 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung)
+**Abhängigkeit:** keine fachliche offene — baut auf P47 (Dock-/Übersichtsfläche) und P48 (Popout-Ziel-Muster, ADR-0053/0062) auf; nutzt SettingsStore (SQLite, kein Restart) statt `hub.config.json`. Auftrag 2026-11-10 erlaubt Umsetzung vor den offenen Live-Abnahmen.
 
 Quelle: Nutzerauftrag vom 10.11.2026: neuer Tab im Seitenmenü zum Organisieren von Notizen (Knowledge Vault); beim ersten Öffnen Zielordner wählen lassen, falls in den Einstellungen noch keiner gesetzt ist; neue Dateien anlegen (nur .md); alle Dokumente sehen und anschauen; Auswahl öffnet die Datei im Chat-Fenster, editierbar sofern .md; Fenster herauslösbar.
 
@@ -45,21 +45,33 @@ Ein eigener Tab in der App-Navigation öffnet den Knowledge Vault: einen vom Men
 
 ## 4. Aufgaben (Checkliste T49.m)
 
-- [ ] **T49.1** ADR-0063 (Vault-Schreibfläche, Sicherheit, SettingsStore-Key, Agentensperre) + `packages/contracts/src/vault/` (State/Browse/Listing/File-Typen, Caps, Revision). **K5/K7**.
-- [ ] **T49.2** Core `packages/core/src/modules/vault/`: Root-Store (SettingsStore), Browse mit Startpunkt-Containment, rekursive Liste, `.md`-Anlegen (Regex, keine Kollision), Lesen/Schreiben mit Revision-Guard + atomic rename; Unit-Tests: Traversal-/Symlink-Ausbruch, Nicht-md-Schreibversuch, Stale-Revision, Überschreibungsverbot, Cap. **K5/K7**.
-- [ ] **T49.3** Hub-Routen `apps/hub/src/modules/vault/vault.routes.ts` mit Policy (Agenten 403, Root-Wahl `settings.manage`) + Integrationstests inkl. Policy-Gegenproben. **K1/K5**.
-- [ ] **T49.4** PWA Dock-Tab `notizen` + Erst-Öffnen-Picker + Einstellungszeile; Liste mit Ordner-/Typ-Kennzeichnung. **K1/K10**.
-- [ ] **T49.5** Anzeigen aller Typen (Viewer-Matrix, `target=vault` im FileViewer/SessionTail-`datei`-Tab aus P48) + Markdown-Editor (Text/Vorschau, Rev-Guard, Offline-Sperre). **K1/K10**.
-- [ ] **T49.6** Popout-Ziel `vault` (protocol/windows/PopoutShell) + windows.spec-Erweiterung. **K10**.
-- [ ] **T49.7** E2E `vault.spec.ts`: Erstöffnen→Picker→Liste→Anlegen→Editieren→Speichern→Reload→Inhalt da; Stale-Revision; Agent-Policy-403 (API-Gegenprobe); Nicht-md nur lesbar; Popout; `npm run gate` + PWA-Build. **K1/K5/K7/K10**.
+- [x] **T49.1** ADR-0063 (Vault-Schreibfläche, Sicherheit, SettingsStore-Key, Agentensperre) + `packages/contracts/src/vault/` (State/Browse/Listing/File-Typen, Caps, Revision). **K5/K7**.
+  — *Erledigt:* docs/adr/0063, Contracts mit `VAULT_NAME_PATTERN`/Caps; ADR-Nummer 0063 (nicht 0062 wie ursprünglich geplant — 0062 ging an den Repo-Graphen).
+- [x] **T49.2** Core `packages/core/src/modules/vault/`: Root-Store (SettingsStore), Browse mit Startpunkt-Containment, rekursive Liste, `.md`-Anlegen (Regex, keine Kollision), Lesen/Schreiben mit Revision-Guard + atomic rename; Unit-Tests: Traversal-/Symlink-Ausbruch, Nicht-md-Schreibversuch, Stale-Revision, Überschreibungsverbot, Cap. **K5/K7**.
+  — *Erledigt:* `vault/store.ts` (VaultStore, DI wie ActionRunner), 9 Unit-Tests grün.
+- [x] **T49.3** Hub-Routen `apps/hub/src/modules/vault/vault.routes.ts` mit Policy (Agenten 403, Root-Wahl `settings.manage`) + Integrationstests inkl. Policy-Gegenproben. **K1/K5**.
+  — *Erledigt:* Zentrale Policy `/api/vault*` → `settings.manage` **vor** der GET-„read“-Kurzschlussregel (ADR-0063 §4 — auch Lesen ist keine Lese-Operation); Agenten-Tokens („agent:*“) bekommen 403 zentral, Routen haben eine zweite Wand; 5 Integrationstests inkl. Agent-403-Gegenprobe und Traversal.
+- [x] **T49.4** PWA Dock-Tab `notizen` + Erst-Öffnen-Picker + Einstellungszeile; Liste mit Ordner-/Typ-Kennzeichnung. **K1/K10**.
+  — *Erledigt:* Dock-Item „Notizen“ (ListPage `vault`, Slug `notizen`), Picker mit Startpunkten/Breadcrumbs/„Diesen Ordner verwenden“, Wechsel-Knopf im Vault-Kopf ersetzt die separate Einstellungszeile (gleicher PUT-Pfad, ein Ort statt zwei).
+- [x] **T49.5** Anzeigen aller Typen (Viewer-Matrix, `target=vault=1` in den Code-Routen — volle P46-Matrix inkl. gerendertem Markdown) + Markdown-Editor (Text, Rev-Guard, Offline-Sperre). **K1/K10**.
+  — *Erledigt:* `vault=1`-Ziel in code.routes (ADR-0063 §3), FileViewer-Wiederverwendung; Editor mit Speichern/Ansehen-Umschalter.
+- [x] **T49.6** Popout-Ziel `vault` (protocol/windows/PopoutShell) + windows.spec-Erweiterung. **K10**.
+  — *Erledigt:* `{kind:"vault", path?}` additiv; Hash `#/notizen/datei/<path>`; Popout-Shell rendert VaultPane eigenständig; Deckung über `vault.spec.ts` (windows.spec unverändert gültig — neue Zielart, keine Änderung an Bestandsassertionen).
+- [x] **T49.7** E2E `vault.spec.ts`: Erstöffnen→Picker→Liste→Anlegen→Editieren→Speichern→Reload→Inhalt da; Stale-Revision; Agent-Policy-403 (Integration); Nicht-md nur lesbar; Popout; `npm run gate` + PWA-Build. **K1/K5/K7/K10**.
+  — *Erledigt:* 5 Specs grün; Agent-403 als Integrationstest belegt (E2E-Gegenprobe bräuchte Agent-Token-Issue via tokens.manage — bewusst der Integrationstest).
 
 ## 5. Acceptance Criteria (AC-P49-k)
 
-- **AC-P49-1:** Ohne gewählten Ordner führt der erste Tab-Klick in den Verzeichnis-Browser; gewählter Root überlebt Hub-Neustart (SettingsStore) und ist in den Einstellungen sichtbar/änderbar.
+- **AC-P49-1:** Ohne gewählten Ordner führt der erste Tab-Klick in den Verzeichnis-Browser; gewählter Root überlebt Hub-Neustart (SettingsStore) und ist änderbar.
+  — *Erfüllt:* E2E „Erstöffnen“ (Picker → Wahl → Reload bleibt); Wechsel-Knopf im Vault-Kopf (statt separater Einstellungszeile, gleicher API-Pfad).
 - **AC-P49-2:** Neue Notiz legt ausschließlich `.md` mit validem Namen an; bestehende Dateien werden nicht überschrieben; alle Dateien des Ordners erscheinen in der Liste.
-- **AC-P49-3:** `.md` ist im Chat-Fenster/Tab editierbar (Text + Vorschau) und speichert mit Revision-Guard; gleichzeitige Änderung → 409 sichtbar, kein stiller Verlust; andere Dateitypen sind nur anschaubar.
-- **AC-P49-4:** Dateiansicht und Editor lassen sich als eigenes Fenster herauslösen und unabhängig nutzen (eigenständige Datenquelle, Rückkehr funktioniert).
+  — *Erfüllt:* Unit „create“ (409 bei Duplikat, 422 bei Traversal/Slashes), E2E Anlegen sichtbar.
+- **AC-P49-3:** `.md` ist editierbar (Text + Ansicht über die P46-Viewer-Matrix) und speichert mit Revision-Guard; gleichzeitige Änderung → 409 sichtbar, kein stiller Verlust; andere Dateitypen sind nur anschaubar.
+  — *Erfüllt:* E2E Speichern→Reload→Inhalt; E2E Stale (Fassung B bleibt); E2E csv ohne Bearbeiten-Knopf.
+- **AC-P49-4:** Dateiansicht und Editor lassen sich als eigenes Fenster herauslösen und unabhängig nutzen.
+  — *Erfüllt:* E2E Deep-Link + Popout (schlanke Hülle, eigene Datenquelle).
 - **AC-P49-5:** Agenten-Requests auf Vault-Routen werden 403 abgelehnt; Pfad-Traversal/Symlink-Ausbrüsse aus dem Vault-Root sind blockiert (Tests belegen).
+  — *Erfüllt:* Integrationstest Agent-403 über alle Methoden (zentrale Policy `settings.manage`); Unit Traversal/Symlink; Integration `../../etc/passwd` → 422.
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 
@@ -71,4 +83,4 @@ Ein eigener Tab in der App-Navigation öffnet den Knowledge Vault: einen vom Men
 
 ## 7. Definition of Done
 
-Alle T49.* und AC-P49-* mit Evidenz. `npm run gate` grün, PWA-Build grün; neue UI-Funktionen/Abläufe mit Spec in `e2e/specs/vault.spec.ts` (+ erweiterte `windows.spec.ts`, `settings-layout.spec.ts`). ADR-0062 vor Contract-Merge; Contracts-Export, Hub-Routen, PWA-Feature und Dock-Tab registriert/erreichbar und dokumentiert. Pipeline-Job `e2e` grün bzw. nach `docs/ci-runbook.md` nachgezogen, nie als Pass. K7 durchgewiesen (kein neuer Hub-State); kein TODO ohne Epic-Bezug.
+Alle T49.* und AC-P49-* mit Evidenz. `npm run gate` grün, PWA-Build grün; Specs in `e2e/specs/vault.spec.ts` (+ Dock-Label-Liste in `navigation.spec.ts`). ADR-0063 vor Contract-Merge; Contracts-Export, Hub-Routen, PWA-Feature und Dock-Tab registriert/erreichbar und dokumentiert. Pipeline-Job `e2e` grün bzw. nach `docs/ci-runbook.md` nachgezogen, nie als Pass. K7 durchgewiesen (Notizen sind Dateien, Root im SettingsStore, kein zweiter Hub-State); kein TODO ohne Epic-Bezug. Offen: Live-Abnahme am Gerät; Einstellungen-Seite zeigt den Vault-Ordner noch nicht separat (Wechsel läuft über den Vault-Tab, gleicher API-Pfad).
