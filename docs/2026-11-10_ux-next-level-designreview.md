@@ -17,10 +17,15 @@ sich widersprechen, gilt bis zum Abschluss von T43.1 das bestehende Design-Syste
 - **Nicht erfasst:** die Dateien-Seitenleiste mit geöffneter Datei (das Aufnahmeskript
   öffnete sie nicht), der Browser-Arbeitsplatz, Medien, PC, Popout-Fenster im Betrieb,
   helles Erscheinungsbild, echte Geräte. T43.0 holt das nach.
-- Zwei Mockup-Runden als private Artifacts, im Dialog mit Jan abgestimmt:
+- Zwei Mockup-Runden, im Dialog mit Jan abgestimmt und am 11.11.2026 auf die Entscheidungen
+  aus §3 nachgezogen. **Im Repo, eigenständig lauffähig:**
+  [`mockups/2026-11-10_ux-next-level-runde-1.html`](mockups/2026-11-10_ux-next-level-runde-1.html) und
+  [`mockups/2026-11-10_ux-next-level-runde-2.html`](mockups/2026-11-10_ux-next-level-runde-2.html)
+  (Schriften, Ist-Screenshots, Nyx-Atlas und Pixelschrift eingebettet; nur die Webschriften
+  laden nach und fallen offline auf Systemschrift zurück). Dieselben Seiten als private Artifacts:
   [Runde 1](https://claude.ai/artifact/7DXAXfm1ej3PoUKrUx5BqW) (Start, Session, Nyx-Bühne,
   Bewegungssprache) und [Runde 2](https://claude.ai/artifact/RzQGvikQWFxjA5tm3EK5cX)
-  (PC-Arbeitsfläche, Herauslösen, Formfaktoren, Kleinkram-Regeln, Nyx-Blatt). Die Links
+  (PC-Arbeitsfläche, Herauslösen, Formfaktoren, Kleinkram-Regeln, Nyx-Blatt). Mockups
   sind Referenz, keine Spezifikation; maßgeblich sind dieses Dokument und die Epics.
 
 ## 2. Befund
@@ -40,7 +45,7 @@ sich widersprechen, gilt bis zum Abschluss von T43.1 das bestehende Design-Syste
 | B11 | Unfertige Stellen: Browser-Standardfelder (Sessions filtern, Modus, Modell), breite Composer-Taste nur mit „⤢“, Zieh-Streifen „▴/▾“, Randlaschen „Dateien“/„Browser“ über dem Inhalt | Screenshots |
 | B12 | Nyx-Kiosk: starkes Sprite auf stiller schwarzer Bühne, Zustand als kleine Zeile, vier Kacheln heißen gleich („AncientVoid“) | Kiosk-Screenshot |
 
-## 3. Entscheidungen (Jan, 10.11.2026)
+## 3. Entscheidungen (Jan, 10./11.11.2026)
 
 | # | Entscheidung |
 |---|---|
@@ -52,8 +57,9 @@ sich widersprechen, gilt bis zum Abschluss von T43.1 das bestehende Design-Syste
 | E6 | **P43 wird neu gefasst**; die bisherigen P43-Themen Quellenchips, Presets und benannte Layouts werden als P43.5 abgetrennt |
 | E7 | **Jede Komponente, die allein auf einem zweiten Bildschirm Sinn ergibt, ist herauslösbar** (PC); die Taste dafür ist groß und überall gleich |
 | E8 | **Kein Vorziehen:** P43 startet regulär nach P42 |
-| E9 | **VoidWarden-Bühne wird jetzt mitgeplant** (eigenes Epic dort). Fragen am Kiosk zu beantworten braucht dort eine eigene Entscheidung (VoidWarden ADR-0009 legt sie heute als reine Anzeige fest) |
+| E9 | **VoidWarden-Bühne wird jetzt mitgeplant** (eigenes Epic dort, VoidWarden P13) |
 | E10 | **Leitplanke: Es geht keine Funktion verloren.** Alles bleibt auf Handy, Tablet und PC einfach auffindbar und nutzbar |
+| E11 | **Fragen und Entscheidungen auch am Nyx-Kiosk.** Fragen mit vom Agenten vorgegebenen Optionen werden dort beantwortbar, nie Freitext. Beide Seiten sind geplant: Hub-Berechtigung in P43 (T43.10, AV-D3), Kiosk in VoidWarden P13 (T13.6–T13.8). Das ändert VoidWarden ADR-0009 Punkt 4 und AncientVoid ADR-0048 Punkt 4; beide brauchen vor der Umsetzung ein ADR |
 
 ## 4. Gestaltungsregeln
 
@@ -168,5 +174,4 @@ belegt**; T43.0 vervollständigt sie und macht sie als E2E-Spec zum Gate.
 - Heller Akzentwert für Void-Violett (Kontrast gegen `--bg-elev` hell).
 - Nyx-Sprite in der PWA: Atlas-Kopie aus VoidWarden mit Herkunftsvermerk; keine
   Laufzeitabhängigkeit zwischen den Repos.
-- Fragen am Kiosk beantworten: VoidWarden-Entscheidung plus Hub-Abhängigkeit, siehe
-  VoidWarden EPIC-P13.
+- Fragen am Kiosk: die beiden ADRs (E11) sind zu schreiben, bevor Code entsteht.

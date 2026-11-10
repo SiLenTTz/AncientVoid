@@ -5,7 +5,9 @@
 **Abhängigkeit:** P42 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 
 Quelle: [Design-Review vom 10.11.2026](../docs/2026-11-10_ux-next-level-designreview.md)
-(Befund B1–B12, Entscheidungen E1–E10, Funktionsinventar, zwei Mockup-Runden).
+(Befund B1–B12, Entscheidungen E1–E11, Funktionsinventar). Referenz-Mockups, bedienbar, im Repo:
+[Runde 1](../docs/mockups/2026-11-10_ux-next-level-runde-1.html) (Start, Session, Nyx-Bühne, Bewegungssprache) und
+[Runde 2](../docs/mockups/2026-11-10_ux-next-level-runde-2.html) (PC-Arbeitsfläche, Herauslösen, Formfaktoren, Kleinkram, Nyx-Blatt).
 **Planungsauftrag 10.11.2026 (Jan):** Dieses Epic ersetzt den bisherigen P43-Entwurf
 „Arbeitsfläche/Styling“. Dessen Themen Quellenchips, Presets und benannte Layouts leben in
 [EPIC-P43.5](EPIC-P43.5-darstellungs-presets-quellenchips.md) weiter. Kein Vorziehen (E8).
@@ -27,14 +29,17 @@ getrennt vom Akzent, Void-Violett als Standard-Akzent, eigene Formularelemente,
 Bewegungs-Tokens); Zustandssprache mit neuem Anzeigezustand „Frage“; Start als
 Warteschlange; Session in Zügen; „Änderungen“ und „Dateien“ samt Kleinkram-Regeln;
 Tablet-Zweispalter und PC-Kachelkopf; Schnellsuche im bestehenden Befehlsfeld; einheitliches
-Herauslösen mit neuen Fensterzielen; Nyx-Blatt.
+Herauslösen mit neuen Fensterzielen; Nyx-Blatt; Hub-Berechtigung, mit der ein Display-Akteur Optionsfragen beantwortet (AV-D3 für VoidWarden P13).
 
 **Out:** Quellenchips, Presets/Import/Export, benannte Layouts (P43.5); Plugin-Panels und
 -Themes (P44); Preact→React-Migration; neue native App; neue Hub-Fachfunktionen; Änderung
 der semantischen Farben `--ok`/`--err`; mehr als vier Kacheln; Änderungen an VoidWarden
-(eigenes Epic dort, VoidWarden bleibt eigenständig); Fragen am Kiosk.
+(eigenes Epic dort, VoidWarden bleibt eigenständig); die Kiosk-Oberfläche für Fragen (VoidWarden P13); Freitext-Antworten vom Display.
 
 ## 3. Design-Details
+
+### 3.0 Referenz-Mockups
+Die beiden HTML-Dateien unter `docs/mockups/` sind eigenständig lauffähig (im Browser öffnen) und halten den abgestimmten Stand vom 11.11.2026 fest; dieselben Seiten liegen als private Artifacts vor (Links im Design-Review). Sie sind **Referenz für Aufbau, Zustandssprache und Bewegung, keine Spezifikation**: Bei Abweichung gelten dieses Epic und das Funktionsinventar. Bewusste Vereinfachungen der Mockups: Symbole sind Platzhalter, Inhalte sind Beispiele, „Mehr“-Menüs, helles Erscheinungsbild und Tablet-Ansicht sind nicht gezeichnet. T43.0 legt die Vorher-Screenshots daneben ab, T43.9 die Nachher-Screenshots.
 
 ### 3.1 Leitplanke: Funktionsinventar zuerst
 Das Inventar in Design-Review §5 wird in T43.0 vervollständigt (alle Seiten, Reiter, Menüs,
@@ -125,6 +130,23 @@ Freigaben mit Begründungspflicht oder WebAuthn verweisen in die Session. Nyx' S
 feste Vorlage je Zustand, nie Agenten-Text (PRD §8.5). Der Sprite-Atlas wird mit
 Herkunftsvermerk in die PWA kopiert; es gibt keine Laufzeitabhängigkeit zu VoidWarden.
 
+### 3.10 Fragen vom Display beantworten (AV-D3)
+Heute lehnt der `decide`-Handler für den Akteur `display` jede Provider-Rückfrage ab
+(`tool.question`, ADR-0048 Punkt 4). Entscheidung E11 öffnet einen engen Fall: Ein Display
+darf eine Rückfrage beantworten, wenn **alle** Bedingungen gelten: jede Teilfrage hat vom
+Agenten vorgegebene Optionen; die Antwort nennt je Teilfrage genau eine dieser Optionen
+(der Hub prüft das gegen die gespeicherte Anfrage, wortgleich); kein Freitext, keine
+Mehrfachauswahl; die Anfrage ist nicht `destructive` und nicht `reasonRequired`; das
+Display-Token trägt die neue, je Token einzeln vergebene Berechtigung (Standard: aus,
+`hubctl token issue <name> --display --answer-questions`). Alles andere bleibt 403, auch bei
+unbekannter ID (Policy vor Existenz, kein Info-Leak). Die Antwort läuft über den bestehenden
+Weg `POST /api/approvals/:id/decide` mit `answers` (`DecideApprovalInput`), bleibt „höchstens
+einmal“ (ADR-0019) und steht mit dem Label `display:<name>` im Audit. Die Liste/Detail-Route
+liefert dem Display dafür ein Feld „am Display beantwortbar“, damit der Companion nichts rät.
+Das ist eine Änderung an Policy und Display-Vertrag und braucht **vor** der Umsetzung ein ADR,
+das ADR-0048 fortschreibt. Die PWA ist davon nicht betroffen; die Aufgabe hängt an keiner
+anderen P43-Aufgabe.
+
 ## 4. Aufgaben (Checkliste T43.m)
 
 - [ ] **T43.0** Funktionsinventar vervollständigen (inkl. der im Design-Review nicht erfassten Flächen) und als `e2e/specs/funktionsinventar.spec.ts` für Handy, Tablet, PC grün machen; Vorher-Screenshots 412/800/1280/1600 px ablegen. **K1/K10**.
@@ -137,9 +159,10 @@ Herkunftsvermerk in die PWA kopiert; es gibt keine Laufzeitabhängigkeit zu Void
 - [ ] **T43.7** ADR (Fortschreibung ADR-0053), `DetachButton`, neue Fensterziele, Platzhalter/Zurückholen, Fensterzähler. **K2/K7/K10**.
 - [ ] **T43.8** Nyx-Blatt: Zustandsfunktion, Blatt/Aufklappfeld, Fragen mit Vorauswahl, Bestätigungen, Atlas-Übernahme mit Herkunftsvermerk. **K1**.
 - [ ] **T43.9** Abnahme: Nachher-Screenshots, K1/K2-Messlauf (Skill `messlauf`, auch vier Kacheln mit Bewegung), Tastatur- und Screenreader-Durchgang, Geräteabnahme Handy/Tablet/PC, Retro. **K1/K2/K10**.
+- [ ] **T43.10** AV-D3: ADR (Fortschreibung ADR-0048), Token-Berechtigung, Prüfung im `decide`-Handler, Feld „am Display beantwortbar“, `hubctl`, Integrations-Tests für jeden Ablehnungsfall, Doku für VoidWarden. **K1/K7**.
 
 Reihenfolge: T43.0 → T43.1 → T43.2, danach T43.3–T43.8 in beliebiger Folge (je eigener
-Branch/MR), T43.9 zuletzt.
+Branch/MR), T43.9 zuletzt. T43.10 ist unabhängig und kann als erste Aufgabe laufen, damit VoidWarden P13 nicht wartet.
 
 ## 5. Acceptance Criteria (AC-P43-k)
 
@@ -153,6 +176,7 @@ Branch/MR), T43.9 zuletzt.
 - **AC-P43-8:** Kleinkram-Regeln 1–7 sind je durch einen Test belegt.
 - **AC-P43-9:** K2-Messlauf mit vier Kacheln und laufenden Sessions liegt nicht schlechter als der letzte belegte Stand; `npm run loadtest` grün.
 - **AC-P43-10:** Eine Auswahlfrage des Agenten ist im Nyx-Blatt mit vorgewählter Option beantwortbar; die Antwort kommt über den bestehenden Weg beim Agenten an (Spec).
+- **AC-P43-11:** Ein Display-Token mit der neuen Berechtigung beantwortet eine Optionsfrage genau einmal; ohne Berechtigung, bei Freitext, bei fremder Option, bei Mehrfachauswahl, bei `reasonRequired`/`destructive` und bei unbekannter ID antwortet der Hub 403 (Integrations-Test je Fall). Die Antwort erscheint im Audit mit `display:<name>`.
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 
@@ -164,6 +188,7 @@ Branch/MR), T43.9 zuletzt.
 6. **Neue Fensterziele verlieren Entwurf oder Verbindung** → vorhandene `PopoutShell`-Regeln wiederverwenden, Remount-Regression als Spec, ADR vor Umsetzung.
 7. **Nyx-Blatt wird zweiter, abweichender Entscheidungsweg** → nutzt dieselben API-Aufrufe und Bausteine wie Session und Start; keine eigene Logik für Policy oder Ablauf.
 8. **Epic zu groß** → jede Aufgabe ist für sich auslieferbar; P43.5 ist bereits abgetrennt; bei Verzug zuerst T43.8, dann T43.7 in ein Folge-Epic schieben, nie T43.0.
+9. **Die Display-Berechtigung wird zum Seiteneingang für Prompts** (Antworttext erreicht den Agenten) → nur wortgleiche, vom Agenten selbst gelieferte Optionen, serverseitig geprüft; Standard aus; je Token vergeben; jede Ablehnung getestet.
 
 ## 7. Definition of Done
 
@@ -172,5 +197,5 @@ und PWA-Build grün; Pipeline-Job `e2e` grün bzw. Infrastrukturfall nach `docs/
 nachgezogen, niemals als Pass gezählt. Jede neue UI-Funktion und jeder Ablauf hat einen Spec
 in `e2e/specs/`; Geräte-Nachweise (Handy, Tablet, PC mit zweitem Bildschirm) separat, Skip ≠
 Pass. `design-system.md` beschreibt den neuen Stand; das Funktionsinventar ist aktuell und
-jeder Eintrag erreichbar. ADR vor Erweiterung der Fensterziele; K5/K7 unverändert
+jeder Eintrag erreichbar. ADR vor Erweiterung der Fensterziele und vor AV-D3; K5/K7 unverändert
 nachgewiesen; keine offene TODO ohne Epic-Bezug. Retro (Skill `retro`) angehängt.
