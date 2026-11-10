@@ -19,6 +19,11 @@ export function fileHash(sessionId: string, path: string, hostId?: string | null
   return `${sessionHash(sessionId, hostId)}/datei/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
 
+/** EPIC-P49: eine Vault-Datei als eigene Seite/Fenster — `#/notizen/datei/<path>`. */
+export function vaultFileHash(path: string): string {
+  return `#/notizen/datei/${path.split("/").map(encodeURIComponent).join("/")}`;
+}
+
 export interface CodeTarget {
   path: string;
   line: number | null;
@@ -28,11 +33,11 @@ export interface CodeTarget {
 export type TailTab = "graph" | "datei";
 
 /** T8.1: every page has a URL, so Back in the browser goes back. */
-export type ListPage = "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery" | "media" | "pc";
-const PAGE_SLUG: Record<ListPage, string> = { dashboard: "", new: "neu", settings: "einstellungen", approvals: "freigaben", status: "status", discovery: "gefunden", media: "medien", pc: "pc" };
+export type ListPage = "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery" | "media" | "pc" | "vault";
+const PAGE_SLUG: Record<ListPage, string> = { dashboard: "", new: "neu", settings: "einstellungen", approvals: "freigaben", status: "status", discovery: "gefunden", media: "medien", pc: "pc", vault: "notizen" };
 
 /** EPIC-P34 T34.2: Seiten, die am Desktop die Detailspalte füllen. Übersicht, Neu und Freigaben bleiben in der Liste (K1-Weg). */
-export const TOOL_PAGE_IDS = ["settings", "discovery", "media", "pc", "status"] as const;
+export const TOOL_PAGE_IDS = ["settings", "discovery", "media", "pc", "status", "vault"] as const;
 export type ToolPageId = (typeof TOOL_PAGE_IDS)[number];
 const TOOL_PAGES: ReadonlySet<ListPage> = new Set<ListPage>(TOOL_PAGE_IDS);
 
@@ -45,7 +50,7 @@ export function pageHash(page: ListPage): string {
 }
 
 export type AppRoute =
-  | { view: "list"; page: ListPage }
+  | { view: "list"; page: ListPage; vaultFile?: string }
   | { view: "tail"; sessionId: string; hostId?: string; code?: CodeTarget; tab?: TailTab; file?: string };
 
 function codeTarget(raw: string | undefined): CodeTarget | undefined {
@@ -62,6 +67,9 @@ function fileTarget(raw: string | undefined): string | undefined {
 }
 
 export function parseAppHash(hash: string): AppRoute {
+  // EPIC-P49: Vault-Datei-Deep-Link vor dem Slug-Match prüfen (Pfad-Segmente!).
+  const vaultFile = /^#\/notizen\/datei\/(.+)$/.exec(hash);
+  if (vaultFile?.[1]) return { view: "list", page: "vault", vaultFile: vaultFile[1].split("/").map(decodeURIComponent).join("/") };
   const slug = /^#\/([a-z]*)\/?$/.exec(hash || "#/")?.[1];
   if (slug !== undefined) {
     const page = (Object.keys(PAGE_SLUG) as ListPage[]).find((p) => PAGE_SLUG[p] === slug);

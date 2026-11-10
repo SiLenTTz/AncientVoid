@@ -147,7 +147,7 @@ function Main() {
       .catch(() => setSelfHostId(null));
   };
   const [route, setRoute] = useState<
-    { view: "list"; page: Page } | { view: "tail"; session: SessionRecord; code?: CodeTarget; tab?: TailTab; file?: string }
+    { view: "list"; page: Page; vaultFile?: string } | { view: "tail"; session: SessionRecord; code?: CodeTarget; tab?: TailTab; file?: string }
   >({ view: "list", page: "dashboard" });
 
   useEffect(() => {
@@ -204,7 +204,7 @@ function Main() {
     const openFromHash = () => {
       const parsed = parseAppHash(location.hash);
       if (parsed.view !== "tail") {
-        setRoute({ view: "list", page: parsed.page });
+        setRoute({ view: "list", page: parsed.page, ...(parsed.vaultFile ? { vaultFile: parsed.vaultFile } : {}) });
         return;
       }
       hostApi(parsed.hostId)
@@ -338,7 +338,7 @@ function Main() {
         <div class={`split${listCollapsed ? " list-collapsed" : ""}`}>
           <aside class="split-list">
             <NotificationCenter />
-            <App wide onOpen={openFromList} ready={() => setReady(false)} page={route.view === "list" ? route.page : "dashboard"} />
+            <App wide onOpen={openFromList} ready={() => setReady(false)} page={route.view === "list" ? route.page : "dashboard"} {...(route.view === "list" && route.vaultFile ? { vaultFile: route.vaultFile } : {})} />
           </aside>
           <section class="split-detail">
             {/* EPIC-P18: up to four sessions as tiles. */}
@@ -364,6 +364,7 @@ function Main() {
             {toolPage && (
               <ToolPane
                 page={toolPage}
+                {...(route.view === "list" && route.vaultFile ? { vaultFile: route.vaultFile } : {})}
                 onClose={() => {
                   location.hash = pageHash("dashboard");
                 }}
@@ -394,6 +395,7 @@ function Main() {
           }}
           ready={() => setReady(false)}
           page={route.page}
+          {...(route.vaultFile ? { vaultFile: route.vaultFile } : {})}
         />
       ) : (
         // T1.6-3: one callback back into the list, optionally landing on a

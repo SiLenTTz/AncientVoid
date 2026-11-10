@@ -12,6 +12,7 @@ import { SettingsPage } from "../features/settings/SettingsPage.tsx";
 import { CreateSession } from "../features/new-session/CreateSession.tsx";
 import { MediaPage } from "../features/media/MediaPage.tsx";
 import { DesktopPage } from "../features/desktop/DesktopPage.tsx";
+import { VaultPane } from "../features/vault/VaultPane.tsx";
 import { publishHubStatus } from "../features/shell/hub-status.ts";
 import { getLastSession } from "../features/shell/last-session.ts";
 
@@ -19,6 +20,7 @@ export function App({
   onOpen,
   ready,
   page,
+  vaultFile = null,
   wide = false,
 }: {
   /** `newTile`: Ctrl/⌘-click — open next to the others (EPIC-P18). */
@@ -26,6 +28,8 @@ export function App({
   ready: () => void;
   /** T8.1: the page comes from the URL (#/neu, #/status …). */
   page: Page;
+  /** EPIC-P49: Vault-Datei aus dem Hash (#/notizen/datei/<path>). */
+  vaultFile?: string | null;
   /** EPIC-P34 T34.2: on a wide screen the tool pages live in the detail column (ToolPane); the list stays the list. */
   wide?: boolean;
 }) {
@@ -169,6 +173,7 @@ export function App({
 
       {shown === "pc" && <DesktopPage />}
 
+      {shown === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
       {shown === "dashboard" &&
         (sessions === null ? (
           <div class="empty">lade…</div>
