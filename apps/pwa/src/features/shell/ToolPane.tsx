@@ -7,6 +7,7 @@ import { MediaPage } from "../media/MediaPage.tsx";
 import { SettingsPage } from "../settings/SettingsPage.tsx";
 import { StatusPage } from "../status/StatusPage.tsx";
 import { VaultPane } from "../vault/VaultPane.tsx";
+import { RunsPane } from "../orchestration/RunsPane.tsx";
 import { useHubStatus } from "./hub-status.ts";
 
 const TITLES: Partial<Record<ListPage, string>> = {
@@ -16,6 +17,7 @@ const TITLES: Partial<Record<ListPage, string>> = {
   pc: "Am PC eintippen",
   status: "Provider-Status",
   vault: "Notizen",
+  orchestrierung: "Orchestrierung",
 };
 
 /**
@@ -82,8 +84,8 @@ export function ToolPane({
         {page === "media" && <MediaPage sessions={hub.sessions} />}
         {page === "pc" && <DesktopPage />}
         {page === "status" && <StatusPage adapters={hub.adapters} usage={hub.usage} />}
-
         {page === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
+        {page === "orchestrierung" && <RunsPane />}
       </div>
     </section>
   );

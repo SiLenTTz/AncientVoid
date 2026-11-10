@@ -13,6 +13,7 @@ import { CreateSession } from "../features/new-session/CreateSession.tsx";
 import { MediaPage } from "../features/media/MediaPage.tsx";
 import { DesktopPage } from "../features/desktop/DesktopPage.tsx";
 import { VaultPane } from "../features/vault/VaultPane.tsx";
+import { RunsPane } from "../features/orchestration/RunsPane.tsx";
 import { publishHubStatus } from "../features/shell/hub-status.ts";
 import { getLastSession } from "../features/shell/last-session.ts";
 
@@ -174,6 +175,7 @@ export function App({
       {shown === "pc" && <DesktopPage />}
 
       {shown === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
+      {shown === "orchestrierung" && <RunsPane />}
       {shown === "dashboard" &&
         (sessions === null ? (
           <div class="empty">lade…</div>
