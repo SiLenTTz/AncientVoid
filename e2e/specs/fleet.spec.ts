@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { test, expect, signIn } from "../support/fixtures.ts";
 import { TestHub } from "../support/hub.ts";
 
@@ -122,8 +123,11 @@ test.describe("Flotte (EPIC-P6)", () => {
       await peer.until(async () => (await peer.api<{ status: string }>(`/api/sessions/${remote}`)).body.status === "idle", "remote idle");
 
       await app.reload();
-      await expect(app.locator(".host-chip").filter({ hasText: "e2e-home-label" })).toContainText("verbunden");
-      await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
+      // EPIC-P47: Host-Zustände stehen in der Hosts-Ansicht statt der alten Chips.
+      await app.locator(".overview-switch-btn", { hasText: "Hosts" }).click();
+      await expect(app.locator(".host-card").filter({ hasText: "e2e-home-label" })).toContainText("verbunden");
+      await expect(app.locator(".host-card").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
+      await app.locator(".overview-switch-btn", { hasText: "Sessions" }).click();
       await expect(app.locator(".session-where").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
       // The configured display label is independent of the host id and OS hostname.
       const overview = await hub.api<{ hosts: { self: boolean; label?: string }[] }>("/api/fleet");
@@ -173,9 +177,12 @@ test.describe("Flotte (EPIC-P6)", () => {
       await peer.createSession({ adapter: "dummy" });
       const local = await hub.createSession({ adapter: "opencode", prompt: "Lokal" });
       await app.reload();
-      await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
+      await app.locator(".overview-switch-btn", { hasText: "Hosts" }).click();
+      await expect(app.locator(".host-card").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
       await peer.kill("SIGKILL");
-      await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText(/veraltet · Stand \d\d:\d\d/, { timeout: 15_000 });
+      await expect(app.locator(".host-card").filter({ hasText: "silenttz-server" })).toContainText(/veraltet/, { timeout: 15_000 });
+      await expect(app.locator(".host-card").filter({ hasText: "silenttz-server" })).toContainText(/Stand \d\d:\d\d/);
+      await app.locator(".overview-switch-btn", { hasText: "Sessions" }).click();
       await expect(app.locator(".session-where").filter({ hasText: "silenttz-server · alpha" })).toBeVisible();
 
       await app.locator(".session-card").filter({ hasText: "e2e-home-label · alpha" }).locator(".session-open").click();
@@ -195,10 +202,10 @@ test.describe("Flotte (EPIC-P6)", () => {
     try {
       await pair(hub, peer);
       await app.reload();
-      await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
-      const { execFileSync } = await import("node:child_process");
+      await app.locator(".overview-switch-btn", { hasText: "Hosts" }).click();
+      await expect(app.locator(".host-card").filter({ hasText: "silenttz-server" })).toContainText("verbunden");
       execFileSync(process.execPath, ["apps/hubctl/src/cli.ts", "token", "revoke", "fleet:omarchy", "--db", `${peer.dataDir}/hub.db`]);
-      await expect(app.locator(".host-chip").filter({ hasText: "silenttz-server" })).toContainText("Zugriff entzogen", { timeout: 15_000 });
+      await expect(app.locator(".host-card").filter({ hasText: "silenttz-server" })).toContainText("Zugriff entzogen", { timeout: 15_000 });
     } finally {
       await peer.stop();
     }
