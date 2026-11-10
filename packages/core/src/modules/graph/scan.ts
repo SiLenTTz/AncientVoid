@@ -197,7 +197,7 @@ export async function buildFileGraph(root: string, opts: GraphScanOptions = {}):
   let unresolved = 0;
   for (const rel of limited) {
     const abs = join(root, rel);
-    let size = 0;
+    let size: number;
     try {
       size = (await stat(abs)).size;
     } catch {
