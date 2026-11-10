@@ -108,7 +108,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0081](bug-0081-loop-start-wirkungslos.md) | Loop-Start im neuen Session-Dialog „tut nichts" (Blocker überlesbar, Pflicht-Selects galten nicht als gewählt) | done | S2 | pwa | — |
 | [BUG-0082](bug-0082-notif-panel-ui-zoom.md) | Benachrichtigungs-Panel ragt bei UI-Zoom aus dem Bildschirm | done | S3 | pwa | — |
 | [BUG-0083](bug-0083-pwa-freeze-securesight-anbindungsformular.md) | securesight-Anbindungsformular friert die PWA ein (endloser Render-Loop durch leere Modell-Vorgabe) | done | S1 | pwa | — |
-| [BUG-0084](bug-0084-live-smoke-spezifische-locator-mehrdeutig.md) | Live-Smoke: Locator „Status"/„Einstellungen" mehrdeutig gegen den bevölkerten Live-Hub | open | S3 | e2e | — |
+| [BUG-0084](bug-0084-live-smoke-spezifische-locator-mehrdeutig.md) | Live-Smoke: Locator „Status"/„Einstellungen" mehrdeutig gegen den bevölkerten Live-Hub | done | S3 | e2e | — |
 | [BUG-0085](bug-0085-factory-rollen-ohne-titel.md) | Factory-Beobachter erscheint ohne Auftrag | done | S2 | pwa | [#35](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/35) |
 | [BUG-0086](bug-0086-factory-start-doppelte-laeufe.md) | Factory-Start bleibt im Formular und erzeugt doppelte Läufe | done | S2 | pwa | [#36](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/36) |
 | [BUG-0087](bug-0087-factory-start-verwirft-maki.md) | Factory-Start verwirft maki und Modellwahl | done | S2 | server | [#37](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/37) |
@@ -120,5 +120,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0109](bug-0109-entpacken-ohne-groessenlimit.md) | Office-Expacken ohne Entpackgrößenlimit (Decompression-Bombe) | done | S3 | core | [#43](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/43) |
 | [BUG-0110](bug-0110-agent-read-mapping-kosten.md) | Agent-Token löst Kosten-/Schreib-Endpunkte ohne Approval aus | done | S4 | server | [#44](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/44) |
 | [BUG-0111](bug-0111-brave-crash-unter-voller-testlast.md) | Brave fällt unter voller lokaler Testlast aus (Renderer-SIGTRAP) | done | S3 | e2e | [#45](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/45) |
+| [BUG-0112](bug-0112-popout-fenster-scrollt-bei-ui-zoom.md) | Eigenes Fenster (Chat) scrollt als ganze Seite bei UI-Zoom | done | S2 | pwa | — |
+| [BUG-0113](bug-0113-dateien-schublade-browser-panel-ui-zoom.md) | Dateien-Schublade und Browser-Panel falsch vermessen bei UI-Zoom | open | S3 | pwa | — |
 
-Die nächste freie Nummer ist **0112**.
+Die nächste freie Nummer ist **0114**.

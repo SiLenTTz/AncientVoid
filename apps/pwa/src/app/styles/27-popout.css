@@ -2,8 +2,19 @@
 .popout-shell {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  /* BUG-0112: unter html-zoom (ui-scale) sind dvh Layout-Pixel — ohne
+   * Division wächst die Shell auf das Zoom-Fache der Fensterhöhe und das
+   * Fenster scrollt als ganze Seite (Muster: BUG-0099, 02-layout.css). */
+  height: calc(100dvh / var(--ui-zoom, 1));
   background: var(--bg);
+}
+
+/* BUG-0112: harte Garantie nach BUG-0099-Nachtrag-2-Muster — ein eigenes
+ * Fenster scrollt nie; nur der Inhalt (Chat, Graph, Datei, Werkzeug)
+ * scrollt intern. */
+html:has(.popout-shell),
+html:has(.popout-shell) body {
+  overflow: hidden;
 }
 
 .popout-shell > .popout-tile,
