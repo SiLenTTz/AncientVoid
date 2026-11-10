@@ -1,4 +1,4 @@
-import type { BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DiagnosticsResult, FileMeta, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { AutomationClaimState, AutomationDefinition, AutomationInfo, AutomationOutcome, AutomationSkipReason, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DiagnosticsResult, FileMeta, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -489,6 +489,20 @@ export interface DiscoveredProject {
   path: string;
   name: string;
   branch: string | null;
+}
+
+/** EPIC-P41: eine Verlaufszeile (Claim-Journal, ADR-0064) — `dispatched` ist kein Erfolg. */
+export interface AutomationHistoryEntry {
+  claimKey: string;
+  automationId: string;
+  generation: number;
+  occurrenceUtc: string;
+  state: AutomationClaimState;
+  reason?: AutomationSkipReason;
+  outcome?: AutomationOutcome;
+  runId?: string;
+  sessionId?: string;
+  at: string;
 }
 
 export interface ProjectDiscoveryResult {
@@ -1262,6 +1276,18 @@ function createHubApi(P: (path: string) => string) {
     api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}/answer`), { method: "POST", body: JSON.stringify({ gateId, label }) }),
   orchestrationCancel: (id: string, reason: string) =>
     api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}/cancel`), { method: "POST", body: JSON.stringify({ reason }) }),
+  /** EPIC-P41 (ADR-0064): Automationen — Verwaltung, Run-now und Verlauf. */
+  automations: async (): Promise<AutomationInfo[]> => (await api<{ automations: AutomationInfo[] }>(P("/api/automations"))).automations,
+  automationCreate: (definition: AutomationDefinition, promptText: string) =>
+    api<AutomationDefinition>(P("/api/automations"), { method: "POST", body: JSON.stringify({ definition, promptText }) }),
+  automationUpdate: (id: string, definition: AutomationDefinition, promptText?: string) =>
+    api<AutomationDefinition>(P(`/api/automations/${encodeURIComponent(id)}`), { method: "PATCH", body: JSON.stringify({ definition, ...(promptText === undefined ? {} : { promptText }) }) }),
+  automationSetEnabled: (id: string, enabled: boolean) =>
+    api<AutomationDefinition>(P(`/api/automations/${encodeURIComponent(id)}/enable`), { method: "POST", body: JSON.stringify({ enabled }) }),
+  automationRunNow: (id: string) =>
+    api<AutomationHistoryEntry>(P(`/api/automations/${encodeURIComponent(id)}/run-now`), { method: "POST" }),
+  automationHistory: async (id: string): Promise<AutomationHistoryEntry[]> =>
+    (await api<{ history: AutomationHistoryEntry[] }>(P(`/api/automations/${encodeURIComponent(id)}/history`))).history,
   steer: async (id: string, input: SteerInput, inputId?: string, takeover = false, queue = false): Promise<Ack> => {
     const res = await fetch(P(`/api/sessions/${id}/steer`), {
       method: "POST",

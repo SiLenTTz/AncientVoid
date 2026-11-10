@@ -42,6 +42,9 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
       <button class={`dock-item ${active === "vault" ? "active" : ""}`} title="Notizen (Knowledge Vault)" onClick={() => onNavigate("vault")}>
         <TabIcon name="notizen" /><span class="lb">Notizen</span>
       </button>
+      <button class={`dock-item ${active === "automationen" ? "active" : ""}`} title="Automationen (Zeitpläne)" onClick={() => onNavigate("automationen")}>
+        <TabIcon name="automationen" /><span class="lb">Automationen</span>
+      </button>
       <button class={`dock-item ${active === "settings" ? "active" : ""}`} title="Einstellungen" onClick={() => onNavigate("settings")}>
         <TabIcon name="einstellungen" /><span class="lb">Einstellungen</span>
       </button>
