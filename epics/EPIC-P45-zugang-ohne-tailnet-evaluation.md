@@ -46,7 +46,7 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 
 ## 4. Aufgaben (Checkliste T45.m)
 
-- [ ] **T45.1** Konkrete Nutzungssituationen ohne Tailscale und bestehende LAN-/Tailnet-/Pairingpfade erfassen; Nutzerpräferenz als offen dokumentieren. **K1/K10**.
+- [x] **T45.1** Konkrete Nutzungssituationen ohne Tailscale und bestehende LAN-/Tailnet-/Pairingpfade erfassen; Nutzerpräferenz als offen dokumentieren. **K1/K10**. — Bestand: [docs/2026-11-10_p45-zugangsbestand.md](../docs/2026-11-10_p45-zugangsbestand.md) (2026-11-10, Start vor P44 auf Nutzeranweisung, Präferenz offen).
 - [ ] **T45.2** Transport/Auth/Autorisierung/Push/Betrieb je Variante vergleichen, Orca-Public/Private-Grenze und Abhängigkeiten belegen. **K5/K7**.
 - [ ] **T45.3** Falls ohne Außenwirkung möglich: isolierter localhost-PoC mit Testidentitäten für Reconnect/Revocation/Origin-/WS-Fehler; sonst Voraussetzungen statt erfundenem Test nennen. **K1/K7/K10**.
 - [ ] **T45.4** Entscheidungsbericht mit Kosten und No-go-/Vertagungsoption; keine Produktivänderung, keine Zugangsdaten in Bericht. **K5/K7**.
