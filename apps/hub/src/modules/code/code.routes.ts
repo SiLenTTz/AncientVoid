@@ -25,7 +25,7 @@ export function registerCodeRoutes(app: FastifyInstance, ctx: RouteContext): voi
   const runner = new ActionRunner({ record: (sessionId, events) => deps.sessions.recordHubEvents(sessionId, events) });
 
   async function target(req: FastifyRequest, reply: FastifyReply): Promise<Target | null> {
-    const q = req.query as { session?: string; project?: string };
+    const q = req.query as { session?: string; project?: string; vault?: string };
     if (q.session) {
       const session = deps.sessions.get(q.session);
       const root = session ? deps.sessions.workdirOf(q.session) : undefined;
@@ -41,6 +41,16 @@ export function registerCodeRoutes(app: FastifyInstance, ctx: RouteContext): voi
         return null;
       }
       const root = resolve(q.project);
+      return { root, base: null, identity: await workspaceIdentity(root, null) };
+    }
+    if (q.vault !== undefined) {
+      // EPIC-P49 (ADR-0063 §3): der Vault-Root als drittes Ziel — Viewer/Range/Raw
+      // des Projekt-Explorers arbeiten unverändert, der Root kommt aus den Einstellungen.
+      const root = deps.settings?.get("vault.root") ?? null;
+      if (!root) {
+        await reply.code(422).send({ error: "no vault folder configured" });
+        return null;
+      }
       return { root, base: null, identity: await workspaceIdentity(root, null) };
     }
     await reply.code(400).send({ error: "session or project query param required" });

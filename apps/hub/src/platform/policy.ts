@@ -17,6 +17,9 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (/^\/api\/sessions\/[^/]+\/draft$/.test(path)) return "drafts.write";
   // EPIC-P11: the companion's long poll is a GET, but not a read.
   if (path.startsWith("/api/desktop/companion/")) return "desktop.companion";
+  // EPIC-P49 (ADR-0063 §4): Der Vault ist eine Menschenfläche — auch das Lesen
+  // ist keine allgemeine Lese-Operation, sondern settings.manage (Agenten: deny).
+  if (path.startsWith("/api/vault")) return "settings.manage";
   if (method === "GET" || method === "HEAD") return "read";
   if ((path === "/api/stt" || path === "/api/stt/stream-ticket") && method === "POST") return "voice.transcribe";
   if (path.startsWith("/api/media/")) return "media.analyze";
@@ -49,7 +52,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (path.startsWith("/api/fleet/")) return "fleet.manage";
   if (path === "/api/skills") return "skills.write";
   if (path.startsWith("/api/attachments")) return "attachments.upload";
-  if (path.startsWith("/api/settings") || path === "/api/push/enabled") return "settings.manage";
+  if (path.startsWith("/api/settings") || path.startsWith("/api/vault") || path === "/api/push/enabled") return "settings.manage";
   if (path.startsWith("/api/push/")) return "push.subscribe";
   if (path === "/api/prompt-enhance" || path === "/api/prompt-recommendation" || path === "/api/prompt-optimizer/feedback") return "read";
   return null;
@@ -76,6 +79,7 @@ export function policyHook(tokens: TokenService) {
     }
     if (!label) return; // public routes (auth already let them through)
     const operation = operationOf(req.method, req.url, req.body);
+
     const decision: PolicyDecision = operation ? policyFor(operation, label) : policyFor("tokens.manage", label) === "allow" ? "allow" : "deny";
     if (decision === "deny") {
       await reply.code(403).send({ error: `Nicht erlaubt für ${label}: ${operation ?? `${req.method} ${req.url.split("?")[0]}`}` });
