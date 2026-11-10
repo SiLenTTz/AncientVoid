@@ -19,7 +19,7 @@ Der Nutzer sieht auf einen Blick, wie gut ein Repo verdrahtet ist: welche Dateie
 
 ### 3.1 Bestand und Einbauorte
 
-- **Kein Import-Scanner existiert** (geprüft: weder `packages/core` noch `apps/hub` haben Dependency-Graph-Baugruppen). Neues Core-Modul `packages/core/src/modules/graph/` (öffentlich nur über dessen `index.ts`, ADR-0020); Contracts `packages/contracts/src/graph/` mit ADR-0061 (additiv, keine Änderung an Adapter-/Event-/Worker-Verträgen).
+- **Kein Import-Scanner existiert** (geprüft: weder `packages/core` noch `apps/hub` haben Dependency-Graph-Baugruppen). Neues Core-Modul `packages/core/src/modules/graph/` (öffentlich nur über dessen `index.ts`, ADR-0020); Contracts `packages/contracts/src/graph/` mit ADR-0062 (additiv, keine Änderung an Adapter-/Event-/Worker-Verträgen).
 - Wiederverwendbar: Ziel-Auflösung `target()` aus `apps/hub/src/modules/code/code.routes.ts:27-48` (`session=` → `workdirOf`, `project=` → `isProjectPathAllowed`), Containment `explorer.ts:36-41` (realpath, `.git` geblockt), Gitignore via `git check-ignore` (`explorer.ts:56-63`), Diagnosen `packages/core/src/modules/diagnostics/run.ts` (`parseTsc` liefert Diagnosen **und** `--listFiles`-Programmdateien; Trust-Gate `trust.ts`; tsc-Lock pro tsconfig), Route-Policy-Muster `code.routes.ts:223-254`.
 - PWA: SessionTail-Tab-System `apps/pwa/src/features/session/SessionTail.tsx` (`activeTab` :184, `TABS` :685-694, Content-Switch :887-906, Forge-Beispiel :890/899-900), Karten-Aktionen `Dashboard.tsx` `session-card-actions` (:345-353), FileViewer `apps/pwa/src/features/files/FileViewer.tsx` (Modi/Revision-Guard), Renderer `RenderedViews.tsx`, Fenstersystem `apps/pwa/src/features/windows/` (`protocol.ts` `WindowTarget` :11, `PopoutShell.tsx` `targetFromHash` :18-22, `windows.ts` `openPopout`), Akzent-/Theme-System `apps/pwa/src/app/appearance.ts` (`--accent` zur Laufzeit, Events `ancientvoid:appearance`/`ancientvoid:theme`, Farbmathe `hexToRgb`/`rgbToHex` wiederverwendbar), rAF-Batching-Muster `SessionTail.tsx:285-305`, `prefers-reduced-motion`-Konvention inkl. `data-ctx-motion` (`ui-scale.ts:84-87`).
 - Keine Graph-/Canvas-Bibliothek im Bestand (geprüft: Preact 11, keine D3/WebGL) — Canvas 2D mit eigener Krafterelaxation, keine neue Dependency.
@@ -46,14 +46,14 @@ Der Nutzer sieht auf einen Blick, wie gut ein Repo verdrahtet ist: welche Dateie
 - Farben: `doc` = `var(--accent)` (Akzentfarbe des Nutzers, live via `getComputedStyle` + Appearance-Events), `code`/`config`/`other` = eigene CSS-Variablen (`--graph-code`, `--graph-config`, `--graph-other`) mit Dark-/Light-Werten im Token-Block `01-base.css`; Fehlerknoten rot (`--err`) statt Gruppenfarbe, Puls schneller. Tote Dateien (kein Zufluss, kein Einstiegspunkt): gedimmt + Legende mit Zählung.
 - Knoten-Klick → Datei-Tab `datei` im selben SessionTail (FileViewer aus `features/files/` mit `target` der Session bzw. ihres Projekts; volle Viewer-Matrix inkl. gerendertem Markdown — kein zweiter Viewer). Hover: Pfad + Gruppe + Zuflusszahl; Filter-Chips je Gruppe; Zoom/Pan (Wheel/Drag, Touch-Pinch).
 
-### 3.5 Popout-Ziele (ADR-0053-Erweiterung, ADR-0061)
+### 3.5 Popout-Ziele (ADR-0053-Erweiterung, ADR-0062)
 
 - `WindowTarget` wird additiv erweitert: `{kind:"graph", sessionId, hostId?}` und `{kind:"file", sessionId?, project?, path, hostId?}`; `PopoutShell` rendert eigenständige Graph-/FileViewer-Fenster mit eigener Datenquelle (HTTP, Muster PopoutShell.tsx:27-50). Damit ist auch der offene Popout-Rest aus P46 T46.8 (Datei-Tabs herauslösen) erfüllt — bei Abschluss in EPIC-P46 nachtragen, kein zweites Häkchen für Altes.
 - Fensterlebenzyklus läuft weiter über `WINDOW_CHANNEL` (hello/heartbeat/bye/focus/return unverändert); Tokens bleiben außerhalb der URL (protocol.ts:35-39). RestoreBar/Tiles unverändert.
 
 ## 4. Aufgaben (Checkliste T48.m)
 
-- [ ] **T48.1** ADR-0061 (Graph-Contract, Begrenzungen, Popout-Ziel-Erweiterung) + `packages/contracts/src/graph/` (Knoten/Kanten/Gruppen/Meta/Diagnose-Überlagerung). **K5/K7**.
+- [ ] **T48.1** ADR-0062 (Graph-Contract, Begrenzungen, Popout-Ziel-Erweiterung) + `packages/contracts/src/graph/` (Knoten/Kanten/Gruppen/Meta/Diagnose-Überlagerung). **K5/K7**.
 - [ ] **T48.2** Core `buildFileGraph` mit Extension-/Index-Auflösung, Ignore-/`data/worktrees`-Ausschluss, Einstiegspunkt-Heuristik, Caps; Unit-Tests: relative Auflösung, md-Links, css/py best effort, Zyklus, Cap-Truncation, identische Ergebnisse bei gleichem Stand. **K5/K7/K8**.
 - [ ] **T48.3** Route `GET /api/graph` (Session-/Projekt-Ziel, Containment wie code.routes) + Integrationstests: Ziel-Auflösung, fremde Pfade 422, Cap-Antwort, lokale Revision. **K1/K5**.
 - [ ] **T48.4** `POST /api/graph/diagnose`: tsc einmal pro tsconfig (Trust-Gate, Lock), JSON-Syntax-Fläche, ehrliche Zustände, Revision-Bindung; Gegenprobe Fehler→rot→behoben. **K1/K2**.
@@ -82,4 +82,4 @@ Der Nutzer sieht auf einen Blick, wie gut ein Repo verdrahtet ist: welche Dateie
 
 ## 7. Definition of Done
 
-Alle T48.* und AC-P48-* mit Evidenz. `npm run gate` grün, PWA-Build grün; neue UI-Funktionen/Abläufe mit Spec in `e2e/specs/repo-graph.spec.ts` (+ erweiterte `windows.spec.ts`). ADR-0061 vor Contract-Merge; Contracts-Export, Hub-Routen und PWA-Feature registriert/erreichbar und dokumentiert; P46-T46.8-Nachtrag gesetzt. Pipeline-Job `e2e` grün bzw. nach `docs/ci-runbook.md` nachgezogen, nie als Pass gezählt. K2-Nachweis am Referenz-Repo; K7 unangetastet (Graph zustandslos); kein TODO ohne Epic-Bezug.
+Alle T48.* und AC-P48-* mit Evidenz. `npm run gate` grün, PWA-Build grün; neue UI-Funktionen/Abläufe mit Spec in `e2e/specs/repo-graph.spec.ts` (+ erweiterte `windows.spec.ts`). ADR-0062 vor Contract-Merge; Contracts-Export, Hub-Routen und PWA-Feature registriert/erreichbar und dokumentiert; P46-T46.8-Nachtrag gesetzt. Pipeline-Job `e2e` grün bzw. nach `docs/ci-runbook.md` nachgezogen, nie als Pass gezählt. K2-Nachweis am Referenz-Repo; K7 unangetastet (Graph zustandslos); kein TODO ohne Epic-Bezug.
