@@ -132,7 +132,7 @@ Provider-Katalog P31; P32 erhält die aktuelle PWA-Präferenz.
 | [P42 — Android-Testgeräte](EPIC-P42-android-testgeraete.md) | AVD-/Host-Spike, Bild/Input und Android-Tests | P41 grün | 0,5–1 + 2–4 |
 | [P43 — Arbeitsfläche/Styling](EPIC-P43-arbeitsflaeche-styling.md) | Saubere Flows, Quellenübergabe, Navigation und Presets | P42 grün | 2–3 |
 | [P44 — UI-Plugins](EPIC-P44-plugin-panels-themes.md) | Panels/Themes als Erweiterung des P30-Lifecycles | P43 grün | 2–3 |
-| [P45 — Zugangsevaluation](EPIC-P45-zugang-ohne-tailnet-evaluation.md) | Transport/Account-Optionen; expliziter Go/No-go/vertagt-Entscheid | P44 grün | 0,5–1 |
+| [P45 — Zugangsevaluation](EPIC-P45-zugang-ohne-tailnet-evaluation.md) | Transport/Account-Optionen; expliziter Go/No-go/vertagt-Entscheid — **Evaluation T45.1–T45.4 fertig 10.11.2026 ([Bericht](../docs/2026-11-10_p45-zugangs-entscheidungsbericht.md)); Nutzerentscheid T45.5 offen** | P44 grün (Start vorgezogen auf Nutzeranweisung) | 0,5–1 |
 
 Erweiterte Kette: **P27 → P28 → P29 → P34 → P35 → P32 (Evaluations-Exit) → P33 → P36 → P30 → P31 → P37 → P38 → P46 → P39 → P40 → P41 → P42 → P43 → P44 → P45**.
 P32/P33 brauchen weiterhin einen ausdrücklich gültigen Evaluations-/Umsetzungs-Exit;
