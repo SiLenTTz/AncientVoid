@@ -104,7 +104,8 @@ den Zeilensprung auf; die Randlaschen entfallen. Die sieben Kleinkram-Regeln (De
 Tablet (700–1279 px): Liste und Session nebeneinander, im Hochformat die Liste als Streifen;
 Dock unten. PC: Leiste, Liste, Kacheln. Der Kachelkopf trägt Griff, Titel, Zustand, die vier
 Reiter und rechts „Herauslösen“; die senkrechte Symbolleiste je Kachel entfällt.
-Tastaturhinweise stehen hinter „?“. Die Schnellsuche erweitert das bestehende Befehlsfeld
+Tastaturhinweise stehen hinter „?“ (Baustein an P51 T51.7 abgegeben — Nutzerauftrag
+11.11.2026, wird dort mit der zentralen Shortcut-Registry gebaut). Die Schnellsuche erweitert das bestehende Befehlsfeld
 (`features/commands`, Strg+K): Springen zu Sessions, Projekten, Dateien, Werkzeugen und
 Befehlen, darunter weiterhin „Auftrag in Worten“. Kein zweites Kürzel, kein neuer
 Volltextindex.
@@ -156,7 +157,8 @@ anderen P43-Aufgabe.
 - [ ] **T43.3** Start als Warteschlange mit Entscheidung auf der Karte, laufendem Schritt, Gruppenwechsel, Dock neu. **K1/K2**.
 - [ ] **T43.4** Session in Zügen: Gruppierungsfunktion mit Unit-Tests gegen aufgezeichnete Fixtures aller Adapter, Falten/Aufklappen, Statuszeile, Composer, vier Reiter; Verlauf unverändert vollständig. **K2/K5/K7**.
 - [ ] **T43.5** „Änderungen“ und „Dateien“, Kleinkram-Regeln 1–7 je mit Test. **K3**.
-- [ ] **T43.6** Tablet-Zweispalter, PC-Kachelkopf, Schnellsuche im Befehlsfeld, „?“-Übersicht. **K2**.
+- [ ] **T43.6** Tablet-Zweispalter, PC-Kachelkopf, Schnellsuche im Befehlsfeld. **K2**.
+  — *„?“-Übersicht an P51 T51.7 abgegeben (Nutzerentscheid 11.11.2026 — braucht die dort gebaute Shortcut-Registry).*
 - [ ] **T43.7** ADR (Fortschreibung ADR-0053), `DetachButton`, neue Fensterziele, Platzhalter/Zurückholen, Fensterzähler. **K2/K7/K10**.
 - [ ] **T43.8** Nyx-Blatt: Zustandsfunktion, Blatt/Aufklappfeld, Fragen mit Vorauswahl, Bestätigungen, Atlas-Übernahme mit Herkunftsvermerk. **K1**.
 - [ ] **T43.9** Abnahme: Nachher-Screenshots, K1/K2-Messlauf (Skill `messlauf`, auch vier Kacheln mit Bewegung), Tastatur- und Screenreader-Durchgang, Geräteabnahme Handy/Tablet/PC, Retro. **K1/K2/K10**.

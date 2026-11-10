@@ -179,7 +179,24 @@ Invariante. Läuft parallel zur P47-Kette.
 |---|---|---|---|
 | [P50 — Zoom-robuste Flächen](EPIC-P50-zoom-robuste-flaechen.md) | Fenster füllen bei jedem UI-Zoom exakt, html/body und eigene Fenster scrollen nie, Zoom-Matrix-E2E — BUG-0112 gefixt (Popout-Shell), BUG-0113 offen (Dateien-Schublade/Browser-Panel) | keine fachliche offene (Bugfix-Klasse, Präzedenz P13/P14/P17) | ~1 |
 
-Reihenfolge: **P47 → P48 → P49** (jeweils eigener Feature-Branch/MR nach main); P50 quer als Bugfix-Klasse.
+Reihenfolge: **P47 → P48 → P49** (jeweils eigener Feature-Branch/MR nach main); P50 quer als Bugfix-Klasse, P51 quer als Nutzerauftrag.
+
+## Nutzerauftrag vom 11.11.2026 — Vault-Erreichbarkeit, Glocke, Tastatur-first
+
+Ausdrücklicher Planungsauftrag von Jan nach Nutzermeldungen (Vault-Ordner im
+Picker unsichtbar/nicht erreichbar + Wunsch nach manueller Pfad-Eingabe;
+Benachrichtigungsglocke am PC ins Fenstereck; komplette Tastaturbedienung mit
+Hinweis-Overlay, Settings-Schalter und Omarchy-Super-Key-Koexistenz).
+Abgestimmte Entscheidungen: Jeder Ordner mit Guards (ADR-0063-Ergänzung), ein
+Epic, „?“-Übersicht aus T43.6 hierher gezogen, Alt-Schema +
+Hyprland-`pass`-Snippet-Doku statt Grab-Override, Overlay nur bei
+existierendem Shortcut. Läuft quer zur Kette (Präzedenz P47–P50).
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P51 — Vault-Erreichbarkeit & Tastatur-first](EPIC-P51-vault-erreichbarkeit-tastatur.md) | Jeder Ordner als Vault wählbar (Symlink-sicher, Pfad-Eingabe, ehrliche Fehler, ADR-0063-Ergänzung); Glocke am PC im Fenstereck; zentrale Shortcut-Registry, fehlende Kürzel (Esc/Fokus, View-Wechsel, Listen-Navigation), `?`-Cheat-Sheet, Hinweis-Overlay mit Setting, Omarchy-/Firefox-Kollisions-Doku | keine fachliche offene (P49/P18/P34 als Basis; Nutzerauftrag) | 2–3 |
+
+Reihenfolge: P51 quer wie P50 (je Aufgabe eigener Branch/MR nach main; ADR-0063-Ergänzung vor dem ersten Verhaltens-Merge).
 
 ## Reihenfolge & Gating
 
