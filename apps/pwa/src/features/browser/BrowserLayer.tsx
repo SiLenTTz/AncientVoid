@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { BrowserPick, BrowserStatus, BrowserTestRun, BrowserViewportName } from "@ancientvoid/contracts";
 import { hubApi, remoteHost } from "../../shared/api.ts";
+import { openPopout } from "../windows/windows.ts";
 import { getHubStatus } from "../shell/hub-status.ts";
 import { EXAMPLE_TEST, TEST_STATE_LABEL, parseTestCase, toViewportPoint } from "./browser-model.ts";
 
@@ -26,7 +27,7 @@ export function BrowserLayer({ focusedSessionId }: { focusedSessionId: string | 
   );
 }
 
-function BrowserPanel({ sessionId, label, hostId, onClose }: { sessionId: string | null; label: string | null; hostId: string | null; onClose: () => void }) {
+export function BrowserPanel({ sessionId, label, hostId, onClose }: { sessionId: string | null; label: string | null; hostId: string | null; onClose: () => void }) {
   const [status, setStatus] = useState<BrowserStatus | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<Tab>("view");
@@ -75,6 +76,17 @@ function BrowserPanel({ sessionId, label, hostId, onClose }: { sessionId: string
       <span class="dim" data-testid="browser-context">
         {sessionId ? `Session „${label ?? sessionId.slice(0, 8)}“ · ${remote ? "andere Maschine" : "dieser Host"}` : "keine Session fokussiert"}
       </span>
+      {sessionId && !remote && (
+        <button
+          type="button"
+          class="chip"
+          aria-label="Browser in eigenes Fenster"
+          title="In eigenes Fenster"
+          onClick={() => void openPopout({ kind: "browser", sessionId, ...(remoteHost(hostId) ? { hostId: remoteHost(hostId)! } : {}) })}
+        >
+          ⧉
+        </button>
+      )}
       <button type="button" class="chip" onClick={onClose} aria-label="Browser schließen">×</button>
     </div>
   );

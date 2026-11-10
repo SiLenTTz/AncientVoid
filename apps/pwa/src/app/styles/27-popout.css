@@ -53,6 +53,19 @@
   padding: 8px;
 }
 
+/* EPIC-P39: Das Browser-Panel füllt das eigene Fenster (Seitenleisten-Styling bleibt). */
+.popout-shell > .popout-browser {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.popout-shell > .popout-browser > .browser-panel {
+  position: static;
+  flex: 1;
+  min-width: 320px;
+  width: auto;
+}
+
 /* Abzeichen und Meldung im Hauptfenster */
 .badge-window {
   color: var(--accent);

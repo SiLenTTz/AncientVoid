@@ -67,7 +67,7 @@ test.describe("Review-Feedback am Diff (EPIC-P36)", () => {
       // goto mit neuem Hash ist KEIN Reload — die Ansicht muss wirklich neu
       // mounten, damit Diff (und damit die Ankerbewertung) neu geholt wird.
       await app.reload();
-      await app.getByRole("button", { name: "Diff" }).click();
+      await app.getByRole("button", { name: "Diff", exact: true }).click();
       if (await stale.locator(".review-stale-badge").count()) break;
       await new Promise((r) => setTimeout(r, 1500));
     }

@@ -6,9 +6,12 @@ import type { TestHub } from "../support/hub.ts";
 /**
  * EPIC-P39 T39.3/T39.4/T39.7 (ADR-0059): Browser-Arbeitsplatz gegen eine echte Scratch-Webapp und echtes Chromium.
  * Fehlt Chromium auf dem Host, meldet der Hub „nicht verfügbar“ — dann wird sichtbar übersprungen (Skip ≠ Pass).
- * Die Pixel-/Tailscale-Abnahme (AC-P39-1, Latenzmessung auf dem Gerät) ist hier ausdrücklich NICHT abgedeckt.
+ * Die Geräteabnahme (AC-P39-1) läuft als derselbe Spec im Projekt `phone` auf dem echten Handy (PHONE_SPECS).
  */
 const scratch = await startScratch();
+// Auf dem echten Handy (CDP-Projekt) ist alles träger: Chromium-Kaltstart des Hubs,
+// JPEG-Standbild-Erneuerung, Touch-Roundtrips — 45 s reichen dort nicht.
+test.beforeEach(() => test.setTimeout(process.env.ANCIENTVOID_E2E_CDP ? 180_000 : 60_000));
 test.use({ hubOptions: { browserOrigins: [scratch.origin] } });
 
 async function openBrowser(app: Page, hub: TestHub): Promise<string> {
@@ -108,5 +111,46 @@ test.describe("Browser-Arbeitsplatz (EPIC-P39)", () => {
     void runs;
     const after = (await hub.api<{ runs: { id: string; note: string | null }[] }>(`/api/sessions/${id}/browser/tests`)).body.runs.find((r) => r.id === started.body.id);
     expect(after?.note).toContain("nichts wird wiederholt");
+  });
+
+  test("Browser-Panel als eigenes Fenster herauslösbar @desktop", async ({ app, hub, context }) => {
+    const id = await openBrowser(app, hub);
+    const popupP = context.waitForEvent("page");
+    await app.getByRole("button", { name: "Browser in eigenes Fenster" }).click();
+    const popup = await popupP;
+    await popup.waitForLoadState();
+    expect(popup.url()).toContain(`sessions/${id}/browser`);
+    expect(popup.url()).not.toMatch(/token/i);
+    await expect(popup.getByTestId("browser-panel")).toBeVisible();
+    await expect(popup.getByTestId("browser-context")).toContainText("dieser Host");
+    // Titel-Zeile: Browser-Fenster nennt sich so und trägt den Session-Titel (nicht „Session“ oder leer).
+    await expect(popup.locator(".popout-title")).toContainText(/^⧉ Browser · \S+/);
+    await expect(popup.locator(".popout-title")).not.toContainText("Browser · Session");
+    // Eigenständig bedienbar: Navigation im Fenster, Standbild erscheint dort.
+    await popup.getByLabel("Adresse").fill(`${scratch.origin}/`);
+    await popup.getByRole("button", { name: "Browser starten" }).click();
+    await expect(popup.getByTestId("browser-frame")).toBeVisible({ timeout: 30_000 });
+    // Schlanke Hülle: kein Dock, keine Liste, keine Kachel-Leiste.
+    await expect(popup.locator(".dock, .split-list, .tile-bar")).toHaveCount(0);
+  });
+
+  test("Latenzbudget: Start-zu-Bild und Klick-zu-Titel messen (K1/K2, T39.1)", async ({ app, hub }) => {
+    const id = await openBrowser(app, hub);
+    const t0 = Date.now();
+    await start(app, `${scratch.origin}/`);
+    const frame = app.getByTestId("browser-frame");
+    await expect(frame).toBeVisible({ timeout: 30_000 });
+    const tOpen = Date.now() - t0;
+    const box = (await frame.boundingBox())!;
+    const natural = await frame.evaluate((el) => ({ w: (el as HTMLImageElement).naturalWidth, h: (el as HTMLImageElement).naturalHeight }));
+    const t1 = Date.now();
+    await app.mouse.click(box.x + (100 / natural.w) * box.width, box.y + (50 / natural.h) * box.height);
+    await expect.poll(async () => (await hub.api<{ title: string }>(`/api/sessions/${id}/browser`)).body.title, { timeout: 15_000 }).toBe("Klicks: 1");
+    const tClick = Date.now() - t1;
+    // Budget: interaktionsnah (Klick-Roundtrip inkl. Screenshot-Erneuerung) und Start unterhalb
+    // grober Wahrnehmbarkeit — dokumentiert die T39.1-Messung je Laufumgebung (Desktop/Phone).
+    expect(tOpen, `Start-zu-Bild ${tOpen} ms`).toBeLessThan(15_000);
+    expect(tClick, `Klick-zu-Titel ${tClick} ms`).toBeLessThan(10_000);
+    console.log(`P39-LATENZ start-zu-bild=${tOpen}ms klick-zu-titel=${tClick}ms`);
   });
 });

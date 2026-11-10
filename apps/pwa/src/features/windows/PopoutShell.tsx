@@ -6,6 +6,7 @@ import { GraphPane } from "../graph/GraphPane.tsx";
 import { FileViewer } from "../files/FileViewer.tsx";
 import { ToolPane } from "../shell/ToolPane.tsx";
 import { VaultPane } from "../vault/VaultPane.tsx";
+import { BrowserPanel } from "../browser/BrowserLayer.tsx";
 import { publishHubStatus } from "../shell/hub-status.ts";
 import { HEARTBEAT_MS, type WindowTarget } from "./protocol.ts";
 import { onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "./windows.ts";
@@ -14,6 +15,7 @@ function targetFromHash(hash: string): WindowTarget | null {
   const route = parseAppHash(hash);
   if (route.view === "list" && route.page === "vault") return route.vaultFile ? { kind: "vault", path: route.vaultFile } : { kind: "vault" };
   if (route.view === "tail") {
+    if (route.browser) return { kind: "browser", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
     if (route.tab === "graph") return { kind: "graph", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
     if (route.tab === "datei" && route.file) return { kind: "file", sessionId: route.sessionId, path: route.file, ...(route.hostId ? { hostId: route.hostId } : {}) };
     return { kind: "session", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
@@ -56,6 +58,8 @@ export function PopoutShell() {
   const target = useMemo(() => targetFromHash(location.hash), []);
   const id = useRef(crypto.randomUUID()).current;
   const [session, setSession] = useState<SessionRecord | null>(null);
+  // Titel-Zeile: Session-Titel, sonst der Projektname — eine Session ohne Titel heißt nicht nur „Session“.
+  const sessionLabel = session?.title ?? session?.project.split("/").filter(Boolean).pop() ?? "Session";
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -84,7 +88,7 @@ export function PopoutShell() {
   }, []);
 
   useEffect(() => {
-    if (target?.kind !== "session" && target?.kind !== "graph" && target?.kind !== "file") return;
+    if (target?.kind !== "session" && target?.kind !== "graph" && target?.kind !== "file" && target?.kind !== "browser") return;
     hostApi(target.hostId)
       .session(target.sessionId)
       .then((s) => {
@@ -120,7 +124,7 @@ export function PopoutShell() {
     <div class="popout-shell">
       <header class="popout-bar">
         <span class="popout-title">
-          ⧉ {target.kind === "tool" ? "Werkzeug" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "graph" ? `Repo-Graph · ${session?.title ?? "Session"}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : (session?.title ?? "Session")}
+          ⧉ {target.kind === "tool" ? "Werkzeug" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "browser" ? `Browser · ${sessionLabel}` : target.kind === "graph" ? `Repo-Graph · ${sessionLabel}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : sessionLabel}
         </span>
         <button type="button" class="btn" onClick={giveBack}>
           In die App zurück
@@ -163,6 +167,20 @@ export function PopoutShell() {
         <div class="popout-tool">
           <VaultPane {...(target.path ? { initialFile: target.path } : {})} />
         </div>
+      ) : target.kind === "browser" ? (
+        // EPIC-P39 T39.3-Rest: Browser-Panel als eigenes Fenster; lädt Status/Bild selbst per HTTP.
+        error ? (
+          <div class="empty">{error}</div>
+        ) : (
+          <div class="popout-browser">
+            <BrowserPanel
+              sessionId={target.sessionId}
+              label={sessionLabel === "Session" ? null : sessionLabel}
+              hostId={target.hostId ?? null}
+              onClose={giveBack}
+            />
+          </div>
+        )
       ) : (
         <div class="popout-tool">
           <ToolPane

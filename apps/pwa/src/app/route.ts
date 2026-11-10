@@ -19,6 +19,11 @@ export function fileHash(sessionId: string, path: string, hostId?: string | null
   return `${sessionHash(sessionId, hostId)}/datei/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
 
+/** EPIC-P39 T39.3-Rest: Browser-Arbeitsplatz der Session als eigenes Fenster — `…/browser`. */
+export function browserHash(sessionId: string, hostId?: string | null): string {
+  return `${sessionHash(sessionId, hostId)}/browser`;
+}
+
 /** EPIC-P49: eine Vault-Datei als eigene Seite/Fenster — `#/notizen/datei/<path>`. */
 export function vaultFileHash(path: string): string {
   return `#/notizen/datei/${path.split("/").map(encodeURIComponent).join("/")}`;
@@ -51,7 +56,7 @@ export function pageHash(page: ListPage): string {
 
 export type AppRoute =
   | { view: "list"; page: ListPage; vaultFile?: string }
-  | { view: "tail"; sessionId: string; hostId?: string; code?: CodeTarget; tab?: TailTab; file?: string };
+  | { view: "tail"; sessionId: string; hostId?: string; code?: CodeTarget; tab?: TailTab; file?: string; browser?: true };
 
 function codeTarget(raw: string | undefined): CodeTarget | undefined {
   if (!raw) return undefined;
@@ -75,7 +80,7 @@ export function parseAppHash(hash: string): AppRoute {
     const page = (Object.keys(PAGE_SLUG) as ListPage[]).find((p) => PAGE_SLUG[p] === slug);
     return { view: "list", page: page ?? "dashboard" };
   }
-  const hosted = /^#\/hosts\/([^/?#]+)\/sessions\/([^/?#]+)(?:\/code\/(.+))?(?:\/(graph|datei)(?:\/(.+))?)?$/.exec(hash);
+  const hosted = /^#\/hosts\/([^/?#]+)\/sessions\/([^/?#]+)(?:\/code\/(.+))?(?:\/(graph|datei)(?:\/(.+))?)?(\/browser)?$/.exec(hash);
   if (hosted?.[1] && hosted[2]) {
     const code = codeTarget(hosted[3]);
     const file = hosted[4] === "datei" ? fileTarget(hosted[5]) : undefined;
@@ -86,9 +91,10 @@ export function parseAppHash(hash: string): AppRoute {
       ...(code ? { code } : {}),
       ...(hosted[4] === "graph" ? { tab: "graph" as const } : {}),
       ...(file !== undefined ? { tab: "datei" as const, file } : {}),
+      ...(hosted[6] ? { browser: true as const } : {}),
     };
   }
-  const match = /^#\/sessions\/([^/?#]+)(?:\/code\/(.+))?(?:\/(graph|datei)(?:\/(.+))?)?$/.exec(hash);
+  const match = /^#\/sessions\/([^/?#]+)(?:\/code\/(.+))?(?:\/(graph|datei)(?:\/(.+))?)?(\/browser)?$/.exec(hash);
   const raw = match?.[1];
   if (!raw) return { view: "list", page: "dashboard" };
   const code = codeTarget(match[2]);
@@ -99,5 +105,6 @@ export function parseAppHash(hash: string): AppRoute {
     ...(code ? { code } : {}),
     ...(match[3] === "graph" ? { tab: "graph" as const } : {}),
     ...(file !== undefined ? { tab: "datei" as const, file } : {}),
+    ...(match[5] ? { browser: true as const } : {}),
   };
 }

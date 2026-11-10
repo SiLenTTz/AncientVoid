@@ -18,6 +18,19 @@ describe("Fensterprotokoll (EPIC-P34 T34.10)", () => {
     expect(targetKey({ kind: "session", sessionId: "s1" })).toBe(targetKey(session));
   });
 
+  it("EPIC-P39 T39.3: das Browser-Fenster hat eine eigene Route, einen eigenen Schlüssel und trägt nie ein Token", () => {
+    const browser = { kind: "browser", sessionId: "s1" } as const;
+    const browserRemote = { kind: "browser", sessionId: "s2", hostId: "h2" } as const;
+    expect(popoutUrl(browser)).toBe("/?window=1#/sessions/s1/browser");
+    expect(popoutUrl(browserRemote)).toBe("/?window=1#/hosts/h2/sessions/s2/browser");
+    for (const t of [browser, browserRemote]) expect(popoutUrl(t)).not.toMatch(/token/i);
+    // Session-Fenster und Browser-Fenster derselben Session sind verschiedene Ziele.
+    expect(new Set([targetKey(session), targetKey(browser), targetKey(browserRemote)]).size).toBe(3);
+    expect(parseWindowMessage({ type: "hello", id: "w9", target: browser })).toEqual({ type: "hello", id: "w9", target: browser });
+    expect(parseWindowMessage({ type: "hello", id: "w9", target: browserRemote })).toEqual({ type: "hello", id: "w9", target: browserRemote });
+    expect(parseWindowMessage({ type: "hello", id: "w9", target: { kind: "browser" } })).toBeNull();
+  });
+
   it("parseWindowMessage nimmt nur gültige Nachrichten an", () => {
     expect(parseWindowMessage({ type: "hello", id: "w1", target: session })).toEqual({ type: "hello", id: "w1", target: session });
     expect(parseWindowMessage({ type: "heartbeat", id: "w1" })).toEqual({ type: "heartbeat", id: "w1" });
