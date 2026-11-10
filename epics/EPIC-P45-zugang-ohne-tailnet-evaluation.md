@@ -1,6 +1,6 @@
 # EPIC-P45 — Optionaler Zugang ohne Tailscale: Bedarf, Account und Transport
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P45
+**Status:** Fertiggestellt 2026-11-10 — Evaluations-Exit **No-go für öffentlichen Zugang** (Nutzerentscheid, siehe T45.5) · **Phase:** P45
 **Dauer:** 0,5–1 Agenten-Wochen Evaluation (grobe Schätzung); Umsetzung separat zu entscheiden
 **Abhängigkeit:** P44 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 
@@ -46,11 +46,11 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 
 ## 4. Aufgaben (Checkliste T45.m)
 
-- [ ] **T45.1** Konkrete Nutzungssituationen ohne Tailscale und bestehende LAN-/Tailnet-/Pairingpfade erfassen; Nutzerpräferenz als offen dokumentieren. **K1/K10**.
-- [ ] **T45.2** Transport/Auth/Autorisierung/Push/Betrieb je Variante vergleichen, Orca-Public/Private-Grenze und Abhängigkeiten belegen. **K5/K7**.
-- [ ] **T45.3** Falls ohne Außenwirkung möglich: isolierter localhost-PoC mit Testidentitäten für Reconnect/Revocation/Origin-/WS-Fehler; sonst Voraussetzungen statt erfundenem Test nennen. **K1/K7/K10**.
-- [ ] **T45.4** Entscheidungsbericht mit Kosten und No-go-/Vertagungsoption; keine Produktivänderung, keine Zugangsdaten in Bericht. **K5/K7**.
-- [ ] **T45.5** Expliziten Nutzerentscheid erfassen; bei Go eigenständigen Implementierungsumfang planen, bei ausstehendem Entscheid Status offen belassen. **K1/K7/K10**.
+- [x] **T45.1** Konkrete Nutzungssituationen ohne Tailscale und bestehende LAN-/Tailnet-/Pairingpfade erfassen; Nutzerpräferenz als offen dokumentieren. **K1/K10**. — Bestand: [docs/2026-11-10_p45-zugangsbestand.md](../docs/2026-11-10_p45-zugangsbestand.md) (2026-11-10, Start vor P44 auf Nutzeranweisung, Präferenz offen).
+- [x] **T45.2** Transport/Auth/Autorisierung/Push/Betrieb je Variante vergleichen, Orca-Public/Private-Grenze und Abhängigkeiten belegen. **K5/K7**. — Vergleich in §2/§3 von [docs/2026-11-10_p45-zugangs-entscheidungsbericht.md](../docs/2026-11-10_p45-zugangs-entscheidungsbericht.md).
+- [x] **T45.3** Falls ohne Außenwirkung möglich: isolierter localhost-PoC mit Testidentitäten für Reconnect/Revocation/Origin-/WS-Fehler; sonst Voraussetzungen statt erfundenem Test nennen. **K1/K7/K10**. — localhost-PoC (`checkAuth`, Fälschbarkeit des Tailnet-Headers) in §4 von [docs/2026-11-10_p45-zugangs-entscheidungsbericht.md](../docs/2026-11-10_p45-zugangs-entscheidungsbericht.md); Relay-/TLS-Tests als Voraussetzung benannt.
+- [x] **T45.4** Entscheidungsbericht mit Kosten und No-go-/Vertagungsoption; keine Produktivänderung, keine Zugangsdaten in Bericht. **K5/K7**. — [docs/2026-11-10_p45-zugangs-entscheidungsbericht.md](../docs/2026-11-10_p45-zugangs-entscheidungsbericht.md).
+- [x] **T45.5** Expliziten Nutzerentscheid erfassen; bei Go eigenständigen Implementierungsumfang planen, bei ausstehendem Entscheid Status offen belassen. **K1/K7/K10**. — Entscheid 2026-11-10: No-go für öffentlich erreichbaren Zugang, Tailnet-Zugang unverändert ([Bericht §7](../docs/2026-11-10_p45-zugangs-entscheidungsbericht.md)).
 
 ## 5. Acceptance Criteria (AC-P45-k)
 
