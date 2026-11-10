@@ -28,4 +28,5 @@ export * from "./modules/media/index.ts";
 export * from "./modules/desktop/index.ts";
 export * from "./modules/graph/index.ts";
 export * from "./modules/vault/index.ts";
+export * from "./modules/automations/index.ts";
 export * from "./modules/orchestration/index.ts";

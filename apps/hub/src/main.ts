@@ -63,6 +63,7 @@ import { TmuxRunner, ProcessRunner } from "@ancientvoid/workers";
 import type { AdapterFactory } from "@ancientvoid/contracts";
 import { createHubApp } from "./app.ts";
 import { ForgeService } from "./modules/forge/forge-service.ts";
+import { createHubAutomationService } from "./modules/automations/automations-service.ts";
 import { createPermissionBridge } from "./modules/approvals/permission-bridge.ts";
 
 // `dummy` used to be hardcoded here, always visible in every real hub's
@@ -294,6 +295,14 @@ async function main(): Promise<void> {
     },
   });
 
+  const automations = createHubAutomationService({
+    dataDir,
+    hostId: config.hostId ?? toHostId(hostname()),
+    sessions,
+    projectRoots: config.projectRoots.map((root) => resolve(root)),
+    log: (line) => logger.info(`automations: ${line}`),
+  });
+
   const app = await createHubApp({
     sessions,
     browser,
@@ -353,12 +362,14 @@ async function main(): Promise<void> {
     claudeLive,
     hostId: config.hostId ?? toHostId(hostname()),
     hostLabel: config.hostLabel ?? hostname(),
+    automations,
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.ANCIENTVOID_EXPOSE === "1"
     ? "0.0.0.0"
     : config.server.host;
   await app.listen({ port: config.server.port, host: listen });
+  automations.start();
   logger.info("listening", { host: config.server.host, port: config.server.port, dataDir });
   const resumed = media?.resume() ?? 0;
   if (resumed) logger.info("media jobs resumed", { count: resumed });
@@ -367,6 +378,7 @@ async function main(): Promise<void> {
   }
 
   const shutdown = async (sig: string) => {
+    automations.stop();
     logger.info("shutting down", { signal: sig });
     // tmux workers outlive the hub: a planned restart keeps them running and
     // the next start takes them over instead of stopping every session.

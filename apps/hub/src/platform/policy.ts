@@ -56,6 +56,10 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (path.startsWith("/api/settings") || path.startsWith("/api/vault") || path === "/api/push/enabled") return "settings.manage";
   if (path.startsWith("/api/push/")) return "push.subscribe";
   if (path === "/api/prompt-enhance" || path === "/api/prompt-recommendation" || path === "/api/prompt-optimizer/feedback") return "prompt.enhance";
+  // EPIC-P41 (ADR-0064): Verwaltung und Run-now — die Tabelle entscheidet (Mensch+Flotte; Agenten deny).
+  if (path === "/api/automations" && method === "POST") return "automations.manage";
+  if (/^\/api\/automations\/[^/]+\/run-now$/.test(path)) return "automations.runNow";
+  if (/^\/api\/automations\/[^/]+\/enable$/.test(path) || (path.startsWith("/api/automations/") && method === "PATCH")) return "automations.manage";
   return null;
 }
 

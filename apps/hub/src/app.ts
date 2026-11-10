@@ -4,7 +4,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService } from "@ancientvoid/core";
+import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, AutomationService } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
 import { discoverProjects, FleetStore } from "@ancientvoid/core";
 import type { HubMetrics, DiscoverySource } from "@ancientvoid/contracts";
@@ -26,6 +26,8 @@ export interface HubAppDeps {
   /** T7.10: attachments and hub settings (Gemini key). */
   attachments?: AttachmentStore;
   settings?: SettingsStore;
+  /** EPIC-P41 (ADR-0064): Automationen — ohne Angabe ehrliche Abschaltung (501). */
+  automations?: AutomationService;
   sessions: SessionManager;
   tokens: TokenService;
   registry: AdapterRegistry;
