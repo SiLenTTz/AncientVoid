@@ -43,7 +43,7 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 
 ## 4. Aufgaben (Checkliste T43.m)
 
-- [ ] **T43.1** UX-Audit mit Vorher-Belegen, P34/P35-Abgleich und klarer verbleibender Problemliste; Mockups für vier Journeys, Änderungsumfang festhalten. **K1/K2/K3**.
+- [~] **T43.1** UX-Audit mit Vorher-Belegen, P34/P35-Abgleich und klarer verbleibender Problemliste; Mockups für vier Journeys, Änderungsumfang festhalten. **K1/K2/K3**. — **Teilstand 2026-11-10:** Audit mit Screenshots (Handy+Desktop, J1–J4 ohne CI-Anteil), 12 Befunde, Mockups und Änderungsumfang in [docs/2026-11-10_p43-ux-audit.md](../docs/2026-11-10_p43-ux-audit.md); offen: echter Pixel, CI-Anteil J4, Nutzerabnahme. Vorgezogen auf Nutzeranweisung (nur Docs); T43.2+ bleibt bis grünem P42 gesperrt.
 - [ ] **T43.2** Gemeinsame Kontextchips/Add-to-prompt und konsistente Tool-/Fehler-/Leerzustände implementieren; immer Quellenvorschau, nie implizites Senden. **K3/K5**.
 - [ ] **T43.3** Schnellnavigation, Fokus/Zurück und fachliche Statusnotizen integrieren; vorhandene Entwürfe/Popouts ohne Remountverlust. **K1/K2/K7**.
 - [ ] **T43.4** Versionierte Theme-/Dichte-/Breiten-Presets, Kontrast-/Importprüfung, lokale Assets und Reset; vorhandene Farbwähler/Fonts wiederverwenden. **K2/K10**.
