@@ -7,6 +7,30 @@ import { test, expect } from "../support/fixtures.ts";
  * bedienbar. Der Dock muss selbst scrollen, statt aus dem Bild zu laufen.
  */
 test.describe("Dock bleibt bedienbar", () => {
+  test("P41: acht globale Ziele bleiben bei 412 px lesbar und bei 320 px erreichbar", async ({ app }) => {
+    await app.setViewportSize({ width: 412, height: 850 });
+    const dock = app.locator(".dock");
+    await expect(dock.getByRole("button")).toHaveCount(8);
+    const size = await dock.evaluate((el) => ({ width: el.clientWidth, content: el.scrollWidth }));
+    expect(size.content, "alle acht Ziele müssen bei 412 px in den Dock passen").toBeLessThanOrEqual(size.width + 1);
+    for (const button of await dock.getByRole("button").all()) {
+      const bounds = await button.evaluate((el) => {
+        const b = el.getBoundingClientRect();
+        const label = el.querySelector(".lb")!.getBoundingClientRect();
+        return { left: b.left, right: b.right, width: b.width, labelLeft: label.left, labelRight: label.right };
+      });
+      expect(bounds.width).toBeGreaterThanOrEqual(44);
+      expect(bounds.labelLeft).toBeGreaterThanOrEqual(bounds.left - 1);
+      expect(bounds.labelRight).toBeLessThanOrEqual(bounds.right + 1);
+    }
+    await app.setViewportSize({ width: 320, height: 850 });
+    await dock.getByRole("button", { name: "Einstellungen" }).click();
+    await expect(app).toHaveURL(/#\/einstellungen$/);
+    await expect(dock.getByRole("button", { name: "Einstellungen" })).toBeInViewport();
+    const page = await app.evaluate(() => ({ width: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
+    expect(page.content).toBeLessThanOrEqual(page.width + 1);
+  });
+
   test("BUG-0098: ein hoher Dock schneidet keine Buttons ab — er scrollt selbst", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "claude", prompt: "LANGSAM erste Frage" });
     await app.setViewportSize({ width: 412, height: 350 });
