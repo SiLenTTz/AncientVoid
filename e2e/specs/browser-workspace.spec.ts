@@ -28,6 +28,8 @@ async function start(app: Page, url: string): Promise<void> {
 }
 
 test.describe("Browser-Arbeitsplatz (EPIC-P39)", () => {
+
+
   test("Scratch-App sehen, bedienen (Klick, Tippen, Viewport) und Zielgrenzen respektieren @desktop", async ({ app, hub }) => {
     const id = await openBrowser(app, hub);
     await expect(app.getByTestId("browser-origins")).toContainText(scratch.origin);
@@ -113,7 +115,10 @@ test.describe("Browser-Arbeitsplatz (EPIC-P39)", () => {
     expect(after?.note).toContain("nichts wird wiederholt");
   });
 
-  test("Browser-Panel als eigenes Fenster herauslösbar @desktop", async ({ app, hub, context }) => {
+  test("Browser-Panel als eigenes Fenster herauslösbar @desktop", async ({ app, hub, context }, testInfo) => {
+    // Eigene Fenster sind ein Desktop-Konzept (ADR-0053): Android-Chrome öffnet Tabs statt
+    // Fenster — das Fensterprotokoll (BroadcastChannel gleicher Origin) greift dort nicht.
+    test.skip(testInfo.project.name === "phone", "Popout-Fenster sind Desktop; auf dem Handy öffnet Chrome Tabs.");
     const id = await openBrowser(app, hub);
     const popupP = context.waitForEvent("page");
     await app.getByRole("button", { name: "Browser in eigenes Fenster" }).click();
