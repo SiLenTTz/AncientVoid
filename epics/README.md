@@ -128,7 +128,7 @@ Provider-Katalog P31; P32 erhält die aktuelle PWA-Präferenz.
 | [P46 — Projekt-Explorer/Dateiansicht](EPIC-P46-projekt-explorer-dateiansicht.md) | Rechte Sidebar, vollständige Datei-/Formatansichten und Sprachdiagnosen — **in Umsetzung seit 09.11.2026** (ADR-0058: Baum, Text-/Bytezugriff, Viewer inkl. Markdown/JSON/CSV/Notebook/Office/ZIP, Syntaxfarben, Diagnosen, Datei-Feedback; offen: Pixel-/Geräte-Abnahme, Offline-Bereichsstatus, Remote-Projektliste) | P38 grün | 3–5 |
 | [P39 — Browser-Testarbeitsplatz](EPIC-P39-browser-testarbeitsplatz.md) | Host-Chromium in der PWA: Navigation, Tests, Design-Auswahl — **umgesetzt 09.11.2026, Geräte-/Tailscale-Abnahme ausstehend** (ADR-0059) | P46 (Abnahme ausstehend, Start auf Nutzeranweisung) | 3–5 |
 | [P40 — Hermes-Orchestrierung](EPIC-P40-hermes-orchestrierung.md) | Gemischte Harnesses/Provider mit Tasks, Dispatches, Fragen | P39 grün | 3–5 |
-| [P41 — Automationen](EPIC-P41-automationen.md) | Zeitpläne, Prechecks, Laufhistorie, Recovery | P40 grün | 2–3 |
+| [P41 — Automationen](EPIC-P41-automationen.md) | Zeitpläne, Prechecks, Laufhistorie, Recovery — **teilweise umgesetzt, Exit offen** ([Übergabeprüfung 10.11.2026](../docs/2026-11-10_p41-uebergabepruefung.md)); P42 bleibt blockiert | P40 grün | 2–3 |
 | [P42 — Android-Testgeräte](EPIC-P42-android-testgeraete.md) | AVD-/Host-Spike, Bild/Input und Android-Tests | P41 grün | 0,5–1 + 2–4 |
 | [P43 — Arbeitsfläche/Styling](EPIC-P43-arbeitsflaeche-styling.md) | Saubere Flows, Quellenübergabe, Navigation und Presets | P42 grün | 2–3 |
 | [P44 — UI-Plugins](EPIC-P44-plugin-panels-themes.md) | Panels/Themes als Erweiterung des P30-Lifecycles | P43 grün | 2–3 |

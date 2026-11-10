@@ -121,4 +121,9 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0110](bug-0110-agent-read-mapping-kosten.md) | Agent-Token löst Kosten-/Schreib-Endpunkte ohne Approval aus | done | S4 | server | [#44](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/44) |
 | [BUG-0111](bug-0111-brave-crash-unter-voller-testlast.md) | Brave fällt unter voller lokaler Testlast aus (Renderer-SIGTRAP) | done | S3 | e2e | [#45](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/45) |
 
-Die nächste freie Nummer ist **0112**.
+| [BUG-0112](bug-0112-automation-neuanlage-aktiv.md) | Automation-Neuanlage übernimmt Aktivierung | in-progress | S2 | core | [#46](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/46) |
+| [BUG-0113](bug-0113-automation-prompt-update-hash.md) | Automation-Update prüft Prompt-Hash nicht | in-progress | S2 | core | [#47](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/47) |
+
+| [BUG-0114](bug-0114-dock-acht-ziele-mobil.md) | Acht Dock-Ziele überlappen auf schmalen Displays | in-progress | S2 | pwa | [#48](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/48) |
+
+Die nächste freie Nummer ist **0115**.
