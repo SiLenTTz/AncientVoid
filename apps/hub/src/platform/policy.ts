@@ -67,6 +67,13 @@ export function policyHook(tokens: TokenService) {
     if (!req.url.startsWith("/api/")) return;
     const token = extractToken(req);
     const label = token ? (tokens.identify(token)?.label ?? null) : null;
+    // BUG-0108: a token that verifies but carries no label is no actor —
+    // it must not silently inherit the human row (actorKind("") would).
+    // Unattributable means fail closed, no route left.
+    if (token && label === "") {
+      await reply.code(403).send({ error: "Token ohne Label — nicht zuordenbar, fail closed" });
+      return;
+    }
     if (!label) return; // public routes (auth already let them through)
     const operation = operationOf(req.method, req.url, req.body);
     const decision: PolicyDecision = operation ? policyFor(operation, label) : policyFor("tokens.manage", label) === "allow" ? "allow" : "deny";
