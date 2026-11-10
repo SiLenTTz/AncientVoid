@@ -51,6 +51,17 @@ if (/isKeyguardShowing=true|mDreamingLockscreen=true/.test(window)) {
 const portraitFlag = process.argv.includes("--portrait");
 const passthrough = process.argv.slice(2).filter((a) => a !== "--portrait");
 const getSetting = (key) => adb("shell", "settings", "get", "system", key).trim();
+// Display-An während des Laufs: Lange Specs (z. B. Browser-Arbeitsplatz, EPIC-P39) laufen Minuten —
+// mit Bildschirm-TimeOut friert Android Chrome ein und CDP meldet „page closed“. Wie die Drehung wird
+// der Zustand nur für den Lauf gesetzt und danach zurückgegeben.
+adb("shell", "svc", "power", "stayon", "true");
+const restoreStayon = () => {
+  try {
+    adb("shell", "svc", "power", "stayon", "false");
+  } catch {
+    // Handy schon getrennt — beim nächsten Laden greift wieder der Systemzustand.
+  }
+};
 let restoreRotation = () => {};
 const quarter = () => quarterFromDumpsys(adb("shell", "dumpsys", "window", "displays"));
 if (quarter() === "1" || quarter() === "3") {
@@ -124,5 +135,6 @@ try {
 } catch {
   // schon weg
 }
+restoreStayon();
 restoreRotation();
 process.exit(result.status ?? 1);

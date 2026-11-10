@@ -89,7 +89,7 @@ Pixel/Tailscale (Latenz, Lesbarkeit, Last mit K1/K2/K7/K8) steht aus.
 
 ## Nicht Teil dieses Stands
 
-- Geräte-/Tailscale-Abnahme (AC-P39-1, Latenzmessung), Live-Test des sichtbaren Modus mit Anzeige, Popout-Fenster,
+- Geräte-/Tailscale-Abnahme (AC-P39-1, Latenzmessung), Live-Test des sichtbaren Modus mit Anzeige,
   Sessions anderer Maschinen, Trace/Video-Artefakte (nur Screenshot), Source-Map-Auswertung,
   Frame-Inhalte fremder iframes, Agenten-Operationen über das Gateway (bewusst Menschen-only).
 
@@ -98,3 +98,9 @@ Pixel/Tailscale (Latenz, Lesbarkeit, Last mit K1/K2/K7/K8) steht aus.
 - Playwright wird Laufzeit-Option des Hubs (optional); ohne Chromium meldet das Panel „nicht verfügbar“.
 - Redirect-Prüfung über `route.fetch` setzt jeden Request über den Hub — gut für lokale Dev-Server, kein
   Allzweck-Browsing.
+
+**Nachtrag 2026-11-10 — Popout:** Das Browser-Panel lässt sich per ⧉ in ein eigenes Fenster lösen (ADR-0053-Fensterprotokoll,
+Ziel `browser`, Route `#/sessions/<id>/browser`, kein Token in der URL). Nur für Sessions dieses Hubs; das Panel lädt Status
+und Bild selbst per HTTP. Die Geräteabnahme (AC-P39-1) bleibt offen: der Phone-Lauf von `browser-workspace.spec.ts` hängt
+am Handy (45/180-s-Timeouts, „page closed“), eine bekannte Spec (`code.spec.ts`) scheitert dort gleich — Umgebungsproblem des
+Handy-Setups, nicht belegt als P39-Fehler.

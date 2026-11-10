@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { codeHash, isToolPage, pageHash, parseAppHash, sessionHash, type ListPage } from "../../src/app/route.ts";
+import { browserHash, codeHash, isToolPage, pageHash, parseAppHash, sessionHash, type ListPage } from "../../src/app/route.ts";
+
+describe("Browser-Route (EPIC-P39 T39.3)", () => {
+  it("round-trips lokal und auf einem anderen Host; die Session-Route bleibt unberührt", () => {
+    expect(browserHash("s1")).toBe("#/sessions/s1/browser");
+    expect(parseAppHash(browserHash("s1"))).toEqual({ view: "tail", sessionId: "s1", browser: true });
+    expect(parseAppHash(browserHash("s2", "h2"))).toEqual({ view: "tail", sessionId: "s2", hostId: "h2", browser: true });
+    expect(parseAppHash("#/sessions/s1")).toEqual({ view: "tail", sessionId: "s1" });
+    expect(parseAppHash("#/sessions/s1/graph")).toEqual({ view: "tail", sessionId: "s1", tab: "graph" });
+  });
+});
 
 describe("session hash route (AC-P5-5)", () => {
   it("round-trips a session id", () => {

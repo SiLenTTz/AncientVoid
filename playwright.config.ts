@@ -24,6 +24,7 @@ const PHONE_SPECS = [
   "pc-offen.spec.ts",
   "workspace.spec.ts",
   "code.spec.ts",
+  "browser-workspace.spec.ts",
 ];
 
 export default defineConfig({
