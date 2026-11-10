@@ -220,9 +220,12 @@ describe("pi context window (ADR-0032)", () => {
     const { ctx } = recording();
     await createAdapter({ model: EVOX2, contextWindowTokens: 131072, contextWindows: { "flash-next": 65_536 } }).start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx);
     expect(ctx.events.find((e) => e.payload.kind === "pi.model")?.payload).toMatchObject({ contextWindowTokens: 65_536 });
-    // Ohne jede Konfiguration greift die kuratierte Tabelle (qwen3.8 → 1 M).
+    // Ohne jede Konfiguration greift die kuratierte Tabelle (glm-5.3 → 1 M; das evox2-Quant kennt sie mit 131072).
     const { ctx: ctx2 } = recording();
-    await createAdapter({ model: EVOX2 }).start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx2);
+    await createAdapter({ model: "zai/glm-5.3" }).start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx2);
     expect(ctx2.events.find((e) => e.payload.kind === "pi.model")?.payload).toMatchObject({ contextWindowTokens: 1_000_000 });
+    const { ctx: ctx3 } = recording();
+    await createAdapter({ model: EVOX2 }).start({ adapter: "pi", project: process.cwd(), prompt: "x" }, ctx3);
+    expect(ctx3.events.find((e) => e.payload.kind === "pi.model")?.payload).toMatchObject({ contextWindowTokens: 131_072 });
   });
 });
