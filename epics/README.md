@@ -130,11 +130,12 @@ Provider-Katalog P31; P32 erhält die aktuelle PWA-Präferenz.
 | [P40 — Hermes-Orchestrierung](EPIC-P40-hermes-orchestrierung.md) | Gemischte Harnesses/Provider mit Tasks, Dispatches, Fragen | P39 grün | 3–5 |
 | [P41 — Automationen](EPIC-P41-automationen.md) | Zeitpläne, Prechecks, Laufhistorie, Recovery | P40 grün | 2–3 |
 | [P42 — Android-Testgeräte](EPIC-P42-android-testgeraete.md) | AVD-/Host-Spike, Bild/Input und Android-Tests | P41 grün | 0,5–1 + 2–4 |
-| [P43 — Arbeitsfläche/Styling](EPIC-P43-arbeitsflaeche-styling.md) | Saubere Flows, Quellenübergabe, Navigation und Presets | P42 grün | 2–3 |
-| [P44 — UI-Plugins](EPIC-P44-plugin-panels-themes.md) | Panels/Themes als Erweiterung des P30-Lifecycles | P43 grün | 2–3 |
+| [P43 — UX Next Level](EPIC-P43-ux-next-level.md) | Start als Warteschlange, Session in Zügen, Zustands- und Bewegungssprache, Tablet/PC, Herauslösen überall, Nyx-Blatt; Funktionsinventar als Gate — **neu gefasst 10.11.2026** ([Design-Review](../docs/2026-11-10_ux-next-level-designreview.md)) | P42 grün | 4–6 |
+| [P43.5 — Quellenchips/Presets/Layouts](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Quellenübergabe in den Prompt, Darstellungs-Presets, benannte Layouts (aus dem bisherigen P43 abgetrennt) | P43 grün | 1,5–2 |
+| [P44 — UI-Plugins](EPIC-P44-plugin-panels-themes.md) | Panels/Themes als Erweiterung des P30-Lifecycles | P43.5 grün | 2–3 |
 | [P45 — Zugangsevaluation](EPIC-P45-zugang-ohne-tailnet-evaluation.md) | Transport/Account-Optionen; expliziter Go/No-go/vertagt-Entscheid — **fertiggestellt 10.11.2026, Exit „No-go“ (kein öffentlicher Zugang; Tailnet bleibt) — [Bericht](../docs/2026-11-10_p45-zugangs-entscheidungsbericht.md)** | P44 grün (Start vorgezogen auf Nutzeranweisung) | 0,5–1 |
 
-Erweiterte Kette: **P27 → P28 → P29 → P34 → P35 → P32 (Evaluations-Exit) → P33 → P36 → P30 → P31 → P37 → P38 → P46 → P39 → P40 → P41 → P42 → P43 → P44 → P45**.
+Erweiterte Kette: **P27 → P28 → P29 → P34 → P35 → P32 (Evaluations-Exit) → P33 → P36 → P30 → P31 → P37 → P38 → P46 → P39 → P40 → P41 → P42 → P43 → P43.5 → P44 → P45**.
 P32/P33 brauchen weiterhin einen ausdrücklich gültigen Evaluations-/Umsetzungs-Exit;
 PWA-Präferenz allein schließt sie nicht. AC-P34-13/AC-P35-7 bleiben offen.
 
