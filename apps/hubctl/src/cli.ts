@@ -229,7 +229,10 @@ async function main(): Promise<void> {
       const dbIdx = args.indexOf("--db");
       const dbPath = dbIdx >= 0 ? (args[dbIdx + 1] ?? "data/hub.db") : "data/hub.db";
       if (sub === "issue") {
-        const name = args[1] ?? usage();
+        // BUG-0108: same bar as the API (z.string().min(1)) — an empty label
+        // here minted tokens no policy class could attribute. (revoke keeps ""
+        // working, so existing empty-label tokens can still be cleaned up.)
+        const name = args[1] || usage();
         // T7.4: an agent token (e.g. for the MCP gateway) may read and
         // request, never act on its own — every write waits for a human.
         // ADR-0048: a status display reads and decides `write` approvals only.

@@ -1,12 +1,12 @@
 ---
 id: BUG-0108
 slug: policy-fail-open-leeres-label
-status: open
+status: done
 severity: S3
 area: server
 instance: dev
 commit: "7d0ab0b"
-forge: ""
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/42"
 epic: "EPIC-P7 T7.4 (Policy-Tabelle, Fail-Closed)"
 created: 2026-11-10
 reporter: "Sicherheitsaudit (pi)"
@@ -71,8 +71,9 @@ Quelle: Hub-Log der Testinstanz (Auszug, Tokens redacted).
 
 | Ring | Befehl / Datei | Stand vor dem Fix |
 |---|---|---|
-| Unit | `packages/contracts/test/approvals/policy.test.ts` | grün (behandelt nur Label-Klassen, nicht „kein Label“) |
-| Integration | vorzuschlagen: `apps/hub/test/policy-empty-label.integration.test.ts` (Vorbild `apps/hub/test/server.test.ts`) | nicht vorhanden; müsste ohne Fix rot sein |
+| Unit | `packages/contracts/test/approvals/policy.test.ts` | grün (behandelt nur Label-Klassen, nicht „kein Label“; unverändert) |
+| Integration | `apps/hub/test/platform/policy-empty-label.test.ts` (leeres Label: Write 403, Read 403; Agent 403; Mensch 201) | rot ohne Fix (201/200 beobachtet), grün mit Fix |
+| CLI | `apps/hubctl/test/cli.test.ts` (`token issue ""` → Usage/Exit 1; echtes Label weiterhin grün) | rot ohne Fix, grün mit Fix |
 
 ## Eingrenzung
 
@@ -84,5 +85,17 @@ usage()` akzeptiert `""`).
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [ ] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` oder offen lassen
+- [x] GitLab-Issue angelegt (Link oben)
+- [x] `bugfix` oder offen lassen
+
+## Fix (verifiziert 2026-11-10, pi/halogen-qwen3.8)
+
+- Fix: `policyHook` (`apps/hub/src/platform/policy.ts`) weist ein verifiziertes
+  Token ohne Label jetzt fail-closed ab (403) statt über `actorKind("")`
+  still die Human-Zeile zu erben; `hubctl token issue` verlangt wie die API
+  ein nicht-leeres Label (`token revoke` kann bestehende Tokens ohne
+  Label weiterhin aufräumen). Commit `39c183c` (`^ B hub: …`, Test: rot
+  ohne Fix) und `61c6d50` (`^ B hubctl: …`).
+- Verifikation: `npx vitest run apps/hub/test/platform/policy-empty-label.test.ts
+  apps/hubctl/test/cli.test.ts` → grün; volles Gate (`npm run gate`) grün
+  (1400+ Tests, e2e 425 passed / 2 skipped).
