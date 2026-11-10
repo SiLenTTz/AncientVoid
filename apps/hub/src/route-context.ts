@@ -1,6 +1,6 @@
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService } from "@ancientvoid/core";
+import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, AutomationService } from "@ancientvoid/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
 import { DEFAULT_HOST_ID } from "@ancientvoid/contracts";
@@ -62,6 +62,8 @@ export interface RouteDeps {
   /** EPIC-P37 (ADR-0056): Forge-Dienst (GitLab im Session-Kontext) — ohne
    * Angabe antworten die Forge-Routen ehrlich mit "nicht eingerichtet". */
   forge?: ForgeService;
+  /** EPIC-P41 (ADR-0064): Automationen — ohne Angabe ehrliche Abschaltung (501). */
+  automations?: AutomationService;
 }
 
 /**

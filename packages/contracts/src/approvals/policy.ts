@@ -71,6 +71,10 @@ export const POLICY_OPERATIONS = [
   /** BUG-0110 (T1.5/T3.9/T5.10): enhance/recommendation/feedback cost real
    * money (one-shot CLI runs) and write learning data — not a read. */
   "prompt.enhance",
+  /** EPIC-P41 / ADR-0064: Definition, Aktivierung, Generation — ein Mensch entscheidet (K1). */
+  "automations.manage",
+  /** EPIC-P41 §3.3: Run jetzt ist seine eigene Operation und nutzt die vorhandene Approval-Pipeline. */
+  "automations.runNow",
   "desktop.act",
   "desktop.companion",
   /** EPIC-P40 (ADR-0064 §4): Runs starten/antworten/stopen darf nur der Mensch; Lesen dürfen Agenten. */
@@ -133,6 +137,10 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
    * Agent and display are denied (ADR-0048 invariant); humans and their fleet
    * keep the buttons. */
   "prompt.enhance": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
+  /** ADR-0064: Aktivieren/definieren nur Mensch (auch via Fleet-Handy); Agenten nie. */
+  "automations.manage": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
+  /** EPIC-P41 §3.3: Run jetzt — gleiche Actor-Regel wie die Aktivisierung. */
+  "automations.runNow": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** EPIC-P11: a person's dictation typed on a PC — never an agent's. */
   "desktop.act": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** EPIC-P11: the companion fetches its work and reports — its only job. */
