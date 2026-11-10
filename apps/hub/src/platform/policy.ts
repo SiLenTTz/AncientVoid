@@ -51,7 +51,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (path.startsWith("/api/attachments")) return "attachments.upload";
   if (path.startsWith("/api/settings") || path === "/api/push/enabled") return "settings.manage";
   if (path.startsWith("/api/push/")) return "push.subscribe";
-  if (path === "/api/prompt-enhance" || path === "/api/prompt-recommendation" || path === "/api/prompt-optimizer/feedback") return "read";
+  if (path === "/api/prompt-enhance" || path === "/api/prompt-recommendation" || path === "/api/prompt-optimizer/feedback") return "prompt.enhance";
   return null;
 }
 

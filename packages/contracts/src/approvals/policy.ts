@@ -68,6 +68,9 @@ export const POLICY_OPERATIONS = [
   "push.subscribe",
   "voice.transcribe",
   "media.analyze",
+  /** BUG-0110 (T1.5/T3.9/T5.10): enhance/recommendation/feedback cost real
+   * money (one-shot CLI runs) and write learning data — not a read. */
+  "prompt.enhance",
   "desktop.act",
   "desktop.companion",
 ] as const;
@@ -124,6 +127,10 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "voice.transcribe": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** EPIC-P10.5: the hub fetches and analyses a video — a person's request. */
   "media.analyze": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
+  /** BUG-0110: paid CLI runs and the learning log — not a read operation.
+   * Agent and display are denied (ADR-0048 invariant); humans and their fleet
+   * keep the buttons. */
+  "prompt.enhance": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** EPIC-P11: a person's dictation typed on a PC — never an agent's. */
   "desktop.act": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** EPIC-P11: the companion fetches its work and reports — its only job. */
