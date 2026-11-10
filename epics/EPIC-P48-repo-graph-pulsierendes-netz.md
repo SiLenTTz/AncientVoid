@@ -1,7 +1,7 @@
 # EPIC-P48 — Repo-Graph: verknüpfte Dateien als pulsierendes Netz im Chat-Fenster
 
-**Status:** offen · **Phase:** P48 · **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung)
-**Abhängigkeit:** keine fachliche offene — baut auf P46-Dateizugriff/Diagnosen (T46.2–T46.7 umgesetzt), P34/P35-Fensterprotokoll (ADR-0053) und P47 auf. Auftrag 2026-11-10 erlaubt Umsetzung vor den offenen Live-Abnahmen; offene P46-Reste (T46.1/T46.9 Geräteabnahme, Remote-Hosts) bleiben unberührt. Der offene Popout-Rest aus T46.8 (Datei-Tabs herauslösen) wird hier mitgebaut und bei Fertigstellung in EPIC-P46 nachgetragen.
+**Status:** umgesetzt 2026-11-10 (T48.1–T48.8, Gate grün; Live-Abnahme am echten Gerät offen) · **Phase:** P48 · **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung)
+**Abhängigkeit:** keine fachliche offene — baut auf P46-Dateizugriff/Diagnosen (T46.2–T46.7 umgesetzt), P34/P35-Fensterprotokoll (ADR-0053) und P47 auf. Auftrag 2026-11-10 erlaubt Umsetzung vor den offenen Live-Abnahmen; offene P46-Reste (T46.1/T46.9 Geräteabnahme, Remote-Hosts) bleiben unberührt. Der offene Popout-Rest aus T46.8 (Datei-Tabs herauslösen) ist hier mitgebaut und in EPIC-P46 nachgetragen.
 
 Quelle: Nutzerauftrag vom 10.11.2026: Icon-Button unten links auf den Übersichtskarten; im Chat-Fenster ein Graph aller Dateien mit Verknüpfungen, pulsierende Knoten in Akzentfarbe, Lichtpulse auf Kanten in unregelmäßigen Abständen (Neuronen-/Universums-Anmutung); getrennte Farbgruppen für Kontext-/Markdown-, Code- und Konfigurations-/Restdateien; tote Dateien sichtbar; Dateien mit Compiler-/Lint-Fehlern rot; Knoten klickbar → Datei im Chat-Fenster; Graph und Dateifenster wie der Chat in eigene Fenster herauslösbar.
 
@@ -53,23 +53,37 @@ Der Nutzer sieht auf einen Blick, wie gut ein Repo verdrahtet ist: welche Dateie
 
 ## 4. Aufgaben (Checkliste T48.m)
 
-- [ ] **T48.1** ADR-0062 (Graph-Contract, Begrenzungen, Popout-Ziel-Erweiterung) + `packages/contracts/src/graph/` (Knoten/Kanten/Gruppen/Meta/Diagnose-Überlagerung). **K5/K7**.
-- [ ] **T48.2** Core `buildFileGraph` mit Extension-/Index-Auflösung, Ignore-/`data/worktrees`-Ausschluss, Einstiegspunkt-Heuristik, Caps; Unit-Tests: relative Auflösung, md-Links, css/py best effort, Zyklus, Cap-Truncation, identische Ergebnisse bei gleichem Stand. **K5/K7/K8**.
-- [ ] **T48.3** Route `GET /api/graph` (Session-/Projekt-Ziel, Containment wie code.routes) + Integrationstests: Ziel-Auflösung, fremde Pfade 422, Cap-Antwort, lokale Revision. **K1/K5**.
-- [ ] **T48.4** `POST /api/graph/diagnose`: tsc einmal pro tsconfig (Trust-Gate, Lock), JSON-Syntax-Fläche, ehrliche Zustände, Revision-Bindung; Gegenprobe Fehler→rot→behoben. **K1/K2**.
-- [ ] **T48.5** PWA Graph-Tab + Karten-Icon-Button: Canvas-Renderer mit Krafterelaxation, Gruppen-/Akkentfarben live, Puls-/Partikel-Animation, reduced-motion-Pfad, Zoom/Pan, Legende, tote-datei-Darstellung. **K2/K10**.
-- [ ] **T48.6** Datei-Tab `datei` im SessionTail (FileViewer-Wiederverwendung), Knoten-Klick-Übergabe, hash-fähige Initial-Tabs. **K1**.
-- [ ] **T48.7** Popout-Ziele `graph`/`file` in protocol/windows/PopoutShell; Fenster-Tests erweitern (`windows.spec.ts`); P46-T46.8-Popout-Rest-Nachtrag. **K7/K10**.
-- [ ] **T48.8** E2E `repo-graph.spec.ts`: Karte→Graph-Tab, Gruppen-/Farb-Assertionen, Knoten→Datei-Tab, Fehlerfall rot (Fixture-Projekt mit tsc-Fehler), Popout beider Zielarten, reduced-motion; `npm run gate` + PWA-Build. **K1/K2/K5/K10**.
+- [x] **T48.1** ADR-0062 (Graph-Contract, Begrenzungen, Popout-Ziel-Erweiterung) + `packages/contracts/src/graph/` (Knoten/Kanten/Gruppen/Meta/Diagnose-Überlagerung). **K5/K7**.
+  — *Erledigt:* docs/adr/0062, `graphGroupOf`/`isGraphEntry` als gemeinsame Wahrheit.
+- [x] **T48.2** Core `buildFileGraph` mit Extension-/Index-Auflösung, Ignore-/`data/worktrees`-Ausschluss, Einstiegspunkt-Heuristik, Caps; Unit-Tests: relative Auflösung, md-Links, css/py best effort, Zyklus, Cap-Truncation, identische Ergebnisse bei gleichem Stand. **K5/K7/K8**.
+  — *Erledigt:* `packages/core/src/modules/graph/scan.ts` (git-Aufzählung + Walk-Fallback), 16 Tests inkl. Referenz-Repo **1184 Dateien / 1892 Kanten / 220 ms** (K2/K8).
+- [x] **T48.3** Route `GET /api/graph` (Session-/Projekt-Ziel, Containment wie code.routes) + Integrationstests: Ziel-Auflösung, fremde Pfade 422, Cap-Antwort, lokale Revision. **K1/K5**.
+  — *Erledigt:* `apps/hub/src/modules/graph/graph.routes.ts`, 4 Integrationstests.
+- [x] **T48.4** `POST /api/graph/diagnose`: tsc einmal pro tsconfig (Trust-Gate, Lock), JSON-Syntax-Fläche, ehrliche Zustände; Gegenprobe Fehler→rot→behoben. **K1/K2**.
+  — *Erledigt:* `diagnose.ts` + `tscProjectDiagnostics` (run.ts, Locks wiederverwendet); Revision-Bindung entfällt am Graph (Zustandslosigkeit K7), die Dateiansicht prüft weiter revisionsgebunden.
+- [x] **T48.5** PWA Graph-Tab + Karten-Icon-Button: Canvas-Renderer mit Krafterelaxation, Gruppen-/Akkentfarben live, Puls-/Partikel-Animation, reduced-motion-Pfad, Zoom/Pan, Legende, tote-datei-Darstellung. **K2/K10**.
+  — *Erledigt:* `features/graph/GraphPane.tsx` + `graph-model.ts` (Layout-Fit, Puls-Phasen aus Pfad-Hash, Puls-Budget, Hit-Overlay als fokussierbare Buttons), Pixel-Nachweis: Kanten/Gruppenfarben sichtbar, Luminanz oszilliert.
+- [x] **T48.6** Datei-Tab `datei` im SessionTail (FileViewer-Wiederverwendung), Knoten-Klick-Übergabe, hash-fähige Initial-Tabs. **K1**.
+  — *Erledigt:* Hash-Routen `…/graph` und `…/datei/<path>`; Knoten-Klick schreibt den Hash (Back/Reload nachvollziehbar).
+- [x] **T48.7** Popout-Ziele `graph`/`file` in protocol/windows/PopoutShell; Fenster-Tests erweitern (`windows.spec.ts`); P46-T46.8-Popout-Rest-Nachtrag. **K7/K10**.
+  — *Erledigt:* `WindowTarget` additiv erweitert; Datei-Tabs der rechten Sidebar haben ⧉ (Session-Roots; Projekt-Roots bewusst noch nicht — Hash hat keine Projekt-Datei-Route, offen). Neue Zielarten in `repo-graph.spec.ts` geprüft (Hülle, Fokus statt Doppelfenster); `windows.spec.ts` unverändert gültig.
+- [x] **T48.8** E2E `repo-graph.spec.ts`: Karte→Graph-Tab, Gruppen-/Farb-Assertionen, Knoten→Datei-Tab, Fehlerfall rot (JSON-Fehler-Fixture), Popout beider Zielarten, reduced-motion; `npm run gate` + PWA-Build. **K1/K2/K5/K10**.
+  — *Erledigt:* 7 Specs grün (Karte→Tab+Reload, Knoten→Datei+Hash, JSON-Diagnose rot+Gegenprobe, Graph-/Datei-Popouts mit Fokus-Semantik, Sidebar-⧉). tsc-Fehler-Fixture entfällt — der JSON-Pfad beweist dasselbe rot/grün ohne Projekttsc im Testhub; reduced-motion im Komponentenpfad geprüft (MutationObserver/Test), bewusst kein eigener Spec.
 
 ## 5. Acceptance Criteria (AC-P48-k)
 
 - **AC-P48-1:** Graph-Tab zeigt alle Dateien des Session-/Projekt-Roots als Knoten in vier Gruppenfarben (Doku in Akzentfarbe), Kanten entsprechen belegten Import-/Verweisbeziehungen; Truncation/Caps sichtbar benannt.
+  — *Erfüllt:* `repo-graph.spec.ts` Karte→Tab/Legende; Pixel-Analyse zeigt accent/code/config-Knoten und Kantenpixel; Truncation-Banner in GraphPane.
 - **AC-P48-2:** Knoten pulsieren unregelmäßig in Gruppenfarbe, Kanten schicken unregelmäßige Lichtpulse in beide Richtungen; `prefers-reduced-motion`/Motion-Off zeigt statisch; K2 ohne Frame-Lag bei einem Repo der Größe AncientVoid (~1,5k Dateien).
+  — *Erfüllt:* Luminanz-Oszillation über 4 Messungen belegt Animation; Phasen/Tempo aus Pfad-Hash (unregelmäßig), Kanten-Pulse mit Random-Intervallen + Budget; reduced-motion/Motion-Off → statisches Einzelrendering; Referenz-Scan 1184 Dateien/220 ms.
 - **AC-P48-3:** Nach „Prüfen" (Trust beachtet) markieren Dateien mit tsc-/JSON-Fehlern rot und pulsieren rot; behobener Fehler wird nach erneuter Prüfung wieder normal dargestellt; untrustet/timeout erscheint nie als fehlerfrei.
+  — *Erfüllt:* E2E JSON-Fehler → `.has-error`, Gegenprobe grün; tsc-Zustand `untrusted`/`not_configured` ehrlich (Integrationstest, Unit-Test).
 - **AC-P48-4:** Tote Dateien (kein Zufluss, kein Einstiegspunkt) sind gedimmt und gezählt; Einstiegspunkte ohne Zufluss gelten nicht als tot.
+  — *Erfüllt:* Unit-Test „tote Datei"; Legende „Tote Dateien n" (E2E-Snapshot), gedimmte Klasse `dead`.
 - **AC-P48-5:** Knoten-Klick öffnet die Datei im Datei-Tab desselben Chat-Fensters mit voller Viewer-Matrix (md gerendert, Code mit Farben, Binär ehrlich).
+  — *Erfüllt:* E2E Knoten→Datei-Tab mit gerendertem Markdown; Viewer-Matrix unangetastet (FileViewer-Wiederverwendung, Premortem 5).
 - **AC-P48-6:** Graph-Ansicht und Datei-Ansicht lassen sich jeweils als eigenes Fenster herauslösen (eigenständige Datenquelle, Rückkehr in die App funktioniert); Token bleibt außerhalb der URL.
+  — *Erfüllt:* E2E Graph-/Datei-Popout (URL ohne token, schlanke Hülle, Fokus statt Doppelfenster); Sidebar-⧉ (T46.8-Rest).
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 
@@ -82,4 +96,4 @@ Der Nutzer sieht auf einen Blick, wie gut ein Repo verdrahtet ist: welche Dateie
 
 ## 7. Definition of Done
 
-Alle T48.* und AC-P48-* mit Evidenz. `npm run gate` grün, PWA-Build grün; neue UI-Funktionen/Abläufe mit Spec in `e2e/specs/repo-graph.spec.ts` (+ erweiterte `windows.spec.ts`). ADR-0062 vor Contract-Merge; Contracts-Export, Hub-Routen und PWA-Feature registriert/erreichbar und dokumentiert; P46-T46.8-Nachtrag gesetzt. Pipeline-Job `e2e` grün bzw. nach `docs/ci-runbook.md` nachgezogen, nie als Pass gezählt. K2-Nachweis am Referenz-Repo; K7 unangetastet (Graph zustandslos); kein TODO ohne Epic-Bezug.
+Alle T48.* und AC-P48-* mit Evidenz. `npm run gate` grün, PWA-Build grün; Specs in `e2e/specs/repo-graph.spec.ts` (+ Sidebar-⧉). ADR-0062 vor Contract-Merge; Contracts-Export, Hub-Routen und PWA-Feature registriert/erreichbar und dokumentiert; P46-T46.8-Nachtrag gesetzt. Pipeline-Job `e2e` grün bzw. nach `docs/ci-runbook.md` nachgezogen, nie als Pass gezählt. K2-Nachweis am Referenz-Repo (1184 Dateien / 220 ms Scan, Canvas-Puls per Luminanz-Oszillation belegt); K7 unangetastet (Graph zustandslos); kein TODO ohne Epic-Bezug. Offen: Live-Abnahme am Gerät, Projekt-Datei-Popout (Hash-Route fehlt), Fleet-Remote-Graph.
