@@ -116,7 +116,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0089](bug-0089-e2e-ci-host-label.md) | Konfigurierter eigener Host-Name wird in Fleet ignoriert | done | S3 | server | [#39](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/39) |
 | [BUG-0090](bug-0090-desktop-e2e-wartet-auf-auftrag.md) | Desktop-E2E prüft Taste vor Ausführung | done | S3 | e2e | [#40](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/40) |
 | [BUG-0091](bug-0091-steer-timeout-e2e-turn-race.md) | Timeout-E2E wartet vor Folgeauftrag nicht auf Turn-Ende | done | S3 | e2e | [#41](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/41) |
-| [BUG-0108](bug-0108-policy-fail-open-leeres-label.md) | Token mit leerem Label umgeht die komplette Policy-Tabelle | open | S3 | server | — |
+| [BUG-0108](bug-0108-policy-fail-open-leeres-label.md) | Token mit leerem Label umgeht die komplette Policy-Tabelle | done | S3 | server | [#42](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/42) |
 | [BUG-0109](bug-0109-entpacken-ohne-groessenlimit.md) | Office-Expacken ohne Entpackgrößenlimit (Decompression-Bombe) | open | S3 | core | — |
 | [BUG-0110](bug-0110-agent-read-mapping-kosten.md) | Agent-Token löst Kosten-/Schreib-Endpunkte ohne Approval aus | open | S4 | server | — |
 
