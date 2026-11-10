@@ -5,7 +5,8 @@
 **Abhängigkeit:** P42 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 
 Quelle: [Design-Review vom 10.11.2026](../docs/2026-11-10_ux-next-level-designreview.md)
-(Befund B1–B12, Entscheidungen E1–E11, Funktionsinventar). Referenz-Mockups, bedienbar, im Repo:
+(Befund B1–B12, Entscheidungen E1–E11, Funktionsinventar) und
+[UX-Audit vom 10.11.2026](../docs/2026-11-10_p43-ux-audit.md) (12 Befunde mit Vorher-Bildern, je Befund die Ziel-Aufgabe). Referenz-Mockups, bedienbar, im Repo:
 [Runde 1](../docs/mockups/2026-11-10_ux-next-level-runde-1.html) (Start, Session, Nyx-Bühne, Bewegungssprache) und
 [Runde 2](../docs/mockups/2026-11-10_ux-next-level-runde-2.html) (PC-Arbeitsfläche, Herauslösen, Formfaktoren, Kleinkram, Nyx-Blatt).
 **Planungsauftrag 10.11.2026 (Jan):** Dieses Epic ersetzt den bisherigen P43-Entwurf
@@ -149,7 +150,7 @@ anderen P43-Aufgabe.
 
 ## 4. Aufgaben (Checkliste T43.m)
 
-- [ ] **T43.0** Funktionsinventar vervollständigen (inkl. der im Design-Review nicht erfassten Flächen) und als `e2e/specs/funktionsinventar.spec.ts` für Handy, Tablet, PC grün machen; Vorher-Screenshots 412/800/1280/1600 px ablegen. **K1/K10**.
+- [ ] **T43.0** Funktionsinventar vervollständigen (inkl. der im Design-Review nicht erfassten Flächen) und als `e2e/specs/funktionsinventar.spec.ts` für Handy, Tablet, PC grün machen; Vorher-Screenshots 412/800/1280/1600 px ablegen. **K1/K10**. — **Vorarbeit 2026-11-10 (MR !364):** [UX-Audit](../docs/2026-11-10_p43-ux-audit.md) mit Vorher-Bildern Handy/Desktop für vier Journeys und 12 Befunden; offen daraus: echter Pixel, CI-Anteil von Journey 4, Zähler-Befund #5 messen, Nutzerabnahme der Befundliste.
 - [ ] **T43.1** Fundament: Tokens (`--call`, `--info`, Standard-Akzent, Skalen, Bewegung), Inter-Standard mit Bestandsschutz gespeicherter Wahl, Formular-Bausteine, `design-system.md` fortschreiben; Kontrasttests für beide Erscheinungsbilder. **K2/K10**.
 - [ ] **T43.2** Zustandssprache: `StatusDot`, Anzeigezustand „Frage“, sechs Bewegungen als Bausteine mit „Bewegung reduzieren“; alle Pillen/Punkte umstellen. **K2**.
 - [ ] **T43.3** Start als Warteschlange mit Entscheidung auf der Karte, laufendem Schritt, Gruppenwechsel, Dock neu. **K1/K2**.
@@ -160,6 +161,8 @@ anderen P43-Aufgabe.
 - [ ] **T43.8** Nyx-Blatt: Zustandsfunktion, Blatt/Aufklappfeld, Fragen mit Vorauswahl, Bestätigungen, Atlas-Übernahme mit Herkunftsvermerk. **K1**.
 - [ ] **T43.9** Abnahme: Nachher-Screenshots, K1/K2-Messlauf (Skill `messlauf`, auch vier Kacheln mit Bewegung), Tastatur- und Screenreader-Durchgang, Geräteabnahme Handy/Tablet/PC, Retro. **K1/K2/K10**.
 - [ ] **T43.10** AV-D3: ADR (Fortschreibung ADR-0048), Token-Berechtigung, Prüfung im `decide`-Handler, Feld „am Display beantwortbar“, `hubctl`, Integrations-Tests für jeden Ablehnungsfall, Doku für VoidWarden. **K1/K7**.
+
+Jede Aufgabe liest vor Beginn die ihr zugeordneten Audit-Befunde (Audit §3/§5) und belegt im MR, dass sie behoben sind.
 
 Reihenfolge: T43.0 → T43.1 → T43.2, danach T43.3–T43.8 in beliebiger Folge (je eigener
 Branch/MR), T43.9 zuletzt. T43.10 ist unabhängig und kann als erste Aufgabe laufen, damit VoidWarden P13 nicht wartet.

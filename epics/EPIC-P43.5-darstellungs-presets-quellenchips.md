@@ -6,7 +6,7 @@
 
 Quelle: [Orca-Vergleich](../docs/2026-11-08_orca-vs-ancientvoid.md) und [Planungsgrundlage mit Übernahmeregister](../docs/2026-11-08_orca-epic-planung.md).
 **Planungsauftrag 08.11.2026:** Nutzer beauftragt diese Epics ausdrücklich vor Abschluss der Vorgänger. Das erlaubt Planung, keine Implementierung und keine Aufhebung des Epic-Gatings. Vor T43.5-1 aktuellen Code-/Test-/Abnahmestand prüfen; historische Überschriften reichen nicht.
-**Abtrennung 10.11.2026 (Jan):** Dieser Entwurf war bis dahin EPIC-P43 „Arbeitsfläche/Styling“. UX-Bestandslauf, Mockups, Zustands-/Leer-/Fehlerzustände, Informationshierarchie und Schnellnavigation sind in das neu gefasste [EPIC-P43](EPIC-P43-ux-next-level.md) übergegangen ([Design-Review](../docs/2026-11-10_ux-next-level-designreview.md)). Hier bleibt, was P43 nicht abdeckt.
+**Abtrennung 10.11.2026 (Jan):** Dieser Entwurf war bis dahin EPIC-P43 „Arbeitsfläche/Styling“. UX-Bestandslauf, Mockups, Zustands-/Leer-/Fehlerzustände, Informationshierarchie und Schnellnavigation sind in das neu gefasste [EPIC-P43](EPIC-P43-ux-next-level.md) übergegangen ([Design-Review](../docs/2026-11-10_ux-next-level-designreview.md)). Hier bleibt, was P43 nicht abdeckt. Belege: [UX-Audit vom 10.11.2026](../docs/2026-11-10_p43-ux-audit.md), Befunde #8, #9 und #12.
 
 ## 1. Ziel
 
@@ -47,7 +47,7 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 - [ ] **T43.5-1** Gemeinsame Kontextchips/Add-to-prompt implementieren; immer Quellenvorschau, nie implizites Senden. **K3/K5**.
 - [ ] **T43.5-2** Fachliche Statusnotizen und Quellen als Sprungziele der Schnellsuche; vorhandene Entwürfe/Popouts ohne Remountverlust. **K1/K2/K7**.
 - [ ] **T43.5-3** Versionierte Theme-/Dichte-/Breiten-Presets, Kontrast-/Importprüfung, lokale Assets und Reset; vorhandene Farbwähler/Fonts wiederverwenden. **K2/K10**.
-- [ ] **T43.5-4** Benannte Layout-Presets für Gerät/Fenstergröße samt sicherer Migration; P44-Tokens/Slots benennen. **K2/K7/K10**.
+- [ ] **T43.5-4** Benannte Layout-Presets für Gerät/Fenstergröße samt sicherer Migration, darunter ein Browser-Fenster-Preset „Handy“ (Audit #8); P44-Tokens/Slots benennen. **K2/K7/K10**.
 - [ ] **T43.5-5** Funktionsinventar aus P43 um die neuen Einträge erweitern; `e2e/specs/quellenchips.spec.ts` und `appearance-presets.spec.ts`, Screenshot-/Tastatur-/Pixel-Abnahme; Gate/PWA-Build/K2-Messlauf. **K1/K2/K3/K10**.
 
 ## 5. Acceptance Criteria (AC-P43.5-k)

@@ -14,6 +14,9 @@ sich widersprechen, gilt bis zum Abschluss von T43.1 das bestehende Design-Syste
   Einstellungen, Status.
 - Nyx-Kiosk: ein Screenshot des laufenden Web-Clients, dazu `web/src/style.css` und
   VoidWarden-EPIC-P11.
+- Unabhängig davon entstand am selben Tag der [UX-Audit](2026-11-10_p43-ux-audit.md) (vier Journeys,
+  Handy und Desktop, 12 Befunde mit Bildern). Er bestätigt B1–B4 und B7 und ist je Befund den
+  Aufgaben aus P43/P43.5 zugeordnet.
 - **Nicht erfasst:** die Dateien-Seitenleiste mit geöffneter Datei (das Aufnahmeskript
   öffnete sie nicht), der Browser-Arbeitsplatz, Medien, PC, Popout-Fenster im Betrieb,
   helles Erscheinungsbild, echte Geräte. T43.0 holt das nach.
