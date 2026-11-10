@@ -20,6 +20,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   // EPIC-P49 (ADR-0063 §4): Der Vault ist eine Menschenfläche — auch das Lesen
   // ist keine allgemeine Lese-Operation, sondern settings.manage (Agenten: deny).
   if (path.startsWith("/api/vault")) return "settings.manage";
+  if (path.startsWith("/api/orchestration/") && method !== "GET") return "orchestration.manage";
   if (method === "GET" || method === "HEAD") return "read";
   if ((path === "/api/stt" || path === "/api/stt/stream-ticket") && method === "POST") return "voice.transcribe";
   if (path.startsWith("/api/media/")) return "media.analyze";
