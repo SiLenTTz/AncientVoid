@@ -73,6 +73,8 @@ export const POLICY_OPERATIONS = [
   "prompt.enhance",
   "desktop.act",
   "desktop.companion",
+  /** EPIC-P40 (ADR-0064 §4): Runs starten/antworten/stopen darf nur der Mensch; Lesen dürfen Agenten. */
+  "orchestration.manage",
 ] as const;
 export type PolicyOperation = (typeof POLICY_OPERATIONS)[number];
 
@@ -135,6 +137,7 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "desktop.act": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** EPIC-P11: the companion fetches its work and reports — its only job. */
   "desktop.companion": { human: "deny", fleet: "deny", agent: "deny", bridge: "deny", companion: "allow", display: "deny" },
+  "orchestration.manage": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
 };
 
 export function policyFor(operation: PolicyOperation, label: string | null | undefined): PolicyDecision {

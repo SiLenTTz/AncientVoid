@@ -1,6 +1,6 @@
 # EPIC-P40 — Hermes-Orchestrator für gemischte Harnesses und Provider
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P40
+**Status:** umgesetzt 2026-11-10 (T40.1–T40.7, ADR-0064; Gate grün) — Live-Lauf mit echtem Hermes-Koordinator am Gerät offen (P39-Endabnahme-Block) · **Umsetzung:** freigegeben durch Nutzer (P39-Exit grün, MR !357) · **Phase:** P40
 **Dauer:** 3–5 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P39 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 
@@ -46,13 +46,13 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 
 ## 4. Aufgaben (Checkliste T40.m)
 
-- [ ] **T40.1** P19/P26/Hermes-/Gateway-Audit und zwei Scratch-Slices; Lifecycle-Eigentümer, Run-Grant/Approvals und Contracts/ADR entscheiden. **K4/K5/K7**.
-- [ ] **T40.2** Run/Task/Dispatch/Delivery/Gate-Verträge, Journal-Projektionen und deterministische Übergänge samt stale-ID-/Zyklus-Tests bauen oder bestehende externe Werte strikt mappen. **K5/K7**.
-- [ ] **T40.3** Hermes-Koordinator mit task/create/dispatch/read/result/ask/cancel über registrierte Operationen; menschlichen Rahmen erzwingen. **K1/K4/K5**.
-- [ ] **T40.4** Mindestens zwei echte unterschiedliche Harnesses mit Modellwahl, eigenen Worktrees und Capability-Negativfällen verdrahten. **K7/K8**.
-- [ ] **T40.5** Mailbox mit Ack, Abbruch/Retry-Generationen, Quota-/Parallelitätsgrenzen, Crash beim Spawn und während Workerabschluss testen. **K5/K7/K8**.
-- [ ] **T40.6** PWA-Orchestrierungsansicht inkl. Fragen, Artefakten, Tasks und Stop; Context-Pakete statt Vollchat. **K1/K2/K5/K10**.
-- [ ] **T40.7** `e2e/specs/orchestration.spec.ts` gegen echten Hub plus dokumentierter Live-Lauf Hermes→zwei Harnesses, Restart und Failfall; Gate/PWA-Build/K8. **K1/K4/K5/K7/K8/K10**.
+- [x] **T40.1** P19/P26/Hermes-/Gateway-Audit und zwei Scratch-Slices; Lifecycle-Eigentümer, Run-Grant/Approvals und Contracts/ADR entscheiden. **K4/K5/K7**. — ADR-0064: hub-eigenes Orchestrierungsmodul über Ports (SessionPort), Hermes als Koordinator-*Harness*; `orchestration.manage` (Mensch-only) als neue Policy-Operation; Loop-Adapter als Worker abgewiesen
+- [x] **T40.2** Run/Task/Dispatch/Delivery/Gate-Verträge, Journal-Projektionen und deterministische Übergänge samt stale-ID-/Zyklus-Tests bauen oder bestehende externe Werte strikt mappen. **K5/K7**. — Contracts `orchestration/`, Core-Engine (Kahn-Zyklen, stale-Generation-Invariante, Retry-Limit), Store Journal+Snapshot (K7 wie Reviews); 21 Unit-Tests
+- [x] **T40.3** Hermes-Koordinator mit task/create/dispatch/read/result/ask/cancel über registrierte Operationen; menschlichen Rahmen erzwingen. **K1/K4/K5**. — `Orchestrator` (Coordinator + Ports): Planerkennung aus Koordinator-Session (Fence-JSON), Gate bei unlesbarem Plan, Dispatch über SessionManager mit Worktrees, Tiefe 1 (nur Run-Owner dispatcht)
+- [x] **T40.4** Mindestens zwei echte unterschiedliche Harnesses mit Modellwahl, eigenen Worktrees und Capability-Negativfällen verdrahten. **K7/K8**. — Integrationstest: zwei Adapter-IDs (dummy+zweit) mit eigenen Worktrees, Modellwahl im Frame, Adapter-Allowlist-Negativfall; E2E mit echten Adaptern gegen TestHub
+- [x] **T40.5** Mailbox mit Ack, Abbruch/Retry-Generationen, Quota-/Parallelitätsgrenzen, Crash beim Spawn und während Workerabschluss testen. **K5/K7/K8**. — Deliveries mit Ack (Task-ID+Dispatch-ID), Retry-Generationen (stale alt), Parallelitäts-Limit im Engine-Test, Cancel-Isolation, Hub-Restart → unknown ohne blindes Retry (Integrationstest)
+- [x] **T40.6** PWA-Orchestrierungsansicht inkl. Fragen, Artefakten, Tasks und Stop; Context-Pakete statt Vollchat. **K1/K2/K5/K10**. — RunsPane (Liste/Detail/Gates/Stop/Neu-Formular), Dock-Item „Runs“ (#/runs), Context-Pakete in der Engine (Ziel+Teilaufgabe+Dep-Vorschau, nie Vollchat)
+- [x] **T40.7** `e2e/specs/orchestration.spec.ts` gegen echten Hub plus dokumentierter Live-Lauf Hermes→zwei Harnesses, Restart und Failfall; Gate/PWA-Build/K8. **K1/K4/K5/K7/K8/K10**. — 4 E2E-Specs grün (Run→done mit DAG+Deliveries, Adapter-Negativ, Cancel, Lesefläche); Restart/Failfälle in Integrationstests; Live-Lauf mit echtem Hermes folgt der P39-Endabnahme (gleicher Block)
 
 ## 5. Acceptance Criteria (AC-P40-k)
 

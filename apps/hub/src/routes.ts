@@ -16,6 +16,7 @@ import { registerSearchRoutes } from "./modules/search/search.routes.ts";
 import { registerCodeRoutes } from "./modules/code/code.routes.ts";
 import { registerGraphRoutes } from "./modules/graph/graph.routes.ts";
 import { registerVaultRoutes } from "./modules/vault/vault.routes.ts";
+import { registerOrchestrationRoutes } from "./modules/orchestration/orchestration.routes.ts";
 import { registerLoopsRoutes } from "./modules/loops/loops.routes.ts";
 import { registerFactoryRoutes } from "./modules/factory/factory.routes.ts";
 import { registerCommandRoutes } from "./modules/commands/commands.routes.ts";
@@ -42,6 +43,7 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
   registerCodeRoutes(app, ctx);
   registerGraphRoutes(app, ctx);
   registerVaultRoutes(app, ctx);
+  registerOrchestrationRoutes(app, ctx);
   registerLoopsRoutes(app, ctx);
   registerFactoryRoutes(app, ctx);
   registerCommandRoutes(app, ctx, deps.assistantModel ? { model: deps.assistantModel } : {});

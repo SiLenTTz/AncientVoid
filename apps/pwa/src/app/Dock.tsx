@@ -36,6 +36,9 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
       <button class={`dock-item ${active === "media" ? "active" : ""}`} title="Medien: Videos analysieren" onClick={() => onNavigate("media")}>
         <TabIcon name="medien" /><span class="lb">Medien</span>
       </button>
+      <button class={`dock-item ${active === "orchestrierung" ? "active" : ""}`} title="Runs (Orchestrierung)" onClick={() => onNavigate("orchestrierung")}>
+        <TabIcon name="runs" /><span class="lb">Runs</span>
+      </button>
       <button class={`dock-item ${active === "vault" ? "active" : ""}`} title="Notizen (Knowledge Vault)" onClick={() => onNavigate("vault")}>
         <TabIcon name="notizen" /><span class="lb">Notizen</span>
       </button>

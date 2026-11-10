@@ -38,11 +38,11 @@ export interface CodeTarget {
 export type TailTab = "graph" | "datei";
 
 /** T8.1: every page has a URL, so Back in the browser goes back. */
-export type ListPage = "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery" | "media" | "pc" | "vault";
-const PAGE_SLUG: Record<ListPage, string> = { dashboard: "", new: "neu", settings: "einstellungen", approvals: "freigaben", status: "status", discovery: "gefunden", media: "medien", pc: "pc", vault: "notizen" };
+export type ListPage = "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery" | "media" | "pc" | "vault" | "orchestrierung";
+const PAGE_SLUG: Record<ListPage, string> = { dashboard: "", new: "neu", settings: "einstellungen", approvals: "freigaben", status: "status", discovery: "gefunden", media: "medien", pc: "pc", vault: "notizen", orchestrierung: "runs" };
 
 /** EPIC-P34 T34.2: Seiten, die am Desktop die Detailspalte füllen. Übersicht, Neu und Freigaben bleiben in der Liste (K1-Weg). */
-export const TOOL_PAGE_IDS = ["settings", "discovery", "media", "pc", "status", "vault"] as const;
+export const TOOL_PAGE_IDS = ["settings", "discovery", "media", "pc", "status", "vault", "orchestrierung"] as const;
 export type ToolPageId = (typeof TOOL_PAGE_IDS)[number];
 const TOOL_PAGES: ReadonlySet<ListPage> = new Set<ListPage>(TOOL_PAGE_IDS);
 

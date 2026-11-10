@@ -1,4 +1,4 @@
-import type { BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DiagnosticsResult, FileMeta, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DiagnosticsResult, FileMeta, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -1253,6 +1253,15 @@ function createHubApi(P: (path: string) => string) {
   runEstimate: (id: string) => api<RunEstimate>(P(`/api/sessions/${id}/estimate`)),
   sessionQueue: (id: string) => api<QueuedPrompt[]>(P(`/api/sessions/${id}/queue`)),
   removeQueued: (id: string, queueId: string) => api<{ ok: boolean }>(P(`/api/sessions/${id}/queue/${queueId}`), { method: "DELETE" }),
+  /** EPIC-P40: Orchestrierung — Runs nach ADR-0064. */
+  orchestrationRuns: () => api<OrchestrationRun[]>(P("/api/orchestration/runs")),
+  orchestrationStart: (input: OrchestrationRunStart) =>
+    api<OrchestrationRun>(P("/api/orchestration/runs"), { method: "POST", body: JSON.stringify(input) }),
+  orchestrationRun: (id: string) => api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}`)),
+  orchestrationAnswer: (id: string, gateId: string, label: string) =>
+    api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}/answer`), { method: "POST", body: JSON.stringify({ gateId, label }) }),
+  orchestrationCancel: (id: string, reason: string) =>
+    api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}/cancel`), { method: "POST", body: JSON.stringify({ reason }) }),
   steer: async (id: string, input: SteerInput, inputId?: string, takeover = false, queue = false): Promise<Ack> => {
     const res = await fetch(P(`/api/sessions/${id}/steer`), {
       method: "POST",
