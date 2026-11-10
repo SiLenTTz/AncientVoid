@@ -166,7 +166,19 @@ Abschluss in EPIC-P46 nachgetragen.
 | [P48 — Repo-Graph](EPIC-P48-repo-graph-pulsierendes-netz.md) | Pulsierendes Datei-Netz im Chat-Fenster (Import-/Verweiskanten, Farbgruppen, tote Dateien, Diagnosen rot), Datei-Tab, Popout-Ziele `graph`/`file` | P47; P46-Dateizugriff/Diagnosen; ADR-0053-Fenster | 2–3 |
 | [P49 — Knowledge Vault](EPIC-P49-knowledge-vault-notizen.md) | Notizen-Tab mit Ordnerwahl (SettingsStore), Markdown-Editor mit Revision-Guard, Vault-Popout | P47; P48 (Popout-/Datei-Tab-Muster) | 1–2 |
 
-Reihenfolge: **P47 → P48 → P49** (jeweils eigener Feature-Branch/MR nach main).
+
+## Zoom-Robustheit — eingeplant am 10.11.2026
+
+Quer-Epic (Bugfix-Klasse) aus der Nutzermeldung „doppelte Scrollbars im
+Chat-Fenster" und dem Repo-Scan vom 10.11.2026: Das UI-Zoom-Teilungs-Muster
+wurde nach jedem Zoom-Bug einzeln nachgetragen; P50 macht es zur geprüften
+Invariante. Läuft parallel zur P47-Kette.
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P50 — Zoom-robuste Flächen](EPIC-P50-zoom-robuste-flaechen.md) | Fenster füllen bei jedem UI-Zoom exakt, html/body und eigene Fenster scrollen nie, Zoom-Matrix-E2E — BUG-0112 gefixt (Popout-Shell), BUG-0113 offen (Dateien-Schublade/Browser-Panel) | keine fachliche offene (Bugfix-Klasse, Präzedenz P13/P14/P17) | ~1 |
+
+Reihenfolge: **P47 → P48 → P49** (jeweils eigener Feature-Branch/MR nach main); P50 quer als Bugfix-Klasse.
 
 ## Reihenfolge & Gating
 

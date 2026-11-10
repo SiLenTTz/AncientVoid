@@ -1,10 +1,10 @@
 ---
 id: BUG-0112
 slug: popout-fenster-scrollt-bei-ui-zoom
-status: open
+status: done
 area: pwa
 instance: live (Nutzerbericht 10.11.2026, installierte Omarchy-Web-App)
-commit: "2cefb78"
+commit: "2d44bc8"
 epic: "P50"
 created: 2026-11-10
 reporter: "Nutzer"
@@ -61,6 +61,23 @@ am Fensterrand (Seite) und einen im Chat; die Fensterhoehe passt nicht.
 
 Keine — rein layoutseitig (CSS-Messung oben).
 
+## Fix (10.11.2026)
+
+`27-popout.css`: `.popout-shell` teilt die Fensterhöhe durch den Zoom —
+`height: calc(100dvh / var(--ui-zoom, 1))` (Muster wie BUG-0099,
+`02-layout.css`). Zusätzlich die harte Garantie aus BUG-0099 Nachtrag 2
+für die Popout-Route: `html:has(.popout-shell)` und dessen `body` bekommen
+`overflow: hidden` — ein eigenes Fenster scrollt nie, nur sein Inhalt
+(Chat, Graph, Datei, Werkzeug) scrollt intern.
+
+## Nachweis
+
+E2E `windows.spec.ts` „BUG-0112: das eigene Fenster scrollt nie …"
+(desktop, `uiScale=1.3` vor dem Fenster-Boot): ohne Fix rot („Seite
+scrollt um 270 px"), mit Fix grün; Shell-Unterkante == Fensterhöhe.
+Matrix über uiScale 80/100/130/150: Seite in keiner Stufe scrollbar, Shell
+füllt exakt. Volle `windows.spec.ts` (desktop) 10/10 grün, `npm run gate`
+grün.
 
 
 ## Tests

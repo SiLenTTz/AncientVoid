@@ -86,7 +86,7 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     // Unterkante == Fensterhöhe — unter html-zoom sind dvh Layout-Pixel und
     // müssen durch --ui-zoom geteilt werden (Muster BUG-0099).
     const geo = await popup.evaluate(() => {
-      const se = document.scrollingElement;
+      const se = document.scrollingElement!;
       const shell = document.querySelector(".popout-shell");
       return {
         pageScrollable: se.scrollHeight > se.clientHeight + 1,
