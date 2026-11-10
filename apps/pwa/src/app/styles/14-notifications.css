@@ -1,15 +1,12 @@
 /* ADR-0015: notifications — bell, toasts top right, panel */
 .topbar {
-  padding-right: 88px; /* bell + settings gear */
+  padding-right: 44px; /* bell */
 }
 /* The phone's session header has no room for a second round button: the title would shrink to "a…".
  * Settings stay one tap away there (back to the overview, dock). */
 @media (max-width: 639px) {
   .topbar.session-topbar {
     padding-right: 44px;
-  }
-  body:has(.session-topbar) .notif-gear {
-    display: none;
   }
 }
 .notif-bell {
@@ -29,22 +26,6 @@
   font-size: calc(16px * var(--font-scale, 1));
   cursor: pointer;
 }
-/* EPIC-P20 T20.3: the settings gear sits left of the bell, same look. */
-.notif-gear {
-  position: fixed;
-  top: calc(env(safe-area-inset-top) + 8px);
-  right: max(52px, calc((100vw / var(--ui-zoom, 1) - 680px) / 2 + 52px));
-  z-index: 30;
-  background: var(--bg-elev);
-  border: 1px solid var(--bg-chip);
-  border-radius: 999px;
-  width: 36px;
-  height: 36px;
-  font-size: calc(16px * var(--font-scale, 1));
-  color: var(--fg);
-  cursor: pointer;
-}
-.notif-gear:hover,
 .notif-bell:hover {
   border-color: var(--accent);
 }
@@ -201,19 +182,13 @@
   margin-top: 8px;
 }
 
-.split-list .notif-gear {
-  position: absolute;
-  top: 8px;
-  right: 52px;
-}
 
-/* List folded away: bell and gear move to the window corner (EPIC-P18 + P20). */
+
+/* List folded away: the bell moves to the window corner (EPIC-P18 + P20). */
 .notif-bell.corner {
   right: 8px;
 }
-.notif-gear.corner {
-  right: 52px;
-}
 .split.list-collapsed .tile-bar {
-  padding-right: 96px;
+  padding-right: 48px;
 }
+
