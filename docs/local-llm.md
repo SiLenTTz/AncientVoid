@@ -152,3 +152,56 @@ und eine echte Harness-Session sind damit nicht abgenommen.
   Tool-Gate, `--yes-always`).
 - AncientVoid Text- und Visionmodell sind geladen; größere Modelle (Qwen3.5-122B-A10B)
   gehören zu anderen Diensten und teilen denselben Unified Memory.
+
+## Halogen Qwen3.8 (evox2) in pi, maki und oh-my-pi
+
+Das Modell `halogen-qwen3.8-flash-next-uncensored-iq4xs` läuft auf evox2 hinter einem OpenAI-kompatiblen Endpunkt
+(`http://100.65.133.28:8100/v1`, nur Tailnet; 131072 Kontext, Reasoning). **pi** kennt es über `~/.pi/agent/models.json`
+(Provider `evo-evox2`). maki und oh-my-pi tragen den Provider in ihre **eigene** Config ein — der Hub schreibt dort
+nichts (ADR-0060); der Schlüssel steht in keiner dieser Dateien, sondern in `~/.config/ancientvoid/evox2.key` (0600)
+und kommt per `envFiles` als `EVOX2_API_KEY` in den Agenten-Prozess.
+
+**maki** — `~/.config/maki/providers.toml` (Schema: maki-Doku „Custom provider“; `protocol`, `base_url`, `api_key_env`):
+
+```toml
+[evo-evox2]
+display_name = "evox2 (Halogen)"
+protocol = "openai"
+base_url = "http://100.65.133.28:8100/v1"
+api_key_env = "EVOX2_API_KEY"
+
+[[evo-evox2.models]]
+id = "halogen-qwen3.8-flash-next-uncensored-iq4xs"
+tier = "strong"
+context_window = 131072
+max_output_tokens = 32768
+```
+
+**oh-my-pi** — `~/.omp/agent/models.yml` (`apiKey` ist der *Name* der Umgebungsvariable):
+
+```yaml
+providers:
+  evo-evox2:
+    baseUrl: http://100.65.133.28:8100/v1
+    api: openai-completions
+    apiKey: EVOX2_API_KEY
+    models:
+      - id: halogen-qwen3.8-flash-next-uncensored-iq4xs
+        name: Halogen Qwen3.8 (evox2)
+        contextWindow: 131072
+        maxTokens: 32768
+        reasoning: true
+```
+
+**Hub** (`hub.config.json`, je `maki`- und `omp`-Eintrag) — Schlüssel aus der Datei in die Umgebung:
+
+```json
+"envFiles": { "ZHIPU_API_KEY": "~/.config/ancientvoid/glm-coding.key", "EVOX2_API_KEY": "~/.config/ancientvoid/evox2.key" }
+```
+
+Danach Hub neu starten; das Modell steht als `evo-evox2/halogen-qwen3.8-flash-next-uncensored-iq4xs` im Modell-Dropdown
+beider Harnesses (Katalog per ACP-Probe, ADR-0054) und lässt sich in der laufenden Session wechseln (ADR-0061).
+Das Kontextfenster (131072) kommt aus der kuratierten Tabelle (`@ancientvoid/models`, ADR-0032).
+
+**Live belegt 2026-11-10** (Adapter-Lauf, evox2 erreichbar): maki und omp wählen das Modell beim Start und antworten
+auf „Antworte nur mit ANKUNFT“ mit „ANKUNFT“. Der Schlüssel ist dabei nie in Config, Log oder Commit gelandet.

@@ -57,6 +57,9 @@ const RULES: readonly (readonly [string, number])[] = [
   ["kimi-k2.7-code", 262_144],
   // MiniMax.
   ["minimax-m3", 1_000_000],
+  // Eigener Server evox2 (docs/local-llm.md): das lokale IQ4XS-Quant läuft mit 131072 Kontext, nicht mit dem
+  // 1M der Cloud-Variante — spezifischer als `qwen3.8`, daher davor (Quelle: pi `models.json` contextWindow).
+  ["halogen-qwen3.8-flash-next-uncensored", 131_072],
   // Alibaba Qwen.
   ["qwen3.8", 1_000_000],
 ];

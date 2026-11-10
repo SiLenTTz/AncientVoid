@@ -22,6 +22,11 @@ describe("contextWindowFor (ADR-0032, Quelle models.dev 2026-09-26)", () => {
     expect(contextWindowFor("opencode/muse-spark-1.3-contributor-free")).toBe(1_048_576);
   });
 
+  it("evox2: das lokale Halogen-Quant hat 131072, die Cloud-Variante qwen3.8 behält ihr Fenster", () => {
+    expect(contextWindowFor("evo-evox2/halogen-qwen3.8-flash-next-uncensored-iq4xs")).toBe(131_072);
+    expect(contextWindowFor("qwen3.8-plus")).toBe(1_000_000);
+  });
+
   it("kennt die großen Familien", () => {
     expect(contextWindowFor("claude-haiku-4-5")).toBe(200_000);
     expect(contextWindowFor("claude-sonnet-5")).toBe(1_000_000);
