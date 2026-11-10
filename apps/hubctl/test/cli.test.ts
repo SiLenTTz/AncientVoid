@@ -1,4 +1,9 @@
 import { describe, it, expect } from "vitest";
+import { execFile } from "node:child_process";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { promisify } from "node:util";
 import { buildWsUrl, formatHealth } from "../src/cli.ts";
 
 /**
@@ -55,5 +60,31 @@ describe("formatHealth (T4.5-6)", () => {
 
   it("still works with the pre-P4.5 {ok, adapters} payload", () => {
     expect(formatHealth({ ok: true, adapters: [] })).toEqual(["ok: true"]);
+  });
+});
+
+describe("token issue label validation (BUG-0108)", () => {
+  const run = (args: string[]) => promisify(execFile)(process.execPath, [resolve("apps/hubctl/src/cli.ts"), ...args]);
+
+  it("rejects an empty label with usage/exit 1 — the CLI must not mint tokens the API would refuse", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-hubctl-"));
+    try {
+      const err = await run(["token", "issue", "", "--db", join(dir, "hub.db")]).catch((e: unknown) => e as { code?: number; stdout?: string });
+      expect(err).toBeInstanceOf(Error);
+      expect((err as { code?: number }).code).toBe(1);
+      expect(((err as { stdout?: string }).stdout ?? "")).toContain("Usage:");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("still issues a token for a real label (guard against over-blocking)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-hubctl-"));
+    try {
+      const out = await run(["token", "issue", "cli-test", "--db", join(dir, "hub.db")]);
+      expect(out.stdout).toContain("token for \"cli-test\"");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });
