@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { basicFeatures } from "@ancientvoid/contracts";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -25,9 +26,12 @@ describe("graph routes (integration, EPIC-P48)", () => {
     registry.register("dummy", () => ({
       id: "dummy",
       version: "0.0.1",
-      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none", features: { followUp: false, interrupt: false } }),
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: false, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: false, interrupt: false }) }),
       async start(_spec, ctx) {
         return { sessionId: ctx.sessionId };
+      },
+      async steer() {
+        return { ok: true };
       },
       async recover(sessionId) {
         return { sessionId };
