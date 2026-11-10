@@ -89,8 +89,15 @@ function xmlText(xml: string, paragraph: RegExp): string {
 }
 
 /** DOCX/XLSX/PPTX are zipped XML — read the text parts directly. */
+// BUG-0109: the input cap covers the compressed file only — inflate just the
+// parts this function reads, and cap those, or one small file decompresses
+// gigabytes (measured: 4.9 MB in, ~4.9 GB RSS out).
+const OFFICE_PART = /^(word\/document\.xml|content\.xml|xl\/workbook\.xml|xl\/sharedStrings\.xml|ppt\/slides\/slide\d+\.xml|xl\/worksheets\/sheet\d+\.xml)$/;
+const MAX_EXTRACTED_BYTES = 128 * 1024 * 1024;
+
 export function officeText(bytes: Uint8Array, name: string): string {
-  const files = unzipSync(bytes);
+  const files = unzipSync(bytes, { filter: (f) => OFFICE_PART.test(f.name) });
+  for (const [path, data] of Object.entries(files)) if (data.length > MAX_EXTRACTED_BYTES) throw new Error(`extracted entry over size limit: ${path}`);
   const text = (path: string) => (files[path] ? strFromU8(files[path]) : "");
   const ext = name.toLowerCase().split(".").pop();
   if (ext === "docx" || files["word/document.xml"]) return xmlText(text("word/document.xml"), /<\/w:p>|<w:br\/>|<w:tab\/>/g);
