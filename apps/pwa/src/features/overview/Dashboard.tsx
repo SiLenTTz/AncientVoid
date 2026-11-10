@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
-import type { FleetHost, SessionRecord } from "../../shared/api.ts";
-import { hostApi, remoteHost } from "../../shared/api.ts";
+import type { DiscoveredProject, FleetHost, SessionRecord } from "../../shared/api.ts";
+import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
 import { targetKey } from "../windows/protocol.ts";
 import { useOpenWindows } from "../windows/windows.ts";
 import { isLastSession, type LastSession } from "../shell/last-session.ts";
@@ -100,6 +100,12 @@ function matches(s: SessionRecord, q: string): boolean {
   return q.toLowerCase().split(/\s+/).every((w) => hay.includes(w));
 }
 
+/** EPIC-P47: Ansicht der Übersicht — Sessions (Karten), Projekte oder Hosts. */
+type OverviewView = "sessions" | "projects" | "hosts";
+const VIEW_KEY = "ancientvoid.overviewView";
+const VIEWS: readonly OverviewView[] = ["sessions", "projects", "hosts"];
+const VIEW_TITLE: Record<OverviewView, string> = { sessions: "Sessions", projects: "Projekte", hosts: "Hosts" };
+
 export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, onOpenApprovals, onOpenDiscovery, lastSession = null }: DashboardProps) {
   const windowKeys = new Set(Object.values(useOpenWindows()).map((e) => targetKey(e.target)));
   // Once per visit (not per 3 s poll): bring the remembered session into view.
@@ -107,7 +113,6 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
   useEffect(() => {
     document.querySelector(".session-card[aria-current]")?.scrollIntoView?.({ block: "nearest" });
   }, [lastSession?.sessionId, hasSessions]);
-  const fleet = hosts.length > 1;
   const [showArchived, setShowArchived] = useState(false);
   const [override, setOverride] = useState<Record<string, Partial<SessionRecord>>>({});
   const [actionError, setActionError] = useState("");
@@ -123,6 +128,36 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
     window.addEventListener("ancientvoid:overview-filter", on);
     return () => window.removeEventListener("ancientvoid:overview-filter", on);
   }, []);
+  // EPIC-P47: Ansicht gerätelokal merken — gleiche Mechanik wie der Statusfilter.
+  const [view, setView] = useState<OverviewView>(() => {
+    const v = sessionStorage.getItem(VIEW_KEY);
+    return v === "projects" || v === "hosts" ? v : "sessions";
+  });
+  const setOverviewView = (v: OverviewView) => {
+    sessionStorage.setItem(VIEW_KEY, v);
+    setView(v);
+  };
+  // Host-Karten der Hosts-Ansicht filtern hierauf; der Chip löst den Filter wieder.
+  const [hostFilter, setHostFilter] = useState<string | null>(null);
+  const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
+  const [projectsWarning, setProjectsWarning] = useState("");
+  useEffect(() => {
+    if (view !== "projects") return;
+    let alive = true;
+    hubApi
+      .projects()
+      .then((r) => {
+        if (!alive) return;
+        setProjects(r.projects);
+        setProjectsWarning(r.warnings.join(" · "));
+      })
+      .catch((err: unknown) => {
+        if (alive) setProjectsWarning(err instanceof Error ? err.message : "Projektliste nicht erreichbar.");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [view]);
   const queryRef = useRef(query);
   queryRef.current = query;
   useEffect(() => registerField("session_filter", { get: () => queryRef.current, set: setQuery }), []);
@@ -150,8 +185,9 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
     () =>
       sessionsForOverview(withOverride, showArchived)
         .filter((s) => matches(s, query.trim()))
+        .filter((s) => (hostFilter ? (s.hostId ?? "local") === hostFilter : true))
         .filter((s) => (statusFilter === "waiting" ? sectionOf(s) === "braucht" : statusFilter === "active" ? sectionOf(s) === "aktiv" || sectionOf(s) === "braucht" : true)),
-    [withOverride, showArchived, query, statusFilter],
+    [withOverride, showArchived, query, statusFilter, hostFilter],
   );
   const sorted = useMemo(() => [...visible].sort(compareByActivity), [visible]);
   const sections = useMemo(() => {
@@ -204,79 +240,172 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
         </button>
       )}
       {actionError && <div class="reply-error">{actionError}</div>}
-      <div class="dashboard-summary dim">
-        {todayCost && <span>Heute: {todayCost}</span>}
-        <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => setShowArchived((on) => !on)}>
-          {showArchived ? "Aktive" : `Archiv${archivedCount > 0 ? ` (${archivedCount})` : ""}`}
-        </button>
-        {onOpenDiscovery && (
-          <button class="chip" type="button" onClick={onOpenDiscovery}>
-            Gefunden
+      {/* EPIC-P47 T47.1: ein Umschalter statt der rein informativen Host-Chips. */}
+      <div class="overview-switch" role="tablist" aria-label="Übersichtsansicht">
+        {VIEWS.map((v) => (
+          <button key={v} type="button" role="tab" aria-selected={view === v} class={`chip overview-switch-btn${view === v ? " active" : ""}`} onClick={() => setOverviewView(v)}>
+            {VIEW_TITLE[v]}
           </button>
-        )}
+        ))}
       </div>
-      {statusFilter !== "all" && statusFilter !== "recent" && (
-        <button
-          type="button"
-          class="chip active status-filter"
-          onClick={() => {
-            sessionStorage.removeItem("ancientvoid.overviewFilter");
-            setStatusFilter("all");
+      {view === "projects" && <ProjectsView projects={projects} warning={projectsWarning} sessions={withOverride} />}
+      {view === "hosts" && (
+        <HostsView
+          hosts={hosts}
+          sessions={withOverride}
+          onPick={(id) => {
+            setHostFilter(id);
+            setOverviewView("sessions");
           }}
-        >
-          {statusFilter === "waiting" ? "nur wartende" : "nur aktive"} ✕
-        </button>
+        />
       )}
-      {sessions.length > 4 && (
-        <input class="dashboard-search" type="search" placeholder="Sessions filtern…" aria-label="Sessions filtern" value={query} onInput={(e) => setQuery((e.target as HTMLInputElement).value)} />
-      )}
-      {fleet && (
-        <div class="fleet-hosts">
-          {hosts.map((h) => (
-            <span key={h.hostId} class={`chip subtle host-chip ${h.state}`} title={h.detail ?? undefined}>
-              {h.label ?? h.hostId.slice(0, 8)} · {HOST_STATE_LABEL[h.state]}
-              {h.state !== "reachable" && h.lastSyncAt
-                ? ` · Stand ${new Date(h.lastSyncAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`
-                : ""}
-            </span>
-          ))}
-        </div>
-      )}
-      {sorted.length === 0 ? (
-        <div class="empty">{query ? "nichts gefunden" : showArchived ? "nichts archiviert" : "keine Sessions — lege eine an"}</div>
-      ) : (
-        order
-          .filter((key) => sections[key].length > 0)
-          .map((key) => {
-            const list = key === "zuletzt" && !allRecent && !query ? sections[key].slice(0, RECENT_LIMIT) : sections[key];
-            return (
-              <section key={key} class={`session-section section-${key}`} aria-label={SECTION_TITLE[key]}>
-                <h2 class="section-title">
-                  {showArchived ? "Archiv" : SECTION_TITLE[key]} <span class="dim">{sections[key].length}</span>
-                </h2>
-                {list.map((s) => (
-                  <SessionRow
-                    key={`${s.hostId ?? ""}:${s.id}`}
-                    session={s}
-                    hosts={hosts ?? []}
-                    onOpen={onOpen}
-                    isLast={isLastSession(lastSession, s.id, remoteHost(s.hostId))}
-                    inWindow={windowKeys.has(targetKey({ kind: "session", sessionId: s.id, ...(remoteHost(s.hostId) ? { hostId: remoteHost(s.hostId)! } : {}) }))}
-                    onArchive={archive}
-                    onPin={pin}
-                    onDelete={remove}
-                  />
-                ))}
-                {list.length < sections[key].length && (
-                  <button class="btn more-sessions" type="button" onClick={() => setAllRecent(true)}>
-                    Alle {sections[key].length} zeigen
-                  </button>
-                )}
-              </section>
-            );
-          })
+      {view === "sessions" && (
+        <>
+          <div class="dashboard-summary dim">
+            {todayCost && <span>Heute: {todayCost}</span>}
+            <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => setShowArchived((on) => !on)}>
+              {showArchived ? "Aktive" : `Archiv${archivedCount > 0 ? ` (${archivedCount})` : ""}`}
+            </button>
+            {onOpenDiscovery && (
+              <button class="chip" type="button" onClick={onOpenDiscovery}>
+                Gefunden
+              </button>
+            )}
+          </div>
+          {statusFilter !== "all" && statusFilter !== "recent" && (
+            <button
+              type="button"
+              class="chip active status-filter"
+              onClick={() => {
+                sessionStorage.removeItem("ancientvoid.overviewFilter");
+                setStatusFilter("all");
+              }}
+            >
+              {statusFilter === "waiting" ? "nur wartende" : "nur aktive"} ✕
+            </button>
+          )}
+          {hostFilter && (
+            <button type="button" class="chip active status-filter" onClick={() => setHostFilter(null)}>
+              Host: {hostLabel(hosts, hostFilter)} ✕
+            </button>
+          )}
+          {sessions.length > 4 && (
+            <input class="dashboard-search" type="search" placeholder="Sessions filtern…" aria-label="Sessions filtern" value={query} onInput={(e) => setQuery((e.target as HTMLInputElement).value)} />
+          )}
+          {sorted.length === 0 ? (
+            <div class="empty">{query || hostFilter ? "nichts gefunden" : showArchived ? "nichts archiviert" : "keine Sessions — lege eine an"}</div>
+          ) : (
+            order
+              .filter((key) => sections[key].length > 0)
+              .map((key) => {
+                const list = key === "zuletzt" && !allRecent && !query ? sections[key].slice(0, RECENT_LIMIT) : sections[key];
+                return (
+                  <section key={key} class={`session-section section-${key}`} aria-label={SECTION_TITLE[key]}>
+                    <h2 class="section-title">
+                      {showArchived ? "Archiv" : SECTION_TITLE[key]} <span class="dim">{sections[key].length}</span>
+                    </h2>
+                    {list.map((s) => (
+                      <SessionRow
+                        key={`${s.hostId ?? ""}:${s.id}`}
+                        session={s}
+                        hosts={hosts ?? []}
+                        onOpen={onOpen}
+                        isLast={isLastSession(lastSession, s.id, remoteHost(s.hostId))}
+                        inWindow={windowKeys.has(targetKey({ kind: "session", sessionId: s.id, ...(remoteHost(s.hostId) ? { hostId: remoteHost(s.hostId)! } : {}) }))}
+                        onArchive={archive}
+                        onPin={pin}
+                        onDelete={remove}
+                      />
+                    ))}
+                    {list.length < sections[key].length && (
+                      <button class="btn more-sessions" type="button" onClick={() => setAllRecent(true)}>
+                        Alle {sections[key].length} zeigen
+                      </button>
+                    )}
+                  </section>
+                );
+              })
+          )}
+        </>
       )}
     </div>
+  );
+}
+
+/** EPIC-P47 T47.2: Karte je entdecktem Projekt; Klick pins den Root im Dateibaum. */
+function ProjectsView({ projects, warning, sessions }: { projects: DiscoveredProject[] | null; warning: string; sessions: SessionRecord[] }) {
+  if (warning) {
+    return (
+      <div class="reply-error" role="alert">
+        {warning}
+      </div>
+    );
+  }
+  if (projects === null) return <div class="empty">Projekte laden…</div>;
+  if (projects.length === 0) return <div class="empty">keine Projekte gefunden — lege eines an</div>;
+  return (
+    <section class="session-section" aria-label="Projekte">
+      <h2 class="section-title">
+        Projekte <span class="dim">{projects.length}</span>
+      </h2>
+      {projects.map((p) => {
+        const n = sessions.filter((s) => s.archived !== true && s.project === p.path).length;
+        return (
+          <div key={p.path} class="card project-card">
+            <button
+              class="session-open"
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("ancientvoid:files-open-root", { detail: { kind: "project", path: p.path, label: p.name } }))}
+            >
+              <div class="row">
+                <strong class="session-title">{p.name}</strong>
+                {n > 0 && <span class="pill ok">{n} Session{n === 1 ? "" : "s"}</span>}
+              </div>
+              <div class="session-where dim">
+                {p.path}
+                {p.branch ? ` · ${p.branch}` : ""}
+              </div>
+              <div class="session-activity">
+                <span class="session-activity-text dim">Dateibaum öffnen</span>
+              </div>
+            </button>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+/** EPIC-P47 T47.3: Karte je Fleet-Host; Klick filtert die Session-Ansicht auf den Host. */
+function HostsView({ hosts, sessions, onPick }: { hosts: FleetHost[]; sessions: SessionRecord[]; onPick: (hostId: string) => void }) {
+  const list: FleetHost[] =
+    hosts.length > 0 ? hosts : [{ hostId: "local", label: "dieser Rechner", self: true, url: null, state: "reachable", lastSyncAt: null, detail: null, sessions: 0 }];
+  return (
+    <section class="session-section" aria-label="Hosts">
+      <h2 class="section-title">
+        Hosts <span class="dim">{list.length}</span>
+      </h2>
+      {list.map((h) => {
+        const n = sessions.filter((s) => s.archived !== true && (s.hostId ?? "local") === h.hostId).length;
+        return (
+          <div key={h.hostId} class="card host-card">
+            <button class="session-open" type="button" onClick={() => onPick(h.hostId)}>
+              <div class="row">
+                <strong class="session-title">{h.label ?? h.hostId.slice(0, 8)}</strong>
+                <span class={`pill ${h.state === "reachable" ? "ok" : h.state === "stale" || h.state === "unauthorized" ? "warn" : "err"}`}>{HOST_STATE_LABEL[h.state]}</span>
+              </div>
+              <div class="session-where dim">
+                {h.detail ?? h.hostId}
+                {h.state !== "reachable" && h.lastSyncAt ? ` · Stand ${new Date(h.lastSyncAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}` : ""}
+              </div>
+              <div class="session-activity">
+                <span class="session-activity-text dim">{n > 0 ? `${n} Session${n === 1 ? "" : "s"} zeigen` : "keine Sessions"}</span>
+              </div>
+            </button>
+          </div>
+        );
+      })}
+    </section>
   );
 }
 
