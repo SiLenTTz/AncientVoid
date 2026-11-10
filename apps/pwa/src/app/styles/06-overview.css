@@ -150,3 +150,14 @@
 .host-card .pill {
   flex-shrink: 0;
 }
+
+/* EPIC-P48: Icon-Knopf (Repo-Graph) links in den Karten-Aktionen. */
+.session-card-actions .graph-open {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+}
+.session-card-actions .graph-open .tab-icon {
+  width: 16px;
+  height: 16px;
+}

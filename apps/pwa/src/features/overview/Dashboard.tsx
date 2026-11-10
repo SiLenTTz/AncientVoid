@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
 import type { DiscoveredProject, FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
+import { graphHash } from "../../app/route.ts";
 import { targetKey } from "../windows/protocol.ts";
+import { TabIcon } from "../../shared/TabIcon.tsx";
 import { useOpenWindows } from "../windows/windows.ts";
 import { isLastSession, type LastSession } from "../shell/last-session.ts";
 import { compareByActivity, IDLE_STILL_ACTIVE_MS, lastActivityAt, sessionsForOverview } from "./session-list.ts";
@@ -463,6 +465,16 @@ function SessionRow({
         </div>
       </button>
       <div class="session-card-actions">
+        {/* EPIC-P48: Repo-Graph dieser Session direkt aus der Übersichtskarte (unten links). */}
+        <button
+          class="link-btn graph-open"
+          type="button"
+          aria-label={`Repo-Graph von ${session.title ?? project} öffnen`}
+          title="Repo-Graph"
+          onClick={() => (location.hash = graphHash(session.id, remoteHost(session.hostId)))}
+        >
+          <TabIcon name="graph" />
+        </button>
         <button class="link-btn" type="button" aria-pressed={session.pinned === true} onClick={() => void onPin(session)}>
           {session.pinned ? "Lösen" : "Anheften"}
         </button>

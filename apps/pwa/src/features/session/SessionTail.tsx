@@ -1,9 +1,10 @@
 import { InterruptedBanner } from "./InterruptedBanner.tsx";
 import { copyWithRetry } from "./copy-selection.ts";
-import { sessionHash } from "../../app/route.ts";
+import { sessionHash, fileHash } from "../../app/route.ts";
 import { HandoverBar } from "./Handover.tsx";
 import { currentProviderFailure } from "./handover.ts";
 import { TabIcon, type TabIconName } from "../../shared/TabIcon.tsx";
+import { openPopout } from "../windows/windows.ts";
 import { Fragment } from "preact";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiContext } from "../../shared/api-context.ts";
@@ -20,6 +21,8 @@ import type { Page } from "../../app/Dock.tsx";
 import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
+import { GraphPane } from "../graph/GraphPane.tsx";
+import { FileViewer } from "../files/FileViewer.tsx";
 import { statusLabel } from "../../shared/status.ts";
 import { getHere, registerField, setHere, touchField } from "../../shared/command-context.ts";
 import { useDraft } from "./draft.ts";
@@ -49,7 +52,7 @@ const BACKGROUND_FLUSH_MS = 50;
 /** Rows a tile without focus keeps in the DOM. */
 const BACKGROUND_ROWS = 150;
 /** Tabs that read rather than talk: the composer folds away in a desktop tile. */
-const READING_TABS: ReadonlySet<string> = new Set(["diff", "forge", "bericht", "suche", "code", "umgebung"]);
+const READING_TABS: ReadonlySet<string> = new Set(["diff", "forge", "bericht", "suche", "code", "umgebung", "graph", "datei"]);
 
 /** EPIC-P18: set when this view is one tile of the desktop workspace —
  * several SessionTails then share one page. */
@@ -64,11 +67,16 @@ export function SessionTail({
   session,
   onNavigate,
   initialCode,
+  initialTab,
+  initialFile,
   tile,
 }: {
   session: SessionRecord;
   onNavigate: (page: Page) => void;
   initialCode?: CodeTarget;
+  /** EPIC-P48: direkt im Graph- bzw. Datei-Tab öffnen (Hash-Routen `…/graph`, `…/datei/<path>`). */
+  initialTab?: "graph" | "datei";
+  initialFile?: string | null;
   tile?: TileContext;
 }) {
   // EPIC-P6: every call of this view goes to the session's own host.
@@ -181,9 +189,11 @@ export function SessionTail({
   // filter split above — it replaces the event list with a summary pane
   // instead of filtering it, so it needs its own bit of state rather than
   // being derived from `filter` like Chat/Verlauf are.
-  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "forge" | "suche" | "code" | "umgebung">(() =>
-    initialCode ? "code" : loadFilter() === "lesen" ? "chat" : "verlauf",
+  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "graph" | "datei" | "forge" | "suche" | "code" | "umgebung">(() =>
+    initialCode ? "code" : initialTab === "graph" ? "graph" : initialFile ? "datei" : loadFilter() === "lesen" ? "chat" : "verlauf",
   );
+  /** EPIC-P48: im Datei-Tab geöffnete Datei (Knoten-Klick aus dem Graph). */
+  const [openFile, setOpenFile] = useState<string | null>(initialFile ?? null);
 
   // T1.5-6: the PWA could watch and stop a session, but never reply to
   // one — POST /api/sessions/:id/steer existed server-side and both real
@@ -687,6 +697,8 @@ export function SessionTail({
     { id: "verlauf", label: "Verlauf", icon: "verlauf", show: showVerlaufTab },
     { id: "bericht", label: "Bericht", icon: "bericht", show: showBerichtTab },
     { id: "diff", label: "Diff", icon: "diff", show: showDiffTab },
+    { id: "graph", label: "Graph", icon: "graph", show: () => setActiveTab("graph") },
+    { id: "datei", label: "Datei", icon: "datei", show: () => setActiveTab("datei") },
     { id: "forge", label: "GitLab", icon: "forge", show: () => setActiveTab("forge") },
     { id: "suche", label: "Suche", icon: "suche", show: showSucheTab },
     { id: "code", label: "Code", icon: "code", show: showCodeTab },
@@ -898,6 +910,51 @@ export function SessionTail({
           <DiffReview diff={diff} session={session} />
         ) : activeTab === "forge" ? (
           <ForgePanel session={session} onOpenSession={(id) => { location.hash = sessionHash(id, remoteHost(session.hostId)); }} />
+        ) : activeTab === "graph" ? (
+          <>
+            <div class="graph-pane-tools">
+              <button
+                type="button"
+                class="btn"
+                aria-label="Graph in eigenes Fenster"
+                title="In eigenes Fenster"
+                onClick={() => void openPopout({ kind: "graph", sessionId: session.id, ...(remoteHost(session.hostId) ? { hostId: remoteHost(session.hostId)! } : {}) })}
+              >
+                ⧉ Eigenes Fenster
+              </button>
+            </div>
+            <GraphPane
+              target={`session=${encodeURIComponent(session.id)}`}
+              hostId={remoteHost(session.hostId) ?? null}
+              onOpenFile={(path) => {
+                setOpenFile(path);
+                setActiveTab("datei");
+                // Deeplink wie beim Code-Tab: Back/Reload bleibt nachvollziehbar.
+                location.hash = fileHash(session.id, path, remoteHost(session.hostId));
+              }}
+            />
+          </>
+        ) : activeTab === "datei" ? (
+          <>
+            {openFile && (
+              <div class="graph-pane-tools">
+                <button
+                  type="button"
+                  class="btn"
+                  aria-label="Datei in eigenes Fenster"
+                  title="In eigenes Fenster"
+                  onClick={() => void openPopout({ kind: "file", sessionId: session.id, path: openFile, ...(remoteHost(session.hostId) ? { hostId: remoteHost(session.hostId)! } : {}) })}
+                >
+                  ⧉ Eigenes Fenster
+                </button>
+              </div>
+            )}
+            {openFile ? (
+              <FileViewer target={`session=${encodeURIComponent(session.id)}`} path={openFile} hostId={remoteHost(session.hostId) ?? null} />
+            ) : (
+              <div class="empty">keine Datei geöffnet — im Graph oder im Dateibaum wählen</div>
+            )}
+          </>
         ) : activeTab === "suche" ? (
           <SearchPane project={session.project} />
         ) : activeTab === "code" ? (
