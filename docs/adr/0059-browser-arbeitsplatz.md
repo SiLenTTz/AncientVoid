@@ -84,14 +84,17 @@ P39 (AC-P39-1, T39.1-Latenz) sind ebenfalls offen.
 ## Messung / Budgets
 
 Frame ≈ JPEG q60 (Größenordnung 20–80 KB je Seite), Abruf 2 Bilder/s im Panel, nie im Eventstrom.
-Browser-Start ≈ 1 s kalt auf dem Entwicklungsrechner; Contexts ≤ 4 Host-weit. Messung auf
-Pixel/Tailscale (Latenz, Lesbarkeit, Last mit K1/K2/K7/K8) steht aus.
+Browser-Start ≈ 1 s kalt auf dem Entwicklungsrechner; Contexts ≤ 4 Host-weit. **Gerätemessung
+2026-11-10** (phone-e2e, echtes ONEPLUS A6013, USB/adb-reverse gegen den Test-Hub): Start-zu-Bild
+1062 ms, Klick-zu-Titel 124 ms — innerhalb der Spec-Budgets (15 s / 10 s, K1/K2-Geist); die
+gesamte browser-workspace-Spec läuft auf dem Gerät grün (5 passed, Popout als Desktop-Konzept
+dort bewusst übersprungen).
 
 ## Nicht Teil dieses Stands
 
-- Geräte-/Tailscale-Abnahme (AC-P39-1, Latenzmessung), Live-Test des sichtbaren Modus mit Anzeige,
-  Sessions anderer Maschinen, Trace/Video-Artefakte (nur Screenshot), Source-Map-Auswertung,
-  Frame-Inhalte fremder iframes, Agenten-Operationen über das Gateway (bewusst Menschen-only).
+- Live-Test des sichtbaren Modus mit Anzeige, Sessions anderer Maschinen, Trace/Video-Artefakte
+  (nur Screenshot), Source-Map-Auswertung, Frame-Inhalte fremder iframes, Agenten-Operationen
+  über das Gateway (bewusst Menschen-only).
 
 ## Folgen
 
