@@ -70,7 +70,7 @@ const GLOBAL: Entry[] = [
   { id: "G04", name: "Entdeckt über den Chip „Gefunden“", from: "start", reach: async (c) => { await c.tap(c.page.locator(".dashboard-summary").getByRole("button", { name: "Gefunden" })); await expect(c.page.locator(".discovery")).toBeVisible(); } },
   { id: "G05", name: "Medien", from: "start", reach: async (c) => { await nav(c, "Medien"); await expect(c.page.locator(".media-caps")).toBeVisible(); } },
   { id: "G06", name: "Runs", from: "start", reach: async (c) => { await c.tap(dock(c, "Runs")); await expect(c.page.getByTestId("runs-pane").first()).toBeVisible(); } },
-  { id: "G07", name: "Notizen", from: "start", reach: async (c) => { await nav(c, "Notizen"); await expect(c.page).toHaveURL(/#\/notizen$/); await expect(c.page.locator(".vault-pane, .files-error, .empty").first()).toBeVisible({ timeout: 20_000 }); } },
+  { id: "G07", name: "Notizen", from: "start", reach: async (c) => { await nav(c, "Notizen"); await expect(c.page).toHaveURL(/#\/notizen$/); await expect(c.page.locator(".vault-pane, .vault-picker, .files-error, .empty").first()).toBeVisible({ timeout: 20_000 }); } },
   { id: "G08", name: "Automationen", from: "start", reach: async (c) => { await nav(c, "Automationen"); await expect(c.page.getByTestId("automations-pane")).toBeVisible(); } },
   { id: "G09", name: "Einstellungen: Darstellung (Erscheinungsbild, Akzent, Größe)", from: "start", reach: settingsGroup("Darstellung") },
   { id: "G10", name: "Einstellungen: Schrift", from: "start", reach: settingsGroup("Schrift") },
