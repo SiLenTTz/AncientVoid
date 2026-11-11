@@ -66,10 +66,11 @@ test.describe("Automationen (EPIC-P41)", () => {
     await app.getByRole("button", { name: "Aktivieren" }).first().click();
     await expect(app.getByTestId("automation-state").first()).toHaveText("aktiv", { timeout: 10_000 });
 
-    // Der minütliche Scheduler-Tick feuert den geplanten Lauf (echter Kurztakt, kein run-now).
+    // Der minütliche Scheduler-Tick feuert den geplanten Lauf (echter Kurztakt, kein run-now);
+    // ADR-0065: das Turn-End rechnet belegt ab — settled ist der Endzustand, dispatched nur der Auftrag.
     await expect
       .poll(async () => (await listAutomations(hub)).find((a) => a.definition.id === created.id)?.lastOccurrence?.state ?? "", { timeout: 100_000, intervals: [3_000] })
-      .toBe("dispatched");
+      .toBe("settled");
     const info = (await listAutomations(hub)).find((a) => a.definition.id === created.id)!;
     expect(info.lastOccurrence?.sessionId).toBeTruthy(); // Startauftrag mit echter Session (dispatched ≠ geraten).
     expect(info.nextOccurrences.length).toBeGreaterThan(0); // Vorschau bleibt gefüllt.
@@ -77,7 +78,7 @@ test.describe("Automationen (EPIC-P41)", () => {
     // Verlauf in der PWA: Zustand + Session-Verweis.
     await app.getByText("E2E-Kurztakt").first().click();
     await expect(app.getByTestId("automation-detail")).toBeVisible();
-    await expect(app.getByTestId("automation-history")).toContainText("gestartet");
+    await expect(app.getByTestId("automation-history")).toContainText("abgerechnet");
     await expect(app.getByTestId("automation-detail")).toContainText("Session ↗");
 
     // Disable stoppt zukünftige Termine (AC-P41-5), laufende Arbeit bleibt unberührt.
@@ -89,12 +90,12 @@ test.describe("Automationen (EPIC-P41)", () => {
   test("Hub-Restart erhält Definition und Verlauf; kein zweiter Lauf für dieselbe Minute (AC-P41-3/6)", async ({ hub }) => {
     const hostId = await hubHostId(hub);
     const created = await createAutomation(hub, hostId, { label: "E2E-Restart" });
-    const enable = await hub.api(`/api/automations/${created.id}/enable`, { body: { enabled: true } });
+    const enable = await hub.api(`/api/automations/${created.id}/enable`, { body: { enabled: true, generation: 1 } });
     expect(enable.status).toBe(200);
 
     await expect
       .poll(async () => (await listAutomations(hub)).find((a) => a.definition.id === created.id)?.lastOccurrence?.state ?? "", { timeout: 100_000, intervals: [3_000] })
-      .toBe("dispatched");
+      .toBe("settled");
     const before = (await listAutomations(hub)).find((a) => a.definition.id === created.id)!;
     const occurrence = before.lastOccurrence!.utc;
     expect((await historyOf(hub, created.id)).filter((h) => h.occurrenceUtc === occurrence)).toHaveLength(1);
@@ -107,7 +108,7 @@ test.describe("Automationen (EPIC-P41)", () => {
       .toBe(true); // Definition und Freigabe erhalten (AC-P41-6).
     const info = (await listAutomations(hub)).find((a) => a.definition.id === created.id)!;
     expect(info.definition.generation).toBe(1);
-    expect(info.lastOccurrence?.state).toBe("dispatched");
+    expect(info.lastOccurrence?.state).toBe("settled");
 
     // Der Sofort-Tick nach dem Start darf dieselbe Occurrence nicht erneut starten: Dedupe über den Claim-Schlüssel.
     await expect
@@ -118,15 +119,15 @@ test.describe("Automationen (EPIC-P41)", () => {
   test("Negativprobe: nicht registrierte Precheck-Aktion überspringt mit getrenntem Grund (AC-P41-4)", async ({ hub }) => {
     const hostId = await hubHostId(hub);
     const created = await createAutomation(hub, hostId, { label: "E2E-Precheck-Negativ", precheckActionId: "diese-aktion-existiert-nicht" });
-    const enable = await hub.api(`/api/automations/${created.id}/enable`, { body: { enabled: true } });
+    const enable = await hub.api(`/api/automations/${created.id}/enable`, { body: { enabled: true, generation: 1 } });
     expect(enable.status).toBe(200);
 
     await expect
       .poll(async () => (await listAutomations(hub)).find((a) => a.definition.id === created.id)?.lastOccurrence ?? null, { timeout: 100_000, intervals: [3_000] })
       .toMatchObject({ state: "skipped", reason: "precheck" });
 
-    // Run-Ziele sind in diesem Build bewusst nicht dispatchbar: Anlage failt laut, nicht still.
+    // Run-Ziele failen laut: eine unbekannte Vorlage darf keine Definition hinterlassen (ADR-0065).
     const runTarget = await hub.api("/api/automations", { body: { definition: { id: randomUUID(), label: "E2E-Run-Ziel", generation: 1, enabled: false, hostId, schedule: { kind: "preset", preset: "daily", localTime: "03:00", timezone: "UTC" }, target: { kind: "run", templateId: "es-gibt-keine" }, precheckDeadlineMs: 60_000, grant: { maxParallel: 1, missedGraceMs: 0 }, createdAtUtc: new Date().toISOString() } } });
-    expect(runTarget.status).toBe(501);
+    expect(runTarget.status).toBe(400);
   });
 });
