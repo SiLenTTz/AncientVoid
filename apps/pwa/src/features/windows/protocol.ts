@@ -26,6 +26,7 @@ export type WindowTarget =
   | { kind: "session"; sessionId: string; hostId?: string }
   | { kind: SessionViewKind; sessionId: string; hostId?: string }
   | { kind: "queue" }
+  | { kind: "nyx" }
   | { kind: "tool"; page: ToolPageId }
   | { kind: "graph"; sessionId: string; hostId?: string }
   | { kind: "file"; sessionId: string; path: string; hostId?: string }
@@ -56,6 +57,7 @@ export function targetKey(target: WindowTarget): string {
   if (target.kind === "vault") return `vault:${target.path ?? ""}`;
   if (target.kind === "device") return "device";
   if (target.kind === "queue") return "queue";
+  if (target.kind === "nyx") return "nyx";
   const host = target.hostId ?? "";
   if (isViewKind(target.kind)) return `${target.kind}:${host}|${target.sessionId}`;
   if (target.kind === "browser") return `browser:${host}|${target.sessionId}`;
@@ -73,6 +75,7 @@ export function popoutUrl(target: WindowTarget): string {
   if (target.kind === "browser") return `/?window=1${browserHash(target.sessionId, target.hostId)}`;
   if (target.kind === "device") return `/?window=1${devicesHash()}`;
   if (target.kind === "queue") return `/?window=1&view=queue${pageHash("dashboard")}`;
+  if (target.kind === "nyx") return `/?window=1&view=nyx${pageHash("dashboard")}`;
   if (isViewKind(target.kind)) return `/?window=1&view=${target.kind}${sessionHash(target.sessionId, target.hostId)}`;
   return `/?window=1${sessionHash(target.sessionId, target.hostId)}`;
 }
@@ -95,6 +98,7 @@ function parseTarget(raw: unknown): WindowTarget | null {
   }
   if (t.kind === "device") return { kind: "device" };
   if (t.kind === "queue") return { kind: "queue" };
+  if (t.kind === "nyx") return { kind: "nyx" };
   if (isViewKind(t.kind) && typeof t.sessionId === "string" && t.sessionId) {
     return typeof t.hostId === "string" && t.hostId ? { kind: t.kind, sessionId: t.sessionId, hostId: t.hostId } : { kind: t.kind, sessionId: t.sessionId };
   }

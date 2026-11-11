@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { hubApi, type ApprovalRequest, type HubApi, type ToolAssessment, type ToolQuestion } from "../../shared/api.ts";
 import { startAuthentication } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
+import { isYesNo, recommendedOption } from "../nyx/nyx-state.ts";
 
 /** T7.3: what happened after the decision, in words. */
 const OPERATION_LABEL: Partial<Record<NonNullable<ApprovalRequest["operation"]>["state"], string>> = {
@@ -49,8 +50,29 @@ function toolInputText(raw: string): string {
  * that replaces the pick (codex "Other"), digit keys per question (terminal UIs), Enter sends once
  * everything is answered, and the summary of what will be sent stays visible (maki).
  */
-export function QuestionForm({ questions, busy, onAnswer, onReject }: { questions: ToolQuestion[]; busy: boolean; onAnswer: (answers: Record<string, string>) => void; onReject: () => void }) {
-  const [picked, setPicked] = useState<Record<string, string[]>>({});
+/**
+ * `preselect` (EPIC-P43 T43.8, Nyx-Blatt): die vom Agenten empfohlene Option steht vorgewählt — gesendet wird
+ * trotzdem erst auf Tipp. `oneTap`: eine einzelne Ja/Nein-Frage antwortet mit dem Tipp auf die Option.
+ */
+export function QuestionForm({
+  questions,
+  busy,
+  onAnswer,
+  onReject,
+  preselect = false,
+  oneTap = false,
+}: {
+  questions: ToolQuestion[];
+  busy: boolean;
+  onAnswer: (answers: Record<string, string>) => void;
+  onReject: () => void;
+  preselect?: boolean;
+  oneTap?: boolean;
+}) {
+  const [picked, setPicked] = useState<Record<string, string[]>>(() =>
+    preselect ? Object.fromEntries(questions.flatMap((q) => (q.multiSelect ? [] : [[q.question, [recommendedOption(q.options)].filter((l): l is string => l !== null)]]))) : {},
+  );
+  const tapAnswers = oneTap && questions.length === 1 && !questions[0]!.multiSelect && isYesNo(questions[0]!.options);
   const [free, setFree] = useState<Record<string, string>>({});
   const toggle = (q: ToolQuestion, label: string) =>
     setPicked((prev) => {
@@ -96,6 +118,10 @@ export function QuestionForm({ questions, busy, onAnswer, onReject }: { question
                   class={`choice ${on ? "active" : ""}`}
                   title={o.description}
                   onClick={() => {
+                    if (tapAnswers) {
+                      if (!busy) onAnswer({ [q.question]: o.label });
+                      return;
+                    }
                     setFree((prev) => ({ ...prev, [q.question]: "" }));
                     toggle(q, o.label);
                   }}
