@@ -1,4 +1,4 @@
-import { test, expect, statusPill } from "../support/fixtures.ts";
+import { test, expect, statusPill, dockGo, openQuiet } from "../support/fixtures.ts";
 
 test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
   test("eine neue Session startet aus der UI und öffnet sich per Link @desktop", async ({ app, hub }) => {
@@ -94,12 +94,12 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(beta).toContainText("e2e/fake-model");
   });
 
-  test("T8.1: die Übersicht ordnet nach „Braucht dich“, „Aktiv“, „Zuletzt“ und öffnet eine Session", async ({ app, hub }) => {
+  test("T8.1/EPIC-P43 T43.3: der Start ordnet nach „Du bist dran“ und „Ruhig“ und öffnet eine Session", async ({ app, hub }) => {
     await hub.createSession({ adapter: "dummy" });
     const stopped = await hub.createSession({ adapter: "dummy", project: hub.beta });
     await hub.api(`/api/sessions/${stopped}/stop`, { body: {} });
     const waiting = await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
-    await expect(app.locator(".section-title")).toHaveText([/Braucht dich/, /Aktiv/, /Zuletzt/]);
+    await expect(app.locator(".section-title")).toHaveText([/Du bist dran/, /Ruhig/]);
     const need = app.locator(".section-braucht .session-card");
     await expect(need).toHaveCount(1);
     await expect(need.locator(".status")).toHaveText("Freigabe nötig");
@@ -109,8 +109,11 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(app).toHaveURL(new RegExp(`#/sessions/${waiting}`));
     await expect(app.locator(".session-approvals .approval-card")).toBeVisible();
     await app.goBack();
-    await expect(app.locator(".section-zuletzt .session-card .session-project")).toHaveText("beta");
-    await app.locator(".section-aktiv .session-card").filter({ hasText: "alpha" }).locator(".session-open").click();
+    // „Ruhig“ ist zu, solange oben etwas steht.
+    await expect(app.locator(".section-zuletzt .session-card")).toHaveCount(0);
+    await openQuiet(app);
+    await expect(app.locator(".section-zuletzt .session-card .session-project")).toHaveText(["alpha", "beta"]);
+    await app.locator(".section-zuletzt .session-card").filter({ hasText: "alpha" }).locator(".session-open").click();
     await expect(app.locator(".session-topbar")).toContainText("alpha");
     await expect(app.locator(".session-topbar")).toContainText("dummy");
   });
@@ -119,7 +122,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.getByRole("button", { name: "Neue Session" }).click();
     await expect(app).toHaveURL(/#\/neu$/);
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await expect(app).toHaveURL(/#\/einstellungen$/);
     await app.goBack();
     await expect(app).toHaveURL(/#\/neu$/);

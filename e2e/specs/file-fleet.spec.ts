@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 import { TestHub } from "../support/hub.ts";
 
 /** EPIC-P46 (ADR-0058 §10): Projekte und Dateien einer anderen Maschine über die Flotte — nur Lesen. */
@@ -11,14 +11,14 @@ test.describe("Dateien anderer Maschinen (EPIC-P46)", () => {
     const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
     try {
       writeFileSync(join(peer.alpha, "fern.txt"), "Inhalt von der anderen Maschine\n");
-      await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+      await dockGo(app, "Einstellungen");
       const invite = await peer.api<{ code: string }>("/api/fleet/invites", { body: {} });
       await app.getByLabel("Host hinzufügen — Adresse").fill(peer.origin);
       await app.getByLabel("Einladungscode vom anderen Hub").fill(invite.body.code.toLowerCase());
       await app.getByRole("button", { name: "Host verbinden" }).click();
       await expect(app.locator(".fleet-message.ok")).toHaveText("Verbunden mit silenttz-server.");
 
-      await app.locator(".dock").getByRole("button", { name: "Übersicht" }).click().catch(() => undefined);
+      await app.locator(".dock").getByRole("button", { name: "Start", exact: true }).click().catch(() => undefined);
       await app.getByRole("button", { name: "Dateibaum öffnen" }).click();
       const source = app.getByLabel("Dateiquelle");
       await expect(source.locator("option", { hasText: "(silenttz-server)" }).first()).toBeAttached({ timeout: 20_000 });

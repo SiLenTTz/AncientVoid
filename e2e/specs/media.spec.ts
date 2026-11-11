@@ -1,6 +1,6 @@
 import { createServer, type Server } from "node:http";
 import { fileURLToPath } from "node:url";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 import { freePort } from "../support/ports.ts";
 
 /**
@@ -60,7 +60,7 @@ test.describe("Medien: Videos analysieren (EPIC-P10.5)", () => {
     test.setTimeout(120_000);
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "first answer");
-    await app.getByRole("button", { name: "Medien" }).click();
+    await dockGo(app, "Medien");
     await expect(app).toHaveURL(/#\/medien$/);
     await expect(app.locator(".media-caps")).toContainText("✓ Transkript lokal");
     await expect(app.locator(".media-caps")).toContainText("✓ Zusammenfassung lokal");
@@ -95,7 +95,7 @@ test.describe("Medien: Videos analysieren (EPIC-P10.5)", () => {
   });
 
   test("YouTube-Link mit Untertiteln: kein STT nötig, Zeitmarke öffnet das Video an der Stelle; privates Video scheitert in Worten", async ({ app, context }) => {
-    await app.getByRole("button", { name: "Medien" }).click();
+    await dockGo(app, "Medien");
     const before = seen.length;
     await app.getByLabel("Video-Link").fill("https://www.youtube.com/watch?v=untertitel");
     await app.getByRole("button", { name: "Analysieren" }).click();

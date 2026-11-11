@@ -143,7 +143,7 @@
 
 .dock-item .lb {
   max-width: 100%;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .dock-item .ic {
@@ -152,6 +152,69 @@
 
 .dock-item.active {
   color: var(--accent);
+}
+
+/* EPIC-P43 T43.3: vier Ziele und eine Haupttaste. Die übrigen Ziele stehen nur in der PC-Leiste
+ * einzeln (21-icon-rail.css); am Handy und Tablet liegen sie im Blatt „Mehr“. */
+.dock-extra {
+  display: none;
+}
+
+.dock-main {
+  flex: none;
+  align-self: center;
+  justify-content: center;
+  width: 52px;
+  min-height: 44px;
+  margin: 4px 6px;
+  padding: 0;
+  border-radius: var(--radius-lg);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.dock-main.active {
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.dock-main .tab-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.more-sheet {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+}
+
+.more-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: 0 var(--space-4);
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.more-item.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.more-item .tab-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--fg-dim);
 }
 
 .settings-row {

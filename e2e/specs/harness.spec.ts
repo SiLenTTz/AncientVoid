@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, openApprovals } from "../support/fixtures.ts";
 
 test.describe("Harness-Parität (EPIC-P7)", () => {
   test("T7.1: Modell aus dem Katalog des Harness wählen, nur wo der Harness eines nimmt", async ({ app, hub }) => {
@@ -237,7 +237,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
 
   test("T7.2: die Tool-Anfrage steht auch in der Freigabe-Warteschlange", async ({ app, hub }) => {
     await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
-    await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();
+    await openApprovals(app);
     const card = app.locator(".approval-card").filter({ hasText: "echo hallo-ancientvoid" });
     await card.getByRole("button", { name: "Erlauben" }).click();
     await expect(app.getByText("keine offenen Freigaben")).toBeVisible();

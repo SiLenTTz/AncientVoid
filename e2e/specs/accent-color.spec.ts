@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 
 /** EPIC-P34 T34.5 (AC-P34-4): Akzentfarbe per Farbwähler-Modal, live, je Theme, mit exaktem Zurücksetzen. */
@@ -6,7 +6,7 @@ const accent = (app: Page) => app.evaluate(() => getComputedStyle(document.docum
 const stored = (app: Page) => app.evaluate(() => localStorage.getItem("ancientvoid.appearance"));
 
 async function openPicker(app: Page) {
-  await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+  await dockGo(app, "Einstellungen");
   await app.getByRole("button", { name: /Akzentfarbe wählen/ }).click();
   const dialog = app.getByRole("dialog", { name: /Akzentfarbe/ });
   await expect(dialog).toBeVisible();

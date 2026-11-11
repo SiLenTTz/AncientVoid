@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 import { Companion, type FocusBackend, type FocusInfo, type InputBackend } from "../../apps/companion/src/companion.ts";
 
 /**
@@ -37,7 +37,7 @@ class FakeDesktop implements FocusBackend, InputBackend {
 
 /** EPIC-P34 T34.1: der PC-Zugang liegt in den Einstellungen (Abschnitt „PC-Eingabe“), nicht mehr in der Kopfzeile. */
 async function openPcInput(app: Page): Promise<void> {
-  await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+  await dockGo(app, "Einstellungen");
   await app.locator("summary", { hasText: "PC-Eingabe" }).click();
 }
 

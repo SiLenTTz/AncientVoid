@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 
 test.describe("Anmeldung per Geräte-Token (BUG-0006, AC-P4.5-4)", () => {
   test("ohne Token erscheint die Token-Eingabe @desktop", async ({ page, hub }) => {
@@ -41,7 +41,7 @@ test.describe("Anmeldung per Geräte-Token (BUG-0006, AC-P4.5-4)", () => {
   });
 
   test("„Geräte-Token wechseln“ führt zurück zur Eingabe", async ({ app }) => {
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await app.getByRole("button", { name: "Geräte-Token wechseln" }).click();
     await expect(app.getByRole("heading", { name: "AncientVoid" })).toBeVisible();
   });

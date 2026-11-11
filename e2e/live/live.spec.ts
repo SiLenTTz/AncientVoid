@@ -55,7 +55,10 @@ test.describe("Live-Hub (nur lesend)", () => {
     // BUG-0084: das Benachrichtigungs-⚙ trägt dasselbe aria-label
     // „Einstellungen“ (Notifications.tsx) wie der Dock-Knopf — deshalb
     // scoped auf die globale Navigation (.dock), nicht auf die ganze Seite.
-    await page.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    const settingsButton = page.locator(".dock").getByRole("button", { name: "Einstellungen", exact: true });
+    // EPIC-P43 T43.3: am Handy liegt „Einstellungen“ unter „Mehr“.
+    if (!(await settingsButton.isVisible())) await page.locator(".dock").getByRole("button", { name: "Mehr", exact: true }).click();
+    await settingsButton.click();
     await expect(page.getByText(/Gemini/).first()).toBeVisible();
   });
 

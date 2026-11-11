@@ -169,6 +169,52 @@ function AssessmentBadge({ a }: { a: ToolAssessment }) {
   );
 }
 
+/**
+ * EPIC-P43 T43.3: die Entscheidung auf der Karte der Übersicht — Befehl, Laya-Einschätzung, Restzeit,
+ * Erlauben/Ablehnen. Nur für Freigaben, die ein Tipp entscheidet (overview/queue.ts: decidableOnCard);
+ * derselbe Weg zum Hub wie `ApprovalCard`, kein zweiter.
+ */
+export function CardDecision({ req, onDecided, api = hubApi }: { req: ApprovalRequest; onDecided: () => void; api?: HubApi }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const decide = async (decision: "approve" | "reject") => {
+    setBusy(true);
+    setError("");
+    try {
+      await api.decideApproval(req.id, decision);
+      onDecided();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Entscheidung fehlgeschlagen");
+      setBusy(false);
+    }
+  };
+  return (
+    <div class="card-decision" data-approval={req.id}>
+      <div class="card-decision-what">
+        {req.tool ? (
+          <>
+            <span class="badge tool-badge">{req.tool.name}</span>
+            <code class="card-decision-input mono">{toolInputText(req.tool.input)}</code>
+          </>
+        ) : (
+          <span class="card-decision-input">{req.summary}</span>
+        )}
+      </div>
+      {req.assessment && <AssessmentBadge a={req.assessment} />}
+      {error && <div class="reply-error">{error}</div>}
+      <div class="card-decision-actions">
+        <button class={busy ? "btn primary busy" : "btn primary"} type="button" aria-busy={busy} disabled={busy} onClick={() => void decide("approve")}>
+          {req.tool ? "Erlauben" : "Freigeben"}
+        </button>
+        <button class="btn danger" type="button" disabled={busy} onClick={() => void decide("reject")}>
+          Ablehnen
+        </button>
+        <span class="card-decision-left num dim">noch {secondsLeft(req.timeoutAt)} s</span>
+      </div>
+    </div>
+  );
+}
+
 export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRequest; onDecided: () => void; api?: HubApi }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);

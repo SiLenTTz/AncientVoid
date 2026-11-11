@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { test, expect, signIn } from "../support/fixtures.ts";
+import { test, expect, signIn, dockGo } from "../support/fixtures.ts";
 import { TestHub } from "../support/hub.ts";
 
 test.describe("Flotte (EPIC-P6)", () => {
@@ -22,7 +22,7 @@ test.describe("Flotte (EPIC-P6)", () => {
   test("T6.2: Host per Einladungscode verbinden, anzeigen und wieder entfernen @desktop", async ({ app }) => {
     const peer = await TestHub.start({ hostId: "silenttz-server", label: "silenttz-server" });
     try {
-      await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+      await dockGo(app, "Einstellungen");
       await expect(app.locator(".fleet-self")).toHaveText("omarchy");
       const invite = await peer.api<{ code: string }>("/api/fleet/invites", { body: {} });
       await app.getByLabel("Host hinzufügen — Adresse").fill(peer.origin);
@@ -46,7 +46,7 @@ test.describe("Flotte (EPIC-P6)", () => {
   });
 
   test("T6.2: auf dem anderen Hub einen Einladungscode erzeugen", async ({ app }) => {
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await app.getByRole("button", { name: "Einladungscode erzeugen" }).click();
     await expect(app.locator(".fleet-invite code")).toHaveText(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
     await expect(app.locator(".fleet-invite")).toContainText("einmalig");
@@ -56,7 +56,7 @@ test.describe("Flotte (EPIC-P6)", () => {
 
   test("BUG-0042: lädt das QR-Modul nicht, sagt die Seite es — der Code zum Eintippen bleibt", async ({ app }) => {
     await app.route("**/assets/qrcode-*.js", (route) => route.abort());
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await app.getByRole("button", { name: "Einladungscode erzeugen" }).click();
     await expect(app.locator(".fleet-invite code")).toHaveText(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
     await expect(app.locator(".fleet-invite")).toContainText("QR-Code konnte nicht geladen werden");
@@ -69,7 +69,7 @@ test.describe("Flotte (EPIC-P6)", () => {
       const other = await context.newPage();
       await signIn(other, peer);
       await other.goto(peer.origin);
-      await other.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+      await dockGo(other, "Einstellungen");
       await other.getByRole("button", { name: "Einladungscode erzeugen" }).click();
       await expect(other.locator(".fleet-invite-origin")).toContainText(peer.origin);
       const qr = await other.locator("img.fleet-qr").getAttribute("src");
@@ -96,7 +96,7 @@ test.describe("Flotte (EPIC-P6)", () => {
           return canvas.captureStream(10);
         };
       `);
-      await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+      await dockGo(app, "Einstellungen");
       await app.getByRole("button", { name: "QR-Code scannen" }).click();
       await expect(app.getByLabel("Host hinzufügen — Adresse")).toHaveValue(peer.origin);
       await expect(app.getByLabel("Einladungscode vom anderen Hub")).toHaveValue(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);

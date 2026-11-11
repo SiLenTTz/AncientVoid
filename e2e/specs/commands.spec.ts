@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, openQuiet } from "../support/fixtures.ts";
 
 async function say(app: Page, text: string): Promise<void> {
   if (!(await app.locator(".command-sheet").isVisible())) await app.keyboard.press("Control+k");
@@ -11,6 +11,9 @@ test.describe("Aufträge in Worten (T9.4, AC-P9-3)", () => {
   test("„Zeig wartende Sessions“ filtert sofort, ohne Rückfrage", async ({ app, hub }) => {
     await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
     await hub.createSession({ adapter: "opencode", prompt: "Anderes" });
+    // EPIC-P43 T43.3: die fertige Session steht unter „Ruhig“, das zu ist, solange jemand dran ist.
+    await hub.until(async () => (await hub.sessions()).some((s) => s.status === "idle"), "opencode fertig");
+    await openQuiet(app);
     await expect(app.locator(".session-card")).toHaveCount(2);
     await app.getByLabel("Auftrag in Worten (Strg+K)").click();
     await say(app, "Zeig wartende Sessions");
