@@ -171,6 +171,9 @@
 /* T8.5: session header — back, title, Stop apart from Senden, ⋯ menu. */
 .session-topbar {
   gap: 8px;
+  /* BUG-0118: das „⋯“-Menü hängt am Kopf. Kopf und Steuerung (.dock-stack) hatten beide z-index 10,
+   * die Steuerung steht später im DOM — in einer niedrigen Kachel lag sie über den unteren Menüpunkten. */
+  z-index: 11;
 }
 
 .session-topbar .back-btn {

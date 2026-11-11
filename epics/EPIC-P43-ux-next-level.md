@@ -1,8 +1,9 @@
 # EPIC-P43 — UX Next Level: Leitstand, der lebt
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P43
+**Status:** in Umsetzung · **Umsetzung:** freigegeben (Nutzerauftrag 11.11.2026, siehe unten) · **Phase:** P43
 **Dauer:** 4–6 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P42 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
+**Freigabe 11.11.2026 (Jan):** „Setze jetzt bitte Epic 43 sauber um“ — ausdrücklich auch für den Fall, dass P42 nicht begonnen ist (Stand: P42 offen, läuft parallel mit einem anderen Agenten). Das hebt E8 („kein Vorziehen“) für dieses Epic auf. Fachlich hängt P43 an P42 nur über das Funktionsinventar: Kommt das Geräte-Panel aus P42 hinzu, trägt P42 seine Zeilen in `docs/funktionsinventar.md` und den Spec ein.
 
 Quelle: [Design-Review vom 10.11.2026](../docs/2026-11-10_ux-next-level-designreview.md)
 (Befund B1–B12, Entscheidungen E1–E11, Funktionsinventar) und
@@ -151,7 +152,7 @@ anderen P43-Aufgabe.
 
 ## 4. Aufgaben (Checkliste T43.m)
 
-- [ ] **T43.0** Funktionsinventar vervollständigen (inkl. der im Design-Review nicht erfassten Flächen) und als `e2e/specs/funktionsinventar.spec.ts` für Handy, Tablet, PC grün machen; Vorher-Screenshots 412/800/1280/1600 px ablegen. **K1/K10**. — **Vorarbeit 2026-11-10 (MR !364):** [UX-Audit](../docs/2026-11-10_p43-ux-audit.md) mit Vorher-Bildern Handy/Desktop für vier Journeys und 12 Befunden; offen daraus: echter Pixel, CI-Anteil von Journey 4, Zähler-Befund #5 messen, Nutzerabnahme der Befundliste.
+- [x] **T43.0** Funktionsinventar vervollständigen (inkl. der im Design-Review nicht erfassten Flächen) und als `e2e/specs/funktionsinventar.spec.ts` für Handy, Tablet, PC grün machen; Vorher-Screenshots 412/800/1280/1600 px ablegen. **K1/K10**. — **Vorarbeit 2026-11-10 (MR !364):** [UX-Audit](../docs/2026-11-10_p43-ux-audit.md) mit Vorher-Bildern Handy/Desktop für vier Journeys und 12 Befunden; offen daraus: echter Pixel, CI-Anteil von Journey 4, Zähler-Befund #5 messen, Nutzerabnahme der Befundliste. — **Erledigt 2026-11-11:** [`docs/funktionsinventar.md`](../docs/funktionsinventar.md) (58 globale, 64 Session- und 16 PC-Zeilen; 79 davon im Inventar-Spec, der Rest mit benanntem Bestands-Spec, vier bekannte Lücken ausgewiesen), `e2e/specs/funktionsinventar.spec.ts` grün auf Handy, Tablet und PC, Vorher-Bilder in vier Breiten. Der Spec fand BUG-0118 (Session-Menü unter der Steuerung), im selben MR behoben. Offen aus der Vorarbeit bleiben echter Pixel und Nutzerabnahme der Befundliste (T43.9).
 - [ ] **T43.1** Fundament: Tokens (`--call`, `--info`, Standard-Akzent, Skalen, Bewegung), Inter-Standard mit Bestandsschutz gespeicherter Wahl, Formular-Bausteine, `design-system.md` fortschreiben; Kontrasttests für beide Erscheinungsbilder. **K2/K10**.
 - [ ] **T43.2** Zustandssprache: `StatusDot`, Anzeigezustand „Frage“, sechs Bewegungen als Bausteine mit „Bewegung reduzieren“; alle Pillen/Punkte umstellen. **K2**.
 - [ ] **T43.3** Start als Warteschlange mit Entscheidung auf der Karte, laufendem Schritt, Gruppenwechsel, Dock neu. **K1/K2**.
