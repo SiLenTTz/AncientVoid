@@ -1,11 +1,11 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 
 /** EPIC-P34 T34.3: Einstellungen als feste Gruppen in einem symmetrischen Raster. */
 const GROUPS = ["Darstellung", "Schrift", "Vorschau", "Benachrichtigungen", "Geräte", "Flotte", "Dienste", "Sicherheit & Verbindung"];
 
 async function openSettings(app: Page): Promise<void> {
-  await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+  await dockGo(app, "Einstellungen");
   await expect(app.locator(".settings-section").first()).toBeVisible();
 }
 

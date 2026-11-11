@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 
 /** EPIC-P34 T34.6 (AC-P34-5): Schriftart/-größe mit Live-Vorschau, selbst ausgeliefert, Code bleibt Festbreite. */
@@ -7,7 +7,7 @@ const family = (app: Page, selector: string) => app.locator(selector).first().ev
 const size = (app: Page, selector: string) => app.locator(selector).first().evaluate((el) => getComputedStyle(el).fontSize);
 
 async function openSettings(app: Page) {
-  await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+  await dockGo(app, "Einstellungen");
   await expect(app.getByRole("heading", { name: "Schrift" })).toBeVisible();
 }
 

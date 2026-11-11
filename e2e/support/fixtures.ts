@@ -65,10 +65,28 @@ export async function signIn(page: Page, hub: TestHub): Promise<void> {
 
 /** Opens a session through the overview, the way a user does. */
 export async function openFromOverview(page: Page, adapter: string): Promise<void> {
-  await page.getByRole("button", { name: "Übersicht" }).click();
+  await page.locator(".dock").getByRole("button", { name: "Start", exact: true }).click();
   await page.locator(".session-card").filter({ hasText: adapter }).first().locator(".session-open").click();
 }
 
 export function statusPill(page: Page) {
   return page.locator(".topbar .status");
+}
+
+/**
+ * EPIC-P43 T43.3: ein Ziel der globalen Navigation öffnen. Am PC steht jedes Ziel in der Leiste,
+ * am Handy und Tablet liegen Entdeckt, Medien, Notizen, Automationen und Einstellungen unter „Mehr“.
+ */
+export async function dockGo(page: Page, name: string): Promise<void> {
+  const dock = page.locator(".dock");
+  const target = dock.getByRole("button", { name, exact: true });
+  if (!(await target.isVisible())) await dock.getByRole("button", { name: "Mehr", exact: true }).click();
+  await target.click();
+}
+
+/** EPIC-P43 T43.3: „Ruhig“ ist zu, solange oben etwas steht — für Tests, die eine ruhige Session brauchen. */
+export async function openQuiet(page: Page): Promise<void> {
+  const fold = page.locator(".section-zuletzt .section-fold");
+  await fold.waitFor();
+  if ((await fold.getAttribute("aria-expanded")) === "false") await fold.click();
 }

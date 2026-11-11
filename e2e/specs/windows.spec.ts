@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 
 /** EPIC-P34 T34.10 (AC-P34-9, AC-P34-10): Kacheln und Werkzeuge in eigenen Fenstern, Abstimmung über den Kanal. */
@@ -101,7 +101,7 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
   });
 
   test("ein Werkzeug (Einstellungen) wandert per ⧉ in ein eigenes Fenster; Esc schließt dort nichts @desktop", async ({ app, context }) => {
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     const popupP = context.waitForEvent("page");
     await app.getByRole("button", { name: "In eigenem Fenster öffnen" }).click();
     const popup = await popupP;
@@ -180,7 +180,7 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     await expect(popup.locator(".session-topbar")).toBeVisible();
     await expect(popup.locator("html")).toHaveAttribute("data-theme", "dark");
 
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await app.locator(".segmented").getByRole("button", { name: "Hell" }).click();
     await expect(popup.locator("html")).toHaveAttribute("data-theme", "light");
     await app.getByRole("radiogroup", { name: "Schriftart Oberfläche" }).getByRole("radio", { name: /Atkinson/ }).click();

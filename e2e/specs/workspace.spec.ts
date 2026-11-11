@@ -67,7 +67,7 @@ test.describe("Freigaben (T2.4, T2.6)", () => {
     await app.getByRole("button", { name: "Senden" }).click();
     await expect(app.locator(".reply-error")).toContainText("pending approval");
 
-    await app.getByRole("button", { name: "Übersicht" }).click();
+    await app.locator(".dock").getByRole("button", { name: "Start", exact: true }).click();
     await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();
     const approval = app.locator(".approval-card").filter({ hasText: "Bitte freigeben" });
     await expect(approval.getByText("Bestätigung")).toBeVisible();

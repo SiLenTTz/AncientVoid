@@ -1,12 +1,12 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 
 test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
   test("das Dock erreicht jede Seite und kommt zurück @desktop", async ({ app }) => {
     await app.getByRole("button", { name: "Neue Session" }).click();
     await expect(app.getByRole("button", { name: "Starten" })).toBeVisible();
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await expect(app.getByText("Erscheinungsbild")).toBeVisible();
-    await app.getByRole("button", { name: "Übersicht" }).click();
+    await app.locator(".dock").getByRole("button", { name: "Start", exact: true }).click();
     await expect(app.getByText("keine Sessions — lege eine an")).toBeVisible();
   });
 
@@ -26,7 +26,7 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
   });
 
   test("das helle Design bleibt nach einem Reload", async ({ app }) => {
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await app.locator(".segmented").getByRole("button", { name: "Hell" }).click();
     await expect(app.locator("html")).toHaveAttribute("data-theme", "light");
     await app.reload();
@@ -34,7 +34,7 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
   });
 
   test("die Einstellungen nennen die gefundenen Projekte und den Passkey-Stand", async ({ app }) => {
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await expect(app.getByText("2 Projekte gefunden")).toBeVisible();
     await expect(app.getByText("•••• aktiv")).toBeVisible();
     await expect(app.getByRole("button", { name: "Passkey registrieren" })).toBeVisible();
@@ -49,7 +49,7 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
     await expect(head.getByRole("button", { name: "Medien" })).toHaveCount(0);
     await expect(head.getByRole("button", { name: "PC", exact: true })).toHaveCount(0);
     await expect(head.getByRole("button", { name: "Status" })).toBeVisible();
-    await app.locator(".dock").getByRole("button", { name: "Medien" }).click();
+    await dockGo(app, "Medien");
     await expect(app).toHaveURL(/#\/medien$/);
     await expect(app.locator(".media-caps")).toBeVisible();
   });

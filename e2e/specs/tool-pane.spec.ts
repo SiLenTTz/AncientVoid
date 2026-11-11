@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 
 /** EPIC-P34 T34.2: Werkzeugseiten nutzen am Desktop die Detailspalte; die Kacheln bleiben dahinter gemountet. */
@@ -55,7 +55,7 @@ test.describe("Werkzeugfläche am Desktop (EPIC-P34)", () => {
     const before = await app.evaluate(() => (window as unknown as { __ws: number }).__ws);
     expect(before).toBeGreaterThan(0);
 
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await expect(app.locator(".tool-pane")).toBeVisible();
     // Dahinter bleibt die Kachel gemountet, ist aber nicht bedienbar (Tastatur und Screenreader).
     await expect(field).toHaveValue("Entwurf, noch nicht gesendet");
@@ -69,11 +69,11 @@ test.describe("Werkzeugfläche am Desktop (EPIC-P34)", () => {
 
   test("Esc schließt die Werkzeugfläche, eine Session aus der Liste ebenfalls @desktop", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Eins" });
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await expect(app.locator(".tool-pane")).toBeVisible();
     await app.keyboard.press("Escape");
     await expect(app.locator(".tool-pane")).toHaveCount(0);
-    await app.locator(".dock").getByRole("button", { name: "Entdeckt" }).click();
+    await dockGo(app, "Entdeckt");
     await expect(app.locator(".tool-pane")).toBeVisible();
     await card(app, "Aufgabe Eins").click();
     await expect(app.locator(".tool-pane")).toHaveCount(0);
@@ -83,7 +83,7 @@ test.describe("Werkzeugfläche am Desktop (EPIC-P34)", () => {
   test("am Handy bleibt alles eine Seite, es gibt keine Werkzeugfläche", async ({ app }) => {
     await app.setViewportSize({ width: 390, height: 800 });
     await app.reload();
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await expect(app.locator(".tool-pane")).toHaveCount(0);
     await expect(app.getByText("Erscheinungsbild")).toBeVisible();
   });

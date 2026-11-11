@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 
 const fixture = (name: string) => fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url));
 
@@ -44,7 +44,7 @@ test.describe("Anhänge (T7.10)", () => {
   });
 
   test("Gemini-Schlüssel: nur setzbar, nie auslesbar; entfernbar", async ({ app, hub }) => {
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     const card = app.locator(".gemini-settings");
     await expect(card).toContainText("kein Schlüssel");
     await card.getByLabel("API-Schlüssel").fill("AIzaTEST-geheim-1234567890");

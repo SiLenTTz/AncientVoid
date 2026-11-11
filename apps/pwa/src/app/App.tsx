@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { hubApi, type AdapterInfo, type AdapterUsage, type FleetHost, type SessionRecord } from "../shared/api.ts";
+import { hubApi, type AdapterInfo, type AdapterUsage, type ApprovalRequest, type FleetHost, type SessionRecord } from "../shared/api.ts";
 import { Dashboard } from "../features/overview/Dashboard.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
 import { isToolPage, pageHash } from "./route.ts";
@@ -57,7 +57,7 @@ export function App({
   // an error to surface — same "feature genuinely absent" handling as
   // Approvals.tsx itself.
   const [pendingApprovals, setPendingApprovals] = useState(0);
-  const [questionSessions, setQuestionSessions] = useState<string[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   // BUG-0045: ein einzelner fehlgeschlagener Abruf ist kein Ausfall — erst der
   // zweite in Folge zeigt die Fehlerkarte (die Seite sonst nach unten schiebt).
   const failedPolls = useRef(0);
@@ -84,14 +84,14 @@ export function App({
             if (!alive) return;
             setPendingApprovals(pending.length);
             const questions = pending.filter((p) => (p.tool?.questions?.length ?? 0) > 0).map((p) => p.sessionId);
-            setQuestionSessions((prev) => (prev.join() === questions.join() ? prev : questions));
+            setApprovals((prev) => (prev.length === pending.length && prev.every((p, i) => p.id === pending[i]!.id) ? prev : pending));
             publishHubStatus({ pendingApprovals: pending.length, questionSessions: questions });
           })
           // 501: dieser Hub hat keine Freigaben — echte 0. Sonst den letzten Stand behalten.
           .catch((err: unknown) => {
             if (alive && err instanceof Error && /^501|not configured/.test(err.message)) {
               setPendingApprovals(0);
-              setQuestionSessions([]);
+              setApprovals([]);
               publishHubStatus({ pendingApprovals: 0, questionSessions: [] });
             }
           });
@@ -191,7 +191,7 @@ export function App({
             hosts={hosts}
             onOpen={onOpen}
             pendingApprovals={pendingApprovals}
-            questionSessions={questionSessions}
+            approvals={approvals}
             onOpenApprovals={() => setPage("approvals")}
             onOpenDiscovery={() => setPage("discovery")}
             lastSession={getLastSession()}

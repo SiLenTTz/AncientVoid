@@ -16,6 +16,3 @@ export function compareByActivity(a: Pick<SessionRecord, "lastActivity" | "updat
   const y = lastActivityAt(b);
   return x < y ? 1 : x > y ? -1 : 0;
 }
-
-/** An idle session untouched for this long no longer counts as "aktiv". */
-export const IDLE_STILL_ACTIVE_MS = 12 * 60 * 60_000;

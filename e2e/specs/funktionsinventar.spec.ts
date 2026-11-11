@@ -46,10 +46,15 @@ const PC: readonly Form[] = ["desktop"];
 const TOUCH: readonly Form[] = ["mobile", "tablet"];
 
 const dock = (c: Ctx, name: string) => c.page.locator(".dock").getByRole("button", { name, exact: true });
+/** EPIC-P43 T43.3: Ziele, die am Handy/Tablet unter „Mehr“ liegen; am PC stehen sie einzeln in der Leiste. */
+const nav = async (c: Ctx, name: string) => {
+  if (!(await dock(c, name).isVisible())) await c.tap(dock(c, "Mehr"));
+  await c.tap(dock(c, name));
+};
 const tab = (c: Ctx, name: string) => c.s.locator(".subtabs-wrap").getByRole("button", { name, exact: true });
 const menu = (c: Ctx) => c.s.locator(".session-menu summary");
 const settingsGroup = (name: string): Entry["reach"] => async (c) => {
-  await c.tap(dock(c, "Einstellungen"));
+  await nav(c, "Einstellungen");
   await expect(c.page.getByRole("heading", { name, exact: true }).first()).toBeVisible();
 };
 /** Composer sichtbar machen: in einer Kachel kann die Steuerung eingeklappt sein. */
@@ -59,14 +64,14 @@ const controls = async (c: Ctx) => {
 };
 
 const GLOBAL: Entry[] = [
-  { id: "G01", name: "Übersicht", from: "#/neu", reach: async (c) => { await c.tap(dock(c, "Übersicht")); await expect(c.page.locator(".dashboard")).toBeVisible(); } },
+  { id: "G01", name: "Start", from: "#/neu", reach: async (c) => { await c.tap(dock(c, "Start")); await expect(c.page.locator(".dashboard")).toBeVisible(); } },
   { id: "G02", name: "Neue Session", from: "start", reach: async (c) => { await c.tap(dock(c, "Neue Session")); await expect(c.page.getByRole("button", { name: "Starten" })).toBeVisible(); } },
-  { id: "G03", name: "Entdeckt", from: "start", reach: async (c) => { await c.tap(dock(c, "Entdeckt")); await expect(c.page.locator(".discovery")).toBeVisible(); } },
+  { id: "G03", name: "Entdeckt", from: "start", reach: async (c) => { await nav(c, "Entdeckt"); await expect(c.page.locator(".discovery")).toBeVisible(); } },
   { id: "G04", name: "Entdeckt über den Chip „Gefunden“", from: "start", reach: async (c) => { await c.tap(c.page.locator(".dashboard-summary").getByRole("button", { name: "Gefunden" })); await expect(c.page.locator(".discovery")).toBeVisible(); } },
-  { id: "G05", name: "Medien", from: "start", reach: async (c) => { await c.tap(dock(c, "Medien")); await expect(c.page.locator(".media-caps")).toBeVisible(); } },
+  { id: "G05", name: "Medien", from: "start", reach: async (c) => { await nav(c, "Medien"); await expect(c.page.locator(".media-caps")).toBeVisible(); } },
   { id: "G06", name: "Runs", from: "start", reach: async (c) => { await c.tap(dock(c, "Runs")); await expect(c.page.getByTestId("runs-pane").first()).toBeVisible(); } },
-  { id: "G07", name: "Notizen", from: "start", reach: async (c) => { await c.tap(dock(c, "Notizen")); await expect(c.page).toHaveURL(/#\/notizen$/); await expect(c.page.locator(".vault-pane, .files-error, .empty").first()).toBeVisible({ timeout: 20_000 }); } },
-  { id: "G08", name: "Automationen", from: "start", reach: async (c) => { await c.tap(dock(c, "Automationen")); await expect(c.page.getByTestId("automations-pane")).toBeVisible(); } },
+  { id: "G07", name: "Notizen", from: "start", reach: async (c) => { await nav(c, "Notizen"); await expect(c.page).toHaveURL(/#\/notizen$/); await expect(c.page.locator(".vault-pane, .files-error, .empty").first()).toBeVisible({ timeout: 20_000 }); } },
+  { id: "G08", name: "Automationen", from: "start", reach: async (c) => { await nav(c, "Automationen"); await expect(c.page.getByTestId("automations-pane")).toBeVisible(); } },
   { id: "G09", name: "Einstellungen: Darstellung (Erscheinungsbild, Akzent, Größe)", from: "start", reach: settingsGroup("Darstellung") },
   { id: "G10", name: "Einstellungen: Schrift", from: "start", reach: settingsGroup("Schrift") },
   { id: "G11", name: "Einstellungen: Vorschau", from: "start", reach: settingsGroup("Vorschau") },
@@ -80,15 +85,17 @@ const GLOBAL: Entry[] = [
     name: "Helles Erscheinungsbild",
     from: "start",
     reach: async (c) => {
-      await c.tap(dock(c, "Einstellungen"));
+      await nav(c, "Einstellungen");
       await c.tap(c.page.locator(".segmented").getByRole("button", { name: "Hell" }));
       await expect(c.page.locator("html")).toHaveAttribute("data-theme", "light");
      
     },
   },
-  { id: "G18", name: "PC-Eingabe (Am PC eintippen)", from: "start", reach: async (c) => { await c.tap(dock(c, "Einstellungen")); await c.tap(c.page.locator(".pc-input summary")); await expect(c.page.locator(".pc-input").locator(".desktop-page, .desktop-setup, .desktop-head").first()).toBeVisible(); } },
+  { id: "G18", name: "PC-Eingabe (Am PC eintippen)", from: "start", reach: async (c) => { await nav(c, "Einstellungen"); await c.tap(c.page.locator(".pc-input summary")); await expect(c.page.locator(".pc-input").locator(".desktop-page, .desktop-setup, .desktop-head").first()).toBeVisible(); } },
   { id: "G19", name: "Freigaben-Seite (Deeplink)", from: "#/freigaben", reach: async (c) => { await expect(c.page.locator(".approval-queue, .approvals-pane, .empty").first()).toBeVisible(); await expect(c.page).toHaveURL(/#\/freigaben$/); } },
   { id: "G20", name: "Provider-Status", from: "start", reach: async (c) => { await c.tap(c.page.locator(".topbar").getByRole("button", { name: "Status" })); await expect(c.page.locator(".status-page")).toBeVisible(); } },
+  { id: "G59", name: "Provider-Status über „Mehr“", forms: TOUCH, from: "start", reach: async (c) => { await c.tap(dock(c, "Mehr")); await c.tap(dock(c, "Provider-Status")); await expect(c.page.locator(".status-page")).toBeVisible(); } },
+  { id: "G60", name: "Suchen im Dock", from: "start", reach: async (c) => { await c.tap(dock(c, "Suchen")); await expect(c.page.getByRole("dialog", { name: "Auftrag in Worten" })).toBeVisible(); } },
   { id: "G21", name: "Benachrichtigungen (Glocke)", from: "start", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: /^Benachrichtigungen/ }).first()); await expect(c.page.getByRole("dialog", { name: "Benachrichtigungen" })).toBeVisible(); } },
   { id: "G22", name: "Auftrag in Worten (Taste)", from: "start", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Auftrag in Worten (Strg+K)" })); await expect(c.page.getByRole("dialog", { name: "Auftrag in Worten" })).toBeVisible(); } },
   { id: "G23", name: "Auftrag in Worten (Strg+K)", forms: PC, from: "start", reach: async (c) => { await c.page.keyboard.press("Control+k"); await expect(c.page.getByRole("dialog", { name: "Auftrag in Worten" })).toBeVisible(); } },

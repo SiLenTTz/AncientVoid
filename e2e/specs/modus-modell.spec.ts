@@ -75,7 +75,7 @@ test.describe("Modus und Modell", () => {
 
     // Auch über Navigation (Remount ohne Reload) bleibt die Wahl stehen.
     await app.getByRole("combobox", { name: "Adapter", exact: true }).selectOption("pi");
-    await app.getByRole("button", { name: "Übersicht" }).click();
+    await app.locator(".dock").getByRole("button", { name: "Start", exact: true }).click();
     await app.getByRole("button", { name: "Neue Session" }).click();
     await expect(app.getByRole("combobox", { name: "Adapter", exact: true })).toHaveValue("pi");
   });

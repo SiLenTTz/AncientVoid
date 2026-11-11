@@ -57,8 +57,118 @@
   color: var(--fg-dim);
 }
 
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+}
+
 .section-braucht .section-title {
-  color: var(--warn);
+  color: var(--call);
+}
+
+/* EPIC-P43 T43.3: „Ruhig“ klappt auf und zu; die ganze Zeile ist das Ziel. */
+.section-fold {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: var(--target);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.section-fold-mark {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.section-fold[aria-expanded="true"] .section-fold-mark {
+  transform: rotate(45deg);
+}
+
+.approval-link {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Entscheidung auf der Karte: Befehl, Einschätzung, zwei Tasten, Restzeit. */
+.card-decision {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--bg-chip);
+}
+
+.card-decision-what {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.card-decision-input {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.card-decision-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.card-decision-actions .btn {
+  min-height: var(--target);
+  min-width: 96px;
+}
+
+.card-decision-left {
+  margin-left: auto;
+}
+
+/* Planfortschritt einer arbeitenden Session (nur wenn dieses Gerät den Plan aktuell kennt). */
+.card-plan {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.card-plan-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--bg-chip);
+  overflow: hidden;
+}
+
+.card-plan-fill {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+  transform-origin: left;
+  transition: transform var(--motion-base) var(--ease-out);
 }
 
 .dashboard-search {

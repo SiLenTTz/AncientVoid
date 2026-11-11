@@ -18,6 +18,7 @@ const PATHS = {
   runs: "M12 3v4M5 21l3-4h8l3 4M4 8h16v6H4z",
   automationen: "M12 3v5M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 12l3.5-2M7 12h1M16 12h1M12 16h.01",
   notizen: "M7 3h10v14l-3.5 4L10 17H7zM10 8h5M10 12h5",
+  mehr: "M5 12h.01M12 12h.01M19 12h.01",
 } as const;
 
 export type TabIconName = keyof typeof PATHS;

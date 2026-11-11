@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, dockGo } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
 import type { Page } from "@playwright/test";
 import { writeFileSync } from "node:fs";
@@ -15,7 +15,7 @@ test.describe("Einstellungen ohne Zahnrad-Duplikat (EPIC-P47 T47.4)", () => {
   });
 
   test("Einstellungen bleiben über das Dock erreichbar", async ({ app }) => {
-    await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
+    await dockGo(app, "Einstellungen");
     await expect(app).toHaveURL(/#\/einstellungen$/);
     await expect(app.getByText("Zoom der Oberfläche")).toBeVisible();
   });

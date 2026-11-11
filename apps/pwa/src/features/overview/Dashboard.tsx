@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
-import type { DiscoveredProject, FleetHost, SessionRecord } from "../../shared/api.ts";
+import type { ApprovalRequest, DiscoveredProject, FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
 import { graphHash } from "../../app/route.ts";
 import { targetKey } from "../windows/protocol.ts";
 import { TabIcon } from "../../shared/TabIcon.tsx";
 import { useOpenWindows } from "../windows/windows.ts";
 import { isLastSession, type LastSession } from "../shell/last-session.ts";
-import { compareByActivity, IDLE_STILL_ACTIVE_MS, lastActivityAt, sessionsForOverview } from "./session-list.ts";
+import { compareByActivity, sessionsForOverview } from "./session-list.ts";
+import { compareQueue, decidableOnCard, pendingFor, quietOpen, SECTION_ORDER, SECTION_TITLE, sectionOf, type Section } from "./queue.ts";
+import { CardDecision } from "../approvals/Approvals.tsx";
+import { loadTail } from "../session/tail-cache.ts";
+import { runProgress } from "../session/run-progress.ts";
 import { metricView, totalCostText } from "../../shared/metrics.ts";
 import { ago } from "../../shared/status.ts";
 import { StatusDot } from "../../shared/StatusDot.tsx";
@@ -45,8 +49,8 @@ export interface DashboardProps {
    * configured — not distinguished from "genuinely zero pending" here,
    * since either way there's nothing for the banner to show). */
   pendingApprovals?: number;
-  /** EPIC-P43 T43.2: Sessions mit offener Rückfrage des Agenten (Anzeigezustand „Frage“). */
-  questionSessions?: string[];
+  /** EPIC-P43 T43.3: die offenen Anfragen dieses Hubs — Zustand „Frage“ und Entscheidung auf der Karte. */
+  approvals?: ApprovalRequest[];
   onOpenApprovals?: () => void;
   /** T5.3: all found sessions, including external provider sessions. */
   onOpenDiscovery?: () => void;
@@ -84,20 +88,25 @@ function projectName(project: string): string {
   return project.split("/").filter(Boolean).pop() ?? project;
 }
 
-type Section = "braucht" | "pins" | "aktiv" | "zuletzt";
+const RECENT_LIMIT = 15;
+const QUIET_KEY = "ancientvoid.overview.quietOpen";
 
-/** T8.1: what needs you first, then what runs, then what happened. */
-export function sectionOf(s: SessionRecord, now: number = Date.now()): Section {
-  if (s.status === "waiting_approval" || s.status === "error" || s.status === "interrupted") return "braucht";
-  if (s.pinned) return "pins";
-  if (s.status === "starting" || s.status === "working") return "aktiv";
-  // EPIC-P15 T15.6: an idle session nobody has touched for half a day is history, not "active".
-  if (s.status === "idle") return now - Date.parse(lastActivityAt(s)) <= IDLE_STILL_ACTIVE_MS ? "aktiv" : "zuletzt";
-  return "zuletzt";
+/** Gruppe einer Session auf diesem Gerät (der Lesezeiger entscheidet über „fertig“). */
+function section(s: SessionRecord): Section {
+  return sectionOf(s, isUnseen(seenKey(s.hostId ?? "", s.id), s.lastSeq));
 }
 
-const SECTION_TITLE: Record<Section, string> = { braucht: "Braucht dich", pins: "Angeheftet", aktiv: "Aktiv", zuletzt: "Zuletzt" };
-const RECENT_LIMIT = 15;
+/**
+ * Planfortschritt einer arbeitenden Session — nur aus dem, was dieses Gerät vom Verlauf wirklich hat
+ * (Tail-Cache der Session-Ansicht) und nur, wenn der Stand aktuell ist. Sonst keine Zahl (ADR-0023:
+ * lieber nichts als geraten).
+ */
+function planOf(session: SessionRecord): { done: number; total: number } | null {
+  const tail = loadTail(remoteHost(session.hostId) ?? "local", session.id);
+  if (!tail || (tail.events.at(-1)?.seq ?? 0) < session.lastSeq) return null;
+  const progress = runProgress(tail.events, session.status);
+  return progress && progress.source === "todos" && progress.total > 0 ? { done: progress.done, total: progress.total } : null;
+}
 
 function matches(s: SessionRecord, q: string): boolean {
   if (!q) return true;
@@ -111,7 +120,7 @@ const VIEW_KEY = "ancientvoid.overviewView";
 const VIEWS: readonly OverviewView[] = ["sessions", "projects", "hosts"];
 const VIEW_TITLE: Record<OverviewView, string> = { sessions: "Sessions", projects: "Projekte", hosts: "Hosts" };
 
-export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, questionSessions = [], onOpenApprovals, onOpenDiscovery, lastSession = null }: DashboardProps) {
+export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, approvals = [], onOpenApprovals, onOpenDiscovery, lastSession = null }: DashboardProps) {
   const windowKeys = new Set(Object.values(useOpenWindows()).map((e) => targetKey(e.target)));
   // Once per visit (not per 3 s poll): bring the remembered session into view.
   const hasSessions = sessions.length > 0;
@@ -191,15 +200,38 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
       sessionsForOverview(withOverride, showArchived)
         .filter((s) => matches(s, query.trim()))
         .filter((s) => (hostFilter ? (s.hostId ?? "local") === hostFilter : true))
-        .filter((s) => (statusFilter === "waiting" ? sectionOf(s) === "braucht" : statusFilter === "active" ? sectionOf(s) === "aktiv" || sectionOf(s) === "braucht" : true)),
+        .filter((s) => (statusFilter === "waiting" ? section(s) === "braucht" : statusFilter === "active" ? section(s) === "aktiv" || section(s) === "braucht" : true)),
     [withOverride, showArchived, query, statusFilter, hostFilter],
   );
   const sorted = useMemo(() => [...visible].sort(compareByActivity), [visible]);
+  // Entschiedene Anfragen verschwinden sofort; der nächste Abruf bestätigt es.
+  const [decided, setDecided] = useState<Set<string>>(new Set());
+  const open = useMemo(() => approvals.filter((a) => !decided.has(a.id)), [approvals, decided]);
   const sections = useMemo(() => {
-    const out: Record<Section, SessionRecord[]> = { braucht: [], pins: [], aktiv: [], zuletzt: [] };
-    for (const s of sorted) out[showArchived ? "zuletzt" : sectionOf(s)].push(s);
+    const out: Record<Section, SessionRecord[]> = { braucht: [], aktiv: [], pins: [], zuletzt: [] };
+    for (const s of sorted) out[showArchived ? "zuletzt" : section(s)].push(s);
+    out.braucht.sort(compareQueue((s) => (remoteHost(s.hostId) ? null : (pendingFor(open, s.id)?.timeoutAt ?? null))));
     return out;
-  }, [sorted, showArchived]);
+  }, [sorted, showArchived, open]);
+  // „Ruhig“ auf/zu ist Gerätezustand (K7): null = der Start entscheidet (zu, solange oben etwas steht).
+  const [quietChoice, setQuietChoice] = useState<boolean | null>(() => {
+    const v = localStorage.getItem(QUIET_KEY);
+    return v === null ? null : v === "1";
+  });
+  const counts = { braucht: sections.braucht.length, aktiv: sections.aktiv.length, pins: sections.pins.length, zuletzt: sections.zuletzt.length };
+  const quietShown = quietOpen(quietChoice, counts, showArchived || query.trim() !== "" || hostFilter !== null || statusFilter === "recent");
+  // Wandern: eine Karte, die die Gruppe gewechselt hat, kommt an ihrem neuen Ort an. Die Karte
+  // entsteht in der neuen Gruppe neu; die Klasse bleibt, damit ein Neuzeichnen (Abruf alle 3 s) die
+  // laufende Bewegung nicht abschneidet.
+  const lastSection = useRef(new Map<string, Section>());
+  const moved = useRef(new Set<string>());
+  for (const key of SECTION_ORDER)
+    for (const s of sections[key]) {
+      const id = `${s.hostId ?? ""}:${s.id}`;
+      const before = lastSection.current.get(id);
+      if (before !== undefined && before !== key) moved.current.add(id);
+      lastSection.current.set(id, key);
+    }
 
   // ADR-0023: a sum with unknown parts is no number — shown only when any
   // session of today reported a cost at all.
@@ -236,14 +268,8 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
       });
   };
 
-  const order: Section[] = ["braucht", "pins", "aktiv", "zuletzt"];
   return (
     <div class="dashboard">
-      {pendingApprovals > 0 && onOpenApprovals && (
-        <button class="approval-banner" onClick={onOpenApprovals}>
-          ⚠ {pendingApprovals} {pendingApprovals === 1 ? "Freigabe wartet" : "Freigaben warten"} auf dich
-        </button>
-      )}
       {actionError && <div class="reply-error">{actionError}</div>}
       {/* EPIC-P47 T47.1: ein Umschalter statt der rein informativen Host-Chips. */}
       <div class="overview-switch" role="tablist" aria-label="Übersichtsansicht">
@@ -300,14 +326,36 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
           {sorted.length === 0 ? (
             <div class="empty">{query || hostFilter ? "nichts gefunden" : showArchived ? "nichts archiviert" : "keine Sessions — lege eine an"}</div>
           ) : (
-            order
-              .filter((key) => sections[key].length > 0)
-              .map((key) => {
-                const list = key === "zuletzt" && !allRecent && !query ? sections[key].slice(0, RECENT_LIMIT) : sections[key];
+            SECTION_ORDER.filter((key) => sections[key].length > 0).map((key) => {
+                const folded = key === "zuletzt" && !showArchived && !quietShown;
+                const list = folded ? [] : key === "zuletzt" && !allRecent && !query ? sections[key].slice(0, RECENT_LIMIT) : sections[key];
+                const title = showArchived ? "Archiv" : SECTION_TITLE[key];
                 return (
-                  <section key={key} class={`session-section section-${key}`} aria-label={SECTION_TITLE[key]}>
+                  <section key={key} class={`session-section section-${key}`} aria-label={title}>
                     <h2 class="section-title">
-                      {showArchived ? "Archiv" : SECTION_TITLE[key]} <span class="dim">{sections[key].length}</span>
+                      {key === "zuletzt" && !showArchived ? (
+                        <button
+                          class="section-fold"
+                          type="button"
+                          aria-expanded={!folded}
+                          onClick={() => {
+                            localStorage.setItem(QUIET_KEY, folded ? "1" : "0");
+                            setQuietChoice(folded);
+                          }}
+                        >
+                          <span class="section-fold-mark" aria-hidden="true" />
+                          {title} <span class="dim num">{sections[key].length}</span>
+                        </button>
+                      ) : (
+                        <>
+                          {title} <span class="dim num">{sections[key].length}</span>
+                        </>
+                      )}
+                      {key === "braucht" && pendingApprovals > 0 && onOpenApprovals && (
+                        <button class="link-btn approval-link" type="button" onClick={onOpenApprovals}>
+                          {pendingApprovals} {pendingApprovals === 1 ? "Freigabe" : "Freigaben"} · alle zeigen
+                        </button>
+                      )}
                     </h2>
                     {list.map((s) => (
                       <SessionRow
@@ -316,7 +364,9 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
                         hosts={hosts ?? []}
                         onOpen={onOpen}
                         isLast={isLastSession(lastSession, s.id, remoteHost(s.hostId))}
-                        question={questionSessions.includes(s.id)}
+                        approval={remoteHost(s.hostId) ? null : pendingFor(open, s.id)}
+                        onDecided={(id) => setDecided((prev) => new Set(prev).add(id))}
+                        moved={moved.current.has(`${s.hostId ?? ""}:${s.id}`)}
                         inWindow={windowKeys.has(targetKey({ kind: "session", sessionId: s.id, ...(remoteHost(s.hostId) ? { hostId: remoteHost(s.hostId)! } : {}) }))}
                         onArchive={archive}
                         onPin={pin}
@@ -330,7 +380,13 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
                     )}
                   </section>
                 );
-              })
+            })
+          )}
+          {/* Ohne Karte in „Du bist dran“ (Freigabe ohne sichtbare Session) bleibt der Weg zur Liste. */}
+          {pendingApprovals > 0 && onOpenApprovals && sections.braucht.length === 0 && (
+            <button class="approval-banner" type="button" onClick={onOpenApprovals}>
+              {pendingApprovals} {pendingApprovals === 1 ? "Freigabe wartet" : "Freigaben warten"} auf dich
+            </button>
           )}
         </>
       )}
@@ -421,15 +477,20 @@ function SessionRow({
   onOpen,
   isLast,
   inWindow,
-  question,
+  approval,
+  onDecided,
+  moved,
   onArchive,
   onPin,
   onDelete,
 }: {
   /** EPIC-P34 T34.10: die Session läuft in einem eigenen Fenster. */
   inWindow: boolean;
-  /** EPIC-P43 T43.2: die offene Anfrage ist eine Rückfrage des Agenten. */
-  question: boolean;
+  /** EPIC-P43 T43.3: die offene Anfrage dieser Session (nur eigener Hub). */
+  approval: ApprovalRequest | null;
+  onDecided: (approvalId: string) => void;
+  /** Die Karte hat gerade die Gruppe gewechselt (Bewegung „Wandern“). */
+  moved: boolean;
   session: SessionRecord;
   hosts: FleetHost[];
   onOpen: (s: SessionRecord, opts?: { newTile?: boolean }) => void;
@@ -442,8 +503,10 @@ function SessionRow({
   const glow = session.status === "working" ? "st-working" : waiting ? "st-waiting" : "";
   const unseen = isUnseen(seenKey(session.hostId ?? "", session.id), session.lastSeq);
   const project = projectName(session.project);
+  const question = (approval?.tool?.questions?.length ?? 0) > 0;
+  const plan = useMemo(() => (session.status === "working" ? planOf(session) : null), [session.id, session.status, session.lastSeq]);
   return (
-    <div class={`card session-card ${glow}${unseen ? " unseen" : ""}${isLast ? " last-active" : ""}`} aria-current={isLast ? "true" : undefined}>
+    <div class={`card session-card ${glow}${unseen ? " unseen" : ""}${isLast ? " last-active" : ""}${moved ? " mv-wander" : ""}`} aria-current={isLast ? "true" : undefined}>
       <button class="session-open" type="button" onClick={(ev) => onOpen(session, { newTile: ev.ctrlKey || ev.metaKey })}>
         <div class="row">
           <strong class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? (session.adapter === "loop:securesight-factory" ? `Factory-Beobachter · ${project}` : `${project} — ohne Auftrag`)}</strong>
@@ -468,7 +531,18 @@ function SessionRow({
             {unseen && <span class="badge new-badge">neu</span>} {ago(session.lastActivity?.at ?? session.updatedAt)}
           </span>
         </div>
+        {plan && (
+          <div class="card-plan" role="meter" aria-valuemin={0} aria-valuemax={plan.total} aria-valuenow={plan.done} aria-label="Planfortschritt">
+            <span class="card-plan-bar">
+              <span class="card-plan-fill" style={{ transform: `scaleX(${plan.total > 0 ? plan.done / plan.total : 0})` }} />
+            </span>
+            <span class="num dim">
+              Plan {plan.done}/{plan.total}
+            </span>
+          </div>
+        )}
       </button>
+      {approval && decidableOnCard(approval) && <CardDecision req={approval} onDecided={() => onDecided(approval.id)} />}
       <div class="session-card-actions">
         {/* EPIC-P48: Repo-Graph dieser Session direkt aus der Übersichtskarte (unten links). */}
         <button

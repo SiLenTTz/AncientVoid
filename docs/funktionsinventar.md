@@ -29,24 +29,24 @@ Werkzeugseiten füllen die Detailspalte.
 
 | ID | Funktion | Weg heute | Ziel | Nachweis |
 |---|---|---|---|---|
-| G01 | Übersicht | Dock „Übersicht“ | T43.3 | inventar |
-| G02 | Neue Session | Dock „Neue Session“ | T43.3 | inventar |
-| G03 | Entdeckt (gefundene Sessions) | Dock „Entdeckt“ | T43.3 | inventar |
+| G01 | Start (Übersicht) | Dock „Start“ | — | inventar |
+| G02 | Neue Session | Dock-Haupttaste „＋“ | — | inventar |
+| G03 | Entdeckt (gefundene Sessions) | Dock „Mehr“ → „Entdeckt“; PC: Leiste | — | inventar |
 | G04 | Entdeckt über den Chip | Start → Chip „Gefunden“ | T43.3 | inventar |
-| G05 | Medien | Dock „Medien“ | T43.3 | inventar |
-| G06 | Runs | Dock „Runs“ | T43.3 | inventar |
-| G07 | Notizen | Dock „Notizen“ | T43.3 | inventar |
-| G08 | Automationen | Dock „Automationen“ | T43.3 | inventar |
-| G09 | Einstellungen: Darstellung (Erscheinungsbild, Akzent, Größe) | Dock „Einstellungen“ | T43.3 | inventar |
-| G10 | Einstellungen: Schrift | Dock „Einstellungen“ | T43.3 | inventar |
-| G11 | Einstellungen: Vorschau | Dock „Einstellungen“ | T43.3 | inventar |
-| G12 | Einstellungen: Benachrichtigungen | Dock „Einstellungen“ | T43.3 | inventar |
-| G13 | Einstellungen: Geräte | Dock „Einstellungen“ | T43.3 | inventar |
-| G14 | Einstellungen: Flotte | Dock „Einstellungen“ | T43.3 | inventar |
-| G15 | Einstellungen: Dienste | Dock „Einstellungen“ | T43.3 | inventar |
-| G16 | Einstellungen: Sicherheit & Verbindung | Dock „Einstellungen“ | T43.3 | inventar |
-| G17 | Helles Erscheinungsbild | Einstellungen → „Hell“ | — | inventar |
-| G18 | PC-Eingabe (Am PC eintippen) | Einstellungen → „PC-Eingabe“ | — | inventar |
+| G05 | Medien | Dock „Mehr“ → „Medien“; PC: Leiste | — | inventar |
+| G06 | Runs | Dock „Runs“ | — | inventar |
+| G07 | Notizen | Dock „Mehr“ → „Notizen“; PC: Leiste | — | inventar |
+| G08 | Automationen | Dock „Mehr“ → „Automationen“; PC: Leiste | — | inventar |
+| G09 | Einstellungen: Darstellung (Erscheinungsbild, Akzent, Größe) | Dock „Mehr“ → „Einstellungen“; PC: Leiste | — | inventar |
+| G10 | Einstellungen: Schrift | Dock „Mehr“ → „Einstellungen“; PC: Leiste | — | inventar |
+| G11 | Einstellungen: Vorschau | Dock „Mehr“ → „Einstellungen“; PC: Leiste | — | inventar |
+| G12 | Einstellungen: Benachrichtigungen | Dock „Mehr“ → „Einstellungen“; PC: Leiste | — | inventar |
+| G13 | Einstellungen: Geräte | Dock „Mehr“ → „Einstellungen“; PC: Leiste | — | inventar |
+| G14 | Einstellungen: Flotte | Dock „Mehr“ → „Einstellungen“; PC: Leiste | — | inventar |
+| G15 | Einstellungen: Dienste | Dock „Mehr“ → „Einstellungen“; PC: Leiste | — | inventar |
+| G16 | Einstellungen: Sicherheit & Verbindung | Dock „Mehr“ → „Einstellungen“; PC: Leiste | — | inventar |
+| G17 | Helles Erscheinungsbild | „Mehr“ → Einstellungen → „Hell“ | — | inventar |
+| G18 | PC-Eingabe (Am PC eintippen) | „Mehr“ → Einstellungen → „PC-Eingabe“ | — | inventar |
 | G19 | Freigaben-Seite | Deeplink `#/freigaben` | T43.3 | inventar |
 | G20 | Provider-Status | Kopfzeile „Status“ | T43.3 | inventar |
 | G21 | Benachrichtigungen | Glocke | — | inventar |
@@ -87,6 +87,11 @@ Werkzeugseiten füllen die Detailspalte.
 | G56 | Oberflächengröße (Strg +/−/0, Strg+Rad) | Tastatur bzw. Einstellungen | — | spec:oberflaeche.spec.ts |
 | G57 | Querformat am Handy | Gerät drehen | — | spec:querformat.spec.ts |
 | G58 | Neue Session: Skill oder Agent wählen | Neue Session → „+ Skill/Agent“ | — | inventar |
+| G59 | Provider-Status über „Mehr“ (Handy, Tablet) | Dock „Mehr“ → „Provider-Status“ | — | inventar |
+| G60 | Suchen im Dock (öffnet das Befehlsfeld) | Dock „Suchen“ | T43.6 | inventar |
+| G61 | Freigabe auf der Karte entscheiden (Erlauben/Ablehnen) | Start → Karte unter „Du bist dran“ | — | spec:start-warteschlange.spec.ts |
+| G62 | „Ruhig“ auf- und zuklappen | Start → Gruppenkopf „Ruhig“ | — | spec:start-warteschlange.spec.ts |
+| G63 | Alle Freigaben zeigen | Start → „Du bist dran“ → „alle zeigen“ | — | spec:start-warteschlange.spec.ts |
 
 ## Session
 

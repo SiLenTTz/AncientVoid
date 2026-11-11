@@ -1,53 +1,78 @@
-// T2.6/T1.6-status: "approvals" and "status" are real destinations
-// (App.tsx renders ApprovalQueuePane/StatusPage for them) reached
-// contextually — from the Dashboard's pending-approvals banner, and from
-// a header link next to the connection dot — not from the dock. The
-// dock's slots matched the T1.6 mockup exactly; "discovery" (2026-09-27)
-// became a fifth dock item so hub-external sessions are reachable in one
-// tap from every list page. EPIC-P34 T34.1: "media" took the place of the
-// global voice sheet (voice lives in the session only); "pc" moved into the
-// settings. `active` simply never
-// highlights any dock button while either page is open (same as
-// `active === null` inside a session tail).
-import { TabIcon } from "../shared/TabIcon.tsx";
+// EPIC-P43 T43.3: das Dock hat vier Ziele und eine Haupttaste — Start, Suchen, ＋, Runs, Mehr.
+// Alles Übrige (Entdeckt, Medien, Notizen, Automationen, Einstellungen, Provider-Status) liegt einen
+// Tipp weiter im Blatt „Mehr“; am PC (Leiste links, 21-icon-rail.css) stehen diese Ziele weiterhin
+// einzeln in der Leiste, dort gibt es kein „Mehr“. „approvals“ wird aus der Übersicht erreicht.
+// `active` hebt nie etwas hervor, solange eine Seite offen ist, die kein Dock-Ziel ist.
+import { useEffect, useState } from "preact/hooks";
+import { TabIcon, type TabIconName } from "../shared/TabIcon.tsx";
+import { openCommandBar } from "../features/commands/CommandBar.tsx";
 export type { ListPage as Page } from "./route.ts";
 import type { ListPage as Page } from "./route.ts";
 
+const MORE: readonly { page: Page; icon: TabIconName; label: string; title: string }[] = [
+  { page: "discovery", icon: "entdeckt", label: "Entdeckt", title: "Entdeckt: Sessions außerhalb des Hubs" },
+  { page: "media", icon: "medien", label: "Medien", title: "Medien: Videos analysieren" },
+  { page: "vault", icon: "notizen", label: "Notizen", title: "Notizen (Knowledge Vault)" },
+  { page: "automationen", icon: "automationen", label: "Automationen", title: "Automationen (Zeitpläne)" },
+  { page: "settings", icon: "einstellungen", label: "Einstellungen", title: "Einstellungen" },
+];
+
 /**
- * T1.6-2/3: the one global bottom-nav row, shared by App.tsx (as the whole
- * dock) and SessionTail.tsx (stacked above its own Chat/Verlauf sub-tabs) —
- * one definition so both stay in sync instead of drifting copies. `active`
- * is `null` from within a session: none of the three destinations is "the
- * current page" there, same as no browser tab is highlighted while a modal
- * is open.
+ * Die eine globale Navigation. Am Handy und Tablet eine Reihe unten, am PC die Leiste links.
  */
 export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavigate: (page: Page) => void }) {
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    if (!more) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMore(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [more]);
+  const go = (page: Page) => {
+    setMore(false);
+    onNavigate(page);
+  };
+  const inMore = MORE.some((m) => m.page === active) || active === "status";
   return (
-    <nav class="dock">
-      <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} title="Übersicht" onClick={() => onNavigate("dashboard")}>
-        <TabIcon name="uebersicht" /><span class="lb">Übersicht</span>
+    <nav class="dock" aria-label="Navigation">
+      <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} type="button" title="Start" onClick={() => go("dashboard")}>
+        <TabIcon name="uebersicht" /><span class="lb">Start</span>
       </button>
-      <button class={`dock-item ${active === "new" ? "active" : ""}`} title="Neue Session" onClick={() => onNavigate("new")}>
-        <TabIcon name="neu" /><span class="lb">Neue Session</span>
+      <button class="dock-item" type="button" title="Suchen und Auftrag in Worten (Strg+K)" onClick={() => { setMore(false); openCommandBar(); }}>
+        <TabIcon name="suche" /><span class="lb">Suchen</span>
       </button>
-      <button class={`dock-item ${active === "discovery" ? "active" : ""}`} title="Entdeckt" onClick={() => onNavigate("discovery")}>
-        <TabIcon name="entdeckt" /><span class="lb">Entdeckt</span>
+      <button class={`dock-item dock-main ${active === "new" ? "active" : ""}`} type="button" title="Neue Session" aria-label="Neue Session" onClick={() => go("new")}>
+        <TabIcon name="neu" />
       </button>
-      <button class={`dock-item ${active === "media" ? "active" : ""}`} title="Medien: Videos analysieren" onClick={() => onNavigate("media")}>
-        <TabIcon name="medien" /><span class="lb">Medien</span>
-      </button>
-      <button class={`dock-item ${active === "orchestrierung" ? "active" : ""}`} title="Runs (Orchestrierung)" onClick={() => onNavigate("orchestrierung")}>
+      <button class={`dock-item ${active === "orchestrierung" ? "active" : ""}`} type="button" title="Runs (Orchestrierung)" onClick={() => go("orchestrierung")}>
         <TabIcon name="runs" /><span class="lb">Runs</span>
       </button>
-      <button class={`dock-item ${active === "vault" ? "active" : ""}`} title="Notizen (Knowledge Vault)" onClick={() => onNavigate("vault")}>
-        <TabIcon name="notizen" /><span class="lb">Notizen</span>
+      <button class={`dock-item dock-more ${inMore ? "active" : ""}`} type="button" title="Mehr" aria-haspopup="dialog" aria-expanded={more} onClick={() => setMore((on) => !on)}>
+        <TabIcon name="mehr" /><span class="lb">Mehr</span>
       </button>
-      <button class={`dock-item ${active === "automationen" ? "active" : ""}`} title="Automationen (Zeitpläne)" onClick={() => onNavigate("automationen")}>
-        <TabIcon name="automationen" /><span class="lb">Automationen</span>
-      </button>
-      <button class={`dock-item ${active === "settings" ? "active" : ""}`} title="Einstellungen" onClick={() => onNavigate("settings")}>
-        <TabIcon name="einstellungen" /><span class="lb">Einstellungen</span>
-      </button>
+      {MORE.map((m) => (
+        <button key={m.page} class={`dock-item dock-extra ${active === m.page ? "active" : ""}`} type="button" title={m.title} onClick={() => go(m.page)}>
+          <TabIcon name={m.icon} /><span class="lb">{m.label}</span>
+        </button>
+      ))}
+      {more && (
+        <div class="overlay-backdrop more-backdrop" onClick={() => setMore(false)}>
+          <div class="overlay-sheet more-sheet" role="dialog" aria-label="Mehr" onClick={(e) => e.stopPropagation()}>
+            {MORE.map((m) => (
+              <button key={m.page} class={`more-item ${active === m.page ? "active" : ""}`} type="button" onClick={() => go(m.page)}>
+                <TabIcon name={m.icon} />
+                <span>{m.label}</span>
+              </button>
+            ))}
+            <button class={`more-item ${active === "status" ? "active" : ""}`} type="button" onClick={() => go("status")}>
+              <TabIcon name="bericht" />
+              <span>Provider-Status</span>
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

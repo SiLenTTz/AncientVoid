@@ -48,6 +48,22 @@
     border-left: 2px solid transparent;
   }
 
+  /* Die Leiste hat Platz für jedes Ziel einzeln; „Mehr“ gibt es hier nicht. */
+  .split-list .dock-extra {
+    display: flex;
+  }
+
+  .split-list .dock-more {
+    display: none;
+  }
+
+  .split-list .dock-main {
+    width: 40px;
+    min-height: 40px;
+    margin: 4px auto;
+    border-left: 0;
+  }
+
   .split-list .dock-item.active {
     color: var(--accent);
     border-left-color: var(--accent);
