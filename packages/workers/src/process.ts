@@ -28,6 +28,12 @@ export class ProcessRunner implements WorkerRunner {
     proc.stderr.on("data", (d: Buffer) => {
       for (const cb of stderrCbs) cb(d.toString("utf8"));
     });
+    // BUG-0119: schließt das Kind seine Eingabe, kommt EPIPE asynchron als 'error' — ohne Handler beendet
+    // das den ganzen Hub. Sichtbar machen statt abstürzen oder still verwerfen (fail loud).
+    const stdinFailed = (reason: string) => {
+      for (const cb of stderrCbs) cb(`stdin: ${reason}\n`);
+    };
+    proc.stdin.on("error", (err) => stdinFailed(err.message));
     proc.on("exit", (code) => {
       for (const cb of exitCbs) cb(code);
     });
@@ -36,7 +42,10 @@ export class ProcessRunner implements WorkerRunner {
       onStdout: (cb) => stdoutCbs.add(cb),
       onStderr: (cb) => stderrCbs.add(cb),
       onExit: (cb) => exitCbs.add(cb),
-      write: (data) => proc.stdin.write(data),
+      write: (data) => {
+        if (proc.stdin.destroyed || !proc.stdin.writable) return stdinFailed("Prozess nimmt keine Eingabe mehr an");
+        proc.stdin.write(data);
+      },
       kill: async (signal) => {
         proc.kill(signal ?? "SIGTERM");
       },
