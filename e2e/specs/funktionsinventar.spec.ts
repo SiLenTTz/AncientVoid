@@ -219,9 +219,9 @@ const DESKTOP: Entry[] = [
   { id: "P07", name: "Kachel leeren", forms: PC, from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Kachel 1 leeren" })); await expect(c.page.locator(".tile-empty")).toContainText("Session links wählen"); } },
   { id: "P08", name: "Statusleiste", forms: PC, from: "session", reach: async (c) => { const bar = c.page.getByRole("status", { name: "Statusleiste" }); await expect(bar).toContainText("verbunden"); await expect(bar.locator(".status-focus")).toContainText("Inventar-Aufgabe"); } },
   { id: "P09", name: "Werkzeugseite in der Detailspalte: eigenes Fenster und Schließen", forms: PC, from: "#/einstellungen", reach: async (c) => { const pane = c.page.locator(".tool-pane"); await expect(pane.getByRole("button", { name: "In eigenem Fenster öffnen" })).toBeVisible(); await c.tap(pane.locator(".tool-pane-close")); await expect(pane).toHaveCount(0); } },
-  { id: "P10", name: "Ansichten als Leiste in der Kachel", forms: PC, from: "session", reach: async (c) => {
+  { id: "P10", name: "Ansichten im Kachelkopf", forms: PC, from: "session", reach: async (c) => {
       // Chat, Dateien und „Mehr“ immer; „Änderungen“ nur mit Änderungen (Kleinkram-Regel 2).
-      const rail = c.s.locator(".tile-rail");
+      const rail = c.s.locator(".session-topbar .tile-tabs");
       for (const name of [/^Chat/, /^Dateien/]) await expect(rail.getByRole("button", { name })).toBeVisible();
       await expect(rail.locator('[aria-haspopup="menu"]')).toBeVisible();
     },

@@ -1,4 +1,4 @@
-import { render } from "preact";
+import { render, type ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { App } from "./App.tsx";
 import { SessionTail } from "../features/session/SessionTail.tsx";
@@ -21,6 +21,7 @@ import { FilesLayer } from "../features/files/FilesLayer.tsx";
 import { BrowserLayer } from "../features/browser/BrowserLayer.tsx";
 import { DeviceLayer } from "../features/devices/DeviceLayer.tsx";
 import { RestoreBar } from "../features/windows/RestoreBar.tsx";
+import { SessionStrip } from "../features/overview/SessionStrip.tsx";
 import { PopoutShell } from "../features/windows/PopoutShell.tsx";
 import type { DropPoint } from "../features/windows/drag.ts";
 import { focusWindowFor, isPopoutWindow, onWindowMessage, openPopout, startWindowHub } from "../features/windows/windows.ts";
@@ -114,6 +115,8 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
 }
 
 const WIDE = "(min-width: 1280px)";
+/** EPIC-P43 T43.6: Tablet — Sessions neben der offenen Session. */
+const TABLET = "(min-width: 700px) and (max-width: 1279px)";
 const WORKSPACE_KEY = "ancientvoid.workspace";
 const LIST_COLLAPSED_KEY = "ancientvoid.listCollapsed";
 
@@ -122,15 +125,26 @@ function tileRefOf(session: SessionRecord): TileRef {
   return host ? { sessionId: session.id, hostId: host } : { sessionId: session.id };
 }
 
-function useWide(): boolean {
-  const [wide, setWide] = useState(() => matchMedia(WIDE).matches);
+function useMedia(query: string): boolean {
+  const [hit, setHit] = useState(() => matchMedia(query).matches);
   useEffect(() => {
-    const mq = matchMedia(WIDE);
-    const on = () => setWide(mq.matches);
+    const mq = matchMedia(query);
+    const on = () => setHit(mq.matches);
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
-  }, []);
-  return wide;
+  }, [query]);
+  return hit;
+}
+
+/** EPIC-P43 T43.6: am Tablet stehen die Sessions neben (quer) bzw. über (hoch) der offenen Session. */
+function TabletSplit({ on, currentId, children }: { on: boolean; currentId: string; children: ComponentChildren }) {
+  if (!on) return <>{children}</>;
+  return (
+    <div class="tablet-split">
+      <SessionStrip currentId={currentId} />
+      <div class="tablet-detail">{children}</div>
+    </div>
+  );
 }
 
 function Main() {
@@ -227,7 +241,8 @@ function Main() {
   }, [ready]);
 
   const [staleAt, setStaleAt] = useState<Date | null>(null);
-  const wide = useWide();
+  const wide = useMedia(WIDE);
+  const tablet = useMedia(TABLET);
 
   // EPIC-P18 T18.5: layout and tiles are this device's choice; the hash
   // follows the focused tile (replaceState: focus moves are no history).
@@ -411,15 +426,17 @@ function Main() {
         // einem Tap erreichbar" applies to Neue Session/Einstellungen too.
         // BUG-0024: keyed by id — a link from one session to another must
         // not keep the first session's events, filter or reply draft.
-        <SessionTail
-          key={route.session.id}
-          session={route.session}
-          {...(route.code ? { initialCode: route.code } : {})}
-          {...(route.view === "tail" && route.tab ? { initialTab: route.tab, ...(route.file ? { initialFile: route.file } : {}) } : {})}
-          onNavigate={(page) => {
-            location.hash = pageHash(page);
-          }}
-        />
+        <TabletSplit on={tablet} currentId={route.session.id}>
+          <SessionTail
+            key={route.session.id}
+            session={route.session}
+            {...(route.code ? { initialCode: route.code } : {})}
+            {...(route.view === "tail" && route.tab ? { initialTab: route.tab, ...(route.file ? { initialFile: route.file } : {}) } : {})}
+            onNavigate={(page) => {
+              location.hash = pageHash(page);
+            }}
+          />
+        </TabletSplit>
       )}
       {!wide && <FilesLayer wide={false} focusedSessionId={route.view === "tail" ? route.session.id : null} />}
       {!wide && <BrowserLayer focusedSessionId={route.view === "tail" ? route.session.id : null} />}

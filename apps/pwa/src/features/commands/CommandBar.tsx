@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, remoteHost, type CommandPlan, type StepResult } from "../../shared/api.ts";
-import { commandContext, currentField, field, type FieldId } from "../../shared/command-context.ts";
+import { commandContext, currentField, field, getHere, type FieldId } from "../../shared/command-context.ts";
 import { pageHash, sessionHash, type ListPage } from "../../app/route.ts";
+import { preselectProject } from "../new-session/CreateSession.tsx";
+import { COMMANDS as EXAMPLES, QUICK_KIND_LABEL, quickMatches, type QuickSources, type QuickTarget } from "./quick.ts";
 
 const RISK_TEXT = { read: "liest", write: "ändert", destructive: "zerstörerisch" } as const;
 const TRANSFORM_TEXT: Record<string, string> = { correct: "korrigiert", shorten: "gekürzt", translate_en: "übersetzt (Englisch)", translate_de: "übersetzt (Deutsch)", improve: "verbessert" };
-const EXAMPLES = ["Zeig wartende Sessions", "Starte Codex in Projekt …: …", "Antworte dort: …", "Korrigiere den Text"];
 
 /** A client step — navigation and fields live in the app, not on the hub. */
 export function runClientStep(c: Record<string, string | number | boolean | null>): string {
@@ -54,6 +55,40 @@ export function CommandBar() {
   const [results, setResults] = useState<StepResult[] | null>(null);
   const [edit, setEdit] = useState<{ field: FieldId; before: string; after: string; label: string; applied: boolean } | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  // EPIC-P43 T43.6: Schnellsuche — Sessions und Projekte einmal je Öffnen, die Treffer rechnet quick.ts.
+  const [sources, setSources] = useState<Omit<QuickSources, "here">>({ sessions: [], projects: [] });
+  const [selected, setSelected] = useState(-1);
+  const here = getHere();
+  const jumps = plan || results || edit ? [] : quickMatches(text, { ...sources, here: here.sessionId ? { sessionId: here.sessionId, hostId: here.hostId } : null });
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    // Wie App.tsx: die Flotte, sonst die Sessions dieses Hubs.
+    void hubApi.fleet().then((f) => f.sessions).catch(() => hubApi.sessions()).then((sessions) => alive && setSources((s) => ({ ...s, sessions }))).catch(() => undefined);
+    void hubApi.projects().then((r) => alive && setSources((s) => ({ ...s, projects: r.projects }))).catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [open]);
+  useEffect(() => setSelected(-1), [text]);
+
+  const jump = (t: QuickTarget) => {
+    if (t.kind === "befehl") {
+      setText(t.text);
+      input.current?.focus();
+      return;
+    }
+    setOpen(false);
+    setText("");
+    if (t.kind === "session") runClientStep({ op: "session.open", sessionId: t.sessionId, hostId: t.hostId });
+    else if (t.kind === "datei") runClientStep({ op: "code.search", sessionId: t.sessionId, hostId: t.hostId, text: t.text });
+    else if (t.kind === "werkzeug") location.hash = pageHash(t.page);
+    else {
+      preselectProject(t.path);
+      location.hash = pageHash("new");
+    }
+  };
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -141,11 +176,29 @@ export function CommandBar() {
         class="command-form"
         onSubmit={(e) => {
           e.preventDefault();
+          // Enter springt nur, wenn ein Treffer mit den Pfeiltasten gewählt ist — sonst ist es ein Auftrag.
+          const chosen = jumps[selected];
+          if (chosen) return jump(chosen.target);
           setAnswers({});
           void submit({});
         }}
       >
-        <input ref={input} value={text} placeholder="Was soll passieren? z. B. „Zeig wartende Sessions“" aria-label="Auftrag" onInput={(e) => setText((e.target as HTMLInputElement).value)} />
+        <input
+          ref={input}
+          value={text}
+          placeholder="Springen oder Auftrag — z. B. „Einstellungen“, „Zeig wartende Sessions“"
+          aria-label="Auftrag"
+          role="combobox"
+          aria-expanded={jumps.length > 0}
+          aria-controls="quick-jumps"
+          aria-activedescendant={selected >= 0 ? `quick-jump-${selected}` : undefined}
+          onInput={(e) => setText((e.target as HTMLInputElement).value)}
+          onKeyDown={(e) => {
+            if (jumps.length === 0 || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            e.preventDefault();
+            setSelected((i) => (e.key === "ArrowDown" ? Math.min(i + 1, jumps.length - 1) : Math.max(i - 1, -1)));
+          }}
+        />
         <button class="btn primary" type="submit" disabled={busy || !text.trim()}>
           {busy ? "…" : "Planen"}
         </button>
@@ -153,7 +206,26 @@ export function CommandBar() {
           ✕
         </button>
       </form>
-      {!plan && !message && (
+      {jumps.length > 0 && (
+        <div class="quick-jumps" id="quick-jumps" role="listbox" aria-label="Springen zu">
+          {jumps.map((j, i) => (
+            <button
+              key={`${j.kind}-${j.label}-${i}`}
+              id={`quick-jump-${i}`}
+              type="button"
+              role="option"
+              aria-selected={i === selected}
+              class={`quick-jump${i === selected ? " selected" : ""}`}
+              onClick={() => jump(j.target)}
+            >
+              <span class="quick-kind">{QUICK_KIND_LABEL[j.kind]}</span>
+              <span class="quick-label">{j.label}</span>
+              <span class="quick-detail dim">{j.detail}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {!plan && !message && !text.trim() && (
         <div class="command-examples dim">
           {EXAMPLES.map((ex) => (
             <button key={ex} type="button" class="chip subtle" onClick={() => setText(ex.replace(/…/g, "").replace(/: $/, ": "))}>

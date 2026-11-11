@@ -5,7 +5,7 @@
   height: 20px;
 }
 
-.subtabs-wrap:not(.tile-rail) .tab-icon {
+.subtabs-wrap:not(.tile-tabs) .tab-icon {
   display: none;
 }
 
@@ -69,59 +69,17 @@
     border-left-color: var(--accent);
   }
 
-  .split-list .dock-item:hover,
-  .tile-rail button:hover {
+  .split-list .dock-item:hover {
     color: var(--fg);
   }
 
-  .split-list .dock-item .lb,
-  .tile-rail .lb {
+  .split-list .dock-item .lb {
     position: absolute;
     width: 1px;
     height: 1px;
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
-  }
-
-  /* Kachel: Ansichten als Leiste links neben dem Inhalt. */
-  .tile .session-live {
-    display: flex;
-    align-items: stretch;
-  }
-
-  .tile .session-main {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .tile-rail {
-    flex: none;
-    flex-direction: column;
-    width: 44px;
-    margin-right: 8px;
-    gap: 2px;
-    padding-top: 6px;
-    border-top: 0;
-    border-right: 1px solid var(--bg-chip);
-    position: sticky;
-    top: 0;
-    align-self: flex-start;
-    z-index: 2;
-  }
-
-  .tile-rail button {
-    flex: none;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    min-height: 44px;
-    border-bottom: 0;
-    border-left: 2px solid transparent;
-  }
-
-  .tile-rail button.active {
-    border-left-color: var(--accent);
   }
 }
 
@@ -189,4 +147,48 @@
 /* Phone: Logo statt Wortmarke — der Name bleibt für Screenreader (und Tests) erhalten, die Kopfzeile reicht sonst nicht für Status/PC/Medien. */
 @media (max-width: 639px) {
   .brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* EPIC-P43 T43.6: Kachelkopf — Griff, Titel, Zustand, die Reiter als Symbole, rechts Herauslösen.
+ * Die senkrechte Leiste je Kachel entfällt. Gilt auch im eigenen Fenster (oft schmaler als 1280 px). */
+.tile-tabs {
+  flex: none;
+  gap: 2px;
+  border-top: 0;
+}
+
+.tile-tabs button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 36px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border-bottom: 2px solid transparent;
+}
+
+.tile-tabs button.active {
+  border-bottom-color: var(--accent);
+}
+
+.tile-tabs .tab-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: calc(10px * var(--font-scale, 1));
+}
+
+.tile-tabs button:hover {
+  color: var(--fg);
+}
+
+.tile-tabs .lb {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
