@@ -5,17 +5,105 @@ Coding-Agenten auf allen eigenen Rechnern vom Handy aus überwachen, steuern
 und auditieren — über Tailscale, ohne öffentlichen Port, ohne Cloud.
 
 > Basis: PRD „AncientVoid“ v1.0 (12.09.2026) — siehe [`epics/`](./epics/).
-> **Frisch geklont? Setup-Route: [`docs/onboarding.md`](./docs/onboarding.md)** (Menschen & Agenten, inkl. ehrlicher Fertig-Tabelle).
-> Status (Audit 2026-09-21): **Hub-Kern und große Teile von P0–P4 implementiert,
-> Produkt-Gates noch offen.** Echte Handy-/Offline-/Push-Abnahmen, Swarm,
-> lokale Sprachpipeline, WSL und P4-Integrations-/Release-Aufgaben sind nicht
-> vollständig abgeschlossen. Die Markdown-Suche über `qmd` ist keine allgemeine
-> Quellcodesuche. MCP-Gateway und Reporting-Sink existieren, die vollständige
-> PC↔Handy-Session-Übernahme und Multi-Host-Steuerung noch nicht.
-> Siehe [Bestandsaufnahme mit Evidenz und UI-/Laya-Bewertung](docs/remote-control-audit-2026-09-21.md)
-> und [Planungs-Epics P5–P12](epics/README.md). Diese sind geplant, nicht umgesetzt.
+> Setup in einem Befehl: [`./setup.sh`](#installation--ein-befehl) (Wizard,
+> bindet zuerst den Provider an). Manuelle Route und Detail-Doku:
+> [`docs/onboarding.md`](./docs/onboarding.md) (Menschen & Agenten).
+
+| Anmeldung | Übersicht (Warteschlange) | Freigabe im Zug | Desktop-Arbeitsfläche |
+|---|---|---|---|
+| ![Anmeldung](docs/assets/readme-login-412.webp) | ![Übersicht](docs/assets/readme-start-412.webp) | ![Freigabe](docs/assets/readme-freigabe-412.webp) | ![Desktop](docs/assets/readme-desktop-1280.webp) |
+
+Screenshots entstehen aus einem **Demo-Hub mit synthetischen Stand-ins**
+(`scripts/readme-screenshots.mjs`, EPIC-P53) — keine echten Sessions, keine
+Secrets; wiederholbar aus dem Repo.
+
+## Ist-Stand (11.11.2026, ehrlich)
+
+Was ein Mensch in der PWA erreichen kann, zählt das
+[Funktionsinventar](docs/funktionsinventar.md) (P43-Gate: 63 globale, 72
+Session- und 16 PC-Funktionen, je mit E2E-Nachweis). Grobes Bild:
+
+**Fertig und belegt** — Hub-Kern (P0–P4.5: Sessions, EventStore, Worker,
+Auth, PWA), Fernsteuerung P5–P9 (Session-Übergabe PC↔Handy, Multi-Host-Flotte,
+Harness-Parität inkl. Freigaben/Rückfragen/Anhänge, mobiler Arbeitsplatz,
+Aufträge in Worten), Adapter-Flotte (claude, codex, opencode, copilot, pi,
+hermes, ACP-Harnesses, Beobachter cursor-clip/claude-clip — Status je Adapter
+in der [Matrix](#adapter-status-matrix) unten), Session-Steuerung P15
+(Modus/Modell/Pause/Queue), Laufzeit-Robustheit P17 (Resume, K7),
+Desktop-Workspace P18 (Kacheln bis 2×2), Loops P19, Slash-Commands P25,
+unterbrochene Sessions P27 (interrupted + Weitermachen/Archivieren),
+CI-Runner P28, Worktree-Workspace P29, Oberfläche P34/P35 (eigene Fenster,
+Harness-Parität Fortsetzen), Diff-Review P36, Session-Arbeitsort P38,
+Browser-Arbeitsplatz P39, Zugang P45 („No-go" — Tailnet bleibt).
+
+**Gebaut, Abnahme offen** — Factory-Integration P26 (Code fertig, echte
+Factory-Lauf-Abnahme `not_run`), Loops P19 (Handy-Abnahme), P34/P35
+(Live-Abnahme AC-P34-13/AC-P35-7, gebündelt im Endabnahme-Block),
+Session-Discovery P22/P24 (Live-Abnahme), Automationen P41 (teilweise,
+Exit offen), Projekt-Explorer/Dateiansicht P46 (in Umsetzung, Pixel-/
+Geräte-Abnahme offen). Details je Epic in [`epics/README.md`](epics/README.md).
+
+**Nicht umgesetzt** — Echtzeit-Sprache P10 (STT-Endpunkte sind
+konfigurierbar; Streaming-STT-Pipeline und gemessene Laya-Entscheidung
+offen), Desktop-Companion P11, Android-Shell P32 (vertagt), Plugin-/
+Provider-Katalog P30/P31 (Planungsentwürfe), englische Doku P33 (vertagt).
+Der Audit-Stand von 2026-09-21 ist Geschichte; die Planungskette lebt in
+[`epics/README.md`](epics/README.md).
+
+## Roadmap (Auszug)
+
+Aktuelle Kette (je Epic Status, Abhängigkeiten und Umfang in
+[`epics/README.md`](epics/README.md)):
+
+- **P43 — UX Next Level** (in Umsetzung): Start als Warteschlange, Session in
+  Zügen, Zustands- und Bewegungssprache; danach **P43.5** (Presets/Layouts),
+  **P44** (UI-Plugins).
+- **P47 → P48 → P49** (Auftrag 10.11.): Übersicht Projekte/Hosts, Repo-Graph
+  als pulsierendes Netz, Knowledge-Vault-Notizen.
+- **Quer:** **P50** Zoom-robuste Flächen (BUG-0113 offen), **P51**
+  Vault-Erreichbarkeit & Tastatur-first, **P52** Repo-Galaxie.
+- **Planungsentwürfe (Umsetzung gesperrt):** P30 Adapter-/Sink-Plugins,
+  P31 Provider-Katalog, P37 GitLab-Kontext, P40 Hermes-Orchestrierung,
+  P42 Android-Testgeräte.
 
 Unterbrochene Sessions: [Gründe, Fortsetzen und Archivieren](docs/interrupted-sessions.md) (P27).
+
+## Installation — ein Befehl
+
+```bash
+./setup.sh          # Wizard: Node-Check → ersten Provider anbinden →
+                    # npm install → PWA bauen → Device-Token → Hub starten
+```
+
+Der Wizard ist idempotent (erneut ausführen ist sicher) und failt laut mit
+Exit-Code, wenn eine Voraussetzung fehlt. Erkennt installierte Harness-CLIs
+(`claude`, `codex`, `opencode`, `copilot`, `pi`, `hermes`, `dsh`) und trägt
+den gewählten Provider ohne eigenen Code ein; OpenAI-kompatible Endpunkte
+(llama.cpp, LM Studio, Ollama, vLLM) laufen über die Beispiel-Vorlage;
+`dummy` läuft immer. Flags: `--yes`, `--adapter=<id>`, `--port=<n>` (wenn
+7373 belegt ist), `--device-label=<name>`, `--voidwarden` (Tokens für
+VoidWarden, s. unten), `--no-pwa`, `--no-start`. Hilfe bei Problemen:
+Skill `setup-wizard` (Exit-Code-Diagnose) bzw.
+[`docs/onboarding.md`](docs/onboarding.md).
+
+**Manuell** (Agenten/CI, entspricht dem Wizard):
+
+```bash
+node --version          # >= 22.5 (node:sqlite); entwickelt unter Node 26
+npm install
+cp apps/hub/hub.config.example.json hub.config.json   # Adapter eintragen
+npm -w @ancientvoid/pwa run build
+node apps/hub/src/main.ts            # lauscht auf 127.0.0.1:7373
+
+node apps/hubctl/src/cli.ts token issue "pixel-9" --db data/hub.db   # einmalig sichtbar
+ANCIENTVOID_TOKEN=<token> node apps/hubctl/src/cli.ts sessions
+
+scripts/setup-tailscale-serve.sh     # Fürs Handy: kein öffentlicher Port!
+```
+
+Betrieb, Updates und Rückkehr: [Installations-Runbook](docs/operations-runbook.md).
+Verschlüsselte Sicherungen: [Backup/Restore-Runbook](docs/backup-restore.md).
+CI-Runner, Ausfallpfad: [CI-Runbook](docs/ci-runbook.md).
 
 ## Modularität — das Kernversprechen
 
@@ -51,7 +139,8 @@ npm-Paket. In `hub.config.json` eintragen, fertig:
 Vorlage: [`examples/adapters/openai-compat/`](./examples/adapters/openai-compat/) —
 funktioniert mit jedem OpenAI-kompatiblen Endpunkt (llama.cpp, LM Studio,
 Ollama, vLLM). Anleitung: [`CONTRIBUTING.md`](./CONTRIBUTING.md) und
-[`docs/adapters.md`](./docs/adapters.md).
+[`docs/adapters.md`](./docs/adapters.md). ACP-fähige Harnesses brauchen
+**keinen eigenen Adapter** — Preset genügt (`docs/adapters.md` §ACP).
 
 ### Adapter-Status-Matrix
 
@@ -86,35 +175,37 @@ echten `capabilities()`-Rückgabewert automatisiert geprüft (T3.11):
 Status/Phase bleiben bewusst manuell — das sind Belege (Tests, Messläufe),
 kein reiner Funktionsaufruf.
 
-## Quick Start
+## Zusammenspiel mit VoidWarden
 
-```bash
-node --version          # >= 22.5 (node:sqlite); entwickelt unter Node 26
-npm install
-npm test                # alle Packages inkl. Contract-, K5-, K7-Suiten
-npm run lint && npm run typecheck
+**VoidWarden** ist das physische Gesicht von AncientVoid: der Pixel-Art-Companion
+**Nyx** (ESP32-Board als Statusanzeige) und ein **Web-Kiosk** (PWA), der auf
+einem alten Smartphone/Tablet liegt — mit Touch-Freigaben und Sprachausgabe.
+VoidWarden liest den Hub ausschließlich über dessen HTTP-API mit einem
+eigenen `agent:`-Token (read-only) und entscheidet Freigaben nur mit einem
+`display:`-Token (Least Privilege, nie ein menschliches Geräte-Token):
 
-# Hub starten
-cp apps/hub/hub.config.example.json hub.config.json
-node apps/hub/src/main.ts            # lauscht auf 127.0.0.1:7373
-
-# Device-Token ausstellen (einmalig sichtbar)
-node apps/hubctl/src/cli.ts token issue "pixel-9" --db data/hub.db
-
-# Session erzeugen / tailen
-ANCIENTVOID_TOKEN=<token> node apps/hubctl/src/cli.ts sessions
-ANCIENTVOID_TOKEN=<token> node apps/hubctl/src/cli.ts tail <sessionId> -f
-
-# PWA bauen (wird vom Hub unter / ausgeliefert, sobald gebaut)
-npm -w @ancientvoid/pwa run build
-
-# Fürs Handy: über Tailscale serve exponieren (kein öffentlicher Port!)
-scripts/setup-tailscale-serve.sh
+```
+                    ┌─ PWA (Handy/PC, Geräte-Token)
+AncientVoid-Hub ────┼── HTTP ──▶ VoidWarden-Companion ──WS──▶ Web-Kiosk (altes Handy/Tablet,
+ (REST/WS, SQLite)  │                              │           Touch-Freigabe + Stimme)
+                    │                              └─NDJSON/USB-Serial─▶ ESP32 (Nyx, Status)
+                    └─ hubctl / MCP-Gateway (optional)
 ```
 
-Betrieb, Updates und Rückkehr: [Installations-Runbook](docs/operations-runbook.md).
-Verschlüsselte Sicherungen: [Backup/Restore-Runbook](docs/backup-restore.md).
-CI-Runner, Ausfallpfad und Fehlerklassifikation: [CI-Runbook](docs/ci-runbook.md).
+Gemeinsame Installations-Kaskade (beide Repos, je ein Befehl):
+
+1. **AncientVoid**: `./setup.sh` — Hub + erster Provider + Device-Token.
+   Für VoidWarden zusätzlich: `./setup.sh --voidwarden` (stellt
+   `agent:voidwarden`- und `display:web-1`-Token aus, einmalig sichtbar).
+2. **VoidWarden** (Sibling-Checkout): `./setup.sh` — prüft den Hub, richtet
+   Companion und Web-Kiosk ein, druckt die Kiosk-URL. Das Board (Flashen,
+   Serial) ist optional — [`voidwarden`](../voidwarden) ·
+   [VoidWarden P14](../voidwarden/epics/EPIC-P14-projektdoku-setup-wizard.md)
+   (Schwester-Epic von P53).
+
+Keine Laufzeitabhängigkeit zwischen den Repos außer HTTP-API und
+`@ancientvoid/contracts` — VoidWarden funktioniert auch ohne Hub weiter
+(sichtbar offline, s. dessen Ausfallmodell).
 
 ## Messlatten (Auszug, PRD §9)
 
