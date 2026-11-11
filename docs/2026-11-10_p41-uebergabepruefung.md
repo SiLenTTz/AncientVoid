@@ -139,3 +139,12 @@ weitere festgeschriebene alte Liste.
 
 Kein P41-/P42-Abschluss, keine Geräte-Abnahme, kein Produktiv-Deployment durch
 vorhandene oder zukünftige grüne Gates impliziert.
+
+## Nachtrag 11.11.2026
+
+Die AC-Matrix und die Future-Fragility-Punkte oben beschreiben den Stand vom
+10.11.2026 (`8f25ef7`) und bleiben als Befund stehen. Run-Ziele, Ergebnis-
+abrechnung, Editor, Precheck-Revisionsprüfung, History-Contract und
+Offline-Projektion wurden danach per ADR-0065 umgesetzt; der aktuelle Abgleich
+mit Nachweisen und den verbleibenden Resten steht in
+[EPIC-P41 §8](../epics/EPIC-P41-automationen.md#8-stand-und-exit-lücken-abgleich-11112026).

@@ -1,6 +1,6 @@
 # EPIC-P41 — Automationen mit Zeitplan, Precheck und Laufhistorie
 
-**Status:** teilweise umgesetzt, Exit offen · **Umsetzung:** laufend · **Phase:** P41
+**Status:** Code und Unit-/Integrations-/E2E-Nachweise für die Übergabe-Lücken geschlossen (11.11.2026), **Exit weiterhin offen** — Live-Reste siehe §8 · **Umsetzung:** laufend · **Phase:** P41
 **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P40 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 
@@ -43,11 +43,11 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 
 ## 4. Aufgaben (Checkliste T41.m)
 
-- [ ] **T41.1** Bestands-/Owner-Abgleich, ADR/Contracts für Zeitplan, Claim, Runstatus und genehmigten Rahmen; keine Doppelautorität. **K5/K7**.
-- [ ] **T41.2** Begrenzten Schedule-Parser/Occurrence-Berechnung auswählen; Orca-Port gegen Library/kleinen Eigenbau abwägen, DST-/Oversize-/unmögliche Termine prüfen. **K5/K7**.
-- [ ] **T41.3** Host-Scheduler, atomare Claim-/Dedupe-/Overlap-/Missed-Regeln und Recovery mit Fake Clock und Crash-Proben implementieren. **K7/K8**.
-- [ ] **T41.4** Registrierte Prechecks und Session-/Run-Dispatch mit Auth-/Quota-/Lease-Fehlern, deaktivierten Plänen und menschlicher Freigabe bauen. **K1/K5/K7**.
-- [ ] **T41.5** PWA/CLI Liste/Editor/Vorschau/Run-now/Disable/Verlauf; Orchestrierungsruns verlinken. **K1/K2/K10**.
+- [x] **T41.1** Bestands-/Owner-Abgleich, ADR/Contracts für Zeitplan, Claim, Runstatus und genehmigten Rahmen; keine Doppelautorität. **K5/K7**.
+- [x] **T41.2** Begrenzten Schedule-Parser/Occurrence-Berechnung auswählen; Orca-Port gegen Library/kleinen Eigenbau abwägen, DST-/Oversize-/unmögliche Termine prüfen. **K5/K7**.
+- [ ] **T41.3** Host-Scheduler, atomare Claim-/Dedupe-/Overlap-/Missed-Regeln und Recovery mit Fake Clock und Crash-Proben implementieren. **K7/K8**. *(Implementiert, Fake-Clock- und simulierte Crash-Proben grün; offen: echter Prozess-Crash zwischen Claim und Dispatch, K8 mit großer Schedule-Menge — §8.)*
+- [ ] **T41.4** Registrierte Prechecks und Session-/Run-Dispatch mit Auth-/Quota-/Lease-Fehlern, deaktivierten Plänen und menschlicher Freigabe bauen. **K1/K5/K7**. *(Implementiert und gegen dummy-Harness belegt; Fehlerklassifikation aus Fehlertext nicht live gegen Provider/P38-Lease belegt — §8.)*
+- [x] **T41.5** PWA/CLI Liste/Editor/Vorschau/Run-now/Disable/Verlauf; Orchestrierungsruns verlinken. **K1/K2/K10**. (Editor/Update in PWA und `hubctl automations update`; Run-Links per E2E belegt.)
 - [ ] **T41.6** `e2e/specs/automations.spec.ts`, echter kurzer isolierter Zeitplan-Lauf plus Restart und Negativprobe; Gate/PWA-Build/K8. **K1/K5/K7/K8/K10**.
 
 ## 5. Acceptance Criteria (AC-P41-k)
@@ -70,17 +70,32 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 
 Alle T41.* und AC-P41-* mit aktueller Evidenz, Vorgänger-Exit ausdrücklich grün. `npm run gate` und PWA-Build grün; Pipeline-Job `e2e` grün bzw. Infrastrukturfall nach `docs/ci-runbook.md` nachgezogen, niemals als Pass gezählt. Jede neue UI-Funktion/jeder Ablauf hat einen Spec in `e2e/specs/`; benötigte echte Browser-/Provider-/Geräte-Nachweise separat, Skip ≠ Pass. Neue APIs/Tools/Ansichten sind registriert, in Hub/PWA/hubctl erreichbar und dokumentiert. ADR vor Contract-Änderung, K5/K7/K8 entsprechend Scope nachgewiesen; keine offene TODO ohne Epic-Bezug. Übernommene Orca-Teile mit Commit/Pfad/Hash/Lizenz/Änderungsnotiz und eigenen Tests gemäß Planungsgrundlage.
 
-## 8. Übergabeprüfung vom 10.11.2026
+## 8. Stand und Exit-Lücken (Abgleich 11.11.2026)
 
-Contracts, Engine, Scheduler und Routen liegen auf `main` (`8f25ef7`).
-PWA-/CLI-Oberfläche und E2E aus dem bisherigen Arbeits-Worktree wurden zur
-Fortsetzung übernommen. Der Code-Stand ist damit weiter als der historische
-Planungsstatus, erfüllt aber noch nicht den vollständigen Epic-Exit.
+Die [Übergabeprüfung vom 10.11.2026](../docs/2026-11-10_p41-uebergabepruefung.md)
+beschreibt den Stand `8f25ef7`. Die danach gemergten Commits (ADR-0065:
+`2d8c71e`, `df108c7`, `1fb9a40`, `b6266ae`) haben die dort kritischen Lücken
+bereits im Code geschlossen; Branch `feat/p41-exit-luecken` gleicht Epic und
+Nachweise gegen `main` (`efaa952`) ab und ergänzt, was noch ohne Beleg war.
+**P42 bleibt gesperrt**, bis die offenen Punkte unten entschieden sind.
 
-[Prüfbericht mit AC-Matrix und Gate-Evidenz](../docs/2026-11-10_p41-uebergabepruefung.md).
-Offen bleiben insbesondere Run-Ziele, automatische Ergebnisrückführung,
-erreichbare Bearbeitung bestehender Pläne, Offline-Verhalten und die Prüfung
-von Disable/Generation nach einem laufenden Precheck. BUG-0115/0116 (umbenannt) betreffen
-Neuanlage-Freigabe und Prompt-Integrität; Korrekturen und Regressionen im
-Fortsetzungsbranch. Die obigen Aufgaben bleiben bis zu vollständigen Nachweisen
-offen. **P42 ist durch diesen Zwischenstand nicht freigegeben.**
+| AC / Aufgabe | Stand | Nachweis |
+|---|---|---|
+| AC-P41-1 Run-Ziel, Ergebnisrückführung | **Code + Test grün** (dummy-Harness). Run-Ziele dispatchen über den geteilten Orchestrator mit eingefrorener Vorlage; `inspect`/`reconcile` rechnet Session-/Run-Ergebnisse ab und gibt `maxParallel` wieder frei. | `core/automations/lifecycle.test.ts` (settle → Folgetermin), `hub/automations/lifecycle.integration.test.ts` (echte `turn_end`-Belege, Run-Dispatch genau einmal), E2E `automations-lifecycle.spec.ts` |
+| AC-P41-2 DST/Grace/Zeitzone | **Unit grün.** Neu: gefeuerte Termine == Vorschau über Frühjahrs-/Herbstwechsel in Europe/Berlin und America/New_York (Minutentakt-Uhr); Zeitzonenwechsel = neue Generation, deaktiviert. | `core/automations/exit-criteria.test.ts`, `schedule.test.ts`, `scheduler.test.ts` (Grace) |
+| AC-P41-3 Crash/unsicherer Start | **Unit grün, simuliert.** Neu: Dienst-Neustart nach persistiertem Claim ohne Dispatch → `unknown`, kein Replay (auch bei weiterem Neustart); CLI zeigt jetzt die `unknown`-Begründung. **Kein echter Prozess-Crash** zwischen Claim und Dispatch, E2E prüft nur sauberen Neustart. | `exit-criteria.test.ts`, `lifecycle.test.ts`, `hubctl/test/automations.test.ts` |
+| AC-P41-4 getrennte Gründe | **Unit grün** für alle sieben Precheck-Urteile und fünf Dispatch-Gründe sowie `unknown` bei unsicherem Start; jeder Contract-Grund ist in der PWA beschriftet. **Nicht live** belegt: Auth/Quota/Lease kommen im Hub per Textmuster aus Launcher-Fehlern (`mapLaunchFailure`). | `exit-criteria.test.ts`, `hub/automations/automations.test.ts`, `pwa/test/features/automation-labels.test.ts` |
+| AC-P41-5 Disable/Änderung während Precheck | **Code + Test grün.** Host, Generation und Definitionsrevision werden nach dem Precheck erneut geprüft (Disable, Generationswechsel, Disable→Enable). Laufende Arbeit bleibt unangetastet. | `lifecycle.test.ts` (drei Varianten) |
+| AC-P41-6 Recovery/offline/History | **Code + E2E grün.** Datierte Offline-Projektion (Liste und — neu — Verlauf), Mutationen gesperrt; Verlaufsfehler erscheinen als Fehler, ein früher abgerufener Verlauf wird bei Abruffehler datiert als veraltet markiert, nie als leerer/frischer Verlauf. | `automations-lifecycle.spec.ts` (Flugmodus, Verlaufsfehler, veralteter Verlauf; neue Fälle rot vor dem Fix) |
+| T41.5 Editor | **geschlossen.** PWA „Bearbeiten“ ruft `setEditing`, Speichern erzeugt neue Generation (deaktiviert); `hubctl automations update` vorhanden. | E2E `automations-lifecycle.spec.ts`, `hubctl/test/automations*.test.ts` |
+| Contract Claim/History | **geschlossen.** `AutomationHistoryEntry` (ADR-0065) ist der einzige Vertrag; Core (`ClaimState`), PWA und hubctl importieren ihn, keine Parallel-Typen. | `contracts/src/automations/automation.ts` |
+
+**Gate-Evidenz (Arbeitsbaum dieses Branches, lokal, 11.11.2026):** `npm run gate` Exit 0 — Typecheck, Lint, Workspace-Links, Commit-Notation, `check:arch`, Namens-/Adapter-Matrix, 1847 Unit-/Integrationstests (4 Skips) und **537 E2E-Pässe / 3 Skips** (Android-AVD P42 ohne `ANCIENTVOID_E2E_ANDROID=1`, zwei bekannte mobile Handoff-Duplikate; Skips zählen nicht als Pass). Pipeline-Job `e2e` und PWA-Build-Artefakt separat nicht geprüft.
+
+**Bewusst offen (kein Exit ohne Entscheidung/Nachweis):**
+
+1. **`unknown` ohne Referenz blockiert dauerhaft.** Ein Start ohne Session-/Run-ID (z. B. Absturz nach Claim, unsicherer Dispatch-Fehler) belegt das Überlappungsbudget für alle Generationen und hat keinen menschlichen Auflösungsweg (keine Route/UI/CLI; `AutomationService.settle` ist nirgends erreichbar). Der Plan bleibt blockiert, bis der Journal-Eintrag manuell korrigiert wird. Braucht ein ADR (ADR-0065 sieht „belegte Auflösung“ vor, nicht deren Bedienung) und einen ehrlichen Ergebniswert — kein erfundenes `failed`.
+2. **Echter Crash-Test** (`kill -9` zwischen Claim und Dispatch) und **Live-Fehlerpfade** (Provider-Auth, Quota, P38-Direct-Lease) fehlen; belegt ist nur das Journal-/Neustartverhalten und das Mapping auf Skip-Gründe.
+3. **Ergebnisabrechnung nur gegen den dummy-Harness** belegt; für echte Provider hängt sie an `session.turn_end` bzw. Terminalstatus der Session.
+4. **K8 mit großer Schedule-/Catch-up-Menge:** `npm run loadtest` misst Session-Eventlast; belegt ist nur, dass ein Jahr Minutentakt-Rückstand im Unit-Test unter 2 s bleibt.
+5. **T41.6/Definition of Done:** Pipeline-Job `e2e` und Vorgänger-Exit (P40) wurden hier nicht neu belegt.
