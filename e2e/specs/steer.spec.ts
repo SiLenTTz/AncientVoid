@@ -98,13 +98,9 @@ test.describe("Antworten, Stop und Weiter (T1.5-6, T5.4, T5.5)", () => {
     await app.getByPlaceholder("Antworten…").fill("Arbeite LANGSAM");
     await app.getByRole("button", { name: "Senden" }).click();
     await expect(statusPill(app)).toHaveAttribute("data-status", "working");
-    // BUG-0063: activity must be *visible* in the chat, same animation
-    // language as the overview cards — the pill's ring chases its border.
-    const anim = await app.evaluate(
-      (pill) => getComputedStyle(pill, "::after").animationName,
-      await app.locator(".session-topbar .pill.working").elementHandle(),
-    );
-    expect(anim).toBe("ancientvoid-border-chase");
+    // BUG-0063/EPIC-P43 T43.2: Arbeit ist im Chat *sichtbar*, in derselben Zustandssprache wie auf
+    // den Karten — der Punkt atmet.
+    await expect(app.locator(".session-topbar .status-working .status-mark")).toHaveCSS("animation-name", "mv-breathe");
     await expect(app).toHaveURL(new RegExp(`#/sessions/${id}$`));
     await app.getByRole("button", { name: "Stop" }).click();
     await expect(statusPill(app)).toHaveAttribute("data-status", "stopped");

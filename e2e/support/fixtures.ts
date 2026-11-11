@@ -70,5 +70,5 @@ export async function openFromOverview(page: Page, adapter: string): Promise<voi
 }
 
 export function statusPill(page: Page) {
-  return page.locator(".topbar .pill");
+  return page.locator(".topbar .status");
 }

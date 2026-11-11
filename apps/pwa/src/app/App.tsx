@@ -57,6 +57,7 @@ export function App({
   // an error to surface — same "feature genuinely absent" handling as
   // Approvals.tsx itself.
   const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [questionSessions, setQuestionSessions] = useState<string[]>([]);
   // BUG-0045: ein einzelner fehlgeschlagener Abruf ist kein Ausfall — erst der
   // zweite in Folge zeigt die Fehlerkarte (die Seite sonst nach unten schiebt).
   const failedPolls = useRef(0);
@@ -82,13 +83,16 @@ export function App({
           .then((pending) => {
             if (!alive) return;
             setPendingApprovals(pending.length);
-            publishHubStatus({ pendingApprovals: pending.length });
+            const questions = pending.filter((p) => (p.tool?.questions?.length ?? 0) > 0).map((p) => p.sessionId);
+            setQuestionSessions((prev) => (prev.join() === questions.join() ? prev : questions));
+            publishHubStatus({ pendingApprovals: pending.length, questionSessions: questions });
           })
           // 501: dieser Hub hat keine Freigaben — echte 0. Sonst den letzten Stand behalten.
           .catch((err: unknown) => {
             if (alive && err instanceof Error && /^501|not configured/.test(err.message)) {
               setPendingApprovals(0);
-              publishHubStatus({ pendingApprovals: 0 });
+              setQuestionSessions([]);
+              publishHubStatus({ pendingApprovals: 0, questionSessions: [] });
             }
           });
         // T1.5-3/ADR-0004: one usage snapshot per known adapter, not per
@@ -187,6 +191,7 @@ export function App({
             hosts={hosts}
             onOpen={onOpen}
             pendingApprovals={pendingApprovals}
+            questionSessions={questionSessions}
             onOpenApprovals={() => setPage("approvals")}
             onOpenDiscovery={() => setPage("discovery")}
             lastSession={getLastSession()}

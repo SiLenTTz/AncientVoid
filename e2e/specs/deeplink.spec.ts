@@ -33,7 +33,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
       await app.getByRole("button", { name: "Bericht" }).click();
       await expect(app.locator(".attach-cmd-card code")).toHaveText(`tmux attach -t ancientvoid-${id}`);
       await app.getByRole("button", { name: "Stop" }).click();
-      await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "stopped");
+      await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "stopped");
       await expect(app.locator(".attach-cmd-card")).toHaveCount(0);
     });
   });
@@ -79,7 +79,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     await expect(app.locator(".worktree-open")).toHaveText(`code ${workdir}`);
 
     await app.getByRole("button", { name: "Stop" }).click();
-    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "stopped");
+    await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "stopped");
     await hub.until(async () => (await hub.events(id)).some((e) => e.payload.kind === "session.worktree_kept"), "worktree kept");
     const { existsSync } = await import("node:fs");
     expect(existsSync(`${workdir}/e2e-change.txt`), "the agent's file survived Stop (BUG-0027)").toBe(true);
