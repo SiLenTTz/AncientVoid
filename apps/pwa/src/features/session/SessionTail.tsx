@@ -36,6 +36,7 @@ import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { estimateText, formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
 import { StatusLine } from "./StatusLine.tsx";
+import { openLayer } from "../../shared/layers.ts";
 import { ChatTurns, itemFirstSeq, itemLastSeq } from "./ChatTurns.tsx";
 import { turnsOf } from "./turns.ts";
 import { LoopBadge, LoopPanel } from "../loops/LoopPanel.tsx";
@@ -762,6 +763,15 @@ export function SessionTail({
                 <span>{m.label}</span>
               </button>
             ))}
+            {/* Ebenen über der Session (EPIC-P43, Regel 6: ohne Randlasche über dem Inhalt). */}
+            <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); openLayer("browser"); }}>
+              <TabIcon name="browser" />
+              <span>Browser</span>
+            </button>
+            <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); openLayer("devices"); }}>
+              <TabIcon name="geraete" />
+              <span>Geräte</span>
+            </button>
           </div>
         )}
       </span>
@@ -1018,7 +1028,14 @@ export function SessionTail({
         ) : activeTab === "suche" ? (
           <SearchPane project={session.project} />
         ) : activeTab === "code" ? (
-          <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} {...(initialCode ? { initial: initialCode } : {})} onOpenDiff={showDiffTab} />
+          <>
+            <div class="view-head">
+              <button class="btn" type="button" aria-label="Dateibaum öffnen" title="Dateibaum (Strg+Umschalt+E)" onClick={() => openLayer("files")}>
+                Dateibaum
+              </button>
+            </div>
+            <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} {...(initialCode ? { initial: initialCode } : {})} onOpenDiff={showDiffTab} />
+          </>
         ) : activeTab === "umgebung" ? (
           <WorkspaceRuntimePane sessionId={session.id} refreshSeq={workspaceSeq} />
         ) : activeTab === "chat" ? (

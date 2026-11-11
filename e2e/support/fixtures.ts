@@ -112,3 +112,24 @@ export async function sessionTab(scope: Page | Locator, name: string): Promise<v
   if (!(await menu.isVisible())) await bar.locator('[aria-haspopup="menu"]').click();
   await menu.getByRole("menuitem", { name: main, exact: true }).click();
 }
+
+/**
+ * EPIC-P43 (Kleinkram-Regel 6): Dateibaum, Browser und Geräte haben keine Randlaschen mehr. In einer Session
+ * öffnet der Reiter „Dateien“ den Dateibaum und „Mehr“ Browser und Geräte; ohne Session das globale „Mehr“.
+ */
+export async function openLayer(page: Page, name: "Dateibaum" | "Browser" | "Geräte"): Promise<void> {
+  const bar = page.locator(".subtabs-wrap").first();
+  // Browser und Geräte gehören immer zu einer Session; der Dateibaum geht auch ohne (globales „Mehr“).
+  const inSession = await bar
+    .waitFor({ timeout: name === "Dateibaum" ? 3_000 : 15_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!inSession) return dockGo(page, name);
+  if (name === "Dateibaum") {
+    await sessionTab(page, "Dateien");
+    await page.getByRole("button", { name: "Dateibaum öffnen" }).first().click();
+    return;
+  }
+  await bar.locator('[aria-haspopup="menu"]').click();
+  await bar.getByRole("menu", { name: "Weitere Ansichten" }).getByRole("menuitem", { name, exact: true }).click();
+}

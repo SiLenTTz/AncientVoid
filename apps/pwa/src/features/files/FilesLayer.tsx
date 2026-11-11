@@ -2,11 +2,12 @@ import { useEffect, useState } from "preact/hooks";
 import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
 import { getHubStatus, useHubStatus } from "../shell/hub-status.ts";
 import { FilesSidebar, type FocusedSession } from "./FilesSidebar.tsx";
+import { onLayerOpen } from "../../shared/layers.ts";
 import { loadFilesState, saveFilesState, type FilesState } from "./files-model.ts";
 
 /**
- * EPIC-P46 T46.4: Einstieg der rechten Sidebar. Desktop: dritte Spalte (Strg+Umschalt+E), Touch: Drawer über
- * einen Tab am Rand. Der Zustand (Breite, Root, Tabs) ist gerätelokal; die Root folgt der fokussierten Kachel
+ * EPIC-P46 T46.4: Einstieg der rechten Sidebar. Desktop: dritte Spalte (Strg+Umschalt+E), Touch: Drawer;
+ * geöffnet über den Reiter „Dateien“ bzw. das globale „Mehr“ (EPIC-P43). Der Zustand (Breite, Root, Tabs) ist gerätelokal; die Root folgt der fokussierten Kachel
  * nur, wenn noch keine gewählt ist — danach bleibt sie sichtbar gepinnt.
  */
 export function FilesLayer({ wide, focusedSessionId }: { wide: boolean; focusedSessionId: string | null }) {
@@ -29,6 +30,19 @@ export function FilesLayer({ wide, focusedSessionId }: { wide: boolean; focusedS
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // EPIC-P43: geöffnet wird aus dem Reiter „Dateien“ oder dem globalen „Mehr“ (keine Randlasche mehr).
+  useEffect(
+    () =>
+      onLayerOpen("files", () =>
+        setState((s) => {
+          const next = { ...s, open: true };
+          saveFilesState(next);
+          return next;
+        }),
+      ),
+    [],
+  );
 
   // EPIC-P47 T47.2: Karte der Projekt-Ansicht pins diesen Root und öffnet die Sidebar.
   useEffect(() => {
@@ -80,21 +94,6 @@ export function FilesLayer({ wide, focusedSessionId }: { wide: boolean; focusedS
 
   return (
     <>
-      {!state.open && (
-        <button
-          type="button"
-          class="files-toggle"
-          aria-label="Dateibaum öffnen"
-          title="Dateibaum (Strg+Umschalt+E)"
-          onClick={() => {
-            const next = { ...state, open: true };
-            saveFilesState(next);
-            setState(next);
-          }}
-        >
-          Dateien
-        </button>
-      )}
       <FilesSidebar state={state} onChange={setState} focused={focused} projects={projects} mobile={!wide} />
     </>
   );

@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { zipSync, strToU8 } from "fflate";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, openLayer } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 import type { TestHub } from "../support/hub.ts";
 
@@ -11,7 +11,7 @@ import type { TestHub } from "../support/hub.ts";
  * eingebettete Skripte laufen in keiner Ansicht.
  */
 async function openFile(app: Page, hub: TestHub, path: string): Promise<void> {
-  if (!(await app.getByTestId("files-sidebar").isVisible().catch(() => false))) await app.getByRole("button", { name: "Dateibaum öffnen" }).click();
+  if (!(await app.getByTestId("files-sidebar").isVisible().catch(() => false))) await openLayer(app, "Dateibaum");
   await app.getByLabel("Dateiquelle").selectOption(`p:${hub.alpha}`);
   const side = app.getByTestId("files-sidebar");
   const parts = path.split("/");

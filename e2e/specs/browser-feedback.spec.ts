@@ -1,4 +1,4 @@
-import { test, expect, openFromOverview } from "../support/fixtures.ts";
+import { test, expect, openFromOverview, openLayer } from "../support/fixtures.ts";
 import { startScratch } from "../support/scratch-web.ts";
 
 /**
@@ -12,7 +12,7 @@ test.describe("Browser-Design-Feedback (EPIC-P39)", () => {
   test("Element wählen, Vorschau prüfen, senden; Passwortfeld bleibt maskiert @desktop", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await openFromOverview(app, "dummy");
-    await app.getByRole("button", { name: "Browser öffnen" }).click();
+    await openLayer(app, "Browser");
     await app.getByLabel("Adresse").fill(`${scratch.origin}/`);
     await app.getByRole("button", { name: "Browser starten" }).click();
     const frame = app.getByTestId("browser-frame");

@@ -6,6 +6,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { TabIcon, type TabIconName } from "../shared/TabIcon.tsx";
 import { openCommandBar } from "../features/commands/CommandBar.tsx";
+import { openLayer } from "../shared/layers.ts";
 export type { ListPage as Page } from "./route.ts";
 import type { ListPage as Page } from "./route.ts";
 
@@ -57,6 +58,9 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
           <TabIcon name={m.icon} /><span class="lb">{m.label}</span>
         </button>
       ))}
+      <button class="dock-item dock-extra" type="button" title="Dateibaum (Strg+Umschalt+E)" onClick={() => openLayer("files")}>
+        <TabIcon name="baum" /><span class="lb">Dateibaum</span>
+      </button>
       {more && (
         <div class="overlay-backdrop more-backdrop" onClick={() => setMore(false)}>
           <div class="overlay-sheet more-sheet" role="dialog" aria-label="Mehr" onClick={(e) => e.stopPropagation()}>
@@ -69,6 +73,11 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
             <button class={`more-item ${active === "status" ? "active" : ""}`} type="button" onClick={() => go("status")}>
               <TabIcon name="bericht" />
               <span>Provider-Status</span>
+            </button>
+            {/* Ohne offene Session: Dateibaum über alle Projekte (früher die Randlasche „Dateien“). */}
+            <button class="more-item" type="button" onClick={() => { setMore(false); openLayer("files"); }}>
+              <TabIcon name="baum" />
+              <span>Dateibaum</span>
             </button>
           </div>
         </div>

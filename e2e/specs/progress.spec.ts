@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 
 test.describe("Fortschritt und Kontingent im Lauf", () => {
   test("mit Plan: Aufgaben, Prozent und Restzeit, danach verschwindet die Anzeige @desktop", async ({ app, hub }) => {
@@ -85,7 +85,11 @@ test.describe("Fortschritt und Kontingent im Lauf", () => {
   test("das Kontingent zeigt, was der Provider meldet", async ({ app, hub }) => {
     const ok = await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await app.goto(`${hub.origin}/#/sessions/${ok}`);
-    await expect(app.locator(".run-quota")).toHaveText("Kontingent: Provider meldet nichts");
+    // EPIC-P43 T43.4 (Kleinkram-Regel 1): ohne Meldung schweigt die Statuszeile, der Bericht nennt es.
+    await expect(app.locator(".status-line .run-tokens")).toBeVisible();
+    await expect(app.locator(".run-quota")).toHaveCount(0);
+    await sessionTab(app, "Bericht");
+    await expect(app.locator(".kv-row").filter({ hasText: "Kontingent" })).toContainText(/unbekannt|keine Meldung/);
 
     const limited = await hub.createSession({ adapter: "opencode", prompt: "Bitte KONTINGENT" });
     await app.goto(`${hub.origin}/#/sessions/${limited}`);

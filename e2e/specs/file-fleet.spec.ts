@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect, dockGo } from "../support/fixtures.ts";
+import { test, expect, dockGo, openLayer } from "../support/fixtures.ts";
 import { TestHub } from "../support/hub.ts";
 
 /** EPIC-P46 (ADR-0058 §10): Projekte und Dateien einer anderen Maschine über die Flotte — nur Lesen. */
@@ -19,7 +19,7 @@ test.describe("Dateien anderer Maschinen (EPIC-P46)", () => {
       await expect(app.locator(".fleet-message.ok")).toHaveText("Verbunden mit silenttz-server.");
 
       await app.locator(".dock").getByRole("button", { name: "Start", exact: true }).click().catch(() => undefined);
-      await app.getByRole("button", { name: "Dateibaum öffnen" }).click();
+      await openLayer(app, "Dateibaum");
       const source = app.getByLabel("Dateiquelle");
       await expect(source.locator("option", { hasText: "(silenttz-server)" }).first()).toBeAttached({ timeout: 20_000 });
       const value = await source.locator("option", { hasText: "(silenttz-server)" }).first().getAttribute("value");

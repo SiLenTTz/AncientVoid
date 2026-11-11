@@ -104,7 +104,8 @@ export function Composer({
   // statt Mikro-Feld; im expanded-Zustand setzt CSS die Höhe, Auto-Grow
   // greift dann nicht ein (offsetHeight ist schon groß).
   const [expanded, setExpanded] = useState(false);
-  const [focused, setFocused] = useState(false);
+  // EPIC-P43 T43.4: einzeilig, bis das Feld zum ersten Mal den Fokus bekommt.
+  const [touched, setTouched] = useState(false);
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
@@ -340,13 +341,11 @@ export function Composer({
   return (
     // EPIC-P43 T43.4: einzeilig, solange niemand schreibt; Fokus oder Text klappt die Eingabe auf.
     <div
-      class={`composer${expanded ? " expanded" : ""}${!focused && !value.trim() && !expanded ? " compact" : ""}`}
-      // Nur das Eingabefeld klappt auf: würde ein Knopf das Layout beim Fokus verschieben, ginge sein Klick ins Leere.
+      class={`composer${expanded ? " expanded" : ""}${!touched && !value.trim() && !expanded ? " compact" : ""}`}
+      // Nur das Eingabefeld klappt auf, und es bleibt offen: klappte es beim Verlassen wieder zu, verschöbe
+      // sich das Layout unter dem Finger und der Klick auf die Taste darunter ginge ins Leere.
       onFocusIn={(e) => {
-        if (e.target === inputRef.current) setFocused(true);
-      }}
-      onFocusOut={(e) => {
-        if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) setFocused(false);
+        if (e.target === inputRef.current) setTouched(true);
       }}
     >
       <textarea

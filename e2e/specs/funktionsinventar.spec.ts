@@ -174,12 +174,12 @@ const SESSION: Entry[] = [
   { id: "S29", name: "Entwurfsstatus", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await controls(c); await c.s.getByPlaceholder("Antworten…").fill("Entwurf fürs Inventar"); await expect(c.s.locator(".draft-state")).toBeVisible(); await c.s.getByPlaceholder("Antworten…").fill(""); } },
   { id: "S30", name: "Steuerung ein- und ausblenden", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await controls(c); await c.tap(c.s.getByRole("button", { name: "Steuerung ausblenden" })); await expect(c.s.getByRole("button", { name: "Steuerung einblenden" })).toBeVisible(); } },
   { id: "S31", name: "Kopieren je Ereignis", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await expect(c.s.locator(".tail-scroll").getByRole("button", { name: "Kopieren" }).first()).toBeAttached(); } },
-  { id: "S32", name: "Dateibaum (Randlasche)", from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Dateibaum öffnen" })); await expect(c.page.getByTestId("files-sidebar")).toBeVisible(); } },
-  { id: "S33", name: "Browser-Arbeitsplatz (Randlasche)", from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Browser öffnen" })); await expect(c.page.getByTestId("browser-panel")).toBeVisible(); } },
+  { id: "S32", name: "Dateibaum (Reiter Dateien)", from: "session", reach: async (c) => { await c.tap(tab(c, "Dateien")); await c.tap(c.s.getByRole("button", { name: "Dateibaum öffnen" })); await expect(c.page.getByTestId("files-sidebar")).toBeVisible(); } },
+  { id: "S33", name: "Browser-Arbeitsplatz (Mehr)", from: "session", reach: async (c) => { await more(c, "Browser"); await expect(c.page.getByTestId("browser-panel")).toBeVisible(); } },
   { id: "S34", name: "Graph in eigenes Fenster", forms: PC, from: "session", reach: async (c) => { await more(c, "Graph"); await expect(c.s.getByRole("button", { name: "Graph in eigenes Fenster" })).toBeVisible(); } },
   // EPIC-P42: Android-Testgeräte — ohne SDK sichtbar blockiert, das Panel selbst ist immer erreichbar.
-  { id: "S65", name: "Android-Testgeräte (Randlasche)", from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Geräte öffnen" })); await expect(c.page.getByTestId("device-panel")).toBeVisible(); } },
-  { id: "S66", name: "Android-Testgeräte in eigenes Fenster", forms: PC, from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Geräte öffnen" })); await expect(c.page.getByRole("button", { name: "Geräte in eigenes Fenster" })).toBeVisible(); } },
+  { id: "S65", name: "Android-Testgeräte (Mehr)", from: "session", reach: async (c) => { await more(c, "Geräte"); await expect(c.page.getByTestId("device-panel")).toBeVisible(); } },
+  { id: "S66", name: "Android-Testgeräte in eigenes Fenster", forms: PC, from: "session", reach: async (c) => { await more(c, "Geräte"); await expect(c.page.getByRole("button", { name: "Geräte in eigenes Fenster" })).toBeVisible(); } },
 ];
 
 const DESKTOP: Entry[] = [
