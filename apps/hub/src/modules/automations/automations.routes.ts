@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { AutomationDefinition } from "@ancientvoid/contracts";
+import { AutomationDefinition, AutomationEnableBody, AutomationExecuteBody } from "@ancientvoid/contracts";
 import type { RouteContext } from "../../route-context.ts";
 
 /**
@@ -23,6 +23,7 @@ export function registerAutomationsRoutes(app: FastifyInstance, ctx: RouteContex
     // Ohne Dienst bleiben die Routen sichtbar, aber leer — 501, kein Absturz (Muster wie approvals/webauthn).
     app.get("/api/automations", off);
     app.get("/api/automations/:id/history", off);
+    app.get("/api/automations/:id/template", off);
     app.post("/api/automations", off);
     app.patch("/api/automations/:id", off);
     app.post("/api/automations/:id/enable", off);
@@ -39,14 +40,19 @@ export function registerAutomationsRoutes(app: FastifyInstance, ctx: RouteContex
     return { automationId: id, history: service.history(id) };
   });
 
+  app.get("/api/automations/:id/template", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const template = service.template(id);
+    return template ?? reply.code(404).send({ error: "Keine eingefrorene Run-Vorlage vorhanden" });
+  });
+
   app.post("/api/automations", async (req, reply) => {
     const parsed = CreateBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.issues.map((i) => i.message).join("; ") });
-    if (parsed.data.definition.target.kind === "run") return reply.code(501).send({ error: "Run-Vorlagen (P40) sind in diesem Build noch nicht dispatchbar." });
     try {
-      return reply.code(201).send(service.create(parsed.data.definition, parsed.data.promptText));
+      return reply.code(201).send(service.create(await service.prepare(parsed.data.definition), parsed.data.promptText));
     } catch (err) {
-      return reply.code(400).send({ error: err instanceof Error ? err.message : String(err) });
+      return reply.code(err instanceof Error && /Generation veraltet/.test(err.message) ? 409 : 400).send({ error: err instanceof Error ? err.message : String(err) });
     }
   });
 
@@ -55,27 +61,33 @@ export function registerAutomationsRoutes(app: FastifyInstance, ctx: RouteContex
     const parsed = CreateBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.issues.map((i) => i.message).join("; ") });
     try {
-      const stored = service.update(id, parsed.data.definition, parsed.data.promptText);
+      const stored = service.update(id, await service.prepare(parsed.data.definition), parsed.data.promptText);
       if (!stored) return reply.code(404).send({ error: "unbekannte automation" });
       return stored;
     } catch (err) {
-      return reply.code(400).send({ error: err instanceof Error ? err.message : String(err) });
+      return reply.code(err instanceof Error && /Generation veraltet/.test(err.message) ? 409 : 400).send({ error: err instanceof Error ? err.message : String(err) });
     }
   });
 
   app.post("/api/automations/:id/enable", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const parsed = z.object({ enabled: z.boolean() }).safeParse(req.body);
+    const parsed = AutomationEnableBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.issues.map((i) => i.message).join("; ") });
-    const stored = service.setEnabled(id, parsed.data.enabled);
-    if (!stored) return reply.code(404).send({ error: "unbekannte automation" });
-    return stored;
+    try {
+      const stored = service.setEnabled(id, parsed.data.enabled, parsed.data.generation);
+      if (!stored) return reply.code(404).send({ error: "unbekannte automation" });
+      return stored;
+    } catch (err) { return reply.code(409).send({ error: String(err) }); }
   });
 
   app.post("/api/automations/:id/run-now", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const claim = await service.runNow(id);
-    if (!claim) return reply.code(404).send({ error: "unbekannte automation" });
-    return reply.code(202).send(claim);
+    if (!service.list().some(info => info.definition.id === id)) return reply.code(404).send({ error: "unbekannte automation" });
+    const parsed = AutomationExecuteBody.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "Run-now braucht die geprüfte Generation" });
+    try {
+      const claim = service.requestRunNow(id, parsed.data.generation);
+      return reply.code(202).send(claim);
+    } catch (err) { return reply.code(409).send({ error: String(err) }); }
   });
 }

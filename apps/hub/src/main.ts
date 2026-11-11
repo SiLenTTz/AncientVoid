@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createHubOrchestration } from "./modules/orchestration/index.ts";
 /**
  * AncientVoid hub daemon entry.
  *
@@ -295,7 +296,11 @@ async function main(): Promise<void> {
     },
   });
 
+  const orchestration = createHubOrchestration({ sessions, dataDir });
+  await orchestration.ready;
   const automations = createHubAutomationService({
+    orchestration,
+    actions: config.actions,
     dataDir,
     hostId: config.hostId ?? toHostId(hostname()),
     sessions,
@@ -363,6 +368,7 @@ async function main(): Promise<void> {
     hostId: config.hostId ?? toHostId(hostname()),
     hostLabel: config.hostLabel ?? hostname(),
     automations,
+    orchestration,
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.ANCIENTVOID_EXPOSE === "1"
