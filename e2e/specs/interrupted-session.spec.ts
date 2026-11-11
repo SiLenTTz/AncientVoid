@@ -55,16 +55,17 @@ test.describe("P27 unterbrochene Sessions", () => {
 
 test.describe("P27 fehlende Resume-Deklaration", () => {
   test.use({ hubOptions: { dummyAutoStop: 0, interruptedDummy: { resume: false } } });
-  test("ehrliche Meldung, Archivieren funktioniert trotzdem @desktop", async ({ app, hub }) => {
-    const id = await hub.createSession({ adapter: "dummy", prompt: "Nicht fortsetzbar" });
+  test("Prompt-Fallback: Weitermachen bleibt nutzbar, Hinweis sichtbar @desktop", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Nicht native" });
     await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "P27: worker transport lost" } });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     const banner = app.getByRole("status", { name: "Session unterbrochen" });
-    await expect(banner).toContainText("Dieser Adapter kann nicht nativ fortsetzen");
-    await expect(banner.getByRole("button", { name: "Weitermachen" })).toBeDisabled();
-    expect((await hub.api(`/api/sessions/${id}/resume`, { body: {} })).status).toBe(422);
-    await banner.getByRole("button", { name: "Archivieren" }).click();
+    await expect(banner).toContainText("Fortsetzungsnachricht");
+    await expect(banner.getByRole("button", { name: "Weitermachen" })).toBeEnabled();
+    const resumed = await hub.api(`/api/sessions/${id}/resume`, { body: {} });
+    expect(resumed.status).toBe(200);
     await expect(banner).toHaveCount(0);
+    expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("working");
   });
 });
 

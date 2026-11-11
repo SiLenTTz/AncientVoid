@@ -78,7 +78,7 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     args: ["--version"],
     discovery: "verified",
     resume: "missing",
-    evidence: "Read-only composerHeaders in Cursor state.vscdb (cursor-clip, Linux 2026-09-18). No native resume.",
+    evidence: "Read-only composerHeaders in Cursor state.vscdb (cursor-clip, Linux 2026-09-18). Resume via cursor-agent --resume <chatId> (Follow-up und hub-Weitermachen, promptlos idle wie ADR-0040).",
   },
   {
     id: "deepseek",

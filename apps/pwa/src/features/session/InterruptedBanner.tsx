@@ -8,10 +8,11 @@ const REASONS: Record<SessionInterruptionReason, string> = {
   adapter_down: "Verbindung zum Adapter verloren",
 };
 
-export function InterruptedBanner({ events, since, canResume, onResume, onArchive }: {
+export function InterruptedBanner({ events, since, nativeResume, onResume, onArchive }: {
   events: NormalizedEvent[];
   since: string;
-  canResume: boolean;
+  /** true = Adapter deklariert hub-Resume; false = Weitermachen nutzt Prompt-Fallback. */
+  nativeResume: boolean;
   onResume: () => Promise<void>;
   onArchive: () => Promise<void>;
 }) {
@@ -30,9 +31,9 @@ export function InterruptedBanner({ events, since, canResume, onResume, onArchiv
     <strong>Session unterbrochen</strong>
     <p>{Object.hasOwn(REASONS, reason) ? REASONS[reason as SessionInterruptionReason] : reason} · <time dateTime={at}>{new Date(at).toLocaleString("de-DE")}</time></p>
     {event?.payload.lastTurnId && <p>Letzter Zug: {String(event.payload.lastTurnId)}</p>}
-    {!canResume && <p>Dieser Adapter kann nicht nativ fortsetzen. Neue Nachricht mit Kontext senden oder archivieren.</p>}
+    {!nativeResume && <p>Dieser Adapter setzt ohne natives Resume fort — Weitermachen sendet eine Fortsetzungsnachricht.</p>}
     <div class="row">
-      <button class="btn" disabled={busy || !canResume} onClick={() => void act(onResume)}>Weitermachen</button>
+      <button class="btn" disabled={busy} onClick={() => void act(onResume)}>Weitermachen</button>
       <button class="btn" disabled={busy} onClick={() => void act(onArchive)}>Archivieren</button>
     </div>
     {error && <p role="alert">{error}</p>}

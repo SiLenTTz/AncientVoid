@@ -975,7 +975,7 @@ export function SessionTail({
       </div>
 
       {factoryLink?.partner && <div class="loop-note">Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
-      {status === "interrupted" && <InterruptedBanner events={events} since={record.updatedAt} canResume={adapterResume?.hub === true} onResume={async () => {
+      {status === "interrupted" && <InterruptedBanner events={events} since={record.updatedAt} nativeResume={adapterResume?.hub === true} onResume={async () => {
         const ack = await api.resumeSession(session.id);
         if (!ack.ok) throw new Error(ack.detail ?? "Fortsetzen fehlgeschlagen.");
         const updated = await api.session(session.id);

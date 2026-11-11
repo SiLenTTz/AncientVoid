@@ -136,6 +136,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),
         nativeDiscovery: "none",
         nativeResume: "native",
+        // EPIC-P35 / BUG-Weitermachen: `--resume <chatId>` ist der gleiche Pfad
+        // wie Follow-up-Steers; hub:true schaltet den Banner-Button frei.
+        // Promptloses Weitermachen bleibt idle (kein leerer -p-Zug), nächster Prompt resumed.
+        resume: { argv: [cfg.command, "--resume", "{sessionId}"], ref: "native", hub: true },
         features: basicFeatures({ toolGate: cfg.extraArgs.includes("--yolo") || cfg.extraArgs.includes("--force") ? "bypass" : "allowlist", modelChoice: "start" }),
       };
     },
@@ -163,6 +167,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         const window = contextWindowFor(model);
         ctx.emit({ type: "system", summary: `cursor · ${model}`, payload: { kind: "cursor.model", model, ...(window !== null ? { contextWindowTokens: window } : {}) } });
       }
+      // Weitermachen / Adoption ohne Prompt: kein leerer -p-Zug (wie claude ADR-0040).
+      // Der nächste steer-Prompt setzt mit --resume fort.
+      if (resume && !spec.prompt?.trim() && !spec.attachments?.length) {
+        sessions.set(ctx.sessionId, meta);
+        return { sessionId: ctx.sessionId };
+      }
       const prompt = promptWithAttachments(spec.prompt ?? "", spec.attachments as readonly PromptAttachment[] | undefined);
       const proc = await ctx.spawnWorker([cfg.command, ...buildArgs(prompt, resume, model)], spec.env ? { env: spec.env } : undefined);
       attach(ctx.sessionId, proc, ctx, meta);
@@ -173,7 +183,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const meta = sessions.get(handle.sessionId);
       switch (input.kind) {
         case "prompt": {
-          if (!meta || !meta.healthy) return { ok: false, detail: "cursor: Agent läuft nicht mehr — Session neu starten" };
+          // Nach promptlosem Weitermachen existiert meta, healthy bleibt true ohne Prozess.
+          if (!meta) return { ok: false, detail: "cursor: Agent läuft nicht mehr — Session neu starten" };
+          if (!meta.healthy && !meta.resumeSessionId) return { ok: false, detail: "cursor: Agent läuft nicht mehr — Session neu starten" };
+          meta.healthy = true;
           const prompt = promptWithAttachments(input.text, input.attachments as readonly PromptAttachment[] | undefined);
           const proc = await ctx.spawnWorker([cfg.command, ...buildArgs(prompt, meta.resumeSessionId ?? undefined, meta.lastModel ?? undefined)], undefined);
           attach(handle.sessionId, proc, ctx, meta);
