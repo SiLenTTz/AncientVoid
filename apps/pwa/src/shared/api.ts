@@ -1255,8 +1255,10 @@ function createHubApi(P: (path: string) => string) {
   runEstimate: (id: string) => api<RunEstimate>(P(`/api/sessions/${id}/estimate`)),
   sessionQueue: (id: string) => api<QueuedPrompt[]>(P(`/api/sessions/${id}/queue`)),
   removeQueued: (id: string, queueId: string) => api<{ ok: boolean }>(P(`/api/sessions/${id}/queue/${queueId}`), { method: "DELETE" }),
-  /** BUG-0114: einen vorgemerkten Prompt sofort in die laufende Unterhaltung senden. */
-  sendQueuedNow: (id: string, queueId: string) => api<Ack>(P(`/api/sessions/${id}/queue/${queueId}/send`), { method: "POST" }),
+  /** BUG-0114: einen vorgemerkten Prompt sofort in die laufende Unterhaltung senden.
+   * BUG-0115: Fastify weist einen POST mit JSON-Content-Type und leerem Body
+   * mit 400 ab — deshalb ein explizit leerer JSON-Body statt gar keins. */
+  sendQueuedNow: (id: string, queueId: string) => api<Ack>(P(`/api/sessions/${id}/queue/${queueId}/send`), { method: "POST", body: JSON.stringify({}) }),
   /** EPIC-P40: Orchestrierung — Runs nach ADR-0064. */
   orchestrationRuns: () => api<OrchestrationRun[]>(P("/api/orchestration/runs")),
   orchestrationStart: (input: OrchestrationRunStart) =>
