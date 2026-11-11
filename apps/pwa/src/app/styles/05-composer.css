@@ -27,10 +27,11 @@
  * Maximieren-Button macht es auf Tipp groß. */
 
 /* Maximieren-Button: große Schreibfläche; Auto-Grow-Deckel gilt dann nicht. */
+/* BUG-0122: Fensterhöhe durch --ui-zoom teilen (docs/zoom-robuste-flaechen.md). */
 .composer.expanded .composer-input {
-  height: 75vh;
-  height: 75dvh;
-  min-height: 50vh;
+  height: calc(75vh / var(--ui-zoom, 1));
+  height: calc(75dvh / var(--ui-zoom, 1));
+  min-height: calc(50vh / var(--ui-zoom, 1));
   max-height: none;
 }
 

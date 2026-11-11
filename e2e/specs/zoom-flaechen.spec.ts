@@ -221,4 +221,55 @@ test.describe("Zoom-robuste Flächen (EPIC-P50)", () => {
     );
     expect(found).toEqual([]);
   });
+
+  /**
+   * BUG-0122: Overlay-Höhen/-Breiten teilen durch --ui-zoom. Bei Zoom 200 % darf kein
+   * fensterbezogenes max-height/max-width der betroffenen Selektoren die Viewport-Kante
+   * überschreiten (rechnerischer Repro: ungeteilt 85vh → 170 % der Fensterhöhe).
+   */
+  test("BUG-0122: Overlay-Maße bleiben bei Zoom 200 % im Fenster", async ({ app }) => {
+    await app.evaluate(() => localStorage.setItem("ancientvoid.uiScale", "2"));
+    await app.reload();
+    await expect(app.getByRole("heading", { name: "AncientVoid", exact: true })).toBeVisible();
+    // Nur die vh/vw-Caps prüfen: berechnete max-height/max-width (CSS-px unter zoom)
+    // gegen Layout-Fenster (inner*/zoom). Feste px-Deckel (z. B. 680px) sind kein BUG-0122.
+    const found = await app.evaluate(() => {
+      const zoom = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-zoom")) || 1;
+      const layoutH = window.innerHeight / zoom;
+      const layoutW = window.innerWidth / zoom;
+      const probes: { name: string; html: string; check: "h" | "w" | "both" }[] = [
+        { name: "file-viewer", html: `<div class="file-viewer"></div>`, check: "h" },
+        { name: "overlay-sheet", html: `<div class="overlay-sheet"></div>`, check: "h" },
+        { name: "review-dialog", html: `<div class="review-send-dialog"><div class="modal-card"></div></div>`, check: "both" },
+        { name: "forge-trace", html: `<div class="fp-trace-dialog"><div class="modal-card"></div></div>`, check: "both" },
+        { name: "color-dialog", html: `<dialog class="color-dialog" open></dialog>`, check: "both" },
+        { name: "composer-expanded", html: `<div class="composer expanded"><textarea class="composer-input"></textarea></div>`, check: "h" },
+        { name: "fleet-qr", html: `<img class="fleet-qr" alt="" />`, check: "w" },
+        { name: "card-menu-body", html: `<div class="card-menu-body"></div>`, check: "w" },
+        { name: "restore-bar", html: `<div class="restore-bar"></div>`, check: "w" },
+      ];
+      const out: string[] = [];
+      if (Math.abs(zoom - 2) > 0.05) out.push(`--ui-zoom ist ${zoom}, erwartet 2`);
+      for (const p of probes) {
+        const wrap = document.createElement("div");
+        wrap.dataset.bug0122 = p.name;
+        wrap.innerHTML = p.html;
+        document.body.appendChild(wrap);
+        const el = wrap.firstElementChild as HTMLElement;
+        const target = (el.querySelector(".modal-card, .composer-input") as HTMLElement | null) ?? el;
+        const cs = getComputedStyle(target);
+        const maxH = cs.maxHeight === "none" ? Number.parseFloat(cs.height) : Number.parseFloat(cs.maxHeight);
+        const maxW = cs.maxWidth === "none" ? Number.parseFloat(cs.width) : Number.parseFloat(cs.maxWidth);
+        if ((p.check === "h" || p.check === "both") && Number.isFinite(maxH) && maxH > layoutH + 1) {
+          out.push(`${p.name}: max-height ${Math.round(maxH)}px > Layout-Fenster ${Math.round(layoutH)}px (Zoom ${zoom})`);
+        }
+        if ((p.check === "w" || p.check === "both") && Number.isFinite(maxW) && maxW > layoutW + 1) {
+          out.push(`${p.name}: max-width ${Math.round(maxW)}px > Layout-Fenster ${Math.round(layoutW)}px (Zoom ${zoom})`);
+        }
+        wrap.remove();
+      }
+      return out;
+    });
+    expect(found).toEqual([]);
+  });
 });

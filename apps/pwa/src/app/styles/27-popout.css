@@ -106,6 +106,9 @@ html:has(.popout-shell) body {
   color: var(--fg-faint);
   font: inherit;
   cursor: pointer;
+  /* EPIC-P50 T50.6: Maus ≥ 30 px / Touch ≥ 44 px (--target). */
+  min-width: var(--target);
+  min-height: var(--target);
 }
 
 .tile-popout:hover,
@@ -148,7 +151,7 @@ html:has(.popout-shell) body {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  max-width: min(92vw, 720px);
+  max-width: min(calc(92vw / var(--ui-zoom, 1)), 720px); /* BUG-0122 */
   transform: translateX(-50%);
   padding: 8px 12px;
   border: 1px solid var(--accent);
