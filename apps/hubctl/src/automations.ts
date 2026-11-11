@@ -53,6 +53,11 @@ export function formatAutomationLine(info: AutomationInfo): string {
   return `${d.id.slice(0, 8)}  ${d.enabled ? "an " : "aus"}  ${d.label.padEnd(24).slice(0, 24)}  ${plan.padEnd(18).slice(0, 18)}  ${d.schedule.timezone.padEnd(14).slice(0, 14)}  next ${next}  last ${last}`;
 }
 
+/** Verlaufszeile; `unknown`/Missed tragen ihre Begründung, damit Unsicherheit im CLI nicht unsichtbar bleibt (AC-P41-3). */
+export function formatHistoryLine(h: AutomationHistoryEntry): string {
+  return `${h.at}  ${h.occurrenceUtc}  ${h.state}${h.reason ? `/${h.reason}` : ""}${h.outcome ? ` ${h.outcome}` : ""}${h.kind ? `  ${h.kind}` : ""}${h.sessionId ? `  session ${h.sessionId}` : ""}${h.runId ? `  run ${h.runId}` : ""}${h.missedThroughUtc ? `  verpasst bis ${h.missedThroughUtc}` : ""}${h.detail ? `  — ${h.detail}` : ""}`;
+}
+
 export function buildAutomationUpdate(jsonText: string, previous: AutomationDefinition, promptText: string | null): Record<string, unknown> {
   const raw: unknown = JSON.parse(jsonText);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Update-JSON muss ein Objekt sein.");
@@ -94,9 +99,7 @@ export async function runAutomationsCommand(args: string[]): Promise<void> {
         console.log("(kein Verlauf)");
         break;
       }
-      for (const h of history) {
-        console.log(`${h.at}  ${h.occurrenceUtc}  ${h.state}${h.reason ? `/${h.reason}` : ""}${h.outcome ? ` ${h.outcome}` : ""}${h.sessionId ? `  session ${h.sessionId}` : ""}${h.runId ? `  run ${h.runId}` : ""}`);
-      }
+      for (const h of history) console.log(formatHistoryLine(h));
       break;
     }
     case "enable":

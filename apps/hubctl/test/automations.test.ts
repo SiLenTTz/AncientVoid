@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
-import { buildAutomationDefinition, buildAutomationUpdate, formatAutomationLine, type AutomationInfo } from "../src/automations.ts";
+import { buildAutomationDefinition, buildAutomationUpdate, formatAutomationLine, formatHistoryLine, type AutomationInfo } from "../src/automations.ts";
 import type { AutomationDefinition } from "@ancientvoid/contracts";
 
 /** EPIC-P41 T41.5: Definitions- und Format-Helfer des hubctl-automations-Commands. */
@@ -106,5 +106,21 @@ describe("buildAutomationUpdate", () => {
 
   it("lehnt Nicht-Objekte laut ab", () => {
     expect(() => buildAutomationUpdate("[1,2]", previous, null)).toThrow(/Objekt/);
+  });
+});
+
+describe("formatHistoryLine", () => {
+  const base = { claimKey: "a:1:x", automationId: "a", generation: 1, occurrenceUtc: "2026-11-12T07:30:00.000Z", at: "2026-11-12T07:30:05.000Z" } as const;
+
+  it("zeigt bei unklarem Start die Begründung statt eines leeren Zustands", () => {
+    const line = formatHistoryLine({ ...base, state: "unknown", detail: "Neustart nach Claim ohne bestätigte Dispatch-Referenz; kein Replay" });
+    expect(line).toContain("unknown");
+    expect(line).toContain("kein Replay");
+  });
+
+  it("zeigt Grund, Ergebnis, Referenzen, Art und zusammengefasste verpasste Termine", () => {
+    expect(formatHistoryLine({ ...base, state: "skipped", reason: "missed", missedThroughUtc: "2026-11-12T07:29:00.000Z", kind: "catchup" }))
+      .toMatch(/skipped\/missed {2}catchup {2}verpasst bis 2026-11-12T07:29:00.000Z/);
+    expect(formatHistoryLine({ ...base, state: "settled", outcome: "failed", runId: "r-1" })).toMatch(/settled failed {2}run r-1/);
   });
 });
