@@ -198,6 +198,18 @@ existierendem Shortcut. Läuft quer zur Kette (Präzedenz P47–P50).
 
 Reihenfolge: P51 quer wie P50 (je Aufgabe eigener Branch/MR nach main; ADR-0063-Ergänzung vor dem ersten Verhaltens-Merge).
 
+## Nutzerauftrag vom 12.11.2026 — Repo-Graph als Galaxie
+
+Nutzermeldung: Die Graph-Ansicht wirkt wie ein Kasten; gewünscht ist eine Galaxie nach dem
+Vorbild `brain-galaxy`, simpel, mit Suche, genauer Sicht auf Zusammenhänge und Vollbild am
+Handy. Läuft quer zur Kette (Präzedenz P47–P51), baut auf P48 auf.
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P52 — Repo-Galaxie](EPIC-P52-repo-galaxie.md) | Bereiche als Spiralsysteme statt Kasten, Fokus mit ein-/ausgehenden Verbindungen als Bild und Liste, Suche mit Hinflug, Hineinzoomen mit Brotkrume, Vollbild-Graph am Handy; alle P48-Funktionen bleiben | keine fachliche offene (P48, ADR-0062, ADR-0053) | 1,5–2,5 |
+
+Reihenfolge: P52 quer wie P50/P51 (je Aufgabe eigener Branch/MR nach main).
+
 ## Reihenfolge & Gating
 
 Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4 → P4.5 → P5 → P6 → P7 → P8 → P9 → P10 → P10.5 → P11 → P12 → P13 → P14 → P15 → P16 → P17 → P18 → P19 → P21 → P22 → P23 → P24 → P26** (P13/P14/P17/P18/P19 unabhängig: Adaptermuster aus P3, Worktree-Hygiene bzw. Laufzeit-Robustheit auf bestehendem P5/P7/P15-Code; P16 ist die Handy-Liste, kein Start vor geklärter P12-Abnahme).
