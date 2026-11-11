@@ -120,11 +120,13 @@ test.describe("Android-Testgeräte (EPIC-P42)", () => {
       return tap.status === 200;
     };
     await hub.api("/api/devices/action", { body: { serial, generation: freGen, geometryVersion: geo, action: { type: "openUrl", url: `http://10.0.2.2:${hub.port}/` } } });
-    for (let i = 0; i < 5; i++) {
+    // Chromes First-Run hat mehrere Stufen (Sign-in, Benachrichtigungen, Ad-Privacy …) und ändert sich
+    // zwischen Versionen — deshalb positiv aufs Ziel prüfen: solange „Verbinden“ (PWA-Login) nicht im
+    // Baum steht, Known-Dismiss-Buttons tippen. Unbekannte Stufen fallen dadurch nicht mehr durch.
+    const pwaLoginVisible = async (): Promise<boolean> => (await hub.apiRaw(`/api/devices/${serial}/tree`)).body.toString("utf8").includes("Verbinden");
+    for (let i = 0; i < 8 && !(await pwaLoginVisible()); i++) {
+      for (const needle of ["Use without an account", "No thanks", "Accept", "Continue"]) await tapByText(needle);
       await new Promise((r) => setTimeout(r, 1_500));
-      const xml = (await hub.apiRaw(`/api/devices/${serial}/tree`)).body.toString("utf8");
-      if (!/Welcome to Chrome|Add account to device|notifications make things easier/.test(xml)) break;
-      for (const needle of ["Use without an account", "Accept", "Continue", "No thanks"]) await tapByText(needle);
     }
     await hub.api("/api/devices/action", { body: { serial, generation: freGen, geometryVersion: geo, action: { type: "openUrl", url: `http://10.0.2.2:${hub.port}/` } } });
     expect((await hub.api("/api/devices/release", { body: { serial, generation: freGen } })).status).toBe(200);
