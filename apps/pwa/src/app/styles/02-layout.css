@@ -410,6 +410,13 @@ a {
   color: var(--err);
 }
 
+/* AC-P43-6 (T43.9): Kopfzeile und Kachel-Tasten erreichen die Zielhöhe — 44 px bei Touch, 30 px mit Maus. */
+.topbar .brand-link,
+.topbar .link-btn,
+.tile-close {
+  min-height: var(--target);
+}
+
 .tile-empty {
   margin-top: 20%;
   display: grid;

@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { createPortal } from "preact/compat";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, remoteHost, type ApprovalRequest, type SessionRecord } from "../../shared/api.ts";
 import { sessionHash } from "../../app/route.ts";
 import { CardDecision, QuestionForm } from "../approvals/Approvals.tsx";
@@ -134,17 +134,24 @@ function NyxPanel({ online, sessions, approvals, onChanged, onOpen, actions }: {
 export function NyxButton({ online, sessions, approvals, onChanged }: { online: boolean; sessions: readonly SessionRecord[]; approvals: readonly ApprovalRequest[]; onChanged: () => void }) {
   const [open, setOpen] = useState(false);
   const { summary, sentence, queue } = useNyx(online, sessions, approvals);
+  const button = useRef<HTMLButtonElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
+    // Tastatur und Screenreader: der Fokus geht ins Blatt und beim Schließen zurück auf Nyx (T43.9).
+    sheet.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      button.current?.focus();
+    };
   }, [open]);
   return (
     <>
-      <button type="button" class="nyx-button" data-nyx={summary.state} aria-label={`Nyx: ${sentence}`} title={sentence} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
+      <button ref={button} type="button" class="nyx-button" data-nyx={summary.state} aria-label={`Nyx: ${sentence}`} title={sentence} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
         <NyxSprite state={summary.state} />
         {queue.length > 0 && <span class="nyx-count num">{queue.length}</span>}
       </button>
@@ -152,7 +159,7 @@ export function NyxButton({ online, sessions, approvals, onChanged }: { online: 
       {open &&
         createPortal(
           <div class="overlay-backdrop nyx-backdrop" onClick={() => setOpen(false)}>
-            <div class="overlay-sheet nyx-sheet" role="dialog" aria-label="Nyx" onClick={(e) => e.stopPropagation()}>
+            <div ref={sheet} class="overlay-sheet nyx-sheet" role="dialog" aria-modal="true" aria-label="Nyx" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
               <NyxPanel
                 online={online}
                 sessions={sessions}

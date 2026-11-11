@@ -43,8 +43,8 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-width: 40px;
-  min-height: 40px;
+  min-width: var(--target);
+  min-height: var(--target);
   padding: 0;
   background: none;
   border: 1px solid transparent;
@@ -115,4 +115,14 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+}
+
+/* Das Blatt bekommt beim Öffnen den Fokus (Screenreader liest „Nyx, Dialog“); ein Rahmen wäre dort nur Rauschen. */
+.nyx-sheet:focus {
+  outline: none;
+}
+
+/* AC-P43-6: der Sessionname im Blatt ist ein Weg in die Session — volle Zielhöhe. */
+.nyx-item-session {
+  min-height: var(--target);
 }
