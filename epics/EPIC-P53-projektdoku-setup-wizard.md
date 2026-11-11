@@ -1,6 +1,6 @@
 # EPIC-P53 — Projektdokumentation und One-Command-Setup (README, Screenshots, Setup-Wizard)
 
-**Status:** offen · **Phase:** P53 · **Dauer:** 1,5–2,5 Agenten-Wochen (grobe Schätzung)
+**Status:** in Umsetzung — T53.1–T53.6 erledigt (11.11.2026, Belege je Aufgabe), T53.7 offen (wartet auf VoidWarden-P14-Umsetzung) · **Phase:** P53 · **Dauer:** 1,5–2,5 Agenten-Wochen (grobe Schätzung)
 **Abhängigkeit:** keine fachliche offene — Quer-Epic (Präzedenz P50–P52), betrifft nur Doku,
 Setup-Skript und Agenten-Skills, keine Laufzeit-Architektur. Nutzerauftrag vom 11.11.2026.
 
@@ -114,31 +114,40 @@ Betriebs-Installation bleibt Runbook/Skripte (`docs/operations-runbook.md`,
 
 ## 4. Aufgaben (Checkliste)
 
-- [ ] **T53.1 — Epic und Index.** Diese Datei + Zeile in `epics/README.md`
+- [x] **T53.1 — Epic und Index.** Diese Datei + Zeile in `epics/README.md`
   (eigener Branch/MR vor der Umsetzung, damit andere Agenten das Epic sehen).
   *AC:* Epic existiert auf `main`, Index verlinkt. *Test:* Review.
-- [ ] **T53.2 — Screenshots-Skript + Assets.** `scripts/readme-screenshots.mjs`
+  **Belegt:** [MR !379](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/379), gemerged 11.11.2026.
+- [x] **T53.2 — Screenshots-Skript + Assets.** `scripts/readme-screenshots.mjs`
   (Demo-Hub, Playwright, Webp nach `docs/assets/readme-*.webp`); Ansichten:
   Anmeldung, Übersicht (Handy), Session (Handy), Freigabe, Desktop-Arbeitsfläche.
   *AC:* `node scripts/readme-screenshots.mjs` läuft grün durch und erzeugt die
   Dateien reproduzierbar (zweiter Lauf identische Menge). *Test:* Skript-Lauf +
   `npm run check:secrets`. Messlatten: keine (Doku).
-- [ ] **T53.3 — Setup-Wizard.** `setup.sh` + `npm run setup` nach §2/§3; Flags
+  **Belegt:** Skript-Lauf grün (5 Webp: login/start/session/freigabe-412,
+  desktop-1280), Login-Shot mit leerem Token-Feld; `check:secrets` grün.
+- [x] **T53.3 — Setup-Wizard.** `setup.sh` + `npm run setup` nach §2/§3; Flags
   `--yes`, `--adapter=<id>`, `--no-start`, `--no-pwa`; Exit-Codes dokumentiert
   (Skript-Kopf). *AC:* Frisch-Klon-Test `--yes --adapter=dummy` grün; zweiter Lauf
   idempotent; fehlende Voraussetzungen (Node < 22.5 simuliert) failen laut mit
   klarer Meldung. *Test:* manueller Frisch-Klon-Lauf + Negativprobe in der CI-artigen
   Umgebung. Messlatten: PRD §8 (kein Secret in Config/Log).
-- [ ] **T53.4 — Wizard-Agent/Skill.** `.claude/skills/setup-wizard/SKILL.md` +
+  **Belegt:** Frisch-Klon-Lauf 11.11.2026 mit `--port=7390` (produktiver Hub auf
+  7373 unberührt): Hub ready, PWA 200, nur dummy-Adapter aktiv; 2./3. Lauf ohne
+  Config-Änderung (SHA unverändert) und ohne Zweittoken; Negativprobe Node 18 →
+  exit 2 mit Meldung. Zusätzlich gebaut: `--port`-Flag, `HUB_LOCAL=1` in
+  `scripts/hub.sh` (lokaler Daemon trotz systemd-Unit), Override-Hinweis bei
+  ererbtem `ANCIENTVOID_CONFIG` (Agent-in-Hub-Session-Fall).
+- [x] **T53.4 — Wizard-Agent/Skill.** `.claude/skills/setup-wizard/SKILL.md` +
   Index-Eintrag; Trigger, Diagnose-Pfade, Grenzen (PRD §8.5), Verweis auf
   `docs/onboarding.md` und `docs/operations-runbook.md`. *AC:* Skill lädt, Index
   verlinkt, deckt alle Wizard-Exit-Codes ab. *Test:* Review gegen setup.sh.
-- [ ] **T53.5 — README-Überarbeitung.** Zweck, Screenshots (T53.2), Ist-Stand,
+- [x] **T53.5 — README-Überarbeitung.** Zweck, Screenshots (T53.2), Ist-Stand,
   Roadmap, VoidWarden-Abschnitt, One-Command-Quick-Start. *AC:* Jede Ist-Aussage hat
   einen Belegverweis (Epic/Funktionsinventar/Runbook); Screenshots eingebunden;
   Setup-Abschnitt nennt `./setup.sh` und den manuellen Weg. *Test:* Review +
   Link-Check. Messlatten: keine (Doku).
-- [ ] **T53.6 — Onboarding-Verkabelung.** `docs/onboarding.md` §2–4 verweisen auf
+- [x] **T53.6 — Onboarding-Verkabelung.** `docs/onboarding.md` §2–4 verweisen auf
   den Wizard als Normalweg (menschlich), manuell bleibt für CI/Agenten. *AC:* Verweis
   vorhanden, Widerspruchsfreiheit zu README. *Test:* Review.
 - [ ] **T53.7 — VoidWarden-Gegenstück.** Prüfen, dass VoidWarden P14 (Schwester-Epic)
