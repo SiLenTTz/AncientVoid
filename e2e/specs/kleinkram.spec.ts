@@ -58,12 +58,13 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
     await expect(app.getByTestId("files-sidebar")).toBeVisible();
   });
 
-  test("Regel 3: Zeilenaktionen beim Überfahren, Fokus oder langem Drücken — und im Menü der Zeile", async ({ app, hub }, info) => {
+  test("Regel 3: Zeilenaktionen beim Überfahren, Fokus oder langem Drücken — und im Menü der Zeile", async ({ app, hub }) => {
     await hub.createSession({ adapter: "dummy", prompt: "Kartenaktion" });
     const card = app.locator(".session-card").filter({ hasText: "Kartenaktion" });
     const archive = card.locator(".session-card-actions").getByRole("button", { name: "Archivieren", exact: true });
     await expect(card).toHaveCount(1);
-    const touch = info.project.name === "mobile" || info.project.name === "tablet";
+    // Touch am Gerät selbst ablesen — das echte Handy läuft als Projekt „phone“, nicht „mobile“.
+    const touch = await app.evaluate(() => matchMedia("(hover: none)").matches);
     if (touch) {
       await expect(archive).toBeHidden();
       await card.locator(".session-open").dispatchEvent("contextmenu");

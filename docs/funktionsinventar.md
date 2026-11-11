@@ -220,3 +220,18 @@ Ansicht in den vier Breiten aus AC-P43-6. T43.9 legt die Nachher-Bilder daneben.
 | Session mit Freigabe | [Bild](assets/p43-vorher-freigabe-412.webp) | [Bild](assets/p43-vorher-freigabe-800.webp) | [Bild](assets/p43-vorher-freigabe-1280.webp) | [Bild](assets/p43-vorher-freigabe-1600.webp) |
 
 Weitere Vorher-Bilder zu einzelnen Befunden stehen im [UX-Audit](2026-11-10_p43-ux-audit.md).
+
+## Nachher-Bilder
+
+Stand nach T43.1–T43.8 (Commit `05a6607`, E2E-Hub mit Attrappen, dunkles Erscheinungsbild, dieselben Breiten und
+Bildgrößen wie oben). Dieselben drei Ansichten: Start mit wartender Freigabe, einer laufenden und einer ruhigen Session;
+eine fertige Session (Verlauf); eine Session mit Freigabe.
+
+| Ansicht | 412 px | 800 px | 1280 px | 1600 px |
+|---|---|---|---|---|
+| Start | [Bild](assets/p43-nachher-start-412.webp) | [Bild](assets/p43-nachher-start-800.webp) | [Bild](assets/p43-nachher-start-1280.webp) | [Bild](assets/p43-nachher-start-1600.webp) |
+| Session (Verlauf) | [Bild](assets/p43-nachher-session-412.webp) | [Bild](assets/p43-nachher-session-800.webp) | [Bild](assets/p43-nachher-session-1280.webp) | [Bild](assets/p43-nachher-session-1600.webp) |
+| Session mit Freigabe | [Bild](assets/p43-nachher-freigabe-412.webp) | [Bild](assets/p43-nachher-freigabe-800.webp) | [Bild](assets/p43-nachher-freigabe-1280.webp) | [Bild](assets/p43-nachher-freigabe-1600.webp) |
+
+Aufgenommen mit einem temporären Spec (Playwright-Chromium, `deviceScaleFactor` 2, auf die Größe der Vorher-Bilder
+verkleinert), der nicht committet ist — wie die Vorher-Bilder. Kein echtes Gerät (siehe Lücke „Echtes Handy“ oben).

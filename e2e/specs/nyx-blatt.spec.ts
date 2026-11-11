@@ -1,4 +1,5 @@
 import { test, expect } from "../support/fixtures.ts";
+import { phone } from "../support/phone.ts";
 
 /**
  * EPIC-P43 T43.8: die kleine Nyx in der Kopfzeile zeigt den Gesamtzustand; ihr Blatt sammelt alle wartenden
@@ -81,6 +82,7 @@ test.describe("Nyx-Blatt als eigenes Fenster (EPIC-P43 T43.8, ADR-0068)", () => 
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test("am PC lässt sich das Blatt herauslösen @desktop", async ({ app, hub, context }) => {
+    test.skip(phone.active, "eigene Fenster gibt es nur am PC; das Handy hat keine Fenster");
     await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG ausführen" });
     const nyx = app.locator(".topbar .nyx-button");
     await expect(nyx).toHaveAttribute("data-nyx", "approval", { timeout: 15_000 });
