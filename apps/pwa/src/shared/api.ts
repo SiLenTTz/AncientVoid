@@ -1255,6 +1255,8 @@ function createHubApi(P: (path: string) => string) {
   runEstimate: (id: string) => api<RunEstimate>(P(`/api/sessions/${id}/estimate`)),
   sessionQueue: (id: string) => api<QueuedPrompt[]>(P(`/api/sessions/${id}/queue`)),
   removeQueued: (id: string, queueId: string) => api<{ ok: boolean }>(P(`/api/sessions/${id}/queue/${queueId}`), { method: "DELETE" }),
+  /** BUG-0114: einen vorgemerkten Prompt sofort in die laufende Unterhaltung senden. */
+  sendQueuedNow: (id: string, queueId: string) => api<Ack>(P(`/api/sessions/${id}/queue/${queueId}/send`), { method: "POST" }),
   /** EPIC-P40: Orchestrierung — Runs nach ADR-0064. */
   orchestrationRuns: () => api<OrchestrationRun[]>(P("/api/orchestration/runs")),
   orchestrationStart: (input: OrchestrationRunStart) =>

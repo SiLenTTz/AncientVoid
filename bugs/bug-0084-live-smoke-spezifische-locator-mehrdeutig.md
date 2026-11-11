@@ -1,3 +1,16 @@
+---
+id: BUG-0084
+slug: live-smoke-spezifische-locator-mehrdeutig
+status: done
+severity: S3
+area: e2e
+instance: live (Hub 127.0.0.1:7373)
+commit: ""
+epic: ""
+created: 2026-11-01
+reporter: "Dev (Live-Smoke)"
+---
+
 # BUG-0084 — Live-Smoke-Spec: mehrdeutige Locator gegen den bevölkerten Live-Hub
 
 - **Gefunden:** 2026-11-01, Live-Smoke nach BUG-0083-Restart (`scripts/test-live.sh`)

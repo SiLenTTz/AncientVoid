@@ -80,7 +80,7 @@ Planungsstatus, erfüllt aber noch nicht den vollständigen Epic-Exit.
 [Prüfbericht mit AC-Matrix und Gate-Evidenz](../docs/2026-11-10_p41-uebergabepruefung.md).
 Offen bleiben insbesondere Run-Ziele, automatische Ergebnisrückführung,
 erreichbare Bearbeitung bestehender Pläne, Offline-Verhalten und die Prüfung
-von Disable/Generation nach einem laufenden Precheck. BUG-0112/0113 betreffen
+von Disable/Generation nach einem laufenden Precheck. BUG-0115/0116 (umbenannt) betreffen
 Neuanlage-Freigabe und Prompt-Integrität; Korrekturen und Regressionen im
 Fortsetzungsbranch. Die obigen Aufgaben bleiben bis zu vollständigen Nachweisen
 offen. **P42 ist durch diesen Zwischenstand nicht freigegeben.**

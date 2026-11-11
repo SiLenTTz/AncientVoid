@@ -70,6 +70,36 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     expect(JSON.parse((await app.evaluate(() => localStorage.getItem("ancientvoid.workspace")))!).detached).toBeUndefined();
   });
 
+  test("BUG-0112: das eigene Fenster scrollt nie — auch mit UI-Zoom füllt die Shell exakt das Fenster @desktop", async ({ app, hub, context }) => {
+    await context.addInitScript((scale) => localStorage.setItem("ancientvoid.uiScale", scale), "1.3");
+    await hub.createSession({ adapter: "dummy" });
+    await app.locator(".split-list .session-card").first().locator(".session-open").click();
+    await app.locator('[data-tile="1"] .session-topbar').waitFor();
+
+    const popupP = context.waitForEvent("page");
+    await app.locator(".tile-popout").first().click();
+    const popup = await popupP;
+    await popup.waitForLoadState();
+    await expect(popup.locator(".session-topbar")).toBeVisible();
+
+    // Fenster füllt das Fenster exakt: kein Seiten-Scroll (BUG-0112), Shell-
+    // Unterkante == Fensterhöhe — unter html-zoom sind dvh Layout-Pixel und
+    // müssen durch --ui-zoom geteilt werden (Muster BUG-0099).
+    const geo = await popup.evaluate(() => {
+      const se = document.scrollingElement!;
+      const shell = document.querySelector(".popout-shell");
+      return {
+        pageScrollable: se.scrollHeight > se.clientHeight + 1,
+        pageOverflow: se.scrollHeight - se.clientHeight,
+        shellBottom: Math.round(shell?.getBoundingClientRect().bottom ?? -1),
+        innerHeight: window.innerHeight,
+      };
+    });
+    expect(geo.pageScrollable, `Seite scrollt um ${geo.pageOverflow}px`).toBe(false);
+    expect(Math.abs(geo.shellBottom - geo.innerHeight)).toBeLessThanOrEqual(1);
+    await popup.close();
+  });
+
   test("ein Werkzeug (Einstellungen) wandert per ⧉ in ein eigenes Fenster; Esc schließt dort nichts @desktop", async ({ app, context }) => {
     await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     const popupP = context.waitForEvent("page");

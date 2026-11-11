@@ -2629,16 +2629,14 @@ export class SessionManager {
     }, 0);
   }
 
-  /** T17.4: check, take and submit run as one task inside the session's
-   * steer chain. A prompt steer that came in mid-flight has fully settled
-   * by then (its status flip can lag behind its own spawn), so a queued
-   * entry is never sent into a turn it was never queued for — the wait
-   * stays pinned to the turn that ended (occupant pinning). */
-  private drainNext(sessionId: string): Promise<void> {
+  /** Runs `work` after everything already queued for this session — the one
+   * serialization point every steer-side channel shares (steer, queue drain,
+   * BUG-0114 send-now), so two of them can never interleave. */
+  private chainWork<T>(sessionId: string, work: () => Promise<T>): Promise<T> {
     const previous = this.steerQueue.get(sessionId) ?? Promise.resolve();
     const run = previous.then(
-      () => this.drainSlot(sessionId),
-      () => this.drainSlot(sessionId),
+      () => work(),
+      () => work(),
     );
     const settled = run.then(
       () => undefined,
@@ -2649,6 +2647,15 @@ export class SessionManager {
       if (this.steerQueue.get(sessionId) === settled) this.steerQueue.delete(sessionId);
     });
     return run;
+  }
+
+  /** T17.4: check, take and submit run as one task inside the session's
+   * steer chain. A prompt steer that came in mid-flight has fully settled
+   * by then (its status flip can lag behind its own spawn), so a queued
+   * entry is never sent into a turn it was never queued for — the wait
+   * stays pinned to the turn that ended (occupant pinning). */
+  private drainNext(sessionId: string): Promise<void> {
+    return this.chainWork(sessionId, () => this.drainSlot(sessionId));
   }
 
   private async drainSlot(sessionId: string): Promise<void> {
@@ -2668,6 +2675,26 @@ export class SessionManager {
   /** EPIC-P15 T15.3: what is waiting in this session. */
   queued(sessionId: string): QueuedPrompt[] {
     return this.queue.list(sessionId);
+  }
+
+  /** BUG-0114: einen vorgemerkten Prompt sofort steuern — mitten in den
+   * laufenden Zug statt am Zugende. Ablehnung stellt die Vormerkung wieder
+   * her (hinten, ehrlich sichtbar) — der Text geht nie verloren. */
+  async sendQueuedNow(sessionId: string, queueId: string, actor?: string): Promise<Ack> {
+    return this.chainWork(sessionId, async () => {
+      const item = this.queue.takeById(sessionId, queueId);
+      if (!item) return { ok: false, detail: "nicht mehr in der Warteschlange" };
+      const session = this.live.get(sessionId);
+      const ack = await this.steerNow(
+        sessionId,
+        { kind: "prompt", text: item.text, ...(item.attachments ? { attachments: item.attachments } : {}) },
+        actor ?? item.actor ?? undefined,
+        { fromQueue: true },
+      );
+      if (!ack.ok) this.queue.add(sessionId, item.text, item.attachments, item.actor);
+      if (session) await this.emitSystem(session, "session.dequeued", { queueId, ok: ack.ok, ...(ack.ok ? {} : { detail: ack.detail ?? null }) });
+      return ack;
+    });
   }
 
   /** EPIC-P15 T15.3: drop one waiting prompt before it is sent. */

@@ -130,11 +130,12 @@ Provider-Katalog P31; P32 erhält die aktuelle PWA-Präferenz.
 | [P40 — Hermes-Orchestrierung](EPIC-P40-hermes-orchestrierung.md) | Gemischte Harnesses/Provider mit Tasks, Dispatches, Fragen | P39 grün | 3–5 |
 | [P41 — Automationen](EPIC-P41-automationen.md) | Zeitpläne, Prechecks, Laufhistorie, Recovery — **teilweise umgesetzt, Exit offen** ([Übergabeprüfung 10.11.2026](../docs/2026-11-10_p41-uebergabepruefung.md)); P42 bleibt blockiert | P40 grün | 2–3 |
 | [P42 — Android-Testgeräte](EPIC-P42-android-testgeraete.md) | AVD-/Host-Spike, Bild/Input und Android-Tests | P41 grün | 0,5–1 + 2–4 |
-| [P43 — Arbeitsfläche/Styling](EPIC-P43-arbeitsflaeche-styling.md) | Saubere Flows, Quellenübergabe, Navigation und Presets | P42 grün | 2–3 |
-| [P44 — UI-Plugins](EPIC-P44-plugin-panels-themes.md) | Panels/Themes als Erweiterung des P30-Lifecycles | P43 grün | 2–3 |
+| [P43 — UX Next Level](EPIC-P43-ux-next-level.md) | Start als Warteschlange, Session in Zügen, Zustands- und Bewegungssprache, Tablet/PC, Herauslösen überall, Nyx-Blatt; Funktionsinventar als Gate — **neu gefasst 10.11.2026** ([Design-Review](../docs/2026-11-10_ux-next-level-designreview.md)) | P42 grün | 4–6 |
+| [P43.5 — Quellenchips/Presets/Layouts](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Quellenübergabe in den Prompt, Darstellungs-Presets, benannte Layouts (aus dem bisherigen P43 abgetrennt) | P43 grün | 1,5–2 |
+| [P44 — UI-Plugins](EPIC-P44-plugin-panels-themes.md) | Panels/Themes als Erweiterung des P30-Lifecycles | P43.5 grün | 2–3 |
 | [P45 — Zugangsevaluation](EPIC-P45-zugang-ohne-tailnet-evaluation.md) | Transport/Account-Optionen; expliziter Go/No-go/vertagt-Entscheid — **fertiggestellt 10.11.2026, Exit „No-go“ (kein öffentlicher Zugang; Tailnet bleibt) — [Bericht](../docs/2026-11-10_p45-zugangs-entscheidungsbericht.md)** | P44 grün (Start vorgezogen auf Nutzeranweisung) | 0,5–1 |
 
-Erweiterte Kette: **P27 → P28 → P29 → P34 → P35 → P32 (Evaluations-Exit) → P33 → P36 → P30 → P31 → P37 → P38 → P46 → P39 → P40 → P41 → P42 → P43 → P44 → P45**.
+Erweiterte Kette: **P27 → P28 → P29 → P34 → P35 → P32 (Evaluations-Exit) → P33 → P36 → P30 → P31 → P37 → P38 → P46 → P39 → P40 → P41 → P42 → P43 → P43.5 → P44 → P45**.
 P32/P33 brauchen weiterhin einen ausdrücklich gültigen Evaluations-/Umsetzungs-Exit;
 PWA-Präferenz allein schließt sie nicht. AC-P34-13/AC-P35-7 bleiben offen.
 
@@ -166,7 +167,36 @@ Abschluss in EPIC-P46 nachgetragen.
 | [P48 — Repo-Graph](EPIC-P48-repo-graph-pulsierendes-netz.md) | Pulsierendes Datei-Netz im Chat-Fenster (Import-/Verweiskanten, Farbgruppen, tote Dateien, Diagnosen rot), Datei-Tab, Popout-Ziele `graph`/`file` | P47; P46-Dateizugriff/Diagnosen; ADR-0053-Fenster | 2–3 |
 | [P49 — Knowledge Vault](EPIC-P49-knowledge-vault-notizen.md) | Notizen-Tab mit Ordnerwahl (SettingsStore), Markdown-Editor mit Revision-Guard, Vault-Popout | P47; P48 (Popout-/Datei-Tab-Muster) | 1–2 |
 
-Reihenfolge: **P47 → P48 → P49** (jeweils eigener Feature-Branch/MR nach main).
+
+## Zoom-Robustheit — eingeplant am 10.11.2026
+
+Quer-Epic (Bugfix-Klasse) aus der Nutzermeldung „doppelte Scrollbars im
+Chat-Fenster" und dem Repo-Scan vom 10.11.2026: Das UI-Zoom-Teilungs-Muster
+wurde nach jedem Zoom-Bug einzeln nachgetragen; P50 macht es zur geprüften
+Invariante. Läuft parallel zur P47-Kette.
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P50 — Zoom-robuste Flächen](EPIC-P50-zoom-robuste-flaechen.md) | Fenster füllen bei jedem UI-Zoom exakt, html/body und eigene Fenster scrollen nie, Zoom-Matrix-E2E — BUG-0112 gefixt (Popout-Shell), BUG-0113 offen (Dateien-Schublade/Browser-Panel) | keine fachliche offene (Bugfix-Klasse, Präzedenz P13/P14/P17) | ~1 |
+
+Reihenfolge: **P47 → P48 → P49** (jeweils eigener Feature-Branch/MR nach main); P50 quer als Bugfix-Klasse, P51 quer als Nutzerauftrag.
+
+## Nutzerauftrag vom 11.11.2026 — Vault-Erreichbarkeit, Glocke, Tastatur-first
+
+Ausdrücklicher Planungsauftrag von Jan nach Nutzermeldungen (Vault-Ordner im
+Picker unsichtbar/nicht erreichbar + Wunsch nach manueller Pfad-Eingabe;
+Benachrichtigungsglocke am PC ins Fenstereck; komplette Tastaturbedienung mit
+Hinweis-Overlay, Settings-Schalter und Omarchy-Super-Key-Koexistenz).
+Abgestimmte Entscheidungen: Jeder Ordner mit Guards (ADR-0063-Ergänzung), ein
+Epic, „?“-Übersicht aus T43.6 hierher gezogen, Alt-Schema +
+Hyprland-`pass`-Snippet-Doku statt Grab-Override, Overlay nur bei
+existierendem Shortcut. Läuft quer zur Kette (Präzedenz P47–P50).
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P51 — Vault-Erreichbarkeit & Tastatur-first](EPIC-P51-vault-erreichbarkeit-tastatur.md) | Jeder Ordner als Vault wählbar (Symlink-sicher, Pfad-Eingabe, ehrliche Fehler, ADR-0063-Ergänzung); Glocke am PC im Fenstereck; zentrale Shortcut-Registry, fehlende Kürzel (Esc/Fokus, View-Wechsel, Listen-Navigation), `?`-Cheat-Sheet, Hinweis-Overlay mit Setting, Omarchy-/Firefox-Kollisions-Doku | keine fachliche offene (P49/P18/P34 als Basis; Nutzerauftrag) | 2–3 |
+
+Reihenfolge: P51 quer wie P50 (je Aufgabe eigener Branch/MR nach main; ADR-0063-Ergänzung vor dem ersten Verhaltens-Merge).
 
 ## Reihenfolge & Gating
 

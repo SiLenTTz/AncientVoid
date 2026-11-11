@@ -45,9 +45,9 @@ RSS 178 MiB. ZAI-Endpunkt erneut HTTP 401 ohne Token (TLS ca. 0,05 s).
 
 ## Reparierte Befunde
 
-- BUG-0112: `AutomationService.create()` übernahm `enabled=true`; Neuanlage
+^- BUG-0115: `AutomationService.create()` übernahm `enabled=true`; Neuanlage
   wird jetzt serverseitig deaktiviert gespeichert.
-- BUG-0113: `update()` speicherte Definitionen ohne Hash-/Blob-Abgleich.
+^- BUG-0116: `update()` speicherte Definitionen ohne Hash-/Blob-Abgleich.
   Prompt und Blob werden jetzt vor dem Journal-Update geprüft. Ungültige
   Änderungen lassen die vorherige Definition samt Freigabe unverändert.
 
@@ -55,7 +55,7 @@ Drei Regressionstests wurden vor dem Fix rot ausgeführt; alle zehn
 Service-Tests sind nach dem Fix grün. Ein zusätzlicher positiver Test
 belegt die Übergabe eines gültigen Ersatzprompts an den Launcher.
 
-- BUG-0114: Der zusätzliche Dock-Eintrag überlastete mobile Breiten. Der
+^- BUG-0117: Der zusätzliche Dock-Eintrag überlastete mobile Breiten. Der
   Browser-Repro zeigte eine Schaltflächenbreite von nur 42 px und überlappende
   Beschriftungen. Mindestbreite 44 px, Umbruch der Beschriftung und internes
   horizontales Scrollen halten alle Ziele erreichbar. Derselbe Test ist nach

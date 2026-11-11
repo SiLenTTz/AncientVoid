@@ -56,7 +56,7 @@ P32/P33 dürfen nur mit ausdrücklich dokumentiertem gültigem Evaluations-/Umse
 | [P40 — Hermes-Orchestrierung](../epics/EPIC-P40-hermes-orchestrierung.md) | Aufgaben/Versuche/Fragen, gemischte Harnesses, klare Lifecycle-Autorität | P19/P26/P31/P35/P38/P39 | 3–5 |
 | [P41 — Automationen](../epics/EPIC-P41-automationen.md) | Zeitpläne, Precheck, Historie, genau ein zuständiger Scheduler | P38/P40 | 2–3 |
 | [P42 — Android-Testgeräte](../epics/EPIC-P42-android-testgeraete.md) | AVD, Ansicht/Input und reproduzierbare Android-Tests | P39, Hardware-/SDK-Spike | 0,5–1 + 2–4 |
-| [P43 — UI/Styling](../epics/EPIC-P43-arbeitsflaeche-styling.md) | Aufgeräumte Flows, Quellenübergabe, Navigation, Presets/Layouts | P18/P34/P35/P36–P42 | 2–3 |
+| [P43 — UI/Styling](../epics/EPIC-P43.5-darstellungs-presets-quellenchips.md) | Aufgeräumte Flows, Quellenübergabe, Navigation, Presets/Layouts — seit 10.11.2026 aufgeteilt: UX-Teil in [P43](../epics/EPIC-P43-ux-next-level.md), Rest in P43.5 | P18/P34/P35/P36–P42 | 2–3 |
 | [P44 — UI-Plugins](../epics/EPIC-P44-plugin-panels-themes.md) | Panels/Themes über P30-Lifecycle, enger Bridge-Vertrag | P30/P43 | 2–3 |
 | [P45 — Zugangsevaluation](../epics/EPIC-P45-zugang-ohne-tailnet-evaluation.md) | Varianten mit/ohne Tailnet vergleichen, expliziter Entscheid | Fleet/Auth/Recovery-Bestand | 0,5–1; Implementierung separat |
 
