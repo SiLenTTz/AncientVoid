@@ -85,7 +85,6 @@ Wahl gespeichert hatte, behält sie — auch JetBrains Mono als Oberflächenschr
 | `--radius-sm` | `4px` | Kompakte Elemente (Chips, kleine Buttons) — **neu**, ab T1.6-2/3 im Einsatz |
 | `--radius-lg` | `14px` | Sheets/Overlays — **neu** |
 | `--shadow-elev` | `0 0 0 1px var(--bg-chip), 0 10px 26px -14px rgba(0,0,0,.7)` (dunkel) / entsprechend abgeschwächt hell | Elevation — **neu**, ab T1.6-8 auf Karten |
-| `--glow-blur` / `--glow-dur` | `20px` / `1.6s` | Status-Glow-Animationsparameter — **neu**, ab T1.6-8 auf `.session-card` |
 
 ## Skalen (EPIC-P43 T43.1)
 
@@ -114,6 +113,33 @@ macht die Sprache unlesbar.
 Nur zwei Schleifen. Nur `transform` und `opacity`. Mit `prefers-reduced-motion` oder dem Schalter
 in den Einstellungen (`data-ctx-motion="off"`) steht ein Standbild mit gleicher Aussage. Bei
 getrennter Verbindung (`data-conn="off"` am Wurzelelement) halten Atmen und Schimmer an (K10).
+
+## Zustandssprache (`shared/StatusDot.tsx`, `shared/display-state.ts`, `38-status.css`, EPIC-P43 T43.2)
+
+Ein Baustein sagt den Zustand einer Session — in Karte, Session-Kopf, Statusleiste und Vorschau.
+Farbe, Form und Bewegung sagen dasselbe; jede der drei reicht allein.
+
+| Anzeigezustand | Hub-Status | Wort | Farbe | Form | Bewegung |
+|---|---|---|---|---|---|
+| `working` | `starting`, `working`, `stopping` | startet / arbeitet | `--ok` | gefüllter Punkt | Atmen |
+| `approval` | `waiting_approval` | Freigabe nötig | `--call` | Punkt mit Hof | Ruf (einmal) |
+| `question` | `waiting_approval` mit `tool.questions` | Frage | `--info` | Punkt mit Hof | Ruf (einmal) |
+| `done` | `idle`, auf diesem Gerät ungesehen | fertig | `--call` | offener Ring | Einrasten (einmal) |
+| `error` | `error`, `interrupted`, Unbekanntes | Fehler / unterbrochen / Rohwert | `--err` | Quadrat | kurzes Rütteln (einmal) |
+| `quiet` | `idle` gesehen, `parked`, `stopped` | bereit / pausiert / beendet | `--fg-faint` | kleiner Punkt | keine |
+
+- Der Anzeigezustand ist **abgeleitet**, kein Contract: `data-status` trägt weiter den Hub-Status,
+  `data-display` den Anzeigezustand. Ein unbekannter Hub-Status ist nie „ruhig“ (fail loud).
+- Gesamtzustand über mehrere Sessions (`overallState`): Freigabe > Frage > Fehler > arbeitet >
+  fertig > ruhig — dieselbe Reihenfolge wie VoidWarden.
+- Es gibt keine umlaufende Randlinie mehr (früher Karte, Session-Ansicht, Pille, Knopf). Eine
+  Karte oder Session, die dich braucht, trägt eine ruhige Kante in `--call`; ein Knopf, dessen
+  Aufruf läuft, schimmert.
+- Der Schalter „Bewegung“ (Einstellungen → Darstellung, Attribut `data-ctx-motion`) und
+  „Bewegung reduzieren“ des Systems schalten jede Bewegung ab; ohne Verbindung (`data-conn="off"`)
+  halten Atmen und Schimmer an.
+- `.pill` bleibt für Mengen- und Dienstangaben (Projekte, Hosts, Workspace-Dienste), nicht für
+  Session-Zustand.
 
 ## Formularelemente (`shared/forms.tsx`, `37-forms.css`)
 
@@ -165,7 +191,7 @@ Scanline über arbeitenden Karten, Orbitron-Headings.
 - **P2 (T2.3, Diff-UI):** Hunk-Karten nutzen `--bg-elev`/`--bg-chip`/
   `--radius`, Diff-Add/Del-Farben werden aus `--ok`/`--err` mit
   `color-mix()` abgeleitet (Muster: `apps/pwa/src/app/styles/`, siehe
-  bestehende `.pill.*`-Regeln) — keine neuen Grün-/Rot-Werte.
+  `11-report-and-diff.css`) — keine neuen Grün-/Rot-Werte.
 - **P3 (T3.8, Sprachsuche):** Ergebnisliste/Datei-Viewer übernehmen
   `--font-mono` für Code-Snippets, `--accent` für Zeilen-Anker-Highlights.
 - Neue Komponenten, die eine Farbe brauchen, die hier fehlt: zuerst prüfen,

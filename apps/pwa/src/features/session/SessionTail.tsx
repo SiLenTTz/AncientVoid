@@ -23,7 +23,8 @@ import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
 import { GraphPane } from "../graph/GraphPane.tsx";
 import { FileViewer } from "../files/FileViewer.tsx";
-import { statusLabel } from "../../shared/status.ts";
+import { StatusDot } from "../../shared/StatusDot.tsx";
+import { useHubStatus } from "../shell/hub-status.ts";
 import { getHere, registerField, setHere, touchField } from "../../shared/command-context.ts";
 import { useDraft } from "./draft.ts";
 import { takeHandOver } from "../../shared/media.ts";
@@ -746,7 +747,7 @@ export function SessionTail({
           <div class="dim session-top-meta">
             {session.project.split("/").pop()} · {loopView ? <LoopBadge adapter={session.adapter} view={loopView} /> : session.adapter} · {loopView ? "" : `${shownModel} · `}
             {session.hostId ? (hostNames.get(session.hostId) ?? (session.hostId === "local" ? "dieser Rechner" : session.hostId.slice(0, 8))) : "dieser Rechner"} ·{" "}
-            <span class={`pill ${status}`} data-status={status}>{statusLabel(status)}</span>
+            <LiveStatus sessionId={session.id} status={status} />
             {session.controlMode !== "mirror" && <>{" · "}<WorkplaceBadge session={record} /></>}
           </div>
         </div>
@@ -1156,4 +1157,10 @@ export function SessionTail({
     </div>
     </ApiContext.Provider>
   );
+}
+
+/** EPIC-P43 T43.2: der Zustand im Kopf — eigener Baustein, damit die Hub-Abfrage nicht die ganze Session neu zeichnet. */
+function LiveStatus({ sessionId, status }: { sessionId: string; status: string }) {
+  const hub = useHubStatus();
+  return <StatusDot status={status} question={hub.questionSessions.includes(sessionId)} />;
 }

@@ -53,7 +53,7 @@ test.describe("Einstellungen: Gruppen und Raster (EPIC-P34)", () => {
     await expect(app.locator("html")).toHaveAttribute("data-theme", "light");
     await expect(seg.getByRole("button", { name: "Hell" })).toHaveAttribute("aria-pressed", "true");
 
-    const shimmer = app.getByRole("switch", { name: "Schimmer der Kontextleiste" });
+    const shimmer = app.getByRole("switch", { name: "Bewegung", exact: true });
     await expect(shimmer).toBeChecked();
     await shimmer.click();
     await expect(shimmer).not.toBeChecked();

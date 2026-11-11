@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { remoteHost } from "../../shared/api.ts";
-import { statusLabel } from "../../shared/status.ts";
+import { StatusDot } from "../../shared/StatusDot.tsx";
 import type { TileRef } from "../workspace/tiles.ts";
 import { useHubStatus } from "./hub-status.ts";
 import { clockText, countSessions, fleetSummary } from "./status-summary.ts";
@@ -40,7 +40,7 @@ export function StatusBar({ focused, onOpenApprovals }: { focused: TileRef | nul
       {session && (
         <span class="status-item status-focus" title="Fokussierte Kachel">
           {session.title ?? session.project.split("/").filter(Boolean).pop()} · {session.adapter}
-          {session.model ? ` · ${session.model}` : ""} · {statusLabel(session.status)}
+          {session.model ? ` · ${session.model}` : ""} · <StatusDot status={session.status} question={hub.questionSessions.includes(session.id)} />
         </span>
       )}
       <span class="status-item dim">{new Date(now).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</span>

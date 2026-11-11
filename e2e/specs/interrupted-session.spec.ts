@@ -39,7 +39,7 @@ test.describe("P27 unterbrochene Sessions", () => {
       await route.fulfill({ response, json: { ...await response.json(), status: "future_status" } });
     });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await expect(app.locator(".session-topbar .pill[data-status='future_status']")).toHaveText("future_status");
+    await expect(app.locator(".session-topbar .status[data-status='future_status']")).toHaveText("future_status");
   });
 
   test("Hub-Neustart kennzeichnet den verlorenen Zug; Übersicht zeigt unterbrochen @desktop", async ({ app, hub }) => {

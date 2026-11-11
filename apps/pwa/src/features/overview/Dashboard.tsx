@@ -9,7 +9,8 @@ import { useOpenWindows } from "../windows/windows.ts";
 import { isLastSession, type LastSession } from "../shell/last-session.ts";
 import { compareByActivity, IDLE_STILL_ACTIVE_MS, lastActivityAt, sessionsForOverview } from "./session-list.ts";
 import { metricView, totalCostText } from "../../shared/metrics.ts";
-import { ago, statusLabel } from "../../shared/status.ts";
+import { ago } from "../../shared/status.ts";
+import { StatusDot } from "../../shared/StatusDot.tsx";
 import { initSeen, isUnseen, seenKey } from "../../shared/seen.ts";
 
 export function formatUsd(n: number): string {
@@ -44,6 +45,8 @@ export interface DashboardProps {
    * configured — not distinguished from "genuinely zero pending" here,
    * since either way there's nothing for the banner to show). */
   pendingApprovals?: number;
+  /** EPIC-P43 T43.2: Sessions mit offener Rückfrage des Agenten (Anzeigezustand „Frage“). */
+  questionSessions?: string[];
   onOpenApprovals?: () => void;
   /** T5.3: all found sessions, including external provider sessions. */
   onOpenDiscovery?: () => void;
@@ -108,7 +111,7 @@ const VIEW_KEY = "ancientvoid.overviewView";
 const VIEWS: readonly OverviewView[] = ["sessions", "projects", "hosts"];
 const VIEW_TITLE: Record<OverviewView, string> = { sessions: "Sessions", projects: "Projekte", hosts: "Hosts" };
 
-export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, onOpenApprovals, onOpenDiscovery, lastSession = null }: DashboardProps) {
+export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, questionSessions = [], onOpenApprovals, onOpenDiscovery, lastSession = null }: DashboardProps) {
   const windowKeys = new Set(Object.values(useOpenWindows()).map((e) => targetKey(e.target)));
   // Once per visit (not per 3 s poll): bring the remembered session into view.
   const hasSessions = sessions.length > 0;
@@ -313,6 +316,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
                         hosts={hosts ?? []}
                         onOpen={onOpen}
                         isLast={isLastSession(lastSession, s.id, remoteHost(s.hostId))}
+                        question={questionSessions.includes(s.id)}
                         inWindow={windowKeys.has(targetKey({ kind: "session", sessionId: s.id, ...(remoteHost(s.hostId) ? { hostId: remoteHost(s.hostId)! } : {}) }))}
                         onArchive={archive}
                         onPin={pin}
@@ -417,12 +421,15 @@ function SessionRow({
   onOpen,
   isLast,
   inWindow,
+  question,
   onArchive,
   onPin,
   onDelete,
 }: {
   /** EPIC-P34 T34.10: die Session läuft in einem eigenen Fenster. */
   inWindow: boolean;
+  /** EPIC-P43 T43.2: die offene Anfrage ist eine Rückfrage des Agenten. */
+  question: boolean;
   session: SessionRecord;
   hosts: FleetHost[];
   onOpen: (s: SessionRecord, opts?: { newTile?: boolean }) => void;
@@ -440,9 +447,7 @@ function SessionRow({
       <button class="session-open" type="button" onClick={(ev) => onOpen(session, { newTile: ev.ctrlKey || ev.metaKey })}>
         <div class="row">
           <strong class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? (session.adapter === "loop:securesight-factory" ? `Factory-Beobachter · ${project}` : `${project} — ohne Auftrag`)}</strong>
-          <span class={`pill ${session.status}`} data-status={session.status}>
-            {statusLabel(session.status)}
-          </span>
+          <StatusDot status={session.status} question={question} unseen={unseen} />
         </div>
         {inWindow && (
           <div class="session-window">

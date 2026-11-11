@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { APPEARANCE_EVENT, DEFAULT_APPEARANCE, getAppearance, isDefaultAppearance, setAppearance } from "../../app/appearance.ts";
+import { StatusDot } from "../../shared/StatusDot.tsx";
 import { SettingsSection } from "./parts.tsx";
 
 /**
@@ -24,9 +25,12 @@ export function PreviewSettings() {
         </p>
         <pre class="preview-diff">{"- clearTimeout(handle);\n+ await flush();\n+ clearTimeout(handle);"}</pre>
         <div class="preview-chips">
-          <span class="pill working">arbeitet</span>
-          <span class="pill waiting">wartet</span>
-          <span class="pill error">Fehler</span>
+          <StatusDot status="working" />
+          <StatusDot status="waiting_approval" />
+          <StatusDot status="waiting_approval" question />
+          <StatusDot status="idle" unseen />
+          <StatusDot status="error" />
+          <StatusDot status="idle" />
           <span class="btn primary preview-button">Senden</span>
           <span class="preview-link">Link</span>
         </div>
