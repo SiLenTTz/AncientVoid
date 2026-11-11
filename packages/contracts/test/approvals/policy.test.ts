@@ -60,18 +60,20 @@ describe("policy table (T7.4)", () => {
     expect(policyFor("desktop.act", "fleet:omarchy")).toBe("deny");
   });
 
-  it("ADR-0048: a display reads and decides approvals — nothing else, and never as a writer", () => {
-    for (const op of POLICY_OPERATIONS) expect(POLICY[op].display, op).toBe(op === "read" || op === "approvals.decide" ? "allow" : "deny");
+  it("ADR-0048/0069: a display reads, decides write approvals, and may write drafts — nothing else", () => {
+    const allow = new Set(["read", "approvals.decide", "drafts.write"]);
+    for (const op of POLICY_OPERATIONS) expect(POLICY[op].display, op).toBe(allow.has(op) ? "allow" : "deny");
     expect(policyFor("approvals.decide", "display:nyx")).toBe("allow");
+    expect(policyFor("drafts.write", "display:nyx")).toBe("allow");
     expect(policyFor("sessions.stop", "display:nyx")).toBe("deny");
     expect(policyFor("tokens.manage", "display:nyx")).toBe("deny");
   });
 
-  it("ADR-0048: the display token reaches only the read routes and the write-decide route", () => {
-    for (const [m, p] of [["GET", "/api/sessions"], ["GET", "/api/sessions/s1"], ["GET", "/api/approvals"], ["GET", "/api/approvals/a1"], ["GET", "/api/notifications"], ["POST", "/api/approvals/a1/decide"]] as const) {
+  it("ADR-0048/0069: the display token reaches read routes, write-decide, and session draft", () => {
+    for (const [m, p] of [["GET", "/api/sessions"], ["GET", "/api/sessions/s1"], ["GET", "/api/approvals"], ["GET", "/api/approvals/a1"], ["GET", "/api/notifications"], ["POST", "/api/approvals/a1/decide"], ["GET", "/api/sessions/s1/draft"], ["PUT", "/api/sessions/s1/draft"]] as const) {
       expect(displayTokenAllows(m, p), `${m} ${p}`).toBe(true);
     }
-    for (const [m, p] of [["POST", "/api/sessions"], ["POST", "/api/sessions/s1/stop"], ["POST", "/api/approvals/a1/webauthn/decide"], ["GET", "/api/tokens"], ["GET", "/api/sessions/s1/events"], ["DELETE", "/api/approvals/a1"]] as const) {
+    for (const [m, p] of [["POST", "/api/sessions"], ["POST", "/api/sessions/s1/stop"], ["POST", "/api/approvals/a1/webauthn/decide"], ["GET", "/api/tokens"], ["GET", "/api/sessions/s1/events"], ["DELETE", "/api/approvals/a1"], ["POST", "/api/sessions/s1/steer"]] as const) {
       expect(displayTokenAllows(m, p), `${m} ${p}`).toBe(false);
     }
   });

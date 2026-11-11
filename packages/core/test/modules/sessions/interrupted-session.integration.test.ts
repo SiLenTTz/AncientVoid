@@ -247,14 +247,13 @@ describe("P27 interruption lifecycle", () => {
     } finally { release(); }
   });
 
-  it("undeclared resume stays interrupted with an honest refusal; archiving still works", async () => {
+  it("undeclared resume uses prompt fallback; Weitermachen stays usable", async () => {
     const f = await fixture();
     await f.interrupt();
-    expect(await f.manager.resume(f.record.id, "phone")).toMatchObject({ ok: false, detail: expect.stringContaining("nicht nativ") });
-    expect(f.starts()).toBe(1);
-    await f.manager.archive(f.record.id, true, "phone");
-    expect((await f.events()).findLast(e => e.payload.kind === "session.stopped")?.payload.actor).toBe("phone");
-    expect(f.manager.get(f.record.id)).toMatchObject({ status: "stopped", archived: true });
+    expect((await f.manager.resume(f.record.id, "phone")).ok).toBe(true);
+    expect(f.starts()).toBe(2);
+    expect(f.manager.get(f.record.id)?.status).toBe("working");
+    expect((await f.events()).some(e => e.payload.kind === "session.resume_fallback")).toBe(true);
   });
 
   it("agent cannot resume or use the legacy steer entry point", async () => {
@@ -266,20 +265,22 @@ describe("P27 interruption lifecycle", () => {
     expect(f.starts()).toBe(1);
   });
 
-  it("missing native identity never starts a fresh run", async () => {
+  it("missing native identity falls back to a fresh continue prompt", async () => {
     const f = await fixture({ resume, native: false });
     await f.interrupt();
-    expect((await f.manager.resume(f.record.id, "phone")).ok).toBe(false);
-    expect(f.starts()).toBe(1);
-    expect(f.manager.get(f.record.id)?.status).toBe("interrupted");
+    expect((await f.manager.resume(f.record.id, "phone")).ok).toBe(true);
+    expect(f.starts()).toBe(2);
+    expect(f.manager.get(f.record.id)?.status).toBe("working");
+    expect((await f.events()).some(e => e.payload.kind === "session.resume_fallback")).toBe(true);
   });
 
-  it("failed native resume is visible as error", async () => {
+  it("failed native resume tries prompt fallback; sticky error only if that fails too", async () => {
     const f = await fixture({ resume, failResume: true });
     await f.interrupt();
     expect((await f.manager.resume(f.record.id, "phone")).ok).toBe(false);
     expect(f.manager.get(f.record.id)?.status).toBe("error");
     expect((await f.events()).some(e => e.payload.kind === "session.resume_failed")).toBe(true);
+    expect((await f.events()).some(e => e.payload.kind === "session.resume_fallback")).toBe(true);
   });
 
   it("EPIC-P35 T35.4: eine erkennbare Provider-Ursache des gescheiterten Fortsetzens trägt die Kategorie (ADR-0015)", async () => {

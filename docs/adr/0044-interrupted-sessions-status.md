@@ -98,6 +98,10 @@ unterbrechen laufende Agenten-Sessions hart. Ist-Zustand (Belege in
   verwenden die gemeinsame Policy `sessions.resume`: Mensch/Fleet ja,
   Agent/Bridge/Display/Companion nein. Core erzwingt dieselbe Akteursgrenze
   für unterbrochene Sessions, einschließlich Prompt-Fallback.
+  *Fortgeschrieben:* Fehlt `resume.hub` (oder die native Session-ID), bleibt
+  „Weitermachen“ für Menschen aktiv und startet mit der Fortsetzungsnachricht
+  „Bitte setze die unterbrochene Arbeit fort.“ (`session.resume_fallback`) —
+  nie ein toter Button. Auto-Resume bleibt an `resume.hub`+`auto` gebunden.
 - `autoResumeInterrupted` ist standardmäßig `false` und braucht zusätzlich
   `resume.hub`, `resume.ref=native` und `resume.auto`. Ausschließlich der
   synthetische Dummy deklariert dies mit Testkonfiguration `hubResume:true`;

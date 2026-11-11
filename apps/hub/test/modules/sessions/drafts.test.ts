@@ -13,6 +13,7 @@ describe("drafts (T8.4)", () => {
   let dir: string;
   let app: FastifyInstance;
   let sessions: SessionManager;
+  let tokens: TokenService;
   let phone: string;
   let pc: string;
   let agent: string;
@@ -27,7 +28,7 @@ describe("drafts (T8.4)", () => {
     const db = new HubDatabase(":memory:");
     const registry = new AdapterRegistry();
     registry.register("dummy", createDummy, { eventsPerSecond: 1, autoStopAfterEvents: 0 });
-    const tokens = new TokenService(db);
+    tokens = new TokenService(db);
     sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
     app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, projectRoots: [dir] });
     phone = tokens.issue("pixel").token;
@@ -66,5 +67,16 @@ describe("drafts (T8.4)", () => {
     expect((await call("PUT", `/api/sessions/${s.id}/draft`, agent, { text: "x", baseRevision: 0 })).status).toBe(403);
     expect((await call("PUT", `/api/sessions/nope/draft`, phone, { text: "x", baseRevision: 0 })).status).toBe(404);
     expect((await call("PUT", `/api/sessions/${s.id}/draft`, phone, { text: "x" })).status).toBe(400);
+  });
+
+  it("ADR-0069: a display may fill the shared composer draft", async () => {
+    const display = tokens.issue("display:nyx").token;
+    const s = await sessions.create({ adapter: "dummy", project: dir });
+    const url = `/api/sessions/${s.id}/draft`;
+    expect((await call("GET", url, display)).status).toBe(200);
+    const put = await call("PUT", url, display, { text: "Vom Kiosk diktiert", attachmentIds: [], baseRevision: 0 });
+    expect(put.status).toBe(200);
+    expect(put.body).toMatchObject({ text: "Vom Kiosk diktiert", revision: 1, device: "display:nyx" });
+    expect((await call("GET", url, phone)).body).toMatchObject({ text: "Vom Kiosk diktiert", revision: 1 });
   });
 });

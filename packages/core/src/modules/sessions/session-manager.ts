@@ -1325,13 +1325,24 @@ export class SessionManager {
     const session = this.openStopped(sessionId);
     if (!session || session.record.status !== "interrupted") return { ok: false, detail: "Session ist nicht unterbrochen." };
     const declaration = this.registry.get(session.record.adapter)?.capabilities.resume;
+    // ADR-0044: natives hub-Resume nur mit Deklaration; sonst Prompt-Fallback
+    // (Mensch tippt Weitermachen → Fortsetzungsnachricht, ggf. mit native id).
     if (!declaration?.hub || declaration.ref !== "native") {
-      const detail = "Dieser Adapter kann nicht nativ fortsetzen. Neue Nachricht mit Kontext senden oder archivieren.";
-      await this.emitSystem(session, "session.resume_unsupported", { detail });
-      return { ok: false, detail };
+      const detail = "Adapter ohne natives Hub-Resume — fortsetzen mit Fortsetzungsnachricht.";
+      await this.emitSystem(session, "session.resume_fallback", { detail, adapter: session.record.adapter });
+      await this.emitPrompt(session, "Bitte setze die unterbrochene Arbeit fort.", actor);
+      return this.continueStopped(session, { kind: "prompt", text: "Bitte setze die unterbrochene Arbeit fort." }, actor);
     }
     const native = session.record.nativeSessionId;
-    if (!native) return { ok: false, detail: "Provider-Session unbekannt — natives Fortsetzen nicht möglich." };
+    if (!native) {
+      // Hub sagt „kann native“, ID fehlt trotzdem: ehrlich fallbacken statt Button-Tot.
+      await this.emitSystem(session, "session.resume_fallback", {
+        detail: "Provider-Session unbekannt — fortsetzen mit Fortsetzungsnachricht.",
+        adapter: session.record.adapter,
+      });
+      await this.emitPrompt(session, "Bitte setze die unterbrochene Arbeit fort.", actor);
+      return this.continueStopped(session, { kind: "prompt", text: "Bitte setze die unterbrochene Arbeit fort." }, actor);
+    }
     session.abort.abort();
     session.abort = new AbortController();
     session.activeWorkers = 0;
@@ -1362,17 +1373,20 @@ export class SessionManager {
       this.persist(session.record);
       return { ok: true };
     } catch (err) {
-      await this.setStatus(session, "error");
       const detail = err instanceof Error ? err.message : String(err);
       await this.emitSystem(session, "session.resume_failed", { detail });
-      // EPIC-P35 T35.4: eine erkennbare Provider-Ursache bekommt die
-      // handlungs­fähige Kategorie (ADR-0015); interne Fehler bleiben ohne —
-      // nichts wird passend gerechnet.
       if (classifyProviderError(detail).category !== "unknown") {
         await this.emitEvents(session, [providerErrorEvent(session.record.adapter, detail)]);
       }
-      await this.emitSystem(session, "session.turn_end", { code: null, reason: "error" });
-      return { ok: false, detail };
+      // Nach Crash/Neustart: natives Resume kann scheitern — Prompt-Fallback statt sticky error
+      // (ADR-0044: kein stilles Zurück auf interrupted; Status bleibt working → continueStopped).
+      await this.emitSystem(session, "session.resume_fallback", {
+        detail: "Natives Resume fehlgeschlagen — fortsetzen mit Fortsetzungsnachricht.",
+        cause: detail,
+        adapter: session.record.adapter,
+      });
+      await this.emitPrompt(session, "Bitte setze die unterbrochene Arbeit fort.", actor);
+      return this.continueStopped(session, { kind: "prompt", text: "Bitte setze die unterbrochene Arbeit fort." }, actor);
     }
   }
 

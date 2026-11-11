@@ -21,6 +21,27 @@ const kind = (events: EmittedEvent[], k: string) => events.find((e) => (e.payloa
 const texts = (events: EmittedEvent[]) => events.filter((e) => e.type === "assistant").map((e) => (e.payload as { text?: string }).text);
 
 describe("cursor adapter", () => {
+  it("capabilities: hub-Resume freigeschaltet (Weitermachen)", () => {
+    const caps = createAdapter({ command: [agent].join(" ") }).capabilities();
+    expect(caps.resume).toMatchObject({ ref: "native", hub: true });
+    expect(caps.resume?.argv).toContain("{sessionId}");
+  });
+
+  it("promptloses Resume bleibt idle — kein Worker, nächster Prompt resumed", async () => {
+    const ctx = context();
+    const adapter = createAdapter({ command: [agent].join(" ") });
+    const handle = await adapter.start(
+      { adapter: "cursor", project: process.cwd(), args: { resumeSessionId: "chat_idle_1" } },
+      ctx,
+    );
+    expect(handle).toEqual({ sessionId: ctx.sessionId });
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "cursor.result")).toBe(false);
+    expect(await adapter.steer(handle, { kind: "prompt", text: "Weiter" }, ctx)).toEqual({ ok: true });
+    await waitFor(() => texts(ctx.events).length === 1);
+    expect(texts(ctx.events)[0]).toContain("(fortgesetzt)");
+    await adapter.stop(handle, ctx);
+  });
+
   it("ein Zug: stream-json wird gemappt, native chatId landet im Resume-Pfad", async () => {
     const turns: string[] = [];
     const ctx = context(turns);
