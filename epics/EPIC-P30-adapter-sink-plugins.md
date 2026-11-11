@@ -1,6 +1,12 @@
 # EPIC-P30 — Installierbare Adapter- und Reporting-Sink-Plugins
 
 **Status:** Planungsentwurf · **Umsetzung:** gesperrt (umpriorisiert 2026-11-08: läuft nach P36, Nutzerentscheid) · **Phase:** P30
+
+> **Update 2026-11-12 (Nutzerbeauftragung):** Der Plugin-Rahmen hier (Registry, Scopes, Settings) ist
+> Voraussetzung und Grundlage für **EPIC-P55** — Plugin-Toggles in den Einstellungen mit
+> Token-Ersparnis-Nachweis (Context-Compression-Plugins wie Headroom zwischen den LLM-Calls,
+> ein/ausschaltbar je Scope). Bei P30-Umsetzung den `ContextPlugin`-Contract aus P55 §3.2 mitdenken,
+> damit P55 nicht rückwirkend den Rahmen umbauen muss.
 **Dauer:** 2–3 Agenten-Wochen (ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P29-, P34- und P35-Exit-Kriterien grün (Index-Kette seit 07.11.2026); bestehende Adapter-/Reporting-Verträge geprüft.
 
