@@ -27,25 +27,5 @@ export function SettingRow({ label, hint, children }: { label: string; hint?: st
   );
 }
 
-/** Ein echter Schalter (`role="switch"`), per Tastatur und Screenreader wie eine Checkbox bedienbar. */
-export function Switch({ checked, onChange, label, disabled }: { checked: boolean; onChange: (next: boolean) => void; label: string; disabled?: boolean }) {
-  return (
-    <span class="switch">
-      <input type="checkbox" role="switch" aria-label={label} checked={checked} disabled={disabled ?? false} onChange={(e) => onChange((e.currentTarget as HTMLInputElement).checked)} />
-      <span class="switch-track" aria-hidden="true" />
-    </span>
-  );
-}
-
-/** Auswahl aus wenigen Werten, immer sichtbar (statt eines Knopfes, der den Gegenwert zeigt). */
-export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: string }[]; onChange: (next: T) => void; label: string }) {
-  return (
-    <span class="segmented" role="group" aria-label={label}>
-      {options.map((o) => (
-        <button key={o.value} type="button" class={o.value === value ? "active" : ""} aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
-          {o.label}
-        </button>
-      ))}
-    </span>
-  );
-}
+// EPIC-P43 T43.1: Schalter und Segment sind App-Bausteine (shared/forms.tsx); hier nur weitergereicht.
+export { Segmented, Switch } from "../../shared/forms.tsx";

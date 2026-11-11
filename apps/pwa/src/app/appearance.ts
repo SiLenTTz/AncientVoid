@@ -39,11 +39,15 @@ export interface Appearance {
   fontScale: number;
 }
 
-export const DEFAULT_ACCENT = { dark: "#ff9a3c", light: "#d9601a" } as const;
+/** EPIC-P43 T43.1 (E2): Void-Violett. Wer schon gewählt hat, behält seine Farbe — gespeichert wird nur die Abweichung. */
+export const DEFAULT_ACCENT = { dark: "#b58cff", light: "#6a3cc9" } as const;
+/** EPIC-P43 T43.1 (E1): die Ruf-Farbe („du bist dran“) ist fest und nie der Akzent; Werte wie --call in 01-base.css. */
+export const CALL_COLOR = { dark: "#ff9a3c", light: "#9c4d00" } as const;
 
 export const DEFAULT_APPEARANCE: Appearance = {
   accent: { dark: null, light: null },
-  fontUi: "jetbrains-mono",
+  // EPIC-P43 T43.1 (E3): Inter für Text und Bedienung. Eine gespeicherte Wahl (auch JetBrains Mono) bleibt.
+  fontUi: "inter",
   fontCode: "jetbrains-mono",
   fontScale: 1,
 };
@@ -134,11 +138,13 @@ export function accentInk(accent: string): "#000000" | "#ffffff" {
 const SURFACE: Record<Theme, string> = { dark: "#121316", light: "#ffffff" };
 const STATUS: Record<Theme, { name: string; hex: string }[]> = {
   dark: [
+    { name: "du bist dran", hex: CALL_COLOR.dark },
     { name: "läuft", hex: "#4fe0ab" },
     { name: "wartet", hex: "#ffcf5c" },
     { name: "Fehler", hex: "#ff5c6a" },
   ],
   light: [
+    { name: "du bist dran", hex: CALL_COLOR.light },
     { name: "läuft", hex: "#158c62" },
     { name: "wartet", hex: "#9a6a06" },
     { name: "Fehler", hex: "#c72d3d" },

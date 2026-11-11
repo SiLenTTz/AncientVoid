@@ -147,7 +147,7 @@
   height: 24px;
 }
 
-.settings-body .switch input {
+.switch input {
   position: absolute;
   inset: 0;
   z-index: 1;
