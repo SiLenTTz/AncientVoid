@@ -38,6 +38,7 @@ import {
   ReviewStore,
   ProjectTrustStore,
   BrowserService,
+  DeviceService,
   loadConfig,
   loadReportingSinks,
   ClaudeLive,
@@ -296,6 +297,20 @@ async function main(): Promise<void> {
     },
   });
 
+  // EPIC-P42 / ADR-0067: Android-Testgeräte. AV-eigene Emulatoren laufen mit Ownership-Marker und überleben einen
+  // Hub-Neustart (Adoption nur mit belegtem Eigentum); ohne SDK/KVM meldet der Dienst ehrlich „nicht verfügbar“.
+  const devices = new DeviceService({
+    dataDir,
+    ...(config.devices.sdkRoot ? { sdkRoot: config.devices.sdkRoot } : {}),
+    ...(config.devices.avdHome ? { avdHome: config.devices.avdHome } : {}),
+    avdAllowlist: config.devices.avdAllowlist,
+    maxEmulators: config.devices.maxEmulators,
+    isActive: (id) => {
+      const rec = sessions.get(id);
+      return Boolean(rec) && !rec!.archived && !["stopped", "error"].includes(rec!.status);
+    },
+  });
+
   const orchestration = createHubOrchestration({ sessions, dataDir });
   await orchestration.ready;
   const automations = createHubAutomationService({
@@ -311,6 +326,7 @@ async function main(): Promise<void> {
   const app = await createHubApp({
     sessions,
     browser,
+    devices,
     tokens,
     registry,
     // EPIC-P36 / ADR-0055: Review-Notizen — Journal+Snapshot unter dataDir/reviews.

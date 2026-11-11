@@ -23,6 +23,7 @@ export * from "./code/code.ts";
 export * from "./code/explorer.ts";
 export * from "./code/diagnostics.ts";
 export * from "./browser/browser.ts";
+export * from "./devices/devices.ts";
 export * from "./push/push.ts";
 export * from "./models/custom-model.ts";
 export * from "./commands/commands.ts";

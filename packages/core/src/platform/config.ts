@@ -102,6 +102,17 @@ export const HubConfig = z.object({
   browserOrigins: z.array(z.string().url()).max(20).default([]),
   /** EPIC-P39: false = sichtbares Chromium-Fenster auf dem Host (braucht eine Anzeige); die PWA zeigt weiter das Bild. */
   browserHeadless: z.boolean().default(true),
+  /** EPIC-P42 (ADR-0067): Android-Testgeräte. sdkRoot/avdHome zeigen auf die SDK-/AVD-Installation
+   * (z. B. /mnt/omarchy_data/toolchain/android-sdk); ohne sdkRoot (auch keine env ANDROID_SDK_ROOT)
+   * meldet der Dienst ehrlich „nicht verfügbar“. Leere Allowlist = alle AVDs des AVD-Home wählbar. */
+  devices: z
+    .object({
+      sdkRoot: z.string().optional(),
+      avdHome: z.string().optional(),
+      avdAllowlist: z.array(z.string().min(1).max(64)).max(10).default([]),
+      maxEmulators: z.number().int().min(1).max(2).default(1),
+    })
+    .default({ avdAllowlist: [], maxEmulators: 1 }),
   /** T7.10: local OCR — a tessdata dir with extra languages (e.g. deu),
    * set up by scripts/setup-ocr.sh without root. */
   ocr: z.object({ tessdataDir: z.string().optional() }).default({}),
