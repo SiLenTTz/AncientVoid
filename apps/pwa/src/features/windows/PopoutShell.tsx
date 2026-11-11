@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { getToken, hostApi, hubApi, remoteHost, type AdapterUsage, type FleetHost, type SessionRecord } from "../../shared/api.ts";
 import { parseAppHash, type ToolPageId, TOOL_PAGE_IDS } from "../../app/route.ts";
+import { NyxWindow } from "../nyx/Nyx.tsx";
 import { SessionTail } from "../session/SessionTail.tsx";
 import { GraphPane } from "../graph/GraphPane.tsx";
 import { FileViewer } from "../files/FileViewer.tsx";
@@ -23,6 +24,7 @@ function targetFromHash(hash: string): WindowTarget | null {
   // ADR-0068: die Ansicht steht im Query, die Hash-Route bleibt die der Session bzw. `#/`.
   const view = new URLSearchParams(location.search).get("view");
   if (view === "queue") return { kind: "queue" };
+  if (view === "nyx") return { kind: "nyx" };
   const viewKind = SESSION_VIEW_KINDS.find((k) => k === view);
   if (viewKind && route.view === "tail") return { kind: viewKind, sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
   if (route.view === "list" && route.page === "vault") return route.vaultFile ? { kind: "vault", path: route.vaultFile } : { kind: "vault" };
@@ -142,7 +144,7 @@ export function PopoutShell() {
     <div class="popout-shell">
       <header class="popout-bar">
         <span class="popout-title">
-          ⧉ {isViewTarget(target) ? `${VIEW_LABEL[target.kind]} · ${sessionLabel}` : target.kind === "queue" ? "Warteschlange" : target.kind === "tool" ? "Werkzeug" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "browser" ? `Browser · ${sessionLabel}` : target.kind === "device" ? "Android-Geräte" : target.kind === "graph" ? `Repo-Graph · ${sessionLabel}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : sessionLabel}
+          ⧉ {isViewTarget(target) ? `${VIEW_LABEL[target.kind]} · ${sessionLabel}` : target.kind === "queue" ? "Warteschlange" : target.kind === "nyx" ? "Nyx" : target.kind === "tool" ? "Werkzeug" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "browser" ? `Browser · ${sessionLabel}` : target.kind === "device" ? "Android-Geräte" : target.kind === "graph" ? `Repo-Graph · ${sessionLabel}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : sessionLabel}
         </span>
         <button type="button" class="btn" onClick={giveBack}>
           In die App zurück
@@ -160,6 +162,10 @@ export function PopoutShell() {
         ) : (
           <div class="empty dim">lädt…</div>
         )
+      ) : target.kind === "nyx" ? (
+        <div class="popout-tool">
+          <NyxWindow />
+        </div>
       ) : target.kind === "queue" ? (
         <div class="popout-tool popout-queue">
           <App

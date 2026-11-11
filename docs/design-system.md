@@ -171,6 +171,24 @@ Farbe, Form und Bewegung sagen dasselbe; jede der drei reicht allein.
 - **Schnellsuche:** dasselbe Feld wie „Auftrag in Worten“ (Strg+K, Dock „Suchen“). Treffer je Art
   höchstens fünf, Wortanfang vor Teilstring; Pfeiltasten wählen, Enter springt nur mit Auswahl.
 
+## Nyx-Blatt (`features/nyx/`, `42-nyx.css`, EPIC-P43 T43.8)
+
+Die kleine Nyx (32 px) steht in der Kopfzeile und zeigt den Gesamtzustand nach VoidWarden `spec.md` §5.1:
+offline > Freigabe > Frage > Fehler > arbeitet > ruhig (`nyx-state.ts`, reine Funktion). Ihr Satz ist eine feste Vorlage je
+Zustand, nie Agenten-Text. Antippen öffnet das Blatt (ins `<body>` gerendert, damit es über dem Dock liegt): alle wartenden
+Freigaben und Fragen, was zuerst abläuft oben. Fragen nutzen `QuestionForm` mit `preselect` (eine als „(Recommended)“ bzw.
+„(Empfohlen)“ markierte Option ist vorgewählt, gesendet wird erst auf Tipp) und `oneTap` (eine einzelne Ja/Nein-Frage
+antwortet mit dem Tipp); Freigaben nutzen `CardDecision`. Begründungspflicht oder Passkey führen in die Session. Am PC
+lässt sich das Blatt herauslösen (Ziel `nyx`, ADR-0068). Animiert wird nur `transform` in `steps()`; ohne Bewegung oder
+offline steht das erste Bild.
+
+**Herkunft des Sprite-Atlas.** `apps/pwa/public/nyx/nyx-atlas.{png,json}` sind unveränderte Kopien aus VoidWarden
+`web/public/nyx/` (Commit `46430cf`, 2026-11-06, Werk des Projekteigners). Keine Laufzeitabhängigkeit zu VoidWarden;
+Änderungen am Original werden bewusst neu kopiert und hier mit neuen Prüfsummen vermerkt.
+
+- `nyx-atlas.png` — SHA-256 `f64ddb7c53a003eae0662042ef7c5f63fafc5df1c262fec6cb3cc7a66db8a4ae`
+- `nyx-atlas.json` — SHA-256 `eda84d81d45e181c09f8a41b58b3c6b911c3ec2857e32fbcca8c08ffb5333c0d`
+
 ## Kleinkram-Regeln (EPIC-P43 T43.5, je Regel ein Test in `e2e/specs/kleinkram.spec.ts`)
 
 1. **Unbekanntes schweigt** in der Leiste und steht im Bericht („keine Meldung“).

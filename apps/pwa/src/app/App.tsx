@@ -18,6 +18,7 @@ import { AutomationsPane } from "../features/automations/AutomationsPane.tsx";
 import { publishHubStatus } from "../features/shell/hub-status.ts";
 import { getLastSession } from "../features/shell/last-session.ts";
 import { DetachButton } from "../features/windows/DetachButton.tsx";
+import { NyxButton } from "../features/nyx/Nyx.tsx";
 
 export function App({
   onOpen,
@@ -138,6 +139,8 @@ export function App({
           </button>
         </h1>
         <div style="display: flex; gap: 10px; align-items: center">
+          {/* EPIC-P43 T43.8: die kleine Nyx — Gesamtzustand; Antippen öffnet das Blatt mit allem, was wartet. */}
+          <NyxButton online={!error} sessions={sessions ?? []} approvals={approvals} onChanged={() => setRetry((n) => n + 1)} />
           {/* Real user feedback (2026-09-19): provider/quota detail used to
            * sit inline on the Dashboard, dominating small screens before
            * any session ever showed — moved to its own page, reached from

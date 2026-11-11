@@ -75,11 +75,12 @@ describe("Herauslösen überall (EPIC-P43 T43.7, ADR-0068)", () => {
     expect(popoutUrl(changes)).toBe("/?window=1&view=changes#/sessions/s1");
     expect(popoutUrl(remoteReport)).toBe("/?window=1&view=report#/hosts/h2/sessions/s2");
     expect(popoutUrl({ kind: "queue" })).toBe("/?window=1&view=queue#/");
+    expect(popoutUrl({ kind: "nyx" })).toBe("/?window=1&view=nyx#/");
   });
 
   it("je Ansicht und Session ein eigener Schlüssel — getrennt von der Session selbst", () => {
-    const keys = new Set([targetKey(session), targetKey(changes), targetKey({ kind: "files", sessionId: "s1" }), targetKey({ ...changes, hostId: "h2" }), targetKey({ kind: "queue" })]);
-    expect(keys.size).toBe(5);
+    const keys = new Set([targetKey(session), targetKey(changes), targetKey({ kind: "files", sessionId: "s1" }), targetKey({ ...changes, hostId: "h2" }), targetKey({ kind: "queue" }), targetKey({ kind: "nyx" })]);
+    expect(keys.size).toBe(6);
   });
 
   it("parseWindowMessage nimmt Ansichtsziele und recall an, Unbekanntes nicht", () => {

@@ -12,6 +12,8 @@
 //             {tool_name, input, tool_use_id}; "deny" means the tool never runs.
 //   FRAGE     asks AskUserQuestion (Rot/Grün) through the same tool and
 //             answers with the choice
+//   EMPFOHLEN with FRAGE: „Grün“ is marked „(Empfohlen)“ like Claude marks a recommendation (EPIC-P43 T43.8)
+//   BESTAETIGEN asks a yes/no AskUserQuestion (Ja/Nein) — one tap in the Nyx sheet
 //   FEHLER    a failed turn: result is_error with an overloaded API error, exit 1
 //   LANGSAM   keep the turn open for 60 s
 //   DENKEN    a thinking block whose text the provider withholds (empty + signature), then the answer
@@ -118,7 +120,15 @@ if (prompt.includes("WERKZEUG")) {
 
 if (prompt.includes("FRAGE")) {
   const id = toolId();
-  const input = { questions: [{ question: "Welche Farbe soll das Logo haben?", header: "Logofarbe", options: [{ label: "Rot" }, { label: "Grün" }], multiSelect: false }] };
+  const input = { questions: [{ question: "Welche Farbe soll das Logo haben?", header: "Logofarbe", options: [{ label: "Rot" }, { label: prompt.includes("EMPFOHLEN") ? "Grün (Empfohlen)" : "Grün" }], multiSelect: false }] };
+  assistant([{ type: "tool_use", id, name: "AskUserQuestion", input }]);
+  const answer = await askPermission("AskUserQuestion", input, id);
+  tail = answer.behavior === "allow" ? ` · Gewählt: ${Object.values(answer.updatedInput.answers ?? {}).join(", ")}` : ` · keine Antwort: ${answer.message}`;
+}
+
+if (prompt.includes("BESTAETIGEN")) {
+  const id = toolId();
+  const input = { questions: [{ question: "Soll ich weitermachen?", header: "Weiter", options: [{ label: "Ja" }, { label: "Nein" }], multiSelect: false }] };
   assistant([{ type: "tool_use", id, name: "AskUserQuestion", input }]);
   const answer = await askPermission("AskUserQuestion", input, id);
   tail = answer.behavior === "allow" ? ` · Gewählt: ${Object.values(answer.updatedInput.answers ?? {}).join(", ")}` : ` · keine Antwort: ${answer.message}`;
