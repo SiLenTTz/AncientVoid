@@ -1,7 +1,7 @@
 ---
 id: BUG-0114
 slug: vormerken-jetzt-sendens
-status: in-progress
+status: done
 severity: S3
 area: pwa
 instance: dev
@@ -10,6 +10,7 @@ forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/49"
 epic: EPIC-P15
 created: 2026-11-11
 reporter: Jan
+fixed: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/367"
 ---
 
 # BUG-0114 — Vorgemerkte Nachricht lässt sich nicht sofort in den laufenden Zug senden
