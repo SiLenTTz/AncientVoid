@@ -11,7 +11,7 @@
 }
 .fleet-qr {
   flex-basis: 100%;
-  width: min(220px, 70vw);
+  width: min(220px, calc(70vw / var(--ui-zoom, 1))); /* BUG-0122 */
   height: auto;
   max-width: 100%;
   image-rendering: pixelated;

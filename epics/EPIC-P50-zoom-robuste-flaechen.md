@@ -1,7 +1,7 @@
 # EPIC-P50 — Zoom-robuste Flächen: Fenster scrollen nie, bei jedem UI-Zoom
 
-**Status:** in Arbeit (T50.1–T50.5 umgesetzt, T50.6 offen) · **Phase:** P50 · **Dauer:** ~1 Agenten-Woche (grobe Schätzung)
-**Abhängigkeit:** keine fachliche offene — Bugfix-Klasse quer zur Kette (Präzedenz P13/P14/P17). Basis sind die geschlossenen Zoom-Bugs BUG-0097/0098/0099/0102/0112 und die offenen BUG-0112-Vettern BUG-0113.
+**Status:** abgeschlossen 11.11.2026 (T50.1–T50.6, BUG-0113/0122 done, Gate lokal) · **Phase:** P50 · **Dauer:** ~1 Agenten-Woche (grobe Schätzung)
+**Abhängigkeit:** keine fachliche offene — Bugfix-Klasse quer zur Kette (Präzedenz P13/P14/P17). Basis: BUG-0097/0098/0099/0102/0112/0113/0122.
 
 Quelle: Nutzermeldung vom 10.11.2026 („Im Chat-Fenster zwei Scrollbars; die für die
 gesamte Seite dürfte nie da sein — explizit nur Listen, Chat und einzelne
@@ -93,21 +93,21 @@ Vollständiger Scan: `rg '[0-9.]+(dvh|vh|vw)\b' apps/pwa/src/app/styles` plus In
 | `31-custom-models.css:18` | Dialog max-height | Eigene Modelle | geteilt |
 | `41-tablet.css:62` | `.session-strip` max-height | Tablet-Streifen | geteilt |
 
-**B — Befund: fensterbezogen und ungeteilt → [BUG-0122](../bugs/bug-0122-overlay-hoehen-ohne-ui-zoom-teilung.md)**
+**B — Overlay-Flächen, geteilt (BUG-0122, 11.11.2026)**
 
 | Datei:Zeile | Regel | Fläche | Zoom |
 |---|---|---|---|
-| `05-composer.css:31–33` | `.composer.expanded` Eingabe `75vh`/`75dvh`, min `50vh` | Composer maximiert | Befund |
-| `09-skill-picker.css:26` | Skill-Blatt `70vh` | Skill-Auswahl | Befund |
-| `11-report-and-diff.css:515, :516` | `review-send-dialog` `92vw`/`85vh` | Review-Dialog | Befund |
-| `12-search.css:139` | `.file-viewer` `85vh` | Datei-Blatt | Befund |
-| `25-color-picker.css:30, :31` | `.color-dialog` `96vw`/`94dvh` | Farbwähler | Befund |
-| `28-forge.css:205, :206` | `fp-trace-dialog` `94vw`/`85vh` | Forge-Trace | Befund |
-| `16-fleet.css:14` | `.fleet-qr` `min(220px, 70vw)` | Fleet-QR | Befund |
-| `26-discovery.css:265` | Hinweis `min(80vw, 320px)` | Entdeckt | Befund |
-| `27-popout.css:151` | Schwebeleiste `min(92vw, 720px)` | Popout-Leiste | Befund |
+| `05-composer.css` | `.composer.expanded` Eingabe | Composer maximiert | geteilt (BUG-0122) |
+| `09-skill-picker.css` | `.overlay-sheet` | Skill-Auswahl | geteilt (BUG-0122) |
+| `11-report-and-diff.css` | `review-send-dialog` | Review-Dialog | geteilt (BUG-0122) |
+| `12-search.css` | `.file-viewer` | Datei-Blatt | geteilt (BUG-0122) |
+| `25-color-picker.css` | `.color-dialog` | Farbwähler | geteilt (BUG-0122) |
+| `28-forge.css` | `fp-trace-dialog` | Forge-Trace | geteilt (BUG-0122) |
+| `16-fleet.css` | `.fleet-qr` | Fleet-QR | geteilt (BUG-0122) |
+| `26-discovery.css` | `.card-menu-body` | Entdeckt-Menü | geteilt (BUG-0122) |
+| `27-popout.css` | `.restore-bar` | Popout-Leiste | geteilt (BUG-0122) |
 
-Nicht in diesem Epic gefixt: jeder Fix braucht eine eigene Matrix-Zeile (§3.3), Premortem 1. Das Bündel ist als BUG-0122 offen.
+Matrix-Zeile: `zoom-flaechen.spec.ts` „BUG-0122 … Zoom 200 %“.
 
 **C — Inhaltslimits, ungeteilt zulässig**
 
@@ -140,7 +140,7 @@ Nicht in diesem Epic gefixt: jeder Fix braucht eine eigene Matrix-Zeile (§3.3),
 - [x] **T50.3** Harte Garantie mobile Session-Hauptroute (`html:has(#app > .session-live)`, Nachtrag-2-Muster); Nachbarfälle (Verlauf-Filter, Queue, Approval) gegenprüfen. **Invariante**.
 - [x] **T50.4** E2E-Zoom-Matrix (3.3) bauen und einmal über alle Stufen fahren; Auffälligkeiten als Bugs anlegen (ein Verhalten = eine Datei). **K2-Rand, Invariante**. *Erledigt 11.11.2026: `zoom-flaechen.spec.ts`, Zoom 70/100/130/200 × Schrift 85/100/130 über Übersicht, Session mobil, Kachel PC, Popout, Schublade, Browser-Panel — alle grün; die Garantie-Prüfung T50.3 ist ebenfalls dort.*
 - [x] **T50.5** Dokumentation: Muster + Garantie-Regel in `docs/` festhalten (Verweis von `ui-scale.ts`-Kommentar), BUG-0113/0112-Status nachziehen. **Fail-loud/DoD**. *Erledigt 11.11.2026: [`docs/zoom-robuste-flaechen.md`](../docs/zoom-robuste-flaechen.md), Verweis aus `ui-scale.ts`; BUG-0113 done, BUG-0112 verweist auf die Matrix.*
-- [ ] **T50.6** *(aus P43 AI-P43-4)* `breiten.spec.ts` auf Werkzeugseiten und Formulare ausdehnen; Querschnitts-Specs früh in Umbau-Aufgaben mitlaufen lassen. **K2**.
+- [x] **T50.6** *(aus P43 AI-P43-4)* `breiten.spec.ts` auf Werkzeugseiten und Formulare ausdehnen; Querschnitts-Specs früh in Umbau-Aufgaben mitlaufen lassen. **K2**. *Erledigt 11.11.2026: zweiter Spec-Fall Einstellungen/Neue Session in vier Breiten; `tool-pane-popout`/`tile-popout` auf `--target`.*
 
 ## 5. Acceptance Criteria (AC-P50-k)
 

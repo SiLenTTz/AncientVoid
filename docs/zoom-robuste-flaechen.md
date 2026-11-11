@@ -41,7 +41,7 @@ Jede neue fensterfüllende oder fensterbegrenzte Fläche bekommt eine Zeile in
 der Zoom-Matrix `e2e/specs/zoom-flaechen.spec.ts` (uiScale 70/100/130/200 ×
 Schrift 85/100/130; Seite scrollt nie, Unterkante == Fensterhöhe ±1 px, am PC
 == Oberkante der Statusleiste). Audit-Stand: `epics/EPIC-P50-zoom-robuste-flaechen.md` §3.4;
-offener Rest: [BUG-0122](../bugs/bug-0122-overlay-hoehen-ohne-ui-zoom-teilung.md).
+BUG-0122 (Overlay-Höhen) ist done — Matrix-Zeile in `zoom-flaechen.spec.ts`.
 
 Neuen Scan fahren:
 

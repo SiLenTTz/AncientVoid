@@ -262,7 +262,7 @@
   display: grid;
   gap: 8px;
   min-width: 220px;
-  max-width: min(80vw, 320px);
+  max-width: min(calc(80vw / var(--ui-zoom, 1)), 320px); /* BUG-0122 */
   padding: 10px;
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius);

@@ -177,7 +177,7 @@ Invariante. Läuft parallel zur P47-Kette.
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
-| [P50 — Zoom-robuste Flächen](EPIC-P50-zoom-robuste-flaechen.md) | Fenster füllen bei jedem UI-Zoom exakt, html/body und eigene Fenster scrollen nie, Zoom-Matrix-E2E — BUG-0112 gefixt (Popout-Shell), BUG-0113 offen (Dateien-Schublade/Browser-Panel) | keine fachliche offene (Bugfix-Klasse, Präzedenz P13/P14/P17) | ~1 |
+| [P50 — Zoom-robuste Flächen](EPIC-P50-zoom-robuste-flaechen.md) | Fenster füllen bei jedem UI-Zoom exakt, html/body und eigene Fenster scrollen nie, Zoom-Matrix-E2E — **abgeschlossen 11.11.2026** (BUG-0113/0122 done, T50.1–T50.6) | keine fachliche offene (Bugfix-Klasse, Präzedenz P13/P14/P17) | ~1 |
 
 Reihenfolge: **P47 → P48 → P49** (jeweils eigener Feature-Branch/MR nach main); P50 quer als Bugfix-Klasse, P51 quer als Nutzerauftrag.
 

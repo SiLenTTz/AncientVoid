@@ -27,8 +27,8 @@
 }
 
 .color-dialog {
-  width: min(380px, 96vw);
-  max-height: 94dvh;
+  width: min(380px, calc(96vw / var(--ui-zoom, 1))); /* BUG-0122 */
+  max-height: calc(94dvh / var(--ui-zoom, 1));
   padding: 0;
   border: 1px solid var(--fg-faint);
   border-radius: var(--radius-lg);
