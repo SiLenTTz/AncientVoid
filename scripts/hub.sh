@@ -74,7 +74,9 @@ case "${1:-}" in
   start|stop|status)
     # A installed user unit wins over the dev daemon — never two hubs on
     # one port (the unit also survives reboots, this script does not).
-    if systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1; then
+    # HUB_LOCAL=1 (EPIC-P53 setup wizard): force the dev daemon even when
+    # a unit exists — for setups on a second port (setup.sh --port).
+    if systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1 && [ "${HUB_LOCAL:-0}" != "1" ]; then
       echo "-> systemd: systemctl --user ${1} ancientvoid-hub.service"
       systemctl --user "${1}" ancientvoid-hub.service || true
       exit 0

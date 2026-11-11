@@ -28,6 +28,14 @@ Detail-Doks; sie dupliziert sie nicht.
 
 ## 2. Installieren
 
+**Normalweg (ein Befehl, EPIC-P53):** `./setup.sh` — der Wizard prüft
+Voraussetzungen, bindet als ersten Schritt den ersten Provider an, installiert,
+baut die PWA, stellt ein Device-Token aus und startet den Hub (idempotent,
+failt laut; Flags im Skript-Kopf; Hilfe: Skill `setup-wizard`). Die Schritte
+3–5 unten erledigt er automatisch.
+
+Manuell (Agenten/CI):
+
 ```bash
 git clone <repo> && cd AncientVoid
 npm install          # richtet auch den commit-msg-Hook ein
@@ -48,6 +56,8 @@ cp apps/hub/hub.config.example.json hub.config.json
 - Alternativer Config-Pfad: `ANCIENTVOID_CONFIG=<pfad>`.
 
 ## 4. PWA bauen und starten
+
+Der Wizard (`./setup.sh`) macht beides. Manuell:
 
 ```bash
 npm -w @ancientvoid/pwa run build     # einmalig (config.server.pwaDir)

@@ -23,6 +23,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -p . --noEmit && npm run -s typecheck --workspace apps/pwa",
     "dev:server": "node --watch apps/hub/src/main.ts",
+    "setup": "./setup.sh",
     "gateway-mcp": "node apps/gateway-mcp/src/main.ts",
     "loadtest": "node scripts/loadtest.mjs",
     "messlauf:hubctl-latency": "node scripts/messlauf-hubctl-latency.mjs",

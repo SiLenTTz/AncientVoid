@@ -30,6 +30,7 @@
 | [`epic-creation`](epic-creation/SKILL.md) | Neue `EPIC-Pn`-Datei nach 7-Abschnitt-Schema | „neues Epic", „P5 planen" | Phasen-Ebene; Feinschnitt → `concept-phase` |
 | [`messlauf`](messlauf/SKILL.md) | Messlauf gegen K1–K10 fahren und ablegen | Benchmark, Durchsatz, Latenz, Messzahl zitieren | Ablage unter `docs/messlauf/` |
 | [`retro`](retro/SKILL.md) | Evidence-basierte Retro gegen Epic-AC | „Retro", Phasen-Abschluss | bewertet Vergangenheit; planen → `epic-creation` |
+| [`setup-wizard`](setup-wizard/SKILL.md) | Setup-Hilfe für `./setup.sh` (Provider zuerst, Exit-Code-Diagnose) | „Installation", „Setup", „läuft nicht", Provider anbinden | Wizard-Fehlersuche; Defekte → `bugfix` |
 
 Vorlage für neue Skills: [`skill-template.md`](skill-template.md). AncientVoid-Verträge,
 die `ponytail-review` nicht wegoptimieren darf:

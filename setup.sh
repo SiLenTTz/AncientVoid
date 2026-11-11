@@ -1,0 +1,216 @@
+#!/usr/bin/env bash
+# AncientVoid — One-Command-Setup (EPIC-P53 T53.3).
+#
+# Wizard vom frischen Klon zum laufenden Hub. Nutzervorgabe: der erste
+# Schritt bindet den ersten Provider an — erst wenn der steht, folgen PWA,
+# Token und Start. Idempotent: ein zweiter Lauf überschreibt keine Config,
+# stellt kein zweites Token aus und startet keinen zweiten Hub.
+#
+# Flags:  --yes                keine Rückfragen, Defaults (Adapter: dummy)
+#         --adapter=<id>       dummy|claude|codex|opencode|copilot|pi|hermes|
+#                             dsh|openai (openai fragt baseUrl/model, bzw.
+#                             --base-url/--model)
+#         --device-label=<n>   Name fürs Device-Token (Default: hostname)
+#         --port=<n>           Port des Hubs (Default aus Config-Beispiel: 7373;
+#                             nützlich, wenn dort schon ein Hub läuft)
+#         --voidwarden         zusätzlich agent:- und display:-Token für
+#                             VoidWarden ausstellen (Kaskade, s. README)
+#         --no-pwa             PWA nicht bauen
+#         --no-start           Hub nicht starten
+# Exit:   0 ok · 2 Voraussetzung fehlt · 3 Config/Daten kaputt ·
+#         4 Token/Hub-Start fehlgeschlagen · 5 npm install fehlgeschlagen
+set -euo pipefail
+cd "$(dirname "$0")"
+
+ADAPTER=""; LABEL="$(hostname)"; YES=0; PWA=1; START=1; VOIDWARDEN=0; BASE_URL=""; MODEL=""; PORT=""
+for arg in "$@"; do
+  case "$arg" in
+    --yes) YES=1 ;;
+    --adapter=*) ADAPTER="${arg#*=}" ;;
+    --device-label=*) LABEL="${arg#*=}" ;;
+    --port=*) PORT="${arg#*=}" ;;
+    --voidwarden) VOIDWARDEN=1 ;;
+    --no-pwa) PWA=0 ;;
+    --no-start) START=0 ;;
+    --base-url=*) BASE_URL="${arg#*=}" ;;
+    --model=*) MODEL="${arg#*=}" ;;
+    *) echo "unbekannte Option: $arg (siehe Skript-Kopf)" >&2; exit 2 ;;
+  esac
+done
+
+say()  { printf '\n== %s\n' "$*"; }
+ask()  { # ask <Var> <Prompt> <Default> — Antwort in Var (Std: Default; kein TTY wie --yes)
+  local __var="$1" __q="$2" __def="$3" __ans=""
+  if [ "$YES" = 1 ] || [ ! -t 0 ]; then eval "$__var=\$__def"; return; fi
+  read -r -p "$__q [$__def]: " __ans || true
+  eval "$__var=\${__ans:-\$__def}"
+}
+
+# ---------------------------------------------------------------- 0 · Prüfungen
+say "0/5 Voraussetzungen"
+fail_req() { echo "FEHLT: $*" >&2; echo "Beheben und erneut ausführen — der Wizard ist idempotent." >&2; exit 2; }
+command -v node >/dev/null || fail_req "Node.js (https://node.org, >= 22.5)"
+NODE_VER="$(node --version 2>/dev/null || echo v0.0.0)"
+NODE_MAJ="${NODE_VER#v}"; NODE_MAJ="${NODE_MAJ%%.*}"
+NODE_MIN="${NODE_VER#v}"; NODE_MIN="${NODE_MIN#*.}"; NODE_MIN="${NODE_MIN%%.*}"
+if [ "$NODE_MAJ" -lt 22 ] || { [ "$NODE_MAJ" = 22 ] && [ "$NODE_MIN" -lt 5 ]; }; then
+  fail_req "Node >= 22.5 (gefunden: $NODE_VER) — node:sqlite/strip-types braucht es"
+fi
+command -v npm >/dev/null || fail_req "npm"
+command -v git >/dev/null || fail_req "git"
+# tmux fehlt nur als Warnung: Worker-Runner hat den process-Fallback.
+command -v tmux >/dev/null || echo "Hinweis: tmux fehlt — Worker laufen im process-Runner (konfigurierbar)."
+echo "ok: node $NODE_VER, npm $(npm --version)"
+
+# ------------------------------------------------------- 1 · erster Provider
+# Nutzervorgabe: Provider zuerst — ein Hub ohne Provider „läuft", kann aber
+# nichts. Erkannte CLIs werden vorgeschlagen; dummy funktioniert immer.
+say "1/5 Ersten Provider anbinden"
+detect() { command -v "$1" >/dev/null 2>&1 && echo "$1" || true; }
+FOUND=""
+for cli in claude codex opencode copilot pi hermes dsh; do
+  d="$(detect "$cli")"; [ -n "$d" ] && FOUND="$FOUND $d"
+done
+[ -n "$FOUND" ] && echo "erkannt:$FOUND"
+
+adapter_json() { # adapter_json <id> — ein Adapter-JSON-Objekt auf stdout
+  case "$1" in
+    dummy)    echo '{"id":"dummy","module":"@ancientvoid/adapter-dummy","config":{"eventsPerSecond":5}}' ;;
+    claude)   echo '{"id":"claude","module":"@ancientvoid/adapter-claude"}' ;;
+    codex)    echo '{"id":"codex","module":"@ancientvoid/adapter-codex"}' ;;
+    opencode) echo '{"id":"opencode","module":"@ancientvoid/adapter-acp","config":{"preset":"opencode"}}' ;;
+    copilot)  echo '{"id":"copilot","module":"@ancientvoid/adapter-acp","config":{"preset":"copilot"}}' ;;
+    dsh)      echo '{"id":"dsh","module":"@ancientvoid/adapter-acp","config":{"preset":"dsh"}}' ;;
+    pi)       echo '{"id":"pi","module":"@ancientvoid/adapter-pi"}' ;;
+    hermes)   echo '{"id":"hermes","module":"@ancientvoid/adapter-hermes"}' ;;
+    openai)
+      [ -n "$BASE_URL" ] || ask BASE_URL "OpenAI-kompatible baseUrl (llama.cpp/LM Studio/Ollama/vLLM, ohne /v1? mit!)" "http://127.0.0.1:8080/v1"
+      [ -n "$MODEL" ] || ask MODEL "Modell-Name" "qwen2.5-coder"
+      printf '{"id":"local-llm","module":"./examples/adapters/openai-compat/adapter.ts","config":{"baseUrl":"%s","model":"%s"}}' "$BASE_URL" "$MODEL"
+      ;;
+    *) echo "unbekannter Adapter: $1 (dummy|claude|codex|opencode|copilot|pi|hermes|dsh|openai)" >&2; exit 2 ;;
+  esac
+}
+
+if [ -z "$ADAPTER" ]; then
+  DEFAULT="dummy"; for f in $FOUND; do DEFAULT="$f"; break; done
+  echo "  dummy      synthetischer Demo-Adapter (immer lauffähig)"
+  echo "  claude codex opencode copilot pi hermes dsh   Harness-CLI (installiert: s. oben)"
+  echo "  openai     OpenAI-kompatibler Endpunkt (llama.cpp, LM Studio, Ollama, vLLM)"
+  ask ADAPTER "Welcher Provider (erste Installation)" "$DEFAULT"
+fi
+ADAPTER_JSON="$(adapter_json "$ADAPTER")"
+echo "gewählt: $ADAPTER"
+
+# ------------------------------------------------------------- 2 · installieren
+say "2/5 npm install (Workspaces, Hooks)"
+if [ ! -d node_modules ] || [ ! -f node_modules/.package-lock.json ]; then
+  npm install || { echo "npm install fehlgeschlagen" >&2; exit 5; }
+else
+  npm install --no-fund --no-audit || { echo "npm install fehlgeschlagen" >&2; exit 5; }
+fi
+
+# ---------------------------------------------------------------- 3 · Konfigurieren
+say "3/5 hub.config.json"
+if [ ! -f hub.config.json ]; then
+  node - "$ADAPTER_JSON" "$PORT" <<'EOF'
+const fs = require("node:fs");
+const adapter = JSON.parse(process.argv[2]);
+const port = process.argv[3] ? Number(process.argv[3]) : null;
+const cfg = JSON.parse(fs.readFileSync("apps/hub/hub.config.example.json", "utf8"));
+delete cfg.$comment;
+if (port) cfg.server = { ...cfg.server, port };
+cfg.adapters = [adapter, ...cfg.adapters.filter((a) => a.id !== adapter.id && a.id !== "dummy")];
+fs.writeFileSync("hub.config.json", JSON.stringify(cfg, null, 2) + "\n", { mode: 0o600 });
+EOF
+  echo "angelegt: hub.config.json (Adapter '$ADAPTER' eingetragen, git-ignored)"
+else
+  HAVE="$(node -e 'const c=require("./hub.config.json");process.stdout.write((c.adapters??[]).map(a=>a.id).join(" "))')"
+  ID="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).id)' "$ADAPTER_JSON")"
+  if [[ " $HAVE " == *" $ID "* ]]; then
+    echo "bestehende hub.config.json bereits mit Adapter '$ID' — nichts geändert"
+  elif [ "$YES" = 1 ]; then
+    echo "bestehende hub.config.json ohne '$ID' — --yes ergänzt nicht; manuell eintragen (siehe README)"
+  else
+    ask ANS "Adapter '$ID' in bestehende Config ergänzen" "ja"
+    if [ "$ANS" = ja ]; then
+      node - "$ADAPTER_JSON" <<'EOF'
+const fs = require("node:fs");
+const adapter = JSON.parse(process.argv[2]);
+const cfg = JSON.parse(fs.readFileSync("hub.config.json", "utf8"));
+cfg.adapters = [...(cfg.adapters ?? []), adapter];
+fs.writeFileSync("hub.config.json", JSON.stringify(cfg, null, 2) + "\n");
+EOF
+      echo "ergänzt: '$ID' in hub.config.json"
+    fi
+  fi
+fi
+node -e 'require("./hub.config.json")' || { echo "hub.config.json ist kein gültiges JSON" >&2; exit 3; }
+
+# --------------------------------------------------------------- 4 · PWA + Token
+if [ "$PWA" = 1 ]; then
+  say "4/5 PWA bauen"; npm -w @ancientvoid/pwa run build
+else
+  say "4/5 PWA bauen — übersprungen (--no-pwa)"
+fi
+say "4b/5 Device-Token"
+mkdir -p data
+if [ ! -f data/.setup-first-token ]; then
+  TOKEN_OUT="$(node apps/hubctl/src/cli.ts token issue "$LABEL" --db data/hub.db)" || exit 4
+  TOKEN="$(printf '%s\n' "$TOKEN_OUT" | grep -v '^token for' | head -n1)"
+  printf '\n  Device-Token für die PWA (einmalig sichtbar!):\n  %s\n\n  Jetzt notieren: PWA öffnen → „Device-Token“ einfügen.\n  Weitere Tokens später: npm run hubctl -- token issue <name>\n' "$TOKEN"
+  : > data/.setup-first-token   # nur Marker (git-ignored) — das Token selbst steht NIE auf Disk
+else
+  echo "bereits ein Token über den Wizard ausgestellt — ausstellbar bei Bedarf:"
+  echo "  npm run hubctl -- token issue <name> --db data/hub.db"
+fi
+if [ "$VOIDWARDEN" = 1 ]; then
+  say "4c/5 VoidWarden-Tokens (Kaskade — danach im VoidWarden-Repo ./setup.sh)"
+  # hubctl präfixt die Labels selbst: agent:voidwarden (nur lesen) und
+  # display:web-1 (lesen + write-Freigaben entscheiden, ADR-0001 Least Privilege).
+  node apps/hubctl/src/cli.ts token issue "voidwarden" --agent --db data/hub.db || exit 4
+  node apps/hubctl/src/cli.ts token issue "web-1" --display --db data/hub.db || exit 4
+  echo "  Beide Tokens (read-only bzw. Freigaben) einmalig sichtbar — für"
+  echo "  VoidWardens voidwarden.config.json als Dateien ablegen (Modus 600)."
+fi
+
+# ------------------------------------------------------------------ 5 · starten
+PORT="$(node -e 'try{console.log(require("./hub.config.json").server?.port ?? 7373)}catch{console.log(7373)}' 2>/dev/null || echo 7373)"
+HOST="$(node -e 'try{console.log(require("./hub.config.json").server?.host ?? "127.0.0.1")}catch{console.log("127.0.0.1")}' 2>/dev/null || echo 127.0.0.1)"
+if [ "$START" = 1 ]; then
+  say "5/5 Hub starten"
+  # Agents/Shell können ANCIENTVOID_CONFIG ererbt haben (z. B. wenn sie selbst
+  # in einer Hub-Session laufen) — der Wizard startet immer gegen DIESE
+  # Checkout-Config, die er in Schritt 3 gerade gebaut/geprüft hat.
+  if [ -n "${ANCIENTVOID_CONFIG:-}" ] && [ "$ANCIENTVOID_CONFIG" != "$PWD/hub.config.json" ]; then
+    echo "Hinweis: ererbtes ANCIENTVOID_CONFIG=$ANCIENTVOID_CONFIG wird für diesen Start"
+    echo "         überschrieben (Wizard-Contract: ./hub.config.json dieses Checkouts)."
+  fi
+  export ANCIENTVOID_CONFIG="$PWD/hub.config.json"
+  if curl -sf "http://$HOST:$PORT/api/ready" >/dev/null 2>&1; then
+    echo "auf Port $PORT läuft bereits ein Hub — verwende bestehenden (kein Start)"
+  elif systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1 && [ "$PORT" = "7373" ]; then
+    # systemd-Unit übernimmt den Standard-Port (hub.sh-Regel); Aktivieren per
+    # systemctl start ist bei laufender Unit ein No-op.
+    scripts/hub.sh start || exit 4
+  else
+    # Eigener Port (oder --port): lokaler Daemon — nie die Unit anfassen.
+    HUB_LOCAL=1 scripts/hub.sh start || exit 4
+  fi
+  for _ in $(seq 1 40); do
+    if curl -sf "http://$HOST:$PORT/api/ready" >/dev/null 2>&1; then break; fi; sleep 0.5
+  done
+  if curl -sf "http://$HOST:$PORT/api/ready" >/dev/null 2>&1; then
+    echo "bereit: http://$HOST:$PORT (GET /api/ready = 200)"
+  else
+    echo "Hub antwortet nicht auf /api/ready — Log: scripts/hub.sh logs" >&2; exit 4
+  fi
+else
+  say "5/5 Hub starten — übersprungen (--no-start); Start: scripts/hub.sh start"
+fi
+
+say "fertig"
+echo "  PWA:        http://$HOST:$PORT (Device-Token von oben)"
+echo "  Handy:      Tailscale + scripts/setup-tailscale-serve.sh (kein öffentlicher Port!)"
+echo "  VoidWarden: optional, siehe README-Abschnitt „Zusammenspiel mit VoidWarden“"
+echo "  Betrieb:    docs/operations-runbook.md (systemd, Updates, Backup)"
