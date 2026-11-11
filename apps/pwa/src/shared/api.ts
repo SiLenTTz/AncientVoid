@@ -668,7 +668,7 @@ export function setToken(token: string): void {
   // T8.2/AC-P8-4: another token is another person's device state — drafts
   // and cached views of the previous one must not show up.
   if (localStorage.getItem(TOKEN_KEY) !== token) {
-    for (const key of Object.keys(localStorage)) if (key.startsWith("ancientvoid.draft.") || key.startsWith("ancientvoid.newSession") || key.startsWith("ancientvoid.tail.")) localStorage.removeItem(key);
+    for (const key of Object.keys(localStorage)) if (key.startsWith("ancientvoid.draft.") || key.startsWith("ancientvoid.newSession") || key.startsWith("ancientvoid.tail.") || key.startsWith("ancientvoid.tailScroll.")) localStorage.removeItem(key);
     void caches?.delete?.("ancientvoid-api").catch(() => undefined);
   }
   localStorage.setItem(TOKEN_KEY, token);
