@@ -1,0 +1,155 @@
+/* EPIC-P43 T43.1: die sechs Bewegungen mit fester Bedeutung (Design-Review §4.2).
+ *
+ *   mv-breathe  Atmen     ein Agent arbeitet                 Schleife
+ *   mv-shimmer  Schimmer  genau dieser Schritt läuft         Schleife
+ *   mv-call     Ruf       du bist dran                       einmal bei Ankunft
+ *   mv-snap     Einrasten Schritt oder Zug fertig            einmal
+ *   mv-wander   Wandern   Element wechselt Gruppe/öffnet sich einmal (shared/motion.ts: wander())
+ *   Zählen                Zahl ist live                      shared/motion.ts: countStep()
+ *
+ * Regeln: nur transform und opacity (K2); höchstens zwei Schleifen (Atmen, Schimmer). Ohne Bewegung
+ * (Systemvorgabe oder Schalter in den Einstellungen) bleibt ein Standbild mit gleicher Aussage; bei
+ * getrennter Verbindung (`data-conn="off"` am Wurzelelement) halten die Schleifen an (K10). */
+@keyframes mv-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.86);
+  }
+}
+
+@keyframes mv-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes mv-call {
+  from {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@keyframes mv-snap {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.4;
+  }
+  70% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes mv-wander-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.mv-breathe {
+  animation: mv-breathe 2.4s ease-in-out infinite;
+}
+
+.mv-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.mv-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fg) 14%, transparent), transparent);
+  animation: mv-shimmer 1.6s linear infinite;
+  pointer-events: none;
+}
+
+/* Der Ruf ist ein Ring, der sich einmal vom Element löst; das Element selbst bleibt ruhig. */
+.mv-call {
+  position: relative;
+}
+
+.mv-call::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px currentColor;
+  opacity: 0;
+  animation: mv-call 900ms var(--ease-out) 1;
+  pointer-events: none;
+}
+
+.mv-snap {
+  animation: mv-snap var(--motion-base) var(--ease-spring) 1;
+}
+
+/* Rückfall für Wandern ohne View Transitions: das Element blendet an seinem neuen Ort ein. */
+.mv-wander {
+  animation: mv-wander-in var(--motion-base) var(--ease-out) 1;
+}
+
+:root[data-conn="off"] .mv-breathe,
+:root[data-conn="off"] .mv-shimmer::after {
+  animation-play-state: paused;
+}
+
+:root[data-ctx-motion="off"] .mv-breathe,
+:root[data-ctx-motion="off"] .mv-snap,
+:root[data-ctx-motion="off"] .mv-wander {
+  animation: none;
+}
+
+:root[data-ctx-motion="off"] .mv-shimmer::after,
+:root[data-ctx-motion="off"] .mv-call::before {
+  animation: none;
+  opacity: 0;
+}
+
+:root[data-ctx-motion="off"]::view-transition-group(*),
+:root[data-ctx-motion="off"]::view-transition-old(*),
+:root[data-ctx-motion="off"]::view-transition-new(*) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mv-breathe,
+  .mv-snap,
+  .mv-wander {
+    animation: none;
+  }
+
+  .mv-shimmer::after,
+  .mv-call::before {
+    animation: none;
+    opacity: 0;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}

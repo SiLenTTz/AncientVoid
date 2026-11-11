@@ -183,8 +183,8 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     await app.locator(".dock").getByRole("button", { name: "Einstellungen" }).click();
     await app.locator(".segmented").getByRole("button", { name: "Hell" }).click();
     await expect(popup.locator("html")).toHaveAttribute("data-theme", "light");
-    await app.getByRole("radiogroup", { name: "Schriftart Oberfläche" }).getByRole("radio", { name: /Inter/ }).click();
-    await expect.poll(() => popup.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--font-ui"))).toContain("Inter");
+    await app.getByRole("radiogroup", { name: "Schriftart Oberfläche" }).getByRole("radio", { name: /Atkinson/ }).click();
+    await expect.poll(() => popup.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--font-ui"))).toContain("Atkinson");
     await app.getByRole("button", { name: /Akzentfarbe wählen/ }).click();
     await app.getByRole("dialog", { name: /Akzentfarbe/ }).getByLabel("Hex", { exact: true }).fill("#33aaff");
     await app.getByRole("dialog", { name: /Akzentfarbe/ }).getByRole("button", { name: "Übernehmen" }).click();

@@ -1,4 +1,4 @@
-# Design-System — „Futuristisch" (P1.6)
+# Design-System — „Futuristisch" (P1.6), fortgeschrieben mit EPIC-P43
 
 Diese Datei ist die Referenz, an der sich **jede künftige UI-Aufgabe**
 orientiert (P2 T2.3 Diff-UI, P3 T3.8 Sprachsuche-Frontend, P4) — neue
@@ -32,24 +32,40 @@ bestehende Komponente re-themt sich automatisch.
 | `--bg-chip` | `#21252c` | `#d7dae5` | Chips, Trennlinien, sekundäre Fläche |
 | `--fg` | `#eef1f5` | `#0d1016` | Primärtext |
 | `--fg-dim` | `#8d95a3` | `#565d6e` | Sekundärtext |
-| `--fg-faint` | `#585f6c` | `#9ba0af` | Tertiärtext (Platzhalter, Meta) — **neu** |
-| `--accent` | `#ff9a3c` (heißes Amber) | `#d9601a` | Primäraktion, aktiver Zustand |
-| `--accent-ink` | `#1a0a00` | `#fff4ec` | Text/Icon auf `--accent`-Fläche — **neu** |
+| `--fg-faint` | `#7b8391` | `#666d7d` | Tertiärtext (Platzhalter, Meta); seit P43 4,5:1 auf `--bg-elev` |
+| `--accent` | `#b58cff` (Void-Violett) | `#6a3cc9` | Primäraktion, aktiver Zustand, Links; frei wählbar (siehe „Akzentfarbe“) |
+| `--accent-ink` | `#12081f` | `#ffffff` | Text/Icon auf `--accent`-Fläche |
+| `--call` | `#ff9a3c` (Amber) | `#9c4d00` | **Ruf: „du bist dran“** (Freigabe, fertiger Zug). Fest, nie der Akzent, nicht wählbar |
+| `--call-ink` | `#1a0a00` | `#ffffff` | Text/Icon auf `--call`-Fläche |
+| `--info` | `#5cc8ff` | `#0b6aa6` | Frage des Agenten |
+| `--info-ink` | `#04131c` | `#ffffff` | Text/Icon auf `--info`-Fläche |
 | `--ok` | `#4fe0ab` | `#158c62` | Status „working"/Erfolg — **semantisch, nie der Akzent** |
-| `--warn` | `#ffcf5c` | `#9a6a06` | Status „wartet auf dich" |
+| `--warn` | `#ffcf5c` | `#9a6a06` | Warnung (Kontingent, Schwellen). „Du bist dran“ ist seit P43 `--call` |
 | `--err` | `#ff5c6a` | `#c72d3d` | Status „error" |
 
 `--ok`/`--warn`/`--err` sind bewusst von `--accent` getrennt (Regel aus der
 `artifact-design`-Praxis dieses Projekts: Statusfarbe ≠ Akzentfarbe) —
 Kontingent-Balken und Primär-Buttons nutzen `--accent`, Session-Status nutzt
-`--ok`/`--warn`/`--err`.
+`--ok`/`--call`/`--info`/`--err`.
+
+**Ruf ≠ Akzent (EPIC-P43, E1).** Bis P43 trug Amber zugleich Akzent, Links und „bereit“. Seither
+ist Amber allein der Ruf. Wer als Akzent eine Farbe nahe am Ruf wählt, bekommt im Farbwähler einen
+Hinweis (`accentWarnings`, `STATUS` in `appearance.ts`); der Ruf bleibt dann an Form und Bewegung
+erkennbar.
+
+**Kontrast.** `apps/pwa/test/app/tokens.test.ts` liest die Tokens aus `01-base.css` und verlangt
+für Text (`--fg`, `--fg-dim`, `--fg-faint`, `--accent`, `--call`, `--info`, `--err`) 4,5:1 auf `--bg`
+und `--bg-elev`, in beiden Erscheinungsbildern. Bekannte Ausnahme: `--ok` hell liegt als Text bei
+4,2:1; die semantischen Farben bleiben in P43 unverändert, Zustand steht deshalb nie allein in
+Textfarbe, sondern immer auch in der Form.
 
 ## Typografie
 
 | Token | Wert | Einsatz |
 |---|---|---|
 | `--font-display` | `"Orbitron", system-ui, sans-serif` | Marke, Seiten-/Session-Überschriften — HUD-Charakter, sparsam einsetzen |
-| `--font-mono` | `"JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace` | Fließtext **und** Daten — dieses Projekt war seit P0 monospace-first, T1.6-1 lädt die bisher nur als Fallback-Name genannte Schrift jetzt tatsächlich (`apps/pwa/index.html`) |
+| `--font-ui` | `"Inter", system-ui, sans-serif` | Text und Bedienung (Standard seit EPIC-P43, E3) |
+| `--font-code` / `--font-mono` | `"JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace` | Code, Diff, Tool-Ausgabe, Pfade, Zahlen (`.num`, Laufleiste, Statusleiste: `tabular-nums`) |
 | `--tracking-label` | `0.1em` | Großbuchstaben-Labels (Status-Badges, Reiter) |
 
 Alle Schriften werden seit EPIC-P34 T34.6 selbst ausgeliefert (`@fontsource/*`, nur
@@ -57,8 +73,9 @@ Alle Schriften werden seit EPIC-P34 T34.6 selbst ausgeliefert (`@fontsource/*`, 
 `--font-ui` (Text und Bedienung) und `--font-code` (Code, Diff, Tool-Ausgabe; `--font-mono` ist
 ein Alias darauf) sind getrennt und über Einstellungen → Schrift wählbar; `--font-scale`
 (0,85–1,3) skaliert jede Textgröße (`calc(Npx * var(--font-scale, 1))`). Wahlmöglichkeiten:
-JetBrains Mono (Standard), IBM Plex Mono, Systemschrift für Code; zusätzlich Inter, Atkinson
-Hyperlegible, Systemschrift für die Oberfläche. Orbitron bleibt fest für Marke und Überschriften.
+Inter (Standard), Atkinson Hyperlegible, Systemschrift und die drei Festbreitenschriften für die
+Oberfläche; JetBrains Mono (Standard), IBM Plex Mono, Systemschrift für Code. Wer vor P43 eine
+Wahl gespeichert hatte, behält sie — auch JetBrains Mono als Oberflächenschrift. Orbitron bleibt fest für Marke und Überschriften.
 
 ## Form & Bewegung
 
@@ -70,6 +87,42 @@ Hyperlegible, Systemschrift für die Oberfläche. Orbitron bleibt fest für Mark
 | `--shadow-elev` | `0 0 0 1px var(--bg-chip), 0 10px 26px -14px rgba(0,0,0,.7)` (dunkel) / entsprechend abgeschwächt hell | Elevation — **neu**, ab T1.6-8 auf Karten |
 | `--glow-blur` / `--glow-dur` | `20px` / `1.6s` | Status-Glow-Animationsparameter — **neu**, ab T1.6-8 auf `.session-card` |
 
+## Skalen (EPIC-P43 T43.1)
+
+| Token | Wert | Einsatz |
+|---|---|---|
+| `--space-1` … `--space-5` | 4 / 8 / 12 / 16 / 24 px | Abstände; neue Regeln nehmen diese Stufen statt freier Pixelwerte |
+| `--text-xs` … `--text-xl` | 11 / 12 / 14 / 16 / 20 px × `--font-scale` | Textgrößen |
+| `--target` | 44 px bei Touch, 30 px mit Maus (`hover: hover` und `pointer: fine`) | Mindestgröße eines Bedienelements |
+| `--motion-fast` / `-base` / `-slow` | 120 / 220 / 420 ms | Dauer |
+| `--ease-out` / `--ease-spring` | `cubic-bezier(.2,.8,.2,1)` / `cubic-bezier(.2,.9,.25,1.1)` | Kurve |
+
+## Bewegungssprache (`36-motion.css`, `shared/motion.ts`)
+
+Sechs Bewegungen, jede mit genau einer Bedeutung. Wer eine davon für etwas anderes benutzt,
+macht die Sprache unlesbar.
+
+| Klasse / Funktion | Name | Bedeutung | Ablauf |
+|---|---|---|---|
+| `.mv-breathe` | Atmen | ein Agent arbeitet | Schleife |
+| `.mv-shimmer` | Schimmer | genau dieser Schritt läuft | Schleife |
+| `.mv-call` | Ruf | du bist dran | einmal bei Ankunft |
+| `.mv-snap` | Einrasten | Schritt oder Zug fertig | einmal |
+| `wander()`, `.mv-wander` | Wandern | Element wechselt Gruppe oder öffnet sich | einmal (View Transitions, sonst Einblenden) |
+| `countStep()` | Zählen | Zahl ist live | fortlaufend, ohne Sprünge |
+
+Nur zwei Schleifen. Nur `transform` und `opacity`. Mit `prefers-reduced-motion` oder dem Schalter
+in den Einstellungen (`data-ctx-motion="off"`) steht ein Standbild mit gleicher Aussage. Bei
+getrennter Verbindung (`data-conn="off"` am Wurzelelement) halten Atmen und Schimmer an (K10).
+
+## Formularelemente (`shared/forms.tsx`, `37-forms.css`)
+
+Formularelemente sind App-Bausteine, kein Browser-Standard: `Field`, `Select`, `Switch`,
+`Segmented`. Alle setzen auf den nativen Elementen auf, damit Tastatur, Screenreader und das
+Auswahlrad des Handys bleiben. `01-base.css` gibt zusätzlich jedem `input`, `select`, `textarea`
+und `button` Schrift, Farbe, Rahmen und (bei `select`) den Pfeil der App, mit Spezifität null —
+ältere Stellen sehen damit richtig aus, ohne umgebaut zu werden. Neue Formulare nehmen die Bausteine.
+
 **Bewegungsregel:** Glow/Scanline sind ausschließlich Statusanzeigen
 (arbeitend/wartet), nie reine Dekoration — wer eine neue Animation baut, muss
 sagen, welchen Zustand sie zeigt. Nur `box-shadow`/`opacity`/`transform`
@@ -77,12 +130,12 @@ sagen, welchen Zustand sie zeigt. Nur `box-shadow`/`opacity`/`transform`
 `prefers-reduced-motion: reduce` vollständig verschwinden (K2-Schutz, siehe
 EPIC-P1.6 AC-P1.6-8/9).
 
-## Akzentfarbe (EPIC-P34 T34.5)
+## Akzentfarbe (EPIC-P34 T34.5, Standard seit EPIC-P43 Void-Violett)
 
 `--accent` ist pro Theme (dunkel/hell) überschreibbar: Einstellungen → Darstellung → Farbwähler (Farbfeld, Reglerstreifen,
 Hex). `appearance.ts` hält die Wahl in `localStorage`, `accentInk()` wählt Schwarz oder Weiß als Schriftfarbe auf dem Akzent
 nach Kontrast, `accentWarnings()` warnt bei zu geringem Kontrast zum Hintergrund, statt die Wahl zu verbieten. Alle
-Akzentflächen leiten Töne per `color-mix()` aus `--accent` ab, kein fester Amber-Hex in neuen Regeln.
+Akzentflächen leiten Töne per `color-mix()` aus `--accent` ab, kein fester Hex in neuen Regeln. Gespeichert wird nur die Abweichung vom Standard: wer nie gewählt hat, sieht seit P43 Violett; wer gewählt hat, behält seine Farbe.
 
 ## Erkennung (`26-discovery.css`, EPIC-P34 T34.9)
 
