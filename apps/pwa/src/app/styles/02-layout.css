@@ -449,3 +449,21 @@ a {
   font-size: calc(13px * var(--font-scale, 1));
   pointer-events: none;
 }
+
+/* Nie doppelt scrollen: Kachel und Detailspalte um eine Session scrollen nicht selbst — das tut allein
+ * .tail-scroll (Höhe per Messung). Verrechnet sich die Messung um ein Pixel, gab es sonst zwei Balken. */
+.tile:has(.tail-scroll),
+.split-detail:has(.tail-scroll) {
+  overflow: hidden;
+}
+
+/* Dateiansicht: ein Scroller. Der Rahmen (.tail-scroll bzw. .files-body) scrollt, der Inhalt wächst mit. */
+.tail-scroll .file-code,
+.tail-scroll .file-text,
+.tail-scroll .file-hex,
+.files-body .file-code,
+.files-body .file-text,
+.files-body .file-hex {
+  overflow-y: visible;
+  overflow-x: auto;
+}
