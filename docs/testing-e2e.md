@@ -142,6 +142,7 @@ Offline-Test (Service Worker), Kamera/QR, Push, zweiter Hub oder zweiter Browser
 | Anmeldung | `auth` | Token-Eingabe, falsches Token, Reload, Klartext, Token wechseln |
 | Navigation | `navigation` | Dock (Medien statt Voice), Kopfzeile, Direktlinks, Status-Seite mit Fähigkeiten, Theme bleibt, Einstellungen |
 | Werkzeugfläche | `tool-pane` | Detailspalte am Desktop, Kacheln bleiben gemountet (WebSocket-Zähler, Entwurf), Esc, Handy ohne Fläche |
+| Funktionsinventar | `funktionsinventar` | Jede Zeile aus `docs/funktionsinventar.md` über ihren Weg erreichbar, auf Handy, Tablet und PC; höchstens drei Interaktionen; Dokument und Spec führen dieselben IDs (EPIC-P43, Leitplanke E10) |
 | Akzentfarbe | `accent-color` | Farbwähler-Modal: live, Abbrechen, Übernehmen, Reload, je Theme, Zurücksetzen, Kontrast-Warnung |
 | Schrift | `appearance-font` | Keine Fremd-Host-Anfragen, 14/16 px bei 100 %, Oberflächenschrift live, Code/Diff bleiben Festbreite, Größen-Stepper mit Grenzen, Reload, Zurücksetzen |
 | Eigene Fenster | `windows` | ⧉ an Kachel und Werkzeug, Ziehgriff über den Fensterrand, schlanke Hülle ohne Dock, Abzeichen in der Liste, Klick holt das Fenster nach vorn, „In die App zurück“, kein Schreiben des Arbeitsbereichs durch das Fenster, Wiederanmeldung nach Neuladen, blockiertes Pop-up gemeldet |
