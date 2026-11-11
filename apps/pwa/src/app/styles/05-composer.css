@@ -245,3 +245,18 @@
   min-width: 28px;
   min-height: 32px;
 }
+
+/* EPIC-P43 T43.4: einzeilig, solange niemand schreibt; Fokus oder Text klappt die Eingabe auf.
+ * „Verbessern“ braucht Text und erscheint erst dann. */
+.composer.compact .composer-input {
+  height: var(--target);
+  min-height: var(--target);
+  padding-block: 0;
+  line-height: var(--target);
+  resize: none;
+  overflow: hidden;
+}
+
+.composer.compact .composer-more {
+  display: none;
+}

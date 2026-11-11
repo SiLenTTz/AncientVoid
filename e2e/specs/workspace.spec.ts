@@ -1,4 +1,4 @@
-import { test, expect, statusPill, openApprovals } from "../support/fixtures.ts";
+import { test, expect, statusPill, openApprovals, sessionTab } from "../support/fixtures.ts";
 import { phone } from "../support/phone.ts";
 
 test.describe("Archiv (P5 §9)", () => {
@@ -121,7 +121,7 @@ test.describe("Budget (T2.7)", () => {
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "parked", "budget park");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await expect(statusPill(app)).toHaveAttribute("data-status", "parked");
-    await app.getByRole("button", { name: "Bericht" }).click();
+    await sessionTab(app, "Bericht");
     await expect(app.getByText("Session wegen Budget pausiert.")).toBeVisible();
     await app.locator('input[type="number"]').fill("1");
     await app.getByRole("button", { name: "Budget erhöhen" }).click();

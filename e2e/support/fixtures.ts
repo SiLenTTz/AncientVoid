@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { TestHub, type HubOptions } from "./hub.ts";
 import { openPhoneTab, phone } from "./phone.ts";
@@ -98,4 +98,17 @@ export async function openQuiet(page: Page): Promise<void> {
   const fold = page.locator(".section-zuletzt .section-fold");
   await fold.waitFor();
   if ((await fold.getAttribute("aria-expanded")) === "false") await fold.click();
+}
+
+/**
+ * EPIC-P43 T43.4: eine Ansicht der Session öffnen. Chat, Änderungen (früher „Diff“) und Dateien (früher
+ * „Code“) sind Reiter; Verlauf, Bericht, Datei, Graph, GitLab, Suche und Umgebung liegen unter „Mehr“.
+ */
+export async function sessionTab(scope: Page | Locator, name: string): Promise<void> {
+  const bar = scope.locator(".subtabs-wrap").first();
+  const main = ({ Diff: "Änderungen", Code: "Dateien" } as Record<string, string>)[name] ?? name;
+  if (["Chat", "Änderungen", "Dateien"].includes(main)) return bar.getByRole("button", { name: new RegExp(`^${main}`) }).click();
+  const menu = bar.getByRole("menu", { name: "Weitere Ansichten" });
+  if (!(await menu.isVisible())) await bar.locator('[aria-haspopup="menu"]').click();
+  await menu.getByRole("menuitem", { name: main, exact: true }).click();
 }

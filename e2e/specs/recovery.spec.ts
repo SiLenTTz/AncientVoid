@@ -1,4 +1,4 @@
-import { test, expect, openFromOverview } from "../support/fixtures.ts";
+import { test, expect, openFromOverview, sessionTab } from "../support/fixtures.ts";
 
 test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
   test.describe("laufende Session", () => {
@@ -7,7 +7,7 @@ test.describe("Hub-Neustart (AC-P5-3, K7, BUG-0018)", () => {
     test("harter Kill: bestätigte Events bleiben exakt, die Session bleibt steuerbar @desktop", async ({ app, hub }, info) => {
       const id = await hub.createSession({ adapter: "dummy" });
       await app.goto(`${hub.origin}/#/sessions/${id}`);
-      await app.getByRole("button", { name: "Verlauf" }).click();
+      await sessionTab(app, "Verlauf");
       await expect(app.locator(".session-topbar .conn-dot.live")).toBeVisible();
       await hub.until(async () => (await hub.events(id)).length >= 12, "some events");
       const before = await hub.events(id);

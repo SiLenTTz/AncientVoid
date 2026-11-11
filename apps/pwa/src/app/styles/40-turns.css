@@ -1,0 +1,300 @@
+/* EPIC-P43 T43.4: der Chat in Zügen (features/session/ChatTurns.tsx).
+ * Eine Arbeit ist eine Zeile; aufgeklappt eine Liste von Schritten; ein Schritt zeigt Ein- und
+ * Ausgabe. Der laufende Schritt schimmert, beim Zugende rastet das Zeichen ein. */
+.turn-work {
+  margin: var(--space-1) 0 var(--space-2);
+  border-left: 2px solid var(--bg-chip);
+}
+
+.turn-work.running {
+  border-left-color: color-mix(in srgb, var(--ok) 55%, var(--bg-chip));
+}
+
+.turn-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--target);
+  padding: 0 var(--space-3);
+  background: none;
+  border: 0;
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.turn-summary:hover,
+.turn-summary:focus-visible {
+  color: var(--fg);
+}
+
+.turn-summary-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.turn-caret {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.turn-work.open .turn-caret {
+  transform: rotate(45deg);
+}
+
+.turn-mark {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--fg-faint);
+}
+
+.turn-work.running .turn-mark {
+  background: var(--ok);
+}
+
+.turn-mark.ok {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--ok);
+}
+
+.turn-mark.err {
+  border-radius: 2px;
+  background: var(--err);
+}
+
+.turn-steps {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 var(--space-1);
+  padding: 0 0 0 var(--space-3);
+  list-style: none;
+}
+
+.turn-step-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 32px;
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.turn-step-head:hover,
+.turn-step-head:focus-visible {
+  background: var(--bg-elev);
+}
+
+.turn-step-mark {
+  flex: none;
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--fg-faint);
+}
+
+.turn-step-mark.ok {
+  background: var(--ok);
+}
+
+.turn-step-mark.error {
+  border-radius: 1px;
+  background: var(--err);
+}
+
+.turn-step-mark.running {
+  background: var(--ok);
+  animation: mv-breathe 2.4s ease-in-out infinite;
+}
+
+.turn-step-mark.open {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--fg-faint);
+}
+
+.turn-step-verb {
+  flex: none;
+  color: var(--fg-dim);
+}
+
+.turn-step-target {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+}
+
+.turn-step-short {
+  flex: 1 1 30%;
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-size: var(--text-xs);
+}
+
+.turn-step.error .turn-step-short {
+  color: var(--err);
+}
+
+.turn-step-io {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-2) var(--space-5);
+}
+
+.turn-step-part .event-detail {
+  max-height: 40vh;
+  overflow: auto;
+}
+
+.turn-note {
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-5);
+  color: var(--fg-dim);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.turn-note.thinking {
+  font-style: italic;
+}
+
+.turn-unknown {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-1) 0;
+  padding: var(--space-1) var(--space-3);
+  border-left: 2px solid var(--warn);
+  color: var(--fg-dim);
+  font-size: var(--text-sm);
+}
+
+:root[data-conn="off"] .turn-step-mark.running {
+  animation-play-state: paused;
+}
+
+:root[data-ctx-motion="off"] .turn-step-mark.running {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-step-mark.running {
+    animation: none;
+  }
+}
+
+/* Vier Reiter und „Mehr“. */
+.subtabs-wrap button .tab-count {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--bg-chip);
+  color: var(--fg);
+  font-size: var(--text-xs);
+  letter-spacing: 0;
+}
+
+.subtabs-more-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+}
+
+.subtabs-more {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  z-index: 12;
+  display: grid;
+  min-width: 200px;
+  padding: var(--space-1);
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-elev);
+}
+
+.subtabs-wrap .subtabs-more button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: flex-start;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--text-sm);
+  color: var(--fg);
+}
+
+.subtabs-wrap .subtabs-more button.active {
+  color: var(--accent);
+}
+
+.subtabs-wrap .subtabs-more .tab-icon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  color: var(--fg-dim);
+}
+
+/* Handy und Tablet: die Reiter stehen in der festen .dock-stack, die scrollt und damit alles
+ * abschneidet, was über sie hinausragt — das Menü wird deshalb ein Blatt am unteren Rand. */
+.subtabs-wrap:not(.tile-rail) .subtabs-more {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-width: 0;
+  padding: var(--space-2) max(var(--space-3), env(safe-area-inset-right, 0px)) calc(var(--space-2) + env(safe-area-inset-bottom, 0px)) max(var(--space-3), env(safe-area-inset-left, 0px));
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+/* In der PC-Kachel ist die Leiste senkrecht; das Menü öffnet nach rechts. */
+.tile-rail .subtabs-more-wrap {
+  flex: none;
+}
+
+/* Die Leiste klebt mit z-index 2; offen muss sie über Kopf und Steuerung der Kachel liegen. */
+.tile-rail:has(.subtabs-more) {
+  z-index: 20;
+}
+
+.tile-rail .subtabs-more {
+  left: calc(100% + 4px);
+  right: auto;
+  bottom: auto;
+  top: 0;
+}
+
+/* Änderungen: der Bericht als Abschnitt unter dem Diff. */
+.changes-report {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--bg-chip);
+}

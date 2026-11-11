@@ -101,15 +101,15 @@ als Leiste links in der Kachel.
 | ID | Funktion | Weg heute | Ziel | Nachweis |
 |---|---|---|---|---|
 | S01 | Chat | Reiter „Chat“ | T43.4 | inventar |
-| S02 | Verlauf mit Filter Überwachen/Debuggen | Reiter „Verlauf“ → „Debuggen“ (am PC zusätzlich „Steuerung einblenden“) | T43.4 | inventar |
-| S03 | Bericht | Reiter „Bericht“ | T43.5 | inventar |
-| S04 | Diff | Reiter „Diff“ | T43.5 | inventar |
-| S05 | Repo-Graph | Reiter „Graph“ | T43.4 | inventar |
-| S06 | Datei | Reiter „Datei“ | T43.5 | inventar |
-| S07 | GitLab | Reiter „GitLab“ | T43.4 | inventar |
-| S08 | Suche | Reiter „Suche“ | T43.4 | inventar |
-| S09 | Code | Reiter „Code“ | T43.5 | inventar |
-| S10 | Umgebung | Reiter „Umgebung“ | T43.4 | inventar |
+| S02 | Verlauf mit Filter Überwachen/Debuggen | „Mehr“ → „Verlauf“ → „Debuggen“ (am PC zusätzlich „Steuerung einblenden“) | T43.4 | inventar |
+| S03 | Bericht | „Mehr“ → „Bericht“; auch unter dem Diff in „Änderungen“ | T43.5 | inventar |
+| S04 | Diff | Reiter „Änderungen“ (mit Zahl der Dateien) | T43.5 | inventar |
+| S05 | Repo-Graph | „Mehr“ → „Graph“ | T43.4 | inventar |
+| S06 | Datei | „Mehr“ → „Datei“ | T43.5 | inventar |
+| S07 | GitLab | „Mehr“ → „GitLab“ | T43.4 | inventar |
+| S08 | Suche | „Mehr“ → „Suche“ | T43.4 | inventar |
+| S09 | Code | Reiter „Dateien“ | T43.5 | inventar |
+| S10 | Umgebung | „Mehr“ → „Umgebung“ | T43.4 | inventar |
 | S11 | Zurück zur Übersicht (Handy/Tablet) | „←“ im Kopf | — | inventar |
 | S12 | Stop | Taste im Kopf | T43.4 | inventar |
 | S13 | Umbenennen | „⋯“ → „Umbenennen“ | — | inventar |
@@ -119,12 +119,12 @@ als Leiste links in der Kachel.
 | S17 | Sprachbefehl | „⋯“ → „Sprachbefehl“ | — | inventar |
 | S18 | Auftrag in Worten | „⋯“ → „Auftrag in Worten“ | — | inventar |
 | S19 | Kopf: Projekt, Adapter, Modell, Host, Zustand, Arbeitsort, Verbindung | immer sichtbar | T43.2/T43.4 | inventar |
-| S20 | Tokens, Kontext, Kontingent, Kontextleiste | Zeile unter dem Kopf | T43.4 | inventar |
+| S20 | Tokens, Kontext, Kontingent, Kontextleiste | Statuszeile unter dem Kopf (nur Gemessenes); Kontingent und Fenster immer im Bericht | T43.4 | inventar |
 | S21 | Antworten und Senden | Composer | T43.4 | inventar |
 | S22 | Anhang | Composer → Büroklammer | T43.4 | inventar |
 | S23 | Eingabe maximieren | Composer → „⤢“ | T43.4 | inventar |
 | S24 | Spracheingabe | Composer → Mikrofon | T43.4 | inventar |
-| S25 | Prompt verbessern | Composer → „Verbessern“ | T43.4 | inventar |
+| S25 | Prompt verbessern | Composer antippen → „Verbessern“ | T43.4 | inventar |
 | S26 | Slash-Commands | „/“ im Composer | — | inventar |
 | S27 | Antwortvorlagen (Schnellantworten) | über dem Composer | T43.4 | inventar |
 | S28 | Modus und Modell | über dem Composer | T43.4 | inventar |
@@ -155,9 +155,9 @@ als Leiste links in der Kachel.
 | S53 | Markieren kopiert in die Zwischenablage | Chat | — | spec:selection-copy.spec.ts |
 | S54 | Dateien ansehen (Quelltext, Markdown, Bild, Diagnosen) | Dateibaum bzw. Reiter „Datei“ | T43.5 | spec:file-viewers.spec.ts |
 | S55 | Browser bedienen, Element anmerken, Testfall | Browser-Arbeitsplatz | — | spec:browser-workspace.spec.ts |
-| S56 | Umgebung starten, Vorschau, Aktionen | Reiter „Umgebung“ | — | spec:workspace-runtime.spec.ts |
-| S57 | GitLab: MR, Pipeline, Review | Reiter „GitLab“ | — | spec:forge-review.spec.ts |
-| S58 | Repo-Graph: Knoten, Suche, Datei öffnen | Reiter „Graph“ | P52 | spec:repo-graph.spec.ts |
+| S56 | Umgebung starten, Vorschau, Aktionen | „Mehr“ → „Umgebung“ | — | spec:workspace-runtime.spec.ts |
+| S57 | GitLab: MR, Pipeline, Review | „Mehr“ → „GitLab“ | — | spec:forge-review.spec.ts |
+| S58 | Repo-Graph: Knoten, Suche, Datei öffnen | „Mehr“ → „Graph“ | P52 | spec:repo-graph.spec.ts |
 | S59 | Loop-Steuerung | Loop-Session | — | spec:loops.spec.ts |
 | S60 | Entwurf auf mehreren Geräten, Konflikt | Composer | — | spec:drafts.spec.ts |
 | S61 | Antwort steuern, Schreibrecht übernehmen | Composer | — | spec:steer.spec.ts |
@@ -167,6 +167,8 @@ als Leiste links in der Kachel.
 | S65 | Android-Testgeräte: Liste, Start/Stop, Lease, Standbild (EPIC-P42) | Randlasche „Geräte“ | T43.5 | inventar |
 | S66 | Android-Testgeräte in eigenes Fenster (PC) | Geräte → „⧉“ | T43.7 | inventar |
 | S67 | Android-Testgeräte bedienen: Tippen, Wischen, Tasten, Ausrichtung, URL (mit Lease) | Geräte-Panel | — | spec:android-device.spec.ts |
+| S68 | Chat in Zügen: Arbeit gefaltet, Schritte mit Ein- und Ausgabe | Reiter „Chat“ | T43.4 | spec:chat-zuege.spec.ts |
+| S69 | Antwortfeld einzeilig bis zur Eingabe | Composer | T43.4 | spec:chat-zuege.spec.ts |
 
 ## PC-Arbeitsfläche
 

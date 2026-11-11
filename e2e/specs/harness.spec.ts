@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect, openApprovals } from "../support/fixtures.ts";
+import { test, expect, openApprovals, sessionTab } from "../support/fixtures.ts";
 
 test.describe("Harness-Parität (EPIC-P7)", () => {
   test("T7.1: Modell aus dem Katalog des Harness wählen, nur wo der Harness eines nimmt", async ({ app, hub }) => {
@@ -93,7 +93,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await card.getByRole("button", { name: "Erlauben" }).click();
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte WERKZEUG · Claude .* · Ausgabe hallo-ancientvoid/)).toBeVisible();
     await expect(card).toHaveCount(0);
-    await app.getByRole("button", { name: "Verlauf" }).click();
+    await sessionTab(app, "Verlauf");
     await expect(app.locator(".event.tool_use")).toHaveCount(1);
     await expect(app.locator(".event.tool_use")).toContainText("echo hallo-ancientvoid");
     await hub.until(async () => (await hub.api<{ costUsd: number }>(`/api/sessions/${id}`)).body.costUsd > 0, "cost");
@@ -206,14 +206,14 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await bar.getByRole("button", { name: "Übergeben", exact: true }).click();
 
     await expect(app).toHaveURL(new RegExp(`#/sessions/(?!${id})`));
-    await app.getByRole("button", { name: "Verlauf" }).click();
+    await sessionTab(app, "Verlauf");
     await expect(app.locator(".tail-scroll")).toContainText("Übernommen von acp");
     await app.getByRole("button", { name: "Chat" }).click();
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Mach mit der Suche weiter, die Tests fehlen noch\./)).toBeVisible();
 
     // Die Ausgangssession zeigt, wohin die Arbeit ging, und das Banner verschwindet.
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Verlauf" }).click();
+    await sessionTab(app, "Verlauf");
     await expect(app.locator(".tail-scroll")).toContainText("Übergeben an opencode");
     await expect(app.locator(".handover-bar")).toHaveCount(0);
   });
@@ -365,7 +365,7 @@ test.describe("pi im Browser (BUG-0065)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Chat" }).click();
     await expect(app.locator(".tail-scroll").getByText("Antwort auf: Wie viele Zeilen hat notiz.txt? · pi · notiz.txt hat 2 Zeilen.")).toBeVisible();
-    await app.getByRole("button", { name: "Verlauf" }).click();
+    await sessionTab(app, "Verlauf");
     await expect(app.locator(".event.thinking")).toHaveCount(2);
     await expect(app.locator(".event.thinking").first()).toContainText("Erst die Datei notiz.txt lesen.");
     await expect(app.locator(".event.tool_use")).toContainText("read");
@@ -412,9 +412,12 @@ test.describe("Tokens und Kontext je Session (ADR-0032)", () => {
     await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 2.224 Tokens · Kontext 1 % · frei 129.962 von 131.072");
   });
 
-  test("ohne Meldung des Providers steht ausdrücklich „unbekannt“ da", async ({ app, hub }) => {
+  // EPIC-P43 T43.4 (Kleinkram-Regel 1): Unbekanntes schweigt in der Statuszeile und steht im Bericht.
+  test("ohne Meldung des Providers schweigt die Statuszeile zum Kontext, der Bericht sagt es ausdrücklich", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await expect(app.locator(".run-strip .run-tokens")).toContainText("Kontext unbekannt");
+    await expect(app.locator(".run-strip")).not.toContainText("Kontext");
+    await sessionTab(app, "Bericht");
+    await expect(app.locator(".kv-row").filter({ hasText: "Kontextfenster" })).toContainText("keine Meldung");
   });
 });

@@ -38,12 +38,14 @@ test.describe("Live-Hub (nur lesend)", () => {
     test.skip(local.length === 0, "keine Session auf diesem Hub");
     const s = local[0]!;
     await open(page, `#/sessions/${s.id}`);
-    await page.getByRole("button", { name: "Bericht" }).click();
+    // EPIC-P43 T43.4: Bericht liegt unter „Mehr“, Code heißt „Dateien“.
+    await page.locator('.subtabs-wrap [aria-haspopup="menu"]').first().click();
+    await page.getByRole("menuitem", { name: "Bericht", exact: true }).click();
     await expect(page.locator(".kv-row").filter({ hasText: "Kosten" }).locator(".v")).not.toHaveText("$0");
-    await page.getByRole("button", { name: "Code", exact: true }).click();
+    await page.locator(".subtabs-wrap").first().getByRole("button", { name: /^Dateien/ }).click();
     await page.getByLabel("Code durchsuchen").fill("function");
     await page.getByRole("button", { name: "Text" }).click();
-    await page.getByRole("button", { name: "Suchen" }).click();
+    await page.locator(".code-pane").getByRole("button", { name: "Suchen" }).click();
     await expect(page.locator(".code-engine, .reply-error, .empty").first()).toBeVisible();
     await expect(page.locator(".code-actions")).toContainText("Git-Status");
   });

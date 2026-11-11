@@ -1,5 +1,5 @@
 import type { TestHub } from "../support/hub.ts";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 
 test.describe("P27 unterbrochene Sessions", () => {
   test.use({ hubOptions: { dummyAutoStop: 0, interruptedDummy: { resume: true } } });
@@ -17,7 +17,7 @@ test.describe("P27 unterbrochene Sessions", () => {
     await expect(banner).toBeVisible();
     await expect(banner).toContainText("Agent-Prozess unerwartet beendet");
     await expect(banner).toContainText("Letzter Zug:");
-    await app.getByRole("button", { name: "Bericht", exact: true }).click();
+    await sessionTab(app, "Bericht");
     await expect(app.getByText("Unterbrochen — Zug abgebrochen")).toBeVisible();
     const end = (await hub.events(id)).filter(e => e.payload.kind === "session.turn_end");
     expect(end).toHaveLength(1);

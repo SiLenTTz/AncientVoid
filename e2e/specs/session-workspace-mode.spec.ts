@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 
 /**
  * EPIC-P38 T38.5 (ADR-0057): Arbeitsort „eigener Worktree“ / „Projekt direkt“.
@@ -61,7 +61,7 @@ test.describe("Session-Arbeitsort (EPIC-P38)", () => {
     const id = await hub.createSession({ adapter: "dummy", workspaceMode: "direct", confirmDirty: true });
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Diff" }).click();
+    await sessionTab(app, "Diff");
     await expect(app.locator(".diff-pane .workplace-warn")).toContainText("schon geändert");
     await expect(app.locator(".diff-preexisting").first()).toBeVisible();
 
