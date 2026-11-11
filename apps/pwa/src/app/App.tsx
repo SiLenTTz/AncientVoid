@@ -17,6 +17,7 @@ import { RunsPane } from "../features/orchestration/RunsPane.tsx";
 import { AutomationsPane } from "../features/automations/AutomationsPane.tsx";
 import { publishHubStatus } from "../features/shell/hub-status.ts";
 import { getLastSession } from "../features/shell/last-session.ts";
+import { DetachButton } from "../features/windows/DetachButton.tsx";
 
 export function App({
   onOpen,
@@ -24,6 +25,7 @@ export function App({
   page,
   vaultFile = null,
   wide = false,
+  dock = true,
 }: {
   /** `newTile`: Ctrl/⌘-click — open next to the others (EPIC-P18). */
   onOpen: (session: SessionRecord, opts?: { newTile?: boolean }) => void;
@@ -34,6 +36,8 @@ export function App({
   vaultFile?: string | null;
   /** EPIC-P34 T34.2: on a wide screen the tool pages live in the detail column (ToolPane); the list stays the list. */
   wide?: boolean;
+  /** EPIC-P43 T43.7: die Warteschlange als eigenes Fenster hat kein Dock (ADR-0053 Punkt 2). */
+  dock?: boolean;
 }) {
   const shown: Page = wide && isToolPage(page) ? "dashboard" : page;
   useEffect(() => setHere({ page, sessionId: null, hostId: null, sessionRevision: null }), [page]);
@@ -147,6 +151,8 @@ export function App({
           {/* Real connection health, not a decorative always-green dot — same
            * classes SessionTail already uses for its own WS status. */}
           <span class={`conn-dot ${error ? "closed" : "live"}`} title={error ? error : "verbunden"} />
+          {/* EPIC-P43 T43.7: die Warteschlange als eigenes Fenster (nur am PC, letzte Taste im Kopf). */}
+          {shown === "dashboard" && <DetachButton target={{ kind: "queue" }} label="Warteschlange" />}
         </div>
       </div>
 
@@ -198,9 +204,11 @@ export function App({
           />
         ))}
 
-      <div class="dock-stack">
-        <GlobalDock active={page} onNavigate={setPage} />
-      </div>
+      {dock && (
+        <div class="dock-stack">
+          <GlobalDock active={page} onNavigate={setPage} />
+        </div>
+      )}
     </div>
   );
 }

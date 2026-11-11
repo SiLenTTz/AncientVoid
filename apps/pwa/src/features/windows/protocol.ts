@@ -10,8 +10,22 @@ export const HEARTBEAT_MS = 3000;
 /** Zwei verpasste Herzschläge plus Puffer. */
 export const WINDOW_TTL_MS = 10_000;
 
+/** EPIC-P43 T43.7 (ADR-0068): Ansichten einer Session, je als eigenes Fenster. */
+export const SESSION_VIEW_KINDS = ["changes", "files", "report", "forge", "search", "environment"] as const;
+export type SessionViewKind = (typeof SESSION_VIEW_KINDS)[number];
+/** Der Reiter in `SessionTail`, den ein Ansichtsfenster zeigt. */
+export const VIEW_TAB = { changes: "diff", files: "code", report: "bericht", forge: "forge", search: "suche", environment: "umgebung" } as const satisfies Record<SessionViewKind, string>;
+export type ViewTab = (typeof VIEW_TAB)[SessionViewKind];
+export const VIEW_LABEL: Record<SessionViewKind, string> = { changes: "Änderungen", files: "Dateien", report: "Bericht", forge: "GitLab", search: "Suche", environment: "Umgebung" };
+export function viewKindOfTab(tab: string): SessionViewKind | null {
+  return SESSION_VIEW_KINDS.find((k) => VIEW_TAB[k] === tab) ?? null;
+}
+const isViewKind = (k: unknown): k is SessionViewKind => (SESSION_VIEW_KINDS as readonly unknown[]).includes(k);
+
 export type WindowTarget =
   | { kind: "session"; sessionId: string; hostId?: string }
+  | { kind: SessionViewKind; sessionId: string; hostId?: string }
+  | { kind: "queue" }
   | { kind: "tool"; page: ToolPageId }
   | { kind: "graph"; sessionId: string; hostId?: string }
   | { kind: "file"; sessionId: string; path: string; hostId?: string }
@@ -25,6 +39,8 @@ export type WindowMessage =
   | { type: "bye"; id: string }
   | { type: "focus"; id: string }
   | { type: "return"; id: string; target: WindowTarget }
+  /** ADR-0068: das Hauptfenster bittet ein Fenster, sich zurückzugeben (es antwortet mit `return` und schließt sich). */
+  | { type: "recall"; id: string }
   /** Das Hauptfenster (neu gestartet) bittet alle Fenster, sich zu melden. */
   | { type: "ping" };
 
@@ -39,7 +55,9 @@ export function targetKey(target: WindowTarget): string {
   if (target.kind === "tool") return `tool:${target.page}`;
   if (target.kind === "vault") return `vault:${target.path ?? ""}`;
   if (target.kind === "device") return "device";
+  if (target.kind === "queue") return "queue";
   const host = target.hostId ?? "";
+  if (isViewKind(target.kind)) return `${target.kind}:${host}|${target.sessionId}`;
   if (target.kind === "browser") return `browser:${host}|${target.sessionId}`;
   if (target.kind === "graph") return `graph:${host}|${target.sessionId}`;
   if (target.kind === "file") return `file:${host}|${target.sessionId}|${target.path}`;
@@ -54,6 +72,8 @@ export function popoutUrl(target: WindowTarget): string {
   if (target.kind === "vault") return `/?window=1${target.path ? vaultFileHash(target.path) : pageHash("vault")}`;
   if (target.kind === "browser") return `/?window=1${browserHash(target.sessionId, target.hostId)}`;
   if (target.kind === "device") return `/?window=1${devicesHash()}`;
+  if (target.kind === "queue") return `/?window=1&view=queue${pageHash("dashboard")}`;
+  if (isViewKind(target.kind)) return `/?window=1&view=${target.kind}${sessionHash(target.sessionId, target.hostId)}`;
   return `/?window=1${sessionHash(target.sessionId, target.hostId)}`;
 }
 
@@ -74,6 +94,10 @@ function parseTarget(raw: unknown): WindowTarget | null {
     return typeof t.path === "string" && t.path ? { kind: "vault", path: t.path } : { kind: "vault" };
   }
   if (t.kind === "device") return { kind: "device" };
+  if (t.kind === "queue") return { kind: "queue" };
+  if (isViewKind(t.kind) && typeof t.sessionId === "string" && t.sessionId) {
+    return typeof t.hostId === "string" && t.hostId ? { kind: t.kind, sessionId: t.sessionId, hostId: t.hostId } : { kind: t.kind, sessionId: t.sessionId };
+  }
   if (t.kind === "browser" && typeof t.sessionId === "string" && t.sessionId) {
     return typeof t.hostId === "string" && t.hostId ? { kind: "browser", sessionId: t.sessionId, hostId: t.hostId } : { kind: "browser", sessionId: t.sessionId };
   }
@@ -86,7 +110,7 @@ export function parseWindowMessage(raw: unknown): WindowMessage | null {
   const m = raw as { type?: unknown; id?: unknown; target?: unknown };
   if (m.type === "ping") return { type: "ping" };
   if (typeof m.id !== "string" || !m.id) return null;
-  if (m.type === "heartbeat" || m.type === "bye" || m.type === "focus") return { type: m.type, id: m.id };
+  if (m.type === "heartbeat" || m.type === "bye" || m.type === "focus" || m.type === "recall") return { type: m.type, id: m.id };
   if (m.type === "hello" || m.type === "return") {
     const target = parseTarget(m.target);
     return target ? { type: m.type, id: m.id, target } : null;

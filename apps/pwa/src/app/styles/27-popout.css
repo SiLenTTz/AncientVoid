@@ -173,3 +173,58 @@ html:has(.popout-shell) body {
 .popout-shell .dock-stack {
   max-width: none;
 }
+
+/* EPIC-P43 T43.7 (ADR-0068): die eine Taste fürs Herauslösen — 30 px, das Wort beim Überfahren und bei Fokus. */
+.detach-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.detach-btn,
+.tile-popout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  color: var(--fg-dim);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  cursor: pointer;
+}
+
+.detach-btn:hover,
+.detach-btn:focus-visible {
+  color: var(--accent);
+  border-color: var(--bg-chip);
+}
+
+.detach-word {
+  display: none;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.detach-btn:hover .detach-word,
+.detach-btn:focus-visible .detach-word {
+  display: inline;
+}
+
+.detach-blocked {
+  color: var(--warn);
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.detached-placeholder .row {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.popout-queue .topbar {
+  padding-right: 0;
+}

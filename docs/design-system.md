@@ -222,6 +222,12 @@ Abzeichen „⧉ eigenes Fenster“. Die Leiste „Wiederherstellen“ (RestoreB
 antwortet (Heartbeat 3 s, Ablauf 10 s) und öffnet je Klick genau eines. Theme und Akzent folgen dem Hauptfenster über das
 `storage`-Ereignis. Blockierte Pop-ups erscheinen als sichtbare Meldung mit Knopf, nie still.
 
+**Herauslösen überall (EPIC-P43 T43.7, ADR-0068).** Jede Ansicht einer Session (Änderungen, Dateien, Bericht, GitLab,
+Suche, Umgebung) und die Warteschlange tragen rechts im Kopf die Taste `DetachButton` („⧉“, beim Überfahren/Fokus mit
+dem Wort „Herauslösen“) — nur am PC (≥ 1280 px) und nie im Fenster selbst. Die Ansicht im Hauptfenster wird zum Platzhalter
+„… läuft in einem eigenen Fenster.“ mit „Fenster zeigen“ und „Zurückholen“; die Statuszeile zählt offene Fenster
+(„⧉ n Fenster“).
+
 ## Belege (Mockup-Screenshots)
 
 Die Werte oben sind aus der vom Nutzer gewählten „Futuristisch"-Mockup-

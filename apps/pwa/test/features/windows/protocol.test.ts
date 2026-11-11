@@ -66,3 +66,34 @@ describe("Fensterprotokoll (EPIC-P34 T34.10)", () => {
     expect(Object.keys(reg)).toEqual(["neu"]);
   });
 });
+
+describe("Herauslösen überall (EPIC-P43 T43.7, ADR-0068)", () => {
+  const changes = { kind: "changes", sessionId: "s1" } as const;
+  const remoteReport = { kind: "report", sessionId: "s2", hostId: "h2" } as const;
+
+  it("Ansichten tragen die Art im Query, die Hash-Route bleibt die der Session", () => {
+    expect(popoutUrl(changes)).toBe("/?window=1&view=changes#/sessions/s1");
+    expect(popoutUrl(remoteReport)).toBe("/?window=1&view=report#/hosts/h2/sessions/s2");
+    expect(popoutUrl({ kind: "queue" })).toBe("/?window=1&view=queue#/");
+  });
+
+  it("je Ansicht und Session ein eigener Schlüssel — getrennt von der Session selbst", () => {
+    const keys = new Set([targetKey(session), targetKey(changes), targetKey({ kind: "files", sessionId: "s1" }), targetKey({ ...changes, hostId: "h2" }), targetKey({ kind: "queue" })]);
+    expect(keys.size).toBe(5);
+  });
+
+  it("parseWindowMessage nimmt Ansichtsziele und recall an, Unbekanntes nicht", () => {
+    expect(parseWindowMessage({ type: "hello", id: "w", target: changes })).toEqual({ type: "hello", id: "w", target: changes });
+    expect(parseWindowMessage({ type: "hello", id: "w", target: { kind: "queue" } })).toEqual({ type: "hello", id: "w", target: { kind: "queue" } });
+    expect(parseWindowMessage({ type: "hello", id: "w", target: { kind: "changes" } })).toBeNull();
+    expect(parseWindowMessage({ type: "hello", id: "w", target: { kind: "kaputt", sessionId: "s1" } })).toBeNull();
+    expect(parseWindowMessage({ type: "recall", id: "w" })).toEqual({ type: "recall", id: "w" });
+    expect(parseWindowMessage({ type: "recall" })).toBeNull();
+  });
+
+  it("recall ändert das Register nicht — erst das return des Fensters trägt aus", () => {
+    const reg = applyWindowMessage({}, { type: "hello", id: "w", target: changes }, 1);
+    expect(applyWindowMessage(reg, { type: "recall", id: "w" }, 2)).toBe(reg);
+    expect(windowFor(applyWindowMessage(reg, { type: "return", id: "w", target: changes }, 3), changes)).toBeNull();
+  });
+});

@@ -9,11 +9,22 @@ import { VaultPane } from "../vault/VaultPane.tsx";
 import { BrowserPanel } from "../browser/BrowserLayer.tsx";
 import { DevicePanel } from "../devices/DeviceLayer.tsx";
 import { publishHubStatus } from "../shell/hub-status.ts";
-import { HEARTBEAT_MS, type WindowTarget } from "./protocol.ts";
+import { App } from "../../app/App.tsx";
+import { HEARTBEAT_MS, SESSION_VIEW_KINDS, VIEW_LABEL, VIEW_TAB, type SessionViewKind, type WindowTarget } from "./protocol.ts";
 import { onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "./windows.ts";
+
+type ViewTarget = Extract<WindowTarget, { kind: SessionViewKind }>;
+function isViewTarget(target: WindowTarget): target is ViewTarget {
+  return (SESSION_VIEW_KINDS as readonly string[]).includes(target.kind);
+}
 
 function targetFromHash(hash: string): WindowTarget | null {
   const route = parseAppHash(hash);
+  // ADR-0068: die Ansicht steht im Query, die Hash-Route bleibt die der Session bzw. `#/`.
+  const view = new URLSearchParams(location.search).get("view");
+  if (view === "queue") return { kind: "queue" };
+  const viewKind = SESSION_VIEW_KINDS.find((k) => k === view);
+  if (viewKind && route.view === "tail") return { kind: viewKind, sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
   if (route.view === "list" && route.page === "vault") return route.vaultFile ? { kind: "vault", path: route.vaultFile } : { kind: "vault" };
   if (route.view === "devices") return { kind: "device" };
   if (route.view === "tail") {
@@ -72,6 +83,11 @@ export function PopoutShell() {
     const beat = setInterval(() => postWindowMessage({ type: "heartbeat", id }), HEARTBEAT_MS);
     const off = onWindowMessage((msg) => {
       if (msg.type === "ping") hello();
+      // ADR-0068: „Zurückholen“ aus dem Hauptfenster — wie „In die App zurück“.
+      if (msg.type === "recall" && msg.id === id) {
+        postWindowMessage({ type: "return", id, target });
+        window.close();
+      }
       if (msg.type === "focus" && msg.id === id) {
         window.focus();
         // Prüfbar ohne Bildschirm: Browser dürfen `focus()` ohne Nutzeraktion verweigern.
@@ -90,13 +106,13 @@ export function PopoutShell() {
   }, []);
 
   useEffect(() => {
-    if (target?.kind !== "session" && target?.kind !== "graph" && target?.kind !== "file" && target?.kind !== "browser") return;
+    if (!target || !("sessionId" in target)) return;
     hostApi(target.hostId)
       .session(target.sessionId)
       .then((s) => {
         setSession(s);
         const label = s.title ?? s.project.split("/").pop() ?? "Session";
-        document.title = `⧉ ${target.kind === "graph" ? `Graph · ${label}` : target.kind === "file" ? `${target.path.split("/").pop()} · ${label}` : label}`;
+        document.title = `⧉ ${target.kind === "graph" ? `Graph · ${label}` : target.kind === "file" ? `${target.path.split("/").pop()} · ${label}` : isViewTarget(target) ? `${VIEW_LABEL[target.kind]} · ${label}` : label}`;
       })
       .catch(() => setError("Diese Session gibt es nicht mehr oder sie ist nicht erreichbar."));
   }, []);
@@ -126,14 +142,34 @@ export function PopoutShell() {
     <div class="popout-shell">
       <header class="popout-bar">
         <span class="popout-title">
-          ⧉ {target.kind === "tool" ? "Werkzeug" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "browser" ? `Browser · ${sessionLabel}` : target.kind === "device" ? "Android-Geräte" : target.kind === "graph" ? `Repo-Graph · ${sessionLabel}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : sessionLabel}
+          ⧉ {isViewTarget(target) ? `${VIEW_LABEL[target.kind]} · ${sessionLabel}` : target.kind === "queue" ? "Warteschlange" : target.kind === "tool" ? "Werkzeug" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "browser" ? `Browser · ${sessionLabel}` : target.kind === "device" ? "Android-Geräte" : target.kind === "graph" ? `Repo-Graph · ${sessionLabel}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : sessionLabel}
         </span>
         <button type="button" class="btn" onClick={giveBack}>
           In die App zurück
         </button>
       </header>
       {!online && <div class="popout-offline" role="status">Offline — dieses Fenster zeigt den letzten Stand und verbindet sich neu, sobald das Netz wieder da ist.</div>}
-      {target.kind === "session" ? (
+      {isViewTarget(target) ? (
+        // ADR-0068: genau diese Ansicht — keine Reiter, kein Antwortfeld, kein Session-Menü.
+        error ? (
+          <div class="empty">{error}</div>
+        ) : session ? (
+          <section class="tile popout-tile" data-tile="1" aria-label={VIEW_LABEL[target.kind]}>
+            <SessionTail key={session.id} session={session} onNavigate={() => undefined} tile={{ active: true, compact: false, only: VIEW_TAB[target.kind] }} />
+          </section>
+        ) : (
+          <div class="empty dim">lädt…</div>
+        )
+      ) : target.kind === "queue" ? (
+        <div class="popout-tool popout-queue">
+          <App
+            page="dashboard"
+            dock={false}
+            ready={() => location.reload()}
+            onOpen={(s) => void openPopout({ kind: "session", sessionId: s.id, ...(remoteHost(s.hostId) ? { hostId: remoteHost(s.hostId)! } : {}) })}
+          />
+        </div>
+      ) : target.kind === "session" ? (
         error ? (
           <div class="empty">{error}</div>
         ) : session ? (
