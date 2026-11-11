@@ -116,7 +116,7 @@ export async function sessionTab(scope: Page | Locator, name: string): Promise<v
     const item = menu.getByRole("menuitem", { name: main, exact: true });
     await expect(async () => {
       // Ein offenes Blatt „Mehr“ ohne den Eintrag deckt die Reiter ab: erst schließen.
-      if ((await menu.isVisible()) && !(await item.isVisible())) await bar.locator('[aria-haspopup="menu"]').click({ timeout: 2_000 });
+      if ((await menu.isVisible()) && !(await item.isVisible())) await bar.page().keyboard.press("Escape");
       if (await direct.isVisible()) return direct.click({ timeout: 2_000 });
       if (!(await menu.isVisible())) await bar.locator('[aria-haspopup="menu"]').click({ timeout: 2_000 });
       await item.click({ timeout: 2_000 });
