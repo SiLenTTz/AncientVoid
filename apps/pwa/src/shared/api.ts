@@ -1,4 +1,4 @@
-import type { AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DiagnosticsResult, FileMeta, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -1020,6 +1020,38 @@ function createHubApi(P: (path: string) => string) {
   browserPick: (id: string, x: number, y: number) => api<BrowserPick>(P(`/api/sessions/${id}/browser/pick`), { method: "POST", body: JSON.stringify({ x, y }) }),
   browserFeedbackPreview: (id: string, input: BrowserFeedbackInput) => api<{ prompt: string; screenshot: boolean }>(P(`/api/sessions/${id}/browser/feedback/preview`), { method: "POST", body: JSON.stringify(input) }),
   browserFeedbackSend: (id: string, input: BrowserFeedbackInput) => api<{ ok: boolean }>(P(`/api/sessions/${id}/browser/feedback/send`), { method: "POST", body: JSON.stringify(input) }),
+  /** EPIC-P42 (ADR-0067): Android-Testgeräte (host-lokal; Frames/Logs/Bäume sind Bytes mit Grenzen). */
+  devicesStatus: () => api<DeviceStatus>(P("/api/devices")),
+  deviceStart: (avd: string, sessionId: string | null) => api<unknown>(P("/api/devices/start"), { method: "POST", body: JSON.stringify({ avd, ...(sessionId ? { sessionId } : {}) }) }),
+  deviceStop: (serial: string) => api<{ serial: string; stopped: boolean }>(P("/api/devices/stop"), { method: "POST", body: JSON.stringify({ serial }) }),
+  deviceLease: (serial: string, sessionId: string | null) => api<{ serial: string; generation: number }>(P("/api/devices/lease"), { method: "POST", body: JSON.stringify({ serial, ...(sessionId ? { sessionId } : {}) }) }),
+  deviceRelease: (serial: string, generation: number) => api<{ serial: string; released: boolean }>(P("/api/devices/release"), { method: "POST", body: JSON.stringify({ serial, generation }) }),
+  deviceAction: (serial: string, generation: number, geometryVersion: number, action: DeviceAction) =>
+    api<{ serial: string; geometryVersion: number; seq: number }>(P("/api/devices/action"), { method: "POST", body: JSON.stringify({ serial, generation, geometryVersion, action }) }),
+  /** Standbild mit Geometrie-Metadaten aus den Headern (x-geometry, x-frame-seq, x-frame-width/height). */
+  deviceFrame: async (serial: string): Promise<{ url: string; seq: number; geometryVersion: number; width: number; height: number } | null> => {
+    const res = await fetch(P(`/api/devices/${encodeURIComponent(serial)}/frame`), { headers: { authorization: `Bearer ${getToken()}` }, cache: "no-store" });
+    if (res.status === 204) return null;
+    if (!res.ok) throw new Error(`${res.status}`);
+    return {
+      url: URL.createObjectURL(await res.blob()),
+      seq: Number(res.headers.get("x-frame-seq") ?? "0"),
+      geometryVersion: Number(res.headers.get("x-geometry") ?? "0"),
+      width: Number(res.headers.get("x-frame-width") ?? "0"),
+      height: Number(res.headers.get("x-frame-height") ?? "0"),
+    };
+  },
+  deviceLogs: (serial: string, bytes?: number) => api<{ text: string; truncated: boolean; at: string }>(P(`/api/devices/${encodeURIComponent(serial)}/logs${bytes ? `?bytes=${bytes}` : ""}`)),
+  deviceTree: async (serial: string): Promise<string> => {
+    const res = await fetch(P(`/api/devices/${encodeURIComponent(serial)}/tree`), { headers: { authorization: `Bearer ${getToken()}` } });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.text();
+  },
+  deviceInstall: (serial: string, generation: number, attachmentId: string) =>
+    api<{ serial: string; sha256: string; detail: string }>(P("/api/devices/install"), { method: "POST", body: JSON.stringify({ serial, generation, attachmentId }) }),
+  deviceTests: (serial: string) => api<{ runs: DeviceTestRun[] }>(P(`/api/devices/tests?serial=${encodeURIComponent(serial)}`)),
+  deviceRunTest: (test: DeviceTestCase) => api<DeviceTestRun>(P("/api/devices/tests"), { method: "POST", body: JSON.stringify({ test }) }),
+  deviceAbortTest: (serial: string, runId: string) => api<{ ok: boolean }>(P(`/api/devices/tests/${runId}/abort`), { method: "POST", body: JSON.stringify({ serial }) }),
   /** Byte-Offset des Anfangs von Zeile `line` (Revision-gebunden). */
   codeLine: (target: string, path: string, line: number, rev: string) =>
     api<{ revision: string; offset: number; line: number }>(P(`/api/code/line?${target}&path=${encodeURIComponent(path)}&line=${line}&rev=${rev}`)),

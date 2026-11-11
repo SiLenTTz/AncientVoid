@@ -1,0 +1,17 @@
+/* EPIC-P42 (ADR-0067): Android-Testgeräte-Panel — lehnt sich an die Browser-Panels (30-files.css) an. */
+
+/* Der Geräte-Knopf sitzt unter dem Browser-Knopf (derselbe vertikale Rand-Stil). */
+.device-toggle { top: calc(62% + 96px); }
+.device-panel .device-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+.device-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.device-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 2px 0; }
+
+.device-frame { max-height: 56dvh; width: auto; max-width: 100%; align-self: center; cursor: crosshair; user-select: none; background: #000; border-radius: 8px; }
+
+.device-install { border: 1px solid var(--bg-chip); border-radius: 8px; padding: 4px 8px; }
+.device-install summary { cursor: pointer; }
+
+.device-logs pre,
+.device-tree pre { max-height: 40dvh; overflow: auto; white-space: pre-wrap; word-break: break-all; }
