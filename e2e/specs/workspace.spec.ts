@@ -1,4 +1,4 @@
-import { test, expect, statusPill, openApprovals, sessionTab } from "../support/fixtures.ts";
+import { test, expect, statusPill, openApprovals, sessionTab, cardAction } from "../support/fixtures.ts";
 import { phone } from "../support/phone.ts";
 
 test.describe("Archiv (P5 §9)", () => {
@@ -6,11 +6,11 @@ test.describe("Archiv (P5 §9)", () => {
     await hub.createSession({ adapter: "dummy" });
     const card = app.locator(".session-card");
     await expect(card).toHaveCount(1);
-    await card.getByRole("button", { name: "Archivieren" }).click();
+    await cardAction(card, "Archivieren");
     await expect(card).toHaveCount(0);
     await app.getByRole("button", { name: "Archiv (1)" }).click();
     await expect(card).toHaveCount(1);
-    await card.getByRole("button", { name: "Zurückholen" }).click();
+    await cardAction(card, "Zurückholen");
     await app.getByRole("button", { name: "Aktive" }).click();
     await expect(card).toHaveCount(1);
   });
@@ -18,14 +18,14 @@ test.describe("Archiv (P5 §9)", () => {
   test("Löschen im Archiv räumt archivierte Sessions weg — mit Rückfrage", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await hub.api(`/api/sessions/${id}/stop`, { body: {} });
-    await app.locator(".session-card").getByRole("button", { name: "Archivieren" }).click();
+    await cardAction(app.locator(".session-card"), "Archivieren");
     await app.getByRole("button", { name: "Archiv (1)" }).click();
     const card = app.locator(".session-card");
     await expect(card).toHaveCount(1);
     // Der Löschen-Button steht nur im Archiv — aktive Karten haben ihn nicht.
-    await expect(app.locator(".session-card").getByRole("button", { name: "Löschen" })).toHaveCount(1);
+    await expect(app.locator(".session-card .session-card-actions").getByRole("button", { name: "Löschen", includeHidden: true })).toHaveCount(1);
     app.on("dialog", (dialog) => void dialog.accept());
-    await card.getByRole("button", { name: "Löschen" }).click();
+    await cardAction(card, "Löschen");
     await expect(card).toHaveCount(0);
     // Optimistic removal — the delete itself may still be in flight.
     await hub.until(async () => !(await hub.sessions()).some((s) => s.id === id), "archiv delete");

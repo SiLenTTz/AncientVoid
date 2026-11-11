@@ -12,6 +12,7 @@ export function ReportPane({
   diff,
   usage,
   context,
+  applyInHead = false,
 }: {
   record: SessionRecord;
   createdAt: string;
@@ -21,6 +22,8 @@ export function ReportPane({
   usage: AdapterUsage | null;
   /** ADR-0032: { fill, window } in tokens — null when nothing was reported. */
   context: { fill: number | null; window: number | null } | null;
+  /** EPIC-P43 T43.5: in „Änderungen“ trägt der Kopf die Hauptaktion. */
+  applyInHead?: boolean;
 }) {
   const running = status !== "stopped" && status !== "error" && status !== "interrupted";
   const durationMs = new Date(record.updatedAt).getTime() - new Date(createdAt).getTime();
@@ -92,7 +95,7 @@ export function ReportPane({
       </div>
       {record.attachCmd && <AttachCmdRow cmd={onHost(record.attachCmd, remoteHost(record.hostId))} />}
       {record.worktree && (
-        <WorktreeCard sessionId={record.id} status={status} worktree={record.worktree} project={record.project} host={remoteHost(record.hostId)} />
+        <WorktreeCard sessionId={record.id} status={status} worktree={record.worktree} project={record.project} host={remoteHost(record.hostId)} apply={!applyInHead} />
       )}
       <ContinueCard openCmd={record.openCmd ? onHost(record.openCmd, remoteHost(record.hostId)) : undefined} host={remoteHost(record.hostId)} />
     </div>

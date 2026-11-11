@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, cardAction } from "../support/fixtures.ts";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -9,7 +9,7 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
   test("Karten-Knopf öffnet die Session direkt im Graph-Tab (Hash bleibt stehen)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy", prompt: "Graph Auftrag" });
     await app.goto(`${hub.origin}/#/`);
-    await app.locator(".session-card").filter({ hasText: "Graph Auftrag" }).locator(".graph-open").click();
+    await cardAction(app.locator(".session-card").filter({ hasText: "Graph Auftrag" }), "Repo-Graph");
     await expect(app).toHaveURL(new RegExp(`#/sessions/${id}/graph$`));
     await expect(app.locator(".session-live[data-tab='graph']")).toBeVisible();
     await expect(app.locator(".graph-canvas")).toBeVisible();

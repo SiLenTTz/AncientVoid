@@ -57,9 +57,9 @@ Werkzeugseiten füllen die Detailspalte.
 | G26 | Archiv | Start → Chip „Archiv“ | T43.3 | inventar |
 | G27 | Sessions filtern (ab fünf Sessions) | Start → Filterfeld | T43.3 | inventar |
 | G28 | Session öffnen | Start → Karte | — | inventar |
-| G29 | Karte: Repo-Graph | Start → Symbol an der Karte | T43.3 | inventar |
-| G30 | Karte: Anheften und Lösen | Start → „Anheften“ an der Karte | T43.3 | inventar |
-| G31 | Karte: Archivieren, Zurückholen, Löschen im Archiv | Start → „Archivieren“; Archiv → „Zurückholen“/„Löschen“ | T43.3 | inventar |
+| G29 | Karte: Repo-Graph | Start → Symbol an der Karte (Maus: beim Überfahren) oder „⋯“ → „Repo-Graph“ | T43.3 | inventar |
+| G30 | Karte: Anheften und Lösen | Start → „Anheften“ an der Karte (Maus: beim Überfahren) oder „⋯“ → „Anheften“ | T43.3 | inventar |
+| G31 | Karte: Archivieren, Zurückholen, Löschen im Archiv | Start → „Archivieren“; Archiv → „Zurückholen“/„Löschen“ — an der Karte beim Überfahren/langem Drücken oder über „⋯“ | T43.3 | inventar |
 | G32 | Verbindungsanzeige | Kopfzeile, immer sichtbar | T43.2 | inventar |
 | G33 | Marke führt zur Übersicht | Kopfzeile „AncientVoid“ | — | inventar |
 | G34 | Banner „Freigabe wartet“ führt zur Freigaben-Seite | Start, bei offener Freigabe | T43.3 | spec:workspace.spec.ts |
@@ -103,9 +103,9 @@ als Leiste links in der Kachel.
 | S01 | Chat | Reiter „Chat“ | T43.4 | inventar |
 | S02 | Verlauf mit Filter Überwachen/Debuggen | „Mehr“ → „Verlauf“ → „Debuggen“ (am PC zusätzlich „Steuerung einblenden“) | T43.4 | inventar |
 | S03 | Bericht | „Mehr“ → „Bericht“; auch unter dem Diff in „Änderungen“ | T43.5 | inventar |
-| S04 | Diff | Reiter „Änderungen“ (mit Zahl der Dateien) | T43.5 | inventar |
+| S04 | Diff | Reiter „Änderungen“ (mit Zahl der Dateien); ohne Änderungen „Mehr“ → „Änderungen“ mit Satz und „Zum Chat“ | T43.5 | inventar |
 | S05 | Repo-Graph | „Mehr“ → „Graph“ | T43.4 | inventar |
-| S06 | Datei | „Mehr“ → „Datei“ | T43.5 | inventar |
+| S06 | Datei | „Mehr“ → „Datei“; ohne geöffnete Datei Satz und „Dateibaum öffnen“ | T43.5 | inventar |
 | S07 | GitLab | „Mehr“ → „GitLab“ | T43.4 | inventar |
 | S08 | Suche | „Mehr“ → „Suche“ | T43.4 | inventar |
 | S09 | Code | Reiter „Dateien“ | T43.5 | inventar |
@@ -185,7 +185,7 @@ Nur ab 1280 px Breite.
 | P07 | Kachel leeren | Kachelkopf „×“ | — | inventar |
 | P08 | Statusleiste (Verbindung, Flotte, Zähler, fokussierte Kachel) | unterer Rand | T43.7 | inventar |
 | P09 | Werkzeugseite: eigenes Fenster und Schließen | Kopf der Werkzeugseite | T43.7 | inventar |
-| P10 | Ansichten als Leiste in der Kachel | linker Rand der Kachel | T43.6 | inventar |
+| P10 | Ansichten als Leiste in der Kachel | linker Rand der Kachel („Änderungen“ nur mit Änderungen) | T43.6 | inventar |
 | P11 | Weitere Kachel öffnen | Strg-Klick in der Liste | — | inventar |
 | P12 | Eigene Fenster: Session, Werkzeugseite, Graph, Datei, Notiz, Browser, Android-Geräte; Zurückholen | „⧉“ an der jeweiligen Ansicht | T43.7 | spec:windows.spec.ts |
 | P13 | Kacheltastatur (Alt+1–4, Alt+Umschalt+1–4, Alt+L, Alt+W) | Tastatur | — | spec:workspace-tiles.spec.ts |

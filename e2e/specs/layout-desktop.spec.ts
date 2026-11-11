@@ -18,10 +18,12 @@ test.describe("Desktop (T8.5, AC-P8-6)", () => {
   });
 
   test("Icon-Leisten, klickbare Kürzel und kein Fenster-Scroll (P21)", async ({ app, hub }) => {
-    await hub.createSession({ adapter: "opencode", prompt: "Erste Aufgabe" });
+    // Mit einer geänderten Datei, damit „Änderungen“ in der Leiste steht (Kleinkram-Regel 2).
+    const first = await hub.createSession({ adapter: "opencode", prompt: "Erste Aufgabe: Lege eine DATEI an" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${first}`)).body.status === "idle", "Zug fertig");
     await hub.createSession({ adapter: "opencode", project: hub.beta, prompt: "Zweite Aufgabe" });
     await app.locator(".split-list .session-card").filter({ hasText: "Erste Aufgabe" }).locator(".session-open").click();
-    await expect(app.locator(".split-detail .session-top-title")).toHaveText("Erste Aufgabe");
+    await expect(app.locator(".split-detail .session-top-title")).toContainText("Erste Aufgabe");
 
     // Das Fenster selbst scrollt nie.
     const overflow = await app.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);

@@ -48,7 +48,9 @@ test.describe("Chat in Zügen (EPIC-P43 T43.4)", () => {
   });
 
   test("vier Reiter: Änderungen zeigt Diff und Bericht, der Rest liegt unter „Mehr“ @tablet @desktop", async ({ app, hub }) => {
-    const id = await hub.createSession({ adapter: "opencode", prompt: "Reiter" });
+    // Mit einer geänderten Datei — ohne rückt „Änderungen“ unter „Mehr“ (Kleinkram-Regel 2, kleinkram.spec.ts).
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Reiter: Lege eine DATEI an" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "Zug fertig");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     const bar = app.locator(".subtabs-wrap").first();
     await expect(bar.getByRole("button")).toHaveCount(4);

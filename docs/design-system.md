@@ -160,6 +160,20 @@ Farbe, Form und Bewegung sagen dasselbe; jede der drei reicht allein.
 - **Composer:** einzeilig (`.compact`), solange das Feld weder Fokus noch Text hat; „Verbessern“
   erscheint erst dann. Fokus auf einem Knopf klappt nicht auf (der Klick ginge sonst ins Leere).
 
+## Kleinkram-Regeln (EPIC-P43 T43.5, je Regel ein Test in `e2e/specs/kleinkram.spec.ts`)
+
+1. **Unbekanntes schweigt** in der Leiste und steht im Bericht („keine Meldung“).
+2. **Leere Reiter rücken unter „Mehr“** und sagen in einem Satz, was fehlt, mit einer Aktion
+   (`.empty-state`): „Diese Session hat noch nichts geändert.“ → „Zum Chat“; „Keine Datei geöffnet …“
+   → „Dateibaum öffnen“. Ein leerer Diff zählt erst als leer, wenn er geladen ist.
+3. **Zeilenaktionen** (`.row-action`) erscheinen mit Maus beim Überfahren/Fokus, auf Touch nach langem
+   Drücken; immer zusätzlich im Menü der Zeile („⋯“, `.row-menu`).
+4. **Eine Hauptaktion je Ansicht**, gefüllt, oben rechts im Kopf (`.view-head`) — in „Änderungen“
+   „Ins Projekt übernehmen“ neben „N Dateien · +A −D“; der Bericht darunter wiederholt sie nicht.
+5. **Tasten tragen Worte** oder ein Symbol mit `aria-label` und `title`.
+6. **Nichts liegt über dem Inhalt** — keine Randlaschen; Ebenen öffnen aus den Ansichten (`shared/layers.ts`).
+7. **Formularelemente sind App-Bausteine** (Schrift der App, `appearance: none`, kein weißes Feld im Dunkeln).
+
 ## Formularelemente (`shared/forms.tsx`, `37-forms.css`)
 
 Formularelemente sind App-Bausteine, kein Browser-Standard: `Field`, `Select`, `Switch`,
