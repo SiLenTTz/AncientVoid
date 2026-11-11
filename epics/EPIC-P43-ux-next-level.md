@@ -1,6 +1,6 @@
 # EPIC-P43 — UX Next Level: Leitstand, der lebt
 
-**Status:** in Umsetzung · **Umsetzung:** freigegeben (Nutzerauftrag 11.11.2026, siehe unten) · **Phase:** P43
+**Status:** umgesetzt, Abnahme mit offenen Punkten (Retro 2026-11-11: 8 🟢 / 3 🟡) · **Umsetzung:** freigegeben (Nutzerauftrag 11.11.2026, siehe unten) · **Phase:** P43
 **Dauer:** 4–6 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P42 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 **Freigabe 11.11.2026 (Jan):** „Setze jetzt bitte Epic 43 sauber um“ — ausdrücklich auch für den Fall, dass P42 nicht begonnen ist (Stand: P42 offen, läuft parallel mit einem anderen Agenten). Das hebt E8 („kein Vorziehen“) für dieses Epic auf. Fachlich hängt P43 an P42 nur über das Funktionsinventar: Kommt das Geräte-Panel aus P42 hinzu, trägt P42 seine Zeilen in `docs/funktionsinventar.md` und den Spec ein.
@@ -162,7 +162,7 @@ anderen P43-Aufgabe.
   — *„?“-Übersicht an P51 T51.7 abgegeben (Nutzerentscheid 11.11.2026 — braucht die dort gebaute Shortcut-Registry).*
 - [x] **T43.7** *(erledigt 2026-11-11, [ADR-0068](../docs/adr/0068-herausloesen-ueberall.md), Spec `herausloesen.spec.ts`)* ADR (Fortschreibung ADR-0053), `DetachButton`, neue Fensterziele, Platzhalter/Zurückholen, Fensterzähler. **K2/K7/K10**.
 - [x] **T43.8** *(erledigt 2026-11-11, Spec `nyx-blatt.spec.ts`, Fensterziel `nyx` nach ADR-0068)* Nyx-Blatt: Zustandsfunktion, Blatt/Aufklappfeld, Fragen mit Vorauswahl, Bestätigungen, Atlas-Übernahme mit Herkunftsvermerk. **K1**.
-- [ ] **T43.9** Abnahme: Nachher-Screenshots, K1/K2-Messlauf (Skill `messlauf`, auch vier Kacheln mit Bewegung), Tastatur- und Screenreader-Durchgang, Geräteabnahme Handy/Tablet/PC, Retro. **K1/K2/K10**.
+- [x] **T43.9** *(erledigt 2026-11-11 mit offenen Punkten — siehe Retro: Nachher-Bilder, Messlauf, `tastatur-screenreader.spec.ts`, `breiten.spec.ts`, Handy-Lauf; echtes Tablet, zweiter Bildschirm und Screenreader-Lauf nicht abgenommen)* Abnahme: Nachher-Screenshots, K1/K2-Messlauf (Skill `messlauf`, auch vier Kacheln mit Bewegung), Tastatur- und Screenreader-Durchgang, Geräteabnahme Handy/Tablet/PC, Retro. **K1/K2/K10**.
 - [x] **T43.10** *(erledigt 2026-11-12, [ADR-0066](../docs/adr/0066-display-beantwortet-optionsfragen.md); als einzige P43-Aufgabe vorgezogen, weil VoidWarden P13 darauf wartet und sie an keiner anderen P43-Aufgabe hängt — das übrige Epic bleibt gesperrt)* AV-D3: ADR (Fortschreibung ADR-0048), Token-Berechtigung, Prüfung im `decide`-Handler, Feld „am Display beantwortbar“, `hubctl`, Integrations-Tests für jeden Ablehnungsfall, Doku für VoidWarden. **K1/K7**.
 
 Jede Aufgabe liest vor Beginn die ihr zugeordneten Audit-Befunde (Audit §3/§5) und belegt im MR, dass sie behoben sind.
@@ -205,3 +205,82 @@ in `e2e/specs/`; Geräte-Nachweise (Handy, Tablet, PC mit zweitem Bildschirm) se
 Pass. `design-system.md` beschreibt den neuen Stand; das Funktionsinventar ist aktuell und
 jeder Eintrag erreichbar. ADR vor Erweiterung der Fensterziele und vor AV-D3; K5/K7 unverändert
 nachgewiesen; keine offene TODO ohne Epic-Bezug. Retro (Skill `retro`) angehängt.
+
+## Retro (2026-11-11, Skill `retro`)
+
+**Zeitraum:** 2026-11-10 (Neufassung, Audit) bis 2026-11-11 (T43.9) · **Commits mit P43-Bezug auf `main`:** 28 bis
+`05a6607`, dazu die T43.9-Commits dieses MR · **MRs:** u. a. !382 (T43.5), !384 (T43.6), !385 (T43.7), !386 (T43.8).
+
+### AK-Matrix
+
+| AC | Bewertung | Beleg | Bemerkung |
+|---|---|---|---|
+| AC-P43-1 | 🟡 teilweise | `funktionsinventar.spec.ts` im Gate auf Handy, Tablet, PC; `schnellsuche.spec.ts`; T43.6 „?“-Übersicht an P51 T51.7 (Nutzerentscheid 11.11.) | Inventar grün, Obergrenze drei Interaktionen geprüft (`funktionsinventar.spec.ts:318`). **Nicht belegt:** „jeder Eintrag über die Schnellsuche“ — sie springt zu Sessions, Projekten, Dateien, Werkzeugen und Befehlen, nicht zu jeder Inventarzeile. |
+| AC-P43-2 | 🟢 erfüllt | `start-warteschlange.spec.ts`, `nyx-blatt.spec.ts` (Tipp im Blatt; Begründung/Passkey → Session), `harness.spec.ts` (Karte in der Session), `k1-ein-tipp.spec.ts`, [Messlauf](../docs/messlauf/2026-11-11-p43-k1-k2.md) | K1 p95 68 ms (Start) / 59 ms (Nyx), n = 20 je Weg; Grenze 5 s. |
+| AC-P43-3 | 🟢 erfüllt | `chat-zuege.spec.ts`; `apps/pwa/test/features/turns.test.ts` „unbekannte Ereignistypen werden gezählt und als eine Zeile gezeigt“ | Verlauf unverändert vollständig (T43.4). |
+| AC-P43-4 | 🟡 teilweise | `accent-color.spec.ts:109` (Nähe zur Ruf-Farbe), `appearance-font.spec.ts`, `apps/pwa/test/app/tokens.test.ts`, `zustandssprache.spec.ts:19` (Form statt nur Farbe) | Ausnahme dokumentiert in T43.1: `--ok` im hellen Erscheinungsbild 4,2:1 statt 4,5:1 (semantische Farben waren außerhalb des Scopes). |
+| AC-P43-5 | 🟢 erfüllt | `zustandssprache.spec.ts:63` (Schalter, `reducedMotion`, `data-conn="off"`) | — |
+| AC-P43-6 | 🟢 erfüllt | `breiten.spec.ts` (412/800/1280/1600 × Start, Session, Nyx-Blatt; Handy, Tablet, PC), `tablet-layout.spec.ts`, `layout-desktop.spec.ts` | Der neue Spec fand zu kleine Ziele in Kopfzeile, Nyx-Blatt und Kachelkopf — behoben in `1e2ff5f`. Gemessen sind die Ziele dieser drei Ansichten, nicht jede Werkzeugseite. |
+| AC-P43-7 | 🟡 teilweise | `herausloesen.spec.ts` (jede Ansicht, Platzhalter, Zurückholen, Neuladen, Warteschlange), `nyx-blatt.spec.ts` (Nyx-Fenster), `windows.spec.ts` (Session-Fenster, Entwurf und Neuladen nach ADR-0053) | Ansichtsfenster haben bewusst kein Antwortfeld (ADR-0068 Punkt 3). **Nicht belegt:** Scrollposition einer herausgelösten Ansicht. |
+| AC-P43-8 | 🟢 erfüllt | `kleinkram.spec.ts` (Regel 1–7) | — |
+| AC-P43-9 | 🟢 erfüllt | [Messlauf](../docs/messlauf/2026-11-11-p43-k1-k2.md): K2 p95 89 ms / max 178 ms, 0 von 72.513 über 200 ms (P18: 91 / 176 / 0); `npm run loadtest` 603 ev/s, PASS | Fremdlast Load 7–9 während der Läufe. |
+| AC-P43-10 | 🟢 erfüllt | `nyx-blatt.spec.ts` „eine Auswahlfrage steht mit der empfohlenen Option vorgewählt; die Antwort erreicht den Agenten“ | Antwort kommt als „Gewählt: Grün (Empfohlen)“ über `decide` an. |
+| AC-P43-11 | 🟢 erfüllt | `apps/hub/test/modules/approvals/tool-permissions.test.ts` (je Ablehnungsfall 403, `decidedByLabel: "display:kiosk"`), `packages/contracts/test/approvals/display-answers.test.ts`, [ADR-0066](../docs/adr/0066-display-beantwortet-optionsfragen.md) | — |
+
+**Summe:** 8 🟢 / 3 🟡 / 0 🔴 / 0 ⚪.
+
+### Abnahme T43.9
+
+- **Nachher-Bilder** in vier Breiten neben den Vorher-Bildern: [Funktionsinventar § Nachher-Bilder](../docs/funktionsinventar.md#nachher-bilder).
+- **Messlauf** K1/K2/K8: [docs/messlauf/2026-11-11-p43-k1-k2.md](../docs/messlauf/2026-11-11-p43-k1-k2.md).
+- **Tastatur und Screenreader:** `tastatur-screenreader.spec.ts` (jede sichtbare Bedienung benannt, Fokus sichtbar,
+  Nyx-Blatt nimmt und gibt den Fokus) — fand den fehlenden Fokuswechsel im Nyx-Blatt, behoben in `1e2ff5f`. Ein Lauf mit
+  einem echten Screenreader (TalkBack/Orca) ist **nicht** gemacht.
+- **Handy (echt):** OnePlus A6013 per `npm run test:phone`, Specs-Liste um die P43-Specs erweitert (`playwright.config.ts`):
+  101 bestanden, 6 übersprungen (sichtbar: PC-Fenster, Mikrofon, Service Worker), 2 gescheitert. Davon war Regel 3 ein
+  Testfehler (Touch am Projektnamen statt am Gerät erkannt, behoben in diesem MR, am Handy grün); `session.spec.ts:4`
+  scheitert nur in der Gesamtfolge ([BUG-0121](../bugs/bug-0121-handy-lauf-session-test-zeitueberschreitung.md)),
+  einzeln und wiederholt grün — **nicht als Pass gezählt**.
+- **Tablet:** nur Emulation (800 × 1280 und 1024 × 768 im Projekt `tablet`) — kein echtes Tablet vorhanden; **nicht gemessen**.
+- **PC mit zweitem Bildschirm:** Fensterverhalten über Playwright-Popups belegt; ein echter zweiter Bildschirm ist **nicht** abgenommen.
+- **Vorgänger:** P42 ist in `main` (Nutzerangabe 11.11.), seine Epic-Datei steht aber noch auf „Umsetzung“; P43 lief auf
+  ausdrücklichen Nutzerauftrag vor dessen Abschluss (Kopf dieser Datei).
+- **Pipelines:** zu !384–!386 und `main` `pending` (Projekt-Runner belegt) — nach `docs/ci-runbook.md` nachzuziehen,
+  nicht als Pass gezählt. Qualität belegt über die lokalen Gates (`npm run gate` je MR grün).
+
+### Premortem
+
+| # | Risiko | Eingetreten? | Beleg |
+|---|---|---|---|
+| 1 | Funktionen verschwinden | nein — vom Gate abgefangen | Inventar-Spec fand das falsche Nachweisformat von G23 (Fix `3b68d93`) und den Reiter, der unter „Mehr“ wandert (`9d4475e`) |
+| 2 | Gefaltete Schritte verstecken Fehler | nein | `turns.test.ts` (unbekannte Typen, Fehler falten nie) |
+| 3 | Bewegung kostet Flüssigkeit | nein | K2 gleichauf mit P18 (Messlauf) |
+| 4 | Tablet fällt durch | teilweise | Glocke über „Stop“ und gequetschter Titel im Querformat, in T43.6 vor dem Merge behoben; kein echtes Tablet |
+| 5 | Standardwechsel überschreibt Nutzerwahl | nein | `appearance-font.spec.ts`, `accent-color.spec.ts` |
+| 6 | Fensterziele verlieren Entwurf/Verbindung | nein (Scroll unbelegt) | `herausloesen.spec.ts`, `windows.spec.ts` |
+| 7 | Nyx-Blatt als zweiter Entscheidungsweg | nein | `Nyx.tsx` nutzt `QuestionForm`, `CardDecision`, `hubApi.decideApproval` |
+| 8 | Epic zu groß | nein | T43.0–T43.10 in zwei Tagen, je eigener MR |
+| 9 | Display-Berechtigung als Prompt-Eingang | nein | `tool-permissions.test.ts` (403 je Fall) |
+
+### Erkenntnisse
+
+1. **Das Inventar als Gate trägt.** Jede Umbau-Aufgabe, die einen Weg verschob, scheiterte zuerst am Inventar-Spec und
+   musste Weg und Test gemeinsam ändern (`3b68d93`, `9d4475e`, Inventarzeilen G64/G65/P17).
+2. **Querschnitts-ACs kamen spät.** Zielgrößen (AC-6) und Fokus (Tastatur) wurden erst in T43.9 gemessen und fanden dort
+   noch Fehler (`1e2ff5f`); das Blatt unter dem Dock fand erst der Nyx-Spec (`a071b47`). Früh laufende Querschnitts-Specs
+   hätten das in T43.3–T43.6 gezeigt.
+3. **Dynamische Reiter machen Test-Helfer fragil.** „Änderungen“ wandert je nach Diff zwischen Reiter und „Mehr“; der
+   Helfer `sessionTab` brauchte zwei Nachbesserungen und kostete zwei Gate-Läufe (`9d4475e`, `3b68d93`).
+4. **Parallele Playwright-Läufe teilen `test-results/`.** Gate und Handy-Lauf gleichzeitig löschten sich gegenseitig die
+   Artefakte (ENOENT); beide Läufe waren ungültig und wurden nacheinander wiederholt.
+5. **Messwerte stabil trotz mehr Oberfläche.** K2 mit vier Kacheln wie in P18, K1 weit unter der Grenze.
+
+### Action Items
+
+- **AI-P43-1:** Schnellsuche über alle Inventarzeilen (oder AC-P43-1 auf die Sprungziele der Schnellsuche eingrenzen) — zurück als: nächste Epic-Aufgabe (P51, neben der Shortcut-Registry aus T51.7).
+- **AI-P43-2:** `--ok` im hellen Erscheinungsbild auf ≥ 4,5:1 heben — zurück als: nächste Epic-Aufgabe (Design-System).
+- **AI-P43-3:** Scrollposition herausgelöster Ansichten als Spec — zurück als: nächste Epic-Aufgabe (Fortschreibung ADR-0068).
+- **AI-P43-4:** `breiten.spec.ts` auf Werkzeugseiten und Formulare ausdehnen; Querschnitts-Specs ab der ersten Umbau-Aufgabe laufen lassen — zurück als: nächste Epic-Aufgabe.
+- **AI-P43-5:** Geräteabnahme echtes Tablet und zweiter Bildschirm, Screenreader-Lauf mit TalkBack — zurück als: nächste Epic-Aufgabe (Abnahme).
+- **AI-P43-7:** BUG-0121 (Handy-Gesamtlauf, Zeitüberschreitung) eingrenzen — zurück als: Bug [BUG-0121](../bugs/bug-0121-handy-lauf-session-test-zeitueberschreitung.md).
+- **AI-P43-6:** Playwright-Ausgabeordner je Lauf trennen (`test:phone` eigener `outputDir`), damit Gate und Handy-Lauf parallel gehen — zurück als: Bug [BUG-0120](../bugs/bug-0120-parallele-playwright-laeufe-teilen-test-results.md).
