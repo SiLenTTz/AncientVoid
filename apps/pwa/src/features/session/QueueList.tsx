@@ -1,9 +1,11 @@
 import { useEffect, useState } from "preact/hooks";
 import type { HubApi, QueuedPrompt } from "../../shared/api.ts";
 
-/** EPIC-P15 T15.3: vorgemerkte Nachrichten — gehen der Reihe nach raus, sobald der Zug endet. */
+/** EPIC-P15 T15.3: vorgemerkte Nachrichten — gehen der Reihe nach raus, sobald der Zug endet.
+ * BUG-0114: zusätzlich je Eintrag sofort in den laufenden Zug sendbar. */
 export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; api: HubApi; refreshKey: number }) {
   const [items, setItems] = useState<QueuedPrompt[]>([]);
+  const [error, setError] = useState("");
   useEffect(() => {
     let alive = true;
     const load = () =>
@@ -23,13 +25,33 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
     setItems((prev) => prev.filter((i) => i.id !== id));
     void api.removeQueued(sessionId, id).catch(() => undefined);
   };
+  const sendNow = (item: QueuedPrompt) => {
+    setError("");
+    void api
+      .sendQueuedNow(sessionId, item.id)
+      .then(() => setItems((prev) => prev.filter((i) => i.id !== item.id)))
+      // 422 trägt den Ablehnungsgrund (Error-Message); der Hub hat die Nachricht dann wieder vorgemerkt.
+      .catch((err) =>
+        setError(`${err instanceof Error && err.message && !/^\d/.test(err.message) ? err.message : "Senden fehlgeschlagen"} — die Nachricht bleibt vorgemerkt.`),
+      );
+  };
   return (
     <div class="queue-list" aria-label="Vorgemerkt">
       <div class="queue-title dim">Vorgemerkt ({items.length}) — geht raus, sobald der Zug endet</div>
+      {error && <div class="reply-error" role="alert">{error}</div>}
       {items.map((item, i) => (
         <div key={item.id} class="queue-item">
           <span class="queue-pos dim">{i + 1}.</span>
           <span class="queue-text">{item.text.length > 140 ? `${item.text.slice(0, 139)}…` : item.text}</span>
+          <button
+            class="link-btn"
+            type="button"
+            aria-label={`Vorgemerkte Nachricht ${i + 1} jetzt senden`}
+            title="Jetzt in den laufenden Zug senden"
+            onClick={() => sendNow(item)}
+          >
+            ➤
+          </button>
           <button class="link-btn" type="button" aria-label={`Vorgemerkte Nachricht ${i + 1} streichen`} onClick={() => remove(item.id)}>
             ✕
           </button>

@@ -13,6 +13,7 @@ import { SessionManager } from "../../../src/modules/sessions/session-manager.ts
 function fakeAdapter() {
   const steered: SteerInput[] = [];
   const ctxs = new Map<string, AdapterContext>();
+  let refusePrompts = false;
   const adapter: Adapter = {
     id: "turny",
     version: "0.0.1",
@@ -31,6 +32,8 @@ function fakeAdapter() {
       return { sessionId: ctx.sessionId };
     },
     async steer(handle, input, ctx) {
+      // BUG-0114: eine Ablehnung heißt „nie angekommen" — solche Versuche werden nicht protokolliert.
+      if (input.kind === "prompt" && refusePrompts) return { ok: false, detail: "gerade beschäftigt" };
       steered.push(input);
       if (input.kind === "prompt") ctx.turn?.("working");
       return { ok: true };
@@ -49,7 +52,7 @@ function fakeAdapter() {
   registry.register("turny", () => adapter);
   /** The provider finishes its turn. */
   const endTurn = (sessionId: string) => ctxs.get(sessionId)!.turn!("idle");
-  return { steered, registry, endTurn };
+  return { steered, registry, endTurn, refuseNext: () => { refusePrompts = true; } };
 }
 
 async function waitFor(check: () => boolean | Promise<boolean>, ms = 4000): Promise<void> {
@@ -63,10 +66,10 @@ async function waitFor(check: () => boolean | Promise<boolean>, ms = 4000): Prom
 
 const setup = async (dbFile?: string, root?: string) => {
   const dir = root ?? (await mkdtemp(join(tmpdir(), "ancientvoid-queue-")));
-  const { steered, registry, endTurn } = fakeAdapter();
+  const { steered, registry, endTurn, refuseNext } = fakeAdapter();
   const db = new HubDatabase(dbFile ?? ":memory:");
   const sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
-  return { dir, sessions, steered, endTurn, db, done: async () => { await sessions.shutdown(); if (!root) await rm(dir, { recursive: true, force: true }); } };
+  return { dir, sessions, steered, endTurn, refuseNext, db, done: async () => { await sessions.shutdown(); if (!root) await rm(dir, { recursive: true, force: true }); } };
 };
 const prompts = (steered: SteerInput[]) => steered.filter((s) => s.kind === "prompt").map((s) => (s as { text: string }).text);
 const kinds = async (sessions: SessionManager, id: string) =>
@@ -135,6 +138,50 @@ describe("Vormerken", () => {
       endTurn(rec.id);
       await new Promise((r) => setTimeout(r, 150));
       expect(prompts(steered)).toEqual([]);
+    } finally {
+      await done();
+    }
+  });
+
+  it("BUG-0114: ein vorgemerkter Prompt lässt sich sofort in den laufenden Zug senden", async () => {
+    const { dir, sessions, steered, endTurn, done } = await setup();
+    try {
+      const rec = await sessions.create({ adapter: "turny", project: dir });
+      expect(sessions.get(rec.id)?.status).toBe("working"); // der Zug läuft noch
+      await sessions.steer(rec.id, { kind: "prompt", text: "zwischenfrage" }, "jan", { queue: true });
+      await sessions.steer(rec.id, { kind: "prompt", text: "danach" }, "jan", { queue: true });
+      const [first] = sessions.queued(rec.id);
+
+      const ack = await sessions.sendQueuedNow(rec.id, first!.id, "jan");
+      expect(ack.ok).toBe(true);
+      // sofort beim Adapter angekommen — ohne dass der Zug geendet hat (endTurn fehlt absichtlich)
+      expect(prompts(steered)).toEqual(["zwischenfrage"]);
+      expect(sessions.queued(rec.id).map((q) => q.text)).toEqual(["danach"]);
+      expect(await kinds(sessions, rec.id)).toContain("session.dequeued");
+
+      // der Rest bleibt beim alten Vertrag: erst nach dem Ende des laufenden Zugs
+      endTurn(rec.id);
+      await waitFor(() => prompts(steered).length === 2);
+      expect(prompts(steered)).toEqual(["zwischenfrage", "danach"]);
+    } finally {
+      await done();
+    }
+  });
+
+  it("BUG-0114: lehnt der Adapter ab, bleibt die Nachricht vorgemerkt und der Grund sichtbar", async () => {
+    const { dir, sessions, steered, refuseNext, done } = await setup();
+    try {
+      const rec = await sessions.create({ adapter: "turny", project: dir });
+      await sessions.steer(rec.id, { kind: "prompt", text: "kritische frage" }, "jan", { queue: true });
+      const [item] = sessions.queued(rec.id);
+      refuseNext();
+
+      const ack = await sessions.sendQueuedNow(rec.id, item!.id, "jan");
+      expect(ack).toEqual({ ok: false, detail: "gerade beschäftigt" });
+      expect(sessions.queued(rec.id).map((q) => q.text)).toEqual(["kritische frage"]); // kein Textverlust
+      expect(prompts(steered)).toEqual([]);
+      const events = await sessions.tail(rec.id, 0);
+      expect(events.some((e) => e.payload.kind === "session.dequeued" && (e.payload as { ok?: boolean }).ok === false)).toBe(true);
     } finally {
       await done();
     }
