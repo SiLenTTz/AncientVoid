@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { test, expect, signIn, dockGo } from "../support/fixtures.ts";
+import { test, expect, signIn, dockGo, sessionTab } from "../support/fixtures.ts";
 import { TestHub } from "../support/hub.ts";
 
 test.describe("Flotte (EPIC-P6)", () => {
@@ -231,7 +231,7 @@ test.describe("Flotte (EPIC-P6)", () => {
       await item.click();
       await expect(app).toHaveURL(new RegExp(`#/hosts/silenttz-server/sessions/${remote}`));
 
-      await app.getByRole("button", { name: "Bericht" }).click();
+      await sessionTab(app, "Bericht");
       await expect(app.locator(".continue-open")).toHaveText(/^ssh -t silenttz-server 'cd .* && opencode --session ses_e2e_\w+'$/);
       await expect(app.locator(".worktree-card")).toContainText("auf silenttz-server");
       await expect(app.locator(".worktree-open")).toHaveText(/^code --remote ssh-remote\+silenttz-server /);

@@ -1,4 +1,4 @@
-import { test, expect, openFromOverview } from "../support/fixtures.ts";
+import { test, expect, openFromOverview, openLayer } from "../support/fixtures.ts";
 
 /**
  * EPIC-P42 T42.6 (ADR-0067): Android-Testgeräte. Ohne SDK/KVM bleibt alles ehrlich sichtbar blockiert —
@@ -15,7 +15,7 @@ test.describe("Android-Testgeräte (EPIC-P42)", () => {
   test("Capabilities ehrlich: ohne SDK/KVM sichtbar blockiert, nie still grün", async ({ app, hub }) => {
     await hub.createSession({ adapter: "dummy" });
     await openFromOverview(app, "dummy");
-    await app.getByRole("button", { name: "Geräte öffnen" }).click();
+    await openLayer(app, "Geräte");
     await expect(app.getByTestId("device-panel")).toBeVisible();
     const st = await hub.api<{ capabilities: { ready: boolean; reasons: string[]; kvm: { available: boolean } } }>("/api/devices");
     if (!st.body.capabilities.ready) {

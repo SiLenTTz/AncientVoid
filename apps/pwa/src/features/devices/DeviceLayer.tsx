@@ -3,6 +3,7 @@ import type { AdbDeviceEntry, DeviceStatus } from "@ancientvoid/contracts";
 import { hubApi, remoteHost } from "../../shared/api.ts";
 import { openPopout } from "../windows/windows.ts";
 import { getHubStatus } from "../shell/hub-status.ts";
+import { onLayerOpen } from "../../shared/layers.ts";
 import { ADB_STATE_LABEL, EMU_STATE_LABEL, EXAMPLE_TEST, TEST_STATE_LABEL, parseTestCase, toDevicePoint } from "./device-model.ts";
 
 type Tab = "view" | "tests" | "logs" | "tree";
@@ -14,14 +15,11 @@ type Tab = "view" | "tests" | "logs" | "tree";
  */
 export function DeviceLayer({ focusedSessionId }: { focusedSessionId: string | null }) {
   const [open, setOpen] = useState(false);
+  // EPIC-P43: geöffnet aus „Mehr“ der Session (keine Randlasche mehr über dem Inhalt).
+  useEffect(() => onLayerOpen("devices", () => setOpen(true)), []);
   const session = focusedSessionId ? getHubStatus().sessions.find((s) => s.id === focusedSessionId) : undefined;
   return (
     <>
-      {!open && (
-        <button type="button" class="browser-toggle device-toggle" aria-label="Geräte öffnen" title="Android-Testgeräte dieses Hosts" onClick={() => setOpen(true)}>
-          Geräte
-        </button>
-      )}
       {open && (
         <DevicePanel
           sessionId={focusedSessionId}

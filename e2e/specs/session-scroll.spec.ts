@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 
 /**
  * BUG-0043 / BUG-0044: der Verlauf springt nicht, wenn man oben liest, und die
@@ -10,7 +10,7 @@ test.describe("Verlauf scrollt und liegt über dem Dock", () => {
 
   async function openVerlauf(app: Page, origin: string, id: string) {
     await app.goto(`${origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Verlauf" }).click();
+    await sessionTab(app, "Verlauf");
     await app.getByRole("button", { name: "Debuggen" }).click();
   }
   const count = (app: Page) => app.locator(".event[data-seq]").count();

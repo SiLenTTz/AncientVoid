@@ -1,5 +1,5 @@
 import { writeFileSync, mkdirSync } from "node:fs";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 import { TestHub } from "../support/hub.ts";
 
 /**
@@ -105,7 +105,7 @@ test.describe("Messlauf P8: Kernaufgaben mit 20 Sessions auf drei Hosts", () => 
       // 5. Find a function in the session's code.
       await measure("Code finden", async (tap) => {
         tap();
-        await app.getByRole("button", { name: "Code", exact: true }).click();
+        await sessionTab(app, "Code");
         tap();
         await app.getByLabel("Code durchsuchen").fill("parseToken");
         tap();

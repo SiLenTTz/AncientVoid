@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { TestHub, type HubOptions } from "./hub.ts";
 import { openPhoneTab, phone } from "./phone.ts";
@@ -98,4 +98,38 @@ export async function openQuiet(page: Page): Promise<void> {
   const fold = page.locator(".section-zuletzt .section-fold");
   await fold.waitFor();
   if ((await fold.getAttribute("aria-expanded")) === "false") await fold.click();
+}
+
+/**
+ * EPIC-P43 T43.4: eine Ansicht der Session öffnen. Chat, Änderungen (früher „Diff“) und Dateien (früher
+ * „Code“) sind Reiter; Verlauf, Bericht, Datei, Graph, GitLab, Suche und Umgebung liegen unter „Mehr“.
+ */
+export async function sessionTab(scope: Page | Locator, name: string): Promise<void> {
+  const bar = scope.locator(".subtabs-wrap").first();
+  const main = ({ Diff: "Änderungen", Code: "Dateien" } as Record<string, string>)[name] ?? name;
+  if (["Chat", "Änderungen", "Dateien"].includes(main)) return bar.getByRole("button", { name: new RegExp(`^${main}`) }).click();
+  const menu = bar.getByRole("menu", { name: "Weitere Ansichten" });
+  if (!(await menu.isVisible())) await bar.locator('[aria-haspopup="menu"]').click();
+  await menu.getByRole("menuitem", { name: main, exact: true }).click();
+}
+
+/**
+ * EPIC-P43 (Kleinkram-Regel 6): Dateibaum, Browser und Geräte haben keine Randlaschen mehr. In einer Session
+ * öffnet der Reiter „Dateien“ den Dateibaum und „Mehr“ Browser und Geräte; ohne Session das globale „Mehr“.
+ */
+export async function openLayer(page: Page, name: "Dateibaum" | "Browser" | "Geräte"): Promise<void> {
+  const bar = page.locator(".subtabs-wrap").first();
+  // Browser und Geräte gehören immer zu einer Session; der Dateibaum geht auch ohne (globales „Mehr“).
+  const inSession = await bar
+    .waitFor({ timeout: name === "Dateibaum" ? 3_000 : 15_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!inSession) return dockGo(page, name);
+  if (name === "Dateibaum") {
+    await sessionTab(page, "Dateien");
+    await page.getByRole("button", { name: "Dateibaum öffnen" }).first().click();
+    return;
+  }
+  await bar.locator('[aria-haspopup="menu"]').click();
+  await bar.getByRole("menu", { name: "Weitere Ansichten" }).getByRole("menuitem", { name, exact: true }).click();
 }

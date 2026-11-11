@@ -104,6 +104,8 @@ export function Composer({
   // statt Mikro-Feld; im expanded-Zustand setzt CSS die Höhe, Auto-Grow
   // greift dann nicht ein (offsetHeight ist schon groß).
   const [expanded, setExpanded] = useState(false);
+  // EPIC-P43 T43.4: einzeilig, bis das Feld zum ersten Mal den Fokus bekommt.
+  const [touched, setTouched] = useState(false);
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
@@ -337,7 +339,15 @@ export function Composer({
           : "Nutzen gilt für diesen Prompt. Speichern merkt sie als Standard für das Projekt.";
 
   return (
-    <div class={`composer${expanded ? " expanded" : ""}`}>
+    // EPIC-P43 T43.4: einzeilig, solange niemand schreibt; Fokus oder Text klappt die Eingabe auf.
+    <div
+      class={`composer${expanded ? " expanded" : ""}${!touched && !value.trim() && !expanded ? " compact" : ""}`}
+      // Nur das Eingabefeld klappt auf, und es bleibt offen: klappte es beim Verlassen wieder zu, verschöbe
+      // sich das Layout unter dem Finger und der Klick auf die Taste darunter ginge ins Leere.
+      onFocusIn={(e) => {
+        if (e.target === inputRef.current) setTouched(true);
+      }}
+    >
       <textarea
         ref={inputRef}
         class="composer-input"
@@ -502,7 +512,7 @@ export function Composer({
           {listening ? "…" : recording ? <StopGlyph /> : <MicGlyph />}
         </button>
         <button
-          class={enhancing ? "btn icon-btn busy" : "btn icon-btn"}
+          class={enhancing ? "btn icon-btn composer-more busy" : "btn icon-btn composer-more"}
           type="button"
           aria-busy={enhancing}
           aria-label={enhancing ? "lädt…" : "Verbessern"}

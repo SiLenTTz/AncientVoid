@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 
 /**
  * BUG-0046: liefert der Anbieter den Denk-Text nicht (leerer Block mit Signatur),
@@ -15,7 +15,7 @@ test("BUG-0046: ein Denk-Block ohne Text ist eine ruhige Zeile ohne leeren Inhal
   await expect(app.locator(".event.thinking")).toHaveCount(0);
 
   // Verlauf: eine Zeile mit der Erklärung, nichts zum Aufklappen oder Kopieren.
-  await app.getByRole("button", { name: "Verlauf" }).click();
+  await sessionTab(app, "Verlauf");
   await app.getByRole("button", { name: "Debuggen" }).click();
   const row = app.locator(".event.thinking.withheld");
   await expect(row).toHaveCount(1);

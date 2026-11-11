@@ -10,6 +10,8 @@ test.describe("Eingabefeld (QoL 2026-10-29)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     const field = app.getByPlaceholder("Antworten…");
     await expect(field).toBeVisible();
+    // EPIC-P43 T43.4: einzeilig bis zum ersten Fokus, danach frei größenziehbar.
+    await field.click();
     expect(await field.evaluate((el) => getComputedStyle(el).resize)).toBe("vertical");
     const before = (await field.boundingBox())!.height;
     await field.fill(Array.from({ length: 10 }, (_, i) => `Zeile ${i + 1} mit etwas Text`).join("\n"));

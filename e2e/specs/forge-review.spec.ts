@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 import type { TestHub } from "../support/hub.ts";
 
@@ -14,7 +14,7 @@ const MR_URL = "https://gitlab.example/team/proj/-/merge_requests/7";
 
 async function openForge(app: Page, hub: TestHub, id: string): Promise<void> {
   await app.goto(`${hub.origin}/#/sessions/${id}`);
-  await app.getByRole("button", { name: "GitLab" }).click();
+  await sessionTab(app, "GitLab");
 }
 
 test.describe("GitLab im Session-Kontext (EPIC-P37)", () => {

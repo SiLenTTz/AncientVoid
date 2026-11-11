@@ -1,10 +1,10 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 
 test.describe("Code und Aktionen (T7.6, AC-P7-6)", () => {
   test("eine bekannte Funktion in .ts und .py finden, mit Zeilenanker öffnen — auch nach dem Neuladen", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Code", exact: true }).click();
+    await sessionTab(app, "Code");
     await app.getByLabel("Code durchsuchen").fill("parseToken");
     await app.getByRole("button", { name: "Suchen" }).click();
     const first = app.locator(".code-hit").first();
@@ -40,7 +40,7 @@ test.describe("Code und Aktionen (T7.6, AC-P7-6)", () => {
   test("eine registrierte Aktion läuft im Worktree, mit Status und Ausgabe", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Code", exact: true }).click();
+    await sessionTab(app, "Code");
     const row = app.locator(".action-row").filter({ hasText: "Git-Status" });
     await row.getByRole("button", { name: "Ausführen" }).click();
     const run = app.locator(".action-run").first();

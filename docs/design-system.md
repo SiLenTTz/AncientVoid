@@ -141,6 +141,25 @@ Farbe, Form und Bewegung sagen dasselbe; jede der drei reicht allein.
 - `.pill` bleibt für Mengen- und Dienstangaben (Projekte, Hosts, Workspace-Dienste), nicht für
   Session-Zustand.
 
+## Session in Zügen (`features/session/turns.ts`, `ChatTurns.tsx`, `40-turns.css`, EPIC-P43 T43.4)
+
+- **Zug:** Auftrag → Arbeit → Antwort. `turnsOf(events, live)` ist eine reine Funktion über den
+  vollständigen Strom; Werkzeugaufruf und Ergebnis werden zu einem Schritt mit Verb („Liest“,
+  „Bearbeitet“, „Führt aus“, „Sucht“ …), Ziel und Kurzform. Systemereignisse stehen nicht im Chat,
+  unbekannte Typen als eine Zeile „n unbekannte Ereignisse · im Verlauf ansehen“. Der Verlauf bleibt
+  vollständig.
+- **Falten:** laufende Arbeit offen, der aktuelle Schritt schimmert (`mv-shimmer`), am Zugende rastet
+  das Zeichen ein (`mv-snap`) und die Arbeit faltet zu „4 Schritte · 2 gelesen · 1 bearbeitet · 8 s“.
+  Auf/zu ist Gerätezustand (`sessionStorage`), kein Session-Zustand.
+- **Statuszeile** (`StatusLine.tsx`): nur Gemessenes — Σ Tokens (zählt mit `useCounted`), Kontext mit
+  Balken ab bekanntem Fenster (Schwellen 80/95 %), Kontingent nur mit Meldung. Unbekanntes steht im
+  Bericht (Kleinkram-Regel 1).
+- **Reiter:** Chat · Änderungen (Diff, darunter der Bericht; Zahl der Dateien) · Dateien (Code) · Mehr
+  (Verlauf, Bericht, Datei, Graph, GitLab, Suche, Umgebung). Am Handy/Tablet ist „Mehr“ ein Blatt am
+  unteren Rand, in der PC-Kachel öffnet es neben der Leiste.
+- **Composer:** einzeilig (`.compact`), solange das Feld weder Fokus noch Text hat; „Verbessern“
+  erscheint erst dann. Fokus auf einem Knopf klappt nicht auf (der Klick ginge sonst ins Leere).
+
 ## Formularelemente (`shared/forms.tsx`, `37-forms.css`)
 
 Formularelemente sind App-Bausteine, kein Browser-Standard: `Field`, `Select`, `Switch`,

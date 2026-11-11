@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, openLayer } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 import type { TestHub } from "../support/hub.ts";
 
@@ -10,7 +10,7 @@ import type { TestHub } from "../support/hub.ts";
  * Zeilen-/Spaltensprung (CRLF, Emoji) und Datei-Feedback an eine Session (Revision-gebunden, quoted data).
  */
 async function openFile(app: Page, hub: TestHub, path: string): Promise<void> {
-  if (!(await app.getByTestId("files-sidebar").isVisible().catch(() => false))) await app.getByRole("button", { name: "Dateibaum öffnen" }).click();
+  if (!(await app.getByTestId("files-sidebar").isVisible().catch(() => false))) await openLayer(app, "Dateibaum");
   await app.getByLabel("Dateiquelle").selectOption(`p:${hub.alpha}`);
   await app.getByTestId("files-sidebar").locator(`[data-path="${path}"]`).click();
   await app.getByRole("group", { name: "Ansicht" }).getByRole("button", { name: "Diagnose" }).click();

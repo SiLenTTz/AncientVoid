@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 
 test.describe("Deep-Link und Attach (AC-P5-5)", () => {
   test("ein Session-Link öffnet nach Reload dieselbe Session @desktop", async ({ app, hub }) => {
@@ -18,7 +18,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
   test("ohne tmux gibt es nie einen Attach-Befehl", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite LANGSAM" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Bericht" }).click();
+    await sessionTab(app, "Bericht");
     await expect(app.locator(".kv-list")).toBeVisible();
     await expect(app.locator(".attach-cmd-card")).toHaveCount(0);
   });
@@ -30,7 +30,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
       const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite LANGSAM" });
       await hub.until(async () => (await hub.events(id)).some((e) => e.type === "tool_use"), "worker running");
       await app.goto(`${hub.origin}/#/sessions/${id}`);
-      await app.getByRole("button", { name: "Bericht" }).click();
+      await sessionTab(app, "Bericht");
       await expect(app.locator(".attach-cmd-card code")).toHaveText(`tmux attach -t ancientvoid-${id}`);
       await app.getByRole("button", { name: "Stop" }).click();
       await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "stopped");
@@ -46,7 +46,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     const workdir = String((await hub.events(id)).find((e) => e.payload.kind === "session.created")?.payload.workdir);
 
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Bericht" }).click();
+    await sessionTab(app, "Bericht");
     await expect(app.locator(".continue-open")).toHaveText(`cd ${workdir} && opencode --session ${native}`);
     await expect(app.locator(".continue-link")).toHaveText(`${hub.origin}/#/sessions/${id}`);
     await app.locator(".continue-card .attach-cmd-row").last().getByRole("button", { name: "Kopieren" }).click();
@@ -60,7 +60,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite LANGSAM" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "tool_use"), "turn running");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Bericht" }).click();
+    await sessionTab(app, "Bericht");
     await expect(app.locator(".continue-none")).toBeVisible();
     await expect(app.locator(".continue-open")).toHaveCount(0);
     await expect(app.locator(".continue-link")).toContainText(`#/sessions/${id}`);
@@ -72,7 +72,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     const workdir = String((await hub.events(id)).find((e) => e.payload.kind === "session.created")?.payload.workdir);
     expect(workdir).not.toBe(hub.alpha);
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Bericht" }).click();
+    await sessionTab(app, "Bericht");
     await expect(app.locator(".worktree-card")).toContainText(`ancientvoid/${id}`);
     await expect(app.locator(".worktree-card")).toContainText("nicht in alpha");
     await expect(app.locator(".worktree-path")).toHaveText(workdir);
@@ -93,7 +93,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     expect(existsSync(`${hub.alpha}/e2e-change.txt`)).toBe(false);
 
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Bericht" }).click();
+    await sessionTab(app, "Bericht");
     await app.getByRole("button", { name: "Ins Projekt übernehmen" }).click();
     await expect(app.locator(".apply-confirm")).toContainText("in den ausgecheckten Branch von alpha");
     await app.getByRole("button", { name: "Jetzt übernehmen" }).click();

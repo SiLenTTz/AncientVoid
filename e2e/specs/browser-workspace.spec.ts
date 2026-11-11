@@ -1,4 +1,4 @@
-import { test, expect, openFromOverview } from "../support/fixtures.ts";
+import { test, expect, openFromOverview, openLayer } from "../support/fixtures.ts";
 import { startScratch } from "../support/scratch-web.ts";
 import type { Page } from "@playwright/test";
 import type { TestHub } from "../support/hub.ts";
@@ -17,7 +17,7 @@ test.use({ hubOptions: { browserOrigins: [scratch.origin] } });
 async function openBrowser(app: Page, hub: TestHub): Promise<string> {
   const id = await hub.createSession({ adapter: "dummy" });
   await openFromOverview(app, "dummy");
-  await app.getByRole("button", { name: "Browser öffnen" }).click();
+  await openLayer(app, "Browser");
   await expect(app.getByTestId("browser-context")).toContainText("dieser Host");
   return id;
 }

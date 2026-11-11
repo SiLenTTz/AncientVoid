@@ -18,7 +18,8 @@ test.describe("Desktop-Workspace (EPIC-P18)", () => {
     await expect(app.locator(".tile-layout-btn.active")).toHaveAttribute("aria-label", "Vier als Raster");
     for (const [n, name] of ["Eins", "Zwei", "Drei", "Vier"].entries()) {
       await expect(tile(app, n + 1).locator(".session-top-title")).toHaveText(`Aufgabe ${name}`);
-      await expect(tile(app, n + 1).locator(".run-tokens")).toContainText("Kontext");
+      // EPIC-P43 T43.4: die Statuszeile zeigt nur Gemessenes; die Attrappe meldet Tokens, kein Kontextfenster.
+      await expect(tile(app, n + 1).locator(".run-tokens")).toContainText("Tokens");
     }
     await expect(tile(app, 4)).toHaveClass(/focused/);
     // Half-height tiles: every tile folds its controls, not only new ones.

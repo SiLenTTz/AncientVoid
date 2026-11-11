@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, openLayer } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 import type { TestHub } from "../support/hub.ts";
 
@@ -10,7 +10,7 @@ import type { TestHub } from "../support/hub.ts";
  * Reload. Syntaxfarben/Diagnosen (T46.7) und Office/Notebook-Ansichten sind noch nicht Teil dieses Specs.
  */
 async function openFiles(app: Page, hub: TestHub): Promise<void> {
-  await app.getByRole("button", { name: "Dateibaum öffnen" }).click();
+  await openLayer(app, "Dateibaum");
   await app.getByLabel("Dateiquelle").selectOption(`p:${hub.alpha}`);
   await expect(app.getByTestId("files-identity")).toContainText("Projektordner");
 }

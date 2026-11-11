@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 
 /**
  * EPIC-P29 T29.7: die Workspace-Runtime als echter Ablauf — Start → Freigabe
@@ -83,7 +83,7 @@ test.describe("EPIC-P29: Workspace-Runtime (T29.7)", () => {
 
     // UI: Umgebung zeigt den Fehler, der Mensch retryt (AC-P29-3).
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Umgebung" }).click();
+    await sessionTab(app, "Umgebung");
     await expect(app.locator(".workspace-runtime .ws-phase-failed")).toBeVisible();
     await expect(app.locator(".ws-failure")).toContainText("vorbereiten");
     await app.getByRole("button", { name: /Setup wiederholen/ }).click();
@@ -195,7 +195,7 @@ test.describe("EPIC-P29: Workspace-Runtime (T29.7)", () => {
     await hub.until(async () => (await hub.api<{ phase: string }>(`/api/sessions/${id}/workspace`)).body.phase === "failed", "failed (erster Lauf)");
 
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Umgebung" }).click();
+    await sessionTab(app, "Umgebung");
     await expect(app.locator(".workspace-runtime .ws-phase-failed")).toBeVisible();
 
     // Offline während der Ansicht: aktualisieren scheitert, der letzte Stand

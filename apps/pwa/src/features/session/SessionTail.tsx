@@ -35,7 +35,10 @@ import { QuickConfirm, lastAssistantQuestion } from "./QuickConfirm.tsx";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { estimateText, formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
-import { ContextBar } from "./ContextBar.tsx";
+import { StatusLine } from "./StatusLine.tsx";
+import { openLayer } from "../../shared/layers.ts";
+import { ChatTurns, itemFirstSeq, itemLastSeq } from "./ChatTurns.tsx";
+import { turnsOf } from "./turns.ts";
 import { LoopBadge, LoopPanel } from "../loops/LoopPanel.tsx";
 import { deriveLoopView } from "../loops/loop-view.ts";
 import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, latestModelName, tokenText } from "./run-stats.ts";
@@ -193,6 +196,23 @@ export function SessionTail({
   const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "graph" | "datei" | "forge" | "suche" | "code" | "umgebung">(() =>
     initialCode ? "code" : initialTab === "graph" ? "graph" : initialFile ? "datei" : loadFilter() === "lesen" ? "chat" : "verlauf",
   );
+  const [moreOpen, setMoreOpen] = useState(false);
+  // „Mehr“ schließt bei Escape und bei einem Tipp daneben — am Handy deckt das Blatt die Reiter ab.
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMoreOpen(false);
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!(e.target as Element | null)?.closest?.(".subtabs-more-wrap")) setMoreOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onDown);
+    };
+  }, [moreOpen]);
   /** EPIC-P48: im Datei-Tab geöffnete Datei (Knoten-Klick aus dem Graph). */
   const [openFile, setOpenFile] = useState<string | null>(initialFile ?? null);
 
@@ -355,7 +375,7 @@ export function SessionTail({
       .sessionDiff(session.id)
       .then((d) => alive && setDiff(d))
       .catch(() => alive && setDiff(null));
-    if (activeTab === "bericht") {
+    {
       api
         .adapterUsage(session.adapter)
         .then((u) => alive && setUsage(u))
@@ -526,6 +546,12 @@ export function SessionTail({
   // Focus brings the full history back.
   const visible = useMemo(() => (backgroundTile && filtered.length > BACKGROUND_ROWS ? filtered.slice(-BACKGROUND_ROWS) : filtered), [filtered, backgroundTile]);
   const hiddenOlder = filtered.length - visible.length;
+  // EPIC-P43 T43.4: der Chat in Zügen — aus dem ungefilterten Strom, damit Schritte nicht verloren gehen.
+  const live = status === "working" || status === "starting";
+  const chatItems = useMemo(() => {
+    const all = turnsOf(shownEvents, live);
+    return backgroundTile && all.length > BACKGROUND_ROWS ? all.slice(-BACKGROUND_ROWS) : all;
+  }, [shownEvents, live, backgroundTile]);
   const firstNew = seenAt.current !== null && seenAt.current > 0 ? visible.find((e) => e.seq > seenAt.current!) : undefined;
   const newCount = firstNew ? visible.filter((e) => e.seq >= firstNew.seq).length : 0;
 
@@ -693,24 +719,64 @@ export function SessionTail({
   // Ja/Nein-Rückfrage: die letzte Assistant-Nachricht endet auf „?“ —
   // QuickConfirm bietet dann Ja/Nein, solange das Antwortfeld leer ist.
   const agentQuestion = lastAssistantQuestion(shownEvents);
-  const TABS: { id: typeof activeTab; label: string; icon: TabIconName; show: () => void }[] = [
-    { id: "chat", label: "Chat", icon: "chat", show: showChatTab },
+  // EPIC-P43 T43.4: vier Reiter — Chat, Änderungen (Diff und Bericht), Dateien (Code, Datei), Mehr.
+  // Die übrigen Ansichten liegen unter „Mehr“; ihre Adressen und Zustände bleiben dieselben.
+  type Tab = typeof activeTab;
+  const MAIN: { label: string; icon: TabIconName; tabs: readonly Tab[]; show: () => void; count?: number }[] = [
+    { label: "Chat", icon: "chat", tabs: ["chat"], show: showChatTab },
+    { label: "Änderungen", icon: "diff", tabs: ["diff", "bericht"], show: showDiffTab, count: diff?.files.length ?? 0 },
+    { label: "Dateien", icon: "datei", tabs: ["code", "datei"], show: showCodeTab },
+  ];
+  const MORE: { id: Tab; label: string; icon: TabIconName; show: () => void }[] = [
     { id: "verlauf", label: "Verlauf", icon: "verlauf", show: showVerlaufTab },
     { id: "bericht", label: "Bericht", icon: "bericht", show: showBerichtTab },
-    { id: "diff", label: "Diff", icon: "diff", show: showDiffTab },
-    { id: "graph", label: "Graph", icon: "graph", show: () => setActiveTab("graph") },
+    // Die aus dem Graph geöffnete Datei (EPIC-P48); ohne Datei sagt die Ansicht das selbst.
     { id: "datei", label: "Datei", icon: "datei", show: () => setActiveTab("datei") },
+    { id: "graph", label: "Graph", icon: "graph", show: () => setActiveTab("graph") },
     { id: "forge", label: "GitLab", icon: "forge", show: () => setActiveTab("forge") },
     { id: "suche", label: "Suche", icon: "suche", show: showSucheTab },
-    { id: "code", label: "Code", icon: "code", show: showCodeTab },
     { id: "umgebung", label: "Umgebung", icon: "umgebung", show: showUmgebungTab },
   ];
-  const tabButtons = TABS.map((t) => (
-    <button key={t.id} type="button" class={activeTab === t.id ? "active" : ""} title={t.label} aria-current={activeTab === t.id ? "page" : undefined} onClick={t.show}>
-      <TabIcon name={t.icon} />
-      <span class="lb">{t.label}</span>
-    </button>
-  ));
+  const inMore = MORE.some((m) => m.id === activeTab && !MAIN.some((t) => t.tabs.includes(m.id)));
+  const tabButtons = (
+    <>
+      {MAIN.map((t) => {
+        const on = t.tabs.includes(activeTab);
+        return (
+          <button key={t.label} type="button" class={on ? "active" : ""} title={t.label} aria-current={on ? "page" : undefined} onClick={() => { setMoreOpen(false); t.show(); }}>
+            <TabIcon name={t.icon} />
+            <span class="lb">{t.label}</span>
+            {t.count ? <span class="tab-count num">{t.count}</span> : null}
+          </button>
+        );
+      })}
+      <span class="subtabs-more-wrap">
+        <button type="button" class={inMore ? "active" : ""} title="Mehr" aria-haspopup="menu" aria-expanded={moreOpen} aria-current={inMore ? "page" : undefined} onClick={() => setMoreOpen((on) => !on)}>
+          <TabIcon name="mehr" />
+          <span class="lb">{inMore ? (MORE.find((m) => m.id === activeTab)?.label ?? "Mehr") : "Mehr"}</span>
+        </button>
+        {moreOpen && (
+          <div class="subtabs-more" role="menu" aria-label="Weitere Ansichten">
+            {MORE.map((m) => (
+              <button key={m.id} type="button" role="menuitem" class={activeTab === m.id ? "active" : ""} onClick={() => { setMoreOpen(false); m.show(); }}>
+                <TabIcon name={m.icon} />
+                <span>{m.label}</span>
+              </button>
+            ))}
+            {/* Ebenen über der Session (EPIC-P43, Regel 6: ohne Randlasche über dem Inhalt). */}
+            <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); openLayer("browser"); }}>
+              <TabIcon name="browser" />
+              <span>Browser</span>
+            </button>
+            <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); openLayer("devices"); }}>
+              <TabIcon name="geraete" />
+              <span>Geräte</span>
+            </button>
+          </div>
+        )}
+      </span>
+    </>
+  );
   const showVerlaufFilterBar = activeTab === "verlauf";
 
   return (
@@ -849,18 +915,7 @@ export function SessionTail({
               {estimateText(estimate, progress.elapsedMs) ? ` · ${estimateText(estimate, progress.elapsedMs)}` : ""}
             </div>
           ))}
-        {/* One line, never wrapping: quota, then the always-present token line
-            (used tokens and free context, or that they are unknown). On a
-            phone it scrolls sideways instead of taking height (AC-P8-5). */}
-        {/* Tokens and context first: they are the short, important part; the quota sentence is long
-            and scrolls sideways on a phone. */}
-        <div class="run-meta">
-          <span class={`run-tokens ${contextLevel(tokenStats.lastContextTokens, windowTokens) ?? ""}`}>
-            {tokenText(tokensKnown, record.tokensEst)} · {context}
-          </span>
-          <span class={`run-quota ${quota.level}`}>{quota.text}</span>
-        </div>
-        <ContextBar fill={tokenStats.lastContextTokens} windowTokens={windowTokens} />
+        <StatusLine tokens={tokensKnown ? record.tokensEst : null} fill={tokenStats.lastContextTokens} windowTokens={windowTokens} quota={quota} />
       </div>
 
       {factoryLink?.partner && <div class="loop-note">Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
@@ -908,7 +963,21 @@ export function SessionTail({
             context={{ fill: tokenStats.lastContextTokens, window: windowTokens }}
           />
         ) : activeTab === "diff" ? (
-          <DiffReview diff={diff} session={session} />
+          <>
+            <DiffReview diff={diff} session={session} />
+            <section class="changes-report" aria-label="Bericht">
+              <h3 class="section-title">Bericht</h3>
+              <ReportPane
+                record={record}
+                createdAt={session.createdAt}
+                status={status}
+                numbersReal={reportNumbersReal}
+                diff={diff}
+                usage={usage}
+                context={{ fill: tokenStats.lastContextTokens, window: windowTokens }}
+              />
+            </section>
+          </>
         ) : activeTab === "forge" ? (
           <ForgePanel session={session} onOpenSession={(id) => { location.hash = sessionHash(id, remoteHost(session.hostId)); }} />
         ) : activeTab === "graph" ? (
@@ -959,9 +1028,45 @@ export function SessionTail({
         ) : activeTab === "suche" ? (
           <SearchPane project={session.project} />
         ) : activeTab === "code" ? (
-          <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} {...(initialCode ? { initial: initialCode } : {})} onOpenDiff={showDiffTab} />
+          <>
+            <div class="view-head">
+              <button class="btn" type="button" aria-label="Dateibaum öffnen" title="Dateibaum (Strg+Umschalt+E)" onClick={() => openLayer("files")}>
+                Dateibaum
+              </button>
+            </div>
+            <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} {...(initialCode ? { initial: initialCode } : {})} onOpenDiff={showDiffTab} />
+          </>
         ) : activeTab === "umgebung" ? (
           <WorkspaceRuntimePane sessionId={session.id} refreshSeq={workspaceSeq} />
+        ) : activeTab === "chat" ? (
+          chatItems.length === 0 ? (
+            <div class="empty">{live ? `lädt…${shownModel ? ` · ${shownModel}` : ""}` : "keine Nachrichten"}</div>
+          ) : (
+            <ChatTurns
+              key={session.id}
+              sessionId={session.id}
+              items={chatItems}
+              expanded={expanded}
+              onToggleExpand={toggleExpanded}
+              onJump={jumpTo}
+              firstNewSeq={firstNew?.seq ?? null}
+              onOpenVerlauf={showVerlaufTab}
+              after={(item, next) => {
+                if (item.kind !== "event" && item.kind !== "work") return null;
+                const last = item.kind === "event" ? item.event.seq : itemLastSeq(item);
+                const closed = turnsClosedBetween(tokenStats.turns, last, next ? itemFirstSeq(next) : null);
+                if (closed.length === 0) return null;
+                const turnTokens = closed.reduce((sum, t) => sum + t.tokens, 0);
+                const turnFill = closed[closed.length - 1]!.contextTokens;
+                return (
+                  <div class="turn-stats dim">
+                    Zug {tokenStats.turns.findIndex((t) => t.endSeq === closed[0]!.endSeq) + 1}: {turnTokens.toLocaleString("de-DE")} Tokens
+                    {turnFill !== null ? ` · Kontext ${turnFill.toLocaleString("de-DE")}` : ""}
+                  </div>
+                );
+              }}
+            />
+          )
         ) : visible.length === 0 ? (
           <div class="empty">
             {status === "working" || status === "starting"

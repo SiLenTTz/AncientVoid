@@ -1,4 +1,4 @@
-import { test, expect, statusPill, dockGo, openQuiet } from "../support/fixtures.ts";
+import { test, expect, statusPill, dockGo, openQuiet, sessionTab } from "../support/fixtures.ts";
 
 test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
   test("eine neue Session startet aus der UI und öffnet sich per Link @desktop", async ({ app, hub }) => {
@@ -152,7 +152,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Lies alles GROSS" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "assistant reply");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Verlauf" }).click();
+    await sessionTab(app, "Verlauf");
     await expect(app.locator(".event.tool_use")).toHaveCount(1);
     await expect(app.locator(".event.tool_result")).toHaveCount(0);
     await app.getByRole("button", { name: "Debuggen" }).click();
@@ -161,7 +161,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     // user's reload never lands inside the same frame.
     await expect.poll(() => app.evaluate(() => localStorage.getItem("ancientvoid.filter"))).toBe("debuggen");
     await app.reload();
-    await app.getByRole("button", { name: "Verlauf" }).click();
+    await sessionTab(app, "Verlauf");
     await expect(app.getByRole("button", { name: "Debuggen" })).toHaveClass(/active/);
     await expect(app.locator(".event.tool_result")).toHaveCount(1);
   });
@@ -173,7 +173,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
       const id = await hub.createSession({ adapter: "dummy" });
       await hub.until(async () => (await hub.events(id)).some((e) => e.summary === "dummy: auto-stop reached"), "dummy done", 20_000);
       await app.goto(`${hub.origin}/#/sessions/${id}`);
-      await app.getByRole("button", { name: "Verlauf" }).click();
+      await sessionTab(app, "Verlauf");
       await app.getByRole("button", { name: "Debuggen" }).click();
       await expect(app.getByText("dummy: auto-stop reached")).toBeVisible();
       const last = (await hub.events(id)).at(-1)!.seq;
@@ -184,7 +184,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
   test("jedes Event erscheint genau einmal, auch beim Öffnen mitten im Lauf (BUG-0023)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Verlauf" }).click();
+    await sessionTab(app, "Verlauf");
     await app.getByRole("button", { name: "Debuggen" }).click();
     await hub.until(async () => (await hub.events(id)).some((e) => e.summary === "dummy: auto-stop reached"), "dummy done");
     const api = (await hub.events(id)).map((e) => e.seq);
@@ -206,7 +206,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "assistant reply");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Verlauf" }).click();
+    await sessionTab(app, "Verlauf");
     const card = app.locator(".event.tool_use").first();
     await card.click();
     await expect(card).toHaveClass(/expanded/);
@@ -224,7 +224,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "assistant reply");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Bericht" }).click();
+    await sessionTab(app, "Bericht");
     const row = (label: string) => app.locator(".kv-row").filter({ hasText: label }).locator(".v");
     await expect(row("Kosten")).toContainText("$0.0012");
     await expect(row("Tokens")).toContainText("321");
@@ -235,7 +235,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const id = await hub.createSession({ adapter: "dummy" });
     await hub.until(async () => (await hub.events(id)).some((e) => typeof (e as { tokensEst?: number }).tokensEst === "number"), "dummy tokens");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Bericht" }).click();
+    await sessionTab(app, "Bericht");
     const row = (label: string) => app.locator(".kv-row").filter({ hasText: label }).locator(".v");
     await expect(row("Kosten")).toHaveText("nicht gemeldet");
     await expect(row("Kosten")).toHaveAttribute("title", /keine 0/);
@@ -248,7 +248,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an" });
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "assistant reply");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Diff" }).click();
+    await sessionTab(app, "Diff");
     const file = app.locator(".diff-file-row").filter({ hasText: "e2e-change.txt" });
     await expect(file).toBeVisible();
     await expect(file.locator(".diff-add-count")).toHaveText("+1");
@@ -277,7 +277,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
       await git("git", ["-C", workdir, ...identity, "commit", "-qm", subject]);
     }
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Diff" }).click();
+    await sessionTab(app, "Diff");
     const headings = app.locator(".diff-commit-heading");
     await expect(headings).toHaveCount(3);
     await expect(headings.nth(0)).toContainText("feat: erster Schritt");
@@ -309,7 +309,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
   test("die Suche findet Text in der Projekt-Doku und öffnet die Datei", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Suche" }).click();
+    await sessionTab(app, "Suche");
     await app.getByPlaceholder("Doku durchsuchen (Markdown)…").fill("Handbuch");
     await app.getByRole("button", { name: "Suchen" }).click();
     const hit = app.locator(".search-result-card").filter({ hasText: "README.md" });
@@ -326,7 +326,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
   test("ein Provider-Absturz bleibt im Verlauf sichtbar", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Bitte FEHLER" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Verlauf" }).click();
+    await sessionTab(app, "Verlauf");
     await expect(app.getByText("opencode: process exited with code 3")).toBeVisible();
     await expect(statusPill(app)).not.toHaveText("stopped");
   });

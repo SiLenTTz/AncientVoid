@@ -1,4 +1,4 @@
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 import type { TestHub } from "../support/hub.ts";
 import { writeFile } from "node:fs/promises";
@@ -23,7 +23,7 @@ async function idle(hub: TestHub, id: string): Promise<void> {
 
 async function openDiff(app: Page, hub: TestHub, id: string): Promise<void> {
   await app.goto(`${hub.origin}/#/sessions/${id}`);
-  await app.getByRole("button", { name: "Diff" }).click();
+  await sessionTab(app, "Diff");
 }
 
 test.describe("Review-Feedback am Diff (EPIC-P36)", () => {
@@ -67,7 +67,7 @@ test.describe("Review-Feedback am Diff (EPIC-P36)", () => {
       // goto mit neuem Hash ist KEIN Reload — die Ansicht muss wirklich neu
       // mounten, damit Diff (und damit die Ankerbewertung) neu geholt wird.
       await app.reload();
-      await app.getByRole("button", { name: "Diff", exact: true }).click();
+      await sessionTab(app, "Diff");
       if (await stale.locator(".review-stale-badge").count()) break;
       await new Promise((r) => setTimeout(r, 1500));
     }

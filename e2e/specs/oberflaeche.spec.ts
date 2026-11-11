@@ -1,4 +1,4 @@
-import { test, expect, dockGo } from "../support/fixtures.ts";
+import { test, expect, dockGo, sessionTab } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
 import type { Page } from "@playwright/test";
 import { writeFileSync } from "node:fs";
@@ -122,13 +122,13 @@ test.describe("Schimmernde Kontextleiste (EPIC-P20 T20.5)", () => {
     await expect(bar(app)).toHaveAttribute("aria-valuenow", "96");
   });
 
-  test("ohne Meldung des Providers: gestreifte, ruhige Leiste mit „unbekannt“ (fail loud)", async ({ app, hub }) => {
+  // EPIC-P43 T43.4 (Kleinkram-Regel 1): ohne Meldung keine Leiste in der Statuszeile; laut bleibt der Bericht.
+  test("ohne Meldung des Providers: keine Leiste, der Bericht nennt die fehlende Meldung", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await expect(bar(app)).toHaveClass(/unknown/);
-    await expect(bar(app)).toHaveAttribute("aria-valuetext", /unbekannt/);
-    await expect(bar(app)).not.toHaveAttribute("aria-valuenow");
-    await expect(bar(app).locator(".ctx-fill")).toBeHidden();
+    await expect(app.locator(".run-strip .ctx-bar")).toHaveCount(0);
+    await sessionTab(app, "Bericht");
+    await expect(app.locator(".kv-row").filter({ hasText: "Kontextfenster" })).toContainText("keine Meldung");
   });
 
   test("Einstellung „Schimmer“ und Systemvorgabe stoppen die Bewegung", async ({ app, hub }) => {
@@ -163,7 +163,7 @@ test.describe("Diff in voller Breite (EPIC-P20 T20.1)", () => {
       const id = await sessionWithBigDiff(hub);
       await app.goto(`${hub.origin}/#/sessions/${id}`);
       await app.getByRole("button", { name: "Liste einklappen" }).click();
-      await app.getByRole("button", { name: "Diff" }).click();
+      await sessionTab(app, "Diff");
       const pane = app.locator(".diff-pane");
       await expect(pane.locator(".diff-file-row")).toHaveCount(4);
       const [tile, files, main] = await Promise.all([app.locator(".tile").boundingBox(), pane.locator(".diff-files").boundingBox(), pane.locator(".diff-main").boundingBox()]);
@@ -189,7 +189,7 @@ test.describe("Diff in voller Breite (EPIC-P20 T20.1)", () => {
       await app.getByRole("button", { name: "Steuerung einblenden" }).click();
       await expect(app.getByPlaceholder("Antworten…")).toBeVisible();
       await app.getByRole("button", { name: "Chat" }).click();
-      await app.getByRole("button", { name: "Diff" }).click();
+      await sessionTab(app, "Diff");
       await expect(app.getByPlaceholder("Antworten…")).toHaveCount(0);
     });
   });
@@ -200,7 +200,7 @@ test.describe("Diff in voller Breite (EPIC-P20 T20.1)", () => {
     test("bleibt gestapelt: die Dateiliste steht über dem Code, das Dock unverändert", async ({ app, hub }) => {
       const id = await sessionWithBigDiff(hub);
       await app.goto(`${hub.origin}/#/sessions/${id}`);
-      await app.getByRole("button", { name: "Diff" }).click();
+      await sessionTab(app, "Diff");
       const [files, main] = await Promise.all([app.locator(".diff-pane > .diff-files").boundingBox(), app.locator(".diff-pane > .diff-main").boundingBox()]);
       expect(files!.y + files!.height).toBeLessThanOrEqual(main!.y + 1);
       expect(Math.abs(files!.x - main!.x)).toBeLessThan(2);
