@@ -25,6 +25,14 @@ const PHONE_SPECS = [
   "workspace.spec.ts",
   "code.spec.ts",
   "browser-workspace.spec.ts",
+  // EPIC-P43 T43.9: Geräteabnahme des Umbaus.
+  "start-warteschlange.spec.ts",
+  "chat-zuege.spec.ts",
+  "kleinkram.spec.ts",
+  "nyx-blatt.spec.ts",
+  "schnellsuche.spec.ts",
+  "tastatur-screenreader.spec.ts",
+  "funktionsinventar.spec.ts",
 ];
 
 export default defineConfig({
