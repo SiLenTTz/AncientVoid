@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -135,5 +135,42 @@ describe("vault routes (integration, EPIC-P49)", () => {
   it("Traversal über die API blockiert", async () => {
     const escape = await app.inject({ method: "GET", url: `/api/vault/file?path=${encodeURIComponent("../../etc/passwd")}`, headers: human });
     expect(escape.statusCode).toBe(422);
+  });
+
+  it("P51: externer Root über bestehende API, Symlink-Liste und unveränderte Agenten-403", async () => {
+    const outside = await mkdtemp(join(tmpdir(), "av-vault-external-"));
+    try {
+      const target = join(outside, "z-notizen");
+      await mkdir(target);
+      await writeFile(join(target, "test.md"), "# Extern\n");
+      await symlink(target, join(outside, "a-link"));
+      await symlink(outside, join(target, "zyklus"));
+      const put = await app.inject({ method: "PUT", url: "/api/vault/root", headers: human, payload: { path: outside } });
+      expect(put.statusCode).toBe(200);
+      expect(put.json().root).toBe(outside);
+      const start = await app.inject({ method: "GET", url: "/api/vault/browse", headers: human });
+      expect(start.json().roots).toContainEqual({ name: outside.split("/").at(-1), path: outside });
+      const list = await app.inject({ method: "GET", url: "/api/vault/files", headers: human });
+      expect(list.statusCode).toBe(200);
+      expect(list.json().files.map((f: { path: string }) => f.path)).toEqual(["a-link/test.md"]);
+      const read = await app.inject({ method: "GET", url: "/api/vault/file?path=a-link/test.md", headers: human });
+      expect(read.statusCode).toBe(200);
+      expect(read.json().text).toBe("# Extern\n");
+      const agent = { authorization: `Bearer ${agentToken}` };
+      for (const url of ["/api/vault/browse", "/api/vault/files", "/api/vault/file?path=a-link/test.md"]) {
+        expect((await app.inject({ method: "GET", url, headers: agent })).statusCode).toBe(403);
+      }
+      const agentPut = await app.inject({ method: "PUT", url: "/api/vault/root", headers: agent, payload: { path: base } });
+      expect(agentPut.statusCode).toBe(403);
+      await symlink(join(base, "hub", "data"), join(outside, "data-link"));
+      const denied = await app.inject({ method: "PUT", url: "/api/vault/root", headers: human, payload: { path: join(outside, "data-link") } });
+      expect(denied.statusCode).toBe(422);
+      expect(denied.json().error).toMatch(/Datenverzeichnis/);
+      const state = await app.inject({ method: "GET", url: "/api/vault/state", headers: human });
+      expect(state.json().root).toBe(outside);
+    } finally {
+      await app.inject({ method: "PUT", url: "/api/vault/root", headers: human, payload: { path: vaultDir } });
+      await rm(outside, { recursive: true, force: true });
+    }
   });
 });
