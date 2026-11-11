@@ -29,6 +29,8 @@ export class Orchestrator {
   private readonly port: OrchestrationSessionPort;
   private readonly opts: Required<OrchestrationOptions>;
   private timer: ReturnType<typeof setInterval> | undefined;
+  private activeTick: Promise<void> | null = null;
+  private tickRequested = false;
   /** Laufzeitbeobachtung: welche Dispatches schon working/starting gesehen wurden (Erste-idle-Erkennung). */
   private readonly seen = new Set<string>();
 
@@ -86,7 +88,17 @@ export class Orchestrator {
   }
 
   /** Ein Zyklus: Planerkennung, Worker-Enden, neue Dispatches im Rahmen. Idempotent; vom Hub-Timer und nach Aktionen gerufen. */
-  async tick(): Promise<void> {
+  tick(): Promise<void> {
+    if (this.activeTick) { this.tickRequested = true; return this.activeTick; }
+    const work = (async () => {
+      do { this.tickRequested = false; await this.processTick(); } while (this.tickRequested);
+    })();
+    this.activeTick = work;
+    void work.finally(() => { if (this.activeTick === work) this.activeTick = null; }).catch(() => undefined);
+    return work;
+  }
+
+  private async processTick(): Promise<void> {
     for (const run of this.store.list()) {
       if (run.status === "planning" && run.coordinatorSessionId) await this.readPlan(run.id);
       if (run.status === "running") {

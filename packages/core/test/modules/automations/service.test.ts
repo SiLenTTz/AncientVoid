@@ -57,6 +57,40 @@ async function harness(opts: { ok?: boolean } = {}): Promise<Harness> {
 }
 
 describe("automation service (T41.4)", () => {
+  it("does not accept activation supplied during creation", async () => {
+    const h = await harness();
+    expect(h.service.create(definition({ enabled: true }), PROMPT).enabled).toBe(false);
+  });
+
+  it("rejects a mismatched updated prompt before changing the approved definition", async () => {
+    const h = await harness();
+    const created = h.service.create(definition(), PROMPT);
+    h.service.setEnabled(created.id, true);
+    const approved = h.service.list()[0]!.definition;
+    expect(() => h.service.update(created.id, { ...approved, label: "changed" }, "wrong prompt")).toThrow(/passt nicht/);
+    expect(h.service.list()[0]!.definition).toEqual(approved);
+  });
+
+  it("rejects a changed prompt reference whose blob is absent", async () => {
+    const h = await harness();
+    const created = h.service.create(definition(), PROMPT);
+    const missing = { ...created, target: { ...created.target, promptBlobSha256: "a".repeat(64) } };
+    expect(() => h.service.update(created.id, missing)).toThrow(/Prompt/);
+    expect(h.service.list()[0]!.definition).toEqual(created);
+  });
+
+  it("stores a valid replacement prompt before dispatch", async () => {
+    const h = await harness();
+    const created = h.service.create(definition(), PROMPT);
+    const replacement = "Replacement prompt";
+    const next = { ...created, target: { ...created.target, promptBlobSha256: createHash("sha256").update(replacement).digest("hex") } };
+    const stored = h.service.update(created.id, next, replacement)!;
+    expect(stored.generation).toBe(2);
+    expect(stored.enabled).toBe(false);
+    await h.service.runNow(created.id);
+    expect(h.launched[0]!.promptText).toBe(replacement);
+  });
+
   it("starts disabled, validates the prompt blob and dispatches run-now with the blob text", async () => {
     const h = await harness();
     const created = h.service.create(definition(), PROMPT);

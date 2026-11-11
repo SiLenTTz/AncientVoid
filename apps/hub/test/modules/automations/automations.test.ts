@@ -92,10 +92,14 @@ describe("automations routes and policy (EPIC-P41 T41.4)", () => {
     expect(body.enabled).toBe(false);
     const id = body.id as string;
 
-    expect((await app.inject({ method: "POST", url: `/api/automations/${id}/enable`, headers: human, payload: { enabled: true } })).statusCode).toBe(200);
-    const runNow = await app.inject({ method: "POST", url: `/api/automations/${id}/run-now`, headers: human });
+    expect((await app.inject({ method: "POST", url: `/api/automations/${id}/enable`, headers: human, payload: { enabled: true, generation: 1 } })).statusCode).toBe(200);
+    const runNow = await app.inject({ method: "POST", url: `/api/automations/${id}/run-now`, headers: human, payload: { generation: 1 } });
     expect(runNow.statusCode).toBe(202);
-    expect(runNow.json().state).toBe("dispatched");
+    expect(runNow.json().operationId).toBeTruthy(); // eigene UUID-Operation (ADR-0065); der Claim wird nicht abgewartet
+    await expect.poll(async () => {
+      const h = await app.inject({ method: "GET", url: `/api/automations/${id}/history`, headers: human });
+      return h.json().history[0]?.state;
+    }).toBe("dispatched");
     expect(launched.at(-1)!.kind).toBe("run_now");
     expect(launched.at(-1)!.promptText).toBe(PROMPT);
 
@@ -104,10 +108,10 @@ describe("automations routes and policy (EPIC-P41 T41.4)", () => {
     expect(history.json().history[0].state).toBe("dispatched");
   });
 
-  it("a run target fails loud at creation in this build (P40 launcher not wired)", async () => {
+  it("an unknown run template fails loud without creating a definition", async () => {
     const human = { authorization: `Bearer ${humanToken}` };
     const res = await app.inject({ method: "POST", url: "/api/automations", headers: human, payload: { definition: { ...definition, target: { kind: "run", templateId: "tpl-1" } } } });
-    expect(res.statusCode).toBe(501);
+    expect(res.statusCode).toBe(400);
   });
 
   it("unknown ids and mismatched blobs fail loud, never silently", async () => {

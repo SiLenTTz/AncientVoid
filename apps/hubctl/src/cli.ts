@@ -66,6 +66,14 @@ Usage:
   hubctl workspace preview <sessionId> <serviceId>  Preview-URL mit 5-Minuten-Ticket
   hubctl browser <sessionId>                        Browser-Status/Ziele/Console (EPIC-P39, nur Lesen)
   hubctl browser tests <sessionId>                  Testläufe mit Status (EPIC-P39)
+  hubctl automations list                           geplante Läufe mit nächstem Termin und letztem Ergebnis (EPIC-P41)
+  hubctl automations show <id>                      Definition und Verlauf (Claims, Session-/Run-Verweise)
+  hubctl automations create <definition.json> [prompt.txt]   legt deaktiviert an; Session-Ziele brauchen den Prompt
+  hubctl automations update <id> <patch.json> [prompt.txt]  Änderungen speichern, neue Freigabe nötig
+  hubctl automations preview <id>                    nächste Termine mit Ortszeit und UTC
+  hubctl automations enable <id>                    Aktivierung = menschliche Freigabe (Generation bleibt)
+  hubctl automations disable <id>                   stoppt zukünftige Termine, laufende Arbeit unverändert
+  hubctl automations run-now <id>                   eigener Lauf jetzt; Ergebnis kommt aus der referenzierten Ausführung
   hubctl backup create --config <hub.config.json> --out <file> --key-file <file>
   hubctl backup restore --archive <file> --data-dir <empty-dir> --config-out <file> --key-file <file>
   hubctl backup prune --dir <archive-dir> --keep <count> [--apply]   preview unless --apply
@@ -331,6 +339,12 @@ async function main(): Promise<void> {
       const st = await api<{ state: string; url: string | null; viewport: string; allowedOrigins: string[]; unavailableReason: string | null; log: unknown[] }>(`/api/sessions/${id}/browser`);
       console.log(`browser: ${st.state}${st.unavailableReason ? ` (${st.unavailableReason})` : ""} url=${st.url ?? "-"} viewport=${st.viewport} console=${st.log.length}`);
       console.log(`ziele: ${st.allowedOrigins.join(", ") || "keine (kein laufender Workspace-Service, keine browserOrigins)"}`);
+      break;
+    }
+    case "automations": {
+      // EPIC-P41 T41.5: Liste/Editor/Run-now/Disable/Verlauf über die Hub-API (ADR-0064).
+      const { runAutomationsCommand } = await import("./automations.ts");
+      await runAutomationsCommand(args);
       break;
     }
     case "workers": {

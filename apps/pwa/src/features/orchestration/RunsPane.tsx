@@ -1,6 +1,7 @@
-import { useEffect, useState } from "preact/hooks";
+import { ApiContext, useApi } from "../../shared/api-context.ts";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import type { OrchestrationRun, OrchestrationRunStatus, OrchestrationTaskStatus } from "@ancientvoid/contracts";
-import { hubApi, type AdapterInfo, type DiscoveredProject } from "../../shared/api.ts";
+import { hostApi, type AdapterInfo, type DiscoveredProject } from "../../shared/api.ts";
 import { sessionHash } from "../../app/route.ts";
 
 /** Status-Pill: done grün, failed/unknown rot, awaiting_gate gelb, sonst neutral. */
@@ -101,6 +102,7 @@ function RunDetail({ run, onAnswer, onCancel, busy }: { run: OrchestrationRun; o
 }
 
 function NewRunForm({ adapters, projects, onCreated }: { adapters: AdapterInfo[]; projects: DiscoveredProject[]; onCreated: (run: OrchestrationRun) => void }) {
+  const api = useApi();
   const [title, setTitle] = useState("");
   const [goal, setGoal] = useState("");
   const [project, setProject] = useState(projects[0]?.name ?? "");
@@ -122,7 +124,7 @@ function NewRunForm({ adapters, projects, onCreated }: { adapters: AdapterInfo[]
     }
     setBusy(true);
     try {
-      const run = await hubApi.orchestrationStart({
+      const run = await api.orchestrationStart({
         title: title.trim(),
         goal: goal.trim(),
         project,
@@ -174,8 +176,15 @@ function NewRunForm({ adapters, projects, onCreated }: { adapters: AdapterInfo[]
 
 /** EPIC-P40: Orchestrierung — Runs mit Rahmen, Tasks, Dispatches und Gates (ADR-0064). */
 export function RunsPane() {
+  const host = new URLSearchParams(location.hash.split("?")[1] ?? "").get("host");
+  const api = useMemo(() => hostApi(host), [host]);
+  return <ApiContext.Provider value={api}><RunsHostPane key={host ?? "self"} /></ApiContext.Provider>;
+}
+
+function RunsHostPane() {
+  const api = useApi();
   const [runs, setRuns] = useState<OrchestrationRun[] | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => new URLSearchParams(location.hash.split("?")[1] ?? "").get("run"));
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
   const [projects, setProjects] = useState<DiscoveredProject[]>([]);
   const [showNew, setShowNew] = useState(false);
@@ -186,7 +195,7 @@ export function RunsPane() {
     let alive = true;
     const tick = async () => {
       try {
-        const list = await hubApi.orchestrationRuns();
+        const list = await api.orchestrationRuns();
         if (!alive) return;
         setRuns(list);
         setError("");
@@ -204,8 +213,8 @@ export function RunsPane() {
 
   useEffect(() => {
     let alive = true;
-    void hubApi.adapters().then((a) => alive && setAdapters(a)).catch(() => {});
-    void hubApi.projects().then((p) => alive && setProjects(p.projects)).catch(() => {});
+    void api.adapters().then((a) => alive && setAdapters(a)).catch(() => {});
+    void api.projects().then((p) => alive && setProjects(p.projects)).catch(() => {});
     return () => {
       alive = false;
     };
@@ -215,7 +224,7 @@ export function RunsPane() {
 
   const refresh = async () => {
     try {
-      setRuns(await hubApi.orchestrationRuns());
+      setRuns(await api.orchestrationRuns());
     } catch {
       // Der nächste Poll-Tick übernimmt es.
     }
@@ -225,7 +234,7 @@ export function RunsPane() {
     if (!selected) return;
     setBusy(true);
     try {
-      const run = await hubApi.orchestrationAnswer(selected.id, gateId, answerLabel);
+      const run = await api.orchestrationAnswer(selected.id, gateId, answerLabel);
       setRuns((prev) => (prev ? prev.map((r) => (r.id === run.id ? run : r)) : prev));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Antwort fehlgeschlagen");
@@ -239,7 +248,7 @@ export function RunsPane() {
     if (!confirm("Diesen Run wirklich stoppen?")) return;
     setBusy(true);
     try {
-      const run = await hubApi.orchestrationCancel(selected.id, "Vom Nutzer gestoppt");
+      const run = await api.orchestrationCancel(selected.id, "Vom Nutzer gestoppt");
       setRuns((prev) => (prev ? prev.map((r) => (r.id === run.id ? run : r)) : prev));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Abbruch fehlgeschlagen");

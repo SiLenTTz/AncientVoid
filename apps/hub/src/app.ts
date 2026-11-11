@@ -1,3 +1,4 @@
+import type { HubOrchestration } from "./modules/orchestration/index.ts";
 import type { ActionDefinition } from "@ancientvoid/contracts";
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import fastifyWebsocket from "@fastify/websocket";
@@ -28,6 +29,7 @@ export interface HubAppDeps {
   settings?: SettingsStore;
   /** EPIC-P41 (ADR-0064): Automationen — ohne Angabe ehrliche Abschaltung (501). */
   automations?: AutomationService;
+  orchestration?: HubOrchestration;
   sessions: SessionManager;
   tokens: TokenService;
   registry: AdapterRegistry;

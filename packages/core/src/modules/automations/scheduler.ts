@@ -1,134 +1,167 @@
-import type { AutomationDefinition, AutomationSkipReason, AutomationOutcome, AutomationClaimState } from "@ancientvoid/contracts";
+import { randomUUID } from "node:crypto";
+import type { AutomationDefinition, AutomationSkipReason, AutomationOutcome } from "@ancientvoid/contracts";
 import type { AutomationStore, ClaimState } from "./store.ts";
-import { nextOccurrences } from "./schedule.ts";
-
-/**
- * EPIC-P41 T41.3 (ADR-0064): Scheduler auf dem Eigentümer-Host. Er besitzt
- * Termin, Claim und Regeln (Dedupe/Overlap/Missed/Grace) — die Ausführung gehört
- * dem Dispatcher (T41.4: Session-/Run-Manager). `dispatched` ist nie `succeeded`.
- */
+import { nextOccurrences, previousOccurrence } from "./schedule.ts";
 
 export type DispatchResult =
   | { ok: true; sessionId?: string; runId?: string }
-  | { ok: false; reason: AutomationSkipReason };
-
-/** Precheck-Antwort: null = erfüllt; sonst der getrennte Grund (auth/quota/lease/... inkl. Exit/Timeout). */
+  | { ok: false; reason: AutomationSkipReason; uncertain?: boolean; detail?: string };
 export type PrecheckResult = "ok" | null | AutomationSkipReason;
+export type ExecutionStatus =
+  | { state: "running" }
+  | { state: "settled"; outcome: AutomationOutcome }
+  | { state: "unknown"; detail: string };
 
 export interface AutomationsDeps {
   store: AutomationStore;
   hostId: string;
-  /** Uhr injectierbar — Tests halten eine kontrollierte Uhr (AC-P41-2). */
   now: () => number;
-  /** Vorgelagerte registrierte argv-Aktion; ohne Definitionsfeld wird nicht geprüft. */
   precheck(definition: AutomationDefinition, deadlineMs: number): Promise<PrecheckResult>;
-  /** Der eigentliche Start beim Ausführungseigentümer. */
   dispatch(definition: AutomationDefinition, claimKey: string, occurrenceUtc: string, kind: "due" | "run_now" | "catchup"): Promise<DispatchResult>;
+  inspect?(claim: ClaimState): Promise<ExecutionStatus>;
   log?: (line: string) => void;
 }
 
+/** ADR-0065: Kalendercursor und Claims vor dem Start fsyncen; Ausführung bleibt beim Eigentümer. */
 export class AutomationsScheduler {
   private readonly deps: AutomationsDeps;
   private readonly intervalMs: number;
   private timer: ReturnType<typeof setInterval> | null = null;
+  private stopped = false;
 
   constructor(deps: AutomationsDeps, intervalMs = 60_000) {
     this.deps = deps;
     this.intervalMs = intervalMs;
   }
 
-  /** Minütlicher Tick plus direkt nach dem Start (Recovery ohne Zeitfenster-Frist). */
   start(): void {
     if (this.timer) return;
-    this.timer = setInterval(() => void this.tick(), this.intervalMs);
-    void this.tick();
+    this.stopped = false;
+    const poll = () => void this.tick().catch((err: unknown) => this.deps.log?.(`scheduler failed: ${String(err)}`));
+    this.timer = setInterval(poll, Math.min(this.intervalMs, 1000));
+    poll();
   }
 
   stop(): void {
+    this.stopped = true;
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
   }
 
-  /** Ein Tick verarbeitet alle fälligen Vorkommnisse aller aktiven Definitionen dieses Hosts. */
-  async tick(): Promise<void> {
+  tick(): Promise<void> { return this.processTick(); }
+
+  private async processTick(): Promise<void> {
+    if (this.stopped) return;
+    await this.reconcile();
     const now = this.deps.now();
-    for (const def of this.deps.store.listDefinitions()) {
-      if (!def.enabled || def.hostId !== this.deps.hostId) continue;
-      await this.processDefinition(def, now);
-    }
+    await Promise.all(this.deps.store.listDefinitions().filter(d => d.enabled && d.hostId === this.deps.hostId).map(async def => {
+      try { await this.processDefinition(def, now); }
+      catch (err) { this.deps.log?.(`automation ${def.id} failed: ${String(err)}`); }
+    }));
     this.deps.store.saveSnapshot();
   }
 
-  /** Run jetzt (eigene Operation, §3.3): Precheck standardmäßig wie beim Planungslauf. */
+  async reconcile(): Promise<void> {
+    if (!this.deps.inspect) return;
+    for (const def of this.deps.store.listDefinitions()) {
+      if (def.hostId !== this.deps.hostId) continue;
+      for (const claim of this.deps.store.claimsFor(def.id)) {
+        if (claim.state !== "dispatched" && !(claim.state === "unknown" && (claim.sessionId || claim.runId))) continue;
+        try {
+          const status = await this.deps.inspect(claim);
+          if (status.state === "running") continue;
+          this.deps.store.updateClaim(claim.claimKey, status.state === "settled"
+            ? { state: "settled", outcome: status.outcome }
+            : { state: "unknown", detail: status.detail.slice(0, 500) }, new Date(this.deps.now()).toISOString());
+        } catch (err) { this.deps.log?.(`result probe ${claim.claimKey}: ${String(err)}`); }
+      }
+    }
+  }
+
   async runNow(definitionId: string): Promise<ClaimState | null> {
     const def = this.deps.store.definition(definitionId);
     if (!def) return null;
+    await this.reconcile();
     return this.handleOccurrence(def, new Date(this.deps.now()).toISOString(), "run_now");
   }
 
-  /** Der Mensch rechnet das Ergebnis eines referenzierten Laufs ab (Spiegel, kein Erfinden). */
+  requestRunNow(definitionId: string): ClaimState | null {
+    const def = this.deps.store.definition(definitionId);
+    if (!def) return null;
+    const occurrence = new Date(this.deps.now()).toISOString();
+    const revision = this.deps.store.revision(def.id);
+    const claim = this.deps.store.claim(def.id, def.generation, occurrence, occurrence, { kind: "run_now", operationId: randomUUID() });
+    if (!claim) return null;
+    // Der Claim ist dauerhaft; K1 wartet nicht auf einen langsamen Precheck.
+    void this.reconcile().then(() => this.processClaim(def, claim, revision, "run_now")).catch(err => this.deps.log?.(`run-now ${claim.claimKey}: ${String(err)}`));
+    return structuredClone(claim);
+  }
+
   settle(claimKey: string, outcome: AutomationOutcome): ClaimState | null {
     return this.deps.store.updateClaim(claimKey, { state: "settled", outcome }, new Date(this.deps.now()).toISOString());
   }
 
   private async processDefinition(def: AutomationDefinition, nowMs: number): Promise<void> {
     const nowIso = new Date(nowMs).toISOString();
-    const handled = this.deps.store.claimsFor(def.id);
-    const lastHandled = handled.reduce<string | null>((max, c) => (max === null || c.occurrenceUtc > max ? c.occurrenceUtc : max), null);
-    // Termine seit dem zuletzt bearbeiteten Vorkommen (Cursor aus dem Journal — K7-Replay ohne Gedächtnis).
-    const horizon = new Date(nowMs + this.intervalMs + 30_000).toISOString();
-    const upcoming = this.occurrencesSince(def, lastHandled ?? def.createdAtUtc, horizon).filter((o) => o <= nowIso);
-    if (upcoming.length === 0) return;
-    for (let i = 0; i < upcoming.length; i++) {
-      const occurrence = upcoming[i]!;
-      const isLast = i === upcoming.length - 1;
-      const lateness = nowMs - Date.parse(occurrence);
-      const onTime = lateness <= this.intervalMs;
-      const withinGrace = lateness <= def.grant.missedGraceMs;
-      if (isLast && (onTime || withinGrace)) {
-        await this.handleOccurrence(def, occurrence, onTime ? "due" : "catchup", nowIso);
-        continue;
-      }
-      // Höchstens einmal nachholen: alles andere landet als skipped_missed im Journal.
-      const fresh = this.deps.store.claim(def.id, def.generation, occurrence, nowIso);
-      if (fresh) this.deps.store.updateClaim(fresh.claimKey, { state: "skipped", reason: "missed" }, nowIso);
+    const previousClaims = this.deps.store.claimsFor(def.id).filter(c => c.generation === def.generation && c.kind !== "run_now");
+    const previous = previousClaims.reduce((max, c) => c.occurrenceUtc > max ? c.occurrenceUtc : max, def.createdAtUtc);
+    const storedCursor = this.deps.store.cursorFor(def.id, def.generation);
+    const cursor = storedCursor && storedCursor > previous ? storedCursor : previous;
+    const first = nextOccurrences(def.schedule, cursor, 1)[0]?.utc;
+    if (!first || first > nowIso) return;
+    const latest = previousOccurrence(def.schedule, nowIso);
+    if (!latest || latest < first) return;
+    const lateness = nowMs - Date.parse(latest);
+    const runnable = lateness <= this.intervalMs || lateness <= def.grant.missedGraceMs;
+    const missedThrough = runnable ? previousOccurrence(def.schedule, new Date(Date.parse(latest) - 1).toISOString()) : latest;
+    if (missedThrough && missedThrough >= first) {
+      const missed = this.deps.store.claim(def.id, def.generation, first, nowIso, { kind: "catchup" });
+      if (missed) this.deps.store.updateClaim(missed.claimKey, { state: "skipped", reason: "missed", missedThroughUtc: missedThrough }, nowIso);
     }
+    // Auch ein Crash vor dem Dispatch wiederholt keinen bereits beanspruchten Termin.
+    if (runnable) await this.handleOccurrence(def, latest, lateness <= this.intervalMs ? "due" : "catchup", nowIso);
+    this.deps.store.advanceCursor(def.id, def.generation, latest, nowIso);
   }
 
-  /** Alle Termine strikt nach `sinceIso` bis `untilIso` (der Engine-Ausdruck schließt Lücken ein). */
-  private occurrencesSince(def: AutomationDefinition, sinceIso: string, untilIso: string): string[] {
-    const out: string[] = [];
-    let cursor = sinceIso;
-    for (;;) {
-      const next = nextOccurrences(def.schedule, cursor, 1);
-      if (next.length === 0 || next[0]!.utc > untilIso) break;
-      out.push(next[0]!.utc);
-      cursor = next[0]!.utc;
-    }
-    return out;
+  private async handleOccurrence(def: AutomationDefinition, occurrenceUtc: string, kind: "due" | "run_now" | "catchup", at?: string): Promise<ClaimState | null> {
+    const now = () => new Date(this.deps.now()).toISOString();
+    const store = this.deps.store;
+    const revision = store.revision(def.id);
+    const claim = store.claim(def.id, def.generation, occurrenceUtc, at ?? now(), { kind, ...(kind === "run_now" ? { operationId: randomUUID() } : {}) });
+    if (!claim) return null;
+    return this.processClaim(def, claim, revision, kind);
   }
 
-  private async handleOccurrence(def: AutomationDefinition, occurrenceUtc: string, kind: "due" | "run_now" | "catchup", nowIsoArg?: string): Promise<ClaimState | null> {
-    const nowIso = nowIsoArg ?? new Date(this.deps.now()).toISOString();
-    const existing = this.deps.store.claim(def.id, def.generation, occurrenceUtc, nowIso);
-    if (!existing) return null; // Dedupe: Schlüssel schon verbucht (Auch nach Crash: kein blindes Replay.)
+  private async processClaim(def: AutomationDefinition, claim: ClaimState, revision: number, kind: "due" | "run_now" | "catchup"): Promise<ClaimState | null> {
+    const now = () => new Date(this.deps.now()).toISOString();
+    const store = this.deps.store;
+    const occurrenceUtc = claim.occurrenceUtc;
+    const skip = (reason: AutomationSkipReason, detail?: string) => store.updateClaim(claim.claimKey, { state: "skipped", reason, ...(detail ? { detail: detail.slice(0, 500) } : {}) }, now());
+    if (this.stopped || (kind !== "run_now" && !def.enabled)) return skip("disabled");
+    if (def.hostId !== this.deps.hostId) return skip("host_down");
+    if (store.inFlight(def.id) > def.grant.maxParallel) return skip("overlap");
     if (def.precheckActionId) {
-      const verdict = await this.deps.precheck(def, def.precheckDeadlineMs);
-      if (verdict !== null && verdict !== "ok") {
-        return this.deps.store.updateClaim(existing.claimKey, { state: "skipped", reason: verdict }, nowIso);
-      }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const verdict = await Promise.race([
+          this.deps.precheck(def, def.precheckDeadlineMs),
+          new Promise<PrecheckResult>(resolve => { timer = setTimeout(() => resolve("precheck_timeout"), def.precheckDeadlineMs); }),
+        ]);
+        if (verdict !== null && verdict !== "ok") return skip(verdict);
+      } catch (err) { return skip("precheck", String(err)); }
+      finally { if (timer) clearTimeout(timer); }
     }
-    if (this.deps.store.inFlight(def.id) > def.grant.maxParallel) {
-      // Der eigene Claim zählt bereits — deshalb `>`: maxParallel=1 lässt genau einen offenen Lauf zu.
-      return this.deps.store.updateClaim(existing.claimKey, { state: "skipped", reason: "overlap" }, nowIso);
+    const current = store.definition(def.id);
+    if (this.stopped || !current || (kind !== "run_now" && !current.enabled)) return skip("disabled");
+    if (current.generation !== def.generation || store.revision(def.id) !== revision) return skip("changed");
+    try {
+      const result = await this.deps.dispatch(def, claim.claimKey, occurrenceUtc, kind);
+      if (result.ok) return store.updateClaim(claim.claimKey, { state: "dispatched", ...(result.sessionId ? { sessionId: result.sessionId } : {}), ...(result.runId ? { runId: result.runId } : {}) }, now());
+      if (result.uncertain) return store.updateClaim(claim.claimKey, { state: "unknown", detail: result.detail?.slice(0, 500) ?? "Startauftrag ohne eindeutige Bestätigung" }, now());
+      return skip(result.reason, result.detail);
+    } catch (err) {
+      // Der Eigentümer könnte bereits gestartet haben. Ohne Referenz niemals blind wiederholen.
+      return store.updateClaim(claim.claimKey, { state: "unknown", detail: String(err).slice(0, 500) }, now());
     }
-    const result = await this.deps.dispatch(def, existing.claimKey, occurrenceUtc, kind);
-    if (result.ok) {
-      const patch: { state: AutomationClaimState; sessionId?: string; runId?: string } = { state: "dispatched" };
-      if (result.sessionId !== undefined) patch.sessionId = result.sessionId;
-      if (result.runId !== undefined) patch.runId = result.runId;
-      return this.deps.store.updateClaim(existing.claimKey, patch, nowIso);
-    }
-    return this.deps.store.updateClaim(existing.claimKey, { state: "skipped", reason: result.reason }, nowIso);
   }
 }

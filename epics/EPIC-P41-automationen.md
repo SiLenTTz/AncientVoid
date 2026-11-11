@@ -1,6 +1,6 @@
 # EPIC-P41 — Automationen mit Zeitplan, Precheck und Laufhistorie
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P41
+**Status:** teilweise umgesetzt, Exit offen · **Umsetzung:** laufend · **Phase:** P41
 **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P40 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 
@@ -69,3 +69,18 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 ## 7. Definition of Done
 
 Alle T41.* und AC-P41-* mit aktueller Evidenz, Vorgänger-Exit ausdrücklich grün. `npm run gate` und PWA-Build grün; Pipeline-Job `e2e` grün bzw. Infrastrukturfall nach `docs/ci-runbook.md` nachgezogen, niemals als Pass gezählt. Jede neue UI-Funktion/jeder Ablauf hat einen Spec in `e2e/specs/`; benötigte echte Browser-/Provider-/Geräte-Nachweise separat, Skip ≠ Pass. Neue APIs/Tools/Ansichten sind registriert, in Hub/PWA/hubctl erreichbar und dokumentiert. ADR vor Contract-Änderung, K5/K7/K8 entsprechend Scope nachgewiesen; keine offene TODO ohne Epic-Bezug. Übernommene Orca-Teile mit Commit/Pfad/Hash/Lizenz/Änderungsnotiz und eigenen Tests gemäß Planungsgrundlage.
+
+## 8. Übergabeprüfung vom 10.11.2026
+
+Contracts, Engine, Scheduler und Routen liegen auf `main` (`8f25ef7`).
+PWA-/CLI-Oberfläche und E2E aus dem bisherigen Arbeits-Worktree wurden zur
+Fortsetzung übernommen. Der Code-Stand ist damit weiter als der historische
+Planungsstatus, erfüllt aber noch nicht den vollständigen Epic-Exit.
+
+[Prüfbericht mit AC-Matrix und Gate-Evidenz](../docs/2026-11-10_p41-uebergabepruefung.md).
+Offen bleiben insbesondere Run-Ziele, automatische Ergebnisrückführung,
+erreichbare Bearbeitung bestehender Pläne, Offline-Verhalten und die Prüfung
+von Disable/Generation nach einem laufenden Precheck. BUG-0115/0116 (umbenannt) betreffen
+Neuanlage-Freigabe und Prompt-Integrität; Korrekturen und Regressionen im
+Fortsetzungsbranch. Die obigen Aufgaben bleiben bis zu vollständigen Nachweisen
+offen. **P42 ist durch diesen Zwischenstand nicht freigegeben.**

@@ -1,3 +1,4 @@
+import { cronFieldValid, AUTOMATION_LIMITS } from "@ancientvoid/contracts";
 import type { AutomationSchedule } from "@ancientvoid/contracts";
 
 /**
@@ -14,6 +15,7 @@ const BOUNDS = [[0, 59], [0, 23], [1, 31], [1, 12], [0, 6]] as const;
 
 /** Ein Feld des begrenzten Subset in die Menge seiner Minuten/Stunden/... expandieren. */
 export function expandCronField(field: string, min: number, max: number): number[] | null {
+  if (!cronFieldValid(field, min, max)) return null;
   const out = new Set<number>();
   for (const part of field.split(",")) {
     const [base, stepStr] = part.split("/");
@@ -135,10 +137,11 @@ function pad(n: number): string {
 }
 
 /**
- * Die nächsten `count` Termine nach `fromUtc` (UTC-ISO, exklusiv), Scan bis +400 Tage.
+ * Die nächsten `count` Termine nach `fromUtc` (UTC-ISO, exklusiv), Scan bis +8 Jahre (inkl. achtjähriger Jahrhundert-Schaltlücke).
  * Ungültige Lokalzeit (Frühjahrswechsel) entfällt, doppelte Lokalzeit (Herbst) feuert einmal.
  */
 export function nextOccurrences(schedule: AutomationSchedule, fromUtcIso: string, count: number): { utc: string; local: string }[] {
+  if (!Number.isInteger(count) || count < 1 || count > AUTOMATION_LIMITS.preview) return [];
   const fields = scheduleToFields(schedule);
   if (!fields) return [];
   const tz = schedule.timezone;
@@ -147,7 +150,7 @@ export function nextOccurrences(schedule: AutomationSchedule, fromUtcIso: string
   const out: number[] = [];
   const start = localParts(fromMs, tz);
   let dayMs = Date.UTC(start.y, start.mo - 1, start.d);
-  for (let scanned = 0; scanned <= 400 && out.length < count * 4; scanned++, dayMs += 86_400_000) {
+  for (let scanned = 0; scanned <= AUTOMATION_LIMITS.calendarDays && out.length < count; scanned++, dayMs += 86_400_000) {
     const dayDate = new Date(dayMs);
     const y = dayDate.getUTCFullYear();
     const mo = dayDate.getUTCMonth() + 1;
@@ -161,6 +164,8 @@ export function nextOccurrences(schedule: AutomationSchedule, fromUtcIso: string
     if (!fields.month.includes(mo) || !dayOk) continue;
     for (const h of fields.hour) {
       for (const m of fields.minute) {
+        if (scanned === 0 && h * 60 + m < start.h * 60 + start.mi) continue;
+        if (out.length >= count) break;
         const wallMs = Date.UTC(y, mo - 1, d, h, m);
         const instants = wallToUtcInstants(wallMs, tz);
         if (instants.length === 0) continue; // ungültige Lokalzeit: Überspringen (ADR-0064)
@@ -176,4 +181,31 @@ export function nextOccurrences(schedule: AutomationSchedule, fromUtcIso: string
       const p = localParts(ms, tz);
       return { utc: new Date(ms).toISOString(), local: `${p.y}-${pad(p.mo)}-${pad(p.d)}T${pad(p.h)}:${pad(p.mi)}${offsetSuffix(ms, tz)}` };
     });
+}
+
+
+/** Letzter kanonischer Termin <= Grenze; gleicher DST-/Cron-Vertrag wie die Vorschau. */
+export function previousOccurrence(schedule: AutomationSchedule, untilUtcIso: string): string | null {
+  const fields = scheduleToFields(schedule);
+  const until = Date.parse(untilUtcIso);
+  if (!fields || !Number.isFinite(until)) return null;
+  const tz = schedule.timezone;
+  const start = localParts(until, tz);
+  let dayMs = Date.UTC(start.y, start.mo - 1, start.d);
+  const repeated = offsetMinutesAt(until - 26 * 3_600_000, tz) > offsetMinutesAt(until, tz);
+  for (let day = 0; day <= AUTOMATION_LIMITS.calendarDays; day++, dayMs -= 86_400_000) {
+    const date = new Date(dayMs);
+    const d = date.getUTCDate();
+    const domRestricted = fields.dom.length < 31;
+    const dowRestricted = fields.dow.length < 7;
+    const dom = !domRestricted || fields.dom.includes(d);
+    const dow = !dowRestricted || fields.dow.includes(date.getUTCDay());
+    if (!fields.month.includes(date.getUTCMonth() + 1) || !(domRestricted && dowRestricted ? dom || dow : dom && dow)) continue;
+    for (const h of [...fields.hour].reverse()) for (const m of [...fields.minute].reverse()) {
+      if (day === 0 && !repeated && h * 60 + m > start.h * 60 + start.mi) continue;
+      const instant = wallToUtcInstants(dayMs + (h * 60 + m) * 60_000, tz)[0];
+      if (instant !== undefined && instant <= until) return new Date(instant).toISOString();
+    }
+  }
+  return null;
 }
