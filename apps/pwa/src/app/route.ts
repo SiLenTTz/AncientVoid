@@ -75,6 +75,7 @@ export function parseAppHash(hash: string): AppRoute {
   // EPIC-P49: Vault-Datei-Deep-Link vor dem Slug-Match prüfen (Pfad-Segmente!).
   const vaultFile = /^#\/notizen\/datei\/(.+)$/.exec(hash);
   if (vaultFile?.[1]) return { view: "list", page: "vault", vaultFile: vaultFile[1].split("/").map(decodeURIComponent).join("/") };
+  if (/^#\/runs\?/.test(hash)) return { view: "list", page: "orchestrierung" };
   const slug = /^#\/([a-z]*)\/?$/.exec(hash || "#/")?.[1];
   if (slug !== undefined) {
     const page = (Object.keys(PAGE_SLUG) as ListPage[]).find((p) => PAGE_SLUG[p] === slug);
