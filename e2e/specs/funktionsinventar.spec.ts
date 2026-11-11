@@ -174,7 +174,7 @@ const SESSION: Entry[] = [
     },
   },
   { id: "S05", name: "Mehr: Graph", from: "session", reach: async (c) => { await more(c, "Graph"); await expect(c.s.locator(".graph-pane")).toBeVisible(); } },
-  { id: "S06", name: "Mehr: Datei", from: "session", reach: async (c) => { await more(c, "Datei"); await expect(c.s.getByText("keine Datei geöffnet")).toBeVisible(); } },
+  { id: "S06", name: "Mehr: Datei", from: "session", reach: async (c) => { await more(c, "Datei"); await expect(c.page.getByTestId("files-sidebar")).toBeVisible(); } },
   { id: "S07", name: "Mehr: GitLab", from: "session", reach: async (c) => { await more(c, "GitLab"); await expect(c.s.locator(".forge-panel")).toBeVisible(); } },
   { id: "S08", name: "Mehr: Suche", from: "session", reach: async (c) => { await more(c, "Suche"); await expect(c.s.locator(".search-pane")).toBeVisible(); } },
   { id: "S09", name: "Reiter Dateien (Code)", from: "session", reach: async (c) => { await c.tap(tab(c, "Dateien")); await expect(c.s.locator(".code-pane")).toBeVisible(); } },

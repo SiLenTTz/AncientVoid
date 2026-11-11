@@ -775,7 +775,7 @@ export function SessionTail({
     { id: "verlauf", label: "Verlauf", icon: "verlauf", show: showVerlaufTab },
     { id: "bericht", label: "Bericht", icon: "bericht", show: showBerichtTab },
     // Die aus dem Graph geöffnete Datei (EPIC-P48); ohne Datei sagt die Ansicht das selbst.
-    { id: "datei", label: "Datei", icon: "datei", show: () => setActiveTab("datei") },
+    { id: "datei", label: "Datei", icon: "datei", show: () => { setActiveTab("datei"); openLayer("files"); } },
     { id: "graph", label: "Graph", icon: "graph", show: () => setActiveTab("graph") },
     { id: "forge", label: "GitLab", icon: "forge", show: () => setActiveTab("forge") },
     { id: "suche", label: "Suche", icon: "suche", show: showSucheTab },
@@ -1108,12 +1108,7 @@ export function SessionTail({
             {openFile ? (
               <FileViewer target={`session=${encodeURIComponent(session.id)}`} path={openFile} hostId={remoteHost(session.hostId) ?? null} />
             ) : (
-              <div class="empty-state">
-                <p>Keine Datei geöffnet — wähle eine im Graph oder im Dateibaum.</p>
-                <button class="btn" type="button" onClick={() => openLayer("files")}>
-                  Dateibaum öffnen
-                </button>
-              </div>
+              <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} onOpenDiff={showDiffTab} />
             )}
           </>
         ) : activeTab === "suche" ? (
