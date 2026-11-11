@@ -66,6 +66,14 @@ export class SessionQueue {
     return first;
   }
 
+  /** BUG-0114: ein bestimmter Eintrag, atomar entfernt — „Jetzt senden" nimmt statt zu warten. */
+  takeById(sessionId: string, id: string): QueuedPrompt | null {
+    const item = this.list(sessionId).find((q) => q.id === id) ?? null;
+    if (!item) return null;
+    this.db.prepare("DELETE FROM session_queue WHERE id = ? AND session_id = ?").run(id, sessionId);
+    return item;
+  }
+
   remove(sessionId: string, id: string): boolean {
     const res = this.db.prepare("DELETE FROM session_queue WHERE id = ? AND session_id = ?").run(id, sessionId);
     return Number(res.changes) > 0;

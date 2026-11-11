@@ -79,6 +79,25 @@ describe("hub route — Warteschlange und Pause", () => {
   it("eine unbekannte Session ist 404", async () => {
     expect((await call("GET", "/api/sessions/gibt-es-nicht/queue")).statusCode).toBe(404);
     expect((await call("DELETE", "/api/sessions/gibt-es-nicht/queue/x")).statusCode).toBe(404);
+    expect((await call("POST", "/api/sessions/gibt-es-nicht/queue/x/send")).statusCode).toBe(404);
+  });
+
+  it("BUG-0114: POST /queue/:id/send steuert einen vorgemerkten Prompt sofort", async () => {
+    const id = await create();
+    await call("POST", `/api/sessions/${id}/steer`, { kind: "prompt", text: "zwischenfrage", queue: true });
+    const list = (await call("GET", `/api/sessions/${id}/queue`)).json() as { id: string; text: string }[];
+    expect(list).toHaveLength(1);
+
+    const sent = await call("POST", `/api/sessions/${id}/queue/${list[0]!.id}/send`);
+    expect(sent.statusCode).toBe(200);
+    expect(sent.json()).toEqual({ ok: true });
+    expect(prompts).toContain("zwischenfrage"); // sofort — der Zug wurde nicht beendet
+    expect((await call("GET", `/api/sessions/${id}/queue`)).json()).toEqual([]);
+
+    // weg ist weg: ein zweiter Versuch scheitert ehrlich
+    const again = await call("POST", `/api/sessions/${id}/queue/${list[0]!.id}/send`);
+    expect(again.statusCode).toBe(422);
+    expect(again.json()).toMatchObject({ ok: false, detail: "nicht mehr in der Warteschlange" });
   });
 
   it("park über /steer pausiert die Session wirklich", async () => {

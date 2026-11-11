@@ -312,6 +312,14 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
       : reply.code(404).send({ ok: false, detail: "nicht mehr in der Warteschlange" });
   });
 
+  /** BUG-0114: einen vorgemerkten Prompt sofort steuern — in die laufende Unterhaltung. */
+  app.post("/api/sessions/:id/queue/:queueId/send", async (req, reply) => {
+    const { id, queueId } = req.params as { id: string; queueId: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
+    const ack = await deps.sessions.sendQueuedNow(id, queueId, callerLabel(req) ?? undefined);
+    return ack.ok ? ack : reply.code(422).send(ack);
+  });
+
 
   // "Ins Projekt übernehmen": commit the session worktree and merge it
   // into the project checkout. 409 with a reason the user can act on.

@@ -40,6 +40,22 @@ test.describe("Pause und Warteschlange", () => {
     expect(await sessionPrompts(hub, id)).not.toContain("doch nicht");
   });
 
+  test("BUG-0114: eine vorgemerkte Nachricht lässt sich sofort in den laufenden Zug senden", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "claude", prompt: "LANGSAM erste Frage" });
+    await open(app, hub.origin, id);
+    await app.getByPlaceholder("Antworten…").fill("kurze Zwischenfrage");
+    await app.getByRole("button", { name: "Vormerken" }).click();
+    await expect(app.locator(".queue-list")).toContainText("kurze Zwischenfrage");
+
+    await app.getByRole("button", { name: /Vorgemerkte Nachricht 1 jetzt senden/ }).click();
+    await expect(app.locator(".queue-list")).toHaveCount(0);
+
+    // Der Prompt ist sofort angekommen — während der LANGSAM-Zug (60 s) noch läuft.
+    await hub.until(async () => (await sessionPrompts(hub, id)).some((t) => t.includes("kurze Zwischenfrage")), "vorgemerkter Prompt sofort gesendet", 20_000);
+    expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("working");
+    expect((await sessionPrompts(hub, id)).filter((t) => t.includes("kurze Zwischenfrage"))).toHaveLength(1);
+  });
+
   test("Pause hält den Zug an, die Session steht auf pausiert und läuft mit „Weiter“ wieder (AC-P15-4)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "claude", prompt: "LANGSAM erste Frage" });
     await open(app, hub.origin, id);
