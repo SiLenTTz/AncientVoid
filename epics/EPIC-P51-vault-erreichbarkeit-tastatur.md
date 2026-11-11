@@ -190,6 +190,7 @@ mitbereinigt — ein Zahnrad existiert nicht.
 - [ ] **T51.8** Setting „Shortcut-Hinweise" + Bottom-Overlay (nur bei existierendem Shortcut, ~2 s, nicht blockierend); E2E: Hinweis erscheint/verschwindet, ohne Shortcut still, Setting aus → gar nichts, Composer bleibt frei. **K1/K10**.
 - [ ] **T51.9** Omarchy-/Firefox-Kollisions-Audit (Tabelle in `docs/`, Alt+1–4-Punkt aus P18 klären), Hyprland-`pass`-Snippet-Doku, Cheat-Sheet-Anbindung. **Fail-loud**.
 - [ ] **T51.10** Abnahme: `npm run gate` grün, manuelle Firefox-/Omarchy-Prüfung am Gerät (Alt-Kürzel live), Live-Abnahme Vault-Pfad mit echtem Ordner außerhalb der Startpunkte, Retro. **K1/K2/K10**.
+- [ ] **T51.11** *(aus P43 AI-P43-1)* Schnellsuche um Inventar-Sprungziele erweitern oder bewusst begrenzen und im Inventar dokumentieren — AC-P43-1 Closeout deckt nur Sessions/Projekte/Dateien/Werkzeuge/Befehle. **K2**.
 
 ## 5. Acceptance Criteria (AC-P51-k)
 

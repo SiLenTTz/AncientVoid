@@ -79,6 +79,7 @@ Session mobil, Session-Popout, Dateien-Schublade}: assert
 - [ ] **T50.3** Harte Garantie mobile Session-Hauptroute (`html:has(#app > .session-live)`, Nachtrag-2-Muster); Nachbarfälle (Verlauf-Filter, Queue, Approval) gegenprüfen. **Invariante**.
 - [ ] **T50.4** E2E-Zoom-Matrix (3.3) bauen und einmal über alle Stufen fahren; Auffälligkeiten als Bugs anlegen (ein Verhalten = eine Datei). **K2-Rand, Invariante**.
 - [ ] **T50.5** Dokumentation: Muster + Garantie-Regel in `docs/` festhalten (Verweis von `ui-scale.ts`-Kommentar), BUG-0113/0112-Status nachziehen. **Fail-loud/DoD**.
+- [ ] **T50.6** *(aus P43 AI-P43-4)* `breiten.spec.ts` auf Werkzeugseiten und Formulare ausdehnen; Querschnitts-Specs früh in Umbau-Aufgaben mitlaufen lassen. **K2**.
 
 ## 5. Acceptance Criteria (AC-P50-k)
 

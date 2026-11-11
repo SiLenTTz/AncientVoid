@@ -360,7 +360,8 @@ AC-P34-13) durch Jan; `epics/README.md` aktualisiert; Retro angehängt.
   Hyprland-Desktop; produktiver `hubctl worktrees prune --apply` (löscht
   Daten — Entscheidung Jan). K2/K7/K8/K9/K10.
 - [ ] **T35.16 — Abnahme der gebauten UI-Flows.** (aus P19, P22, P24, P26 T26.11/AC-P26-10,
-  T25.6, AC-P34-13, AC-P35-7) Loop-Abnahme mit echtem Repo/Token, wartender
+  T25.6, AC-P34-13, AC-P35-7; plus P43 AI-P43-5: echtes Tablet, zweiter Bildschirm,
+  TalkBack/Orca) Loop-Abnahme mit echtem Repo/Token, wartender
   Frage am Handy und K1 gesamt; Session-Entdeckung/Übernahme live am
   Handy; pi/omp/maki Live-Abnahme; Slash-Command-CLI-Listen live
   verifizieren (`capabilities().commands`); Arbeitsfläche/Eigene Fenster
