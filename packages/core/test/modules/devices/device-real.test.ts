@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { DeviceService } from "@ancientvoid/core";
 

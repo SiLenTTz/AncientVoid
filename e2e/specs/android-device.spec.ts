@@ -54,7 +54,7 @@ test.describe("Android-Testgeräte (EPIC-P42)", () => {
     }
   });
 
-  test(full ? "ECHTE ABNAHME: AVD starten, bedienen, PWA im Emulator-Chromium, beenden" : "echte AVD-Abnahme: ohne ANCIENTVOID_E2E_ANDROID=1 sichtbar übersprungen", async ({ app, hub }, testInfo) => {
+  test(full ? "ECHTE ABNAHME: AVD starten, bedienen, PWA im Emulator-Chromium, beenden" : "echte AVD-Abnahme: ohne ANCIENTVOID_E2E_ANDROID=1 sichtbar übersprungen", async ({ hub }, testInfo) => {
     test.skip(!full, "Echte AVD-Abnahme braucht ANCIENTVOID_E2E_ANDROID=1 plus SDK/KVM (Skip ≠ Pass).");
     testInfo.setTimeout(420_000);
     const t0 = Date.now();
@@ -89,7 +89,9 @@ test.describe("Android-Testgeräte (EPIC-P42)", () => {
     expect(rotate.status).toBe(200);
     const stale = await hub.api("/api/devices/action", { body: { serial, generation, geometryVersion: 1, action: { type: "tap", x: 100, y: 100 } } });
     expect(stale.status).toBe(409); // veraltetes Bild trifft nie den falschen Punkt (AC-P42-4)
-    await hub.api("/api/devices/action", { body: { serial, generation, geometryVersion: rotate.body.geometryVersion, action: { type: "rotate", orientation: "portrait" } } });
+    const backToPortrait = await hub.api<{ geometryVersion: number }>("/api/devices/action", { body: { serial, generation, geometryVersion: rotate.body.geometryVersion, action: { type: "rotate", orientation: "portrait" } } });
+    expect(backToPortrait.status).toBe(200);
+    const geo = backToPortrait.body.geometryVersion;
 
     // Begrenzte Logs/Tree.
     const logs = await hub.api<{ text: string }>(`/api/devices/${serial}/logs`);
@@ -97,7 +99,35 @@ test.describe("Android-Testgeräte (EPIC-P42)", () => {
     const tree = await hub.apiRaw(`/api/devices/${serial}/tree`);
     expect(tree.headers["content-type"]).toBe("application/xml");
 
+    // Testlauf hält die Lease selbst — die Menschen-Lease muss vorher frei sein (Konflikt → 409, nie Übernahme).
+    expect((await hub.api("/api/devices/release", { body: { serial, generation } })).status).toBe(200);
+
     // T42.4 / AC-P42-2: PWA-Test im Emulator-Chromium mit Umgebungsnachweis.
+    // Chromes First-Run-Dialog („Welcome to Chrome“) blockiert frische Emulatoren — per Baum-gesteuertem
+    // Tap „Use without an account“/„Continue“ beenden, dann die URL erneut öffnen. Dafür bekommt die
+    // Steuerung eine frische Generation; der Testlauf bekommt sie danach wieder frei.
+    const freLease = await hub.api<{ generation: number }>("/api/devices/lease", { body: { serial, sessionId: session } });
+    expect(freLease.status).toBe(200);
+    const freGen = freLease.body.generation;
+    const tapByText = async (needle: string): Promise<boolean> => {
+      const raw = await hub.apiRaw(`/api/devices/${serial}/tree`);
+      const xml = raw.body.toString("utf8");
+      const m = new RegExp(`text="[^"]*${needle}[^"]*"[^>]*bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"`, "i").exec(xml);
+      if (!m) return false;
+      const x = Math.round((Number(m[1]) + Number(m[3])) / 2);
+      const y = Math.round((Number(m[2]) + Number(m[4])) / 2);
+      const tap = await hub.api("/api/devices/action", { body: { serial, generation: freGen, geometryVersion: geo, action: { type: "tap", x, y } } });
+      return tap.status === 200;
+    };
+    await hub.api("/api/devices/action", { body: { serial, generation: freGen, geometryVersion: geo, action: { type: "openUrl", url: `http://10.0.2.2:${hub.port}/` } } });
+    for (let i = 0; i < 5; i++) {
+      await new Promise((r) => setTimeout(r, 1_500));
+      const xml = (await hub.apiRaw(`/api/devices/${serial}/tree`)).body.toString("utf8");
+      if (!/Welcome to Chrome|Add account to device|notifications make things easier/.test(xml)) break;
+      for (const needle of ["Use without an account", "Accept", "Continue", "No thanks"]) await tapByText(needle);
+    }
+    await hub.api("/api/devices/action", { body: { serial, generation: freGen, geometryVersion: geo, action: { type: "openUrl", url: `http://10.0.2.2:${hub.port}/` } } });
+    expect((await hub.api("/api/devices/release", { body: { serial, generation: freGen } })).status).toBe(200);
     const run = await hub.api<{ id: string }>("/api/devices/tests", {
       body: { test: { name: "PWA-Anmeldung im Emulator-Chromium", serial, steps: [
         { type: "openUrl", url: `http://10.0.2.2:${hub.port}/`, timeoutMs: 15_000 },
