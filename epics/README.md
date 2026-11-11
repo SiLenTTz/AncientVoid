@@ -210,6 +210,22 @@ Handy. Läuft quer zur Kette (Präzedenz P47–P51), baut auf P48 auf.
 
 Reihenfolge: P52 quer wie P50/P51 (je Aufgabe eigener Branch/MR nach main).
 
+## Projektdoku und One-Command-Setup — Nutzerauftrag vom 11.11.2026
+
+Ausdrücklicher Auftrag von Jan: README und Screenshots auf echten Stand bringen,
+One-Command-Setup (Wizard, **erster Schritt: ersten Provider anbinden**, dazu ein
+dedizierter Wizard-Agent), beides als Epic dokumentiert. Quer-Epic ohne fachliche
+Abhängigkeit (Präzedenz P50–P52); nur Doku, Setup-Skript und Agenten-Skills — keine
+Laufzeit-Architektur. Schwester-Epic: VoidWarden P14 (gemeinsame
+Installations-Kaskade, in beiden Epics beschrieben).
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P53 — Projektdoku und One-Command-Setup](EPIC-P53-projektdoku-setup-wizard.md) | README mit Ist-/Plan-Stand und Screenshots, wiederholbares Screenshot-Skript (Demo-Hub, secret-frei), `setup.sh`-Wizard + `npm run setup` (Provider zuerst, idempotent, fail loud), Wizard-Skill `setup-wizard`, Zusammenspiel-Abschnitt AncientVoid ↔ VoidWarden | keine fachliche offene (Quer-Epic) | 1,5–2,5 |
+
+Reihenfolge: P53 quer wie P50–P52 (Epic-Planung als eigener Branch/MR vor der
+Umsetzung, damit andere Agenten das Epic sehen; dann Umsetzung je Aufgabe).
+
 ## Reihenfolge & Gating
 
 Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4 → P4.5 → P5 → P6 → P7 → P8 → P9 → P10 → P10.5 → P11 → P12 → P13 → P14 → P15 → P16 → P17 → P18 → P19 → P21 → P22 → P23 → P24 → P26** (P13/P14/P17/P18/P19 unabhängig: Adaptermuster aus P3, Worktree-Hygiene bzw. Laufzeit-Robustheit auf bestehendem P5/P7/P15-Code; P16 ist die Handy-Liste, kein Start vor geklärter P12-Abnahme).
