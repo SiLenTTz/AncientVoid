@@ -1,12 +1,18 @@
 import type { FastifyInstance } from "fastify";
 import { extractToken } from "../../platform/auth.ts";
-import { DecideApprovalInput, ApprovalStatus, actorKind } from "@ancientvoid/contracts";
+import { DecideApprovalInput, ApprovalStatus, actorKind, displayAnswerable, displayAnswersValid } from "@ancientvoid/contracts";
 import { z } from "zod";
 import type { RouteContext } from "../../route-context.ts";
 
 /** Approval queue and decisions, signed or by passkey (ADR-0007, ADR-0019). */
 export function registerApprovalsRoutes(app: FastifyInstance, ctx: RouteContext): void {
   const { deps, callerLabel, webauthnRoutes } = ctx;
+
+  /** Die Fragen einer Provider-Rückfrage, wie der Agent sie gestellt hat. */
+  const questionsOf = (id: string): unknown => {
+    const op = deps.sessions.operation(id);
+    return op?.kind === "tool.permission" ? (op.payload as { input?: { questions?: unknown } }).input?.questions : undefined;
+  };
 
   // T2.4/T2.6 (EPIC-P2 §3 "Approval-Queue"): a hub that hasn't configured
   // an ApprovalService yet doesn't get these routes — a real 501, not a
@@ -15,8 +21,14 @@ export function registerApprovalsRoutes(app: FastifyInstance, ctx: RouteContext)
     if (!deps.approvals) return reply.code(501).send({ error: "approval queue not configured" });
     const q = req.query as { status?: string };
     const status = ApprovalStatus.safeParse(q.status);
+    // ADR-0066: ein Display erfährt je Anfrage, ob es sie beantworten darf — damit
+    // sein Companion die Policy nicht nachbaut. Andere Akteure bekommen das Feld nicht.
+    const rawToken = extractToken(req);
+    const caller = rawToken ? deps.tokens.identify(rawToken) : null;
+    const forDisplay = caller !== null && actorKind(caller.label) === "display";
     // T7.3: what the decision released, and what became of it.
-    return deps.approvals.list(status.success ? status.data : undefined).map((r) => {
+    return deps.approvals.list(status.success ? status.data : undefined).map((base) => {
+      const r = forDisplay ? { ...base, displayAnswerable: displayAnswerable(base, questionsOf(base.id), caller.capabilities) } : base;
       const op = deps.sessions.operation(r.id);
       if (!op) return r;
       const operation = { state: op.state, outcome: op.outcome };
@@ -60,8 +72,20 @@ export function registerApprovalsRoutes(app: FastifyInstance, ctx: RouteContext)
     const pendingRequest = deps.approvals.get(id);
     // ADR-0048: a display decides `write` approvals without a reason — a
     // `destructive` one (biometrics) or one that needs words stays on the phone.
-    if (actorKind(identity.label) === "display" && pendingRequest && (pendingRequest.class !== "write" || pendingRequest.reasonRequired || pendingRequest.action === "tool.question")) {
-      return reply.code(403).send({ error: "Nicht am Display entscheidbar: bitte am Handy bestätigen." });
+    if (actorKind(identity.label) === "display") {
+      const refuse = () => reply.code(403).send({ error: "Nicht am Display entscheidbar: bitte am Handy bestätigen." });
+      // Policy vor Existenz: eine unbekannte ID verrät dem Display nichts.
+      if (!pendingRequest || pendingRequest.class !== "write" || pendingRequest.reasonRequired) return refuse();
+      if (pendingRequest.action === "tool.question") {
+        // ADR-0066: nur beantworten (nie ablehnen), nur mit Fähigkeit, nur mit einer
+        // Option je Frage, die der Agent wortgleich vorgegeben hat.
+        const questions = questionsOf(id);
+        if (parsed.data.decision !== "approve" || parsed.data.reason !== undefined) return refuse();
+        // Ohne `status`: eine schon entschiedene Rückfrage soll unten als 422 „bereits
+        // entschieden“ enden, nicht als Policy-Ablehnung — das Display zeigt den Unterschied.
+        const { action, reasonRequired } = pendingRequest;
+        if (!displayAnswerable({ action, class: pendingRequest.class, reasonRequired }, questions, identity.capabilities) || !displayAnswersValid(questions, parsed.data.answers)) return refuse();
+      }
     }
     if (pendingRequest?.action === "tool.question" && parsed.data.decision === "approve") {
       const answers = parsed.data.answers ?? {};
