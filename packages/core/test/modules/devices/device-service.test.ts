@@ -264,6 +264,19 @@ describe("DeviceService (EPIC-P42)", () => {
     await expect(svc2.tree(serial2)).rejects.toMatchObject({ code: "failed" });
   });
 
+  it("Kaltstart: erster uiautomator-Dump ohne XML („idle state“), zweiter liefert — kein harter Fehlschlag", async () => {
+    const svc = makeSvc();
+    const serial = await boot(svc);
+    let calls = 0;
+    exec.respond = () => {
+      calls += 1;
+      return calls === 1 ? { code: 1, stdout: "ERROR: could not get idle state." } : { code: 0, stdout: '<?xml version="1.0"?><hierarchy><node text="x" /></hierarchy>' };
+    };
+    const tree = await svc.tree(serial);
+    expect(calls).toBeGreaterThanOrEqual(2);
+    expect(tree.xml).toContain("<hierarchy>");
+  });
+
   // ---- T42.4: APK-Installation mit Hash ----------------------------------------------------------------------
   it("Installation nur mit übereinstimmendem Hash; falscher Hash blockiert vor adb", async () => {
     const svc = makeSvc();

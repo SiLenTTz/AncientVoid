@@ -697,16 +697,26 @@ export class DeviceService {
 
   async tree(serial: string): Promise<{ xml: string; truncated: boolean; at: string }> {
     this.ownedReady(serial);
-    const out = await this.runAdbChecked(adbTreeArgv(serial), 20_000, "uiautomator");
-    const text = out.toString("utf8");
-    const start = text.indexOf("<?xml");
-    const hierarchyStart = start === -1 ? text.indexOf("<hierarchy") : start;
-    const end = text.lastIndexOf("</hierarchy>");
-    let xml = hierarchyStart !== -1 && end !== -1 ? text.slice(hierarchyStart, end + "</hierarchy>".length) : "";
-    if (!xml) throw new DeviceError("failed", "Accessibility-Baum nicht lesbar (uiautomator lieferte kein XML).");
-    const truncated = xml.length > DEVICE_TREE_MAX_BYTES;
-    if (truncated) xml = xml.slice(0, DEVICE_TREE_MAX_BYTES);
-    return { xml, truncated, at: now() };
+    // uiautomator verweigert den ersten Dump nach Boot gern mit „could not get idle state“
+    // (kein XML, Exit != 0 oder nur Meldungstext) — zweiter Versuch nach kurzer Pause ist
+    // das übliche Beheben; erst danach failt der Baum laut.
+    let last = "";
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const out = await this.runAdb(adbTreeArgv(serial), 25_000);
+      last = out.stdout.toString("utf8");
+      const start = last.indexOf("<?xml");
+      const hierarchyStart = start === -1 ? last.indexOf("<hierarchy") : start;
+      const end = last.lastIndexOf("</hierarchy>");
+      if (hierarchyStart !== -1 && end !== -1) {
+        let xml = last.slice(hierarchyStart, end + "</hierarchy>".length);
+        const truncated = xml.length > DEVICE_TREE_MAX_BYTES;
+        if (truncated) xml = xml.slice(0, DEVICE_TREE_MAX_BYTES);
+        return { xml, truncated, at: now() };
+      }
+      if (out.code !== 0 && out.stderr.includes("not found")) break; // Gerät weg — Retries bringen nichts
+      await new Promise((r) => setTimeout(r, 1_000));
+    }
+    throw new DeviceError("failed", `Accessibility-Baum nicht lesbar (uiautomator lieferte kein XML). ${clip(last, 120)}`);
   }
 
   // ---- APK-Installation (nur aus referenziertem Artefakt, T42.4) ---------------------------------------------------
