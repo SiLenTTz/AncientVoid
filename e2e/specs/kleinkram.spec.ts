@@ -53,9 +53,9 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
     await expect(bar.getByRole("button", { name: /^Chat/ })).toHaveAttribute("aria-current", "page");
 
     await sessionTab(app, "Datei");
-    await expect(app.locator(".empty-state").first()).toContainText("Keine Datei geöffnet");
-    await app.locator(".empty-state").first().getByRole("button", { name: "Dateibaum öffnen" }).click();
+    // „Datei“ öffnet den Dateibaum von selbst; die Fläche zeigt den Editor statt eines Knopfes.
     await expect(app.getByTestId("files-sidebar")).toBeVisible();
+    await expect(app.locator(".code-pane").first()).toBeVisible();
   });
 
   test("Regel 3: Zeilenaktionen beim Überfahren, Fokus oder langem Drücken — und im Menü der Zeile", async ({ app, hub }) => {
