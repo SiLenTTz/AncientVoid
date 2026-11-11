@@ -66,4 +66,22 @@ test.describe("Zoom-robuste Flächen (EPIC-P50)", () => {
     const g = await geometry(app, { panel: ".browser-panel" });
     expect(inside(g.boxes.panel, g), "Browser-Panel").toEqual([]);
   });
+
+  test("Session mobil: das Fenster scrollt nie — auch nicht, wenn die Messung zu hoch läge (Garantie vor Messung)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Hallo" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.locator(".tail-scroll").first()).toBeVisible();
+    // Simulierter Messfehler: ein Block über der Liste macht die Seite weit höher als das Fenster.
+    await app.evaluate(() => {
+      const filler = document.createElement("div");
+      filler.style.height = "3000px";
+      document.querySelector(".session-live")!.prepend(filler);
+    });
+    await app.mouse.move(100, 200);
+    await app.mouse.wheel(0, 2000);
+    await app.waitForTimeout(150);
+    const html = await app.evaluate(() => ({ overflow: getComputedStyle(document.documentElement).overflowY, scrollY: window.scrollY }));
+    expect(html.scrollY, "html/body dürfen auf der Session-Route nie scrollen").toBe(0);
+    expect(html.overflow).toBe("hidden");
+  });
 });
