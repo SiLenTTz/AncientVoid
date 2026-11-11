@@ -83,6 +83,15 @@ html:has(.app-page > .dashboard) body {
   overflow: hidden;
 }
 
+/* EPIC-P50 T50.3: dieselbe Garantie für die mobile Session-Hauptroute. Der
+ * Chat (.tail-scroll) scrollt intern; seine Höhe misst SessionTail.tsx. Ein
+ * Messfehler von ±1 px soll Clipping statt Seiten-Scrollbalken geben —
+ * docs/zoom-robuste-flaechen.md. */
+html:has(#app > .session-live),
+html:has(#app > .session-live) body {
+  overflow: hidden;
+}
+
 .app-page:has(> .dashboard) > .dashboard {
   flex: 1;
   min-height: 0;

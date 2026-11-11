@@ -4,7 +4,8 @@
  *
  * The scale is the CSS `zoom` of <html>, mirrored in `--ui-zoom` — viewport
  * heights are divided by it (02-layout.css), otherwise a zoomed layout grows
- * past the screen.
+ * past the screen. The pattern and the "window never scrolls" guarantee:
+ * docs/zoom-robuste-flaechen.md (EPIC-P50).
  */
 const SCALE_KEY = "ancientvoid.uiScale";
 const MOTION_KEY = "ancientvoid.ctxMotion";

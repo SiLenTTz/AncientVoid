@@ -1,6 +1,6 @@
 # EPIC-P50 — Zoom-robuste Flächen: Fenster scrollen nie, bei jedem UI-Zoom
 
-**Status:** offen · **Phase:** P50 · **Dauer:** ~1 Agenten-Woche (grobe Schätzung)
+**Status:** in Arbeit (T50.1–T50.5 umgesetzt, T50.6 offen) · **Phase:** P50 · **Dauer:** ~1 Agenten-Woche (grobe Schätzung)
 **Abhängigkeit:** keine fachliche offene — Bugfix-Klasse quer zur Kette (Präzedenz P13/P14/P17). Basis sind die geschlossenen Zoom-Bugs BUG-0097/0098/0099/0102/0112 und die offenen BUG-0112-Vettern BUG-0113.
 
 Quelle: Nutzermeldung vom 10.11.2026 („Im Chat-Fenster zwei Scrollbars; die für die
@@ -46,9 +46,9 @@ beim Rendern mit dem Zoom multipliziert. Korrekt (Stand 10.11.2026):
 `02-layout.css:73/:202` (Dashboard-Shell, `.split`),
 `10-voice-and-dock.css:115` (`.dock-stack`), `11-report-and-diff.css:298`,
 `14-notifications.css:104 f.`, `18-commands.css:14 f.`,
-`21-icon-rail.css:162`, `31-custom-models.css:18`. Fehlend:
-`27-popout.css:5` (mit BUG-0112 behoben), `30-files.css:6` und `:87`
-(BUG-0113, offen). Inhalte-`max-height` ohne Fensterbezug (z. B.
+`21-icon-rail.css:162`, `31-custom-models.css:18`. Fehlten:
+`27-popout.css:5` (BUG-0112) und `30-files.css:6`/`:87` (BUG-0113) —
+beide behoben; die vollständige Tabelle samt weiteren Befunden steht in §3.4. Inhalte-`max-height` ohne Fensterbezug (z. B.
 `max-height: 40vh` in Code-Vorschauen) bleiben ungeteilt zulässig, solange
 der umgebende Container die Fensterinvariante hält.
 
@@ -59,8 +59,8 @@ führend; die CSS-Garantie `overflow: hidden` auf `html`/`body` pro Route
 macht die Nutzerregel aber von Mess-Rundungen unabhängig — ein Fehler von
 ±1 px führt zu Clipping statt Seiten-Scrollbar (beides falsch, aber nur
 eines verletzt die Invariante sichtbar und fällt damit auf). Gilt bereits:
-Dashboard (BUG-0099 Nachtrag 2), Session-Popout (BUG-0112). Neu: mobile
-Session-Hauptroute; geprüft: Graph/Datei/Vault/Werkzeug-Popouts erben die
+Dashboard (BUG-0099 Nachtrag 2), Session-Popout (BUG-0112), seit T50.3 die
+mobile Session-Hauptroute (`02-layout.css`); geprüft: Graph/Datei/Vault/Werkzeug-Popouts erben die
 Popout-Regel.
 
 ### 3.3 E2E-Zoom-Matrix
@@ -72,13 +72,74 @@ Session mobil, Session-Popout, Dateien-Schublade}: assert
 `window.innerHeight ± 1`. Vorbild: BUG-0097-Fall in
 `session-scroll.spec.ts`, BUG-0112-Fall in `windows.spec.ts`.
 
+### 3.4 Audit-Tabelle (T50.1, Stand 11.11.2026, Basis `efaa952`)
+
+Vollständiger Scan: `rg '[0-9.]+(dvh|vh|vw)\b' apps/pwa/src/app/styles` plus Inline-Styles in `apps/pwa/src` (je Treffer eine Zeile; Kommentarzeilen ausgenommen). Spalte „Zoom“: **geteilt** = durch `var(--ui-zoom, 1)` geteilt; **zulässig** = ungeteilt mit Begründung; **Befund** = ungeteilt und fensterbezogen, Fix-Verweis. Größte Zoomstufe ist 200 % (`SCALE_MAX`) — jedes ungeteilte Maß **≤ 50 vh/vw** bleibt dabei ≤ 100 % des Fensters und ist deshalb ohne Teilung zulässig (Regel R50).
+
+**A — Fensterfüller und fensterbegrenzte Flächen, geteilt (Muster erfüllt)**
+
+| Datei:Zeile | Regel | Fläche | Zoom |
+|---|---|---|---|
+| `02-layout.css:73` | `.app-page:has(> .dashboard)` Höhe | Übersicht (Handy) | geteilt |
+| `02-layout.css:211` | `.split` Höhe | Dashboard-Shell / PC-Kacheln | geteilt |
+| `10-voice-and-dock.css:115` | `.dock-stack` max-height | Dock | geteilt |
+| `11-report-and-diff.css:298` | `.diff-files` max-height | Diff-Dateiliste | geteilt |
+| `14-notifications.css:19, :102, :104, :105` | Glocke/Panel `right`/`width`/`max-height` | Benachrichtigungen | geteilt |
+| `18-commands.css:14, :15` | Befehlspalette Breite/Höhe | Befehlspalette | geteilt |
+| `21-icon-rail.css:136` | `.split` Höhe − 28 px (Statusleiste) | PC-Shell | geteilt |
+| `27-popout.css:8` | `.popout-shell` Höhe | eigenes Fenster | geteilt (BUG-0112) |
+| `30-files.css:7` | `.files-sidebar.drawer` Höhe | Dateien-Schublade | geteilt (**T50.2**, BUG-0113) |
+| `30-files.css:87` | `.browser-panel` `top` und `width` | Browser-/Geräte-Panel | geteilt (**T50.2**, BUG-0113) |
+| `31-custom-models.css:18` | Dialog max-height | Eigene Modelle | geteilt |
+| `41-tablet.css:62` | `.session-strip` max-height | Tablet-Streifen | geteilt |
+
+**B — Befund: fensterbezogen und ungeteilt → [BUG-0122](../bugs/bug-0122-overlay-hoehen-ohne-ui-zoom-teilung.md)**
+
+| Datei:Zeile | Regel | Fläche | Zoom |
+|---|---|---|---|
+| `05-composer.css:31–33` | `.composer.expanded` Eingabe `75vh`/`75dvh`, min `50vh` | Composer maximiert | Befund |
+| `09-skill-picker.css:26` | Skill-Blatt `70vh` | Skill-Auswahl | Befund |
+| `11-report-and-diff.css:515, :516` | `review-send-dialog` `92vw`/`85vh` | Review-Dialog | Befund |
+| `12-search.css:139` | `.file-viewer` `85vh` | Datei-Blatt | Befund |
+| `25-color-picker.css:30, :31` | `.color-dialog` `96vw`/`94dvh` | Farbwähler | Befund |
+| `28-forge.css:205, :206` | `fp-trace-dialog` `94vw`/`85vh` | Forge-Trace | Befund |
+| `16-fleet.css:14` | `.fleet-qr` `min(220px, 70vw)` | Fleet-QR | Befund |
+| `26-discovery.css:265` | Hinweis `min(80vw, 320px)` | Entdeckt | Befund |
+| `27-popout.css:151` | Schwebeleiste `min(92vw, 720px)` | Popout-Leiste | Befund |
+
+Nicht in diesem Epic gefixt: jeder Fix braucht eine eigene Matrix-Zeile (§3.3), Premortem 1. Das Bündel ist als BUG-0122 offen.
+
+**C — Inhaltslimits, ungeteilt zulässig**
+
+| Datei:Zeile | Regel | Begründung |
+|---|---|---|
+| `02-layout.css:259` | `.split-placeholder` `margin-top: 30vh` | ≤ 50 vh (R50); reiner Abstand |
+| `05-composer.css:17` | Eingabefeld `min(26rem, 60vh)` | im Dock; `.dock-stack` (10:115) hält die Fensterinvariante und scrollt selbst |
+| `05-composer.css:160, :167` | Anhang-Vorschau `45vh` | ≤ 50 vh (R50) |
+| `07-approvals.css:88` | `.tool-input` `30vh` | ≤ 50 vh (R50) |
+| `07-approvals.css:116` | `.session-approvals` `55vh`, `overflow: auto` | im Dock; `.dock-stack` begrenzt (BUG-0098) |
+| `08-session-events.css:137` | Select `max-width: 46vw` | ≤ 50 vw (R50) |
+| `11-report-and-diff.css:534` | `40vh` | ≤ 50 vh (R50) |
+| `12-search.css:168` | `scroll-margin: 40vh` | kein Layoutmaß |
+| `16-fleet.css:30` | `50vh` | ≤ 50 vh (R50) |
+| `17-code.css:199`, `22-loops.css:63`, `28-forge.css:181`, `40-turns.css:170` | `40vh` | ≤ 50 vh (R50) |
+| `19-media.css:172` | `50vh` | ≤ 50 vh (R50) |
+| `21-icon-rail.css:134` | `.status-focus` `45vw` | ≤ 50 vw (R50) |
+| `28-forge.css:220` | Trace-Text `60vh`, scrollt | liegt im Trace-Dialog (Befund B hält die Fläche) |
+| `30-files.css:43, :44, :84` | Medien/PDF/HTML `70vh`/`70vh`/`60vh` | in der scrollenden Schublade/Sidebar (30:7 geteilt) |
+| `30-files.css:67` | `.diag-list` `30vh` | ≤ 50 vh (R50) |
+| `33-vault.css:31`, `34-orchestration.css:38, :53` | `32vh`/`30vh`/`32vh` | ≤ 50 vh (R50) |
+| `39-devices.css:9, :15` | Geräte-Bild `56dvh`, Baum `40dvh` | im `.browser-panel` (30:87 geteilt, `overflow: auto`) |
+| `SessionTail.tsx:1010` | `max-height` Chat | geteilt durch `--ui-zoom`; Fallback `60vh` nur vor der ersten Messung |
+| `main.tsx:78` | `margin-top: 20vh` | ≤ 50 vh (R50), Anmeldekarte |
+
 ## 4. Aufgaben (Checkliste T50.m)
 
-- [ ] **T50.1** Audit: alle `dvh`/`vh`/`vw`-Regeln mit Fensterbezug tabellieren (Datei:zeile, geteilt/ungeteilt, Fläche); Tabelle in diesem Epic nachtragen. **Invariante BUG-0097/0112**.
-- [ ] **T50.2** BUG-0113 fixen: `.files-sidebar.drawer` (85dvh) und `.browser-panel` (top 4dvh, `100vw`) durch `--ui-zoom` teilen; E2E rot-dann-grün (Schubladen-Kopf bei Zoom 130 % sichtbar). **Invariante**.
-- [ ] **T50.3** Harte Garantie mobile Session-Hauptroute (`html:has(#app > .session-live)`, Nachtrag-2-Muster); Nachbarfälle (Verlauf-Filter, Queue, Approval) gegenprüfen. **Invariante**.
-- [ ] **T50.4** E2E-Zoom-Matrix (3.3) bauen und einmal über alle Stufen fahren; Auffälligkeiten als Bugs anlegen (ein Verhalten = eine Datei). **K2-Rand, Invariante**.
-- [ ] **T50.5** Dokumentation: Muster + Garantie-Regel in `docs/` festhalten (Verweis von `ui-scale.ts`-Kommentar), BUG-0113/0112-Status nachziehen. **Fail-loud/DoD**.
+- [x] **T50.1** Audit: alle `dvh`/`vh`/`vw`-Regeln mit Fensterbezug tabellieren (Datei:zeile, geteilt/ungeteilt, Fläche); Tabelle in diesem Epic nachtragen (§3.4). **Invariante BUG-0097/0112**. *Erledigt 11.11.2026: 12 geteilte Zeilen, 9 Befunde (BUG-0122), Rest zulässig nach Regel R50.*
+- [x] **T50.2** BUG-0113 fixen: `.files-sidebar.drawer` (85dvh) und `.browser-panel` (top 4dvh, `100vw`) durch `--ui-zoom` teilen; E2E rot-dann-grün (Schubladen-Kopf bei Zoom 130 % sichtbar). **Invariante**.
+- [x] **T50.3** Harte Garantie mobile Session-Hauptroute (`html:has(#app > .session-live)`, Nachtrag-2-Muster); Nachbarfälle (Verlauf-Filter, Queue, Approval) gegenprüfen. **Invariante**.
+- [x] **T50.4** E2E-Zoom-Matrix (3.3) bauen und einmal über alle Stufen fahren; Auffälligkeiten als Bugs anlegen (ein Verhalten = eine Datei). **K2-Rand, Invariante**. *Erledigt 11.11.2026: `zoom-flaechen.spec.ts`, Zoom 70/100/130/200 × Schrift 85/100/130 über Übersicht, Session mobil, Kachel PC, Popout, Schublade, Browser-Panel — alle grün; die Garantie-Prüfung T50.3 ist ebenfalls dort.*
+- [x] **T50.5** Dokumentation: Muster + Garantie-Regel in `docs/` festhalten (Verweis von `ui-scale.ts`-Kommentar), BUG-0113/0112-Status nachziehen. **Fail-loud/DoD**. *Erledigt 11.11.2026: [`docs/zoom-robuste-flaechen.md`](../docs/zoom-robuste-flaechen.md), Verweis aus `ui-scale.ts`; BUG-0113 done, BUG-0112 verweist auf die Matrix.*
 - [ ] **T50.6** *(aus P43 AI-P43-4)* `breiten.spec.ts` auf Werkzeugseiten und Formulare ausdehnen; Querschnitts-Specs früh in Umbau-Aufgaben mitlaufen lassen. **K2**.
 
 ## 5. Acceptance Criteria (AC-P50-k)

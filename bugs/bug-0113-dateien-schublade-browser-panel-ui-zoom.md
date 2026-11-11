@@ -1,7 +1,7 @@
 ---
 id: BUG-0113
 slug: dateien-schublade-browser-panel-ui-zoom
-status: open
+status: done
 severity: S3
 area: pwa
 instance: dev (Codebefund 10.11.2026, gleiche Ursachenklasse wie BUG-0112)
@@ -68,6 +68,20 @@ Keine — Layout.
 Ohne Fix rot müsste: Schubladen-Kopf sichtbar bei `uiScale=1.3`
 (`.files-head` vollständig im Viewport).
 
+## Fix (11.11.2026)
+
+`30-files.css`: `.files-sidebar.drawer` `height: calc(85dvh / var(--ui-zoom, 1))`;
+`.browser-panel` `top: calc(4dvh / var(--ui-zoom, 1))` und
+`width: min(760px, calc(100vw / var(--ui-zoom, 1)))` (Muster BUG-0099,
+`02-layout.css`).
+
+## Nachweis
+
+E2E `e2e/specs/zoom-flaechen.spec.ts` (mobile, `uiScale=1.3`): ohne Fix
+rot (Browser-Panel „links 124 px außerhalb", Schublade ragt über den
+oberen Rand), mit Fix grün — Schublade und Kopf liegen im Fenster,
+Schubladen-Unterkante == Fensterhöhe ±1 px.
+
 ## Eingrenzung
 
 `apps/pwa/src/app/styles/30-files.css:6` und `:87` — siehe oben.
@@ -76,4 +90,4 @@ Ohne Fix rot müsste: Schubladen-Kopf sichtbar bei `uiScale=1.3`
 
 - [x] Datei im Index [`README.md`](README.md)
 - [ ] GitLab-Issue angelegt
-- [ ] offen (Fix mit EPIC-P50 T50.2)
+- [x] erledigt (EPIC-P50 T50.2)
