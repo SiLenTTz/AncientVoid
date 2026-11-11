@@ -1,3 +1,4 @@
+import type { ComponentChildren } from "preact";
 import type { SessionDiffResult, SessionRecord } from "../../shared/api.ts";
 import { ApplyToProject } from "./HostCommands.tsx";
 
@@ -24,7 +25,7 @@ export function changeSummary(diff: SessionDiffResult | null): { files: number; 
 }
 
 /** Kopf von „Änderungen“: Zusammenfassung links, die eine Hauptaktion rechts (Kleinkram-Regel 4). */
-export function ChangesHead({ diff, record, status }: { diff: SessionDiffResult | null; record: SessionRecord; status: string }) {
+export function ChangesHead({ diff, record, status, detach }: { diff: SessionDiffResult | null; record: SessionRecord; status: string; detach?: ComponentChildren }) {
   const sum = changeSummary(diff);
   return (
     <div class="view-head changes-head">
@@ -38,6 +39,8 @@ export function ChangesHead({ diff, record, status }: { diff: SessionDiffResult 
         )}
       </div>
       {record.worktree && <ApplyToProject sessionId={record.id} status={status} worktree={record.worktree} project={record.project} primary />}
+      {/* Herauslösen steht immer als letzte Taste im Kopf (ADR-0068). */}
+      {detach}
     </div>
   );
 }

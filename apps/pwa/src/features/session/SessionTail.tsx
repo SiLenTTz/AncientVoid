@@ -5,7 +5,9 @@ import { sessionHash, fileHash } from "../../app/route.ts";
 import { HandoverBar } from "./Handover.tsx";
 import { currentProviderFailure } from "./handover.ts";
 import { TabIcon, type TabIconName } from "../../shared/TabIcon.tsx";
-import { openPopout } from "../windows/windows.ts";
+import { openPopout, postWindowMessage, useOpenWindows } from "../windows/windows.ts";
+import { DetachButton } from "../windows/DetachButton.tsx";
+import { VIEW_LABEL, viewKindOfTab, windowFor, type ViewTab, type WindowTarget } from "../windows/protocol.ts";
 import { Fragment } from "preact";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiContext } from "../../shared/api-context.ts";
@@ -70,6 +72,8 @@ export interface TileContext {
   /** EPIC-P43 T43.6: der Kachelkopf — Griff und Nummer vorn, Herauslösen und Leeren hinten; die Reiter
    * stehen dazwischen statt in einer senkrechten Leiste. */
   head?: { start: ComponentChildren; end: ComponentChildren };
+  /** EPIC-P43 T43.7 (ADR-0068): ein Ansichtsfenster zeigt genau diesen Reiter — ohne Reiter, Antwortfeld und Menü. */
+  only?: ViewTab;
 }
 
 export function SessionTail({
@@ -199,7 +203,7 @@ export function SessionTail({
   // instead of filtering it, so it needs its own bit of state rather than
   // being derived from `filter` like Chat/Verlauf are.
   const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "graph" | "datei" | "forge" | "suche" | "code" | "umgebung">(() =>
-    initialCode ? "code" : initialTab === "graph" ? "graph" : initialFile ? "datei" : loadFilter() === "lesen" ? "chat" : "verlauf",
+    tile?.only ?? (initialCode ? "code" : initialTab === "graph" ? "graph" : initialFile ? "datei" : loadFilter() === "lesen" ? "chat" : "verlauf"),
   );
   const [moreOpen, setMoreOpen] = useState(false);
   // „Mehr“ schließt bei Escape und bei einem Tipp daneben — am Handy deckt das Blatt die Reiter ab.
@@ -789,6 +793,15 @@ export function SessionTail({
     </>
   );
   const showVerlaufFilterBar = activeTab === "verlauf";
+  // EPIC-P43 T43.7 (ADR-0068): jede Ansicht lässt sich am PC herauslösen; läuft sie in einem Fenster,
+  // steht hier ein Platzhalter mit „Fenster zeigen“ und „Zurückholen“.
+  const openWindows = useOpenWindows();
+  const viewKind = tile && !tile.only ? viewKindOfTab(activeTab) : null;
+  const sessionHost = remoteHost(session.hostId);
+  const viewTarget: WindowTarget | null = viewKind ? { kind: viewKind, sessionId: session.id, ...(sessionHost ? { hostId: sessionHost } : {}) } : null;
+  const viewWindow = viewTarget ? windowFor(openWindows, viewTarget) : null;
+  const detach = viewKind && viewTarget ? <DetachButton target={viewTarget} label={VIEW_LABEL[viewKind]} /> : null;
+  const detachHead = detach ? <div class="view-head">{detach}</div> : null;
 
   return (
     <ApiContext.Provider value={api}>
@@ -827,17 +840,18 @@ export function SessionTail({
             {session.controlMode !== "mirror" && <>{" · "}<WorkplaceBadge session={record} /></>}
           </div>
         </div>
-        {tile && <nav class="subtabs-wrap tile-tabs" aria-label="Ansichten">{tabButtons}</nav>}
-        {!observerOnly && features?.interrupt && (status === "working" || status === "starting" || status === "waiting_approval") && (
+        {tile && !tile.only && <nav class="subtabs-wrap tile-tabs" aria-label="Ansichten">{tabButtons}</nav>}
+        {!tile?.only && !observerOnly && features?.interrupt && (status === "working" || status === "starting" || status === "waiting_approval") && (
           <button class="btn pause-btn" type="button" onClick={() => void pause()}>
             Pause
           </button>
         )}
-        {!observerOnly && status !== "stopped" && (
+        {!tile?.only && !observerOnly && status !== "stopped" && (
           <button class="btn danger stop-btn" type="button" onClick={stop}>
             Stop
           </button>
         )}
+        {!tile?.only && (
         <details class="session-menu" ref={menuRef}>
           <summary aria-label="Weitere Aktionen" title="Weitere Aktionen">⋯</summary>
           <div class="session-menu-items">
@@ -873,6 +887,7 @@ export function SessionTail({
             </button>
           </div>
         </details>
+        )}
         <div class={`conn-dot ${conn}`} title={conn} />
         {tile?.head?.end}
       </div>
@@ -964,7 +979,21 @@ export function SessionTail({
         }}
         style={`overflow-y: auto; max-height: ${tailMaxHeight !== null ? `calc(${tailMaxHeight}px / var(--ui-zoom, 1))` : "60vh"}`}
       >
-        {activeTab === "bericht" ? (
+        {viewWindow && viewKind ? (
+          <div class="empty-state detached-placeholder">
+            <p>{VIEW_LABEL[viewKind]} läuft in einem eigenen Fenster.</p>
+            <div class="row">
+              <button class="btn" type="button" onClick={() => postWindowMessage({ type: "focus", id: viewWindow.id })}>
+                Fenster zeigen
+              </button>
+              <button class="btn" type="button" onClick={() => postWindowMessage({ type: "recall", id: viewWindow.id })}>
+                Zurückholen
+              </button>
+            </div>
+          </div>
+        ) : activeTab === "bericht" ? (
+          <>
+          {detachHead}
           <ReportPane
             record={record}
             createdAt={session.createdAt}
@@ -974,9 +1003,10 @@ export function SessionTail({
             usage={usage}
             context={{ fill: tokenStats.lastContextTokens, window: windowTokens }}
           />
+          </>
         ) : activeTab === "diff" ? (
           <>
-            <ChangesHead diff={diff} record={record} status={status} />
+            <ChangesHead diff={diff} record={record} status={status} detach={detach} />
             {noChanges ? (
               <div class="empty-state">
                 <p>Diese Session hat noch nichts geändert.</p>
@@ -1002,7 +1032,10 @@ export function SessionTail({
             </section>
           </>
         ) : activeTab === "forge" ? (
+          <>
+          {detachHead}
           <ForgePanel session={session} onOpenSession={(id) => { location.hash = sessionHash(id, remoteHost(session.hostId)); }} />
+          </>
         ) : activeTab === "graph" ? (
           <>
             <div class="graph-pane-tools">
@@ -1054,18 +1087,25 @@ export function SessionTail({
             )}
           </>
         ) : activeTab === "suche" ? (
-          <SearchPane project={session.project} />
+          <>
+            {detachHead}
+            <SearchPane project={session.project} />
+          </>
         ) : activeTab === "code" ? (
           <>
             <div class="view-head">
               <button class="btn" type="button" aria-label="Dateibaum öffnen" title="Dateibaum (Strg+Umschalt+E)" onClick={() => openLayer("files")}>
                 Dateibaum
               </button>
+              {detach}
             </div>
             <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} {...(initialCode ? { initial: initialCode } : {})} onOpenDiff={showDiffTab} />
           </>
         ) : activeTab === "umgebung" ? (
-          <WorkspaceRuntimePane sessionId={session.id} refreshSeq={workspaceSeq} />
+          <>
+            {detachHead}
+            <WorkspaceRuntimePane sessionId={session.id} refreshSeq={workspaceSeq} />
+          </>
         ) : activeTab === "chat" ? (
           chatItems.length === 0 ? (
             <div class="empty">{live ? `lädt…${shownModel ? ` · ${shownModel}` : ""}` : "keine Nachrichten"}</div>
@@ -1137,6 +1177,7 @@ export function SessionTail({
         )}
       </div>
 
+      {!tile?.only && (
       <div class="dock-stack" ref={dockRef}>
         <button
           class="dock-toggle"
@@ -1286,6 +1327,7 @@ export function SessionTail({
         )}
         {!tile && <nav class="subtabs-wrap" aria-label="Ansichten">{tabButtons}</nav>}
       </div>
+      )}
       <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} />
       </div>
     </div>

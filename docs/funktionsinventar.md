@@ -189,6 +189,7 @@ Nur ab 1280 px Breite.
 | P10 | Ansichten im Kachelkopf | Kopf der Kachel: Griff, Titel, Zustand, Reiter, rechts Herauslösen („Änderungen“ nur mit Änderungen) | T43.6 | inventar |
 | P11 | Weitere Kachel öffnen | Strg-Klick in der Liste | — | inventar |
 | P12 | Eigene Fenster: Session, Werkzeugseite, Graph, Datei, Notiz, Browser, Android-Geräte; Zurückholen | „⧉“ an der jeweiligen Ansicht | T43.7 | spec:windows.spec.ts |
+| P17 | Herauslösen: Änderungen, Dateien, Bericht, GitLab, Suche, Umgebung, Warteschlange als eigenes Fenster; Platzhalter mit „Fenster zeigen“/„Zurückholen“; Zähler „⧉ n Fenster“ (nur PC) | „⧉ Herauslösen“ im Kopf der Ansicht | T43.7 | spec:herausloesen.spec.ts |
 | P13 | Kacheltastatur (Alt+1–4, Alt+Umschalt+1–4, Alt+L, Alt+W) | Tastatur | — | spec:workspace-tiles.spec.ts |
 | P14 | Kachelgröße ziehen | Trenner zwischen Kacheln | — | spec:resize.spec.ts |
 | P15 | Werkzeugseiten in der Detailspalte, Esc schließt | Dock | — | spec:tool-pane.spec.ts |

@@ -103,7 +103,8 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
   test("ein Werkzeug (Einstellungen) wandert per ⧉ in ein eigenes Fenster; Esc schließt dort nichts @desktop", async ({ app, context }) => {
     await dockGo(app, "Einstellungen");
     const popupP = context.waitForEvent("page");
-    await app.getByRole("button", { name: "In eigenem Fenster öffnen" }).click();
+    // Auf die Werkzeugfläche begrenzt: seit T43.7 trägt auch die Warteschlange eine „… in eigenem Fenster öffnen“-Taste.
+    await app.locator(".tool-pane").getByRole("button", { name: "In eigenem Fenster öffnen" }).click();
     const popup = await popupP;
     await expect(popup.locator(".settings-page")).toBeVisible();
     await expect(popup.locator(".dock, .split-list")).toHaveCount(0);
