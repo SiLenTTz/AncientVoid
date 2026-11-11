@@ -79,6 +79,10 @@ Matrix über uiScale 80/100/130/150: Seite in keiner Stufe scrollbar, Shell
 füllt exakt. Volle `windows.spec.ts` (desktop) 10/10 grün, `npm run gate`
 grün.
 
+Seit EPIC-P50 T50.4 dauerhaft gesichert durch die Zoom-Matrix
+`e2e/specs/zoom-flaechen.spec.ts` (Popout bei uiScale 70/100/130/200 ×
+Schrift 85/100/130); Muster in `docs/zoom-robuste-flaechen.md`.
+
 
 ## Tests
 
