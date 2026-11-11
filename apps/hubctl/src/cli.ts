@@ -66,6 +66,8 @@ Usage:
   hubctl workspace preview <sessionId> <serviceId>  Preview-URL mit 5-Minuten-Ticket
   hubctl browser <sessionId>                        Browser-Status/Ziele/Console (EPIC-P39, nur Lesen)
   hubctl browser tests <sessionId>                  Testläufe mit Status (EPIC-P39)
+  hubctl devices                                    Android-Geräte: SDK/KVM, Inventar, AVDs, Leases (EPIC-P42, nur Lesen)
+  hubctl devices tests <serial>                     Geräte-Testläufe mit Status (EPIC-P42)
   hubctl automations list                           geplante Läufe mit nächstem Termin und letztem Ergebnis (EPIC-P41)
   hubctl automations show <id>                      Definition und Verlauf (Claims, Session-/Run-Verweise)
   hubctl automations create <definition.json> [prompt.txt]   legt deaktiviert an; Session-Ziele brauchen den Prompt
@@ -343,6 +345,28 @@ async function main(): Promise<void> {
       const st = await api<{ state: string; url: string | null; viewport: string; allowedOrigins: string[]; unavailableReason: string | null; log: unknown[] }>(`/api/sessions/${id}/browser`);
       console.log(`browser: ${st.state}${st.unavailableReason ? ` (${st.unavailableReason})` : ""} url=${st.url ?? "-"} viewport=${st.viewport} console=${st.log.length}`);
       console.log(`ziele: ${st.allowedOrigins.join(", ") || "keine (kein laufender Workspace-Service, keine browserOrigins)"}`);
+      break;
+    }
+    case "devices": {
+      // EPIC-P42: nur lesen — Start/Steuerung/Tests sind Menschen-Aktionen der PWA (Policy, ADR-0067).
+      if (args[0] === "tests") {
+        const serial = args[1] ?? usage();
+        const { runs } = await api<{ runs: { id: string; name: string; state: string; startedAt: string; note: string | null; env: { apiVersion: string | null; avdName: string | null } }[] }>(`/api/devices/tests?serial=${encodeURIComponent(serial)}`);
+        if (runs.length === 0) console.log("keine Testläufe");
+        for (const r of runs) console.log(`${r.id.slice(0, 8)} ${r.state.padEnd(9)} ${r.startedAt} ${r.name} · API ${r.env.apiVersion ?? "?"} · ${r.env.avdName ?? "?"}${r.note ? ` — ${r.note}` : ""}`);
+        break;
+      }
+      const st = await api<{ capabilities: { ready: boolean; sdkRoot: string | null; reasons: string[] }; devices: { serial: string; state: string; rawState: string; owned: boolean; physical: boolean; foreignEmulator: boolean; instance: { avdName: string; state: string } | null }[]; avds: { name: string; allowed: boolean }[]; leases: { serial: string; owner: string; generation: number }[] }>("/api/devices");
+      const caps = st.capabilities;
+      console.log(`sdk: ${caps.sdkRoot ?? "-"}${caps.ready ? " · bereit" : " · NICHT bereit:"}`);
+      for (const r of caps.reasons) console.log(`  ! ${r}`);
+      console.log(`avds: ${st.avds.map((a) => (a.allowed ? a.name : `${a.name} (gesperrt)`)).join(", ") || "keine"}`);
+      for (const d of st.devices) {
+        const who = d.instance ? `av-eigen ${d.instance.avdName} (${d.instance.state})` : d.physical ? "physisch — keine Steuerung" : d.foreignEmulator ? "fremder Emulator — keine Steuerung" : d.state;
+        console.log(`${d.serial.padEnd(16)} ${who}`);
+      }
+      if (st.devices.length === 0) console.log("geräte: keine");
+      for (const l of st.leases) console.log(`lease: ${l.serial} → „${l.owner}“ (Generation ${l.generation})`);
       break;
     }
     case "automations": {
