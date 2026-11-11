@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Locator, Page } from "@playwright/test";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, cardAction } from "../support/fixtures.ts";
 import { repoRoot, type TestHub } from "../support/hub.ts";
 
 /**
@@ -58,6 +58,16 @@ const more = async (c: Ctx, name: string) => {
   await c.tap(c.s.getByRole("menu", { name: "Weitere Ansichten" }).getByRole("menuitem", { name, exact: true }));
 };
 const menu = (c: Ctx) => c.s.locator(".session-menu summary");
+/** EPIC-P43 T43.5 (Regel 3): Kartenaktion — mit Maus beim Überfahren, auf Touch über das Menü „⋯“. */
+const cardDo = async (c: Ctx, card: Locator, name: string) => {
+  const inline = card.locator(".session-card-actions").getByRole("button", { name, exact: true });
+  if (await inline.isVisible()) {
+    await card.hover();
+    return c.tap(inline);
+  }
+  await c.tap(card.locator(".row-menu-btn"));
+  await c.tap(card.getByRole("menu").getByRole("menuitem", { name, exact: true }));
+};
 const settingsGroup = (name: string): Entry["reach"] => async (c) => {
   await nav(c, "Einstellungen");
   await expect(c.page.getByRole("heading", { name, exact: true }).first()).toBeVisible();
@@ -109,16 +119,16 @@ const GLOBAL: Entry[] = [
   { id: "G26", name: "Archiv", from: "start", reach: async (c) => { await c.tap(c.page.locator(".dashboard-summary").getByRole("button", { name: /^Archiv/ })); await expect(c.page.locator(".dashboard-summary").getByRole("button", { name: "Aktive" })).toBeVisible(); } },
   { id: "G27", name: "Sessions filtern", from: "start", reach: async (c) => { await c.page.getByLabel("Sessions filtern").fill("Inventar"); await expect(c.page.locator(".session-card")).toHaveCount(1); } },
   { id: "G28", name: "Session öffnen", from: "start", reach: async (c) => { await c.tap(c.page.locator(".session-card").filter({ hasText: "Inventar-Aufgabe" }).locator(".session-open")); await expect(c.page.locator(".session-top-title").first()).toHaveText("Inventar-Aufgabe"); } },
-  { id: "G29", name: "Karte: Repo-Graph", from: "start", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Repo-Graph von Inventar-Aufgabe öffnen" })); await expect(c.page.locator(".graph-pane").first()).toBeVisible(); } },
+  { id: "G29", name: "Karte: Repo-Graph", from: "start", reach: async (c) => { await cardDo(c, c.page.locator(".session-card").filter({ hasText: "Inventar-Aufgabe" }), "Repo-Graph"); await expect(c.page.locator(".graph-pane").first()).toBeVisible(); } },
   {
     id: "G30",
     name: "Karte: Anheften und Lösen",
     from: "start",
     reach: async (c) => {
       const card = c.page.locator(".session-card").filter({ hasText: "Füllsession 1" });
-      await c.tap(card.getByRole("button", { name: "Anheften" }));
+      await cardDo(c, card, "Anheften");
       await expect(c.page.getByRole("region", { name: "Angeheftet" })).toContainText("Füllsession 1");
-      await card.getByRole("button", { name: "Lösen" }).click();
+      await cardAction(card, "Lösen");
       await expect(c.page.getByRole("region", { name: "Angeheftet" })).toHaveCount(0);
     },
   },
@@ -128,13 +138,17 @@ const GLOBAL: Entry[] = [
     from: "start",
     reach: async (c) => {
       const card = c.page.locator(".session-card").filter({ hasText: "Füllsession 2" });
-      await c.tap(card.getByRole("button", { name: "Archivieren" }));
+      await cardDo(c, card, "Archivieren");
       await expect(card).toHaveCount(0);
       await c.tap(c.page.locator(".dashboard-summary").getByRole("button", { name: /^Archiv/ }));
-      await expect(card.getByRole("button", { name: "Löschen" })).toBeVisible();
-      await c.tap(card.getByRole("button", { name: "Zurückholen" }));
+      await card.locator(".row-menu-btn").click();
+      await expect(card.getByRole("menuitem", { name: "Löschen" })).toBeVisible();
+      await card.locator(".row-menu-btn").click();
+      await cardDo(c, card, "Zurückholen");
       await expect(card).toHaveCount(0);
     },
+    // Drei Funktionen in einem Eintrag; auf Touch je zwei Tipps über „⋯“.
+    max: 5,
   },
   { id: "G32", name: "Verbindungsanzeige", from: "start", reach: async (c) => { await expect(c.page.locator(".topbar .conn-dot.live").first()).toBeVisible(); } },
   { id: "G33", name: "Marke führt zur Übersicht", from: "#/neu", reach: async (c) => { await c.tap(c.page.locator(".brand-link").first()); await expect(c.page.locator(".dashboard")).toBeVisible(); } },
@@ -145,7 +159,20 @@ const SESSION: Entry[] = [
   { id: "S01", name: "Reiter Chat", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await expect(c.s.locator(".tail-scroll").getByText(/Antwort auf: Inventar-Aufgabe/)).toBeVisible(); } },
   { id: "S02", name: "Mehr: Verlauf mit Überwachen/Debuggen", from: "session", reach: async (c) => { await more(c, "Verlauf"); await controls(c); await c.tap(c.s.locator(".dock-filter-bar").getByRole("button", { name: "Debuggen" })); await expect(c.s.locator(".dock-filter-bar .chip.active")).toHaveText("Debuggen"); }, max: 5 },
   { id: "S03", name: "Mehr: Bericht", from: "session", reach: async (c) => { await more(c, "Bericht"); await expect(c.s.locator(".kv-list").first()).toContainText("Dauer"); } },
-  { id: "S04", name: "Reiter Änderungen (Diff und Bericht)", from: "session", reach: async (c) => { await c.tap(tab(c, "Änderungen")); await expect(c.s.locator(".diff-review, .empty").first()).toBeVisible(); } },
+  {
+    id: "S04",
+    name: "Reiter Änderungen (Diff und Bericht) — ohne Änderungen unter „Mehr“",
+    from: "session",
+    reach: async (c) => {
+      // Ohne Änderungen rückt der Reiter unter „Mehr“, sobald der Diff geladen ist (Kleinkram-Regel 2) — erst die Leiste ruhig werden lassen.
+      const changes = tab(c, "Änderungen");
+      let last = -1;
+      await expect.poll(async () => { const n = await changes.count(); const calm = n === last; last = n; return calm; }, { intervals: [600] }).toBe(true);
+      if (last > 0) await c.tap(changes);
+      else await more(c, "Änderungen");
+      await expect(c.s.locator(".diff-review, .empty, .empty-state").first()).toBeVisible();
+    },
+  },
   { id: "S05", name: "Mehr: Graph", from: "session", reach: async (c) => { await more(c, "Graph"); await expect(c.s.locator(".graph-pane")).toBeVisible(); } },
   { id: "S06", name: "Mehr: Datei", from: "session", reach: async (c) => { await more(c, "Datei"); await expect(c.s.getByText("keine Datei geöffnet")).toBeVisible(); } },
   { id: "S07", name: "Mehr: GitLab", from: "session", reach: async (c) => { await more(c, "GitLab"); await expect(c.s.locator(".forge-panel")).toBeVisible(); } },
@@ -192,7 +219,13 @@ const DESKTOP: Entry[] = [
   { id: "P07", name: "Kachel leeren", forms: PC, from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Kachel 1 leeren" })); await expect(c.page.locator(".tile-empty")).toContainText("Session links wählen"); } },
   { id: "P08", name: "Statusleiste", forms: PC, from: "session", reach: async (c) => { const bar = c.page.getByRole("status", { name: "Statusleiste" }); await expect(bar).toContainText("verbunden"); await expect(bar.locator(".status-focus")).toContainText("Inventar-Aufgabe"); } },
   { id: "P09", name: "Werkzeugseite in der Detailspalte: eigenes Fenster und Schließen", forms: PC, from: "#/einstellungen", reach: async (c) => { const pane = c.page.locator(".tool-pane"); await expect(pane.getByRole("button", { name: "In eigenem Fenster öffnen" })).toBeVisible(); await c.tap(pane.locator(".tool-pane-close")); await expect(pane).toHaveCount(0); } },
-  { id: "P10", name: "Ansichten als Leiste in der Kachel", forms: PC, from: "session", reach: async (c) => { await expect(c.s.locator(".tile-rail").getByRole("button")).toHaveCount(4); } },
+  { id: "P10", name: "Ansichten als Leiste in der Kachel", forms: PC, from: "session", reach: async (c) => {
+      // Chat, Dateien und „Mehr“ immer; „Änderungen“ nur mit Änderungen (Kleinkram-Regel 2).
+      const rail = c.s.locator(".tile-rail");
+      for (const name of [/^Chat/, /^Dateien/]) await expect(rail.getByRole("button", { name })).toBeVisible();
+      await expect(rail.locator('[aria-haspopup="menu"]')).toBeVisible();
+    },
+  },
   { id: "P11", name: "Strg-Klick öffnet eine weitere Kachel", forms: PC, from: "session", reach: async (c) => { await c.page.locator(".split-list .session-card").filter({ hasText: "Füllsession 3" }).locator(".session-open").click({ modifiers: ["Control"] }); await expect(c.page.locator(".tile")).toHaveCount(2); } },
 ];
 

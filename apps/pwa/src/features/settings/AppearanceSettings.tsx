@@ -35,13 +35,13 @@ export function AppearanceSettings() {
       <AccentSetting />
       <SettingRow label="Zoom der Oberfläche" hint="Strg + Mausrad, Strg + / − , Strg + 0">
         <span class="scale-control">
-          <button class="btn" aria-label="Kleiner" disabled={scale <= SCALE_MIN} onClick={() => setScale(scale - SCALE_STEP)}>
+          <button class="btn" aria-label="Kleiner" title="Kleiner" disabled={scale <= SCALE_MIN} onClick={() => setScale(scale - SCALE_STEP)}>
             −
           </button>
           <span class="scale-value mono" aria-live="polite">
             {Math.round(scale * 100)} %
           </span>
-          <button class="btn" aria-label="Größer" disabled={scale >= SCALE_MAX} onClick={() => setScale(scale + SCALE_STEP)}>
+          <button class="btn" aria-label="Größer" title="Größer" disabled={scale >= SCALE_MAX} onClick={() => setScale(scale + SCALE_STEP)}>
             +
           </button>
           <button class="btn" disabled={scale === 1} onClick={() => setScale(1)}>

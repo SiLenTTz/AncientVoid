@@ -164,6 +164,7 @@ export function DiffPane({
     union.push(f);
   }
   const preexisting = new Set(diff.baseline?.dirtyAtStart ?? []);
+  const maxChange = Math.max(1, ...union.map((f) => (f.binary ? 0 : f.additions + f.deletions)));
   const anchorOf = new Map(union.map((f, i) => [f.path, i]));
   const groups = (files: SessionDiffFile[], commit?: string) =>
     files.map((f) => {
@@ -213,8 +214,13 @@ export function DiffPane({
             {f.binary ? (
               <span class="dim">binär</span>
             ) : (
-              <span>
+              <span class="diff-file-counts">
                 <span class="diff-add-count">+{f.additions}</span> <span class="diff-del-count">-{f.deletions}</span>
+                {/* EPIC-P43 T43.5: Plus/Minus als Balken, Länge relativ zur größten Datei. */}
+                <span class="diff-bar" aria-hidden="true" style={{ width: `${Math.max(4, Math.round(((f.additions + f.deletions) / maxChange) * 56))}px` }}>
+                  <span class="add" style={{ flexGrow: f.additions }} />
+                  <span class="del" style={{ flexGrow: f.deletions }} />
+                </span>
               </span>
             )}
           </div>

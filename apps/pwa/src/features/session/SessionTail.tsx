@@ -36,6 +36,7 @@ import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import { estimateText, formatMinutes, quotaSummary, runProgress } from "./run-progress.ts";
 import { StatusLine } from "./StatusLine.tsx";
+import { ChangesHead, changeSummary } from "./ChangesHead.tsx";
 import { openLayer } from "../../shared/layers.ts";
 import { ChatTurns, itemFirstSeq, itemLastSeq } from "./ChatTurns.tsx";
 import { turnsOf } from "./turns.ts";
@@ -363,13 +364,15 @@ export function SessionTail({
     return () => clearInterval(timer);
   }, [session.id]);
 
-  // T1.6-4/T1.6-5: fetched only while Bericht or Diff is the open tab, not
-  // continuously — both are periodic-check views, not a live stream, and
-  // share the one /diff endpoint instead of each fetching it separately.
+  // T1.6-4/T1.6-5: fetched while Bericht or Diff is the open tab, not continuously — both are
+  // periodic-check views, not a live stream, and share the one /diff endpoint. EPIC-P43 T43.5:
+  // additionally once whenever no turn runs, so the „Änderungen“ tab knows its count (and,
+  // empty, moves under „Mehr“ — Kleinkram-Regel 2).
   const [diff, setDiff] = useState<SessionDiffResult | null>(null);
   const [usage, setUsage] = useState<AdapterUsage | null>(null);
+  const turnRunning = status === "working" || status === "starting";
   useEffect(() => {
-    if (activeTab !== "bericht" && activeTab !== "diff") return;
+    if (activeTab !== "bericht" && activeTab !== "diff" && turnRunning) return;
     let alive = true;
     api
       .sessionDiff(session.id)
@@ -384,7 +387,7 @@ export function SessionTail({
     return () => {
       alive = false;
     };
-  }, [activeTab, session.id, session.adapter]);
+  }, [activeTab, session.id, session.adapter, turnRunning]);
 
   useEffect(() => {
     localStorage.setItem("ancientvoid.filter", filter);
@@ -722,12 +725,16 @@ export function SessionTail({
   // EPIC-P43 T43.4: vier Reiter — Chat, Änderungen (Diff und Bericht), Dateien (Code, Datei), Mehr.
   // Die übrigen Ansichten liegen unter „Mehr“; ihre Adressen und Zustände bleiben dieselben.
   type Tab = typeof activeTab;
+  // Kleinkram-Regel 2: ein leerer Reiter rückt unter „Mehr“ und sagt dort in einem Satz, was fehlt.
+  const changed = changeSummary(diff);
+  const noChanges = changed?.files === 0;
   const MAIN: { label: string; icon: TabIconName; tabs: readonly Tab[]; show: () => void; count?: number }[] = [
     { label: "Chat", icon: "chat", tabs: ["chat"], show: showChatTab },
-    { label: "Änderungen", icon: "diff", tabs: ["diff", "bericht"], show: showDiffTab, count: diff?.files.length ?? 0 },
+    ...(noChanges ? [] : [{ label: "Änderungen", icon: "diff" as TabIconName, tabs: ["diff", "bericht"] as Tab[], show: showDiffTab, count: changed?.files ?? 0 }]),
     { label: "Dateien", icon: "datei", tabs: ["code", "datei"], show: showCodeTab },
   ];
   const MORE: { id: Tab; label: string; icon: TabIconName; show: () => void }[] = [
+    ...(noChanges ? [{ id: "diff" as Tab, label: "Änderungen", icon: "diff" as TabIconName, show: showDiffTab }] : []),
     { id: "verlauf", label: "Verlauf", icon: "verlauf", show: showVerlaufTab },
     { id: "bericht", label: "Bericht", icon: "bericht", show: showBerichtTab },
     // Die aus dem Graph geöffnete Datei (EPIC-P48); ohne Datei sagt die Ansicht das selbst.
@@ -790,7 +797,7 @@ export function SessionTail({
       <div class="session-main">
       {/* T8.5: back, what this is, Stop apart from Senden, the rest in ⋯ */}
       <div class="topbar session-topbar">
-        <button class="btn back-btn" type="button" aria-label="Zur Übersicht" onClick={() => onNavigate("dashboard")}>
+        <button class="btn back-btn" type="button" aria-label="Zur Übersicht" title="Zur Übersicht" onClick={() => onNavigate("dashboard")}>
           ←
         </button>
         <div style="flex: 1; min-width: 0">
@@ -828,7 +835,7 @@ export function SessionTail({
           </button>
         )}
         <details class="session-menu" ref={menuRef}>
-          <summary aria-label="Weitere Aktionen">⋯</summary>
+          <summary aria-label="Weitere Aktionen" title="Weitere Aktionen">⋯</summary>
           <div class="session-menu-items">
             <button type="button" onClick={() => menuDo(() => { setTitleDraft(title ?? ""); setRenaming(true); })}>
               Umbenennen
@@ -964,7 +971,17 @@ export function SessionTail({
           />
         ) : activeTab === "diff" ? (
           <>
-            <DiffReview diff={diff} session={session} />
+            <ChangesHead diff={diff} record={record} status={status} />
+            {noChanges ? (
+              <div class="empty-state">
+                <p>Diese Session hat noch nichts geändert.</p>
+                <button class="btn" type="button" onClick={showChatTab}>
+                  Zum Chat
+                </button>
+              </div>
+            ) : (
+              <DiffReview diff={diff} session={session} />
+            )}
             <section class="changes-report" aria-label="Bericht">
               <h3 class="section-title">Bericht</h3>
               <ReportPane
@@ -975,6 +992,7 @@ export function SessionTail({
                 diff={diff}
                 usage={usage}
                 context={{ fill: tokenStats.lastContextTokens, window: windowTokens }}
+                applyInHead
               />
             </section>
           </>
@@ -1022,7 +1040,12 @@ export function SessionTail({
             {openFile ? (
               <FileViewer target={`session=${encodeURIComponent(session.id)}`} path={openFile} hostId={remoteHost(session.hostId) ?? null} />
             ) : (
-              <div class="empty">keine Datei geöffnet — im Graph oder im Dateibaum wählen</div>
+              <div class="empty-state">
+                <p>Keine Datei geöffnet — wähle eine im Graph oder im Dateibaum.</p>
+                <button class="btn" type="button" onClick={() => openLayer("files")}>
+                  Dateibaum öffnen
+                </button>
+              </div>
             )}
           </>
         ) : activeTab === "suche" ? (
@@ -1114,6 +1137,7 @@ export function SessionTail({
           class="dock-toggle"
           type="button"
           aria-label={controlsFolded ? "Steuerung einblenden" : "Steuerung ausblenden"}
+          title={controlsFolded ? "Steuerung einblenden" : "Steuerung ausblenden"}
           aria-expanded={!controlsFolded}
           onClick={toggleControls}
         >

@@ -1,4 +1,4 @@
-import { test, expect, statusPill, dockGo, openQuiet, sessionTab } from "../support/fixtures.ts";
+import { test, expect, statusPill, dockGo, openQuiet, sessionTab, cardAction } from "../support/fixtures.ts";
 
 test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
   test("eine neue Session startet aus der UI und öffnet sich per Link @desktop", async ({ app, hub }) => {
@@ -141,7 +141,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const id = await hub.createSession({ adapter: "dummy", prompt: "Erster Auftrag" });
     await hub.api(`/api/sessions/${id}/stop`, { body: {} });
     const card = app.locator(".session-card").filter({ hasText: "Erster Auftrag" });
-    await card.getByRole("button", { name: "Anheften" }).click();
+    await cardAction(card, "Anheften");
     await expect(app.locator(".section-pins .session-card")).toHaveCount(1);
     expect((await hub.api<{ pinned: boolean }>(`/api/sessions/${id}`)).body.pinned).toBe(true);
     await hub.api(`/api/sessions/${id}/meta`, { body: { title: "Umbenannt" } });

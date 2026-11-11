@@ -45,13 +45,13 @@ export function FontSettings() {
       </div>
       <SettingRow label="Schriftgröße" hint="nur Text — der Zoom skaliert die ganze Oberfläche">
         <span class="scale-control">
-          <button class="btn" aria-label="Schriftgröße verringern" disabled={a.fontScale <= FONT_SCALE_MIN} onClick={() => setAppearance({ ...a, fontScale: clampFontScale(a.fontScale - FONT_SCALE_STEP) })}>
+          <button class="btn" aria-label="Schriftgröße verringern" title="Schriftgröße verringern" disabled={a.fontScale <= FONT_SCALE_MIN} onClick={() => setAppearance({ ...a, fontScale: clampFontScale(a.fontScale - FONT_SCALE_STEP) })}>
             −
           </button>
           <span class="font-scale-value mono" aria-live="polite">
             {pct} %
           </span>
-          <button class="btn" aria-label="Schriftgröße erhöhen" disabled={a.fontScale >= FONT_SCALE_MAX} onClick={() => setAppearance({ ...a, fontScale: clampFontScale(a.fontScale + FONT_SCALE_STEP) })}>
+          <button class="btn" aria-label="Schriftgröße erhöhen" title="Schriftgröße erhöhen" disabled={a.fontScale >= FONT_SCALE_MAX} onClick={() => setAppearance({ ...a, fontScale: clampFontScale(a.fontScale + FONT_SCALE_STEP) })}>
             +
           </button>
           <button class="btn" aria-label="Schriftgröße zurücksetzen" disabled={a.fontScale === 1} onClick={() => setAppearance({ ...a, fontScale: 1 })}>

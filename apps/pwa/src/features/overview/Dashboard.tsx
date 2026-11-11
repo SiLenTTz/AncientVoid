@@ -506,8 +506,43 @@ function SessionRow({
   const project = projectName(session.project);
   const question = (approval?.tool?.questions?.length ?? 0) > 0;
   const plan = useMemo(() => (session.status === "working" ? planOf(session) : null), [session.id, session.status, session.lastSeq]);
+  // Kleinkram-Regel 3: Zeilenaktionen erscheinen beim Überfahren, bei Fokus oder langem Drücken
+  // (Touch: Kontextmenü-Geste) und stehen zusätzlich im Menü „⋯“ der Karte.
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen && !actionsOpen) return;
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !cardRef.current?.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setActionsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", close);
+    window.addEventListener("pointerdown", close);
+    return () => {
+      window.removeEventListener("keydown", close);
+      window.removeEventListener("pointerdown", close);
+    };
+  }, [menuOpen, actionsOpen]);
+  const name = session.title ?? project;
+  const actions: { label: string; run: () => void; danger?: boolean; pressed?: boolean }[] = [
+    { label: "Repo-Graph", run: () => (location.hash = graphHash(session.id, remoteHost(session.hostId))) },
+    { label: session.pinned ? "Lösen" : "Anheften", run: () => void onPin(session), pressed: session.pinned === true },
+    { label: session.archived ? "Zurückholen" : "Archivieren", run: () => void onArchive(session) },
+    ...(session.archived ? [{ label: "Löschen", run: () => onDelete(session), danger: true }] : []),
+  ];
   return (
-    <div class={`card session-card ${glow}${unseen ? " unseen" : ""}${isLast ? " last-active" : ""}${moved ? " mv-wander" : ""}`} aria-current={isLast ? "true" : undefined}>
+    <div
+      ref={cardRef}
+      class={`card session-card ${glow}${unseen ? " unseen" : ""}${isLast ? " last-active" : ""}${moved ? " mv-wander" : ""}${actionsOpen ? " actions-open" : ""}`}
+      aria-current={isLast ? "true" : undefined}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setActionsOpen(true);
+      }}
+    >
       <button class="session-open" type="button" onClick={(ev) => onOpen(session, { newTile: ev.ctrlKey || ev.metaKey })}>
         <div class="row">
           <strong class={`session-title${session.title ? "" : " dim"}`}>{session.title ?? (session.adapter === "loop:securesight-factory" ? `Factory-Beobachter · ${project}` : `${project} — ohne Auftrag`)}</strong>
@@ -547,25 +582,48 @@ function SessionRow({
       <div class="session-card-actions">
         {/* EPIC-P48: Repo-Graph dieser Session direkt aus der Übersichtskarte (unten links). */}
         <button
-          class="link-btn graph-open"
+          class="link-btn graph-open row-action"
           type="button"
-          aria-label={`Repo-Graph von ${session.title ?? project} öffnen`}
+          aria-label={`Repo-Graph von ${name} öffnen`}
           title="Repo-Graph"
           onClick={() => (location.hash = graphHash(session.id, remoteHost(session.hostId)))}
         >
           <TabIcon name="graph" />
         </button>
-        <button class="link-btn" type="button" aria-pressed={session.pinned === true} onClick={() => void onPin(session)}>
+        <button class="link-btn row-action" type="button" aria-pressed={session.pinned === true} onClick={() => void onPin(session)}>
           {session.pinned ? "Lösen" : "Anheften"}
         </button>
-        <button class="link-btn" type="button" onClick={() => void onArchive(session)}>
+        <button class="link-btn row-action" type="button" onClick={() => void onArchive(session)}>
           {session.archived ? "Zurückholen" : "Archivieren"}
         </button>
         {session.archived && (
-          <button class="link-btn danger" type="button" onClick={() => onDelete(session)}>
+          <button class="link-btn danger row-action" type="button" onClick={() => onDelete(session)}>
             Löschen
           </button>
         )}
+        <span class="row-menu-wrap">
+          <button class="link-btn row-menu-btn" type="button" aria-label={`Aktionen für ${name}`} title="Aktionen" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((on) => !on)}>
+            <TabIcon name="mehr" />
+          </button>
+          {menuOpen && (
+            <div class="row-menu" role="menu" aria-label={`Aktionen für ${name}`}>
+              {actions.map((a) => (
+                <button
+                  key={a.label}
+                  type="button"
+                  role="menuitem"
+                  class={a.danger ? "danger" : ""}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    a.run();
+                  }}
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </span>
       </div>
     </div>
   );

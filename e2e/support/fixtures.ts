@@ -107,7 +107,9 @@ export async function openQuiet(page: Page): Promise<void> {
 export async function sessionTab(scope: Page | Locator, name: string): Promise<void> {
   const bar = scope.locator(".subtabs-wrap").first();
   const main = ({ Diff: "Änderungen", Code: "Dateien" } as Record<string, string>)[name] ?? name;
-  if (["Chat", "Änderungen", "Dateien"].includes(main)) return bar.getByRole("button", { name: new RegExp(`^${main}`) }).click();
+  const direct = bar.getByRole("button", { name: new RegExp(`^${main}`) });
+  // Kleinkram-Regel 2 (T43.5): ohne Änderungen rückt „Änderungen“ unter „Mehr“.
+  if (main === "Chat" || main === "Dateien" || (main === "Änderungen" && (await direct.count()) > 0)) return direct.click();
   const menu = bar.getByRole("menu", { name: "Weitere Ansichten" });
   if (!(await menu.isVisible())) await bar.locator('[aria-haspopup="menu"]').click();
   await menu.getByRole("menuitem", { name: main, exact: true }).click();
@@ -132,4 +134,18 @@ export async function openLayer(page: Page, name: "Dateibaum" | "Browser" | "Ger
   }
   await bar.locator('[aria-haspopup="menu"]').click();
   await bar.getByRole("menu", { name: "Weitere Ansichten" }).getByRole("menuitem", { name, exact: true }).click();
+}
+
+/**
+ * EPIC-P43 T43.5 (Kleinkram-Regel 3): eine Aktion der Session-Karte. Mit Maus steht sie beim Überfahren
+ * da, auf Touch erst nach langem Drücken — der Weg über das Menü „⋯“ der Karte geht überall.
+ */
+export async function cardAction(card: Locator, name: string): Promise<void> {
+  const inline = card.locator(".session-card-actions").getByRole("button", { name, exact: true });
+  if (await inline.isVisible()) {
+    await card.hover();
+    return inline.click();
+  }
+  await card.locator(".row-menu-btn").click();
+  await card.getByRole("menu").getByRole("menuitem", { name, exact: true }).click();
 }

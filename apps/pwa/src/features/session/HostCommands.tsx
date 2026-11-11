@@ -58,12 +58,49 @@ export function WorktreeCard({
   worktree,
   project,
   host = null,
+  apply = true,
 }: {
   sessionId: string;
   status: string;
   worktree: { path: string; branch: string };
   project: string;
   host?: string | null;
+  /** EPIC-P43 T43.5: in „Änderungen“ steht „Ins Projekt übernehmen“ im Kopf, nicht ein zweites Mal hier. */
+  apply?: boolean;
+}) {
+  const openInEditor = host ? `code --remote ssh-remote+${host} ${shellQuote(worktree.path)}` : `code ${shellQuote(worktree.path)}`;
+  return (
+    <div class="card worktree-card">
+      <div class="dim" style="font-size: calc(12px * var(--font-scale, 1)); margin-bottom: 6px">
+        Die Änderungen dieser Session liegen in einem eigenen Git-Worktree{host ? ` auf ${host}` : ""}, nicht in {project.split("/").pop()}.
+        Branch <span class="mono">{worktree.branch}</span>.
+      </div>
+      <div class="attach-cmd-row">
+        <code class="mono worktree-path">{worktree.path}</code>
+        <CopyButton text={worktree.path} />
+      </div>
+      <div class="attach-cmd-row" style="margin-top: 6px">
+        <code class="mono worktree-open">{openInEditor}</code>
+        <CopyButton text={openInEditor} />
+      </div>
+      {apply && <ApplyToProject sessionId={sessionId} status={status} worktree={worktree} project={project} />}
+    </div>
+  );
+}
+
+/** „Ins Projekt übernehmen“ mit Rückfrage — im Bericht als Taste, im Kopf von „Änderungen“ als Hauptaktion. */
+export function ApplyToProject({
+  sessionId,
+  status,
+  worktree,
+  project,
+  primary = false,
+}: {
+  sessionId: string;
+  status: string;
+  worktree: { path: string; branch: string };
+  project: string;
+  primary?: boolean;
 }) {
   const api = useApi();
   const [confirming, setConfirming] = useState(false);
@@ -87,21 +124,8 @@ export function WorktreeCard({
       setConfirming(false);
     }
   };
-  const openInEditor = host ? `code --remote ssh-remote+${host} ${shellQuote(worktree.path)}` : `code ${shellQuote(worktree.path)}`;
   return (
-    <div class="card worktree-card">
-      <div class="dim" style="font-size: calc(12px * var(--font-scale, 1)); margin-bottom: 6px">
-        Die Änderungen dieser Session liegen in einem eigenen Git-Worktree{host ? ` auf ${host}` : ""}, nicht in {project.split("/").pop()}.
-        Branch <span class="mono">{worktree.branch}</span>.
-      </div>
-      <div class="attach-cmd-row">
-        <code class="mono worktree-path">{worktree.path}</code>
-        <CopyButton text={worktree.path} />
-      </div>
-      <div class="attach-cmd-row" style="margin-top: 6px">
-        <code class="mono worktree-open">{openInEditor}</code>
-        <CopyButton text={openInEditor} />
-      </div>
+    <div class="apply-to-project">
       {confirming ? (
         <div class="apply-confirm">
           <div class="dim" style="font-size: calc(12px * var(--font-scale, 1))">
@@ -118,7 +142,7 @@ export function WorktreeCard({
         </div>
       ) : (
         <button
-          class="btn apply-btn"
+          class={primary ? "btn primary apply-btn" : "btn apply-btn"}
           type="button"
           disabled={running}
           title={running ? "Erst nach dem laufenden Zug" : undefined}

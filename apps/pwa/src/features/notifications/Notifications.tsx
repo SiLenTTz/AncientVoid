@@ -176,6 +176,7 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
         class={`notif-bell${corner ? " corner" : ""}`}
         type="button"
         aria-label={unread > 0 ? `Benachrichtigungen (${unread} neu)` : "Benachrichtigungen"}
+        title="Benachrichtigungen"
         onClick={openPanel}
       >
         🔔{unread > 0 && <span class="notif-count">{unread > 9 ? "9+" : unread}</span>}
