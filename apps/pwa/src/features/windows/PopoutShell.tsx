@@ -7,6 +7,7 @@ import { FileViewer } from "../files/FileViewer.tsx";
 import { ToolPane } from "../shell/ToolPane.tsx";
 import { VaultPane } from "../vault/VaultPane.tsx";
 import { BrowserPanel } from "../browser/BrowserLayer.tsx";
+import { DevicePanel } from "../devices/DeviceLayer.tsx";
 import { publishHubStatus } from "../shell/hub-status.ts";
 import { HEARTBEAT_MS, type WindowTarget } from "./protocol.ts";
 import { onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "./windows.ts";
@@ -14,6 +15,7 @@ import { onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "
 function targetFromHash(hash: string): WindowTarget | null {
   const route = parseAppHash(hash);
   if (route.view === "list" && route.page === "vault") return route.vaultFile ? { kind: "vault", path: route.vaultFile } : { kind: "vault" };
+  if (route.view === "devices") return { kind: "device" };
   if (route.view === "tail") {
     if (route.browser) return { kind: "browser", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
     if (route.tab === "graph") return { kind: "graph", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
@@ -124,7 +126,7 @@ export function PopoutShell() {
     <div class="popout-shell">
       <header class="popout-bar">
         <span class="popout-title">
-          ⧉ {target.kind === "tool" ? "Werkzeug" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "browser" ? `Browser · ${sessionLabel}` : target.kind === "graph" ? `Repo-Graph · ${sessionLabel}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : sessionLabel}
+          ⧉ {target.kind === "tool" ? "Werkzeug" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "browser" ? `Browser · ${sessionLabel}` : target.kind === "device" ? "Android-Geräte" : target.kind === "graph" ? `Repo-Graph · ${sessionLabel}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : sessionLabel}
         </span>
         <button type="button" class="btn" onClick={giveBack}>
           In die App zurück
@@ -181,6 +183,11 @@ export function PopoutShell() {
             />
           </div>
         )
+      ) : target.kind === "device" ? (
+        // EPIC-P42: Geräte-Panel als eigenes Fenster — host-scoped, Lease braucht eine Session im Hauptfenster.
+        <div class="popout-browser">
+          <DevicePanel sessionId={null} label={null} hostId={null} onClose={giveBack} />
+        </div>
       ) : (
         <div class="popout-tool">
           <ToolPane

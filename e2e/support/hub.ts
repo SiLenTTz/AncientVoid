@@ -36,6 +36,8 @@ export interface HubOptions {
   browserOrigins?: string[];
   /** EPIC-P39: false = sichtbares Fenster (nur mit Anzeige; in E2E nicht genutzt). */
   browserHeadless?: boolean;
+  /** EPIC-P42 (ADR-0067): echte Android-Abnahme — SDK-/AVD-Pfade; nur aktiv mit env ANCIENTVOID_E2E_ANDROID=1. */
+  devices?: { sdkRoot: string; avdHome: string; avd: string };
   /** Echte Abnahme (P37 T37.6): absoluter Pfad zum echten glab statt Stub. */
   forgeCommand?: string;
 }
@@ -161,6 +163,7 @@ export class TestHub {
       requireStepApprovals: this.options.requireStepApprovals ?? false,
       ...(this.options.steerWaitMs !== undefined ? { steerWaitMs: this.options.steerWaitMs } : {}),
       ...(this.options.browserOrigins ? { browserOrigins: this.options.browserOrigins } : {}),
+      ...(this.options.devices ? { devices: { sdkRoot: this.options.devices.sdkRoot, avdHome: this.options.devices.avdHome, avdAllowlist: [this.options.devices.avd] } } : {}),
       ...(this.options.sttUrl ? { stt: {
         url: this.options.sttUrl,
         engine: "whisper-e2e",
@@ -262,6 +265,32 @@ export class TestHub {
     const token = out.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("token for"));
     if (!token) throw new Error(`hubctl token issue gave no token:\n${out}`);
     return token;
+  }
+
+  /** EPIC-P42: Binär-Antworten (PNG-Frames) mit Headern — `api` parst nur JSON. */
+  apiRaw(path: string, init: { method?: string; body?: unknown; token?: string } = {}): Promise<{ status: number; headers: Record<string, string | string[] | undefined>; body: Buffer }> {
+    const payload = init.body === undefined ? undefined : JSON.stringify(init.body);
+    return new Promise((resolveApi, reject) => {
+      const req = request(
+        `${this.origin}${path}`,
+        {
+          method: init.method ?? (payload === undefined ? "GET" : "POST"),
+          agent: false,
+          headers: {
+            authorization: `Bearer ${init.token ?? this.token}`,
+            ...(payload === undefined ? {} : { "content-type": "application/json", "content-length": Buffer.byteLength(payload) }),
+          },
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (chunk: Buffer) => chunks.push(chunk));
+          res.on("end", () => resolveApi({ status: res.statusCode ?? 0, headers: res.headers, body: Buffer.concat(chunks) }));
+        },
+      );
+      req.on("error", reject);
+      if (payload !== undefined) req.write(payload);
+      req.end();
+    });
   }
 
   private issueToken(): void {
