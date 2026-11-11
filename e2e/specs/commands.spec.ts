@@ -48,7 +48,7 @@ test.describe("Aufträge in Worten (T9.4, AC-P9-3)", () => {
     await say(app, "schreibe 'stopp' in die Nachricht");
     await app.getByRole("button", { name: "Ausführen" }).click();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("stopp");
-    await expect(app.locator(".session-topbar .pill")).not.toHaveAttribute("data-status", "stopped");
+    await expect(app.locator(".session-topbar .status")).not.toHaveAttribute("data-status", "stopped");
     await app.getByRole("button", { name: "Rückgängig" }).click();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("");
   });

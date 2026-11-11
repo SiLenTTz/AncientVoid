@@ -102,7 +102,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(app.locator(".section-title")).toHaveText([/Braucht dich/, /Aktiv/, /Zuletzt/]);
     const need = app.locator(".section-braucht .session-card");
     await expect(need).toHaveCount(1);
-    await expect(need.locator(".pill")).toHaveText("Freigabe nötig");
+    await expect(need.locator(".status")).toHaveText("Freigabe nötig");
     await expect(need.locator(".session-activity")).toContainText("Wartet auf Freigabe: Bash");
     // One tap from the overview to the waiting request (AC-P8-1).
     await need.locator(".session-open").click();

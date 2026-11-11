@@ -29,7 +29,7 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     await app.getByPlaceholder("Antworten…").fill("Jetzt wieder");
     await app.getByRole("button", { name: /^(Senden|Weiter)$/ }).click();
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Jetzt wieder/)).toBeVisible();
-    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle");
+    await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "idle");
   });
 
   test("ein Serverfehler ohne Ursache wird ehrlich erklärt", async ({ app, hub }) => {

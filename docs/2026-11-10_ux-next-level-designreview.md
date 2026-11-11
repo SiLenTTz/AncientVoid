@@ -120,6 +120,10 @@ Jeder heutige Einstieg mit seinem neuen Ort. Die Liste entstand aus Code-Sichtun
 `TileWorkspace.tsx`, `App.tsx`) und den Screenshots. Sie ist **nicht als vollständig
 belegt**; T43.0 vervollständigt sie und macht sie als E2E-Spec zum Gate.
 
+**Nachtrag 11.11.2026 (T43.0):** Das vollständige, ausführbare Inventar steht in
+[`funktionsinventar.md`](funktionsinventar.md) und läuft als `e2e/specs/funktionsinventar.spec.ts`
+im Gate. Die Tabellen hier bleiben als Zuordnung „heute → neu“ stehen.
+
 ### 5.1 Global
 
 | Heute | Neu: Handy/Tablet | Neu: PC |

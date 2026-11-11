@@ -142,11 +142,46 @@ describe("Anwenden auf das Dokument", () => {
   });
 
   it("Schrift und Größe landen als Variablen; im Standard bleibt das Stylesheet zuständig", () => {
-    a.applyAppearance({ ...a.DEFAULT_APPEARANCE, fontUi: "inter", fontCode: "system-mono", fontScale: 1.2 }, "dark", root);
-    expect(props.get("--font-ui")).toContain("Inter");
+    a.applyAppearance({ ...a.DEFAULT_APPEARANCE, fontUi: "atkinson", fontCode: "system-mono", fontScale: 1.2 }, "dark", root);
+    expect(props.get("--font-ui")).toContain("Atkinson");
     expect(props.get("--font-code")).toContain("ui-monospace");
     expect(props.get("--font-scale")).toBe("1.2");
     a.applyAppearance(a.DEFAULT_APPEARANCE, "dark", root);
     expect([...props.keys()]).toEqual([]);
+  });
+});
+
+describe("EPIC-P43 T43.1: neue Standards, Bestandsschutz der gespeicherten Wahl (AC-P43-4)", () => {
+  it("Standard ist Inter und Void-Violett; ohne Eintrag schreibt appearance.ts nichts aufs Dokument", () => {
+    expect(a.DEFAULT_APPEARANCE.fontUi).toBe("inter");
+    expect(a.DEFAULT_ACCENT).toEqual({ dark: "#b58cff", light: "#6a3cc9" });
+    a.applyAppearance(a.getAppearance(), "dark", root);
+    expect([...props.keys()]).toEqual([]);
+  });
+
+  it("eine vor dem Update gespeicherte Wahl überlebt: Akzent, JetBrains Mono als Oberflächenschrift, Größe", () => {
+    // So lag der Eintrag vor P43 im Speicher, wenn jemand nur den Akzent geändert hatte.
+    mem.set("ancientvoid.appearance", JSON.stringify({ accent: { dark: "#ff9a3c", light: null }, fontUi: "jetbrains-mono", fontCode: "jetbrains-mono", fontScale: 1.1 }));
+    const kept = a.getAppearance();
+    expect(kept).toEqual({ accent: { dark: "#ff9a3c", light: null }, fontUi: "jetbrains-mono", fontCode: "jetbrains-mono", fontScale: 1.1 });
+    a.applyAppearance(kept, "dark", root);
+    expect(props.get("--accent")).toBe("#ff9a3c");
+    expect(props.get("--font-ui")).toContain("JetBrains Mono");
+    expect(props.get("--font-scale")).toBe("1.1");
+    // Im hellen Erscheinungsbild war nichts gewählt: dort gilt der neue Standard des Stylesheets.
+    a.applyAppearance(kept, "light", root);
+    expect(props.has("--accent")).toBe(false);
+  });
+
+  it("wer JetBrains Mono nach dem Update wählt, behält es über einen Neustart", () => {
+    a.setAppearance({ ...a.DEFAULT_APPEARANCE, fontUi: "jetbrains-mono" });
+    expect(a.getAppearance().fontUi).toBe("jetbrains-mono");
+  });
+
+  it("der Farbwähler warnt bei Nähe zur Ruf-Farbe, in beiden Erscheinungsbildern", () => {
+    expect(a.accentWarnings("#ff9a3c", "dark").join(" ")).toMatch(/du bist dran/);
+    expect(a.accentWarnings("#fd9c40", "dark").join(" ")).toMatch(/du bist dran/);
+    expect(a.accentWarnings(a.CALL_COLOR.light, "light").join(" ")).toMatch(/du bist dran/);
+    expect(a.accentWarnings("#b58cff", "dark")).toEqual([]);
   });
 });

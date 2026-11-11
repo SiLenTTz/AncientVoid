@@ -49,9 +49,9 @@ export function AppearanceSettings() {
           </button>
         </span>
       </SettingRow>
-      <SettingRow label="Schimmer der Kontextleiste" hint="folgt „Bewegung reduzieren“ des Systems">
+      <SettingRow label="Bewegung" hint="Atmen, Schimmer, Ruf und Übergänge; „Bewegung reduzieren“ des Systems schaltet sie immer ab">
         <Switch
-          label="Schimmer der Kontextleiste"
+          label="Bewegung"
           checked={motion}
           onChange={(next) => {
             applyCtxMotion(next);

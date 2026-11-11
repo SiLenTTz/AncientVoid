@@ -15,15 +15,19 @@ export interface HubStatus {
   sessions: SessionRecord[];
   hosts: FleetHost[];
   pendingApprovals: number;
+  /** EPIC-P43 T43.2: Sessions, deren offene Anfrage eine Rückfrage des Agenten ist (Anzeigezustand „Frage“). */
+  questionSessions: string[];
   adapters: AdapterInfo[];
   usage: Record<string, AdapterUsage>;
 }
 
-let hub: HubStatus = { connected: true, error: "", lastOkAt: null, sessions: [], hosts: [], pendingApprovals: 0, adapters: [], usage: {} };
+let hub: HubStatus = { connected: true, error: "", lastOkAt: null, sessions: [], hosts: [], pendingApprovals: 0, questionSessions: [], adapters: [], usage: {} };
 const subscribers = new Set<() => void>();
 
 export function publishHubStatus(next: Partial<HubStatus>): void {
   hub = { ...hub, ...next };
+  // EPIC-P43 T43.2 (K10): ohne Verbindung halten Atmen und Schimmer an (36-motion.css).
+  if (next.connected !== undefined && typeof document !== "undefined") document.documentElement.dataset.conn = next.connected ? "on" : "off";
   subscribers.forEach((fn) => fn());
 }
 

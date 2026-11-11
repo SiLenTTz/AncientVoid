@@ -21,7 +21,7 @@ const hsvOf = (hex: string) => {
 
 test.describe("Akzentfarbe (EPIC-P34 T34.5)", () => {
   test("live beim Tippen, Abbrechen stellt exakt den alten Zustand her, nichts wird gespeichert", async ({ app }) => {
-    expect(await accent(app)).toBe("#ff9a3c");
+    expect(await accent(app)).toBe("#b58cff");
     const dialog = await openPicker(app);
     await dialog.getByLabel("Hex", { exact: true }).fill("#33aaff");
     await expect.poll(() => accent(app)).toBe("#33aaff");
@@ -29,7 +29,7 @@ test.describe("Akzentfarbe (EPIC-P34 T34.5)", () => {
     expect(await app.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent-ink").trim())).toBe("#000000");
     await dialog.getByRole("button", { name: "Abbrechen" }).click();
     await expect(dialog).toHaveCount(0);
-    expect(await accent(app)).toBe("#ff9a3c");
+    expect(await accent(app)).toBe("#b58cff");
     expect(await stored(app)).toBeNull();
     expect(await app.evaluate(() => document.documentElement.style.getPropertyValue("--accent"))).toBe("");
   });
@@ -51,7 +51,7 @@ test.describe("Akzentfarbe (EPIC-P34 T34.5)", () => {
     await dialog.getByLabel("Hex", { exact: true }).fill("#4da3ff");
     await dialog.getByRole("button", { name: "Übernehmen" }).click();
     await app.locator(".segmented").getByRole("button", { name: "Hell" }).click();
-    expect(await accent(app), "Hell hat noch den Standard").toBe("#d9601a");
+    expect(await accent(app), "Hell hat noch den Standard").toBe("#6a3cc9");
     dialog = await app.getByRole("button", { name: /Akzentfarbe wählen/ }).click().then(() => app.getByRole("dialog", { name: /Akzentfarbe/ }));
     await expect(dialog).toContainText("Hell");
     await dialog.getByLabel("Hex", { exact: true }).fill("#1d6fd6");
@@ -73,7 +73,7 @@ test.describe("Akzentfarbe (EPIC-P34 T34.5)", () => {
     await expect.poll(() => accent(app)).toBe("#f472b6");
     await dialog.getByRole("button", { name: "Standard", exact: true }).click();
     await dialog.getByRole("button", { name: "Übernehmen" }).click();
-    expect(await accent(app)).toBe("#ff9a3c");
+    expect(await accent(app)).toBe("#b58cff");
     expect(await stored(app)).toBeNull();
   });
 
@@ -105,17 +105,26 @@ test.describe("Akzentfarbe (EPIC-P34 T34.5)", () => {
     await expect(hex).toHaveValue("#ff0000");
   });
 
+  // EPIC-P43 T43.1 (E1, AC-P43-4): Amber ist die Ruf-Farbe — als Akzent bleibt es wählbar, mit Hinweis.
+  test("Nähe zur Ruf-Farbe wird genannt, die Wahl bleibt möglich", async ({ app }) => {
+    const dialog = await openPicker(app);
+    await dialog.getByLabel("Hex", { exact: true }).fill("#ff9a3c");
+    await expect(dialog.getByRole("status")).toContainText("du bist dran");
+    await expect(dialog.getByRole("button", { name: "Übernehmen" })).toBeEnabled();
+    expect(await app.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--call").trim())).toBe("#ff9a3c");
+  });
+
   test("zu wenig Kontrast wird als Hinweis genannt, die Wahl bleibt möglich", async ({ app }) => {
     const dialog = await openPicker(app);
     await dialog.getByLabel("Hex", { exact: true }).fill("#15161a");
     await expect(dialog.getByRole("status")).toContainText("Wenig Kontrast");
     await expect(dialog.getByRole("button", { name: "Übernehmen" })).toBeEnabled();
-    await dialog.getByLabel("Hex", { exact: true }).fill("#ff9a3c");
+    await dialog.getByLabel("Hex", { exact: true }).fill("#b58cff");
     await expect(dialog.getByRole("status")).toHaveCount(0);
     // Ungültige Eingabe ändert die Seite nicht und sperrt Übernehmen.
     await dialog.getByLabel("Hex", { exact: true }).fill("kein-hex");
     await expect(dialog.getByRole("button", { name: "Übernehmen" })).toBeDisabled();
-    expect(await accent(app)).toBe("#ff9a3c");
+    expect(await accent(app)).toBe("#b58cff");
   });
 
   test("Esc schließt nur den Dialog und stellt zurück, die Werkzeugfläche bleibt offen @desktop", async ({ app }) => {
@@ -126,7 +135,7 @@ test.describe("Akzentfarbe (EPIC-P34 T34.5)", () => {
     await app.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
     await expect(app.locator(".tool-pane")).toBeVisible();
-    expect(await accent(app)).toBe("#ff9a3c");
+    expect(await accent(app)).toBe("#b58cff");
     expect(await stored(app)).toBeNull();
   });
 

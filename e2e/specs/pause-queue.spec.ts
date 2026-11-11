@@ -60,11 +60,11 @@ test.describe("Pause und Warteschlange", () => {
     const id = await hub.createSession({ adapter: "claude", prompt: "LANGSAM erste Frage" });
     await open(app, hub.origin, id);
     await app.getByRole("button", { name: "Pause" }).click();
-    await expect(app.locator(".session-top-meta .pill")).toHaveText("pausiert");
+    await expect(app.locator(".session-top-meta .status")).toHaveText("pausiert");
     await expect(app.getByRole("button", { name: "Pause" })).toHaveCount(0);
     await app.getByPlaceholder("Antworten…").fill("mach bitte weiter");
     await app.getByRole("button", { name: "Weiter" }).click();
-    await expect(app.locator(".session-top-meta .pill")).not.toHaveText("pausiert");
+    await expect(app.locator(".session-top-meta .status")).not.toHaveText("pausiert");
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant" && e.summary.length > 0), "Antwort nach der Pause", 20_000);
   });
 

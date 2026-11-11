@@ -14,7 +14,7 @@ test.describe("Fortschritt und Kontingent im Lauf", () => {
     await expect(progress).toContainText("2/4 Aufgaben · 50 %");
     await expect(progress).toContainText("noch ca.");
     await expect(app.locator(".run-bar span")).toHaveAttribute("style", /width: 50%/);
-    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle", { timeout: 15_000 });
+    await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "idle", { timeout: 15_000 });
     await expect(progress).toHaveCount(0);
   });
 
@@ -78,7 +78,7 @@ test.describe("Fortschritt und Kontingent im Lauf", () => {
     // Same class language as the overview card (st-working) — visible on
     // every tab, not just the small status pill.
     await expect(app.locator(".session-live.st-working")).toHaveCount(1);
-    await expect(app.locator(".topbar .pill")).toHaveAttribute("data-status", "idle", { timeout: 20_000 });
+    await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "idle", { timeout: 20_000 });
     await expect(app.locator(".session-live.st-working, .session-live.st-waiting")).toHaveCount(0);
   });
 
