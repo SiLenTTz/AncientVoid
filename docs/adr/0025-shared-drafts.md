@@ -35,6 +35,9 @@ Die gelten erst beim Senden, vorher gibt es nichts.
 5. **Wer:** Entwürfe gehören Menschen. Agenten lesen und schreiben sie nicht
    (`drafts.write`: Agent und Bridge nein). Ein Heim-Hub (Flotte) darf für
    sein Handy. Der Flotten-Proxy reicht `PUT` durch.
+   *Fortgeschrieben durch [ADR-0069](0069-display-schreibt-session-entwurf.md):
+   Display-Akteure (`display:<name>`) dürfen den Composer-Entwurf schreiben
+   (z. B. VoidWarden-Stimme) — weiterhin kein Senden/Steer.*
 6. **Neue Session:** Der Start-Prompt ist ein lokaler Entwurf auf dem Gerät.
    Zuletzt gewählter Host, Harness und Projekt werden vorbelegt.
 7. **Gerätewechsel:** Ein anderes Token löscht lokale Entwürfe und den

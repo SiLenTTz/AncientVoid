@@ -8,12 +8,17 @@ export const DISPLAY_TOKEN_PREFIX = "display:";
 const READ_ROUTES = [
   /^\/api\/(health|ready|notifications|approvals|sessions)$/,
   /^\/api\/(approvals|sessions)\/[^/]+$/,
+  // ADR-0069: shared draft read (same path as PUT)
+  /^\/api\/sessions\/[^/]+\/draft$/,
 ];
 const DECIDE_ROUTE = /^\/api\/approvals\/[^/]+\/decide$/;
+const DRAFT_ROUTE = /^\/api\/sessions\/[^/]+\/draft$/;
 
 export function displayTokenAllows(method: string, path: string): boolean {
   if (method === "GET" || method === "HEAD") return READ_ROUTES.some((re) => re.test(path));
-  return method === "POST" && DECIDE_ROUTE.test(path);
+  if (method === "POST" && DECIDE_ROUTE.test(path)) return true;
+  // ADR-0069: VoidWarden voice → composer draft (never a steer)
+  return method === "PUT" && DRAFT_ROUTE.test(path);
 }
 
 /**

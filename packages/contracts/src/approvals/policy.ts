@@ -126,7 +126,8 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
    * runs its tools inside its own harness, gated there (T7.2). */
   "actions.run": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** T8.4: a person's unsent reply — agents neither read nor write it. */
-  "drafts.write": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
+  // ADR-0069: Display may fill the shared composer draft (never auto-send).
+  "drafts.write": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "allow" },
   /** T8.3: a device subscribes itself to Web Push. */
   "push.subscribe": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** T10.2: a person's own voice — not something an agent sends in. */

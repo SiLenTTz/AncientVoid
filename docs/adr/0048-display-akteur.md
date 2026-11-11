@@ -18,12 +18,14 @@ Ein Statusdisplay am Entwicklungsrechner soll den Zustand zeigen und
 1. Neuer Akteur `display` (Token-Label `display:<name>`, `hubctl token issue
    <name> --display`).
 2. Policy-Tabelle: `read` = allow, `approvals.decide` = allow, jede andere
-   Operation = deny.
+   Operation = deny. *Fortgeschrieben durch [ADR-0069](0069-display-schreibt-session-entwurf.md):
+   zusätzlich `drafts.write` = allow (nur Composer-Entwurf, kein Steer).*
 3. Route-Grenze in `checkAuth` (`displayTokenAllows`): nur `GET` auf Health,
    Ready, Notifications, Sessions (Liste/Detail), Approvals (Liste/Detail) und
-   `POST /api/approvals/:id/decide`. Alles andere, auch WebAuthn-Routen und
-   Session-Events, ist 403. Wie Bridge und Companion darf der Display-Token auch
-   von Loopback ohne Tailnet-Identität kommen (USB-Brücke auf demselben Rechner).
+   `POST /api/approvals/:id/decide`. *ADR-0069: plus `GET|PUT /api/sessions/:id/draft`.*
+   Alles andere, auch WebAuthn-Routen und Session-Events, ist 403. Wie Bridge und
+   Companion darf der Display-Token auch von Loopback ohne Tailnet-Identität kommen
+   (USB-Brücke auf demselben Rechner).
 4. Der `decide`-Handler lehnt für `display` mit 403 ab, wenn die Freigabe nicht
    Klasse `write` ist, `reasonRequired` gesetzt ist oder es eine Provider-
    Rückfrage (`tool.question`) ist. Die Entscheidung erscheint im Audit mit
