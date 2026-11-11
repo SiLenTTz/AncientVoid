@@ -108,9 +108,21 @@ export async function sessionTab(scope: Page | Locator, name: string): Promise<v
   const bar = scope.locator(".subtabs-wrap").first();
   const main = ({ Diff: "Änderungen", Code: "Dateien" } as Record<string, string>)[name] ?? name;
   const direct = bar.getByRole("button", { name: new RegExp(`^${main}`) });
-  // Kleinkram-Regel 2 (T43.5): ohne Änderungen rückt „Änderungen“ unter „Mehr“.
-  if (main === "Chat" || main === "Dateien" || (main === "Änderungen" && (await direct.count()) > 0)) return direct.click();
+  if (main === "Chat" || main === "Dateien") return direct.click();
   const menu = bar.getByRole("menu", { name: "Weitere Ansichten" });
+  if (main === "Änderungen") {
+    // Kleinkram-Regel 2 (T43.5): ohne Änderungen rückt „Änderungen“ unter „Mehr“ — und zurück, sobald der
+    // nachgeladene Diff eine Datei zeigt. Deshalb wiederholen, bis einer der beiden Wege greift.
+    const item = menu.getByRole("menuitem", { name: main, exact: true });
+    await expect(async () => {
+      // Ein offenes Blatt „Mehr“ ohne den Eintrag deckt die Reiter ab: erst schließen.
+      if ((await menu.isVisible()) && !(await item.isVisible())) await bar.locator('[aria-haspopup="menu"]').click({ timeout: 2_000 });
+      if (await direct.isVisible()) return direct.click({ timeout: 2_000 });
+      if (!(await menu.isVisible())) await bar.locator('[aria-haspopup="menu"]').click({ timeout: 2_000 });
+      await item.click({ timeout: 2_000 });
+    }).toPass({ timeout: 20_000 });
+    return;
+  }
   if (!(await menu.isVisible())) await bar.locator('[aria-haspopup="menu"]').click();
   await menu.getByRole("menuitem", { name: main, exact: true }).click();
 }
