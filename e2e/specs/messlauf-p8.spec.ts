@@ -49,12 +49,12 @@ test.describe("Messlauf P8: Kernaufgaben mit 20 Sessions auf drei Hosts", () => 
 
       await app.reload();
       await expect(app.locator(".session-card")).toHaveCount(20, { timeout: 30_000 });
-      await expect(app.locator(".section-braucht .session-card")).toHaveCount(3, { timeout: 20_000 });
+      await expect(app.locator(".section-braucht .session-card.st-waiting")).toHaveCount(3, { timeout: 20_000 });
 
       // 1. Each waiting request: from the overview to the decision.
       for (const w of waiting) {
         await measure(`Freigabe öffnen (${w.host})`, async (tap) => {
-          const card = app.locator(".section-braucht .session-card").filter({ hasText: w.host === "omarchy" ? "omarchy ·" : `${w.host} ·` });
+          const card = app.locator(".section-braucht .session-card.st-waiting").filter({ hasText: w.host === "omarchy" ? "omarchy ·" : `${w.host} ·` });
           tap();
           await card.locator(".session-open").click();
           await expect(app.locator(".session-approvals .approval-card")).toBeVisible({ timeout: 15_000 });

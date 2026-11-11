@@ -7,7 +7,7 @@ test.describe("Dokumentübersicht in der Suchansicht", () => {
   test("listet alle Dokumente gruppiert, öffnet gerendert ohne Code-Ansicht @desktop", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy", project: hub.alpha });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByRole("button", { name: "Suche" }).click();
+    await app.getByRole("button", { name: "Suche", exact: true }).click();
 
     // Struktur: Gruppenkopf Stammverzeichnis, README mit Titel „Alpha“,
     // Skill-Datei in ihrem Ordner (ohne #Überschrift → Dateiname).

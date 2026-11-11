@@ -200,7 +200,8 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
       sessionsForOverview(withOverride, showArchived)
         .filter((s) => matches(s, query.trim()))
         .filter((s) => (hostFilter ? (s.hostId ?? "local") === hostFilter : true))
-        .filter((s) => (statusFilter === "waiting" ? section(s) === "braucht" : statusFilter === "active" ? section(s) === "aktiv" || section(s) === "braucht" : true)),
+        // „wartende“ (Sprachbefehl T9.4) heißt blockiert: Freigabe, Frage, Fehler — ein fertiger Zug wartet nicht.
+        .filter((s) => (statusFilter === "waiting" ? sectionOf(s) === "braucht" : statusFilter === "active" ? section(s) === "aktiv" || section(s) === "braucht" : true)),
     [withOverride, showArchived, query, statusFilter, hostFilter],
   );
   const sorted = useMemo(() => [...visible].sort(compareByActivity), [visible]);

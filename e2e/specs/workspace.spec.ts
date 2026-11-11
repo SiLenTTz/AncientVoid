@@ -1,4 +1,4 @@
-import { test, expect, statusPill } from "../support/fixtures.ts";
+import { test, expect, statusPill, openApprovals } from "../support/fixtures.ts";
 import { phone } from "../support/phone.ts";
 
 test.describe("Archiv (P5 §9)", () => {
@@ -67,8 +67,8 @@ test.describe("Freigaben (T2.4, T2.6)", () => {
     await app.getByRole("button", { name: "Senden" }).click();
     await expect(app.locator(".reply-error")).toContainText("pending approval");
 
-    await app.locator(".dock").getByRole("button", { name: "Start", exact: true }).click();
-    await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();
+    await app.getByLabel("Zur Übersicht").click();
+    await openApprovals(app);
     const approval = app.locator(".approval-card").filter({ hasText: "Bitte freigeben" });
     await expect(approval.getByText("Bestätigung")).toBeVisible();
     const reason = approval.getByPlaceholder("Begründung (Pflicht)…");
@@ -87,7 +87,7 @@ test.describe("Freigaben (T2.4, T2.6)", () => {
     await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "Nach dem Absturz" } });
     await hub.restart(); // SIGKILL — before T7.3 the queued prompt died with the process
     await app.reload();
-    await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();
+    await openApprovals(app);
     const approval = app.locator(".approval-card").filter({ hasText: "Nach dem Absturz" });
     const reason = approval.getByPlaceholder("Begründung (Pflicht)…");
     if (await reason.count()) await reason.fill("passt");
@@ -106,7 +106,7 @@ test.describe("Freigaben (T2.4, T2.6)", () => {
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "first answer");
     await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "Bitte ablehnen" } });
     await app.reload();
-    await app.getByRole("button", { name: /1 Freigabe wartet auf dich/ }).click();
+    await openApprovals(app);
     const approval = app.locator(".approval-card").filter({ hasText: "Bitte ablehnen" });
     await approval.getByRole("button", { name: "Ablehnen" }).click();
     await expect(app.getByText("keine offenen Freigaben")).toBeVisible();

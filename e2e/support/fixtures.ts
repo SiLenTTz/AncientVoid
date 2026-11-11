@@ -80,8 +80,17 @@ export function statusPill(page: Page) {
 export async function dockGo(page: Page, name: string): Promise<void> {
   const dock = page.locator(".dock");
   const target = dock.getByRole("button", { name, exact: true });
-  if (!(await target.isVisible())) await dock.getByRole("button", { name: "Mehr", exact: true }).click();
-  await target.click();
+  if (await target.isVisible()) return target.click();
+  await dock.getByRole("button", { name: "Mehr", exact: true }).click();
+  await page.getByRole("dialog", { name: "Mehr" }).getByRole("button", { name, exact: true }).click();
+}
+
+/**
+ * EPIC-P43 T43.3: die Freigabe-Warteschlange von Start aus öffnen — über „n Freigaben · alle zeigen“
+ * bei „Du bist dran“, oder über das Banner, wenn die Freigabe an keiner Karte hängt.
+ */
+export async function openApprovals(page: Page): Promise<void> {
+  await page.locator(".approval-link, .approval-banner").first().click();
 }
 
 /** EPIC-P43 T43.3: „Ruhig“ ist zu, solange oben etwas steht — für Tests, die eine ruhige Session brauchen. */

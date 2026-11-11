@@ -35,7 +35,7 @@ test.describe("Datei-Ansichten (EPIC-P46)", () => {
     await expect(app.locator('[data-line="9000"]')).toHaveClass(/focus/);
 
     await app.getByLabel("In Datei suchen").fill("nadelspitze");
-    await app.getByRole("button", { name: "Suchen" }).click();
+    await app.getByTestId("file-viewer").getByRole("button", { name: "Suchen" }).click();
     await expect(app.getByTestId("file-find-note")).toContainText("Zeile 9002");
     await expect(app.locator('[data-line="9002"]')).toHaveClass(/focus/);
   });

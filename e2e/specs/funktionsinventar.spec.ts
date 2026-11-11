@@ -171,6 +171,9 @@ const SESSION: Entry[] = [
   { id: "S32", name: "Dateibaum (Randlasche)", from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Dateibaum öffnen" })); await expect(c.page.getByTestId("files-sidebar")).toBeVisible(); } },
   { id: "S33", name: "Browser-Arbeitsplatz (Randlasche)", from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Browser öffnen" })); await expect(c.page.getByTestId("browser-panel")).toBeVisible(); } },
   { id: "S34", name: "Graph in eigenes Fenster", forms: PC, from: "session", reach: async (c) => { await c.tap(tab(c, "Graph")); await expect(c.s.getByRole("button", { name: "Graph in eigenes Fenster" })).toBeVisible(); } },
+  // EPIC-P42: Android-Testgeräte — ohne SDK sichtbar blockiert, das Panel selbst ist immer erreichbar.
+  { id: "S65", name: "Android-Testgeräte (Randlasche)", from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Geräte öffnen" })); await expect(c.page.getByTestId("device-panel")).toBeVisible(); } },
+  { id: "S66", name: "Android-Testgeräte in eigenes Fenster", forms: PC, from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Geräte öffnen" })); await expect(c.page.getByRole("button", { name: "Geräte in eigenes Fenster" })).toBeVisible(); } },
 ];
 
 const DESKTOP: Entry[] = [
@@ -230,6 +233,14 @@ test.describe("Funktionsinventar (EPIC-P43 T43.0, AC-P43-1)", () => {
       const entries = group.entries.filter((e) => !e.forms || e.forms.includes(form));
       test.setTimeout(30_000 + entries.length * 12_000);
 
+      await app.addInitScript(() => {
+        if (window.top !== window || window.name !== "inventar-reset") return;
+        window.name = "";
+        const token = localStorage.getItem("ancientvoid.token");
+        localStorage.clear();
+        sessionStorage.clear();
+        if (token) localStorage.setItem("ancientvoid.token", token);
+      });
       const sessionId = await hub.createSession({ adapter: "claude", prompt: "Inventar-Aufgabe" });
       for (const n of [1, 2, 3, 4]) await hub.createSession({ adapter: "opencode", prompt: `Füllsession ${n}` });
       await hub.until(async () => (await hub.sessions()).every((s) => s.status === "idle"), "alle Sessions bereit");
@@ -252,12 +263,13 @@ test.describe("Funktionsinventar (EPIC-P43 T43.0, AC-P43-1)", () => {
             },
           };
           const hash = entry.from === "start" ? "#/" : entry.from === "session" ? `#/sessions/${sessionId}` : entry.from;
-          // Jeder Eintrag beginnt mit frischem Gerätezustand (Filter, Layout, offene Seitenleisten); das Token setzt signIn neu.
-          await app.evaluate(() => {
-            localStorage.clear();
-            sessionStorage.clear();
-          });
+          // Jeder Eintrag beginnt mit frischem Gerätezustand (Filter, Layout, offene Seitenleisten). Geleert wird
+          // erst im neuen Dokument (Init-Skript oben): die alte Seite kann sonst noch nachspeichern, etwa die
+          // Dateibaum-Quelle des vorigen Eintrags, und der Drawer stünde wieder offen.
           await app.goto(`${hub.origin}/${hash}`);
+          await app.evaluate(() => {
+            window.name = "inventar-reset";
+          });
           await app.reload();
           if (entry.from === "session") await expect(c.s.locator(".session-topbar")).toBeVisible();
           else if (entry.from === "start") await expect(app.locator(".dashboard")).toBeVisible();

@@ -164,6 +164,9 @@ als Leiste links in der Kachel.
 | S62 | Session per Link wieder öffnen | Deeplink | — | spec:deeplink.spec.ts |
 | S63 | Wiederanlauf nach Hub-Neustart | — | — | spec:recovery.spec.ts |
 | S64 | Leseposition bleibt beim Scrollen und Tippen | Chat | T43.4 | spec:session-scroll.spec.ts |
+| S65 | Android-Testgeräte: Liste, Start/Stop, Lease, Standbild (EPIC-P42) | Randlasche „Geräte“ | T43.5 | inventar |
+| S66 | Android-Testgeräte in eigenes Fenster (PC) | Geräte → „⧉“ | T43.7 | inventar |
+| S67 | Android-Testgeräte bedienen: Tippen, Wischen, Tasten, Ausrichtung, URL (mit Lease) | Geräte-Panel | — | spec:android-device.spec.ts |
 
 ## PC-Arbeitsfläche
 
@@ -182,7 +185,7 @@ Nur ab 1280 px Breite.
 | P09 | Werkzeugseite: eigenes Fenster und Schließen | Kopf der Werkzeugseite | T43.7 | inventar |
 | P10 | Ansichten als Leiste in der Kachel | linker Rand der Kachel | T43.6 | inventar |
 | P11 | Weitere Kachel öffnen | Strg-Klick in der Liste | — | inventar |
-| P12 | Eigene Fenster: Session, Werkzeugseite, Graph, Datei, Notiz, Browser; Zurückholen | „⧉“ an der jeweiligen Ansicht | T43.7 | spec:windows.spec.ts |
+| P12 | Eigene Fenster: Session, Werkzeugseite, Graph, Datei, Notiz, Browser, Android-Geräte; Zurückholen | „⧉“ an der jeweiligen Ansicht | T43.7 | spec:windows.spec.ts |
 | P13 | Kacheltastatur (Alt+1–4, Alt+Umschalt+1–4, Alt+L, Alt+W) | Tastatur | — | spec:workspace-tiles.spec.ts |
 | P14 | Kachelgröße ziehen | Trenner zwischen Kacheln | — | spec:resize.spec.ts |
 | P15 | Werkzeugseiten in der Detailspalte, Esc schließt | Dock | — | spec:tool-pane.spec.ts |
