@@ -1,6 +1,6 @@
 # EPIC-P53 — Projektdokumentation und One-Command-Setup (README, Screenshots, Setup-Wizard)
 
-**Status:** in Umsetzung — T53.1–T53.6 erledigt (11.11.2026, Belege je Aufgabe), T53.7 offen (wartet auf VoidWarden-P14-Umsetzung) · **Phase:** P53 · **Dauer:** 1,5–2,5 Agenten-Wochen (grobe Schätzung)
+**Status:** abgeschlossen 11.11.2026 (Retro unten) · **Phase:** P53 · **Dauer:** 1,5–2,5 Agenten-Wochen (grobe Schätzung)
 **Abhängigkeit:** keine fachliche offene — Quer-Epic (Präzedenz P50–P52), betrifft nur Doku,
 Setup-Skript und Agenten-Skills, keine Laufzeit-Architektur. Nutzerauftrag vom 11.11.2026.
 
@@ -150,11 +150,44 @@ Betriebs-Installation bleibt Runbook/Skripte (`docs/operations-runbook.md`,
 - [x] **T53.6 — Onboarding-Verkabelung.** `docs/onboarding.md` §2–4 verweisen auf
   den Wizard als Normalweg (menschlich), manuell bleibt für CI/Agenten. *AC:* Verweis
   vorhanden, Widerspruchsfreiheit zu README. *Test:* Review.
-- [ ] **T53.7 — VoidWarden-Gegenstück.** Prüfen, dass VoidWarden P14 (Schwester-Epic)
+- [x] **T53.7 — VoidWarden-Gegenstück.** Prüfen, dass VoidWarden P14 (Schwester-Epic)
   dieselbe Kaskade gegenseitig beschreibt; Token-Schritt des Wizards mit
   VoidWarden-Setup-Test gegengelesen (agent:-Token lesbar, display:-Token decide
   analog `scripts/test-hub.mjs` dort). *AC:* Beide Epics/READMEs nennen dieselbe
   Kaskade ohne Widerspruch. *Test:* Cross-Review.
+  **Belegt (11.11.2026):** VoidWarden P14 umgesetzt ([MR !55](https://gitlab.com/SiLenT_Tz/voidwarden/-/merge_requests/55));
+  Cross-Review: Kaskade identisch (AV `./setup.sh [--voidwarden]` → VW `./setup.sh`),
+  Token-Befehle identisch (`token issue voidwarden --agent`, `token issue web-1
+  --display`), Diagramm-Aussagen symmetrisch (agent: lesen, display: Freigaben,
+  keine Abhängigkeit außer HTTP-API + contracts); VW-Kaskadenlauf mit echtem
+  agent:-Token gegen Demo-Hub grün (Kiosk 200). Kein Widerspruch gefunden.
+
+## Retro (11.11.2026, Abschluss)
+
+Alle sieben Aufgaben erledigt; ACs mit Beleg:
+
+- **AC-P53-1 ✓** README mit datiertem Ist-Stand (Belegverweise auf
+  Funktionsinventar/`epics/README.md`), Roadmap, Screenshots; Links geprüft.
+- **AC-P53-2 ✓** Frisch-Klon-Protokoll (Setup-Log im MR !380): Hub ready, PWA 200,
+  Device-Token einmalig sichtbar, dummy-Provider aktiv.
+- **AC-P53-3 ✓** Idempotenz per Config-SHA über drei Läufe belegt; Negativprobe
+  Node 18 → exit 2.
+- **AC-P53-4 ✓** Screenshots nur aus Demo-Betrieb; Login-Shot mit leerem Feld;
+  `check:secrets` 0 Treffer.
+- **AC-P53-5 ✓** Skill `setup-wizard` im Index, deckt Exit-Codes 2–5.
+- **AC-P53-6 ✓** Cross-Review T53.7 (siehe oben), VoidWarden P14 abgeschlossen.
+
+**Erkenntnisse:** (1) Der Demo-Hub aus der E2E-Infrastruktur ist der richtige
+Weg für Screenshots — reproduzierbar und secret-frei; das Skript ist der
+Beleg, kein Handwerk. (2) Agenten, die selbst in einer Hub-Session laufen,
+ererben `ANCIENTVOID_CONFIG` — der Wizard überschreibt das für seinen Start
+laut und sichtbar (Premortem-Modus 3 war real). (3) Nebenbefund des
+Zusammenspiels: VoidWarden BUG-0009 (Approval-Format) — ohne die gemeinsame
+Screenshot-Kaskade wäre der blind geblieben; der Stack-Test ist genau das
+gewollte Zusammenspiel-Artefakt. **Action Items:** Frisch-Klon-Test bei der
+nächsten Setup-Änderung wiederholen (liegt an T14.6-Rest in VoidWarden
+mit dran); Screenshots bei P43-Fertigstellung neu erzeugen (Skript läuft
+weiterhin).
 
 ## 5. Acceptance Criteria
 
