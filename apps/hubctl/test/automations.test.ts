@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
-import { buildAutomationDefinition, formatAutomationLine, type AutomationInfo } from "../src/automations.ts";
+import { buildAutomationDefinition, buildAutomationUpdate, formatAutomationLine, type AutomationInfo } from "../src/automations.ts";
+import type { AutomationDefinition } from "@ancientvoid/contracts";
 
 /** EPIC-P41 T41.5: Definitions- und Format-Helfer des hubctl-automations-Commands. */
 
@@ -78,5 +79,32 @@ describe("formatAutomationLine", () => {
     expect(line).toContain("aus");
     expect(line).toContain("next —");
     expect(line).toContain("last —");
+  });
+});
+
+describe("buildAutomationUpdate", () => {
+  const previous = {
+    id: "fest-1", label: "alt", generation: 3, enabled: true, hostId: "host-a",
+    schedule: { kind: "cron", cron: "30 8 * * *", timezone: "Europe/Berlin" },
+    target: { kind: "session", harness: "dummy", project: "/tmp/repo", workdir: "worktree", promptBlobSha256: "a".repeat(64) },
+    precheckDeadlineMs: 60_000, grant: { maxParallel: 1, missedGraceMs: 0 },
+    createdAtUtc: "2026-11-12T07:00:00.000Z",
+  } as unknown as AutomationDefinition;
+
+  it("hält id/generation/enabled/createdAt an previous fest, auch gegen den Patch", () => {
+    const out = buildAutomationUpdate(JSON.stringify({ label: "neu", generation: 99, enabled: false, createdAtUtc: "2020-01-01T00:00:00.000Z" }), previous, null);
+    expect(out).toMatchObject({ id: "fest-1", generation: 3, enabled: true, createdAtUtc: "2026-11-12T07:00:00.000Z", label: "neu" });
+  });
+
+  it("setzt den Prompt-Blob nur bei neuem Text und merged schedule/grant feldweise", () => {
+    const mitText = buildAutomationUpdate(JSON.stringify({ grant: { missedGraceMs: 90_000 } }), previous, "Neuer Prompt");
+    expect((mitText.target as { promptBlobSha256: string }).promptBlobSha256).toBe(createHash("sha256").update("Neuer Prompt").digest("hex"));
+    expect(mitText.grant).toEqual({ maxParallel: 1, missedGraceMs: 90_000 });
+    const ohneText = buildAutomationUpdate(JSON.stringify({ label: "x" }), previous, null);
+    expect((ohneText.target as { promptBlobSha256: string }).promptBlobSha256).toBe("a".repeat(64));
+  });
+
+  it("lehnt Nicht-Objekte laut ab", () => {
+    expect(() => buildAutomationUpdate("[1,2]", previous, null)).toThrow(/Objekt/);
   });
 });

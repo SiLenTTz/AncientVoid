@@ -69,6 +69,8 @@ Usage:
   hubctl automations list                           geplante Läufe mit nächstem Termin und letztem Ergebnis (EPIC-P41)
   hubctl automations show <id>                      Definition und Verlauf (Claims, Session-/Run-Verweise)
   hubctl automations create <definition.json> [prompt.txt]   legt deaktiviert an; Session-Ziele brauchen den Prompt
+  hubctl automations update <id> <patch.json> [prompt.txt]  Änderungen speichern, neue Freigabe nötig
+  hubctl automations preview <id>                    nächste Termine mit Ortszeit und UTC
   hubctl automations enable <id>                    Aktivierung = menschliche Freigabe (Generation bleibt)
   hubctl automations disable <id>                   stoppt zukünftige Termine, laufende Arbeit unverändert
   hubctl automations run-now <id>                   eigener Lauf jetzt; Ergebnis kommt aus der referenzierten Ausführung
