@@ -57,7 +57,7 @@ test.describe("Chat in Zügen (EPIC-P43 T43.4)", () => {
 
     await bar.locator('[aria-haspopup="menu"]').click();
     const menu = bar.getByRole("menu", { name: "Weitere Ansichten" });
-    await expect(menu.getByRole("menuitem")).toHaveText(["Verlauf", "Bericht", "Datei", "Graph", "GitLab", "Suche", "Umgebung"]);
+    await expect(menu.getByRole("menuitem")).toHaveText(["Verlauf", "Bericht", "Datei", "Graph", "GitLab", "Suche", "Umgebung", "Browser", "Geräte"]);
     await menu.getByRole("menuitem", { name: "Graph" }).click();
     await expect(menu).toHaveCount(0);
     await expect(bar.locator('[aria-haspopup="menu"]')).toHaveText("Graph");

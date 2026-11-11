@@ -9,7 +9,7 @@ test.describe("Desktop-Navigation (EPIC-P23)", () => {
     await app.locator(".split-list .session-card").filter({ hasText: "Erste Aufgabe" }).locator(".session-open").click();
     await expect(app.locator(".split-detail .session-top-title")).toHaveText("Erste Aufgabe");
     // von einer anderen Seite aus: Einstellungen, dann AncientVoid
-    await app.locator(".split-list .dock-item").last().click();
+    await app.locator(".split-list .dock-item[title=\"Einstellungen\"]").click();
     await expect(app).toHaveURL(/#\/einstellungen/);
     await app.getByRole("button", { name: "AncientVoid", exact: true }).click();
     await expect(app).toHaveURL(/#\/$|#$|#\/uebersicht/);
