@@ -6,6 +6,8 @@ import { z } from "zod";
  * kein Erfolg: das Ergebnis kommt aus der referenzierten Ausführung.
  */
 
+export const AUTOMATION_LIMITS = { definitions: 128, preview: 10, calendarDays: 8 * 366, prechecks: 4 } as const;
+
 /** Presets aus dem Epic (Stunde/Tag/Woche/Werktag); Details im ADR. */
 export const AUTOMATION_PRESETS = ["hourly", "daily", "weekly", "weekday"] as const;
 
@@ -26,13 +28,13 @@ const CRON_FIELDS: readonly { min: number; max: number }[] = [
 export function cronFieldValid(field: string, min: number, max: number): boolean {
   if (!CRON_PART.test(field)) return false;
   for (const part of field.split(",")) {
+    const step = part.split("/")[1];
+    if (step !== undefined && (!Number.isSafeInteger(Number(step)) || Number(step) < 1)) return false;
     const bare = part.split("/")[0]!;
     if (bare === "*") continue;
     const numbers = bare.split("-").map(Number);
     for (const n of numbers) if (!Number.isInteger(n) || n < min || n > max) return false;
     if (numbers.length === 2 && numbers[0]! > numbers[1]!) return false;
-    const step = part.split("/")[1];
-    if (step !== undefined && Number(step) < 1) return false;
   }
   return true;
 }
@@ -66,14 +68,17 @@ export const AutomationSchedule = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("cron"),
-    cron: z.string().refine(cronSubsetValid, "nur begrenztes 5-Feld-Cron (Zahlen, Bereiche, Schritte, Listen, *)"),
+    cron: z.string().max(256).refine(cronSubsetValid, "nur begrenztes 5-Feld-Cron (Zahlen, Bereiche, Schritte, Listen, *)"),
     timezone: IanaTimezone,
   }),
-]);
+]).superRefine((schedule, ctx) => {
+  if (schedule.kind === "preset" && schedule.preset !== "hourly" && !schedule.localTime) ctx.addIssue({ code: "custom", message: "Preset braucht eine Ortszeit", path: ["localTime"] });
+  if (schedule.kind === "preset" && schedule.preset === "weekly" && !schedule.weekdays?.length) ctx.addIssue({ code: "custom", message: "Wöchentlich braucht mindestens einen Wochentag", path: ["weekdays"] });
+});
 export type AutomationSchedule = z.infer<typeof AutomationSchedule>;
 
 /** Dysfunktionale Lokalzeit wird übersprungen, doppelte Lokalzeit feuert einmal (ADR-0064). */
-export const AutomationClaimState = z.enum(["claimed", "dispatched", "settled", "skipped"]);
+export const AutomationClaimState = z.enum(["claimed", "dispatched", "settled", "skipped", "unknown"]);
 export type AutomationClaimState = z.infer<typeof AutomationClaimState>;
 
 /** Der Grund eines Skips bleibt getrennt — „skip" ist nicht gleich „skip" (Epic §3.3). */
@@ -88,12 +93,14 @@ export const AUTOMATION_SKIP_REASONS = [
   "auth",
   "quota",
   "host_down",
+  "disabled",
+  "changed",
 ] as const;
 export const AutomationSkipReason = z.enum(AUTOMATION_SKIP_REASONS);
 export type AutomationSkipReason = z.infer<typeof AutomationSkipReason>;
 
 /** Ergebnis des referenzierten Laufs — nur gespiegelt, nie erfunden (Premortem 3). */
-export const AutomationOutcome = z.enum(["succeeded", "failed", "timeout"]);
+export const AutomationOutcome = z.enum(["succeeded", "failed", "timeout", "cancelled"]);
 export type AutomationOutcome = z.infer<typeof AutomationOutcome>;
 
 /**
@@ -109,7 +116,7 @@ const BlobRef = z.string().regex(/^[0-9a-f]{64}$/);
 
 /** Der genehmigte Rahmen — bei Änderung invalidiert er die bisherige Freigabe (Generation++). */
 export const AutomationGrant = z.object({
-  maxParallel: z.number().int().positive().default(1),
+  maxParallel: z.number().int().min(1).max(4).default(1),
   /** Fenster, in dem ein verpasster Termin höchstens einmal nachgeholt wird; 0 = nie. */
   missedGraceMs: z.number().int().min(0).max(86_400_000).default(0),
 });
@@ -129,13 +136,14 @@ export const AutomationTarget = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("run"),
     templateId: z.string().min(1).max(64),
+    templateBlobSha256: BlobRef.optional(),
   }),
 ]);
 export type AutomationTarget = z.infer<typeof AutomationTarget>;
 
 /** Die gespeicherte Definition (Journal-Record). `enabled=false` ist der Neuanfang-Zustand. */
 export const AutomationDefinition = z.object({
-  id: z.string().min(1),
+  id: z.string().min(1).max(128),
   label: z.string().min(1).max(80),
   generation: z.number().int().positive(),
   enabled: z.boolean().default(false),
@@ -147,9 +155,21 @@ export const AutomationDefinition = z.object({
   precheckActionId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,40}$/).optional(),
   precheckDeadlineMs: z.number().int().positive().max(600_000).default(60_000),
   grant: AutomationGrant.default({ maxParallel: 1, missedGraceMs: 0 }),
-  createdAtUtc: z.string().min(20),
+  createdAtUtc: z.iso.datetime(),
 });
 export type AutomationDefinition = z.infer<typeof AutomationDefinition>;
+
+/** ADR-0065: gemeinsamer Verlaufsvertrag; optionale Felder erhalten alte Journale. */
+export const AutomationHistoryEntry = z.object({
+  claimKey: z.string(), automationId: z.string(), generation: z.number().int().positive(),
+  occurrenceUtc: z.iso.datetime(), at: z.iso.datetime(), state: AutomationClaimState,
+  reason: AutomationSkipReason.optional(), outcome: AutomationOutcome.optional(),
+  runId: z.string().optional(), sessionId: z.string().optional(),
+  kind: z.enum(["due", "catchup", "run_now"]).optional(),
+  operationId: z.string().optional(), missedThroughUtc: z.iso.datetime().optional(),
+  detail: z.string().max(500).optional(),
+});
+export type AutomationHistoryEntry = z.infer<typeof AutomationHistoryEntry>;
 
 /** Die Zeile der PWA-Tabelle (EPIC-P41 §3.4): Plan, nächste Termine, letztes Ergebnis. */
 export const AutomationInfo = z.object({
@@ -166,3 +186,9 @@ export const AutomationInfo = z.object({
   }).nullish(),
 });
 export type AutomationInfo = z.infer<typeof AutomationInfo>;
+
+
+/** ADR-0065: die Aktivierung/Operation gilt genau für die geprüfte Generation. */
+export const AutomationEnableBody = z.object({ enabled: z.boolean(), generation: z.number().int().positive().optional() })
+  .refine(value => !value.enabled || value.generation !== undefined, "Aktivierung braucht die geprüfte Generation");
+export const AutomationExecuteBody = z.object({ generation: z.number().int().positive() });

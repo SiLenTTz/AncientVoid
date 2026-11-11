@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync, appendFileSync, truncateSync } from "node:fs";
 import { resolve } from "node:path";
-import type { AutomationDefinition, AutomationClaimState, AutomationSkipReason, AutomationOutcome } from "@ancientvoid/contracts";
-import { AutomationDefinition as AutomationDefinitionSchema, automationClaimKey } from "@ancientvoid/contracts";
+import type { AutomationDefinition, AutomationClaimState, AutomationSkipReason, AutomationOutcome, AutomationHistoryEntry } from "@ancientvoid/contracts";
+import { MAX_EVENT_PAYLOAD_BYTES, AutomationDefinition as AutomationDefinitionSchema, automationClaimKey } from "@ancientvoid/contracts";
 
 type DefinitionInput = Parameters<typeof AutomationDefinitionSchema.parse>[0];
 
@@ -14,7 +14,8 @@ type DefinitionInput = Parameters<typeof AutomationDefinitionSchema.parse>[0];
 
 export type JournalEvent =
   | { seq: number; type: "definition"; at: string; definition: AutomationDefinition }
-  | { seq: number; type: "claim"; at: string; claimKey: string; automationId: string; generation: number; occurrenceUtc: string }
+  | { seq: number; type: "cursor"; at: string; automationId: string; generation: number; throughUtc: string }
+  | { seq: number; type: "claim"; at: string; claimKey: string; automationId: string; generation: number; occurrenceUtc: string; kind?: ClaimState["kind"]; operationId?: string }
   | {
       seq: number;
       type: "claim_update";
@@ -23,24 +24,16 @@ export type JournalEvent =
       state: AutomationClaimState;
       reason?: AutomationSkipReason;
       outcome?: AutomationOutcome;
+      missedThroughUtc?: string;
+      detail?: string;
       runId?: string;
       sessionId?: string;
     };
 
-export interface ClaimState {
-  claimKey: string;
-  automationId: string;
-  generation: number;
-  occurrenceUtc: string;
-  state: AutomationClaimState;
-  reason?: AutomationSkipReason;
-  outcome?: AutomationOutcome;
-  runId?: string;
-  sessionId?: string;
-  at: string;
-}
+export type ClaimState = AutomationHistoryEntry;
 
 interface Snapshot {
+  cursors?: [string, string][];
   appliedSeq: number;
   definitions: AutomationDefinition[];
   claims: ClaimState[];
@@ -53,8 +46,9 @@ export class AutomationStore {
   private readonly root: string;
   private readonly definitions = new Map<string, AutomationDefinition>();
   private readonly claims = new Map<string, ClaimState>();
+  private readonly cursors = new Map<string, string>();
+  private readonly revisions = new Map<string, number>();
   private seq = 0;
-  private skippedLines = 0;
 
   constructor(root: string) {
     this.root = root;
@@ -72,21 +66,32 @@ export class AutomationStore {
         snapshot = { appliedSeq: 0, definitions: [], claims: [] };
       }
     }
-    for (const d of snapshot.definitions ?? []) this.definitions.set(d.id, d);
+    for (const d of snapshot.definitions ?? []) { this.definitions.set(d.id, d); this.revisions.set(d.id, snapshot.appliedSeq); }
+    for (const [key, value] of snapshot.cursors ?? []) this.cursors.set(key, value);
     for (const c of snapshot.claims ?? []) this.claims.set(c.claimKey, c);
     this.seq = snapshot.appliedSeq;
     const journalPath = resolve(this.root, "journal.jsonl");
     if (existsSync(journalPath)) {
-      for (const line of readFileSync(journalPath, "utf8").split("\n")) {
+      const contents = readFileSync(journalPath, "utf8");
+      const lines = contents.split("\n");
+      let validBytes = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
         if (!line.trim()) continue;
         let event: JournalEvent;
         try {
           event = JSON.parse(line) as JournalEvent;
         } catch {
-          this.skippedLines += 1;
-          continue;
+          if (i === lines.length - 1 && !contents.endsWith("\n")) {
+            truncateSync(journalPath, validBytes);
+            console.warn("automations: unvollständigen Journal-Tail verworfen; vorhandene Claims werden nicht wiederholt");
+            break;
+          }
+          throw new Error(`Automations-Journal beschädigt, Zeile ${i + 1}`);
         }
-        if (typeof event.seq !== "number" || event.seq <= snapshot.appliedSeq) continue;
+        validBytes += Buffer.byteLength(line + "\n");
+        if (typeof event.seq !== "number" || !["definition", "claim", "claim_update", "cursor"].includes(event.type)) throw new Error("Unbekanntes Automations-Journalformat");
+        if (event.seq <= snapshot.appliedSeq) continue;
         this.apply(event);
         this.seq = Math.max(this.seq, event.seq);
       }
@@ -96,6 +101,11 @@ export class AutomationStore {
   private apply(event: JournalEvent): void {
     if (event.type === "definition") {
       this.definitions.set(event.definition.id, event.definition);
+      this.revisions.set(event.definition.id, event.seq);
+      return;
+    }
+    if (event.type === "cursor") {
+      this.cursors.set(`${event.automationId}:${event.generation}`, event.throughUtc);
       return;
     }
     if (event.type === "claim") {
@@ -106,6 +116,8 @@ export class AutomationStore {
         generation: event.generation,
         occurrenceUtc: event.occurrenceUtc,
         state: "claimed",
+        ...(event.kind ? { kind: event.kind } : {}),
+        ...(event.operationId ? { operationId: event.operationId } : {}),
         at: event.at,
       });
       return;
@@ -113,6 +125,8 @@ export class AutomationStore {
     const claim = this.claims.get(event.claimKey);
     if (!claim) return;
     claim.state = event.state;
+    if (event.missedThroughUtc !== undefined) claim.missedThroughUtc = event.missedThroughUtc;
+    if (event.detail !== undefined) claim.detail = event.detail;
     if (event.reason !== undefined) claim.reason = event.reason;
     if (event.outcome !== undefined) claim.outcome = event.outcome;
     if (event.runId !== undefined) claim.runId = event.runId;
@@ -122,9 +136,11 @@ export class AutomationStore {
 
   private append(event: WithoutSeq<JournalEvent>): void {
     mkdirSync(this.root, { recursive: true, mode: 0o700 });
-    this.seq += 1;
-    const full = { ...event, seq: this.seq } as JournalEvent;
-    appendFileSync(resolve(this.root, "journal.jsonl"), `${JSON.stringify(full)}\n`);
+    const full = { ...event, seq: this.seq + 1 } as JournalEvent;
+    const line = `${JSON.stringify(full)}\n`;
+    if (Buffer.byteLength(line) > MAX_EVENT_PAYLOAD_BYTES) throw new Error("Automations-Journalpayload überschreitet K5 (4 KiB); große Inhalte als Blob speichern");
+    appendFileSync(resolve(this.root, "journal.jsonl"), line, { mode: 0o600, flush: true });
+    this.seq = full.seq;
     this.apply(full); // der Laufzeit-Spiegel des Journals — sonst lebt der Zustand nur auf der Platte
   }
 
@@ -132,7 +148,7 @@ export class AutomationStore {
   upsertDefinition(definition: DefinitionInput, nowIso: string): AutomationDefinition {
     const parsed = AutomationDefinitionSchema.parse(definition) as AutomationDefinition;
     const previous = this.definitions.get(parsed.id);
-    const material = previous !== undefined && JSON.stringify({ ...previous, enabled: parsed.enabled }) !== JSON.stringify(parsed);
+    const material = previous !== undefined && JSON.stringify({ ...previous, enabled: parsed.enabled, generation: 1 }) !== JSON.stringify({ ...parsed, generation: 1 });
     const stored: AutomationDefinition = {
       ...parsed,
       generation: previous === undefined ? 1 : material ? previous.generation + 1 : previous.generation,
@@ -142,14 +158,14 @@ export class AutomationStore {
     return stored;
   }
 
-  claim(automationId: string, generation: number, occurrenceUtc: string, nowIso: string): ClaimState | null {
-    const key = automationClaimKey(automationId, generation, occurrenceUtc);
+  claim(automationId: string, generation: number, occurrenceUtc: string, nowIso: string, metadata: { kind?: ClaimState["kind"]; operationId?: string } = {}): ClaimState | null {
+    const key = automationClaimKey(automationId, generation, occurrenceUtc) + (metadata.operationId ? `:${metadata.operationId}` : "");
     if (this.claims.has(key)) return null;
-    this.append({ type: "claim", at: nowIso, claimKey: key, automationId, generation, occurrenceUtc });
+    this.append({ type: "claim", at: nowIso, claimKey: key, automationId, generation, occurrenceUtc, ...metadata });
     return this.claims.get(key) ?? null;
   }
 
-  updateClaim(claimKey: string, patch: { state: AutomationClaimState; reason?: AutomationSkipReason; outcome?: AutomationOutcome; runId?: string; sessionId?: string }, nowIso: string): ClaimState | null {
+  updateClaim(claimKey: string, patch: { state: AutomationClaimState; reason?: AutomationSkipReason; outcome?: AutomationOutcome; runId?: string; sessionId?: string; detail?: string; missedThroughUtc?: string }, nowIso: string): ClaimState | null {
     const claim = this.claims.get(claimKey);
     if (!claim) return null;
     this.append({ type: "claim_update", at: nowIso, claimKey, ...patch });
@@ -174,15 +190,25 @@ export class AutomationStore {
 
   /** Offene (nicht abgerechnete) Claims einer Definition — Basis der Überlappungsprüfung. */
   inFlight(automationId: string): number {
-    return [...this.claims.values()].filter((c) => c.automationId === automationId && (c.state === "claimed" || c.state === "dispatched")).length;
+    return [...this.claims.values()].filter((c) => c.automationId === automationId && (c.state === "claimed" || c.state === "dispatched" || c.state === "unknown")).length;
+  }
+
+  revision(id: string): number { return this.revisions.get(id) ?? 0; }
+
+  cursorFor(id: string, generation: number): string | undefined { return this.cursors.get(`${id}:${generation}`); }
+
+  advanceCursor(id: string, generation: number, throughUtc: string, at: string): void {
+    const previous = this.cursorFor(id, generation);
+    if (previous && previous >= throughUtc) return;
+    this.append({ type: "cursor", automationId: id, generation, throughUtc, at });
   }
 
   saveSnapshot(): void {
     mkdirSync(this.root, { recursive: true, mode: 0o700 });
-    const snapshot: Snapshot = { appliedSeq: this.seq, definitions: [...this.definitions.values()], claims: [...this.claims.values()] };
+    const snapshot: Snapshot = { cursors: [...this.cursors], appliedSeq: this.seq, definitions: [...this.definitions.values()], claims: [...this.claims.values()] };
     const path = resolve(this.root, "snapshot.json");
     const tmp = `${path}.tmp`;
-    writeFileSync(tmp, JSON.stringify(snapshot, null, 2));
+    writeFileSync(tmp, JSON.stringify(snapshot, null, 2), { mode: 0o600, flush: true });
     renameSync(tmp, path);
   }
 }
