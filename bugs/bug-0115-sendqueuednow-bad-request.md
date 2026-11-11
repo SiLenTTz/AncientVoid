@@ -1,16 +1,16 @@
 ---
 id: BUG-0115
 slug: sendqueuednow-bad-request
-status: in-progress
+status: done
 severity: S3
 area: pwa
 instance: dev
 commit: "e806f1b"
-forge: ""
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/50"
 epic: ""
 created: 2026-11-11
 reporter: Gate-Lauf (Agent)
-fixed: ""
+fixed: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/368"
 ---
 
 # BUG-0115 — „Jetzt senden" der Vormerkung schlägt in der PWA immer mit „Bad Request" fehl
@@ -79,5 +79,5 @@ ist der leere Body mit JSON-Content-Type.
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [ ] GitLab-Issue angelegt (Link oben)
+- [x] GitLab-Issue angelegt (Link oben)
 - [x] `bugfix`
