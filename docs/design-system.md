@@ -39,7 +39,7 @@ bestehende Komponente re-themt sich automatisch.
 | `--call-ink` | `#1a0a00` | `#ffffff` | Text/Icon auf `--call`-Fläche |
 | `--info` | `#5cc8ff` | `#0b6aa6` | Frage des Agenten |
 | `--info-ink` | `#04131c` | `#ffffff` | Text/Icon auf `--info`-Fläche |
-| `--ok` | `#4fe0ab` | `#158c62` | Status „working"/Erfolg — **semantisch, nie der Akzent** |
+| `--ok` | `#4fe0ab` | `#127a56` | Status „working"/Erfolg — **semantisch, nie der Akzent** |
 | `--warn` | `#ffcf5c` | `#9a6a06` | Warnung (Kontingent, Schwellen). „Du bist dran“ ist seit P43 `--call` |
 | `--err` | `#ff5c6a` | `#c72d3d` | Status „error" |
 
@@ -54,10 +54,9 @@ Hinweis (`accentWarnings`, `STATUS` in `appearance.ts`); der Ruf bleibt dann an 
 erkennbar.
 
 **Kontrast.** `apps/pwa/test/app/tokens.test.ts` liest die Tokens aus `01-base.css` und verlangt
-für Text (`--fg`, `--fg-dim`, `--fg-faint`, `--accent`, `--call`, `--info`, `--err`) 4,5:1 auf `--bg`
-und `--bg-elev`, in beiden Erscheinungsbildern. Bekannte Ausnahme: `--ok` hell liegt als Text bei
-4,2:1; die semantischen Farben bleiben in P43 unverändert, Zustand steht deshalb nie allein in
-Textfarbe, sondern immer auch in der Form.
+für Text (`--fg`, `--fg-dim`, `--fg-faint`, `--accent`, `--call`, `--info`, `--err`, `--ok`) 4,5:1 auf `--bg`
+und `--bg-elev`, in beiden Erscheinungsbildern. Zustand steht zusätzlich immer in der Form
+(`StatusDot`), nie allein in Textfarbe.
 
 ## Typografie
 

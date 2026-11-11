@@ -1,6 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { InterruptedBanner } from "./InterruptedBanner.tsx";
 import { copyWithRetry } from "./copy-selection.ts";
+import { readTailScroll, writeTailScroll } from "./tail-scroll.ts";
 import { sessionHash, fileHash } from "../../app/route.ts";
 import { HandoverBar } from "./Handover.tsx";
 import { currentProviderFailure } from "./handover.ts";
@@ -418,8 +419,36 @@ export function SessionTail({
 
   // Follow new events only where they are shown — in Bericht/Diff/Suche/
   // Code a running session used to scroll the search field away (T7.6).
+  // EPIC-P43 AC-P43-7: gemerkte Scrollposition (Gerät) gewinnt vor „ans Ende“.
+  // Restore pollt kurz + ResizeObserver: scrollHeight kann steigen, ohne dass
+  // die Border-Box wächst (z. B. nachgeladenes Diff, padding in Tests).
   useEffect(() => {
-    stickRef.current = true; // neuer Tab oder neue Session beginnt unten
+    const saved = readTailScroll(session.id, activeTab);
+    stickRef.current = saved === null;
+    if (saved === null) return;
+    let done = false;
+    let raf = 0;
+    let tries = 0;
+    const apply = () => {
+      if (done) return;
+      const node = tailRef.current;
+      if (!node || node.scrollHeight <= node.clientHeight + 8) return;
+      node.scrollTop = saved;
+      stickRef.current = false;
+      done = true;
+    };
+    const tick = () => {
+      apply();
+      if (!done && ++tries < 180) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    const el = tailRef.current;
+    const ro = el ? new ResizeObserver(apply) : null;
+    if (el && ro) ro.observe(el);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+    };
   }, [activeTab, session.id]);
   useEffect(() => {
     if (activeTab !== "chat" && activeTab !== "verlauf") return;
@@ -976,6 +1005,7 @@ export function SessionTail({
           // Layout-Änderungen lösen ebenfalls scroll-Ereignisse aus.
           if (el.scrollHeight - el.clientHeight - el.scrollTop < 48) stickRef.current = true;
           else if (Date.now() - userInputAt.current < 800) stickRef.current = false;
+          writeTailScroll(session.id, activeTab, stickRef.current ? 0 : el.scrollTop);
         }}
         style={`overflow-y: auto; max-height: ${tailMaxHeight !== null ? `calc(${tailMaxHeight}px / var(--ui-zoom, 1))` : "60vh"}`}
       >

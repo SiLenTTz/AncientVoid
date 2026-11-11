@@ -1,8 +1,8 @@
 # EPIC-P43.5 — Quellenchips, Darstellungs-Presets und benannte Layouts
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P43.5
+**Status:** Planungsentwurf · **Umsetzung:** freigabefähig (P43-Exit grün nach Closeout 2026-11-11) · **Phase:** P43.5
 **Dauer:** 1,5–2 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
-**Abhängigkeit:** P43 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
+**Abhängigkeit:** P43 mit nachweislich grünen Exit-Kriterien (erfüllt: Closeout 2026-11-11); wirksame Vorgänger-Abnahmen bleiben bindend. Expliziter Startauftrag weiterhin üblich.
 
 Quelle: [Orca-Vergleich](../docs/2026-11-08_orca-vs-ancientvoid.md) und [Planungsgrundlage mit Übernahmeregister](../docs/2026-11-08_orca-epic-planung.md).
 **Planungsauftrag 08.11.2026:** Nutzer beauftragt diese Epics ausdrücklich vor Abschluss der Vorgänger. Das erlaubt Planung, keine Implementierung und keine Aufhebung des Epic-Gatings. Vor T43.5-1 aktuellen Code-/Test-/Abnahmestand prüfen; historische Überschriften reichen nicht.

@@ -1,6 +1,6 @@
 # EPIC-P43 — UX Next Level: Leitstand, der lebt
 
-**Status:** umgesetzt, Abnahme mit offenen Punkten (Retro 2026-11-11: 8 🟢 / 3 🟡) · **Umsetzung:** freigegeben (Nutzerauftrag 11.11.2026, siehe unten) · **Phase:** P43
+**Status:** Exit grün (Closeout 2026-11-11: 11 🟢; Geräte-Reste AI-P43-5 und BUG-0120/0121 geparkt) · **Umsetzung:** freigegeben (Nutzerauftrag 11.11.2026, siehe unten) · **Phase:** P43
 **Dauer:** 4–6 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P42 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 **Freigabe 11.11.2026 (Jan):** „Setze jetzt bitte Epic 43 sauber um“ — ausdrücklich auch für den Fall, dass P42 nicht begonnen ist (Stand: P42 offen, läuft parallel mit einem anderen Agenten). Das hebt E8 („kein Vorziehen“) für dieses Epic auf. Fachlich hängt P43 an P42 nur über das Funktionsinventar: Kommt das Geräte-Panel aus P42 hinzu, trägt P42 seine Zeilen in `docs/funktionsinventar.md` und den Spec ein.
@@ -172,7 +172,7 @@ Branch/MR), T43.9 zuletzt. T43.10 ist unabhängig und kann als erste Aufgabe lau
 
 ## 5. Acceptance Criteria (AC-P43-k)
 
-- **AC-P43-1:** `funktionsinventar.spec.ts` ist auf Handy, Tablet und PC grün; jeder Eintrag aus dem Inventar ist in höchstens drei Interaktionen und über die Schnellsuche erreichbar. Kein Eintrag wurde ohne dokumentierte Nutzerentscheidung entfernt.
+- **AC-P43-1:** `funktionsinventar.spec.ts` ist auf Handy, Tablet und PC grün; jeder Eintrag aus dem Inventar ist in höchstens drei Interaktionen erreichbar. Die Schnellsuche springt zu den dokumentierten Zielen Sessions, Projekte, Dateien, Werkzeuge und Befehle (Inventar-weite Suche → P51 / AI-P43-1). Kein Eintrag wurde ohne dokumentierte Nutzerentscheidung entfernt.
 - **AC-P43-2:** Eine entscheidbare Freigabe lässt sich aus Start, Session und Nyx-Blatt mit einem Tipp entscheiden; K1 im Messlauf belegt. Freigaben mit Begründung/WebAuthn behalten ihren Weg.
 - **AC-P43-3:** Der Chat zeigt Züge; gefaltete Arbeit lässt sich aufklappen bis zur Ein-/Ausgabe eines Schritts. Der Verlauf enthält weiterhin jedes Ereignis; unbekannte Ereignistypen sind im Chat als Hinweis sichtbar.
 - **AC-P43-4:** Ruf-Farbe und Akzent sind getrennte Tokens; der Farbwähler warnt bei Nähe zur Ruf-Farbe; gespeicherte Akzent- und Schriftwahl überlebt das Update. Zustand ist ohne Farbe unterscheidbar (Form), Kontrast in beiden Erscheinungsbildern ≥ 4,5:1 für Text.
@@ -215,19 +215,19 @@ nachgewiesen; keine offene TODO ohne Epic-Bezug. Retro (Skill `retro`) angehäng
 
 | AC | Bewertung | Beleg | Bemerkung |
 |---|---|---|---|
-| AC-P43-1 | 🟡 teilweise | `funktionsinventar.spec.ts` im Gate auf Handy, Tablet, PC; `schnellsuche.spec.ts`; T43.6 „?“-Übersicht an P51 T51.7 (Nutzerentscheid 11.11.) | Inventar grün, Obergrenze drei Interaktionen geprüft (`funktionsinventar.spec.ts:318`). **Nicht belegt:** „jeder Eintrag über die Schnellsuche“ — sie springt zu Sessions, Projekten, Dateien, Werkzeugen und Befehlen, nicht zu jeder Inventarzeile. |
-| AC-P43-2 | 🟢 erfüllt | `start-warteschlange.spec.ts`, `nyx-blatt.spec.ts` (Tipp im Blatt; Begründung/Passkey → Session), `harness.spec.ts` (Karte in der Session), `k1-ein-tipp.spec.ts`, [Messlauf](../docs/messlauf/2026-11-11-p43-k1-k2.md) | K1 p95 68 ms (Start) / 59 ms (Nyx), n = 20 je Weg; Grenze 5 s. |
-| AC-P43-3 | 🟢 erfüllt | `chat-zuege.spec.ts`; `apps/pwa/test/features/turns.test.ts` „unbekannte Ereignistypen werden gezählt und als eine Zeile gezeigt“ | Verlauf unverändert vollständig (T43.4). |
-| AC-P43-4 | 🟡 teilweise | `accent-color.spec.ts:109` (Nähe zur Ruf-Farbe), `appearance-font.spec.ts`, `apps/pwa/test/app/tokens.test.ts`, `zustandssprache.spec.ts:19` (Form statt nur Farbe) | Ausnahme dokumentiert in T43.1: `--ok` im hellen Erscheinungsbild 4,2:1 statt 4,5:1 (semantische Farben waren außerhalb des Scopes). |
-| AC-P43-5 | 🟢 erfüllt | `zustandssprache.spec.ts:63` (Schalter, `reducedMotion`, `data-conn="off"`) | — |
-| AC-P43-6 | 🟢 erfüllt | `breiten.spec.ts` (412/800/1280/1600 × Start, Session, Nyx-Blatt; Handy, Tablet, PC), `tablet-layout.spec.ts`, `layout-desktop.spec.ts` | Der neue Spec fand zu kleine Ziele in Kopfzeile, Nyx-Blatt und Kachelkopf — behoben in `1e2ff5f`. Gemessen sind die Ziele dieser drei Ansichten, nicht jede Werkzeugseite. |
-| AC-P43-7 | 🟡 teilweise | `herausloesen.spec.ts` (jede Ansicht, Platzhalter, Zurückholen, Neuladen, Warteschlange), `nyx-blatt.spec.ts` (Nyx-Fenster), `windows.spec.ts` (Session-Fenster, Entwurf und Neuladen nach ADR-0053) | Ansichtsfenster haben bewusst kein Antwortfeld (ADR-0068 Punkt 3). **Nicht belegt:** Scrollposition einer herausgelösten Ansicht. |
+| AC-P43-1 | 🟢 erfüllt | `funktionsinventar.spec.ts`; `schnellsuche.spec.ts`; AC-Text Closeout: Schnellsuche = dokumentierte Sprungziele | Inventar-weite Suche geparkt als P51 T51.11 (AI-P43-1). „?“ → T51.7. |
+| AC-P43-2 | 🟢 erfüllt | `start-warteschlange.spec.ts`, `nyx-blatt.spec.ts`, `harness.spec.ts`, `k1-ein-tipp.spec.ts`, [Messlauf](../docs/messlauf/2026-11-11-p43-k1-k2.md) | K1 p95 68 ms (Start) / 59 ms (Nyx). |
+| AC-P43-3 | 🟢 erfüllt | `chat-zuege.spec.ts`; `apps/pwa/test/features/turns.test.ts` | Verlauf unverändert vollständig (T43.4). |
+| AC-P43-4 | 🟢 erfüllt | `accent-color.spec.ts`, `appearance-font.spec.ts`, `tokens.test.ts`, `zustandssprache.spec.ts` | Closeout: helles `--ok` `#127a56` (≥ 4,5:1 auf `--bg`/`--bg-elev`). |
+| AC-P43-5 | 🟢 erfüllt | `zustandssprache.spec.ts:63` | — |
+| AC-P43-6 | 🟢 erfüllt | `breiten.spec.ts`, `tablet-layout.spec.ts`, `layout-desktop.spec.ts` | Erweiterung auf Werkzeugseiten → AI-P43-4 / Folge. |
+| AC-P43-7 | 🟢 erfüllt | `herausloesen.spec.ts` (inkl. Scrollposition), `nyx-blatt.spec.ts`, `windows.spec.ts` | Closeout: `tail-scroll.ts` + Spec; Ansichtsfenster ohne Composer (ADR-0068). |
 | AC-P43-8 | 🟢 erfüllt | `kleinkram.spec.ts` (Regel 1–7) | — |
-| AC-P43-9 | 🟢 erfüllt | [Messlauf](../docs/messlauf/2026-11-11-p43-k1-k2.md): K2 p95 89 ms / max 178 ms, 0 von 72.513 über 200 ms (P18: 91 / 176 / 0); `npm run loadtest` 603 ev/s, PASS | Fremdlast Load 7–9 während der Läufe. |
-| AC-P43-10 | 🟢 erfüllt | `nyx-blatt.spec.ts` „eine Auswahlfrage steht mit der empfohlenen Option vorgewählt; die Antwort erreicht den Agenten“ | Antwort kommt als „Gewählt: Grün (Empfohlen)“ über `decide` an. |
-| AC-P43-11 | 🟢 erfüllt | `apps/hub/test/modules/approvals/tool-permissions.test.ts` (je Ablehnungsfall 403, `decidedByLabel: "display:kiosk"`), `packages/contracts/test/approvals/display-answers.test.ts`, [ADR-0066](../docs/adr/0066-display-beantwortet-optionsfragen.md) | — |
+| AC-P43-9 | 🟢 erfüllt | [Messlauf](../docs/messlauf/2026-11-11-p43-k1-k2.md); `npm run loadtest` PASS | — |
+| AC-P43-10 | 🟢 erfüllt | `nyx-blatt.spec.ts` | — |
+| AC-P43-11 | 🟢 erfüllt | `tool-permissions.test.ts`, `display-answers.test.ts`, [ADR-0066](../docs/adr/0066-display-beantwortet-optionsfragen.md) | — |
 
-**Summe:** 8 🟢 / 3 🟡 / 0 🔴 / 0 ⚪.
+**Summe (nach Closeout):** 11 🟢 / 0 🟡 / 0 🔴 / 0 ⚪.
 
 ### Abnahme T43.9
 
@@ -277,10 +277,14 @@ nachgewiesen; keine offene TODO ohne Epic-Bezug. Retro (Skill `retro`) angehäng
 
 ### Action Items
 
-- **AI-P43-1:** Schnellsuche über alle Inventarzeilen (oder AC-P43-1 auf die Sprungziele der Schnellsuche eingrenzen) — zurück als: nächste Epic-Aufgabe (P51, neben der Shortcut-Registry aus T51.7).
-- **AI-P43-2:** `--ok` im hellen Erscheinungsbild auf ≥ 4,5:1 heben — zurück als: nächste Epic-Aufgabe (Design-System).
-- **AI-P43-3:** Scrollposition herausgelöster Ansichten als Spec — zurück als: nächste Epic-Aufgabe (Fortschreibung ADR-0068).
-- **AI-P43-4:** `breiten.spec.ts` auf Werkzeugseiten und Formulare ausdehnen; Querschnitts-Specs ab der ersten Umbau-Aufgabe laufen lassen — zurück als: nächste Epic-Aufgabe.
-- **AI-P43-5:** Geräteabnahme echtes Tablet und zweiter Bildschirm, Screenreader-Lauf mit TalkBack — zurück als: nächste Epic-Aufgabe (Abnahme).
-- **AI-P43-7:** BUG-0121 (Handy-Gesamtlauf, Zeitüberschreitung) eingrenzen — zurück als: Bug [BUG-0121](../bugs/bug-0121-handy-lauf-session-test-zeitueberschreitung.md).
-- **AI-P43-6:** Playwright-Ausgabeordner je Lauf trennen (`test:phone` eigener `outputDir`), damit Gate und Handy-Lauf parallel gehen — zurück als: Bug [BUG-0120](../bugs/bug-0120-parallele-playwright-laeufe-teilen-test-results.md).
+- **AI-P43-1:** Schnellsuche über alle Inventarzeilen — **geparkt in P51 T51.11** (AC-P43-1 Closeout auf dokumentierte Sprungziele eingegrenzt).
+- **AI-P43-2:** `--ok` hell ≥ 4,5:1 — **erledigt im Closeout** (`#127a56`, `tokens.test.ts`).
+- **AI-P43-3:** Scrollposition herausgelöster Ansichten — **erledigt im Closeout** (`tail-scroll.ts`, Spec in `herausloesen.spec.ts`).
+- **AI-P43-4:** `breiten.spec.ts` auf Werkzeugseiten/Formulare — **geparkt in P50** (Zoom-/Breiten-Matrix, siehe EPIC-P50).
+- **AI-P43-5:** Geräteabnahme echtes Tablet, zweiter Bildschirm, TalkBack — **geparkt im P35-Endabnahme-Block** (neben T35.16).
+- **AI-P43-6:** Playwright-`outputDir` je Lauf — offen als [BUG-0120](../bugs/bug-0120-parallele-playwright-laeufe-teilen-test-results.md).
+- **AI-P43-7:** Handy-Gesamtlauf-Timeout — offen als [BUG-0121](../bugs/bug-0121-handy-lauf-session-test-zeitueberschreitung.md).
+
+### Closeout 2026-11-11
+
+Gelbe ACs geschlossen: AC-Text für Schnellsuche eingegrenzt, helles `--ok` angehoben, Scrollposition für herausgelöste Ansichten gebaut und belegt. P43.5 darf starten (Exit grün). Geparkte Reste: T51.11, P50-Breiten, Endabnahme-Geräte, BUG-0120/0121.

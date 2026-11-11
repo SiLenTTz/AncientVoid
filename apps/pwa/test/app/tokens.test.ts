@@ -49,14 +49,12 @@ describe.each(Object.entries(THEMES))("Farb-Tokens, %s", (name, t) => {
   });
 });
 
-describe("bekannte Ausnahme: --ok und --warn im hellen Erscheinungsbild", () => {
-  // EPIC-P43 §2 lässt die semantischen Farben --ok/--err unverändert. Als Text liegen --ok (4,2:1) und
-  // --warn (4,7:1 auf Karte, 4,2:1 auf Hintergrund) hell unter bzw. an der Grenze; sie tragen Zustand
-  // deshalb nie allein über Text, sondern mit Form (StatusDot, T43.2). Der Test hält den Stand fest.
-  it("hält den dokumentierten Stand", () => {
+describe("--ok und --warn im hellen Erscheinungsbild (EPIC-P43 AC-P43-4)", () => {
+  it("--ok erreicht als Text 4,5:1 auf Hintergrund und Karte; --warn auf der Karte", () => {
     const t = THEMES.hell;
-    expect(contrastRatio(t["--ok"]!, t["--bg-elev"]!)).toBeGreaterThanOrEqual(4.2);
-    expect(contrastRatio(t["--ok"]!, t["--bg-elev"]!)).toBeLessThan(4.5);
+    for (const surface of ["--bg", "--bg-elev"] as const) {
+      expect(contrastRatio(t["--ok"]!, t[surface]!), `--ok auf ${surface}`).toBeGreaterThanOrEqual(4.5);
+    }
     expect(contrastRatio(t["--warn"]!, t["--bg-elev"]!)).toBeGreaterThanOrEqual(4.5);
   });
 });

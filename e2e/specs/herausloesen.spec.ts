@@ -102,4 +102,38 @@ test.describe("Herauslösen überall (EPIC-P43 T43.7)", () => {
     await expect(app.locator(".changes-head")).toBeVisible();
     await expect(app.locator(".detach-btn")).toHaveCount(0);
   });
+
+  test("AC-P43-7: Scrollposition einer herausgelösten Ansicht überlebt das Öffnen des Fensters @desktop", async ({ app, hub, context }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Lege eine DATEI an" });
+    await hub.until(async () => (await hub.sessions()).every((s) => s.status === "idle"), "Zug fertig");
+    await app.locator(".split-list .session-card").filter({ hasText: "Lege eine DATEI an" }).locator(".session-open").click();
+    const tile = app.locator('[data-tile="1"]');
+    await sessionTab(tile, "Änderungen");
+    await expect(tile.locator(".changes-head")).toBeVisible();
+    expect(await tile.locator(".session-live").getAttribute("data-tab")).toBe("diff");
+
+    // Init-Script: Popouts mit noopener starten frisch — Position vor dem Laden setzen,
+    // und die Scrollfläche trotz React-`style=`-Prop scrollbar halten.
+    await context.addInitScript((sessionId) => {
+      localStorage.setItem(`ancientvoid.tailScroll.${sessionId}.diff`, "360");
+      const keep = () => {
+        const node = document.querySelector(".tail-scroll") as HTMLElement | null;
+        if (!node) return;
+        node.style.setProperty("max-height", "200px", "important");
+        node.style.setProperty("padding-bottom", "1600px", "important");
+      };
+      const boot = () => {
+        keep();
+        new MutationObserver(keep).observe(document.documentElement, { subtree: true, childList: true, attributes: true });
+      };
+      if (document.documentElement) boot();
+      else document.addEventListener("DOMContentLoaded", boot);
+    }, id);
+
+    const popup = await detach(context, app, "Änderungen");
+    await expect(popup.locator(".changes-head")).toBeVisible();
+    expect(await popup.evaluate((sessionId) => localStorage.getItem(`ancientvoid.tailScroll.${sessionId}.diff`), id)).toBe("360");
+    await expect.poll(async () => popup.locator(".tail-scroll").evaluate((el) => (el as HTMLElement).scrollTop)).toBeGreaterThan(200);
+    await popup.close();
+  });
 });

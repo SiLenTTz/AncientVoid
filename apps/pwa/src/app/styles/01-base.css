@@ -72,7 +72,8 @@
   --call-ink: #ffffff;
   --info: #0b6aa6;
   --info-ink: #ffffff;
-  --ok: #158c62;
+  /* EPIC-P43 AC-P43-4 / AI-P43-2: ≥ 4,5:1 auf --bg und --bg-elev (vorher #158c62 ≈ 4,2:1). */
+  --ok: #127a56;
   --warn: #9a6a06;
   --err: #c72d3d;
   --graph-code: #1072b0;
