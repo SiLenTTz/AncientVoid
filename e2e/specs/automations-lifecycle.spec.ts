@@ -71,12 +71,26 @@ test("P41: ein Fehler beim Verlauf bleibt als Fehler sichtbar", async ({ app, hu
   await expect(app.getByText("Noch keine Läufe.", { exact: true })).toHaveCount(0);
 });
 
+test("P41: schlägt der Verlaufsabruf nach einem erfolgreichen fehl, wird der Altbestand datiert als veraltet gezeigt", async ({ app, hub }) => {
+  await create(hub, "Veralteter Verlauf");
+  await app.goto(`${hub.origin}/#/automationen`);
+  await app.getByText("Veralteter Verlauf", { exact: true }).click();
+  await expect(app.getByText("Noch keine Läufe.", { exact: true })).toBeVisible();
+  await app.route("**/api/automations/*/history", route => route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "Verlauf nicht lesbar" }) }));
+  await app.reload();
+  await app.getByText("Veralteter Verlauf", { exact: true }).click();
+  await expect(app.getByTestId("automation-detail").getByRole("alert")).toContainText("Verlauf nicht lesbar");
+  await expect(app.getByTestId("automation-history-asof")).toContainText("aktueller Abruf fehlgeschlagen");
+});
+
 test.describe("P41 Offline-Projektion", () => {
   test.use({ serviceWorkers: "allow" });
   test("Reload im Flugmodus zeigt den datierten Plan und sperrt alle Mutationen", async ({ app, hub }) => {
     await create(hub, "Plan im Flugmodus");
     await app.goto(`${hub.origin}/#/automationen`);
     await expect(app.getByText("Plan im Flugmodus", { exact: true })).toBeVisible();
+    await app.getByText("Plan im Flugmodus", { exact: true }).click();
+    await expect(app.getByText("Noch keine Läufe.", { exact: true })).toBeVisible(); // Verlauf online abgerufen und gecacht
     await app.evaluate(async () => { await navigator.serviceWorker.ready; });
     await app.reload();
     await expect(app.getByText("Plan im Flugmodus", { exact: true })).toBeVisible();
@@ -87,6 +101,9 @@ test.describe("P41 Offline-Projektion", () => {
     await expect(app.getByTestId("automations-offline")).toContainText("Offline");
     const at = await app.getByTestId("automations-asof").getAttribute("datetime");
     expect(Date.parse(at!)).toBeLessThanOrEqual(before);
+    await app.getByText("Plan im Flugmodus", { exact: true }).click();
+    const historyAt = await app.getByTestId("automation-history-asof").locator("time").getAttribute("datetime");
+    expect(Date.parse(historyAt!)).toBeLessThanOrEqual(before); // auch der Verlauf ist datiert, nicht als frisch ausgegeben
     for (const name of ["Neue Automation", "Jetzt starten", "Aktivieren", "Bearbeiten"]) {
       await expect(app.getByRole("button", { name, exact: true })).toBeDisabled();
     }
