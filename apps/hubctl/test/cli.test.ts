@@ -66,6 +66,25 @@ describe("formatHealth (T4.5-6)", () => {
 describe("token issue label validation (BUG-0108)", () => {
   const run = (args: string[]) => promisify(execFile)(process.execPath, [resolve("apps/hubctl/src/cli.ts"), ...args]);
 
+  // EPIC-P43 T43.10 (ADR-0066): die Antwort-Fähigkeit gibt es nur für ein Display.
+  it("--answer-questions is refused without --display and listed with it", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-hubctl-"));
+    const db = join(dir, "hub.db");
+    try {
+      const err = await run(["token", "issue", "pixel", "--answer-questions", "--db", db]).catch((e: unknown) => e as { code?: number });
+      expect((err as { code?: number }).code).toBe(1);
+      const issued = await run(["token", "issue", "kiosk", "--display", "--answer-questions", "--db", db]);
+      expect(issued.stdout).toContain('token for "display:kiosk" (darf Optionsfragen beantworten)');
+      await run(["token", "issue", "nyx", "--display", "--db", db]);
+      const list = (await run(["token", "list", "--db", db])).stdout.split("\n");
+      expect(list.find((l) => l.startsWith("display:kiosk"))).toContain("capabilities=display.answer_questions");
+      expect(list.find((l) => l.startsWith("display:nyx"))).not.toContain("capabilities=");
+      expect(list.some((l) => l.startsWith("pixel"))).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("rejects an empty label with usage/exit 1 — the CLI must not mint tokens the API would refuse", async () => {
     const dir = await mkdtemp(join(tmpdir(), "ancientvoid-hubctl-"));
     try {

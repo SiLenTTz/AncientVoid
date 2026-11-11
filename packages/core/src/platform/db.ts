@@ -475,6 +475,12 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 32,
+    name: "device-token-capabilities",
+    // EPIC-P43 T43.10 (ADR-0066): je Token vergebene Fähigkeiten, JSON-Array; NULL = keine.
+    sql: `ALTER TABLE device_tokens ADD COLUMN capabilities TEXT;`,
+  },
 ];
 
 export class HubDatabase {

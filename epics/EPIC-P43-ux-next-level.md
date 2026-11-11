@@ -162,7 +162,7 @@ anderen P43-Aufgabe.
 - [ ] **T43.7** ADR (Fortschreibung ADR-0053), `DetachButton`, neue Fensterziele, Platzhalter/Zurückholen, Fensterzähler. **K2/K7/K10**.
 - [ ] **T43.8** Nyx-Blatt: Zustandsfunktion, Blatt/Aufklappfeld, Fragen mit Vorauswahl, Bestätigungen, Atlas-Übernahme mit Herkunftsvermerk. **K1**.
 - [ ] **T43.9** Abnahme: Nachher-Screenshots, K1/K2-Messlauf (Skill `messlauf`, auch vier Kacheln mit Bewegung), Tastatur- und Screenreader-Durchgang, Geräteabnahme Handy/Tablet/PC, Retro. **K1/K2/K10**.
-- [ ] **T43.10** AV-D3: ADR (Fortschreibung ADR-0048), Token-Berechtigung, Prüfung im `decide`-Handler, Feld „am Display beantwortbar“, `hubctl`, Integrations-Tests für jeden Ablehnungsfall, Doku für VoidWarden. **K1/K7**.
+- [x] **T43.10** *(erledigt 2026-11-12, [ADR-0066](../docs/adr/0066-display-beantwortet-optionsfragen.md); als einzige P43-Aufgabe vorgezogen, weil VoidWarden P13 darauf wartet und sie an keiner anderen P43-Aufgabe hängt — das übrige Epic bleibt gesperrt)* AV-D3: ADR (Fortschreibung ADR-0048), Token-Berechtigung, Prüfung im `decide`-Handler, Feld „am Display beantwortbar“, `hubctl`, Integrations-Tests für jeden Ablehnungsfall, Doku für VoidWarden. **K1/K7**.
 
 Jede Aufgabe liest vor Beginn die ihr zugeordneten Audit-Befunde (Audit §3/§5) und belegt im MR, dass sie behoben sind.
 

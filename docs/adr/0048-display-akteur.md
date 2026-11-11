@@ -27,7 +27,8 @@ Ein Statusdisplay am Entwicklungsrechner soll den Zustand zeigen und
 4. Der `decide`-Handler lehnt für `display` mit 403 ab, wenn die Freigabe nicht
    Klasse `write` ist, `reasonRequired` gesetzt ist oder es eine Provider-
    Rückfrage (`tool.question`) ist. Die Entscheidung erscheint im Audit mit
-   dem Label `display:<name>`.
+   dem Label `display:<name>`. *Für Rückfragen mit vorgegebenen Optionen fortgeschrieben
+   durch [ADR-0066](0066-display-beantwortet-optionsfragen.md) (Fähigkeit je Token, Standard aus).*
 
 ## Konsequenzen
 

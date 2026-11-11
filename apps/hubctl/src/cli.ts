@@ -51,7 +51,7 @@ Usage:
   hubctl show <sessionId>
   hubctl events <sessionId> [afterSeq]
   hubctl tail <sessionId> [-f]             includes session.interrupted and its reason
-  hubctl token issue <label> [--agent|--display] [--db <hub.db>]   (--agent: label agent:<label>, writes need approval; --display: label display:<label>, reads and decides write approvals only)
+  hubctl token issue <label> [--agent|--display [--answer-questions]] [--db <hub.db>]   (--agent: label agent:<label>, writes need approval; --display: label display:<label>, reads and decides write approvals only)
   hubctl token list [--db <hub.db>]
   hubctl token revoke <label> [--db <hub.db>]
   hubctl fleet invite [--db <hub.db>]     one-time code for another hub to pair (10 min)
@@ -245,14 +245,18 @@ async function main(): Promise<void> {
         // request, never act on its own — every write waits for a human.
         // ADR-0048: a status display reads and decides `write` approvals only.
         const label = args.includes("--agent") && !name.startsWith("agent:") ? `agent:${name}` : args.includes("--display") && !name.startsWith("display:") ? `display:${name}` : name;
+        // ADR-0066: nur ein Display kann Optionsfragen beantworten dürfen — Standard aus.
+        const answerQuestions = args.includes("--answer-questions");
+        if (answerQuestions && !label.startsWith("display:")) usage();
         const { TokenService, HubDatabase } = await import("@ancientvoid/core");
+        const { DISPLAY_ANSWER_CAPABILITY } = await import("@ancientvoid/contracts");
         const tokens = new TokenService(new HubDatabase(dbPath));
-        const issued = tokens.issue(label);
-        console.log(`token for "${label}" (shown once):\n  ${issued.token}`);
+        const issued = tokens.issue(label, answerQuestions ? [DISPLAY_ANSWER_CAPABILITY] : []);
+        console.log(`token for "${label}"${answerQuestions ? " (darf Optionsfragen beantworten)" : ""} (shown once):\n  ${issued.token}`);
       } else if (sub === "list") {
         const { TokenService, HubDatabase } = await import("@ancientvoid/core");
         const tokens = new TokenService(new HubDatabase(dbPath));
-        for (const t of tokens.list()) console.log(`${t.label}  created=${t.createdAt} lastUsed=${t.lastUsedAt ?? "never"}`);
+        for (const t of tokens.list()) console.log(`${t.label}  created=${t.createdAt} lastUsed=${t.lastUsedAt ?? "never"}${t.capabilities.length > 0 ? ` capabilities=${t.capabilities.join(",")}` : ""}`);
       } else if (sub === "revoke") {
         const label = args[1] ?? usage();
         const { TokenService, HubDatabase } = await import("@ancientvoid/core");
