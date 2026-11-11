@@ -9,6 +9,8 @@ import { readAutomationSnapshot, writeAutomationSnapshot } from "./automation-ca
 export function AutomationDetail({ info, offline, cacheKey, host }: { info: AutomationInfo; offline: boolean; cacheKey: string; host: string | null }) {
   const api = useApi();
   const [history, setHistory] = useState<AutomationHistoryEntry[] | null>(null);
+  /** Abrufzeitpunkt der angezeigten Einträge; gesetzt nur, solange sie aus der Offlinekopie stammen. */
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
   const definition = info.definition;
   const [template, setTemplate] = useState<OrchestrationRunStart | null>(null);
@@ -21,11 +23,11 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
   useEffect(() => {
     let alive = true;
     const cached = cacheKey ? readAutomationSnapshot(cacheKey)?.histories.find(h => h.id === definition.id) : undefined;
-    setHistory(cached?.entries ?? null); setError("");
+    setHistory(cached?.entries ?? null); setCachedAt(cached?.at ?? null); setError("");
     if (offline) { if (!cached) setError("Für diesen Plan ist kein Offline-Verlauf gespeichert."); return; }
     void api.automationHistory(definition.id).then(entries => {
       if (!alive) return;
-      setHistory(entries);
+      setHistory(entries); setCachedAt(null);
       const snapshot = readAutomationSnapshot(cacheKey);
       if (snapshot) writeAutomationSnapshot(cacheKey, { ...snapshot, histories: [...snapshot.histories.filter(h => h.id !== definition.id), { id: definition.id, at: new Date().toISOString(), entries: entries.slice(0, 100) }] });
     }).catch(err => { if (alive) setError(err instanceof Error ? err.message : "Verlauf nicht lesbar"); });
@@ -45,7 +47,7 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
     {info.nextOccurrences.length === 0 && <p>Kein Termin im unterstützten Kalenderhorizont.</p>}
     <h4>Verlauf</h4>
     {error && <div class="files-error" role="alert">{error}</div>}
-    {offline && history && <p>Gespeicherter Verlauf (höchstens 100 Einträge).</p>}
+    {cachedAt && history && <p data-testid="automation-history-asof">Gespeicherter Verlauf vom <time dateTime={cachedAt}>{new Date(cachedAt).toLocaleString("de-DE")}</time> (höchstens 100 Einträge){offline ? "" : " — aktueller Abruf fehlgeschlagen"}.</p>}
     {!history && !error && <div class="empty">lade…</div>}
     {history?.length === 0 && !error && <div class="empty">Noch keine Läufe.</div>}
     {!!history?.length && <ul class="run-tasks" data-testid="automation-history">{history.map(entry => <li key={entry.claimKey} class="run-task">
