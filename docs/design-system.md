@@ -160,6 +160,17 @@ Farbe, Form und Bewegung sagen dasselbe; jede der drei reicht allein.
 - **Composer:** einzeilig (`.compact`), solange das Feld weder Fokus noch Text hat; „Verbessern“
   erscheint erst dann. Fokus auf einem Knopf klappt nicht auf (der Klick ginge sonst ins Leere).
 
+## Tablet, PC-Kachelkopf, Schnellsuche (EPIC-P43 T43.6)
+
+- **Tablet (700–1279 px):** in einer Session stehen die Sessions als Streifen darüber (hoch) bzw. als
+  240-px-Spalte daneben (quer), Reihenfolge wie die Warteschlange (`SessionStrip.tsx`, `41-tablet.css`).
+  Das Dock bleibt unten; ohne Session gilt die Übersicht wie am Handy.
+- **Kachelkopf (PC):** Nummer, Griff `⠿`, Titel und Zustand, die vier Reiter als Symbole (Name als
+  Tooltip und für Screenreader), rechts Stop/⋯ und Herauslösen/Leeren. Wird die Kachel schmal, rücken
+  Reiter und Tasten in eine zweite Zeile, der Titel behält 160 px. „Mehr“ öffnet darunter, rechtsbündig.
+- **Schnellsuche:** dasselbe Feld wie „Auftrag in Worten“ (Strg+K, Dock „Suchen“). Treffer je Art
+  höchstens fünf, Wortanfang vor Teilstring; Pfeiltasten wählen, Enter springt nur mit Auswahl.
+
 ## Kleinkram-Regeln (EPIC-P43 T43.5, je Regel ein Test in `e2e/specs/kleinkram.spec.ts`)
 
 1. **Unbekanntes schweigt** in der Leiste und steht im Bericht („keine Meldung“).

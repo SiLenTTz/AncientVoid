@@ -115,8 +115,8 @@ html:has(.popout-shell) body {
 
 /* Ziehgriff der Kachel (T34.11): nur Zeiger; die Tastatur nimmt ⧉. */
 .tile-grip {
-  flex: 1;
-  margin-inline: 8px;
+  flex: none;
+  margin-inline: 2px 4px;
   color: var(--fg-faint);
   cursor: grab;
   touch-action: none;

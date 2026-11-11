@@ -23,6 +23,11 @@ function readLast(): { host?: string | null; adapter?: string; project?: string;
   }
 }
 
+/** EPIC-P43 T43.6: die Schnellsuche springt mit einem Projekt in „Neue Session“ — über dieselbe Merkung. */
+export function preselectProject(path: string): void {
+  localStorage.setItem(LAST_KEY, JSON.stringify({ ...readLast(), project: path }));
+}
+
 /** BUG-0096: Die Merkung ist die stärkste Quelle für den Start-Adapter —
  * die Adapterliste kann beim Mount noch leer sein (async Abruf), und der
  * alte Fallback („dummy“/erster Eintrag) blieb dann für immer stehen, weil

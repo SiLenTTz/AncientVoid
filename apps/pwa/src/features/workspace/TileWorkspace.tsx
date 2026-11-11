@@ -246,6 +246,29 @@ function Tile({
     };
   }, [tileRef?.sessionId, tileRef?.hostId]);
 
+  // EPIC-P43 T43.6: ein Kopf je Kachel — mit Session trägt ihn SessionTail (Titel, Zustand, Reiter dazwischen).
+  const headStart = (
+    <>
+      <span class="tile-no">{index + 1}</span>
+      {onPopout && (
+        <span class={`tile-grip${dragOut ? " dragging" : ""}`} aria-hidden="true" title="Aus dem Fenster ziehen: eigenes Fenster (Alternative: ⧉)" onPointerDown={startGrip}>
+          ⠿{dragOut ? " Loslassen öffnet ein eigenes Fenster" : ""}
+        </span>
+      )}
+    </>
+  );
+  const headEnd = (
+    <>
+      {onPopout && (
+        <button type="button" class="tile-popout" aria-label={`Kachel ${index + 1} in eigenem Fenster öffnen`} title="In eigenem Fenster öffnen" onClick={() => onPopout()}>
+          ⧉
+        </button>
+      )}
+      <button type="button" class="tile-close" aria-label={`Kachel ${index + 1} leeren`} title="Kachel leeren (Alt+W)" onClick={onClose}>
+        ×
+      </button>
+    </>
+  );
   return (
     <section
       class={`tile${focused ? " focused" : ""}${dragOut ? " drag-out" : ""}`}
@@ -254,22 +277,10 @@ function Tile({
       onPointerDownCapture={onFocus}
       onFocusCapture={onFocus}
     >
-      {tileRef && (
+      {tileRef && !session && (
         <div class="tile-head">
-          <span class="tile-no">{index + 1}</span>
-          {onPopout && (
-            <span class="tile-grip" aria-hidden="true" title="Aus dem Fenster ziehen: eigenes Fenster (Alternative: ⧉)" onPointerDown={startGrip}>
-              ⠿ {dragOut ? "Loslassen öffnet ein eigenes Fenster" : ""}
-            </span>
-          )}
-          {onPopout && (
-            <button type="button" class="tile-popout" aria-label={`Kachel ${index + 1} in eigenem Fenster öffnen`} title="In eigenem Fenster öffnen" onClick={() => onPopout()}>
-              ⧉
-            </button>
-          )}
-          <button type="button" class="tile-close" aria-label={`Kachel ${index + 1} leeren`} title="Kachel leeren (Alt+W)" onClick={onClose}>
-            ×
-          </button>
+          {headStart}
+          {headEnd}
         </div>
       )}
       {!tileRef ? (
@@ -286,7 +297,7 @@ function Tile({
           </button>
         </div>
       ) : session ? (
-        <SessionTail key={session.id} session={session} onNavigate={onNavigate} tile={{ active, compact }} {...(initialCode ? { initialCode } : {})} {...(initialTabView ? { initialTab: initialTabView.tab, ...(initialTabView.file ? { initialFile: initialTabView.file } : {}) } : {})} />
+        <SessionTail key={session.id} session={session} onNavigate={onNavigate} tile={{ active, compact, head: { start: headStart, end: headEnd } }} {...(initialCode ? { initialCode } : {})} {...(initialTabView ? { initialTab: initialTabView.tab, ...(initialTabView.file ? { initialFile: initialTabView.file } : {}) } : {})} />
       ) : (
         <div class="empty tile-empty dim">lädt…</div>
       )}

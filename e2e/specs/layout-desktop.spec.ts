@@ -34,12 +34,21 @@ test.describe("Desktop (T8.5, AC-P8-6)", () => {
     expect(rail!.width).toBeLessThanOrEqual(64);
     await expect(app.locator(".split-list .dock-item").last()).toHaveAttribute("title", "Dateibaum (Strg+Umschalt+E)");
 
-    // Kachel-Ansichten: senkrechte Leiste links neben dem Inhalt.
-    const tabs = app.locator(".tile-rail");
-    // EPIC-P43 T43.4: Chat, Änderungen, Dateien und „Mehr“ (Verlauf, Bericht, Datei, Graph, GitLab, Suche, Umgebung).
+    // EPIC-P43 T43.6: die Ansichten stehen im Kachelkopf (Griff, Titel, Zustand, Reiter, rechts Herauslösen) —
+    // Chat, Änderungen, Dateien und „Mehr“ (Verlauf, Bericht, Datei, Graph, GitLab, Suche, Umgebung).
+    const tabs = app.locator(".tile .session-topbar .tile-tabs");
     await expect(tabs.getByRole("button")).toHaveCount(4);
-    const [tabBox, mainBox] = await Promise.all([tabs.boundingBox(), app.locator(".tile .session-main").boundingBox()]);
-    expect(tabBox!.x + tabBox!.width).toBeLessThanOrEqual(mainBox!.x);
+    const head = app.locator(".tile .session-topbar").first();
+    const [tabBox, headBox, titleBox, detachBox] = await Promise.all([
+      tabs.boundingBox(),
+      head.boundingBox(),
+      head.locator(".session-top-title").boundingBox(),
+      head.getByRole("button", { name: "Kachel 1 in eigenem Fenster öffnen" }).boundingBox(),
+    ]);
+    expect(tabBox!.y).toBeLessThan(headBox!.y + headBox!.height);
+    expect(tabBox!.x).toBeGreaterThan(titleBox!.x);
+    expect(detachBox!.x).toBeGreaterThan(tabBox!.x + tabBox!.width - 1);
+    await expect(app.locator(".tile-rail")).toHaveCount(0);
     await sessionTab(app.locator(".tile").first(), "Bericht");
     // Der Bericht gehört zu „Änderungen“: dort steht die Markierung, auch wenn er über „Mehr“ geöffnet wurde.
     await expect(tabs.getByRole("button", { name: /^Änderungen/ })).toHaveAttribute("aria-current", "page");

@@ -1,3 +1,4 @@
+import type { ComponentChildren } from "preact";
 import { InterruptedBanner } from "./InterruptedBanner.tsx";
 import { copyWithRetry } from "./copy-selection.ts";
 import { sessionHash, fileHash } from "../../app/route.ts";
@@ -66,6 +67,9 @@ export interface TileContext {
   active: boolean;
   /** A small tile starts with the controls folded away (P18 premortem 3). */
   compact: boolean;
+  /** EPIC-P43 T43.6: der Kachelkopf — Griff und Nummer vorn, Herauslösen und Leeren hinten; die Reiter
+   * stehen dazwischen statt in einer senkrechten Leiste. */
+  head?: { start: ComponentChildren; end: ComponentChildren };
 }
 
 export function SessionTail({
@@ -792,15 +796,14 @@ export function SessionTail({
      * as an active overview card — "this agent is working" must be visible
      * from any tab (chat/diff/code), not only from the small status pill. */}
     <div data-tab={activeTab} class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}`}>{copyFlash && <div class="copy-flash" role="status">In Zwischenablage kopiert</div>}
-      {/* Desktop-Kachel: Ansichten als Icon-Leiste links, am Handy bleiben sie im Dock unten. */}
-      {tile && <nav class="subtabs-wrap tile-rail" aria-label="Ansichten">{tabButtons}</nav>}
       <div class="session-main">
       {/* T8.5: back, what this is, Stop apart from Senden, the rest in ⋯ */}
-      <div class="topbar session-topbar">
+      <div class={`topbar session-topbar${tile ? " tile-top" : ""}`}>
+        {tile?.head?.start}
         <button class="btn back-btn" type="button" aria-label="Zur Übersicht" title="Zur Übersicht" onClick={() => onNavigate("dashboard")}>
           ←
         </button>
-        <div style="flex: 1; min-width: 0">
+        <div class="session-top-main">
           {renaming ? (
             <form
               class="rename-form"
@@ -824,6 +827,7 @@ export function SessionTail({
             {session.controlMode !== "mirror" && <>{" · "}<WorkplaceBadge session={record} /></>}
           </div>
         </div>
+        {tile && <nav class="subtabs-wrap tile-tabs" aria-label="Ansichten">{tabButtons}</nav>}
         {!observerOnly && features?.interrupt && (status === "working" || status === "starting" || status === "waiting_approval") && (
           <button class="btn pause-btn" type="button" onClick={() => void pause()}>
             Pause
@@ -870,6 +874,7 @@ export function SessionTail({
           </div>
         </details>
         <div class={`conn-dot ${conn}`} title={conn} />
+        {tile?.head?.end}
       </div>
 
       {fromCache && cached && (

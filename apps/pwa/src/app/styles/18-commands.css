@@ -124,3 +124,48 @@
 .status-filter {
   margin: 6px 0 0;
 }
+
+/* EPIC-P43 T43.6: Schnellsuche — Treffer über den Beispielen, Art links, Ziel, Hinweis rechts. */
+.quick-jumps {
+  display: grid;
+  gap: 2px;
+}
+
+.quick-jump {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--target, 44px);
+  padding: 4px 8px;
+  text-align: left;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
+}
+
+.quick-jump:hover,
+.quick-jump.selected {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.quick-kind {
+  font-size: calc(11px * var(--font-scale, 1));
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.quick-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.quick-detail {
+  font-size: calc(12px * var(--font-scale, 1));
+}

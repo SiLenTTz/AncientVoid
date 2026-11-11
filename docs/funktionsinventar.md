@@ -51,7 +51,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G20 | Provider-Status | Kopfzeile „Status“ | T43.3 | inventar |
 | G21 | Benachrichtigungen | Glocke | — | inventar |
 | G22 | Auftrag in Worten | Kopfzeile „✦“ | T43.6 | inventar |
-| G23 | Auftrag in Worten per Tastatur (nur PC) | Strg+K | T43.6 | inventar |
+| G23 | Auftrag in Worten per Tastatur (nur PC) | Strg+K; Schnellsuche im selben Feld (Sessions, Projekte, Dateien, Werkzeuge, Befehle) | T43.6 | inventar; spec:schnellsuche.spec.ts |
 | G24 | Umschalter Projekte | Start → „Projekte“ | — | inventar |
 | G25 | Umschalter Hosts | Start → „Hosts“ | — | inventar |
 | G26 | Archiv | Start → Chip „Archiv“ | T43.3 | inventar |
@@ -185,13 +185,13 @@ Nur ab 1280 px Breite.
 | P07 | Kachel leeren | Kachelkopf „×“ | — | inventar |
 | P08 | Statusleiste (Verbindung, Flotte, Zähler, fokussierte Kachel) | unterer Rand | T43.7 | inventar |
 | P09 | Werkzeugseite: eigenes Fenster und Schließen | Kopf der Werkzeugseite | T43.7 | inventar |
-| P10 | Ansichten als Leiste in der Kachel | linker Rand der Kachel („Änderungen“ nur mit Änderungen) | T43.6 | inventar |
+| P10 | Ansichten im Kachelkopf | Kopf der Kachel: Griff, Titel, Zustand, Reiter, rechts Herauslösen („Änderungen“ nur mit Änderungen) | T43.6 | inventar |
 | P11 | Weitere Kachel öffnen | Strg-Klick in der Liste | — | inventar |
 | P12 | Eigene Fenster: Session, Werkzeugseite, Graph, Datei, Notiz, Browser, Android-Geräte; Zurückholen | „⧉“ an der jeweiligen Ansicht | T43.7 | spec:windows.spec.ts |
 | P13 | Kacheltastatur (Alt+1–4, Alt+Umschalt+1–4, Alt+L, Alt+W) | Tastatur | — | spec:workspace-tiles.spec.ts |
 | P14 | Kachelgröße ziehen | Trenner zwischen Kacheln | — | spec:resize.spec.ts |
 | P15 | Werkzeugseiten in der Detailspalte, Esc schließt | Dock | — | spec:tool-pane.spec.ts |
-| P16 | Tablet: Hochformat einspaltig, Querformat Arbeitsfläche | Gerät drehen | T43.6 | spec:tablet-layout.spec.ts |
+| P16 | Tablet: Sessions als Streifen (hoch) bzw. Spalte (quer) neben der Session; ab 1280 px Arbeitsfläche | Gerät drehen | T43.6 | spec:tablet-layout.spec.ts |
 
 ## Bekannte Lücken
 

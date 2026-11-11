@@ -265,7 +265,7 @@
 
 /* Handy und Tablet: die Reiter stehen in der festen .dock-stack, die scrollt und damit alles
  * abschneidet, was über sie hinausragt — das Menü wird deshalb ein Blatt am unteren Rand. */
-.subtabs-wrap:not(.tile-rail) .subtabs-more {
+.subtabs-wrap:not(.tile-tabs) .subtabs-more {
   position: fixed;
   left: 0;
   right: 0;
@@ -275,21 +275,22 @@
   border-radius: var(--radius) var(--radius) 0 0;
 }
 
-/* In der PC-Kachel ist die Leiste senkrecht; das Menü öffnet nach rechts. */
-.tile-rail .subtabs-more-wrap {
+/* Im PC-Kachelkopf öffnet das Menü unter „Mehr“, rechtsbündig. */
+.tile-tabs .subtabs-more-wrap {
   flex: none;
+  position: relative;
 }
 
-/* Die Leiste klebt mit z-index 2; offen muss sie über Kopf und Steuerung der Kachel liegen. */
-.tile-rail:has(.subtabs-more) {
+.tile-tabs:has(.subtabs-more) {
+  position: relative;
   z-index: 20;
 }
 
-.tile-rail .subtabs-more {
-  left: calc(100% + 4px);
-  right: auto;
+.tile-tabs .subtabs-more {
+  top: calc(100% + 4px);
+  right: 0;
+  left: auto;
   bottom: auto;
-  top: 0;
 }
 
 /* Änderungen: der Bericht als Abschnitt unter dem Diff. */
