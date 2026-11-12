@@ -26,6 +26,17 @@ test.describe("Desktop-Workspace (EPIC-P18)", () => {
     for (const n of [1, 2, 3, 4]) await expect(tile(app, n).getByRole("button", { name: "Steuerung einblenden" })).toBeVisible();
   });
 
+  test("Layout „Drei nebeneinander“ zeigt drei Kacheln mit zwei ziehbaren Spaltengrenzen", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Drittel" });
+    await card(app, "Aufgabe Drittel").click();
+    await app.getByRole("button", { name: "Drei nebeneinander" }).click();
+    await expect(app.locator(".tile-layout-btn.active")).toHaveAttribute("aria-label", "Drei nebeneinander");
+    await expect(app.locator(".tile")).toHaveCount(3);
+    await expect(app.locator(".tile-grid .tile-divider.col")).toHaveCount(2);
+    await app.reload();
+    await expect(app.locator(".tile-layout-btn.active")).toHaveAttribute("aria-label", "Drei nebeneinander");
+  });
+
   test("eine Antwort in Kachel 3 geht nur an die Session in Kachel 3 (P18-Premortem 1)", async ({ app, hub }) => {
     const ids: string[] = [];
     for (const name of ["Eins", "Zwei", "Drei"]) ids.push(await hub.createSession({ adapter: "opencode", prompt: `Aufgabe ${name}` }));
@@ -54,7 +65,7 @@ test.describe("Desktop-Workspace (EPIC-P18)", () => {
     await expect(tile(app, 2).locator(".session-top-title")).toHaveText("Aufgabe Links");
     await expect(tile(app, 2)).toHaveClass(/focused/);
     await app.keyboard.press("Alt+L");
-    await expect(app.locator(".tile-layout-btn.active")).toHaveAttribute("aria-label", "Zwei übereinander");
+    await expect(app.locator(".tile-layout-btn.active")).toHaveAttribute("aria-label", "Drei nebeneinander");
     await app.keyboard.press("Alt+W");
     await expect(tile(app, 2).locator(".tile-empty")).toBeVisible();
     await expect(tile(app, 1).locator(".session-top-title")).toHaveText("Aufgabe Rechts");

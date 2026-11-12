@@ -64,17 +64,18 @@ export function TileWorkspace({
   // läuft über einen lokalen Override (kein State-Stampede während des
   // Ziehens), commit und Persistenz erst am Ende über onChange.
   const gridRef = useRef<HTMLDivElement>(null);
-  const [drag, setDrag] = useState<{ axis: "col" | "row"; fraction: number } | null>(null);
+  const [drag, setDrag] = useState<{ axis: "col" | "row" | "col2"; fraction: number } | null>(null);
   const fractions = tileFractions(ws);
   const col = drag?.axis === "col" ? drag.fraction : fractions.col;
   const row = drag?.axis === "row" ? drag.fraction : fractions.row;
-  const startDrag = (axis: "col" | "row") => (e: PointerEvent) => {
+  const col2 = drag?.axis === "col2" ? drag.fraction : fractions.col2;
+  const startDrag = (axis: "col" | "row" | "col2") => (e: PointerEvent) => {
     e.preventDefault();
     const grid = gridRef.current;
     if (!grid) return;
     const rect = grid.getBoundingClientRect();
     const clampTo = (f: number) => Math.min(0.8, Math.max(0.2, f));
-    const from = (ev: PointerEvent) => clampTo(axis === "col" ? (ev.clientX - rect.left) / rect.width : (ev.clientY - rect.top) / rect.height);
+    const from = (ev: PointerEvent) => clampTo(axis === "row" ? (ev.clientY - rect.top) / rect.height : (ev.clientX - rect.left) / rect.width);
     const move = (ev: PointerEvent) => setDrag({ axis, fraction: from(ev) });
     const up = (ev: PointerEvent) => {
       window.removeEventListener("pointermove", move);
@@ -87,8 +88,14 @@ export function TileWorkspace({
     setDrag({ axis, fraction: from(e) });
   };
   const template = (() => {
-    // Spalten: erste Kachel `col`, Divider-Spur, Rest; Zeilen analog.
-    const cols = ws.layout === "2v" || ws.layout === "1+2" || ws.layout === "2x2" ? `${col}fr 10px ${1 - col}fr` : "1fr";
+    // Spalten: erste Kachel `col`, Divider-Spur, Rest; Zeilen analog. Beim Dreispalter
+    // gilt col2 als zweite Grenze; die Grenze darf col nie einholen (0.1 Mindest-Staffel).
+    const threeCol = (() => {
+      const c1 = Math.min(col, col2 - 0.1);
+      const c2 = Math.max(col2, c1 + 0.1);
+      return `${c1}fr 10px ${c2 - c1}fr 10px ${1 - c2}fr`;
+    })();
+    const cols = ws.layout === "3v" ? threeCol : ws.layout === "2v" || ws.layout === "1+2" || ws.layout === "2x2" ? `${col}fr 10px ${1 - col}fr` : "1fr";
     const rows = ws.layout === "2h" || ws.layout === "1+2" || ws.layout === "2x2" ? `${row}fr 10px ${1 - row}fr` : "1fr";
     return { gridTemplateColumns: cols, gridTemplateRows: rows } as const;
   })();
@@ -151,7 +158,7 @@ export function TileWorkspace({
         ))}
         {/* Divider nach den Kacheln — <div> neben <section>, damit die
          * nth-of-type-Platzierung der Kacheln unberührt bleibt. */}
-        {(ws.layout === "2v" || ws.layout === "1+2" || ws.layout === "2x2") && (
+        {(ws.layout === "2v" || ws.layout === "1+2" || ws.layout === "2x2" || ws.layout === "3v") && (
           <div
             class="tile-divider col"
             role="separator"
@@ -160,7 +167,16 @@ export function TileWorkspace({
             onPointerDown={startDrag("col")}
           />
         )}
-        {ws.layout !== "1" && ws.layout !== "2v" && (
+        {ws.layout === "3v" && (
+          <div
+            class="tile-divider col second"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Kachelbreite ändern"
+            onPointerDown={startDrag("col2")}
+          />
+        )}
+        {ws.layout !== "1" && ws.layout !== "2v" && ws.layout !== "3v" && (
           <div
             class={`tile-divider row${ws.layout === "1+2" ? " right-only" : ""}`}
             role="separator"

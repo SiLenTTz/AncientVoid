@@ -210,7 +210,7 @@ const SESSION: Entry[] = [
 ];
 
 const DESKTOP: Entry[] = [
-  { id: "P01", name: "Layoutwahl (fünf Layouts)", forms: PC, from: "session", reach: async (c) => { await expect(c.page.locator(".tile-layout-btn")).toHaveCount(5); await c.tap(c.page.getByRole("button", { name: "Zwei nebeneinander" })); await expect(c.page.locator(".tile")).toHaveCount(2); } },
+  { id: "P01", name: "Layoutwahl (sechs Layouts)", forms: PC, from: "session", reach: async (c) => { await expect(c.page.locator(".tile-layout-btn")).toHaveCount(6); await c.tap(c.page.getByRole("button", { name: "Zwei nebeneinander" })); await expect(c.page.locator(".tile")).toHaveCount(2); } },
   { id: "P02", name: "Kachel-Aktionen: Fokus, Tauschen, Layout, Leeren", forms: PC, from: "session", reach: async (c) => { const bar = c.page.getByRole("group", { name: "Kachel-Aktionen" }); for (const name of ["‹ Fokus", "Fokus ›", "⇄ Tauschen", "⟳ Layout", "✕ Leeren"]) await expect(bar.getByRole("button", { name })).toBeVisible(); } },
   { id: "P03", name: "Liste einklappen", forms: PC, from: "session", reach: async (c) => { await c.tap(c.page.locator(".tile-list-toggle")); await expect(c.page.locator(".split.list-collapsed")).toBeVisible(); } },
   { id: "P04", name: "Tastaturhinweise", forms: PC, from: "session", reach: async (c) => { await expect(c.page.locator(".tile-keys")).toContainText("Alt+1–4"); } },

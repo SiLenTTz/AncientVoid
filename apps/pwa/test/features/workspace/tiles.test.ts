@@ -57,12 +57,24 @@ describe("Kachel-Zustand (T18.2)", () => {
 
   it("Layout-Zyklus vor und zurück", () => {
     expect(cycleLayout(emptyWorkspace(), 1).layout).toBe("2v");
+    expect(cycleLayout(cycleLayout(emptyWorkspace(), 1), 1).layout).toBe("3v");
     expect(cycleLayout(emptyWorkspace(), -1).layout).toBe("2x2");
     expect(tileCount("1+2")).toBe(3);
+    expect(tileCount("3v")).toBe(3);
+  });
+
+  it("3v zeigt drei Kacheln; ein versteckter Slot bleibt beim Wechsel erhalten", () => {
+    let ws = setLayout(emptyWorkspace(), "3v");
+    for (const s of ["a", "b", "c"]) ws = openSession(ws, { sessionId: s });
+    expect(visibleTiles(ws).map((t) => t?.sessionId)).toEqual(["a", "b", "c"]);
+    ws = setLayout(ws, "2x2");
+    expect(visibleTiles(ws).map((t) => t?.sessionId ?? null)).toEqual(["a", "b", "c", null]);
+    expect(ws.focus).toBe(2);
   });
 
   it("Fokus nur auf sichtbare Kacheln", () => {
     expect(focusTile(emptyWorkspace(), 3).focus).toBe(0);
+    expect(focusTile(setLayout(emptyWorkspace(), "3v"), 3).focus).toBe(0);
   });
 
   it("Tauschen bewegt die Fokus-Session, der Fokus wandert mit", () => {

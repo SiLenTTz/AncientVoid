@@ -178,7 +178,7 @@ Nur ab 1280 px Breite.
 
 | ID | Funktion | Weg heute | Ziel | Nachweis |
 |---|---|---|---|---|
-| P01 | Layoutwahl (fünf Layouts) | Leiste über den Kacheln | — | inventar |
+| P01 | Layoutwahl (sechs Layouts) | Leiste über den Kacheln | — | inventar |
 | P02 | Fokus ‹ ›, Tauschen, Layout, Leeren | Leiste über den Kacheln | T43.6 | inventar |
 | P03 | Liste einklappen | Leiste über den Kacheln | — | inventar |
 | P04 | Tastaturhinweise | Zeile über den Kacheln | P51 T51.7 | inventar |
