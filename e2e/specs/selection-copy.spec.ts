@@ -10,9 +10,13 @@ test.describe("Markieren kopiert in die Zwischenablage", () => {
   test("fertige Auswahl im Verlauf liegt danach im Clipboard @desktop", async ({ app, hub }) => {
     await app.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: hub.origin });
     const marker = "MARKIER_MICH_12345";
-    const id = await hub.createSession({ adapter: "dummy", prompt: marker });    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "erste Antwort", 20_000);
+    const id = await hub.createSession({ adapter: "dummy", prompt: marker });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "erste Antwort", 20_000);
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await expect(app.locator(".session-live")).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(marker).first()).toBeVisible();
+    // Clipboard-Schreiben verlangt ein fokussiertes Dokument — wer markiert, hat den Fokus (BUG-0143).
+    await app.bringToFront();
 
     // Längsten Textknoten im Verlauf deterministisch auswählen (kein Echo-
     // Wissen über den Dummy nötig) und das Auswahl-Ende als pointerus
