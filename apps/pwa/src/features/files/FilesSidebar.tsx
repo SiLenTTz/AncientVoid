@@ -3,6 +3,8 @@ import type { TreeEntry, TreeListing } from "@ancientvoid/contracts";
 import { hostApi, remoteHost } from "../../shared/api.ts";
 import { FileViewer } from "./FileViewer.tsx";
 import { openPopout } from "../windows/windows.ts";
+import { pointerOutside, type DropPoint } from "../windows/drag.ts";
+import { canDetach } from "../windows/DetachButton.tsx";
 import { rootKey, rootTarget, saveFilesState, type FilesRoot, type FilesState } from "./files-model.ts";
 
 export interface FocusedSession {
@@ -98,12 +100,15 @@ export function FilesSidebar({
   focused,
   projects,
   mobile,
+  windowed = false,
 }: {
   state: FilesState;
   onChange: (next: FilesState) => void;
   focused: FocusedSession | null;
   projects: { name: string; path: string; hostId?: string; hostLabel?: string }[];
   mobile: boolean;
+  /** BUG-0128: im Dateibaum-Fenster füllt die Seitenleiste die Fläche; ✕ schließt das Fenster. */
+  windowed?: boolean;
 }) {
   const [identity, setIdentity] = useState<TreeListing["identity"] | null>(null);
   const root = state.root;
@@ -152,6 +157,38 @@ export function FilesSidebar({
     update({ tabs: tabsNext, active: Math.min(state.active >= index ? state.active - 1 : state.active, tabsNext.length - 1) });
   };
 
+  // BUG-0128: Herauslösen bündelt Baum und alle offenen Dateien in genau einem Fenster (nie Einzeldateien).
+  const [dragOut, setDragOut] = useState(false);
+  const [popoutBlocked, setPopoutBlocked] = useState(false);
+  const detachTree = async (drop?: DropPoint) => {
+    const result = await openPopout({ kind: "filetree" }, drop);
+    if (result === "blocked") setPopoutBlocked(true);
+    else {
+      setPopoutBlocked(false);
+      update({ open: false }); // verschoben: die Seitenleiste lebt jetzt im Fenster
+    }
+  };
+  // EPIC-P34 T34.11-Muster: am Griff (oder am Datei-Tab) aus dem Fenster ziehen; der Zeiger bleibt erfasst.
+  const startGrip = (e: PointerEvent) => {
+    if (!canDetach() || e.button !== 0) return;
+    const grip = e.currentTarget as HTMLElement;
+    grip.setPointerCapture(e.pointerId);
+    const outside = (ev: PointerEvent) => pointerOutside(ev.clientX, ev.clientY, { width: window.innerWidth, height: window.innerHeight });
+    const move = (ev: PointerEvent) => setDragOut(outside(ev));
+    const end = (ev: PointerEvent, drop: boolean) => {
+      grip.removeEventListener("pointermove", move);
+      grip.removeEventListener("pointerup", up);
+      grip.removeEventListener("pointercancel", cancel);
+      setDragOut(false);
+      if (drop && outside(ev)) void detachTree({ left: ev.screenX, top: ev.screenY });
+    };
+    const up = (ev: PointerEvent) => end(ev, true);
+    const cancel = (ev: PointerEvent) => end(ev, false);
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", up);
+    grip.addEventListener("pointercancel", cancel);
+  };
+
   const startResize = (ev: PointerEvent) => {
     ev.preventDefault();
     const startX = ev.clientX;
@@ -168,9 +205,19 @@ export function FilesSidebar({
   if (!state.open) return null;
   const showFile = view === "file" && viewing;
   return (
-    <aside class={`files-sidebar${mobile ? " drawer" : ""}`} style={mobile ? undefined : { width: `${state.width}px` }} aria-label="Dateibaum" data-testid="files-sidebar">
-      {!mobile && <div class="files-resize" role="separator" aria-orientation="vertical" aria-label="Breite ändern" onPointerDown={startResize as never} />}
+    <aside
+      class={`files-sidebar${mobile ? " drawer" : ""}${dragOut ? " drag-out" : ""}`}
+      style={mobile ? undefined : { width: windowed ? "100%" : `${state.width}px` }}
+      aria-label="Dateibaum"
+      data-testid="files-sidebar"
+    >
+      {!mobile && !windowed && <div class="files-resize" role="separator" aria-orientation="vertical" aria-label="Breite ändern" onPointerDown={startResize as never} />}
       <header class="files-head">
+        {!windowed && canDetach() && (
+          <span class={`files-grip${dragOut ? " dragging" : ""}`} aria-hidden="true" title="Aus dem Fenster ziehen: ein Fenster mit Baum und allen offenen Dateien" onPointerDown={startGrip}>
+            ⠿{dragOut ? " Loslassen bündelt Baum und Dateien in einem Fenster" : ""}
+          </span>
+        )}
         <select
           aria-label="Dateiquelle"
           value={rKey}
@@ -186,8 +233,24 @@ export function FilesSidebar({
             <option key={rootKey(r)} value={rootKey(r)}>{r.label}</option>
           ))}
         </select>
-        <button type="button" class="btn" aria-label="Dateien schließen" onClick={() => update({ open: false })}>✕</button>
+        {!windowed && canDetach() && (
+          <button
+            type="button"
+            class="files-detach"
+            aria-label="Baum und offene Dateien in eigenem Fenster"
+            title="Baum und offene Dateien in eigenes Fenster"
+            onClick={() => void detachTree()}
+          >
+            ⧉
+          </button>
+        )}
+        <button type="button" class="btn" aria-label="Dateien schließen" onClick={() => (windowed ? window.close() : update({ open: false }))}>✕</button>
       </header>
+      {popoutBlocked && (
+        <div class="files-error" role="alert">
+          Das Fenster wurde nicht geöffnet. Der Browser blockiert Pop-ups für diese Seite — bitte erlauben und noch einmal versuchen.
+        </div>
+      )}
       {identity && (
         <div class="files-identity dim" title={identity.root} data-testid="files-identity">
           {identity.kind === "session" ? "Worktree der Session" : "Projektordner"} · {identity.root.split("/").slice(-2).join("/")}
@@ -203,16 +266,24 @@ export function FilesSidebar({
               const index = state.tabs.indexOf(t);
               return (
                 <span key={t.path} class="files-tab">
-                  <button type="button" role="tab" aria-selected={Boolean(showFile) && state.active === index} class={showFile && state.active === index ? "chip active" : "chip"} title={t.path} onClick={() => { update({ active: index }); setView("file"); }}>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={Boolean(showFile) && state.active === index}
+                    class={showFile && state.active === index ? "chip active" : "chip"}
+                    title={t.path}
+                    onClick={() => { update({ active: index }); setView("file"); }}
+                    onPointerDown={startGrip}
+                  >
                     {t.path.split("/").pop()}
                   </button>
-                  {root.kind === "session" && (
+                  {!windowed && canDetach() && (
                     <button
                       type="button"
                       class="files-tab-popout"
-                      aria-label={`${t.path} in eigenes Fenster`}
-                      title="In eigenes Fenster"
-                      onClick={() => void openPopout({ kind: "file", sessionId: root.id, path: t.path, ...(root.hostId ? { hostId: root.hostId } : {}) })}
+                      aria-label={`${t.path} herauslösen: ein Fenster mit Baum und allen offenen Dateien`}
+                      title="Herauslösen: ein Fenster mit Baum und allen offenen Dateien"
+                      onClick={() => void detachTree()}
                     >
                       ⧉
                     </button>

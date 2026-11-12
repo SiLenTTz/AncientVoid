@@ -233,6 +233,11 @@ function Main() {
         setRoute({ view: "list", page: "dashboard" });
         return;
       }
+      if (parsed.view === "filetree") {
+        // BUG-0128: `#/dateibaum` ist die Fenster-Route des Dateibaum-Popouts; im Hauptfenster geht es zur Übersicht.
+        setRoute({ view: "list", page: "dashboard" });
+        return;
+      }
       if (parsed.view !== "tail") {
         setRoute({ view: "list", page: parsed.page, ...(parsed.vaultFile ? { vaultFile: parsed.vaultFile } : {}) });
         return;

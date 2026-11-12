@@ -55,6 +55,19 @@ html:has(.popout-shell) body {
   min-height: 0;
 }
 
+/* BUG-0128: das Dateibaum-Fenster füllt die Fläche mit der Seitenleiste (Breite kommt aus dem Fenster). */
+.popout-shell > .popout-files {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+}
+
+.popout-files .files-sidebar {
+  flex: 1;
+  min-width: 0;
+  border-left: 0;
+}
+
 /* EPIC-P48: Graph und Datei füllen das eigene Fenster wie eine Werkzeugseite. */
 .popout-shell > .popout-graph,
 .popout-shell > .popout-file {
@@ -151,7 +164,7 @@ html:has(.popout-shell) body {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  max-width: min(calc(92vw / var(--ui-zoom, 1)), 720px); /* BUG-0122 */
+  max-width: min(calc(92vw / var(--ui-zoom, 1)), 720px); /* BUG-0128 */
   transform: translateX(-50%);
   padding: 8px 12px;
   border: 1px solid var(--accent);

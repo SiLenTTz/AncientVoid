@@ -98,3 +98,14 @@ describe("Herauslösen überall (EPIC-P43 T43.7, ADR-0068)", () => {
     expect(windowFor(applyWindowMessage(reg, { type: "return", id: "w", target: changes }, 3), changes)).toBeNull();
   });
 });
+
+describe("Dateibaum-Fenster (BUG-0128)", () => {
+  const filetree = { kind: "filetree" } as const;
+
+  it("genau ein Ziel für die gebündelte Seitenleiste — nie Einzeldatei-Fenster", () => {
+    expect(popoutUrl(filetree)).toBe("/?window=1#/dateibaum");
+    expect(targetKey(filetree)).toBe("filetree");
+    expect(targetKey({ kind: "filetree" })).not.toBe(targetKey({ kind: "files", sessionId: "s1" }));
+    expect(parseWindowMessage({ type: "hello", id: "w9", target: filetree })).toEqual({ type: "hello", id: "w9", target: filetree });
+  });
+});

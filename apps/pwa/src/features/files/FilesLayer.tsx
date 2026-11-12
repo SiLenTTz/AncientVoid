@@ -9,14 +9,17 @@ import { loadFilesState, rootKey, saveFilesState, type FilesState } from "./file
  * EPIC-P46 T46.4: Einstieg der rechten Sidebar. Desktop: dritte Spalte (Strg+Umschalt+E), Touch: Drawer;
  * geöffnet über den Reiter „Dateien“ bzw. das globale „Mehr“ (EPIC-P43). Der Zustand (Breite, Root, Tabs) ist gerätelokal; die Root folgt der fokussierten Kachel
  * nur, wenn noch keine gewählt ist — danach bleibt sie sichtbar gepinnt.
+ * BUG-0128: `windowed` — die Seitenleiste füllt als Dateibaum-Fenster die ganze Fläche; ✕ schließt das Fenster,
+ * der Tastatur-Toggle bleibt dem Hauptfenster vorbehalten.
  */
-export function FilesLayer({ wide, focusedSessionId }: { wide: boolean; focusedSessionId: string | null }) {
-  const [state, setState] = useState<FilesState>(loadFilesState);
+export function FilesLayer({ wide, focusedSessionId, windowed = false }: { wide: boolean; focusedSessionId: string | null; windowed?: boolean }) {
+  const [state, setState] = useState<FilesState>(() => (windowed ? { ...loadFilesState(), open: true } : loadFilesState()));
   const hubStatus = useHubStatus();
   const reachableHosts = hubStatus.hosts.filter((h) => remoteHost(h.hostId) && h.state === "reachable").map((h) => `${h.hostId}:${h.label ?? ""}`).join(",");
   const [projects, setProjects] = useState<{ name: string; path: string; hostId?: string; hostLabel?: string }[]>([]);
 
   useEffect(() => {
+    if (windowed) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "e") {
         e.preventDefault();
@@ -122,7 +125,7 @@ export function FilesLayer({ wide, focusedSessionId }: { wide: boolean; focusedS
 
   return (
     <>
-      <FilesSidebar state={state} onChange={setState} focused={focused} projects={projects} mobile={!wide} />
+      <FilesSidebar state={state} onChange={setState} focused={focused} projects={projects} mobile={!wide} windowed={windowed} />
     </>
   );
 }
