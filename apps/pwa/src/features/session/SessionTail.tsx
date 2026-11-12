@@ -396,7 +396,8 @@ export function SessionTail({
     };
   }, [activeTab, session.id, session.adapter, turnRunning]);
 
-  useEffect(() => {
+  // Layout-Effekt: gespeichert im selben Commit, in dem die Wahl sichtbar wird — sonst verliert ein sofortiges Neuladen sie (BUG-0146).
+  useLayoutEffect(() => {
     localStorage.setItem("ancientvoid.filter", filter);
     if (filter !== "lesen") setLastVerlaufFilter(filter);
   }, [filter]);
