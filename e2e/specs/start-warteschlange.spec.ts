@@ -76,6 +76,26 @@ test.describe("Start als Warteschlange (EPIC-P43 T43.3)", () => {
     await expect(app).toHaveURL(/#\/freigaben$/);
   });
 
+  test("BUG-0147: Erststart mit leerem Hub — die ersten Sessions sind neu, nicht schon gelesen", async ({ app, hub }) => {
+    await app.goto(`${hub.origin}/#/`);
+    await expect(app.locator(".empty", { hasText: "lade" })).toHaveCount(0);
+    // Abfragen anhalten, bis die erste Session fertig ist — so kommt sie fertig in der ersten nicht leeren Antwort an.
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    await app.route("**/api/fleet", async (route) => {
+      await gate;
+      await route.continue();
+    });
+    const id = await hub.createSession({ adapter: "opencode", prompt: "README zusammenfassen" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
+    release();
+    await expect(app.locator(".section-braucht .session-title")).toHaveText([/README/]);
+    await app.unroute("**/api/fleet");
+    await app.reload();
+    await expect(app.locator(".section-braucht .session-title")).toHaveText([/README/]);
+    await expect(app.locator(".section-zuletzt")).toHaveCount(0);
+  });
+
   test("ohne Arbeit und ohne Ruf ist „Ruhig“ offen; Suchen öffnet es immer", async ({ app, hub }) => {
     for (const title of ["Eins", "Zwei", "Drei", "Vier", "Fünf"]) {
       const id = await hub.createSession({ adapter: "dummy", prompt: `Stille ${title}` });

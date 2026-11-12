@@ -176,10 +176,12 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
   const queryRef = useRef(query);
   queryRef.current = query;
   useEffect(() => registerField("session_filter", { get: () => queryRef.current, set: setQuery }), []);
-  // T8.6: first run on this device — what exists now counts as read.
+  // T8.6: first run on this device — what exists now counts as read. App mounts
+  // this only after the first loaded list, so an empty hub records an empty
+  // cursor; otherwise the first sessions to arrive would count as read (BUG-0147).
   useEffect(() => {
-    if (sessions.length > 0) initSeen(sessions.map((s) => ({ key: seenKey(s.hostId ?? "", s.id), lastSeq: s.lastSeq })));
-  }, [sessions.length > 0]);
+    initSeen(sessions.map((s) => ({ key: seenKey(s.hostId ?? "", s.id), lastSeq: s.lastSeq })));
+  }, []);
 
   // Local changes win until the next poll reports the same value.
   useEffect(() => {

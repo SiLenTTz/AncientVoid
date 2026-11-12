@@ -1,4 +1,4 @@
-import { test, expect, statusPill, dockGo, openQuiet, sessionTab, cardAction } from "../support/fixtures.ts";
+import { test, expect, statusPill, dockGo, openQuiet, seeAll, sessionTab, cardAction } from "../support/fixtures.ts";
 
 test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
   test("eine neue Session startet aus der UI und öffnet sich per Link @desktop", async ({ app, hub }) => {
@@ -99,6 +99,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     const stopped = await hub.createSession({ adapter: "dummy", project: hub.beta });
     await hub.api(`/api/sessions/${stopped}/stop`, { body: {} });
     const waiting = await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG" });
+    await seeAll(app, hub);
     await expect(app.locator(".section-title")).toHaveText([/Du bist dran/, /Ruhig/]);
     const need = app.locator(".section-braucht .session-card");
     await expect(need).toHaveCount(1);

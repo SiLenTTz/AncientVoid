@@ -93,6 +93,18 @@ export async function openApprovals(page: Page): Promise<void> {
   await page.locator(".approval-link, .approval-banner").first().click();
 }
 
+/**
+ * T8.6: dieses Gerät hat alles Vorhandene gesehen (Lesezeiger auf dem jetzigen
+ * Stand) — fertige Sessions stehen danach unter „Ruhig“ statt unter „Du bist dran“.
+ */
+export async function seeAll(page: Page, hub: TestHub): Promise<void> {
+  await hub.until(async () => (await hub.sessions()).every((s) => s.status !== "starting" && s.status !== "working"), "Sessions ruhig");
+  const { body } = await hub.api<{ sessions: { id: string; hostId?: string; lastSeq: number }[] }>("/api/fleet");
+  const seen = Object.fromEntries(body.sessions.map((s) => [`${s.hostId ?? ""}:${s.id}`, s.lastSeq]));
+  await page.evaluate((map) => localStorage.setItem("ancientvoid.seen", JSON.stringify(map)), seen);
+  await page.reload();
+}
+
 /** EPIC-P43 T43.3: „Ruhig“ ist zu, solange oben etwas steht — für Tests, die eine ruhige Session brauchen. */
 export async function openQuiet(page: Page): Promise<void> {
   const fold = page.locator(".section-zuletzt .section-fold");
