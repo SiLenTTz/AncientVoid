@@ -7,21 +7,42 @@ import { HANDOVER_CATEGORIES, type ProviderFailure } from "./handover.ts";
  * move to another provider/harness/model with one tap. Nothing switches silently: the target is chosen and the
  * text the next agent starts from is shown, editable, before anything starts.
  */
-export function HandoverBar({ failure, session, api, onHandedOver }: { failure: ProviderFailure; session: SessionRecord; api: HubApi; onHandedOver: (created: SessionRecord) => void }) {
+export function HandoverBar({ failure, session, api, onHandedOver, onRepaired }: { failure: ProviderFailure; session: SessionRecord; api: HubApi; onHandedOver: (created: SessionRecord) => void; onRepaired: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
+  const [repairing, setRepairing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   if (!HANDOVER_CATEGORIES.has(failure.category)) return null;
+  const repair = async () => {
+    setRepairing(true);
+    setError(null);
+    try {
+      const ack = await api.repairSession(session.id);
+      if (!ack.ok) throw new Error(ack.detail ?? "Reparieren fehlgeschlagen.");
+      await onRepaired();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRepairing(false);
+    }
+  };
   return (
     <div class="handover-bar" role="alert">
       <div class="handover-reason">
         <strong>{failure.title}</strong>
         <span class="dim"> — {failure.detail}</span>
       </div>
+      {failure.category === "session" && (
+        <button type="button" class={repairing ? "btn primary busy" : "btn primary"} disabled={repairing} onClick={() => void repair()}>
+          {repairing ? "repariert…" : "Hier weitermachen (Kontext neu aufbauen)"}
+        </button>
+      )}
       {!open && (
-        <button type="button" class="btn primary" onClick={() => setOpen(true)}>
-          An anderen Provider übergeben…
+        <button type="button" class="btn" onClick={() => setOpen(true)}>
+          An andere Session übergeben…
         </button>
       )}
       {open && <HandoverForm session={session} api={api} onCancel={() => setOpen(false)} onHandedOver={onHandedOver} />}
+      {error && <div class="error">{error}</div>}
     </div>
   );
 }
