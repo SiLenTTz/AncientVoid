@@ -77,6 +77,23 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
       .toBe(true);
   });
 
+  test("BUG-0145: das Ende des Verlaufs lässt sich über den FAB scrollen", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 390, height: 800 });
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const tail = app.locator(".tail-scroll");
+    await expect.poll(() => tail.evaluate((el) => el.scrollHeight > el.clientHeight + 200)).toBe(true);
+    await expect
+      .poll(async () => {
+        await tail.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+        const fab = (await app.locator('[data-testid="nyx-fab"]').boundingBox())!;
+        // Unterkante des letzten Inhalts im Scrollbereich, nicht des (gepolsterten) Containers.
+        const contentBottom = await tail.evaluate((el) => Math.max(...[...el.children].map((c) => c.getBoundingClientRect().bottom)));
+        return contentBottom <= fab.y;
+      })
+      .toBe(true);
+  });
+
   test("lässt sich mit echter Maus ziehen (kein nativer Bild-Drag) und ist ≥ 64 px groß", async ({ app, hub }) => {
     await app.setViewportSize({ width: 1400, height: 900 });
     const id = await hub.createSession({ adapter: "dummy" });
