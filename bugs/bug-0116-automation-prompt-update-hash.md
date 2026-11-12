@@ -1,7 +1,7 @@
 ---
-id: BUG-0113
+id: BUG-0116
 slug: automation-prompt-update-hash
-status: in-progress
+status: done
 severity: S2
 area: core
 instance: dev
@@ -12,7 +12,7 @@ created: 2026-11-10
 reporter: "Codex"
 ---
 
-# BUG-0113 — Automation-Update prüft Prompt-Hash nicht
+# BUG-0116 — Automation-Update prüft Prompt-Hash nicht
 
 ## Gesehen
 
