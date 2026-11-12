@@ -76,7 +76,7 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
       await expect.poll(() => archive.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
     }
     await card.locator(".row-menu-btn").click();
-    await expect(card.getByRole("menu").getByRole("menuitem")).toHaveText(["Repo-Graph", "Anheften", "Archivieren"]);
+    await expect(card.getByRole("menu").getByRole("menuitem")).toHaveText(["Repo-Graph", "Anheften", "Übergeben…", "Archivieren"]);
     await card.getByRole("menuitem", { name: "Anheften" }).click();
     await expect(app.locator(".section-pins .session-card")).toHaveCount(1);
   });
