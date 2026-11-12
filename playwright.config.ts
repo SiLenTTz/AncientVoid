@@ -35,8 +35,15 @@ const PHONE_SPECS = [
   "funktionsinventar.spec.ts",
 ];
 
+// BUG-0120: Playwright leert outputDir beim Start — der Handy-Lauf bekommt eigene Ordner,
+// damit ein parallel laufendes Gate ihm nicht die Traces wegräumt (und umgekehrt).
+const PHONE_RUN = !!process.env.ANCIENTVOID_E2E_CDP;
+const OUT = PHONE_RUN ? "test-results-phone" : "test-results";
+const REPORT = PHONE_RUN ? "playwright-report-phone" : "playwright-report";
+
 export default defineConfig({
   testDir: "e2e/specs",
+  outputDir: OUT,
   globalSetup: "./e2e/support/global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -52,8 +59,8 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
   reporter: process.env.CI
-    ? [["list"], ["junit", { outputFile: "test-results/e2e-junit.xml" }], ["html", { open: "never" }]]
-    : [["list"], ["html", { open: "never" }]],
+    ? [["list"], ["junit", { outputFile: `${OUT}/e2e-junit.xml` }], ["html", { open: "never", outputFolder: REPORT }]]
+    : [["list"], ["html", { open: "never", outputFolder: REPORT }]],
   use: {
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
@@ -75,6 +82,6 @@ export default defineConfig({
     // Das echte Handy per adb/CDP: `npm run test:phone` setzt ANCIENTVOID_E2E_CDP.
     // Ohne das hängt das Projekt nicht am Gate — sonst laufen dieselben Specs
     // lokal ohne Gerätefläche und scheitern an der Desktop-Breite.
-    ...(process.env.ANCIENTVOID_E2E_CDP ? [{ name: "phone", testMatch: PHONE_SPECS, retries: 0 }] : []),
+    ...(PHONE_RUN ? [{ name: "phone", testMatch: PHONE_SPECS, retries: 0 }] : []),
   ],
 });

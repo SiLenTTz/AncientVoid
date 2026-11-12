@@ -39,6 +39,8 @@ apps/pwa/dist/
 # Playwright E2E gate output
 playwright-report/
 test-results/
+playwright-report-phone/
+test-results-phone/
 
 # Node --report-on-fatalerror Dumps
 report.*.json

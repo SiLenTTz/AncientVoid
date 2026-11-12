@@ -1,7 +1,7 @@
 ---
 id: BUG-0120
 slug: parallele-playwright-laeufe-teilen-test-results
-status: open
+status: done
 severity: S3
 area: e2e
 instance: dev
@@ -65,8 +65,21 @@ Ein Test ist hier ein Ablauf: Handy-Lauf und Gate überlappend starten, beide m�
 `playwright.config.ts` (kein eigener `outputDir` je Lauf), `scripts/phone-e2e.mjs`. Vorschlag: der Handy-Lauf setzt
 `outputDir`/Reporter-Ordner auf `test-results-phone/`.
 
+## Fix
+
+`playwright.config.ts`: Ist `ANCIENTVOID_E2E_CDP` gesetzt (Handy-Lauf), schreibt Playwright nach `test-results-phone/` und `playwright-report-phone/` (beide git-ignored). Gate und CI bleiben bei `test-results/`/`playwright-report/`.
+
+Nachweis am echten Handy (OnePlus, 12.11.2026): `npm run test:phone -- session.spec.ts` starten, nach 25 s `npx playwright test e2e/specs/kleinkram.spec.ts --project=mobile` dazu.
+
+| | ENOENT im Handy-Lauf | paralleler Lauf |
+|---|---|---|
+| ohne Fix | 3 (`test-results/.playwright-artifacts-0/…`), danach Abbruchkaskade „context closed“ | 8/8 grün |
+| mit Fix | 0, Artefakte in `test-results-phone/` | 8/8 grün |
+
+Der Handy-Lauf selbst scheitert in beiden Fällen schon an `session.spec.ts:4` (weiße Seite, noch vor dem Start des zweiten Laufs) — das ist BUG-0121, nicht dieser Defekt.
+
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
 - [ ] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` oder offen lassen
+- [x] `bugfix`

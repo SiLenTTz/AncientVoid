@@ -13,6 +13,8 @@ export default tseslint.config(
       // Playwright E2E gate output (HTML report bundles, traces).
       "playwright-report/**",
       "test-results/**",
+      "playwright-report-phone/**",
+      "test-results-phone/**",
       // CI: PLAYWRIGHT_BROWSERS_PATH liegt im Projektordner ($CI_PROJECT_DIR/
       // .cache) — Browser-Binaries sind kein Quellcode (P28-Cache-Trennung).
       ".cache/**",
