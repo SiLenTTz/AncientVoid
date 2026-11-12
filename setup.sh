@@ -50,12 +50,14 @@ ask()  { # ask <Var> <Prompt> <Default> — Antwort in Var (Std: Default; kein T
 # ---------------------------------------------------------------- 0 · Prüfungen
 say "0/5 Voraussetzungen"
 fail_req() { echo "FEHLT: $*" >&2; echo "Beheben und erneut ausführen — der Wizard ist idempotent." >&2; exit 2; }
-command -v node >/dev/null || fail_req "Node.js (https://node.org, >= 22.5)"
+command -v node >/dev/null || fail_req "Node.js (https://nodejs.org) 22.18+, 24 oder 26+"
 NODE_VER="$(node --version 2>/dev/null || echo v0.0.0)"
 NODE_MAJ="${NODE_VER#v}"; NODE_MAJ="${NODE_MAJ%%.*}"
 NODE_MIN="${NODE_VER#v}"; NODE_MIN="${NODE_MIN#*.}"; NODE_MIN="${NODE_MIN%%.*}"
-if [ "$NODE_MAJ" -lt 22 ] || { [ "$NODE_MAJ" = 22 ] && [ "$NODE_MIN" -lt 5 ]; }; then
-  fail_req "Node >= 22.5 (gefunden: $NODE_VER) — node:sqlite/strip-types braucht es"
+# Geprüfte Matrix (BUG-0133, frischer Klon: npm ci, Wizard, hubctl, Hub, PWA-Build):
+# 22.18 ist die erste 22er, die .ts ohne Flag ausführt; 23/25 decken vitest/eslint nicht ab.
+if ! { { [ "$NODE_MAJ" = 22 ] && [ "$NODE_MIN" -ge 18 ]; } || [ "$NODE_MAJ" = 24 ] || [ "$NODE_MAJ" -ge 26 ]; }; then
+  fail_req "Node 22.18+, 24 oder 26+ (gefunden: $NODE_VER) — strip-types ohne Flag und die Toolchain brauchen es"
 fi
 command -v npm >/dev/null || fail_req "npm"
 command -v git >/dev/null || fail_req "git"

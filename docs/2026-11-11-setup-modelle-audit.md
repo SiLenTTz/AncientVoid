@@ -32,7 +32,7 @@ unten sichtbar.
 | Tokens trotz anderem dataDir in Default-DB | Reproduziert mit echtem hubctl/SQLite; Fix plus drei Regressionstests | [BUG-0130](../bugs/bug-0120-setup-token-falsches-datadir.md), P53, K7/PRD §8 |
 | Lokaler Beispieladapter verschweigt ungültige SSE-/Folgepromptfehler | AdapterContext-Probe bestätigt; größere Adapter-Abnahme offen | [BUG-0131](../bugs/bug-0121-openai-fehler-still-verworfen.md), P3/P35, K5/K9 |
 | Falscher bereits laufender Hub wird übernommen | Entscheidungszweig mit HTTP-Stand-in bestätigt, kein produktiver Zweithub gestartet | [BUG-0132](../bugs/bug-0122-setup-verwendet-fremden-hub.md), P53 |
-| Mindestversion 22.5 widerspricht Toolchain | Code-/Manifestbeleg; ältere Runtime nicht live getestet | [BUG-0133](../bugs/bug-0123-setup-node-mindestversion.md), P53 |
+| Mindestversion 22.5 widerspricht Toolchain | Code-/Manifestbeleg; ältere Runtime nicht live getestet | [BUG-0133](../bugs/bug-0133-setup-node-mindestversion.md), P53 |
 | OpenAI-Wizard baut JSON durch String-Interpolation | Quote im Modellnamen erzeugt SyntaxError/Exit 1 | [BUG-0134](../bugs/bug-0124-setup-openai-json-escaping.md), P53 |
 | Wiederholtes --voidwarden erzeugt weitere Tokens | Zweimal echter hubctl: je zwei agent-/display-Tokens | [BUG-0135](../bugs/bug-0125-setup-voidwarden-zweittokens.md), P53/VW P14 |
 | Onboarding behauptet Factory/Slash-Brücke seien nicht gebaut; manueller Token-Schritt fehlt | Gegen P26/BUG-0079/CLI abgeglichen; Anleitung korrigiert | docs/onboarding.md |

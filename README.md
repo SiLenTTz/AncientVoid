@@ -89,7 +89,7 @@ Skill `setup-wizard` (Exit-Code-Diagnose) bzw.
 **Manuell** (Agenten/CI, entspricht dem Wizard):
 
 ```bash
-node --version          # >= 22.5 (node:sqlite); entwickelt unter Node 26
+node --version          # 22.18+, 24 oder 26+; entwickelt unter Node 26
 npm install
 cp apps/hub/hub.config.example.json hub.config.json   # Adapter eintragen
 npm -w @ancientvoid/pwa run build

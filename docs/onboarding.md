@@ -21,7 +21,7 @@ Detail-Doks; sie dupliziert sie nicht.
 
 ## 1. Voraussetzungen
 
-- Node 26 (CI und Audit verwenden diese Version; die bisherige Mindestangabe 22.5 ist nicht belastbar, siehe [BUG-0133](../bugs/bug-0123-setup-node-mindestversion.md))
+- Node 22.18+, 24 oder 26+ (CI verwendet 26; Matrix geprüft in [BUG-0133](../bugs/bug-0133-setup-node-mindestversion.md))
 - npm, git, bash, curl; für den lokalen Daemon außerdem `setsid` (util-linux)
 - optional tmux (Worker-Runner, Fallback `process`)
 - Für Handy-Zugriff: Tailscale (Exposen **nur** via `tailscale serve`, nie Port öffnen)

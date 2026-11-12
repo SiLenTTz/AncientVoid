@@ -111,3 +111,29 @@ describe("setup: --voidwarden ist wiederholbar (BUG-0135)", () => {
     expect(second.stdout).not.toMatch(/shown once/);
   });
 });
+
+describe("setup: Node-Matrix ^22.18 || ^24 || >=26 (BUG-0133)", () => {
+  // Stand-in meldet nur die Version und reicht alles andere an das echte node weiter.
+  function withNode(version) {
+    const root = fixture();
+    writeFileSync(join(root, "bin/node"), `#!/bin/sh\n[ "$1" = "--version" ] && { echo ${version}; exit 0; }\nexec "${process.execPath}" "$@"\n`, { mode: 0o755 });
+    return spawnSync("bash", ["setup.sh", "--yes", "--adapter=dummy", "--device-label=setup-test", "--no-pwa", "--no-start"], {
+      cwd: root, env: { ...process.env, PATH: `${join(root, "bin")}:${process.env.PATH}` }, encoding: "utf8", timeout: 20_000,
+    });
+  }
+
+  it.each(["v22.17.1", "v23.11.0", "v25.2.0", "v20.19.0"])("%s wird mit Exit 2 abgelehnt", (version) => {
+    const result = withNode(version);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toMatch(/22\.18/);
+  });
+
+  it.each(["v22.18.0", "v24.0.0", "v26.7.0"])("%s wird akzeptiert", (version) => {
+    const result = withNode(version);
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it("package.json engines nennt dieselbe Matrix", () => {
+    expect(JSON.parse(readFileSync(join(repo, "package.json"), "utf8")).engines.node).toBe("^22.18.0 || ^24.0.0 || >=26.0.0");
+  });
+});
