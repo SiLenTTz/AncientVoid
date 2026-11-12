@@ -97,3 +97,17 @@ describe("setup: OpenAI-Eingaben werden sauber serialisiert und früh geprüft (
     expect(existsSync(join(root, "hub.config.json"))).toBe(false);
   });
 });
+
+describe("setup: --voidwarden ist wiederholbar (BUG-0135)", () => {
+  it("ein zweiter Lauf stellt keine weiteren VoidWarden-Tokens aus und sagt, wie man bewusst neu ausstellt", () => {
+    const root = fixture();
+    run(root, ["--voidwarden"]);
+    const second = spawnSync("bash", ["setup.sh", "--yes", "--adapter=dummy", "--device-label=setup-test", "--no-pwa", "--no-start", "--voidwarden"], {
+      cwd: root, env: { ...process.env, PATH: `${join(root, "bin")}:${process.env.PATH}` }, encoding: "utf8", timeout: 20_000,
+    });
+    expect(second.status, second.stderr).toBe(0);
+    expect(labels(join(root, "data/hub.db"))).toEqual(["agent:voidwarden", "display:web-1", "setup-test"]);
+    expect(second.stdout).toMatch(/token revoke agent:voidwarden/);
+    expect(second.stdout).not.toMatch(/shown once/);
+  });
+});

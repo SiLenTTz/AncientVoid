@@ -184,10 +184,23 @@ if [ "$VOIDWARDEN" = 1 ]; then
   say "4c/5 VoidWarden-Tokens (Kaskade — danach im VoidWarden-Repo ./setup.sh)"
   # hubctl präfixt die Labels selbst: agent:voidwarden (nur lesen) und
   # display:web-1 (lesen + write-Freigaben entscheiden, ADR-0001 Least Privilege).
-  node apps/hubctl/src/cli.ts token issue "voidwarden" --agent --db "$TOKEN_DB" || exit 4
-  node apps/hubctl/src/cli.ts token issue "web-1" --display --db "$TOKEN_DB" || exit 4
-  echo "  Beide Tokens (read-only bzw. Freigaben) einmalig sichtbar — für"
+  # Optionsfragen beantworten (ADR-0066) vergibt der Wizard bewusst nicht.
+  HAVE_TOKENS="$(node apps/hubctl/src/cli.ts token list --db "$TOKEN_DB" | awk -F'  created=' '{print $1}')" || exit 4
+  issue_once() { # issue_once <label> <hubctl-Argumente…> — nur, wenn das Label noch kein Token hat
+    local label="$1"; shift
+    if printf '%s\n' "$HAVE_TOKENS" | grep -qxF "$label"; then
+      echo "  $label hat bereits ein Token — kein zweites. Verloren? Bewusst neu ausstellen:"
+      printf '    npm run hubctl -- token revoke %s --db %q && npm run hubctl -- token issue %s --db %q\n' "$label" "$TOKEN_DB" "$*" "$TOKEN_DB"
+    else
+      node apps/hubctl/src/cli.ts token issue "$@" --db "$TOKEN_DB" || exit 4
+    fi
+  }
+  issue_once agent:voidwarden voidwarden --agent
+  issue_once display:web-1 web-1 --display
+  echo "  Neue Tokens (read-only bzw. Freigaben) sind einmalig sichtbar — für"
   echo "  VoidWardens voidwarden.config.json als Dateien ablegen (Modus 600)."
+  echo "  Optionsfragen am Display beantworten (ADR-0066) nur bewusst:"
+  echo "  token issue web-1 --display --answer-questions (nach revoke display:web-1)."
 fi
 
 # ------------------------------------------------------------------ 5 · starten
