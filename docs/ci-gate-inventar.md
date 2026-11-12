@@ -25,7 +25,7 @@ Lokales Gate ist `npm run gate` (package.json) plus PWA-Build und K8-Lasttest
 | `npm run check:adapter-matrix` | `verify` | Job-Log, Exit-Code |
 | `npm test` (vitest) | `verify` | `test-results/vitest-junit.xml` (Artefakt, 14 Tage) |
 | `npm -w @ancientvoid/pwa run build` | `verify` | Job-Log, Exit-Code |
-| `npm run loadtest` — K8: 20 Sessions × 30 ev/s × 10 s | `verify` | Job-Log (Events, Verluste, RSS) — volle Messlatte, nicht entschärft |
+| `npm run loadtest` — K8: 20 Sessions × 30 ev/s × 10 s | `k8` (eigener Job seit 2026-11-12; nur bei Code-Änderungen, main immer) | Job-Log (Events, Verluste, RSS) — volle Messlatte, nicht entschärft |
 | `npm run test:e2e` (Playwright Chromium) | `e2e` | `test-results/e2e-junit.xml`, `playwright-report/`, Skip-Bericht `ci-artifacts/e2e-report.md` (Artefakte, 14 Tage) |
 
 Regeln:
