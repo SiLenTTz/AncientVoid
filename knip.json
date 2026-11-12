@@ -1,0 +1,28 @@
+{
+  "$schema": "https://unpkg.com/knip@6.45.1/schema.json",
+  "rules": { "unlisted": "warn", "unresolved": "warn" },
+  "ignore": ["apps/pwa/public/**"],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/**/*.{mjs,ts,cjs,sh,mts,d.mts}",
+        "e2e/**/*.ts",
+        "playwright.config.ts",
+        "playwright.live.config.ts",
+        "vitest.config.ts",
+        "eslint.config.mjs",
+        ".dependency-cruiser.cjs",
+        "examples/**/*.{ts,mjs}"
+      ]
+    },
+    "apps/pwa": {
+      "ignoreDependencies": ["@fontsource/*"]
+    },
+    "apps/hub": {
+      "entry": ["test/fixtures/**"]
+    },
+    "apps/companion": {
+      "entry": ["test/fixtures/**"]
+    }
+  }
+}
