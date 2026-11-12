@@ -1,7 +1,7 @@
 ---
-id: BUG-0112
+id: BUG-0115
 slug: automation-neuanlage-aktiv
-status: in-progress
+status: done
 severity: S2
 area: core
 instance: dev
@@ -12,7 +12,7 @@ created: 2026-11-10
 reporter: "Codex"
 ---
 
-# BUG-0112 — Automation-Neuanlage übernimmt Aktivierung
+# BUG-0115 — Automation-Neuanlage übernimmt Aktivierung
 
 ## Gesehen
 
