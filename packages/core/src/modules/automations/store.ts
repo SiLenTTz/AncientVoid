@@ -39,6 +39,13 @@ interface Snapshot {
   claims: ClaimState[];
 }
 
+/**
+ * Abgeschlossene (settled/skipped) Claims, die je Automation im Zustand bleiben.
+ * Ältere fallen beim Snapshot heraus — sonst wächst jeder Tick mit der Laufzeit
+ * (K8). Offene Claims (claimed/dispatched/unknown) bleiben immer.
+ */
+export const CLAIM_HISTORY_KEEP = 200;
+
 /** Omit über eine Union muss verteilen, sonst kollabiert es auf die Gemeinsamkeiten. */
 type WithoutSeq<T> = T extends unknown ? Omit<T, "seq"> : never;
 
@@ -46,9 +53,11 @@ export class AutomationStore {
   private readonly root: string;
   private readonly definitions = new Map<string, AutomationDefinition>();
   private readonly claims = new Map<string, ClaimState>();
+  private readonly byAutomation = new Map<string, Map<string, ClaimState>>();
   private readonly cursors = new Map<string, string>();
   private readonly revisions = new Map<string, number>();
   private seq = 0;
+  private snapshotSeq = 0;
 
   constructor(root: string) {
     this.root = root;
@@ -68,8 +77,9 @@ export class AutomationStore {
     }
     for (const d of snapshot.definitions ?? []) { this.definitions.set(d.id, d); this.revisions.set(d.id, snapshot.appliedSeq); }
     for (const [key, value] of snapshot.cursors ?? []) this.cursors.set(key, value);
-    for (const c of snapshot.claims ?? []) this.claims.set(c.claimKey, c);
+    for (const c of snapshot.claims ?? []) this.index(c);
     this.seq = snapshot.appliedSeq;
+    this.snapshotSeq = snapshot.appliedSeq;
     const journalPath = resolve(this.root, "journal.jsonl");
     if (existsSync(journalPath)) {
       const contents = readFileSync(journalPath, "utf8");
@@ -110,7 +120,7 @@ export class AutomationStore {
     }
     if (event.type === "claim") {
       if (this.claims.has(event.claimKey)) return; // Dedupe: der erste Claim gewinnt (K7-Replay inklusive).
-      this.claims.set(event.claimKey, {
+      this.index({
         claimKey: event.claimKey,
         automationId: event.automationId,
         generation: event.generation,
@@ -132,6 +142,13 @@ export class AutomationStore {
     if (event.runId !== undefined) claim.runId = event.runId;
     if (event.sessionId !== undefined) claim.sessionId = event.sessionId;
     claim.at = event.at;
+  }
+
+  private index(claim: ClaimState): void {
+    this.claims.set(claim.claimKey, claim);
+    let own = this.byAutomation.get(claim.automationId);
+    if (!own) this.byAutomation.set(claim.automationId, own = new Map());
+    own.set(claim.claimKey, claim);
   }
 
   private append(event: WithoutSeq<JournalEvent>): void {
@@ -181,7 +198,7 @@ export class AutomationStore {
   }
 
   claimsFor(automationId: string): ClaimState[] {
-    return [...this.claims.values()].filter((c) => c.automationId === automationId);
+    return [...(this.byAutomation.get(automationId)?.values() ?? [])];
   }
 
   hasClaim(key: string): boolean {
@@ -190,7 +207,7 @@ export class AutomationStore {
 
   /** Offene (nicht abgerechnete) Claims einer Definition — Basis der Überlappungsprüfung. */
   inFlight(automationId: string): number {
-    return [...this.claims.values()].filter((c) => c.automationId === automationId && (c.state === "claimed" || c.state === "dispatched" || c.state === "unknown")).length;
+    return this.claimsFor(automationId).filter((c) => c.state === "claimed" || c.state === "dispatched" || c.state === "unknown").length;
   }
 
   revision(id: string): number { return this.revisions.get(id) ?? 0; }
@@ -203,12 +220,31 @@ export class AutomationStore {
     this.append({ type: "cursor", automationId: id, generation, throughUtc, at });
   }
 
+  /** Nur bei Änderung; danach trägt der Snapshot alles und das Journal beginnt leer (K7, K8). */
   saveSnapshot(): void {
+    if (this.seq === this.snapshotSeq) return;
+    this.pruneHistory();
     mkdirSync(this.root, { recursive: true, mode: 0o700 });
     const snapshot: Snapshot = { cursors: [...this.cursors], appliedSeq: this.seq, definitions: [...this.definitions.values()], claims: [...this.claims.values()] };
     const path = resolve(this.root, "snapshot.json");
     const tmp = `${path}.tmp`;
-    writeFileSync(tmp, JSON.stringify(snapshot, null, 2), { mode: 0o600, flush: true });
+    writeFileSync(tmp, JSON.stringify(snapshot), { mode: 0o600, flush: true });
     renameSync(tmp, path);
+    // Ein Absturz vor dem Kürzen ist harmlos: das Replay überspringt seq ≤ appliedSeq.
+    const journalPath = resolve(this.root, "journal.jsonl");
+    if (existsSync(journalPath)) truncateSync(journalPath, 0);
+    this.snapshotSeq = this.seq;
+  }
+
+  private pruneHistory(): void {
+    for (const own of this.byAutomation.values()) {
+      const done = [...own.values()].filter((c) => c.state === "settled" || c.state === "skipped");
+      if (done.length <= CLAIM_HISTORY_KEEP) continue;
+      done.sort((a, b) => a.at.localeCompare(b.at));
+      for (const c of done.slice(0, done.length - CLAIM_HISTORY_KEEP)) {
+        own.delete(c.claimKey);
+        this.claims.delete(c.claimKey);
+      }
+    }
   }
 }
