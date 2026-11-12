@@ -31,8 +31,9 @@
 | [`messlauf`](messlauf/SKILL.md) | Messlauf gegen K1–K10 fahren und ablegen | Benchmark, Durchsatz, Latenz, Messzahl zitieren | Ablage unter `docs/messlauf/` |
 | [`retro`](retro/SKILL.md) | Evidence-basierte Retro gegen Epic-AC | „Retro", Phasen-Abschluss | bewertet Vergangenheit; planen → `epic-creation` |
 | [`setup-wizard`](setup-wizard/SKILL.md) | Setup-Hilfe für `./setup.sh` (Provider zuerst, Exit-Code-Diagnose) | „Installation", „Setup", „läuft nicht", Provider anbinden | Wizard-Fehlersuche; Defekte → `bugfix` |
+| [`context-audit`](context-audit/SKILL.md) | Monatlicher semantischer Kontext-Audit (Veraltung/Widersprüche), nur Diff-Vorschläge | „Kontext-Audit", „docs aufräumen", „AGENTS.md prüfen" | Struktur-Gate bleibt `npm run check:context`; nie auto-mergen |
 
-Vorlage für neue Skills: [`skill-template.md`](skill-template.md). AncientVoid-Verträge,
+Vorlage für neue Skills: [`skill-template.md`](_shared/skill-template.md). AncientVoid-Verträge,
 die `ponytail-review` nicht wegoptimieren darf:
 [`_shared/ancientvoid-protected-invariants.md`](_shared/ancientvoid-protected-invariants.md).
 

@@ -10,7 +10,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..", "..", "..", "..", "..");
 
 describe("scanProjectSkills — real repo inventory (T1.5-10, AC-P1.5-10)", () => {
-  it("finds exactly this repo's real 13 skills and 3 agents, no exceptions included", async () => {
+  it("finds exactly this repo's real 14 skills and 3 agents, no exceptions included", async () => {
     const items = await scanProjectSkills(repoRoot);
     const skills = items.filter((i) => i.kind === "skill").map((i) => i.name).sort();
     const agents = items.filter((i) => i.kind === "agent").map((i) => i.name).sort();
@@ -21,6 +21,7 @@ describe("scanProjectSkills — real repo inventory (T1.5-10, AC-P1.5-10)", () =
         "bug-report",
         "bugfix",
         "concept-phase",
+        "context-audit",
         "epic-creation",
         "gates",
         "git-workflow",
