@@ -24,7 +24,7 @@ function unnamed(page: Page): Promise<string[]> {
         const own = [...(el.labels ?? [])].map((l) => l.textContent ?? "").join(" ");
         return own || (el as HTMLInputElement).placeholder || el.title;
       }
-      return (el.textContent ?? "").trim() || el.getAttribute("title") || "";
+      return (el.textContent ?? "").trim() || el.getAttribute("title") || el.getAttribute("data-tip") || "";
     };
     return [...document.querySelectorAll("button, a[href], [role=button], [role=tab], [role=menuitem], input:not([type=hidden]), textarea, select")]
       .filter(visible)

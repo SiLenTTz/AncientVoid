@@ -149,5 +149,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0136](bug-0136-vormerkung-streichen-kommt-zurueck.md) | Gestrichene vorgemerkte Nachricht ist nach dem Neuladen wieder da | done | S2 | pwa, server | — |
 | [BUG-0137](bug-0137-nyx-fab-laesst-sich-nicht-ziehen.md) | Der Voice-FAB lässt sich mit der Maus kaum verschieben | done | S3 | pwa | — |
 | [BUG-0138](bug-0138-nyx-fab-verdeckt-dock-tasten.md) | Voice-FAB liegt in der Standardposition auf den Dock-Tasten | done | S2 | pwa | — |
+| [BUG-0139](bug-0139-e2e-specs-lesen-title-statt-data-tip.md) | E2E-Specs lesen `title`, das der Tooltip-Layer in `data-tip` verschoben hat | done | S3 | e2e | — |
 
-Die nächste freie Nummer ist **0139**.
+Die nächste freie Nummer ist **0140**.

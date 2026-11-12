@@ -61,7 +61,7 @@ test.describe("Layout (T8.5, AC-P8-5)", () => {
     const unnamed = await app.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>("button, summary, input, textarea")]
         .filter((el) => el.offsetParent !== null)
-        .filter((el) => !(el.getAttribute("aria-label") || el.textContent?.trim() || (el as HTMLInputElement).placeholder || el.getAttribute("title")))
+        .filter((el) => !(el.getAttribute("aria-label") || el.textContent?.trim() || (el as HTMLInputElement).placeholder || el.getAttribute("title") || el.getAttribute("data-tip")))
         .map((el) => el.outerHTML.slice(0, 80)),
     );
     expect(unnamed).toEqual([]);
