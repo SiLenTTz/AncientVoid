@@ -772,6 +772,23 @@ export interface FileFeedbackItem {
   diagnostic?: { code: string | null; message: string; source: string };
 }
 
+/**
+ * K10: woher stammt eine Hub-Antwort? X-AncientVoid-Cached-At setzt der Service
+ * Worker, wenn er offline die zuletzt gespeicherte Projektion ausliefert. Eine
+ * erfolgreiche Antwort ohne den Marker ist live — auch dann, wenn vorher eine
+ * gecachte kam (Netz kann an sein, während der Hub down war; das „online”-Event
+ * des Browsers feuert in dem Fall nie, siehe BUG unten). Die UI zeigt/leert ihre
+ * „Daten vom …”-Meldung nach genau diesen Events.
+ */
+export function announceDataFreshness(res: Response): void {
+  const cachedAt = res.headers.get("X-AncientVoid-Cached-At");
+  if (cachedAt) {
+    document.dispatchEvent(new CustomEvent("ancientvoid:stale-data", { detail: cachedAt }));
+  } else if (res.ok) {
+    document.dispatchEvent(new CustomEvent("ancientvoid:fresh-data"));
+  }
+}
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -781,12 +798,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
-  const cachedAt = res.headers.get("X-AncientVoid-Cached-At");
-  if (cachedAt) {
-    document.dispatchEvent(
-      new CustomEvent("ancientvoid:stale-data", { detail: cachedAt }),
-    );
-  }
+  announceDataFreshness(res);
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string; detail?: string };
     throw Object.assign(new Error(body.error ?? body.detail ?? `${res.status} ${res.statusText}`), { status: res.status });
