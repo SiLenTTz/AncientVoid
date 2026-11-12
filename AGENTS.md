@@ -106,9 +106,13 @@ ist zulässig (Solo-Projekt) — was **nicht** zulässig ist: die MR selbst zu
 `--no-verify`-Äquivalent (der `commit-msg`-Hook prüft die Commit-Notation;
 der `pre-push`-Hook erzwingt Lint und Typecheck; Tests über die Kommandos oben bzw. das Gate).
 
-Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder
-`epics/` für Epics. ADRs nach `docs/adr/NNNN-*.md`. Kein `*-STATUS.md`/
-`*-SUMMARY.md` auf Top-Level.
+Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder `epics/`
+für Epics. Eingefrorene Analysen (Audits, Evaluierungen, Berichte) bekommen
+das Datum in den Namen (`JJJJ-MM-TT_*` bzw. `*JJJJ-MM-TT`) — sie sind
+referenzfrei zulässig und altern bewusst. ADRs nach `docs/adr/NNNN-*.md`.
+Kein `*-STATUS.md`/`*-SUMMARY.md` auf Top-Level. Über Zeilen-Budgets, Links,
+Referenzen, Script-Inventar und Frischhalte lebender Dokumente wacht
+`npm run check:context` (Regeln: [docs/check-context.md](docs/check-context.md)).
 
 ## Definition of Done (repo-weit, P0-Standard)
 

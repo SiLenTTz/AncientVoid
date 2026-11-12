@@ -58,6 +58,7 @@ verify:
     - npm run check:arch
     - npm run check:names
     - npm run check:adapter-matrix
+    - npm run check:context
     # AC-P1-6 (AI-P1-2): Secret-Scan als wiederholtes Gate — schützt auch
     # manuell hinzugefügte/editierte Fixtures, nicht nur den Capture-Zeitpunkt.
     - npm run check:secrets

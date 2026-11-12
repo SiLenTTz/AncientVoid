@@ -37,13 +37,15 @@
     "check:arch": "depcruise apps packages --config .dependency-cruiser.cjs",
     "prepare": "node scripts/setup-git.mjs",
     "hubctl": "node apps/hubctl/src/cli.ts",
-    "gate": "npm run check:workspace-links && npm run typecheck && npm run lint && npm run check:commits && npm run check:arch && npm run check:names && npm run check:adapter-matrix && npm test && npm run test:e2e",
+    "gate": "npm run check:workspace-links && npm run typecheck && npm run lint && npm run check:commits && npm run check:arch && npm run check:names && npm run check:adapter-matrix && npm run check:context && npm test && npm run test:e2e",
     "test:live": "scripts/test-live.sh",
     "test:phone": "node scripts/phone-e2e.mjs",
     "check:workspace-links": "node scripts/check-workspace-links.mjs",
     "epics:status": "node scripts/epic-status.mjs",
     "pretest:e2e": "npm run check:workspace-links",
-    "check:names": "node scripts/check-names.mjs"
+    "check:names": "node scripts/check-names.mjs",
+    "check:context": "node scripts/check-context.mjs",
+    "check:knip": "knip"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -54,6 +56,7 @@
     "dependency-cruiser": "^18.4.0",
     "eslint": "^10.12.0",
     "eslint-plugin-n": "^18.4.1",
+    "knip": "^6.45.1",
     "playwright": "^1.64.0",
     "typescript": "6.0",
     "typescript-eslint": "^8.71.1",

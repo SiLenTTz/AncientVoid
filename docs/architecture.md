@@ -1,9 +1,11 @@
-# Architektur (P0–P4)
+# Architektur
 
-Basis: PRD §4 und `epics/EPIC-P0-hub-kern.md` bis `EPIC-P4-…`. Diese Doku
-beschreibt den umgesetzten Stand; Abweichungen = ADR-Pflicht. Ursprünglich
-nur P0 — die Abschnitte „P1–P4-Erweiterungen" unten fassen zusammen, was
-seitdem real dazugekommen ist, ohne den P0-Grundriss oben neu zu schreiben.
+Stand: 2026-11-12. Basis: PRD §4 und `epics/EPIC-P0-hub-kern.md` ff.; Epics
+bis P56 sind eingearbeitet, soweit sie Struktur verändern — fachliche
+Details und Verlauf leben in `epics/` (Index: `epics/README.md`). Diese
+Doku beschreibt den umgesetzten Stand; Abweichungen = ADR-Pflicht. Der
+P0-Grundriss gilt weiterhin, die Abschnitte „Erweiterungen“ fassen zusammen,
+was seitdem dazugekommen ist, ohne den Grundriss neu zu schreiben.
 
 ## Topologie
 
@@ -25,18 +27,29 @@ als einzige Schnittstelle; `npm run check:arch` (im Gate) prüft die Grenzen.
 
 ```
 apps/                            lauffähige Programme
-  hub/src/        (@ancientvoid/hub)    app.ts, routes.ts, route-context.ts,
-                                 modules/<modul>/<modul>.routes.ts + Dienste, platform/
-  pwa/src/        (@ancientvoid/pwa)    app/ (Rahmen, Styles), features/<feature>/, shared/
-  hubctl/  gateway-mcp/
+  hub/            (@ancientvoid/hub)        app.ts, routes.ts, modules/<modul>/<modul>.routes.ts + Dienste, platform/
+  pwa/            (@ancientvoid/pwa)        app/ (Rahmen, Styles), features/<feature>/, shared/
+  hubctl/         (@ancientvoid/hubctl)     CLI (auch `npm run hubctl`)
+  gateway-mcp/    (@ancientvoid/gateway-mcp) MCP-Sidecar, nie vom Hub gestartet
+  companion/      (@ancientvoid/companion)  Desktop-Companion (P11, ADR-0031): Diktat ins fokussierte Fenster
 packages/                        Bibliotheken
   contracts/src/<modul>/         Verträge
-  core/src/modules/<modul>/      sessions, approvals, harness, workspace, discovery,
-                                 skills, notifications, identity, fleet, reporting,
-                                 observability
+  core/src/modules/<modul>/      approvals, attachments, automations, browser, code,
+                                 commands, connections, custom-models, desktop,
+                                 devices, diagnostics, discovery, fleet, forge,
+                                 gatekeeper, git-graph, graph, handover, harness,
+                                 identity, loops, media, notifications,
+                                 observability, orchestration, push, reporting,
+                                 reviews, runs, sessions, skills, vault, workspace
   core/src/platform/             db, eventstore, config, logger, metrics
   workers/                       WorkerRunner (tmux, process)
-  adapters/<name>/               claude, codex, opencode, copilot, aider, dummy, …, testkit
+  adapters/<name>/               acp, aider, claude, claude-clip, codex, copilot,
+                                 cursor, cursor-clip, dummy, hermes, jsonrpc,
+                                 opencode, pi, testkit
+  loops/<name>/                  austauschbare Loop-Connectoren (P19, ADR-0038):
+                                 aspark-factory, securesight-factory
+  models/                        Modell-Metadaten (Context-Fenster je Model-Id,
+                                 ADR-0032)
 ```
 
 Neuer Code: erst das Modul bestimmen, dann dort ablegen. Innerhalb eines
@@ -52,7 +65,9 @@ Host-Schnittstelle).
        ↑              ↑
        ├── @ancientvoid/workers (WorkerRunner-Implementierungen)
        ├── @ancientvoid/adapter-* (packages/adapters/<name>)
-       └── @ancientvoid/adapter-testkit (Contract-Suite für Fremd-Adapter)
+       ├── @ancientvoid/adapter-testkit (Contract-Suite für Fremd-Adapter)
+       ├── @ancientvoid/loop-* (packages/loops/<name>, via Loop-Contract)
+       └── @ancientvoid/models (Modell-Metadaten)
 ```
 
 Regeln:
@@ -102,7 +117,9 @@ Regeln:
 ### Hub (`@ancientvoid/hub`, `apps/hub`)
 
 - Fastify, REST (`/api/health`, `/api/adapters`, `/api/sessions*`,
-  `/api/tokens*`) + WS `/api/events/:id/tail`.
+  `/api/tokens*` — die vollständige, gewachsene Routenliste lebt in
+  `apps/hub/src/modules/` als SSOT, hier nur der P0-Kern) + WS
+  `/api/events/:id/tail`.
 - **T1.5-3/ADR-0004:** `GET /api/adapters/:id/usage` — Account-Level-
   Kontingent-Schnappschuss (ein Wert pro Adapter, nicht pro Session), aus
   `SessionManager.usageByAdapter` (In-Memory, nicht K7-persistiert, nicht
@@ -146,7 +163,17 @@ Regeln:
   wird genau einmal bei `token issue` gezeigt.
 - `config` (key, value) · `_migrations` (Runner: `BEGIN/COMMIT` pro Migration).
 
-## P1–P4-Erweiterungen (Zusammenfassung, Details in den jeweiligen Epics/ADRs)
+## Erweiterungen (Zusammenfassung, Details in den jeweiligen Epics/ADRs)
+
+Seit P5 ist die Fläche stark gewachsen; die Epics sind der fachliche
+Fahrplan (Index: `epics/README.md`, Stand je Datei: `npm run
+epics:status`). Struktur-relevant seitdem: Fleet/Multi-Host (P6,
+Verbindungen + Invite-Pairing), Discovery & Session-Übernahme (P5/P22/P24:
+hubctl-Sessions fremder Harnesses erkennen und adoptieren), Loops (P19,
+ADR-0038: `packages/loops/*` als Connectoren hinter dem Adapter-Contract),
+Automations-Host (P41), Vault/Notizen (P49), Git-Graph (P48),
+Forge-Integration GitLab (P37), Browser-Testarbeitsplatz (P39,
+ADR-0059) und Desktop-Flächen (P18/P34, Companion P11/ADR-0031).
 
 ### Adapter-Flotte (P1/P3)
 

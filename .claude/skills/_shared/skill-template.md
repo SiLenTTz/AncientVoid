@@ -52,4 +52,4 @@ Nur Advisory-Skills. Verweis, keine Duplikation:
 ## Verweise
 
 - [`AGENTS.md`](../../../AGENTS.md)
-- [Skill-Index](README.md)
+- [Skill-Index](../README.md)

@@ -5,7 +5,7 @@ description: Hilft Nutzern und Agenten beim One-Command-Setup (./setup.sh bzw. n
 
 # Skill: setup-wizard
 
-Querschnitts-Regeln: [`AGENTS.md`](../../AGENTS.md) · Wizard:
+Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md) · Wizard:
 [`setup.sh`](../../../setup.sh) (Repo-Wurzel) · Epic:
 [`epics/EPIC-P53-projektdoku-setup-wizard.md`](../../../epics/EPIC-P53-projektdoku-setup-wizard.md)
 · manuelle Route: [`docs/onboarding.md`](../../../docs/onboarding.md)
