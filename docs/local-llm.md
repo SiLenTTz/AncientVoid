@@ -1,5 +1,7 @@
 # Lokales Modell (T7.5)
 
+**Art:** how-to
+
 Ein lokales Coding-Modell, das echte Harnesses (opencode, dsh) mit Tools
 bedienen — ohne Cloud, ohne Kosten pro Token. Entscheidung 2026-09-23:
 **llama.cpp** (nicht Ollama, nicht vLLM): auf evox2 (AMD Strix Halo, RDNA

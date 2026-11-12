@@ -1,5 +1,7 @@
 # aSPARK-Factory über MQTT anbinden — Anleitung für den Hub-Nutzer
 
+**Art:** how-to
+
 Ergänzt EPIC-P19 T19.4 / [ADR-0038](adr/0038-loop-dark-factory.md): Der
 Hub verbindet sich als Leitstand-Client mit **einer Linie** der
 aSPARK-Factory (MQTT, AsyncAPI 0.9.0). Die Linie läuft ohne den Hub weiter;

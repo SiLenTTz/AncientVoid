@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { checkBudgets, checkLinks, checkReferences, checkDrift, runAll, walk } from "./check-context.mjs";
+import { checkBudgets, checkLinks, checkReferences, checkDocKind, checkDrift, runAll, walk } from "./check-context.mjs";
 
 // Kontext-Hygiene-Gate: Jede Regel findet ihr gepflanztes Fixture (verschwindet
 // eine Regel, schlägt ihr positiver Fall), bekannte zulässige Fälle (datierte
@@ -69,6 +69,30 @@ describe("check-context — Referenzen", () => {
     await w("scripts/laeuft.mjs", "export const z = 1;\n"); // in README referenziert
     const findings = checkReferences(dir, walk(dir, ".", [])).filter((f) => f.rule === "script-ref");
     expect(findings.map((f) => f.file)).toEqual(["scripts/waise.mjs"]);
+  });
+});
+
+describe("check-context — Doku-Arten (Diátaxis)", () => {
+  it("fehlende, doppelte, unbekannte Art und fehlender Index-Eintrag schlagen an; Snapshots/ADR befreit", async () => {
+    await w("docs/uebersicht.md", "# Übersicht\n\n**Art:** referenz\n\ngut.md ohne.md doppelt.md falsch.md\n");
+    await w("docs/gut.md", "# a\n\n**Art:** how-to\n");
+    await w("docs/ohne.md", "# b\n");
+    await w("docs/doppelt.md", "# c\n**Art:** how-to\n**Art:** referenz\n");
+    await w("docs/falsch.md", "# d\n**Art:** blog\n");
+    await w("docs/nicht-gelistet.md", "# e\n**Art:** erklaerung\n");
+    await w("docs/2026-11-13_snapshot.md", "# f\n");
+    await w("docs/adr/0001-x.md", "# g\n");
+    const findings = checkDocKind(dir, walk(dir, ".", []));
+    expect(findings.map((f) => `${f.rule} ${f.file}`)).toEqual([
+      "doc-kind docs/doppelt.md",
+      "doc-kind docs/falsch.md",
+      "doc-index docs/nicht-gelistet.md",
+      "doc-kind docs/ohne.md",
+    ]);
+  });
+  it("ohne Übersichtsseite schlägt doc-index an", async () => {
+    await w("docs/gut.md", "# a\n\n**Art:** how-to\n");
+    expect(checkDocKind(dir, walk(dir, ".", [])).map((f) => f.rule)).toEqual(["doc-index"]);
   });
 });
 

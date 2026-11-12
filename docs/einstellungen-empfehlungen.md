@@ -1,5 +1,7 @@
 # Einstellungen: was es gibt, was sinnvoll wäre
 
+**Art:** erklaerung
+
 **Stand:** 2026-10-27 · gehört zu [EPIC-P20](../epics/EPIC-P20-oberflaeche-feinschliff.md) T20.4.
 Das hier ist eine **Empfehlungsliste**. Umgesetzt ist nur, was in der Spalte „Stand“ steht.
 

@@ -1,5 +1,7 @@
 # Konfiguration
 
+**Art:** referenz
+
 Der Hub liest `ANCIENTVOID_CONFIG` (Pfad) oder standardmäßig `./hub.config.json`.
 Vorlage: `apps/hub/hub.config.example.json`. Die eigene Config ist
 git-ignored — keine Secrets committen.

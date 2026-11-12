@@ -1,5 +1,7 @@
 # Forge-Runbook: GitLab im Session-Kontext
 
+**Art:** how-to
+
 Stand: 09.11.2026 · Epic: [EPIC-P37](../epics/EPIC-P37-gitlab-review-ci.md) ·
 ADR: [ADR-0056](adr/0056-forge-modul-gitlab-im-session-kontext.md)
 

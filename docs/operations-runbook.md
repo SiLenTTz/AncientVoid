@@ -1,5 +1,7 @@
 # Installation, Update und Rückkehr
 
+**Art:** how-to
+
 Dieses Runbook beschreibt den unterstützten Linux-Pfad für einen neuen Hub
 und dessen Aktualisierung. Unterstützt ist Node.js 22.18+, 24 oder 26+ (23 und 25 nicht);
 geprüft mit frischem Klon, siehe BUG-0133. Jeder echte Provider braucht zusätzlich

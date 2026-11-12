@@ -1,5 +1,7 @@
 # Onboarding — frischer Klon bis laufender Hub
 
+**Art:** how-to
+
 Zielgruppe: **Menschen und Agenten**, die das Repo neu klonen und ohne
 Anpassungen am Code zum Laufen bringen wollen — inklusive Anbindung eigener
 Provider, Harnesses, Loops und Factories. Diese Seite ist die Route durch die

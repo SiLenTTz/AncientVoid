@@ -1,5 +1,7 @@
 # Unterbrochene Sessions (P27 / ADR-0044)
 
+**Art:** erklaerung
+
 Ein verlorener Agent-Prozess ist kein erfolgreich beendeter Zug. Die Übersicht
 ordnet `interrupted` unter „Braucht dich“ ein. Im Chat zeigt das Banner Grund,
 Zeitpunkt und den letzten Zug. Der Bericht nennt den Abbruch; Laufmesswerte und

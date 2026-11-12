@@ -1,5 +1,7 @@
 # Zoom-robuste Flächen
 
+**Art:** erklaerung
+
 Regel (Nutzer, 10.11.2026): **html/body und jedes eigene Fenster scrollen nie** —
 nur Listen, Chatverlauf und Einzelkomponenten (Schubladen, Panels, Modals,
 Composer) scrollen intern, und jede fensterfüllende Fläche füllt das Fenster

@@ -1,5 +1,7 @@
 # Funktionsinventar der PWA
 
+**Art:** referenz
+
 **Stand:** 2026-11-11 (EPIC-P43 T43.0) · **Zweck:** Leitplanke E10 — beim Umbau der Oberfläche
 geht keine Funktion verloren. · **Gate:** [`e2e/specs/funktionsinventar.spec.ts`](../e2e/specs/funktionsinventar.spec.ts)
 
