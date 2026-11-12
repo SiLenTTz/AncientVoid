@@ -18,31 +18,41 @@ export function fabBreakpoint(width = typeof window !== "undefined" ? window.inn
   return "phone";
 }
 
-/** Default: Handy/Tablet rechts unten über dem Dock; PC mittig im Viewport. */
-export function defaultFabPos(bp: FabBreakpoint, vw: number, vh: number): FabPos {
+/**
+ * Default: Handy/Tablet rechts, über der Oberkante des Docks; PC mittig im Viewport.
+ * `dockTop` ist die gemessene Oberkante — der Dock wächst mit Steuerzeilen, eine feste
+ * Schätzung legte den FAB über dessen Tasten (BUG-0138).
+ */
+export function defaultFabPos(bp: FabBreakpoint, vw: number, vh: number, dockTop?: number): FabPos {
   const size = FAB_SIZE;
   if (bp === "pc") {
     return { x: Math.round((vw - size) / 2), y: Math.round((vh - size) / 2) };
   }
-  // Dock ~78px + Safe-Area; FAB sitzt darüber, rechts.
-  const dock = 88;
+  const floor = dockTop !== undefined && dockTop > 0 && dockTop < vh ? dockTop : vh - 88;
   return {
     x: Math.max(8, vw - size - 16),
-    y: Math.max(8, vh - size - dock - 12),
+    y: Math.max(8, Math.round(floor - size - 12)),
   };
 }
 
-export function loadFabPos(bp: FabBreakpoint, vw: number, vh: number): FabPos {
+function storedFabPos(bp: FabBreakpoint): FabPos | null {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Partial<Record<FabBreakpoint, FabPos>>;
-    const stored = raw[bp];
-    if (stored && Number.isFinite(stored.x) && Number.isFinite(stored.y)) {
-      return clampFabPos(stored, vw, vh);
-    }
+    const stored = (JSON.parse(localStorage.getItem(KEY) ?? "{}") as Partial<Record<FabBreakpoint, FabPos>>)[bp];
+    if (stored && Number.isFinite(stored.x) && Number.isFinite(stored.y)) return stored;
   } catch {
     // ignore
   }
-  return defaultFabPos(bp, vw, vh);
+  return null;
+}
+
+/** Hat der Nutzer den FAB auf diesem Breakpoint selbst platziert? Dann bleibt er, wo er ist. */
+export function hasStoredFabPos(bp: FabBreakpoint): boolean {
+  return storedFabPos(bp) !== null;
+}
+
+export function loadFabPos(bp: FabBreakpoint, vw: number, vh: number, dockTop?: number): FabPos {
+  const stored = storedFabPos(bp);
+  return stored ? clampFabPos(stored, vw, vh) : defaultFabPos(bp, vw, vh, dockTop);
 }
 
 export function saveFabPos(bp: FabBreakpoint, pos: FabPos): void {

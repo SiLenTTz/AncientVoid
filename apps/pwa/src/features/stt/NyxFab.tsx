@@ -23,14 +23,42 @@ export function NyxFab() {
   useEffect(() => installFocusTracker(), []);
 
   useEffect(() => {
-    const onResize = () => {
+    // Ohne eigene Platzierung folgt der FAB der Dock-Oberkante (BUG-0138): beim Laden, Seitenwechsel,
+    // Fenstergröße und wenn der Dock selbst wächst (Steuerzeilen kommen/gehen).
+    let observed: Element | null = null;
+    const place = () => {
       if (drag.current) return; // Handy: Adressleiste/Tastatur feuern resize mitten im Ziehen
       const next = fabBreakpoint();
+      const dock = document.querySelector(".dock-stack");
+      if (dock !== observed) {
+        if (observed) dockObserver.unobserve(observed);
+        if (dock) dockObserver.observe(dock);
+        observed = dock;
+      }
+      const rect = dock?.getBoundingClientRect();
+      // Nur ein Dock, der unten über die Breite liegt — die senkrechte Icon-Leiste am Desktop zählt nicht.
+      const bottomDock = rect && rect.width >= window.innerWidth / 2 && rect.bottom >= window.innerHeight - 4;
+      const target = loadFabPos(next, window.innerWidth, window.innerHeight, bottomDock ? rect.top : undefined);
       setBp(next);
-      setPos(loadFabPos(next, window.innerWidth, window.innerHeight));
+      setPos((prev) => (prev.x === target.x && prev.y === target.y ? prev : target));
     };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const dockObserver = new ResizeObserver(place);
+    let settle: number[] = [];
+    const placeSoon = () => {
+      place();
+      settle.forEach(clearTimeout);
+      // Die Seite rendert ihren Dock erst nach Hash-Wechsel bzw. geladenen Daten.
+      settle = [300, 1000, 2500].map((ms) => window.setTimeout(place, ms));
+    };
+    placeSoon();
+    window.addEventListener("resize", place);
+    window.addEventListener("hashchange", placeSoon);
+    return () => {
+      settle.forEach(clearTimeout);
+      dockObserver.disconnect();
+      window.removeEventListener("resize", place);
+      window.removeEventListener("hashchange", placeSoon);
+    };
   }, []);
 
   const onPointerDown = (e: PointerEvent) => {

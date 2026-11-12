@@ -64,6 +64,19 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     expect(Math.abs((again?.y ?? 0) - (after?.y ?? 0))).toBeLessThan(8);
   });
 
+  test("BUG-0138: in der Standardposition liegt der FAB über dem Dock, nie auf dessen Tasten", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 390, height: 800 });
+    const id = await hub.createSession({ adapter: "claude", prompt: "LANGSAM erste Frage" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.getByRole("button", { name: "Pause" })).toBeVisible();
+    await expect
+      .poll(async () => {
+        const [fab, dock] = await Promise.all([app.locator('[data-testid="nyx-fab"]').boundingBox(), app.locator(".dock-stack").boundingBox()]);
+        return fab!.y + fab!.height <= dock!.y;
+      })
+      .toBe(true);
+  });
+
   test("lässt sich mit echter Maus ziehen (kein nativer Bild-Drag) und ist ≥ 64 px groß", async ({ app, hub }) => {
     await app.setViewportSize({ width: 1400, height: 900 });
     const id = await hub.createSession({ adapter: "dummy" });
