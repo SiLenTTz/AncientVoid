@@ -1181,7 +1181,7 @@ function createHubApi(P: (path: string) => string) {
   },
   resumeSession: (id: string) =>
     api<{ ok: boolean; detail?: string }>(P(`/api/sessions/${id}/resume`), { method: "POST", body: "{}" }),
-  /** BUG-0123 (ADR-0070): tote Native-Bindung droppen, Kontext aus dem Verlauf neu aufbauen. */
+  /** BUG-0126 (ADR-0070): tote Native-Bindung droppen, Kontext aus dem Verlauf neu aufbauen. */
   repairSession: (id: string) =>
     api<{ ok: boolean; detail?: string }>(P(`/api/sessions/${id}/repair`), { method: "POST", body: "{}" }),
   /** EPIC-P29 T29.6: Workspace-Status (K7-Projektion), Logs, menschlicher Retry, Preview-Ticket. */

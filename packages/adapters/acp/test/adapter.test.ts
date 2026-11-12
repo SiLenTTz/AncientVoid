@@ -444,7 +444,7 @@ describe("acp adapter (T7.2)", () => {
     await adapter.stop(handle, ctx);
   });
 
-  it("BUG-0123: a native id the agent no longer knows degrades to a fresh context instead of bricking the session", async () => {
+  it("BUG-0126: a native id the agent no longer knows degrades to a fresh context instead of bricking the session", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });
     const adapter = createAdapter({ command: [agent], label: "fake" });
@@ -465,7 +465,7 @@ describe("acp adapter (T7.2)", () => {
     await adapter.stop(handle, ctx);
   });
 
-  it("BUG-0123: waking a dormant session whose native id is gone also degrades — first prompt answers", async () => {
+  it("BUG-0126: waking a dormant session whose native id is gone also degrades — first prompt answers", async () => {
     const runner = new ProcessRunner();
     const ctx = makeRecordingContext({
       workdir: process.cwd(),

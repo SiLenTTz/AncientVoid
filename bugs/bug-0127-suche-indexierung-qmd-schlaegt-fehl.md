@@ -1,5 +1,5 @@
 ---
-id: BUG-0124
+id: BUG-0127
 slug: suche-indexierung-qmd-schlaegt-fehl
 status: open
 severity: S2
@@ -9,10 +9,10 @@ commit: "e5b6b90"
 forge: ""
 epic: ""
 created: 2026-11-12
-reporter: "Session c0e0ab44 (BUG-0123-Gate-Lauf)"
+reporter: "Session c0e0ab44 (BUG-0126-Gate-Lauf)"
 ---
 
-# BUG-0124 — Such-Indexierung schlägt fehl: qmd-Abfrage endet 500 statt 200
+# BUG-0127 — Such-Indexierung schlägt fehl: qmd-Abfrage endet 500 statt 200
 
 ## Gesehen
 
@@ -68,7 +68,7 @@ Error: Command failed: qmd query lex: pineapple cipher deploy guide
 ## Eingrenzung
 
 `qmd`-Aufruf in der Such-Pipeline schlägt fehl (Rückgabe/Lexikon?); offen.
-Nicht Teil von BUG-0123 — dort ohne eigenen Diff ebenso rot (Basisvergleich
+Nicht Teil von BUG-0126 — dort ohne eigenen Diff ebenso rot (Basisvergleich
 per `git stash` belegt).
 
 ## Handoff

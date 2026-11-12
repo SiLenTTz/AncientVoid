@@ -165,7 +165,7 @@ export function skillNameFromEvents(events: readonly NormalizedEvent[]): string 
 export function nativeIdFromEvents(events: readonly NormalizedEvent[]): string | undefined {
   let found: string | undefined;
   for (const event of events) {
-    // BUG-0123: a repair dropped the binding — everything before it (the
+    // BUG-0126: a repair dropped the binding — everything before it (the
     // stale announce) stays dead; only a later announce binds again.
     if ((event.payload as { kind?: unknown }).kind === "session.native_binding_dropped") found = undefined;
     const native = (event.payload as { nativeSessionId?: unknown }).nativeSessionId;

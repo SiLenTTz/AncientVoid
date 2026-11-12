@@ -338,7 +338,7 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     return ack.ok ? ack : reply.code(422).send(ack);
   });
 
-  /** BUG-0123 (ADR-0070): repair a session whose native binding went stale —
+  /** BUG-0126 (ADR-0070): repair a session whose native binding went stale —
    * drop the binding, rebuild the agent context from the hub tail. */
   app.post("/api/sessions/:id/repair", async (req, reply) => {
     const { id } = req.params as { id: string };

@@ -1,7 +1,7 @@
 import type { NormalizedEvent } from "../../shared/ws.ts";
 
 /** Provider failures a person can sidestep by moving the work elsewhere (not a plain "server hiccup").
- * BUG-0123: "session" — the agent lost the provider session; repair in place or hand over. */
+ * BUG-0126: "session" — the agent lost the provider session; repair in place or hand over. */
 export const HANDOVER_CATEGORIES = new Set(["auth", "rate_limit", "quota", "network", "server", "session"]);
 
 export interface ProviderFailure {
@@ -11,7 +11,7 @@ export interface ProviderFailure {
 }
 
 /** The failure of the CURRENT turn: a provider.error after the last prompt, and no answer after it.
- * BUG-0123: the lost native session belongs here too — a session.start_failed
+ * BUG-0126: the lost native session belongs here too — a session.start_failed
  * “Resource not found: not found: <id>” (pre-fix tails) or the adapter's
  * acp.context_lost. The bar offers repair (same session) and handover. */
 export function currentProviderFailure(events: readonly NormalizedEvent[]): ProviderFailure | null {

@@ -402,7 +402,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
    * has it. Returns "unsupported" when the agent cannot load at all.
    * BUG-0039: `emit` flips it for adoptions — an observed session's
    * history exists only in this replay, so it must reach the stream.
-   * BUG-0123: "lost" — the agent no longer knows THIS id (maki live
+   * BUG-0126: "lost" — the agent no longer knows THIS id (maki live
    * 2026-11-11: „Resource not found: not found: <id>"); the event says so,
    * the caller continues with a fresh context instead of bricking. */
   async function resumeNative(state: AgentSession, ctx: AdapterContext, native: string, canLoad: boolean, emit = false, model?: string): Promise<"loaded" | "unsupported" | "lost"> {
@@ -618,7 +618,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         state.acpSessionId = entry.native;
         announce(ctx, entry.native);
       } else if (outcome !== "loaded") {
-        // BUG-0123: "lost" said its own, precise event above — a fresh
+        // BUG-0126: "lost" said its own, precise event above — a fresh
         // native session follows; the next prompt is not bricked.
         if (outcome === "unsupported") {
           ctx.emit({ type: "system", summary: `${label}: Agent kann Sessions nicht laden — neuer Kontext`, payload: { kind: "acp.context_lost" } });
@@ -714,7 +714,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         if (outcome === "loaded") {
           // loaded — the prompt (if any) continues the old conversation
         } else {
-          // BUG-0123: "lost" (the agent no longer knows the id) said its
+          // BUG-0126: "lost" (the agent no longer knows the id) said its
           // own event inside resumeNative; only "unsupported" needs the
           // generic note. Either way a fresh session carries the prompt.
           if (outcome === "unsupported" && typeof resume === "string" && resume) {
