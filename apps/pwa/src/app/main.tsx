@@ -206,11 +206,18 @@ function Main() {
       const at = new Date(String((e as CustomEvent<string>).detail ?? ""));
       setStaleAt(Number.isNaN(at.getTime()) ? new Date() : at);
     };
+    // BUG: die Meldung verschwand nur beim „online”-Event des Browsers. Netz an,
+    // Hub aber unreachable (unterwegs/Tailnet zu) → Cache-Badge erscheint; kam der
+    // Hub zurück, flossen frische Daten, die Meldung blieb trotzdem stehen. Eine
+    // erfolgreiche Antwort ohne Cache-Marker (api.ts) löscht sie jetzt ebenfalls.
+    const onFresh = () => setStaleAt(null);
     const onOnline = () => setStaleAt(null);
     window.addEventListener("online", onOnline);
     document.addEventListener("ancientvoid:stale-data", onStale);
+    document.addEventListener("ancientvoid:fresh-data", onFresh);
     return () => {
       document.removeEventListener("ancientvoid:stale-data", onStale);
+      document.removeEventListener("ancientvoid:fresh-data", onFresh);
       window.removeEventListener("online", onOnline);
     };
   }, []);
@@ -320,7 +327,10 @@ function Main() {
       {wide && listCollapsed && <NotificationCenter corner />}
       {staleAt && (
         <div class="topbar">
-          <span class="badge-stale">Daten vom {staleAt.toLocaleString("de-DE")} (offline)</span>
+          {/* K10: tippen lädt neu — der Service Worker holt dann wieder Netz-zuerst. */}
+          <button type="button" class="badge-stale badge-refresh" onClick={() => location.reload()}>
+            Daten vom {staleAt.toLocaleString("de-DE")} (offline) — tippen für Neu laden
+          </button>
         </div>
       )}
       <CommandBar />
