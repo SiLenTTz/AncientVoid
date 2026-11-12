@@ -210,3 +210,16 @@ createServer((_req, res) => { res.writeHead(200, { "content-type": "application/
     expect(existsSync(join(mine, "data/.setup-first-token"))).toBe(false);
   });
 });
+
+describe("setup: Abschlussblock nennt den Handy-Weg (ADR-0073, P57 T57.8)", () => {
+  it("nennt Tailnet-Skript samt Port und Token-Eingabe, nie ein Token in einer URL", () => {
+    const root = fixture();
+    const result = spawnSync("bash", ["setup.sh", "--yes", "--adapter=dummy", "--device-label=setup-test", "--no-pwa", "--no-start"], {
+      cwd: root, env: { ...process.env, PATH: `${join(root, "bin")}:${process.env.PATH}` }, encoding: "utf8", timeout: 20_000,
+    });
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toMatch(/setup-tailscale-serve\.sh 7373 druckt die https-URL/);
+    expect(result.stdout).toMatch(/Device-Token eingeben/);
+    expect(result.stdout).not.toMatch(/https?:\/\/\S*[?&#]token=/i);
+  });
+});

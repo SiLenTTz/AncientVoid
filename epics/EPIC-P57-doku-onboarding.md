@@ -174,7 +174,7 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
 - [ ] **T57.7** `docs/onboarding.md` splitten (Endnutzer/Integratoren-Agenten),
   README auf Pitch + Tutorial-Link kürzen, Frischhalte-Map und `epics/README.md`
   pflegen. Messlatte: —.
-- [ ] **T57.8** Entscheidung Handy-Kopplung (ADR): Variante (a) vs. (b) mit
+- [x] **T57.8** Entscheidung Handy-Kopplung (ADR): Variante (a) vs. (b) mit
   Sicherheitsabwägung. **Contract-/Auth-nah → ADR vor Code.** Messlatte: PRD §8, K1.
 - [ ] **T57.9** PWA-Erststart: Leerzustand als Einstieg, Probe-Session, Erfolgssignal,
   Fehlertexte im Token-Gate; Inventarzeile + E2E-Spec; Umsetzung der in T57.8

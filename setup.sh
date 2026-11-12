@@ -271,6 +271,8 @@ fi
 
 say "fertig"
 echo "  PWA:        http://$HOST:$PORT (Device-Token von oben)"
-echo "  Handy:      Tailscale + scripts/setup-tailscale-serve.sh (kein öffentlicher Port!)"
+echo "  Handy:      Tailscale + scripts/setup-tailscale-serve.sh $PORT druckt die https-URL (kein öffentlicher Port!);"
+echo "              dort im Handy-Browser öffnen und das Device-Token eingeben (nie in die URL hängen;"
+echo "              eigenes Token je Gerät: hubctl token issue <label>)"
 echo "  VoidWarden: optional, siehe README-Abschnitt „Zusammenspiel mit VoidWarden“"
 echo "  Betrieb:    docs/operations-runbook.md (systemd, Updates, Backup)"
