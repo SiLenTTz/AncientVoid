@@ -1,7 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { classifyProviderError, providerErrorEvent } from "../../src/harness/provider-error.ts";
+import { classifyProviderError, currentProviderFailureFromEvents, providerErrorEvent } from "../../src/harness/provider-error.ts";
 
 describe("classifyProviderError (ADR-0015)", () => {
+  it("reads Cursor's Opus usage-limit text, including the cycle date", () => {
+    const info = classifyProviderError(
+      "ActionRequiredError: You've hit your usage limit for Opus You've saved $76 on API model usage this month with Pro. Your usage limits will reset when your monthly cycle ends on 12/5/2026.",
+    );
+    expect(info).toMatchObject({ category: "quota", title: "Kontingent erschöpft (Opus)", resetAt: "12/5/2026" });
+    expect(info.detail).toContain("wieder frei ab 12/5/2026");
+    expect(info.detail).toContain("andere Session");
+  });
+
+  it("keeps a usage-limit visible after a promptless resume", () => {
+    const failure = currentProviderFailureFromEvents([
+      { type: "system", summary: "cursor: Usage-Limit", payload: { kind: "cursor.usage_limit", line: "ActionRequiredError: You're out of usage." } },
+      { type: "system", summary: "session.resumed", payload: { kind: "session.resumed" } },
+      { type: "system", summary: "cursor · opus", payload: { kind: "cursor.model" } },
+    ]);
+    expect(failure).toMatchObject({ category: "quota", title: "Kontingent erschöpft" });
+  });
+
   it("reads z.ai's usage-limit text with window and reset time", () => {
     const info = classifyProviderError("AI_APICallError: Usage limit reached for 5 hour. Your limit will reset at 2026-09-09 11:57:58");
     expect(info).toMatchObject({ category: "quota", window: "5 h", resetAt: "2026-09-09 11:57:58" });

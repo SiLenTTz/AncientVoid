@@ -30,6 +30,11 @@ describe("showInChat (BUG-0033: gleiche Marker für ACP wie für CLI-Adapter)", 
     expect(showInChat(event({ type: "system", summary: "session.steer", payload: { kind: "session.turn_end" } }))).toBe(false);
     expect(showInChat(event({ type: "gate", summary: "Shell: ls" }))).toBe(false);
   });
+
+  it("BUG-0149: a quota failure stays in the reading view", () => {
+    expect(showInChat(event({ type: "system", summary: "cursor: Usage-Limit", payload: { kind: "cursor.usage_limit", line: "out of usage" } }))).toBe(true);
+    expect(showInChat(event({ type: "system", summary: "cursor: Kontingent erschöpft", payload: { kind: "provider.error", category: "quota" } }))).toBe(true);
+  });
 });
 
 describe("visibleEventText (BUG-0033)", () => {

@@ -55,7 +55,7 @@ export class SessionInterruption {
     // schlagener Zug bleibt hinter seinem turn_end unsichtbar (P27-Regel).
     const lastEnd = events.findLastIndex(e => e.payload.kind === "session.turn_end");
     const boundary = events.findIndex((e, i) => i > lastEnd && (e.payload.kind === "session.prompt" || e.payload.kind === "session.resumed"));
-    const failed = events.slice(Math.max(0, boundary)).some(e => e.type === "error" || e.payload.kind === "provider.error");
+    const failed = events.slice(Math.max(0, boundary)).some(e => e.type === "error" || e.payload.kind === "provider.error" || e.payload.kind === "cursor.usage_limit");
     // A stop/park can have won while replay was in flight.
     if (!["working", "starting", "waiting_approval", "parked"].includes(session.record.status)) return;
     await this.host.setStatus(session, failed ? "error" : "interrupted");

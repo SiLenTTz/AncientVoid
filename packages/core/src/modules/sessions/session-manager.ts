@@ -2,7 +2,7 @@ import { SessionInterruption } from "./session-interruption.ts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus } from "@ancientvoid/contracts";
-import { actorKind, blobRefToString, classifyProviderError, countMetrics, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume } from "@ancientvoid/contracts";
+import { actorKind, blobRefToString, classifyProviderError, countMetrics, currentProviderFailureFromEvents, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume } from "@ancientvoid/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
@@ -1371,6 +1371,11 @@ export class SessionManager {
       }, this.makeContext(session));
       session.record.controlMode = "controllable";
       this.persist(session.record);
+      // Promptless resume (cursor -p would be an empty turn) starts no worker.
+      // Leaving the status on "working" looks like a hang with no error (BUG-0149).
+      if ((session.activeWorkers ?? 0) === 0 && !session.persistentWorker && session.record.status === "working") {
+        await this.setStatus(session, "idle");
+      }
       return { ok: true };
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
@@ -2078,16 +2083,7 @@ export class SessionManager {
     const record = this.live.get(sessionId)?.record ?? this.list().find((r) => r.id === sessionId);
     if (!record) throw new Error("unknown session");
     const events = await this.store.replay(sessionId);
-    let reason: { category: string; title: string; detail: string } | null = null;
-    for (let i = events.length - 1; i >= 0 && !reason; i--) {
-      const p = events[i]!.payload as { kind?: unknown; category?: unknown; title?: unknown; detail?: unknown; error?: unknown; cause?: unknown };
-      if (p.kind === "session.prompt") break;
-      if (p.kind === "provider.error") reason = { category: String(p.category ?? "unknown"), title: String(p.title ?? events[i]!.summary), detail: String(p.detail ?? "") };
-      // BUG-0126: the agent lost the native session — the same handover
-      // machinery serves it (draft text and reason), category "session".
-      else if (p.kind === "acp.context_lost") reason = { category: "session", title: "Agent hat den Verlauf verloren", detail: String(p.cause ?? events[i]!.summary) };
-      else if (p.kind === "session.start_failed" && /resource not found/i.test(String(p.error ?? ""))) reason = { category: "session", title: "Provider-Session verloren", detail: String(p.error ?? "") };
-    }
+    const reason = currentProviderFailureFromEvents(events);
     return { prompt: buildHandoverPrompt(events, { adapter: record.adapter, model: record.model, ...(reason ? { reason } : {}) }), adapter: record.adapter, model: record.model, reason };
   }
 
