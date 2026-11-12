@@ -828,7 +828,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
     headers: {
-      "content-type": "application/json",
+      // Fastify weist JSON-Content-Type mit leerem Body ab (400) — ein DELETE ohne Body darf ihn nicht tragen.
+      ...(init?.body !== undefined && init.body !== null ? { "content-type": "application/json" } : {}),
       authorization: `Bearer ${getToken()}`,
       ...(init?.headers ?? {}),
     },

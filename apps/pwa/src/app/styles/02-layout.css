@@ -406,12 +406,16 @@ a {
 }
 
 .tile-close {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--icon-target);
   background: none;
   border: none;
+  border-radius: var(--radius-sm);
   color: var(--fg-dim);
-  font-size: calc(16px * var(--font-scale, 1));
+  font-size: calc(var(--icon-glyph) + 4px);
   line-height: 1;
-  padding: 2px 6px;
+  padding: 0;
   cursor: pointer;
 }
 
@@ -421,9 +425,12 @@ a {
 
 /* AC-P43-6 (T43.9): Kopfzeile und Kachel-Tasten erreichen die Zielhöhe — 44 px bei Touch, 30 px mit Maus. */
 .topbar .brand-link,
-.topbar .link-btn,
-.tile-close {
+.topbar .link-btn {
   min-height: var(--target);
+}
+
+.tile-close {
+  min-height: var(--icon-target);
 }
 
 .tile-empty {

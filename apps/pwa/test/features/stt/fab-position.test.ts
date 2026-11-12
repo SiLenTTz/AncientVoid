@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampFabPos, defaultFabPos, fabBreakpoint } from "../../../src/features/stt/fab-position.ts";
+import { clampFabPos, defaultFabPos, FAB_SIZE, fabBreakpoint } from "../../../src/features/stt/fab-position.ts";
 
 describe("fab-position", () => {
   it("mappt Breakpoints", () => {
@@ -13,11 +13,11 @@ describe("fab-position", () => {
     expect(phone.x).toBeGreaterThan(300);
     expect(phone.y).toBeGreaterThan(600);
     const pc = defaultFabPos("pc", 1400, 900);
-    expect(pc.x).toBeCloseTo((1400 - 56) / 2, 0);
-    expect(pc.y).toBeCloseTo((900 - 56) / 2, 0);
+    expect(pc.x).toBeCloseTo((1400 - FAB_SIZE) / 2, 0);
+    expect(pc.y).toBeCloseTo((900 - FAB_SIZE) / 2, 0);
   });
 
   it("clamp hält im Viewport", () => {
-    expect(clampFabPos({ x: -10, y: 9999 }, 400, 700)).toEqual({ x: 0, y: 700 - 56 });
+    expect(clampFabPos({ x: -10, y: 9999 }, 400, 700)).toEqual({ x: 0, y: 700 - FAB_SIZE });
   });
 });

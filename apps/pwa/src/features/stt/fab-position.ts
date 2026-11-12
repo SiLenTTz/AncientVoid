@@ -9,6 +9,9 @@ export interface FabPos {
 
 const KEY = "ancientvoid.nyx-fab.v1";
 
+/** Muss zu `.nyx-fab` in 43-nyx-fab.css passen. */
+export const FAB_SIZE = 64;
+
 export function fabBreakpoint(width = typeof window !== "undefined" ? window.innerWidth : 390): FabBreakpoint {
   if (width >= 1280) return "pc";
   if (width >= 700) return "tablet";
@@ -17,7 +20,7 @@ export function fabBreakpoint(width = typeof window !== "undefined" ? window.inn
 
 /** Default: Handy/Tablet rechts unten über dem Dock; PC mittig im Viewport. */
 export function defaultFabPos(bp: FabBreakpoint, vw: number, vh: number): FabPos {
-  const size = 56;
+  const size = FAB_SIZE;
   if (bp === "pc") {
     return { x: Math.round((vw - size) / 2), y: Math.round((vh - size) / 2) };
   }
@@ -52,7 +55,7 @@ export function saveFabPos(bp: FabBreakpoint, pos: FabPos): void {
   }
 }
 
-export function clampFabPos(pos: FabPos, vw: number, vh: number, size = 56): FabPos {
+export function clampFabPos(pos: FabPos, vw: number, vh: number, size = FAB_SIZE): FabPos {
   return {
     x: Math.min(Math.max(0, pos.x), Math.max(0, vw - size)),
     y: Math.min(Math.max(0, pos.y), Math.max(0, vh - size)),

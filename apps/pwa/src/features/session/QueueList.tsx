@@ -21,9 +21,15 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
     };
   }, [sessionId, api, refreshKey]);
   if (items.length === 0) return null;
-  const remove = (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    void api.removeQueued(sessionId, id).catch(() => undefined);
+  const remove = (item: QueuedPrompt) => {
+    setError("");
+    setItems((prev) => prev.filter((i) => i.id !== item.id));
+    void api.removeQueued(sessionId, item.id).catch((err: unknown) => {
+      // 404 = schon weg (gesendet oder anderswo gestrichen) — alles andere ehrlich zurückstellen.
+      if ((err as { status?: unknown })?.status === 404) return;
+      setItems((prev) => (prev.some((i) => i.id === item.id) ? prev : [...prev, item].sort((a, b) => a.createdAt.localeCompare(b.createdAt))));
+      setError("Streichen fehlgeschlagen — die Nachricht bleibt vorgemerkt.");
+    });
   };
   const sendNow = (item: QueuedPrompt) => {
     setError("");
@@ -44,7 +50,7 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
           <span class="queue-pos dim">{i + 1}.</span>
           <span class="queue-text">{item.text.length > 140 ? `${item.text.slice(0, 139)}…` : item.text}</span>
           <button
-            class="link-btn"
+            class="icon-action"
             type="button"
             aria-label={`Vorgemerkte Nachricht ${i + 1} jetzt senden`}
             title="Jetzt in den laufenden Zug senden"
@@ -52,7 +58,7 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
           >
             ➤
           </button>
-          <button class="link-btn" type="button" aria-label={`Vorgemerkte Nachricht ${i + 1} streichen`} onClick={() => remove(item.id)}>
+          <button class="icon-action danger" type="button" aria-label={`Vorgemerkte Nachricht ${i + 1} streichen`} title="Streichen" onClick={() => remove(item)}>
             ✕
           </button>
         </div>

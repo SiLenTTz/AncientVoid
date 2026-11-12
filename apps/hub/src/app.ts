@@ -129,6 +129,16 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
   });
   await app.register(fastifyWebsocket);
 
+  // BUG-0115-Klasse: ein JSON-Content-Type ohne Body (DELETE/POST ohne Nutzlast) ist kein 400,
+  // sondern „kein Body“ — sonst scheitern Aktionen still im Client.
+  const defaultJson = app.getDefaultJsonParser("error", "error");
+  app.removeContentTypeParser("application/json");
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, done) => {
+    const text = body.toString();
+    if (text === "") return done(null, undefined);
+    defaultJson(req, text, done);
+  });
+
   app.addHook("onRequest", authHook(deps.auth));
   // T7.4: after body parsing — a steer's kind decides park vs. prompt.
   app.addHook("preHandler", policyHook(deps.tokens));

@@ -24,6 +24,7 @@ export function NyxFab() {
 
   useEffect(() => {
     const onResize = () => {
+      if (drag.current) return; // Handy: Adressleiste/Tastatur feuern resize mitten im Ziehen
       const next = fabBreakpoint();
       setBp(next);
       setPos(loadFabPos(next, window.innerWidth, window.innerHeight));
@@ -33,6 +34,7 @@ export function NyxFab() {
   }, []);
 
   const onPointerDown = (e: PointerEvent) => {
+    if (e.button !== 0) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     drag.current = { sx: e.clientX, sy: e.clientY, ox: posRef.current.x, oy: posRef.current.y, moved: false };
     setDragging(true);
@@ -63,11 +65,13 @@ export function NyxFab() {
     }
   };
 
+  const unavailable = !stt.supported || (stt.listening && !stt.recording);
   const onClick = () => {
     if (suppressClick.current) {
       suppressClick.current = false;
       return;
     }
+    if (unavailable) return;
     void stt.toggle();
   };
 
@@ -86,14 +90,14 @@ export function NyxFab() {
         aria-label={label}
         aria-busy={stt.listening}
         title={stt.title}
-        disabled={!stt.supported || (stt.listening && !stt.recording)}
+        aria-disabled={unavailable}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onClick={onClick}
       >
-        <NyxSprite state={state} size={40} />
+        <NyxSprite state={state} size={48} />
       </button>
       {(stt.recording || stt.listening || stt.error || stt.info || stt.partial) && (
         <div class="nyx-fab-toast" role="status" aria-live="polite" data-testid="nyx-fab-toast" style={{ left: `${Math.min(pos.x, window.innerWidth - 280)}px`, top: `${Math.max(8, pos.y - 72)}px` }}>

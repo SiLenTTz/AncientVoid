@@ -76,6 +76,19 @@ describe("hub route — Warteschlange und Pause", () => {
     expect((await call("GET", `/api/sessions/${id}/queue`)).json()).toEqual([]);
   });
 
+  it("DELETE mit JSON-Content-Type ohne Body (wie die PWA ihn schickt) streicht wirklich", async () => {
+    const id = await create();
+    await call("POST", `/api/sessions/${id}/steer`, { kind: "prompt", text: "weg damit", queue: true });
+    const [item] = (await call("GET", `/api/sessions/${id}/queue`)).json() as { id: string }[];
+    const res = await app.inject({
+      method: "DELETE",
+      url: `/api/sessions/${id}/queue/${item!.id}`,
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect((await call("GET", `/api/sessions/${id}/queue`)).json()).toEqual([]);
+  });
+
   it("eine unbekannte Session ist 404", async () => {
     expect((await call("GET", "/api/sessions/gibt-es-nicht/queue")).statusCode).toBe(404);
     expect((await call("DELETE", "/api/sessions/gibt-es-nicht/queue/x")).statusCode).toBe(404);

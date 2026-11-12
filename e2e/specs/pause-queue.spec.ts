@@ -35,7 +35,15 @@ test.describe("Pause und Warteschlange", () => {
     await app.getByPlaceholder("Antworten…").fill("doch nicht");
     await app.getByRole("button", { name: "Vormerken" }).click();
     await expect(app.locator(".queue-list")).toContainText("doch nicht");
-    await app.getByRole("button", { name: /Vorgemerkte Nachricht 1 streichen/ }).click();
+    const remove = app.getByRole("button", { name: /Vorgemerkte Nachricht 1 streichen/ });
+    // Symbol-Tasten haben eine echte Trefferfläche (≥ 36 px mit Maus).
+    expect((await remove.boundingBox())!.height).toBeGreaterThanOrEqual(36);
+    await remove.click();
+    await expect(app.locator(".queue-list")).toHaveCount(0);
+    // Gestrichen heißt beim Hub gestrichen — nicht nur ausgeblendet, bis zum nächsten Laden.
+    await hub.until(async () => (await hub.api<unknown[]>(`/api/sessions/${id}/queue`)).body.length === 0, "Warteschlange beim Hub leer", 5_000);
+    await app.reload();
+    await expect(app.getByPlaceholder("Antworten…")).toBeVisible();
     await expect(app.locator(".queue-list")).toHaveCount(0);
     expect(await sessionPrompts(hub, id)).not.toContain("doch nicht");
   });

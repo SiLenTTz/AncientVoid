@@ -119,9 +119,11 @@ html:has(.popout-shell) body {
   color: var(--fg-faint);
   font: inherit;
   cursor: pointer;
-  /* EPIC-P50 T50.6: Maus ≥ 30 px / Touch ≥ 44 px (--target). */
-  min-width: var(--target);
-  min-height: var(--target);
+  /* EPIC-P50 T50.6, erweitert: Symbol-Tasten nutzen --icon-target (Maus 36 px / Touch 44 px). */
+  min-width: var(--icon-target);
+  min-height: var(--icon-target);
+  font-size: var(--icon-glyph);
+  line-height: 1;
 }
 
 .tile-popout:hover,
@@ -132,7 +134,14 @@ html:has(.popout-shell) body {
 /* Ziehgriff der Kachel (T34.11): nur Zeiger; die Tastatur nimmt ⧉. */
 .tile-grip {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--icon-target);
+  min-height: var(--icon-target);
   margin-inline: 2px 4px;
+  font-size: var(--icon-glyph);
+  line-height: 1;
   color: var(--fg-faint);
   cursor: grab;
   touch-action: none;
@@ -144,6 +153,10 @@ html:has(.popout-shell) body {
 
 .tile-grip:active {
   cursor: grabbing;
+}
+
+.tile-grip.dragging {
+  font-size: var(--text-sm);
 }
 
 .tile.drag-out {
@@ -203,14 +216,16 @@ html:has(.popout-shell) body {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-width: 30px;
-  height: 30px;
+  min-width: var(--icon-target);
+  height: var(--icon-target);
   padding: 0 6px;
   color: var(--fg-dim);
   background: none;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   font: inherit;
+  font-size: var(--icon-glyph);
+  line-height: 1;
   cursor: pointer;
 }
 

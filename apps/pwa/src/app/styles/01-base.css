@@ -46,6 +46,10 @@
   --text-xl: calc(20px * var(--font-scale, 1));
   /* Mindestziel eines Bedienelements: 44 px bei Touch, 30 px mit Maus (siehe @media unten). */
   --target: 44px;
+  /* Reine Symbol-Tasten (⧉, ×, ➤): ohne Beschriftung muss Fläche und Glyphe selbst tragen —
+     auch mit Maus nie unter 36 px, Glyphe deutlich größer als der Fließtext. */
+  --icon-target: 44px;
+  --icon-glyph: calc(20px * var(--font-scale, 1));
   /* Bewegung: Dauer und Kurve; die Bewegungen selbst stehen in 36-motion.css. */
   --motion-fast: 120ms;
   --motion-base: 220ms;
@@ -86,6 +90,8 @@
 @media (hover: hover) and (pointer: fine) {
   :root {
     --target: 30px;
+    --icon-target: 36px;
+    --icon-glyph: calc(18px * var(--font-scale, 1));
   }
 }
 
