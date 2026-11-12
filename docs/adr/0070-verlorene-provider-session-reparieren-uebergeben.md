@@ -1,6 +1,6 @@
 # ADR-0070: Reparieren und Übergeben bei verlorener Provider-Session
 
-**Status:** akzeptiert (2026-11-12) · **Betrifft:** `packages/adapters/acp/` (`resumeNative`), `packages/core/src/modules/sessions/` (`repair`, `handoverDraft`, `nativeIdFromEvents`), `apps/hub/src/modules/sessions/sessions.routes.ts` (`/repair`), PWA `features/session/` (`handover.ts`, `Handover.tsx`), BUG-0123
+**Status:** akzeptiert (2026-11-12) · **Betrifft:** `packages/adapters/acp/` (`resumeNative`), `packages/core/src/modules/sessions/` (`repair`, `handoverDraft`, `nativeIdFromEvents`), `apps/hub/src/modules/sessions/sessions.routes.ts` (`/repair`), PWA `features/session/` (`handover.ts`, `Handover.tsx`), BUG-0126
 
 ## Kontext
 

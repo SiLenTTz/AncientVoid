@@ -1,5 +1,5 @@
 ---
-id: BUG-0123
+id: BUG-0126
 slug: native-session-verloren-session-klemmt
 status: open
 severity: S2
@@ -12,7 +12,7 @@ created: 2026-11-12
 reporter: "Nutzer (Session c0e0ab44)"
 ---
 
-# BUG-0123 — Verlorene Provider-Session klemmt die Hub-Session endgültig fest
+# BUG-0126 — Verlorene Provider-Session klemmt die Hub-Session endgültig fest
 
 ## Gesehen
 

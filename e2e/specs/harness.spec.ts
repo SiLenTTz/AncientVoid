@@ -218,7 +218,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(app.locator(".handover-bar")).toHaveCount(0);
   });
 
-  test("BUG-0123: verlorene Provider-Session — hier weitermachen baut den Kontext in derselben Session neu auf", async ({ app, hub }) => {
+  test("BUG-0126: verlorene Provider-Session — hier weitermachen baut den Kontext in derselben Session neu auf", async ({ app, hub }) => {
     // Adoption einer native ID, die der Agent nicht mehr kennt: der Adapter
     // meldet den Kontextverlust sichtbar, die Session klemmt nicht (idle).
     const id = await hub.createSession({ adapter: "acp", adoptNativeSessionId: "acp_lost_e2e" });

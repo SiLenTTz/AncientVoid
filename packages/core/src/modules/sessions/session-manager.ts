@@ -1390,7 +1390,7 @@ export class SessionManager {
     }
   }
 
-  /** BUG-0123 (ADR-0070): repair a session whose native binding went stale
+  /** BUG-0126 (ADR-0070): repair a session whose native binding went stale
    * (the agent lost the provider session). Drops the dead binding, visibly,
    * and continues in the SAME session with the handover draft as the next
    * prompt — the hub tail is the only surviving context, so it is rebuilt
@@ -2083,7 +2083,7 @@ export class SessionManager {
       const p = events[i]!.payload as { kind?: unknown; category?: unknown; title?: unknown; detail?: unknown; error?: unknown; cause?: unknown };
       if (p.kind === "session.prompt") break;
       if (p.kind === "provider.error") reason = { category: String(p.category ?? "unknown"), title: String(p.title ?? events[i]!.summary), detail: String(p.detail ?? "") };
-      // BUG-0123: the agent lost the native session — the same handover
+      // BUG-0126: the agent lost the native session — the same handover
       // machinery serves it (draft text and reason), category "session".
       else if (p.kind === "acp.context_lost") reason = { category: "session", title: "Agent hat den Verlauf verloren", detail: String(p.cause ?? events[i]!.summary) };
       else if (p.kind === "session.start_failed" && /resource not found/i.test(String(p.error ?? ""))) reason = { category: "session", title: "Provider-Session verloren", detail: String(p.error ?? "") };

@@ -264,7 +264,7 @@ describe("SessionManager", () => {
     }
   });
 
-  it("BUG-0123: repair drops a stale native binding and continues with a context draft from the tail", async () => {
+  it("BUG-0126: repair drops a stale native binding and continues with a context draft from the tail", async () => {
     const dir2 = await mkdtemp(join(tmpdir(), "ancientvoid-sm-repair-"));
     let lost = false;
     const specs: SessionSpec[] = [];

@@ -102,7 +102,7 @@ describe("SessionManager.handover (EPIC-P21 T21.2)", () => {
     }
   });
 
-  it("BUG-0123: eine verlorene Provider-Session wird als Grund „session“ erkannt", async () => {
+  it("BUG-0126: eine verlorene Provider-Session wird als Grund „session“ erkannt", async () => {
     const dir = await mkdtemp(join(tmpdir(), "ancientvoid-handover-lost-"));
     let lost = false;
     const flaky: Adapter = {

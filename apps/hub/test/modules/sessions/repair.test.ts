@@ -8,7 +8,7 @@ import { basicFeatures, type Adapter } from "@ancientvoid/contracts";
 import { ProcessRunner } from "@ancientvoid/workers";
 import { createHubApp } from "../../../src/app.ts";
 
-/** BUG-0123: repair a session whose native binding went stale (agent lost
+/** BUG-0126: repair a session whose native binding went stale (agent lost
  * the provider session) — drop the binding, rebuild context from the tail. */
 describe("hub route — Session reparieren", () => {
   let dir: string;
