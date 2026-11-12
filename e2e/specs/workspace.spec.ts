@@ -267,7 +267,7 @@ test.describe("Sprache (T1.5, T3.10)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByLabel("Weitere Aktionen").click();
     await app.locator(".session-menu").getByRole("button", { name: "Sprachbefehl" }).click();
-    await app.getByTitle("Tippen zum Sprechen").click();
+    await app.locator('[data-tip="Tippen zum Sprechen"]').click();
     // Result paragraph, not the example chips (same collision as AC-P10-3).
     await expect(app.locator("p.voice-example").filter({ hasText: "„stopp\"" })).toBeVisible();
     await app.getByRole("button", { name: "Bestätigen" }).click();
@@ -282,7 +282,7 @@ test.describe("Sprache (T1.5, T3.10)", () => {
       await app.evaluate((t) => ((globalThis as unknown as { __speech: string }).__speech = t), text);
       await app.getByLabel("Weitere Aktionen").click();
       await app.locator(".session-menu").getByRole("button", { name: "Sprachbefehl" }).click();
-      await app.getByTitle("Tippen zum Sprechen").click();
+      await app.locator('[data-tip="Tippen zum Sprechen"]').click();
       // Ein Befehl, der sofort läuft, navigiert weg und schließt den Dialog — das Zitat ist dann nicht mehr da
       // (Flake: 6 von 12 Läufen, 2026-10-28). Sein Beleg ist die Navigation unten.
       if (opts.immediate) return;
