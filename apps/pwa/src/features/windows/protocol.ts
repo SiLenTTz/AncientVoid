@@ -16,7 +16,7 @@ export type SessionViewKind = (typeof SESSION_VIEW_KINDS)[number];
 /** Der Reiter in `SessionTail`, den ein Ansichtsfenster zeigt. */
 export const VIEW_TAB = { changes: "diff", files: "code", report: "bericht", forge: "forge", search: "suche", environment: "umgebung" } as const satisfies Record<SessionViewKind, string>;
 export type ViewTab = (typeof VIEW_TAB)[SessionViewKind];
-export const VIEW_LABEL: Record<SessionViewKind, string> = { changes: "Änderungen", files: "Dateien", report: "Bericht", forge: "GitLab", search: "Suche", environment: "Umgebung" };
+export const VIEW_LABEL: Record<SessionViewKind, string> = { changes: "Änderungen", files: "Befehle", report: "Bericht", forge: "GitLab", search: "Suche", environment: "Umgebung" };
 export function viewKindOfTab(tab: string): SessionViewKind | null {
   return SESSION_VIEW_KINDS.find((k) => VIEW_TAB[k] === tab) ?? null;
 }

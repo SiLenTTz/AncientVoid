@@ -31,7 +31,7 @@ test.describe("Code und Aktionen (T7.6, AC-P7-6)", () => {
     // the desktop-sized Pixel profile still fits the pane and hides the scroll.
     await app.setViewportSize({ width: 390, height: 480 });
     await app.locator(".action-row").filter({ hasText: "Letzte Commits" }).getByRole("button", { name: "Ausführen" }).click();
-    await expect(app.locator(".action-run .action-status").first()).toHaveText("erfolgreich");
+    await expect(app.locator(".action-row").filter({ hasText: "Letzte Commits" }).locator(".action-status-btn")).toHaveText("erfolgreich");
     await expect.poll(async () => (await hub.events(id)).filter((e) => e.type === "tool_result").length).toBeGreaterThan(0);
     await app.waitForTimeout(300);
     await expect(app.getByLabel("Code durchsuchen")).toBeInViewport();
@@ -43,9 +43,9 @@ test.describe("Code und Aktionen (T7.6, AC-P7-6)", () => {
     await sessionTab(app, "Code");
     const row = app.locator(".action-row").filter({ hasText: "Git-Status" });
     await row.getByRole("button", { name: "Ausführen" }).click();
-    const run = app.locator(".action-run").first();
-    await expect(run.locator(".action-status")).toHaveText("erfolgreich");
-    await expect(run.locator(".action-output")).toContainText("##");
+    // Status steht am Befehl selbst; die Ausgabe klappt nach dem Start von selbst auf.
+    await expect(row.locator(".action-status-btn")).toHaveText("erfolgreich");
+    await expect(row.locator(".action-output")).toContainText("##");
     const events = await hub.events(id);
     expect(events.some((e) => e.type === "tool_result" && (e.payload as { name?: string }).name === "aktion:git-status")).toBe(true);
   });

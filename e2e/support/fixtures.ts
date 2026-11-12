@@ -101,14 +101,14 @@ export async function openQuiet(page: Page): Promise<void> {
 }
 
 /**
- * EPIC-P43 T43.4: eine Ansicht der Session öffnen. Chat, Änderungen (früher „Diff“) und Dateien (früher
- * „Code“) sind Reiter; Verlauf, Bericht, Datei, Graph, GitLab, Suche und Umgebung liegen unter „Mehr“.
+ * EPIC-P43 T43.4: eine Ansicht der Session öffnen. Chat, Änderungen (früher „Diff“) und Befehle (früher
+ * „Code“/„Dateien“) sind Reiter; Verlauf, Bericht, Datei, Graph, GitLab, Suche und Umgebung liegen unter „Mehr“.
  */
 export async function sessionTab(scope: Page | Locator, name: string): Promise<void> {
   const bar = scope.locator(".subtabs-wrap").first();
-  const main = ({ Diff: "Änderungen", Code: "Dateien" } as Record<string, string>)[name] ?? name;
+  const main = ({ Diff: "Änderungen", Code: "Befehle", Dateien: "Befehle" } as Record<string, string>)[name] ?? name;
   const direct = bar.getByRole("button", { name: new RegExp(`^${main}`) });
-  if (main === "Chat" || main === "Dateien") return direct.click();
+  if (main === "Chat" || main === "Befehle") return direct.click();
   const menu = bar.getByRole("menu", { name: "Weitere Ansichten" });
   if (main === "Änderungen") {
     // Kleinkram-Regel 2 (T43.5): ohne Änderungen rückt „Änderungen“ unter „Mehr“ — und zurück, sobald der
@@ -129,7 +129,7 @@ export async function sessionTab(scope: Page | Locator, name: string): Promise<v
 
 /**
  * EPIC-P43 (Kleinkram-Regel 6): Dateibaum, Browser und Geräte haben keine Randlaschen mehr. In einer Session
- * öffnet der Reiter „Dateien“ den Dateibaum und „Mehr“ Browser und Geräte; ohne Session das globale „Mehr“.
+ * öffnet der Reiter „Befehle“ den Dateibaum und „Mehr“ Browser und Geräte; ohne Session das globale „Mehr“.
  */
 export async function openLayer(page: Page, name: "Dateibaum" | "Browser" | "Geräte"): Promise<void> {
   const bar = page.locator(".subtabs-wrap").first();
@@ -140,7 +140,7 @@ export async function openLayer(page: Page, name: "Dateibaum" | "Browser" | "Ger
     .catch(() => false);
   if (!inSession) return dockGo(page, name);
   if (name === "Dateibaum") {
-    await sessionTab(page, "Dateien");
+    await sessionTab(page, "Befehle");
     await page.getByRole("button", { name: "Dateibaum öffnen" }).first().click();
     return;
   }
