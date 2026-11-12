@@ -64,6 +64,16 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * BUG-0127: `ANCIENTVOID_QMD_INDEX` wählt einen eigenen benannten qmd-Index (`~/.cache/qmd/<name>.sqlite`,
+ * Modelle bleiben geteilt). Die Tests setzen ihn, damit sie nie in den Live-Index schreiben, in den der
+ * laufende Hub und parallele Gates zur selben Zeit einbetten. Ohne Variable: der Standard-Index.
+ */
+function qmd(args: string[], options?: { cwd?: string; maxBuffer?: number }) {
+  const index = process.env.ANCIENTVOID_QMD_INDEX;
+  return execFileAsync("qmd", index ? ["--index", index, ...args] : args, options ?? {});
+}
+
 export interface SearchResult {
   file: string;
   line: number;
@@ -111,7 +121,7 @@ export function collectionNameFor(projectPath: string): string {
 }
 
 async function collectionExists(name: string): Promise<boolean> {
-  const { stdout } = await execFileAsync("qmd", ["collection", "list"]);
+  const { stdout } = await qmd(["collection", "list"]);
   return stdout.split("\n").some((line) => line.trim().startsWith(`${name} (qmd://`));
 }
 
@@ -157,9 +167,9 @@ export async function indexStatus(projectPath: string): Promise<IndexStatus> {
 export async function ensureIndexed(projectPath: string): Promise<void> {
   const name = collectionNameFor(projectPath);
   if (!(await collectionExists(name))) {
-    await execFileAsync("qmd", ["collection", "add", projectPath, "--name", name, "--pattern", DEFAULT_PATTERN]);
+    await qmd(["collection", "add", projectPath, "--name", name, "--pattern", DEFAULT_PATTERN]);
   }
-  await execFileAsync("qmd", ["embed", "-c", name, "--timeout", "10"], { maxBuffer: 16 * 1024 * 1024 });
+  await qmd(["embed", "-c", name, "--timeout", "10"], { maxBuffer: 16 * 1024 * 1024 });
 }
 
 /** True when `relFile` (already `./`-stripped, forward-slash-separated)
@@ -203,8 +213,7 @@ export async function searchProject(
     // Real, verified (qmd --help): `--full-path` renders `./`-prefixed
     // paths "under $PWD", absolute otherwise — cwd MUST be the project
     // directory or every result comes back as an unrelated absolute path.
-    ({ stdout } = await execFileAsync(
-      "qmd",
+    ({ stdout } = await qmd(
       ["query", doc, "-c", name, "--format", "json", "-n", String(rawLimit), "--full-path", "--no-rerank"],
       { cwd: projectPath, maxBuffer: 16 * 1024 * 1024 },
     ));
@@ -285,7 +294,7 @@ export async function readProjectFile(projectPath: string, relativePath: string)
 export async function removeIndex(projectPath: string): Promise<void> {
   const name = collectionNameFor(projectPath);
   if (await collectionExists(name)) {
-    await execFileAsync("qmd", ["collection", "remove", name]);
+    await qmd(["collection", "remove", name]);
   }
 }
 
