@@ -19,7 +19,8 @@
 #         --no-start           Hub nicht starten
 # Exit:   0 ok · 2 Voraussetzung fehlt oder ungültige Eingabe (Option,
 #         Adapter, baseUrl/Modell) · 3 Config/Daten kaputt ·
-#         4 Token/Hub-Start fehlgeschlagen · 5 npm install fehlgeschlagen
+#         4 Token/Hub-Start fehlgeschlagen · 5 npm install fehlgeschlagen ·
+#         6 Port belegt von einem Hub/Dienst, der nicht zu diesem Checkout gehört
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -160,6 +161,37 @@ EOF
   fi
 fi
 node -e 'require("./hub.config.json")' || { echo "hub.config.json ist kein gültiges JSON" >&2; exit 3; }
+PORT="$(node -e 'try{console.log(require("./hub.config.json").server?.port ?? 7373)}catch{console.log(7373)}' 2>/dev/null || echo 7373)"
+HOST="$(node -e 'try{console.log(require("./hub.config.json").server?.host ?? "127.0.0.1")}catch{console.log("127.0.0.1")}' 2>/dev/null || echo 127.0.0.1)"
+DATA_DIR="$(node -e 'const {resolve}=require("node:path");process.stdout.write(resolve(require("./hub.config.json").dataDir ?? "./data"))')" || exit 3
+
+# BUG-0132: einen laufenden Hub nur übernehmen, wenn er belegt DIESER ist —
+# geprüft vor Token und Start, damit ein Konflikt nichts verändert.
+own_hub_pid() { # PID, wenn die Sperre unseres Datenverzeichnisses auf den Prozess zeigt, der auf $PORT lauscht
+  local lock="$DATA_DIR/.ancientvoid-hub.pid" pid
+  [ -f "$lock" ] || return 1
+  pid="$(sed -n 's/^\(hub:\)\{0,1\}\([0-9][0-9]*\)$/\2/p' "$lock")"
+  [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || return 1
+  command -v ss >/dev/null || return 1
+  ss -Htlnp "sport = :$PORT" 2>/dev/null | grep -q "pid=$pid," || return 1
+  echo "$pid"
+}
+port_conflict() {
+  echo "Konflikt: $*" >&2
+  echo "  Nichts geändert — kein Token, kein Start, nichts gestoppt. Anderen Port in hub.config.json" >&2
+  echo "  (server.port) eintragen bzw. beim ersten Lauf ./setup.sh --port=<n> wählen." >&2
+  exit 6
+}
+HUB_PID=""; USE_UNIT=0
+if [ "$START" = 1 ]; then
+  if curl -s -o /dev/null --max-time 2 "http://$HOST:$PORT/" 2>/dev/null; then
+    HUB_PID="$(own_hub_pid)" || port_conflict "auf $HOST:$PORT antwortet ein Dienst, der nicht nachweislich zu diesem Checkout gehört (erwartet: PID-Sperre in $DATA_DIR, deren Prozess auf Port $PORT lauscht)."
+  elif systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1 && [ "$PORT" = "7373" ]; then
+    UNIT_CONFIG="$(systemctl --user show -p Environment --value ancientvoid-hub.service | tr ' ' '\n' | sed -n 's/^ANCIENTVOID_CONFIG=//p')"
+    [ "$UNIT_CONFIG" = "$PWD/hub.config.json" ] || port_conflict "die systemd-Unit ancientvoid-hub.service gehört zu einem anderen Checkout (ANCIENTVOID_CONFIG=${UNIT_CONFIG:-?})."
+    USE_UNIT=1
+  fi
+fi
 
 # --------------------------------------------------------------- 4 · PWA + Token
 if [ "$PWA" = 1 ]; then
@@ -168,7 +200,6 @@ else
   say "4/5 PWA bauen — übersprungen (--no-pwa)"
 fi
 say "4b/5 Device-Token"
-DATA_DIR="$(node -e 'const {resolve}=require("node:path");process.stdout.write(resolve(require("./hub.config.json").dataDir ?? "./data"))')" || exit 3
 TOKEN_DB="$DATA_DIR/hub.db"
 TOKEN_MARKER="$DATA_DIR/.setup-first-token"
 mkdir -p "$DATA_DIR" || exit 4
@@ -206,8 +237,6 @@ if [ "$VOIDWARDEN" = 1 ]; then
 fi
 
 # ------------------------------------------------------------------ 5 · starten
-PORT="$(node -e 'try{console.log(require("./hub.config.json").server?.port ?? 7373)}catch{console.log(7373)}' 2>/dev/null || echo 7373)"
-HOST="$(node -e 'try{console.log(require("./hub.config.json").server?.host ?? "127.0.0.1")}catch{console.log("127.0.0.1")}' 2>/dev/null || echo 127.0.0.1)"
 if [ "$START" = 1 ]; then
   say "5/5 Hub starten"
   # Agents/Shell können ANCIENTVOID_CONFIG ererbt haben (z. B. wenn sie selbst
@@ -218,9 +247,9 @@ if [ "$START" = 1 ]; then
     echo "         überschrieben (Wizard-Contract: ./hub.config.json dieses Checkouts)."
   fi
   export ANCIENTVOID_CONFIG="$PWD/hub.config.json"
-  if curl -sf "http://$HOST:$PORT/api/ready" >/dev/null 2>&1; then
-    echo "auf Port $PORT läuft bereits ein Hub — verwende bestehenden (kein Start)"
-  elif systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1 && [ "$PORT" = "7373" ]; then
+  if [ -n "$HUB_PID" ]; then
+    echo "eigener Hub läuft bereits auf Port $PORT (PID $HUB_PID, Datenverzeichnis $DATA_DIR) — kein Start"
+  elif [ "$USE_UNIT" = 1 ]; then
     # systemd-Unit übernimmt den Standard-Port (hub.sh-Regel); Aktivieren per
     # systemctl start ist bei laufender Unit ein No-op.
     scripts/hub.sh start || exit 4

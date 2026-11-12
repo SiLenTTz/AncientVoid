@@ -267,7 +267,7 @@ async function logsStep() {
     }
   };
   const sources = {
-    omarchy: readFileSync("/tmp/ancientvoid-hub.log", "utf8").split("\n").filter((l) => stamp(l) >= since).join("\n"),
+    omarchy: readFileSync(`/tmp/ancientvoid-hub-${execFileSync("bash", ["-c", "printf '%s' \"$PWD\" | cksum | cut -d' ' -f1"], { encoding: "utf8" }).trim()}.log`, "utf8").split("\n").filter((l) => stamp(l) >= since).join("\n"),
   };
   for (const host of Object.keys(HOSTS)) sources[host] = ssh(host, "journalctl --user -u ancientvoid-hub --no-pager --since today");
   let leaks = 0;
