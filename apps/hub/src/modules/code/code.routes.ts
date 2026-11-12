@@ -351,6 +351,13 @@ export function registerCodeRoutes(app: FastifyInstance, ctx: RouteContext): voi
     return run ?? reply.code(404).send({ error: "unknown run" });
   });
 
+  app.post("/api/sessions/:id/actions/runs/:runId/stop", async (req, reply) => {
+    const { id, runId } = req.params as { id: string; runId: string };
+    if (!runner.get(id, runId)) return reply.code(404).send({ error: "unknown run" });
+    if (!runner.stop(id, runId)) return reply.code(409).send({ error: "Der Befehl läuft nicht mehr." });
+    return reply.code(202).send(runner.get(id, runId));
+  });
+
   app.post("/api/sessions/:id/actions/:action", async (req, reply) => {
     const { id, action } = req.params as { id: string; action: string };
     const body = (req.body ?? {}) as { params?: Record<string, unknown> };

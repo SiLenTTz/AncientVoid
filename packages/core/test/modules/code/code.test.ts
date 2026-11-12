@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ActionDefinition, actionArgv, type EmittedEvent } from "@ancientvoid/contracts";
-import { ActionRunner, BUILTIN_ACTIONS, containedFile, definitionPattern, detectedActions, readCodeFile, searchCode, workspaceIdentity } from "../../../src/index.ts";
+import { ActionRunner, BUILTIN_ACTIONS, containedFile, definitionPattern, desktopEnv, detectedActions, readCodeFile, searchCode, workspaceIdentity } from "../../../src/index.ts";
 
 let root: string;
 let outside: string;
@@ -102,11 +102,33 @@ describe("registered actions (T7.6)", () => {
     expect(BUILTIN_ACTIONS.every((a) => a.readOnly && a.kind === "git")).toBe(true);
   });
 
-  it("runs in the worktree, reports status and output, one at a time, and puts ≤ 4 KB into the timeline", async () => {
+  it("lists every script the repo declares (package.json, Makefile, scripts/), grouped by source, no shell", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "ancientvoid-scripts-"));
+    try {
+      mkdirSync(join(repo, "scripts"));
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ scripts: { test: "x", build: "y", "--evil": "z" } }));
+      writeFileSync(join(repo, "Makefile"), ".PHONY: all\nall:\n\techo hi\nCC := gcc\nlint:\n\ttrue\n");
+      writeFileSync(join(repo, "scripts/deploy.sh"), "#!/bin/sh\n", { mode: 0o755 });
+      writeFileSync(join(repo, "scripts/notes.txt"), "kein Skript\n", { mode: 0o644 });
+      const found = await detectedActions(repo);
+      expect(found.map((a) => [a.source, a.argv.join(" ")])).toEqual([
+        ["package.json", "npm test"],
+        ["package.json", "npm run build"],
+        ["Makefile", "make all"],
+        ["Makefile", "make lint"],
+        ["scripts/", "./scripts/deploy.sh"],
+      ]);
+      expect(new Set(found.map((a) => a.id)).size).toBe(found.length);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it("runs in the worktree, reports status and output, the same action only once at a time, and puts ≤ 4 KB into the timeline", async () => {
     const events: EmittedEvent[] = [];
     const runner = new ActionRunner({ record: async (_s, e) => void events.push(...e) });
     const ok = await runner.start("s1", root, BUILTIN_ACTIONS[0]!, {}, "handy");
-    await expect(runner.start("s1", root, BUILTIN_ACTIONS[1]!, {}, "handy")).rejects.toThrow("schon eine Aktion");
+    await expect(runner.start("s1", root, BUILTIN_ACTIONS[0]!, {}, "handy")).rejects.toThrow("läuft schon");
     await waitFor(() => runner.get("s1", ok.id)?.status !== "running");
     expect(runner.get("s1", ok.id)).toMatchObject({ status: "succeeded", exitCode: 0, actor: "handy" });
     expect(runner.get("s1", ok.id)!.output).toContain("## main");
@@ -119,6 +141,55 @@ describe("registered actions (T7.6)", () => {
     expect(result.payload).toMatchObject({ isError: true, status: "failed", exitCode: 3 });
     expect(JSON.stringify(result.payload).length).toBeLessThan(4096);
     expect(runner.list("s1").map((x) => x.actionId)).toEqual(["f", "git-status"]);
+  });
+
+  it("a long-running command has no time limit, runs next to others, and Stop ends the whole process group", async () => {
+    const runner = new ActionRunner({ record: async () => undefined });
+    const server = ActionDefinition.parse({ id: "srv", label: "Server", kind: "tool", argv: ["sh", "-c", "sleep 30 & sleep 30"], timeoutMs: 100, longRunning: true });
+    const r = await runner.start("s3", root, server, {}, null);
+    await new Promise((res) => setTimeout(res, 300));
+    expect(runner.get("s3", r.id)?.status).toBe("running"); // timeoutMs gilt nicht
+    const other = await runner.start("s3", root, BUILTIN_ACTIONS[0]!, {}, null); // parallel erlaubt
+    await waitFor(() => runner.get("s3", other.id)?.status !== "running");
+    expect(runner.stop("s3", r.id)).toBe(true);
+    await waitFor(() => runner.get("s3", r.id)?.status !== "running");
+    expect(runner.get("s3", r.id)?.status).toBe("stopped");
+    expect(runner.stop("s3", r.id)).toBe(false);
+  });
+
+  it("gives tools the desktop variables (window opens on the hub's screen) and CI only to tests", async () => {
+    const out: string[] = [];
+    const runner = new ActionRunner({ record: async () => undefined });
+    const probe = (id: string, kind: "tool" | "test") => ActionDefinition.parse({ id, label: id, kind, argv: ["sh", "-c", 'echo "CI=${CI:-} DISPLAY=${DISPLAY:-}"'] });
+    const prevDisplay = process.env.DISPLAY;
+    process.env.DISPLAY = ":42";
+    try {
+      for (const [id, kind] of [["p-tool", "tool"], ["p-test", "test"]] as const) {
+        const r = await runner.start("s4", root, probe(id, kind), {}, null);
+        await waitFor(() => runner.get("s4", r.id)?.status !== "running");
+        out.push(runner.get("s4", r.id)!.output.trim());
+      }
+    } finally {
+      if (prevDisplay === undefined) delete process.env.DISPLAY;
+      else process.env.DISPLAY = prevDisplay;
+    }
+    expect(out).toEqual(["CI= DISPLAY=:42", "CI=1 DISPLAY=:42"]);
+  });
+
+  it("derives missing desktop variables from the session runtime dir, never overrides existing ones", () => {
+    const runtime = mkdtempSync(join(tmpdir(), "ancientvoid-xdg-"));
+    const x11 = mkdtempSync(join(tmpdir(), "ancientvoid-x11-"));
+    try {
+      writeFileSync(join(runtime, "wayland-1"), "");
+      writeFileSync(join(runtime, "wayland-1.lock"), "");
+      writeFileSync(join(runtime, "bus"), "");
+      writeFileSync(join(x11, "X0"), "");
+      expect(desktopEnv({ XDG_RUNTIME_DIR: runtime }, { x11 })).toEqual({ WAYLAND_DISPLAY: "wayland-1", DBUS_SESSION_BUS_ADDRESS: `unix:path=${join(runtime, "bus")}`, DISPLAY: ":0" });
+      expect(desktopEnv({ XDG_RUNTIME_DIR: runtime, WAYLAND_DISPLAY: "wayland-9", DISPLAY: ":7", DBUS_SESSION_BUS_ADDRESS: "x" }, { x11 })).toEqual({});
+    } finally {
+      rmSync(runtime, { recursive: true, force: true });
+      rmSync(x11, { recursive: true, force: true });
+    }
   });
 
   it("a timeout ends the whole process group", async () => {
