@@ -121,7 +121,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0110](bug-0110-agent-read-mapping-kosten.md) | Agent-Token löst Kosten-/Schreib-Endpunkte ohne Approval aus | done | S4 | server | [#44](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/44) |
 | [BUG-0111](bug-0111-brave-crash-unter-voller-testlast.md) | Brave fällt unter voller lokaler Testlast aus (Renderer-SIGTRAP) | done | S3 | e2e | [#45](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/45) |
 | [BUG-0112](bug-0112-popout-fenster-scrollt-bei-ui-zoom.md) | Eigenes Fenster (Chat) scrollt als ganze Seite bei UI-Zoom | done | S2 | pwa | — |
-| [BUG-0113](bug-0113-dateien-schublade-browser-panel-ui-zoom.md) | Dateien-Schublade und Browser-Panel falsch vermessen bei UI-Zoom | done | S3 | pwa | — |
+| [BUG-0113](bug-0113-dateien-schublade-browser-panel-ui-zoom.md) | Dateien-Schublade und Browser-Panel falsch vermessen bei UI-Zoom | open | S3 | pwa | — |
 | [BUG-0114](bug-0114-vormerken-jetzt-sendens.md) | Vorgemerkte Nachricht lässt sich nicht sofort in den laufenden Zug senden | done | S3 | pwa | [#49](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/49) |
 | [BUG-0115](bug-0115-sendqueuednow-bad-request.md) | „Jetzt senden" der Vormerkung schlägt in der PWA immer mit „Bad Request" fehl (leerer JSON-Body) | done | S3 | pwa | [#50](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/50) |
 
@@ -140,5 +140,11 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0127](bug-0127-suche-indexierung-qmd-schlaegt-fehl.md) | Such-Indexierung: qmd-Abfrage endet 500 statt 200 (4 rot-Tests auf main) | open | S2 | server | — |
 | [BUG-0128](bug-0128-dateibaum-detach-als-einzelfenster.md) | Herauslösen der Datei-Seitenleiste erzeugt Einzeldatei-Fenster statt einem gebündelten Fenster | done | S3 | pwa | — |
 | [BUG-0129](bug-0129-vault-ordnerwahl-symlink-ordner-fehlen.md) | Vault-Ordnerwahl: Symlink-Ordner fehlten, keine Pfad-Eingabe/Vorschläge (Fix via P51 T51.1–T51.2 / ADR-0063) | done | S3 | core | EPIC-P51 |
+| [BUG-0130](bug-0130-setup-token-falsches-datadir.md) | Setup stellt Tokens in der falschen Datenbank aus | done | S2 | ops | [#51](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/51) |
+| [BUG-0131](bug-0131-openai-fehler-still-verworfen.md) | OpenAI-Beispieladapter verschweigt Stream- und Folgepromptfehler | open | S2 | adapters | [#52](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/52) |
+| [BUG-0132](bug-0132-setup-verwendet-fremden-hub.md) | Wizard erklärt einen fremden Hub zum erfolgreichen eigenen Setup | open | S2 | ops | [#53](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/53) |
+| [BUG-0133](bug-0133-setup-node-mindestversion.md) | Angegebene Node-Mindestversion passt nicht zum ausführbaren Setup | open | S2 | ops | [#54](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/54) |
+| [BUG-0134](bug-0134-setup-openai-json-escaping.md) | OpenAI-Wizard serialisiert Benutzereingaben als ungültiges JSON | open | S3 | ops | [#55](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/55) |
+| [BUG-0135](bug-0135-setup-voidwarden-zweittokens.md) | Wiederholtes VoidWarden-Setup stellt zusätzliche Tokens aus | open | S3 | ops | [#56](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/56) |
 
-Die nächste freie Nummer ist **0130**.
+Die nächste freie Nummer ist **0136**.
