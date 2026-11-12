@@ -157,10 +157,10 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
 - [x] **T57.1** Diátaxis-Inventar: jede lebende `docs/*.md` genau einer Art
   zuordnen, Kopfzeile `Art:` setzen, Gliederungstabelle in `docs/` (eine
   Übersichtsseite, die auch Waisen verhindert). Messlatte: — (PRD §8: keine Secrets).
-- [ ] **T57.2** `check:context` um Regeln `doc-kind` und `reference-fresh` erweitern (`doc-kind` + `doc-index` umgesetzt mit T57.1; `reference-fresh` kommt mit T57.3, dort abhaken)
+- [x] **T57.2** `check:context` um Regeln `doc-kind` und `reference-fresh` erweitern (`doc-kind` + `doc-index` mit T57.1, `reference-fresh` mit T57.3)
   (+ Tests je Regel rot-dann-grün, Eintrag in `docs/check-context.md`). Messlatte: —.
-- [ ] **T57.3** `scripts/gen-reference.mjs`: hubctl-Referenz und Wizard-Exit-Codes
-  generieren; Config-Quelle klären (Schema vs. handgepflegt + Map-Eintrag). Messlatte: —;
+- [x] **T57.3** `scripts/gen-reference.mjs`: hubctl-Referenz und Wizard-Exit-Codes
+  generieren; Config-Quelle geklärt: zod-Schema `HubConfig` (`z.toJSONSchema`) liefert Feld/Typ/Default. Messlatte: —;
   K5 nicht berührt.
 - [ ] **T57.4** Tutorial `docs/tutorial-erste-schritte.md` (Standardroute, ein
   Schritt = eine Aktion + erwartete Ausgabe, endet mit Erfolgssignal und

@@ -25,6 +25,7 @@ und in CI. Grundlage ist die Recherche vom 2026-11-12:
 | `docs-ref` | jede `docs/*.md` ist ≥ 1× im Repo referenziert (Dateiname als Suchstring über Textdateien) | Waise. Befreit: `docs/adr/**` (append-only Protokoll), `docs/assets|messlauf/**`, **datierte Snapshots** (`JJJJ-MM-TT` in Präfix/Suffix — Konvention s. AGENTS.md) |
 | `doc-kind` | jede lebende `docs/*.md` (flach, kein datierter Snapshot) trägt in den ersten 12 Zeilen genau eine Kopfzeile `**Art:** tutorial\|how-to\|referenz\|erklaerung` (Diátaxis, EPIC-P57) | Zeile fehlt, doppelt oder unbekannte Art |
 | `doc-index` | jede lebende Seite steht in [`uebersicht.md`](uebersicht.md) | Seite nicht gelistet oder Übersicht fehlt |
+| `reference-fresh` | `scripts/gen-reference.mjs --check`: committete `docs/referenz-*.md` = frisch generierter Stand (hubctl-usage, `HubConfig`-Schema, `setup.sh`-Kopf; EPIC-P57) | Stand veraltet — `npm run docs:reference` |
 | `script-ref` | jedes `scripts/*.{mjs,ts,sh}` ist referenziert (package.json/CI/Doku/…) **oder** hat `*.test.mjs/.ts` | weder-noch |
 | `drift` | Frischhalte-Map: lebendes Dokument → Beobachtungsbereiche + `maxDrift` | mehr Commits im Bereich seit letzter Doc-Berührung als erlaubt → Review fällig. Uncommittete Überarbeitung gilt als laufendes Review (sonst Gate/Commit-Henne-Ei) |
 | `drift-map` | Map-Konsistenz | Map-Eintrag ohne Datei |

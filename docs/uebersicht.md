@@ -14,8 +14,17 @@ sind ausgenommen.
 |---|---|---|
 | **tutorial** — Lernen durch Tun | „Ich bin neu, führ mich zum ersten Erfolg“ | noch keine; `tutorial-erste-schritte.md` entsteht in EPIC-P57 T57.4 |
 | **how-to** — Ziel erreichen | „Wie mache ich X?“ | `onboarding.md`, `operations-runbook.md`, `backup-restore.md`, `fleet.md`, `loops.md`, `local-llm.md`, `desktop-companion.md`, `workplace-runbook.md`, `forge-runbook.md`, `ci-runbook.md`, `testing-e2e.md`, `aspark-factory-mqtt.md`, `p12-abnahme-checkliste.md` |
-| **referenz** — Fakten nachschlagen | „Was genau heißt Feld/Befehl/Spalte Y?“ | `configuration.md`, `adapters.md`, `harness-matrix.md`, `funktionsinventar.md`, `commit-notation.md`, `ci-gate-inventar.md`, `check-context.md`, `design-system.md`, `factory-schnittstelle.md`, `epic-status.md`, `uebersicht.md` |
+| **referenz** — Fakten nachschlagen | „Was genau heißt Feld/Befehl/Spalte Y?“ | `configuration.md`, `adapters.md`, `harness-matrix.md`, `funktionsinventar.md`, `commit-notation.md`, `ci-gate-inventar.md`, `check-context.md`, `referenz-hubctl.md`, `referenz-config.md`, `referenz-wizard.md` (generiert, siehe unten), `design-system.md`, `factory-schnittstelle.md`, `epic-status.md`, `uebersicht.md` |
 | **erklaerung** — Verstehen | „Warum ist es so?“ | `architecture.md`, `security.md`, `interrupted-sessions.md`, `zoom-robuste-flaechen.md`, `einstellungen-empfehlungen.md` |
+
+## Generierte Referenz
+
+`referenz-hubctl.md`, `referenz-config.md` und `referenz-wizard.md` entstehen
+aus dem Code (`npm run docs:reference`, `scripts/gen-reference.mjs`): hubctl-
+`usage`, dem zod-Schema `HubConfig` und dem Kopf von `setup.sh`. Nicht von
+Hand ändern — `check:context` (Regel `reference-fresh`) scheitert bei
+veraltetem Stand. Erklärtexte dazu bleiben in
+[`configuration.md`](configuration.md) und [`onboarding.md`](onboarding.md).
 
 ## Pflege
 
