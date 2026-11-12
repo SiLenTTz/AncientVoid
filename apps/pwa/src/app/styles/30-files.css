@@ -18,9 +18,9 @@
 .files-identity { padding: 0 8px 4px; font-size: 0.8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .files-tabs { display: flex; gap: 4px; padding: 0 6px 6px; overflow-x: auto; align-items: center; }
 .files-tab { display: inline-flex; align-items: center; }
-.files-tab-close { background: none; border: 0; color: var(--fg-dim); cursor: pointer; padding: 0 4px; }
+.files-tab-close,
 /* EPIC-P48: Datei-Tab in eigenes Fenster (T46.8-Rest) — gleiche Fläche wie ×. */
-.files-tab-popout { background: none; border: 0; color: var(--fg-dim); cursor: pointer; padding: 0 4px; }
+.files-tab-popout { display: inline-grid; place-items: center; min-width: var(--icon-target); min-height: var(--icon-target); background: none; border: 0; color: var(--fg-dim); cursor: pointer; padding: 0; font-size: var(--icon-glyph); line-height: 1; }
 .files-tab-popout:hover { color: var(--accent); }
 .files-ignored { margin-left: auto; white-space: nowrap; font-size: 0.85em; }
 .files-body { flex: 1; min-height: 0; overflow: auto; padding: 0 4px 8px; }

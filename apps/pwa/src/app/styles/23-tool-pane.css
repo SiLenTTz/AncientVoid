@@ -40,10 +40,10 @@
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius-sm);
   color: var(--fg-dim);
-  width: 32px;
-  height: 32px;
+  min-width: var(--icon-target);
+  height: var(--icon-target);
   font: inherit;
-  font-size: calc(18px * var(--font-scale, 1));
+  font-size: calc(var(--icon-glyph) + 2px);
   line-height: 1;
   cursor: pointer;
 }

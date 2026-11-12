@@ -141,12 +141,43 @@
 .queue-list {
   padding: 4px 8px;
   font-size: calc(12px * var(--font-scale, 1));
+  /* Große Symbol-Tasten machen Zeilen hoch — eine lange Warteschlange scrollt selbst statt den Dock zu sprengen (BUG-0098). */
+  max-height: min(30vh, 240px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .queue-item {
   display: flex;
-  gap: 8px;
-  align-items: baseline;
+  gap: 4px;
+  align-items: center;
   padding: 2px 0;
+}
+
+.icon-action {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--icon-target);
+  min-height: var(--icon-target);
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--icon-glyph);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.icon-action:hover,
+.icon-action:focus-visible {
+  border-color: var(--bg-chip);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.icon-action.danger {
+  color: var(--err);
 }
 .queue-text {
   flex: 1;

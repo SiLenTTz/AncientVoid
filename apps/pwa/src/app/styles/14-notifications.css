@@ -90,10 +90,14 @@
   font-size: calc(12px * var(--font-scale, 1));
 }
 .toast-close {
+  min-width: var(--icon-target);
+  min-height: var(--icon-target);
   background: none;
   border: none;
   color: var(--fg-dim);
-  padding: 10px;
+  padding: 0;
+  font-size: var(--icon-glyph);
+  line-height: 1;
   cursor: pointer;
 }
 .notif-panel {
