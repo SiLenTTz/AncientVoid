@@ -462,6 +462,42 @@ export interface PiProviderBody {
   replace?: boolean;
 }
 
+/** Verbindungs-Registry (Optionen): VoidWarden-Instanzen und Modell-/Tool-Endpoints. */
+export type EndpointKind = "llm" | "image" | "video" | "other";
+
+export interface VoidWardenConnection {
+  id: string;
+  name: string;
+  endpoint?: string;
+  tokenLabel: string;
+  createdAt: string;
+  /** Letzte authentifizierte Anfrage des Instanz-Tokens an den Hub; null = noch nie gemeldet. */
+  lastSeenAt: string | null;
+}
+
+export interface EndpointProbeResult {
+  at: string;
+  ok: boolean;
+  httpStatus: number | null;
+  detail: string | null;
+}
+
+export interface EndpointEntry {
+  id: string;
+  name: string;
+  kind: EndpointKind;
+  baseUrl: string;
+  hasKey: boolean;
+  models: string[];
+  createdAt: string;
+  probe: EndpointProbeResult | null;
+}
+
+export interface ConnectionsBody {
+  voidwarden: VoidWardenConnection[];
+  endpoints: EndpointEntry[];
+}
+
 /** ADR-0004 — account-level usage/quota window, e.g. claude's real
  * "five_hour"/"seven_day". `id` is a free string, not an enum. */
 export interface UsageWindow {
@@ -863,6 +899,19 @@ function createHubApi(P: (path: string) => string) {
   removeCustomModel: (id: string) => api<{ ok: boolean }>(P(`/api/models/custom?id=${encodeURIComponent(id)}`), { method: "DELETE" }),
   addPiProvider: (adapterId: string, body: PiProviderBody) =>
     api<{ ok: boolean; created: boolean; backup: string | null }>(P(`/api/adapters/${encodeURIComponent(adapterId)}/provider`), { method: "POST", body: JSON.stringify(body) }),
+  /** Verbindungs-Registry: VoidWarden-Instanzen (Token einmalig sichtbar) und Endpoints (Schlüssel write-only). */
+  connections: () => api<ConnectionsBody>(P("/api/connections")),
+  addVoidWarden: (body: { name: string; endpoint?: string }) =>
+    api<{ connection: VoidWardenConnection; token: string }>(P("/api/connections/voidwarden"), { method: "POST", body: JSON.stringify(body) }),
+  updateVoidWarden: (id: string, body: { name: string; endpoint?: string; rotate?: boolean }) =>
+    api<{ connection: VoidWardenConnection; token?: string }>(P(`/api/connections/voidwarden/${id}`), { method: "PUT", body: JSON.stringify(body) }),
+  removeVoidWarden: (id: string) => api<{ ok: boolean }>(P(`/api/connections/voidwarden/${id}`), { method: "DELETE", body: "{}" }),
+  addEndpoint: (body: { name: string; kind: EndpointKind; baseUrl: string; apiKey?: string | null; models: string[] }) =>
+    api<{ endpoint: EndpointEntry }>(P("/api/connections/endpoints"), { method: "POST", body: JSON.stringify(body) }),
+  updateEndpoint: (id: string, body: { name: string; kind: EndpointKind; baseUrl: string; apiKey?: string | null; models: string[] }) =>
+    api<{ endpoint: EndpointEntry }>(P(`/api/connections/endpoints/${id}`), { method: "PUT", body: JSON.stringify(body) }),
+  removeEndpoint: (id: string) => api<{ ok: boolean }>(P(`/api/connections/endpoints/${id}`), { method: "DELETE", body: "{}" }),
+  probeEndpoint: (id: string) => api<{ endpoint: EndpointEntry }>(P(`/api/connections/endpoints/${id}/probe`), { method: "POST", body: "{}" }),
   adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
   projects: () => api<ProjectDiscoveryResult>(P("/api/projects")),
   /** T-PJ1: create a project (git init) in the first projectRoot. */

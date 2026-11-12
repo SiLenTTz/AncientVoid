@@ -1,5 +1,6 @@
 import { FleetSettings } from "../fleet/Fleet.tsx";
 import { AppearanceSettings } from "./AppearanceSettings.tsx";
+import { ConnectionsSettings } from "./ConnectionsSettings.tsx";
 import { DevicesSettings } from "./DevicesSettings.tsx";
 import { FontSettings } from "./FontSettings.tsx";
 import { GeminiSettings } from "./GeminiSettings.tsx";
@@ -26,6 +27,7 @@ export function SettingsPage({ onSwitchToken }: { onSwitchToken: () => void }) {
         <div class="settings-col">
           <DevicesSettings />
           <FleetSettings />
+          <ConnectionsSettings />
           <GeminiSettings />
           <SecuritySettings onSwitchToken={onSwitchToken} />
         </div>

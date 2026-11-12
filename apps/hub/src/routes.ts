@@ -21,6 +21,7 @@ import { registerOrchestrationRoutes } from "./modules/orchestration/orchestrati
 import { registerLoopsRoutes } from "./modules/loops/loops.routes.ts";
 import { registerFactoryRoutes } from "./modules/factory/factory.routes.ts";
 import { registerCommandRoutes } from "./modules/commands/commands.routes.ts";
+import { registerConnectionRoutes } from "./modules/connections/connections.routes.ts";
 import { registerReviewsRoutes } from "./modules/reviews/reviews.routes.ts";
 import { registerForgeRoutes } from "./modules/forge/forge.routes.ts";
 import { registerAutomationsRoutes } from "./modules/automations/automations.routes.ts";
@@ -56,4 +57,5 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
   registerAutomationsRoutes(app, ctx);
   registerBrowserRoutes(app, ctx);
   registerDeviceRoutes(app, ctx);
+  registerConnectionRoutes(app, ctx);
 }

@@ -78,8 +78,9 @@ export class TokenService {
   list(): { label: string; createdAt: string; lastUsedAt: string | null; capabilities: string[] }[] {
     const rows = this.db
       .prepare("SELECT label, created_at, last_used_at, capabilities FROM device_tokens ORDER BY created_at")
-      .all() as unknown as { label: string; createdAt: string; lastUsedAt: string | null; capabilities: string | null }[];
-    return rows.map((r) => ({ ...r, capabilities: readCapabilities(r.capabilities) }));
+      .all() as unknown as { label: string; created_at: string; last_used_at: string | null; capabilities: string | null }[];
+    // Spaltennamen mappen, nicht nur casten — sonst ist lastUsedAt immer undefined (aufgefallen am Verbindungs-Status).
+    return rows.map((r) => ({ label: r.label, createdAt: r.created_at, lastUsedAt: r.last_used_at, capabilities: readCapabilities(r.capabilities) }));
   }
 
   revoke(label: string): number {
