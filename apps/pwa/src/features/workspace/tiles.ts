@@ -8,7 +8,7 @@
  * brings it back instead of silently dropping it.
  */
 
-export const LAYOUTS = ["1", "2v", "2h", "1+2", "2x2"] as const;
+export const LAYOUTS = ["1", "2v", "3v", "2h", "1+2", "2x2"] as const;
 export type Layout = (typeof LAYOUTS)[number];
 
 export interface TileRef {
@@ -23,18 +23,19 @@ export interface Workspace {
   /** QoL 2026-10-29: gezogene Kachelgrößen — Anteil der ersten Spalte
    * (zweispaltige Layouts) bzw. ersten Zeile (zweizeilige) als Bruchteil,
    * je auf 0.2–0.8 geklemmt. Ohne Angabe gilt der Layout-Default. */
-  sizes?: { col?: number; row?: number };
+  sizes?: { col?: number; row?: number; col2?: number };
   /** EPIC-P34 T34.10: Sessions, die in einem eigenen Fenster laufen. Fehlt in alten Ständen. */
   detached?: TileRef[];
 }
 
-const COUNT: Record<Layout, number> = { "1": 1, "2v": 2, "2h": 2, "1+2": 3, "2x2": 4 };
+const COUNT: Record<Layout, number> = { "1": 1, "2v": 2, "3v": 3, "2h": 2, "1+2": 3, "2x2": 4 };
 /** "Open in a new tile" grows along this path. */
 const GROW: Record<number, Layout> = { 1: "2v", 2: "1+2", 3: "2x2" };
 
 export const LAYOUT_LABELS: Record<Layout, string> = {
   "1": "Eine Kachel",
   "2v": "Zwei nebeneinander",
+  "3v": "Drei nebeneinander",
   "2h": "Zwei übereinander",
   "1+2": "Eine groß, zwei daneben",
   "2x2": "Vier als Raster",
@@ -113,15 +114,17 @@ export function closeTile(ws: Workspace, index: number): Workspace {
 export const MIN_TILE_SHARE = 0.2;
 export const MAX_TILE_SHARE = 0.8;
 
-/** Wirksame Anteile inklusive Layout-Default („1+2“ startet 1.35:1). */
-export function tileFractions(ws: Workspace): { col: number; row: number } {
+/** Wirksame Anteile inklusive Layout-Default („1+2“ startet 1.35:1, „3v“ drittelgleich).
+ * col2 ist die zweite Spaltengrenze des Dreispalters und bleibt immer ein Stück rechts von col. */
+export function tileFractions(ws: Workspace): { col: number; row: number; col2: number } {
   const clamp = (v: number | undefined, d: number) =>
     typeof v === "number" && Number.isFinite(v) ? Math.min(MAX_TILE_SHARE, Math.max(MIN_TILE_SHARE, v)) : d;
-  return { col: clamp(ws.sizes?.col, ws.layout === "1+2" ? 0.575 : 0.5), row: clamp(ws.sizes?.row, 0.5) };
+  const col = clamp(ws.sizes?.col, ws.layout === "1+2" ? 0.575 : ws.layout === "3v" ? 1 / 3 : 0.5);
+  return { col, row: clamp(ws.sizes?.row, 0.5), col2: Math.max(clamp(ws.sizes?.col2, 2 / 3), col + 0.1) };
 }
 
 /** Ein beendeter Divider-Zug: Anteil speichern (geklemmt auf 0.2–0.8). */
-export function resizeTile(ws: Workspace, axis: "col" | "row", fraction: number): Workspace {
+export function resizeTile(ws: Workspace, axis: "col" | "row" | "col2", fraction: number): Workspace {
   const f = Math.min(MAX_TILE_SHARE, Math.max(MIN_TILE_SHARE, fraction));
   return { ...ws, sizes: { ...ws.sizes, [axis]: f } };
 }
@@ -180,8 +183,9 @@ export function parseWorkspace(raw: string | null): Workspace {
       ? {
           ...(typeof (sizes as { col?: unknown }).col === "number" ? { col: (sizes as { col: number }).col } : {}),
           ...(typeof (sizes as { row?: unknown }).row === "number" ? { row: (sizes as { row: number }).row } : {}),
+          ...(typeof (sizes as { col2?: unknown }).col2 === "number" ? { col2: (sizes as { col2: number }).col2 } : {}),
         }
       : undefined;
   const away = Array.isArray(detached) ? detached.map(tileRef).filter((r): r is TileRef => r !== null) : [];
-  return focusTile({ ...ws, ...(sized && (sized.col !== undefined || sized.row !== undefined) ? { sizes: sized } : {}), ...(away.length > 0 ? { detached: away } : {}) }, typeof focus === "number" ? focus : 0);
+  return focusTile({ ...ws, ...(sized && (sized.col !== undefined || sized.row !== undefined || sized.col2 !== undefined) ? { sizes: sized } : {}), ...(away.length > 0 ? { detached: away } : {}) }, typeof focus === "number" ? focus : 0);
 }
