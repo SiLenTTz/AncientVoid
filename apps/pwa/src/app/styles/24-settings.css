@@ -376,3 +376,84 @@
     z-index: 1;
   }
 }
+
+/* Verbindungs-Registry (Optionen): VoidWarden-Instanzen und Modell-/Tool-Endpoints. */
+.connection-group {
+  display: grid;
+  gap: 6px;
+  padding: 10px 0 4px;
+  border-top: 1px solid var(--bg-chip);
+}
+
+.connection-group-title {
+  font-size: calc(12px * var(--font-scale, 1));
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.connection-entry {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--bg-chip);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-chip) 20%, var(--bg-elev));
+}
+
+.connection-entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.connection-name {
+  font-weight: 600;
+  font-size: calc(13px * var(--font-scale, 1));
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.connection-status {
+  font-size: calc(12px * var(--font-scale, 1));
+  white-space: nowrap;
+}
+
+.connection-status.ok {
+  color: var(--ok);
+}
+
+.connection-status.err {
+  color: var(--err);
+}
+
+.connection-url,
+.connection-models {
+  font-size: calc(12px * var(--font-scale, 1));
+  overflow-wrap: anywhere;
+}
+
+.connection-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.connection-token {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--ok);
+  border-radius: 10px;
+}
+
+.connection-token-title {
+  font-weight: 600;
+  font-size: calc(13px * var(--font-scale, 1));
+}
+
+.connection-token-value {
+  font-size: calc(12px * var(--font-scale, 1));
+  overflow-wrap: anywhere;
+  user-select: all;
+}
