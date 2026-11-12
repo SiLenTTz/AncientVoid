@@ -1390,6 +1390,57 @@ export class SessionManager {
     }
   }
 
+  /** BUG-0123 (ADR-0070): repair a session whose native binding went stale
+   * (the agent lost the provider session). Drops the dead binding, visibly,
+   * and continues in the SAME session with the handover draft as the next
+   * prompt — the hub tail is the only surviving context, so it is rebuilt
+   * from there. Serialized like every other session input. */
+  repair(sessionId: string, actor?: string): Promise<Ack> {
+    const previous = this.steerQueue.get(sessionId) ?? Promise.resolve();
+    const run = previous.then(() => this.repairNow(sessionId, actor));
+    const settled = run.then(() => undefined, () => undefined);
+    this.steerQueue.set(sessionId, settled);
+    void settled.then(() => { if (this.steerQueue.get(sessionId) === settled) this.steerQueue.delete(sessionId); });
+    return run;
+  }
+
+  private async repairNow(sessionId: string, actor?: string): Promise<Ack> {
+    if (actorKind(actor) !== "human" && actorKind(actor) !== "fleet") return { ok: false, detail: "Nur Menschen dürfen eine Session reparieren." };
+    const session = this.openStopped(sessionId);
+    if (!session) {
+      const record = this.get(sessionId);
+      if (!record) return { ok: false, detail: "unknown session" };
+      return { ok: false, detail: `Session mit Status „${record.status}" ist nicht reparierbar — Adapter registriert?` };
+    }
+    const draft = await this.handoverDraft(sessionId);
+    // The one live shape that may repair: idle right after the adapter
+    // degraded a lost native id (promptless resume/adoption) — the binding
+    // is already fresh, only the context feed was missing.
+    const idleLost = session.record.status === "idle" && session.handle !== null && draft.reason?.category === "session";
+    if (!idleLost && session.record.status !== "stopped" && session.record.status !== "error" && session.record.status !== "interrupted") {
+      return { ok: false, detail: `Session läuft gerade (Status „${session.record.status}") — Reparieren gilt für steckengebliebene Sessions.` };
+    }
+    if (idleLost) {
+      await this.emitPrompt(session, draft.prompt, actor);
+      return this.submitAndWait(session, undefined, null, actor, "prompt", () =>
+        session.adapter.steer(session.handle!, { kind: "prompt", text: draft.prompt }, this.makeContext(session)));
+    }
+    const stale = session.record.nativeSessionId;
+    if (stale) {
+      // Field name `staleNativeId` on purpose: the record fold pins every
+      // payload field `nativeSessionId` — that one must not resurrect.
+      await this.emitSystem(session, "session.native_binding_dropped", {
+        staleNativeId: stale,
+        actor: actor ?? null,
+        detail: "Provider-Session nicht mehr vorhanden — Kontext wird aus dem Verlauf neu aufgebaut",
+      });
+      session.record.nativeSessionId = null;
+      this.persist(session.record);
+    }
+    await this.emitPrompt(session, draft.prompt, actor);
+    return this.continueStopped(session, { kind: "prompt", text: draft.prompt }, actor);
+  }
+
   /** Steers of one session run one after another. Input-id, revision and
    * lease checks only hold if no second steer passes them while the first
    * is still awaiting (BUG-0017: two clients reopened a stopped run twice). */
@@ -2029,9 +2080,13 @@ export class SessionManager {
     const events = await this.store.replay(sessionId);
     let reason: { category: string; title: string; detail: string } | null = null;
     for (let i = events.length - 1; i >= 0 && !reason; i--) {
-      const p = events[i]!.payload as { kind?: unknown; category?: unknown; title?: unknown; detail?: unknown };
+      const p = events[i]!.payload as { kind?: unknown; category?: unknown; title?: unknown; detail?: unknown; error?: unknown; cause?: unknown };
       if (p.kind === "session.prompt") break;
       if (p.kind === "provider.error") reason = { category: String(p.category ?? "unknown"), title: String(p.title ?? events[i]!.summary), detail: String(p.detail ?? "") };
+      // BUG-0123: the agent lost the native session — the same handover
+      // machinery serves it (draft text and reason), category "session".
+      else if (p.kind === "acp.context_lost") reason = { category: "session", title: "Agent hat den Verlauf verloren", detail: String(p.cause ?? events[i]!.summary) };
+      else if (p.kind === "session.start_failed" && /resource not found/i.test(String(p.error ?? ""))) reason = { category: "session", title: "Provider-Session verloren", detail: String(p.error ?? "") };
     }
     return { prompt: buildHandoverPrompt(events, { adapter: record.adapter, model: record.model, ...(reason ? { reason } : {}) }), adapter: record.adapter, model: record.model, reason };
   }

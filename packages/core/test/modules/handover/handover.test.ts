@@ -101,4 +101,37 @@ describe("SessionManager.handover (EPIC-P21 T21.2)", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it("BUG-0123: eine verlorene Provider-Session wird als Grund „session“ erkannt", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-handover-lost-"));
+    let lost = false;
+    const flaky: Adapter = {
+      ...quiet("flaky"),
+      async start(spec, ctx) {
+        const resume = ((spec.args ?? {}) as { resumeSessionId?: unknown }).resumeSessionId;
+        if (lost && resume === "native_weg") {
+          ctx.emit({ type: "system", summary: "flaky: Start fehlgeschlagen", payload: { kind: "session.start_failed", error: "Resource not found: not found: native_weg" } });
+          throw new Error("Resource not found: not found: native_weg");
+        }
+        ctx.emit({ type: "system", summary: "flaky · Session", payload: { kind: "acp.native_session", nativeSessionId: "native_weg" } });
+        return { sessionId: ctx.sessionId };
+      },
+    };
+    const registry = new AdapterRegistry();
+    registry.register("flaky", () => flaky);
+    const manager = new SessionManager(new HubDatabase(":memory:"), new EventStore(dir), registry, new ProcessRunner());
+    try {
+      const source = await manager.create({ adapter: "flaky", project: dir, prompt: "Aufgabe Y" });
+      await manager.stop(source.id, "tester");
+      lost = true;
+      await manager.steer(source.id, { kind: "prompt", text: "Bitte setze die unterbrochene Arbeit fort." }, "jan-pixel");
+      const draft = await manager.handoverDraft(source.id);
+      expect(draft.reason).toMatchObject({ category: "session", title: "Provider-Session verloren" });
+      expect(draft.prompt).toContain("Grund: Provider-Session verloren");
+      expect(draft.prompt).toContain("Aufgabe Y");
+    } finally {
+      await manager.shutdown();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });
