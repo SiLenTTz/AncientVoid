@@ -147,6 +147,12 @@ function handle(msg) {
       // back as session/update notifications — the hub must not map them
       // to a second copy of the turn.
       const loaded = params?.sessionId;
+      // BUG-0123: ids starting acp_lost are gone at the agent (maki live
+      // 2026-11-11: “Resource not found” + data “not found: <id>”) — the
+      // load itself fails; the hub must degrade, not die.
+      if (typeof loaded === "string" && loaded.startsWith("acp_lost")) {
+        return send({ id, error: { code: -32001, message: "Resource not found", data: `not found: ${loaded}` } });
+      }
       if (loaded) {
         update(loaded, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "This is a substantial analysis task: replayed." } });
         update(loaded, { sessionUpdate: "tool_call", toolCallId: "call_replay", title: "git log", kind: "execute", status: "pending", rawInput: { command: "git log" } });
