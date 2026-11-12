@@ -28,13 +28,29 @@ function targetOf(node: EventTarget | null): HTMLElement | null {
  * Ein von der App ausdrücklich gesetztes `data-tip`/`aria-label` gewinnt weiter.
  */
 const adopted = new WeakSet<HTMLElement>();
+/** Ob aria-label von uns stammt (Element war/bleibt textlos) — nur dann darf es dem Titel folgen. */
+const labeled = new WeakSet<HTMLElement>();
 
 export function adoptTitle(el: HTMLElement): void {
   const title = el.getAttribute("title");
   if (!title) return;
   const wasAdopted = adopted.has(el);
   if (wasAdopted || !el.hasAttribute("data-tip")) el.setAttribute("data-tip", title);
-  if (wasAdopted || (!el.hasAttribute("aria-label") && !(el.textContent ?? "").trim())) el.setAttribute("aria-label", title);
+  // aria-label ausschließlich für textlose Ziele (Icon-Buttons wie der VoiceSheet-Orb).
+  // Einem Button mit sichtbarem Text den Titel als Namen zu geben stiehlt ihm den
+  // Namen (getByRole/Screenreader) — reale Wirkung: „Mit Modell straffen“ hieß danach
+  // „Der Text geht dafür an opencode“ (harness.spec T21.2, 2026-11-12).
+  const textless = !(el.textContent ?? "").trim();
+  if (!el.hasAttribute("aria-label") && textless) {
+    el.setAttribute("aria-label", title);
+    labeled.add(el);
+  } else if (labeled.has(el)) {
+    if (textless) el.setAttribute("aria-label", title);
+    else {
+      el.removeAttribute("aria-label");
+      labeled.delete(el);
+    }
+  }
   el.removeAttribute("title");
   adopted.add(el);
 }

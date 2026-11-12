@@ -47,7 +47,7 @@ export function HandoverBar({ failure, session, api, onHandedOver, onRepaired }:
   );
 }
 
-function HandoverForm({ session, api, onCancel, onHandedOver }: { session: SessionRecord; api: HubApi; onCancel: () => void; onHandedOver: (created: SessionRecord) => void }) {
+export function HandoverForm({ session, api, onCancel, onHandedOver }: { session: SessionRecord; api: HubApi; onCancel: () => void; onHandedOver: (created: SessionRecord) => void }) {
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
   const [target, setTarget] = useState("");
   const [model, setModel] = useState("");
