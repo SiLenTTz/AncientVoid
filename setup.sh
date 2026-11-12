@@ -154,22 +154,26 @@ else
   say "4/5 PWA bauen — übersprungen (--no-pwa)"
 fi
 say "4b/5 Device-Token"
-mkdir -p data
-if [ ! -f data/.setup-first-token ]; then
-  TOKEN_OUT="$(node apps/hubctl/src/cli.ts token issue "$LABEL" --db data/hub.db)" || exit 4
+DATA_DIR="$(node -e 'const {resolve}=require("node:path");process.stdout.write(resolve(require("./hub.config.json").dataDir ?? "./data"))')" || exit 3
+TOKEN_DB="$DATA_DIR/hub.db"
+TOKEN_MARKER="$DATA_DIR/.setup-first-token"
+mkdir -p "$DATA_DIR" || exit 4
+if [ ! -f "$TOKEN_MARKER" ]; then
+  TOKEN_OUT="$(node apps/hubctl/src/cli.ts token issue "$LABEL" --db "$TOKEN_DB")" || exit 4
   TOKEN="$(printf '%s\n' "$TOKEN_OUT" | grep -v '^token for' | head -n1)"
-  printf '\n  Device-Token für die PWA (einmalig sichtbar!):\n  %s\n\n  Jetzt notieren: PWA öffnen → „Device-Token“ einfügen.\n  Weitere Tokens später: npm run hubctl -- token issue <name>\n' "$TOKEN"
-  : > data/.setup-first-token   # nur Marker (git-ignored) — das Token selbst steht NIE auf Disk
+  printf '\n  Device-Token für die PWA (einmalig sichtbar!):\n  %s\n\n  Jetzt notieren: PWA öffnen → „Device-Token“ einfügen.\n' "$TOKEN"
+  printf '  Weitere Tokens: npm run hubctl -- token issue <name> --db %q\n' "$TOKEN_DB"
+  : > "$TOKEN_MARKER"   # nur Marker (git-ignored) — das Token selbst steht NIE auf Disk
 else
   echo "bereits ein Token über den Wizard ausgestellt — ausstellbar bei Bedarf:"
-  echo "  npm run hubctl -- token issue <name> --db data/hub.db"
+  printf '  npm run hubctl -- token issue <name> --db %q\n' "$TOKEN_DB"
 fi
 if [ "$VOIDWARDEN" = 1 ]; then
   say "4c/5 VoidWarden-Tokens (Kaskade — danach im VoidWarden-Repo ./setup.sh)"
   # hubctl präfixt die Labels selbst: agent:voidwarden (nur lesen) und
   # display:web-1 (lesen + write-Freigaben entscheiden, ADR-0001 Least Privilege).
-  node apps/hubctl/src/cli.ts token issue "voidwarden" --agent --db data/hub.db || exit 4
-  node apps/hubctl/src/cli.ts token issue "web-1" --display --db data/hub.db || exit 4
+  node apps/hubctl/src/cli.ts token issue "voidwarden" --agent --db "$TOKEN_DB" || exit 4
+  node apps/hubctl/src/cli.ts token issue "web-1" --display --db "$TOKEN_DB" || exit 4
   echo "  Beide Tokens (read-only bzw. Freigaben) einmalig sichtbar — für"
   echo "  VoidWardens voidwarden.config.json als Dateien ablegen (Modus 600)."
 fi
