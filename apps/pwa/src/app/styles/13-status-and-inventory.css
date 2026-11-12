@@ -35,14 +35,22 @@
 .attach-cmd-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
+}
+
+/* Regel 8 (Design-System): lange Befehlswörter brechen um statt zu scrollen. */
+.attach-cmd-row .chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .attach-cmd-row code {
   flex: 1;
   font-size: calc(12px * var(--font-scale, 1));
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* T5.1 inventory table and T5.3 discovery rows */

@@ -82,7 +82,14 @@
 .filter-bar {
   display: flex;
   gap: 6px;
-  overflow-x: auto;
+  flex-wrap: wrap;
   padding: 8px 0;
   scrollbar-width: none;
+}
+
+/* Regel 8 (Design-System): Chip-Text bricht um statt abzuschneiden. */
+.filter-bar .chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
