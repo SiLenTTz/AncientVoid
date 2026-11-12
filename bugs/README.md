@@ -148,5 +148,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0135](bug-0135-setup-voidwarden-zweittokens.md) | Wiederholtes VoidWarden-Setup stellt zusätzliche Tokens aus | open | S3 | ops | [#56](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/56) |
 | [BUG-0136](bug-0136-vormerkung-streichen-kommt-zurueck.md) | Gestrichene vorgemerkte Nachricht ist nach dem Neuladen wieder da | done | S2 | pwa, server | — |
 | [BUG-0137](bug-0137-nyx-fab-laesst-sich-nicht-ziehen.md) | Der Voice-FAB lässt sich mit der Maus kaum verschieben | done | S3 | pwa | — |
+| [BUG-0138](bug-0138-nyx-fab-verdeckt-dock-tasten.md) | Voice-FAB liegt in der Standardposition auf den Dock-Tasten | done | S2 | pwa | — |
 
-Die nächste freie Nummer ist **0138**.
+Die nächste freie Nummer ist **0139**.
