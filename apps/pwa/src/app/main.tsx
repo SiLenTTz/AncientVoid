@@ -1,3 +1,4 @@
+import { TooltipLayer } from "../shared/Tooltip.tsx";
 import { render, type ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { App } from "./App.tsx";
@@ -323,6 +324,7 @@ function Main() {
 
   return (
     <>
+      <TooltipLayer />
       {!wide && <NotificationCenter />}
       {wide && listCollapsed && <NotificationCenter corner />}
       {staleAt && (
