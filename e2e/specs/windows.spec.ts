@@ -1,4 +1,4 @@
-import { test, expect, dockGo } from "../support/fixtures.ts";
+import { test, expect, dockGo, clickClosing } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 
 /** EPIC-P34 T34.10 (AC-P34-9, AC-P34-10): Kacheln und Werkzeuge in eigenen Fenstern, Abstimmung über den Kanal. */
@@ -62,9 +62,7 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     expect(await writes(popup)).not.toContain("ancientvoid.workspace");
     expect(await writes(popup)).not.toContain("ancientvoid.lastSession");
 
-    const closed = popup.waitForEvent("close");
-    await popup.getByRole("button", { name: "In die App zurück" }).click();
-    await closed;
+    await clickClosing(popup, popup.getByRole("button", { name: "In die App zurück" }));
     await expect(app.locator('[data-tile="1"] .session-topbar')).toBeVisible();
     await expect(app.locator(".badge-window")).toHaveCount(0);
     expect(JSON.parse((await app.evaluate(() => localStorage.getItem("ancientvoid.workspace")))!).detached).toBeUndefined();
@@ -112,9 +110,7 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     await expect(app.locator(".tool-pane")).toHaveCount(0);
     await popup.keyboard.press("Escape");
     await expect(popup.locator(".settings-page")).toBeVisible();
-    const closed = popup.waitForEvent("close");
-    await popup.getByRole("button", { name: "In die App zurück" }).click();
-    await closed;
+    await clickClosing(popup, popup.getByRole("button", { name: "In die App zurück" }));
   });
 
   test("nach einem Neuladen des Hauptfensters melden sich offene Fenster wieder an @desktop", async ({ app, hub, context }) => {
