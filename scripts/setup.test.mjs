@@ -63,3 +63,37 @@ describe("setup: Tokens gehören zum konfigurierten Hub (BUG-0130)", () => {
     expect(existsSync(join(root, "data/hub.db"))).toBe(false);
   });
 });
+
+describe("setup: OpenAI-Eingaben werden sauber serialisiert und früh geprüft (BUG-0134)", () => {
+  function openaiFixture() {
+    const root = fixture();
+    rmSync(join(root, "hub.config.json"));
+    mkdirSync(join(root, "apps/hub"), { recursive: true });
+    copyFileSync(join(repo, "apps/hub/hub.config.example.json"), join(root, "apps/hub/hub.config.example.json"));
+    return root;
+  }
+  const wizard = (root, args) => spawnSync("bash", ["setup.sh", "--yes", "--adapter=openai", "--device-label=setup-test", "--no-pwa", "--no-start", ...args], {
+    cwd: root, env: { ...process.env, PATH: `${join(root, "bin")}:${process.env.PATH}` }, encoding: "utf8", timeout: 20_000,
+  });
+
+  it.each(['a"b', "a\\b", "qwen2.5-coder:7b"])("Modell %s landet unverändert in hub.config.json", (model) => {
+    const root = openaiFixture();
+    const result = wizard(root, ["--base-url=http://127.0.0.1:8080/v1", `--model=${model}`]);
+    expect(result.status, result.stderr).toBe(0);
+    const local = JSON.parse(readFileSync(join(root, "hub.config.json"), "utf8")).adapters.find((a) => a.id === "local-llm");
+    expect(local.config).toEqual({ baseUrl: "http://127.0.0.1:8080/v1", model });
+  });
+
+  it.each([
+    ["Zeilenumbruch im Modell", ["--base-url=http://127.0.0.1:8080/v1", "--model=a\nb"], /Modell/],
+    ["leeres Modell", ["--base-url=http://127.0.0.1:8080/v1", "--model= "], /Modell/],
+    ["URL ohne Schema", ["--base-url=localhost:8080/v1", "--model=m"], /baseUrl/],
+  ])("%s: Exit 2 mit klarer Meldung, keine Config", (_name, args, message) => {
+    const root = openaiFixture();
+    const result = wizard(root, args);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toMatch(message);
+    expect(result.stderr).not.toMatch(/SyntaxError/);
+    expect(existsSync(join(root, "hub.config.json"))).toBe(false);
+  });
+});
