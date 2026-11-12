@@ -1382,6 +1382,8 @@ function createHubApi(P: (path: string) => string) {
     api<AutomationDefinition>(P(`/api/automations/${encodeURIComponent(id)}/enable`), { method: "POST", body: JSON.stringify({ enabled, generation }) }),
   automationRunNow: (id: string, generation: number) =>
     api<AutomationHistoryEntry>(P(`/api/automations/${encodeURIComponent(id)}/run-now`), { method: "POST", body: JSON.stringify({ generation }) }),
+  automationResolve: (id: string, claimKey: string, note: string) =>
+    api<AutomationHistoryEntry>(P(`/api/automations/${encodeURIComponent(id)}/resolve`), { method: "POST", body: JSON.stringify({ claimKey, note }) }),
   automationHistory: async (id: string): Promise<AutomationHistoryEntry[]> =>
     (await api<{ history: AutomationHistoryEntry[] }>(P(`/api/automations/${encodeURIComponent(id)}/history`))).history,
   steer: async (id: string, input: SteerInput, inputId?: string, takeover = false, queue = false): Promise<Ack> => {

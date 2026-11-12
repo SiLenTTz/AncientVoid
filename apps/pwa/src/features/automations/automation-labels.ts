@@ -27,6 +27,7 @@ export function outcomeLabel(outcome: string): string {
   if (outcome === "succeeded") return "erfolgt";
   if (outcome === "cancelled") return "abgebrochen";
   if (outcome === "failed") return "fehlgeschlagen";
+  if (outcome === "abandoned") return "aufgegeben";
   return outcome === "timeout" ? "Zeitüberschreitung" : outcome;
 }
 

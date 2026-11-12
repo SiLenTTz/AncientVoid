@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { AutomationDefinition, AutomationEnableBody, AutomationExecuteBody } from "@ancientvoid/contracts";
+import { AutomationDefinition, AutomationEnableBody, AutomationExecuteBody, AutomationResolveBody } from "@ancientvoid/contracts";
 import type { RouteContext } from "../../route-context.ts";
 
 /**
@@ -28,6 +28,7 @@ export function registerAutomationsRoutes(app: FastifyInstance, ctx: RouteContex
     app.patch("/api/automations/:id", off);
     app.post("/api/automations/:id/enable", off);
     app.post("/api/automations/:id/run-now", off);
+    app.post("/api/automations/:id/resolve", off);
     return;
   }
   const service = deps.automations;
@@ -89,5 +90,16 @@ export function registerAutomationsRoutes(app: FastifyInstance, ctx: RouteContex
       const claim = service.requestRunNow(id, parsed.data.generation);
       return reply.code(202).send(claim);
     } catch (err) { return reply.code(409).send({ error: String(err) }); }
+  });
+
+  // ADR-0072: einen unklaren Start ohne Referenz menschlich aufgeben.
+  app.post("/api/automations/:id/resolve", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const parsed = AutomationResolveBody.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "Aufgeben braucht den Claim und eine Notiz" });
+    try {
+      const claim = service.resolveUnknown(id, parsed.data.claimKey, parsed.data.note);
+      return claim ?? reply.code(404).send({ error: "unbekannter Claim" });
+    } catch (err) { return reply.code(409).send({ error: err instanceof Error ? err.message : String(err) }); }
   });
 }

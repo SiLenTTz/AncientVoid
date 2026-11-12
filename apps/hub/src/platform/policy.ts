@@ -62,6 +62,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   // EPIC-P41 (ADR-0064): Verwaltung und Run-now — die Tabelle entscheidet (Mensch+Flotte; Agenten deny).
   if (path === "/api/automations" && method === "POST") return "automations.manage";
   if (/^\/api\/automations\/[^/]+\/run-now$/.test(path)) return "automations.runNow";
+  if (/^\/api\/automations\/[^/]+\/resolve$/.test(path)) return "automations.manage";
   if (/^\/api\/automations\/[^/]+\/enable$/.test(path) || (path.startsWith("/api/automations/") && method === "PATCH")) return "automations.manage";
   return null;
 }

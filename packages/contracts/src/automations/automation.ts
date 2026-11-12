@@ -99,8 +99,12 @@ export const AUTOMATION_SKIP_REASONS = [
 export const AutomationSkipReason = z.enum(AUTOMATION_SKIP_REASONS);
 export type AutomationSkipReason = z.infer<typeof AutomationSkipReason>;
 
-/** Ergebnis des referenzierten Laufs — nur gespiegelt, nie erfunden (Premortem 3). */
-export const AutomationOutcome = z.enum(["succeeded", "failed", "timeout", "cancelled"]);
+/**
+ * Ergebnis des referenzierten Laufs — nur gespiegelt, nie erfunden (Premortem 3).
+ * `abandoned`: ein unklarer Start ohne Referenz, vom Menschen aufgegeben; das
+ * tatsächliche Ergebnis bleibt unbekannt (ADR-0072).
+ */
+export const AutomationOutcome = z.enum(["succeeded", "failed", "timeout", "cancelled", "abandoned"]);
 export type AutomationOutcome = z.infer<typeof AutomationOutcome>;
 
 /**
@@ -192,3 +196,5 @@ export type AutomationInfo = z.infer<typeof AutomationInfo>;
 export const AutomationEnableBody = z.object({ enabled: z.boolean(), generation: z.number().int().positive().optional() })
   .refine(value => !value.enabled || value.generation !== undefined, "Aktivierung braucht die geprüfte Generation");
 export const AutomationExecuteBody = z.object({ generation: z.number().int().positive() });
+/** ADR-0072: einen unklaren Start ohne Referenz aufgeben — die Notiz ist Pflicht, sie ist der Beleg. */
+export const AutomationResolveBody = z.object({ claimKey: z.string().min(1).max(300), note: z.string().trim().min(1).max(300) });

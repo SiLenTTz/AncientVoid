@@ -15,6 +15,17 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
   const definition = info.definition;
   const [template, setTemplate] = useState<OrchestrationRunStart | null>(null);
   const [templateError, setTemplateError] = useState("");
+  const [resolving, setResolving] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [resolveError, setResolveError] = useState("");
+  const resolve = async (claimKey: string) => {
+    setResolveError("");
+    try {
+      await api.automationResolve(definition.id, claimKey, note.trim());
+      setResolving(null); setNote("");
+      setHistory(await api.automationHistory(definition.id));
+    } catch (err) { setResolveError(err instanceof Error ? err.message : "Aufgeben fehlgeschlagen"); }
+  };
   useEffect(() => {
     let alive = true; setTemplate(null); setTemplateError("");
     if (definition.target.kind === "run" && !offline) void api.automationTemplate(definition.id).then(value => { if (alive) setTemplate(value); }).catch(err => { if (alive) setTemplateError(String(err)); });
@@ -60,6 +71,15 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
         {entry.sessionId && <a href={sessionHash(entry.sessionId, remoteHost(host))}>Session ↗</a>}
         {entry.runId && <a href={`#/runs?run=${encodeURIComponent(entry.runId)}${host ? `&host=${encodeURIComponent(host)}` : ""}`}>Run ↗</a>}
       </div>
+      {/* ADR-0072: ohne Referenz gibt es keinen Abgleich — nur ein Mensch kann den Plan wieder freigeben. */}
+      {entry.state === "unknown" && !entry.sessionId && !entry.runId && (resolving === entry.claimKey
+        ? <form class="automation-resolve" onSubmit={e => { e.preventDefault(); void resolve(entry.claimKey); }}>
+          <label>Notiz (warum aufgeben?)<input value={note} maxLength={300} required onInput={e => setNote(e.currentTarget.value)} /></label>
+          <button type="submit" class="btn" disabled={offline || !note.trim()}>Als aufgegeben abschließen</button>
+          <button type="button" class="btn" onClick={() => { setResolving(null); setNote(""); setResolveError(""); }}>Abbrechen</button>
+          {resolveError && <div class="files-error" role="alert">{resolveError}</div>}
+        </form>
+        : <button type="button" class="btn" disabled={offline} onClick={() => { setResolving(entry.claimKey); setNote(""); setResolveError(""); }}>Aufgeben…</button>)}
     </li>)}</ul>}
   </div>;
 }

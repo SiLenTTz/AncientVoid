@@ -76,6 +76,7 @@ Usage:
   hubctl automations enable <id>                    Aktivierung = menschliche Freigabe (Generation bleibt)
   hubctl automations disable <id>                   stoppt zukünftige Termine, laufende Arbeit unverändert
   hubctl automations run-now <id>                   eigener Lauf jetzt; Ergebnis kommt aus der referenzierten Ausführung
+  hubctl automations resolve <id> <claimKey> --note <text>  unklaren Start ohne Referenz aufgeben, gibt den Plan frei (ADR-0072)
   hubctl backup create --config <hub.config.json> --out <file> --key-file <file>
   hubctl backup restore --archive <file> --data-dir <empty-dir> --config-out <file> --key-file <file>
   hubctl backup prune --dir <archive-dir> --keep <count> [--apply]   preview unless --apply
