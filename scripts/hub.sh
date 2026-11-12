@@ -3,8 +3,18 @@
 #   scripts/hub.sh start|stop|status|logs
 set -euo pipefail
 cd "$(dirname "$0")/.."
-PIDFILE="/tmp/ancientvoid-hub.pid"
-LOG="/tmp/ancientvoid-hub.log"
+# BUG-0132: PID und Log je Checkout — zwei lokale Hubs teilen sich keine Datei.
+RUN_ID="$(printf '%s' "$PWD" | cksum | cut -d' ' -f1)"
+PIDFILE="/tmp/ancientvoid-hub-$RUN_ID.pid"
+LOG="/tmp/ancientvoid-hub-$RUN_ID.log"
+LEGACY_PIDFILE="/tmp/ancientvoid-hub.pid"
+if [ ! -f "$PIDFILE" ] && [ -f "$LEGACY_PIDFILE" ]; then
+  legacy_pid="$(cat "$LEGACY_PIDFILE")"
+  # Ein vor dem Umbau gestarteter Daemon dieses Checkouts bleibt steuerbar.
+  if kill -0 "$legacy_pid" 2>/dev/null && tr '\0' '\n' < "/proc/$legacy_pid/environ" 2>/dev/null | grep -qxF "ANCIENTVOID_CONFIG=$PWD/hub.config.json"; then
+    mv "$LEGACY_PIDFILE" "$PIDFILE"
+  fi
+fi
 
 start() {
   if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
@@ -63,7 +73,9 @@ stop() {
 status() {
   if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
     echo "running (pid $(cat "$PIDFILE"))"
-    curl -s http://127.0.0.1:7373/api/health || true
+    local port
+    port="$(node -e 'try{console.log(require(process.env.ANCIENTVOID_CONFIG || "./hub.config.json").server?.port ?? 7373)}catch{console.log(7373)}' 2>/dev/null || echo 7373)"
+    curl -s "http://127.0.0.1:$port/api/health" || true
     echo
   else
     echo "not running"

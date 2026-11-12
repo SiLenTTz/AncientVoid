@@ -137,3 +137,76 @@ describe("setup: Node-Matrix ^22.18 || ^24 || >=26 (BUG-0133)", () => {
     expect(JSON.parse(readFileSync(join(repo, "package.json"), "utf8")).engines.node).toBe("^22.18.0 || ^24.0.0 || >=26.0.0");
   });
 });
+
+describe("setup: einen laufenden Hub nur mit belegter Identität übernehmen (BUG-0132)", () => {
+  const pids = [];
+  const roots = [];
+  afterEach(() => {
+    for (const pid of pids.splice(0)) { try { process.kill(pid, "SIGTERM"); } catch { /* schon beendet */ } }
+    for (const root of roots.splice(0)) {
+      const id = spawnSync("bash", ["-c", "printf '%s' \"$PWD\" | cksum | cut -d' ' -f1"], { cwd: root, encoding: "utf8" }).stdout.trim();
+      for (const ext of ["pid", "log"]) rmSync(join(tmpdir(), `ancientvoid-hub-${id}.${ext}`), { force: true });
+    }
+  });
+
+  // Stub-Hub: liest Port/dataDir aus ANCIENTVOID_CONFIG, schreibt die echte PID-Sperre und meldet /api/ready.
+  const STUB_HUB = `import { createServer } from "node:http";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { resolve } from "node:path";
+const cfg = JSON.parse(readFileSync(process.env.ANCIENTVOID_CONFIG, "utf8"));
+const dataDir = resolve(cfg.dataDir ?? "./data");
+mkdirSync(dataDir, { recursive: true });
+writeFileSync(resolve(dataDir, ".ancientvoid-hub.pid"), "hub:" + process.pid + "\\n");
+createServer((_req, res) => { res.writeHead(200, { "content-type": "application/json" }); res.end('{"ok":true}'); }).listen(cfg.server.port, "127.0.0.1");
+`;
+
+  async function freePort() {
+    const { createServer } = await import("node:net");
+    return new Promise((done) => { const s = createServer().listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => done(port)); }); });
+  }
+
+  function checkout(port) {
+    const root = fixture();
+    writeFileSync(join(root, "hub.config.json"), JSON.stringify({ server: { port }, adapters: [{ id: "dummy" }] }));
+    mkdirSync(join(root, "apps/hub/src"), { recursive: true });
+    writeFileSync(join(root, "apps/hub/src/main.ts"), STUB_HUB);
+    mkdirSync(join(root, "scripts"));
+    copyFileSync(join(repo, "scripts/hub.sh"), join(root, "scripts/hub.sh"));
+    roots.push(root);
+    return root;
+  }
+
+  const wizard = (root) => spawnSync("bash", ["setup.sh", "--yes", "--adapter=dummy", "--device-label=setup-test", "--no-pwa"], {
+    cwd: root, env: { ...process.env, ANCIENTVOID_CONFIG: "", PATH: `${join(root, "bin")}:${process.env.PATH}` }, encoding: "utf8", timeout: 40_000,
+  });
+  const lockPid = (root) => Number(readFileSync(join(root, "data/.ancientvoid-hub.pid"), "utf8").trim().replace("hub:", ""));
+
+  it("zwei Checkouts auf zwei Ports starten je ihren eigenen Hub; ein Wiederholungslauf übernimmt den eigenen", async () => {
+    const a = checkout(await freePort());
+    const b = checkout(await freePort());
+    const first = wizard(a);
+    if (existsSync(join(a, "data/.ancientvoid-hub.pid"))) pids.push(lockPid(a));
+    expect(first.status, first.stderr).toBe(0);
+    const second = wizard(b);
+    if (existsSync(join(b, "data/.ancientvoid-hub.pid"))) pids.push(lockPid(b));
+    expect(second.status, second.stdout + second.stderr).toBe(0);
+    expect(lockPid(a)).not.toBe(lockPid(b));
+    const again = wizard(a);
+    expect(again.status, again.stderr).toBe(0);
+    expect(again.stdout).toMatch(/eigener Hub läuft bereits/);
+  });
+
+  it("ein fremder Hub auf dem Port ist ein Konflikt: Exit 6, kein Token, kein Start", async () => {
+    const port = await freePort();
+    const foreign = checkout(port);
+    const started = spawnSync("bash", ["scripts/hub.sh", "start"], { cwd: foreign, env: { ...process.env, HUB_LOCAL: "1", ANCIENTVOID_CONFIG: join(foreign, "hub.config.json") }, encoding: "utf8", timeout: 20_000 });
+    expect(started.status, started.stdout + started.stderr).toBe(0);
+    pids.push(lockPid(foreign));
+    const mine = checkout(port);
+    const result = wizard(mine);
+    expect(result.status).toBe(6);
+    expect(result.stderr).toMatch(/nicht nachweislich zu diesem Checkout/);
+    expect(existsSync(join(mine, "data/hub.db"))).toBe(false);
+    expect(existsSync(join(mine, "data/.setup-first-token"))).toBe(false);
+  });
+});
