@@ -225,7 +225,7 @@ test.describe("Composer: Verbessern, Empfehlung, Skills (T3.9, T5.7–T5.10)", (
 });
 
 test.describe("Sprache (T1.5, T3.10)", () => {
-  // Das Voice-Sheet fragt das Mikrofon an; auf dem echten Handy öffnet das einen Berechtigungsdialog, den kein Test beantworten soll.
+  // Die Spracherkennung fragt das Mikrofon an; auf dem echten Handy öffnet das einen Berechtigungsdialog, den kein Test beantworten soll.
   test.skip(phone.active, "Mikrofon-Dialog: auf dem Handy nicht automatisierbar");
   test.beforeEach(async ({ page }) => {
     // Chromium headless has no speech service; this stands in for the
@@ -262,51 +262,6 @@ test.describe("Sprache (T1.5, T3.10)", () => {
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("bitte weitermachen");
   });
 
-  test("„stopp“ im Voice-Sheet stoppt nach Bestätigung die Session", async ({ app, hub }) => {
-    const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite LANGSAM" });
-    await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByLabel("Weitere Aktionen").click();
-    await app.locator(".session-menu").getByRole("button", { name: "Sprachbefehl" }).click();
-    await app.locator('[data-tip="Tippen zum Sprechen"]').click();
-    // Result paragraph, not the example chips (same collision as AC-P10-3).
-    await expect(app.locator("p.voice-example").filter({ hasText: "„stopp\"" })).toBeVisible();
-    await app.getByRole("button", { name: "Bestätigen" }).click();
-    await app.getByRole("button", { name: "✕" }).click();
-    await expect(statusPill(app)).toHaveAttribute("data-status", "stopped");
-  });
-
-  test("AC-P10-3: „schreibe stopp“ und „nicht stoppen“ stoppen nichts; „zeig wartende Sessions“ läuft sofort", async ({ app, hub }) => {
-    const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite LANGSAM" });
-    await app.goto(`${hub.origin}/#/sessions/${id}`);
-    const speak = async (text: string, opts: { immediate?: boolean } = {}) => {
-      await app.evaluate((t) => ((globalThis as unknown as { __speech: string }).__speech = t), text);
-      await app.getByLabel("Weitere Aktionen").click();
-      await app.locator(".session-menu").getByRole("button", { name: "Sprachbefehl" }).click();
-      await app.locator('[data-tip="Tippen zum Sprechen"]').click();
-      // Ein Befehl, der sofort läuft, navigiert weg und schließt den Dialog — das Zitat ist dann nicht mehr da
-      // (Flake: 6 von 12 Läufen, 2026-10-28). Sein Beleg ist die Navigation unten.
-      if (opts.immediate) return;
-      // The spoken text, as the RESULT paragraph — not the example chips,
-      // which may carry the same command word-for-word (strict-mode
-      // violation when both matched, first seen 2026-10-26).
-      await expect(app.locator("p.voice-example").filter({ hasText: `„${text}"` })).toBeVisible();
-    };
-    await speak("nicht stoppen");
-    await expect(app.locator(".voice-example").filter({ hasText: /Nicht verstanden|Kein Auftrag erkannt/ })).toBeVisible();
-    await expect(app.getByRole("button", { name: "Bestätigen" })).toHaveCount(0);
-    await app.getByRole("button", { name: "✕" }).click();
-
-    await speak("schreibe stopp in die Nachricht");
-    await app.getByRole("button", { name: "Bestätigen" }).click();
-    await expect(app.getByText("eingetragen — nicht gesendet")).toBeVisible();
-    await app.getByRole("button", { name: "✕" }).click();
-    await expect(app.getByPlaceholder("Antworten…")).toHaveValue("stopp");
-    await expect(statusPill(app)).not.toHaveAttribute("data-status", "stopped");
-
-    await speak("Zeig wartende Sessions", { immediate: true });
-    await expect(app).toHaveURL(/#\/$/);
-    expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).not.toBe("stopped");
-  });
 });
 
 test.describe("Offline (K10, T8.2)", () => {

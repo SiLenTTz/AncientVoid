@@ -24,7 +24,7 @@ function targetOf(node: EventTarget | null): HTMLElement | null {
  *
  * Preact setzt `title` bei State-Wechseln erneut (vdom-Diff, nicht DOM-Abgleich):
  * Ein adoptierter Tooltip folgt daher dem jeweils aktuellen Titel, statt beim
- * ersten Wort stehen zu bleiben (VoiceSheet-Orb „Tippen zum Sprechen"/„Nochmal").
+ * ersten Wort stehen zu bleiben (Nyx-Orb „Tippen zum Sprechen“/„Nochmal“).
  * Ein von der App ausdrücklich gesetztes `data-tip`/`aria-label` gewinnt weiter.
  */
 const adopted = new WeakSet<HTMLElement>();
@@ -36,7 +36,7 @@ export function adoptTitle(el: HTMLElement): void {
   if (!title) return;
   const wasAdopted = adopted.has(el);
   if (wasAdopted || !el.hasAttribute("data-tip")) el.setAttribute("data-tip", title);
-  // aria-label ausschließlich für textlose Ziele (Icon-Buttons wie der VoiceSheet-Orb).
+  // aria-label ausschließlich für textlose Ziele (Icon-Buttons wie der Nyx-Orb).
   // Einem Button mit sichtbarem Text den Titel als Namen zu geben stiehlt ihm den
   // Namen (getByRole/Screenreader) — reale Wirkung: „Mit Modell straffen“ hieß danach
   // „Der Text geht dafür an opencode“ (harness.spec T21.2, 2026-11-12).

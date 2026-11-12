@@ -157,7 +157,7 @@ Offline-Test (Service Worker), Kamera/QR, Push, zweiter Hub oder zweiter Browser
 | Layout | `layout` | letzte Nachricht nie unter der Steuerung, Steuerung aus-/einblendbar |
 | Meldungen | `notifications` | Kontingent/Serverfehler als rote Karte oben rechts und im Chat, Weiter nach Fehler, Zug fertig, Glocke, Hub weg/wieder da |
 | Fortschritt | `progress` | Plan-Fortschritt mit Restzeit, ohne Plan nur Laufzeit, Kontingent-Zeile |
-| Arbeitsplatz | `workspace` | Archiv, Freigaben (ja/nein), Budget, Verbessern, Empfehlung, Skill-Kette, Diktat, Sprachbefehl „stopp“ |
+| Arbeitsplatz | `workspace` | Archiv, Freigaben (ja/nein), Budget, Verbessern, Empfehlung, Skill-Kette, Diktat |
 
 ### Bewusst offen (`test.fixme`)
 
