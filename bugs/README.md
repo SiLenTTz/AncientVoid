@@ -141,7 +141,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0128](bug-0128-dateibaum-detach-als-einzelfenster.md) | Herauslösen der Datei-Seitenleiste erzeugt Einzeldatei-Fenster statt einem gebündelten Fenster | done | S3 | pwa | — |
 | [BUG-0129](bug-0129-vault-ordnerwahl-symlink-ordner-fehlen.md) | Vault-Ordnerwahl: Symlink-Ordner fehlten, keine Pfad-Eingabe/Vorschläge (Fix via P51 T51.1–T51.2 / ADR-0063) | done | S3 | core | EPIC-P51 |
 | [BUG-0130](bug-0130-setup-token-falsches-datadir.md) | Setup stellt Tokens in der falschen Datenbank aus | done | S2 | ops | [#51](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/51) |
-| [BUG-0131](bug-0131-openai-fehler-still-verworfen.md) | OpenAI-Beispieladapter verschweigt Stream- und Folgepromptfehler | open | S2 | adapters | [#52](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/52) |
+| [BUG-0131](bug-0131-openai-fehler-still-verworfen.md) | OpenAI-Beispieladapter verschweigt Stream- und Folgepromptfehler | done | S2 | adapters | [#52](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/52) |
 | [BUG-0132](bug-0132-setup-verwendet-fremden-hub.md) | Wizard erklärt einen fremden Hub zum erfolgreichen eigenen Setup | open | S2 | ops | [#53](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/53) |
 | [BUG-0133](bug-0133-setup-node-mindestversion.md) | Angegebene Node-Mindestversion passt nicht zum ausführbaren Setup | open | S2 | ops | [#54](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/54) |
 | [BUG-0134](bug-0134-setup-openai-json-escaping.md) | OpenAI-Wizard serialisiert Benutzereingaben als ungültiges JSON | open | S3 | ops | [#55](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/55) |

@@ -49,6 +49,16 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const apiKey = process.env[cfg.apiKeyEnv] ?? "";
   const handles = new Map<string, EndpointHandle>();
 
+  /** Fail loud, begrenzt (K5): ein Abbruch durch die Session ist kein Fehler, alles andere ein error-Event. */
+  function reportFailure(err: unknown, ctx: AdapterContext): void {
+    if (ctx.signal.aborted) {
+      ctx.emit({ type: "system", summary: "completion aborted", payload: {} });
+      return;
+    }
+    const message = (err instanceof Error ? err.message : String(err)).slice(0, 300);
+    ctx.emit({ type: "error", summary: `endpoint call failed: ${message}`, payload: { message } });
+  }
+
   /** Stream one completion, mapping SSE chunks to normalized events. */
   async function runCompletion(handle: EndpointHandle, ctx: AdapterContext): Promise<void> {
     ctx.emit({
@@ -91,25 +101,34 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         if (!line.startsWith("data:")) continue;
         const data = line.slice(5).trim();
         if (data === "[DONE]") continue;
+        let parsed: {
+          choices?: { delta?: { content?: string; reasoning_content?: string } }[];
+          error?: { message?: unknown } | string;
+        };
         try {
-          const parsed = JSON.parse(data) as {
-            choices?: { delta?: { content?: string; reasoning_content?: string } }[];
-          };
-          const delta = parsed.choices?.[0]?.delta;
-          if (delta?.reasoning_content) {
-            reasoning += delta.reasoning_content;
-          }
-          if (delta?.content) {
-            assistant += delta.content;
-            ctx.emit({
-              type: "assistant",
-              summary: delta.content.slice(0, 120),
-              payload: { delta: delta.content },
-              tokensEst: Math.ceil(delta.content.length / 4),
-            });
-          }
+          parsed = JSON.parse(data) as typeof parsed;
         } catch {
-          // partial SSE line — ignore
+          // Die Zeile ist vollständig (am \n getrennt) — unlesbar heißt unbekanntes Format, nicht „unvollständig“.
+          ctx.emit({ type: "error", summary: "unlesbare Antwortzeile vom Endpoint", payload: { line: data.slice(0, 200) } });
+          continue;
+        }
+        if (parsed.error !== undefined) {
+          const message = String(typeof parsed.error === "string" ? parsed.error : (parsed.error.message ?? "unbekannter Fehler")).slice(0, 300);
+          ctx.emit({ type: "error", summary: `endpoint meldet Fehler: ${message}`, payload: { message } });
+          continue;
+        }
+        const delta = parsed.choices?.[0]?.delta;
+        if (delta?.reasoning_content) {
+          reasoning += delta.reasoning_content;
+        }
+        if (delta?.content) {
+          assistant += delta.content;
+          ctx.emit({
+            type: "assistant",
+            summary: delta.content.slice(0, 120),
+            payload: { delta: delta.content },
+            tokensEst: Math.ceil(delta.content.length / 4),
+          });
         }
       }
     }
@@ -134,7 +153,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     version: "0.1.0",
 
     capabilities(): AdapterCapabilities {
-      return { reasoning: true, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: { followUp: true, interrupt: false, toolGate: "none", questions: false, modelChoice: "none", skills: false, agents: false, images: false, files: false, contextFork: false } };
+      return { reasoning: true, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: { followUp: true, interrupt: false, toolGate: "none", questions: false, modelChoice: "none", skills: false, agents: false, images: false, files: false, contextFork: false, modelSwitch: false, permissionModes: [] } };
     },
 
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
@@ -145,13 +164,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       handles.set(handle.sessionId, handle);
       if (spec.prompt) {
         handle.meta.history.push({ role: "user", content: spec.prompt });
-        void runCompletion(handle, ctx).catch((err) => {
-          ctx.emit({
-            type: "error",
-            summary: `endpoint call failed: ${err instanceof Error ? err.message : String(err)}`,
-            payload: {},
-          });
-        });
+        void runCompletion(handle, ctx).catch((err: unknown) => reportFailure(err, ctx));
       }
       return handle;
     },
@@ -161,7 +174,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       if (!h) return { ok: false, detail: "unknown handle" };
       if (input.kind === "prompt") {
         h.meta.history.push({ role: "user", content: input.text });
-        void runCompletion(h, ctx).catch(() => undefined);
+        void runCompletion(h, ctx).catch((err: unknown) => reportFailure(err, ctx));
         return { ok: true };
       }
       if (input.kind === "stop") {
