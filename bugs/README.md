@@ -133,8 +133,10 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0120](bug-0120-parallele-playwright-laeufe-teilen-test-results.md) | Parallele Playwright-Läufe löschen sich gegenseitig die Artefakte | open | S3 | e2e | — |
 | [BUG-0121](bug-0121-handy-lauf-session-test-zeitueberschreitung.md) | Am echten Handy: „neue Session aus der UI“ läuft in der Gesamtfolge in die Zeitüberschreitung | open | S3 | e2e | — |
 | [BUG-0122](bug-0122-overlay-hoehen-ohne-ui-zoom-teilung.md) | Overlay-Höhen/-Breiten (Datei-Blatt, Dialoge, Composer maximiert) ohne Division durch --ui-zoom | done | S3 | pwa | P50 |
-| [BUG-0123](bug-0123-native-session-verloren-session-klemmt.md) | Verlorene Provider-Session klemmt die Hub-Session fest (kein Reparieren/Übergeben) | done | S2 | adapters | — |
-| [BUG-0124](bug-0124-suche-indexierung-qmd-schlaegt-fehl.md) | Such-Indexierung: qmd-Abfrage endet 500 statt 200 (4 rot-Tests auf main) | open | S2 | server | — |
+| [BUG-0123](bug-0123-doppelte-scrollbalken-session-kachel.md) | Zwei Scrollbalken rechts in der Session-Ansicht | done | S3 | pwa | P43 |
+| [BUG-0124](bug-0124-menue-datei-oeffnet-dateibaum-nicht.md) | „Mehr → Datei“ öffnet den Dateibaum nicht, Tab zeigt nur einen Knopf | done | S3 | pwa | P43 |
+| [BUG-0125](bug-0125-worktree-vitest-nutzt-fremde-workspace-pakete.md) | Tests im Worktree laden `@ancientvoid/*` aus dem Haupt-Checkout | open | S2 | tooling | — |
+| [BUG-0126](bug-0126-native-session-verloren-session-klemmt.md) | Verlorene Provider-Session klemmt die Hub-Session fest (kein Reparieren/Übergeben) | done | S2 | adapters | — |
+| [BUG-0127](bug-0127-suche-indexierung-qmd-schlaegt-fehl.md) | Such-Indexierung: qmd-Abfrage endet 500 statt 200 (4 rot-Tests auf main) | open | S2 | server | — |
 
-Die nächste freie Nummer ist **0125**.
-
+Die nächste freie Nummer ist **0128**.

@@ -28,7 +28,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   // T9.3: planning is reading; executing runs every step through the real
   // route with the caller's own token — that route's policy decides.
   if (path.startsWith("/api/commands/")) return "read";
-  if (/^\/api\/sessions\/[^/]+\/actions\/[^/]+$/.test(path)) return "actions.run";
+  if (/^\/api\/sessions\/[^/]+\/actions\/[^/]+$/.test(path) || /^\/api\/sessions\/[^/]+\/actions\/runs\/[^/]+\/stop$/.test(path)) return "actions.run";
   if (/^\/api\/loops\/[^/]+\/onboard$/.test(path)) return "loops.onboard";
   // ADR-0043: Factory-Lauf starten/steuern — Außenwirkung, nur Menschen (Policy-Tabelle).
   if (path === "/api/factory/start") return "factory.start";

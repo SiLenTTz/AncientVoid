@@ -7,7 +7,14 @@
 Quelle: [Vergleichsanalyse vom 05.11.2026](../docs/2026-11-05_paseo-vs-ancientvoid.md), §5; [Planungsgrundlage und Quellen](../docs/2026-11-05_paseo-umsetzungsplanung.md).
 
 **Planungsauftrag:** Der Nutzer hat am 05.11.2026 ausdrücklich detaillierte
-Epics zu den Verbesserungen der Paseo-Analyse beauftragt. Das erlaubt diese
+Epics zu den Verbesserungen der Paseo-Analyse beauftragt.
+
+> **Update 2026-11-12 (Nutzerbeauftragung):** Der Plugin-Rahmen aus diesem Epic ist die Grundlage für
+> **EPIC-P55** (Plugin-Toggles in den Settings mit Token-Ersparnis-Nachweis, Headroom-artige Context
+> Compression als `ContextPlugin` am LLM-Aufrufpunkt) — P30-Registry/Scopes dort wiederverwenden.
+>Routing-Entscheidungen (Regeln zuerst, Router-LLM nur als Fallback) stützen sich auf den Katalog hier;
+> Recherche-Grundlage: RouteLLM (lmsys, bis 85% Kostenersparnis bei 95% Qualität auf MT-Bench — gilt für
+> Chat-Workloads, nicht unbesehen für Coding-Agenten). Das erlaubt diese
 Planung vor grünen Vorgängern, aber keinen Implementierungsstart. Vor T*.1
 Vorgänger-AC mit aktueller Code-/Test-Evidenz prüfen; historische Statuszeilen
 reichen nicht. Keine neue Ausnahme von AGENTS.md durch diesen Entwurf.

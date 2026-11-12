@@ -63,7 +63,7 @@ test.describe("Herauslösen überall (EPIC-P43 T43.7)", () => {
     const tile = await openTile(app, hub, "Lege eine DATEI an");
     for (const [tab, label, kind] of [
       ["Bericht", "Bericht", "report"],
-      ["Dateien", "Dateien", "files"],
+      ["Befehle", "Befehle", "files"],
       ["GitLab", "GitLab", "forge"],
       ["Suche", "Suche", "search"],
       ["Umgebung", "Umgebung", "environment"],

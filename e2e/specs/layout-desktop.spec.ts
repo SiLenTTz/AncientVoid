@@ -35,7 +35,7 @@ test.describe("Desktop (T8.5, AC-P8-6)", () => {
     await expect(app.locator(".split-list .dock-item").last()).toHaveAttribute("title", "Dateibaum (Strg+Umschalt+E)");
 
     // EPIC-P43 T43.6: die Ansichten stehen im Kachelkopf (Griff, Titel, Zustand, Reiter, rechts Herauslösen) —
-    // Chat, Änderungen, Dateien und „Mehr“ (Verlauf, Bericht, Datei, Graph, GitLab, Suche, Umgebung).
+    // Chat, Änderungen, Befehle und „Mehr“ (Verlauf, Bericht, Datei, Graph, GitLab, Suche, Umgebung).
     const tabs = app.locator(".tile .session-topbar .tile-tabs");
     await expect(tabs.getByRole("button")).toHaveCount(4);
     const head = app.locator(".tile .session-topbar").first();

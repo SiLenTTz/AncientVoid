@@ -179,10 +179,12 @@ export interface ActionDefinition {
   id: string;
   label: string;
   kind: "test" | "git" | "tool";
+  source?: string;
   argv: string[];
   params: Record<string, { description: string; pattern: string; optional: boolean }>;
   readOnly: boolean;
   timeoutMs: number;
+  longRunning?: boolean;
 }
 
 export interface ActionRun {
@@ -190,7 +192,7 @@ export interface ActionRun {
   sessionId: string;
   actionId: string;
   argv: string[];
-  status: "running" | "succeeded" | "failed" | "timeout";
+  status: "running" | "succeeded" | "failed" | "timeout" | "stopped";
   exitCode: number | null;
   startedAt: string;
   endedAt: string | null;
@@ -1096,6 +1098,7 @@ function createHubApi(P: (path: string) => string) {
   sessionActions: (sessionId: string) => api<{ actions: ActionDefinition[]; runs: ActionRun[] }>(P(`/api/sessions/${sessionId}/actions`)),
   runAction: (sessionId: string, actionId: string, params: Record<string, string>) =>
     api<ActionRun>(P(`/api/sessions/${sessionId}/actions/${encodeURIComponent(actionId)}`), { method: "POST", body: JSON.stringify({ params }) }),
+  stopAction: (sessionId: string, runId: string) => api<ActionRun>(P(`/api/sessions/${sessionId}/actions/runs/${runId}/stop`), { method: "POST", body: "{}" }),
   actionRun: (sessionId: string, runId: string) => api<ActionRun>(P(`/api/sessions/${sessionId}/actions/runs/${runId}`)),
   /** T2.2 expand-on-tap: full hunks for one file, after /diff collapsed
    * them under K3. `commit` lädt den Hunk aus genau diesem

@@ -38,11 +38,11 @@ test.describe("Live-Hub (nur lesend)", () => {
     test.skip(local.length === 0, "keine Session auf diesem Hub");
     const s = local[0]!;
     await open(page, `#/sessions/${s.id}`);
-    // EPIC-P43 T43.4: Bericht liegt unter „Mehr“, Code heißt „Dateien“.
+    // EPIC-P43 T43.4: Bericht liegt unter „Mehr“, Code heißt „Befehle“.
     await page.locator('.subtabs-wrap [aria-haspopup="menu"]').first().click();
     await page.getByRole("menuitem", { name: "Bericht", exact: true }).click();
     await expect(page.locator(".kv-row").filter({ hasText: "Kosten" }).locator(".v")).not.toHaveText("$0");
-    await page.locator(".subtabs-wrap").first().getByRole("button", { name: /^Dateien/ }).click();
+    await page.locator(".subtabs-wrap").first().getByRole("button", { name: /^Befehle/ }).click();
     await page.getByLabel("Code durchsuchen").fill("function");
     await page.getByRole("button", { name: "Text" }).click();
     await page.locator(".code-pane").getByRole("button", { name: "Suchen" }).click();

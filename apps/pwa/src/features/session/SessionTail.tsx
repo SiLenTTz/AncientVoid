@@ -759,7 +759,7 @@ export function SessionTail({
   // Ja/Nein-Rückfrage: die letzte Assistant-Nachricht endet auf „?“ —
   // QuickConfirm bietet dann Ja/Nein, solange das Antwortfeld leer ist.
   const agentQuestion = lastAssistantQuestion(shownEvents);
-  // EPIC-P43 T43.4: vier Reiter — Chat, Änderungen (Diff und Bericht), Dateien (Code, Datei), Mehr.
+  // EPIC-P43 T43.4: vier Reiter — Chat, Änderungen (Diff und Bericht), Befehle (Code, Datei), Mehr.
   // Die übrigen Ansichten liegen unter „Mehr“; ihre Adressen und Zustände bleiben dieselben.
   type Tab = typeof activeTab;
   // Kleinkram-Regel 2: ein leerer Reiter rückt unter „Mehr“ und sagt dort in einem Satz, was fehlt.
@@ -768,14 +768,14 @@ export function SessionTail({
   const MAIN: { label: string; icon: TabIconName; tabs: readonly Tab[]; show: () => void; count?: number }[] = [
     { label: "Chat", icon: "chat", tabs: ["chat"], show: showChatTab },
     ...(noChanges ? [] : [{ label: "Änderungen", icon: "diff" as TabIconName, tabs: ["diff", "bericht"] as Tab[], show: showDiffTab, count: changed?.files ?? 0 }]),
-    { label: "Dateien", icon: "datei", tabs: ["code", "datei"], show: showCodeTab },
+    { label: "Befehle", icon: "datei", tabs: ["code", "datei"], show: showCodeTab },
   ];
   const MORE: { id: Tab; label: string; icon: TabIconName; show: () => void }[] = [
     ...(noChanges ? [{ id: "diff" as Tab, label: "Änderungen", icon: "diff" as TabIconName, show: showDiffTab }] : []),
     { id: "verlauf", label: "Verlauf", icon: "verlauf", show: showVerlaufTab },
     { id: "bericht", label: "Bericht", icon: "bericht", show: showBerichtTab },
     // Die aus dem Graph geöffnete Datei (EPIC-P48); ohne Datei sagt die Ansicht das selbst.
-    { id: "datei", label: "Datei", icon: "datei", show: () => setActiveTab("datei") },
+    { id: "datei", label: "Datei", icon: "datei", show: () => { setActiveTab("datei"); openLayer("files"); } },
     { id: "graph", label: "Graph", icon: "graph", show: () => setActiveTab("graph") },
     { id: "forge", label: "GitLab", icon: "forge", show: () => setActiveTab("forge") },
     { id: "suche", label: "Suche", icon: "suche", show: showSucheTab },
@@ -1108,12 +1108,7 @@ export function SessionTail({
             {openFile ? (
               <FileViewer target={`session=${encodeURIComponent(session.id)}`} path={openFile} hostId={remoteHost(session.hostId) ?? null} />
             ) : (
-              <div class="empty-state">
-                <p>Keine Datei geöffnet — wähle eine im Graph oder im Dateibaum.</p>
-                <button class="btn" type="button" onClick={() => openLayer("files")}>
-                  Dateibaum öffnen
-                </button>
-              </div>
+              <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} onOpenDiff={showDiffTab} />
             )}
           </>
         ) : activeTab === "suche" ? (
