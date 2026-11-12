@@ -9,7 +9,7 @@ const RISK_TEXT = { read: "liest", write: "ändert", destructive: "zerstörerisc
 const TRANSFORM_TEXT: Record<string, string> = { correct: "korrigiert", shorten: "gekürzt", translate_en: "übersetzt (Englisch)", translate_de: "übersetzt (Deutsch)", improve: "verbessert" };
 
 /** A client step — navigation and fields live in the app, not on the hub. */
-export function runClientStep(c: Record<string, string | number | boolean | null>): string {
+function runClientStep(c: Record<string, string | number | boolean | null>): string {
   const op = String(c.op);
   if (op === "nav.open") {
     location.hash = pageHash(String(c.page ?? "dashboard") as ListPage);

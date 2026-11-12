@@ -22,7 +22,6 @@ import { QueueList } from "./QueueList.tsx";
 import { PcOpenNotice } from "./PcOpenNotice.tsx";
 import { WorkspaceRuntimePane } from "../workspace/runtime/WorkspaceRuntimePane.tsx";
 import type { Page } from "../../app/Dock.tsx";
-import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
 import { GraphPane } from "../graph/GraphPane.tsx";
@@ -33,7 +32,6 @@ import { useHubStatus } from "../shell/hub-status.ts";
 import { getHere, registerField, setHere, touchField } from "../../shared/command-context.ts";
 import { useDraft } from "./draft.ts";
 import { takeHandOver } from "../../shared/media.ts";
-import { openCommandBar } from "../commands/CommandBar.tsx";
 import { getSeen, markSeen, seenKey } from "../../shared/seen.ts";
 import { loadTail, saveTail } from "./tail-cache.ts";
 import { QuickConfirm, lastAssistantQuestion } from "./QuickConfirm.tsx";
@@ -278,7 +276,6 @@ export function SessionTail({
   const pendingInput = useRef<{ text: string; id: string } | null>(null);
   // T5.5: another device holds the writer lease — offer to take it over.
   const [leaseHeld, setLeaseHeld] = useState(false);
-  const [voiceOpen, setVoiceOpen] = useState(false);
   const [archived, setArchived] = useState(session.archived === true);
   const [features, setFeatures] = useState<HarnessFeatures | null>(null);
   // EPIC-P15 T15.3: neu laden, wenn etwas vorgemerkt wurde.
@@ -910,12 +907,6 @@ export function SessionTail({
             >
               Löschen
             </button>
-            <button type="button" onClick={() => menuDo(() => setVoiceOpen(true))}>
-              Sprachbefehl
-            </button>
-            <button type="button" onClick={() => menuDo(openCommandBar)}>
-              Auftrag in Worten
-            </button>
           </div>
         </details>
         )}
@@ -1366,7 +1357,6 @@ export function SessionTail({
         {!tile && <nav class="subtabs-wrap" aria-label="Ansichten">{tabButtons}</nav>}
       </div>
       )}
-      <VoiceSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} />
       </div>
     </div>
     </ApiContext.Provider>
