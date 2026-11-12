@@ -161,3 +161,15 @@ export async function cardAction(card: Locator, name: string): Promise<void> {
   await card.locator(".row-menu-btn").click();
   await card.getByRole("menu").getByRole("menuitem", { name, exact: true }).click();
 }
+
+/**
+ * Klick auf eine Taste, die ihr eigenes Fenster schließt („In die App zurück“). Unter Last schließt das
+ * Fenster, bevor Playwright den Klick quittiert („Target closed“) — das zählt nur, wenn es wirklich zu ist.
+ */
+export async function clickClosing(page: Page, target: Locator): Promise<void> {
+  const closed = page.waitForEvent("close");
+  await target.click().catch((err: unknown) => {
+    if (!page.isClosed()) throw err;
+  });
+  await closed;
+}

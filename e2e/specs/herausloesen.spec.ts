@@ -1,5 +1,5 @@
 import type { BrowserContext, Page } from "@playwright/test";
-import { test, expect, sessionTab } from "../support/fixtures.ts";
+import { test, expect, sessionTab, clickClosing } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
 
 /**
@@ -73,9 +73,7 @@ test.describe("Herauslösen überall (EPIC-P43 T43.7)", () => {
       expect(popup.url()).toContain(`view=${kind}`);
       await expect(popup.locator(".popout-title")).toContainText(label);
       await expect(tile.locator(".detached-placeholder")).toContainText(`${label} läuft in einem eigenen Fenster.`);
-      const closed = popup.waitForEvent("close");
-      await popup.getByRole("button", { name: "In die App zurück" }).click();
-      await closed;
+      await clickClosing(popup, popup.getByRole("button", { name: "In die App zurück" }));
       await expect(tile.locator(".detached-placeholder")).toHaveCount(0);
     }
   });
