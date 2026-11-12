@@ -27,7 +27,7 @@ wenn die Exit-Kriterien von P(n-1) grün sind.
 
 ## Conventions
 
-- Node ≥ 22.5, ESM, TypeScript strict, **kein Build-Schritt für Server-Code**
+- Node 22.18+ / 24 / 26+, ESM, TypeScript strict, **kein Build-Schritt für Server-Code**
   (Node strip-types). Deshalb: **keine Parameter-Properties, keine Enums,
   keine Namespaces** — nur strip-taugliche TS-Syntax. PWA baut via Vite.
 - Imports mit `.ts`-Endung (`./foo.ts`), `import type` wo möglich.

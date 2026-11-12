@@ -1,8 +1,8 @@
 # Installation, Update und Rückkehr
 
 Dieses Runbook beschreibt den unterstützten Linux-Pfad für einen neuen Hub
-und dessen Aktualisierung. Node.js 22.5 oder neuer ist erforderlich; Node 24
-und 26 sind im Fleet-Betrieb geprüft. Jeder echte Provider braucht zusätzlich
+und dessen Aktualisierung. Unterstützt ist Node.js 22.18+, 24 oder 26+ (23 und 25 nicht);
+geprüft mit frischem Klon, siehe BUG-0133. Jeder echte Provider braucht zusätzlich
 seine eigene CLI und einen gültigen Login auf genau diesem Host.
 
 ## Desktop-App (Omarchy/Chromium)
@@ -29,7 +29,7 @@ wird von Hand angelegt — der Start Baut auf dem systemd-Hub auf:
 ```sh
 git clone <repo-url> AncientVoid
 cd AncientVoid
-node --version                  # mindestens 22.5
+node --version                  # 22.18+, 24 oder 26+
 npm ci
 npm -w @ancientvoid/pwa run build
 cp apps/hub/hub.config.example.json hub.config.json

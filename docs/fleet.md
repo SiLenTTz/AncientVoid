@@ -6,7 +6,7 @@ seine eigene PWA (ADR-0017).
 
 ## Einen Rechner aufnehmen
 
-Voraussetzungen auf dem Rechner: Linux, Node ≥ 22.5 (24/26 geprüft), git,
+Voraussetzungen auf dem Rechner: Linux, Node 22.18+, 24 oder 26+, git,
 tmux, Tailscale, SSH-Schlüssel des Heim-Rechners, `loginctl enable-linger`.
 
 ```bash
