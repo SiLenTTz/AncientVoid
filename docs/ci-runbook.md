@@ -133,3 +133,37 @@ werden nie durch Wiederholen grün (EPIC-P28 §3.3).
 3. Danach denselben sauberen Commit erneut laufen lassen und grün sehen.
 
 Die Belege (Pipeline-/Job-IDs) stehen im Epic unter Abschlussnachweisen.
+
+## 6. Runner-Queue-Vorfall 2026-11-12 — selektive Voll-Suiten
+
+**Befund.** Jede MR erzeugte zwei bis drei Pipelines (Branch- *und*
+MR-Event-Pipeline, plus main nach Merge). Von 100 letzten Pipelines: 50
+pending (großteils für bereits gemergte Refs), 33 manuell gecancelt, 11
+failed, 4 success. Der Runner (`av-docker`, Docker auf dem
+Arbeitsplatzhost, `concurrent=1`, 8 CPUs, 6-GB-Cap) arbeitete die Queue
+nicht ab, während der Host ohnehin ~21/32 GB RAM mit vollem zram belegt
+hatte (Hub, Agenten-Sessions, Factory-Runner, Desktop-Browser). Ergebnis:
+Swap-Thrash, System-Freezes — kein Kernel-OOM (0 Kills seit 10/2026),
+das System friert vorher ein. Bekanntes Schwesterbild: BUG-0111
+(Playwright-Worker-Zahl schoß den Nutzer-Browser ab → seitdem 2 lokal,
+1 in CI).
+
+**Maßnahmen (2026-11-12, umgesetzt):**
+
+1. `workflow:rules` dedupliziert: Branch-Pipelines mit offenem MR laufen
+   nie (`CI_OPEN_MERGE_REQUESTS`); die MR-Pipeline ist die eine Wahrheit.
+2. `e2e` und der neue Eigen-Job `k8` (Lasttest aus `verify` herausgelöst)
+   laufen nur noch, wenn Code-Pfade geändert sind (`rules:changes` über
+   `apps/`, `packages/`, `e2e/`, `scripts/`, Lock-/Config-Dateien). Reine
+   Doku (docs/, bugs/, epics/, *.md) zahlt keine 21,7-min-E2E und keinen
+   Lasttest. main läuft immer voll — Merge-Ergebnis bleibt fully gated.
+3. Queue-Hygiene: 50 stale Pending storniert; Pipeline-Cancel/Retry nur
+   per numerischer Pipeline-ID (IID gibt 404).
+
+**Dauer- und Ressourcendaten (Belege aus 2026-11-12):** verify ≈ Vitest
+1808 Tests + Checks ≈ Minutenbereich, 6-GB-Cap greift; e2e 496 Fälle
+21,7 min (je Worker-Paar Hub+Chromium ≈ 1,2 GB); K8 20 × 30 ev/s × 10 s
+on top; lokal: lint ~10 s, typecheck ~20 s, PWA-Build ~3 s, Einzel-Spec
+E2E 1–2 s/Test nach Boot. Regel: lokal betroffene Packages testen,
+`npm run gate` nur vor Bugfix-/Epic-MRs, vollständiges E2E nur bei
+UI-/Routen-/SessionManager-/Adapter-Änderungen (AGENTS.md).
