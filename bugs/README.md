@@ -153,5 +153,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0140](bug-0140-e2e-kartenmenue-ohne-uebergeben.md) | Kleinkram-Regel 3 kennt den Kartenmenüpunkt „Übergeben…“ nicht | done | S3 | e2e | — |
 | [BUG-0141](bug-0141-e2e-repo-graph-erwartet-einzeldatei-fenster.md) | Repo-Graph-Spec erwartet beim Herauslösen noch ein Einzeldatei-Fenster | done | S3 | e2e | — |
 | [BUG-0142](bug-0142-e2e-fenster-schliessen-rennen.md) | „In die App zurück“ wird unter Last als „Target closed“ rot | done | S3 | e2e | — |
+| [BUG-0143](bug-0143-e2e-selection-copy-ohne-fokus.md) | Markieren-kopiert-Spec unter voller Suite ohne Kopier-Bestätigung | done | S3 | e2e | — |
 
-Die nächste freie Nummer ist **0143**.
+Die nächste freie Nummer ist **0144**.
