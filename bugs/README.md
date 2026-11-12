@@ -121,7 +121,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0110](bug-0110-agent-read-mapping-kosten.md) | Agent-Token löst Kosten-/Schreib-Endpunkte ohne Approval aus | done | S4 | server | [#44](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/44) |
 | [BUG-0111](bug-0111-brave-crash-unter-voller-testlast.md) | Brave fällt unter voller lokaler Testlast aus (Renderer-SIGTRAP) | done | S3 | e2e | [#45](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/45) |
 | [BUG-0112](bug-0112-popout-fenster-scrollt-bei-ui-zoom.md) | Eigenes Fenster (Chat) scrollt als ganze Seite bei UI-Zoom | done | S2 | pwa | — |
-| [BUG-0113](bug-0113-dateien-schublade-browser-panel-ui-zoom.md) | Dateien-Schublade und Browser-Panel falsch vermessen bei UI-Zoom | open | S3 | pwa | — |
+| [BUG-0113](bug-0113-dateien-schublade-browser-panel-ui-zoom.md) | Dateien-Schublade und Browser-Panel falsch vermessen bei UI-Zoom | done | S3 | pwa | — |
 | [BUG-0114](bug-0114-vormerken-jetzt-sendens.md) | Vorgemerkte Nachricht lässt sich nicht sofort in den laufenden Zug senden | done | S3 | pwa | [#49](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/49) |
 | [BUG-0115](bug-0115-sendqueuednow-bad-request.md) | „Jetzt senden" der Vormerkung schlägt in der PWA immer mit „Bad Request" fehl (leerer JSON-Body) | done | S3 | pwa | [#50](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/50) |
 
@@ -130,7 +130,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0117](bug-0117-dock-acht-ziele-mobil.md) | Acht Dock-Ziele überlappen auf schmalen Displays | done | S2 | pwa | [#48](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/48) |
 | [BUG-0118](bug-0118-session-menue-unter-steuerung.md) | Session-Menü liegt in niedriger Kachel unter der Steuerung | done | S3 | pwa | — |
 | [BUG-0119](bug-0119-stdin-epipe-beendet-hub.md) | Ein gebrochenes stdin eines Workers beendet den ganzen Hub (EPIPE) | done | S2 | workers | — |
-| [BUG-0120](bug-0120-parallele-playwright-laeufe-teilen-test-results.md) | Parallele Playwright-Läufe löschen sich gegenseitig die Artefakte | open | S3 | e2e | — |
+| [BUG-0120](bug-0120-parallele-playwright-laeufe-teilen-test-results.md) | Parallele Playwright-Läufe löschen sich gegenseitig die Artefakte | done | S3 | e2e | — |
 | [BUG-0121](bug-0121-handy-lauf-session-test-zeitueberschreitung.md) | Am echten Handy: „neue Session aus der UI“ läuft in der Gesamtfolge in die Zeitüberschreitung | open | S3 | e2e | — |
 | [BUG-0122](bug-0122-overlay-hoehen-ohne-ui-zoom-teilung.md) | Overlay-Höhen/-Breiten (Datei-Blatt, Dialoge, Composer maximiert) ohne Division durch --ui-zoom | done | S3 | pwa | P50 |
 | [BUG-0123](bug-0123-doppelte-scrollbalken-session-kachel.md) | Zwei Scrollbalken rechts in der Session-Ansicht | done | S3 | pwa | P43 |
