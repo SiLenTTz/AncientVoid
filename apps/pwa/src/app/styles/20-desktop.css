@@ -48,7 +48,7 @@
 .desktop-cmd {
   font-family: var(--font-mono);
   font-size: calc(12px * var(--font-scale, 1));
-  overflow-x: auto;
+  overflow-wrap: anywhere;
   background: var(--bg-chip);
   padding: 8px;
   border-radius: var(--radius-sm);

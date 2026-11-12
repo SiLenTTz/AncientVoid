@@ -36,8 +36,7 @@
 .run-meta {
   display: flex;
   gap: 14px;
-  white-space: nowrap;
-  overflow-x: auto;
+  flex-wrap: wrap;
   scrollbar-width: none;
 }
 .run-meta::-webkit-scrollbar {
