@@ -7,6 +7,7 @@ import { GraphPane } from "../graph/GraphPane.tsx";
 import { FileViewer } from "../files/FileViewer.tsx";
 import { ToolPane } from "../shell/ToolPane.tsx";
 import { VaultPane } from "../vault/VaultPane.tsx";
+import { NyxFab } from "../stt/NyxFab.tsx";
 import { BrowserPanel } from "../browser/BrowserLayer.tsx";
 import { DevicePanel } from "../devices/DeviceLayer.tsx";
 import { publishHubStatus } from "../shell/hub-status.ts";
@@ -242,6 +243,7 @@ export function PopoutShell() {
           />
         </div>
       )}
+      <NyxFab />
     </div>
   );
 }

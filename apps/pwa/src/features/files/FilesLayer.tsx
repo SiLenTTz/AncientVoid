@@ -3,7 +3,7 @@ import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
 import { getHubStatus, useHubStatus } from "../shell/hub-status.ts";
 import { FilesSidebar, type FocusedSession } from "./FilesSidebar.tsx";
 import { onLayerOpen } from "../../shared/layers.ts";
-import { loadFilesState, saveFilesState, type FilesState } from "./files-model.ts";
+import { loadFilesState, rootKey, saveFilesState, type FilesState } from "./files-model.ts";
 
 /**
  * EPIC-P46 T46.4: Einstieg der rechten Sidebar. Desktop: dritte Spalte (Strg+Umschalt+E), Touch: Drawer;
@@ -57,6 +57,34 @@ export function FilesLayer({ wide, focusedSessionId }: { wide: boolean; focusedS
     };
     window.addEventListener("ancientvoid:files-open-root", on);
     return () => window.removeEventListener("ancientvoid:files-open-root", on);
+  }, []);
+
+  // ADR-0071: Git-Graph Datei-Klick → Session-Root + Datei im Explorer.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const detail = (e as CustomEvent<{ sessionId: string; path: string; hostId?: string | null }>).detail;
+      if (!detail?.sessionId || !detail.path) return;
+      const session = getHubStatus().sessions.find((s) => s.id === detail.sessionId);
+      const label = session?.title ?? session?.project.split("/").pop() ?? detail.sessionId.slice(0, 8);
+      const host = detail.hostId ?? remoteHost(session?.hostId) ?? null;
+      setState((s) => {
+        const root = {
+          kind: "session" as const,
+          id: detail.sessionId,
+          label: `Session: ${label}${host ? " (andere Maschine)" : ""}`,
+          ...(host ? { hostId: host } : {}),
+        };
+        const key = rootKey(root);
+        const existing = s.tabs.findIndex((t) => t.rootKey === key && t.path === detail.path);
+        const tabs = existing >= 0 ? s.tabs : [...s.tabs, { rootKey: key, path: detail.path }];
+        const active = existing >= 0 ? existing : tabs.length - 1;
+        const next = { ...s, open: true, root, tabs, active };
+        saveFilesState(next);
+        return next;
+      });
+    };
+    window.addEventListener("ancientvoid:files-open-path", on);
+    return () => window.removeEventListener("ancientvoid:files-open-path", on);
   }, []);
 
   useEffect(() => {

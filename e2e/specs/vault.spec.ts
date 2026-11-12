@@ -27,33 +27,35 @@ test.describe("Knowledge Vault (EPIC-P49)", () => {
     await expect(app.locator(".vault-title")).toContainText("notizen-vault");
   });
 
-  test("Anlegen → Bearbeiten → Speichern → Reload: Inhalt steht", async ({ app, hub }) => {
+  test("Anlegen → Auto-Save → Reload: Inhalt steht; Suche filtert nach Name", async ({ app, hub }) => {
     await pickVaultRoot(app, hub);
     await app.getByLabel("Neue Notiz").fill("Wichtige Erkenntnis");
     await app.getByRole("button", { name: "Anlegen" }).click();
     await expect(app.locator(".vault-row").filter({ hasText: "Wichtige Erkenntnis.md" })).toBeVisible();
-    // Nach dem Anlegen direkt im Editor.
     await expect(app.locator(".vault-textarea")).toBeVisible();
     await app.locator(".vault-textarea").fill("# Besser\n\nZwei Gedanken.\n");
-    await app.getByRole("button", { name: "Speichern", exact: true }).click();
-    await expect(app.getByText("gespeichert")).toBeVisible();
+    await expect(app.locator('[data-testid="vault-save-status"]')).toHaveText("gespeichert", { timeout: 5_000 });
+    await expect(app.getByRole("button", { name: "Speichern", exact: true })).toHaveCount(0);
+    await app.getByLabel("Neue Notiz").fill("Andere Notiz");
+    await app.getByRole("button", { name: "Anlegen" }).click();
+    await app.locator('[data-testid="vault-search"]').fill("Wichtig");
+    await expect(app.locator(".vault-row").filter({ hasText: "Wichtige Erkenntnis.md" })).toBeVisible();
+    await expect(app.locator(".vault-row").filter({ hasText: "Andere Notiz.md" })).toHaveCount(0);
     await app.reload();
     await app.locator(".vault-row").filter({ hasText: "Wichtige Erkenntnis.md" }).click();
     await app.getByRole("button", { name: "Bearbeiten" }).click();
     await expect(app.locator(".vault-textarea")).toHaveValue(/Besser/);
   });
 
-  test("Stale-Revision: externe Änderung → Speichern verweigert sichtbar, kein stiller Verlust", async ({ app, hub }) => {
+  test("Stale-Revision: externe Änderung → Auto-Save verweigert sichtbar, kein stiller Verlust", async ({ app, hub }) => {
     const dir = await pickVaultRoot(app, hub);
     await app.getByLabel("Neue Notiz").fill("Konflikt");
     await app.getByRole("button", { name: "Anlegen" }).click();
     await expect(app.locator(".vault-textarea")).toBeVisible();
-    await app.locator(".vault-textarea").fill("Fassung A");
-    // Extern ändern (wie ein anderes Fenster): die Revision weicht unter dem Editor ab.
+    // Extern ändern, bevor der Editor speichert: Revision weicht ab.
     writeFileSync(join(dir, "Konflikt.md"), "Fassung B\n");
-    await app.getByRole("button", { name: "Speichern", exact: true }).click();
-    await expect(app.getByText("hat sich unterdessen geändert", { exact: false })).toBeVisible();
-    // Der fehlgeschlagene Save überschreibt die externe Fassung nicht (kein stiller Verlust).
+    await app.locator(".vault-textarea").fill("Fassung A");
+    await expect(app.getByText("hat sich unterdessen geändert", { exact: false })).toBeVisible({ timeout: 5_000 });
     expect(readFileSync(join(dir, "Konflikt.md"), "utf8")).toBe("Fassung B\n");
   });
 

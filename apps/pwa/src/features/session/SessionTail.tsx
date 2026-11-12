@@ -26,6 +26,7 @@ import { VoiceSheet } from "../voice/VoiceSheet.tsx";
 import { SearchPane } from "../search/Search.tsx";
 import { CodePane } from "../code/CodePane.tsx";
 import { GraphPane } from "../graph/GraphPane.tsx";
+import { GitGraphPane } from "../git-graph/GitGraphPane.tsx";
 import { FileViewer } from "../files/FileViewer.tsx";
 import { StatusDot } from "../../shared/StatusDot.tsx";
 import { useHubStatus } from "../shell/hub-status.ts";
@@ -61,7 +62,7 @@ const BACKGROUND_FLUSH_MS = 50;
 /** Rows a tile without focus keeps in the DOM. */
 const BACKGROUND_ROWS = 150;
 /** Tabs that read rather than talk: the composer folds away in a desktop tile. */
-const READING_TABS: ReadonlySet<string> = new Set(["diff", "forge", "bericht", "suche", "code", "umgebung", "graph", "datei"]);
+const READING_TABS: ReadonlySet<string> = new Set(["diff", "forge", "bericht", "suche", "code", "umgebung", "graph", "git", "datei"]);
 
 /** EPIC-P18: set when this view is one tile of the desktop workspace —
  * several SessionTails then share one page. */
@@ -88,8 +89,8 @@ export function SessionTail({
   session: SessionRecord;
   onNavigate: (page: Page) => void;
   initialCode?: CodeTarget;
-  /** EPIC-P48: direkt im Graph- bzw. Datei-Tab öffnen (Hash-Routen `…/graph`, `…/datei/<path>`). */
-  initialTab?: "graph" | "datei";
+  /** EPIC-P48 / ADR-0071: Graph-, Git- oder Datei-Tab (Hash-Routen). */
+  initialTab?: "graph" | "git" | "datei";
   initialFile?: string | null;
   tile?: TileContext;
 }) {
@@ -203,8 +204,8 @@ export function SessionTail({
   // filter split above — it replaces the event list with a summary pane
   // instead of filtering it, so it needs its own bit of state rather than
   // being derived from `filter` like Chat/Verlauf are.
-  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "graph" | "datei" | "forge" | "suche" | "code" | "umgebung">(() =>
-    tile?.only ?? (initialCode ? "code" : initialTab === "graph" ? "graph" : initialFile ? "datei" : loadFilter() === "lesen" ? "chat" : "verlauf"),
+  const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "graph" | "git" | "datei" | "forge" | "suche" | "code" | "umgebung">(() =>
+    tile?.only ?? (initialCode ? "code" : initialTab === "graph" ? "graph" : initialTab === "git" ? "git" : initialFile ? "datei" : loadFilter() === "lesen" ? "chat" : "verlauf"),
   );
   const [moreOpen, setMoreOpen] = useState(false);
   // „Mehr“ schließt bei Escape und bei einem Tipp daneben — am Handy deckt das Blatt die Reiter ab.
@@ -777,6 +778,7 @@ export function SessionTail({
     // Die aus dem Graph geöffnete Datei (EPIC-P48); ohne Datei sagt die Ansicht das selbst.
     { id: "datei", label: "Datei", icon: "datei", show: () => { setActiveTab("datei"); openLayer("files"); } },
     { id: "graph", label: "Graph", icon: "graph", show: () => setActiveTab("graph") },
+    { id: "git", label: "Git", icon: "git", show: () => { setActiveTab("git"); location.hash = `${sessionHash(session.id, remoteHost(session.hostId))}/git`; } },
     { id: "forge", label: "GitLab", icon: "forge", show: () => setActiveTab("forge") },
     { id: "suche", label: "Suche", icon: "suche", show: showSucheTab },
     { id: "umgebung", label: "Umgebung", icon: "umgebung", show: showUmgebungTab },
@@ -1090,6 +1092,12 @@ export function SessionTail({
               }}
             />
           </>
+        ) : activeTab === "git" ? (
+          <GitGraphPane
+            target={`session=${encodeURIComponent(session.id)}`}
+            hostId={remoteHost(session.hostId) ?? null}
+            sessionId={session.id}
+          />
         ) : activeTab === "datei" ? (
           <>
             {openFile && (

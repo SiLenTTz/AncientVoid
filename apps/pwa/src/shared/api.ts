@@ -1,4 +1,4 @@
-import type { AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 
 export interface SessionRecord {
   id: string;
@@ -1071,6 +1071,8 @@ function createHubApi(P: (path: string) => string) {
   /** EPIC-P48 (ADR-0062): Repo-Graph und Diagnose-Überlagerung; `target` wie Code-Routen. */
   graph: (target: string) => api<GraphReport>(P(`/api/graph?${target}`)),
   graphDiagnose: (target: string) => api<GraphDiagnosis>(P(`/api/graph/diagnose?${target}`), { method: "POST", body: "{}" }),
+  /** ADR-0071: Commit-DAG mit Branches/Parents/Dateien. */
+  gitGraph: (target: string) => api<GitGraphReport>(P(`/api/git-graph?${target}`)),
   /** EPIC-P49 (ADR-0063): Knowledge Vault — Menschenfläche, Agenten bekommen 403. */
   vaultState: () => api<VaultState>(P("/api/vault/state")),
   vaultBrowse: (path?: string) => api<VaultBrowse>(P(`/api/vault/browse${path ? `?path=${encodeURIComponent(path)}` : ""}`)),
