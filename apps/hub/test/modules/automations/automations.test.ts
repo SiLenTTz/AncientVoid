@@ -25,6 +25,7 @@ describe("automations routes and policy (EPIC-P41 T41.4)", () => {
     expect(operationOf("POST", "/api/automations/abc/run-now", {})).toBe("automations.runNow");
     expect(operationOf("PATCH", "/api/automations/abc", {})).toBe("automations.manage");
     expect(operationOf("POST", "/api/automations/abc/enable", {})).toBe("automations.manage");
+    expect(operationOf("POST", "/api/automations/abc/resolve", {})).toBe("automations.manage");
   });
 
   it("launch failures keep their separate reasons instead of collapsing into one", () => {
@@ -51,6 +52,7 @@ describe("automations routes and policy (EPIC-P41 T41.4)", () => {
     const launcher: AutomationLauncher = {
       async launch(_definition, promptText, claimKey, kind) {
         launched.push({ claimKey, kind, promptText });
+        if (promptText?.startsWith("UNSICHER")) return { ok: false, reason: "host_down", uncertain: true, detail: "Verbindung während des Starts verloren" };
         return { ok: true, sessionId: `sess-${launched.length}` };
       },
     };
@@ -82,6 +84,7 @@ describe("automations routes and policy (EPIC-P41 T41.4)", () => {
     expect((await app.inject({ method: "GET", url: "/api/automations", headers: agent })).statusCode).toBe(200);
     expect((await app.inject({ method: "POST", url: "/api/automations", headers: agent, payload: { definition, promptText: PROMPT } })).statusCode).toBe(403);
     expect((await app.inject({ method: "POST", url: "/api/automations/any-id/run-now", headers: agent })).statusCode).toBe(403);
+    expect((await app.inject({ method: "POST", url: "/api/automations/any-id/resolve", headers: agent, payload: { claimKey: "k", note: "n" } })).statusCode).toBe(403);
   });
 
   it("a human creates (starts disabled), enables, and runs now through the launcher with the blob text", async () => {
@@ -119,5 +122,28 @@ describe("automations routes and policy (EPIC-P41 T41.4)", () => {
     expect((await app.inject({ method: "POST", url: "/api/automations/nope/run-now", headers: human })).statusCode).toBe(404);
     const res = await app.inject({ method: "POST", url: "/api/automations", headers: human, payload: { definition, promptText: "anderer Text" } });
     expect(res.statusCode).toBe(400);
+  });
+
+  it("ADR-0072: a human abandons an unclear start without a reference; anything else is refused", async () => {
+    const human = { authorization: `Bearer ${humanToken}` };
+    const text = "UNSICHER starten";
+    const unsure = { ...definition, id: "aut-unsure", target: { ...definition.target, promptBlobSha256: sha(text) } };
+    expect((await app.inject({ method: "POST", url: "/api/automations", headers: human, payload: { definition: unsure, promptText: text } })).statusCode).toBe(201);
+    const claimKey = (await app.inject({ method: "POST", url: "/api/automations/aut-unsure/run-now", headers: human, payload: { generation: 1 } })).json().claimKey as string;
+    const history = async (id: string) => (await app.inject({ method: "GET", url: `/api/automations/${id}/history`, headers: human })).json().history as { claimKey: string; state: string; outcome?: string; detail?: string }[];
+    await expect.poll(async () => (await history("aut-unsure"))[0]?.state).toBe("unknown");
+
+    const resolve = (id: string, payload: unknown) => app.inject({ method: "POST", url: `/api/automations/${id}/resolve`, headers: human, payload: payload as object });
+    expect((await resolve("aut-unsure", { claimKey })).statusCode).toBe(400);
+    expect((await resolve("aut-unsure", { claimKey, note: "   " })).statusCode).toBe(400);
+    expect((await resolve("aut-unsure", { claimKey: "nope", note: "x" })).statusCode).toBe(404);
+    const dispatched = (await history("aut-test")).find((h) => h.state === "dispatched")!;
+    expect((await resolve("aut-test", { claimKey: dispatched.claimKey, note: "x" })).statusCode).toBe(409);
+
+    const ok = await resolve("aut-unsure", { claimKey, note: "Hub-Log geprüft, nichts gestartet" });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json()).toMatchObject({ claimKey, state: "settled", outcome: "abandoned", detail: "manuell aufgegeben: Hub-Log geprüft, nichts gestartet" });
+    expect((await history("aut-unsure"))[0]).toMatchObject({ state: "settled", outcome: "abandoned" });
+    expect((await resolve("aut-unsure", { claimKey, note: "nochmal" })).statusCode).toBe(409);
   });
 });

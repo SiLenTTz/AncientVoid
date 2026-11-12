@@ -171,3 +171,64 @@ describe("AC-P41-4: Precheck-/Dispatch-Gründe bleiben getrennt", () => {
     expect(claim.state).toBe("unknown");
   });
 });
+
+describe("ADR-0072: einen unklaren Start ohne Referenz aufgeben", () => {
+  async function crashed() {
+    const root = await tempRoot();
+    const occurrence = "2026-06-02T00:30:00.000Z";
+    const clock = { now: Date.parse(occurrence) + 5_000 };
+    let launches = 0;
+    const launcher: AutomationLauncher = { async launch() { launches++; return { ok: true, sessionId: "s" }; } };
+    const prechecker: AutomationPrechecker = { async run() { return "ok"; } };
+    const make = () => new AutomationService({ root, hostId: "host", launcher, prechecker, now: () => clock.now });
+    const first = make();
+    const created = first.create(definition({ createdAtUtc: "2026-06-01T09:00:00.000Z" }), PROMPT);
+    first.setEnabled(created.id, true, 1);
+    first.stop();
+    const claimKey = new AutomationStore(root).claim(created.id, 1, occurrence, new Date(clock.now).toISOString(), { kind: "due" })!.claimKey;
+    return { make, service: make(), id: created.id, claimKey, clock, launches: () => launches };
+  }
+
+  it("gibt das Budget frei: abgerechnet als aufgegeben, mit Notiz, der nächste Termin startet", async () => {
+    const { service, id, claimKey, clock, launches } = await crashed();
+    clock.now = Date.parse("2026-06-03T00:30:05.000Z");
+    await service.tick();
+    expect(launches()).toBe(0);
+    expect(service.history(id)[0]).toMatchObject({ state: "skipped", reason: "overlap" });
+
+    const resolved = service.resolveUnknown(id, claimKey, "Hub abgestürzt, nichts gestartet")!;
+    expect(resolved).toMatchObject({ state: "settled", outcome: "abandoned", detail: "manuell aufgegeben: Hub abgestürzt, nichts gestartet" });
+    expect(resolved.sessionId).toBeUndefined();
+    clock.now = Date.parse("2026-06-04T00:30:05.000Z");
+    await service.tick();
+    expect(launches()).toBe(1);
+  });
+
+  it("bleibt nach einem Neustart aufgegeben (Journal, K7) und wird nicht neu gestartet", async () => {
+    const { make, service, id, claimKey, launches } = await crashed();
+    service.resolveUnknown(id, claimKey, "geprüft");
+    service.stop();
+    const restarted = make();
+    expect(restarted.history(id).find(c => c.claimKey === claimKey)).toMatchObject({ state: "settled", outcome: "abandoned" });
+    await restarted.tick();
+    expect(launches()).toBe(0);
+  });
+
+  it("lehnt ab, was kein unklarer Start ohne Referenz ist", async () => {
+    const { service, id, claimKey } = await crashed();
+    expect(service.resolveUnknown(id, "gibt-es-nicht", "x")).toBeNull();
+    expect(service.resolveUnknown("andere-automation", claimKey, "x")).toBeNull();
+    service.resolveUnknown(id, claimKey, "einmal");
+    expect(() => service.resolveUnknown(id, claimKey, "zweimal")).toThrow(/Zustand: settled/);
+  });
+
+  it("ein unklarer Start mit Referenz bleibt beim Abgleich", async () => {
+    const root = await tempRoot();
+    const store = new AutomationStore(root);
+    store.upsertDefinition(definition(), "2026-06-01T09:00:00.000Z");
+    const claim = store.claim("exit", 1, "2026-06-02T00:30:00.000Z", "2026-06-02T00:30:01.000Z")!;
+    store.updateClaim(claim.claimKey, { state: "unknown", sessionId: "s-1", detail: "Referenzierte Session nicht verfügbar" }, "2026-06-02T00:31:00.000Z");
+    const service = new AutomationService({ root, hostId: "host", launcher: { async launch() { return { ok: true }; } }, prechecker: { async run() { return "ok"; } } });
+    expect(() => service.resolveUnknown("exit", claim.claimKey, "x")).toThrow(/Referenz/);
+  });
+});

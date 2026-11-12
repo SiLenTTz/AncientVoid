@@ -122,6 +122,14 @@ export async function runAutomationsCommand(args: string[]): Promise<void> {
       console.log(`${claim.claimKey}  ${claim.state}${claim.reason ? ` (${claim.reason})` : ""}${claim.sessionId ? `  session ${claim.sessionId}` : ""}`);
       break;
     }
+    case "resolve": {
+      const [id, claimKey, flag, ...noteWords] = rest;
+      if (!id || !claimKey || flag !== "--note" || noteWords.length === 0) throw new Error("resolve braucht ID, Claim-Schlüssel und --note <Begründung>.");
+      const info = await findAutomation(id);
+      const claim = await api<AutomationHistoryEntry>(`/api/automations/${encodeURIComponent(info.definition.id)}/resolve`, { method: "POST", body: JSON.stringify({ claimKey, note: noteWords.join(" ") }) });
+      console.log(formatHistoryLine(claim));
+      break;
+    }
     case "preview": {
       if (!rest[0]) throw new Error("preview braucht eine ID.");
       const info = await findAutomation(rest[0]);
@@ -153,6 +161,6 @@ export async function runAutomationsCommand(args: string[]): Promise<void> {
       break;
     }
     default:
-      throw new Error(`unbekannter automations-Befehl: ${sub ?? "(fehlt)"} — list | show | preview | enable | disable | run-now | create | update`);
+      throw new Error(`unbekannter automations-Befehl: ${sub ?? "(fehlt)"} — list | show | preview | enable | disable | run-now | resolve | create | update`);
   }
 }

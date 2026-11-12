@@ -46,6 +46,15 @@ function fakeHub(): Promise<{ url: string; close: () => Promise<void>; requests:
       res.end(JSON.stringify({ claimKey: "auto-1:1:run", automationId: "auto-1", generation: 1, occurrenceUtc: "2026-11-12T09:00:00.000Z", state: "dispatched", sessionId: "sess-9", at: "2026-11-12T09:00:01.000Z" }));
       return;
     }
+    if (req.url === "/api/automations/auto-1/resolve") {
+      let body = "";
+      req.on("data", (chunk) => { body += chunk; });
+      req.on("end", () => {
+        const parsed = JSON.parse(body) as { claimKey: string; note: string };
+        res.end(JSON.stringify({ claimKey: parsed.claimKey, automationId: "auto-1", generation: 1, occurrenceUtc: "2026-11-12T09:00:00.000Z", state: "settled", outcome: "abandoned", detail: `manuell aufgegeben: ${parsed.note}`, at: "2026-11-12T10:00:00.000Z" }));
+      });
+      return;
+    }
     if (req.method === "POST" && req.url === "/api/automations") {
       let body = "";
       req.on("data", (chunk) => { body += chunk; });
@@ -103,6 +112,21 @@ it("P41: enable und run-now rufen die Operationen mit ihren Routen auf", async (
     expect(runNow.stdout).toContain("sess-9");
     expect(hub.requests.some((r) => r.method === "POST" && r.url === "/api/automations/auto-1/enable")).toBe(true);
     expect(hub.requests.some((r) => r.method === "POST" && r.url === "/api/automations/auto-1/run-now")).toBe(true);
+  } finally {
+    await hub.close();
+  }
+});
+
+it("ADR-0072: resolve gibt einen unklaren Start mit Notiz auf und verweigert ihn ohne", async () => {
+  const hub = await fakeHub();
+  try {
+    const run = (args: string[]) => promisify(execFile)(process.execPath, [resolve("apps/hubctl/src/cli.ts"), ...args], {
+      env: { ...process.env, ANCIENTVOID_URL: hub.url, ANCIENTVOID_TOKEN: "" },
+    });
+    await expect(run(["automations", "resolve", "auto-1", "auto-1:1:run"])).rejects.toThrow(/--note/);
+    const out = await run(["automations", "resolve", "auto-1", "auto-1:1:run", "--note", "Hub", "abgestürzt"]);
+    expect(out.stdout).toContain("settled abandoned");
+    expect(out.stdout).toContain("manuell aufgegeben: Hub abgestürzt");
   } finally {
     await hub.close();
   }

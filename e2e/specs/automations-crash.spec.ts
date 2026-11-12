@@ -66,3 +66,31 @@ test("AC-P41-3: SIGKILL zwischen Claim und Dispatch — nach dem Neustart unklar
     stopSleep(sleep);
   }
 });
+
+test("ADR-0072: den unklaren Start in der PWA mit Notiz aufgeben — der Plan startet wieder", async ({ app, hub }) => {
+  test.setTimeout(90_000);
+  const sleep = sleepFor();
+  try {
+    const { plan, claimKey } = await crashInPrecheck(hub, sleep);
+    await app.goto(`${hub.origin}/#/automationen`);
+    await app.getByRole("button", { name: /Langsame Vorprüfung/ }).click();
+    const historyList = app.getByTestId("automation-history");
+    await expect(historyList).toContainText("Start unklar");
+    await historyList.getByRole("button", { name: "Aufgeben…" }).click();
+    const submit = historyList.getByRole("button", { name: "Als aufgegeben abschließen" });
+    await expect(submit).toBeDisabled();
+    await historyList.getByLabel("Notiz (warum aufgeben?)").fill("Hub abgestürzt, nichts gestartet");
+    await submit.click();
+    await expect(historyList).toContainText("Ergebnis: aufgegeben");
+    await expect(historyList).toContainText("manuell aufgegeben: Hub abgestürzt, nichts gestartet");
+    await expect(historyList.getByRole("button", { name: "Aufgeben…" })).toHaveCount(0);
+    expect((await history(hub, plan.id)).find((h) => h.claimKey === claimKey)).toMatchObject({ state: "settled", outcome: "abandoned" });
+
+    // Das Budget ist frei: der nächste Start läuft wieder in die Vorprüfung statt in „Überschneidung“.
+    const again = await runNow(hub, plan);
+    await hub.until(async () => sleeping(sleep), "neue Vorprüfung läuft");
+    expect((await history(hub, plan.id)).find((h) => h.claimKey === again.body.claimKey)).toMatchObject({ state: "claimed" });
+  } finally {
+    stopSleep(sleep);
+  }
+});

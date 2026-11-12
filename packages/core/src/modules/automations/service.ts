@@ -173,6 +173,20 @@ export class AutomationService {
     return this.scheduler.runNow(id);
   }
 
+  /**
+   * ADR-0072: ein unklarer Start ohne Referenz wird vom Menschen aufgegeben. Gibt
+   * das Überlappungsbudget frei; kein Replay, kein erfundenes Ergebnis.
+   * null = kein solcher Claim bei dieser Automation.
+   */
+  resolveUnknown(id: string, claimKey: string, note: string): ClaimState | null {
+    const claim = this.store.claimsFor(id).find((c) => c.claimKey === claimKey);
+    if (!claim) return null;
+    if (claim.state !== "unknown") throw new Error(`Nur ein unklarer Start lässt sich aufgeben (Zustand: ${claim.state})`);
+    if (claim.sessionId || claim.runId) throw new Error("Der Start hat eine Referenz; sein Ergebnis kommt aus dem Abgleich");
+    this.log(`unknown aufgegeben ${claimKey}: ${note}`);
+    return this.store.updateClaim(claimKey, { state: "settled", outcome: "abandoned", detail: `manuell aufgegeben: ${note}`.slice(0, 500) }, new Date(this.now()).toISOString());
+  }
+
   /** Der Mensch rechnet das Ergebnis des referenzierten Laufs ab (Spiegel, K7). */
   settle(claimKey: string, outcome: AutomationOutcome): ClaimState | null {
     return this.scheduler.settle(claimKey, outcome);
