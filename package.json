@@ -41,6 +41,7 @@
     "test:live": "scripts/test-live.sh",
     "test:phone": "node scripts/phone-e2e.mjs",
     "check:workspace-links": "node scripts/check-workspace-links.mjs",
+    "epics:status": "node scripts/epic-status.mjs",
     "pretest:e2e": "npm run check:workspace-links",
     "check:names": "node scripts/check-names.mjs"
   },
