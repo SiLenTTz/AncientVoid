@@ -5,6 +5,33 @@
 # fehlende Voraussetzungen sind nie grün (Skip-Bericht im e2e-Job).
 stages: [verify, e2e]
 
+# 2026-11-12 (Runner-Queue-Vorfall, ci-runbook.md §5): jede MR erzeugte zwei
+# bis drei Pipelines (Branch + MR-Event + main), 50 Pending testeten gemergte
+# Refs — auf dem geteilten Arbeitsplatzhost sorgte der Ablauf für Swap-Thrash.
+# Duplikat-Branch-Pipelines mit offenem MR laufen nie mehr; die MR-Pipeline ist
+# die eine Wahrheit.
+workflow:
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+# Pfade, die Code-Verhalten ändern — nur sie ziehen E2E und K8-Lasttest nach
+# sich. Reine Doku (docs/, bugs/, epics/, *.md) braucht beides nicht.
+.code-paths: &code-paths
+  changes:
+    - "apps/**/*"
+    - "packages/**/*"
+    - "e2e/**/*"
+    - "scripts/**/*"
+    - "package.json"
+    - "package-lock.json"
+    - "playwright.config.ts"
+    - "vitest.config.ts"
+    - ".gitlab-ci.yml"
+
 variables:
   # check:commits vergleicht mit origin/main — GitLabs Default-GIT_DEPTH
   # (50) holt die Refs nicht, der Check würde still skippen. Voller Clone.
@@ -37,8 +64,6 @@ verify:
     - npm -w @ancientvoid/pwa run build
     - mkdir -p test-results
     - npx vitest run --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml
-    # K8 in voller Messlatte: 20 Sessions × 30 Events/s × 10 s (nicht entschärft).
-    - npm run loadtest
   artifacts:
     when: always
     expire_in: 14 days
@@ -48,6 +73,24 @@ verify:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
+
+# K8 in voller Messlatte: 20 Sessions × 30 Events/s × 10 s (nicht entschärft).
+# Eigener Job statt Teil von verify (ci-gate-inventar.md): Doku-Änderungen
+# zahlen die Last nicht, main immer.
+k8:
+  stage: verify
+  script:
+    - node --version && npm --version
+    - apt-get update -qq && apt-get install -y -qq tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep > /dev/null
+    - npm ci
+    - npm rebuild esbuild
+    - npm run loadtest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      <<: *code-paths
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH
+      <<: *code-paths
 
 # Epic gate (docs/testing-e2e.md): every UI flow against a real hub process
 # in Chromium. Blocking — no allow_failure, and Playwright fails loudly when
@@ -81,4 +124,7 @@ e2e:
       junit: test-results/e2e-junit.xml
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      <<: *code-paths
+    - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH
+      <<: *code-paths
