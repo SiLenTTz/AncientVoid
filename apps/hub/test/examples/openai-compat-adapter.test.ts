@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
+import { assertContractGreen, makeRecordingContext, runContractTests, waitFor } from "@ancientvoid/adapter-testkit";
 import { createAdapter } from "../../../../examples/adapters/openai-compat/adapter.ts";
 
 /** BUG-0131: das OpenAI-kompatible Beispiel macht Parse- und Transportfehler sichtbar — auch bei Folgeprompts. */
@@ -53,5 +53,12 @@ describe("examples/openai-compat — Fehler werden sichtbar (BUG-0131)", () => {
     await adapter().start({ adapter: "openai-compat", project: "/tmp", prompt: "test" }, ctx);
     await waitFor(() => ctx.events.some((e) => e.summary === "completion aborted"));
     expect(ctx.events.filter((e) => e.type === "error")).toHaveLength(0);
+  });
+});
+
+describe("examples/openai-compat — Adapter-Vertrag (BUG-0144)", () => {
+  it("besteht die Vertragsprüfung des adapter-testkit", async () => {
+    vi.stubGlobal("fetch", async () => sse(`data: [DONE]\n\n`));
+    assertContractGreen(await runContractTests(createAdapter, { config: { baseUrl: "http://127.0.0.1:9/v1" } }));
   });
 });

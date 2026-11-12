@@ -162,6 +162,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         meta: { history: [] },
       };
       handles.set(handle.sessionId, handle);
+      ctx.emit({ type: "system", summary: `session ready (${cfg.baseUrl})`, payload: { baseUrl: cfg.baseUrl } });
       if (spec.prompt) {
         handle.meta.history.push({ role: "user", content: spec.prompt });
         void runCompletion(handle, ctx).catch((err: unknown) => reportFailure(err, ctx));
@@ -183,7 +184,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       return { ok: true };
     },
 
-    async status(): Promise<HealthReport> {
+    async status(handle: SessionHandle): Promise<HealthReport> {
+      if (!handles.has(handle.sessionId)) return { state: "down", detail: "session stopped" };
       return { state: "healthy", detail: cfg.baseUrl };
     },
 
