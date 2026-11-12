@@ -162,7 +162,9 @@ describe("registered actions (T7.6)", () => {
     const runner = new ActionRunner({ record: async () => undefined });
     const probe = (id: string, kind: "tool" | "test") => ActionDefinition.parse({ id, label: id, kind, argv: ["sh", "-c", 'echo "CI=${CI:-} DISPLAY=${DISPLAY:-}"'] });
     const prevDisplay = process.env.DISPLAY;
+    const prevCi = process.env.CI;
     process.env.DISPLAY = ":42";
+    delete process.env.CI; // auf der Hub-Maschine ist kein CI gesetzt — nur Tests bekommen eins
     try {
       for (const [id, kind] of [["p-tool", "tool"], ["p-test", "test"]] as const) {
         const r = await runner.start("s4", root, probe(id, kind), {}, null);
@@ -172,6 +174,8 @@ describe("registered actions (T7.6)", () => {
     } finally {
       if (prevDisplay === undefined) delete process.env.DISPLAY;
       else process.env.DISPLAY = prevDisplay;
+      if (prevCi === undefined) delete process.env.CI;
+      else process.env.CI = prevCi;
     }
     expect(out).toEqual(["CI= DISPLAY=:42", "CI=1 DISPLAY=:42"]);
   });
