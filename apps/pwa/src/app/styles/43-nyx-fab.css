@@ -3,8 +3,8 @@
   position: fixed;
   /* Über dem Dock (10), unter Overlay-Sheets/Viewern — sonst blockiert der FAB „Schließen“. */
   z-index: 15;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   border: 2px solid color-mix(in srgb, var(--accent) 55%, var(--bg-chip));
   background: color-mix(in srgb, var(--bg-elev) 88%, var(--accent));
@@ -15,6 +15,13 @@
   cursor: grab;
   touch-action: none;
   user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Das Sprite ist ein <img>: ohne das startet die Maus dessen nativen Bild-Drag und bricht das Verschieben ab. */
+.nyx-fab img {
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .nyx-fab:active,
@@ -31,9 +38,9 @@
   opacity: 0.85;
 }
 
-.nyx-fab:disabled {
+/* Ohne Spracherkennung bleibt er verschiebbar — nur der Klick tut nichts. */
+.nyx-fab[aria-disabled="true"] {
   opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .nyx-fab-toast {

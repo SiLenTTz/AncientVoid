@@ -63,4 +63,24 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     const again = await app.locator('[data-testid="nyx-fab"]').boundingBox();
     expect(Math.abs((again?.y ?? 0) - (after?.y ?? 0))).toBeLessThan(8);
   });
+
+  test("lässt sich mit echter Maus ziehen (kein nativer Bild-Drag) und ist ≥ 64 px groß", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 1400, height: 900 });
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const fab = app.locator('[data-testid="nyx-fab"]');
+    const box = (await fab.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(64);
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    await app.mouse.move(cx, cy);
+    await app.mouse.down();
+    await app.mouse.move(cx - 200, cy + 120, { steps: 12 });
+    await app.mouse.up();
+    const after = (await fab.boundingBox())!;
+    expect(after.x).toBeLessThan(box.x - 150);
+    expect(after.y).toBeGreaterThan(box.y + 80);
+    // Ziehen ist kein Klick: es startet keine Aufnahme.
+    await expect(app.locator('[data-testid="nyx-fab-toast"]')).toHaveCount(0);
+  });
 });
