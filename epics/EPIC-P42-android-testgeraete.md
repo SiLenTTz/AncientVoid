@@ -77,3 +77,36 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 ## 7. Definition of Done
 
 Alle T42.* und AC-P42-* mit aktueller Evidenz, Vorgänger-Exit ausdrücklich grün. `npm run gate` und PWA-Build grün; Pipeline-Job `e2e` grün bzw. Infrastrukturfall nach `docs/ci-runbook.md` nachgezogen, niemals als Pass gezählt. Jede neue UI-Funktion/jeder Ablauf hat einen Spec in `e2e/specs/`; benötigte echte Browser-/Provider-/Geräte-Nachweise separat, Skip ≠ Pass. Neue APIs/Tools/Ansichten sind registriert, in Hub/PWA/hubctl erreichbar und dokumentiert. ADR vor Contract-Änderung, K5/K7/K8 entsprechend Scope nachgewiesen; keine offene TODO ohne Epic-Bezug. Übernommene Orca-Teile mit Commit/Pfad/Hash/Lizenz/Änderungsnotiz und eigenen Tests gemäß Planungsgrundlage.
+
+## 8. Planungsvertiefung 2026-11-10 (Evidenz; ändert Gating nicht)
+
+Planungsauftrag ohne Implementierung. Befunde am tatsächlichen Stand (main @ 7db654d, P40 gemerged; P41 offen auf `feat/p41-automationen`, T41.1–T41.3, kein MR):
+
+### 8.1 Host-Snapshot (AV-Host, 2026-11-10)
+
+- **KVM nutzbar:** `/dev/kvm` vorhanden (crw-rw-rw-), 16 Virtualisierungs-Flags, RAM 31 Gi total / ~10 Gi verfügbar. Hardware-Voraussetzung für den T42.1-Spike erfüllt; Emulatorlast braucht dennoch CPU-/RAM-Limit und Lastbudget (Premortem 1).
+- **adb 37.0.1** standalone unter `~/.local/bin/adb` — `adb devices -l` läuft ohne SDK.
+- **Fehlt:** `ANDROID_HOME`/SDK-Verzeichnis, `sdkmanager`, `avdmanager`, `emulator`-Binary, AVDs, `scrcpy`. **Konsequenz:** T42.1 blockiert bis zum ausdrücklichen Installationsauftrag (SDK-Manager + System-Image; Epic §3.1 „keine ungefragten Downloads"). Kein grüner Feature-Exit ohne echten AVD-Boot (Premortem 4). `ffmpeg` vorhanden (falls MJPEG/H.264-Transcode im Frame-Pfad nötig wird — nach Spike messen).
+
+### 8.2 Orca-Port-Hypothesen am Commit bdeb388 verifiziert
+
+- **Lizenz: MIT** (LICENSE, Copyright 2026 Lovecast Inc.) — Port mit Quellenangabe zulässig; `package.json` hat kein eigenes license-Feld, LICENSE-Datei ist maßgeblich.
+- **[adb-devices.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/main/emulator/android/adb-devices.ts) (99 Zeilen, null Imports):** bestätigt als bester Port-Kandidat. Parser für `devices -l` inkl. zweizeiligem `no permissions`-Token, `parseWmSize`, `isBootCompleted` plus argv-Helfer (`adbShellArgs(serial, cmd)` etc. — genau das argv-only-Muster, keine Shell-Strings). Unbekannte Zustände bleiben offener String-Typ → AV-seitig fail loud abbilden. Test-Datei (22 Zeilen, nur vitest + eigene Exports) direkt portierbar; eigene Negativfälle ergänzen.
+- **[android-input-mapping.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/main/emulator/android/android-input-mapping.ts) (64 Zeilen, 1 Import `EmulatorError`):** Port ok nach Ersetzen des Fehlertyps. **Nachgewiesene Lücken:** `toPixel(NaN, d)` liefert NaN (beide Vergleiche false), `toPixel(x, 0)` klemmt auf `max = -1` — die Epic-Forderung „NaN/Nullgröße ergänzen" ist konkret: Input-Zuordnung muss Frame-Geometrie > 0 validieren und sonst die Aktion verweigern (fail loud, AC-P42-4).
+- **[emulator-backend.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/main/emulator/backends/emulator-backend.ts):** in Orca-Subsysteme verdrahtet (`emulator-gesture-sender`, `emulator-failure-copy`) — nur Capability-Vorbild, keine Übernahme; AV bekommt keine freie exec-Methode.
+- **[scrcpy-stream-session.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/main/emulator/android/scrcpy-stream-session.ts) (310 Zeilen, ≥12 Imports:** `@orca/process-host`, `h264-sps-picture-size`, `relay-frame-buffer`, `android-command-runner`, `android-sdk-discovery`, `emulator-probe` …):** bestätigt „großer Abhängigkeitsbaum". MVP-Eigenbau des minimalen Frame-Pfads (`adb exec-out screencap` → JPEG/Blob, seq-nummeriert) statt Port; H.264/scrcpy erst nach gemessenem Codec-/Browser-Befund (Epic §3.1).
+
+### 8.3 AV-Anknüpfungspunkte (Bestand, main @ 7db654d)
+
+- **Kein `devices/`-Bestand** in `packages/contracts/src/`, `packages/core/src/modules/`, `apps/hub/src/modules/`, `apps/pwa/src/features/` — alle vier Schichten neu, Verortung nach ADR-0020 wie im Epic §3.2.
+- **P39-Browser als Struktur- und Frame-Vorbild:** `BROWSER_FRAME_QUALITY=60`, `BROWSER_FRAME_MIN_INTERVAL_MS=120`, Viewport-Presets, Limits für Kontexte/Artefakte/Schritte/Timeouts, Frames als `{ data: Buffer; seq: number }` (browser-service.ts:356). Die `seq`-Versionierung ist das Muster für „Input an Frame-/Geometrieversion binden, alte Klicks verweigern" (AC-P42-4) — Devices übernimmt die Limit-Disziplin mit eigenen Konstanten, keine Wiederverwendung der Browser-Contracte.
+- **Registrierte argv-Aktionen mit Frist:** Workspace-Runtime (P29) betreibt bereits `argv`+`timeoutMs`+readiness für setup/services/teardown (packages/core/test/modules/workspace/) — das AV-eigene Muster, an dem sich Emulator-/ADB-Worker-Aktionen orientieren; weiterhin keine freie `adb shell`-Route (Epic §3.2).
+- **Ergebnis-Semantik:** P41-Contract-Entwurf (Branch) führt getrennte Skip-Gründe und „dispatched ≠ succeeded" — für Device-Aktionen und Testabläufe analog übernehmen (AC-P42-2/3).
+- **E2E:** `e2e/specs/browser-workspace.spec.ts` und `orchestration.spec.ts` als Vorbild für `android-device.spec.ts`; fehlendes SDK/KVM muss sichtbar skippen/blockieren (T42.6, Skip ≠ Pass).
+
+### 8.4 Für T42.1 mitzubringende Entscheidungen (offen)
+
+1. Installationsauftrag: SDK-Pfad, System-Image/API-Level, AVD-Definition (Auflösung, API) — Nutzerentscheidung, Epic §3.1.
+2. Frame-Codec: MJPEG/Screencap-Polling vs. H.264/scrcpy — erst nach Spike-Messung auf dem Host (8.1) entscheiden.
+3. Ownership-/Lease-Felder (Host/Serial/Generation) und Ressourcenlimits (CPU/RAM/Stream-Quota) im ADR festlegen, bevor Contracts entstehen (T42.1 → T42.2).
+4. Bindung an P41-Exit: P41 T41.4–T41.6 offen; P42-Implementierungsstart bleibt gesperrt bis Vorgänger-Exit ausdrücklich grün (§ Kopf, AGENTS.md Gating).
