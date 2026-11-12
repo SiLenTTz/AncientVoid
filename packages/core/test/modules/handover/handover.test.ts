@@ -94,6 +94,12 @@ describe("SessionManager.handover (EPIC-P21 T21.2)", () => {
       expect(inn?.payload).toMatchObject({ fromSessionId: source.id, adapter: "alt" });
       expect((await manager.tail(target.id, 0)).some((e) => e.type === "user" && String(e.summary).includes("Aufgabe X"))).toBe(true);
 
+      // 2026-11-12: die Quelle pausiert sauber (manuell) — kein doppeltes
+      // Weiterlaufen und Doppelkosten, während das Ziel arbeitet.
+      expect(manager.get(source.id)?.status).toBe("parked");
+      expect(manager.get(source.id)?.parkReason).toBe("manual");
+      expect(manager.get(target.id)?.status).not.toBe("parked");
+
       await expect(manager.handover(source.id, { adapter: "neu", prompt: "" })).rejects.toThrow(/1–3500/);
       await expect(manager.handover(source.id, { adapter: "gibt-es-nicht", prompt: "x" })).rejects.toThrow();
       await expect(manager.handoverDraft("unbekannt")).rejects.toThrow(/unknown session/);
