@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { misplacedWorkspaces } from "./check-workspace-links.mjs";
+import { assertWorkspaceLinks, misplacedWorkspaces } from "./check-workspace-links.mjs";
 
 function checkout(root, linked) {
   mkdirSync(join(root, "packages", "core"), { recursive: true });
@@ -42,5 +42,21 @@ describe("check:workspace-links --fix", () => {
     checkout(worktree, false);
     linkWorkspaces(worktree, misplacedWorkspaces(worktree));
     expect(misplacedWorkspaces(worktree)).toEqual([]);
+  });
+});
+
+describe("assertWorkspaceLinks (BUG-0125: vitest bricht laut ab, statt gegen fremde Pakete zu laufen)", () => {
+  it("wirft im Worktree ohne eigene Links, mit Hinweis auf --fix", () => {
+    const main = mkdtempSync(join(tmpdir(), "ancientvoid-links-"));
+    checkout(main, true);
+    const worktree = join(main, "data", "worktrees", "s4");
+    checkout(worktree, false);
+    expect(() => assertWorkspaceLinks(worktree)).toThrow(/@ancientvoid\/core.*--fix/s);
+  });
+
+  it("ist still, wenn alle Pakete aus dem eigenen Checkout kommen", () => {
+    const main = mkdtempSync(join(tmpdir(), "ancientvoid-links-"));
+    checkout(main, true);
+    expect(() => assertWorkspaceLinks(main)).not.toThrow();
   });
 });

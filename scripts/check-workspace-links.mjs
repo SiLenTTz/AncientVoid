@@ -54,6 +54,14 @@ export function misplacedWorkspaces(root) {
   return wrong;
 }
 
+/** BUG-0125: wirft statt zu loggen — für Vitest-globalSetup, damit auch `npx vitest`/`npm test` im Worktree nie still fremde Pakete laden. */
+export function assertWorkspaceLinks(root) {
+  const wrong = misplacedWorkspaces(root);
+  if (wrong.length === 0) return;
+  const list = wrong.map((w) => `  ${w.name}: ${w.resolved ?? "nicht gefunden"} (erwartet ${w.expected})`).join("\n");
+  throw new Error(`${wrong.length} Workspace-Paket(e) laden nicht aus diesem Checkout (${root}) — die Tests würden fremden Code prüfen:\n${list}\nIm Session-Worktree: node scripts/check-workspace-links.mjs --fix (BUG-0069/BUG-0125).`);
+}
+
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   let wrong = misplacedWorkspaces(root);
