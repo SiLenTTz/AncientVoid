@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
 import { access, readdir, readFile, realpath, rename, stat, writeFile } from "node:fs/promises";
-import { basename, dirname, join, resolve, sep } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { VAULT_MAX_BYTES, VAULT_MAX_LIST, VAULT_NAME_PATTERN, type VaultBrowse, type VaultBrowseEntry, type VaultFile, type VaultListing, type VaultRead, type VaultState } from "@ancientvoid/contracts";
 import { revisionOf } from "../code/index.ts";
 
@@ -27,51 +27,81 @@ export class VaultStore {
       : { configured: false, root: null, label: null };
   }
 
-  /** Root-Wahl: muss existieren, Verzeichnis und innerhalb der Startpunkte liegen; dataDir/.git abgelehnt. */
+  /** Startpunkte begrenzen nur Browse; die explizite Root-Wahl bleibt dem Menschen frei. */
   async setRoot(path: string): Promise<VaultState> {
-    const real = await realpath(resolve(path));
-    const info = await stat(real);
-    if (!info.isDirectory()) throw new VaultError("Das Ziel ist kein Verzeichnis.", 422);
-    const forbidden = this.io.forbiddenRoot();
-    if (forbidden) {
-      const realForbidden = await realpath(forbidden).catch(() => null);
-      if (realForbidden && (real === realForbidden || real.startsWith(realForbidden + sep))) throw new VaultError("Das Datenverzeichnis des Hubs ist als Vault nicht erlaubt.", 422);
-    }
-    if (basename(real) === ".git" || real.includes(`${sep}.git${sep}`)) throw new VaultError("Innerhalb von .git liegt kein Vault.", 422);
-    if (!(await this.withinStartpoints(real))) throw new VaultError("Der Ordner liegt außerhalb der Startpunkte (Projektwurzeln/Home).", 422);
+    const real = await this.directoryReal(path);
     this.io.setRoot(real);
     return this.state();
   }
 
+  private async directoryReal(path: string): Promise<string> {
+    let real: string;
+    try {
+      real = await realpath(resolve(path));
+      if (!(await stat(real)).isDirectory()) throw new VaultError("Das Ziel ist kein Verzeichnis.", 422);
+      await access(real, constants.R_OK | constants.X_OK);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") throw new VaultError("Ordner nicht gefunden.", 422);
+      if (code === "ENOTDIR") throw new VaultError("Das Ziel ist kein Verzeichnis.", 422);
+      if (code === "EACCES" || code === "EPERM") throw new VaultError("Keine Zugriffsrechte auf den Ordner.", 422);
+      if (code === "ELOOP") throw new VaultError("Der Ordner enthält eine ungültige Symlink-Schleife.", 422);
+      throw err;
+    }
+    const forbidden = this.io.forbiddenRoot();
+    if (forbidden) {
+      const realForbidden = await realpath(forbidden).catch(() => null);
+      if (realForbidden && isInside(realForbidden, real)) throw new VaultError("Das Datenverzeichnis des Hubs ist als Vault nicht erlaubt.", 422);
+    }
+    if (basename(real) === ".git" || real.includes(`${sep}.git${sep}`)) throw new VaultError("Innerhalb von .git liegt kein Vault.", 422);
+    return real;
+  }
+
   private async withinStartpoints(real: string): Promise<boolean> {
-    const reals = await Promise.all([...this.io.browseRoots(), homeOf()].map((r) => realpath(r).catch(() => null)));
-    return reals.some((a) => a !== null && (real === a || real.startsWith(a + sep)));
+    const current = this.io.getRoot();
+    const reals = await Promise.all([...this.io.browseRoots(), homeOf(), ...(current ? [current] : [])].map((r) => realpath(r).catch(() => null)));
+    return reals.some((a) => a !== null && isInside(a, real));
   }
 
   private async rootReal(): Promise<string> {
     const root = this.io.getRoot();
     if (!root) throw new VaultError("Kein Vault-Ordner gewählt.", 422);
-    return realpath(root);
+    return this.directoryReal(root);
   }
 
   /** Verzeichnis-Browser: ohne Pfad die Startpunkte, sonst containment-geprüft eine Ebene Ordner. */
   async browse(path: string | null): Promise<VaultBrowse> {
     const roots: VaultBrowseEntry[] = [];
-    for (const r of this.io.browseRoots()) {
-      const real = await realpath(r).catch(() => null);
-      if (real) roots.push({ name: basename(real) || real, path: real });
+    const current = this.io.getRoot();
+    for (const r of [...this.io.browseRoots(), ...(current ? [current] : [])]) {
+      try {
+        const real = await this.directoryReal(r);
+        if (!roots.some(entry => entry.path === real)) roots.push({ name: basename(real) || real, path: real });
+      } catch (err) {
+        if (!(err instanceof VaultError)) throw err;
+      }
     }
     if (!path || path === "") return { path: "", parent: null, dirs: [], roots };
-    const real = await realpath(resolve(path));
+    const real = await this.directoryReal(path);
     if (!(await this.withinStartpoints(real))) throw new VaultError("Außerhalb der Startpunkte.", 422);
-    const entries = (await readdir(real, { withFileTypes: true }))
-      .filter((e) => e.isDirectory() && e.name !== ".git" && !e.name.startsWith("node_modules"))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const entries = await readdir(real, { withFileTypes: true });
+    const dirs: VaultBrowseEntry[] = [];
+    for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if ((!e.isDirectory() && !e.isSymbolicLink()) || e.name === ".git" || e.name.startsWith("node_modules")) continue;
+      const abs = join(real, e.name);
+      try {
+        const target = await this.directoryReal(abs);
+        if (await this.withinStartpoints(target)) dirs.push({ name: e.name, path: abs });
+      } catch (err) {
+        // Tote Links und gesperrte Ziele sind keine navigierbaren Ordner.
+        if (!(err instanceof VaultError)) throw err;
+      }
+    }
     const parent = dirname(real);
     return {
       path: real,
       parent: parent !== real && parent.startsWith(sep) ? parent : null,
-      dirs: entries.map((e) => ({ name: e.name, path: join(real, e.name) })),
+      dirs,
       roots: [],
     };
   }
@@ -82,13 +112,23 @@ export class VaultStore {
     const files: VaultFile[] = [];
     let truncated = false;
     const dirs: string[] = [root];
+    const visited = new Set<string>();
     while (dirs.length > 0 && !truncated) {
       const dir = dirs.shift()!;
-      const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+      let target: string;
+      try {
+        target = await this.directoryReal(dir);
+      } catch (err) {
+        if (err instanceof VaultError) continue;
+        throw err;
+      }
+      if (!isInside(root, target) || visited.has(target)) continue;
+      visited.add(target);
+      const entries = await readdir(dir, { withFileTypes: true });
       for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
         if (e.name === ".git" || e.name === "node_modules") continue;
         const abs = join(dir, e.name);
-        if (e.isDirectory()) {
+        if (e.isDirectory() || e.isSymbolicLink()) {
           dirs.push(abs);
           continue;
         }
@@ -157,8 +197,8 @@ export class VaultStore {
     const realParent = await realpath(dirname(abs)).catch(() => null);
     const inside =
       real !== null
-        ? real === rootReal || real.startsWith(rootReal + sep)
-        : realParent !== null && (realParent === rootReal || realParent.startsWith(rootReal + sep));
+        ? isInside(rootReal, real)
+        : realParent !== null && isInside(rootReal, realParent);
     if (!inside) throw new VaultError("Pfad liegt außerhalb des Vault-Ordners.", 422);
     const forGitCheck = real ?? realParent;
     if (forGitCheck?.includes(`${sep}.git${sep}`) || forGitCheck?.endsWith(`${sep}.git`)) throw new VaultError(".git ist gesperrt.", 422);
@@ -181,7 +221,11 @@ function homeOf(): string {
 }
 
 function relPosix(root: string, abs: string): string {
-  return abs.slice(root.length + 1).split(sep).join("/");
+  return relative(root, abs).split(sep).join("/");
+}
+
+function isInside(root: string, path: string): boolean {
+  return path === root || path.startsWith(root.endsWith(sep) ? root : root + sep);
 }
 
 async function exists(p: string): Promise<boolean> {

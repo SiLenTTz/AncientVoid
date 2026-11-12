@@ -23,10 +23,11 @@ Projekt-Dateien read-only); Einstellungen leben im SettingsStore (SQLite), währ
    Namens-Regex und ohne Überschreiben bestehender Dateien.
 2. **Containment wie Code-Explorer** (realpath beidseitig gegen den Vault-Root,
    `.git` gesperrt, Symlinks nach außen blockiert). Der Root wird über einen
-   serverseitigen Verzeichnis-Browser gewählt — Startpunkte sind `projectRoots`
-   und das Home-Verzeichnis des Hub-Prozesses; jede Navigation ist containment-
-   geprüft, es gibt keine frei eingebbaren Pfade. dataDir des Hubs und `.git`
-   werden abgelehnt.
+   serverseitigen Verzeichnis-Browser oder einen expliziten Pfad gewählt
+   (P51-Ergänzung unten). Startpunkte sind `projectRoots`, das Home-Verzeichnis
+   des Hub-Prozesses und der aktuelle Vault-Root; jede Browse-Navigation ist
+   containment-geprüft. Die Root-Wahl ist unabhängig von diesen Startpunkten.
+   dataDir des Hubs und `.git` werden nach realpath-Auflösung abgelehnt.
 3. **Dateiansicht über das Code-Modul**: `target()` der Code-Routen erhält das
    additive Ziel `vault=1` (Root = konfigurierter Vault-Root; 422 ohne
    Konfiguration). Damit liefert der etablierte Projekt-Explorer (tree/meta/
@@ -56,6 +57,33 @@ Projekt-Dateien read-only); Einstellungen leben im SettingsStore (SQLite), währ
   das `vault=1`-Ziel liefert die P46-Matrix ohne Kopie.
 - **Autosave/Offline-Sync** — halber Server-State und Konfliktversprechen; hier
   bewusst explizites Speichern mit Revision-Guard.
+
+## Ergänzung P51 — freie Root-Wahl und Ordner-Symlinks (11.11.2026)
+
+Der lokale Single-User-Hub soll auch vorhandene Vaults außerhalb von
+`projectRoots` und Hub-Home sowie verlinkte Ordner erreichen (Nutzerentscheid
+in EPIC-P51). Die bisherige Bindung der Root-Wahl an Browse-Startpunkte entfällt.
+Menschen mit `settings.manage` dürfen einen existierenden, zugänglichen Ordner
+über den vorhandenen `PUT /api/vault/root` wählen. Gespeichert wird dessen
+Realpfad im bisherigen SettingsStore-Key. Die freie Pfad-Eingabe im Picker ist
+separate PWA-Arbeit (T51.3); T51.1/T51.2 liefern zunächst den Unterbau.
+
+- Startpunkte dienen der Navigation. Der konfigurierte Root wird zusätzlich
+  angeboten und kann auch außerhalb der ursprünglichen Startpunkte browsen.
+  Andere Ziele außerhalb dieser Bereiche bleiben für Browse gesperrt.
+- Ordner-Symlinks werden über `realpath` und `stat` geprüft. Browse zeigt nur
+  navigierbare Ziele innerhalb seiner Bereiche; die Dateiliste folgt nur Zielen
+  innerhalb des gewählten Vault-Roots. `.git` und Hub-`dataDir` einschließlich
+  Unterordnern bleiben auch über Aliasse gesperrt. Tote Links werden ausgelassen.
+- Die rekursive Liste besucht jeden Realpfad einmal. Bei mehreren Aliasen
+  gewinnt der erste Pfad in der bestehenden sortierten Breitensuche; Dateien
+  werden nicht doppelt gelistet. Zyklen enden, `VAULT_MAX_LIST` und `truncated`
+  bleiben erhalten. Dateisymlinks werden weiterhin nicht aufgelistet.
+- Ungültige Root-Ziele melden `VaultError` mit Status 422 und Klartext, ohne
+  den zuvor gewählten Root zu ändern. HTTP-/Contract-Schemas bleiben unverändert.
+- Die zentrale Policy-Wand (`settings.manage`, Agenten-403) bleibt bestehen.
+  Vault-Pfade gehen weiterhin nicht in Events/Telemetrie. Kein neuer Zustand:
+  Root im SettingsStore, Notizen im Dateisystem, Besucht-Set nur pro Anfrage (K7).
 
 ## Folgen
 

@@ -1,6 +1,6 @@
 # EPIC-P51 — Vault-Erreichbarkeit & Tastatur-first
 
-**Status:** offen · **Phase:** P51 · **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung)
+**Status:** teilweise umgesetzt (T51.1–T51.2: Vault-Unterbau; T51.3–T51.10 offen) · **Phase:** P51 · **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung)
 **Abhängigkeit:** keine fachliche offene — Nutzerauftrag vom 11.11.2026, quer zur
 Kette (Präzedenz P47–P50). Baut auf P49 (Vault), P18/P34 (Kachel-Kürzel,
 Arbeitsfläche) auf; hebt keine offenen Abnahmen auf.
@@ -180,8 +180,8 @@ mitbereinigt — ein Zahnrad existiert nicht.
 
 ## 4. Aufgaben (Checkliste T51.m)
 
-- [ ] **T51.1** ADR-0063-Ergänzung (Root-Wahl ohne Startpunkt-Zwang, Pfad-Eingabe, Guards/Policy unverändert) vor Verhaltens-Merge; Contracts unverändert prüfen (Fehler laufen über `VaultError.message`). **K7**.
-- [ ] **T51.2** Core `VaultStore`: Symlink-Ordner in `browse()`/`list()` (stat/realpath, Besucht-Set, Cap bleibt), `setRoot` ohne Startpunkt-Zwang; Unit-Tests: Symlink-Ordner sichtbar, Symlink-Zyklus terminiert, Ausbruch weiterhin blockt, `.git`/`dataDir`-Ablehnung mit Grund. **K7**.
+- [x] **T51.1** ADR-0063-Ergänzung (Root-Wahl ohne Startpunkt-Zwang, Pfad-Eingabe, Guards/Policy unverändert) vor Verhaltens-Merge; Contracts unverändert prüfen (Fehler laufen über `VaultError.message`). **K7**.
+- [x] **T51.2** Core `VaultStore`: Symlink-Ordner in `browse()`/`list()` (stat/realpath, Besucht-Set, Cap bleibt), `setRoot` ohne Startpunkt-Zwang; Unit-Tests: Symlink-Ordner sichtbar, Symlink-Zyklus terminiert, Ausbruch weiterhin blockt, `.git`/`dataDir`-Ablehnung mit Grund. **K7**.
 - [ ] **T51.3** Picker: Pfad-Eingabefeld + Klartext-Fehler, Startpunkte + aktueller Root; E2E rot-dann-grün: Vault außerhalb der Startpunkte per Pfad wählbar, Symlink-Ordner erscheint, Ablehnungsgrund sichtbar. **K1**.
 - [ ] **T51.4** Glocke/Panel am PC ins Fenstereck (`.corner` immer bei wide), `.toast-stack`-Vorhalte bereinigen; notifications.spec um Eck-Assertion (Liste offen + eingeklappt, Zoom 130 %) erweitern. **K2**.
 - [ ] **T51.5** Shortcut-Registry bauen + Migration der 7 Streustellen (Verhalten 1:1, bestehende E2E grün), Konflikt-Unit-Test, `aria-keyshortcuts`/Tooltips aus Registry. **K1/K2**.
@@ -191,6 +191,31 @@ mitbereinigt — ein Zahnrad existiert nicht.
 - [ ] **T51.9** Omarchy-/Firefox-Kollisions-Audit (Tabelle in `docs/`, Alt+1–4-Punkt aus P18 klären), Hyprland-`pass`-Snippet-Doku, Cheat-Sheet-Anbindung. **Fail-loud**.
 - [ ] **T51.10** Abnahme: `npm run gate` grün, manuelle Firefox-/Omarchy-Prüfung am Gerät (Alt-Kürzel live), Live-Abnahme Vault-Pfad mit echtem Ordner außerhalb der Startpunkte, Retro. **K1/K2/K10**.
 - [ ] **T51.11** *(aus P43 AI-P43-1)* Schnellsuche um Inventar-Sprungziele erweitern oder bewusst begrenzen und im Inventar dokumentieren — AC-P43-1 Closeout deckt nur Sessions/Projekte/Dateien/Werkzeuge/Befehle. **K2**.
+
+### Teilumfang T51.1–T51.2 (11.11.2026)
+
+Auf separatem Branch `feat/p51-vault-store`: ADR-0063 fortgeschrieben,
+Root-Wahl ohne Startpunkt-Zwang, aktueller Root als zusätzlicher
+Browse-Einstieg, Ordner-Symlinks mit Realpfad-Besucht-Set und bestehendem
+Datei-Cap. `.git`, Hub-`dataDir`, Traversal und Symlink-Ausbrüche bleiben
+geprüft; ungültige Root-Wahl lässt den gespeicherten Root unverändert.
+Contracts und Policy bleiben unverändert, kein neuer persistenter Zustand (K7).
+
+Nachweise: `packages/core/test/modules/vault/vault.test.ts` und
+`apps/hub/test/modules/vault/vault.integration.test.ts` (21 Tests, einschließlich
+Root-Rekonstruktion, Zyklus/Alias, Cap, Fehlergründe und Agenten-403).
+Die neuen Verhaltensfälle wurden gegen den ursprünglichen Store rot geprüft.
+Der Rechte-Test ist unter UID 0 sichtbar geskippt, weil root die Dateirechte
+übergehen kann; im lokalen Lauf als normaler Nutzer wird er ausgeführt.
+
+**Abgrenzung:** Keine Picker-/Glocken-/Shortcut-Änderung, keine vollständige
+AC-P51-1/2- oder Geräte-Abnahme. T51.3–T51.10 bleiben auf Nutzerwunsch bis zur
+Zusammenführung der parallelen Arbeiten offen. `npm run gate` grün (Exit 0):
+1808 Unit-/Integrationstests bestanden, 4 Tests und 1 Suite geskippt;
+496 E2E-Fälle bestanden, 3 geskippt (21,7 min). Skips zählen nicht als Pässe.
+Der erste Gesamtlauf wurde wegen eines fehlenden lokalen TypeScript-Links
+gestoppt; nach Dependency-Reparatur ohne Code-/Teständerung ist derselbe
+Einzelfall und anschließend das komplette Gate grün. Details stehen in der MR.
 
 ## 5. Acceptance Criteria (AC-P51-k)
 
