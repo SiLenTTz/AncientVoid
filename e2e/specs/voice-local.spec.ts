@@ -69,7 +69,7 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByPlaceholder("Antworten…").click();
     const fab = app.locator('[data-testid="nyx-fab"]');
-    await expect(fab).toHaveAttribute("title", /Spracheingabe lokal/);
+    await expect(fab).toHaveAttribute("data-tip", /Spracheingabe lokal/);
     await fab.click();
     await expect(app.getByText(/Aufnahme — tippe erneut zum Stoppen/)).toBeVisible();
     const partial = app.getByRole("status").filter({ hasText: "Vorschau (wird nicht ausgeführt): Nicht stoppen" });
@@ -86,7 +86,7 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByPlaceholder("Antworten…").click();
     const fab = app.locator('[data-testid="nyx-fab"]');
-    await expect(fab).toHaveAttribute("title", /lokal \(whisper-e2e\)/);
+    await expect(fab).toHaveAttribute("data-tip", /lokal \(whisper-e2e\)/);
     await fab.click();
     await expect(app.getByText(/Aufnahme — tippe erneut zum Stoppen/)).toBeVisible();
     await app.waitForTimeout(1200);
