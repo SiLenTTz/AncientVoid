@@ -327,7 +327,10 @@ function Main() {
       {wide && listCollapsed && <NotificationCenter corner />}
       {staleAt && (
         <div class="topbar">
-          <span class="badge-stale">Daten vom {staleAt.toLocaleString("de-DE")} (offline)</span>
+          {/* K10: tippen lädt neu — der Service Worker holt dann wieder Netz-zuerst. */}
+          <button type="button" class="badge-stale badge-refresh" onClick={() => location.reload()}>
+            Daten vom {staleAt.toLocaleString("de-DE")} (offline) — tippen für Neu laden
+          </button>
         </div>
       )}
       <CommandBar />

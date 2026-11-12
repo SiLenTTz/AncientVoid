@@ -271,6 +271,16 @@
   font-size: calc(11px * var(--font-scale, 1));
 }
 
+/* K10: die Offline-Meldung ist ein Button — tippen lädt neu. */
+button.badge-stale {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  min-height: var(--target);
+  display: inline-flex;
+  align-items: center;
+}
+
 .conn-dot {
   width: 9px;
   height: 9px;
