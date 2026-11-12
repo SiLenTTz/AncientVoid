@@ -142,6 +142,30 @@ export function checkReferences(root, files) {
   return findings;
 }
 
+// Lebende Doku-Seite = docs/*.md (flach), kein datierter Snapshot.
+export const DOC_KINDS = ["tutorial", "how-to", "referenz", "erklaerung"];
+const DOC_KIND_LINE = /^\*\*Art:\*\*\s*(.+?)\s*$/;
+export const DOC_INDEX = "docs/uebersicht.md";
+
+function livingDocs(files) {
+  return files.filter((f) => /^docs\/[^/]+\.md$/.test(f) && !DATED_NAME.test(f.slice(5).replace(/\.md$/, "")));
+}
+
+// Diátaxis: jede lebende Seite trägt genau eine Art (Kopfzeile `**Art:** …`,
+// in den ersten 12 Zeilen) und steht in der Übersichtsseite.
+export function checkDocKind(root, files) {
+  const findings = [];
+  const index = files.includes(DOC_INDEX) ? readFileSync(join(root, DOC_INDEX), "utf8") : null;
+  for (const file of livingDocs(files)) {
+    const arts = readLines(root, file).slice(0, 12).map((l) => DOC_KIND_LINE.exec(l)?.[1]).filter(Boolean);
+    if (arts.length !== 1) findings.push({ rule: "doc-kind", file, detail: `genau eine Zeile \`**Art:** ${DOC_KINDS.join("|")}\` erwartet, gefunden: ${arts.length}` });
+    else if (!DOC_KINDS.includes(arts[0])) findings.push({ rule: "doc-kind", file, detail: `unbekannte Art „${arts[0]}“ (erlaubt: ${DOC_KINDS.join(", ")})` });
+    if (file !== DOC_INDEX && index !== null && !index.includes(file.slice(5))) findings.push({ rule: "doc-index", file, detail: `fehlt in ${DOC_INDEX}` });
+  }
+  if (index === null) findings.push({ rule: "doc-index", file: DOC_INDEX, detail: "Übersichtsseite fehlt" });
+  return findings;
+}
+
 export function checkDrift(root, git, map = REFRESH_MAP) {
   const findings = [];
   for (const { doc, areas, maxDrift } of map) {
@@ -193,6 +217,7 @@ export function runAll(root, { git } = {}) {
     ...checkBudgets(root, files),
     ...checkLinks(root, files),
     ...checkReferences(root, files),
+    ...checkDocKind(root, files),
     ...checkDrift(root, git ?? realGit(root)),
   ];
   return { ok: findings.length === 0, findings, checked: files.length };
@@ -203,7 +228,7 @@ function main() {
   const root = args.includes("--root") ? resolve(args[args.indexOf("--root") + 1]) : resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const { ok, findings, checked } = runAll(root);
   for (const f of findings) console.error(`check:context: [${f.rule}] ${f.file} — ${f.detail}`);
-  if (ok) console.log(`check:context: OK (${checked} Dateien: Budgets, Links, Referenzen, Script-Inventar, Frischhalte-Map)`);
+  if (ok) console.log(`check:context: OK (${checked} Dateien: Budgets, Links, Referenzen, Doku-Arten, Script-Inventar, Frischhalte-Map)`);
   else {
     console.error(`check:context: ${findings.length} Befund/Befunde (Regeln: docs/check-context.md)`);
     process.exit(1);

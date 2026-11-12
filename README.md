@@ -7,7 +7,8 @@ und auditieren — über Tailscale, ohne öffentlichen Port, ohne Cloud.
 > Basis: PRD „AncientVoid“ v1.0 (12.09.2026) — siehe [`epics/`](./epics/).
 > Setup in einem Befehl: [`./setup.sh`](#installation--ein-befehl) (Wizard,
 > bindet zuerst den Provider an). Manuelle Route und Detail-Doku:
-> [`docs/onboarding.md`](./docs/onboarding.md) (Menschen & Agenten).
+> [`docs/onboarding.md`](./docs/onboarding.md) (Menschen & Agenten). Alle
+> Seiten nach Art geordnet: [`docs/uebersicht.md`](./docs/uebersicht.md).
 
 | Anmeldung | Übersicht (Warteschlange) | Freigabe im Zug | Desktop-Arbeitsfläche |
 |---|---|---|---|

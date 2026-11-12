@@ -1,5 +1,7 @@
 # P12 — Abnahme-Checkliste (Stand 2026-11-07)
 
+**Art:** how-to
+
 Zweck: Ausführungsprotokoll zu [EPIC-P35 — Endabnahme-Block §8](../epics/EPIC-P35-harness-paritaet-fortsetzen-provider.md)
 für die Punkte, die ursprünglich aus [EPIC-P12](../epics/EPIC-P12-operational-readiness.md)
 stammen (Konsolidierung 2026-11-07). Fast nichts davon ist noch Programmierarbeit; es

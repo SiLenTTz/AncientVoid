@@ -1,5 +1,7 @@
 # Harness-Matrix (ADR-0018)
 
+**Art:** referenz
+
 Was jede Session eines Harness wirklich kann. Das ersetzt „Steer vorhanden“.
 Die Spalten entsprechen `capabilities().features` bei **Standard-Konfiguration**
 des Adapters. `npm run check:adapter-matrix` vergleicht diese Tabelle mit dem

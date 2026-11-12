@@ -1,5 +1,7 @@
 # Architektur
 
+**Art:** erklaerung
+
 Stand: 2026-11-12. Basis: PRD §4 und `epics/EPIC-P0-hub-kern.md` ff.; Epics
 bis P56 sind eingearbeitet, soweit sie Struktur verändern — fachliche
 Details und Verlauf leben in `epics/` (Index: `epics/README.md`). Diese

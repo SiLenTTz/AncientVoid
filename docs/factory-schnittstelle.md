@@ -1,5 +1,7 @@
 # Factory-Schnittstelle securesight-factory ↔ Hub (EPIC-P26)
 
+**Art:** referenz
+
 **Version dieses Vertrags: 1** · gilt für `securesight-factory` ab `bd8228d`
 (CLI `factory`). **Stabilität:** Die Factory ist in Bewegung (Iteration 0056+).
 Jede Quelle trägt ihre `schema_version`; der Hub prüft sie und reagiert auf

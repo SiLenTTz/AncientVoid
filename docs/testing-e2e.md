@@ -1,5 +1,7 @@
 # E2E-Gate (Playwright)
 
+**Art:** how-to
+
 Stand: 2026-09-23 · Einführung: EPIC-P5 · Kommando: `npm run test:e2e`
 
 Das E2E-Gate prüft jede Oberfläche und jeden Arbeitsablauf der PWA gegen

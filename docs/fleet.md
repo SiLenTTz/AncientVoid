@@ -1,5 +1,7 @@
 # Flotte betreiben (EPIC-P6)
 
+**Art:** how-to
+
 Mehrere Hubs erscheinen in einer Oberfläche. Der **Heim-Hub** (hier
 `omarchy`) bündelt; jeder andere Hub bleibt Quelle seiner Sessions und hat
 seine eigene PWA (ADR-0017).

@@ -1,5 +1,7 @@
 # Desktop-Companion (EPIC-P11)
 
+**Art:** how-to
+
 Tippt, was du am Handy diktierst oder schreibst, in das Fenster, das am PC
 den Fokus hat. Die Seite „PC“ in der PWA zeigt dieses Fenster vorher an.
 Architektur und Grenzen: [ADR-0031](adr/0031-desktop-companion.md).

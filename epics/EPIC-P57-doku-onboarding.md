@@ -1,6 +1,6 @@
 # EPIC-P57 — Dokumentation und Onboarding (Diátaxis, generierte Referenz, First-Run, Time-to-first-Success)
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt (wartet auf Nutzer-Review, beauftragt 2026-11-13) · **Phase:** P57
+**Status:** in Umsetzung (Freigabe 13.11.2026) · **Phase:** P57
 **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung)
 **Abhängigkeit:** P53 abgeschlossen (One-Command-Setup, README; Retro 11.11.2026) — Quer-Epic wie P50–P53, keine Laufzeit-Architektur. Die PWA-Aufgaben (T57.8–T57.9) setzen den stabilen Funktionsinventar-Stand aus P43 voraus. P33 (englischer Einstieg) bleibt vertagt und **wird hier nicht umgesetzt**.
 
@@ -154,10 +154,10 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
 
 ## 4. Aufgaben
 
-- [ ] **T57.1** Diátaxis-Inventar: jede lebende `docs/*.md` genau einer Art
+- [x] **T57.1** Diátaxis-Inventar: jede lebende `docs/*.md` genau einer Art
   zuordnen, Kopfzeile `Art:` setzen, Gliederungstabelle in `docs/` (eine
   Übersichtsseite, die auch Waisen verhindert). Messlatte: — (PRD §8: keine Secrets).
-- [ ] **T57.2** `check:context` um Regeln `doc-kind` und `reference-fresh` erweitern
+- [ ] **T57.2** `check:context` um Regeln `doc-kind` und `reference-fresh` erweitern (`doc-kind` + `doc-index` umgesetzt mit T57.1; `reference-fresh` kommt mit T57.3, dort abhaken)
   (+ Tests je Regel rot-dann-grün, Eintrag in `docs/check-context.md`). Messlatte: —.
 - [ ] **T57.3** `scripts/gen-reference.mjs`: hubctl-Referenz und Wizard-Exit-Codes
   generieren; Config-Quelle klären (Schema vs. handgepflegt + Map-Eintrag). Messlatte: —;
@@ -181,7 +181,7 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
   gewählten Kopplung. Messlatte: K1, K10.
 - [ ] **T57.10** `scripts/messlauf-ttfs.mjs`, erster Messlauf, Bericht in
   `docs/messlauf/JJJJ-MM-TT-ttfs.md` (Skill `messlauf`). Messlatte: TTFS (Epic), K1.
-- [ ] **T57.11** VoidWarden-Abgleich: Schwester-Epic dort anlegen (Planung),
+- [ ] **T57.11** VoidWarden-Abgleich: Schwester-Epic dort anlegen (Planung; **angelegt 13.11.2026:** [VoidWarden P15](https://gitlab.com/SiLenT_Tz/voidwarden/-/blob/main/epics/EPIC-P15-doku-onboarding.md), MR !76; offen: Weichentext nach T57.4 spiegeln und gegenlesen),
   Weichen-Text spiegeln, Zuständigkeitstabelle §3.1 gegenlesen. Messlatte: —.
 - [ ] **T57.12** Entscheidungsaufgabe Doku-Site (optional): VitePress-Spike nur
   planen — Kriterien (Seitenzahl, Suchbedarf, Aufwand), Ergebnis „Go/No-go/vertagt“
