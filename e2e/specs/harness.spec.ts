@@ -216,6 +216,29 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await sessionTab(app, "Verlauf");
     await expect(app.locator(".tail-scroll")).toContainText("Übergeben an opencode");
     await expect(app.locator(".handover-bar")).toHaveCount(0);
+    // 2026-11-12: die Quelle parkt sauber (manuell) — kein doppeltes Weiterlaufen.
+    expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("parked");
+  });
+
+  test("2026-11-12: Übergabe aus dem ⋯-Menü der Session-Karte — Ziel wählen, Quelle parkt", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "Karten-Übergabe" });
+    await app.goto(`${hub.origin}/#/`);
+    const card = app.locator(".session-card").filter({ hasText: "Karten-Übergabe" }).first();
+    await expect(card).toBeVisible();
+
+    await card.locator(".row-menu-btn").click();
+    await card.locator(".row-menu").getByRole("menuitem", { name: "Übergeben…" }).click();
+    const sheet = app.locator(".overlay-sheet");
+    await expect(sheet).toBeVisible();
+    // Ohne Ziel startet nichts; der Übergabetext steht schon bereit.
+    await expect(sheet.getByRole("button", { name: "Übergeben", exact: true })).toBeDisabled();
+    await sheet.getByLabel("Ziel-Provider").selectOption("opencode");
+    await sheet.getByRole("button", { name: "Übergeben", exact: true }).click();
+
+    // Die neue Session öffnet sich, die Quelle parkt.
+    await expect(app).toHaveURL(new RegExp(`#/sessions/(?!${id})`));
+    expect((await hub.api<{ status: string; parkReason: string | null }>(`/api/sessions/${id}`)).body.status).toBe("parked");
+    expect((await hub.api<{ status: string; parkReason: string | null }>(`/api/sessions/${id}`)).body.parkReason).toBe("manual");
   });
 
   test("BUG-0126: verlorene Provider-Session — hier weitermachen baut den Kontext in derselben Session neu auf", async ({ app, hub }) => {

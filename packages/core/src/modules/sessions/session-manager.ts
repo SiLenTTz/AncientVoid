@@ -2101,6 +2101,11 @@ export class SessionManager {
     const to = this.live.get(created.id);
     if (from) await this.emitEvents(from, [{ type: "system", summary: `Übergeben an ${created.adapter}${created.model ? ` (${created.model})` : ""}`, payload: { kind: "session.handover_out", toSessionId: created.id, adapter: created.adapter, model: created.model } }]);
     if (to) await this.emitEvents(to, [{ type: "system", summary: `Übernommen von ${source.adapter}${source.model ? ` (${source.model})` : ""}`, payload: { kind: "session.handover_in", fromSessionId: sessionId, adapter: source.adapter, model: source.model } }]);
+    // 2026-11-12 (Nutzeranforderung an ADR-0039): die Quelle pausiert sauber —
+    // sie läuft nicht weiter und kostet nicht doppelt, während die Arbeit im
+    // Ziel weiterläuft. parkFor fail-closed: ein freilaufender Adapterprozess
+    // bekommt das echte Park-Signal (T2.7/ADR-0008), nicht nur ein neues Label.
+    if (from && from.record.status !== "parked" && from.record.status !== "stopped") await this.parkFor(from, "manual", actor);
     return created;
   }
 

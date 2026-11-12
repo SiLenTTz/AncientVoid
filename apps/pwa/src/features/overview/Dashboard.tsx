@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
 import type { ApprovalRequest, DiscoveredProject, FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
-import { graphHash } from "../../app/route.ts";
+import { graphHash, sessionHash } from "../../app/route.ts";
+import { HandoverForm } from "../session/Handover.tsx";
 import { targetKey } from "../windows/protocol.ts";
 import { TabIcon } from "../../shared/TabIcon.tsx";
 import { useOpenWindows } from "../windows/windows.ts";
@@ -527,9 +528,13 @@ function SessionRow({
     };
   }, [menuOpen, actionsOpen]);
   const name = session.title ?? project;
+  const [handoverOpen, setHandoverOpen] = useState(false);
   const actions: { label: string; run: () => void; danger?: boolean; pressed?: boolean }[] = [
     { label: "Repo-Graph", run: () => (location.hash = graphHash(session.id, remoteHost(session.hostId))) },
     { label: session.pinned ? "Lösen" : "Anheften", run: () => void onPin(session), pressed: session.pinned === true },
+    // 2026-11-12 (Nutzerwunsch, ADR-0039): Übergabe aus der Karte heraus — der
+    // Hub parkt die Quelle beim Übergeben (kein doppeltes Weiterlaufen).
+    ...(!session.archived ? [{ label: "Übergeben…", run: () => setHandoverOpen(true) }] : []),
     { label: session.archived ? "Zurückholen" : "Archivieren", run: () => void onArchive(session) },
     ...(session.archived ? [{ label: "Löschen", run: () => onDelete(session), danger: true }] : []),
   ];
@@ -625,6 +630,29 @@ function SessionRow({
           )}
         </span>
       </div>
+      {handoverOpen && (
+        <div class="overlay-backdrop" onClick={() => setHandoverOpen(false)}>
+          <div class="overlay-sheet" onClick={(e) => e.stopPropagation()}>
+            <div class="row" style="justify-content: space-between; align-items: center">
+              <strong>Session übergeben</strong>
+              <button class="btn" type="button" aria-label="Schließen" onClick={() => setHandoverOpen(false)}>
+                ✕
+              </button>
+            </div>
+            {/* Die Quelle parkt der Hub beim Übergeben (SessionManager.handover) —
+             * hier wird nur das Ziel gewählt und der Übergabetext gesichtet. */}
+            <HandoverForm
+              session={session}
+              api={hostApi(session.hostId)}
+              onCancel={() => setHandoverOpen(false)}
+              onHandedOver={(created) => {
+                setHandoverOpen(false);
+                onOpen(created);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
