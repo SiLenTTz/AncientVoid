@@ -1,7 +1,7 @@
 ---
 id: BUG-0127
 slug: suche-indexierung-qmd-schlaegt-fehl
-status: open
+status: done
 severity: S2
 area: server
 instance: lokal
@@ -68,6 +68,22 @@ Error: Command failed: qmd query lex: pineapple cipher deploy guide
 ## Eingrenzung
 
 `qmd`-Aufruf in der Such-Pipeline schlägt fehl (Rückgabe/Lexikon?); offen.
+
+**Nachstellung 12.11.2026:** isoliert, als volle Suite und mit drei parallelen Läufen grün — nicht
+reproduzierbar. Befund: Die Tests schrieben in den **geteilten** qmd-Index `~/.cache/qmd/index.sqlite`
+(104 MB), in den gleichzeitig der laufende Hub und parallele Gates anderer Worktrees einbetten
+(`apps/hub/src/modules/search/search.ts`, alle `execFile("qmd", …)` ohne `--index`). Die Meldung
+entstand während paralleler Gate-Läufe (Session c0e0ab44, 11.11. 23:41).
+
+## Fix (BUG-0127)
+
+`ANCIENTVOID_QMD_INDEX` wählt einen benannten qmd-Index (`--index`, Modelle bleiben geteilt);
+`scripts/vitest-global-setup.mjs` setzt ihn je Lauf (`ancientvoid-test-<pid>`) und löscht die Datei
+danach. Produktion ohne Variable unverändert. Regressionstest in `search.test.ts`: Collection liegt im
+Testindex, nie im Standard-Index — ohne Fix rot.
+
+Belegt ist die Isolation; dass die Index-Kollision die Ursache war, ist eine begründete Annahme.
+Tritt der Fehler mit eigenem Testindex erneut auf, neu öffnen — die Meldung enthält qmds stderr.
 Nicht Teil von BUG-0126 — dort ohne eigenen Diff ebenso rot (Basisvergleich
 per `git stash` belegt).
 
@@ -75,4 +91,4 @@ per `git stash` belegt).
 
 - [x] Datei im Index [`README.md`](README.md)
 - [ ] GitLab-Issue angelegt (Link oben)
-- [ ] offen (eigener bugfix)
+- [x] bugfix (eigener Testindex)

@@ -2,6 +2,8 @@ import { describe, it, expect, afterAll } from "vitest";
 import { mkdtemp, writeFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import {
   collectionNameFor,
   isQmdAvailable,
@@ -21,10 +23,10 @@ import {
  * tests run for real, against the real CLI, when it's present (this
  * machine, verified 2026-09-18) and skip — not fail — otherwise.
  *
- * Every test that creates a real qmd collection cleans it up afterward —
- * this shares the user's actual local `~/.cache/qmd/index.sqlite`, not an
- * isolated fixture, so leaving test collections behind would be a real,
- * persistent side effect on their machine.
+ * Every test that creates a real qmd collection cleans it up afterward.
+ * BUG-0127: the run uses its own named index (`ANCIENTVOID_QMD_INDEX`, set
+ * by scripts/vitest-global-setup.mjs) — never the user's live
+ * `~/.cache/qmd/index.sqlite` the running hub embeds into at the same time.
  */
 const hasQmd = await isQmdAvailable();
 const itQmd = hasQmd ? it : it.skip;
@@ -70,6 +72,17 @@ describe("isQmdAvailable / indexStatus", () => {
     const dir = await makeTestProject({ "readme.md": "hello" });
     const status = await indexStatus(dir);
     expect(status).toEqual({ qmdAvailable: true, indexed: false });
+  });
+
+  itQmd("BUG-0127: der Testlauf schreibt in seinen eigenen Index, nie in den Live-Index", async () => {
+    const index = process.env.ANCIENTVOID_QMD_INDEX;
+    expect(index).toMatch(/^ancientvoid-test-/);
+    const dir = await makeTestProject({ "readme.md": "# eigener Index\nnur im Testindex" });
+    await ensureIndexed(dir);
+    const name = collectionNameFor(dir);
+    const list = async (args: string[]) => (await promisify(execFile)("qmd", [...args, "collection", "list"])).stdout;
+    expect(await list(["--index", index!])).toContain(`${name} (qmd://`);
+    expect(await list([])).not.toContain(name);
   });
 });
 
