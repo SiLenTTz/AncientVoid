@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { test, expect, sessionTab, dockGo } from "../support/fixtures.ts";
+import { test, expect, sessionTab, dockGo, seeAll } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
 
 /**
@@ -61,6 +61,7 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
 
   test("Regel 3: Zeilenaktionen beim Überfahren, Fokus oder langem Drücken — und im Menü der Zeile", async ({ app, hub }) => {
     await hub.createSession({ adapter: "dummy", prompt: "Kartenaktion" });
+    await seeAll(app, hub);
     const card = app.locator(".session-card").filter({ hasText: "Kartenaktion" });
     const archive = card.locator(".session-card-actions").getByRole("button", { name: "Archivieren", exact: true });
     await expect(card).toHaveCount(1);
