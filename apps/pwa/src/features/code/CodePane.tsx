@@ -222,8 +222,12 @@ const STATUS_TEXT: Record<ActionRun["status"], string> = {
   succeeded: "erfolgreich",
   failed: "fehlgeschlagen",
   timeout: "abgebrochen (Zeit)",
+  stopped: "gestoppt",
 };
 
+const KIND_TEXT: Record<ActionDefinition["kind"], string> = { test: "Test", git: "Git", tool: "Werkzeug" };
+
+/** Befehle des Repos nach Quelle gruppiert (package.json, Makefile, scripts/, Git …), je mit „Ausführen“. */
 function ActionsPanel({ sessionId }: { sessionId: string }) {
   const api = useApi();
   const [actions, setActions] = useState<ActionDefinition[] | null>(null);
@@ -231,6 +235,7 @@ function ActionsPanel({ sessionId }: { sessionId: string }) {
   const [params, setParams] = useState<Record<string, Record<string, string>>>({});
   const [error, setError] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
 
   const load = async () => {
     try {
@@ -238,7 +243,7 @@ function ActionsPanel({ sessionId }: { sessionId: string }) {
       setActions(r.actions);
       setRuns(r.runs);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Aktionen nicht ladbar");
+      setError(err instanceof Error ? err.message : "Befehle nicht ladbar");
     }
   };
   useEffect(() => {
@@ -246,6 +251,7 @@ function ActionsPanel({ sessionId }: { sessionId: string }) {
   }, [sessionId]);
 
   const running = runs.some((r) => r.status === "running");
+  const runningRun = (actionId: string) => runs.find((r) => r.actionId === actionId && r.status === "running");
   useEffect(() => {
     if (!running) return;
     const t = setInterval(() => void load(), 1000);
@@ -257,58 +263,88 @@ function ActionsPanel({ sessionId }: { sessionId: string }) {
     try {
       const started = await api.runAction(sessionId, a.id, params[a.id] ?? {});
       setRuns((prev) => [started, ...prev]);
-      setOpen(started.id);
+      setOpen(a.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Aktion nicht gestartet");
+      setError(err instanceof Error ? err.message : "Befehl nicht gestartet");
     }
   };
 
-  if (!actions) return null;
+  const stop = async (r: ActionRun) => {
+    setError("");
+    try {
+      await api.stopAction(sessionId, r.id);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Befehl nicht gestoppt");
+    }
+  };
+
+  const groups = useMemo(() => {
+    const needle = filter.trim().toLowerCase();
+    const by = new Map<string, ActionDefinition[]>();
+    for (const a of actions ?? []) {
+      if (needle && !`${a.label} ${a.argv.join(" ")}`.toLowerCase().includes(needle)) continue;
+      const key = a.source ?? KIND_TEXT[a.kind];
+      by.set(key, [...(by.get(key) ?? []), a]);
+    }
+    return [...by.entries()];
+  }, [actions, filter]);
+
+  if (!actions) return error ? <div class="reply-error">{error}</div> : null;
   return (
     <div class="code-actions">
-      <h3>Aktionen</h3>
+      <h3>Befehle</h3>
+      <input type="search" class="action-filter" placeholder="Befehle filtern …" aria-label="Befehle filtern" value={filter} onInput={(e) => setFilter((e.target as HTMLInputElement).value)} />
       {error && <div class="reply-error">{error}</div>}
-      {actions.map((a) => (
-        <div key={a.id} class="action-row">
-          <div class="action-main">
-            <span class={`action-kind ${a.kind}`}>{a.kind === "test" ? "Test" : a.kind === "git" ? "Git" : "Werkzeug"}</span>
-            <span class="action-label" title={a.argv.join(" ")}>
-              {a.label}
-            </span>
-            <button type="button" class="btn" disabled={running} onClick={() => void run(a)}>
-              Ausführen
-            </button>
-          </div>
-          {Object.entries(a.params).map(([name, p]) => (
-            <input
-              key={name}
-              class="action-param"
-              placeholder={`${name}${p.optional ? " (optional)" : ""}${p.description ? ` — ${p.description}` : ""}`}
-              aria-label={`${a.label}: ${name}`}
-              value={params[a.id]?.[name] ?? ""}
-              onInput={(e) => setParams((prev) => ({ ...prev, [a.id]: { ...prev[a.id], [name]: (e.target as HTMLInputElement).value } }))}
-            />
-          ))}
-        </div>
+      {groups.length === 0 && <div class="empty">Keine passenden Befehle.</div>}
+      {groups.map(([source, list]) => (
+        <section key={source} class="action-group" aria-label={source}>
+          <h4 class="action-source dim">{source}</h4>
+          {list.map((a) => {
+            const last = runs.find((r) => r.actionId === a.id);
+            return (
+              <div key={a.id} class="action-row">
+                <div class="action-main">
+                  <span class={`action-kind ${a.kind}`}>{KIND_TEXT[a.kind]}</span>
+                  <span class="action-label" title={a.argv.join(" ")}>
+                    {a.label}
+                  </span>
+                  {last && (
+                    <button type="button" class={`action-status-btn ${last.status}`} onClick={() => setOpen(open === a.id ? null : a.id)} aria-expanded={open === a.id}>
+                      {STATUS_TEXT[last.status]}{last.exitCode !== null && last.status !== "succeeded" ? ` · Code ${last.exitCode}` : ""}
+                    </button>
+                  )}
+                  {runningRun(a.id) ? (
+                    <button type="button" class="btn danger" aria-label={`${a.label} stoppen`} onClick={() => void stop(runningRun(a.id)!)}>
+                      Stoppen
+                    </button>
+                  ) : (
+                    <button type="button" class="btn" disabled={runs.filter((r) => r.status === "running").length >= 4} aria-label={`${a.label} ausführen`} title={a.longRunning ? "Startet ohne Zeitlimit bis „Stoppen“; Fenster öffnen sich auf dem Rechner des Hubs" : undefined} onClick={() => void run(a)}>
+                      Ausführen
+                    </button>
+                  )}
+                </div>
+                {Object.entries(a.params).map(([name, p]) => (
+                  <input
+                    key={name}
+                    class="action-param"
+                    placeholder={`${name}${p.optional ? " (optional)" : ""}${p.description ? ` — ${p.description}` : ""}`}
+                    aria-label={`${a.label}: ${name}`}
+                    value={params[a.id]?.[name] ?? ""}
+                    onInput={(e) => setParams((prev) => ({ ...prev, [a.id]: { ...prev[a.id], [name]: (e.target as HTMLInputElement).value } }))}
+                  />
+                ))}
+                {last && open === a.id && (
+                  <pre class="action-output">
+                    {last.outputTruncated ? "…" : ""}
+                    {last.output || (last.status === "running" ? "…" : "(keine Ausgabe)")}
+                  </pre>
+                )}
+              </div>
+            );
+          })}
+        </section>
       ))}
-      {runs.length > 0 && (
-        <div class="action-runs">
-          {runs.map((r) => (
-            <div key={r.id} class={`action-run ${r.status}`}>
-              <button type="button" class="action-run-head" onClick={() => setOpen(open === r.id ? null : r.id)}>
-                <span>{actions.find((a) => a.id === r.actionId)?.label ?? r.actionId}</span>
-                <span class="action-status">{STATUS_TEXT[r.status]}{r.exitCode !== null && r.status !== "succeeded" ? ` · Code ${r.exitCode}` : ""}</span>
-              </button>
-              {open === r.id && (
-                <pre class="action-output">
-                  {r.outputTruncated ? "…" : ""}
-                  {r.output || (r.status === "running" ? "…" : "(keine Ausgabe)")}
-                </pre>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

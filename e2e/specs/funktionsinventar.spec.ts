@@ -51,7 +51,7 @@ const nav = async (c: Ctx, name: string) => {
   if (!(await dock(c, name).isVisible())) await c.tap(dock(c, "Mehr"));
   await c.tap(dock(c, name));
 };
-/** EPIC-P43 T43.4: Chat, Änderungen, Dateien sind Reiter (Änderungen trägt eine Zahl); der Rest liegt unter „Mehr“. */
+/** EPIC-P43 T43.4: Chat, Änderungen, Befehle sind Reiter (Änderungen trägt eine Zahl); der Rest liegt unter „Mehr“. */
 const tab = (c: Ctx, name: string) => c.s.locator(".subtabs-wrap").getByRole("button", { name: new RegExp(`^${name}`) });
 const more = async (c: Ctx, name: string) => {
   await c.tap(c.s.locator('.subtabs-wrap [aria-haspopup="menu"]'));
@@ -177,7 +177,7 @@ const SESSION: Entry[] = [
   { id: "S06", name: "Mehr: Datei", from: "session", reach: async (c) => { await more(c, "Datei"); await expect(c.page.getByTestId("files-sidebar")).toBeVisible(); } },
   { id: "S07", name: "Mehr: GitLab", from: "session", reach: async (c) => { await more(c, "GitLab"); await expect(c.s.locator(".forge-panel")).toBeVisible(); } },
   { id: "S08", name: "Mehr: Suche", from: "session", reach: async (c) => { await more(c, "Suche"); await expect(c.s.locator(".search-pane")).toBeVisible(); } },
-  { id: "S09", name: "Reiter Dateien (Code)", from: "session", reach: async (c) => { await c.tap(tab(c, "Dateien")); await expect(c.s.locator(".code-pane")).toBeVisible(); } },
+  { id: "S09", name: "Reiter Befehle (Code)", from: "session", reach: async (c) => { await c.tap(tab(c, "Befehle")); await expect(c.s.locator(".code-pane")).toBeVisible(); } },
   { id: "S10", name: "Mehr: Umgebung", from: "session", reach: async (c) => { await more(c, "Umgebung"); await expect(c.s.getByText(/ancientvoid\.workspace\.json|Umgebung/).first()).toBeVisible(); } },
   { id: "S11", name: "Zurück zur Übersicht", forms: TOUCH, from: "session", reach: async (c) => { await c.tap(c.s.getByRole("button", { name: "Zur Übersicht" })); await expect(c.page.locator(".dashboard")).toBeVisible(); } },
   { id: "S12", name: "Stop", from: "session", reach: async (c) => { await expect(c.s.locator(".stop-btn")).toBeVisible(); } },
@@ -201,7 +201,7 @@ const SESSION: Entry[] = [
   { id: "S29", name: "Entwurfsstatus", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await controls(c); await c.s.getByPlaceholder("Antworten…").fill("Entwurf fürs Inventar"); await expect(c.s.locator(".draft-state")).toBeVisible(); await c.s.getByPlaceholder("Antworten…").fill(""); } },
   { id: "S30", name: "Steuerung ein- und ausblenden", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await controls(c); await c.tap(c.s.getByRole("button", { name: "Steuerung ausblenden" })); await expect(c.s.getByRole("button", { name: "Steuerung einblenden" })).toBeVisible(); } },
   { id: "S31", name: "Kopieren je Ereignis", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await expect(c.s.locator(".tail-scroll").getByRole("button", { name: "Kopieren" }).first()).toBeAttached(); } },
-  { id: "S32", name: "Dateibaum (Reiter Dateien)", from: "session", reach: async (c) => { await c.tap(tab(c, "Dateien")); await c.tap(c.s.getByRole("button", { name: "Dateibaum öffnen" })); await expect(c.page.getByTestId("files-sidebar")).toBeVisible(); } },
+  { id: "S32", name: "Dateibaum (Reiter Befehle)", from: "session", reach: async (c) => { await c.tap(tab(c, "Befehle")); await c.tap(c.s.getByRole("button", { name: "Dateibaum öffnen" })); await expect(c.page.getByTestId("files-sidebar")).toBeVisible(); } },
   { id: "S33", name: "Browser-Arbeitsplatz (Mehr)", from: "session", reach: async (c) => { await more(c, "Browser"); await expect(c.page.getByTestId("browser-panel")).toBeVisible(); } },
   { id: "S34", name: "Graph in eigenes Fenster", forms: PC, from: "session", reach: async (c) => { await more(c, "Graph"); await expect(c.s.getByRole("button", { name: "Graph in eigenes Fenster" })).toBeVisible(); } },
   // EPIC-P42: Android-Testgeräte — ohne SDK sichtbar blockiert, das Panel selbst ist immer erreichbar.
@@ -220,9 +220,9 @@ const DESKTOP: Entry[] = [
   { id: "P08", name: "Statusleiste", forms: PC, from: "session", reach: async (c) => { const bar = c.page.getByRole("status", { name: "Statusleiste" }); await expect(bar).toContainText("verbunden"); await expect(bar.locator(".status-focus")).toContainText("Inventar-Aufgabe"); } },
   { id: "P09", name: "Werkzeugseite in der Detailspalte: eigenes Fenster und Schließen", forms: PC, from: "#/einstellungen", reach: async (c) => { const pane = c.page.locator(".tool-pane"); await expect(pane.getByRole("button", { name: "In eigenem Fenster öffnen" })).toBeVisible(); await c.tap(pane.locator(".tool-pane-close")); await expect(pane).toHaveCount(0); } },
   { id: "P10", name: "Ansichten im Kachelkopf", forms: PC, from: "session", reach: async (c) => {
-      // Chat, Dateien und „Mehr“ immer; „Änderungen“ nur mit Änderungen (Kleinkram-Regel 2).
+      // Chat, Befehle und „Mehr“ immer; „Änderungen“ nur mit Änderungen (Kleinkram-Regel 2).
       const rail = c.s.locator(".session-topbar .tile-tabs");
-      for (const name of [/^Chat/, /^Dateien/]) await expect(rail.getByRole("button", { name })).toBeVisible();
+      for (const name of [/^Chat/, /^Befehle/]) await expect(rail.getByRole("button", { name })).toBeVisible();
       await expect(rail.locator('[aria-haspopup="menu"]')).toBeVisible();
     },
   },

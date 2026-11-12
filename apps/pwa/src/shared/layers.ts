@@ -1,7 +1,7 @@
 /**
  * EPIC-P43 (Kleinkram-Regel 6, „Nichts liegt über dem Inhalt“): Dateibaum, Browser-Arbeitsplatz und
  * Android-Geräte haben keine Randlaschen mehr. Geöffnet werden sie aus den Ansichten heraus — Reiter
- * „Dateien“, Menü „Mehr“ der Session, globales „Mehr“ —, die Ebenen selbst bleiben in main.tsx.
+ * „Befehle“, Menü „Mehr“ der Session, globales „Mehr“ —, die Ebenen selbst bleiben in main.tsx.
  */
 export type LayerKind = "files" | "browser" | "devices";
 

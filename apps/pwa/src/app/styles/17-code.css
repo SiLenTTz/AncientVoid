@@ -164,32 +164,40 @@
   color: var(--fg-dim);
 }
 
-.action-run {
-  border-radius: var(--radius);
-  background: var(--bg-elev);
+.action-group {
+  display: grid;
+  gap: 4px;
 }
 
-.action-run-head {
-  display: flex;
-  justify-content: space-between;
+.action-source {
+  margin: 6px 0 0;
+  font-size: calc(12px * var(--font-scale, 1));
+  font-weight: 600;
+}
+
+.action-filter {
   width: 100%;
-  gap: 8px;
-  padding: 6px 10px;
-  background: none;
-  border: none;
-  color: var(--fg);
 }
 
-.action-run.succeeded .action-status {
+.action-status-btn {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-chip);
+  border: none;
+  color: var(--fg-dim);
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.action-status-btn.succeeded {
   color: var(--ok);
 }
 
-.action-run.failed .action-status,
-.action-run.timeout .action-status {
+.action-status-btn.failed,
+.action-status-btn.timeout {
   color: var(--err);
 }
 
-.action-run.running .action-status {
+.action-status-btn.running {
   color: var(--warn);
 }
 

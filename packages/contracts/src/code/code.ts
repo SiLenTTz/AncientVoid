@@ -78,15 +78,22 @@ export const ActionDefinition = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,40}$/),
   label: z.string().min(1).max(60),
   kind: z.enum(["test", "git", "tool"]),
+  /** Woher die Aktion stammt („package.json“, „Makefile“, „scripts/“ …) — nur zur Gruppierung in der Ansicht. */
+  source: z.string().max(60).optional(),
   argv: z.array(z.string().min(1)).min(1),
   params: z.record(z.string(), ActionParam).default({}),
   /** Only reads (git status …) — nothing in the worktree changes. */
   readOnly: z.boolean().default(false),
   timeoutMs: z.number().int().positive().max(3_600_000).default(600_000),
+  /**
+   * Läuft bis zum Stoppen und ohne Zeitlimit: Dev-Server, Emulator, Apps, `docker compose up`. Solche Befehle
+   * bekommen die Desktop-Umgebung (Fenster öffnen sich auf dem Rechner des Hubs) und einen „Stoppen“-Knopf.
+   */
+  longRunning: z.boolean().default(false),
 });
 export type ActionDefinition = z.infer<typeof ActionDefinition>;
 
-export const ActionRunStatus = z.enum(["running", "succeeded", "failed", "timeout"]);
+export const ActionRunStatus = z.enum(["running", "succeeded", "failed", "timeout", "stopped"]);
 export type ActionRunStatus = z.infer<typeof ActionRunStatus>;
 
 export const ACTION_OUTPUT_MAX_CHARS = 64 * 1024;

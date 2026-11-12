@@ -99,7 +99,7 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
     await idleSession(app, hub, "Tasten prüfen");
     const pages: (() => Promise<void>)[] = [
       async () => sessionTab(app, "Chat"),
-      async () => sessionTab(app, "Dateien"),
+      async () => sessionTab(app, "Befehle"),
       async () => {
         await app.goto(`${hub.origin}/#/`);
         await expect(app.locator(".dashboard")).toBeVisible();
