@@ -1,7 +1,7 @@
 ---
 id: BUG-0131
 slug: openai-fehler-still-verworfen
-status: open
+status: done
 severity: S2
 area: adapters
 instance: dev
@@ -43,4 +43,10 @@ AC: Parse- und Transportfehler als begrenzte Fehlerereignisse, auch bei Folgepro
 
 - [x] Im Bug-Index erfasst.
 - [x] GitLab-Tracker verlinkt.
-- [ ] Fix und Verifikation (Status oben; Gate-Beleg im [Audit](../docs/2026-11-11-setup-modelle-audit.md)).
+- [x] Fix und Verifikation.
+
+## Fix
+
+`examples/adapters/openai-compat/adapter.ts`: unlesbare SSE-Datenzeilen und Fehlerobjekte des Endpoints werden zu begrenzten `error`-Events (Auszug ≤ 200 bzw. 300 Zeichen, K5), der Strom läuft weiter. `start` und `steer` teilen einen Fehlerhandler: Abbruch durch die Session ergibt `system` „completion aborted“, jeder andere Fehler ein `error`-Event — das stille `.catch(() => undefined)` beim Folgeprompt ist weg.
+
+Tests: `apps/hub/test/examples/openai-compat-adapter.test.ts` (Fake-`AdapterContext` aus dem Testkit, gemocktes `fetch`) — ohne Fix 4/4 rot, mit Fix 4/4 grün. Die Vertragsprüfung des Testkits fällt für das Beispiel schon auf main durch (kein Event ohne Startprompt, `status()` nach `stop()` weiter healthy) — eigener Defekt BUG-0144, dort auch die Hub-Integration.
