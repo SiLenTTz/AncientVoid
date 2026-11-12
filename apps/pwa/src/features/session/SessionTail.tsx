@@ -1230,6 +1230,11 @@ export function SessionTail({
             onHandedOver={(created) => {
               location.hash = sessionHash(created.id, remoteHost(session.hostId));
             }}
+            onRepaired={async () => {
+              const updated = await api.session(session.id);
+              setStatus(updated.status);
+              setRecord(updated);
+            }}
           />
         )}
         <SessionApprovals sessionId={session.id} api={api} />

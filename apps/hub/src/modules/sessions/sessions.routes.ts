@@ -338,6 +338,17 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     return ack.ok ? ack : reply.code(422).send(ack);
   });
 
+  /** BUG-0123 (ADR-0070): repair a session whose native binding went stale —
+   * drop the binding, rebuild the agent context from the hub tail. */
+  app.post("/api/sessions/:id/repair", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ ok: false, detail: "unknown session" });
+    // An agent never rewrites its own binding silently — that is a person's call.
+    if (req.policy?.decision === "approve") return reply.code(403).send({ error: "Reparieren braucht einen Menschen, nicht einen Agenten" });
+    const ack = await deps.sessions.repair(id, callerLabel(req) ?? undefined);
+    return ack.ok ? ack : reply.code(422).send(ack);
+  });
+
   app.post("/api/sessions/:id/stop", async (req, reply) => {
     const { id } = req.params as { id: string };
     if (req.policy?.decision === "approve") {

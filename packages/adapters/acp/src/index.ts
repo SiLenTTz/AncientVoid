@@ -399,15 +399,27 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
   /** BUG-0036: load/resume a native session with the replay silenced —
    * the agent re-notifies the loaded conversation; the hub's tail already
-   * has it. Returns false when the agent cannot load at all.
+   * has it. Returns "unsupported" when the agent cannot load at all.
    * BUG-0039: `emit` flips it for adoptions — an observed session's
-   * history exists only in this replay, so it must reach the stream. */
-  async function resumeNative(state: AgentSession, ctx: AdapterContext, native: string, canLoad: boolean, emit = false, model?: string): Promise<boolean> {
-    if (!canLoad) return false;
+   * history exists only in this replay, so it must reach the stream.
+   * BUG-0123: "lost" — the agent no longer knows THIS id (maki live
+   * 2026-11-11: „Resource not found: not found: <id>"); the event says so,
+   * the caller continues with a fresh context instead of bricking. */
+  async function resumeNative(state: AgentSession, ctx: AdapterContext, native: string, canLoad: boolean, emit = false, model?: string): Promise<"loaded" | "unsupported" | "lost"> {
+    if (!canLoad) return "unsupported";
     if (!emit) state.replay = true;
     let loaded: SessionModels;
     try {
       loaded = ((await state.conn.request("session/load", { sessionId: native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs)) ?? {}) as SessionModels;
+    } catch (err) {
+      const text = err instanceof Error ? err.message : String(err);
+      if (!/not found/i.test(text)) throw err;
+      ctx.emit({
+        type: "system",
+        summary: `${label}: Session ${native.slice(0, 8)}… beim Agenten nicht mehr vorhanden — neuer Kontext`,
+        payload: { kind: "acp.context_lost", lostSessionId: native, cause: text },
+      });
+      return "lost";
     } finally {
       state.replay = false;
       const buffered = state.mapper.flush();
@@ -420,7 +432,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     // use (403 on the first prompt, live 2026-10-28). The configured model is applied; if it is not on offer,
     // that is said and the session keeps its own (unlike a new session, nothing is refused here).
     if (model) await selectModel(state, ctx, native, loaded, model, false);
-    return true;
+    return "loaded";
   }
 
   async function newSession(state: AgentSession, ctx: AdapterContext, model?: string): Promise<void> {
@@ -594,21 +606,24 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // load support starts a fresh context, visibly.
       // ADR-0061: the session's own model (hub record) before the registration's default.
       const model = ctx.model ?? cfg.model;
-      if (!(await resumeNative(state, ctx, entry.native, caps.loadSession, false, model))) {
-        if (caps.resume) {
-          state.replay = true;
-          try {
-            await state.conn.request("session/resume", { sessionId: entry.native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs);
-          } finally {
-            state.replay = false;
-            state.mapper.flush();
-          }
-          state.acpSessionId = entry.native;
-          announce(ctx, entry.native);
-        } else {
-          await newSession(state, ctx, model);
+      const outcome = await resumeNative(state, ctx, entry.native, caps.loadSession, false, model);
+      if (outcome === "unsupported" && caps.resume) {
+        state.replay = true;
+        try {
+          await state.conn.request("session/resume", { sessionId: entry.native, cwd: ctx.workdir, mcpServers: [] }, cfg.startupTimeoutMs);
+        } finally {
+          state.replay = false;
+          state.mapper.flush();
+        }
+        state.acpSessionId = entry.native;
+        announce(ctx, entry.native);
+      } else if (outcome !== "loaded") {
+        // BUG-0123: "lost" said its own, precise event above — a fresh
+        // native session follows; the next prompt is not bricked.
+        if (outcome === "unsupported") {
           ctx.emit({ type: "system", summary: `${label}: Agent kann Sessions nicht laden — neuer Kontext`, payload: { kind: "acp.context_lost" } });
         }
+        await newSession(state, ctx, model);
       }
     } catch (err) {
       await proc.kill("SIGTERM");
@@ -693,10 +708,16 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const startArgs = (spec.args ?? {}) as { resumeSessionId?: unknown; importHistory?: unknown };
       const resume = startArgs.resumeSessionId;
       try {
-        if (typeof resume === "string" && resume && (await resumeNative(state, ctx, resume, caps.loadSession, startArgs.importHistory === true, spec.model ?? cfg.model))) {
+        const outcome = typeof resume === "string" && resume
+          ? await resumeNative(state, ctx, resume, caps.loadSession, startArgs.importHistory === true, spec.model ?? cfg.model)
+          : "unsupported";
+        if (outcome === "loaded") {
           // loaded — the prompt (if any) continues the old conversation
         } else {
-          if (typeof resume === "string" && resume) {
+          // BUG-0123: "lost" (the agent no longer knows the id) said its
+          // own event inside resumeNative; only "unsupported" needs the
+          // generic note. Either way a fresh session carries the prompt.
+          if (outcome === "unsupported" && typeof resume === "string" && resume) {
             ctx.emit({ type: "system", summary: `${label}: Agent kann Sessions nicht laden — neuer Kontext`, payload: { kind: "acp.context_lost" } });
           }
           await newSession(state, ctx, spec.model ?? cfg.model);

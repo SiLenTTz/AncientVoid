@@ -264,6 +264,75 @@ describe("SessionManager", () => {
     }
   });
 
+  it("BUG-0123: repair drops a stale native binding and continues with a context draft from the tail", async () => {
+    const dir2 = await mkdtemp(join(tmpdir(), "ancientvoid-sm-repair-"));
+    let lost = false;
+    const specs: SessionSpec[] = [];
+    const flaky: Adapter = {
+      id: "flaky",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true }) }),
+      async start(spec, ctx) {
+        specs.push(spec);
+        const resume = ((spec.args ?? {}) as { resumeSessionId?: unknown }).resumeSessionId;
+        // maki live 2026-11-11: the agent no longer knows the old id —
+        // every start that carries it dies, the session bricked.
+        if (lost && resume === "native_weg") throw new Error("Resource not found: not found: native_weg");
+        // phase 1 (original run) binds native_weg; the repaired run binds a fresh id
+        const fresh = lost && resume === undefined;
+        ctx.emit({ type: "system", summary: `flaky · Session ${fresh ? "native_neu" : "native_weg"}`, payload: { kind: "acp.native_session", nativeSessionId: fresh ? "native_neu" : "native_weg" } });
+        return { sessionId: ctx.sessionId };
+      },
+      async steer() {
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" };
+      },
+      async stop() {},
+    };
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir2);
+    const registry = new AdapterRegistry();
+    registry.register("flaky", () => flaky);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "flaky", project: dir2, prompt: "Fenster-Drag reparieren" });
+      await manager.stop(record.id, "tester");
+      // the agent's store lost the session — a prompt now loops on start_failed
+      lost = true;
+      const bricked = await manager.steer(record.id, { kind: "prompt", text: "Bitte setze die unterbrochene Arbeit fort." }, "jan-pixel");
+      expect(bricked.ok).toBe(false);
+      const tail = await manager.tail(record.id, 0);
+      expect(tail.some((e) => (e.payload as { kind?: string }).kind === "session.start_failed")).toBe(true);
+
+      // the draft names the real reason — not a generic provider hiccup
+      const draft = await manager.handoverDraft(record.id);
+      expect(draft.reason).toMatchObject({ category: "session", title: "Provider-Session verloren" });
+
+      // only humans repair
+      expect((await manager.repair(record.id, "agent:mpi")).ok).toBe(false);
+
+      const repaired = await manager.repair(record.id, "jan-pixel");
+      expect(repaired.ok).toBe(true);
+      const events = await manager.tail(record.id, 0);
+      expect(events.some((e) => (e.payload as { kind?: string }).kind === "session.native_binding_dropped" && (e.payload as { staleNativeId?: string }).staleNativeId === "native_weg")).toBe(true);
+      expect(events.some((e) => (e.payload as { kind?: string }).kind === "session.resume_without_native_id")).toBe(true);
+      expect(events.some((e) => (e.payload as { kind?: string }).kind === "session.continued")).toBe(true);
+      // the repaired run started WITHOUT the dead id and with the handover text
+      const last = specs.at(-1)!;
+      expect((last.args ?? {}).resumeSessionId).toBeUndefined();
+      expect(last.prompt).toContain("Übergabe");
+      expect(last.prompt).toContain("Fenster-Drag reparieren");
+      // the fresh binding follows the new announce (K7 fold)
+      expect(manager.get(record.id)?.nativeSessionId).toBe("native_neu");
+      expect(manager.get(record.id)?.status).toBe("working");
+    } finally {
+      await manager.shutdown();
+      await rm(dir2, { recursive: true, force: true });
+    }
+  });
+
   it("AI-P0-5: a transient append failure sets status error AND surfaces a visible error event", async () => {
     const { manager, store } = makeManager(dir, { eventsPerSecond: 20, autoStopAfterEvents: 2 });
     try {

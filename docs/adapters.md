@@ -201,6 +201,14 @@ gescheitertes Fortsetzen trägt eine erkennbare Provider-Ursache als
 `provider.error` (T35.4). Live-Läufe je CLI nach Hub-Neustart: ausstehend
 (Aufgabe AC-P35-3).
 
+**Verlorene native ID (BUG-0123, ADR-0070):** Kennt der Agent die übergebene
+`resumeSessionId` nicht mehr („Resource not found"), wirft der Adapter sie nicht
+fatal — er meldet `acp.context_lost` (`lostSessionId`, `cause`) und startet eine
+frische native Session; der Prompt läuft dort, die neue Bindung folgt dem
+`acp.native_session`-Fold. Die PWA bietet dazu „Hier weitermachen (Kontext neu
+aufbauen)" (`POST /api/sessions/:id/repair`: tote Bindung raus, Übergabe-Entwurf
+als nächster Prompt) und die Übergabe an eine andere Session.
+
 ## Slash-Commands deklarieren (`commands`, ADR-0042)
 
 `capabilities().commands?: readonly SlashCommand[]` listet die Commands,

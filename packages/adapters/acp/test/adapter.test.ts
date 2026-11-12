@@ -444,6 +444,46 @@ describe("acp adapter (T7.2)", () => {
     await adapter.stop(handle, ctx);
   });
 
+  it("BUG-0123: a native id the agent no longer knows degrades to a fresh context instead of bricking the session", async () => {
+    const turns: string[] = [];
+    const ctx = context({ turns });
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    // maki live 2026-11-11: the store lost the session — session/load
+    // answers “Resource not found: not found: <id>”. Without the fix this
+    // start() rejected with exactly that error (session.start_failed loop).
+    const handle = await adapter.start({ adapter: "acp", project: process.cwd(), prompt: "Weiter im Kontext", args: { resumeSessionId: "acp_lost_9876" } }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    const lost = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.context_lost");
+    expect(lost?.payload).toMatchObject({ kind: "acp.context_lost", lostSessionId: "acp_lost_9876" });
+    expect(lost?.summary).toContain("nicht mehr vorhanden");
+    // the fresh binding is announced — the hub record follows the new id
+    const native = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.native_session");
+    expect((native?.payload as { nativeSessionId?: string }).nativeSessionId).not.toBe("acp_lost_9876");
+    // the prompt ran in the fresh context — visible answer, no replay
+    expect(texts(ctx.events, "assistant")).toEqual(["Antwort auf: Weiter im Kontext · ACP"]);
+    expect(texts(ctx.events, "thinking").join("")).not.toContain("replayed");
+    await adapter.stop(handle, ctx);
+  });
+
+  it("BUG-0123: waking a dormant session whose native id is gone also degrades — first prompt answers", async () => {
+    const runner = new ProcessRunner();
+    const ctx = makeRecordingContext({
+      workdir: process.cwd(),
+      nativeSessionId: "acp_lost_dormant",
+      adoptWorker: async () => null,
+      spawnWorker: (cmd, o) => runner.spawn({ name: "acp-lost", cwd: process.cwd(), cmd, ...(o?.env ? { env: o.env } : {}) }),
+      turn: () => {},
+    } as Partial<AdapterContext>);
+    const adapter = createAdapter({ command: [agent], label: "fake" });
+    const handle = await adapter.recover!("dormant-lost", 1, ctx);
+    expect(await adapter.steer(handle!, { kind: "prompt", text: "einmal wach werden" }, ctx)).toEqual({ ok: true });
+    await waitFor(() => texts(ctx.events, "assistant").length === 1);
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "acp.context_lost")).toBe(true);
+    const native = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "acp.native_session");
+    expect((native?.payload as { nativeSessionId?: string }).nativeSessionId).not.toBe("acp_lost_dormant");
+    await adapter.stop(handle!, ctx);
+  });
+
   it("BUG-0039: an adoption (importHistory) plays the loaded history into the tail — the hub never had it", async () => {
     const turns: string[] = [];
     const ctx = context({ turns });

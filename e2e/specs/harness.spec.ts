@@ -193,7 +193,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await app.getByRole("button", { name: "Chat" }).click();
     const bar = app.locator(".handover-bar");
     await expect(bar).toContainText("Rate-Limit des Providers");
-    await bar.getByRole("button", { name: /An anderen Provider übergeben/ }).click();
+    await bar.getByRole("button", { name: /An andere Session übergeben/ }).click();
 
     // Ohne Zielwahl startet nichts; der Text ist sichtbar und änderbar.
     await expect(bar.getByRole("button", { name: "Übergeben", exact: true })).toBeDisabled();
@@ -218,12 +218,30 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(app.locator(".handover-bar")).toHaveCount(0);
   });
 
+  test("BUG-0123: verlorene Provider-Session — hier weitermachen baut den Kontext in derselben Session neu auf", async ({ app, hub }) => {
+    // Adoption einer native ID, die der Agent nicht mehr kennt: der Adapter
+    // meldet den Kontextverlust sichtbar, die Session klemmt nicht (idle).
+    const id = await hub.createSession({ adapter: "acp", adoptNativeSessionId: "acp_lost_e2e" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    // promptlos: die Züge-Chat-Ansicht ist leer — der Verlust steht im Verlauf
+    await sessionTab(app, "Verlauf");
+    await expect(app.locator(".tail-scroll")).toContainText("beim Agenten nicht mehr vorhanden — neuer Kontext");
+
+    const bar = app.locator(".handover-bar");
+    await expect(bar).toContainText("Agent hat den Verlauf verloren");
+    await bar.getByRole("button", { name: /Hier weitermachen/ }).click();
+
+    // Der Übergabetext läuft als Zug in DIESER Session — mit Antwort.
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: .*git status/)).toBeVisible();
+    await expect(app.locator(".handover-bar")).toHaveCount(0);
+  });
+
   test("T21.2: der Übergabetext lässt sich auf Klick vom Ziel-Modell straffen und wieder zurücknehmen", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "acp", prompt: "Baue die Suche um FEHLER" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Chat" }).click();
     const bar = app.locator(".handover-bar");
-    await bar.getByRole("button", { name: /An anderen Provider übergeben/ }).click();
+    await bar.getByRole("button", { name: /An andere Session übergeben/ }).click();
     const tighten = bar.getByRole("button", { name: "Mit Modell straffen" });
     await expect(tighten).toBeDisabled();
     await bar.getByLabel("Ziel-Provider").selectOption("opencode");
