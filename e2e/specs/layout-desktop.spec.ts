@@ -32,7 +32,7 @@ test.describe("Desktop (T8.5, AC-P8-6)", () => {
     // Globale Navigation: schmale Leiste am linken Rand, Beschriftung nur als Tooltip/Name.
     const rail = await app.locator(".split-list .dock-stack").boundingBox();
     expect(rail!.width).toBeLessThanOrEqual(64);
-    await expect(app.locator(".split-list .dock-item").last()).toHaveAttribute("title", "Dateibaum (Strg+Umschalt+E)");
+    await expect(app.locator(".split-list .dock-item").last()).toHaveAttribute("data-tip", "Dateibaum (Strg+Umschalt+E)");
 
     // EPIC-P43 T43.6: die Ansichten stehen im Kachelkopf (Griff, Titel, Zustand, Reiter, rechts Herauslösen) —
     // Chat, Änderungen, Befehle und „Mehr“ (Verlauf, Bericht, Datei, Graph, GitLab, Suche, Umgebung).

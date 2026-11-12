@@ -14,7 +14,7 @@ async function idleSession(app: Page, hub: TestHub, prompt: string): Promise<str
   return id;
 }
 
-/** Sichtbare Tasten einer Fläche: Name, Text, aria-label, title. */
+/** Sichtbare Tasten einer Fläche: Name, Text, aria-label, Tooltip (der Tooltip-Layer macht aus `title` `data-tip`). */
 async function buttons(app: Page) {
   return app.evaluate(() =>
     [...document.querySelectorAll<HTMLElement>("button, [role='button'], summary")]
@@ -27,7 +27,7 @@ async function buttons(app: Page) {
         html: b.outerHTML.slice(0, 120),
         text: (b.textContent ?? "").trim(),
         label: b.getAttribute("aria-label") ?? "",
-        title: b.getAttribute("title") ?? "",
+        title: b.getAttribute("title") || b.getAttribute("data-tip") || "",
       })),
   );
 }
