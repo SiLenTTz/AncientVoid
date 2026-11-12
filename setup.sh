@@ -17,7 +17,8 @@
 #                             VoidWarden ausstellen (Kaskade, s. README)
 #         --no-pwa             PWA nicht bauen
 #         --no-start           Hub nicht starten
-# Exit:   0 ok · 2 Voraussetzung fehlt · 3 Config/Daten kaputt ·
+# Exit:   0 ok · 2 Voraussetzung fehlt oder ungültige Eingabe (Option,
+#         Adapter, baseUrl/Modell) · 3 Config/Daten kaputt ·
 #         4 Token/Hub-Start fehlgeschlagen · 5 npm install fehlgeschlagen
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -86,7 +87,18 @@ adapter_json() { # adapter_json <id> — ein Adapter-JSON-Objekt auf stdout
     openai)
       [ -n "$BASE_URL" ] || ask BASE_URL "OpenAI-kompatible baseUrl (llama.cpp/LM Studio/Ollama/vLLM, ohne /v1? mit!)" "http://127.0.0.1:8080/v1"
       [ -n "$MODEL" ] || ask MODEL "Modell-Name" "qwen2.5-coder"
-      printf '{"id":"local-llm","module":"./examples/adapters/openai-compat/adapter.ts","config":{"baseUrl":"%s","model":"%s"}}' "$BASE_URL" "$MODEL"
+      node -e '
+const [baseUrl, model] = process.argv.slice(1);
+let url = null;
+try { url = new URL(baseUrl); } catch {}
+if (!url || !["http:", "https:"].includes(url.protocol)) {
+  console.error(`ungültige baseUrl: ${JSON.stringify(baseUrl)} — erwartet http(s)://host:port/v1`); process.exit(2);
+}
+if (!model.trim() || /[\u0000-\u001f\u007f]/.test(model)) {
+  console.error(`ungültiger Modell-Name: ${JSON.stringify(model)} — nicht leer, ohne Zeilenumbrüche/Steuerzeichen`); process.exit(2);
+}
+process.stdout.write(JSON.stringify({ id: "local-llm", module: "./examples/adapters/openai-compat/adapter.ts", config: { baseUrl, model } }));
+' "$BASE_URL" "$MODEL"
       ;;
     *) echo "unbekannter Adapter: $1 (dummy|claude|codex|opencode|copilot|pi|hermes|dsh|openai)" >&2; exit 2 ;;
   esac
