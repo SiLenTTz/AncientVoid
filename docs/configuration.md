@@ -4,7 +4,8 @@
 
 Der Hub liest `ANCIENTVOID_CONFIG` (Pfad) oder standardmäßig `./hub.config.json`.
 Vorlage: `apps/hub/hub.config.example.json`. Die eigene Config ist
-git-ignored — keine Secrets committen.
+git-ignored — keine Secrets committen. Alle Felder mit Typ und Default
+(generiert aus dem Schema): [`referenz-config.md`](referenz-config.md).
 
 ```jsonc
 {

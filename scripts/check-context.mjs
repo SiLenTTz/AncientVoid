@@ -4,7 +4,7 @@
 // Regeln + Begründung (u. a. Adhärenz- und Context-Rot-Recherche):
 // docs/check-context.md
 import { readdirSync, readFileSync, existsSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname, resolve } from "node:path";
@@ -166,6 +166,19 @@ export function checkDocKind(root, files) {
   return findings;
 }
 
+// Generierte Referenz (EPIC-P57 T57.3): committeter Stand muss dem frisch
+// generierten entsprechen. Ohne Generator im Root (Fixtures) entfällt die Regel.
+export function realReferenceRun(root) {
+  const r = spawnSync("node", ["scripts/gen-reference.mjs", "--check", "--root", root], { cwd: root, encoding: "utf8" });
+  return { ok: r.status === 0, message: (r.stderr || r.stdout || "").trim() };
+}
+
+export function checkReferenceFresh(root, files, run = realReferenceRun) {
+  if (!files.includes("scripts/gen-reference.mjs")) return [];
+  const { ok, message } = run(root);
+  return ok ? [] : [{ rule: "reference-fresh", file: "docs/referenz-*.md", detail: message || "generierte Referenz veraltet" }];
+}
+
 export function checkDrift(root, git, map = REFRESH_MAP) {
   const findings = [];
   for (const { doc, areas, maxDrift } of map) {
@@ -218,6 +231,7 @@ export function runAll(root, { git } = {}) {
     ...checkLinks(root, files),
     ...checkReferences(root, files),
     ...checkDocKind(root, files),
+    ...checkReferenceFresh(root, files),
     ...checkDrift(root, git ?? realGit(root)),
   ];
   return { ok: findings.length === 0, findings, checked: files.length };
@@ -228,7 +242,7 @@ function main() {
   const root = args.includes("--root") ? resolve(args[args.indexOf("--root") + 1]) : resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const { ok, findings, checked } = runAll(root);
   for (const f of findings) console.error(`check:context: [${f.rule}] ${f.file} — ${f.detail}`);
-  if (ok) console.log(`check:context: OK (${checked} Dateien: Budgets, Links, Referenzen, Doku-Arten, Script-Inventar, Frischhalte-Map)`);
+  if (ok) console.log(`check:context: OK (${checked} Dateien: Budgets, Links, Referenzen, Doku-Arten, generierte Referenz, Script-Inventar, Frischhalte-Map)`);
   else {
     console.error(`check:context: ${findings.length} Befund/Befunde (Regeln: docs/check-context.md)`);
     process.exit(1);

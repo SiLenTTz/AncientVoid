@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { checkBudgets, checkLinks, checkReferences, checkDocKind, checkDrift, runAll, walk } from "./check-context.mjs";
+import { checkBudgets, checkLinks, checkReferences, checkDocKind, checkReferenceFresh, checkDrift, runAll, walk } from "./check-context.mjs";
 
 // Kontext-Hygiene-Gate: Jede Regel findet ihr gepflanztes Fixture (verschwindet
 // eine Regel, schlägt ihr positiver Fall), bekannte zulässige Fälle (datierte
@@ -93,6 +93,19 @@ describe("check-context — Doku-Arten (Diátaxis)", () => {
   it("ohne Übersichtsseite schlägt doc-index an", async () => {
     await w("docs/gut.md", "# a\n\n**Art:** how-to\n");
     expect(checkDocKind(dir, walk(dir, ".", [])).map((f) => f.rule)).toEqual(["doc-index"]);
+  });
+});
+
+describe("check-context — generierte Referenz", () => {
+  it("veralteter Stand schlägt an, frischer nicht; ohne Generator entfällt die Regel", async () => {
+    const stale = () => ({ ok: false, message: "veraltet: docs/referenz-hubctl.md" });
+    const fresh = () => ({ ok: true, message: "" });
+    expect(checkReferenceFresh(dir, ["docs/a.md"], stale)).toEqual([]);
+    const files = ["scripts/gen-reference.mjs"];
+    expect(checkReferenceFresh(dir, files, fresh)).toEqual([]);
+    expect(checkReferenceFresh(dir, files, stale)).toEqual([
+      { rule: "reference-fresh", file: "docs/referenz-*.md", detail: "veraltet: docs/referenz-hubctl.md" },
+    ]);
   });
 });
 
