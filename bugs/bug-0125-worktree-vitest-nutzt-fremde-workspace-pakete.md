@@ -56,7 +56,7 @@ Symlinks in `node_modules/@ancientvoid` auf die Worktree-Pakete.
 Duplikat-Nähe zu BUG-0069: `check:workspace-links` existierte, lief aber nur im `gate`. Jetzt prüft ein
 Vitest-`globalSetup` (`scripts/vitest-global-setup.mjs`, `assertWorkspaceLinks`) bei **jedem** Lauf (`npm test`, `npx vitest`)
 und bricht im Worktree ohne eigene Links laut ab; Abhilfe: `node scripts/check-workspace-links.mjs --fix`.
-`file-diagnostics.spec.ts` löst `typescript/bin/tsc` per Node-Auflösung statt relativ zum Worktree.
+Das fehlende `typescript` im Worktree behob parallel `main` (`resolveRepoTsc` in `file-diagnostics.spec.ts`).
 Test: `scripts/check-workspace-links.test.mjs` („assertWorkspaceLinks“) — ohne Fix rot (Funktion fehlt).
 
 ## Handoff
