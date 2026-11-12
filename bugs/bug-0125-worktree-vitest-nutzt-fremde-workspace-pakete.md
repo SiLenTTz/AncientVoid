@@ -1,12 +1,12 @@
 ---
 id: BUG-0125
 slug: worktree-vitest-nutzt-fremde-workspace-pakete
-status: open
+status: done
 severity: S2
 area: tooling
 instance: dev (Agent-Worktree unter data/worktrees/<id>)
 commit: "efaa952"
-forge: ""
+forge: "fix/worktree-workspace-links"
 epic: ""
 created: 2026-11-12
 reporter: "Agent (Claude)"
@@ -50,6 +50,14 @@ Vorschlag: prüfen, dass `realpath(node_modules/@ancientvoid/contracts)` unter d
 
 `scripts/check-workspace-links.mjs`; Worktree-Anlage (Hub-Session-Lifecycle). Umgehung heute: Alias-Config oder
 Symlinks in `node_modules/@ancientvoid` auf die Worktree-Pakete.
+
+## Fix (12.11.2026)
+
+Duplikat-Nähe zu BUG-0069: `check:workspace-links` existierte, lief aber nur im `gate`. Jetzt prüft ein
+Vitest-`globalSetup` (`scripts/vitest-global-setup.mjs`, `assertWorkspaceLinks`) bei **jedem** Lauf (`npm test`, `npx vitest`)
+und bricht im Worktree ohne eigene Links laut ab; Abhilfe: `node scripts/check-workspace-links.mjs --fix`.
+Das fehlende `typescript` im Worktree behob parallel `main` (`resolveRepoTsc` in `file-diagnostics.spec.ts`).
+Test: `scripts/check-workspace-links.test.mjs` („assertWorkspaceLinks“) — ohne Fix rot (Funktion fehlt).
 
 ## Handoff
 
