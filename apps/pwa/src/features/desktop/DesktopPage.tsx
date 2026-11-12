@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, type CompanionState, type DesktopAction } from "../../shared/api.ts";
-import { LocalRecorder, recordingSupported, sttStatus } from "../../shared/local-stt.ts";
 
 /**
  * EPIC-P11 (ADR-0031): type on the PC from the phone. The page shows which
  * window has the focus there; "Eintippen" sends exactly that window as the
  * target — if the focus moved meanwhile, the hub says so and nothing is typed.
+ * Spracheingabe: globaler Nyx-FAB (kein eigener Mic-Button mehr).
  */
 const STATUS: Record<DesktopAction["status"], string> = {
   pending: "wartet",
@@ -33,11 +33,6 @@ export function DesktopPage() {
   const [inputMode, setInputMode] = useState<"keystroke" | "targeted-paste">("keystroke");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [stt, setStt] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [sttPartial, setSttPartial] = useState("");
-  const [sttStreamNotice, setSttStreamNotice] = useState("");
-  const rec = useRef<LocalRecorder | null>(null);
   // BUG-0047: the typed text is cleared only once the PC has really typed it.
   const sent = useRef<{ id: string; text: string } | null>(null);
 
@@ -54,7 +49,6 @@ export function DesktopPage() {
         .catch((err: unknown) => alive && setError(err instanceof Error ? err.message : "nicht erreichbar"));
     void tick();
     const timer = setInterval(() => void tick(), 1000);
-    void sttStatus().then((s) => setStt(s.available && recordingSupported()));
     return () => {
       alive = false;
       clearInterval(timer);
@@ -87,31 +81,6 @@ export function DesktopPage() {
       setError(err instanceof Error ? err.message : "abgelehnt");
     } finally {
       setBusy(false);
-    }
-  };
-
-  const dictate = async () => {
-    if (recording && rec.current) {
-      const r = rec.current;
-      rec.current = null;
-      setRecording(false);
-      try {
-        const t = await r.transcribe(await r.stop());
-        if (t.text) setText((v) => (v ? `${v} ${t.text}` : t.text));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Spracherkennung fehlgeschlagen");
-      }
-      return;
-    }
-    try {
-      const r = new LocalRecorder();
-      setSttPartial("");
-      setSttStreamNotice("");
-      await r.start(() => void dictate(), { onPartial: setSttPartial, onStreamError: setSttStreamNotice });
-      rec.current = r;
-      setRecording(true);
-    } catch {
-      setError("Mikrofon-Zugriff verweigert.");
     }
   };
 
@@ -175,14 +144,7 @@ export function DesktopPage() {
           <button class="btn" type="button" disabled={!ready || busy || !text.trim() || textNeedsTargetedPaste} onClick={() => void send("replace")} title="Feldinhalt markieren (Strg+A) und ersetzen">
             Ersetzen
           </button>
-          {stt && (
-            <button class="btn" type="button" onClick={() => void dictate()}>
-              {recording ? "Stopp" : "Diktieren"}
-            </button>
-          )}
         </div>
-        {recording && sttPartial && <div class="composer-notice stt-partial" role="status" aria-live="polite">Vorschau (wird nicht ausgeführt): {sttPartial}</div>}
-        {recording && sttStreamNotice && <div class="composer-notice dim">{sttStreamNotice}</div>}
         <div class="row desktop-keys" style="gap: 6px; flex-wrap: wrap">
           {KEYS.map((k) => (
             <button key={k.key} class="btn subtle" type="button" disabled={!ready || busy} onClick={() => void send("key", k.key)}>

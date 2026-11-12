@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField, touchField, type FieldId } from "../../shared/command-context.ts";
 import { useApi } from "../../shared/api-context.ts";
 import type { ComponentChildren } from "preact";
-import { recognizeOnce, speechRecognitionSupported } from "../../shared/speech.ts";
-import { LocalRecorder, recordingSupported, sttStatus } from "../../shared/local-stt.ts";
 import { type PromptRecommendation } from "../../shared/api.ts";
 import { saveSelectedSkill, saveSelectedWorkflow } from "./SkillOverlay.tsx";
 import { applySuggestion, commandsForScope, slashNotice, slashSuggestions, type SlashCommand } from "./slash.ts";
@@ -20,10 +18,8 @@ const ENHANCE_SUPPORTED_ADAPTERS = new Set(["claude", "codex", "opencode"]);
 /**
  * T1.5-6 — the shared prompt-entry surface, used both when creating a
  * session (App.tsx) and as a follow-up reply in a running one
- * (SessionTail.tsx). Only the text field + its action row (mic, enhance)
- * live here; each caller supplies its own submit trigger, since "Starten"
- * (bundled with adapter+project) and "Senden" (text alone) are different
- * actions that happen to share the same input surface.
+ * (SessionTail.tsx). Text field + enhance; Speech-to-Text sitzt global
+ * im Nyx-FAB (nicht mehr hier).
  */
 export function Composer({
   value,
@@ -54,7 +50,7 @@ export function Composer({
    * it, the rewrite reflected the hub server's own repo, not whatever
    * project the user actually selected. */
   project: string;
-  /** Session reply puts Senden and Stop in the same row as Voice and Verbessern. */
+  /** Session reply puts Senden and Stop in the same row as Verbessern. */
   extraActions?: ComponentChildren;
   /** New-session form applies a skill/agent through SessionSpec.args.
    * A reply has no such args, so the composer puts the name in the text. */
@@ -119,10 +115,6 @@ export function Composer({
   useEffect(() => {
     if (!expanded) inputRef.current?.style.setProperty("height", "");
   }, [expanded]);
-  const supported = speechRecognitionSupported();
-  const [listening, setListening] = useState(false);
-  const [micError, setMicError] = useState("");
-
   const enhanceSupported = adapterEnhance ?? ENHANCE_SUPPORTED_ADAPTERS.has(adapter);
   const [enhancing, setEnhancing] = useState(false);
   const [enhanceError, setEnhanceError] = useState("");
@@ -132,101 +124,6 @@ export function Composer({
   const [recommendation, setRecommendation] = useState<PromptRecommendation | null>(null);
   const [recommendError, setRecommendError] = useState("");
   const [recommendBusy, setRecommendBusy] = useState(false);
-
-  // T10.2: local push-to-talk when the hub has a recogniser, else the browser's.
-  const [localStt, setLocalStt] = useState<{ available: boolean; engine?: string; streaming?: boolean }>({ available: false });
-  useEffect(() => {
-    void sttStatus().then(setLocalStt);
-  }, []);
-  const recorder = useRef<LocalRecorder | null>(null);
-  const [recording, setRecording] = useState(false);
-  const [sttInfo, setSttInfo] = useState("");
-  const [sttPartial, setSttPartial] = useState("");
-  const [sttStreamNotice, setSttStreamNotice] = useState("");
-  // AC-P10-5: a locked screen or a lost microphone ends the recording
-  // visibly — nothing is transcribed or retried behind the person's back.
-  useEffect(() => {
-    if (!recording) return;
-    const end = (why: string) => {
-      recorder.current?.cancel();
-      recorder.current = null;
-      setRecording(false);
-      setSttPartial("");
-      setMicError(why);
-    };
-    const hidden = () => document.visibilityState === "hidden" && end("Aufnahme abgebrochen — Bildschirm gesperrt oder App verlassen.");
-    const lost = () => end("Aufnahme abgebrochen — Mikrofon nicht mehr verfügbar.");
-    document.addEventListener("visibilitychange", hidden);
-    const track = recorder.current?.track();
-    track?.addEventListener("ended", lost);
-    // Der Listener steht erst nach dem Rendern: war der Bildschirm schon
-    // gesperrt (Mikrofon-Dialog), kommt kein Event mehr — Zustand prüfen.
-    hidden();
-    return () => {
-      document.removeEventListener("visibilitychange", hidden);
-      track?.removeEventListener("ended", lost);
-    };
-  }, [recording]);
-
-  const stopLocal = async () => {
-    const rec = recorder.current;
-    if (!rec) return;
-    recorder.current = null;
-    setRecording(false);
-    setListening(true);
-    try {
-      const blob = await rec.stop();
-      const t = await rec.transcribe(blob);
-      if (t.text) onChange(valueRef.current ? `${valueRef.current} ${t.text}` : t.text);
-      else setMicError("Nichts erkannt — nochmal versuchen.");
-      setSttInfo(`lokal · ${t.engine} · ${(t.k6Ms / 1000).toFixed(1)} s${sttStreamNotice ? " · Live-Vorschau nicht verfügbar" : ""}`);
-    } catch (err) {
-      setMicError(err instanceof Error ? err.message : "Spracherkennung fehlgeschlagen.");
-    } finally {
-      setListening(false);
-      setSttPartial("");
-    }
-  };
-
-  const toggleMic = async () => {
-    if (localStt.available && recordingSupported()) {
-      if (recording) return void stopLocal();
-      setMicError("");
-      setSttInfo("");
-      setSttPartial("");
-      setSttStreamNotice("");
-      try {
-        const rec = new LocalRecorder();
-        await rec.start(() => void stopLocal(), {
-          onPartial: setSttPartial,
-          onStreamError: setSttStreamNotice,
-        });
-        recorder.current = rec;
-        setRecording(true);
-      } catch {
-        setMicError("Mikrofon-Zugriff verweigert.");
-      }
-      return;
-    }
-    if (listening) return; // recognizeOnce already runs to completion/timeout
-    setMicError("");
-    setListening(true);
-    const result = await recognizeOnce();
-    setListening(false);
-    if (result.ok) {
-      // Never auto-submit — the transcript lands in the editable field,
-      // appended to whatever's already there, exactly like typing (§3.3).
-      onChange(value ? `${value} ${result.text}` : result.text);
-    } else if (result.reason === "no-speech") {
-      setMicError("Nichts gehört — nochmal versuchen.");
-    } else if (result.reason === "not-allowed") {
-      setMicError("Mikrofon-Zugriff verweigert.");
-    } else if (result.reason === "timeout") {
-      setMicError("Spracherkennung hat nicht geantwortet.");
-    } else {
-      setMicError("Spracherkennung fehlgeschlagen.");
-    }
-  };
 
   const enhance = async () => {
     if (!value.trim()) return;
@@ -407,16 +304,6 @@ export function Composer({
         </div>
       )}
       {slashHint && <div class="composer-notice dim">{slashHint}</div>}
-      {recording && <div class="composer-notice dim">🔴 Aufnahme — tippe „Stopp“, wenn du fertig bist (bleibt auf deinen Rechnern)</div>}
-      {recording && sttStreamNotice && <div class="composer-notice dim">{sttStreamNotice}</div>}
-      {recording && sttPartial && <div class="composer-notice stt-partial" role="status" aria-live="polite">Vorschau (wird nicht ausgeführt): {sttPartial}</div>}
-      {sttInfo && !micError && <div class="composer-notice dim">{sttInfo}</div>}
-      {listening && !localStt.available && (
-        <div class="composer-notice dim">
-          🔴 höre zu… (Spracherkennung läuft meist über einen Cloud-Dienst des Browsers)
-        </div>
-      )}
-      {micError && <div class="composer-notice err">{micError}</div>}
       {enhanceError && <div class="composer-notice err">{enhanceError}</div>}
       {recommendError && !recommendation && <div class="composer-notice err">{recommendError}</div>}
 
@@ -501,17 +388,6 @@ export function Composer({
           {expanded ? "⤡" : "⤢"}
         </button>
         <button
-          class={listening ? "btn icon-btn busy" : recording ? "btn icon-btn recording" : "btn icon-btn"}
-          type="button"
-          aria-busy={listening}
-          aria-label={listening ? "lädt…" : recording ? "Stopp" : "Voice"}
-          onClick={toggleMic}
-          disabled={disabled || (!supported && !(localStt.available && recordingSupported())) || listening}
-          title={localStt.available ? `Spracheingabe lokal (${localStt.engine ?? "whisper"})` : supported ? "Spracheingabe (Browser, meist Cloud)" : "Browser unterstützt keine Spracherkennung"}
-        >
-          {listening ? "…" : recording ? <StopGlyph /> : <MicGlyph />}
-        </button>
-        <button
           class={enhancing ? "btn icon-btn composer-more busy" : "btn icon-btn composer-more"}
           type="button"
           aria-busy={enhancing}
@@ -529,23 +405,6 @@ export function Composer({
 }
 
 const glyph = { viewBox: "0 0 24 24", width: 20, height: 20, fill: "none", stroke: "currentColor", "stroke-width": 1.8, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": true } as const;
-
-function MicGlyph() {
-  return (
-    <svg {...glyph}>
-      <rect x="9" y="3" width="6" height="11" rx="3" />
-      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
-    </svg>
-  );
-}
-
-function StopGlyph() {
-  return (
-    <svg {...glyph}>
-      <rect x="6.5" y="6.5" width="11" height="11" rx="2" />
-    </svg>
-  );
-}
 
 /** Zauberstab mit Funken. */
 function WandGlyph() {

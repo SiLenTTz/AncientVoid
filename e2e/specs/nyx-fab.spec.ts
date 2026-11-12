@@ -1,0 +1,66 @@
+import { test, expect } from "../support/fixtures.ts";
+
+/** Globaler Nyx-FAB: Speech-to-Text in das fokussierte Feld (+ Zwischenablage). */
+
+test.describe("Nyx-FAB (Speech-to-Text)", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      class FakeRecognition {
+        lang = "";
+        interimResults = false;
+        continuous = false;
+        maxAlternatives = 1;
+        onstart: (() => void) | null = null;
+        onresult: ((e: unknown) => void) | null = null;
+        onerror: ((e: unknown) => void) | null = null;
+        onend: (() => void) | null = null;
+        start() {
+          const text = (globalThis as unknown as { __speech?: string }).__speech ?? "hallo welt";
+          setTimeout(() => {
+            this.onstart?.();
+            this.onresult?.({ results: [[{ transcript: text }]] });
+            this.onend?.();
+          }, 30);
+        }
+        abort() {}
+      }
+      (globalThis as unknown as { SpeechRecognition: unknown }).SpeechRecognition = FakeRecognition;
+    });
+  });
+
+  test("FAB ist sichtbar; Composer hat keinen Voice-Button mehr", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.locator('[data-testid="nyx-fab"]')).toBeVisible();
+    await expect(app.locator(".composer-actions").getByRole("button", { name: "Voice" })).toHaveCount(0);
+  });
+
+  test("Klick diktiert in das fokussierte Antwortfeld", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const field = app.getByPlaceholder("Antworten…");
+    await field.click();
+    await app.evaluate(() => ((globalThis as unknown as { __speech: string }).__speech = "bitte weitermachen"));
+    await app.locator('[data-testid="nyx-fab"]').click();
+    await expect(field).toHaveValue("bitte weitermachen");
+  });
+
+  test("Position bleibt nach Drag je Breakpoint erhalten", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 390, height: 800 });
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const fab = app.locator('[data-testid="nyx-fab"]');
+    await expect(fab).toHaveAttribute("data-bp", "phone");
+    const box = await fab.boundingBox();
+    expect(box).toBeTruthy();
+    await fab.dispatchEvent("pointerdown", { clientX: box!.x + 10, clientY: box!.y + 10, pointerId: 1, buttons: 1 });
+    await fab.dispatchEvent("pointermove", { clientX: box!.x + 10, clientY: box!.y - 100, pointerId: 1, buttons: 1 });
+    await fab.dispatchEvent("pointerup", { clientX: box!.x + 10, clientY: box!.y - 100, pointerId: 1, buttons: 0 });
+    const after = await fab.boundingBox();
+    expect(after!.y).toBeLessThan(box!.y - 40);
+    await app.reload();
+    await expect(app.locator('[data-testid="nyx-fab"]')).toBeVisible();
+    const again = await app.locator('[data-testid="nyx-fab"]').boundingBox();
+    expect(Math.abs((again?.y ?? 0) - (after?.y ?? 0))).toBeLessThan(8);
+  });
+});

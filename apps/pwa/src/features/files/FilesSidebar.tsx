@@ -111,9 +111,13 @@ export function FilesSidebar({
   const tabs = state.tabs.filter((t) => t.rootKey === rKey);
   const activeTab = state.active >= 0 ? state.tabs[state.active] : undefined;
   const viewing = activeTab && activeTab.rootKey === rKey ? activeTab : undefined;
-  const [view, setView] = useState<"tree" | "file">("tree");
+  const [view, setView] = useState<"tree" | "file">(viewing ? "file" : "tree");
   const widthRef = useRef(state.width);
   widthRef.current = state.width;
+  // ADR-0071: wenn ein Tab von außen gesetzt wurde, Dateiansicht zeigen.
+  useEffect(() => {
+    if (viewing) setView("file");
+  }, [viewing?.path, viewing?.rootKey]);
 
   const roots = useMemo(() => {
     const list: FilesRoot[] = [];

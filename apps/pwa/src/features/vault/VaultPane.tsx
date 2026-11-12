@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { VaultBrowse, VaultFile, VaultState } from "@ancientvoid/contracts";
 import { hubApi } from "../../shared/api.ts";
 import { FileViewer } from "../files/FileViewer.tsx";
@@ -6,10 +6,11 @@ import { formatBytes } from "../files/files-model.ts";
 import { openPopout } from "../windows/windows.ts";
 import { vaultFileHash } from "../../app/route.ts";
 
+const AUTOSAVE_MS = 600;
+
 /**
  * EPIC-P49 (ADR-0063): Knowledge Vault — Notizen des Menschen in einem gewählten Ordner.
- * Erstnutzung wählt den Ordner über den serverseitigen Verzeichnis-Browser; Markdown ist
- * editierbar (explizites Speichern mit Revision-Guard), alles andere reine Ansicht.
+ * Suche nach Dateiname; Markdown mit debounced Auto-Save (kein manueller Speichern-Button).
  */
 export function VaultPane({ initialFile = null }: { initialFile?: string | null }) {
   const [state, setState] = useState<VaultState | null>(null);
@@ -24,11 +25,19 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
   const [stale, setStale] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [filter, setFilter] = useState("");
 
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [picker, setPicker] = useState(false);
   const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textRef = useRef(text);
+  const revisionRef = useRef(revision);
+  const selectedRef = useRef(selected);
+  textRef.current = text;
+  revisionRef.current = revision;
+  selectedRef.current = selected;
 
   useEffect(() => {
     const on = () => setOnline(true);
@@ -54,7 +63,6 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
   useEffect(reloadState, []);
 
   useEffect(() => {
-    // Deep-Link nach dem Mount (hashchange lädt die Seite nicht neu).
     if (initialFile) setSelected(initialFile);
   }, [initialFile]);
 
@@ -71,6 +79,10 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
   useEffect(reloadFiles, [state?.configured]);
 
   const openFile = (path: string, edit = false) => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
     setSelected(path);
     setEditMode(false);
     setEditorError("");
@@ -98,23 +110,41 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
       .catch((err: unknown) => setEditorError(err instanceof Error ? err.message : "Nicht lesbar."));
   };
 
-  const save = () => {
-    if (!selected || saving) return;
+  const saveNow = (path: string, body: string, rev: string) => {
+    if (!online) return;
     setSaving(true);
     hubApi
-      .vaultSave(selected, text, revision)
+      .vaultSave(path, body, rev)
       .then((r) => {
+        if (selectedRef.current !== path) return;
         setRevision(r.revision);
         setDirty(false);
         setStale(false);
         setSaving(false);
       })
       .catch((err: unknown) => {
+        if (selectedRef.current !== path) return;
         setSaving(false);
         if (err instanceof Error && err.message.includes("geändert")) setStale(true);
         else setEditorError(err instanceof Error ? err.message : "Speichern fehlgeschlagen.");
       });
   };
+
+  const scheduleSave = (nextText: string) => {
+    setText(nextText);
+    setDirty(true);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveTimer.current = null;
+      const path = selectedRef.current;
+      if (!path || !online) return;
+      saveNow(path, textRef.current, revisionRef.current);
+    }, AUTOSAVE_MS);
+  };
+
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+  }, []);
 
   const create = () => {
     const name = newName.trim();
@@ -133,6 +163,13 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
         setEditorError(err instanceof Error ? err.message : "Anlegen fehlgeschlagen.");
       });
   };
+
+  const filtered = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!files) return null;
+    if (!q) return files;
+    return files.filter((f) => f.path.toLowerCase().includes(q) || (f.path.split("/").pop() ?? "").toLowerCase().includes(q));
+  }, [files, filter]);
 
   if (loadError && !state) return <div class="files-error" role="alert">{loadError}</div>;
   if (!state) return <div class="empty">Vault lädt…</div>;
@@ -165,11 +202,21 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
         />
         <button type="button" class="btn" onClick={create} disabled={creating || newName.trim() === ""}>Anlegen</button>
       </div>
+      <div class="vault-search">
+        <input
+          type="search"
+          placeholder="Notiz suchen…"
+          aria-label="Notiz suchen"
+          data-testid="vault-search"
+          value={filter}
+          onInput={(e) => setFilter((e.target as HTMLInputElement).value)}
+        />
+      </div>
       {editorError && <div class="files-error" role="alert">{editorError}</div>}
       {truncated && <div class="graph-banner">Liste gekappt — sehr viele Dateien im Vault-Ordner.</div>}
       <div class="vault-body">
         <ul class="vault-list" role="list">
-          {(files ?? []).map((f) => (
+          {(filtered ?? []).map((f) => (
             <li key={f.path}>
               <button
                 type="button"
@@ -181,7 +228,7 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
               </button>
             </li>
           ))}
-          {files !== null && files.length === 0 && <li class="empty">noch keine Dateien — lege eine Notiz an</li>}
+          {filtered !== null && filtered.length === 0 && <li class="empty">{filter.trim() ? "keine Treffer" : "noch keine Dateien — lege eine Notiz an"}</li>}
         </ul>
         {selected && (
           <div class="vault-file">
@@ -206,14 +253,10 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
                   class="vault-textarea"
                   spellcheck={false}
                   value={text}
-                  onInput={(e) => {
-                    setText((e.target as HTMLTextAreaElement).value);
-                    setDirty(true);
-                  }}
+                  onInput={(e) => scheduleSave((e.target as HTMLTextAreaElement).value)}
                 />
-                <div class="vault-editor-actions">
-                  <button type="button" class="btn" onClick={save} disabled={!dirty || saving || !online}>{saving ? "Speichere …" : "Speichern"}</button>
-                  <span class="dim">{dirty ? "ungespeichert" : "gespeichert"}</span>
+                <div class="vault-editor-actions" aria-live="polite">
+                  <span class="dim" data-testid="vault-save-status">{saving ? "speichere …" : dirty ? "ungespeichert" : "gespeichert"}</span>
                 </div>
               </div>
             ) : (

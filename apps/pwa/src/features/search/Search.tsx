@@ -1,3 +1,4 @@
+import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type ProjectDoc, type ProjectFile, type SearchResult } from "../../shared/api.ts";
@@ -223,7 +224,9 @@ function DocViewer({ project, path, snippet, onClose }: { project: string; path:
     }
   }, [file, snippet]);
 
-  return (
+  // Ins <body>: Session-Stapelkontexte liegen unter dem festen Nyx-FAB —
+  // ohne Portal blockiert der FAB „Schließen“ trotz höherem Overlay-z-index.
+  return createPortal(
     <div class="file-viewer-overlay" onClick={onClose}>
       <div class="file-viewer" onClick={(e) => e.stopPropagation()}>
         <div class="file-viewer-head">
@@ -242,6 +245,7 @@ function DocViewer({ project, path, snippet, onClose }: { project: string; path:
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

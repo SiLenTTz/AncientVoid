@@ -253,11 +253,12 @@ test.describe("Sprache (T1.5, T3.10)", () => {
     });
   });
 
-  test("Diktat füllt das Antwortfeld", async ({ app, hub }) => {
+  test("Diktat füllt das Antwortfeld (Nyx-FAB)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByPlaceholder("Antworten…").click();
     await app.evaluate(() => ((globalThis as unknown as { __speech: string }).__speech = "bitte weitermachen"));
-    await app.locator(".composer-actions").getByRole("button", { name: "Voice" }).click();
+    await app.locator('[data-testid="nyx-fab"]').click();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("bitte weitermachen");
   });
 

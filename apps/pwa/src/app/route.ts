@@ -14,6 +14,11 @@ export function graphHash(sessionId: string, hostId?: string | null): string {
   return `${sessionHash(sessionId, hostId)}/graph`;
 }
 
+/** ADR-0071: Git-Commit-Graph der Session — `…/git`. */
+export function gitGraphHash(sessionId: string, hostId?: string | null): string {
+  return `${sessionHash(sessionId, hostId)}/git`;
+}
+
 /** EPIC-P48: eine Datei der Session im Datei-Tab des Chat-Fensters — `…/datei/<path>`. */
 export function fileHash(sessionId: string, path: string, hostId?: string | null): string {
   return `${sessionHash(sessionId, hostId)}/datei/${path.split("/").map(encodeURIComponent).join("/")}`;
@@ -39,8 +44,8 @@ export interface CodeTarget {
   line: number | null;
 }
 
-/** Tabs, die eine eigene Hash-Route haben (EPIC-P48) — `datei` trägt den Pfad in `file`. */
-export type TailTab = "graph" | "datei";
+/** Tabs, die eine eigene Hash-Route haben (EPIC-P48 / ADR-0071) — `datei` trägt den Pfad in `file`. */
+export type TailTab = "graph" | "git" | "datei";
 
 /** T8.1: every page has a URL, so Back in the browser goes back. */
 export type ListPage = "dashboard" | "new" | "settings" | "approvals" | "status" | "discovery" | "media" | "pc" | "vault" | "orchestrierung" | "automationen";
@@ -89,7 +94,7 @@ export function parseAppHash(hash: string): AppRoute {
     const page = (Object.keys(PAGE_SLUG) as ListPage[]).find((p) => PAGE_SLUG[p] === slug);
     return { view: "list", page: page ?? "dashboard" };
   }
-  const hosted = /^#\/hosts\/([^/?#]+)\/sessions\/([^/?#]+)(?:\/code\/(.+))?(?:\/(graph|datei)(?:\/(.+))?)?(\/browser)?$/.exec(hash);
+  const hosted = /^#\/hosts\/([^/?#]+)\/sessions\/([^/?#]+)(?:\/code\/(.+))?(?:\/(graph|git|datei)(?:\/(.+))?)?(\/browser)?$/.exec(hash);
   if (hosted?.[1] && hosted[2]) {
     const code = codeTarget(hosted[3]);
     const file = hosted[4] === "datei" ? fileTarget(hosted[5]) : undefined;
@@ -98,12 +103,12 @@ export function parseAppHash(hash: string): AppRoute {
       hostId: decodeURIComponent(hosted[1]),
       sessionId: decodeURIComponent(hosted[2]),
       ...(code ? { code } : {}),
-      ...(hosted[4] === "graph" ? { tab: "graph" as const } : {}),
+      ...(hosted[4] === "graph" || hosted[4] === "git" ? { tab: hosted[4] as TailTab } : {}),
       ...(file !== undefined ? { tab: "datei" as const, file } : {}),
       ...(hosted[6] ? { browser: true as const } : {}),
     };
   }
-  const match = /^#\/sessions\/([^/?#]+)(?:\/code\/(.+))?(?:\/(graph|datei)(?:\/(.+))?)?(\/browser)?$/.exec(hash);
+  const match = /^#\/sessions\/([^/?#]+)(?:\/code\/(.+))?(?:\/(graph|git|datei)(?:\/(.+))?)?(\/browser)?$/.exec(hash);
   const raw = match?.[1];
   if (!raw) return { view: "list", page: "dashboard" };
   const code = codeTarget(match[2]);
@@ -112,7 +117,7 @@ export function parseAppHash(hash: string): AppRoute {
     view: "tail",
     sessionId: decodeURIComponent(raw),
     ...(code ? { code } : {}),
-    ...(match[3] === "graph" ? { tab: "graph" as const } : {}),
+    ...(match[3] === "graph" || match[3] === "git" ? { tab: match[3] as TailTab } : {}),
     ...(file !== undefined ? { tab: "datei" as const, file } : {}),
     ...(match[5] ? { browser: true as const } : {}),
   };

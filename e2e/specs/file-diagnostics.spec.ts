@@ -1,9 +1,21 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join, resolve } from "node:path";
 import { test, expect, openLayer } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 import type { TestHub } from "../support/hub.ts";
+
+/** Worktrees ohne eigene node_modules: typescript liegt oft eine Ebene höher. */
+function resolveRepoTsc(): string | null {
+  try {
+    const req = createRequire(import.meta.url);
+    const bin = resolve(dirname(req.resolve("typescript/package.json")), "bin/tsc");
+    return existsSync(bin) ? bin : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * EPIC-P46 T46.7/T46.8 (ADR-0058 §9, §11): Diagnosen nur auf Klick, ehrliche Zustände, Freigabe pro Projekt,
@@ -48,9 +60,10 @@ test.describe("Diagnosen und Datei-Feedback (EPIC-P46)", () => {
   });
 
   test("Projekt-tsc läuft erst nach Freigabe; Fehlerposition mit Typfehler", async ({ app, hub }) => {
-    const tsc = resolve(import.meta.dirname, "../../node_modules/typescript/bin/tsc");
+    const tsc = resolveRepoTsc();
+    test.skip(!tsc, "typescript/bin/tsc nicht auflösbar — Projekt-tsc-Freigabe nicht prüfbar (sichtbar übersprungen, kein Pass)");
     mkdirSync(join(hub.alpha, "node_modules/.bin"), { recursive: true });
-    symlinkSync(tsc, join(hub.alpha, "node_modules/.bin/tsc"));
+    symlinkSync(tsc!, join(hub.alpha, "node_modules/.bin/tsc"));
     writeFileSync(join(hub.alpha, "tsconfig.json"), JSON.stringify({ compilerOptions: { strict: true, noEmit: true, target: "es2022" }, include: ["*.ts"] }));
     writeFileSync(join(hub.alpha, "typ.ts"), 'export const zahl: number = "text";\n');
     await openFile(app, hub, "typ.ts");

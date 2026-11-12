@@ -30,7 +30,7 @@ export function TileWorkspace({
   /** T7.6 code anchor from the URL, for the tile showing that session. */
   initialCode?: { sessionId: string; code: CodeTarget };
   /** EPIC-P48: Graph-/Datei-Tab aus der URL, für die Kachel dieser Session. */
-  initialTabView?: { sessionId: string; tab: "graph" | "datei"; file?: string };
+  initialTabView?: { sessionId: string; tab: "graph" | "git" | "datei"; file?: string };
 }) {
   const count = tileCount(ws.layout);
   // BUG-0071: the handler works on the NEWEST state, not the one of its last render — two shortcuts
@@ -199,7 +199,7 @@ function Tile({
 }: {
   onPopout?: (drop?: DropPoint) => void;
   initialCode?: CodeTarget;
-  initialTabView?: { sessionId: string; tab: "graph" | "datei"; file?: string };
+  initialTabView?: { sessionId: string; tab: "graph" | "git" | "datei"; file?: string };
   index: number;
   tileRef: TileRef | null;
   focused: boolean;

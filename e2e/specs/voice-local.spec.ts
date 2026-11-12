@@ -67,30 +67,32 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
   test("Live-Teiltranskript bleibt Vorschau; nur der finale Text landet editierbar im Feld", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    const voice = app.locator(".composer-actions").getByRole("button", { name: "Voice" });
-    await expect(voice).toHaveAttribute("title", /Spracheingabe lokal/);
-    await voice.click();
-    await expect(app.getByText(/Aufnahme — tippe „Stopp“/)).toBeVisible();
+    await app.getByPlaceholder("Antworten…").click();
+    const fab = app.locator('[data-testid="nyx-fab"]');
+    await expect(fab).toHaveAttribute("title", /Spracheingabe lokal/);
+    await fab.click();
+    await expect(app.getByText(/Aufnahme — tippe erneut zum Stoppen/)).toBeVisible();
     const partial = app.getByRole("status").filter({ hasText: "Vorschau (wird nicht ausgeführt): Nicht stoppen" });
     await expect(partial).toBeVisible({ timeout: 10_000 });
     expect((await hub.events(id)).filter((e) => e.type === "user")).toHaveLength(1);
-    await app.locator(".composer-actions").getByRole("button", { name: "Stopp" }).click();
+    await fab.click();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Bitte weiter");
     expect((await hub.events(id)).filter((e) => e.type === "user")).toHaveLength(1);
   });
   });
 
-  test("Voice nimmt auf, der Hub erkennt lokal, der Text landet editierbar im Feld — mit K6-Zeit", async ({ app, hub }) => {
+  test("Nyx-FAB nimmt auf, der Hub erkennt lokal, der Text landet editierbar im Feld — mit K6-Zeit", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    const voice = app.locator(".composer-actions").getByRole("button", { name: "Voice" });
-    await expect(voice).toHaveAttribute("title", /lokal \(whisper-e2e\)/);
-    await voice.click();
-    await expect(app.getByText(/Aufnahme — tippe „Stopp“/)).toBeVisible();
+    await app.getByPlaceholder("Antworten…").click();
+    const fab = app.locator('[data-testid="nyx-fab"]');
+    await expect(fab).toHaveAttribute("title", /lokal \(whisper-e2e\)/);
+    await fab.click();
+    await expect(app.getByText(/Aufnahme — tippe erneut zum Stoppen/)).toBeVisible();
     await app.waitForTimeout(1200);
-    await app.locator(".composer-actions").getByRole("button", { name: "Stopp" }).click();
+    await fab.click();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Starte die Tests im Worktree");
-    await expect(app.locator(".composer-notice").filter({ hasText: /lokal · whisper-e2e · \d+\.\d s/ })).toBeVisible();
+    await expect(app.locator('[data-testid="nyx-fab-toast"]').filter({ hasText: /lokal · whisper-e2e · \d+\.\d s/ })).toBeVisible();
     expect(received.at(-1)).toMatchObject({ rate: 16_000, channels: 1, prompt: true, language: "de" });
     // Nothing was sent to the session — the text only sits in the field.
     expect((await hub.events(id)).filter((e) => e.type === "user")).toHaveLength(1);
@@ -100,14 +102,15 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     const before = received.length;
-    await app.locator(".composer-actions").getByRole("button", { name: "Voice" }).click();
-    await expect(app.getByText(/Aufnahme — tippe „Stopp“/)).toBeVisible();
+    await app.getByPlaceholder("Antworten…").click();
+    await app.locator('[data-testid="nyx-fab"]').click();
+    await expect(app.getByText(/Aufnahme — tippe erneut zum Stoppen/)).toBeVisible();
     await app.evaluate(() => {
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
       document.dispatchEvent(new Event("visibilitychange"));
     });
     await expect(app.getByText(/Aufnahme abgebrochen — Bildschirm gesperrt/)).toBeVisible();
-    await expect(app.locator(".composer-actions").getByRole("button", { name: "Voice" })).toBeVisible();
+    await expect(app.locator('[data-testid="nyx-fab"]')).toBeVisible();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("");
     expect(received.length).toBe(before);
   });
@@ -121,9 +124,10 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     await app.evaluate(() => {
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
     });
-    await app.locator(".composer-actions").getByRole("button", { name: "Voice" }).click();
+    await app.getByPlaceholder("Antworten…").click();
+    await app.locator('[data-testid="nyx-fab"]').click();
     await expect(app.getByText(/Aufnahme abgebrochen — Bildschirm gesperrt/)).toBeVisible();
-    await expect(app.locator(".composer-actions").getByRole("button", { name: "Voice" })).toBeVisible();
+    await expect(app.locator('[data-testid="nyx-fab"]')).toBeVisible();
     expect(received.length).toBe(before);
   });
 });
