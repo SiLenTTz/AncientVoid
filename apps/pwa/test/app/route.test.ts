@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { browserHash, codeHash, isToolPage, pageHash, parseAppHash, sessionHash, type ListPage } from "../../src/app/route.ts";
+import { browserHash, codeHash, filetreeHash, isToolPage, pageHash, parseAppHash, sessionHash, type ListPage } from "../../src/app/route.ts";
 
 describe("Browser-Route (EPIC-P39 T39.3)", () => {
   it("round-trips lokal und auf einem anderen Host; die Session-Route bleibt unberührt", () => {
@@ -57,6 +57,14 @@ describe("host-qualified session links (EPIC-P6)", () => {
 
   it("keeps old links without a host working", () => {
     expect(parseAppHash("#/sessions/abc")).toEqual({ view: "tail", sessionId: "abc" });
+  });
+});
+
+describe("Dateibaum-Fenster-Route (BUG-0128)", () => {
+  it("#/dateibaum markiert das Fensterziel; vergleichbar mit #/geraete", () => {
+    expect(filetreeHash()).toBe("#/dateibaum");
+    expect(parseAppHash(filetreeHash())).toEqual({ view: "filetree" });
+    expect(parseAppHash("#/dateibaum/")).toEqual({ view: "filetree" });
   });
 });
 

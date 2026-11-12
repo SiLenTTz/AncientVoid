@@ -5,6 +5,7 @@ import { NyxWindow } from "../nyx/Nyx.tsx";
 import { SessionTail } from "../session/SessionTail.tsx";
 import { GraphPane } from "../graph/GraphPane.tsx";
 import { FileViewer } from "../files/FileViewer.tsx";
+import { FilesLayer } from "../files/FilesLayer.tsx";
 import { ToolPane } from "../shell/ToolPane.tsx";
 import { VaultPane } from "../vault/VaultPane.tsx";
 import { NyxFab } from "../stt/NyxFab.tsx";
@@ -30,6 +31,7 @@ function targetFromHash(hash: string): WindowTarget | null {
   if (viewKind && route.view === "tail") return { kind: viewKind, sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
   if (route.view === "list" && route.page === "vault") return route.vaultFile ? { kind: "vault", path: route.vaultFile } : { kind: "vault" };
   if (route.view === "devices") return { kind: "device" };
+  if (route.view === "filetree") return { kind: "filetree" };
   if (route.view === "tail") {
     if (route.browser) return { kind: "browser", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
     if (route.tab === "graph") return { kind: "graph", sessionId: route.sessionId, ...(route.hostId ? { hostId: route.hostId } : {}) };
@@ -145,7 +147,7 @@ export function PopoutShell() {
     <div class="popout-shell">
       <header class="popout-bar">
         <span class="popout-title">
-          ⧉ {isViewTarget(target) ? `${VIEW_LABEL[target.kind]} · ${sessionLabel}` : target.kind === "queue" ? "Warteschlange" : target.kind === "nyx" ? "Nyx" : target.kind === "tool" ? "Werkzeug" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "browser" ? `Browser · ${sessionLabel}` : target.kind === "device" ? "Android-Geräte" : target.kind === "graph" ? `Repo-Graph · ${sessionLabel}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : sessionLabel}
+          ⧉ {isViewTarget(target) ? `${VIEW_LABEL[target.kind]} · ${sessionLabel}` : target.kind === "queue" ? "Warteschlange" : target.kind === "nyx" ? "Nyx" : target.kind === "tool" ? "Werkzeug" : target.kind === "filetree" ? "Dateibaum" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "browser" ? `Browser · ${sessionLabel}` : target.kind === "device" ? "Android-Geräte" : target.kind === "graph" ? `Repo-Graph · ${sessionLabel}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : sessionLabel}
         </span>
         <button type="button" class="btn" onClick={giveBack}>
           In die App zurück
@@ -166,6 +168,12 @@ export function PopoutShell() {
       ) : target.kind === "nyx" ? (
         <div class="popout-tool">
           <NyxWindow />
+        </div>
+      ) : target.kind === "filetree" ? (
+        // BUG-0128: Baum und alle offenen Dateien der Seitenleiste als genau ein Fenster —
+        // derselbe Gerät-Zustand (localStorage), die Sidebar füllt das Fenster.
+        <div class="popout-files">
+          <FilesLayer wide focusedSessionId={null} windowed />
         </div>
       ) : target.kind === "queue" ? (
         <div class="popout-tool popout-queue">

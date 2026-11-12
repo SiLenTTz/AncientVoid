@@ -34,6 +34,11 @@ export function devicesHash(): string {
   return "#/geraete";
 }
 
+/** BUG-0128: die Datei-Seitenleiste (Baum + offene Dateien) als genau ein eigenes Fenster — `#/dateibaum`. */
+export function filetreeHash(): string {
+  return "#/dateibaum";
+}
+
 /** EPIC-P49: eine Vault-Datei als eigene Seite/Fenster — `#/notizen/datei/<path>`. */
 export function vaultFileHash(path: string): string {
   return `#/notizen/datei/${path.split("/").map(encodeURIComponent).join("/")}`;
@@ -67,7 +72,8 @@ export function pageHash(page: ListPage): string {
 export type AppRoute =
   | { view: "list"; page: ListPage; vaultFile?: string }
   | { view: "tail"; sessionId: string; hostId?: string; code?: CodeTarget; tab?: TailTab; file?: string; browser?: true }
-  | { view: "devices" };
+  | { view: "devices" }
+  | { view: "filetree" };
 
 function codeTarget(raw: string | undefined): CodeTarget | undefined {
   if (!raw) return undefined;
@@ -85,6 +91,8 @@ function fileTarget(raw: string | undefined): string | undefined {
 export function parseAppHash(hash: string): AppRoute {
   // EPIC-P42: Geräte-Fenster ist host-scoped — vor dem Slug-Match prüfen.
   if (/^#\/geraete\/?$/.test(hash)) return { view: "devices" };
+  // BUG-0128: Fenster-Route der Datei-Seitenleiste — vor dem Slug-Match prüfen.
+  if (/^#\/dateibaum\/?$/.test(hash)) return { view: "filetree" };
   // EPIC-P49: Vault-Datei-Deep-Link vor dem Slug-Match prüfen (Pfad-Segmente!).
   const vaultFile = /^#\/notizen\/datei\/(.+)$/.exec(hash);
   if (vaultFile?.[1]) return { view: "list", page: "vault", vaultFile: vaultFile[1].split("/").map(decodeURIComponent).join("/") };

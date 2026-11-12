@@ -1,5 +1,4 @@
 import type { AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
-
 export interface SessionRecord {
   id: string;
   adapter: string;
@@ -1137,6 +1136,7 @@ function createHubApi(P: (path: string) => string) {
   /** EPIC-P49 (ADR-0063): Knowledge Vault — Menschenfläche, Agenten bekommen 403. */
   vaultState: () => api<VaultState>(P("/api/vault/state")),
   vaultBrowse: (path?: string) => api<VaultBrowse>(P(`/api/vault/browse${path ? `?path=${encodeURIComponent(path)}` : ""}`)),
+  /** BUG-0123: flache Vorschlagsliste aller wählbaren Ordner für die Root-Wahl. */
   vaultSetRoot: (path: string) => api<VaultState>(P("/api/vault/root"), { method: "PUT", body: JSON.stringify({ path }) }),
   vaultFiles: () => api<VaultListing>(P("/api/vault/files")),
   vaultCreate: (name: string) => api<VaultFile>(P("/api/vault/files"), { method: "POST", body: JSON.stringify({ name }) }),
