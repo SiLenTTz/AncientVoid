@@ -156,5 +156,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0143](bug-0143-e2e-selection-copy-ohne-fokus.md) | Markieren-kopiert-Spec unter voller Suite ohne Kopier-Bestätigung | done | S3 | e2e | — |
 | [BUG-0144](bug-0144-openai-beispiel-vertrag.md) | OpenAI-Beispieladapter besteht die Testkit-Vertragsprüfung nicht | done | S3 | adapters | — |
 | [BUG-0145](bug-0145-fab-verdeckt-verlaufsende.md) | Voice-FAB verdeckt das Ende des Verlaufs auf Handy und Tablet | done | S2 | pwa | — |
+| [BUG-0146](bug-0146-preset-speichern-nach-paint.md) | Verlauf-Preset wird erst nach dem Zeichnen gespeichert — sofortiges Neuladen verliert es | done | S3 | pwa | — |
 
-Die nächste freie Nummer ist **0146**.
+Die nächste freie Nummer ist **0147**.

@@ -306,6 +306,27 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await expect(chips.filter({ hasText: "Überwachen" })).not.toHaveClass(/active/);
   });
 
+  test("BUG-0146: sobald das Preset sichtbar gewählt ist, ist es schon gespeichert", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "dummy reply");
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const chips = app.locator(".filter-bar .chip");
+    await expect(chips.filter({ hasText: "Überwachen" })).toHaveClass(/active/);
+    // Ein Reload direkt nach dem Sichtbarwerden (unter Last im vollen Lauf passiert) darf nichts verlieren:
+    // der Beobachter liest den Speicher in genau dem Moment, in dem die Taste aktiv wird.
+    await app.evaluate(() => {
+      const chip = [...document.querySelectorAll(".filter-bar .chip")].find((c) => c.textContent === "Debuggen")!;
+      new MutationObserver((_records, observer) => {
+        if (!chip.classList.contains("active")) return;
+        (globalThis as unknown as { __storedAtActive?: string | null }).__storedAtActive = localStorage.getItem("ancientvoid.filter");
+        observer.disconnect();
+      }).observe(chip, { attributes: true, attributeFilter: ["class"] });
+    });
+    await chips.filter({ hasText: "Debuggen" }).click();
+    await expect(chips.filter({ hasText: "Debuggen" })).toHaveClass(/active/);
+    expect(await app.evaluate(() => (globalThis as unknown as { __storedAtActive?: string | null }).__storedAtActive)).toBe("debuggen");
+  });
+
   test("die Suche findet Text in der Projekt-Doku und öffnet die Datei", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
