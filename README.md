@@ -196,7 +196,11 @@ Gemeinsame Installations-Kaskade (beide Repos, je ein Befehl):
 
 1. **AncientVoid**: `./setup.sh` — Hub + erster Provider + Device-Token.
    Für VoidWarden zusätzlich: `./setup.sh --voidwarden` (stellt
-   `agent:voidwarden`- und `display:web-1`-Token aus, einmalig sichtbar).
+   `agent:voidwarden`- und `display:web-1`-Token aus, einmalig sichtbar;
+   `agent:` liest nur, `display:` liest und entscheidet write-Freigaben).
+   Ein zweiter Lauf stellt keine weiteren aus — verlorene Tokens per
+   `hubctl token revoke` + `token issue` bewusst neu. Optionsfragen am Display
+   beantworten (ADR-0066) gibt es nur mit `token issue web-1 --display --answer-questions`.
 2. **VoidWarden** (Sibling-Checkout): `./setup.sh` — prüft den Hub, richtet
    Companion und Web-Kiosk ein, druckt die Kiosk-URL. Das Board (Flashen,
    Serial) ist optional — [`voidwarden`](../voidwarden) ·

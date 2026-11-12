@@ -1,7 +1,7 @@
 ---
 id: BUG-0135
 slug: setup-voidwarden-zweittokens
-status: open
+status: done
 severity: S3
 area: ops
 instance: dev
@@ -37,10 +37,16 @@ Ergebnis des Repros vom 11.11.2026 siehe oben; keine Tokens oder Schlüssel aufg
 
 `setup.sh` Schritt 4c hat keinen Wiederholungscheck. Unabhängig von BUG-0130: auch bei Default-dataDir reproduzierbar.
 
+## Fix
+
+`setup.sh` Schritt 4c liest die vorhandenen Labels per `hubctl token list` und stellt `agent:voidwarden` bzw. `display:web-1` nur aus, wenn das Label noch kein Token hat. Sonst nennt der Wizard den bewussten Weg (`token revoke` + `token issue`); Klartext wird nie gespeichert. Rechte und die optionale Optionsfragen-Freigabe (ADR-0066, vom Wizard nicht vergeben) stehen in der Wizard-Ausgabe und im README.
+
+Test (`scripts/setup.test.mjs`, echter Wizard + hubctl/SQLite): zweimal `--voidwarden` → genau drei Tokens, zweiter Lauf gibt kein Token aus und zeigt den Neu-Ausstellen-Befehl. Ohne Fix rot (5 Tokens), mit Fix grün.
+
 ## Tests / Handoff
 
 AC: Wiederholung stellt keine weiteren Tokens aus; verlorene Tokens bewusst separat neu ausstellen, nie Klartext persistieren; Rechte und optionale Optionsfragen nach ADR-0066 explizit dokumentieren. PRD §8, P53 AC-3; VoidWarden bleibt separat.
 
 - [x] Im Bug-Index erfasst.
 - [x] GitLab-Tracker verlinkt.
-- [ ] Fix und Verifikation (Status oben; Gate-Beleg im [Audit](../docs/2026-11-11-setup-modelle-audit.md)).
+- [x] Fix und Verifikation (Status oben; Gate-Beleg im [Audit](../docs/2026-11-11-setup-modelle-audit.md)).
