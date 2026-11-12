@@ -226,8 +226,11 @@ function EventRowView({
   const prompt = event.type === "user" && (event.payload as { kind?: unknown }).kind === "session.prompt";
   const device = prompt ? (event.payload as { actor?: unknown }).actor : null;
   // ADR-0015: a provider failure, in words, with what to do next.
-  const providerError = (event.payload as { kind?: unknown }).kind === "provider.error";
-  const errorDetail = providerError ? (event.payload as { detail?: unknown }).detail : null;
+  const payloadKind = (event.payload as { kind?: unknown }).kind;
+  const providerError = payloadKind === "provider.error" || payloadKind === "cursor.usage_limit";
+  const errorDetail = providerError
+    ? ((event.payload as { detail?: unknown }).detail ?? (event.payload as { hint?: unknown }).hint ?? (event.payload as { line?: unknown }).line)
+    : null;
   return (
     <div class={`event ${event.type}${prompt ? " own" : ""}${providerError ? " provider-error" : ""}${expanded ? " expanded" : ""}`} data-seq={event.seq} onClick={(ev) => onCardClick(ev, onToggleExpand)}>
       <div class="meta">

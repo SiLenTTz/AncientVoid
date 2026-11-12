@@ -75,14 +75,16 @@ describe("cursor adapter", () => {
     expect(kind(ctx.events, "cursor.model")?.payload).toMatchObject({ model: "auto" });
   });
 
-  it("out-of-usage Noise wird als usage_limit erkannt, nicht als Rauschen", async () => {
+  it("out-of-usage wird als Kontingent-Fehler sichtbar, nicht als Rauschen (BUG-0149)", async () => {
     const ctx = context();
     await createAdapter({ command: [agent].join(" ") }).start(
       { adapter: "cursor", project: process.cwd(), prompt: "LIMIT" },
       ctx,
     );
-    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "cursor.usage_limit"));
-    expect(kind(ctx.events, "cursor.usage_limit")?.summary).toContain("Usage-Limit");
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "provider.error"));
+    expect(kind(ctx.events, "provider.error")?.payload).toMatchObject({ category: "quota", provider: "cursor" });
+    expect(kind(ctx.events, "provider.error")?.summary).toContain("Kontingent");
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "cursor.noise")).toBe(false);
   });
 
   it("models() listet den Katalog des CLIs auf (id - Label, live-Format)", async () => {

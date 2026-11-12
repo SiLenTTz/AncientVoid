@@ -45,6 +45,7 @@ export function showInChat(event: NormalizedEvent): boolean {
     payload.kind === "acp.model" ||
     payload.kind === "session.skill_chain" ||
     payload.kind === "provider.error" ||
+    payload.kind === "cursor.usage_limit" ||
     payload.kind === "acp.queued" ||
     (payload.kind === "session.steer" && payload.ok === false) ||
     (payload.kind === "opencode.step_finish" && payload.reason === "length")

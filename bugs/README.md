@@ -159,5 +159,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0146](bug-0146-preset-speichern-nach-paint.md) | Verlauf-Preset wird erst nach dem Zeichnen gespeichert — sofortiges Neuladen verliert es | done | S3 | pwa | — |
 | [BUG-0147](bug-0147-erststart-leerer-hub-gelesen.md) | Erststart mit leerem Hub: die ersten Sessions gelten als gelesen | done | S3 | pwa | — |
 | [BUG-0148](bug-0148-automations-tick-waechst.md) | Automations-Tick wächst mit der Laufzeit und blockiert den Hub | done | S2 | core | — |
+| [BUG-0149](bug-0149-cursor-kontingent-unsichtbar.md) | Cursor-Kontingent lässt die Session auf „arbeitet“ hängen, ohne Fehler und ohne Übergabe | done | S2 | adapter-cursor | — |
 
-Die nächste freie Nummer ist **0149**.
+Die nächste freie Nummer ist **0150**.

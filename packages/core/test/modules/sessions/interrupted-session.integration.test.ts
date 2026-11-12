@@ -8,7 +8,7 @@ import { AdapterRegistry, EventStore, HubDatabase, SessionManager, ApprovalServi
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => { for (const dispose of cleanup.splice(0).reverse()) await dispose(); });
 
-async function fixture(options: { persistent?: boolean; native?: boolean; resume?: AdapterResume; auto?: boolean; failResume?: boolean | string; stopGate?: Promise<void> } = {}) {
+async function fixture(options: { persistent?: boolean; native?: boolean; resume?: AdapterResume; auto?: boolean; failResume?: boolean | string; stopGate?: Promise<void>; promptless?: boolean } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "av-interrupted-"));
   const db = new HubDatabase(join(dir, "hub.db"));
   const store = new EventStore(dir);
@@ -35,6 +35,7 @@ async function fixture(options: { persistent?: boolean; native?: boolean; resume
       if (spec.args?.resumeSessionId) expect(spec.args.resumeSessionId).toBe("native-123");
       ctx = context;
       if (options.native !== false) ctx.emit({ type: "system", summary: "native id", payload: { nativeSessionId: "native-123" } });
+      if (spec.args?.resumeSessionId && options.promptless) return { sessionId: ctx.sessionId };
       await ctx.spawnWorker(["test-worker"], options.persistent ? { persistent: true } : undefined);
       return { sessionId: ctx.sessionId };
     },
@@ -185,6 +186,13 @@ describe("P27 interruption lifecycle", () => {
     expect(events.filter(e => e.payload.kind === "session.turn_end")).toHaveLength(1);
     expect(events.map(e => e.seq)).toEqual(events.map((_, i) => i + 1));
     expect(second.get(f.record.id)?.status).toBe("interrupted");
+  });
+
+  it("BUG-0149: a promptless resume does not stay working", async () => {
+    const f = await fixture({ resume, promptless: true });
+    await f.interrupt();
+    expect((await f.manager.resume(f.record.id, "phone")).ok).toBe(true);
+    expect(f.manager.get(f.record.id)?.status).toBe("idle");
   });
 
   it("K7: an older completed interruption cannot hide a new interrupted resumed turn", async () => {
