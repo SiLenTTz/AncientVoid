@@ -3,7 +3,8 @@ import { test, expect, sessionTab, dockGo } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
 
 /**
- * EPIC-P43 T43.5: die sieben Kleinkram-Regeln (Design-Review §4.3), je Regel ein Test.
+ * EPIC-P43 T43.5: die sieben Kleinkram-Regeln (Design-Review §4.3), je Regel ein Test;
+ * Regel 8 (Design-System: Umbruch statt horizontaler Scrollbalken) hat ihren Test hier ebenfalls.
  */
 async function idleSession(app: Page, hub: TestHub, prompt: string): Promise<string> {
   const id = await hub.createSession({ adapter: "opencode", prompt });
@@ -160,5 +161,52 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
     await sessionTab(app, "Chat");
     await expect(app.locator(".dock-stack textarea, .composer textarea").first()).toBeVisible();
     expect([...offCreate, ...(await check())]).toEqual([]);
+  });
+  test("Regel 8: Fließtext bricht um — kein horizontaler Scrollbalken; Diff, Code, Tabellen und Zeilenleisten sind ausgenommen", async ({ app, hub }) => {
+    const lang = "horizontalliniendickwandsthroughbruchtestwortohnenatuerlicheLeerzeichen";
+    const id = await idleSession(app, hub, lang);
+    // Ausnahme-Liste = die in docs/design-system.md (Kleinkram-Regel 8) dokumentierten Stellen.
+    const scan = () => app.evaluate(() => {
+      const exceptions = ".diff-code, .hunk-body-unified, .hunk-split-cell, .md-code, .md-table, .table-scroll, .file-code, .file-text, .file-hex, .code-lines, .code-lines code, .preview-diff, .dock, .files-tabs, .session-strip, .run-strip";
+      const bad: string[] = [];
+      for (const el of document.querySelectorAll<HTMLElement>("body *")) {
+        if (el.closest(exceptions)) continue;
+        const cs = getComputedStyle(el);
+        if (cs.overflowX !== "auto" && cs.overflowX !== "scroll") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        if (el.scrollWidth - el.clientWidth > 2) bad.push(`${el.tagName}.${el.className}`.slice(0, 90));
+      }
+      // Regel 8 umgesetzte Stellen: die Umbruch-Container dürfen nicht auf Scroll zurückfallen.
+      for (const s of [".filter-bar", ".reply-templates", ".attach-cmd-row", ".run-meta", ".desktop-cmd"]) {
+        for (const el of document.querySelectorAll<HTMLElement>(s)) {
+          if (el.getBoundingClientRect().width === 0) continue;
+          const ox = getComputedStyle(el).overflowX;
+          if (ox === "auto" || ox === "scroll") bad.push(`Umbruch-Container scrollt: ${s}`);
+        }
+      }
+      return [...new Set(bad)];
+    });
+    // Dashboard: Karten mit dem langen Wort.
+    await app.goto(`${hub.origin}/#/`);
+    await expect(app.locator(".dashboard")).toBeVisible();
+    expect(await scan()).toEqual([]);
+    // Session: Chat mit langem Wort im Text und im Antwortfeld.
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.getByText(new RegExp(lang.slice(0, 20))).first()).toBeVisible();
+    await app.getByPlaceholder("Antworten…").fill(lang);
+    // Die Vorlagenzeile muss langes Wort umbrechen, statt horizontal zu scrollen.
+    await app.getByRole("button", { name: "+ als Vorlage merken" }).click();
+    await app.getByPlaceholder("Antworten…").fill("");
+    await expect(app.locator(".reply-templates").getByRole("button", { name: lang, exact: true })).toBeVisible();
+    expect(await scan()).toEqual([]);
+    // Befehle: Vorlagen- und Befehlszeilen.
+    await sessionTab(app, "Befehle");
+    expect(await scan()).toEqual([]);
+    // Einstellungen: von der Übersicht aus (dockGo- Weg wie in Regel 5).
+    await app.getByRole("button", { name: "Zur Übersicht" }).click();
+    await expect(app.locator(".dashboard")).toBeVisible();
+    await dockGo(app, "Einstellungen");
+    expect(await scan()).toEqual([]);
   });
 });
