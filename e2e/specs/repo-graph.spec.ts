@@ -75,6 +75,7 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     await expect(fileWin.locator("html")).toHaveAttribute("data-focus-requests", "1");
   });
 
+  // BUG-0128: Herauslösen bündelt Baum und alle offenen Dateien in genau einem Fenster (nie Einzeldateien).
   test("Datei-Tab der rechten Datei-Seitenleiste lässt sich herauslösen (T46.8-Rest) @desktop", async ({ app, hub, context }) => {
     await app.setViewportSize({ width: 1440, height: 900 });
     const id = await hub.createSession({ adapter: "dummy", prompt: "Seitenleiste" });
@@ -89,7 +90,7 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     await app.locator(".files-tab-popout").click();
     const popup = await popupP;
     await popup.waitForLoadState();
-    expect(popup.url()).toContain(`/sessions/${id}/datei/README.md`);
+    expect(popup.url()).toContain("#/dateibaum");
     await expect(popup.getByText("Das Handbuch beschreibt den Handoff")).toBeVisible();
   });
 });
