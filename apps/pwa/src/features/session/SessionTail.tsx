@@ -210,6 +210,7 @@ export function SessionTail({
   const [activeTab, setActiveTab] = useState<"chat" | "verlauf" | "bericht" | "diff" | "graph" | "git" | "datei" | "forge" | "suche" | "code" | "umgebung">(() =>
     tile?.only ?? (initialCode ? "code" : initialTab === "graph" ? "graph" : initialTab === "git" ? "git" : initialFile ? "datei" : loadFilter() === "lesen" ? "chat" : "verlauf"),
   );
+  const [graphFull, setGraphFull] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   // „Mehr“ schließt bei Escape und bei einem Tipp daneben — am Handy deckt das Blatt die Reiter ab.
   useEffect(() => {
@@ -847,7 +848,7 @@ export function SessionTail({
     {/* 2026-10-26: the whole session view carries the same traveling border
      * as an active overview card — "this agent is working" must be visible
      * from any tab (chat/diff/code), not only from the small status pill. */}
-    <div data-tab={activeTab} class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}`}>{copyFlash && <div class="copy-flash" role="status">In Zwischenablage kopiert</div>}
+    <div data-tab={activeTab} class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}${graphFull ? " graph-full" : ""}`}>{copyFlash && <div class="copy-flash" role="status">In Zwischenablage kopiert</div>}
       <div class="session-main">
       {/* T8.5: back, what this is, Stop apart from Senden, the rest in ⋯ */}
       <div class={`topbar session-topbar${tile ? " tile-top" : ""}`}>
@@ -1097,6 +1098,7 @@ export function SessionTail({
             <GraphPane
               target={`session=${encodeURIComponent(session.id)}`}
               hostId={remoteHost(session.hostId) ?? null}
+              onFullscreen={setGraphFull}
               onOpenFile={(path) => {
                 setOpenFile(path);
                 setActiveTab("datei");

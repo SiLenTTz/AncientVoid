@@ -1373,7 +1373,7 @@ export class SessionManager {
       this.persist(session.record);
       // Promptless resume (cursor -p would be an empty turn) starts no worker.
       // Leaving the status on "working" looks like a hang with no error (BUG-0149).
-      if ((session.activeWorkers ?? 0) === 0 && !session.persistentWorker && (session.record as SessionRecord).status === "working") {
+      if ((session.activeWorkers ?? 0) === 0 && !session.persistentWorker && (session.record.status as string) === "working") {
         await this.setStatus(session, "idle");
       }
       return { ok: true };

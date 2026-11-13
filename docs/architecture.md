@@ -173,7 +173,8 @@ epics:status`). Struktur-relevant seitdem: Fleet/Multi-Host (P6,
 Verbindungen + Invite-Pairing), Discovery & Session-Übernahme (P5/P22/P24:
 hubctl-Sessions fremder Harnesses erkennen und adoptieren), Loops (P19,
 ADR-0038: `packages/loops/*` als Connectoren hinter dem Adapter-Contract),
-Automations-Host (P41), Vault/Notizen (P49), Git-Graph (P48),
+Automations-Host (P41), Vault/Notizen (P49), Datei-Galaxie (P52, vorher Repo-Graph P48,
+ADR-0062), Git-Commit-Graph (ADR-0071),
 Forge-Integration GitLab (P37), Browser-Testarbeitsplatz (P39,
 ADR-0059) und Desktop-Flächen (P18/P34, Companion P11/ADR-0031).
 

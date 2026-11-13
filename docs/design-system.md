@@ -161,6 +161,27 @@ Farbe, Form und Bewegung sagen dasselbe; jede der drei reicht allein.
 - **Composer:** einzeilig (`.compact`), solange das Feld weder Fokus noch Text hat; „Verbessern“
   erscheint erst dann. Fokus auf einem Knopf klappt nicht auf (der Klick ginge sonst ins Leere).
 
+## Repo-Galaxie (`features/graph/`, `32-repo-graph.css`, EPIC-P52)
+
+Der Repo-Graph ist eine Galaxie: Bereiche sind Sternsysteme, Dateien Sterne. Das Layout
+(`galaxy-layout.ts`) hängt nicht von der Fenstergröße ab; die Kamera (`galaxy-view.ts`) passt ein,
+fliegt und zoomt. Drei Stufen: von fern Systeme und gebündelte Filamente, näher die Sterne, nah die
+Namen. Namen überdecken sich nicht. Ab einem gleitenden Bild über 16 ms schaltet die Karte sichtbar
+auf „Vereinfacht“.
+
+Eine Auswahl dimmt den Rest auf 15 %. Eingehende Kanten tragen die Akzentfarbe und eine Pfeilspitze
+zur Auswahl, ausgehende die Code-Farbe und eine Pfeilspitze zum Nachbarn; der Lichtpuls läuft in
+Kantenrichtung. Die Listen „Wird verwendet von“ und „Verwendet“ zählen wie `in`/`out`. „2 Schritte“
+hängt den übernächsten Nachbarn an. Die Suche findet den Dateinamen vor dem Pfad, sonst „Kein Treffer“.
+Filter dimmen, sie entfernen keine Sterne. „Einpassen“ zeigt die ganze Galaxie.
+
+Am Handy (schmaler oder flacher als 700 px) startet der Graph im Vollbild: Kopfzeile, Reiter und Dock
+sind weg, Zurück ist mindestens 44 px. Escape schließt Blatt, dann Auswahl, dann System, dann Vollbild.
+Auf Tablet und PC liegt das Seitenfeld 320 px daneben, „Vollbild“ ist eine Taste. Kamera, Auswahl,
+System und Filter liegen je Ziel in `localStorage` (`ancientvoid.galaxy:…`). `/` sucht, Pfeile wandern
+zum Nachbarn, Enter öffnet die gewählte Datei. Legende, tote Dateien, Prüfen, Kappung und das eigene
+Fenster bleiben.
+
 ## Tablet, PC-Kachelkopf, Schnellsuche (EPIC-P43 T43.6)
 
 - **Tablet (700–1279 px):** in einer Session stehen die Sessions als Streifen darüber (hoch) bzw. als
