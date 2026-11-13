@@ -168,10 +168,10 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
   kein öffentlicher Port).
 - [x] **T57.5** Ausführbare Tutorial-Blöcke: Test fährt markierte Befehle gegen den
   Demo-Hub. Messlatte: K7 (Neustart-Schritt prüft Wiederanlauf).
-- [ ] **T57.6** How-tos: Handy anbinden, Provider wechseln, Gerät koppeln/widerrufen,
+- [x] **T57.6** How-tos: Handy anbinden, Provider wechseln, Gerät koppeln/widerrufen,
   Wizard-Fehler (Exit-Codes), Hub-Neustart/Backup-Verweis. Bestehende Runbooks
   verlinken statt kopieren. Messlatte: K7.
-- [ ] **T57.7** `docs/onboarding.md` splitten (Endnutzer/Integratoren-Agenten),
+- [x] **T57.7** `docs/onboarding.md` splitten (Endnutzer/Integratoren-Agenten),
   README auf Pitch + Tutorial-Link kürzen, Frischhalte-Map und `epics/README.md`
   pflegen. Messlatte: —.
 - [x] **T57.8** Entscheidung Handy-Kopplung (ADR): Variante (a) vs. (b) mit

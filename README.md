@@ -8,7 +8,7 @@ und auditieren — über Tailscale, ohne öffentlichen Port, ohne Cloud.
 > Setup in einem Befehl: [`./setup.sh`](#installation--ein-befehl) (Wizard,
 > bindet zuerst den Provider an). Neu hier? [`Erste 15 Minuten`](./docs/tutorial-erste-schritte.md)
 > (Klon → Hub → Handy → erste Nachricht). Manuelle Route und Detail-Doku:
-> [`docs/onboarding.md`](./docs/onboarding.md) (Menschen & Agenten). Alle
+> [`docs/onboarding.md`](./docs/onboarding.md) (Nutzer); Beitragende: [`beitragen-als-agent.md`](./docs/beitragen-als-agent.md). Alle
 > Seiten nach Art geordnet: [`docs/uebersicht.md`](./docs/uebersicht.md).
 
 | Anmeldung | Übersicht (Warteschlange) | Freigabe im Zug | Desktop-Arbeitsfläche |
