@@ -3,6 +3,9 @@ import { recognizeOnce, speechRecognitionSupported } from "../../shared/speech.t
 import { LocalRecorder, recordingSupported, sttStatus } from "../../shared/local-stt.ts";
 import { pasteTranscript } from "./paste-target.ts";
 
+/** BUG-0157: Wie lange das Feedback nach dem Aufnahmeende sichtbar bleibt, bevor die Blende ausblendet. */
+export const FEEDBACK_HIDE_MS = 10_000;
+
 /**
  * Dieselbe Push-to-Talk-Logik wie früher im Composer-Mikrofon:
  * lokal (Hub/whisper) wenn verfügbar, sonst Web Speech API.
@@ -20,6 +23,18 @@ export function usePushToTalk() {
   useEffect(() => {
     void sttStatus().then(setLocalStt);
   }, []);
+
+  // BUG-0157: info/error waren permanent gesetzter State — die FAB-Blende rendert allein
+  // daraus und stand damit für alle Zeit. Fail loud heißt: sichtbar, aber nicht für immer.
+  // Während Aufnahme/Erkennung bleibt der Zustand in Ruhe, die Blende zeigt ihn ohnehin.
+  useEffect(() => {
+    if (recording || listening || (!info && !error)) return;
+    const t = setTimeout(() => {
+      setInfo("");
+      setError("");
+    }, FEEDBACK_HIDE_MS);
+    return () => clearTimeout(t);
+  }, [recording, listening, info, error]);
 
   useEffect(() => {
     if (!recording) return;
