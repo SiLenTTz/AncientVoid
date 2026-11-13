@@ -1,4 +1,45 @@
-/* Denkpfad: aufklappbare Notizen und sichtbare Ladefehler. */
+/* P43/P50, K2: Inhalte passen in ihre Fläche; lange Tokens dürfen Grid/Flex nicht aufziehen. */
+.tail-scroll,
+.event,
+.turn-work,
+.turn-steps,
+.turn-step,
+.turn-step-io,
+.turn-step-part,
+.markdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tail-scroll {
+  overflow-x: hidden;
+}
+
+.markdown .md-code,
+.preview-diff,
+.code-hit code,
+.code-lines code,
+.diff-code,
+.hunk-body-unified,
+.hunk-split-cell,
+.file-text,
+.file-hex {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+.code-lines li {
+  min-width: 0;
+}
+
+.code-lines code,
+.file-lt {
+  min-width: 0;
+  flex: 1;
+}
+
 .turn-note-toggle {
   width: 100%;
   min-width: 0;
@@ -12,10 +53,61 @@
   cursor: pointer;
 }
 
-.chat-load-warning {
+.code-lines,
+.tail-scroll .file-code.wrap,
+.tail-scroll .file-text,
+.tail-scroll .file-hex,
+.files-body .file-code.wrap,
+.files-body .file-text,
+.files-body .file-hex,
+.markdown .md-table {
+  overflow-x: hidden;
+}
+
+.markdown table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table-scroll {
+  overflow-x: hidden;
+}
+
+.inventory-table {
+  table-layout: fixed;
   overflow-wrap: anywhere;
-  color: var(--warn);
-  font-size: var(--text-sm);
+}
+
+.files-tabs,
+.dock {
+  flex-wrap: wrap;
+  overflow-x: hidden;
+}
+
+@media (orientation: portrait) {
+  .session-strip {
+    flex-wrap: wrap;
+    max-height: calc(3 * (var(--target, 44px) + 6px) + 12px);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+}
+
+.dock-item,
+.files-tab,
+.strip-item {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hunk-split-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.turn-step-verb {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pinned-prompt {
@@ -49,4 +141,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.chat-load-warning {
+  overflow-wrap: anywhere;
+  color: var(--warn);
+  font-size: var(--text-sm);
 }

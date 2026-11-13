@@ -66,3 +66,21 @@ test("große Eingaben und Denktexte bleiben im aufklappbaren Denkpfad lesbar @ta
   await work.locator(".turn-note-toggle").click();
   await expect(work.locator(".turn-note .event-detail")).toContainText("ENDE DES DENKENS");
 });
+
+test("lange Codezeilen und Tabellen erzeugen keine horizontalen Scrollflächen @tablet @desktop", async ({ app, hub }) => {
+  const long = "langezeile".repeat(100);
+  const prompt = `BREITENTEST\n\`\`\`text\n${long}\n\`\`\`\n\n| A | B |\n| --- | --- |\n| ${long} | ${long} |`;
+  const id = await hub.createSession({ adapter: "opencode", prompt });
+  await hub.until(async () => (await hub.sessions()).every((s) => s.status === "idle"), "Zug fertig");
+  await app.goto(`${hub.origin}/#/sessions/${id}`);
+  await sessionTab(app, "Chat");
+  await expect(app.locator(".tail-scroll .md-table").first()).toBeVisible();
+  for (const width of [320, 412, 800, 1280]) {
+    await app.setViewportSize({ width, height: 915 });
+    const overflow = await app.locator(".tail-scroll").first().evaluate((el) => [el, ...el.querySelectorAll("*")].filter((node) => {
+      const style = getComputedStyle(node);
+      return /auto|scroll/.test(style.overflowX) && node.scrollWidth > node.clientWidth + 1;
+    }).map((node) => node.className));
+    expect(overflow, `${width}px`).toEqual([]);
+  }
+});

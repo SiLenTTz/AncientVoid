@@ -22,7 +22,7 @@ export function SourceView({ api, target, meta, onStale, diagnostics, jump, onFe
   const [trail, setTrail] = useState<number[]>([]);
   const [at, setAt] = useState(meta.bomBytes);
   const [error, setError] = useState("");
-  const [wrap, setWrap] = useState(false);
+  const [wrap, setWrap] = useState(true);
   const [colored, setColored] = useState<string[] | null>(null);
   const [focus, setFocus] = useState<{ line: number; column?: number; length?: number } | null>(null);
   const [sel, setSel] = useState<{ a: number; b: number } | null>(null);
