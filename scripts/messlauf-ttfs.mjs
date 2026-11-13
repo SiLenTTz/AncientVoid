@@ -171,6 +171,7 @@ async function oneRun(index, browser) {
     // M5: Nachricht aus der geöffneten Session heraus senden, im Verlauf sehen.
     await page.getByRole("button", { name: "Chat" }).click();
     const msg = `TTFS-Lauf ${index}: erste Steuerung vom Handy`;
+    await page.getByPlaceholder("Antworten…").click(); // Composer expandiert (compact → offen), sonst gibt es „Senden“ nicht
     await page.getByPlaceholder("Antworten…").fill(msg);
     await page.getByRole("button", { name: "Senden" }).click();
     await page.locator(".tail-scroll").locator(".event.own").filter({ hasText: msg }).first().waitFor();
