@@ -114,8 +114,11 @@ async function oneRun(index, browser) {
   const origin = `http://127.0.0.1:${port}`;
   const marks = {};
   let token = "";
-  let hubEnv = process.env;
-  const stopHub = () => sh("bash", ["scripts/hub.sh", "stop"], { cwd: clone, timeoutMs: 60_000 }).catch(() => undefined);
+  // HUB_LOCAL=1 ist Pflicht: Ohne es leitet hub.sh stop/start an die systemd-Unit
+  // ancientvoid-hub.service weiter und nimmt auf Entwickler-Maschinen den
+  // Produktiv-Hub herunter (Vorfall 15:17–15:31, 13.11.2026).
+  const hubEnv = { ...process.env, HUB_LOCAL: "1" };
+  const stopHub = () => sh("bash", ["scripts/hub.sh", "stop"], { cwd: clone, env: hubEnv, timeoutMs: 60_000 }).catch(() => undefined);
 
   try {
     // M0: frischer Klon des aktuellen Commits (lokal, ohne Netz — im Bericht ausgewiesen).
@@ -139,8 +142,8 @@ async function oneRun(index, browser) {
       ["-e", 'const fs=require("node:fs");const f="hub.config.json";const c=JSON.parse(fs.readFileSync(f,"utf8"));c.projectRoots=[process.argv[1]];fs.writeFileSync(f,JSON.stringify(c,null,2)+"\\n");', dir],
       { cwd: clone, timeoutMs: 30_000 },
     );
-    await sh("bash", ["scripts/hub.sh", "stop"], { cwd: clone, timeoutMs: 60_000 });
-    await sh("bash", ["scripts/hub.sh", "start"], { cwd: clone, env: { ...process.env, HUB_LOCAL: "1" }, timeoutMs: 120_000 });
+    await sh("bash", ["scripts/hub.sh", "stop"], { cwd: clone, env: hubEnv, timeoutMs: 60_000 });
+    await sh("bash", ["scripts/hub.sh", "start"], { cwd: clone, env: hubEnv, timeoutMs: 120_000 });
     await untilReady(origin, 120_000);
 
     // Handy-Ersatz: Pixel-7-Viewport, wie das mobile E2E-Projekt.
@@ -182,8 +185,8 @@ async function oneRun(index, browser) {
         ["-e", 'const fs=require("node:fs");const f="hub.config.json";const c=JSON.parse(fs.readFileSync(f,"utf8"));if(!c.adapters.some(a=>a.id==="claude"))c.adapters.push({id:"claude",module:"@ancientvoid/adapter-claude"});fs.writeFileSync(f,JSON.stringify(c,null,2)+"\\n",{mode:0o600});'],
         { cwd: clone, timeoutMs: 30_000 },
       );
-      hubEnv = { ...process.env, PATH: `${clone}/e2e/support/bin:${process.env.PATH}`, HUB_LOCAL: "1" };
-      await sh("bash", ["scripts/hub.sh", "start"], { cwd: clone, env: hubEnv, timeoutMs: 120_000 });
+      const stubEnv = { ...hubEnv, PATH: `${clone}/e2e/support/bin:${process.env.PATH}` };
+      await sh("bash", ["scripts/hub.sh", "start"], { cwd: clone, env: stubEnv, timeoutMs: 120_000 });
       await untilReady(origin, 120_000);
       const b0 = Date.now();
       await page.getByRole("button", { name: "Zur Übersicht" }).click();
