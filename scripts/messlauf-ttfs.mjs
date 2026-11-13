@@ -214,8 +214,18 @@ async function oneRun(index, browser) {
     if (activePage) {
       const shot = join(dir, "failure.png");
       await activePage.screenshot({ path: shot, fullPage: true }).catch(() => undefined);
-      const text = await activePage.evaluate(() => document.body?.innerText?.() ?? "").catch(() => "");
-      await (await import("node:fs/promises")).writeFile(join(dir, "failure.txt"), text).catch(() => undefined);
+      const s = await activePage
+        .evaluate(() => ({
+          hash: location.hash,
+          buttons: [...document.querySelectorAll("button")]
+            .map((b) => (b.getAttribute("aria-label") ?? b.textContent ?? "").trim())
+            .filter(Boolean)
+            .slice(0, 40),
+          textareas: [...document.querySelectorAll("textarea")].map((t) => ({ ph: t.placeholder, visible: t.offsetParent !== null, value: t.value.slice(0, 40) })),
+          composer: document.querySelector(".composer")?.className ?? null,
+        }))
+        .catch((e) => ({ err: String(e) }));
+      await (await import("node:fs/promises")).writeFile(join(dir, "failure.txt"), JSON.stringify(s, null, 2)).catch(() => undefined);
       process.stdout.write(`  FEHLER-DIAGNOSE: ${dir} (failure.png, failure.txt)\n`);
     }
     err.message = `${err.message}\n[redacted]\n${redact(String(err.message), token)}`;
