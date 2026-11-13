@@ -90,13 +90,23 @@ case "${1:-}" in
     # a unit exists — for setups on a second port (setup.sh --port).
     if systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1 && [ "${HUB_LOCAL:-0}" != "1" ]; then
       unit_root="$(systemctl --user show ancientvoid-hub.service -p WorkingDirectory --value)"
+      unit_files="$(systemctl --user show ancientvoid-hub.service -p EnvironmentFiles --value)"
+      unit_config="$(systemctl --user show ancientvoid-hub.service -p Environment --value | node -e '
+        let input = "";
+        process.stdin.on("data", chunk => { input += chunk; });
+        process.stdin.on("end", () => {
+          const match = input.match(/(?:^|\s)(?:"ANCIENTVOID_CONFIG=([^"\\]*)"|ANCIENTVOID_CONFIG=([^\s"\\]+))/);
+          if (!match && input.includes("ANCIENTVOID_CONFIG=")) process.exit(1);
+          console.log(match?.[1] ?? match?.[2] ?? "hub.config.json");
+        });')"
+      if [[ "$unit_config" != /* ]]; then unit_config="$unit_root/$unit_config"; fi
       requested_config="$(realpath -m "${ANCIENTVOID_CONFIG:-$PWD/hub.config.json}")"
-      if [ -z "$unit_root" ] || [ "$(realpath -m "$unit_root")" != "$(pwd -P)" ] || [ "$requested_config" != "$(pwd -P)/hub.config.json" ]; then
+      if [ -z "$unit_root" ] || [ -n "$unit_files" ] || [ "$(realpath -m "$unit_root")" != "$(pwd -P)" ] || [ "$requested_config" != "$(realpath -m "$unit_config")" ]; then
         echo "Andere Hub-Instanz: systemd-Unit wird nicht gesteuert. Für den lokalen Test-Hub HUB_LOCAL=1 setzen." >&2
         exit 1
       fi
       echo "-> systemd: systemctl --user ${1} ancientvoid-hub.service"
-      systemctl --user "${1}" ancientvoid-hub.service || true
+      systemctl --user "${1}" ancientvoid-hub.service
       exit 0
     fi
     ;;
