@@ -32,6 +32,10 @@ export interface WorkerInfo {
   sessionId?: string;
   /** T17.5/ADR-0037: stable per-spawn worker id (@ancientvoid_worker, randomUUID). */
   workerId?: string;
+  /** BUG-0157 (ADR-0037-Nachtrag): Generations-Logpfad dieser Spawn-Generation
+   * (@ancientvoid_log) — Adoption findet das Log über den Marker, nicht über
+   * den wiederverwendbaren Sessionnamen. */
+  log?: string;
   pid?: number;
   createdAt?: number;
 }
