@@ -199,6 +199,18 @@ Nur ab 1280 px Breite.
 | P15 | Werkzeugseiten in der Detailspalte, Esc schließt | Dock | — | spec:tool-pane.spec.ts |
 | P16 | Tablet: Sessions als Streifen (hoch) bzw. Spalte (quer) neben der Session; ab 1280 px Arbeitsfläche | Gerät drehen | T43.6 | spec:tablet-layout.spec.ts |
 
+## Erststart
+
+Ausgangspunkt ist ein frischer Hub ohne Sessions bzw. das Token-Gate (EPIC-P57 T57.9). Der Fortschritt liegt nur
+im lokalen Speicher des Geräts (K7).
+
+| ID | Funktion | Weg heute | Ziel | Nachweis |
+|---|---|---|---|---|
+| E01 | Einstieg im Leerzustand: Anweisung, Probe-Session, Hinweis aufs Tutorial (Filter- und Archiv-Leerzustände bleiben) | Start auf einem Hub ohne Sessions | — | spec:erststart.spec.ts |
+| E02 | Probe-Session (dummy) per Knopf | Start → „Probe-Session (dummy)“ | — | spec:erststart.spec.ts |
+| E03 | Einmaliges, schließbares Erfolgssignal nach der ersten entschiedenen Freigabe | Start nach dem Entscheiden | — | spec:erststart.spec.ts |
+| E04 | Token-Gate: eigene Meldung für leeres Token, abgelehntes Token, unerreichbaren Hub (mit letzter Verbindung) | Anmeldung → „Verbinden“ | — | spec:erststart.spec.ts |
+
 ## Bekannte Lücken
 
 Funktionen, für die es **keinen** E2E-Nachweis gibt. Sie bleiben im Blick, bis die genannte

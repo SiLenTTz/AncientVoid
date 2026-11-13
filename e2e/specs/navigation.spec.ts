@@ -7,7 +7,7 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
     await dockGo(app, "Einstellungen");
     await expect(app.getByText("Erscheinungsbild")).toBeVisible();
     await app.locator(".dock").getByRole("button", { name: "Start", exact: true }).click();
-    await expect(app.getByText("keine Sessions — lege eine an")).toBeVisible();
+    await expect(app.getByRole("heading", { name: "Noch keine Sessions" })).toBeVisible();
   });
 
   test("die Status-Seite zeigt jeden Provider mit seinen Fähigkeiten", async ({ app }) => {

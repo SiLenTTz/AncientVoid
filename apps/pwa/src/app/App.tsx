@@ -204,6 +204,7 @@ export function App({
             onOpenApprovals={() => setPage("approvals")}
             onOpenDiscovery={() => setPage("discovery")}
             lastSession={getLastSession()}
+            probeAvailable={adapters.some((a) => a.id === "dummy")}
           />
         ))}
 
