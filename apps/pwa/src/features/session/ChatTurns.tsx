@@ -118,7 +118,7 @@ function WorkBlock({ work, open, onToggle }: { work: Work; open: boolean; onTogg
           {work.entries.map((entry) =>
             entry.kind === "note" ? (
               <li key={`n${entry.event.seq}`} class={`turn-note ${entry.event.type}`}>
-                {entry.event.summary}
+                <WorkNote event={entry.event} />
               </li>
             ) : (
               <StepRow key={entry.step.key} step={entry.step} current={entry.step === running} />
@@ -128,6 +128,14 @@ function WorkBlock({ work, open, onToggle }: { work: Work; open: boolean; onTogg
       )}
     </div>
   );
+}
+
+function WorkNote({ event }: { event: NormalizedEvent }) {
+  const [open, setOpen] = useState(false);
+  return <>
+    <button type="button" class="turn-note-toggle" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span aria-hidden="true">{open ? "▾" : "▸"}</span> {event.summary}</button>
+    {open && <EventDetail event={event} />}
+  </>;
 }
 
 const STATE_LABEL: Record<Step["state"], string> = { running: "läuft", ok: "fertig", error: "Fehler", open: "ohne Ergebnis" };

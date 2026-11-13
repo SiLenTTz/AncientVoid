@@ -30,6 +30,7 @@ export function isLargeToolResult(e: NormalizedEvent): boolean {
 /** BUG-0046: a thinking block whose text the provider did not deliver. Older stored events lack the `redacted` flag. */
 export function isEmptyThinking(event: NormalizedEvent): boolean {
   if (event.type !== "thinking") return false;
+  if (event.blobRef && event.payload.truncated === true) return false;
   const text = (event.payload as { text?: unknown }).text;
   return typeof text !== "string" || text.trim() === "";
 }

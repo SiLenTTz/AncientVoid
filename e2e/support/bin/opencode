@@ -75,6 +75,10 @@ emit({
   sessionID: sid,
   part: { type: "tool", tool: "read", callID: "call_read_1", state: { status: "completed", input: { filePath: "README.md" }, output } },
 });
+if (has("DENKPFAD")) {
+  emit({ type: "reasoning", sessionID: sid, part: { text: `Gedanken im Arbeitsschritt: ${"prüfen ".repeat(800)}ENDE DES DENKENS` } });
+  emit({ type: "tool_use", sessionID: sid, part: { type: "tool", tool: "functions.exec_command", callID: "call_long", state: { status: "completed", input: { cmd: "echo fertig", explanation: "Begründung ".repeat(700) }, output: "fertig" } } });
+}
 if (has("PLAN")) {
   // BUG-0062: two snapshots with real time between them, like a real
   // agent updating its plan as it works — the ETA needs a measurable

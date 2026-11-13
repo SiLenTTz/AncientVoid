@@ -90,6 +90,11 @@ export class UpdateMapper {
         this.text += block?.text ?? "";
         return [];
       case "agent_thought_chunk":
+        if (this.text) {
+          const out = this.flush();
+          this.thought += block?.text ?? "";
+          return out;
+        }
         this.thought += block?.text ?? "";
         return [];
       case "tool_call": {

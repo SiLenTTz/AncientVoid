@@ -1176,6 +1176,14 @@ function createHubApi(P: (path: string) => string) {
     api<{ seq: number; type: string; summary: string; ts: string; payload: unknown; blobRef: string | null }[]>(
       P(`/api/sessions/${id}/events?afterSeq=${afterSeq}&limit=${limit}`),
     ),
+  eventBlob: async (sessionId: string, blobRef: string): Promise<string> => {
+    const hash = blobRef.replace(/^sha256:/, "");
+    const res = await fetch(P(`/api/sessions/${encodeURIComponent(sessionId)}/blobs/${encodeURIComponent(hash)}`), {
+      headers: { authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) throw new Error(`Details konnten nicht geladen werden (${res.status}).`);
+    return res.text();
+  },
   createSession: (body: {
     /** Entweder `adapter` oder `loop` (EPIC-P19). */
     adapter?: string;

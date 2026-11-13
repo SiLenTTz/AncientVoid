@@ -2,7 +2,7 @@ import type { EmittedEvent, UsageQuota } from "@ancientvoid/contracts";
 import { summarize } from "./normalize.ts";
 
 /**
- * `codex app-server` (v2 protocol, codex-cli 0.156.1, schema generated with
+ * `codex app-server` (v2 protocol, codex-cli 0.156.1 / 0.164.0, schema generated with
  * `codex app-server generate-json-schema`) → NormalizedEvents. Pure
  * functions; the adapter owns the connection.
  */
@@ -25,6 +25,16 @@ export interface CodexItem {
   result?: unknown;
   error?: unknown;
   query?: string;
+  namespace?: string | null;
+  success?: boolean | null;
+  contentItems?: { type?: string; text?: string }[] | null;
+  agentsStates?: Record<string, unknown>;
+  prompt?: string | null;
+  path?: string;
+  savedPath?: string | null;
+  revisedPrompt?: string | null;
+  failure?: unknown;
+  durationMs?: number;
 }
 
 /** Tool label on the approval card and in the history. */
@@ -36,6 +46,16 @@ export function toolOf(item: CodexItem): { name: string; input: Record<string, u
       return { name: "Bearbeiten", input: { files: (item.changes ?? []).map((c) => c.path) } };
     case "mcpToolCall":
       return { name: `${item.server ?? "mcp"}.${item.tool ?? "tool"}`, input: item.arguments && typeof item.arguments === "object" ? (item.arguments as Record<string, unknown>) : {} };
+    case "dynamicToolCall":
+      return { name: [item.namespace, item.tool ?? "tool"].filter(Boolean).join("."), input: item.arguments && typeof item.arguments === "object" ? item.arguments as Record<string, unknown> : { value: item.arguments } };
+    case "collabAgentToolCall":
+      return { name: item.tool ?? "agent", input: { prompt: item.prompt ?? "" } };
+    case "imageView":
+      return { name: "view_image", input: { path: item.path ?? "" } };
+    case "imageGeneration":
+      return { name: "imagegen", input: { prompt: item.revisedPrompt ?? "" } };
+    case "sleep":
+      return { name: "sleep", input: { durationMs: item.durationMs } };
     case "webSearch":
       return { name: "Web-Suche", input: { query: item.query ?? "" } };
     default:
@@ -70,10 +90,33 @@ export function itemCompleted(item: CodexItem): EmittedEvent[] {
     case "mcpToolCall":
     case "webSearch": {
       const content = JSON.stringify(item.result ?? item.error ?? {}).slice(0, 100_000);
-      return [{ type: "tool_result", summary: summarize(content), payload: { toolUseId: item.id, isError: Boolean(item.error), content } }];
+      return [{ type: "tool_result", summary: summarize(content), payload: { toolUseId: item.id, isError: Boolean(item.error) || item.status === "failed", content } }];
     }
-    default:
+    case "dynamicToolCall": {
+      const content = (item.contentItems ?? []).map((part) => part.text ?? `[${part.type ?? "Inhalt"}]`).join("\n");
+      return [{ type: "tool_result", summary: summarize(content) || "Werkzeug beendet", payload: { toolUseId: item.id, name: toolOf(item)?.name, isError: item.success === false || item.status === "failed", content } }];
+    }
+    case "collabAgentToolCall": {
+      const content = JSON.stringify(item.agentsStates ?? {});
+      return [{ type: "tool_result", summary: summarize(content), payload: { toolUseId: item.id, name: item.tool, isError: item.status === "failed" || item.status === "interrupted", content } }];
+    }
+    case "imageView":
+    case "imageGeneration":
+    case "sleep": {
+      const content = item.savedPath ?? item.path ?? (item.failure ? JSON.stringify(item.failure) : "fertig");
+      return [{ type: "tool_result", summary: summarize(content), payload: { toolUseId: item.id, isError: Boolean(item.failure) || item.status === "failed", content } }];
+    }
+    case "plan":
+      return item.text ? [{ type: "thinking", summary: summarize(item.text), payload: { text: item.text } }] : [];
+    case "userMessage":
+    case "hookPrompt":
+    case "subAgentActivity":
+    case "enteredReviewMode":
+    case "exitedReviewMode":
+    case "contextCompaction":
       return [];
+    default:
+      return [{ type: "system", summary: summarize(`codex: unbekannter Item-Typ „${item.type ?? "(ohne Typ)"}“`), payload: { kind: "codex.unknown_item", itemType: item.type ?? null } }];
   }
 }
 

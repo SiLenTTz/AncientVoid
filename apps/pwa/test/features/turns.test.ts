@@ -15,6 +15,29 @@ const ev = (type: string, payload: Record<string, unknown> = {}, summary = type)
   return { seq, ts: new Date(Date.parse("2026-11-11T08:00:00.000Z") + seq * 1000).toISOString(), sessionId: "s", type, summary, payload, blobRef: null };
 };
 
+describe("providerübergreifende Schritte", () => {
+  it("erkennt Namen mit Namespace und ACP-Kategorien ohne den Originalnamen zu verlieren", () => {
+    const work = works(turnsOf([
+      ev("tool_use", { id: "a", name: "functions.exec_command", input: { cmd: "pwd" } }),
+      ev("tool_result", { toolUseId: "a", content: "repo" }),
+      ev("tool_use", { id: "b", name: "Datei README öffnen", kind: "read", input: { path: "README.md" } }),
+    ], false))[0]!;
+    expect(stepsOf(work).map((s) => [s.verb, s.kind, s.target])).toEqual([
+      ["Führt aus", "run", "pwd"], ["Liest", "read", "README.md"],
+    ]);
+  });
+
+  it("zeigt unbekannte Werkzeugnamen und verwaiste Ergebnisse mit geliefertem Namen", () => {
+    const work = works(turnsOf([ev("tool_result", { toolUseId: "old", name: "custom_lookup", content: "Treffer" })], false))[0]!;
+    expect(stepsOf(work)[0]).toMatchObject({ verb: "custom_lookup", state: "ok", short: "Treffer" });
+  });
+
+  it("verliert ausgelagertes Denken nicht vor dem Nachladen", () => {
+    const thought = { ...ev("thinking", { truncated: true, bytes: 8000 }, "Langer Gedankengang"), blobRef: "sha256:abc" };
+    expect(shown(turnsOf([thought], false))).toEqual([thought.seq]);
+  });
+});
+
 describe("EPIC-P43 T43.4: Züge aus den aufgezeichneten Strömen aller Adapter", () => {
   const names = readdirSync(FIXTURES).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5));
 

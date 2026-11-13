@@ -43,6 +43,7 @@ import { ChangesHead, changeSummary } from "./ChangesHead.tsx";
 import { openLayer } from "../../shared/layers.ts";
 import { ChatTurns, itemFirstSeq, itemLastSeq } from "./ChatTurns.tsx";
 import { turnsOf } from "./turns.ts";
+import { useChatEvents } from "./event-blobs.ts";
 import { LoopBadge, LoopPanel } from "../loops/LoopPanel.tsx";
 import { deriveLoopView } from "../loops/loop-view.ts";
 import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, latestModelName, tokenText } from "./run-stats.ts";
@@ -587,10 +588,11 @@ export function SessionTail({
   const hiddenOlder = filtered.length - visible.length;
   // EPIC-P43 T43.4: der Chat in Zügen — aus dem ungefilterten Strom, damit Schritte nicht verloren gehen.
   const live = status === "working" || status === "starting";
+  const chat = useChatEvents(shownEvents, api);
   const chatItems = useMemo(() => {
-    const all = turnsOf(shownEvents, live);
+    const all = turnsOf(chat.events, live);
     return backgroundTile && all.length > BACKGROUND_ROWS ? all.slice(-BACKGROUND_ROWS) : all;
-  }, [shownEvents, live, backgroundTile]);
+  }, [chat.events, live, backgroundTile]);
   const firstNew = seenAt.current !== null && seenAt.current > 0 ? visible.find((e) => e.seq > seenAt.current!) : undefined;
   const newCount = firstNew ? visible.filter((e) => e.seq >= firstNew.seq).length : 0;
 
@@ -982,6 +984,9 @@ export function SessionTail({
       }} />}
       {loopView && <LoopPanel sessionId={session.id} adapter={session.adapter} view={loopView} disabled={observerOnly || status === "stopped"} api={api} onError={setReplyError} factory={factoryLink?.role && factoryLink.partner ? { role: factoryLink.role, partner: factoryLink.partner } : null} hostId={remoteHost(session.hostId) ?? null} />}
 
+      {activeTab === "chat" && chat.failed && <div class="chat-load-warning" role="status">
+        Einige Schrittdetails konnten nicht geladen werden. <button type="button" class="link-btn" onClick={chat.retry}>Erneut laden</button>
+      </div>}
       <div
         ref={tailRef}
         class="tail-scroll"

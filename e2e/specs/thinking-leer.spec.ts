@@ -19,7 +19,7 @@ test("BUG-0046: ein Denk-Block ohne Text ist eine ruhige Zeile ohne leeren Inhal
   await app.getByRole("button", { name: "Debuggen" }).click();
   const row = app.locator(".event.thinking.withheld");
   await expect(row).toHaveCount(1);
-  await expect(row).toContainText("Claude hat nachgedacht — der Anbieter liefert den Text nicht");
+  await expect(row).toContainText("Der Anbieter liefert keinen Denktext");
   await row.click();
   await expect(row.getByRole("button", { name: "Kopieren" })).toHaveCount(0);
   await expect(row.locator("pre")).toHaveCount(0);
