@@ -1,5 +1,5 @@
 ---
-id: BUG-0159
+id: BUG-0160
 slug: galaxy-route-verliert-tab-bei-kacheloffnung
 status: done
 severity: S3
@@ -12,7 +12,7 @@ created: 2026-11-13
 reporter: "E2E-Gate des Session-Robustheit-Abschluss-MRs"
 ---
 
-# BUG-0159 — Graph-Deep-Link verliert den Reiter beim Öffnen der Kachel
+# BUG-0160 — Graph-Deep-Link verliert den Reiter beim Öffnen der Kachel
 
 ## Gesehen
 
