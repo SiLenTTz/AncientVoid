@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { open, readFile, stat, mkdir, rm, writeFile } from "node:fs/promises";
+import { open, readFile, stat, lstat, mkdir, rm, rename, symlink, writeFile } from "node:fs/promises";
 import { watch } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@ancientvoid/contracts";
 
 export const TMUX_PREFIX = "ancientvoid-";
@@ -189,7 +189,7 @@ export class TmuxRunner implements WorkerRunner {
     owner?: string,
     log?: (level: "info" | "warn", msg: string, fields?: Record<string, unknown>) => void,
   ) {
-    this.logDir = logDir;
+    this.logDir = resolve(logDir);
     this.owner = owner ?? createHash("sha256").update(resolve(logDir)).digest("hex").slice(0, 16);
     this.log = log;
   }
@@ -226,13 +226,15 @@ export class TmuxRunner implements WorkerRunner {
 
     await mkdir(this.logDir, { recursive: true });
     const full = this.fullName(spec.name ?? "session");
-    const logPath = join(this.logDir, `${full}.log`);
+    const latestLog = join(this.logDir, `${full}.log`);
+    const logPath = join(this.logDir, `${full}-${workerId}.log`);
 
     // Clean any stale session/log from a previous run with the same name.
     await execTmux(["kill-session", "-t", full]).catch(() => undefined);
-    await rm(logPath, { force: true });
-    await rm(offsetPath(logPath), { force: true });
-    await rm(stdinPath(logPath), { force: true });
+    const previous = await lstat(latestLog).catch(() => null);
+    if (previous && !previous.isSymbolicLink()) await rename(latestLog, join(this.logDir, `${full}-legacy-${workerId}.log`));
+    else await rm(latestLog, { force: true });
+    await symlink(basename(logPath), latestLog);
 
     const cmdLine = spec.cmd
       .map((a) => (/^[\w./=@%^+:-]+$/.test(a) ? a : shellQuote(a)))
@@ -275,6 +277,7 @@ export class TmuxRunner implements WorkerRunner {
       // BUG-0034: where this worker's logs live — a prune recognizes an
       // orphan in the default server by its log dir being gone.
       await execTmux(["set-option", "-t", full, "@ancientvoid_logdir", this.logDir]);
+      await execTmux(["set-option", "-t", full, "@ancientvoid_log", logPath]);
       // T17.5/ADR-0037: stable identity for adoption (T17.6) and prune.
       // Session OPTION (readable via list-sessions -F — what list(), adopt()
       // and orphans read) AND pane ENV (inherited by the respawned process,
@@ -286,7 +289,7 @@ export class TmuxRunner implements WorkerRunner {
       // 2. Keep the pane after exit so pipe-pane can flush the tail reliably.
       await execTmux(["set-option", "-t", full, "remain-on-exit", "on"]);
       // 3. Capture pane output (stdout+stderr interleaved) into the log file.
-      await execTmux(["pipe-pane", "-t", full, "-o", `cat >> ${logPath}`]);
+      await execTmux(["pipe-pane", "-t", full, "-o", `cat >> ${shellQuote(logPath)}`]);
       // 4. Swap the placeholder for the real command.
       await execTmux(["respawn-pane", "-k", "-t", full, "-c", spec.cwd, shellCmd]);
     } catch (err) {
@@ -319,6 +322,8 @@ export class TmuxRunner implements WorkerRunner {
     // look under the original name — without this, adopting a renamed
     // worker would crash on a log that never existed.
     let logPath = join(this.logDir, `${full}.log`);
+    const recordedLog = (await execTmux(["show-options", "-v", "-t", full, "@ancientvoid_log"]).catch(() => null))?.stdout.trim();
+    if (recordedLog && dirname(resolve(recordedLog)) === this.logDir) logPath = resolve(recordedLog);
     if (
       !(await stat(logPath).then(
         () => true,
@@ -347,7 +352,9 @@ export class TmuxRunner implements WorkerRunner {
 
   private async track(full: string, logPath: string, startOffset: number, piped = false): Promise<WorkerProcess> {
     const pipe = piped ? pipeWriter(stdinPath(logPath)) : null;
-    const pid = await this.panePid(full);
+    const pane = (await execTmux(["display-message", "-p", "-t", full, "#{pane_id}"])).stdout.trim();
+    if (!/^%\d+$/.test(pane)) throw new Error(`tmux worker pane not found: ${full}`);
+    const pid = await this.panePid(pane);
     const tailer = new FileTailer(logPath, startOffset);
     let exited = false;
     let exitCode: number | null = null;
@@ -368,7 +375,7 @@ export class TmuxRunner implements WorkerRunner {
 
     const checkExit = setInterval(async () => {
       if (exited) return;
-      const dead = await this.paneDead(full);
+      const dead = await this.paneDead(pane);
       if (!dead) return;
       exited = true;
       clearInterval(checkExit);
@@ -390,7 +397,7 @@ export class TmuxRunner implements WorkerRunner {
       pipe?.close();
       for (const cb of exitCbs) cb(exitCode);
       // Clean up the remained pane — the log file keeps the evidence.
-      await execTmux(["kill-session", "-t", full]).catch(() => undefined);
+      await execTmux(["kill-pane", "-t", pane]).catch(() => undefined);
     }, 200);
 
     return {
@@ -405,11 +412,11 @@ export class TmuxRunner implements WorkerRunner {
         // stdout/stderr are interleaved in the pane capture
       },
       onExit: (cb) => exitCbs.add(cb),
-      write: pipe ? pipe.write : (data) => void execTmux(["send-keys", "-t", full, "-l", data]),
+      write: pipe ? pipe.write : (data) => void execTmux(["send-keys", "-t", pane, "-l", data]),
       kill: async (signal) => {
-        if (signal === "SIGKILL") await execTmux(["kill-session", "-t", full]);
+        if (signal === "SIGKILL") await execTmux(["kill-pane", "-t", pane]);
         else {
-          await execTmux(["send-key", "-t", full, "C-c"]).catch(() => undefined);
+          await execTmux(["send-key", "-t", pane, "C-c"]).catch(() => undefined);
           await new Promise((r) => setTimeout(r, 100));
         }
       },
@@ -423,19 +430,17 @@ export class TmuxRunner implements WorkerRunner {
     return Number.isFinite(pid) && pid > 0 ? pid : undefined;
   }
 
-  private async paneDead(full: string): Promise<boolean> {
+  private async paneDead(pane: string): Promise<boolean> {
     // BUG-0025: with other sessions on the server, tmux 3.7 answers
     // display-message for a missing target with exit 0 and no output — ask
     // for the exact session first ("=" disables prefix matching).
-    const exists = await execTmux(["has-session", "-t", `=${full}`]).catch(() => null);
-    if (!exists || exists.code !== 0) return true; // session gone entirely
-    const res = await execTmux(["display-message", "-p", "-t", full, "#{pane_dead}"]).catch(
+    const res = await execTmux(["display-message", "-p", "-t", pane, "#{pane_id}|#{pane_dead}"]).catch(
       () => null,
     );
     if (!res) return true; // tmux itself failed to run
     if (res.code !== 0) return true;
-    const state = res.stdout.trim();
-    return state === "" || state === "1";
+    const [identity, state] = res.stdout.trim().split("|");
+    return identity !== pane || state !== "0";
   }
 
   async list(): Promise<WorkerInfo[]> {

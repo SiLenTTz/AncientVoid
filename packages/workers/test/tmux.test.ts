@@ -9,6 +9,17 @@ const hasTmux = (await new TmuxRunner(join(tmpdir(), "probe")).isAvailable()).va
 const itTmux = hasTmux ? it : it.skip;
 
 describe("TmuxRunner", () => {
+  itTmux("an old worker handle cannot terminate a successor with the same session name", async () => {
+    const name = `test-generation-${crypto.randomUUID()}`;
+    const old = await runner.spawn({ name, cwd: dir, cmd: ["bash", "-c", "sleep 30"] });
+    await old.kill("SIGKILL");
+    await old.exited();
+    const fresh = await runner.spawn({ name, cwd: dir, cmd: ["bash", "-c", "sleep 30"] });
+    try {
+      await old.kill("SIGKILL");
+      expect((await runner.list()).some(worker => worker.name === name && worker.pid === fresh.pid)).toBe(true);
+    } finally { await fresh.kill("SIGKILL"); await fresh.exited(); }
+  });
   let dir: string;
   let runner: TmuxRunner;
 
