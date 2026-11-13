@@ -12,11 +12,12 @@ describe("classifyProviderError (ADR-0015)", () => {
   });
 
   it("keeps a usage-limit visible after a promptless resume", () => {
-    const failure = currentProviderFailureFromEvents([
+    const events = [
       { type: "system", summary: "cursor: Usage-Limit", payload: { kind: "cursor.usage_limit", line: "ActionRequiredError: You're out of usage." } },
       { type: "system", summary: "session.resumed", payload: { kind: "session.resumed" } },
       { type: "system", summary: "cursor · opus", payload: { kind: "cursor.model" } },
-    ]);
+    ];
+    const failure = currentProviderFailureFromEvents(events);
     expect(failure).toMatchObject({ category: "quota", title: "Kontingent erschöpft" });
   });
 

@@ -35,8 +35,8 @@ describe("ADR-0044: SessionStatus interrupted", () => {
     expect(VALID_TRANSITIONS.stopping).not.toContain("interrupted");
   });
 
-  it("interrupted → working (Resume) | stopping/stopped (Stop/Archiv) | error (Resume scheitert, fail loud)", () => {
-    expect(VALID_TRANSITIONS.interrupted).toEqual(["working", "stopping", "stopped", "error"]);
+  it("interrupted → working (Resume) | stopping/stopped (Stop/Archiv) | error (Resume scheitert) | parked (Übergabe, BUG-0149)", () => {
+    expect(VALID_TRANSITIONS.interrupted).toEqual(["working", "stopping", "stopped", "error", "parked"]);
   });
 
   it("bestehende Übergänge sind unverändert (stopped bleibt reaktivierbar, ADR-0015)", () => {
