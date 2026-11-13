@@ -120,6 +120,7 @@ async function oneRun(index, browser) {
   const hubEnv = { ...process.env, HUB_LOCAL: "1" };
   const stopHub = () => sh("bash", ["scripts/hub.sh", "stop"], { cwd: clone, env: hubEnv, timeoutMs: 60_000 }).catch(() => undefined);
   let activePage = null;
+  let failed = false;
 
   try {
     // M0: frischer Klon des aktuellen Commits (lokal, ohne Netz — im Bericht ausgewiesen).
@@ -175,9 +176,11 @@ async function oneRun(index, browser) {
     const msg = `TTFS-Lauf ${index}: erste Steuerung vom Handy`;
     await page.getByPlaceholder("Antworten…").click(); // Composer expandiert (compact → offen), sonst gibt es den Sende-Knopf nicht
     await page.getByPlaceholder("Antworten…").fill(msg);
-    // Laufende Session: Der Sende-Knopf heißt „Weiter“ (Diagnose 13.11.2026;
-    // „Senden“ erscheint nur in anderem Session-Zustand, siehe chat-zuege.spec).
-    await page.getByRole("button", { name: "Weiter", exact: true }).click();
+    // Laufende Session: Sende-Knopf heißt je Zustand „Weiter“ (running) oder
+    // „Senden“ (Diagnose 13.11.2026) — beide zulassen, ersteres bevorzugt.
+    const weiter = page.getByRole("button", { name: "Weiter", exact: true });
+    const senden = page.getByRole("button", { name: "Senden", exact: true });
+    await weiter.waitFor({ timeout: 15_000 }).then(() => weiter.click()).catch(() => senden.click());
     await page.locator(".tail-scroll").locator(".event.own").filter({ hasText: msg }).first().waitFor();
     marks.M5 = Date.now() - t0;
 
@@ -206,7 +209,8 @@ async function oneRun(index, browser) {
     }
     await ctx.close();
   } catch (err) {
-    // Diagnose bei Fehlschlag: Seitenzustand + Screenshot ins (mit --keep erhaltene) runDir.
+    // Diagnose bei Fehlschlag: Seitenzustand + Screenshot ins runDir (bleibt bei Fehlschlag erhalten).
+    failed = true;
     if (activePage) {
       const shot = join(dir, "failure.png");
       await activePage.screenshot({ path: shot, fullPage: true }).catch(() => undefined);
@@ -218,7 +222,7 @@ async function oneRun(index, browser) {
     throw err;
   } finally {
     await stopHub();
-    if (!KEEP) await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+    if (!KEEP && !failed) await rm(dir, { recursive: true, force: true }).catch(() => undefined);
   }
   return marks;
 }
