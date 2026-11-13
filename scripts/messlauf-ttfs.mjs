@@ -125,6 +125,7 @@ async function oneRun(index, browser) {
     marks.M0 = Date.now() - t0;
 
     // M1: Wizard ohne Rückfragen, dummy, freier Port; Token nie loggen.
+    process.stdout.write(`  … Klon fertig, Wizard läuft\n`);
     const setup = await sh("bash", ["./setup.sh", "--yes", "--adapter=dummy", `--port=${port}`], { cwd: clone, timeoutMs: 20 * 60_000 });
     token = parseToken(setup.stdout);
     await untilReady(origin, 120_000);
@@ -223,6 +224,7 @@ try {
     for (const [m, v] of Object.entries(marks)) {
       process.stdout.write(`  ${m.padEnd(4)} ${m === "M5b" ? "(ab Starten)" : "(ab Klon-Start)"}: ${s(v)} = ${mins(v)}\n`);
     }
+    process.stdout.write(`— Lauf ${i}/${RUNS} abgeschlossen\n`);
   }
 } finally {
   await browser.close();
