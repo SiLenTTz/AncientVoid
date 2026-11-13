@@ -38,6 +38,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function turn(threadId, turnId, text) {
   notify("turn/started", { threadId, turn: { id: turnId, status: "inProgress", items: [] } });
+  if (text.includes("CHILD_ACTIVITY")) notify("item/started", { threadId, turnId, item: { type: "collabAgentToolCall", id: "spawn-child", agentsStates: { child: { status: "running" } } } });
   notify("turn/plan/updated", { threadId, turnId, plan: [{ step: "Lesen", status: "completed" }, { step: "Antworten", status: "inProgress" }] });
   let tail = "";
   if (text.includes("WERKZEUG")) {
@@ -66,6 +67,10 @@ async function turn(threadId, turnId, text) {
   if (text.includes("SPAETES_ENDE")) await sleep(1000);
   notify("thread/tokenUsage/updated", { threadId, turnId, tokenUsage: { last: { inputTokens: 100, cachedInputTokens: 0, outputTokens: 20, reasoningOutputTokens: 0, totalTokens: 120 }, total: { inputTokens: 100, cachedInputTokens: 0, outputTokens: 20, reasoningOutputTokens: 0, totalTokens: 120 } } });
   notify("turn/completed", { threadId, turn: { id: turnId, status: "completed", items: [] } });
+  if (text.includes("CHILD_ACTIVITY")) {
+    await sleep(100);
+    notify("item/completed", { threadId, turnId, item: { type: "subAgentActivity", id: "child-end", agentThreadId: "child", kind: "completed" } });
+  }
 }
 
 async function handle(msg) {

@@ -33,6 +33,20 @@ function context(answer?: (req: ToolPermissionRequest) => Promise<{ behavior: "a
 const kinds = (events: EmittedEvent[]) => events.map((e) => (e.payload as { kind?: string }).kind);
 
 describe("codex app-server mode (T7.2)", () => {
+  it("reports a child that stays active beyond the main turn, then completes independently", async () => {
+    const { ctx } = context();
+    const timeline: string[] = [];
+    ctx.turn = state => { timeline.push(state); };
+    ctx.activity = activity => { if (activity.id === "agent:child") timeline.push(activity.state); };
+    const adapter = createAdapter({ command: fakeCodex });
+    const handle = await adapter.start({ adapter: "codex", project: process.cwd(), prompt: "CHILD_ACTIVITY" }, ctx);
+    try {
+      await waitFor(() => timeline.includes("completed"));
+      expect(timeline).toContain("running");
+      expect(timeline.indexOf("running")).toBeLessThan(timeline.indexOf("idle"));
+      expect(timeline.indexOf("idle")).toBeLessThan(timeline.indexOf("completed"));
+    } finally { await adapter.stop(handle, ctx); }
+  });
   it("does not resurrect a completed turn when its start response arrives late", async () => {
     const { ctx } = context();
     const adapter = createAdapter({ command: fakeCodex });
@@ -56,7 +70,7 @@ describe("codex app-server mode (T7.2)", () => {
       expect(second.ctx.events.find(e => e.payload?.kind === "codex.native_session")?.payload?.nativeSessionId).toBe(native);
     } finally { await adapter.stop(resumed, second.ctx); }
   });
-  it("rejects a refused follow-up instead of acknowledging a lost input (BUG-0154)", async () => {
+  it("rejects a refused follow-up instead of acknowledging a lost input (BUG-0158)", async () => {
     const { ctx } = context();
     const adapter = createAdapter({ command: fakeCodex });
     const handle = await adapter.start({ adapter: "codex", project: process.cwd(), prompt: "LANGSAM" }, ctx);
@@ -67,7 +81,7 @@ describe("codex app-server mode (T7.2)", () => {
     } finally { await adapter.stop(handle, ctx); }
   });
 
-  it("rejects a refused new turn and reports failed initial submission (BUG-0154)", async () => {
+  it("rejects a refused new turn and reports failed initial submission (BUG-0158)", async () => {
     const { ctx } = context();
     const adapter = createAdapter({ command: fakeCodex });
     const handle = await adapter.start({ adapter: "codex", project: process.cwd() }, ctx);
