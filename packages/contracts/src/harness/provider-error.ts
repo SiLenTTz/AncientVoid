@@ -104,7 +104,7 @@ export function providerFailureOf(
 
 /** Current-turn failure: stops at the latest prompt, handover or answer. */
 export function currentProviderFailureFromEvents(
-  events: readonly { type: string; summary: string; payload: { kind?: unknown } }[],
+  events: readonly { type: string; summary: string; payload: { kind?: unknown; line?: unknown; category?: unknown; title?: unknown; detail?: unknown; error?: unknown; cause?: unknown } }[],
 ): VisibleProviderFailure | null {
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i]!;
