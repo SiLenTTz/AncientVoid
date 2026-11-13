@@ -23,7 +23,8 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     const id = await hub.createSession({ adapter: "dummy", prompt: "Knoten" });
     await app.goto(`${hub.origin}/#/sessions/${id}/graph`);
     await expect(app.locator(".graph-node-hit").first()).toBeVisible();
-    await app.getByRole("button", { name: "Datei README.md öffnen" }).click();
+    await app.getByRole("button", { name: "Datei README.md auswählen" }).click();
+    await app.getByRole("button", { name: "Datei öffnen" }).click();
     await expect(app.locator(".session-live[data-tab='datei']")).toBeVisible();
     await expect(app.getByText("Das Handbuch beschreibt den Handoff")).toBeVisible();
     // Hash trägt den Datei-Tab — Back/Reload bleibt nachvollziehbar.
@@ -61,7 +62,8 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
 
     // Knoten im Graph-Fenster → die Datei bekommt ihr eigenes Fenster.
     popupP = context.waitForEvent("page");
-    await graphWin.getByRole("button", { name: "Datei README.md öffnen" }).click();
+    await graphWin.getByRole("button", { name: "Datei README.md auswählen" }).click();
+    await graphWin.getByRole("button", { name: "Datei öffnen" }).click();
     const fileWin = await popupP;
     await fileWin.waitForLoadState();
     expect(fileWin.url()).toContain(`/sessions/${id}/datei/README.md`);
@@ -69,7 +71,8 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
 
     // Hauptfenster: Datei-Tab direkt herauslösen — das Ziel existiert schon
     // (aus dem Graph-Fenster): es kommt nach vorn statt doppelt zu entstehen.
-    await app.getByRole("button", { name: "Datei README.md öffnen" }).click();
+    await app.getByRole("button", { name: "Datei README.md auswählen" }).click();
+    await app.getByRole("button", { name: "Datei öffnen" }).click();
     await expect(app.locator(".session-live[data-tab='datei']")).toBeVisible();
     await app.getByRole("button", { name: "Datei in eigenes Fenster" }).click();
     await expect(fileWin.locator("html")).toHaveAttribute("data-focus-requests", "1");

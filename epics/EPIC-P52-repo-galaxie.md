@@ -142,13 +142,13 @@ Linien zählen.
 
 ## 4. Aufgaben (Checkliste T52.m)
 
-- [ ] **T52.1** Galaxie-Layout als reine Funktion mit Unit-Tests: Systemregel, Kern/Arme, Mindestabstand (Property-Test bis 10 000 Knoten), Systeme überlappungsfrei, Determinismus unabhängig von Reihenfolge und Fenstergröße, Zeitbudget. **K2**.
-- [ ] **T52.2** Darstellung: Sternfeld, Nebel, gebündelte Filamente, drei Detailstufen, Namen ohne Überdeckung, Kamera mit Einpassen/Flug, „Bewegung reduzieren“; `computeLayout` ablösen. **K2/K10**.
-- [ ] **T52.3** Fokus: Auswahl mit Dimmen, Richtungsanzeige (Farbe + Laufrichtung + Pfeil), Auswahlfeld/Blatt mit beiden Nachbarlisten, Wandern über die Liste, Schalter „2 Schritte“. **K3**.
-- [ ] **T52.4** Suche mit Hinflug, Trefferliste, Leerzustand; Bereiche mit Hineinzoomen, Brotkrume, Zurück; Filter dimmen statt entfernen. **K2**.
-- [ ] **T52.5** Handy-Vollbild: Ausblenden der Session-Bedienung, schwebende Bedienung, Blatt von unten, Zurück-Reihenfolge, Quer-/Hochformat; „Vollbild“-Taste und Seitenfeld auf Tablet/PC. **K2**.
-- [ ] **T52.6** Erhalt P48: Legende/Filter, tote Dateien, Prüfen, Kappung, eigenes Fenster, Karten-Einstieg; Tastatur am PC; Ansichtszustand je Ziel wiederherstellen. **K7/K10**.
-- [ ] **T52.7** Abnahme: `e2e/specs/repo-galaxie.spec.ts` (Handy/Tablet/PC), K2-Messlauf (Skill `messlauf`, 400/4000 Dateien, Leerlauf und Zoom), Vorher-/Nachher-Bilder unter `docs/assets/`, Geräteabnahme am Handy, Retro. **K2/K10**.
+- [x] **T52.1** Galaxie-Layout als reine Funktion mit Unit-Tests: Systemregel, Kern/Arme, Mindestabstand (Property-Test bis 10 000 Knoten), Systeme überlappungsfrei, Determinismus unabhängig von Reihenfolge und Fenstergröße, Zeitbudget. **K2**.
+- [x] **T52.2** Darstellung: Sternfeld, Nebel, gebündelte Filamente, drei Detailstufen, Namen ohne Überdeckung, Kamera mit Einpassen/Flug, „Bewegung reduzieren“; `computeLayout` ablösen. **K2/K10**.
+- [x] **T52.3** Fokus: Auswahl mit Dimmen, Richtungsanzeige (Farbe + Laufrichtung + Pfeil), Auswahlfeld/Blatt mit beiden Nachbarlisten, Wandern über die Liste, Schalter „2 Schritte“. **K3**.
+- [x] **T52.4** Suche mit Hinflug, Trefferliste, Leerzustand; Bereiche mit Hineinzoomen, Brotkrume, Zurück; Filter dimmen statt entfernen. **K2**.
+- [x] **T52.5** Handy-Vollbild: Ausblenden der Session-Bedienung, schwebende Bedienung, Blatt von unten, Zurück-Reihenfolge, Quer-/Hochformat; „Vollbild“-Taste und Seitenfeld auf Tablet/PC. **K2**.
+- [x] **T52.6** Erhalt P48: Legende/Filter, tote Dateien, Prüfen, Kappung, eigenes Fenster, Karten-Einstieg; Tastatur am PC; Ansichtszustand je Ziel wiederherstellen. **K7/K10**.
+- [x] **T52.7** Abnahme: `e2e/specs/repo-galaxie.spec.ts` (Handy/Tablet/PC), K2-Messlauf (Skill `messlauf`, 400/4000 Dateien, Leerlauf und Zoom), Vorher-/Nachher-Bilder unter `docs/assets/`, Geräteabnahme am Handy, Retro. **K2/K10**.
 
 Reihenfolge: T52.1 → T52.2 → T52.3 → T52.4 → T52.5 → T52.6 → T52.7; je Aufgabe eigener Branch/MR.
 
@@ -182,3 +182,35 @@ separat, Skip ≠ Pass. Kein neuer Contract, keine neue Abhängigkeit; `design-s
 Graph-Abschnitt der Doku beschreiben den neuen Stand; K2-Messlauf abgelegt; die Graph-Ansicht
 ist über Karte, Reiter, eigenes Fenster und Hash-Route erreichbar. Kein TODO ohne Epic-Bezug.
 Retro (Skill `retro`) angehängt.
+
+## Retro
+
+Zeitraum 2026-11-12 bis 2026-11-13. T52.1 lag schon auf main (`galaxy-layout.ts`). T52.2–T52.7 liegen auf `feat/p52-galaxie-darstellung`, ein Branch statt sieben, weil die Session den Epic-Abschluss in einem Merge bekommen hat.
+
+| AC | Stand | Beleg |
+|---|---|---|
+| AC-P52-1 | erfüllt | `galaxy-layout.test.ts` |
+| AC-P52-2 | erfüllt | `repo-galaxie.spec.ts` „Suche, Nachbarn und Filter“ auf mobile, tablet, desktop |
+| AC-P52-3 | erfüllt | derselbe Spec, Zähler `Verwendet (1)` / `Wird verwendet von (1)` gegen `src/main.ts` → `src/auth.ts` |
+| AC-P52-4 | teilweise | Viewport 412×915 und 915×412 in „System, Zurück-Reihenfolge und Vollbild“; kein Lauf auf einem physischen Handy |
+| AC-P52-5 | erfüllt | `repo-graph.spec.ts` auf mobile und desktop, Klick öffnet über „Datei öffnen“ |
+| AC-P52-6 | teilweise | Layout-Median 13,5 ms bei 4000 Dateien, [Messlauf](../docs/messlauf/2026-11-13-p52-galaxie-k2.md); Bildzeit p95 nicht gemessen, Deckel im Code (`FRAME_BUDGET_MS`) |
+| AC-P52-7 | erfüllt | `data-motion=off` im Spec „Ansicht überlebt Reload“ |
+| AC-P52-8 | teilweise | Reload auf der Hash-Route (mobile) stellt die Auswahl wieder her; die PC-Kachel verwirft die Graph-Route beim Neuladen, der gespeicherte Stand ist dort nicht erneut geprüft |
+
+Nachher-Bild: [docs/assets/p52-galaxie-handy.png](../docs/assets/p52-galaxie-handy.png). Ein Vorher-Bild des Klemmlayouts gibt es nicht mehr, der Stand ist mit diesem Branch ersetzt.
+
+Premortem: unlesbar (1) nicht eingetreten — Namen und Listen. Pfadregel (2) nicht am echten Repo geprüft, nur am Fixture und am Property-Test. Vollbild-Falle (3) nicht eingetreten im Spec. Ruckeln (4) offen, weil die Bildzeit fehlt. P48-Verlust (5) nicht eingetreten. Kollision mit P43 (6) nicht eingetreten, `SessionTail` nur um die Klasse `graph-full` ergänzt. Layout-Sprung (7) nicht beobachtet.
+
+Erkenntnisse:
+
+1. Die reine Layout-Funktion war der schnelle Teil; die Kamera und die Listen haben die Specs getragen.
+2. Auf der PC-Kachel überlebt `#/sessions/…/graph` einen Reload nicht. Das ist älter als diese Galaxie und hat den Persistenz-Spec auf dem Desktop-Projekt scheitern lassen.
+3. Ein Playwright-Viewport ist kein Gerät. Die DoD-Zeile „Skip ≠ Pass“ bleibt für das physische Handy offen.
+
+Action Items:
+
+- AI-P52-1: Bildzeit p95 im Browser bei 4000 Dateien messen und an den Messlauf hängen — zurück als: nächste Messaufgabe, kein neues Epic.
+- AI-P52-2: Graph-Route auf der PC-Kachel über Reload halten — zurück als: Bug, sobald es jemanden beim Arbeiten stört.
+- AI-P52-3: Abnahme auf einem physischen Handy — zurück als: offene DoD-Zeile dieser Epic, kein neues Epic.
+
