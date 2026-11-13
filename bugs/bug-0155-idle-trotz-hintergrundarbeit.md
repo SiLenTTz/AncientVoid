@@ -5,9 +5,9 @@ status: done
 severity: S2
 area: core
 instance: local
-commit: "f92263a"
+commit: ""
 forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/62"
-epic: "P17/P27, PRD K7/K10"
+epic: "P17/P27, PRD K7/K10, ADR-0074 + ADR-0076"
 created: 2026-11-13
 reporter: "Session-Audit im Nutzerauftrag"
 ---
@@ -43,31 +43,43 @@ Varianten sind zu testen, nicht aus diesem einen Fall als live bestätigt abzule
 
 ## Eingrenzung
 
-`packages/core/src/modules/sessions/session-manager.ts:2616`:
-`adapterTurn("idle")` setzt direkt `idle` und schreibt Zugende.
-Der Contract hat keine gemeinsame Aktivitätsregistrierung für Provider-
-Subagenten und externe Jobs. `activeWorkers` erfasst nur über die Hub-Naht
+`packages/core/src/modules/sessions/session-manager.ts`:
+`adapterTurn("idle")` setzte direkt `idle` und schrieb Zugende.
+Der Contract hatte keine gemeinsame Aktivitätsregistrierung für Provider-
+Subagenten und externe Jobs. `activeWorkers` erfasste nur über die Hub-Naht
 gestartete Zug-Prozesse; ein persistenter Provider ist ausdrücklich kein Zug.
 
-## Tests und Handoff
+## Fix (ADR-0074 T1 + ADR-0076 T2–T4)
 
-Zuerst ADR für additive Activity-Verträge; JSONL-/Snapshot-Recovery (K7).
-Tests: Hauptzug beendet bei laufendem Child/Job → aktiv; letzter Child/Job
-endet → idle; Hub-Neustart während Hintergrundarbeit; verspätetes Ende aus
-alter Worker-Generation; Fehler und offene Freigaben bleiben sichtbar.
-Externe Jobs brauchen ausdrückliche Registrierung, kein Parsen von
-Assistant-Text als Steuerinformation. Produktfix noch offen; Einzelheiten
-im [Audit](../docs/2026-11-13_session-laufzeit-audit.md).
+Aktivitätsregister, idle nur bei leerem Register, Events
+`session.activity_begin/end/pending`, K7-Recovery aus dem JSONL.
 
-## Fix und Verifikation
+- **T1 (MR !452):** Kern — Register, Idle-Gates (`adapterTurn`,
+  `trackTurn`-Settle, promptloses Resume), K7-Recovery (Faltung + kein
+  Interrupt bei offenen Aktivitäten), Snapshot-Projektion, Contract additiv.
+- **T2 (Abschluss-MR):** `AdapterContext.activity(ActivityReport)` — Codex
+  meldet `collabAgentToolCall`/`subAgentActivity`-Kinder (auch solche, die
+  das Zugende überleben), Claude Tasks; Quelle `provider`. Toter Provider:
+  ends ins Journal, damit die Faltung nichts Offenes mehr erfindet.
+- **T3 (Abschluss-MR):** Server-Route `/api/sessions/:id/activity` +
+  `hubctl activity <session> <id> run --` registriert externe Jobs mit
+  Herzschlag (20 s); ohne Meldung über die Frist (90 s) gilt die Arbeit als
+  unklar/fehlgeschlagen (`session.recovery_blocked`) und stoppt die
+  Wiederaufnahme — kein zweiter Job.
+- **T4 (Abschluss-MR):** PWA zählt begin/end-Paare und zeigt
+  „Hintergrundarbeit aktiv · N offene Aktivitäten".
 
-[ADR-0074](../docs/adr/0074-session-aktivitaet-und-wiederaufnahme.md) führt
-den Aktivitätsvertrag ein; `session-activity.ts` zählt Provider-Subagenten
-(strukturiert über `ctx.activity`, Codex `collabAgentToolCall`/`subAgentActivity`)
-und explizit registrierte externe Jobs (`hubctl activity … run`). Der Status
-bleibt `working`, bis die letzte registrierte Arbeit endet; Wiederanlauf bei
-unklarer externer Arbeit wird angehalten. Grüns: Unit
-`app-server.test.ts` (Child überlebt den Hauptzug und endet selbstständig),
-Integration `interrupted-session.integration.test.ts` + `activity.integration.test.ts`,
-E2E `session-robustheit.spec.ts` „Hintergrundarbeit bleibt bis zum letzten
-Job aktiv", vollständiges Gate (Test/Lint/Typecheck/E2E) im Abschluss-MR.
+## Tests
+
+| Ring | Datei | Stand |
+|---|---|---|
+| Unit (T1) | `packages/core/test/modules/sessions/activity-register.test.ts` | grün |
+| Unit (T2) | `packages/adapters/codex/test/app-server.test.ts` (Kind überlebt Hauptzug, endet selbstständig) | grün |
+| Integration (T3) | `apps/hubctl/test/activity.integration.test.ts`, `interrupted-session.integration.test.ts` | grün |
+| E2E (T3/T4) | `e2e/specs/session-robustheit.spec.ts` „Hintergrundarbeit bleibt bis zum letzten Job aktiv" | grün |
+
+## Handoff
+
+- [x] ADR-0074 (Register, MR !452) + ADR-0076 (Vertrag Wiederaufnahme/Queue)
+- [x] T1–T4 umgesetzt und im Vollgate grün (Abschluss-MR Session-Robustheit)
+- [x] GitLab-Issue [#62](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/62)

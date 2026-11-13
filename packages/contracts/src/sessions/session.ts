@@ -11,7 +11,7 @@ export interface SessionInterruptionPayload {
   reason: SessionInterruptionReason;
   since: string;
   lastTurnId: string | null;
-  /** ADR-0074: absent on legacy interruptions; those remain manual. */
+  /** ADR-0076: absent on legacy interruptions; those remain manual. */
   autoResumeEligible?: boolean;
 }
 
@@ -186,6 +186,16 @@ export const SessionRecord = z.object({
 });
 export type SessionRecord = z.infer<typeof SessionRecord>;
 
+/** ADR-0074 (BUG-0155): eine laufende Aktivität einer Session — Quelle ist
+ * z. B. ein registrierter externer Job (`job:<uuid>`, Label für Menschen).
+ * Idle gibt es erst, wenn keine Aktivität mehr offen ist. */
+export interface SessionActivity {
+  id: string;
+  source: string;
+  label: string;
+  startedAt: string;
+}
+
 /**
  * Snapshot enabling K7 (100 % state restore in < 3 s after hard kill).
  * Persisted next to the JSONL stream; JSONL remains the source of truth.
@@ -200,4 +210,6 @@ export interface SessionSnapshot {
   nativeSessionId: string | null;
   resumeVersion: number;
   inputRevision: number;
+  /** ADR-0074: Projektion der offenen Aktivitäten (Wahrheit: JSONL-Events). */
+  openActivities?: SessionActivity[];
 }

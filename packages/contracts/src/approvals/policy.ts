@@ -103,7 +103,7 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "sessions.prompt": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny", display: "deny" },
   "sessions.park": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny", display: "deny" },
   "sessions.resume": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
-  /** ADR-0074: work reports contain no commands and cannot resume a session. */
+  /** ADR-0076: work reports contain no commands and cannot resume a session. */
   "sessions.activity": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   "sessions.stop": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny", display: "deny" },
   "sessions.budget": { human: HUMAN, fleet: "allow", agent: "approve", bridge: "deny", companion: "deny", display: "deny" },

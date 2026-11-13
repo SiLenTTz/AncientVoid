@@ -2,13 +2,23 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Adapter, NormalizedEvent, SessionActivity, SessionHandle, SessionRecord, SessionStatus } from "@ancientvoid/contracts";
 
-export interface OpenActivity {
-  activity: SessionActivity;
-  external: boolean;
-  updatedAt: string;
-}
-
 export const WRITER_LEASE_MS = 30_000;
+
+/** ADR-0074 (BUG-0155): offene Aktivitäten aus dem JSONL falten — jedes
+ * `session.activity_begin` ohne passendes `session.activity_end` ist offen.
+ * Verspätete `end`s alter Generationen treffen ihre eigene Id und streuen nicht. */
+export function foldActivities(events: readonly NormalizedEvent[]): Map<string, SessionActivity> {
+  const open = new Map<string, SessionActivity>();
+  for (const e of events) {
+    const p = e.payload as { kind?: string; id?: string; source?: string; label?: string; startedAt?: string };
+    if (p?.kind === "session.activity_begin" && typeof p.id === "string") {
+      open.set(p.id, { id: p.id, source: typeof p.source === "string" ? p.source : "external", label: typeof p.label === "string" ? p.label : "", startedAt: typeof p.startedAt === "string" ? p.startedAt : new Date(e.ts).toISOString() });
+    } else if (p?.kind === "session.activity_end" && typeof p.id === "string") {
+      open.delete(p.id);
+    }
+  }
+  return open;
+}
 
 /** EPIC-P17 T17.4: hard cap for the hub's wait on one adapter submission
  * (a prompt steer or a reopen's start). A timeout never resubmits — it
@@ -29,7 +39,6 @@ export interface SteerMeta {
 }
 
 export interface LiveSession {
-  activities?: Map<string, OpenActivity>;
   mainTurnIdle?: boolean;
   lifecycle?: Promise<void>;
   turnFailed?: boolean;
@@ -38,6 +47,10 @@ export interface LiveSession {
   handle: SessionHandle | null;
   abort: AbortController;
   subscribers: Set<(events: NormalizedEvent[]) => void>;
+  /** ADR-0074 (BUG-0155): offene Aktivitäten dieser Session — Zug-Prozesse
+   * zählen weiterhin über activeWorkers, alles andere (persistente Turns,
+   * registrierte externe Jobs) hier. Idle gibt es nur mit leerem Register. */
+  activities: Map<string, SessionActivity>;
   /** T2.1: real per-session working directory — the worktree path when
    * isolation succeeded, else the raw `record.project` (honest fallback,
    * see WorktreeManager's doc comment). Adapters only ever see this via

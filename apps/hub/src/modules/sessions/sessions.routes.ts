@@ -1,4 +1,4 @@
-import { AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, SessionActivity, WorkspaceMode, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@ancientvoid/contracts";
+import { ActivityReport, AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, WorkspaceMode, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@ancientvoid/contracts";
 import type { FastifyInstance } from "fastify";
 import { DraftStore, isProjectPathAllowed, toStartSpec } from "@ancientvoid/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
@@ -65,7 +65,7 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
 
   app.get("/api/sessions", async () => Promise.all(deps.sessions.list().map((session) => withAttachCmd(session))));
   app.post("/api/sessions/:id/activity", async (req, reply) => {
-    const parsed = SessionActivity.safeParse(req.body);
+    const parsed = ActivityReport.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: "invalid activity" });
     const ack = await deps.sessions.activity((req.params as { id: string }).id, parsed.data);
     return reply.code(ack.ok ? 200 : 422).send(ack);

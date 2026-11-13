@@ -9,7 +9,7 @@ interface Host {
   resume(session: LiveSession): Promise<Ack>;
 }
 
-/** ADR-0074: bounded recovery through the existing input queue, never recursive. */
+/** ADR-0076: bounded recovery through the existing input queue, never recursive. */
 export class SessionRecovery {
   private readonly host: Host;
   private readonly pending = new Map<string, NodeJS.Timeout>();
@@ -49,7 +49,7 @@ export class SessionRecovery {
     let detail: string | undefined;
     if (!declaration?.auto || !declaration.hub || declaration.ref !== "native" || !session.record.nativeSessionId) {
       detail = "Automatische Fortsetzung nicht verfügbar — native Session oder Adapter-Unterstützung fehlt.";
-    } else if ([...(session.activities?.values() ?? [])].some(a => a.external)) {
+    } else if ([...session.activities.values()].some(a => a.source === "external")) {
       detail = "Externe Hintergrundarbeit ist noch offen — vor einer Fortsetzung prüfen, damit keine doppelte Arbeit startet.";
     }
     const boundary = events.findLastIndex(e => e.payload.kind === "session.prompt" || (e.payload.kind === "session.turn_end" && e.payload.code === 0 && !e.payload.reason));

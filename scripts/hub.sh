@@ -102,7 +102,9 @@ case "${1:-}" in
       if [[ "$unit_config" != /* ]]; then unit_config="$unit_root/$unit_config"; fi
       requested_config="$(realpath -m "${ANCIENTVOID_CONFIG:-$PWD/hub.config.json}")"
       if [ -z "$unit_root" ] || [ -n "$unit_files" ] || [ "$(realpath -m "$unit_root")" != "$(pwd -P)" ] || [ "$requested_config" != "$(realpath -m "$unit_config")" ]; then
-        echo "Andere Hub-Instanz: systemd-Unit wird nicht gesteuert. Für den lokalen Test-Hub HUB_LOCAL=1 setzen." >&2
+        echo "Konflikt: ancientvoid-hub.service gehört einem anderen Checkout" >&2
+        [ -n "$unit_root" ] && echo "  Unit: WorkingDirectory=$unit_root ANCIENTVOID_CONFIG=$unit_config" >&2 || echo "  Unit nennt keinen WorkingDirectory (nicht zuordenbar)" >&2
+        echo "  Nichts verändert. Für einen Hub DIESES Checkouts: HUB_LOCAL=1 $0 $1" >&2
         exit 1
       fi
       echo "-> systemd: systemctl --user ${1} ancientvoid-hub.service"

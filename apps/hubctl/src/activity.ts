@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { ACTIVITY_HEARTBEAT_MS, SessionActivity, type Ack } from "@ancientvoid/contracts";
+import { ACTIVITY_HEARTBEAT_MS, ActivityReport, type Ack } from "@ancientvoid/contracts";
 import { api } from "./api.ts";
 
 /** External work uses the same journal and heartbeat as provider activity. */
@@ -7,7 +7,7 @@ export async function activityCommand(args: string[]): Promise<void> {
   const [sessionId, id, action, ...command] = args;
   if (!sessionId || !id || !action) throw new Error("activity <sessionId> <id> running|completed|failed|run [command ...]");
   const report = async (state: "running" | "completed" | "failed") => {
-    const body = SessionActivity.parse({ id, kind: "job", state, label: id.slice(0, 160) });
+    const body = ActivityReport.parse({ id, kind: "job", state, label: id.slice(0, 160) });
     const ack = await api<Ack>(`/api/sessions/${encodeURIComponent(sessionId)}/activity`, { method: "POST", body: JSON.stringify(body) });
     if (!ack.ok) throw new Error(ack.detail ?? "Aktivität nicht angenommen");
   };

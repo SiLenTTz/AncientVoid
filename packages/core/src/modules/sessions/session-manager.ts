@@ -1,7 +1,7 @@
 import { SessionInterruption } from "./session-interruption.ts";
 import { SessionRecovery } from "./session-recovery.ts";
-import { SessionActivities, foldActivities } from "./session-activity.ts";
-import type { SessionActivity } from "@ancientvoid/contracts";
+import { SessionActivities } from "./session-activity.ts";
+import type { ActivityReport } from "@ancientvoid/contracts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus } from "@ancientvoid/contracts";
@@ -27,7 +27,7 @@ import { buildHandoverPrompt, HANDOVER_PROMPT_MAX } from "../handover/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
 import { askTitleModel } from "./session-title.ts";
 import type { PlannerModelConfig } from "../commands/model.ts";
-import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS } from "./session-state.ts";
+import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS, foldActivities } from "./session-state.ts";
 import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 
@@ -183,7 +183,8 @@ export class SessionManager {
       session: (id) => this.live.get(id),
       emit: (session, kind, payload) => this.emitSystem(session, kind, payload),
       working: (session) => this.setStatus(session, "working"),
-      finish: (session) => this.adapterTurn(session, "idle"),
+      settle: (session, code) => this.setStatus(session, "idle").then(() => this.emitSystem(session, "session.turn_end", { code })),
+      settleFailed: (session) => this.setStatus(session, "error"),
     });
     this.recovery = new SessionRecovery({
       error: (err) => this.logger.error("automatic recovery failed", { err: String(err) }),
@@ -627,6 +628,7 @@ export class SessionManager {
       record,
       adapter: registered.adapter,
       handle: null,
+      activities: new Map(),
       abort: new AbortController(),
       subscribers: new Set(),
       workdir: record.project,
@@ -1121,6 +1123,7 @@ export class SessionManager {
       record,
       adapter: null as unknown as Adapter,
       handle: null,
+      activities: new Map(),
       abort: new AbortController(),
       subscribers: new Set(),
       workdir: record.project,
@@ -1152,6 +1155,7 @@ export class SessionManager {
         record,
         adapter: null as unknown as Adapter,
         handle: null,
+        activities: new Map(),
         abort: new AbortController(),
         subscribers: new Set(),
         workdir: record.project,
@@ -1196,6 +1200,7 @@ export class SessionManager {
       record,
       adapter: registered.adapter,
       handle: null,
+      activities: new Map(),
       abort: new AbortController(),
       subscribers: new Set(),
       workdir,
@@ -1282,8 +1287,15 @@ export class SessionManager {
     const continuationSignal = session.abort.signal;
     session.turnFailed = false;
     session.mainTurnIdle = false;
-    if (session.activities?.size) {
-      session.activities = new Map([...session.activities].filter(([, work]) => work.external));
+    if (session.activities.size) {
+      // Ein toter Provider kann keine offenen Provider-Aktivitäten mehr
+      // beenden — die ends stehen im Journal, damit die K7-Faltung (ADR-0074)
+      // sie nach einem Neustart nicht wieder als offen falten kann.
+      for (const [id, work] of [...session.activities]) {
+        if (work.source === "external") continue;
+        session.activities.delete(id);
+        await this.emitSystem(session, "session.activity_end", { id, code: 1 });
+      }
       await this.emitSystem(session, "session.activities_reset", {});
     }
     const events = await this.store.replay(session.record.id);
@@ -1440,7 +1452,8 @@ export class SessionManager {
       this.persist(session.record);
       // Promptless resume (cursor -p would be an empty turn) starts no worker.
       // Leaving the status on "working" looks like a hang with no error (BUG-0149).
-      if ((session.activeWorkers ?? 0) === 0 && !session.persistentWorker && (session.record.status as string) === "working") {
+      // ADR-0074: offene Aktivitäten sind echte Arbeit — kein Hang, kein idle.
+      if ((session.activeWorkers ?? 0) === 0 && !session.persistentWorker && session.activities.size === 0 && (session.record.status as string) === "working") {
         await this.setStatus(session, "idle");
       }
       return { ok: true };
@@ -2244,6 +2257,7 @@ export class SessionManager {
         record: { ...record, lastSeq },
         adapter: registered?.adapter ?? null as unknown as Adapter,
         handle: null,
+      activities: new Map(),
         abort: new AbortController(),
         subscribers: new Set(),
         workdir,
@@ -2256,8 +2270,10 @@ export class SessionManager {
         // recovery event.
         budgetWarned: record.budgetUsd !== null && record.costUsd >= record.budgetUsd * 0.8,
       };
-      this.live.set(record.id, session);
+      // ADR-0074 (BUG-0155, K7): offene Aktivitäten aus dem JSONL falten —
+      // Recovery lügt nicht über Arbeit, die vor dem Crash angemeldet war.
       session.activities = foldActivities(events);
+      this.live.set(record.id, session);
       for (const event of events) {
         const id = event.payload.queueId;
         if (typeof id !== "string") continue;
@@ -2302,7 +2318,7 @@ export class SessionManager {
         await this.emitSystem(session, "session.recovered", { events: events.length, lastSeq, controllable: true });
         return "recovered";
       }
-      if (session.mainTurnIdle && session.activities.size > 0 && [...session.activities.values()].every(work => work.external)) {
+      if (session.mainTurnIdle && session.activities.size > 0 && [...session.activities.values()].every(work => work.source === "external")) {
         await this.emitSystem(session, "session.recovered", { events: events.length, lastSeq, controllable: true, background: true });
         return "recovered";
       }
@@ -2313,6 +2329,19 @@ export class SessionManager {
       // ein neuer Prompt startet normal über steer.
       if (!record.persistentWorker && (record.status === "idle" || record.status === "parked")) {
         await this.emitSystem(session, "session.recovered", { events: events.length, lastSeq, controllable: true });
+        return "recovered";
+      }
+
+      // ADR-0074 (BUG-0155): Offene Aktivitäten laufen unabhängig vom Hub
+      // weiter (registrierte Jobs, Subagenten) — Recovery unterbricht sie
+      // nicht, die Session bleibt ehrlich `working`.
+      if (session.activities.size > 0) {
+        await this.emitSystem(session, "session.recovered", {
+          events: events.length,
+          lastSeq,
+          controllable: false,
+          openActivities: [...session.activities.values()].map((a) => a.label),
+        });
         return "recovered";
       }
 
@@ -2512,7 +2541,7 @@ export class SessionManager {
       },
       get turnActive() { return session.record.status === "working" && session.mainTurnIdle !== true; },
       activity: (activity) => {
-        this.queueLifecycle(session, signal, () => this.activityTracker.record(session, activity, false));
+        this.queueLifecycle(session, signal, () => this.activityTracker.record(session, activity, "provider"));
       },
       interrupt: (reason, detail) => {
         this.queueLifecycle(session, signal, async () => {
@@ -2728,6 +2757,7 @@ export class SessionManager {
       nativeSessionId: session.record.nativeSessionId,
       resumeVersion: session.record.resumeVersion,
       inputRevision: session.record.inputRevision,
+      openActivities: [...session.activities.values()],
     };
   }
 
@@ -2745,18 +2775,25 @@ export class SessionManager {
       if (session.record.status === "idle" || session.record.status === "error") await this.setStatus(session, "working");
       return;
     }
-    if (session.record.status !== "working") return;
+    // ADR-0076: das Hauptzugende wird zuerst journalisiert — turnActive und
+    // promptloses Resume richten sich nach ihm, auch wenn Arbeit offen bleibt.
     if (!session.mainTurnIdle) {
       session.mainTurnIdle = true;
       await this.emitSystem(session, "session.main_turn_end", {});
     }
+    // ADR-0074 (BUG-0155): Zugende ≠ Arbeitsende — offene Aktivitäten halten
+    // die Session ehrlich auf working; statt turn_end steht die Ausnahme im Strom.
+    if (session.activities.size > 0) {
+      await this.emitSystem(session, "session.activity_pending", { open: [...session.activities.values()].map((a) => a.label) });
+      return;
+    }
+    if (session.record.status !== "working") return;
     if (session.turnFailed) {
       await this.interruption.interrupt(session, "adapter_down");
       return;
     }
-    if (session.activities?.size) return;
-    await this.setStatus(session, session.turnFailed ? "error" : "idle");
-    await this.emitSystem(session, "session.turn_end", session.turnFailed ? { code: null, reason: "error" } : { code: 0 });
+    await this.setStatus(session, "idle");
+    await this.emitSystem(session, "session.turn_end", { code: 0 });
   }
 
   private queueLifecycle(session: LiveSession, signal: AbortSignal, work: () => Promise<unknown>): void {
@@ -2765,8 +2802,34 @@ export class SessionManager {
     }).catch(err => this.handleEmitFailure(session, { type: "error", summary: "Session-Lebenszyklus fehlgeschlagen", payload: { kind: "session.lifecycle_failed" } }, err));
   }
 
-  activity(sessionId: string, activity: SessionActivity): Promise<Ack> {
+  activity(sessionId: string, activity: ActivityReport): Promise<Ack> {
     return this.activityTracker.report(sessionId, activity);
+  }
+
+  /** ADR-0074 (BUG-0155): extern registrierte Aktivität (Job, Subagent,
+   * Watcher). Explizit — der Hub rät nie aus Assistant-Text oder Prozessen. */
+  async registerActivity(sessionId: string, label: string, source = "external"): Promise<{ id: string } | null> {
+    const session = this.live.get(sessionId);
+    if (!session) return null;
+    const id = `job:${crypto.randomUUID()}`;
+    const entry = { id, source, label: label.trim() || "Hintergrundarbeit", startedAt: new Date().toISOString() };
+    session.activities.set(id, entry);
+    if (session.record.status === "idle" || session.record.status === "error") await this.setStatus(session, "working");
+    await this.emitSystem(session, "session.activity_begin", { ...entry });
+    return { id };
+  }
+
+  /** ADR-0074: Ende einer Aktivität. Die letzte beendete Aktivität einer
+   * arbeitenden Session ohne Zug-Prozesse schließt den Lauf (idle + turn_end). */
+  async endActivity(sessionId: string, id: string, code = 0): Promise<boolean> {
+    const session = this.live.get(sessionId);
+    if (!session || !session.activities.delete(id)) return false;
+    await this.emitSystem(session, "session.activity_end", { id, code });
+    if (session.activities.size === 0 && (session.activeWorkers ?? 0) === 0 && session.record.status === "working") {
+      await this.setStatus(session, "idle");
+      await this.emitSystem(session, "session.turn_end", { code });
+    }
+    return true;
   }
 
   /** T7.2: an in-process adapter waits for the phone's decision. */
@@ -2800,7 +2863,7 @@ export class SessionManager {
       }
       setTimeout(() => {
         if (signal.aborted || this.shuttingDown || (session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
-        if ([...(session.activities?.values() ?? [])].some(work => !work.external)) {
+        if ([...session.activities.values()].some(work => work.source !== "external")) {
           void this.interruption.interrupt(session, "worker_exit");
           return;
         }

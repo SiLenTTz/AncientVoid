@@ -1,64 +1,72 @@
-import { EXTERNAL_ACTIVITY_TTL_MS, SessionActivity, type Ack, type NormalizedEvent } from "@ancientvoid/contracts";
-import type { LiveSession, OpenActivity } from "./session-state.ts";
+import { ActivityReport, EXTERNAL_ACTIVITY_TTL_MS, type Ack } from "@ancientvoid/contracts";
+import type { LiveSession } from "./session-state.ts";
 
 interface Host {
   session(id: string): LiveSession | undefined;
   emit(session: LiveSession, kind: string, payload: Record<string, unknown>): Promise<void>;
   working(session: LiveSession): Promise<void>;
-  finish(session: LiveSession): Promise<void>;
+  settle(session: LiveSession, code: number): Promise<void>;
+  settleFailed(session: LiveSession): Promise<void>;
 }
 
-/** Provider work and explicitly registered jobs share a journal, not an OS heuristic. */
+/**
+ * ADR-0076 (BUG-0155 T2/T3): Adapter-Berichte und registrierte externe Jobs
+ * treiben dasselbe Register (ADR-0074: `LiveSession.activities`, Events
+ * `session.activity_begin/end`) — der Hub rät nie aus Assistant-Text oder
+ * Prozessen. Externe Arbeit muss sich melden; schweigt sie länger als die
+ * Frist, wird sie als unklar sichtbar und blockiert die Wiederaufnahme.
+ */
 export class SessionActivities {
   private readonly host: Host;
   constructor(host: Host) { this.host = host; }
 
-  async record(session: LiveSession, raw: SessionActivity, external: boolean): Promise<void> {
-    const activity = SessionActivity.parse(raw);
-    const open = session.activities ??= new Map();
-    const key = `${external ? "external" : "provider"}:${activity.id}`;
-    if (activity.state === "running") open.set(key, { activity, external, updatedAt: new Date().toISOString() });
-    else open.delete(key);
-    if (external && activity.state === "failed") session.turnFailed = true;
-    await this.host.emit(session, "session.activity", { activity, external, openCount: open.size });
-    if (activity.state === "running" && session.record.status === "idle") await this.host.working(session);
-    if (session.mainTurnIdle && !open.size) await this.host.finish(session);
+  async record(session: LiveSession, raw: unknown, source: "provider" | "external"): Promise<void> {
+    const activity = ActivityReport.parse(raw);
+    const id = source === "external" ? `job:${activity.id}` : activity.id;
+    if (activity.state === "running") {
+      const entry = { id, source, label: activity.label?.trim() || activity.id, startedAt: new Date().toISOString() };
+      session.activities.set(id, entry);
+      await this.host.emit(session, "session.activity_begin", { ...entry });
+      if (session.record.status === "idle" || session.record.status === "error") await this.host.working(session);
+      return;
+    }
+    const code = activity.state === "failed" ? 1 : 0;
+    if (!session.activities.delete(id)) return; // unbekannte/alte end-Ids streuen nicht (ADR-0074)
+    await this.host.emit(session, "session.activity_end", { id, code });
+    if (activity.state === "failed" && source === "external") {
+      await this.host.emit(session, "session.recovery_blocked", { detail: `Hintergrundarbeit „${activity.label ?? activity.id}“ ist fehlgeschlagen. Zustand prüfen, abbrechen oder übergeben.` });
+    }
+    await this.closeIfLast(session, code);
   }
 
-  async report(sessionId: string, activity: SessionActivity): Promise<Ack> {
+  async report(sessionId: string, activity: ActivityReport): Promise<Ack> {
     const session = this.host.session(sessionId);
     const allowed = session && (["working", "idle", "waiting_approval"].includes(session.record.status) || activity.state !== "running");
     if (!session || !allowed) return { ok: false, detail: "Session nimmt keine Hintergrundarbeit an." };
-    const run = (session.lifecycle ?? Promise.resolve()).then(() => this.record(session, activity, true));
+    const run = (session.lifecycle ?? Promise.resolve()).then(() => this.record(session, activity, "external"));
     session.lifecycle = run;
     await run;
     return { ok: true };
   }
 
+  /** Herzschlag-Frist (ADR-0076): externe Arbeit ohne Lebenszeichen gilt als unklar. */
   async expire(session: LiveSession): Promise<void> {
-    for (const work of [...(session.activities?.values() ?? [])]) {
-      if (work.external && Date.now() - Date.parse(work.updatedAt) > EXTERNAL_ACTIVITY_TTL_MS) {
-        await this.record(session, { ...work.activity, state: "failed" }, true);
-        await this.host.emit(session, "session.recovery_blocked", { detail: `Hintergrundarbeit „${work.activity.label ?? work.activity.id}“ meldet sich nicht mehr. Zustand prüfen, abbrechen oder übergeben.` });
+    for (const entry of [...session.activities.values()]) {
+      if (entry.source === "external" && Date.now() - Date.parse(entry.startedAt) > EXTERNAL_ACTIVITY_TTL_MS) {
+        await this.record(session, { id: entry.id.replace(/^job:/, ""), kind: "job", state: "failed", label: entry.label }, "external");
       }
     }
   }
-}
 
-/** The journal also records invalidation when a dead provider is replaced. */
-export function foldActivities(events: readonly NormalizedEvent[]): Map<string, OpenActivity> {
-  const open = new Map<string, OpenActivity>();
-  for (const event of events) {
-    if (event.payload.kind === "session.activities_reset") {
-      for (const [id, work] of open) if (!work.external) open.delete(id);
+  private async closeIfLast(session: LiveSession, code: number): Promise<void> {
+    if (session.activities.size > 0 || (session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
+    // Eine fehlgeschlagene/ungewiss beendete Hintergrundarbeit ist kein
+    // sauberer Laufabschluss (BUG-0155): ehrlich `error`, nie success-idle.
+    if (code !== 0) {
+      await this.host.emit(session, "session.turn_end", { code, reason: "error" });
+      await this.host.settleFailed(session);
+      return;
     }
-    if (event.payload.kind !== "session.activity") continue;
-    const parsed = SessionActivity.safeParse(event.payload.activity);
-    if (!parsed.success) continue;
-    const external = event.payload.external === true;
-    const key = `${external ? "external" : "provider"}:${parsed.data.id}`;
-    if (parsed.data.state === "running") open.set(key, { activity: parsed.data, external, updatedAt: event.ts });
-    else open.delete(key);
+    await this.host.settle(session, code);
   }
-  return open;
 }

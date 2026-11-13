@@ -997,8 +997,14 @@ export function SessionTail({
       }} />}
       {recoveryHandover && <RecoveryHandover session={record} api={api} onClose={() => setRecoveryHandover(false)} onHandedOver={created => { location.hash = sessionHash(created.id, remoteHost(session.hostId)); }} />}
       {status === "working" && (() => {
-        const last = [...events].reverse().find(e => e.payload.kind === "session.activity");
-        const count = Number(last?.payload.openCount ?? 0);
+        // ADR-0074/0076: begin/end-Paare zählen — der letzte Stand steht im Strom.
+        let count = 0;
+        const seen = new Set<string>();
+        for (const e of events) {
+          const p = e.payload as { kind?: string; id?: string };
+          if (p?.kind === "session.activity_begin" && typeof p.id === "string") { if (!seen.has(p.id)) { seen.add(p.id); count += 1; } }
+          else if (p?.kind === "session.activity_end" && typeof p.id === "string" && seen.delete(p.id)) count -= 1;
+        }
         return count > 0 ? <p class="dim" role="status">Hintergrundarbeit aktiv · {count} offene Aktivität{count === 1 ? "" : "en"}</p> : null;
       })()}
       {loopView && <LoopPanel sessionId={session.id} adapter={session.adapter} view={loopView} disabled={observerOnly || status === "stopped"} api={api} onError={setReplyError} factory={factoryLink?.role && factoryLink.partner ? { role: factoryLink.role, partner: factoryLink.partner } : null} hostId={remoteHost(session.hostId) ?? null} />}

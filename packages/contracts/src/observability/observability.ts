@@ -78,7 +78,7 @@ export const REDACT_LOG_KEYS = [
   "apiKey",
   "api_key",
 ] as const;
-/** ADR-0074: loaded server, checkout and built browser assets are distinct. */
+/** ADR-0076: loaded server, checkout and built browser assets are distinct. */
 export interface DeploymentIdentity {
   runtimeDirty: boolean | null;
   checkoutDirty: boolean | null;

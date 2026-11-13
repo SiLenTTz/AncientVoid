@@ -51,7 +51,7 @@ Ein gestarteter, aber fehlgeschlagener Resume wird als `error` sichtbar.
 `reason`, `since` und `lastTurnId`. Der offene Zug endet mit
 `session.turn_end { reason: "interrupted", code: null }`.
 
-Seit [ADR-0074](adr/0074-session-aktivitaet-und-wiederaufnahme.md) ist
+Seit [ADR-0076](adr/0076-session-aktivitaet-und-wiederaufnahme.md) ist
 `autoResumeInterrupted` standardmäßig `true`. Zusätzlich braucht es
 `resume.hub: true`, `resume.ref: "native"`, `resume.auto: true` und eine
 bekannte native Session. Codex app-server, Claude, Cursor, Pi, Hermes und die

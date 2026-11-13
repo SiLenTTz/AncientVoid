@@ -1,4 +1,4 @@
-# ADR-0074 — Offene Arbeit und automatische Wiederaufnahme
+# ADR-0076 — Offene Arbeit und automatische Wiederaufnahme
 
 **Status:** angenommen · **Datum:** 2026-11-13
 
@@ -14,9 +14,11 @@ JSONL-EventStore und die serialisierten Session-Eingaben bleiben die Naht.
 - `AdapterContext.activity()` meldet strukturierte Arbeitseinheiten mit
   stabiler ID, Art und Zustand; `interrupt()` meldet einen unabsichtlichen
   Transport-/Laufverlust. Beide SDK-Erweiterungen sind optional und additiv.
-- `session.activity`-Events sind die Wahrheit über offene Arbeit, auch nach
-  Neustart. Ein Zugende bei offenen Aktivitäten hält `working`; erst das
-  letzte Ende erlaubt `idle`. Ausfälle erzeugen sichtbaren Klärungsbedarf.
+- Die Aktivitäts-Events (`session.activity_begin/end`, Register und Faltung
+  nach [ADR-0074](0074-session-aktivitaetsregister.md)) sind die Wahrheit
+  über offene Arbeit, auch nach Neustart. Ein Zugende bei offenen
+  Aktivitäten hält `working`; erst das letzte Ende erlaubt `idle`.
+  Ausfälle erzeugen sichtbaren Klärungsbedarf.
 - Externe Jobs können über eine authentifizierte Activity-Route und hubctl
   registriert werden. Ihre laufende Registrierung hat einen Heartbeat;
   eine abgelaufene Registrierung gilt als unklar, niemals als Erfolg.
@@ -27,12 +29,9 @@ JSONL-EventStore und die serialisierten Session-Eingaben bleiben die Naht.
   erhalten; seine ID ist zugleich die Eingabe-Idempotenz-ID. Ein vor dem
   Senden journalisierter Claim ohne bestätigtes Ergebnis wird nach Crash als
   unklar angezeigt und niemals automatisch ein zweites Mal gesendet.
-- tmux-Handles zielen auf unveränderliche Pane-IDs, nicht auf wiederbenutzte
-  Sessionnamen. Jede Worker-Generation hat eigene Log-/Offset-/FIFO-Dateien;
-  `@ancientvoid_log` ermöglicht Adoption, der bisherige `.log`-Pfad bleibt
-  als Latest-Symlink für Diagnose erhalten. Alte Worker ohne Marker nutzen
-  weiterhin den bisherigen Recovery-Pfad. Verzögerte Exits/Signale können
-  dadurch keinen Nachfolger beenden oder dessen Nachrichten konsumieren.
+- tmux-Steuerung, Generations-Logs und Pane-ID-Adoption regelt
+  [ADR-0075](0075-tmux-generationssteuerung.md) (BUG-0157, MR !454); dieses
+  ADR baut darauf auf, ohne dessen Mechanismus zu wiederholen.
 - Automatische Fortsetzung verwendet denselben Arbeitsort, dieselbe native
   Session und die Eingabeserialisierung. Adapter müssen native Fortsetzung
   ausdrücklich unterstützen. Ein fester Fortsetzungshinweis bittet um
