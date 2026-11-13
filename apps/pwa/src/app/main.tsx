@@ -283,7 +283,11 @@ function Main() {
     const focused = visibleTiles(next)[next.focus];
     rememberSession(focused ?? null);
     const hash = focused ? sessionHash(focused.sessionId, focused.hostId) : pageHash(route.view === "list" ? route.page : "dashboard");
-    if (location.hash !== hash) history.replaceState(null, "", hash);
+    // Ein tieferer Hash (…/graph, …/code) zur fokussierten Session bleibt
+    // stehen: replaceState würde das Suffix entfernen, und wer den Hash
+    // danach neu parst (z. B. Token-Gate → ready) landet ohne den Reiter.
+    const current = location.hash.replace(/^#/, "");
+    if (current !== hash && !current.startsWith(`${hash}/`)) history.replaceState(null, "", hash);
   };
   // EPIC-P34 T34.10: eigene Fenster. Der Kanal-Handler läuft über Referenzen, damit er immer den neuesten Stand sieht.
   const latest = useRef({ ws, changeWorkspace });
