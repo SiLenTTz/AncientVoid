@@ -44,6 +44,7 @@ export const REFRESH_MAP = [
   { doc: "docs/funktionsinventar.md", areas: ["apps/pwa/src/"], maxDrift: 100 },
   { doc: "docs/commit-notation.md", areas: [".githooks/", "scripts/check-commits.mjs"], maxDrift: 40 },
   { doc: "docs/onboarding.md", areas: ["setup.sh", "scripts/setup-git.mjs"], maxDrift: 60 },
+  { doc: "docs/tutorial-erste-schritte.md", areas: ["setup.sh", "apps/hubctl/", "apps/pwa/src/app/", "scripts/setup-tailscale-serve.sh"], maxDrift: 30 },
   { doc: "docs/ci-gate-inventar.md", areas: [".gitlab-ci.yml", "package.json"], maxDrift: 40 },
   { doc: "docs/backup-restore.md", areas: ["packages/core/src/modules/sessions/", "apps/hubctl/"], maxDrift: 80 },
   { doc: "docs/fleet.md", areas: ["packages/core/src/modules/fleet/", "packages/core/src/modules/connections/"], maxDrift: 60 },

@@ -13,7 +13,7 @@ VoidWarden-Repo: noch anzulegen (T57.11), nach dem Muster P53 ↔ VoidWarden P14
 
 Ein neuer Endnutzer kommt in **≤ 15 Minuten (Hypothese, erster Messlauf setzt
 die Basis)** vom frischen Klon zum **ersten vom Handy gesteuerten Agenten**
-(erste Freigabe auf dem Handy entschieden), ohne Quellcode zu lesen und ohne
+(Standard: Nachricht per Handy an eine laufende Session gesendet und im Verlauf sichtbar; mit einem Harness, der Freigaben liefert, zusätzlich die erste Freigabe entschieden — der `dummy`-Adapter hat `toolGate: "none"` und löst keine aus), ohne Quellcode zu lesen und ohne
 Agenten-Hilfe. Dafür:
 
 1. Die Doku wird nach **Diátaxis** geordnet (jede lebende Seite hat genau eine Art);
@@ -25,8 +25,8 @@ Agenten-Hilfe. Dafür:
 4. **TTFS ist messbar** (Messlauf, Ratchet).
 
 Messlatten-Bezug (PRD §9): Keine der K1–K10 misst Onboarding. Das Epic
-verankert sich deshalb an: **K1** (Approve-Latenz < 5 s — Meilenstein M5 ist
-genau diese Freigabe, der Messlauf darf K1 nicht verschlechtern), **K7**
+verankert sich deshalb an: **K1** (Approve-Latenz < 5 s — gilt für die Freigabe-Variante M5b mit echtem
+Harness; der Messlauf darf K1 nicht verschlechtern), **K7**
 (Hub-Neustart-How-to wird gegen K7 geprüft: Wiederanlauf identisch),
 **K10** (Offline-/Leerzustand zeigt Zeitstempel, kein White-Screen) und
 **PRD §8** (keine Secrets in Doku/Config, Token nur als Hash, kein öffentlicher
@@ -41,7 +41,7 @@ als K-Wert.
   (`Art: tutorial|how-to|referenz|erklaerung`), Prüfregel in `check:context`.
 - Tutorial „Erste 15 Minuten“ (`docs/tutorial-erste-schritte.md`), eine
   Standardroute: Klon → Wizard (`dummy`) → Handy erreicht Hub → Kopplung →
-  erste Session → erste Freigabe. Alternativen nur als Links.
+  erste Session → erste Steuerung (Nachricht/Stopp; Freigabe nur mit Harness). Alternativen nur als Links.
 - Wenige How-tos aus den Lücken E1–E7: Handy anbinden (Tailscale serve),
   Provider wechseln/hinzufügen, zweites Gerät koppeln/Token widerrufen,
   Wizard-Fehler lesen (Exit-Code-Tabelle für Menschen), „Brauche ich VoidWarden?“.
@@ -147,7 +147,7 @@ Beispielinhalt als Beispiel gekennzeichnet; keine Tour.
 
 Pfad und Meilensteine M0–M5 stehen im Bericht §6. `scripts/messlauf-ttfs.mjs`
 fährt kalt in frischem temporärem Checkout (`--yes --adapter=dummy`, isolierter
-Datadir, Port frei wählbar), prüft M1 (`/api/ready`), M3–M5 über Playwright im
+Datadir, Port frei wählbar), prüft M1 (`/api/ready`), M3–M5 (dummy: Nachricht senden; M5b nur mit Stand-in-Harness `claude` aus `e2e/support/bin`) über Playwright im
 Mobil-Viewport und schreibt Zeiten je Meilenstein. Echtes Tailscale/Handy: einmal
 manuell mit Stoppuhr, im Bericht als manuell gekennzeichnet. Ratchet: Zielwert darf
 sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
@@ -162,11 +162,11 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
 - [x] **T57.3** `scripts/gen-reference.mjs`: hubctl-Referenz und Wizard-Exit-Codes
   generieren; Config-Quelle geklärt: zod-Schema `HubConfig` (`z.toJSONSchema`) liefert Feld/Typ/Default. Messlatte: —;
   K5 nicht berührt.
-- [ ] **T57.4** Tutorial `docs/tutorial-erste-schritte.md` (Standardroute, ein
+- [x] **T57.4** Tutorial `docs/tutorial-erste-schritte.md` (Standardroute, ein
   Schritt = eine Aktion + erwartete Ausgabe, endet mit Erfolgssignal und
-  VoidWarden-Weiche). Messlatte: K1 (Schritt „Freigabe“), PRD §8 (Tailscale serve,
+  VoidWarden-Weiche). Messlatte: K1 (Abschnitt „Freigabe mit echtem Harness“), PRD §8 (Tailscale serve,
   kein öffentlicher Port).
-- [ ] **T57.5** Ausführbare Tutorial-Blöcke: Test fährt markierte Befehle gegen den
+- [x] **T57.5** Ausführbare Tutorial-Blöcke: Test fährt markierte Befehle gegen den
   Demo-Hub. Messlatte: K7 (Neustart-Schritt prüft Wiederanlauf).
 - [ ] **T57.6** How-tos: Handy anbinden, Provider wechseln, Gerät koppeln/widerrufen,
   Wizard-Fehler (Exit-Codes), Hub-Neustart/Backup-Verweis. Bestehende Runbooks
@@ -190,10 +190,10 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
 
 ## 5. Acceptance Criteria
 
-- **AC-P57-1 (TTFS):** Kalter Messlauf `dummy`: M1 ≤ 5 min, M5 ≤ 15 min (Basis wird
+- **AC-P57-1 (TTFS):** Kalter Messlauf `dummy`: M1 ≤ 5 min, M5 (Nachricht vom Handy sichtbar) ≤ 15 min (Basis wird
   im ersten Lauf gesetzt; danach Ratchet). Bericht mit Zeiten je Meilenstein liegt in
   `docs/messlauf/`; manuelle Handy-Messung ist als manuell ausgewiesen.
-- **AC-P57-2 (K1):** Im Messlauf liegt die Freigabe-Latenz weiterhin < 5 s (p95);
+- **AC-P57-2 (K1):** In der Freigabe-Variante M5b (Stand-in-Harness) liegt die Freigabe-Latenz weiterhin < 5 s (p95);
   Onboarding-Code verschlechtert K1 nicht (bestehender Messlauf `messlauf:approve-latency`).
 - **AC-P57-3 (Diátaxis):** `check:context` scheitert, wenn eine lebende Doku-Seite
   keine oder zwei Arten trägt (Negativ-Fixture rot, dann grün).
@@ -251,6 +251,11 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
    Mitigation: Eigentümer-Tabelle §3.1, Kernsätze nur einmal, Gegenlesen in T57.11
    (Muster P53/P14); relative Cross-Repo-Links sind ungeprüft — deshalb kein Inhalt
    dahinter versteckt.
+
+**Korrektur 13.11.2026 (T57.4):** Der ursprüngliche Meilenstein M5 „erste
+Freigabe“ war mit dem Wizard-Default `dummy` nicht erreichbar (`toolGate: "none"`).
+M5 ist jetzt „Nachricht vom Handy sichtbar“; die Freigabe ist M5b (echter Harness,
+im Messlauf mit dem Stand-in `claude`). Bericht §6 entsprechend ergänzt.
 
 ## 7. Definition of Done
 

@@ -220,7 +220,8 @@ unter `docs/messlauf/`.
 | M2 Handy erreicht Hub | PWA lädt auf zweitem Gerät über Tailscale | ≤ 10 min |
 | M3 Handy gekoppelt | Token auf dem Handy gesetzt, Übersicht sichtbar | ≤ 12 min |
 | M4 Erste Session läuft | Session (`dummy`) in der Übersicht, Events im Tail | ≤ 14 min |
-| M5 Erste Freigabe vom Handy | Approval entschieden, Audit-Event, Agent läuft weiter | ≤ 15 min |
+| M5 Erste Steuerung vom Handy | Nachricht an laufende Session gesendet, Event im Verlauf sichtbar | ≤ 15 min |
+| M5b (nur Harness mit Freigaben) | Approval entschieden, Audit-Event, Agent läuft weiter | getrennt ausgewiesen (K1) |
 
 Die Zielwerte sind **Hypothesen**, nicht gemessen; der erste Messlauf setzt
 die Basis, danach gilt ein Ratchet (Ziel darf sinken, nicht steigen).
@@ -230,6 +231,10 @@ Browserprofil (Mobil-Viewport), der echte Handy-Schritt wird einmal manuell mit
 Stoppuhr protokolliert und als solcher benannt. Mit echtem Provider (statt
 dummy) kommt eine eigene, getrennt ausgewiesene Zeit dazu — Anmeldung beim
 Provider ist nicht Teil der Messlatte.
+
+**Korrektur 13.11.2026:** Der erste Entwurf nannte als M5 „erste Freigabe“. Der
+`dummy`-Adapter (Wizard-Default) hat `toolGate: "none"` und erzeugt keine
+Freigaben; M5 ist deshalb die Nachricht vom Handy, die Freigabe M5b.
 
 ## 7. Vorbehalte
 
