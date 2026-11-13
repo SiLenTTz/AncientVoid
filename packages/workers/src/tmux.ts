@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { open, readFile, stat, mkdir, rm, writeFile } from "node:fs/promises";
+import { symlink, open, readFile, stat, mkdir, rm, writeFile } from "node:fs/promises";
 import { watch } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@ancientvoid/contracts";
 
 export const TMUX_PREFIX = "ancientvoid-";
@@ -226,11 +226,19 @@ export class TmuxRunner implements WorkerRunner {
 
     await mkdir(this.logDir, { recursive: true });
     const full = this.fullName(spec.name ?? "session");
-    const logPath = join(this.logDir, `${full}.log`);
+    // BUG-0157: Log/Offset/FIFO je Generation (workerId) — ein Nachfolger unter
+    // demselben Namen schreibt nie in die Dateien eines alten Handles, und ein
+    // alter Handle liest nie den Nachfolger. `<full>.log` bleibt als
+    // Latest-Symlink für Diagnosepfad und Legacy-Adoption erhalten.
+    const logPath = join(this.logDir, `${full}.${workerId.slice(0, 8)}.log`);
 
-    // Clean any stale session/log from a previous run with the same name.
+    // Clean any stale session/log from a previous run with the same name
+    // (pre-BUG-0157 generations kept their log under the plain name).
     await execTmux(["kill-session", "-t", full]).catch(() => undefined);
-    await rm(logPath, { force: true });
+    const legacyLog = join(this.logDir, `${full}.log`);
+    await rm(legacyLog, { force: true });
+    await rm(offsetPath(legacyLog), { force: true });
+    await rm(stdinPath(legacyLog), { force: true });
     await rm(offsetPath(logPath), { force: true });
     await rm(stdinPath(logPath), { force: true });
 
@@ -281,6 +289,9 @@ export class TmuxRunner implements WorkerRunner {
       // readable via /proc/<pid>/environ and by the worker itself).
       await execTmux(["set-option", "-t", full, "@ancientvoid_session", sessionId]);
       await execTmux(["set-option", "-t", full, "@ancientvoid_worker", workerId]);
+      // BUG-0157: der Generations-Logpfad dieser Spawn-Generation — Adoption
+      // und Diagnose finden ihn hier, nicht über den wiederverwendbaren Namen.
+      await execTmux(["set-option", "-t", full, "@ancientvoid_log", logPath]);
       await execTmux(["set-environment", "-t", full, "ANCIENTVOID_SESSION_ID", sessionId]);
       await execTmux(["set-environment", "-t", full, "ANCIENTVOID_WORKER_ID", workerId]);
       // 2. Keep the pane after exit so pipe-pane can flush the tail reliably.
@@ -289,6 +300,9 @@ export class TmuxRunner implements WorkerRunner {
       await execTmux(["pipe-pane", "-t", full, "-o", `cat >> ${logPath}`]);
       // 4. Swap the placeholder for the real command.
       await execTmux(["respawn-pane", "-k", "-t", full, "-c", spec.cwd, shellCmd]);
+      // Latest-Symlink für den bisherigen Diagnosepfad (`<name>.log`).
+      await rm(legacyLog, { force: true });
+      await symlink(basename(logPath), legacyLog).catch(() => undefined);
     } catch (err) {
       await execTmux(["kill-session", "-t", full]).catch(() => undefined);
       throw err;
@@ -314,11 +328,13 @@ export class TmuxRunner implements WorkerRunner {
       this.log?.("warn", "adopt without @ancientvoid_session marker — fell back to name heuristic", { sessionId, fullName: target.fullName });
     }
     const full = target.fullName;
+    // BUG-0157: der Marker nennt den Generations-Logpfad (pipe-pane hält
+    // den Spawn-Zeit-Pfad). Fallback ohne Marker: der alte Namenspfad.
+    let logPath = target.log ?? join(this.logDir, `${full}.log`);
     // A renamed session keeps writing its ORIGINAL log (pipe-pane holds the
     // spawn-time path). When the renamed path is missing, the marker lets us
     // look under the original name — without this, adopting a renamed
     // worker would crash on a log that never existed.
-    let logPath = join(this.logDir, `${full}.log`);
     if (
       !(await stat(logPath).then(
         () => true,
@@ -347,7 +363,12 @@ export class TmuxRunner implements WorkerRunner {
 
   private async track(full: string, logPath: string, startOffset: number, piped = false): Promise<WorkerProcess> {
     const pipe = piped ? pipeWriter(stdinPath(logPath)) : null;
-    const pid = await this.panePid(full);
+    // BUG-0157: die unveränderliche Pane-ID dieser Generation ist das Ziel
+    // aller Steuerung (kill/write/Status). Der Sessionname wird an den
+    // Nachfolger vererbt — ein alter Handle darf ihn nie wieder ansteuern.
+    const paneId = await this.paneId(full);
+    const target = paneId !== undefined ? `%${paneId}` : full;
+    const pid = await this.panePid(target);
     const tailer = new FileTailer(logPath, startOffset);
     let exited = false;
     let exitCode: number | null = null;
@@ -368,7 +389,7 @@ export class TmuxRunner implements WorkerRunner {
 
     const checkExit = setInterval(async () => {
       if (exited) return;
-      const dead = await this.paneDead(full);
+      const dead = await this.paneDead(target);
       if (!dead) return;
       exited = true;
       clearInterval(checkExit);
@@ -390,7 +411,10 @@ export class TmuxRunner implements WorkerRunner {
       pipe?.close();
       for (const cb of exitCbs) cb(exitCode);
       // Clean up the remained pane — the log file keeps the evidence.
-      await execTmux(["kill-session", "-t", full]).catch(() => undefined);
+      // BUG-0157: nur, wenn die Session noch UNSERE Pane enthält — einer
+      // unter demselben Namen läuft eine Nachfolger-Generation: Der Name gehört
+      // ihr jetzt, sie bleibt unbehelligt.
+      await this.killSessionIfOurs(full, paneId);
     }, 200);
 
     return {
@@ -405,11 +429,11 @@ export class TmuxRunner implements WorkerRunner {
         // stdout/stderr are interleaved in the pane capture
       },
       onExit: (cb) => exitCbs.add(cb),
-      write: pipe ? pipe.write : (data) => void execTmux(["send-keys", "-t", full, "-l", data]),
+      write: pipe ? pipe.write : (data) => void execTmux(["send-keys", "-t", target, "-l", data]),
       kill: async (signal) => {
-        if (signal === "SIGKILL") await execTmux(["kill-session", "-t", full]);
+        if (signal === "SIGKILL") await this.killSessionIfOurs(full, paneId);
         else {
-          await execTmux(["send-key", "-t", full, "C-c"]).catch(() => undefined);
+          await execTmux(["send-key", "-t", target, "C-c"]).catch(() => undefined);
           await new Promise((r) => setTimeout(r, 100));
         }
       },
@@ -417,19 +441,25 @@ export class TmuxRunner implements WorkerRunner {
     };
   }
 
-  private async panePid(full: string): Promise<number | undefined> {
-    const res = await execTmux(["display-message", "-p", "-t", full, "#{pane_pid}"]);
-    const pid = Number(res.stdout.trim());
+  private async paneId(full: string): Promise<string | undefined> {
+    const res = await execTmux(["display-message", "-p", "-t", full, "#{pane_id}"]).catch(() => null);
+    const id = res && res.code === 0 ? res.stdout.trim().replace(/^%/, "") : "";
+    return id ? id : undefined;
+  }
+
+  private async panePid(target: string): Promise<number | undefined> {
+    const res = await execTmux(["display-message", "-p", "-t", target, "#{pane_pid}"]).catch(() => null);
+    const pid = res && res.code === 0 ? Number(res.stdout.trim()) : NaN;
     return Number.isFinite(pid) && pid > 0 ? pid : undefined;
   }
 
-  private async paneDead(full: string): Promise<boolean> {
-    // BUG-0025: with other sessions on the server, tmux 3.7 answers
-    // display-message for a missing target with exit 0 and no output — ask
-    // for the exact session first ("=" disables prefix matching).
-    const exists = await execTmux(["has-session", "-t", `=${full}`]).catch(() => null);
-    if (!exists || exists.code !== 0) return true; // session gone entirely
-    const res = await execTmux(["display-message", "-p", "-t", full, "#{pane_dead}"]).catch(
+  private async paneDead(target: string): Promise<boolean> {
+    // BUG-0157: exakte Pane-Adresse ("%<id>") statt Sessionname — der Name
+    // kann schon einem Nachfolger gehören, die Pane-ID nie. Ein nicht mehr
+    // existierendes Ziel (tmux-Fehler/leere Antwort) heißt: unsere Pane ist
+    // weg, also tot — auch wenn unter dem alten Namen längst ein Nachfolger
+    // läuft (BUG-0025s Präfix-Problem betrifft keine Pane-IDs).
+    const res = await execTmux(["display-message", "-p", "-t", target, "#{pane_dead}"]).catch(
       () => null,
     );
     if (!res) return true; // tmux itself failed to run
@@ -438,12 +468,24 @@ export class TmuxRunner implements WorkerRunner {
     return state === "" || state === "1";
   }
 
+  /** BUG-0157: kill-session nur, wenn die Session noch unsere Pane enthält —
+   * sonst gehört der Name einer Nachfolger-Generation und bleibt unberührt. */
+  private async killSessionIfOurs(full: string, paneId: string | undefined): Promise<void> {
+    if (paneId !== undefined) {
+      const panes = await execTmux(["list-panes", "-s", "-t", full, "-F", "#{pane_id}"]).catch(() => null);
+      if (!panes || panes.code !== 0) return; // Session existiert nicht (mehr)
+      const ours = panes.stdout.trim().split("\n").map((l) => l.trim().replace(/^%/, "")).includes(paneId);
+      if (!ours) return; // Nachfolger lebt unter dem Namen — nicht anfassen
+    }
+    await execTmux(["kill-session", "-t", full]).catch(() => undefined);
+  }
+
   async list(): Promise<WorkerInfo[]> {
     // tmux 3.5 ersetzt Steuerzeichen in -F (auch Tab) durch "_", dann bleibt eine Spalte übrig.
     const res = await execTmux([
       "list-sessions",
       "-F",
-      "#{session_name}|#{pane_pid}|#{session_created}|#{@ancientvoid_owner}|#{@ancientvoid_session}|#{@ancientvoid_worker}",
+      "#{session_name}|#{pane_pid}|#{session_created}|#{@ancientvoid_owner}|#{@ancientvoid_session}|#{@ancientvoid_worker}|#{@ancientvoid_log}",
     ]).catch(() => null);
     if (!res || res.code !== 0) return [];
     return res.stdout
@@ -451,7 +493,7 @@ export class TmuxRunner implements WorkerRunner {
       .split("\n")
       .map((l) => l.split("|"))
       .filter(([name, , , owner]) => name?.startsWith(TMUX_PREFIX) && owner === this.owner)
-      .map(([name, pid, created, , sessionId, workerId]) => {
+      .map(([name, pid, created, , sessionId, workerId, log]) => {
         const pidNum = pid ? Number(pid) : NaN;
         const createdNum = created ? Number(created) * 1000 : NaN;
         return {
@@ -461,6 +503,8 @@ export class TmuxRunner implements WorkerRunner {
           // absence as "use the fallback and say so".
           ...(sessionId ? { sessionId } : {}),
           ...(workerId ? { workerId } : {}),
+          // BUG-0157: Generations-Logpfad dieser Spawn-Generation.
+          ...(log ? { log } : {}),
           ...(Number.isFinite(pidNum) ? { pid: pidNum } : {}),
           ...(Number.isFinite(createdNum) ? { createdAt: createdNum } : {}),
         };
