@@ -1,4 +1,5 @@
 import type { AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import { noteApprovalDecided } from "./first-run.ts";
 export interface SessionRecord {
   id: string;
   adapter: string;
@@ -843,6 +844,12 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** EPIC-P57 T57.9: eine entschiedene Freigabe zählt für das einmalige Erfolgssignal des Erststarts. */
+function approvalDecided(r: ApprovalRequest): ApprovalRequest {
+  noteApprovalDecided();
+  return r;
+}
+
 /** T8.2: only a real 401/403 says the token is wrong — offline is not. */
 export function isAuthError(err: unknown): boolean {
   const status = (err as { status?: unknown })?.status;
@@ -1026,7 +1033,7 @@ function createHubApi(P: (path: string) => string) {
     api<ApprovalRequest>(P(`/api/approvals/${id}/decide`), {
       method: "POST",
       body: JSON.stringify({ decision, ...(reason ? { reason } : {}), ...(answers ? { answers } : {}) }),
-    }),
+    }).then(approvalDecided),
   /** T2.5: WebAuthn passkey registration + the biometric decide path for
    * `destructive` approvals. 501 (webauthn not configured) is a real,
    * common state — same "feature genuinely absent" handling as the
@@ -1045,7 +1052,7 @@ function createHubApi(P: (path: string) => string) {
     api<ApprovalRequest>(P(`/api/approvals/${approvalId}/webauthn/decide`), {
       method: "POST",
       body: JSON.stringify({ decision, response, ...(reason ? { reason } : {}) }),
-    }),
+    }).then(approvalDecided),
   /** T2.2 expand-on-tap: full hunks for one file, after /diff collapsed them under K3. */
   /** T7.6: local code search and viewer in the session's worktree. */
   codeSearch: (sessionId: string, q: string, mode: "text" | "symbol") =>

@@ -16,6 +16,8 @@ import { runProgress } from "../session/run-progress.ts";
 import { metricView, totalCostText } from "../../shared/metrics.ts";
 import { ago } from "../../shared/status.ts";
 import { StatusDot } from "../../shared/StatusDot.tsx";
+import { StartGuide, FirstSuccessSignal } from "./StartGuide.tsx";
+import { emptyText, showStartGuide } from "./start-guide.ts";
 import { initSeen, isUnseen, seenKey } from "../../shared/seen.ts";
 
 export function formatUsd(n: number): string {
@@ -57,6 +59,8 @@ export interface DashboardProps {
   onOpenDiscovery?: () => void;
   /** EPIC-P23 T23.1: the session worked in last on this device — marked and brought into view. */
   lastSession?: LastSession | null;
+  /** EPIC-P57 T57.9: der Testadapter „dummy“ ist registriert — der Einstieg bietet dann die Probe-Session an. */
+  probeAvailable?: boolean;
 }
 
 /**
@@ -121,7 +125,7 @@ const VIEW_KEY = "ancientvoid.overviewView";
 const VIEWS: readonly OverviewView[] = ["sessions", "projects", "hosts"];
 const VIEW_TITLE: Record<OverviewView, string> = { sessions: "Sessions", projects: "Projekte", hosts: "Hosts" };
 
-export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, approvals = [], onOpenApprovals, onOpenDiscovery, lastSession = null }: DashboardProps) {
+export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, approvals = [], onOpenApprovals, onOpenDiscovery, lastSession = null, probeAvailable = false }: DashboardProps) {
   const windowKeys = new Set(Object.values(useOpenWindows()).map((e) => targetKey(e.target)));
   // Once per visit (not per 3 s poll): bring the remembered session into view.
   const hasSessions = sessions.length > 0;
@@ -296,6 +300,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
       )}
       {view === "sessions" && (
         <>
+          <FirstSuccessSignal />
           <div class="dashboard-summary dim">
             {todayCost && <span>Heute: {todayCost}</span>}
             <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => setShowArchived((on) => !on)}>
@@ -328,7 +333,11 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
             <input class="dashboard-search" type="search" placeholder="Sessions filtern…" aria-label="Sessions filtern" value={query} onInput={(e) => setQuery((e.target as HTMLInputElement).value)} />
           )}
           {sorted.length === 0 ? (
-            <div class="empty">{query || hostFilter ? "nichts gefunden" : showArchived ? "nichts archiviert" : "keine Sessions — lege eine an"}</div>
+            showStartGuide({ total: withOverride.length, visible: sorted.length, query, hostFiltered: hostFilter !== null, showArchived, statusFilter }) ? (
+              <StartGuide probeAvailable={probeAvailable} onOpen={onOpen} />
+            ) : (
+              <div class="empty">{emptyText({ query, hostFiltered: Boolean(hostFilter), showArchived })}</div>
+            )
           ) : (
             SECTION_ORDER.filter((key) => sections[key].length > 0).map((key) => {
                 const folded = key === "zuletzt" && !showArchived && !quietShown;

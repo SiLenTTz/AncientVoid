@@ -176,7 +176,7 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
   pflegen. Messlatte: —.
 - [x] **T57.8** Entscheidung Handy-Kopplung (ADR): Variante (a) vs. (b) mit
   Sicherheitsabwägung. **Contract-/Auth-nah → ADR vor Code.** Messlatte: PRD §8, K1.
-- [ ] **T57.9** PWA-Erststart: Leerzustand als Einstieg, Probe-Session, Erfolgssignal,
+- [x] **T57.9** PWA-Erststart: Leerzustand als Einstieg, Probe-Session, Erfolgssignal,
   Fehlertexte im Token-Gate; Inventarzeile + E2E-Spec; Umsetzung der in T57.8
   gewählten Kopplung. Messlatte: K1, K10.
 - [ ] **T57.10** `scripts/messlauf-ttfs.mjs`, erster Messlauf, Bericht in

@@ -12,7 +12,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
 
   test("ein unbekannter Link landet in der Übersicht", async ({ app, hub }) => {
     await app.goto(`${hub.origin}/#/sessions/gibt-es-nicht`);
-    await expect(app.getByText("keine Sessions — lege eine an")).toBeVisible();
+    await expect(app.getByRole("heading", { name: "Noch keine Sessions" })).toBeVisible();
   });
 
   test("ohne tmux gibt es nie einen Attach-Befehl", async ({ app, hub }) => {
