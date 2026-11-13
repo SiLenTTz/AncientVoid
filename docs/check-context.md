@@ -30,7 +30,7 @@ und in CI. Grundlage ist die Recherche vom 2026-11-12:
 | `drift` | Frischhalte-Map: lebendes Dokument → Beobachtungsbereiche + `maxDrift` | mehr Commits im Bereich seit letzter Doc-Berührung als erlaubt → Review fällig. Uncommittete Überarbeitung gilt als laufendes Review (sonst Gate/Commit-Henne-Ei) |
 | `drift-map` | Map-Konsistenz | Map-Eintrag ohne Datei |
 
-Die Frischhalte-Map (aktuell 12 lebende Dokumente) liegt als Konstante in
+Die Frischhalte-Map (aktuell 13 lebende Dokumente) liegt als Konstante in
 `scripts/check-context.mjs` — eine Stelle, bewusst sichtbar. `maxDrift` ist
 ein Ratchet: beim Einführen auf Ist+Luft gesetzt, bei jedem Review darf man
 senken, nicht heben. Begründung: Commits im Bereich sind ein Proxy für
