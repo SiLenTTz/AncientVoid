@@ -139,7 +139,7 @@ export function activityOf(event: Pick<NormalizedEvent, "type" | "summary" | "pa
       text = `Fehler: ${oneLine(event.summary)}`;
       break;
     case "system":
-      if (kind === "provider.error") text = `Fehler: ${oneLine((event.payload as { title?: string }).title ?? event.summary)}`;
+      if (kind === "provider.error" || kind === "cursor.usage_limit") text = `Fehler: ${oneLine((event.payload as { title?: string }).title ?? event.summary)}`;
       else if (kind === "session.interrupted") text = `Unterbrochen: ${String(event.payload.reason)}`;
       else if (kind === "session.turn_end") text = event.payload.reason === "interrupted" ? "Zug unterbrochen — braucht dich" : "Zug beendet — wartet auf dich";
       else if (kind === "session.stopped") text = "Beendet";
@@ -195,10 +195,12 @@ export const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   stopped: ["working"],
   // ADR-0044: the run was cut off — resume goes back to working, a failed
   // resume fails loud into error (never silently back to interrupted).
-  interrupted: ["working", "stopping", "stopped", "error"],
+  // BUG-0149: a failed or cut-off run can still be parked when the work
+  // moves to another session (handover). It is not running.
+  interrupted: ["working", "stopping", "stopped", "error", "parked"],
   // ADR-0015: a failed turn (quota, rate limit, provider outage) is not a
   // dead session — the next prompt may start a new turn.
-  error: ["stopping", "stopped", "working"],
+  error: ["stopping", "stopped", "working", "parked"],
 };
 
 /** T1.9: 30s default per EPIC-P1 §2 ("Heartbeat pro Adapter (30 s)"). */

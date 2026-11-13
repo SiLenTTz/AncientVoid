@@ -206,7 +206,7 @@ Handy. Läuft quer zur Kette (Präzedenz P47–P51), baut auf P48 auf.
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
-| [P52 — Repo-Galaxie](EPIC-P52-repo-galaxie.md) | Bereiche als Spiralsysteme statt Kasten, Fokus mit ein-/ausgehenden Verbindungen als Bild und Liste, Suche mit Hinflug, Hineinzoomen mit Brotkrume, Vollbild-Graph am Handy; alle P48-Funktionen bleiben | keine fachliche offene (P48, ADR-0062, ADR-0053) | 1,5–2,5 |
+| [P52 — Repo-Galaxie](EPIC-P52-repo-galaxie.md) | Bereiche als Spiralsysteme, Fokus, Suche, Vollbild — **gebaut 2026-11-13 (T52.1–T52.7); echtes Handy und Bildzeit-p95 offen, siehe Retro** | keine fachliche offene (P48, ADR-0062, ADR-0053) | 1,5–2,5 |
 
 Reihenfolge: P52 quer wie P50/P51 (je Aufgabe eigener Branch/MR nach main).
 

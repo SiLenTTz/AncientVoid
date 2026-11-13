@@ -108,6 +108,44 @@ describe("SessionManager.handover (EPIC-P21 T21.2)", () => {
     }
   });
 
+  it("BUG-0149: Cursor-Kontingent beendet den Zug als Fehler und die Quelle lässt sich übergeben", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-handover-quota-"));
+    const quota: Adapter = {
+      ...quiet("alt"),
+      async start(_spec, ctx) {
+        ctx.emit({
+          type: "system",
+          summary: "cursor: Usage-Limit erreicht (Cursor-Konto)",
+          payload: {
+            kind: "cursor.usage_limit",
+            line: "ActionRequiredError: You've hit your usage limit for Opus Your usage limits will reset when your monthly cycle ends on 12/5/2026.",
+          },
+        });
+        await ctx.spawnWorker(["sh", "-c", "exit 1"]);
+        return { sessionId: ctx.sessionId };
+      },
+    };
+    const registry = new AdapterRegistry();
+    registry.register("alt", () => quota);
+    registry.register("neu", () => quiet("neu"));
+    const manager = new SessionManager(new HubDatabase(":memory:"), new EventStore(dir), registry, new ProcessRunner());
+    try {
+      const source = await manager.create({ adapter: "alt", project: dir, prompt: "Galaxie fertigstellen" });
+      for (let i = 0; i < 50 && manager.get(source.id)?.status !== "error"; i++) await new Promise((r) => setTimeout(r, 20));
+      expect(manager.get(source.id)?.status).toBe("error");
+      const draft = await manager.handoverDraft(source.id);
+      expect(draft.reason).toMatchObject({ category: "quota", title: "Kontingent erschöpft (Opus)" });
+      expect(draft.prompt).toContain("Grund: Kontingent erschöpft (Opus)");
+      const target = await manager.handover(source.id, { adapter: "neu", prompt: draft.prompt }, "tester");
+      expect(target.adapter).toBe("neu");
+      expect(manager.get(source.id)?.status).toBe("parked");
+      expect(manager.get(source.id)?.parkReason).toBe("manual");
+    } finally {
+      await manager.shutdown();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("BUG-0126: eine verlorene Provider-Session wird als Grund „session“ erkannt", async () => {
     const dir = await mkdtemp(join(tmpdir(), "ancientvoid-handover-lost-"));
     let lost = false;

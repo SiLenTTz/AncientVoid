@@ -159,7 +159,7 @@ als Leiste links in der Kachel.
 | S55 | Browser bedienen, Element anmerken, Testfall | Browser-Arbeitsplatz | — | spec:browser-workspace.spec.ts |
 | S56 | Umgebung starten, Vorschau, Aktionen | „Mehr“ → „Umgebung“ | — | spec:workspace-runtime.spec.ts |
 | S57 | GitLab: MR, Pipeline, Review | „Mehr“ → „GitLab“ | — | spec:forge-review.spec.ts |
-| S58 | Repo-Graph: Knoten, Suche, Datei öffnen | „Mehr“ → „Graph“ | P52 | spec:repo-graph.spec.ts |
+| S58 | Repo-Galaxie: Suche, Auswahl, System, Vollbild, Datei öffnen | „Mehr“ → „Graph“ | P52 | spec:repo-galaxie.spec.ts |
 | S59 | Loop-Steuerung | Loop-Session | — | spec:loops.spec.ts |
 | S60 | Entwurf auf mehreren Geräten, Konflikt | Composer | — | spec:drafts.spec.ts |
 | S61 | Antwort steuern, Schreibrecht übernehmen | Composer | — | spec:steer.spec.ts |

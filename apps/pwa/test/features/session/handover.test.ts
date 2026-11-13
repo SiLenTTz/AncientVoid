@@ -37,6 +37,19 @@ describe("currentProviderFailure (BUG-0123: auch verlorene Provider-Sessions)", 
     expect(failure).toBeNull();
   });
 
+  it("BUG-0149: Cursor-Kontingent bleibt nach promptlosem Weitermachen sichtbar", () => {
+    seq = 0;
+    const failure = currentProviderFailure([
+      ev("user", { kind: "session.prompt", text: "weiter" }),
+      ev("system", { kind: "cursor.usage_limit", line: "ActionRequiredError: You've hit your usage limit for Opus Your usage limits will reset when your monthly cycle ends on 12/5/2026." }, "cursor: Usage-Limit"),
+      ev("system", { kind: "session.resumed", actor: "pc" }),
+      ev("system", { kind: "cursor.model", model: "claude-opus-5-5-medium" }),
+    ]);
+    expect(failure).toMatchObject({ category: "quota", title: "Kontingent erschöpft (Opus)" });
+    expect(failure!.detail).toContain("12/5/2026");
+    expect(HANDOVER_CATEGORIES.has(failure!.category)).toBe(true);
+  });
+
   it("eine Antwort nach dem Verlust nimmt die Leiste weg", () => {
     seq = 0;
     const failure = currentProviderFailure([
