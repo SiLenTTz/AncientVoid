@@ -12,6 +12,8 @@ Usage:
   hubctl health
   hubctl adapters
   hubctl sessions                         includes interrupted/unknown status as text
+  hubctl activity <sessionId> <id> running|completed|failed
+  hubctl activity <sessionId> <id> run -- <command> [args...]  registers a job with heartbeat
   hubctl discover
   hubctl inventory
   hubctl show <sessionId>

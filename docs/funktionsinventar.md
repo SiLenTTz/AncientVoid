@@ -174,6 +174,9 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S67 | Android-Testgeräte bedienen: Tippen, Wischen, Tasten, Ausrichtung, URL (mit Lease) | Geräte-Panel | — | spec:android-device.spec.ts |
 | S68 | Chat in Zügen: Arbeit gefaltet, Schritte mit Ein- und Ausgabe | Reiter „Chat“ | T43.4 | spec:chat-zuege.spec.ts |
 | S69 | Antwortfeld einzeilig bis zur Eingabe | Composer | T43.4 | spec:chat-zuege.spec.ts |
+| S70 | Gescheiterte Wiederaufnahme abbrechen oder an andere Session übergeben | Entscheidungsbanner im Session-Chat | — | spec:session-robustheit.spec.ts |
+| S71 | Hintergrundarbeit hält die Session aktiv | Aktivstatus und Hinweis im Session-Chat | — | spec:session-robustheit.spec.ts |
+| S72 | Laufenden Hub, PWA-Build und Checkout vergleichen | Status → Ausgelieferter Stand | — | spec:session-robustheit.spec.ts |
 
 ## PC-Arbeitsfläche
 

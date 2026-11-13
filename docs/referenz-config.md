@@ -24,7 +24,7 @@ Felder von `hub.config.json`; Erklärung und Beispiele: [`configuration.md`](con
 | `defaultPermissionMode` | string | "auto" |
 | `toolApprovalTimeoutMs` | integer | 600000 |
 | `toolApprovals` | "ask" \\| "auto" | "ask" |
-| `autoResumeInterrupted` | boolean | false |
+| `autoResumeInterrupted` | boolean | true |
 | `steerWaitMs` | integer | 30000 |
 | `browserOrigins` | array<string> | [] |
 | `browserHeadless` | boolean | true |

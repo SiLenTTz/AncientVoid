@@ -1,5 +1,5 @@
 ---
-id: BUG-0154
+id: BUG-0158
 slug: codex-bestaetigt-abgelehnte-eingaben
 status: open
 severity: S2
@@ -12,7 +12,7 @@ created: 2026-11-13
 reporter: "Session-Audit im Nutzerauftrag"
 ---
 
-# BUG-0154 — Codex bestätigt abgelehnte Folgeeingaben als angenommen
+# BUG-0158 — Codex bestätigt abgelehnte Folgeeingaben als angenommen
 
 ## Gesehen
 

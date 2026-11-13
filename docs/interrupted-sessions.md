@@ -33,7 +33,8 @@ weiter nach BUG-0048 bereinigt. Lebende tmux-Worker werden übernommen.
    Vorhandene Arbeit bleibt nach den bisherigen Worktree-Schutzregeln erhalten.
 
 Eine vorgemerkte Nachricht bleibt nach einer Unterbrechung gespeichert und
-wartet auf menschliches Fortsetzen; der Hub startet sie nicht beim Restore.
+wartet auf den Abschluss einer abgesicherten Fortsetzung. Eine unklare
+Zustellung verlangt eine menschliche Entscheidung; kein blindes Restore-Replay.
 Alte Adapter-Kontexte können nach Abbruch keine Nachrichten in den neuen Zug
 schreiben. Native Fortsetzung und andere Eingaben werden serialisiert.
 
@@ -50,12 +51,50 @@ Ein gestarteter, aber fehlgeschlagener Resume wird als `error` sichtbar.
 `reason`, `since` und `lastTurnId`. Der offene Zug endet mit
 `session.turn_end { reason: "interrupted", code: null }`.
 
-`autoResumeInterrupted` ist im Hub standardmäßig `false`. Zusätzlich braucht
-es `resume.hub: true`, `resume.ref: "native"` und `resume.auto: true` im Adapter.
-P27 aktiviert dies ausschließlich im synthetischen Dummy-Testmodus
-(`hubResume:true`), mit E2E-Beleg. Produktive Adapter erhalten dadurch keine
-neue automatische Startberechtigung. Ein Provider-Token-Handle bleibt intern;
-der Hub interpretiert weder Handle-Inhalte noch Agent-Output als Befehle.
+Seit [ADR-0074](adr/0074-session-aktivitaet-und-wiederaufnahme.md) ist
+`autoResumeInterrupted` standardmäßig `true`. Zusätzlich braucht es
+`resume.hub: true`, `resume.ref: "native"`, `resume.auto: true` und eine
+bekannte native Session. Codex app-server, Claude, Cursor, Pi, Hermes und die
+belegten ACP-Presets Maki/OMP/OpenCode optieren ein. Andere Adapter zeigen
+die fehlende Unterstützung ehrlich an.
+
+Nur **neue unbeabsichtigte Unterbrechungen** sind automatisch berechtigt.
+Alte unterbrochene Aufträge starten beim Einschalten nicht ungefragt erneut.
+Nutzer-Stopp/Pause und Rate-/Kontingentlimits werden nicht wiederholt.
+Explizit erkannte Netzwerk-/Serverfehler gelten als technische Unterbrechung;
+andere Providerfehler verlangen eine Entscheidung. Der vorhandene Heartbeat und die Eingabeserialisierung
+übernehmen die Kontrolle; keine zusätzliche Cron-Datei pro Session.
+Die Fortsetzung bleibt im selben Arbeitsverzeichnis und nativen Verlauf.
+Nach drei Wiederanläufen ohne erfolgreichen Zugabschluss oder einem
+fehlgeschlagenen Start verlangt das Banner eine Entscheidung: **Abbrechen**
+oder **An andere Session übergeben**. Der Status ist `interrupted`/`error`.
+
+## Hintergrundarbeit und Nachrichtenannahme
+
+Strukturierte Tool-/Subagent-Aktivitäten halten die Session nach Ende des
+Hauptzugs auf `working`. Ein persistenter, lediglich bereiter Provider zählt
+nicht als Arbeit. Die Aktivitäten werden journalisiert und nach Neustart
+wiederhergestellt. Alte Prozessgenerationen dürfen keine neuen Zustände ändern.
+ACP übernimmt überlebende Turns, statt sie bei jedem Hub-Neustart abzubrechen.
+
+Externe Jobs müssen sich ausdrücklich melden. Mit vorhandenem Geräte-/Hub-
+Zugang (wie für die übrigen hubctl-Befehle):
+
+```bash
+node apps/hubctl/src/cli.ts activity "$ANCIENTVOID_SESSION_ID" gate run -- npm run gate
+```
+
+Der Wrapper registriert Start/Ende und meldet alle 20 s einen Heartbeat.
+Ohne Meldung für 90 s wird die Arbeit als unklar/fehlgeschlagen sichtbar,
+nicht als Erfolg. Eine Wiederaufnahme bei unklarer externer Arbeit wird
+angehalten, damit kein zweiter Job entsteht. Beliebige unregistrierte
+Prozesse oder Behauptungen in Assistant-Text sind keine verlässliche Quelle.
+
+Adapter ohne echte Live-Eingabe verwenden die persistente Hub-Queue statt
+eines flüchtigen Adapterpuffers. Nachrichten bleiben bis zum bestätigten Ack
+erhalten. Ein Crash/Timeout mit unbekannter Annahme wird als „Annahme unklar“
+angezeigt; diese Nachricht wird nicht automatisch erneut gesendet. Verlauf
+prüfen, gegebenenfalls streichen oder die Arbeit übergeben.
 
 ## Nachweise
 

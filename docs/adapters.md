@@ -22,6 +22,12 @@ Hub-Crash (K7). Ohne `recover` gilt eine Session nach Crash als `error`
 
 ## AdapterContext — das ganze SDK
 
+[ADR-0074](adr/0074-session-aktivitaet-und-wiederaufnahme.md) ergänzt optional
+`activity()` (strukturierte offene Arbeit), `interrupt()` (unbeabsichtigter
+Laufverlust) und `turnActive` (Wiederanlauf eines offenen Hauptzugs).
+`promptDelivery: "next-turn"` delegiert Folgeeingaben an die persistente
+Hub-Queue. Details: [Wiederaufnahme und Hintergrundarbeit](interrupted-sessions.md).
+
 | Mittel | Zweck | Regel |
 |---|---|---|
 | `ctx.sessionId` | Identität | für `handle.sessionId` nutzen |

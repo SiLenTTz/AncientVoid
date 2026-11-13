@@ -92,8 +92,19 @@ loginctl enable-linger "$USER"   # startet auch ohne Anmeldung beim Boot
 systemctl --user enable --now ancientvoid-hub.service
 ```
 
-Ist das Unit installiert, delegieren `scripts/hub.sh start|stop|status|logs`
-an `systemctl`/`journalctl` — nie zwei Hubs auf einem Port.
+Ist die Unit installiert, delegieren `scripts/hub.sh start|stop|status`
+nur bei gleicher Checkout-/Config-Identität an `systemctl`. Aus einem
+Worktree oder mit anderer `ANCIENTVOID_CONFIG` wird die Steuerung verweigert;
+isolierte Test-Hubs ausdrücklich mit `HUB_LOCAL=1` betreiben (BUG-0156).
+`logs` liest weiterhin das Journal. Nie zwei Hubs auf einem Port.
+
+Vor Auslieferung vollständiges Gate und aktiven Session-Stand prüfen;
+danach Checkout aktualisieren, PWA neu bauen und den Hub geordnet neu starten.
+`/api/health` und `/api/ready` melden unter `deployment` laufenden Hub-SHA,
+Checkout-SHA und PWA-Build-SHA. Die Statusseite zeigt dieselbe Zuordnung;
+ein Merge oder Service-Neustart allein aktualisiert keinen Browser-Build.
+Wiederaufnahme und registrierte externe Arbeit:
+[Unterbrochene Sessions](interrupted-sessions.md), ADR-0074.
 
 Für einen dauerhaften Fleet-Peer nutze
 [`fleet-deploy.sh`](../scripts/fleet-deploy.sh): der User-Service heißt

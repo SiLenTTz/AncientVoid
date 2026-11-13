@@ -28,7 +28,7 @@ Dieser Audit ändert kein Produktverhalten und führt kein Deployment aus.
 
 ## 1. Nachrichten werden tatsächlich fälschlich bestätigt
 
-[BUG-0154](../bugs/bug-0154-codex-bestaetigt-abgelehnte-eingaben.md):
+[BUG-0158](../bugs/bug-0158-codex-bestaetigt-abgelehnte-eingaben.md):
 `packages/adapters/codex/src/app-server.ts:233` fängt in `steer(prompt)` den
 Fehler von `turn/steer` leer ab und liefert anschließend `{ ok: true }`.
 Auch `startTurn()` fängt `turn/start` ab; der Aufrufer liefert dennoch Erfolg.
@@ -204,7 +204,7 @@ Diese Altlasten sind keine sieben zusätzlich verlorenen aktuellen Aufträge.
 
 ## 6. Reparaturreihenfolge und Abnahmekriterien
 
-1. **Codex-Eingabeannahme korrigieren (K2/K7, BUG-0154).** Abgelehnte
+1. **Codex-Eingabeannahme korrigieren (K2/K7, BUG-0158).** Abgelehnte
    `turn/steer`/`turn/start` als negatives Ack und sichtbares Fehlerereignis;
    Input nicht als erfolgreich verbuchen. Unbekanntes Ergebnis bei Timeout
    separat behandeln, keine blinde Retry-Schleife. Tests für beide RPC-

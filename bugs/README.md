@@ -42,13 +42,13 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0016](bug-0016-reopen-ignores-input-id.md) | Wiederholte Eingabe startet eine gestoppte Session zweimal | done | S1 | core | — |
 | [BUG-0017](bug-0017-concurrent-reopen-double-run.md) | Handy und PC öffnen eine gestoppte Session gleichzeitig: zwei Läufe | done | S1 | core, pwa | — |
 | [BUG-0018](bug-0018-recovery-replays-stopped-sessions.md) | Hub-Start liest den Verlauf jeder gestoppten Session ein (K7) | done | S2 | core | — |
-| [BUG-0019](bug-0019-tmux-reap-kills-foreign-workers.md) | Ein zweiter Hub oder `npm test` tötet die tmux-Worker des laufenden Hubs | done | S1 | workers | — |
+| [BUG-0019](bug-0019-tmux-reap-kills-foreign-workers.md) | Ein zweiter Hub oder `npm test` tötet die tmux-Worker des laufenden Hubs | done | S1 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
 | [BUG-0020](bug-0020-diff-hides-new-files.md) | Diff und Bericht zeigen keine neu angelegten Dateien | done | S2 | server | — |
 | [BUG-0021](bug-0021-skill-chain-misses-base-catalog.md) | Skill-Kette ist kürzer, wenn vorher niemand die Skill-Liste geöffnet hat | done | S2 | server | — |
 | [BUG-0022](bug-0022-reply-box-missing-after-offline-open.md) | Antwortfeld fehlt dauerhaft, wenn der Hub beim Öffnen kurz weg war | done | S3 | pwa | — |
 | [BUG-0023](bug-0023-chat-duplicates-overlapping-batches.md) | Chat zeigt Events doppelt nach Resync oder Replay | done | S2 | pwa | — |
 | [BUG-0024](bug-0024-session-link-mixes-histories.md) | Ein Link auf eine andere Session mischt beide Verläufe | done | S2 | pwa | — |
-| [BUG-0025](bug-0025-tmux-kill-never-reports-exit.md) | Ein per Kill beendeter tmux-Worker meldet nie sein Ende | done | S2 | workers | — |
+| [BUG-0025](bug-0025-tmux-kill-never-reports-exit.md) | Ein per Kill beendeter tmux-Worker meldet nie sein Ende | done | S2 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
 | [BUG-0026](bug-0026-tail-opens-with-oldest-100.md) | Eine geöffnete Session zeigt nur ihre ersten 100 Events | done | S1 | server, pwa | — |
 | [BUG-0027](bug-0027-stop-deletes-agent-work.md) | Stop löscht die nicht committete Arbeit eines Agenten | done | S1 | core | — |
 | [BUG-0028](bug-0028-tokens-in-request-log.md) | Geräte-Tokens stehen im Klartext im Request-Log | done | S1 | server | — |
@@ -129,7 +129,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0116](bug-0116-automation-prompt-update-hash.md) | Automation-Update prüft Prompt-Hash nicht | done | S2 | core | [#47](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/47) |
 | [BUG-0117](bug-0117-dock-acht-ziele-mobil.md) | Acht Dock-Ziele überlappen auf schmalen Displays | done | S2 | pwa | [#48](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/48) |
 | [BUG-0118](bug-0118-session-menue-unter-steuerung.md) | Session-Menü liegt in niedriger Kachel unter der Steuerung | done | S3 | pwa | — |
-| [BUG-0119](bug-0119-stdin-epipe-beendet-hub.md) | Ein gebrochenes stdin eines Workers beendet den ganzen Hub (EPIPE) | done | S2 | workers | — |
+| [BUG-0119](bug-0119-stdin-epipe-beendet-hub.md) | Ein gebrochenes stdin eines Workers beendet den ganzen Hub (EPIPE) | done | S2 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
 | [BUG-0120](bug-0120-parallele-playwright-laeufe-teilen-test-results.md) | Parallele Playwright-Läufe löschen sich gegenseitig die Artefakte | done | S3 | e2e | — |
 | [BUG-0121](bug-0121-handy-lauf-session-test-zeitueberschreitung.md) | Am echten Handy: „neue Session aus der UI“ läuft in der Gesamtfolge in die Zeitüberschreitung | open | S3 | e2e | — |
 | [BUG-0122](bug-0122-overlay-hoehen-ohne-ui-zoom-teilung.md) | Overlay-Höhen/-Breiten (Datei-Blatt, Dialoge, Composer maximiert) ohne Division durch --ui-zoom | done | S3 | pwa | P50 |
@@ -163,9 +163,11 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0150](bug-0150-horizontale-inhaltsscroller.md) | Lange Inhalte erzeugen horizontale Scrollflächen | done | S3 | pwa | [#58](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/58) |
 | [BUG-0151](bug-0151-denkpfad-verliert-werkzeuge.md) | Denkpfad verliert Tool-Zuordnungen und Denktext | done | S2 | pwa | [#57](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/57) |
 | [BUG-0152](bug-0152-galaxie-vollbild-querformat-reload.md) | Galaxie-Vollbild: Bei 915×412 überlebt die Graph-Ansicht den Reload nicht | open | S3 | pwa | [#59](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/59) |
-| [BUG-0154](bug-0154-codex-bestaetigt-abgelehnte-eingaben.md) | Codex bestätigt abgelehnte Folgeeingaben als angenommen | open | S2 | adapter-codex | [#61](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/61) |
+| [BUG-0158](bug-0158-codex-bestaetigt-abgelehnte-eingaben.md) | Codex bestätigt abgelehnte Folgeeingaben als angenommen | open | S2 | adapter-codex | [#61](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/61) |
 | [BUG-0155](bug-0155-idle-trotz-hintergrundarbeit.md) | Session wird idle, obwohl zugehörige Hintergrundarbeit läuft | open | S2 | core | [#62](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/62) |
+| [BUG-0156](bug-0156-hub-stop-fremde-instanz.md) | hub.sh steuert aus einem anderen Checkout die Produktiv-Unit | open | S1 | ops | [#64](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/64) |
+| [BUG-0157](bug-0157-alter-worker-toetet-nachfolger.md) | Alter tmux-Handle beendet den Nachfolger derselben Session | open | S1 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
 
 
 BUG-0153 liegt im laufenden P57-Branch.
-Die nächste freie Nummer ist **0156**.
+Die nächste freie Nummer ist **0159**.
