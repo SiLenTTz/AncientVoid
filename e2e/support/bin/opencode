@@ -66,6 +66,9 @@ const sid = resumed ?? `ses_e2e_${Math.random().toString(36).slice(2, 10)}`;
 const has = (word) => prompt.includes(word);
 
 emit({ type: "step_start", sessionID: sid, part: {} });
+if (has("LANGER_VERLAUF")) {
+  for (let i = 0; i < 550; i++) emit({ type: "reasoning", sessionID: sid, part: { text: `Gedanke ${i}` } });
+}
 await sleep(120);
 emit({ type: "reasoning", sessionID: sid, part: { text: "Ich lese zuerst die README." } });
 await sleep(120);
@@ -75,6 +78,10 @@ emit({
   sessionID: sid,
   part: { type: "tool", tool: "read", callID: "call_read_1", state: { status: "completed", input: { filePath: "README.md" }, output } },
 });
+if (has("DENKPFAD")) {
+  emit({ type: "reasoning", sessionID: sid, part: { text: `Gedanken im Arbeitsschritt: ${"prüfen ".repeat(800)}ENDE DES DENKENS` } });
+  emit({ type: "tool_use", sessionID: sid, part: { type: "tool", tool: "functions.exec_command", callID: "call_long", state: { status: "completed", input: { cmd: "echo fertig", explanation: "Begründung ".repeat(700) }, output: "fertig" } } });
+}
 if (has("PLAN")) {
   // BUG-0062: two snapshots with real time between them, like a real
   // agent updating its plan as it works — the ETA needs a measurable
@@ -117,6 +124,6 @@ if (has("LIMIT")) {
 emit({
   type: "text",
   sessionID: sid,
-  part: { text: `Antwort auf: ${prompt.split("\n\n[Anhang")[0].split("\n").pop()} · Session ${sid}${resumed ? " (fortgesetzt)" : ""} · cwd ${process.cwd()}${attachmentNote()}` },
+  part: { text: has("BREITENTEST") ? prompt : `Antwort auf: ${prompt.split("\n\n[Anhang")[0].split("\n").pop()} · Session ${sid}${resumed ? " (fortgesetzt)" : ""} · cwd ${process.cwd()}${attachmentNote()}` },
 });
 emit({ type: "step_finish", sessionID: sid, part: { reason: "stop", cost: 0.0012, tokens: { total: 321 } } });

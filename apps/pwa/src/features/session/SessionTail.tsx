@@ -43,6 +43,9 @@ import { ChangesHead, changeSummary } from "./ChangesHead.tsx";
 import { openLayer } from "../../shared/layers.ts";
 import { ChatTurns, itemFirstSeq, itemLastSeq } from "./ChatTurns.tsx";
 import { turnsOf } from "./turns.ts";
+import { PinnedPrompt } from "./PinnedPrompt.tsx";
+import { lastUserPrompt, tailWindow, useRecoveredPrompt } from "./last-prompt.ts";
+import { useChatEvents } from "./event-blobs.ts";
 import { LoopBadge, LoopPanel } from "../loops/LoopPanel.tsx";
 import { deriveLoopView } from "../loops/loop-view.ts";
 import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, latestModelName, tokenText } from "./run-stats.ts";
@@ -141,11 +144,13 @@ export function SessionTail({
       window.removeEventListener("offline", down);
     };
   }, []);
+  const tailEvents = events.length === 0 && cached ? cached.events : events;
+  const recoveredPrompt = useRecoveredPrompt(tailEvents, api, session.id);
+  const shownEvents = useMemo(() => recoveredPrompt.prompt ? [recoveredPrompt.prompt, ...tailEvents] : tailEvents, [tailEvents, recoveredPrompt.prompt]);
   useEffect(() => {
-    const t = setTimeout(() => saveTail(hostKey, session.id, events), 1000);
+    const t = setTimeout(() => saveTail(hostKey, session.id, shownEvents), 1000);
     return () => clearTimeout(t);
-  }, [events]);
-  const shownEvents = events.length === 0 && cached ? cached.events : events;
+  }, [shownEvents]);
   // T8.6: where "new since your last visit" starts (null: nothing new / never here).
   const seenAt = useRef(getSeen(seenKey(session.hostId ?? "", session.id)));
   useEffect(() => {
@@ -337,7 +342,7 @@ export function SessionTail({
           pendingRef.current = [];
           setEvents((prev) => {
             const merged = [...prev, ...batch];
-            return merged.length > 500 ? merged.slice(-500) : merged;
+            return tailWindow(merged, 500);
           });
         };
         flushRef.current = activeRef.current ? requestAnimationFrame(flush) : -window.setTimeout(flush, BACKGROUND_FLUSH_MS);
@@ -588,10 +593,15 @@ export function SessionTail({
   const hiddenOlder = filtered.length - visible.length;
   // EPIC-P43 T43.4: der Chat in Zügen — aus dem ungefilterten Strom, damit Schritte nicht verloren gehen.
   const live = status === "working" || status === "starting";
+  const chat = useChatEvents(shownEvents, api);
+  const lastPrompt = lastUserPrompt(shownEvents);
   const chatItems = useMemo(() => {
-    const all = turnsOf(shownEvents, live);
-    return backgroundTile && all.length > BACKGROUND_ROWS ? all.slice(-BACKGROUND_ROWS) : all;
-  }, [shownEvents, live, backgroundTile]);
+    const all = turnsOf(chat.events, live);
+    if (!backgroundTile || all.length <= BACKGROUND_ROWS) return all;
+    const recent = all.slice(-BACKGROUND_ROWS);
+    const prompt = all.find((item) => item.kind === "event" && item.event.seq === lastPrompt?.seq);
+    return prompt && !recent.includes(prompt) ? [prompt, ...recent.slice(1)] : recent;
+  }, [chat.events, live, backgroundTile, lastPrompt]);
   const firstNew = seenAt.current !== null && seenAt.current > 0 ? visible.find((e) => e.seq > seenAt.current!) : undefined;
   const newCount = firstNew ? visible.filter((e) => e.seq >= firstNew.seq).length : 0;
 
@@ -983,6 +993,17 @@ export function SessionTail({
       }} />}
       {loopView && <LoopPanel sessionId={session.id} adapter={session.adapter} view={loopView} disabled={observerOnly || status === "stopped"} api={api} onError={setReplyError} factory={factoryLink?.role && factoryLink.partner ? { role: factoryLink.role, partner: factoryLink.partner } : null} hostId={remoteHost(session.hostId) ?? null} />}
 
+      {activeTab === "chat" && !viewWindow && lastPrompt && <PinnedPrompt event={lastPrompt} onJump={() => {
+        stickRef.current = false;
+        userInputAt.current = Date.now();
+        tailRef.current?.querySelector(`[data-seq="${lastPrompt.seq}"]`)?.scrollIntoView({ behavior: "auto", block: "start" });
+      }} />}
+      {activeTab === "chat" && chat.failed && <div class="chat-load-warning" role="status">
+        Einige Schrittdetails konnten nicht geladen werden. <button type="button" class="link-btn" onClick={chat.retry}>Erneut laden</button>
+      </div>}
+      {activeTab === "chat" && recoveredPrompt.failed && <div class="chat-load-warning" role="status">
+        Der letzte Auftrag konnte nicht geladen werden. <button type="button" class="link-btn" onClick={recoveredPrompt.retry}>Erneut laden</button>
+      </div>}
       <div
         ref={tailRef}
         class="tail-scroll"

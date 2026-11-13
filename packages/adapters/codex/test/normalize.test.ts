@@ -8,6 +8,38 @@ const here = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string) => join(here, "fixtures", name);
 
 describe("normalizeCodexLine — real captured stream-json (codex-cli 0.153.4)", () => {
+  it("normalisiert gelieferte Reasoning-Summaries im Exec-Harness", () => {
+    const item = { id: "thought", type: "reasoning", text: "Ich prüfe die Abhängigkeiten." };
+    expect(normalizeCodexLine({ type: "item.started", item })).toEqual([]);
+    expect(normalizeCodexLine({ type: "item.completed", item })).toMatchObject([{ type: "thinking", payload: { text: item.text } }]);
+  });
+
+  it("erhält MCP- und Delegationsschritte samt Fehlerzuordnung", () => {
+    for (const item of [
+      { id: "mcp", type: "mcp_tool_call", server: "files", tool: "read_file", arguments: { path: "README.md" }, status: "failed", error: { message: "missing" } },
+      { id: "agent", type: "collab_tool_call", tool: "spawn_agent", prompt: "Prüfe Tests", status: "failed", agents_states: { a: { status: "errored", message: "missing" } } },
+    ]) {
+      const use = normalizeCodexLine({ type: "item.started", item });
+      const result = normalizeCodexLine({ type: "item.completed", item });
+      expect(use).toMatchObject([{ type: "tool_use", payload: { id: item.id } }]);
+      expect(result).toMatchObject([{ type: "tool_result", payload: { toolUseId: item.id, isError: true } }]);
+      expect(result[0]!.summary).toContain("missing");
+    }
+  });
+
+  it("zeigt reine Completed-Dateiänderungen und Plan-Updates statt Unknown-Warnungen", () => {
+    const changes = normalizeCodexLine({ type: "item.completed", item: { id: "patch", type: "file_change", changes: [{ path: "README.md", kind: "update" }], status: "completed" } });
+    expect(changes).toMatchObject([{ type: "tool_use", payload: { id: "patch" } }, { type: "tool_result", payload: { toolUseId: "patch", isError: false } }]);
+    const plan = normalizeCodexLine({ type: "item.updated", item: { id: "plan", type: "todo_list", items: [{ text: "Tests prüfen", completed: true }] } });
+    expect(plan).toMatchObject([{ type: "tool_use", payload: { name: "todowrite", input: { todos: [{ content: "Tests prüfen", status: "completed" }] } } }]);
+  });
+
+  it("kennzeichnet fehlgeschlagene oder abgelehnte Befehle auch ohne Exitcode", () => {
+    for (const status of ["failed", "declined"]) {
+      expect(normalizeCodexLine({ type: "item.completed", item: { id: "cmd", type: "command_execution", status, exit_code: null } })).toMatchObject([{ type: "tool_result", payload: { toolUseId: "cmd", isError: true } }]);
+    }
+  });
+
   it("maps every line of the trivial-text fixture to schema-valid events", () => {
     // checkFixture (T1.4, @ancientvoid/adapter-testkit) loads the fixture, runs
     // every line through the normalizer, and asserts schema-validity —

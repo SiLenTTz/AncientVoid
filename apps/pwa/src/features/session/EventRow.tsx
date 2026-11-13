@@ -1,6 +1,7 @@
 import { memo } from "preact/compat";
 import { useEffect, useState } from "preact/hooks";
-import { getToken } from "../../shared/api.ts";
+import { useApi } from "../../shared/api-context.ts";
+import { fetchEventBlob, useFullEvent } from "./event-blobs.ts";
 import { type NormalizedEvent } from "../../shared/ws.ts";
 import { isOffloaded, visibleEventText, withBlobPayload } from "./event-text.ts";
 import { isEmptyThinking, toolIdOf } from "./event-filter.ts";
@@ -24,55 +25,13 @@ export function eventDetail(event: NormalizedEvent): string {
   }
 }
 
-/** Blob texts by hash — rows remount while scrolling, the blob never changes. */
-const blobCache = new Map<string, string>();
-
-function fetchBlob(event: NormalizedEvent): Promise<string> {
-  const hash = (event.blobRef ?? "").replace(/^sha256:/, "");
-  const hit = blobCache.get(hash);
-  if (hit !== undefined) return Promise.resolve(hit);
-  return fetch(`/api/sessions/${event.sessionId}/blobs/${hash}`, {
-    headers: { authorization: `Bearer ${getToken()}` },
-  })
-    .then((res) => (res.ok ? res.text() : Promise.reject(new Error("blob"))))
-    .then((text) => {
-      if (blobCache.size > 200) blobCache.delete(blobCache.keys().next().value!);
-      blobCache.set(hash, text);
-      return text;
-    });
-}
-
-/** BUG-0068: an answer over 4 KB lives in a blob — load it so the chat
- * shows the whole text. `failed` keeps the shortened row honest. */
-function useFullEvent(event: NormalizedEvent): { event: NormalizedEvent; state: "ok" | "loading" | "failed" } {
-  const offloaded = isOffloaded(event);
-  const [raw, setRaw] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    if (!offloaded) return;
-    let alive = true;
-    fetchBlob(event)
-      .then((text) => {
-        if (alive) setRaw(text);
-      })
-      .catch(() => {
-        if (alive) setFailed(true);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [offloaded, event.blobRef, event.sessionId]);
-  if (!offloaded) return { event, state: "ok" };
-  if (raw !== null) return { event: withBlobPayload(event, raw), state: "ok" };
-  return { event, state: failed ? "failed" : "loading" };
-}
-
 export function EventDetail({ event }: { event: NormalizedEvent }) {
+  const api = useApi();
   const [blob, setBlob] = useState<string | null>(null);
   useEffect(() => {
     if (!event.blobRef) return;
     let alive = true;
-    fetchBlob(event)
+    fetchEventBlob(api, event)
       .then((text) => {
         if (alive) setBlob(isOffloaded(event) ? eventDetail(withBlobPayload(event, text)) : text);
       })
@@ -82,7 +41,7 @@ export function EventDetail({ event }: { event: NormalizedEvent }) {
     return () => {
       alive = false;
     };
-  }, [event.blobRef, event.sessionId]);
+  }, [api, event.blobRef, event.sessionId]);
   return <pre class="event-detail">{blob ?? eventDetail(event)}</pre>;
 }
 
@@ -107,7 +66,7 @@ function EventRowView({
   toolResult: NormalizedEvent | undefined;
   onJump: (anchor: string) => void;
 }) {
-  const { event, state: fullText } = useFullEvent(rowEvent);
+  const { event, state: fullText } = useFullEvent(rowEvent, useApi());
   const time = new Date(event.ts).toLocaleTimeString("de-DE");
   const blobNote = event.blobRef ? " ⛁" : "";
   const toolId = toolIdOf(event);
@@ -120,7 +79,7 @@ function EventRowView({
           <span>#{event.seq} · thinking</span>
           <span>{time}</span>
         </div>
-        <div class="summary">Claude hat nachgedacht — der Anbieter liefert den Text nicht</div>
+        <div class="summary">Der Anbieter liefert keinen Denktext</div>
       </div>
     );
   }

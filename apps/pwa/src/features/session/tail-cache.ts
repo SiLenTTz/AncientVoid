@@ -1,4 +1,5 @@
 import type { NormalizedEvent } from "../../shared/ws.ts";
+import { tailWindow } from "./last-prompt.ts";
 
 /**
  * T8.2 (K10): the last events of the last few sessions, on this device —
@@ -33,7 +34,7 @@ export function saveTail(hostKey: string, id: string, events: NormalizedEvent[])
     index.unshift(k);
     for (const old of index.splice(KEEP_SESSIONS)) localStorage.removeItem(old);
     localStorage.setItem(INDEX, JSON.stringify(index));
-    localStorage.setItem(k, JSON.stringify({ at: new Date().toISOString(), events: events.slice(-KEEP_EVENTS) }));
+    localStorage.setItem(k, JSON.stringify({ at: new Date().toISOString(), events: tailWindow(events, KEEP_EVENTS) }));
   } catch {
     // Storage full: offline reading is a bonus, never an error.
   }

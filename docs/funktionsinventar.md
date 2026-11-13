@@ -102,9 +102,12 @@ Werkzeugseiten füllen die Detailspalte.
 Ausgangspunkt ist die geöffnete Session. Am Handy und Tablet stehen die Reiter unten, am PC
 als Leiste links in der Kachel.
 
+Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkzeugdetails):
+[`chat-lesbarkeit.spec.ts`](../e2e/specs/chat-lesbarkeit.spec.ts).
+
 | ID | Funktion | Weg heute | Ziel | Nachweis |
 |---|---|---|---|---|
-| S01 | Chat | Reiter „Chat“ | T43.4 | inventar |
+| S01 | Chat mit angepinntem letztem Auftrag (Klick springt zur Nachricht), aufklappbaren Denktexten und Werkzeugschritten | Reiter „Chat“ | T43.4 / K2, K7, K10 | inventar |
 | S02 | Verlauf mit Filter Überwachen/Debuggen | „Mehr“ → „Verlauf“ → „Debuggen“ (am PC zusätzlich „Steuerung einblenden“) | T43.4 | inventar |
 | S03 | Bericht | „Mehr“ → „Bericht“; auch unter dem Diff in „Änderungen“ | T43.5 | inventar |
 | S04 | Diff | Reiter „Änderungen“ (mit Zahl der Dateien); ohne Änderungen „Mehr“ → „Änderungen“ mit Satz und „Zum Chat“ | T43.5 | inventar |

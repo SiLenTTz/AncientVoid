@@ -146,7 +146,8 @@ function whisperFake(calls: string[], opts: { block?: boolean } = {}): typeof fe
   return (async (_url: string, init?: RequestInit) => {
     calls.push(Buffer.from(init?.body as Buffer).toString("latin1").match(/name="language"\r\n\r\n(\w+)/)?.[1] ?? "?");
     if (opts.block) {
-      await new Promise((_, reject) => init?.signal?.addEventListener("abort", () => reject(new Error("abgebrochen"))));
+      if (init?.signal?.aborted) throw new Error("abgebrochen");
+      await new Promise((_, reject) => init?.signal?.addEventListener("abort", () => reject(new Error("abgebrochen")), { once: true }));
     }
     return new Response(
       JSON.stringify({

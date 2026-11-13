@@ -165,13 +165,13 @@ export function stepsOf(work: Work): Step[] {
 
 const KIND_RULES: readonly [RegExp, StepKind, string][] = [
   [/^(bash|shell|exec|exec_command|run|run_command|command|terminal|local_shell)$/i, "run", "Führt aus"],
-  [/^(read|view|cat|open|read_file|readfile|notebookread)$/i, "read", "Liest"],
+  [/^(read|view|cat|open|read_file|readfile|notebookread|view_image)$/i, "read", "Liest"],
   [/^(write|create|create_file|write_file)$/i, "edit", "Schreibt"],
   [/^(edit|multiedit|str_replace|str_replace_editor|apply_patch|patch|replace|notebookedit|update_file)$/i, "edit", "Bearbeitet"],
   [/^(grep|glob|search|find|list|ls|list_dir|codebase_search|file_search|rg)$/i, "search", "Sucht"],
   [/^(webfetch|fetch|web_fetch|websearch|web_search|http)$/i, "fetch", "Ruft ab"],
-  [/^(todo[_-]?write|todo[_-]?update|update[_-]?todos?|plan)$/i, "plan", "Plant"],
-  [/^(task|agent|subagent|delegate)$/i, "delegate", "Beauftragt"],
+  [/^(todo[_-]?write|todo[_-]?update|update[_-]?todos?|update_plan|plan)$/i, "plan", "Plant"],
+  [/^(task|agent|subagent|delegate|spawn_?agent|send_?input|send_?message|followup_?task|resume_?agent|close_?agent|interrupt_?agent|list_?agents)$/i, "delegate", "Beauftragt"],
 ];
 
 function toolName(use: NormalizedEvent): string {
@@ -196,7 +196,7 @@ function inputOf(use: NormalizedEvent): Record<string, unknown> {
   return {};
 }
 
-const TARGET_KEYS = ["command", "cmd", "file_path", "filePath", "path", "pattern", "query", "url", "description", "prompt"] as const;
+const TARGET_KEYS = ["command", "cmd", "file_path", "filePath", "path", "files", "pattern", "query", "url", "description", "prompt"] as const;
 
 function targetOf(use: NormalizedEvent, kind: StepKind): string {
   const input = inputOf(use);
@@ -236,8 +236,13 @@ function isError(result: NormalizedEvent): boolean {
 }
 
 function describe(use: NormalizedEvent | null, result: NormalizedEvent | null): Step {
-  const name = use ? toolName(use) : "Werkzeug";
-  const rule = KIND_RULES.find(([re]) => re.test(name));
+  const event = (use ?? result)!;
+  const name = toolName(event);
+  const localName = name.split(/\.|__|\//).at(-1) ?? name;
+  // ACP liefert Kategorien auch dann, wenn der Titel eine freie Beschreibung ist.
+  const category = typeof event.payload.kind === "string" ? event.payload.kind : "";
+  const aliases: Record<string, string> = { execute: "exec", delete: "edit", move: "edit", think: "plan" };
+  const rule = KIND_RULES.find(([re]) => re.test(localName)) ?? KIND_RULES.find(([re]) => re.test(aliases[category] ?? category));
   const kind = rule?.[1] ?? "other";
   const step: Step = {
     key: (use ?? result)!.seq,
