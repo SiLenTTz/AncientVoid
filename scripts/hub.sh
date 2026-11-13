@@ -89,6 +89,12 @@ case "${1:-}" in
     # HUB_LOCAL=1 (EPIC-P53 setup wizard): force the dev daemon even when
     # a unit exists — for setups on a second port (setup.sh --port).
     if systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1 && [ "${HUB_LOCAL:-0}" != "1" ]; then
+      unit_root="$(systemctl --user show ancientvoid-hub.service -p WorkingDirectory --value)"
+      requested_config="$(realpath -m "${ANCIENTVOID_CONFIG:-$PWD/hub.config.json}")"
+      if [ -z "$unit_root" ] || [ "$(realpath -m "$unit_root")" != "$(pwd -P)" ] || [ "$requested_config" != "$(pwd -P)/hub.config.json" ]; then
+        echo "Andere Hub-Instanz: systemd-Unit wird nicht gesteuert. Für den lokalen Test-Hub HUB_LOCAL=1 setzen." >&2
+        exit 1
+      fi
       echo "-> systemd: systemctl --user ${1} ancientvoid-hub.service"
       systemctl --user "${1}" ancientvoid-hub.service || true
       exit 0
