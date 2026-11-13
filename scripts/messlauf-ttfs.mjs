@@ -162,14 +162,13 @@ async function oneRun(index, browser) {
     await page.getByRole("heading", { name: "AncientVoid", exact: true }).waitFor();
     marks.M3 = Date.now() - t0;
 
-    // M4: Probe-Session über den Erststart-Einstieg (T57.9).
+    // M4: Probe-Session über den Erststart-Einstieg (T57.9) — die PWA öffnet die
+    // Session direkt (kein Umweg über die Übersicht, wie erststart.spec.ts belegt).
     await page.getByRole("button", { name: "Probe-Session (dummy)" }).click();
-    const card = page.locator(".session-card").filter({ hasText: "dummy" }).first();
-    await card.waitFor();
+    await page.locator(".session-topbar").first().waitFor();
     marks.M4 = Date.now() - t0;
 
-    // M5: Nachricht aus der Session heraus senden, im Verlauf sehen.
-    await card.locator(".session-open").click();
+    // M5: Nachricht aus der geöffneten Session heraus senden, im Verlauf sehen.
     await page.getByRole("button", { name: "Chat" }).click();
     const msg = `TTFS-Lauf ${index}: erste Steuerung vom Handy`;
     await page.getByPlaceholder("Antworten…").fill(msg);
