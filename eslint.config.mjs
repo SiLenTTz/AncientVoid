@@ -92,4 +92,18 @@ export default tseslint.config(
       },
     },
   },
+  {
+    // Same reasoning as scripts/k2-frame-lag.mjs above: node-Skript, dessen
+    // page.evaluate()-Callbacks in Chromium laufen (fetch/AbortSignal dort
+    // und hier, document/location dort).
+    files: ["scripts/messlauf-ttfs.mjs"],
+    languageOptions: {
+      globals: {
+        fetch: "readonly",
+        AbortSignal: "readonly",
+        document: "readonly",
+        location: "readonly",
+      },
+    },
+  },
 );

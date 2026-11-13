@@ -59,7 +59,8 @@ function sh(cmd, argv, { cwd, env, timeoutMs = 20 * 60_000 } = {}) {
     });
     p.on("close", (code) => {
       clearTimeout(timer);
-      code === 0 ? resolveSh({ stdout: out }) : rejectSh(new Error(`${cmd} exit ${code}`));
+      if (code === 0) resolveSh({ stdout: out });
+      else rejectSh(new Error(`${cmd} exit ${code}`));
     });
   });
 }

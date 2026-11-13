@@ -1,6 +1,6 @@
 # EPIC-P57 — Dokumentation und Onboarding (Diátaxis, generierte Referenz, First-Run, Time-to-first-Success)
 
-**Status:** in Umsetzung (Freigabe 13.11.2026) · **Phase:** P57
+**Status:** abgeschlossen (13.11.2026, Retro unten) · **Phase:** P57
 **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung)
 **Abhängigkeit:** P53 abgeschlossen (One-Command-Setup, README; Retro 11.11.2026) — Quer-Epic wie P50–P53, keine Laufzeit-Architektur. Die PWA-Aufgaben (T57.8–T57.9) setzen den stabilen Funktionsinventar-Stand aus P43 voraus. P33 (englischer Einstieg) bleibt vertagt und **wird hier nicht umgesetzt**.
 
@@ -179,8 +179,12 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
 - [x] **T57.9** PWA-Erststart: Leerzustand als Einstieg, Probe-Session, Erfolgssignal,
   Fehlertexte im Token-Gate; Inventarzeile + E2E-Spec; Umsetzung der in T57.8
   gewählten Kopplung. Messlatte: K1, K10.
-- [ ] **T57.10** `scripts/messlauf-ttfs.mjs`, erster Messlauf, Bericht in
+- [x] **T57.10** `scripts/messlauf-ttfs.mjs`, erster Messlauf, Bericht in
   `docs/messlauf/JJJJ-MM-TT-ttfs.md` (Skill `messlauf`). Messlatte: TTFS (Epic), K1.
+  **Erledigt 13.11.2026:** [Bericht](../docs/messlauf/2026-11-13-ttfs.md) — M5-Median
+  0,5 min (n=3, warme Caches, simuliertes Handy; manuelle Handy-Messung offen
+  ausgewiesen). Der Messlauf deckte BUG-0153 (projectRoots) und BUG-0154
+  (Endlos-Dummy) auf; beide Fixes im T57.10-MR.
 - [x] **T57.11** VoidWarden-Abgleich: Schwester-Epic dort anlegen (Planung; **angelegt 13.11.2026:** [VoidWarden P15](https://gitlab.com/SiLenT_Tz/voidwarden/-/blob/main/epics/EPIC-P15-doku-onboarding.md), MR !76; offen: Weichentext nach T57.4 spiegeln und gegenlesen), Weichen-Text spiegeln, Zuständigkeitstabelle §3.1 gegenlesen. Messlatte: —.
   **Erledigt 13.11.2026:** Weichen-Wortlaut aus T57.4 als verbindliches Zitat in P15 §3.2
   ([VoidWarden MR !77](https://gitlab.com/SiLenT_Tz/voidwarden/-/merge_requests/77), gemergt);
@@ -188,7 +192,9 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
 - [x] **T57.12** Entscheidungsaufgabe Doku-Site (optional): VitePress-Spike nur
   planen — Kriterien (Seitenzahl, Suchbedarf, Aufwand), Ergebnis „Go/No-go/vertagt“
   als Evaluations-Exit. Kein Code ohne Go. Messlatte: —. **Ergebnis 13.11.2026: vertagt** ([Evaluations-Exit](../docs/2026-11-13_p57-doku-site-entscheidung.md), Nutzer-Bestätigung offen).
-- [ ] **T57.13** Abnahme + Retro (Skill `retro`): AC gegen Beleg, Messlauf, Gate.
+- [x] **T57.13** Abnahme + Retro (Skill `retro`): AC gegen Beleg, Messlauf, Gate.
+  **Erledigt 13.11.2026** — AK-Matrix, Premortem-Bilanz und Action Items im
+  Retro-Abschnitt unten.
 
 ## 5. Acceptance Criteria
 
@@ -270,3 +276,95 @@ generierte Referenz im Gate verdrahtet (nicht nur vorhanden) · ADR zur
 Handy-Kopplung vorhanden · VoidWarden-Schwester-Epic angelegt · T57.12 mit
 Evaluations-Exit · keine neue Abhängigkeit ohne Go · kein TODO ohne
 Epic-Referenz · `epics/README.md` aktualisiert · Retro-Abschnitt angehängt.
+
+## Retro (13.11.2026)
+
+**Zeitraum:** 13.11.2026 (eine Session, Fortsetzung nach Provider-Wechsel) ·
+**Commits:** T57.1–T57.12 über MR !440–!448 (T57.9+T57.11) und
+T57.10/T57.13-MR; **Bugs dabei gefunden:** BUG-0152 (fremd, P52), BUG-0153,
+BUG-0154 (beide Erststart, mit Fixes).
+
+### AK-Matrix
+
+- **AC-P57-1 (TTFS):** 🟡 erfüllt mit Vorbehalt — Beleg:
+  [`docs/messlauf/2026-11-13-ttfs.md`](../docs/messlauf/2026-11-13-ttfs.md):
+  M1-Median 0,2 min, M5-Median 0,5 min (n=3, Grenzen 5/15 min klar
+  unterschritten). Vorbehalt: die **manuelle Handy-Messung** (echtes Gerät,
+  Tailscale) fehlt noch und ist im Bericht als offen ausgewiesen → AI-P57-3.
+- **AC-P57-2 (K1):** 🟢 — Beleg: `messlauf-approve-latency` n=20 auf main
+  nach T57.9: p95 13 ms < 5 s (PASS, Bericht §Verwandte Messungen).
+- **AC-P57-3 (Diátaxis):** 🟢 — Beleg: `check:context`-Regel `doc-kind`
+  (T57.1/T57.2, MR !440), Gate-Ausgabe „Doku-Arten" grün.
+- **AC-P57-4 (Drift generiert):** 🟢 — Beleg: Regel `reference-fresh` +
+  `scripts/gen-reference.mjs` (MR !442); `check:context` grün.
+- **AC-P57-5 (ausführbar):** 🟢 — Beleg: `apps/hub/test/tutorial-schritte.test.ts`
+  (2 Tests grün, auch nach der Erweiterung um §3).
+- **AC-P57-6 (Frische):** 🟢 — Beleg: `check:context` grün (1510 Dateien),
+  Frischhalte-Map-Einträge (MR !444).
+- **AC-P57-7 (Erststart UI):** 🟢 — Beleg: `e2e/specs/erststart.spec.ts`
+  (610-passed-Lauf, MR !448), Inventarzeilen E01–E04 +
+  `funktionsinventar.spec.ts`.
+- **AC-P57-8 (Token-Gate):** 🟢 — Beleg: Token-Gate-Describe in
+  `erststart.spec.ts` + `apps/pwa/test/app/token-gate.test.ts` (inkl.
+  K10-Zeitstempel).
+- **AC-P57-9 (Sicherheit):** 🟢 — Beleg: ADR-0073 vor Kopplungscode
+  (MR !441 vor !448), Unit-Test „kein Token in Meldungen", Messlauf-Bericht
+  tokenfrei, `check:secrets` grün im Abschluss-MR.
+- **AC-P57-10 (VoidWarden):** 🟢 — Beleg: Weiche im Tutorial §„Weiter";
+  VoidWarden P15 mit verbindlichem Weichen-Zitat (VoidWarden MR !77);
+  Gegenlesen §3.1 ohne Widersprüche.
+- **AC-P57-11 (Scope):** 🟢 — Beleg:
+  [`2026-11-13_p57-doku-site-entscheidung.md`](../docs/2026-11-13_p57-doku-site-entscheidung.md)
+  (Evaluations-Exit „vertagt"); keine neue Abhängigkeit in `package.json`.
+
+**Summe:** 10 🟢 / 1 🟡 / 0 🔴 / 0 ⚪.
+
+### Premortem-Bilanz
+
+Eingetreten (1,5 von 7): **Nr. 1 (Tutorial driftet von der Realität)** —
+nicht als Textveraltung, sondern als Realitätslücke: Das Tutorial versprach
+„wähle ein Projekt" (keine existierten, BUG-0153) und „sende die Nachricht"
+(nur „Vormerken" möglich, BUG-0154). Die vorgesehene Mitigation (ausführbare
+Blöcke) hätte das nicht gefunden — der **TTFS-Messlauf** tat es. Nr. 6
+(Seitenwachstum) im Rahmen (Tutorial + 2 generierte Referenzen + 3 How-tos,
+dafür `onboarding.md` geteilt). Nicht eingetreten: 2 (Messung trennt ehrlich
+automatisiert/manuell), 3 (ADR vor Code, Variante a), 4 (Out-Liste hielt),
+5 (kein Beleg für „voll, aber unbrauchbar"), 7 (Eigentümer-Regel griff).
+
+### Erkenntnisse (max. 5, mit Beleg)
+
+1. **Der Messlauf war der ehrlichste Reviewer des Epics:** Er fand zwei S2-
+   Defekte (BUG-0153, BUG-0154), an denen alle E2E-Gates vorbeiliefen —
+   Beleg: bugs/#0153, #0154; E2E 610 passed im selben Zustand.
+2. **E2E fährt vorkonfigurierte Hubs** (TestHub defaultet Projekt und
+   `dummyAutoStop`, `e2e/support/hub.ts:426`) — Erstinstallations-Pfade sind
+   strukturell blind. Beleg: BUG-0153/0154 waren mit grünem E2E live.
+3. **Ausführungsumgebung schlug stärker zu als der Inhalt** (Session-
+   Unterbrechungen töteten Läufe; `hub.sh stop` ohne `HUB_LOCAL` nahm den
+   Produktiv-Hub 14 min herunter). Beleg: Messlauf brauchte 12 Versuche;
+   Vorfall 15:17–15:31 dokumentiert im TTFS-Bericht §Funde.
+4. **Aufgabenbezogene Commits machten jede Messlauf-Iteration revertierbar**
+   (13 Commits auf dem T57.10-Branch) — kein Revert nötig, aber die Fehlersuche
+   war stets auf eine Änderung eingrenzbar. Beleg: git log des Branches.
+5. **Verbindliches Zitat statt Paralleltext** verhindert Cross-Repo-Drift
+   cheaply. Beleg: VoidWarden P15 §3.2 zitiert den AncientVoid-Wortlaut;
+   „bei Abweichung gilt AncientVoid".
+
+### Action Items
+
+- **AI-P57-1:** Wizard fragt `projectRoots` ab (oder legt eine Default-Wurzel
+  an) — zurück als: P53-Nacharbeit (BUG-0153 / [#60](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/60)).
+- **AI-P57-2:** E2E-Lücken schließen: Nachricht aus gestoppter dummy-Session
+  (BUG-0154) und Erststart gegen einen Hub **ohne** Projekte — zurück als:
+  nächstes Epic oder bugfix ([#63](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/63)).
+- **AI-P57-3:** Manuelle Handy-TTFS-Messung (echtes Gerät, Tailscale,
+  Stoppuhr) nachtragen und im Bericht ausweisen — zurück als: Nachtrag zum
+  Bericht `docs/messlauf/2026-11-13-ttfs.md`.
+- **AI-P57-4:** `hub.sh stop/start` ohne `HUB_LOCAL=1` auf Unit-Maschinen
+  absichern (Bestätigung oder Weigerung) — zurück als: P53-Nacharbeit
+  (Vorfall-Doku im TTFS-Bericht §Funde).
+- **AI-P57-5:** BUG-0152 (Galaxie-Vollbild Querformat-Reload, P52) fixen —
+  zurück als: bugfix ([#59](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/59)).
+
+**Status:** EPIC-P57 abgeschlossen 13.11.2026 (AC-P57-1 mit dokumentiertem
+Vorbehalt, Rest grün).
