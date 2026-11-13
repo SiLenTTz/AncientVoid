@@ -130,6 +130,18 @@ async function oneRun(index, browser) {
     await untilReady(origin, 120_000);
     marks.M1 = Date.now() - t0;
 
+    // Tutorial §3 (BUG-0153): Wizard lässt projectRoots leer — der dokumentierte
+    // Schritt ist Config-Eintrag + Hub-Neustart. Der Ordner über dem Klon enthält
+    // ein Repo (den Klon selbst), Tiefe 1 wie in der Anleitung.
+    await sh(
+      "node",
+      ["-e", 'const fs=require("node:fs");const f="hub.config.json";const c=JSON.parse(fs.readFileSync(f,"utf8"));c.projectRoots=[process.argv[1]];fs.writeFileSync(f,JSON.stringify(c,null,2)+"\\n");', dir],
+      { cwd: clone, timeoutMs: 30_000 },
+    );
+    await sh("bash", ["scripts/hub.sh", "stop"], { cwd: clone, timeoutMs: 60_000 });
+    await sh("bash", ["scripts/hub.sh", "start"], { cwd: clone, env: { ...process.env, HUB_LOCAL: "1" }, timeoutMs: 120_000 });
+    await untilReady(origin, 120_000);
+
     // Handy-Ersatz: Pixel-7-Viewport, wie das mobile E2E-Projekt.
     const ctx = await browser.newContext({ ...devices["Pixel 7"] });
     ctx.setDefaultTimeout(90_000);

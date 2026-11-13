@@ -163,5 +163,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0150](bug-0150-horizontale-inhaltsscroller.md) | Lange Inhalte erzeugen horizontale Scrollflächen | done | S3 | pwa | [#58](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/58) |
 | [BUG-0151](bug-0151-denkpfad-verliert-werkzeuge.md) | Denkpfad verliert Tool-Zuordnungen und Denktext | done | S2 | pwa | [#57](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/57) |
 | [BUG-0152](bug-0152-galaxie-vollbild-querformat-reload.md) | Galaxie-Vollbild: Bei 915×412 überlebt die Graph-Ansicht den Reload nicht | open | S3 | pwa | [#59](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/59) |
+| [BUG-0153](bug-0153-erstinstallation-ohne-projektwurzeln.md) | Erstinstallation ohne projectRoots: erste Session unmöglich, Tutorial schweigt den Schritt weg | open | S2 | pwa | |
 
 Die nächste freie Nummer ist **0152**.
