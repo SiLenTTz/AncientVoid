@@ -331,7 +331,7 @@ test.describe("ACP-Harness (T7.2)", () => {
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Hallo · ACP · Modell \["lokal","klein"\]/)).toBeVisible();
   });
 
-  test("eine Eingabe während eines laufenden Zugs wartet sichtbar und wird zugestellt (BUG-0033 + FIFO)", async ({ app, hub }) => {
+  test("eine Eingabe während eines laufenden Zugs bleibt in der Hub-Queue und Stop verwirft sie (BUG-0033)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "acp", prompt: "Arbeite LANGSAM" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Chat" }).click();
@@ -339,11 +339,32 @@ test.describe("ACP-Harness (T7.2)", () => {
     await expect(app.getByRole("button", { name: "Senden" })).toHaveCount(0);
     await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "Zwischendurch!" } });
     // The turn still runs — the message is queued, visibly in the chat.
-    await expect(app.locator(".tail-scroll").getByText(/wartet bis der Zug endet/)).toBeVisible();
+    await expect(app.locator(".queue-list")).toContainText("Zwischendurch!");
+    const before = (await hub.events(id)).filter((e) => e.payload.kind === "session.queued");
+    expect(before).toHaveLength(1);
     await app.getByRole("button", { name: "Stop" }).click();
     await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "stopped");
-    const queued = (await hub.events(id)).filter((e) => e.payload.kind === "acp.queued");
-    expect(queued).toHaveLength(1);
+    const queued = await hub.api<unknown[]>(`/api/sessions/${id}/queue`);
+    expect(queued.body).toHaveLength(0);
+    expect((await hub.events(id)).filter(e => e.type === "assistant")).toHaveLength(0);
+  });
+
+  test("eine wartende ACP-Eingabe wird nach Abschluss des ersten Zugs genau einmal zugestellt", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "Bitte WERKZEUG" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const card = app.locator(".session-approvals .approval-card");
+    await expect(card.locator(".tool-input")).toHaveText("echo hallo-acp");
+    await hub.api(`/api/sessions/${id}/steer`, { body: { kind: "prompt", text: "Danach die zweite Aufgabe" } });
+    await expect(app.locator(".queue-list")).toContainText("Danach die zweite Aufgabe");
+    await card.getByRole("button", { name: "Erlauben" }).click();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Danach die zweite Aufgabe · ACP/)).toBeVisible();
+    await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "idle");
+    const answers = (await hub.events(id)).filter(e => e.type === "assistant");
+    expect(answers).toHaveLength(2);
+    expect(String(answers[0]?.payload.text)).toContain("Bitte WERKZEUG");
+    expect(String(answers[1]?.payload.text)).toContain("Danach die zweite Aufgabe");
+    expect((await hub.api<unknown[]>(`/api/sessions/${id}/queue`)).body).toHaveLength(0);
   });
 
   test.describe("mit tmux-Workern", () => {
