@@ -115,6 +115,22 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     expect(received.length).toBe(before);
   });
 
+  test("Feedbackblende blendet nach dem Ende automatisch aus — sie steht nicht dauerhaft (BUG-0157)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByPlaceholder("Antworten…").click();
+    const fab = app.locator('[data-testid="nyx-fab"]');
+    await fab.click();
+    await expect(app.getByText(/Aufnahme — tippe erneut zum Stoppen/)).toBeVisible();
+    await app.waitForTimeout(1200);
+    await fab.click();
+    const toast = app.locator('[data-testid="nyx-fab-toast"]');
+    await expect(toast.filter({ hasText: /lokal · whisper-e2e · \d+\.\d s/ })).toBeVisible();
+    // Der Fehlerfall bleibt sichtbar (AC-P10-5), aber nicht für alle Zeit: nach dem
+    // Feedbackfenster muss die Blende weg sein, solange nichts aufgenommen wird.
+    await expect(toast).toHaveCount(0, { timeout: 20_000 });
+  });
+
   test("Schon gesperrter Bildschirm beim Aufnahmestart bricht ebenfalls ab (BUG-0041)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
