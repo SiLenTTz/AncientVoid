@@ -1,7 +1,7 @@
 ---
 id: BUG-0156
 slug: hub-stop-fremde-instanz
-status: open
+status: done
 severity: S1
 area: ops
 instance: local
@@ -42,5 +42,10 @@ bei fehlender/fremder Identität Exit 1, kein Unit-Kommando. ADR-0074.
 
 ## Verifikation
 
-Die drei Instanztests sind mit Fix grün. Vollständiges Gate und Live-
-Deployment gehören zum Abschluss-MR der Session-Robustheit; noch offen.
+Die Instanztests sind mit Fix grün, inzwischen sechs Modi über einen
+nachgebauten `systemctl`: fremdes Checkout, fremde Konfiguration, per
+Unit-Umgebung gesetzte fremde Konfiguration, unbekannte EnvironmentFile,
+gleiche Instanz und gleiche Instanz mit individueller Unit-Konfiguration.
+`systemctl`-Fehler beim Stop/Restart werden nicht mehr geschluckt.
+Vollständiges Gate (Test/Lint/Typecheck/E2E) grün im Abschluss-MR;
+Live-Deployment im selben Zug nachgezogen.

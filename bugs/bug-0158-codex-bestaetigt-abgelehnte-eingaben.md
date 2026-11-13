@@ -1,7 +1,7 @@
 ---
 id: BUG-0158
 slug: codex-bestaetigt-abgelehnte-eingaben
-status: open
+status: done
 severity: S2
 area: adapter-codex
 instance: dev
@@ -61,5 +61,14 @@ zu einer konkreten verlorenen Nachricht nicht nachgewiesen.
 Regression in `packages/adapters/codex/test/app-server.test.ts` für beide
 RPC-Ablehnungen; Hub-Integration für Idempotenz/Queue-Erhalt; E2E für sichtbare
 Ablehnung. Transport-Timeout darf nicht als belegte Nichtannahme gelten.
-Produktionsfix noch offen. Details und Reparaturplan im
-[Audit](../docs/2026-11-13_session-laufzeit-audit.md).
+Details und Reparaturplan im [Audit](../docs/2026-11-13_session-laufzeit-audit.md).
+
+## Fix und Verifikation
+
+Abgelehnte `turn/steer`/`turn/start` melden `{ ok: false }` und ein
+sichtbares `provider.error`; unbekannte Annahme nach Timeout bleibt separat
+erhalten (kein blindes Wiederholen, kein Verbuschen der Idempotenz-ID).
+Adapter ohne Live-Eingabe halten wartende Nachrichten in der persistenten
+Hub-Queue bis zum bestätigten Ack (E2E `harness.spec.ts`: wartende Eingabe
+wird nach dem ersten Zug genau einmal zugestellt; Stop verwirft sichtbar).
+Unit/Integration/Lint/Typecheck und volles E2E-Gate grün im Abschluss-MR.

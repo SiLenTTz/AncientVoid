@@ -1,7 +1,7 @@
 ---
 id: BUG-0155
 slug: idle-trotz-hintergrundarbeit
-status: open
+status: done
 severity: S2
 area: core
 instance: local
@@ -58,3 +58,16 @@ alter Worker-Generation; Fehler und offene Freigaben bleiben sichtbar.
 Externe Jobs brauchen ausdrückliche Registrierung, kein Parsen von
 Assistant-Text als Steuerinformation. Produktfix noch offen; Einzelheiten
 im [Audit](../docs/2026-11-13_session-laufzeit-audit.md).
+
+## Fix und Verifikation
+
+[ADR-0074](../docs/adr/0074-session-aktivitaet-und-wiederaufnahme.md) führt
+den Aktivitätsvertrag ein; `session-activity.ts` zählt Provider-Subagenten
+(strukturiert über `ctx.activity`, Codex `collabAgentToolCall`/`subAgentActivity`)
+und explizit registrierte externe Jobs (`hubctl activity … run`). Der Status
+bleibt `working`, bis die letzte registrierte Arbeit endet; Wiederanlauf bei
+unklarer externer Arbeit wird angehalten. Grüns: Unit
+`app-server.test.ts` (Child überlebt den Hauptzug und endet selbstständig),
+Integration `interrupted-session.integration.test.ts` + `activity.integration.test.ts`,
+E2E `session-robustheit.spec.ts` „Hintergrundarbeit bleibt bis zum letzten
+Job aktiv", vollständiges Gate (Test/Lint/Typecheck/E2E) im Abschluss-MR.

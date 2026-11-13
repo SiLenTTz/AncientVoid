@@ -1,7 +1,7 @@
 ---
 id: BUG-0157
 slug: alter-worker-toetet-nachfolger
-status: open
+status: done
 severity: S1
 area: workers
 instance: local
@@ -49,5 +49,6 @@ bisherigen Diagnosepfad. Legacy-Adoption bleibt erhalten.
 ## Verifikation
 
 Alle 16 echten tmux-Tests grün, einschließlich Regression, Adoption,
-umbenannter Worker und langer Pipe-Eingaben. Vollgate und Deployment sind
-Teil des gemeinsamen Abschlusses der Session-Robustheit und noch offen.
+umbenannter Worker und langer Pipe-Eingaben. Vollständiges Gate
+(Test/Lint/Typecheck/E2E) grün im Abschluss-MR der Session-Robustheit;
+Deployment im selben Zug nachgezogen.
