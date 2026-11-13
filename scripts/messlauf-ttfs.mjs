@@ -173,9 +173,11 @@ async function oneRun(index, browser) {
     // M5: Nachricht aus der geöffneten Session heraus senden, im Verlauf sehen.
     await page.getByRole("button", { name: "Chat" }).click();
     const msg = `TTFS-Lauf ${index}: erste Steuerung vom Handy`;
-    await page.getByPlaceholder("Antworten…").click(); // Composer expandiert (compact → offen), sonst gibt es „Senden“ nicht
+    await page.getByPlaceholder("Antworten…").click(); // Composer expandiert (compact → offen), sonst gibt es den Sende-Knopf nicht
     await page.getByPlaceholder("Antworten…").fill(msg);
-    await page.getByRole("button", { name: "Senden" }).click();
+    // Laufende Session: Der Sende-Knopf heißt „Weiter“ (Diagnose 13.11.2026;
+    // „Senden“ erscheint nur in anderem Session-Zustand, siehe chat-zuege.spec).
+    await page.getByRole("button", { name: "Weiter", exact: true }).click();
     await page.locator(".tail-scroll").locator(".event.own").filter({ hasText: msg }).first().waitFor();
     marks.M5 = Date.now() - t0;
 
