@@ -24,7 +24,7 @@ import { buildHandoverPrompt, HANDOVER_PROMPT_MAX } from "../handover/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
 import { askTitleModel } from "./session-title.ts";
 import type { PlannerModelConfig } from "../commands/model.ts";
-import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS } from "./session-state.ts";
+import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS, foldActivities } from "./session-state.ts";
 import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 
@@ -590,6 +590,7 @@ export class SessionManager {
       record,
       adapter: registered.adapter,
       handle: null,
+      activities: new Map(),
       abort: new AbortController(),
       subscribers: new Set(),
       workdir: record.project,
@@ -1084,6 +1085,7 @@ export class SessionManager {
       record,
       adapter: null as unknown as Adapter,
       handle: null,
+      activities: new Map(),
       abort: new AbortController(),
       subscribers: new Set(),
       workdir: record.project,
@@ -1115,6 +1117,7 @@ export class SessionManager {
         record,
         adapter: null as unknown as Adapter,
         handle: null,
+        activities: new Map(),
         abort: new AbortController(),
         subscribers: new Set(),
         workdir: record.project,
@@ -1159,6 +1162,7 @@ export class SessionManager {
       record,
       adapter: registered.adapter,
       handle: null,
+      activities: new Map(),
       abort: new AbortController(),
       subscribers: new Set(),
       workdir,
@@ -1373,7 +1377,8 @@ export class SessionManager {
       this.persist(session.record);
       // Promptless resume (cursor -p would be an empty turn) starts no worker.
       // Leaving the status on "working" looks like a hang with no error (BUG-0149).
-      if ((session.activeWorkers ?? 0) === 0 && !session.persistentWorker && (session.record.status as string) === "working") {
+      // ADR-0074: offene Aktivitäten sind echte Arbeit — kein Hang, kein idle.
+      if ((session.activeWorkers ?? 0) === 0 && !session.persistentWorker && session.activities.size === 0 && (session.record.status as string) === "working") {
         await this.setStatus(session, "idle");
       }
       return { ok: true };
@@ -2172,6 +2177,7 @@ export class SessionManager {
         record: { ...record, lastSeq },
         adapter: registered?.adapter ?? null as unknown as Adapter,
         handle: null,
+      activities: new Map(),
         abort: new AbortController(),
         subscribers: new Set(),
         workdir,
@@ -2184,6 +2190,9 @@ export class SessionManager {
         // recovery event.
         budgetWarned: record.budgetUsd !== null && record.costUsd >= record.budgetUsd * 0.8,
       };
+      // ADR-0074 (BUG-0155, K7): offene Aktivitäten aus dem JSONL falten —
+      // Recovery lügt nicht über Arbeit, die vor dem Crash angemeldet war.
+      session.activities = foldActivities(events);
       this.live.set(record.id, session);
       // EPIC-P29 (K7, ADR-0051 §5): Workspace-Phase aus den Events falten
       // und hängengebliebene Operationen als unklar markieren — genau ein
@@ -2217,6 +2226,19 @@ export class SessionManager {
       // ein neuer Prompt startet normal über steer.
       if (!record.persistentWorker && (record.status === "idle" || record.status === "parked")) {
         await this.emitSystem(session, "session.recovered", { events: events.length, lastSeq, controllable: true });
+        return "recovered";
+      }
+
+      // ADR-0074 (BUG-0155): Offene Aktivitäten laufen unabhängig vom Hub
+      // weiter (registrierte Jobs, Subagenten) — Recovery unterbricht sie
+      // nicht, die Session bleibt ehrlich `working`.
+      if (session.activities.size > 0) {
+        await this.emitSystem(session, "session.recovered", {
+          events: events.length,
+          lastSeq,
+          controllable: false,
+          openActivities: [...session.activities.values()].map((a) => a.label),
+        });
         return "recovered";
       }
 
@@ -2603,6 +2625,7 @@ export class SessionManager {
       nativeSessionId: session.record.nativeSessionId,
       resumeVersion: session.record.resumeVersion,
       inputRevision: session.record.inputRevision,
+      openActivities: [...session.activities.values()],
     };
   }
 
@@ -2618,9 +2641,41 @@ export class SessionManager {
       if (session.record.status === "idle" || session.record.status === "error") await this.setStatus(session, "working");
       return;
     }
+    // ADR-0074 (BUG-0155): Zugende ≠ Arbeitsende — offene Aktivitäten halten
+    // die Session ehrlich auf working; statt turn_end steht die Ausnahme im Strom.
+    if (session.activities.size > 0) {
+      await this.emitSystem(session, "session.activity_pending", { open: [...session.activities.values()].map((a) => a.label) });
+      return;
+    }
     if (session.record.status !== "working") return;
     await this.setStatus(session, "idle");
     await this.emitSystem(session, "session.turn_end", { code: 0 });
+  }
+
+  /** ADR-0074 (BUG-0155): extern registrierte Aktivität (Job, Subagent,
+   * Watcher). Explizit — der Hub rät nie aus Assistant-Text oder Prozessen. */
+  async registerActivity(sessionId: string, label: string, source = "external"): Promise<{ id: string } | null> {
+    const session = this.live.get(sessionId);
+    if (!session) return null;
+    const id = `job:${crypto.randomUUID()}`;
+    const entry = { id, source, label: label.trim() || "Hintergrundarbeit", startedAt: new Date().toISOString() };
+    session.activities.set(id, entry);
+    if (session.record.status === "idle" || session.record.status === "error") await this.setStatus(session, "working");
+    await this.emitSystem(session, "session.activity_begin", { ...entry });
+    return { id };
+  }
+
+  /** ADR-0074: Ende einer Aktivität. Die letzte beendete Aktivität einer
+   * arbeitenden Session ohne Zug-Prozesse schließt den Lauf (idle + turn_end). */
+  async endActivity(sessionId: string, id: string, code = 0): Promise<boolean> {
+    const session = this.live.get(sessionId);
+    if (!session || !session.activities.delete(id)) return false;
+    await this.emitSystem(session, "session.activity_end", { id, code });
+    if (session.activities.size === 0 && (session.activeWorkers ?? 0) === 0 && session.record.status === "working") {
+      await this.setStatus(session, "idle");
+      await this.emitSystem(session, "session.turn_end", { code });
+    }
+    return true;
   }
 
   /** T7.2: an in-process adapter waits for the phone's decision. */
@@ -2653,7 +2708,7 @@ export class SessionManager {
         return;
       }
       setTimeout(() => {
-        if (signal.aborted || (session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
+        if (signal.aborted || (session.activeWorkers ?? 0) > 0 || session.activities.size > 0 || session.record.status !== "working") return;
         void this.setStatus(session, "idle")
           .then(() => this.emitSystem(session, "session.turn_end", { code }))
           .catch((err) => this.logger.warn("turn end not recorded", { sessionId: session.record.id, err: String(err) }));
