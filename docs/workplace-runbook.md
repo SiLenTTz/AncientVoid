@@ -1,5 +1,7 @@
 # Arbeitsort-Runbook: eigener Worktree oder Projekt direkt
 
+**Art:** how-to
+
 Stand: 09.11.2026 · Epic: [EPIC-P38](../epics/EPIC-P38-session-arbeitsort.md) ·
 ADR: [ADR-0057](adr/0057-session-arbeitsort.md)
 

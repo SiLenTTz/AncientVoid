@@ -1,5 +1,7 @@
 # Loops / Dark Factory (EPIC-P19, ADR-0038)
 
+**Art:** how-to
+
 Beim Start einer Session lässt sich ein **Loop** wählen (Zeile „Loop“ im Start-Formular, PWA).
 Ein Loop ist ein eigenständiges System, das seine Agenten selbst ausführt; der Hub zeigt, beantwortet Fragen und steuert.
 

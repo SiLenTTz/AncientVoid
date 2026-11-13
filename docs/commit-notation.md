@@ -1,5 +1,7 @@
 # Commit-Notation (Arlo's Commit Notation, angepasst)
 
+**Art:** referenz
+
 Jede Commit-Zusammenfassung und jeder MR-Titel beginnt mit **Risiko** und
 **Absicht**, danach Bereich und Satz:
 

@@ -1,9 +1,13 @@
 # Onboarding — frischer Klon bis laufender Hub
 
-Zielgruppe: **Menschen und Agenten**, die das Repo neu klonen und ohne
-Anpassungen am Code zum Laufen bringen wollen — inklusive Anbindung eigener
-Provider, Harnesses, Loops und Factories. Diese Seite ist die Route durch die
-Detail-Doks; sie dupliziert sie nicht.
+**Art:** how-to
+
+Zielgruppe: Nutzer, die das Repo neu klonen und ohne Anpassungen am Code zum
+Laufen bringen wollen — inklusive Anbindung eigener Provider, Harnesses,
+Loops und Factories. **Erstmals hier? Beginne mit dem
+[Tutorial „Erste 15 Minuten“](tutorial-erste-schritte.md)**; diese Seite ist
+die vollständige Route dahinter und dupliziert die Detail-Doks nicht. Wer am
+Repo mitarbeitet (Agenten, Beitragende): [`beitragen-als-agent.md`](beitragen-als-agent.md).
 
 ## 0. Was ist fertig, was nicht (ehrlich)
 
@@ -155,25 +159,5 @@ blind wiederholen: derzeit entstehen zusätzliche Tokens
 Weitere Setup-Grenzen und priorisierte Nacharbeit:
 [Setup-/Modellanbindungs-Audit](2026-11-11-setup-modelle-audit.md).
 
-## 7. Als Agent beitragen (PR-Workflow)
-
-Agenten folgen [`AGENTS.md`](../AGENTS.md) und
-[`CONTRIBUTING.md`](../CONTRIBUTING.md):
-
-1. Branch pro Aufgabe (`feat/…`, `fix/…`, `docs/…`), niemals direkt auf `main`.
-2. Gates vor dem MR: `npm test`, `npm run lint`, `npm run typecheck`; bei
-   UI-/Ablaufsänderungen `npm run test:e2e`; vor Epic-Abschluss `npm run gate`.
-3. Commit-Notation `<Risiko> <Absicht> <bereich>: <Satz>` —
-   [`docs/commit-notation.md`](commit-notation.md) (Hook prüft).
-4. MR via `glab mr create` (Beschreibung: Warum/Änderung/Testplan), Merge nur
-   über `glab mr merge`/UI, danach Source-Branch lokal+remote löschen.
-
-## 8. Verifizieren und bekannte Stolpersteine
-
-- `npm run gate` deckt alles ab (inkl. `check:arch`, `check:adapter-matrix`,
-  E2E).
-- `npm run check:workspace-links` meckert in Session-Worktrees über Pakete des
-  Haupt-Checkouts → `node scripts/check-workspace-links.mjs --fix` (BUG-0069).
-- Coverage-Zahl: `npm run test:coverage`.
-- Hub-Neustart und Worker: Wiederanlauf ist K7-gesichert; Details zu
-  Unterbrechungen in [`epics/EPIC-P27-interrupted-sessions.md`](../epics/EPIC-P27-interrupted-sessions.md).
+Beitragen und Verifizieren (PR-Workflow, Gates, Stolpersteine) steht in
+[`beitragen-als-agent.md`](beitragen-als-agent.md).

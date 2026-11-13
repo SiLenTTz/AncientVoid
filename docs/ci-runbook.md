@@ -1,5 +1,7 @@
 # CI-Runbook: Runner-Betrieb, Ausfallpfad, lokale-vs-CI-Regel
 
+**Art:** how-to
+
 Stand: 05.11.2026 · Epic: [EPIC-P28](../epics/EPIC-P28-reproduzierbare-ci.md) ·
 ADR: [ADR-0049](adr/0049-selbstverwalteter-ci-runner.md) ·
 Inventar: [CI-Gate-Inventar](ci-gate-inventar.md)

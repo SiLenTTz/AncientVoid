@@ -45,6 +45,7 @@
     "pretest:e2e": "npm run check:workspace-links",
     "check:names": "node scripts/check-names.mjs",
     "check:context": "node scripts/check-context.mjs",
+    "docs:reference": "node scripts/gen-reference.mjs",
     "check:knip": "knip"
   },
   "devDependencies": {

@@ -1,5 +1,7 @@
 # Epic-Status im Datenbaum (`npm run epics:status`)
 
+**Art:** referenz
+
 `scripts/epic-status.mjs` liest `epics/EPIC-P*.md` (nur Lesezugriff, Inhalte
 werden nie verändert) und hebt jede Epic-Datei mit offenen Punkten im
 Datenbaum farblich hervor (gelb/fett); Dateien ohne offene Punkte und

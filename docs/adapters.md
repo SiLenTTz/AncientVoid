@@ -1,5 +1,7 @@
 # Adapter-Contract — eigene Provider, Coding-Tools & lokale Coding-Systeme
 
+**Art:** referenz
+
 Der Adapter-Contract ist die einzige Nahtstelle zwischen Hub und Fremdwelt.
 Alles, was der Hub von einem Provider weiß, steht in
 `packages/contracts/src/adapter.ts`.

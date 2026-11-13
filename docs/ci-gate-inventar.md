@@ -1,5 +1,7 @@
 # CI-Gate-Inventar und Fehlerklassifikation
 
+**Art:** referenz
+
 Stand: 05.11.2026 · Epic: [EPIC-P28](../epics/EPIC-P28-reproduzierbare-ci.md) ·
 ADR: [ADR-0049](adr/0049-selbstverwalteter-ci-runner.md) · Betrieb:
 [CI-Runbook](ci-runbook.md)

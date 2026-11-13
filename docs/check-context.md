@@ -1,5 +1,7 @@
 # Kontext-Hygiene: `npm run check:context` (+ `check:knip`, Skill `context-audit`)
 
+**Art:** referenz
+
 Ziel: Agenten-Kontext (AGENTS.md, Skills, docs/) bleibt klein, verlinkt,
 referenziert und inhaltlich frisch — **deterministisch** geprüft, im `gate`
 und in CI. Grundlage ist die Recherche vom 2026-11-12:
@@ -21,11 +23,14 @@ und in CI. Grundlage ist die Recherche vom 2026-11-12:
 | `budget` | Zeilen-Budgets (Anthropic-Grenze): `AGENTS.md`/`CONTRIBUTING.md` ≤ 200, `README.md` ≤ 300, `epics/README.md` ≤ 350, Skill-README ≤ 120, `SKILL.md` ≤ 250, Agenten ≤ 150 | Datei größer (on-demand Skills dürfen größer sein als immer geladene Dateien) |
 | `link` | Markdown-Relativ-Links in AGENTS/CONTRIBUTING/README/epics-README/`.claude/**` | Ziel existiert nicht. Repo-externe Ziele (z. B. Nachbar-Checkouts) sind nicht portabel prüfbar und werden übersprungen |
 | `docs-ref` | jede `docs/*.md` ist ≥ 1× im Repo referenziert (Dateiname als Suchstring über Textdateien) | Waise. Befreit: `docs/adr/**` (append-only Protokoll), `docs/assets|messlauf/**`, **datierte Snapshots** (`JJJJ-MM-TT` in Präfix/Suffix — Konvention s. AGENTS.md) |
+| `doc-kind` | jede lebende `docs/*.md` (flach, kein datierter Snapshot) trägt in den ersten 12 Zeilen genau eine Kopfzeile `**Art:** tutorial\|how-to\|referenz\|erklaerung` (Diátaxis, EPIC-P57) | Zeile fehlt, doppelt oder unbekannte Art |
+| `doc-index` | jede lebende Seite steht in [`uebersicht.md`](uebersicht.md) | Seite nicht gelistet oder Übersicht fehlt |
+| `reference-fresh` | `scripts/gen-reference.mjs --check`: committete `docs/referenz-*.md` = frisch generierter Stand (hubctl-usage, `HubConfig`-Schema, `setup.sh`-Kopf; EPIC-P57) | Stand veraltet — `npm run docs:reference` |
 | `script-ref` | jedes `scripts/*.{mjs,ts,sh}` ist referenziert (package.json/CI/Doku/…) **oder** hat `*.test.mjs/.ts` | weder-noch |
 | `drift` | Frischhalte-Map: lebendes Dokument → Beobachtungsbereiche + `maxDrift` | mehr Commits im Bereich seit letzter Doc-Berührung als erlaubt → Review fällig. Uncommittete Überarbeitung gilt als laufendes Review (sonst Gate/Commit-Henne-Ei) |
 | `drift-map` | Map-Konsistenz | Map-Eintrag ohne Datei |
 
-Die Frischhalte-Map (aktuell 12 lebende Dokumente) liegt als Konstante in
+Die Frischhalte-Map (aktuell 13 lebende Dokumente) liegt als Konstante in
 `scripts/check-context.mjs` — eine Stelle, bewusst sichtbar. `maxDrift` ist
 ein Ratchet: beim Einführen auf Ist+Luft gesetzt, bei jedem Review darf man
 senken, nicht heben. Begründung: Commits im Bereich sind ein Proxy für

@@ -1,5 +1,7 @@
 # Verschlüsseltes Backup und Restore
 
+**Art:** how-to
+
 `hubctl backup` erstellt ein authentifiziert verschlüsseltes Archiv aus der
 Hub-Datenbank, Session-JSONL, Snapshots und Blobs, Attachments, Medienjobs,
 Workern, Worktrees sowie der Hub-Konfiguration. Das Archiv enthält damit auch

@@ -1,5 +1,7 @@
 # Design-System — „Futuristisch" (P1.6), fortgeschrieben mit EPIC-P43
 
+**Art:** referenz
+
 Diese Datei ist die Referenz, an der sich **jede künftige UI-Aufgabe**
 orientiert (P2 T2.3 Diff-UI, P3 T3.8 Sprachsuche-Frontend, P4) — neue
 Komponenten übernehmen diese Tokens, statt neue Hex-Werte oder Schriften

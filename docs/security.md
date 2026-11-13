@@ -1,5 +1,7 @@
 # Sicherheit (T4.9, PRD §8)
 
+**Art:** erklaerung
+
 Diese Doku ist das OSS-facing Gegenstück zu PRD §8 und
 [`EPIC-P2`](../epics/EPIC-P2-diff-approvals-budgets.md)s Sicherheits-
 Walkthrough (§7 dort) — real gegen den umgesetzten Code geprüft, nicht nur

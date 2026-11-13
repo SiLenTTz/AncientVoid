@@ -222,6 +222,7 @@ Installations-Kaskade, in beiden Epics beschrieben).
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
 | [P53 — Projektdoku und One-Command-Setup](EPIC-P53-projektdoku-setup-wizard.md) | README mit Ist-/Plan-Stand und Screenshots, wiederholbares Screenshot-Skript (Demo-Hub, secret-frei), `setup.sh`-Wizard + `npm run setup` (Provider zuerst, idempotent, fail loud), Wizard-Skill `setup-wizard`, Zusammenspiel-Abschnitt AncientVoid ↔ VoidWarden — **abgeschlossen 11.11.2026** (MR !379/!380; Retro im Epic; VoidWarden P14 gegengelesen) | keine fachliche offene (Quer-Epic) | 1,5–2,5 |
+| [P57 — Doku und Onboarding](EPIC-P57-doku-onboarding.md) | Diátaxis-Ordnung, Tutorial „Erste 15 Minuten“, generierte Referenz + Drift-Regeln in `check:context`, PWA-Erststart, TTFS-Messlauf (Hypothese ≤ 15 min), Abgrenzung zu VoidWarden — **in Umsetzung seit 13.11.2026** ([Recherche](../docs/2026-11-13_doku-onboarding-recherche.md)) | P53 abgeschlossen (Quer-Epic); P33 bleibt vertagt | 2–3 |
 
 Reihenfolge: P53 quer wie P50–P52 (Epic-Planung als eigener Branch/MR vor der
 Umsetzung, damit andere Agenten das Epic sehen; dann Umsetzung je Aufgabe).
