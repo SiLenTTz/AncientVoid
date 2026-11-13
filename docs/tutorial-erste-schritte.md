@@ -112,9 +112,12 @@ Bringe das Token auf einem selbst gewählten sicheren Weg aufs Handy
 
 ## 7. Den Agenten vom Handy steuern
 
-Öffne auf dem Handy die laufende `dummy`-Session, schreibe im Eingabefeld
-eine Nachricht und sende sie. Sie erscheint im Verlauf — du hast den Agenten
-vom Handy aus gesteuert. Mit **Stopp** beendest du den Lauf.
+Öffne auf dem Handy die `dummy`-Session. Der Übungsagent erzählt kurz
+los und beruhigt sich dann von selbst. Schreibe im Eingabefeld eine
+Nachricht und tippe **Weiter** — während er erzählt, heißt der Knopf
+**Vormerken** und deine Nachricht wartet, bis der Zug endet. Gesendet
+erscheint sie im Verlauf — du hast den Agenten vom Handy aus gesteuert.
+Mit **Stopp** beendest du den Lauf.
 
 Geschafft. Der Übungsagent verlangt keine Freigaben; das siehst du erst mit
 einem echten Agenten (Schritt „Weiter“).
