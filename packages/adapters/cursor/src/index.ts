@@ -125,6 +125,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
     capabilities(): AdapterCapabilities {
       return {
+        promptDelivery: "next-turn",
         reasoning: true,
         tools: true,
         // live verified 2026-09-29: cursor-agent reports tokens (camelCase
@@ -138,7 +139,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // EPIC-P35 / BUG-Weitermachen: `--resume <chatId>` ist der gleiche Pfad
         // wie Follow-up-Steers; hub:true schaltet den Banner-Button frei.
         // Promptloses Weitermachen bleibt idle (kein leerer -p-Zug), nächster Prompt resumed.
-        resume: { argv: [cfg.command, "--resume", "{sessionId}"], ref: "native", hub: true },
+        resume: { argv: [cfg.command, "--resume", "{sessionId}"], ref: "native", hub: true, auto: true },
         features: basicFeatures({ toolGate: cfg.extraArgs.includes("--yolo") || cfg.extraArgs.includes("--force") ? "bypass" : "allowlist", modelChoice: "start" }),
       };
     },

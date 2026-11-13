@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { classifyProviderError, currentProviderFailureFromEvents, providerErrorEvent } from "../../src/harness/provider-error.ts";
 
 describe("classifyProviderError (ADR-0015)", () => {
+  it.each(["You've hit your weekly limit", "You've hit your daily limit", "You’ve hit your usage limit"])("keeps %s out of automatic technical recovery", text => {
+    expect(classifyProviderError(text).category).toBe("quota");
+  });
   it("reads Cursor's Opus usage-limit text, including the cycle date", () => {
     const info = classifyProviderError(
       "ActionRequiredError: You've hit your usage limit for Opus You've saved $76 on API model usage this month with Pro. Your usage limits will reset when your monthly cycle ends on 12/5/2026.",

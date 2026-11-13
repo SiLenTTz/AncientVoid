@@ -42,6 +42,8 @@ interface ServerSession {
   model: string | undefined;
   healthy: boolean;
   items: Map<string, CodexItem>;
+  syncing?: Promise<void>;
+  turnRevision: number;
 }
 
 export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
@@ -76,7 +78,7 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
   }
 
   function connect(sessionId: string, proc: WorkerProcess, ctx: AdapterContext, model: string | undefined): ServerSession {
-    const state: ServerSession = { proc, conn: null as unknown as JsonRpcConnection, threadId: null, turnId: null, model, healthy: true, items: new Map() };
+    const state: ServerSession = { proc, conn: null as unknown as JsonRpcConnection, threadId: null, turnId: null, model, healthy: true, items: new Map(), turnRevision: 0 };
     state.conn = new JsonRpcConnection((line) => proc.write(line), {
       onNotification: (method, raw) => {
         const params = (raw ?? {}) as Record<string, unknown>;
@@ -86,10 +88,20 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
             const item = params.item as CodexItem;
             if (item.id) state.items.set(item.id, item);
             for (const e of itemStarted(item)) ctx.emit(e);
+            activityOf(item, ctx, true);
             break;
           }
-          case "item/completed":
-            for (const e of itemCompleted(params.item as CodexItem)) ctx.emit(e);
+          case "item/completed": {
+            const item = params.item as CodexItem;
+            for (const e of itemCompleted(item)) ctx.emit(e);
+            activityOf(item, ctx, false);
+            if (item.id) state.items.delete(item.id);
+            break;
+          }
+          case "turn/started":
+            state.turnRevision++;
+            state.turnId = (params.turn as { id?: string })?.id ?? state.turnId;
+            ctx.turn?.("working");
             break;
           case "turn/plan/updated":
             ctx.emit(planEvent((params.plan as { step: string; status: string }[]) ?? []));
@@ -127,7 +139,9 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
             break;
           }
           case "turn/completed": {
-            const turn = params.turn as { status?: string; error?: { message?: string } | null };
+            const turn = params.turn as { id?: string; status?: string; error?: { message?: string } | null };
+            if (state.turnId && turn.id && state.turnId !== turn.id) break;
+            state.turnRevision++;
             ctx.emit({ type: "system", summary: `codex: Zug beendet (${turn.status ?? "?"})`, payload: { kind: "codex.turn_end", status: turn.status ?? null } });
             if (turn.status === "failed" && turn.error?.message) ctx.emit(providerErrorEvent("codex", turn.error.message));
             state.turnId = null;
@@ -144,10 +158,7 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
       state.healthy = false;
       state.conn.failAll(`codex app-server beendet (Code ${code ?? "?"})`);
       if (code !== 0 && code !== null) ctx.emit({ type: "system", summary: `codex: process exited with code ${code}`, payload: { code } });
-      if (state.turnId) {
-        state.turnId = null;
-        ctx.turn?.("idle");
-      }
+      state.turnId = null;
       if (sessions.get(sessionId) === state) sessions.delete(sessionId);
     });
     sessions.set(sessionId, state);
@@ -172,24 +183,24 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
     return [{ type: "text", text: promptWithAttachments(text, attachments, native) }, ...images.map((a) => ({ type: "localImage", path: a.path }))];
   }
 
-  /** Startet einen Zug. Rückgabe: null = angenommen; sonst der sichtbare
-   * Grund der Ablehnung (BUG-0158: der Aufrufer muss negativ acken). */
-  async function startTurn(state: ServerSession, ctx: AdapterContext, text: string, attachments?: readonly PromptAttachment[]): Promise<string | null> {
+  async function startTurn(state: ServerSession, ctx: AdapterContext, text: string, attachments?: readonly PromptAttachment[]): Promise<Ack> {
     ctx.turn?.("working");
     try {
+      const revision = state.turnRevision;
       const res = (await state.conn.request("turn/start", { threadId: state.threadId, input: inputOf(text, attachments) })) as { turn?: { id?: string } };
-      state.turnId = res.turn?.id ?? null;
-      return null;
+      if (state.turnRevision === revision) state.turnId = res.turn?.id ?? null;
+      return { ok: true };
     } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      ctx.emit(providerErrorEvent("codex", reason));
+      const detail = rejectDetail("turn/start", err);
+      ctx.emit(providerErrorEvent("codex", err instanceof Error ? err.message : String(err)));
       ctx.turn?.("idle");
-      return reason;
+      return { ok: false, detail };
     }
   }
 
-  /** BUG-0158: Ablehnung ehrlich weitergeben — Transport-Timeout bleibt ein
-   * unbekanntes Ergebnis (kein blindes Retry, nicht als angenommen verbucht). */
+  /** BUG-0158: nachweisliche Ablehnung ehrlich negativ acken; ein
+   * Transport-Timeout bleibt ein unbekanntes Ergebnis (kein blindes Retry,
+   * nicht als angenommen verbucht — STUMM/Wartesemantik T17.4 unberührt). */
   function rejectDetail(method: string, err: unknown): string {
     const msg = err instanceof Error ? err.message : String(err);
     return msg.includes("keine Antwort nach")
@@ -210,6 +221,7 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
         usage: true,
         nativeDiscovery: "none",
         nativeResume: "native",
+        resume: { argv: ["codex", "resume", "{sessionId}"], ref: "native", hub: true, auto: true },
         features: basicFeatures({
           toolGate: cfg.approvalPolicy === "never" ? (cfg.sandbox === "danger-full-access" ? "bypass" : "sandbox") : "native",
           questions: cfg.approvalPolicy !== "never",
@@ -228,34 +240,46 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
     async start(spec: SessionSpec, ctx: AdapterContext): Promise<SessionHandle> {
       const proc = await ctx.spawnWorker(command, { stdin: "pipe", persistent: true, ...(spec.env ? { env: spec.env } : {}) });
       const state = connect(ctx.sessionId, proc, ctx, spec.model ?? cfg.model);
-      await initialize(state);
-      const started = (await state.conn.request("thread/start", threadParams(ctx, spec.model ?? cfg.model), 60_000)) as { thread?: { id?: string }; model?: string };
-      state.threadId = started.thread?.id ?? null;
-      state.model = spec.model ?? cfg.model ?? started.model;
-      if (state.threadId) ctx.emit({ type: "system", summary: `Codex · Thread ${state.threadId}`, payload: { kind: "codex.native_session", nativeSessionId: state.threadId, model: started.model ?? null } });
-      if (spec.prompt || spec.attachments?.length) await startTurn(state, ctx, spec.prompt ?? "", spec.attachments);
-      return { sessionId: ctx.sessionId, ...(proc.pid !== undefined ? { pid: proc.pid } : {}) };
+      try {
+        await initialize(state);
+        const native = typeof spec.args?.resumeSessionId === "string" ? spec.args.resumeSessionId : null;
+        const started = (await state.conn.request(native ? "thread/resume" : "thread/start", { ...threadParams(ctx, spec.model ?? cfg.model), ...(native ? { threadId: native } : {}) }, 60_000)) as { thread?: { id?: string }; model?: string };
+        state.threadId = started.thread?.id ?? null;
+        state.model = spec.model ?? cfg.model ?? started.model;
+        if (state.threadId) ctx.emit({ type: "system", summary: `Codex · Thread ${state.threadId}`, payload: { kind: "codex.native_session", nativeSessionId: state.threadId, model: started.model ?? null } });
+        if (spec.prompt || spec.attachments?.length) {
+          const ack = await startTurn(state, ctx, spec.prompt ?? "", spec.attachments);
+          if (!ack.ok) {
+            throw new Error(ack.detail ?? "codex: turn/start abgelehnt");
+          }
+        }
+        return { sessionId: ctx.sessionId, ...(proc.pid !== undefined ? { pid: proc.pid } : {}) };
+      } catch (err) {
+        await state.proc.kill("SIGTERM");
+        await state.proc.kill("SIGKILL");
+        if (sessions.get(ctx.sessionId) === state) sessions.delete(ctx.sessionId);
+        throw err;
+      }
     },
 
     async steer(handle: SessionHandle, input: SteerInput, ctx: AdapterContext): Promise<Ack> {
       const state = sessions.get(handle.sessionId);
       switch (input.kind) {
         case "prompt":
+          if (state?.syncing) await state.syncing;
           if (!state?.healthy || !state.threadId) return { ok: false, detail: "codex: app-server läuft nicht mehr — Session neu starten" };
           if (state.turnId) {
             // A running turn takes the text as steering input.
-            // BUG-0158: eine nachweisliche RPC-Ablehnung ist kein Erfolg.
             try {
-              await state.conn.request("turn/steer", { threadId: state.threadId, turnId: state.turnId, input: [{ type: "text", text: input.text }] });
+              await state.conn.request("turn/steer", { threadId: state.threadId, turnId: state.turnId, input: inputOf(input.text, input.attachments) });
               return { ok: true };
             } catch (err) {
-              return { ok: false, detail: rejectDetail("turn/steer", err) };
+              const detail = rejectDetail("turn/steer", err);
+              ctx.emit(providerErrorEvent("codex", err instanceof Error ? err.message : String(err)));
+              return { ok: false, detail };
             }
           }
-          {
-            const rejected = await startTurn(state, ctx, input.text, input.attachments);
-            return rejected === null ? { ok: true } : { ok: false, detail: rejectDetail("turn/start", new Error(rejected)) };
-          }
+          return startTurn(state, ctx, input.text, input.attachments);
         case "park":
           if (state?.threadId && state.turnId) await state.conn.request("turn/interrupt", { threadId: state.threadId, turnId: state.turnId }).catch(() => undefined);
           return { ok: true };
@@ -283,6 +307,20 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
       if (adopted) {
         const state = connect(sessionId, adopted, ctx, undefined);
         state.threadId = native;
+        if (native) {
+          const wasWorking = ctx.turnActive === true;
+          state.syncing = state.conn.request("thread/read", { threadId: native, includeTurns: true }, 10_000).then(raw => {
+            const thread = (raw as { thread?: { status?: { type?: string }; turns?: { id: string; status: string }[] } }).thread;
+            const active = thread?.turns?.findLast(turn => turn.status === "inProgress");
+            state.turnId = active?.id ?? null;
+            if (active) ctx.turn?.("working");
+            else if (thread?.status?.type === "idle" && wasWorking) ctx.turn?.("idle");
+            else if (thread?.status?.type === "active") ctx.interrupt?.("adapter_down", "Aktiver Codex-Zug konnte nicht eindeutig zugeordnet werden.");
+          }).catch(err => {
+            state.healthy = false;
+            ctx.interrupt?.("adapter_down", `Codex-Zug nach Neustart nicht prüfbar: ${String(err).slice(0, 300)}`);
+          });
+        }
         return { sessionId, ...(adopted.pid !== undefined ? { pid: adopted.pid } : {}) };
       }
       if (!native) return null;
@@ -303,6 +341,23 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
     },
   };
   return adapter;
+}
+
+/** Structured provider activity, including children that outlive their spawn tool. */
+function activityOf(item: CodexItem, ctx: AdapterContext, started: boolean): void {
+  if (item.type === "subAgentActivity" && item.agentThreadId) {
+    ctx.activity?.({ id: `agent:${item.agentThreadId}`, kind: "agent", state: item.kind === "completed" ? "completed" : item.kind === "interrupted" ? "failed" : "running" });
+    return;
+  }
+  if (item.type === "collabAgentToolCall") {
+    for (const [id, raw] of Object.entries(item.agentsStates ?? {})) {
+      const status = (raw as { status?: string })?.status;
+      if (!status) continue;
+      ctx.activity?.({ id: `agent:${id}`, kind: "agent", state: status === "running" || status === "pendingInit" ? "running" : status === "completed" || status === "shutdown" ? "completed" : "failed" });
+    }
+  }
+  if (!item.id || !toolOf(item)) return;
+  ctx.activity?.({ id: `tool:${item.id}`, kind: "tool", state: started ? "running" : item.status === "failed" || item.status === "interrupted" || item.status === "declined" ? "failed" : "completed", label: toolOf(item)!.name.slice(0, 160) });
 }
 
 /** `model/list` from a short-lived `codex app-server`, 20 s at most. */

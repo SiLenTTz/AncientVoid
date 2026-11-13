@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type { PromptAttachment } from "@ancientvoid/contracts";
+import type { PromptAttachment, QueueDeliveryState } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
 /** EPIC-P15 T15.3: a prompt waiting for the running turn to end. */
 export interface QueuedPrompt {
+  delivery?: QueueDeliveryState;
   id: string;
   sessionId: string;
   text: string;

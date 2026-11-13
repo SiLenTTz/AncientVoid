@@ -147,6 +147,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
     capabilities(): AdapterCapabilities {
       return {
+        promptDelivery: "next-turn",
         reasoning: true,
         tools: true,
         cost: false,
@@ -157,7 +158,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // EPIC-P35 T35.3 (ADR-0036/0041/0044): `pi --session <id|file>` setzt
         // fort; die promptlose Übernahme (start ohne Prompt bleibt idle,
         // ADR-0041-Pfad in start()) macht „Weitermachen“ hub-fähig.
-        resume: { argv: ["pi", "--session", "{sessionId}"], ref: "native", hub: true },
+        resume: { argv: ["pi", "--session", "{sessionId}"], ref: "native", hub: true, auto: true },
         ...(cfg.contextWindowTokens !== undefined ? { contextWindowTokens: cfg.contextWindowTokens } : {}),
         features: {
           followUp: true,

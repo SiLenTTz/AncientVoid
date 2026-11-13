@@ -12,7 +12,7 @@ const binDir = resolve(import.meta.dirname, "bin");
 export interface HubOptions {
   /** "process" (default) or "tmux" — the tmux runner gets a private tmux server. */
   runner?: "process" | "tmux";
-  interruptedDummy?: { resume: boolean; auto?: boolean };
+  interruptedDummy?: { resume: boolean; auto?: boolean; failResume?: boolean };
   /** Factory-Tests: maki über den lokalen ACP-Prozess registrieren. */
   maki?: boolean;
   /** Park steer prompts behind the approval queue (T2.4). */
@@ -183,7 +183,7 @@ export class TestHub {
         {
           id: "dummy",
           module: this.options.interruptedDummy ? join(repoRoot, "e2e/support/interrupted-dummy.ts") : "@ancientvoid/adapter-dummy",
-          config: { hubResume: this.options.interruptedDummy?.resume ?? false, eventsPerSecond: 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
+          config: { hubResume: this.options.interruptedDummy?.resume ?? false, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
         },
         {
           // BUG-0061: dsh via ACP (ADR-0018) under a free-form id, like a

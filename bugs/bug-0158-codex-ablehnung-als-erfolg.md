@@ -1,7 +1,7 @@
 ---
 id: BUG-0158
 slug: codex-ablehnung-als-erfolg
-status: fixed
+status: done
 severity: S2
 area: adapters
 instance: local
@@ -62,5 +62,9 @@ danach grün (11/11 der Suite).
 - [x] Fix + Regressionstests (MR folgt)
 - [x] Datei im Index [`README.md`](README.md)
 - [x] GitLab-Issue [#61](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/61)
-- [ ] Hub-Integration Idempotenz/Queue-Erhalt und E2E der sichtbaren
-  Ablehnung: Folgeauftrag (Issue #61 „Tests und Handoff")
+- [x] Hub-Integration Idempotenz/Queue-Erhalt und E2E der sichtbaren
+  Ablehnung (Abschluss-MR Session-Robustheit): persistente Hub-Queue für
+  Adapter ohne Live-Eingabe hält die Nachricht bis zum bestätigten Ack
+  (`session-queue.test.ts`), E2E `session-robustheit.spec.ts` prüft die
+  sichtbare Ablehnung samt Abbrechen, `harness.spec.ts` die
+  Exactly-once-Zustellung nach Zugende

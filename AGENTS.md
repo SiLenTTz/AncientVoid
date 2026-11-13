@@ -78,6 +78,11 @@ UI-Funktion oder neuer Ablauf = neuer oder erweiterter Spec in `e2e/specs/`.
 
 ## Datadir & Sicherheit
 
+Ausgelagerte Jobs einer Session über `hubctl activity <sessionId> <id> run -- <Kommando>`
+mit vorhandenem Hub-Zugang registrieren (ADR-0074). Der Wrapper meldet Start,
+Heartbeat und Ende. Kein bloßes „läuft im Hintergrund“ als Abschlussnachweis;
+bei fehlendem Reporter-Zugang im Vordergrund bleiben.
+
 `data/` (SQLite, JSONL, Blobs, Worker-Logs) ist git-ignored und bleibt es.
 Keine Secrets in Config-Commits; Tokens nur als Hash. Kein Code, der Agenten-
 Output als Instruktion interpretiert (Prompt-Injection-Grenze, PRD §8.5).

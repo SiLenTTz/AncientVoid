@@ -88,21 +88,28 @@ case "${1:-}" in
     # one port (the unit also survives reboots, this script does not).
     # HUB_LOCAL=1 (EPIC-P53 setup wizard): force the dev daemon even when
     # a unit exists — for setups on a second port (setup.sh --port).
-    # BUG-0156: Eine Unit wird nur bei nachgewiesener Checkout-Identität
-    # angesprochen (ANCIENTVOID_CONFIG der Unit == hub.config.json DIESES
-    # Checkouts) — sonst würde ein fremder Klon die Produktiv-Unit
-    # stoppen/starten (Vorfall 13.11.2026, 14 min Downtime).
     if systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1 && [ "${HUB_LOCAL:-0}" != "1" ]; then
-      unit_config="$(systemctl --user show -p Environment --value ancientvoid-hub.service 2>/dev/null | tr ' ' '\n' | sed -n 's/^ANCIENTVOID_CONFIG=//p')"
-      if [ -n "$unit_config" ] && [ "$unit_config" = "$PWD/hub.config.json" ]; then
-        echo "-> systemd: systemctl --user ${1} ancientvoid-hub.service"
-        systemctl --user "${1}" ancientvoid-hub.service || true
-        exit 0
+      unit_root="$(systemctl --user show ancientvoid-hub.service -p WorkingDirectory --value)"
+      unit_files="$(systemctl --user show ancientvoid-hub.service -p EnvironmentFiles --value)"
+      unit_config="$(systemctl --user show ancientvoid-hub.service -p Environment --value | node -e '
+        let input = "";
+        process.stdin.on("data", chunk => { input += chunk; });
+        process.stdin.on("end", () => {
+          const match = input.match(/(?:^|\s)(?:"ANCIENTVOID_CONFIG=([^"\\]*)"|ANCIENTVOID_CONFIG=([^\s"\\]+))/);
+          if (!match && input.includes("ANCIENTVOID_CONFIG=")) process.exit(1);
+          console.log(match?.[1] ?? match?.[2] ?? "hub.config.json");
+        });')"
+      if [[ "$unit_config" != /* ]]; then unit_config="$unit_root/$unit_config"; fi
+      requested_config="$(realpath -m "${ANCIENTVOID_CONFIG:-$PWD/hub.config.json}")"
+      if [ -z "$unit_root" ] || [ -n "$unit_files" ] || [ "$(realpath -m "$unit_root")" != "$(pwd -P)" ] || [ "$requested_config" != "$(realpath -m "$unit_config")" ]; then
+        echo "Konflikt: ancientvoid-hub.service gehört einem anderen Checkout" >&2
+        [ -n "$unit_root" ] && echo "  Unit: WorkingDirectory=$unit_root ANCIENTVOID_CONFIG=$unit_config" >&2 || echo "  Unit nennt keinen WorkingDirectory (nicht zuordenbar)" >&2
+        echo "  Nichts verändert. Für einen Hub DIESES Checkouts: HUB_LOCAL=1 $0 $1" >&2
+        exit 1
       fi
-      echo "Konflikt: ancientvoid-hub.service gehört einem anderen Checkout" >&2
-      [ -n "$unit_config" ] && echo "  Unit: $unit_config" >&2 || echo "  Unit nennt keinen ANCIENTVOID_CONFIG (nicht diesem Checkout zuordenbar)" >&2
-      echo "  Nichts verändert. Für einen Hub DIESES Checkouts: HUB_LOCAL=1 $0 $1" >&2
-      exit 6
+      echo "-> systemd: systemctl --user ${1} ancientvoid-hub.service"
+      systemctl --user "${1}" ancientvoid-hub.service
+      exit 0
     fi
     ;;
 esac

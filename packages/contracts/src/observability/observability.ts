@@ -49,6 +49,7 @@ export interface HubHealthSessions {
 }
 
 export interface HubHealthReport {
+  deployment?: DeploymentIdentity;
   ok: boolean;
   status: HubHealthStatus;
   serverTime: string;
@@ -77,3 +78,14 @@ export const REDACT_LOG_KEYS = [
   "apiKey",
   "api_key",
 ] as const;
+/** ADR-0076: loaded server, checkout and built browser assets are distinct. */
+export interface DeploymentIdentity {
+  runtimeDirty: boolean | null;
+  checkoutDirty: boolean | null;
+  pwaDirty: boolean | null;
+  runtimeSha: string | null;
+  checkoutSha: string | null;
+  pwaSha: string | null;
+  builtAt: string | null;
+  consistent: boolean | null;
+}

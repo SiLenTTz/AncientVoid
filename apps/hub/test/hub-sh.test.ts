@@ -37,6 +37,9 @@ describe("hub.sh Unit-Weiche (BUG-0156)", () => {
         "#!/usr/bin/env bash",
         'echo "$@" >> "$UNIT_CALLS"',
         'if [ "$1" = "--user" ] && [ "$2" = "cat" ]; then exit 0; fi', // Unit "existiert"
+        // BUG-0156: Identität ist WorkingDirectory UND ANCIENTVOID_CONFIG der Unit.
+        'if [ "$1" = "--user" ] && [ "$2" = "show" ] && [ "$5" = "WorkingDirectory" ]; then echo "${UNIT_ROOT:-' + dir + '}"; exit 0; fi',
+        'if [ "$1" = "--user" ] && [ "$2" = "show" ] && [ "$5" = "EnvironmentFiles" ]; then echo "${UNIT_FILES:-}"; exit 0; fi',
         'if [ "$1" = "--user" ] && [ "$2" = "show" ]; then echo "ANCIENTVOID_CONFIG=$UNIT_CONFIG"; exit 0; fi',
         'if [ "$1" = "--user" ] && [ "$3" = "ancientvoid-hub.service" ]; then echo "unit $2 (stub)"; exit 0; fi',
         "exit 0",
@@ -57,6 +60,9 @@ describe("hub.sh Unit-Weiche (BUG-0156)", () => {
     await chmod(join(dir, "scripts", "hub.sh"), 0o755);
     await writeStub();
     env = { ...process.env, PATH: `${binDir}:${process.env.PATH}`, UNIT_CALLS: callsFile, UNIT_CONFIG: unitConfig, HOME: dir };
+    // Hermetisch: ein unter dem Hub laufender Testprozess erbt sonst dessen
+    // ANCIENTVOID_CONFIG und die Weiche vergleicht gegen die Produktiv-Config.
+    delete env.ANCIENTVOID_CONFIG;
   });
 
   afterAll(async () => {

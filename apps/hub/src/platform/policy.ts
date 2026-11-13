@@ -42,6 +42,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
     return kind === "resume" ? "sessions.resume" : kind === "park" ? "sessions.park" : kind === "stop" ? "sessions.stop" : "sessions.prompt";
   }
   if (/^\/api\/sessions\/[^/]+\/resume$/.test(path)) return "sessions.resume";
+  if (/^\/api\/sessions\/[^/]+\/activity$/.test(path)) return "sessions.activity";
   if (/^\/api\/sessions\/[^/]+\/stop$/.test(path)) return "sessions.stop";
   if (/^\/api\/sessions\/[^/]+\/budget$/.test(path)) return "sessions.budget";
   if (/^\/api\/sessions\/[^/]+\/apply$/.test(path)) return "sessions.apply";

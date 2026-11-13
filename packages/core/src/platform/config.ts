@@ -94,8 +94,8 @@ export const HubConfig = z.object({
   /** EPIC-P17 T17.4: how long the hub waits for an adapter to take a
    * steer before answering "outcome unknown" (event session.steer_timeout).
    * A timeout never triggers a second submission of the same input id. */
-  /** ADR-0044: opt-in; also requires the adapter resume.auto declaration. */
-  autoResumeInterrupted: z.boolean().default(false),
+  /** ADR-0074: default on; also requires the adapter resume.auto declaration. */
+  autoResumeInterrupted: z.boolean().default(true),
   steerWaitMs: z.number().int().min(100).max(600_000).default(30_000),
   /** EPIC-P39 (ADR-0059): zusätzliche Test-Origins für den Browser-Arbeitsplatz (z. B. "http://127.0.0.1:5173");
    * Standardziele sind nur die registrierten Workspace-Services der Session. */

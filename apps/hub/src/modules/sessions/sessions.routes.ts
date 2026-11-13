@@ -1,4 +1,4 @@
-import { AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, WorkspaceMode, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@ancientvoid/contracts";
+import { ActivityReport, AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, WorkspaceMode, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@ancientvoid/contracts";
 import type { FastifyInstance } from "fastify";
 import { DraftStore, isProjectPathAllowed, toStartSpec } from "@ancientvoid/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
@@ -64,6 +64,12 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
   const { deps, projectRoots, hostId, catalogRootFor, callerLabel, withAttachCmd } = ctx;
 
   app.get("/api/sessions", async () => Promise.all(deps.sessions.list().map((session) => withAttachCmd(session))));
+  app.post("/api/sessions/:id/activity", async (req, reply) => {
+    const parsed = ActivityReport.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid activity" });
+    const ack = await deps.sessions.activity((req.params as { id: string }).id, parsed.data);
+    return reply.code(ack.ok ? 200 : 422).send(ack);
+  });
 
 
   app.get("/api/sessions/:id", async (req, reply) => {
@@ -301,7 +307,7 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
   app.get("/api/sessions/:id/queue", async (req, reply) => {
     const { id } = req.params as { id: string };
     if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
-    return deps.sessions.queued(id).map(({ id: queueId, text, createdAt, actor, attachments }) => ({ id: queueId, text, createdAt, actor, attachments: attachments?.length ?? 0 }));
+    return deps.sessions.queued(id).map(({ id: queueId, text, createdAt, actor, attachments, delivery }) => ({ id: queueId, text, createdAt, actor, attachments: attachments?.length ?? 0, ...(delivery ? { delivery } : {}) }));
   });
 
   app.delete("/api/sessions/:id/queue/:queueId", async (req, reply) => {

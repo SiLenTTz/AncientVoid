@@ -39,6 +39,9 @@ export interface SteerMeta {
 }
 
 export interface LiveSession {
+  mainTurnIdle?: boolean;
+  lifecycle?: Promise<void>;
+  turnFailed?: boolean;
   record: SessionRecord;
   adapter: Adapter;
   handle: SessionHandle | null;

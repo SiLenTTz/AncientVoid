@@ -60,7 +60,9 @@ Log/Offset/FIFO lagen ebenfalls namensbasiert.
 
 ## Handoff
 
-- [x] Fix + ADR-0075 + Tests (MR folgt)
+- [x] Fix + ADR-0075 + Tests (MR !454)
 - [x] Datei im Index [`README.md`](README.md)
 - [x] GitLab-Issue [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65)
-- [ ] Vollgate/E2E im gemeinsamen Abschluss (läuft parallel)
+- [x] Vollgate/E2E im gemeinsamen Abschluss der Session-Robustheit
+  (Abschluss-MR: Integration übernimmt die Pane-ID-Steuerung unverändert,
+  16 tmux-Tests und kompletter Browserlauf grün)

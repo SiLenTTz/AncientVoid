@@ -12,6 +12,7 @@ import { createWebAuthnRoutes, type WebAuthnConfig } from "./modules/identity/we
 
 /** What the HTTP modules get from the hub (ADR-0020). */
 export interface RouteDeps {
+  pwaDir?: string;
   /** T7.10: uploaded files (optional — a hub without them refuses attachment ids). */
   attachments?: AttachmentStore;
   /** ADR-0060: Hub-Einstellungen (Register eigener Modelle). */

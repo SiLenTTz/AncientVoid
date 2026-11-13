@@ -1,77 +1,85 @@
 ---
 id: BUG-0155
 slug: idle-trotz-hintergrundarbeit
-status: open
+status: done
 severity: S2
 area: core
 instance: local
-commit: "f92263a"
+commit: ""
 forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/62"
-epic: "P17/P27, PRD K7/K10"
+epic: "P17/P27, PRD K7/K10, ADR-0074 + ADR-0076"
 created: 2026-11-13
-reporter: "Session-Audit im Nutzerauftrag (GitLab #62, Datei hier materialisiert)"
+reporter: "Session-Audit im Nutzerauftrag"
 ---
 
 # BUG-0155 — Session wird idle, obwohl zugehörige Hintergrundarbeit läuft
 
 ## Gesehen
 
-P57-Session `a257b3d1-f9e3-429e-a445-b0e7088f4119` meldete am 13.11.2026 um
-14:33:56Z nach `acp.turn_end`/`session.turn_end` direkt `idle`, während
-`ttfs-diag2.service` (Messlauf-Diagnose) weiterlief. Aus Nutzersicht: eine
-„steckengebliebene" Session, obwohl Arbeit lief.
+P57-Session `a257b3d1-f9e3-429e-a445-b0e7088f4119` meldet um
+2026-11-13T14:33:56Z laufenden Messlauf/Watcher und wird direkt `idle`.
+Während des Audits läuft die zugehörige `ttfs-diag2.service` weiter.
 
 ## Erwartet
 
 Solange zugehörige Hintergrundarbeit oder Subagenten laufen, bleibt die
-Session aktiv. Das Ende einer Chatantwort ist kein Auftragsabschluss. Ein
-lediglich zwischen Aufträgen bereitstehender Provider zählt nicht als Arbeit.
+Session aktiv. Das Ende einer Chatantwort ist kein Auftragsabschluss.
+Ein lediglich zwischen Aufträgen bereitstehender Provider zählt nicht als Arbeit.
 
-## Repro
+## Repro und Logs
 
-1. Journal unter `data/sessions/a257b3d1-…/` lesen: letzte Antwort nennt
-   Messlauf/Watcher, danach `session.turn_end` um 14:33:56Z.
-2. SQLite-Projektion: Status `idle`.
-3. `systemctl --user list-units` zeigt `ttfs-diag2.service … active running`.
+**Produktionsjournal/SQLite und systemd lesend bestätigt; kein eigener
+PWA-/hubctl-Repro gestartet**, um keine weiteren Produktiv-Jobs auszulösen.
 
-**Häufigkeit:** ein live belegtes Gegenbeispiel (Audit); kernseitig jetzt
-durch Tests belegt (`activity-register.test.ts`).
+1. Journal unter `data/sessions/a257b3d1-f9e3-429e-a445-b0e7088f4119/`
+   lesen: letzte Antwort nennt Messlauf/Watcher und weitere offene Schritte.
+2. `acp.turn_end(end_turn)` und `session.turn_end(code=0)` um 14:33:56Z lesen.
+3. SQLite-Projektion: Session-Status `idle`.
+4. `systemctl --user list-units --all --plain --no-legend` zeigt während
+   desselben Audits `ttfs-diag2.service ... active running`.
 
-## Root-cause
+**Häufigkeit:** ein live belegtes Gegenbeispiel. Weitere Provider-/Subagent-
+Varianten sind zu testen, nicht aus diesem einen Fall als live bestätigt abzuleiten.
 
-`packages/core/src/modules/sessions/session-manager.ts` (`adapterTurn`):
-`adapterTurn("idle")` setzte `idle`, sobald der Adapter das Zugende meldet;
-`activeWorkers` erfasste nur Zug-Prozesse über die Hub-Naht. Der Contract
-hatte keine Aktivitätsregistrierung für Subagenten/externe Jobs.
+## Eingrenzung
 
-## Fix (ADR-0074, gestuft)
+`packages/core/src/modules/sessions/session-manager.ts`:
+`adapterTurn("idle")` setzte direkt `idle` und schrieb Zugende.
+Der Contract hatte keine gemeinsame Aktivitätsregistrierung für Provider-
+Subagenten und externe Jobs. `activeWorkers` erfasste nur über die Hub-Naht
+gestartete Zug-Prozesse; ein persistenter Provider ist ausdrücklich kein Zug.
 
-[ADR-0074](../docs/adr/0074-session-aktivitaetsregister.md) —
+## Fix (ADR-0074 T1 + ADR-0076 T2–T4)
+
 Aktivitätsregister, idle nur bei leerem Register, Events
 `session.activity_begin/end/pending`, K7-Recovery aus dem JSONL.
 
-- **T1 (geliefert):** Kern — Register, Idle-Gates (`adapterTurn`,
+- **T1 (MR !452):** Kern — Register, Idle-Gates (`adapterTurn`,
   `trackTurn`-Settle, promptloses Resume), K7-Recovery (Faltung + kein
   Interrupt bei offenen Aktivitäten), Snapshot-Projektion, Contract additiv.
-  Tests: `packages/core/test/modules/sessions/activity-register.test.ts`
-  (Zugende bei laufender Aktivität → working; letzte endet → idle+turn_end;
-  Hub-Neustart → Register zurück, spätes Ende; unbekannte/alte end-Ids
-  ignoriert; Registrierung an idle Session → working).
-- **T2 (offen):** `AdapterContext.registerActivity` + opencode-ACP-Anbindung
-  (Hintergrund-Shells des Harness).
-- **T3 (offen):** Server-Route + `hubctl session activity` für explizite
-  Agent-Registrierung (Auth: Device-Token, `agent:` bleibt lesend).
-- **T4 (offen):** PWA zeigt offene Aktivitäten (Label je Aktivität).
+- **T2 (Abschluss-MR):** `AdapterContext.activity(ActivityReport)` — Codex
+  meldet `collabAgentToolCall`/`subAgentActivity`-Kinder (auch solche, die
+  das Zugende überleben), Claude Tasks; Quelle `provider`. Toter Provider:
+  ends ins Journal, damit die Faltung nichts Offenes mehr erfindet.
+- **T3 (Abschluss-MR):** Server-Route `/api/sessions/:id/activity` +
+  `hubctl activity <session> <id> run --` registriert externe Jobs mit
+  Herzschlag (20 s); ohne Meldung über die Frist (90 s) gilt die Arbeit als
+  unklar/fehlgeschlagen (`session.recovery_blocked`) und stoppt die
+  Wiederaufnahme — kein zweiter Job.
+- **T4 (Abschluss-MR):** PWA zählt begin/end-Paare und zeigt
+  „Hintergrundarbeit aktiv · N offene Aktivitäten".
 
 ## Tests
 
 | Ring | Datei | Stand |
 |---|---|---|
-| Unit (neu) | `packages/core/test/modules/sessions/activity-register.test.ts` | 4/4 grün |
-| Regression | `packages/core/test/modules/sessions/turn-state.test.ts` | grün (Semantik ohne Aktivität unverändert) |
+| Unit (T1) | `packages/core/test/modules/sessions/activity-register.test.ts` | grün |
+| Unit (T2) | `packages/adapters/codex/test/app-server.test.ts` (Kind überlebt Hauptzug, endet selbstständig) | grün |
+| Integration (T3) | `apps/hubctl/test/activity.integration.test.ts`, `interrupted-session.integration.test.ts` | grün |
+| E2E (T3/T4) | `e2e/specs/session-robustheit.spec.ts` „Hintergrundarbeit bleibt bis zum letzten Job aktiv" | grün |
 
 ## Handoff
 
-- [x] ADR-0074 angelegt
-- [x] T1 Kernimplementierung + Tests (MR folgt)
-- [ ] T2–T4 (Nahtstellen) als Folgeaufträge — Issue bleibt offen bis T3
+- [x] ADR-0074 (Register, MR !452) + ADR-0076 (Vertrag Wiederaufnahme/Queue)
+- [x] T1–T4 umgesetzt und im Vollgate grün (Abschluss-MR Session-Robustheit)
+- [x] GitLab-Issue [#62](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/62)

@@ -11,6 +11,8 @@ export interface SessionInterruptionPayload {
   reason: SessionInterruptionReason;
   since: string;
   lastTurnId: string | null;
+  /** ADR-0076: absent on legacy interruptions; those remain manual. */
+  autoResumeEligible?: boolean;
 }
 
 export const SESSION_STATUSES = [

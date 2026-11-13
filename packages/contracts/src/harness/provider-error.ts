@@ -43,7 +43,7 @@ export function classifyProviderError(raw: string, ref?: string): ProviderErrorI
   }
   // Cursor schreibt das Kontingent nicht als „usage limit reached“, sondern
   // als ActionRequiredError auf stdout („You've hit your usage limit for Opus“).
-  if (/hit your usage limit|out of usage|ActionRequiredError/i.test(text)) {
+  if (/hit your (?:usage|weekly|daily|monthly) limit|out of usage|ActionRequiredError/i.test(text)) {
     return quotaInfo(text, refNote);
   }
   if (/\b429\b|rate.?limit|too many requests/i.test(text)) {

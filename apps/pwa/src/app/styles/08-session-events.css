@@ -238,6 +238,16 @@
 }
 .interrupted-banner p { margin: 6px 0; overflow-wrap: anywhere; }
 .interrupted-banner .row { gap: 8px; flex-wrap: wrap; }
+.recovery-handover {
+  width: min(40rem, calc(100vw / var(--ui-zoom, 1) - 2rem));
+  max-height: calc(90dvh / var(--ui-zoom, 1));
+  overflow: auto;
+  color: var(--fg);
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: 12px;
+}
+.recovery-handover::backdrop { background: #0009; }
 
 /* EPIC-P48: Herauslösen-Werkzeugzeile im Graph-/Datei-Tab der Session. */
 .graph-pane-tools { display: flex; justify-content: flex-end; gap: 6px; padding: 2px 6px; }

@@ -11,7 +11,7 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
     const load = () =>
       api
         .sessionQueue(sessionId)
-        .then((list) => alive && setItems((prev) => (prev.length === list.length && prev.every((p, i) => p.id === list[i]!.id) ? prev : list)))
+        .then((list) => alive && setItems((prev) => (prev.length === list.length && prev.every((p, i) => p.id === list[i]!.id && p.delivery === list[i]!.delivery) ? prev : list)))
         .catch(() => undefined); // ein Fehlschlag lässt die Liste stehen (BUG-0045)
     void load();
     const timer = setInterval(load, 2500);
@@ -49,7 +49,9 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
         <div key={item.id} class="queue-item">
           <span class="queue-pos dim">{i + 1}.</span>
           <span class="queue-text">{item.text.length > 140 ? `${item.text.slice(0, 139)}…` : item.text}</span>
+          {item.delivery === "unknown" && <span role="alert">Annahme unklar — Verlauf prüfen</span>}
           <button
+            disabled={item.delivery === "unknown"}
             class="icon-action"
             type="button"
             aria-label={`Vorgemerkte Nachricht ${i + 1} jetzt senden`}
