@@ -167,6 +167,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0154](bug-0154-endlos-dummy-vormerken.md) | Endlos-Dummy: „Vormerken" statt Senden, erste Nachricht erreicht nie den Verlauf | open | S2 | setup | [#63](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/63) |
 | [BUG-0155](bug-0155-idle-trotz-hintergrundarbeit.md) | Session wird idle, obwohl zugehörige Hintergrundarbeit läuft | open | S2 | core | [#62](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/62) |
 | [BUG-0156](bug-0156-hub-stop-fremde-instanz.md) | hub.sh steuert aus einem anderen Checkout die Produktiv-Unit | fixed | S1 | ops | [#64](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/64) |
-| [BUG-0157](bug-0157-nyx-fab-feedback-blende-steht-dauerhaft.md) | Feedbackblende des Nyx-Voice-FAB steht nach der Aufnahme dauerhaft | open | S3 | pwa | — |
+| [BUG-0159](bug-0159-nyx-fab-feedback-blende-steht-dauerhaft.md) | Feedbackblende des Nyx-Voice-FAB steht nach der Aufnahme dauerhaft | fixed | S3 | pwa | [#457](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/457) |
 
-Die nächste freie Nummer ist **0158**.
+Die nächste freie Nummer ist **0160**.

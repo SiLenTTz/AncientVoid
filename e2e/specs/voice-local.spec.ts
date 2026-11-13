@@ -115,7 +115,7 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     expect(received.length).toBe(before);
   });
 
-  test("Feedbackblende blendet nach dem Ende automatisch aus — sie steht nicht dauerhaft (BUG-0157)", async ({ app, hub }) => {
+  test("Feedbackblende blendet nach dem Ende automatisch aus — sie steht nicht dauerhaft (BUG-0159)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByPlaceholder("Antworten…").click();

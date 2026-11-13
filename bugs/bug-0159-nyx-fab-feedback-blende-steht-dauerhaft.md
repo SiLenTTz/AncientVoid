@@ -1,18 +1,18 @@
 ---
-id: BUG-0157
+id: BUG-0159
 slug: nyx-fab-feedback-blende-steht-dauerhaft
-status: open
+status: fixed
 severity: S3
 area: pwa
 instance: local
-commit: ""
-forge: ""
+commit: "f079676"
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/457"
 epic: "P10"
 created: 2026-11-13
 reporter: "Nutzerreport (mündlich): Tooltipp am Voice-FAB bleibt stehen"
 ---
 
-# BUG-0157 — Die Feedbackblende des Nyx-Voice-FAB steht dauerhaft
+# BUG-0159 — Die Feedbackblende des Nyx-Voice-FAB steht dauerhaft
 
 ## Gesehen
 
@@ -63,7 +63,7 @@ Keine Server-Logs betroffen — reiner PWA-State.
 | Ring | Befehl / Datei | Stand vor dem Fix |
 |---|---|---|
 | Unit | — (Logik hängt an Preact-Hook-State, kein DOM freies Modul) | — |
-| E2E | `e2e/specs/voice-local.spec.ts` (neuer Fall BUG-0157) | rot ohne Fix, grün mit Fix |
+| E2E | `e2e/specs/voice-local.spec.ts` (neuer Fall BUG-0159) | rot ohne Fix, grün mit Fix |
 | Contract (`adapter-testkit`) | | nicht betroffen |
 
 ## Eingrenzung
