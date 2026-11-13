@@ -160,8 +160,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0147](bug-0147-erststart-leerer-hub-gelesen.md) | Erststart mit leerem Hub: die ersten Sessions gelten als gelesen | done | S3 | pwa | — |
 | [BUG-0148](bug-0148-automations-tick-waechst.md) | Automations-Tick wächst mit der Laufzeit und blockiert den Hub | done | S2 | core | — |
 | [BUG-0149](bug-0149-cursor-kontingent-unsichtbar.md) | Cursor-Kontingent lässt die Session auf „arbeitet“ hängen, ohne Fehler und ohne Übergabe | done | S2 | adapter-cursor | — |
-
-| [BUG-0150](bug-0150-horizontale-inhaltsscroller.md) | Lange Inhalte erzeugen horizontale Scrollflächen | done | S3 | pwa | — |
-| [BUG-0151](bug-0151-denkpfad-verliert-werkzeuge.md) | Denkpfad verliert Tool-Zuordnungen und Denktext | done | S2 | pwa | — |
+| [BUG-0150](bug-0150-horizontale-inhaltsscroller.md) | Lange Inhalte erzeugen horizontale Scrollflächen | done | S3 | pwa | [#58](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/58) |
+| [BUG-0151](bug-0151-denkpfad-verliert-werkzeuge.md) | Denkpfad verliert Tool-Zuordnungen und Denktext | done | S2 | pwa | [#57](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/57) |
 
 Die nächste freie Nummer ist **0152**.

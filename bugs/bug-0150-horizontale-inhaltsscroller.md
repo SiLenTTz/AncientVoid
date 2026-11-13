@@ -6,7 +6,7 @@ severity: S3
 area: pwa
 instance: lokal
 commit: ""
-forge: ""
+forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/58"
 epic: EPIC-P50
 created: 2026-11-13
 reporter: "Nutzer (Session 109c8d3a)"
