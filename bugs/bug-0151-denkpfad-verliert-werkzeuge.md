@@ -44,6 +44,9 @@ je API/Session, Fehleranzeige mit Wiederholung); Fleet-Host beim Laden
 berücksichtigen. Namen/Kategorien klassifizieren, unbekannte Namen erhalten,
 Notizen aufklappbar darstellen. ACP beim Kanalwechsel flushen. Codex-Shapes
 gegen das lokal generierte Schema von codex-cli 0.164.0 geprüft.
+Der optionale Exec-Harness verarbeitet zusätzlich Reasoning, MCP, Dateiänderungen,
+Delegation, Web-Suche und Plan-Updates nach dem
+[offiziellen Exec-Ereignisschema](https://github.com/openai/codex/blob/main/codex-rs/exec/src/exec_events.rs).
 
 Rot vor Fix: vier Unit-Regressionen in `turns.test.ts`/ACP `normalize.test.ts`,
 drei Codex-Regressionen in `app-server-events.test.ts`, Browser-Repro `GROSS`.

@@ -1,5 +1,8 @@
 import { providerErrorEvent, type EmittedEvent } from "@ancientvoid/contracts";
 import { estimateCostUsd } from "./pricing.ts";
+import { itemCompleted, itemStarted, planEvent, type CodexItem as ServerItem } from "./app-server-events.ts";
+import { summarize } from "./summary.ts";
+export { summarize } from "./summary.ts";
 
 /**
  * Maps one parsed line of `codex exec --json` output to zero or more
@@ -15,11 +18,8 @@ import { estimateCostUsd } from "./pricing.ts";
  * matches EPIC-P1 §3's own note that codex needs its own price table
  * (T1.11, see pricing.ts), unlike claude's `total_cost_usd`.
  *
- * No `item.type: "reasoning"` was observed in any capture
- * (`reasoning_output_tokens` was 0 in all three) — codex clearly tracks
- * reasoning tokens even when none are spent, so a reasoning item type
- * presumably exists, but its shape is UNverified here and needs a real
- * capture (T1.4) before being trusted.
+ * Weitere Item-Shapes: offizielles Exec-Protokoll, abgeglichen am 13.11.2026:
+ * https://github.com/openai/codex/blob/main/codex-rs/exec/src/exec_events.rs
  */
 
 interface CodexItem {
@@ -30,6 +30,18 @@ interface CodexItem {
   aggregated_output?: string;
   exit_code?: number | null;
   status?: string;
+  server?: string;
+  tool?: string;
+  arguments?: unknown;
+  result?: unknown;
+  error?: unknown;
+  changes?: { path: string; kind?: unknown }[];
+  query?: string;
+  results?: unknown;
+  prompt?: string;
+  agents_states?: Record<string, unknown>;
+  items?: { text: string; completed: boolean }[];
+  message?: string;
 }
 
 function asString(v: unknown, max = 4000): string {
@@ -39,11 +51,6 @@ function asString(v: unknown, max = 4000): string {
   } catch {
     return String(v).slice(0, max);
   }
-}
-
-export function summarize(text: string, max = 200): string {
-  const oneLine = text.replace(/\s+/g, " ").trim();
-  return oneLine.length > max ? oneLine.slice(0, max - 1) + "…" : oneLine;
 }
 
 export function normalizeCodexLine(raw: unknown, model?: string): EmittedEvent[] {
@@ -92,8 +99,12 @@ export function normalizeCodexLine(raw: unknown, model?: string): EmittedEvent[]
       ];
     }
     case "item.started":
+    case "item.updated":
     case "item.completed": {
       const item = (line.item ?? {}) as CodexItem;
+      if (item.type === "todo_list") return [planEvent((item.items ?? []).map((entry) => ({ step: entry.text, status: entry.completed ? "completed" : "pending" })))];
+      // Updates sind Zwischenstände, kein zweiter Aufruf desselben Werkzeugs.
+      if (line.type === "item.updated" && ["agent_message", "reasoning", "command_execution", "file_change", "mcp_tool_call", "collab_tool_call", "web_search"].includes(item.type ?? "")) return [];
       return normalizeItem(item, line.type === "item.completed");
     }
     case "turn.failed":
@@ -120,11 +131,23 @@ export function normalizeCodexLine(raw: unknown, model?: string): EmittedEvent[]
 function normalizeItem(item: CodexItem, completed: boolean): EmittedEvent[] {
   switch (item.type) {
     case "agent_message":
-      // Only ever observed as item.completed (no streaming item.started
-      // for message text in any capture) — an item.started for this type
-      // is handled by the default branch below if it ever occurs.
-      if (!completed) break;
+      // Zwischenstände nicht als zusätzliche Antwortzeilen duplizieren.
+      if (!completed) return [];
       return [{ type: "assistant", summary: summarize(item.text ?? ""), payload: { text: item.text ?? "" } }];
+    case "reasoning":
+      return completed && item.text?.trim() ? [{ type: "thinking", summary: summarize(item.text), payload: { text: item.text } }] : [];
+    case "file_change":
+    case "mcp_tool_call":
+    case "collab_tool_call":
+    case "web_search": {
+      const types = { file_change: "fileChange", mcp_tool_call: "mcpToolCall", collab_tool_call: "collabAgentToolCall", web_search: "webSearch" };
+      const mapped: ServerItem = { ...item, type: types[item.type], ...(item.agents_states ? { agentsStates: item.agents_states } : {}), result: item.results ?? item.result };
+      // Exec emittiert Dateiänderungen ausschließlich als Completed-Item.
+      if (item.type === "file_change") return completed ? [...itemStarted(mapped), ...itemCompleted(mapped)] : [];
+      return completed ? itemCompleted(mapped) : itemStarted(mapped);
+    }
+    case "error":
+      return completed ? [{ type: "error", summary: summarize(item.message ?? "Codex-Fehler"), payload: { message: item.message ?? "", itemId: item.id } }] : [];
     case "command_execution": {
       if (!completed) {
         return [
@@ -136,7 +159,7 @@ function normalizeItem(item: CodexItem, completed: boolean): EmittedEvent[] {
         ];
       }
       const output = item.aggregated_output ?? "";
-      const isError = (item.exit_code ?? 0) !== 0;
+      const isError = item.status === "failed" || item.status === "declined" || (item.exit_code ?? 0) !== 0;
       return [
         {
           type: "tool_result",
@@ -154,5 +177,4 @@ function normalizeItem(item: CodexItem, completed: boolean): EmittedEvent[] {
         },
       ];
   }
-  return [];
 }

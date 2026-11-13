@@ -196,7 +196,7 @@ function inputOf(use: NormalizedEvent): Record<string, unknown> {
   return {};
 }
 
-const TARGET_KEYS = ["command", "cmd", "file_path", "filePath", "path", "pattern", "query", "url", "description", "prompt"] as const;
+const TARGET_KEYS = ["command", "cmd", "file_path", "filePath", "path", "files", "pattern", "query", "url", "description", "prompt"] as const;
 
 function targetOf(use: NormalizedEvent, kind: StepKind): string {
   const input = inputOf(use);

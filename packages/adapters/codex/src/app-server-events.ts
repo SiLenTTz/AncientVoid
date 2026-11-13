@@ -1,5 +1,5 @@
 import type { EmittedEvent, UsageQuota } from "@ancientvoid/contracts";
-import { summarize } from "./normalize.ts";
+import { summarize } from "./summary.ts";
 
 /**
  * `codex app-server` (v2 protocol, codex-cli 0.156.1 / 0.164.0, schema generated with
@@ -66,7 +66,7 @@ export function toolOf(item: CodexItem): { name: string; input: Record<string, u
 export function itemStarted(item: CodexItem): EmittedEvent[] {
   const tool = toolOf(item);
   if (!tool) return [];
-  return [{ type: "tool_use", summary: summarize(`${tool.name}(${JSON.stringify(tool.input).slice(0, 150)})`), payload: { id: item.id, name: tool.name, input: tool.input } }];
+  return [{ type: "tool_use", summary: summarize(`${tool.name}(${JSON.stringify(tool.input).slice(0, 150)})`), payload: { id: item.id, name: tool.name, input: tool.input, ...(item.type === "fileChange" ? { kind: "edit" } : item.type === "webSearch" ? { kind: "fetch" } : {}) } }];
 }
 
 export function itemCompleted(item: CodexItem): EmittedEvent[] {

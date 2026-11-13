@@ -32,6 +32,11 @@ describe("providerübergreifende Schritte", () => {
     expect(stepsOf(work)[0]).toMatchObject({ verb: "custom_lookup", state: "ok", short: "Treffer" });
   });
 
+  it("beschreibt kategorisierte Dateiänderungen auch mit mehreren Dateipfaden", () => {
+    const work = works(turnsOf([ev("tool_use", { id: "patch", name: "Bearbeiten", kind: "edit", input: { files: ["README.md", "app.ts"] } })], false))[0]!;
+    expect(stepsOf(work)[0]).toMatchObject({ kind: "edit", target: "README.md app.ts" });
+  });
+
   it("verliert ausgelagertes Denken nicht vor dem Nachladen", () => {
     const thought = { ...ev("thinking", { truncated: true, bytes: 8000 }, "Langer Gedankengang"), blobRef: "sha256:abc" };
     expect(shown(turnsOf([thought], false))).toEqual([thought.seq]);
