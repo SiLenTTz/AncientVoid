@@ -3,6 +3,8 @@ import { collectHealth } from "@ancientvoid/core";
 import { FLEET_PROTOCOL_VERSION } from "@ancientvoid/contracts";
 import type { FleetHello } from "@ancientvoid/contracts";
 import type { RouteContext } from "../../route-context.ts";
+import { resolve } from "node:path";
+import { deploymentIdentity } from "./deployment.ts";
 
 /** Reported to other hubs in /api/fleet/hello. */
 const HUB_VERSION = "0.1.0";
@@ -10,6 +12,7 @@ const HUB_VERSION = "0.1.0";
 /** Health, readiness, metrics and the fleet hello (ADR-0010, ADR-0017). */
 export function registerSystemRoutes(app: FastifyInstance, ctx: RouteContext): void {
   const { deps, hostId, hostLabel, startedAt } = ctx;
+  const deployment = deploymentIdentity(resolve(import.meta.dirname, "../../../../.."), deps.pwaDir);
 
   app.get("/api/fleet/hello", async (): Promise<FleetHello> => ({
     hostId,
@@ -21,12 +24,12 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: RouteContext): v
 
 
   app.get("/api/health", async () =>
-    collectHealth({
+    ({ ...await collectHealth({
       startedAt,
       sessions: deps.sessions,
       registry: deps.registry,
       ...(deps.store ? { store: deps.store } : {}),
-    }),
+    }), deployment: deployment() }),
   );
 
 
@@ -37,8 +40,9 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: RouteContext): v
       registry: deps.registry,
       ...(deps.store ? { store: deps.store } : {}),
     });
-    if (!report.ok) return reply.code(503).send(report);
-    return report;
+    const body = { ...report, deployment: deployment() };
+    if (!report.ok) return reply.code(503).send(body);
+    return body;
   });
 
 

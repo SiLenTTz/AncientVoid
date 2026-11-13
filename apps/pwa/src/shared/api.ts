@@ -1,4 +1,4 @@
-import type { AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { DeploymentIdentity, QueueDeliveryState, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 import { noteApprovalDecided } from "./first-run.ts";
 export interface SessionRecord {
   id: string;
@@ -676,6 +676,7 @@ export interface RunEstimate {
 }
 
 export interface QueuedPrompt {
+  delivery?: QueueDeliveryState;
   id: string;
   text: string;
   createdAt: string;
@@ -859,7 +860,7 @@ export function isAuthError(err: unknown): boolean {
 /** All hub calls. `P` maps a path to its host (ADR-0017 routing). */
 function createHubApi(P: (path: string) => string) {
   return {
-  health: () => api<{ ok: boolean; serverTime: string }>(P("/api/health")),
+  health: () => api<{ ok: boolean; serverTime: string; deployment?: DeploymentIdentity }>(P("/api/health")),
   adapters: () => api<AdapterInfo[]>(P("/api/adapters")),
   /** EPIC-P19: Loops / Dark Factories und ob sie startbar sind. */
   loops: () => api<LoopInfo[]>(P("/api/loops")),

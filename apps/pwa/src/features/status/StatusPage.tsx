@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import type { DeploymentIdentity } from "@ancientvoid/contracts";
 import { TOOL_GATE_LABEL, featureChips } from "./harness-features.ts";
 import { hubApi, type AdapterInfo, type AdapterUsage, type HarnessInventoryEntry } from "../../shared/api.ts";
 import { formatWindow } from "../overview/Dashboard.tsx";
@@ -16,12 +17,29 @@ export function StatusPage({ adapters, usage }: { adapters: AdapterInfo[]; usage
   if (adapters.length === 0) return <div class="empty">lädt …</div>;
   return (
     <div class="status-page">
+      <DeploymentCard />
       {adapters.map((a) => (
         <ProviderCard key={a.id} adapter={a} usage={usage[a.id]} />
       ))}
       <InventoryCard />
     </div>
   );
+}
+
+function DeploymentCard() {
+  const [deployment, setDeployment] = useState<DeploymentIdentity | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void hubApi.health().then(health => { if (alive) setDeployment(health.deployment ?? null); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, []);
+  if (!deployment) return null;
+  const short = (sha: string | null) => sha?.slice(0, 8) ?? "unbekannt";
+  return <section class="card" aria-label="Ausgelieferter Stand">
+    <strong>Ausgelieferter Stand</strong>
+    <p>Hub: <code>{short(deployment.runtimeSha)}</code> · PWA: <code>{short(deployment.pwaSha)}</code> · Checkout: <code>{short(deployment.checkoutSha)}</code></p>
+    <p>{deployment.consistent === true ? "Hub und Oberfläche sind auf demselben Stand." : deployment.consistent === false ? "Build oder Neustart ausstehend — Stände weichen ab." : "Build-Zuordnung noch unbekannt."}</p>
+  </section>;
 }
 
 const SUPPORT_LABEL: Record<HarnessInventoryEntry["discovery"], string> = {
