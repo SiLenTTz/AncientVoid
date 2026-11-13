@@ -265,6 +265,29 @@ describe("TmuxRunner", () => {
     expect(warns.some((m) => m.includes("name heuristic"))).toBe(true); // fallback is logged, never silent
     await byName!.kill("SIGKILL");
   });
+
+  // BUG-0157: Ein alter Handle darf einen Nachfolger unter demselben
+  // Sessionnamen nie beenden — Steuerung zielt auf die Pane-ID der eigenen
+  // Generation, das Exit-Cleanup prüft Pane-Zugehörigkeit vor kill-session.
+  itTmux("an old worker handle cannot terminate a successor with the same session name", async () => {
+    const first = await runner.spawn({ name: "gen-race", cwd: dir, cmd: ["sleep", "30"] });
+    await first.kill("SIGTERM");
+    await first.exited();
+    // Nachfolger-Generation unter demselben Namen.
+    const second = await runner.spawn({ name: "gen-race", cwd: dir, cmd: ["sleep", "30"] });
+    // Alter Handle killt erneut (z. B. verspätetes Cleanup im Fehlerpfad).
+    await first.kill("SIGKILL");
+    await first.kill("SIGTERM").catch(() => undefined);
+    const listed = await runner.list();
+    expect(listed.some((w) => w.fullName === `${TMUX_PREFIX}gen-race`)).toBe(true);
+    // … und der Nachfolger läuft wirklich noch (Pane lebt, kein Exit-Feuer).
+    let secondExited = false;
+    second.onExit(() => (secondExited = true));
+    await new Promise((r) => setTimeout(r, 500));
+    expect(secondExited).toBe(false);
+    await second.kill("SIGTERM");
+    await second.exited();
+  });
 });
 
 /** T17.6: rename/set-option from the test side — execTmux is private, tests

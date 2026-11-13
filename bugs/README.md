@@ -162,11 +162,13 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0149](bug-0149-cursor-kontingent-unsichtbar.md) | Cursor-Kontingent lässt die Session auf „arbeitet“ hängen, ohne Fehler und ohne Übergabe | done | S2 | adapter-cursor | — |
 | [BUG-0150](bug-0150-horizontale-inhaltsscroller.md) | Lange Inhalte erzeugen horizontale Scrollflächen | done | S3 | pwa | [#58](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/58) |
 | [BUG-0151](bug-0151-denkpfad-verliert-werkzeuge.md) | Denkpfad verliert Tool-Zuordnungen und Denktext | done | S2 | pwa | [#57](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/57) |
-| [BUG-0152](bug-0152-galaxie-vollbild-querformat-reload.md) | Galaxie-Vollbild: Bei 915×412 überlebt die Graph-Ansicht den Reload nicht | open | S3 | pwa | [#59](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/59) |
+| [BUG-0152](bug-0152-galaxie-vollbild-querformat-reload.md) | Galaxie-E2E rot auf main: Erwartung nach Querformat-Reload zeitlich zu streng (Produkt korrekt) | done | S4 | e2e | [#59](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/59) |
 | [BUG-0153](bug-0153-erstinstallation-ohne-projektwurzeln.md) | Erstinstallation ohne projectRoots: erste Session unmöglich, Tutorial schweigt den Schritt weg | open | S2 | pwa | [#60](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/60) |
 | [BUG-0154](bug-0154-endlos-dummy-vormerken.md) | Endlos-Dummy: „Vormerken" statt Senden, erste Nachricht erreicht nie den Verlauf | open | S2 | setup | [#63](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/63) |
 | [BUG-0155](bug-0155-idle-trotz-hintergrundarbeit.md) | Session wird idle, obwohl zugehörige Hintergrundarbeit läuft | open | S2 | core | [#62](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/62) |
 | [BUG-0156](bug-0156-hub-stop-fremde-instanz.md) | hub.sh steuert aus einem anderen Checkout die Produktiv-Unit | fixed | S1 | ops | [#64](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/64) |
+| [BUG-0157](bug-0157-tmux-alter-handle-killt-nachfolger.md) | Alter tmux-Handle beendet den Nachfolger derselben Session | fixed | S2 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
+| [BUG-0158](bug-0158-codex-ablehnung-als-erfolg.md) | Codex bestätigt abgelehnte Folgeeingaben als angenommen | fixed | S2 | adapters | [#61](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/61) |
 | [BUG-0159](bug-0159-nyx-fab-feedback-blende-steht-dauerhaft.md) | Feedbackblende des Nyx-Voice-FAB steht nach der Aufnahme dauerhaft | fixed | S3 | pwa | [#457](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/457) |
 
 Die nächste freie Nummer ist **0160**.

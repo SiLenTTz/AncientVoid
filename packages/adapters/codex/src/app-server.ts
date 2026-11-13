@@ -172,15 +172,29 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
     return [{ type: "text", text: promptWithAttachments(text, attachments, native) }, ...images.map((a) => ({ type: "localImage", path: a.path }))];
   }
 
-  async function startTurn(state: ServerSession, ctx: AdapterContext, text: string, attachments?: readonly PromptAttachment[]): Promise<void> {
+  /** Startet einen Zug. Rückgabe: null = angenommen; sonst der sichtbare
+   * Grund der Ablehnung (BUG-0158: der Aufrufer muss negativ acken). */
+  async function startTurn(state: ServerSession, ctx: AdapterContext, text: string, attachments?: readonly PromptAttachment[]): Promise<string | null> {
     ctx.turn?.("working");
     try {
       const res = (await state.conn.request("turn/start", { threadId: state.threadId, input: inputOf(text, attachments) })) as { turn?: { id?: string } };
       state.turnId = res.turn?.id ?? null;
+      return null;
     } catch (err) {
-      ctx.emit(providerErrorEvent("codex", err instanceof Error ? err.message : String(err)));
+      const reason = err instanceof Error ? err.message : String(err);
+      ctx.emit(providerErrorEvent("codex", reason));
       ctx.turn?.("idle");
+      return reason;
     }
+  }
+
+  /** BUG-0158: Ablehnung ehrlich weitergeben — Transport-Timeout bleibt ein
+   * unbekanntes Ergebnis (kein blindes Retry, nicht als angenommen verbucht). */
+  function rejectDetail(method: string, err: unknown): string {
+    const msg = err instanceof Error ? err.message : String(err);
+    return msg.includes("keine Antwort nach")
+      ? `codex: ${method} Ergebnis unbekannt (${msg}) — Eingabe nicht als angenommen verbucht`
+      : `codex: ${method} abgelehnt — ${msg}`;
   }
 
   const adapter: Adapter = {
@@ -230,11 +244,18 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
           if (!state?.healthy || !state.threadId) return { ok: false, detail: "codex: app-server läuft nicht mehr — Session neu starten" };
           if (state.turnId) {
             // A running turn takes the text as steering input.
-            await state.conn.request("turn/steer", { threadId: state.threadId, turnId: state.turnId, input: [{ type: "text", text: input.text }] }).catch(() => undefined);
-            return { ok: true };
+            // BUG-0158: eine nachweisliche RPC-Ablehnung ist kein Erfolg.
+            try {
+              await state.conn.request("turn/steer", { threadId: state.threadId, turnId: state.turnId, input: [{ type: "text", text: input.text }] });
+              return { ok: true };
+            } catch (err) {
+              return { ok: false, detail: rejectDetail("turn/steer", err) };
+            }
           }
-          await startTurn(state, ctx, input.text, input.attachments);
-          return { ok: true };
+          {
+            const rejected = await startTurn(state, ctx, input.text, input.attachments);
+            return rejected === null ? { ok: true } : { ok: false, detail: rejectDetail("turn/start", new Error(rejected)) };
+          }
         case "park":
           if (state?.threadId && state.turnId) await state.conn.request("turn/interrupt", { threadId: state.threadId, turnId: state.turnId }).catch(() => undefined);
           return { ok: true };
