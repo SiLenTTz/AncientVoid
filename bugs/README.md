@@ -168,5 +168,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0155](bug-0155-idle-trotz-hintergrundarbeit.md) | Session wird idle, obwohl zugehörige Hintergrundarbeit läuft | open | S2 | core | [#62](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/62) |
 | [BUG-0156](bug-0156-hub-stop-fremde-instanz.md) | hub.sh steuert aus einem anderen Checkout die Produktiv-Unit | fixed | S1 | ops | [#64](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/64) |
 | [BUG-0157](bug-0157-tmux-alter-handle-killt-nachfolger.md) | Alter tmux-Handle beendet den Nachfolger derselben Session | fixed | S2 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
+| [BUG-0158](bug-0158-codex-ablehnung-als-erfolg.md) | Codex bestätigt abgelehnte Folgeeingaben als angenommen | fixed | S2 | adapters | [#61](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/61) |
 
 Die nächste freie Nummer ist **0152**.
