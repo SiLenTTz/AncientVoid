@@ -46,6 +46,8 @@ Usage:
   hubctl health
   hubctl adapters
   hubctl sessions                         includes interrupted/unknown status as text
+  hubctl activity <sessionId> <id> running|completed|failed
+  hubctl activity <sessionId> <id> run -- <command> [args...]  registers a job with heartbeat
   hubctl discover
   hubctl inventory
   hubctl show <sessionId>
@@ -136,6 +138,11 @@ async function* followWs(sessionId: string): AsyncGenerator<NormalizedEvent> {
 async function main(): Promise<void> {
   const [cmd, ...args] = process.argv.slice(2);
   switch (cmd) {
+    case "activity": {
+      const { activityCommand } = await import("./activity.ts");
+      await activityCommand(args);
+      break;
+    }
     case "health": {
       const h = await api<{
         ok: boolean;

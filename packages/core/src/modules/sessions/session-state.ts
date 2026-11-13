@@ -1,6 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Adapter, NormalizedEvent, SessionHandle, SessionRecord, SessionStatus } from "@ancientvoid/contracts";
+import type { Adapter, NormalizedEvent, SessionActivity, SessionHandle, SessionRecord, SessionStatus } from "@ancientvoid/contracts";
+
+export interface OpenActivity {
+  activity: SessionActivity;
+  external: boolean;
+  updatedAt: string;
+}
 
 export const WRITER_LEASE_MS = 30_000;
 
@@ -23,6 +29,10 @@ export interface SteerMeta {
 }
 
 export interface LiveSession {
+  activities?: Map<string, OpenActivity>;
+  mainTurnIdle?: boolean;
+  lifecycle?: Promise<void>;
+  turnFailed?: boolean;
   record: SessionRecord;
   adapter: Adapter;
   handle: SessionHandle | null;

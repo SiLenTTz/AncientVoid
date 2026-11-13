@@ -10,14 +10,16 @@ import { HubDatabase } from "../../../src/platform/db.ts";
 import { SessionManager } from "../../../src/modules/sessions/session-manager.ts";
 
 /** EPIC-P15 T15.3: Pause und vorgemerkte Nachrichten. */
-function fakeAdapter() {
+function fakeAdapter(nextTurn = false) {
   const steered: SteerInput[] = [];
   const ctxs = new Map<string, AdapterContext>();
   let refusePrompts = false;
+  let hangPrompts = false;
   const adapter: Adapter = {
     id: "turny",
     version: "0.0.1",
     capabilities: () => ({
+      ...(nextTurn ? { promptDelivery: "next-turn" as const } : {}),
       reasoning: false,
       tools: false,
       cost: false,
@@ -32,6 +34,7 @@ function fakeAdapter() {
       return { sessionId: ctx.sessionId };
     },
     async steer(handle, input, ctx) {
+      if (input.kind === "prompt" && hangPrompts) return new Promise<{ ok: boolean }>(() => {});
       // BUG-0114: eine Ablehnung heißt „nie angekommen" — solche Versuche werden nicht protokolliert.
       if (input.kind === "prompt" && refusePrompts) return { ok: false, detail: "gerade beschäftigt" };
       steered.push(input);
@@ -52,7 +55,7 @@ function fakeAdapter() {
   registry.register("turny", () => adapter);
   /** The provider finishes its turn. */
   const endTurn = (sessionId: string) => ctxs.get(sessionId)!.turn!("idle");
-  return { steered, registry, endTurn, refuseNext: () => { refusePrompts = true; } };
+  return { steered, registry, endTurn, refuseNext: () => { refusePrompts = true; }, hangNext: () => { hangPrompts = true; } };
 }
 
 async function waitFor(check: () => boolean | Promise<boolean>, ms = 4000): Promise<void> {
@@ -64,13 +67,74 @@ async function waitFor(check: () => boolean | Promise<boolean>, ms = 4000): Prom
   throw new Error("waitFor: Bedingung nicht erfüllt");
 }
 
-const setup = async (dbFile?: string, root?: string) => {
+const setup = async (dbFile?: string, root?: string, nextTurn = false, steerWaitMs?: number) => {
   const dir = root ?? (await mkdtemp(join(tmpdir(), "ancientvoid-queue-")));
-  const { steered, registry, endTurn, refuseNext } = fakeAdapter();
+  const { steered, registry, endTurn, refuseNext, hangNext } = fakeAdapter(nextTurn);
   const db = new HubDatabase(dbFile ?? ":memory:");
-  const sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
-  return { dir, sessions, steered, endTurn, refuseNext, db, done: async () => { await sessions.shutdown(); if (!root) await rm(dir, { recursive: true, force: true }); } };
+  const sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner(), undefined, undefined, undefined, null, [], steerWaitMs === undefined ? {} : { steerWaitMs });
+  return { dir, sessions, steered, endTurn, refuseNext, hangNext, db, registry, done: async () => { await sessions.shutdown(); if (!root) await rm(dir, { recursive: true, force: true }); } };
 };
+
+describe("ADR-0074 durable input delivery", () => {
+  it("a timed out submission remains queued, marks uncertainty and offers a decision", async () => {
+    const f = await setup(undefined, undefined, false, 30);
+    try {
+      const session = await f.sessions.create({ adapter: "turny", project: f.dir, prompt: "first" });
+      await f.sessions.steer(session.id, { kind: "prompt", text: "unknown outcome" }, "phone", { queue: true });
+      const item = f.sessions.queued(session.id)[0]!;
+      f.hangNext();
+      expect(await f.sessions.sendQueuedNow(session.id, item.id, "phone")).toMatchObject({ ok: false });
+      expect(f.sessions.queued(session.id)).toContainEqual(expect.objectContaining({ id: item.id, delivery: "unknown" }));
+      expect(f.sessions.get(session.id)?.status).toBe("error");
+      expect((await f.sessions.tail(session.id, 0)).some(e => e.payload.kind === "session.recovery_blocked")).toBe(true);
+    } finally { await f.done(); }
+  });
+  it("queues next-turn adapters in the hub instead of acknowledging an adapter-local buffer", async () => {
+    const f = await setup(undefined, undefined, true);
+    try {
+      const session = await f.sessions.create({ adapter: "turny", project: f.dir, prompt: "first" });
+      expect(await f.sessions.steer(session.id, { kind: "prompt", text: "second" }, "phone")).toMatchObject({ ok: true, detail: "queued" });
+      expect(f.steered).toHaveLength(0);
+      expect(f.sessions.queued(session.id).map(item => item.text)).toEqual(["second"]);
+      f.endTurn(session.id);
+      await waitFor(() => f.sessions.queued(session.id).length === 0);
+      expect(prompts(f.steered)).toEqual(["second"]);
+    } finally { await f.done(); }
+  });
+
+  it("keeps the original queued item after a confirmed provider refusal", async () => {
+    const f = await setup();
+    try {
+      const session = await f.sessions.create({ adapter: "turny", project: f.dir, prompt: "first" });
+      await f.sessions.steer(session.id, { kind: "prompt", text: "retained" }, "phone", { queue: true });
+      const item = f.sessions.queued(session.id)[0]!;
+      f.refuseNext();
+      f.endTurn(session.id);
+      await waitFor(async () => (await f.sessions.tail(session.id, 0)).some(e => e.payload.kind === "session.dequeued"));
+      expect(f.sessions.queued(session.id)).toContainEqual(expect.objectContaining({ id: item.id, text: "retained" }));
+      expect(f.steered).toHaveLength(0);
+    } finally { await f.done(); }
+  });
+
+  it("K7 keeps an unacknowledged crash claim visible and never resubmits it", async () => {
+    const f = await setup();
+    let restored: SessionManager | undefined;
+    try {
+      const session = await f.sessions.create({ adapter: "turny", project: f.dir, prompt: "first" });
+      await f.sessions.steer(session.id, { kind: "prompt", text: "uncertain" }, "phone", { queue: true });
+      const item = f.sessions.queued(session.id)[0]!;
+      await f.sessions.shutdown({ keepWorkers: true });
+      const store = new EventStore(f.dir);
+      const tail = await store.replay(session.id);
+      await store.append(session.id, [{ seq: tail.at(-1)!.seq + 1, ts: new Date().toISOString(), sessionId: session.id, type: "system", summary: "session.queue_submitting", payload: { kind: "session.queue_submitting", queueId: item.id }, blobRef: null }]);
+      restored = new SessionManager(f.db, store, f.registry, new ProcessRunner());
+      await restored.recoverAll();
+      expect(restored.queued(session.id)).toContainEqual(expect.objectContaining({ id: item.id, delivery: "unknown" }));
+      expect(await restored.sendQueuedNow(session.id, item.id, "phone")).toMatchObject({ ok: false });
+      expect(f.steered).toHaveLength(0);
+    } finally { await restored?.shutdown({ keepWorkers: true }); await f.done(); }
+  });
+});
 const prompts = (steered: SteerInput[]) => steered.filter((s) => s.kind === "prompt").map((s) => (s as { text: string }).text);
 const kinds = async (sessions: SessionManager, id: string) =>
   (await sessions.tail(id, 0)).map((e) => (e.payload as { kind?: string }).kind).filter(Boolean);

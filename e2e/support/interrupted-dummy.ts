@@ -8,6 +8,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   return {
     ...base,
     async start(spec, ctx) {
+      if (spec.args?.resumeSessionId && config?.failResume === true) throw new Error("P27: Wiederaufnahme fehlgeschlagen");
       const proc = await ctx.spawnWorker([process.execPath, "-e", "process.stdin.resume()"], { persistent: true });
       workers.set(ctx.sessionId, proc);
       return base.start(spec, ctx);

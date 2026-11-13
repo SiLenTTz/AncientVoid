@@ -227,6 +227,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
             });
           }
         }
+        const task = parsed as { type?: string; subtype?: string; task_id?: unknown; description?: unknown; status?: unknown };
+        if (task.type === "system" && typeof task.task_id === "string") {
+          if (task.subtype === "task_started") ctx.activity?.({ id: `task:${task.task_id}`, kind: "agent", state: "running", ...(typeof task.description === "string" ? { label: task.description.slice(0, 160) } : {}) });
+          if (task.subtype === "task_notification") ctx.activity?.({ id: `task:${task.task_id}`, kind: "agent", state: task.status === "completed" ? "completed" : "failed" });
+        }
         for (const event of normalizeClaudeLine(parsed)) ctx.emit(event);
       }
     });
@@ -264,6 +269,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // rate_limit_event with unifiedWindows utilization/resetsAt,
       // verified against real captures (normalize.ts).
       return {
+        promptDelivery: "next-turn",
         reasoning: true,
         tools: true,
         cost: true,
@@ -277,7 +283,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // and the one PcOpenNotice showed live (ADR-0034).
         // EPIC-P35 T35.3: `hub: true` — die promptlose Übernahme (start ohne
         // Prompt bleibt idle, ADR-0040) macht „Weitermachen“ hub-fähig.
-        resume: { argv: ["claude", "--resume", "{sessionId}"], ref: "native", hub: true },
+        resume: { argv: ["claude", "--resume", "{sessionId}"], ref: "native", hub: true, auto: true },
         // ADR-0042 (EPIC-P25): documented — headless `-p` evaluates slash
         // prompts, picker-based commands excluded (code.claude.com/docs/en/
         // headless + /en/commands: /clear, /compact are argument-based, not

@@ -45,7 +45,7 @@ export class SessionInterruption {
   }
 
   private async record(session: LiveSession, reason: SessionInterruptionReason): Promise<void> {
-    if (!["working", "starting", "waiting_approval", "parked"].includes(session.record.status)) return;
+    if (!["working", "starting", "waiting_approval"].includes(session.record.status)) return;
     const events = await this.host.replay(session.record.id);
     // Der abgeschnittene Zug beginnt mit dem ERSTEN prompt/resumed nach dem
     // letzten turn_end. Menschliche Folgeprompts, die noch in dem offenen Zug
@@ -55,9 +55,10 @@ export class SessionInterruption {
     // schlagener Zug bleibt hinter seinem turn_end unsichtbar (P27-Regel).
     const lastEnd = events.findLastIndex(e => e.payload.kind === "session.turn_end");
     const boundary = events.findIndex((e, i) => i > lastEnd && (e.payload.kind === "session.prompt" || e.payload.kind === "session.resumed"));
-    const failed = events.slice(Math.max(0, boundary)).some(e => e.type === "error" || e.payload.kind === "provider.error" || e.payload.kind === "cursor.usage_limit");
+    const failures = events.slice(Math.max(0, boundary)).filter(e => e.type === "error" || e.payload.kind === "provider.error" || e.payload.kind === "cursor.usage_limit" || (e.payload.kind === "session.activity" && e.payload.external === true && (e.payload.activity as { state?: string } | undefined)?.state === "failed"));
+    const failed = failures.some(e => e.payload.category !== "network" && e.payload.category !== "server");
     // A stop/park can have won while replay was in flight.
-    if (!["working", "starting", "waiting_approval", "parked"].includes(session.record.status)) return;
+    if (!["working", "starting", "waiting_approval"].includes(session.record.status)) return;
     await this.host.setStatus(session, failed ? "error" : "interrupted");
     session.abort.abort();
     if (!failed) {
@@ -65,7 +66,7 @@ export class SessionInterruption {
       const payload: SessionInterruptionPayload = {
         kind: "session.interrupted", reason, since: new Date().toISOString(), lastTurnId: lastPrompt ? String(lastPrompt.seq) : null,
       };
-      await this.host.emit(session, payload.kind, { ...payload });
+      await this.host.emit(session, payload.kind, { ...payload, autoResumeEligible: true });
     }
     await this.host.emit(session, "session.turn_end", { code: null, reason: failed ? "error" : "interrupted" });
     this.host.digest(session);

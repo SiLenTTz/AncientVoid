@@ -1,4 +1,7 @@
 import { SessionInterruption } from "./session-interruption.ts";
+import { SessionRecovery } from "./session-recovery.ts";
+import { SessionActivities, foldActivities } from "./session-activity.ts";
+import type { SessionActivity } from "@ancientvoid/contracts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus } from "@ancientvoid/contracts";
@@ -92,6 +95,10 @@ function defaultModelOf(registered: { config?: Readonly<Record<string, unknown>>
 export class SessionManager {
   private readonly interruption: SessionInterruption;
   private readonly autoResumeInterrupted: boolean;
+  private readonly uncertainQueue = new Set<string>();
+  private shuttingDown = false;
+  private readonly recovery: SessionRecovery;
+  private readonly activityTracker: SessionActivities;
   private readonly live = new Map<string, LiveSession>();
   private readonly usageByAdapter = new Map<string, AdapterUsageSnapshot>();
   /** ADR-0019: approval-gated prompts and budget top-ups. */
@@ -171,15 +178,30 @@ export class SessionManager {
     /** ADR-0033: the mode new sessions start in, where the adapter offers it. */
     defaultPermissionMode: string | null = null,
   ) {
-    this.autoResumeInterrupted = observability.autoResumeInterrupted ?? false;
+    this.autoResumeInterrupted = observability.autoResumeInterrupted ?? true;
+    this.activityTracker = new SessionActivities({
+      session: (id) => this.live.get(id),
+      emit: (session, kind, payload) => this.emitSystem(session, kind, payload),
+      working: (session) => this.setStatus(session, "working"),
+      finish: (session) => this.adapterTurn(session, "idle"),
+    });
+    this.recovery = new SessionRecovery({
+      error: (err) => this.logger.error("automatic recovery failed", { err: String(err) }),
+      events: (id) => this.store.replay(id),
+      declaration: (id) => this.registry.get(id)?.capabilities.resume,
+      emit: (session, kind, payload) => this.emitSystem(session, kind, payload),
+      resume: (session) => this.automaticResume(session),
+    });
     this.interruption = new SessionInterruption({
       replay: (id) => this.store.replay(id),
       setStatus: (session, status) => this.setStatus(session, status),
       emit: (session, kind, payload) => this.emitSystem(session, kind, payload),
       digest: (session) => this.dispatchDigest(session),
       stop: (session) => session.adapter.stop(session.handle!, this.makeContext(session)),
-      autoResume: (session) => this.autoResumeInterrupted && this.registry.get(session.record.adapter)?.capabilities.resume?.auto === true
-        ? this.resume(session.record.id, "auto-resume") : Promise.resolve({ ok: false }),
+      autoResume: (session) => {
+        if (this.autoResumeInterrupted) this.recovery.schedule(session);
+        return Promise.resolve({ ok: false });
+      },
     });
     this.defaultPermissionMode = defaultPermissionMode;
     this.queue = new SessionQueue(db);
@@ -243,22 +265,37 @@ export class SessionManager {
   /** Exposed for tests — same logic the timer runs, without waiting out
    * the real interval. */
   async runHeartbeat(): Promise<void> {
-    if (this.heartbeatRunning) return; // don't overlap a slow previous tick
+    if (this.shuttingDown || this.heartbeatRunning) return; // don't overlap a slow previous tick
     this.heartbeatRunning = true;
     try {
       for (const session of this.live.values()) {
+        if (["stopped", "stopping", "parked"].includes(session.record.status)) continue;
+        await this.activityTracker.expire(session);
+        if (session.record.status === "interrupted") {
+          if (this.autoResumeInterrupted) this.recovery.schedule(session);
+          continue;
+        }
         if (!session.handle) continue;
-        const terminal = session.record.status === "stopped" || session.record.status === "error" || session.record.status === "interrupted" || (session.record.status === "parked" && !session.persistentWorker);
+        const terminal = ["stopped", "error", "interrupted"].includes(session.record.status) || (session.record.status === "parked" && !session.persistentWorker);
         if (terminal) continue;
         let report;
         try {
-          report = await session.adapter.status(session.handle);
+          let healthTimer: NodeJS.Timeout | undefined;
+          try {
+            report = await Promise.race([
+              session.adapter.status(session.handle),
+              new Promise<{ state: "broken"; detail: string }>(resolve => {
+                healthTimer = setTimeout(() => resolve({ state: "broken", detail: "Adapter-Heartbeat antwortet nicht (5 s)." }), 5000);
+              }),
+            ]);
+          } finally { if (healthTimer) clearTimeout(healthTimer); }
         } catch (err) {
           // The health check itself failing is exactly the kind of
           // "unbekannter Ausfall" AGENTS.md rule 6 wants surfaced, not
           // silently retried forever.
           report = { state: "broken" as const, detail: err instanceof Error ? err.message : String(err) };
         }
+        if (this.shuttingDown) break;
         if (report.state === "down" || report.state === "broken") {
           if (isLoopAdapter(session.record.adapter) || !VALID_TRANSITIONS[session.record.status].includes("interrupted")) {
             await this.setStatus(session, "error");
@@ -1242,6 +1279,13 @@ export class SessionManager {
     session.abort = new AbortController();
     session.activeWorkers = 0;
     session.persistentWorker = false;
+    const continuationSignal = session.abort.signal;
+    session.turnFailed = false;
+    session.mainTurnIdle = false;
+    if (session.activities?.size) {
+      session.activities = new Map([...session.activities].filter(([, work]) => work.external));
+      await this.emitSystem(session, "session.activities_reset", {});
+    }
     const events = await this.store.replay(session.record.id);
     // EPIC-P29: der Workspace-Zustand einer wiedergeöffneten Session kommt
     // aus den Events (K7-Faltung) — nie aus Erinnerung.
@@ -1283,7 +1327,7 @@ export class SessionManager {
       });
     }
     try {
-      session.handle = await session.adapter.start(
+      const handle = await session.adapter.start(
         {
           adapter: session.record.adapter,
           project: session.record.project,
@@ -1298,9 +1342,12 @@ export class SessionManager {
         },
         this.makeContext(session),
       );
+      if (this.shuttingDown || continuationSignal.aborted || continuationSignal !== session.abort.signal) return { ok: false, detail: "Fortsetzung wurde beendet." };
+      session.handle = handle;
       await this.emitSystem(session, "session.continued", { actor: actor ?? null, nativeSessionId: native });
       return { ok: true };
     } catch (err) {
+      if (this.shuttingDown || continuationSignal.aborted || continuationSignal !== session.abort.signal) return { ok: false, detail: "Fortsetzung wurde beendet." };
       await this.setStatus(session, "error");
       await this.emitSystem(session, "session.start_failed", {
         error: err instanceof Error ? err.message : String(err),
@@ -1316,6 +1363,23 @@ export class SessionManager {
     const settled = run.then(() => undefined, () => undefined);
     this.steerQueue.set(sessionId, settled);
     void settled.then(() => { if (this.steerQueue.get(sessionId) === settled) this.steerQueue.delete(sessionId); });
+    return run;
+  }
+
+  private automaticResume(session: LiveSession): Promise<Ack> {
+    const id = session.record.id;
+    const previous = this.steerQueue.get(id) ?? Promise.resolve();
+    const run = previous.then(async (): Promise<Ack> => {
+      await this.interruption.settled(id);
+      if (session.record.status !== "interrupted") return { ok: false, detail: "Zustand inzwischen geändert." };
+      await this.emitSystem(session, "session.resumed", { actor: "auto-resume", nativeSessionId: session.record.nativeSessionId });
+      const ack = await this.submitAndWait(session, undefined, null, "auto-resume", "prompt", () => this.continueStopped(session, { kind: "prompt", text: "Die Arbeit wurde technisch unterbrochen. Setze den bestehenden Auftrag mit seinem bisherigen Kontext fort. Prüfe zuerst bereits erledigte Schritte und laufende Hintergrundarbeit; führe erledigte oder noch laufende Aktionen nicht doppelt aus." }, "auto-resume"));
+      if (!ack.ok && !this.shuttingDown && ["working"].includes(session.record.status)) await this.setStatus(session, "error");
+      return ack;
+    });
+    const settled = run.then(() => undefined, () => undefined);
+    this.steerQueue.set(id, settled);
+    void settled.then(() => { if (this.steerQueue.get(id) === settled) this.steerQueue.delete(id); });
     return run;
   }
 
@@ -1347,6 +1411,7 @@ export class SessionManager {
     session.abort = new AbortController();
     session.activeWorkers = 0;
     session.persistentWorker = false;
+    const resumeSignal = session.abort.signal;
     const occupied = this.claimDirectCheckout(session);
     if (occupied) return { ok: false, detail: occupied };
     const recreated = await this.ensureWorkdir(session);
@@ -1364,11 +1429,13 @@ export class SessionManager {
     await this.setStatus(session, "working");
     await this.emitSystem(session, "session.resumed", { actor: actor ?? null, nativeSessionId: native });
     try {
-      session.handle = await session.adapter.start({
+      const handle = await session.adapter.start({
         adapter: session.record.adapter, project: session.record.project,
         ...(session.record.model ? { model: session.record.model } : {}),
         args: { resumeSessionId: native, ...(session.record.permissionMode ? { permissionMode: session.record.permissionMode } : {}) },
       }, this.makeContext(session));
+      if (resumeSignal.aborted || resumeSignal !== session.abort.signal || this.shuttingDown) return { ok: false, detail: "Fortsetzung wurde beendet." };
+      session.handle = handle;
       session.record.controlMode = "controllable";
       this.persist(session.record);
       // Promptless resume (cursor -p would be an empty turn) starts no worker.
@@ -1378,6 +1445,7 @@ export class SessionManager {
       }
       return { ok: true };
     } catch (err) {
+      if (resumeSignal.aborted || resumeSignal !== session.abort.signal || this.shuttingDown) return { ok: false, detail: "Fortsetzung wurde beendet." };
       const detail = err instanceof Error ? err.message : String(err);
       await this.emitSystem(session, "session.resume_failed", { detail });
       if (classifyProviderError(detail).category !== "unknown") {
@@ -1525,7 +1593,8 @@ export class SessionManager {
       return done;
     }
     // EPIC-P15 T15.3: "Vormerken" — the prompt waits for the running turn instead of starting a second process.
-    if (input.kind === "prompt" && meta?.queue && !meta.fromQueue && session.handle && ["starting", "working", "waiting_approval"].includes(session.record.status)) {
+    const nextTurn = this.registry.get(session.record.adapter)?.capabilities.promptDelivery === "next-turn";
+    if (input.kind === "prompt" && (meta?.queue || nextTurn) && !meta?.fromQueue && session.handle && ["starting", "working", "waiting_approval"].includes(session.record.status)) {
       const item = this.queue.add(sessionId, input.text, input.attachments, actor ?? null);
       await this.emitSystem(session, "session.queued", { queueId: item.id, position: this.queue.count(sessionId), actor: actor ?? null });
       await this.commitSteer(session, meta, foreignWriter, actor);
@@ -1895,6 +1964,7 @@ export class SessionManager {
     if (!session) return { ok: false, detail: "session not live" };
     session.record.parkReason = null; // ADR-0008: leaving "parked" (if it was) for good, never a stale reason
     await this.setStatus(session, "stopping");
+    for (const item of this.queue.list(sessionId)) this.uncertainQueue.delete(item.id);
     this.queue.clear(sessionId); // Stop heißt: nichts mehr senden, auch nichts Vorgemerktes
     session.abort.abort();
     try {
@@ -1978,6 +2048,7 @@ export class SessionManager {
     }
     this.checkoutLeases.release(sessionId);
     await this.store.destroySession(sessionId);
+    for (const item of this.queue.list(sessionId)) this.uncertainQueue.delete(item.id);
     this.queue.clear(sessionId);
     // T17.4: no attempt can settle for a deleted session — its reserved
     // input ids would leak into the map forever.
@@ -2037,6 +2108,7 @@ export class SessionManager {
     // implements it) — every park (manual, budget, daily-cap) now uses it
     // before the hub status changes underneath it.
     session.parkGeneration = (session.parkGeneration ?? 0) + 1;
+    if (!session.handle) session.abort.abort();
     if (session.handle) {
       try {
         await session.adapter.steer(session.handle, { kind: "park" }, this.makeContext(session));
@@ -2185,6 +2257,21 @@ export class SessionManager {
         budgetWarned: record.budgetUsd !== null && record.costUsd >= record.budgetUsd * 0.8,
       };
       this.live.set(record.id, session);
+      session.activities = foldActivities(events);
+      for (const event of events) {
+        const id = event.payload.queueId;
+        if (typeof id !== "string") continue;
+        if (event.payload.kind === "session.queue_submitting") this.uncertainQueue.add(id);
+        if (event.payload.kind === "session.queue_ack" || event.payload.kind === "session.unqueued") this.uncertainQueue.delete(id);
+      }
+      for (const item of this.queue.list(record.id)) {
+        if (this.hasSeenInput(record.id, item.id)) {
+          this.queue.remove(record.id, item.id);
+          this.uncertainQueue.delete(item.id);
+        }
+      }
+      const lastMain = events.findLast(e => e.payload.kind === "session.main_turn_end" || e.payload.kind === "session.main_turn_start");
+      session.mainTurnIdle = lastMain?.payload.kind === "session.main_turn_end";
       // EPIC-P29 (K7, ADR-0051 §5): Workspace-Phase aus den Events falten
       // und hängengebliebene Operationen als unklar markieren — genau ein
       // needs_attention-Event je Operation, kein automatischer Re-Run.
@@ -2208,6 +2295,15 @@ export class SessionManager {
       }
       if (record.status === "interrupted") {
         await this.interruption.repair(session);
+        if (this.autoResumeInterrupted) this.recovery.schedule(session);
+        return "recovered";
+      }
+      if (record.status === "error" && registered) {
+        await this.emitSystem(session, "session.recovered", { events: events.length, lastSeq, controllable: true });
+        return "recovered";
+      }
+      if (session.mainTurnIdle && session.activities.size > 0 && [...session.activities.values()].every(work => work.external)) {
+        await this.emitSystem(session, "session.recovered", { events: events.length, lastSeq, controllable: true, background: true });
         return "recovered";
       }
       // ADR-0050/BUG-0092: Bei beendeten Zügen ohne persistenten Adapter-
@@ -2321,7 +2417,9 @@ export class SessionManager {
    * every session is stopped — workers that die with the hub.
    */
   async shutdown(options: { keepWorkers?: boolean } = {}): Promise<void> {
+    this.shuttingDown = true;
     clearInterval(this.heartbeatTimer);
+    this.recovery.close();
     if (options.keepWorkers) {
       await this.store.flush();
       return;
@@ -2335,6 +2433,17 @@ export class SessionManager {
 
   private makeContext(session: LiveSession): AdapterContext {
     const signal = session.abort.signal;
+    const bindWorker = (proc: WorkerProcess) => {
+      let force: NodeJS.Timeout | undefined;
+      const abort = () => {
+        void proc.kill("SIGTERM").catch(err => this.logger.warn("worker termination failed", { sessionId: session.record.id, err: String(err) }));
+        force = setTimeout(() => { void proc.kill("SIGKILL").catch(err => this.logger.error("worker forced termination failed", { sessionId: session.record.id, err: String(err) })); }, 2000);
+        force.unref();
+      };
+      proc.onExit(() => { signal.removeEventListener("abort", abort); if (force) clearTimeout(force); });
+      signal.addEventListener("abort", abort, { once: true });
+      if (signal.aborted) abort();
+    };
     return {
       sessionId: session.record.id,
       signal,
@@ -2347,13 +2456,15 @@ export class SessionManager {
         logger[level](msg, extra);
       },
       emit: (event: EmittedEvent) => {
-        if (signal.aborted) return;
+        if (signal.aborted || this.shuttingDown) return;
+        if (event.type === "error" || event.payload?.kind === "provider.error" || event.payload?.kind === "cursor.usage_limit") session.turnFailed = true;
         void this.emitEvents(session, [event]).catch((err) => this.handleEmitFailure(session, event, err));
       },
       blob: async (data: string | Uint8Array): Promise<BlobRef> => {
         return this.store.writeBlob(session.record.id, data);
       },
       spawnWorker: async (cmd, opts) => {
+        if (this.shuttingDown || signal.aborted) throw new Error("Session-Kontext beendet — kein neuer Worker.");
         const proc = await this.runner.spawn({
           name: session.record.id,
           // T17.5/ADR-0037: explicit marker — identity after a restart
@@ -2366,6 +2477,8 @@ export class SessionManager {
           ...(opts?.rows !== undefined ? { rows: opts.rows } : {}),
           ...(opts?.stdin !== undefined ? { stdin: opts.stdin } : {}),
         });
+        bindWorker(proc);
+        if (signal.aborted) throw new Error("Session während Worker-Start beendet.");
         // ADR-0013 Nachtrag: a persistent agent is not a turn — the adapter
         // reports turns through ctx.turn().
         if (opts?.persistent) {
@@ -2381,6 +2494,7 @@ export class SessionManager {
       },
       adoptWorker: async (opts) => {
         const proc = (await this.runner.adopt?.(session.record.id)) ?? null;
+        if (proc) bindWorker(proc);
         session.adopted = proc !== null;
         if (proc && opts?.persistent) {
           session.persistentWorker = true;
@@ -2392,8 +2506,19 @@ export class SessionManager {
         return proc;
       },
       turn: (state) => {
-        if (signal.aborted) return;
-        void this.adapterTurn(session, state).catch((err) => this.logger.warn("turn state not recorded", { sessionId: session.record.id, err: String(err) }));
+        if (signal.aborted || this.shuttingDown) return;
+        if (state === "working") session.turnFailed = false;
+        this.queueLifecycle(session, signal, () => this.adapterTurn(session, state));
+      },
+      get turnActive() { return session.record.status === "working" && session.mainTurnIdle !== true; },
+      activity: (activity) => {
+        this.queueLifecycle(session, signal, () => this.activityTracker.record(session, activity, false));
+      },
+      interrupt: (reason, detail) => {
+        this.queueLifecycle(session, signal, async () => {
+          await this.emitSystem(session, "session.transport_lost", { reason, detail: detail?.slice(0, 500) ?? null });
+          await this.interruption.interrupt(session, reason);
+        });
       },
       get nativeSessionId() {
         return session.record.nativeSessionId;
@@ -2403,7 +2528,7 @@ export class SessionManager {
         return session.record.model;
       },
       ...(this.tools?.bridge ? { permissionBridge: () => this.tools!.bridge!(session.record.id) } : {}),
-      ...(this.tools ? { requestToolPermission: (req: ToolPermissionRequest) => this.awaitToolPermission(session, req) } : {}),
+      ...(this.tools ? { requestToolPermission: (req: ToolPermissionRequest) => signal.aborted ? Promise.resolve({ behavior: "deny" as const, message: "Session beendet." }) : this.awaitToolPermission(session, req, signal) } : {}),
     };
   }
 
@@ -2615,21 +2740,42 @@ export class SessionManager {
   /** ADR-0013 Nachtrag: turns reported by an adapter with a persistent worker. */
   private async adapterTurn(session: LiveSession, state: "working" | "idle"): Promise<void> {
     if (state === "working") {
+      session.mainTurnIdle = false;
+      await this.emitSystem(session, "session.main_turn_start", {});
       if (session.record.status === "idle" || session.record.status === "error") await this.setStatus(session, "working");
       return;
     }
     if (session.record.status !== "working") return;
-    await this.setStatus(session, "idle");
-    await this.emitSystem(session, "session.turn_end", { code: 0 });
+    if (!session.mainTurnIdle) {
+      session.mainTurnIdle = true;
+      await this.emitSystem(session, "session.main_turn_end", {});
+    }
+    if (session.turnFailed) {
+      await this.interruption.interrupt(session, "adapter_down");
+      return;
+    }
+    if (session.activities?.size) return;
+    await this.setStatus(session, session.turnFailed ? "error" : "idle");
+    await this.emitSystem(session, "session.turn_end", session.turnFailed ? { code: null, reason: "error" } : { code: 0 });
+  }
+
+  private queueLifecycle(session: LiveSession, signal: AbortSignal, work: () => Promise<unknown>): void {
+    session.lifecycle = (session.lifecycle ?? Promise.resolve()).then(async () => {
+      if (!signal.aborted && !this.shuttingDown) await work();
+    }).catch(err => this.handleEmitFailure(session, { type: "error", summary: "Session-Lebenszyklus fehlgeschlagen", payload: { kind: "session.lifecycle_failed" } }, err));
+  }
+
+  activity(sessionId: string, activity: SessionActivity): Promise<Ack> {
+    return this.activityTracker.report(sessionId, activity);
   }
 
   /** T7.2: an in-process adapter waits for the phone's decision. */
-  private async awaitToolPermission(session: LiveSession, req: ToolPermissionRequest): Promise<ToolPermissionAnswer> {
+  private async awaitToolPermission(session: LiveSession, req: ToolPermissionRequest, signal: AbortSignal): Promise<ToolPermissionAnswer> {
     const tools = this.tools!;
     const asked = await tools.request(session.record.id, req);
     if (!asked.ok) return { behavior: "deny", message: `Freigabe nicht möglich (${asked.detail}) — nicht ausgeführt.` };
     for (;;) {
-      if (session.abort.signal.aborted) return { behavior: "deny", message: "Session beendet — nicht ausgeführt." };
+      if (signal.aborted) return { behavior: "deny", message: "Session beendet — nicht ausgeführt." };
       const poll = await tools.poll(session.record.id, asked.id);
       if (!poll) return { behavior: "deny", message: "Anfrage nicht mehr bekannt — nicht ausgeführt." };
       if (poll.state === "answered") return poll.answer;
@@ -2653,9 +2799,12 @@ export class SessionManager {
         return;
       }
       setTimeout(() => {
-        if (signal.aborted || (session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
-        void this.setStatus(session, "idle")
-          .then(() => this.emitSystem(session, "session.turn_end", { code }))
+        if (signal.aborted || this.shuttingDown || (session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
+        if ([...(session.activities?.values() ?? [])].some(work => !work.external)) {
+          void this.interruption.interrupt(session, "worker_exit");
+          return;
+        }
+        void this.adapterTurn(session, "idle")
           .catch((err) => this.logger.warn("turn end not recorded", { sessionId: session.record.id, err: String(err) }));
       }, TURN_END_SETTLE_MS).unref();
     });
@@ -2668,7 +2817,7 @@ export class SessionManager {
   private scheduleInterruption(session: LiveSession, signal: AbortSignal): void {
     // Give the adapter's exit callback time to journal a provider error.
     setTimeout(() => {
-      if (signal.aborted || (session.activeWorkers ?? 0) > 0) return;
+      if (signal.aborted || this.shuttingDown || (session.activeWorkers ?? 0) > 0) return;
       void this.interruption.interrupt(session, "worker_exit").catch((err) => this.logger.error("interruption not recorded", { sessionId: session.record.id, err: String(err) }));
     }, TURN_END_SETTLE_MS).unref();
   }
@@ -2731,20 +2880,25 @@ export class SessionManager {
   private async drainSlot(sessionId: string): Promise<void> {
     const session = this.live.get(sessionId);
     if (!session || session.record.status !== "idle") return;
-    const item = this.queue.take(sessionId);
+    const item = this.queue.list(sessionId)[0];
     if (!item) return;
-    const ack = await this.steerNow(
-      sessionId,
-      { kind: "prompt", text: item.text, ...(item.attachments ? { attachments: item.attachments } : {}) },
-      item.actor ?? undefined,
-      { fromQueue: true },
-    );
-    await this.emitSystem(session, "session.dequeued", { queueId: item.id, ok: ack.ok, ...(ack.ok ? {} : { detail: ack.detail ?? null }) });
+    if (this.uncertainQueue.has(item.id)) {
+      if (this.hasSeenInput(sessionId, item.id)) {
+        this.queue.remove(sessionId, item.id);
+        this.uncertainQueue.delete(item.id);
+        this.scheduleDrain(sessionId);
+      } else {
+        await this.setStatus(session, "error");
+        await this.emitSystem(session, "session.recovery_blocked", { detail: "Annahme einer vorgemerkten Nachricht ist unklar. Verlauf prüfen; nicht automatisch erneut senden.", queueId: item.id });
+      }
+      return;
+    }
+    await this.deliverQueued(session, item);
   }
 
   /** EPIC-P15 T15.3: what is waiting in this session. */
   queued(sessionId: string): QueuedPrompt[] {
-    return this.queue.list(sessionId);
+    return this.queue.list(sessionId).map(item => this.uncertainQueue.has(item.id) ? { ...item, delivery: "unknown" as const } : item);
   }
 
   /** BUG-0114: einen vorgemerkten Prompt sofort steuern — mitten in den
@@ -2752,24 +2906,43 @@ export class SessionManager {
    * her (hinten, ehrlich sichtbar) — der Text geht nie verloren. */
   async sendQueuedNow(sessionId: string, queueId: string, actor?: string): Promise<Ack> {
     return this.chainWork(sessionId, async () => {
-      const item = this.queue.takeById(sessionId, queueId);
+      const item = this.queue.list(sessionId).find(q => q.id === queueId);
       if (!item) return { ok: false, detail: "nicht mehr in der Warteschlange" };
       const session = this.live.get(sessionId);
-      const ack = await this.steerNow(
-        sessionId,
-        { kind: "prompt", text: item.text, ...(item.attachments ? { attachments: item.attachments } : {}) },
-        actor ?? item.actor ?? undefined,
-        { fromQueue: true },
-      );
-      if (!ack.ok) this.queue.add(sessionId, item.text, item.attachments, item.actor);
-      if (session) await this.emitSystem(session, "session.dequeued", { queueId, ok: ack.ok, ...(ack.ok ? {} : { detail: ack.detail ?? null }) });
-      return ack;
+      if (!session) return { ok: false, detail: "Session nicht aktiv" };
+      if (this.uncertainQueue.has(queueId)) return { ok: false, detail: "Annahme unklar — zuerst den Verlauf prüfen." };
+      if (this.registry.get(session.record.adapter)?.capabilities.promptDelivery === "next-turn" && session.record.status !== "idle") return { ok: false, detail: "Dieser Adapter kann während des laufenden Zugs keine weitere Nachricht annehmen. Die Nachricht bleibt vorgemerkt." };
+      return this.deliverQueued(session, item, actor);
     });
+  }
+
+  private async deliverQueued(session: LiveSession, item: QueuedPrompt, actor?: string): Promise<Ack> {
+    this.uncertainQueue.add(item.id);
+    await this.emitSystem(session, "session.queue_submitting", { queueId: item.id });
+    let ack: Ack;
+    try {
+      ack = await this.steerNow(session.record.id, { kind: "prompt", text: item.text, ...(item.attachments ? { attachments: item.attachments } : {}) }, actor ?? item.actor ?? undefined, { fromQueue: true, inputId: item.id });
+    } catch (err) {
+      ack = { ok: false, detail: STEER_TIMEOUT_DETAIL };
+      await this.emitSystem(session, "session.queue_uncertain", { queueId: item.id, detail: String(err).slice(0, 500) });
+    }
+    if (ack.detail === STEER_TIMEOUT_DETAIL) {
+      if (["working", "idle"].includes(session.record.status)) await this.setStatus(session, "error");
+      await this.emitSystem(session, "session.recovery_blocked", { queueId: item.id, detail: "Nachrichtenannahme unklar — Verlauf prüfen, abbrechen oder übergeben. Kein automatisches erneutes Senden." });
+    }
+    if (ack.ok) this.queue.remove(session.record.id, item.id);
+    if (ack.detail !== STEER_TIMEOUT_DETAIL) {
+      await this.emitSystem(session, "session.queue_ack", { queueId: item.id, ok: ack.ok });
+      this.uncertainQueue.delete(item.id);
+    }
+    await this.emitSystem(session, "session.dequeued", { queueId: item.id, ok: ack.ok, ...(ack.ok ? {} : { detail: ack.detail ?? null }) });
+    return ack;
   }
 
   /** EPIC-P15 T15.3: drop one waiting prompt before it is sent. */
   async unqueue(sessionId: string, queueId: string, actor?: string): Promise<boolean> {
     const removed = this.queue.remove(sessionId, queueId);
+    if (removed) this.uncertainQueue.delete(queueId);
     const session = this.live.get(sessionId);
     if (removed && session) await this.emitSystem(session, "session.unqueued", { queueId, actor: actor ?? null });
     return removed;

@@ -4,6 +4,7 @@ import { copyWithRetry } from "./copy-selection.ts";
 import { readTailScroll, writeTailScroll } from "./tail-scroll.ts";
 import { sessionHash, fileHash } from "../../app/route.ts";
 import { HandoverBar } from "./Handover.tsx";
+import { RecoveryHandover } from "./RecoveryHandover.tsx";
 import { currentProviderFailure } from "./handover.ts";
 import { TabIcon, type TabIconName } from "../../shared/TabIcon.tsx";
 import { openPopout, postWindowMessage, useOpenWindows } from "../windows/windows.ts";
@@ -100,6 +101,7 @@ export function SessionTail({
   const [events, setEvents] = useState<NormalizedEvent[]>([]);
   // 2026-10-25: click-to-expand for the run strip's todo plan (transparency).
   const [todosOpen, setTodosOpen] = useState(false);
+  const [recoveryHandover, setRecoveryHandover] = useState(false);
   // T8.2: what this device saw last — until live events arrive.
   const hostKey = remoteHost(session.hostId) ?? "local";
   const [cached] = useState(() => loadTail(hostKey, session.id));
@@ -980,7 +982,9 @@ export function SessionTail({
       </div>
 
       {factoryLink?.partner && <div class="loop-note">Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
-      {status === "interrupted" && <InterruptedBanner events={events} since={record.updatedAt} nativeResume={adapterResume?.hub === true} onResume={async () => {
+      {(status === "interrupted" || status === "error") && <InterruptedBanner failed={status === "error"} events={events} since={record.updatedAt} nativeResume={adapterResume?.hub === true} onStop={async () => {
+        await stop();
+      }} onHandover={() => setRecoveryHandover(true)} onResume={async () => {
         const ack = await api.resumeSession(session.id);
         if (!ack.ok) throw new Error(ack.detail ?? "Fortsetzen fehlgeschlagen.");
         const updated = await api.session(session.id);
@@ -991,6 +995,12 @@ export function SessionTail({
         setArchived(updated.archived === true);
         setStatus(updated.status);
       }} />}
+      {recoveryHandover && <RecoveryHandover session={record} api={api} onClose={() => setRecoveryHandover(false)} onHandedOver={created => { location.hash = sessionHash(created.id, remoteHost(session.hostId)); }} />}
+      {status === "working" && (() => {
+        const last = [...events].reverse().find(e => e.payload.kind === "session.activity");
+        const count = Number(last?.payload.openCount ?? 0);
+        return count > 0 ? <p class="dim" role="status">Hintergrundarbeit aktiv · {count} offene Aktivität{count === 1 ? "" : "en"}</p> : null;
+      })()}
       {loopView && <LoopPanel sessionId={session.id} adapter={session.adapter} view={loopView} disabled={observerOnly || status === "stopped"} api={api} onError={setReplyError} factory={factoryLink?.role && factoryLink.partner ? { role: factoryLink.role, partner: factoryLink.partner } : null} hostId={remoteHost(session.hostId) ?? null} />}
 
       {activeTab === "chat" && !viewWindow && lastPrompt && <PinnedPrompt event={lastPrompt} onJump={() => {

@@ -204,6 +204,7 @@ interface AgentSession {
   images: boolean;
   /** Tool calls seen in updates — some agents (dsh) ask with the id only. */
   calls: Map<string, ToolCallInfo>;
+  activeTools: Set<string>;
   /** Latest `config_option_update` — can be newer than the session/new answer. */
   configOptions: SessionModels["configOptions"];
   /** ADR-0061: what session/new|load offered — the basis for a later model switch. */
@@ -257,9 +258,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   function unstickTurn(state: AgentSession, ctx: AdapterContext): void {
     state.stuckTimer = null;
     if (!state.busy || !state.healthy) return;
-    if (state.pendingPermissions > 0) return armStuckWatch(state, ctx);
+    if (state.pendingPermissions > 0 || state.activeTools.size > 0) return armStuckWatch(state, ctx);
     const minutes = Math.max(1, Math.round(cfg.stuckTurnMs / 60_000));
-    ctx.emit(providerErrorEvent(label, `${label}: der Zug ist seit ${minutes} min stumm — der Hub bricht ab (session/cancel)`));
+    const detail = `${label}: der Zug ist seit ${minutes} min stumm — Verbindung wird wiederhergestellt`;
+    if (ctx.interrupt) {
+      ctx.interrupt("adapter_down", detail);
+      return;
+    }
+    ctx.emit(providerErrorEvent(label, detail));
     if (state.acpSessionId) state.conn.notify("session/cancel", { sessionId: state.acpSessionId });
     const seq = state.turnSeq;
     setTimeout(() => {
@@ -298,7 +304,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   function connect(sessionId: string, proc: WorkerProcess, ctx: AdapterContext): AgentSession {
-    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false, calls: new Map(), configOptions: undefined, onConfig: null, turnSeq: 0, replay: false, stuckTimer: null, pendingPermissions: 0, queued: [] };
+    const state: AgentSession = { proc, conn: null as unknown as AcpConnection, acpSessionId: null, busy: false, mapper: new UpdateMapper(label), healthy: true, images: false, calls: new Map(), activeTools: new Set(), configOptions: undefined, onConfig: null, turnSeq: 0, replay: false, stuckTimer: null, pendingPermissions: 0, queued: [] };
     state.conn = new AcpConnection((line) => proc.write(line), {
       onNotification: (method, params) => {
         if (method !== "session/update") return;
@@ -311,6 +317,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           return;
         }
         if ((update.sessionUpdate === "tool_call" || update.sessionUpdate === "tool_call_update") && typeof update.toolCallId === "string") {
+          if (!state.replay) {
+            const running = update.status === "pending" || update.status === "in_progress";
+            const terminal = update.status === "completed" || update.status === "failed";
+            if (running) state.activeTools.add(update.toolCallId);
+            if (terminal) state.activeTools.delete(update.toolCallId);
+            if (running || terminal) ctx.activity?.({ id: `tool:${update.toolCallId}`, kind: "tool", state: running ? "running" : update.status === "failed" ? "failed" : "completed", ...(update.title ? { label: update.title.slice(0, 160) } : {}) });
+          }
           const known = state.calls.get(update.toolCallId) ?? {};
           const u = update as ToolCallInfo;
           state.calls.set(update.toolCallId, { ...known, ...(u.title ? { title: u.title } : {}), ...(u.kind ? { kind: u.kind } : {}), ...(u.rawInput !== undefined ? { rawInput: u.rawInput } : {}) });
@@ -361,7 +374,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       if (code !== 0 && code !== null) ctx.emit({ type: "system", summary: `${label}: process exited with code ${code}`, payload: { code } });
       if (state.busy) {
         state.busy = false;
-        ctx.turn?.("idle");
+        // The worker monitor classifies this loss; a dead process is no turn completion.
       }
       if (state.queued.length) {
         ctx.emit({ type: "system", summary: `${label}: ${state.queued.length} wartende Nachricht(en) verworfen — Agent-Prozess beendet`, payload: { kind: "acp.queued_dropped", count: state.queued.length } });
@@ -560,7 +573,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       .catch((err: unknown) => {
         if (state.turnSeq !== seq) return;
         emitAll(ctx, state.mapper.flush());
-        ctx.emit(providerErrorEvent(label, err instanceof Error ? err.message : String(err)));
+        const detail = err instanceof Error ? err.message : String(err);
+        if (!state.healthy && !state.stopping && ctx.interrupt) ctx.interrupt("worker_exit", detail);
+        else ctx.emit(providerErrorEvent(label, detail));
       })
       .finally(() => {
         clearInterval(liveFlush);
@@ -570,7 +585,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         }
         if (state.turnSeq !== seq) return;
         state.busy = false;
-        ctx.turn?.("idle");
+        if (state.healthy) ctx.turn?.("idle");
         drainQueue(state, ctx);
         });
         }
@@ -640,6 +655,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
     capabilities(): AdapterCapabilities {
       return {
+        promptDelivery: "next-turn",
         reasoning: true,
         tools: true,
         cost: false,
@@ -669,7 +685,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // evidence (dsh, copilot, custom) stay undeclared — the honest state,
         // continuable via prompt.
         ...(cfg.preset === "maki" || cfg.preset === "omp" || cfg.preset === "opencode"
-          ? { resume: { argv: [command?.[0] ?? cfg.preset, cfg.preset === "opencode" ? "--session" : "--resume", "{sessionId}"], ref: "native" as const, hub: true as const } }
+          ? { resume: { argv: [command?.[0] ?? cfg.preset, cfg.preset === "opencode" ? "--session" : "--resume", "{sessionId}"], ref: "native" as const, hub: true as const, auto: true as const } }
           : {}),
         // ADR-0018: tools are asked per call through request_permission —
         // as far as the agent asks (see the presets and docs/harness-matrix.md).
@@ -724,7 +740,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         }
       } catch (err) {
         await state.proc.kill("SIGTERM");
-        sessions.delete(ctx.sessionId);
+        if (sessions.get(ctx.sessionId) === state) sessions.delete(ctx.sessionId);
         throw err;
       }
       if (spec.prompt || spec.attachments?.length) runTurn(state, ctx, spec.prompt ?? "", spec.attachments);
@@ -819,10 +835,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       if (adopted) {
         const state = connect(sessionId, adopted, ctx);
         state.acpSessionId = native;
-        if (native) {
-          state.conn.notify("session/cancel", { sessionId: native });
-          ctx.emit({ type: "system", summary: `${label}: nach dem Hub-Neustart übernommen, laufender Zug abgebrochen`, payload: { kind: "acp.recovered", cancelled: true } });
-        }
+        state.busy = ctx.turnActive === true;
+        if (state.busy) armStuckWatch(state, ctx);
+        ctx.emit({ type: "system", summary: `${label}: laufenden Agenten nach Hub-Neustart übernommen`, payload: { kind: "acp.recovered", cancelled: false } });
         return { sessionId, ...(adopted.pid !== undefined ? { pid: adopted.pid } : {}) };
       }
       if (!native) return null;

@@ -261,6 +261,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // - cost/usage: false — no structured signal for either observed.
       // - nativeResume: "native" — verified live via --resume <sid>.
       return {
+        promptDelivery: "next-turn",
         reasoning: false,
         tools: true,
         cost: false,
@@ -272,7 +273,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // comment above) — the exact external continuation invocation.
         // EPIC-P35 T35.3: `hub: true` — promptlose Übernahme bleibt idle, der
         // nächste Prompt setzt mit --resume fort.
-        resume: { argv: ["hermes", "--resume", "{sessionId}"], ref: "native", hub: true },
+        resume: { argv: ["hermes", "--resume", "{sessionId}"], ref: "native", hub: true, auto: true },
         features: {
           followUp: true,
           interrupt: true,

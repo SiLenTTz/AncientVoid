@@ -8,20 +8,21 @@ import { AdapterRegistry, EventStore, HubDatabase, SessionManager, ApprovalServi
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => { for (const dispose of cleanup.splice(0).reverse()) await dispose(); });
 
-async function fixture(options: { persistent?: boolean; native?: boolean; resume?: AdapterResume; auto?: boolean; failResume?: boolean | string; stopGate?: Promise<void>; promptless?: boolean } = {}) {
+async function fixture(options: { persistent?: boolean; native?: boolean; resume?: AdapterResume; auto?: boolean; failResume?: boolean | string; stopGate?: Promise<void>; resumeGate?: Promise<void>; promptless?: boolean } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "av-interrupted-"));
   const db = new HubDatabase(join(dir, "hub.db"));
   const store = new EventStore(dir);
   let ctx!: AdapterContext;
   let exit!: (code: number | null) => void;
   let starts = 0;
+  let kills = 0;
   let crashed = false;
   const digests: SessionSummary[] = [];
   const runner: WorkerRunner = {
     kind: "test", isAvailable: async () => true, list: async () => [], reapOrphans: async () => [], killByName: async () => {},
     async spawn() {
       const proc: WorkerProcess = {
-        onStdout() {}, onStderr() {}, onExit(cb) { exit = cb; }, write() {}, kill: async () => {}, exited: async () => ({ code: null }),
+        onStdout() {}, onStderr() {}, onExit(cb) { exit = cb; }, write() {}, kill: async () => { kills++; }, exited: async () => ({ code: null }),
       };
       return proc;
     },
@@ -37,6 +38,7 @@ async function fixture(options: { persistent?: boolean; native?: boolean; resume
       if (options.native !== false) ctx.emit({ type: "system", summary: "native id", payload: { nativeSessionId: "native-123" } });
       if (spec.args?.resumeSessionId && options.promptless) return { sessionId: ctx.sessionId };
       await ctx.spawnWorker(["test-worker"], options.persistent ? { persistent: true } : undefined);
+      if (spec.args?.resumeSessionId) await options.resumeGate;
       return { sessionId: ctx.sessionId };
     },
     async recover(id, _seq, context) { ctx = context; await ctx.adoptWorker?.(); return { sessionId: id }; },
@@ -54,9 +56,135 @@ async function fixture(options: { persistent?: boolean; native?: boolean; resume
   };
   const interrupt = async () => { exit(null); await wait(async () => (await events()).some(e => e.payload.kind === "session.turn_end")); };
   const crash = async () => { crashed = true; await manager.shutdown({ keepWorkers: true }); };
-  return { crash, exitCallback: () => exit, dir, db, store, registry, runner, manager, record, events, wait, interrupt, digests, exit: (code: number | null) => exit(code), context: () => ctx, emit: (error = false) => ctx.emit(error ? { type: "error", summary: "agent failed", payload: {} } : { type: "system", summary: "provider failed", payload: { kind: "provider.error" } }), starts: () => starts };
+  return { crash, kills: () => kills, exitCallback: () => exit, dir, db, store, registry, runner, manager, record, events, wait, interrupt, digests, exit: (code: number | null) => exit(code), context: () => ctx, emit: (error = false) => ctx.emit(error ? { type: "error", summary: "agent failed", payload: {} } : { type: "system", summary: "provider failed", payload: { kind: "provider.error" } }), starts: () => starts };
 }
 const resume: AdapterResume = { argv: ["test", "--resume", "{sessionId}"], ref: "native", hub: true, auto: true };
+
+describe("ADR-0074 open work and automatic continuation", () => {
+  it.each(["stop", "park"] as const)("a user %s during automatic startup kills the worker and a late start cannot resurrect it", async action => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const f = await fixture({ persistent: true, resume, auto: true, resumeGate: gate });
+    await f.interrupt();
+    await f.wait(async () => f.starts() === 2);
+    const before = f.kills();
+    await f.manager[action](f.record.id, "phone");
+    expect(f.kills()).toBeGreaterThan(before);
+    release();
+    await f.manager.runHeartbeat();
+    expect(f.manager.get(f.record.id)?.status).toBe(action === "stop" ? "stopped" : "parked");
+    expect(f.starts()).toBe(2);
+  });
+  it("retries a technical network failure while preserving the native context", async () => {
+    const f = await fixture({ persistent: true, resume, auto: true });
+    f.context().emit({ type: "system", summary: "network failure", payload: { kind: "provider.error", category: "network" } });
+    f.context().turn?.("idle");
+    await f.wait(async () => f.starts() === 2);
+    expect((await f.events()).some(e => e.payload.kind === "session.auto_resume_attempt")).toBe(true);
+  });
+  it("K7 restores registered external work without restarting its completed main turn", async () => {
+    const f = await fixture({ persistent: true, resume, auto: true });
+    await f.manager.activity(f.record.id, { id: "measurement", kind: "job", state: "running" });
+    f.context().turn?.("idle");
+    await f.wait(async () => (await f.events()).some(e => e.payload.kind === "session.main_turn_end"));
+    await f.crash();
+    const second = new SessionManager(f.db, new EventStore(f.dir), f.registry, f.runner);
+    cleanup.push(() => second.shutdown({ keepWorkers: true }));
+    await second.recoverAll();
+    expect(second.get(f.record.id)?.status).toBe("working");
+    expect(f.starts()).toBe(1);
+    await second.activity(f.record.id, { id: "measurement", kind: "job", state: "completed" });
+    expect(second.get(f.record.id)?.status).toBe("idle");
+  });
+
+  it("a failed automatic start blocks visibly instead of retrying indefinitely", async () => {
+    const f = await fixture({ resume, auto: true, failResume: true });
+    await f.interrupt();
+    await f.wait(async () => (await f.events()).some(e => e.payload.kind === "session.recovery_blocked"));
+    expect(f.manager.get(f.record.id)?.status).toBe("error");
+    await f.manager.runHeartbeat();
+    expect(f.starts()).toBe(2);
+  });
+
+  it("expired external work is a visible failure, never a successful completion", async () => {
+    const f = await fixture({ persistent: true });
+    await f.manager.activity(f.record.id, { id: "lost", kind: "job", state: "running" });
+    f.context().turn?.("idle");
+    await f.wait(async () => (await f.events()).some(e => e.payload.kind === "session.main_turn_end"));
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(Date.now() + 100_000);
+      await f.manager.runHeartbeat();
+      expect(f.manager.get(f.record.id)?.status).toBe("error");
+      expect((await f.events()).some(e => e.payload.kind === "session.recovery_blocked")).toBe(true);
+    } finally { vi.useRealTimers(); }
+  });
+  it("keeps working after the main turn until its last background activity ends", async () => {
+    const f = await fixture({ persistent: true });
+    f.context().activity?.({ id: "child", kind: "agent", state: "running" });
+    f.context().turn?.("idle");
+    await f.wait(async () => (await f.events()).some(e => e.payload.kind === "session.main_turn_end") || f.manager.get(f.record.id)?.status === "idle");
+    expect(f.manager.get(f.record.id)?.status).toBe("working");
+    expect((await f.events()).some(e => e.payload.kind === "session.turn_end")).toBe(false);
+    f.context().activity?.({ id: "child", kind: "agent", state: "completed" });
+    await f.wait(async () => f.manager.get(f.record.id)?.status === "idle");
+    expect((await f.events()).filter(e => e.payload.kind === "session.turn_end")).toHaveLength(1);
+  });
+
+  it("a provider failure followed by idle remains error, not a successful completion", async () => {
+    const f = await fixture({ persistent: true, resume, auto: true });
+    f.context().emit({ type: "system", summary: "limit", payload: { kind: "provider.error", category: "rate_limit" } });
+    f.context().turn?.("idle");
+    await f.wait(async () => (await f.events()).some(e => e.payload.kind === "session.turn_end"));
+    expect(f.manager.get(f.record.id)?.status).toBe("error");
+    expect((await f.events()).findLast(e => e.payload.kind === "session.turn_end")?.payload).toMatchObject({ reason: "error", code: null });
+    await f.manager.runHeartbeat();
+    expect(f.starts()).toBe(1);
+  });
+
+  it("automatically continues an unplanned loss through the input queue and journals the attempt", async () => {
+    const f = await fixture({ resume, auto: true });
+    await f.interrupt();
+    await f.wait(async () => f.starts() === 2);
+    expect((await f.events()).some(e => e.payload.kind === "session.auto_resume_attempt")).toBe(true);
+    expect((await f.events()).some(e => e.payload.kind === "session.continued" && e.payload.actor === "auto-resume")).toBe(true);
+    expect((await f.events()).filter(e => e.payload.kind === "session.prompt")).toHaveLength(1);
+  });
+
+  it("stops a crash loop after three attempts without a successful turn", async () => {
+    const f = await fixture({ resume, auto: true });
+    for (let i = 0; i < 3; i++) {
+      await f.interrupt();
+      await f.wait(async () => f.starts() === i + 2);
+    }
+    await f.interrupt();
+    await f.wait(async () => (await f.events()).some(e => e.payload.kind === "session.recovery_blocked"));
+    expect(f.starts()).toBe(4);
+    expect(f.manager.get(f.record.id)?.status).toBe("interrupted");
+    expect((await f.events()).filter(e => e.payload.kind === "session.auto_resume_attempt")).toHaveLength(3);
+  });
+
+  it("never resumes a user stop, even after heartbeat and late worker exit", async () => {
+    const f = await fixture({ resume, auto: true });
+    await f.manager.stop(f.record.id, "phone");
+    f.exit(null);
+    await f.manager.runHeartbeat();
+    expect(f.starts()).toBe(1);
+    expect(f.manager.get(f.record.id)?.status).toBe("stopped");
+    expect((await f.events()).some(e => e.payload.kind === "session.auto_resume_attempt")).toBe(false);
+  });
+
+  it("ignores activity notifications from the old stopped generation", async () => {
+    const f = await fixture({ persistent: true });
+    const stale = f.context();
+    await f.manager.stop(f.record.id, "phone");
+    await f.manager.steer(f.record.id, { kind: "prompt", text: "new work" }, "phone");
+    stale.activity?.({ id: "late", kind: "job", state: "running" });
+    f.context().turn?.("idle");
+    await f.wait(async () => f.manager.get(f.record.id)?.status === "idle");
+    expect((await f.events()).some(e => e.payload.kind === "session.activity" && (e.payload.activity as { id?: string })?.id === "late")).toBe(false);
+  });
+});
 
 describe("P27 interruption lifecycle", () => {
   it.each([false, true])("worker exit completes a cut-off turn, persistent=%s", async (persistent) => {
