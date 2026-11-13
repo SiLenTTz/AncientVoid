@@ -13,7 +13,7 @@ sind ausgenommen.
 | Art | Beantwortet | Seiten |
 |---|---|---|
 | **tutorial** — Lernen durch Tun | „Ich bin neu, führ mich zum ersten Erfolg“ | `tutorial-erste-schritte.md` (Befehle laufen als Test: `apps/hub/test/tutorial-schritte.test.ts`) |
-| **how-to** — Ziel erreichen | „Wie mache ich X?“ | `onboarding.md`, `operations-runbook.md`, `backup-restore.md`, `fleet.md`, `loops.md`, `local-llm.md`, `desktop-companion.md`, `workplace-runbook.md`, `forge-runbook.md`, `ci-runbook.md`, `testing-e2e.md`, `aspark-factory-mqtt.md`, `p12-abnahme-checkliste.md` |
+| **how-to** — Ziel erreichen | „Wie mache ich X?“ | `onboarding.md`, `howto-geraete-und-tokens.md`, `howto-provider-wechseln.md`, `howto-wizard-fehler.md`, `beitragen-als-agent.md`, `operations-runbook.md`, `backup-restore.md`, `fleet.md`, `loops.md`, `local-llm.md`, `desktop-companion.md`, `workplace-runbook.md`, `forge-runbook.md`, `ci-runbook.md`, `testing-e2e.md`, `aspark-factory-mqtt.md`, `p12-abnahme-checkliste.md` |
 | **referenz** — Fakten nachschlagen | „Was genau heißt Feld/Befehl/Spalte Y?“ | `configuration.md`, `adapters.md`, `harness-matrix.md`, `funktionsinventar.md`, `commit-notation.md`, `ci-gate-inventar.md`, `check-context.md`, `referenz-hubctl.md`, `referenz-config.md`, `referenz-wizard.md` (generiert, siehe unten), `design-system.md`, `factory-schnittstelle.md`, `epic-status.md`, `uebersicht.md` |
 | **erklaerung** — Verstehen | „Warum ist es so?“ | `architecture.md`, `security.md`, `interrupted-sessions.md`, `zoom-robuste-flaechen.md`, `einstellungen-empfehlungen.md` |
 
@@ -31,6 +31,6 @@ veraltetem Stand. Erklärtexte dazu bleiben in
 - Neue lebende Seite: Kopfzeile `**Art:** …` setzen **und** hier eintragen —
   sonst scheitert das Gate.
 - Eine Seite, die zwei Arten mischt, wird geteilt (Beispiel: `onboarding.md`
-  trennt in EPIC-P57 T57.7 Endnutzer- und Integratoren-Teil).
+  wurde in EPIC-P57 T57.7 vom Beitragen-Teil `beitragen-als-agent.md` getrennt).
 - Einstieg für Endnutzer ist das [README](../README.md); ein neuer Nutzer
   beginnt dort, nicht hier.
