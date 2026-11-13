@@ -181,8 +181,10 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
   gewählten Kopplung. Messlatte: K1, K10.
 - [ ] **T57.10** `scripts/messlauf-ttfs.mjs`, erster Messlauf, Bericht in
   `docs/messlauf/JJJJ-MM-TT-ttfs.md` (Skill `messlauf`). Messlatte: TTFS (Epic), K1.
-- [ ] **T57.11** VoidWarden-Abgleich: Schwester-Epic dort anlegen (Planung; **angelegt 13.11.2026:** [VoidWarden P15](https://gitlab.com/SiLenT_Tz/voidwarden/-/blob/main/epics/EPIC-P15-doku-onboarding.md), MR !76; offen: Weichentext nach T57.4 spiegeln und gegenlesen),
-  Weichen-Text spiegeln, Zuständigkeitstabelle §3.1 gegenlesen. Messlatte: —.
+- [x] **T57.11** VoidWarden-Abgleich: Schwester-Epic dort anlegen (Planung; **angelegt 13.11.2026:** [VoidWarden P15](https://gitlab.com/SiLenT_Tz/voidwarden/-/blob/main/epics/EPIC-P15-doku-onboarding.md), MR !76; offen: Weichentext nach T57.4 spiegeln und gegenlesen), Weichen-Text spiegeln, Zuständigkeitstabelle §3.1 gegenlesen. Messlatte: —.
+  **Erledigt 13.11.2026:** Weichen-Wortlaut aus T57.4 als verbindliches Zitat in P15 §3.2
+  ([VoidWarden MR !77](https://gitlab.com/SiLenT_Tz/voidwarden/-/merge_requests/77), gemergt);
+  Gegenlesen §3.1 gegen P15 §3.1 ohne Widersprüche (Eigentümer unverändert, Token-Rollen einfach).
 - [x] **T57.12** Entscheidungsaufgabe Doku-Site (optional): VitePress-Spike nur
   planen — Kriterien (Seitenzahl, Suchbedarf, Aufwand), Ergebnis „Go/No-go/vertagt“
   als Evaluations-Exit. Kein Code ohne Go. Messlatte: —. **Ergebnis 13.11.2026: vertagt** ([Evaluations-Exit](../docs/2026-11-13_p57-doku-site-entscheidung.md), Nutzer-Bestätigung offen).
