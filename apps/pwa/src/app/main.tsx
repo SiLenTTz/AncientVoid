@@ -7,6 +7,7 @@ import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHo
 import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
 import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
+import { classifyGateError, gateMessage, lastHubContact, noteHubContact } from "./token-gate.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { initAppearance } from "./appearance.ts";
 import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
@@ -60,6 +61,11 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
   const [reveal, setReveal] = useState(false);
 
   const submit = async () => {
+    // EPIC-P57 T57.9: ein leeres Token braucht keinen Hub-Aufruf — gleich sagen, woher es kommt.
+    if (token.trim() === "") {
+      setError(gateMessage("empty", ""));
+      return;
+    }
     setChecking(true);
     setError("");
     try {
@@ -70,7 +76,7 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
       await hubApi.adapters();
       onReady();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "connection failed");
+      setError(gateMessage(classifyGateError(err), err instanceof Error ? err.message : "connection failed", lastHubContact()));
     } finally {
       setChecking(false);
     }
@@ -81,7 +87,8 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
       <img class="login-artwork" src="/assets/artwork-tempel.webp" alt="" width="1280" height="720" />
       <h2 style="margin: 0">Anmeldung bei AncientVoid</h2>
       <p class="dim" style="margin: 0">
-        Device-Token eingeben (wird beim Start des Hubs via <code>hubctl token issue</code> erzeugt).
+        Device-Token eingeben. Es kommt vom Setup-Wizard oder wird mit <code>hubctl token issue &lt;label&gt;</code> auf dem Rechner mit dem Hub
+        ausgestellt — nie in eine Adresse kopieren.
       </p>
       <label>
         Device-Token
@@ -108,7 +115,11 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
           </button>
         </div>
       </label>
-      {error && <div style="color: var(--err)">{error}</div>}
+      {error && (
+        <div role="alert" style="color: var(--err)">
+          {error}
+        </div>
+      )}
       <button class={checking ? "btn primary busy" : "btn primary"} aria-busy={checking} onClick={submit} disabled={checking}>
         {checking ? "lädt…" : "Verbinden"}
       </button>
@@ -197,7 +208,7 @@ function Main() {
         else {
           setReady(false);
           // BUG-0054: a rejected stored token used to leave the gate silent.
-          if (getToken()) setGateError(err instanceof Error ? err.message : "Anmeldung abgelehnt");
+          if (getToken()) setGateError(gateMessage(classifyGateError(err), err instanceof Error ? err.message : "Anmeldung abgelehnt", lastHubContact()));
         }
       });
   }, []);
@@ -211,7 +222,11 @@ function Main() {
     // Hub aber unreachable (unterwegs/Tailnet zu) → Cache-Badge erscheint; kam der
     // Hub zurück, flossen frische Daten, die Meldung blieb trotzdem stehen. Eine
     // erfolgreiche Antwort ohne Cache-Marker (api.ts) löscht sie jetzt ebenfalls.
-    const onFresh = () => setStaleAt(null);
+    const onFresh = () => {
+      setStaleAt(null);
+      // EPIC-P57 T57.9 / K10: wann dieses Gerät den Hub zuletzt live erreicht hat — das Token-Gate nennt es bei „nicht erreichbar“.
+      noteHubContact();
+    };
     const onOnline = () => setStaleAt(null);
     window.addEventListener("online", onOnline);
     document.addEventListener("ancientvoid:stale-data", onStale);
