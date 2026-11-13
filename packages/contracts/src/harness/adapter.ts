@@ -1,6 +1,7 @@
 import type { BlobRef, EmittedEvent } from "../sessions/event.ts";
 import type { NativeDiscovery, NativeResume } from "./inventory.ts";
-import type { SessionSpec } from "../sessions/session.ts";
+import type { SessionSpec, SessionInterruptionReason } from "../sessions/session.ts";
+import type { SessionActivity } from "../sessions/activity.ts";
 import type { ToolPermissionAnswer, ToolPermissionRequest } from "../approvals/tool-permission.ts";
 import type { PromptAttachment } from "../attachments/attachment.ts";
 
@@ -108,6 +109,8 @@ export interface SlashCommand {
  * MCP gateway catalog. Be honest — capabilities are promises (aSPARK lesson).
  */
 export interface AdapterCapabilities {
+  /** ADR-0074: adapters without native live steering use the durable hub queue. */
+  promptDelivery?: "live" | "next-turn";
   /** Adapter emits reasoning/thinking events. */
   reasoning: boolean;
   /** Adapter performs tool calls (tool_use/tool_result events). */
@@ -257,6 +260,12 @@ export interface AdapterContext {
   /** ADR-0013 Nachtrag: turn start/end for adapters with a persistent
    * worker (they don't end a process per turn). */
   turn?(state: "working" | "idle"): void;
+  /** ADR-0074: whether recovery is adopting an unfinished main turn. */
+  readonly turnActive?: boolean;
+  /** ADR-0074: work that may outlive the main turn; stable provider IDs. */
+  activity?(activity: SessionActivity): void;
+  /** Unplanned loss, distinct from a normal turn end and explicit stop. */
+  interrupt?(reason: SessionInterruptionReason, detail?: string): void;
 }
 
 /**
