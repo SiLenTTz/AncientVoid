@@ -49,6 +49,36 @@ Sessions, Events, Projekte, Skills, Suche, Freigaben und Meldungen erreichen.
 Session; laufende Züge werden übernommen (ADR-0014). Das gilt erst, seit die Dienstdatei
 `KillMode=process` setzt (BUG-0072): ältere Installationen bekommen es mit demselben Aufruf.
 
+### Von `uacc-hub` migrieren (13.11.2026 durchgeführt)
+
+Ältere Installationen (aus der Zeit vor der Umbenennung, ADR-0046/0047)
+liefen als `uacc-hub.service` aus `~/mobile-hub` mit `~/.config/uacc`,
+`~/.local/share/uacc`, `@uacc/*`-Adaptermodulen und
+`KillMode=control-group` (Neustart tötet Worker). Migration pro Host,
+Daten und Konfiguration bleiben erhalten:
+
+1. **Backup:** `~/uacc-migration-backup-<datum>/` mit `hub.config.json`,
+   Unit-Datei **und** evtl. Drop-in (`uacc-hub.service.d/*.conf`, dort
+   lagen z. B. evox2s DEEPSEEK-Env), plus
+   `tar -czf data-uacc.tgz -C ~/.local/share uacc`.
+2. **Alte Unit weg:** `systemctl --user disable --now uacc-hub.service`,
+   Unit-Datei löschen, `daemon-reload`.
+3. **Namen umziehen:** `~/.config/uacc/hub.config.json` →
+   `~/.config/ancientvoid/`, `~/.local/share/uacc` →
+   `~/.local/share/ancientvoid`; in der Konfig `dataDir`, `pwaDir` (→
+   `~/AncientVoid/apps/pwa/dist`) und `@uacc/`-Modulnamen umschreiben.
+4. **Drop-ins** für die neue Unit übernehmen
+   (`ancientvoid-hub.service.d/`), danach erst
+   `scripts/fleet-deploy.sh …` (schreibt Unit mit `KillMode=process`,
+   übernimmt die vorhandene Konfiguration).
+5. **Prüfen:** Health über das Tailnet, Session-Zahlen vorher/nachher,
+   geladene Adapter, `systemctl --user show -p KillMode`.
+
+Erwartete Brüche (dokumentiert in ADR-0047): Handys melden sich an den
+Peer-Hubs neu an (Client-Keys heißen anders). Rollback: Backup
+zurückspielen, Unit wiederherstellen. Alt-Checkout `~/mobile-hub` bleibt
+bis zur endgültigen Freigabe liegen.
+
 ## Entfernen oder sperren
 
 - Heim-PWA → Einstellungen → Host „Entfernen“: vergisst den Host und
@@ -58,10 +88,16 @@ Session; laufende Züge werden übernommen (ADR-0014). Das gilt erst, seit die D
   — neue Anfragen sofort abgelehnt, offene Streams binnen 5 s beendet.
 - Dienst entfernen: `systemctl --user disable --now ancientvoid-hub`.
 
-## Aktuelle Flotte (2026-09-23)
+## Aktuelle Flotte (2026-11-13)
 
 | Host | Adresse | Adapter |
 |---|---|---|
 | omarchy (Heim) | `https://omarchy.tail6d2826.ts.net` | claude, codex, opencode, aider, copilot, cursor-clip, deepseek |
 | silenttz-server | `http://silenttz-server.tail6d2826.ts.net:7373` | — (keine CLI installiert) |
-| evox2 | `http://evox2-securesight.tail6d2826.ts.net:7373` | claude, codex, opencode, copilot, aider |
+| evox2 | `http://evox2-securesight.tail6d2826.ts.net:7373` | claude, codex, opencode, copilot, aider, deepseek (ACP), pi |
+
+Alle drei Hosts laufen seit dem 13.11.2026 auf `ancientvoid-hub.service`
+aus `~/AncientVoid` (Stand `a4135a6c`, PWA-Build per
+`/api/health → deployment.pwaSha` nachweisbar); silenttz-server und evox2
+wurden dabei von `uacc-hub.service` migriert (siehe oben), ihre Sessions
+(7 bzw. 47) und Konfigurationen blieben erhalten.
