@@ -119,6 +119,7 @@ async function oneRun(index, browser) {
   // Produktiv-Hub herunter (Vorfall 15:17–15:31, 13.11.2026).
   const hubEnv = { ...process.env, HUB_LOCAL: "1" };
   const stopHub = () => sh("bash", ["scripts/hub.sh", "stop"], { cwd: clone, env: hubEnv, timeoutMs: 60_000 }).catch(() => undefined);
+  let activePage = null;
 
   try {
     // M0: frischer Klon des aktuellen Commits (lokal, ohne Netz — im Bericht ausgewiesen).
@@ -150,6 +151,7 @@ async function oneRun(index, browser) {
     const ctx = await browser.newContext({ ...devices["Pixel 7"] });
     ctx.setDefaultTimeout(90_000);
     const page = await ctx.newPage();
+    activePage = page;
 
     // M2: PWA erreicht den (simulierten) Handy-Browser — Gate sichtbar.
     await page.goto(origin);
@@ -202,6 +204,14 @@ async function oneRun(index, browser) {
     }
     await ctx.close();
   } catch (err) {
+    // Diagnose bei Fehlschlag: Seitenzustand + Screenshot ins (mit --keep erhaltene) runDir.
+    if (activePage) {
+      const shot = join(dir, "failure.png");
+      await activePage.screenshot({ path: shot, fullPage: true }).catch(() => undefined);
+      const text = await activePage.evaluate(() => document.body?.innerText?.() ?? "").catch(() => "");
+      await (await import("node:fs/promises")).writeFile(join(dir, "failure.txt"), text).catch(() => undefined);
+      process.stdout.write(`  FEHLER-DIAGNOSE: ${dir} (failure.png, failure.txt)\n`);
+    }
     err.message = `${err.message}\n[redacted]\n${redact(String(err.message), token)}`;
     throw err;
   } finally {
