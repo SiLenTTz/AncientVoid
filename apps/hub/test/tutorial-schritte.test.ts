@@ -65,7 +65,7 @@ describe("Tutorial erste Schritte — ausführbare Blöcke", () => {
     await app.listen({ port: 0, host: "127.0.0.1" });
     const url = `http://127.0.0.1:${(app.server.address() as { port: number }).port}`;
     env = { ANCIENTVOID_URL: url, ANCIENTVOID_TOKEN: token };
-    // Schritt 3 des Tutorials (PWA „Neue Session“) vorwegnehmen: eine dummy-Session.
+    // Schritt 4 des Tutorials (PWA „Neue Session“/Probe-Session) vorwegnehmen: eine dummy-Session.
     const res = await app.inject({ method: "POST", url: "/api/sessions", headers: { authorization: `Bearer ${token}` }, payload: { adapter: "dummy", project: dir, prompt: "tutorial" } });
     expect(res.statusCode).toBeLessThan(300);
   });

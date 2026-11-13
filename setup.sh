@@ -79,7 +79,10 @@ done
 
 adapter_json() { # adapter_json <id> — ein Adapter-JSON-Objekt auf stdout
   case "$1" in
-    dummy)    echo '{"id":"dummy","module":"@ancientvoid/adapter-dummy","config":{"eventsPerSecond":5}}' ;;
+    # autoStopAfterEvents: Der Übungsagent beruhigt sich nach 40 Events — sonst
+    # bleibt der Sende-Knopf der PWA dauerhaft „Vormerken“ und die erste
+    # Nachricht erreicht nie den Verlauf (BUG-0154, TTFS-Messlauf 13.11.2026).
+    dummy)    echo '{"id":"dummy","module":"@ancientvoid/adapter-dummy","config":{"eventsPerSecond":5,"autoStopAfterEvents":40}}' ;;
     claude)   echo '{"id":"claude","module":"@ancientvoid/adapter-claude"}' ;;
     codex)    echo '{"id":"codex","module":"@ancientvoid/adapter-codex"}' ;;
     opencode) echo '{"id":"opencode","module":"@ancientvoid/adapter-acp","config":{"preset":"opencode"}}' ;;

@@ -11,7 +11,7 @@ Handy erreicht den Hub ≤ 10, erste Nachricht ≤ 15 (Richtwerte, noch nicht
 gemessen — EPIC-P57 T57.10).
 
 Du brauchst: Node 22.18+, 24 oder 26+, git, npm, curl, ein Handy und
-[Tailscale](https://tailscale.com) auf Rechner und Handy (nur für Schritt 5).
+[Tailscale](https://tailscale.com) auf Rechner und Handy (nur für Schritt 6).
 
 Bezeichner wie `<…>` sind Platzhalter. Befehle in Blöcken mit `tutorial-step`
 werden im Test gegen einen echten Hub ausgeführt; `tutorial-manual` sind
@@ -47,19 +47,44 @@ Siehst du `dummy` in der Liste, ist der Übungsagent angebunden. Siehst du
 nichts, hilft [`referenz-wizard.md`](referenz-wizard.md) (Exit-Code) oder der
 Skill `setup-wizard`.
 
-## 3. Am Rechner anmelden und eine Session starten
+## 3. Projekt-Wurzeln eintragen
+
+Sessions laufen in deinen Repos. Der Wizard fragt (noch) nicht danach — ohne
+diesen Schritt bleibt die Projektliste leer und der Erststart bleibt bei
+„Neue Session“ hängen ([BUG-0153](../bugs/bug-0153-erstinstallation-ohne-projektwurzeln.md)).
+
+Öffne `hub.config.json` im Repo (Felder: [`referenz-config.md`](referenz-config.md))
+und trage unter `projectRoots` den Ordner ein, dessen **direkte Unterordner**
+deine Git-Repos sind (Tiefe 1):
+
+```json
+"projectRoots": ["/home/du/repos"]
+```
+
+Der Hub liest die Config beim Start — einmal neu starten (beide Befehle,
+siehe auch [`howto-provider-wechseln.md`](howto-provider-wechseln.md)):
+
+```bash tutorial-manual
+scripts/hub.sh stop && scripts/hub.sh start
+```
+
+**Erwartet:** der Hub meldet sich mit `bereit` bzw. `GET /api/ready = 200`.
+Danach findest du in „Neue Session“ dein Repo als Projekt.
+
+## 4. Am Rechner anmelden und eine Session starten
 
 Öffne `http://127.0.0.1:7373`, trage unter **Device-Token** dein Token ein und
-tippe **Verbinden**. Die Übersicht ist noch leer. Tippe unten im Dock auf
-**Neue Session**, wähle den Adapter `dummy` und ein Projekt und tippe
-**Starten**. Die Session erscheint in der Übersicht und füllt sich mit Ereignissen.
+tippe **Verbinden**. Die Übersicht zeigt den Einstieg für den Erststart. Tippe
+auf **Probe-Session (dummy)** — oder unten im Dock auf **Neue Session**, wähle
+den Adapter `dummy` und dein Projekt und tippe **Starten**. Die Session
+erscheint in der Übersicht und füllt sich mit Ereignissen.
 
 ```bash tutorial-step
 node apps/hubctl/src/cli.ts sessions
 # erwartet: dummy
 ```
 
-## 4. Handy erreicht den Hub (Tailscale)
+## 5. Handy erreicht den Hub (Tailscale)
 
 Der Hub lauscht nur lokal; fürs Handy gibt es **keinen** offenen Port, sondern
 `tailscale serve` (Ende-zu-Ende im privaten Tailnet).
@@ -71,7 +96,7 @@ scripts/setup-tailscale-serve.sh 7373
 Das Skript druckt `https://<rechnername>.<tailnet>.ts.net`. Öffne diese
 Adresse im Handy-Browser (das Handy muss im selben Tailnet angemeldet sein).
 
-## 5. Handy koppeln
+## 6. Handy koppeln
 
 Das Gerät braucht ein **eigenes** Token, damit du es einzeln widerrufen kannst:
 
@@ -85,11 +110,14 @@ Bringe das Token auf einem selbst gewählten sicheren Weg aufs Handy
 (Browserverlauf). Warum es hier kein Scannen/Koppeln per Code gibt:
 [ADR-0073](adr/0073-handy-kopplung.md).
 
-## 6. Den Agenten vom Handy steuern
+## 7. Den Agenten vom Handy steuern
 
-Öffne auf dem Handy die laufende `dummy`-Session, schreibe im Eingabefeld
-eine Nachricht und sende sie. Sie erscheint im Verlauf — du hast den Agenten
-vom Handy aus gesteuert. Mit **Stopp** beendest du den Lauf.
+Öffne auf dem Handy die `dummy`-Session. Der Übungsagent erzählt kurz
+los und beruhigt sich dann von selbst. Schreibe im Eingabefeld eine
+Nachricht und tippe **Weiter** — während er erzählt, heißt der Knopf
+**Vormerken** und deine Nachricht wartet, bis der Zug endet. Gesendet
+erscheint sie im Verlauf — du hast den Agenten vom Handy aus gesteuert.
+Mit **Stopp** beendest du den Lauf.
 
 Geschafft. Der Übungsagent verlangt keine Freigaben; das siehst du erst mit
 einem echten Agenten (Schritt „Weiter“).
