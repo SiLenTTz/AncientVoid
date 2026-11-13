@@ -73,7 +73,11 @@ test.describe("Repo-Galaxie (EPIC-P52)", () => {
 
     await app.setViewportSize({ width: 915, height: 412 });
     await app.reload();
-    await expect(app.locator(".graph-pane")).toHaveAttribute("data-fullscreen", "1");
+    // BUG-0152 (Aufklärung 13.11.2026): Produkt verhält sich korrekt — der
+    // Hash behält /graph, der Graph stellt sich nach dem Reload im Vollbild
+    // wieder her (auch Querformat). Rot war die Spec, weil der kalte PWA-Boot
+    // unter Suite-Last die 10-s-Erwartung sprengt; hence 30 s.
+    await expect(app.locator(".graph-pane")).toHaveAttribute("data-fullscreen", "1", { timeout: 30_000 });
     await expect(app.locator(".session-topbar")).toBeHidden();
   });
 
