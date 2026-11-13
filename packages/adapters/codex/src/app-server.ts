@@ -191,11 +191,21 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
       if (state.turnRevision === revision) state.turnId = res.turn?.id ?? null;
       return { ok: true };
     } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
-      ctx.emit(providerErrorEvent("codex", detail));
+      const detail = rejectDetail("turn/start", err);
+      ctx.emit(providerErrorEvent("codex", err instanceof Error ? err.message : String(err)));
       ctx.turn?.("idle");
       return { ok: false, detail };
     }
+  }
+
+  /** BUG-0158: nachweisliche Ablehnung ehrlich negativ acken; ein
+   * Transport-Timeout bleibt ein unbekanntes Ergebnis (kein blindes Retry,
+   * nicht als angenommen verbucht — STUMM/Wartesemantik T17.4 unberührt). */
+  function rejectDetail(method: string, err: unknown): string {
+    const msg = err instanceof Error ? err.message : String(err);
+    return msg.includes("keine Antwort nach")
+      ? `codex: ${method} Ergebnis unbekannt (${msg}) — Eingabe nicht als angenommen verbucht`
+      : `codex: ${method} abgelehnt — ${msg}`;
   }
 
   const adapter: Adapter = {
@@ -264,8 +274,8 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
               await state.conn.request("turn/steer", { threadId: state.threadId, turnId: state.turnId, input: inputOf(input.text, input.attachments) });
               return { ok: true };
             } catch (err) {
-              const detail = err instanceof Error ? err.message : String(err);
-              ctx.emit(providerErrorEvent("codex", detail));
+              const detail = rejectDetail("turn/steer", err);
+              ctx.emit(providerErrorEvent("codex", err instanceof Error ? err.message : String(err)));
               return { ok: false, detail };
             }
           }

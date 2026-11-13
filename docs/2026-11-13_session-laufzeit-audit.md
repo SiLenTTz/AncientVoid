@@ -28,7 +28,7 @@ Dieser Audit ändert kein Produktverhalten und führt kein Deployment aus.
 
 ## 1. Nachrichten werden tatsächlich fälschlich bestätigt
 
-[BUG-0158](../bugs/bug-0158-codex-bestaetigt-abgelehnte-eingaben.md):
+[BUG-0158](../bugs/bug-0158-codex-ablehnung-als-erfolg.md):
 `packages/adapters/codex/src/app-server.ts:233` fängt in `steer(prompt)` den
 Fehler von `turn/steer` leer ab und liefert anschließend `{ ok: true }`.
 Auch `startTurn()` fängt `turn/start` ab; der Aufrufer liefert dennoch Erfolg.

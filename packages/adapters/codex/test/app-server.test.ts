@@ -172,4 +172,31 @@ describe("codex attachments (T7.10)", () => {
     expect(answer).toContain("Einkaufsliste: Milch");
     expect(answer).toContain("foto.png");
   });
+
+  // BUG-0158: Nachweislich abgelehnte Eingaben bekommen ein negatives Ack mit
+  // sichtbarem Grund — nie { ok: true }. Ein Timeout bliebe „Ergebnis
+  // unbekannt" (STUMM-Test deckt die Wartesemantik, T17.4).
+  it("a rejected turn/steer acks negative with the provider's reason", async () => {
+    const { ctx, turns } = context();
+    const adapter = createAdapter({ mode: "app-server", command: fakeCodex });
+    const handle = await adapter.start({ adapter: "codex", project: process.cwd(), prompt: "LANGSAM" }, ctx);
+    await waitFor(() => turns.includes("working"));
+    const ack = await adapter.steer(handle, { kind: "prompt", text: "Folgeeingabe ABLEHNEN" }, ctx);
+    expect(ack.ok).toBe(false);
+    expect((ack as { detail?: string }).detail).toContain("abgelehnt");
+    expect((ack as { detail?: string }).detail).toContain("provider rejected input");
+    await adapter.steer(handle, { kind: "stop" }, ctx);
+  });
+
+  it("a rejected turn/start acks negative and keeps the provider.error visible", async () => {
+    const { ctx, turns } = context();
+    const adapter = createAdapter({ mode: "app-server", command: fakeCodex });
+    const handle = await adapter.start({ adapter: "codex", project: process.cwd(), prompt: "Hallo" }, ctx);
+    await waitFor(() => turns.includes("idle"));
+    const ack = await adapter.steer(handle, { kind: "prompt", text: "Neuer Zug ABLEHNEN" }, ctx);
+    expect(ack.ok).toBe(false);
+    expect((ack as { detail?: string }).detail).toContain("abgelehnt");
+    expect(kinds(ctx.events).filter((k) => k === "provider.error").length).toBe(1);
+    await adapter.steer(handle, { kind: "stop" }, ctx);
+  });
 });

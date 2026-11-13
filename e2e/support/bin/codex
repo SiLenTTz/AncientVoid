@@ -12,6 +12,8 @@
 //   LANGSAM   the turn runs until interrupted
 //   STUMM     turn/start is never answered — the hub's steer wait hits its
 //             hard timeout (EPIC-P17 T17.4 / AC-P17-3)
+//   ABLEHNEN  turn/steer und turn/start antworten mit RPC-Fehler -32000
+//             „provider rejected input" (BUG-0158: negatives Ack)
 import { randomUUID } from "node:crypto";
 
 if (process.argv[2] === "--version") {
@@ -106,6 +108,8 @@ async function handle(msg) {
       // STUMM: never answers turn/start — the hub's steer wait runs into
       // its hard timeout with the outcome unknown (T17.4).
       if (text.includes("STUMM")) return;
+      // BUG-0158: nachweisliche Ablehnung statt stiller Scheinannahme.
+      if (text.includes("ABLEHNEN")) return send({ id, error: { code: -32000, message: "provider rejected input" } });
       send({ id, result: { turn: { id: turnId, status: "inProgress", items: [] } } });
       return void turn(params.threadId, turnId, text);
     }
@@ -113,6 +117,10 @@ async function handle(msg) {
       interrupted.add(params.turnId);
       return send({ id, result: {} });
     case "turn/steer":
+      // BUG-0158: Ablehnung, wenn der Text es verlangt (beide Keywords).
+      if ((params.input ?? []).some((i) => (i.text ?? "").includes("ABLEHNEN"))) {
+        return send({ id, error: { code: -32000, message: "provider rejected input" } });
+      }
       if (params.input?.some(i => i.text?.includes("REJECT_STEER"))) return send({ id, error: { code: -32000, message: "Provider rejected turn/steer" } });
       return send({ id, result: {} });
     default:
