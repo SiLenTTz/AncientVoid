@@ -183,9 +183,9 @@ sinken, nicht steigen. Provider-Anmeldung zählt nicht in TTFS.
   `docs/messlauf/JJJJ-MM-TT-ttfs.md` (Skill `messlauf`). Messlatte: TTFS (Epic), K1.
 - [ ] **T57.11** VoidWarden-Abgleich: Schwester-Epic dort anlegen (Planung; **angelegt 13.11.2026:** [VoidWarden P15](https://gitlab.com/SiLenT_Tz/voidwarden/-/blob/main/epics/EPIC-P15-doku-onboarding.md), MR !76; offen: Weichentext nach T57.4 spiegeln und gegenlesen),
   Weichen-Text spiegeln, Zuständigkeitstabelle §3.1 gegenlesen. Messlatte: —.
-- [ ] **T57.12** Entscheidungsaufgabe Doku-Site (optional): VitePress-Spike nur
+- [x] **T57.12** Entscheidungsaufgabe Doku-Site (optional): VitePress-Spike nur
   planen — Kriterien (Seitenzahl, Suchbedarf, Aufwand), Ergebnis „Go/No-go/vertagt“
-  als Evaluations-Exit. Kein Code ohne Go. Messlatte: —.
+  als Evaluations-Exit. Kein Code ohne Go. Messlatte: —. **Ergebnis 13.11.2026: vertagt** ([Evaluations-Exit](../docs/2026-11-13_p57-doku-site-entscheidung.md), Nutzer-Bestätigung offen).
 - [ ] **T57.13** Abnahme + Retro (Skill `retro`): AC gegen Beleg, Messlauf, Gate.
 
 ## 5. Acceptance Criteria
