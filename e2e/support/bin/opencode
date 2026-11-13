@@ -66,6 +66,9 @@ const sid = resumed ?? `ses_e2e_${Math.random().toString(36).slice(2, 10)}`;
 const has = (word) => prompt.includes(word);
 
 emit({ type: "step_start", sessionID: sid, part: {} });
+if (has("LANGER_VERLAUF")) {
+  for (let i = 0; i < 550; i++) emit({ type: "reasoning", sessionID: sid, part: { text: `Gedanke ${i}` } });
+}
 await sleep(120);
 emit({ type: "reasoning", sessionID: sid, part: { text: "Ich lese zuerst die README." } });
 await sleep(120);
