@@ -8,6 +8,8 @@ import { summarize } from "./summary.ts";
  */
 
 export interface CodexItem {
+  agentThreadId?: string;
+  kind?: string;
   type?: string;
   id?: string;
   text?: string;

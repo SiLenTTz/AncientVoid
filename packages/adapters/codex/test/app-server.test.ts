@@ -33,6 +33,50 @@ function context(answer?: (req: ToolPermissionRequest) => Promise<{ behavior: "a
 const kinds = (events: EmittedEvent[]) => events.map((e) => (e.payload as { kind?: string }).kind);
 
 describe("codex app-server mode (T7.2)", () => {
+  it("does not resurrect a completed turn when its start response arrives late", async () => {
+    const { ctx } = context();
+    const adapter = createAdapter({ command: fakeCodex });
+    const handle = await adapter.start({ adapter: "codex", project: process.cwd(), prompt: "END_BEFORE_ACK" }, ctx);
+    try {
+      const ack = await adapter.steer(handle, { kind: "prompt", text: "REJECT_START" }, ctx);
+      expect(ack).toMatchObject({ ok: false, detail: expect.stringContaining("turn/start") });
+    } finally { await adapter.stop(handle, ctx); }
+  });
+  it("continues the existing native thread instead of silently starting a new conversation", async () => {
+    const first = context();
+    const adapter = createAdapter({ command: fakeCodex });
+    const handle = await adapter.start({ adapter: "codex", project: process.cwd(), prompt: "first" }, first.ctx);
+    await waitFor(() => first.turns.includes("idle"));
+    const native = first.ctx.events.find(e => e.payload?.kind === "codex.native_session")?.payload?.nativeSessionId;
+    await adapter.stop(handle, first.ctx);
+    const second = context();
+    const resumed = await adapter.start({ adapter: "codex", project: process.cwd(), prompt: "continue", args: { resumeSessionId: native } }, second.ctx);
+    try {
+      await waitFor(() => second.turns.includes("idle"));
+      expect(second.ctx.events.find(e => e.payload?.kind === "codex.native_session")?.payload?.nativeSessionId).toBe(native);
+    } finally { await adapter.stop(resumed, second.ctx); }
+  });
+  it("rejects a refused follow-up instead of acknowledging a lost input (BUG-0154)", async () => {
+    const { ctx } = context();
+    const adapter = createAdapter({ command: fakeCodex });
+    const handle = await adapter.start({ adapter: "codex", project: process.cwd(), prompt: "LANGSAM" }, ctx);
+    try {
+      const ack = await adapter.steer(handle, { kind: "prompt", text: "REJECT_STEER" }, ctx);
+      expect(ack).toMatchObject({ ok: false, detail: expect.stringContaining("turn/steer") });
+      expect(kinds(ctx.events)).toContain("provider.error");
+    } finally { await adapter.stop(handle, ctx); }
+  });
+
+  it("rejects a refused new turn and reports failed initial submission (BUG-0154)", async () => {
+    const { ctx } = context();
+    const adapter = createAdapter({ command: fakeCodex });
+    const handle = await adapter.start({ adapter: "codex", project: process.cwd() }, ctx);
+    try {
+      expect(await adapter.steer(handle, { kind: "prompt", text: "REJECT_START" }, ctx)).toMatchObject({ ok: false });
+    } finally { await adapter.stop(handle, ctx); }
+    await expect(adapter.start({ adapter: "codex", project: process.cwd(), prompt: "REJECT_START" }, ctx)).rejects.toThrow("turn/start");
+  });
+
   it("capabilities: native gate, questions, quota, model choice — exec stays sandbox", () => {
     expect(createAdapter({ mode: "app-server" }).capabilities()).toMatchObject({ usage: true, features: { toolGate: "native", questions: true, modelChoice: "start" } });
     expect(createAdapter({ mode: "app-server", approvalPolicy: "never" }).capabilities().features.toolGate).toBe("sandbox");
