@@ -4,6 +4,7 @@ import { copyWithRetry } from "./copy-selection.ts";
 import { readTailScroll, writeTailScroll } from "./tail-scroll.ts";
 import { sessionHash, fileHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
+import { sourcesBlock, sourcesOf, takeSources } from "../../shared/sources.ts";
 import { HandoverBar } from "./Handover.tsx";
 import { RecoveryHandover } from "./RecoveryHandover.tsx";
 import { currentProviderFailure } from "./handover.ts";
@@ -754,7 +755,15 @@ export function SessionTail({
     }
   };
 
-  const sendReply = (takeover = false, queue = false) => sendText(reply, takeover, queue);
+  const sendReply = (takeover = false, queue = false) => {
+    // EPIC-P43.5 T43.5-1: Quellenchips wandern als markierter Block in den
+    // Prompt — dieselbe Form wie die Vorschau im Composer, danach verbraucht.
+    const sources = sourcesOf(session.id);
+    if (sources.length === 0) return sendText(reply, takeover, queue);
+    const text = `${reply}${reply.trim() ? "\n\n" : ""}${sourcesBlock(sources)}`;
+    takeSources(session.id);
+    return sendText(text, takeover, queue);
+  };
   const running = status === "working" || status === "starting" || status === "waiting_approval";
   const showReply = steerSupported;
   // T1.6-3/AC-P1.6-2: no back-arrow up top anymore — "Übersicht" in the
@@ -1147,7 +1156,7 @@ export function SessionTail({
               </div>
             )}
             {openFile ? (
-              <FileViewer target={`session=${encodeURIComponent(session.id)}`} path={openFile} hostId={remoteHost(session.hostId) ?? null} />
+              <FileViewer target={`session=${encodeURIComponent(session.id)}`} path={openFile} hostId={remoteHost(session.hostId) ?? null} sessionId={session.id} />
             ) : (
               <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} onOpenDiff={showDiffTab} />
             )}
@@ -1343,6 +1352,7 @@ export function SessionTail({
                 }
                 attachments={replyAttachments}
                 onAttachmentsChange={setReplyAttachments}
+                sourceTarget={session.id}
                 extraActions={
                   <>
                     {running ? (

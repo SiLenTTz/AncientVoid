@@ -1,11 +1,15 @@
 import { useState } from "preact/hooks";
 import type { HubApi } from "../../shared/api.ts";
 import { basket, useBasket } from "./feedback-basket.ts";
+import { addSource } from "../../shared/sources.ts";
+import { codeHash } from "../../app/route.ts";
 
 /**
  * EPIC-P46 T46.8 (ADR-0058 §11): gesammelte Datei-/Diagnose-Befunde → Folgeauftrag an die Session. Vorschau zeigt
  * exakt den Text, der gesendet wird (der Hub baut ihn aus der Datei, nicht aus Client-Angaben); veraltete Befunde
  * werden abgewiesen.
+ * EPIC-P43.5 T43.5-1: Befunde können alternativ als Quellenchips in den Composer wandern —
+ * sichtbare Vorschau dort, Senden bleibt die bewusste Handlung des Menschen.
  */
 export function FeedbackPanel({ api, sessionId }: { api: HubApi; sessionId: string | null }) {
   const items = useBasket();
@@ -25,6 +29,23 @@ export function FeedbackPanel({ api, sessionId }: { api: HubApi; sessionId: stri
     } finally {
       setBusy(false);
     }
+  };
+
+  /** T43.5-1: Befunde als Quellenchips — jedes Item eine Quelle mit Sprung zur Stelle. */
+  const toComposer = () => {
+    for (const it of items) {
+      const label = `${it.path}:${it.startLine}${it.endLine !== it.startLine ? `–${it.endLine}` : ""}`;
+      addSource(sessionId, {
+        id: `code:${label}:${it.startLine}`,
+        kind: "code",
+        label,
+        excerpt: it.note.trim() || null,
+        hash: codeHash(sessionId, it.path, it.startLine),
+      });
+    }
+    basket.clear();
+    setPreview(null);
+    setStatus("In den Composer übernommen — dort prüfen und mit dem nächsten Absenden mitgeben.");
   };
   const send = async () => {
     setBusy(true);
@@ -54,6 +75,7 @@ export function FeedbackPanel({ api, sessionId }: { api: HubApi; sessionId: stri
       </ul>
       <div class="file-tools">
         <button type="button" class="btn" disabled={busy} onClick={doPreview} data-testid="feedback-preview">Vorschau</button>
+        <button type="button" class="btn" disabled={busy} onClick={toComposer} data-testid="feedback-to-composer">In den Composer</button>
         <button type="button" class="btn" disabled={busy || !preview || preview.stale.length > 0} onClick={send} data-testid="feedback-send">An Session senden</button>
       </div>
       {preview && preview.stale.length > 0 && <div class="files-stale" role="alert">Veraltet: {preview.stale.map((s) => `${s.path} (${s.reason})`).join("; ")} — Befund entfernen und neu auswählen.</div>}

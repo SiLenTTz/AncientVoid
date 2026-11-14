@@ -2,6 +2,7 @@ import { WorkplaceChoice, type WorkplaceMode } from "./WorkplaceChoice.tsx";
 import { CustomModelDialog } from "./CustomModelDialog.tsx";
 import { takeHandOver } from "../../shared/media.ts";
 import { takeShareInbox } from "../../app/share-inbox.ts";
+import { sourcesBlock, sourcesOf, takeSources } from "../../shared/sources.ts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { LoopPicker } from "../loops/LoopPicker.tsx";
 import type { LoopInfo, LoopSpec } from "@ancientvoid/contracts";
@@ -216,6 +217,15 @@ export function CreateSession({
     return text.startsWith(line) ? text : `${line}${text}`;
   };
 
+  // EPIC-P43.5 T43.5-1: Quellenchips der Neuanlage wandern beim Start in den
+  // Prompt/Auftrag — dieselbe Blockform wie die Composer-Vorschau, danach verbraucht.
+  const withSources = (text: string): string => {
+    const sources = sourcesOf("new");
+    if (sources.length === 0) return text;
+    takeSources("new");
+    return `${text}${text.trim() ? "\n\n" : ""}${sourcesBlock(sources)}`;
+  };
+
   // BUG-0105: nur claude/maki sind Factory-Treiber — eine ersetzte Wahl wird
   // gesagt (fail loud), nie still getauscht.
   const [replacedDriver, setReplacedDriver] = useState<string | null>(null);
@@ -264,11 +274,11 @@ export function CreateSession({
       // verknüpfter Beobachter. Die Treiberwahl bleibt erhalten (ADR-0048).
       const factoryRun = startLoop?.id === "securesight-factory" && !isOnboarding(loopInfo, startLoop);
       const rec = factoryRun
-        ? (await api.factoryStart({ project, adapter, ...(modelChoice && model.trim() ? { model: model.trim() } : {}), ...(prompt ? { goal: prompt } : {}) })).driver
+        ? (await api.factoryStart({ project, adapter, ...(modelChoice && model.trim() ? { model: model.trim() } : {}), ...(prompt ? { goal: withSources(prompt) } : {}) })).driver
         : await api.createSession({
             ...(startLoop ? { loop: startLoop } : { adapter }),
             project,
-            ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
+            ...(prompt ? { prompt: withSources(withWorkflow(prompt)) } : {}),
             ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
             ...(skill || mode ? { args: { ...(skill ? { [skill.kind]: skill.name } : {}), ...(mode ? { permissionMode: mode } : {}) } } : {}),
             ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
@@ -448,6 +458,7 @@ export function CreateSession({
           onUseRecommendation={(item) => setSkill(item)}
           attachments={attachments}
           onAttachmentsChange={setAttachments}
+          sourceTarget="new"
           onSubmit={busy || !project || loopBlock ? undefined : () => void submit()}
         />
       </label>
