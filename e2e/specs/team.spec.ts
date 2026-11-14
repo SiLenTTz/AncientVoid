@@ -28,6 +28,13 @@ test.describe("Agenten-Teams (EPIC-P40/P60)", () => {
     // DAG sichtbar: T2 hängt an T1 (Text), Adapter beider Harnesses sichtbar.
     await expect(app.getByTestId("team-detail")).toContainText("T1");
 
+    // T60.6: Kartenübersicht — je Task eine Karte mit Adapter, Fortschrittsbalken und Session-Link.
+    const cards = app.getByTestId("team-task-card");
+    await expect(cards).toHaveCount(2);
+    await expect(cards.first()).toContainText("dummy");
+    await expect(app.getByTestId("team-progress")).toBeVisible();
+    await expect(app.getByTestId("team-detail").getByRole("link", { name: "Session ↗" }).first()).toBeVisible();
+
     // Beide Tasks laufen über zwei verschiedene Adapter und enden done.
     await expect
       .poll(async () => (await hub.api<{ status: string }>(`/api/teams/${id}`)).body.status, { timeout: 60_000 })
@@ -88,5 +95,25 @@ test.describe("Agenten-Teams (EPIC-P40/P60)", () => {
     await expect(app).toHaveURL(/#\/teams\?team=/);
     await expect(app.getByTestId("team-detail")).toBeVisible();
     await expect(app.getByTestId("team-detail")).toContainText("Redirect-Team");
+  });
+
+  test("Offline: letzter Stand mit Zeitstempel, Mutationen gesperrt (AC-P60-3, K10)", async ({ app, hub }) => {
+    await hub.api("/api/teams", { body: { title: "Offline-Team", goal: "Stand bleibt sichtbar.", project: hub.alpha, frame, plan } });
+    await app.goto(`${hub.origin}/#/teams`);
+    await expect(app.getByText("Offline-Team").first()).toBeVisible(); // Stand online geladen und gecacht
+    await app.evaluate(async () => {
+      await navigator.serviceWorker.ready;
+    });
+    const before = Date.now();
+    await app.context().setOffline(true);
+    await app.reload();
+    await expect(app.getByText("Offline-Team").first()).toBeVisible(); // gespeicherter Stand, kein White-Screen
+    await expect(app.getByTestId("teams-offline")).toContainText("Offline");
+    await expect(app.getByTestId("teams-offline")).toContainText(/letzter Stand/i);
+    // Der Stand ist datiert — nie als frisch ausgegeben (K10).
+    const at = await app.getByTestId("teams-offline").locator("time").getAttribute("datetime");
+    expect(Date.parse(at!)).toBeLessThanOrEqual(before);
+    await expect(app.getByRole("button", { name: "Neues Team", exact: true })).toBeDisabled();
+    await app.context().setOffline(false);
   });
 });
