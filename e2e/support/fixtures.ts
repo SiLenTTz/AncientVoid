@@ -45,6 +45,12 @@ export const test = base.extend<Fixtures>({
 
   app: async ({ page, hub }, use) => {
     await signIn(page, hub);
+    // EPIC-P58: Der Typwriter ist app-seitig Standard an; die Suite läuft deterministisch aus, wenn
+    // der Fixture ihn auf einem frischen Profil auf aus setzt — nur was schon da war, rendiert sofort.
+    // Der eigene Schalter bleibt testbar: typewriter.spec.ts schaltet ihn über die Einstellungen an.
+    await page.addInitScript(() => {
+      if (window.top === window && localStorage.getItem("ancientvoid.typewriter") === null) localStorage.setItem("ancientvoid.typewriter", "0");
+    });
     await page.goto(hub.origin);
     await expect(page.getByRole("heading", { name: "AncientVoid", exact: true })).toBeVisible();
     await use(page);

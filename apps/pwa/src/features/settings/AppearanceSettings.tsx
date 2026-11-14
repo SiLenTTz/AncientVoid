@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { applyTheme, getTheme, type Theme } from "../../app/theme.ts";
 import { applyCtxMotion, ctxMotionOn, getScale, setScale, SCALE_MAX, SCALE_MIN, SCALE_STEP } from "../../app/ui-scale.ts";
 import { applyShortcutHints, shortcutHintsOn } from "../../shared/shortcut-hint.ts";
+import { setTypewriterOn, typewriterOn } from "../../shared/typewriter.ts";
 import { AccentSetting } from "./AccentPicker.tsx";
 import { SettingRow, SettingsSection, Segmented, Switch } from "./parts.tsx";
 
@@ -12,6 +13,7 @@ export function AppearanceSettings() {
   const [scale, setScaleState] = useState<number>(getScale());
   const [motion, setMotion] = useState<boolean>(ctxMotionOn());
   const [hints, setHints] = useState<boolean>(shortcutHintsOn());
+  const [typewriter, setTypewriterState] = useState<boolean>(typewriterOn());
   useEffect(() => {
     const on = (e: Event) => setScaleState((e as CustomEvent<number>).detail);
     window.addEventListener("ancientvoid:scale", on);
@@ -58,6 +60,17 @@ export function AppearanceSettings() {
           onChange={(next) => {
             applyCtxMotion(next);
             setMotion(next);
+          }}
+        />
+      </SettingRow>
+      {/* EPIC-P58 T58.3: nur der Typwriter — Bewegung und Reduce Motion gewinnen immer. */}
+      <SettingRow label="Typwriter-Effekt" hint="Tippt neuen Live-Zuwachs in Chat und Thinking; was schon da war, rendert sofort">
+        <Switch
+          label="Typwriter-Effekt"
+          checked={typewriter}
+          onChange={(next) => {
+            setTypewriterOn(next);
+            setTypewriterState(next);
           }}
         />
       </SettingRow>
