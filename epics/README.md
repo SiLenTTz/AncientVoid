@@ -247,6 +247,29 @@ main); P47/P43.5-Extras hängen an deren je eigenem Start. Kein Start vor
 grünen Exit-Kriterien der wirksamen Vorgänger; P56 bleibt der einzige
 Aggregationsort (P59 liefert nur direkte Proben).
 
+## Nutzerauftrag vom 14.11.2026 — Agenten-Teams (ehemals Runs)
+
+Nutzermeldung nach erster Nutzung der P40-Fläche: Run-Seite visuell
+unbefriedigend, Begriff „Run" nicht selbsterklärend; gewünscht: Übersicht
+mit Karten je parallel laufendem Agenten (wie Session-Übersicht),
+tatsächliche Parallelisierung unabhängiger Aufgaben durch den Koordinator,
+vorab wählbare Adapter/Modelle. Entscheidungen (Jan, 14.11.2026): Name
+wird **Team** („Factory"/„Orchestrator" kollidieren mit Loop-Factory P19/P26
+bzw. Core-Klasse/Hermes-Rolle), Umbenennung überall sauber definiert — auch
+Contracts. Quer-Epic auf P40-Basis (Präzedenz P47–P53); der offene P41-Exit
+bleibt unberührt, die Automationen-Kopplung wird mitmigriert.
+Nummernhinweis: Die Planung lief parallel zum Vier-Punkte-Auftrag auf
+veraltetem main-Stand als „P58"; da P58 bereits an das Typewriter-Epic
+vergeben war, führt das Epic die Nummer **P60** weiter (Repo-Regel
+„Bestehende Epic-Nummern bleiben stabil", Präzedenz P46).
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P60 — Agenten-Teams: Umbenennung, Kartenübersicht, Parallelität, Modellwahl](EPIC-P60-agenten-teams.md) | Run→Team vollständig umbenannt (Contracts, `/api/teams`, Policy `team.*`, Journal-Migration, `#/teams`-Redirects), Team-Detail mit Karten je Worker, breite DAGs + belegte Gleichzeitigkeit, Modell-Allowlist mit Formularauswahl (schließt ungeprüfte `task.model`-Lücke) | keine fachliche offene (P40 umgesetzt, Gate grün; Live-Lauf-Block P39 unberührt) | 2–3 |
+
+Reihenfolge: P60 quer wie P50–P53 (je Aufgabe eigener Branch/MR nach main;
+ADR vor der ersten Contract-Änderung).
+
 ## Reihenfolge & Gating
 
 Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4 → P4.5 → P5 → P6 → P7 → P8 → P9 → P10 → P10.5 → P11 → P12 → P13 → P14 → P15 → P16 → P17 → P18 → P19 → P21 → P22 → P23 → P24 → P26** (P13/P14/P17/P18/P19 unabhängig: Adaptermuster aus P3, Worktree-Hygiene bzw. Laufzeit-Robustheit auf bestehendem P5/P7/P15-Code; P16 ist die Handy-Liste, kein Start vor geklärter P12-Abnahme).
