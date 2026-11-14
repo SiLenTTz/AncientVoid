@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P49)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P59)
 
 **Erstellt:** 12.09.2026 · **Basis:** PRD AncientVoid v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
@@ -226,6 +226,26 @@ Installations-Kaskade, in beiden Epics beschrieben).
 
 Reihenfolge: P53 quer wie P50–P52 (Epic-Planung als eigener Branch/MR vor der
 Umsetzung, damit andere Agenten das Epic sehen; dann Umsetzung je Aufgabe).
+
+## Nutzerauftrag vom 14.11.2026 — Feinschliff, Typewriter, KI-Server-Metriken
+
+Ausdrücklicher Planungsauftrag von Jan (vier Punkte). Recherche mit
+Code-Evidenz und Zuordnung: [2026-11-14](../docs/2026-11-14_recherche_verfeinerungen_typewriter_metriken.md).
+Zwei Punkte gehen in **offene, noch nicht begonnene** Epics (P47, P43.5 —
+dort als neue Tasks/AC ergänzt); in Arbeit befindliche Epics (P37, P38, P42,
+P46, P51 teils) wurden nicht angefasst.
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P47 — Ergänzung](EPIC-P47-uebersicht-sessions-projekte-hosts.md) | Discovery als vierter Umschalt-State der Übersicht, eigener Menüpunkt entfällt (Design-Entscheidung §3.4; Deeplink/Chip bleiben); T47.5/T47.6, AC-P47-5/6 | wie bisher (keine fachliche offene) | +0,25 |
+| [P43.5 — Ergänzung](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Composer-Maximieren-Button als Icon-Button statt Fullscreen-Fläche; T43.5-6, AC-P43.5-6 | P43 grün (erfüllt) | +0,1 |
+| [P58 — Typewriter-Effekt](EPIC-P58-typewriter-effekt.md) | Chat und Thinking/Reasoning werden bei Live-Zuwachs getippt; Settings-Schalter; History sofort; K2-Messlauf | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | ~1 |
+| [P59 — KI-Server-Metriken](EPIC-P59-ki-server-metriken.md) | Neue Metrik-Seite: CPU, GPU, Tokens/s, Prefill, Decode, KV-Cache des lokalen KI-Servers; ADR vor Contract-Änderung; Abgrenzung zu P56 | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | 1–2 |
+
+Reihenfolge: P58/P59 quer wie P50–P53 (je Aufgabe eigener Branch/MR nach
+main); P47/P43.5-Extras hängen an deren je eigenem Start. Kein Start vor
+grünen Exit-Kriterien der wirksamen Vorgänger; P56 bleibt der einzige
+Aggregationsort (P59 liefert nur direkte Proben).
 
 ## Reihenfolge & Gating
 
