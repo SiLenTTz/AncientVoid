@@ -7,13 +7,12 @@ test.describe("Werkzeugfläche am Desktop (EPIC-P34)", () => {
 
   const card = (app: Page, text: string) => app.locator(".split-list .session-card").filter({ hasText: text }).locator(".session-open");
 
-  test("AC-P34-2: Einstellungen, Entdeckt, Medien, PC und Status füllen die Detailspalte, die Liste bleibt die Sessionliste @desktop", async ({ app, hub }) => {
+  test("AC-P34-2: Einstellungen, Medien, PC und Status füllen die Detailspalte, die Liste bleibt die Sessionliste; Entdeckt ist seit EPIC-P47 ein Übersichtszustand @desktop", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Eins" });
     const detail = app.locator(".split-detail");
     const detailBox = await detail.boundingBox();
     for (const [dock, marker] of [
       ["Einstellungen", ".settings-page"],
-      ["Entdeckt", ".discovery"],
       ["Medien", ".media-caps"],
     ] as const) {
       await app.locator(".dock").getByRole("button", { name: dock }).click();
@@ -73,7 +72,7 @@ test.describe("Werkzeugfläche am Desktop (EPIC-P34)", () => {
     await expect(app.locator(".tool-pane")).toBeVisible();
     await app.keyboard.press("Escape");
     await expect(app.locator(".tool-pane")).toHaveCount(0);
-    await dockGo(app, "Entdeckt");
+    await dockGo(app, "Notizen");
     await expect(app.locator(".tool-pane")).toBeVisible();
     await card(app, "Aufgabe Eins").click();
     await expect(app.locator(".tool-pane")).toHaveCount(0);
