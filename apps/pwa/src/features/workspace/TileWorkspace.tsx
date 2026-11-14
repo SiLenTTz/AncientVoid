@@ -155,7 +155,8 @@ export function TileWorkspace({
           <button type="button" class="chip" title={`Fokussierte Kachel leeren (${comboLabel("workspace.tile-close")})`} onClick={() => onChange(closeTile(ws, ws.focus))}>
             ✕ Leeren
           </button>
-          <span class="tile-keys dim">Tastatur: Alt+1–4 · Alt+Shift+1–4 · Alt+L · Alt+W · Strg-Klick: neue Kachel</span>
+          {/* EPIC-P51 T51.7: detaillierte Kürzelzeile durch ?-Übersicht ersetzt (aus T43.6 hierher gezogen). */}
+          <span class="tile-keys dim">Tastatur: ? zeigt alle Kürzel · Strg-Klick: neue Kachel</span>
         </div>
       </div>
       <div ref={gridRef} class={`tile-grid layout-${ws.layout.replace("+", "p")}`} style={template}>

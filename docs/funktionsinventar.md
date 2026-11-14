@@ -187,7 +187,7 @@ Nur ab 1280 px Breite.
 | P01 | Layoutwahl (sechs Layouts) | Leiste über den Kacheln | — | inventar |
 | P02 | Fokus ‹ ›, Tauschen, Layout, Leeren | Leiste über den Kacheln | T43.6 | inventar |
 | P03 | Liste einklappen | Leiste über den Kacheln | — | inventar |
-| P04 | Tastaturhinweise | Zeile über den Kacheln | P51 T51.7 | inventar |
+| P04 | Tastaturhinweise | ?-Kürzelübersicht (Registry) | P51 T51.7 | inventar |
 | P05 | Kachel in eigenes Fenster (Taste) | Kachelkopf „⧉“ | T43.7 | inventar |
 | P06 | Kachel am Griff herausziehen | Kachelkopf „⠿“ | T43.7 | inventar |
 | P07 | Kachel leeren | Kachelkopf „×“ | — | inventar |

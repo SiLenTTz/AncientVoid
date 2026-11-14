@@ -74,6 +74,8 @@ export const CATALOG: ShortcutInfo[] = [
   { id: "approvals.choose", combo: "Digit1", label: "1–9", description: "Freigabe-Option direkt wählen", scope: "global", localOnly: true, inInput: true, where: "in einer Freigabe-Frage" },
   { id: "graph.search", combo: "Slash", label: "/", description: "Graph-Suche fokussieren", scope: "global", localOnly: true, where: "im Graph-Tab (fokussierte Fläche)" },
   { id: "graph.navigate", combo: "ArrowRight", label: "Pfeiltasten", description: "Im Datei-Graph zwischen Nachbarn wandern", scope: "global", localOnly: true, where: "im Graph-Tab (fokussierte Fläche)" },
+  // T43.6 (?-Übersicht) ist hierher gezogen (P51); Shift gehört zum „?“-Zeichen selbst.
+  { id: "cheatsheet.toggle", combo: "?", label: "?", description: "Kürzel-Übersicht anzeigen/verbergen", scope: "global", lenientShift: true },
 ];
 
 /** Kanonischen Zugriff ohne Array-Suche. */

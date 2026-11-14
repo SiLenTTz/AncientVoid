@@ -8,6 +8,7 @@ import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
 import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
 import { registerShortcut } from "../shared/shortcuts/registry.ts";
+import { CheatSheet } from "../shared/shortcuts/CheatSheet.tsx";
 import { classifyGateError, gateMessage, lastHubContact, noteHubContact } from "./token-gate.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { initAppearance } from "./appearance.ts";
@@ -385,6 +386,7 @@ function Main() {
         </div>
       )}
       <CommandBar />
+      <CheatSheet />
       {wide && (
         <RestoreBar
           ws={ws}

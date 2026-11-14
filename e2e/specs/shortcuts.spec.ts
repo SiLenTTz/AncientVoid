@@ -93,6 +93,28 @@ test.describe("Globale View-Wechsel-Kürzel (EPIC-P51 T51.6)", () => {
   });
 });
 
+test.describe("?-Kürzelübersicht (EPIC-P51 T51.7, aus T43.6 gezogen)", () => {
+  test("? zeigt die Übersicht aus der Registry; Esc schließt", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+    await app.keyboard.press("Shift+Slash");
+    const sheet = app.locator(".cheatsheet");
+    await expect(sheet).toBeVisible();
+    await expect(app.locator(".cheatsheet-key").filter({ hasText: "Strg+K" })).toBeVisible();
+    await expect(app.locator(".cheatsheet-key").filter({ hasText: /^Alt\+1$/ })).toBeVisible();
+    await expect(app.locator(".cheatsheet-key").filter({ hasText: "Strg+Enter" })).toBeVisible();
+    await app.keyboard.press("Escape");
+    await expect(sheet).toHaveCount(0);
+  });
+
+  test("? wirkt nicht im Eingabefeld (kein Öffnen beim Tippen)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByPlaceholder("Antworten…").fill("Frage? Ja");
+    await expect(app.locator(".cheatsheet")).toHaveCount(0);
+    await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Frage? Ja");
+  });
+});
+
 test.describe("Roving-Pfeil-Navigation (EPIC-P51 T51.6)", () => {
   test("Dock: Pfeiltasten bewegen den Fokus von Eintrag zu Eintrag", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
