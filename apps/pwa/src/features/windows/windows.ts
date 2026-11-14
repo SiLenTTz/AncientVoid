@@ -1,3 +1,4 @@
+import { clampWindow, getPreset, type WindowGeometry } from "../settings/presets.ts";
 import { useEffect, useState } from "preact/hooks";
 import { dropFeatures, type DropPoint } from "./drag.ts";
 import { applyWindowMessage, parseWindowMessage, popoutUrl, pruneWindows, targetKey, WINDOW_CHANNEL, windowFor, type WindowMessage, type WindowRegistry, type WindowTarget } from "./protocol.ts";
@@ -84,7 +85,7 @@ const HELLO_WAIT_MS = 3000;
  * `noopener`: Das Fenster hat keinen Bezug zum Öffner (ein voller Tail bremst sonst den Haupt-Thread, K2); `window.open`
  * liefert dann immer `null`. Ob es aufging, zeigt allein das `hello` — bleibt es aus, blockiert der Browser Pop-ups.
  */
-export function openPopout(target: WindowTarget, drop?: DropPoint): Promise<PopoutResult> {
+export function openPopout(target: WindowTarget, drop?: DropPoint, placement?: WindowGeometry): Promise<PopoutResult> {
   const existing = windowFor(registry, target);
   if (existing) {
     postWindowMessage({ type: "focus", id: existing.id });
@@ -104,7 +105,9 @@ export function openPopout(target: WindowTarget, drop?: DropPoint): Promise<Popo
       if (msg.type === "hello" && targetKey(msg.target) === key) finish("opened");
     });
     const timer = setTimeout(() => finish("blocked"), HELLO_WAIT_MS);
-    window.open(popoutUrl(target), "_blank", dropFeatures(drop));
+    const geometry = clampWindow(placement ?? getPreset().layout.window, { width: screen.availWidth, height: screen.availHeight });
+    const features = (placement || target.kind === "browser") ? `popup,noopener,noreferrer,width=${geometry.width},height=${geometry.height},left=${geometry.left},top=${geometry.top}` : dropFeatures(drop);
+    window.open(popoutUrl(target), "_blank", features);
   });
 }
 
@@ -113,4 +116,17 @@ export function focusWindowFor(target: WindowTarget): boolean {
   if (!existing) return false;
   postWindowMessage({ type: "focus", id: existing.id });
   return true;
+}
+
+/** Geometrie bleibt gerätelokal, unabhängig vom Hub-Zustand. */
+export function rememberWindowGeometry(target: WindowTarget): void {
+  const geometry = { left: window.screenX, top: window.screenY, width: Math.max(280, window.outerWidth), height: Math.max(280, window.outerHeight) };
+  localStorage.setItem(`ancientvoid.window-geometry.${targetKey(target)}`, JSON.stringify(geometry));
+}
+export function windowGeometry(target: WindowTarget): WindowGeometry {
+  try {
+    const g = JSON.parse(localStorage.getItem(`ancientvoid.window-geometry.${targetKey(target)}`) ?? "null") as WindowGeometry | null;
+    if (g && [g.left, g.top, g.width, g.height].every(Number.isFinite) && g.width >= 280 && g.height >= 280) return g;
+  } catch { /* Ein alter Geometrieeintrag ist kein Fensterverlust. */ }
+  return getPreset().layout.window;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { applyTheme, getTheme, type Theme } from "../../app/theme.ts";
+import { applyTheme, getTheme, THEME_KEY, type Theme } from "../../app/theme.ts";
 import { applyCtxMotion, ctxMotionOn, getScale, setScale, SCALE_MAX, SCALE_MIN, SCALE_STEP } from "../../app/ui-scale.ts";
 import { applyShortcutHints, shortcutHintsOn } from "../../shared/shortcut-hint.ts";
 import { setTypewriterOn, typewriterOn } from "../../shared/typewriter.ts";
@@ -9,6 +9,13 @@ import { SettingRow, SettingsSection, Segmented, Switch } from "./parts.tsx";
 /** Gruppe „Darstellung“: Theme, Zoom, Bewegung. Akzent und Schrift kommen mit T34.5/T34.6 hierher. */
 export function AppearanceSettings() {
   const [theme, setThemeState] = useState<Theme>(getTheme());
+  useEffect(() => {
+    const sync = () => setThemeState(getTheme());
+    const storage = (e: StorageEvent) => { if (e.key === THEME_KEY || e.key === null) sync(); };
+    window.addEventListener("ancientvoid:theme", sync);
+    window.addEventListener("storage", storage);
+    return () => { window.removeEventListener("ancientvoid:theme", sync); window.removeEventListener("storage", storage); };
+  }, []);
   // EPIC-P20: the scale changes from the keyboard and wheel too — follow it.
   const [scale, setScaleState] = useState<number>(getScale());
   const [motion, setMotion] = useState<boolean>(ctxMotionOn());

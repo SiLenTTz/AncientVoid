@@ -1062,7 +1062,7 @@ export function SessionTail({
       </div>}
       <div
         ref={tailRef}
-        class="tail-scroll"
+        class={`tail-scroll${activeTab === "chat" ? " chat-readable" : ""}`}
         onWheel={(event) => {
           userInputAt.current = Date.now();
           if (event.deltaY < 0) stickRef.current = false;
