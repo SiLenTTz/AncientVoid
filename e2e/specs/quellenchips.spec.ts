@@ -62,6 +62,59 @@ test.describe("Quellenchips im Composer (EPIC-P43.5 T43.5-1)", () => {
   });
 });
 
+test("Quellensprung per Tastatur bewahrt Entwurf und Verbindung, Popout teilt Quellen @desktop", async ({ app, hub, context }) => {
+  const id = await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+  let connections = 0;
+  app.on("websocket", () => { connections += 1; });
+  await app.goto(`${hub.origin}/#/sessions/${id}/datei/README.md`);
+  await app.getByRole("button", { name: "Zeile 2 auswählen" }).click();
+  await app.getByTestId("file-feedback-add").click();
+  await app.getByTestId("feedback-to-composer").click();
+  const showControls = app.getByRole("button", { name: "Steuerung einblenden", exact: true });
+  if (await showControls.isVisible()) await showControls.click();
+  const reply = app.getByPlaceholder("Antworten…");
+  await reply.fill("Entwurf behalten");
+  const before = connections;
+  await app.keyboard.press("Control+k");
+  await app.getByRole("combobox", { name: "Auftrag" }).fill("README");
+  const source = app.getByRole("option").filter({ hasText: "Quelle ansehen" });
+  await expect(source).toBeVisible();
+  await app.getByRole("combobox", { name: "Auftrag" }).press("ArrowDown");
+  await app.getByRole("combobox", { name: "Auftrag" }).press("Enter");
+  await expect(reply).toHaveValue("Entwurf behalten");
+  expect(connections).toBe(before);
+  await expect(app.getByTestId("source-chips")).toBeVisible();
+  // Eigene Fenster teilen die lokale Quellenauswahl, ohne implizites Senden.
+  const popout = await context.newPage();
+  await popout.goto(`${hub.origin}/?window=1#/sessions/${id}`);
+  await expect(popout.getByTestId("source-chips")).toBeVisible();
+  await popout.getByRole("button", { name: /Quelle entfernen: README/ }).click();
+  await expect(app.getByTestId("source-chips")).toHaveCount(0);
+  await popout.close();
+});
+
+
+
+test("Eigene Statusnotiz bleibt vom Laufzeitstatus getrennt und per Touch suchbar @desktop", async ({ app, hub }) => {
+  const id = await hub.createSession({ adapter: "codex", prompt: "Kurz" });
+  await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "initial turn ended");
+  await app.goto(`${hub.origin}/#/sessions/${id}`);
+  await app.getByLabel("Weitere Aktionen", { exact: true }).click();
+  await app.getByLabel("Fachliche Statusnotiz", { exact: true }).fill("Abnahme vom Team ausstehend");
+  await app.reload();
+  await expect(app.getByLabel("Weitere Aktionen", { exact: true })).toBeVisible();
+  await app.keyboard.press("Control+k");
+  await app.getByRole("combobox", { name: "Auftrag" }).fill("Abnahme vom Team");
+  const noteTarget = app.getByRole("option").filter({ hasText: "eigene Arbeitsnotiz" });
+  if (await app.evaluate(() => matchMedia("(pointer: coarse)").matches)) await noteTarget.tap();
+  else await noteTarget.click();
+  await expect(app.getByLabel("Fachliche Statusnotiz", { exact: true })).toBeVisible();
+  await expect(app.getByLabel("Fachliche Statusnotiz", { exact: true })).toBeFocused();
+  await expect(app.getByLabel("Fachliche Statusnotiz", { exact: true })).toHaveValue("Abnahme vom Team ausstehend");
+  await expect(app.locator(".session-status-note")).toContainText("kein Laufzeit- oder Gate-Nachweis");
+  expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("idle");
+});
+
 test("Abgelehntes Senden verliert die ausgewählten Quellen nicht @desktop", async ({ app, hub }) => {
   const id = await hub.createSession({ adapter: "codex", prompt: "Kurz" });
   await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "initial turn ended");

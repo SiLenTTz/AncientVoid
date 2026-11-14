@@ -8,9 +8,11 @@ import type { ListPage } from "../../app/route.ts";
  * Graph/Galaxie, Host-Detail) sind keine eigenen Treffer; sie liegen einen Sprung + einen Tap entfernt
  * (dokumentiert im Funktionsinventar G64).
  */
-export type QuickKind = "session" | "projekt" | "datei" | "werkzeug" | "befehl";
+export type QuickKind = "session" | "projekt" | "datei" | "werkzeug" | "befehl" | "quelle" | "statusnotiz";
 
 export type QuickTarget =
+  | { kind: "quelle"; hash: string; view?: "forge" }
+  | { kind: "statusnotiz"; sessionId: string; hostId: string | null }
   | { kind: "session"; sessionId: string; hostId: string | null }
   | { kind: "projekt"; path: string }
   | { kind: "datei"; sessionId: string; hostId: string | null; text: string }
@@ -27,12 +29,14 @@ export interface QuickItem {
 
 export interface QuickSources {
   sessions: readonly { id: string; title?: string | null; project: string; hostId?: string | null; archived?: boolean }[];
+  sourceRefs?: readonly { label: string; excerpt: string | null; hash: string | null; view?: "forge" }[];
+  notes?: readonly { sessionId: string; hostId: string | null; text: string }[];
   projects: readonly { path: string; name: string }[];
   /** Die gerade offene Session — nur dann gibt es den Sprung in ihre Dateien. */
   here: { sessionId: string; hostId: string | null } | null;
 }
 
-export const QUICK_KIND_LABEL: Record<QuickKind, string> = { session: "Session", projekt: "Projekt", datei: "Dateien", werkzeug: "Werkzeug", befehl: "Befehl" };
+export const QUICK_KIND_LABEL: Record<QuickKind, string> = { quelle: "Quelle", statusnotiz: "Statusnotiz", session: "Session", projekt: "Projekt", datei: "Dateien", werkzeug: "Werkzeug", befehl: "Befehl" };
 
 export const TOOLS: readonly { page: ListPage; label: string; hash?: string }[] = [
   { page: "dashboard", label: "Start" },
@@ -90,5 +94,7 @@ export function quickMatches(query: string, src: QuickSources): QuickItem[] {
       : [];
   const tools = pick(TOOLS, (t) => t.label, (t) => ({ kind: "werkzeug", label: t.label, detail: "öffnen", target: { kind: "werkzeug", page: t.page, ...(t.hash ? { hash: t.hash } : {}) } }));
   const commands = pick(COMMANDS, (c) => c, (c) => ({ kind: "befehl", label: c, detail: "als Auftrag eintragen", target: { kind: "befehl", text: c.replace(/…/g, "").replace(/: $/, ": ") } }));
-  return [...sessions, ...projects, ...files, ...tools, ...commands];
+  const refs = pick((src.sourceRefs ?? []).filter(s => s.hash), s => `${s.label} ${s.excerpt ?? ""}`, s => ({ kind: "quelle", label: s.label, detail: "Quelle ansehen", target: { kind: "quelle", hash: s.hash!, ...(s.view ? { view: s.view } : {}) } }));
+  const notes = pick(src.notes ?? [], s => s.text, s => ({ kind: "statusnotiz", label: s.text, detail: "eigene Arbeitsnotiz (dieses Gerät)", target: { kind: "statusnotiz", sessionId: s.sessionId, hostId: s.hostId } }));
+  return [...refs, ...notes, ...sessions, ...projects, ...files, ...tools, ...commands];
 }

@@ -1,3 +1,4 @@
+import { StatusNote } from "./StatusNote.tsx";
 import type { ComponentChildren } from "preact";
 import { InterruptedBanner } from "./InterruptedBanner.tsx";
 import { copyWithRetry } from "./copy-selection.ts";
@@ -82,6 +83,18 @@ export interface TileContext {
   only?: ViewTab;
 }
 
+function fitSessionMenu(menu: HTMLDetailsElement | null): void {
+  if (!menu?.open) return;
+  const items = menu.querySelector<HTMLElement>(".session-menu-items");
+  if (!items) return;
+  const top = items.getBoundingClientRect().top;
+  let bottom = window.visualViewport ? window.visualViewport.offsetTop + window.visualViewport.height : window.innerHeight;
+  for (let parent = menu.parentElement; parent; parent = parent.parentElement) {
+    if (/^(hidden|clip|auto|scroll)$/.test(getComputedStyle(parent).overflowY)) bottom = Math.min(bottom, parent.getBoundingClientRect().bottom);
+  }
+  const zoom = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-zoom")) || 1;
+  items.style.maxHeight = `${Math.max(1, bottom - top - 8) / zoom}px`;
+}
 
 export function SessionTail({
   session,
@@ -487,6 +500,7 @@ export function SessionTail({
 
   useEffect(() => {
     const measure = () => {
+      fitSessionMenu(menuRef.current);
       const tail = tailRef.current;
       const dock = dockRef.current;
       if (!tail || !dock) return;
@@ -919,9 +933,10 @@ export function SessionTail({
           </button>
         )}
         {!tile?.only && (
-        <details class="session-menu" ref={menuRef}>
+        <details class="session-menu" ref={menuRef} onToggle={e => fitSessionMenu(e.currentTarget)}>
           <summary aria-label="Weitere Aktionen" title="Weitere Aktionen">⋯</summary>
           <div class="session-menu-items">
+            <StatusNote sessionId={session.id} />
             <button type="button" onClick={() => menuDo(() => { setTitleDraft(title ?? ""); setRenaming(true); })}>
               Umbenennen
             </button>

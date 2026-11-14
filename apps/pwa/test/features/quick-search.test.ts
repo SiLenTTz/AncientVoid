@@ -50,3 +50,9 @@ describe("quickMatches (EPIC-P43 T43.6)", () => {
     expect(quickMatches("alpha", { ...src, here: null }).some((m) => m.kind === "datei")).toBe(false);
   });
 });
+
+it("P43.5 sources and factual status notes are separate jump targets", () => {
+  const matches = quickMatches("Prüfung", { ...src, sourceRefs: [{ label: "Prüfung README.md", excerpt: "Befund", hash: "/sessions/s1/datei/README.md" }], notes: [{ sessionId: "s1", hostId: null, text: "Prüfung erfolgreich" }] });
+  expect(matches[0]?.target).toEqual({ kind: "quelle", hash: "/sessions/s1/datei/README.md" });
+  expect(matches[1]?.target).toEqual({ kind: "statusnotiz", sessionId: "s1", hostId: null });
+});
