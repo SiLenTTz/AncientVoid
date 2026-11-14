@@ -95,6 +95,52 @@ export interface TreeOptions {
   ignored?: boolean;
 }
 
+/** Epic-Datei im Baum: Namenskonvention der Epic-Pakete (EPIC-P0…, EPIC-P43.5…). */
+const EPIC_FILE = /^EPIC-[A-Za-z]?[0-9.]+.*\.md$/i;
+/** Wie viel vom Dateianfang die Statuszeile enthält (steht in Zeile 2–5). */
+const EPIC_HEAD_BYTES = 4096;
+
+/**
+ * Nutzerauftrag 14.11.2026: Kategorie aus der Statuszeile einer EPIC-*.md.
+ * Reihenfolge ist wichtig — „Code abgeschlossen“ enthält „abgeschlossen“,
+ * „Umsetzung: gesperrt“ enthält „Umsetzung“. Der Klartext (`text`) geht mit
+ * an die Oberfläche; die Kategorie ist Heuristik, kein Semantic-Parser.
+ */
+export function epicStatusOf(head: string): { epic: "done" | "code" | "wip" | "open"; text: string } | null {
+  const line = head.split("\n").find((l) => l.includes("**Status:**"));
+  if (!line) return null;
+  const text = line.replace(/\*\*Status:\*\*/, "").replace(/\*\*/g, "").trim().slice(0, 220);
+  if (/code abgeschlossen|teilweise umgesetzt|exit offen/i.test(text)) return { epic: "code", text };
+  if (/abgeschlossen|exit grün|fertiggestellt/i.test(text)) return { epic: "done", text };
+  if (/in umsetzung|umsetzung: freigegeben/i.test(text)) return { epic: "wip", text };
+  if (/\bumgesetzt\b|\bgebaut\b/i.test(text)) return { epic: "code", text };
+  return { epic: "open", text };
+}
+
+/** Epic-Status für die Dateien einer Baumseite anreichern (nur sichtbare Seite, nie rekursiv). */
+async function annotateEpics(root: string, entries: TreeEntry[]): Promise<void> {
+  for (const e of entries) {
+    if (e.kind !== "file" || e.blocked !== null || !EPIC_FILE.test(e.name)) continue;
+    if (e.size !== null && e.size > 256 * 1024) continue; // Epic-Dateien sind klein; Riesen-MD sind keine
+    try {
+      const handle = await open(resolve(root, e.path), "r");
+      try {
+        const buf = Buffer.alloc(EPIC_HEAD_BYTES);
+        const { bytesRead } = await handle.read(buf, 0, buf.length, 0);
+        const hit = epicStatusOf(buf.subarray(0, bytesRead).toString("utf8"));
+        if (hit) {
+          e.epic = hit.epic;
+          e.epicStatus = hit.text;
+        }
+      } finally {
+        await handle.close();
+      }
+    } catch {
+      // Nicht lesbar bleibt unsichtbar markiert (kein Epic-Status statt Fehler).
+    }
+  }
+}
+
 /**
  * ADR-0058 §2: ein Ordner, lazy und paginiert. Nie rekursiv; ignorierte Einträge
  * werden gezählt statt still verschwiegen; Links nach außen und `.git` sind sichtbar gesperrt.
@@ -134,7 +180,7 @@ export async function listTree(root: string, path: string, identity: WorkspaceId
       blocked = "nicht lesbar";
     }
     if (d.name === ".git") blocked = ".git-Interna sind gesperrt";
-    raw.push({ name: d.name, path: rel, kind, size, mtimeMs, git: null, symlink, blocked });
+    raw.push({ name: d.name, path: rel, kind, size, mtimeMs, git: null, symlink, blocked, epic: null, epicStatus: null });
   }
   const ignored = isGit ? await ignoredSet(root, raw.filter((e) => e.name !== ".git").map((e) => e.path)) : new Set<string>();
   const status = isGit ? await statusMap(root, base) : new Map<string, NonNullable<TreeEntry["git"]>>();
@@ -147,6 +193,7 @@ export async function listTree(root: string, path: string, identity: WorkspaceId
   const limit = Math.min(Math.max(options.limit ?? TREE_PAGE_DEFAULT, 1), TREE_PAGE_MAX);
   const offset = Math.max(options.offset ?? 0, 0);
   const entries = shown.slice(offset, offset + limit);
+  await annotateEpics(root, entries);
   return {
     identity,
     path: base,

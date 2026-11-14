@@ -33,6 +33,14 @@
 .files-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .files-why { font-size: 0.75em; }
 .files-git { margin-left: auto; font-size: 0.75em; padding: 0 4px; }
+/* Nutzerauftrag 14.11.2026: Epic-Statuspunkt vor EPIC-*.md im Baum — Farben aus den
+ * geschützten Status-Tokens (P43): ok = abgeschlossen, warn = Code/Exit offen,
+ * info = in Umsetzung, fg-faint = offen/gesperrt. */
+.epic-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; margin-right: 2px; }
+.epic-dot.epic-done { background: var(--ok, #9ece6a); }
+.epic-dot.epic-code { background: var(--warn, #e0af68); }
+.epic-dot.epic-wip { background: var(--info, #7aa2f7); }
+.epic-dot.epic-open { background: var(--fg-faint, #565f89); }
 .files-git.git-modified, .files-git.git-added { color: var(--warn, #e0af68); }
 .files-git.git-untracked { color: var(--ok, #9ece6a); }
 .files-git.git-ignored { color: var(--fg-dim); }
