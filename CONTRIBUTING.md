@@ -109,6 +109,14 @@ git fetch --prune
 GitLab hat `remove_source_branch_after_merge` aktiv — trotzdem lokal
 aufräumen und bei Bedarf remote nachziehen.
 
+### Worktrees: eigenes `npm install`
+
+Ein frisch angelegter Worktree hat **kein** `node_modules` — Node löst
+die `@ancientvoid/*`-Workspace-Pakete dann über den Haupt-Checkout auf
+und typecheckt/lintet gegen **deren** (ggf. älteren) Stand. Vor der
+ersten Gate-Ausführung im Worktree: `npm install` (Realbefund
+14.11.2026: typecheck rot ohne eigene Änderung).
+
 ### Was „saubere Historie“ hier heißt
 
 - Eine Verhaltensänderung pro Commit (Commit-Notation).

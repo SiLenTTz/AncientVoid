@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { TeamDispatch, TeamFrame, TeamPlan, Team, TeamTaskPlan } from "@ancientvoid/contracts";
+import { TeamFrame, type TeamDispatch, type TeamPlan, type Team, type TeamTaskPlan } from "@ancientvoid/contracts";
 import { applyOutcome, cancelRun, contextPacket, nextDispatches, openGate, answerGate, tasksFromPlan, validatePlan } from "../../../src/modules/team/engine.ts";
 import { TeamStore } from "../../../src/modules/team/store.ts";
 import { TeamCoordinator, parsePlan, type TeamSessionPort } from "../../../src/modules/team/coordinator.ts";
@@ -10,7 +10,7 @@ import { TeamCoordinator, parsePlan, type TeamSessionPort } from "../../../src/m
 const frame = (over: Partial<TeamFrame> = {}): TeamFrame => ({
   adapters: ["codex"],
   coordinatorAdapter: "hermes",
-  model: null,
+  models: [],
   maxTasks: 8,
   maxDispatchesPerTask: 2,
   maxParallel: 2,
@@ -70,6 +70,25 @@ describe("EPIC-P40 Orchestrierung — Engine", () => {
   it("validatePlan: Adapter außerhalb des Rahmens", () => {
     const err = validatePlan({ tasks: [taskPlan("T1", { adapter: "loop:evil" })] }, frame());
     expect(err?.code).toBe("adapter_not_allowed");
+  });
+
+  it("T60.8: Task-Modell außerhalb der Allowlist wird abgewiesen; null und erlaubte bleiben frei (ADR-0077)", () => {
+    const withModels = frame({ models: ["grok-4", "glm-5"] });
+    expect(validatePlan({ tasks: [taskPlan("T1", { model: "grok-4" })] }, withModels)).toBeNull();
+    expect(validatePlan({ tasks: [taskPlan("T1", { model: null })] }, withModels)).toBeNull();
+    const err = validatePlan({ tasks: [taskPlan("T1", { model: "unbekannt-9" })] }, withModels);
+    expect(err?.code).toBe("model_not_allowed");
+    expect(err?.message).toContain("unbekannt-9");
+    // Leere Allowlist = nur Adapter-Standardmodell (null).
+    expect(validatePlan({ tasks: [taskPlan("T1", { model: "etwas" })] }, frame())?.code).toBe("model_not_allowed");
+  });
+
+  it("T60.8: TeamFrame liest die Altedform mit model toleriert (ADR-0077 §6)", () => {
+    const base = { adapters: ["codex"], coordinatorAdapter: "hermes", maxTasks: 8, maxDispatchesPerTask: 2, maxParallel: 2 };
+    expect(TeamFrame.parse({ ...base, model: "grok-4" })).toMatchObject({ models: ["grok-4"] });
+    expect(TeamFrame.parse({ ...base, model: null })).toMatchObject({ models: [] });
+    expect(TeamFrame.parse({ ...base })).toMatchObject({ models: [] });
+    expect(TeamFrame.parse({ ...base, models: ["a", "b"], model: "c" })).toMatchObject({ models: ["a", "b"] });
   });
 
   it("validatePlan: zu viele Tasks", () => {
@@ -304,6 +323,19 @@ describe("EPIC-P60 (ADR-0077) — Journal-Migration orchestration/ → team/", (
     expect(report.migratedSkippedLines).toBe(1);
     expect(store.get(run.id)).toBeDefined();
   });
+
+  it("T60.8: Bestands-Teams mit altem frame.model werden beim Laden auf models normalisiert (ADR-0077 §6)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "av-p60-frm-"));
+    mkdirSync(join(dir, "team"), { recursive: true });
+    const legacyFrame = { adapters: ["codex"], coordinatorAdapter: "hermes", model: "grok-4", maxTasks: 8, maxDispatchesPerTask: 2, maxParallel: 2 };
+    const team = { ...mkRun({ tasks: [taskPlan("T1")] }), frame: legacyFrame };
+    writeFileSync(join(dir, "team", "teams.jsonl"), JSON.stringify({ seq: 1, at: team.createdAt, op: "put", run: team }) + "\n");
+    const store = new TeamStore(dir);
+    await store.init();
+    const loaded = store.get("run-1");
+    expect(loaded?.frame).toMatchObject({ models: ["grok-4"] });
+    expect((loaded?.frame as unknown as { model?: string }).model).toBeUndefined();
+  });
 });
 
 /** Fake-Port: zählt Sessions, Status pro Session steuerbar, lastAssistant liefert Text. */
@@ -357,7 +389,65 @@ async function setup(plan: TeamPlan | null, pollMs = 3_600_000) {
   return { dir, store, fake, orch, run };
 }
 
+describe("EPIC-P60 (ADR-0077, T60.7) — Parallelitäts-Deckel 8 im Contract", () => {
+  it("maxParallel 8 ist erlaubt, 9 wird abgewiesen (Zod-Deckel)", () => {
+    const base = { adapters: ["codex"], coordinatorAdapter: "hermes", models: [], maxTasks: 8, maxDispatchesPerTask: 2 };
+    expect(TeamFrame.parse({ ...base, maxParallel: 8 }).maxParallel).toBe(8);
+    expect(TeamFrame.safeParse({ ...base, maxParallel: 9 }).success).toBe(false);
+  });
+});
+
 describe("EPIC-P40 Orchestrierung — TeamCoordinator", () => {
+  it("T60.7: N unabhängige Tasks mit maxParallel ≥ N laufen gleichzeitig; der Rahmen bleibt serverseitig erzwingt (K8)", async () => {
+    // Drei unabhängige Tasks, Rahmen maxParallel 3 — der Fake-Port hält alle
+    // Sessions in „working", sodass die Überlappung sichtbar bleibt.
+    const dir = mkdtempSync(join(tmpdir(), "av-p60-par-"));
+    const store = new TeamStore(dir);
+    await store.init();
+    const fake = fakePort();
+    const orch = new TeamCoordinator(store, fake.port, { pollMs: 3_600_000 });
+    const plan: TeamPlan = {
+      tasks: [taskPlan("T1"), taskPlan("T2"), taskPlan("T3"), taskPlan("T4")],
+    };
+    const run = await orch.start({ ...startInput(plan), frame: frame({ maxParallel: 3 }) }, "tester");
+    await orch.tick();
+    const stored = store.get(run.id)!;
+    // Drei Sessions wurden GLEICHZEITIG erzeugt (nicht nacheinander abgeschlossen):
+    expect(fake.created).toHaveLength(3);
+    expect(stored.tasks.filter((t) => t.status === "running")).toHaveLength(3);
+    expect(stored.tasks.filter((t) => t.dispatches.some((d) => d.status === "active"))).toHaveLength(3);
+    // T4 wartet — der Rahmen wird bei jedem Dispatch geprüft.
+    expect(stored.tasks.find((t) => t.id === "T4")?.status).toBe("ready");
+    // Ein Worker-Ende rückt T4 nach.
+    fake.statuses.set(fake.created[0]!, "idle");
+    fake.texts.set(fake.created[0]!, "Ergebnis T1");
+    await orch.tick();
+    await orch.tick();
+    const after = store.get(run.id)!;
+    expect(after.tasks.find((t) => t.id === "T4")?.status).toBe("running");
+    expect(fake.created).toHaveLength(4);
+  });
+
+  it("T60.8: Koordinator-Plan mit unzulässigem Modell ⇒ genau eine Rückfrage mit Erneut-Planen (ADR-0077)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "av-p60-mod-"));
+    const store = new TeamStore(dir);
+    await store.init();
+    const fake = fakePort();
+    const orch = new TeamCoordinator(store, fake.port, { pollMs: 3_600_000 });
+    const run = await orch.start({ ...startInput(null), frame: frame({ models: ["erlaubt-1"] }) }, "tester");
+    expect(run.coordinatorSessionId).toBe(fake.created[0]);
+    fake.statuses.set(run.coordinatorSessionId!, "idle");
+    fake.texts.set(run.coordinatorSessionId!, "```team\n" + JSON.stringify({ tasks: [taskPlan("T1", { model: "verboten-9" })] }) + "\n```");
+    await orch.tick();
+    const stored = store.get(run.id)!;
+    expect(stored.status).toBe("awaiting_gate");
+    expect(stored.tasks).toHaveLength(0); // nie Tasks mit ungeprüftem Modell
+    const gate = stored.gates[0]!;
+    expect(gate.question).toContain("verboten-9");
+    expect(gate.options.map((o) => o.action)).toEqual(["retry_plan", "cancel"]);
+    expect(gate.options).toHaveLength(2); // eine Rückfrage, nicht pro Task eines
+  });
+
   it("Start mit given plan: dispatcht Ready-Tasks, working→idle ⇒ Delivery, Run done", async () => {
     const { store, fake, orch, run } = await setup({ tasks: [taskPlan("T1")] });
     expect(run.tasks[0]?.status).toBe("running");

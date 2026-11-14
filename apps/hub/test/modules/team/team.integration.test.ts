@@ -12,7 +12,7 @@ import { createHubApp } from "../../../src/app.ts";
 
 const execAsync = promisify(execFile);
 
-const FRAME = { adapters: ["dummy", "zweit"], coordinatorAdapter: null, model: null, maxTasks: 4, maxDispatchesPerTask: 2, maxParallel: 2 };
+const FRAME = { adapters: ["dummy", "zweit"], coordinatorAdapter: null, models: [], maxTasks: 4, maxDispatchesPerTask: 2, maxParallel: 2 };
 const PLAN = {
   tasks: [
     { id: "T1", title: "Erste Recherche", prompt: "Recherchiere A.", adapter: "dummy", model: null, dependsOn: [] },
@@ -115,6 +115,15 @@ describe("team routes (integration, EPIC-P40/P60)", () => {
     expect(res.statusCode).toBe(422);
     const badDeps = await app.inject({ method: "POST", url: "/api/teams", headers: human, payload: { ...startRun(), plan: { tasks: [{ ...PLAN.tasks[0]!, dependsOn: ["gibtsnicht"] }] } } });
     expect(badDeps.statusCode).toBe(422);
+    // T60.8 (ADR-0077): Task-Modell außerhalb der Frame-Allowlist → 422, nie ungeprüft durch.
+    const badModel = await app.inject({
+      method: "POST",
+      url: "/api/teams",
+      headers: human,
+      payload: { ...startRun(), frame: { ...FRAME, models: ["erlaubt-1"] }, plan: { tasks: [{ ...PLAN.tasks[0]!, model: "verboten-9" }] } },
+    });
+    expect(badModel.statusCode).toBe(422);
+    expect(badModel.json().code).toBe("model_not_allowed");
     const cycle = await app.inject({
       method: "POST",
       url: "/api/teams",

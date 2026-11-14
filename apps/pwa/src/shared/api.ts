@@ -1378,6 +1378,7 @@ function createHubApi(P: (path: string) => string) {
    * mit 400 ab — deshalb ein explizit leerer JSON-Body statt gar keins. */
   sendQueuedNow: (id: string, queueId: string) => api<Ack>(P(`/api/sessions/${id}/queue/${queueId}/send`), { method: "POST", body: JSON.stringify({}) }),
   /** EPIC-P40/EPIC-P60: Agenten-Teams (Run→Team, ADR-0077). */
+  teamsScope: P("/api/teams"),
   teamList: () => api<Team[]>(P("/api/teams")),
   teamStart: (input: TeamStart) =>
     api<Team>(P("/api/teams"), { method: "POST", body: JSON.stringify(input) }),
