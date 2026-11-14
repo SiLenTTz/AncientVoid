@@ -79,7 +79,7 @@ export function CheatSheet() {
           <Row key={s.id} info={s} />
         ))}
         <div class="dim cheatsheet-note">
-          Belegungen von Browser und Fenstermanager (Omarchy/Hyprland, Firefox) stehen in <code>docs/tastatur-kollisionen.md</code>.
+          Belegungen von Browser und Fenstermanager stehen je Kürzel in <code>docs/tastatur-kollisionen.md</code> — z. B. wirkt Alt+1–4 im Firefox-Tab nicht (Tab-Wechsel) und Alt+Pos1 ruft dort die Startseite.
         </div>
       </div>
     </div>
