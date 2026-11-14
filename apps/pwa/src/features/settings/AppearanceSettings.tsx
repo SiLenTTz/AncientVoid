@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { applyTheme, getTheme, type Theme } from "../../app/theme.ts";
 import { applyCtxMotion, ctxMotionOn, getScale, setScale, SCALE_MAX, SCALE_MIN, SCALE_STEP } from "../../app/ui-scale.ts";
+import { applyShortcutHints, shortcutHintsOn } from "../../shared/shortcut-hint.ts";
 import { AccentSetting } from "./AccentPicker.tsx";
 import { SettingRow, SettingsSection, Segmented, Switch } from "./parts.tsx";
 
@@ -10,6 +11,7 @@ export function AppearanceSettings() {
   // EPIC-P20: the scale changes from the keyboard and wheel too — follow it.
   const [scale, setScaleState] = useState<number>(getScale());
   const [motion, setMotion] = useState<boolean>(ctxMotionOn());
+  const [hints, setHints] = useState<boolean>(shortcutHintsOn());
   useEffect(() => {
     const on = (e: Event) => setScaleState((e as CustomEvent<number>).detail);
     window.addEventListener("ancientvoid:scale", on);
@@ -56,6 +58,17 @@ export function AppearanceSettings() {
           onChange={(next) => {
             applyCtxMotion(next);
             setMotion(next);
+          }}
+        />
+      </SettingRow>
+      {/* EPIC-P51 T51.8: Klick-Hinweise auf vorhandene Kürzel — Standard an (Lernphase). */}
+      <SettingRow label="Shortcut-Hinweise" hint="Klick auf eine Aktion mit Kürzel zeigt kurz die Kombination unten an">
+        <Switch
+          label="Shortcut-Hinweise"
+          checked={hints}
+          onChange={(next) => {
+            applyShortcutHints(next);
+            setHints(next);
           }}
         />
       </SettingRow>

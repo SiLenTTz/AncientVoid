@@ -7,6 +7,9 @@ import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHo
 import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
 import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
+import { registerShortcut } from "../shared/shortcuts/registry.ts";
+import { CheatSheet } from "../shared/shortcuts/CheatSheet.tsx";
+import { installShortcutHints } from "../shared/shortcut-hint.ts";
 import { classifyGateError, gateMessage, lastHubContact, noteHubContact } from "./token-gate.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { initAppearance } from "./appearance.ts";
@@ -43,6 +46,8 @@ applyPinchZoom(pinchZoomAllowed());
 applyScale(getScale());
 applyCtxMotion(ctxMotionOn());
 installScaleShortcuts();
+// EPIC-P51 T51.8: Kürzel-Hinweis-Pill bei Klicks auf Elemente mit Shortcut.
+installShortcutHints();
 
 function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: string }) {
   const [token, setVal] = useState(getToken());
@@ -344,13 +349,37 @@ function Main() {
     if (route.view === "tail") rememberSession(tileRefOf(route.session));
   }, [route]);
 
+  // EPIC-P51 T51.6: globale View-Wechsel über die Shortcut-Registry. Alt+←/→
+  // nutzen die Ansichts-Historie; selbst wenn der Browser sie konsumiert,
+  // passiert genau das Gewünschte (Browser-Historie = AV-Hash-Historie).
+  useEffect(() => {
+    const offs = [
+      registerShortcut("view.home", (e) => {
+        e.preventDefault();
+        location.hash = pageHash("dashboard");
+      }),
+      registerShortcut("view.back", (e) => {
+        e.preventDefault();
+        history.back();
+      }),
+      registerShortcut("view.forward", (e) => {
+        e.preventDefault();
+        history.forward();
+      }),
+    ];
+    return () => {
+      for (const off of offs) off();
+    };
+  }, []);
+
   if (!ready) return <TokenGate onReady={() => void becomeReady()} rejected={gateError} />;
 
   return (
     <>
       <TooltipLayer />
-      {!wide && <NotificationCenter />}
-      {wide && listCollapsed && <NotificationCenter corner />}
+      {/* EPIC-P51 T51.4: am PC sitzt die Glocke in jedem Layoutzustand im
+       * Fenstereck — die Listenspalte hat keinen eigenen Glockenplatz mehr. */}
+      {wide ? <NotificationCenter corner /> : <NotificationCenter />}
       {staleAt && (
         <div class="topbar">
           {/* K10: tippen lädt neu — der Service Worker holt dann wieder Netz-zuerst. */}
@@ -360,6 +389,7 @@ function Main() {
         </div>
       )}
       <CommandBar />
+      <CheatSheet />
       {wide && (
         <RestoreBar
           ws={ws}
@@ -396,7 +426,6 @@ function Main() {
         // T8.5 (AC-P8-6): from 1280 px list and session side by side.
         <div class={`split${listCollapsed ? " list-collapsed" : ""}`}>
           <aside class="split-list">
-            <NotificationCenter />
             <App wide onOpen={openFromList} ready={() => setReady(false)} page={route.view === "list" ? route.page : "dashboard"} {...(route.view === "list" && route.vaultFile ? { vaultFile: route.vaultFile } : {})} />
           </aside>
           <section class="split-detail">

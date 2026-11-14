@@ -194,7 +194,7 @@ existierendem Shortcut. Läuft quer zur Kette (Präzedenz P47–P50).
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
-| [P51 — Vault-Erreichbarkeit & Tastatur-first](EPIC-P51-vault-erreichbarkeit-tastatur.md) | Jeder Ordner als Vault wählbar (Symlink-sicher, Pfad-Eingabe, ehrliche Fehler, ADR-0063-Ergänzung); Glocke am PC im Fenstereck; zentrale Shortcut-Registry, fehlende Kürzel (Esc/Fokus, View-Wechsel, Listen-Navigation), `?`-Cheat-Sheet, Hinweis-Overlay mit Setting, Omarchy-/Firefox-Kollisions-Doku | keine fachliche offene (P49/P18/P34 als Basis; Nutzerauftrag) | 2–3 |
+| [P51 — Vault-Erreichbarkeit & Tastatur-first](EPIC-P51-vault-erreichbarkeit-tastatur.md) | Jeder Ordner als Vault wählbar (Symlink-sicher, Pfad-Eingabe, ehrliche Fehler, ADR-0063-Ergänzung); Glocke am PC im Fenstereck; zentrale Shortcut-Registry, fehlende Kürzel (Esc/Fokus, View-Wechsel, Listen-Navigation), `?`-Cheat-Sheet, Hinweis-Overlay mit Setting, Omarchy-/Firefox-Kollisions-Doku — **Code abgeschlossen 14.11.2026** (T51.1–T51.9/T51.11; Eck-Glocke löst T8.5-Spaltenposition ab, Split schrumpft unter Toasts statt zu scrollen); Live-Abnahme am Gerät offen | keine fachliche offene (P49/P18/P34 als Basis; Nutzerauftrag) | 2–3 |
 
 Reihenfolge: P51 quer wie P50 (je Aufgabe eigener Branch/MR nach main; ADR-0063-Ergänzung vor dem ersten Verhaltens-Merge).
 

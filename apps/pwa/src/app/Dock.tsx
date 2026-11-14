@@ -3,10 +3,11 @@
 // Tipp weiter im Blatt „Mehr“; am PC (Leiste links, 21-icon-rail.css) stehen diese Ziele weiterhin
 // einzeln in der Leiste, dort gibt es kein „Mehr“. „approvals“ wird aus der Übersicht erreicht.
 // `active` hebt nie etwas hervor, solange eine Seite offen ist, die kein Dock-Ziel ist.
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { TabIcon, type TabIconName } from "../shared/TabIcon.tsx";
 import { openCommandBar } from "../features/commands/CommandBar.tsx";
 import { openLayer } from "../shared/layers.ts";
+import { ariaCombo, comboLabel, registerShortcut } from "../shared/shortcuts/registry.ts";
 export type { ListPage as Page } from "./route.ts";
 import type { ListPage as Page } from "./route.ts";
 
@@ -25,23 +26,36 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
   const [more, setMore] = useState(false);
   useEffect(() => {
     if (!more) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMore(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // EPIC-P51 T51.5: Esc über die Shortcut-Registry.
+    return registerShortcut("dock.more-close", (e) => {
+      e.preventDefault();
+      setMore(false);
+    });
   }, [more]);
   const go = (page: Page) => {
     setMore(false);
     onNavigate(page);
   };
   const inMore = MORE.some((m) => m.page === active) || active === "status";
+  // EPIC-P51 T51.6: Roving-Navigation — Pfeiltasten bewegen den Fokus durchs
+  // Dock (PC: Leiste links ↑/↓, Handy: Leiste unten ←/→; beide Achsen wirken).
+  const dockRef = useRef<HTMLElement>(null);
+  const onDockKey = (e: KeyboardEvent) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const items = [...(dockRef.current?.querySelectorAll<HTMLButtonElement>("button.dock-item:not([disabled])") ?? [])];
+    const idx = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (idx === -1) return;
+    const forward = e.key === "ArrowDown" || e.key === "ArrowRight";
+    const next = items[(idx + (forward ? 1 : items.length - 1)) % items.length];
+    e.preventDefault();
+    next.focus();
+  };
   return (
-    <nav class="dock" aria-label="Navigation">
+    <nav class="dock" aria-label="Navigation" ref={dockRef} onKeyDown={onDockKey}>
       <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} type="button" title="Start" onClick={() => go("dashboard")}>
         <TabIcon name="uebersicht" /><span class="lb">Start</span>
       </button>
-      <button class="dock-item" type="button" title="Suchen und Auftrag in Worten (Strg+K)" onClick={() => { setMore(false); openCommandBar(); }}>
+      <button class="dock-item" type="button" title={`Suchen und Auftrag in Worten (${comboLabel("command.toggle")})`} aria-keyshortcuts={ariaCombo("command.toggle")} data-shortcut="command.toggle" onClick={() => { setMore(false); openCommandBar(); }}>
         <TabIcon name="suche" /><span class="lb">Suchen</span>
       </button>
       <button class={`dock-item dock-main ${active === "new" ? "active" : ""}`} type="button" title="Neue Session" aria-label="Neue Session" onClick={() => go("new")}>
@@ -58,7 +72,7 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
           <TabIcon name={m.icon} /><span class="lb">{m.label}</span>
         </button>
       ))}
-      <button class="dock-item dock-extra" type="button" title="Dateibaum (Strg+Umschalt+E)" onClick={() => openLayer("files")}>
+      <button class="dock-item dock-extra" type="button" title={`Dateibaum (${comboLabel("files.toggle")})`} aria-keyshortcuts={ariaCombo("files.toggle")} data-shortcut="files.toggle" onClick={() => openLayer("files")}>
         <TabIcon name="baum" /><span class="lb">Dateibaum</span>
       </button>
       {more && (

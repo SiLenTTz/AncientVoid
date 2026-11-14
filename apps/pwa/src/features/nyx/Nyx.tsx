@@ -2,6 +2,7 @@ import type { ComponentChildren } from "preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, remoteHost, type ApprovalRequest, type SessionRecord } from "../../shared/api.ts";
+import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { sessionHash } from "../../app/route.ts";
 import { CardDecision, QuestionForm } from "../approvals/Approvals.tsx";
 import { decidableOnCard } from "../overview/queue.ts";
@@ -140,12 +141,13 @@ export function NyxButton({ online, sessions, approvals, onChanged }: { online: 
     if (!open) return;
     // Tastatur und Screenreader: der Fokus geht ins Blatt und beim Schließen zurück auf Nyx (T43.9).
     sheet.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
+    // EPIC-P51 T51.5: Esc über die Shortcut-Registry.
+    const off = registerShortcut("nyx.close", (e) => {
+      e.preventDefault();
+      setOpen(false);
+    });
     return () => {
-      window.removeEventListener("keydown", onKey);
+      off();
       button.current?.focus();
     };
   }, [open]);

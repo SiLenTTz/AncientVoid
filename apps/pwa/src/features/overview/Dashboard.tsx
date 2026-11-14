@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
+import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import type { ApprovalRequest, DiscoveredProject, FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
 import { graphHash, sessionHash } from "../../app/route.ts";
@@ -525,17 +526,22 @@ function SessionRow({
   const cardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!menuOpen && !actionsOpen) return;
-    const close = (e: Event) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !cardRef.current?.contains(e.target as Node)) {
+    // EPIC-P51 T51.5: Esc über die Shortcut-Registry; Tipp daneben bleibt ein lokaler Listener.
+    const off = registerShortcut("overview.menu-close", (e) => {
+      e.preventDefault();
+      setMenuOpen(false);
+      setActionsOpen(false);
+    });
+    const onDown = (e: PointerEvent) => {
+      if (!cardRef.current?.contains(e.target as Node)) {
         setMenuOpen(false);
         setActionsOpen(false);
       }
     };
-    window.addEventListener("keydown", close);
-    window.addEventListener("pointerdown", close);
+    window.addEventListener("pointerdown", onDown);
     return () => {
-      window.removeEventListener("keydown", close);
-      window.removeEventListener("pointerdown", close);
+      off();
+      window.removeEventListener("pointerdown", onDown);
     };
   }, [menuOpen, actionsOpen]);
   const name = session.title ?? project;
@@ -554,6 +560,19 @@ function SessionRow({
       ref={cardRef}
       class={`card session-card ${glow}${unseen ? " unseen" : ""}${isLast ? " last-active" : ""}${moved ? " mv-wander" : ""}${actionsOpen ? " actions-open" : ""}`}
       aria-current={isLast ? "true" : undefined}
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        // EPIC-P51 T51.6: Roving — ↑/↓ bewegen den Fokus zwischen Karten
+        // (Karte selbst fokussierbar; innere Buttons bleiben Tab erreichbar).
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        const cards = [...document.querySelectorAll<HTMLElement>(".session-card")];
+        const idx = cards.findIndex((c) => c === cardRef.current || c.contains(document.activeElement));
+        if (idx === -1) return;
+        const next = cards[idx + (e.key === "ArrowDown" ? 1 : -1)];
+        if (!next) return;
+        e.preventDefault();
+        next.focus();
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         setActionsOpen(true);

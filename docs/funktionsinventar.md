@@ -94,7 +94,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G61 | Freigabe auf der Karte entscheiden (Erlauben/Ablehnen) | Start → Karte unter „Du bist dran“ | — | spec:start-warteschlange.spec.ts |
 | G62 | „Ruhig“ auf- und zuklappen | Start → Gruppenkopf „Ruhig“ | — | spec:start-warteschlange.spec.ts |
 | G63 | Alle Freigaben zeigen | Start → „Du bist dran“ → „alle zeigen“ | — | spec:start-warteschlange.spec.ts |
-| G64 | Schnellsuche: Springen zu Sessions, Projekten, Dateien, Werkzeugen, Befehlen | Strg+K bzw. Dock „Suchen“ → Treffer | T43.6 | spec:schnellsuche.spec.ts |
+| G64 | Schnellsuche: Springen zu Sessions, Projekten, Dateien, Werkzeugen, Befehlen | Strg+K bzw. Dock „Suchen“ → Treffer. **Bewusste Grenze (P51 T51.11):** tiefe Sprungziele unterhalb der Werkzeug-/Session-Ebene (z. B. einzelne Notizen, Graph/Galaxie einer Session, Host-Detail) sind absichtlich nicht eigene Schnellsuche-Treffer — sie liegen einen Sprung + einen Tap entfernt (Werkzeug/Session → Tab), eine zweite Navigationsschicht wäre Doppelstruktur; Vault-Suche bleibt minimal (ADR-0063) | T43.6 + P51 T51.11 | spec:schnellsuche.spec.ts |
 | G65 | Nyx: Gesamtzustand in der Kopfzeile; Blatt mit allen wartenden Freigaben und Fragen (Vorauswahl, Ja/Nein mit einem Tipp, Begründung/Passkey → Session); am PC auch als eigenes Fenster | Kopfzeile → Nyx | T43.8 | spec:nyx-blatt.spec.ts |
 
 ## Session
@@ -137,6 +137,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S30 | Steuerung ein- und ausblenden | „▾“/„▴“ | T43.4 | inventar |
 | S31 | Kopieren je Ereignis | Taste am Ereignis | T43.5 | inventar |
 | S32 | Dateibaum | Reiter „Dateien“ → „Dateibaum“; ohne Session globales „Mehr“ → „Dateibaum“ (PC: Leiste) | T43.5 | inventar |
+| S73 | Epic-Statuspunkte im Dateibaum | EPIC-*.md tragen einen Statuspunkt (grün abgeschlossen · amber Code/Exit offen · blau in Umsetzung · grau offen/gesperrt), Tooltip = Statuszeile der Datei | Nutzerwunsch 14.11.2026 | spec:dateibaum-epic-status.spec.ts |
 | S33 | Browser-Arbeitsplatz | „Mehr“ → „Browser“ | T43.4 | inventar |
 | S34 | Graph in eigenes Fenster (nur PC) | Reiter „Graph“ → „⧉ Eigenes Fenster“ | T43.7 | inventar |
 | S35 | Pause und „Weiter“ | Taste im Kopf, während ein Zug läuft | T43.4 | spec:pause-queue.spec.ts |
@@ -187,7 +188,7 @@ Nur ab 1280 px Breite.
 | P01 | Layoutwahl (sechs Layouts) | Leiste über den Kacheln | — | inventar |
 | P02 | Fokus ‹ ›, Tauschen, Layout, Leeren | Leiste über den Kacheln | T43.6 | inventar |
 | P03 | Liste einklappen | Leiste über den Kacheln | — | inventar |
-| P04 | Tastaturhinweise | Zeile über den Kacheln | P51 T51.7 | inventar |
+| P04 | Tastaturhinweise | ?-Kürzelübersicht (Registry) | P51 T51.7 | inventar |
 | P05 | Kachel in eigenes Fenster (Taste) | Kachelkopf „⧉“ | T43.7 | inventar |
 | P06 | Kachel am Griff herausziehen | Kachelkopf „⠿“ | T43.7 | inventar |
 | P07 | Kachel leeren | Kachelkopf „×“ | — | inventar |

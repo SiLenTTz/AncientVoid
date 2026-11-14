@@ -59,6 +59,10 @@ export class SessionActivities {
   }
 
   private async closeIfLast(session: LiveSession, code: number): Promise<void> {
+    // BUG-0161: Ein Aktivitätsende ist kein Zugende. Läuft die Hauptarbeit
+    // noch (mainTurnIdle === false, ADR-0076), bleibt die Session working —
+    // ihr Zugende kommt über adapterTurn/Worker-Exit, nicht über Tools.
+    if (session.mainTurnIdle === false) return;
     if (session.activities.size > 0 || (session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
     // Eine fehlgeschlagene/ungewiss beendete Hintergrundarbeit ist kein
     // sauberer Laufabschluss (BUG-0155): ehrlich `error`, nie success-idle.

@@ -4,6 +4,9 @@ import type { ListPage } from "../../app/route.ts";
  * EPIC-P43 T43.6: Schnellsuche im Befehlsfeld — Springen zu Sessions, Projekten, Dateien, Werkzeugen und
  * Befehlen. Kein eigener Index: Sessions und Projekte sind die Listen, die die App ohnehin lädt; „Dateien“
  * ist die bestehende Codesuche der offenen Session. Reine Funktion, damit Reihenfolge und Treffer testbar sind.
+ * EPIC-P51 T51.11: bewusste Grenze — Sprungziele unterhalb der Werkzeug-/Session-Ebene (einzelne Notizen,
+ * Graph/Galaxie, Host-Detail) sind keine eigenen Treffer; sie liegen einen Sprung + einen Tap entfernt
+ * (dokumentiert im Funktionsinventar G64).
  */
 export type QuickKind = "session" | "projekt" | "datei" | "werkzeug" | "befehl";
 

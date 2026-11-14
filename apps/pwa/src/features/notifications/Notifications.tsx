@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, hostApi, type HubNotification } from "../../shared/api.ts";
 import { sessionHash } from "../../app/route.ts";
+import { registerShortcut } from "../../shared/shortcuts/registry.ts";
+import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 
 const READ_KEY = "ancientvoid.notifications.readUpTo";
 /** EPIC-P6: read marks of other hosts, { hostId: lastReadId }. */
@@ -72,6 +74,16 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [open, setOpen] = useState(false);
   const [read, setRead] = useState(readMarks);
+  // EPIC-P51 T51.6: Esc schließt das Panel, Fokus rein/Tab-Falle/zurück auf die Glocke.
+  const closeBtn = useRef<HTMLButtonElement>(null);
+  const { ref: panelRef } = useOverlayFocus<HTMLDivElement>(open, { preferred: () => closeBtn.current });
+  useEffect(() => {
+    if (!open) return;
+    return registerShortcut("notifications.close", (e) => {
+      e.preventDefault();
+      setOpen(false);
+    });
+  }, [open]);
   // Per host (key "" = this hub): newest id seen; null = not loaded yet.
   const lastIds = useRef<Record<string, number | null>>({});
   const peers = useRef<string[]>([]);
@@ -200,10 +212,10 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
         )}
       </div>
       {open && (
-        <div class="notif-panel" role="dialog" aria-label="Benachrichtigungen">
+        <div class={`notif-panel${corner ? " corner" : ""}`} role="dialog" aria-label="Benachrichtigungen" ref={panelRef} tabIndex={-1}>
           <div class="notif-panel-head">
             <strong>Benachrichtigungen</strong>
-            <button class="btn" type="button" onClick={() => setOpen(false)}>
+            <button class="btn" type="button" ref={closeBtn} onClick={() => setOpen(false)}>
               ✕
             </button>
           </div>

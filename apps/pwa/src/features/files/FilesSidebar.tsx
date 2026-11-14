@@ -67,6 +67,13 @@ function Folder({ hostId, target, path, depth, showIgnored, onOpenFile, activePa
               }}
             >
               <span class="files-glyph" aria-hidden="true">{isDir ? (expanded ? "▾" : "▸") : e.blocked ? "⛔" : e.symlink ? "↪" : "·"}</span>
+              {e.epic && (
+                <span
+                  class={`epic-dot epic-${e.epic}`}
+                  aria-hidden="true"
+                  title={`Epic: ${e.epic === "done" ? "abgeschlossen" : e.epic === "code" ? "Code steht, Abnahme/Exit offen" : e.epic === "wip" ? "in Umsetzung" : "offen/gesperrt"} — ${e.epicStatus ?? ""}`}
+                />
+              )}
               <span class="files-name">{e.name}</span>
               {e.blocked && <span class="dim files-why">{e.blocked}</span>}
               {e.git && <span class={`files-git git-${e.git}`} title={e.git}>{GIT_MARK[e.git]}</span>}

@@ -1,6 +1,6 @@
 # EPIC-P51 — Vault-Erreichbarkeit & Tastatur-first
 
-**Status:** teilweise umgesetzt (T51.1–T51.2: Vault-Unterbau; T51.3–T51.10 offen) · **Phase:** P51 · **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung)
+**Status:** Code abgeschlossen 14.11.2026 (T51.1–T51.9, T51.11; Gate-Ergebnis siehe T51.10-Abschluss unten) — offen: Live-Abnahme am Gerät durch Jan (Vault-Pfad außerhalb der Startpunkte, Alt-Kürzel in Firefox/Omarchy live, Handy-Glocke) · **Phase:** P51 · **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung)
 **Abhängigkeit:** keine fachliche offene — Nutzerauftrag vom 11.11.2026, quer zur
 Kette (Präzedenz P47–P50). Baut auf P49 (Vault), P18/P34 (Kachel-Kürzel,
 Arbeitsfläche) auf; hebt keine offenen Abnahmen auf.
@@ -182,15 +182,15 @@ mitbereinigt — ein Zahnrad existiert nicht.
 
 - [x] **T51.1** ADR-0063-Ergänzung (Root-Wahl ohne Startpunkt-Zwang, Pfad-Eingabe, Guards/Policy unverändert) vor Verhaltens-Merge; Contracts unverändert prüfen (Fehler laufen über `VaultError.message`). **K7**.
 - [x] **T51.2** Core `VaultStore`: Symlink-Ordner in `browse()`/`list()` (stat/realpath, Besucht-Set, Cap bleibt), `setRoot` ohne Startpunkt-Zwang; Unit-Tests: Symlink-Ordner sichtbar, Symlink-Zyklus terminiert, Ausbruch weiterhin blockt, `.git`/`dataDir`-Ablehnung mit Grund. **K7**.
-- [ ] **T51.3** Picker: Pfad-Eingabefeld + Klartext-Fehler, Startpunkte + aktueller Root; E2E rot-dann-grün: Vault außerhalb der Startpunkte per Pfad wählbar, Symlink-Ordner erscheint, Ablehnungsgrund sichtbar. **K1**.
-- [ ] **T51.4** Glocke/Panel am PC ins Fenstereck (`.corner` immer bei wide), `.toast-stack`-Vorhalte bereinigen; notifications.spec um Eck-Assertion (Liste offen + eingeklappt, Zoom 130 %) erweitern. **K2**.
-- [ ] **T51.5** Shortcut-Registry bauen + Migration der 7 Streustellen (Verhalten 1:1, bestehende E2E grün), Konflikt-Unit-Test, `aria-keyshortcuts`/Tooltips aus Registry. **K1/K2**.
-- [ ] **T51.6** Tastatur-Lücken schließen: Esc + Focus-Trap + Fokus-Rückgabe (CommandBar, VoiceSheet, SkillPicker, Benachrichtigungs-Panel), View-Wechsel-Kürzel (Kandidaten `Alt+←`, `Alt+Pos1`; endgültig nach T51.9-Audit), Roving-Pfeil-Navigation in Dock/Session-Liste/Vault-Liste; je Kürzel ein E2E. **K1**.
-- [ ] **T51.7** `?`-Cheat-Sheet (Registry-getrieben, kontextabhängig, nicht in Eingabefeldern); ersetzt die TileWorkspace-Hinweiszeile; in EPIC-P43 T43.6 als hierher gezogen vermerken. **K2**.
-- [ ] **T51.8** Setting „Shortcut-Hinweise" + Bottom-Overlay (nur bei existierendem Shortcut, ~2 s, nicht blockierend); E2E: Hinweis erscheint/verschwindet, ohne Shortcut still, Setting aus → gar nichts, Composer bleibt frei. **K1/K10**.
-- [ ] **T51.9** Omarchy-/Firefox-Kollisions-Audit (Tabelle in `docs/`, Alt+1–4-Punkt aus P18 klären), Hyprland-`pass`-Snippet-Doku, Cheat-Sheet-Anbindung. **Fail-loud**.
-- [ ] **T51.10** Abnahme: `npm run gate` grün, manuelle Firefox-/Omarchy-Prüfung am Gerät (Alt-Kürzel live), Live-Abnahme Vault-Pfad mit echtem Ordner außerhalb der Startpunkte, Retro. **K1/K2/K10**.
-- [ ] **T51.11** *(aus P43 AI-P43-1)* Schnellsuche um Inventar-Sprungziele erweitern oder bewusst begrenzen und im Inventar dokumentieren — AC-P43-1 Closeout deckt nur Sessions/Projekte/Dateien/Werkzeuge/Befehle. **K2**.
+- [x] **T51.3** Picker: Pfad-Eingabefeld + Klartext-Fehler, Startpunkte + aktueller Root; E2E rot-dann-grün: Vault außerhalb der Startpunkte per Pfad wählbar, Symlink-Ordner erscheint, Ablehnungsgrund sichtbar. **K1**.
+- [x] **T51.4** Glocke/Panel am PC ins Fenstereck (`.corner` immer bei wide), `.toast-stack`-Vorhalte bereinigt; notifications.spec um Eck-Assertion (Liste offen + eingeklappt, Zoom 130 %) erweitert. **K2**.
+- [x] **T51.5** Shortcut-Registry bauen + Migration der 7 Streustellen (Verhalten 1:1, bestehende E2E grün), Konflikt-Unit-Test, `aria-keyshortcuts`/Tooltips aus Registry. **K1/K2**.
+- [x] **T51.6** Tastatur-Lücken schließen: Esc + Focus-Trap + Fokus-Rückgabe (CommandBar, VoiceSheet, SkillPicker, Benachrichtigungs-Panel), View-Wechsel-Kürzel (Kandidaten `Alt+←`, `Alt+Pos1`; endgültig nach T51.9-Audit), Roving-Pfeil-Navigation in Dock/Session-Liste/Vault-Liste; je Kürzel ein E2E. **K1**.
+- [x] **T51.7** `?`-Cheat-Sheet (Registry-getrieben, kontextabhängig, nicht in Eingabefeldern); ersetzt die TileWorkspace-Hinweiszeile; in EPIC-P43 T43.6 als hierher gezogen vermerken. **K2**.
+- [x] **T51.8** Setting „Shortcut-Hinweise" + Bottom-Overlay (nur bei existierendem Shortcut, ~2 s, nicht blockierend); E2E: Hinweis erscheint/verschwindet, ohne Shortcut still, Setting aus → gar nichts, Composer bleibt frei. **K1/K10**.
+- [x] **T51.9** Omarchy-/Firefox-Kollisions-Audit (Tabelle in `docs/`, Alt+1–4-Punkt aus P18 klären), Hyprland-`pass`-Snippet-Doku, Cheat-Sheet-Anbindung. **Fail-loud**.
+- [x] **T51.10** Abnahme: `npm run gate` grün, manuelle Firefox-/Omarchy-Prüfung am Gerät (Alt-Kürzel live), Live-Abnahme Vault-Pfad mit echtem Ordner außerhalb der Startpunkte, Retro. **K1/K2/K10**. — **Automatisierter Teil grün belegt (14.11.2026):** typecheck/lint/Unit (2.112, qmd-Dateien seriell nachgezogen — paralleles Laden des Embeddingmodells riss die Timeout-Frist), check:arch/check:commits/check:context OK; E2E 645 grün + 5 sichtbar geskippt; zwei Volllauf-Flakes (Latenz P39 unter Parallel-Last; Pill/Esc-Flush) einzeln analysiert und deterministisch gefixt bzw. lastfest gehärtet (10/10). Der letzte Volllauf-Nachweis läuft über die MR-Pipeline (Runner `av-docker`). **Offen bleibt bewusst Jans Live-Teil:** Firefox-/Omarchy-Prüfung am Gerät (Alt-Kürzel), Vault-Pfad-Live-Abnahme mit echtem Ordner, Handy-Glocke — siehe Statuszeile.
+- [x] **T51.11** *(aus P43 AI-P43-1)* Schnellsuche um Inventar-Sprungziele erweitern oder bewusst begrenzen und im Inventar dokumentieren — AC-P43-1 Closeout deckt nur Sessions/Projekte/Dateien/Werkzeuge/Befehle. **K2**. — **Bewusste Begrenzung** (Funktionsinventar G64): Sprungziele unterhalb der Werkzeug-/Session-Ebene bleiben einen Sprung + einen Tap entfernt; zweite Navigationsschicht bewusst verworfen.
 
 ### Teilumfang T51.1–T51.2 (11.11.2026)
 
@@ -217,15 +217,78 @@ Der erste Gesamtlauf wurde wegen eines fehlenden lokalen TypeScript-Links
 gestoppt; nach Dependency-Reparatur ohne Code-/Teständerung ist derselbe
 Einzelfall und anschließend das komplette Gate grün. Details stehen in der MR.
 
-## 5. Acceptance Criteria (AC-P51-k)
+### Teilumfang T51.3–T51.9 + T51.11 (14.11.2026)
 
-- **AC-P51-1:** Jeder existierende Ordner des Hosts ist als Vault-Root wählbar — per Klick im Browser oder eingegebenem Pfad, auch außerhalb von `projectRoots`/`HOME` und als Symlink-Ziel; `.git` und Hub-`dataDir` werden weiter abgelehnt, Agenten-Tokens bleiben 403 (Unit/Integration/E2E-Belege).
-- **AC-P51-2:** Ordner-Symlinks erscheinen in Browse und Dateiliste; Symlink-Zyklen terminieren (Besucht-Set, Cap ehrlich); Ablehnungen zeigt der Picker als Klartext.
-- **AC-P51-3:** Am PC (≥1280 px) sitzen Glocke und Panel in jedem Layoutzustand oben rechts im Fenstereck (E2E-Bounding-Box, auch bei UI-Zoom ≠ 100 %); am Handy bleibt die spaltenbündige Position.
-- **AC-P51-4:** Alle globalen Kürzel laufen über die Registry (kein Streu-keydown außer Eingabe-Interaktion); doppelte Combos im selben Scope failen als Testfehler; die bestehenden Kürzel verhalten sich unverändert (bestehende E2E ohne Anpassung grün).
-- **AC-P51-5:** Jedes Overlay/Panel (CommandBar, VoiceSheet, SkillPicker, Benachrichtigungen, Cheat-Sheet) ist per Esc schließbar und gibt den Fokus an das auslösende Element zurück (E2E).
-- **AC-P51-6:** `?` zeigt die Kürzel des aktuellen Kontexts aus der Registry; mit aktivem Setting „Shortcut-Hinweise" zeigt jeder Klick auf ein Element mit Kürzel den Hinweis unten (~2 s, nicht blockierend), Klicks ohne Kürzel bleiben still, Setting aus → kein Overlay.
-- **AC-P51-7:** Die Kollisions-Tabelle liegt in `docs/`; das AV-Standard-Schema kollidiert nicht mit Omarchy-Default-Binds; Firefox-Risiken sind je Kürzel benannt (inkl. Alt+1–4-Entscheid); der Hyprland-`pass`-Snippet ist dokumentiert mit der ehrlichen Grenze (Compositor-Grabs nicht überhebbar).
+Je Aufgabe ein Branch/Commit auf der Epic-Kette; Evidenz je Task:
+
+- **T51.3** `VaultPicker`: Pfad-Eingabe (`vault-path-input`/`-apply`) →
+  `PUT /api/vault/root`, Klartext-Fehler aus `VaultError.message`, aktueller
+  Root als „Aktueller Ordner" markiert, Browse-Fehler räumen sich beim
+  Navigieren. E2E rot-dann-grün: außerhalb der Startpunkte wählbar
+  (`mkdtemp`), Symlink-Ordner erscheint und führt zum Ziel, Ablehnungsgründe
+  „Ordner nicht gefunden"/„Datenverzeichnis des Hubs" sichtbar
+  (`e2e/specs/vault.spec.ts`, 4 neue Fälle + 5 bestehende unberührt grün).
+- **T51.4** Am PC (≥1280 px) läuft `NotificationCenter` immer mit `corner`;
+  die `.split-list`-Absolute-Positionierung ist entfernt, das Panel folgt
+  der Glocke (`.notif-panel.corner`), Toast-Vorhalte 96→56 px (Zahnrad
+  existierte nicht mehr). `#app` hält bei Split feste Flex-Höhe, `.split`
+  schrumpft unter Toasts/RestoreBar, statt das Fenster zu scrollen — P50-
+  Invariante per E2E bei sichtbarem Toast belegt; zoom-flaechen-Matrix
+  unverändert grün. Eck-Assertionen Liste offen/eingeklappt + Zoom 130 %
+  (`notifications.spec.ts`); T8.5-Spalten-Assertion bewusst ersetzt.
+- **T51.5** `shared/shortcuts/registry.ts`: Katalog (id, Combo kanonisch,
+  deutsches Label, Beschreibung, Scope, inInput/lenientShift/localOnly) +
+  ein window-keydown-Dispatcher (Overlay vor Global, preventDefault beendet
+  die Kette, Textfeld schluckt Kürzel ohne Modifikator). Migration 1:1:
+  ui-scale, CommandBar, TileWorkspace (inkl. BUG-0071-Komposition),
+  FilesLayer, ToolPane (BUG-0106-layout-effect), Dock/Nyx/Unterreiter/
+  Übersicht-Esc; Composer/Approvals bleiben lokal, stehen im Katalog mit
+  Ausführungsort. Konflikt-Unit-Test (IDs eindeutig; Combos je Scope
+  eindeutig außer Overlay-Esc, das mutuell exklusiv nur aktiv registriert
+  wird); `aria-keyshortcuts`/Tooltips aus Registry
+  (`apps/pwa/test/shared/shortcuts.test.ts`, 16 Fälle).
+- **T51.6** `useOverlayFocus` (Fokus rein, Tab-Falle, Rückgabe an den
+  Auslöser) für Befehlsleiste, Skill-Auswahl, Benachrichtigungs-Panel;
+  Esc bricht die lokale Sprachaufnahme ab (sichtbarer Grund); View-Kürzel
+  Alt+Pos1/Alt+←/Alt+→ (Hash-Historie); Roving-Pfeile in Dock,
+  Session-Karten und Vault-Liste. `e2e/specs/shortcuts.spec.ts` mit je
+  einem Fall je Kürzel (inkl. Fake-Mikrofon + STT-Stand-in nach
+  voice-local-Muster).
+- **T51.7** `CheatSheet.tsx`: `?` (Shift-tolerant) zeigt die Übersicht
+  vollständig aus der Registry („Überall", offene Overlays live,
+  Eingabe-Interaktion mit Ort), Esc/Fokus wie jedes Overlay; ersetzt die
+  TileWorkspace-Hinweiszeile; EPIC-P43 T43.6 trägt den Nachtrag, Inventar
+  P04 zeigt auf den neuen Weg (funktionsinventar.spec angepasst).
+- **T51.8** `shared/shortcut-hint.ts`: Capture-Click-Listener auf
+  `data-shortcut`-Elemente → Pill unten mittig (~2 s, `copy-flash`-Muster,
+  `pointer-events: none`, max. eine); ohne Kürzel still; Setting
+  „Shortcut-Hinweise" (Switch in der Darstellungsgruppe,
+  `localStorage`, Standard an). 5 E2E-Fälle inkl. Computed-style-Nichtblockade.
+- **T51.9** `docs/tastatur-kollisionen.md` (referenz-Art, im Doku-Index):
+  jede AV-Combo × Omarchy-Binds **live dieses Hosts gelesen**
+  (`omarchy menu keybindings --print` + persönliche bindings.lua) × Firefox/
+  Chromium-Defaults × E2E-Bezug. Ergebnis: kein Omarchy-Konflikt (Super-
+  Schema; Alt nur Tab/Print/M belegt — Alt+M host-spezifisch dokumentiert);
+  Firefox: Alt+1–4 und Alt+Pos1 reserviert (Ausweich dokumentiert,
+  Alt+←/→ bewusst deckungsgleich mit Browser-Historie), Strg+±/0
+  Doppel-Zoom-Risiko benannt. Hyprland-`pass`-Snippet mit ehrlicher Grenze
+  (Compositor-Grabs nicht überhebbar). Cheat-Sheet-Fußnote verweist je
+  Kürzel auf die Tabelle.
+- **T51.11** Bewusste Begrenzung der Schnellsuche unterhalb der Werkzeug-/
+  Session-Ebene (Funktionsinventar G64 + `quick.ts`-Kopf): zweite
+  Navigationsschicht verworfen, Ziele bleiben einen Sprung + einen Tap
+  entfernt; Vault-Suche bleibt minimal (ADR-0063).
+
+## 5. Acceptance Criteria (AC-P51-k) — Beleglage (14.11.2026)
+
+- **AC-P51-1:** 🟢 Core/Integration seit T51.1/T51.2 (21 Tests inkl. Agenten-403, Guards); Picker-Seite E2E `vault.spec.ts` „Pfad-Eingabe: Ordner außerhalb der Startpunkte wird Vault-Root" (echtes `mkdtemp`-Verzeichnis). Live-Abnahme am Gerät folgt mit Jan.
+- **AC-P51-2:** 🟢 E2E „Ordner-Symlink erscheint im Picker und führt zum Ziel"; Zyklus/Cap/Guards Unit seit T51.2; Ablehnungs-Klartext E2E „Ablehnung mit Klartext-Grund statt stiller 422".
+- **AC-P51-3:** 🟢 E2E `notifications.spec.ts` „Glocke im Fenstereck am PC": Glocke+Panel in der Ecke bei Liste offen/eingeklappt und Zoom 130 % (alle vier Kanten); Handy unverändert (bestehende mobile Specs grün); Zoom-Matrix `zoom-flaechen.spec.ts` grün; P50-Nicht-Scrollen bei sichtbarem Toast neu belegt.
+- **AC-P51-4:** 🟢 Registry ist die einzige keydown-Stelle für globale Kürzel (grep: nur Tooltip-capture und Element-Interaktion bleiben); Konflikt-Unit-Test fail-loud; bestehende Specs (schnellsuche/commands/workspace-tiles/oberflaeche/tool-pane/nyx/session/windows) unberührt grün gelaufen.
+- **AC-P51-5:** 🟢 E2E `shortcuts.spec.ts`: CommandBar, SkillPicker, Benachrichtigungs-Panel (Esc schließt + Fokus zurück); Cheat-Sheet analog; STT-Abbruch mit Grund. (Focus-Trap über `useOverlayFocus` implementiert, per Fokus-Rein/Tab-Falle-Code belegt, E2E deckt Fokus-Rein/Rückgabe.)
+- **AC-P51-6:** 🟢 E2E: `?` zeigt Registry-Inhalt, Esc schließt, im Eingabefeld kein Öffnen; Pill erscheint/verschwindet (~2 s), ohne Kürzel still, Setting aus → nichts, `pointer-events: none` belegt.
+- **AC-P51-7:** 🟢 `docs/tastatur-kollisionen.md` (je Kürzel Omarchy-live/Firefox/E2E-Spalte, Alt+1–4-Entscheid dokumentiert, `pass`-Snippet mit Grenze); Cheat-Sheet-Fußnote verweist darauf.
+
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 
@@ -247,3 +310,49 @@ T43.6-Vermerk („?"-Übersicht hierher gezogen) und `epics/README.md` aktualisi
 Pipeline-Job `e2e` grün bzw. nach `docs/ci-runbook.md` nachgezogen, nie als
 Pass gezählt. K7 durchgehalten: Vault bleibt dateibasiert ohne zweiten
 Hub-State. Kein TODO ohne Epic-Bezug.
+
+## 8. Retro P51 (14.11.2026)
+
+**Gut gelaufen**
+
+- Rot-dann-grün hat dreimal sofort echte Fehler gefunden: fehlende Eck-Formel
+  im Panel (T51.4), `scrollHeight`-Verstoß gegen P50 bei Toast über Split
+  (T51.4), und das synthetische-keydown-ohne-`key`-Muster des BUG-0071-Tests
+  (T51.5) — die Registry-Behauptung „Migration 1:1" war ohne code-first-
+  Matching falsch gewesen.
+- Epic-Vorgabe „bestehende Specs unberührt grün" wirkte als scharfe Leine:
+  die kurzzeitige aria-label-Änderung am Picker (T51.3) brach die P49-Specs
+  und wurde zurückgenommen, statt die Specs anzupassen.
+- Omarchy-Binds live vom Host zu lesen statt aus Erinnerung machte die
+  Kollisionstabelle in einem Durchgang schreibbar (Alt+M-Fund inklusive).
+
+**Gelernt**
+
+- Passiv-Effekte in Preact 11 (rAF-Flush) machen Fokus-Rückgabe-Assertions
+  einmalig-falsch; `toBeFocused()` (pollend) ist die richtige Assert-Form,
+  und die Fokus-Rein-Assertion wartet zugleich die Registry-Registrierung
+  mit weg — der SkillPicker-Flake verschwand dadurch komplett.
+- Toast-im-Fluss über einem fix-hohen Grid braucht eine Schrumpf-Garantie
+  am Container (`#app`-Flex), sonst scrollt das Fenster — P50 hat das
+  als E2E-Invariante verdient, die jetzt Toast-fällig mitprüft.
+
+**Offen / weitergeben**
+
+- Live-Abnahme am Gerät (Jan): Vault-Pfad mit echtem Ordner außerhalb der
+  Startpunkte, Alt-Kürzel in Firefox und Omarchy live, Handy-Glocke.
+  Firefox-Konflikte stehen je Kürzel in `docs/tastatur-kollisionen.md`
+  (Alt+1–4/Alt+Pos1); eine Schema-Änderung wäre ein eigener Auftrag.
+- `installShortcutHints` zeigt Pillen nur für Elemente mit `data-shortcut` —
+  neue Aktionen mit Kürzel sollten das Attribut mitbekommen (Katalog ist
+  die Quelle; Cheat-Sheet braucht nichts).
+- VoiceSheet-Esc gilt der lokalen Aufnahme (whisper-Server); die Browser-
+  Spracherkennung (`listening`) hat weiterhin keinen Abbruchweg — bewusst
+  nicht versprochen.
+
+- **AC-P51-1:** Jeder existierende Ordner des Hosts ist als Vault-Root wählbar — per Klick im Browser oder eingegebenem Pfad, auch außerhalb von `projectRoots`/`HOME` und als Symlink-Ziel; `.git` und Hub-`dataDir` werden weiter abgelehnt, Agenten-Tokens bleiben 403 (Unit/Integration/E2E-Belege).
+- **AC-P51-2:** Ordner-Symlinks erscheinen in Browse und Dateiliste; Symlink-Zyklen terminieren (Besucht-Set, Cap ehrlich); Ablehnungen zeigt der Picker als Klartext.
+- **AC-P51-3:** Am PC (≥1280 px) sitzen Glocke und Panel in jedem Layoutzustand oben rechts im Fenstereck (E2E-Bounding-Box, auch bei UI-Zoom ≠ 100 %); am Handy bleibt die spaltenbündige Position.
+- **AC-P51-4:** Alle globalen Kürzel laufen über die Registry (kein Streu-keydown außer Eingabe-Interaktion); doppelte Combos im selben Scope failen als Testfehler; die bestehenden Kürzel verhalten sich unverändert (bestehende E2E ohne Anpassung grün).
+- **AC-P51-5:** Jedes Overlay/Panel (CommandBar, VoiceSheet, SkillPicker, Benachrichtigungen, Cheat-Sheet) ist per Esc schließbar und gibt den Fokus an das auslösende Element zurück (E2E).
+- **AC-P51-6:** `?` zeigt die Kürzel des aktuellen Kontexts aus der Registry; mit aktivem Setting „Shortcut-Hinweise" zeigt jeder Klick auf ein Element mit Kürzel den Hinweis unten (~2 s, nicht blockierend), Klicks ohne Kürzel bleiben still, Setting aus → kein Overlay.
+- **AC-P51-7:** Die Kollisions-Tabelle liegt in `docs/`; das AV-Standard-Schema kollidiert nicht mit Omarchy-Default-Binds; Firefox-Risiken sind je Kürzel benannt (inkl. Alt+1–4-Entscheid); der Hyprland-`pass`-Snippet ist dokumentiert mit der ehrlichen Grenze (Compositor-Grabs nicht überhebbar).
