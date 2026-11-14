@@ -38,13 +38,17 @@ wenn die Exit-Kriterien von P(n-1) grün sind.
 
 ## Kommandos
 
-> **GitLab-Shared-Runner-Kontingent ist begrenzt** (Free-Abo: 400
-> Compute-Minuten/Monat). Pipelines laufen deshalb auf dem eigenen
-> Projekt-Runner `av-docker` (ADR-0049, Betrieb siehe `docs/ci-runbook.md`)
-> und sind davon unabhängig. Fällt der Runner aus, bleibt die Pipeline
-> sichtbar `pending` — Qualität zählt weiterhin über die **lokalen** Gates
-> unten; eine rote oder nie gestartete Pipeline ist kein Merge-Blocker,
-> sondern wird nach dem Runbook nachgezogen. Niemals als Pass zählen.
+> **CI-Geltung (Nutzerentscheid 15.11.2026):** Auf `gitlab.com` (Free)
+> ist die Pipeline kein Merge-/Epic-Gate. Verbindlich sind die lokalen Gates
+> unten. CI wird erst zusätzlich verbindlich, wenn das aktive Git-Remote und
+> die Projekt-API tatsächlich auf einen lokal betriebenen GitLab-Server zeigen.
+> Ein eigener Runner (`av-docker`) an `gitlab.com` ist kein lokaler GitLab-Server.
+> Cloud-CI mit `failed`/`pending`/`skipped` ist kein Abschlussmangel und verlangt
+> weder Warnschleifen noch Warten, Retry oder Nachziehen allein wegen des Status.
+> Bei Freigaben: „CI nicht anwendbar (gitlab.com)“, niemals als Pass ausgeben.
+> Echte lokale Testfehler bleiben blockierend. Diese Geltung hat Vorrang vor
+> älteren unbedingten Pipeline-Pflichten in Epics/Skills/Dokumenten.
+> Details und lokale GitLab-Betriebsregeln: `docs/ci-runbook.md`.
 
 ```bash
 npm test                 # vitest (Unit/Integration)

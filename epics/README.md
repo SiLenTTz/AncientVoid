@@ -278,8 +278,12 @@ Jedes Epic endet mit messbarem Exit-Kriterium. Das folgende Epic startet erst,
 wenn alle Exit-Kriterien des Vorgängers grün sind (Eval-Frage-Regel aus PRD §9.1.6).
 
 **E2E-Gate (ab P5, 2026-09-23):** Ein Epic ist erst abgeschlossen, wenn
-`npm run gate` grün ist und der blockierende Pipeline-Job `e2e` auf dem
-Abschluss-MR grün lief. Jede im Epic gebaute UI-Funktion und jeder Ablauf hat
+`npm run gate` lokal grün ist. Der Pipeline-Job `e2e` auf dem Abschluss-MR
+ist nur bei aktivem lokalem GitLab-Server zusätzlich verpflichtend. Auf
+`gitlab.com` (Free) ist CI kein Exit-/Merge-Gate, auch mit eigenem Runner.
+Diese Geltung ersetzt ältere unbedingte CI-Pflichten in bestehenden Epic-DoDs;
+lokale Tests, E2Es und echte Geräte-/Provider-Abnahmen bleiben unverändert.
+Jede im Epic gebaute UI-Funktion und jeder Ablauf hat
 einen Spec in `e2e/specs/`. Offene Lücken stehen als `test.fixme` mit Task-
 oder Bug-ID im Gate, nie als gelöschter Test. Details:
 [`docs/testing-e2e.md`](../docs/testing-e2e.md).
