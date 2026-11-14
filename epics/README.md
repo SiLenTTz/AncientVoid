@@ -265,7 +265,7 @@ vergeben war, führt das Epic die Nummer **P60** weiter (Repo-Regel
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
-| [P60 — Agenten-Teams: Umbenennung, Kartenübersicht, Parallelität, Modellwahl](EPIC-P60-agenten-teams.md) | Run→Team vollständig umbenannt (Contracts, `/api/teams`, Policy `team.*`, Journal-Migration, `#/teams`-Redirects), Team-Detail mit Karten je Worker, breite DAGs + belegte Gleichzeitigkeit, Modell-Allowlist mit Formularauswahl (schließt ungeprüfte `task.model`-Lücke) | keine fachliche offene (P40 umgesetzt, Gate grün; Live-Lauf-Block P39 unberührt) | 2–3 |
+| [P60 — Agenten-Teams: Umbenennung, Kartenübersicht, Parallelität, Modellwahl](EPIC-P60-agenten-teams.md) | Run→Team vollständig umbenannt (Contracts, `/api/teams`, Policy `team.*`, Journal-Migration, `#/teams`-Redirects), Team-Detail mit Karten je Worker, breite DAGs + belegte Gleichzeitigkeit, Modell-Allowlist mit Formularauswahl (schließt ungeprüfte `task.model`-Lücke) — **umgesetzt 14.11.2026** (ADR-0077, MR !467/!468 + Abschluss-MR; Geräte-Abnahme → Endabnahme-Block) | keine fachliche offene (P40 umgesetzt, Gate grün; Live-Lauf-Block P39 unberührt) | 2–3 |
 
 Reihenfolge: P60 quer wie P50–P53 (je Aufgabe eigener Branch/MR nach main;
 ADR vor der ersten Contract-Änderung).

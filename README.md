@@ -63,9 +63,13 @@ Aktuelle Kette (je Epic Status, Abhängigkeiten und Umfang in
 - **P47 → P48 → P49** (Auftrag 10.11.): Übersicht Projekte/Hosts, Repo-Graph
   als pulsierendes Netz, Knowledge-Vault-Notizen.
 - **Quer:** **P50** Zoom-robuste Flächen (BUG-0113 offen), **P51**
-  Vault-Erreichbarkeit & Tastatur-first, **P52** Repo-Galaxie.
+  Vault-Erreichbarkeit & Tastatur-first, **P52** Repo-Galaxie, **P58**
+  Typewriter-Effekt, **P59** KI-Server-Metriken (offen), **P60**
+  Agenten-Teams (ehemals Runs — Run→Team umbenannt, Kartenübersicht,
+  echte Parallelität, Modell-Allowlist).
 - **Planungsentwürfe (Umsetzung gesperrt):** P30 Adapter-/Sink-Plugins,
-  P31 Provider-Katalog, P37 GitLab-Kontext, P40 Hermes-Orchestrierung,
+  P31 Provider-Katalog, P37 GitLab-Kontext, P40 Hermes-Orchestrierung
+  (Fläche heißt seit P60 „Teams"),
   P42 Android-Testgeräte.
 
 Unterbrochene Sessions: [Gründe, Fortsetzen und Archivieren](docs/interrupted-sessions.md) (P27).
