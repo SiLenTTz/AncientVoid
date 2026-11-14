@@ -31,7 +31,8 @@ describe("Shortcut-Registry Katalog (P51)", () => {
 
   it("führt Combos in kanonischer Form (Modifikator groß, Hauptkey zuletzt)", () => {
     for (const s of CATALOG) {
-      expect(s.combo, s.id).toMatch(/^(Ctrl(\+Shift)?\+|Alt(\+Shift)?\+)?[A-Za-z0-9]+$/);
+      // Hauptkey: Wort (Esc, ArrowLeft, Home …), Ziffer/Buchstabe oder einzelnes Zeichen (?, /).
+      expect(s.combo, s.id).toMatch(/^(Ctrl(\+Shift)?\+|Alt(\+Shift)?\+)?([A-Za-z0-9]+|[?/])$/);
       expect(s.label.length, s.id).toBeGreaterThan(0);
       expect(s.description.length, s.id).toBeGreaterThan(0);
     }
