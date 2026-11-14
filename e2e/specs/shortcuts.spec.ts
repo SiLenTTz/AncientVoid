@@ -160,9 +160,13 @@ test.describe("Shortcut-Hinweis-Pill und Setting (EPIC-P51 T51.8)", () => {
   test("Pill blockiert nichts: pointer-events none (Premortem 4)", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await app.locator(".dock .dock-item").nth(1).click(); // „Suchen“ erzeugt die Pill
-    const pill = app.locator('[data-testid="shortcut-hint"]');
-    await expect(pill).toBeVisible();
-    expect(await app.evaluate(() => getComputedStyle(document.querySelector('[data-testid="shortcut-hint"]')!).pointerEvents)).toBe("none");
+    // Ein einziger Roundtrip direkt nach dem Klick: die Pill steht nur ~2 s —
+    // ein Assert-Retry unter Volllast verpasste im ersten Lauf das Zeitfenster.
+    const pe = await app.evaluate(() => {
+      const el = document.querySelector('[data-testid="shortcut-hint"]');
+      return el ? getComputedStyle(el).pointerEvents : "(Pill fehlt)";
+    });
+    expect(pe).toBe("none");
     await app.keyboard.press("Escape");
     await expect(app.locator(".command-sheet")).toHaveCount(0);
   });
