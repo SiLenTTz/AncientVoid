@@ -200,7 +200,7 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
         )}
       </div>
       {open && (
-        <div class="notif-panel" role="dialog" aria-label="Benachrichtigungen">
+        <div class={`notif-panel${corner ? " corner" : ""}`} role="dialog" aria-label="Benachrichtigungen">
           <div class="notif-panel-head">
             <strong>Benachrichtigungen</strong>
             <button class="btn" type="button" onClick={() => setOpen(false)}>

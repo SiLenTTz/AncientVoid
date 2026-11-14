@@ -349,8 +349,9 @@ function Main() {
   return (
     <>
       <TooltipLayer />
-      {!wide && <NotificationCenter />}
-      {wide && listCollapsed && <NotificationCenter corner />}
+      {/* EPIC-P51 T51.4: am PC sitzt die Glocke in jedem Layoutzustand im
+       * Fenstereck — die Listenspalte hat keinen eigenen Glockenplatz mehr. */}
+      {wide ? <NotificationCenter corner /> : <NotificationCenter />}
       {staleAt && (
         <div class="topbar">
           {/* K10: tippen lädt neu — der Service Worker holt dann wieder Netz-zuerst. */}
@@ -396,7 +397,6 @@ function Main() {
         // T8.5 (AC-P8-6): from 1280 px list and session side by side.
         <div class={`split${listCollapsed ? " list-collapsed" : ""}`}>
           <aside class="split-list">
-            <NotificationCenter />
             <App wide onOpen={openFromList} ready={() => setReady(false)} page={route.view === "list" ? route.page : "dashboard"} {...(route.view === "list" && route.vaultFile ? { vaultFile: route.vaultFile } : {})} />
           </aside>
           <section class="split-detail">
