@@ -239,7 +239,7 @@ P46, P51 teils) wurden nicht angefasst.
 |---|---|---|---|
 | [P47 — Ergänzung](EPIC-P47-uebersicht-sessions-projekte-hosts.md) | Discovery als vierter Umschalt-State der Übersicht, eigener Menüpunkt entfällt (Design-Entscheidung §3.4; Deeplink/Chip bleiben; umgesetzt 2026-11-14); T47.5/T47.6, AC-P47-5/6 | wie bisher (keine fachliche offene) | +0,25 |
 | [P43.5 — Ergänzung](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Composer-Maximieren-Button als Icon-Button statt Fullscreen-Fläche; T43.5-6, AC-P43.5-6 | P43 grün (erfüllt) | +0,1 |
-| [P58 — Typewriter-Effekt](EPIC-P58-typewriter-effekt.md) | Chat und Thinking/Reasoning werden bei Live-Zuwachs getippt; Settings-Schalter; History sofort; K2-Messlauf | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | ~1 |
+| [P58 — Typewriter-Effekt](EPIC-P58-typewriter-effekt.md) | Chat und Thinking/Reasoning werden bei Live-Zuwachs getippt; Settings-Schalter; History sofort; K2-Messlauf — **umgesetzt 2026-11-14** (T58.1–T58.6, Gate grün, K2-Messlauf mit Animation PASS; Live-Abnahme am Gerät → Jan) | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | ~1 |
 | [P59 — KI-Server-Metriken](EPIC-P59-ki-server-metriken.md) | Neue Metrik-Seite: CPU, GPU, Tokens/s, Prefill, Decode, KV-Cache des lokalen KI-Servers; ADR vor Contract-Änderung; Abgrenzung zu P56 | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | 1–2 |
 
 Reihenfolge: P58/P59 quer wie P50–P53 (je Aufgabe eigener Branch/MR nach
