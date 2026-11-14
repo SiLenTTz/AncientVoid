@@ -7,7 +7,6 @@ import { setHere } from "../shared/command-context.ts";
 import { openCommandBar } from "../features/commands/CommandBar.tsx";
 import { ApprovalQueuePane } from "../features/approvals/Approvals.tsx";
 import { StatusPage } from "../features/status/StatusPage.tsx";
-import { DiscoveryPane } from "../features/discovery/Discovery.tsx";
 import { SettingsPage } from "../features/settings/SettingsPage.tsx";
 import { CreateSession } from "../features/new-session/CreateSession.tsx";
 import { MediaPage } from "../features/media/MediaPage.tsx";
@@ -182,8 +181,6 @@ export function App({
 
       {shown === "status" && <StatusPage adapters={adapters} usage={usage} />}
 
-      {shown === "discovery" && <DiscoveryPane onOpen={onOpen} />}
-
       {shown === "media" && <MediaPage sessions={sessions ?? []} />}
 
       {shown === "pc" && <DesktopPage />}
@@ -202,7 +199,6 @@ export function App({
             pendingApprovals={pendingApprovals}
             approvals={approvals}
             onOpenApprovals={() => setPage("approvals")}
-            onOpenDiscovery={() => setPage("discovery")}
             lastSession={getLastSession()}
             probeAvailable={adapters.some((a) => a.id === "dummy")}
           />

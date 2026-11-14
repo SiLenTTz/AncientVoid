@@ -456,7 +456,6 @@ function Main() {
                 onClose={() => {
                   location.hash = pageHash("dashboard");
                 }}
-                onOpen={(session) => openFromList(session)}
                 onSwitchToken={() => setReady(false)}
                 onPopout={() => {
                   void openPopout({ kind: "tool", page: toolPage }).then((result) => {

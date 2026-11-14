@@ -177,9 +177,10 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     const geometry = await cards.evaluateAll((els) => els.map((el) => ({ h: Math.round(el.getBoundingClientRect().height), top: Math.round(el.getBoundingClientRect().top), right: el.getBoundingClientRect().right })));
     expect(new Set(geometry.map((g) => g.h)).size, JSON.stringify(geometry)).toBe(1);
     expect(await app.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-    // Am Desktop stehen mindestens zwei Karten nebeneinander (Raster), am Handy eine Spalte über die ganze Breite.
+    // EPIC-P47 §3.4: Die Discovery steht seit T47.5 als Umschalt-State in der Übersichtsspalte — dort eingleisig;
+    // das zweispaltige Raster der ehemaligen Werkzeugfläche gibt es nicht mehr. Gleichhöhe bleibt die Kernaussage.
     const columns = new Set(geometry.map((g) => g.top)).size < geometry.length;
-    expect(columns).toBe((app.viewportSize()?.width ?? 0) >= 900);
+    expect(columns).toBe(false);
   });
 
   test("EPIC-P34 T34.9: das ⋯-Menü zeigt ID und Harness und kopiert die ID @desktop", async ({ app, hub }) => {

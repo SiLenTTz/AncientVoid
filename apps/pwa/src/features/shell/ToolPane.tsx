@@ -1,9 +1,7 @@
 import { useEffect, useLayoutEffect } from "preact/hooks";
-import type { SessionRecord } from "../../shared/api.ts";
 import type { ListPage } from "../../app/route.ts";
 import { registerShortcut, comboLabel, ariaCombo } from "../../shared/shortcuts/registry.ts";
 import { DesktopPage } from "../desktop/DesktopPage.tsx";
-import { DiscoveryPane } from "../discovery/Discovery.tsx";
 import { MediaPage } from "../media/MediaPage.tsx";
 import { SettingsPage } from "../settings/SettingsPage.tsx";
 import { StatusPage } from "../status/StatusPage.tsx";
@@ -14,7 +12,6 @@ import { useHubStatus } from "./hub-status.ts";
 
 const TITLES: Partial<Record<ListPage, string>> = {
   settings: "Einstellungen",
-  discovery: "Entdeckt",
   media: "Medien",
   pc: "Am PC eintippen",
   status: "Provider-Status",
@@ -31,7 +28,6 @@ const TITLES: Partial<Record<ListPage, string>> = {
 export function ToolPane({
   page,
   onClose,
-  onOpen,
   onSwitchToken,
   vaultFile = null,
   onPopout,
@@ -40,7 +36,6 @@ export function ToolPane({
 }: {
   page: ListPage;
   onClose: () => void;
-  onOpen: (session: SessionRecord) => void;
   onSwitchToken: () => void;
   /** EPIC-P49: Datei-Deep-Link für die Vault-Seite. */
   vaultFile?: string | null;
@@ -86,7 +81,6 @@ export function ToolPane({
       </header>
       <div class="tool-pane-body">
         {page === "settings" && <SettingsPage onSwitchToken={onSwitchToken} />}
-        {page === "discovery" && <DiscoveryPane onOpen={onOpen} />}
         {page === "media" && <MediaPage sessions={hub.sessions} />}
         {page === "pc" && <DesktopPage />}
         {page === "status" && <StatusPage adapters={hub.adapters} usage={hub.usage} />}

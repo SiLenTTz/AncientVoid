@@ -244,7 +244,6 @@ export function PopoutShell() {
           <ToolPane
             page={target.page}
             onClose={giveBack}
-            onOpen={(s) => void openPopout({ kind: "session", sessionId: s.id, ...(remoteHost(s.hostId) ? { hostId: remoteHost(s.hostId)! } : {}) })}
             onSwitchToken={() => location.reload()}
             closeLabel="In die App zurück"
             escCloses={false}
