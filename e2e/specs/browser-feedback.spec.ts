@@ -54,4 +54,25 @@ test.describe("Browser-Design-Feedback (EPIC-P39)", () => {
     await app.getByTestId("browser-feedback-send").click();
     await expect.poll(async () => (await hub.events(id)).some((e) => JSON.stringify(e.payload).includes("Titel zu klein") && JSON.stringify(e.payload).includes("Auszug: | Hallo Scratch")), { timeout: 20_000 }).toBe(true);
   });
+
+  test("Element-Befund als Quellenchip in den Composer, kein Auto-Send (P43.5 T43.5-1) @desktop", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await openFromOverview(app, "dummy");
+    await openLayer(app, "Browser");
+    await app.getByLabel("Adresse").fill(`${scratch.origin}/`);
+    await app.getByRole("button", { name: "Browser starten" }).click();
+    const frame = app.getByTestId("browser-frame");
+    await expect(frame).toBeVisible({ timeout: 30_000 });
+    await app.getByLabel("Element wählen").check();
+    const box = (await frame.boundingBox())!;
+    const nat = await frame.evaluate((el) => ({ w: (el as HTMLImageElement).naturalWidth, h: (el as HTMLImageElement).naturalHeight }));
+    await app.mouse.click(box.x + (100 / nat.w) * box.width, box.y + (158 / nat.h) * box.height);
+    const card = app.getByTestId("browser-pick");
+    await card.getByLabel("Anmerkung zum Element").fill("Titel wirkt gestört");
+    await card.getByTestId("browser-pick-to-composer").click();
+    const chips = app.getByTestId("source-chips");
+    await expect(chips.locator(".source-chip-label")).toContainText("Browser-Element <h1>");
+    await expect(app.getByTestId("source-preview")).toContainText("Titel wirkt gestört");
+    expect((await hub.events(id)).some((e) => JSON.stringify(e.payload).includes("<quellen>"))).toBe(false);
+  });
 });

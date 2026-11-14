@@ -9,6 +9,8 @@ import {
 } from "../../shared/api.ts";
 import { DiffPane, type LinePick, type ReviewHooks } from "./DiffPane.tsx";
 import { mapHunkLines } from "./diff-lines.ts";
+import { addSource } from "../../shared/sources.ts";
+import { codeHash } from "../../app/route.ts";
 
 /**
  * EPIC-P36 / ADR-0055: Review-Notizen um die bestehende Diff-Ansicht.
@@ -316,6 +318,28 @@ export function DiffReview({ diff, session }: { diff: SessionDiffResult | null; 
           <button class="review-send-btn" disabled={selectedNotes.length === 0 || !online} onClick={() => void openSend()}>
             {selectedNotes.length > 0 ? `${selectedNotes.length} ${selectedNotes.length === 1 ? "Befund" : "Befunde"} sammeln und senden` : "Befunde zum Versand auswählen"}
           </button>
+          {selectedNotes.length > 0 && (
+            <button
+              class="review-send-btn"
+              data-testid="review-to-composer"
+              onClick={() => {
+                // EPIC-P43.5 T43.5-1: Reviewnotizen als Quellenchips dieser Session —
+                // Vorschau im Composer, bewusstes Senden, excerpt wie die Notiz.
+                for (const n of selectedNotes) {
+                  addSource(session.id, {
+                    id: `review:${n.id}`,
+                    kind: "review",
+                    label: `${n.anchor.path}:${n.anchor.startLine}${n.anchor.endLine !== n.anchor.startLine ? `–${n.anchor.endLine}` : ""}`,
+                    excerpt: n.text,
+                    hash: codeHash(session.id, n.anchor.path, n.anchor.startLine),
+                  });
+                }
+                setSelected(new Set());
+              }}
+            >
+              {selectedNotes.length} in den Composer
+            </button>
+          )}
           {!online && <span class="review-warn-inline">Versand nur online</span>}
         </div>
       </section>

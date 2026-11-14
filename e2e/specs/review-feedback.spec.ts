@@ -107,4 +107,26 @@ test.describe("Review-Feedback am Diff (EPIC-P36)", () => {
     const synced = app.locator(".review-note").filter({ hasText: "Offline-Befund" }).first();
     await expect(synced.locator(".review-status")).toHaveText("Entwurf", { timeout: 15_000 });
   });
+
+  test("Review-Notiz als Quellenchip in den Composer (P43.5 T43.5-1)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await idle(hub, id);
+    const workdir = await workdirOf(hub, id);
+    await writeFile(join(workdir, "review-target.txt"), "alpha\nbeta\ngamma\n");
+    await openDiff(app, hub, id);
+    await app.getByRole("button", { name: "Notiz an Zeilen" }).click();
+    await app.locator(".review-pickable").filter({ hasText: "beta" }).first().click();
+    await app.getByPlaceholder("Befund notieren …").fill("Bitte beta erklären");
+    await app.getByRole("button", { name: "speichern" }).click();
+    const note = app.locator(".review-note").filter({ hasText: "Bitte beta erklären" });
+    await expect(note).toBeVisible();
+    note.locator("input[type=checkbox]").check();
+    await app.getByTestId("review-to-composer").click();
+    // Der Chip sitzt am Antwort-Composer dieser Session; Vorschau zeigt den Block, nichts geht automatisch raus.
+    const chips = app.getByTestId("source-chips");
+    await expect(chips.locator(".source-chip-label")).toContainText("review-target.txt:2");
+    await expect(app.getByTestId("source-preview")).toContainText("[1] Review — review-target.txt:2");
+    await expect(app.getByTestId("source-preview")).toContainText("Bitte beta erklären");
+    expect((await hub.events(id)).some((e) => JSON.stringify(e.payload).includes("<quellen>"))).toBe(false);
+  });
 });

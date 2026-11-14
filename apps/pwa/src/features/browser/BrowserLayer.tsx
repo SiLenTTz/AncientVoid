@@ -5,6 +5,8 @@ import { openPopout } from "../windows/windows.ts";
 import { getHubStatus } from "../shell/hub-status.ts";
 import { onLayerOpen } from "../../shared/layers.ts";
 import { EXAMPLE_TEST, TEST_STATE_LABEL, parseTestCase, toViewportPoint } from "./browser-model.ts";
+import { addSource } from "../../shared/sources.ts";
+import { browserHash } from "../../app/route.ts";
 
 type Tab = "view" | "tests" | "log";
 
@@ -234,6 +236,25 @@ function PickCard({ sessionId, pick, onDone }: { sessionId: string; pick: Browse
       <label class="dim"><input type="checkbox" checked={shot} onChange={(e) => { setShot((e.target as HTMLInputElement).checked); setPreview(null); }} /> Screenshot des Elements anhängen</label>
       <div class="file-tools">
         <button type="button" class="btn" data-testid="browser-feedback-preview" onClick={() => hubApi.browserFeedbackPreview(sessionId, input).then((r) => setPreview(r.prompt)).catch((e) => setMsg(e instanceof Error ? e.message : "Vorschau fehlgeschlagen"))}>Vorschau</button>
+        <button
+          type="button"
+          class="btn"
+          data-testid="browser-pick-to-composer"
+          onClick={() => {
+            // EPIC-P43.5 T43.5-1: Befund als Quellenchip — Vorschau im Composer, bewusstes Senden.
+            addSource(sessionId, {
+              id: `test:${pick.selector}`,
+              kind: "test",
+              label: `Browser-Element <${pick.tag}> ${pick.selector}`,
+              excerpt: note.trim() || pick.text || null,
+              hash: browserHash(sessionId),
+            });
+            setMsg("Als Quelle im Composer — dort prüfen und mit dem nächsten Absenden mitgeben.");
+            onDone();
+          }}
+        >
+          In den Composer
+        </button>
         <button type="button" class="btn" data-testid="browser-feedback-send" disabled={!preview} onClick={() => hubApi.browserFeedbackSend(sessionId, { ...input, operationId: crypto.randomUUID() }).then(() => { setMsg("Gesendet."); onDone(); }).catch((e) => setMsg(e instanceof Error ? e.message : "Senden fehlgeschlagen"))}>An Session senden</button>
         <button type="button" class="chip" onClick={onDone}>Verwerfen</button>
       </div>
