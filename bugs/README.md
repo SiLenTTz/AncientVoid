@@ -171,5 +171,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0158](bug-0158-codex-ablehnung-als-erfolg.md) | Codex bestätigt abgelehnte Folgeeingaben als angenommen | done | S2 | adapter-codex | [#61](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/61) |
 | [BUG-0159](bug-0159-nyx-fab-feedback-blende-steht-dauerhaft.md) | Feedbackblende des Nyx-Voice-FAB steht nach der Aufnahme dauerhaft | done | S3 | pwa | [#457](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/457) |
 | [BUG-0160](bug-0160-galaxy-route-verliert-tab-bei-kacheloffnung.md) | Graph-Deep-Link verliert den Reiter beim Öffnen der Kachel | done | S3 | pwa | — |
+| [BUG-0163](bug-0163-ci-verify-rot-seit-11-11.md) | CI: `verify` seit dem 11.11. durchgehend rot (4 Umgebungstests), lokal grün | open | S2 | ci | — |
 
 Die nächste freie Nummer ist **0161**.
