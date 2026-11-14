@@ -6,7 +6,7 @@ import { SessionTail } from "../features/session/SessionTail.tsx";
 import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
 import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
-import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
+import { isToolPage, pageHash, parseAppHash, redirectLegacyRunHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
 import { registerShortcut } from "../shared/shortcuts/registry.ts";
 import { CheatSheet } from "../shared/shortcuts/CheatSheet.tsx";
 import { installShortcutHints } from "../shared/shortcut-hint.ts";
@@ -246,6 +246,13 @@ function Main() {
   useEffect(() => {
     if (!ready) return;
     const openFromHash = () => {
+      // EPIC-P60 (AC-P60-1): alte `#/runs…`-Links permanent auf `#/teams…`
+      // umleiten — der Hash-Replace löst einen neuen hashchange aus.
+      const redirected = redirectLegacyRunHash(location.hash);
+      if (redirected !== null && redirected !== location.hash) {
+        location.hash = redirected;
+        return;
+      }
       const parsed = parseAppHash(location.hash);
       if (parsed.view === "devices") {
         // EPIC-P42: `#/geraete` ist die Fenster-Route des Popouts; im Hauptfenster geht es zur Übersicht

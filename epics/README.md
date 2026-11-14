@@ -239,13 +239,36 @@ P46, P51 teils) wurden nicht angefasst.
 |---|---|---|---|
 | [P47 — Ergänzung](EPIC-P47-uebersicht-sessions-projekte-hosts.md) | Discovery als vierter Umschalt-State der Übersicht, eigener Menüpunkt entfällt (Design-Entscheidung §3.4; Deeplink/Chip bleiben; umgesetzt 2026-11-14); T47.5/T47.6, AC-P47-5/6 | wie bisher (keine fachliche offene) | +0,25 |
 | [P43.5 — Ergänzung](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Composer-Maximieren-Button als Icon-Button statt Fullscreen-Fläche; T43.5-6, AC-P43.5-6 | P43 grün (erfüllt) | +0,1 |
-| [P58 — Typewriter-Effekt](EPIC-P58-typewriter-effekt.md) | Chat und Thinking/Reasoning werden bei Live-Zuwachs getippt; Settings-Schalter; History sofort; K2-Messlauf | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | ~1 |
+| [P58 — Typewriter-Effekt](EPIC-P58-typewriter-effekt.md) | Chat und Thinking/Reasoning werden bei Live-Zuwachs getippt; Settings-Schalter; History sofort; K2-Messlauf — **umgesetzt 2026-11-14** (T58.1–T58.6, Gate grün, K2-Messlauf mit Animation PASS; Live-Abnahme am Gerät → Jan) | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | ~1 |
 | [P59 — KI-Server-Metriken](EPIC-P59-ki-server-metriken.md) | Neue Metrik-Seite: CPU, GPU, Tokens/s, Prefill, Decode, KV-Cache des lokalen KI-Servers; ADR vor Contract-Änderung; Abgrenzung zu P56 | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | 1–2 |
 
 Reihenfolge: P58/P59 quer wie P50–P53 (je Aufgabe eigener Branch/MR nach
 main); P47/P43.5-Extras hängen an deren je eigenem Start. Kein Start vor
 grünen Exit-Kriterien der wirksamen Vorgänger; P56 bleibt der einzige
 Aggregationsort (P59 liefert nur direkte Proben).
+
+## Nutzerauftrag vom 14.11.2026 — Agenten-Teams (ehemals Runs)
+
+Nutzermeldung nach erster Nutzung der P40-Fläche: Run-Seite visuell
+unbefriedigend, Begriff „Run" nicht selbsterklärend; gewünscht: Übersicht
+mit Karten je parallel laufendem Agenten (wie Session-Übersicht),
+tatsächliche Parallelisierung unabhängiger Aufgaben durch den Koordinator,
+vorab wählbare Adapter/Modelle. Entscheidungen (Jan, 14.11.2026): Name
+wird **Team** („Factory"/„Orchestrator" kollidieren mit Loop-Factory P19/P26
+bzw. Core-Klasse/Hermes-Rolle), Umbenennung überall sauber definiert — auch
+Contracts. Quer-Epic auf P40-Basis (Präzedenz P47–P53); der offene P41-Exit
+bleibt unberührt, die Automationen-Kopplung wird mitmigriert.
+Nummernhinweis: Die Planung lief parallel zum Vier-Punkte-Auftrag auf
+veraltetem main-Stand als „P58"; da P58 bereits an das Typewriter-Epic
+vergeben war, führt das Epic die Nummer **P60** weiter (Repo-Regel
+„Bestehende Epic-Nummern bleiben stabil", Präzedenz P46).
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P60 — Agenten-Teams: Umbenennung, Kartenübersicht, Parallelität, Modellwahl](EPIC-P60-agenten-teams.md) | Run→Team vollständig umbenannt (Contracts, `/api/teams`, Policy `team.*`, Journal-Migration, `#/teams`-Redirects), Team-Detail mit Karten je Worker, breite DAGs + belegte Gleichzeitigkeit, Modell-Allowlist mit Formularauswahl (schließt ungeprüfte `task.model`-Lücke) | keine fachliche offene (P40 umgesetzt, Gate grün; Live-Lauf-Block P39 unberührt) | 2–3 |
+
+Reihenfolge: P60 quer wie P50–P53 (je Aufgabe eigener Branch/MR nach main;
+ADR vor der ersten Contract-Änderung).
 
 ## Reihenfolge & Gating
 

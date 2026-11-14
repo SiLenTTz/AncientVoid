@@ -6,7 +6,7 @@ import { MediaPage } from "../media/MediaPage.tsx";
 import { SettingsPage } from "../settings/SettingsPage.tsx";
 import { StatusPage } from "../status/StatusPage.tsx";
 import { VaultPane } from "../vault/VaultPane.tsx";
-import { RunsPane } from "../orchestration/RunsPane.tsx";
+import { TeamsPane } from "../team/TeamsPane.tsx";
 import { AutomationsPane } from "../automations/AutomationsPane.tsx";
 import { useHubStatus } from "./hub-status.ts";
 
@@ -16,7 +16,7 @@ const TITLES: Partial<Record<ListPage, string>> = {
   pc: "Am PC eintippen",
   status: "Provider-Status",
   vault: "Notizen",
-  orchestrierung: "Orchestrierung",
+  teams: "Agenten-Teams",
   automationen: "Automationen",
 };
 
@@ -85,7 +85,7 @@ export function ToolPane({
         {page === "pc" && <DesktopPage />}
         {page === "status" && <StatusPage adapters={hub.adapters} usage={hub.usage} />}
         {page === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
-        {page === "orchestrierung" && <RunsPane />}
+        {page === "teams" && <TeamsPane />}
         {page === "automationen" && <AutomationsPane />}
       </div>
     </section>

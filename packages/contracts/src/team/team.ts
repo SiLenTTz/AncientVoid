@@ -1,21 +1,21 @@
-/** EPIC-P40 (ADR-0064): Orchestrierung — Runs, Tasks, Dispatches, Gates, Deliveries. */
+/** EPIC-P40 (ADR-0064), EPIC-P60 (ADR-0077): Agenten-Teams — Team, Tasks, Dispatches, Gates, Deliveries (Run→Team umbenannt). */
 
 import { z } from "zod";
 
-export const OrchestrationTaskStatus = z.enum(["pending", "ready", "running", "done", "failed", "unknown"]);
-export type OrchestrationTaskStatus = z.infer<typeof OrchestrationTaskStatus>;
+export const TeamTaskStatus = z.enum(["pending", "ready", "running", "done", "failed", "unknown"]);
+export type TeamTaskStatus = z.infer<typeof TeamTaskStatus>;
 
-export const OrchestrationDispatchStatus = z.enum(["active", "done", "failed", "stale", "cancelled", "unknown"]);
-export type OrchestrationDispatchStatus = z.infer<typeof OrchestrationDispatchStatus>;
+export const TeamDispatchStatus = z.enum(["active", "done", "failed", "stale", "cancelled", "unknown"]);
+export type TeamDispatchStatus = z.infer<typeof TeamDispatchStatus>;
 
-export const OrchestrationRunStatus = z.enum(["planning", "running", "awaiting_gate", "done", "failed", "cancelled"]);
-export type OrchestrationRunStatus = z.infer<typeof OrchestrationRunStatus>;
+export const TeamStatus = z.enum(["planning", "running", "awaiting_gate", "done", "failed", "cancelled"]);
+export type TeamStatus = z.infer<typeof TeamStatus>;
 
-export const OrchestrationGateAction = z.enum(["retry_plan", "cancel", "continue", "retry_task"]);
-export type OrchestrationGateAction = z.infer<typeof OrchestrationGateAction>;
+export const TeamGateAction = z.enum(["retry_plan", "cancel", "continue", "retry_task"]);
+export type TeamGateAction = z.infer<typeof TeamGateAction>;
 
 /** Rahmen, den ein Mensch beim Start festlegt und den der Hub bei jedem Dispatch erzwingt (ADR-0064 §4). */
-export const OrchestrationFrame = z.object({
+export const TeamFrame = z.object({
   /** Adapter, die als Worker erlaubt sind (Allowlist; `loop:*` lehnt der Hub ab). */
   adapters: z.array(z.string().min(1)).min(1).max(8),
   /** Koordinator-Adapter für die Plan-Session; null = Plan wurde direkt übergeben. */
@@ -25,10 +25,10 @@ export const OrchestrationFrame = z.object({
   maxDispatchesPerTask: z.number().int().min(1).max(3).default(2),
   maxParallel: z.number().int().min(1).max(4).default(2),
 });
-export type OrchestrationFrame = z.infer<typeof OrchestrationFrame>;
+export type TeamFrame = z.infer<typeof TeamFrame>;
 
-/** Ein Task aus dem (Koordinator- oder Menschen-)Plan. IDs sind innerhalb des Runs eindeutig (T1, T2, …). */
-export const OrchestrationTaskPlan = z.object({
+/** Ein Task aus dem (Koordinator- oder Menschen-)Plan. IDs sind innerhalb des Teams eindeutig (T1, T2, …). */
+export const TeamTaskPlan = z.object({
   id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/),
   title: z.string().min(1).max(200),
   prompt: z.string().min(1).max(16_000),
@@ -36,13 +36,13 @@ export const OrchestrationTaskPlan = z.object({
   model: z.string().min(1).nullable().default(null),
   dependsOn: z.array(z.string()).default([]),
 });
-export type OrchestrationTaskPlan = z.infer<typeof OrchestrationTaskPlan>;
+export type TeamTaskPlan = z.infer<typeof TeamTaskPlan>;
 
 /** Der Taskplan als Daten — entweder vom Koordinator-Harness erkannt oder direkt übergeben. */
-export const OrchestrationPlan = z.object({ tasks: z.array(OrchestrationTaskPlan).min(1) });
-export type OrchestrationPlan = z.infer<typeof OrchestrationPlan>;
+export const TeamPlan = z.object({ tasks: z.array(TeamTaskPlan).min(1) });
+export type TeamPlan = z.infer<typeof TeamPlan>;
 
-export const OrchestrationDispatch = z.object({
+export const TeamDispatch = z.object({
   id: z.string(),
   /** Versuchsnummer je Task; nur die höchste Generation darf abschließen (stale-Invariante). */
   generation: z.number().int().positive(),
@@ -51,12 +51,12 @@ export const OrchestrationDispatch = z.object({
   model: z.string().nullable(),
   startedAt: z.string(),
   endedAt: z.string().nullable(),
-  status: OrchestrationDispatchStatus,
+  status: TeamDispatchStatus,
   note: z.string().nullable().default(null),
 });
-export type OrchestrationDispatch = z.infer<typeof OrchestrationDispatch>;
+export type TeamDispatch = z.infer<typeof TeamDispatch>;
 
-export const OrchestrationDelivery = z.object({
+export const TeamDelivery = z.object({
   taskId: z.string(),
   dispatchId: z.string(),
   generation: z.number().int().positive(),
@@ -66,30 +66,30 @@ export const OrchestrationDelivery = z.object({
   blobRef: z.string().nullable(),
   deliveredAt: z.string(),
 });
-export type OrchestrationDelivery = z.infer<typeof OrchestrationDelivery>;
+export type TeamDelivery = z.infer<typeof TeamDelivery>;
 
-export const OrchestrationGate = z.object({
+export const TeamGate = z.object({
   id: z.string(),
   reason: z.enum(["plan_unreadable", "adapter_not_allowed", "worker_question", "unknown_outcome"]),
   question: z.string().min(1).max(2000),
-  options: z.array(z.object({ label: z.string().min(1).max(200), action: OrchestrationGateAction })).min(1).max(4),
+  options: z.array(z.object({ label: z.string().min(1).max(200), action: TeamGateAction })).min(1).max(4),
   taskId: z.string().nullable().default(null),
   openedAt: z.string(),
   answeredAt: z.string().nullable().default(null),
   answer: z.string().nullable().default(null),
 });
-export type OrchestrationGate = z.infer<typeof OrchestrationGate>;
+export type TeamGate = z.infer<typeof TeamGate>;
 
-export const OrchestrationRun = z.object({
+export const Team = z.object({
   id: z.string(),
   title: z.string().min(1).max(200),
   goal: z.string().min(1).max(8000),
   project: z.string(),
-  frame: OrchestrationFrame,
+  frame: TeamFrame,
   /** Woher der Plan stammt: Koordinator-Session oder menschliche Übergabe. */
   planSource: z.enum(["coordinator", "given"]),
   coordinatorSessionId: z.string().nullable().default(null),
-  status: OrchestrationRunStatus,
+  status: TeamStatus,
   tasks: z.array(
     z.object({
       id: z.string(),
@@ -98,33 +98,33 @@ export const OrchestrationRun = z.object({
       adapter: z.string(),
       model: z.string().nullable(),
       dependsOn: z.array(z.string()),
-      status: OrchestrationTaskStatus,
-      dispatches: z.array(OrchestrationDispatch),
-      result: OrchestrationDelivery.nullable().default(null),
+      status: TeamTaskStatus,
+      dispatches: z.array(TeamDispatch),
+      result: TeamDelivery.nullable().default(null),
     }),
   ),
-  gates: z.array(OrchestrationGate),
-  deliveries: z.array(OrchestrationDelivery),
+  gates: z.array(TeamGate),
+  deliveries: z.array(TeamDelivery),
   createdAt: z.string(),
   updatedAt: z.string(),
   endedAt: z.string().nullable().default(null),
 });
-export type OrchestrationRun = z.infer<typeof OrchestrationRun>;
+export type Team = z.infer<typeof Team>;
 
-/** Run-Start über die HTTP-Grenze: Ziel, Rahmen und optionaler fertiger Plan. */
-export const OrchestrationRunStart = z.object({
+/** Team-Start über die HTTP-Grenze: Ziel, Rahmen und optionaler fertiger Plan. */
+export const TeamStart = z.object({
   title: z.string().min(1).max(200),
   goal: z.string().min(1).max(8000),
   project: z.string(),
-  frame: OrchestrationFrame,
-  plan: OrchestrationPlan.nullable().default(null),
+  frame: TeamFrame,
+  plan: TeamPlan.nullable().default(null),
 });
-export type OrchestrationRunStart = z.infer<typeof OrchestrationRunStart>;
+export type TeamStart = z.infer<typeof TeamStart>;
 
 /**
  * Fehlergründe mit HTTP-Code aus dem Hub (422 Rahmen/Plan, 409 Invariante).
  */
-export const ORCHESTRATION_ERRORS: Record<string, number> = {
+export const TEAM_ERRORS: Record<string, number> = {
   plan_invalid: 422,
   cycle: 422,
   unknown_dependency: 422,

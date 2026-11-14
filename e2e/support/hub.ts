@@ -429,8 +429,8 @@ export class TestHub {
     return res.body.id;
   }
 
-  async events(sessionId: string): Promise<{ seq: number; type: string; summary: string; payload: Record<string, unknown> }[]> {
-    return (await this.api<{ seq: number; type: string; summary: string; payload: Record<string, unknown> }[]>(
+  async events(sessionId: string): Promise<{ seq: number; ts: string; type: string; summary: string; payload: Record<string, unknown> }[]> {
+    return (await this.api<{ seq: number; ts: string; type: string; summary: string; payload: Record<string, unknown> }[]>(
       `/api/sessions/${sessionId}/events?limit=2000`,
     )).body;
   }

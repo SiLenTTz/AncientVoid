@@ -225,7 +225,7 @@ offline steht das erste Bild.
 6. **Nichts liegt über dem Inhalt** — keine Randlaschen; Ebenen öffnen aus den Ansichten (`shared/layers.ts`).
 7. **Formularelemente sind App-Bausteine** (Schrift der App, `appearance: none`, kein weißes Feld im Dunkeln).
 8. **Kein horizontaler Scrollbalken im fließenden Inhalt** — wo Text oder Chips laufen, brechen sie um
-   (`flex-wrap`, `overflow-wrap`): Filterleiste, Vorlagenzeile, Befehlszeilen, Run-Meta, PC-Befehlszeile.
+   (`flex-wrap`, `overflow-wrap`): Filterleiste, Vorlagenzeile, Befehlszeilen, Team-Meta, PC-Befehlszeile.
    Ausgenommen bleiben der Git-Diff (nachrüstbar), CODE-Blöcke, Tabellen und die waagerechten
    Zeilenleisten (Dock, Tabs, Streifen) — ein Tester findet alle Verletzer (`kleinkram.spec.ts`).
 

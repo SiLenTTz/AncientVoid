@@ -1,21 +1,21 @@
 import { ApiContext, useApi } from "../../shared/api-context.ts";
 import { useEffect, useMemo, useState } from "preact/hooks";
-import type { OrchestrationRun, OrchestrationRunStatus, OrchestrationTaskStatus } from "@ancientvoid/contracts";
+import type { Team, TeamStatus, TeamTaskStatus } from "@ancientvoid/contracts";
 import { hostApi, type AdapterInfo, type DiscoveredProject } from "../../shared/api.ts";
 import { sessionHash } from "../../app/route.ts";
 
 /** Status-Pill: done grün, failed/unknown rot, awaiting_gate gelb, sonst neutral. */
 function statusTone(status: string): string {
-  if (status === "done") return "run-pill--ok";
-  if (status === "failed" || status === "unknown") return "run-pill--err";
-  if (status === "awaiting_gate") return "run-pill--warn";
+  if (status === "done") return "team-pill--ok";
+  if (status === "failed" || status === "unknown") return "team-pill--err";
+  if (status === "awaiting_gate") return "team-pill--warn";
   return "";
 }
 
 const STATUS_LABEL: Record<string, string> = {
   planning: "plant",
   running: "läuft",
-  awaiting_gate: "wartet auf Antwort",
+  awaiting_gate: "Rückfrage offen",
   done: "fertig",
   failed: "fehlgeschlagen",
   cancelled: "abgebrochen",
@@ -29,36 +29,36 @@ function label(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
-function RunDetail({ run, onAnswer, onCancel, busy }: { run: OrchestrationRun; onAnswer: (gateId: string, label: string) => void; onCancel: () => void; busy: boolean }) {
-  const done = run.tasks.filter((t) => t.status === "done").length;
-  const openGates = run.gates.filter((g) => !g.answeredAt);
+function TeamDetail({ team, onAnswer, onCancel, busy }: { team: Team; onAnswer: (gateId: string, label: string) => void; onCancel: () => void; busy: boolean }) {
+  const done = team.tasks.filter((t) => t.status === "done").length;
+  const openGates = team.gates.filter((g) => !g.answeredAt);
   return (
-    <div class="run-detail" data-testid="run-detail">
-      <header class="run-detail-head">
-        <h3>{run.title}</h3>
-        <span class={`run-pill ${statusTone(run.status)}`}>{label(run.status)}</span>
+    <div class="team-detail" data-testid="team-detail">
+      <header class="team-detail-head">
+        <h3>{team.title}</h3>
+        <span class={`team-pill ${statusTone(team.status)}`}>{label(team.status)}</span>
       </header>
-      <p class="run-goal">{run.goal}</p>
-      <p class="run-meta">
-        Projekt: <span class="run-chip">{run.project}</span> · Plan: {run.planSource === "coordinator" ? "Koordinator" : "übergeben"} · Adapter: {run.frame.adapters.join(", ")} · Parallelität: {run.frame.maxParallel}
-        {run.coordinatorSessionId && (
-          <> · <a href={sessionHash(run.coordinatorSessionId)}>Koordinator-Session</a></>
+      <p class="team-goal">{team.goal}</p>
+      <p class="team-meta">
+        Projekt: <span class="team-chip">{team.project}</span> · Plan: {team.planSource === "coordinator" ? "Koordinator" : "übergeben"} · Adapter: {team.frame.adapters.join(", ")} · Parallelität: {team.frame.maxParallel}
+        {team.coordinatorSessionId && (
+          <> · <a href={sessionHash(team.coordinatorSessionId)}>Koordinator-Session</a></>
         )}
       </p>
 
       {openGates.length > 0 && (
-        <div class="run-gates">
+        <div class="team-gates">
           {openGates.map((gate) => (
-            <div class="run-gate" data-testid="run-gate" key={gate.id}>
+            <div class="team-gate" data-testid="team-gate" key={gate.id}>
               <p>{gate.question}</p>
-              <div class="run-gate-actions">
+              <div class="team-gate-actions">
                 {gate.options.map((opt) => (
                   <button type="button" class="btn" disabled={busy} key={opt.label} onClick={() => onAnswer(gate.id, opt.label)}>
                     {opt.label}
                   </button>
                 ))}
-                <button type="button" class="btn run-cancel" disabled={busy} onClick={onCancel}>
-                  Run stoppen
+                <button type="button" class="btn team-cancel" disabled={busy} onClick={onCancel}>
+                  Team stoppen
                 </button>
               </div>
             </div>
@@ -66,17 +66,17 @@ function RunDetail({ run, onAnswer, onCancel, busy }: { run: OrchestrationRun; o
         </div>
       )}
 
-      <ol class="run-tasks">
-        {run.tasks.map((task) => {
+      <ol class="team-tasks">
+        {team.tasks.map((task) => {
           const current = task.dispatches[task.dispatches.length - 1];
           return (
-            <li class={`run-task ${statusTone(task.status)}`} key={task.id}>
-              <div class="run-task-head">
-                <span class="run-task-id">{task.id}</span>
-                <span class="run-task-title">{task.title}</span>
-                <span class={`run-pill ${statusTone(task.status)}`}>{label(task.status)}</span>
+            <li class={`team-task ${statusTone(task.status)}`} key={task.id}>
+              <div class="team-task-head">
+                <span class="team-task-id">{task.id}</span>
+                <span class="team-task-title">{task.title}</span>
+                <span class={`team-pill ${statusTone(task.status)}`}>{label(task.status)}</span>
               </div>
-              <div class="run-task-meta">
+              <div class="team-task-meta">
                 {task.adapter}
                 {task.dependsOn.length > 0 && <> · hängt ab von {task.dependsOn.join(" → ")}</>}
                 {current && (
@@ -87,21 +87,21 @@ function RunDetail({ run, onAnswer, onCancel, busy }: { run: OrchestrationRun; o
                 )}
               </div>
               {task.result && (
-                <div class="run-result">
+                <div class="team-result">
                   <pre>{task.result.text.slice(0, 400)}{task.result.text.length > 400 ? "…" : ""}</pre>
-                  {task.result.blobRef && <p class="run-blob">Ergebnis als Blob abgelegt: {task.result.blobRef} ({task.result.bytes} Bytes)</p>}
+                  {task.result.blobRef && <p class="team-blob">Ergebnis als Blob abgelegt: {task.result.blobRef} ({task.result.bytes} Bytes)</p>}
                 </div>
               )}
             </li>
           );
         })}
       </ol>
-      <p class="run-meta">{done}/{run.tasks.length} Tasks erledigt · {run.deliveries.length} Lieferungen</p>
+      <p class="team-meta">{done}/{team.tasks.length} Tasks erledigt · {team.deliveries.length} Lieferungen</p>
     </div>
   );
 }
 
-function NewRunForm({ adapters, projects, onCreated }: { adapters: AdapterInfo[]; projects: DiscoveredProject[]; onCreated: (run: OrchestrationRun) => void }) {
+function NewTeamForm({ adapters, projects, onCreated }: { adapters: AdapterInfo[]; projects: DiscoveredProject[]; onCreated: (team: Team) => void }) {
   const api = useApi();
   const [title, setTitle] = useState("");
   const [goal, setGoal] = useState("");
@@ -124,7 +124,7 @@ function NewRunForm({ adapters, projects, onCreated }: { adapters: AdapterInfo[]
     }
     setBusy(true);
     try {
-      const run = await api.orchestrationStart({
+      const team = await api.teamStart({
         title: title.trim(),
         goal: goal.trim(),
         project,
@@ -138,7 +138,7 @@ function NewRunForm({ adapters, projects, onCreated }: { adapters: AdapterInfo[]
         },
         plan: null,
       });
-      onCreated(run);
+      onCreated(team);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Start fehlgeschlagen");
     } finally {
@@ -147,8 +147,8 @@ function NewRunForm({ adapters, projects, onCreated }: { adapters: AdapterInfo[]
   };
 
   return (
-    <form class="run-new" data-testid="run-new" onSubmit={(e) => { e.preventDefault(); void start(); }}>
-      <h3>Neuer Run</h3>
+    <form class="team-new" data-testid="team-new" onSubmit={(e) => { e.preventDefault(); void start(); }}>
+      <h3>Neues Team</h3>
       <label>Titel <input value={title} onInput={(e) => setTitle((e.target as HTMLInputElement).value)} /></label>
       <label>Ziel <textarea rows={3} value={goal} onInput={(e) => setGoal((e.target as HTMLTextAreaElement).value)} /></label>
       <label>Projekt
@@ -159,32 +159,32 @@ function NewRunForm({ adapters, projects, onCreated }: { adapters: AdapterInfo[]
       <fieldset>
         <legend>Adapter</legend>
         {adapters.map((a) => (
-          <label class="run-adapter">
+          <label class="team-adapter">
             <input type="checkbox" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} /> {a.id}
           </label>
         ))}
       </fieldset>
-      <div class="run-new-row">
+      <div class="team-new-row">
         <label>Koordinator <input value={coordinatorAdapter} onInput={(e) => setCoordinatorAdapter((e.target as HTMLInputElement).value)} /></label>
         <label>Parallelität <input type="number" min={1} max={4} value={maxParallel} onInput={(e) => setMaxParallel(Number((e.target as HTMLInputElement).value))} /></label>
       </div>
       {error && <div class="files-error" role="alert">{error}</div>}
-      <button type="submit" class="btn" disabled={busy}>Run starten</button>
+      <button type="submit" class="btn" disabled={busy}>Team starten</button>
     </form>
   );
 }
 
-/** EPIC-P40: Orchestrierung — Runs mit Rahmen, Tasks, Dispatches und Gates (ADR-0064). */
-export function RunsPane() {
+/** EPIC-P40/EPIC-P60: Agenten-Teams mit Rahmen, Tasks, Dispatches und Gates (ADR-0064, Run→Team ADR-0077). */
+export function TeamsPane() {
   const host = new URLSearchParams(location.hash.split("?")[1] ?? "").get("host");
   const api = useMemo(() => hostApi(host), [host]);
-  return <ApiContext.Provider value={api}><RunsHostPane key={host ?? "self"} /></ApiContext.Provider>;
+  return <ApiContext.Provider value={api}><TeamsHostPane key={host ?? "self"} /></ApiContext.Provider>;
 }
 
-function RunsHostPane() {
+function TeamsHostPane() {
   const api = useApi();
-  const [runs, setRuns] = useState<OrchestrationRun[] | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(() => new URLSearchParams(location.hash.split("?")[1] ?? "").get("run"));
+  const [teams, setTeams] = useState<Team[] | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => new URLSearchParams(location.hash.split("?")[1] ?? "").get("team"));
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
   const [projects, setProjects] = useState<DiscoveredProject[]>([]);
   const [showNew, setShowNew] = useState(false);
@@ -195,9 +195,9 @@ function RunsHostPane() {
     let alive = true;
     const tick = async () => {
       try {
-        const list = await api.orchestrationRuns();
+        const list = await api.teamList();
         if (!alive) return;
-        setRuns(list);
+        setTeams(list);
         setError("");
       } catch (err) {
         if (alive) setError(err instanceof Error ? err.message : "Abruf fehlgeschlagen");
@@ -220,11 +220,11 @@ function RunsHostPane() {
     };
   }, []);
 
-  const selected = runs?.find((r) => r.id === selectedId) ?? null;
+  const selected = teams?.find((r) => r.id === selectedId) ?? null;
 
   const refresh = async () => {
     try {
-      setRuns(await api.orchestrationRuns());
+      setTeams(await api.teamList());
     } catch {
       // Der nächste Poll-Tick übernimmt es.
     }
@@ -234,8 +234,8 @@ function RunsHostPane() {
     if (!selected) return;
     setBusy(true);
     try {
-      const run = await api.orchestrationAnswer(selected.id, gateId, answerLabel);
-      setRuns((prev) => (prev ? prev.map((r) => (r.id === run.id ? run : r)) : prev));
+      const team = await api.teamAnswer(selected.id, gateId, answerLabel);
+      setTeams((prev) => (prev ? prev.map((r) => (r.id === team.id ? team : r)) : prev));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Antwort fehlgeschlagen");
     } finally {
@@ -245,11 +245,11 @@ function RunsHostPane() {
 
   const cancel = async () => {
     if (!selected) return;
-    if (!confirm("Diesen Run wirklich stoppen?")) return;
+    if (!confirm("Dieses Team wirklich stoppen?")) return;
     setBusy(true);
     try {
-      const run = await api.orchestrationCancel(selected.id, "Vom Nutzer gestoppt");
-      setRuns((prev) => (prev ? prev.map((r) => (r.id === run.id ? run : r)) : prev));
+      const team = await api.teamCancel(selected.id, "Vom Nutzer gestoppt");
+      setTeams((prev) => (prev ? prev.map((r) => (r.id === team.id ? team : r)) : prev));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Abbruch fehlgeschlagen");
     } finally {
@@ -258,38 +258,38 @@ function RunsHostPane() {
   };
 
   return (
-    <div class="runs-pane" data-testid="runs-pane">
-      <div class="runs-list">
-        <div class="runs-list-head">
-          <h3>Runs</h3>
-          <button type="button" class="btn" onClick={() => setShowNew((v) => !v)}>{showNew ? "Abbrechen" : "Neuer Run"}</button>
+    <div class="teams-pane" data-testid="teams-pane">
+      <div class="teams-list">
+        <div class="teams-list-head">
+          <h3>Teams</h3>
+          <button type="button" class="btn" onClick={() => setShowNew((v) => !v)}>{showNew ? "Abbrechen" : "Neues Team"}</button>
         </div>
         {error && <div class="files-error" role="alert">{error}</div>}
         {showNew && (
-          <NewRunForm
+          <NewTeamForm
             adapters={adapters}
             projects={projects}
-            onCreated={(run) => {
+            onCreated={(team) => {
               setShowNew(false);
-              setSelectedId(run.id);
+              setSelectedId(team.id);
               void refresh();
             }}
           />
         )}
-        {runs === null ? (
+        {teams === null ? (
           <div class="empty">lade…</div>
-        ) : runs.length === 0 ? (
-          <div class="empty">Noch keine Runs.</div>
+        ) : teams.length === 0 ? (
+          <div class="empty">Noch keine Teams.</div>
         ) : (
           <ul>
-            {runs.map((run) => {
-              const done = run.tasks.filter((t) => t.status === "done").length;
+            {teams.map((team) => {
+              const done = team.tasks.filter((t) => t.status === "done").length;
               return (
-                <li key={run.id}>
-                  <button type="button" class={`run-row ${run.id === selectedId ? "active" : ""}`} onClick={() => setSelectedId(run.id)}>
-                    <span class="run-row-title">{run.title}</span>
-                    <span class={`run-pill ${statusTone(run.status)}`}>{label(run.status)}</span>
-                    <span class="run-row-meta">{run.project || "—"} · {done}/{run.tasks.length} erledigt</span>
+                <li key={team.id}>
+                  <button type="button" class={`team-row ${team.id === selectedId ? "active" : ""}`} onClick={() => setSelectedId(team.id)}>
+                    <span class="team-row-title">{team.title}</span>
+                    <span class={`team-pill ${statusTone(team.status)}`}>{label(team.status)}</span>
+                    <span class="team-row-meta">{team.project || "—"} · {done}/{team.tasks.length} erledigt</span>
                   </button>
                 </li>
               );
@@ -297,7 +297,7 @@ function RunsHostPane() {
           </ul>
         )}
       </div>
-      {selected && <RunDetail run={selected} onAnswer={answer} onCancel={cancel} busy={busy} />}
+      {selected && <TeamDetail team={selected} onAnswer={answer} onCancel={cancel} busy={busy} />}
     </div>
   );
 }

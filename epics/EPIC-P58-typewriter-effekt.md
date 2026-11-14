@@ -1,6 +1,6 @@
 # EPIC-P58 — Typewriter-Effekt: Chat und Thinking werden getippt
 
-**Status:** offen · **Phase:** P58 · **Dauer:** ~1 Agenten-Woche (grobe Schätzung)
+**Status:** umgesetzt 2026-11-14 · **Phase:** P58 · **Dauer:** ~1 Agenten-Woche (grobe Schätzung)
 **Abhängigkeit:** keine fachliche offene (Quer-Epic, Präzedenz P50–P53; Vorgänger-Phase P57 abgeschlossen 13.11.2026). Baut auf P1.6/P43-Bewegungssprache und P8/P18-Rendering auf, ändert deren Verträge nicht.
 
 Quelle: Nutzerauftrag vom 14.11.2026; Recherche mit Bestand:
@@ -61,25 +61,25 @@ geräte-lokal nach dem Muster der bestehenden Appearance-Settings.
 
 ## 4. Aufgaben (Checkliste T58.m)
 
-- [ ] **T58.1** Design-Beschluss §3.2/§3.3 hier im Epic festzurren (Dieses Dokument ist der Maßstab; kein ADR nötig — kein Contract betroffen).
-- [ ] **T58.2** Tipp-Animation für Chat-Output und Thinking/Reasoning im bestehenden Renderer; Queue pro Zug, Aufhol- und Sofort-Fallback. **K2/K5.**
-- [ ] **T58.3** Settings-Schalter in Appearance (persistiert, geräte-lokal); Zusammenspiel mit `motionAllowed()`/Reduce Motion. **K7/K10.**
-- [ ] **T58.4** K2-Messlauf bei 30 Events/s mit Animation (Rahmenzeit wie im bestehenden K2-Gate); Fallback greift sichtbar. **K2.**
-- [ ] **T58.5** `e2e/specs/typewriter.spec.ts` (an/aus, Persistenz über Reload, Reduce-Motion-Pfad, History rendert sofort).
-- [ ] **T58.6** Funktionsinventar-Eintrag; `npm run gate` + PWA-Build.
+- [x] **T58.1** Design-Beschluss §3.2/§3.3 hier im Epic festzurren (Dieses Dokument ist der Maßstab; kein ADR nötig — kein Contract betroffen).
+- [x] **T58.2** Tipp-Animation für Chat-Output und Thinking/Reasoning im bestehenden Renderer; Queue pro Zug, Aufhol- und Sofort-Fallback. **K2/K5.**
+- [x] **T58.3** Settings-Schalter in Appearance (persistiert, geräte-lokal); Zusammenspiel mit `motionAllowed()`/Reduce Motion. **K7/K10.**
+- [x] **T58.4** K2-Messlauf bei 30 Events/s mit Animation (Rahmenzeit wie im bestehenden K2-Gate); Fallback greift sichtbar. **K2.** — gemessen 2026-11-14 mit aktiviertem Typwriter: 18 138 gefilterte Ereignisse, Median 12 ms, p95 19 ms, Max 28 ms, 0 über Budget → PASS.
+- [x] **T58.5** `e2e/specs/typewriter.spec.ts` (an/aus, Persistenz über Reload, Reduce-Motion-Pfad, History rendert sofort).
+- [x] **T58.6** Funktionsinventar-Eintrag; `npm run gate` + PWA-Build.
 
 ## 5. Acceptance Criteria (AC-P58-k)
 
-- **AC-P58-1:** Neuer Live-Zuwachs in Chat und Thinking/Reasoning wird
+- **AC-P58-1 ✅:** Neuer Live-Zuwachs in Chat und Thinking/Reasoning wird
   getippt; der Schalter in den Einstellungen schaltet an und aus und die
   Wahl überlebt einen Reload.
-- **AC-P58-2:** History/Backfill rendert sofort; es wird nichts nachgetippt,
+- **AC-P58-2 ✅:** History/Backfill rendert sofort; es wird nichts nachgetippt,
   was vor dem Öffnen schon da war.
-- **AC-P58-3:** Bei 30 Events/s kein Frame-Lag unter 200 ms (K2 gemessen);
+- **AC-P58-3 ✅:** Bei 30 Events/s kein Frame-Lag unter 200 ms (K2 gemessen);
   darüber greift das dokumentierte Sofort-Verhalten.
-- **AC-P58-4:** Reduce Motion oder Haupt-Bewegungsschalter aus ⇒ keine
+- **AC-P58-4 ✅:** Reduce Motion oder Haupt-Bewegungsschalter aus ⇒ keine
   Animation, Inhalt unverändert, kein Layout-Shift.
-- **AC-P58-5:** Keine Contract-Änderung; neuer Spec grün; Funktionsinventar
+- **AC-P58-5 ✅:** Keine Contract-Änderung; neuer Spec grün; Funktionsinventar
   aktualisiert.
 
 ## 6. Premortem (Failure-Modi + Mitigation)

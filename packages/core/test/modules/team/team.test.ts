@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { appendFileSync, mkdtempSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { OrchestrationDispatch, OrchestrationFrame, OrchestrationPlan, OrchestrationRun, OrchestrationTaskPlan } from "@ancientvoid/contracts";
-import { applyOutcome, cancelRun, contextPacket, nextDispatches, openGate, answerGate, tasksFromPlan, validatePlan } from "../../../src/modules/orchestration/engine.ts";
-import { OrchestrationStore } from "../../../src/modules/orchestration/store.ts";
-import { Orchestrator, parsePlan, type OrchestrationSessionPort } from "../../../src/modules/orchestration/coordinator.ts";
+import type { TeamDispatch, TeamFrame, TeamPlan, Team, TeamTaskPlan } from "@ancientvoid/contracts";
+import { applyOutcome, cancelRun, contextPacket, nextDispatches, openGate, answerGate, tasksFromPlan, validatePlan } from "../../../src/modules/team/engine.ts";
+import { TeamStore } from "../../../src/modules/team/store.ts";
+import { TeamCoordinator, parsePlan, type TeamSessionPort } from "../../../src/modules/team/coordinator.ts";
 
-const frame = (over: Partial<OrchestrationFrame> = {}): OrchestrationFrame => ({
+const frame = (over: Partial<TeamFrame> = {}): TeamFrame => ({
   adapters: ["codex"],
   coordinatorAdapter: "hermes",
   model: null,
@@ -17,7 +17,7 @@ const frame = (over: Partial<OrchestrationFrame> = {}): OrchestrationFrame => ({
   ...over,
 });
 
-const taskPlan = (id: string, over: Partial<OrchestrationTaskPlan> = {}): OrchestrationTaskPlan => ({
+const taskPlan = (id: string, over: Partial<TeamTaskPlan> = {}): TeamTaskPlan => ({
   id,
   title: `Task ${id}`,
   prompt: `Prompt für ${id}`,
@@ -27,7 +27,7 @@ const taskPlan = (id: string, over: Partial<OrchestrationTaskPlan> = {}): Orches
   ...over,
 });
 
-const dispatch = (id: string, generation: number, status: OrchestrationDispatch["status"] = "active"): OrchestrationDispatch => ({
+const dispatch = (id: string, generation: number, status: TeamDispatch["status"] = "active"): TeamDispatch => ({
   id,
   generation,
   sessionId: `s-${id}`,
@@ -39,7 +39,7 @@ const dispatch = (id: string, generation: number, status: OrchestrationDispatch[
   note: null,
 });
 
-const mkRun = (plan: OrchestrationPlan, fr: OrchestrationFrame = frame()): OrchestrationRun => ({
+const mkRun = (plan: TeamPlan, fr: TeamFrame = frame()): Team => ({
   id: "run-1",
   title: "Test-Run",
   goal: "Ein Ziel",
@@ -230,24 +230,79 @@ describe("EPIC-P40 Orchestrierung — Engine", () => {
   });
 });
 
-describe("EPIC-P40 Orchestrierung — Store (K7)", () => {
-  it("put+update persistiert; neues Store auf gleichem dataDir stellt Run her; kaputte Journalzeile wird gezählt", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "av-p40-"));
-    const store = new OrchestrationStore(dir);
+describe("EPIC-P40/P60 Teams — Store (K7)", () => {
+  it("put+update persistiert; neuer Store auf gleichem dataDir stellt Team her; kaputte Journalzeile wird gezählt", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "av-p60-"));
+    const store = new TeamStore(dir);
     await store.init();
     const run = mkRun({ tasks: [taskPlan("T1")] });
     await store.put(run);
     await store.update(run.id, (r) => {
       r.tasks[0]!.status = "running";
     });
-    appendFileSync(join(dir, "orchestration", "runs.jsonl"), "{kaputt\n");
-    const store2 = new OrchestrationStore(dir);
+    appendFileSync(join(dir, "team", "teams.jsonl"), "{kaputt\n");
+    const store2 = new TeamStore(dir);
     const report = await store2.init();
     expect(report.skippedLines).toBe(1);
-    expect(report.runs).toBe(1);
+    expect(report.teams).toBe(1);
     const restored = store2.get(run.id);
     expect(restored?.id).toBe(run.id);
     expect(restored?.tasks[0]?.status).toBe("running");
+  });
+});
+
+describe("EPIC-P60 (ADR-0077) — Journal-Migration orchestration/ → team/", () => {
+  /** Altdaten-Fixture: dataDir mit historischem Layout `orchestration/runs.jsonl` (+ snapshot). */
+  function legacyDir(withSnapshot: boolean): { dir: string; run: Team } {
+    const dir = mkdtempSync(join(tmpdir(), "av-p60-mig-"));
+    const run = mkRun({ tasks: [taskPlan("T1"), taskPlan("T2")] });
+    run.id = "legacy-run-1";
+    mkdirSync(join(dir, "orchestration"), { recursive: true });
+    writeFileSync(join(dir, "orchestration", "runs.jsonl"), JSON.stringify({ seq: 1, at: run.createdAt, op: "put", run }) + "\n");
+    if (withSnapshot) {
+      writeFileSync(join(dir, "orchestration", "snapshot.json"), JSON.stringify({ appliedSeq: 0, runs: [] }));
+    }
+    return { dir, run };
+  }
+
+  it("migriert Altbestand einmalig nach team/teams.jsonl; Altdaten bleiben liegen (K7)", async () => {
+    const { dir, run } = legacyDir(true);
+    const store = new TeamStore(dir);
+    const report = await store.init();
+    expect(report.migratedTeams).toBe(1);
+    expect(report.teams).toBe(1);
+    expect(store.get(run.id)?.tasks.length).toBe(2);
+    // Neues Journal + Snapshot existieren; alte Dateien unangetastet.
+    expect(existsSync(join(dir, "team", "teams.jsonl"))).toBe(true);
+    expect(existsSync(join(dir, "team", "snapshot.json"))).toBe(true);
+    expect(existsSync(join(dir, "orchestration", "runs.jsonl"))).toBe(true);
+    // Restore nach Migration: neuer Store auf gleichem dataDir findet alles im neuen Layout.
+    const store2 = new TeamStore(dir);
+    const report2 = await store2.init();
+    expect(report2.teams).toBe(1);
+    expect(report2.migratedTeams).toBeUndefined();
+  });
+
+  it("migriert nicht erneut, wenn das neue Journal schon existiert (kein Doppelimport)", async () => {
+    const { dir, run } = legacyDir(false);
+    const first = new TeamStore(dir);
+    await first.init();
+    // Zweiter Start nach zwischenzeitlichem Schreiben: Altbestand darf nicht doppelt zählen.
+    const second = new TeamStore(dir);
+    const report = await second.init();
+    expect(report.migratedTeams).toBeUndefined();
+    expect(report.teams).toBe(1);
+    expect(second.get(run.id)).toBeDefined();
+  });
+
+  it("zählt kaputte Altzeilen, versteckt sie aber nicht", async () => {
+    const { dir, run } = legacyDir(false);
+    appendFileSync(join(dir, "orchestration", "runs.jsonl"), "{kaputt\n");
+    const store = new TeamStore(dir);
+    const report = await store.init();
+    expect(report.migratedTeams).toBe(1);
+    expect(report.migratedSkippedLines).toBe(1);
+    expect(store.get(run.id)).toBeDefined();
   });
 });
 
@@ -257,7 +312,7 @@ function fakePort() {
   const statuses = new Map<string, string>();
   const texts = new Map<string, string>();
   const created: string[] = [];
-  const port: OrchestrationSessionPort = {
+  const port: TeamSessionPort = {
     async create() {
       const id = `sess-${++n}`;
       created.push(id);
@@ -284,7 +339,7 @@ function fakePort() {
   return { port, statuses, texts, created };
 }
 
-const startInput = (plan: OrchestrationPlan | null) => ({
+const startInput = (plan: TeamPlan | null) => ({
   title: "Run",
   goal: "Ziel",
   project: "p",
@@ -292,17 +347,17 @@ const startInput = (plan: OrchestrationPlan | null) => ({
   plan,
 });
 
-async function setup(plan: OrchestrationPlan | null, pollMs = 3_600_000) {
+async function setup(plan: TeamPlan | null, pollMs = 3_600_000) {
   const dir = mkdtempSync(join(tmpdir(), "av-p40-"));
-  const store = new OrchestrationStore(dir);
+  const store = new TeamStore(dir);
   await store.init();
   const fake = fakePort();
-  const orch = new Orchestrator(store, fake.port, { pollMs });
+  const orch = new TeamCoordinator(store, fake.port, { pollMs });
   const run = await orch.start(startInput(plan), "tester");
   return { dir, store, fake, orch, run };
 }
 
-describe("EPIC-P40 Orchestrierung — Orchestrator", () => {
+describe("EPIC-P40 Orchestrierung — TeamCoordinator", () => {
   it("Start mit given plan: dispatcht Ready-Tasks, working→idle ⇒ Delivery, Run done", async () => {
     const { store, fake, orch, run } = await setup({ tasks: [taskPlan("T1")] });
     expect(run.tasks[0]?.status).toBe("running");
@@ -320,12 +375,12 @@ describe("EPIC-P40 Orchestrierung — Orchestrator", () => {
     expect(stored.status).toBe("done");
   });
 
-  it("Koordinator-Pfad: Plan-Session liefert ```orchestration {…}``` ⇒ Tasks entstehen", async () => {
+  it("Koordinator-Pfad: Plan-Session liefert ```team {…}``` ⇒ Tasks entstehen", async () => {
     const { store, fake, orch, run } = await setup(null);
     expect(run.status).toBe("planning");
     expect(run.coordinatorSessionId).toBe(fake.created[0]);
     fake.statuses.set(run.coordinatorSessionId!, "idle");
-    fake.texts.set(run.coordinatorSessionId!, "```orchestration\n" + JSON.stringify({ tasks: [taskPlan("T1")] }) + "\n```");
+    fake.texts.set(run.coordinatorSessionId!, "```team\n" + JSON.stringify({ tasks: [taskPlan("T1")] }) + "\n```");
     await orch.tick();
     const stored = store.get(run.id)!;
     expect(stored.status).toBe("running");
@@ -348,10 +403,10 @@ describe("EPIC-P40 Orchestrierung — Orchestrator", () => {
   it("recover(): aktive Dispatches → unknown, Task/Run failed, kein neuer Dispatch beim tick", async () => {
     const { dir, run, fake } = await setup({ tasks: [taskPlan("T1")] });
     expect(run.tasks[0]?.dispatches).toHaveLength(1);
-    // „Crash“: neuer Store+Orchestrator ohne seen-Set auf gleichem dataDir.
-    const store2 = new OrchestrationStore(dir);
+    // „Crash“: neuer Store+TeamCoordinator ohne seen-Set auf gleichem dataDir.
+    const store2 = new TeamStore(dir);
     await store2.init();
-    const orch2 = new Orchestrator(store2, fake.port, { pollMs: 3_600_000 });
+    const orch2 = new TeamCoordinator(store2, fake.port, { pollMs: 3_600_000 });
     await orch2.recover();
     const rec = store2.get(run.id)!;
     expect(rec.tasks[0]?.dispatches[0]?.status).toBe("unknown");
@@ -368,7 +423,7 @@ describe("EPIC-P40 Orchestrierung — parsePlan", () => {
   const plan = { tasks: [taskPlan("T1")] };
 
   it("Fence-Block", () => {
-    expect(parsePlan("Vorher\n```orchestration\n" + JSON.stringify(plan) + "\n```\nNachher")).toEqual(plan);
+    expect(parsePlan("Vorher\n```team\n" + JSON.stringify(plan) + "\n```\nNachher")).toEqual(plan);
   });
 
   it("nacktes JSON", () => {
@@ -377,6 +432,6 @@ describe("EPIC-P40 Orchestrierung — parsePlan", () => {
 
   it("Unsinn → null", () => {
     expect(parsePlan("kein Plan")).toBeNull();
-    expect(parsePlan("```orchestration\n{nicht json}\n```")).toBeNull();
+    expect(parsePlan("```team\n{nicht json}\n```")).toBeNull();
   });
 });
