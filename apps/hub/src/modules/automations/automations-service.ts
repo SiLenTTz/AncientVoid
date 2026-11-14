@@ -4,13 +4,13 @@ import {
   AutomationService, BUILTIN_ACTIONS, detectedActions, isProjectPathAllowed,
   type AutomationLauncher, type AutomationPrechecker, type PrecheckResult, type SessionManager,
 } from "@ancientvoid/core";
-import { actionArgv, OrchestrationRunStart, AUTOMATION_LIMITS, type ActionDefinition } from "@ancientvoid/contracts";
+import { actionArgv, TeamStart, AUTOMATION_LIMITS, type ActionDefinition } from "@ancientvoid/contracts";
 import type { AutomationSkipReason } from "@ancientvoid/contracts";
-import type { HubOrchestration } from "../orchestration/index.ts";
+import type { HubTeam } from "../team/index.ts";
 
 export interface HubAutomationDeps {
   dataDir: string; hostId: string; sessions: SessionManager; projectRoots: string[];
-  orchestration?: HubOrchestration;
+  team?: HubTeam;
   actions?: ActionDefinition[];
   log?: (line: string) => void;
 }
@@ -26,22 +26,22 @@ export function createHubAutomationService(deps: HubAutomationDeps): AutomationS
   const signal = new AbortController();
   const launcher: AutomationLauncher = {
     async template(id) {
-      await deps.orchestration?.ready;
-      const source = deps.orchestration?.store.get(id);
+      await deps.team?.ready;
+      const source = deps.team?.store.get(id);
       if (!source || source.tasks.length === 0) return null;
-      return OrchestrationRunStart.parse({ title: source.title, goal: source.goal, project: source.project, frame: source.frame,
+      return TeamStart.parse({ title: source.title, goal: source.goal, project: source.project, frame: source.frame,
         plan: { tasks: source.tasks.map(t => ({ id: t.id, title: t.title, prompt: t.prompt, adapter: t.adapter, model: t.model, dependsOn: t.dependsOn })) } });
     },
     async launch(definition, text, claimKey, kind) {
       try {
-        if (definition.target.kind === "run") {
-          if (!deps.orchestration || !text) return { ok: false, reason: "host_down" };
-          await deps.orchestration.ready;
-          const spec = OrchestrationRunStart.parse(JSON.parse(text));
+        if (definition.target.kind === "team") {
+          if (!deps.team || !text) return { ok: false, reason: "host_down" };
+          await deps.team.ready;
+          const spec = TeamStart.parse(JSON.parse(text));
           if (deps.projectRoots.length && !(await isProjectPathAllowed(spec.project, deps.projectRoots))) return { ok: false, reason: "auth", detail: "Projekt außerhalb der freigegebenen Wurzeln" };
           if (spec.frame.adapters.some(a => a.startsWith("loop:"))) return { ok: false, reason: "auth" };
-          const run = await deps.orchestration.orchestrator.start(spec, `automation:${claimKey}`);
-          return { ok: true, runId: run.id };
+          const team = await deps.team.coordinator.start(spec, `automation:${claimKey}`);
+          return { ok: true, teamId: team.id };
         }
         if (text === null) return { ok: false, reason: "precheck", detail: "Prompt-Blob fehlt" };
         const target = definition.target;
@@ -57,13 +57,13 @@ export function createHubAutomationService(deps: HubAutomationDeps): AutomationS
       }
     },
     async inspect(claim) {
-      if (claim.runId) {
-        await deps.orchestration?.ready;
-        const run = deps.orchestration?.store.get(claim.runId);
-        if (!run) return { state: "unknown", detail: "Referenzierter Run nicht verfügbar" };
-        if (run.status === "done") return { state: "settled", outcome: "succeeded" };
-        if (run.status === "failed") return { state: "settled", outcome: "failed" };
-        if (run.status === "cancelled") return { state: "settled", outcome: "cancelled" };
+      if (claim.teamId) {
+        await deps.team?.ready;
+        const team = deps.team?.store.get(claim.teamId);
+        if (!team) return { state: "unknown", detail: "Referenziertes Team nicht verfügbar" };
+        if (team.status === "done") return { state: "settled", outcome: "succeeded" };
+        if (team.status === "failed") return { state: "settled", outcome: "failed" };
+        if (team.status === "cancelled") return { state: "settled", outcome: "cancelled" };
         return { state: "running" };
       }
       const session = claim.sessionId ? deps.sessions.get(claim.sessionId) : undefined;
@@ -86,7 +86,7 @@ export function createHubAutomationService(deps: HubAutomationDeps): AutomationS
     stop() { signal.abort(); },
     async run(actionId, definition, deadlineMs, templateText): Promise<PrecheckResult> {
       const project = definition.target.kind === "session" ? definition.target.project
-        : templateText ? OrchestrationRunStart.parse(JSON.parse(templateText)).project : null;
+        : templateText ? TeamStart.parse(JSON.parse(templateText)).project : null;
       if (!project) return "precheck";
       if (deps.projectRoots.length > 0 && !(await isProjectPathAllowed(project, deps.projectRoots))) return "auth";
       const actions = [...(deps.actions ?? []), ...BUILTIN_ACTIONS, ...(await detectedActions(project))];

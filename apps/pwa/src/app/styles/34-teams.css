@@ -1,0 +1,54 @@
+/* EPIC-P40/EPIC-P60: Agenten-Teams — Team, Tasks, Gates (ADR-0064, Run→Team ADR-0077). */
+
+.teams-pane { display: flex; gap: 12px; min-height: 0; flex: 1; }
+.teams-list { display: flex; flex-direction: column; gap: 8px; max-width: 340px; min-width: 260px; overflow-y: auto; }
+.teams-list-head { display: flex; align-items: center; justify-content: space-between; }
+.teams-list ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.team-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 6px; text-align: left; width: 100%; padding: 8px; background: var(--bg-chip); border: 0; border-radius: var(--radius-sm); cursor: pointer; color: inherit; }
+.team-row.active { outline: 1px solid var(--fg, #c8cad8); }
+.team-row-title { font-weight: 600; overflow-wrap: anywhere; }
+.team-row-meta { grid-column: 1 / -1; font-size: 0.85em; opacity: 0.8; }
+
+.team-pill { justify-self: start; font-size: 0.75em; padding: 1px 7px; border-radius: 999px; background: var(--bg-chip); white-space: nowrap; }
+.team-pill--ok { background: var(--ok); color: var(--bg, #14161c); }
+.team-pill--err { background: var(--err, #f7768e); color: var(--bg, #14161c); }
+.team-pill--warn { background: var(--warn, #e0c26f); color: var(--bg, #14161c); }
+
+.team-detail { flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.team-detail-head { display: flex; align-items: center; gap: 8px; }
+.team-detail-head h3 { margin: 0; }
+.team-goal { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.team-meta { margin: 0; font-size: 0.85em; opacity: 0.85; }
+.team-chip { background: var(--bg-chip); border-radius: var(--radius-sm); padding: 1px 5px; overflow-wrap: anywhere; }
+
+.team-gates { display: flex; flex-direction: column; gap: 6px; }
+.team-gate { border-left: 3px solid var(--warn, #e0c26f); background: var(--bg-chip); padding: 8px; }
+.team-gate p { margin: 0 0 6px; overflow-wrap: anywhere; }
+.team-gate-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.team-cancel { border-color: var(--err, #f7768e); color: var(--err, #f7768e); }
+
+.team-tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.team-task { border-left: 3px solid var(--bg-chip); padding: 6px 8px; }
+.team-task.team-pill--ok { border-left-color: var(--ok); }
+.team-task.team-pill--err { border-left-color: var(--err, #f7768e); }
+.team-task-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.team-task-title { font-weight: 600; flex: 1; min-width: 8ch; overflow-wrap: anywhere; }
+.team-task-id { font-size: 0.8em; opacity: 0.7; }
+.team-task-meta { font-size: 0.85em; opacity: 0.85; overflow-wrap: anywhere; }
+.team-result pre { margin: 6px 0 0; padding: 6px; background: var(--bg-chip); border-radius: var(--radius-sm); font-size: 0.8em; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow-y: auto; }
+.team-blob { margin: 4px 0 0; font-size: 0.8em; opacity: 0.8; overflow-wrap: anywhere; }
+
+.team-new { display: flex; flex-direction: column; gap: 8px; background: var(--bg-chip); padding: 10px; border-radius: var(--radius-sm); }
+.team-new h3 { margin: 0; }
+.team-new label { display: flex; flex-direction: column; gap: 3px; font-size: 0.9em; }
+.team-new fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.team-new legend { font-size: 0.9em; padding: 0; margin-bottom: 3px; }
+.team-adapter { flex-direction: row !important; align-items: center; gap: 5px !important; }
+.team-new-row { display: flex; gap: 8px; }
+.team-new-row label { flex: 1; }
+
+/* Mobil: Liste oben, Detail darunter (keine dritte Spalte). */
+@media (max-width: 1023px) {
+  .teams-pane { flex-direction: column; }
+  .teams-list { max-width: none; min-width: 0; max-height: 32vh; }
+}

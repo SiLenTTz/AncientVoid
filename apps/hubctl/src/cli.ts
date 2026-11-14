@@ -71,7 +71,7 @@ Usage:
   hubctl devices                                    Android-Geräte: SDK/KVM, Inventar, AVDs, Leases (EPIC-P42, nur Lesen)
   hubctl devices tests <serial>                     Geräte-Testläufe mit Status (EPIC-P42)
   hubctl automations list                           geplante Läufe mit nächstem Termin und letztem Ergebnis (EPIC-P41)
-  hubctl automations show <id>                      Definition und Verlauf (Claims, Session-/Run-Verweise)
+  hubctl automations show <id>                      Definition und Verlauf (Claims, Session-/Team-Verweise)
   hubctl automations create <definition.json> [prompt.txt]   legt deaktiviert an; Session-Ziele brauchen den Prompt
   hubctl automations update <id> <patch.json> [prompt.txt]  Änderungen speichern, neue Freigabe nötig
   hubctl automations preview <id>                    nächste Termine mit Ortszeit und UTC

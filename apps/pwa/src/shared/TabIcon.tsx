@@ -16,7 +16,7 @@ const PATHS = {
   graph: "M5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM19 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6.5 15.5L10.5 10M14 8.5l3.5 5M7 19h10",
   git: "M6 4v16M6 8h6l4 4v8M10 12h4",
   datei: "M6 3h8l4 4v14H6zM14 3v4h4",
-  runs: "M12 3v4M5 21l3-4h8l3 4M4 8h16v6H4z",
+  teams: "M12 3v4M5 21l3-4h8l3 4M4 8h16v6H4z",
   automationen: "M12 3v5M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 12l3.5-2M7 12h1M16 12h1M12 16h.01",
   notizen: "M7 3h10v14l-3.5 4L10 17H7zM10 8h5M10 12h5",
   mehr: "M5 12h.01M12 12h.01M19 12h.01",

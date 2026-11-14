@@ -27,9 +27,11 @@ export function buildAutomationDefinition(jsonText: string, promptText: string |
   }
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Definitions-JSON muss ein Objekt sein.");
   const target = raw.target as { kind?: string; promptBlobSha256?: string } | undefined;
-  if (!target || (target.kind !== "session" && target.kind !== "run")) {
-    throw new Error('Definitions-JSON braucht ein target mit kind "session" oder "run".');
+  if (!target || (target.kind !== "session" && target.kind !== "team" && target.kind !== "run")) {
+    throw new Error('Definitions-JSON braucht ein target mit kind "session" oder "team".');
   }
+  // ADR-0077: CLI-Alias — altes kind "run" wird auf "team" normalisiert.
+  if (target.kind === "run") target.kind = "team";
   if (target.kind === "session" && !target.promptBlobSha256) {
     if (promptText === null) throw new Error("Session-Ziel braucht einen Prompt-Text (zweite Datei), sonst fehlt der Blob-Verweis.");
     target.promptBlobSha256 = createHash("sha256").update(promptText).digest("hex");
@@ -55,7 +57,7 @@ export function formatAutomationLine(info: AutomationInfo): string {
 
 /** Verlaufszeile; `unknown`/Missed tragen ihre Begründung, damit Unsicherheit im CLI nicht unsichtbar bleibt (AC-P41-3). */
 export function formatHistoryLine(h: AutomationHistoryEntry): string {
-  return `${h.at}  ${h.occurrenceUtc}  ${h.state}${h.reason ? `/${h.reason}` : ""}${h.outcome ? ` ${h.outcome}` : ""}${h.kind ? `  ${h.kind}` : ""}${h.sessionId ? `  session ${h.sessionId}` : ""}${h.runId ? `  run ${h.runId}` : ""}${h.missedThroughUtc ? `  verpasst bis ${h.missedThroughUtc}` : ""}${h.detail ? `  — ${h.detail}` : ""}`;
+  return `${h.at}  ${h.occurrenceUtc}  ${h.state}${h.reason ? `/${h.reason}` : ""}${h.outcome ? ` ${h.outcome}` : ""}${h.kind ? `  ${h.kind}` : ""}${h.sessionId ? `  session ${h.sessionId}` : ""}${h.teamId ? `  team ${h.teamId}` : ""}${h.missedThroughUtc ? `  verpasst bis ${h.missedThroughUtc}` : ""}${h.detail ? `  — ${h.detail}` : ""}`;
 }
 
 export function buildAutomationUpdate(jsonText: string, previous: AutomationDefinition, promptText: string | null): Record<string, unknown> {
@@ -93,7 +95,7 @@ export async function runAutomationsCommand(args: string[]): Promise<void> {
       const info = await findAutomation(id);
       console.log(JSON.stringify(info.definition, null, 2));
       for (const next of info.nextOccurrences) console.log(`nächster Termin: ${next.local} (${next.utc})`);
-      if (info.definition.target.kind === "run") console.log(JSON.stringify(await api(`/api/automations/${encodeURIComponent(info.definition.id)}/template`), null, 2));
+      if (info.definition.target.kind === "team") console.log(JSON.stringify(await api(`/api/automations/${encodeURIComponent(info.definition.id)}/template`), null, 2));
       const { history } = await api<{ history: AutomationHistoryEntry[] }>(`/api/automations/${encodeURIComponent(info.definition.id)}/history`);
       if (history.length === 0) {
         console.log("(kein Verlauf)");

@@ -1,14 +1,14 @@
-import { OrchestrationStore, Orchestrator, type OrchestrationSessionPort, type SessionManager } from "@ancientvoid/core";
+import { TeamStore, TeamCoordinator, type TeamSessionPort, type SessionManager } from "@ancientvoid/core";
 
-export interface HubOrchestration {
-  store: OrchestrationStore;
-  orchestrator: Orchestrator;
+export interface HubTeam {
+  store: TeamStore;
+  coordinator: TeamCoordinator;
   ready: Promise<void>;
 }
 
-/** P40/P41 teilen einen Ausführungseigentümer (ADR-0065). */
-export function createHubOrchestration(deps: { sessions: SessionManager; dataDir?: string }): HubOrchestration {
-  const port: OrchestrationSessionPort = {
+/** P40/P41 teilen einen Ausführungseigentümer (ADR-0065); Run→Team umbenannt in EPIC-P60 (ADR-0077). */
+export function createHubTeam(deps: { sessions: SessionManager; dataDir?: string }): HubTeam {
+  const port: TeamSessionPort = {
     async create(spec, actor) {
       const record = await deps.sessions.create(
         {
@@ -51,8 +51,8 @@ export function createHubOrchestration(deps: { sessions: SessionManager; dataDir
     },
   };
 
-  const store = new OrchestrationStore(deps.dataDir ?? ".");
-  const orchestrator = new Orchestrator(store, port, { pollMs: 2000 });
-  const ready = store.init().then(() => orchestrator.recover()).then(() => orchestrator.startLoop());
-  return { store, orchestrator, ready };
+  const store = new TeamStore(deps.dataDir ?? ".");
+  const coordinator = new TeamCoordinator(store, port, { pollMs: 2000 });
+  const ready = store.init().then(() => coordinator.recover()).then(() => coordinator.startLoop());
+  return { store, coordinator, ready };
 }

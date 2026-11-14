@@ -38,7 +38,7 @@ export const TOOLS: readonly { page: ListPage; label: string; hash?: string }[] 
   { page: "dashboard", label: "Start" },
   { page: "new", label: "Neue Session" },
   { page: "approvals", label: "Freigaben" },
-  { page: "orchestrierung", label: "Runs" },
+  { page: "teams", label: "Teams" },
   // EPIC-P47 §3.4: kein eigener Page mehr — der Sprung geht über den Alias auf den Übersichtszustand.
   { page: "dashboard", label: "Entdeckt", hash: "#/gefunden" },
   { page: "media", label: "Medien" },
