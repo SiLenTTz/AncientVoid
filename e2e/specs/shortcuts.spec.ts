@@ -167,6 +167,10 @@ test.describe("Shortcut-Hinweis-Pill und Setting (EPIC-P51 T51.8)", () => {
       return el ? getComputedStyle(el).pointerEvents : "(Pill fehlt)";
     });
     expect(pe).toBe("none");
+    // Fokus-Rein-Behauptung wartet den Effekt-Flush mit, bevor Esc die Leiste
+    // schließt (gleiche Lektion wie SkillPicker-Test: Registry-Registrierung
+    // hängt im selben Flush wie der Fokus).
+    await expect(app.locator(".command-sheet input")).toBeFocused();
     await app.keyboard.press("Escape");
     await expect(app.locator(".command-sheet")).toHaveCount(0);
   });
