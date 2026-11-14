@@ -291,3 +291,22 @@ Scanline über arbeitenden Karten, Orbitron-Headings.
 - Neue Komponenten, die eine Farbe brauchen, die hier fehlt: zuerst prüfen,
   ob `color-mix(in srgb, var(--token) X%, ...)` das Problem löst, bevor ein
   neuer Hex-Wert entsteht.
+
+## P43.5: lokale Darstellungs-Presets und P44-Grenze
+
+`features/settings/presets.ts` validiert Formatversion 1, migriert das alte
+Appearance-Format und exportiert nur die explizite Allowlist. Gerätewerte liegen
+unter `ancientvoid.presentation.v1` und `ancientvoid.named-presets.v1`.
+Bestehende Theme-/Font-Einstellungen bleiben zuständig. `--code-scale`,
+`--preset-border`, `--radius`, `--device-background`, `data-density` und
+`data-chat-width` sind die begrenzten Gestaltungspunkte. Semantische
+`--ok/--err/--warn/--call/--info` sind keine Importfelder.
+
+P44 kann die bestehenden SettingsSection-/SettingRow-Bausteine sowie die
+Quellenchip-Zeile im Composer als Slots verwenden. Keine freie CSS-/JS-Injektion
+und kein zweiter Plugin-Lifecycle. Benannte Layouts erfassen Kachelgeometrie und
+Fensterziele/-größen; Wiederherstellung behält die Sessionbelegung. Fenster
+werden einzeln mit Nutzeraktion geöffnet und an die Anzeige begrenzt. Der
+Compositor entscheidet letztlich über Bildschirmposition und Fenstergröße.
+Arbeitsnotizen und Quellen sind gerätelokale Entwürfe in localStorage, über
+storage-Events zwischen Fenstern synchronisiert; kein kanonischer Hub-State.

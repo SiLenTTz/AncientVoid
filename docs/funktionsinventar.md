@@ -97,7 +97,10 @@ Werkzeugseiten füllen die Detailspalte.
 | G64 | Schnellsuche: Springen zu Sessions, Projekten, Dateien, Werkzeugen, Befehlen | Strg+K bzw. Dock „Suchen“ → Treffer. **Bewusste Grenze (P51 T51.11):** tiefe Sprungziele unterhalb der Werkzeug-/Session-Ebene (z. B. einzelne Notizen, Graph/Galaxie einer Session, Host-Detail) sind absichtlich nicht eigene Schnellsuche-Treffer — sie liegen einen Sprung + einen Tap entfernt (Werkzeug/Session → Tab), eine zweite Navigationsschicht wäre Doppelstruktur; Vault-Suche bleibt minimal (ADR-0063) | T43.6 + P51 T51.11 | spec:schnellsuche.spec.ts |
 | G65 | Nyx: Gesamtzustand in der Kopfzeile; Blatt mit allen wartenden Freigaben und Fragen (Vorauswahl, Ja/Nein mit einem Tipp, Begründung/Passkey → Session); am PC auch als eigenes Fenster | Kopfzeile → Nyx | T43.8 | spec:nyx-blatt.spec.ts |
 | G66 | Typwriter-Effekt: neuen Live-Zuwachs in Chat und Thinking getippt; was schon da war, rendert sofort; schaltbar, Reduce Motion gewinnt | Sitzung → Chat; Einstellungen → Darstellung | P58 | spec:typewriter.spec.ts |
-| G67 | Quellenchips: Code-Befund, Review-Notiz, Browser-Element, CI-Befund als sichtbare Quelle im Composer — Vorschau zeigt den <quellen>-Block, der beim bewussten Absenden mitgeht (kein Auto-Send, K5-gekappt) | Befund „In den Composer“ → Composer der Session | P43.5 T43.5-1 | spec:quellenchips.spec.ts |
+| G67 | Quellenchips: Code-Befund, Review-Notiz, Browser-Element, CI-Befund als sichtbare Quelle im Composer — Vorschau zeigt den `<quellen>`-Block, der beim bewussten Absenden mitgeht (kein Auto-Send, K5-gekappt) | Befund „In den Composer“ → Composer der Session | P43.5 T43.5-1 | spec:quellenchips.spec.ts |
+| G68 | Quellen und eigene Statusnotizen in der Schnellsuche; Tastatur-/Touch-Sprung bewahrt Entwurf und Verbindung | Suchen → Quelle/Statusnotiz | P43.5 T43.5-2 | spec:quellenchips.spec.ts |
+| G69 | Versionierte lokale Darstellungs-Presets: Dichte, Chatbreite, getrennte Codegröße, Kontrastprüfung, Rasterbild, Import/Export/Reset | Einstellungen → Darstellungs- und Layout-Presets | P43.5 T43.5-3 | spec:appearance-presets.spec.ts |
+| G70 | Benannte Geräte-Layouts mit Kachelgrößen und erreichbaren Fenstern; Browser-Fenster-Preset Handy | Einstellungen → Darstellungs- und Layout-Presets | P43.5 T43.5-4 | spec:appearance-presets.spec.ts |
 
 ## Session
 
@@ -180,6 +183,9 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S70 | Gescheiterte Wiederaufnahme abbrechen oder an andere Session übergeben | Entscheidungsbanner im Session-Chat | — | spec:session-robustheit.spec.ts |
 | S71 | Hintergrundarbeit hält die Session aktiv | Aktivstatus und Hinweis im Session-Chat | — | spec:session-robustheit.spec.ts |
 | S72 | Laufenden Hub, PWA-Build und Checkout vergleichen | Status → Ausgelieferter Stand | — | spec:session-robustheit.spec.ts |
+
+| S74 | Composer maximieren/verkleinern als Icon-Button mit mindestens 40 px Ziel | Composer → ⤢/⤡ | P43.5 T43.5-6 | spec:quellenchips.spec.ts |
+| S75 | Eigene fachliche Arbeitsnotiz auf diesem Gerät, getrennt vom Laufzeitstatus und ohne Auto-Senden | Session → Weitere Aktionen → Arbeitsnotiz (oder Schnellsuche) | P43.5 T43.5-2 | spec:quellenchips.spec.ts |
 
 ## PC-Arbeitsfläche
 
