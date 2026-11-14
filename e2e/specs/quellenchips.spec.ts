@@ -28,6 +28,7 @@ test.describe("Quellenchips im Composer (EPIC-P43.5 T43.5-1)", () => {
     await expect(app.getByTestId("source-preview")).toContainText("<quellen>");
     await expect(app.getByTestId("source-preview")).toContainText("[1] Code — README.md:2–3");
     await expect(app.getByTestId("source-preview")).toContainText("Hier ist der Handoff erklärt");
+    await expect(app.getByTestId("source-preview")).toContainText("Das Handbuch beschreibt den Handoff");
     const before = await hub.events(id);
     expect(before.some((e) => (e.payload as { text?: string }).text?.includes("<quellen>"))).toBe(false);
 
@@ -59,4 +60,21 @@ test.describe("Quellenchips im Composer (EPIC-P43.5 T43.5-1)", () => {
     const latest = (await hub.events(id)).findLast((e) => typeof (e.payload as { text?: string }).text === "string")!;
     expect((latest.payload as { text: string }).text).not.toContain("<quellen>");
   });
+});
+
+test("Abgelehntes Senden verliert die ausgewählten Quellen nicht @desktop", async ({ app, hub }) => {
+  const id = await hub.createSession({ adapter: "codex", prompt: "Kurz" });
+  await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "initial turn ended");
+  await app.goto(`${hub.origin}/#/sessions/${id}/datei/README.md`);
+  await app.getByRole("button", { name: "Zeile 2 auswählen" }).click();
+  await app.getByTestId("file-feedback-add").focus();
+  await app.getByTestId("file-feedback-add").press("Enter");
+  await app.getByTestId("feedback-to-composer").click();
+  const show = app.getByRole("button", { name: "Steuerung einblenden", exact: true });
+  if (await show.isVisible()) await show.click();
+  await app.getByPlaceholder("Antworten…").fill("REJECT_START");
+  await app.getByRole("button", { name: /^(Senden|Weiter)$/ }).click();
+  await expect(app.getByTestId("source-chips")).toBeVisible();
+  await expect(app.getByPlaceholder("Antworten…")).toHaveValue("REJECT_START");
+  await expect(app.locator(".reply-error")).toBeVisible();
 });

@@ -1,3 +1,5 @@
+import { sessionHash } from "../../app/route.ts";
+import { remoteHost } from "../../shared/api.ts";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { addSource } from "../../shared/sources.ts";
@@ -378,7 +380,8 @@ export function ForgePanel({ session, onOpenSession }: { session: SessionRecord;
                     kind: "forge",
                     label: `CI-Befund${findingSource.pipelineId ? ` · Pipeline #${findingSource.pipelineId}` : ""}`,
                     excerpt: finding.trim(),
-                    hash: null,
+                    hash: sessionHash(session.id, remoteHost(session.hostId)),
+                    view: "forge",
                   });
                   setFinding("");
                   setSendError(null);

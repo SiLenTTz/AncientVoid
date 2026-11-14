@@ -1,12 +1,12 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { addSource, removeSource, sourcesBlock, sourcesOf, takeSources } from "../../src/shared/sources.ts";
+import { consumeSources, addSource, removeSource, sourcesBlock, sourcesOf, takeSources } from "../../src/shared/sources.ts";
 
 /** EPIC-P43.5 T43.5-1: Quellenkorb (flüchtig, target-gebunden) und der K5-gekappte Prompt-Block. */
 
 const page = () => {
-  // sessionStorage existiert im Node-Kontext nicht — minimaler Stub wie im Browser.
+  // localStorage existiert im Node-Kontext nicht — minimaler Stub wie im Browser.
   const store = new Map<string, string>();
-  (globalThis as Record<string, unknown>).sessionStorage = {
+  (globalThis as Record<string, unknown>).localStorage = {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => void store.set(k, v),
     removeItem: (k: string) => void store.delete(k),
@@ -36,7 +36,7 @@ describe("Quellenkorb (T43.5-1)", () => {
   });
 
   it("kaputter Speicher bleibt leer statt zu werfen", () => {
-    (globalThis as Record<string, unknown>).sessionStorage = {
+    (globalThis as Record<string, unknown>).localStorage = {
       getItem: () => "{kein json",
       setItem: () => undefined,
       removeItem: () => undefined,
@@ -73,3 +73,27 @@ describe("sourcesBlock (T43.5-1, K5)", () => {
     expect(sourcesBlock([])).toBe("");
   });
 });
+
+ it("K5 caps UTF-8 bytes, including multibyte source labels", () => {
+   const block = sourcesBlock(Array.from({ length: 6 }, (_, i) => ({ id: String(i), kind: "code" as const, label: "😀".repeat(160), excerpt: "漢".repeat(400), hash: null })));
+   expect(new TextEncoder().encode(block).length).toBeLessThanOrEqual(2048);
+   expect(block.endsWith("</quellen>")).toBe(true);
+ });
+
+ it("ack consumes only the submitted snapshot, preserving concurrent new/edited sources", () => {
+   page();
+   addSource("s1", { id: "a", kind: "code", label: "a", excerpt: "before", hash: null });
+   const sent = sourcesOf("s1");
+   addSource("s1", { id: "a", kind: "code", label: "a", excerpt: "after", hash: null });
+   addSource("s1", { id: "b", kind: "test", label: "b", excerpt: null, hash: null });
+   consumeSources("s1", sent);
+   expect(sourcesOf("s1").map(s => s.id)).toEqual(["a", "b"]);
+   consumeSources("s1", sourcesOf("s1"));
+   expect(sourcesOf("s1")).toEqual([]);
+ });
+
+ it("all six selected references remain present when excerpts exceed the shared byte budget", () => {
+   const block = sourcesBlock(Array.from({ length: 6 }, (_, i) => ({ id: String(i), kind: "code" as const, label: `file-${i}.ts:1`, excerpt: "漢".repeat(400), hash: null })));
+   for (let i = 1; i <= 6; i++) expect(block).toContain(`[${i}] Code — file-${i-1}.ts:1`);
+   expect(new TextEncoder().encode(block).length).toBeLessThanOrEqual(2048);
+ });

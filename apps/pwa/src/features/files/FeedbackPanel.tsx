@@ -39,7 +39,7 @@ export function FeedbackPanel({ api, sessionId }: { api: HubApi; sessionId: stri
         id: `code:${label}:${it.startLine}`,
         kind: "code",
         label,
-        excerpt: it.note.trim() || null,
+        excerpt: [it.note.trim(), `[Stand ${it.revision.slice(0, 8)}]`, basket.excerpt(it), it.diagnostic?.message].filter(Boolean).join("\n"),
         hash: codeHash(sessionId, it.path, it.startLine),
       });
     }

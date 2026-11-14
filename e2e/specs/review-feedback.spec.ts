@@ -120,7 +120,7 @@ test.describe("Review-Feedback am Diff (EPIC-P36)", () => {
     await app.getByRole("button", { name: "speichern" }).click();
     const note = app.locator(".review-note").filter({ hasText: "Bitte beta erklären" });
     await expect(note).toBeVisible();
-    note.locator("input[type=checkbox]").check();
+    await note.locator("input[type=checkbox]").check();
     await app.getByTestId("review-to-composer").click();
     // Der Chip sitzt am Antwort-Composer dieser Session; Vorschau zeigt den Block, nichts geht automatisch raus.
     const chips = app.getByTestId("source-chips");

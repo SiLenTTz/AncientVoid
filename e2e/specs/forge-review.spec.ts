@@ -71,6 +71,9 @@ test.describe("GitLab im Session-Kontext (EPIC-P37)", () => {
     const chips = app.getByTestId("source-chips");
     await expect(chips.locator(".source-chip-label")).toContainText("CI-Befund · Pipeline #500");
     await expect(app.getByTestId("source-preview")).toContainText("<quellen>");
+    await sessionTab(app, "Chat");
+    await app.getByRole("button", { name: "Quelle ansehen: CI-Befund · Pipeline #500", exact: true }).click();
+    await expect(app.locator(".session-live")).toHaveAttribute("data-tab", "forge");
     expect((await hub.events(id)).some((e) => JSON.stringify(e.payload).includes("<quellen>"))).toBe(false);
   });
 });

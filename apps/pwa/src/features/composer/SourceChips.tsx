@@ -1,4 +1,4 @@
-import { removeSource, sourcesBlock, useSources, type SourceRef } from "../../shared/sources.ts";
+import { jumpToSource, removeSource, sourcesBlock, useSources, type SourceRef } from "../../shared/sources.ts";
 
 /**
  * EPIC-P43.5 T43.5-1: sichtbare Quellenchips über dem Eingabefeld. Klick auf
@@ -26,7 +26,7 @@ function Chip({ source, index, target }: { source: SourceRef; index: number; tar
         {index}. {source.label}
       </span>
       {source.hash && (
-        <button type="button" class="source-jump link-btn" aria-label={`Quelle ansehen: ${source.label}`} onClick={() => (location.hash = source.hash!)}>
+        <button type="button" class="source-jump link-btn" aria-label={`Quelle ansehen: ${source.label}`} onClick={() => jumpToSource(source)}>
           ↗
         </button>
       )}

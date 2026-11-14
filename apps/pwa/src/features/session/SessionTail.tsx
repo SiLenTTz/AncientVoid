@@ -4,7 +4,7 @@ import { copyWithRetry } from "./copy-selection.ts";
 import { readTailScroll, writeTailScroll } from "./tail-scroll.ts";
 import { sessionHash, fileHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
-import { sourcesBlock, sourcesOf, takeSources } from "../../shared/sources.ts";
+import { sourcesBlock, sourcesOf, consumeSources, type SourceRef } from "../../shared/sources.ts";
 import { HandoverBar } from "./Handover.tsx";
 import { RecoveryHandover } from "./RecoveryHandover.tsx";
 import { currentProviderFailure } from "./handover.ts";
@@ -81,6 +81,7 @@ export interface TileContext {
   /** EPIC-P43 T43.7 (ADR-0068): ein Ansichtsfenster zeigt genau diesen Reiter — ohne Reiter, Antwortfeld und Menü. */
   only?: ViewTab;
 }
+
 
 export function SessionTail({
   session,
@@ -233,6 +234,19 @@ export function SessionTail({
       window.removeEventListener("pointerdown", onDown);
     };
   }, [moreOpen]);
+  useEffect(() => {
+    const jump = () => {
+      try {
+        const pending = JSON.parse(sessionStorage.getItem("ancientvoid.source-view") ?? "null") as { hash?: string; view?: string } | null;
+        if (pending?.hash !== sessionHash(session.id, remoteHost(session.hostId)) || pending.view !== "forge") return;
+        sessionStorage.removeItem("ancientvoid.source-view");
+        setActiveTab("forge");
+      } catch { sessionStorage.removeItem("ancientvoid.source-view"); }
+    };
+    jump();
+    window.addEventListener("ancientvoid:source-jump", jump);
+    return () => window.removeEventListener("ancientvoid:source-jump", jump);
+  }, [session.id, session.hostId]);
   /** EPIC-P48: im Datei-Tab geöffnete Datei (Knoten-Klick aus dem Graph). */
   const [openFile, setOpenFile] = useState<string | null>(initialFile ?? null);
 
@@ -725,7 +739,7 @@ export function SessionTail({
     }
   };
 
-  const sendText = async (text: string, takeover = false, queue = false) => {
+  const sendText = async (text: string, takeover = false, queue = false, submittedSources: SourceRef[] = []) => {
     if (!text.trim() && replyAttachments.length === 0) return;
     setReplyBusy(true);
     setReplyError("");
@@ -740,6 +754,7 @@ export function SessionTail({
         setReply("");
         setReplyAttachments([]);
         void draft.clear();
+        consumeSources(session.id, submittedSources);
       } else {
         setLeaseHeld(ack.detail === "writer lease held");
         // A rejected steer (e.g. claude's "no thread_id captured yet") is
@@ -761,8 +776,7 @@ export function SessionTail({
     const sources = sourcesOf(session.id);
     if (sources.length === 0) return sendText(reply, takeover, queue);
     const text = `${reply}${reply.trim() ? "\n\n" : ""}${sourcesBlock(sources)}`;
-    takeSources(session.id);
-    return sendText(text, takeover, queue);
+    return sendText(text, takeover, queue, sources);
   };
   const running = status === "working" || status === "starting" || status === "waiting_approval";
   const showReply = steerSupported;

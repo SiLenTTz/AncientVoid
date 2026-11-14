@@ -1,3 +1,4 @@
+import type { Locator } from "@playwright/test";
 import { test, expect, openFromOverview, openLayer } from "../support/fixtures.ts";
 import { startScratch } from "../support/scratch-web.ts";
 
@@ -5,6 +6,15 @@ import { startScratch } from "../support/scratch-web.ts";
  * EPIC-P39 T39.5/T39.7 (ADR-0059 §6): Design-Auswahl → menschliche Vorschau → Feedback an die Session.
  * Secrets (Passwortfeld) werden nicht exportiert; Seiteninhalt ist gerahmte Daten, keine Anweisung.
  */
+async function imageSize(frame: Locator): Promise<{ w: number; h: number }> {
+  let size = { w: 0, h: 0 };
+  await expect.poll(async () => {
+    size = await frame.evaluate(el => ({ w: (el as HTMLImageElement).naturalWidth, h: (el as HTMLImageElement).naturalHeight }));
+    return size.w > 0 && size.h > 0;
+  }).toBe(true);
+  return size;
+}
+
 const scratch = await startScratch();
 test.use({ hubOptions: { browserOrigins: [scratch.origin] } });
 
@@ -21,7 +31,7 @@ test.describe("Browser-Design-Feedback (EPIC-P39)", () => {
 
     const at = async (x: number, y: number) => {
       const box = (await frame.boundingBox())!;
-      const nat = await frame.evaluate((el) => ({ w: (el as HTMLImageElement).naturalWidth, h: (el as HTMLImageElement).naturalHeight }));
+      const nat = await imageSize(frame);
       await app.mouse.click(box.x + (x / nat.w) * box.width, box.y + (y / nat.h) * box.height);
     };
 
@@ -65,7 +75,7 @@ test.describe("Browser-Design-Feedback (EPIC-P39)", () => {
     await expect(frame).toBeVisible({ timeout: 30_000 });
     await app.getByLabel("Element wählen").check();
     const box = (await frame.boundingBox())!;
-    const nat = await frame.evaluate((el) => ({ w: (el as HTMLImageElement).naturalWidth, h: (el as HTMLImageElement).naturalHeight }));
+    const nat = await imageSize(frame);
     await app.mouse.click(box.x + (100 / nat.w) * box.width, box.y + (158 / nat.h) * box.height);
     const card = app.getByTestId("browser-pick");
     await card.getByLabel("Anmerkung zum Element").fill("Titel wirkt gestört");

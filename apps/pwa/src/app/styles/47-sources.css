@@ -10,3 +10,4 @@
 .source-preview { margin: 4px 0 0; }
 .source-preview-head { font-size: calc(11px * var(--font-scale, 1)); }
 .source-preview-block { margin: 2px 0 0; padding: 8px 10px; background: var(--bg); border: 1px solid var(--bg-chip); border-radius: var(--radius-sm); font-size: calc(11px * var(--font-scale, 1)); max-height: 120px; overflow: auto; white-space: pre-wrap; }
+.source-jump, .source-remove { min-width: 40px; min-height: 40px; }
