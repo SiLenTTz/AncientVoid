@@ -10,6 +10,7 @@
 .source-preview { margin: 4px 0 0; }
 .source-preview-head { font-size: calc(11px * var(--font-scale, 1)); }
 .source-preview-block { margin: 2px 0 0; padding: 8px 10px; background: var(--bg); border: 1px solid var(--bg-chip); border-radius: var(--radius-sm); font-size: calc(11px * var(--font-scale, 1)); max-height: 120px; overflow: auto; white-space: pre-wrap; }
+.composer-expand { min-width: max(40px, var(--icon-target)); min-height: max(40px, var(--icon-target)); flex: 0 0 auto; }
 .source-jump, .source-remove { min-width: 40px; min-height: 40px; }
 .session-status-note { padding: 4px 8px; color: var(--fg-dim); }
 .session-status-note textarea { width: 100%; }

@@ -93,7 +93,20 @@ test("Quellensprung per Tastatur bewahrt Entwurf und Verbindung, Popout teilt Qu
   await popout.close();
 });
 
-
+test("Composer maximiert als kompakter Icon-Button mit Mindestziel @desktop @tablet", async ({ app, hub }) => {
+  const id = await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+  await app.goto(`${hub.origin}/#/sessions/${id}`);
+  const expand = app.getByRole("button", { name: "Eingabe maximieren", exact: true });
+  await expect(expand).toHaveClass(/icon-btn/);
+  const box = (await expand.boundingBox())!;
+  expect(box.width).toBeGreaterThanOrEqual(40);
+  expect(box.width).toBeLessThan(80);
+  expect(box.height).toBeGreaterThanOrEqual(40);
+  await expand.click();
+  await expect(app.getByRole("button", { name: "Eingabe verkleinern", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await app.getByRole("button", { name: "Eingabe verkleinern", exact: true }).click();
+  await expect(expand).toHaveAttribute("aria-pressed", "false");
+});
 
 test("Eigene Statusnotiz bleibt vom Laufzeitstatus getrennt und per Touch suchbar @desktop", async ({ app, hub }) => {
   const id = await hub.createSession({ adapter: "codex", prompt: "Kurz" });

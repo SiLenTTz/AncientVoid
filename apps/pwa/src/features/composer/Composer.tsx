@@ -386,7 +386,7 @@ export function Composer({
           </span>
         )}
         <button
-          class="btn"
+          class="btn icon-btn composer-expand"
           type="button"
           aria-pressed={expanded}
           aria-label={expanded ? "Eingabe verkleinern" : "Eingabe maximieren"}
