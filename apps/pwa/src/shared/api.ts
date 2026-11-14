@@ -1,4 +1,4 @@
-import type { DeploymentIdentity, QueueDeliveryState, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { DeploymentIdentity, QueueDeliveryState, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, Team, TeamStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 import { noteApprovalDecided } from "./first-run.ts";
 export interface SessionRecord {
   id: string;
@@ -1377,21 +1377,21 @@ function createHubApi(P: (path: string) => string) {
    * BUG-0115: Fastify weist einen POST mit JSON-Content-Type und leerem Body
    * mit 400 ab — deshalb ein explizit leerer JSON-Body statt gar keins. */
   sendQueuedNow: (id: string, queueId: string) => api<Ack>(P(`/api/sessions/${id}/queue/${queueId}/send`), { method: "POST", body: JSON.stringify({}) }),
-  /** EPIC-P40: Orchestrierung — Runs nach ADR-0064. */
-  orchestrationRuns: () => api<OrchestrationRun[]>(P("/api/orchestration/runs")),
-  orchestrationStart: (input: OrchestrationRunStart) =>
-    api<OrchestrationRun>(P("/api/orchestration/runs"), { method: "POST", body: JSON.stringify(input) }),
-  orchestrationRun: (id: string) => api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}`)),
-  orchestrationAnswer: (id: string, gateId: string, label: string) =>
-    api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}/answer`), { method: "POST", body: JSON.stringify({ gateId, label }) }),
-  orchestrationCancel: (id: string, reason: string) =>
-    api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}/cancel`), { method: "POST", body: JSON.stringify({ reason }) }),
+  /** EPIC-P40/EPIC-P60: Agenten-Teams (Run→Team, ADR-0077). */
+  teamList: () => api<Team[]>(P("/api/teams")),
+  teamStart: (input: TeamStart) =>
+    api<Team>(P("/api/teams"), { method: "POST", body: JSON.stringify(input) }),
+  teamGet: (id: string) => api<Team>(P(`/api/teams/${encodeURIComponent(id)}`)),
+  teamAnswer: (id: string, gateId: string, label: string) =>
+    api<Team>(P(`/api/teams/${encodeURIComponent(id)}/answer`), { method: "POST", body: JSON.stringify({ gateId, label }) }),
+  teamCancel: (id: string, reason: string) =>
+    api<Team>(P(`/api/teams/${encodeURIComponent(id)}/cancel`), { method: "POST", body: JSON.stringify({ reason }) }),
   /** EPIC-P41 (ADR-0064): Automationen — Verwaltung, Run-now und Verlauf. */
   automationsScope: P("/api/automations"),
   automations: async (): Promise<AutomationInfo[]> => (await api<{ automations: AutomationInfo[] }>(P("/api/automations"))).automations,
   automationCreate: (definition: AutomationDefinition, promptText?: string) =>
     api<AutomationDefinition>(P("/api/automations"), { method: "POST", body: JSON.stringify({ definition, ...(promptText === undefined ? {} : { promptText }) }) }),
-  automationTemplate: (id: string) => api<OrchestrationRunStart>(P(`/api/automations/${encodeURIComponent(id)}/template`)),
+  automationTemplate: (id: string) => api<TeamStart>(P(`/api/automations/${encodeURIComponent(id)}/template`)),
   automationUpdate: (id: string, definition: AutomationDefinition, promptText?: string) =>
     api<AutomationDefinition>(P(`/api/automations/${encodeURIComponent(id)}`), { method: "PATCH", body: JSON.stringify({ definition, ...(promptText === undefined ? {} : { promptText }) }) }),
   automationSetEnabled: (id: string, enabled: boolean, generation: number) =>

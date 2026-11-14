@@ -36,7 +36,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G03 | Entdeckt (gefundene Sessions) | Dock „Mehr“ → „Entdeckt“; PC: Leiste | — | inventar |
 | G04 | Entdeckt über den Chip | Start → Chip „Gefunden“ | T43.3 | inventar |
 | G05 | Medien | Dock „Mehr“ → „Medien“; PC: Leiste | — | inventar |
-| G06 | Runs | Dock „Runs“ | — | inventar |
+| G06 | Teams | Dock „Teams“ | — | inventar |
 | G07 | Notizen | Dock „Mehr“ → „Notizen“; PC: Leiste | — | inventar |
 | G08 | Automationen | Dock „Mehr“ → „Automationen“; PC: Leiste | — | inventar |
 | G09 | Einstellungen: Darstellung (Erscheinungsbild, Akzent, Größe) | Dock „Mehr“ → „Einstellungen“; PC: Leiste | — | inventar |
@@ -81,7 +81,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G48 | Factory-Lauf | Neue Session → Loop „Factory“ | — | spec:factory.spec.ts |
 | G49 | Gefundene Session übernehmen oder beobachten | Entdeckt | — | spec:discovery.spec.ts |
 | G50 | Video analysieren und in Session verwenden | Medien | — | spec:media.spec.ts |
-| G51 | Runs anlegen und verfolgen | Runs | — | spec:orchestration.spec.ts |
+| G51 | Teams anlegen und verfolgen | Teams | — | spec:team.spec.ts |
 | G52 | Notiz anlegen, lesen, bearbeiten | Notizen | — | spec:vault.spec.ts |
 | G53 | Automation anlegen, pausieren, jetzt senden | Automationen | — | spec:automations.spec.ts |
 | G54 | Flotte: Sessions anderer Hosts | Start bzw. Hosts | — | spec:fleet.spec.ts |

@@ -56,10 +56,10 @@ test("P41: Run-Vorlage in der PWA wählen und zum tatsächlichen Run springen", 
   await expect(form).toHaveCount(0);
   await app.getByRole("button", { name: "Jetzt starten", exact: true }).click();
   await expect(app.getByTestId("automation-history")).toContainText("erfolgt");
-  const link = app.getByTestId("automation-history").getByRole("link", { name: "Run ↗", exact: true });
-  await expect(link).toHaveAttribute("href", /run=/);
+  const link = app.getByTestId("automation-history").getByRole("link", { name: "Team ↗", exact: true });
+  await expect(link).toHaveAttribute("href", /team=/);
   await link.click();
-  await expect(app.getByTestId("run-detail")).toBeVisible();
+  await expect(app.getByTestId("team-detail")).toBeVisible();
 });
 
 test("P41: ein Fehler beim Verlauf bleibt als Fehler sichtbar", async ({ app, hub }) => {

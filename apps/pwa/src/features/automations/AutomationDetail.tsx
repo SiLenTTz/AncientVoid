@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import type { AutomationHistoryEntry, AutomationInfo, OrchestrationRunStart } from "@ancientvoid/contracts";
+import type { AutomationHistoryEntry, AutomationInfo, TeamStart } from "@ancientvoid/contracts";
 import { useApi } from "../../shared/api-context.ts";
 import { sessionHash } from "../../app/route.ts";
 import { remoteHost } from "../../shared/api.ts";
@@ -13,7 +13,7 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
   const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
   const definition = info.definition;
-  const [template, setTemplate] = useState<OrchestrationRunStart | null>(null);
+  const [template, setTemplate] = useState<TeamStart | null>(null);
   const [templateError, setTemplateError] = useState("");
   const [resolving, setResolving] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -28,7 +28,7 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
   };
   useEffect(() => {
     let alive = true; setTemplate(null); setTemplateError("");
-    if (definition.target.kind === "run" && !offline) void api.automationTemplate(definition.id).then(value => { if (alive) setTemplate(value); }).catch(err => { if (alive) setTemplateError(String(err)); });
+    if (definition.target.kind === "team" && !offline) void api.automationTemplate(definition.id).then(value => { if (alive) setTemplate(value); }).catch(err => { if (alive) setTemplateError(String(err)); });
     return () => { alive = false; };
   }, [api, definition.id, definition.generation, offline]);
   useEffect(() => {
@@ -45,14 +45,14 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
     return () => { alive = false; };
   }, [api, definition.id, definition.generation, info.lastOccurrence?.utc, info.lastOccurrence?.state, info.lastOccurrence?.outcome, offline, cacheKey]);
   const target = definition.target;
-  return <div class="run-detail" data-testid="automation-detail">
+  return <div class="team-detail" data-testid="automation-detail">
     <h3>{definition.label}</h3>
-    <p class="run-meta">Zeitplan {scheduleText(info)} · Maximal parallel: {definition.grant.maxParallel} · Nachholfenster: {definition.grant.missedGraceMs / 60_000} Minuten · Freigabeversion: {definition.generation}</p>
-    <p class="run-meta">Vorprüfung: {definition.precheckActionId ?? "keine"} (Frist {definition.precheckDeadlineMs / 1000} s)</p>
-    <p class="run-meta">Ziel: {target.kind === "session" ? `${target.harness}${target.model ? ` · ${target.model}` : ""} · ${target.workdir} · ${target.project}` : `Run-Vorlage ${target.templateId}`}</p>
+    <p class="team-meta">Zeitplan {scheduleText(info)} · Maximal parallel: {definition.grant.maxParallel} · Nachholfenster: {definition.grant.missedGraceMs / 60_000} Minuten · Freigabeversion: {definition.generation}</p>
+    <p class="team-meta">Vorprüfung: {definition.precheckActionId ?? "keine"} (Frist {definition.precheckDeadlineMs / 1000} s)</p>
+    <p class="team-meta">Ziel: {target.kind === "session" ? `${target.harness}${target.model ? ` · ${target.model}` : ""} · ${target.workdir} · ${target.project}` : `Team-Vorlage ${target.templateId}`}</p>
     {templateError && <p role="alert">{templateError}</p>}
     {template && <div><p>Eingefrorener Rahmen: {template.project} · Worker: {template.frame.adapters.join(", ")} · höchstens {template.frame.maxParallel} parallel</p>{template.plan?.tasks.map(task => <details key={task.id}><summary>{task.title} · {task.adapter}{task.model ? ` · ${task.model}` : ""}</summary><pre>{task.prompt}</pre></details>)}</div>}
-    {offline && target.kind === "run" && <p>Der vollständige Run-Rahmen ist online über die eingefrorene Vorlage abrufbar.</p>}
+    {offline && target.kind === "team" && <p>Der vollständige Team-Rahmen ist online über die eingefrorene Vorlage abrufbar.</p>}
     <h4>Nächste Termine</h4>
     <ul class="automation-occurrences" data-testid="automation-preview">{info.nextOccurrences.map(o => <li key={o.utc}>{o.local} ({o.utc})</li>)}</ul>
     {info.nextOccurrences.length === 0 && <p>Kein Termin im unterstützten Kalenderhorizont.</p>}
@@ -61,18 +61,18 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
     {cachedAt && history && <p data-testid="automation-history-asof">Gespeicherter Verlauf vom <time dateTime={cachedAt}>{new Date(cachedAt).toLocaleString("de-DE")}</time> (höchstens 100 Einträge){offline ? "" : " — aktueller Abruf fehlgeschlagen"}.</p>}
     {!history && !error && <div class="empty">lade…</div>}
     {history?.length === 0 && !error && <div class="empty">Noch keine Läufe.</div>}
-    {!!history?.length && <ul class="run-tasks" data-testid="automation-history">{history.map(entry => <li key={entry.claimKey} class="run-task">
-      <div class="run-task-head"><span class="run-pill">{STATE_LABEL[entry.state] ?? entry.state}</span><span>{entry.occurrenceUtc}</span></div>
-      <div class="run-task-meta">
+    {!!history?.length && <ul class="team-tasks" data-testid="automation-history">{history.map(entry => <li key={entry.claimKey} class="team-task">
+      <div class="team-task-head"><span class="team-pill">{STATE_LABEL[entry.state] ?? entry.state}</span><span>{entry.occurrenceUtc}</span></div>
+      <div class="team-task-meta">
         {entry.reason && <>Grund: {REASON_LABEL[entry.reason] ?? entry.reason} · </>}
         {entry.outcome && <>Ergebnis: {outcomeLabel(entry.outcome)} · </>}
         {entry.detail && <p>{entry.detail}</p>}
         {entry.missedThroughUtc && <p>Verpasste Termine bis {entry.missedThroughUtc}</p>}
         {entry.sessionId && <a href={sessionHash(entry.sessionId, remoteHost(host))}>Session ↗</a>}
-        {entry.runId && <a href={`#/runs?run=${encodeURIComponent(entry.runId)}${host ? `&host=${encodeURIComponent(host)}` : ""}`}>Run ↗</a>}
+        {entry.teamId && <a href={`#/teams?team=${encodeURIComponent(entry.teamId)}${host ? `&host=${encodeURIComponent(host)}` : ""}`}>Team ↗</a>}
       </div>
       {/* ADR-0072: ohne Referenz gibt es keinen Abgleich — nur ein Mensch kann den Plan wieder freigeben. */}
-      {entry.state === "unknown" && !entry.sessionId && !entry.runId && (resolving === entry.claimKey
+      {entry.state === "unknown" && !entry.sessionId && !entry.teamId && (resolving === entry.claimKey
         ? <form class="automation-resolve" onSubmit={e => { e.preventDefault(); void resolve(entry.claimKey); }}>
           <label>Notiz (warum aufgeben?)<input value={note} maxLength={300} required onInput={e => setNote(e.currentTarget.value)} /></label>
           <button type="submit" class="btn" disabled={offline || !note.trim()}>Als aufgegeben abschließen</button>
