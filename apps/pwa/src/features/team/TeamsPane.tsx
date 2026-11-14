@@ -1,11 +1,12 @@
 import { ApiContext, useApi } from "../../shared/api-context.ts";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { Team } from "@ancientvoid/contracts";
-import { hostApi, type AdapterInfo, type DiscoveredProject } from "../../shared/api.ts";
+import { getToken, hostApi, type AdapterInfo, type DiscoveredProject } from "../../shared/api.ts";
 import { sessionHash } from "../../app/route.ts";
 import { StatusDot } from "../../shared/StatusDot.tsx";
 import type { DisplayInput } from "../../shared/display-state.ts";
 import { ago } from "../../shared/status.ts";
+import { readTeamSnapshot, teamCacheKey, writeTeamSnapshot } from "./team-cache.ts";
 
 /**
  * EPIC-P40/EPIC-P60 (ADR-0064, ADR-0077): Agenten-Teams in der P43-Sprache —
@@ -117,6 +118,7 @@ function TeamDetail({ team, onAnswer, onCancel, busy, offline }: { team: Team; o
       <p class="team-goal">{team.goal}</p>
       <p class="team-meta">
         Projekt: <span class="team-chip">{team.project}</span> · Plan: {team.planSource === "coordinator" ? "Koordinator" : "übergeben"} · Adapter: {team.frame.adapters.join(", ")} · Parallelität: {team.frame.maxParallel}
+        {team.frame.models.length > 0 && (<> · Modelle: {team.frame.models.join(", ")}</>)}
         {team.coordinatorSessionId && (
           <> · <a href={sessionHash(team.coordinatorSessionId)}>Koordinator-Session</a></>
         )}
@@ -165,6 +167,8 @@ function NewTeamForm({ adapters, projects, onCreated, offline }: { adapters: Ada
   const [selected, setSelected] = useState<string[]>([]);
   const [coordinatorAdapter, setCoordinatorAdapter] = useState("hermes");
   const [maxParallel, setMaxParallel] = useState(2);
+  /** ADR-0077 (T60.8): Modell-Allowlist — Komma-getrennt; leer = nur Adapter-Standardmodelle. */
+  const [modelsText, setModelsText] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -178,6 +182,7 @@ function NewTeamForm({ adapters, projects, onCreated, offline }: { adapters: Ada
       setError("Titel, Ziel und mindestens ein Adapter sind nötig.");
       return;
     }
+    const models = modelsText.split(",").map((m) => m.trim()).filter((m) => m.length > 0);
     setBusy(true);
     try {
       const team = await api.teamStart({
@@ -187,7 +192,7 @@ function NewTeamForm({ adapters, projects, onCreated, offline }: { adapters: Ada
         frame: {
           adapters: selected,
           coordinatorAdapter: coordinatorAdapter.trim() || null,
-          model: null,
+          models,
           maxTasks: 8,
           maxDispatchesPerTask: 2,
           maxParallel,
@@ -210,7 +215,7 @@ function NewTeamForm({ adapters, projects, onCreated, offline }: { adapters: Ada
       <label>Ziel <textarea rows={3} value={goal} onInput={(e) => setGoal((e.target as HTMLTextAreaElement).value)} /></label>
       <label>Projekt
         <select value={project} onChange={(e) => setProject((e.currentTarget as HTMLSelectElement).value)}>
-          {projects.map((p) => <option value={p.name} key={p.path}>{p.name}</option>)}
+          {projects.map((p) => <option value={p.path} key={p.path}>{p.name}</option>)}
         </select>
       </label>
       <fieldset>
@@ -225,6 +230,7 @@ function NewTeamForm({ adapters, projects, onCreated, offline }: { adapters: Ada
         <label>Koordinator <input value={coordinatorAdapter} onInput={(e) => setCoordinatorAdapter((e.target as HTMLInputElement).value)} /></label>
         <label>Parallelität <input type="number" min={1} max={8} value={maxParallel} onInput={(e) => setMaxParallel(Number((e.target as HTMLInputElement).value))} /></label>
       </div>
+      <label>Erlaubte Modelle <input value={modelsText} placeholder="leer = Standardmodell je Adapter; mehrere per Komma" onInput={(e) => setModelsText((e.target as HTMLInputElement).value)} /></label>
       {error && <div class="files-error" role="alert">{error}</div>}
       <button type="submit" class="btn primary" disabled={busy || offline}>Team starten</button>
     </form>
@@ -265,28 +271,47 @@ function TeamsHostPane() {
 
   useEffect(() => {
     let alive = true;
-    const tick = async () => {
-      try {
-        const list = await api.teamList();
-        if (!alive) return;
-        failedPolls.current = 0;
-        setHostDown(false);
-        setTeams(list);
-        setAt(new Date().toISOString());
-        setError("");
-      } catch (err) {
-        if (!alive) return;
-        // BUG-0045-Muster: erst der zweite Fehlversuch in Folge gilt als Ausfall.
-        failedPolls.current++;
-        if (failedPolls.current >= 2) setHostDown(true);
-        setError(err instanceof Error ? err.message : "Abruf fehlgeschlagen");
+    let timer: ReturnType<typeof setInterval> | undefined;
+    void teamCacheKey(api.teamsScope, getToken()).then((key) => {
+      if (!alive) return;
+      // K10: gespeicherter Stand sofort zeigen, dann online auffrischen.
+      const cached = readTeamSnapshot(key);
+      if (cached) {
+        setTeams(cached.list);
+        setAt(cached.at);
       }
-    };
-    void tick();
-    const timer = setInterval(tick, 3000);
+      let pending = false;
+      const tick = async () => {
+        if (pending || !alive) return;
+        pending = true;
+        try {
+          const list = await api.teamList();
+          if (!alive) return;
+          failedPolls.current = 0;
+          setHostDown(false);
+          setTeams(list);
+          const fetchedAt = new Date().toISOString();
+          setAt(fetchedAt);
+          setError("");
+          writeTeamSnapshot(key, { at: fetchedAt, list });
+        } catch (err) {
+          if (!alive) return;
+          // BUG-0045-Muster: erst der zweite Fehlversuch in Folge gilt als Ausfall.
+          failedPolls.current++;
+          if (failedPolls.current >= 2) setHostDown(true);
+          setError(err instanceof Error ? err.message : "Abruf fehlgeschlagen");
+        } finally {
+          pending = false;
+        }
+      };
+      void tick();
+      timer = setInterval(tick, 3000);
+    }).catch((err) => {
+      if (alive) setError(String(err));
+    });
     return () => {
       alive = false;
-      clearInterval(timer);
+      if (timer) clearInterval(timer);
     };
   }, []);
 
@@ -306,8 +331,10 @@ function TeamsHostPane() {
       const list = await api.teamList();
       failedPolls.current = 0;
       setHostDown(false);
-      setAt(new Date().toISOString());
+      const fetchedAt = new Date().toISOString();
+      setAt(fetchedAt);
       setTeams(list);
+      void teamCacheKey(api.teamsScope, getToken()).then((key) => writeTeamSnapshot(key, { at: fetchedAt, list })).catch(() => {});
     } catch {
       // Der nächste Poll-Tick übernimmt es.
     }

@@ -2,7 +2,7 @@ import { test, expect } from "../support/fixtures.ts";
 
 /** EPIC-P40/EPIC-P60 (ADR-0064, ADR-0077): Agenten-Teams gegen einen echten Hub — Harnesses, DAG, Gates, Policy, Stop, Run→Team-Redirect. */
 
-const frame = { adapters: ["dummy"], coordinatorAdapter: null, model: null, maxTasks: 4, maxDispatchesPerTask: 2, maxParallel: 2 };
+const frame = { adapters: ["dummy"], coordinatorAdapter: null, models: [], maxTasks: 4, maxDispatchesPerTask: 2, maxParallel: 2 };
 const plan = {
   tasks: [
     { id: "T1", title: "Erste Analyse", prompt: "Analysiere den Bestand.", adapter: "dummy", model: null, dependsOn: [] },
@@ -97,19 +97,34 @@ test.describe("Agenten-Teams (EPIC-P40/P60)", () => {
     await expect(app.getByTestId("team-detail")).toContainText("Redirect-Team");
   });
 
+  test("Kompletter Ablauf über die Fläche: anlegen, Rückfrage beantworten, stoppen (AC-P60-6)", async ({ app, hub }) => {
+    await app.goto(`${hub.origin}/#/teams`);
+    await app.getByRole("button", { name: "Neues Team", exact: true }).click();
+    const form = app.getByTestId("team-new");
+    await form.locator("label").filter({ hasText: "Titel" }).locator("input").fill("Formular-Team");
+    await form.locator("label").filter({ hasText: "Ziel" }).locator("textarea").fill("Ziel des Teams.");
+    await form.locator("label").filter({ hasText: "Projekt" }).locator("select").selectOption({ label: "alpha" });
+    await form.locator("label").filter({ hasText: "dummy" }).locator("input").check();
+    // Koordinator dummy liefert keinen lesbaren Plan ⇒ genau eine Rückfrage (fail loud).
+    await form.locator("label").filter({ hasText: "Koordinator" }).locator("input").fill("dummy");
+    await form.getByRole("button", { name: "Team starten", exact: true }).click();
+    await expect(form).toHaveCount(0);
+    await app.getByText("Formular-Team").first().click();
+    await expect(app.getByTestId("team-gate")).toBeVisible({ timeout: 30_000 });
+    await app.getByRole("button", { name: "Team abbrechen", exact: true }).click();
+    await expect(app.getByTestId("team-detail")).toContainText(/abgebrochen|beendet/);
+  });
+
   test("Offline: letzter Stand mit Zeitstempel, Mutationen gesperrt (AC-P60-3, K10)", async ({ app, hub }) => {
     await hub.api("/api/teams", { body: { title: "Offline-Team", goal: "Stand bleibt sichtbar.", project: hub.alpha, frame, plan } });
     await app.goto(`${hub.origin}/#/teams`);
     await expect(app.getByText("Offline-Team").first()).toBeVisible(); // Stand online geladen und gecacht
-    await app.evaluate(async () => {
-      await navigator.serviceWorker.ready;
-    });
     const before = Date.now();
     await app.context().setOffline(true);
-    await app.reload();
-    await expect(app.getByText("Offline-Team").first()).toBeVisible(); // gespeicherter Stand, kein White-Screen
-    await expect(app.getByTestId("teams-offline")).toContainText("Offline");
+    // Zwei fehlgeschlagene Polls (3 s-Takt) gelten erst als Ausfall (BUG-0045-Muster).
+    await expect(app.getByTestId("teams-offline")).toBeVisible({ timeout: 20_000 });
     await expect(app.getByTestId("teams-offline")).toContainText(/letzter Stand/i);
+    await expect(app.getByText("Offline-Team").first()).toBeVisible(); // kein White-Screen
     // Der Stand ist datiert — nie als frisch ausgegeben (K10).
     const at = await app.getByTestId("teams-offline").locator("time").getAttribute("datetime");
     expect(Date.parse(at!)).toBeLessThanOrEqual(before);

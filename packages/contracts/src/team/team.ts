@@ -15,17 +15,31 @@ export const TeamGateAction = z.enum(["retry_plan", "cancel", "continue", "retry
 export type TeamGateAction = z.infer<typeof TeamGateAction>;
 
 /** Rahmen, den ein Mensch beim Start festlegt und den der Hub bei jedem Dispatch erzwingt (ADR-0064 §4). */
-export const TeamFrame = z.object({
+const TeamFrameBase = z.object({
   /** Adapter, die als Worker erlaubt sind (Allowlist; `loop:*` lehnt der Hub ab). */
   adapters: z.array(z.string().min(1)).min(1).max(8),
   /** Koordinator-Adapter für die Plan-Session; null = Plan wurde direkt übergeben. */
   coordinatorAdapter: z.string().min(1).nullable(),
-  model: z.string().min(1).nullable().default(null),
+  /** ADR-0077 (T60.8): Modell-Allowlist für Task-Modelle (leer = nur Adapter-Standardmodell);
+   *  die Koordinator-Session nutzt das erste erlaubte Modell oder den Adapter-Standard. */
+  models: z.array(z.string().min(1)).max(16).default([]),
   maxTasks: z.number().int().min(1).max(24).default(8),
   maxDispatchesPerTask: z.number().int().min(1).max(3).default(2),
   /** ADR-0077 (T60.7): Deckel 8 — breite Teams sind erlaubt; die harte Obergrenze bleiben die Session-Grenzen (K8). */
   maxParallel: z.number().int().min(1).max(8).default(2),
 });
+/** ADR-0077 §6: persistierte Altedform mit `model: string|null` wird toleriert gelesen (z. B. eingefrorene Automation-Blobs). */
+export const TeamFrame = z.preprocess(
+  (v) => {
+    if (typeof v !== "object" || v === null) return v;
+    const f = v as { model?: unknown; models?: unknown };
+    if (f.models === undefined && "model" in f) {
+      return { ...f, models: typeof f.model === "string" && f.model.length > 0 ? [f.model] : [] };
+    }
+    return v;
+  },
+  TeamFrameBase,
+);
 export type TeamFrame = z.infer<typeof TeamFrame>;
 
 /** Ein Task aus dem (Koordinator- oder Menschen-)Plan. IDs sind innerhalb des Teams eindeutig (T1, T2, …). */
@@ -130,6 +144,8 @@ export const TEAM_ERRORS: Record<string, number> = {
   cycle: 422,
   unknown_dependency: 422,
   adapter_not_allowed: 422,
+  /** ADR-0077 (T60.8): Task-Modell außerhalb der Frame-Allowlist — vorher ging es ungeprüft durch. */
+  model_not_allowed: 422,
   too_many_tasks: 422,
   not_found: 404,
   stale_delivery: 409,

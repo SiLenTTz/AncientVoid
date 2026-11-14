@@ -74,6 +74,9 @@ export class TeamCoordinator {
         "",
         `Erlaubte Worker-Adapter: ${input.frame.adapters.join(", ")}.`,
         `Bis zu ${input.frame.maxParallel} Aufgaben dürfen gleichzeitig laufen (Parallelität des Rahmens: ${input.frame.maxParallel}).`,
+        input.frame.models.length > 0
+          ? `Erlaubte Modelle für Aufgaben (model-Feld): ${input.frame.models.join(", ")} — null oder ein anderes Modell ist nicht freigegeben.`
+          : "Für Aufgaben ist nur das Standardmodell des jeweiligen Adapters freigegeben (model: null).",
         "Gliedere den Auftrag so breit wie möglich, so tief wie nötig: Unabhängige Teilaufgaben gehören NEBENEINANDER (ohne dependsOn), damit sie parallel arbeiten; dependsOn nur bei echtem Informationsbedarf.",
         `Erzeuge einen Aufgabenplan mit höchstens ${input.frame.maxTasks} Aufgaben als JSON — z. B. zwei parallele Tasks:`,
         "```team",
@@ -84,7 +87,7 @@ export class TeamCoordinator {
         "```",
         "Antworte ausschließlich mit diesem JSON-Block (kein weiterer Text).",
       ].join("\n");
-      const session = await this.port.create({ adapter: input.frame.coordinatorAdapter ?? "hermes", project: input.project, prompt, model: input.frame.model, workspaceMode: "worktree", title: `Plan: ${input.title}` }, actor);
+      const session = await this.port.create({ adapter: input.frame.coordinatorAdapter ?? "hermes", project: input.project, prompt, model: input.frame.models[0] ?? null, workspaceMode: "worktree", title: `Plan: ${input.title}` }, actor);
       run.coordinatorSessionId = session.id;
       await this.store.update(run.id, () => undefined);
     }
@@ -138,14 +141,22 @@ export class TeamCoordinator {
     }
     const err = validatePlan(parsed, run.frame);
     if (err) {
+      // ADR-0077 (T60.8): Modell-Verstoß ⇒ genau eine Rückfrage mit Erneut-Planen
+      // (retry_plan), kein Gate pro Task; Adapter-Verstoß bleibt die harte Absage.
+      const modelIssue = err.code === "model_not_allowed";
       openGate(run, {
         id: randomUUID(),
         reason: err.code === "adapter_not_allowed" ? "adapter_not_allowed" : "plan_unreadable",
         question: `Aufgabenplan verletzt den Rahmen: ${err.message}`,
-        options: [
-          { label: "Team abbrechen", action: "cancel" },
-          { label: "Trotzdem weiter (nach Korrektur)", action: "continue" },
-        ],
+        options: modelIssue
+          ? [
+              { label: "Erneut planen", action: "retry_plan" },
+              { label: "Team abbrechen", action: "cancel" },
+            ]
+          : [
+              { label: "Team abbrechen", action: "cancel" },
+              { label: "Trotzdem weiter (nach Korrektur)", action: "continue" },
+            ],
         taskId: null,
       });
       await this.store.update(runId, () => undefined);
