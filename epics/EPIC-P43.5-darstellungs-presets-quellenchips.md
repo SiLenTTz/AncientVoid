@@ -94,6 +94,10 @@ Die Abnahme ist belegt über `quellenchips.spec.ts`, `appearance-presets.spec.ts
 und `resize.spec.ts`. `npm run gate` grün: 2.151 Unit-/Integrationstests bestanden, vier Tests sichtbar übersprungen; 684 E2Es bestanden, 5 sichtbar übersprungen (28.5m). Skips sind keine Passes. Typecheck, Lint, Architektur-, Commit-, Adapter- und Kontextprüfung sowie PWA-Build grün. P44-Anknüpfungspunkte: [Design-System](../docs/design-system.md).
 
 
+Zusätzlicher Nachweis nach Integration des parallelen P60-Abschlusses:
+66/66 relevante Unit-Tests und 44/44 E2Es für Presets, Quellen, Team und
+Funktionsinventar grün; Inventar-IDs G68–G71.
+
 ### Abnahmematrix
 
 | AC | Ergebnis und Beleg |
