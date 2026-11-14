@@ -35,6 +35,11 @@ describe("quickMatches (EPIC-P43 T43.6)", () => {
     expect(quickMatches("sess", src).filter((m) => m.kind === "werkzeug").map((m) => m.label)).toEqual(["Neue Session"]);
   });
 
+  it("„Entdeckt“ bleibt im Befehlsfeld und springt auf den Übersichtszustand (EPIC-P47 §3.4)", () => {
+    const hit = quickMatches("entdeckt", src).find((m) => m.kind === "werkzeug");
+    expect(hit).toMatchObject({ label: "Entdeckt", target: { kind: "werkzeug", page: "dashboard", hash: "#/gefunden" } });
+  });
+
   it("Befehle tragen ihren Text ohne Platzhalter ein", () => {
     const cmd = quickMatches("antworte", src).find((m) => m.kind === "befehl");
     expect(cmd?.target).toEqual({ kind: "befehl", text: "Antworte dort: " });

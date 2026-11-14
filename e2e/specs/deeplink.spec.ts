@@ -15,6 +15,12 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     await expect(app.getByRole("heading", { name: "Noch keine Sessions" })).toBeVisible();
   });
 
+  test("#/gefunden ist kein eigener Page-Slug mehr, sondern der Alias auf den Discovery-Zustand der Übersicht (EPIC-P47 §3.4)", async ({ app, hub }) => {
+    await app.goto(`${hub.origin}/#/gefunden`);
+    await expect(app.locator(".overview-switch-btn", { hasText: "Gefunden" })).toHaveClass(/active/);
+    await expect(app.locator(".discovery")).toBeVisible();
+  });
+
   test("ohne tmux gibt es nie einen Attach-Befehl", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Arbeite LANGSAM" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);

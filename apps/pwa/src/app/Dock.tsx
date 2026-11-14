@@ -1,7 +1,8 @@
 // EPIC-P43 T43.3: das Dock hat vier Ziele und eine Haupttaste — Start, Suchen, ＋, Runs, Mehr.
-// Alles Übrige (Entdeckt, Medien, Notizen, Automationen, Einstellungen, Provider-Status) liegt einen
+// Alles Übrige (Medien, Notizen, Automationen, Einstellungen, Provider-Status) liegt einen
 // Tipp weiter im Blatt „Mehr“; am PC (Leiste links, 21-icon-rail.css) stehen diese Ziele weiterhin
-// einzeln in der Leiste, dort gibt es kein „Mehr“. „approvals“ wird aus der Übersicht erreicht.
+// einzeln in der Leiste, dort gibt es kein „Mehr“. „approvals“ wird aus der Übersicht erreicht,
+// „Entdeckt“ ist seit EPIC-P47 ein Umschalt-State der Übersicht (kein eigener Menüpunkt mehr).
 // `active` hebt nie etwas hervor, solange eine Seite offen ist, die kein Dock-Ziel ist.
 import { useEffect, useState } from "preact/hooks";
 import { TabIcon, type TabIconName } from "../shared/TabIcon.tsx";
@@ -11,7 +12,6 @@ export type { ListPage as Page } from "./route.ts";
 import type { ListPage as Page } from "./route.ts";
 
 const MORE: readonly { page: Page; icon: TabIconName; label: string; title: string }[] = [
-  { page: "discovery", icon: "entdeckt", label: "Entdeckt", title: "Entdeckt: Sessions außerhalb des Hubs" },
   { page: "media", icon: "medien", label: "Medien", title: "Medien: Videos analysieren" },
   { page: "vault", icon: "notizen", label: "Notizen", title: "Notizen (Knowledge Vault)" },
   { page: "automationen", icon: "automationen", label: "Automationen", title: "Automationen (Zeitpläne)" },

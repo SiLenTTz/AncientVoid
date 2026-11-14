@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
 import type { ApprovalRequest, DiscoveredProject, FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
-import { graphHash, sessionHash } from "../../app/route.ts";
+import { graphHash, sessionHash, FOUND_HASH_ALIAS } from "../../app/route.ts";
 import { HandoverForm } from "../session/Handover.tsx";
 import { targetKey } from "../windows/protocol.ts";
 import { TabIcon } from "../../shared/TabIcon.tsx";
@@ -19,6 +19,7 @@ import { StatusDot } from "../../shared/StatusDot.tsx";
 import { StartGuide, FirstSuccessSignal } from "./StartGuide.tsx";
 import { emptyText, showStartGuide } from "./start-guide.ts";
 import { initSeen, isUnseen, seenKey } from "../../shared/seen.ts";
+import { DiscoveryPane } from "../discovery/Discovery.tsx";
 
 export function formatUsd(n: number): string {
   if (n === 0) return "$0";
@@ -55,8 +56,6 @@ export interface DashboardProps {
   /** EPIC-P43 T43.3: die offenen Anfragen dieses Hubs — Zustand „Frage“ und Entscheidung auf der Karte. */
   approvals?: ApprovalRequest[];
   onOpenApprovals?: () => void;
-  /** T5.3: all found sessions, including external provider sessions. */
-  onOpenDiscovery?: () => void;
   /** EPIC-P23 T23.1: the session worked in last on this device — marked and brought into view. */
   lastSession?: LastSession | null;
   /** EPIC-P57 T57.9: der Testadapter „dummy“ ist registriert — der Einstieg bietet dann die Probe-Session an. */
@@ -119,13 +118,13 @@ function matches(s: SessionRecord, q: string): boolean {
   return q.toLowerCase().split(/\s+/).every((w) => hay.includes(w));
 }
 
-/** EPIC-P47: Ansicht der Übersicht — Sessions (Karten), Projekte oder Hosts. */
-type OverviewView = "sessions" | "projects" | "hosts";
+/** EPIC-P47: Ansicht der Übersicht — Sessions (Karten), Projekte, Hosts oder Discovery (T47.5). */
+type OverviewView = "sessions" | "projects" | "hosts" | "discovery";
 const VIEW_KEY = "ancientvoid.overviewView";
-const VIEWS: readonly OverviewView[] = ["sessions", "projects", "hosts"];
-const VIEW_TITLE: Record<OverviewView, string> = { sessions: "Sessions", projects: "Projekte", hosts: "Hosts" };
+const VIEWS: readonly OverviewView[] = ["sessions", "projects", "hosts", "discovery"];
+const VIEW_TITLE: Record<OverviewView, string> = { sessions: "Sessions", projects: "Projekte", hosts: "Hosts", discovery: "Gefunden" };
 
-export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, approvals = [], onOpenApprovals, onOpenDiscovery, lastSession = null, probeAvailable = false }: DashboardProps) {
+export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, approvals = [], onOpenApprovals, lastSession = null, probeAvailable = false }: DashboardProps) {
   const windowKeys = new Set(Object.values(useOpenWindows()).map((e) => targetKey(e.target)));
   // Once per visit (not per 3 s poll): bring the remembered session into view.
   const hasSessions = sessions.length > 0;
@@ -150,12 +149,22 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
   // EPIC-P47: Ansicht gerätelokal merken — gleiche Mechanik wie der Statusfilter.
   const [view, setView] = useState<OverviewView>(() => {
     const v = sessionStorage.getItem(VIEW_KEY);
-    return v === "projects" || v === "hosts" ? v : "sessions";
+    return v === "projects" || v === "hosts" || v === "discovery" ? v : "sessions";
   });
   const setOverviewView = (v: OverviewView) => {
     sessionStorage.setItem(VIEW_KEY, v);
     setView(v);
   };
+  // EPIC-P47 §3.4 (T47.5): `#/gefunden` bleibt als Deeplink und Befehlsfeld-Ziel erhalten und
+  // springt auf den Discovery-State — ein eigener Menüpunkt existiert nicht mehr.
+  useEffect(() => {
+    const apply = () => {
+      if (location.hash === FOUND_HASH_ALIAS) setView("discovery");
+    };
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
+  }, []);
   // Host-Karten der Hosts-Ansicht filtern hierauf; der Chip löst den Filter wieder.
   const [hostFilter, setHostFilter] = useState<string | null>(null);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
@@ -288,6 +297,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
         ))}
       </div>
       {view === "projects" && <ProjectsView projects={projects} warning={projectsWarning} sessions={withOverride} />}
+      {view === "discovery" && <DiscoveryPane onOpen={onOpen} />}
       {view === "hosts" && (
         <HostsView
           hosts={hosts}
@@ -306,11 +316,9 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
             <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => setShowArchived((on) => !on)}>
               {showArchived ? "Aktive" : `Archiv${archivedCount > 0 ? ` (${archivedCount})` : ""}`}
             </button>
-            {onOpenDiscovery && (
-              <button class="chip" type="button" onClick={onOpenDiscovery}>
-                Gefunden
-              </button>
-            )}
+            <button class="chip" type="button" onClick={() => setOverviewView("discovery")}>
+              Gefunden
+            </button>
           </div>
           {statusFilter !== "all" && statusFilter !== "recent" && (
             <button

@@ -23,8 +23,11 @@ describe("session hash route (AC-P5-5)", () => {
   });
 
   it("T8.1: every page round-trips through its hash", () => {
-    for (const page of ["dashboard", "new", "settings", "approvals", "status", "discovery"] as const) expect(parseAppHash(pageHash(page))).toEqual({ view: "list", page });
+    for (const page of ["dashboard", "new", "settings", "approvals", "status"] as const) expect(parseAppHash(pageHash(page))).toEqual({ view: "list", page });
     expect(pageHash("new")).toBe("#/neu");
+    // EPIC-P47 §3.4: `#/gefunden` ist kein eigener Page-Slug mehr, sondern ein Alias auf die Übersicht.
+    expect(parseAppHash("#/gefunden")).toEqual({ view: "list", page: "dashboard" });
+    expect(parseAppHash("#/gefunden/")).toEqual({ view: "list", page: "dashboard" });
   });
 
   it("T7.6: a code line round-trips, paths with slashes and special characters included", () => {
@@ -35,8 +38,8 @@ describe("session hash route (AC-P5-5)", () => {
 });
 
 describe("Werkzeugseiten (EPIC-P34 T34.2)", () => {
-  it("Einstellungen, Entdeckt, Medien, PC und Status füllen die Detailspalte; Übersicht, Neu und Freigaben bleiben in der Liste", () => {
-    const tools: ListPage[] = ["settings", "discovery", "media", "pc", "status"];
+  it("Einstellungen, Medien, PC und Status füllen die Detailspalte; Übersicht, Neu und Freigaben bleiben in der Liste (Entdeckt ist seit EPIC-P47 ein Übersichtszustand)", () => {
+    const tools: ListPage[] = ["settings", "media", "pc", "status"];
     const listed: ListPage[] = ["dashboard", "new", "approvals"];
     for (const page of tools) expect(isToolPage(page), page).toBe(true);
     for (const page of listed) expect(isToolPage(page), page).toBe(false);

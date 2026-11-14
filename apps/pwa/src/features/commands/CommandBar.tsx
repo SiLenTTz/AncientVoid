@@ -83,7 +83,7 @@ export function CommandBar() {
     setText("");
     if (t.kind === "session") runClientStep({ op: "session.open", sessionId: t.sessionId, hostId: t.hostId });
     else if (t.kind === "datei") runClientStep({ op: "code.search", sessionId: t.sessionId, hostId: t.hostId, text: t.text });
-    else if (t.kind === "werkzeug") location.hash = pageHash(t.page);
+    else if (t.kind === "werkzeug") location.hash = t.hash ?? pageHash(t.page);
     else {
       preselectProject(t.path);
       location.hash = pageHash("new");

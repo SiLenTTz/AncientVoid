@@ -11,7 +11,8 @@ export type QuickTarget =
   | { kind: "session"; sessionId: string; hostId: string | null }
   | { kind: "projekt"; path: string }
   | { kind: "datei"; sessionId: string; hostId: string | null; text: string }
-  | { kind: "werkzeug"; page: ListPage }
+  /** `hash` setzt den Ziel-Hash direkt — für Aliase wie `#/gefunden` (EPIC-P47 §3.4). */
+  | { kind: "werkzeug"; page: ListPage; hash?: string }
   | { kind: "befehl"; text: string };
 
 export interface QuickItem {
@@ -30,12 +31,13 @@ export interface QuickSources {
 
 export const QUICK_KIND_LABEL: Record<QuickKind, string> = { session: "Session", projekt: "Projekt", datei: "Dateien", werkzeug: "Werkzeug", befehl: "Befehl" };
 
-export const TOOLS: readonly { page: ListPage; label: string }[] = [
+export const TOOLS: readonly { page: ListPage; label: string; hash?: string }[] = [
   { page: "dashboard", label: "Start" },
   { page: "new", label: "Neue Session" },
   { page: "approvals", label: "Freigaben" },
   { page: "orchestrierung", label: "Runs" },
-  { page: "discovery", label: "Entdeckt" },
+  // EPIC-P47 §3.4: kein eigener Page mehr — der Sprung geht über den Alias auf den Übersichtszustand.
+  { page: "dashboard", label: "Entdeckt", hash: "#/gefunden" },
   { page: "media", label: "Medien" },
   { page: "vault", label: "Notizen" },
   { page: "automationen", label: "Automationen" },
@@ -83,7 +85,7 @@ export function quickMatches(query: string, src: QuickSources): QuickItem[] {
     src.here && q.length >= 2
       ? [{ kind: "datei", label: `„${query.trim()}“ in den Dateien suchen`, detail: "offene Session", target: { kind: "datei", sessionId: src.here.sessionId, hostId: src.here.hostId, text: query.trim() } }]
       : [];
-  const tools = pick(TOOLS, (t) => t.label, (t) => ({ kind: "werkzeug", label: t.label, detail: "öffnen", target: { kind: "werkzeug", page: t.page } }));
+  const tools = pick(TOOLS, (t) => t.label, (t) => ({ kind: "werkzeug", label: t.label, detail: "öffnen", target: { kind: "werkzeug", page: t.page, ...(t.hash ? { hash: t.hash } : {}) } }));
   const commands = pick(COMMANDS, (c) => c, (c) => ({ kind: "befehl", label: c, detail: "als Auftrag eintragen", target: { kind: "befehl", text: c.replace(/…/g, "").replace(/: $/, ": ") } }));
   return [...sessions, ...projects, ...files, ...tools, ...commands];
 }
