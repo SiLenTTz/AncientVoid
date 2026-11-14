@@ -17,9 +17,13 @@ export function validatePlan(plan: TeamPlan, frame: TeamFrame): EngineError | nu
   if (tasks.length > frame.maxTasks) return { code: "too_many_tasks", message: `Plan hat ${tasks.length} Aufgaben, Rahmen erlaubt ${frame.maxTasks}.` };
   const ids = new Set(tasks.map((t) => t.id));
   if (ids.size !== tasks.length) return { code: "plan_invalid", message: "Task-IDs sind im Team nicht eindeutig." };
-  for (const t of tasks) {
+  for (const t of plan.tasks) {
     if (!frame.adapters.includes(t.adapter)) {
       return { code: "adapter_not_allowed", message: `Adapter „${t.adapter}“ von Task ${t.id} ist im Rahmen nicht freigegeben.` };
+    }
+    // ADR-0077 (T60.8): Task-Modelle müssen in der Frame-Allowlist stehen (null = Adapter-Standard).
+    if (t.model !== null && !frame.models.includes(t.model)) {
+      return { code: "model_not_allowed", message: `Modell „${t.model}“ von Task ${t.id} ist im Rahmen nicht freigegeben${frame.models.length === 0 ? " (Allowlist leer — nur Adapter-Standardmodell)" : ` (erlaubt: ${frame.models.join(", ")})`}.` };
     }
     for (const dep of t.dependsOn) {
       if (!ids.has(dep)) return { code: "unknown_dependency", message: `Task ${t.id} hängt von unbekanntem „${dep}“ ab.` };

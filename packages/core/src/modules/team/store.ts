@@ -33,6 +33,18 @@ interface Snapshot {
   runs: Team[];
 }
 
+/** ADR-0077 §6: Bestands-Teams bis P60 tragen `frame.model` statt `frame.models` —
+ *  beim Laden normalisieren (model m → models [m], null/fehlend → []), damit
+ *  Journal + Snapshot in der neuen Form weiterlaufen (K7). */
+function normalizeTeam(raw: Team): Team {
+  const frame = raw.frame as unknown as { model?: string | null; models?: string[] };
+  if (frame.models === undefined) {
+    const { model: _legacy, ...rest } = frame;
+    raw.frame = { ...rest, models: typeof _legacy === "string" && _legacy.length > 0 ? [_legacy] : [] } as Team["frame"];
+  }
+  return raw;
+}
+
 interface Loaded {
   runs: Map<string, Team>;
   seq: number;
@@ -94,7 +106,7 @@ export class TeamStore {
       try {
         const snap = JSON.parse(await readFile(snapPath, "utf8")) as Snapshot;
         seq = snap.appliedSeq;
-        for (const r of snap.runs) runs.set(r.id, r);
+        for (const r of snap.runs) runs.set(r.id, normalizeTeam(r));
       } catch {
         // Kaputter Snapshot: Journal ist die Wahrheit — von Null nachlaufen.
         seq = 0;
@@ -111,7 +123,7 @@ export class TeamStore {
         try {
           const entry = JSON.parse(line) as JournalLine;
           if (entry.seq <= seq) continue;
-          runs.set(entry.run.id, entry.run);
+          runs.set(entry.run.id, normalizeTeam(entry.run));
           seq = entry.seq;
         } catch {
           skippedLines++;

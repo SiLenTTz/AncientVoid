@@ -72,7 +72,7 @@ describe("P41 real execution owners", () => {
 
   it("freezes a P40 plan and starts runs through the shared orchestrator", async () => {
     const spec: TeamStart = { title: "Vorlage", goal: "Kleine Aufgabe", project,
-      frame: { adapters: ["dummy"], coordinatorAdapter: null, model: null, maxTasks: 1, maxParallel: 1, maxDispatchesPerTask: 1 },
+      frame: { adapters: ["dummy"], coordinatorAdapter: null, models: [], maxTasks: 1, maxParallel: 1, maxDispatchesPerTask: 1 },
       plan: { tasks: [{ id: "T1", title: "Prüfen", prompt, adapter: "dummy", model: null, dependsOn: [] }] },
     };
     const source = await runtime.coordinator.start(spec, "human");
