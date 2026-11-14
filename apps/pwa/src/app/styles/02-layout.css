@@ -89,6 +89,8 @@ html:has(.app-page > .dashboard) body {
  * docs/zoom-robuste-flaechen.md. */
 html:has(#app > .session-live),
 html:has(#app > .session-live) body {
+  /* P43.5: kurze Verläufe dürfen das Aktionsmenü nicht am body-Rand abschneiden. */
+  min-height: calc(100dvh / var(--ui-zoom, 1));
   overflow: hidden;
 }
 

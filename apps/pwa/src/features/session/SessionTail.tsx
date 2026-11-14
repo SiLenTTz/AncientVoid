@@ -1,9 +1,11 @@
+import { StatusNote } from "./StatusNote.tsx";
 import type { ComponentChildren } from "preact";
 import { InterruptedBanner } from "./InterruptedBanner.tsx";
 import { copyWithRetry } from "./copy-selection.ts";
 import { readTailScroll, writeTailScroll } from "./tail-scroll.ts";
 import { sessionHash, fileHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
+import { sourcesBlock, sourcesOf, consumeSources, type SourceRef } from "../../shared/sources.ts";
 import { HandoverBar } from "./Handover.tsx";
 import { RecoveryHandover } from "./RecoveryHandover.tsx";
 import { currentProviderFailure } from "./handover.ts";
@@ -79,6 +81,19 @@ export interface TileContext {
   head?: { start: ComponentChildren; end: ComponentChildren };
   /** EPIC-P43 T43.7 (ADR-0068): ein Ansichtsfenster zeigt genau diesen Reiter — ohne Reiter, Antwortfeld und Menü. */
   only?: ViewTab;
+}
+
+function fitSessionMenu(menu: HTMLDetailsElement | null): void {
+  if (!menu?.open) return;
+  const items = menu.querySelector<HTMLElement>(".session-menu-items");
+  if (!items) return;
+  const top = items.getBoundingClientRect().top;
+  let bottom = window.visualViewport ? window.visualViewport.offsetTop + window.visualViewport.height : window.innerHeight;
+  for (let parent = menu.parentElement; parent; parent = parent.parentElement) {
+    if (/^(hidden|clip|auto|scroll)$/.test(getComputedStyle(parent).overflowY)) bottom = Math.min(bottom, parent.getBoundingClientRect().bottom);
+  }
+  const zoom = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-zoom")) || 1;
+  items.style.maxHeight = `${Math.max(1, bottom - top - 8) / zoom}px`;
 }
 
 export function SessionTail({
@@ -232,6 +247,19 @@ export function SessionTail({
       window.removeEventListener("pointerdown", onDown);
     };
   }, [moreOpen]);
+  useEffect(() => {
+    const jump = () => {
+      try {
+        const pending = JSON.parse(sessionStorage.getItem("ancientvoid.source-view") ?? "null") as { hash?: string; view?: string } | null;
+        if (pending?.hash !== sessionHash(session.id, remoteHost(session.hostId)) || pending.view !== "forge") return;
+        sessionStorage.removeItem("ancientvoid.source-view");
+        setActiveTab("forge");
+      } catch { sessionStorage.removeItem("ancientvoid.source-view"); }
+    };
+    jump();
+    window.addEventListener("ancientvoid:source-jump", jump);
+    return () => window.removeEventListener("ancientvoid:source-jump", jump);
+  }, [session.id, session.hostId]);
   /** EPIC-P48: im Datei-Tab geöffnete Datei (Knoten-Klick aus dem Graph). */
   const [openFile, setOpenFile] = useState<string | null>(initialFile ?? null);
 
@@ -472,6 +500,7 @@ export function SessionTail({
 
   useEffect(() => {
     const measure = () => {
+      fitSessionMenu(menuRef.current);
       const tail = tailRef.current;
       const dock = dockRef.current;
       if (!tail || !dock) return;
@@ -724,7 +753,7 @@ export function SessionTail({
     }
   };
 
-  const sendText = async (text: string, takeover = false, queue = false) => {
+  const sendText = async (text: string, takeover = false, queue = false, submittedSources: SourceRef[] = []) => {
     if (!text.trim() && replyAttachments.length === 0) return;
     setReplyBusy(true);
     setReplyError("");
@@ -739,6 +768,7 @@ export function SessionTail({
         setReply("");
         setReplyAttachments([]);
         void draft.clear();
+        consumeSources(session.id, submittedSources);
       } else {
         setLeaseHeld(ack.detail === "writer lease held");
         // A rejected steer (e.g. claude's "no thread_id captured yet") is
@@ -754,7 +784,14 @@ export function SessionTail({
     }
   };
 
-  const sendReply = (takeover = false, queue = false) => sendText(reply, takeover, queue);
+  const sendReply = (takeover = false, queue = false) => {
+    // EPIC-P43.5 T43.5-1: Quellenchips wandern als markierter Block in den
+    // Prompt — dieselbe Form wie die Vorschau im Composer, danach verbraucht.
+    const sources = sourcesOf(session.id);
+    if (sources.length === 0) return sendText(reply, takeover, queue);
+    const text = `${reply}${reply.trim() ? "\n\n" : ""}${sourcesBlock(sources)}`;
+    return sendText(text, takeover, queue, sources);
+  };
   const running = status === "working" || status === "starting" || status === "waiting_approval";
   const showReply = steerSupported;
   // T1.6-3/AC-P1.6-2: no back-arrow up top anymore — "Übersicht" in the
@@ -896,9 +933,10 @@ export function SessionTail({
           </button>
         )}
         {!tile?.only && (
-        <details class="session-menu" ref={menuRef}>
+        <details class="session-menu" ref={menuRef} onToggle={e => fitSessionMenu(e.currentTarget)}>
           <summary aria-label="Weitere Aktionen" title="Weitere Aktionen">⋯</summary>
           <div class="session-menu-items">
+            <StatusNote sessionId={session.id} />
             <button type="button" onClick={() => menuDo(() => { setTitleDraft(title ?? ""); setRenaming(true); })}>
               Umbenennen
             </button>
@@ -1024,7 +1062,7 @@ export function SessionTail({
       </div>}
       <div
         ref={tailRef}
-        class="tail-scroll"
+        class={`tail-scroll${activeTab === "chat" ? " chat-readable" : ""}`}
         onWheel={(event) => {
           userInputAt.current = Date.now();
           if (event.deltaY < 0) stickRef.current = false;
@@ -1147,7 +1185,7 @@ export function SessionTail({
               </div>
             )}
             {openFile ? (
-              <FileViewer target={`session=${encodeURIComponent(session.id)}`} path={openFile} hostId={remoteHost(session.hostId) ?? null} />
+              <FileViewer target={`session=${encodeURIComponent(session.id)}`} path={openFile} hostId={remoteHost(session.hostId) ?? null} sessionId={session.id} />
             ) : (
               <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} onOpenDiff={showDiffTab} />
             )}
@@ -1343,6 +1381,7 @@ export function SessionTail({
                 }
                 attachments={replyAttachments}
                 onAttachmentsChange={setReplyAttachments}
+                sourceTarget={session.id}
                 extraActions={
                   <>
                     {running ? (

@@ -2,7 +2,7 @@ import { test, expect, dockGo } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 
 /** EPIC-P34 T34.3: Einstellungen als feste Gruppen in einem symmetrischen Raster. */
-const GROUPS = ["Darstellung", "Schrift", "Vorschau", "Benachrichtigungen", "Geräte", "Flotte", "Verbindungen", "Dienste", "Sicherheit & Verbindung"];
+const GROUPS = ["Darstellung", "Schrift", "Darstellungs- und Layout-Presets", "Vorschau", "Benachrichtigungen", "Geräte", "Flotte", "Verbindungen", "Dienste", "Sicherheit & Verbindung"];
 
 async function openSettings(app: Page): Promise<void> {
   await dockGo(app, "Einstellungen");
@@ -15,7 +15,7 @@ test.describe("Einstellungen: Gruppen und Raster (EPIC-P34)", () => {
   test.describe("Desktop", () => {
     test.use({ viewport: { width: 1440, height: 900 } });
 
-    test("AC-P34-3: sechs Gruppen in zwei gleich breiten Spalten, ohne Seitwärts-Scrollen @desktop", async ({ app }) => {
+    test("AC-P34-3: vollständige Gruppen in zwei gleich breiten Spalten, ohne Seitwärts-Scrollen @desktop", async ({ app }) => {
       await openSettings(app);
       await expect(app.locator(".settings-section > header h3")).toHaveText(GROUPS);
       const cols = await app.locator(".settings-col").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON() as { x: number; width: number }));

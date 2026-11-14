@@ -126,14 +126,36 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
     await sessionTab(app, "Chat");
     // Keine Randlaschen; der rechte Rand des Verlaufs gehört dem Verlauf.
     await expect(app.locator(".files-toggle, .browser-toggle, .device-toggle")).toHaveCount(0);
-    const covered = await app.evaluate(() => {
+    await expect(app.locator(".tail-scroll")).toContainText("Antwort auf: Nichts darüber");
+    const covered = await app.evaluate(async () => {
       const scroll = document.querySelector(".tail-scroll");
       if (!scroll) return ["kein Verlauf"];
+      scroll.scrollTop = scroll.scrollHeight;
+      await new Promise(requestAnimationFrame);
       const r = scroll.getBoundingClientRect();
       const hits: string[] = [];
-      for (let y = r.top + 20; y < Math.min(r.bottom, innerHeight) - 20; y += 40) {
+      // BUG-0145 reserviert unten Platz für Nyx. Die Reserve ist kein Textinhalt;
+      // zusätzlich echte Textrechtecke prüfen, damit kein Knopf dahinter verschwindet.
+      const zoom = r.height / (scroll as HTMLElement).offsetHeight;
+      const reserve = document.querySelector('.nyx-fab:is([data-bp="phone"], [data-bp="tablet"])')
+        ? parseFloat(getComputedStyle(scroll).paddingBottom) * zoom : 0;
+      for (let y = r.top + 20; y < Math.min(r.bottom - reserve, innerHeight) - 20; y += 40) {
         const el = document.elementFromPoint(r.right - 6, y);
         if (el && !scroll.contains(el) && !el.contains(scroll)) hits.push(`${el.tagName}.${el.className}`);
+      }
+      const walker = document.createTreeWalker(scroll, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        if (!walker.currentNode.textContent?.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(walker.currentNode);
+        for (const box of range.getClientRects()) {
+          if (!box.width || !box.height || box.top < r.top || box.bottom > Math.min(r.bottom, innerHeight)) continue;
+          for (const x of [box.left + 1, (box.left + box.right) / 2, box.right - 1]) {
+            if (x < r.left || x >= r.right) continue;
+            const el = document.elementFromPoint(x, (box.top + box.bottom) / 2);
+            if (el && !scroll.contains(el) && !el.contains(scroll)) hits.push(`Text verdeckt: ${el.tagName}.${el.className}`);
+          }
+        }
       }
       return hits;
     });

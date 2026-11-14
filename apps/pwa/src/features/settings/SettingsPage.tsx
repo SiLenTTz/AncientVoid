@@ -1,4 +1,5 @@
 import { FleetSettings } from "../fleet/Fleet.tsx";
+import { PresetSettings } from "./PresetSettings.tsx";
 import { AppearanceSettings } from "./AppearanceSettings.tsx";
 import { ConnectionsSettings } from "./ConnectionsSettings.tsx";
 import { DevicesSettings } from "./DevicesSettings.tsx";
@@ -21,6 +22,7 @@ export function SettingsPage({ onSwitchToken }: { onSwitchToken: () => void }) {
         <div class="settings-col">
           <AppearanceSettings />
           <FontSettings />
+          <PresetSettings />
           <PreviewSettings />
           <PushSettings />
         </div>

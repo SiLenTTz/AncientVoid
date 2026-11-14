@@ -47,6 +47,7 @@ test.describe("Repo-Galaxie (EPIC-P52)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}/graph`);
     const pane = app.locator(".graph-pane");
     await expect(pane).toHaveAttribute("data-fullscreen", "1");
+    await expect(app).toHaveURL(url => url.hash === `#/sessions/${id}/graph`);
     await expect(app.locator(".session-topbar")).toBeHidden();
     await expect(app.locator(".dock-stack")).toBeHidden();
     const back = app.getByRole("button", { name: "Vollbild verlassen" });
@@ -72,6 +73,7 @@ test.describe("Repo-Galaxie (EPIC-P52)", () => {
     await expect(app.locator(".session-topbar")).toBeVisible();
 
     await app.setViewportSize({ width: 915, height: 412 });
+    await expect(app).toHaveURL(url => url.hash === `#/sessions/${id}/graph`);
     await app.reload();
     // BUG-0152 (Aufklärung 13.11.2026): Produkt verhält sich korrekt — der
     // Hash behält /graph, der Graph stellt sich nach dem Reload im Vollbild
