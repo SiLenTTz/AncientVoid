@@ -5,6 +5,7 @@ import { pageHash, sessionHash, type ListPage } from "../../app/route.ts";
 import { preselectProject } from "../new-session/CreateSession.tsx";
 import { COMMANDS as EXAMPLES, QUICK_KIND_LABEL, quickMatches, type QuickSources, type QuickTarget } from "./quick.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
+import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 
 const RISK_TEXT = { read: "liest", write: "ändert", destructive: "zerstörerisch" } as const;
 const TRANSFORM_TEXT: Record<string, string> = { correct: "korrigiert", shorten: "gekürzt", translate_en: "übersetzt (Englisch)", translate_de: "übersetzt (Deutsch)", improve: "verbessert" };
@@ -93,6 +94,8 @@ export function CommandBar() {
 
   // EPIC-P51 T51.5: Kürzel über die Registry (zentraler Dispatcher). Die
   // Registrierung lebt im useEffect mit [open] — der Handler sieht frischen State.
+  // T51.6: Fokus rein/Tab-Falle/zurück (useOverlayFocus).
+  const { ref: sheet } = useOverlayFocus<HTMLDivElement>(open, { preferred: () => input.current });
   useEffect(() => {
     const openIt = () => setOpen(true);
     window.addEventListener("ancientvoid:command-bar", openIt);
@@ -178,7 +181,7 @@ export function CommandBar() {
 
   const writes = plan && plan.steps.some((s) => s.risk !== "read");
   return (
-    <div class="command-sheet" role="dialog" aria-label="Auftrag in Worten">
+    <div class="command-sheet" role="dialog" aria-label="Auftrag in Worten" ref={sheet}>
       <form
         class="command-form"
         onSubmit={(e) => {

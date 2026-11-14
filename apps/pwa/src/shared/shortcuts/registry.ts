@@ -62,10 +62,18 @@ export const CATALOG: ShortcutInfo[] = [
   { id: "overview.menu-close", combo: "Esc", label: "Esc", description: "Kartenmenü der Übersicht schließen", scope: "overlay", inInput: true },
   { id: "notifications.close", combo: "Esc", label: "Esc", description: "Benachrichtigungs-Panel schließen", scope: "overlay", inInput: true },
   { id: "cheatsheet.close", combo: "Esc", label: "Esc", description: "Kürzel-Übersicht schließen", scope: "overlay", inInput: true },
+  { id: "skillpicker.close", combo: "Esc", label: "Esc", description: "Skill-/Agenten-Auswahl schließen", scope: "overlay", inInput: true },
+  { id: "stt.cancel", combo: "Esc", label: "Esc", description: "Sprachaufnahme abbrechen", scope: "overlay", inInput: true },
+  // EPIC-P51 T51.6: globale View-Wechsel (Alt-Schema; Firefox-Nutzen in docs/tastatur-kollisionen.md).
+  { id: "view.home", combo: "Alt+Home", label: "Alt+Pos1", description: "Zur Übersicht (Start)", scope: "global" },
+  { id: "view.back", combo: "Alt+ArrowLeft", label: "Alt+←", description: "Zurück in der Ansichts-Historie", scope: "global" },
+  { id: "view.forward", combo: "Alt+ArrowRight", label: "Alt+→", description: "Vor in der Ansichts-Historie", scope: "global" },
   // Eingabe-Interaktion bleibt lokal (ADR-0042-Präzedenz), gehört aber in den Katalog:
   { id: "composer.send", combo: "Ctrl+Enter", label: "Strg+Enter", description: "Nachricht senden", scope: "global", localOnly: true, inInput: true, where: "im Eingabefeld" },
   { id: "composer.suggest", combo: "ArrowDown", label: "↓ / ↑", description: "In der Vorschlagsliste blättern, Enter übernimmt", scope: "global", localOnly: true, inInput: true, where: "im Composer mit offener Vorschlagsliste" },
   { id: "approvals.choose", combo: "Digit1", label: "1–9", description: "Freigabe-Option direkt wählen", scope: "global", localOnly: true, inInput: true, where: "in einer Freigabe-Frage" },
+  { id: "graph.search", combo: "Slash", label: "/", description: "Graph-Suche fokussieren", scope: "global", localOnly: true, where: "im Graph-Tab (fokussierte Fläche)" },
+  { id: "graph.navigate", combo: "ArrowRight", label: "Pfeiltasten", description: "Im Datei-Graph zwischen Nachbarn wandern", scope: "global", localOnly: true, where: "im Graph-Tab (fokussierte Fläche)" },
 ];
 
 /** Kanonischen Zugriff ohne Array-Suche. */

@@ -216,7 +216,21 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
       {editorError && <div class="files-error" role="alert">{editorError}</div>}
       {truncated && <div class="graph-banner">Liste gekappt — sehr viele Dateien im Vault-Ordner.</div>}
       <div class="vault-body">
-        <ul class="vault-list" role="list">
+        <ul
+          class="vault-list"
+          role="list"
+          onKeyDown={(e) => {
+            // EPIC-P51 T51.6: Roving — ↑/↓ bewegen den Fokus zwischen den Notizen.
+            if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+            const rows = [...(e.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>("button.vault-row")];
+            const idx = rows.findIndex((r) => r === document.activeElement);
+            if (idx === -1) return;
+            const next = rows[idx + (e.key === "ArrowDown" ? 1 : -1)];
+            if (!next) return;
+            e.preventDefault();
+            next.focus();
+          }}
+        >
           {(filtered ?? []).map((f) => (
             <li key={f.path}>
               <button

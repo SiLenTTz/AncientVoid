@@ -560,6 +560,19 @@ function SessionRow({
       ref={cardRef}
       class={`card session-card ${glow}${unseen ? " unseen" : ""}${isLast ? " last-active" : ""}${moved ? " mv-wander" : ""}${actionsOpen ? " actions-open" : ""}`}
       aria-current={isLast ? "true" : undefined}
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        // EPIC-P51 T51.6: Roving — ↑/↓ bewegen den Fokus zwischen Karten
+        // (Karte selbst fokussierbar; innere Buttons bleiben Tab erreichbar).
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        const cards = [...document.querySelectorAll<HTMLElement>(".session-card")];
+        const idx = cards.findIndex((c) => c === cardRef.current || c.contains(document.activeElement));
+        if (idx === -1) return;
+        const next = cards[idx + (e.key === "ArrowDown" ? 1 : -1)];
+        if (!next) return;
+        e.preventDefault();
+        next.focus();
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         setActionsOpen(true);

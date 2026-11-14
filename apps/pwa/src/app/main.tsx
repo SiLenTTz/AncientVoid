@@ -7,6 +7,7 @@ import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHo
 import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
 import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
+import { registerShortcut } from "../shared/shortcuts/registry.ts";
 import { classifyGateError, gateMessage, lastHubContact, noteHubContact } from "./token-gate.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { initAppearance } from "./appearance.ts";
@@ -343,6 +344,29 @@ function Main() {
   useEffect(() => {
     if (route.view === "tail") rememberSession(tileRefOf(route.session));
   }, [route]);
+
+  // EPIC-P51 T51.6: globale View-Wechsel über die Shortcut-Registry. Alt+←/→
+  // nutzen die Ansichts-Historie; selbst wenn der Browser sie konsumiert,
+  // passiert genau das Gewünschte (Browser-Historie = AV-Hash-Historie).
+  useEffect(() => {
+    const offs = [
+      registerShortcut("view.home", (e) => {
+        e.preventDefault();
+        location.hash = pageHash("dashboard");
+      }),
+      registerShortcut("view.back", (e) => {
+        e.preventDefault();
+        history.back();
+      }),
+      registerShortcut("view.forward", (e) => {
+        e.preventDefault();
+        history.forward();
+      }),
+    ];
+    return () => {
+      for (const off of offs) off();
+    };
+  }, []);
 
   if (!ready) return <TokenGate onReady={() => void becomeReady()} rejected={gateError} />;
 
