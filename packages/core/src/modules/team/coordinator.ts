@@ -1,13 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { OrchestrationPlan, type OrchestrationDispatch, type OrchestrationRun, type OrchestrationRunStart } from "@ancientvoid/contracts";
+import { TeamPlan, type TeamDispatch, type Team, type TeamStart } from "@ancientvoid/contracts";
 import { answerGate as engineAnswer, applyOutcome, cancelRun, contextPacket, nextDispatches, openGate, tasksFromPlan, validatePlan } from "./engine.ts";
-import type { OrchestrationStore } from "./store.ts";
+import type { TeamStore } from "./store.ts";
 
 /**
  * EPIC-P40 (ADR-0064): Session-Seite als Ports — der Hub injiziert den echten
  * SessionManager; das Core-Modul kennt keine Adapter und keinen Server.
  */
-export interface OrchestrationSessionPort {
+export interface TeamSessionPort {
   create(spec: { adapter: string; project: string; prompt: string; model?: string | null; workspaceMode?: "worktree" | "direct"; title?: string }, actor: string): Promise<{ id: string }>;
   steer(sessionId: string, prompt: string, actor: string): Promise<unknown>;
   stop(sessionId: string, actor: string): Promise<unknown>;
@@ -18,32 +18,32 @@ export interface OrchestrationSessionPort {
   writeBlob(sessionId: string, text: string): Promise<string>;
 }
 
-export interface OrchestrationOptions {
+export interface TeamOptions {
   /** Poll-Intervall des tick-Loops (Tests: klein). */
   pollMs?: number;
 }
 
-/** Koordinator: Run-Lifecycle über Ports — Planerkennung, Dispatch, Ende-Erkennung, Gates, Cancel (ADR-0064 §3/§5). */
-export class Orchestrator {
-  private readonly store: OrchestrationStore;
-  private readonly port: OrchestrationSessionPort;
-  private readonly opts: Required<OrchestrationOptions>;
+/** Koordinator: Team-Lifecycle über Ports — Planerkennung, Dispatch, Ende-Erkennung, Gates, Cancel (ADR-0064 §3/§5). */
+export class TeamCoordinator {
+  private readonly store: TeamStore;
+  private readonly port: TeamSessionPort;
+  private readonly opts: Required<TeamOptions>;
   private timer: ReturnType<typeof setInterval> | undefined;
   private activeTick: Promise<void> | null = null;
   private tickRequested = false;
   /** Laufzeitbeobachtung: welche Dispatches schon working/starting gesehen wurden (Erste-idle-Erkennung). */
   private readonly seen = new Set<string>();
 
-  constructor(store: OrchestrationStore, port: OrchestrationSessionPort, opts: OrchestrationOptions = {}) {
+  constructor(store: TeamStore, port: TeamSessionPort, opts: TeamOptions = {}) {
     this.store = store;
     this.port = port;
     this.opts = { pollMs: opts.pollMs ?? 2000 };
   }
 
-  async start(input: OrchestrationRunStart, actor: string): Promise<OrchestrationRun> {
+  async start(input: TeamStart, actor: string): Promise<Team> {
     const id = randomUUID();
     const now = new Date().toISOString();
-    let run: OrchestrationRun = {
+    let run: Team = {
       id,
       title: input.title,
       goal: input.goal,
@@ -61,20 +61,20 @@ export class Orchestrator {
     };
     if (input.plan) {
       const err = validatePlan(input.plan, input.frame);
-      if (err) throw new OrchestrationError(err.message, err.code);
+      if (err) throw new TeamError(err.message, err.code);
       run.tasks = tasksFromPlan(input.plan);
       run.status = "running";
       run = await this.store.put(run);
     } else {
       run = await this.store.put(run);
       const prompt = [
-        `# Orchestrierungsauftrag: ${input.title}`,
+        `# Team-Auftrag: ${input.title}`,
         "",
         input.goal,
         "",
         `Erlaubte Worker-Adapter: ${input.frame.adapters.join(", ")}.`,
         `Erzeuge einen Aufgabenplan mit höchstens ${input.frame.maxTasks} Aufgaben als JSON:`,
-        "```orchestration",
+        "```team",
         JSON.stringify({ tasks: [{ id: "T1", title: "…", prompt: "…", adapter: input.frame.adapters[0], model: null, dependsOn: [] }] }),
         "```",
         "Antworte ausschließlich mit diesem JSON-Block (kein weiterer Text).",
@@ -123,7 +123,7 @@ export class Orchestrator {
         question: `Der Koordinator lieferte keinen lesbaren Aufgabenplan. Letzte Antwort: ${text.slice(0, 300) || "(leer)"}`,
         options: [
           { label: "Erneut versuchen", action: "retry_plan" },
-          { label: "Run abbrechen", action: "cancel" },
+          { label: "Team abbrechen", action: "cancel" },
         ],
         taskId: null,
       });
@@ -138,7 +138,7 @@ export class Orchestrator {
         reason: err.code === "adapter_not_allowed" ? "adapter_not_allowed" : "plan_unreadable",
         question: `Aufgabenplan verletzt den Rahmen: ${err.message}`,
         options: [
-          { label: "Run abbrechen", action: "cancel" },
+          { label: "Team abbrechen", action: "cancel" },
           { label: "Trotzdem weiter (nach Korrektur)", action: "continue" },
         ],
         taskId: null,
@@ -189,18 +189,18 @@ export class Orchestrator {
       const prompt = contextPacket(run, plan);
       let session: { id: string };
       try {
-        session = await this.port.create({ adapter: task.adapter, project: run.project, prompt, model: task.model, workspaceMode: "worktree", title: `${run.title} · ${task.id}` }, "orchestration");
+        session = await this.port.create({ adapter: task.adapter, project: run.project, prompt, model: task.model, workspaceMode: "worktree", title: `${run.title} · ${task.id}` }, "team");
       } catch (err) {
         openGate(run, {
           id: randomUUID(),
           reason: "unknown_outcome",
           question: `Worker für ${task.id} konnte nicht gestartet werden: ${err instanceof Error ? err.message : String(err)}`,
-          options: [{ label: "Run abbrechen", action: "cancel" }],
+          options: [{ label: "Team abbrechen", action: "cancel" }],
           taskId: task.id,
         });
         continue;
       }
-      const dispatch: OrchestrationDispatch = {
+      const dispatch: TeamDispatch = {
         id: randomUUID(),
         generation,
         sessionId: session.id,
@@ -217,25 +217,25 @@ export class Orchestrator {
     await this.store.update(runId, () => undefined);
   }
 
-  async answer(runId: string, gateId: string, label: string, actor: string): Promise<OrchestrationRun | null> {
+  async answer(runId: string, gateId: string, label: string, actor: string): Promise<Team | null> {
     const run = this.store.get(runId);
     if (!run) return null;
     const gate = run.gates.find((g) => g.id === gateId);
     const res = engineAnswer(run, gateId, label);
-    if (!res.ok) throw new OrchestrationError(res.error.message, res.error.code);
+    if (!res.ok) throw new TeamError(res.error.message, res.error.code);
     if (gate?.options.find((o) => o.label === label)?.action === "retry_plan" && run.coordinatorSessionId) {
-      await this.port.steer(run.coordinatorSessionId, "Dein letzter Plan war nicht lesbar. Antworte ausschließlich mit dem ```orchestration JSON-Block.", actor);
+      await this.port.steer(run.coordinatorSessionId, "Dein letzter Plan war nicht lesbar. Antworte ausschließlich mit dem ```team JSON-Block.", actor);
     }
     await this.store.update(runId, () => undefined);
     await this.tick();
     return run;
   }
 
-  async cancel(runId: string, reason: string, actor: string): Promise<OrchestrationRun | null> {
+  async cancel(runId: string, reason: string, actor: string): Promise<Team | null> {
     const run = this.store.get(runId);
     if (!run) return null;
     cancelRun(run, reason);
-    // Nur Run-eigene Sessions stoppen (Koordinator + aktive Dispatches); Worktrees bleiben (AC-P40-6).
+    // Nur Team-eigene Sessions stoppen (Koordinator + aktive Dispatches); Worktrees bleiben (AC-P40-6).
     for (const t of run.tasks) {
       for (const d of t.dispatches) {
         if (d.status === "cancelled") await this.port.stop(d.sessionId, actor).catch(() => undefined);
@@ -280,7 +280,7 @@ export class Orchestrator {
   }
 }
 
-export class OrchestrationError extends Error {
+export class TeamError extends Error {
   readonly code: string;
   constructor(message: string, code: string) {
     super(message);
@@ -288,16 +288,16 @@ export class OrchestrationError extends Error {
   }
 }
 
-/** JSON-Plan aus einer Koordinator-Antwort lesen: ```orchestration …``` Block, sonst erstes {tasks:…}-Objekt. */
-export function parsePlan(text: string): OrchestrationPlan | null {
-  const fence = /```orchestration\s*([\s\S]*?)```/.exec(text);
+/** JSON-Plan aus einer Koordinator-Antwort lesen: ```team …``` Block, sonst erstes {tasks:…}-Objekt. */
+export function parsePlan(text: string): TeamPlan | null {
+  const fence = /```(?:team|orchestration)\s*([\s\S]*?)```/.exec(text);
   const candidates: string[] = [];
   if (fence?.[1]) candidates.push(fence[1]);
   const brace = /\{[\s\S]*"tasks"[\s\S]*\}/.exec(text);
   if (brace?.[0]) candidates.push(brace[0]);
   for (const c of candidates) {
     try {
-      const parsed = OrchestrationPlan.safeParse(JSON.parse(c));
+      const parsed = TeamPlan.safeParse(JSON.parse(c));
       if (parsed.success) return parsed.data;
     } catch {
       // nächster Kandidat
