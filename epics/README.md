@@ -231,19 +231,19 @@ Umsetzung, damit andere Agenten das Epic sehen; dann Umsetzung je Aufgabe).
 
 Ausdrücklicher Planungsauftrag von Jan (vier Punkte). Recherche mit
 Code-Evidenz und Zuordnung: [2026-11-14](../docs/2026-11-14_recherche_verfeinerungen_typewriter_metriken.md).
-Zwei Punkte gehen in **offene, noch nicht begonnene** Epics (P47, P43.5 —
-dort als neue Tasks/AC ergänzt); in Arbeit befindliche Epics (P37, P38, P42,
-P46, P51 teils) wurden nicht angefasst.
+Zum Zeitpunkt des Planungsauftrags gingen zwei Punkte in die damals offenen
+Epics P47 und P43.5 (neue Tasks/AC); andere laufende Epics wurden nicht
+angefasst. Die P47-Ergänzung und P43.5 sind inzwischen umgesetzt (14.11.2026).
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
 | [P47 — Ergänzung](EPIC-P47-uebersicht-sessions-projekte-hosts.md) | Discovery als vierter Umschalt-State der Übersicht, eigener Menüpunkt entfällt (Design-Entscheidung §3.4; Deeplink/Chip bleiben; umgesetzt 2026-11-14); T47.5/T47.6, AC-P47-5/6 | wie bisher (keine fachliche offene) | +0,25 |
-| [P43.5 — Ergänzung](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Composer-Maximieren-Button als Icon-Button statt Fullscreen-Fläche; T43.5-6, AC-P43.5-6 | P43 grün (erfüllt) | +0,1 |
+| [P43.5 — Ergänzung](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Composer-Maximieren-Button als Icon-Button statt Fullscreen-Fläche; T43.5-6, AC-P43.5-6 — **abgeschlossen 14.11.2026, MR !470** | P43 grün (erfüllt) | +0,1 |
 | [P58 — Typewriter-Effekt](EPIC-P58-typewriter-effekt.md) | Chat und Thinking/Reasoning werden bei Live-Zuwachs getippt; Settings-Schalter; History sofort; K2-Messlauf — **umgesetzt 2026-11-14** (T58.1–T58.6, Gate grün, K2-Messlauf mit Animation PASS; Live-Abnahme am Gerät → Jan) | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | ~1 |
 | [P59 — KI-Server-Metriken](EPIC-P59-ki-server-metriken.md) | Neue Metrik-Seite: CPU, GPU, Tokens/s, Prefill, Decode, KV-Cache des lokalen KI-Servers; ADR vor Contract-Änderung; Abgrenzung zu P56 | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | 1–2 |
 
 Reihenfolge: P58/P59 quer wie P50–P53 (je Aufgabe eigener Branch/MR nach
-main); P47/P43.5-Extras hängen an deren je eigenem Start. Kein Start vor
+main); P47/P43.5-Extras sind mit ihren jeweiligen Abnahmen umgesetzt. Kein Start vor
 grünen Exit-Kriterien der wirksamen Vorgänger; P56 bleibt der einzige
 Aggregationsort (P59 liefert nur direkte Proben).
 
