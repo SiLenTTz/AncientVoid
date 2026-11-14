@@ -14,6 +14,7 @@ import { DesktopPage } from "../features/desktop/DesktopPage.tsx";
 import { VaultPane } from "../features/vault/VaultPane.tsx";
 import { RunsPane } from "../features/orchestration/RunsPane.tsx";
 import { AutomationsPane } from "../features/automations/AutomationsPane.tsx";
+import { AiMetricsPage } from "../features/aimetrics/AiMetricsPage.tsx";
 import { publishHubStatus } from "../features/shell/hub-status.ts";
 import { getLastSession } from "../features/shell/last-session.ts";
 import { DetachButton } from "../features/windows/DetachButton.tsx";
@@ -188,6 +189,7 @@ export function App({
       {shown === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
       {shown === "orchestrierung" && <RunsPane />}
       {shown === "automationen" && <AutomationsPane />}
+      {shown === "aimetrics" && <AiMetricsPage />}
       {shown === "dashboard" &&
         (sessions === null ? (
           <div class="empty">lade…</div>

@@ -8,6 +8,7 @@ import { StatusPage } from "../status/StatusPage.tsx";
 import { VaultPane } from "../vault/VaultPane.tsx";
 import { RunsPane } from "../orchestration/RunsPane.tsx";
 import { AutomationsPane } from "../automations/AutomationsPane.tsx";
+import { AiMetricsPage } from "../aimetrics/AiMetricsPage.tsx";
 import { useHubStatus } from "./hub-status.ts";
 
 const TITLES: Partial<Record<ListPage, string>> = {
@@ -18,6 +19,7 @@ const TITLES: Partial<Record<ListPage, string>> = {
   vault: "Notizen",
   orchestrierung: "Orchestrierung",
   automationen: "Automationen",
+  aimetrics: "Metrik",
 };
 
 /**
@@ -87,6 +89,7 @@ export function ToolPane({
         {page === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
         {page === "orchestrierung" && <RunsPane />}
         {page === "automationen" && <AutomationsPane />}
+        {page === "aimetrics" && <AiMetricsPage />}
       </div>
     </section>
   );
