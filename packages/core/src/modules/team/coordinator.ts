@@ -73,9 +73,14 @@ export class TeamCoordinator {
         input.goal,
         "",
         `Erlaubte Worker-Adapter: ${input.frame.adapters.join(", ")}.`,
-        `Erzeuge einen Aufgabenplan mit höchstens ${input.frame.maxTasks} Aufgaben als JSON:`,
+        `Bis zu ${input.frame.maxParallel} Aufgaben dürfen gleichzeitig laufen (Parallelität des Rahmens: ${input.frame.maxParallel}).`,
+        "Gliedere den Auftrag so breit wie möglich, so tief wie nötig: Unabhängige Teilaufgaben gehören NEBENEINANDER (ohne dependsOn), damit sie parallel arbeiten; dependsOn nur bei echtem Informationsbedarf.",
+        `Erzeuge einen Aufgabenplan mit höchstens ${input.frame.maxTasks} Aufgaben als JSON — z. B. zwei parallele Tasks:`,
         "```team",
-        JSON.stringify({ tasks: [{ id: "T1", title: "…", prompt: "…", adapter: input.frame.adapters[0], model: null, dependsOn: [] }] }),
+        JSON.stringify({ tasks: [
+          { id: "T1", title: "…", prompt: "…", adapter: input.frame.adapters[0], model: null, dependsOn: [] },
+          { id: "T2", title: "…", prompt: "…", adapter: input.frame.adapters[1] ?? input.frame.adapters[0], model: null, dependsOn: [] },
+        ] }),
         "```",
         "Antworte ausschließlich mit diesem JSON-Block (kein weiterer Text).",
       ].join("\n");

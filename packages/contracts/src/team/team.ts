@@ -23,7 +23,8 @@ export const TeamFrame = z.object({
   model: z.string().min(1).nullable().default(null),
   maxTasks: z.number().int().min(1).max(24).default(8),
   maxDispatchesPerTask: z.number().int().min(1).max(3).default(2),
-  maxParallel: z.number().int().min(1).max(4).default(2),
+  /** ADR-0077 (T60.7): Deckel 8 — breite Teams sind erlaubt; die harte Obergrenze bleiben die Session-Grenzen (K8). */
+  maxParallel: z.number().int().min(1).max(8).default(2),
 });
 export type TeamFrame = z.infer<typeof TeamFrame>;
 

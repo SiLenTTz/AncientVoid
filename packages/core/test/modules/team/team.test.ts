@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { TeamDispatch, TeamFrame, TeamPlan, Team, TeamTaskPlan } from "@ancientvoid/contracts";
+import { TeamFrame, type TeamDispatch, type TeamPlan, type Team, type TeamTaskPlan } from "@ancientvoid/contracts";
 import { applyOutcome, cancelRun, contextPacket, nextDispatches, openGate, answerGate, tasksFromPlan, validatePlan } from "../../../src/modules/team/engine.ts";
 import { TeamStore } from "../../../src/modules/team/store.ts";
 import { TeamCoordinator, parsePlan, type TeamSessionPort } from "../../../src/modules/team/coordinator.ts";
@@ -357,7 +357,45 @@ async function setup(plan: TeamPlan | null, pollMs = 3_600_000) {
   return { dir, store, fake, orch, run };
 }
 
+describe("EPIC-P60 (ADR-0077, T60.7) — Parallelitäts-Deckel 8 im Contract", () => {
+  it("maxParallel 8 ist erlaubt, 9 wird abgewiesen (Zod-Deckel)", () => {
+    const base = { adapters: ["codex"], coordinatorAdapter: "hermes", model: null, maxTasks: 8, maxDispatchesPerTask: 2 };
+    expect(TeamFrame.parse({ ...base, maxParallel: 8 }).maxParallel).toBe(8);
+    expect(TeamFrame.safeParse({ ...base, maxParallel: 9 }).success).toBe(false);
+  });
+});
+
 describe("EPIC-P40 Orchestrierung — TeamCoordinator", () => {
+  it("T60.7: N unabhängige Tasks mit maxParallel ≥ N laufen gleichzeitig; der Rahmen bleibt serverseitig erzwingt (K8)", async () => {
+    // Drei unabhängige Tasks, Rahmen maxParallel 3 — der Fake-Port hält alle
+    // Sessions in „working", sodass die Überlappung sichtbar bleibt.
+    const dir = mkdtempSync(join(tmpdir(), "av-p60-par-"));
+    const store = new TeamStore(dir);
+    await store.init();
+    const fake = fakePort();
+    const orch = new TeamCoordinator(store, fake.port, { pollMs: 3_600_000 });
+    const plan: TeamPlan = {
+      tasks: [taskPlan("T1"), taskPlan("T2"), taskPlan("T3"), taskPlan("T4")],
+    };
+    const run = await orch.start({ ...startInput(plan), frame: frame({ maxParallel: 3 }) }, "tester");
+    await orch.tick();
+    const stored = store.get(run.id)!;
+    // Drei Sessions wurden GLEICHZEITIG erzeugt (nicht nacheinander abgeschlossen):
+    expect(fake.created).toHaveLength(3);
+    expect(stored.tasks.filter((t) => t.status === "running")).toHaveLength(3);
+    expect(stored.tasks.filter((t) => t.dispatches.some((d) => d.status === "active"))).toHaveLength(3);
+    // T4 wartet — der Rahmen wird bei jedem Dispatch geprüft.
+    expect(stored.tasks.find((t) => t.id === "T4")?.status).toBe("ready");
+    // Ein Worker-Ende rückt T4 nach.
+    fake.statuses.set(fake.created[0]!, "idle");
+    fake.texts.set(fake.created[0]!, "Ergebnis T1");
+    await orch.tick();
+    await orch.tick();
+    const after = store.get(run.id)!;
+    expect(after.tasks.find((t) => t.id === "T4")?.status).toBe("running");
+    expect(fake.created).toHaveLength(4);
+  });
+
   it("Start mit given plan: dispatcht Ready-Tasks, working→idle ⇒ Delivery, Run done", async () => {
     const { store, fake, orch, run } = await setup({ tasks: [taskPlan("T1")] });
     expect(run.tasks[0]?.status).toBe("running");
