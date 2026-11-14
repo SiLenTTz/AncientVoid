@@ -115,6 +115,59 @@ test.describe("?-Kürzelübersicht (EPIC-P51 T51.7, aus T43.6 gezogen)", () => {
   });
 });
 
+test.describe("Shortcut-Hinweis-Pill und Setting (EPIC-P51 T51.8)", () => {
+  test("Klick auf eine Aktion mit Kürzel zeigt die Pill kurz, dann verschwindet sie", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+    await app.locator(".dock .dock-item").nth(1).click(); // „Suchen“ → Strg+K
+    const pill = app.locator('[data-testid="shortcut-hint"]');
+    await expect(pill).toBeVisible();
+    await expect(pill).toHaveText("Strg+K");
+    await app.keyboard.press("Escape"); // CommandBar schließen
+    await expect(pill).toBeHidden({ timeout: 6000 });
+  });
+
+  test("Klick ohne Kürzel bleibt still", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+    await app.locator(".dock .dock-item").first().click(); // „Start“ hat kein Kürzel
+    await app.waitForTimeout(350);
+    await expect(app.locator('[data-testid="shortcut-hint"]')).toHaveCount(0);
+  });
+
+  test("Setting aus: keine Pill, nichts blockiert", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+    await app.evaluate(() => localStorage.setItem("ancientvoid.shortcutHints", "0"));
+    await app.reload();
+    await app.locator(".dock .dock-item").nth(1).click();
+    await app.waitForTimeout(350);
+    await expect(app.locator('[data-testid="shortcut-hint"]')).toHaveCount(0);
+    await app.keyboard.press("Escape");
+    await expect(app.locator(".command-sheet")).toHaveCount(0);
+  });
+
+  test("Setting-Schalter in der Darstellungsgruppe schaltbar (role=switch)", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+    await app.goto(`${hub.origin}/#/einstellungen`);
+    const sw = app.getByRole("switch", { name: "Shortcut-Hinweise" });
+    await expect(sw).toBeVisible();
+    await sw.click();
+    await expect(sw).not.toBeChecked();
+    expect(await app.evaluate(() => localStorage.getItem("ancientvoid.shortcutHints"))).toBe("0");
+    await sw.click();
+    await expect(sw).toBeChecked();
+    expect(await app.evaluate(() => localStorage.getItem("ancientvoid.shortcutHints"))).toBe(null);
+  });
+
+  test("Pill blockiert nichts: pointer-events none (Premortem 4)", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+    await app.locator(".dock .dock-item").nth(1).click(); // „Suchen“ erzeugt die Pill
+    const pill = app.locator('[data-testid="shortcut-hint"]');
+    await expect(pill).toBeVisible();
+    expect(await app.evaluate(() => getComputedStyle(document.querySelector('[data-testid="shortcut-hint"]')!).pointerEvents)).toBe("none");
+    await app.keyboard.press("Escape");
+    await expect(app.locator(".command-sheet")).toHaveCount(0);
+  });
+});
+
 test.describe("Roving-Pfeil-Navigation (EPIC-P51 T51.6)", () => {
   test("Dock: Pfeiltasten bewegen den Fokus von Eintrag zu Eintrag", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" });

@@ -9,6 +9,7 @@ import { CommandBar } from "../features/commands/CommandBar.tsx";
 import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
 import { registerShortcut } from "../shared/shortcuts/registry.ts";
 import { CheatSheet } from "../shared/shortcuts/CheatSheet.tsx";
+import { installShortcutHints } from "../shared/shortcut-hint.ts";
 import { classifyGateError, gateMessage, lastHubContact, noteHubContact } from "./token-gate.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { initAppearance } from "./appearance.ts";
@@ -45,6 +46,8 @@ applyPinchZoom(pinchZoomAllowed());
 applyScale(getScale());
 applyCtxMotion(ctxMotionOn());
 installScaleShortcuts();
+// EPIC-P51 T51.8: Kürzel-Hinweis-Pill bei Klicks auf Elemente mit Shortcut.
+installShortcutHints();
 
 function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: string }) {
   const [token, setVal] = useState(getToken());

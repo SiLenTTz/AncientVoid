@@ -78,7 +78,7 @@ export function ToolPane({
             </button>
           )}
           {escCloses && (
-            <button type="button" class="tool-pane-close" aria-label={closeLabel} title={`${closeLabel} (${comboLabel("tool.close")})`} aria-keyshortcuts={ariaCombo("tool.close")} onClick={onClose}>
+            <button type="button" class="tool-pane-close" aria-label={closeLabel} title={`${closeLabel} (${comboLabel("tool.close")})`} aria-keyshortcuts={ariaCombo("tool.close")} data-shortcut="tool.close" onClick={onClose}>
               ×
             </button>
           )}

@@ -55,7 +55,7 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
       <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} type="button" title="Start" onClick={() => go("dashboard")}>
         <TabIcon name="uebersicht" /><span class="lb">Start</span>
       </button>
-      <button class="dock-item" type="button" title={`Suchen und Auftrag in Worten (${comboLabel("command.toggle")})`} aria-keyshortcuts={ariaCombo("command.toggle")} onClick={() => { setMore(false); openCommandBar(); }}>
+      <button class="dock-item" type="button" title={`Suchen und Auftrag in Worten (${comboLabel("command.toggle")})`} aria-keyshortcuts={ariaCombo("command.toggle")} data-shortcut="command.toggle" onClick={() => { setMore(false); openCommandBar(); }}>
         <TabIcon name="suche" /><span class="lb">Suchen</span>
       </button>
       <button class={`dock-item dock-main ${active === "new" ? "active" : ""}`} type="button" title="Neue Session" aria-label="Neue Session" onClick={() => go("new")}>
@@ -72,7 +72,7 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
           <TabIcon name={m.icon} /><span class="lb">{m.label}</span>
         </button>
       ))}
-      <button class="dock-item dock-extra" type="button" title={`Dateibaum (${comboLabel("files.toggle")})`} aria-keyshortcuts={ariaCombo("files.toggle")} onClick={() => openLayer("files")}>
+      <button class="dock-item dock-extra" type="button" title={`Dateibaum (${comboLabel("files.toggle")})`} aria-keyshortcuts={ariaCombo("files.toggle")} data-shortcut="files.toggle" onClick={() => openLayer("files")}>
         <TabIcon name="baum" /><span class="lb">Dateibaum</span>
       </button>
       {more && (

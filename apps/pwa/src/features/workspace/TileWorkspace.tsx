@@ -140,19 +140,19 @@ export function TileWorkspace({
         ))}
         {/* Dieselben Aktionen wie die Tastenkürzel, damit sie auch per Tipp gehen (Tablet, Touch). */}
         <div class="tile-actions" role="group" aria-label="Kachel-Aktionen">
-          <button type="button" class="chip" title={`Fokus auf die vorige Kachel (${comboLabel("workspace.tile-1")}–4 wählt direkt)`} disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + count - 1) % count))}>
+          <button type="button" class="chip" title={`Fokus auf die vorige Kachel (${comboLabel("workspace.tile-1")}–4 wählt direkt)`} data-shortcut="workspace.tile-1" disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + count - 1) % count))}>
             ‹ Fokus
           </button>
-          <button type="button" class="chip" title={`Fokus auf die nächste Kachel (${comboLabel("workspace.tile-1")}–4 wählt direkt)`} disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + 1) % count))}>
+          <button type="button" class="chip" title={`Fokus auf die nächste Kachel (${comboLabel("workspace.tile-1")}–4 wählt direkt)`} data-shortcut="workspace.tile-1" disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + 1) % count))}>
             Fokus ›
           </button>
-          <button type="button" class="chip" title={`Kachel mit der nächsten tauschen (${comboLabel("workspace.tile-swap-1")}–4)`} disabled={count < 2} onClick={() => onChange(swapWith(ws, (ws.focus + 1) % count))}>
+          <button type="button" class="chip" title={`Kachel mit der nächsten tauschen (${comboLabel("workspace.tile-swap-1")}–4)`} data-shortcut="workspace.tile-swap-1" disabled={count < 2} onClick={() => onChange(swapWith(ws, (ws.focus + 1) % count))}>
             ⇄ Tauschen
           </button>
-          <button type="button" class="chip" title={`Nächstes Layout (${comboLabel("workspace.layout")})`} onClick={() => onChange(cycleLayout(ws, 1))}>
+          <button type="button" class="chip" title={`Nächstes Layout (${comboLabel("workspace.layout")})`} data-shortcut="workspace.layout" onClick={() => onChange(cycleLayout(ws, 1))}>
             ⟳ Layout
           </button>
-          <button type="button" class="chip" title={`Fokussierte Kachel leeren (${comboLabel("workspace.tile-close")})`} onClick={() => onChange(closeTile(ws, ws.focus))}>
+          <button type="button" class="chip" title={`Fokussierte Kachel leeren (${comboLabel("workspace.tile-close")})`} data-shortcut="workspace.tile-close" onClick={() => onChange(closeTile(ws, ws.focus))}>
             ✕ Leeren
           </button>
           {/* EPIC-P51 T51.7: detaillierte Kürzelzeile durch ?-Übersicht ersetzt (aus T43.6 hierher gezogen). */}
