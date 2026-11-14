@@ -126,8 +126,8 @@ export const AutomationGrant = z.object({
 });
 export type AutomationGrant = z.infer<typeof AutomationGrant>;
 
-/** Das Ziel: vorhandener Session-Start (P31/P35-Kataloge bleiben Wahrheit) oder vorhandene Run-Vorlage (P40). */
-export const AutomationTarget = z.discriminatedUnion("kind", [
+/** Das Ziel: vorhandener Session-Start (P31/P35-Kataloge bleiben Wahrheit) oder vorhandene Team-Vorlage (P40, ehemals Run). */
+const AutomationTargetBase = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("session"),
     harness: z.string().min(1).max(60),
@@ -138,11 +138,16 @@ export const AutomationTarget = z.discriminatedUnion("kind", [
     promptBlobSha256: BlobRef,
   }),
   z.object({
-    kind: z.literal("run"),
+    kind: z.literal("team"),
     templateId: z.string().min(1).max(64),
     templateBlobSha256: BlobRef.optional(),
   }),
 ]);
+/** ADR-0077: persistierte Ziele mit `kind: "run"` werden toleriert gelesen und auf `"team"` normalisiert. */
+export const AutomationTarget = z.preprocess(
+  (v) => (typeof v === "object" && v !== null && (v as { kind?: unknown }).kind === "run" ? { ...(v as object), kind: "team" } : v),
+  AutomationTargetBase,
+);
 export type AutomationTarget = z.infer<typeof AutomationTarget>;
 
 /** Die gespeicherte Definition (Journal-Record). `enabled=false` ist der Neuanfang-Zustand. */
@@ -163,16 +168,22 @@ export const AutomationDefinition = z.object({
 });
 export type AutomationDefinition = z.infer<typeof AutomationDefinition>;
 
-/** ADR-0065: gemeinsamer Verlaufsvertrag; optionale Felder erhalten alte Journale. */
-export const AutomationHistoryEntry = z.object({
+/** ADR-0065: gemeinsamer Verlaufsvertrag; optionale Felder erhalten alte Journale.
+ * ADR-0077: `teamId` (ehemals `runId`) — alte Journalzeilen werden tolerierend übernommen. */
+const AutomationHistoryEntryBase = z.object({
   claimKey: z.string(), automationId: z.string(), generation: z.number().int().positive(),
   occurrenceUtc: z.iso.datetime(), at: z.iso.datetime(), state: AutomationClaimState,
   reason: AutomationSkipReason.optional(), outcome: AutomationOutcome.optional(),
-  runId: z.string().optional(), sessionId: z.string().optional(),
+  teamId: z.string().optional(), sessionId: z.string().optional(),
   kind: z.enum(["due", "catchup", "run_now"]).optional(),
   operationId: z.string().optional(), missedThroughUtc: z.iso.datetime().optional(),
   detail: z.string().max(500).optional(),
 });
+export const AutomationHistoryEntry = z.preprocess(
+  (v) => (typeof v === "object" && v !== null && (v as { teamId?: unknown; runId?: unknown }).teamId === undefined && typeof (v as { runId?: unknown }).runId === "string"
+    ? { ...(v as object), teamId: (v as { runId: string }).runId } : v),
+  AutomationHistoryEntryBase,
+);
 export type AutomationHistoryEntry = z.infer<typeof AutomationHistoryEntry>;
 
 /** Die Zeile der PWA-Tabelle (EPIC-P41 §3.4): Plan, nächste Termine, letztes Ergebnis. */
@@ -185,7 +196,7 @@ export const AutomationInfo = z.object({
     state: AutomationClaimState,
     reason: AutomationSkipReason.nullish(),
     outcome: AutomationOutcome.nullish(),
-    runId: z.string().nullish(),
+    teamId: z.string().nullish(),
     sessionId: z.string().nullish(),
   }).nullish(),
 });
