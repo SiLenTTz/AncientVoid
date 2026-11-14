@@ -7,6 +7,7 @@ import { useEffect, useState } from "preact/hooks";
 import { TabIcon, type TabIconName } from "../shared/TabIcon.tsx";
 import { openCommandBar } from "../features/commands/CommandBar.tsx";
 import { openLayer } from "../shared/layers.ts";
+import { ariaCombo, comboLabel, registerShortcut } from "../shared/shortcuts/registry.ts";
 export type { ListPage as Page } from "./route.ts";
 import type { ListPage as Page } from "./route.ts";
 
@@ -25,11 +26,11 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
   const [more, setMore] = useState(false);
   useEffect(() => {
     if (!more) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMore(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // EPIC-P51 T51.5: Esc über die Shortcut-Registry.
+    return registerShortcut("dock.more-close", (e) => {
+      e.preventDefault();
+      setMore(false);
+    });
   }, [more]);
   const go = (page: Page) => {
     setMore(false);
@@ -41,7 +42,7 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
       <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} type="button" title="Start" onClick={() => go("dashboard")}>
         <TabIcon name="uebersicht" /><span class="lb">Start</span>
       </button>
-      <button class="dock-item" type="button" title="Suchen und Auftrag in Worten (Strg+K)" onClick={() => { setMore(false); openCommandBar(); }}>
+      <button class="dock-item" type="button" title={`Suchen und Auftrag in Worten (${comboLabel("command.toggle")})`} aria-keyshortcuts={ariaCombo("command.toggle")} onClick={() => { setMore(false); openCommandBar(); }}>
         <TabIcon name="suche" /><span class="lb">Suchen</span>
       </button>
       <button class={`dock-item dock-main ${active === "new" ? "active" : ""}`} type="button" title="Neue Session" aria-label="Neue Session" onClick={() => go("new")}>
@@ -58,7 +59,7 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
           <TabIcon name={m.icon} /><span class="lb">{m.label}</span>
         </button>
       ))}
-      <button class="dock-item dock-extra" type="button" title="Dateibaum (Strg+Umschalt+E)" onClick={() => openLayer("files")}>
+      <button class="dock-item dock-extra" type="button" title={`Dateibaum (${comboLabel("files.toggle")})`} aria-keyshortcuts={ariaCombo("files.toggle")} onClick={() => openLayer("files")}>
         <TabIcon name="baum" /><span class="lb">Dateibaum</span>
       </button>
       {more && (

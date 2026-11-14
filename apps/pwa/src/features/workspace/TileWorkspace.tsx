@@ -5,6 +5,7 @@ import type { Page } from "../../app/Dock.tsx";
 import { pointerOutside, type DropPoint } from "../windows/drag.ts";
 import type { CodeTarget } from "../../app/route.ts";
 import { closeTile, cycleLayout, focusTile, LAYOUT_LABELS, LAYOUTS, resizeTile, setLayout, swapWith, tileCount, tileFractions, visibleTiles, type Layout, type TileRef, type Workspace } from "./tiles.ts";
+import { ariaCombo, comboLabel, registerShortcut } from "../../shared/shortcuts/registry.ts";
 
 /** Tiles below this height start with the controls folded (P18 premortem 3). */
 const COMPACT_TILE_PX = 800;
@@ -35,25 +36,42 @@ export function TileWorkspace({
   const count = tileCount(ws.layout);
   // BUG-0071: the handler works on the NEWEST state, not the one of its last render — two shortcuts
   // within one tick (fast typing, a loaded machine) must compose instead of the second one
-  // starting from the state before the first.
+  // starting from the state before the first. EPIC-P51 T51.5: Registrierung
+  // über die Shortcut-Registry statt eigenem window-Listener.
   const latest = useRef(ws);
   latest.current = ws;
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!e.altKey || e.ctrlKey || e.metaKey) return;
-      const cur = latest.current;
-      const n = /^Digit([1-4])$/.exec(e.code)?.[1];
-      let next: Workspace | null = null;
-      if (n) next = e.shiftKey ? swapWith(cur, Number(n) - 1) : focusTile(cur, Number(n) - 1);
-      else if (e.code === "KeyL") next = cycleLayout(cur, e.shiftKey ? -1 : 1);
-      else if (e.code === "KeyW" && !e.shiftKey) next = closeTile(cur, cur.focus);
+    const apply = (next: Workspace | null) => {
       if (!next) return;
-      e.preventDefault();
       latest.current = next;
       onChange(next);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const tile = (n: number, e: KeyboardEvent) => {
+      e.preventDefault();
+      const cur = latest.current;
+      apply(e.shiftKey ? swapWith(cur, n - 1) : focusTile(cur, n - 1));
+    };
+    const offs = [
+      registerShortcut("workspace.tile-1", (e) => tile(1, e)),
+      registerShortcut("workspace.tile-2", (e) => tile(2, e)),
+      registerShortcut("workspace.tile-3", (e) => tile(3, e)),
+      registerShortcut("workspace.tile-4", (e) => tile(4, e)),
+      registerShortcut("workspace.tile-swap-1", (e) => tile(1, e)),
+      registerShortcut("workspace.tile-swap-2", (e) => tile(2, e)),
+      registerShortcut("workspace.tile-swap-3", (e) => tile(3, e)),
+      registerShortcut("workspace.tile-swap-4", (e) => tile(4, e)),
+      registerShortcut("workspace.layout", (e) => {
+        e.preventDefault();
+        apply(cycleLayout(latest.current, e.shiftKey ? -1 : 1));
+      }),
+      registerShortcut("workspace.tile-close", (e) => {
+        e.preventDefault();
+        apply(closeTile(latest.current, latest.current.focus));
+      }),
+    ];
+    return () => {
+      for (const off of offs) off();
+    };
   }, [onChange]);
 
   // A tile in a stacked layout gets half the height (or less).
@@ -113,7 +131,8 @@ export function TileWorkspace({
             class={`tile-layout-btn${layout === ws.layout ? " active" : ""}`}
             aria-pressed={layout === ws.layout}
             aria-label={LAYOUT_LABELS[layout]}
-            title={`${LAYOUT_LABELS[layout]} (Alt+L wechselt)`}
+            aria-keyshortcuts={ariaCombo("workspace.layout")}
+            title={`${LAYOUT_LABELS[layout]} (${comboLabel("workspace.layout")} wechselt)`}
             onClick={() => onChange(setLayout(ws, layout))}
           >
             <LayoutGlyph layout={layout} />
@@ -121,19 +140,19 @@ export function TileWorkspace({
         ))}
         {/* Dieselben Aktionen wie die Tastenkürzel, damit sie auch per Tipp gehen (Tablet, Touch). */}
         <div class="tile-actions" role="group" aria-label="Kachel-Aktionen">
-          <button type="button" class="chip" title="Fokus auf die vorige Kachel (Alt+1–4 wählt direkt)" disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + count - 1) % count))}>
+          <button type="button" class="chip" title={`Fokus auf die vorige Kachel (${comboLabel("workspace.tile-1")}–4 wählt direkt)`} disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + count - 1) % count))}>
             ‹ Fokus
           </button>
-          <button type="button" class="chip" title="Fokus auf die nächste Kachel (Alt+1–4 wählt direkt)" disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + 1) % count))}>
+          <button type="button" class="chip" title={`Fokus auf die nächste Kachel (${comboLabel("workspace.tile-1")}–4 wählt direkt)`} disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + 1) % count))}>
             Fokus ›
           </button>
-          <button type="button" class="chip" title="Kachel mit der nächsten tauschen (Alt+Shift+1–4)" disabled={count < 2} onClick={() => onChange(swapWith(ws, (ws.focus + 1) % count))}>
+          <button type="button" class="chip" title={`Kachel mit der nächsten tauschen (${comboLabel("workspace.tile-swap-1")}–4)`} disabled={count < 2} onClick={() => onChange(swapWith(ws, (ws.focus + 1) % count))}>
             ⇄ Tauschen
           </button>
-          <button type="button" class="chip" title="Nächstes Layout (Alt+L)" onClick={() => onChange(cycleLayout(ws, 1))}>
+          <button type="button" class="chip" title={`Nächstes Layout (${comboLabel("workspace.layout")})`} onClick={() => onChange(cycleLayout(ws, 1))}>
             ⟳ Layout
           </button>
-          <button type="button" class="chip" title="Fokussierte Kachel leeren (Alt+W)" onClick={() => onChange(closeTile(ws, ws.focus))}>
+          <button type="button" class="chip" title={`Fokussierte Kachel leeren (${comboLabel("workspace.tile-close")})`} onClick={() => onChange(closeTile(ws, ws.focus))}>
             ✕ Leeren
           </button>
           <span class="tile-keys dim">Tastatur: Alt+1–4 · Alt+Shift+1–4 · Alt+L · Alt+W · Strg-Klick: neue Kachel</span>

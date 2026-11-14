@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect } from "preact/hooks";
 import type { SessionRecord } from "../../shared/api.ts";
 import type { ListPage } from "../../app/route.ts";
+import { registerShortcut, comboLabel, ariaCombo } from "../../shared/shortcuts/registry.ts";
 import { DesktopPage } from "../desktop/DesktopPage.tsx";
 import { DiscoveryPane } from "../discovery/Discovery.tsx";
 import { MediaPage } from "../media/MediaPage.tsx";
@@ -52,15 +53,18 @@ export function ToolPane({
   // BUG-0106: Preact 11 spült passive Effekte erst im nächsten
   // requestAnimationFrame — die Pane ist schon sichtbar, bevor dieser
   // Keydown-Listener hängt, und ein sofortiges Esc (unter CI-Last) ging
-  // ins Leere. useLayoutEffect hängt den Listener synchron beim DOM-Commit.
-  // Ein Dialog in der Pane (Farbwähler, T34.5) behandelt Esc selbst und
-  // markiert das Event (defaultPrevented).
+  // ins Leere. useLayoutEffect hängt die Registrierung synchron beim
+  // DOM-Commit. Ein Dialog in der Pane (Farbwähler, T34.5) behandelt Esc
+  // selbst und markiert das Event (defaultPrevented).
+  // EPIC-P51 T51.5: Esc läuft über die Shortcut-Registry.
   useLayoutEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (escCloses && e.key === "Escape" && !e.defaultPrevented) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    if (!escCloses) return;
+    const off = registerShortcut("tool.close", (e) => {
+      if (e.defaultPrevented) return;
+      e.preventDefault();
+      onClose();
+    });
+    return off;
   }, [onClose, escCloses]);
   const title = TITLES[page] ?? "";
   return (
@@ -74,7 +78,7 @@ export function ToolPane({
             </button>
           )}
           {escCloses && (
-            <button type="button" class="tool-pane-close" aria-label={closeLabel} title={`${closeLabel} (Esc)`} onClick={onClose}>
+            <button type="button" class="tool-pane-close" aria-label={closeLabel} title={`${closeLabel} (${comboLabel("tool.close")})`} aria-keyshortcuts={ariaCombo("tool.close")} onClick={onClose}>
               ×
             </button>
           )}

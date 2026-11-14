@@ -4,6 +4,7 @@ import { commandContext, currentField, field, getHere, type FieldId } from "../.
 import { pageHash, sessionHash, type ListPage } from "../../app/route.ts";
 import { preselectProject } from "../new-session/CreateSession.tsx";
 import { COMMANDS as EXAMPLES, QUICK_KIND_LABEL, quickMatches, type QuickSources, type QuickTarget } from "./quick.ts";
+import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 
 const RISK_TEXT = { read: "liest", write: "ändert", destructive: "zerstörerisch" } as const;
 const TRANSFORM_TEXT: Record<string, string> = { correct: "korrigiert", shorten: "gekürzt", translate_en: "übersetzt (Englisch)", translate_de: "übersetzt (Deutsch)", improve: "verbessert" };
@@ -90,21 +91,27 @@ export function CommandBar() {
     }
   };
 
+  // EPIC-P51 T51.5: Kürzel über die Registry (zentraler Dispatcher). Die
+  // Registrierung lebt im useEffect mit [open] — der Handler sieht frischen State.
   useEffect(() => {
-    const key = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOpen((o) => !o);
-      } else if (e.key === "Escape") setOpen(false);
-    };
     const openIt = () => setOpen(true);
-    window.addEventListener("keydown", key);
     window.addEventListener("ancientvoid:command-bar", openIt);
+    const offToggle = registerShortcut("command.toggle", (e) => {
+      e.preventDefault();
+      setOpen((o) => !o);
+    });
+    const offClose = open
+      ? registerShortcut("command.close", (e) => {
+          e.preventDefault();
+          setOpen(false);
+        })
+      : null;
     return () => {
-      window.removeEventListener("keydown", key);
       window.removeEventListener("ancientvoid:command-bar", openIt);
+      offToggle();
+      offClose?.();
     };
-  }, []);
+  }, [open]);
   useEffect(() => {
     if (open) setTimeout(() => input.current?.focus(), 0);
     else {

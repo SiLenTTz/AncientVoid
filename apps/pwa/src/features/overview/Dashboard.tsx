@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
+import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import type { ApprovalRequest, DiscoveredProject, FleetHost, SessionRecord } from "../../shared/api.ts";
 import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
 import { graphHash, sessionHash } from "../../app/route.ts";
@@ -525,17 +526,22 @@ function SessionRow({
   const cardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!menuOpen && !actionsOpen) return;
-    const close = (e: Event) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !cardRef.current?.contains(e.target as Node)) {
+    // EPIC-P51 T51.5: Esc über die Shortcut-Registry; Tipp daneben bleibt ein lokaler Listener.
+    const off = registerShortcut("overview.menu-close", (e) => {
+      e.preventDefault();
+      setMenuOpen(false);
+      setActionsOpen(false);
+    });
+    const onDown = (e: PointerEvent) => {
+      if (!cardRef.current?.contains(e.target as Node)) {
         setMenuOpen(false);
         setActionsOpen(false);
       }
     };
-    window.addEventListener("keydown", close);
-    window.addEventListener("pointerdown", close);
+    window.addEventListener("pointerdown", onDown);
     return () => {
-      window.removeEventListener("keydown", close);
-      window.removeEventListener("pointerdown", close);
+      off();
+      window.removeEventListener("pointerdown", onDown);
     };
   }, [menuOpen, actionsOpen]);
   const name = session.title ?? project;

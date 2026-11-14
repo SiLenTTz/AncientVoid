@@ -3,6 +3,7 @@ import { InterruptedBanner } from "./InterruptedBanner.tsx";
 import { copyWithRetry } from "./copy-selection.ts";
 import { readTailScroll, writeTailScroll } from "./tail-scroll.ts";
 import { sessionHash, fileHash } from "../../app/route.ts";
+import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { HandoverBar } from "./Handover.tsx";
 import { RecoveryHandover } from "./RecoveryHandover.tsx";
 import { currentProviderFailure } from "./handover.ts";
@@ -215,18 +216,19 @@ export function SessionTail({
   const [graphFull, setGraphFull] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   // „Mehr“ schließt bei Escape und bei einem Tipp daneben — am Handy deckt das Blatt die Reiter ab.
+  // EPIC-P51 T51.5: Esc über die Shortcut-Registry; der Tipp-nebenbei-Listener bleibt lokal.
   useEffect(() => {
     if (!moreOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMoreOpen(false);
-    };
+    const off = registerShortcut("sessiontabs.more-close", (e) => {
+      e.preventDefault();
+      setMoreOpen(false);
+    });
     const onDown = (e: PointerEvent) => {
       if (!(e.target as Element | null)?.closest?.(".subtabs-more-wrap")) setMoreOpen(false);
     };
-    window.addEventListener("keydown", onKey);
     window.addEventListener("pointerdown", onDown);
     return () => {
-      window.removeEventListener("keydown", onKey);
+      off();
       window.removeEventListener("pointerdown", onDown);
     };
   }, [moreOpen]);
