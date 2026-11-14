@@ -2,9 +2,15 @@
 
 **Art:** referenz
 
-Stand: 05.11.2026 · Epic: [EPIC-P28](../epics/EPIC-P28-reproduzierbare-ci.md) ·
+Stand: 15.11.2026 · Epic: [EPIC-P28](../epics/EPIC-P28-reproduzierbare-ci.md) ·
 ADR: [ADR-0049](adr/0049-selbstverwalteter-ci-runner.md) · Betrieb:
 [CI-Runbook](ci-runbook.md)
+
+**Geltung:** Die nachstehenden CI-Abschlussregeln gelten seit dem
+Nutzerentscheid vom 15.11.2026 nur bei aktivem lokalem GitLab-Server. Auf
+`gitlab.com` (auch mit eigenem Runner) ist CI kein Merge-/Epic-Gate; die
+Zuordnung bleibt technische Referenz, die historischen Nachweise bleiben
+unverändert. Lokale Gates bleiben Pflicht. Details: [Runbook §0](ci-runbook.md#0-geltung-seit-15112026).
 
 Dieses Inventar ordnet jedem lokalen Gate-Teilkommando einen ausführbaren
 CI-Job zu (AC-P28-1). Ein Job gilt nur als erbracht, wenn er real lief:

@@ -16,6 +16,11 @@ Ein MR wird gegen Issue/Epic-Task-AC und deterministische Gates geprüft.
 Grüne Tests heben ein fehlendes Acceptance-Criterion nicht auf.
 Future-Fragility ist Pflicht, kein Anhang.
 
+CI ist nur bei einem tatsächlich lokalen GitLab-Server zusätzliches Gate
+(`AGENTS.md`, `docs/ci-runbook.md`). Auf `gitlab.com` lautet die Freigabeachse
+„CI nicht anwendbar“, auch mit eigenem Runner; rote/fehlende Cloud-Jobs allein
+sind weder Review-Befund noch Warte-/Retry-Auftrag. Lokale Gates bleiben Pflicht.
+
 ## Wann benutzen (Trigger)
 
 - „MR reviewen", Merge-Freigabe, Handoff aus `bugfix`, structured review.
