@@ -19,11 +19,11 @@ Screenshots entstehen aus einem **Demo-Hub mit synthetischen Stand-ins**
 (`scripts/readme-screenshots.mjs`, EPIC-P53) — keine echten Sessions, keine
 Secrets; wiederholbar aus dem Repo.
 
-## Ist-Stand (11.11.2026, ehrlich)
+## Ist-Stand (P43.5-Abschluss nachgezogen: 15.11.2026)
 
 Was ein Mensch in der PWA erreichen kann, zählt das
-[Funktionsinventar](docs/funktionsinventar.md) (P43-Gate: 63 globale, 72
-Session- und 16 PC-Funktionen, je mit E2E-Nachweis). Grobes Bild:
+[Funktionsinventar](docs/funktionsinventar.md) mit den aktuellen globalen,
+Session- und PC-Funktionen samt E2E-Nachweisen. Grobes Bild:
 
 **Fertig und belegt** — Hub-Kern (P0–P4.5: Sessions, EventStore, Worker,
 Auth, PWA), Fernsteuerung P5–P9 (Session-Übergabe PC↔Handy, Multi-Host-Flotte,
@@ -37,6 +37,10 @@ unterbrochene Sessions P27 (interrupted + Weitermachen/Archivieren),
 CI-Runner P28, Worktree-Workspace P29, Oberfläche P34/P35 (eigene Fenster,
 Harness-Parität Fortsetzen), Diff-Review P36, Session-Arbeitsort P38,
 Browser-Arbeitsplatz P39, Zugang P45 („No-go" — Tailnet bleibt).
+P43.5 ist seit 14.11.2026 über MR !470 abgeschlossen: Quellenchips aus
+Code/Review/Browser/CI, Quellen-/Arbeitsnotiz-Suche, sichere lokale
+Darstellungs-Presets und benannte Layouts. Abnahme, Screenshots und
+Messgrenzen: [P43.5-Bericht](docs/2026-11-14_p43.5-abnahme.md).
 
 **Gebaut, Abnahme offen** — Factory-Integration P26 (Code fertig, echte
 Factory-Lauf-Abnahme `not_run`), Loops P19 (Handy-Abnahme), P34/P35
@@ -57,9 +61,9 @@ Der Audit-Stand von 2026-09-21 ist Geschichte; die Planungskette lebt in
 Aktuelle Kette (je Epic Status, Abhängigkeiten und Umfang in
 [`epics/README.md`](epics/README.md)):
 
-- **P43 — UX Next Level** (in Umsetzung): Start als Warteschlange, Session in
-  Zügen, Zustands- und Bewegungssprache; danach **P43.5** (Presets/Layouts),
-  **P44** (UI-Plugins).
+- **P43 — UX Next Level** (Exit grün): Start als Warteschlange, Session in
+  Zügen, Zustands- und Bewegungssprache. **P43.5** (Quellenchips/Presets/Layouts)
+  ist abgeschlossen; **P44** (UI-Plugins) bleibt ein Planungsentwurf.
 - **P47 → P48 → P49** (Auftrag 10.11.): Übersicht Projekte/Hosts, Repo-Graph
   als pulsierendes Netz, Knowledge-Vault-Notizen.
 - **Quer:** **P50** Zoom-robuste Flächen (BUG-0113 offen), **P51**

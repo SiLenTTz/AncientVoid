@@ -2,7 +2,7 @@
 
 **Art:** referenz
 
-**Stand:** 2026-11-11 (EPIC-P43 T43.0) · **Zweck:** Leitplanke E10 — beim Umbau der Oberfläche
+**Stand:** 2026-11-15 (P43-Basis, P43.5-Abschluss integriert) · **Zweck:** Leitplanke E10 — beim Umbau der Oberfläche
 geht keine Funktion verloren. · **Gate:** [`e2e/specs/funktionsinventar.spec.ts`](../e2e/specs/funktionsinventar.spec.ts)
 
 Jede Zeile ist eine Funktion, die ein Mensch in der PWA erreichen kann. Die letzte Spalte
