@@ -19,6 +19,8 @@ export interface HubOptions {
   requireStepApprovals?: boolean;
   /** Dummy adapter: events per turn before it stops generating (0 = endless). */
   dummyAutoStop?: number;
+  /** P43.5 K2: explicit event rate for rendering measurements. */
+  dummyEventsPerSecond?: number;
   /** EPIC-P6: this hub's host id in the fleet. */
   hostId?: string;
   /** 2026-10-26: readable fleet label (config hostLabel) — two hubs on one
@@ -186,7 +188,7 @@ export class TestHub {
         {
           id: "dummy",
           module: this.options.interruptedDummy ? join(repoRoot, "e2e/support/interrupted-dummy.ts") : "@ancientvoid/adapter-dummy",
-          config: { hubResume: this.options.interruptedDummy?.resume ?? false, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
+          config: { hubResume: this.options.interruptedDummy?.resume ?? false, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: this.options.dummyEventsPerSecond ?? 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
         },
         {
           // BUG-0061: dsh via ACP (ADR-0018) under a free-form id, like a

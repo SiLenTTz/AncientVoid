@@ -1,14 +1,14 @@
 import { useEffect, useState } from "preact/hooks";
-import type { AutomationInfo, AutomationSchedule, AutomationTarget, OrchestrationRun } from "@ancientvoid/contracts";
+import type { AutomationInfo, AutomationSchedule, AutomationTarget, Team } from "@ancientvoid/contracts";
 import { useApi } from "../../shared/api-context.ts";
 import { sha256Hex } from "./automation-labels.ts";
 
 const TZ_SUGGESTIONS = ["Europe/Berlin", "Europe/London", "UTC", "America/New_York"];
 
-export function AutomationForm({ adapters, projects, runs, editing, disabled, onSaved, onCancel }: {
+export function AutomationForm({ adapters, projects, teams, editing, disabled, onSaved, onCancel }: {
   adapters: string[];
   projects: string[];
-  runs: OrchestrationRun[];
+  teams: Team[];
   editing: AutomationInfo | null;
   disabled: boolean;
   onSaved: () => void;
@@ -17,8 +17,8 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
   const api = useApi();
   const existing = editing?.definition ?? null;
   const target = existing?.target;
-  const [targetKind, setTargetKind] = useState<"session" | "run">(target?.kind ?? "session");
-  const [templateId, setTemplateId] = useState(target?.kind === "run" ? target.templateId : "");
+  const [targetKind, setTargetKind] = useState<"session" | "team">(target?.kind ?? "session");
+  const [templateId, setTemplateId] = useState(target?.kind === "team" ? target.templateId : "");
   const [weekdays, setWeekdays] = useState<number[]>(existing?.schedule.kind === "preset" ? existing.schedule.weekdays ?? [1] : [1]);
   const [label, setLabel] = useState(existing?.label ?? "");
   const [harness, setHarness] = useState(target?.kind === "session" ? target.harness : "");
@@ -51,7 +51,7 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
   const submit = async () => {
     setError("");
     if (disabled || !navigator.onLine) { setError("Offline — Speichern ist gesperrt."); return; }
-    if (!label.trim() || (targetKind === "session" && (!harness || !project.trim() || ((!existing || target?.kind !== "session") && !promptText.trim()))) || (targetKind === "run" && !templateId)) {
+    if (!label.trim() || (targetKind === "session" && (!harness || !project.trim() || ((!existing || target?.kind !== "session") && !promptText.trim()))) || (targetKind === "team" && !templateId)) {
       setError("Label und vollständiges Ziel sind Pflicht. Neue Sessions brauchen einen Prompt.");
       return;
     }
@@ -72,7 +72,7 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
         enabled: false, // Neuanfang/Zurücksetzung: die Aktivierung ist die separate Freigabe.
         hostId,
         schedule,
-        target: (targetKind === "run" ? { kind: "run", templateId } : { kind: "session", harness, ...(model.trim() ? { model: model.trim() } : {}), workdir, project: project.trim(), promptBlobSha256 }) satisfies AutomationTarget,
+        target: (targetKind === "team" ? { kind: "team", templateId } : { kind: "session", harness, ...(model.trim() ? { model: model.trim() } : {}), workdir, project: project.trim(), promptBlobSha256 }) satisfies AutomationTarget,
         ...(precheckActionId.trim() ? { precheckActionId: precheckActionId.trim() } : {}),
         precheckDeadlineMs: 60_000,
         grant: { maxParallel, missedGraceMs: missedGraceMinutes * 60_000 },
@@ -98,8 +98,8 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
       <label>Label
         <input value={label} onInput={(e) => setLabel(e.currentTarget.value)} maxlength={80} placeholder="Morgen-Briefing" required />
       </label>
-      <label>Zielart<select value={targetKind} onChange={e => setTargetKind(e.currentTarget.value as "session" | "run")}><option value="session">Session</option><option value="run">Orchestrierungsrun</option></select></label>
-      {targetKind === "run" ? <label>Run-Vorlage<select value={templateId} onChange={e => setTemplateId(e.currentTarget.value)} required><option value="">Vorhandenen Run wählen</option>{runs.filter(run => run.tasks.length > 0).map(run => <option key={run.id} value={run.id}>{run.title}</option>)}</select></label> : <>
+      <label>Zielart<select value={targetKind} onChange={e => setTargetKind(e.currentTarget.value as "session" | "team")}><option value="session">Session</option><option value="team">Agenten-Team</option></select></label>
+      {targetKind === "team" ? <label>Team-Vorlage<select value={templateId} onChange={e => setTemplateId(e.currentTarget.value)} required><option value="">Vorhandenes Team wählen</option>{teams.filter(team => team.tasks.length > 0).map(team => <option key={team.id} value={team.id}>{team.title}</option>)}</select></label> : <>
       <div class="form-grid">
         <label>Harness
           <input list="automation-adapters" value={harness} onInput={(e) => setHarness(e.currentTarget.value)} placeholder="dummy" required />
@@ -174,7 +174,7 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
       {targetKind === "session" && <label>Prompt (leer lassen behält den bisherigen Auftrag)
         <textarea rows={4} value={promptText} onInput={(e) => setPromptText(e.currentTarget.value)} placeholder="Was der Lauf tun soll…" required={!existing} />
       </label>}
-      <p class="run-meta">Neue und geänderte Automationen beginnen deaktiviert — die Aktivierung ist die Freigabe.</p>
+      <p class="team-meta">Neue und geänderte Automationen beginnen deaktiviert — die Aktivierung ist die Freigabe.</p>
       <div class="automation-form-actions">
         <button type="submit" class="btn" disabled={busy || disabled}>{existing ? "Speichern" : "Anlegen"}</button>
         <button type="button" class="btn" onClick={onCancel}>Abbrechen</button>

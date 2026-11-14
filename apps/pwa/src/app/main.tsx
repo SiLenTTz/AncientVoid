@@ -1,3 +1,4 @@
+import { initPresentation, type DevicePreset } from "../features/settings/presets.ts";
 import { TooltipLayer } from "../shared/Tooltip.tsx";
 import { render, type ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -6,7 +7,7 @@ import { SessionTail } from "../features/session/SessionTail.tsx";
 import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
 import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
-import { isToolPage, pageHash, parseAppHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
+import { isToolPage, pageHash, parseAppHash, redirectLegacyRunHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
 import { registerShortcut } from "../shared/shortcuts/registry.ts";
 import { CheatSheet } from "../shared/shortcuts/CheatSheet.tsx";
 import { installShortcutHints } from "../shared/shortcut-hint.ts";
@@ -41,6 +42,7 @@ import "./styles/index.css";
 applyTheme(getTheme());
 // EPIC-P34 T34.4: Akzentfarbe, Schrift und Größe dieses Geräts, ebenfalls vor dem ersten Paint.
 initAppearance();
+initPresentation();
 applyPinchZoom(pinchZoomAllowed());
 // EPIC-P20: UI scale (Ctrl+wheel, Ctrl +/−/0) and the context-bar shimmer, before the first paint.
 applyScale(getScale());
@@ -246,6 +248,13 @@ function Main() {
   useEffect(() => {
     if (!ready) return;
     const openFromHash = () => {
+      // EPIC-P60 (AC-P60-1): alte `#/runs…`-Links permanent auf `#/teams…`
+      // umleiten — der Hash-Replace löst einen neuen hashchange aus.
+      const redirected = redirectLegacyRunHash(location.hash);
+      if (redirected !== null && redirected !== location.hash) {
+        location.hash = redirected;
+        return;
+      }
       const parsed = parseAppHash(location.hash);
       if (parsed.view === "devices") {
         // EPIC-P42: `#/geraete` ist die Fenster-Route des Popouts; im Hauptfenster geht es zur Übersicht
@@ -291,12 +300,21 @@ function Main() {
     // Ein tieferer Hash (…/graph, …/code) zur fokussierten Session bleibt
     // stehen: replaceState würde das Suffix entfernen, und wer den Hash
     // danach neu parst (z. B. Token-Gate → ready) landet ohne den Reiter.
-    const current = location.hash.replace(/^#/, "");
+    const current = location.hash;
     if (current !== hash && !current.startsWith(`${hash}/`)) history.replaceState(null, "", hash);
   };
   // EPIC-P34 T34.10: eigene Fenster. Der Kanal-Handler läuft über Referenzen, damit er immer den neuesten Stand sieht.
   const latest = useRef({ ws, changeWorkspace });
   latest.current = { ws, changeWorkspace };
+  useEffect(() => {
+    const restore = (e: Event) => {
+      const layout = (e as CustomEvent<DevicePreset["layout"]>).detail;
+      const current = latest.current.ws;
+      latest.current.changeWorkspace({ ...current, layout: layout.kind, focus: 0, sizes: { col: layout.col, row: layout.row, col2: layout.col2 } });
+    };
+    window.addEventListener("ancientvoid:restore-layout", restore);
+    return () => window.removeEventListener("ancientvoid:restore-layout", restore);
+  }, []);
   const [popoutNotice, setPopoutNotice] = useState("");
   const [retryPopout, setRetryPopout] = useState<(() => void) | null>(null);
   useEffect(() => {

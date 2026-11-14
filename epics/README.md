@@ -131,7 +131,7 @@ Provider-Katalog P31; P32 erhält die aktuelle PWA-Präferenz.
 | [P41 — Automationen](EPIC-P41-automationen.md) | Zeitpläne, Prechecks, Laufhistorie, Recovery — **Code-Lücken der Übergabeprüfung geschlossen 11.11.2026, Exit offen** ([Stand und Reste](EPIC-P41-automationen.md#8-stand-und-exit-lücken-abgleich-11112026); u. a. `unknown` ohne Referenz ohne Auflösungsweg, keine Live-Fehlerpfade); P42 bleibt blockiert | P40 grün | 2–3 |
 | [P42 — Android-Testgeräte](EPIC-P42-android-testgeraete.md) | AVD-/Host-Spike, Bild/Input und Android-Tests | P41 grün | 0,5–1 + 2–4 |
 | [P43 — UX Next Level](EPIC-P43-ux-next-level.md) | Start als Warteschlange, Session in Zügen, Zustands- und Bewegungssprache, Tablet/PC, Herauslösen überall, Nyx-Blatt; Funktionsinventar als Gate — **Exit grün 11.11.2026** (Closeout: 11 AC grün; Geräte-Reste AI-P43-5 → T35.16, Inventar-Schnellsuche → P51 T51.11, Breiten → P50 T50.6, BUG-0120/0121 offen) | P42 grün | 4–6 |
-| [P43.5 — Quellenchips/Presets/Layouts](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Quellenübergabe in den Prompt, Darstellungs-Presets, benannte Layouts (aus dem bisherigen P43 abgetrennt) — **Umsetzung freigabefähig** (P43-Exit grün) | P43 grün | 1,5–2 |
+| [P43.5 — Quellenchips/Presets/Layouts](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Quellenübergabe in den Prompt, Darstellungs-Presets, benannte Layouts (aus dem bisherigen P43 abgetrennt) — **abgeschlossen 14.11.2026** (T43.5-1–6, sechs AC, Gate/Build/Abnahme/Retro grün) | P43 grün | 1,5–2 |
 | [P44 — UI-Plugins](EPIC-P44-plugin-panels-themes.md) | Panels/Themes als Erweiterung des P30-Lifecycles | P43.5 grün | 2–3 |
 | [P45 — Zugangsevaluation](EPIC-P45-zugang-ohne-tailnet-evaluation.md) | Transport/Account-Optionen; expliziter Go/No-go/vertagt-Entscheid — **fertiggestellt 10.11.2026, Exit „No-go“ (kein öffentlicher Zugang; Tailnet bleibt) — [Bericht](../docs/2026-11-10_p45-zugangs-entscheidungsbericht.md)** | P44 grün (Start vorgezogen auf Nutzeranweisung) | 0,5–1 |
 
@@ -265,7 +265,7 @@ vergeben war, führt das Epic die Nummer **P60** weiter (Repo-Regel
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
-| [P60 — Agenten-Teams: Umbenennung, Kartenübersicht, Parallelität, Modellwahl](EPIC-P60-agenten-teams.md) | Run→Team vollständig umbenannt (Contracts, `/api/teams`, Policy `team.*`, Journal-Migration, `#/teams`-Redirects), Team-Detail mit Karten je Worker, breite DAGs + belegte Gleichzeitigkeit, Modell-Allowlist mit Formularauswahl (schließt ungeprüfte `task.model`-Lücke) | keine fachliche offene (P40 umgesetzt, Gate grün; Live-Lauf-Block P39 unberührt) | 2–3 |
+| [P60 — Agenten-Teams: Umbenennung, Kartenübersicht, Parallelität, Modellwahl](EPIC-P60-agenten-teams.md) | Run→Team vollständig umbenannt (Contracts, `/api/teams`, Policy `team.*`, Journal-Migration, `#/teams`-Redirects), Team-Detail mit Karten je Worker, breite DAGs + belegte Gleichzeitigkeit, Modell-Allowlist mit Formularauswahl (schließt ungeprüfte `task.model`-Lücke) — **umgesetzt 14.11.2026** (ADR-0077, MR !467/!468 + Abschluss-MR; Geräte-Abnahme → Endabnahme-Block) | keine fachliche offene (P40 umgesetzt, Gate grün; Live-Lauf-Block P39 unberührt) | 2–3 |
 
 Reihenfolge: P60 quer wie P50–P53 (je Aufgabe eigener Branch/MR nach main;
 ADR vor der ersten Contract-Änderung).

@@ -12,7 +12,7 @@ import { CreateSession } from "../features/new-session/CreateSession.tsx";
 import { MediaPage } from "../features/media/MediaPage.tsx";
 import { DesktopPage } from "../features/desktop/DesktopPage.tsx";
 import { VaultPane } from "../features/vault/VaultPane.tsx";
-import { RunsPane } from "../features/orchestration/RunsPane.tsx";
+import { TeamsPane } from "../features/team/TeamsPane.tsx";
 import { AutomationsPane } from "../features/automations/AutomationsPane.tsx";
 import { AiMetricsPage } from "../features/aimetrics/AiMetricsPage.tsx";
 import { publishHubStatus } from "../features/shell/hub-status.ts";
@@ -187,7 +187,7 @@ export function App({
       {shown === "pc" && <DesktopPage />}
 
       {shown === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
-      {shown === "orchestrierung" && <RunsPane />}
+      {shown === "teams" && <TeamsPane />}
       {shown === "automationen" && <AutomationsPane />}
       {shown === "aimetrics" && <AiMetricsPage />}
       {shown === "dashboard" &&

@@ -57,4 +57,23 @@ test.describe("GitLab im Session-Kontext (EPIC-P37)", () => {
     await app.getByRole("button", { name: "lösen" }).click();
     await expect(app.getByPlaceholder(MR_URL)).toBeVisible();
   });
+
+  test("CI-Befund als Quellenchip in den Composer (P43.5 T43.5-1)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
+    await openForge(app, hub, id);
+    await app.getByPlaceholder(MR_URL).fill(MR_URL);
+    await app.getByRole("button", { name: "verknüpfen" }).click();
+    await expect(app.locator(".fp-mr-title")).toContainText("Forge E2E");
+    await app.locator(".fp-pipeline-row").filter({ hasText: "#500" }).click();
+    await app.locator(".fp-job").filter({ hasText: "verify" }).getByRole("button", { name: "als Befund" }).click();
+    await app.getByRole("button", { name: "In den Composer" }).click();
+    const chips = app.getByTestId("source-chips");
+    await expect(chips.locator(".source-chip-label")).toContainText("CI-Befund · Pipeline #500");
+    await expect(app.getByTestId("source-preview")).toContainText("<quellen>");
+    await sessionTab(app, "Chat");
+    await app.getByRole("button", { name: "Quelle ansehen: CI-Befund · Pipeline #500", exact: true }).click();
+    await expect(app.locator(".session-live")).toHaveAttribute("data-tab", "forge");
+    expect((await hub.events(id)).some((e) => JSON.stringify(e.payload).includes("<quellen>"))).toBe(false);
+  });
 });

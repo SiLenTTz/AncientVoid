@@ -1,4 +1,4 @@
-import type { HubOrchestration } from "./modules/orchestration/index.ts";
+import type { HubTeam } from "./modules/team/index.ts";
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
 import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, AiMetricsSampler } from "@ancientvoid/core";
@@ -68,9 +68,9 @@ export interface RouteDeps {
   forge?: ForgeService;
   /** EPIC-P41 (ADR-0064): Automationen — ohne Angabe ehrliche Abschaltung (501). */
   automations?: AutomationService;
+  team?: HubTeam;
   /** EPIC-P59 (ADR-0078): Sampler für die Metrik-Seite; ohne Angabe leere Quelle-Liste. */
   aimetrics?: AiMetricsSampler;
-  orchestration?: HubOrchestration;
 }
 
 /**

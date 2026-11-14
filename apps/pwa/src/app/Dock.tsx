@@ -1,4 +1,4 @@
-// EPIC-P43 T43.3: das Dock hat vier Ziele und eine Haupttaste — Start, Suchen, ＋, Runs, Mehr.
+// EPIC-P43 T43.3: das Dock hat vier Ziele und eine Haupttaste — Start, Suchen, ＋, Teams, Mehr.
 // Alles Übrige (Medien, Notizen, Automationen, Einstellungen, Provider-Status) liegt einen
 // Tipp weiter im Blatt „Mehr“; am PC (Leiste links, 21-icon-rail.css) stehen diese Ziele weiterhin
 // einzeln in der Leiste, dort gibt es kein „Mehr“. „approvals“ wird aus der Übersicht erreicht,
@@ -62,8 +62,8 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
       <button class={`dock-item dock-main ${active === "new" ? "active" : ""}`} type="button" title="Neue Session" aria-label="Neue Session" onClick={() => go("new")}>
         <TabIcon name="neu" />
       </button>
-      <button class={`dock-item ${active === "orchestrierung" ? "active" : ""}`} type="button" title="Runs (Orchestrierung)" onClick={() => go("orchestrierung")}>
-        <TabIcon name="runs" /><span class="lb">Runs</span>
+      <button class={`dock-item ${active === "teams" ? "active" : ""}`} type="button" title="Teams (Agenten-Teams)" onClick={() => go("teams")}>
+        <TabIcon name="teams" /><span class="lb">Teams</span>
       </button>
       <button class={`dock-item dock-more ${inMore ? "active" : ""}`} type="button" title="Mehr" aria-haspopup="dialog" aria-expanded={more} onClick={() => setMore((on) => !on)}>
         <TabIcon name="mehr" /><span class="lb">Mehr</span>
