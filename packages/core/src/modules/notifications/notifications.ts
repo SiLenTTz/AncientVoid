@@ -85,6 +85,10 @@ export function notificationFor(event: NormalizedEvent, ctx: NotificationContext
         ? { level: "warning", title: `${where} · nach Neustart nicht steuerbar`, detail: "Die Session lief mitten im Zug und ist jetzt nur noch lesbar.", kind }
         : null;
   }
+  // BUG-0162: Nur System-Events sind Prozesswahrheit — thinking/assistant
+  // Inhalte, die den String wörtlich enthalten (Agent debuggt Prozesse),
+  // sind keine Absturzmeldung.
+  if (event.type !== "system") return null;
   const exited = /process exited with code (\d+)/.exec(event.summary);
   if (exited && !ctx.recentProviderError) {
     return { level: "error", title: `${where} · ${ctx.adapter} abgebrochen (Code ${exited[1]})`, detail: "Der Provider-Prozess endete mit einem Fehler. Details im Verlauf.", kind: "process.exit" };

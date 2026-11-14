@@ -26,7 +26,7 @@ function persistentTurnAdapter(): Adapter {
     async steer(_handle, input, ctx) {
       if (input.kind === "prompt") {
         ctx.turn?.("working");
-        ctx.turn?.("idle");
+        if (!input.text.includes("LAUF_WEITER")) ctx.turn?.("idle");
       }
       return { ok: true };
     },
@@ -78,6 +78,31 @@ describe("Aktivitätsregister (ADR-0074, BUG-0155)", () => {
       expect(manager.get(record.id)?.status).toBe("idle");
       expect(await kinds(manager, record.id)).toContain("session.activity_end");
       expect(await kinds(manager, record.id)).toContain("session.turn_end");
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("Tool-Ende während der laufenden Hauptarbeit beendet den Zug nicht (BUG-0161)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
+    const registry = new AdapterRegistry();
+    registry.register("persistent", persistentTurnAdapter);
+    const { manager, db } = setup(registry, dir);
+    try {
+      const record = await manager.create({ adapter: "persistent", project: dir, prompt: "start" });
+      // Hauptzug läuft weiter (turn("working"), kein idle) — wie ein Agent mitten in der Aufgabe.
+      await manager.steer(record.id, { kind: "prompt", text: "LAUF_WEITER" });
+      for (let i = 0; i < 100 && !(await kinds(manager, record.id)).includes("session.main_turn_start"); i++) {
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      // Provider-Tool-Aktivität: begin → end, während der Hauptzug weiterläuft.
+      expect((await manager.activity(record.id, { id: "call_1", kind: "tool", state: "running", label: "grep" })).ok).toBe(true);
+      expect((await manager.activity(record.id, { id: "call_1", kind: "tool", state: "completed" })).ok).toBe(true);
+      // BUG-0161: Das Tool-Ende ist kein Zugende — Status bleibt working, kein turn_end.
+      expect(manager.get(record.id)?.status).toBe("working");
+      expect(await kinds(manager, record.id)).not.toContain("session.turn_end");
     } finally {
       await manager.shutdown();
       db.close();

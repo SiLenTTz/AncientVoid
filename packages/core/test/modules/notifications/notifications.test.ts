@@ -90,5 +90,16 @@ describe("Loop-Benachrichtigungen (EPIC-P19, AC-P19-2)", () => {
   it("Routinemeldungen (Info, Fortschritt, Wiederherstellung) bleiben im Verlauf", () => {
     for (const kind of ["loop.info", "loop.progress", "loop.state", "loop.recovered", "loop.transcript"]) expect(notificationFor(ev({ kind }), ctx)).toBeNull();
   });
+
+  it("Exit-Fallback greift nur für System-Events — Agent-Text ist nie Prozesswahrheit (BUG-0162)", () => {
+    // Live-Fund 14.11.2026: Der Agent dachte über den Regex selbst nach und
+    // feuerte so eine „abgebrochen (Code 0)“-Fehler-Notification.
+    const ev = (type: string, summary: string) => ({ seq: 1, ts: "t", sessionId: "s", type, summary, payload: {}, blobRef: null }) as never;
+    const ctx = { adapter: "opencode", project: "/p/av", recentProviderError: false };
+    expect(notificationFor(ev("thinking", "der Adapter sagt process exited with code 0 im Text"), ctx)).toBeNull();
+    expect(notificationFor(ev("assistant", "laut log: process exited with code 0"), ctx)).toBeNull();
+    // Echte System-Events melden weiterhin einen Absturz.
+    expect(notificationFor(ev("system", "opencode: process exited with code 3"), ctx)).toMatchObject({ level: "error", kind: "process.exit" });
+  });
 });
 
