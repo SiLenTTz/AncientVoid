@@ -97,6 +97,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G64 | Schnellsuche: Springen zu Sessions, Projekten, Dateien, Werkzeugen, Befehlen | Strg+K bzw. Dock „Suchen“ → Treffer. **Bewusste Grenze (P51 T51.11):** tiefe Sprungziele unterhalb der Werkzeug-/Session-Ebene (z. B. einzelne Notizen, Graph/Galaxie einer Session, Host-Detail) sind absichtlich nicht eigene Schnellsuche-Treffer — sie liegen einen Sprung + einen Tap entfernt (Werkzeug/Session → Tab), eine zweite Navigationsschicht wäre Doppelstruktur; Vault-Suche bleibt minimal (ADR-0063) | T43.6 + P51 T51.11 | spec:schnellsuche.spec.ts |
 | G65 | Nyx: Gesamtzustand in der Kopfzeile; Blatt mit allen wartenden Freigaben und Fragen (Vorauswahl, Ja/Nein mit einem Tipp, Begründung/Passkey → Session); am PC auch als eigenes Fenster | Kopfzeile → Nyx | T43.8 | spec:nyx-blatt.spec.ts |
 | G66 | Typwriter-Effekt: neuen Live-Zuwachs in Chat und Thinking getippt; was schon da war, rendert sofort; schaltbar, Reduce Motion gewinnt | Sitzung → Chat; Einstellungen → Darstellung | P58 | spec:typewriter.spec.ts |
+| G67 | Metrik-Seite: Auslastung des lokalen KI-Servers — jede Zahl mit Quelle und Alter, „nicht gemeldet“ ≠ 0, Offline behält letzte Daten | Dock „Mehr“ → „Metrik“ | P59 | spec:ki-server-metriken.spec.ts |
 
 ## Session
 

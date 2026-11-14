@@ -47,7 +47,7 @@ eigenen Sample-Fenster, nicht aus Histogram-Buckets.
 ## Entscheidung
 
 1. **Sampler im Hub** (neues Core-Modul `modules/aimetrics/`). Poll-Intervall
-   konfigurierbar (`aiMetrics.intervalMs`), Default 10 s. Pro Tick werden alle
+   konfigurierbar (`aiMetrics.intervalSec`), Default 10 s. Pro Tick werden alle
    Quellen einmal beprobt; Fehler erscheinen als Zustand auf der Quelle
    (K9: sichtbar binnen eines Intervalls < 60 s), letzte Werte bleiben mit
    Zeitstempel stehen (K10).
