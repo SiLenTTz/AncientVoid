@@ -176,6 +176,7 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
   if (picker) {
     return (
       <VaultPicker
+        currentRoot={state.root}
         onDone={(s) => {
           setState(s);
           setPicker(false);
@@ -269,22 +270,28 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
   );
 }
 
-/** Serverseitiger Verzeichnis-Browser zur Root-Wahl (ADR-0063 §2): Startpunkte, containment-geprüft. */
-function VaultPicker({ onDone }: { onDone: (state: VaultState) => void }) {
+/** Serverseitiger Verzeichnis-Browser zur Root-Wahl (ADR-0063 §2): Startpunkte, containment-geprüft.
+ * EPIC-P51 T51.3: dazu freie Pfad-Eingabe — Guards bleiben serverseitig, Ablehnungen als Klartext. */
+function VaultPicker({ onDone, currentRoot = null }: { onDone: (state: VaultState) => void; currentRoot?: string | null }) {
   const [browse, setBrowse] = useState<VaultBrowse | null>(null);
   const [path, setPath] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [manualPath, setManualPath] = useState("");
+  const [applying, setApplying] = useState(false);
 
   useEffect(() => {
     hubApi
       .vaultBrowse(path ?? undefined)
-      .then(setBrowse)
+      .then((b) => {
+        setError("");
+        setBrowse(b);
+      })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : "Ordnerliste nicht erreichbar."));
   }, [path]);
 
   const choose = () => {
-    if (!path || busy) return;
+    if (!path || busy || applying) return;
     setBusy(true);
     hubApi
       .vaultSetRoot(path)
@@ -294,6 +301,22 @@ function VaultPicker({ onDone }: { onDone: (state: VaultState) => void }) {
       })
       .catch((err: unknown) => {
         setBusy(false);
+        setError(err instanceof Error ? err.message : "Ordner nicht wählbar.");
+      });
+  };
+
+  const applyPath = () => {
+    const p = manualPath.trim();
+    if (p === "" || busy || applying) return;
+    setApplying(true);
+    hubApi
+      .vaultSetRoot(p)
+      .then((s) => {
+        setApplying(false);
+        onDone(s);
+      })
+      .catch((err: unknown) => {
+        setApplying(false);
         setError(err instanceof Error ? err.message : "Ordner nicht wählbar.");
       });
   };
@@ -314,7 +337,7 @@ function VaultPicker({ onDone }: { onDone: (state: VaultState) => void }) {
               <li key={r.path}>
                 <button type="button" class="vault-row" onClick={() => setPath(r.path)}>
                   <span class="vault-name">📁 {r.name}</span>
-                  <span class="dim vault-meta">Startpunkt</span>
+                  <span class="dim vault-meta">{r.path === currentRoot ? "Aktueller Ordner" : "Startpunkt"}</span>
                 </button>
               </li>
             ))}
@@ -333,6 +356,25 @@ function VaultPicker({ onDone }: { onDone: (state: VaultState) => void }) {
           )}
         </>
       )}
+      <div class="vault-manual">
+        <input
+          type="text"
+          placeholder="… oder absoluten Pfad eingeben, z. B. /home/jan/notizen"
+          aria-label="Vault-Ordner als Pfad eingeben"
+          data-testid="vault-path-input"
+          value={manualPath}
+          onInput={(e) => setManualPath((e.target as HTMLInputElement).value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              applyPath();
+            }
+          }}
+        />
+        <button type="button" class="btn" onClick={applyPath} disabled={applying || manualPath.trim() === ""} data-testid="vault-path-apply">
+          {applying ? "Wähle …" : "Pfad übernehmen"}
+        </button>
+      </div>
       {!browse && !error && <div class="empty">Ordner laden …</div>}
     </div>
   );
