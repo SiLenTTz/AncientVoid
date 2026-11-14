@@ -94,7 +94,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G61 | Freigabe auf der Karte entscheiden (Erlauben/Ablehnen) | Start → Karte unter „Du bist dran“ | — | spec:start-warteschlange.spec.ts |
 | G62 | „Ruhig“ auf- und zuklappen | Start → Gruppenkopf „Ruhig“ | — | spec:start-warteschlange.spec.ts |
 | G63 | Alle Freigaben zeigen | Start → „Du bist dran“ → „alle zeigen“ | — | spec:start-warteschlange.spec.ts |
-| G64 | Schnellsuche: Springen zu Sessions, Projekten, Dateien, Werkzeugen, Befehlen | Strg+K bzw. Dock „Suchen“ → Treffer | T43.6 | spec:schnellsuche.spec.ts |
+| G64 | Schnellsuche: Springen zu Sessions, Projekten, Dateien, Werkzeugen, Befehlen | Strg+K bzw. Dock „Suchen“ → Treffer. **Bewusste Grenze (P51 T51.11):** tiefe Sprungziele unterhalb der Werkzeug-/Session-Ebene (z. B. einzelne Notizen, Graph/Galaxie einer Session, Host-Detail) sind absichtlich nicht eigene Schnellsuche-Treffer — sie liegen einen Sprung + einen Tap entfernt (Werkzeug/Session → Tab), eine zweite Navigationsschicht wäre Doppelstruktur; Vault-Suche bleibt minimal (ADR-0063) | T43.6 + P51 T51.11 | spec:schnellsuche.spec.ts |
 | G65 | Nyx: Gesamtzustand in der Kopfzeile; Blatt mit allen wartenden Freigaben und Fragen (Vorauswahl, Ja/Nein mit einem Tipp, Begründung/Passkey → Session); am PC auch als eigenes Fenster | Kopfzeile → Nyx | T43.8 | spec:nyx-blatt.spec.ts |
 
 ## Session
