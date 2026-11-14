@@ -6,6 +6,10 @@
 
 Quelle: [Orca-Vergleich](../docs/2026-11-08_orca-vs-ancientvoid.md) und [Planungsgrundlage mit Übernahmeregister](../docs/2026-11-08_orca-epic-planung.md).
 **Planungsauftrag 08.11.2026:** Nutzer beauftragt diese Epics ausdrücklich vor Abschluss der Vorgänger. Das erlaubt Planung, keine Implementierung und keine Aufhebung des Epic-Gatings. Vor T43.5-1 aktuellen Code-/Test-/Abnahmestand prüfen; historische Überschriften reichen nicht.
+**Ergänzung 14.11.2026 (Jan):** Der Maximieren-Button im Composer wird zum
+reinen Icon-Button (T43.5-6); Hintergrund und Recherche:
+[2026-11-14](../docs/2026-11-14_recherche_verfeinerungen_typewriter_metriken.md).
+
 **Abtrennung 10.11.2026 (Jan):** Dieser Entwurf war bis dahin EPIC-P43 „Arbeitsfläche/Styling“. UX-Bestandslauf, Mockups, Zustands-/Leer-/Fehlerzustände, Informationshierarchie und Schnellnavigation sind in das neu gefasste [EPIC-P43](EPIC-P43-ux-next-level.md) übergegangen ([Design-Review](../docs/2026-11-10_ux-next-level-designreview.md)). Hier bleibt, was P43 nicht abdeckt. Belege: [UX-Audit vom 10.11.2026](../docs/2026-11-10_p43-ux-audit.md), Befunde #8, #9 und #12.
 
 ## 1. Ziel
@@ -14,7 +18,7 @@ Auf dem Gestaltungsfundament aus P43 drei Dinge ergänzen: Quellen aus Code, Rev
 
 ## 2. Scope (In / Out)
 
-**In:** Add-to-prompt für Dateibereich/Test/Review als sichtbare Quellenchips, Dichte/Chatbreite, versionierte Theme-Presets mit Import/Export/Reset und benannte Geräte-Layouts.
+**In:** Add-to-prompt für Dateibereich/Test/Review als sichtbare Quellenchips, Dichte/Chatbreite, versionierte Theme-Presets mit Import/Export/Reset und benannte Geräte-Layouts; Icon-Verkleinerung des Composer-Maximieren-Buttons (T43.5-6).
 **Out:** alles aus P43 (Fundament, Zustandssprache, Start, Züge, Herauslösen, Nyx-Blatt, Schnellsuche), Preact→React/Zustand-Migration, Pixelkopie von Orca, ungefragter Komplettumbau aller Seiten, neue native App, freie CSS/JS-Ausführung, Veränderung semantischer Statusfarben, Voidwarden-Sprach-/Companion-Funktionen.
 
 ## 3. Design-Details
@@ -48,7 +52,8 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 - [ ] **T43.5-2** Fachliche Statusnotizen und Quellen als Sprungziele der Schnellsuche; vorhandene Entwürfe/Popouts ohne Remountverlust. **K1/K2/K7**.
 - [ ] **T43.5-3** Versionierte Theme-/Dichte-/Breiten-Presets, Kontrast-/Importprüfung, lokale Assets und Reset; vorhandene Farbwähler/Fonts wiederverwenden. **K2/K10**.
 - [ ] **T43.5-4** Benannte Layout-Presets für Gerät/Fenstergröße samt sicherer Migration, darunter ein Browser-Fenster-Preset „Handy“ (Audit #8); P44-Tokens/Slots benennen. **K2/K7/K10**.
-- [ ] **T43.5-5** Funktionsinventar aus P43 um die neuen Einträge erweitern; `e2e/specs/quellenchips.spec.ts` und `appearance-presets.spec.ts`, Screenshot-/Tastatur-/Pixel-Abnahme; Gate/PWA-Build/K2-Messlauf. **K1/K2/K3/K10**.
+- [ ] **T43.5-5** Funktionsinventar aus P43 um die neuen Einträge erweitern (inkl. Icon-Button T43.5-6); `e2e/specs/quellenchips.spec.ts` und `appearance-presets.spec.ts`, Screenshot-/Tastatur-/Pixel-Abnahme; Gate/PWA-Build/K2-Messlauf. **K1/K2/K3/K10**.
+- [ ] **T43.5-6** Composer-Maximieren-Button als reinen Icon-Button (bestehendes `icon-btn`-Muster, Touch-Ziel ≥ 40 px; Funktion, Glyphen und Accessible Names „Eingabe maximieren/verkleinern“ bleiben; `resize.spec.ts` bleibt grün, Zusatz-Assertion für die Icon-Form). **K2.**
 
 ## 5. Acceptance Criteria (AC-P43.5-k)
 
@@ -57,6 +62,7 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 - **AC-P43.5-3:** Presets/Import/Reset funktionieren offline; unzulässige URLs/CSS/Statusfarben und kaputte Versionen werden sichtbar abgelehnt.
 - **AC-P43.5-4:** Benanntes Layout ist nach Reload nutzbar, auch auf kleinerer Anzeige; keine verlorenen Fenster.
 - **AC-P43.5-5:** Approval bleibt einhändig erreichbar und K1/K2 unverändert nachweisbar; das Funktionsinventar aus P43 bleibt grün.
+- **AC-P43.5-6:** Der Maximieren-Button ist ein Icon-Button in Zeilengröße der Geschwister statt volle Breite; Funktion und Accessible Names unverändert; Touch-Ziel erfüllt die Mindestgröße; betroffene Specs grün.
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 
