@@ -369,6 +369,10 @@ export class TmuxRunner implements WorkerRunner {
     const paneId = await this.paneId(full);
     const target = paneId !== undefined ? `%${paneId}` : full;
     const pid = await this.panePid(target);
+    // BUG-0157-Nachtrag (tmux 3.5a): Auf einem leeren Server recycled tmux
+    // Pane-IDs — der Nachfolger bekam dieselbe %ID zurück. Identität einer
+    // Pane ist erst ID + PID zusammen (PID lebt nur solange die Pane).
+    const paneIsMine = () => this.paneIsMine(target, paneId, pid);
     const tailer = new FileTailer(logPath, startOffset);
     let exited = false;
     let exitCode: number | null = null;
@@ -414,7 +418,7 @@ export class TmuxRunner implements WorkerRunner {
       // BUG-0157: nur, wenn die Session noch UNSERE Pane enthält — einer
       // unter demselben Namen läuft eine Nachfolger-Generation: Der Name gehört
       // ihr jetzt, sie bleibt unbehelligt.
-      await this.killSessionIfOurs(full, paneId);
+      await this.killSessionIfOurs(full, paneId, pid);
     }, 200);
 
     return {
@@ -431,8 +435,8 @@ export class TmuxRunner implements WorkerRunner {
       onExit: (cb) => exitCbs.add(cb),
       write: pipe ? pipe.write : (data) => void execTmux(["send-keys", "-t", target, "-l", data]),
       kill: async (signal) => {
-        if (signal === "SIGKILL") await this.killSessionIfOurs(full, paneId);
-        else {
+        if (signal === "SIGKILL") await this.killSessionIfOurs(full, paneId, pid);
+        else if (await paneIsMine()) {
           await execTmux(["send-key", "-t", target, "C-c"]).catch(() => undefined);
           await new Promise((r) => setTimeout(r, 100));
         }
@@ -468,15 +472,29 @@ export class TmuxRunner implements WorkerRunner {
     return state === "" || state === "1";
   }
 
-  /** BUG-0157: kill-session nur, wenn die Session noch unsere Pane enthält —
-   * sonst gehört der Name einer Nachfolger-Generation und bleibt unberührt. */
-  private async killSessionIfOurs(full: string, paneId: string | undefined): Promise<void> {
-    if (paneId !== undefined) {
-      const panes = await execTmux(["list-panes", "-s", "-t", full, "-F", "#{pane_id}"]).catch(() => null);
-      if (!panes || panes.code !== 0) return; // Session existiert nicht (mehr)
-      const ours = panes.stdout.trim().split("\n").map((l) => l.trim().replace(/^%/, "")).includes(paneId);
-      if (!ours) return; // Nachfolger lebt unter dem Namen — nicht anfassen
+  /** BUG-0157 (+ tmux 3.5a): Eine Pane gilt als unsere, wenn ID UND PID
+   * zusammenpassen — tmux recycled Pane-IDs, sobald der Server leer war.
+   * Eine tote Pane (remain-on-exit-Husk) liefert keine PID mehr, ist aber
+   * nachweislich tot: eine unter derselben ID recyclede Nachfolger-Pane
+   * wäre lebendig. Ohne Pane-ID (Legacy) bleibt der Namenspfad. */
+  private async paneIsMine(target: string, paneId: string | undefined, pid: number | undefined): Promise<boolean> {
+    if (paneId === undefined) return true;
+    const res = await execTmux(["display-message", "-p", "-t", target, "#{pane_pid}|#{pane_dead}"]).catch(() => null);
+    if (!res || res.code !== 0 || !res.stdout.trim()) return false; // Ziel existiert nicht (mehr)
+    const [panePid, dead] = res.stdout.trim().split("|");
+    if (dead === "1") return true; // unsere tote Husk — PID-Bestätigung unmöglich und unnötig
+    return pid === undefined || panePid === String(pid);
+  }
+
+  /** BUG-0157: kill-session nur, wenn die Session noch UNSERE Pane enthält —
+   * einer Nachfolger-Generation unter demselben Namen gehört der Name dann,
+   * sie bleibt unbehelligt. */
+  private async killSessionIfOurs(full: string, paneId: string | undefined, pid?: number): Promise<void> {
+    if (paneId === undefined) {
+      await execTmux(["kill-session", "-t", full]).catch(() => undefined);
+      return;
     }
+    if (!(await this.paneIsMine(`%${paneId}`, paneId, pid))) return; // fremd oder weg — nichts anfassen
     await execTmux(["kill-session", "-t", full]).catch(() => undefined);
   }
 
