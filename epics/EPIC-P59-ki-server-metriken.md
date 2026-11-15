@@ -1,6 +1,6 @@
 # EPIC-P59 — Metrik-Seite: Auslastung des lokalen KI-Servers
 
-**Status:** offen · **Phase:** P59 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung)
+**Status:** abgeschlossen bis auf Live-Abnahme (evox2 nicht erreichbar) · **Phase:** P59 · **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung)
 **Abhängigkeit:** keine fachliche offene (Quer-Epic, Präzedenz P50–P53, P47–P52; Vorgänger-Phase P57 abgeschlossen 13.11.2026). Datenbasis auf bestehendem Betrieb (docs/local-llm.md, ADR-0010, ADR-0023); P56 bleibt der Aggregationsort — Abgrenzung §3.4.
 
 Quelle: Nutzerauftrag vom 14.11.2026; Recherche mit Bestand:
@@ -74,26 +74,26 @@ bleibt unberührt.
 
 ## 4. Aufgaben (Checkliste T59.m)
 
-- [ ] **T59.1** ADR: Sampler-Architektur, Datenquellen, Retention/Recovery-Pfad (K7), Contract-Frage Fleet-Peer — vor dem ersten Code-Merge.
-- [ ] **T59.2** Spike GPU-/CPU-Lesbarkeit auf evox2 (amdgpu sysfs), Beleg im ADR; Unlesbares bleibt „nicht gemeldet“.
-- [ ] **T59.3** Serverseitiger Sampler (llama.cpp `/metrics` per Header-Auth; OS-Proben; Poll-Intervall konfigurierbar, Default ~10 s; Fail loud).
-- [ ] **T59.4** Les-API mit normaler API-Auth (K5: REST, keine EventBus-Payloads); Contract-Stellen in `@ancientvoid/contracts` nur nach ADR.
-- [ ] **T59.5** PWA-Metrik-Seite: Karten, Live-Felder mit Quelle/Zeitstempel, Offline-Zustand (K10), Register in Navigation und Funktionsinventar.
-- [ ] **T59.6** `e2e/specs/ki-server-metriken.spec.ts` (mit mockten Proben: volle Daten, fehlende Quelle, Probe-Ausfall) + Gate.
+- [x] **T59.1** ADR: Sampler-Architektur, Datenquellen, Retention/Recovery-Pfad (K7), Contract-Frage Fleet-Peer — vor dem ersten Code-Merge. — ADR-0078, MR !471.
+- [x] **T59.2** Spike GPU-/CPU-Lesbarkeit auf evox2 (amdgpu sysfs), Beleg im ADR; Unlesbares bleibt „nicht gemeldet“. — Spike 2026-11-15, Beleg in ADR-0078 (Hub-Host RX 580 via sysfs lesbar; evox2 Strix Halo CPU lesbar, GPU ohne ROCm-Userland → „nicht gemeldet“).
+- [x] **T59.3** Serverseitiger Sampler (llama.cpp `/metrics` per Header-Auth; OS-Proben; Poll-Intervall konfigurierbar, Default ~10 s; Fail loud). — `packages/core/src/modules/aimetrics/`, 14 Tests.
+- [x] **T59.4** Les-API mit normaler API-Auth (K5: REST, keine EventBus-Payloads); Contract-Stellen in `@ancientvoid/contracts` nur nach ADR. — `GET /api/aimetrics`, 3 Tests (inkl. 401), Contract 3 Tests.
+- [x] **T59.5** PWA-Metrik-Seite: Karten, Live-Felder mit Quelle/Zeitstempel, Offline-Zustand (K10), Register in Navigation und Funktionsinventar. — Dock „Mehr“ → „Metrik“, Inventar G72.
+- [x] **T59.6** `e2e/specs/ki-server-metriken.spec.ts` (mit mockten Proben: volle Daten, fehlende Quelle, Probe-Ausfall) + Gate. — 8 Specs grün; `npm run gate` komplett grün (Lokal, 2026-11-15).
 
 ## 5. Acceptance Criteria (AC-P59-k)
 
-- **AC-P59-1:** Die Seite zeigt für die konfigurierten lokalen Modell-Server
+- **AC-P59-1 ✅:** Die Seite zeigt für die konfigurierten lokalen Modell-Server
   CPU, GPU busy, Speicher/VRAM, Tokens/s, Prefill (TTFT), Decode, KV-Cache
   und Queue — je Zahl mit Quelle und Zeitstempel; unlesbare Quellen stehen
   als „nicht gemeldet“ da, nie als 0.
-- **AC-P59-2:** Beprobung läuft mit Header-Auth ohne Secret in URL oder
+- **AC-P59-2 ✅:** Beprobung läuft mit Header-Auth ohne Secret in URL oder
   Logs; ein ausfallender Probe ist als Zustand sichtbar (< 60 s, K9-Geist).
-- **AC-P59-3:** Der Retention-/Recovery-Pfad steht im ADR und ein Test zeigt
+- **AC-P59-3 ✅:** Der Retention-/Recovery-Pfad steht im ADR und ein Test zeigt
   ihn (K7).
-- **AC-P59-4:** K5 unverändert verletzt-frei: keine neuen EventBus-Payloads;
+- **AC-P59-4 ✅:** K5 unverändert verletzt-frei: keine neuen EventBus-Payloads;
   die Seite lädt über REST.
-- **AC-P59-5:** Offline zeigt die Seite letzte Daten mit Zeitstempel (K10);
+- **AC-P59-5 ✅:** Offline zeigt die Seite letzte Daten mit Zeitstempel (K10);
   neue Specs grün; Funktionsinventar und Doku aktuell.
 
 ## 6. Premortem (Failure-Modi + Mitigation)
@@ -119,3 +119,11 @@ nachgezogen (nie als Pass zählen). Neue Seite registriert, erreichbar
 (mobil + Desktop) und dokumentiert; K5/K7/K10 nachgewiesen; kein TODO ohne
 Epic-Bezug. Echte Live-Abnahme an der `ancientvoid-llama`-Instanz mit dem
 Nutzer (Zahlen gegen `curl /metrics` gegengeprüft).
+
+**Abschlussnachweis 2026-11-15 (MR !471):** `npm run gate` lokal komplett
+grün (Typecheck, Lint, alle Checks, 2180 Unit/Integration, 694 E2E);
+PWA-Build grün; ADR-0078 merged. Die gitlab.com-Pipelines (3069277607,
+3069443568) waren auf dem Runner rot — ausschließlich belastungs-
+zeitkritische Tests ohne P59-Berührung (runbook-§6-Bild), lokal bei jedem
+Lauf grün; nach Runbook §4 (gitlab.com) zählt das lokale Gate. Offen:
+echte Live-Abnahme, sobald `ancientvoid-llama` auf evox2 wieder läuft.
