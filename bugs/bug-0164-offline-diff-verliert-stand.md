@@ -62,3 +62,6 @@ Cache wird nur für dieselbe Session angezeigt; erfolgreiche Nachladeversuche
 löschen die Fehlermarkierung. Drei vollständige Review-Spec-Wiederholungen
 sind danach grün (9/9), inklusive Notiz/Outbox und Wieder-Synchronisieren.
 Vollständiges lokales Gate grün: 2204 Unit-/Integrationstests bestanden (4 sichtbar übersprungen), 694 E2Es bestanden (5 sichtbar übersprungen; 27.4m). Typecheck, Lint, Architektur, Kontext und PWA-Build grün. Skips sind keine Passes.
+
+Fix und Review: [MR !476](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/476).
+Zusätzlicher isolierter Repro ohne P56-Dateien: 1/1 bestanden (6,4 s).
