@@ -52,7 +52,7 @@ Geräte-Abnahme offen). Details je Epic in [`epics/README.md`](epics/README.md).
 **Nicht umgesetzt** — Echtzeit-Sprache P10 (STT-Endpunkte sind
 konfigurierbar; Streaming-STT-Pipeline und gemessene Laya-Entscheidung
 offen), Desktop-Companion P11, Android-Shell P32 (vertagt), Plugin-/
-Provider-Katalog P30/P31 (Planungsentwürfe), englische Doku P33 (vertagt).
+Provider-Katalog P30/P31 (On hold seit 15.11.2026; Wiederaufnahme nur auf Auftrag), englische Doku P33 (vertagt).
 Der Audit-Stand von 2026-09-21 ist Geschichte; die Planungskette lebt in
 [`epics/README.md`](epics/README.md).
 
@@ -71,8 +71,10 @@ Aktuelle Kette (je Epic Status, Abhängigkeiten und Umfang in
   Typewriter-Effekt, **P59** KI-Server-Metriken (offen), **P60**
   Agenten-Teams (ehemals Runs — Run→Team umbenannt, Kartenübersicht,
   echte Parallelität, Modell-Allowlist).
-- **Planungsentwürfe (Umsetzung gesperrt):** P30 Adapter-/Sink-Plugins,
-  P31 Provider-Katalog, P37 GitLab-Kontext, P40 Hermes-Orchestrierung
+- **On hold (15.11.2026):** P30 Adapter-/Sink-Plugins und P31 Provider-Katalog.
+  Aus der nächsten Arbeitsplanung ausgeschlossen; Wiederaufnahme nur auf
+  ausdrücklichen Nutzerauftrag.
+- **Planungsentwürfe (Umsetzung gesperrt):** P37 GitLab-Kontext, P40 Hermes-Orchestrierung
   (Fläche heißt seit P60 „Teams"),
   P42 Android-Testgeräte.
 

@@ -1,6 +1,10 @@
 # EPIC-P30 — Installierbare Adapter- und Reporting-Sink-Plugins
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt (umpriorisiert 2026-11-08: läuft nach P36, Nutzerentscheid) · **Phase:** P30
+**Status:** On hold (Nutzerentscheid 15.11.2026) · **Umsetzung:** gesperrt bis zur ausdrücklichen Wiederaufnahme durch Jan · **Phase:** P30
+
+**Planungshinweis:** Bewusst zurückgestellt; nicht als nächstes Epic oder
+automatische Folgearbeit empfehlen. Grüne Vorgänger heben die Pause nicht
+auf. Wiederaufnahme ausschließlich auf ausdrücklichen Nutzerauftrag.
 
 > **Update 2026-11-12 (Nutzerbeauftragung):** Der Plugin-Rahmen hier (Registry, Scopes, Settings) ist
 > Voraussetzung und Grundlage für **EPIC-P55** — Plugin-Toggles in den Einstellungen mit
