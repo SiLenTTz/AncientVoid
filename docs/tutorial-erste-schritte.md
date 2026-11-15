@@ -49,13 +49,19 @@ Skill `setup-wizard`.
 
 ## 3. Projekt-Wurzeln eintragen
 
-Sessions laufen in deinen Repos. Der Wizard fragt (noch) nicht danach — ohne
-diesen Schritt bleibt die Projektliste leer und der Erststart bleibt bei
-„Neue Session“ hängen ([BUG-0153](../bugs/bug-0153-erstinstallation-ohne-projektwurzeln.md)).
+Sessions laufen in deinen Repos. Am einfachsten beim Wizard:
 
-Öffne `hub.config.json` im Repo (Felder: [`referenz-config.md`](referenz-config.md))
-und trage unter `projectRoots` den Ordner ein, dessen **direkte Unterordner**
-deine Git-Repos sind (Tiefe 1):
+```bash tutorial-manual
+./setup.sh --projects=/home/du/repos
+```
+
+(das Flag trägt `projectRoots` in `hub.config.json` ein — Ordner, dessen
+**direkte Unterordner** deine Git-Repos sind, Tiefe 1). Ohne das Flag bleibt
+die Projektliste leer und der Erststart hängt an dieser Stelle
+([BUG-0153](../bugs/bug-0153-erstinstallation-ohne-projektwurzeln.md)).
+
+Alternativ von Hand: Öffne `hub.config.json` im Repo (Felder:
+[`referenz-config.md`](referenz-config.md)):
 
 ```json
 "projectRoots": ["/home/du/repos"]

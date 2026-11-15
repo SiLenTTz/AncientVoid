@@ -1,7 +1,7 @@
 ---
 id: BUG-0153
 slug: erstinstallation-ohne-projektwurzeln
-status: open
+status: fixed
 severity: S2
 area: pwa
 instance: dev
@@ -32,6 +32,12 @@ ein Projekt kann nicht gewählt werden.
 Der Wizard bereitet einen Pfad vor, auf dem die erste Session ohne manuelle
 Config-Änderung startet (P53-Nacharbeit: Wizard-Frage oder Default-Wurzel),
 oder das Tutorial enthält den ehrlichen Schritt „Projekt-Wurzeln eintragen“.
+
+**Erledigt 15.11.2026:** Wizard fragt `projectRoots` ab (Default `~/Projects`)
+oder nimmt `--projects=<dir>` entgegen und trägt ihn absolut aufgelöst ein;
+`--yes` ohne Flag bleibt kopflos und druckt den ehrlichen Hinweis samt
+Tutorial-Verweis. Tutorial §3 nennt beide Wege. Verify: zwei Wizard-Läufe in
+frischen Klonen (Flag → Config-Eintrag; --yes → leer + Hinweis).
 
 ## Repro
 
