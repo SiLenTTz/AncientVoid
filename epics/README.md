@@ -254,6 +254,15 @@ main); P47/P43.5-Extras sind mit ihren jeweiligen Abnahmen umgesetzt. Kein Start
 grünen Exit-Kriterien der wirksamen Vorgänger; P56 bleibt der einzige
 Aggregationsort (P59 liefert nur direkte Proben).
 
+## P56 — unabhängiger Statistik-Grundlagenstart (15.11.2026)
+
+Nutzerauftrag: sinnvollsten Start aus P44/P55/P56 wählen. P56 beginnt mit
+vorhandenen Zug-/Session-Fakten; T56.1a ist abgeschlossen (24 neue Tests,
+vollständiges lokales Gate grün). [Metrikdefinitionen](../docs/statistik-metriken.md)
+und [Epic](EPIC-P56-statistiken-page-metrik-suite.md). P30/P31 bleiben On hold;
+T56.5, Katalognormalisierung/EUR-Preise und P55-Compression bleiben gesperrt.
+Die Grundlage ist keine Freigabe des gesamten Epics und keine fertige PWA-Seite.
+
 ## Nutzerauftrag vom 14.11.2026 — Agenten-Teams (ehemals Runs)
 
 Nutzermeldung nach erster Nutzung der P40-Fläche: Run-Seite visuell
