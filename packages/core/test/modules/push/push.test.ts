@@ -47,6 +47,8 @@ describe("Web Push (T8.3, ADR-0026)", () => {
     expect(await push.notify(note(3, "session.applied"))).toBe(0);
     push.subscribe({ ...sub(), done: true }, "pixel");
     expect(await push.notify(note(4, "session.turn_end"))).toBe(1);
+    // ADR-0015 Nachtrag: ein abgebrochener Zug ist ein Fehler — kein „done“.
+    expect(await push.notify(note(6, "session.turn_failed"))).toBe(1);
     expect(push.list("pixel")[0]).toMatchObject({ service: "fcm.googleapis.com", mine: true, lastError: null });
     expect(push.list("pixel")[0]!.lastOkAt).not.toBeNull();
   });

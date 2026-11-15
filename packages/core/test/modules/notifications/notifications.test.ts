@@ -12,6 +12,19 @@ import { ProcessRunner } from "@ancientvoid/workers";
 /** One worker per turn; "LIMIT" makes the provider fail with a quota error. */
 function provider(): Adapter {
   const turn = async (ctx: Parameters<Adapter["start"]>[1], text: string) => {
+    if (text.includes("DOPPELT")) {
+      ctx.emit(providerErrorEvent("fake", "Rate limit reached. Retrying after 60 seconds."));
+      ctx.emit(providerErrorEvent("fake", "Usage limit reached for 5 hour. Your limit will reset at 2026-09-23 15:00:00"));
+      const proc = await ctx.spawnWorker(["sh", "-c", "sleep 0.1; exit 1"]);
+      proc.onExit((code) => ctx.emit({ type: "system", summary: `fake: process exited with code ${code}`, payload: { code } }));
+      return;
+    }
+    if (text.includes("SERVER")) {
+      ctx.emit(providerErrorEvent("fake", "Unexpected server error. Check server logs for details."));
+      const proc = await ctx.spawnWorker(["sh", "-c", "sleep 0.1; exit 1"]);
+      proc.onExit((code) => ctx.emit({ type: "system", summary: `fake: process exited with code ${code}`, payload: { code } }));
+      return;
+    }
     const proc = await ctx.spawnWorker(["sh", "-c", text.includes("LIMIT") ? "sleep 0.1; exit 1" : "sleep 0.1"]);
     if (text.includes("LIMIT")) {
       ctx.emit(providerErrorEvent("fake", "Usage limit reached for 5 hour. Your limit will reset at 2026-09-23 15:00:00"));
@@ -77,9 +90,57 @@ describe("notifications feed (ADR-0015)", () => {
   });
 });
 
+describe("Fehler benennen erst beim Abbruch (Nutzerfund 2026-11-15)", () => {
+  it("zwei Provider-Fehler in einem Lauf werden zu einer Meldung — die letzte mit Worten", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-notif-"));
+    const db = new HubDatabase(":memory:");
+    const registry = new AdapterRegistry();
+    registry.register("fake", provider);
+    const manager = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
+    try {
+      await mkdir(join(dir, "tetris"));
+      const record = await manager.create({ adapter: "fake", project: join(dir, "tetris"), prompt: "Hallo" });
+      await waitFor(() => manager.notifications().items.length >= 1); // Zug 1 sauber beenden
+      await manager.steer(record.id, { kind: "prompt", text: "DOPPELT bitte" });
+      await waitFor(() => manager.notifications().items.some((n) => n.level === "error"));
+      await new Promise((r) => setTimeout(r, 500));
+      const errors = manager.notifications().items.filter((n) => n.level === "error");
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.title).toBe("tetris · fake: Kontingent erschöpft (5 h)");
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("ein Serverfehler, der abbricht, benennt die Ursache — ohne zweite Meldung", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ancientvoid-notif-"));
+    const db = new HubDatabase(":memory:");
+    const registry = new AdapterRegistry();
+    registry.register("fake", provider);
+    const manager = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
+    try {
+      await mkdir(join(dir, "tetris"));
+      const record = await manager.create({ adapter: "fake", project: join(dir, "tetris"), prompt: "Hallo" });
+      await waitFor(() => manager.notifications().items.length >= 1); // Zug 1 sauber beenden
+      await manager.steer(record.id, { kind: "prompt", text: "SERVER bitte" });
+      await waitFor(() => manager.notifications().items.some((n) => n.level === "error"));
+      await new Promise((r) => setTimeout(r, 500));
+      const after = manager.notifications().items.filter((n) => n.kind !== "session.turn_end");
+      expect(after).toHaveLength(1);
+      expect(after[0]).toMatchObject({ level: "error", title: "tetris · fake: Serverfehler beim Provider" });
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("Loop-Benachrichtigungen (EPIC-P19, AC-P19-2)", () => {
   const ev = (payload: Record<string, unknown>) => ({ seq: 1, ts: "t", sessionId: "s", type: "system", summary: "x", payload, blobRef: null }) as never;
-  const ctx = { adapter: "loop:securesight-factory", project: "/p/securesight", recentProviderError: false };
+  const ctx = { adapter: "loop:securesight-factory", project: "/p/securesight" };
 
   it("ein Halt für eine Person, eine Störung und eine Eskalation erreichen das Handy", () => {
     expect(notificationFor(ev({ kind: "loop.hold", reason: "Gates dreimal rot" }), ctx)).toEqual({ level: "warning", title: "securesight · Loop wartet auf dich", detail: "Gates dreimal rot", kind: "loop.hold" });
@@ -100,6 +161,34 @@ describe("Loop-Benachrichtigungen (EPIC-P19, AC-P19-2)", () => {
     expect(notificationFor(ev("assistant", "laut log: process exited with code 0"), ctx)).toBeNull();
     // Echte System-Events melden weiterhin einen Absturz.
     expect(notificationFor(ev("system", "opencode: process exited with code 3"), ctx)).toMatchObject({ level: "error", kind: "process.exit" });
+  });
+});
+
+describe("Abbruch und blockierte Hintergrundarbeit (ADR-0015 Nachtrag 2026-11-15)", () => {
+  const ev = (payload: Record<string, unknown>, summary = "x") => ({ seq: 1, ts: "t", sessionId: "s", type: "system", summary, payload, blobRef: null }) as never;
+  const ctx = { adapter: "acp", project: "/p/galaxy" };
+
+  it("ein mit Fehler abgebrochener Zug wird als Fehler benannt, mit Detail aus dem Register", () => {
+    expect(notificationFor(ev({ kind: "session.turn_end", code: 1, reason: "error", detail: "Messlauf (systemd)" }), ctx)).toEqual({
+      level: "error",
+      title: "galaxy · Zug fehlgeschlagen",
+      detail: "Messlauf (systemd)",
+      kind: "session.turn_failed",
+    });
+    expect(notificationFor(ev({ kind: "session.turn_end", code: 1, reason: "error" }), ctx)?.detail).toContain("Verlauf");
+  });
+
+  it("blockierte Wiederherstellung ist eine Fehler-Meldung", () => {
+    expect(notificationFor(ev({ kind: "session.recovery_blocked", detail: "Hintergrundarbeit „X“ ist fehlgeschlagen." }), ctx)).toMatchObject({
+      level: "error",
+      title: "galaxy · Hintergrundarbeit fehlgeschlagen",
+      kind: "session.recovery_blocked",
+    });
+  });
+
+  it("Prozess-Ende und adapter.down bleiben Fehler in Worten — die Entfeinerung übernimmt recordNotifications", () => {
+    expect(notificationFor(ev({ kind: "adapter.down", detail: "kein Lebenszeichen" }), ctx)).toMatchObject({ level: "error", title: "galaxy · acp antwortet nicht" });
+    expect(notificationFor(ev({ kind: "x", code: 3 }, "acp: process exited with code 3"), ctx)).toMatchObject({ level: "error", title: "galaxy · acp abgebrochen (Code 3)", kind: "process.exit" });
   });
 });
 
