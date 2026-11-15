@@ -37,6 +37,32 @@ function persistentTurnAdapter(): Adapter {
   };
 }
 
+/** Adapter, der mitten im Zug steckenbleibt — optional mit einer offenen
+ * Provider-Aktivität (BUG-0165: sie stirbt mit dem Worker beim Hub-Crash). */
+function openTurnAdapter(withActivity: boolean): Adapter {
+  const run = (ctx: Parameters<Adapter["start"]>[1]) => {
+    ctx.turn?.("working");
+    if (withActivity) ctx.activity?.({ id: "sub:1", kind: "agent", state: "running", label: "Subagent läuft" });
+  };
+  return {
+    id: withActivity ? "openturn-activity" : "openturn",
+    version: "0.0.1",
+    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
+    async start(_spec, ctx) {
+      run(ctx);
+      return { sessionId: ctx.sessionId };
+    },
+    async steer(_handle, input, ctx) {
+      if (input.kind === "prompt") run(ctx);
+      return { ok: true };
+    },
+    async status() {
+      return { state: "healthy" };
+    },
+    async stop() {},
+  };
+}
+
 async function waitFor(check: () => boolean, what: string): Promise<void> {
   const deadline = Date.now() + 5000;
   while (!check()) {
@@ -177,8 +203,12 @@ describe("Aktivitätsregister (ADR-0074, BUG-0155)", () => {
     {
       const db = new HubDatabase(dbPath);
       const manager = new SessionManager(db, store, registry, new ProcessRunner());
-      const record = await manager.create({ adapter: "persistent", project: dir, prompt: "start" });
+      // BUG-0155-Kern: Der Zug ist fertig, nur die externe Arbeit hält die
+      // Session `working` — nicht ein zur Crash-Zeit offener Zug (BUG-0165).
+      const record = await manager.create({ adapter: "persistent", project: dir, prompt: "SOFORT_FERTIG" });
+      await waitFor(() => manager.get(record.id)?.status === "idle", "idle nach fertigem Zug");
       await manager.registerActivity(record.id, "Diagnose-Unit");
+      expect(manager.get(record.id)?.status).toBe("working");
       db.close(); // K7: Hard-Kill — kein graceful shutdown, die Unit läuft weiter
     }
     // Gleiche Daten (SQLite-Datei + JSONL), neuer Manager = Hub-Neustart.
@@ -193,6 +223,82 @@ describe("Aktivitätsregister (ADR-0074, BUG-0155)", () => {
       // Ende nach dem Neustart wird angenommen und schließt den Lauf.
       expect(await manager2.endActivity(record!.id, beginId!, 0)).toBe(true);
       await waitFor(() => manager2.get(record!.id)?.status === "idle", "idle nach spätem Ende");
+    } finally {
+      await manager2.shutdown();
+      db2.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("BUG-0165: Hub-Restart mit offener Provider-Aktivität wird interrupted, nicht dauerhaft working", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
+    const registry = new AdapterRegistry();
+    registry.register("openturn-activity", () => openTurnAdapter(true));
+    const dbPath = join(dir, "hub.db");
+    const store = new EventStore(dir);
+    {
+      const db = new HubDatabase(dbPath);
+      const manager = new SessionManager(db, store, registry, new ProcessRunner());
+      const record = await manager.create({ adapter: "openturn-activity", project: dir, prompt: "arbeit" });
+      for (let i = 0; i < 250 && !(await kinds(manager, record.id)).includes("session.activity_begin"); i++) {
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      expect(manager.get(record.id)?.status).toBe("working");
+      db.close(); // K7: Hard-Kill — der Worker und seine Provider-Aktivität sterben mit dem Hub
+    }
+    const db2 = new HubDatabase(dbPath);
+    const manager2 = new SessionManager(db2, store, registry, new ProcessRunner());
+    try {
+      await manager2.recoverAll();
+      const [record] = manager2.list();
+      // Der Zug ist abgeschnitten: interrupted statt dauerhaft working.
+      expect(record?.status).toBe("interrupted");
+      const all = await kinds(manager2, record!.id);
+      expect(all).toContain("session.interrupted");
+      expect(all).toContain("session.turn_end");
+      // Die tote Provider-Aktivität ist ehrlich geschlossen — kein Eintrag bleibt offen.
+      expect(all).toContain("session.activity_end");
+      const beginId = (await manager2.tail(record!.id, 0)).map((e) => (e.payload as { kind?: string; id?: string })).find((e) => e.kind === "session.activity_begin")?.id;
+      expect(await manager2.endActivity(record!.id, beginId!, 0)).toBe(false);
+    } finally {
+      await manager2.shutdown();
+      db2.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("BUG-0165: abgeschnittener Zug mit externer Arbeit wird interrupted, die externe Arbeit bleibt offen", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
+    const registry = new AdapterRegistry();
+    registry.register("openturn", () => openTurnAdapter(false));
+    const dbPath = join(dir, "hub.db");
+    const store = new EventStore(dir);
+    {
+      const db = new HubDatabase(dbPath);
+      const manager = new SessionManager(db, store, registry, new ProcessRunner());
+      const record = await manager.create({ adapter: "openturn", project: dir, prompt: "arbeit" });
+      for (let i = 0; i < 250 && !(await kinds(manager, record.id)).includes("session.main_turn_start"); i++) {
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      const job = await manager.registerActivity(record.id, "Diagnose-Unit");
+      expect(job).not.toBeNull();
+      db.close(); // K7: Hard-Kill — Zug weg, die externe Unit läuft weiter
+    }
+    const db2 = new HubDatabase(dbPath);
+    const manager2 = new SessionManager(db2, store, registry, new ProcessRunner());
+    try {
+      await manager2.recoverAll();
+      const [record] = manager2.list();
+      expect(record?.status).toBe("interrupted");
+      const all = await kinds(manager2, record!.id);
+      expect(all).toContain("session.interrupted");
+      // Die externe Arbeit läuft unabhängig weiter: Ihr Eintrag überlebt und
+      // ihr spätes Ende wird angenommen (status bleibt interrupted — der
+      // abgeschnittene Zug braucht eine Wiederaufnahme, kein stilles idle).
+      const beginId = (await manager2.tail(record!.id, 0)).map((e) => (e.payload as { kind?: string; id?: string })).find((e) => e.kind === "session.activity_begin")?.id;
+      expect(typeof beginId).toBe("string");
+      expect(await manager2.endActivity(record!.id, beginId!, 0)).toBe(true);
+      expect(manager2.get(record!.id)?.status).toBe("interrupted");
     } finally {
       await manager2.shutdown();
       db2.close();

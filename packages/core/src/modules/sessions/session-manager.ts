@@ -2383,10 +2383,16 @@ export class SessionManager {
         return "recovered";
       }
 
-      // ADR-0074 (BUG-0155): Offene Aktivitäten laufen unabhängig vom Hub
-      // weiter (registrierte Jobs, Subagenten) — Recovery unterbricht sie
-      // nicht, die Session bleibt ehrlich `working`.
-      if (session.activities.size > 0) {
+      // ADR-0074 (BUG-0155): Externe Aktivitäten laufen unabhängig vom Hub
+      // weiter (registrierte Jobs mit eigenem Herzschlag) — Recovery unter-
+      // bricht sie nicht, die Session bleibt ehrlich `working`. Das gilt
+      // aber nur für Arbeit, die den Hub-Crash überleben kann: Provider-
+      // Aktivitäten sterben mit dem Worker, und ein nachweisbar offener Zug
+      // (main_turn_start ohne Ende) ist abgeschnitten, egal was außen
+      // weiterläuft — beides davon gehört zur Adoption/Unterbrechung unten,
+      // nicht dauerhaft `working` (BUG-0165).
+      const externalOnly = session.activities.size > 0 && [...session.activities.values()].every((work) => work.source === "external");
+      if (externalOnly && session.mainTurnIdle !== false) {
         await this.emitSystem(session, "session.recovered", {
           events: events.length,
           lastSeq,
@@ -2414,6 +2420,14 @@ export class SessionManager {
         }
         if ((record.status === "working" || record.status === "starting") && (session.adopted === false || !session.handle)) {
           await this.interruption.interrupt(session, "hub_restart");
+          // BUG-0165: Provider-Aktivitäten starben mit dem Worker — niemand
+          // meldet ihr Ende mehr. Ehrlich schließen, sonst blockiert der
+          // tote Eintrag nach jeder Wiederaufnahme das Laufende (closeIfLast
+          // sieht activities.size > 0). Externe Arbeit läuft weiter und
+          // blockiert die Wiederaufnahme bewusst (ADR-0076).
+          for (const entry of [...session.activities.values()]) {
+            if (entry.source !== "external") await this.endActivity(record.id, entry.id, 1);
+          }
         }
         if (session.handle) keepWorkers.push(record.id);
         if (!session.handle) {
