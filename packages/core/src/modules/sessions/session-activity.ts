@@ -36,7 +36,7 @@ export class SessionActivities {
     if (activity.state === "failed" && source === "external") {
       await this.host.emit(session, "session.recovery_blocked", { detail: `Hintergrundarbeit „${activity.label ?? activity.id}“ ist fehlgeschlagen. Zustand prüfen, abbrechen oder übergeben.` });
     }
-    await this.closeIfLast(session, code);
+    await this.closeIfLast(session, code, activity.label ?? activity.id);
   }
 
   async report(sessionId: string, activity: ActivityReport): Promise<Ack> {
@@ -58,7 +58,7 @@ export class SessionActivities {
     }
   }
 
-  private async closeIfLast(session: LiveSession, code: number): Promise<void> {
+  private async closeIfLast(session: LiveSession, code: number, label?: string): Promise<void> {
     // BUG-0161: Ein Aktivitätsende ist kein Zugende. Läuft die Hauptarbeit
     // noch (mainTurnIdle === false, ADR-0076), bleibt die Session working —
     // ihr Zugende kommt über adapterTurn/Worker-Exit, nicht über Tools.
@@ -66,8 +66,9 @@ export class SessionActivities {
     if (session.activities.size > 0 || (session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
     // Eine fehlgeschlagene/ungewiss beendete Hintergrundarbeit ist kein
     // sauberer Laufabschluss (BUG-0155): ehrlich `error`, nie success-idle.
+    // Nutzerfund 2026-11-15: Das Label der Arbeit gehört in die Meldung.
     if (code !== 0) {
-      await this.host.emit(session, "session.turn_end", { code, reason: "error" });
+      await this.host.emit(session, "session.turn_end", { code, reason: "error", detail: label ?? undefined });
       await this.host.settleFailed(session);
       return;
     }

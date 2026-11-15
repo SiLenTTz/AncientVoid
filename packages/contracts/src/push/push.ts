@@ -17,9 +17,11 @@ export const PUSH_KIND_CATEGORY: Readonly<Record<string, PushCategory>> = {
   "provider.error": "error",
   "session.start_failed": "error",
   "session.recovery_failed": "error",
+  "session.recovery_blocked": "error",
   "adapter.down": "error",
   "session.budget_exceeded": "error",
   "session.daily_cap_exceeded": "error",
+  "session.turn_failed": "error",
   "session.turn_end": "done",
 };
 

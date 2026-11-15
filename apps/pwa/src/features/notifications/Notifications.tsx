@@ -74,14 +74,22 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [open, setOpen] = useState(false);
   const [read, setRead] = useState(readMarks);
+  /** Sessions mit noch offener Freigabe/Frage — live geprüft, damit eine
+   * beantwortete Frage aus dem angepinnten Abschnitt verschwindet. */
+  const [pendingApprovals, setPendingApprovals] = useState<ReadonlySet<string>>(new Set());
   // EPIC-P51 T51.6: Esc schließt das Panel, Fokus rein/Tab-Falle/zurück auf die Glocke.
   const closeBtn = useRef<HTMLButtonElement>(null);
   const { ref: panelRef } = useOverlayFocus<HTMLDivElement>(open, { preferred: () => closeBtn.current });
+  const openRef = useRef(false);
+  const closePanel = () => {
+    openRef.current = false;
+    setOpen(false);
+  };
   useEffect(() => {
     if (!open) return;
     return registerShortcut("notifications.close", (e) => {
       e.preventDefault();
-      setOpen(false);
+      closePanel();
     });
   }, [open]);
   // Per host (key "" = this hub): newest id seen; null = not loaded yet.
@@ -125,6 +133,23 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
     lastIds.current[key] = Math.max(known ?? 0, page.lastId);
   };
 
+  /** Nutzerfund 2026-11-15: „Braucht dich“ sichtbar halten — Fehler und offene
+   * Fragen stehen angepinnt oben, der Rest darunter. Offen heißt: zu dieser
+   * Session wartet wirklich noch eine Freigabe (live gegen die Freigabe-
+   * Warteschlange geprüft, eigener Hub und Peers). */
+  const refreshPending = () => {
+    const next = new Set<string>();
+    const collect = (hostId: string | null) => (list: { sessionId: string }[]) => {
+      for (const a of list) next.add(`${hostId ?? ""}#${a.sessionId}`);
+    };
+    void Promise.all([
+      hubApi.approvals("pending").then(collect(null)).catch(() => undefined),
+      ...peers.current.map((h) => hostApi(h).approvals("pending").then(collect(h)).catch(() => undefined)),
+    ]).then(() =>
+      setPendingApprovals((prev) => (prev.size === next.size && [...next].every((k) => prev.has(k)) ? prev : next)),
+    );
+  };
+
   useEffect(() => {
     let alive = true;
     const loadPeers = () =>
@@ -156,6 +181,8 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
             .catch(() => undefined),
         ),
       );
+      // Offene Fragen nur verfeinern, solange jemand hinguckt.
+      if (alive && openRef.current) refreshPending();
     };
     void loadPeers().then(() => poll());
     const timer = setInterval(() => void poll(), POLL_MS);
@@ -169,8 +196,27 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
 
   const unread = items.filter((n) => n.id > (read[n.hostId ?? ""] ?? 0)).length;
 
+  const isOpenQuestion = (n: FleetNotification) =>
+    APPROVAL_KINDS.has(n.kind) && pendingApprovals.has(`${n.hostId ?? ""}#${n.sessionId}`);
+  const errors = items.filter((n) => n.level === "error");
+  const questions = items.filter((n) => n.level !== "error" && isOpenQuestion(n));
+  const rest = items.filter((n) => n.level !== "error" && !isOpenQuestion(n));
+
+  const row = (n: FleetNotification) => (
+    <button key={n.key} class={`notif-item ${n.level}`} type="button" onClick={() => goTo(n.sessionId, n.hostId)}>
+      <span class="notif-item-title">{n.title}</span>
+      {n.detail && <span class="notif-item-detail">{n.detail}</span>}
+      <span class="notif-item-time">{timeAgo(n.createdAt)}</span>
+    </button>
+  );
+
   const openPanel = () => {
-    setOpen((was) => !was);
+    setOpen((was) => {
+      openRef.current = !was;
+      return !was;
+    });
+    if (!openRef.current) return;
+    refreshPending();
     const marks = { ...read };
     for (const n of items) marks[n.hostId ?? ""] = Math.max(marks[n.hostId ?? ""] ?? 0, n.id);
     saveReadMarks(marks);
@@ -178,7 +224,7 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
   };
 
   const goTo = (sessionId: string | null, hostId: string | null) => {
-    setOpen(false);
+    closePanel();
     if (sessionId) location.hash = sessionHash(sessionId, hostId);
   };
 
@@ -215,20 +261,33 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
         <div class={`notif-panel${corner ? " corner" : ""}`} role="dialog" aria-label="Benachrichtigungen" ref={panelRef} tabIndex={-1}>
           <div class="notif-panel-head">
             <strong>Benachrichtigungen</strong>
-            <button class="btn" type="button" ref={closeBtn} onClick={() => setOpen(false)}>
+            <button class="btn" type="button" ref={closeBtn} onClick={closePanel}>
               ✕
             </button>
           </div>
           {items.length === 0 ? (
             <div class="empty">noch keine Meldungen</div>
           ) : (
-            items.map((n) => (
-              <button key={n.key} class={`notif-item ${n.level}`} type="button" onClick={() => goTo(n.sessionId, n.hostId)}>
-                <span class="notif-item-title">{n.title}</span>
-                {n.detail && <span class="notif-item-detail">{n.detail}</span>}
-                <span class="notif-item-time">{timeAgo(n.createdAt)}</span>
-              </button>
-            ))
+            <>
+              {errors.length > 0 && (
+                <section class="notif-section" aria-label="Fehler">
+                  <h3 class="section-title">Fehler</h3>
+                  {errors.map(row)}
+                </section>
+              )}
+              {questions.length > 0 && (
+                <section class="notif-section" aria-label="Offene Fragen">
+                  <h3 class="section-title">Offene Fragen</h3>
+                  {questions.map(row)}
+                </section>
+              )}
+              {rest.length > 0 && (
+                <section class="notif-section" aria-label="Übrige Meldungen">
+                  <h3 class="section-title">Übrige Meldungen</h3>
+                  {rest.map(row)}
+                </section>
+              )}
+            </>
           )}
         </div>
       )}

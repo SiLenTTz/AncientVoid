@@ -61,6 +61,38 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     await expect(app.locator(".toast")).toHaveCount(0);
   });
 
+  test("Fehler und offene Fragen stehen angepinnt oben, der Rest darunter (Nutzerfund 2026-11-15)", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Bitte KONTINGENT" }); // Fehler
+    await hub.createSession({ adapter: "claude", prompt: "Bitte FRAGE" }); // offene Frage, bleibt offen
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" }); // Zug fertig
+    await hub.until(
+      async () => {
+        const { body } = await hub.api<{ items: { kind: string; sessionId: string }[] }>("/api/notifications");
+        const kinds = new Set(body.items.map((n) => n.kind));
+        return kinds.has("provider.error") && kinds.has("tool.permission_requested") && kinds.has("session.turn_end");
+      },
+      "Fehler, Frage und fertiger Zug in der Glocke",
+      30_000,
+    );
+    await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
+    const sections = app.locator(".notif-section");
+    await expect(sections).toHaveCount(3);
+    // Reihenfolge ist die Wichtigkeit: Fehler, offene Fragen, Rest.
+    await expect(sections.nth(0).locator(".section-title")).toHaveText("Fehler");
+    await expect(sections.nth(0).locator(".notif-item")).toContainText("Kontingent erschöpft");
+    await expect(sections.nth(1).locator(".section-title")).toHaveText("Offene Fragen");
+    await expect(sections.nth(1).locator(".notif-item")).toContainText("Rückfrage");
+    await expect(sections.nth(2).locator(".section-title")).toHaveText("Übrige Meldungen");
+    await expect(sections.nth(2).locator(".notif-item")).toContainText("Zug fertig");
+    // Der Fehler liegt im DOM über der Frage und der Frage über dem Rest.
+    const order = await app.evaluate(() =>
+      [...document.querySelectorAll(".notif-item")].map((el) => el.textContent ?? ""),
+    );
+    const at = (text: string) => order.findIndex((t) => t.includes(text));
+    expect(at("Kontingent erschöpft")).toBeLessThan(at("Rückfrage"));
+    expect(at("Rückfrage")).toBeLessThan(at("Zug fertig"));
+  });
+
   test("Hub weg und wieder da wird gemeldet", async ({ app, hub }) => {
     await hub.kill("SIGKILL");
     await expect(app.locator(".toast.warning").filter({ hasText: "Hub nicht erreichbar" })).toBeVisible({ timeout: 15_000 });
