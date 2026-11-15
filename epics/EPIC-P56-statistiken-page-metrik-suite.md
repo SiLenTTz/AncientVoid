@@ -64,7 +64,7 @@ Alle Metriken werden je **Modell**, **Provider**, **Harness** und **Orchestrator
 ## 5. Aufgaben (Checkliste T56.m)
 
 - **T56.1** Metrik-Contract (Feldliste, Berechnungsregeln exakt nach §3) als testbare Spezifikation.
-  - [ ] **T56.1a** Datenquellen/Feldliste und ehrliche Verteilungen für vorhandene Zugmetriken; p50/p90/p95, n/missing, Klein-n, Token-Herkunft und Replay-Gegenprobe. **K5/K7**.
+  - [x] **T56.1a** Datenquellen/Feldliste und ehrliche Verteilungen für vorhandene Zugmetriken; p50/p90/p95, n/missing, Klein-n, Token-Herkunft und Replay-Gegenprobe. **K5/K7**.
   - [ ] **T56.1b** Übrige Session-/Gate-/Team-/Tool-Metriken nach den belegten Quellen präzisieren und testen; fehlende terminale/korrelierte Fakten ausdrücklich kennzeichnen. **K5/K7**.
 - **T56.2** Rollup-Job inkl. Nachführbarkeit und Klein-n-Kennzeichnung.
 - **T56.3** Statistiken-Page: Sessions/Tokens/Erfolg/Tool-Sektionen, Filter, p50/p90/p95-Darstellung.
@@ -93,6 +93,12 @@ Alle Metriken werden je **Modell**, **Provider**, **Harness** und **Orchestrator
 
 T56.1a: [Metrik-Referenz](../docs/statistik-metriken.md) und
 [ADR-0079](../docs/adr/0079-statistik-verteilungen-und-datenluecken.md).
+T56.1a abgeschlossen: 24 neue Contract-/Core-Tests grün; Feldliste und
+Datenquellengrenzen dokumentiert. Vollständiges lokales Gate grün: 2204 Unit-/Integrationstests bestanden (4 sichtbar übersprungen), 694 E2Es bestanden (5 sichtbar übersprungen; 27.4m). Typecheck, Lint, Architektur, Kontext und PWA-Build grün. Skips sind keine Passes.
+Der Gate-Stand enthält den separat über [MR !476](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/476)
+behobenen Offline-Diff-Defekt BUG-0164. Nach der getrennten Übernahme sind
+alle neun Source-/Testdateien bytegleich mit dem geprüften Stand.
+
 Neue additive Statistik-Lesemodelle und reine Aggregation; keine neue
 Persistenz, HTTP-Route oder PWA-Seite. Die vorhandene Rekonstruktion
 `deriveTurnMetrics` bleibt Quelle. T56.1b–T56.6 und alle vollständigen AC
