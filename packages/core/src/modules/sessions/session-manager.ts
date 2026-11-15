@@ -3003,6 +3003,13 @@ export class SessionManager {
   private async drainSlot(sessionId: string): Promise<void> {
     const session = this.live.get(sessionId);
     if (!session || session.record.status !== "idle") return;
+    // BUG-0163: Auf langsamen Maschinen kann der Working-Flip eines eben
+    // abgeschlossenen Steers noch in einem parallelen Microtask nachlaufen
+    // (sein Adapter-Callback feuert turn("working") knapp vor resolve).
+    // Ein Macrotask-Yield + Re-Check schließt das Fenster, bevor etwas
+    // Gesendetes in einen längst begonnenen Zug läuft (Occupant-Pinning).
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    if (session.record.status !== "idle") return;
     const item = this.queue.list(sessionId)[0];
     if (!item) return;
     if (this.uncertainQueue.has(item.id)) {
