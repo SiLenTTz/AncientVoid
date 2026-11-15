@@ -1,6 +1,8 @@
 import { useEffect, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type HarnessFeatures, type SkillOrAgent } from "../../shared/api.ts";
+import { registerShortcut } from "../../shared/shortcuts/registry.ts";
+import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 
 
 export interface SelectedSkill {
@@ -124,6 +126,16 @@ export function SkillPicker({
     setOpen(false);
   };
 
+  // EPIC-P51 T51.6: Esc schließt, Fokus rein/Tab-Falle/zurück auf den Auslöser.
+  const { ref: sheetRef } = useOverlayFocus<HTMLDivElement>(open);
+  useEffect(() => {
+    if (!open) return;
+    return registerShortcut("skillpicker.close", (e) => {
+      e.preventDefault();
+      setOpen(false);
+    });
+  }, [open]);
+
   if (!supported) {
     return (
       <div class="skill-chip dim" title="Für diesen Adapter nicht verfügbar">
@@ -140,7 +152,7 @@ export function SkillPicker({
 
       {open && (
         <div class="overlay-backdrop" onClick={() => setOpen(false)}>
-          <div class="overlay-sheet" onClick={(e) => e.stopPropagation()}>
+          <div class="overlay-sheet" ref={sheetRef} role="dialog" aria-modal="true" aria-label="Skill oder Agent wählen" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
             <div class="row" style="justify-content: space-between; align-items: center">
               <strong>Senden mit …</strong>
               <button class="btn" type="button" onClick={() => setOpen(false)}>

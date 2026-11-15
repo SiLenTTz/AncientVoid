@@ -2,6 +2,7 @@ import { Fragment, type ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
 import type { NormalizedEvent } from "../../shared/ws.ts";
 import { EventDetail, EventRow } from "./EventRow.tsx";
+import { typedText, typewriterTargets, useTypewriterQueue } from "./typewriter-queue.ts";
 import { currentStep, stepsOf, workSummary, type ChatItem, type Step, type Work } from "./turns.ts";
 
 /**
@@ -59,6 +60,8 @@ export function ChatTurns({
   after: (item: ChatItem, next: ChatItem | undefined) => ComponentChildren;
 }) {
   const [choices, setChoices] = useState(() => loadChoices(sessionId));
+  // EPIC-P58 T58.2: Queue für neuen Live-Zuwachs (nur Agententext und Reasoning, in Anzeigereihenfolge).
+  const typed = useTypewriterQueue(typewriterTargets(items));
   const toggle = (key: string, open: boolean) => {
     setChoices((prev) => {
       const next = { ...prev, [key]: open };
@@ -81,7 +84,7 @@ export function ChatTurns({
             </div>
           )}
           {item.kind === "event" ? (
-            <EventRow event={item.event} expanded={expanded.has(item.event.seq)} onToggleExpand={() => onToggleExpand(item.event.seq)} toolResult={undefined} onJump={onJump} />
+            <EventRow event={item.event} expanded={expanded.has(item.event.seq)} onToggleExpand={() => onToggleExpand(item.event.seq)} toolResult={undefined} onJump={onJump} typeShown={typed(String(item.event.seq))} />
           ) : item.kind === "unknown" ? (
             <div class="turn-unknown" data-seq={item.firstSeq}>
               <span>
@@ -92,7 +95,7 @@ export function ChatTurns({
               </button>
             </div>
           ) : (
-            <WorkBlock work={item} open={choices[item.key] ?? item.running} onToggle={(open) => toggle(item.key, open)} />
+            <WorkBlock work={item} open={choices[item.key] ?? item.running} onToggle={(open) => toggle(item.key, open)} typed={typed} />
           )}
           {after(item, items[i + 1])}
         </Fragment>
@@ -101,7 +104,7 @@ export function ChatTurns({
   );
 }
 
-function WorkBlock({ work, open, onToggle }: { work: Work; open: boolean; onToggle: (open: boolean) => void }) {
+function WorkBlock({ work, open, onToggle, typed }: { work: Work; open: boolean; onToggle: (open: boolean) => void; typed?: (key: string) => number | null }) {
   const steps = stepsOf(work);
   const running = currentStep(work);
   const failed = steps.some((s) => s.state === "error");
@@ -118,7 +121,7 @@ function WorkBlock({ work, open, onToggle }: { work: Work; open: boolean; onTogg
           {work.entries.map((entry) =>
             entry.kind === "note" ? (
               <li key={`n${entry.event.seq}`} class={`turn-note ${entry.event.type}`}>
-                <WorkNote event={entry.event} />
+                <WorkNote event={entry.event} typeShown={typed?.(String(entry.event.seq))} />
               </li>
             ) : (
               <StepRow key={entry.step.key} step={entry.step} current={entry.step === running} />
@@ -130,10 +133,10 @@ function WorkBlock({ work, open, onToggle }: { work: Work; open: boolean; onTogg
   );
 }
 
-function WorkNote({ event }: { event: NormalizedEvent }) {
+function WorkNote({ event, typeShown }: { event: NormalizedEvent; typeShown?: number | null }) {
   const [open, setOpen] = useState(false);
   return <>
-    <button type="button" class="turn-note-toggle" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span aria-hidden="true">{open ? "▾" : "▸"}</span> {event.summary}</button>
+    <button type="button" class="turn-note-toggle" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span aria-hidden="true">{open ? "▾" : "▸"}</span> {typedText(event.summary, typeShown)}</button>
     {open && <EventDetail event={event} />}
   </>;
 }

@@ -24,6 +24,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 
 | ID | Titel | Status | Schwere | Bereich | Forge |
 |---|---|---|---|---|---|
+| [BUG-0164](bug-0164-offline-diff-verliert-stand.md) | Offline-Nachladen verwirft den sichtbaren Diff | done | S3 | pwa | [Issue](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/67) |
 | [BUG-0001](bug-0001-k7-recovery-race-under-load.md) | K7-Recovery-Test race unter CPU-Last | done | S3 | core | [#1](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/1) |
 | [BUG-0002](bug-0002-cross-file-timer-delay-singlefork.md) | Zeitbasierte sessionmanager-Tests verzögert nach anderer Testdatei | done | S3 | core | [#2](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/2) |
 | [BUG-0003](bug-0003-k7-seq-gap-unknown-cause.md) | K7-Test sah echte Sequenzlücke in CI (EventStore-Flush-Race) | done | S2 | core | [#3](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/3) |
@@ -171,5 +172,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0158](bug-0158-codex-ablehnung-als-erfolg.md) | Codex bestätigt abgelehnte Folgeeingaben als angenommen | done | S2 | adapter-codex | [#61](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/61) |
 | [BUG-0159](bug-0159-nyx-fab-feedback-blende-steht-dauerhaft.md) | Feedbackblende des Nyx-Voice-FAB steht nach der Aufnahme dauerhaft | done | S3 | pwa | [#457](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/457) |
 | [BUG-0160](bug-0160-galaxy-route-verliert-tab-bei-kacheloffnung.md) | Graph-Deep-Link verliert den Reiter beim Öffnen der Kachel | done | S3 | pwa | — |
+| [BUG-0163](bug-0163-ci-verify-rot-seit-11-11.md) | CI: `verify` seit dem 11.11. durchgehend rot (4 Umgebungstests), lokal grün | open | S2 | ci | — |
 
 Die nächste freie Nummer ist **0161**.

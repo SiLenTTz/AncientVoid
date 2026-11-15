@@ -2,7 +2,7 @@
 
 **Art:** referenz
 
-**Stand:** 2026-11-11 (EPIC-P43 T43.0) · **Zweck:** Leitplanke E10 — beim Umbau der Oberfläche
+**Stand:** 2026-11-15 (P43-Basis, P43.5-Abschluss integriert) · **Zweck:** Leitplanke E10 — beim Umbau der Oberfläche
 geht keine Funktion verloren. · **Gate:** [`e2e/specs/funktionsinventar.spec.ts`](../e2e/specs/funktionsinventar.spec.ts)
 
 Jede Zeile ist eine Funktion, die ein Mensch in der PWA erreichen kann. Die letzte Spalte
@@ -36,7 +36,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G03 | Entdeckt (gefundene Sessions) | Dock „Mehr“ → „Entdeckt“; PC: Leiste | — | inventar |
 | G04 | Entdeckt über den Chip | Start → Chip „Gefunden“ | T43.3 | inventar |
 | G05 | Medien | Dock „Mehr“ → „Medien“; PC: Leiste | — | inventar |
-| G06 | Runs | Dock „Runs“ | — | inventar |
+| G06 | Teams | Dock „Teams“ | — | inventar |
 | G07 | Notizen | Dock „Mehr“ → „Notizen“; PC: Leiste | — | inventar |
 | G08 | Automationen | Dock „Mehr“ → „Automationen“; PC: Leiste | — | inventar |
 | G09 | Einstellungen: Darstellung (Erscheinungsbild, Akzent, Größe) | Dock „Mehr“ → „Einstellungen“; PC: Leiste | — | inventar |
@@ -81,7 +81,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G48 | Factory-Lauf | Neue Session → Loop „Factory“ | — | spec:factory.spec.ts |
 | G49 | Gefundene Session übernehmen oder beobachten | Entdeckt | — | spec:discovery.spec.ts |
 | G50 | Video analysieren und in Session verwenden | Medien | — | spec:media.spec.ts |
-| G51 | Runs anlegen und verfolgen | Runs | — | spec:orchestration.spec.ts |
+| G51 | Teams anlegen und verfolgen | Teams | — | spec:team.spec.ts |
 | G52 | Notiz anlegen, lesen, bearbeiten | Notizen | — | spec:vault.spec.ts |
 | G53 | Automation anlegen, pausieren, jetzt senden | Automationen | — | spec:automations.spec.ts |
 | G54 | Flotte: Sessions anderer Hosts | Start bzw. Hosts | — | spec:fleet.spec.ts |
@@ -94,8 +94,15 @@ Werkzeugseiten füllen die Detailspalte.
 | G61 | Freigabe auf der Karte entscheiden (Erlauben/Ablehnen) | Start → Karte unter „Du bist dran“ | — | spec:start-warteschlange.spec.ts |
 | G62 | „Ruhig“ auf- und zuklappen | Start → Gruppenkopf „Ruhig“ | — | spec:start-warteschlange.spec.ts |
 | G63 | Alle Freigaben zeigen | Start → „Du bist dran“ → „alle zeigen“ | — | spec:start-warteschlange.spec.ts |
-| G64 | Schnellsuche: Springen zu Sessions, Projekten, Dateien, Werkzeugen, Befehlen | Strg+K bzw. Dock „Suchen“ → Treffer | T43.6 | spec:schnellsuche.spec.ts |
+| G64 | Schnellsuche: Springen zu Sessions, Projekten, Dateien, Werkzeugen, Befehlen | Strg+K bzw. Dock „Suchen“ → Treffer. **Bewusste Grenze (P51 T51.11):** tiefe Sprungziele unterhalb der Werkzeug-/Session-Ebene (z. B. einzelne Notizen, Graph/Galaxie einer Session, Host-Detail) sind absichtlich nicht eigene Schnellsuche-Treffer — sie liegen einen Sprung + einen Tap entfernt (Werkzeug/Session → Tab), eine zweite Navigationsschicht wäre Doppelstruktur; Vault-Suche bleibt minimal (ADR-0063) | T43.6 + P51 T51.11 | spec:schnellsuche.spec.ts |
 | G65 | Nyx: Gesamtzustand in der Kopfzeile; Blatt mit allen wartenden Freigaben und Fragen (Vorauswahl, Ja/Nein mit einem Tipp, Begründung/Passkey → Session); am PC auch als eigenes Fenster | Kopfzeile → Nyx | T43.8 | spec:nyx-blatt.spec.ts |
+| G66 | Typwriter-Effekt: neuen Live-Zuwachs in Chat und Thinking getippt; was schon da war, rendert sofort; schaltbar, Reduce Motion gewinnt | Sitzung → Chat; Einstellungen → Darstellung | P58 | spec:typewriter.spec.ts |
+| G67 | Team-Detail: Karten je Worker-Task (Adapter/Modell, Versuch, Fortschritt, Session-Link, Ergebnis-Vorschau), Rückfragen als Karten mit Stopp, Offline-Stand mit Zeitstempel | Teams → Team | P60 | spec:team.spec.ts |
+| G68 | Quellenchips: Code-Befund, Review-Notiz, Browser-Element, CI-Befund als sichtbare Quelle im Composer — Vorschau zeigt den `<quellen>`-Block, der beim bewussten Absenden mitgeht (kein Auto-Send, K5-gekappt) | Befund „In den Composer“ → Composer der Session | P43.5 T43.5-1 | spec:quellenchips.spec.ts |
+| G69 | Quellen und eigene Statusnotizen in der Schnellsuche; Tastatur-/Touch-Sprung bewahrt Entwurf und Verbindung | Suchen → Quelle/Statusnotiz | P43.5 T43.5-2 | spec:quellenchips.spec.ts |
+| G70 | Versionierte lokale Darstellungs-Presets: Dichte, Chatbreite, getrennte Codegröße, Kontrastprüfung, Rasterbild, Import/Export/Reset | Einstellungen → Darstellungs- und Layout-Presets | P43.5 T43.5-3 | spec:appearance-presets.spec.ts |
+| G71 | Benannte Geräte-Layouts mit Kachelgrößen und erreichbaren Fenstern; Browser-Fenster-Preset Handy | Einstellungen → Darstellungs- und Layout-Presets | P43.5 T43.5-4 | spec:appearance-presets.spec.ts |
+| G72 | Metrik-Seite: Auslastung des lokalen KI-Servers — jede Zahl mit Quelle und Alter, „nicht gemeldet“ ≠ 0, Offline behält letzte Daten | Dock „Mehr“ → „Metrik“ | P59 | spec:ki-server-metriken.spec.ts |
 
 ## Session
 
@@ -137,6 +144,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S30 | Steuerung ein- und ausblenden | „▾“/„▴“ | T43.4 | inventar |
 | S31 | Kopieren je Ereignis | Taste am Ereignis | T43.5 | inventar |
 | S32 | Dateibaum | Reiter „Dateien“ → „Dateibaum“; ohne Session globales „Mehr“ → „Dateibaum“ (PC: Leiste) | T43.5 | inventar |
+| S73 | Epic-Statuspunkte im Dateibaum | EPIC-*.md tragen einen Statuspunkt (grün abgeschlossen · amber Code/Exit offen · blau in Umsetzung · grau offen/gesperrt), Tooltip = Statuszeile der Datei | Nutzerwunsch 14.11.2026 | spec:dateibaum-epic-status.spec.ts |
 | S33 | Browser-Arbeitsplatz | „Mehr“ → „Browser“ | T43.4 | inventar |
 | S34 | Graph in eigenes Fenster (nur PC) | Reiter „Graph“ → „⧉ Eigenes Fenster“ | T43.7 | inventar |
 | S35 | Pause und „Weiter“ | Taste im Kopf, während ein Zug läuft | T43.4 | spec:pause-queue.spec.ts |
@@ -178,6 +186,9 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S71 | Hintergrundarbeit hält die Session aktiv | Aktivstatus und Hinweis im Session-Chat | — | spec:session-robustheit.spec.ts |
 | S72 | Laufenden Hub, PWA-Build und Checkout vergleichen | Status → Ausgelieferter Stand | — | spec:session-robustheit.spec.ts |
 
+| S74 | Composer maximieren/verkleinern als Icon-Button mit mindestens 40 px Ziel | Composer → ⤢/⤡ | P43.5 T43.5-6 | spec:quellenchips.spec.ts |
+| S75 | Eigene fachliche Arbeitsnotiz auf diesem Gerät, getrennt vom Laufzeitstatus und ohne Auto-Senden | Session → Weitere Aktionen → Arbeitsnotiz (oder Schnellsuche) | P43.5 T43.5-2 | spec:quellenchips.spec.ts |
+
 ## PC-Arbeitsfläche
 
 Nur ab 1280 px Breite.
@@ -187,7 +198,7 @@ Nur ab 1280 px Breite.
 | P01 | Layoutwahl (sechs Layouts) | Leiste über den Kacheln | — | inventar |
 | P02 | Fokus ‹ ›, Tauschen, Layout, Leeren | Leiste über den Kacheln | T43.6 | inventar |
 | P03 | Liste einklappen | Leiste über den Kacheln | — | inventar |
-| P04 | Tastaturhinweise | Zeile über den Kacheln | P51 T51.7 | inventar |
+| P04 | Tastaturhinweise | ?-Kürzelübersicht (Registry) | P51 T51.7 | inventar |
 | P05 | Kachel in eigenes Fenster (Taste) | Kachelkopf „⧉“ | T43.7 | inventar |
 | P06 | Kachel am Griff herausziehen | Kachelkopf „⠿“ | T43.7 | inventar |
 | P07 | Kachel leeren | Kachelkopf „×“ | — | inventar |

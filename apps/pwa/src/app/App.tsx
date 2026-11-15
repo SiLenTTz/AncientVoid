@@ -7,14 +7,14 @@ import { setHere } from "../shared/command-context.ts";
 import { openCommandBar } from "../features/commands/CommandBar.tsx";
 import { ApprovalQueuePane } from "../features/approvals/Approvals.tsx";
 import { StatusPage } from "../features/status/StatusPage.tsx";
-import { DiscoveryPane } from "../features/discovery/Discovery.tsx";
 import { SettingsPage } from "../features/settings/SettingsPage.tsx";
 import { CreateSession } from "../features/new-session/CreateSession.tsx";
 import { MediaPage } from "../features/media/MediaPage.tsx";
 import { DesktopPage } from "../features/desktop/DesktopPage.tsx";
 import { VaultPane } from "../features/vault/VaultPane.tsx";
-import { RunsPane } from "../features/orchestration/RunsPane.tsx";
+import { TeamsPane } from "../features/team/TeamsPane.tsx";
 import { AutomationsPane } from "../features/automations/AutomationsPane.tsx";
+import { AiMetricsPage } from "../features/aimetrics/AiMetricsPage.tsx";
 import { publishHubStatus } from "../features/shell/hub-status.ts";
 import { getLastSession } from "../features/shell/last-session.ts";
 import { DetachButton } from "../features/windows/DetachButton.tsx";
@@ -182,15 +182,14 @@ export function App({
 
       {shown === "status" && <StatusPage adapters={adapters} usage={usage} />}
 
-      {shown === "discovery" && <DiscoveryPane onOpen={onOpen} />}
-
       {shown === "media" && <MediaPage sessions={sessions ?? []} />}
 
       {shown === "pc" && <DesktopPage />}
 
       {shown === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
-      {shown === "orchestrierung" && <RunsPane />}
+      {shown === "teams" && <TeamsPane />}
       {shown === "automationen" && <AutomationsPane />}
+      {shown === "aimetrics" && <AiMetricsPage />}
       {shown === "dashboard" &&
         (sessions === null ? (
           <div class="empty">lade…</div>
@@ -202,7 +201,6 @@ export function App({
             pendingApprovals={pendingApprovals}
             approvals={approvals}
             onOpenApprovals={() => setPage("approvals")}
-            onOpenDiscovery={() => setPage("discovery")}
             lastSession={getLastSession()}
             probeAvailable={adapters.some((a) => a.id === "dummy")}
           />

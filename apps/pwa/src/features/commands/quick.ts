@@ -4,14 +4,20 @@ import type { ListPage } from "../../app/route.ts";
  * EPIC-P43 T43.6: Schnellsuche im Befehlsfeld — Springen zu Sessions, Projekten, Dateien, Werkzeugen und
  * Befehlen. Kein eigener Index: Sessions und Projekte sind die Listen, die die App ohnehin lädt; „Dateien“
  * ist die bestehende Codesuche der offenen Session. Reine Funktion, damit Reihenfolge und Treffer testbar sind.
+ * EPIC-P51 T51.11: bewusste Grenze — Sprungziele unterhalb der Werkzeug-/Session-Ebene (einzelne Notizen,
+ * Graph/Galaxie, Host-Detail) sind keine eigenen Treffer; sie liegen einen Sprung + einen Tap entfernt
+ * (dokumentiert im Funktionsinventar G64).
  */
-export type QuickKind = "session" | "projekt" | "datei" | "werkzeug" | "befehl";
+export type QuickKind = "session" | "projekt" | "datei" | "werkzeug" | "befehl" | "quelle" | "statusnotiz";
 
 export type QuickTarget =
+  | { kind: "quelle"; hash: string; view?: "forge" }
+  | { kind: "statusnotiz"; sessionId: string; hostId: string | null }
   | { kind: "session"; sessionId: string; hostId: string | null }
   | { kind: "projekt"; path: string }
   | { kind: "datei"; sessionId: string; hostId: string | null; text: string }
-  | { kind: "werkzeug"; page: ListPage }
+  /** `hash` setzt den Ziel-Hash direkt — für Aliase wie `#/gefunden` (EPIC-P47 §3.4). */
+  | { kind: "werkzeug"; page: ListPage; hash?: string }
   | { kind: "befehl"; text: string };
 
 export interface QuickItem {
@@ -23,19 +29,22 @@ export interface QuickItem {
 
 export interface QuickSources {
   sessions: readonly { id: string; title?: string | null; project: string; hostId?: string | null; archived?: boolean }[];
+  sourceRefs?: readonly { label: string; excerpt: string | null; hash: string | null; view?: "forge" }[];
+  notes?: readonly { sessionId: string; hostId: string | null; text: string }[];
   projects: readonly { path: string; name: string }[];
   /** Die gerade offene Session — nur dann gibt es den Sprung in ihre Dateien. */
   here: { sessionId: string; hostId: string | null } | null;
 }
 
-export const QUICK_KIND_LABEL: Record<QuickKind, string> = { session: "Session", projekt: "Projekt", datei: "Dateien", werkzeug: "Werkzeug", befehl: "Befehl" };
+export const QUICK_KIND_LABEL: Record<QuickKind, string> = { quelle: "Quelle", statusnotiz: "Statusnotiz", session: "Session", projekt: "Projekt", datei: "Dateien", werkzeug: "Werkzeug", befehl: "Befehl" };
 
-export const TOOLS: readonly { page: ListPage; label: string }[] = [
+export const TOOLS: readonly { page: ListPage; label: string; hash?: string }[] = [
   { page: "dashboard", label: "Start" },
   { page: "new", label: "Neue Session" },
   { page: "approvals", label: "Freigaben" },
-  { page: "orchestrierung", label: "Runs" },
-  { page: "discovery", label: "Entdeckt" },
+  { page: "teams", label: "Teams" },
+  // EPIC-P47 §3.4: kein eigener Page mehr — der Sprung geht über den Alias auf den Übersichtszustand.
+  { page: "dashboard", label: "Entdeckt", hash: "#/gefunden" },
   { page: "media", label: "Medien" },
   { page: "vault", label: "Notizen" },
   { page: "automationen", label: "Automationen" },
@@ -83,7 +92,9 @@ export function quickMatches(query: string, src: QuickSources): QuickItem[] {
     src.here && q.length >= 2
       ? [{ kind: "datei", label: `„${query.trim()}“ in den Dateien suchen`, detail: "offene Session", target: { kind: "datei", sessionId: src.here.sessionId, hostId: src.here.hostId, text: query.trim() } }]
       : [];
-  const tools = pick(TOOLS, (t) => t.label, (t) => ({ kind: "werkzeug", label: t.label, detail: "öffnen", target: { kind: "werkzeug", page: t.page } }));
+  const tools = pick(TOOLS, (t) => t.label, (t) => ({ kind: "werkzeug", label: t.label, detail: "öffnen", target: { kind: "werkzeug", page: t.page, ...(t.hash ? { hash: t.hash } : {}) } }));
   const commands = pick(COMMANDS, (c) => c, (c) => ({ kind: "befehl", label: c, detail: "als Auftrag eintragen", target: { kind: "befehl", text: c.replace(/…/g, "").replace(/: $/, ": ") } }));
-  return [...sessions, ...projects, ...files, ...tools, ...commands];
+  const refs = pick((src.sourceRefs ?? []).filter(s => s.hash), s => `${s.label} ${s.excerpt ?? ""}`, s => ({ kind: "quelle", label: s.label, detail: "Quelle ansehen", target: { kind: "quelle", hash: s.hash!, ...(s.view ? { view: s.view } : {}) } }));
+  const notes = pick(src.notes ?? [], s => s.text, s => ({ kind: "statusnotiz", label: s.text, detail: "eigene Arbeitsnotiz (dieses Gerät)", target: { kind: "statusnotiz", sessionId: s.sessionId, hostId: s.hostId } }));
+  return [...refs, ...notes, ...sessions, ...projects, ...files, ...tools, ...commands];
 }

@@ -14,7 +14,7 @@ import { DevicePanel } from "../devices/DeviceLayer.tsx";
 import { publishHubStatus } from "../shell/hub-status.ts";
 import { App } from "../../app/App.tsx";
 import { HEARTBEAT_MS, SESSION_VIEW_KINDS, VIEW_LABEL, VIEW_TAB, type SessionViewKind, type WindowTarget } from "./protocol.ts";
-import { onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "./windows.ts";
+import { rememberWindowGeometry, onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "./windows.ts";
 
 type ViewTarget = Extract<WindowTarget, { kind: SessionViewKind }>;
 function isViewTarget(target: WindowTarget): target is ViewTarget {
@@ -83,9 +83,9 @@ export function PopoutShell() {
   useEffect(() => {
     if (!target) return;
     const stop = startWindowHub();
-    const hello = () => postWindowMessage({ type: "hello", id, target });
+    const hello = () => { rememberWindowGeometry(target); postWindowMessage({ type: "hello", id, target }); };
     hello();
-    const beat = setInterval(() => postWindowMessage({ type: "heartbeat", id }), HEARTBEAT_MS);
+    const beat = setInterval(() => { rememberWindowGeometry(target); postWindowMessage({ type: "heartbeat", id }); }, HEARTBEAT_MS);
     const off = onWindowMessage((msg) => {
       if (msg.type === "ping") hello();
       // ADR-0068: „Zurückholen“ aus dem Hauptfenster — wie „In die App zurück“.
@@ -244,7 +244,6 @@ export function PopoutShell() {
           <ToolPane
             page={target.page}
             onClose={giveBack}
-            onOpen={(s) => void openPopout({ kind: "session", sessionId: s.id, ...(remoteHost(s.hostId) ? { hostId: remoteHost(s.hostId)! } : {}) })}
             onSwitchToken={() => location.reload()}
             closeLabel="In die App zurück"
             escCloses={false}

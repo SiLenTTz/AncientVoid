@@ -58,9 +58,11 @@ Vorbild: [`epics/EPIC-P3-adapter-flotte-sprachsuche.md`](../../../epics/EPIC-P3-
 3. **Premortem**: mindestens 3–4 realistische Failure-Modi mit Mitigation —
    nicht generisch, sondern spezifisch für diese Phase.
 4. **`epics/README.md`** aktualisieren (neue Phase verlinken, Status).
-5. **E2E-Gate in die DoD**: jede DoD nennt „`npm run gate` grün, Pipeline-Job
-   `e2e` grün, jede neue UI-Funktion/jeder Ablauf mit Spec in `e2e/specs/`“
-   ([`docs/testing-e2e.md`](../../../docs/testing-e2e.md)).
+5. **E2E-Gate in die DoD**: jede DoD nennt „`npm run gate` lokal grün;
+   Pipeline-Job `e2e` zusätzlich nur bei aktivem lokalem GitLab-Server;
+   jede neue UI-Funktion/jeder Ablauf mit Spec in `e2e/specs/`“. Auf
+   `gitlab.com` ist CI kein Exit-Kriterium (auch nicht mit eigenem Runner).
+   Geltung: [`docs/testing-e2e.md`](../../../docs/testing-e2e.md).
 6. **Erreichbarkeit als Teil der DoD**: ein Feature, das technisch fertig,
    aber nirgends registriert/erreichbar ist (z. B. ein Adapter, der nicht in
    `hub.config.json`/der README-Status-Matrix auftaucht), zählt nicht als

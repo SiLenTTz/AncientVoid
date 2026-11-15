@@ -93,6 +93,10 @@ test.describe("Review-Feedback am Diff (EPIC-P36)", () => {
     // sonst scheitert der Fetch offline und es gibt keine anklickbaren Zeilen.
     await expect(app.locator(".diff-file-row").filter({ hasText: "offline-target.txt" })).toBeVisible();
     await app.context().setOffline(true);
+    // BUG-0164: erneuten Abruf gezielt auslösen statt auf Replay-/Status-Timing zu hoffen.
+    await sessionTab(app, "Chat");
+    await sessionTab(app, "Diff");
+    await expect(app.getByRole("status", { name: "Diff-Stand" })).toContainText("Zuletzt geladener Stand");
     await app.getByRole("button", { name: "Notiz an Zeilen" }).click();
     await app.locator(".review-pickable").filter({ hasText: "zwei" }).first().click();
     await app.getByPlaceholder("Befund notieren …").fill("Offline-Befund");
@@ -106,5 +110,27 @@ test.describe("Review-Feedback am Diff (EPIC-P36)", () => {
     await app.context().setOffline(false);
     const synced = app.locator(".review-note").filter({ hasText: "Offline-Befund" }).first();
     await expect(synced.locator(".review-status")).toHaveText("Entwurf", { timeout: 15_000 });
+  });
+
+  test("Review-Notiz als Quellenchip in den Composer (P43.5 T43.5-1)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await idle(hub, id);
+    const workdir = await workdirOf(hub, id);
+    await writeFile(join(workdir, "review-target.txt"), "alpha\nbeta\ngamma\n");
+    await openDiff(app, hub, id);
+    await app.getByRole("button", { name: "Notiz an Zeilen" }).click();
+    await app.locator(".review-pickable").filter({ hasText: "beta" }).first().click();
+    await app.getByPlaceholder("Befund notieren …").fill("Bitte beta erklären");
+    await app.getByRole("button", { name: "speichern" }).click();
+    const note = app.locator(".review-note").filter({ hasText: "Bitte beta erklären" });
+    await expect(note).toBeVisible();
+    await note.locator("input[type=checkbox]").check();
+    await app.getByTestId("review-to-composer").click();
+    // Der Chip sitzt am Antwort-Composer dieser Session; Vorschau zeigt den Block, nichts geht automatisch raus.
+    const chips = app.getByTestId("source-chips");
+    await expect(chips.locator(".source-chip-label")).toContainText("review-target.txt:2");
+    await expect(app.getByTestId("source-preview")).toContainText("[1] Review — review-target.txt:2");
+    await expect(app.getByTestId("source-preview")).toContainText("Bitte beta erklären");
+    expect((await hub.events(id)).some((e) => JSON.stringify(e.payload).includes("<quellen>"))).toBe(false);
   });
 });

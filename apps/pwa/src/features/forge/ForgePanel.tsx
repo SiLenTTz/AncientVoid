@@ -1,5 +1,8 @@
+import { sessionHash } from "../../app/route.ts";
+import { remoteHost } from "../../shared/api.ts";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
+import { addSource } from "../../shared/sources.ts";
 import {
   newInputId,
   type DraftMrPlan,
@@ -57,6 +60,8 @@ export function ForgePanel({ session, onOpenSession }: { session: SessionRecord;
   const [previewPrompt, setPreviewPrompt] = useState<string | null>(null);
   const [sendBusy, setSendBusy] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  /** EPIC-P43.5 T43.5-1: Quittung für die Composer-Übernahme (nicht der Sendeweg). */
+  const [note, setNote] = useState<string | null>(null);
   const [operationId] = useState(() => newInputId());
   const [plan, setPlan] = useState<DraftMrPlan | null>(null);
   const [mrTitle, setMrTitle] = useState("");
@@ -365,6 +370,26 @@ export function ForgePanel({ session, onOpenSession }: { session: SessionRecord;
             </div>
             <div class="fp-row">
               <button class="fp-btn" disabled={!finding.trim()} onClick={() => void preparePreview()}>Vorschau</button>
+              <button
+                class="fp-btn"
+                disabled={!finding.trim()}
+                onClick={() => {
+                  // EPIC-P43.5 T43.5-1: CI-Befund als Quellenchip — Composer zeigt die Mitgabe.
+                  addSource(session.id, {
+                    id: `forge:${findingSource.pipelineId ?? findingSource.threadId ?? "manual"}:${finding.slice(0, 40)}`,
+                    kind: "forge",
+                    label: `CI-Befund${findingSource.pipelineId ? ` · Pipeline #${findingSource.pipelineId}` : ""}`,
+                    excerpt: finding.trim(),
+                    hash: sessionHash(session.id, remoteHost(session.hostId)),
+                    view: "forge",
+                  });
+                  setFinding("");
+                  setSendError(null);
+                  setNote("Als Quelle im Composer — dort prüfen und mit dem nächsten Absenden mitgeben.");
+                }}
+              >
+                In den Composer
+              </button>
             </div>
             {previewPrompt !== null && (
               <div class="fp-preview">
@@ -378,6 +403,7 @@ export function ForgePanel({ session, onOpenSession }: { session: SessionRecord;
                 {sendError && <div class="fp-warn">{sendError}</div>}
               </div>
             )}
+            {note && <div class="dim" role="status">{note}</div>}
             {sendError && previewPrompt === null && <div class="fp-warn">{sendError}</div>}
           </section>
 

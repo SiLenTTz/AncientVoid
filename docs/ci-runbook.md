@@ -2,9 +2,40 @@
 
 **Art:** how-to
 
-Stand: 05.11.2026 · Epic: [EPIC-P28](../epics/EPIC-P28-reproduzierbare-ci.md) ·
+Stand: 15.11.2026 · Epic: [EPIC-P28](../epics/EPIC-P28-reproduzierbare-ci.md) ·
 ADR: [ADR-0049](adr/0049-selbstverwalteter-ci-runner.md) ·
 Inventar: [CI-Gate-Inventar](ci-gate-inventar.md)
+
+## 0. Geltung seit 15.11.2026
+
+Nutzerentscheid: Das aktuelle Free-Projekt auf `gitlab.com` verwendet die
+**lokalen Gates als verbindliche Abschluss- und Merge-Nachweise**. Die
+Pipeline wird erst zusätzlich verbindlich, wenn das aktive Git-Remote und
+die Projekt-API auf einen tatsächlich lokal betriebenen GitLab-Server zeigen.
+Ein eigener Runner an `gitlab.com` ist kein lokaler GitLab-Server. Ein
+beliebiger anderer externer GitLab-Host belegt ebenfalls keinen lokalen Betrieb;
+im Zweifel gelten die lokalen Gates, bis das aktive Serverziel geklärt ist.
+
+| Aktives Forge-Ziel | Lokale Gates | CI als Merge-/Epic-Gate |
+|---|---|---|
+| `gitlab.com` (Free), mit Shared- oder eigenem Runner | Pflicht | nicht anwendbar |
+| Tatsächlich lokal betriebener GitLab-Server, Projekt/Remote/API darauf eingestellt | Pflicht | zusätzlich Pflicht |
+
+Auf `gitlab.com` sind `failed`, `pending`, `skipped`, fehlende Jobs und Quota
+kein eigener Abschlussmangel. Kein automatisches Warten/Pollen/Retry oder
+Nachziehen und keine wiederkehrende Warnung allein wegen dieses Status.
+Fremde Jobs/Runner dafür nicht abbrechen, pausieren oder umkonfigurieren.
+Bei einer Gate-Abnahme genügt „CI nicht anwendbar (gitlab.com)“; explizite
+Statusfragen weiter wahrheitsgemäß beantworten. Ein nicht anwendbarer oder
+fehlgeschlagener Lauf ist niemals ein Pass. Konkret belegte Produktfehler
+bleiben unabhängig vom Ausführungsort Bugs; lokale Tests werden nicht gelockert.
+Produktabnahmen wie P37 (echte Job-Traces lesen) entfallen nicht: Die Regel
+betrifft den Pipeline-Status als Freigabe-Gate, nicht die Forge-Funktion selbst.
+
+Diese Geltung ersetzt ältere unbedingte Pipeline-Pflichten in Epics und
+Runbooks. Historische CI-Nachweise, `.gitlab-ci.yml` und Report-Zähler bleiben
+erhalten. Die folgenden Betriebs-/Ausfallregeln sind für freiwillige Cloud-CI
+technische Referenz; als Pflicht gelten sie erst im lokalen GitLab-Betrieb.
 
 ## 1. Runner-Betrieb (Projekt-Runner `av-docker`)
 
@@ -66,8 +97,10 @@ CI-Variablen mit Secrets im Projekt.
   loadtest, komplette Testsuite) hat am 05.11.2026 zweimal den
   timing-sensiblen K7-Recovery-Test zum Scheitern gebracht
   ([BUG-0092](../bugs/bug-0092-k7-recovery-test-flaky-parallel-last.md)).
-  Schwere lokale Läufe erst starten, wenn kein Build-Container aktiv ist
-  (`docker ps`), oder sequentiell nacheinander.
+  Schwere Vollsuiten zeitlich oder durch isolierte Ressourcen trennen. Die
+  verbindliche lokale Abnahme hat Vorrang vor freiwilliger Cloud-CI; aus
+  deren Status entsteht keine CI-Wartepflicht (Geltung §0). Fremde laufende
+  Jobs nicht ohne Auftrag unterbrechen.
 - **Runner aktualisieren:**
   `docker stop ancientvoid-ci-runner && docker rm ancientvoid-ci-runner`,
   dann `docker pull gitlab/gitlab-runner:v<x.y.z>` und Start wie in
@@ -80,7 +113,8 @@ CI-Variablen mit Secrets im Projekt.
 
 ## 2. Ausfallpfad: bekannte Runner-Ausfälle lokal reproduzieren
 
-Ist der Runner oder GitLab nicht erreichbar (oder ist das Kontingent erschöpft,
+Nur soweit CI nach §0 verbindlich ist: Ist der Runner oder GitLab nicht
+erreichbar (oder ist das Kontingent erschöpft,
 solange kein eigener Runner läuft), ersetzt der lokale Container-Repro die
 Nachweisführung — dieselben Schritte wie der `verify`-Job, im selben Image:
 
@@ -109,19 +143,18 @@ Vor jedem Retry die Fehlerklasse anhand Job-Trace/API bestimmen
 Retries ausschließlich für klassifizierte Infrastrukturfehler; Produktfehler
 werden nie durch Wiederholen grün (EPIC-P28 §3.3).
 
-## 4. Lokale-vs-CI-Regel (unverändert, nur präzisiert)
+## 4. Lokale-vs-CI-Regel (Nutzerentscheid 15.11.2026)
 
 - **Lokale Gates bleiben verbindlich** (AGENTS.md):
   `npm test`, `npm run lint`, `npm run typecheck` vor jedem Commit-Vorschlag;
   `npm run test:e2e` bei PWA/Server/SessionManager/Adapter-Änderungen;
   `npm run gate` vor Bugfix-/Epic-MRs. Diese Regel wurde durch P28 **nicht**
   geändert.
-- **CI liefert ab sofort verlässliche Zusatz-Evidenz:** Jeder MR zeigt am
-  selben SHA `verify` (inkl. K8 20×30) und `e2e` (inkl. Skip-Bericht) auf dem
-  Projekt-Runner. Die Kontingent-Ausnahme aus T12.6
-  ([testing-e2e.md](testing-e2e.md)) gilt weiter, aber nur noch für echte
-  Runner-/GitLab-Ausfälle — sie ist kein Freibrief für rote oder nie
-  gestartete Jobs; beides ist nie ein Pass.
+- **CI-Pflicht nur im lokalen GitLab-Betrieb:** Am Abschluss-SHA müssen dann
+  die vorgesehenen `verify`-, `k8`- und `e2e`-Jobs mit ihren Berichten laufen;
+  Ausfälle nach §2/§3 behandeln. Auf `gitlab.com` ist dies nicht anwendbar,
+  auch mit eigenem Runner. Lokale Nachweise brauchen dort keinen zusätzlichen
+  CI-Ausfall-Repro oder nachgezogenen Pipeline-Lauf.
 - **K8 bleibt 20 Sessions × 30 Events/s**, lokal wie in CI (`npm run
   loadtest`). Keine Job-Konfiguration darf diese Messlatte entschärfen.
 

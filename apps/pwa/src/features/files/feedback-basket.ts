@@ -2,13 +2,16 @@ import { useEffect, useState } from "preact/hooks";
 import type { FileFeedbackItem } from "../../shared/api.ts";
 
 /** EPIC-P46 T46.8: Sammelkorb für Datei-/Diagnose-Befunde — flüchtig im Tab, Versand nur nach Vorschau. */
+const excerpts = new WeakMap<FileFeedbackItem, string>();
 let items: FileFeedbackItem[] = [];
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
 export const basket = {
   get: () => items,
-  add(item: FileFeedbackItem) {
+  excerpt: (item: FileFeedbackItem) => excerpts.get(item) ?? "",
+  add(item: FileFeedbackItem, excerpt = "") {
+    excerpts.set(item, excerpt.slice(0, 400));
     items = [...items.filter((i) => !(i.path === item.path && i.startLine === item.startLine && i.endLine === item.endLine)), item];
     emit();
   },

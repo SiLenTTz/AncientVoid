@@ -41,7 +41,7 @@ packages/                        Bibliotheken
                                  devices, diagnostics, discovery, fleet, forge,
                                  gatekeeper, git-graph, graph, handover, harness,
                                  identity, loops, media, notifications,
-                                 observability, orchestration, push, reporting,
+                                 observability, team, push, reporting,
                                  reviews, runs, sessions, skills, vault, workspace
   core/src/platform/             db, eventstore, config, logger, metrics
   workers/                       WorkerRunner (tmux, process)

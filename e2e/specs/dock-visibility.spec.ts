@@ -11,7 +11,7 @@ test.describe("Dock bleibt bedienbar", () => {
     const dock = app.locator(".dock");
     for (const width of [412, 320]) {
       await app.setViewportSize({ width, height: 850 });
-      await expect(dock.getByRole("button")).toHaveText(["Start", "Suchen", "", "Runs", "Mehr"]);
+      await expect(dock.getByRole("button")).toHaveText(["Start", "Suchen", "", "Teams", "Mehr"]);
       const size = await dock.evaluate((el) => ({ width: el.clientWidth, content: el.scrollWidth }));
       expect(size.content, `${width} px: das Dock scrollt nicht`).toBeLessThanOrEqual(size.width + 1);
       for (const button of await dock.getByRole("button").all()) {
@@ -30,7 +30,7 @@ test.describe("Dock bleibt bedienbar", () => {
     }
     await dock.getByRole("button", { name: "Mehr", exact: true }).click();
     const sheet = app.getByRole("dialog", { name: "Mehr" });
-    await expect(sheet.getByRole("button")).toHaveText(["Entdeckt", "Medien", "Notizen", "Automationen", "Einstellungen", "Provider-Status", "Dateibaum"]);
+    await expect(sheet.getByRole("button")).toHaveText(["Medien", "Notizen", "Automationen", "Einstellungen", "Metrik", "Provider-Status", "Dateibaum"]);
     await sheet.getByRole("button", { name: "Einstellungen" }).click();
     await expect(app).toHaveURL(/#\/einstellungen$/);
     await expect(sheet).toHaveCount(0);

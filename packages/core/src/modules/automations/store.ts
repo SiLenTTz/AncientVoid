@@ -26,8 +26,10 @@ export type JournalEvent =
       outcome?: AutomationOutcome;
       missedThroughUtc?: string;
       detail?: string;
-      runId?: string;
+      teamId?: string;
       sessionId?: string;
+      /** ADR-0077: Alte Journalzeilen (bis P60) tragen `runId` — tolerant übernehmen. */
+      runId?: string;
     };
 
 export type ClaimState = AutomationHistoryEntry;
@@ -139,7 +141,8 @@ export class AutomationStore {
     if (event.detail !== undefined) claim.detail = event.detail;
     if (event.reason !== undefined) claim.reason = event.reason;
     if (event.outcome !== undefined) claim.outcome = event.outcome;
-    if (event.runId !== undefined) claim.runId = event.runId;
+    if (event.teamId !== undefined) claim.teamId = event.teamId;
+    else if (event.runId !== undefined) claim.teamId = event.runId;
     if (event.sessionId !== undefined) claim.sessionId = event.sessionId;
     claim.at = event.at;
   }
@@ -182,7 +185,7 @@ export class AutomationStore {
     return this.claims.get(key) ?? null;
   }
 
-  updateClaim(claimKey: string, patch: { state: AutomationClaimState; reason?: AutomationSkipReason; outcome?: AutomationOutcome; runId?: string; sessionId?: string; detail?: string; missedThroughUtc?: string }, nowIso: string): ClaimState | null {
+  updateClaim(claimKey: string, patch: { state: AutomationClaimState; reason?: AutomationSkipReason; outcome?: AutomationOutcome; teamId?: string; sessionId?: string; detail?: string; missedThroughUtc?: string }, nowIso: string): ClaimState | null {
     const claim = this.claims.get(claimKey);
     if (!claim) return null;
     this.append({ type: "claim_update", at: nowIso, claimKey, ...patch });

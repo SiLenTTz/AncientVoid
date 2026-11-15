@@ -19,6 +19,8 @@ export interface HubOptions {
   requireStepApprovals?: boolean;
   /** Dummy adapter: events per turn before it stops generating (0 = endless). */
   dummyAutoStop?: number;
+  /** P43.5 K2: explicit event rate for rendering measurements. */
+  dummyEventsPerSecond?: number;
   /** EPIC-P6: this hub's host id in the fleet. */
   hostId?: string;
   /** 2026-10-26: readable fleet label (config hostLabel) — two hubs on one
@@ -40,6 +42,8 @@ export interface HubOptions {
   devices?: { sdkRoot: string; avdHome: string; avd: string };
   /** Echte Abnahme (P37 T37.6): absoluter Pfad zum echten glab statt Stub. */
   forgeCommand?: string;
+  /** EPIC-P59 (ADR-0078): aiMetrics-Abschnitt für die Hub-Config (Test-Server, Intervall). */
+  aiMetrics?: Record<string, unknown>;
 }
 
 export interface ApiResult<T> {
@@ -170,6 +174,7 @@ export class TestHub {
         ...(this.options.sttStreamingUrl ? { streaming: { url: this.options.sttStreamingUrl } } : {}),
       } } : {}),
       ...(this.options.assistantUrl ? { assistant: { model: { url: this.options.assistantUrl, model: "e2e-model" } } } : {}),
+      ...(this.options.aiMetrics ? { aiMetrics: this.options.aiMetrics } : {}),
       media: { ytDlp: join(binDir, "yt-dlp") },
       forge: { gitlab: { command: this.options.forgeCommand ?? join(binDir, "glab") } },
       server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
@@ -183,7 +188,7 @@ export class TestHub {
         {
           id: "dummy",
           module: this.options.interruptedDummy ? join(repoRoot, "e2e/support/interrupted-dummy.ts") : "@ancientvoid/adapter-dummy",
-          config: { hubResume: this.options.interruptedDummy?.resume ?? false, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
+          config: { hubResume: this.options.interruptedDummy?.resume ?? false, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: this.options.dummyEventsPerSecond ?? 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
         },
         {
           // BUG-0061: dsh via ACP (ADR-0018) under a free-form id, like a
@@ -429,8 +434,8 @@ export class TestHub {
     return res.body.id;
   }
 
-  async events(sessionId: string): Promise<{ seq: number; type: string; summary: string; payload: Record<string, unknown> }[]> {
-    return (await this.api<{ seq: number; type: string; summary: string; payload: Record<string, unknown> }[]>(
+  async events(sessionId: string): Promise<{ seq: number; ts: string; type: string; summary: string; payload: Record<string, unknown> }[]> {
+    return (await this.api<{ seq: number; ts: string; type: string; summary: string; payload: Record<string, unknown> }[]>(
       `/api/sessions/${sessionId}/events?limit=2000`,
     )).body;
   }

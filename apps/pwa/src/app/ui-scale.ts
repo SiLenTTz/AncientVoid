@@ -7,6 +7,8 @@
  * past the screen. The pattern and the "window never scrolls" guarantee:
  * docs/zoom-robuste-flaechen.md (EPIC-P50).
  */
+import { registerShortcut } from "../shared/shortcuts/registry.ts";
+
 const SCALE_KEY = "ancientvoid.uiScale";
 const MOTION_KEY = "ancientvoid.ctxMotion";
 
@@ -56,16 +58,25 @@ export function scaleKey(e: Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | 
   return null;
 }
 
-/** Ctrl/⌘ + wheel, Ctrl/⌘ + plus/minus/0. Returns the cleanup. */
+/** Ctrl/⌘ + wheel, Ctrl/⌘ + plus/minus/0. Returns the cleanup. EPIC-P51 T51.5:
+ * Tasten laufen über die Shortcut-Registry (eine zentrale keydown-Stelle),
+ * das Rad bleibt ein eigener wheel-Listener. */
 export function installScaleShortcuts(): () => void {
   let wheelAcc = 0;
-  const onKey = (e: KeyboardEvent) => {
-    const action = scaleKey(e);
-    if (action === null) return;
-    e.preventDefault();
-    if (action === 0) setScale(1);
-    else stepScale(action);
-  };
+  const offKeys = [
+    registerShortcut("ui.zoom-in", (e) => {
+      e.preventDefault();
+      stepScale(1);
+    }),
+    registerShortcut("ui.zoom-out", (e) => {
+      e.preventDefault();
+      stepScale(-1);
+    }),
+    registerShortcut("ui.zoom-reset", (e) => {
+      e.preventDefault();
+      setScale(1);
+    }),
+  ];
   const onWheel = (e: WheelEvent) => {
     if (!(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
@@ -74,10 +85,9 @@ export function installScaleShortcuts(): () => void {
     stepScale(wheelAcc < 0 ? 1 : -1);
     wheelAcc = 0;
   };
-  window.addEventListener("keydown", onKey);
   window.addEventListener("wheel", onWheel, { passive: false });
   return () => {
-    window.removeEventListener("keydown", onKey);
+    for (const off of offKeys) off();
     window.removeEventListener("wheel", onWheel);
   };
 }
