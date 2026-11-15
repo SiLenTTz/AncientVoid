@@ -93,6 +93,10 @@ test.describe("Review-Feedback am Diff (EPIC-P36)", () => {
     // sonst scheitert der Fetch offline und es gibt keine anklickbaren Zeilen.
     await expect(app.locator(".diff-file-row").filter({ hasText: "offline-target.txt" })).toBeVisible();
     await app.context().setOffline(true);
+    // BUG-0164: erneuten Abruf gezielt auslösen statt auf Replay-/Status-Timing zu hoffen.
+    await sessionTab(app, "Chat");
+    await sessionTab(app, "Diff");
+    await expect(app.getByRole("status", { name: "Diff-Stand" })).toContainText("Zuletzt geladener Stand");
     await app.getByRole("button", { name: "Notiz an Zeilen" }).click();
     await app.locator(".review-pickable").filter({ hasText: "zwei" }).first().click();
     await app.getByPlaceholder("Befund notieren …").fill("Offline-Befund");

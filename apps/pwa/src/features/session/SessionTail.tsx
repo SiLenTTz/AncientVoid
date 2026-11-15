@@ -413,7 +413,9 @@ export function SessionTail({
   // periodic-check views, not a live stream, and share the one /diff endpoint. EPIC-P43 T43.5:
   // additionally once whenever no turn runs, so the „Änderungen“ tab knows its count (and,
   // empty, moves under „Mehr“ — Kleinkram-Regel 2).
-  const [diff, setDiff] = useState<SessionDiffResult | null>(null);
+  const [loadedDiff, setLoadedDiff] = useState<{ sessionId: string; value: SessionDiffResult } | null>(null);
+  const diff = loadedDiff?.sessionId === session.id ? loadedDiff.value : null;
+  const [diffErrorId, setDiffErrorId] = useState<string | null>(null);
   const [usage, setUsage] = useState<AdapterUsage | null>(null);
   const turnRunning = status === "working" || status === "starting";
   useEffect(() => {
@@ -421,8 +423,13 @@ export function SessionTail({
     let alive = true;
     api
       .sessionDiff(session.id)
-      .then((d) => alive && setDiff(d))
-      .catch(() => alive && setDiff(null));
+      .then((d) => {
+        if (!alive) return;
+        setLoadedDiff({ sessionId: session.id, value: d });
+        setDiffErrorId(null);
+      })
+      // BUG-0164: Ein Nachladefehler macht den letzten geladenen Stand nicht unlesbar.
+      .catch(() => alive && setDiffErrorId(session.id));
     {
       api
         .adapterUsage(session.adapter)
@@ -883,6 +890,9 @@ export function SessionTail({
   const viewWindow = viewTarget ? windowFor(openWindows, viewTarget) : null;
   const detach = viewKind && viewTarget ? <DetachButton target={viewTarget} label={VIEW_LABEL[viewKind]} /> : null;
   const detachHead = detach ? <div class="view-head">{detach}</div> : null;
+  const diffWarning = diffErrorId === session.id ? <p class="dim" role="status" aria-label="Diff-Stand">
+    {diff ? "Zuletzt geladener Stand — Aktualisierung fehlgeschlagen." : "Änderungen konnten nicht geladen werden."}
+  </p> : null;
 
   return (
     <ApiContext.Provider value={api}>
@@ -1096,6 +1106,7 @@ export function SessionTail({
         ) : activeTab === "bericht" ? (
           <>
           {detachHead}
+          {diffWarning}
           <ReportPane
             record={record}
             createdAt={session.createdAt}
@@ -1109,6 +1120,7 @@ export function SessionTail({
         ) : activeTab === "diff" ? (
           <>
             <ChangesHead diff={diff} record={record} status={status} detach={detach} />
+            {diffWarning}
             {noChanges ? (
               <div class="empty-state">
                 <p>Diese Session hat noch nichts geändert.</p>
