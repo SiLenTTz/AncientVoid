@@ -85,6 +85,64 @@ describe("Aktivitätsregister (ADR-0074, BUG-0155)", () => {
     }
   });
 
+  it("Werkzeug-Aktivitäten im Hauptzug schließen den Lauf nicht — „Zug fertig“ erst mit dem Hauptzug (Nutzerfund 2026-11-15)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
+    const registry = new AdapterRegistry();
+    // Persistenter Adapter (wie ACP/app-server): meldet jeden Tool-Call als
+    // Aktivität. Zwischen zwei sequenziellen Tools ist das Register leer —
+    // das ist eine Lücke, kein Laufende.
+    const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const runTurn = async (ctx: Parameters<Adapter["start"]>[1]) => {
+      ctx.turn?.("working");
+      ctx.activity?.({ id: "tool:1", kind: "tool", state: "running", label: "Werkzeug eins" });
+      await delay(40);
+      ctx.activity?.({ id: "tool:1", kind: "tool", state: "completed", label: "Werkzeug eins" });
+      await delay(300);
+      ctx.activity?.({ id: "tool:2", kind: "tool", state: "running", label: "Werkzeug zwei" });
+      await delay(40);
+      ctx.activity?.({ id: "tool:2", kind: "tool", state: "completed", label: "Werkzeug zwei" });
+      ctx.turn?.("idle");
+    };
+    registry.register("toolwork", () => ({
+      id: "toolwork",
+      version: "0.0.1",
+      capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
+      async start(_spec, ctx) {
+        void runTurn(ctx); // der Zug läuft los — create() wartet nicht aufs Ende
+        return { sessionId: ctx.sessionId };
+      },
+      async steer(_h, input, ctx) {
+        if (input.kind === "prompt") await runTurn(ctx);
+        return { ok: true };
+      },
+      async status() {
+        return { state: "healthy" };
+      },
+      async stop() {},
+    }));
+    const { manager, db } = setup(registry, dir);
+    try {
+      const record = await manager.create({ adapter: "toolwork", project: dir, prompt: "arbeit" });
+      // Nach dem Ende des ersten Werkzeugs (Register leer, Hauptzug läuft):
+      // kein vorzeitiges Zugende, kein Flackern auf idle.
+      const firstToolDone = async () => (await kinds(manager, record.id)).includes("session.activity_end");
+      for (let i = 0; i < 200 && !(await firstToolDone()); i++) await new Promise((r) => setTimeout(r, 20));
+      await new Promise((r) => setTimeout(r, 100));
+      expect(manager.get(record.id)?.status, "Hauptzug läuft — Session bleibt working").toBe("working");
+      expect((await kinds(manager, record.id)).filter((k) => k === "session.turn_end")).toHaveLength(0);
+      // Das echte Zugende meldet genau ein turn_end — mit allem, was dazugehört.
+      await waitFor(() => manager.get(record.id)?.status === "idle", "idle am echten Zugende");
+      const all = await kinds(manager, record.id);
+      expect(all.filter((k) => k === "session.turn_end")).toHaveLength(1);
+      expect(all.indexOf("session.main_turn_end")).toBeLessThan(all.lastIndexOf("session.turn_end"));
+      expect(manager.notifications().items.filter((n) => n.kind === "session.turn_end")).toHaveLength(1);
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("Hub-Neustart (K7): offene Aktivitäten kommen aus dem JSONL zurück", async () => {
     const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
     const registry = new AdapterRegistry();

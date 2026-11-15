@@ -2823,11 +2823,20 @@ export class SessionManager {
    * arbeitenden Session ohne Zug-Prozesse schließt den Lauf (idle + turn_end). */
   async endActivity(sessionId: string, id: string, code = 0): Promise<boolean> {
     const session = this.live.get(sessionId);
-    if (!session || !session.activities.delete(id)) return false;
+    const entry = session?.activities.get(id);
+    if (!session || !entry || !session.activities.delete(id)) return false;
     await this.emitSystem(session, "session.activity_end", { id, code });
+    // Nutzerfund 2026-11-15: Während des Hauptzugs ist ein leeres Provider-
+    // Register eine Werkzeug-Lücke, kein Laufende (SessionActivities.closeIfLast).
+    if (session.mainTurnIdle === false && entry.source === "provider") return true;
     if (session.activities.size === 0 && (session.activeWorkers ?? 0) === 0 && session.record.status === "working") {
-      await this.setStatus(session, "idle");
-      await this.emitSystem(session, "session.turn_end", { code });
+      if (code !== 0) {
+        await this.emitSystem(session, "session.turn_end", { code, reason: "error", detail: entry.label });
+        await this.setStatus(session, "error");
+      } else {
+        await this.setStatus(session, "idle");
+        await this.emitSystem(session, "session.turn_end", { code });
+      }
     }
     return true;
   }

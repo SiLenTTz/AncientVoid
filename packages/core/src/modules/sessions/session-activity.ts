@@ -36,7 +36,7 @@ export class SessionActivities {
     if (activity.state === "failed" && source === "external") {
       await this.host.emit(session, "session.recovery_blocked", { detail: `Hintergrundarbeit „${activity.label ?? activity.id}“ ist fehlgeschlagen. Zustand prüfen, abbrechen oder übergeben.` });
     }
-    await this.closeIfLast(session, code);
+    await this.closeIfLast(session, code, activity.label ?? activity.id, source);
   }
 
   async report(sessionId: string, activity: ActivityReport): Promise<Ack> {
@@ -58,12 +58,18 @@ export class SessionActivities {
     }
   }
 
-  private async closeIfLast(session: LiveSession, code: number): Promise<void> {
+  private async closeIfLast(session: LiveSession, code: number, label: string | undefined, source: "provider" | "external"): Promise<void> {
+    // Nutzerfund 2026-11-15: Läuft der Hauptzug noch (persistenter Adapter),
+    // ist ein leeres Provider-Register nur die Lücke zwischen zwei Werkzeugen
+    // — kein Laufende. Früher schloss hier jedes Tool-Ende den Lauf vorzeitig
+    // („Zug fertig“ nach jedem Werkzeug, Status-Flackern idle/working).
+    // Externe Arbeit bleibt autoritativ (ADR-0074): ihr Ende schließt den Lauf.
+    if (session.mainTurnIdle === false && source === "provider") return;
     if (session.activities.size > 0 || (session.activeWorkers ?? 0) > 0 || session.record.status !== "working") return;
     // Eine fehlgeschlagene/ungewiss beendete Hintergrundarbeit ist kein
     // sauberer Laufabschluss (BUG-0155): ehrlich `error`, nie success-idle.
     if (code !== 0) {
-      await this.host.emit(session, "session.turn_end", { code, reason: "error" });
+      await this.host.emit(session, "session.turn_end", { code, reason: "error", detail: label ?? undefined });
       await this.host.settleFailed(session);
       return;
     }
