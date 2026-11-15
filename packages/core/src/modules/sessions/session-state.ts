@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Adapter, NormalizedEvent, SessionActivity, SessionHandle, SessionRecord, SessionStatus } from "@ancientvoid/contracts";
+import type { NotificationDraft } from "../notifications/index.ts";
 
 export const WRITER_LEASE_MS = 30_000;
 
@@ -42,6 +43,11 @@ export interface LiveSession {
   mainTurnIdle?: boolean;
   lifecycle?: Promise<void>;
   turnFailed?: boolean;
+  /** ADR-0015 Nachtrag 2026-11-15: Provider-Fehler dieses Laufs, zurückgehalten
+   * bis der Lauf wirklich abbricht — überstandene Fehler bleiben im Verlauf. */
+  pendingErrorDraft?: NotificationDraft | null;
+  /** Für diesen Lauf wurde bereits eine Fehler-Meldung gespeichert. */
+  runFailureNotified?: boolean;
   record: SessionRecord;
   adapter: Adapter;
   handle: SessionHandle | null;

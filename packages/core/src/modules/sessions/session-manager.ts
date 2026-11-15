@@ -21,7 +21,7 @@ import { buildSessionSummary } from "../reporting/index.ts";
 import { createConsoleLogger } from "../../platform/index.ts";
 import { dedupeDiscovered, filterDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
-import { notificationFor } from "../notifications/index.ts";
+import { notificationFor, projectName, type NotificationDraft } from "../notifications/index.ts";
 import { deriveTurnMetrics, TurnMetricStore } from "../runs/index.ts";
 import { buildHandoverPrompt, HANDOVER_PROMPT_MAX } from "../handover/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
@@ -109,8 +109,6 @@ export class SessionManager {
   private tools: ToolPermissions | undefined;
   /** T2.7: budget and daily cap. */
   private readonly budget: BudgetGuard;
-  /** ADR-0015: when the last provider.error per session was reported. */
-  private readonly lastProviderError = new Map<string, number>();
   /** Tail of the per-session steer chain (see steer()). */
   private readonly steerQueue = new Map<string, Promise<void>>();
   /** T17.4: input ids with a submission still running — its wait may have
@@ -1734,28 +1732,81 @@ export class SessionManager {
   }
 
   /** ADR-0015: cross-session notifications, persisted so every device and a
-   * restarted hub show the same list. */
+   * restarted hub show the same list. Nutzerfund 2026-11-15: Fehler werden
+   * zurückgehalten, bis der Lauf wirklich abbricht — und pro Lauf höchstens
+   * eine Fehler-Meldung gespeichert, bevorzugt mit den Worten des
+   * Provider-Fehlers. Ein Zug, der trotz Provider-Fehlers sauber endet,
+   * benachrichtigt gar nicht (der Fehler bleibt im Verlauf sichtbar). */
   private recordNotifications(session: LiveSession, events: readonly NormalizedEvent[]): void {
-    for (const event of events) {
-      const kind = (event.payload as { kind?: unknown }).kind;
-      if (kind === "provider.error") this.lastProviderError.set(session.record.id, Date.now());
-      // The interruption already notified the person; adapter.down is supporting evidence.
-      if (kind === "adapter.down" && session.record.status === "interrupted") continue;
-      const draft = notificationFor(event, {
-        adapter: session.record.adapter,
-        project: session.record.project,
-        recentProviderError: Date.now() - (this.lastProviderError.get(session.record.id) ?? 0) < 30_000 && kind !== "provider.error",
-      });
-      if (!draft) continue;
+    const ctx = { adapter: session.record.adapter, project: session.record.project };
+    const store = (draft: NotificationDraft, ts: string) => {
       const res = this.db
         .prepare("INSERT INTO notifications (session_id, level, title, detail, kind, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-        .run(session.record.id, draft.level, draft.title, draft.detail, draft.kind, event.ts);
+        .run(session.record.id, draft.level, draft.title, draft.detail, draft.kind, ts);
       // T8.3: push and other listeners — after it is stored, never blocking.
-      const stored: HubNotification = { id: Number(res.lastInsertRowid), sessionId: session.record.id, level: draft.level, title: draft.title, detail: draft.detail, kind: draft.kind, createdAt: event.ts };
+      const stored: HubNotification = { id: Number(res.lastInsertRowid), sessionId: session.record.id, level: draft.level, title: draft.title, detail: draft.detail, kind: draft.kind, createdAt: ts };
       for (const listener of this.notificationListeners) {
         void Promise.resolve()
           .then(() => listener(stored))
           .catch((err) => this.logger.warn("notification listener failed", { err: String(err) }));
+      }
+    };
+    /** Eine Abbruch-Ursache wird genau einmal gemeldet — mit den Worten des
+     * zurückgehaltenen Provider-Fehlers, falls es ihn gab. */
+    const notifyFailure = (generic: NotificationDraft | null, ts: string) => {
+      if (session.runFailureNotified) return;
+      store(session.pendingErrorDraft ?? generic ?? { level: "error", title: `${projectName(ctx.project)} · ${ctx.adapter} fehlgeschlagen`, detail: null, kind: "session.turn_failed" }, ts);
+      session.pendingErrorDraft = null;
+      session.runFailureNotified = true;
+    };
+    for (const event of events) {
+      const kind = (event.payload as { kind?: unknown }).kind;
+      if (kind === "session.prompt") {
+        // Neuer Lauf: Zurückhaltung und Abbruch-Marke gelten pro Lauf.
+        session.pendingErrorDraft = null;
+        session.runFailureNotified = false;
+      }
+      switch (kind) {
+        case "provider.error": {
+          // Nur zurückhalten — die Worte werden gebraucht, wenn der Lauf abbricht.
+          session.pendingErrorDraft = notificationFor(event, ctx) ?? null;
+          continue;
+        }
+        case "session.interrupted": {
+          // Schon gemeldet? Dann ist die Unterbrechung derselbe Abbruch.
+          if (session.runFailureNotified) continue;
+          notifyFailure(notificationFor(event, ctx), event.ts);
+          continue;
+        }
+        case "adapter.down": {
+          // Die Unterbrechung benennt die Ursache; adapter.down ist Beleg.
+          // (Ersetzt die frühere 30-s-Unterdrückung nach provider.error.)
+          if (session.record.status === "interrupted" || session.runFailureNotified) continue;
+          notifyFailure(notificationFor(event, ctx), event.ts);
+          continue;
+        }
+        case "session.turn_end": {
+          const reason = (event.payload as { reason?: unknown }).reason;
+          if (reason === "error") notifyFailure(notificationFor(event, ctx), event.ts);
+          else if (reason !== "interrupted") {
+            // Sauberes Zugende: ein überstandener Provider-Fehler ist keine
+            // Meldung mehr wert — „Zug fertig“ schon.
+            const draft = notificationFor(event, ctx);
+            if (draft) store(draft, event.ts);
+            session.pendingErrorDraft = null;
+            session.runFailureNotified = false;
+          }
+          // Nach einem Abbruch bleibt die Marke stehen: Folge-Meldungen
+          // desselben Abbruchs (Auto-Resume scheitert, Aufräumen) sind keine
+          // eigenen Meldungen. Der nächste Prompt beginnt einen neuen Lauf.
+          continue;
+        }
+        default: {
+          const draft = notificationFor(event, ctx);
+          if (!draft) continue;
+          if (draft.level === "error") notifyFailure(draft, event.ts);
+          else store(draft, event.ts);
+        }
       }
     }
   }
