@@ -79,3 +79,9 @@ Felder von `hub.config.json`; Erklärung und Beispiele: [`configuration.md`](con
 | `discovery.codexDir` | string | — |
 | `discovery.hermesDir` | string | — |
 | `discovery.copilotDir` | string | — |
+| `aiMetrics.intervalSec` | integer | 10 |
+| `aiMetrics.windowSec` | integer | 900 |
+| `aiMetrics.retentionSamples` | integer | 5400 |
+| `aiMetrics.hostProbe` | boolean | true |
+| `aiMetrics.servers` | array<object> | [] |
+| `aiMetrics.probeKnown` | boolean | true |

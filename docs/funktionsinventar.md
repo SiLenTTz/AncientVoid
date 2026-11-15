@@ -102,6 +102,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G69 | Quellen und eigene Statusnotizen in der Schnellsuche; Tastatur-/Touch-Sprung bewahrt Entwurf und Verbindung | Suchen → Quelle/Statusnotiz | P43.5 T43.5-2 | spec:quellenchips.spec.ts |
 | G70 | Versionierte lokale Darstellungs-Presets: Dichte, Chatbreite, getrennte Codegröße, Kontrastprüfung, Rasterbild, Import/Export/Reset | Einstellungen → Darstellungs- und Layout-Presets | P43.5 T43.5-3 | spec:appearance-presets.spec.ts |
 | G71 | Benannte Geräte-Layouts mit Kachelgrößen und erreichbaren Fenstern; Browser-Fenster-Preset Handy | Einstellungen → Darstellungs- und Layout-Presets | P43.5 T43.5-4 | spec:appearance-presets.spec.ts |
+| G72 | Metrik-Seite: Auslastung des lokalen KI-Servers — jede Zahl mit Quelle und Alter, „nicht gemeldet“ ≠ 0, Offline behält letzte Daten | Dock „Mehr“ → „Metrik“ | P59 | spec:ki-server-metriken.spec.ts |
 
 ## Session
 

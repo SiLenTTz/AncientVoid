@@ -17,6 +17,7 @@ const MORE: readonly { page: Page; icon: TabIconName; label: string; title: stri
   { page: "vault", icon: "notizen", label: "Notizen", title: "Notizen (Knowledge Vault)" },
   { page: "automationen", icon: "automationen", label: "Automationen", title: "Automationen (Zeitpläne)" },
   { page: "settings", icon: "einstellungen", label: "Einstellungen", title: "Einstellungen" },
+  { page: "aimetrics", icon: "bericht", label: "Metrik", title: "Metrik: Auslastung des lokalen KI-Servers (EPIC-P59)" },
 ];
 
 /**

@@ -8,8 +8,8 @@ import { createHubTeam } from "./modules/team/index.ts";
  * Boot order (P0): config → db → adapters → recovery (K7) → HTTP/WS → PWA.
  */
 import { chmodSync, mkdirSync, existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { homedir, hostname } from "node:os";
+import { readFile, readdir } from "node:fs/promises";
+import { homedir, hostname, loadavg, cpus, totalmem, freemem } from "node:os";
 import { toHostId } from "@ancientvoid/contracts";
 import { resolve } from "node:path";
 import type { WorkerRunner, DiscoverySource } from "@ancientvoid/contracts";
@@ -66,6 +66,7 @@ import type { AdapterFactory } from "@ancientvoid/contracts";
 import { createHubApp } from "./app.ts";
 import { ForgeService } from "./modules/forge/forge-service.ts";
 import { createHubAutomationService } from "./modules/automations/automations-service.ts";
+import { createAiMetricsSampler, type AiMetricsSamplerServer } from "@ancientvoid/core";
 import { createPermissionBridge } from "./modules/approvals/permission-bridge.ts";
 
 // `dummy` used to be hardcoded here, always visible in every real hub's
@@ -323,6 +324,38 @@ async function main(): Promise<void> {
     log: (line) => logger.info(`automations: ${line}`),
   });
 
+  // EPIC-P59 (ADR-0078): Metrik-Sampler — nur konfigurierte Quellen plus die
+  // dem Hub bekannten Modell-Server; Secrets nur als Dateireferenz (ADR-0011).
+  const keyFile = (file: string | undefined) => (file ? resolve(file.replace(/^~(?=\/)/, homedir())) : undefined);
+  let aimetrics: ReturnType<typeof createAiMetricsSampler> | undefined;
+  if (config.aiMetrics) {
+    const servers: AiMetricsSamplerServer[] = config.aiMetrics.servers.map((s) => ({ url: s.url, ...(s.label ? { label: s.label } : {}), ...(s.apiKeyFile ? { apiKeyFile: keyFile(s.apiKeyFile)! } : {}) }));
+    if (config.aiMetrics.probeKnown) {
+      const seen = new Set(servers.map((s) => s.url));
+      for (const m of [config.assistant.model, config.media.vision, config.gatekeeper.model]) {
+        if (!m || seen.has(m.url)) continue;
+        seen.add(m.url);
+        servers.push({ url: m.url, ...(m.apiKeyFile ? { apiKeyFile: keyFile(m.apiKeyFile)! } : {}) });
+      }
+    }
+    aimetrics = createAiMetricsSampler({
+      intervalSec: config.aiMetrics.intervalSec,
+      windowSec: config.aiMetrics.windowSec,
+      retentionSamples: config.aiMetrics.retentionSamples,
+      hostProbe: config.aiMetrics.hostProbe,
+      servers,
+      selfLabel: config.hostLabel ?? hostname(),
+      deps: {
+        fetch: (url, init) => fetch(url, init),
+        readFile: async (path) => readFile(path, "utf8").catch(() => null),
+        readdir: async (dir) => readdir(dir).catch(() => []),
+        os: { loadavg, cpus: () => cpus(), totalmem, freemem },
+        now: () => new Date(),
+        logger,
+      },
+    });
+  }
+
   const app = await createHubApp({
     sessions,
     browser,
@@ -385,6 +418,7 @@ async function main(): Promise<void> {
     hostLabel: config.hostLabel ?? hostname(),
     automations,
     team,
+    ...(aimetrics ? { aimetrics } : {}),
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.ANCIENTVOID_EXPOSE === "1"
@@ -392,6 +426,7 @@ async function main(): Promise<void> {
     : config.server.host;
   await app.listen({ port: config.server.port, host: listen });
   automations.start();
+  aimetrics?.start();
   logger.info("listening", { host: config.server.host, port: config.server.port, dataDir });
   const resumed = media?.resume() ?? 0;
   if (resumed) logger.info("media jobs resumed", { count: resumed });
@@ -401,6 +436,7 @@ async function main(): Promise<void> {
 
   const shutdown = async (sig: string) => {
     automations.stop();
+    aimetrics?.stop();
     logger.info("shutting down", { signal: sig });
     // tmux workers outlive the hub: a planned restart keeps them running and
     // the next start takes them over instead of stopping every session.

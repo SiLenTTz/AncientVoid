@@ -243,6 +243,23 @@ export const HubConfig = z.object({
       copilotDir: z.string().min(1).optional(),
     })
     .prefault({}),
+  /** EPIC-P59 (ADR-0078): Metrik-Seite — Sampler im Hub, Poll nur konfiguierter
+   * Quellen; ohne Abschnitt kein Sampler, aber ein leerer Report. */
+  aiMetrics: z
+    .object({
+      intervalSec: z.number().int().min(2).max(3600).default(10),
+      /** Fenster für p50/p95 (ADR-0078: eigene Samples, keine Histogramme). */
+      windowSec: z.number().int().min(60).max(86_400).default(900),
+      retentionSamples: z.number().int().min(60).max(50_000).default(5400),
+      hostProbe: z.boolean().default(true),
+      servers: z
+        .array(z.object({ url: z.string().url(), label: z.string().min(1).max(60).optional(), apiKeyFile: z.string().min(1).optional() }))
+        .max(20)
+        .default([]),
+      /** Auch die dem Hub bekannten Modell-Server beproben (assistant.model, gatekeeper.models[], media.vision — ADR-0078). */
+      probeKnown: z.boolean().default(true),
+    })
+    .optional(),
 });
 export type HubConfig = z.infer<typeof HubConfig>;
 

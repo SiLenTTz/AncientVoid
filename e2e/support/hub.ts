@@ -42,6 +42,8 @@ export interface HubOptions {
   devices?: { sdkRoot: string; avdHome: string; avd: string };
   /** Echte Abnahme (P37 T37.6): absoluter Pfad zum echten glab statt Stub. */
   forgeCommand?: string;
+  /** EPIC-P59 (ADR-0078): aiMetrics-Abschnitt für die Hub-Config (Test-Server, Intervall). */
+  aiMetrics?: Record<string, unknown>;
 }
 
 export interface ApiResult<T> {
@@ -172,6 +174,7 @@ export class TestHub {
         ...(this.options.sttStreamingUrl ? { streaming: { url: this.options.sttStreamingUrl } } : {}),
       } } : {}),
       ...(this.options.assistantUrl ? { assistant: { model: { url: this.options.assistantUrl, model: "e2e-model" } } } : {}),
+      ...(this.options.aiMetrics ? { aiMetrics: this.options.aiMetrics } : {}),
       media: { ytDlp: join(binDir, "yt-dlp") },
       forge: { gitlab: { command: this.options.forgeCommand ?? join(binDir, "glab") } },
       server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
