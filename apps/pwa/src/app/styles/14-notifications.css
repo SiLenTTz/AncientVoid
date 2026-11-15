@@ -137,6 +137,16 @@
   align-items: center;
   padding: 4px;
 }
+/* Nutzerfund 2026-11-15: Fehler und offene Fragen angepinnt oben — jeder
+ * Abschnitt nutzt die Überschrift der Übersicht (.section-title). */
+.notif-section {
+  display: grid;
+  gap: 6px;
+}
+.notif-section .section-title {
+  min-height: 0;
+  margin-top: 4px;
+}
 .notif-item {
   display: grid;
   gap: 2px;
