@@ -7,6 +7,11 @@ AncientVoid: local-first Hub, um Coding-Agenten vom Handy zu
 **lesen, bevor Features gebaut werden.** Epic-Gating: P(n) startet erst,
 wenn die Exit-Kriterien von P(n-1) grün sind.
 
+**On hold (Nutzerentscheid 15.11.2026):** P30 und P31 bleiben ausdrücklich
+zurückgestellt. Nicht als nächste Aufgabe empfehlen oder automatisch starten;
+Wiederaufnahme nur auf ausdrücklichen Nutzerauftrag. Abhängigkeiten bleiben
+bestehen, auch wenn andere Epics oder Vorgänger inzwischen grün sind.
+
 ## Architektur-Regeln (nicht verhandelbar)
 
 1. **Contracts first.** Alles, was Komponenten teilen, liegt in

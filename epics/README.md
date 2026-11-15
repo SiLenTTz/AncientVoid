@@ -1,5 +1,11 @@
 # AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P59)
 
+**On hold seit 15.11.2026 (Nutzerentscheid): P30 und P31.** Beide bleiben
+im Inventar, sind aber aus Empfehlungen für die nächste Arbeit ausgeschlossen.
+Keine automatische Wiederaufnahme nach grünen Vorgängern; nur auf ausdrücklichen
+Nutzerauftrag. Davon abhängige Arbeit bleibt bis zur erfüllten Voraussetzung
+blockiert; diese Zurückstellung hebt kein anderes Epic-Gating auf.
+
 **Erstellt:** 12.09.2026 · **Basis:** PRD AncientVoid v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
 
@@ -77,8 +83,8 @@ Statuszeilen gelten nicht als aktueller Abschlussnachweis.
 |---|---|---|---|
 | [P28 — Reproduzierbare CI](EPIC-P28-reproduzierbare-ci.md) | Diagnose, isolierter Runner, vollständige Gate-/K8-Evidenz — **abgeschlossen (06.11.2026)**: selbstverwalteter Docker-Runner `av-docker` ([ADR-0049](../docs/adr/0049-selbstverwalteter-ci-runner.md)), Gate-Parität inkl. K8 20×30 in `verify`, Skip-Bericht in `e2e`, zwei Negativproben rot, drei SHA-gebundene grüne Gesamtläufe (8895473), 5 CI-Funde als BUG-0092–0096 | P27 samt Vorgänger-Exits grün | 1–2 |
 | [P29 — Worktree-Workspace-Runtime](EPIC-P29-worktree-workspace-runtime.md) | Manifest, Dateiübernahme, Setup/Teardown, Services/Ports, mobiler Zugang — **abgeschlossen 07.11.2026 (T29.1–T29.7, AK-Matrix 6× 🟢, Retro angehängt; Doku-Nachzüge als AI-P29-1/2 eingestellt)** | P28 grün; P2/P14/P26 geprüft | 3–5 |
-| [P30 — Adapter-/Sink-Plugins](EPIC-P30-adapter-sink-plugins.md) | Manifest, lokale/Git-Installation, Testkit, sicherer Lifecycle | P29 und P34 grün | 2–3 |
-| [P31 — ACP-Provider-Katalog](EPIC-P31-acp-provider-katalog.md) | kuratierte Provider, explizite Probe, getrennte Fähigkeitsnachweise | P30 grün | 2–3 |
+| [P30 — Adapter-/Sink-Plugins](EPIC-P30-adapter-sink-plugins.md) | Manifest, lokale/Git-Installation, Testkit, sicherer Lifecycle — **On hold seit 15.11.2026; nicht einplanen** | P29 und P34 grün | 2–3 |
+| [P31 — ACP-Provider-Katalog](EPIC-P31-acp-provider-katalog.md) | kuratierte Provider, explizite Probe, getrennte Fähigkeitsnachweise — **On hold seit 15.11.2026; nicht einplanen** | P30 grün | 2–3 |
 | [P32 — Mobile-Client-Entscheidung](EPIC-P32-mobile-client-entscheidung.md) | Gerätebefund + Go/No-go; optional interne Android-Shell — **Evaluations-Exit „vertagt" 2026-11-08** ([Dokument](../docs/2026-11-08_p32-evaluations-exit.md)); T32.3–T32.6 gesperrt bis neues Go | P12/P16 geprüft (P31 per Umpriorisierung 08.11.2026 nach P36) | 0,5–1; optional +2–4 |
 | [P33 — Englischer Einstieg](EPIC-P33-englische-einstiegsdokumentation.md) | Bedarfsentscheid, README/Contracts/Quickstart; keine Publikation — **Evaluations-Exit „vertagt" 2026-11-08** (kein Go erteilt, keine Übersetzung ausgeliefert); T33.2–T33.4 gesperrt bis Go | P32-Evaluations-Exit „vertagt" abgenommen (08.11.2026) | 0,5–1,5 |
 
@@ -143,8 +149,9 @@ PWA-Präferenz allein schließt sie nicht. AC-P34-13/AC-P35-7 bleiben offen.
 Evaluations-Exit „vertagt" abgeschlossen
 ([Entscheidungsdokument](../docs/2026-11-08_p32-evaluations-exit.md));
 T32.3–T32.6 bleiben bis zu einem neuen ausdrücklichen Go gesperrt. P30 und
-P31 laufen nach P36 (in deren Statuszeilen dokumentiert; P44 baut weiterhin
-auf P30 auf). Live-Abnahmen bleiben gebündelt im Endabnahme-Block (EPIC-P35 §8).
+P31 waren danach eingeordnet; seit 15.11.2026 sind beide ausdrücklich
+**On hold**, ohne automatische Folgearbeit nach P36. P44 baut weiterhin auf
+P30 auf. Live-Abnahmen bleiben gebündelt im Endabnahme-Block (EPIC-P35 §8).
 P46 wurde auf den Folgeauftrag vom 08.11.2026 zwischen P38 und P39 eingefügt:
 rechte Projekt-Sidebar, komplette Dateiansicht und echte Sprachdiagnosen
 waren in P43 nicht abgedeckt. Bestehende Epic-Nummern bleiben stabil.
