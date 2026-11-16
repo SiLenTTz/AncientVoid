@@ -16,6 +16,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { contextWindowFor, modelsFromCommand, parseModelTable } from "@ancientvoid/models";
 import { createPiStream } from "./normalize.ts";
+import { createLivePump } from "@ancientvoid/contracts"; // ADR-0083
 import { findSessionFile, isSessionId, readTranscript } from "./transcript.ts";
 
 /**
@@ -106,7 +107,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     meta.healthy = true;
     // BUG-0065: `--mode json` streams thinking, tool calls and results;
     // each finished block is emitted live instead of one text at exit.
-    const stream = createPiStream();
+    // ADR-0083: hat der Hub `ctx.stream`, gehen die Deltas zusätzlich als
+    // transiente Frames raus — echtes Streaming statt clientseitigem Nachtippen.
+    const live = ctx.stream ? createLivePump((f) => ctx.stream?.(f)) : undefined;
+    const stream = createPiStream(live);
     let stderr = "";
     procs.set(ctx.sessionId, proc);
     proc.onStdout((chunk: string) => {
@@ -119,6 +123,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     proc.onExit((code: number | null) => {
       meta.busy = false;
       for (const event of stream.end()) ctx.emit(event);
+      live?.close(); // offene Timer weg; ein unvollendeter Block hat keine Frames mehr
       // JSON mode keeps stdout for records only — a failing pi says why on
       // stderr, which must not stay in the log alone (fail loud).
       if (code !== 0 && code !== null && stderr.trim()) ctx.emit(providerErrorEvent("pi", stderr.trim()));

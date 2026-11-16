@@ -1,0 +1,51 @@
+/* ADR-0083 / BUG-0178: die Live-Blase zeigt wirklich übertragene Teiltexte.
+ * Kein Tipp-Effekt — der Text wächst nur, wenn ein Frame angekommen ist. */
+.chat-live {
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--accent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.chat-live-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.chat-live-part {
+  font-size: calc(15px * var(--font-scale, 1));
+  line-height: 1.45;
+  color: var(--fg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-live-part.thinking {
+  margin-bottom: 6px;
+  color: var(--fg-dim);
+  font-style: italic;
+}
+
+/* Der Cursor zeigt: hier läuft etwas, es ist aber nicht simuliert. */
+.chat-live-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  animation: chat-live-blink 1s steps(1, end) infinite;
+}
+
+@keyframes chat-live-blink {
+  50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-live-caret { animation: none; }
+}

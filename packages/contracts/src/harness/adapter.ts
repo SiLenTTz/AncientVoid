@@ -1,4 +1,5 @@
 import type { BlobRef, EmittedEvent } from "../sessions/event.ts";
+import type { EmittedStreamFrame } from "../sessions/stream.ts"; // ADR-0083
 import type { NativeDiscovery, NativeResume } from "./inventory.ts";
 import type { SessionSpec, SessionInterruptionReason } from "../sessions/session.ts";
 import type { ActivityReport } from "../sessions/activity.ts";
@@ -229,6 +230,13 @@ export interface AdapterContext {
   readonly sessionId: string;
   /** Emit a normalized event; hub assigns seq/ts/sessionId and enforces K5. */
   emit(event: EmittedEvent): void;
+  /**
+   * ADR-0083: transiente Live-Frames (echtes Streaming) — kein Ereignis, kein
+   * EventStore, kein Snapshot. Fehlt die Methode (älterer Hub, Testkit), sendet der
+   * Adapter keine Frames; die Ausgabe erscheint dann blockweise, ohne dass
+   * Streaming vorgetäuscht wird. Kohärieren: ≤ 1 Frame je 150 ms oder ab 1 KB.
+   */
+  stream?(frame: EmittedStreamFrame): void;
   /** Offload large content to the blob store, get a hash reference back. */
   blob(data: string | Uint8Array): Promise<BlobRef>;
   /** Spawn a managed worker process (tmux-backed by default). */
