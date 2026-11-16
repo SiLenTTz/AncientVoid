@@ -93,7 +93,7 @@ export function NyxFab() {
     }
   };
 
-  const unavailable = !stt.supported || (stt.listening && !stt.recording);
+  const unavailable = !stt.supported;
   const onClick = () => {
     if (suppressClick.current) {
       suppressClick.current = false;
@@ -103,8 +103,9 @@ export function NyxFab() {
     void stt.toggle();
   };
 
-  const state = stt.recording || stt.listening ? "question" : "quiet";
-  const label = stt.listening ? "Spracherkennung läuft…" : stt.recording ? "Aufnahme stoppen" : "Spracheingabe";
+  const state = stt.active ? "question" : "quiet";
+  const mmss = `${Math.floor(stt.seconds / 60)}:${String(stt.seconds % 60).padStart(2, "0")}`;
+  const label = stt.recording ? "Aufnahme stoppen" : stt.listening ? "Diktat stoppen" : "Spracheingabe";
 
   return (
     <>
@@ -116,9 +117,10 @@ export function NyxFab() {
         class={`nyx-fab${dragging ? " dragging" : ""}${stt.recording ? " recording" : ""}${stt.listening ? " busy" : ""}`}
         style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
         aria-label={label}
-        aria-busy={stt.listening}
+        aria-busy={stt.active}
         title={stt.title}
         aria-disabled={unavailable}
+        aria-pressed={stt.active}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -126,13 +128,26 @@ export function NyxFab() {
         onClick={onClick}
       >
         <NyxSprite state={state} size={48} />
+        {stt.active && <span class="nyx-fab-stop" data-testid="nyx-fab-stop" aria-hidden="true">■</span>}
       </button>
-      {(stt.recording || stt.listening || stt.error || stt.info || stt.partial) && (
-        <div class="nyx-fab-toast" role="status" aria-live="polite" data-testid="nyx-fab-toast" style={{ left: `${Math.min(pos.x, window.innerWidth - 280)}px`, top: `${Math.max(8, pos.y - 72)}px` }}>
-          {stt.recording && <div>🔴 Aufnahme — tippe erneut zum Stoppen</div>}
-          {stt.recording && stt.streamNotice && <div class="dim">{stt.streamNotice}</div>}
-          {stt.recording && stt.partial && <div>Vorschau (wird nicht ausgeführt): {stt.partial}</div>}
-          {stt.listening && !stt.localAvailable && <div>🔴 höre zu… (Spracherkennung läuft meist über einen Cloud-Dienst des Browsers)</div>}
+      {(stt.active || stt.error || stt.info || stt.partial) && (
+        <div
+          class={`nyx-fab-toast${stt.active ? " live" : ""}`}
+          role="status"
+          aria-live="polite"
+          data-testid="nyx-fab-toast"
+          style={{ left: `${Math.max(8, Math.min(pos.x, window.innerWidth - Math.min(320, window.innerWidth - 16) - 8))}px`, bottom: `${window.innerHeight - pos.y + 12}px` }}
+        >
+          {stt.active && (
+            <div class="nyx-fab-state" data-testid="nyx-fab-state">
+              ⏹ {stt.recording ? "Aufnahme" : "Diktat"} läuft {mmss} — erneut tippen stoppt
+            </div>
+          )}
+          {stt.active && !stt.localAvailable && <div class="dim">Browser-Erkennung — läuft meist über einen Cloud-Dienst des Browsers</div>}
+          {stt.active && stt.streamNotice && <div class="dim">{stt.streamNotice}</div>}
+          {stt.active && stt.restarts > 0 && <div class="dim">Erkennung {stt.restarts}× neu gestartet — nichts verloren</div>}
+          {stt.partial && <div class="dim">Wort-für-Wort (Vorschau, wird nicht ausgeführt)</div>}
+          {stt.partial && <div class="nyx-fab-words" data-testid="nyx-fab-words">{stt.partial}</div>}
           {stt.info && !stt.error && <div class="dim">{stt.info}</div>}
           {stt.error && <div class="err">{stt.error}</div>}
         </div>

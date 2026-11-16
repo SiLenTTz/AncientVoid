@@ -199,7 +199,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0167](bug-0167-fastify-update-macht-zughistorie-flaky.md) | fastify ≥ 5.12.6 macht „ohne Plan, mit Zughistorie“ flaky (Pin auf 5.12.5) | open | S3 | server | [#5](https://github.com/SiLenTTz/AncientVoid/issues/5) |
 | [BUG-0168](bug-0168-fleet-steer-dedup-race-auf-langsamer-hardware.md) | Fleet-Steer-Dedup greift auf langsamer Hardware nicht (2 user-Events) | done | S3 | hub | [#12](https://github.com/SiLenTTz/AncientVoid/issues/12) |
 | [BUG-0176](bug-0176-starten-klick-von-arbeitsort-feld-ueberdeckt.md) | Starten-Klick im Neue-Session-Formular wird zeitweise vom Arbeitsort-Feld überdeckt (E2E-Flake) | open | S3 | e2e | [#28](https://github.com/SiLenTTz/AncientVoid/issues/28) |
-| [BUG-0178](bug-0178-agent-ausgabe-nur-vorgetaeuscht-gestreamt.md) | Agent-Ausgabe wird nur vorgetäuscht gestreamt: Adapter verwerfen Deltas, PWA tippt fertige Blöcke ab | in Arbeit | S2 | pwa | — |
+| [BUG-0177](bug-0177-spracheingabe-bricht-ab-und-ist-nicht-stoppbar.md) | Spracheingabe endet nach 10 s/60 s, kein Wort-für-Wort, erneut tippen kann nicht stoppen, Text doppelt nach Chrome-Neustart | done | S1 | pwa | — |
 | [BUG-0179](bug-0179-e2e-stand-ins-lassen-sich-auf-windows-nicht-spawnen.md) | E2E-Stand-in-CLIs (Shebang ohne Extension) spawnen auf Windows nicht — Adapter-E2E sind lokal nicht prüfbar | open | S2 | e2e | — |
 
 
@@ -211,9 +211,11 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0174](bug-0174-zweite-session-im-gleichen-ordner.md) | Zweite Session im selben Ordner ist ohne Git eine Sackgasse | done | S2 | core | — |
 | [BUG-0175](bug-0175-projektfilter-vergleicht-slash-pfade.md) | `outsideRoots()` vergleicht mit `/` und filtert Windows-Sessions komplett weg | done | S2 | core | — |
 
-Die nächste freie Nummer ist **0177** (0169–0175 kamen mit diesem Branch, 0176 ist auf main dokumentiert).
 | [BUG-0178](bug-0178-agent-ausgabe-nur-vorgetaeuscht-gestreamt.md) | Agent-Ausgabe wird nur vorgetäuscht gestreamt: Adapter verwerfen Deltas, PWA tippt fertige Blöcke ab | done | S2 | pwa | — |
 
-Die nächste freie Nummer ist **0180** (0169–0175 kamen mit PR #17, 0176 ist auf main
 dokumentiert, 0177 hat der offene PR #33 für das abreißende Sprachdiktat beansprucht,
 0178 ist dieses vorgetäuschte Streaming).
+
+Die nächste freie Nummer ist **0181** (0169–0175 mit PR #17, 0176 auf main, 0177 hier für
+das abreißende Sprachdiktat, 0178/0179 mit PR #37 gemerged, 0180 im offenen PR #40
+für den ausgeklappten Z Fold).
