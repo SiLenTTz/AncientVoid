@@ -214,6 +214,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 
 | [BUG-0178](bug-0178-agent-ausgabe-nur-vorgetaeuscht-gestreamt.md) | Agent-Ausgabe wird nur vorgetäuscht gestreamt: Adapter verwerfen Deltas, PWA tippt fertige Blöcke ab | done | S2 | pwa | — |
 
-Die nächste freie Nummer ist **0182** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+| [BUG-0182](bug-0182-web-push-4-esm-import.md) | web-push 4 verhindert den Hub-Import (ESM) | done | S1 | core | [#26](https://github.com/SiLenTTz/AncientVoid/pull/26) |
+
+Die nächste freie Nummer ist **0183** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0180 im offenen PR #40 für den ausgeklappten Z Fold,
 0181 ist das fehlende Drehen).
