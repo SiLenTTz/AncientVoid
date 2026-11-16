@@ -48,7 +48,10 @@ Windows funktionieren. Repro, Bug-Dokumente, Fixes auf diesem Zweig.
   **18,6 s** statt 1077 s; `npm run test:slow` fährt den Rest, `gate` und CI
   fahren beide (eigene junit-Dateien). Diff der Fehllisten über json-Reporter:
   keine neuen Fehlschläge durch Parallelität, ein Windows-Teardown-Flackern
-  (`ENOTEMPTY` in `diagnostics.routes.test.ts`) dabei behoben.
+  (`ENOTEMPTY` in `diagnostics.routes.test.ts`) dabei behoben. Tier B gemessen:
+  **1535 s (11 Dateien, 61 failed / 123 passed)** — zusammen mit Tier A (150 bis
+  153) dieselbe Fehlerpopulation wie im Gesamtlauf (211–214), die Aufteilung ist
+  also verlustfrei.
 - Hausputz: `npm run docs:reference` → `check:context` OK (`88364357`);
   `node_modules/@ancientvoid/*`-Junctions auf die kanonische Großschreibung
   gesetzt (vorher liefen Vitest-Setups nicht).

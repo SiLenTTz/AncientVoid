@@ -115,8 +115,10 @@ parallel) und `vitest.slow.config.ts` (Tier B, seriell), Liste mit gemessenen
 Dauern in `scripts/test-tiers.ts`. Tier A läuft in **18,6 s** statt 1077 s, mit
 derselben Fehlermenge wie vorher im entsprechenden Teilbereich (153 ↔ 150/153,
 differenzlos verglichen über die json-Reporter; ein Windows-Teardown-Flackern
-`ENOTEMPTY` in `diagnostics.routes.test.ts` dabei behoben). `gate` und CI fahren
-beide Tieres.
+`ENOTEMPTY` in `diagnostics.routes.test.ts` dabei behoben). Tier B gemessen:
+**1535 s** (25,6 min) für 11 Dateien, 61 failed / 123 passed — zusammen mit
+Tier A dieselbe Fehlerpopulation wie im Gesamtlauf (211–214), die Trennung ist
+verlustfrei. `gate` und CI fahren beide Tieres.
 
 ## Handoff
 
