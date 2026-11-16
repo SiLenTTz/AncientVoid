@@ -458,7 +458,7 @@
   user-select: all;
 }
 
-/* BUG-0185: installierter Stand als Tatsachen — vier Zeilen, auf schmalem und auf
+/* BUG-0186: installierter Stand als Tatsachen — vier Zeilen, auf schmalem und auf
    gedrehtem Screen lesbar; lange Cache-Namen umbrechen statt abzuschneiden. */
 .setting-row:has(.install-status) {
   /* Textblock als Steuerung: zwei Spalten pressten das Label zusammen, und Wörter

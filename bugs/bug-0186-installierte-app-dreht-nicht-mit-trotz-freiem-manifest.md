@@ -1,5 +1,5 @@
 ---
-id: BUG-0185
+id: BUG-0186
 slug: installierte-app-dreht-nicht-mit-trotz-freiem-manifest
 status: done
 severity: S2
@@ -12,7 +12,7 @@ created: 2026-11-16
 reporter: kai (Handy über Tailnet)
 ---
 
-# BUG-0185 — installierte App dreht nicht mit: der Worker betoniert das alte Manifest ein
+# BUG-0186 — installierte App dreht nicht mit: der Worker betoniert das alte Manifest ein
 
 ## Gesehen
 
@@ -139,4 +139,43 @@ einen eigenen Kontext mit erlaubten Workern.
 - [x] nach dem Leben gemessen: der Fetch-Handler lagert das Manifest ebenfalls nicht ein
 - [x] Stand auf dem Geraet ablesbar gemacht
 - [x] Guards + E2E
+- [x] Stand nach dem Deploy auf Kais Handy abgelesen (Tabelle im Nachtrag): Manifest frei,
+  kein Cache, der Winkel bleibt trotz Drehversuch bei 0 Grad
+- [x] Winkel in der Standanzeige plus Querformat-Zwang als Versuch und als Beweis
 - [ ] Drehen auf Kais installiertem App-Startsymbol nachziehen (Entfernen + Neuanlegen kann nötig sein)
+
+## Nachtrag: auf dem Handy gemessen (16.11.2026, nach dem Deploy)
+
+Kai meldet nach dem Deploy („Dreht nicht") und liefert den Stand aus der App ab:
+
+```
+Anzeigemodus: installiert (eigenes Fenster)
+Fenster-Ausrichtung: hoch · Systemmeldung: portrait-primary
+Manifest-Ausrichtung: any
+Manifest-Cache: keiner (Soll)
+Service-Worker-Cache: ancientvoid-v6
+```
+
+Das trennt die Verdächtigen:
+
+* Die **Web-Schicht ist sauber** — freies Manifest, kein Manifest-Exemplar im Cache, neue
+  Worker-Stufe. Ein eingelagertes Manifest war die Ursache, aber nicht die einzige.
+* Das **Fenster reagiert auf kein Drehen**: die Medienabfrage meldet weiter `hoch`, und die
+  Systemmeldung sagt `portrait-primary`. Ein gedrehtes Gerät mit freien Manifest melden
+  zusammen `quer` und `landscape-primary`.
+* Bleibt als Sperre nur, was **oberhalb** der Web-Schicht liegt: die von Chrome gespeicherten
+  App-Metadaten (die bei der Installation genommen werden und sich nicht jederzeit erneuern)
+  oder eine Geräte-Einstellung (Auto-Rotate aus, One-UI-Ausrichtung je App).
+
+Deshalb zwei weitere Maßnahmen:
+
+1. **Winkel in der Standanzeige** (`Fenster-Winkel: 0°/90°/…`). Damit ist ein Drehversuch
+   beweisbar: bleibt der Winkel bei 0°, dreht das Fenster nicht — die App ist nicht schuld.
+2. **„Querformat erzwingen" / „Wieder automatisch"** (Einstellungen → Geräte). Die App
+   versucht `screen.orientation.lock("landscape")` selbst. Eine Abweisung wird gezeigt, wie
+   sie heißt (`SecurityError (Gerät sperrt)`, `NotSupportedError`, „API fehlt") — ein Knopf,
+   der Erfolg meldet, während das Fenster liegen bleibt, ist kein Fix.
+
+Bleibt die App nach Entfernen und Neuanlegen des Startsymbols im Hochformat und lehnt
+`lock()` mit `SecurityError` ab, ist die Sperre am Gerät zu suchen: Auto-Rotate und — bei
+One UI auf dem Z Fold — die Ausrichtungsfreigabe **je App**.

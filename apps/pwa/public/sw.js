@@ -4,7 +4,7 @@
  * with an X-AncientVoid-Cached-At timestamp so the UI can badge "Daten vom <ts>".
  * Versioned cache — hard-bust by bumping CACHE_VERSION on deploy.
  */
-// BUG-0185: v6, weil jede frühere Version das Manifest vorgeladen hat — dieses
+// BUG-0186: v6, weil jede frühere Version das Manifest vorgeladen hat — dieses
 // vorgeladene Exemplar war die alte, auf Hochformat gesperrte Fassung, und ohne
 // Byte-Änderung an dieser Datei installiert Chrome niemals einen neuen Worker,
 // der den alten Cache räumen könnte.
@@ -15,7 +15,7 @@ const API_CACHE = "ancientvoid-api";
 // Das Manifest bleibt aus dem Vorlade-Set draußen: Android liest die
 // Fenster-Ausrichtung aus dem Manifest, und ein vorgeladenes Exemplar
 // sperrt die installierte App sonst auf eine Ausrichtung ein, die das
-// Netz längst freigegeben hat (BUG-0185, BUG-0181).
+// Netz längst freigegeben hat (BUG-0186, BUG-0181).
 const SHELL = ["/", "/index.html", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
@@ -35,7 +35,7 @@ self.addEventListener("activate", (event) => {
 });
 
 /**
- * BUG-0185: ein Manifest, das je in einen Cache geraten ist, wird rausgeworfen.
+ * BUG-0186: ein Manifest, das je in einen Cache geraten ist, wird rausgeworfen.
  * Android liest die Fenster-Ausrichtung aus dem Manifest — ein zwischengelagertes
  * Exemplar sperrt die installierte App sonst auf eine Ausrichtung, die das Netz
  * laengst freigegeben hat. Aktiv wird das bei jedem Worker-Wechsel geraeumt.
@@ -54,7 +54,7 @@ async function dropCachedManifest() {
 }
 
 /**
- * Diagnose fuer die Oberflaeche (BUG-0185): „welcher Stand liegt auf dem Geraet?“
+ * Diagnose fuer die Oberflaeche (BUG-0186): „welcher Stand liegt auf dem Geraet?“
  * soll ablesbar sein, nicht gefuehlt. Antwort geht an den anfragenden Client zurueck.
  */
 self.addEventListener("message", (event) => {
@@ -73,7 +73,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (url.origin === self.location.origin) {
-    // BUG-0185: das Manifest wird NIE eingelagert. Android steuert aus dem Manifest die
+    // BUG-0186: das Manifest wird NIE eingelagert. Android steuert aus dem Manifest die
     // Fenster-Ausrichtung einer installierten App; ein Exemplar im Cache sperrt das
     // Fenster auf eine Ausrichtung, die das Netz laengst freigegeben hat — genau der
     // Zustand, den dropCachedManifest beim activate geraeumt hatte, nur um ihn beim
