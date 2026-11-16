@@ -120,6 +120,16 @@ export async function gatherDeviceStatus(deps: DeviceStatusDeps = {}): Promise<D
   };
 }
 
+/** Was die Oberfläche sieht (Medienabfrage) ist der entscheidende Wert — die
+ * Systemmeldung daneben, und wenn beide nicht zusammenpassen, steht das dabei.
+ * (Emulation und manche Geräte melden eine Ausrichtung, die zum Fenster passt nicht.) */
+function orientationLine(status: DeviceStatus): string {
+  const erwartet = status.landscape ? "landscape" : "portrait";
+  const gemeldet = status.windowOrientation;
+  const weichtAb = gemeldet !== "unbekannt" && !gemeldet.startsWith(erwartet);
+  return `Fenster-Ausrichtung: ${status.landscape ? "quer" : "hoch"} · Systemmeldung: ${gemeldet}${weichtAb ? " (passt nicht)" : ""}`;
+}
+
 /** Ein Satz pro Zeile, so formuliert, dass ein Fremder auf dem Handy daraus die
  * Ursache lesen kann. */
 export function deviceStatusLines(status: DeviceStatus): string[] {
@@ -129,7 +139,7 @@ export function deviceStatusLines(status: DeviceStatus): string[] {
       : `Manifest-Cache: liegt in ${status.manifestCaches.join(", ")} — die App dreht sonst nicht mit`;
   return [
     `Anzeigemodus: ${status.displayMode}`,
-    `Fenster-Ausrichtung: ${status.windowOrientation}${status.landscape ? " (quer)" : " (hoch)"}`,
+    orientationLine(status),
     `Manifest-Ausrichtung: ${status.manifestOrientation}`,
     cacheLine,
     `Service-Worker-Cache: ${status.swCache ?? "kein Worker antwortet"}`,

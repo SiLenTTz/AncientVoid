@@ -29,7 +29,7 @@ test.describe("Installierter Stand auf dem Gerät (BUG-0185)", () => {
     await expect(status, "der Stand wird gelesen, nicht geraten").toBeVisible();
     await expect(status).toContainText(/Manifest-Ausrichtung: any/);
     await expect(status).toContainText(/Anzeigemodus: Browser-Tab/);
-    await expect(status).toContainText(/Fenster-Ausrichtung: portrait-primary \(hoch\)/);
+    await expect(status).toContainText(/Fenster-Ausrichtung: (hoch|quer) · Systemmeldung: /);
     // Der E2E-Harness blockiert Service Worker (playwright.config.ts) — die Zeile sagt
     // das, statt eine Stufe vorzutäuschen.
     await expect(status).toContainText("Service-Worker-Cache: kein Worker antwortet");

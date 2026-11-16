@@ -81,8 +81,20 @@ describe("installierter Stand eines Geräts (BUG-0185)", () => {
     });
     const lines = deviceStatusLines(status);
     expect(lines).toContain("Anzeigemodus: installiert (eigenes Fenster)");
+    expect(lines).toContain("Fenster-Ausrichtung: hoch · Systemmeldung: portrait-primary");
     expect(lines).toContain("Manifest-Ausrichtung: portrait-primary");
     expect(lines.some((l) => l.includes("Manifest-Cache: liegt in ancientvoid-v5"))).toBe(true);
     expect(lines).toContain("Service-Worker-Cache: ancientvoid-v5");
+  });
+
+  it("zeigt die Systemmeldung, wenn sie zur tatsächlichen Fensterlage nicht passt", async () => {
+    const status = await gatherDeviceStatus({
+      matchMedia: matchMedia({ landscape: true }),
+      fetcher: async () => ({ ok: true, json: async () => ({ orientation: "any" }) }),
+      caches: store({}),
+      orientationType: "portrait-primary",
+      askServiceWorker: async () => null,
+    });
+    expect(deviceStatusLines(status)).toContain("Fenster-Ausrichtung: quer · Systemmeldung: portrait-primary (passt nicht)");
   });
 });

@@ -29,7 +29,7 @@ export function InstallStatus() {
     };
   }, [check]);
   return (
-    <SettingRow label="Installierter Stand" hint="Was auf diesem Gerät wirklich gilt — Ausrichtung, Manifest und der Cache dahinter">
+    <SettingRow label="Installierter Stand" hint="Anzeigemodus, Ausrichtung, Manifest und die Worker-Stufe dahinter">
       <div class="install-status" data-testid="install-status">
         {lines === null ? (
           <span class="dim">geprüft…</span>

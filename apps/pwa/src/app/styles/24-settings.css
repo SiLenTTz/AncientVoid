@@ -460,11 +460,25 @@
 
 /* BUG-0185: installierter Stand als Tatsachen — vier Zeilen, auf schmalem und auf
    gedrehtem Screen lesbar; lange Cache-Namen umbrechen statt abzuschneiden. */
+.setting-row:has(.install-status) {
+  /* Textblock als Steuerung: zwei Spalten pressten das Label zusammen, und Wörter
+     brissen mitten drin („Install ierter Stand“, „Aus richt ung“). */
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.setting-row:has(.install-status) .setting-control {
+  width: 100%;
+}
+
 .install-status {
   display: grid;
   gap: 3px;
   justify-items: start;
   max-width: 100%;
+  /* Die Steuerungsspalte der Einstellungen ist rechtsbündig; für mehrzeilige
+     Tatsachenzeilen wirkt das wie eingerückter Text. */
+  text-align: left;
 }
 
 .install-status__line {
