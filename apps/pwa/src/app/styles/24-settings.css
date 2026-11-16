@@ -490,3 +490,20 @@
 .install-status .btn {
   margin-top: 6px;
 }
+
+/* Die beiden Ausrichtungs-Knöpfe gehören in eine Zeile — auf 390 px sonst drei
+   Absätze untereinander. */
+.install-status .settings-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Die Antwort auf den Ausrichtungs-Knopf ist eine Rueckmeldung, keine weitere
+   Tatsachenzeile: etwas lauter und mit Kante, damit klar ist, was der Knopf tat. */
+.install-status [data-testid="install-orient-result"] {
+  margin-top: 4px;
+  padding-left: 9px;
+  border-left: 2px solid var(--accent);
+  color: var(--fg);
+}
