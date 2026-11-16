@@ -48,6 +48,10 @@ Der PR-Gate läuft auf jedem PR (auch reine Doku- und Dependabot-PRs);
 `pipeline-sync.yml` aktualisiert nach Pushes auf `main` den Zweig `ci/full-suite` per Fast-forward (keine eigenen Commits auf diesem Zweig).
 Die vollen Läufe (`nightly.yml`) laufen um 03:00/15:00 UTC und per
 `workflow_dispatch`; alle Jobs prüfen denselben beim Start festgehaltenen SHA.
+Dafür wartet `prepare` bis zu 90 s, bis `ci/full-suite` dem main-HEAD entspricht
+— ein manueller Start direkt nach einem Merge kann sonst den Vorgänger-Stand
+testen, während `pipeline-sync` noch läuft (gesehen 16.11.2026). Nach Ablauf
+scheitert der Resolve laut statt still einen veralteten Stand zu prüfen.
 Ein Push startet nur die Branch-Synchronisierung, keine Vollsuite.
 Der Sync-Workflow hat eine eigene Concurrency-Gruppe und wartet nicht auf
 einen laufenden Volltest. Nightly liest den Testbranch mit Leserechten.
