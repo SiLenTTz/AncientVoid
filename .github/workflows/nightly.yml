@@ -4,8 +4,8 @@
 # 4-Shard-Matrix (pro Shard 1 Worker — Runner-Entschärfung aus
 # BUG-0093/0094/0095 bleibt) mit Skip-Bericht je Shard und Aggregation
 # (EPIC-P28 T28.4: fehlender Bericht, null Tests, Failures — nie grün).
-# Läuft auf jedem Push nach main, zweimal täglich im Zeitplan (03:00 und
-# 15:00 UTC) und per Hand. PRs haben nur den schnellen Gate (ci.yml) —
+# Push nach main aktualisiert ci/full-suite; die Tests laufen zweimal täglich
+# (03:00/15:00 UTC) und per Hand auf dessen festgehaltenem Commit. PRs haben nur den schnellen Gate (ci.yml) —
 # beschlossener Laufzeit-Kompromiss, 16.11.2026.
 name: nightly
 
@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: nightly-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: nightly
   # false: Läufe auf main (und im Zeitplan) stapeln sich statt sich zu
   # canceln — ein zweiter Push darf einen laufenden vollen Lauf nicht
   # wegwerfen (real am 16.11.2026: ein zweiter main-Push cancelierte den
@@ -38,12 +38,35 @@ env:
   AV_HOSTED_RUNNER: "1"
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.sync.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - id: sync
+        run: node scripts/ci-pipeline.mjs sync
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   vitest-full:
+    needs: prepare
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -71,11 +94,14 @@ jobs:
 
   # K8 in voller Messlatte: 20 Sessions × 30 Events/s × 10 s (nicht entschärft).
   k8:
+    needs: prepare
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -88,6 +114,8 @@ jobs:
       - run: npm run loadtest
 
   e2e-shards:
+    needs: prepare
+    if: github.event_name != 'push'
     strategy:
       fail-fast: false
       matrix:
@@ -97,6 +125,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -134,12 +163,15 @@ jobs:
   # benannte Skips. Läuft auch bei rotem Shard (always), damit die
   # Entscheidung sichtbar bleibt, wenn dieser Job blockierend referenziert ist.
   e2e:
-    needs: e2e-shards
-    if: always()
+    needs: [prepare, e2e-shards]
+    if: always() && github.event_name != 'push' && needs.prepare.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           pattern: e2e-report-shard-*

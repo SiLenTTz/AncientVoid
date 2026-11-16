@@ -48,7 +48,9 @@ bestehen, auch wenn andere Epics oder Vorgänger inzwischen grün sind.
 > den schnellen Kern (`.github/workflows/ci.yml`, Job `verify`: schnelle
 > Tests, Lint, Typecheck, Build) — Required Check; die volle Messlatte
 > (komplette Testsuite inkl. Slow-Liste, E2E, K8) fährt
-> `.github/workflows/nightly.yml` auf `main` und zweimal täglich. Die
+> `.github/workflows/nightly.yml` auf `ci/full-suite` zweimal täglich
+> (03:00/15:00 UTC). Jeder Merge nach `main` synchronisiert den Testbranch;
+> Fehler erzeugen automatisch GitHub-Bugs (`nightly-bugs.yml`). Die
 > lokalen Gates unten bleiben **zusätzlich** und unverändert voll
 > verbindlich. Rote CI blockiert;
 > ist die Ursache nachweislich nur die Umgebung (z. B. Runner-Flake), wird das
