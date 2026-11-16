@@ -68,7 +68,7 @@ async function generate(root) {
   const { HubConfig } = await import(pathToFileURL(join(root, "packages/core/src/platform/config.ts")).href);
   return {
     "docs/referenz-hubctl.md": renderHubctl(usage),
-    "docs/referenz-wizard.md": renderWizard(readFileSync(join(root, "setup.sh"), "utf8")),
+    "docs/referenz-wizard.md": renderWizard(readFileSync(join(root, "setup.sh"), "utf8").replace(/\r\n/g, "\n")), // Windows-Checkout liefert CRLF; ohne Normalisierung fallen Exit-Zeilen weg
     "docs/referenz-config.md": renderConfig(z.toJSONSchema(HubConfig, { io: "input" })),
   };
 }
