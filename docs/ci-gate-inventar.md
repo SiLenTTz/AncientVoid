@@ -10,7 +10,7 @@ Betrieb: [CI-Runbook](ci-runbook.md) · Historie: [EPIC-P28](../epics/EPIC-P28-r
 GitHub Actions auf GitHub-gehosteten Runnern. Required Check für PRs nach
 `main` ist der schnelle Gate `verify` (schnelle Kern-Tests, Lint, Typecheck,
 Build); die volle Messlatte (komplette Vitest-Suite inkl. Slow-Tests, E2E,
-K8) läuft auf Push nach `main`, zweimal täglich im Zeitplan und per Hand
+K8) läuft auf `ci/full-suite`, zweimal täglich im Zeitplan und per Hand
 (`nightly.yml`) — Laufzeit-Split vom 16.11.2026. Die lokalen Gates bleiben
 unverändert voll. Details: [Runbook §0](ci-runbook.md#0-geltung-seit-16112026).
 Abschnitte 3–5 sind Historie aus der GitLab-Zeit (Pipeline-/Job-IDs und
@@ -18,7 +18,7 @@ Links zeigen auf das private Archiv) und bleiben unverändert.
 
 Dieses Inventar ordnet jedem lokalen Gate-Teilkommando den ausführbaren
 CI-Job zu (AC-P28-1). Ein Job gilt nur als erbracht, wenn er real lief:
-in Läufen auf `main` und im Zeitplan sind nie gestartete, abgebrochene oder
+in Vollsuite-Läufen im Zeitplan oder per Hand sind nie gestartete, abgebrochene oder
 übersprungene Jobs kein Nachweis und Skips keine Pässe; PRs laufen nur den
 schnellen Gate.
 
@@ -41,13 +41,12 @@ maßgeblich für Schritte und Artefakt-Namen sind die Workflow-Dateien:
 | `npm run check:media` (+ `--ocr` in CI; `pre-commit` staged) — Medien-Leak-Guard (EPIC-P62 T62.2, Regeln: [demo-media.md](demo-media.md)) | `verify` | Job-Log, Exit-Code |
 | `npm test` (vitest) | schnell (`test:fast`) im `verify`-PR-Gate; die volle Suite (`vitest-full`) in `nightly.yml` — Slow-Dateien über dem Schwellenwert aus `scripts/slow-tests.json`, Generator `scripts/gen-slow-tests.mjs` | JUnit-XML `test-results/vitest-junit.xml` (Artefakt `vitest-junit`) |
 | `npm -w @ancientvoid/pwa run build` | `verify` | Job-Log, Exit-Code |
-| `npm run loadtest` — K8: 20 Sessions × 30 ev/s × 10 s | `k8` in `nightly.yml` (`main`, Zeitplan zweimal täglich, per Hand) | Job-Log (Events, Verluste, RSS) — volle Messlatte, nicht entschärft |
+| `npm run loadtest` — K8: 20 Sessions × 30 ev/s × 10 s | `k8` in `nightly.yml` (`ci/full-suite`, Zeitplan zweimal täglich, per Hand) | Job-Log (Events, Verluste, RSS) — volle Messlatte, nicht entschärft |
 | `npm run test:e2e` (Playwright Chromium) | `e2e-shards` in `nightly.yml` (4 Shards, pro Shard 1 Worker — Runner-Entschärfung nach BUG-0093/94/95 bleibt), Gate-Entscheidung im Aggregations-Job `e2e` | Artefakt `e2e-report-shard-<n>` je Shard: `test-results/e2e-junit.xml`, `playwright-report/`, Skip-Bericht `ci-artifacts/e2e-report.md`; Aggregat: `scripts/ci-e2e-aggregate.mjs` |
 
 Regeln:
 
-- **Kein grünes Dach über fehlendem Job:** In Läufen auf `main` und im
-  Zeitplan sind Läufe, in denen `vitest-full`, `k8` oder `e2e` fehlt oder
+- **Kein grünes Dach über fehlendem Job:** In Vollsuite-Läufen im Zeitplan oder per Hand sind Läufe, in denen `vitest-full`, `k8` oder `e2e` fehlt oder
   nie gestartet ist, kein Abschlussnachweis; abgebrochene oder veraltete
   Läufe (älterer SHA) zählen nicht. Der PR-Gate `verify` muss auf jedem PR
   grün sein.
@@ -179,3 +178,6 @@ Negativproben (Wegwerf-Branches, danach gelöscht; „sauberer Commit erneut“
 Vorgängerläufe mit den gefundenen und behobenen Defekten (BUG-0092–0096,
 Cache-Pollution, Berichts-Zählung) stehen im
 [Epic-Abschluss](../epics/EPIC-P28-reproduzierbare-ci.md).
+
+Pipeline-Betrieb: Nach jedem Merge nach `main` wird `ci/full-suite` synchronisiert;
+Vollsuite zweimal täglich, automatische CI-Bugs: [Runbook §7](ci-runbook.md#7-automatische-ci-bugs-epic-p28-k1k10).

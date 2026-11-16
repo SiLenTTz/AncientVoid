@@ -1,31 +1,11 @@
-import { createServer, type Server } from "node:http";
+import { installSpeechRecognition } from "../support/speech.ts";
 import { test, expect } from "../support/fixtures.ts";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { freePort } from "../support/ports.ts";
 
-/**
- * EPIC-P51 T51.6: Tastatur-Lücken — Esc/Fokus in Overlays, View-Wechsel-Kürzel,
- * Roving-Pfeil-Navigation (Dock, Session-Liste, Vault-Liste). Je Kürzel ein Fall.
- * Dateiweites test.use: fake-Mikrofon + STT-Stand-In für den Abbruch-Test
- * (launchOptions sind nur top-level erlaubt; die anderen Fälle stören sich nicht).
- */
-const sttPort = await freePort();
-test.use({
-  hubOptions: { sttUrl: `http://127.0.0.1:${sttPort}/inference` },
-  launchOptions: { args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] },
-});
-
-let sttServer: Server;
-test.beforeAll(async () => {
-  sttServer = createServer((_req, res) => {
-    res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ text: "" }));
-  });
-  await new Promise<void>((r) => sttServer.listen(sttPort, "127.0.0.1", r));
-});
-test.afterAll(() => sttServer?.close());
-
+/** EPIC-P51: keyboard shortcuts exercise real UI focus and actions.
+ * Speech uses a controlled browser recognizer; local audio conversion is covered
+ * separately by voice-local.spec.ts. */
 test.describe("Esc schließt Overlays und gibt den Fokus zurück (EPIC-P51 T51.6)", () => {
   test("Befehlsleiste: Esc schließt, Fokus zurück auf den Auslöser", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
@@ -63,17 +43,21 @@ test.describe("Esc schließt Overlays und gibt den Fokus zurück (EPIC-P51 T51.6
   });
 });
 
-test.describe("Sprachaufnahme abbrechen (EPIC-P51 T51.6)", () => {
-  test("Esc bricht die laufende Aufnahme ab, Grund bleibt sichtbar (kein stiller Verlust)", async ({ app, hub }) => {
+test.describe("Sprachdiktat stoppen (EPIC-P51 T51.6, BUG-0177)", () => {
+  test.beforeEach(async ({ page }) => installSpeechRecognition(page));
+  test("Esc stoppt das Diktat und behält den gehörten Text", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     const fab = app.locator('[data-testid="nyx-fab"]');
     await expect(fab).toBeVisible();
+    await app.getByPlaceholder("Antworten…").click();
     await fab.click();
-    await expect(fab).toHaveClass(/recording/);
+    await expect(fab).toHaveAttribute("aria-pressed", "true");
+    await expect(app.getByTestId("nyx-fab-words")).toHaveText("stopp");
     await app.keyboard.press("Escape");
-    await expect(fab).not.toHaveClass(/recording/);
-    await expect(app.locator('[data-testid="nyx-fab-toast"]')).toContainText("Aufnahme abgebrochen");
+    await expect(fab).toHaveAttribute("aria-pressed", "false");
+    await expect(app.getByPlaceholder("Antworten…")).toHaveValue("stopp");
+    await expect(app.getByTestId("nyx-fab-toast")).toContainText("Diktat");
   });
 });
 

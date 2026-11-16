@@ -9,9 +9,12 @@ Eine Definition von „grün“ für die verbindlichen lokalen Gates. Die
 Ausführungsorte verwenden dieselben Kommandos; die CI-Pflicht richtet sich
 ausschließlich nach `AGENTS.md` und `docs/ci-runbook.md`:
 
-- GitHub Actions (`.github/workflows/ci.yml`, Jobs `verify`, `k8`, `e2e`)
-  läuft auf jedem PR und ist Pflicht-Check für den Merge nach `main`
-  (`gh pr checks <nr>`). Roter Lauf → `docs/ci-runbook.md`.
+- GitHub Actions (`.github/workflows/ci.yml`, Job `verify`) läuft auf jedem
+  PR und ist Pflicht-Check für den Merge nach `main` (`gh pr checks <nr>`).
+  Die Vollsuite (`nightly.yml`, inklusive K8/E2E) läuft zweimal täglich
+  auf `ci/full-suite`; jeder main-Push synchronisiert diesen Zweig.
+  Fehler erzeugen GitHub-Bugs (`nightly-bugs.yml`). Details und rote Läufe:
+  `docs/ci-runbook.md`.
 - Lokale Gates bleiben zusätzlich verbindlich und blockierend — grüne CI
   ersetzt sie nicht, sie ersetzen grüne CI nicht.
 - Rot allein wegen der Umgebung (Runner-Flake, Dienst-Ausfall) wird benannt

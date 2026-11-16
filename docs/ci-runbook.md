@@ -15,7 +15,7 @@ CI ist **GitHub Actions** auf GitHub-gehosteten `ubuntu`-Runnern.
 |---|---|
 | Lokale Gates (`AGENTS.md`, Abschnitt Kommandos) | ja, vor jedem PR |
 | GitHub Actions PR-Gate (`ci.yml`, Job `verify`: schnelle Kern-Tests, Lint, Typecheck, Build) | ja, Required Check per Branch-Protection |
-| GitHub Actions volle Messlatte (`nightly.yml`: volle Vitest-Suite inkl. Slow-Tests, `k8`, `e2e` als Shard-Matrix) | nein — sie läuft auf jedem Push nach `main` und zweimal täglich im Zeitlauf (laufzeit-Beschluss 16.11.2026) |
+| GitHub Actions volle Messlatte (`nightly.yml`: volle Vitest-Suite inkl. Slow-Tests, `k8`, `e2e` als Shard-Matrix) | nein — sie läuft auf `ci/full-suite` zweimal täglich im Zeitlauf (laufzeit-Beschluss 16.11.2026) |
 
 - Beide Nachweise gelten **zusätzlich**, keiner ersetzt den anderen.
 - Ein roter Lauf blockiert den Merge. Liegt die Ursache nachweislich nur in
@@ -23,7 +23,7 @@ CI ist **GitHub Actions** auf GitHub-gehosteten `ubuntu`-Runnern.
   PR benannt und der Lauf **einmal** neu gestartet (§3) — nie als Pass gemeldet.
 - `cancelled`/fehlende Jobs sind kein Pass. Abgebrochene oder veraltete
   Läufe (älterer SHA) zählen nicht. Auf PRs läuft bewusst nur der schnelle
-  Gate (`verify`); die vollen Läufe (Push auf `main`, Zeitplan) müssen voll
+  Gate (`verify`); die vollen Läufe (Zeitplan, manueller Start) müssen voll
   durchlaufen — dort ist jeder Skip und jeder fehlende Job kein Pass.
 - **Keine self-hosted Runner** für dieses öffentliche Repo (§4).
 - Produktfunktionen für GitLab (Forge-Modul, EPIC-P37) sind davon unberührt;
@@ -45,9 +45,13 @@ Links auf `gitlab.com/SiLenT_Tz/…` zeigen auf das private Archiv.
 | `e2e-shards` + `e2e` (`nightly.yml`) | Playwright Chromium gegen einen echten Hub, danach Skip-Bericht (4 Shards parallel, Browser-Cache); der Aggregations-Job `e2e` fasst die Shard-Berichte nach denselben Regeln zusammen (fehlender Bericht, null Tests, Failures — `scripts/ci-e2e-aggregate.mjs`) | `npm run test:e2e` |
 
 Der PR-Gate läuft auf jedem PR (auch reine Doku- und Dependabot-PRs);
-die vollen Läufe (`nightly.yml`) laufen auf Push nach `main`, im Zeitlauf
-(zweimal täglich) und per `workflow_dispatch`. Ein neuer Push auf denselben
-Zweig bricht den laufenden Lauf ab (`concurrency`). Die genaue Schrittfolge
+`pipeline-sync.yml` aktualisiert nach Pushes auf `main` den Zweig `ci/full-suite` per Fast-forward (keine eigenen Commits auf diesem Zweig).
+Die vollen Läufe (`nightly.yml`) laufen um 03:00/15:00 UTC und per
+`workflow_dispatch`; alle Jobs prüfen denselben beim Start festgehaltenen SHA.
+Ein Push startet nur die Branch-Synchronisierung, keine Vollsuite.
+Der Sync-Workflow hat eine eigene Concurrency-Gruppe und wartet nicht auf
+einen laufenden Volltest. Nightly liest den Testbranch mit Leserechten.
+Laufende Vollsuiten werden durch neue Pushes nicht abgebrochen. Die genaue Schrittfolge
 steht ausschließlich in `ci.yml` und `nightly.yml`. **K8 bleibt
 20 Sessions × 30 Events/s**, lokal wie in CI; keine Job-Konfiguration darf
 diese Messlatte entschärfen. Fehlt in CI der Browser, muss `e2e` rot enden,
@@ -125,7 +129,7 @@ Einstellungen (*Settings → Actions → General*) und Workflow-Regeln:
   Required Check ist `verify` (der schnelle PR-Gate aus `ci.yml`, ohne
   Auto-Update-Regel — der Gate prüft ohnehin den Merge-Ref); kein
   Force-Push (non-fast-forward), kein Löschen von `main`. Direkter Push auf
-  `main` ist erlaubt und löst den vollen Lauf aus; normale Arbeit geht per
+  `main` aktualisiert ebenfalls den Testbranch; normale Arbeit geht per
   PR. Die vollen Läufe (`nightly.yml`) sind kein PR-Gate.
 
 ## 5. Lokale-vs-CI-Regel
@@ -138,8 +142,7 @@ Einstellungen (*Settings → Actions → General*) und Workflow-Regeln:
   scheitert sonst
   ([BUG-0092](../bugs/bug-0092-k7-recovery-test-flaky-parallel-last.md)).
 - Lokal betroffene Packages testen; vollständiges E2E nur bei UI-/Routen-/
-  SessionManager-/Adapter-Änderungen (AGENTS.md). CI fährt `k8`/`e2e` auf
-  jedem PR mit Code-Änderung voll.
+  SessionManager-/Adapter-Änderungen (AGENTS.md). Die Vollsuite fährt `k8`/`e2e` auf dem synchronisierten Testbranch.
 
 ## 6. Negativproben (jährlich oder nach Workflow-Umbau)
 
@@ -150,3 +153,24 @@ Einstellungen (*Settings → Actions → General*) und Workflow-Regeln:
 3. Danach denselben sauberen Commit erneut laufen lassen und grün sehen.
 
 Belege (Run-IDs) im jeweiligen PR bzw. Epic unter Abschlussnachweisen.
+
+## 7. Automatische CI-Bugs (EPIC-P28, K1–K10)
+
+`nightly-bugs.yml` reagiert auf fehlgeschlagene `nightly`- und
+`pipeline-sync`-Läufe, auch wenn
+das Setup oder die Branch-Synchronisierung scheitert. Pro fehlgeschlagenem
+Job entsteht ein GitHub-Issue mit Label `bug`, SHA, Branch, Run-/Job-Link
+und Reproduktionshinweis. Ein vorhandener offener Bug desselben Jobs wird
+auf das jüngste Auftreten aktualisiert; nach Schließen erzeugt ein neuer
+Fehler einen neuen Bug. Grüne Läufe schließen Bugs nicht automatisch.
+Abgebrochene Läufe erzeugen keinen Produktbug und bleiben als Abbruch sichtbar.
+
+Der Reporter führt ausschließlich Code von `main` aus, liest Job-Metadaten
+über die API und führt weder Logs noch Artefakte aus. Nur dieser Workflow
+hat `issues: write`; nur `pipeline-sync.yml` hat `contents: write`. Tests selbst
+haben Leserechte. Die Implementierung und Negativfälle stehen in
+`scripts/ci-pipeline.mjs` und `scripts/ci-pipeline.test.mjs`.
+
+Historische Fehler lassen sich per `gh workflow run nightly-bugs.yml -f run_id=<ID>`
+nacherfassen (z. B. nach einem Reporter-Ausfall). Es werden nur fehlgeschlagene
+`nightly`-/`pipeline-sync`-Läufe ausgewertet, keine PR-Workflows.

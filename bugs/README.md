@@ -214,5 +214,10 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0174](bug-0174-zweite-session-im-gleichen-ordner.md) | Zweite Session im selben Ordner ist ohne Git eine Sackgasse | done | S2 | core | — |
 | [BUG-0175](bug-0175-projektfilter-vergleicht-slash-pfade.md) | `outsideRoots()` vergleicht mit `/` und filtert Windows-Sessions komplett weg | done | S2 | core | — |
 
-Die nächste freie Nummer ist **0182** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33,
- 0178/0179 mit PR #37 und 0181 mit PR #41 gemerged, 0180 ist dieser Z-Fold-Branch).
+
+| [BUG-0182](bug-0182-web-push-4-esm-import.md) | web-push 4 verhindert den Hub-Import (ESM) | done | S1 | core | [#26](https://github.com/SiLenTTz/AncientVoid/pull/26) |
+
+Die nächste freie Nummer ist **0185** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33,
+0178/0179 mit PR #37, 0181 mit PR #41 und 0182 mit PR #26 gemerged; 0180 ist dieser
+Z-Fold-Zweig, 0183 liegt im offenen PR #50 (eigene Bauziele), 0184 im offenen PR #48
+(Token-Rechnung)).
