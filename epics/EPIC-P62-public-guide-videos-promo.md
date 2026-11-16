@@ -184,7 +184,7 @@ User-Content.
 
 ## 4. Aufgaben (Checkliste)
 
-- [ ] **T62.1 Inventur & Strukturentscheide** — PWA-Ebenen/Features in
+- [x] **T62.1 Inventur & Strukturentscheide** — PWA-Ebenen/Features in
       `docs/guide/inventory.md` (EN-Kurzbeschreibung + Spec-Verweis);
       Ablagekonzept Guide-Assets + `docs/check-context.md`-Regelerweiterung
       (Budgets für `docs/guide/`); Test: neue Ebene ohne Inventareintrag rot.

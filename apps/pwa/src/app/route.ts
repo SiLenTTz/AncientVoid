@@ -53,7 +53,9 @@ export type TailTab = "graph" | "git" | "datei";
  * EPIC-P60 (ADR-0077): `orchestrierung` heißt `teams`, Slug `#/teams` (ehemals `#/runs`). */
 export type ListPage = "dashboard" | "new" | "settings" | "approvals" | "status" | "media" | "pc" | "vault" | "teams" | "automationen" | "aimetrics";
 export const FOUND_HASH_ALIAS = "#/gefunden";
-const PAGE_SLUG: Record<ListPage, string> = { dashboard: "", new: "neu", settings: "einstellungen", approvals: "freigaben", status: "status", media: "medien", pc: "pc", vault: "notizen", teams: "teams", automationen: "automationen", aimetrics: "metriken" };
+// EPIC-P62 T62.1: exportiert — der Guide-Inventar-Test (AC-P62-1) macht
+// jede neue Seite ohne docs/guide/inventory.md-Zeile rot.
+export const PAGE_SLUG: Record<ListPage, string> = { dashboard: "", new: "neu", settings: "einstellungen", approvals: "freigaben", status: "status", media: "medien", pc: "pc", vault: "notizen", teams: "teams", automationen: "automationen", aimetrics: "metriken" };
 
 /** EPIC-P34 T34.2: Seiten, die am Desktop die Detailspalte füllen. Übersicht, Neu und Freigaben bleiben in der Liste (K1-Weg). */
 export const TOOL_PAGE_IDS = ["settings", "media", "pc", "status", "vault", "teams", "automationen", "aimetrics"] as const;
