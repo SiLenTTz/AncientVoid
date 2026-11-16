@@ -20,7 +20,6 @@
  * Tests: scripts/check-media.test.mjs (jede Regel rot-vor-grün dort).
  */
 import { execFileSync } from "node:child_process";
-import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 /** Test-Fixtures dürfen Medienartiges halten (Medienanalyse-Tests brauchen
@@ -160,7 +159,7 @@ export function checkMedia(root, files) {
 export function checkMediaOcr(root, files, pick = (f) => PUBLISHED_MEDIA_DIRS.some((d) => f.startsWith(d)) && IMAGE_EXTS.includes(ext(f))) {
   const findings = [];
   for (const file of files.filter(pick)) {
-    let text = "";
+    let text;
     try {
       text = execFileSync("tesseract", [join(root, file), "stdout", "-l", "eng"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
     } catch {
@@ -190,7 +189,7 @@ if (process.argv[1]?.endsWith("check-media.mjs")) {
     try {
       base = execFileSync("git", ["merge-base", "HEAD", "origin/main"], { cwd: root, encoding: "utf8" }).trim();
     } catch {
-      base = null; // kein origin/main (Kaltstand) — dann alle Guide-/Site-Medien
+      // kein origin/main (Kaltstand) — dann alle Guide-/Site-Medien
     }
     const changed = base
       ? execFileSync("git", ["diff", "--name-only", base, "HEAD"], { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean)
