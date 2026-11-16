@@ -105,6 +105,11 @@ export function CreateSession({
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
+  // BUG-0170: ob Projekt-Wurzeln konfiguriert sind, ist eine eigene Tatsache —
+  // die Anzahl der gefundenen Repos darf nicht als Stellvertreter herhalten.
+  const [rootsInfo, setRootsInfo] = useState<{ configured: boolean; roots: string[] } | null>(null);
+  // BUG-0009/0169: grindige Wurzeln und gekürzte Listen dürfen nicht verschwinden.
+  const [projectWarnings, setProjectWarnings] = useState<string[]>([]);
   // T-PJ1: inline project creation (git init in first projectRoot)
   const [newProject, setNewProject] = useState("");
   const [creating, setCreating] = useState(false);
@@ -132,7 +137,9 @@ export function CreateSession({
   const [workplace, setWorkplace] = useState<WorkplaceMode>("worktree");
   const [confirmDirty, setConfirmDirty] = useState(false);
   const [workplaceBlocked, setWorkplaceBlocked] = useState(false);
-  useEffect(() => setConfirmDirty(false), [project, workplace]);
+  // ADR-0081: parallels Schreiben im Nicht-Git-Ordner ist eine eigene, bewusste Entscheidung.
+  const [confirmShared, setConfirmShared] = useState(false);
+  useEffect(() => { setConfirmDirty(false); setConfirmShared(false); }, [project, workplace]);
   // ADR-0018: a model picker only where the harness takes one at start,
   // filled from its catalog when it has one, else free text.
   const features = adapters.find((a) => a.id === adapter)?.capabilities.features;
@@ -184,9 +191,13 @@ export function CreateSession({
       .then((res) => {
         if (!alive) return;
         setProjects(res.projects);
+        setRootsInfo({ configured: res.rootsConfigured ?? res.projects.length > 0, roots: res.roots ?? [] });
+        setProjectWarnings(res.warnings ?? []);
         // Preselect the first discovered project so "Starten" works
-        // without any typing when a picker is shown.
-        if (res.projects.length > 0) setProject((p) => p || (res.projects.some((x) => x.path === last.project) ? last.project! : res.projects[0]!.path));
+        // without any typing when a picker is shown. BUG-0170: der gemerkte
+        // Pfad gilt auch dann, wenn gar kein Git-Repo gefunden wurde — sonst
+        // tippen Nutzer, die ohne Git arbeiten, jeden Tag alles neu.
+        setProject((p) => p || last.project || res.projects[0]?.path || "");
       })
       .catch(() => {
         // T1.5-5: an unreachable /api/projects must not make the form
@@ -194,6 +205,7 @@ export function CreateSession({
         // projectRoots were configured (BUG-0006 lesson: onboarding paths
         // must never become a dead end).
         if (alive) setProjects([]);
+        if (alive) setRootsInfo(null);
       });
     return () => {
       alive = false;
@@ -282,7 +294,7 @@ export function CreateSession({
             ...(skill || mode ? { args: { ...(skill ? { [skill.kind]: skill.name } : {}), ...(mode ? { permissionMode: mode } : {}) } } : {}),
             ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
             // Loops arbeiten immer im Projekt des Loop-Systems — dort gibt es keine Arbeitsort-Wahl.
-            ...(startLoop ? {} : { workspaceMode: workplace, ...(workplace === "direct" && confirmDirty ? { confirmDirty: true } : {}) }),
+            ...(startLoop ? {} : { workspaceMode: workplace, ...(workplace === "direct" && confirmDirty ? { confirmDirty: true } : {}), ...(workplace === "direct" && confirmShared ? { confirmSharedFolder: true } : {}) }),
           });
       localStorage.removeItem(PROMPT_KEY);
       localStorage.setItem(LAST_KEY, JSON.stringify({ host, adapter, project, loop: startLoop }));
@@ -320,13 +332,22 @@ export function CreateSession({
               </option>
             ))}
           </select>
+        ) : rootsInfo?.configured ? (
+          <span class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
+            kein Git-Repo in den Wurzeln ({rootsInfo.roots.join(", ")}) — Pfad eintippen; ein noch fehlender Ordner wird beim Start angelegt
+          </span>
         ) : (
           <span class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
-            keine Projekt-Wurzeln konfiguriert — siehe docs/configuration.md
+            keine Projekt-Wurzeln konfiguriert — siehe docs/configuration.md, oder Pfad direkt eintippen
           </span>
         )}
       </label>
-      {projects !== null && projects.length > 0 && (
+      {projectWarnings.length > 0 && (
+        <ul class="dim" style={{ margin: "2px 0", paddingLeft: 18, fontSize: "calc(11px * var(--font-scale, 1))" }}>
+          {projectWarnings.map((w) => <li key={w}>{w}</li>)}
+        </ul>
+      )}
+      {projects !== null && (rootsInfo?.configured ?? projects.length > 0) && (
         <div style={{ display: "flex", gap: 6 }}>
           <input
             value={newProject}
@@ -463,7 +484,7 @@ export function CreateSession({
         />
       </label>
       {!loop && project && (
-        <WorkplaceChoice api={api} project={project} mode={workplace} onMode={setWorkplace} confirmDirty={confirmDirty} onConfirmDirty={setConfirmDirty} onBlockedChange={setWorkplaceBlocked} />
+        <WorkplaceChoice api={api} project={project} mode={workplace} onMode={setWorkplace} confirmDirty={confirmDirty} onConfirmDirty={setConfirmDirty} confirmShared={confirmShared} onConfirmShared={setConfirmShared} onBlockedChange={setWorkplaceBlocked} />
       )}
       {error && <div role="alert" style="color: var(--err)">{error}</div>}
       {!loop && <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />}

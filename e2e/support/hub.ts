@@ -429,7 +429,7 @@ export class TestHub {
     return (await this.api<{ id: string; adapter: string; status: string; nativeSessionId: string | null }[]>("/api/sessions")).body;
   }
 
-  async createSession(spec: { adapter: string; project?: string; prompt?: string; model?: string; args?: Record<string, unknown>; budgetUsd?: number; workspaceMode?: "worktree" | "direct"; confirmDirty?: boolean; adoptNativeSessionId?: string }): Promise<string> {
+  async createSession(spec: { adapter: string; project?: string; prompt?: string; model?: string; args?: Record<string, unknown>; budgetUsd?: number; workspaceMode?: "worktree" | "direct"; confirmDirty?: boolean; confirmSharedFolder?: boolean; adoptNativeSessionId?: string }): Promise<string> {
     const res = await this.api<{ id?: string; error?: string }>("/api/sessions", {
       body: { project: this.alpha, ...spec },
     });
