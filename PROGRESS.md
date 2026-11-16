@@ -9,6 +9,17 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
+- **BUG-0181 App dreht nicht mit (PR #41, Zweig `fix/orientation-mitdrehen`)**: das Manifest
+  stand seit dem ersten öffentlichen Release auf `"orientation": "portrait-primary"` — eine
+  installierte PWA dreht sich nicht. Außerdem verlor `08-session-events.css` die Kaskade für
+  niedrige Fenster (BUG-0053 faktisch zurück). Neu `50-short-viewport.css` (zuletzt
+  importiert). Gemessen bei 915 × 412: Dock 278 → 180 px, Chat 48 → 130 px (Steuerung zu)
+  bzw. 160 px (offen); Hochformat 412 × 915 unverändert (Chat 326 px, Laufleiste sichtbar).
+  Beleg: `e2e/specs/querformat.spec.ts` 3 neue Fälle grün (Manifest ohne Sperre; Querformat
+  mit Dock ≤ 200 / Chat ≥ 90 / Tabs im Screen; hoch → quer → hoch **ohne Reload**). Die drei
+  bestehenden Claude-Fälle derselben Datei sind auf Windows nicht prüfbar (BUG-0179,
+  `read ECONNRESET`) — mit und ohne Änderung identisch.
+
 
 - **BUG-0171** Session-Start in noch fehlendem Ordner: `ensureProjectDir()` legt
   genau eine Blatt-Ebene innerhalb der `projectRoots` an; fehlt der Elternordner
