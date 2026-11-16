@@ -6,7 +6,7 @@ severity: S3
 area: server
 instance: dev
 commit: ""
-forge: ""
+forge: "https://github.com/SiLenTTz/AncientVoid/issues/5"
 epic: ""
 created: 2026-11-15
 reporter: "Veröffentlichungs-Audit (docs/2026-11-15_public-release-audit.md)"

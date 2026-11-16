@@ -6,7 +6,7 @@ severity: S2
 area: ci
 instance: ci
 commit: "75f79259a24981e050045691fe6c4ebaec2960c9"
-forge: "https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/66"
+forge: "https://github.com/SiLenTTz/AncientVoid/issues/4"
 epic: "EPIC-P60 (AI-P60-1)"
 created: 2026-11-14
 reporter: "P60-Abschluss-Retro"

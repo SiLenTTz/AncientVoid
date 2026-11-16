@@ -150,7 +150,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0118](bug-0118-session-menue-unter-steuerung.md) | Session-Menü liegt in niedriger Kachel unter der Steuerung | done | S3 | pwa | — |
 | [BUG-0119](bug-0119-stdin-epipe-beendet-hub.md) | Ein gebrochenes stdin eines Workers beendet den ganzen Hub (EPIPE) | done | S2 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
 | [BUG-0120](bug-0120-parallele-playwright-laeufe-teilen-test-results.md) | Parallele Playwright-Läufe löschen sich gegenseitig die Artefakte | done | S3 | e2e | — |
-| [BUG-0121](bug-0121-handy-lauf-session-test-zeitueberschreitung.md) | Am echten Handy: „neue Session aus der UI“ läuft in der Gesamtfolge in die Zeitüberschreitung | open | S3 | e2e | — |
+| [BUG-0121](bug-0121-handy-lauf-session-test-zeitueberschreitung.md) | Am echten Handy: „neue Session aus der UI“ läuft in der Gesamtfolge in die Zeitüberschreitung | open | S3 | e2e | [#3](https://github.com/SiLenTTz/AncientVoid/issues/3) |
 | [BUG-0122](bug-0122-overlay-hoehen-ohne-ui-zoom-teilung.md) | Overlay-Höhen/-Breiten (Datei-Blatt, Dialoge, Composer maximiert) ohne Division durch --ui-zoom | done | S3 | pwa | P50 |
 | [BUG-0123](bug-0123-doppelte-scrollbalken-session-kachel.md) | Zwei Scrollbalken rechts in der Session-Ansicht | done | S3 | pwa | P43 |
 | [BUG-0124](bug-0124-menue-datei-oeffnet-dateibaum-nicht.md) | „Mehr → Datei“ öffnet den Dateibaum nicht, Tab zeigt nur einen Knopf | done | S3 | pwa | P43 |
@@ -192,10 +192,10 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0160](bug-0160-galaxy-route-verliert-tab-bei-kacheloffnung.md) | Graph-Deep-Link verliert den Reiter beim Öffnen der Kachel | done | S3 | pwa | — |
 | [BUG-0161](bug-0161-tool-aktivitaet-beendet-hauptzug-vorzeitig.md) | Ein Tool-Aktivitätsende beendet den Hauptzug vorzeitig | done | S1 | core | — |
 | [BUG-0162](bug-0162-exit-regex-matcht-fremde-event-typen.md) | Exit-Regex matcht fremde Event-Typen | done | S2 | core | — |
-| [BUG-0163](bug-0163-ci-verify-rot-seit-11-11.md) | CI: `verify` seit dem 11.11. durchgehend rot (4 Umgebungstests), lokal grün | in-progress | S2 | ci | — |
+| [BUG-0163](bug-0163-ci-verify-rot-seit-11-11.md) | CI: `verify` seit dem 11.11. durchgehend rot (4 Umgebungstests), lokal grün | in-progress | S2 | ci | [#4](https://github.com/SiLenTTz/AncientVoid/issues/4) |
 | [BUG-0164](bug-0164-offline-diff-verliert-stand.md) | Offline-Nachladen verwirft den sichtbaren Diff | done | S3 | pwa | [#67](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/67) |
 | [BUG-0165](bug-0165-restart-session-working-ohne-worker.md) | Restart lässt Session dauerhaft `working` ohne Worker | done | S2 | core | [!481](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/481) |
 | [BUG-0166](bug-0166-automation-neuanlage-aktiv.md) | Automation-Neuanlage übernimmt Aktivierung | done | S2 | core | [#46](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/46) |
-| [BUG-0167](bug-0167-fastify-update-macht-zughistorie-flaky.md) | fastify ≥ 5.12.6 macht „ohne Plan, mit Zughistorie“ flaky (Pin auf 5.12.5) | open | S3 | server | — |
+| [BUG-0167](bug-0167-fastify-update-macht-zughistorie-flaky.md) | fastify ≥ 5.12.6 macht „ohne Plan, mit Zughistorie“ flaky (Pin auf 5.12.5) | open | S3 | server | [#5](https://github.com/SiLenTTz/AncientVoid/issues/5) |
 
 Die nächste freie Nummer ist **0168**.
