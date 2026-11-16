@@ -105,7 +105,7 @@ export function CreateSession({
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
-  // BUG-0170: ob Projekt-Wurzeln konfiguriert sind, ist eine eigene Tatsache —
+  // BUG-0173: ob Projekt-Wurzeln konfiguriert sind, ist eine eigene Tatsache —
   // die Anzahl der gefundenen Repos darf nicht als Stellvertreter herhalten.
   const [rootsInfo, setRootsInfo] = useState<{ configured: boolean; roots: string[] } | null>(null);
   // BUG-0009/0169: grindige Wurzeln und gekürzte Listen dürfen nicht verschwinden.
@@ -194,7 +194,7 @@ export function CreateSession({
         setRootsInfo({ configured: res.rootsConfigured ?? res.projects.length > 0, roots: res.roots ?? [] });
         setProjectWarnings(res.warnings ?? []);
         // Preselect the first discovered project so "Starten" works
-        // without any typing when a picker is shown. BUG-0170: der gemerkte
+        // without any typing when a picker is shown. BUG-0173: der gemerkte
         // Pfad gilt auch dann, wenn gar kein Git-Repo gefunden wurde — sonst
         // tippen Nutzer, die ohne Git arbeiten, jeden Tag alles neu.
         setProject((p) => p || last.project || res.projects[0]?.path || "");

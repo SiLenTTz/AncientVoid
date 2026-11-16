@@ -532,7 +532,7 @@ export interface DiscoveredProject {
   path: string;
   name: string;
   branch: string | null;
-  /** BUG-0169: ohne Feld bzw. `isGit: false` ist es ein Ordner ohne `.git`. */
+  /** BUG-0172: ohne Feld bzw. `isGit: false` ist es ein Ordner ohne `.git`. */
   isGit?: boolean;
 }
 
@@ -540,7 +540,7 @@ export interface DiscoveredProject {
 interface ProjectDiscoveryResult {
   projects: DiscoveredProject[];
   warnings: string[];
-  /** BUG-0170: trennt „Wurzeln fehlen“ von „Wurzeln vorhanden, aber keine Repos“. */
+  /** BUG-0173: trennt „Wurzeln fehlen“ von „Wurzeln vorhanden, aber keine Repos“. */
   rootsConfigured?: boolean;
   roots?: string[];
 }
