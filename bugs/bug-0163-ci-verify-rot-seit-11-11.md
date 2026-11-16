@@ -120,3 +120,11 @@ Lauf 2: 707/709 grün, rot nur zwei streng getaktete Regressionstests
 
 Gemeinsamer Mechanismus: `hostedRunner` aus `e2e/support/fixtures.ts`,
 `test.skipIf(hostedRunner)`.
+
+**main-Lauf (16.11. 12:09, nach PR #13/#15):** verify rot durch genau ein
+Flake — `steer-wait-timeout.test.ts` „Occupant-Pinning: ein vorgemerkter
+Prompt wartet …", eines der Original-Quartetts vom GitLab-Runner (dort
+dauerhaft rot, auf GitHub in Läufen 1–2 noch grün — das Fenster schwankt
+mit der Runner-Last; 2201/2239 grün). Erhält denselben Hosted-Skip,
+bleibt lokal Pflicht. Damit stehen alle vier Environment-Tests des
+Original-Befunds unter dem gleichen, sichtbaren Mechanismus.
