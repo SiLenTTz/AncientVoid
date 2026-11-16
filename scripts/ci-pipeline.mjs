@@ -33,9 +33,13 @@ export async function syncPipeline(api) {
   return sha;
 }
 
+export async function pipelineSha(api) {
+  return (await api("GET", "git/ref/heads/ci/full-suite")).object.sha;
+}
+
 export async function reportFailures(api, run) {
   const failed = (conclusion) => ["failure", "timed_out", "action_required", "startup_failure"].includes(conclusion);
-  if (run.name !== "nightly" || run.event === "pull_request" || !failed(run.conclusion)) return [];
+  if (!["nightly", "pipeline-sync"].includes(run.name) || run.event === "pull_request" || !failed(run.conclusion)) return [];
   const jobs = [];
   for (let page = 1; ; page++) {
     const result = await api("GET", `actions/runs/${run.id}/jobs?filter=latest&per_page=100&page=${page}`);
@@ -53,7 +57,8 @@ export async function reportFailures(api, run) {
   }
   const numbers = [];
   for (const job of failures) {
-    const marker = `<!-- ancientvoid-nightly:${job.name} -->`;
+    const key = run.name === "nightly" ? job.name : `${run.name}/${job.name}`;
+    const marker = `<!-- ancientvoid-nightly:${key} -->`;
     const endMarker = "<!-- /ancientvoid-nightly -->";
     const occurrence = `<!-- run:${run.id}:${run.run_attempt} -->`;
     const body = `${marker}\n${occurrence}\nAutomatisch erkannter Pipeline-Fehler (EPIC-P28, K1–K10).\n\nJob: ${job.name}\nCommit: ${run.head_sha}\nBranch: ${run.head_branch}\nErgebnis: ${job.conclusion}\n\n[Lauf und Artefakte](${run.html_url}) · [Job](${job.html_url})\n\nReproduktion: Kommandos des Jobs auf diesem Commit ausführen; Fehler zuerst als Produkt/Test oder Infrastruktur klassifizieren (docs/ci-runbook.md). Ein roter Lauf ist kein bestandener Test.\n${endMarker}\n`;
@@ -68,7 +73,7 @@ export async function reportFailures(api, run) {
       }
       numbers.push(existing.number);
     } else {
-      const issue = await api("POST", "issues", { title: `CI-Bug: nightly / ${job.name}`, labels: ["bug"], body });
+      const issue = await api("POST", "issues", { title: `CI-Bug: ${run.name} / ${job.name}`, labels: ["bug"], body });
       numbers.push(issue.number);
     }
   }
@@ -77,16 +82,16 @@ export async function reportFailures(api, run) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const api = githubApi(process.env.GH_TOKEN, process.env.GITHUB_REPOSITORY);
-  if (process.argv[2] === "sync") {
-    const sha = await syncPipeline(api);
+  if (["sync", "resolve"].includes(process.argv[2])) {
+    const sha = process.argv[2] === "sync" ? await syncPipeline(api) : await pipelineSha(api);
     appendFileSync(process.env.GITHUB_OUTPUT, `sha=${sha}\n`);
   } else if (process.argv[2] === "report") {
     const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
     const id = event.inputs?.run_id;
-    if (!event.workflow_run && !/^\d+$/.test(id ?? "")) throw new Error("Missing/invalid nightly run ID");
+    if (!event.workflow_run && !/^\d+$/.test(id ?? "")) throw new Error("Missing/invalid CI run ID");
     const run = event.workflow_run ?? await api("GET", `actions/runs/${id}`);
     console.log("CI bug issues:", await reportFailures(api, run));
   } else {
-    throw new Error("Usage: node scripts/ci-pipeline.mjs sync|report");
+    throw new Error("Usage: node scripts/ci-pipeline.mjs sync|resolve|report");
   }
 }

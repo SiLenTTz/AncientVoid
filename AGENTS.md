@@ -49,7 +49,8 @@ bestehen, auch wenn andere Epics oder Vorgänger inzwischen grün sind.
 > Tests, Lint, Typecheck, Build) — Required Check; die volle Messlatte
 > (komplette Testsuite inkl. Slow-Liste, E2E, K8) fährt
 > `.github/workflows/nightly.yml` auf `ci/full-suite` zweimal täglich
-> (03:00/15:00 UTC). Jeder Merge nach `main` synchronisiert den Testbranch;
+> (03:00/15:00 UTC). Jeder Merge nach `main` synchronisiert den Testbranch
+> über den unabhängigen Workflow `pipeline-sync.yml`;
 > Fehler erzeugen automatisch GitHub-Bugs (`nightly-bugs.yml`). Die
 > lokalen Gates unten bleiben **zusätzlich** und unverändert voll
 > verbindlich. Rote CI blockiert;

@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: "Fehlgeschlagenen nightly-Lauf nacherfassen (Run-ID)"
+        description: "Fehlgeschlagenen nightly-/pipeline-sync-Lauf nacherfassen (Run-ID)"
         required: true
         type: string
   workflow_run:
-    workflows: [nightly]
+    workflows: [nightly, pipeline-sync]
     types: [completed]
 
 permissions:
