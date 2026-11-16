@@ -14,6 +14,10 @@ export interface NormalizedEvent {
   payload: Record<string, unknown>;
   blobRef: string | null;
   tokensEst?: number;
+  /** ADR-0004: Kontingent-Schnappschuss des Providers — Fenster mit
+   * utilization/resetsAt, Grundlage der Limit-Wiederaufnahme (ADR-0076
+   * Nachtrag). */
+  usageQuota?: { windows: { id: string; utilization: number; resetsAt: string }[] };
 }
 
 export interface TailConnection {

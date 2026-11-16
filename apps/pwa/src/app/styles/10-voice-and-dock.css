@@ -237,6 +237,7 @@
 }
 
 .session-menu-items {
+  overflow-y: auto;
   position: absolute;
   right: 0;
   top: 100%;

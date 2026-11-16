@@ -1,5 +1,5 @@
 import type { AdapterResume, NormalizedEvent, Ack } from "@ancientvoid/contracts";
-import type { LiveSession } from "./session-state.ts";
+import { limitWindow, type LiveSession } from "./session-state.ts";
 
 interface Host {
   error(err: unknown): void;
@@ -7,6 +7,10 @@ interface Host {
   declaration(id: string): AdapterResume | undefined;
   emit(session: LiveSession, kind: string, payload: Record<string, unknown>): Promise<void>;
   resume(session: LiveSession): Promise<Ack>;
+  /** ADR-0076: global config — technical interruptions are only resumed
+   * automatically when the hub is configured for it. The per-session limit
+   * option (Nachtrag) never broadens this to other interrupt reasons. */
+  autoResumeInterrupted(): boolean;
 }
 
 /** ADR-0076: bounded recovery through the existing input queue, never recursive. */
@@ -43,6 +47,17 @@ export class SessionRecovery {
     if (this.closed) return;
     const interrupt = events.findLast(e => e.payload.kind === "session.interrupted");
     if (interrupt?.payload.autoResumeEligible !== true) return;
+    // ADR-0076 Nachtrag (Limit-Wiederaufnahme): Nur Limit-Unterbrechungen
+    // fallen unter die ausdrückliche Option der Session — alle anderen
+    // Gründe brauchen die globale Konfiguration.
+    const limit = interrupt.payload.limit === true;
+    if (!limit && !this.host.autoResumeInterrupted()) return;
+    const window = limitWindow(events);
+    if (window.blockedUntil !== undefined) return; // Fenster läuft — still warten, kein Versuch verbraucht
+    if (limit && !window.known) {
+      await this.host.emit(session, "session.recovery_blocked", { detail: "Der Provider nennt keine Freigabezeit für das Limit — Fenster selbst prüfen und dann weitermachen." });
+      return;
+    }
     const after = events.filter(e => e.seq > interrupt.seq);
     if (after.some(e => e.payload.kind === "session.recovery_blocked")) return;
     const declaration = this.host.declaration(session.record.adapter);

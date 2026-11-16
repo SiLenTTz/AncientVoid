@@ -6,6 +6,7 @@ import { type NormalizedEvent } from "../../shared/ws.ts";
 import { isOffloaded, visibleEventText, withBlobPayload } from "./event-text.ts";
 import { isEmptyThinking, toolIdOf } from "./event-filter.ts";
 import { Markdown } from "../../shared/Markdown.tsx";
+import { typedText } from "./typewriter-queue.ts";
 import { AttachmentChips, type AttachmentRef } from "../attachments/Attachments.tsx";
 
 export function toolAnchor(toolId: string, side: "use" | "result"): string {
@@ -57,6 +58,7 @@ function EventRowView({
   onToggleExpand,
   toolResult,
   onJump,
+  typeShown,
 }: {
   event: NormalizedEvent;
   expanded: boolean;
@@ -65,11 +67,14 @@ function EventRowView({
    * arrived yet (undefined -> still running). */
   toolResult: NormalizedEvent | undefined;
   onJump: (anchor: string) => void;
+  /** EPIC-P58 T58.2: Zeichenanzahl des Typwriters (nur Chat-Queue), null = voller Text. */
+  typeShown?: number | null;
 }) {
   const { event, state: fullText } = useFullEvent(rowEvent, useApi());
   const time = new Date(event.ts).toLocaleTimeString("de-DE");
   const blobNote = event.blobRef ? " ⛁" : "";
   const toolId = toolIdOf(event);
+  const visible = typedText(visibleEventText(event), typeShown);
 
   if (isEmptyThinking(event)) {
     // BUG-0046: the provider withheld the text — one quiet line, nothing to expand or copy.
@@ -97,7 +102,7 @@ function EventRowView({
           </span>
           <span>{time}</span>
         </div>
-        <div class="summary">{event.summary}</div>
+        <div class="summary">{typedText(event.summary, typeShown)}</div>
         <CopyButton text={copyText(event)} />
         {expanded && <EventDetail event={rowEvent} />}
       </div>
@@ -200,9 +205,9 @@ function EventRowView({
         <span>{time}</span>
       </div>
       {event.type === "assistant" ? (
-        <Markdown class="summary prose" text={visibleEventText(event)} />
+        <Markdown class="summary prose" text={visible} />
       ) : (
-        <div class="summary prose">{visibleEventText(event)}</div>
+        <div class="summary prose">{visible}</div>
       )}
       {fullText !== "ok" && (
         <div class={`dim full-text-note${fullText === "failed" ? " failed" : ""}`}>
@@ -258,5 +263,5 @@ function CopyButton({ text }: { text: string }) {
  * purpose: they are recreated each render but do the same for this row. */
 export const EventRow = memo(
   EventRowView,
-  (a, b) => a.event === b.event && a.expanded === b.expanded && a.toolResult === b.toolResult,
+  (a, b) => a.event === b.event && a.expanded === b.expanded && a.toolResult === b.toolResult && a.typeShown === b.typeShown,
 );

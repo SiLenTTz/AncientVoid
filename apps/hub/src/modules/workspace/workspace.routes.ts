@@ -12,7 +12,7 @@ export function registerWorkspaceRoutes(app: FastifyInstance, ctx: RouteContext)
     // Startup-time readability warnings are logged once in createHubApp();
     // this response carries them again so a client can surface them too.
     const { projects, warnings } = await discoverProjects(projectRoots);
-    // BUG-0163: „keine Projekte" ist zwei verschiedene Lagen — Wurzeln gar nicht
+    // BUG-0170: „keine Projekte" ist zwei verschiedene Lagen — Wurzeln gar nicht
     // gesetzt, oder Wurzeln gesetzt aber kein Git-Repo darin. Das Interface darf
     // daraus keine Sackgasse bauen.
     return { projects, warnings, rootsConfigured: projectRoots.length > 0, roots: projectRoots };

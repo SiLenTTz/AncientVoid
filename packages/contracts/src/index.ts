@@ -43,4 +43,6 @@ export * from "./graph/graph.ts";
 export * from "./git-graph/git-graph.ts";
 export * from "./vault/vault.ts";
 export * from "./automations/automation.ts";
-export * from "./orchestration/orchestration.ts";
+export * from "./team/team.ts";
+export * from "./aimetrics/aimetrics.ts";
+export * from "./statistics/statistics.ts";

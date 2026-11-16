@@ -21,13 +21,13 @@ import { buildSessionSummary } from "../reporting/index.ts";
 import { createConsoleLogger } from "../../platform/index.ts";
 import { dedupeDiscovered, filterDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
-import { notificationFor } from "../notifications/index.ts";
+import { notificationFor, projectName, type NotificationDraft } from "../notifications/index.ts";
 import { deriveTurnMetrics, TurnMetricStore } from "../runs/index.ts";
 import { buildHandoverPrompt, HANDOVER_PROMPT_MAX } from "../handover/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
 import { askTitleModel } from "./session-title.ts";
 import type { PlannerModelConfig } from "../commands/model.ts";
-import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS, foldActivities } from "./session-state.ts";
+import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS, foldActivities, limitFailureInEvents, limitWindow } from "./session-state.ts";
 import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 
@@ -109,8 +109,6 @@ export class SessionManager {
   private tools: ToolPermissions | undefined;
   /** T2.7: budget and daily cap. */
   private readonly budget: BudgetGuard;
-  /** ADR-0015: when the last provider.error per session was reported. */
-  private readonly lastProviderError = new Map<string, number>();
   /** Tail of the per-session steer chain (see steer()). */
   private readonly steerQueue = new Map<string, Promise<void>>();
   /** T17.4: input ids with a submission still running — its wait may have
@@ -192,6 +190,7 @@ export class SessionManager {
       declaration: (id) => this.registry.get(id)?.capabilities.resume,
       emit: (session, kind, payload) => this.emitSystem(session, kind, payload),
       resume: (session) => this.automaticResume(session),
+      autoResumeInterrupted: () => this.autoResumeInterrupted,
     });
     this.interruption = new SessionInterruption({
       replay: (id) => this.store.replay(id),
@@ -200,7 +199,9 @@ export class SessionManager {
       digest: (session) => this.dispatchDigest(session),
       stop: (session) => session.adapter.stop(session.handle!, this.makeContext(session)),
       autoResume: (session) => {
-        if (this.autoResumeInterrupted) this.recovery.schedule(session);
+        // ADR-0076 Nachtrag: die globale Konfiguration ODER die ausdrückliche
+        // Limit-Option dieser Session — attempt() grenzt die Gründe erneut ein.
+        if (this.autoResumeInterrupted || session.record.autoResumeOnLimit) this.recovery.schedule(session);
         return Promise.resolve({ ok: false });
       },
     });
@@ -273,7 +274,9 @@ export class SessionManager {
         if (["stopped", "stopping", "parked"].includes(session.record.status)) continue;
         await this.activityTracker.expire(session);
         if (session.record.status === "interrupted") {
-          if (this.autoResumeInterrupted) this.recovery.schedule(session);
+          // ADR-0076 Nachtrag: auch die Limit-Option einer Session hält die
+          // Wiederaufnahme-Prüfung am Laufen (Fenster läuft → still warten).
+          if (this.autoResumeInterrupted || session.record.autoResumeOnLimit) this.recovery.schedule(session);
           continue;
         }
         if (!session.handle) continue;
@@ -444,6 +447,32 @@ export class SessionManager {
     return record;
   }
 
+  /** ADR-0076 Nachtrag (Limit-Wiederaufnahme): ausdrückliche Nutzer-Option —
+   * diese Session nach einem Kontingent-/Rate-Limit-Fenster automatisch
+   * fortsetzen. Nur Menschen/Fleet (kein Agent hält sich so selbst am
+   * Laufen, ADR-0076: „Kein HTTP-Agent kann … automatisches Resume
+   * erzwingen"). Einschalten an einer fehlgeschlagenen Session überführt
+   * den Limit-Fehler in die sichtbare Wiederaufnahme-Wartestellung. */
+  async setAutoResumeOnLimit(sessionId: string, on: boolean, actor?: string): Promise<SessionRecord> {
+    if (actorKind(actor) !== "human" && actorKind(actor) !== "fleet") throw new Error("Nur Menschen dürfen die Limit-Wiederaufnahme schalten.");
+    const session = this.live.get(sessionId);
+    const record = session?.record ?? this.require(sessionId);
+    record.autoResumeOnLimit = on;
+    record.updatedAt = new Date().toISOString();
+    this.persist(record);
+    if (!on || !session || record.status !== "error") return record;
+    const events = await this.store.replay(sessionId);
+    if (!limitFailureInEvents(events)) return record;
+    await this.setStatus(session, "interrupted");
+    const blockedUntil = limitWindow(events).blockedUntil;
+    await this.emitSystem(session, "session.interrupted", {
+      kind: "session.interrupted", reason: "provider_limit", since: new Date().toISOString(),
+      lastTurnId: null, autoResumeEligible: true, limit: true, ...(blockedUntil !== undefined ? { resumesAt: blockedUntil } : {}),
+    });
+    this.recovery.schedule(session);
+    return this.live.get(sessionId)?.record ?? record;
+  }
+
   /**
    * EPIC-P14: archive a session and free its worktree when that loses nothing.
    * The flag is persisted first and never depends on the cleanup. The worktree
@@ -601,6 +630,7 @@ export class SessionManager {
       metrics: metricsState(emptyMetricCounters()),
       lastActivity: null,
       pinned: false,
+      autoResumeOnLimit: false,
       parkReason: null,
       controlMode: "managed",
       harness: "cli",
@@ -827,7 +857,7 @@ export class SessionManager {
     /** ADR-0077: alle Sessions, die hier schon schreiben (Primär-Lease + Mit-Nutzer). */
     holders: string[];
   }> {
-    // BUG-0161: der Zielordner darf erst beim Start entstehen. Die Vorschau ist
+    // BUG-0168: der Zielordner darf erst beim Start entstehen. Die Vorschau ist
     // read-only und startet nichts — also sagt sie ehrlich, was passieren würde,
     // statt einen ENOENT als „Projekt nicht lesbar" durchzureichen.
     if (!existsSync(project)) {
@@ -1129,6 +1159,7 @@ export class SessionManager {
       metrics: metricsState(emptyMetricCounters()),
       lastActivity: null,
       pinned: false,
+      autoResumeOnLimit: false,
       parkReason: null,
       controlMode: "mirror",
       harness: "cli",
@@ -1764,28 +1795,81 @@ export class SessionManager {
   }
 
   /** ADR-0015: cross-session notifications, persisted so every device and a
-   * restarted hub show the same list. */
+   * restarted hub show the same list. Nutzerfund 2026-11-15: Fehler werden
+   * zurückgehalten, bis der Lauf wirklich abbricht — und pro Lauf höchstens
+   * eine Fehler-Meldung gespeichert, bevorzugt mit den Worten des
+   * Provider-Fehlers. Ein Zug, der trotz Provider-Fehlers sauber endet,
+   * benachrichtigt gar nicht (der Fehler bleibt im Verlauf sichtbar). */
   private recordNotifications(session: LiveSession, events: readonly NormalizedEvent[]): void {
-    for (const event of events) {
-      const kind = (event.payload as { kind?: unknown }).kind;
-      if (kind === "provider.error") this.lastProviderError.set(session.record.id, Date.now());
-      // The interruption already notified the person; adapter.down is supporting evidence.
-      if (kind === "adapter.down" && session.record.status === "interrupted") continue;
-      const draft = notificationFor(event, {
-        adapter: session.record.adapter,
-        project: session.record.project,
-        recentProviderError: Date.now() - (this.lastProviderError.get(session.record.id) ?? 0) < 30_000 && kind !== "provider.error",
-      });
-      if (!draft) continue;
+    const ctx = { adapter: session.record.adapter, project: session.record.project };
+    const store = (draft: NotificationDraft, ts: string) => {
       const res = this.db
         .prepare("INSERT INTO notifications (session_id, level, title, detail, kind, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-        .run(session.record.id, draft.level, draft.title, draft.detail, draft.kind, event.ts);
+        .run(session.record.id, draft.level, draft.title, draft.detail, draft.kind, ts);
       // T8.3: push and other listeners — after it is stored, never blocking.
-      const stored: HubNotification = { id: Number(res.lastInsertRowid), sessionId: session.record.id, level: draft.level, title: draft.title, detail: draft.detail, kind: draft.kind, createdAt: event.ts };
+      const stored: HubNotification = { id: Number(res.lastInsertRowid), sessionId: session.record.id, level: draft.level, title: draft.title, detail: draft.detail, kind: draft.kind, createdAt: ts };
       for (const listener of this.notificationListeners) {
         void Promise.resolve()
           .then(() => listener(stored))
           .catch((err) => this.logger.warn("notification listener failed", { err: String(err) }));
+      }
+    };
+    /** Eine Abbruch-Ursache wird genau einmal gemeldet — mit den Worten des
+     * zurückgehaltenen Provider-Fehlers, falls es ihn gab. */
+    const notifyFailure = (generic: NotificationDraft | null, ts: string) => {
+      if (session.runFailureNotified) return;
+      store(session.pendingErrorDraft ?? generic ?? { level: "error", title: `${projectName(ctx.project)} · ${ctx.adapter} fehlgeschlagen`, detail: null, kind: "session.turn_failed" }, ts);
+      session.pendingErrorDraft = null;
+      session.runFailureNotified = true;
+    };
+    for (const event of events) {
+      const kind = (event.payload as { kind?: unknown }).kind;
+      if (kind === "session.prompt") {
+        // Neuer Lauf: Zurückhaltung und Abbruch-Marke gelten pro Lauf.
+        session.pendingErrorDraft = null;
+        session.runFailureNotified = false;
+      }
+      switch (kind) {
+        case "provider.error": {
+          // Nur zurückhalten — die Worte werden gebraucht, wenn der Lauf abbricht.
+          session.pendingErrorDraft = notificationFor(event, ctx) ?? null;
+          continue;
+        }
+        case "session.interrupted": {
+          // Schon gemeldet? Dann ist die Unterbrechung derselbe Abbruch.
+          if (session.runFailureNotified) continue;
+          notifyFailure(notificationFor(event, ctx), event.ts);
+          continue;
+        }
+        case "adapter.down": {
+          // Die Unterbrechung benennt die Ursache; adapter.down ist Beleg.
+          // (Ersetzt die frühere 30-s-Unterdrückung nach provider.error.)
+          if (session.record.status === "interrupted" || session.runFailureNotified) continue;
+          notifyFailure(notificationFor(event, ctx), event.ts);
+          continue;
+        }
+        case "session.turn_end": {
+          const reason = (event.payload as { reason?: unknown }).reason;
+          if (reason === "error") notifyFailure(notificationFor(event, ctx), event.ts);
+          else if (reason !== "interrupted") {
+            // Sauberes Zugende: ein überstandener Provider-Fehler ist keine
+            // Meldung mehr wert — „Zug fertig“ schon.
+            const draft = notificationFor(event, ctx);
+            if (draft) store(draft, event.ts);
+            session.pendingErrorDraft = null;
+            session.runFailureNotified = false;
+          }
+          // Nach einem Abbruch bleibt die Marke stehen: Folge-Meldungen
+          // desselben Abbruchs (Auto-Resume scheitert, Aufräumen) sind keine
+          // eigenen Meldungen. Der nächste Prompt beginnt einen neuen Lauf.
+          continue;
+        }
+        default: {
+          const draft = notificationFor(event, ctx);
+          if (!draft) continue;
+          if (draft.level === "error") notifyFailure(draft, event.ts);
+          else store(draft, event.ts);
+        }
       }
     }
   }
@@ -2341,7 +2425,7 @@ export class SessionManager {
       }
       if (record.status === "interrupted") {
         await this.interruption.repair(session);
-        if (this.autoResumeInterrupted) this.recovery.schedule(session);
+        if (this.autoResumeInterrupted || record.autoResumeOnLimit) this.recovery.schedule(session);
         return "recovered";
       }
       if (record.status === "error" && registered) {
@@ -2362,10 +2446,16 @@ export class SessionManager {
         return "recovered";
       }
 
-      // ADR-0074 (BUG-0155): Offene Aktivitäten laufen unabhängig vom Hub
-      // weiter (registrierte Jobs, Subagenten) — Recovery unterbricht sie
-      // nicht, die Session bleibt ehrlich `working`.
-      if (session.activities.size > 0) {
+      // ADR-0074 (BUG-0155): Externe Aktivitäten laufen unabhängig vom Hub
+      // weiter (registrierte Jobs mit eigenem Herzschlag) — Recovery unter-
+      // bricht sie nicht, die Session bleibt ehrlich `working`. Das gilt
+      // aber nur für Arbeit, die den Hub-Crash überleben kann: Provider-
+      // Aktivitäten sterben mit dem Worker, und ein nachweisbar offener Zug
+      // (main_turn_start ohne Ende) ist abgeschnitten, egal was außen
+      // weiterläuft — beides davon gehört zur Adoption/Unterbrechung unten,
+      // nicht dauerhaft `working` (BUG-0165).
+      const externalOnly = session.activities.size > 0 && [...session.activities.values()].every((work) => work.source === "external");
+      if (externalOnly && session.mainTurnIdle !== false) {
         await this.emitSystem(session, "session.recovered", {
           events: events.length,
           lastSeq,
@@ -2393,6 +2483,14 @@ export class SessionManager {
         }
         if ((record.status === "working" || record.status === "starting") && (session.adopted === false || !session.handle)) {
           await this.interruption.interrupt(session, "hub_restart");
+          // BUG-0165: Provider-Aktivitäten starben mit dem Worker — niemand
+          // meldet ihr Ende mehr. Ehrlich schließen, sonst blockiert der
+          // tote Eintrag nach jeder Wiederaufnahme das Laufende (closeIfLast
+          // sieht activities.size > 0). Externe Arbeit läuft weiter und
+          // blockiert die Wiederaufnahme bewusst (ADR-0076).
+          for (const entry of [...session.activities.values()]) {
+            if (entry.source !== "external") await this.endActivity(record.id, entry.id, 1);
+          }
         }
         if (session.handle) keepWorkers.push(record.id);
         if (!session.handle) {
@@ -2853,11 +2951,20 @@ export class SessionManager {
    * arbeitenden Session ohne Zug-Prozesse schließt den Lauf (idle + turn_end). */
   async endActivity(sessionId: string, id: string, code = 0): Promise<boolean> {
     const session = this.live.get(sessionId);
-    if (!session || !session.activities.delete(id)) return false;
+    const entry = session?.activities.get(id);
+    if (!session || !entry || !session.activities.delete(id)) return false;
     await this.emitSystem(session, "session.activity_end", { id, code });
+    // Nutzerfund 2026-11-15: Während des Hauptzugs ist ein leeres Provider-
+    // Register eine Werkzeug-Lücke, kein Laufende (SessionActivities.closeIfLast).
+    if (session.mainTurnIdle === false && entry.source === "provider") return true;
     if (session.activities.size === 0 && (session.activeWorkers ?? 0) === 0 && session.record.status === "working") {
-      await this.setStatus(session, "idle");
-      await this.emitSystem(session, "session.turn_end", { code });
+      if (code !== 0) {
+        await this.emitSystem(session, "session.turn_end", { code, reason: "error", detail: entry.label });
+        await this.setStatus(session, "error");
+      } else {
+        await this.setStatus(session, "idle");
+        await this.emitSystem(session, "session.turn_end", { code });
+      }
     }
     return true;
   }
@@ -2973,6 +3080,13 @@ export class SessionManager {
   private async drainSlot(sessionId: string): Promise<void> {
     const session = this.live.get(sessionId);
     if (!session || session.record.status !== "idle") return;
+    // BUG-0163: Auf langsamen Maschinen kann der Working-Flip eines eben
+    // abgeschlossenen Steers noch in einem parallelen Microtask nachlaufen
+    // (sein Adapter-Callback feuert turn("working") knapp vor resolve).
+    // Ein Macrotask-Yield + Re-Check schließt das Fenster, bevor etwas
+    // Gesendetes in einen längst begonnenen Zug läuft (Occupant-Pinning).
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    if (session.record.status !== "idle") return;
     const item = this.queue.list(sessionId)[0];
     if (!item) return;
     if (this.uncertainQueue.has(item.id)) {

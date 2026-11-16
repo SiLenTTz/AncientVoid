@@ -62,3 +62,36 @@ Crash-/Heartbeat-Recovery, generationstreue Activity-Enden, K7-Replay,
 Wiederanlauflimit sowie sichtbare Abbruch-/Übergabeaktionen abdecken.
 Jeder neue UI-/HTTP-Ablauf erhält E2E-Abdeckung. Die bisherigen Adapter
 bleiben ohne SDK-Nutzung lauffähig; Capability-Opt-ins brauchen Adaptertests.
+
+## Nachtrag 2026-11-16 — Limit-Wiederaufnahme als ausdrückliche Nutzer-Option
+
+Nutzerfund 15.11.2026 (Presentation-Session, Claude „You've hit your session
+limit"): Kontingent-/Rate-Limit-Endlagen bleiben zwar sichtbar und manuell —
+aber der Mensch kann jetzt pro Session ausdrücklich verlangen, dass der Hub
+nach dem Limit-Fenster automatisch weitermacht.
+
+- `SessionRecord.autoResumeOnLimit` (DB-Migration 33, Default aus). Nur
+  Menschen/Fleet dürfen sie schalten (`setAutoResumeOnLimit`); kein Agent
+  hält sich so selbst am Laufen — gleiche Grenze wie bei der Resume-Route.
+- Starb der Zug ausschließlich am Kontingent/Rate-Limit (quota/rate_limit,
+  cursor.usage_limit), wird mit Option aus `error` die sichtbare
+  Wartestellung `interrupted` (reason `provider_limit`, Payload `limit`,
+  `resumesAt`), nicht eine Endlage. Gemischte/andere Fehler bleiben `error`.
+  Gleiches gilt nachträglich über die Option an einer error-Session
+  (Übergang error → interrupted, sonst nirgends automatisch).
+- Das Freigabefenster liest der Hub aus dem Journal (ADR-0004 `usageQuota`,
+  früheste zukünftige `resetsAt` der ausgelasteten Fenster). Läuft das
+  Fenster, wartet die Wiederaufnahme still — kein Attempt verbraucht, der
+  Heartbeat (30 s) prüft erneut. Ohne Fensterangabe: eine sichtbare
+  Klärung (recovery_blocked), nie blindes Rätschlagen.
+- Die Option erweitert nie die generische technische Auto-Wiederaufnahme:
+  Nur `session.interrupted`-Events mit `limit: true` fallen unter sie; alle
+  anderen Gründe brauchen weiterhin die globale Konfiguration. Drei-Atem-
+  Grenze und native-Resume-Pflicht gelten unverändert.
+- Contracts-Folgen: `SessionInterruptionReason` + `provider_limit`,
+  `SessionInterruptionPayload` + `limit`/`resumesAt`, `UsageWindow.utilization`
+  ohne Obergrenze (Provider melden real >1.0, z. B. 1.03 — eine Kappe
+  ließ die Events bei jedem Replay still verschwinden).
+- Nachweise: `packages/core/test/modules/sessions/limit-auto-resume.test.ts`,
+  `e2e/specs/limit-auto-resume.spec.ts`, PWA-Banner (Fehler wie Wartestellung
+  zeigen Option, Zustand und Freigabezeit).

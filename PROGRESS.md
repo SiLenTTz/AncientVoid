@@ -8,26 +8,26 @@ Windows funktionieren. Repro, Bug-Dokumente, Fixes auf diesem Zweig.
 
 ## Erledigt (verifiziert)
 
-- **BUG-0165** `195eec2a` — `pathWithin(pathStyle)` in
+- **BUG-0172** `195eec2a` — `pathWithin(pathStyle)` in
   `packages/core/src/platform/paths.ts`; `outsideRoots()` vergleicht
   Windows-/POSIX-Pfade richtig. `paths.test.ts` 5 grün; altes Verhalten war
   nachgerechnet `true` für `E:\Coding\projekt` unter `E:\Coding`.
-- **BUG-0161** `1fcf8a45` + `e21ba1f3` — `ensureProjectDir` legt die fehlende
+- **BUG-0168** `1fcf8a45` + `e21ba1f3` — `ensureProjectDir` legt die fehlende
   Blatt-Ebene an (eine Ebene, kein Baum; `/coding` wird abgewiesen, weil es auf
   Windows laufwerksrelativ nach `E:\coding` ginge), `workplacePreview` meldet den
   fehlenden Ordner ehrlich. Live: `POST /api/sessions` → 201, Ordner auf der
   Festplatte; UI-Flow in `gitrepo\unterordner` → Session `ad23bb4c` + Ordner.
-- **BUG-0162** `525e9660` — Discovery listet Ordner ohne `.git` (`isGit`),
+- **BUG-0169** `525e9660` — Discovery listet Ordner ohne `.git` (`isGit`),
   Git-Repos zuerst, Cap 200 mit Warnung. Live: Dropdown zeigte `plain-ordner`,
   Session `19bf1be1` direkt darin.
-- **BUG-0163** `e21ba1f3` — `/api/projects` liefert `rootsConfigured`/`roots`;
+- **BUG-0170** `e21ba1f3` — `/api/projects` liefert `rootsConfigured`/`roots`;
   gemerkter Pfad wird immer vorgelegt, „+ Anlegen“ hängt an den Wurzeln,
   Hinweis trennt „Wurzeln fehlen“ von „Wurzeln ohne Repos“, Discovery-Warnungen
   sichtbar. Live: gemerkter `<root>\gitrepo\unterordner` nach Reload vorgelegt,
   obwohl nicht in der Discovery.
-- **BUG-0164** `61b0198e` + [ADR-0077](docs/adr/0077-paralleles-schreiben-in-ordnern-ohne-git.md) —
+- **BUG-0171** `61b0198e` + [ADR-0081](docs/adr/0081-paralleles-schreiben-in-ordnern-ohne-git.md) —
   Git bleibt Allein-Schreiber; Ordner ohne `.git` bekommen nach
-  `confirmSharedFolder` eine Mit-Nutzerschaft (`checkout_tenants`, Migration 33),
+  `confirmSharedFolder` eine Mit-Nutzerschaft (`checkout_tenants`, Migration 34),
   `holders[]` in der Vorschau, Resume/`stop`/`archive` behandelt sie korrekt.
   `workplace-mode.test.ts` 13 grün (3 neue Fälle). Live: zwei direkte Sessions
   (5bb46b05, 6cb0b175) in `plain-ordner`, Warnung + Haken im Screenshot,
@@ -78,19 +78,19 @@ Nichts angefangen, das nicht committet wäre. Offen: Push und MR (siehe unten).
   (`https://gitlab.com/SiLenT_Tz/AncientVoid.git`), `glab` angemeldet als
   `kaifelixbennett` (OS-Keyring). Fetch: **104 neue Commits auf `main`**
   (`3aef99e5` → `95c1c1ea`), dieser Zweig 15 voraus, 104 zurück.
-- **Kollisionen durch Parallelarbeit auf `main`** (dieselben Nummern, anderer
-  Inhalt): `bugs/bug-0161…0165` (upstream: Tool-Aktivität, Exit-Regex, CI rot,
-  Offline-Diff, Restart-Working), `docs/adr/0077-run-nach-team-umbenennung.md`
-  (unsere 0077 = „paralelles Schreiben…“), `db.ts` mit `id: 33
-  session-auto-resume-on-limit` (unsere 33 = `checkout-tenants`).
-  Auflösung beim Merge: unsere 0161→0168, 0162→0169, 0163→0170, 0164→0171,
-  0165→0172 (unsere 0166/0167 sind frei und bleiben), ADR 0077→0081,
-  Migration 33→34. Gemerged wird `origin/main` **in den Feature-Zweig** —
-  kein lokales Merge nach `main`.
+- **Kollisionen durch Parallelarbeit auf `main` — aufgelöst:** Upstream belegte
+  dieselben Nummern für anderes: `bugs/bug-0161…0165` (Tool-Aktivität,
+  Exit-Regex, CI rot, Offline-Diff, Restart-Working), `docs/adr/0077-
+  run-nach-team-umbenennung.md`, `db.ts` `id: 33 session-auto-resume-on-limit`.
+  Unsere Kette heißt jetzt **BUG-0168–0172** (0166/0167 waren frei und bleiben
+  uns), unser ADR ist **0081**, unsere Migration ist **34**. Nachgezogen in Code-
+  Kommentaren, Tests, E2E-Spec, Bug-Dokumenten und Verweisen — die Upstream-
+  Nummern blieben unangetastet (sie stehen in anderen Dateien). Gemerged wurde
+  `origin/main` **in den Feature-Zweig** — kein lokales Merge nach `main`.
 - Der Produktiv-Hub auf `127.0.0.1:7373` läuft weiter im alten Code; die Fixes
   wirken erst nach einem Neustart (unterbricht laufende Sessions). Danach kann
   `projectRoots` in `hub.config.json` wieder befüllt werden (Workaround
-  „leer lassen“ ist dank BUG-0165 nicht mehr nötig), und `hub.db` braucht die
+  „leer lassen“ ist dank BUG-0172 nicht mehr nötig), und `hub.db` braucht die
   Migration 33 (beim Start automatisch).
 
 ## Nächste Schritte

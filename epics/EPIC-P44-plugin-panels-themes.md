@@ -2,7 +2,7 @@
 
 **Status:** Planungsentwurf · **Umsetzung:** gesperrt · **Phase:** P44
 **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
-**Abhängigkeit:** P43.5 mit nachweislich grünen Exit-Kriterien (seit 10.11.2026; Tokens/Slots liefert P43, Presets P43.5); wirksame Vorgänger-Abnahmen bleiben bindend.
+**Abhängigkeit:** P43.5-Code abgeschlossen und lokal abgenommen (14.11.2026, MR !470; Tokens/Slots liefert P43, Presets P43.5). [Abnahme und CI-Nachtrag](../docs/2026-11-14_p43.5-abnahme.md) beachten; BUG-0163 bleibt offen. Wirksame Vorgänger-Abnahmen bleiben bindend, dies erteilt keinen P44-Startauftrag.
 
 Quelle: [Orca-Vergleich](../docs/2026-11-08_orca-vs-ancientvoid.md) und [Planungsgrundlage mit Übernahmeregister](../docs/2026-11-08_orca-epic-planung.md).
 **Planungsauftrag 08.11.2026:** Nutzer beauftragt diese Epics ausdrücklich vor Abschluss der Vorgänger. Das erlaubt Planung, keine Implementierung und keine Aufhebung des Epic-Gatings. Vor T44.1 aktuellen Code-/Test-/Abnahmestand prüfen; historische Überschriften reichen nicht.

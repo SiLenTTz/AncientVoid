@@ -46,14 +46,10 @@
 .toast-stack {
   display: grid;
   gap: 6px;
-  /* Room on the right for bell AND gear (8 + 36 + 8 + 36 + 8 px), else the ✕ lies on a round button. */
-  margin: calc(env(safe-area-inset-top) + 8px) calc(96px + env(safe-area-inset-right)) 6px 0;
-}
-/* The phone's session header has no gear (see above): only the bell to clear. */
-@media (max-width: 639px) {
-  body:has(.session-topbar) .toast-stack {
-    margin-right: calc(56px + env(safe-area-inset-right));
-  }
+  /* Room on the right for the bell only (8 + 36 + 8 + 8 px), else the ✕ lies
+   * on the round button. The historic 96 px reserve included a gear button
+   * that no longer exists (EPIC-P51 T51.4). */
+  margin: calc(env(safe-area-inset-top) + 8px) calc(56px + env(safe-area-inset-right)) 6px 0;
 }
 
 .toast-stack:empty {
@@ -137,6 +133,16 @@
   align-items: center;
   padding: 4px;
 }
+/* Nutzerfund 2026-11-15: Fehler und offene Fragen angepinnt oben — jeder
+ * Abschnitt nutzt die Überschrift der Übersicht (.section-title). */
+.notif-section {
+  display: grid;
+  gap: 6px;
+}
+.notif-section .section-title {
+  min-height: 0;
+  margin-top: 4px;
+}
 .notif-item {
   display: grid;
   gap: 2px;
@@ -174,23 +180,17 @@
   pointer-events: auto;
 }
 
-/* T8.5: on desktop the bell and its messages belong to the list column,
- * not over the session header. */
-.split-list .notif-bell {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-}
-
-.split-list .toast-stack {
-  margin-top: 8px;
-}
-
-
+/* EPIC-P51 T51.4: die Spalten-Absolute-Positionierung der Glocke (T8.5) ist
+ * entfallen — am PC läuft der NotificationCenter immer mit .corner im
+ * Fenstereck, Panel und Toast-Vorhalte folgen derselben Ankerformel. */
 
 /* List folded away: the bell moves to the window corner (EPIC-P18 + P20). */
 .notif-bell.corner {
   right: 8px;
+}
+/* EPIC-P51 T51.4: das Panel folgt der Eck-Glocke statt der 680-px-Zentrierung. */
+.notif-panel.corner {
+  right: max(8px, env(safe-area-inset-right));
 }
 .split.list-collapsed .tile-bar {
   padding-right: 48px;

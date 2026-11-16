@@ -1,3 +1,4 @@
+import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, remoteHost, type MediaInfo, type MediaJob, type MediaResult, type SessionRecord } from "../../shared/api.ts";
 import { formatTimestamp, handOver, MEDIA_STEP_LABELS, MEDIA_STEPS, timestampLink } from "../../shared/media.ts";
@@ -17,6 +18,8 @@ function StepList({ job }: { job: MediaJob }) {
     <ol class="media-steps">
       {MEDIA_STEPS.map((s) => {
         const st = job.steps[s];
+        // Jobs aus Zeiten vor einem Step kennen diesen nicht — die Karte bleibt nutzbar.
+        if (!st) return null;
         return (
           <li key={s} class={`media-step ${st.status}`} title={st.detail ?? undefined}>
             <span class="media-step-icon">{STEP_ICON[st.status]}</span> {MEDIA_STEP_LABELS[s]}
@@ -44,11 +47,25 @@ function Frame({ jobId, file, alt }: { jobId: string; file: string; alt: string 
       if (url) URL.revokeObjectURL(url);
     };
   }, [jobId, file]);
-  return src ? <img class="media-frame-img" src={src} alt={alt} loading="lazy" /> : <div class="media-frame-img placeholder">Bild lädt…</div>;
+  return src ? <img class="media-frame-img" src={src} alt={alt} loading="lazy" /> : <span class="media-frame-img placeholder">Bild lädt…</span>;
 }
 
 function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaResult; sessions: SessionRecord[] }) {
   const [focus, setFocus] = useState<number | null>(null);
+  const [focusFrameIndex, setFocusFrameIndex] = useState<number | null>(null);
+  // Esc gehört dem Vollbild allein: der Capture-Listener läuft vor der
+  // Shortcut-Registry, preventDefault hält tool.close auf (wie AccentPicker).
+  useEffect(() => {
+    if (focusFrameIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      setFocusFrameIndex(null);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [focusFrameIndex]);
   const [target, setTarget] = useState("new");
   const transcript = useRef<HTMLDivElement>(null);
   const jump = (ms: number) => {
@@ -77,6 +94,7 @@ function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaRes
   // Ein Bindestrich im Hostnamen (CI-Runner) ist kein fremder Host. Fremd ist,
   // was nicht dieser Hub ist — dieselbe Regel wie remoteHost().
   const local = sessions.filter((s) => remoteHost(s.hostId) === null);
+  const focusFrame = focusFrameIndex !== null ? (result.frames[focusFrameIndex] ?? null) : null;
   return (
     <div class="media-result">
       <div class="media-use card">
@@ -127,9 +145,11 @@ function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaRes
         <section>
           <h3>Schlüsselbilder ({result.frames.length})</h3>
           <div class="media-frames">
-            {result.frames.map((f) => (
+            {result.frames.map((f, i) => (
               <figure key={f.file} class="media-frame">
-                <Frame jobId={job.id} file={f.file} alt={`Bild bei ${formatTimestamp(f.atMs)}`} />
+                <button type="button" class="media-frame-open" aria-label={`Bild bei ${formatTimestamp(f.atMs)} Vollbild öffnen`} onClick={() => setFocusFrameIndex(i)}>
+                  <Frame jobId={job.id} file={f.file} alt={`Bild bei ${formatTimestamp(f.atMs)}`} />
+                </button>
                 <figcaption>
                   <Stamp ms={f.atMs} />
                   {f.description && <div class="media-desc">Beschreibung ({f.via ?? "Modell"}, kann irren): {f.description}</div>}
@@ -160,6 +180,20 @@ function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaRes
           ))}
         </div>
       </section>
+    {focusFrame &&
+      // Ins <body>, wie der Datei-Betrachter: das Overlay liegt über allen Flächebenen.
+      createPortal(
+        <div class="media-lightbox" data-testid="media-lightbox" onClick={() => setFocusFrameIndex(null)}>
+          <figure onClick={(e) => e.stopPropagation()}>
+            <Frame jobId={job.id} file={focusFrame.file} alt={`Bild bei ${formatTimestamp(focusFrame.atMs)}`} />
+            <figcaption>Bild bei {formatTimestamp(focusFrame.atMs)}</figcaption>
+            <button class="btn" type="button" onClick={() => setFocusFrameIndex(null)}>
+              Schließen
+            </button>
+          </figure>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
@@ -174,6 +208,7 @@ export function MediaPage({ sessions }: { sessions: SessionRecord[] }) {
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<string | null>(() => sessionStorage.getItem(SELECTED));
   const [result, setResult] = useState<MediaResult | null>(null);
+  const [resultError, setResultError] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -199,10 +234,22 @@ export function MediaPage({ sessions }: { sessions: SessionRecord[] }) {
   useEffect(() => {
     if (selected) sessionStorage.setItem(SELECTED, selected);
     setResult(null);
+    setResultError("");
   }, [selected]);
+  // Ein fehlgeschlagener Result-Fetch darf die Zusammenfassung des letzten
+  // Steps nicht dauerhaft verschlucken: das 2-s-Poll liefert jedes Mal eine
+  // frische current-Identität und retryt, bis das Resultat für den Job steht.
   useEffect(() => {
-    if (current?.status === "done" && (!result || result.jobId !== current.id)) void hubApi.mediaResult(current.id).then(setResult).catch(() => setResult(null));
-  }, [current?.id, current?.status]);
+    if (!current || current.status !== "done") return;
+    if (result?.jobId === current.id) return;
+    void hubApi
+      .mediaResult(current.id)
+      .then((r) => {
+        setResult(r);
+        setResultError("");
+      })
+      .catch((err: unknown) => setResultError(err instanceof Error ? err.message : "Zusammenfassung nicht verfügbar"));
+  }, [current, result]);
 
   const started = (job: MediaJob) => {
     setJobs((j) => [job, ...j.filter((x) => x.id !== job.id)]);
@@ -312,6 +359,11 @@ export function MediaPage({ sessions }: { sessions: SessionRecord[] }) {
                       </button>
                     )}
                   </div>
+                  {j.status === "done" && result?.jobId !== j.id && resultError && (
+                    <div class="reply-error" role="alert">
+                      Zusammenfassung nicht ladbar: {resultError}
+                    </div>
+                  )}
                   {j.status === "done" && result?.jobId === j.id && <ResultView job={j} result={result} sessions={sessions} />}
                 </>
               )}

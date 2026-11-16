@@ -483,10 +483,18 @@ export const MIGRATIONS: Migration[] = [
   },
   {
     id: 33,
+    name: "session-auto-resume-on-limit",
+    // ADR-0076 Nachtrag (Limit-Wiederaufnahme): ausdrückliche Nutzer-Option
+    // je Session — nach einem Kontingent-/Rate-Limit automatisch fortsetzen.
+    sql: `ALTER TABLE sessions ADD COLUMN auto_resume_on_limit INTEGER NOT NULL DEFAULT 0;`,
+  },
+  {
+    id: 34,
     name: "checkout-tenants",
-    // ADR-0077: Mit-Nutzer eines Nicht-Git-Ordners. Die exklusive Lease bleibt
+    // ADR-0081: Mit-Nutzer eines Nicht-Git-Ordners. Die exklusive Lease bleibt
     // unangetastet (Allein-Schreiber für Git-Checkouts); wer zusätzlich in einem
     // Ordner schreibt, steht hier — damit Restart und UI es wissen (K7).
+    // Nummer 34 statt 33: 33 war schon auf main vergeben (session-auto-resume).
     sql: `
       CREATE TABLE IF NOT EXISTS checkout_tenants (
         checkout_id TEXT NOT NULL,

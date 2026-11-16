@@ -7,6 +7,11 @@ AncientVoid: local-first Hub, um Coding-Agenten vom Handy zu
 **lesen, bevor Features gebaut werden.** Epic-Gating: P(n) startet erst,
 wenn die Exit-Kriterien von P(n-1) grün sind.
 
+**On hold (Nutzerentscheid 15.11.2026):** P30 und P31 bleiben ausdrücklich
+zurückgestellt. Nicht als nächste Aufgabe empfehlen oder automatisch starten;
+Wiederaufnahme nur auf ausdrücklichen Nutzerauftrag. Abhängigkeiten bleiben
+bestehen, auch wenn andere Epics oder Vorgänger inzwischen grün sind.
+
 ## Architektur-Regeln (nicht verhandelbar)
 
 1. **Contracts first.** Alles, was Komponenten teilen, liegt in
@@ -38,13 +43,17 @@ wenn die Exit-Kriterien von P(n-1) grün sind.
 
 ## Kommandos
 
-> **GitLab-Shared-Runner-Kontingent ist begrenzt** (Free-Abo: 400
-> Compute-Minuten/Monat). Pipelines laufen deshalb auf dem eigenen
-> Projekt-Runner `av-docker` (ADR-0049, Betrieb siehe `docs/ci-runbook.md`)
-> und sind davon unabhängig. Fällt der Runner aus, bleibt die Pipeline
-> sichtbar `pending` — Qualität zählt weiterhin über die **lokalen** Gates
-> unten; eine rote oder nie gestartete Pipeline ist kein Merge-Blocker,
-> sondern wird nach dem Runbook nachgezogen. Niemals als Pass zählen.
+> **CI-Geltung (Nutzerentscheid 15.11.2026):** Auf `gitlab.com` (Free)
+> ist die Pipeline kein Merge-/Epic-Gate. Verbindlich sind die lokalen Gates
+> unten. CI wird erst zusätzlich verbindlich, wenn das aktive Git-Remote und
+> die Projekt-API tatsächlich auf einen lokal betriebenen GitLab-Server zeigen.
+> Ein eigener Runner (`av-docker`) an `gitlab.com` ist kein lokaler GitLab-Server.
+> Cloud-CI mit `failed`/`pending`/`skipped` ist kein Abschlussmangel und verlangt
+> weder Warnschleifen noch Warten, Retry oder Nachziehen allein wegen des Status.
+> Bei Freigaben: „CI nicht anwendbar (gitlab.com)“, niemals als Pass ausgeben.
+> Echte lokale Testfehler bleiben blockierend. Diese Geltung hat Vorrang vor
+> älteren unbedingten Pipeline-Pflichten in Epics/Skills/Dokumenten.
+> Details und lokale GitLab-Betriebsregeln: `docs/ci-runbook.md`.
 
 ```bash
 npm test                 # vitest Tier A: schneller Loop (parallel; ohne die langsamen Dateien)

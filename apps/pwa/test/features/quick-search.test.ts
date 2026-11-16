@@ -35,6 +35,11 @@ describe("quickMatches (EPIC-P43 T43.6)", () => {
     expect(quickMatches("sess", src).filter((m) => m.kind === "werkzeug").map((m) => m.label)).toEqual(["Neue Session"]);
   });
 
+  it("„Entdeckt“ bleibt im Befehlsfeld und springt auf den Übersichtszustand (EPIC-P47 §3.4)", () => {
+    const hit = quickMatches("entdeckt", src).find((m) => m.kind === "werkzeug");
+    expect(hit).toMatchObject({ label: "Entdeckt", target: { kind: "werkzeug", page: "dashboard", hash: "#/gefunden" } });
+  });
+
   it("Befehle tragen ihren Text ohne Platzhalter ein", () => {
     const cmd = quickMatches("antworte", src).find((m) => m.kind === "befehl");
     expect(cmd?.target).toEqual({ kind: "befehl", text: "Antworte dort: " });
@@ -44,4 +49,10 @@ describe("quickMatches (EPIC-P43 T43.6)", () => {
     expect(quickMatches("a", src).some((m) => m.kind === "datei")).toBe(false);
     expect(quickMatches("alpha", { ...src, here: null }).some((m) => m.kind === "datei")).toBe(false);
   });
+});
+
+it("P43.5 sources and factual status notes are separate jump targets", () => {
+  const matches = quickMatches("Prüfung", { ...src, sourceRefs: [{ label: "Prüfung README.md", excerpt: "Befund", hash: "/sessions/s1/datei/README.md" }], notes: [{ sessionId: "s1", hostId: null, text: "Prüfung erfolgreich" }] });
+  expect(matches[0]?.target).toEqual({ kind: "quelle", hash: "/sessions/s1/datei/README.md" });
+  expect(matches[1]?.target).toEqual({ kind: "statusnotiz", sessionId: "s1", hostId: null });
 });

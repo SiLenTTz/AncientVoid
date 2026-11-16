@@ -3,12 +3,12 @@ import { outsideRoots } from "../../src/modules/discovery/text.ts";
 import { pathWithin } from "../../src/platform/paths.ts";
 
 /**
- * BUG-0165: der Wurzelvergleich verglich mit `${root}/` und warf damit auf
+ * BUG-0172: der Wurzelvergleich verglich mit `${root}/` und warf damit auf
  * Windows jeden Pfad unterhalb einer Wurzel raus — der Nutzer ließ
  * `projectRoots` deshalb leer (und verlor die Allowlist). Getrennt nach
  * Pfadstil prüfbar, damit CI auf Linux den Windows-Zweig mitkriegt.
  */
-describe("pathWithin (BUG-0165)", () => {
+describe("pathWithin (BUG-0172)", () => {
   it("schiebt Windows-Trennzeichen und Groß-/Kleinschreibung auf win32 korrekt", () => {
     expect(pathWithin("E:\\Coding\\projekt", "E:\\Coding", "win32")).toBe(true);
     expect(pathWithin("E:/Coding/projekt", "E:\\Coding", "win32")).toBe(true);
@@ -28,7 +28,7 @@ describe("pathWithin (BUG-0165)", () => {
   });
 });
 
-describe("outsideRoots (BUG-0165)", () => {
+describe("outsideRoots (BUG-0172)", () => {
   it("lässt Windows-Pfade unterhalb einer Wurzel durch (win32)", () => {
     expect(outsideRoots("E:\\Coding\\projekt", ["E:\\Coding"], "win32")).toBe(false);
     expect(outsideRoots("C:\\Users\\KaiFe\\Documents\\hardwareauswahl", ["C:\\Users\\KaiFe\\Documents"], "win32")).toBe(false);

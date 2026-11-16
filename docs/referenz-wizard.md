@@ -13,6 +13,8 @@
                     dsh|openai (openai fragt baseUrl/model, bzw.
                     --base-url/--model)
 --device-label=<n>   Name fürs Device-Token (Default: hostname)
+--projects=<dir>     projectRoots: Ordner, dessen Unterordner Git-Repos
+                    sind (Tiefe 1; BUG-0153). Leer = Wizard fragt.
 --port=<n>           Port des Hubs (Default aus Config-Beispiel: 7373;
                     nützlich, wenn dort schon ein Hub läuft)
 --voidwarden         zusätzlich agent:- und display:-Token für

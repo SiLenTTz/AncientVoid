@@ -51,7 +51,7 @@ export const REFRESH_MAP = [
 ];
 
 const SCRIPT_EXTS = [".mjs", ".ts", ".sh"];
-const SKIP_DIRS = new Set([".git", "node_modules", "data", "dist", "dev-dist", "test-results", "playwright-report"]);
+const SKIP_DIRS = new Set([".git", "node_modules", "data", "dist", "dev-dist", "test-results", "playwright-report", "worktrees"]);
 
 // ——— Helfer ———
 

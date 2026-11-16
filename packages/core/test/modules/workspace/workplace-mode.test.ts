@@ -134,7 +134,7 @@ describe("EPIC-P38: Arbeitsort", () => {
     expect((await manager.workplaceStatus(rec.id))?.drift).toMatchObject({ headMoved: true, branchChanged: true, branch: "andere" });
   });
 
-  it("BUG-0164 (ADR-0077): zweiter Schreiber im Nicht-Git-Ordner braucht Bestätigung, sonst bleibt er allein", async () => {
+  it("BUG-0171 (ADR-0081): zweiter Schreiber im Nicht-Git-Ordner braucht Bestätigung, sonst bleibt er allein", async () => {
     const { out, manager, db } = await fixture();
     const ordner = join(out, "ohne-git-ordner");
     await mkdir(ordner);
@@ -152,14 +152,14 @@ describe("EPIC-P38: Arbeitsort", () => {
     expect([...(vorschau.holders ?? [])].sort()).toEqual([erste.id, zweite.id].sort());
   });
 
-  it("BUG-0164: Git-Projekte bleiben Allein-Schreiber — die Bestätigung greift dort nicht", async () => {
+  it("BUG-0171: Git-Projekte bleiben Allein-Schreiber — die Bestätigung greift dort nicht", async () => {
     const { repo, manager } = await fixture();
     await manager.create({ adapter: "p38", project: repo, workspaceMode: "direct" });
     await expect(manager.create({ adapter: "p38", project: repo, workspaceMode: "direct", confirmSharedFolder: true }))
       .rejects.toThrow(/eigenen Worktree/);
   });
 
-  it("BUG-0164: Stop einer Mit-Nutzung endet mit ihr (Zeile weg, Vorschau frei)", async () => {
+  it("BUG-0171: Stop einer Mit-Nutzung endet mit ihr (Zeile weg, Vorschau frei)", async () => {
     const { out, manager, db } = await fixture();
     const ordner = join(out, "mitnutzer-ordner");
     await mkdir(ordner);

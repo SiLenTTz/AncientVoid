@@ -89,6 +89,8 @@ html:has(.app-page > .dashboard) body {
  * docs/zoom-robuste-flaechen.md. */
 html:has(#app > .session-live),
 html:has(#app > .session-live) body {
+  /* P43.5: kurze Verläufe dürfen das Aktionsmenü nicht am body-Rand abschneiden. */
+  min-height: calc(100dvh / var(--ui-zoom, 1));
   overflow: hidden;
 }
 
@@ -208,6 +210,21 @@ a {
   max-width: none;
   /* The split fills the window by itself (100dvh); the phone's bottom padding made the page scroll by 24 px. */
   padding-bottom: 0;
+  /* EPIC-P51 T51.4: the bell moved to the window corner, its toasts sit in
+   * the flow above the split. Fixed flex height lets them push the split
+   * together instead of scrolling the window (P50: html/body never scroll). */
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh / var(--ui-zoom, 1));
+  box-sizing: border-box;
+}
+
+/* EPIC-P51 T51.4: schrumpft, wenn Toasts/RestoreBar darüber Platz brauchen
+ * (P50: Fenster scrollt nie) — wächst aber nie über die Höhenformeln hinaus
+ * (02-layout Basis, 21-icon-rail Desktop-28px) hinaus. */
+#app:has(.split) .split {
+  flex: 0 1 auto;
+  min-height: 0;
 }
 
 /* BUG-0099: dasselbe für die Dashboard-Shell — das untere Padding übernimmt

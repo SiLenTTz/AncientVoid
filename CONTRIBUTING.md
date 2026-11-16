@@ -75,7 +75,11 @@ sich bewegen.
   bricht den Push bei Fehlern ab; Branch-Löschungen sind ausgenommen. Tests/E2E
   bleiben beim Gate (`npm run gate`, Skill `gates`).
 - Ein Thema pro PR; Contract-Änderungen getrennt von Implementierungen.
-- CI (GitLab) führt `test`, `lint`, `typecheck` aus — grün vor Merge.
+- Lokale Tests, Lint, Typecheck und die umfangsabhängigen Gates sind vor Merge
+  verbindlich. GitLab-CI ist nur bei einem tatsächlich lokal betriebenen
+  GitLab-Server zusätzlich Pflicht. Auf `gitlab.com` (Free) ist sie kein
+  Merge-/Epic-Gate, auch mit eigenem Runner; Status dort als „nicht anwendbar“
+  behandeln, nicht als Pass. Details: [CI-Geltung](docs/ci-runbook.md#0-geltung-seit-15112026).
 - **Merge passiert ausschließlich über die GitLab-MR** (`glab mr merge` oder
   UI-Klick), nie über ein lokales `git merge` von einem Feature-Branch nach
   `main` — auch nicht, wenn der Remote gerade nicht erreichbar ist. Details
@@ -108,6 +112,14 @@ git fetch --prune
 
 GitLab hat `remove_source_branch_after_merge` aktiv — trotzdem lokal
 aufräumen und bei Bedarf remote nachziehen.
+
+### Worktrees: eigenes `npm install`
+
+Ein frisch angelegter Worktree hat **kein** `node_modules` — Node löst
+die `@ancientvoid/*`-Workspace-Pakete dann über den Haupt-Checkout auf
+und typecheckt/lintet gegen **deren** (ggf. älteren) Stand. Vor der
+ersten Gate-Ausführung im Worktree: `npm install` (Realbefund
+14.11.2026: typecheck rot ohne eigene Änderung).
 
 ### Was „saubere Historie“ hier heißt
 

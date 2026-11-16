@@ -32,7 +32,7 @@ const CreateSessionBody = z.object({
   /** ADR-0057: Arbeitsort; ohne Angabe eigener Worktree. `confirmDirty` bestätigt einen Start in ungesicherten Änderungen. */
   workspaceMode: WorkspaceMode.optional(),
   confirmDirty: z.boolean().optional(),
-  /** ADR-0077: bestätigt paralleles Schreiben in einem Nicht-Git-Ordner. */
+  /** ADR-0081: bestätigt paralleles Schreiben in einem Nicht-Git-Ordner. */
   confirmSharedFolder: z.boolean().optional(),
   /** EPIC-P19: Loop / Dark Factory. Ohne Angabe verhält sich der Start wie vorher. */
   loop: LoopSpec.optional(),
@@ -106,7 +106,7 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
-    // BUG-0161: ein Ziel innerhalb einer erlaubten Wurzel darf noch fehlen. Vorher
+    // BUG-0168: ein Ziel innerhalb einer erlaubten Wurzel darf noch fehlen. Vorher
     // war die Antwort "outside the configured projectRoots" — nachweislich falsch.
     // Jetzt: eine Ordner-Ebene anlegen, oder ehrlich sagen, was fehlt.
     try {
@@ -418,13 +418,20 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
   // T8.6: rename and pin — overview metadata, same class as archive.
   app.post("/api/sessions/:id/meta", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const body = z.object({ title: z.string().max(200).nullable().optional(), pinned: z.boolean().optional() }).strict().safeParse(req.body);
-    if (!body.success || (body.data.title === undefined && body.data.pinned === undefined)) return reply.code(400).send({ error: "title or pinned required" });
+    const body = z.object({ title: z.string().max(200).nullable().optional(), pinned: z.boolean().optional(), autoResumeOnLimit: z.boolean().optional() }).strict().safeParse(req.body);
+    if (!body.success || (body.data.title === undefined && body.data.pinned === undefined && body.data.autoResumeOnLimit === undefined)) return reply.code(400).send({ error: "title, pinned or autoResumeOnLimit required" });
     try {
+      // ADR-0076 Nachtrag: die Limit-Wiederaufnahme ist eine Verhaltens-
+      // entscheidung — der Manager lehnt Agenten-Akteure ab (403-artig).
+      if (body.data.autoResumeOnLimit !== undefined) {
+        const record = await deps.sessions.setAutoResumeOnLimit(id, body.data.autoResumeOnLimit, callerLabel(req) ?? undefined);
+        return { ...record, hostId };
+      }
       return { ...deps.sessions.setMeta(id, { ...(body.data.title !== undefined ? { title: body.data.title } : {}), ...(body.data.pinned !== undefined ? { pinned: body.data.pinned } : {}) }), hostId };
     } catch (err) {
       const message = err instanceof Error ? err.message : "update failed";
       if (message.startsWith("unknown session")) return reply.code(404).send({ error: message });
+      if (message.startsWith("Nur Menschen")) return reply.code(403).send({ error: message });
       throw err;
     }
   });

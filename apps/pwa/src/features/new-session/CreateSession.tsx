@@ -2,6 +2,7 @@ import { WorkplaceChoice, type WorkplaceMode } from "./WorkplaceChoice.tsx";
 import { CustomModelDialog } from "./CustomModelDialog.tsx";
 import { takeHandOver } from "../../shared/media.ts";
 import { takeShareInbox } from "../../app/share-inbox.ts";
+import { sourcesBlock, sourcesOf, consumeSources, type SourceRef } from "../../shared/sources.ts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { LoopPicker } from "../loops/LoopPicker.tsx";
 import type { LoopInfo, LoopSpec } from "@ancientvoid/contracts";
@@ -104,10 +105,10 @@ export function CreateSession({
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [projects, setProjects] = useState<DiscoveredProject[] | null>(null);
-  // BUG-0163: ob Projekt-Wurzeln konfiguriert sind, ist eine eigene Tatsache —
+  // BUG-0170: ob Projekt-Wurzeln konfiguriert sind, ist eine eigene Tatsache —
   // die Anzahl der gefundenen Repos darf nicht als Stellvertreter herhalten.
   const [rootsInfo, setRootsInfo] = useState<{ configured: boolean; roots: string[] } | null>(null);
-  // BUG-0009/0162: grindige Wurzeln und gekürzte Listen dürfen nicht verschwinden.
+  // BUG-0009/0169: grindige Wurzeln und gekürzte Listen dürfen nicht verschwinden.
   const [projectWarnings, setProjectWarnings] = useState<string[]>([]);
   // T-PJ1: inline project creation (git init in first projectRoot)
   const [newProject, setNewProject] = useState("");
@@ -136,7 +137,7 @@ export function CreateSession({
   const [workplace, setWorkplace] = useState<WorkplaceMode>("worktree");
   const [confirmDirty, setConfirmDirty] = useState(false);
   const [workplaceBlocked, setWorkplaceBlocked] = useState(false);
-  // ADR-0077: parallels Schreiben im Nicht-Git-Ordner ist eine eigene, bewusste Entscheidung.
+  // ADR-0081: parallels Schreiben im Nicht-Git-Ordner ist eine eigene, bewusste Entscheidung.
   const [confirmShared, setConfirmShared] = useState(false);
   useEffect(() => { setConfirmDirty(false); setConfirmShared(false); }, [project, workplace]);
   // ADR-0018: a model picker only where the harness takes one at start,
@@ -193,7 +194,7 @@ export function CreateSession({
         setRootsInfo({ configured: res.rootsConfigured ?? res.projects.length > 0, roots: res.roots ?? [] });
         setProjectWarnings(res.warnings ?? []);
         // Preselect the first discovered project so "Starten" works
-        // without any typing when a picker is shown. BUG-0163: der gemerkte
+        // without any typing when a picker is shown. BUG-0170: der gemerkte
         // Pfad gilt auch dann, wenn gar kein Git-Repo gefunden wurde — sonst
         // tippen Nutzer, die ohne Git arbeiten, jeden Tag alles neu.
         setProject((p) => p || last.project || res.projects[0]?.path || "");
@@ -226,6 +227,13 @@ export function CreateSession({
     if (!name) return text;
     const line = `Workflow: ${name}\n\n`;
     return text.startsWith(line) ? text : `${line}${text}`;
+  };
+
+  // EPIC-P43.5 T43.5-1: Quellenchips der Neuanlage wandern beim Start in den
+  // Prompt/Auftrag — dieselbe Blockform wie die Composer-Vorschau, danach verbraucht.
+  const withSources = (text: string, sources: SourceRef[]): string => {
+    if (sources.length === 0) return text;
+    return `${text}${text.trim() ? "\n\n" : ""}${sourcesBlock(sources)}`;
   };
 
   // BUG-0105: nur claude/maki sind Factory-Treiber — eine ersetzte Wahl wird
@@ -275,12 +283,13 @@ export function CreateSession({
       // Factory-Lauf — Treiber (/factory mit dem Auftrag als Prompt) plus
       // verknüpfter Beobachter. Die Treiberwahl bleibt erhalten (ADR-0048).
       const factoryRun = startLoop?.id === "securesight-factory" && !isOnboarding(loopInfo, startLoop);
+      const selectedSources = sourcesOf("new");
       const rec = factoryRun
-        ? (await api.factoryStart({ project, adapter, ...(modelChoice && model.trim() ? { model: model.trim() } : {}), ...(prompt ? { goal: prompt } : {}) })).driver
+        ? (await api.factoryStart({ project, adapter, ...(modelChoice && model.trim() ? { model: model.trim() } : {}), ...(prompt ? { goal: withSources(prompt, selectedSources) } : {}) })).driver
         : await api.createSession({
             ...(startLoop ? { loop: startLoop } : { adapter }),
             project,
-            ...(prompt ? { prompt: withWorkflow(prompt) } : {}),
+            ...(prompt ? { prompt: withSources(withWorkflow(prompt), selectedSources) } : {}),
             ...(modelChoice && model.trim() ? { model: model.trim() } : {}),
             ...(skill || mode ? { args: { ...(skill ? { [skill.kind]: skill.name } : {}), ...(mode ? { permissionMode: mode } : {}) } } : {}),
             ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
@@ -289,6 +298,7 @@ export function CreateSession({
           });
       localStorage.removeItem(PROMPT_KEY);
       localStorage.setItem(LAST_KEY, JSON.stringify({ host, adapter, project, loop: startLoop }));
+      consumeSources("new", selectedSources);
       onCreated(rec);
     } catch (err) {
       setOnboardNote("");
@@ -469,6 +479,7 @@ export function CreateSession({
           onUseRecommendation={(item) => setSkill(item)}
           attachments={attachments}
           onAttachmentsChange={setAttachments}
+          sourceTarget="new"
           onSubmit={busy || !project || loopBlock ? undefined : () => void submit()}
         />
       </label>

@@ -9,7 +9,7 @@ commit: "61b0198e"
 forge: ""
 epic: ""
 created: 2026-11-16
-reporter: Pi-Session 2026-11-16 (E2E-Lauf für BUG-0162/0164 sollte laufen)
+reporter: Pi-Session 2026-11-16 (E2E-Lauf für BUG-0169/0171 sollte laufen)
 ---
 
 ## Gesehen
@@ -62,7 +62,7 @@ die Konstanten-Argumente fest. Auf POSIX bleibt `shell: false`.
 
 Der Spec-Lauf selbst ist der Test: `e2e/specs/session-workspace-mode.spec.ts`
 → 5 passed (10.7 s), davon der neue Fall „Ordner ohne .git: Auswahl, zweiter
-Schreiber nur nach Bestätigung (BUG-0162/0164, ADR-0077)“.
+Schreiber nur nach Bestätigung (BUG-0169/0171, ADR-0081)“.
 
 ## Handoff
 

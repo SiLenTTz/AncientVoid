@@ -4,6 +4,9 @@
 .vault-title { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
 .vault-new { display: flex; gap: 6px; }
 .vault-new input { flex: 1; min-width: 0; }
+/* EPIC-P51 T51.3: freie Pfad-Eingabe im Picker, gleiche Form wie .vault-new. */
+.vault-manual { display: flex; gap: 6px; margin-top: 10px; }
+.vault-manual input { flex: 1; min-width: 0; }
 .vault-search input { width: 100%; box-sizing: border-box; }
 .vault-body { display: flex; gap: 10px; flex: 1; min-height: 0; }
 .vault-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; min-width: 220px; max-width: 340px; }

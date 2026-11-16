@@ -1,8 +1,10 @@
 # EPIC-P56 — Statistiken-Page: Modell-, Provider- und Session-Kennzahlen
 
-**Status:** Planungsentwurf · **Umsetzung:** gesperrt (wartet auf Nutzer-Review, beauftragt 2026-11-12) · **Phase:** P56
+**Status:** in Umsetzung (Grundlage T56.1a, 15.11.2026) · **Umsetzung:** unabhängiger Grundlagenteil beauftragt; P31-/P55-Anbindungen weiter gesperrt · **Phase:** P56
 **Dauer:** 2 Agenten-Wochen (grobe Schätzung)
-**Abhängigkeit:** EventStore/Stunden-/Session-Events stabil (P40-Runs); P55-Stats-Contract für Compression-Kennzahlen; P31-Katalog für saubere Modell-/Provider-Namen.
+**Abhängigkeit:** Die Grundlage nutzt bestehende Session-/Zug-/Team-Fakten (P21/P40/P60). T56.5, Katalognormalisierung und EUR-Kosten warten auf P31; Compression und AC-P56-6 auf P55. P30/P31 bleiben ausdrücklich On hold.
+
+**Startauftrag 15.11.2026:** Nutzer wünscht den sinnvollsten Start aus P44/P55/P56. P56 beginnt mit dem unabhängig umsetzbaren Metrik-Grundlagenteil; daraus folgt keine Freigabe für pausierte Voraussetzungen. P56-Abschluss und Geräteabnahme bleiben offen.
 
 ## 1. Ziel
 
@@ -61,7 +63,9 @@ Alle Metriken werden je **Modell**, **Provider**, **Harness** und **Orchestrator
 
 ## 5. Aufgaben (Checkliste T56.m)
 
-- **T56.1** Metrik-Contract (Feldliste, Berechnungsregeln exakt nach §3) als Testbare Spezifikation.
+- **T56.1** Metrik-Contract (Feldliste, Berechnungsregeln exakt nach §3) als testbare Spezifikation.
+  - [x] **T56.1a** Datenquellen/Feldliste und ehrliche Verteilungen für vorhandene Zugmetriken; p50/p90/p95, n/missing, Klein-n, Token-Herkunft und Replay-Gegenprobe. **K5/K7**.
+  - [ ] **T56.1b** Übrige Session-/Gate-/Team-/Tool-Metriken nach den belegten Quellen präzisieren und testen; fehlende terminale/korrelierte Fakten ausdrücklich kennzeichnen. **K5/K7**.
 - **T56.2** Rollup-Job inkl. Nachführbarkeit und Klein-n-Kennzeichnung.
 - **T56.3** Statistiken-Page: Sessions/Tokens/Erfolg/Tool-Sektionen, Filter, p50/p90/p95-Darstellung.
 - **T56.4** Vergleichsansichten (Orchestrator, A/B) + Anomalie-Flag + CSV-Export.
@@ -85,6 +89,21 @@ Alle Metriken werden je **Modell**, **Provider**, **Harness** und **Orchestrator
 - **Metrik-Wildwuchs** → §3 ist die feste Metrik-Liste; neue Metriken nur per Epic-Änderung.
 - **Qualitäts-Schlussvergleiche** („Modell A besser als B" aus Erfolgsquote) → bewusst out of scope; Gates bleiben menschlich.
 
-## 8. Definition of Done
+## 8. Umsetzungsstand
+
+T56.1a: [Metrik-Referenz](../docs/statistik-metriken.md) und
+[ADR-0079](../docs/adr/0079-statistik-verteilungen-und-datenluecken.md).
+T56.1a abgeschlossen: 24 neue Contract-/Core-Tests grün; Feldliste und
+Datenquellengrenzen dokumentiert. Vollständiges lokales Gate grün: 2204 Unit-/Integrationstests bestanden (4 sichtbar übersprungen), 694 E2Es bestanden (5 sichtbar übersprungen; 27.4m). Typecheck, Lint, Architektur, Kontext und PWA-Build grün. Skips sind keine Passes.
+Der Gate-Stand enthält den separat über [MR !476](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/476)
+behobenen Offline-Diff-Defekt BUG-0164. Nach der getrennten Übernahme sind
+alle neun Source-/Testdateien bytegleich mit dem geprüften Stand.
+
+Neue additive Statistik-Lesemodelle und reine Aggregation; keine neue
+Persistenz, HTTP-Route oder PWA-Seite. Die vorhandene Rekonstruktion
+`deriveTurnMetrics` bleibt Quelle. T56.1b–T56.6 und alle vollständigen AC
+bleiben offen; P31/P55-Anbindungen bleiben gesperrt.
+
+## 9. Definition of Done
 
 Alle T56.* und AC-P56-* mit Evidenz; Reconciliation-Test grün; Abnahme mit Nutzer an echten Sessions.

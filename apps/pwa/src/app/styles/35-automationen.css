@@ -11,3 +11,8 @@
 .automation-form-actions { display: flex; gap: 6px; }
 
 .automation-occurrences { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.9em; }
+
+/* ADR-0080: spontaner Lauf ohne Plan — eigene Karte über der Liste, gleiche Form-Sprache. */
+.automation-tempsession { background: var(--bg-chip); }
+.automation-tempsession h4 { margin: 0; }
+.automation-tempsession textarea { resize: vertical; }

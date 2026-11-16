@@ -43,8 +43,14 @@ export function classifyProviderError(raw: string, ref?: string): ProviderErrorI
   }
   // Cursor schreibt das Kontingent nicht als „usage limit reached“, sondern
   // als ActionRequiredError auf stdout („You've hit your usage limit for Opus“).
-  if (/hit your (?:usage|weekly|daily|monthly) limit|out of usage|ActionRequiredError/i.test(text)) {
-    return quotaInfo(text, refNote);
+  // Claude nennt es „session limit“ (Nutzerfund 2026-11-15) — gleiches Kapitel:
+  // erschöpftes Kontingent, nie ein technischer Zufallsfehler.
+  const hit = /hit your (usage|weekly|daily|monthly|session) limit(?: for ([A-Za-z0-9._-]+))?/i.exec(text) ?? (/out of usage|ActionRequiredError/i.test(text) ? ["", "usage"] : null);
+  if (hit) {
+    // Nur echte Namen („… for Opus“) und das ungewöhnliche „session“ werden
+    // Label — „usage/weekly/…“ allein steht schon im Klartitel.
+    const label = hit[2]?.replace(/[._-]+$/, "") ?? (hit[1] === "session" ? "session" : undefined);
+    return quotaInfo(text, refNote, label);
   }
   if (/\b429\b|rate.?limit|too many requests/i.test(text)) {
     return { category: "rate_limit", title: "Rate-Limit des Providers", detail: `Zu viele Anfragen in kurzer Zeit. Kurz warten und erneut senden.${refNote}` };

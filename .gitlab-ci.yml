@@ -48,7 +48,7 @@ verify:
   stage: verify
   script:
     - node --version && npm --version
-    - apt-get update -qq && apt-get install -y -qq tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep > /dev/null
+    - apt-get update -qq && apt-get install -y -qq tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep iproute2 > /dev/null
     - npm ci
     - npm rebuild esbuild
     - npm run check:workspace-links
@@ -88,7 +88,7 @@ k8:
   stage: verify
   script:
     - node --version && npm --version
-    - apt-get update -qq && apt-get install -y -qq tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep > /dev/null
+    - apt-get update -qq && apt-get install -y -qq tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep iproute2 > /dev/null
     - npm ci
     - npm rebuild esbuild
     - npm run loadtest
@@ -110,7 +110,7 @@ e2e:
     PLAYWRIGHT_BROWSERS_PATH: $CI_PROJECT_DIR/.cache/ms-playwright
   script:
     - node --version && npm --version
-    - apt-get update -qq && apt-get install -y -qq tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep > /dev/null
+    - apt-get update -qq && apt-get install -y -qq tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep iproute2 > /dev/null
     - npm ci
     - npm rebuild esbuild
     - npx playwright install --with-deps chromium

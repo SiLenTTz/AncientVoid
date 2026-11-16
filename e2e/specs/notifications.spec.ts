@@ -1,4 +1,5 @@
 import { test, expect } from "../support/fixtures.ts";
+import type { Page } from "@playwright/test";
 
 test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
   test("ein erschöpftes Kontingent erscheint als rote Karte oben rechts und im Chat @desktop", async ({ app, hub }) => {
@@ -10,9 +11,15 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     // Nach clearDeviceMetricsOverride kennt Playwright die Fläche nicht (T16.6).
     const width = app.viewportSize()?.width ?? (await app.evaluate(() => window.innerWidth));
     expect(box.y).toBeLessThan(160);
-    // T8.5: on the desktop split the messages live in the list column.
-    if ((await app.locator(".split").count()) > 0) expect(box.x + box.width).toBeLessThanOrEqual((await app.locator(".split-list").boundingBox())!.width + 40);
-    else expect(box.x + box.width).toBeGreaterThan(width * 0.6);
+    // EPIC-P51 T51.4 (löst T8.5 ab): am PC sitzt die Glocke im Fenstereck —
+    // der Toast rückt ihr mit 56 px Vorhalte aus, statt in der Listenspalte zu liegen.
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    expect(width - (box.x + box.width)).toBeGreaterThanOrEqual(48);
+    // P50-Invariante nur auf der PC-Fläche: mit sichtbarem Toast scrollt das Fenster
+    // nie (mobil drückt der Toast die Seite per T8.6 in den Fluss).
+    if ((await app.locator(".split").count()) > 0) {
+      expect(await app.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(await app.evaluate(() => window.innerHeight + 1));
+    }
     await expect(app.locator(".toast.error"), "no second toast for the process exit").toHaveCount(1);
 
     await toast.locator(".toast-body").click();
@@ -52,6 +59,38 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     await app.reload();
     await expect(app.getByRole("button", { name: "Benachrichtigungen", exact: true })).toBeVisible();
     await expect(app.locator(".toast")).toHaveCount(0);
+  });
+
+  test("Fehler und offene Fragen stehen angepinnt oben, der Rest darunter (Nutzerfund 2026-11-15)", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Bitte KONTINGENT" }); // Fehler
+    await hub.createSession({ adapter: "claude", prompt: "Bitte FRAGE" }); // offene Frage, bleibt offen
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" }); // Zug fertig
+    await hub.until(
+      async () => {
+        const { body } = await hub.api<{ items: { kind: string; sessionId: string }[] }>("/api/notifications");
+        const kinds = new Set(body.items.map((n) => n.kind));
+        return kinds.has("provider.error") && kinds.has("tool.permission_requested") && kinds.has("session.turn_end");
+      },
+      "Fehler, Frage und fertiger Zug in der Glocke",
+      30_000,
+    );
+    await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
+    const sections = app.locator(".notif-section");
+    await expect(sections).toHaveCount(3);
+    // Reihenfolge ist die Wichtigkeit: Fehler, offene Fragen, Rest.
+    await expect(sections.nth(0).locator(".section-title")).toHaveText("Fehler");
+    await expect(sections.nth(0).locator(".notif-item")).toContainText("Kontingent erschöpft");
+    await expect(sections.nth(1).locator(".section-title")).toHaveText("Offene Fragen");
+    await expect(sections.nth(1).locator(".notif-item")).toContainText("Rückfrage");
+    await expect(sections.nth(2).locator(".section-title")).toHaveText("Übrige Meldungen");
+    await expect(sections.nth(2).locator(".notif-item")).toContainText("Zug fertig");
+    // Der Fehler liegt im DOM über der Frage und der Frage über dem Rest.
+    const order = await app.evaluate(() =>
+      [...document.querySelectorAll(".notif-item")].map((el) => el.textContent ?? ""),
+    );
+    const at = (text: string) => order.findIndex((t) => t.includes(text));
+    expect(at("Kontingent erschöpft")).toBeLessThan(at("Rückfrage"));
+    expect(at("Rückfrage")).toBeLessThan(at("Zug fertig"));
   });
 
   test("Hub weg und wieder da wird gemeldet", async ({ app, hub }) => {
@@ -115,4 +154,47 @@ test.describe("Benachrichtigungen bei UI-Skalierung (Nutzerfund 2026-10-30)", ()
       expect(overlaps, `✕ ${JSON.stringify(close)} vs Glocke ${JSON.stringify(box)}`).toBe(false);
     });
   }
+});
+
+test.describe("Glocke im Fenstereck am PC (EPIC-P51 T51.4) @desktop", () => {
+  // Läuft in beiden Projekten als PC-Szenario (Muster: zoom-flaechen „Desktop-Fläche").
+  test.use({ viewport: { width: 1440, height: 900 } });
+  const CORNER_TOLERANCE = 14; // 8 px Anker + Subpixel-/Rundungstoleranz
+
+  async function expectCornered(page: Page, zoomNote = "") {
+    const { vw, vh } = await page.evaluate(() => ({ vw: window.innerWidth, vh: window.innerHeight }));
+    const bell = (await page.locator(".notif-bell").boundingBox())!;
+    expect(vw - (bell.x + bell.width), `Glocke rechts ${zoomNote}`).toBeLessThanOrEqual(CORNER_TOLERANCE);
+    expect(bell.y, `Glocke oben ${zoomNote}`).toBeLessThanOrEqual(CORNER_TOLERANCE);
+    await page.getByRole("button", { name: /Benachrichtigungen/ }).click();
+    const panel = page.locator(".notif-panel");
+    await expect(panel).toBeVisible();
+    const box = (await panel.boundingBox())!;
+    expect(vw - (box.x + box.width), `Panel rechts ${zoomNote}`).toBeLessThanOrEqual(CORNER_TOLERANCE);
+    expect(box.x, `Panel links im Bild ${zoomNote}`).toBeGreaterThanOrEqual(-0.5);
+    expect(box.y, `Panel oben im Bild ${zoomNote}`).toBeGreaterThanOrEqual(-0.5);
+    expect(box.y + box.height, `Panel unten im Bild ${zoomNote}`).toBeLessThanOrEqual(vh + 0.5);
+    await panel.locator(".notif-panel-head .btn").click();
+    await expect(panel).toHaveCount(0);
+  }
+
+  test("Glocke und Panel stehen in der Ecke — Liste offen, eingeklappt und wieder offen", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+    await expect(app.locator(".split")).toBeVisible();
+    await expectCornered(app, "(Liste offen)");
+    await app.locator(".tile-list-toggle").click();
+    await expect(app.locator(".split.list-collapsed")).toBeVisible();
+    await expectCornered(app, "(Liste eingeklappt)");
+    await app.locator(".tile-list-toggle").click();
+    await expect(app.locator(".split:not(.list-collapsed)")).toBeVisible();
+    await expectCornered(app, "(Liste wieder offen)");
+  });
+
+  test("Ecke hält bei 130 % UI-Zoom (Zoom-Formel, P50)", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
+    await app.evaluate(() => localStorage.setItem("ancientvoid.uiScale", "1.3"));
+    await app.reload();
+    await expect(app.locator(".split")).toBeVisible();
+    await expectCornered(app, "(Zoom 130 %)");
+  });
 });

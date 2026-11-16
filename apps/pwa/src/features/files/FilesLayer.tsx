@@ -4,6 +4,7 @@ import { getHubStatus, useHubStatus } from "../shell/hub-status.ts";
 import { FilesSidebar, type FocusedSession } from "./FilesSidebar.tsx";
 import { onLayerOpen } from "../../shared/layers.ts";
 import { loadFilesState, rootKey, saveFilesState, type FilesState } from "./files-model.ts";
+import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 
 /**
  * EPIC-P46 T46.4: Einstieg der rechten Sidebar. Desktop: dritte Spalte (Strg+Umschalt+E), Touch: Drawer;
@@ -18,21 +19,19 @@ export function FilesLayer({ wide, focusedSessionId, windowed = false }: { wide:
   const reachableHosts = hubStatus.hosts.filter((h) => remoteHost(h.hostId) && h.state === "reachable").map((h) => `${h.hostId}:${h.label ?? ""}`).join(",");
   const [projects, setProjects] = useState<{ name: string; path: string; hostId?: string; hostLabel?: string }[]>([]);
 
+  // EPIC-P51 T51.5: Strg+Umschalt+E über die Shortcut-Registry statt eigenem Listener.
   useEffect(() => {
     if (windowed) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "e") {
-        e.preventDefault();
-        setState((s) => {
-          const next = { ...s, open: !s.open };
-          saveFilesState(next);
-          return next;
-        });
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    const off = registerShortcut("files.toggle", (e) => {
+      e.preventDefault();
+      setState((s) => {
+        const next = { ...s, open: !s.open };
+        saveFilesState(next);
+        return next;
+      });
+    });
+    return off;
+  }, [windowed]);
 
   // EPIC-P43: geöffnet wird aus dem Reiter „Dateien“ oder dem globalen „Mehr“ (keine Randlasche mehr).
   useEffect(

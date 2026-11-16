@@ -16,7 +16,7 @@ export interface DiscoveredProject {
   name: string;
   /** Best-effort from .git/HEAD; null for a detached HEAD or unreadable .git. */
   branch: string | null;
-  /** BUG-0162: false = Ordner ohne `.git`. Er wird trotzdem angeboten, weil
+  /** BUG-0169: false = Ordner ohne `.git`. Er wird trotzdem angeboten, weil
    * lokales Arbeiten ohne Git kein Umweg über `git init` sein darf. */
   isGit: boolean;
 }
@@ -54,7 +54,7 @@ export async function discoverProjects(roots: readonly string[]): Promise<Projec
     for (const entry of entries) {
       if (entry.name.startsWith(".")) continue;
       const full = join(root, entry.name);
-      // Absicht (BUG-0162): auch Ordner ohne `.git` werden angeboten. Vorher galten
+      // Absicht (BUG-0169): auch Ordner ohne `.git` werden angeboten. Vorher galten
       // sie als „kein Projekt“ — lokal ohne Git zu arbeiten war damit nicht auffindbar.
       // Symlinks bleiben draußen (Dirent folgt nicht): depth 1, keine Ausgange.
       if (!entry.isDirectory()) continue;
@@ -83,7 +83,7 @@ export async function discoverProjects(roots: readonly string[]): Promise<Projec
  * An empty `roots` list means unconfigured — preserves pre-T1.5-4
  * behavior (any path allowed) so existing configs don't break.
  *
- * BUG-0161: a leaf that does not exist yet is allowed as long as its
+ * BUG-0168: a leaf that does not exist yet is allowed as long as its
  * nearest existing ancestor is inside an allowed root — that is exactly
  * the "neuer Ordner, in dem ich eine Session starten will"-Fall. Before,
  * `realpath()` threw on the missing leaf and the answer was "outside the
@@ -131,7 +131,7 @@ export interface CreateProjectResult {
 }
 
 /**
- * BUG-0161: a session target inside an allowed root may not exist yet — the
+ * BUG-0168: a session target inside an allowed root may not exist yet — the
  * user wants to start a session in a fresh folder and have AncientVoid create
  * it. Exactly one level is created (the leaf): a typo must not build a whole
  * tree. A path that looks absolute but has no drive on Windows (`/coding`

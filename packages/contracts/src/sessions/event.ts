@@ -38,8 +38,11 @@ export type EventType = (typeof EVENT_TYPES)[number];
  */
 export const UsageWindow = z.object({
   id: z.string().min(1),
-  /** 0.0-1.0 — fraction of this window already consumed. */
-  utilization: z.number().min(0).max(1),
+  /** Consumed fraction, 0.0-1.0 in the healthy case — but providers DO
+   * report past 1.0 once the window is exceeded (live claude capture
+   * 2026-11-15: five_hour at 1.03). No max: a capped value would fail
+   * NormalizedEvent parsing and silently vanish from every replay. */
+  utilization: z.number().min(0),
   /** ISO-8601. Never omitted — a window without a reset time would
    * silently read as "never expires", which is a claim, not an absence. */
   resetsAt: z.string().min(1),

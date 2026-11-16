@@ -78,8 +78,10 @@ export const POLICY_OPERATIONS = [
   "automations.runNow",
   "desktop.act",
   "desktop.companion",
-  /** EPIC-P40 (ADR-0064 §4): Runs starten/antworten/stopen darf nur der Mensch; Lesen dürfen Agenten. */
-  "orchestration.manage",
+  /** EPIC-P40 (ADR-0064 §4), EPIC-P60 (ADR-0077): Teams starten/antworten/stopen darf nur der Mensch; Lesen dürfen Agenten. */
+  "team.manage",
+  /** EPIC-P60 (ADR-0077): Lese-Seite der Teams — Allow-Set identisch zum bisherigen generischen `read` der Fläche (reine Benennung). */
+  "team.read",
 ] as const;
 export type PolicyOperation = (typeof POLICY_OPERATIONS)[number];
 
@@ -149,7 +151,10 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "desktop.act": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** EPIC-P11: the companion fetches its work and reports — its only job. */
   "desktop.companion": { human: "deny", fleet: "deny", agent: "deny", bridge: "deny", companion: "allow", display: "deny" },
-  "orchestration.manage": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
+  /** EPIC-P40/EPIC-P60 (ADR-0064 §4, ADR-0077): Teams verwalten — nur der Mensch. */
+  "team.manage": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
+  /** EPIC-P60 (ADR-0077): Teams lesen — wie das bisherige generische `read` der Fläche. */
+  "team.read": { human: HUMAN, fleet: "allow", agent: "allow", bridge: "deny", companion: "deny", display: "allow" },
 };
 
 export function policyFor(operation: PolicyOperation, label: string | null | undefined): PolicyDecision {

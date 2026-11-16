@@ -146,7 +146,7 @@ export function SourceView({ api, target, meta, onStale, diagnostics, jump, onFe
       endLine: Math.min(selRange.to, selRange.from + FEEDBACK_MAX_LINES - 1),
       note: "",
       ...(diag ? { diagnostic: { code: diag.code, message: diag.message, source: diag.source } } : {}),
-    });
+    }, lines.slice(selRange.from - first, Math.min(selRange.to, selRange.from + FEEDBACK_MAX_LINES - 1) - first + 1).join("\n"));
     setSel(null);
     onFeedbackAdded?.();
   };

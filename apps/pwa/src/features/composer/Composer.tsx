@@ -6,6 +6,7 @@ import { type PromptRecommendation } from "../../shared/api.ts";
 import { saveSelectedSkill, saveSelectedWorkflow } from "./SkillOverlay.tsx";
 import { applySuggestion, commandsForScope, slashNotice, slashSuggestions, type SlashCommand } from "./slash.ts";
 import { AttachmentPicker } from "../attachments/Attachments.tsx";
+import { SourceChips, SourcePreviewNote } from "./SourceChips.tsx";
 import type { AttachmentRecord } from "../../shared/api.ts";
 
 /** T1.5-8: enhance.ts only has a real implementation for these adapters —
@@ -32,6 +33,7 @@ export function Composer({
   onUseRecommendation,
   attachments,
   onAttachmentsChange,
+  sourceTarget,
   fieldId,
   onSubmit,
   adapterEnhance,
@@ -58,6 +60,9 @@ export function Composer({
   /** T7.10: files and images sent with this prompt. */
   attachments?: AttachmentRecord[];
   onAttachmentsChange?: (next: AttachmentRecord[]) => void;
+  /** EPIC-P43.5 T43.5-1: Ziel der Quellenchips (Session-ID oder „new“) —
+   * Chips + Mitgesendet-Vorschau; der Block hängt beim Submit am Text. */
+  sourceTarget?: string;
   /** T9.4: the text entry may fill or rewrite this field. */
   fieldId?: FieldId;
   /** T9.6/2026-10-26: keyboard submit (tablet with keyboard) —
@@ -370,6 +375,10 @@ export function Composer({
 
       {/* T8.5: the paperclip sits in the button row; chips get their own
        * row above it (CSS order) — one row less than before. */}
+      {/* EPIC-P43.5 T43.5-1: Quellenchips + Mitgesendet-Vorschau über der Aktionszeile —
+       * immer sichtbar, was beim Absenden mitgeht; nie implizites Senden. */}
+      {sourceTarget && <SourceChips target={sourceTarget} />}
+      {sourceTarget && <SourcePreviewNote target={sourceTarget} />}
       <div class="composer-actions">
         {attachments && onAttachmentsChange && (
           <span class="composer-attachments">
@@ -377,7 +386,7 @@ export function Composer({
           </span>
         )}
         <button
-          class="btn"
+          class="btn icon-btn composer-expand"
           type="button"
           aria-pressed={expanded}
           aria-label={expanded ? "Eingabe verkleinern" : "Eingabe maximieren"}

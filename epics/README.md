@@ -1,4 +1,10 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P49)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P59)
+
+**On hold seit 15.11.2026 (Nutzerentscheid): P30 und P31.** Beide bleiben
+im Inventar, sind aber aus Empfehlungen für die nächste Arbeit ausgeschlossen.
+Keine automatische Wiederaufnahme nach grünen Vorgängern; nur auf ausdrücklichen
+Nutzerauftrag. Davon abhängige Arbeit bleibt bis zur erfüllten Voraussetzung
+blockiert; diese Zurückstellung hebt kein anderes Epic-Gating auf.
 
 **Erstellt:** 12.09.2026 · **Basis:** PRD AncientVoid v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
@@ -77,8 +83,8 @@ Statuszeilen gelten nicht als aktueller Abschlussnachweis.
 |---|---|---|---|
 | [P28 — Reproduzierbare CI](EPIC-P28-reproduzierbare-ci.md) | Diagnose, isolierter Runner, vollständige Gate-/K8-Evidenz — **abgeschlossen (06.11.2026)**: selbstverwalteter Docker-Runner `av-docker` ([ADR-0049](../docs/adr/0049-selbstverwalteter-ci-runner.md)), Gate-Parität inkl. K8 20×30 in `verify`, Skip-Bericht in `e2e`, zwei Negativproben rot, drei SHA-gebundene grüne Gesamtläufe (8895473), 5 CI-Funde als BUG-0092–0096 | P27 samt Vorgänger-Exits grün | 1–2 |
 | [P29 — Worktree-Workspace-Runtime](EPIC-P29-worktree-workspace-runtime.md) | Manifest, Dateiübernahme, Setup/Teardown, Services/Ports, mobiler Zugang — **abgeschlossen 07.11.2026 (T29.1–T29.7, AK-Matrix 6× 🟢, Retro angehängt; Doku-Nachzüge als AI-P29-1/2 eingestellt)** | P28 grün; P2/P14/P26 geprüft | 3–5 |
-| [P30 — Adapter-/Sink-Plugins](EPIC-P30-adapter-sink-plugins.md) | Manifest, lokale/Git-Installation, Testkit, sicherer Lifecycle | P29 und P34 grün | 2–3 |
-| [P31 — ACP-Provider-Katalog](EPIC-P31-acp-provider-katalog.md) | kuratierte Provider, explizite Probe, getrennte Fähigkeitsnachweise | P30 grün | 2–3 |
+| [P30 — Adapter-/Sink-Plugins](EPIC-P30-adapter-sink-plugins.md) | Manifest, lokale/Git-Installation, Testkit, sicherer Lifecycle — **On hold seit 15.11.2026; nicht einplanen** | P29 und P34 grün | 2–3 |
+| [P31 — ACP-Provider-Katalog](EPIC-P31-acp-provider-katalog.md) | kuratierte Provider, explizite Probe, getrennte Fähigkeitsnachweise — **On hold seit 15.11.2026; nicht einplanen** | P30 grün | 2–3 |
 | [P32 — Mobile-Client-Entscheidung](EPIC-P32-mobile-client-entscheidung.md) | Gerätebefund + Go/No-go; optional interne Android-Shell — **Evaluations-Exit „vertagt" 2026-11-08** ([Dokument](../docs/2026-11-08_p32-evaluations-exit.md)); T32.3–T32.6 gesperrt bis neues Go | P12/P16 geprüft (P31 per Umpriorisierung 08.11.2026 nach P36) | 0,5–1; optional +2–4 |
 | [P33 — Englischer Einstieg](EPIC-P33-englische-einstiegsdokumentation.md) | Bedarfsentscheid, README/Contracts/Quickstart; keine Publikation — **Evaluations-Exit „vertagt" 2026-11-08** (kein Go erteilt, keine Übersetzung ausgeliefert); T33.2–T33.4 gesperrt bis Go | P32-Evaluations-Exit „vertagt" abgenommen (08.11.2026) | 0,5–1,5 |
 
@@ -131,7 +137,7 @@ Provider-Katalog P31; P32 erhält die aktuelle PWA-Präferenz.
 | [P41 — Automationen](EPIC-P41-automationen.md) | Zeitpläne, Prechecks, Laufhistorie, Recovery — **Code-Lücken der Übergabeprüfung geschlossen 11.11.2026, Exit offen** ([Stand und Reste](EPIC-P41-automationen.md#8-stand-und-exit-lücken-abgleich-11112026); u. a. `unknown` ohne Referenz ohne Auflösungsweg, keine Live-Fehlerpfade); P42 bleibt blockiert | P40 grün | 2–3 |
 | [P42 — Android-Testgeräte](EPIC-P42-android-testgeraete.md) | AVD-/Host-Spike, Bild/Input und Android-Tests | P41 grün | 0,5–1 + 2–4 |
 | [P43 — UX Next Level](EPIC-P43-ux-next-level.md) | Start als Warteschlange, Session in Zügen, Zustands- und Bewegungssprache, Tablet/PC, Herauslösen überall, Nyx-Blatt; Funktionsinventar als Gate — **Exit grün 11.11.2026** (Closeout: 11 AC grün; Geräte-Reste AI-P43-5 → T35.16, Inventar-Schnellsuche → P51 T51.11, Breiten → P50 T50.6, BUG-0120/0121 offen) | P42 grün | 4–6 |
-| [P43.5 — Quellenchips/Presets/Layouts](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Quellenübergabe in den Prompt, Darstellungs-Presets, benannte Layouts (aus dem bisherigen P43 abgetrennt) — **Umsetzung freigabefähig** (P43-Exit grün) | P43 grün | 1,5–2 |
+| [P43.5 — Quellenchips/Presets/Layouts](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Quellenübergabe in den Prompt, Darstellungs-Presets, benannte Layouts (aus dem bisherigen P43 abgetrennt) — **abgeschlossen 14.11.2026** (T43.5-1–6, sechs AC, Gate/Build/Abnahme/Retro grün) | P43 grün | 1,5–2 |
 | [P44 — UI-Plugins](EPIC-P44-plugin-panels-themes.md) | Panels/Themes als Erweiterung des P30-Lifecycles | P43.5 grün | 2–3 |
 | [P45 — Zugangsevaluation](EPIC-P45-zugang-ohne-tailnet-evaluation.md) | Transport/Account-Optionen; expliziter Go/No-go/vertagt-Entscheid — **fertiggestellt 10.11.2026, Exit „No-go“ (kein öffentlicher Zugang; Tailnet bleibt) — [Bericht](../docs/2026-11-10_p45-zugangs-entscheidungsbericht.md)** | P44 grün (Start vorgezogen auf Nutzeranweisung) | 0,5–1 |
 
@@ -143,8 +149,9 @@ PWA-Präferenz allein schließt sie nicht. AC-P34-13/AC-P35-7 bleiben offen.
 Evaluations-Exit „vertagt" abgeschlossen
 ([Entscheidungsdokument](../docs/2026-11-08_p32-evaluations-exit.md));
 T32.3–T32.6 bleiben bis zu einem neuen ausdrücklichen Go gesperrt. P30 und
-P31 laufen nach P36 (in deren Statuszeilen dokumentiert; P44 baut weiterhin
-auf P30 auf). Live-Abnahmen bleiben gebündelt im Endabnahme-Block (EPIC-P35 §8).
+P31 waren danach eingeordnet; seit 15.11.2026 sind beide ausdrücklich
+**On hold**, ohne automatische Folgearbeit nach P36. P44 baut weiterhin auf
+P30 auf. Live-Abnahmen bleiben gebündelt im Endabnahme-Block (EPIC-P35 §8).
 P46 wurde auf den Folgeauftrag vom 08.11.2026 zwischen P38 und P39 eingefügt:
 rechte Projekt-Sidebar, komplette Dateiansicht und echte Sprachdiagnosen
 waren in P43 nicht abgedeckt. Bestehende Epic-Nummern bleiben stabil.
@@ -194,7 +201,7 @@ existierendem Shortcut. Läuft quer zur Kette (Präzedenz P47–P50).
 
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
-| [P51 — Vault-Erreichbarkeit & Tastatur-first](EPIC-P51-vault-erreichbarkeit-tastatur.md) | Jeder Ordner als Vault wählbar (Symlink-sicher, Pfad-Eingabe, ehrliche Fehler, ADR-0063-Ergänzung); Glocke am PC im Fenstereck; zentrale Shortcut-Registry, fehlende Kürzel (Esc/Fokus, View-Wechsel, Listen-Navigation), `?`-Cheat-Sheet, Hinweis-Overlay mit Setting, Omarchy-/Firefox-Kollisions-Doku | keine fachliche offene (P49/P18/P34 als Basis; Nutzerauftrag) | 2–3 |
+| [P51 — Vault-Erreichbarkeit & Tastatur-first](EPIC-P51-vault-erreichbarkeit-tastatur.md) | Jeder Ordner als Vault wählbar (Symlink-sicher, Pfad-Eingabe, ehrliche Fehler, ADR-0063-Ergänzung); Glocke am PC im Fenstereck; zentrale Shortcut-Registry, fehlende Kürzel (Esc/Fokus, View-Wechsel, Listen-Navigation), `?`-Cheat-Sheet, Hinweis-Overlay mit Setting, Omarchy-/Firefox-Kollisions-Doku — **Code abgeschlossen 14.11.2026** (T51.1–T51.9/T51.11; Eck-Glocke löst T8.5-Spaltenposition ab, Split schrumpft unter Toasts statt zu scrollen); Live-Abnahme am Gerät offen | keine fachliche offene (P49/P18/P34 als Basis; Nutzerauftrag) | 2–3 |
 
 Reihenfolge: P51 quer wie P50 (je Aufgabe eigener Branch/MR nach main; ADR-0063-Ergänzung vor dem ersten Verhaltens-Merge).
 
@@ -227,6 +234,58 @@ Installations-Kaskade, in beiden Epics beschrieben).
 Reihenfolge: P53 quer wie P50–P52 (Epic-Planung als eigener Branch/MR vor der
 Umsetzung, damit andere Agenten das Epic sehen; dann Umsetzung je Aufgabe).
 
+## Nutzerauftrag vom 14.11.2026 — Feinschliff, Typewriter, KI-Server-Metriken
+
+Ausdrücklicher Planungsauftrag von Jan (vier Punkte). Recherche mit
+Code-Evidenz und Zuordnung: [2026-11-14](../docs/2026-11-14_recherche_verfeinerungen_typewriter_metriken.md).
+Zum Zeitpunkt des Planungsauftrags gingen zwei Punkte in die damals offenen
+Epics P47 und P43.5 (neue Tasks/AC); andere laufende Epics wurden nicht
+angefasst. Die P47-Ergänzung und P43.5 sind inzwischen umgesetzt (14.11.2026).
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P47 — Ergänzung](EPIC-P47-uebersicht-sessions-projekte-hosts.md) | Discovery als vierter Umschalt-State der Übersicht, eigener Menüpunkt entfällt (Design-Entscheidung §3.4; Deeplink/Chip bleiben; umgesetzt 2026-11-14); T47.5/T47.6, AC-P47-5/6 | wie bisher (keine fachliche offene) | +0,25 |
+| [P43.5 — Ergänzung](EPIC-P43.5-darstellungs-presets-quellenchips.md) | Composer-Maximieren-Button als Icon-Button statt Fullscreen-Fläche; T43.5-6, AC-P43.5-6 — **abgeschlossen 14.11.2026, MR !470** | P43 grün (erfüllt) | +0,1 |
+| [P58 — Typewriter-Effekt](EPIC-P58-typewriter-effekt.md) | Chat und Thinking/Reasoning werden bei Live-Zuwachs getippt; Settings-Schalter; History sofort; K2-Messlauf — **umgesetzt 2026-11-14** (T58.1–T58.6, Gate grün, K2-Messlauf mit Animation PASS; Live-Abnahme am Gerät → Jan) | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | ~1 |
+| [P59 — KI-Server-Metriken](EPIC-P59-ki-server-metriken.md) | Neue Metrik-Seite: CPU, GPU, Tokens/s, Prefill, Decode, KV-Cache des lokalen KI-Servers; ADR vor Contract-Änderung; Abgrenzung zu P56 | keine fachliche offene (Quer-Epic; P57 abgeschlossen) | 1–2 |
+
+Reihenfolge: P58/P59 quer wie P50–P53 (je Aufgabe eigener Branch/MR nach
+main); P47/P43.5-Extras sind mit ihren jeweiligen Abnahmen umgesetzt. Kein Start vor
+grünen Exit-Kriterien der wirksamen Vorgänger; P56 bleibt der einzige
+Aggregationsort (P59 liefert nur direkte Proben).
+
+## P56 — unabhängiger Statistik-Grundlagenstart (15.11.2026)
+
+Nutzerauftrag: sinnvollsten Start aus P44/P55/P56 wählen. P56 beginnt mit
+vorhandenen Zug-/Session-Fakten; T56.1a ist abgeschlossen (24 neue Tests,
+vollständiges lokales Gate grün). [Metrikdefinitionen](../docs/statistik-metriken.md)
+und [Epic](EPIC-P56-statistiken-page-metrik-suite.md). P30/P31 bleiben On hold;
+T56.5, Katalognormalisierung/EUR-Preise und P55-Compression bleiben gesperrt.
+Die Grundlage ist keine Freigabe des gesamten Epics und keine fertige PWA-Seite.
+
+## Nutzerauftrag vom 14.11.2026 — Agenten-Teams (ehemals Runs)
+
+Nutzermeldung nach erster Nutzung der P40-Fläche: Run-Seite visuell
+unbefriedigend, Begriff „Run" nicht selbsterklärend; gewünscht: Übersicht
+mit Karten je parallel laufendem Agenten (wie Session-Übersicht),
+tatsächliche Parallelisierung unabhängiger Aufgaben durch den Koordinator,
+vorab wählbare Adapter/Modelle. Entscheidungen (Jan, 14.11.2026): Name
+wird **Team** („Factory"/„Orchestrator" kollidieren mit Loop-Factory P19/P26
+bzw. Core-Klasse/Hermes-Rolle), Umbenennung überall sauber definiert — auch
+Contracts. Quer-Epic auf P40-Basis (Präzedenz P47–P53); der offene P41-Exit
+bleibt unberührt, die Automationen-Kopplung wird mitmigriert.
+Nummernhinweis: Die Planung lief parallel zum Vier-Punkte-Auftrag auf
+veraltetem main-Stand als „P58"; da P58 bereits an das Typewriter-Epic
+vergeben war, führt das Epic die Nummer **P60** weiter (Repo-Regel
+„Bestehende Epic-Nummern bleiben stabil", Präzedenz P46).
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P60 — Agenten-Teams: Umbenennung, Kartenübersicht, Parallelität, Modellwahl](EPIC-P60-agenten-teams.md) | Run→Team vollständig umbenannt (Contracts, `/api/teams`, Policy `team.*`, Journal-Migration, `#/teams`-Redirects), Team-Detail mit Karten je Worker, breite DAGs + belegte Gleichzeitigkeit, Modell-Allowlist mit Formularauswahl (schließt ungeprüfte `task.model`-Lücke) — **umgesetzt 14.11.2026** (ADR-0077, MR !467/!468 + Abschluss-MR; Geräte-Abnahme → Endabnahme-Block) | keine fachliche offene (P40 umgesetzt, Gate grün; Live-Lauf-Block P39 unberührt) | 2–3 |
+
+Reihenfolge: P60 quer wie P50–P53 (je Aufgabe eigener Branch/MR nach main;
+ADR vor der ersten Contract-Änderung).
+
 ## Reihenfolge & Gating
 
 Reihenfolge: **P0 → P1 → P1.5 → P1.6 → P2 → P3 → P4 → P4.5 → P5 → P6 → P7 → P8 → P9 → P10 → P10.5 → P11 → P12 → P13 → P14 → P15 → P16 → P17 → P18 → P19 → P21 → P22 → P23 → P24 → P26** (P13/P14/P17/P18/P19 unabhängig: Adaptermuster aus P3, Worktree-Hygiene bzw. Laufzeit-Robustheit auf bestehendem P5/P7/P15-Code; P16 ist die Handy-Liste, kein Start vor geklärter P12-Abnahme).
@@ -235,8 +294,12 @@ Jedes Epic endet mit messbarem Exit-Kriterium. Das folgende Epic startet erst,
 wenn alle Exit-Kriterien des Vorgängers grün sind (Eval-Frage-Regel aus PRD §9.1.6).
 
 **E2E-Gate (ab P5, 2026-09-23):** Ein Epic ist erst abgeschlossen, wenn
-`npm run gate` grün ist und der blockierende Pipeline-Job `e2e` auf dem
-Abschluss-MR grün lief. Jede im Epic gebaute UI-Funktion und jeder Ablauf hat
+`npm run gate` lokal grün ist. Der Pipeline-Job `e2e` auf dem Abschluss-MR
+ist nur bei aktivem lokalem GitLab-Server zusätzlich verpflichtend. Auf
+`gitlab.com` (Free) ist CI kein Exit-/Merge-Gate, auch mit eigenem Runner.
+Diese Geltung ersetzt ältere unbedingte CI-Pflichten in bestehenden Epic-DoDs;
+lokale Tests, E2Es und echte Geräte-/Provider-Abnahmen bleiben unverändert.
+Jede im Epic gebaute UI-Funktion und jeder Ablauf hat
 einen Spec in `e2e/specs/`. Offene Lücken stehen als `test.fixme` mit Task-
 oder Bug-ID im Gate, nie als gelöschter Test. Details:
 [`docs/testing-e2e.md`](../docs/testing-e2e.md).

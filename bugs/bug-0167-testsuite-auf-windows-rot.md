@@ -9,7 +9,7 @@ commit: "88364357"
 forge: ""
 epic: ""
 created: 2026-11-16
-reporter: Pi-Session 2026-11-16 (Gate für BUG-0161 bis 0164 sollte gefahren werden)
+reporter: Pi-Session 2026-11-16 (Gate für BUG-0168 bis 0171 sollte gefahren werden)
 ---
 
 ## Gesehen

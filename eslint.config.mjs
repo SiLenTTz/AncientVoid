@@ -7,6 +7,7 @@ export default tseslint.config(
     ignores: [
       "**/dist/**",
       "**/node_modules/**",
+      "**/.claude/worktrees/**",
       "apps/pwa/**",
       // CommonJS config read by dependency-cruiser (ADR-0020).
       ".dependency-cruiser.cjs",

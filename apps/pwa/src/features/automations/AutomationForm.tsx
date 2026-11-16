@@ -1,14 +1,15 @@
-import { useEffect, useState } from "preact/hooks";
-import type { AutomationInfo, AutomationSchedule, AutomationTarget, OrchestrationRun } from "@ancientvoid/contracts";
+import { useEffect, useRef, useState } from "preact/hooks";
+import type { AutomationInfo, AutomationSchedule, AutomationTarget, Team } from "@ancientvoid/contracts";
+import type { ActionDefinition } from "../../shared/api.ts";
 import { useApi } from "../../shared/api-context.ts";
 import { sha256Hex } from "./automation-labels.ts";
 
 const TZ_SUGGESTIONS = ["Europe/Berlin", "Europe/London", "UTC", "America/New_York"];
 
-export function AutomationForm({ adapters, projects, runs, editing, disabled, onSaved, onCancel }: {
+export function AutomationForm({ adapters, projects, teams, editing, disabled, onSaved, onCancel }: {
   adapters: string[];
   projects: string[];
-  runs: OrchestrationRun[];
+  teams: Team[];
   editing: AutomationInfo | null;
   disabled: boolean;
   onSaved: () => void;
@@ -17,13 +18,18 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
   const api = useApi();
   const existing = editing?.definition ?? null;
   const target = existing?.target;
-  const [targetKind, setTargetKind] = useState<"session" | "run">(target?.kind ?? "session");
-  const [templateId, setTemplateId] = useState(target?.kind === "run" ? target.templateId : "");
-  const [weekdays, setWeekdays] = useState<number[]>(existing?.schedule.kind === "preset" ? existing.schedule.weekdays ?? [1] : [1]);
+  const [targetKind, setTargetKind] = useState<"session" | "team" | "script">(target?.kind ?? "session");
+  const [templateId, setTemplateId] = useState(target?.kind === "team" ? target.templateId : "");
+  const [actionId, setActionId] = useState(target?.kind === "script" ? target.actionId : "");
+  const [actions, setActions] = useState<ActionDefinition[] | null>(null);
+  const [actionsLoading, setActionsLoading] = useState(false);
+  const [actionsError, setActionsError] = useState("");
+  const actionsSeq = useRef(0);
   const [label, setLabel] = useState(existing?.label ?? "");
+  const [weekdays, setWeekdays] = useState<number[]>(existing?.schedule.kind === "preset" ? existing.schedule.weekdays ?? [1] : [1]);
   const [harness, setHarness] = useState(target?.kind === "session" ? target.harness : "");
   const [model, setModel] = useState(target?.kind === "session" && target.model ? target.model : "");
-  const [project, setProject] = useState(target?.kind === "session" ? target.project : "");
+  const [project, setProject] = useState(target?.kind === "session" || target?.kind === "script" ? target.project : "");
   const [workdir, setWorkdir] = useState<"worktree" | "direct">(target?.kind === "session" ? target.workdir : "worktree");
   const [scheduleKind, setScheduleKind] = useState<"preset" | "cron">(existing?.schedule.kind === "cron" ? "cron" : "preset");
   const [preset, setPreset] = useState<"hourly" | "daily" | "weekly" | "weekday">(existing?.schedule.kind === "preset" ? existing.schedule.preset : "daily");
@@ -48,11 +54,27 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
     };
   }, [hostId]);
 
+  useEffect(() => {
+    // ADR-0080: Skript-Ziele wählen eine registrierte Aktion des Projekts — lazily, sobald ein Projekt steht.
+    if (targetKind !== "script") return;
+    const path = project.trim();
+    if (!path) { setActions(null); setActionsError(""); return; }
+    const current = ++actionsSeq.current;
+    let alive = true;
+    setActionsLoading(true); setActionsError("");
+    api.automationActions(path)
+      .then((res) => { if (alive && current === actionsSeq.current) setActions(res.actions); })
+      .catch((err: unknown) => { if (alive && current === actionsSeq.current) { setActions(null); setActionsError(err instanceof Error ? err.message : "Aktionen nicht lesbar"); } })
+      .finally(() => { if (alive && current === actionsSeq.current) setActionsLoading(false); });
+    return () => { alive = false; };
+  }, [targetKind, project]);
+
   const submit = async () => {
     setError("");
     if (disabled || !navigator.onLine) { setError("Offline — Speichern ist gesperrt."); return; }
-    if (!label.trim() || (targetKind === "session" && (!harness || !project.trim() || ((!existing || target?.kind !== "session") && !promptText.trim()))) || (targetKind === "run" && !templateId)) {
-      setError("Label und vollständiges Ziel sind Pflicht. Neue Sessions brauchen einen Prompt.");
+    if (!label.trim() || (targetKind === "session" && (!harness || !project.trim() || ((!existing || target?.kind !== "session") && !promptText.trim())))
+      || (targetKind === "team" && !templateId) || (targetKind === "script" && (!project.trim() || !actionId))) {
+      setError("Label und vollständiges Ziel sind Pflicht. Neue Sessions brauchen einen Prompt; Skripte brauchen Projekt und Aktion.");
       return;
     }
     if (!hostId) {
@@ -72,7 +94,9 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
         enabled: false, // Neuanfang/Zurücksetzung: die Aktivierung ist die separate Freigabe.
         hostId,
         schedule,
-        target: (targetKind === "run" ? { kind: "run", templateId } : { kind: "session", harness, ...(model.trim() ? { model: model.trim() } : {}), workdir, project: project.trim(), promptBlobSha256 }) satisfies AutomationTarget,
+        target: (targetKind === "team" ? { kind: "team", templateId }
+          : targetKind === "script" ? { kind: "script", project: project.trim(), actionId }
+          : { kind: "session", harness, ...(model.trim() ? { model: model.trim() } : {}), workdir, project: project.trim(), promptBlobSha256 }) satisfies AutomationTarget,
         ...(precheckActionId.trim() ? { precheckActionId: precheckActionId.trim() } : {}),
         precheckDeadlineMs: 60_000,
         grant: { maxParallel, missedGraceMs: missedGraceMinutes * 60_000 },
@@ -98,8 +122,21 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
       <label>Label
         <input value={label} onInput={(e) => setLabel(e.currentTarget.value)} maxlength={80} placeholder="Morgen-Briefing" required />
       </label>
-      <label>Zielart<select value={targetKind} onChange={e => setTargetKind(e.currentTarget.value as "session" | "run")}><option value="session">Session</option><option value="run">Orchestrierungsrun</option></select></label>
-      {targetKind === "run" ? <label>Run-Vorlage<select value={templateId} onChange={e => setTemplateId(e.currentTarget.value)} required><option value="">Vorhandenen Run wählen</option>{runs.filter(run => run.tasks.length > 0).map(run => <option key={run.id} value={run.id}>{run.title}</option>)}</select></label> : <>
+      <label>Automationart<select value={targetKind} onChange={e => setTargetKind(e.currentTarget.value as "session" | "team" | "script")}><option value="session">Cron-Job · Session-Trigger</option><option value="team">Service · Agenten-Team</option><option value="script">Skript-Start · Miniskript</option></select></label>
+      {targetKind === "team" ? <label>Team-Vorlage<select value={templateId} onChange={e => setTemplateId(e.currentTarget.value)} required><option value="">Vorhandenes Team wählen</option>{teams.filter(team => team.tasks.length > 0).map(team => <option key={team.id} value={team.id}>{team.title}</option>)}</select></label> : targetKind === "script" ? <>
+      <label>Projekt
+        <input list="automation-projects" value={project} onInput={(e) => setProject(e.currentTarget.value)} placeholder="/pfad/zum/repo" required />
+      </label>
+      <label>Aktion
+        <select value={actionId} onChange={e => setActionId(e.currentTarget.value)} required disabled={!project.trim() || actionsLoading}>
+          <option value="">{actionsLoading ? "lade Aktionen…" : project.trim() ? "Registrierte Aktion wählen" : "zuerst Projekt angeben"}</option>
+          {(actions ?? []).map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
+        </select>
+      </label>
+      {actionsError && <div class="files-error" role="alert">{actionsError}</div>}
+      {!actionsError && !actionsLoading && actions?.length === 0 && project.trim() && <p class="team-meta">Keine registrierten Aktionen für dieses Projekt gefunden.</p>}
+      <p class="team-meta">Der Skript-Start führt die Aktion ohne Shell im Projekt aus — mit Zeitplan wird sie zum cron-artigen Miniskript-Trigger.</p>
+      </> : <>
       <div class="form-grid">
         <label>Harness
           <input list="automation-adapters" value={harness} onInput={(e) => setHarness(e.currentTarget.value)} placeholder="dummy" required />
@@ -112,7 +149,6 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
       <label>Projekt
         <input list="automation-projects" value={project} onInput={(e) => setProject(e.currentTarget.value)} placeholder="/pfad/zum/repo" required />
       </label>
-      <datalist id="automation-projects">{projects.map((p) => <option key={p} value={p} />)}</datalist>
       <div class="form-grid">
         <label>Arbeitsort
           <select value={workdir} onChange={(e) => setWorkdir(e.currentTarget.value as "worktree" | "direct")}>
@@ -123,6 +159,7 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
 
       </div>
       </>}
+      <datalist id="automation-projects">{projects.map((p) => <option key={p} value={p} />)}</datalist>
         <label>Zeitzone
           <input list="automation-timezones" value={timezone} onInput={(e) => setTimezone(e.currentTarget.value)} />
         </label>
@@ -174,7 +211,7 @@ export function AutomationForm({ adapters, projects, runs, editing, disabled, on
       {targetKind === "session" && <label>Prompt (leer lassen behält den bisherigen Auftrag)
         <textarea rows={4} value={promptText} onInput={(e) => setPromptText(e.currentTarget.value)} placeholder="Was der Lauf tun soll…" required={!existing} />
       </label>}
-      <p class="run-meta">Neue und geänderte Automationen beginnen deaktiviert — die Aktivierung ist die Freigabe.</p>
+      <p class="team-meta">Neue und geänderte Automationen beginnen deaktiviert — die Aktivierung ist die Freigabe.</p>
       <div class="automation-form-actions">
         <button type="submit" class="btn" disabled={busy || disabled}>{existing ? "Speichern" : "Anlegen"}</button>
         <button type="button" class="btn" onClick={onCancel}>Abbrechen</button>

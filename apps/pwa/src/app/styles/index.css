@@ -49,7 +49,7 @@
 @import "./31-custom-models.css";
 @import "./32-repo-graph.css";
 @import "./33-vault.css";
-@import "./34-orchestration.css";
+@import "./34-teams.css";
 @import "./35-automationen.css";
 @import "./36-motion.css";
 @import "./37-forms.css";
@@ -61,3 +61,7 @@
 @import "./43-nyx-fab.css";
 @import "./44-git-graph.css";
 @import "./45-readable-content.css";
+@import "./46-shortcuts.css";
+@import "./47-sources.css";
+
+@import "./48-presets.css";

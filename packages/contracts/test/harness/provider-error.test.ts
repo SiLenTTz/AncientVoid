@@ -23,6 +23,12 @@ describe("classifyProviderError (ADR-0015)", () => {
     expect(failure).toMatchObject({ category: "quota", title: "Kontingent erschöpft" });
   });
 
+  it("erkennt Claudes Session-Limit als Kontingent (Nutzerfund 2026-11-15, Presentation-Session)", () => {
+    const info = classifyProviderError("You've hit your session limit · resets 2:20am (Europe/Berlin)");
+    expect(info.category).toBe("quota");
+    expect(info.title).toBe("Kontingent erschöpft (session)");
+  });
+
   it("reads z.ai's usage-limit text with window and reset time", () => {
     const info = classifyProviderError("AI_APICallError: Usage limit reached for 5 hour. Your limit will reset at 2026-09-09 11:57:58");
     expect(info).toMatchObject({ category: "quota", window: "5 h", resetAt: "2026-09-09 11:57:58" });

@@ -11,6 +11,8 @@
 #                             dsh|openai (openai fragt baseUrl/model, bzw.
 #                             --base-url/--model)
 #         --device-label=<n>   Name fürs Device-Token (Default: hostname)
+#         --projects=<dir>     projectRoots: Ordner, dessen Unterordner Git-Repos
+#                             sind (Tiefe 1; BUG-0153). Leer = Wizard fragt.
 #         --port=<n>           Port des Hubs (Default aus Config-Beispiel: 7373;
 #                             nützlich, wenn dort schon ein Hub läuft)
 #         --voidwarden         zusätzlich agent:- und display:-Token für
@@ -24,12 +26,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-ADAPTER=""; LABEL="$(hostname)"; YES=0; PWA=1; START=1; VOIDWARDEN=0; BASE_URL=""; MODEL=""; PORT=""
+ADAPTER=""; LABEL="$(hostname)"; YES=0; PWA=1; START=1; VOIDWARDEN=0; BASE_URL=""; MODEL=""; PORT=""; PROJECTS_ARG=""
 for arg in "$@"; do
   case "$arg" in
     --yes) YES=1 ;;
     --adapter=*) ADAPTER="${arg#*=}" ;;
     --device-label=*) LABEL="${arg#*=}" ;;
+    --projects=*) PROJECTS_ARG="${arg#*=}" ;;
     --port=*) PORT="${arg#*=}" ;;
     --voidwarden) VOIDWARDEN=1 ;;
     --no-pwa) PWA=0 ;;
@@ -130,18 +133,36 @@ fi
 
 # ---------------------------------------------------------------- 3 · Konfigurieren
 say "3/5 hub.config.json"
+# BUG-0153: Projektwurzeln — Sessions laufen in Git-Repos darunter (Tiefe 1).
+# Ohne sie bleibt die Projektliste leer und die erste Session hängt an der
+# Config (Tutorial §3). --yes bleibt kopflos (Messläufe/E2E) und sagt es ehrlich.
+PROOT=""
+if [ -n "$PROJECTS_ARG" ]; then
+  PROOT="$PROJECTS_ARG"
+elif [ "$YES" != 1 ]; then
+  ask PROOT "Ordner, dessen Unterordner deine Git-Repos sind (projectRoots; leer lassen = noch keine)" "$HOME/Projects"
+fi
+if [ -n "$PROOT" ] && [ ! -d "$PROOT" ]; then
+  echo "Hinweis: '$PROOT' existiert (noch) nicht — eingetragen; vor der ersten Session anlegen." >&2
+fi
 if [ ! -f hub.config.json ]; then
-  node - "$ADAPTER_JSON" "$PORT" <<'EOF'
+  node - "$ADAPTER_JSON" "$PORT" "$PROOT" <<'EOF'
 const fs = require("node:fs");
 const adapter = JSON.parse(process.argv[2]);
 const port = process.argv[3] ? Number(process.argv[3]) : null;
 const cfg = JSON.parse(fs.readFileSync("apps/hub/hub.config.example.json", "utf8"));
 delete cfg.$comment;
 if (port) cfg.server = { ...cfg.server, port };
+if (process.argv[4]) cfg.projectRoots = [require("node:path").resolve(process.argv[4])];
 cfg.adapters = [adapter, ...cfg.adapters.filter((a) => a.id !== adapter.id && a.id !== "dummy")];
 fs.writeFileSync("hub.config.json", JSON.stringify(cfg, null, 2) + "\n", { mode: 0o600 });
 EOF
   echo "angelegt: hub.config.json (Adapter '$ADAPTER' eingetragen, git-ignored)"
+  if [ -n "$PROOT" ]; then
+    echo "projectRoots: $PROOT"
+  else
+    echo "projectRoots: (leer) — erste Session braucht eine Projektwurzel: ./setup.sh --projects=<ordner> oder hub.config.json (Tutorial docs/tutorial-erste-schritte.md §3)"
+  fi
 else
   HAVE="$(node -e 'const c=require("./hub.config.json");process.stdout.write((c.adapters??[]).map(a=>a.id).join(" "))')"
   ID="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).id)' "$ADAPTER_JSON")"

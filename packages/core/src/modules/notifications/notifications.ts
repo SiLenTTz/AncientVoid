@@ -10,12 +10,9 @@ export interface NotificationDraft {
 export interface NotificationContext {
   adapter: string;
   project: string;
-  /** A provider.error was already reported for this turn — a following
-   * "process exited" or adapter.down only repeats it. */
-  recentProviderError: boolean;
 }
 
-function projectName(project: string): string {
+export function projectName(project: string): string {
   return project.split("/").filter(Boolean).pop() ?? project;
 }
 
@@ -36,13 +33,17 @@ export function notificationFor(event: NormalizedEvent, ctx: NotificationContext
     case "session.recovery_failed":
       return { level: "error", title: `${where} · Wiederherstellung fehlgeschlagen`, detail: text(payload.reason), kind };
     case "adapter.down":
-      return ctx.recentProviderError
-        ? null
-        : { level: "error", title: `${where} · ${ctx.adapter} antwortet nicht`, detail: text(payload.detail), kind };
+      return { level: "error", title: `${where} · ${ctx.adapter} antwortet nicht`, detail: text(payload.detail), kind };
     case "session.interrupted":
       return { level: "warning", title: `${where} · Session unterbrochen`, detail: text(payload.reason), kind };
     case "session.turn_end":
-      if (payload.reason === "interrupted" || payload.reason === "error") return null;
+      if (payload.reason === "interrupted") return null;
+      // Nutzerfund 2026-11-15: ein abgebrochener Lauf ist eine Fehler-Meldung
+      // wert — aber nur eine pro Lauf, mit den Worten des Provider-Fehlers,
+      // wenn es einen gab (siehe recordNotifications).
+      if (payload.reason === "error") {
+        return { level: "error", title: `${where} · Zug fehlgeschlagen`, detail: text(payload.detail) ?? "Der Zug endete mit einem Fehler — Details im Verlauf.", kind: "session.turn_failed" };
+      }
       return { level: "success", title: `${where} · Zug fertig`, detail: `${ctx.adapter} wartet auf den nächsten Prompt.`, kind };
     case "tool.permission_requested":
       return {
@@ -76,6 +77,10 @@ export function notificationFor(event: NormalizedEvent, ctx: NotificationContext
       };
     case "operation.rejected_changed":
       return { level: "error", title: `${where} · Aktion nicht ausgeführt`, detail: "Die Argumente weichen von der Freigabe ab.", kind };
+    // ADR-0076: gescheiterte Hintergrundarbeit blockiert die Wiederaufnahme —
+    // das bleibt hängen und gehört auf den Bildschirm, nicht nur in den Verlauf.
+    case "session.recovery_blocked":
+      return { level: "error", title: `${where} · Hintergrundarbeit fehlgeschlagen`, detail: text(payload.detail), kind };
     case "session.recovered":
       // 2026-10-25: only warn when the session was ACTIVELY working — an idle
       // session between turns loses nothing by falling back to observed mode.
@@ -85,8 +90,12 @@ export function notificationFor(event: NormalizedEvent, ctx: NotificationContext
         ? { level: "warning", title: `${where} · nach Neustart nicht steuerbar`, detail: "Die Session lief mitten im Zug und ist jetzt nur noch lesbar.", kind }
         : null;
   }
+  // BUG-0162: Nur System-Events sind Prozesswahrheit — thinking/assistant
+  // Inhalte, die den String wörtlich enthalten (Agent debuggt Prozesse),
+  // sind keine Absturzmeldung.
+  if (event.type !== "system") return null;
   const exited = /process exited with code (\d+)/.exec(event.summary);
-  if (exited && !ctx.recentProviderError) {
+  if (exited) {
     return { level: "error", title: `${where} · ${ctx.adapter} abgebrochen (Code ${exited[1]})`, detail: "Der Provider-Prozess endete mit einem Fehler. Details im Verlauf.", kind: "process.exit" };
   }
   return null;

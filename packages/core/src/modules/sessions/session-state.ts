@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Adapter, NormalizedEvent, SessionActivity, SessionHandle, SessionRecord, SessionStatus } from "@ancientvoid/contracts";
+import type { NotificationDraft } from "../notifications/index.ts";
 
 export const WRITER_LEASE_MS = 30_000;
 
@@ -42,6 +43,11 @@ export interface LiveSession {
   mainTurnIdle?: boolean;
   lifecycle?: Promise<void>;
   turnFailed?: boolean;
+  /** ADR-0015 Nachtrag 2026-11-15: Provider-Fehler dieses Laufs, zurückgehalten
+   * bis der Lauf wirklich abbricht — überstandene Fehler bleiben im Verlauf. */
+  pendingErrorDraft?: NotificationDraft | null;
+  /** Für diesen Lauf wurde bereits eine Fehler-Meldung gespeichert. */
+  runFailureNotified?: boolean;
   record: SessionRecord;
   adapter: Adapter;
   handle: SessionHandle | null;
@@ -223,8 +229,49 @@ export const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   interrupted: ["working", "stopping", "stopped", "error", "parked"],
   // ADR-0015: a failed turn (quota, rate limit, provider outage) is not a
   // dead session — the next prompt may start a new turn.
-  error: ["stopping", "stopped", "working", "parked"],
+  // ADR-0076 Nachtrag (Limit-Wiederaufnahme): error → interrupted ist der
+  // ausdrückliche menschliche Beschluss „nach dem Limit-Fenster automatisch
+  // weitermachen" — kein automatischer Übergang, nur via setAutoResumeOnLimit.
+  error: ["stopping", "stopped", "working", "parked", "interrupted"],
 };
 
 /** T1.9: 30s default per EPIC-P1 §2 ("Heartbeat pro Adapter (30 s)"). */
 export const DEFAULT_HEARTBEAT_MS = 30_000;
+
+/** ADR-0076 Nachtrag (Limit-Wiederaufnahme): Das gesperrte Limit-Fenster
+ * aus dem Journal lesen — letzte strukturierte Kontingent-Meldung des
+ * Providers (ADR-0004, usageQuota), früheste zukünftige Freigabe der
+ * ausgelasteten Fenster (utilization >= 1). `known` sagt, ob der Provider
+ * überhaupt Fenster gemeldet hat; ohne Fenster wird nicht geraten. */
+export function limitWindow(events: readonly NormalizedEvent[], now = Date.now()): { known: boolean; blockedUntil?: string } {
+  const quota = events.findLast((e) => e.usageQuota !== undefined)?.usageQuota;
+  if (!quota) return { known: false };
+  let blockedUntil: string | undefined;
+  for (const window of quota.windows) {
+    if (window.utilization < 1) continue;
+    const at = Date.parse(window.resetsAt);
+    if (!Number.isFinite(at) || at <= now) continue;
+    if (blockedUntil === undefined || at < Date.parse(blockedUntil)) blockedUntil = window.resetsAt;
+  }
+  return blockedUntil === undefined ? { known: true } : { known: true, blockedUntil };
+}
+
+/** ADR-0076 Nachtrag: Starb der aktuelle Zug am Kontingent/Rate-Limit?
+ * Wahr, wenn die letzte sichtbare Provider-Fehlermeldung diese Kategorie
+ * trägt (cursor.usage_limit zählt als Kontingent) oder der Provider ein
+ * gesperrtes Fenster gemeldet hat — auch bei „unknown“-Kategorie, weil
+ * Claude „session limit“ schreibt (Nutzerfund 2026-11-15). */
+export function limitFailureInEvents(events: readonly NormalizedEvent[]): boolean {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const event = events[i]!;
+    const kind = (event.payload as { kind?: unknown }).kind;
+    if (kind === "session.prompt" || kind === "session.handover_out") return false;
+    if (event.type === "assistant") return false;
+    if (kind === "provider.error") {
+      const category = (event.payload as { category?: unknown }).category;
+      return category === "quota" || category === "rate_limit" || limitWindow(events).blockedUntil !== undefined;
+    }
+    if (kind === "cursor.usage_limit") return true;
+  }
+  return false;
+}

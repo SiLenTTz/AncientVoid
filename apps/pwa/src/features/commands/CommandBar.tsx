@@ -1,9 +1,13 @@
+import { readStatusNote, STATUS_NOTE_EVENT } from "../../shared/status-notes.ts";
+import { jumpToSource, sourcesOf, SOURCES_EVENT } from "../../shared/sources.ts";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, remoteHost, type CommandPlan, type StepResult } from "../../shared/api.ts";
 import { commandContext, currentField, field, getHere, type FieldId } from "../../shared/command-context.ts";
 import { pageHash, sessionHash, type ListPage } from "../../app/route.ts";
 import { preselectProject } from "../new-session/CreateSession.tsx";
 import { COMMANDS as EXAMPLES, QUICK_KIND_LABEL, quickMatches, type QuickSources, type QuickTarget } from "./quick.ts";
+import { registerShortcut } from "../../shared/shortcuts/registry.ts";
+import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 
 const RISK_TEXT = { read: "liest", write: "ändert", destructive: "zerstörerisch" } as const;
 const TRANSFORM_TEXT: Record<string, string> = { correct: "korrigiert", shorten: "gekürzt", translate_en: "übersetzt (Englisch)", translate_de: "übersetzt (Deutsch)", improve: "verbessert" };
@@ -57,9 +61,10 @@ export function CommandBar() {
   const input = useRef<HTMLInputElement>(null);
   // EPIC-P43 T43.6: Schnellsuche — Sessions und Projekte einmal je Öffnen, die Treffer rechnet quick.ts.
   const [sources, setSources] = useState<Omit<QuickSources, "here">>({ sessions: [], projects: [] });
+  const [, setSourceTick] = useState(0);
   const [selected, setSelected] = useState(-1);
   const here = getHere();
-  const jumps = plan || results || edit ? [] : quickMatches(text, { ...sources, here: here.sessionId ? { sessionId: here.sessionId, hostId: here.hostId } : null });
+  const jumps = plan || results || edit ? [] : quickMatches(text, { ...sources, sourceRefs: sourcesOf(here.sessionId ?? "new"), notes: sources.sessions.flatMap(s => { const text = readStatusNote(s.id); return text ? [{ sessionId: s.id, hostId: s.hostId ?? null, text }] : []; }), here: here.sessionId ? { sessionId: here.sessionId, hostId: here.hostId } : null });
 
   useEffect(() => {
     if (!open) return;
@@ -72,6 +77,13 @@ export function CommandBar() {
     };
   }, [open]);
   useEffect(() => setSelected(-1), [text]);
+  useEffect(() => {
+    const sync = () => setSourceTick(n => n + 1);
+    window.addEventListener(SOURCES_EVENT, sync);
+    window.addEventListener(STATUS_NOTE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => { window.removeEventListener(SOURCES_EVENT, sync); window.removeEventListener(STATUS_NOTE_EVENT, sync); window.removeEventListener("storage", sync); };
+  }, []);
 
   const jump = (t: QuickTarget) => {
     if (t.kind === "befehl") {
@@ -81,30 +93,44 @@ export function CommandBar() {
     }
     setOpen(false);
     setText("");
-    if (t.kind === "session") runClientStep({ op: "session.open", sessionId: t.sessionId, hostId: t.hostId });
+    if (t.kind === "quelle") jumpToSource(t);
+    else if (t.kind === "statusnotiz") {
+      sessionStorage.setItem("ancientvoid.open-status-note", t.sessionId);
+      runClientStep({ op: "session.open", sessionId: t.sessionId, hostId: t.hostId });
+      window.dispatchEvent(new CustomEvent("ancientvoid:open-status-note"));
+    }
+    else if (t.kind === "session") runClientStep({ op: "session.open", sessionId: t.sessionId, hostId: t.hostId });
     else if (t.kind === "datei") runClientStep({ op: "code.search", sessionId: t.sessionId, hostId: t.hostId, text: t.text });
-    else if (t.kind === "werkzeug") location.hash = pageHash(t.page);
+    else if (t.kind === "werkzeug") location.hash = t.hash ?? pageHash(t.page);
     else {
       preselectProject(t.path);
       location.hash = pageHash("new");
     }
   };
 
+  // EPIC-P51 T51.5: Kürzel über die Registry (zentraler Dispatcher). Die
+  // Registrierung lebt im useEffect mit [open] — der Handler sieht frischen State.
+  // T51.6: Fokus rein/Tab-Falle/zurück (useOverlayFocus).
+  const { ref: sheet } = useOverlayFocus<HTMLDivElement>(open, { preferred: () => input.current });
   useEffect(() => {
-    const key = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOpen((o) => !o);
-      } else if (e.key === "Escape") setOpen(false);
-    };
     const openIt = () => setOpen(true);
-    window.addEventListener("keydown", key);
     window.addEventListener("ancientvoid:command-bar", openIt);
+    const offToggle = registerShortcut("command.toggle", (e) => {
+      e.preventDefault();
+      setOpen((o) => !o);
+    });
+    const offClose = open
+      ? registerShortcut("command.close", (e) => {
+          e.preventDefault();
+          setOpen(false);
+        })
+      : null;
     return () => {
-      window.removeEventListener("keydown", key);
       window.removeEventListener("ancientvoid:command-bar", openIt);
+      offToggle();
+      offClose?.();
     };
-  }, []);
+  }, [open]);
   useEffect(() => {
     if (open) setTimeout(() => input.current?.focus(), 0);
     else {
@@ -171,7 +197,7 @@ export function CommandBar() {
 
   const writes = plan && plan.steps.some((s) => s.risk !== "read");
   return (
-    <div class="command-sheet" role="dialog" aria-label="Auftrag in Worten">
+    <div class="command-sheet" role="dialog" aria-label="Auftrag in Worten" ref={sheet}>
       <form
         class="command-form"
         onSubmit={(e) => {

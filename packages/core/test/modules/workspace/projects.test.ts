@@ -38,7 +38,7 @@ describe("discoverProjects (T1.5-4)", () => {
     await mkdir(join(repo2, ".git"), { recursive: true });
     await writeFile(join(repo2, ".git", "HEAD"), "abcdef1234567890\n");
 
-    // Ein Ordner ohne `.git` — BUG-0162: er WIRD gelistet (isGit false), vorher
+    // Ein Ordner ohne `.git` — BUG-0169: er WIRD gelistet (isGit false), vorher
     // war lokales Arbeiten ohne Git im Interface nicht auffindbar.
     await mkdir(join(root, "not-a-repo"), { recursive: true });
     // Nicht-Git-Ordner, der alphabetisch vor den Repos liegt — prüft die Reihenfolge.
@@ -60,7 +60,7 @@ describe("discoverProjects (T1.5-4)", () => {
     await rm(outsideDir, { recursive: true, force: true });
   });
 
-  it("lists immediate subdirectories including folders without .git (BUG-0162), git repos first", async () => {
+  it("lists immediate subdirectories including folders without .git (BUG-0169), git repos first", async () => {
     const { projects, warnings } = await discoverProjects([root]);
     expect(warnings).toEqual([]);
     expect(projects.map((p) => p.name)).toEqual(["AncientVoid", "custom-rag", "a-plain-ordner", "not-a-repo"]);
@@ -138,7 +138,7 @@ describe("isProjectPathAllowed (T1.5-4, AC-P1.5-5)", () => {
     expect(await isProjectPathAllowed(outsideDir, [root])).toBe(false);
   });
 
-  it("allows a path inside a root that does not exist yet (BUG-0161)", async () => {
+  it("allows a path inside a root that does not exist yet (BUG-0168)", async () => {
     // Der Nutzer soll einen neuen Ordner in einer konfigurierten Wurzel als
     // Session-Ziel angeben koennen; vorher warf realpath und die Antwort war
     // "outside the configured projectRoots" - eine Aussage, die nicht stimmte.
@@ -163,7 +163,7 @@ describe("isProjectPathAllowed (T1.5-4, AC-P1.5-5)", () => {
   });
 });
 
-describe("ensureProjectDir (BUG-0161)", () => {
+describe("ensureProjectDir (BUG-0168)", () => {
   let root: string;
   let outsideDir: string;
 

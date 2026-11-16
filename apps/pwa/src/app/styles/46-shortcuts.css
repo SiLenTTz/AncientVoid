@@ -1,0 +1,7 @@
+/* EPIC-P51 T51.7: Kürzel-Übersicht (CheatSheet.tsx) — Registry-getrieben. */
+.cheatsheet { display: grid; gap: 6px; min-width: min(420px, calc(100vw / var(--ui-zoom, 1) - 32px)); }
+.cheatsheet-head { margin-top: 8px; font-size: calc(11px * var(--font-scale, 1)); text-transform: uppercase; letter-spacing: 0.06em; }
+.cheatsheet-row { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: baseline; }
+.cheatsheet-key { font-family: var(--font-mono, monospace); font-size: calc(12px * var(--font-scale, 1)); background: var(--bg-chip); border-radius: var(--radius-sm); padding: 2px 6px; text-align: center; white-space: nowrap; }
+.cheatsheet-desc { font-size: calc(13px * var(--font-scale, 1)); }
+.cheatsheet-note { margin-top: 8px; font-size: calc(11px * var(--font-scale, 1)); }

@@ -29,7 +29,7 @@ export function WorkplaceChoice({
   onMode: (mode: WorkplaceMode) => void;
   confirmDirty: boolean;
   onConfirmDirty: (value: boolean) => void;
-  /** ADR-0077: ausdrücklich bestätigtes parallels Schreiben in einem Nicht-Git-Ordner. */
+  /** ADR-0081: ausdrücklich bestätigtes parallels Schreiben in einem Nicht-Git-Ordner. */
   confirmShared: boolean;
   onConfirmShared: (value: boolean) => void;
   /** Start ist blockiert (Checkout belegt, Dirty unbestätigt, Vorschau fehlt) — Grund steht in der Karte. */
@@ -59,7 +59,7 @@ export function WorkplaceChoice({
 
   const direct = mode === "direct";
   const dirty = preview?.dirty ?? [];
-  // ADR-0077: „belegt“ heißt nicht mehr nur Allein-Schreiber — in Ordnern ohne Git
+  // ADR-0081: „belegt“ heißt nicht mehr nur Allein-Schreiber — in Ordnern ohne Git
   // sind Mit-Nutzer erlaubt, aber nur nach Bestätigung. Git bleibt gesperrt.
   const isGitCheckout = preview ? preview.isGit : true;
   const holders = direct ? preview?.holders ?? (preview?.heldBy ? [preview.heldBy] : []) : [];

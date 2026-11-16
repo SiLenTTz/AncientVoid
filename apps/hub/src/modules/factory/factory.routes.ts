@@ -38,7 +38,7 @@ export function registerFactoryRoutes(app: FastifyInstance, ctx: RouteContext): 
     if (!(await isProjectPathAllowed(project, projectRoots))) {
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
-    // BUG-0161: auch ein Factory-Start darf einen noch fehlenden Ordner innerhalb
+    // BUG-0168: auch ein Factory-Start darf einen noch fehlenden Ordner innerhalb
     // einer erlaubten Wurzel anlegen (eine Ebene), statt falsch "outside roots" zu melden.
     try {
       await ensureProjectDir(project, projectRoots);

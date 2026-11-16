@@ -57,7 +57,7 @@ export function headAndTail(path: string, size: number, headBytes: number, tailB
  * Whether an allowed-roots policy hides `project` (ADR-0011: other people's
  * sessions). No roots = nothing hidden.
  *
- * BUG-0165: frueher `project.startsWith(root + "/")` — auf Windows gal damit
+ * BUG-0172: frueher `project.startsWith(root + "/")` — auf Windows gal damit
  * jeder Pfad unterhalb einer Wurzel als versteckt, und der Windows-Nutzer ließ
  * `projectRoots` leer (wodurch auch die Allowlist von AC-P1.5-5 leer lief).
  * Der Pfadstil ist parametrisiert, damit der win32-Zweig auf jedem CI testbar ist.

@@ -55,7 +55,7 @@ test.describe("Medien: Videos analysieren (EPIC-P10.5)", () => {
   // One stand-in server for both tests (one worker).
   test.describe.configure({ mode: "serial" });
 
-  test("Videodatei → Schritte mit Fortschritt → Transkript, Schlüsselbilder mit Text, Kapitel; das Ergebnis geht in eine Session (AC-P10.5-1/5)", async ({ app, hub }) => {
+  test("Videodatei → Schritte mit Fortschritt → Transkript, Schlüsselbilder mit Text, Kapitel; das Ergebnis geht in eine Session (AC-P10.5-1/5) @desktop", async ({ app, context, hub }) => {
     // ffmpeg on a shared CI runner needs longer than the 45 s default.
     test.setTimeout(120_000);
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
@@ -64,14 +64,24 @@ test.describe("Medien: Videos analysieren (EPIC-P10.5)", () => {
     await expect(app).toHaveURL(/#\/medien$/);
     await expect(app.locator(".media-caps")).toContainText("✓ Transkript lokal");
     await expect(app.locator(".media-caps")).toContainText("✓ Zusammenfassung lokal");
+    // Der Result-Fetch scheitert anfangs am Netz (zweimal, für ein stabiles Fenster):
+    // Der Fehler steht sichtbar da, das 2-s-Poll der Karte retryt, bis die
+    // Zusammenfassung doch lädt — kein stilles Verschwinden des Step-Ergebnisses.
+    let resultFetches = 0;
+    await context.route("**/api/media/jobs/*/result", (route) => {
+      resultFetches += 1;
+      if (resultFetches <= 2) return route.abort();
+      return route.fallback();
+    });
     await app.getByLabel("Videodatei").setInputFiles(video);
     const job = app.locator(".media-job.selected");
     await expect(job.locator(".chip")).toHaveText("fertig", { timeout: 60_000 });
+    await expect(job.locator('[role="alert"]').first()).toContainText("Zusammenfassung nicht ladbar");
     await expect(job.locator(".media-step.done")).toHaveCount(7);
     // Only own hardware was asked (stand-ins on 127.0.0.1): nothing to a third party.
     await expect(job.locator(".media-egress")).not.toContainText("googleapis");
     const result = job.locator(".media-result");
-    await expect(result).toContainText("Drei Folien: Session starten");
+    await expect(result).toContainText("Drei Folien: Session starten", { timeout: 15_000 });
     await expect(result.locator(".media-chapters li")).toHaveCount(3);
     await expect(result.locator(".media-frame")).toHaveCount(3);
     await expect(result.locator(".media-frame img")).toHaveCount(3);
@@ -80,6 +90,16 @@ test.describe("Medien: Videos analysieren (EPIC-P10.5)", () => {
     // A file has no player: a chapter's timestamp marks the transcript line.
     await result.locator(".media-chapters li").nth(1).getByRole("button", { name: "0:06" }).click();
     await expect(result.locator(".media-line.focus")).toContainText("npm test");
+    // Klick auf ein Schlüsselbild öffnet das Vollbild; Esc schließt nur das
+    // Vollbild — die Medien-Seite selbst bleibt offen (tool.close sieht das preventDefault).
+    await result.locator(".media-frame").nth(1).getByRole("button", { name: /Vollbild öffnen/ }).click();
+    const lightbox = app.locator('[data-testid="media-lightbox"]');
+    await expect(lightbox).toBeVisible();
+    await expect(lightbox.locator("img")).toBeVisible();
+    await expect(lightbox).toContainText("Bild bei");
+    await app.keyboard.press("Escape");
+    await expect(lightbox).toHaveCount(0);
+    await expect(app).toHaveURL(/#\/medien$/);
 
     await result.getByLabel("Ziel-Session").selectOption(id);
     await result.getByRole("button", { name: "In Session verwenden" }).click();
@@ -94,7 +114,7 @@ test.describe("Medien: Videos analysieren (EPIC-P10.5)", () => {
     expect(seen.filter((u) => u === "/inference")).toHaveLength(1);
   });
 
-  test("YouTube-Link mit Untertiteln: kein STT nötig, Zeitmarke öffnet das Video an der Stelle; privates Video scheitert in Worten", async ({ app, context }) => {
+  test("YouTube-Link mit Untertiteln: kein STT nötig, Zeitmarke öffnet das Video an der Stelle; privates Video scheitert in Worten @desktop", async ({ app, context }) => {
     await dockGo(app, "Medien");
     const before = seen.length;
     await app.getByLabel("Video-Link").fill("https://www.youtube.com/watch?v=untertitel");

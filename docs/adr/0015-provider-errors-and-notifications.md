@@ -44,3 +44,38 @@ Fehler anderer Sessions sah man nur, wenn man sie gerade offen hatte.
 - Copilot und aider haben keine eigene Fehlerzeile; bei ihnen bleibt
   „abgebrochen (Code n)“ mit Verweis auf den Verlauf.
 - Meldungen werden nicht automatisch gelöscht; die Liste zeigt die neuesten.
+
+## Nachtrag 2026-11-15 — Wichtiges first: Sektionen, Laufende statt Tool-Ende, Fehler erst beim Abbruch
+
+Nutzerfund: die Glocke flutete mit „Zug fertig“ und Einzelfehlern, Fehler und
+Rückfragen gingen unter. Drei Regeln:
+
+1. **Drei Sektionen im Panel.** „Fehler“ (level error) und „Offene Fragen“
+   (Freigabe-/Rückfrage-Meldungen, deren Freigabe laut Warteschlange noch
+   aussteht — live geprüft gegen `/api/approvals?status=pending`, eigener Hub
+   und Peers) stehen angepinnt oben, „Übrige Meldungen“ darunter. Eine
+   beantwortete Frage rutscht automatisch in die übrigen Meldungen.
+2. **„Zug fertig“ nur am echten Laufende.** `SessionActivities.closeIfLast`
+   und `SessionManager.endActivity` schließen den Lauf nicht mehr, während
+   der Hauptzug läuft (`mainTurnIdle === false`) — persistente Adapter
+   (ACP, app-server) melden jeden Tool-Call als Aktivität, und die Lücke
+   zwischen zwei sequenziellen Werkzeugen war fälschlich ein Laufende
+   (vorzeitiges `session.turn_end`, Status-Flackern, „Zug fertig“ pro
+   Tool-Call). Ausnahme bleibt externe Arbeit (ADR-0074): Ihr Ende schließt
+   den Lauf wie vorher — sie meldet sich explizit und ist autoritativ.
+   Ein fehlgeschlagenes Ende externer Arbeit beendet den Lauf jetzt ehrlich
+   mit `turn_end {reason: "error", detail: <Label>}` statt success-idle.
+3. **Fehler benennen erst beim Abbruch — einmal pro Lauf.**
+   `provider.error` wird zurückgehalten (`LiveSession.pendingErrorDraft`);
+   erst wenn der Lauf wirklich abbricht (`session.turn_end {reason:"error"}`,
+   `session.interrupted`, `adapter.down`, Prozess-Ende,
+   `session.recovery_blocked`, …), wird genau eine Fehler-Meldung
+   gespeichert — mit den Worten des letzten Provider-Fehlers (Kontingent,
+   Serverfehler …), sonst mit der jeweiligen Ursache (`session.turn_failed`,
+   `session.recovery_blocked` sind neue Meldungs-Kinds, in
+   `PUSH_KIND_CATEGORY` als „error“ gemappt). Ein Zug, der trotz
+   Provider-Fehlers sauber endet, benachrichtigt gar nicht. Nach einem
+   Abbruch bleiben Folge-Meldungen desselben Abbruchs (z. B. gescheitertes
+   Auto-Resume) stumm; der nächste Prompt beginnt einen neuen Lauf. Die
+   frühere 30-s-Unterdrückung (`recentProviderError`) ist damit entfallen —
+   die Zurückhaltung gilt laufweit, nicht zeitfensterweit.

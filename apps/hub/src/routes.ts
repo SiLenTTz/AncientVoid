@@ -17,7 +17,7 @@ import { registerCodeRoutes } from "./modules/code/code.routes.ts";
 import { registerGraphRoutes } from "./modules/graph/graph.routes.ts";
 import { registerGitGraphRoutes } from "./modules/git-graph/git-graph.routes.ts";
 import { registerVaultRoutes } from "./modules/vault/vault.routes.ts";
-import { registerOrchestrationRoutes } from "./modules/orchestration/orchestration.routes.ts";
+import { registerTeamRoutes } from "./modules/team/team.routes.ts";
 import { registerLoopsRoutes } from "./modules/loops/loops.routes.ts";
 import { registerFactoryRoutes } from "./modules/factory/factory.routes.ts";
 import { registerCommandRoutes } from "./modules/commands/commands.routes.ts";
@@ -27,6 +27,7 @@ import { registerForgeRoutes } from "./modules/forge/forge.routes.ts";
 import { registerAutomationsRoutes } from "./modules/automations/automations.routes.ts";
 import { registerBrowserRoutes } from "./modules/browser/browser.routes.ts";
 import { registerDeviceRoutes } from "./modules/devices/device.routes.ts";
+import { registerAiMetricsRoutes } from "./modules/aimetrics/aimetrics.routes.ts";
 
 /** Composition of every module's HTTP routes (ADR-0020). */
 export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
@@ -48,7 +49,7 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
   registerGraphRoutes(app, ctx);
   registerGitGraphRoutes(app, ctx);
   registerVaultRoutes(app, ctx);
-  registerOrchestrationRoutes(app, ctx);
+  registerTeamRoutes(app, ctx);
   registerLoopsRoutes(app, ctx);
   registerFactoryRoutes(app, ctx);
   registerCommandRoutes(app, ctx, deps.assistantModel ? { model: deps.assistantModel } : {});
@@ -57,5 +58,6 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
   registerAutomationsRoutes(app, ctx);
   registerBrowserRoutes(app, ctx);
   registerDeviceRoutes(app, ctx);
+  registerAiMetricsRoutes(app, ctx);
   registerConnectionRoutes(app, ctx);
 }

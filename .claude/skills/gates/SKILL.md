@@ -5,9 +5,17 @@ description: Faehrt die Qualitaets-Gates dieses Repos (npm test/lint/typecheck/l
 
 # Skill: gates
 
-Eine Definition von "grün", für Mensch und Agent. Dieselben Kommandos laufen
-in der GitLab-CI (`.gitlab-ci.yml`) und hier — es gibt keinen zweiten
-Regelsatz. Gates **blockieren**. Ein nicht-blockierendes Gate ist kein Gate.
+Eine Definition von „grün“ für die verbindlichen lokalen Gates. Die
+Ausführungsorte verwenden dieselben Kommandos; die CI-Pflicht richtet sich
+ausschließlich nach `AGENTS.md` und `docs/ci-runbook.md`:
+
+- `gitlab.com` (Free): CI ist **nicht anwendbar als Merge-/Epic-Gate**, auch
+  mit lokalem Runner. Kein Warten, Pollen, Retry oder CI-Reparaturauftrag allein
+  wegen eines roten/fehlenden Cloud-Laufs; kein routinemäßiger Restpunkt dazu.
+- Tatsächlich lokaler GitLab-Server als aktives Remote-/API-Ziel: Pipeline
+  zusätzlich verbindlich; Runner allein reicht als Nachweis nicht.
+- Lokale Gates bleiben in beiden Fällen verbindlich und blockierend.
+  „CI nicht anwendbar“ ist kein Pass und kein abgeschwächter lokaler Test.
 
 ## Umfang bestimmen — nicht alles fahren
 

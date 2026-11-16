@@ -1,7 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { resolve } from "node:path";
 import { z } from "zod";
-import { AutomationDefinition, AutomationEnableBody, AutomationExecuteBody, AutomationResolveBody } from "@ancientvoid/contracts";
+import { BUILTIN_ACTIONS, detectedActions, isProjectPathAllowed } from "@ancientvoid/core";
+import { AutomationDefinition, AutomationEnableBody, AutomationExecuteBody, AutomationResolveBody, type ActionDefinition } from "@ancientvoid/contracts";
 import type { RouteContext } from "../../route-context.ts";
+import { resolveAutomationAction } from "./automations-service.ts";
 
 /**
  * EPIC-P41 T41.4 (ADR-0064): Liste/Editor/Run-now/Disable — die Verwaltung
@@ -17,10 +20,11 @@ const CreateBody = z.object({
 });
 
 export function registerAutomationsRoutes(app: FastifyInstance, ctx: RouteContext): void {
-  const { deps } = ctx;
+  const { deps, projectRoots } = ctx;
   const off = async (_req: FastifyRequest, reply: FastifyReply) => reply.code(501).send({ error: "Automations sind auf diesem Hub nicht eingerichtet." });
   if (!deps.automations) {
     // Ohne Dienst bleiben die Routen sichtbar, aber leer — 501, kein Absturz (Muster wie approvals/webauthn).
+    app.get("/api/automations/actions", off);
     app.get("/api/automations", off);
     app.get("/api/automations/:id/history", off);
     app.get("/api/automations/:id/template", off);
@@ -34,6 +38,19 @@ export function registerAutomationsRoutes(app: FastifyInstance, ctx: RouteContex
   const service = deps.automations;
 
   app.get("/api/automations", async () => ({ automations: service.list() }));
+
+  // ADR-0080: registrierte Aktionen eines Projekts — Quelle für Skript-Ziele im Formular (projectRoots-Prüfung wie git-graph).
+  app.get("/api/automations/actions", async (req, reply) => {
+    const { project } = req.query as { project?: string };
+    if (!project) return reply.code(400).send({ error: "project query param required" });
+    if (!(await isProjectPathAllowed(project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    const seen = new Set<string>();
+    const actions: ActionDefinition[] = [...(deps.actions ?? []), ...BUILTIN_ACTIONS, ...(await detectedActions(resolve(project)))]
+      .filter((a) => !seen.has(a.id) && seen.add(a.id));
+    return { actions };
+  });
 
   app.get("/api/automations/:id/history", async (req, reply) => {
     const { id } = req.params as { id: string };
@@ -50,6 +67,10 @@ export function registerAutomationsRoutes(app: FastifyInstance, ctx: RouteContex
   app.post("/api/automations", async (req, reply) => {
     const parsed = CreateBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.issues.map((i) => i.message).join("; ") });
+    // ADR-0080: unbekannte Skript-Aktionen scheitern laut beim Anlegen, nicht erst beim Lauf.
+    if (parsed.data.definition.target.kind === "script" && !(await resolveAutomationAction(deps.actions, resolve(parsed.data.definition.target.project), parsed.data.definition.target.actionId))) {
+      return reply.code(400).send({ error: `Unbekannte Skript-Aktion ${parsed.data.definition.target.actionId}` });
+    }
     try {
       return reply.code(201).send(service.create(await service.prepare(parsed.data.definition), parsed.data.promptText));
     } catch (err) {
@@ -61,6 +82,9 @@ export function registerAutomationsRoutes(app: FastifyInstance, ctx: RouteContex
     const { id } = req.params as { id: string };
     const parsed = CreateBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.issues.map((i) => i.message).join("; ") });
+    if (parsed.data.definition.target.kind === "script" && !(await resolveAutomationAction(deps.actions, resolve(parsed.data.definition.target.project), parsed.data.definition.target.actionId))) {
+      return reply.code(400).send({ error: `Unbekannte Skript-Aktion ${parsed.data.definition.target.actionId}` });
+    }
     try {
       const stored = service.update(id, await service.prepare(parsed.data.definition), parsed.data.promptText);
       if (!stored) return reply.code(404).send({ error: "unbekannte automation" });

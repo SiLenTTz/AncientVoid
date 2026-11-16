@@ -1,4 +1,4 @@
-import type { DeploymentIdentity, QueueDeliveryState, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, OrchestrationRun, OrchestrationRunStart, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { DeploymentIdentity, QueueDeliveryState, AiMetricsReport, Team, TeamStart, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 import { noteApprovalDecided } from "./first-run.ts";
 export interface SessionRecord {
   id: string;
@@ -52,6 +52,9 @@ export interface SessionRecord {
   archived?: boolean;
   /** T8.6: pinned to the top of the overview. */
   pinned?: boolean;
+  /** ADR-0076 Nachtrag (Limit-Wiederaufnahme): Option dieser Session — nach
+   * einem Kontingent-/Rate-Limit-Fenster automatisch fortsetzen. */
+  autoResumeOnLimit?: boolean;
   /** P5: counts prompts; a plan made on an older value is refused (T9.3). */
   inputRevision?: number;
   /** T8.1: the last understandable action (absent on older hubs). */
@@ -249,7 +252,7 @@ export interface WorkspacePreview {
   dirtyTruncated: boolean;
   /** Session-Id des aktuellen AV-Schreibers im direkten Checkout, sonst null. */
   heldBy: string | null;
-  /** ADR-0077: alle Sessions, die hier schon schreiben (Primär-Lease + Mit-Nutzer). */
+  /** ADR-0081: alle Sessions, die hier schon schreiben (Primär-Lease + Mit-Nutzer). */
   holders?: string[];
 }
 
@@ -529,7 +532,7 @@ export interface DiscoveredProject {
   path: string;
   name: string;
   branch: string | null;
-  /** BUG-0162: ohne Feld bzw. `isGit: false` ist es ein Ordner ohne `.git`. */
+  /** BUG-0169: ohne Feld bzw. `isGit: false` ist es ein Ordner ohne `.git`. */
   isGit?: boolean;
 }
 
@@ -538,7 +541,7 @@ export type { AutomationHistoryEntry } from "@ancientvoid/contracts";
 export interface ProjectDiscoveryResult {
   projects: DiscoveredProject[];
   warnings: string[];
-  /** BUG-0163: trennt „Wurzeln fehlen“ von „Wurzeln vorhanden, aber keine Repos“. */
+  /** BUG-0170: trennt „Wurzeln fehlen“ von „Wurzeln vorhanden, aber keine Repos“. */
   rootsConfigured?: boolean;
   roots?: string[];
 }
@@ -868,6 +871,8 @@ export function isAuthError(err: unknown): boolean {
 function createHubApi(P: (path: string) => string) {
   return {
   health: () => api<{ ok: boolean; serverTime: string; deployment?: DeploymentIdentity }>(P("/api/health")),
+  /** EPIC-P59 (ADR-0078): Report der Metrik-Seite — REST, nicht EventBus (K5). */
+  aimetrics: () => api<AiMetricsReport>(P("/api/aimetrics")),
   adapters: () => api<AdapterInfo[]>(P("/api/adapters")),
   /** EPIC-P19: Loops / Dark Factories und ob sie startbar sind. */
   loops: () => api<LoopInfo[]>(P("/api/loops")),
@@ -1212,7 +1217,7 @@ function createHubApi(P: (path: string) => string) {
     /** ADR-0057: Arbeitsort; ohne Angabe eigener Worktree. */
     workspaceMode?: "worktree" | "direct";
     confirmDirty?: boolean;
-    /** ADR-0077: parallels Schreiben in einem Nicht-Git-Ordner ausdrücklich bestätigt. */
+    /** ADR-0081: parallels Schreiben in einem Nicht-Git-Ordner ausdrücklich bestätigt. */
     confirmSharedFolder?: boolean;
     /** Adoption (ADR-0011): continue an externally discovered session. */
     adoptNativeSessionId?: string;
@@ -1285,8 +1290,9 @@ function createHubApi(P: (path: string) => string) {
   workspaceProxyBase: (id: string, serviceId: string) => P(`/api/sessions/${id}/workspace/services/${encodeURIComponent(serviceId)}/proxy`),
   stopSession: (id: string) =>
     api<{ ok: boolean }>(P(`/api/sessions/${id}/stop`), { method: "POST", body: "{}" }),
-  /** T8.6: rename and pin. */
-  setSessionMeta: (id: string, meta: { title?: string | null; pinned?: boolean }) =>
+  /** T8.6: rename and pin. autoResumeOnLimit: ADR-0076 Nachtrag — Option
+   * „nach dem Limit-Fenster automatisch weitermachen" (Menschen, kein Agent). */
+  setSessionMeta: (id: string, meta: { title?: string | null; pinned?: boolean; autoResumeOnLimit?: boolean }) =>
     api<SessionRecord>(P(`/api/sessions/${id}/meta`), { method: "POST", body: JSON.stringify(meta) }),
   setArchived: (id: string, archived: boolean) =>
     api<SessionRecord>(P(`/api/sessions/${id}/archive`), {
@@ -1386,21 +1392,24 @@ function createHubApi(P: (path: string) => string) {
    * BUG-0115: Fastify weist einen POST mit JSON-Content-Type und leerem Body
    * mit 400 ab — deshalb ein explizit leerer JSON-Body statt gar keins. */
   sendQueuedNow: (id: string, queueId: string) => api<Ack>(P(`/api/sessions/${id}/queue/${queueId}/send`), { method: "POST", body: JSON.stringify({}) }),
-  /** EPIC-P40: Orchestrierung — Runs nach ADR-0064. */
-  orchestrationRuns: () => api<OrchestrationRun[]>(P("/api/orchestration/runs")),
-  orchestrationStart: (input: OrchestrationRunStart) =>
-    api<OrchestrationRun>(P("/api/orchestration/runs"), { method: "POST", body: JSON.stringify(input) }),
-  orchestrationRun: (id: string) => api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}`)),
-  orchestrationAnswer: (id: string, gateId: string, label: string) =>
-    api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}/answer`), { method: "POST", body: JSON.stringify({ gateId, label }) }),
-  orchestrationCancel: (id: string, reason: string) =>
-    api<OrchestrationRun>(P(`/api/orchestration/runs/${encodeURIComponent(id)}/cancel`), { method: "POST", body: JSON.stringify({ reason }) }),
+  /** EPIC-P40/EPIC-P60: Agenten-Teams (Run→Team, ADR-0077). */
+  teamsScope: P("/api/teams"),
+  teamList: () => api<Team[]>(P("/api/teams")),
+  teamStart: (input: TeamStart) =>
+    api<Team>(P("/api/teams"), { method: "POST", body: JSON.stringify(input) }),
+  teamGet: (id: string) => api<Team>(P(`/api/teams/${encodeURIComponent(id)}`)),
+  teamAnswer: (id: string, gateId: string, label: string) =>
+    api<Team>(P(`/api/teams/${encodeURIComponent(id)}/answer`), { method: "POST", body: JSON.stringify({ gateId, label }) }),
+  teamCancel: (id: string, reason: string) =>
+    api<Team>(P(`/api/teams/${encodeURIComponent(id)}/cancel`), { method: "POST", body: JSON.stringify({ reason }) }),
   /** EPIC-P41 (ADR-0064): Automationen — Verwaltung, Run-now und Verlauf. */
   automationsScope: P("/api/automations"),
   automations: async (): Promise<AutomationInfo[]> => (await api<{ automations: AutomationInfo[] }>(P("/api/automations"))).automations,
+  /** ADR-0080: registrierte Aktionen eines Projekts — Quelle für Skript-Ziele im Automationen-Formular. */
+  automationActions: (project: string) => api<{ actions: ActionDefinition[] }>(P(`/api/automations/actions?project=${encodeURIComponent(project)}`)),
   automationCreate: (definition: AutomationDefinition, promptText?: string) =>
     api<AutomationDefinition>(P("/api/automations"), { method: "POST", body: JSON.stringify({ definition, ...(promptText === undefined ? {} : { promptText }) }) }),
-  automationTemplate: (id: string) => api<OrchestrationRunStart>(P(`/api/automations/${encodeURIComponent(id)}/template`)),
+  automationTemplate: (id: string) => api<TeamStart>(P(`/api/automations/${encodeURIComponent(id)}/template`)),
   automationUpdate: (id: string, definition: AutomationDefinition, promptText?: string) =>
     api<AutomationDefinition>(P(`/api/automations/${encodeURIComponent(id)}`), { method: "PATCH", body: JSON.stringify({ definition, ...(promptText === undefined ? {} : { promptText }) }) }),
   automationSetEnabled: (id: string, enabled: boolean, generation: number) =>

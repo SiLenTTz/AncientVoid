@@ -2,7 +2,7 @@ import { lstat } from "node:fs/promises";
 import { dirname, posix, resolve, win32 } from "node:path";
 
 /**
- * BUG-0165: Pfad-Vergleiche dürfen nicht von einem einzigen Trennzeichen
+ * BUG-0172: Pfad-Vergleiche dürfen nicht von einem einzigen Trennzeichen
  * abhängen. Auf Windows sehen Pfade `E:\Coding\…` aus, aus Provider-Protokollen
  * und Konfigs kommen sie aber auch mit `/`. Ein Vergleich wie
  * `project.startsWith(root + "/")` sortiert deshalb auf Windows jeden Pfad
@@ -33,7 +33,7 @@ export function pathWithin(child: string, parent: string, style: PathStyle = pat
 
 /**
  * Tiefster existierender Ordner auf dem Weg zu `target` (oder `target` selbst).
- * BUG-0161: ein Session-Ziel darf einen noch fehlenden Blattordner haben —
+ * BUG-0168: ein Session-Ziel darf einen noch fehlenden Blattordner haben —
  * erlaubt sein soll es trotzdem, aber nur innerhalb einer erlaubten Wurzel.
  * `null`, wenn nichts auf dem Weg existiert.
  */

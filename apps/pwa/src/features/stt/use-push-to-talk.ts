@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { recognizeOnce, speechRecognitionSupported } from "../../shared/speech.ts";
 import { LocalRecorder, recordingSupported, sttStatus } from "../../shared/local-stt.ts";
 import { pasteTranscript } from "./paste-target.ts";
+import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 
 /** BUG-0157: Wie lange das Feedback nach dem Aufnahmeende sichtbar bleibt, bevor die Blende ausblendet. */
 export const FEEDBACK_HIDE_MS = 10_000;
@@ -51,7 +52,14 @@ export function usePushToTalk() {
     const track = recorder.current?.track();
     track?.addEventListener("ended", lost);
     hidden();
+    // EPIC-P51 T51.6: Esc bricht die laufende lokale Aufnahme ab — gleicher
+    // Weg wie Sichtbarkeitsverlust, sichtbarer Grund, kein stiller Verlust.
+    const offEsc = registerShortcut("stt.cancel", (e) => {
+      e.preventDefault();
+      end("Aufnahme abgebrochen.");
+    });
     return () => {
+      offEsc();
       document.removeEventListener("visibilitychange", hidden);
       track?.removeEventListener("ended", lost);
     };
