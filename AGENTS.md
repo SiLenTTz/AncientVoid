@@ -60,13 +60,13 @@ bestehen, auch wenn andere Epics oder Vorgänger inzwischen grün sind.
 > Details: `docs/ci-runbook.md`.
 
 ```bash
-npm test                 # vitest Tier A: schneller Loop (parallel; ohne die langsamen Dateien)
-npm run test:slow        # vitest Tier B: langsam/seriell — Liste in scripts/test-tiers.ts
-npm run test:tiers       # anzeigen, was in Tier B läuft (gemessene Dauer im Kommentar)
+npm test                 # vitest: die volle Suite (Tier A + B zusammen)
+npm run test:fast        # vitest Tier A: schneller Loop (parallel; ohne die Dateien aus scripts/slow-tests.json)
+npm run test:slow        # vitest Tier B: die langsamen Dateien (VITEST_SET=slow, seriell)
 npm run test:e2e         # Playwright-E2E-Gate gegen einen echten Hub (docs/testing-e2e.md)
 npm run lint             # eslint
 npm run typecheck        # tsc --noEmit
-npm run gate             # typecheck + lint + test + test:slow + test:e2e
+npm run gate             # check:* + typecheck + lint + volle Suite + test:e2e
 npm run loadtest         # K8: 20 Sessions × 30 ev/s
 npm -w @ancientvoid/pwa run build
 ```
@@ -81,13 +81,16 @@ Zusatzprogramm.
 Matrizen fahren wir nur auf ausdrücklichen Auftrag. Die volle Messlatte liegt bei
 Gate und CI (`ci.yml` schnell, `nightly.yml` vollständig) — dort läuft sie ohnehin.
 
-**Test-Tiers:** `npm test` ist Tier A (18 s gemessen) und lässt alles weg, was lang
-ist, Ports bindet oder auf Wanduhr-Zeit prüft; dieser Teil läuft seriell in
-`npm run test:slow` (~25 min lokal, auf den Hosted-Runnern deutlich weniger, weil
-dort Adapter-Suiten sichtbar skippen). `gate` und `ci.yml` fahren **beide**
-Tieres — nichts fällt still weg. **Im Arbeitsloop ist der gezielte Fall der
-Standard, nicht `npm test`.** Wer eine Datei nach Tier B verschiebt, schreibt
-die gemessene Dauer in den Commit; neue langsame Tests bleiben Tier B, solange
+**Test-Tiers:** Tier A ist `npm run test:fast` (die PR-Gate-Messlatte aus
+`ci.yml`; lässt alles weg, was lang ist, Ports bindet oder auf Wanduhr-Zeit
+prüft), Tier B ist `npm run test:slow` (genau diese Dateien aus
+`scripts/slow-tests.json`, seriell — ~25 min lokal, auf den Hosted-Runnern
+deutlich weniger, weil dort Adapter-Suiten sichtbar skippen). `npm test` und
+`gate` fahren **beide Tiers zusammen** — nichts fällt still weg. **Im
+Arbeitsloop ist der gezielte Fall der Standard, nicht die breite Suite.** Wer
+eine Datei auf die Slow-Liste setzt, schreibt die gemessene Dauer in den
+Commit (Generator `scripts/gen-slow-tests.mjs`; der Nightly-Lauf schlägt Drift
+vor, der Commit bleibt Handarbeit); neue langsame Tests bleiben dort, solange
 BUG-0170 offen ist.
 
 ## Testing
