@@ -36,7 +36,7 @@ const SHOTS: [string, string][] = [
   ["aimetrics-01", "#/metriken"],
 ];
 
-function sh(cmd: string, args: string[], opts: { cwd?: string } = {}): void {
+function sh(cmd: string, args: string[], opts: { cwd?: string } = {}): string {
   return execFileSync(cmd, args, { cwd: repoRoot, encoding: "utf8", stdio: "inherit", ...opts });
 }
 
