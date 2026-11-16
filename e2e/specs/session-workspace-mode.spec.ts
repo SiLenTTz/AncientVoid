@@ -87,7 +87,7 @@ test.describe("Session-Arbeitsort (EPIC-P38)", () => {
     expect(existsSync(join(hub.alpha, README))).toBe(true);
   });
 
-  test("Ordner ohne .git: Auswahl, zweiter Schreiber nur nach Bestätigung (BUG-0169/0171, ADR-0081)", async ({ app, hub }) => {
+  test("Ordner ohne .git: Auswahl, zweiter Schreiber nur nach Bestätigung (BUG-0172/0174, ADR-0081)", async ({ app, hub }) => {
     const ordner = join(hub.projectsDir, "lokal-ohne-git");
     mkdirSync(ordner, { recursive: true });
     writeFileSync(join(ordner, "Notiz.md"), "nur Text\n");

@@ -857,7 +857,7 @@ export class SessionManager {
     /** ADR-0077: alle Sessions, die hier schon schreiben (Primär-Lease + Mit-Nutzer). */
     holders: string[];
   }> {
-    // BUG-0168: der Zielordner darf erst beim Start entstehen. Die Vorschau ist
+    // BUG-0171: der Zielordner darf erst beim Start entstehen. Die Vorschau ist
     // read-only und startet nichts — also sagt sie ehrlich, was passieren würde,
     // statt einen ENOENT als „Projekt nicht lesbar" durchzureichen.
     if (!existsSync(project)) {
