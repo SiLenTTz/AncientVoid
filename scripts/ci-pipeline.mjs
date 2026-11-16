@@ -54,12 +54,18 @@ export async function reportFailures(api, run) {
   const numbers = [];
   for (const job of failures) {
     const marker = `<!-- ancientvoid-nightly:${job.name} -->`;
+    const endMarker = "<!-- /ancientvoid-nightly -->";
     const occurrence = `<!-- run:${run.id}:${run.run_attempt} -->`;
-    const body = `${marker}\n${occurrence}\nAutomatisch erkannter Pipeline-Fehler (EPIC-P28, K1–K10).\n\nJob: ${job.name}\nCommit: ${run.head_sha}\nBranch: ${run.head_branch}\nErgebnis: ${job.conclusion}\n\n[Lauf und Artefakte](${run.html_url}) · [Job](${job.html_url})\n\nReproduktion: Kommandos des Jobs auf diesem Commit ausführen; Fehler zuerst als Produkt/Test oder Infrastruktur klassifizieren (docs/ci-runbook.md). Ein roter Lauf ist kein bestandener Test.\n`;
+    const body = `${marker}\n${occurrence}\nAutomatisch erkannter Pipeline-Fehler (EPIC-P28, K1–K10).\n\nJob: ${job.name}\nCommit: ${run.head_sha}\nBranch: ${run.head_branch}\nErgebnis: ${job.conclusion}\n\n[Lauf und Artefakte](${run.html_url}) · [Job](${job.html_url})\n\nReproduktion: Kommandos des Jobs auf diesem Commit ausführen; Fehler zuerst als Produkt/Test oder Infrastruktur klassifizieren (docs/ci-runbook.md). Ein roter Lauf ist kein bestandener Test.\n${endMarker}\n`;
     const existing = issues.find((issue) => issue.body?.includes(marker));
     if (existing) {
       // Updating the body is idempotent, even when workflow_run is redelivered.
-      if (!existing.body.includes(occurrence)) await api("PATCH", `issues/${existing.number}`, { body });
+      if (!existing.body.includes(occurrence)) {
+        const start = existing.body.lastIndexOf(marker);
+        const end = existing.body.indexOf(endMarker, start);
+        const updated = end < 0 ? `${existing.body}\n\n${body}` : existing.body.slice(0, start) + body + existing.body.slice(end + endMarker.length);
+        await api("PATCH", `issues/${existing.number}`, { body: updated });
+      }
       numbers.push(existing.number);
     } else {
       const issue = await api("POST", "issues", { title: `CI-Bug: nightly / ${job.name}`, labels: ["bug"], body });

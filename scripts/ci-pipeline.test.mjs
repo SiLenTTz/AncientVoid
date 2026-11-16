@@ -46,6 +46,16 @@ describe("nightly bugs", () => {
     for (const override of [{ conclusion: "success" }, { conclusion: "cancelled" }, { event: "pull_request" }, { name: "ci" }]) expect(await reportFailures(api, { ...run, ...override })).toEqual([]);
     expect(api).not.toHaveBeenCalled();
   });
+  it("preserves human investigation outside the managed report block", async () => {
+    const body = "Human root cause\n<!-- ancientvoid-nightly:e2e-shards (2) -->\nold report\n<!-- /ancientvoid-nightly -->\nHuman follow-up";
+    const api = vi.fn().mockResolvedValueOnce({ jobs: [job] }).mockResolvedValueOnce([{ number: 17, body }]).mockResolvedValueOnce({});
+    await reportFailures(api, run);
+    const updated = api.mock.calls[2][2].body;
+    expect(updated).toContain("Human root cause");
+    expect(updated).toContain("Human follow-up");
+    expect(updated).not.toContain("old report");
+    expect(updated).toContain("<!-- run:42:1 -->");
+  });
   it("paginates jobs and issues before deciding whether to create a bug", async () => {
     const api = vi.fn().mockResolvedValueOnce({ jobs: Array.from({ length: 100 }, () => ({ conclusion: "success" })) }).mockResolvedValueOnce({ jobs: [job] }).mockResolvedValueOnce(Array.from({ length: 100 }, () => ({ body: "unrelated" }))).mockResolvedValueOnce([{ number: 17, body: "<!-- ancientvoid-nightly:e2e-shards (2) -->" }]).mockResolvedValueOnce({});
     expect(await reportFailures(api, run)).toEqual([17]);
