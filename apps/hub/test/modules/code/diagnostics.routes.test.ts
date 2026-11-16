@@ -42,7 +42,10 @@ describe("file viewer + diagnostics routes (EPIC-P46)", () => {
   afterEach(async () => {
     await sessions.shutdown();
     await app.close();
-    await rm(dir, { recursive: true, force: true });
+    // Windows: der Datei-Betrachter hält Handles kurz offen, das Zielverzeichnis
+    // ist beim Löschen noch „not empty“ (ENOTEMPTY). Node erneut versuchen zu
+    // lassen ist der dokumentierte Weg — ohne das flackert der schnelle Tier-A-Lauf.
+    await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 60 });
   });
 
   it("Diagnose braucht Auth und läuft nur per POST", async () => {

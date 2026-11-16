@@ -64,13 +64,19 @@ verify:
     - npm run check:secrets
     - npm -w @ancientvoid/pwa run build
     - mkdir -p test-results
+    # Tier A (schnell, parallel) und Tier B (langsam/seriell) getrennt — die
+    # langsamen Dateien laufen in vitest.slow.config.ts, Liste in
+    # scripts/test-tiers.mjs. Beide Tieres bleiben im Gate.
     - npx vitest run --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml
+    - npx vitest run --config vitest.slow.config.ts --reporter=junit --reporter=default --outputFile=test-results/vitest-slow-junit.xml
   artifacts:
     when: always
     expire_in: 14 days
-    paths: [test-results/vitest-junit.xml]
+    paths: [test-results/vitest-junit.xml, test-results/vitest-slow-junit.xml]
     reports:
-      junit: test-results/vitest-junit.xml
+      junit:
+        - test-results/vitest-junit.xml
+        - test-results/vitest-slow-junit.xml
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH

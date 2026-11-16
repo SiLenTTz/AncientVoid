@@ -47,7 +47,9 @@ wenn die Exit-Kriterien von P(n-1) grün sind.
 > sondern wird nach dem Runbook nachgezogen. Niemals als Pass zählen.
 
 ```bash
-npm test                 # vitest (Unit/Integration)
+npm test                 # vitest Tier A: schneller Loop (parallel; ohne die langsamen Dateien)
+npm run test:slow        # vitest Tier B: langsam/seriell — Liste in scripts/test-tiers.ts
+npm run test:tiers       # anzeigen, was in Tier B läuft (mit gemessener Dauer im Kommentar)
 npm run test:e2e         # Playwright-E2E-Gate gegen einen echten Hub (docs/testing-e2e.md)
 npm run lint             # eslint
 npm run typecheck        # tsc --noEmit
@@ -60,6 +62,13 @@ Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
 Bei Änderungen an PWA, Server-Routen, SessionManager oder Adaptern zusätzlich
 `npm run test:e2e`. Vor Bugfix-/Epic-MRs immer `npm run gate`. Neue
 UI-Funktion oder neuer Ablauf = neuer oder erweiterter Spec in `e2e/specs/`.
+
+**Test-Tiers:** `npm test` ist Tier A (18 s gemessen) und schließt aus, was lang
+ist, Ports bindet oder auf Wanduhr-Zeit prüft; dieser Teil läuft seriell in
+`npm run test:slow` (~14 min). `gate` und die CI fahren **beide** Tieres —
+nichts fällt still weg. Wer eine Datei nach Tier B verschiebt, schreibt die
+gemessene Dauer in den Commit; neue langsame Tests bleiben Tier B, solange
+BUG-0167 offen ist.
 
 ## Testing
 

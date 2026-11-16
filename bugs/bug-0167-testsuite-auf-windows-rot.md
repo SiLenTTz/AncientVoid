@@ -52,6 +52,23 @@ Playwright-Browsern üblich).
      `archive-workspace.test.ts` (2), `recovery-parallel.test.ts` (3):
      Spawn/Signal-/Port-Gruppe (POSIX-Signale, Prozessgruppen).
    - `apps/hub/test/server.test.ts` (5, approval/budget): „session not live“.
+5. **Nebenbefund Prozesslecks:** nach solchen Fehlschlägen bleiben die
+   Fake-Services der Workspace-Tests als `node`-Prozesse stehen
+   (`node -e require('http').createServer(... process.env.ANCIENTVOID_WORKSPACE_PORT ...)`,
+   `node svc.js`). Gemessen nach einem Gesamtdurchlauf: **66 verwaiste
+   Prozesse**, die Ports belegt und CPU ziehen — der nächste Lauf hängt dann an
+   deren Ports. Aufräum-Rezept (tötet nur diese Signaturen, nie Hub oder
+   Agent):
+
+   ```powershell
+   Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+     Where-Object { ($_.CommandLine -like '*createServer*' -and $_.CommandLine -like '*ANCIENTVOID*') `
+                   -or ($_.CommandLine -like '*node svc.js*') } |
+     ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+   ```
+
+   Dauerhaft gehört das in die Test-Aufräumpfade (`afterEach` mit
+   Prozessgruppe beenden, Windows hat keine POSIX-Signale).
 
 ## Eingrenzung
 
@@ -73,6 +90,33 @@ weiter).
 
 Kein neuer Test; dieser Report dokumentiert die gemessene Zahl und die vier
 Ursachenklassen.
+
+## Nachtrag: Tier-Aufteilung (2026-11-16, gemessen)
+
+Ein Durchlauf mit json-Reporter über die ganze Suite: **959 s Testdauern in
+284 Dateien**, die Last stark konzentriert — sechs Dateien sind 84 %:
+
+| Datei | Dauer | fehlgeschlagen |
+|---|---|---|
+| `packages/adapters/acp/test/adapter.test.ts` | 465 s | 33 von 42 |
+| `packages/adapters/codex/test/app-server.test.ts` | 180 s | 13 von 16 |
+| `packages/core/test/modules/automations/k8.test.ts` | 89 s | 0 |
+| `packages/core/test/modules/devices/device-service.test.ts` | 38 s | 0 |
+| `apps/hub/test/modules/sessions/ws-history.test.ts` | 18 s | 0 |
+| `packages/adapters/acp/test/contract.test.ts` | 15 s | 1 |
+
+Die Adapter-Suiten spawnen echte Harness-CLIs; ohne installiertes CLI laufen sie
+in Timeouts — deshalb die hohe Zahl Fehlschläge und die Dauer. Sichtbarer Skip
+wie bei tmux (ADR-0002) wäre hier die eigentliche Reparatur und würde Tier B
+massiv verkürzen; das ist ein eigener Auftrag, nicht Teil dieser Kette.
+
+Was die Kette stattdessen getan hat: Tiers in `vitest.config.ts` (Tier A,
+parallel) und `vitest.slow.config.ts` (Tier B, seriell), Liste mit gemessenen
+Dauern in `scripts/test-tiers.ts`. Tier A läuft in **18,6 s** statt 1077 s, mit
+derselben Fehlermenge wie vorher im entsprechenden Teilbereich (153 ↔ 150/153,
+differenzlos verglichen über die json-Reporter; ein Windows-Teardown-Flackern
+`ENOTEMPTY` in `diagnostics.routes.test.ts` dabei behoben). `gate` und CI fahren
+beide Tieres.
 
 ## Handoff
 

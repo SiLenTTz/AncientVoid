@@ -39,6 +39,16 @@ Windows funktionieren. Repro, Bug-Dokumente, Fixes auf diesem Zweig.
   `npx playwright install chromium` (118 MB) nachgeholt.
   **E2E: `e2e/specs/session-workspace-mode.spec.ts` 5 passed (10,7 s)** inkl.
   neuem Fall für Ordner ohne Git / Bestätigung / dritte Session.
+- **Tests entzerrt (Messung statt Bauchgefühl):** ein json-Reporter-Lauf über
+  die ganze Suite ergab 959 s Testdauern, davon 84 % in sechs Dateien
+  (acp-Adapter 465 s, codex app-server 180 s, k8-Lasttest 89 s,
+  device-service 38 s, ws-history 18 s, acp contract 15 s). Neu: Tier A
+  (`vitest.config.ts`, parallel) und Tier B (`vitest.slow.config.ts`, seriell,
+  Liste mit gemessenen Dauern in `scripts/test-tiers.ts`). `npm test` läuft in
+  **18,6 s** statt 1077 s; `npm run test:slow` fährt den Rest, `gate` und CI
+  fahren beide (eigene junit-Dateien). Diff der Fehllisten über json-Reporter:
+  keine neuen Fehlschläge durch Parallelität, ein Windows-Teardown-Flackern
+  (`ENOTEMPTY` in `diagnostics.routes.test.ts`) dabei behoben.
 - Hausputz: `npm run docs:reference` → `check:context` OK (`88364357`);
   `node_modules/@ancientvoid/*`-Junctions auf die kanonische Großschreibung
   gesetzt (vorher liefen Vitest-Setups nicht).
@@ -55,6 +65,12 @@ Nichts angefangen, das nicht committet wäre. Offen: Push und MR (siehe unten).
   approval/budget im Hub-Server-Test („session not live“). Im angegriffenen
   Teilbereich core workspace+sessions: main 22 failed → hier 21 failed
   (keine neuen, einer weniger). Deshalb tragen die productcommits `!` statt `^`.
+- **Prozesslecks aus fehlgeschlagenen Windows-Tests:** nach solchen Läufen
+  standen 66 Fake-Services (`createServer … ANCIENTVOID_WORKSPACE_PORT`,
+  `node svc.js`) als `node`-Prozesse herum und belegen Ports. Rezept zum
+  Aufräumen steht in BUG-0167; dauerhaft gehören die Aufräumpfade in die Tests.
+  Nach dem Aufräumen: genau zwei `node`-Prozesse (Kais Hub 22668, Pi 23196),
+  `/healthz` → 200.
 - **Git-Fernzugriff kaputt:** `git fetch origin` →
   `git@gitlab.com: Permission denied (publickey)`, `glab` ist nicht installiert.
   Damit ist „neuesten Stand von `main` reinziehen“ nur gegen den letzten
@@ -72,9 +88,10 @@ Nichts angefangen, das nicht committet wäre. Offen: Push und MR (siehe unten).
 1. Git-Zugang klären (Schlüssel bei GitLab oder `glab` einrichten), dann
    `git fetch` + `git rebase origin/main`, `git push -u`, MR via `glab`.
 2. Nach Merge: Hub neu starten, PWA bauen, `projectRoots` wieder setzen.
-3. BUG-0167 als eigene Suite-Hausputz-Aufgabe (`e`-Commit-Kette:
-   `.gitattributes` `eol=lf` für Fixtures, Symlink-Skips, Plattform-Baseline im
-   Gate).
+3. BUG-0167 als eigene Suite-Hausputz-Aufgabe: `.gitattributes` `eol=lf` für
+   Fixtures, Symlink-Skips, Prozess-Teardowns, und **sichtbarer Skip statt
+   Timeout** in `packages/adapters/{acp,codex,cursor}` wenn das Harness-CLI
+   fehlt (analog tmux/ADR-0002) — das allein nimmt ~660 s aus Tier B.
 
 ## Entscheidungen
 
