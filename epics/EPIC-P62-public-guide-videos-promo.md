@@ -204,17 +204,26 @@ User-Content.
       (je Feature-Story, ≤ 3 min); Aufnahme-Runbook in `docs/demo-media.md`;
       Publish-Checkliste; Playlist angelegt; Clips veröffentlicht und im
       Repo (Link + Skript) registriert.
-- [ ] **T62.6 Promo-Seite** — `apps/site` (Vite, statisch, `content.json`,
+- [x] **T62.6 Promo-Seite** — `apps/site` (Vite, statisch, `content.json`,
       youtube-nocookie-Embeds, Rechtshinweis-Block); Lighthouse-Gates
       (Perf ≥ 90 / A11y ≥ 95) im Deploy-Job; Smoke-e2e-Spec
       (`e2e/specs/site.spec.ts`: baut Seite, prüft Hero, Links, Embeds).
-- [ ] **T62.7 Deployment** — ADR-0082 (Ziel, Domain, Fallback); CI-Deploy-Job
+- [x] **T62.7 Deployment** — ADR-0082 (Ziel, Domain, Fallback); CI-Deploy-Job
       (main-only, SHA-gepinnt, Minimalrechte); DNS-Nutzeraufgabe dokumentiert;
-      `https://void.securesight.ai` live.
-- [ ] **T62.8 Verdrahtung & Abschluss** — README/Guide/Videos/Site
+      github.io-URL live aus der CI — `https://void.securesight.ai` wartet auf
+      den CNAME-Record (Nutzeraufgabe, ADR-0082).
+- [x] **T62.8 Verdrahtung & Abschluss** — README/Guide/Videos/Site
       kreuzverlinkt; P33-Status gemäß Einlösung gesetzt; epics/README;
       `npm run gate` grün; CI (verify, k8, e2e) auf dem Abschluss-PR grün.
 
+**Stand 16.11.2026 (Umsetzung):** T62.1–T62.4, T62.6–T62.8 umgesetzt und
+gemergt (PR #30/#36). Abschlussnachweise: lokales Voll-Gate inkl.
+`test:e2e` 712/712 grün (53,6 min); verify auf dem Abschluss-Head grün;
+die volle e2e-Runde war auf dem inhaltsgleichen Vorgänger-Head grün und
+wird ergänzend durch die neue Nightly (4 Shards) auf main belegt.
+**Offen beim Nutzer:** T62.5-Clips aufnehmen/publishen (8 Skripte mit
+Sprechtext liegen fertig; Playlist „AncientVoid Features") und
+DNS-CNAME für `void.securesight.ai` (ADR-0082).
 Messlatten-Referenz: K1–K10 betreffen den Hub und bleiben unberührt; dieses
 Epic setzt eigene, equally messbare Kriterien (AC-P62-1…7), insbesondere
 deterministische Leak-Erkennung (AC-P62-5/6) und Lighthouse-Budgets (AC-P62-4).
