@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P61)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P62)
 
 **On hold seit 15.11.2026 (Nutzerentscheid): P30 und P31.** Beide bleiben
 im Inventar, sind aber aus Empfehlungen für die nächste Arbeit ausgeschlossen.
@@ -291,6 +291,12 @@ ADR vor der ersten Contract-Änderung).
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
 | [P61 — Mehrsprachigkeit: Englisch/Spracheinstellung](EPIC-P61-mehrsprachigkeit-englisch.md) | Eigen-i18n der PWA (typisierte Kataloge `de`/`en`, `t()`, Sprachwahl pro Gerät), Nachrichtenschlüssel für Notifications/Push/API-Fehler (ADR vor Contract), `hubctl --lang`, STT-Sprache, Ratchet-Gate gegen hart codierte Strings; gemessen ~2.660 Text-Kandidaten in 134 PWA-Dateien — **Planungsentwurf** | keine fachliche offene (Quer-Epic; P60 umgesetzt) | 4–6 |
+
+## Nutzerauftrag vom 16.11.2026 — Öffentliche Anleitung, Videos, Promo-Seite (nach GitHub-Umzug)
+
+| Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
+|---|---|---|---|
+| [P62 — Öffentliche Anleitung (EN), Feature-Videos und Promo-Seite void.securesight.ai](EPIC-P62-public-guide-videos-promo.md) | Feature-Inventar als Contract; englischer Guide mit per Playwright reproduzierbaren Demo-Seed-Screenshots; deterministischer Leak-Guard (`check:media` + OCR in CI, neuer `pre-commit`, `avt_`-Token-Präfix, Aufnahme-Regeln `docs/demo-media.md`); Video-Pipeline (Skript zuerst, ≤ 3 min, YouTube-Playlist, nie Rohmaterial im Repo); statische Promo-Seite `apps/site` (`content.json`, youtube-nocookie) mit Lighthouse-Gates; Deployment nach void.securesight.ai per ADR-0081 (GitHub Pages bevorzugt, github.io-Fallback); löst P33s Doku-Kern per GO ein — **Planungsentwurf** | keine fachliche offene (Quer-Epic wie P58–P61; P57 abgeschlossen, P60 umgesetzt); P61 unberührt; P30/P31 bleiben On hold | 3–4 |
 
 ## Reihenfolge & Gating
 
