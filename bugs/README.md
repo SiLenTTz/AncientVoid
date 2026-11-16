@@ -202,6 +202,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0177](bug-0177-spracheingabe-bricht-ab-und-ist-nicht-stoppbar.md) | Spracheingabe endet nach 10 s/60 s, kein Wort-für-Wort, erneut tippen kann nicht stoppen, Text doppelt nach Chrome-Neustart | done | S1 | pwa | — |
 | [BUG-0179](bug-0179-e2e-stand-ins-lassen-sich-auf-windows-nicht-spawnen.md) | E2E-Stand-in-CLIs (Shebang ohne Extension) spawnen auf Windows nicht — Adapter-E2E sind lokal nicht prüfbar | open | S2 | e2e | — |
 | [BUG-0181](bug-0181-app-dreht-nicht-mit-und-querformat-ohne-leshoehe.md) | App dreht nicht mit (Manifest `portrait-primary`); gedreht fraß der Dock 278 von 412 px, der Chat behielt 48 px | done | S2 | pwa | — |
+| [BUG-0183](bug-0183-test-laeufe-ueberschreiben-das-live-buendel-des-hubs.md) | Playwright- und Guide-Läufe bauten in `apps/pwa/dist` — derselbe Ordner, den der laufende Hub am Handy servt: Fixes waren weg, ohne dass jemand deployt hätte | done | S1 | tests | — |
 
 
 | [BUG-0169](bug-0169-e2e-global-setup-npm-auf-windows.md) | E2E-Global-Setup spawnnt `npm` ohne Shell — auf Windows läuft kein einziger E2E-Test | done | S3 | e2e | — |
@@ -216,6 +217,10 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 
 | [BUG-0182](bug-0182-web-push-4-esm-import.md) | web-push 4 verhindert den Hub-Import (ESM) | done | S1 | core | [#26](https://github.com/SiLenTTz/AncientVoid/pull/26) |
 
-Die nächste freie Nummer ist **0183** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+Die nächste freie Nummer ist **0185** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0180 im offenen PR #40 für den ausgeklappten Z Fold,
-0181 ist das fehlende Drehen).
+0181 ist das fehlende Drehen, 0182 gehört web-push 4 (PR #26), 0183 ist das eigene Bauziel
+der Test- und Guide-Läufe auf diesem Zweig, 0184 liegt im offenen PR #48 (Token-Rechnung)).
+gemerged, 0178/0179 mit PR #37 gemerged, 0180 im offenen PR #40 für den ausgeklappten Z Fold,
+0181 ist das fehlende Drehen, 0182 die Token-Summe im offenen PR #48, 0183 die überschriebenen
+Live-Bündel auf diesem Zweig).

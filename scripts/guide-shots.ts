@@ -41,8 +41,9 @@ function sh(cmd: string, args: string[], opts: { cwd?: string } = {}): string {
 }
 
 async function main() {
-  // PWA frisch bauen — der Hub servt apps/pwa/dist, der Guide niemals alt.
-  sh("npm", ["-w", "@ancientvoid/pwa", "run", "build"]);
+  // PWA frisch bauen — aber ins Guide-eigene `dist-guide`, damit ein Guide-Lauf das
+  // Bündel des laufenden Hubs nicht überschreibt (BUG-0183). demo-seed holt sich das Bündel selbst.
+  sh("npm", ["-w", "@ancientvoid/pwa", "run", "build", "--", "--outDir", "dist-guide", "--emptyOutDir"]);
   rmSync(assetsDir, { recursive: true, force: true });
   mkdirSync(assetsDir, { recursive: true });
 

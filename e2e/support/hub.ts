@@ -7,6 +7,13 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 export const repoRoot = resolve(import.meta.dirname, "../..");
+/**
+ * BUG-0183: das E2E-Eigene — nicht `apps/pwa/dist`. Der laufende Hub auf Kais
+ * Rechner servt genau dieses Verzeichnis; jedes Test-Lager hat sein Bündel
+ * überschrieben, auch von einem anderen Zweig aus. Ergebnis: am Handy waren
+ * gerade erst gemachte Korrekturen wieder weg, ohne dass jemand etwas gebaut hätte.
+ */
+export const E2E_PWA_DIST = resolve(repoRoot, "apps/pwa/dist-e2e");
 const binDir = resolve(import.meta.dirname, "bin");
 
 export interface HubOptions {
@@ -183,7 +190,7 @@ export class TestHub {
       ...(this.options.aiMetrics ? { aiMetrics: this.options.aiMetrics } : {}),
       media: { ytDlp: join(binDir, "yt-dlp") },
       forge: { gitlab: { command: this.options.forgeCommand ?? join(binDir, "glab") } },
-      server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
+      server: { host: "127.0.0.1", port: this.port, pwaDir: E2E_PWA_DIST },
       discovery: { claudeDir: join(this.root, "claude"), claudeCommand: join(binDir, "claude"), cursorUserDir: join(this.root, "cursor"), opencodeDataDir: this.root, piDir: join(this.root, "pi-sessions"), ompDir: join(this.root, "omp-sessions"), makiDir: join(this.root, "maki-sessions"), codexDir: join(this.root, "codex-sessions"), hermesDir: join(this.root, "hermes-home") },
       // EPIC-P19: ein deterministischer Loop ohne Fremdsystem (Fake aus dem Testkit).
       loops: [
