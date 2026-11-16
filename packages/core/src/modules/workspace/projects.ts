@@ -1,5 +1,6 @@
-import { readdir, readFile, realpath, stat } from "node:fs/promises";
-import { join, sep } from "node:path";
+import { lstat, mkdir, readdir, readFile, realpath, stat } from "node:fs/promises";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { nearestExistingAncestor, pathStyle, pathWithin } from "../../platform/index.ts";
 
 /**
  * T1.5-4: project auto-discovery. A "project" is any immediate
@@ -69,15 +70,29 @@ export async function discoverProjects(roots: readonly string[]): Promise<Projec
  * allowed root pointing outside it is rejected, not silently followed.
  * An empty `roots` list means unconfigured — preserves pre-T1.5-4
  * behavior (any path allowed) so existing configs don't break.
+ *
+ * BUG-0161: a leaf that does not exist yet is allowed as long as its
+ * nearest existing ancestor is inside an allowed root — that is exactly
+ * the "neuer Ordner, in dem ich eine Session starten will"-Fall. Before,
+ * `realpath()` threw on the missing leaf and the answer was "outside the
+ * configured projectRoots", which was untrue. The remaining (lexical) tail
+ * may not escape through `..`, and a symlink on the way is still resolved
+ * and rejected when it points out of the root.
  */
 export async function isProjectPathAllowed(projectPath: string, roots: readonly string[]): Promise<boolean> {
   if (roots.length === 0) return true;
-  let real: string;
+  const anchor = await nearestExistingAncestor(projectPath);
+  if (!anchor) return false;
+  let realAnchor: string;
   try {
-    real = await realpath(projectPath);
+    realAnchor = await realpath(anchor);
   } catch {
     return false;
   }
+  const tail = relative(anchor, resolve(projectPath));
+  if (tail === "..") return false;
+  if (tail.startsWith(`..${sep}`) || isAbsolute(tail)) return false;
+  const candidate = tail ? join(realAnchor, tail) : realAnchor;
   for (const root of roots) {
     let realRoot: string;
     try {
@@ -85,7 +100,7 @@ export async function isProjectPathAllowed(projectPath: string, roots: readonly 
     } catch {
       continue;
     }
-    if (real === realRoot || real.startsWith(realRoot + sep)) return true;
+    if (pathWithin(candidate, realRoot)) return true;
   }
   return false;
 }
@@ -101,6 +116,34 @@ export interface CreateProjectResult {
   created: boolean;
   project: DiscoveredProject;
   warning?: string;
+}
+
+/**
+ * BUG-0161: a session target inside an allowed root may not exist yet — the
+ * user wants to start a session in a fresh folder and have AncientVoid create
+ * it. Exactly one level is created (the leaf): a typo must not build a whole
+ * tree. A path that looks absolute but has no drive on Windows (`/coding`
+ * resolves drive-relative to `E:\coding`, silently) is rejected with an honest
+ * message instead of being quietly created.
+ */
+export async function ensureProjectDir(projectPath: string, roots: readonly string[]): Promise<{ created: boolean; path: string }> {
+  const driveOrUnc = /^[a-zA-Z]:[\\/]|^\\\\/;
+  if (pathStyle() === "win32" ? !driveOrUnc.test(projectPath) : !projectPath.startsWith("/")) {
+    throw new Error(`Projektpfad muss vollstaendig (absolut) angegeben werden: "${projectPath}" — auf Windows mit Laufwerksbuchstaben, z. B. "E:\\Coding\\projekt"`);
+  }
+  const target = resolve(projectPath);
+  const leaf = await lstat(target).catch(() => null);
+  if (leaf?.isDirectory()) return { created: false, path: target };
+  if (leaf) throw new Error(`"${target}" existiert, ist aber kein Ordner.`);
+  if (!(await isProjectPathAllowed(target, roots))) {
+    throw new Error(`Projektpfad liegt außerhalb der konfigurierten projectRoots: ${target}`);
+  }
+  const parent = resolve(target, "..");
+  if (!(await stat(parent).then((s) => s.isDirectory(), () => false))) {
+    throw new Error(`Ordner existiert nicht, und sein Elternordner auch nicht: ${parent}`);
+  }
+  await mkdir(target);
+  return { created: true, path: target };
 }
 
 const PROJECT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;

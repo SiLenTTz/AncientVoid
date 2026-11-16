@@ -1,8 +1,24 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtemp, mkdir, writeFile, symlink, rm } from "node:fs/promises";
+import { stat, mkdtemp, mkdir, writeFile, symlink, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { discoverProjects, isProjectPathAllowed } from "../../../src/modules/workspace/projects.ts";
+import { discoverProjects, ensureProjectDir, isProjectPathAllowed } from "../../../src/modules/workspace/projects.ts";
+import { pathStyle } from "../../../src/platform/paths.ts";
+
+/**
+ * Windows ohne Entwicklermodus erlaubt keine Symlinks (EPERM). Die
+ * Ausstiegs-Tests brauchen sie, der Rest nicht — also wird versucht und
+ * ehrlich übersprungen statt den ganzen Block rot werden zu lassen.
+ */
+let symlinksWork = false;
+async function trySymlink(target: string, link: string): Promise<void> {
+  try {
+    await symlink(target, link);
+    symlinksWork = true;
+  } catch {
+    symlinksWork = false;
+  }
+}
 
 describe("discoverProjects (T1.5-4)", () => {
   let root: string;
@@ -33,7 +49,7 @@ describe("discoverProjects (T1.5-4)", () => {
     await writeFile(join(root, "a-file.txt"), "not a directory");
 
     // A symlink inside root pointing OUTSIDE root, for the escape test.
-    await symlink(outsideDir, join(root, "escape-link"));
+    await trySymlink(outsideDir, join(root, "escape-link"));
   });
 
   afterAll(async () => {
@@ -74,13 +90,16 @@ describe("isProjectPathAllowed (T1.5-4, AC-P1.5-5)", () => {
   let root: string;
   let outsideDir: string;
   let repo: string;
+  let existingSub: string;
 
   beforeAll(async () => {
     root = await mkdtemp(join(tmpdir(), "ancientvoid-allow-root-"));
     outsideDir = await mkdtemp(join(tmpdir(), "ancientvoid-allow-outside-"));
     repo = join(root, "AncientVoid");
     await mkdir(join(repo, ".git"), { recursive: true });
-    await symlink(outsideDir, join(root, "escape-link"));
+    existingSub = join(root, "vorhanden");
+    await mkdir(existingSub, { recursive: true });
+    await trySymlink(outsideDir, join(root, "escape-link"));
   });
 
   afterAll(async () => {
@@ -100,11 +119,77 @@ describe("isProjectPathAllowed (T1.5-4, AC-P1.5-5)", () => {
     expect(await isProjectPathAllowed(outsideDir, [root])).toBe(false);
   });
 
-  it("rejects a symlink inside a root that resolves outside it (escape)", async () => {
-    expect(await isProjectPathAllowed(join(root, "escape-link"), [root])).toBe(false);
+  it("allows a path inside a root that does not exist yet (BUG-0161)", async () => {
+    // Der Nutzer soll einen neuen Ordner in einer konfigurierten Wurzel als
+    // Session-Ziel angeben koennen; vorher warf realpath und die Antwort war
+    // "outside the configured projectRoots" - eine Aussage, die nicht stimmte.
+    expect(await isProjectPathAllowed(join(root, "never-created"), [root])).toBe(true);
+    expect(await isProjectPathAllowed(join(existingSub, "neu"), [root])).toBe(true);
   });
 
-  it("rejects a path that doesn't exist at all", async () => {
-    expect(await isProjectPathAllowed(join(root, "never-created"), [root])).toBe(false);
+  it("still rejects a not-yet-existing path outside every root", async () => {
+    expect(await isProjectPathAllowed(join(outsideDir, "never-created"), [root])).toBe(false);
+    expect(await isProjectPathAllowed("/ganz/wo/anders", [root])).toBe(false);
+  });
+
+  it("still rejects traversal through a missing path and through a symlink out of the root", async (ctx) => {
+    expect(await isProjectPathAllowed(join(root, "neu", "..", "..", "drueber-hinaus"), [root])).toBe(false);
+    if (!symlinksWork) return ctx.skip();
+    expect(await isProjectPathAllowed(join(root, "escape-link", "neu"), [root])).toBe(false);
+  });
+
+  it("rejects a symlink inside a root that resolves outside it (escape)", async (ctx) => {
+    if (!symlinksWork) return ctx.skip();
+    expect(await isProjectPathAllowed(join(root, "escape-link"), [root])).toBe(false);
+  });
+});
+
+describe("ensureProjectDir (BUG-0161)", () => {
+  let root: string;
+  let outsideDir: string;
+
+  beforeAll(async () => {
+    root = await mkdtemp(join(tmpdir(), "ancientvoid-ensure-root-"));
+    outsideDir = await mkdtemp(join(tmpdir(), "ancientvoid-ensure-outside-"));
+  });
+
+  afterAll(async () => {
+    await rm(root, { recursive: true, force: true });
+    await rm(outsideDir, { recursive: true, force: true });
+  });
+
+  it("creates one missing leaf inside a configured root", async () => {
+    const ziel = join(root, "neu-der-ordner");
+    const res = await ensureProjectDir(ziel, [root]);
+    expect(res.created).toBe(true);
+    expect(await stat(ziel).then((s) => s.isDirectory(), () => false)).toBe(true);
+  });
+
+  it("is idempotent on an existing folder", async () => {
+    const ziel = join(root, "neu-der-ordner");
+    expect((await ensureProjectDir(ziel, [root])).created).toBe(false);
+  });
+
+  it("refuses to build a whole tree when a parent is missing (typo-Schutz)", async () => {
+    const tief = join(root, "existiert-noch-nicht", "kind");
+    await expect(ensureProjectDir(tief, [root])).rejects.toThrow(/Elternordner/);
+    expect(await stat(tief).then(() => true, () => false)).toBe(false);
+  });
+
+  it("refuses a target outside the configured roots", async () => {
+    await expect(ensureProjectDir(join(outsideDir, "fremd"), [root])).rejects.toThrow(/au[äa]ßerhalb|projectRoots/);
+  });
+
+  it("refuses a relative path (Windows: ohne Laufwerksbuchstaben)", async () => {
+    await expect(ensureProjectDir("coding/ohne-stamm", [root])).rejects.toThrow(/absolut/);
+    if (pathStyle() === "win32") {
+      // Der Falls in Kais data/hub.db: "/coding" wurde zu "E:\coding" (laufwerksrelativ).
+      await expect(ensureProjectDir("/coding", [root])).rejects.toThrow(/absolut/);
+    }
+  });
+
+  it("creates the leaf when projectRoots are unconfigured (empty) — like before", async () => {
+    const ziel = join(root, "ohne-wurzeln");
+    expect((await ensureProjectDir(ziel, [])).created).toBe(true);
   });
 });

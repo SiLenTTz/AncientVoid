@@ -804,6 +804,12 @@ export class SessionManager {
     dirtyTruncated: boolean;
     heldBy: string | null;
   }> {
+    // BUG-0161: der Zielordner darf erst beim Start entstehen. Die Vorschau ist
+    // read-only und startet nichts — also sagt sie ehrlich, was passieren würde,
+    // statt einen ENOENT als „Projekt nicht lesbar" durchzureichen.
+    if (!existsSync(project)) {
+      throw new Error(`Ordner existiert noch nicht: ${project} — er wird beim Start angelegt, sofern sein Elternordner existiert.`);
+    }
     const checkout = await canonicalCheckout(project);
     const state = await checkoutState(checkout.checkoutId);
     const lease = this.checkoutLeases.get(checkout.checkoutId);
