@@ -36,7 +36,7 @@ const SHOTS: [string, string][] = [
   ["aimetrics-01", "#/metriken"],
 ];
 
-function sh(cmd, args, opts = {}) {
+function sh(cmd: string, args: string[], opts: { cwd?: string } = {}): void {
   return execFileSync(cmd, args, { cwd: repoRoot, encoding: "utf8", stdio: "inherit", ...opts });
 }
 
@@ -61,11 +61,7 @@ async function main() {
   });
   hub.stderr.on("data", () => undefined);
   const deadline = Date.now() + 30_000;
-  while (!token && Date.now() < deadline) {
-    const { promise: slept, resolve: woke } = Promise.withResolvers<void>();
-    setTimeout(woke, 250);
-    await slept;
-  }
+  while (!token && Date.now() < deadline) await new Promise((r) => setTimeout(r, 250));
   if (!token) throw new Error("Demo-Hub nicht bereit (kein Token gesehen)");
 
   try {
