@@ -1,4 +1,5 @@
 import { closeSync, openSync, readSync } from "node:fs";
+import { pathStyle, pathWithin, type PathStyle } from "../../platform/index.ts";
 
 /** One line of whitespace-collapsed text, cut at `max` characters; null when empty. */
 export function clip(text: string, max: number): string | null {
@@ -52,9 +53,17 @@ export function headAndTail(path: string, size: number, headBytes: number, tailB
   return { head, tail };
 }
 
-/** Whether an allowed-roots policy hides `project` (ADR-0011: other people's sessions). No roots = nothing hidden. */
-export function outsideRoots(project: string, roots: readonly string[]): boolean {
-  return roots.length > 0 && !roots.some((root) => project === root || project.startsWith(`${root}/`));
+/**
+ * Whether an allowed-roots policy hides `project` (ADR-0011: other people's
+ * sessions). No roots = nothing hidden.
+ *
+ * BUG-0165: frueher `project.startsWith(root + "/")` — auf Windows gal damit
+ * jeder Pfad unterhalb einer Wurzel als versteckt, und der Windows-Nutzer ließ
+ * `projectRoots` leer (wodurch auch die Allowlist von AC-P1.5-5 leer lief).
+ * Der Pfadstil ist parametrisiert, damit der win32-Zweig auf jedem CI testbar ist.
+ */
+export function outsideRoots(project: string, roots: readonly string[], style: PathStyle = pathStyle()): boolean {
+  return roots.length > 0 && !roots.some((root) => pathWithin(project, root, style));
 }
 
 /** Text of a chat message `content`: a string or text blocks. */
