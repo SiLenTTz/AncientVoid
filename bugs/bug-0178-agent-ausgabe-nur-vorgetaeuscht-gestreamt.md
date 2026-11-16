@@ -60,8 +60,20 @@ wirken wie live geschrieben. Beides ist Kosmetik: echt gestreamt wird nichts.
 ## Schrittstand (verifiziert)
 
 - [x] Messung + Ursachen (dieses Dokument, Zahlen oben)
-- [ ] Contracts: `streamFrame` in `packages/contracts/src/sessions/stream.ts`
-- [ ] AdapterContext `ctx.stream` + pi-Adapter kohäriert Deltas (claude folgt)
-- [ ] Hub: Validierung + ws-Verteilung ohne Persistierung
-- [ ] PWA: In-place-Frames, Typewriter-Fake für Agent-Ausgabe raus
-- [ ] Tests: Adapter-Kohärenz, Hub-Frames (nicht persistiert), E2E mit Zeitbeleg
+- [x] Contracts: `streamFrame`/`WsStreamFrames` in `packages/contracts/src/sessions/stream.ts`,
+      `AdapterContext.stream()` (ADR-0083)
+- [x] pi-Adapter: `createLivePump()` kohäriert Deltas (≤ 150 ms, ≥ 1 KB, Frame ≤ 4 KB,
+      `seq` je Serie, `final` vor dem Block) — `packages/adapters/pi/src/live.ts`
+- [x] Hub: `ctx.stream` validiert und verteilt am ws-Tail, **ohne** EventStore/Snapshot;
+      kaputte Frames zählen als `live_frames_rejected`, die Session läuft weiter
+- [x] PWA: `chat-live`-Blase („antwortet“/„denkt“, 2px-Cursor), die beim Block einrückt
+- [x] Typwriter-Fake entfernt (`shared/typewriter.ts`, `typewriter-queue.ts`, Appearance-
+      Schalter, Fixture-Init) — sonst würde derselbe Text ein zweites Mal geraten
+- [x] Beweise: 6 pi-Frame-Tests, 4 Hub-Frame-Tests (nichts wird persistiert), 2 ws-Client-
+      Tests, `e2e/specs/live-streaming.spec.ts` 2 grün: die Blase zeigt „dummy assistant
+      #N live“, während `/api/sessions/:id/events` diesen Summary noch nicht kennt und es
+      keine `.event`-Zeile dazu gibt. Ohne `liveFrames` bleibt die Blase weg.
+      Screenshot gesehen und nachgebessert (Beschriftung, schmalerer Cursor).
+- [ ] claude/codex/acp: ihre Provider-Deltas werden noch nicht ausgewickelt — dort
+      erscheint die Ausgabe weiterhin blockweise, ohne Streaming vorzutäuschen
+
