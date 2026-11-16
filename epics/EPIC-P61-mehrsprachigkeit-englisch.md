@@ -1,11 +1,14 @@
 # EPIC-P61 — Mehrsprachigkeit: Oberfläche auf Englisch oder per Spracheinstellung
 
-**Status:** offen (Planungsentwurf 2026-11-15) · **Issue:** [#6](https://github.com/SiLenTTz/AncientVoid/issues/6) · **Phase:** P61 · **Dauer:** 4–6 Agenten-Wochen (gemessen, s. §3.1)
+**Status:** offen (Planungsentwurf 2026-11-15; Entscheidung Default 17.11.2026) · **Issue:** [#6](https://github.com/SiLenTTz/AncientVoid/issues/6) · **Phase:** P61 · **Dauer:** 4–6 Agenten-Wochen (gemessen, s. §3.1)
 **Abhängigkeit:** keine fachliche offene (Quer-Epic, Präzedenz P50–P53/P58–P60; Vorgänger P60 umgesetzt 14.11.2026). Berührt P33 (englische Einstiegsdoku, „vertagt") nur an der Grenze: P33 = Doku, P61 = Produktoberfläche.
 
 Quelle: Nutzerauftrag vom 15.11.2026 im Zuge der Veröffentlichung
 ([Audit](../docs/2026-11-15_public-release-audit.md), Abschnitt „Erster Eindruck"):
 „die ganze App auf Englisch oder mit Spracheinstellung".
+**Aktualisiert 17.11.2026** (Nutzerauftrag): Default ist fest **Englisch**;
+Deutsch über die Einstellungen; die Sprachliste ist modular, damit weitere
+Sprachen ohne Umbau folgen können.
 
 ## 1. Ziel
 
@@ -13,12 +16,16 @@ Wer AncientVoid öffentlich findet, kann es ohne Deutschkenntnisse bedienen.
 Jede für Menschen bestimmte Oberfläche — PWA, Hub-Meldungen (Notifications,
 Push, API-Fehlertexte), `hubctl`-Ausgabe, Sprachsteuerung — erscheint in der
 gewählten Sprache **Deutsch oder Englisch**. Die Sprache ist pro Gerät
-einstellbar; neue Installationen starten in der Browsersprache (Deutsch für
-`de*`, sonst Englisch). Neue hart codierte UI-Texte werden vom Gate
+einstellbar; **neue Installationen starten auf Englisch** (Entscheidung
+17.11.2026, zuvor offen — Deutsch bleibt einen Einstellungsschritt entfernt).
+Neue hart codierte UI-Texte werden vom Gate
 abgelehnt, damit der Zustand nicht zurückdriftet.
 
-Kein Ziel: weitere Sprachen. Die Architektur soll eine dritte Sprache aber
-ohne Umbau aufnehmen können (neuer Katalog + Typprüfung, sonst nichts).
+Kein Ziel dieser Phase: eine dritte Sprache **liefern**. Die Architektur
+nimmt weitere Sprachen aber ohne Umbau auf: Die Sprachliste ist Daten —
+pro Sprache genau ein Katalog plus ein Eintrag in `availableLanguages`
+(Code, Label, ggf. Locale-Aliasse); Settings, `t()` und Typprüfung lesen
+diese Liste, kein Aufrufort hardcodet „de/en“.
 
 ## 2. Scope (In / Out)
 
@@ -27,7 +34,8 @@ ohne Umbau aufnehmen können (neuer Katalog + Typprüfung, sonst nichts).
 - Leichtgewichtiges Eigen-i18n in der PWA (kein Framework): typisierte
   Kataloge, `t()`-Helfer, Interpolation, Plural über `Intl.PluralRules`,
   Datums-/Zahlformat über `Intl` mit der gewählten Locale.
-- Sprachwahl in den Einstellungen, pro Gerät persistiert; Default aus
+- Sprachwahl in den Einstellungen, pro Gerät persistiert; **Default
+  Englisch** (17.11.2026 entschieden), „Automatisch" liest
   `navigator.language`; `<html lang>` folgt der Wahl.
 - Migration aller PWA-Texte (134 von 178 Dateien, §3.1) nach Feature-Bereich.
 - Hub-Texte, die über die Leitung gehen: Notifications (ADR-0015),
@@ -94,16 +102,22 @@ Bei ~400 Strings pro Agenten-Tag inkl. Review → 4–6 Agenten-Wochen gesamt.
 
 ### 3.3 Spracheinstellung
 
-- Einstellungen → Darstellung → „Sprache": Automatisch (Browser) · Deutsch ·
-  English. Persistiert pro Gerät in `localStorage` (wie Presets), mit
-  try/catch-Fallback auf „Automatisch".
-- Wechsel lädt die PWA neu (deterministisch; kein Live-Re-Render aller
+- Einstellungen → Darstellung → „Sprache": English (Default) · Deutsch ·
+  Automatisch (Browsersprache). Persistiert pro Gerät in `localStorage`
+  (wie Presets), mit try/catch-Fallback auf **Englisch**.
+- **Default Englisch (entschieden 17.11.2026, Nutzerauftrag — löst die
+  ursprünglich offene Frage „Browsersprache oder fest Englisch?“):** Neue
+  Installationen und Bestandsgeräte ohne gesetzte Sprache starten auf
+  Englisch; „Automatisch“ bleibt als bewusste Wahlmöglichkeit erhalten,
+  ist aber nicht mehr der Anfangszustand. Der Wechsel lädt die PWA neu (deterministisch; kein Live-Re-Render aller
   Bäume). Offener Entwurf (Composer, Vormerkung) bleibt durch bestehende
   Draft-Persistenz erhalten — in T61.2 nachweisen.
 - Der Hub erfährt die Sprache pro Gerät über `Accept-Language` und beim
   Push-Abo (Feld `locale` am Abo, s. §3.4).
-- **Entscheidung offen (Jan):** Default für neue Installationen
-  Browsersprache (Vorschlag) oder fest Englisch.
+- **Entschieden (17.11.2026, Nutzerauftrag):** Default ist fest **Englisch**
+  — neue Installationen und Bestandsgeräte ohne gesetzte Wahl starten auf
+  Englisch; „Automatisch (Browsersprache)" bleibt als optionale Wahl in
+  den Einstellungen erhalten.
 
 ### 3.4 Hub-Texte über die Leitung (Contract, ADR Pflicht)
 
