@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { inQuietHours, pushHostAllowed, type HubNotification } from "@ancientvoid/contracts";
 import { HubDatabase, PushService, SettingsStore, type PushSender } from "../../../src/index.ts";
+import { webPushSender } from "../../../src/modules/push/index.ts";
 
 const sub = (endpoint = "https://fcm.googleapis.com/fcm/send/abc") => ({ endpoint, keys: { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" } });
 const note = (id: number, kind: string): HubNotification => ({ id, sessionId: "s1", level: "warning", title: "Freigabe nötig", detail: "rm -rf dist", kind, createdAt: "x" });
@@ -17,6 +18,10 @@ function setup(opts: { status?: number; now?: Date; statuses?: number[] } = {}) 
 }
 
 describe("Web Push (T8.3, ADR-0026)", () => {
+  it("production sender reaches web-push VAPID validation without network access", async () => {
+    await expect(webPushSender(sub(), "{}", { subject: "invalid-subject", publicKey: "", privateKey: "" })).rejects.toThrow("Vapid subject is not a valid URL");
+  });
+
   it("off by default — nothing leaves the hub; turning it on makes a VAPID key", async () => {
     const { push, sent } = setup();
     expect(push.enabled()).toBe(false);

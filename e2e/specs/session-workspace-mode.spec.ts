@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test, expect, sessionTab } from "../support/fixtures.ts";
 
@@ -85,5 +85,34 @@ test.describe("Session-Arbeitsort (EPIC-P38)", () => {
     expect(second.status).toBe(422);
     expect(second.body.error).toMatch(/schreibt bereits/);
     expect(existsSync(join(hub.alpha, README))).toBe(true);
+  });
+
+  test("Ordner ohne .git: Auswahl, zweiter Schreiber nur nach Bestätigung (BUG-0172/0174, ADR-0081)", async ({ app, hub }) => {
+    const ordner = join(hub.projectsDir, "lokal-ohne-git");
+    mkdirSync(ordner, { recursive: true });
+    writeFileSync(join(ordner, "Notiz.md"), "nur Text\n");
+
+    const liste = await hub.api<{ projects: { name: string; isGit?: boolean }[] }>("/api/projects");
+    const plain = liste.body.projects.find((p) => p.name === "lokal-ohne-git");
+    expect(plain, "Ordner ohne .git muss in der Projektauswahl erscheinen").toBeTruthy();
+    expect(plain!.isGit).toBe(false);
+
+    const erste = await hub.createSession({ adapter: "dummy", project: ordner, workspaceMode: "direct" });
+    const ohne = await hub.api<{ error?: string }>("/api/sessions", { body: { adapter: "dummy", project: ordner, workspaceMode: "direct" } });
+    expect(ohne.status).toBe(422);
+    expect(ohne.body.error).toMatch(/Mehrere Sessions in diesem Ordner/);
+    const zweite = await hub.createSession({ adapter: "dummy", project: ordner, workspaceMode: "direct", confirmSharedFolder: true });
+    expect(zweite).not.toBe(erste);
+
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Adapter").selectOption("dummy");
+    await app.getByLabel("Projekt").selectOption(ordner);
+    await app.locator(".workplace-choice").getByRole("radio", { name: "Arbeitsort direkt im Ordner" }).check();
+    await expect(app.locator(".workplace-detail [role=alert]")).toContainText("schreiben bereits 2 andere");
+    await expect(app.getByRole("button", { name: "Starten" })).toBeDisabled();
+    await app.locator(".workplace-confirm input").check();
+    await expect(app.getByRole("button", { name: "Starten" })).toBeEnabled();
+    await app.getByRole("button", { name: "Starten" }).click();
+    await expect.poll(async () => (await hub.api<{ project: string }[]>("/api/sessions")).body.filter((s) => s.project === ordner).length, "dritte Session im selben Ordner").toBe(3);
   });
 });

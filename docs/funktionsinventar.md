@@ -87,7 +87,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G54 | Flotte: Sessions anderer Hosts | Start bzw. Hosts | — | spec:fleet.spec.ts |
 | G55 | Projekt im Dateibaum öffnen | Start → Projekte → Karte | — | spec:project-explorer.spec.ts |
 | G56 | Oberflächengröße (Strg +/−/0, Strg+Rad) | Tastatur bzw. Einstellungen | — | spec:oberflaeche.spec.ts |
-| G57 | Querformat am Handy | Gerät drehen | — | spec:querformat.spec.ts |
+| G57 | Querformat am Handy: Drehen baut um (Liste links, Laufleiste aus, Chat bleibt Leshöhe) | Gerät drehen | BUG-0053, BUG-0181 | spec:querformat.spec.ts |
 | G58 | Neue Session: Skill oder Agent wählen | Neue Session → „+ Skill/Agent“ | — | inventar |
 | G59 | Provider-Status über „Mehr“ (Handy, Tablet) | Dock „Mehr“ → „Provider-Status“ | — | inventar |
 | G60 | Suchen im Dock (öffnet das Befehlsfeld) | Dock „Suchen“ | T43.6 | inventar |
@@ -96,7 +96,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G63 | Alle Freigaben zeigen | Start → „Du bist dran“ → „alle zeigen“ | — | spec:start-warteschlange.spec.ts |
 | G64 | Schnellsuche: Springen zu Sessions, Projekten, Dateien, Werkzeugen, Befehlen | Strg+K bzw. Dock „Suchen“ → Treffer. **Bewusste Grenze (P51 T51.11):** tiefe Sprungziele unterhalb der Werkzeug-/Session-Ebene (z. B. einzelne Notizen, Graph/Galaxie einer Session, Host-Detail) sind absichtlich nicht eigene Schnellsuche-Treffer — sie liegen einen Sprung + einen Tap entfernt (Werkzeug/Session → Tab), eine zweite Navigationsschicht wäre Doppelstruktur; Vault-Suche bleibt minimal (ADR-0063) | T43.6 + P51 T51.11 | spec:schnellsuche.spec.ts |
 | G65 | Nyx: Gesamtzustand in der Kopfzeile; Blatt mit allen wartenden Freigaben und Fragen (Vorauswahl, Ja/Nein mit einem Tipp, Begründung/Passkey → Session); am PC auch als eigenes Fenster | Kopfzeile → Nyx | T43.8 | spec:nyx-blatt.spec.ts |
-| G66 | Typwriter-Effekt: neuen Live-Zuwachs in Chat und Thinking getippt; was schon da war, rendert sofort; schaltbar, Reduce Motion gewinnt | Sitzung → Chat; Einstellungen → Darstellung | P58 | spec:typewriter.spec.ts |
+| G66 | Echtes Live-Streaming: Teiltexte des Adapters erscheinen als „antwortet“/„denkt“-Blase, bevor der Block eintrifft; der Block rückt beim Eintreffen ein (kein Nacherzählen fertiger Bloecke) | Sitzung → Chat | BUG-0178, ADR-0083 | spec:live-streaming.spec.ts |
 | G67 | Team-Detail: Karten je Worker-Task (Adapter/Modell, Versuch, Fortschritt, Session-Link, Ergebnis-Vorschau), Rückfragen als Karten mit Stopp, Offline-Stand mit Zeitstempel | Teams → Team | P60 | spec:team.spec.ts |
 | G68 | Quellenchips: Code-Befund, Review-Notiz, Browser-Element, CI-Befund als sichtbare Quelle im Composer — Vorschau zeigt den `<quellen>`-Block, der beim bewussten Absenden mitgeht (kein Auto-Send, K5-gekappt) | Befund „In den Composer“ → Composer der Session | P43.5 T43.5-1 | spec:quellenchips.spec.ts |
 | G69 | Quellen und eigene Statusnotizen in der Schnellsuche; Tastatur-/Touch-Sprung bewahrt Entwurf und Verbindung | Suchen → Quelle/Statusnotiz | P43.5 T43.5-2 | spec:quellenchips.spec.ts |
@@ -131,7 +131,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S15 | Archivieren/Zurückholen | „⋯“ → „Archivieren“ | — | inventar |
 | S16 | Löschen | „⋯“ → „Löschen“ | — | inventar |
 | S19 | Kopf: Projekt, Adapter, Modell, Host, Zustand, Arbeitsort, Verbindung | immer sichtbar | T43.2/T43.4 | inventar |
-| S20 | Tokens, Kontext, Kontingent, Kontextleiste | Statuszeile unter dem Kopf (nur Gemessenes); Kontingent und Fenster immer im Bericht | T43.4 | inventar |
+| S20 | Tokens, Kontext, Kontingent, Kontextleiste | Statuszeile unter dem Kopf: „erzeugt“ und „verarbeitet“ stehen getrennt da (ADR-0084, BUG-0184); Kontingent und Fenster immer im Bericht | T43.4 | inventar |
 | S21 | Antworten und Senden | Composer | T43.4 | inventar |
 | S22 | Anhang | Composer → Büroklammer | T43.4 | inventar |
 | S23 | Eingabe maximieren | Composer → „⤢“ | T43.4 | inventar |
@@ -188,6 +188,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 
 | S74 | Composer maximieren/verkleinern als Icon-Button mit mindestens 40 px Ziel | Composer → ⤢/⤡ | P43.5 T43.5-6 | spec:quellenchips.spec.ts |
 | S75 | Eigene fachliche Arbeitsnotiz auf diesem Gerät, getrennt vom Laufzeitstatus und ohne Auto-Senden | Session → Weitere Aktionen → Arbeitsnotiz (oder Schnellsuche) | P43.5 T43.5-2 | spec:quellenchips.spec.ts |
+| S76 | Installierter Stand: Modus, Fenster-Ausrichtung, Winkel, Manifest, Worker-Stufe; dreht das Gerät nicht, erzwingt die App Querformat oder nennt die Abweisung | Einstellungen → Geräte | BUG-0186 | spec:installations-stand.spec.ts |
 
 ## PC-Arbeitsfläche
 
@@ -211,7 +212,7 @@ Nur ab 1280 px Breite.
 | P13 | Kacheltastatur (Alt+1–4, Alt+Umschalt+1–4, Alt+L, Alt+W) | Tastatur | — | spec:workspace-tiles.spec.ts |
 | P14 | Kachelgröße ziehen | Trenner zwischen Kacheln | — | spec:resize.spec.ts |
 | P15 | Werkzeugseiten in der Detailspalte, Esc schließt | Dock | — | spec:tool-pane.spec.ts |
-| P16 | Tablet: Sessions als Streifen (hoch) bzw. Spalte (quer) neben der Session; ab 1280 px Arbeitsfläche | Gerät drehen | T43.6 | spec:tablet-layout.spec.ts |
+| P16 | Tablet/Z Fold: Sessions stehen ab 760 px links als Spalte neben der Session (hoch wie quer), darunter als Streifen; ab 1280 px Arbeitsfläche | Gerät ausklappen, drehen | T43.6, BUG-0180 | spec:tablet-layout.spec.ts |
 
 ## Erststart
 

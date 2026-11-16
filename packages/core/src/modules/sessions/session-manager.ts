@@ -4,8 +4,8 @@ import { SessionActivities } from "./session-activity.ts";
 import type { ActivityReport } from "@ancientvoid/contracts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus } from "@ancientvoid/contracts";
-import { actorKind, blobRefToString, classifyProviderError, countMetrics, currentProviderFailureFromEvents, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume } from "@ancientvoid/contracts";
+import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, EmittedStreamFrame, WsStreamFrames, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus } from "@ancientvoid/contracts";
+import { actorKind, blobRefToString, classifyProviderError, countMetrics, currentProviderFailureFromEvents, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume, EmittedStreamFrame as StreamFrameSchema } from "@ancientvoid/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
@@ -26,6 +26,7 @@ import { deriveTurnMetrics, TurnMetricStore } from "../runs/index.ts";
 import { buildHandoverPrompt, HANDOVER_PROMPT_MAX } from "../handover/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
 import { askTitleModel } from "./session-title.ts";
+import { createTokenTally, type SessionTokenTotals } from "./token-totals.ts";
 import type { PlannerModelConfig } from "../commands/model.ts";
 import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS, foldActivities, limitFailureInEvents, limitWindow } from "./session-state.ts";
 import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
@@ -97,6 +98,8 @@ export class SessionManager {
   private readonly autoResumeInterrupted: boolean;
   private readonly uncertainQueue = new Set<string>();
   private shuttingDown = false;
+  /** ADR-0083: Abonnenten transienter Live-Frames (sessionId -> Set). Kein EventStore. */
+  private readonly frameSubscribers = new Map<string, Set<(frames: WsStreamFrames) => void>>();
   private readonly recovery: SessionRecovery;
   private readonly activityTracker: SessionActivities;
   private readonly live = new Map<string, LiveSession>();
@@ -321,6 +324,48 @@ export class SessionManager {
     if (!s) return () => undefined;
     s.subscribers.add(cb);
     return () => s.subscribers.delete(cb);
+  }
+
+  /**
+   * ADR-0083: Abo für transiente Live-Frames (echtes Streaming). Bewusst getrennt von
+   * `subscribe`: Frames laufen an der Persistierung vorbei — kein EventStore, kein
+   * Snapshot, keine Resync-Pflicht. Wer sich später einklinkt (Reconnect, View mitten
+   * im Turn), sieht den Beitrag, sobald der dauerhafte Block eintrifft.
+   */
+  subscribeFrames(sessionId: string, cb: (frames: WsStreamFrames) => void): () => void {
+    let set = this.frameSubscribers.get(sessionId);
+    if (!set) {
+      set = new Set();
+      this.frameSubscribers.set(sessionId, set);
+    }
+    const born = set;
+    born.add(cb);
+    return () => {
+      born.delete(cb);
+      if (born.size === 0) this.frameSubscribers.delete(sessionId);
+    };
+  }
+
+  private publishFrame(session: LiveSession, frame: EmittedStreamFrame): void {
+    const parsed = StreamFrameSchema.safeParse(frame);
+    if (!parsed.success) {
+      // Fail loud, ohne die Session abzuschießen: ein kaputter Frame ist Wegwerfware,
+      // der Block dahinter bleibt die Wahrheit.
+      this.logger.warn("live-frame abgelehnt", { sessionId: session.record.id, reason: parsed.error.issues[0]?.message ?? "Schema" });
+      this.metrics?.inc("live_frames_rejected");
+      return;
+    }
+    const set = this.frameSubscribers.get(session.record.id);
+    if (!set || set.size === 0) return; // niemand schaut zu: nichts tun, nichts speichern
+    const msg: WsStreamFrames = { type: "stream", sessionId: session.record.id, frames: [parsed.data] };
+    for (const cb of set) {
+      try {
+        cb(msg);
+      } catch {
+        this.metrics?.inc("live_frames_dropped"); // langsamer Verbraucher: Frame ist weg
+      }
+    }
+    this.metrics?.inc("live_frames");
   }
 
   /** ADR-0004: latest account-level usage/quota snapshot for an adapter,
@@ -798,7 +843,19 @@ export class SessionManager {
       throw new Error(`Das Projekt hat ungesicherte Änderungen (${shown}${state.dirty.length > 5 ? ", …" : ""}). Direkt starten nur nach ausdrücklicher Bestätigung.`);
     }
     const lease = this.checkoutLeases.acquire(checkout.checkoutId, sessionId, (owner) => this.holdsCheckout(owner));
-    if (!lease.ok) throw new Error(`In diesem Projekt schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}). Erst beenden oder einen eigenen Worktree wählen.`);
+    if (!lease.ok) {
+      // ADR-0081: in einem Ordner ohne Git gibt es keine Branch-/Dirty-Metadaten,
+      // die ein Allein-Schreiber schützen könnte. Paralleles Schreiben ist dort
+      // erlaubt — aber nur nach ausdrücklicher Bestätigung und sichtbar als
+      // Mit-Nutzerschaft (checkout_tenants), nie still.
+      if (checkout.isGit) {
+        throw new Error(`In diesem Projekt schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}). Erst beenden oder einen eigenen Worktree wählen.`);
+      }
+      if (spec.confirmSharedFolder !== true) {
+        throw new Error(`In diesem Ordner schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}). Paralleles Schreiben braucht die ausdrückliche Bestätigung „Mehrere Sessions in diesem Ordner“.`);
+      }
+      this.checkoutLeases.addTenant(checkout.checkoutId, sessionId);
+    }
     return {
       mode: "direct",
       explicitDirect: true,
@@ -819,8 +876,17 @@ export class SessionManager {
   private claimDirectCheckout(session: LiveSession): string | null {
     const baseline = session.record.workspaceBaseline;
     if (session.record.workspaceMode !== "direct" || !baseline) return null;
+    // ADR-0081: Mit-Nutzer eines Nicht-Git-Ordners holen sich keine exklusive Lease,
+    // sondern ihre Mit-Nutzerschaft zurück (Tabelle überlebt Restart, K7).
+    if (this.checkoutLeases.isTenant(baseline.checkoutId, session.record.id)) {
+      this.checkoutLeases.addTenant(baseline.checkoutId, session.record.id);
+      return null;
+    }
     const lease = this.checkoutLeases.acquire(baseline.checkoutId, session.record.id, (owner) => owner !== session.record.id && this.holdsCheckout(owner));
-    return lease.ok ? null : `In diesem Projekt schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}).`;
+    if (lease.ok) return null;
+    return this.holdsCheckout(lease.ownerSessionId)
+      ? `In diesem Projekt schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}).`
+      : null;
   }
 
   /** ADR-0057 / „Neue Session“: was würde „Projekt direkt“ hier bedeuten? Read-only, startet nichts. */
@@ -833,7 +899,15 @@ export class SessionManager {
     dirty: string[];
     dirtyTruncated: boolean;
     heldBy: string | null;
+    /** ADR-0081: alle Sessions, die hier schon schreiben (Primär-Lease + Mit-Nutzer). */
+    holders: string[];
   }> {
+    // BUG-0171: der Zielordner darf erst beim Start entstehen. Die Vorschau ist
+    // read-only und startet nichts — also sagt sie ehrlich, was passieren würde,
+    // statt einen ENOENT als „Projekt nicht lesbar" durchzureichen.
+    if (!existsSync(project)) {
+      throw new Error(`Ordner existiert noch nicht: ${project} — er wird beim Start angelegt, sofern sein Elternordner existiert.`);
+    }
     const checkout = await canonicalCheckout(project);
     const state = await checkoutState(checkout.checkoutId);
     const lease = this.checkoutLeases.get(checkout.checkoutId);
@@ -846,6 +920,7 @@ export class SessionManager {
       dirty: state.dirty,
       dirtyTruncated: state.dirtyTruncated,
       heldBy: lease && this.holdsCheckout(lease.sessionId) ? lease.sessionId : null,
+      holders: this.checkoutLeases.holders(checkout.checkoutId, undefined, (id) => this.holdsCheckout(id)),
     };
   }
 
@@ -2231,6 +2306,24 @@ export class SessionManager {
     return this.store.tail(sessionId, afterSeq, limit);
   }
 
+  /**
+   * ADR-0084: Token-Bilanz der Session — „erzeugt“ und „verarbeitet“ getrennt.
+   * Abgeleitet und seitenweise gezählt (kein neuer Zustand, K7): große Sessions
+   * landen nie komplett im Speicher.
+   */
+  async tokenTotals(sessionId: string, pageSize = 1000): Promise<SessionTokenTotals> {
+    const tally = createTokenTally();
+    let after = 0;
+    for (;;) {
+      const page = await this.store.tail(sessionId, after, pageSize);
+      if (page.length === 0) break;
+      tally.add(page);
+      after = page[page.length - 1]!.seq;
+      if (page.length < pageSize) break;
+    }
+    return tally.result();
+  }
+
   async readBlob(sessionId: string, hash: string): Promise<Buffer> {
     return this.store.readBlob(sessionId, hash);
   }
@@ -2586,6 +2679,12 @@ export class SessionManager {
         if (signal.aborted || this.shuttingDown) return;
         if (event.type === "error" || event.payload?.kind === "provider.error" || event.payload?.kind === "cursor.usage_limit") session.turnFailed = true;
         void this.emitEvents(session, [event]).catch((err) => this.handleEmitFailure(session, event, err));
+      },
+      /** ADR-0083: transiente Live-Frames — kein EventStore, kein Snapshot, keine
+       * Event-Sequenz. Ein Frame, der nirgends hingeht, ist verloren — absichtlich. */
+      stream: (frame: EmittedStreamFrame) => {
+        if (signal.aborted || this.shuttingDown) return;
+        this.publishFrame(session, frame);
       },
       blob: async (data: string | Uint8Array): Promise<BlobRef> => {
         return this.store.writeBlob(session.record.id, data);

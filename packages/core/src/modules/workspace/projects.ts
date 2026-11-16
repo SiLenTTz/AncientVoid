@@ -1,5 +1,6 @@
-import { readdir, readFile, realpath, stat } from "node:fs/promises";
-import { join, sep } from "node:path";
+import { mkdir, readdir, readFile, realpath, stat } from "node:fs/promises";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { nearestExistingAncestor, pathStyle, pathWithin } from "../../platform/index.ts";
 
 /**
  * T1.5-4: project auto-discovery. A "project" is any immediate
@@ -15,6 +16,9 @@ export interface DiscoveredProject {
   name: string;
   /** Best-effort from .git/HEAD; null for a detached HEAD or unreadable .git. */
   branch: string | null;
+  /** BUG-0172: false = Ordner ohne `.git`. Er wird trotzdem angeboten, weil
+   * lokales Arbeiten ohne Git kein Umweg über `git init` sein darf. */
+  isGit: boolean;
 }
 
 export interface ProjectDiscoveryResult {
@@ -48,15 +52,24 @@ export async function discoverProjects(roots: readonly string[]): Promise<Projec
       continue;
     }
     for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
+      if (entry.name.startsWith(".")) continue;
       const full = join(root, entry.name);
-      try {
-        await stat(join(full, ".git"));
-      } catch {
-        continue; // no .git -> not a project, depth 1 only, no recursion
-      }
-      projects.push({ path: full, name: entry.name, branch: await readBranch(full) });
+      // Absicht (BUG-0172): auch Ordner ohne `.git` werden angeboten. Vorher galten
+      // sie als „kein Projekt“ — lokal ohne Git zu arbeiten war damit nicht auffindbar.
+      // Symlinks bleiben draußen (Dirent folgt nicht): depth 1, keine Ausgange.
+      if (!entry.isDirectory()) continue;
+      const hasGit = await stat(join(full, ".git")).then(() => true, () => false);
+      projects.push({ path: full, name: entry.name, branch: hasGit ? await readBranch(full) : null, isGit: hasGit });
     }
+  }
+  // Git-Repos zuerst: sie haben eine Branch-Anzeige und sind die vertraute Auswahl.
+  projects.sort((a, b) => Number(b.isGit) - Number(a.isGit) || a.name.localeCompare(b.name));
+  // K5-atem: eine Wurzel wie das Home-Verzeichnis kann tausende Ordner haben. Die
+  // Liste wird gekürzt, aber der Hinweis macht es sichtbar — nie still schweigen.
+  const CAP = 200;
+  if (projects.length > CAP) {
+    warnings.push(`Projektliste auf die ersten ${CAP} Einträge gekürzt (${projects.length} Ordner gefunden) — engere projectRoots setzen`);
+    projects.length = CAP;
   }
   return { projects, warnings };
 }
@@ -69,15 +82,29 @@ export async function discoverProjects(roots: readonly string[]): Promise<Projec
  * allowed root pointing outside it is rejected, not silently followed.
  * An empty `roots` list means unconfigured — preserves pre-T1.5-4
  * behavior (any path allowed) so existing configs don't break.
+ *
+ * BUG-0171: a leaf that does not exist yet is allowed as long as its
+ * nearest existing ancestor is inside an allowed root — that is exactly
+ * the "neuer Ordner, in dem ich eine Session starten will"-Fall. Before,
+ * `realpath()` threw on the missing leaf and the answer was "outside the
+ * configured projectRoots", which was untrue. The remaining (lexical) tail
+ * may not escape through `..`, and a symlink on the way is still resolved
+ * and rejected when it points out of the root.
  */
 export async function isProjectPathAllowed(projectPath: string, roots: readonly string[]): Promise<boolean> {
   if (roots.length === 0) return true;
-  let real: string;
+  const anchor = await nearestExistingAncestor(projectPath);
+  if (!anchor) return false;
+  let realAnchor: string;
   try {
-    real = await realpath(projectPath);
+    realAnchor = await realpath(anchor);
   } catch {
     return false;
   }
+  const tail = relative(anchor, resolve(projectPath));
+  if (tail === "..") return false;
+  if (tail.startsWith(`..${sep}`) || isAbsolute(tail)) return false;
+  const candidate = tail ? join(realAnchor, tail) : realAnchor;
   for (const root of roots) {
     let realRoot: string;
     try {
@@ -85,7 +112,7 @@ export async function isProjectPathAllowed(projectPath: string, roots: readonly 
     } catch {
       continue;
     }
-    if (real === realRoot || real.startsWith(realRoot + sep)) return true;
+    if (pathWithin(candidate, realRoot)) return true;
   }
   return false;
 }
@@ -101,6 +128,45 @@ export interface CreateProjectResult {
   created: boolean;
   project: DiscoveredProject;
   warning?: string;
+}
+
+/**
+ * BUG-0171: a session target inside an allowed root may not exist yet — the
+ * user wants to start a session in a fresh folder and have AncientVoid create
+ * it. Exactly one level is created (the leaf): a typo must not build a whole
+ * tree. A path that looks absolute but has no drive on Windows (`/coding`
+ * resolves drive-relative to `E:\coding`, silently) is rejected with an honest
+ * message instead of being quietly created.
+ */
+export async function ensureProjectDir(projectPath: string, roots: readonly string[]): Promise<{ created: boolean; path: string }> {
+  const driveOrUnc = /^[a-zA-Z]:[\\/]|^\\\\/;
+  const absolut = pathStyle() === "win32" ? driveOrUnc.test(projectPath) : projectPath.startsWith("/");
+  if (!absolut) {
+    // Ohne konfigurierte Wurzeln ist jeder Pfad bewusst erlaubt (BUG-0153), und
+    // Treiber-Tests arbeiten mit "/tmp" — dort legen wir nichts an und prüfen
+    // nichts, das war vor dieser Kette so und soll so bleiben.
+    if (roots.length === 0) return { created: false, path: resolve(projectPath) };
+    // Mit Wurzeln wird ein laufwerkloser Pfad ("/coding") zur laufwerksrelativen
+    // Falle: er landet je nach Laufwerk des Prozesses woanders — genau der Weg,
+    // den BUG-0175 auf Windows versteckt hatte.
+    throw new Error(`Projektpfad muss vollstaendig (absolut) angegeben werden: "${projectPath}" — auf Windows mit Laufwerksbuchstaben, z. B. "E:\\Coding\\projekt"`);
+  }
+  const target = resolve(projectPath);
+  // stat, nicht lstat: Symlink-/Junction-Ordner waren vor dieser Kette erlaubt
+  // (isProjectPathAllowed löst sie per realpath auf); lstat hätte sie als
+  // "kein Ordner" abgelehnt — Regression aus dem PR-Review.
+  const leaf = await stat(target).catch(() => null);
+  if (leaf?.isDirectory()) return { created: false, path: target };
+  if (leaf) throw new Error(`"${target}" existiert, ist aber kein Ordner.`);
+  if (!(await isProjectPathAllowed(target, roots))) {
+    throw new Error(`Projektpfad liegt außerhalb der konfigurierten projectRoots: ${target}`);
+  }
+  const parent = resolve(target, "..");
+  if (!(await stat(parent).then((s) => s.isDirectory(), () => false))) {
+    throw new Error(`Ordner existiert nicht, und sein Elternordner auch nicht: ${parent}`);
+  }
+  await mkdir(target);
+  return { created: true, path: target };
 }
 
 const PROJECT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
@@ -125,7 +191,7 @@ export async function createProject(
   }
   const hasGit = await stat(join(projectPath, ".git")).then(() => true, () => false);
   if (hasGit) {
-    return { created: false, project: { path: projectPath, name, branch: await readBranch(projectPath) } };
+    return { created: false, project: { path: projectPath, name, branch: await readBranch(projectPath), isGit: true } };
   }
   const exists = await stat(projectPath).then(() => true, () => false);
   if (exists) {
@@ -136,5 +202,5 @@ export async function createProject(
   if (r.code !== 0) {
     throw new Error(`git init fehlgeschlagen: ${r.stderr.slice(0, 200)}`);
   }
-  return { created: true, project: { path: projectPath, name, branch: "main" } };
+  return { created: true, project: { path: projectPath, name, branch: "main", isGit: true } };
 }

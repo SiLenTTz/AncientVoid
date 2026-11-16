@@ -21,15 +21,20 @@ test.describe("Tablet", () => {
     await expect(app.locator(".session-top-title")).toHaveText("Tablet-Aufgabe");
   });
 
-  test("Zweispalter (EPIC-P43 T43.6): hochkant die Sessions als Streifen über der Session, quer daneben @tablet", async ({ app, hub }) => {
+  test("Zweispalter (EPIC-P43 T43.6, BUG-0180): die Sessions stehen links neben der Session — hochkant wie quer @tablet", async ({ app, hub }) => {
     const first = await hub.createSession({ adapter: "opencode", prompt: "Erste Aufgabe" });
     await hub.createSession({ adapter: "opencode", project: hub.beta, prompt: "Zweite Aufgabe" });
     await app.setViewportSize({ width: 800, height: 1280 });
     await app.goto(`${hub.origin}/#/sessions/${first}`);
     const strip = app.getByRole("navigation", { name: "Sessions" });
     await expect(strip.getByRole("button", { name: "Erste Aufgabe" })).toHaveAttribute("aria-current", "page");
+    // BUG-0180: hochkant (800 px) stand die Liste bisher OBEN und lieh sich die Breite
+    // nicht — auf dem ausgeklappten Z Fold waren das zwei schwarze Balken. Jetzt:
+    // links Spalte, rechts die Session, und die App fuellt den Screen.
     const [stripBox, headBox] = await Promise.all([strip.boundingBox(), app.locator(".session-topbar").boundingBox()]);
-    expect(stripBox!.y + stripBox!.height).toBeLessThanOrEqual(headBox!.y + 1);
+    expect(stripBox!.x + stripBox!.width).toBeLessThanOrEqual(headBox!.x);
+    const shellWidth = await app.evaluate(() => document.getElementById("app")!.getBoundingClientRect().width);
+    expect(shellWidth).toBeGreaterThanOrEqual(800 - 28);
     await strip.getByRole("button", { name: "Zweite Aufgabe" }).click();
     await expect(app.locator(".session-top-title")).toHaveText("Zweite Aufgabe");
     await expect(app.locator(".dock-stack")).toBeVisible();

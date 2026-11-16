@@ -4,11 +4,19 @@
  * with an X-AncientVoid-Cached-At timestamp so the UI can badge "Daten vom <ts>".
  * Versioned cache — hard-bust by bumping CACHE_VERSION on deploy.
  */
-const CACHE_VERSION = "ancientvoid-v5";
+// BUG-0186: v6, weil jede frühere Version das Manifest vorgeladen hat — dieses
+// vorgeladene Exemplar war die alte, auf Hochformat gesperrte Fassung, und ohne
+// Byte-Änderung an dieser Datei installiert Chrome niemals einen neuen Worker,
+// der den alten Cache räumen könnte.
+const CACHE_VERSION = "ancientvoid-v6";
 // T8.2: API projections live apart from the shell, so a token change can
 // drop them without touching the app itself.
 const API_CACHE = "ancientvoid-api";
-const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-192.png"];
+// Das Manifest bleibt aus dem Vorlade-Set draußen: Android liest die
+// Fenster-Ausrichtung aus dem Manifest, und ein vorgeladenes Exemplar
+// sperrt die installierte App sonst auf eine Ausrichtung ein, die das
+// Netz längst freigegeben hat (BUG-0186, BUG-0181).
+const SHELL = ["/", "/index.html", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -21,8 +29,39 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_VERSION && k !== API_CACHE).map((k) => caches.delete(k))))
+      .then(dropCachedManifest)
       .then(() => self.clients.claim()),
   );
+});
+
+/**
+ * BUG-0186: ein Manifest, das je in einen Cache geraten ist, wird rausgeworfen.
+ * Android liest die Fenster-Ausrichtung aus dem Manifest — ein zwischengelagertes
+ * Exemplar sperrt die installierte App sonst auf eine Ausrichtung, die das Netz
+ * laengst freigegeben hat. Aktiv wird das bei jedem Worker-Wechsel geraeumt.
+ */
+async function dropCachedManifest() {
+  const keys = await caches.keys();
+  await Promise.all(
+    keys.map(async (name) => {
+      const cache = await caches.open(name);
+      const entries = await cache.keys();
+      await Promise.all(
+        entries.filter((req) => new URL(req.url).pathname.endsWith("/manifest.webmanifest")).map((req) => cache.delete(req)),
+      );
+    }),
+  );
+}
+
+/**
+ * Diagnose fuer die Oberflaeche (BUG-0186): „welcher Stand liegt auf dem Geraet?“
+ * soll ablesbar sein, nicht gefuehlt. Antwort geht an den anfragenden Client zurueck.
+ */
+self.addEventListener("message", (event) => {
+  if (!event.data || event.data.type !== "ancientvoid:sw-info") return;
+  const answer = { type: "ancientvoid:sw-info", cache: CACHE_VERSION };
+  if (event.source) event.source.postMessage(answer);
+  else self.clients.matchAll().then((all) => all.forEach((c) => c.postMessage(answer)));
 });
 
 self.addEventListener("fetch", (event) => {
@@ -34,6 +73,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (url.origin === self.location.origin) {
+    // BUG-0186: das Manifest wird NIE eingelagert. Android steuert aus dem Manifest die
+    // Fenster-Ausrichtung einer installierten App; ein Exemplar im Cache sperrt das
+    // Fenster auf eine Ausrichtung, die das Netz laengst freigegeben hat — genau der
+    // Zustand, den dropCachedManifest beim activate geraeumt hatte, nur um ihn beim
+    // naechsten Laden wieder zu erzeugen (live auf dem Geraet so gemessen).
+    if (url.pathname.endsWith("/manifest.webmanifest")) {
+      event.respondWith(fetch(req));
+      return;
+    }
     // Real bug, found via a live report ("UI shows old colors/layout after
     // a rebuild"): this used to be cache-first (`caches.match(req).then(hit
     // => hit || fetch(...))`), so once the app shell (/, /index.html, the

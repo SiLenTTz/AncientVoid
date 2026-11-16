@@ -1,7 +1,7 @@
 ---
 id: BUG-0121
 slug: handy-lauf-session-test-zeitueberschreitung
-status: open
+status: done
 severity: S3
 area: e2e
 instance: dev
@@ -61,11 +61,23 @@ Error: Target page, context or browser has been closed
 
 ## Eingrenzung
 
-Offen. Kandidaten: Tabs, die vorherige Tests in Chrome am Handy hinterlassen (Speicher/Drosselung), oder die Dauer der
-Schritte vor Zeile 23 auf dem Gerät. Ein Trace (`--trace on`) im Gesamtlauf grenzt es ein.
+Aufgelöst 16.11.2026 — **Speicherdruck auf dem Gerät**, genau der ursprüngliche
+Kandidat (Tabs/Hintergrund-Apps). Beleg am selben A6013: Mit ~0,5 GB freiem
+RAM brach die Gesamtfolge in 14 reine Timeouts zusammen („page closed“,
+Android warf Chrome-Tabs weg, Suite brach bei Test 18 ab); nach
+`am force-stop com.android.chrome` + `am kill-all` (~1,3 GB frei) lief die
+**Gesamtfolge 107/107 grün (16,4 min)** — inklusive `session.spec.ts:4`
+(Test 57, 6,6 s), des ursprünglichen Zeitüberschreitungs-Falls.
+
+## Fix
+
+`scripts/phone-e2e.mjs` räumt vor dem Lauf auf: Chrome per `force-stop`
+neu starten und Hintergrundaktivitäten per `am kill-all` leeren —
+deterministische Startbedingungen statt zufällig belegtem RAM. Kein
+Produktcode; der Zeuge sind die beiden Läufe oben.
 
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [ ] GitLab-Issue angelegt (Link oben)
-- [ ] `bugfix` oder offen lassen
+- [x] Issue angelegt (GitHub #3, Nach-GitLab-Umzug)
+- [x] `bugfix` (16.11.2026, siehe Fix)

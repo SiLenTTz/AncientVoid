@@ -1,16 +1,14 @@
-# CI nach dem Gate-Inventar (docs/ci-gate-inventar.md, EPIC-P28), seit
-# 16.11.2026 auf GitHub-gehosteten Runnern. Keine Self-hosted-Runner: das
-# Repo ist öffentlich, Fork-PRs dürfen keinen Code auf eigener Hardware
-# ausführen (docs/ci-runbook.md). Skips und fehlende Voraussetzungen sind
-# nie grün (Skip-Bericht im e2e-Job).
+# Gate für PRs nach main (docs/ci-gate-inventar.md, EPIC-P28): schneller Kern —
+# lint, typecheck, die check:*-Guards, die schnellen Kern-Tests und der
+# PWA-Build. Alles Langsame (Vitest-Dateien über dem Schwellenwert aus
+# scripts/slow-tests.json, volle Suite, E2E, K8) läuft auf ci/full-suite
+# zweimal täglich im Zeitplan — siehe nightly.yml. Skips und fehlende
+# Voraussetzungen sind dort nie grün (Skip-Bericht je Shard + Aggregation).
 name: ci
 
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
-  workflow_dispatch:
 
 # Minimalrechte für GITHUB_TOKEN — der Workflow liest nur.
 permissions:
@@ -30,27 +28,9 @@ env:
   AV_HOSTED_RUNNER: "1"
 
 jobs:
-  changes:
-    # Reine Doku (docs/, bugs/, epics/, *.md) braucht weder E2E noch K8.
-    runs-on: ubuntu-latest
-    outputs:
-      code: ${{ steps.diff.outputs.code }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - id: diff
-        run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then echo "code=true" >> "$GITHUB_OUTPUT"; exit 0; fi
-          base="${{ github.event.pull_request.base.sha }}"
-          if git diff --name-only "$base" HEAD | grep -qE '^(apps/|packages/|e2e/|scripts/|package(-lock)?\.json$|playwright\.config\.ts$|vitest\.config\.ts$|\.github/workflows/)'; then
-            echo "code=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "code=false" >> "$GITHUB_OUTPUT"
-          fi
-
   verify:
+    # PR-Gate: schneller Kern. Die volle Suite (inkl. Slow-Tests >10 s)
+    # fährt nightly.yml auf ci/full-suite im Zeitplan oder per Hand.
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -78,74 +58,19 @@ jobs:
       # AC-P1-6: Secret-Scan als wiederholtes Gate — auch für nachträglich
       # editierte Fixtures, nicht nur zum Capture-Zeitpunkt.
       - run: npm run check:secrets
+      # EPIC-P62 T62.2 (AC-P62-5): Medien-Leak-Guard — Struktur immer,
+      # OCR (tesseract) über neue/geänderte Guide-/Site-Screenshots.
+      - run: npm run check:media
+      - run: npm run check:media -- --ocr
       - run: npm -w @ancientvoid/pwa run build
-      - name: Unit- und Integrationstests
+      - name: "Schnelle Kern-Tests (Slow-Liste: scripts/slow-tests.json)"
         run: |
           mkdir -p test-results
-          npx vitest run --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml
+          npm run test:fast -- --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vitest-junit
           path: test-results/vitest-junit.xml
-          retention-days: 14
-          if-no-files-found: warn
-
-  # K8 in voller Messlatte: 20 Sessions × 30 Events/s × 10 s (nicht entschärft).
-  k8:
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
-      - name: System-Werkzeuge
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_TOOLS > /dev/null
-      - run: npm ci
-      - run: npm rebuild esbuild
-      - run: npm run loadtest
-
-  # Epic-Gate (docs/testing-e2e.md): jeder UI-Ablauf gegen einen echten Hub in
-  # Chromium. Blockierend; der Bericht macht Skips und „null Tests“ rot
-  # (EPIC-P28 T28.4 — ein fehlender Bericht ist nie grün).
-  e2e:
-    needs: [changes, verify]
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
-      - name: System-Werkzeuge
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_TOOLS > /dev/null
-      - run: npm ci
-      - run: npm rebuild esbuild
-      - run: npx playwright install --with-deps chromium
-      - name: E2E und Bericht
-        run: |
-          e2e=0
-          rep=0
-          npm run test:e2e || e2e=$?
-          node scripts/ci-e2e-report.mjs || rep=$?
-          [ "$e2e" = "0" ] && [ "$rep" = "0" ]
-      - if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: e2e-report
-          path: |
-            playwright-report/
-            test-results/
-            ci-artifacts/
           retention-days: 14
           if-no-files-found: warn

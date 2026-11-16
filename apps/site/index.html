@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AncientVoid — coding agents in your pocket</title>
+    <meta
+      name="description"
+      content="AncientVoid is a local-first hub to monitor and steer coding agents from your phone, tablet or PC. Self-hosted, event-sourced, private."
+    />
+    <style>
+:root {
+  --bg: #0b0f14;
+  --fg: #e8eef2;
+  --accent: #34d399;
+  --muted: #93a4b0;
+  --card: #131b23;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.6;
+}
+
+.hero {
+  padding: clamp(2rem, 8vw, 5rem) 1.25rem 2rem;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: clamp(2.2rem, 6vw, 3.5rem);
+  margin: 0 0 0.5rem;
+  letter-spacing: 0.02em;
+}
+
+.tagline {
+  font-size: 1.15rem;
+  color: var(--muted);
+  max-width: 42rem;
+  margin: 0 auto 1rem;
+}
+
+.quickstart code {
+  background: var(--card);
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.hero-links {
+  margin-top: 1.25rem;
+}
+
+.btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #06251a;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+main {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 0 1.25rem 3rem;
+}
+
+section {
+  margin-top: 3rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+  border-bottom: 1px solid #223;
+  padding-bottom: 0.35rem;
+}
+
+#feature-grid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+.feature {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+}
+
+.feature h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.feature p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+#videos-note,
+.videos-soon {
+  color: var(--muted);
+}
+
+.video {
+  margin-bottom: 1.5rem;
+}
+
+.link-list {
+  padding-left: 1.1rem;
+}
+
+#legal {
+  margin-top: 4rem;
+  border-top: 1px solid #223;
+  padding-top: 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.placeholder-note {
+  opacity: 0.8;
+}
+
+a {
+  color: var(--accent);
+}
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <h1>AncientVoid</h1>
+      <p class="tagline">Coding agents in your pocket — a local-first hub that watches, warns and lets you steer.</p>
+      <p class="quickstart"><code>./setup.sh</code> &nbsp;·&nbsp; then open the hub on your tailnet</p>
+      <p class="hero-links">
+        <a class="btn" href="https://github.com/SiLenTTz/AncientVoid">Source (GitHub)</a>
+        <a class="btn ghost" href="https://github.com/SiLenTTz/AncientVoid/blob/main/docs/guide/README.md">User guide</a>
+      </p>
+    </header>
+
+    <main>
+      <section id="features" aria-labelledby="features-h">
+        <h2 id="features-h">Features</h2>
+        <ul id="feature-grid"><!-- FEATURES --></ul>
+      </section>
+
+      <section id="videos" aria-labelledby="videos-h">
+        <h2 id="videos-h">Feature clips</h2>
+        <p id="videos-note">Videos load from YouTube (nocookie) only after you click — no third-party tracking on visit.</p>
+        <div id="video-grid"><!-- VIDEOS --></div>
+      </section>
+
+      <section id="guide" aria-labelledby="guide-h">
+        <h2 id="guide-h">Guide</h2>
+        <p>Every page and feature, in English, with deterministic screenshots:
+          <a href="https://github.com/SiLenTTz/AncientVoid/blob/main/docs/guide/README.md">docs/guide/README.md</a>.
+          First steps in German: <a href="https://github.com/SiLenTTz/AncientVoid/blob/main/docs/tutorial-erste-schritte.md">the first 15 minutes</a>.</p>
+      </section>
+
+      <section id="links" aria-labelledby="links-h">
+        <h2 id="links-h">Project</h2>
+        <ul class="link-list">
+          <li><a href="https://github.com/SiLenTTz/AncientVoid">Repository</a></li>
+          <li><a href="https://github.com/SiLenTTz/AncientVoid/issues">Issues</a></li>
+          <li><a href="https://github.com/SiLenTTz/AncientVoid/blob/main/CONTRIBUTING.md">Contributing</a></li>
+        </ul>
+      </section>
+
+      <footer id="legal">
+        <p>Operated by securesight.ai. AncientVoid is self-hosted software; this
+          page embeds no analytics and sets no cookies. Video embeds activate on
+          click only. <span class="placeholder-note">[Legal notice placeholder —
+          final imprint is a owner decision, see ADR-0082.]</span></p>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

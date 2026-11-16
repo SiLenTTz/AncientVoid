@@ -1,6 +1,6 @@
 ---
 name: gates
-description: Faehrt die Qualitaets-Gates dieses Repos (npm test/lint/typecheck/loadtest) in der richtigen Reihenfolge und im richtigen Umfang, bevor committet oder eine Aenderung als fertig gemeldet wird. Aktiv, wenn Code geaendert wurde und "ist das gruen?" beantwortet werden muss, oder wenn CI rot ist.
+description: Faehrt die Qualitaets-Gates dieses Repos (gezielte Tests der geaenderten Verhaltensweise + lint/typecheck; breite Läufe wie npm test/test:slow/test:e2e/gate nur auf ausdrücklichen Auftrag) in der richtigen Reihenfolge und im richtigen Umfang, bevor committet oder eine Aenderung als fertig gemeldet wird. Aktiv, wenn Code geaendert wurde und "ist das gruen?" beantwortet werden muss, oder wenn CI rot ist.
 ---
 
 # Skill: gates
@@ -9,9 +9,12 @@ Eine Definition von „grün“ für die verbindlichen lokalen Gates. Die
 Ausführungsorte verwenden dieselben Kommandos; die CI-Pflicht richtet sich
 ausschließlich nach `AGENTS.md` und `docs/ci-runbook.md`:
 
-- GitHub Actions (`.github/workflows/ci.yml`, Jobs `verify`, `k8`, `e2e`)
-  läuft auf jedem PR und ist Pflicht-Check für den Merge nach `main`
-  (`gh pr checks <nr>`). Roter Lauf → `docs/ci-runbook.md`.
+- GitHub Actions (`.github/workflows/ci.yml`, Job `verify`) läuft auf jedem
+  PR und ist Pflicht-Check für den Merge nach `main` (`gh pr checks <nr>`).
+  Die Vollsuite (`nightly.yml`, inklusive K8/E2E) läuft zweimal täglich
+  auf `ci/full-suite`; jeder main-Push synchronisiert diesen Zweig.
+  Fehler erzeugen GitHub-Bugs (`nightly-bugs.yml`). Details und rote Läufe:
+  `docs/ci-runbook.md`.
 - Lokale Gates bleiben zusätzlich verbindlich und blockierend — grüne CI
   ersetzt sie nicht, sie ersetzen grüne CI nicht.
 - Rot allein wegen der Umgebung (Runner-Flake, Dienst-Ausfall) wird benannt
@@ -31,35 +34,62 @@ Dann nur die Spalten fahren, die betroffen sind.
 | Geändert | Zu fahren |
 |---|---|
 | `packages/contracts/**` | alles (Contract-Änderung propagiert in jedes Package) + ADR-Pflicht (`AGENTS.md` Regel 1) |
-| `packages/adapters/*/**` | `npm test -w <package>` + `@ancientvoid/adapter-testkit`-Contract-Suite |
-| `apps/pwa/**` | `npm -w @ancientvoid/pwa run build` + `npm run typecheck` + `npm run test:e2e` |
-| `e2e/**` | `npm run test:e2e` (scheitert laut ohne Chromium: `npx playwright install chromium`) |
-| `apps/hub/src/modules/*`, `packages/core/src/modules/sessions/*`, `packages/adapters/*` | zusätzlich `npm run test:e2e` |
-| Epic- oder Bugfix-PR | `npm run gate` (alles, inkl. E2E) |
-| `apps/hub/**`, `packages/core/**`, `packages/workers/**` | `npm test` + `npm run loadtest` bei State-/EventStore-Änderungen (K5/K7/K8) |
+| `packages/adapters/*/**` | `npx vitest run packages/adapters/<name>/test` (Contract-Suite aus `@ancientvoid/adapter-testkit`) |
+| `apps/pwa/**` | `npm -w @ancientvoid/pwa run build` + `npm run typecheck` + `npx playwright test e2e/specs/<betroffene Spec>.spec.ts` |
+| `e2e/**` | `npx playwright test <die geänderten Specs>` (scheitert laut ohne Chromium: `npx playwright install chromium`) |
+| `apps/hub/src/modules/*`, `packages/core/src/modules/sessions/*`, `packages/adapters/*` | zusätzlich die betroffene Spec in `e2e/specs/` |
+| Epic- oder Bugfix-PR | `npm run gate` **nur auf ausdrücklichen Auftrag** — CI fährt `ci.yml` (schnell) und `nightly.yml` (voll) |
+| `apps/hub/**`, `packages/core/**`, `packages/workers/**` | `npx vitest run <Ordner des betroffenen Moduls>`; `npm run loadtest` bei State-/EventStore-Änderungen (K5/K7/K8) |
 | `*.md` | kein Gate |
 
 ## Die Kommandos
 
 ```bash
-npm test                 # vitest (packages/*/test)
+npm test                 # vitest: die volle Suite (Tier A + B zusammen)
+npm run test:fast        # vitest Tier A: schneller Loop (parallel; ohne die Dateien aus scripts/slow-tests.json)
+npm run test:slow         # langsamer Satz (VITEST_SET=slow) — Liste scripts/slow-tests.json
 npm run test:e2e          # Playwright-E2E-Gate (docs/testing-e2e.md)
-npm run gate              # typecheck + lint + test + test:e2e
+npm run gate              # check:* + typecheck + lint + volle Suite + test:e2e
 npm run lint              # eslint .
 npm run typecheck         # tsc -p . --noEmit
 npm run loadtest          # K8: 20 Sessions × 30 ev/s
 npm -w @ancientvoid/pwa run build  # nur bei PWA-Änderungen
 ```
 
-`npm test`, `npm run lint`, `npm run typecheck` sind laut `AGENTS.md` Pflicht
-vor jedem Commit-Vorschlag — unabhängig vom Umfang oben, wenn Zeit reicht ist
-ein voller Lauf immer korrekt, die Tabelle spart nur Zeit bei kleinen Diffs.
+`npm run lint` und `npm run typecheck` sind laut `AGENTS.md` Pflicht vor jedem
+Commit-Vorschlag, dazu **die Tests, die genau die geänderte Verhaltensweise prüfen**
+(Datei beim Namen genannt, rot-dann-grün). **Kein breit laufender Test als Standard**
+(Nutzerentscheid 16.11.2026): `npm test` (volle Suite), `npm run test:slow`, ein volles
+`npm run test:e2e` oder ganze Suiten/Matrizen nur auf ausdrücklichen Auftrag —
+`ci.yml` (schnell) und `nightly.yml` (voll) fahren die volle Messlatte, und jeder
+Push auf einem PR-Zweig wirft sie komplett neu an (dann ~20 min E2E).
 
-## Alles auf einmal
+**Tiers:** Tier A ist `npm run test:fast` (die PR-Gate-Messlatte aus `ci.yml`)
+und lässt weg, was lang ist, Ports bindet oder auf Wanduhr-Zeit prüft — das
+läuft seriell in `npm run test:slow` (~25 min lokal: acp/codex/cursor-Adapter,
+k8-Lasttest, device-service, ws-history, workspace-services, session-manager,
+recovery-parallel; Liste `scripts/slow-tests.json`). Tier B ist nötig, wenn
+genau diese Bereiche geändert sind, vor jedem Bugfix-/Epic-PR, und immer in
+`npm test`/`gate`/`nightly.yml`. Datei auf die Slow-Liste setzen: gemessene
+Dauer in den Commit.
+
+Nach roten Workspace-/Service-Läufen können verwaiste Fake-Services Ports
+belegen (gemessen 66 `node`-Prozesse). Rezept in BUG-0170 — niemals nach
+Prozessnamen killen, der eigene Agent läuft auf Node.
+
+## Voller Lauf — nur auf ausdrücklichen Auftrag
 
 ```bash
-npm test && npm run lint && npm run typecheck
+npm run test:fast && npm run lint && npm run typecheck  # Tier A breit
+npm run test:slow                               # seriell, ~25 min lokal
+npm run test:fast && npm run test:slow           # = npm test (volle Suite)
+npm run test:e2e                                # echter Hub + alle Specs
+npm run gate                                    # alles zusammen
 ```
+
+Standard ist der gezielte Lauf: `npx vitest run <Testdatei>`, `npx playwright test
+<Spec>`. Ein breiter Lauf ersetzt keinen gezielten Nachweis, dass genau das geänderte
+Verhalten stimmt (`AGENTS.md`: „Fertig heißt verifiziert“).
 
 ## Wenn ein Gate rot ist
 

@@ -35,7 +35,7 @@ reagieren nicht auf `[data-theme="light"]` oder die Akzentfarbe.
 | `--bg-card` | 3 | `30-files` |
 | `--panel`/`--bg-panel`/`--danger`/`--mono` | je 1–2 | `11-report-and-diff`, `30-files` |
 
-→ [BUG-0177](../bugs/bug-0177-geister-tokens-fremde-fallback-farben.md).
+→ [BUG-0187](../bugs/bug-0187-geister-tokens-fremde-fallback-farben.md).
 
 ### B2 — Hartkodierte Farben außerhalb der Token-Datei
 

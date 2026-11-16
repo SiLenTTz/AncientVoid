@@ -7,6 +7,13 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 export const repoRoot = resolve(import.meta.dirname, "../..");
+/**
+ * BUG-0183: das E2E-Eigene — nicht `apps/pwa/dist`. Der laufende Hub auf Kais
+ * Rechner servt genau dieses Verzeichnis; jedes Test-Lager hat sein Bündel
+ * überschrieben, auch von einem anderen Zweig aus. Ergebnis: am Handy waren
+ * gerade erst gemachte Korrekturen wieder weg, ohne dass jemand etwas gebaut hätte.
+ */
+export const E2E_PWA_DIST = resolve(repoRoot, "apps/pwa/dist-e2e");
 const binDir = resolve(import.meta.dirname, "bin");
 
 export interface HubOptions {
@@ -24,6 +31,9 @@ export interface HubOptions {
   dummyAutoStop?: number;
   /** P43.5 K2: explicit event rate for rendering measurements. */
   dummyEventsPerSecond?: number;
+  /** ADR-0083: echtes Streaming im Fixture-Hub (Frames + spaeter Block). */
+  dummyLiveFrames?: boolean;
+  dummyBlockLeadMs?: number;
   /** EPIC-P6: this hub's host id in the fleet. */
   hostId?: string;
   /** 2026-10-26: readable fleet label (config hostLabel) — two hubs on one
@@ -180,7 +190,7 @@ export class TestHub {
       ...(this.options.aiMetrics ? { aiMetrics: this.options.aiMetrics } : {}),
       media: { ytDlp: join(binDir, "yt-dlp") },
       forge: { gitlab: { command: this.options.forgeCommand ?? join(binDir, "glab") } },
-      server: { host: "127.0.0.1", port: this.port, pwaDir: join(repoRoot, "apps/pwa/dist") },
+      server: { host: "127.0.0.1", port: this.port, pwaDir: E2E_PWA_DIST },
       discovery: { claudeDir: join(this.root, "claude"), claudeCommand: join(binDir, "claude"), cursorUserDir: join(this.root, "cursor"), opencodeDataDir: this.root, piDir: join(this.root, "pi-sessions"), ompDir: join(this.root, "omp-sessions"), makiDir: join(this.root, "maki-sessions"), codexDir: join(this.root, "codex-sessions"), hermesDir: join(this.root, "hermes-home") },
       // EPIC-P19: ein deterministischer Loop ohne Fremdsystem (Fake aus dem Testkit).
       loops: [
@@ -191,7 +201,7 @@ export class TestHub {
         {
           id: "dummy",
           module: this.options.interruptedDummy ? join(repoRoot, "e2e/support/interrupted-dummy.ts") : this.options.limitDummy ? join(repoRoot, "e2e/support/limit-dummy.ts") : "@ancientvoid/adapter-dummy",
-          config: { hubResume: this.options.interruptedDummy?.resume ?? this.options.limitDummy === true, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: this.options.dummyEventsPerSecond ?? 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
+          config: { hubResume: this.options.interruptedDummy?.resume ?? this.options.limitDummy === true, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: this.options.dummyEventsPerSecond ?? 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14, liveFrames: this.options.dummyLiveFrames ?? false, blockLeadMs: this.options.dummyBlockLeadMs ?? 0 },
         },
         {
           // BUG-0061: dsh via ACP (ADR-0018) under a free-form id, like a
@@ -429,7 +439,7 @@ export class TestHub {
     return (await this.api<{ id: string; adapter: string; status: string; nativeSessionId: string | null }[]>("/api/sessions")).body;
   }
 
-  async createSession(spec: { adapter: string; project?: string; prompt?: string; model?: string; args?: Record<string, unknown>; budgetUsd?: number; workspaceMode?: "worktree" | "direct"; confirmDirty?: boolean; adoptNativeSessionId?: string }): Promise<string> {
+  async createSession(spec: { adapter: string; project?: string; prompt?: string; model?: string; args?: Record<string, unknown>; budgetUsd?: number; workspaceMode?: "worktree" | "direct"; confirmDirty?: boolean; confirmSharedFolder?: boolean; adoptNativeSessionId?: string }): Promise<string> {
     const res = await this.api<{ id?: string; error?: string }>("/api/sessions", {
       body: { project: this.alpha, ...spec },
     });

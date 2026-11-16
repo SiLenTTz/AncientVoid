@@ -1,0 +1,40 @@
+name: nightly-bugs
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Fehlgeschlagenen nightly-/pipeline-sync-Lauf nacherfassen (Run-ID)"
+        required: true
+        type: string
+  workflow_run:
+    workflows: [nightly, pipeline-sync]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+# Serialize issue lookup + creation to avoid duplicate bugs from concurrent runs.
+concurrency:
+  group: nightly-bugs
+  cancel-in-progress: false
+
+jobs:
+  report:
+    if: github.event_name == 'workflow_dispatch' || contains(fromJSON('["failure", "timed_out", "action_required", "startup_failure"]'), github.event.workflow_run.conclusion)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Trusted default-branch code only. Never execute code/artifacts from the failed run.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: node scripts/ci-pipeline.mjs report
+        env:
+          GH_TOKEN: ${{ github.token }}

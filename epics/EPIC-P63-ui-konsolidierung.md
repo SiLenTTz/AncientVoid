@@ -32,7 +32,7 @@ AC-P43-4 (Kontrast ≥ 4,5:1) gilt in beiden Themen für alle Flächen.
 
 - Token-Architektur in drei Schichten (Primitiv → Semantik → Komponente) in
   `00-tokens.css`, Light-Pendant vollständig.
-- Geister-Tokens und Fremd-Fallbacks entfernen (BUG-0177); hartkodierte Farben
+- Geister-Tokens und Fremd-Fallbacks entfernen (BUG-0187); hartkodierte Farben
   auf Tokens/`color-mix()`.
 - Leitern für `z-index`, Breakpoints, Schriftgrößen, Abstände; `em`-Ketten auflösen.
 - Bausteine `Button`, `Chip`, `Card`, `Sheet`, `EmptyState` in `shared/ui/`
@@ -74,7 +74,7 @@ Leitern (ebenfalls in `00-tokens.css`):
 
 ### 3.1 Token-Treue
 
-- Fehlende Tokens aus BUG-0177 (`--bg-card`, `--danger`, `--bad`, `--panel`,
+- Fehlende Tokens aus BUG-0187 (`--bg-card`, `--danger`, `--bad`, `--panel`,
   `--bg-panel`, `--mono`) werden **nicht** nachgetragen, sondern auf das
   semantische Vokabular gemappt (`--bg-elev`, `--err`, `--font-mono`); `--border`
   wird als echtes Token eingeführt (3.0).
@@ -147,9 +147,9 @@ Reihenfolge ist verbindlich: Messung vor Änderung, CSS-only vor TSX, größtes
 Risiko zuletzt. Jede Aufgabe: Branch `feat/p63-t<n>-<slug>`, `npm run gate`,
 PR nach `main`, Self-Merge nach grüner CI, Checkbox hier im selben PR abhaken.
 
-- [ ] **T63.0** Ratchet-Tests `css-tokens.test.ts`, `ui-primitives.test.ts` mit Ist-Startwerten in `css-ratchet.json`; `tokens.test.ts` um unbekannte-Token-Prüfung erweitern (rot ohne Fix, BUG-0177). K2-Messlauf als Referenz. Messlatte: AC-P43-4, K2.
+- [ ] **T63.0** Ratchet-Tests `css-tokens.test.ts`, `ui-primitives.test.ts` mit Ist-Startwerten in `css-ratchet.json`; `tokens.test.ts` um unbekannte-Token-Prüfung erweitern (rot ohne Fix, BUG-0187). K2-Messlauf als Referenz. Messlatte: AC-P43-4, K2.
 - [ ] **T63.1** `00-tokens.css` mit drei Schichten und Leitern anlegen; bestehende Tokens aus `01-base.css` verschieben; `--border`, `--bg-hover`, `--bg-active`, `--fg-on-accent`, `--border-strong`, `--shadow-sheet`, `--space-6` einführen; Light-Pendant vollständig; `tokens.test.ts` prüft Kontrast aller semantischen Paare.
-- [ ] **T63.2** BUG-0177 fixen: Geister-Tokens in `11-report-and-diff`, `29-workplace`, `30-files` auf Semantik mappen; Light-/Dark-Screenshots der drei Flächen in `e2e/specs/themes.spec.ts`.
+- [ ] **T63.2** BUG-0187 fixen: Geister-Tokens in `11-report-and-diff`, `29-workplace`, `30-files` auf Semantik mappen; Light-/Dark-Screenshots der drei Flächen in `e2e/specs/themes.spec.ts`.
 - [ ] **T63.3** Hartkodierte Farben in `11`, `30`, `32`, `22`, `23`, `29`, `25`, `34` und Rest auf Tokens/`color-mix()`; Syntax-/Graph-Farben als Primitive mit Alias; Ratchet (b)/(c) auf 0.
 - [ ] **T63.4** `z-index`-Leiter, Breakpoint-Stufen, Schrift-/Abstandsskala durchziehen; `em`-Ketten auflösen; Ratchet (d)/(e)/(f) auf 0; `breiten.spec.ts` bei Skala 0,85/1/1,3 grün.
 - [ ] **T63.5** Doppelte Selektoren zusammenführen, Präfix `23-` auflösen, tote Regeln löschen; Test „ein Selektor, eine Datei“ und „jede Datei importiert“; Screenshot-Vergleich der betroffenen Ansichten.
@@ -185,7 +185,7 @@ PR nach `main`, Self-Merge nach grüner CI, Checkbox hier im selben PR abhaken.
 
 - `npm run gate` lokal grün; GitHub-Actions-Lauf (`verify`, `k8`, `e2e`) auf dem Abschluss-PR grün; rote CI allein wegen Umgebung wird benannt, nie als Pass gezählt.
 - Jede neue UI-Funktion/jeder Ablauf mit Spec in `e2e/specs/` (`themes.spec.ts`, `fokus.spec.ts`).
-- AC-P63-1…8 mit Beleg in der Retro-Tabelle; BUG-0177 geschlossen.
+- AC-P63-1…8 mit Beleg in der Retro-Tabelle; BUG-0187 geschlossen.
 - `docs/design-system.md` ist der Vertrag (3.7) und über `check:context` frischgehalten; `docs/funktionsinventar.md` unverändert oder mit begründeter Änderung.
 - Erreichbarkeit: Ratchet-Tests laufen in `npm test`; Bausteine sind aus `shared/ui/index.ts` exportiert und im Rezept genannt.
 

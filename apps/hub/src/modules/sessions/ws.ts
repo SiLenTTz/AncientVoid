@@ -109,6 +109,13 @@ export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics
       void flush();
     });
 
+    // ADR-0083: transiente Live-Frames (echtes Streaming). Während des Replay werden
+    // Frames verworfen — sie werden nie nachgeliefert, der Block holt alles ein.
+    const unsubscribeFrames = sessions.subscribeFrames(sessionId, (frames) => {
+      if (replaying) return;
+      send(frames);
+    });
+
     /** Sends every stored event after `from` in pages, then lets the live
      * buffer (minus what the pages already covered) go out. */
     const replay = async (from: number, baseline: boolean): Promise<number> => {
@@ -179,6 +186,7 @@ export function createTailHandler(sessions: SessionManager, metrics?: HubMetrics
     socket.on("close", () => {
       metrics?.inc("ws_disconnects");
       unsubscribe();
+      unsubscribeFrames();
     });
   };
 }

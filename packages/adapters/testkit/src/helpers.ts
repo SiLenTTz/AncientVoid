@@ -1,4 +1,4 @@
-import type { AdapterContext, EmittedEvent } from "@ancientvoid/contracts";
+import type { AdapterContext, EmittedEvent, EmittedStreamFrame } from "@ancientvoid/contracts";
 
 /** In-memory AdapterContext capturing everything an adapter does. */
 export interface RecordingContext extends AdapterContext {
@@ -6,6 +6,8 @@ export interface RecordingContext extends AdapterContext {
   blobs: { hash: string; bytes: number }[];
   spawned: string[][];
   logs: { level: string; msg: string }[];
+  /** ADR-0083: live frames the adapter sent (transient, never an event). */
+  frames: EmittedStreamFrame[];
 }
 
 export function makeRecordingContext(overrides?: Partial<RecordingContext>): RecordingContext {
@@ -15,6 +17,7 @@ export function makeRecordingContext(overrides?: Partial<RecordingContext>): Rec
     blobs: [],
     spawned: [],
     logs: [],
+    frames: [],
     signal: new AbortController().signal,
     workdir: process.cwd(),
     emit: (ev) => ctx.events.push(ev),
@@ -31,6 +34,8 @@ export function makeRecordingContext(overrides?: Partial<RecordingContext>): Rec
       throw new Error("testkit: spawnWorker not simulated — override for worker tests");
     },
     log: (level, msg) => ctx.logs.push({ level, msg }),
+    // ADR-0083: standardmaessiger Stream-Kanal — Adapter-Tests hoeren die Frames ab.
+    stream: (f) => ctx.frames.push(f),
     ...overrides,
   };
   return ctx;

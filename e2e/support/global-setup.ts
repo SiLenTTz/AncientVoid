@@ -1,8 +1,15 @@
 import { execFileSync } from "node:child_process";
 import { repoRoot } from "./hub.ts";
 
-/** The hub serves apps/pwa/dist — build it fresh so the gate never
- * tests a stale bundle. */
+/** The hub serves `apps/pwa/dist-e2e` — build it fresh so the gate never
+ * tests a stale bundle. BUG-0183: der Zielordner ist E2E-eigen, `apps/pwa/dist`
+ * bleibt unberührt — das ist der Ordner, den der laufende Hub am Handy servt.
+ * Auf Windows verbietet Node das Spawnen von `npm` (`.cmd`) ohne Shell —
+ * EINVAL/ENOENT — damit war das E2E-Gate auf Windows nicht ausführbar (BUG-0169). */
+const needsShell = process.platform === "win32";
+
 export default function globalSetup(): void {
-  execFileSync("npm", ["-w", "@ancientvoid/pwa", "run", "build"], { cwd: repoRoot, stdio: "inherit" });
+  // Die Argumente sind feste Konstanten (kein Nutzereingang), deshalb ist `shell`
+  // hier vertretbar; Node warnt sonst vor DEP0190.
+  execFileSync("npm", ["-w", "@ancientvoid/pwa", "run", "build", "--", "--outDir", "dist-e2e", "--emptyOutDir"], { cwd: repoRoot, stdio: "inherit", shell: needsShell });
 }

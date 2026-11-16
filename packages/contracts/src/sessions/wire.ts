@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { NormalizedEvent } from "./event.ts";
+import { WsStreamFrames } from "./stream.ts"; // ADR-0083
 
 /**
  * WS delta protocol (ADR-P0-4): server sends numbered deltas, client detects
@@ -56,5 +57,8 @@ export const WsServerMessage = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("pong") }),
   z.object({ type: z.literal("error"), message: z.string() }),
+  /** ADR-0083: transiente Live-Frames — laufen NICHT über die Event-Sequenz und
+   * werden nie persistiert; eine Lücke ist kein Resync-Anlass (der Block holt auf). */
+  WsStreamFrames,
 ]);
 export type WsServerMessage = z.infer<typeof WsServerMessage>;

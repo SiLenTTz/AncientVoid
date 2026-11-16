@@ -1,0 +1,43 @@
+{
+  "thresholdSeconds": 10,
+  "generated": "2026-11-16",
+  "source": "vitest-JUnit eines vollen Laufs (node scripts/gen-slow-tests.mjs <junit.xml>)",
+  "files": [
+    {
+      "file": "packages/core/test/modules/devices/device-service.test.ts",
+      "seconds": 37.4
+    },
+    {
+      "file": "apps/hub/test/modules/search/search.test.ts",
+      "seconds": 33.8
+    },
+    {
+      "file": "packages/adapters/acp/test/adapter.test.ts",
+      "seconds": 32.9
+    },
+    {
+      "file": "scripts/setup.test.mjs",
+      "seconds": 17
+    },
+    {
+      "file": "packages/workers/test/tmux.test.ts",
+      "seconds": 14.3
+    },
+    {
+      "file": "apps/hub/test/server.test.ts",
+      "seconds": 13.5
+    },
+    {
+      "file": "apps/hub/test/modules/sessions/ws-history.test.ts",
+      "seconds": 12.5
+    },
+    {
+      "file": "packages/core/test/modules/automations/k8.test.ts",
+      "seconds": 11.9
+    },
+    {
+      "file": "packages/core/test/modules/sessions/interrupted-session.integration.test.ts",
+      "seconds": 10.6
+    }
+  ]
+}

@@ -8,10 +8,13 @@ Das E2E-Gate prüft jede Oberfläche und jeden Arbeitsablauf der PWA gegen
 einen **echten Hub-Prozess**. Für den Epic-Abschluss muss `npm run gate`
 lokal grün sein; UI-Funktionen und Abläufe brauchen eigene Specs.
 
-**CI-Geltung (Umzug auf GitHub, 16.11.2026):** Der GitHub-Actions-Job
-`e2e` (`.github/workflows/ci.yml`, GitHub-gehostete Runner) läuft auf jedem
-PR und ist Required Check für den Merge nach `main` — zusätzlich zu
-`npm run test:e2e` lokal. Rot allein wegen der Umgebung wird benannt und
+**CI-Geltung (Umzug auf GitHub, 16.11.2026; Laufzeit-Split 16.11.2026):** Der
+E2E-Shard-Lauf (`.github/workflows/nightly.yml`, GitHub-gehostete Runner)
+läuft auf `ci/full-suite` zweimal täglich (03:00/15:00 UTC) und per Hand.
+Jeder Push nach `main` synchronisiert diesen Testbranch, ohne die Vollsuite
+zu starten; Fehler erzeugen automatisch GitHub-Bugs. der PR-Gate (`ci.yml`) ist der schnelle Kern.
+Zusätzlich bleibt `npm run test:e2e` lokal vor UI-PRs verbindlich. Rot
+allein wegen der Umgebung wird benannt und
 einmal neu gestartet, nie als Pass gezählt; Skips sind keine Pässe. Lokale
 Fehler und erforderliche echte Geräte-/Provider-Abnahmen bleiben
 verbindlich. Details: [CI-Runbook §0](ci-runbook.md#0-geltung-seit-16112026).

@@ -14,16 +14,17 @@ CI ist **GitHub Actions** auf GitHub-gehosteten `ubuntu`-Runnern.
 | Nachweis | Pflicht für PRs nach `main` |
 |---|---|
 | Lokale Gates (`AGENTS.md`, Abschnitt Kommandos) | ja, vor jedem PR |
-| GitHub Actions (`verify`, `k8`, `e2e`) | ja, Required Check per Branch-Protection |
+| GitHub Actions PR-Gate (`ci.yml`, Job `verify`: schnelle Kern-Tests, Lint, Typecheck, Build) | ja, Required Check per Branch-Protection |
+| GitHub Actions volle Messlatte (`nightly.yml`: volle Vitest-Suite inkl. Slow-Tests, `k8`, `e2e` als Shard-Matrix) | nein — sie läuft auf `ci/full-suite` zweimal täglich im Zeitlauf (laufzeit-Beschluss 16.11.2026) |
 
 - Beide Nachweise gelten **zusätzlich**, keiner ersetzt den anderen.
 - Ein roter Lauf blockiert den Merge. Liegt die Ursache nachweislich nur in
   der Umgebung (Runner-Flake, Dienst-Ausfall, Netz beim `npm ci`), wird das im
   PR benannt und der Lauf **einmal** neu gestartet (§3) — nie als Pass gemeldet.
 - `cancelled`/fehlende Jobs sind kein Pass. Abgebrochene oder veraltete
-  Läufe (älterer SHA) zählen nicht. Einzige gewollte Ausnahme: `k8` und `e2e`
-  werden auf PRs ohne Code-Änderung vom Job `changes` übersprungen (§1);
-  jeder andere Skip ist kein Pass.
+  Läufe (älterer SHA) zählen nicht. Auf PRs läuft bewusst nur der schnelle
+  Gate (`verify`); die vollen Läufe (Zeitplan, manueller Start) müssen voll
+  durchlaufen — dort ist jeder Skip und jeder fehlende Job kein Pass.
 - **Keine self-hosted Runner** für dieses öffentliche Repo (§4).
 - Produktfunktionen für GitLab (Forge-Modul, EPIC-P37) sind davon unberührt;
   diese Regel betrifft nur die CI dieses Repos.
@@ -38,15 +39,24 @@ Links auf `gitlab.com/SiLenT_Tz/…` zeigen auf das private Archiv.
 
 | Job | Inhalt | Lokales Gegenstück |
 |---|---|---|
-| `changes` | entscheidet, ob der PR Code berührt (`apps/`, `packages/`, `e2e/`, `scripts/`, Lock-/Config-Dateien, `.github/workflows/`) | — |
-| `verify` | `npm ci`, Typecheck, Lint, Checks (`check:*`), Vitest, PWA-Build | `npm test && npm run lint && npm run typecheck` |
-| `k8` | Lasttest 20 Sessions × 30 ev/s (nur bei Code-Änderung) | `npm run loadtest` |
-| `e2e` | Playwright Chromium gegen einen echten Hub, danach Skip-Bericht (nur bei Code-Änderung, nach `verify`) | `npm run test:e2e` |
+| `verify` (`ci.yml`, PR-Gate) | `npm ci`, Typecheck, Lint, Checks (`check:*`), schnelle Kern-Tests (ohne Slow-Liste), PWA-Build | `npm run test:fast && npm run lint && npm run typecheck` |
+| `vitest-full` (`nightly.yml`) | die komplette Vitest-Suite inkl. Slow-Tests (Liste `scripts/slow-tests.json`, Generator `scripts/gen-slow-tests.mjs`, Drift-Vorschlag im Log) | `npm test` |
+| `k8` (`nightly.yml`) | Lasttest 20 Sessions × 30 ev/s | `npm run loadtest` |
+| `e2e-shards` + `e2e` (`nightly.yml`) | Playwright Chromium gegen einen echten Hub, danach Skip-Bericht (4 Shards parallel, Browser-Cache); der Aggregations-Job `e2e` fasst die Shard-Berichte nach denselben Regeln zusammen (fehlender Bericht, null Tests, Failures — `scripts/ci-e2e-aggregate.mjs`) | `npm run test:e2e` |
 
-Reine Doku-PRs (`docs/`, `bugs/`, `epics/`, `*.md`) laufen nur durch
-`verify`; Pushes auf `main` und manuelle Läufe (`workflow_dispatch`) laufen
-immer voll. Ein neuer Push auf denselben PR bricht den laufenden Lauf ab
-(`concurrency`). Die genaue Schrittfolge steht ausschließlich in `ci.yml`. **K8 bleibt
+Der PR-Gate läuft auf jedem PR (auch reine Doku- und Dependabot-PRs);
+`pipeline-sync.yml` aktualisiert nach Pushes auf `main` den Zweig `ci/full-suite` per Fast-forward (keine eigenen Commits auf diesem Zweig).
+Die vollen Läufe (`nightly.yml`) laufen um 03:00/15:00 UTC und per
+`workflow_dispatch`; alle Jobs prüfen denselben beim Start festgehaltenen SHA.
+Dafür wartet `prepare` bis zu 90 s, bis `ci/full-suite` dem main-HEAD entspricht
+— ein manueller Start direkt nach einem Merge kann sonst den Vorgänger-Stand
+testen, während `pipeline-sync` noch läuft (gesehen 16.11.2026). Nach Ablauf
+scheitert der Resolve laut statt still einen veralteten Stand zu prüfen.
+Ein Push startet nur die Branch-Synchronisierung, keine Vollsuite.
+Der Sync-Workflow hat eine eigene Concurrency-Gruppe und wartet nicht auf
+einen laufenden Volltest. Nightly liest den Testbranch mit Leserechten.
+Laufende Vollsuiten werden durch neue Pushes nicht abgebrochen. Die genaue Schrittfolge
+steht ausschließlich in `ci.yml` und `nightly.yml`. **K8 bleibt
 20 Sessions × 30 Events/s**, lokal wie in CI; keine Job-Konfiguration darf
 diese Messlatte entschärfen. Fehlt in CI der Browser, muss `e2e` rot enden,
 nicht still skippen.
@@ -59,11 +69,11 @@ gh pr checks <nr> --watch                 # bis zum Ende verfolgen
 gh run list --branch <branch> --limit 5   # Läufe eines Branches
 gh run view <run-id>                      # Jobs und Schritte
 gh run view <run-id> --log-failed         # nur die Logs der fehlgeschlagenen Schritte
-gh run download <run-id> -n e2e-report -D e2e-report   # Artefakt laden
+gh run download <run-id> -n e2e-report-shard-1 -D e2e-report-shard-1   # Artefakt laden
 ```
 
-Artefakte (14 Tage): `vitest-junit` aus `verify` (JUnit-XML) und
-`e2e-report` aus `e2e` (`playwright-report/` mit Traces/Screenshots,
+Artefakte (14 Tage): `vitest-junit` aus `verify`/`vitest-full` (JUnit-XML) und
+`e2e-report-shard-<n>` aus den Shard-Jobs (`playwright-report/` mit Traces/Screenshots,
 `test-results/` mit JUnit-XML, `ci-artifacts/e2e-report.md` mit benannten
 Skips). `gh run view <run-id>` listet sie. Artefakte sind im öffentlichen Repo für
 alle sichtbar — daher keine Secrets, Hostnamen oder Home-Pfade in Test-Output.
@@ -119,8 +129,12 @@ Einstellungen (*Settings → Actions → General*) und Workflow-Regeln:
   Ökosystem `github-actions`); Updates laufen als normale PRs durch dieselbe CI.
 - **Keine Secrets** in Workflows. Braucht ein Job je eines, nur über
   Environments mit Freigabe und nie in Jobs, die Fork-Code ausführen.
-- Branch-Protection auf `main`: Required Checks `verify`, `k8`, `e2e`;
-  kein Force-Push, kein direkter Push; Merge nur per PR.
+- Branch-Protection auf `main` (Ruleset `main-gate`, aktiv seit 16.11.2026):
+  Required Check ist `verify` (der schnelle PR-Gate aus `ci.yml`, ohne
+  Auto-Update-Regel — der Gate prüft ohnehin den Merge-Ref); kein
+  Force-Push (non-fast-forward), kein Löschen von `main`. Direkter Push auf
+  `main` aktualisiert ebenfalls den Testbranch; normale Arbeit geht per
+  PR. Die vollen Läufe (`nightly.yml`) sind kein PR-Gate.
 
 ## 5. Lokale-vs-CI-Regel
 
@@ -132,8 +146,7 @@ Einstellungen (*Settings → Actions → General*) und Workflow-Regeln:
   scheitert sonst
   ([BUG-0092](../bugs/bug-0092-k7-recovery-test-flaky-parallel-last.md)).
 - Lokal betroffene Packages testen; vollständiges E2E nur bei UI-/Routen-/
-  SessionManager-/Adapter-Änderungen (AGENTS.md). CI fährt `k8`/`e2e` auf
-  jedem PR mit Code-Änderung voll.
+  SessionManager-/Adapter-Änderungen (AGENTS.md). Die Vollsuite fährt `k8`/`e2e` auf dem synchronisierten Testbranch.
 
 ## 6. Negativproben (jährlich oder nach Workflow-Umbau)
 
@@ -144,3 +157,24 @@ Einstellungen (*Settings → Actions → General*) und Workflow-Regeln:
 3. Danach denselben sauberen Commit erneut laufen lassen und grün sehen.
 
 Belege (Run-IDs) im jeweiligen PR bzw. Epic unter Abschlussnachweisen.
+
+## 7. Automatische CI-Bugs (EPIC-P28, K1–K10)
+
+`nightly-bugs.yml` reagiert auf fehlgeschlagene `nightly`- und
+`pipeline-sync`-Läufe, auch wenn
+das Setup oder die Branch-Synchronisierung scheitert. Pro fehlgeschlagenem
+Job entsteht ein GitHub-Issue mit Label `bug`, SHA, Branch, Run-/Job-Link
+und Reproduktionshinweis. Ein vorhandener offener Bug desselben Jobs wird
+auf das jüngste Auftreten aktualisiert; nach Schließen erzeugt ein neuer
+Fehler einen neuen Bug. Grüne Läufe schließen Bugs nicht automatisch.
+Abgebrochene Läufe erzeugen keinen Produktbug und bleiben als Abbruch sichtbar.
+
+Der Reporter führt ausschließlich Code von `main` aus, liest Job-Metadaten
+über die API und führt weder Logs noch Artefakte aus. Nur dieser Workflow
+hat `issues: write`; nur `pipeline-sync.yml` hat `contents: write`. Tests selbst
+haben Leserechte. Die Implementierung und Negativfälle stehen in
+`scripts/ci-pipeline.mjs` und `scripts/ci-pipeline.test.mjs`.
+
+Historische Fehler lassen sich per `gh workflow run nightly-bugs.yml -f run_id=<ID>`
+nacherfassen (z. B. nach einem Reporter-Ausfall). Es werden nur fehlgeschlagene
+`nightly`-/`pipeline-sync`-Läufe ausgewertet, keine PR-Workflows.

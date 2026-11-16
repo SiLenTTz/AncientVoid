@@ -4,7 +4,13 @@ import { test, expect } from "../support/fixtures.ts";
 
 test.describe("Nyx-FAB (Speech-to-Text)", () => {
   test.beforeEach(async ({ page }) => {
+    // Gesteuerter Spracherkenner: `__speechSessions` beschreibt, was der Erkner
+    // nacheinander abgibt (interim = Vorschau, final = segment). Nach Stille macht
+    // Chrome ein onend — das hier ist die zweite Session, damit der Neustart testbar ist.
     await page.addInitScript(() => {
+      type Emit = { text: string; final?: boolean };
+      type Session = { emits: Emit[]; gap?: number };
+      const g = globalThis as unknown as { __speechSessions?: Session[]; SpeechRecognition?: unknown };
       class FakeRecognition {
         lang = "";
         interimResults = false;
@@ -14,17 +20,45 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
         onresult: ((e: unknown) => void) | null = null;
         onerror: ((e: unknown) => void) | null = null;
         onend: (() => void) | null = null;
+        private stopped = false;
         start() {
-          const text = (globalThis as unknown as { __speech?: string }).__speech ?? "hallo welt";
-          setTimeout(() => {
+          const sessions = g.__speechSessions ?? [];
+          const session: Session = sessions.shift() ?? { emits: [], gap: 400 };
+          let i = 0;
+          let timer: ReturnType<typeof setTimeout>;
+          this.flush = () => {
+            for (let k = i; k < session.emits.length; k++) {
+              const e = session.emits[k];
+              if (e?.text) this.onresult?.({ resultIndex: 0, results: [{ isFinal: true, length: 1, 0: { transcript: e.text } }] });
+            }
+            i = session.emits.length;
+          };
+          const step = () => {
+            if (this.stopped) return void this.onend?.();
+            const e = session.emits[i++];
+            if (!e) return void this.onend?.();
+            this.onresult?.({ resultIndex: 0, results: [{ isFinal: !!e.final, length: 1, 0: { transcript: e.text } }] });
+            timer = setTimeout(step, session.gap ?? 120);
+          };
+          timer = setTimeout(() => {
             this.onstart?.();
-            this.onresult?.({ results: [[{ transcript: text }]] });
-            this.onend?.();
+            step();
           }, 30);
+          void timer;
         }
-        abort() {}
+        private flush: (() => void) | null = null;
+        stop() {
+          // So tut es einen echten Browser: beim Stoppen kommen die ausstehenden
+          // Endergebnisse noch heraus — ein Diktat verliert kein halbfertiges Wort.
+          this.flush?.();
+          this.stopped = true;
+          this.onend?.();
+        }
+        abort() {
+          this.stopped = true;
+        }
       }
-      (globalThis as unknown as { SpeechRecognition: unknown }).SpeechRecognition = FakeRecognition;
+      g.SpeechRecognition = FakeRecognition;
     });
   });
 
@@ -35,14 +69,63 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     await expect(app.locator(".composer-actions").getByRole("button", { name: "Voice" })).toHaveCount(0);
   });
 
-  test("Klick diktiert in das fokussierte Antwortfeld", async ({ app, hub }) => {
+  test("erneut tippen stoppt: Text kommt erst beim Stoppen ins Feld", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     const field = app.getByPlaceholder("Antworten…");
     await field.click();
-    await app.evaluate(() => ((globalThis as unknown as { __speech: string }).__speech = "bitte weitermachen"));
+    await app.evaluate(() => ((globalThis as unknown as { __speechSessions?: unknown[] }).__speechSessions = [{ emits: [{ text: "bitte weitermachen", final: true }], gap: 120 }]));
+    await app.locator('[data-testid="nyx-fab"]').click();
+    await expect(field).toHaveValue("");
     await app.locator('[data-testid="nyx-fab"]').click();
     await expect(field).toHaveValue("bitte weitermachen");
+  });
+
+  test("BUG-0177: Wörter erscheinen während des Sprechens, der Knopf wird zum Stopp-Knopf", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 390, height: 800 });
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const field = app.getByPlaceholder("Antworten…");
+    await field.click();
+    await app.evaluate(() => ((globalThis as unknown as { __speechSessions?: unknown[] }).__speechSessions = [
+      { emits: [{ text: "bitte", final: false }, { text: "bitte weiter", final: false }, { text: "bitte weitermachen", final: true }], gap: 700 },
+    ]));
+    const fab = app.locator('[data-testid="nyx-fab"]');
+    await fab.click();
+    const words = app.locator('[data-testid="nyx-fab-words"]');
+    // Wort-fuer-Wort: der Vorschautext waechst sichtbar, bevor etwas im Feld landet.
+    const read = async () => (await words.textContent()) ?? "";
+    await expect.poll(read, { timeout: 5_000 }).toBe("bitte");
+    const erste = await read();
+    await expect.poll(async () => (await read()).length > erste.length, { timeout: 5_000 }).toBe(true);
+    const spaeter = await read();
+    expect(spaeter.length).toBeGreaterThan(erste.length);
+    expect(spaeter).toContain("bitte weiter");
+    // Solange gelauscht wird, steht nichts im Feld — und der Knopf ist eindeutig Stopp.
+    await expect(field).toHaveValue("");
+    await expect(app.locator('[data-testid="nyx-fab-stop"]')).toBeVisible();
+    await expect(app.locator('[data-testid="nyx-fab-state"]')).toContainText(/läuft 0:0\d/);
+    await expect(fab).toHaveAttribute("aria-pressed", "true");
+    await fab.click();
+    await expect(field).toHaveValue("bitte weitermachen");
+    await expect(app.locator('[data-testid="nyx-fab-stop"]')).toHaveCount(0);
+  });
+
+  test("BUG-0177: Chrome beendet die Erkennung nach Stille — das Diktat läuft trotzdem weiter", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const field = app.getByPlaceholder("Antworten…");
+    await field.click();
+    await app.evaluate(() => ((globalThis as unknown as { __speechSessions?: unknown[] }).__speechSessions = [
+      { emits: [{ text: "zuerst", final: true }], gap: 120 },
+      { emits: [{ text: "danach", final: true }], gap: 120 },
+    ]));
+    const fab = app.locator('[data-testid="nyx-fab"]');
+    await fab.click();
+    await expect(app.locator('[data-testid="nyx-fab-words"]')).toContainText("zuerst danach");
+    await expect(app.locator('[data-testid="nyx-fab-toast"]')).toContainText(/neu gestartet/);
+    await fab.click();
+    await expect(field).toHaveValue("zuerst danach");
   });
 
   test("Position bleibt nach Drag je Breakpoint erhalten", async ({ app, hub }) => {

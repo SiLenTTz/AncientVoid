@@ -43,29 +43,55 @@ bestehen, auch wenn andere Epics oder Vorgänger inzwischen grün sind.
 
 ## Kommandos
 
-> **CI-Geltung (Umzug auf GitHub, 16.11.2026):** Gehostete CI ist GitHub
-> Actions (`.github/workflows/ci.yml`, Jobs `verify`, `k8`, `e2e`) auf
-> GitHub-gehosteten Runnern — Required Check für jeden PR nach `main`.
-> Die lokalen Gates unten bleiben **zusätzlich** verbindlich. Rote CI blockiert;
+> **CI-Geltung (Umzug auf GitHub, 16.11.2026; Laufzeit-Split 16.11.2026):**
+> Gehostete CI ist GitHub Actions auf GitHub-gehosteten Runnern: PRs gate
+> den schnellen Kern (`.github/workflows/ci.yml`, Job `verify`: schnelle
+> Tests, Lint, Typecheck, Build) — Required Check; die volle Messlatte
+> (komplette Testsuite inkl. Slow-Liste, E2E, K8) fährt
+> `.github/workflows/nightly.yml` auf `ci/full-suite` zweimal täglich
+> (03:00/15:00 UTC). Jeder Merge nach `main` synchronisiert den Testbranch
+> über den unabhängigen Workflow `pipeline-sync.yml`;
+> Fehler erzeugen automatisch GitHub-Bugs (`nightly-bugs.yml`). Die
+> lokalen Gates unten bleiben **zusätzlich** und unverändert voll
+> verbindlich. Rote CI blockiert;
 > ist die Ursache nachweislich nur die Umgebung (z. B. Runner-Flake), wird das
 > benannt und einmal neu gestartet — nie als Pass gemeldet. Keine self-hosted
 > Runner für das öffentliche Repo (Fork-PRs führen fremden Code aus).
 > Details: `docs/ci-runbook.md`.
 
 ```bash
-npm test                 # vitest (Unit/Integration)
+npm test                 # vitest: die volle Suite (Tier A + B zusammen)
+npm run test:fast        # vitest Tier A: schneller Loop (parallel; ohne die Dateien aus scripts/slow-tests.json)
+npm run test:slow        # vitest Tier B: die langsamen Dateien (VITEST_SET=slow, seriell)
 npm run test:e2e         # Playwright-E2E-Gate gegen einen echten Hub (docs/testing-e2e.md)
 npm run lint             # eslint
 npm run typecheck        # tsc --noEmit
-npm run gate             # typecheck + lint + test + test:e2e
+npm run gate             # check:* + typecheck + lint + volle Suite + test:e2e
 npm run loadtest         # K8: 20 Sessions × 30 ev/s
 npm -w @ancientvoid/pwa run build
 ```
 
-Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
-Bei Änderungen an PWA, Server-Routen, SessionManager oder Adaptern zusätzlich
-`npm run test:e2e`. Vor Bugfix-/Epic-PRs immer `npm run gate`. Neue
-UI-Funktion oder neuer Ablauf = neuer oder erweiterter Spec in `e2e/specs/`.
+Pflicht vor jedem Commit-Vorschlag: `lint`, `typecheck` und **die Tests, die genau
+die geänderte Verhaltensweise prüfen** — Unit-/Route-/Spec-Dateien beim Namen genannt,
+rot-dann-grün. Die zugehörige Spec in `e2e/specs/` ist Teil der Änderung, kein
+Zusatzprogramm.
+
+**Kein breit laufender Test als Standard (Nutzerentscheid 16.11.2026):** `npm test`
+(Tier A), `npm run test:slow`, ein volles `npm run test:e2e` oder ganze Suiten/
+Matrizen fahren wir nur auf ausdrücklichen Auftrag. Die volle Messlatte liegt bei
+Gate und CI (`ci.yml` schnell, `nightly.yml` vollständig) — dort läuft sie ohnehin.
+
+**Test-Tiers:** Tier A ist `npm run test:fast` (die PR-Gate-Messlatte aus
+`ci.yml`; lässt alles weg, was lang ist, Ports bindet oder auf Wanduhr-Zeit
+prüft), Tier B ist `npm run test:slow` (genau diese Dateien aus
+`scripts/slow-tests.json`, seriell — ~25 min lokal, auf den Hosted-Runnern
+deutlich weniger, weil dort Adapter-Suiten sichtbar skippen). `npm test` und
+`gate` fahren **beide Tiers zusammen** — nichts fällt still weg. **Im
+Arbeitsloop ist der gezielte Fall der Standard, nicht die breite Suite.** Wer
+eine Datei auf die Slow-Liste setzt, schreibt die gemessene Dauer in den
+Commit (Generator `scripts/gen-slow-tests.mjs`; der Nightly-Lauf schlägt Drift
+vor, der Commit bleibt Handarbeit); neue langsame Tests bleiben dort, solange
+BUG-0170 offen ist.
 
 ## Testing
 
@@ -118,7 +144,9 @@ ist zulässig (Solo-Projekt) — was **nicht** zulässig ist: den PR selbst zu
 der `pre-push`-Hook erzwingt Lint und Typecheck; Tests über die Kommandos oben, das Gate und die GitHub-Actions-CI).
 
 Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder `epics/`
-für Epics. Eingefrorene Analysen (Audits, Evaluierungen, Berichte) bekommen
+für Epics. Bewährte Ausnahmen: `docs/adr/` (ADRs), `docs/guide/` (EPIC-P62:
+englischer Guide + Inventar), `docs/videos/` (EPIC-P62: Video-Skripte).
+Eingefrorene Analysen (Audits, Evaluierungen, Berichte) bekommen
 das Datum in den Namen (`JJJJ-MM-TT_*` bzw. `*JJJJ-MM-TT`) — sie sind
 referenzfrei zulässig und altern bewusst. ADRs nach `docs/adr/NNNN-*.md`.
 Kein `*-STATUS.md`/`*-SUMMARY.md` auf Top-Level. Über Zeilen-Budgets, Links,

@@ -37,6 +37,12 @@ const DummyConfig = z.object({
   giantEvery: z.number().int().min(0).default(0),
   giantBytes: z.number().int().min(4096).default(1024 * 1024),
   autoStopAfterEvents: z.number().int().min(0).default(0),
+  /** ADR-0083: jeder assistant-Block geht als zwei Live-Frames raus (zweiter final),
+   * bevor das Block-Ereignis kommt — determinische Quelle fuer Hub-/E2E-Tests. */
+  liveFrames: z.boolean().default(false),
+  /** ADR-0083: verzögert das Block-Ereignis um N ms nach den Frames — damit ein
+   * E2E-Test die wachsende Live-Blase tatsaechlich beobachten kann. */
+  blockLeadMs: z.number().int().min(0).default(0),
   failStart: z.boolean().default(false),
   resumeOnRecover: z.boolean().default(true),
 });
@@ -174,6 +180,19 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // anchor-nav UI, not just its own K5/K7/K8 test fixture.
       if (type === "tool_use") payload.id = `dummy-tool-${n}`;
       if (type === "tool_result") payload.toolUseId = `dummy-tool-${n - 1}`;
+      if (type === "assistant" && cfg.liveFrames && ctx.stream) {
+        // ADR-0083: erst die Frames (zweiter final), dann der Block mit demselben Text.
+        const head = `dummy assistant #${n} `;
+        ctx.stream({ turnId: `dummy-${n}`, stream: "assistant", seq: 0, text: head, final: false });
+        ctx.stream({ turnId: `dummy-${n}`, stream: "assistant", seq: 1, text: "live", final: true });
+        payload.text = `${head}live`;
+        if (cfg.blockLeadMs > 0) {
+          // ADR-0083: Block spaeter als Frames — nur so ist die wachsende Blase beobachtbar.
+          const late = { ...payload };
+          setTimeout(() => ctx.emit({ type, summary: `dummy ${type} #${n}`, payload: late, tokensEst: 10 + (n % 40), tokensSource: "estimated" }), cfg.blockLeadMs);
+          return;
+        }
+      }
       ctx.emit({
         type,
         summary: `dummy ${type} #${n}`,

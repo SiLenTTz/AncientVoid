@@ -68,7 +68,7 @@ async function generate(root) {
   const { HubConfig } = await import(pathToFileURL(join(root, "packages/core/src/platform/config.ts")).href);
   return {
     "docs/referenz-hubctl.md": renderHubctl(usage),
-    "docs/referenz-wizard.md": renderWizard(readFileSync(join(root, "setup.sh"), "utf8")),
+    "docs/referenz-wizard.md": renderWizard(readFileSync(join(root, "setup.sh"), "utf8").replace(/\r\n/g, "\n")), // Windows-Checkout liefert CRLF; ohne Normalisierung fallen Exit-Zeilen weg
     "docs/referenz-config.md": renderConfig(z.toJSONSchema(HubConfig, { io: "input" })),
   };
 }
@@ -81,7 +81,10 @@ async function main() {
   for (const [rel, text] of Object.entries(files)) {
     const p = join(root, rel);
     if (args.includes("--check")) {
-      if (!existsSync(p) || readFileSync(p, "utf8") !== text) stale.push(rel);
+      // Windows-Checkout: Git liefert CRLF, der Generator schreibt LF. Ohne
+      // Normalisierung gilt die Referenz auf Windows als veraltet, obwohl der
+      // Inhalt gleich ist (BUG-0170-Umfeld, dasselbe Muster wie bei setup.sh).
+      if (!existsSync(p) || readFileSync(p, "utf8").replace(/\r\n/g, "\n") !== text) stale.push(rel);
     } else writeFileSync(p, text);
   }
   if (stale.length) {

@@ -1,5 +1,5 @@
 ---
-id: BUG-0177
+id: BUG-0187
 slug: geister-tokens-fremde-fallback-farben
 status: open
 severity: S3
@@ -11,7 +11,7 @@ created: 2026-11-16
 reporter: "UI-Styling-Audit 2026-11-16"
 ---
 
-# BUG-0177 — Geister-Tokens mit fremder Fallback-Palette im Diff-, Dateien- und Arbeitsort-Styling
+# BUG-0187 — Geister-Tokens mit fremder Fallback-Palette im Diff-, Dateien- und Arbeitsort-Styling
 
 ## Gesehen
 

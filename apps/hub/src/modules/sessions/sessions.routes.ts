@@ -1,6 +1,6 @@
 import { ActivityReport, AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, WorkspaceMode, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@ancientvoid/contracts";
 import type { FastifyInstance } from "fastify";
-import { DraftStore, isProjectPathAllowed, toStartSpec } from "@ancientvoid/core";
+import { DraftStore, isProjectPathAllowed, ensureProjectDir, toStartSpec } from "@ancientvoid/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { ENV_VAR_NAME } from "@ancientvoid/contracts";
 import { z } from "zod";
@@ -32,6 +32,8 @@ const CreateSessionBody = z.object({
   /** ADR-0057: Arbeitsort; ohne Angabe eigener Worktree. `confirmDirty` bestätigt einen Start in ungesicherten Änderungen. */
   workspaceMode: WorkspaceMode.optional(),
   confirmDirty: z.boolean().optional(),
+  /** ADR-0081: bestätigt paralleles Schreiben in einem Nicht-Git-Ordner. */
+  confirmSharedFolder: z.boolean().optional(),
   /** EPIC-P19: Loop / Dark Factory. Ohne Angabe verhält sich der Start wie vorher. */
   loop: LoopSpec.optional(),
 });
@@ -104,6 +106,14 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
+    // BUG-0171: ein Ziel innerhalb einer erlaubten Wurzel darf noch fehlen. Vorher
+    // war die Antwort "outside the configured projectRoots" — nachweislich falsch.
+    // Jetzt: eine Ordner-Ebene anlegen, oder ehrlich sagen, was fehlt.
+    try {
+      await ensureProjectDir(parsed.data.project, projectRoots);
+    } catch (err) {
+      return reply.code(422).send({ error: err instanceof Error ? err.message : "Projektpfad nicht verwendbar" });
+    }
     // AC-P19-8: `loops.start` ist in der Policy-Tabelle nur für Menschen erlaubt (der Hook hat den Rest schon mit 403 beendet).
     // Der Loop wird zur Session des internen Adapters `loop:<id>`; seine Auswahl steht in `args.loop`.
     let body: typeof parsed.data & { adapter: string } = { ...parsed.data, adapter: parsed.data.adapter ?? "" };
@@ -162,6 +172,15 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     const limit = Math.min(Number(q.limit ?? 500), 2000);
     if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
     return deps.sessions.tail(id, Number.isFinite(afterSeq) ? afterSeq : 0, limit);
+  });
+
+  /** ADR-0084: Token-Bilanz — „erzeugt“ und „verarbeitet“ getrennt, abgeleitet aus
+   * dem EventStore. lastSeq ist nur der Cache-Schlüssel des Clients, keine Wahrheit. */
+  app.get("/api/sessions/:id/tokens", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const record = deps.sessions.get(id);
+    if (!record) return reply.code(404).send({ error: "unknown session" });
+    return { ...(await deps.sessions.tokenTotals(id)), lastSeq: record.lastSeq };
   });
 
 
