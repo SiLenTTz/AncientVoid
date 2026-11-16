@@ -9,8 +9,10 @@ import type { NormalizedEvent } from "../../shared/ws.ts";
 export interface TurnStats {
   /** Seq of the turn's `session.turn_end`. */
   endSeq: number;
-  /** Summed tokensEst of the turn. */
+  /** Summed tokensEst of the turn — what the calls were *fed* (ADR-0084). */
   tokens: number;
+  /** Summed output tokens the model *wrote* in the turn; null = never reported. */
+  generated: number | null;
   /** Last reported context fill of the turn, in tokens. */
   contextTokens: number | null;
 }
@@ -23,10 +25,13 @@ export interface SessionTokenStats {
 export function turnTokenStats(events: readonly NormalizedEvent[]): SessionTokenStats {
   const turns: TurnStats[] = [];
   let tokens = 0;
+  let generated: number | null = null;
   let context: number | null = null;
   let lastContext: number | null = null;
   for (const e of events) {
     if (typeof e.tokensEst === "number") tokens += e.tokensEst;
+    const out = usageOutput(e);
+    if (out !== null) generated = (generated ?? 0) + out;
     const input = usageInput(e);
     // Auch laufend: der Balken zeigt die letzte gemeldete Füllung, nicht
     // erst ab dem ersten beendeten Zug (sonst „unbekannt" mitten im Zug,
@@ -36,8 +41,9 @@ export function turnTokenStats(events: readonly NormalizedEvent[]): SessionToken
       lastContext = input;
     }
     if (e.type === "system" && (e.payload as { kind?: unknown }).kind === "session.turn_end") {
-      turns.push({ endSeq: e.seq, tokens, contextTokens: context });
+      turns.push({ endSeq: e.seq, tokens, generated, contextTokens: context });
       tokens = 0;
+      generated = null;
     }
   }
   return { turns, lastContextTokens: lastContext };
@@ -53,6 +59,22 @@ function usageInput(e: NormalizedEvent): number | null {
   if (typeof input === "number") return input;
   const inputTokens = (usage as { inputTokens?: unknown }).inputTokens;
   return typeof inputTokens === "number" ? inputTokens : null;
+}
+
+/** Ausgabe-Tokens desselben Musters: claude/cursor `output_tokens`, codex
+ * `outputTokens` plus Reasoning-Anteil (Denken ist erzeugter Text, ADR-0084). */
+function usageOutput(e: NormalizedEvent): number | null {
+  const usage = (e.payload as { usage?: unknown } | undefined)?.usage;
+  if (!usage || typeof usage !== "object") return null;
+  const u = usage as Record<string, unknown>;
+  const one = (...keys: string[]): number | null => {
+    for (const k of keys) if (typeof u[k] === "number" && Number.isFinite(u[k] as number)) return u[k] as number;
+    return null;
+  };
+  const plain = one("output", "outputTokens", "output_tokens");
+  const reasoning = one("reasoningOutput", "reasoningOutputTokens", "reasoning_output_tokens");
+  if (plain === null && reasoning === null) return null;
+  return (plain ?? 0) + (reasoning ?? 0);
 }
 
 /** Turns that closed between two visible events — the row a filtered list
@@ -104,9 +126,29 @@ export function contextText(fill: number | null, windowTokens: number | null): s
   return `Kontext ${pct} % · frei ${fmt.format(Math.max(0, windowTokens - fill))} von ${fmt.format(windowTokens)}`;
 }
 
-/** The session's token sum, or that nobody reported one. */
-export function tokenText(known: boolean, total: number): string {
-  return known ? `Σ ${fmt.format(total)} Tokens` : "Tokens unbekannt";
+/** The session's token sums, each named after what it means (ADR-0084): what the
+ * model wrote vs. what its calls were fed. A missing number is absent, not 0. */
+export function tokenParts(totals: { generated: number | null; processed: number | null; estimated: boolean }): string[] {
+  const parts: string[] = [];
+  if (totals.generated !== null) parts.push(`${fmt.format(totals.generated)} Tokens erzeugt`);
+  if (totals.processed !== null) parts.push(`${compactTokens(totals.processed)} Tokens verarbeitet${totals.estimated ? " (Anteile geschätzt)" : ""}`);
+  return parts;
+}
+
+/** Die Zug-Zeile unter einem abgeschlossenen Zug: beide Zahlen nennen sich selbst
+ * (ADR-0084). Ohne gemeldete Ausgabe bleibt nur „verarbeitet“ stehen. */
+export function turnStatsText(turnNo: number, turns: readonly TurnStats[]): string {
+  const tokens = turns.reduce((s, t) => s + t.tokens, 0);
+  const generated = turns.reduce<number | null>((s, t) => (t.generated === null ? s : (s ?? 0) + t.generated), null);
+  const fill = turns[turns.length - 1]?.contextTokens ?? null;
+  const nums = generated === null ? `${fmt.format(tokens)} verarbeitet` : `${fmt.format(generated)} Tokens erzeugt · ${compactTokens(tokens)} verarbeitet`;
+  return `Zug ${turnNo}: ${nums}${fill !== null ? ` · Kontext ${fmt.format(fill)}` : ""}`;
+}
+
+/** Schmale Handyzeile: ab einer Million „272,6 Mio“ statt „272.613.546“. */
+export function compactTokens(n: number): string {
+  if (Math.abs(n) < 1_000_000) return fmt.format(n);
+  return `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 }).format(n / 1_000_000)} Mio`;
 }
 
 /** Context level for styling — warn from 80 %, err from 95 %. */

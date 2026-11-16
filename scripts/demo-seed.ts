@@ -22,6 +22,14 @@ import { ProcessRunner } from "@ancientvoid/workers";
 import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 import { createHubApp } from "../apps/hub/src/app.ts";
 
+/** BUG-0183: `apps/pwa/dist` ist das Bündel, das ein laufender Hub am Handy servt.
+ * Der Guide baut sein eigenes (`dist-guide`) — wer trotzdem den Guide-Datenraum startet,
+ * bekommt beides: das Guide-Bündel, falls vorhanden, sonst das ausgelieferte. */
+function pwaDistDir(): string {
+  const guide = resolve("apps/pwa/dist-guide");
+  return existsSync(guide) ? guide : resolve("apps/pwa/dist");
+}
+
 export const DEMO_PROJECTS = ["demo-website", "demo-api", "demo-tooling"] as const;
 export const DEMO_HOSTS = ["demo-gpubox", "demo-laptop"] as const;
 export const DEMO_PROMPTS = [
@@ -129,7 +137,8 @@ async function main() {
   const fleet = new FleetStore(db, tokens);
   const attachments = new AttachmentStore(db, join(root, "attachments"));
   const media = new MediaJobs(db, { dir: join(root, "media"), attachments, log: () => undefined });
-  const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, hostId: "demo-hub", fleet, media: { media, capabilities: { stt: false, summary: false, vision: false } }, pwaDir: resolve("apps/pwa/dist") });
+  const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, hostId: "demo-hub", fleet, media: { media, capabilities: { stt: false, summary: false, vision: false } }, pwaDir: pwaDistDir() });
+
 
   await seedDemoHub(app, token, fleet, sessions, workspace);
   await app.listen({ port, host: "127.0.0.1" });

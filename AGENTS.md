@@ -71,16 +71,22 @@ npm run loadtest         # K8: 20 Sessions × 30 ev/s
 npm -w @ancientvoid/pwa run build
 ```
 
-Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
-Bei Änderungen an PWA, Server-Routen, SessionManager oder Adaptern zusätzlich
-`npm run test:e2e`. Vor Bugfix-/Epic-PRs immer `npm run gate`. Neue
-UI-Funktion oder neuer Ablauf = neuer oder erweiterter Spec in `e2e/specs/`.
+Pflicht vor jedem Commit-Vorschlag: `lint`, `typecheck` und **die Tests, die genau
+die geänderte Verhaltensweise prüfen** — Unit-/Route-/Spec-Dateien beim Namen genannt,
+rot-dann-grün. Die zugehörige Spec in `e2e/specs/` ist Teil der Änderung, kein
+Zusatzprogramm.
+
+**Kein breit laufender Test als Standard (Nutzerentscheid 16.11.2026):** `npm test`
+(Tier A), `npm run test:slow`, ein volles `npm run test:e2e` oder ganze Suiten/
+Matrizen fahren wir nur auf ausdrücklichen Auftrag. Die volle Messlatte liegt bei
+Gate und CI (`ci.yml` schnell, `nightly.yml` vollständig) — dort läuft sie ohnehin.
 
 **Test-Tiers:** `npm test` ist Tier A (18 s gemessen) und lässt alles weg, was lang
 ist, Ports bindet oder auf Wanduhr-Zeit prüft; dieser Teil läuft seriell in
 `npm run test:slow` (~25 min lokal, auf den Hosted-Runnern deutlich weniger, weil
 dort Adapter-Suiten sichtbar skippen). `gate` und `ci.yml` fahren **beide**
-Tieres — nichts fällt still weg. Wer eine Datei nach Tier B verschiebt, schreibt
+Tieres — nichts fällt still weg. **Im Arbeitsloop ist der gezielte Fall der
+Standard, nicht `npm test`.** Wer eine Datei nach Tier B verschiebt, schreibt
 die gemessene Dauer in den Commit; neue langsame Tests bleiben Tier B, solange
 BUG-0170 offen ist.
 

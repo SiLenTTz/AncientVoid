@@ -58,7 +58,7 @@ export function ReportPane({
           </span>
         </div>
         <div class="kv-row">
-          <span class="k">Tokens</span>
+          <span class="k" title="ADR-0084: Summe dessen, was die Modell-Aufrufe bekommen haben — nicht das, was geschrieben wurde">Tokens verarbeitet</span>
           <span class={`v num metric-${tokens.quality}`} title={tokens.hint}>
             {tokens.text}
             {tokens.quality !== "unknown" ? suffix : ""}
