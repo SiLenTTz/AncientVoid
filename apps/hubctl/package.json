@@ -1,0 +1,20 @@
+{
+  "name": "@ancientvoid/hubctl",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reference CLI client for the AncientVoid hub (list/show/tail/tokens) — also the debugging tool of choice.",
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "bin": {
+    "hubctl": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ancientvoid/contracts": "0.1.0",
+    "@ancientvoid/core": "0.1.0",
+    "@ancientvoid/workers": "0.1.0"
+  }
+}

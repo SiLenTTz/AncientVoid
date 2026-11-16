@@ -1,0 +1,175 @@
+/* Run strip: plan progress + ETA of the current turn, provider quota. */
+.run-strip {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 4px 2px 6px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+.run-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.run-bar {
+  flex: 0 0 90px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-chip);
+  overflow: hidden;
+}
+.run-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.run-quota {
+  color: var(--fg-dim);
+}
+.run-quota.warn {
+  color: var(--warn);
+}
+.run-quota.err {
+  color: var(--err);
+}
+
+.run-meta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  scrollbar-width: none;
+}
+.run-meta::-webkit-scrollbar {
+  display: none;
+}
+
+/* ADR-0032: token sums (per session here, per turn as .turn-stats rows). */
+.run-tokens {
+  color: var(--fg-dim);
+}
+.run-tokens.warn {
+  color: var(--warn);
+}
+.run-tokens.err {
+  color: var(--err);
+}
+.turn-stats {
+  font-size: calc(11px * var(--font-scale, 1));
+  margin: 2px 0 6px;
+  text-align: right;
+}
+
+/* Overview card: project and the session's own title up front. */
+.session-title {
+  font-size: calc(13px * var(--font-scale, 1));
+  margin: 2px 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.apply-btn {
+  margin-top: 8px;
+}
+.apply-confirm {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.apply-result {
+  margin-top: 6px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+.apply-result.ok {
+  color: var(--ok);
+}
+
+
+/* 2026-10-25: click-to-expand todo plan in the run strip. */
+.run-progress-wrap { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+button.run-progress {
+  background: none; border: none; padding: 0; margin: 0;
+  display: flex; align-items: center; gap: 8px;
+  color: inherit; font: inherit; cursor: pointer; text-align: left;
+}
+.run-todo-list {
+  margin: 2px 0 0 0; padding: 6px 8px; list-style: none;
+  background: var(--panel, #1c1f26); border: 1px solid var(--line, #2a2e38);
+  border-radius: 8px; max-height: 220px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.run-todo-list li { display: flex; gap: 8px; align-items: baseline; font-size: calc(12.5px * var(--font-scale, 1)); }
+.run-todo-list .todo-marker { flex: 0 0 auto; }
+.run-todo-list .todo-text.done { text-decoration: line-through; opacity: 0.55; }
+.run-todo-list li.todo-in_progress .todo-text, .run-todo-list li.todo-in-progress .todo-text { font-weight: 600; }
+
+/* EPIC-P20 T20.5: context window as a shimmering bar. Only transform/opacity
+ * animate (no layout); reduced motion or the setting stops the shimmer. */
+.ctx-bar {
+  /* Phone and tablet: a thin line over the strip's bottom padding — no extra height (AC-P8-5). */
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 1px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--bg-chip);
+  overflow: hidden;
+}
+@media (min-width: 1280px) {
+  .ctx-bar {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    height: 6px;
+  }
+}
+.ctx-fill {
+  position: relative;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ok) 70%, var(--bg)), var(--ok));
+  overflow: hidden;
+  transition: width 0.6s ease;
+}
+.ctx-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 5%, rgba(255, 255, 255, 0.6) 50%, transparent 95%);
+  transform: translateX(-100%);
+  animation: ctx-shimmer 2.4s linear infinite;
+  will-change: transform;
+}
+.ctx-bar.warn .ctx-fill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--warn) 70%, var(--bg)), var(--warn));
+}
+.ctx-bar.err .ctx-fill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--err) 70%, var(--bg)), var(--err));
+}
+.ctx-bar.err .ctx-fill::after {
+  animation-duration: 1.2s;
+}
+/* No provider number: striped and still — an absence, not a measurement. */
+.ctx-bar.unknown {
+  background: repeating-linear-gradient(45deg, var(--bg-chip) 0 6px, transparent 6px 12px);
+  border: 1px dashed var(--bg-chip);
+}
+.ctx-bar.unknown .ctx-fill {
+  display: none;
+}
+@keyframes ctx-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ctx-fill::after {
+    animation: none;
+    display: none;
+  }
+}
+:root[data-ctx-motion="off"] .ctx-fill::after {
+  animation: none;
+  display: none;
+}

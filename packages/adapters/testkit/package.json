@@ -1,0 +1,19 @@
+{
+  "name": "@ancientvoid/adapter-testkit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Contract test kit for AncientVoid adapters: run the same suite the hub runs against your provider integration before contributing.",
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fake-loop": "./src/fake-loop.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ancientvoid/contracts": "0.1.0"
+  }
+}

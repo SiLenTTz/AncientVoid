@@ -1,0 +1,64 @@
+#!/usr/bin/env node
+// E2E stand-in for qmd (server/search.ts). Keeps its collections in
+// $QMD_E2E_STATE so a test never touches the user's real qmd index.
+// `query` is a plain case-insensitive line match over *.md files.
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
+
+const statePath = process.env.QMD_E2E_STATE;
+if (!statePath) {
+  console.error("fake qmd: QMD_E2E_STATE not set");
+  process.exit(2);
+}
+const state = existsSync(statePath) ? JSON.parse(readFileSync(statePath, "utf8")) : {};
+const save = () => writeFileSync(statePath, JSON.stringify(state));
+const argv = process.argv.slice(2);
+const flag = (name) => {
+  const i = argv.indexOf(name);
+  return i >= 0 ? argv[i + 1] : undefined;
+};
+
+function markdownFiles(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir)) {
+    if (entry === ".git" || entry === "node_modules") continue;
+    const path = join(dir, entry);
+    if (statSync(path).isDirectory()) out.push(...markdownFiles(path));
+    else if (entry.endsWith(".md")) out.push(path);
+  }
+  return out;
+}
+
+const [cmd, sub] = argv;
+if (cmd === "--version") console.log("qmd 0.0.0-e2e");
+else if (cmd === "collection" && sub === "list") {
+  for (const name of Object.keys(state)) console.log(`${name} (qmd://${name}/)`);
+} else if (cmd === "collection" && sub === "add") {
+  state[flag("--name")] = argv[2];
+  save();
+} else if (cmd === "collection" && sub === "remove") {
+  delete state[argv[2]];
+  save();
+} else if (cmd === "embed") {
+  // nothing to embed
+} else if (cmd === "query") {
+  const root = state[flag("-c")];
+  if (!root) {
+    console.error("Collection not found");
+    process.exit(1);
+  }
+  const needle = argv[1].split("\n")[0].replace(/^lex:\s*/, "").toLowerCase();
+  const hits = [];
+  for (const file of markdownFiles(root)) {
+    const lines = readFileSync(file, "utf8").split("\n");
+    lines.forEach((text, i) => {
+      if (text.toLowerCase().includes(needle)) {
+        hits.push({ file: `./${relative(root, file)}`, line: i + 1, title: lines[0].replace(/^#\s*/, ""), snippet: text, score: 0.9 });
+      }
+    });
+  }
+  console.log(JSON.stringify(hits.slice(0, Number(flag("-n") ?? 5))));
+} else {
+  console.error(`fake qmd: unsupported ${argv.join(" ")}`);
+  process.exit(2);
+}

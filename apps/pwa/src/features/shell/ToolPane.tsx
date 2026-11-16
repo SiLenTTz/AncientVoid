@@ -1,0 +1,96 @@
+import { useEffect, useLayoutEffect } from "preact/hooks";
+import type { ListPage } from "../../app/route.ts";
+import { registerShortcut, comboLabel, ariaCombo } from "../../shared/shortcuts/registry.ts";
+import { DesktopPage } from "../desktop/DesktopPage.tsx";
+import { MediaPage } from "../media/MediaPage.tsx";
+import { SettingsPage } from "../settings/SettingsPage.tsx";
+import { StatusPage } from "../status/StatusPage.tsx";
+import { VaultPane } from "../vault/VaultPane.tsx";
+import { TeamsPane } from "../team/TeamsPane.tsx";
+import { AutomationsPane } from "../automations/AutomationsPane.tsx";
+import { AiMetricsPage } from "../aimetrics/AiMetricsPage.tsx";
+import { useHubStatus } from "./hub-status.ts";
+
+const TITLES: Partial<Record<ListPage, string>> = {
+  settings: "Einstellungen",
+  media: "Medien",
+  pc: "Am PC eintippen",
+  status: "Provider-Status",
+  vault: "Notizen",
+  teams: "Agenten-Teams",
+  automationen: "Automationen",
+  aimetrics: "Metrik",
+};
+
+/**
+ * EPIC-P34 T34.2 (desktop only): tool pages use the detail column instead of the 420 px list column.
+ * The tiles stay mounted underneath (main.tsx marks them inert) — unmounting would reconnect every
+ * WebSocket and could flicker an unsent draft. Data comes from what `App` already polls.
+ */
+export function ToolPane({
+  page,
+  onClose,
+  onSwitchToken,
+  vaultFile = null,
+  onPopout,
+  closeLabel = "Schließen",
+  escCloses = true,
+}: {
+  page: ListPage;
+  onClose: () => void;
+  onSwitchToken: () => void;
+  /** EPIC-P49: Datei-Deep-Link für die Vault-Seite. */
+  vaultFile?: string | null;
+  onPopout?: () => void;
+  closeLabel?: string;
+  /** Im eigenen Fenster schließt Esc nichts: das Fenster gibt man mit dem Knopf zurück. */
+  escCloses?: boolean;
+}) {
+  const hub = useHubStatus();
+  // BUG-0106: Preact 11 spült passive Effekte erst im nächsten
+  // requestAnimationFrame — die Pane ist schon sichtbar, bevor dieser
+  // Keydown-Listener hängt, und ein sofortiges Esc (unter CI-Last) ging
+  // ins Leere. useLayoutEffect hängt die Registrierung synchron beim
+  // DOM-Commit. Ein Dialog in der Pane (Farbwähler, T34.5) behandelt Esc
+  // selbst und markiert das Event (defaultPrevented).
+  // EPIC-P51 T51.5: Esc läuft über die Shortcut-Registry.
+  useLayoutEffect(() => {
+    if (!escCloses) return;
+    const off = registerShortcut("tool.close", (e) => {
+      if (e.defaultPrevented) return;
+      e.preventDefault();
+      onClose();
+    });
+    return off;
+  }, [onClose, escCloses]);
+  const title = TITLES[page] ?? "";
+  return (
+    <section class="tool-pane" aria-label={title}>
+      <header class="tool-pane-head">
+        <h2>{title}</h2>
+        <span class="tool-pane-actions">
+          {onPopout && (
+            <button type="button" class="tool-pane-popout" aria-label="In eigenem Fenster öffnen" title="In eigenem Fenster öffnen" onClick={onPopout}>
+              ⧉
+            </button>
+          )}
+          {escCloses && (
+            <button type="button" class="tool-pane-close" aria-label={closeLabel} title={`${closeLabel} (${comboLabel("tool.close")})`} aria-keyshortcuts={ariaCombo("tool.close")} data-shortcut="tool.close" onClick={onClose}>
+              ×
+            </button>
+          )}
+        </span>
+      </header>
+      <div class="tool-pane-body">
+        {page === "settings" && <SettingsPage onSwitchToken={onSwitchToken} />}
+        {page === "media" && <MediaPage sessions={hub.sessions} />}
+        {page === "pc" && <DesktopPage />}
+        {page === "status" && <StatusPage adapters={hub.adapters} usage={hub.usage} />}
+        {page === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
+        {page === "teams" && <TeamsPane />}
+        {page === "automationen" && <AutomationsPane />}
+        {page === "aimetrics" && <AiMetricsPage />}
+      </div>
+    </section>
+  );
+}

@@ -1,0 +1,500 @@
+/* T1.6-8: lens-style scrollbars — thin, rounded, accent-tinted, on every
+ * real scroll surface in the app (main page scroll, the session tail,
+ * bottom sheets, the diff view) instead of the platform default. */
+html,
+body,
+.tail-scroll,
+.dashboard,
+.overlay-sheet,
+.diff-code,
+.enhance-preview-text {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.tail-scroll::-webkit-scrollbar,
+.dashboard::-webkit-scrollbar,
+.overlay-sheet::-webkit-scrollbar,
+.diff-code::-webkit-scrollbar,
+.enhance-preview-text::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+.tail-scroll::-webkit-scrollbar-track,
+.dashboard::-webkit-scrollbar-track,
+.overlay-sheet::-webkit-scrollbar-track,
+.diff-code::-webkit-scrollbar-track,
+.enhance-preview-text::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+.tail-scroll::-webkit-scrollbar-thumb,
+.dashboard::-webkit-scrollbar-thumb,
+.overlay-sheet::-webkit-scrollbar-thumb,
+.diff-code::-webkit-scrollbar-thumb,
+.enhance-preview-text::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+.tail-scroll::-webkit-scrollbar-thumb:hover,
+.diff-code::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--accent) 78%, transparent);
+}
+
+#app {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: env(safe-area-inset-top) 12px calc(24px + env(safe-area-inset-bottom));
+}
+
+/* BUG-0099: Als installierte App (PWA-Fenster) scrollt das Fenster nie —
+ * die Session-Liste der Übersicht scrollt zwischen Topbar und Dock wie der
+ * Chat in der Session. Nur die Dashboard-Route wird zur Shell-Spalte;
+ * Nebenseiten (Einstellungen, Status, Medien …) bleiben wie bisher.
+ * BUG-0099-Nachtrag: Der Dock-Freiraum liegt als Padding AUSSERHALB der
+ * scrollenden Liste — als inneres Padding machte er 86 px scrollbaren
+ * Leerraum unter der letzten Karte; und die Übersicht hält nur den
+ * GlobalDock frei (~64 px), nicht die Session-Steuerung. */
+.app-page:has(> .dashboard) {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh / var(--ui-zoom, 1) - env(safe-area-inset-top));
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+
+/* BUG-0099-Nachtrag 2: harte Garantie für die installierte App — das
+ * Fenster (html/body) scrollt auf der Übersicht prinzipbedingt nie, egal
+ * was über der Shell steht (Offline-Banner) oder welche Reste ein altes
+ * Fenster mitbringt. Die Liste scrollt ausschließlich intern. */
+html:has(.app-page > .dashboard),
+html:has(.app-page > .dashboard) body {
+  overflow: hidden;
+}
+
+/* EPIC-P50 T50.3: dieselbe Garantie für die mobile Session-Hauptroute. Der
+ * Chat (.tail-scroll) scrollt intern; seine Höhe misst SessionTail.tsx. Ein
+ * Messfehler von ±1 px soll Clipping statt Seiten-Scrollbalken geben —
+ * docs/zoom-robuste-flaechen.md. */
+html:has(#app > .session-live),
+html:has(#app > .session-live) body {
+  /* P43.5: kurze Verläufe dürfen das Aktionsmenü nicht am body-Rand abschneiden. */
+  min-height: calc(100dvh / var(--ui-zoom, 1));
+  overflow: hidden;
+}
+
+.app-page:has(> .dashboard) > .dashboard {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* BUG-0103: In der Übersicht scrollt NUR die Session-Liste — die Spalte
+ * darum scrollte zusätzlich und zeigte einen zweiten Balken. */
+.split-list:has(.app-page > .dashboard) {
+  overflow-y: hidden;
+}
+
+a {
+  color: var(--accent);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0 12px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+  border-bottom: 1px solid var(--bg-chip);
+}
+
+.topbar h1 {
+  font-family: var(--font-display);
+  font-size: calc(15px * var(--font-scale, 1));
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: var(--tracking-label);
+}
+
+.btn {
+  background: var(--bg-chip);
+  color: var(--fg);
+  border: 1px solid var(--fg-dim);
+  border-radius: var(--radius);
+  padding: 9px 14px;
+  font: inherit;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.btn.danger {
+  border-color: var(--err);
+  color: var(--err);
+}
+
+.card {
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 10px 0;
+}
+
+.session-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.session-open {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+
+.session-card .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* T8.5 (AC-P8-6): desktop from 1280 px — list left, session right, each
+ * column scrolls on its own; the docks stay inside their column. */
+#app:has(.split) {
+  max-width: none;
+  /* The split fills the window by itself (100dvh); the phone's bottom padding made the page scroll by 24 px. */
+  padding-bottom: 0;
+  /* EPIC-P51 T51.4: the bell moved to the window corner, its toasts sit in
+   * the flow above the split. Fixed flex height lets them push the split
+   * together instead of scrolling the window (P50: html/body never scroll). */
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh / var(--ui-zoom, 1));
+  box-sizing: border-box;
+}
+
+/* EPIC-P51 T51.4: schrumpft, wenn Toasts/RestoreBar darüber Platz brauchen
+ * (P50: Fenster scrollt nie) — wächst aber nie über die Höhenformeln hinaus
+ * (02-layout Basis, 21-icon-rail Desktop-28px) hinaus. */
+#app:has(.split) .split {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+/* BUG-0099: dasselbe für die Dashboard-Shell — das untere Padding übernimmt
+ * die scrollende Liste (Platz für den fixierten Dock). */
+#app:has(.app-page > .dashboard) {
+  padding-bottom: 0;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+  gap: 20px;
+  height: calc(100dvh / var(--ui-zoom, 1));
+}
+
+/* EPIC-P18 T18.1: the whole width — the list folds away on demand. */
+.split.list-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.split.list-collapsed .split-list {
+  display: none;
+}
+
+.tile-list-toggle {
+  background: none;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius-sm);
+  color: var(--fg-dim);
+  padding: 4px 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: calc(12px * var(--font-scale, 1));
+  margin-right: 6px;
+}
+
+/* One tile on a wide screen: readable lines, not 2,500 px ones. */
+.tile-grid.layout-1 > .tile {
+  padding-inline: max(12px, calc((100% - 1200px) / 2));
+}
+
+/* EPIC-P20 T20.1: reading tabs (Diff, Bericht, Suche, Code) use the whole tile. */
+.tile-grid.layout-1 > .tile:has(:is([data-tab="diff"], [data-tab="bericht"], [data-tab="suche"], [data-tab="code"])) {
+  padding-inline: 12px;
+}
+
+.split-list,
+.split-detail {
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  position: relative;
+}
+
+.split .dock-stack {
+  position: sticky;
+  max-width: none;
+}
+
+.split-placeholder {
+  margin-top: 30vh;
+}
+
+/* EPIC-P18: the session column holds up to four tiles. */
+.split-detail:has(.tile-workspace) {
+  overflow: hidden;
+}
+
+.tile-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.tile-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  flex-wrap: wrap;
+}
+
+.tile-layout-btn {
+  background: var(--bg-chip);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  cursor: pointer;
+  color: var(--fg-dim);
+  line-height: 0;
+}
+
+.tile-layout-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tile-keys {
+  margin-left: auto;
+  font-size: calc(11px * var(--font-scale, 1));
+}
+
+.tile-glyph {
+  display: inline-grid;
+  width: 20px;
+  height: 14px;
+  gap: 2px;
+}
+
+.tile-glyph > span {
+  background: currentColor;
+  opacity: 0.75;
+  border-radius: 1px;
+}
+
+.tile-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+
+/* QoL 2026-10-29: Track-Template kommt inline aus TileWorkspace (gezogene
+ * Anteile); hier nur die Platzierung. Kacheln sind <section>, Divider sind
+ * <div> — nth-of-type zählt daher nur Kacheln. Spur 2 ist die Divider-Spur. */
+
+.tile-grid.layout-2v > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+.tile-grid.layout-2v > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
+.tile-grid.layout-2v > .tile-divider.col { grid-column: 2; grid-row: 1 / -1; }
+
+.tile-grid.layout-3v > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+.tile-grid.layout-3v > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
+.tile-grid.layout-3v > .tile:nth-of-type(3) { grid-column: 5; grid-row: 1; }
+.tile-grid.layout-3v > .tile-divider.col { grid-column: 2; grid-row: 1; }
+.tile-grid.layout-3v > .tile-divider.col.second { grid-column: 4; grid-row: 1; }
+
+.tile-grid.layout-2h > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+.tile-grid.layout-2h > .tile:nth-of-type(2) { grid-column: 1; grid-row: 3; }
+.tile-grid.layout-2h > .tile-divider.row { grid-column: 1 / -1; grid-row: 2; }
+
+.tile-grid.layout-1p2 > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1 / span 3; }
+.tile-grid.layout-1p2 > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
+.tile-grid.layout-1p2 > .tile:nth-of-type(3) { grid-column: 3; grid-row: 3; }
+.tile-grid.layout-1p2 > .tile-divider.col { grid-column: 2; grid-row: 1 / -1; }
+.tile-grid.layout-1p2 > .tile-divider.row { grid-column: 3; grid-row: 2; }
+
+.tile-grid.layout-2x2 > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+.tile-grid.layout-2x2 > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
+.tile-grid.layout-2x2 > .tile:nth-of-type(3) { grid-column: 1; grid-row: 3; }
+.tile-grid.layout-2x2 > .tile:nth-of-type(4) { grid-column: 3; grid-row: 3; }
+.tile-grid.layout-2x2 > .tile-divider.col { grid-column: 2; grid-row: 1 / -1; }
+.tile-grid.layout-2x2 > .tile-divider.row { grid-column: 1 / -1; grid-row: 2; }
+
+.tile-divider {
+  --divider-line: 2px;
+  position: relative;
+  border-radius: 1px;
+  background: transparent;
+  touch-action: none;
+  user-select: none;
+}
+.tile-divider::after {
+  content: "";
+  position: absolute;
+  background: var(--bg-chip);
+  border-radius: 1px;
+  transition: background 0.1s;
+}
+.tile-divider.col { cursor: col-resize; }
+.tile-divider.col::after { left: calc(50% - var(--divider-line) / 2); top: 10%; bottom: 10%; width: var(--divider-line); }
+.tile-divider.row { cursor: row-resize; }
+.tile-divider.row::after { top: calc(50% - var(--divider-line) / 2); left: 10%; right: 10%; height: var(--divider-line); }
+.tile-divider:hover::after,
+.tile-divider:active::after {
+  background: var(--fg-dim);
+}
+
+/* Die Mini-Glyphen in den Layout-Buttons behalten ihre festen Templates. */
+.tile-glyph.layout-2v { grid-template-columns: 1fr 1fr; }
+.tile-glyph.layout-3v { grid-template-columns: 1fr 1fr 1fr; }
+.tile-glyph.layout-2h { grid-template-rows: 1fr 1fr; }
+.tile-glyph.layout-1p2 { grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr 1fr; }
+.tile-glyph.layout-1p2 > :first-child { grid-row: 1 / span 2; }
+.tile-glyph.layout-2x2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+.tile {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  background: var(--bg);
+}
+
+.tile.focused {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.tile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0 0;
+  font-size: calc(11px * var(--font-scale, 1));
+  color: var(--fg-faint);
+}
+
+.tile.focused .tile-no {
+  color: var(--accent);
+}
+
+.tile-close {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--icon-target);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--fg-dim);
+  font-size: calc(var(--icon-glyph) + 4px);
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tile-close:hover {
+  color: var(--err);
+}
+
+/* AC-P43-6 (T43.9): Kopfzeile und Kachel-Tasten erreichen die Zielhöhe — 44 px bei Touch, 30 px mit Maus. */
+.topbar .brand-link,
+.topbar .link-btn {
+  min-height: var(--target);
+}
+
+.tile-close {
+  min-height: var(--icon-target);
+}
+
+.tile-empty {
+  margin-top: 20%;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+
+/* Markieren → Auto-Zwischenablage (2026-10-30): kurze Rückmeldung, dass die
+   Auswahl bereits im Clipboard steht — kein zweiter Tap auf Kopieren nötig. */
+.copy-flash {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--accent, #2f81f7);
+  color: #fff;
+  font-size: calc(13px * var(--font-scale, 1));
+  pointer-events: none;
+}
+
+/* Nie doppelt scrollen: Kachel und Detailspalte um eine Session scrollen nicht selbst — das tut allein
+ * .tail-scroll (Höhe per Messung). Verrechnet sich die Messung um ein Pixel, gab es sonst zwei Balken. */
+.tile:has(.tail-scroll),
+.split-detail:has(.tail-scroll) {
+  overflow: hidden;
+}
+
+/* Dateiansicht: ein Scroller. Der Rahmen (.tail-scroll bzw. .files-body) scrollt, der Inhalt wächst mit. */
+.tail-scroll .file-code,
+.tail-scroll .file-text,
+.tail-scroll .file-hex,
+.files-body .file-code,
+.files-body .file-text,
+.files-body .file-hex {
+  overflow-y: visible;
+  overflow-x: auto;
+}

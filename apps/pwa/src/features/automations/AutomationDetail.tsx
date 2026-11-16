@@ -1,0 +1,85 @@
+import { useEffect, useState } from "preact/hooks";
+import type { AutomationHistoryEntry, AutomationInfo, TeamStart } from "@ancientvoid/contracts";
+import { useApi } from "../../shared/api-context.ts";
+import { sessionHash } from "../../app/route.ts";
+import { remoteHost } from "../../shared/api.ts";
+import { outcomeLabel, REASON_LABEL, scheduleText, STATE_LABEL } from "./automation-labels.ts";
+import { readAutomationSnapshot, writeAutomationSnapshot } from "./automation-cache.ts";
+
+export function AutomationDetail({ info, offline, cacheKey, host }: { info: AutomationInfo; offline: boolean; cacheKey: string; host: string | null }) {
+  const api = useApi();
+  const [history, setHistory] = useState<AutomationHistoryEntry[] | null>(null);
+  /** Abrufzeitpunkt der angezeigten Einträge; gesetzt nur, solange sie aus der Offlinekopie stammen. */
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const definition = info.definition;
+  const [template, setTemplate] = useState<TeamStart | null>(null);
+  const [templateError, setTemplateError] = useState("");
+  const [resolving, setResolving] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [resolveError, setResolveError] = useState("");
+  const resolve = async (claimKey: string) => {
+    setResolveError("");
+    try {
+      await api.automationResolve(definition.id, claimKey, note.trim());
+      setResolving(null); setNote("");
+      setHistory(await api.automationHistory(definition.id));
+    } catch (err) { setResolveError(err instanceof Error ? err.message : "Aufgeben fehlgeschlagen"); }
+  };
+  useEffect(() => {
+    let alive = true; setTemplate(null); setTemplateError("");
+    if (definition.target.kind === "team" && !offline) void api.automationTemplate(definition.id).then(value => { if (alive) setTemplate(value); }).catch(err => { if (alive) setTemplateError(String(err)); });
+    return () => { alive = false; };
+  }, [api, definition.id, definition.generation, offline]);
+  useEffect(() => {
+    let alive = true;
+    const cached = cacheKey ? readAutomationSnapshot(cacheKey)?.histories.find(h => h.id === definition.id) : undefined;
+    setHistory(cached?.entries ?? null); setCachedAt(cached?.at ?? null); setError("");
+    if (offline) { if (!cached) setError("Für diesen Plan ist kein Offline-Verlauf gespeichert."); return; }
+    void api.automationHistory(definition.id).then(entries => {
+      if (!alive) return;
+      setHistory(entries); setCachedAt(null);
+      const snapshot = readAutomationSnapshot(cacheKey);
+      if (snapshot) writeAutomationSnapshot(cacheKey, { ...snapshot, histories: [...snapshot.histories.filter(h => h.id !== definition.id), { id: definition.id, at: new Date().toISOString(), entries: entries.slice(0, 100) }] });
+    }).catch(err => { if (alive) setError(err instanceof Error ? err.message : "Verlauf nicht lesbar"); });
+    return () => { alive = false; };
+  }, [api, definition.id, definition.generation, info.lastOccurrence?.utc, info.lastOccurrence?.state, info.lastOccurrence?.outcome, offline, cacheKey]);
+  const target = definition.target;
+  return <div class="team-detail" data-testid="automation-detail">
+    <h3>{definition.label}</h3>
+    <p class="team-meta">Zeitplan {scheduleText(info)} · Maximal parallel: {definition.grant.maxParallel} · Nachholfenster: {definition.grant.missedGraceMs / 60_000} Minuten · Freigabeversion: {definition.generation}</p>
+    <p class="team-meta">Vorprüfung: {definition.precheckActionId ?? "keine"} (Frist {definition.precheckDeadlineMs / 1000} s)</p>
+    <p class="team-meta">Ziel: {target.kind === "session" ? `${target.harness}${target.model ? ` · ${target.model}` : ""} · ${target.workdir} · ${target.project}` : target.kind === "script" ? `Skript ${target.actionId} · ${target.project}` : `Team-Vorlage ${target.templateId}`}</p>
+    {templateError && <p role="alert">{templateError}</p>}
+    {template && <div><p>Eingefrorener Rahmen: {template.project} · Worker: {template.frame.adapters.join(", ")} · höchstens {template.frame.maxParallel} parallel</p>{template.plan?.tasks.map(task => <details key={task.id}><summary>{task.title} · {task.adapter}{task.model ? ` · ${task.model}` : ""}</summary><pre>{task.prompt}</pre></details>)}</div>}
+    {offline && target.kind === "team" && <p>Der vollständige Team-Rahmen ist online über die eingefrorene Vorlage abrufbar.</p>}
+    <h4>Nächste Termine</h4>
+    <ul class="automation-occurrences" data-testid="automation-preview">{info.nextOccurrences.map(o => <li key={o.utc}>{o.local} ({o.utc})</li>)}</ul>
+    {info.nextOccurrences.length === 0 && <p>Kein Termin im unterstützten Kalenderhorizont.</p>}
+    <h4>Verlauf</h4>
+    {error && <div class="files-error" role="alert">{error}</div>}
+    {cachedAt && history && <p data-testid="automation-history-asof">Gespeicherter Verlauf vom <time dateTime={cachedAt}>{new Date(cachedAt).toLocaleString("de-DE")}</time> (höchstens 100 Einträge){offline ? "" : " — aktueller Abruf fehlgeschlagen"}.</p>}
+    {!history && !error && <div class="empty">lade…</div>}
+    {history?.length === 0 && !error && <div class="empty">Noch keine Läufe.</div>}
+    {!!history?.length && <ul class="team-tasks" data-testid="automation-history">{history.map(entry => <li key={entry.claimKey} class="team-task">
+      <div class="team-task-head"><span class="team-pill">{STATE_LABEL[entry.state] ?? entry.state}</span><span>{entry.occurrenceUtc}</span></div>
+      <div class="team-task-meta">
+        {entry.reason && <>Grund: {REASON_LABEL[entry.reason] ?? entry.reason} · </>}
+        {entry.outcome && <>Ergebnis: {outcomeLabel(entry.outcome)} · </>}
+        {entry.detail && <p>{entry.detail}</p>}
+        {entry.missedThroughUtc && <p>Verpasste Termine bis {entry.missedThroughUtc}</p>}
+        {entry.sessionId && <a href={sessionHash(entry.sessionId, remoteHost(host))}>Session ↗</a>}
+        {entry.teamId && <a href={`#/teams?team=${encodeURIComponent(entry.teamId)}${host ? `&host=${encodeURIComponent(host)}` : ""}`}>Team ↗</a>}
+      </div>
+      {/* ADR-0072: ohne Referenz gibt es keinen Abgleich — nur ein Mensch kann den Plan wieder freigeben. */}
+      {entry.state === "unknown" && !entry.sessionId && !entry.teamId && (resolving === entry.claimKey
+        ? <form class="automation-resolve" onSubmit={e => { e.preventDefault(); void resolve(entry.claimKey); }}>
+          <label>Notiz (warum aufgeben?)<input value={note} maxLength={300} required onInput={e => setNote(e.currentTarget.value)} /></label>
+          <button type="submit" class="btn" disabled={offline || !note.trim()}>Als aufgegeben abschließen</button>
+          <button type="button" class="btn" onClick={() => { setResolving(null); setNote(""); setResolveError(""); }}>Abbrechen</button>
+          {resolveError && <div class="files-error" role="alert">{resolveError}</div>}
+        </form>
+        : <button type="button" class="btn" disabled={offline} onClick={() => { setResolving(entry.claimKey); setNote(""); setResolveError(""); }}>Aufgeben…</button>)}
+    </li>)}</ul>}
+  </div>;
+}

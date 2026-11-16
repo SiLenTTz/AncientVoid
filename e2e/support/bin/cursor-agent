@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+// Stand-in cursor-agent CLI (adapter-cursor): claude-style stream-json,
+// one run per `-p --output-format stream-json` invocation.
+//
+// Prompt keywords:
+//   FEHLER    the run fails with a rate-limit error line
+//   LIMIT     the run dies on Cursor's ActionRequiredError out-of-usage line
+//   LANGSAM   the turn takes 60 s (busy/stuck paths)
+const args = process.argv.slice(2);
+const flag = (name) => {
+  const i = args.indexOf(name);
+  return i >= 0 ? (args[i + 1] ?? true) : undefined;
+};
+if (args.includes("--list-models")) {
+  process.stdout.write("Available models\n\nauto - Auto (default)\nclaude-sonnet-5 - Claude Sonnet 5\ngpt-5.3-codex - Codex 5.3\n");
+  process.exit(0);
+}
+const promptIdx = args.indexOf("--");
+const prompt = promptIdx >= 0 ? args.slice(promptIdx + 1).join(" ") : "";
+const chat = flag("--resume") ?? `chat_${Math.random().toString(36).slice(2, 12)}`;
+const model = flag("--model") ?? "claude-sonnet-5";
+const emit = (o) => process.stdout.write(`${JSON.stringify(o)}\n`);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+(async () => {
+  emit({ type: "system", subtype: "init", apiKeySource: "login", session_id: chat, cwd: process.cwd(), model, permissionMode: "default" });
+  emit({ type: "user", message: { role: "user", content: [{ type: "text", text: prompt }] }, session_id: chat });
+  if (prompt.includes("FEHLER")) {
+    emit({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "API Error: 429 " }] }, session_id: chat });
+    emit({ type: "result", subtype: "error_during_execution", is_error: true, result: "API Error: 429 rate l" });
+    process.exit(1);
+  }
+  if (prompt.includes("LIMIT")) {
+    // live shape from session c92ea94a (2026-09-29): non-JSON line, then exit 1
+    process.stdout.write("ActionRequiredError: Increase limits for faster responses You're out of usage. Switch to Auto, or ask your admin to increase your limit to continue.\n");
+    process.exit(1);
+  }
+  if (prompt.includes("LANGSAM")) {
+    await sleep(60_000);
+  }
+  // real shape: top-level thinking deltas, then completed — then the answer
+  for (const part of ["Kurz ", "nachdenken."]) emit({ type: "thinking", subtype: "delta", text: part, session_id: chat });
+  emit({ type: "thinking", subtype: "completed", session_id: chat });
+  emit({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: `Antwort auf: ${prompt.split("\n").pop()} · cursor${flag("--resume") ? " (fortgesetzt)" : ""}` }] }, session_id: chat });
+  emit({ type: "result", subtype: "success", result: "ok", session_id: chat, usage: { inputTokens: 1500, outputTokens: 42 } });
+  process.exit(0);
+})();

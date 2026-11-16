@@ -1,0 +1,37 @@
+{
+  "name": "@ancientvoid/hub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AncientVoid hub daemon: REST/WS API with device-token auth, WS delta protocol (seq/gap/resync/drop-on-slow), static PWA serving.",
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "ancientvoid-hub": "./src/main.ts"
+  },
+  "scripts": {
+    "dev": "node --watch src/main.ts",
+    "start": "node src/main.ts",
+    "typecheck": "tsc -p ../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/static": "^10.1.4",
+    "@fastify/websocket": "^11.0.1",
+    "@simplewebauthn/server": "^14.0.2",
+    "@ancientvoid/adapter-dummy": "0.1.0",
+    "@ancientvoid/contracts": "0.1.0",
+    "@ancientvoid/core": "0.1.0",
+    "@ancientvoid/workers": "0.1.0",
+    "fastify": "^5.12.5",
+    "ws": "^8.21.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@ancientvoid/adapter-testkit": "0.1.0",
+    "@ancientvoid/loop-securesight-factory": "0.1.0",
+    "fflate": "^0.8.3"
+  }
+}

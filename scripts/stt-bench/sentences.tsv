@@ -1,0 +1,31 @@
+id	text	terms
+t01	Starte eine neue Session mit Codex im Projekt AncientVoid.	Session|Codex|AncientVoid
+t02	Führe bitte die Tests mit npm test aus und zeig mir die Fehler.	npm test
+t03	Erstelle einen Pull Request für den Branch feature login.	Pull Request|Branch
+t04	Der Worktree liegt unter data worktrees, prüfe den Git Status.	Worktree|Git Status
+t05	Claude soll die TypeScript Typen im Adapter korrigieren.	Claude|TypeScript|Adapter
+t06	Stoppe die Session und archiviere sie danach.	Session|archiviere
+t07	Setz das Budget auf fünf Dollar.	Budget|fünf Dollar
+t08	Öffne die Freigaben und zeig mir die wartenden Anfragen.	Freigaben
+t09	Mach einen Rebase auf main und löse die Merge Konflikte.	Rebase|main|Merge Konflikte
+t10	Schreib einen Unit Test mit Vitest für den Parser.	Unit Test|Vitest|Parser
+t11	Der Hub läuft auf evox zwei im Tailnet.	Hub|Tailnet
+t12	Installiere die Abhängigkeiten mit pnpm und baue die PWA neu.	pnpm|PWA
+t13	Prüfe die Logs vom Service Worker im Browser.	Logs|Service Worker
+t14	Die API gibt einen vierhundertvier Fehler zurück.	API
+t15	Refaktoriere die Funktion parse Command in kleinere Teile.	Funktion
+t16	Deploye den Hub mit dem Skript fleet deploy auf den Server.	Skript|Server
+t17	Nutze das lokale Modell auf llama cpp statt der Cloud.	Modell|llama cpp|Cloud
+t18	Wie hoch ist das Kontingent von Claude heute?	Kontingent|Claude
+t19	Antworte der Session: bitte auch die Randfälle abdecken.	Session|Randfälle
+t20	Lösche den Cache und lade die Seite neu.	Cache
+t21	Die Docker Container brauchen mehr Arbeitsspeicher.	Docker Container|Arbeitsspeicher
+t22	Commit die Änderungen mit einer kurzen Nachricht.	Commit|Änderungen
+t23	Such im Code nach der Klasse Session Manager.	Code|Session Manager
+t24	Der Gatekeeper hat die Anfrage als kritisch eingestuft.	Gatekeeper|kritisch
+t25	Aktualisiere die Readme und die Architektur Doku.	Readme|Doku
+t26	Öffne den Diff und erkläre mir die Änderungen am Adapter.	Diff|Adapter
+t27	Starte die Tests mit pytest im Ordner tools.	pytest
+t28	Der WebSocket bricht nach dreißig Sekunden ab.	WebSocket|dreißig Sekunden
+t29	Übernimm die Änderungen aus dem Worktree ins Projekt.	Worktree|Projekt
+t30	Frag den Agenten, warum der Build fehlschlägt.	Agenten|Build

@@ -1,0 +1,128 @@
+/* EPIC-P43 T43.8: die kleine Nyx und ihr Blatt. Das Bild ist ein Streifen aus 33 Bildern (64×64);
+ * bewegt wird nur `transform` (K2). Ohne Bewegung, offline oder bei getrennter Verbindung steht das erste Bild. */
+@keyframes nyx-run {
+  from {
+    transform: translateX(calc(var(--from) * -1 * var(--nyx-size)));
+  }
+  to {
+    transform: translateX(calc((var(--from) + var(--n)) * -1 * var(--nyx-size)));
+  }
+}
+
+.nyx-sprite {
+  display: inline-block;
+  flex: none;
+  width: var(--nyx-size);
+  height: var(--nyx-size);
+  overflow: hidden;
+}
+
+.nyx-sprite img {
+  display: block;
+  max-width: none;
+  height: 100%;
+  width: auto;
+  image-rendering: pixelated;
+  transform: translateX(calc(var(--from) * -1 * var(--nyx-size)));
+  animation: nyx-run calc(var(--n) * var(--ms) * 1ms) steps(var(--n)) infinite;
+}
+
+.nyx-offline img,
+:root[data-conn="off"] .nyx-sprite img,
+:root[data-ctx-motion="off"] .nyx-sprite img {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nyx-sprite img {
+    animation: none;
+  }
+}
+
+.nyx-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: var(--target);
+  min-height: var(--target);
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.nyx-button:hover,
+.nyx-button[aria-expanded="true"] {
+  border-color: var(--bg-chip);
+}
+
+.nyx-button[data-nyx="approval"],
+.nyx-button[data-nyx="question"] {
+  border-color: color-mix(in srgb, var(--call) 60%, transparent);
+}
+
+.nyx-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: var(--call);
+  color: var(--bg);
+  font-size: calc(10px * var(--font-scale, 1));
+  font-weight: 700;
+}
+
+.nyx-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.nyx-sentence {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: calc(16px * var(--font-scale, 1));
+}
+
+.nyx-list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nyx-item {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+}
+
+.nyx-item-session {
+  justify-self: start;
+  font-weight: 600;
+}
+
+.nyx-item-elsewhere {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+/* Das Blatt bekommt beim Öffnen den Fokus (Screenreader liest „Nyx, Dialog“); ein Rahmen wäre dort nur Rauschen. */
+.nyx-sheet:focus {
+  outline: none;
+}
+
+/* AC-P43-6: der Sessionname im Blatt ist ein Weg in die Session — volle Zielhöhe. */
+.nyx-item-session {
+  min-height: var(--target);
+}

@@ -1,0 +1,540 @@
+/* T1.6-4: Bericht tab */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(12.5px * var(--font-scale, 1));
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+.status-chip.done {
+  background: color-mix(in srgb, var(--ok) 18%, transparent);
+  color: var(--ok);
+}
+
+.status-chip.pending {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+}
+
+.kv-list {
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-elev);
+}
+
+.kv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bg-chip);
+  font-size: calc(13px * var(--font-scale, 1));
+}
+
+.kv-row:last-child {
+  border-bottom: none;
+}
+
+.kv-row .k {
+  color: var(--fg-dim);
+}
+
+.kv-row .v {
+  font-weight: 600;
+}
+
+/* T7.7: how a number was measured shows in its colour — unknown is not 0. */
+.kv-row .v.metric-unknown {
+  color: var(--fg-faint);
+  font-weight: 400;
+}
+
+.kv-row .v.metric-partial,
+.kv-row .v.metric-estimated {
+  color: var(--warn);
+}
+
+/* T1.6-5: Diff tab */
+.diff-files {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.diff-file-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  font-size: calc(12.5px * var(--font-scale, 1));
+}
+
+.diff-add-count {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.diff-del-count {
+  color: var(--err);
+  font-weight: 700;
+}
+
+.diff-code {
+  font-size: calc(12px * var(--font-scale, 1));
+  line-height: 1.6;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  background: var(--bg-elev);
+  padding: 8px 0;
+  margin: 0;
+  white-space: pre;
+}
+
+.diff-line-add,
+.diff-line-del,
+.diff-line-ctx,
+.diff-line-hunk,
+.diff-line-header,
+.diff-line-file {
+  padding: 0 10px;
+}
+
+.diff-line-add {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--fg);
+}
+
+.diff-line-del {
+  background: color-mix(in srgb, var(--err) 14%, transparent);
+  color: var(--fg);
+}
+
+.diff-line-hunk {
+  color: var(--fg-dim);
+  background: var(--bg-chip);
+}
+
+.diff-line-header {
+  color: var(--fg-faint);
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.diff-line-file {
+  color: var(--fg-faint);
+}
+
+.diff-line-ctx {
+  color: var(--fg-dim);
+}
+
+/* T2.3: per-file hunk cards (replaces the old raw concatenated-patch view) */
+.diff-file-group {
+  margin-bottom: 16px;
+}
+
+.diff-file-heading {
+  font-size: calc(12px * var(--font-scale, 1));
+  color: var(--fg-faint);
+  margin: 10px 0 4px;
+}
+
+/* AC-P2-1: ein Abschnitt pro Commit — Kurz-SHA, Betreff, Autor·Datum. */
+.diff-commit-section {
+  margin-bottom: 8px;
+}
+
+.diff-commit-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  border-top: 1px solid var(--bg-chip);
+  padding: 8px 0 2px;
+  margin-bottom: 4px;
+}
+
+.diff-commit-sha {
+  color: var(--accent, var(--fg-faint));
+}
+
+.diff-commit-subject {
+  font-weight: 600;
+}
+
+.diff-commit-meta {
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.diff-section-heading {
+  border-top: 1px solid var(--bg-chip);
+  padding-top: 8px;
+  margin: 8px 0 4px;
+  font-weight: 600;
+}
+
+.hunk-card {
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.hunk-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--bg-chip);
+  font-size: calc(11.5px * var(--font-scale, 1));
+}
+
+.hunk-range {
+  color: var(--fg-faint);
+  white-space: nowrap;
+}
+
+.hunk-fn {
+  flex: 1;
+  min-width: 0;
+  color: var(--fg-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hunk-expand-btn {
+  border: 1px solid var(--fg-faint);
+  background: transparent;
+  color: var(--fg-dim);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: calc(11px * var(--font-scale, 1));
+  flex-shrink: 0;
+}
+
+.hunk-expand-btn:disabled {
+  opacity: 0.6;
+}
+
+.hunk-expand-btn.busy:disabled {
+  opacity: 1;
+}
+
+.hunk-body-unified {
+  font-size: calc(12px * var(--font-scale, 1));
+  line-height: 1.6;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* Mobile-portrait default: unified. Landscape phones and up: side-by-side. */
+.hunk-body-split {
+  display: none;
+}
+
+.hunk-split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.hunk-split-cell {
+  padding: 0 8px;
+  font-size: calc(12px * var(--font-scale, 1));
+  line-height: 1.6;
+  white-space: pre;
+  overflow-x: auto;
+  border-right: 1px solid var(--bg-chip);
+}
+
+.hunk-split-cell.del {
+  background: color-mix(in srgb, var(--err) 14%, transparent);
+}
+
+.hunk-split-cell.add {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+}
+
+.hunk-split-cell.empty {
+  background: var(--bg-chip);
+}
+
+@media (orientation: landscape) and (min-width: 640px) {
+  .hunk-body-unified {
+    display: none;
+  }
+  .hunk-body-split {
+    display: block;
+  }
+}
+
+/* EPIC-P20 T20.1: wide screens — file list beside the code, the whole width for the diff. */
+.diff-file-row[role="button"] {
+  cursor: pointer;
+}
+.diff-file-row[role="button"]:hover {
+  background: var(--bg-chip);
+}
+@media (min-width: 1280px) {
+  .diff-pane {
+    display: grid;
+    grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .diff-pane > .diff-files {
+    position: sticky;
+    top: 0;
+    max-height: calc((100dvh / var(--ui-zoom, 1)) - 240px);
+    overflow-y: auto;
+  }
+  .diff-pane > .diff-files .diff-file-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    word-break: break-all;
+  }
+  .diff-main {
+    min-width: 0;
+  }
+  .hunk-body-unified,
+  .hunk-split-cell {
+    font-size: calc(13px * var(--font-scale, 1));
+  }
+}
+
+/* EPIC-P20 T20.1: a hunk that exists on one side only (new/deleted file) uses the whole width, unified. */
+.hunk-card.one-sided .hunk-body-split {
+  display: none;
+}
+.hunk-card.one-sided .hunk-body-unified {
+  display: block;
+}
+
+/* ============================================================
+   EPIC-P36: Review-Notizen am Diff (ADR-0055) — Auswahl, Panel,
+   Badges, Sammelversand-Dialog. Mobile-first, Desktop via Breite.
+   ============================================================ */
+
+.diff-review-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+}
+.review-pick-btn {
+  border: 1px solid var(--border, #2a2f3a);
+  background: transparent;
+  color: inherit;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.review-pick-btn.active {
+  border-color: var(--accent, #6ea8fe);
+  color: var(--accent, #6ea8fe);
+}
+.review-picked-info {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.review-note-entry {
+  display: flex;
+  gap: 6px;
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+.review-note-entry input[type="text"] {
+  flex: 1;
+}
+.review-save-btn {
+  border: 1px solid var(--border, #2a2f3a);
+  background: var(--accent, #6ea8fe);
+  color: #0b0d12;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.review-save-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Anker-Auswahl im Diff-Körper */
+.review-pickable {
+  cursor: crosshair;
+}
+.review-picked {
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 28%, transparent);
+  outline: 1px solid var(--accent, #6ea8fe);
+}
+
+/* Notiz-Badge am Dateikopf */
+.review-note-badge {
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent, #6ea8fe);
+  color: #0b0d12;
+  font-size: 11px;
+}
+
+/* Panel mit Notizen */
+.review-panel {
+  margin-top: 12px;
+  border-top: 1px solid var(--border, #2a2f3a);
+  padding-top: 8px;
+}
+.review-panel h3 {
+  margin: 4px 0;
+  font-size: 14px;
+}
+.review-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px;
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 10px;
+  margin: 6px 0;
+}
+.review-note.stale {
+  border-style: dashed;
+  opacity: 0.85;
+}
+.review-note.outboxed {
+  align-items: center;
+  font-size: 13px;
+}
+.review-note-body {
+  flex: 1;
+  min-width: 0;
+}
+.review-note-ref {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.review-note-text {
+  margin: 4px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.review-note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  align-items: center;
+}
+.review-note-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.review-note-actions button {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #2a2f3a);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.review-status {
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid var(--border, #2a2f3a);
+}
+.review-status.draft { color: var(--warn, #e2b93b); }
+.review-status.sent { color: #7ad97a; }
+.review-status.open { color: var(--accent, #6ea8fe); }
+.review-status.done { color: #9aa3b2; }
+.review-stale-badge {
+  color: var(--danger, #ff7a7a);
+  font-size: 11px;
+}
+.review-unclear-badge {
+  color: var(--warn, #e2b93b);
+  font-size: 11px;
+}
+.review-warn {
+  color: var(--warn, #e2b93b);
+  font-size: 12px;
+  margin: 4px 0;
+}
+.review-warn-inline {
+  color: var(--danger, #ff7a7a);
+  font-size: 11px;
+}
+
+/* Sammelversand */
+.review-send-bar {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.review-send-btn {
+  border: 1px solid var(--accent, #6ea8fe);
+  background: var(--accent, #6ea8fe);
+  color: #0b0d12;
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.review-send-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.review-send-dialog {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+.review-send-dialog .modal-card {
+  background: var(--panel, #12151d);
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 12px;
+  padding: 14px;
+  width: min(640px, calc(92vw / var(--ui-zoom, 1))); /* BUG-0122 */
+  max-height: calc(85vh / var(--ui-zoom, 1));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.review-recipient {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.review-prompt-preview {
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 40vh;
+}
+.review-send-dialog .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

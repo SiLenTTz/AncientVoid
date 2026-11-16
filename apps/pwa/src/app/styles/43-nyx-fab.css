@@ -1,0 +1,67 @@
+/* Globaler Nyx-FAB für Speech-to-Text (einziger Mic-Auslöser). */
+.nyx-fab {
+  position: fixed;
+  /* Über dem Dock (10), unter Overlay-Sheets/Viewern — sonst blockiert der FAB „Schließen“. */
+  z-index: 15;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 55%, var(--bg-chip));
+  background: color-mix(in srgb, var(--bg-elev) 88%, var(--accent));
+  box-shadow: 0 4px 18px color-mix(in srgb, #000 35%, transparent);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Das Sprite ist ein <img>: ohne das startet die Maus dessen nativen Bild-Drag und bricht das Verschieben ab. */
+.nyx-fab img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.nyx-fab:active,
+.nyx-fab.dragging {
+  cursor: grabbing;
+}
+
+.nyx-fab.recording {
+  border-color: var(--err);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--err) 35%, transparent);
+}
+
+.nyx-fab.busy {
+  opacity: 0.85;
+}
+
+/* Ohne Spracherkennung bleibt er verschiebbar — nur der Klick tut nichts. */
+.nyx-fab[aria-disabled="true"] {
+  opacity: 0.45;
+}
+
+.nyx-fab-toast {
+  position: fixed;
+  z-index: 16;
+  max-width: min(280px, calc(100vw - 24px));
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  font-size: calc(12px * var(--font-scale, 1));
+  box-shadow: 0 4px 14px color-mix(in srgb, #000 30%, transparent);
+  pointer-events: none;
+}
+
+.nyx-fab-toast .err {
+  color: var(--err);
+}
+
+/* BUG-0145: Auf Handy und Tablet steht der FAB rechts unten über dem Dock. Ohne Platz am Ende
+ * bliebe die letzte Zeile des Verlaufs (z. B. „Kopieren“ im Bericht) dauerhaft unter ihm. */
+:root:has(.nyx-fab:is([data-bp="phone"], [data-bp="tablet"])) .tail-scroll {
+  padding-bottom: 80px;
+}

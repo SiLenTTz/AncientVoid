@@ -1,0 +1,210 @@
+/* EPIC-P34 T34.5: Farbwähler-Modal. Das <dialog> liegt im Top-Layer; seine DOM-Eltern (Einstellungen) tragen
+ * Formular-Regeln, die hier ausdrücklich zurückgenommen werden. */
+.accent-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 1px solid var(--fg-faint);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: calc(12px * var(--font-scale, 1));
+  cursor: pointer;
+}
+
+.accent-trigger:hover {
+  border-color: var(--accent);
+}
+
+.cp-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--fg) 35%, transparent);
+}
+
+.color-dialog {
+  width: min(380px, calc(96vw / var(--ui-zoom, 1))); /* BUG-0122 */
+  max-height: calc(94dvh / var(--ui-zoom, 1));
+  padding: 0;
+  border: 1px solid var(--fg-faint);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  color: var(--fg);
+  box-shadow: var(--shadow-elev), 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+  overflow: auto;
+  /* Die Zeile der Einstellungen (DOM-Eltern) richtet rechts aus — der Dialog nicht. */
+  text-align: left;
+}
+
+.color-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.color-dialog-body {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.color-dialog h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--font-scale, 1));
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.cp-plane,
+.cp-hue {
+  position: relative;
+  border-radius: var(--radius);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.cp-plane {
+  height: 180px;
+}
+
+.cp-hue {
+  height: 20px;
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+
+.cp-plane:focus-visible,
+.cp-hue:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cp-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.cp-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 40px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--fg-faint);
+}
+
+.cp-old,
+.cp-new {
+  display: grid;
+  place-items: center;
+  border: 0;
+  font: inherit;
+  font-size: calc(11px * var(--font-scale, 1));
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: #fff;
+  mix-blend-mode: normal;
+}
+
+.cp-old {
+  cursor: pointer;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+}
+
+.cp-fields {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cp-fields .cp-field {
+  display: grid;
+  gap: 2px;
+  font-size: calc(11px * var(--font-scale, 1));
+  color: var(--fg-dim);
+}
+
+.cp-fields .cp-hex {
+  grid-column: 1 / -1;
+}
+
+.color-dialog .cp-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--fg-dim);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: max(16px, calc(16px * var(--font-scale, 1)));
+}
+
+.color-dialog .cp-field input[aria-invalid="true"] {
+  border-color: var(--err);
+}
+
+.cp-fields .cp-field:not(.cp-hex) {
+  grid-column: span 2;
+}
+
+.cp-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cp-preset {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--fg) 35%, transparent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.cp-preset:focus-visible,
+.cp-old:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cp-recent-label {
+  font-size: calc(11px * var(--font-scale, 1));
+}
+
+.cp-warnings p {
+  margin: 0;
+  font-size: calc(12px * var(--font-scale, 1));
+  color: var(--warn);
+}
+
+.cp-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cp-spacer {
+  flex: 1;
+}
+
+/* Handy: der Wähler füllt den Bildschirm (Sheet statt Fenster). */
+@media (max-width: 520px) {
+  .color-dialog {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+}

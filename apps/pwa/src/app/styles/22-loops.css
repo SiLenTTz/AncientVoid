@@ -1,0 +1,79 @@
+/* EPIC-P19: Loop-Auswahl im Start-Formular */
+.loop-picker {
+  display: grid;
+  gap: 8px;
+}
+.loop-reasons {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85em;
+}
+
+/* Warum der Start noch nicht geht: laut am Knopf, kein graues Flüstern —
+ * „es passiert nichts“ war der Nutzerfund 2026-10-30. */
+.loop-block.warn {
+  color: var(--warn, #d29922);
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+/* EPIC-P19 T19.6: Kopf-Abzeichen und Loop-Panel in der Session */
+.loop-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.8em;
+  border: 1px solid currentColor;
+}
+.loop-badge.ok { color: var(--ok, #3fb950); }
+.loop-badge.warn { color: var(--warn, #d29922); }
+.loop-badge.bad { color: var(--bad, #f85149); }
+.loop-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 10px;
+}
+.loop-head,
+.loop-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+.loop-alert {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid currentColor;
+}
+.loop-alert.bad { color: var(--bad, #f85149); }
+.loop-alert.warn { color: var(--warn, #d29922); }
+.loop-progress { display: grid; gap: 4px; }
+.loop-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border, #30363d);
+  overflow: hidden;
+}
+.loop-bar > div { height: 100%; background: var(--ok, #3fb950); }
+.gate-passed { color: var(--ok, #3fb950); }
+.gate-failed { color: var(--bad, #f85149); }
+.loop-notices { margin: 0; padding-left: 18px; font-size: 0.85em; }
+.loop-report pre { white-space: pre-wrap; max-height: 40vh; overflow: auto; }
+.loop-onboard {
+  display: grid;
+  gap: 8px;
+  border: 1px dashed var(--border, #30363d);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+/* EPIC-P26 T26.8: Projektmodus der securesight-factory — Verknüpfung, Intake, Steuerung. */
+.loop-factory {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius-sm);
+}

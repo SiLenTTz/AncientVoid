@@ -1,0 +1,147 @@
+#!/usr/bin/env node
+/**
+ * T3.11 (EPIC-P3): "Ehrlichkeitsklausel automatisieren" (aSPARK-Lektion) —
+ * verifies README.md's Adapter-Status-Matrix against each adapter's REAL
+ * `capabilities()` return, for every adapter that has its own package (a
+ * pure, side-effect-free call — no CLI/network access needed to construct
+ * the object and read its capabilities).
+ *
+ * Deliberately a checker, not a silent auto-rewriter: `capabilities()`
+ * covers Reasoning/Tools/Cost/Steer/Kontingent, but the Status ("proven"/
+ * "unproven"/"geplant") and Phase columns are editorial judgments backed
+ * by real test/messlauf evidence (this repo's own "Status wird erst nach
+ * bestandenen Contract-Tests auf 'proven' gesetzt" clause) — a script
+ * can't responsibly assert those without re-running and cross-referencing
+ * the whole evidence trail, so it leaves them to a human and only catches
+ * the mechanical drift: a README claiming a capability the real code no
+ * longer has (or now has but the README doesn't credit).
+ *
+ * Adapters reached through the shared openai-compat example (local-llm,
+ * deepseek) share one factory whose capabilities don't vary per config,
+ * and `swarm`/`zai` have no package to import at all — all skipped, named
+ * explicitly in the output, not silently ignored.
+ *
+ *   npm run check:adapter-matrix
+ */
+import { readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(here, "..");
+
+const CHECKED = [
+  { id: "dummy", modulePath: "../packages/adapters/dummy/src/index.ts" },
+  { id: "claude", modulePath: "../packages/adapters/claude/src/index.ts" },
+  { id: "codex", modulePath: "../packages/adapters/codex/src/index.ts" },
+  { id: "opencode", modulePath: "../packages/adapters/opencode/src/index.ts" },
+  { id: "aider", modulePath: "../packages/adapters/aider/src/index.ts" },
+  { id: "hermes", modulePath: "../packages/adapters/hermes/src/index.ts" },
+  { id: "copilot", modulePath: "../packages/adapters/copilot/src/index.ts" },
+  { id: "pi", modulePath: "../packages/adapters/pi/src/index.ts" },
+  { id: "cursor-clip", modulePath: "../packages/adapters/cursor-clip/src/index.ts" },
+  { id: "claude-clip", modulePath: "../packages/adapters/claude-clip/src/index.ts" },
+];
+/** ADR-0018: one adapter module, several harnesses — checked per config. */
+const CHECKED_CONFIGS = [
+  { id: "acp · copilot", modulePath: "../packages/adapters/acp/src/index.ts", config: { preset: "copilot" } },
+  { id: "acp · opencode", modulePath: "../packages/adapters/acp/src/index.ts", config: { preset: "opencode" } },
+  { id: "acp · dsh", modulePath: "../packages/adapters/acp/src/index.ts", config: { preset: "dsh" } },
+];
+const SKIPPED = ["swarm", "zai", "local-llm", "deepseek"];
+
+const SYMBOL_TO_BOOL = { "✓": true, "—": false };
+
+function parseMatrixRow(line) {
+  const cells = line
+    .split("|")
+    .slice(1, -1)
+    .map((c) => c.trim());
+  if (cells.length < 7) return null;
+  const id = cells[0].replace(/[`~*]/g, "").trim();
+  return {
+    id,
+    reasoning: cells[2],
+    tools: cells[3],
+    cost: cells[4],
+    steer: cells[5],
+    usage: cells[6],
+  };
+}
+
+const readme = await readFile(join(repoRoot, "README.md"), "utf8");
+const lines = readme.split("\n");
+const rows = new Map();
+for (const line of lines) {
+  if (!line.startsWith("|") || line.startsWith("|---")) continue;
+  const row = parseMatrixRow(line);
+  if (row) rows.set(row.id, row);
+}
+
+let mismatches = 0;
+for (const { id, modulePath } of CHECKED) {
+  const row = rows.get(id);
+  if (!row) {
+    console.error(`FAIL: no README matrix row found for adapter "${id}"`);
+    mismatches++;
+    continue;
+  }
+  const { createAdapter } = await import(modulePath);
+  const caps = createAdapter().capabilities();
+  const checks = [
+    ["reasoning", caps.reasoning, row.reasoning],
+    ["tools", caps.tools, row.tools],
+    ["cost", caps.cost, row.cost],
+    ["steer", caps.steer, row.steer],
+    ["usage", caps.usage, row.usage],
+  ];
+  for (const [field, real, symbol] of checks) {
+    if (!(symbol in SYMBOL_TO_BOOL)) continue; // "~" or "?" — an honest partial/unknown, not a mismatch to flag
+    const claimed = SYMBOL_TO_BOOL[symbol];
+    if (claimed !== real) {
+      console.error(
+        `FAIL: ${id}.capabilities().${field} = ${real}, but README matrix says "${symbol}" (claims ${claimed})`,
+      );
+      mismatches++;
+    }
+  }
+}
+
+// ADR-0018: docs/harness-matrix.md — the per-function matrix, same rule.
+const FEATURE_COLUMNS = ["followUp", "interrupt", "toolGate", "questions", "modelChoice", "agents", "images", "files", "contextFork", "modelSwitch", "permissionModes"];
+const matrix = await readFile(join(repoRoot, "docs", "harness-matrix.md"), "utf8");
+const block = matrix.split("<!-- harness-matrix:start -->")[1]?.split("<!-- harness-matrix:end -->")[0] ?? "";
+const featureRows = new Map();
+for (const line of block.split("\n")) {
+  if (!line.startsWith("|") || line.startsWith("|---") || line.includes("Folgeprompt")) continue;
+  const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+  featureRows.set(cells[0], cells.slice(2));
+}
+for (const { id, modulePath, config } of [...CHECKED, ...CHECKED_CONFIGS]) {
+  const cells = featureRows.get(id);
+  if (!cells) {
+    console.error(`FAIL: no docs/harness-matrix.md row for adapter "${id}"`);
+    mismatches++;
+    continue;
+  }
+  const { createAdapter } = await import(modulePath);
+  const f = createAdapter(config).capabilities().features;
+  FEATURE_COLUMNS.forEach((key, i) => {
+    const text = key === "toolGate" || key === "permissionModes";
+    const real = key === "toolGate" ? f.toolGate : key === "modelChoice" ? f.modelChoice === "start" : key === "permissionModes" ? (f.permissionModes.length ? f.permissionModes.join(", ") : "—") : f[key];
+    const claimed = text ? cells[i] : SYMBOL_TO_BOOL[cells[i]];
+    if (claimed !== real) {
+      console.error(`FAIL: ${id}.features.${key} = ${real}, but docs/harness-matrix.md says "${cells[i]}"`);
+      mismatches++;
+    }
+  });
+}
+
+console.log(`checked ${CHECKED.length} adapters with real capabilities() calls against README.md and docs/harness-matrix.md`);
+console.log(`skipped (no dedicated package / shared factory): ${SKIPPED.join(", ")}`);
+
+if (mismatches > 0) {
+  console.error(`\nFAIL: ${mismatches} README-vs-capabilities() mismatch(es) — update README.md's matrix.`);
+  process.exit(1);
+}
+console.log("\nPASS: README Adapter-Status-Matrix matches every checked adapter's real capabilities().");

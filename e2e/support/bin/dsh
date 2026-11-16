@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+// E2E stand-in for the dsh (DeepSeek Harness) CLI. Only the headless
+// one-shot the prompt enhancer uses (BUG-0061): `--profile headless -`
+// reads the task from stdin, the rewritten answer goes to stdout,
+// diagnostics to stderr — same contract as dsh 0.2.1-rc.2. No cloud
+// egress, no cost.
+import { readFileSync } from "node:fs";
+
+const argv = process.argv.slice(2);
+if (argv[0] === "--version") {
+  console.log("0.2.1-e2e");
+  process.exit(0);
+}
+if (argv[0] === "--profile" && argv[1] === "headless" && argv[2] === "-") {
+  const task = readFileSync(0, "utf8");
+  const raw = task.split("\n---\n").pop().trim();
+  console.log(`Ziel: ${raw}\nScope: nur das genannte Projekt\nConstraints: keine neuen Abhängigkeiten\nErfolgskriterium: Tests grün`);
+  process.exit(0);
+}
+console.error(`fake dsh: unsupported command ${argv.join(" ")}`);
+process.exit(2);

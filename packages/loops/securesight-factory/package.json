@@ -1,0 +1,21 @@
+{
+  "name": "@ancientvoid/loop-securesight-factory",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Loop connector for the securesight factory (securesight-factory, ADR-0038): observes supervisor status, notifications, transcript and progress; writes nothing.",
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ancientvoid/contracts": "0.1.0"
+  },
+  "devDependencies": {
+    "@ancientvoid/adapter-testkit": "0.1.0"
+  }
+}

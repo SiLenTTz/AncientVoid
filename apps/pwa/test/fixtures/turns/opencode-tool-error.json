@@ -1,0 +1,112 @@
+[
+ {
+  "seq": 1,
+  "ts": "2026-11-11T08:00:00.000Z",
+  "sessionId": "s",
+  "type": "user",
+  "summary": "Auftrag",
+  "payload": {
+   "text": "Auftrag",
+   "kind": "session.prompt"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 2,
+  "ts": "2026-11-11T08:00:01.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "OpenCode denkt…",
+  "payload": {
+   "kind": "opencode.step_start"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 3,
+  "ts": "2026-11-11T08:00:02.000Z",
+  "sessionId": "s",
+  "type": "tool_use",
+  "summary": "opencode: read {\"filePath\":\"/tmp/oc-test/does-not-exist-xyz.txt\"}",
+  "payload": {
+   "id": "call_d0b29e71333943d6b6c3ccdb",
+   "tool": "read",
+   "input": {
+    "filePath": "/tmp/oc-test/does-not-exist-xyz.txt"
+   }
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 4,
+  "ts": "2026-11-11T08:00:03.000Z",
+  "sessionId": "s",
+  "type": "tool_result",
+  "summary": "opencode: read error — File not found: /tmp/oc-test/does-not-exist-xyz.txt",
+  "payload": {
+   "toolUseId": "call_d0b29e71333943d6b6c3ccdb",
+   "isError": true,
+   "error": "File not found: /tmp/oc-test/does-not-exist-xyz.txt"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 5,
+  "ts": "2026-11-11T08:00:04.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "opencode: step finish (tool-calls)",
+  "payload": {
+   "kind": "opencode.step_finish",
+   "reason": "tool-calls",
+   "reasoning": 22
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 6,
+  "ts": "2026-11-11T08:00:05.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "OpenCode denkt…",
+  "payload": {
+   "kind": "opencode.step_start"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 7,
+  "ts": "2026-11-11T08:00:06.000Z",
+  "sessionId": "s",
+  "type": "assistant",
+  "summary": "The read failed with an error: `File not found: /tmp/oc-test/does-not-exist-xyz.txt` — the file doesn't exist in the current directory.",
+  "payload": {
+   "text": "The read failed with an error: `File not found: /tmp/oc-test/does-not-exist-xyz.txt` — the file doesn't exist in the current directory."
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 8,
+  "ts": "2026-11-11T08:00:07.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "opencode: step finish (stop)",
+  "payload": {
+   "kind": "opencode.step_finish",
+   "reason": "stop",
+   "reasoning": 17
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 9,
+  "ts": "2026-11-11T08:00:08.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "turn end",
+  "payload": {
+   "kind": "session.turn_end"
+  },
+  "blobRef": null
+ }
+]

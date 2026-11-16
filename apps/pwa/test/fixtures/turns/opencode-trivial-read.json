@@ -1,0 +1,112 @@
+[
+ {
+  "seq": 1,
+  "ts": "2026-11-11T08:00:00.000Z",
+  "sessionId": "s",
+  "type": "user",
+  "summary": "Auftrag",
+  "payload": {
+   "text": "Auftrag",
+   "kind": "session.prompt"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 2,
+  "ts": "2026-11-11T08:00:01.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "OpenCode denkt…",
+  "payload": {
+   "kind": "opencode.step_start"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 3,
+  "ts": "2026-11-11T08:00:02.000Z",
+  "sessionId": "s",
+  "type": "tool_use",
+  "summary": "opencode: read {\"filePath\":\"/tmp/oc-test/a.txt\"}",
+  "payload": {
+   "id": "call_3256654186444d219708c724",
+   "tool": "read",
+   "input": {
+    "filePath": "/tmp/oc-test/a.txt"
+   }
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 4,
+  "ts": "2026-11-11T08:00:03.000Z",
+  "sessionId": "s",
+  "type": "tool_result",
+  "summary": "<path>/tmp/oc-test/a.txt</path>\n<type>file</type>\n<content>\n1: hello\n\n(End of file - total 1 lines)\n</content>",
+  "payload": {
+   "toolUseId": "call_3256654186444d219708c724",
+   "isError": false,
+   "output": "<path>/tmp/oc-test/a.txt</path>\n<type>file</type>\n<content>\n1: hello\n\n(End of file - total 1 lines)\n</content>"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 5,
+  "ts": "2026-11-11T08:00:04.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "opencode: step finish (tool-calls)",
+  "payload": {
+   "kind": "opencode.step_finish",
+   "reason": "tool-calls",
+   "reasoning": 23
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 6,
+  "ts": "2026-11-11T08:00:05.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "OpenCode denkt…",
+  "payload": {
+   "kind": "opencode.step_start"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 7,
+  "ts": "2026-11-11T08:00:06.000Z",
+  "sessionId": "s",
+  "type": "assistant",
+  "summary": "The file a.txt contains the single word \"hello\".",
+  "payload": {
+   "text": "The file a.txt contains the single word \"hello\"."
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 8,
+  "ts": "2026-11-11T08:00:07.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "opencode: step finish (stop)",
+  "payload": {
+   "kind": "opencode.step_finish",
+   "reason": "stop",
+   "reasoning": 0
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 9,
+  "ts": "2026-11-11T08:00:08.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "turn end",
+  "payload": {
+   "kind": "session.turn_end"
+  },
+  "blobRef": null
+ }
+]

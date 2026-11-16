@@ -1,0 +1,6 @@
+{
+  "schema_version": "1",
+  "zeit": "2026-10-30T11:58:56.315145+00:00",
+  "grund": "Beispiel: provider nicht konfiguriert",
+  "fundstelle": "harness/bootstrap.py:lauf_status"
+}

@@ -1,0 +1,253 @@
+/* T1.7 thinking collapse toggle */
+.think-toggle {
+  background: none;
+  border: none;
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: calc(11px * var(--font-scale, 1));
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+/* T1.8 tool-call status + anchor nav */
+.tool-status {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: calc(11px * var(--font-scale, 1));
+  font-weight: 700;
+}
+
+.tool-status.running {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.tool-status.ok {
+  background: color-mix(in srgb, var(--ok) 18%, transparent);
+  color: var(--ok);
+}
+
+.tool-status.error {
+  background: color-mix(in srgb, var(--err) 20%, transparent);
+  color: var(--err);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: calc(11px * var(--font-scale, 1));
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Archiv aufräumen: endgültiges Löschen muss auch auf Touch als
+ * destruktiv erkennbar sein, nicht nur am Wort. */
+.link-btn.danger {
+  color: var(--err);
+}
+
+/* T1.6-3: dock-actions replaces the old standalone .bottom-actions —
+ * folded into .dock-stack below instead of being its own separately fixed
+ * element (that pattern once overlapped the tail's last rows in practice,
+ * see the T1.5-6 history; a single fixed anchor avoids that class of bug
+ * by construction). */
+.dock-actions {
+  padding: 10px 12px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dock-actions .row {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* T1.6-3: session sub-tabs (Chat/Verlauf), stacked directly above the
+ * global dock inside the same fixed .dock-stack. */
+.subtabs-wrap {
+  display: flex;
+  border-top: 1px solid var(--bg-chip);
+}
+
+.subtabs-wrap button {
+  flex: 1;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: calc(11px * var(--font-scale, 1));
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  padding: 10px 4px 9px;
+  color: var(--fg-dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  min-height: 44px;
+}
+
+.subtabs-wrap button.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* T8.4: copy an answer. */
+.event .copy-btn {
+  display: block;
+  margin-left: auto;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+/* T8.6: new since the last visit on this device. */
+.new-divider {
+  margin: 10px 0;
+  text-align: center;
+  font-size: calc(11px * var(--font-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border-top: 1px solid var(--accent);
+  padding-top: 4px;
+}
+
+.new-jump {
+  margin: 4px 0;
+}
+
+/* ADR-0033: Modus und Modell der Session, über der Eingabe. */
+.session-configure {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+.session-configure label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-dim);
+}
+.session-configure select {
+  min-height: 32px;
+  max-width: 46vw;
+}
+
+/* EPIC-P15 T15.3: vorgemerkte Nachrichten über der Eingabe. */
+.queue-list {
+  padding: 4px 8px;
+  font-size: calc(12px * var(--font-scale, 1));
+  /* Große Symbol-Tasten machen Zeilen hoch — eine lange Warteschlange scrollt selbst statt den Dock zu sprengen (BUG-0098). */
+  max-height: min(30vh, 240px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.queue-item {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.icon-action {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--icon-target);
+  min-height: var(--icon-target);
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--icon-glyph);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.icon-action:hover,
+.icon-action:focus-visible {
+  border-color: var(--bg-chip);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.icon-action.danger {
+  color: var(--err);
+}
+.queue-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* EPIC-P15 T15.4: Hinweis, dass die Session am PC offen ist. */
+.pc-open-notice {
+  padding: 4px 8px;
+  font-size: calc(12px * var(--font-scale, 1));
+  line-height: 1.4;
+}
+.pc-open-notice code {
+  word-break: break-all;
+}
+
+/* BUG-0053: im Querformat (niedriges Fenster) füllte das Dock fast den ganzen Bildschirm — vom Verlauf blieben
+ * ~120 von 368 px. Hier nur das Nötigste: Modus/Modell, Eingabe, Senden, Tabs. Vorlagen, Filterchips und
+ * Statuszeilen kommen im Hochformat zurück. */
+@media (max-height: 520px) {
+  .dock-stack .reply-templates,
+  .dock-stack .dock-filter-bar,
+  .dock-stack .draft-state,
+  .dock-stack .pc-open-notice {
+    display: none;
+  }
+  .dock-stack .composer-input {
+    min-height: 36px;
+    max-height: 56px;
+    padding: 6px 10px;
+  }
+  .dock-stack .session-configure {
+    padding: 2px 8px;
+  }
+  .dock-stack .session-configure select {
+    min-height: 28px;
+  }
+  .dock-stack .dock-item {
+    min-height: 34px;
+    padding: 4px 0;
+  }
+  /* Fortschritt und Kontingent stehen weiter im Bericht. */
+  .run-strip {
+    display: none;
+  }
+}
+
+.interrupted-banner {
+  flex: 0 0 auto;
+  margin: 8px 12px;
+  padding: 12px;
+  border: 1px solid var(--warn);
+  border-radius: 10px;
+  background: var(--bg-elev);
+}
+.interrupted-banner p { margin: 6px 0; overflow-wrap: anywhere; }
+.interrupted-banner .row { gap: 8px; flex-wrap: wrap; }
+.recovery-handover {
+  width: min(40rem, calc(100vw / var(--ui-zoom, 1) - 2rem));
+  max-height: calc(90dvh / var(--ui-zoom, 1));
+  overflow: auto;
+  color: var(--fg);
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: 12px;
+}
+.recovery-handover::backdrop { background: #0009; }
+
+/* EPIC-P48: Herauslösen-Werkzeugzeile im Graph-/Datei-Tab der Session. */
+.graph-pane-tools { display: flex; justify-content: flex-end; gap: 6px; padding: 2px 6px; }

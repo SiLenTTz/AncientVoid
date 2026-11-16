@@ -1,0 +1,48 @@
+/* T1.5-10 skill/agent picker + overlay */
+.skill-chip {
+  text-align: left;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, black 55%, transparent);
+  display: flex;
+  align-items: flex-end;
+  z-index: 20;
+}
+
+.overlay-sheet {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  background: var(--bg);
+  border-top: 1px solid var(--fg-dim);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  max-height: calc(70vh / var(--ui-zoom, 1)); /* BUG-0122 */
+  overflow-y: auto;
+}
+
+.skill-list {
+  display: grid;
+  gap: 6px;
+}
+
+.skill-item {
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.skill-item.active {
+  border-color: var(--accent);
+}

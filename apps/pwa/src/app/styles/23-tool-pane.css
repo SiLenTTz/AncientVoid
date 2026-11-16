@@ -1,0 +1,58 @@
+/* EPIC-P34 T34.2: Werkzeugseiten füllen am Desktop die Detailspalte; die Kacheln bleiben darunter gemountet. */
+.tile-host {
+  height: 100%;
+  min-height: 0;
+}
+
+.tool-pane {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 16px 24px;
+  background: var(--bg);
+}
+
+.tool-pane-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--bg-chip);
+}
+
+.tool-pane-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: calc(15px * var(--font-scale, 1));
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.tool-pane-close {
+  background: none;
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius-sm);
+  color: var(--fg-dim);
+  min-width: var(--icon-target);
+  height: var(--icon-target);
+  font: inherit;
+  font-size: calc(var(--icon-glyph) + 2px);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tool-pane-close:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+
+.tool-pane-body {
+  padding-top: 12px;
+}

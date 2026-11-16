@@ -1,0 +1,194 @@
+/* Icon-Leisten: Handy bleibt wie es war (Text-Dock, Text-Tabs), ab 1280 px werden Dock und
+ * Kachel-Tabs zu schmalen Icon-Leisten; die Beschriftung bleibt im DOM (Tooltip, Screenreader, E2E). */
+.dock-item .tab-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.subtabs-wrap:not(.tile-tabs) .tab-icon {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  /* Das Fenster selbst scrollt nie; es scrollen nur Liste, Kachel und Verlauf. */
+  html:has(.split),
+  body:has(.split) {
+    overflow: hidden;
+  }
+
+  /* Globale Navigation: feste Leiste am linken Rand. */
+  #app:has(.split) {
+    padding-left: 68px;
+  }
+
+  .split-list .dock-stack {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: auto;
+    width: 56px;
+    margin: 0;
+    border-right: 1px solid var(--bg-chip);
+  }
+
+  .split-list .dock {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 12px 0 0;
+    border-top: 0;
+  }
+
+  .split-list .dock-item {
+    flex: none;
+    min-height: 48px;
+    padding: 0;
+    justify-content: center;
+    border-left: 2px solid transparent;
+  }
+
+  /* Die Leiste hat Platz für jedes Ziel einzeln; „Mehr“ gibt es hier nicht. */
+  .split-list .dock-extra {
+    display: flex;
+  }
+
+  .split-list .dock-more {
+    display: none;
+  }
+
+  .split-list .dock-main {
+    width: 40px;
+    min-height: 40px;
+    margin: 4px auto;
+    border-left: 0;
+  }
+
+  .split-list .dock-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+
+  .split-list .dock-item:hover {
+    color: var(--fg);
+  }
+
+  .split-list .dock-item .lb {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.tile-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.tile-actions .chip {
+  padding: 3px 10px;
+  font-size: calc(12px * var(--font-scale, 1));
+  cursor: pointer;
+}
+
+.tile-actions .chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tile-actions .tile-keys {
+  margin-left: 8px;
+}
+
+/* EPIC-P23 T23.2: einheitliche Statusleiste, nur Desktop. */
+.status-bar { display: none; }
+
+@media (min-width: 1280px) {
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 28px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    background: var(--bg-elev, var(--bg));
+    border-top: 1px solid var(--bg-chip);
+    font-size: calc(12px * var(--font-scale, 1));
+    color: var(--fg-dim);
+    z-index: 5;
+  }
+  .status-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .status-item.bad { color: var(--err); }
+  .status-link { background: none; border: 0; padding: 0; font: inherit; color: var(--warn); cursor: pointer; }
+  .status-spacer { flex: 1; }
+  .status-focus { overflow: hidden; text-overflow: ellipsis; max-width: 45vw; }
+  /* Platz für die Leiste: Inhalt und Icon-Leiste enden darüber. */
+  .split { height: calc(100dvh / var(--ui-zoom, 1) - 28px); }
+  .split-list .dock-stack { bottom: 28px; }
+}
+
+/* EPIC-P23 T23.1: "AncientVoid" ist ein Knopf in Überschriftsoptik; die zuletzt benutzte Session trägt einen Rand. */
+.brand-link { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer; }
+.brand-link:hover { color: var(--accent); }
+.session-card.last-active { border-left: 3px solid var(--accent); }
+.brand-link { display: inline-flex; align-items: center; gap: 8px; }
+.brand-logo { border-radius: 6px; object-fit: cover; }
+.login-artwork { width: 100%; height: auto; border-radius: 8px; aspect-ratio: 16 / 9; object-fit: cover; }
+/* Phone: Logo statt Wortmarke — der Name bleibt für Screenreader (und Tests) erhalten, die Kopfzeile reicht sonst nicht für Status/PC/Medien. */
+@media (max-width: 639px) {
+  .brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* EPIC-P43 T43.6: Kachelkopf — Griff, Titel, Zustand, die Reiter als Symbole, rechts Herauslösen.
+ * Die senkrechte Leiste je Kachel entfällt. Gilt auch im eigenen Fenster (oft schmaler als 1280 px). */
+.tile-tabs {
+  flex: none;
+  gap: 2px;
+  border-top: 0;
+}
+
+.tile-tabs button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 36px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border-bottom: 2px solid transparent;
+}
+
+.tile-tabs button.active {
+  border-bottom-color: var(--accent);
+}
+
+.tile-tabs .tab-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: calc(10px * var(--font-scale, 1));
+}
+
+.tile-tabs button:hover {
+  color: var(--fg);
+}
+
+.tile-tabs .lb {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

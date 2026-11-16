@@ -1,0 +1,21 @@
+id	text	terms
+h01	Öffne die Session im Projekt custom rag und zeig mir den Diff.	Session|custom rag|Diff
+h02	Push den Branch und öffne danach einen Pull Request.	Push|Branch|Pull Request
+h03	Der Build auf main ist seit dem letzten Merge rot.	Build|main|Merge
+h04	Leere den Cache vom Service Worker und prüfe die Logs.	Cache|Service Worker|Logs
+h05	Codex soll einen Unit-Test für den Adapter schreiben.	Codex|Unit-Test|Adapter
+h06	Starte opencode im Projekt AncientVoid mit dem lokalen Modell.	opencode|AncientVoid|Modell
+h07	Der Gatekeeper hat den Docker Befehl als Warnung markiert.	Gatekeeper|Docker|Warnung
+h08	Mach ein Refactoring der WebSocket Verbindung im Hub.	Refactoring|WebSocket|Hub
+h09	Wie viel Kontingent hat Claude noch für heute?	Kontingent|Claude
+h10	Die Doku zur API liegt im Ordner docs.	Doku|API
+h11	Führe pytest aus und schick mir die fehlgeschlagenen Tests.	pytest|Tests
+h12	Setze das Budget auf zehn Dollar für diese Session.	Budget|zehn Dollar|Session
+h13	Der Worktree hat ungespeicherte Änderungen, mach einen Commit.	Worktree|Commit
+h14	Installiere die Pakete mit npm und starte den Deploy.	npm|Deploy
+h15	Die PWA zeigt offline den letzten Stand aus dem Cache.	PWA|Cache
+h16	Mach einen Rebase und löse den Konflikt in der Readme.	Rebase|Readme
+h17	Der Container verbraucht zu viel Speicher in der Cloud.	Container|Cloud
+h18	TypeScript meldet einen Fehler im Tailnet Modul.	TypeScript|Tailnet
+h19	Prüfe den Git Status im Projekt custom rag.	Git Status|custom rag
+h20	Der Bug tritt nur bei llama.cpp auf, nicht bei Codex.	Bug|llama.cpp|Codex

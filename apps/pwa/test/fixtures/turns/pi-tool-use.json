@@ -1,0 +1,129 @@
+[
+ {
+  "seq": 1,
+  "ts": "2026-11-11T08:00:00.000Z",
+  "sessionId": "s",
+  "type": "user",
+  "summary": "Auftrag",
+  "payload": {
+   "text": "Auftrag",
+   "kind": "session.prompt"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 2,
+  "ts": "2026-11-11T08:00:01.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "pi: Session gestartet",
+  "payload": {
+   "kind": "pi.session",
+   "piSessionId": "01a17a73-8ae3-769a-92ab-68e14a5a5405",
+   "nativeSessionId": "01a17a73-8ae3-769a-92ab-68e14a5a5405"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 3,
+  "ts": "2026-11-11T08:00:02.000Z",
+  "sessionId": "s",
+  "type": "thinking",
+  "summary": "I'm reading the file.",
+  "payload": {
+   "text": "I'm reading the file."
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 4,
+  "ts": "2026-11-11T08:00:03.000Z",
+  "sessionId": "s",
+  "type": "tool_use",
+  "summary": "read({\"path\":\"notiz.txt\"})",
+  "payload": {
+   "id": "call_fe23dab52a6d476c8dd7b965",
+   "name": "read",
+   "input": {
+    "path": "notiz.txt"
+   }
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 5,
+  "ts": "2026-11-11T08:00:04.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "pi: 1092 Tokens",
+  "payload": {
+   "kind": "pi.usage",
+   "usage": {
+    "input": 1057,
+    "output": 35
+   }
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 6,
+  "ts": "2026-11-11T08:00:05.000Z",
+  "sessionId": "s",
+  "type": "tool_result",
+  "summary": "alpha beta",
+  "payload": {
+   "toolUseId": "call_fe23dab52a6d476c8dd7b965",
+   "isError": false,
+   "content": "alpha\nbeta\n"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 7,
+  "ts": "2026-11-11T08:00:06.000Z",
+  "sessionId": "s",
+  "type": "thinking",
+  "summary": "It's two lines.",
+  "payload": {
+   "text": "It's two lines."
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 8,
+  "ts": "2026-11-11T08:00:07.000Z",
+  "sessionId": "s",
+  "type": "assistant",
+  "summary": "Die Datei hat 2 Zeilen (`alpha`, `beta`).",
+  "payload": {
+   "text": "Die Datei hat 2 Zeilen (`alpha`, `beta`)."
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 9,
+  "ts": "2026-11-11T08:00:08.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "pi: 1132 Tokens",
+  "payload": {
+   "kind": "pi.usage",
+   "usage": {
+    "input": 1110,
+    "output": 22
+   }
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 10,
+  "ts": "2026-11-11T08:00:09.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "turn end",
+  "payload": {
+   "kind": "session.turn_end"
+  },
+  "blobRef": null
+ }
+]

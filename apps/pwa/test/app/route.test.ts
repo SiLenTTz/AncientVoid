@@ -1,0 +1,75 @@
+import { describe, expect, it } from "vitest";
+import { browserHash, codeHash, filetreeHash, isToolPage, pageHash, parseAppHash, sessionHash, type ListPage } from "../../src/app/route.ts";
+
+describe("Browser-Route (EPIC-P39 T39.3)", () => {
+  it("round-trips lokal und auf einem anderen Host; die Session-Route bleibt unberührt", () => {
+    expect(browserHash("s1")).toBe("#/sessions/s1/browser");
+    expect(parseAppHash(browserHash("s1"))).toEqual({ view: "tail", sessionId: "s1", browser: true });
+    expect(parseAppHash(browserHash("s2", "h2"))).toEqual({ view: "tail", sessionId: "s2", hostId: "h2", browser: true });
+    expect(parseAppHash("#/sessions/s1")).toEqual({ view: "tail", sessionId: "s1" });
+    expect(parseAppHash("#/sessions/s1/graph")).toEqual({ view: "tail", sessionId: "s1", tab: "graph" });
+  });
+});
+
+describe("session hash route (AC-P5-5)", () => {
+  it("round-trips a session id", () => {
+    const hash = sessionHash("abc/def");
+    expect(parseAppHash(hash)).toEqual({ view: "tail", sessionId: "abc/def" });
+  });
+
+  it("treats an empty hash as the list", () => {
+    expect(parseAppHash("")).toEqual({ view: "list", page: "dashboard" });
+    expect(parseAppHash("#/settings")).toEqual({ view: "list", page: "dashboard" });
+  });
+
+  it("T8.1: every page round-trips through its hash", () => {
+    for (const page of ["dashboard", "new", "settings", "approvals", "status"] as const) expect(parseAppHash(pageHash(page))).toEqual({ view: "list", page });
+    expect(pageHash("new")).toBe("#/neu");
+    // EPIC-P47 §3.4: `#/gefunden` ist kein eigener Page-Slug mehr, sondern ein Alias auf die Übersicht.
+    expect(parseAppHash("#/gefunden")).toEqual({ view: "list", page: "dashboard" });
+    expect(parseAppHash("#/gefunden/")).toEqual({ view: "list", page: "dashboard" });
+  });
+
+  it("T7.6: a code line round-trips, paths with slashes and special characters included", () => {
+    const hash = codeHash("s1", "src/a b/ä.ts", 42, "gpubox");
+    expect(parseAppHash(hash)).toEqual({ view: "tail", hostId: "gpubox", sessionId: "s1", code: { path: "src/a b/ä.ts", line: 42 } });
+    expect(parseAppHash(codeHash("s1", "README.md", null))).toEqual({ view: "tail", sessionId: "s1", code: { path: "README.md", line: null } });
+  });
+});
+
+describe("Werkzeugseiten (EPIC-P34 T34.2)", () => {
+  it("Einstellungen, Medien, PC und Status füllen die Detailspalte; Übersicht, Neu und Freigaben bleiben in der Liste (Entdeckt ist seit EPIC-P47 ein Übersichtszustand)", () => {
+    const tools: ListPage[] = ["settings", "media", "pc", "status", "aimetrics"];
+    const listed: ListPage[] = ["dashboard", "new", "approvals"];
+    for (const page of tools) expect(isToolPage(page), page).toBe(true);
+    for (const page of listed) expect(isToolPage(page), page).toBe(false);
+  });
+
+  it("die Direktlinks #/pc und #/medien bleiben gültig (AC-P34-1)", () => {
+    expect(parseAppHash("#/pc")).toEqual({ view: "list", page: "pc" });
+    expect(parseAppHash("#/medien")).toEqual({ view: "list", page: "media" });
+    // EPIC-P59: die Metrik-Seite ist über das Mehr-Sheet erreichbar — der Direktlink bleibt erhalten.
+    expect(parseAppHash("#/metriken")).toEqual({ view: "list", page: "aimetrics" });
+  });
+});
+
+describe("host-qualified session links (EPIC-P6)", () => {
+  it("round-trips host and session", () => {
+    const hash = sessionHash("abc", "home-server");
+    expect(hash).toBe("#/hosts/home-server/sessions/abc");
+    expect(parseAppHash(hash)).toEqual({ view: "tail", hostId: "home-server", sessionId: "abc" });
+  });
+
+  it("keeps old links without a host working", () => {
+    expect(parseAppHash("#/sessions/abc")).toEqual({ view: "tail", sessionId: "abc" });
+  });
+});
+
+describe("Dateibaum-Fenster-Route (BUG-0128)", () => {
+  it("#/dateibaum markiert das Fensterziel; vergleichbar mit #/geraete", () => {
+    expect(filetreeHash()).toBe("#/dateibaum");
+    expect(parseAppHash(filetreeHash())).toEqual({ view: "filetree" });
+    expect(parseAppHash("#/dateibaum/")).toEqual({ view: "filetree" });
+  });
+});
+

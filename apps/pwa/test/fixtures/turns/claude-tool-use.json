@@ -1,0 +1,156 @@
+[
+ {
+  "seq": 1,
+  "ts": "2026-11-11T08:00:00.000Z",
+  "sessionId": "s",
+  "type": "user",
+  "summary": "Auftrag",
+  "payload": {
+   "text": "Auftrag",
+   "kind": "session.prompt"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 2,
+  "ts": "2026-11-11T08:00:01.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "claude: system/hook_started",
+  "payload": {
+   "subtype": "hook_started",
+   "hook_name": "SessionStart:startup",
+   "hook_event": "SessionStart"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 3,
+  "ts": "2026-11-11T08:00:02.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "claude: system/hook_response",
+  "payload": {
+   "subtype": "hook_response",
+   "hook_name": "SessionStart:startup",
+   "hook_event": "SessionStart",
+   "outcome": "success",
+   "exit_code": 0
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 4,
+  "ts": "2026-11-11T08:00:03.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "claude: system/init",
+  "payload": {
+   "subtype": "init",
+   "cwd": "/tmp",
+   "claudeCodeVersion": "2.1.263",
+   "toolCount": 35,
+   "model": "claude-sonnet-5",
+   "permissionMode": "default"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 5,
+  "ts": "2026-11-11T08:00:04.000Z",
+  "sessionId": "s",
+  "type": "tool_use",
+  "summary": "Bash({\"command\":\"echo hello-ancientvoid\",\"description\":\"Echo test string\"})",
+  "payload": {
+   "id": "toolu_018WF9k7RVUWyFz538CVoFd7",
+   "name": "Bash",
+   "input": {
+    "command": "echo hello-ancientvoid",
+    "description": "Echo test string"
+   }
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 6,
+  "ts": "2026-11-11T08:00:05.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "claude: rate-limit status update",
+  "payload": {
+   "info": {
+    "status": "allowed",
+    "resetsAt": 1789435200,
+    "rateLimitType": "five_hour",
+    "overageStatus": "rejected",
+    "overageDisabledReason": "out_of_credits",
+    "isUsingOverage": false,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.22,
+      "resetsAt": 1789435200
+     },
+     "seven_day": {
+      "utilization": 0.14,
+      "resetsAt": 1789891200
+     }
+    }
+   }
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 7,
+  "ts": "2026-11-11T08:00:06.000Z",
+  "sessionId": "s",
+  "type": "tool_result",
+  "summary": "hello-ancientvoid",
+  "payload": {
+   "toolUseId": "toolu_018WF9k7RVUWyFz538CVoFd7",
+   "isError": false,
+   "content": "hello-ancientvoid"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 8,
+  "ts": "2026-11-11T08:00:07.000Z",
+  "sessionId": "s",
+  "type": "assistant",
+  "summary": "done",
+  "payload": {
+   "text": "done"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 9,
+  "ts": "2026-11-11T08:00:08.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "claude: turn complete — $0.0320",
+  "payload": {
+   "kind": "claude.result",
+   "isError": false,
+   "numTurns": 2,
+   "durationMs": 4827,
+   "result": "done",
+   "usage": {
+    "input": 4,
+    "output": 82
+   }
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 10,
+  "ts": "2026-11-11T08:00:09.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "turn end",
+  "payload": {
+   "kind": "session.turn_end"
+  },
+  "blobRef": null
+ }
+]

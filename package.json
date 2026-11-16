@@ -1,0 +1,87 @@
+{
+  "name": "ancientvoid",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AncientVoid. Local-first, vendor-neutral hub to supervise and steer coding agents from mobile.",
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "SiLenT_Tz (Jan Pfrommer)",
+  "homepage": "https://github.com/SiLenTTz/AncientVoid",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SiLenTTz/AncientVoid.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SiLenTTz/AncientVoid/issues"
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "packages/adapters/*",
+    "packages/loops/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "tsc -p . --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "lint": "eslint .",
+    "typecheck": "tsc -p . --noEmit && npm run -s typecheck --workspace apps/pwa",
+    "dev:server": "node --watch apps/hub/src/main.ts",
+    "setup": "./setup.sh",
+    "gateway-mcp": "node apps/gateway-mcp/src/main.ts",
+    "loadtest": "node scripts/loadtest.mjs",
+    "messlauf:hubctl-latency": "node scripts/messlauf-hubctl-latency.mjs",
+    "messlauf:approve-latency": "node scripts/messlauf-approve-latency.mjs",
+    "messlauf:p5-discovery": "node scripts/messlauf-p5.mjs discovery",
+    "messlauf:p5-recovery": "node scripts/messlauf-p5.mjs recovery",
+    "messlauf:p5-recovery-provider": "node scripts/messlauf-p5.mjs recovery-provider --runs 5",
+    "check:adapter-matrix": "node scripts/check-adapter-matrix.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "check:commits": "node scripts/check-commits.mjs",
+    "check:arch": "depcruise apps packages --config .dependency-cruiser.cjs",
+    "prepare": "node scripts/setup-git.mjs",
+    "hubctl": "node apps/hubctl/src/cli.ts",
+    "gate": "npm run check:workspace-links && npm run typecheck && npm run lint && npm run check:commits && npm run check:arch && npm run check:names && npm run check:adapter-matrix && npm run check:context && npm test && npm run test:e2e",
+    "test:live": "scripts/test-live.sh",
+    "test:phone": "node scripts/phone-e2e.mjs",
+    "check:workspace-links": "node scripts/check-workspace-links.mjs",
+    "epics:status": "node scripts/epic-status.mjs",
+    "pretest:e2e": "npm run check:workspace-links",
+    "check:names": "node scripts/check-names.mjs",
+    "check:context": "node scripts/check-context.mjs",
+    "docs:reference": "node scripts/gen-reference.mjs",
+    "check:knip": "knip"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^22.9.0",
+    "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^5.0.5",
+    "dependency-cruiser": "^18.4.0",
+    "eslint": "^10.12.0",
+    "eslint-plugin-n": "^18.4.1",
+    "fastify": "5.12.5",
+    "fflate": "^0.8.3",
+    "knip": "^6.45.1",
+    "playwright": "^1.64.0",
+    "typescript": "6.0",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3",
+    "ws": "^8.21.3",
+    "zod": "^4.6.5"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "esbuild@0.25.12": true
+  },
+  "overrides": {
+    "fastify": "5.12.5"
+  }
+}

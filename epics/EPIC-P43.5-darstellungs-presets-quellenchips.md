@@ -1,0 +1,149 @@
+# EPIC-P43.5 — Quellenchips, Darstellungs-Presets und benannte Layouts
+
+**Status:** abgeschlossen (14.11.2026) · **Umsetzung:** T43.5-1–6 und AC-P43.5-1–6 abgenommen
+**Dauer:** 1,5–2 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
+**Abhängigkeit:** P43 mit nachweislich grünen Exit-Kriterien (erfüllt: Closeout 2026-11-11); wirksame Vorgänger-Abnahmen bleiben bindend. Start-/Abschlussauftrag liegt vor (14.11.2026).
+
+Quelle: [Orca-Vergleich](../docs/2026-11-08_orca-vs-ancientvoid.md) und [Planungsgrundlage mit Übernahmeregister](../docs/2026-11-08_orca-epic-planung.md).
+**Planungsauftrag 08.11.2026:** Nutzer beauftragt diese Epics ausdrücklich vor Abschluss der Vorgänger. Das erlaubt Planung, keine Implementierung und keine Aufhebung des Epic-Gatings. Vor T43.5-1 aktuellen Code-/Test-/Abnahmestand prüfen; historische Überschriften reichen nicht.
+**Ergänzung 14.11.2026 (Jan):** Der Maximieren-Button im Composer wird zum
+reinen Icon-Button (T43.5-6); Hintergrund und Recherche:
+[2026-11-14](../docs/2026-11-14_recherche_verfeinerungen_typewriter_metriken.md).
+
+**Abtrennung 10.11.2026 (Jan):** Dieser Entwurf war bis dahin EPIC-P43 „Arbeitsfläche/Styling“. UX-Bestandslauf, Mockups, Zustands-/Leer-/Fehlerzustände, Informationshierarchie und Schnellnavigation sind in das neu gefasste [EPIC-P43](EPIC-P43-ux-next-level.md) übergegangen ([Design-Review](../docs/2026-11-10_ux-next-level-designreview.md)). Hier bleibt, was P43 nicht abdeckt. Belege: [UX-Audit vom 10.11.2026](../docs/2026-11-10_p43-ux-audit.md), Befunde #8, #9 und #12.
+
+## 1. Ziel
+
+Auf dem Gestaltungsfundament aus P43 drei Dinge ergänzen: Quellen aus Code, Review, Browser und CI gezielt in den Prompt übergeben, die Darstellung über sichere Presets anpassen und Fenster-/Kachel-Anordnungen benennen und wiederherstellen. P34/P35/P43 nicht nochmals bauen. K2/K3/K5/K7/K10.
+
+## 2. Scope (In / Out)
+
+**In:** Add-to-prompt für Dateibereich/Test/Review als sichtbare Quellenchips, Dichte/Chatbreite, versionierte Theme-Presets mit Import/Export/Reset und benannte Geräte-Layouts; Icon-Verkleinerung des Composer-Maximieren-Buttons (T43.5-6).
+**Out:** alles aus P43 (Fundament, Zustandssprache, Start, Züge, Herauslösen, Nyx-Blatt, Schnellsuche), Preact→React/Zustand-Migration, Pixelkopie von Orca, ungefragter Komplettumbau aller Seiten, neue native App, freie CSS/JS-Ausführung, Veränderung semantischer Statusfarben, Voidwarden-Sprach-/Companion-Funktionen.
+
+## 3. Design-Details
+
+### 3.1 Bestand
+P43 liefert Tokens, Skalen, Bausteine und die Fensterziele; dieses Epic baut darauf auf und ändert sie nicht. P34 hat Farbwähler/Fonts/Gerätefenster, P18 vier Kacheln, P35 Breiten-/Harnesskorrekturen. P46 besitzt rechte Datei-Sidebar, Viewer und Diagnosen; hier nur deren Gestaltung/Integration nachziehen, keinen zweiten Explorer bauen. Offene Live-Abnahmen bleiben unter deren AC-IDs. Orca-Poster sind Referenz, keine Belege für AV-Fehler.
+
+### 3.2 Kontext und Navigation
+Gemeinsames Kontextpaket aus P36/P37/P39: ausgewählte Dateistelle, Reviewnotiz, Screenshot/Testbefund als sichtbare Quellenchips im Composer, kein automatisches Absenden. Die Schnellsuche aus P43 bekommt die Quellen als Sprungziele, keinen neuen Volltextindex. Fokusmanagement/Zurück/Popout erhalten Entwürfe und vermeiden WS-Remounts. Status fasst „wartet auf dich“/Blocker/letzte belegte Aktion zusammen; fachliche Notiz und Laufzeit-/Gate-Status bleiben getrennt. Nur vorhandene Information verwenden, keine erfundenen Restzeiten.
+
+### 3.3 Styling
+Bestehende Tokens/FontSettings/AppearanceSettings erweitern. Versionierte Presets: hell/dunkel, Dichte, Text-/Codegröße getrennt, Chatbreite, begrenzte Oberflächen-/Rahmen-/Radiuswerte und lokale statische Hintergrundbilder optional. Semantische ok/err, Ruf- und Info-Farbe (P43) bleiben geschützt; Kontrastprüfung und Reset. Keine remote Fonts, URLs oder beliebigen CSS-Regeln in Importen. JSON-Export nur Geräteappearance/Layout, keine Tokens/Host-Secret-/Sessioninhalte. Benannte Layouts bauen auf tiles/windows auf; aus anderer Auflösung importierte Fenster begrenzen/wieder erreichbar machen. Vorhandene Vier-Kachel-Grenze bleibt, bis eigener Bedarf belegt ist.
+
+### 3.4 Zuständigkeit
+PWA-Fachbereiche `features/settings`, `shell`, `workspace`, `windows`, gemeinsame Bausteine `shared`; serverseitige Verträge nur wenn wirklich geteilt. Gerätelokale Darstellung nutzt versionierten lokalen Speicher mit Defaults/Migration; sie ist kein neuer kanonischer Session-State (K7-Trennung). Offline gleiche lokalen Fonts/Presets. Neue Toolbar-/Panel-Slots mit P44 abstimmen, aber keine Plugin-Runtime vorziehen. Browser-/Emulatorstreams sind nicht dauerhaft im Hintergrund aktiv, wenn verborgen.
+
+### Orca-Referenzen und Übernahmegrenzen
+
+Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist eine geprüfte Port-Hypothese, keine behauptete fertige AV-Kompatibilität. Vor Übernahme Imports/Lizenz/Tests/Strip-Type-Tauglichkeit erneut prüfen; keine großen Orca-Subsysteme blind kopieren.
+
+| Quelle | Verwendung in AV |
+|---|---|
+| [src/shared/plugins/artifacts/plugin-theme-artifact.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/plugins/artifacts/plugin-theme-artifact.ts) | Vorbild für kleine öffentliche Token-API; Orca-Tokenliste nicht zur AV-internen API machen. |
+| [src/shared/terminal-themes/terminal-contrast-correction.ts](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/src/shared/terminal-themes/terminal-contrast-correction.ts) | Port-Kandidat für Kontrastberechnung nach Importprüfung; Terminalpalette nicht mit AV-Statusfarben gleichsetzen. |
+| [docs/site/content/docs/model/quick-open.mdx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/docs/site/content/docs/model/quick-open.mdx) | Schnellnavigation als Produktreferenz. |
+| [docs/site/content/docs/agents/native-chat.mdx](https://github.com/stablyai/orca/blob/bdeb388d75120b6e36dd619291286de0cc9aae02/docs/site/content/docs/agents/native-chat.mdx) | Referenz für Quellenübergabe/Composer; bestehende Queue/Slash/Modelle nicht neu bauen. |
+
+## 4. Aufgaben (Checkliste T43.5-m)
+
+- [x] **T43.5-1** Gemeinsame Kontextchips/Add-to-prompt implementieren; immer Quellenvorschau, nie implizites Senden. **K3/K5**.
+- [x] **T43.5-2** Fachliche Statusnotizen und Quellen als Sprungziele der Schnellsuche; vorhandene Entwürfe/Popouts ohne Remountverlust. **K1/K2/K7**.
+- [x] **T43.5-3** Versionierte Theme-/Dichte-/Breiten-Presets, Kontrast-/Importprüfung, lokale Assets und Reset; vorhandene Farbwähler/Fonts wiederverwenden. **K2/K10**.
+- [x] **T43.5-4** Benannte Layout-Presets für Gerät/Fenstergröße samt sicherer Migration, darunter ein Browser-Fenster-Preset „Handy“ (Audit #8); P44-Tokens/Slots benennen. **K2/K7/K10**.
+- [x] **T43.5-5** Funktionsinventar aus P43 um die neuen Einträge erweitern (inkl. Icon-Button T43.5-6); `e2e/specs/quellenchips.spec.ts` und `appearance-presets.spec.ts`, Screenshot-/Tastatur-/Pixel-Abnahme; Gate/PWA-Build/K2-Messlauf. **K1/K2/K3/K10**.
+- [x] **T43.5-6** Composer-Maximieren-Button als reinen Icon-Button (bestehendes `icon-btn`-Muster, Touch-Ziel ≥ 40 px; Funktion, Glyphen und Accessible Names „Eingabe maximieren/verkleinern“ bleiben; `resize.spec.ts` bleibt grün, Zusatz-Assertion für die Icon-Form). **K2.**
+
+## 5. Acceptance Criteria (AC-P43.5-k)
+
+- **AC-P43.5-1:** Quellen aus Code/Review/Browser/CI lassen sich im Composer prüfen und gezielt senden; Auswahl sendet nichts automatisch.
+- **AC-P43.5-2:** Quellen sind über die Schnellsuche per Tastatur und Touch erreichbar; Fokus/Zurück bewahrt Entwürfe und Sessionverbindungen.
+- **AC-P43.5-3:** Presets/Import/Reset funktionieren offline; unzulässige URLs/CSS/Statusfarben und kaputte Versionen werden sichtbar abgelehnt.
+- **AC-P43.5-4:** Benanntes Layout ist nach Reload nutzbar, auch auf kleinerer Anzeige; keine verlorenen Fenster.
+- **AC-P43.5-5:** Approval bleibt einhändig erreichbar und K1/K2 unverändert nachweisbar; das Funktionsinventar aus P43 bleibt grün.
+- **AC-P43.5-6:** Der Maximieren-Button ist ein Icon-Button in Zeilengröße der Geschwister statt volle Breite; Funktion und Accessible Names unverändert; Touch-Ziel erfüllt die Mindestgröße; betroffene Specs grün.
+
+## 6. Premortem (Failure-Modi + Mitigation)
+
+1. Mehr Optionen verschlechtern Übersicht → kleine Presets, klare Defaults und Reset statt beliebiger CSS-Editor.
+2. Optische Angleichung überschreibt Statusbedeutung → geschützte Status-Tokens und Kontrasttests.
+3. Navigation verliert Draft/WebSocket → Views erhalten und Fokus-/Reconnect-Regression messen.
+4. Gestaltung kopiert Orca-Abhängigkeiten → AV-Preact/Tokens behalten, nur Interaktionsmuster übernehmen.
+
+## 7. Definition of Done
+
+Alle T43.5-* und AC-P43.5-* mit aktueller Evidenz, Vorgänger-Exit ausdrücklich grün. `npm run gate` und PWA-Build grün; Pipeline-Job `e2e` grün bzw. Infrastrukturfall nach `docs/ci-runbook.md` nachgezogen, niemals als Pass gezählt. Jede neue UI-Funktion/jeder Ablauf hat einen Spec in `e2e/specs/`; benötigte echte Browser-/Provider-/Geräte-Nachweise separat, Skip ≠ Pass. Neue APIs/Tools/Ansichten sind registriert, in Hub/PWA/hubctl erreichbar und dokumentiert. ADR vor Contract-Änderung, K5/K7/K8 entsprechend Scope nachgewiesen; keine offene TODO ohne Epic-Bezug. Übernommene Orca-Teile mit Commit/Pfad/Hash/Lizenz/Änderungsnotiz und eigenen Tests gemäß Planungsgrundlage.
+
+## 8. Umsetzung und Abnahme (14.11.2026)
+
+T43.5-1 baut auf den vorhandenen Quellenchip-Commits 2bb595c und dessen
+Vorgänger auf. Ergänzt: tatsächliche Dateiauszüge mit Revision, UTF-8-Bytegrenze,
+Quellenerhalt bei Ablehnung und konkurrierenden Änderungen sowie gemeinsame
+Geräteentwürfe zwischen Hauptfenster und Popout. T43.5-2 ergänzt Quellen- und
+Arbeitsnotiz-Sprünge; eigene Notizen tragen ausdrücklich keinen Laufzeitbeleg.
+T43.5-3/4 nutzen bestehende Fonts, Farbmathematik, Kacheln und Fensterkanal;
+Importe sind strikt versioniert und enthalten nur Darstellung/Geometrie.
+Fenstergrößen werden an die Anzeige angepasst, Popup-Blocker sichtbar gemeldet.
+T43.5-6 nutzt den bestehenden Icon-Button mit einem Ziel von mindestens 40 px.
+Es wurden keine Orca-Codemodule übernommen; die Referenzen dienten als
+Produktvergleich, die Implementierung nutzt ausschließlich AV-Bausteine.
+
+Die Abnahme ist belegt über `quellenchips.spec.ts`, `appearance-presets.spec.ts`,
+`browser-feedback.spec.ts`, `review-feedback.spec.ts`, `forge-review.spec.ts`
+und `resize.spec.ts`. `npm run gate` grün: 2.151 Unit-/Integrationstests bestanden, vier Tests sichtbar übersprungen; 684 E2Es bestanden, 5 sichtbar übersprungen (28.5m). Skips sind keine Passes. Typecheck, Lint, Architektur-, Commit-, Adapter- und Kontextprüfung sowie PWA-Build grün. P44-Anknüpfungspunkte: [Design-System](../docs/design-system.md).
+
+
+Zusätzlicher Nachweis nach Integration des parallelen P60-Abschlusses:
+66/66 relevante Unit-Tests und 44/44 E2Es für Presets, Quellen, Team und
+Funktionsinventar grün; Inventar-IDs G68–G71.
+
+### Abnahmematrix
+
+| AC | Ergebnis und Beleg |
+|---|---|
+| AC-P43.5-1 | grün — `quellenchips.spec.ts`, `review-feedback.spec.ts`, `browser-feedback.spec.ts`, `forge-review.spec.ts`: Vorschau, explizites Senden und alle vier Quellenarten; Dateiauszug mit Revision, Ablehnung und konkurrierende Quellenstände |
+| AC-P43.5-2 | grün — `quellenchips.spec.ts`: Tastatursprung ohne zusätzliche WS-Verbindung, Entwurferhalt, Touch-Sprung/Fokus zur Arbeitsnotiz, Popout-Synchronisierung |
+| AC-P43.5-3 | grün — `appearance-presets.spec.ts` und `presets.test.ts`: Offline-Import/Reset, lokales Rasterbild, Version/Allowlist/Kontrast; Theme-Schalter folgt Presets |
+| AC-P43.5-4 | grün — benannte Kachelanordnung nach Reload, Fensterziel erneut geöffnet, Handy-Preset und Begrenzung auf kleine Anzeige; `appearance-presets.spec.ts` und Geometrie-Unit |
+| AC-P43.5-5 | grün — vollständiges Gate einschließlich Funktionsinventar; bestehende 50-Prozent-/Überdeckungs-Prüfungen und Freigabe unter kompaktem Preset bleiben grün; K1-/K2-Messumfang im Abnahmebericht |
+| AC-P43.5-6 | grün — Icon-Form und mindestens 40 × 40 px auf Handy/Tablet/Desktop in `quellenchips.spec.ts`; bestehende `resize.spec.ts` unverändert grün |
+
+Messwerte, Kommandos, Screenshot-Belege und Aussagegrenzen:
+[Abnahme vom 14.11.2026](../docs/2026-11-14_p43.5-abnahme.md).
+Alle Aufgaben und AC sind umgesetzt; keine offene Implementierungs-Restaufgabe.
+Die neue Darstellung ergänzt keinen kanonischen Hub-State. Keine Contract- oder
+Adapter-Änderung, keine neue Abhängigkeit, kein Orca-Codeport. K5 bleibt über
+Bytegrenze und Hub-Blob-Pfad geschützt; lokale Vorlieben/Entwürfe werden getrennt
+von JSONL/Snapshots gespeichert und nach Reload validiert wiederhergestellt.
+
+## 9. Retro (14.11.2026)
+
+- Bestehende Fonts/Farbmathematik, Kacheln und Fensterkanal trugen die Erweiterung;
+  ein zweites Design- oder Persistenzsystem war nicht nötig.
+- Die übernommene Quellenchip-Vorarbeit brauchte noch Dateiauszüge, UTF-8-Limits
+  und Ack-sichere, fensterübergreifende Entwürfe. Regressionstests belegen auch
+  abgelehntes Senden und Änderungen während eines ausstehenden Acks. Das
+  Bytebudget verteilt sich auf alle Referenzen, statt späte Quellen auszulassen.
+- Screenshot-/Semantik-Abnahme fand den nicht mitgeführten Theme-Schalter;
+  eine neue Assertion belegt den ausgewählten Zustand nach Presetwechsel.
+- Premortem-Risiko 1 trat konkret ein: eine neue Notizzeile verringerte den
+  mobilen Inhalt unter 50 Prozent. Die Notiz liegt jetzt ohne weitere
+  Aufklappung im vorhandenen Menü; Inventar, Layoutregeln und Suchpfade sind
+  zusammen grün (53/53). Bei kurzen Sessions füllt der body den Viewport;
+  das Menü scrollt innerhalb der tatsächlichen Anzeige-/Kachelgrenzen.
+  Löschpfad, Gruppenlayout und Notiz-Fokus sind zusätzlich dreifach
+  abgesichert (24/24). Die FAB-Reserve wird geometrisch vom Inhalt unterschieden; zusätzliche
+  Textrechteck-Prüfungen sichern echte Inhalte. Die letzten beiden Fälle
+  (Reserve und URL-Erhalt) sind dreifach grün (12/12).
+- Bildmaße müssen geladen sein, bevor der Browser-Pick-Test Koordinaten
+  berechnet. Die atomare Poll-Abfrage ersetzt die Sichtbarkeitsannahme.
+
+- Der vollständige Integrationslauf fand einen asymmetrischen Hash-Vergleich:
+  Nur eine Seite verlor `#`, wodurch Kachel-/Breitenwechsel tiefe Links
+  abschneiden konnten. Derselbe Hash-Typ auf beiden Seiten erhält `/graph`;
+  direkte URL-Assertions sichern den Reload-Pfad ab.
+
+Premortem 2/3/4 sind durch geschützte Importfelder, Entwurf-/WS-Tests und
+Verzicht auf Orca-Codeübernahme abgesichert. Keine offenen Action Items;
+P44-Anknüpfungspunkte sind bereits im Design-System dokumentiert.

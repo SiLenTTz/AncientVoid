@@ -1,0 +1,112 @@
+[
+ {
+  "seq": 1,
+  "ts": "2026-11-11T08:00:00.000Z",
+  "sessionId": "s",
+  "type": "user",
+  "summary": "Auftrag",
+  "payload": {
+   "text": "Auftrag",
+   "kind": "session.prompt"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 2,
+  "ts": "2026-11-11T08:00:01.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "codex: thread started",
+  "payload": {
+   "threadId": "01a0a1fe-e6d8-7542-8f87-f62bfdcd2954"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 3,
+  "ts": "2026-11-11T08:00:02.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "codex: turn started",
+  "payload": {},
+  "blobRef": null
+ },
+ {
+  "seq": 4,
+  "ts": "2026-11-11T08:00:03.000Z",
+  "sessionId": "s",
+  "type": "assistant",
+  "summary": "I’ll run the requested command now.",
+  "payload": {
+   "text": "I’ll run the requested command now."
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 5,
+  "ts": "2026-11-11T08:00:04.000Z",
+  "sessionId": "s",
+  "type": "tool_use",
+  "summary": "exec: /usr/bin/bash -lc 'echo hello-ancientvoid'",
+  "payload": {
+   "id": "item_1",
+   "command": "/usr/bin/bash -lc 'echo hello-ancientvoid'"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 6,
+  "ts": "2026-11-11T08:00:05.000Z",
+  "sessionId": "s",
+  "type": "tool_result",
+  "summary": "hello-ancientvoid",
+  "payload": {
+   "toolUseId": "item_1",
+   "isError": false,
+   "exitCode": 0,
+   "content": "hello-ancientvoid\n"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 7,
+  "ts": "2026-11-11T08:00:06.000Z",
+  "sessionId": "s",
+  "type": "assistant",
+  "summary": "done",
+  "payload": {
+   "text": "done"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 8,
+  "ts": "2026-11-11T08:00:07.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "codex: turn complete",
+  "payload": {
+   "kind": "codex.turn_complete",
+   "usage": {
+    "inputTokens": 31420,
+    "cachedInputTokens": 22272,
+    "outputTokens": 74,
+    "reasoningOutputTokens": 0
+   },
+   "model": null,
+   "costEstimated": false
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 9,
+  "ts": "2026-11-11T08:00:08.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "turn end",
+  "payload": {
+   "kind": "session.turn_end"
+  },
+  "blobRef": null
+ }
+]

@@ -1,0 +1,175 @@
+/* T3.8 — Sprachsuche (project search + file viewer) */
+
+.search-pane {
+  display: grid;
+  gap: 10px;
+}
+
+.search-form {
+  display: flex;
+  gap: 8px;
+}
+
+.search-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  color: var(--fg);
+  border-radius: var(--radius);
+  padding: 10px;
+  font: inherit;
+  min-height: 44px;
+}
+
+.search-status {
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.search-results {
+  display: grid;
+  gap: 8px;
+}
+
+.search-result-card {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.search-result-card:active {
+  transform: scale(0.99);
+}
+
+.search-result-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.search-result-file {
+  color: var(--accent);
+}
+
+.search-result-title {
+  font-size: calc(13px * var(--font-scale, 1));
+  font-weight: 600;
+}
+
+.search-result-snippet {
+  font-size: calc(11.5px * var(--font-scale, 1));
+  color: var(--fg-dim);
+  white-space: pre-wrap;
+  max-height: 96px;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* Dokumentübersicht: alle Markdown-Dateien des Projekts, nach
+ * Verzeichnis gruppiert (die Liste braucht kein qmd). */
+.doc-overview {
+  display: grid;
+  gap: 8px;
+}
+
+.doc-overview-head {
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.doc-group {
+  display: grid;
+  gap: 4px;
+}
+
+.doc-group-dir {
+  font-size: calc(11px * var(--font-scale, 1));
+  padding-top: 4px;
+}
+
+.doc-item {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.doc-item:active {
+  transform: scale(0.99);
+}
+
+.doc-item-name {
+  font-size: calc(13px * var(--font-scale, 1));
+  font-weight: 600;
+}
+
+.doc-item-path {
+  font-size: calc(11px * var(--font-scale, 1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+  z-index: 50;
+}
+
+.file-viewer {
+  background: var(--bg-elev);
+  border-top: 1px solid var(--bg-chip);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  width: 100%;
+  max-height: calc(85vh / var(--ui-zoom, 1)); /* BUG-0122 */
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.file-viewer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bg-chip);
+}
+
+.file-viewer-body {
+  overflow: auto;
+  padding: 6px 0;
+  position: relative;
+}
+
+/* Strukturierte Dokumentansicht: gerendertes Markdown (shared/Markdown,
+ * Preact-Nodes) — bewusst KEIN Code-Viewer (kein Gutter, kein Highlight,
+ * kein <pre>-Raster). */
+.doc-prose {
+  padding: 4px 16px 24px;
+  font-size: calc(14px * var(--font-scale, 1));
+}
+
+.doc-prose .markdown > * {
+  scroll-margin: 40vh;
+}
+
+.doc-hit {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  outline: 1px solid var(--accent);
+  border-radius: var(--radius);
+}

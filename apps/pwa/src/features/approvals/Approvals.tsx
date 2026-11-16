@@ -1,0 +1,430 @@
+import { useEffect, useState } from "preact/hooks";
+import { hubApi, type ApprovalRequest, type HubApi, type ToolAssessment, type ToolQuestion } from "../../shared/api.ts";
+import { startAuthentication } from "@simplewebauthn/browser";
+import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
+import { isYesNo, recommendedOption } from "../nyx/nyx-state.ts";
+
+/** T7.3: what happened after the decision, in words. */
+const OPERATION_LABEL: Partial<Record<NonNullable<ApprovalRequest["operation"]>["state"], string>> = {
+  dispatching: "wird ausgeführt",
+  done: "ausgeführt",
+  failed: "nicht ausgeführt",
+  uncertain: "Ausführung ungewiss",
+};
+
+/**
+ * T2.6 (EPIC-P2 §4 "Approval-Queue (S4) mit Zeit-schleifen-Gruppierung und
+ * Risiko-Badges"): a global inbox for every pending write/destructive
+ * decision (ADR-0007), reached from the Dashboard's pending-count banner.
+ *
+ * Grouping is time-based ("Zeit…-Gruppierung"): what still needs a
+ * decision right now vs. what was already decided, bucketed by how
+ * recently — a reviewer cares about "what's live" far more than a flat
+ * chronological list.
+ */
+
+function secondsLeft(timeoutAt: string): number {
+  return Math.max(0, Math.round((new Date(timeoutAt).getTime() - Date.now()) / 1000));
+}
+
+function riskBadge(cls: ApprovalRequest["class"]) {
+  if (cls === "destructive") return <span class="badge risk-destructive">destruktiv · Biometrie</span>;
+  return <span class="badge risk-write">Bestätigung</span>;
+}
+
+/** T7.2: the arguments a provider wants to run, readable. */
+function toolInputText(raw: string): string {
+  try {
+    const input = JSON.parse(raw) as Record<string, unknown>;
+    if (typeof input.command === "string") return input.command;
+    if (typeof input.file_path === "string") return input.file_path;
+    return JSON.stringify(input, null, 2);
+  } catch {
+    return raw;
+  }
+}
+
+/**
+ * T7.2/T21.4: a provider question — the hybrid of what the harnesses do. Header chip and option
+ * descriptions (claude), single vs. several choices stated plainly (claude/opencode), an own answer
+ * that replaces the pick (codex "Other"), digit keys per question (terminal UIs), Enter sends once
+ * everything is answered, and the summary of what will be sent stays visible (maki).
+ */
+/**
+ * `preselect` (EPIC-P43 T43.8, Nyx-Blatt): die vom Agenten empfohlene Option steht vorgewählt — gesendet wird
+ * trotzdem erst auf Tipp. `oneTap`: eine einzelne Ja/Nein-Frage antwortet mit dem Tipp auf die Option.
+ */
+export function QuestionForm({
+  questions,
+  busy,
+  onAnswer,
+  onReject,
+  preselect = false,
+  oneTap = false,
+}: {
+  questions: ToolQuestion[];
+  busy: boolean;
+  onAnswer: (answers: Record<string, string>) => void;
+  onReject: () => void;
+  preselect?: boolean;
+  oneTap?: boolean;
+}) {
+  const [picked, setPicked] = useState<Record<string, string[]>>(() =>
+    preselect ? Object.fromEntries(questions.flatMap((q) => (q.multiSelect ? [] : [[q.question, [recommendedOption(q.options)].filter((l): l is string => l !== null)]]))) : {},
+  );
+  const tapAnswers = oneTap && questions.length === 1 && !questions[0]!.multiSelect && isYesNo(questions[0]!.options);
+  const [free, setFree] = useState<Record<string, string>>({});
+  const toggle = (q: ToolQuestion, label: string) =>
+    setPicked((prev) => {
+      const now = prev[q.question] ?? [];
+      const next = q.multiSelect ? (now.includes(label) ? now.filter((l) => l !== label) : [...now, label]) : now.includes(label) ? [] : [label];
+      return { ...prev, [q.question]: next };
+    });
+  // An own answer replaces the pick — it is what the person actually wrote.
+  const answers = Object.fromEntries(questions.map((q) => [q.question, free[q.question]?.trim() || (picked[q.question] ?? []).join(", ")]));
+  const answered = questions.filter((q) => answers[q.question]).length;
+  const complete = answered === questions.length;
+  const send = () => {
+    if (complete && !busy) onAnswer(answers);
+  };
+  const onKey = (q: ToolQuestion) => (e: KeyboardEvent) => {
+    if ((e.target as HTMLElement).tagName === "INPUT" || e.ctrlKey || e.metaKey || e.altKey) return;
+    const n = /^[1-9]$/.test(e.key) ? Number(e.key) - 1 : -1;
+    if (n >= 0 && q.options[n]) {
+      e.preventDefault();
+      toggle(q, q.options[n]!.label);
+    }
+  };
+  return (
+    <div class="question-form">
+      {questions.length > 1 && (
+        <div class="question-progress" aria-live="polite">
+          {answered} von {questions.length} beantwortet
+        </div>
+      )}
+      {questions.map((q) => (
+        <div key={q.question} class={`question${answers[q.question] ? " answered" : ""}`} onKeyDown={onKey(q)}>
+          {q.header && <span class="question-header">{q.header}</span>}
+          <div class="question-text">{q.question}</div>
+          {q.options.length > 0 && <div class="question-hint dim">{q.multiSelect ? "Mehrere möglich" : "Eine Antwort"} · Taste 1–{Math.min(q.options.length, 9)}</div>}
+          <div class="choice-row" role="group" aria-label={q.question}>
+            {q.options.map((o, i) => {
+              const on = (picked[q.question] ?? []).includes(o.label) && !free[q.question]?.trim();
+              return (
+                <button
+                  key={o.label}
+                  type="button"
+                  aria-pressed={on}
+                  class={`choice ${on ? "active" : ""}`}
+                  title={o.description}
+                  onClick={() => {
+                    if (tapAnswers) {
+                      if (!busy) onAnswer({ [q.question]: o.label });
+                      return;
+                    }
+                    setFree((prev) => ({ ...prev, [q.question]: "" }));
+                    toggle(q, o.label);
+                  }}
+                >
+                  <span class="choice-index">{i + 1}</span>
+                  <span class="choice-body">
+                    <span class="choice-label">{o.label}</span>
+                    {o.description && <span class="choice-desc">{o.description}</span>}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <input
+            class="question-free"
+            placeholder="Eigene Antwort…"
+            value={free[q.question] ?? ""}
+            onInput={(e) => setFree((prev) => ({ ...prev, [q.question]: (e.target as HTMLInputElement).value }))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+          />
+        </div>
+      ))}
+      {complete && questions.length > 1 && (
+        <ul class="question-summary dim" aria-label="Zusammenfassung">
+          {questions.map((q) => (
+            <li key={q.question}>
+              {q.question} → <strong>{answers[q.question]}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div class="approval-actions">
+        <button class={busy ? "btn primary busy" : "btn primary"} disabled={busy || !complete} onClick={send}>
+          {busy ? "lädt…" : "Antworten"}
+        </button>
+        <button class="btn danger" disabled={busy} onClick={onReject}>
+          Ablehnen
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const RISK_TEXT: Record<ToolAssessment["toolRisk"], string> = {
+  READ_ONLY: "liest nur",
+  LOCAL_WRITE: "schreibt lokal",
+  DESTRUCTIVE: "zerstörerisch",
+  EXFILTRATION: "sendet nach außen",
+};
+const GATE_TEXT: Record<ToolAssessment["securityGate"], string> = { CLEAN: "unauffällig", WARNING: "genau hinsehen", CRITICAL_BLOCK: "kritisch — Passkey" };
+const SOURCE_TEXT: Record<ToolAssessment["source"], string> = { model: "Modell", rules: "Regeln", fallback: "vorsichtshalber strenger" };
+
+/** T7.9: the gatekeeper's label — a hint for the human, never a decision. */
+function AssessmentBadge({ a }: { a: ToolAssessment }) {
+  const conf = a.confidence.securityGate !== null ? ` · ${Math.round(a.confidence.securityGate * 100)} %` : "";
+  return (
+    <div class={`assessment gate-${a.securityGate}`} title={a.notes.join(" · ")}>
+      <span class="assessment-gate">Laya: {GATE_TEXT[a.securityGate]}</span>
+      <span class="assessment-risk">{RISK_TEXT[a.toolRisk]}</span>
+      <span class="assessment-src dim">
+        {SOURCE_TEXT[a.source]}
+        {conf}
+      </span>
+      {a.notes.length > 0 && <span class="assessment-notes dim">{a.notes.slice(0, 3).join(" · ")}</span>}
+    </div>
+  );
+}
+
+/**
+ * EPIC-P43 T43.3: die Entscheidung auf der Karte der Übersicht — Befehl, Laya-Einschätzung, Restzeit,
+ * Erlauben/Ablehnen. Nur für Freigaben, die ein Tipp entscheidet (overview/queue.ts: decidableOnCard);
+ * derselbe Weg zum Hub wie `ApprovalCard`, kein zweiter.
+ */
+export function CardDecision({ req, onDecided, api = hubApi }: { req: ApprovalRequest; onDecided: () => void; api?: HubApi }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const decide = async (decision: "approve" | "reject") => {
+    setBusy(true);
+    setError("");
+    try {
+      await api.decideApproval(req.id, decision);
+      onDecided();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Entscheidung fehlgeschlagen");
+      setBusy(false);
+    }
+  };
+  return (
+    <div class="card-decision" data-approval={req.id}>
+      <div class="card-decision-what">
+        {req.tool ? (
+          <>
+            <span class="badge tool-badge">{req.tool.name}</span>
+            <code class="card-decision-input mono">{toolInputText(req.tool.input)}</code>
+          </>
+        ) : (
+          <span class="card-decision-input">{req.summary}</span>
+        )}
+      </div>
+      {req.assessment && <AssessmentBadge a={req.assessment} />}
+      {error && <div class="reply-error">{error}</div>}
+      <div class="card-decision-actions">
+        <button class={busy ? "btn primary busy" : "btn primary"} type="button" aria-busy={busy} disabled={busy} onClick={() => void decide("approve")}>
+          {req.tool ? "Erlauben" : "Freigeben"}
+        </button>
+        <button class="btn danger" type="button" disabled={busy} onClick={() => void decide("reject")}>
+          Ablehnen
+        </button>
+        <span class="card-decision-left num dim">noch {secondsLeft(req.timeoutAt)} s</span>
+      </div>
+    </div>
+  );
+}
+
+export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRequest; onDecided: () => void; api?: HubApi }) {
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const pending = req.status === "pending";
+  const destructive = req.class === "destructive";
+
+  const decide = async (decision: "approve" | "reject", answers?: Record<string, string>) => {
+    setBusy(true);
+    setError("");
+    try {
+      await api.decideApproval(req.id, decision, reason || undefined, answers);
+      onDecided();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Entscheidung fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // T2.5: the real biometric path for destructive approvals — a fresh
+  // WebAuthn assertion ceremony per decision, never a cached/reused one.
+  const decideBiometric = async (decision: "approve" | "reject") => {
+    setBusy(true);
+    setError("");
+    try {
+      const options = (await api.webauthnAssertOptions(req.id)) as PublicKeyCredentialRequestOptionsJSON;
+      const assertion = await startAuthentication({ optionsJSON: options });
+      await api.decideApprovalBiometric(req.id, decision, assertion, reason || undefined);
+      onDecided();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Biometrische Freigabe fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div class="card approval-card">
+      <div class="approval-card-head">
+        {riskBadge(req.class)}
+        {pending && <span class="approval-countdown mono">läuft ab in {secondsLeft(req.timeoutAt)}s</span>}
+        {!pending && <span class={`badge status-${req.status}`}>{req.status}</span>}
+      </div>
+      {req.assessment && <AssessmentBadge a={req.assessment} />}
+      {req.tool && !req.tool.questions ? (
+        <>
+          <div class="approval-summary">
+            <span class="badge tool-badge">{req.tool.name}</span> möchte ausführen:
+          </div>
+          <pre class="tool-input mono">{toolInputText(req.tool.input)}</pre>
+        </>
+      ) : (
+        <div class="approval-summary">{req.summary}</div>
+      )}
+      <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
+        Session {req.sessionId.slice(0, 8)} · {req.action}
+      </div>
+
+      {pending && req.tool?.questions && (
+        <>
+          {error && <div style="color: var(--err); font-size: calc(12px * var(--font-scale, 1))">{error}</div>}
+          <QuestionForm questions={req.tool.questions} busy={busy} onAnswer={(answers) => void decide("approve", answers)} onReject={() => void decide("reject")} />
+        </>
+      )}
+      {pending && !req.tool?.questions && (
+        <>
+          {req.reasonRequired && (
+            <textarea
+              class="approval-reason"
+              placeholder="Begründung (Pflicht)…"
+              value={reason}
+              onInput={(e) => setReason((e.target as HTMLTextAreaElement).value)}
+            />
+          )}
+          {error && <div style="color: var(--err); font-size: calc(12px * var(--font-scale, 1))">{error}</div>}
+          <div class="approval-actions">
+            {destructive ? (
+              <>
+                <button
+                  class={busy ? "btn primary busy" : "btn primary"}
+                  aria-busy={busy}
+                  disabled={busy || (req.reasonRequired && !reason.trim())}
+                  onClick={() => decideBiometric("approve")}
+                >
+                  {busy ? "lädt…" : "🔒 Mit Passkey freigeben"}
+                </button>
+                <button class={busy ? "btn danger busy" : "btn danger"} aria-busy={busy} disabled={busy} onClick={() => decideBiometric("reject")}>
+                  {busy ? "lädt…" : "Ablehnen"}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  class={busy ? "btn primary busy" : "btn primary"}
+                  aria-busy={busy}
+                  disabled={busy || (req.reasonRequired && !reason.trim())}
+                  onClick={() => decide("approve")}
+                >
+                  {busy ? "lädt…" : req.tool ? "Erlauben" : "Freigeben"}
+                </button>
+                <button class={busy ? "btn danger busy" : "btn danger"} aria-busy={busy} disabled={busy} onClick={() => decide("reject")}>
+                  {busy ? "lädt…" : "Ablehnen"}
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
+
+      {!pending && req.reason && <div class="dim" style="font-size: calc(11px * var(--font-scale, 1)); margin-top: 4px">Begründung: {req.reason}</div>}
+      {!pending && req.decidedByLabel && (
+        <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
+          entschieden von {req.decidedByLabel} · signiert {req.signature ? "✓" : "—"}
+        </div>
+      )}
+      {!pending && req.operation && OPERATION_LABEL[req.operation.state] && (
+        <div class={`approval-outcome ${req.operation.state}`}>
+          {OPERATION_LABEL[req.operation.state]}
+          {req.operation.state !== "done" && req.operation.outcome ? ` — ${req.operation.outcome}` : ""}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ApprovalQueuePane() {
+  const [items, setItems] = useState<ApprovalRequest[] | null>(null);
+  const [unsupported, setUnsupported] = useState(false);
+
+  const reload = () => {
+    hubApi
+      .approvals()
+      .then((res) => setItems(res))
+      .catch((err) => {
+        // A hub without ApprovalService configured answers 501 — an
+        // honest "this hub doesn't have this feature on", not a broken load.
+        if (err instanceof Error && err.message.includes("501")) setUnsupported(true);
+        setItems([]);
+      });
+  };
+
+  useEffect(() => {
+    reload();
+    const timer = setInterval(reload, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (unsupported) {
+    return <div class="empty">Freigabe-Warteschlange ist auf diesem Hub nicht konfiguriert.</div>;
+  }
+  if (items === null) return <div class="empty">lädt …</div>;
+
+  const now = Date.now();
+  const pending = items.filter((i) => i.status === "pending");
+  const recent = items.filter((i) => i.status !== "pending" && i.decidedAt && now - new Date(i.decidedAt).getTime() < 10 * 60_000);
+  const older = items.filter((i) => !pending.includes(i) && !recent.includes(i)).slice(0, 20);
+
+  return (
+    <div>
+      <h2 class="approval-group-heading">Wartet auf dich ({pending.length})</h2>
+      {pending.length === 0 ? (
+        <div class="empty">keine offenen Freigaben</div>
+      ) : (
+        pending.map((r) => <ApprovalCard key={r.id} req={r} onDecided={reload} />)
+      )}
+
+      {recent.length > 0 && (
+        <>
+          <h2 class="approval-group-heading">Kürzlich entschieden</h2>
+          {recent.map((r) => (
+            <ApprovalCard key={r.id} req={r} onDecided={reload} />
+          ))}
+        </>
+      )}
+
+      {older.length > 0 && (
+        <>
+          <h2 class="approval-group-heading">Älter</h2>
+          {older.map((r) => (
+            <ApprovalCard key={r.id} req={r} onDecided={reload} />
+          ))}
+        </>
+      )}
+    </div>
+  );
+}

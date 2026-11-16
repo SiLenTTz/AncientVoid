@@ -1,0 +1,129 @@
+#!/usr/bin/env node
+// E2E stand-in for the OpenCode CLI. Speaks the same `run --format json`
+// line protocol as the real binary (see adapter-opencode/normalize.ts and
+// server/enhance.ts), so the real adapter, worker runner and enhance route
+// run unchanged — without cloud egress or cost.
+//
+// Keywords in the prompt pick a behaviour:
+//   LANGSAM  keep the turn open for 60 s (stop, attach, kill tests)
+//   FEHLER   exit 3 with a stderr line
+//   LIMIT    end at the length limit, reasoning only, no answer
+//   GROSS    a tool result above the 2 KB chat threshold
+//   DATEI    write e2e-change.txt into the working directory (diff tab)
+//   WARTE<n> answer only after n seconds (a turn that outlives a hub kill)
+//   PLAN     writes a todo list (1 of 4 done) like opencode's todowrite
+//   KONTINGENT   z.ai usage-limit error line, exit 1
+//   SERVERFEHLER opencode's opaque UnknownError line (real, 2026-09-23), exit 1
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const argv = process.argv.slice(2);
+if (argv[0] === "--version") {
+  console.log("1.2.3-e2e");
+  process.exit(0);
+}
+if (argv[0] === "models") {
+  // `opencode models`: one provider/model per line (ADR-0018 catalog).
+  console.log("e2e/fake-model\nopencode/big-pickle\nzai-coding-plan/glm-5.3");
+  process.exit(0);
+}
+if (argv[0] !== "run") {
+  console.error(`fake opencode: unsupported command ${argv.join(" ")}`);
+  process.exit(2);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const emit = (line) => process.stdout.write(`${JSON.stringify(line)}\n`);
+const flag = (name) => {
+  const i = argv.indexOf(name);
+  return i >= 0 ? argv[i + 1] : undefined;
+};
+
+const dashDash = argv.indexOf("--");
+if (dashDash >= 0 && flag("--agent") === "plan") {
+  // Prompt optimizer one-shot (enhance.ts opencodeEnhanceArgs).
+  const raw = argv[dashDash + 1].split("\n---\n").pop().trim();
+  const sid = "ses_e2e_enhance";
+  emit({ type: "step_start", sessionID: sid, part: {} });
+  emit({
+    type: "text",
+    sessionID: sid,
+    part: { text: `Ziel: ${raw}\nScope: nur das genannte Projekt\nConstraints: keine neuen Abhängigkeiten\nErfolgskriterium: Tests grün` },
+  });
+  emit({ type: "step_finish", sessionID: sid, part: { reason: "stop", cost: 0.0004, tokens: { total: 90 } } });
+  process.exit(0);
+}
+
+const prompt = argv[1] ?? "";
+// T7.10: what came along — files via -f, text in the prompt.
+const attachmentNote = () => {
+  const files = argv.filter((a, i) => argv[i - 1] === "-f");
+  const texts = [...prompt.matchAll(/Inhalt \(([a-z]+)\):\n([^\n]*)/g)].map((m) => `${m[1]}: ${m[2].slice(0, 40)}`);
+  return files.length || texts.length ? ` · Dateien: ${files.length} · Texte: ${texts.join(" | ")}` : "";
+};
+const resumed = flag("--session");
+const sid = resumed ?? `ses_e2e_${Math.random().toString(36).slice(2, 10)}`;
+const has = (word) => prompt.includes(word);
+
+emit({ type: "step_start", sessionID: sid, part: {} });
+if (has("LANGER_VERLAUF")) {
+  for (let i = 0; i < 550; i++) emit({ type: "reasoning", sessionID: sid, part: { text: `Gedanke ${i}` } });
+}
+await sleep(120);
+emit({ type: "reasoning", sessionID: sid, part: { text: "Ich lese zuerst die README." } });
+await sleep(120);
+const output = has("GROSS") ? "x".repeat(5000) : "# Alpha";
+emit({
+  type: "tool_use",
+  sessionID: sid,
+  part: { type: "tool", tool: "read", callID: "call_read_1", state: { status: "completed", input: { filePath: "README.md" }, output } },
+});
+if (has("DENKPFAD")) {
+  emit({ type: "reasoning", sessionID: sid, part: { text: `Gedanken im Arbeitsschritt: ${"prüfen ".repeat(800)}ENDE DES DENKENS` } });
+  emit({ type: "tool_use", sessionID: sid, part: { type: "tool", tool: "functions.exec_command", callID: "call_long", state: { status: "completed", input: { cmd: "echo fertig", explanation: "Begründung ".repeat(700) }, output: "fertig" } } });
+}
+if (has("PLAN")) {
+  // BUG-0062: two snapshots with real time between them, like a real
+  // agent updating its plan as it works — the ETA needs a measurable
+  // velocity, a single snapshot honestly has none.
+  const plan = (done) =>
+    ["Lesen", "Ändern", "Testen", "Aufräumen"].map((content, i) => ({
+      id: `t${i}`,
+      content,
+      status: i < done ? "completed" : i === done ? "in_progress" : "pending",
+      priority: "medium",
+    }));
+  emit({ type: "tool_use", sessionID: sid, part: { type: "tool", tool: "todowrite", callID: "call_todo_1", state: { status: "completed", input: { todos: plan(1) }, output: "ok" } } });
+  await sleep(1500);
+  emit({ type: "tool_use", sessionID: sid, part: { type: "tool", tool: "todowrite", callID: "call_todo_2", state: { status: "completed", input: { todos: plan(2) }, output: "ok" } } });
+}
+if (has("KONTINGENT") || has("SERVERFEHLER")) {
+  const data = has("KONTINGENT")
+    ? { message: "Usage limit reached for 5 hour. Your limit will reset at 2026-09-23 15:00:00" }
+    : { message: "Unexpected server error. Check server logs for details.", ref: "err_9508ce50" };
+  emit({ type: "error", timestamp: Date.now(), sessionID: sid, error: { name: has("KONTINGENT") ? "APIError" : "UnknownError", data } });
+  process.exit(1);
+}
+if (has("FEHLER")) {
+  console.error("fake opencode: simulated provider failure");
+  process.exit(3);
+}
+if (has("DATEI")) writeFileSync(join(process.cwd(), "e2e-change.txt"), "geändert durch E2E\n");
+if (has("LANGSAM")) {
+  process.on("SIGTERM", () => process.exit(143));
+  process.on("SIGINT", () => process.exit(130));
+  await sleep(60_000);
+}
+const wait = /WARTE(\d+)/.exec(prompt);
+if (wait) await sleep(Number(wait[1]) * 1000);
+await sleep(120);
+if (has("LIMIT")) {
+  emit({ type: "step_finish", sessionID: sid, part: { reason: "length", cost: 0.001, tokens: { total: 4000, reasoning: 3900 } } });
+  process.exit(0);
+}
+emit({
+  type: "text",
+  sessionID: sid,
+  part: { text: has("BREITENTEST") ? prompt : `Antwort auf: ${prompt.split("\n\n[Anhang")[0].split("\n").pop()} · Session ${sid}${resumed ? " (fortgesetzt)" : ""} · cwd ${process.cwd()}${attachmentNote()}` },
+});
+emit({ type: "step_finish", sessionID: sid, part: { reason: "stop", cost: 0.0012, tokens: { total: 321 } } });

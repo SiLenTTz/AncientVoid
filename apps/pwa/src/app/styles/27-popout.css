@@ -1,0 +1,261 @@
+/* EPIC-P34 T34.10 — eigenes Fenster: nur Kopfzeile und Inhalt, keine Liste, kein Dock. */
+.popout-shell {
+  display: flex;
+  flex-direction: column;
+  /* BUG-0112: unter html-zoom (ui-scale) sind dvh Layout-Pixel — ohne
+   * Division wächst die Shell auf das Zoom-Fache der Fensterhöhe und das
+   * Fenster scrollt als ganze Seite (Muster: BUG-0099, 02-layout.css). */
+  height: calc(100dvh / var(--ui-zoom, 1));
+  background: var(--bg);
+}
+
+/* BUG-0112: harte Garantie nach BUG-0099-Nachtrag-2-Muster — ein eigenes
+ * Fenster scrollt nie; nur der Inhalt (Chat, Graph, Datei, Werkzeug)
+ * scrollt intern. */
+html:has(.popout-shell),
+html:has(.popout-shell) body {
+  overflow: hidden;
+}
+
+.popout-shell > .popout-tile,
+.popout-shell > .popout-tool {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.popout-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--bg-chip);
+}
+
+.popout-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--font-scale, 1));
+  letter-spacing: var(--tracking-label);
+}
+
+.popout-tile {
+  border: 0;
+  border-radius: 0;
+  /* BUG-0104: das Fenster ist selbst die Fläche — fester Innenabstand statt
+     der mitwachsenden 1200-px-Lesespalte der Arbeitsflächen-Kacheln. */
+  padding-inline: 12px;
+}
+
+.popout-tool {
+  position: relative;
+  min-height: 0;
+}
+
+/* BUG-0128: das Dateibaum-Fenster füllt die Fläche mit der Seitenleiste (Breite kommt aus dem Fenster). */
+.popout-shell > .popout-files {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+}
+
+.popout-files .files-sidebar {
+  flex: 1;
+  min-width: 0;
+  border-left: 0;
+}
+
+/* EPIC-P48: Graph und Datei füllen das eigene Fenster wie eine Werkzeugseite. */
+.popout-shell > .popout-graph,
+.popout-shell > .popout-file {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
+/* EPIC-P39: Das Browser-Panel füllt das eigene Fenster (Seitenleisten-Styling bleibt). */
+.popout-shell > .popout-browser {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.popout-shell > .popout-browser > .browser-panel {
+  position: static;
+  flex: 1;
+  min-width: 320px;
+  width: auto;
+}
+
+/* Abzeichen und Meldung im Hauptfenster */
+.badge-window {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 0 6px;
+  font-size: calc(11px * var(--font-scale, 1));
+}
+
+.popout-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 48px;
+  z-index: 20;
+  max-width: 360px;
+  padding: 10px 12px;
+  border: 1px solid var(--warn);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.tile-popout,
+.tool-pane-popout {
+  background: none;
+  border: 0;
+  color: var(--fg-faint);
+  font: inherit;
+  cursor: pointer;
+  /* EPIC-P50 T50.6, erweitert: Symbol-Tasten nutzen --icon-target (Maus 36 px / Touch 44 px). */
+  min-width: var(--icon-target);
+  min-height: var(--icon-target);
+  font-size: var(--icon-glyph);
+  line-height: 1;
+}
+
+.tile-popout:hover,
+.tool-pane-popout:hover {
+  color: var(--accent);
+}
+
+/* Ziehgriff der Kachel (T34.11): nur Zeiger; die Tastatur nimmt ⧉. */
+.tile-grip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--icon-target);
+  min-height: var(--icon-target);
+  margin-inline: 2px 4px;
+  font-size: var(--icon-glyph);
+  line-height: 1;
+  color: var(--fg-faint);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-grip:active {
+  cursor: grabbing;
+}
+
+.tile-grip.dragging {
+  font-size: var(--text-sm);
+}
+
+.tile.drag-out {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tile.drag-out .tile-grip {
+  color: var(--accent);
+}
+
+.restore-bar {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: min(calc(92vw / var(--ui-zoom, 1)), 720px); /* BUG-0128 */
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.popout-offline {
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--warn);
+  color: var(--warn);
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+/* BUG-0103: das eigene Fenster nutzt die ganze Fläche — nicht die 680-px-Handyspalte von #app. */
+#app:has(.popout-shell) {
+  max-width: none;
+  padding: 0;
+}
+
+.popout-shell .dock-stack {
+  max-width: none;
+}
+
+/* EPIC-P43 T43.7 (ADR-0068): die eine Taste fürs Herauslösen — 30 px, das Wort beim Überfahren und bei Fokus. */
+.detach-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.detach-btn,
+.tile-popout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: var(--icon-target);
+  height: var(--icon-target);
+  padding: 0 6px;
+  color: var(--fg-dim);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--icon-glyph);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.detach-btn:hover,
+.detach-btn:focus-visible {
+  color: var(--accent);
+  border-color: var(--bg-chip);
+}
+
+.detach-word {
+  display: none;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.detach-btn:hover .detach-word,
+.detach-btn:focus-visible .detach-word {
+  display: inline;
+}
+
+.detach-blocked {
+  color: var(--warn);
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.detached-placeholder .row {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.popout-queue .topbar {
+  padding-right: 0;
+}

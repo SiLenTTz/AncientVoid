@@ -1,0 +1,346 @@
+/* T1.6-3: same chips, repositioned inside .dock-stack (AC-P1.6-2) */
+.dock-filter-bar {
+  padding: 8px 12px;
+  border-top: 1px solid var(--bg-chip);
+}
+
+.chip {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--bg-chip);
+  background: var(--bg-elev);
+  color: var(--fg-dim);
+  font-size: calc(12px * var(--font-scale, 1));
+  cursor: pointer;
+}
+
+.chip.active {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+/* T1.6-6: model picker chips */
+.choice-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* T1.6-6: model picker chips — question options render as a numbered,
+ * full-width vertical list (PC parity), model chips keep wrapping. */
+.choice-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.choice {
+  padding: 9px 13px;
+  border-radius: var(--radius);
+  border: 1px solid var(--bg-chip);
+  background: var(--bg-elev);
+  color: var(--fg);
+  font-size: calc(13px * var(--font-scale, 1));
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+/* Numbered question options (question-form): stack vertically, fill width. */
+.question-form .choice-row {
+  display: grid;
+  gap: 6px;
+}
+
+.question-form .choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+.choice-index {
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 1.2em;
+  flex-shrink: 0;
+}
+
+.choice-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.choice-desc {
+  display: block;
+  font-size: calc(11px * var(--font-scale, 1));
+  font-weight: 400;
+  color: var(--fg-dim);
+  overflow-wrap: anywhere;
+}
+
+.choice.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-elev));
+}
+
+.event {
+  padding: 7px 10px;
+  border-left: 3px solid var(--fg-dim);
+  margin: 6px 0;
+  background: var(--bg-elev);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  cursor: pointer;
+}
+
+.event-detail {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-size: calc(13px * var(--font-scale, 1));
+}
+
+.event.thinking {
+  border-left-color: var(--fg-dim);
+  color: var(--fg-dim);
+  font-style: italic;
+}
+
+.event.assistant {
+  border-left-color: var(--accent);
+}
+
+.event.tool_use,
+.event.tool_result {
+  border-left-color: var(--warn);
+}
+
+.event.error {
+  border-left-color: var(--err);
+}
+
+.event .meta {
+  font-size: calc(11px * var(--font-scale, 1));
+  color: var(--fg-dim);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.event .summary {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.event .summary.prose {
+  white-space: pre-wrap;
+}
+
+/* BUG-0067: agent Markdown in chat rows. */
+.event .summary.markdown {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown blockquote,
+.markdown .md-table,
+.markdown .md-code {
+  margin: 0.5em 0;
+}
+
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 0.9em 0 0.35em;
+  line-height: 1.25;
+}
+
+.markdown h3 {
+  font-size: 1.08em;
+}
+
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-size: 1em;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 1.4em;
+}
+
+.markdown li + li {
+  margin-top: 0.2em;
+}
+
+.markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--bg-chip);
+  border-radius: var(--radius-sm);
+  padding: 0.05em 0.3em;
+}
+
+.markdown .md-code {
+  background: var(--bg);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  padding: 0.6em 0.75em;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.markdown .md-code code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+.markdown blockquote {
+  border-left: 3px solid var(--bg-chip);
+  padding-left: 0.75em;
+  color: var(--fg-dim);
+}
+
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--bg-chip);
+  margin: 0.9em 0;
+}
+
+.markdown a {
+  color: var(--accent);
+}
+
+.markdown .md-table {
+  overflow-x: auto;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+
+.markdown th,
+.markdown td {
+  border: 1px solid var(--bg-chip);
+  padding: 0.3em 0.55em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown th {
+  background: var(--bg-chip);
+}
+
+/* BUG-0068: a long answer still loading, or shortened for good. */
+.event .full-text-note {
+  font-size: 0.8em;
+}
+
+.event .full-text-note.failed {
+  color: var(--warn);
+}
+
+.badge-stale {
+  background: color-mix(in srgb, var(--warn) 20%, transparent);
+  color: var(--warn);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: calc(11px * var(--font-scale, 1));
+}
+
+/* K10: die Offline-Meldung ist ein Button — tippen lädt neu. */
+button.badge-stale {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  min-height: var(--target);
+  display: inline-flex;
+  align-items: center;
+}
+
+.conn-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--fg-dim);
+}
+
+.conn-dot.live {
+  background: var(--ok);
+}
+
+.conn-dot.connecting,
+.conn-dot.reconnecting {
+  background: var(--warn);
+}
+
+.conn-dot.closed {
+  background: var(--err);
+}
+
+.form-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 4px;
+  font-size: calc(12px * var(--font-scale, 1));
+  color: var(--fg-dim);
+}
+
+.form-grid input,
+.form-grid select {
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  color: var(--fg);
+  border-radius: var(--radius);
+  padding: 10px;
+  font: inherit;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.offline-note {
+  display: block;
+  margin: 6px 0;
+}
+
+/* EPIC-P20: settings rows with a stepper */
+.scale-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.scale-value {
+  min-width: 4ch;
+  text-align: center;
+}
+.settings-hint {
+  font-size: calc(11px * var(--font-scale, 1));
+}

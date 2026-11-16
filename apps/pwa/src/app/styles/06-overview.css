@@ -1,0 +1,348 @@
+/* T1.5 Monitor-Dashboard */
+.dashboard-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 2px 4px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+/* Discovery groups found sessions by project — collapsible (BUG-0035
+ * follow-up): the newest project expanded, the rest folded. */
+.project-tile {
+  margin: 14px 0;
+}
+
+.project-tile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  font-size: calc(11px * var(--font-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--bg-chip, rgba(128, 128, 128, 0.25));
+}
+
+.project-tile-header::before {
+  content: "▸";
+  transition: transform 0.15s ease;
+}
+
+.project-tile[open] > .project-tile-header::before {
+  transform: rotate(90deg);
+}
+
+.project-tile-name {
+  font-weight: 700;
+}
+
+/* T8.1: sections instead of project tiles — what needs you comes first. */
+.session-section {
+  margin: 14px 0;
+}
+
+.section-title {
+  margin: 0;
+  padding: 0 2px 2px;
+  font-size: calc(11px * var(--font-scale, 1));
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-dim);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+}
+
+.section-braucht .section-title {
+  color: var(--call);
+}
+
+/* EPIC-P43 T43.3: „Ruhig“ klappt auf und zu; die ganze Zeile ist das Ziel. */
+.section-fold {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: var(--target);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.section-fold-mark {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.section-fold[aria-expanded="true"] .section-fold-mark {
+  transform: rotate(45deg);
+}
+
+.approval-link {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Entscheidung auf der Karte: Befehl, Einschätzung, zwei Tasten, Restzeit. */
+.card-decision {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--bg-chip);
+}
+
+.card-decision-what {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.card-decision-input {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.card-decision-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.card-decision-actions .btn {
+  min-height: var(--target);
+  min-width: 96px;
+}
+
+.card-decision-left {
+  margin-left: auto;
+}
+
+/* Planfortschritt einer arbeitenden Session (nur wenn dieses Gerät den Plan aktuell kennt). */
+.card-plan {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.card-plan-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--bg-chip);
+  overflow: hidden;
+}
+
+.card-plan-fill {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+  transform-origin: left;
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+.dashboard-search {
+  width: 100%;
+  margin: 6px 0 2px;
+  min-height: var(--target);
+  padding: 6px 12px;
+}
+
+.session-card .session-title {
+  font-size: calc(14px * var(--font-scale, 1));
+  margin: 0;
+  min-width: 0;
+}
+
+.session-where {
+  font-size: calc(12px * var(--font-scale, 1));
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.session-activity {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: calc(13px * var(--font-scale, 1));
+}
+
+.session-activity-text {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.session-ago {
+  flex: 0 0 auto;
+  font-size: calc(11px * var(--font-scale, 1));
+}
+
+.session-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.more-sessions {
+  display: block;
+  margin: 8px auto;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: calc(11px * var(--font-scale, 1));
+  font-weight: 700;
+}
+
+.badge.waiting {
+  background: color-mix(in srgb, var(--warn) 22%, transparent);
+  color: var(--warn);
+}
+
+.session-card.unseen .session-title {
+  color: var(--fg);
+}
+
+.new-badge {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+/* EPIC-P47 T47.1: Ansichtsumschalter Sessions/Projekte/Hosts */
+.overview-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+
+/* T47.2/T47.3: Projekt- und Host-Karten teilen das Session-Kartenlayout. */
+.project-card .pill,
+.host-card .pill {
+  flex-shrink: 0;
+}
+
+/* EPIC-P48: Icon-Knopf (Repo-Graph) links in den Karten-Aktionen. */
+.session-card-actions .graph-open {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+}
+.session-card-actions .graph-open .tab-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* EPIC-P43 T43.5 (Kleinkram-Regel 3): Zeilenaktionen erscheinen beim Überfahren und bei Fokus (Maus),
+ * auf Touch nach langem Drücken; „⋯“ trägt dieselben Aktionen immer als Menü. */
+@media (hover: hover) {
+  .session-card .row-action {
+    opacity: 0;
+    transition: opacity var(--motion-fast) ease;
+  }
+  .session-card:hover .row-action,
+  .session-card:focus-within .row-action,
+  .session-card.actions-open .row-action {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  .session-card:not(.actions-open) .row-action {
+    display: none;
+  }
+}
+
+.session-card-actions {
+  align-items: center;
+}
+
+.row-menu-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.row-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+}
+
+.row-menu-btn .tab-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.row-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  z-index: 12;
+  display: grid;
+  min-width: 180px;
+  padding: var(--space-1);
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-elev);
+}
+
+.row-menu button {
+  min-height: var(--target);
+  padding: 0 var(--space-3);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.row-menu button:hover,
+.row-menu button:focus-visible {
+  background: var(--bg-chip);
+}
+
+.row-menu button.danger {
+  color: var(--err);
+}

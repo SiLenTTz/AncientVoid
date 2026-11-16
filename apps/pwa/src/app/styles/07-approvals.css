@@ -1,0 +1,215 @@
+/* T2.6: approval queue */
+.approval-banner {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: color-mix(in srgb, var(--warn) 16%, var(--bg-elev));
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 700;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.approval-group-heading {
+  font-size: calc(12px * var(--font-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--fg-faint);
+  margin: 16px 0 8px;
+}
+
+.approval-card {
+  margin-bottom: 10px;
+}
+
+.approval-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.approval-countdown {
+  font-size: calc(11px * var(--font-scale, 1));
+  color: var(--fg-dim);
+}
+
+.badge.risk-write {
+  background: color-mix(in srgb, var(--warn) 22%, transparent);
+  color: var(--warn);
+}
+
+.badge.risk-destructive {
+  background: color-mix(in srgb, var(--err) 22%, transparent);
+  color: var(--err);
+}
+
+.badge.status-approved {
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+  color: var(--ok);
+}
+
+.badge.status-rejected,
+.badge.status-timed_out {
+  background: color-mix(in srgb, var(--fg-faint) 22%, transparent);
+  color: var(--fg-dim);
+}
+
+.approval-summary {
+  font-size: calc(13px * var(--font-scale, 1));
+}
+
+.approval-reason {
+  width: 100%;
+  margin-top: 8px;
+  min-height: 44px;
+  background: var(--bg-chip);
+  color: var(--fg);
+  border: 1px solid var(--fg-dim);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font: inherit;
+  resize: vertical;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* T7.2: a provider's tool request and questions */
+.tool-input {
+  max-height: 30vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--bg-chip);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  font-size: calc(12px * var(--font-scale, 1));
+  margin: 6px 0;
+}
+.tool-badge {
+  margin-right: 6px;
+}
+.question-form {
+  display: grid;
+  gap: 10px;
+}
+.question-text {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.question-free {
+  width: 100%;
+  margin-top: 6px;
+}
+.session-approvals {
+  display: grid;
+  gap: 8px;
+  max-height: 55vh;
+  overflow: auto;
+  margin-bottom: 8px;
+}
+
+/* T7.9: gatekeeper label on a tool approval — a hint, never a decision. */
+.assessment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  padding: 6px 10px;
+  margin: 6px 0;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--ok);
+  background: var(--bg-elev);
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.assessment.gate-WARNING {
+  border-left-color: var(--warn);
+}
+
+.assessment.gate-CRITICAL_BLOCK {
+  border-left-color: var(--err);
+  background: color-mix(in srgb, var(--err) 12%, var(--bg-elev));
+}
+
+.assessment-gate {
+  font-weight: 700;
+}
+
+.assessment.gate-WARNING .assessment-gate {
+  color: var(--warn);
+}
+
+.assessment.gate-CRITICAL_BLOCK .assessment-gate {
+  color: var(--err);
+}
+
+.assessment-notes {
+  flex-basis: 100%;
+}
+
+/* T21.4: question form — header chip, hints, progress, summary */
+.question-header {
+  display: inline-block;
+  font-size: calc(11px * var(--font-scale, 1));
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 1px 8px;
+  margin-bottom: 4px;
+}
+.question-hint {
+  font-size: calc(11px * var(--font-scale, 1));
+  margin-bottom: 4px;
+}
+.question-progress {
+  font-size: calc(12px * var(--font-scale, 1));
+  color: var(--fg-dim);
+}
+.question.answered .question-text::after {
+  content: " ✓";
+  color: var(--ok);
+}
+.question-summary {
+  margin: 0;
+  padding-left: 18px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+/* T21.2: provider failure with handover */
+.handover-bar {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--err);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--err) 10%, var(--bg));
+}
+.handover-form {
+  display: grid;
+  gap: 8px;
+}
+.handover-form label {
+  display: grid;
+  gap: 4px;
+  font-size: calc(12px * var(--font-scale, 1));
+  color: var(--fg-dim);
+}
+.handover-form textarea {
+  width: 100%;
+  font: inherit;
+  font-size: calc(12px * var(--font-scale, 1));
+}

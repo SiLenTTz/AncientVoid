@@ -1,0 +1,169 @@
+[
+ {
+  "seq": 1,
+  "ts": "2026-11-11T08:00:00.000Z",
+  "sessionId": "s",
+  "type": "user",
+  "summary": "Auftrag",
+  "payload": {
+   "text": "Auftrag",
+   "kind": "session.prompt"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 2,
+  "ts": "2026-11-11T08:00:01.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "copilot: auto-routed to mai-code-1.1-flash",
+  "payload": {
+   "kind": "copilot.model_resolved",
+   "model": "mai-code-1.1-flash"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 3,
+  "ts": "2026-11-11T08:00:02.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "copilot: prompt received (79 chars)",
+  "payload": {
+   "kind": "copilot.user_echo",
+   "text": "read the file /tmp/copilot-test/does-not-exist-xyz.txt and tell me its contents"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 4,
+  "ts": "2026-11-11T08:00:03.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "copilot: turn start",
+  "payload": {
+   "kind": "copilot.turn_start",
+   "turnId": "0"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 5,
+  "ts": "2026-11-11T08:00:04.000Z",
+  "sessionId": "s",
+  "type": "tool_use",
+  "summary": "copilot: view {\"path\":\"/tmp/copilot-test/does-not-exist-xyz.txt\"}",
+  "payload": {
+   "id": "call_bHqTZis3xGWgwAwwUEsDRDZ5",
+   "tool": "view",
+   "input": {
+    "path": "/tmp/copilot-test/does-not-exist-xyz.txt"
+   }
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 6,
+  "ts": "2026-11-11T08:00:05.000Z",
+  "sessionId": "s",
+  "type": "tool_result",
+  "summary": "copilot: tool error — Path does not exist",
+  "payload": {
+   "toolUseId": "call_bHqTZis3xGWgwAwwUEsDRDZ5",
+   "isError": true,
+   "error": "Path does not exist",
+   "errorCode": "failure"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 7,
+  "ts": "2026-11-11T08:00:06.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "copilot: turn end",
+  "payload": {
+   "kind": "copilot.turn_end",
+   "turnId": "0"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 8,
+  "ts": "2026-11-11T08:00:07.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "copilot: turn start",
+  "payload": {
+   "kind": "copilot.turn_start",
+   "turnId": "1"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 9,
+  "ts": "2026-11-11T08:00:08.000Z",
+  "sessionId": "s",
+  "type": "assistant",
+  "summary": "I can’t read it because the file does not exist at that path. The exact result was:\n\n- /tmp/copilot-test/does-not-exist-xyz.txt: not found\n\nSo there are no contents to display.",
+  "payload": {
+   "text": "I can’t read it because the file does not exist at that path. The exact result was:\n\n- /tmp/copilot-test/does-not-exist-xyz.txt: not found\n\nSo there are no contents to display."
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 10,
+  "ts": "2026-11-11T08:00:09.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "copilot: turn end",
+  "payload": {
+   "kind": "copilot.turn_end",
+   "turnId": "1"
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 11,
+  "ts": "2026-11-11T08:00:10.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "copilot: usage checkpoint — 1 premium request(s) this session",
+  "payload": {
+   "kind": "copilot.usage_checkpoint",
+   "totalPremiumRequests": 1,
+   "totalNanoAiu": 64224000
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 12,
+  "ts": "2026-11-11T08:00:11.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "copilot: run finished (exit 0)",
+  "payload": {
+   "kind": "copilot.result",
+   "exitCode": 0,
+   "premiumRequests": 1,
+   "sessionDurationMs": 4393,
+   "codeChanges": {
+    "linesAdded": 0,
+    "linesRemoved": 0,
+    "filesModified": []
+   }
+  },
+  "blobRef": null
+ },
+ {
+  "seq": 13,
+  "ts": "2026-11-11T08:00:12.000Z",
+  "sessionId": "s",
+  "type": "system",
+  "summary": "turn end",
+  "payload": {
+   "kind": "session.turn_end"
+  },
+  "blobRef": null
+ }
+]

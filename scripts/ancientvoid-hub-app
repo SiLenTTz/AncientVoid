@@ -1,0 +1,39 @@
+#!/bin/bash
+# AncientVoid als Desktop-App: stellt sicher, dass GENAU EIN Hub läuft, und öffnet die PWA im App-Fenster.
+# Der Hub bleibt danach unabhängig vom Fenster laufen (liefert auch das Handy mit).
+#
+# BUG-0073: Ist der Dienst ancientvoid-hub.service installiert, startet dieser Starter ihn über systemd und
+# NIE einen zweiten Hub daneben. Der alte Starter spawnte bei einem kurz nicht antwortenden Hub einen
+# eigenen Prozess, der Lock und Port hielt, während systemd im 3-s-Takt am Lock scheiterte.
+#
+# Installation: ln -sf <repo>/scripts/ancientvoid-hub-app ~/.local/bin/ancientvoid-hub-app
+set -u
+URL="http://127.0.0.1:7373"
+REPO="${ANCIENTVOID_REPO:-$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)}"
+LOG="$REPO/data/hub-app.log"
+
+if curl -sf -m 2 -o /dev/null "$URL/"; then
+  exec omarchy-launch-webapp "$URL"
+fi
+
+if systemctl --user cat ancientvoid-hub.service >/dev/null 2>&1; then
+  # Idempotent: ein schon laufender oder gerade neu startender Dienst bleibt, wie er ist.
+  systemctl --user start ancientvoid-hub.service
+else
+  # Rückfall ohne Dienstdatei: eigener Hub. Der Hub selbst verweigert einen zweiten per Lock.
+  NODE="$HOME/.local/share/mise/shims/node"
+  [ -x "$NODE" ] || NODE="node"
+  if [ ! -d "$REPO" ]; then
+    notify-send "AncientVoid" "Repo nicht gefunden: $REPO" 2>/dev/null || true
+    exec omarchy-launch-webapp "$URL"
+  fi
+  cd "$REPO" || exec omarchy-launch-webapp "$URL"
+  setsid nohup "$NODE" apps/hub/src/main.ts >>"$LOG" 2>&1 &
+fi
+
+# Max ~20 s auf den Hub warten; sonst öffnet die Fehlerseite (fail loud).
+for _ in $(seq 1 80); do
+  curl -sf -m 1 -o /dev/null "$URL/" && break
+  sleep 0.25
+done
+exec omarchy-launch-webapp "$URL"

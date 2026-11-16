@@ -1,0 +1,264 @@
+.chip.subtle {
+  color: var(--fg-dim);
+  font-weight: 500;
+}
+
+/* T1.6-2: bottom-dock navigation — replaces the old top icon buttons.
+ * .app-page's bottom padding clears the fixed dock; scoped to App.tsx's
+ * own wrapper (not #app globally) so SessionTail's own fixed bottom block
+ * is unaffected until T1.6-3 unifies it. */
+.app-page {
+  padding-bottom: 78px;
+}
+
+/* T1.6-3: .dock-stack is the single fixed anchor at the bottom — App.tsx
+ * puts only the GlobalDock inside it, SessionTail additionally stacks its
+ * reply/stop actions and Chat/Verlauf sub-tabs above the same dock. */
+.dock-stack {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 680px;
+  margin: 0 auto;
+  background: var(--bg-elev);
+  z-index: 10;
+  /* BUG-0098: Mit voller Steuerung (Konfiguration, Warteschlange,
+   * Vorlagen, Eingabe) auf kleinem Screen lief der fixierte Dock über den
+   * oberen Rand — die obersten Buttons waren abgeschnitten statt bedienbar.
+   * Der Dock begrenzt seine Höhe auf den Screen und scrollt selbst. */
+  max-height: calc(100dvh / var(--ui-zoom, 1));
+  overflow-y: auto;
+}
+
+.dock {
+  display: flex;
+  overflow-x: auto;
+  border-top: 1px solid var(--bg-chip);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.dock-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 0 8px;
+  background: none;
+  border: none;
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: calc(10.5px * var(--font-scale, 1));
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.dock-item .lb {
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.dock-item .ic {
+  font-size: calc(17px * var(--font-scale, 1));
+}
+
+.dock-item.active {
+  color: var(--accent);
+}
+
+/* EPIC-P43 T43.3: vier Ziele und eine Haupttaste. Die übrigen Ziele stehen nur in der PC-Leiste
+ * einzeln (21-icon-rail.css); am Handy und Tablet liegen sie im Blatt „Mehr“. */
+.dock-extra {
+  display: none;
+}
+
+.dock-main {
+  flex: none;
+  align-self: center;
+  justify-content: center;
+  width: 52px;
+  min-height: 44px;
+  margin: 4px 6px;
+  padding: 0;
+  border-radius: var(--radius-lg);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.dock-main.active {
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.dock-main .tab-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.more-sheet {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+}
+
+.more-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: 0 var(--space-4);
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.more-item.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.more-item .tab-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--fg-dim);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bg-chip);
+  font-size: calc(13px * var(--font-scale, 1));
+}
+
+.settings-row:last-of-type {
+  border-bottom: none;
+}
+
+/* T8.5: session header — back, title, Stop apart from Senden, ⋯ menu. */
+.session-topbar {
+  gap: 8px;
+  /* BUG-0118: das „⋯“-Menü hängt am Kopf. Kopf und Steuerung (.dock-stack) hatten beide z-index 10,
+   * die Steuerung steht später im DOM — in einer niedrigen Kachel lag sie über den unteren Menüpunkten. */
+  z-index: 11;
+}
+
+.session-topbar .back-btn {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  font-size: calc(18px * var(--font-scale, 1));
+  line-height: 1;
+}
+
+.session-top-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* EPIC-P43 T43.6: im Kachelkopf behält der Titel Platz; ist die Kachel schmal, rücken Reiter und
+ * Tasten in eine zweite Zeile statt den Titel auf „L…“ zu kürzen. */
+.tile-top {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  row-gap: 4px;
+}
+
+/* Alles nach den Reitern steht rechts beisammen — auch in der zweiten Zeile. */
+.tile-top .tile-tabs + * {
+  margin-left: auto;
+}
+
+.tile-top .session-top-main {
+  flex: 1 1 160px;
+}
+
+.tile-top .stop-btn {
+  padding: 4px 10px;
+}
+
+.session-top-title {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-top-meta {
+  font-size: calc(12px * var(--font-scale, 1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-topbar .stop-btn {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+}
+
+.rename-form {
+  display: flex;
+  gap: 6px;
+}
+
+.rename-form input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.session-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.session-menu summary {
+  list-style: none;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: calc(20px * var(--font-scale, 1));
+  border-radius: var(--radius);
+}
+
+.session-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.session-menu-items {
+  overflow-y: auto;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 30;
+  display: grid;
+  min-width: 180px;
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-elev);
+}
+
+.session-menu-items button {
+  text-align: left;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  color: var(--fg);
+  font: inherit;
+}
+
+.session-menu-items button + button {
+  border-top: 1px solid var(--bg-chip);
+}

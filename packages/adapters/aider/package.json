@@ -1,0 +1,22 @@
+{
+  "name": "@ancientvoid/adapter-aider",
+  "version": "0.1.0",
+  "private": true,
+  "description": "aider adapter (P3, T3.13): spawns `aider --message`, unproven — see src/index.ts's doc comment for why.",
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ancientvoid/contracts": "0.1.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@ancientvoid/adapter-testkit": "0.1.0"
+  }
+}

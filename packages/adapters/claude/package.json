@@ -1,0 +1,23 @@
+{
+  "name": "@ancientvoid/adapter-claude",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reference claude adapter (P1): spawns `claude -p --output-format stream-json`, maps its event stream to NormalizedEvent.",
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ancientvoid/contracts": "0.1.0",
+    "@ancientvoid/models": "0.1.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@ancientvoid/adapter-testkit": "0.1.0"
+  }
+}

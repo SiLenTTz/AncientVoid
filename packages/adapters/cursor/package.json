@@ -1,0 +1,24 @@
+{
+  "name": "@ancientvoid/adapter-cursor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "cursor adapter: the cursor-agent CLI as a one-shot-per-turn worker (stream-json), native --resume, model catalog via --list-models.",
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ancientvoid/contracts": "0.1.0",
+    "@ancientvoid/models": "0.1.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@ancientvoid/adapter-testkit": "0.1.0",
+    "@ancientvoid/workers": "0.1.0"
+  }
+}

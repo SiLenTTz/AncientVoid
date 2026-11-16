@@ -1,0 +1,51 @@
+{
+  "root": "/pfad/zum/projekt",
+  "created": [
+    ".factory/config.json",
+    ".factory/workflow.md",
+    ".factory/Dockerfile",
+    ".factory/.gitignore",
+    ".factory/contracts/.gitkeep",
+    ".factory/evidence/.gitkeep"
+  ],
+  "skill": [".claude/skills/factory/SKILL.md"],
+  "context": { "mode": "repo", "has_git": true, "markdown_files": [] },
+  "inventory": {
+    "schema_version": "1",
+    "kind": "repo_inventory",
+    "source": "/pfad/zum/projekt",
+    "file_count": 0,
+    "files_by_suffix": {},
+    "languages": [],
+    "frameworks": [],
+    "test_framework": null,
+    "suites": {},
+    "oracle_examples": {},
+    "markdown_files": [],
+    "note": "Bestand inventarisiert (read-only); Repo-Dateien unveraendert."
+  },
+  "wizard": { "modus": "a", "provider": "zai", "quelle": "flag" },
+  "session": {
+    "status": "ok",
+    "datei": ".claude/settings.json",
+    "erlaubt": ["Bash(factory:*)"],
+    "quelle": "flag",
+    "modus": "a",
+    "geaendert": true
+  },
+  "trust": {
+    "status": "ok",
+    "datei": ".claude.json",
+    "projekt": "/pfad/zum/projekt",
+    "detail": "hasTrustDialogAccepted gesetzt (.claude.json), settings: projektlokal (.claude/settings.json)"
+  },
+  "git": { "repo": true, "created": false, "commit": null },
+  "checkliste": [
+    "git: ok (repo vorhanden)",
+    "provider: ok (.claude/settings.json, quelle: flag)",
+    "trust: ok (hasTrustDialogAccepted gesetzt (.claude.json), settings: projektlokal (.claude/settings.json))",
+    "intake: intake",
+    "next: factory init --status (zustand pruefen)",
+    "ready: alle wirkungs-pruefungen gruen — lauf kann starten"
+  ]
+}

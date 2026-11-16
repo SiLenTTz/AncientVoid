@@ -1,0 +1,126 @@
+import type { GraphGroup, GraphNode } from "@ancientvoid/contracts";
+import type { GalaxyNeighbor } from "./galaxy-query.ts";
+import { systemLabel, type GalaxySystem } from "./galaxy-layout.ts";
+
+const GROUP_LABEL: Record<GraphGroup, string> = { doc: "Doc", code: "Code", config: "Config", other: "Sonstiges" };
+const KIND_LABEL = { import: "Import", link: "Verweis", asset: "Asset", pyimport: "Python" } as const;
+
+export function GalaxyPanel(props: {
+  narrow: boolean;
+  sheet: "line" | "open";
+  onSheet: (sheet: "line" | "open") => void;
+  systems: GalaxySystem[];
+  systemId: string | null;
+  onEnterSystem: (id: string) => void;
+  selected: GraphNode | null;
+  neighbors: GalaxyNeighbor[];
+  twoHop: boolean;
+  onTwoHop: (on: boolean) => void;
+  groups: GraphGroup[];
+  onToggleGroup: (group: GraphGroup) => void;
+  deadOnly: boolean;
+  onDeadOnly: (on: boolean) => void;
+  errorOnly: boolean;
+  onErrorOnly: (on: boolean) => void;
+  onSelect: (path: string) => void;
+  onOpen: (path: string) => void;
+}) {
+  const { selected } = props;
+  const incoming = props.neighbors.filter((n) => n.dir === "in" && (props.twoHop || n.hop === 1));
+  const outgoing = props.neighbors.filter((n) => n.dir === "out" && (props.twoHop || n.hop === 1));
+  const showLists = !props.narrow || props.sheet === "open";
+  return (
+    <aside class="graph-side" data-sheet={props.narrow ? props.sheet : "open"} aria-label="Galaxie">
+      <div class="graph-filters" role="group" aria-label="Filter">
+        {(Object.keys(GROUP_LABEL) as GraphGroup[]).map((g) => (
+          <button
+            key={g}
+            type="button"
+            class="graph-chip graph-chip-btn"
+            aria-pressed={props.groups.includes(g)}
+            onClick={() => props.onToggleGroup(g)}
+          >
+            {GROUP_LABEL[g]}
+          </button>
+        ))}
+        <button type="button" class="graph-chip graph-chip-btn" aria-pressed={props.deadOnly} onClick={() => props.onDeadOnly(!props.deadOnly)}>
+          Nur tote
+        </button>
+        <button type="button" class="graph-chip graph-chip-btn" aria-pressed={props.errorOnly} onClick={() => props.onErrorOnly(!props.errorOnly)}>
+          Nur Fehler
+        </button>
+      </div>
+      {!props.systemId && props.systems.length > 0 && (
+        <ul class="graph-systems-list">
+          {props.systems.map((s) => (
+            <li key={s.id}>
+              <button type="button" aria-label={`Bereich ${systemLabel(s.id)}`} onClick={() => props.onEnterSystem(s.id)}>
+                {systemLabel(s.id)} ({s.files.length})
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {selected && (
+        <section class="graph-selection" aria-label="Auswahl">
+          {props.narrow && props.sheet === "line" && (
+            <div class="graph-sheet-line">
+              <button type="button" class="graph-sheet-handle" aria-label="Liste aufklappen" onClick={() => props.onSheet("open")}>
+                {selected.path}
+              </button>
+              <button type="button" class="btn" aria-label="Datei öffnen" onClick={() => props.onOpen(selected.path)}>
+                Öffnen
+              </button>
+            </div>
+          )}
+          {showLists && (
+            <>
+              <p class="graph-selection-path">{selected.path}</p>
+              <p class="dim">
+                {GROUP_LABEL[selected.group]}
+                {selected.in === 0 && !selected.entry ? " · tot" : ""}
+              </p>
+              <button type="button" class="btn" aria-label="Datei öffnen" onClick={() => props.onOpen(selected.path)}>
+                Öffnen
+              </button>
+              <button type="button" class="btn" aria-pressed={props.twoHop} onClick={() => props.onTwoHop(!props.twoHop)}>
+                2 Schritte
+              </button>
+              <p class="graph-direction">
+                <span class="graph-dir-in">eingehend, Pfeil zur Auswahl</span>
+                {" · "}
+                <span class="graph-dir-out">ausgehend, Pfeil zum Nachbarn</span>
+              </p>
+              <NeighborList title="Wird verwendet von" count={selected.in} items={incoming} onSelect={props.onSelect} />
+              <NeighborList title="Verwendet" count={selected.out} items={outgoing} onSelect={props.onSelect} />
+            </>
+          )}
+        </section>
+      )}
+    </aside>
+  );
+}
+
+function NeighborList(props: { title: string; count: number; items: GalaxyNeighbor[]; onSelect: (path: string) => void }) {
+  return (
+    <div>
+      <h3 class="graph-neighbor-title">
+        {props.title} ({props.count})
+      </h3>
+      {props.items.length === 0 ? (
+        <p class="dim">keine</p>
+      ) : (
+        <ul class="graph-neighbors">
+          {props.items.map((n, i) => (
+            <li key={`${n.dir}:${n.hop}:${n.path}:${i}`}>
+              <button type="button" onClick={() => props.onSelect(n.path)}>
+                {n.path}
+                {n.hop === 2 ? " · 2" : ""} · {KIND_LABEL[n.kind]}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

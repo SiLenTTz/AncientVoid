@@ -1,0 +1,27 @@
+{
+  "name": "@ancientvoid/gateway-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "T4.6/T4.7 (EPIC-P4): MCP sidecar exposing the hub via 3 meta-tools (hub_search/hub_describe/hub_exec). Opt-in, never started by the hub itself — see src/main.ts's doc comment.",
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ../.. --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@ancientvoid/adapter-dummy": "0.1.0",
+    "@ancientvoid/core": "0.1.0",
+    "@ancientvoid/hub": "0.1.0",
+    "@ancientvoid/workers": "0.1.0",
+    "fastify": "^5.12.5",
+    "js-tiktoken": "^1.0.21"
+  }
+}

@@ -1,0 +1,657 @@
+[
+ {
+  "text": "Zeig wartende Sessions",
+  "label": "sessions.show",
+  "set": "dev"
+ },
+ {
+  "text": "zeig mir was auf mich wartet",
+  "label": "sessions.show",
+  "set": "dev"
+ },
+ {
+  "text": "Welche Sessions brauchen mich?",
+  "label": "sessions.show",
+  "set": "dev"
+ },
+ {
+  "text": "show waiting sessions",
+  "label": "sessions.show",
+  "set": "dev"
+ },
+ {
+  "text": "what is pending?",
+  "label": "sessions.show",
+  "set": "dev"
+ },
+ {
+  "text": "Zeig die aktiven Sessions",
+  "label": "sessions.show",
+  "set": "dev"
+ },
+ {
+  "text": "show running sessions",
+  "label": "sessions.show",
+  "set": "dev"
+ },
+ {
+  "text": "Liste alle Sessions",
+  "label": "sessions.show",
+  "set": "dev"
+ },
+ {
+  "text": "zeig die letzten Sessions",
+  "label": "sessions.show",
+  "set": "dev"
+ },
+ {
+  "text": "Öffne die Einstellungen",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "Einstellungen",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "go to settings",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "Zeig den Status",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "wie ist mein Kontingent",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "öffne die Freigaben",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "show approvals",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "zurück zur Übersicht",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "go home",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "Neue Session",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "zeig gefundene Sessions",
+  "label": "nav.open",
+  "set": "dev"
+ },
+ {
+  "text": "Öffne Login-Seite aufräumen",
+  "label": "session.open",
+  "set": "dev"
+ },
+ {
+  "text": "öffne die Doku-Session",
+  "label": "session.open",
+  "set": "dev"
+ },
+ {
+  "text": "open build beschleunigen",
+  "label": "session.open",
+  "set": "dev"
+ },
+ {
+  "text": "öffne parser tests auf home-server",
+  "label": "session.open",
+  "set": "dev"
+ },
+ {
+  "text": "open the codex parser session",
+  "label": "session.open",
+  "set": "dev"
+ },
+ {
+  "text": "geh zu Doku ergänzen",
+  "label": "session.open",
+  "set": "dev"
+ },
+ {
+  "text": "Starte Codex in Projekt beta: Tests für den Login schreiben",
+  "label": "session.create",
+  "set": "dev"
+ },
+ {
+  "text": "starte claude im projekt AncientVoid",
+  "label": "session.create",
+  "set": "dev"
+ },
+ {
+  "text": "Starte Codex in alpha auf home-server: Lint fixen",
+  "label": "session.create",
+  "set": "dev"
+ },
+ {
+  "text": "neue session mit claude in custom-rag",
+  "label": "session.create",
+  "set": "dev"
+ },
+ {
+  "text": "launch deepseek in gamma: Benchmarks laufen lassen",
+  "label": "session.create",
+  "set": "dev"
+ },
+ {
+  "text": "Starte bitte opencode im Projekt beta: README kürzen",
+  "label": "session.create",
+  "set": "dev"
+ },
+ {
+  "text": "kick off codex in AncientVoid: update deps",
+  "label": "session.create",
+  "set": "dev"
+ },
+ {
+  "text": "Antworte dort: bitte auch die Randfälle",
+  "label": "session.prompt",
+  "set": "dev"
+ },
+ {
+  "text": "antworte: ja, mach weiter",
+  "label": "session.prompt",
+  "set": "dev"
+ },
+ {
+  "text": "reply: looks good, continue",
+  "label": "session.prompt",
+  "set": "dev"
+ },
+ {
+  "text": "Sag ihr: nimm Vitest statt Jest",
+  "label": "session.prompt",
+  "set": "dev"
+ },
+ {
+  "text": "Schreib der Session Doku ergänzen: bitte mit Beispielen",
+  "label": "session.prompt",
+  "set": "dev"
+ },
+ {
+  "text": "antworte der Session Login-Seite: ok",
+  "label": "session.prompt",
+  "set": "dev"
+ },
+ {
+  "text": "tell the build session: try again",
+  "label": "session.prompt",
+  "set": "dev"
+ },
+ {
+  "text": "antworte",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "schreibe 'stopp' in die Nachricht",
+  "label": "field.fill",
+  "set": "dev"
+ },
+ {
+  "text": "Schreib „nicht stoppen“ ins Antwortfeld",
+  "label": "field.fill",
+  "set": "dev"
+ },
+ {
+  "text": "write 'stop the server' into the message box",
+  "label": "field.fill",
+  "set": "dev"
+ },
+ {
+  "text": "trag „bitte refactoren“ ein",
+  "label": "field.fill",
+  "set": "dev"
+ },
+ {
+  "text": "Korrigiere den Text",
+  "label": "field.transform",
+  "set": "dev"
+ },
+ {
+  "text": "kürze das",
+  "label": "field.transform",
+  "set": "dev"
+ },
+ {
+  "text": "übersetze ins Englische",
+  "label": "field.transform",
+  "set": "dev"
+ },
+ {
+  "text": "translate to german",
+  "label": "field.transform",
+  "set": "dev"
+ },
+ {
+  "text": "verbessere die Formulierung",
+  "label": "field.transform",
+  "set": "dev"
+ },
+ {
+  "text": "fix the typos",
+  "label": "field.transform",
+  "set": "dev"
+ },
+ {
+  "text": "Korrigiere den Text",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "Stoppe die Session",
+  "label": "session.stop",
+  "set": "dev"
+ },
+ {
+  "text": "stopp",
+  "label": "session.stop",
+  "set": "dev"
+ },
+ {
+  "text": "stop it",
+  "label": "session.stop",
+  "set": "dev"
+ },
+ {
+  "text": "Beende die Session Login-Seite",
+  "label": "session.stop",
+  "set": "dev"
+ },
+ {
+  "text": "Nicht stoppen!",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "don't stop the session",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "bitte nicht beenden",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "Halte die Session an",
+  "label": "session.park",
+  "set": "dev"
+ },
+ {
+  "text": "pause it",
+  "label": "session.park",
+  "set": "dev"
+ },
+ {
+  "text": "unterbrich den Zug",
+  "label": "session.park",
+  "set": "dev"
+ },
+ {
+  "text": "Archiviere die Session Doku ergänzen",
+  "label": "session.archive",
+  "set": "dev"
+ },
+ {
+  "text": "archive this",
+  "label": "session.archive",
+  "set": "dev"
+ },
+ {
+  "text": "hefte die Session Login-Seite an",
+  "label": "session.pin",
+  "set": "dev"
+ },
+ {
+  "text": "pin this",
+  "label": "session.pin",
+  "set": "dev"
+ },
+ {
+  "text": "löse die Session Login-Seite",
+  "label": "session.pin",
+  "set": "dev"
+ },
+ {
+  "text": "Benenne die Session um in Parser-Fixes",
+  "label": "session.rename",
+  "set": "dev"
+ },
+ {
+  "text": "rename this to Login cleanup",
+  "label": "session.rename",
+  "set": "dev"
+ },
+ {
+  "text": "Setz das Budget auf 5 Dollar",
+  "label": "session.budget",
+  "set": "dev"
+ },
+ {
+  "text": "budget auf 2,50",
+  "label": "session.budget",
+  "set": "dev"
+ },
+ {
+  "text": "raise the budget to 10",
+  "label": "session.budget",
+  "set": "dev"
+ },
+ {
+  "text": "Budget auf null",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "Übernimm die Änderungen ins Projekt",
+  "label": "session.apply",
+  "set": "dev"
+ },
+ {
+  "text": "merge the changes into main",
+  "label": "session.apply",
+  "set": "dev"
+ },
+ {
+  "text": "Such im Code nach parseToken",
+  "label": "code.search",
+  "set": "dev"
+ },
+ {
+  "text": "wo ist die Funktion createHubApp",
+  "label": "code.search",
+  "set": "dev"
+ },
+ {
+  "text": "find function startServer in the code",
+  "label": "code.search",
+  "set": "dev"
+ },
+ {
+  "text": "where is class SessionManager",
+  "label": "code.search",
+  "set": "dev"
+ },
+ {
+  "text": "Führe die Tests aus",
+  "label": "action.run",
+  "set": "dev"
+ },
+ {
+  "text": "run the tests",
+  "label": "action.run",
+  "set": "dev"
+ },
+ {
+  "text": "lass die tests laufen",
+  "label": "action.run",
+  "set": "dev"
+ },
+ {
+  "text": "git status",
+  "label": "action.run",
+  "set": "dev"
+ },
+ {
+  "text": "zeig git log",
+  "label": "action.run",
+  "set": "dev"
+ },
+ {
+  "text": "Gib die Freigabe frei",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "approve the tool request",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "erlaube das Werkzeug",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "lehne die Anfrage ab",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "setz meinen Gemini API-Key auf abc",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "zeig mir mein Token",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "wechsle das passwort",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "Starte Codex in Projekt beta, nein, in AncientVoid: Tests",
+  "label": "session.create",
+  "set": "dev"
+ },
+ {
+  "text": "Hallo, wie geht's?",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "asdf qwer",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "Was macht die Session gerade?",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "erkläre mir den Diff",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "danke!",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "thanks",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "show me the login session",
+  "label": "session.open",
+  "set": "dev"
+ },
+ {
+  "text": "Was sagt der Agent?",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "what did it say?",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "sagt er, dass die Tests grün sind?",
+  "label": "none",
+  "set": "dev"
+ },
+ {
+  "text": "Was wartet gerade auf mich?",
+  "label": "sessions.show",
+  "set": "heldout"
+ },
+ {
+  "text": "Zeig mir bitte alle laufenden Sitzungen",
+  "label": "sessions.show",
+  "set": "heldout"
+ },
+ {
+  "text": "Bring mich zu den Einstellungen",
+  "label": "nav.open",
+  "set": "heldout"
+ },
+ {
+  "text": "Mach die Freigaben-Seite auf",
+  "label": "nav.open",
+  "set": "heldout"
+ },
+ {
+  "text": "Öffne bitte die Session zum Login",
+  "label": "session.open",
+  "set": "heldout"
+ },
+ {
+  "text": "Spring zur Build-Session",
+  "label": "session.open",
+  "set": "heldout"
+ },
+ {
+  "text": "Starte Claude für AncientVoid: Lies die Architektur-Doku",
+  "label": "session.create",
+  "set": "heldout"
+ },
+ {
+  "text": "Mach eine neue Codex-Session im Projekt beta auf: Tests",
+  "label": "session.create",
+  "set": "heldout"
+ },
+ {
+  "text": "Fang mit opencode in beta an: README prüfen",
+  "label": "session.create",
+  "set": "heldout"
+ },
+ {
+  "text": "Antworte der Doku-Session: gerne auch englisch",
+  "label": "session.prompt",
+  "set": "heldout"
+ },
+ {
+  "text": "Sag Claude dort: nimm pnpm",
+  "label": "session.prompt",
+  "set": "heldout"
+ },
+ {
+  "text": "Schick ihr: die Tests laufen jetzt",
+  "label": "session.prompt",
+  "set": "heldout"
+ },
+ {
+  "text": "Beende bitte die Login-Session",
+  "label": "session.stop",
+  "set": "heldout"
+ },
+ {
+  "text": "Brich die aktuelle Session ab",
+  "label": "session.stop",
+  "set": "heldout"
+ },
+ {
+  "text": "Unterbrich sie kurz",
+  "label": "session.park",
+  "set": "heldout"
+ },
+ {
+  "text": "Pack die Doku-Session ins Archiv",
+  "label": "session.archive",
+  "set": "heldout"
+ },
+ {
+  "text": "Heft mir die Login-Session oben an",
+  "label": "session.pin",
+  "set": "heldout"
+ },
+ {
+  "text": "Nenn die Session um in Auth-Fix",
+  "label": "session.rename",
+  "set": "heldout"
+ },
+ {
+  "text": "Erhöhe das Budget auf 3 Euro",
+  "label": "session.budget",
+  "set": "heldout"
+ },
+ {
+  "text": "Übernimm das Ergebnis ins Projekt",
+  "label": "session.apply",
+  "set": "heldout"
+ },
+ {
+  "text": "Wo wird parseToken definiert?",
+  "label": "code.search",
+  "set": "heldout"
+ },
+ {
+  "text": "Suche nach der Klasse SessionManager im Code",
+  "label": "code.search",
+  "set": "heldout"
+ },
+ {
+  "text": "Lass die Tests laufen bitte",
+  "label": "action.run",
+  "set": "heldout"
+ },
+ {
+  "text": "Mach das Feld kürzer",
+  "label": "field.transform",
+  "set": "heldout"
+ },
+ {
+  "text": "Bitte Rechtschreibung korrigieren",
+  "label": "field.transform",
+  "set": "heldout"
+ },
+ {
+  "text": "Schreib 'bitte nicht löschen' ins Feld",
+  "label": "field.fill",
+  "set": "heldout"
+ },
+ {
+  "text": "Erlaube das",
+  "label": "none",
+  "set": "heldout"
+ },
+ {
+  "text": "Nein, doch nicht stoppen",
+  "label": "none",
+  "set": "heldout"
+ },
+ {
+  "text": "Wie viele Tokens hat das verbraucht?",
+  "label": "none",
+  "set": "heldout"
+ }
+]

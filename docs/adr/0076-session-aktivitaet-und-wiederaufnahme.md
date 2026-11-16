@@ -1,0 +1,97 @@
+# ADR-0076 — Offene Arbeit und automatische Wiederaufnahme
+
+**Status:** angenommen · **Datum:** 2026-11-13
+
+## Kontext
+
+BUG-0158/0155 und der Nutzerauftrag vom 13.11. verlangen verlässliche
+Eingabeannahme, Aktivstatus für Hintergrundarbeit und Fortsetzung nach
+unbeabsichtigten Unterbrechungen (K2/K7/K10). Der bestehende Heartbeat,
+JSONL-EventStore und die serialisierten Session-Eingaben bleiben die Naht.
+
+## Entscheidung
+
+- `AdapterContext.activity()` meldet strukturierte Arbeitseinheiten mit
+  stabiler ID, Art und Zustand; `interrupt()` meldet einen unabsichtlichen
+  Transport-/Laufverlust. Beide SDK-Erweiterungen sind optional und additiv.
+- Die Aktivitäts-Events (`session.activity_begin/end`, Register und Faltung
+  nach [ADR-0074](0074-session-aktivitaetsregister.md)) sind die Wahrheit
+  über offene Arbeit, auch nach Neustart. Ein Zugende bei offenen
+  Aktivitäten hält `working`; erst das letzte Ende erlaubt `idle`.
+  Ausfälle erzeugen sichtbaren Klärungsbedarf.
+- Externe Jobs können über eine authentifizierte Activity-Route und hubctl
+  registriert werden. Ihre laufende Registrierung hat einen Heartbeat;
+  eine abgelaufene Registrierung gilt als unklar, niemals als Erfolg.
+- Keine `heartbeat.md`, keine zusätzliche Cron-Infrastruktur: der vorhandene
+  Heartbeat prüft Provider, registrierte Arbeit und ausstehende Fortsetzungen.
+- `promptDelivery: "next-turn"` verweist Adapter ohne native Live-Eingabe auf
+  die persistente Hub-Queue. Ein Queue-Eintrag bleibt bis zum bestätigten Ack
+  erhalten; seine ID ist zugleich die Eingabe-Idempotenz-ID. Ein vor dem
+  Senden journalisierter Claim ohne bestätigtes Ergebnis wird nach Crash als
+  unklar angezeigt und niemals automatisch ein zweites Mal gesendet.
+- tmux-Steuerung, Generations-Logs und Pane-ID-Adoption regelt
+  [ADR-0075](0075-tmux-generationssteuerung.md) (BUG-0157, MR !454); dieses
+  ADR baut darauf auf, ohne dessen Mechanismus zu wiederholen.
+- Automatische Fortsetzung verwendet denselben Arbeitsort, dieselbe native
+  Session und die Eingabeserialisierung. Adapter müssen native Fortsetzung
+  ausdrücklich unterstützen. Ein fester Fortsetzungshinweis bittet um
+  Prüfung bereits erledigter Schritte; es wird kein alter Schreibbefehl replayt.
+- Nutzer-Stopp/Pause, Kontingente und nicht-technische Providerfehler werden
+  nicht automatisch wiederholt. Erkannte Netzwerk-/Serverfehler können eine
+  Fortsetzung auslösen. Rate-/Wochenlimits bleiben sichtbar. Ein fehlendes
+  Native-Handle oder fehlgeschlagener Wiederanlauf bietet Abbruch/Übergabe an.
+- Neue Interrupt-Ereignisse tragen die Wiederaufnahmeberechtigung. Alte
+  unterbrochene Aufträge werden beim Aktivieren nicht ungefragt neu gestartet.
+- Höchstens drei Wiederaufnahmen ohne erfolgreichen Zugabschluss. Der Zähler
+  folgt aus dem Journal; Neustarts setzen ihn nicht zurück. Danach ist eine
+  menschliche Entscheidung nötig. Ein ausdrücklicher neuer Auftrag setzt
+  eine neue Grenze. Überlebende Provider werden erst adoptiert/abgeglichen;
+  unklare externe Arbeit darf keinen zweiten Auftrag auslösen.
+- Kein HTTP-Agent kann über die Resume-Route automatisches Resume erzwingen.
+  Die Berechtigung bleibt intern; Activity-Meldungen starten keine Befehle.
+- Health/Readiness melden optional `DeploymentIdentity` mit laufendem Hub-
+  SHA (beim Start eingefroren), Checkout-SHA und PWA-Build-SHA. Vite schreibt
+  dazu `version.json`; fehlende Git-/Build-Metadaten bleiben unbekannt. Die
+  Statusseite zeigt einen abweichenden Stand, statt aus einem Merge ein
+  erfolgreiches Deployment abzuleiten.
+
+## Folgen und Nachweise
+
+Tests müssen RPC-Ablehnungen, keine Wiederholung nach Nutzer-/Quota-Stopp,
+Crash-/Heartbeat-Recovery, generationstreue Activity-Enden, K7-Replay,
+Wiederanlauflimit sowie sichtbare Abbruch-/Übergabeaktionen abdecken.
+Jeder neue UI-/HTTP-Ablauf erhält E2E-Abdeckung. Die bisherigen Adapter
+bleiben ohne SDK-Nutzung lauffähig; Capability-Opt-ins brauchen Adaptertests.
+
+## Nachtrag 2026-11-16 — Limit-Wiederaufnahme als ausdrückliche Nutzer-Option
+
+Nutzerfund 15.11.2026 (Presentation-Session, Claude „You've hit your session
+limit"): Kontingent-/Rate-Limit-Endlagen bleiben zwar sichtbar und manuell —
+aber der Mensch kann jetzt pro Session ausdrücklich verlangen, dass der Hub
+nach dem Limit-Fenster automatisch weitermacht.
+
+- `SessionRecord.autoResumeOnLimit` (DB-Migration 33, Default aus). Nur
+  Menschen/Fleet dürfen sie schalten (`setAutoResumeOnLimit`); kein Agent
+  hält sich so selbst am Laufen — gleiche Grenze wie bei der Resume-Route.
+- Starb der Zug ausschließlich am Kontingent/Rate-Limit (quota/rate_limit,
+  cursor.usage_limit), wird mit Option aus `error` die sichtbare
+  Wartestellung `interrupted` (reason `provider_limit`, Payload `limit`,
+  `resumesAt`), nicht eine Endlage. Gemischte/andere Fehler bleiben `error`.
+  Gleiches gilt nachträglich über die Option an einer error-Session
+  (Übergang error → interrupted, sonst nirgends automatisch).
+- Das Freigabefenster liest der Hub aus dem Journal (ADR-0004 `usageQuota`,
+  früheste zukünftige `resetsAt` der ausgelasteten Fenster). Läuft das
+  Fenster, wartet die Wiederaufnahme still — kein Attempt verbraucht, der
+  Heartbeat (30 s) prüft erneut. Ohne Fensterangabe: eine sichtbare
+  Klärung (recovery_blocked), nie blindes Rätschlagen.
+- Die Option erweitert nie die generische technische Auto-Wiederaufnahme:
+  Nur `session.interrupted`-Events mit `limit: true` fallen unter sie; alle
+  anderen Gründe brauchen weiterhin die globale Konfiguration. Drei-Atem-
+  Grenze und native-Resume-Pflicht gelten unverändert.
+- Contracts-Folgen: `SessionInterruptionReason` + `provider_limit`,
+  `SessionInterruptionPayload` + `limit`/`resumesAt`, `UsageWindow.utilization`
+  ohne Obergrenze (Provider melden real >1.0, z. B. 1.03 — eine Kappe
+  ließ die Events bei jedem Replay still verschwinden).
+- Nachweise: `packages/core/test/modules/sessions/limit-auto-resume.test.ts`,
+  `e2e/specs/limit-auto-resume.spec.ts`, PWA-Banner (Fehler wie Wartestellung
+  zeigen Option, Zustand und Freigabezeit).

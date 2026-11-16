@@ -1,0 +1,18 @@
+/* EPIC-P41 (ADR-0064): Automationen — Liste, Editor, Vorschau, Verlauf. */
+
+.automation-row-main { display: grid; grid-template-columns: 1fr auto; gap: 2px 6px; text-align: left; padding: 0; background: none; border: 0; cursor: pointer; color: inherit; min-width: 0; }
+.automation-row-actions { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+
+.automation-form { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--bg-chip); border-radius: var(--radius-sm); }
+.automation-form h4 { margin: 0; }
+.automation-form label { display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; }
+.automation-form fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.automation-form legend { font-size: 0.85em; padding: 0; }
+.automation-form-actions { display: flex; gap: 6px; }
+
+.automation-occurrences { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.9em; }
+
+/* ADR-0080: spontaner Lauf ohne Plan — eigene Karte über der Liste, gleiche Form-Sprache. */
+.automation-tempsession { background: var(--bg-chip); }
+.automation-tempsession h4 { margin: 0; }
+.automation-tempsession textarea { resize: vertical; }

@@ -1,0 +1,171 @@
+/* T9.4: one text entry for the hub (✦, Ctrl/Cmd+K). A dialog on purpose. */
+.command-open {
+  font-size: calc(18px * var(--font-scale, 1));
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.command-sheet {
+  position: fixed;
+  z-index: 60;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(640px, calc(100vw / var(--ui-zoom, 1) - 16px));
+  max-height: calc((100dvh / var(--ui-zoom, 1)) - 32px);
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-elev);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px color-mix(in srgb, black 55%, transparent);
+}
+
+.command-form {
+  display: flex;
+  gap: 6px;
+}
+
+.command-form input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.command-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.command-field {
+  flex-basis: 100%;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+
+.command-refusal {
+  color: var(--warn);
+}
+
+.command-question,
+.command-plan,
+.command-results,
+.command-edit {
+  display: grid;
+  gap: 6px;
+}
+
+.command-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.command-step {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.command-risk {
+  flex: 0 0 auto;
+  font-size: calc(11px * var(--font-scale, 1));
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-chip);
+}
+
+.command-step.risk-write .command-risk {
+  background: color-mix(in srgb, var(--warn) 30%, transparent);
+  color: var(--warn);
+}
+
+.command-step.risk-destructive .command-risk {
+  background: color-mix(in srgb, var(--err) 30%, transparent);
+  color: var(--err);
+}
+
+.command-planner {
+  font-size: calc(11px * var(--font-scale, 1));
+}
+
+.command-result.ok {
+  color: var(--ok);
+}
+
+.command-result.failed {
+  color: var(--err);
+}
+
+.command-diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.command-before,
+.command-after {
+  white-space: pre-wrap;
+  font-size: calc(13px * var(--font-scale, 1));
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.command-before {
+  text-decoration: line-through;
+  color: var(--fg-dim);
+}
+
+.status-filter {
+  margin: 6px 0 0;
+}
+
+/* EPIC-P43 T43.6: Schnellsuche — Treffer über den Beispielen, Art links, Ziel, Hinweis rechts. */
+.quick-jumps {
+  display: grid;
+  gap: 2px;
+}
+
+.quick-jump {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--target, 44px);
+  padding: 4px 8px;
+  text-align: left;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
+}
+
+.quick-jump:hover,
+.quick-jump.selected {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.quick-kind {
+  font-size: calc(11px * var(--font-scale, 1));
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.quick-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.quick-detail {
+  font-size: calc(12px * var(--font-scale, 1));
+}

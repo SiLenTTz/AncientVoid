@@ -1,0 +1,33 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "composite": false,
+    "types": ["node"]
+  },
+  "include": [
+    "packages/*/src",
+    "packages/*/test",
+    "packages/adapters/*/src",
+    "packages/adapters/*/test",
+    "packages/loops/*/src",
+    "packages/loops/*/test",
+    "apps/hub/src",
+    "apps/hub/test",
+    "apps/hubctl/src",
+    "apps/hubctl/test",
+    "apps/gateway-mcp/src",
+    "apps/gateway-mcp/test",
+    "apps/companion/src",
+    "apps/companion/test",
+    "scripts",
+    "e2e",
+    "examples",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "playwright.live.config.ts",
+    "eslint.config.mjs"
+  ],
+  "exclude": ["apps/pwa"]
+}
