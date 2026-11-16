@@ -1,0 +1,59 @@
+# EPIC-P62 T62.7 (ADR-0082): Promo-Seite bauen, Lighthouse-Gates messen,
+# nach GitHub Pages deployen. Nur main, nur wenn apps/site/ oder dieser
+# Workflow sich ändert; Actions per SHA gepinnt; minimale Rechte.
+name: site-deploy
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps/site/**", ".github/workflows/site-deploy.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: site-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm -w @ancientvoid/site run build
+      - name: Lighthouse-Gates (Mobile Perf ≥ 90, A11y ≥ 95 — ADR-0082)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq chromium-browser > /dev/null
+          npx --yes serve@14 -l 8641 apps/site/dist &
+          sleep 2
+          npx --yes lighthouse@12 http://127.0.0.1:8641 \
+            --chrome-flags="--headless --no-sandbox" --output=json --output-path=lh.json --only-categories=performance,accessibility
+          node -e '
+            const lh = require("./lh.json");
+            const p = Math.round(lh.categories.performance.score * 100);
+            const a = Math.round(lh.categories.accessibility.score * 100);
+            console.log(`Lighthouse: Performance ${p}, Accessibility ${a}`);
+            if (p < 90 || a < 95) { console.error("Budget verfehlt (ADR-0082: Perf >= 90, A11y >= 95)"); process.exit(1); }
+          '
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: apps/site/dist
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.0
