@@ -174,6 +174,15 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     return deps.sessions.tail(id, Number.isFinite(afterSeq) ? afterSeq : 0, limit);
   });
 
+  /** ADR-0084: Token-Bilanz — „erzeugt“ und „verarbeitet“ getrennt, abgeleitet aus
+   * dem EventStore. lastSeq ist nur der Cache-Schlüssel des Clients, keine Wahrheit. */
+  app.get("/api/sessions/:id/tokens", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const record = deps.sessions.get(id);
+    if (!record) return reply.code(404).send({ error: "unknown session" });
+    return { ...(await deps.sessions.tokenTotals(id)), lastSeq: record.lastSeq };
+  });
+
 
   app.get("/api/sessions/:id/diff", async (req, reply) => {
     // T1.6-4/T1.6-5: session.project already passed the containment check

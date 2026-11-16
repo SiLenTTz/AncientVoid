@@ -3,3 +3,4 @@ export { SessionManager, type AdapterUsageSnapshot, type SessionManagerObservabi
 export { sessionTitle } from "./session-state.ts";
 export { DraftStore, type SaveDraftResult } from "./drafts.ts";
 export { describeToolInput, type ToolGate } from "./tool-permissions.ts";
+export { createTokenTally, tokenTotalsOf, type SessionTokenTotals, type TokenTally } from "./token-totals.ts";

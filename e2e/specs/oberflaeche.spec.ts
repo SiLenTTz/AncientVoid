@@ -104,7 +104,7 @@ test.describe("Schimmernde Kontextleiste (EPIC-P20 T20.5)", () => {
     await expect(bar(app)).toHaveAttribute("aria-valuenow", "1");
     await expect(bar(app)).toHaveClass(/ok/);
     await expect(bar(app)).toHaveAttribute("aria-valuetext", "Kontext 1 % · frei 129.962 von 131.072");
-    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 2.224 Tokens · Kontext 1 % · frei 129.962 von 131.072");
+    await expect(app.locator(".run-strip .run-tokens")).toHaveText("70 Tokens erzeugt · 2.224 Tokens verarbeitet · Kontext 1 % · frei 129.962 von 131.072");
     // The filled part shimmers: an animation runs on the sweep.
     const animated = await bar(app).locator(".ctx-fill").evaluate((el) => getComputedStyle(el, "::after").animationName);
     expect(animated).toBe("ctx-shimmer");

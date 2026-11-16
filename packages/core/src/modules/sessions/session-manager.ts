@@ -26,6 +26,7 @@ import { deriveTurnMetrics, TurnMetricStore } from "../runs/index.ts";
 import { buildHandoverPrompt, HANDOVER_PROMPT_MAX } from "../handover/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
 import { askTitleModel } from "./session-title.ts";
+import { createTokenTally, type SessionTokenTotals } from "./token-totals.ts";
 import type { PlannerModelConfig } from "../commands/model.ts";
 import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS, foldActivities, limitFailureInEvents, limitWindow } from "./session-state.ts";
 import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
@@ -2303,6 +2304,24 @@ export class SessionManager {
 
   async tail(sessionId: string, afterSeq: number, limit?: number): Promise<NormalizedEvent[]> {
     return this.store.tail(sessionId, afterSeq, limit);
+  }
+
+  /**
+   * ADR-0084: Token-Bilanz der Session — „erzeugt“ und „verarbeitet“ getrennt.
+   * Abgeleitet und seitenweise gezählt (kein neuer Zustand, K7): große Sessions
+   * landen nie komplett im Speicher.
+   */
+  async tokenTotals(sessionId: string, pageSize = 1000): Promise<SessionTokenTotals> {
+    const tally = createTokenTally();
+    let after = 0;
+    for (;;) {
+      const page = await this.store.tail(sessionId, after, pageSize);
+      if (page.length === 0) break;
+      tally.add(page);
+      after = page[page.length - 1]!.seq;
+      if (page.length < pageSize) break;
+    }
+    return tally.result();
   }
 
   async readBlob(sessionId: string, hash: string): Promise<Buffer> {
