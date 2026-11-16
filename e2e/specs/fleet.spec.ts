@@ -170,6 +170,48 @@ test.describe("Flotte (EPIC-P6)", () => {
     }
   });
 
+  test("BUG-0188: neues Projekt wird auf dem gewählten Host angelegt", async ({ app, hub }) => {
+    const peer = await TestHub.start({ hostId: "home-server", label: "home-server" });
+    try {
+      await pair(hub, peer);
+      await app.reload();
+      await app.getByRole("button", { name: "Neue Session" }).click();
+      await app.getByLabel("Host").selectOption("home-server");
+      await expect(app.getByLabel("Projekt")).toContainText("alpha (main)");
+      await app.getByPlaceholder("neues Projekt (Name)").fill("fern-projekt");
+      await app.getByRole("button", { name: "+ Anlegen" }).click();
+      // Die Neuanlage läuft über die host-gebundene API: Liste und Pfad
+      // kommen vom gewählten Host, nicht vom heimischen.
+      await expect(app.getByLabel("Projekt")).toContainText("fern-projekt");
+      expect(await app.getByLabel("Pfad").inputValue()).toContain(peer.projectsDir);
+      const peerList = await peer.api<{ projects: { name: string }[] }>("/api/projects");
+      expect(peerList.body.projects.some((p) => p.name === "fern-projekt")).toBe(true);
+      const homeList = await hub.api<{ projects: { name: string }[] }>("/api/projects");
+      expect(homeList.body.projects.some((p) => p.name === "fern-projekt")).toBe(false);
+    } finally {
+      await peer.stop();
+    }
+  });
+
+  test("BUG-0188: Host steht in der Neuanlage über Projekt und Pfad", async ({ app, hub }) => {
+    const peer = await TestHub.start({ hostId: "home-server", label: "home-server" });
+    try {
+      await pair(hub, peer);
+      await app.reload();
+      await app.getByRole("button", { name: "Neue Session" }).click();
+      await expect(app.getByLabel("Host")).toBeVisible();
+      // Pfad und wählbares Repo hängen vom Host ab — deshalb führt er das
+      // Formular an, nicht Projekt/Pfad.
+      const labels = await app.locator(".form-grid label").evaluateAll((els) => els.map((e) => (e.textContent ?? "").trim()));
+      const at = (prefix: string) => labels.findIndex((t) => t.startsWith(prefix));
+      expect(at("Host")).toBe(0);
+      expect(at("Projekt")).toBeGreaterThan(at("Host"));
+      expect(at("Pfad")).toBeGreaterThan(at("Host"));
+    } finally {
+      await peer.stop();
+    }
+  });
+
   test("T6.3/AC-P6-3: ein Host fällt aus — die anderen bleiben bedienbar, sein Stand bleibt sichtbar", async ({ app, hub }) => {
     const peer = await TestHub.start({ hostId: "home-server", label: "home-server" });
     try {

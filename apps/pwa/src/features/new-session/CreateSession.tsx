@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
 import { LoopPicker } from "../loops/LoopPicker.tsx";
 import type { LoopInfo, LoopSpec } from "@ancientvoid/contracts";
 import { emptyOnboard, isOnboarding, loopBlocker, type OnboardDraft } from "../loops/loop-form.ts";
-import { hubApi, hostApi, type AdapterInfo, type DiscoveredProject, type FleetHost, type ModelOption, type SessionRecord } from "../../shared/api.ts";
+import { hubApi, hostApi, type AdapterInfo, type DiscoveredProject, type FleetHost, type HubApi, type ModelOption, type SessionRecord } from "../../shared/api.ts";
 import type { AttachmentRecord } from "../../shared/api.ts";
 import { ApiContext } from "../../shared/api-context.ts";
 import { Composer } from "../composer/Composer.tsx";
@@ -35,6 +35,19 @@ export function preselectProject(path: string): void {
  * der Nachlade-Effekt einen gültig erscheinenden Wert nie korrigierte. */
 export function initialAdapter(last: { adapter?: string } | undefined, adapters: readonly { id: string }[]): string {
   return last?.adapter ?? adapters[0]?.id ?? "dummy";
+}
+
+/** BUG-0188: Anlegen und Nachladen laufen über denselben (host-gebundenen)
+ * API-Stub — ein neues Projekt landet auf dem gewählten Host, nicht
+ * versehentlich auf dem heimischen, und Liste wie Pfad kommen von dort. */
+export async function createProjectOnHost(
+  api: Pick<HubApi, "createProject" | "projects">,
+  name: string,
+): Promise<{ projects: DiscoveredProject[]; project: string } | null> {
+  const res = await api.createProject(name);
+  if (!res.created && !res.project) return null;
+  const list = await api.projects();
+  return { projects: list.projects, project: res.project.path };
 }
 
 export function CreateSession({
@@ -119,12 +132,13 @@ export function CreateSession({
     setCreating(true);
     setError("");
     try {
-      const res = await hubApi.createProject(name);
-      if (res.created || res.project) {
+      // BUG-0188: über den host-gebundenen API-Stub (`api`), nicht hubApi —
+      // sonst git-init't der heimische Hub und der Pfad stammt vom falschen Host.
+      const made = await createProjectOnHost(api, name);
+      if (made) {
         setNewProject("");
-        const list = await hubApi.projects();
-        setProjects(list.projects);
-        setProject(res.project.path);
+        setProjects(made.projects);
+        setProject(made.project);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -312,9 +326,22 @@ export function CreateSession({
   return (
     <ApiContext.Provider value={api}>
     <div class="card form-grid">
-      {/* Projekt zuerst: jede weitere Angabe (Pfad, gemerkter Skill,
-          Workflow) hängt an ihm — der Pfad wird aus der Auswahl vorbelegt
-          und bleibt darunter überschreibbar. */}
+      {/* BUG-0188: Der Host führt das Formular an — Pfad, wählbares Repo,
+          Adapter und Skills hängen alle von ihm ab; erst danach folgen
+          Projekt und Pfad. */}
+      {hosts.length > 1 && (
+        <label>
+          Host
+          <select value={host ?? ""} onChange={(e) => setHost((e.target as HTMLSelectElement).value)}>
+            {hosts.map((h) => (
+              <option key={h.hostId} value={h.hostId} disabled={h.state !== "reachable"}>
+                {h.hostId}
+                {h.self ? " (dieser)" : h.state !== "reachable" ? ` (${h.state})` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label>
         Projekt
         {projects === null ? (
@@ -371,19 +398,6 @@ export function CreateSession({
           spellcheck={false}
         />
       </label>
-      {hosts.length > 1 && (
-        <label>
-          Host
-          <select value={host ?? ""} onChange={(e) => setHost((e.target as HTMLSelectElement).value)}>
-            {hosts.map((h) => (
-              <option key={h.hostId} value={h.hostId} disabled={h.state !== "reachable"}>
-                {h.hostId}
-                {h.self ? " (dieser)" : h.state !== "reachable" ? ` (${h.state})` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
       <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); setOnboard(emptyOnboard); }} onboard={onboard} onOnboard={setOnboard} reload={loopReload} initial={last.loop ?? null} project={project} />
       {(!loop || loop.id === "securesight-factory") && (
         <>

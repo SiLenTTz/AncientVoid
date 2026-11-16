@@ -57,6 +57,10 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (path.startsWith("/api/tokens") || path.startsWith("/api/webauthn/register")) return "tokens.manage";
   if (path === "/api/fleet/pairing") return "fleet.unpair";
   if (path.startsWith("/api/fleet/")) return "fleet.manage";
+  // BUG-0188 (T-PJ1): Projekt anlegen (git init in projectRoots dieses Hosts)
+  // — ohne Mapping galt hier fail-closed deny, auch für den Heim-Hub eines
+  // Menschen (ADR-0017 Positivliste „Projekte").
+  if (path === "/api/projects" && method === "POST") return "projects.create";
   if (path === "/api/skills") return "skills.write";
   if (path.startsWith("/api/attachments")) return "attachments.upload";
   if (path.startsWith("/api/settings") || path.startsWith("/api/vault") || path === "/api/push/enabled") return "settings.manage";
