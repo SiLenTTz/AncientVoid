@@ -1,7 +1,7 @@
 ---
 id: BUG-0186
 slug: installierte-app-dreht-nicht-mit-trotz-freiem-manifest
-status: done
+status: in Arbeit
 severity: S2
 area: pwa
 instance: handy

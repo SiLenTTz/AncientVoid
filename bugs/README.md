@@ -207,7 +207,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0183](bug-0183-test-laeufe-ueberschreiben-das-live-buendel-des-hubs.md) | Playwright- und Guide-Läufe bauten in `apps/pwa/dist` — derselbe Ordner, den der laufende Hub am Handy servt: Fixes waren weg, ohne dass jemand deployt hätte | done | S1 | tests | [#50](https://github.com/SiLenTTz/AncientVoid/pull/50) |
 | [BUG-0184](bug-0184-token-summe-ist-kontext-quadrat-statt-verbrauch.md) | „Σ 244 Mio Tokens“ ist der aufaddierte Kontext (1.744 Aufrufe × Verlauf), nicht der Verbrauch — Erzeugtes ist nirgends sichtbar | done | S1 | pwa | [#48](https://github.com/SiLenTTz/AncientVoid/pull/48) |
 | [BUG-0185](bug-0185-token-bilanz-steht-auf-fruehem-abruf.md) | Token-Bilanz der Statuszeile bleibt auf dem Abruf vor dem Zug-Ende stehen — „erzeugt/verarbeitet“ fehlen dauerhaft; Inventarzeile S20 mit zwei Nachweisen rot | done | S2 | pwa | [#54](https://github.com/SiLenTTz/AncientVoid/issues/54) |
-| [BUG-0186](bug-0186-installierte-app-dreht-nicht-mit-trotz-freiem-manifest.md) | Installierte App dreht nicht mit, obwohl das Manifest frei ist: der Service Worker bewahrte das alte Manifest im Cache, und ohne Aenderung an sw.js installiert Chrome nie einen neuen Worker | done | S2 | pwa | — |
+| [BUG-0186](bug-0186-installierte-app-dreht-nicht-mit-trotz-freiem-manifest.md) | Installierte App dreht nicht mit, obwohl das Manifest frei ist: der Service Worker bewahrte das alte Manifest im Cache, und ohne Aenderung an sw.js installiert Chrome nie einen neuen Worker — auf Kais Gerät dreht es weiter nicht | in Arbeit | S2 | pwa | — |
 
 
 | [BUG-0169](bug-0169-e2e-global-setup-npm-auf-windows.md) | E2E-Global-Setup spawnnt `npm` ohne Shell — auf Windows läuft kein einziger E2E-Test | done | S3 | e2e | — |
