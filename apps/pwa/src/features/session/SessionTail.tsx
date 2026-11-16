@@ -629,10 +629,12 @@ export function SessionTail({
     return () => {
       alive = false;
     };
-  }, [api, session.id, tokenRefresh]);
+  }, [api, session.id, tokenRefresh, status]);
   // Die Zahlen waechst mit jedem Modell-Aufruf. Nachgeladen wird alle 10 s, nicht pro
   // Ereignis: der Hub geiht dafuer durch die ganze Historie (K2). Still stehende
-  // Sessions holen einmal.
+  // Sessions holen einmal. `status` in den Deps oben: eine beim Mount geladene
+  // Bilanz ist oft noch vor dem Zug-Ende geholt (alle null) — ohne Nachladen beim
+  // Übergang zu idle stünde sie für immer da (BUG-0185).
   useEffect(() => {
     if (status !== "working") return;
     const timer = setInterval(() => setTokenRefresh((n) => n + 1), 10_000);

@@ -206,7 +206,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0181](bug-0181-app-dreht-nicht-mit-und-querformat-ohne-leshoehe.md) | App dreht nicht mit (Manifest `portrait-primary`); gedreht fraß der Dock 278 von 412 px, der Chat behielt 48 px | done | S2 | pwa | — |
 | [BUG-0183](bug-0183-test-laeufe-ueberschreiben-das-live-buendel-des-hubs.md) | Playwright- und Guide-Läufe bauten in `apps/pwa/dist` — derselbe Ordner, den der laufende Hub am Handy servt: Fixes waren weg, ohne dass jemand deployt hätte | done | S1 | tests | [#50](https://github.com/SiLenTTz/AncientVoid/pull/50) |
 | [BUG-0184](bug-0184-token-summe-ist-kontext-quadrat-statt-verbrauch.md) | „Σ 244 Mio Tokens“ ist der aufaddierte Kontext (1.744 Aufrufe × Verlauf), nicht der Verbrauch — Erzeugtes ist nirgends sichtbar | done | S1 | pwa | [#48](https://github.com/SiLenTTz/AncientVoid/pull/48) |
-| [BUG-0185](bug-0185-installierte-app-dreht-nicht-mit-trotz-freiem-manifest.md) | Installierte App dreht nicht mit, obwohl das Manifest frei ist: der Service Worker bewahrte das alte Manifest im Cache, und ohne Aenderung an sw.js installiert Chrome nie einen neuen Worker | done | S2 | pwa | — |
+| [BUG-0185](bug-0185-token-bilanz-steht-auf-fruehem-abruf.md) | Token-Bilanz der Statuszeile bleibt auf dem Abruf vor dem Zug-Ende stehen — „erzeugt/verarbeitet“ fehlen dauerhaft; Inventarzeile S20 mit zwei Nachweisen rot | done | S2 | pwa | [#54](https://github.com/SiLenTTz/AncientVoid/issues/54) |
+| [BUG-0186](bug-0186-installierte-app-dreht-nicht-mit-trotz-freiem-manifest.md) | Installierte App dreht nicht mit, obwohl das Manifest frei ist: der Service Worker bewahrte das alte Manifest im Cache, und ohne Aenderung an sw.js installiert Chrome nie einen neuen Worker | done | S2 | pwa | — |
 
 
 | [BUG-0169](bug-0169-e2e-global-setup-npm-auf-windows.md) | E2E-Global-Setup spawnnt `npm` ohne Shell — auf Windows läuft kein einziger E2E-Test | done | S3 | e2e | — |
@@ -222,6 +223,5 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 
 Die nächste freie Nummer ist **0187** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
-0183 mit PR #50 und 0184 mit PR #48 gemerged; 0180 ist dieser Z-Fold-Zweig PR #40, 0185 im
-offenen PR #58 (Token-Bilanz beim Zug-Ende), 0186 ist das eingemauerte Manifest auf dem
-Handy).
+0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
+0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy).
