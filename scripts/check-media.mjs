@@ -20,6 +20,7 @@
  * Tests: scripts/check-media.test.mjs (jede Regel rot-vor-grün dort).
  */
 import { execFileSync } from "node:child_process";
+import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 /** Test-Fixtures dürfen Medienartiges halten (Medienanalyse-Tests brauchen

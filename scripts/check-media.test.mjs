@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { execFileSync } from "node:child_process";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
