@@ -45,10 +45,12 @@ Links auf `gitlab.com/SiLenT_Tz/…` zeigen auf das private Archiv.
 | `e2e-shards` + `e2e` (`nightly.yml`) | Playwright Chromium gegen einen echten Hub, danach Skip-Bericht (4 Shards parallel, Browser-Cache); der Aggregations-Job `e2e` fasst die Shard-Berichte nach denselben Regeln zusammen (fehlender Bericht, null Tests, Failures — `scripts/ci-e2e-aggregate.mjs`) | `npm run test:e2e` |
 
 Der PR-Gate läuft auf jedem PR (auch reine Doku- und Dependabot-PRs);
-Pushes nach `main` aktualisieren `ci/full-suite` per Fast-forward (keine eigenen Commits auf diesem Zweig).
+`pipeline-sync.yml` aktualisiert nach Pushes auf `main` den Zweig `ci/full-suite` per Fast-forward (keine eigenen Commits auf diesem Zweig).
 Die vollen Läufe (`nightly.yml`) laufen um 03:00/15:00 UTC und per
 `workflow_dispatch`; alle Jobs prüfen denselben beim Start festgehaltenen SHA.
 Ein Push startet nur die Branch-Synchronisierung, keine Vollsuite.
+Der Sync-Workflow hat eine eigene Concurrency-Gruppe und wartet nicht auf
+einen laufenden Volltest. Nightly liest den Testbranch mit Leserechten.
 Laufende Vollsuiten werden durch neue Pushes nicht abgebrochen. Die genaue Schrittfolge
 steht ausschließlich in `ci.yml` und `nightly.yml`. **K8 bleibt
 20 Sessions × 30 Events/s**, lokal wie in CI; keine Job-Konfiguration darf
@@ -154,7 +156,8 @@ Belege (Run-IDs) im jeweiligen PR bzw. Epic unter Abschlussnachweisen.
 
 ## 7. Automatische CI-Bugs (EPIC-P28, K1–K10)
 
-`nightly-bugs.yml` reagiert auf fehlgeschlagene `nightly`-Läufe, auch wenn
+`nightly-bugs.yml` reagiert auf fehlgeschlagene `nightly`- und
+`pipeline-sync`-Läufe, auch wenn
 das Setup oder die Branch-Synchronisierung scheitert. Pro fehlgeschlagenem
 Job entsteht ein GitHub-Issue mit Label `bug`, SHA, Branch, Run-/Job-Link
 und Reproduktionshinweis. Ein vorhandener offener Bug desselben Jobs wird
@@ -164,10 +167,10 @@ Abgebrochene Läufe erzeugen keinen Produktbug und bleiben als Abbruch sichtbar.
 
 Der Reporter führt ausschließlich Code von `main` aus, liest Job-Metadaten
 über die API und führt weder Logs noch Artefakte aus. Nur dieser Workflow
-hat `issues: write`; nur der Sync-Job hat `contents: write`. Tests selbst
+hat `issues: write`; nur `pipeline-sync.yml` hat `contents: write`. Tests selbst
 haben Leserechte. Die Implementierung und Negativfälle stehen in
 `scripts/ci-pipeline.mjs` und `scripts/ci-pipeline.test.mjs`.
 
 Historische Fehler lassen sich per `gh workflow run nightly-bugs.yml -f run_id=<ID>`
 nacherfassen (z. B. nach einem Reporter-Ausfall). Es werden nur fehlgeschlagene
-`nightly`-Läufe ausgewertet, keine PR-Workflows.
+`nightly`-/`pipeline-sync`-Läufe ausgewertet, keine PR-Workflows.
