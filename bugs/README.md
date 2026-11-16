@@ -171,10 +171,10 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0158](bug-0158-codex-ablehnung-als-erfolg.md) | Codex bestätigt abgelehnte Folgeeingaben als angenommen | done | S2 | adapter-codex | [#61](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/61) |
 | [BUG-0159](bug-0159-nyx-fab-feedback-blende-steht-dauerhaft.md) | Feedbackblende des Nyx-Voice-FAB steht nach der Aufnahme dauerhaft | done | S3 | pwa | [#457](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/457) |
 | [BUG-0160](bug-0160-galaxy-route-verliert-tab-bei-kacheloffnung.md) | Graph-Deep-Link verliert den Reiter beim Öffnen der Kachel | done | S3 | pwa | — |
-| [BUG-0161](bug-0161-session-start-fehlt-bei-neuem-ordner.md) | Session-Start in noch nicht existierendem Ordner scheitert mit falscher Begründung | open | S2 | core | — |
-| [BUG-0162](bug-0162-ordner-ohne-git-nicht-waehlbar.md) | Ordner ohne `.git` erscheinen nie in der Projektauswahl | open | S3 | core | — |
-| [BUG-0163](bug-0163-neue-session-vergisst-letzten-pfad.md) | Gemerkter Pfad, Anlegen-Block und Wurzelhinweis hängen an der Zahl gefundener Git-Ordner | open | S3 | pwa | — |
-| [BUG-0164](bug-0164-zweite-session-im-gleichen-ordner.md) | Zweite Session im selben Ordner ist ohne Git eine Sackgasse | open | S2 | core | — |
-| [BUG-0165](bug-0165-projektfilter-vergleicht-slash-pfade.md) | `outsideRoots()` vergleicht mit `/` und filtert Windows-Sessions komplett weg | open | S2 | core | — |
+| [BUG-0161](bug-0161-session-start-fehlt-bei-neuem-ordner.md) | Session-Start in noch nicht existierendem Ordner scheitert mit falscher Begründung | done | S2 | core | — |
+| [BUG-0162](bug-0162-ordner-ohne-git-nicht-waehlbar.md) | Ordner ohne `.git` erscheinen nie in der Projektauswahl | done | S3 | core | — |
+| [BUG-0163](bug-0163-neue-session-vergisst-letzten-pfad.md) | Gemerkter Pfad, Anlegen-Block und Wurzelhinweis hängen an der Zahl gefundener Git-Ordner | done | S3 | pwa | — |
+| [BUG-0164](bug-0164-zweite-session-im-gleichen-ordner.md) | Zweite Session im selben Ordner ist ohne Git eine Sackgasse | done | S2 | core | — |
+| [BUG-0165](bug-0165-projektfilter-vergleicht-slash-pfade.md) | `outsideRoots()` vergleicht mit `/` und filtert Windows-Sessions komplett weg | done | S2 | core | — |
 
 Die nächste freie Nummer ist **0166**.

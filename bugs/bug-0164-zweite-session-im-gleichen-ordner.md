@@ -1,7 +1,7 @@
 ---
 id: BUG-0164
 slug: zweite-session-im-gleichen-ordner
-status: open
+status: done
 severity: S2
 area: core
 instance: dev
@@ -102,6 +102,24 @@ Mehrfach-Schreiber wird explicit eingeschaltet.
 sowie `:792-793`, `:809-818` (`heldBy` in der Vorschau).
 UI-Seite: `apps/pwa/src/features/new-session/WorkplaceChoice.tsx` (blockiert
 bei `heldBy`, Worktree-Karte `disabled` wenn `!worktreePossible`).
+
+## Fix (`61b0198e` (ADR-0077))
+
+Git-Checkouts bleiben
+Allein-Schreiber; Ordner ohne `.git` bekommen nach ausdruecklicher Bestaetigung
+(`SessionSpec.confirmSharedFolder`) eine Mit-Nutzerschaft in der neuen Tabelle
+`checkout_tenants` (Migration 33). `workplacePreview` meldet `holders[]`, Resume
+holt die Mit-Nutzerschaft zurueck, `stop`/`archive` loeschen sie. Die PWA zeigt
+Warnung + Ueberschreibhinweis + Haken statt einer Sackgasse, und deaktivierte
+`.btn` sehen jetzt deaktiviert aus.
+
+## Tests
+
+`workplace-mode.test.ts`: ohne Bestaetigung abgewiesen (eine Session), mit
+Bestaetigung zwei direkte Sessions + Tenant-Zeile + `holders`; Git-Projekt bleibt
+gesperrt auch mit Bestaetigung; Stop der Mit-Nutzung entfernt die Zeile und laesst
+die Primaer-Lease. Live: zwei Sessions (5bb46b05, 6cb0b175) in `plain-ordner`,
+beide `working`.
 
 ## Handoff
 

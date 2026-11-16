@@ -1,7 +1,7 @@
 ---
 id: BUG-0161
 slug: session-start-fehlt-bei-neuem-ordner
-status: open
+status: done
 severity: S2
 area: core
 instance: dev
@@ -88,6 +88,22 @@ existierenden Pfad wirft das und die Funktion antwortet `false` →
 BUG-0165 (Windows-Pfadvergleich) — ein auf Windows getipptes `/coding` löst zu
 `E:\Coding` auf (`checkout_id` in `data/hub.db` belegt das), das hier
 mitgedacht werden muss.
+
+## Fix (`1fcf8a45` + `e21ba1f3`)
+
+`isProjectPathAllowed` loest den naechsten existierenden Eltern auf
+(`nearestExistingAncestor`), neu `ensureProjectDir`: legt genau eine Ordner-Ebene
+an, lehnt laufwerksrelativ aussehende Pfade ab (`/coding` -> `E:\coding`, so in
+der realen `data/hub.db` belegt) und nennt ehrlich den fehlenden Elternordner.
+`workplacePreview` meldet den fehlenden Ordner, statt ENOENT durchzureichen.
+
+## Tests
+
+`projects.test.ts`: fehlendes Blatt innerhalb einer Wurzel ist erlaubt;
+`ensureProjectDir` (Blatt anlegen, idempotent, kein Baum bei fehlendem Eltern,
+auerhalb der Wurzeln abgelehnt, relative Pfade abgelehnt). Live: Browser-Repro in
+`gitrepo\unterordner` und `neues-kapitel` -> Session entstanden, Ordner auf der
+Festplatte.
 
 ## Handoff
 

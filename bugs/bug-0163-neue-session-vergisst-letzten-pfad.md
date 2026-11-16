@@ -1,7 +1,7 @@
 ---
 id: BUG-0163
 slug: neue-session-vergisst-letzten-pfad
-status: open
+status: done
 severity: S3
 area: pwa
 instance: dev
@@ -92,6 +92,24 @@ Vorbelegung passiert nur innerhalb `if (res.projects.length > 0)`;
 Zeile 319 schaltet den „+ Anlegen“-Block an dieselbe Bedingung; Zeile 313ff
 zeigt den Wurzel-Hinweis, obwohl `projects.length === 0` auch bei
 konfigurierten Wurzeln ohne Git-Ordner eintritt.
+
+## Fix (`e21ba1f3`)
+
+Ursachepraezisierung gegenueber der
+Eingrenzung oben: die Vorbelegung hing an `if (res.projects.length > 0)` *und*
+daran, dass der gemerkte Pfad in der Liste vorkam — ohne Git-Repos passierte gar
+nichts. `/api/projects` liefert jetzt `rootsConfigured`/`roots`, die PWA trennt
+"Wurzeln fehlen" von "Wurzeln ohne Repos", der gemerkte Pfad wird immer vorgelegt,
+"+ Anlegen" haengt an den Wurzeln statt an der Trefferzahl. Der Eindruck "Starten
+tut nichts" kam zusaetzlich von einem veralteten `apps/pwa/dist` und einem
+deaktivierten Knopf ohne Deaktiviert-Optik (siehe BUG-0164).
+
+## Tests
+
+Live nach PWA-Neubau: nach Reload steht der gemerkte `<root>\gitrepo\unterordner`
+im Eingabefeld, obwohl die Discovery nur `gitrepo`/`plain-ordner` kennt; in einem
+Hub ohne einziges Git-Repo ist das Dropdown mit `plain-ordner` befuelld und
+"+ Anlegen" vorhanden.
 
 ## Handoff
 

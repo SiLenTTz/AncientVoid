@@ -1,7 +1,7 @@
 ---
 id: BUG-0165
 slug: projektfilter-vergleicht-slash-pfade
-status: open
+status: done
 severity: S2
 area: core
 instance: dev
@@ -95,6 +95,19 @@ ohne Fix rot.
 `packages/core/src/modules/workspace/projects.ts:73-93` nutzt `realpath` und
 `startsWith(realRoot + sep)` — richtig, aber trennzeichen-/laufwerkskritisch
 und wirft bei nicht existierendem Pfad (BUG-0161).
+
+## Fix (`195eec2a`)
+
+`packages/core/src/platform/paths.ts`
+mit `pathWithin(pathStyle)`/`nearestExistingAncestor`/`pathStyle`; `outsideRoots()`
+nutzt `pathWithin` statt `startsWith(root + "/")`.
+
+## Tests
+
+`packages/core/test/platform/paths.test.ts` (5 Faelle: Windows Gross-/Kleinkopf,
+gemischte Trennzeichen, anderes Laufwerk, `..`-Ausstieg, POSIX-Stil als
+Parameter). Altes Verhalten war nachgerechnet `true` fuer `E:\Coding\projekt`
+unter `E:\Coding`.
 
 ## Handoff
 

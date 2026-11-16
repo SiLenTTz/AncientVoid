@@ -1,7 +1,7 @@
 ---
 id: BUG-0162
 slug: ordner-ohne-git-nicht-waehlbar
-status: open
+status: done
 severity: S3
 area: core
 instance: dev
@@ -82,6 +82,20 @@ ohne Fix rot sein, sobald Nicht-Git-Ordner erwartet werden.
 `DiscoveredProject` in `packages/contracts` (Feld `branch` ist für Nicht-Git
 sinnlos `null`) — eine Aufnahme braucht eine Entscheidung, ob
 `projectKinds`/`isGit` ergänzt wird (ADR-Pflicht nach AGENTS §1).
+
+## Fix (`525e9660`)
+
+`discoverProjects` listet jede
+unmittelbare Untermappe mit `isGit` (Git-Repos zuerst), `DiscoveredProject`
+bekommt das Feld; Dateien, Symlinks und versteckte Ordner bleiben draussen, eine
+geflutete Wurzel wird bei 200 gekuerzt und die Kuerzung als Warnung
+zurueckgegeben, die PWA haengt die Warnungen sichtbar an.
+
+## Tests
+
+`projects.test.ts`: Reihenfolge + `isGit`, Tiefe 1, kein Symlink, keine Datei;
+Cap-Test mit Warnung. Live: Dropdown zeigte `plain-ordner`, Session `19bf1be1`
+direkt darin gestartet.
 
 ## Handoff
 
