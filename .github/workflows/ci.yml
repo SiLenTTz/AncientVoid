@@ -79,15 +79,18 @@ jobs:
       # editierte Fixtures, nicht nur zum Capture-Zeitpunkt.
       - run: npm run check:secrets
       - run: npm -w @ancientvoid/pwa run build
-      - name: Unit- und Integrationstests
+      - name: Unit- und Integrationstests (Tier A, parallel)
         run: |
           mkdir -p test-results
           npx vitest run --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml
+      - name: Langsame und zeitkritische Tests (Tier B, seriell)
+        run: |
+          npx vitest run --config vitest.slow.config.ts --reporter=junit --reporter=default --outputFile=test-results/vitest-slow-junit.xml
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vitest-junit
-          path: test-results/vitest-junit.xml
+          path: test-results/vitest*.xml
           retention-days: 14
           if-no-files-found: warn
 
