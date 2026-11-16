@@ -1,9 +1,9 @@
 ---
 id: BUG-0168
 slug: fleet-steer-dedup-race-auf-langsamer-hardware
-status: open
+status: done
 severity: S3
-area: core
+area: hub
 instance: ci
 commit: "e86ac4f1b059ded39d9219b6017c417a92ec9154"
 forge: "https://github.com/SiLenTTz/AncientVoid/issues/12"
@@ -73,24 +73,27 @@ length of 1 but got 2
 |---|---|---|
 | Unit | `apps/hub/test/modules/fleet/fleet-routing.test.ts` | rot auf gehostetem Runner, grün lokal |
 
-Der Zeuge ist der fehlschlagende Test selbst. Für den `bugfix`: entweder
-der Dedup im SessionManager wird auch unter langsamen IO deterministisch
-(vermutet Zeitfenster zwischen Steer-Registrierung und Event-Durchsatz),
-oder der Test wartet explizit die Registrierung ab. Ohne Fix müsste der
-Test auf langsamer Hardware rot bleiben — genau das ist belegt.
+Der Zeuge ist der fehlschlagende Test selbst. Aufgelöst 16.11.2026: **kein
+Produktfehler.** Der Dummy-Adapter emittiert seinen TYPE_CYCLE
+(`packages/adapters/dummy/src/index.ts:45`), dessen erstes Element den Typ
+`"user"` hat, ab dem ersten Timer-Tick (20 ev/s ⇒ alle 350 ms ein
+`user`-Event). Der Test lief lokal in unter 50 ms — vor dem ersten Tick;
+auf dem langsamen Runner dauerte er länger, das erste Zyklus-Event (seq 7,
+erkennbar an `tokensEst`/`tokensSource`, daher „…(8)“ im Log) wurde mit
+gezählt. Der Dedup selbst funktioniert: genau ein `session.prompt`-Event.
 
-## Eingrenzung
-
-Verdacht `packages/core/src/modules/sessions/` (Steer-Input-Dedup,
-„duplicate input ignored"), Wechselwirkung mit fleet-Weiterleitung
-(`apps/hub/src/modules/fleet/`). `file:line` offen.
+Fix: Die Assertion zählt nur echte Prompts
+(`e.type === "user" && e.payload?.kind === "session.prompt"`); der
+Hosted-Runner-Skip entfällt. Belegt durch Repro: alte Assertion plus 200 ms
+Wartephase vor dem Tail reproduziert den CI-Fehler byte-identisch
+(`expected [ { seq: 4, …(6) }, { seq: 7, …(8) } ] … got 2`), die neue
+Assertion besteht denselben Lauf; außerdem 8× grün im Direktlauf.
 
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
 - [x] GitHub-Issue angelegt (`gh issue create`, URL in `forge:`)
-- [ ] `bugfix` oder offen lassen
+- [x] `bugfix` (Test-Fix, 16.11.2026 — kein Core-Race, siehe oben)
 
-Bis zur Klärung skippt der Test auf gehosteter CI sichtbar
-(`AV_HOSTED_RUNNER`, siehe `.github/workflows/ci.yml`) und bleibt lokal
-im Gate verbindlich.
+Der Hosted-Runner-Skip (`AV_HOSTED_RUNNER`) ist mit dem Fix entfallen — der
+Test läuft wieder überall verbindlich.

@@ -17,10 +17,10 @@ interface Hub {
   dir: string;
 }
 
-// BUG-0168: Der Dedup-Nachweis desselben Prompts ist auf gehosteten Runnern
-// racy (dort kamen zwei user-Events statt eines an, siehe Bug) — auf
-// gehosteter CI sichtbar geskippt, im lokalen Gate Pflicht.
-const HOSTED_RUNNER = process.env.AV_HOSTED_RUNNER === "1";
+// BUG-0168 war kein Dedup-Race: Der Dummy-Zyklus (TYPE_CYCLE) emittiert ab
+// der ersten Timer-Tick-Runde auch synthetische "user"-Events — auf langsamen
+// Runnern lief der Test länger als ein Tick, die Assertion zählte sie mit.
+// Der Dedup selbst funktioniert; gezählt wird jetzt das echte Prompt-Event.
 
 async function hub(hostId: string): Promise<Hub> {
   const dir = await mkdtemp(join(tmpdir(), `ancientvoid-${hostId}-`));
@@ -65,7 +65,7 @@ describe("fleet routing (T6.4, ADR-0017)", () => {
     }
   });
 
-  it.skipIf(HOSTED_RUNNER)("starts, reads and steers a session on exactly the addressed host", async () => {
+  it("starts, reads and steers a session on exactly the addressed host", async () => {
     const created = await call<{ id: string; hostId: string }>(home, "/api/hosts/home-server/sessions", { body: { adapter: "dummy", project: peer.dir } });
     expect(created.status).toBe(201);
     expect(created.body.hostId).toBe("home-server");
@@ -81,7 +81,7 @@ describe("fleet routing (T6.4, ADR-0017)", () => {
       "duplicate input ignored",
     );
     const events = await peer.sessions.tail(created.body.id, 0);
-    expect(events.filter((e) => e.type === "user")).toHaveLength(1);
+    expect(events.filter((e) => e.type === "user" && e.payload?.kind === "session.prompt")).toHaveLength(1);
   });
 
   it("answers for its own host id locally", async () => {
