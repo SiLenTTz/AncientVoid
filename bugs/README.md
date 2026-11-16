@@ -210,6 +210,9 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0186](bug-0186-installierte-app-dreht-nicht-mit-trotz-freiem-manifest.md) | Installierte App dreht nicht mit, obwohl das Manifest frei ist: der Service Worker bewahrte das alte Manifest im Cache, und ohne Aenderung an sw.js installiert Chrome nie einen neuen Worker — auf Kais Gerät dreht es weiter nicht | in Arbeit | S2 | pwa | — |
 | [BUG-0187](bug-0187-geister-tokens-fremde-fallback-farben.md) | Geister-Tokens mit fremder Fallback-Palette im Diff-, Dateien- und Arbeitsort-Styling | open | S3 | pwa | — |
 | [BUG-0188](bug-0188-projekt-anlegen-ignoriert-host.md) | „+ Anlegen“ in der Neuanlage legt Projekte immer auf dem heimischen Hub an — gewählter Fleet-Host wird ignoriert, Liste und Pfad springen auf lokal | in Arbeit | S2 | pwa | [#62](https://github.com/SiLenTTz/AncientVoid/issues/62) |
+| [BUG-0189](bug-0189-bugs-ohne-statusfarben-im-dateibaum.md) | `bug-*.md` im Dateibaum ohne Statusfarben — Epics haben Punkte (grün/gelb/blau/grau) | open | S4 | pwa | [#72](https://github.com/SiLenTTz/AncientVoid/issues/72) |
+| [BUG-0190](bug-0190-git-historie-graph-unleserlich.md) | Git-Historie: Lane-Linien, Farben ohne Legende, Worktree-Refs nur als UUID | open | S3 | pwa | [#73](https://github.com/SiLenTTz/AncientVoid/issues/73) |
+| [BUG-0191](bug-0191-git-historie-datei-oeffnet-nur-workdir.md) | Datei aus Git-Historie öffnet nur Worktree-Stand — gelöschte/alte Pfade → 404 | open | S2 | pwa | [#74](https://github.com/SiLenTTz/AncientVoid/issues/74) |
 
 
 | [BUG-0169](bug-0169-e2e-global-setup-npm-auf-windows.md) | E2E-Global-Setup spawnnt `npm` ohne Shell — auf Windows läuft kein einziger E2E-Test | done | S3 | e2e | — |
@@ -223,8 +226,9 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 
 | [BUG-0182](bug-0182-web-push-4-esm-import.md) | web-push 4 verhindert den Hub-Import (ESM) | done | S1 | core | [#26](https://github.com/SiLenTTz/AncientVoid/pull/26) |
 
-Die nächste freie Nummer ist **0189** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+Die nächste freie Nummer ist **0192** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens
-aus der P63-Planung; 0188 ist das host-ignorierende Projekt-Anlegen in der Neuanlage).
+aus der P63-Planung; 0188 ist das host-ignorierende Projekt-Anlegen in der Neuanlage;
+0189–0191 sind Dateibaum-Bugfarben und Git-Historie-Lesbarkeit/Blob-Sprung).
