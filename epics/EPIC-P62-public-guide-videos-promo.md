@@ -193,7 +193,7 @@ User-Content.
       `check:media --ocr` in verify; `.githooks/pre-commit` (staged Medien);
       Token-Präfix `avt_` in identity (Test: Präfix + Hash-Kompatibilität);
       README der Checks (`docs/ci-gate-inventar.md`) nachziehen.
-- [ ] **T62.3 Demo-Seed** — `scripts/demo-seed.mjs` + Allowlist +
+- [x] **T62.3 Demo-Seed** — `scripts/demo-seed.ts` + Allowlist +
       `scripts/demo-seed.test.mjs`; nutzbar via `npm run demo:seed`.
 - [ ] **T62.4 Englische Anleitung + Screenshots** — Sektion je Inventareintrag
       (EN, alt-Texte, Querverweise zwischen Sektionen und Specs);
