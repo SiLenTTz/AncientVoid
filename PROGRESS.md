@@ -95,12 +95,19 @@ Nichts angefangen, das nicht committet wäre. Offen: Push und MR (siehe unten).
 
 ## Nächste Schritte
 
-1. Merge von `origin/main` in den Feature-Zweig + Nummern-Entschärfung
-   (Kollisionsliste oben), danach Gates neu fahren: `typecheck`, `lint`, Tier A,
-   `test:e2e`, Tier B. Dann `git push`, `glab mr create`, `glab mr merge`,
-   Source-Branch lokal und remote löschen.
+1. **Merge von !485 zieht sich:** MR ist angelegt und steht auf „mergeable“
+   (https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/485), Branch
+   gepusht. Der angemeldete Account `kaifelixbennett` ist im Projekt nur
+   **Developer (Zugriffsebene 30)** — Merge braucht Maintainer/Owner
+   (`SiLenT_Tz`, Ebene 50). Also: Merge in der GitLab-UI durch `SiLenT_Tz`
+   oder `glab` mit dem Owner-Account einloggen. Danach Source-Branch löschen
+   (`git fetch --prune`). Kein lokales Merge nach `main` (Repo-Regel).
 2. Nach Merge: Hub neu starten, PWA bauen, `projectRoots` wieder setzen.
-3. BUG-0167 als eigene Suite-Hausputz-Aufgabe: `.gitattributes` `eol=lf` für
+3. CI-Pipeline zu !485 (#1630) wurde sofort `failed` (`started_at` null) — das
+   ist der bestehende Zustand aus BUG-0163 („verify seit 11.11 rot“), nicht die
+   neue CI-Zeile für Tier B. Nachziehen laut `docs/ci-runbook.md`, wenn der
+   Runner `av-docker` wieder annimmt.
+4. BUG-0167 als eigene Suite-Hausputz-Aufgabe: `.gitattributes` `eol=lf` für
    Fixtures, Symlink-Skips, Prozess-Teardowns, und **sichtbarer Skip statt
    Timeout** in `packages/adapters/{acp,codex,cursor}` wenn das Harness-CLI
    fehlt (analog tmux/ADR-0002) — das allein nimmt ~660 s aus Tier B.
