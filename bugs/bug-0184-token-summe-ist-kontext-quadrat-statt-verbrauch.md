@@ -1,7 +1,7 @@
 ---
 id: BUG-0184
 slug: token-summe-ist-kontext-quadrat-statt-verbrauch
-status: in Arbeit
+status: done
 severity: S1
 area: pwa
 instance: prod

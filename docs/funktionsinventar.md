@@ -211,7 +211,7 @@ Nur ab 1280 px Breite.
 | P13 | Kacheltastatur (Alt+1–4, Alt+Umschalt+1–4, Alt+L, Alt+W) | Tastatur | — | spec:workspace-tiles.spec.ts |
 | P14 | Kachelgröße ziehen | Trenner zwischen Kacheln | — | spec:resize.spec.ts |
 | P15 | Werkzeugseiten in der Detailspalte, Esc schließt | Dock | — | spec:tool-pane.spec.ts |
-| P16 | Tablet: Sessions als Streifen (hoch) bzw. Spalte (quer) neben der Session; ab 1280 px Arbeitsfläche | Gerät drehen | T43.6 | spec:tablet-layout.spec.ts |
+| P16 | Tablet/Z Fold: Sessions stehen ab 760 px links als Spalte neben der Session (hoch wie quer), darunter als Streifen; ab 1280 px Arbeitsfläche | Gerät ausklappen, drehen | T43.6, BUG-0180 | spec:tablet-layout.spec.ts |
 
 ## Erststart
 
