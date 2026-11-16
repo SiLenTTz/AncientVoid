@@ -199,4 +199,12 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0167](bug-0167-fastify-update-macht-zughistorie-flaky.md) | fastify ≥ 5.12.6 macht „ohne Plan, mit Zughistorie“ flaky (Pin auf 5.12.5) | open | S3 | server | [#5](https://github.com/SiLenTTz/AncientVoid/issues/5) |
 | [BUG-0168](bug-0168-fleet-steer-dedup-race-auf-langsamer-hardware.md) | Fleet-Steer-Dedup greift auf langsamer Hardware nicht (2 user-Events) | open | S3 | core | [#12](https://github.com/SiLenTTz/AncientVoid/issues/12) |
 
-Die nächste freie Nummer ist **0169**.
+| [BUG-0169](bug-0169-e2e-global-setup-npm-auf-windows.md) | E2E-Global-Setup spawnnt `npm` ohne Shell — auf Windows läuft kein einziger E2E-Test | done | S3 | e2e | — |
+| [BUG-0170](bug-0170-testsuite-auf-windows-rot.md) | `npm test` ist auf Windows breit rot (CRLF, Symlinks, Spawn/Signale) — Gate und `^`-Commits blockiert | open | S2 | tests | — |
+| [BUG-0171](bug-0171-session-start-fehlt-bei-neuem-ordner.md) | Session-Start in noch nicht existierendem Ordner scheitert mit falscher Begründung | done | S2 | core | — |
+| [BUG-0172](bug-0172-ordner-ohne-git-nicht-waehlbar.md) | Ordner ohne `.git` erscheinen nie in der Projektauswahl | done | S3 | core | — |
+| [BUG-0173](bug-0173-neue-session-vergisst-letzten-pfad.md) | Gemerkter Pfad, Anlegen-Block und Wurzelhinweis hängen an der Zahl gefundener Git-Ordner | done | S3 | pwa | — |
+| [BUG-0174](bug-0174-zweite-session-im-gleichen-ordner.md) | Zweite Session im selben Ordner ist ohne Git eine Sackgasse | done | S2 | core | — |
+| [BUG-0175](bug-0175-projektfilter-vergleicht-slash-pfade.md) | `outsideRoots()` vergleicht mit `/` und filtert Windows-Sessions komplett weg | done | S2 | core | — |
+
+Die nächste freie Nummer ist **0176**.

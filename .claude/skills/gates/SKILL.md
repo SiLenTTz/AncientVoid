@@ -42,9 +42,11 @@ Dann nur die Spalten fahren, die betroffen sind.
 ## Die Kommandos
 
 ```bash
-npm test                 # vitest (packages/*/test)
+npm test                 # vitest Tier A: schneller Loop (parallel, ohne die langsamen Dateien)
+npm run test:slow         # vitest Tier B: langsam/seriell — Liste scripts/test-tiers.ts
+npm run test:tiers        # zeigen, was in Tier B liegt (Dauern im Kommentar)
 npm run test:e2e          # Playwright-E2E-Gate (docs/testing-e2e.md)
-npm run gate              # typecheck + lint + test + test:e2e
+npm run gate              # typecheck + lint + test + test:slow + test:e2e
 npm run lint              # eslint .
 npm run typecheck         # tsc -p . --noEmit
 npm run loadtest          # K8: 20 Sessions × 30 ev/s
@@ -54,6 +56,18 @@ npm -w @ancientvoid/pwa run build  # nur bei PWA-Änderungen
 `npm test`, `npm run lint`, `npm run typecheck` sind laut `AGENTS.md` Pflicht
 vor jedem Commit-Vorschlag — unabhängig vom Umfang oben, wenn Zeit reicht ist
 ein voller Lauf immer korrekt, die Tabelle spart nur Zeit bei kleinen Diffs.
+
+**Tiers:** `npm test` ist Tier A (18 s gemessen) und lässt weg, was lang ist,
+Ports bindet oder auf Wanduhr-Zeit prüft — das läuft seriell in
+`npm run test:slow` (~25 min lokal: acp/codex/cursor-Adapter, k8-Lasttest,
+device-service, ws-history, workspace-services, session-manager,
+recovery-parallel). Tier B ist nötig, wenn genau diese Bereiche geändert sind,
+vor jedem Bugfix-/Epic-PR, und immer in `gate`/`ci.yml`. Datei nach Tier B
+verschieben: gemessene Dauer in den Commit.
+
+Nach roten Workspace-/Service-Läufen können verwaiste Fake-Services Ports
+belegen (gemessen 66 `node`-Prozesse). Rezept in BUG-0170 — niemals nach
+Prozessnamen killen, der eigene Agent läuft auf Node.
 
 ## Alles auf einmal
 
