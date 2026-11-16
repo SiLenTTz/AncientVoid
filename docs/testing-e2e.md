@@ -10,8 +10,9 @@ lokal grün sein; UI-Funktionen und Abläufe brauchen eigene Specs.
 
 **CI-Geltung (Umzug auf GitHub, 16.11.2026; Laufzeit-Split 16.11.2026):** Der
 E2E-Shard-Lauf (`.github/workflows/nightly.yml`, GitHub-gehostete Runner)
-läuft auf Push nach `main`, zweimal täglich im Zeitplan und per Hand —
-nicht mehr auf jedem PR; der PR-Gate (`ci.yml`) ist der schnelle Kern.
+läuft auf `ci/full-suite` zweimal täglich (03:00/15:00 UTC) und per Hand.
+Jeder Push nach `main` synchronisiert diesen Testbranch, ohne die Vollsuite
+zu starten; Fehler erzeugen automatisch GitHub-Bugs. der PR-Gate (`ci.yml`) ist der schnelle Kern.
 Zusätzlich bleibt `npm run test:e2e` lokal vor UI-PRs verbindlich. Rot
 allein wegen der Umgebung wird benannt und
 einmal neu gestartet, nie als Pass gezählt; Skips sind keine Pässe. Lokale
