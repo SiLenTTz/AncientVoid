@@ -1,0 +1,137 @@
+/**
+ * BUG-0185: „Was liegt auf diesem Gerät?“ — ablesbar statt gefühlt.
+ *
+ * Ein installiertes PWA holt sich Fenster-Ausrichtung und Start aus dem Manifest, und
+ * ein Service Worker kann dieses Manifest einbetonieren. Genau das war der Fall von
+ * BUG-0181/BUG-0185: Das Manifest war im Netz freigegeben, der installierte Stand blieb
+ * aber beim alten. Diese Datei sammelt die vier Tatsachen, die das beantworten:
+ * Anzeigemodus, Ausrichtung des Fensters, ausgeliefertes Manifest und ob es in einem
+ * Cache liegt — dazu die Cache-Version des aktiven Service Workers.
+ */
+export interface DeviceStatus {
+  /** Wie die App gerade läuft: eigenes Fenster (installiert) oder Browser-Tab. */
+  displayMode: "installiert (eigenes Fenster)" | "Browser-Tab" | "unbekannt";
+  /** `screen.orientation.type`, so wie das Fenster es sieht — „unbekannt“ ohne API. */
+  windowOrientation: string;
+  /** Querformat-Urteil der Medienabfrage (das, worauf die Oberflaeche reagiert). */
+  landscape: boolean;
+  /** `orientation` aus dem Manifest, wie es diese App erreicht; „nicht lesbar“ bei Fehlern. */
+  manifestOrientation: string;
+  /** Caches, die ein Manifest-Exemplar halten — leer ist der Sollzustand (BUG-0185). */
+  manifestCaches: string[];
+  /** Cache-Version des aktiven Service Workers, null wenn keiner antwortet. */
+  swCache: string | null;
+}
+
+/**
+ * Benannte Typen statt verschachtelter Generic-Literale: die PWA baut mit JSX,
+ * und `Promise<{ … }>`-Nestern lesen sich dort nicht mehr sauber.
+ */
+type MediaQueryResult = { matches: boolean };
+type ManifestFetchResult = { ok: boolean; json(): Promise<unknown> };
+type CacheIndex = { keys(): Promise<{ url: string }[]> };
+type CacheStoreLike = { keys(): Promise<string[]>; open(name: string): Promise<CacheIndex> };
+
+export interface DeviceStatusDeps {
+  matchMedia?: (query: string) => MediaQueryResult;
+  fetcher?: (input: string) => Promise<ManifestFetchResult>;
+  caches?: CacheStoreLike;
+  orientationType?: unknown;
+  askServiceWorker?: () => Promise<string | null>;
+}
+
+const MANIFEST_PATH = "/manifest.webmanifest";
+
+/** Der aktive Service Worker fragt seine eigene Cache-Version — eine Nachricht, eine
+ * Antwort, ein Zeitlimit. Ohne Worker (oder ohne Antwort) ist das `null`, keine Lüge. */
+export function askServiceWorker(timeoutMs = 1500): Promise<string | null> {
+  const sw = typeof navigator !== "undefined" ? navigator.serviceWorker : undefined;
+  const controller = sw?.controller ?? null;
+  if (!controller) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (value: string | null) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      navigator.serviceWorker.removeEventListener("message", onMessage);
+      resolve(value);
+    };
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: unknown; cache?: unknown } | null;
+      if (data?.type === "ancientvoid:sw-info" && typeof data.cache === "string") finish(data.cache);
+    };
+    const timer = setTimeout(() => finish(null), timeoutMs);
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    controller.postMessage({ type: "ancientvoid:sw-info" });
+  });
+}
+
+/** Welche Caches halten ein Manifest-Exemplar fest? Das ist der eigentliche Beweis-
+ * punkt: liegt dort eine alte Fassung, dreht die installierte App nicht — egal, was
+ * das Netz ausliefert. */
+export async function manifestCaches(store: CacheStorage): Promise<string[]> {
+  const hits: string[] = [];
+  for (const name of await store.keys()) {
+    const cache = await store.open(name);
+    const entries = await cache.keys();
+    if (entries.some((req) => new URL(req.url, "http://localhost").pathname === MANIFEST_PATH)) hits.push(name);
+  }
+  return hits;
+}
+
+export async function gatherDeviceStatus(deps: DeviceStatusDeps = {}): Promise<DeviceStatus> {
+  const mm = deps.matchMedia ?? (typeof matchMedia !== "undefined" ? matchMedia.bind(window) : undefined);
+  const fetcher = deps.fetcher ?? ((input: string) => fetch(input) as unknown as Promise<ManifestFetchResult>);
+  const store = deps.caches ?? (typeof caches !== "undefined" ? (caches as CacheStorage) : undefined);
+
+  const standalone = mm?.("(display-mode: standalone)")?.matches === true;
+  const browserTab = mm?.("(display-mode: browser)")?.matches === true;
+  const displayMode: DeviceStatus["displayMode"] = standalone
+    ? "installiert (eigenes Fenster)"
+    : browserTab
+      ? "Browser-Tab"
+      : "unbekannt";
+
+  const orientationType = deps.orientationType ?? (typeof screen !== "undefined" ? screen.orientation?.type : undefined);
+
+  let manifestOrientation = "nicht lesbar";
+  try {
+    const res = await fetcher("/manifest.webmanifest");
+    if (res.ok) {
+      const manifest = (await res.json()) as { orientation?: unknown };
+      // Ohne Feld gilt die Standard-Ausrichtung des Browsers — frei drehbar.
+      manifestOrientation = typeof manifest?.orientation === "string" ? manifest.orientation : "any (nicht gesetzt)";
+    }
+  } catch {
+    manifestOrientation = "nicht lesbar";
+  }
+
+  const manifestCachedIn = store ? await manifestCaches(store as CacheStorage) : [];
+  const swCache = await (deps.askServiceWorker ?? askServiceWorker)();
+
+  return {
+    displayMode,
+    windowOrientation: typeof orientationType === "string" && orientationType ? orientationType : "unbekannt",
+    landscape: mm?.("(orientation: landscape)")?.matches === true,
+    manifestOrientation,
+    manifestCaches: manifestCachedIn,
+    swCache,
+  };
+}
+
+/** Ein Satz pro Zeile, so formuliert, dass ein Fremder auf dem Handy daraus die
+ * Ursache lesen kann. */
+export function deviceStatusLines(status: DeviceStatus): string[] {
+  const cacheLine =
+    status.manifestCaches.length === 0
+      ? "Manifest-Cache: keiner (Soll)"
+      : `Manifest-Cache: liegt in ${status.manifestCaches.join(", ")} — die App dreht sonst nicht mit`;
+  return [
+    `Anzeigemodus: ${status.displayMode}`,
+    `Fenster-Ausrichtung: ${status.windowOrientation}${status.landscape ? " (quer)" : " (hoch)"}`,
+    `Manifest-Ausrichtung: ${status.manifestOrientation}`,
+    cacheLine,
+    `Service-Worker-Cache: ${status.swCache ?? "kein Worker antwortet"}`,
+  ];
+}
