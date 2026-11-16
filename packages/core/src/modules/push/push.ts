@@ -1,4 +1,4 @@
-import webpush from "web-push";
+import { generateVAPIDKeys, sendNotification } from "web-push";
 import { DEFAULT_PUSH_HOSTS, PUSH_KIND_CATEGORY, inQuietHours, pushHostAllowed, type HubNotification, type PushPayload, type PushSubscribeInput, type PushSubscriptionView } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/index.ts";
 
@@ -22,7 +22,7 @@ interface Row {
 export type PushSender = (sub: { endpoint: string; keys: { p256dh: string; auth: string } }, payload: string, vapid: { subject: string; publicKey: string; privateKey: string }) => Promise<{ statusCode: number }>;
 
 export const webPushSender: PushSender = async (sub, payload, vapid) => {
-  const res = await webpush.sendNotification(sub, payload, { vapidDetails: vapid, TTL: 3600, urgency: "high", timeout: 10_000 });
+  const res = await sendNotification(sub, payload, { vapidDetails: vapid, TTL: 3600, urgency: "high", timeout: 10_000 });
   return { statusCode: res.statusCode };
 };
 
@@ -64,7 +64,7 @@ export class PushService {
   /** Turning it on creates the VAPID key pair once. */
   setEnabled(on: boolean): void {
     if (on && !this.settings.get("push.vapidPublic")) {
-      const keys = webpush.generateVAPIDKeys();
+      const keys = generateVAPIDKeys();
       this.settings.set("push.vapidPublic", keys.publicKey);
       this.settings.set("push.vapidPrivate", keys.privateKey);
     }
