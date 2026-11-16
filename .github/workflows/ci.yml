@@ -1,24 +1,14 @@
-# CI nach dem Gate-Inventar (docs/ci-gate-inventar.md, EPIC-P28), seit
-# 16.11.2026 auf GitHub-gehosteten Runnern. Keine Self-hosted-Runner: das
-# Repo ist öffentlich, Fork-PRs dürfen keinen Code auf eigener Hardware
-# ausführen (docs/ci-runbook.md). Skips und fehlende Voraussetzungen sind
-# nie grün (Skip-Bericht im e2e-Job).
-# Laufzeit (16.11.2026): e2e läuft als 4-Shard-Matrix parallel zu verify;
-# pro Shard bleibt es bei 1 Playwright-Worker — die Entschärfung aus
-# BUG-0093/0094/0095 (kein Parallelitätsdruck pro Runner) bleibt erhalten,
-# die Parallelität kommt aus separaten Runner-Maschinen. Der Aggregations-
-# Job `e2e` hält den Required-Check-Namen stabil (Branch-Protection
-# unverändert); er wertet die Shard-Berichte nach denselben Regeln aus.
-# Dependabot-PRs (nur Lockfile/Actions-Pins) laufen verify; die volle
-# Messlatte fahren sie beim Merge auf main.
+# Gate für PRs nach main (docs/ci-gate-inventar.md, EPIC-P28): schneller Kern —
+# lint, typecheck, die check:*-Guards, die schnellen Kern-Tests und der
+# PWA-Build. Alles Langsame (Vitest-Dateien über dem Schwellenwert aus
+# scripts/slow-tests.json, volle Suite, E2E, K8) läuft auf main und zweimal
+# täglich im Zeitplan — siehe nightly.yml. Skips und fehlende
+# Voraussetzungen sind dort nie grün (Skip-Bericht je Shard + Aggregation).
 name: ci
 
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
-  workflow_dispatch:
 
 # Minimalrechte für GITHUB_TOKEN — der Workflow liest nur.
 permissions:
@@ -38,29 +28,9 @@ env:
   AV_HOSTED_RUNNER: "1"
 
 jobs:
-  changes:
-    # Reine Doku (docs/, bugs/, epics/, *.md) und reine Dependabot-PRs
-    # brauchen weder E2E noch K8 — die laufen erst auf main wieder voll.
-    runs-on: ubuntu-latest
-    outputs:
-      code: ${{ steps.diff.outputs.code }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - id: diff
-        run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then echo "code=true" >> "$GITHUB_OUTPUT"; exit 0; fi
-          if [ "${{ github.actor }}" = "dependabot[bot]" ]; then echo "code=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          base="${{ github.event.pull_request.base.sha }}"
-          if git diff --name-only "$base" HEAD | grep -qE '^(apps/|packages/|e2e/|scripts/|package(-lock)?\.json$|playwright\.config\.ts$|vitest\.config\.ts$|\.github/workflows/)'; then
-            echo "code=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "code=false" >> "$GITHUB_OUTPUT"
-          fi
-
   verify:
+    # PR-Gate: schneller Kern. Die volle Suite (inkl. Slow-Tests >10 s)
+    # fährt nightly.yml auf main und im Zeitplan.
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -69,7 +39,7 @@ jobs:
           # check:commits vergleicht mit origin/main — braucht die volle Historie.
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@949feb2413d2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -89,10 +59,10 @@ jobs:
       # editierte Fixtures, nicht nur zum Capture-Zeitpunkt.
       - run: npm run check:secrets
       - run: npm -w @ancientvoid/pwa run build
-      - name: Unit- und Integrationstests
+      - name: "Schnelle Kern-Tests (Slow-Liste: scripts/slow-tests.json)"
         run: |
           mkdir -p test-results
-          npx vitest run --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml
+          npm run test:fast -- --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -100,90 +70,3 @@ jobs:
           path: test-results/vitest-junit.xml
           retention-days: 14
           if-no-files-found: warn
-
-  # K8 in voller Messlatte: 20 Sessions × 30 Events/s × 10 s (nicht entschärft).
-  k8:
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
-      - name: System-Werkzeuge
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_TOOLS > /dev/null
-      - run: npm ci
-      - run: npm rebuild esbuild
-      - run: npm run loadtest
-
-  # Epic-Gate (docs/testing-e2e.md): jeder UI-Ablauf gegen einen echten Hub in
-  # Chromium, als 4-Shard-Matrix parallel zu verify; pro Shard 1 Worker
-  # (Runner-Entschärfung aus BUG-0093/0094/0095 bleibt). Der Skip-Bericht
-  # läuft je Shard unverändert — entscheidet der Aggregations-Job `e2e`.
-  e2e-shards:
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
-      - name: System-Werkzeuge
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_TOOLS > /dev/null
-      - run: npm ci
-      - run: npm rebuild esbuild
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npx playwright install --with-deps chromium
-      - name: E2E und Bericht
-        run: |
-          e2e=0
-          rep=0
-          npm run test:e2e -- --shard=${{ matrix.shard }}/4 || e2e=$?
-          node scripts/ci-e2e-report.mjs || rep=$?
-          [ "$e2e" = "0" ] && [ "$rep" = "0" ]
-      - if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: e2e-report-shard-${{ matrix.shard }}
-          path: |
-            playwright-report/
-            test-results/
-            ci-artifacts/
-          retention-days: 14
-          if-no-files-found: warn
-
-  # Aggregations-Gate (EPIC-P28 T28.4): fasst die Shard-Berichte nach denselben
-  # Regeln zusammen — fehlender Shard-Bericht, null Tests, Failures und
-  # benannte Skips — und hält dabei den Required-Check-Namen `e2e` stabil
-  # (Branch-Protection unverändert). Läuft auch bei rotem Shard (always),
-  # damit die Entscheidung im blockierenden Check sichtbar bleibt.
-  e2e:
-    needs: [changes, e2e-shards]
-    if: always() && needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          pattern: e2e-report-shard-*
-          path: shards
-          merge-multiple: false
-      - run: EXPECTED_SHARDS=4 node scripts/ci-e2e-aggregate.mjs shards

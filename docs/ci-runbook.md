@@ -14,17 +14,17 @@ CI ist **GitHub Actions** auf GitHub-gehosteten `ubuntu`-Runnern.
 | Nachweis | Pflicht für PRs nach `main` |
 |---|---|
 | Lokale Gates (`AGENTS.md`, Abschnitt Kommandos) | ja, vor jedem PR |
-| GitHub Actions (`verify`, `e2e`) | ja, Required Check per Branch-Protection; `e2e` seit 16.11.2026 als 4-Shard-Matrix mit Aggregations-Job (Check-Name bleibt `e2e`); `k8` läuft mit, ist nicht Required |
+| GitHub Actions PR-Gate (`ci.yml`, Job `verify`: schnelle Kern-Tests, Lint, Typecheck, Build) | ja, Required Check per Branch-Protection |
+| GitHub Actions volle Messlatte (`nightly.yml`: volle Vitest-Suite inkl. Slow-Tests, `k8`, `e2e` als Shard-Matrix) | nein — sie läuft auf jedem Push nach `main` und zweimal täglich im Zeitlauf (laufzeit-Beschluss 16.11.2026) |
 
 - Beide Nachweise gelten **zusätzlich**, keiner ersetzt den anderen.
 - Ein roter Lauf blockiert den Merge. Liegt die Ursache nachweislich nur in
   der Umgebung (Runner-Flake, Dienst-Ausfall, Netz beim `npm ci`), wird das im
   PR benannt und der Lauf **einmal** neu gestartet (§3) — nie als Pass gemeldet.
 - `cancelled`/fehlende Jobs sind kein Pass. Abgebrochene oder veraltete
-  Läufe (älterer SHA) zählen nicht. Einzige gewollte Ausnahme: `k8` und `e2e`
-  werden auf PRs ohne Code-Änderung und auf Dependabot-PRs vom Job `changes`
-  übersprungen (§1); die volle Messlatte für Dependabot-Läufe läuft auf `main`.
-  Jeder andere Skip ist kein Pass.
+  Läufe (älterer SHA) zählen nicht. Auf PRs läuft bewusst nur der schnelle
+  Gate (`verify`); die vollen Läufe (Push auf `main`, Zeitplan) müssen voll
+  durchlaufen — dort ist jeder Skip und jeder fehlende Job kein Pass.
 - **Keine self-hosted Runner** für dieses öffentliche Repo (§4).
 - Produktfunktionen für GitLab (Forge-Modul, EPIC-P37) sind davon unberührt;
   diese Regel betrifft nur die CI dieses Repos.
@@ -39,16 +39,16 @@ Links auf `gitlab.com/SiLenT_Tz/…` zeigen auf das private Archiv.
 
 | Job | Inhalt | Lokales Gegenstück |
 |---|---|---|
-| `changes` | entscheidet, ob der PR Code berührt (`apps/`, `packages/`, `e2e/`, `scripts/`, Lock-/Config-Dateien, `.github/workflows/`); reine Dependabot-PRs gelten als nein | — |
-| `verify` | `npm ci`, Typecheck, Lint, Checks (`check:*`), Vitest, PWA-Build | `npm test && npm run lint && npm run typecheck` |
-| `k8` | Lasttest 20 Sessions × 30 ev/s (nur bei Code-Änderung) | `npm run loadtest` |
-| `e2e-shards` + `e2e` | Playwright Chromium gegen einen echten Hub, danach Skip-Bericht (nur bei Code-Änderung; 4 Shards parallel zu `verify`, Browser-Cache); der Aggregations-Job `e2e` fasst die Shard-Berichte nach denselben Regeln zusammen (fehlender Bericht, null Tests, Failures — `scripts/ci-e2e-aggregate.mjs`) | `npm run test:e2e` |
+| `verify` (`ci.yml`, PR-Gate) | `npm ci`, Typecheck, Lint, Checks (`check:*`), schnelle Kern-Tests (ohne Slow-Liste), PWA-Build | `npm run test:fast && npm run lint && npm run typecheck` |
+| `vitest-full` (`nightly.yml`) | die komplette Vitest-Suite inkl. Slow-Tests (Liste `scripts/slow-tests.json`, Generator `scripts/gen-slow-tests.mjs`, Drift-Vorschlag im Log) | `npm test` |
+| `k8` (`nightly.yml`) | Lasttest 20 Sessions × 30 ev/s | `npm run loadtest` |
+| `e2e-shards` + `e2e` (`nightly.yml`) | Playwright Chromium gegen einen echten Hub, danach Skip-Bericht (4 Shards parallel, Browser-Cache); der Aggregations-Job `e2e` fasst die Shard-Berichte nach denselben Regeln zusammen (fehlender Bericht, null Tests, Failures — `scripts/ci-e2e-aggregate.mjs`) | `npm run test:e2e` |
 
-Reine Doku-PRs (`docs/`, `bugs/`, `epics/`, `*.md`) und reine Dependabot-PRs
-(Lockfile/Actions-Pins) laufen nur durch
-`verify`; Pushes auf `main` und manuelle Läufe (`workflow_dispatch`) laufen
-immer voll. Ein neuer Push auf denselben PR bricht den laufenden Lauf ab
-(`concurrency`). Die genaue Schrittfolge steht ausschließlich in `ci.yml`. **K8 bleibt
+Der PR-Gate läuft auf jedem PR (auch reine Doku- und Dependabot-PRs);
+die vollen Läufe (`nightly.yml`) laufen auf Push nach `main`, im Zeitlauf
+(zweimal täglich) und per `workflow_dispatch`. Ein neuer Push auf denselben
+Zweig bricht den laufenden Lauf ab (`concurrency`). Die genaue Schrittfolge
+steht ausschließlich in `ci.yml` und `nightly.yml`. **K8 bleibt
 20 Sessions × 30 Events/s**, lokal wie in CI; keine Job-Konfiguration darf
 diese Messlatte entschärfen. Fehlt in CI der Browser, muss `e2e` rot enden,
 nicht still skippen.
@@ -61,11 +61,11 @@ gh pr checks <nr> --watch                 # bis zum Ende verfolgen
 gh run list --branch <branch> --limit 5   # Läufe eines Branches
 gh run view <run-id>                      # Jobs und Schritte
 gh run view <run-id> --log-failed         # nur die Logs der fehlgeschlagenen Schritte
-gh run download <run-id> -n e2e-report -D e2e-report   # Artefakt laden
+gh run download <run-id> -n e2e-report-shard-1 -D e2e-report-shard-1   # Artefakt laden
 ```
 
-Artefakte (14 Tage): `vitest-junit` aus `verify` (JUnit-XML) und
-`e2e-report` aus `e2e` (`playwright-report/` mit Traces/Screenshots,
+Artefakte (14 Tage): `vitest-junit` aus `verify`/`vitest-full` (JUnit-XML) und
+`e2e-report-shard-<n>` aus den Shard-Jobs (`playwright-report/` mit Traces/Screenshots,
 `test-results/` mit JUnit-XML, `ci-artifacts/e2e-report.md` mit benannten
 Skips). `gh run view <run-id>` listet sie. Artefakte sind im öffentlichen Repo für
 alle sichtbar — daher keine Secrets, Hostnamen oder Home-Pfade in Test-Output.
@@ -121,9 +121,10 @@ Einstellungen (*Settings → Actions → General*) und Workflow-Regeln:
   Ökosystem `github-actions`); Updates laufen als normale PRs durch dieselbe CI.
 - **Keine Secrets** in Workflows. Braucht ein Job je eines, nur über
   Environments mit Freigabe und nie in Jobs, die Fork-Code ausführen.
-- Branch-Protection auf `main`: Required Checks `verify` und `e2e`
-  (der Aggregations-Job, Check-Name bleibt stabil); `k8` läuft mit, ist
-  nicht Required; kein Force-Push, kein direkter Push; Merge nur per PR.
+- Branch-Protection auf `main`: Required Check ist `verify` (der schnelle
+  PR-Gate aus `ci.yml`); die vollen Läufe (`nightly.yml`) sind kein
+  PR-Gate, sondern Sicherheit auf `main` und im Zeitlauf;
+  kein Force-Push, kein direkter Push; Merge nur per PR.
 
 ## 5. Lokale-vs-CI-Regel
 
