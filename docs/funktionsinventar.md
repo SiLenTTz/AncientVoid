@@ -131,7 +131,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S15 | Archivieren/Zurückholen | „⋯“ → „Archivieren“ | — | inventar |
 | S16 | Löschen | „⋯“ → „Löschen“ | — | inventar |
 | S19 | Kopf: Projekt, Adapter, Modell, Host, Zustand, Arbeitsort, Verbindung | immer sichtbar | T43.2/T43.4 | inventar |
-| S20 | Tokens, Kontext, Kontingent, Kontextleiste | Statuszeile unter dem Kopf (nur Gemessenes); Kontingent und Fenster immer im Bericht | T43.4 | inventar |
+| S20 | Tokens, Kontext, Kontingent, Kontextleiste | Statuszeile unter dem Kopf: „erzeugt“ und „verarbeitet“ stehen getrennt da (ADR-0084, BUG-0182); Kontingent und Fenster immer im Bericht | T43.4 | inventar, spec:harness.spec.ts |
 | S21 | Antworten und Senden | Composer | T43.4 | inventar |
 | S22 | Anhang | Composer → Büroklammer | T43.4 | inventar |
 | S23 | Eingabe maximieren | Composer → „⤢“ | T43.4 | inventar |

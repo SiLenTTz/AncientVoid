@@ -104,7 +104,7 @@ test.describe("Fortschritt und Kontingent im Lauf", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await expect(app.locator(".ctx-bar")).not.toHaveClass(/unknown/);
     await expect(app.locator(".run-tokens")).toContainText(/Kontext \d+ %/);
-    await expect(app.locator(".run-tokens")).toContainText(/Σ [\d.]+ Tokens/);
+    await expect(app.locator(".run-tokens")).toContainText(/[\d.]+ Tokens verarbeitet/);
     // Die Modell-Ansage (pi.model) steht in der Kopfzeile, nicht erst im Verlauf.
     await expect(app.locator(".session-head, .topbar").first()).toContainText("evo/qwen-e2e");
   });

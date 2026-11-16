@@ -26,7 +26,7 @@ test.describe("Harness-Parität (EPIC-P7)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Chat" }).click();
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Hallo · cursor/)).toBeVisible();
-    await expect(app.locator(".run-strip .run-tokens")).toContainText("Σ 1.542 Tokens");
+    await expect(app.locator(".run-strip .run-tokens")).toContainText("42 Tokens erzeugt · 1.542 Tokens verarbeitet");
     // native Fortsetzung: Follow-up läuft auf derselben chatId
     await app.getByPlaceholder("Antworten…").fill("Nochmal");
     await app.getByRole("button", { name: "Senden" }).click();
@@ -297,8 +297,8 @@ test.describe("ACP-Harness (T7.2)", () => {
     await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte WERKZEUG · ACP · Ausgabe hallo-acp \(allow-once\)/)).toBeVisible();
     await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "idle");
     // ADR-0032: token sums and the context window percentage, both live.
-    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 42 Tokens · Kontext 15 % · frei 170 von 200");
-    await expect(app.locator(".tail-scroll .turn-stats").first()).toContainText("42 Tokens");
+    await expect(app.locator(".run-strip .run-tokens")).toHaveText("12 Tokens erzeugt · 42 Tokens verarbeitet · Kontext 15 % · frei 170 von 200");
+    await expect(app.locator(".tail-scroll .turn-stats").first()).toContainText("12 Tokens erzeugt · 42 verarbeitet");
     await expect(app.locator(".tail-scroll .turn-stats").first()).toContainText("Kontext 30");
     await app.getByPlaceholder("Antworten…").fill("Noch eine Frage");
     await app.getByRole("button", { name: "Senden" }).click();
@@ -312,7 +312,7 @@ test.describe("ACP-Harness (T7.2)", () => {
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
     // glm-5.3 hat ein kuratiertes Fenster von 1.000.000 Tokens — nicht die
     // statische Adapter-Zahl (200 aus der E2E-Konfiguration).
-    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 42 Tokens · Kontext 0 % · frei 999.970 von 1.000.000");
+    await expect(app.locator(".run-strip .run-tokens")).toHaveText("12 Tokens erzeugt · 42 Tokens verarbeitet · Kontext 0 % · frei 999.970 von 1.000.000");
   });
 
   test("Startformular: Modellkatalog als Dropdown, konfigurierter Default vorausgewählt (Factory-Muster)", async ({ app, hub }) => {
@@ -466,12 +466,20 @@ test.describe("Markdown im Chat (BUG-0067)", () => {
 });
 
 test.describe("Tokens und Kontext je Session (ADR-0032)", () => {
-  test("pi: verbrauchte Tokens und freier Kontext stehen im Kopf der Session", async ({ app, hub }) => {
+  test("pi: erzeugte und verarbeitete Tokens und freier Kontext stehen im Kopf der Session", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "pi", prompt: "Wie viele Zeilen?" });
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "turn over");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    // Stand-in: two replies, 1.092 + 1.132 tokens; fill 53 + 1.057 cached.
-    await expect(app.locator(".run-strip .run-tokens")).toHaveText("Σ 2.224 Tokens · Kontext 1 % · frei 129.962 von 131.072");
+    // Stand-in: zwei Antworten, 1.092 + 1.132 Tokens (verarbeitet), je 35 geschrieben;
+    // Füllung 53 + 1.057 Cache. ADR-0084: beide Zahlen stehen beschriftet da.
+    await expect(app.locator(".run-strip .run-tokens")).toHaveText("70 Tokens erzeugt · 2.224 Tokens verarbeitet · Kontext 1 % · frei 129.962 von 131.072");
+    // BUG-0182: die Zahl kommt vom Hub, der Client summt nicht selbst — und es ist
+    // nicht der quadratisch aufaddierte Kontext.
+    const totals = (await hub.api<{ generated: number | null; processed: number | null; usageEvents: number }>(`/api/sessions/${id}/tokens`)).body;
+    expect(totals.generated).toBe(70);
+    expect(totals.processed).toBe(2224);
+    expect(totals.usageEvents).toBeGreaterThanOrEqual(2);
+    expect(totals.processed ?? 0).toBeGreaterThan(10 * (totals.generated ?? 0));
   });
 
   // EPIC-P43 T43.4 (Kleinkram-Regel 1): Unbekanntes schweigt in der Statuszeile und steht im Bericht.

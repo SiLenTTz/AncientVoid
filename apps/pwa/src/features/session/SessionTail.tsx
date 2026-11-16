@@ -16,7 +16,7 @@ import { VIEW_LABEL, viewKindOfTab, windowFor, type ViewTab, type WindowTarget }
 import { Fragment } from "preact";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiContext } from "../../shared/api-context.ts";
-import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord, type HarnessFeatures, type RunEstimate } from "../../shared/api.ts";
+import { getToken, hostApi, remoteHost, newInputId, steerRejectText, type SessionRecord, type AdapterUsage, type SessionDiffResult, type AttachmentRecord, type HarnessFeatures, type RunEstimate, type SessionTokenTotals } from "../../shared/api.ts";
 import { connectTail, type NormalizedEvent, type TailConnection } from "../../shared/ws.ts";
 import { Composer } from "../composer/Composer.tsx";
 import type { SlashCommand } from "../composer/slash.ts";
@@ -52,7 +52,7 @@ import { lastUserPrompt, tailWindow, useRecoveredPrompt } from "./last-prompt.ts
 import { useChatEvents } from "./event-blobs.ts";
 import { LoopBadge, LoopPanel } from "../loops/LoopPanel.tsx";
 import { deriveLoopView } from "../loops/loop-view.ts";
-import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, latestModelName, tokenText } from "./run-stats.ts";
+import { turnTokenStats, turnsClosedBetween, contextText, contextLevel, contextWindowFromEvents, latestModelName, turnStatsText } from "./run-stats.ts";
 import { type FilterPreset, FILTERS, loadFilter, toolIdOf } from "./event-filter.ts";
 import { EventRow } from "./EventRow.tsx";
 import { DiffReview } from "./DiffReview.tsx";
@@ -617,6 +617,27 @@ export function SessionTail({
   const windowTokens = contextWindowFromEvents(shownEvents) ?? contextWindow;
   const context = contextText(tokenStats.lastContextTokens, windowTokens);
   const tokensKnown = (record.metrics?.tokens ?? "unknown") !== "unknown" || record.tokensEst > 0;
+  // BUG-0182 / ADR-0084: „erzeugt“ und „verarbeitet“ rechnet der Hub ueber den
+  // gesamten EventStore — der Client sieht nie alle Ereignisse, deshalb kommt die
+  // Bilanz von dort und nicht aus dem hier geladenen Schwanz.
+  const [tokenTotals, setTokenTotals] = useState<SessionTokenTotals | null>(null);
+  const [tokenRefresh, setTokenRefresh] = useState(0);
+  useEffect(() => setTokenTotals(null), [session.id]);
+  useEffect(() => {
+    let alive = true;
+    api.sessionTokens(session.id).then((t) => alive && setTokenTotals(t)).catch(() => alive && setTokenTotals(null));
+    return () => {
+      alive = false;
+    };
+  }, [api, session.id, tokenRefresh]);
+  // Die Zahlen waechst mit jedem Modell-Aufruf. Nachgeladen wird alle 10 s, nicht pro
+  // Ereignis: der Hub geiht dafuer durch die ganze Historie (K2). Still stehende
+  // Sessions holen einmal.
+  useEffect(() => {
+    if (status !== "working") return;
+    const timer = setInterval(() => setTokenRefresh((n) => n + 1), 10_000);
+    return () => clearInterval(timer);
+  }, [status]);
 
   // EPIC-P20 T20.1: in a desktop tile the reading tabs (Diff, Bericht, Suche, Code) get the
   // height of the composer too — it stays one tap away (▴), and the tab's own choice resets
@@ -1045,7 +1066,7 @@ export function SessionTail({
               {estimateText(estimate, progress.elapsedMs) ? ` · ${estimateText(estimate, progress.elapsedMs)}` : ""}
             </div>
           ))}
-        <StatusLine tokens={tokensKnown ? record.tokensEst : null} fill={tokenStats.lastContextTokens} windowTokens={windowTokens} quota={quota} />
+        <StatusLine totals={tokenTotals} processedFallback={tokensKnown ? record.tokensEst : null} fill={tokenStats.lastContextTokens} windowTokens={windowTokens} quota={quota} />
       </div>
 
       {factoryLink?.partner && <div class="loop-note">Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
@@ -1262,12 +1283,10 @@ export function SessionTail({
                 const last = item.kind === "event" ? item.event.seq : itemLastSeq(item);
                 const closed = turnsClosedBetween(tokenStats.turns, last, next ? itemFirstSeq(next) : null);
                 if (closed.length === 0) return null;
-                const turnTokens = closed.reduce((sum, t) => sum + t.tokens, 0);
                 const turnFill = closed[closed.length - 1]!.contextTokens;
                 return (
                   <div class="turn-stats dim">
-                    Zug {tokenStats.turns.findIndex((t) => t.endSeq === closed[0]!.endSeq) + 1}: {turnTokens.toLocaleString("de-DE")} Tokens
-                    {turnFill !== null ? ` · Kontext ${turnFill.toLocaleString("de-DE")}` : ""}
+                    {turnStatsText(tokenStats.turns.findIndex((t) => t.endSeq === closed[0]!.endSeq) + 1, closed)}
                   </div>
                 );
               }}
@@ -1286,8 +1305,6 @@ export function SessionTail({
             // ADR-0032: the token bill of a turn shows under its last
             // visible row — even where the filter hides session.turn_end.
             const closed = turnsClosedBetween(tokenStats.turns, e.seq, visible[i + 1]?.seq ?? null);
-            const turnTokens = closed.reduce((s, t) => s + t.tokens, 0);
-            const turnFill = closed.length > 0 ? closed[closed.length - 1]!.contextTokens : null;
             return (
               <Fragment key={e.seq}>
                 {e.seq === firstNew?.seq && (
@@ -1304,8 +1321,7 @@ export function SessionTail({
                 />
                 {closed.length > 0 && (
                   <div class="turn-stats dim">
-                    Zug {tokenStats.turns.findIndex((t) => t.endSeq === closed[0]!.endSeq) + 1}: {turnTokens.toLocaleString("de-DE")} Tokens
-                    {turnFill !== null ? ` · Kontext ${turnFill.toLocaleString("de-DE")}` : ""}
+                    {turnStatsText(tokenStats.turns.findIndex((t) => t.endSeq === closed[0]!.endSeq) + 1, closed)}
                   </div>
                 )}
               </Fragment>
