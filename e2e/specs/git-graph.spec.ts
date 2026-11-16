@@ -17,7 +17,9 @@ test.describe("Git-Graph", () => {
   test("Datei im Commit öffnet den Projekt-Explorer", async ({ app, hub }) => {
     writeFileSync(join(hub.alpha, "gg-note.txt"), "from graph\n");
     execFileSync("git", ["-C", hub.alpha, "add", "gg-note.txt"]);
-    execFileSync("git", ["-C", hub.alpha, "commit", "-m", "gg note"]);
+    // Identität mitgeben wie in support/hub.ts makeProject: Runner ohne
+    // globale Git-Konfiguration (GitHub-gehostet) lehnen den Commit sonst ab.
+    execFileSync("git", ["-C", hub.alpha, "-c", "user.email=e2e@ancientvoid.local", "-c", "user.name=e2e", "commit", "-q", "-m", "gg note"]);
     const id = await hub.createSession({ adapter: "dummy", prompt: "Datei aus Graph", workspaceMode: "direct", confirmDirty: true });
     await app.goto(`${hub.origin}/#/sessions/${id}/git`);
     await expect(app.locator(".git-graph-row").first()).toBeVisible({ timeout: 15_000 });

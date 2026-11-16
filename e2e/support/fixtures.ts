@@ -5,6 +5,14 @@ import { openPhoneTab, phone } from "./phone.ts";
 
 export { expect };
 
+/**
+ * BUG-0163: Streng getaktete Specs (~Sekunden-Fenster) laufen auf GitHub-
+ * gehosteten Runnern (2 vCPU, ~5× langsamer als lokal) nicht aussagekräftig.
+ * `AV_HOSTED_RUNNER=1` setzt die ci.yml; betroffene Tests skippen dort
+ * sichtbar via `test.skipIf(hostedRunner)` und bleiben lokal Pflicht.
+ */
+export const hostedRunner = process.env.AV_HOSTED_RUNNER === "1";
+
 interface Fixtures {
   hubOptions: HubOptions;
   hub: TestHub;

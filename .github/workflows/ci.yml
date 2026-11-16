@@ -24,6 +24,10 @@ env:
   # Die Tests setzen tmux, ffmpeg, pdftotext, tesseract und ripgrep voraus;
   # ohne sie wäre verify rot statt aussagekräftig.
   APT_TOOLS: tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep iproute2
+  # Runner-sensible Tests (BUG-0163: K8-Lastfall; BUG-0168: Fleet-Dedup-Race)
+  # sind auf gehosteter Hardware nicht aussagekräftig — sie skippen sichtbar
+  # (it.skipIf) und bleiben lokal im Gate verbindlich.
+  AV_HOSTED_RUNNER: "1"
 
 jobs:
   changes:
