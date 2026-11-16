@@ -207,5 +207,9 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0173](bug-0173-neue-session-vergisst-letzten-pfad.md) | Gemerkter Pfad, Anlegen-Block und Wurzelhinweis hängen an der Zahl gefundener Git-Ordner | done | S3 | pwa | — |
 | [BUG-0174](bug-0174-zweite-session-im-gleichen-ordner.md) | Zweite Session im selben Ordner ist ohne Git eine Sackgasse | done | S2 | core | — |
 | [BUG-0175](bug-0175-projektfilter-vergleicht-slash-pfade.md) | `outsideRoots()` vergleicht mit `/` und filtert Windows-Sessions komplett weg | done | S2 | core | — |
+| [BUG-0180](bug-0180-z-fold-ausgeklappt-verschenkt-die-breite.md) | Ausgeklappter Z Fold (832 px, hoch): 680-px-Spalte mittig, Sitzungsliste quer scrollbar | done | S2 | pwa | — |
 
-Die nächste freie Nummer ist **0177** (0169–0175 kamen mit diesem Branch, 0176 ist auf main dokumentiert).
+Die nächste freie Nummer ist **0181** (0169–0175 kamen mit PR #17, 0176 ist auf main
+dokumentiert; 0177 beansprucht der offene PR #33 für das abreißende Sprachdiktat,
+0178 und 0179 der offene PR #37 für das vorgetäuschte Streaming und die Windows-
+Stand-ins).

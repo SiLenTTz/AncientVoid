@@ -1,5 +1,6 @@
-/* EPIC-P43 T43.6: Tablet (700–1279 px) — die Sessions neben der offenen Session (quer) bzw. als Streifen
- * darüber (hoch). Das Dock bleibt unten; am PC (ab 1280 px) gilt weiter Leiste · Liste · Kacheln. */
+/* EPIC-P43 T43.6: Tablet (700–1279 px) — die Sessions neben der offenen Session, darunter als
+ * Streifen, wenn es zu schmal ist. Das Dock bleibt unten; am PC (ab 1280 px) gilt weiter
+ * Leiste · Liste · Kacheln. */
 .session-strip {
   display: flex;
   gap: 6px;
@@ -40,30 +41,42 @@
   padding: 0;
 }
 
-@media (orientation: landscape) {
+/* Fold & Tablet: die Sitzungsliste steht neben der offenen Session — hoch wie quer
+ * ab 760 px (Galaxy Z Fold innen ist hoch und 832 px breit: dort waren bisher zwei
+ * schwarze Balken), quer schon ab 700 px, weil da die Höhe knapper ist als die Breite.
+ * Unterhalb davon bleibt der Streifen als Leiste über der Session. */
+@media (min-width: 760px), (orientation: landscape) and (min-width: 700px) {
   #app:has(.tablet-split) {
     max-width: none;
   }
 
   .tablet-split {
+    --strip-col: clamp(232px, 30vw, 320px);
     display: grid;
-    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-columns: var(--strip-col) minmax(0, 1fr);
     gap: 12px;
   }
 
-  .session-strip {
+  .tablet-split .session-strip {
     position: sticky;
     top: 0;
     align-self: start;
     flex-direction: column;
+    flex-wrap: nowrap;
     padding-right: 0;
     max-height: calc(100dvh / var(--ui-zoom, 1));
     overflow-x: hidden;
     overflow-y: auto;
   }
 
-  .strip-item {
+  .tablet-split .strip-item {
     max-width: none;
+  }
+
+  /* Die Liste steht senkrecht — linksbündig scannen, nicht zentriert raten. */
+  .tablet-split .strip-item:not(.strip-new) {
+    justify-content: flex-start;
+    text-align: start;
   }
 
   /* Die Glocke sitzt in der Ecke des Fensters, nicht am Rand der 680-px-Spalte (dort läge sie auf „Stop“). */
@@ -72,7 +85,7 @@
   }
 
   .tablet-split .dock-stack {
-    left: calc(240px + 24px);
+    left: calc(var(--strip-col) + 24px);
     max-width: none;
     margin: 0;
   }
