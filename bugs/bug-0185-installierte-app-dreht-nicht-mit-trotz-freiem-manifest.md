@@ -69,6 +69,20 @@ neuen Worker bleibt das eingemauerte Manifest der Stand, den das Gerät benutzt.
 2. `CACHE_VERSION` war seit dem ersten Release nie angehoben worden. Chrome prüft den
    Worker auf Byte-Gleichheit: gleiche Bytes ⇒ kein neuer Worker ⇒ kein `activate` ⇒
    alter Cache bleibt für immer.
+3. Nach dem ersten Fix-Versuch live auf dem Gerät gemessen (Einstellungen → Geräte →
+   „Installierter Stand“):
+
+   ```text
+   Anzeigemodus: Browser-Tab
+   Fenster-Ausrichtung: landscape-primary (quer)
+   Manifest-Ausrichtung: any
+   Manifest-Cache: liegt in ancientvoid-v6 — die App dreht sonst nicht mit
+   Service-Worker-Cache: ancientvoid-v6
+   ```
+
+   Die `activate`-Räumung half nur einmal: `networkFirstShell` schreibt jede Antwort
+   zurück in den Cache — auch das Manifest. Nach dem nächsten Laden lag das Exemplar
+   wieder drin. Das ist die eigentliche Ursache, die beiden anderen sind ihre Träger.
 
 ## Repro
 
@@ -94,7 +108,10 @@ deshalb ist jetzt das Diagnose-Panel an Bord, das genau diese Zeilen auf dem Han
 
 * `sw.js`: `CACHE_VERSION` → `ancientvoid-v6`, Manifest aus `SHELL` entfernt,
   `dropCachedManifest()` beim `activate` (wirft jedes Manifest-Exemplar aus jedem Cache),
-  `message`-Antwort `ancientvoid:sw-info` für die Oberfläche.
+  **und der Fetch-Handler fingiert das Einlagern nicht mehr**: `/manifest.webmanifest`
+  wird direkt aus dem Netz beantwortet, ohne Cache-Schreibzugriff. Sonst erzeugt jedes
+  Laden das Exemplar neu (auf dem Gerät so gemessen).
+* `message`-Antwort `ancientvoid:sw-info` für die Oberfläche.
 * Neue Stand-Anzeige in **Einstellungen → Geräte → Installierter Stand**
   (`apps/pwa/src/shared/device-status.ts`, `InstallStatus.tsx`): Anzeigemodus,
   Fenster-Ausrichtung, Manifest-Ausrichtung, Manifest-Cache, Worker-Stufe; liest nach
@@ -105,9 +122,9 @@ deshalb ist jetzt das Diagnose-Panel an Bord, das genau diese Zeilen auf dem Han
 
 | Ring | Datei / Fall | Stand |
 |---|---|---|
-| Unit | `apps/pwa/test/public-sw.test.ts` — kein Manifest in `SHELL`, `dropCachedManifest` aktiv, Stufe ≥ v6, Stand-Anfrage beantwortet | grün (4 Fälle) |
+| Unit | `apps/pwa/test/public-sw.test.ts` — kein Manifest in `SHELL`, `dropCachedManifest` aktiv, Stufe ≥ v6, Stand-Anfrage beantwortet, Fetch-Handler lagert das Manifest nie ein | grün (5 Fälle) |
 | Unit | `apps/pwa/test/shared/device-status.test.ts` — Modus/Ausrichtung/Manifest/Worker gelesen; kaputter Manifest-Zugriff heißt „nicht lesbar“; Manifest-Cache erkannt | grün (5 Fälle) |
-| E2E | `e2e/specs/installations-stand.spec.ts` — Panel zeigt `Manifest-Ausrichtung: any` …; Worker-Kontext: Stufe ≥ v6 **und kein Manifest in einem Cache** | grün (2 Fälle) |
+| E2E | `e2e/specs/installations-stand.spec.ts` — Panel zeigt `Manifest-Ausrichtung: any` …; Worker-Kontext: Stufe ≥ v6, kein Manifest im Cache, **und erneut nach dem Settings-Besuch** (die App holt das Manifest selbst) | grün (2 Fälle) |
 | Regress | `apps/pwa/test` komplett | grün (65 Dateien, 433 Tests) |
 | Offen | echter Dreh auf Kais installierter App | steht aus — Panel zeigt nach dem nächsten Öffnen, was das Gerät glaubt |
 
@@ -119,6 +136,7 @@ einen eigenen Kontext mit erlaubten Workern.
 
 - [x] Manifest-Cache im Worker nachgewiesen (Tabelle oben)
 - [x] Worker-Stufe angehoben, Manifest raus aus dem Vorlade-Set, alte Exemplare werden geraeumt
+- [x] nach dem Leben gemessen: der Fetch-Handler lagert das Manifest ebenfalls nicht ein
 - [x] Stand auf dem Geraet ablesbar gemacht
 - [x] Guards + E2E
 - [ ] Drehen auf Kais installiertem App-Startsymbol nachziehen (Entfernen + Neuanlegen kann nötig sein)
