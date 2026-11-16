@@ -31,7 +31,7 @@ function fixture(shards) {
   return root;
 }
 
-describe("ci-e2e-aggregate (Laufzeit 2026-11-22)", () => {
+describe("ci-e2e-aggregate (Laufzeit 2026-11-16)", () => {
   it("addiert grüne Shards und fasst Skips zusammen", () => {
     const d = decide({ dir: fixture([green, withSkip]), expectedShards: 2 });
     expect(d.ok).toBe(true);

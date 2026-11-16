@@ -14,7 +14,7 @@ CI ist **GitHub Actions** auf GitHub-gehosteten `ubuntu`-Runnern.
 | Nachweis | Pflicht für PRs nach `main` |
 |---|---|
 | Lokale Gates (`AGENTS.md`, Abschnitt Kommandos) | ja, vor jedem PR |
-| GitHub Actions (`verify`, `e2e`) | ja, Required Check per Branch-Protection; `e2e` seit 22.11.2026 als 4-Shard-Matrix mit Aggregations-Job (Check-Name bleibt `e2e`); `k8` läuft mit, ist nicht Required |
+| GitHub Actions (`verify`, `e2e`) | ja, Required Check per Branch-Protection; `e2e` seit 16.11.2026 als 4-Shard-Matrix mit Aggregations-Job (Check-Name bleibt `e2e`); `k8` läuft mit, ist nicht Required |
 
 - Beide Nachweise gelten **zusätzlich**, keiner ersetzt den anderen.
 - Ein roter Lauf blockiert den Merge. Liegt die Ursache nachweislich nur in

@@ -8,7 +8,7 @@ Betrieb: [CI-Runbook](ci-runbook.md) · Historie: [EPIC-P28](../epics/EPIC-P28-r
 
 **Geltung:** Seit dem Umzug auf GitHub (16.11.2026) läuft die CI als
 GitHub Actions auf GitHub-gehosteten Runnern; die Jobs `verify` und `e2e`
-sind Required Checks für PRs nach `main` (`e2e` seit 22.11.2026 als
+sind Required Checks für PRs nach `main` (`e2e` seit 16.11.2026 als
 4-Shard-Matrix mit Aggregations-Job, Check-Name bleibt `e2e`),
 zusätzlich zu den lokalen Gates; `k8` läuft mit, ist aber nicht Required.
 Details: [Runbook §0](ci-runbook.md#0-geltung-seit-16112026).

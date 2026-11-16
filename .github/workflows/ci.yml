@@ -3,7 +3,7 @@
 # Repo ist öffentlich, Fork-PRs dürfen keinen Code auf eigener Hardware
 # ausführen (docs/ci-runbook.md). Skips und fehlende Voraussetzungen sind
 # nie grün (Skip-Bericht im e2e-Job).
-# Laufzeit (22.11.2026): e2e läuft als 4-Shard-Matrix parallel zu verify;
+# Laufzeit (16.11.2026): e2e läuft als 4-Shard-Matrix parallel zu verify;
 # pro Shard bleibt es bei 1 Playwright-Worker — die Entschärfung aus
 # BUG-0093/0094/0095 (kein Parallelitätsdruck pro Runner) bleibt erhalten,
 # die Parallelität kommt aus separaten Runner-Maschinen. Der Aggregations-

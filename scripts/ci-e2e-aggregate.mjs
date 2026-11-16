@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Aggregation der E2E-Shard-Berichte (Laufzeit 2026-11-22): Der e2e-Job läuft
+ * Aggregation der E2E-Shard-Berichte (Laufzeit 2026-11-16): Der e2e-Job läuft
  * als 4-Shard-Matrix; dieser Aggregations-Job wertet die heruntergeladenen
  * JUnit-Dateien je Shard nach den Regeln von ci-e2e-report.mjs
  * (EPIC-P28 T28.4) aus — fehlender Shard-Bericht, null Tests oder Failures
