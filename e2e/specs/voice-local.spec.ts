@@ -59,6 +59,17 @@ test.use({
   launchOptions: { args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] },
 });
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = async (constraints) => {
+      const stream = await original(constraints);
+      (globalThis as unknown as { __testMicTrack?: MediaStreamTrack | undefined }).__testMicTrack = stream.getAudioTracks()[0];
+      return stream;
+    };
+  });
+});
+
 test.describe("Lokale Spracherkennung (T10.2)", () => {
 
   test.describe("Live-Streaming", () => {
@@ -71,9 +82,10 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     const fab = app.locator('[data-testid="nyx-fab"]');
     await expect(fab).toHaveAttribute("data-tip", /Spracheingabe lokal/);
     await fab.click();
-    await expect(app.getByText(/Aufnahme — tippe erneut zum Stoppen/)).toBeVisible();
-    const partial = app.getByRole("status").filter({ hasText: "Vorschau (wird nicht ausgeführt): Nicht stoppen" });
-    await expect(partial).toBeVisible({ timeout: 10_000 });
+    await expect(app.getByText(/Aufnahme läuft \d+:\d+ — erneut tippen stoppt/)).toBeVisible();
+    const partial = app.getByTestId("nyx-fab-words");
+    await expect(partial).toHaveText("Nicht stoppen", { timeout: 10_000 });
+    await expect(app.getByPlaceholder("Antworten…")).toHaveValue("");
     expect((await hub.events(id)).filter((e) => e.type === "user")).toHaveLength(1);
     await fab.click();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Bitte weiter");
@@ -88,7 +100,7 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     const fab = app.locator('[data-testid="nyx-fab"]');
     await expect(fab).toHaveAttribute("data-tip", /lokal \(whisper-e2e\)/);
     await fab.click();
-    await expect(app.getByText(/Aufnahme — tippe erneut zum Stoppen/)).toBeVisible();
+    await expect(app.getByText(/Aufnahme läuft \d+:\d+ — erneut tippen stoppt/)).toBeVisible();
     await app.waitForTimeout(1200);
     await fab.click();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Starte die Tests im Worktree");
@@ -98,19 +110,28 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     expect((await hub.events(id)).filter((e) => e.type === "user")).toHaveLength(1);
   });
 
-  test("Gesperrter Bildschirm bricht die Aufnahme sichtbar ab — nichts wird erkannt oder gesendet (AC-P10-5)", async ({ app, hub }) => {
+  test("Gesperrter Bildschirm lässt die Aufnahme weiterlaufen — Mikrofonverlust bricht sichtbar ab (BUG-0177)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     const before = received.length;
     await app.getByPlaceholder("Antworten…").click();
     await app.locator('[data-testid="nyx-fab"]').click();
-    await expect(app.getByText(/Aufnahme — tippe erneut zum Stoppen/)).toBeVisible();
+    await expect(app.getByText(/Aufnahme läuft \d+:\d+ — erneut tippen stoppt/)).toBeVisible();
     await app.evaluate(() => {
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
       document.dispatchEvent(new Event("visibilitychange"));
     });
-    await expect(app.getByText(/Aufnahme abgebrochen — Bildschirm gesperrt/)).toBeVisible();
-    await expect(app.locator('[data-testid="nyx-fab"]')).toBeVisible();
+    await expect(app.getByText(/Bildschirm gesperrt — Aufnahme läuft weiter/)).toBeVisible();
+    await expect(app.getByTestId("nyx-fab")).toHaveClass(/recording/);
+    // Merely hiding the document must not send a recording for transcription.
+    expect(received.length).toBe(before);
+    await app.evaluate(() => {
+      const track = (globalThis as unknown as { __testMicTrack: MediaStreamTrack }).__testMicTrack;
+      track.stop();
+      track.dispatchEvent(new Event("ended"));
+    });
+    await expect(app.getByText(/Aufnahme abgebrochen — Mikrofon nicht mehr verfügbar/)).toBeVisible();
+    await expect(app.getByTestId("nyx-fab")).not.toHaveClass(/recording/);
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("");
     expect(received.length).toBe(before);
   });
@@ -121,7 +142,7 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     await app.getByPlaceholder("Antworten…").click();
     const fab = app.locator('[data-testid="nyx-fab"]');
     await fab.click();
-    await expect(app.getByText(/Aufnahme — tippe erneut zum Stoppen/)).toBeVisible();
+    await expect(app.getByText(/Aufnahme läuft \d+:\d+ — erneut tippen stoppt/)).toBeVisible();
     await app.waitForTimeout(1200);
     await fab.click();
     const toast = app.locator('[data-testid="nyx-fab-toast"]');
@@ -131,7 +152,7 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     await expect(toast).toHaveCount(0, { timeout: 20_000 });
   });
 
-  test("Schon gesperrter Bildschirm beim Aufnahmestart bricht ebenfalls ab (BUG-0041)", async ({ app, hub }) => {
+  test("Bei schon verborgenem Dokument ist das Mikrofon-Signal maßgeblich (BUG-0177)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     const before = received.length;
@@ -142,8 +163,15 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     });
     await app.getByPlaceholder("Antworten…").click();
     await app.locator('[data-testid="nyx-fab"]').click();
-    await expect(app.getByText(/Aufnahme abgebrochen — Bildschirm gesperrt/)).toBeVisible();
-    await expect(app.locator('[data-testid="nyx-fab"]')).toBeVisible();
+    await expect(app.getByTestId("nyx-fab")).toHaveClass(/recording/);
+    expect(received.length).toBe(before);
+    await app.evaluate(() => {
+      const track = (globalThis as unknown as { __testMicTrack: MediaStreamTrack }).__testMicTrack;
+      track.stop();
+      track.dispatchEvent(new Event("ended"));
+    });
+    await expect(app.getByText(/Aufnahme abgebrochen — Mikrofon nicht mehr verfügbar/)).toBeVisible();
+    await expect(app.getByTestId("nyx-fab")).not.toHaveClass(/recording/);
     expect(received.length).toBe(before);
   });
 });

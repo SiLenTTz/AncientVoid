@@ -1,3 +1,4 @@
+import { installSpeechRecognition } from "../support/speech.ts";
 import { test, expect, statusPill, openApprovals, sessionTab, cardAction, hostedRunner } from "../support/fixtures.ts";
 import { phone } from "../support/phone.ts";
 
@@ -227,38 +228,18 @@ test.describe("Composer: Verbessern, Empfehlung, Skills (T3.9, T5.7–T5.10)", (
 test.describe("Sprache (T1.5, T3.10)", () => {
   // Die Spracherkennung fragt das Mikrofon an; auf dem echten Handy öffnet das einen Berechtigungsdialog, den kein Test beantworten soll.
   test.skip(phone.active, "Mikrofon-Dialog: auf dem Handy nicht automatisierbar");
-  test.beforeEach(async ({ page }) => {
-    // Chromium headless has no speech service; this stands in for the
-    // browser's recognizer with the same event shape.
-    await page.addInitScript(() => {
-      class FakeRecognition {
-        lang = "";
-        interimResults = false;
-        continuous = false;
-        onstart: (() => void) | null = null;
-        onresult: ((e: unknown) => void) | null = null;
-        onerror: ((e: unknown) => void) | null = null;
-        onend: (() => void) | null = null;
-        start() {
-          const text = (globalThis as unknown as { __speech?: string }).__speech ?? "stopp";
-          setTimeout(() => {
-            this.onstart?.();
-            this.onresult?.({ results: [[{ transcript: text }]] });
-            this.onend?.();
-          }, 30);
-        }
-        abort() {}
-      }
-      (globalThis as unknown as { SpeechRecognition: unknown }).SpeechRecognition = FakeRecognition;
-    });
-  });
+  test.beforeEach(async ({ page }) => installSpeechRecognition(page));
 
   test("Diktat füllt das Antwortfeld (Nyx-FAB)", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByPlaceholder("Antworten…").click();
     await app.evaluate(() => ((globalThis as unknown as { __speech: string }).__speech = "bitte weitermachen"));
-    await app.locator('[data-testid="nyx-fab"]').click();
+    const fab = app.getByTestId("nyx-fab");
+    await fab.click();
+    await expect(app.getByTestId("nyx-fab-words")).toHaveText("bitte weitermachen");
+    await expect(app.getByPlaceholder("Antworten…")).toHaveValue("");
+    await fab.click();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("bitte weitermachen");
   });
 
