@@ -35,6 +35,40 @@ describe("connectTail delivers each event once (BUG-0023)", () => {
     tail.close();
   });
 
+  it("ADR-0083: Live-Frames kommen getrennt an und stoeren die seq-Buchfuehrung nicht", () => {
+    vi.stubGlobal("WebSocket", FakeSocket);
+    const seen: number[] = [];
+    const frames: { text: string; final: boolean }[] = [];
+    const tail = connectTail({
+      url: "http://hub",
+      token: "t",
+      sessionId: "s",
+      onEvents: (e) => seen.push(...e.map((x) => x.seq)),
+      onFrames: (f) => frames.push(...f.map((x) => ({ text: x.text, final: x.final }))),
+      onState: () => undefined,
+    });
+    FakeSocket.last!.onopen?.();
+    FakeSocket.last!.push([1]);
+    FakeSocket.last!.onmessage?.({
+      data: JSON.stringify({ type: "stream", sessionId: "s", frames: [{ turnId: "t1", stream: "assistant", seq: 0, text: "hal", final: false }, { turnId: "t1", stream: "assistant", seq: 1, text: "lo", final: true }] }),
+    });
+    FakeSocket.last!.push([2]);
+    expect(frames).toEqual([{ text: "hal", final: false }, { text: "lo", final: true }]);
+    expect(seen).toEqual([1, 2]); // kein Resync wegen eines Frames
+    tail.close();
+  });
+
+  it("ADR-0083: ein Frame ohne Abo wirft nichts — Frames sind Wegwerfware", () => {
+    vi.stubGlobal("WebSocket", FakeSocket);
+    const seen: number[] = [];
+    const tail = connectTail({ url: "http://hub", token: "t", sessionId: "s", onEvents: (e) => seen.push(...e.map((x) => x.seq)), onState: () => undefined });
+    FakeSocket.last!.onopen?.();
+    FakeSocket.last!.onmessage?.({ data: JSON.stringify({ type: "stream", sessionId: "s", frames: [{ turnId: "t1", stream: "assistant", seq: 0, text: "x", final: true }] }) });
+    FakeSocket.last!.push([1]);
+    expect(seen).toEqual([1]);
+    tail.close();
+  });
+
   it("BUG-0026: takes a baseline page as its start instead of resyncing", () => {
     vi.stubGlobal("WebSocket", FakeSocket);
     const seen: number[] = [];

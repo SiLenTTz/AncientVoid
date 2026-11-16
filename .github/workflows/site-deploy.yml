@@ -37,9 +37,12 @@ jobs:
       - run: npm -w @ancientvoid/site run build
       - name: Lighthouse-Gates (Mobile Perf ≥ 90, A11y ≥ 95 — ADR-0082)
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq chromium-browser > /dev/null
+          # Playwright-Chromium statt apt chromium-browser (auf ubuntu-Runnern
+          # ein defektes Snap-Stummel — dpkg-Abbruch, Lauf 43913073682).
+          npx playwright install --with-deps chromium
           npx --yes serve@14 -l 8641 apps/site/dist &
           sleep 2
+          CHROME_PATH="$HOME/.cache/ms-playwright/chromium-*/chrome-linux/chrome" \
           npx --yes lighthouse@12 http://127.0.0.1:8641 \
             --chrome-flags="--headless --no-sandbox" --output=json --output-path=lh.json --only-categories=performance,accessibility
           node -e '
