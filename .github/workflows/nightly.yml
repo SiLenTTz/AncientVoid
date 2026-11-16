@@ -4,7 +4,7 @@
 # 4-Shard-Matrix (pro Shard 1 Worker — Runner-Entschärfung aus
 # BUG-0093/0094/0095 bleibt) mit Skip-Bericht je Shard und Aggregation
 # (EPIC-P28 T28.4: fehlender Bericht, null Tests, Failures — nie grün).
-# Push nach main aktualisiert ci/full-suite; die Tests laufen zweimal täglich
+# pipeline-sync.yml aktualisiert ci/full-suite; die Tests laufen zweimal täglich
 # (03:00/15:00 UTC) und per Hand auf dessen festgehaltenem Commit. PRs haben nur den schnellen Gate (ci.yml) —
 # beschlossener Laufzeit-Kompromiss, 16.11.2026.
 name: nightly
@@ -12,8 +12,6 @@ name: nightly
 on:
   schedule:
     - cron: "0 3,15 * * *"
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -21,11 +19,8 @@ permissions:
 
 concurrency:
   group: nightly
-  # false: Läufe auf main (und im Zeitplan) stapeln sich statt sich zu
-  # canceln — ein zweiter Push darf einen laufenden vollen Lauf nicht
-  # wegwerfen (real am 16.11.2026: ein zweiter main-Push cancelierte den
-  # laufenden vollen Lauf nach 9 Minuten). Schnelle PR-Gates in ci.yml
-  # dürfen sich weiterhin selbst canceln.
+  # A second manual/scheduled full run must not cancel the running one.
+  # Short main-push synchronizations use their own workflow and concurrency group.
   cancel-in-progress: false
 
 env:
@@ -41,8 +36,6 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      contents: write
     outputs:
       sha: ${{ steps.sync.outputs.sha }}
     steps:
@@ -54,13 +47,12 @@ jobs:
         with:
           node-version: 24
       - id: sync
-        run: node scripts/ci-pipeline.mjs sync
+        run: node scripts/ci-pipeline.mjs resolve
         env:
           GH_TOKEN: ${{ github.token }}
 
   vitest-full:
     needs: prepare
-    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -95,7 +87,6 @@ jobs:
   # K8 in voller Messlatte: 20 Sessions × 30 Events/s × 10 s (nicht entschärft).
   k8:
     needs: prepare
-    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -115,7 +106,6 @@ jobs:
 
   e2e-shards:
     needs: prepare
-    if: github.event_name != 'push'
     strategy:
       fail-fast: false
       matrix:
@@ -164,7 +154,7 @@ jobs:
   # Entscheidung sichtbar bleibt, wenn dieser Job blockierend referenziert ist.
   e2e:
     needs: [prepare, e2e-shards]
-    if: always() && github.event_name != 'push' && needs.prepare.result == 'success'
+    if: always() && needs.prepare.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

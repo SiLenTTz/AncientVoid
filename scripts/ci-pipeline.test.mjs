@@ -1,10 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
-import { githubApi, reportFailures, syncPipeline } from "./ci-pipeline.mjs";
+import { readFileSync } from "node:fs";
+import { URL } from "node:url";
+import { load } from "js-yaml";
+import { githubApi, pipelineSha, reportFailures, syncPipeline } from "./ci-pipeline.mjs";
 
 const run = { id: 42, run_attempt: 1, name: "nightly", event: "schedule", conclusion: "failure", head_sha: "abc", head_branch: "main", html_url: "https://github.com/a/b/actions/runs/42" };
 const job = { name: "e2e-shards (2)", conclusion: "failure", html_url: `${run.html_url}/job/2` };
 
 describe("pipeline branch", () => {
+  it("resolves a frozen test SHA without requiring write access", async () => {
+    const api = vi.fn().mockResolvedValue({ object: { sha: "frozen" } });
+    expect(await pipelineSha(api)).toBe("frozen");
+    expect(api.mock.calls).toEqual([["GET", "git/ref/heads/ci/full-suite"]]);
+    await expect(pipelineSha(vi.fn().mockRejectedValue(new Error("missing branch")))).rejects.toThrow("missing branch");
+  });
   it("creates a missing branch at main, without swallowing permission errors", async () => {
     const api = vi.fn().mockResolvedValueOnce({ object: { sha: "abc" } }).mockRejectedValueOnce(Object.assign(new Error(), { status: 404 })).mockResolvedValueOnce({});
     expect(await syncPipeline(api)).toBe("abc");
@@ -21,6 +30,12 @@ describe("pipeline branch", () => {
 });
 
 describe("nightly bugs", () => {
+  it("also reports sync failures without colliding with full-suite bugs", async () => {
+    const api = vi.fn().mockResolvedValueOnce({ jobs: [job] }).mockResolvedValueOnce([]).mockResolvedValueOnce({ number: 20 });
+    expect(await reportFailures(api, { ...run, name: "pipeline-sync", event: "push" })).toEqual([20]);
+    expect(api.mock.calls[2][2].title).toContain("pipeline-sync");
+    expect(api.mock.calls[2][2].body).toContain("<!-- ancientvoid-nightly:pipeline-sync/e2e-shards (2) -->");
+  });
   it("creates a bug with SHA, evidence and reproduction, only for failing jobs", async () => {
     const api = vi.fn().mockResolvedValueOnce({ jobs: [job, { name: "k8", conclusion: "success" }] }).mockResolvedValueOnce([]).mockResolvedValueOnce({ number: 17 });
     expect(await reportFailures(api, run)).toEqual([17]);
@@ -76,5 +91,26 @@ describe("nightly bugs", () => {
   it("fails on API errors without exposing the token or response body", async () => {
     const request = vi.fn().mockResolvedValue({ ok: false, status: 403 });
     await expect(githubApi("private-token", "a/b", request)("POST", "issues", {})).rejects.toThrow("HTTP 403");
+  });
+});
+
+describe("workflow routing and permissions", () => {
+  const workflow = (name) => load(readFileSync(new URL(`../.github/workflows/${name}.yml`, import.meta.url), "utf8"));
+  it("routes main pushes to an independent short sync, never behind the full suite", () => {
+    const sync = workflow("pipeline-sync");
+    const full = workflow("nightly");
+    expect(sync.on.push.branches).toEqual(["main"]);
+    expect(full.on).not.toHaveProperty("push");
+    expect(sync.concurrency.group).not.toBe(full.concurrency.group);
+    expect(Object.keys(sync.jobs)).toEqual(["sync"]);
+    expect(sync.jobs.sync.needs).toBeUndefined();
+  });
+  it("keeps full-suite code read-only and reports sync errors from trusted code", () => {
+    const full = workflow("nightly");
+    expect(full.permissions).toEqual({ contents: "read" });
+    expect(full.jobs.prepare.permissions).toBeUndefined();
+    expect(full.jobs.prepare.steps.find((step) => step.run)?.run).toBe("node scripts/ci-pipeline.mjs resolve");
+    expect(workflow("pipeline-sync").jobs.sync.permissions).toEqual({ contents: "write" });
+    expect(workflow("nightly-bugs").on.workflow_run.workflows).toContain("pipeline-sync");
   });
 });
