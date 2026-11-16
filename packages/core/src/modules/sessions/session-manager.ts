@@ -4,8 +4,8 @@ import { SessionActivities } from "./session-activity.ts";
 import type { ActivityReport } from "@ancientvoid/contracts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus } from "@ancientvoid/contracts";
-import { actorKind, blobRefToString, classifyProviderError, countMetrics, currentProviderFailureFromEvents, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume } from "@ancientvoid/contracts";
+import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, EmittedStreamFrame, WsStreamFrames, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus } from "@ancientvoid/contracts";
+import { actorKind, blobRefToString, classifyProviderError, countMetrics, currentProviderFailureFromEvents, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume, EmittedStreamFrame as StreamFrameSchema } from "@ancientvoid/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
@@ -97,6 +97,8 @@ export class SessionManager {
   private readonly autoResumeInterrupted: boolean;
   private readonly uncertainQueue = new Set<string>();
   private shuttingDown = false;
+  /** ADR-0083: Abonnenten transienter Live-Frames (sessionId -> Set). Kein EventStore. */
+  private readonly frameSubscribers = new Map<string, Set<(frames: WsStreamFrames) => void>>();
   private readonly recovery: SessionRecovery;
   private readonly activityTracker: SessionActivities;
   private readonly live = new Map<string, LiveSession>();
@@ -321,6 +323,48 @@ export class SessionManager {
     if (!s) return () => undefined;
     s.subscribers.add(cb);
     return () => s.subscribers.delete(cb);
+  }
+
+  /**
+   * ADR-0083: Abo für transiente Live-Frames (echtes Streaming). Bewusst getrennt von
+   * `subscribe`: Frames laufen an der Persistierung vorbei — kein EventStore, kein
+   * Snapshot, keine Resync-Pflicht. Wer sich später einklinkt (Reconnect, View mitten
+   * im Turn), sieht den Beitrag, sobald der dauerhafte Block eintrifft.
+   */
+  subscribeFrames(sessionId: string, cb: (frames: WsStreamFrames) => void): () => void {
+    let set = this.frameSubscribers.get(sessionId);
+    if (!set) {
+      set = new Set();
+      this.frameSubscribers.set(sessionId, set);
+    }
+    const born = set;
+    born.add(cb);
+    return () => {
+      born.delete(cb);
+      if (born.size === 0) this.frameSubscribers.delete(sessionId);
+    };
+  }
+
+  private publishFrame(session: LiveSession, frame: EmittedStreamFrame): void {
+    const parsed = StreamFrameSchema.safeParse(frame);
+    if (!parsed.success) {
+      // Fail loud, ohne die Session abzuschießen: ein kaputter Frame ist Wegwerfware,
+      // der Block dahinter bleibt die Wahrheit.
+      this.logger.warn("live-frame abgelehnt", { sessionId: session.record.id, reason: parsed.error.issues[0]?.message ?? "Schema" });
+      this.metrics?.inc("live_frames_rejected");
+      return;
+    }
+    const set = this.frameSubscribers.get(session.record.id);
+    if (!set || set.size === 0) return; // niemand schaut zu: nichts tun, nichts speichern
+    const msg: WsStreamFrames = { type: "stream", sessionId: session.record.id, frames: [parsed.data] };
+    for (const cb of set) {
+      try {
+        cb(msg);
+      } catch {
+        this.metrics?.inc("live_frames_dropped"); // langsamer Verbraucher: Frame ist weg
+      }
+    }
+    this.metrics?.inc("live_frames");
   }
 
   /** ADR-0004: latest account-level usage/quota snapshot for an adapter,
@@ -2586,6 +2630,12 @@ export class SessionManager {
         if (signal.aborted || this.shuttingDown) return;
         if (event.type === "error" || event.payload?.kind === "provider.error" || event.payload?.kind === "cursor.usage_limit") session.turnFailed = true;
         void this.emitEvents(session, [event]).catch((err) => this.handleEmitFailure(session, event, err));
+      },
+      /** ADR-0083: transiente Live-Frames — kein EventStore, kein Snapshot, keine
+       * Event-Sequenz. Ein Frame, der nirgends hingeht, ist verloren — absichtlich. */
+      stream: (frame: EmittedStreamFrame) => {
+        if (signal.aborted || this.shuttingDown) return;
+        this.publishFrame(session, frame);
       },
       blob: async (data: string | Uint8Array): Promise<BlobRef> => {
         return this.store.writeBlob(session.record.id, data);
