@@ -58,7 +58,7 @@ export const CATALOG: ShortcutInfo[] = [
   { id: "notifications.close", combo: "Esc", label: "Esc", description: "Benachrichtigungs-Panel schließen", scope: "overlay", inInput: true },
   { id: "cheatsheet.close", combo: "Esc", label: "Esc", description: "Kürzel-Übersicht schließen", scope: "overlay", inInput: true },
   { id: "skillpicker.close", combo: "Esc", label: "Esc", description: "Skill-/Agenten-Auswahl schließen", scope: "overlay", inInput: true },
-  { id: "stt.cancel", combo: "Esc", label: "Esc", description: "Sprachaufnahme abbrechen", scope: "overlay", inInput: true },
+  { id: "stt.cancel", combo: "Esc", label: "Esc", description: "Sprachdiktat stoppen — der gehörte Text bleibt erhalten", scope: "overlay", inInput: true },
   // EPIC-P51 T51.6: globale View-Wechsel (Alt-Schema; Firefox-Nutzen in docs/tastatur-kollisionen.md).
   { id: "view.home", combo: "Alt+Home", label: "Alt+Pos1", description: "Zur Übersicht (Start)", scope: "global" },
   { id: "view.back", combo: "Alt+ArrowLeft", label: "Alt+←", description: "Zurück in der Ansichts-Historie", scope: "global" },

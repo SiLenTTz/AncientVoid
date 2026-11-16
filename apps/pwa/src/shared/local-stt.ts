@@ -17,7 +17,13 @@ export function recordingSupported(): boolean {
   return typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 }
 
-const MAX_RECORDING_MS = 60_000;
+/**
+ * BUG-0177: Diktat muss auch nach einer Minute und nach fünf noch laufen. Vorher
+ * 60 s — wer länger sprach, dessen Aufnahme endete still. 15 Minuten sind die
+ * Obergrenze (Opus im MediaRecorder braucht dafür gut 3 MB, die Hub-Grenze liegt
+ * bei 8 MB Audio). Beim Erreichen wird ganz normal gestoppt und transkribiert.
+ */
+const MAX_RECORDING_MS = 15 * 60_000;
 
 export class LocalRecorder {
   private recorder: MediaRecorder | null = null;
