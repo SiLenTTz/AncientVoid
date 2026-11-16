@@ -79,8 +79,38 @@ export class CheckoutLeaseStore {
   }
 
   /** Gibt nur die eigene Lease frei — eine inzwischen übernommene bleibt unberührt.
-   * Die Zeile bleibt als Tombstone, damit die Generation monoton weiterzählt. */
+   * Die Zeile bleibt als Tombstone, damit die Generation monoton weiterzählt.
+   * ADR-0081: Mit-Nutzerschaft (Nicht-Git-Ordner) endet mit derselben Session. */
   release(sessionId: string): void {
     this.db.prepare("UPDATE checkout_leases SET session_id = '' WHERE session_id = ?").run(sessionId);
+    this.db.prepare("DELETE FROM checkout_tenants WHERE session_id = ?").run(sessionId);
+  }
+
+  /** ADR-0081: wer schreibt hier noch mit? Primärer Lease-Inhaber + Mit-Nutzer,
+   * ohne die fragliche Session selbst. `isActive` filtert tote Sessions —
+   * sonst erzwingt die Preview eine Überschreib-Bestätigung ohne Gegenüber. */
+  holders(checkoutId: string, exceptSessionId?: string, isActive: (sessionId: string) => boolean = () => true): string[] {
+    const out: string[] = [];
+    const primary = this.get(checkoutId);
+    if (primary && primary.sessionId !== exceptSessionId && isActive(primary.sessionId)) out.push(primary.sessionId);
+    const rows = this.db
+      .prepare("SELECT session_id FROM checkout_tenants WHERE checkout_id = ? AND session_id <> ?")
+      .all(checkoutId, exceptSessionId ?? "") as { session_id: string }[];
+    for (const r of rows) if (r.session_id !== primary?.sessionId && isActive(r.session_id)) out.push(r.session_id);
+    return out;
+  }
+
+  /** ADR-0081: Mit-Nutzerschaft eines Nicht-Git-Ordners — ausdrückliche Bestätigung
+   * muss der Aufrufer getragen haben; der Store prüft das nicht erneut. */
+  addTenant(checkoutId: string, sessionId: string): void {
+    this.db
+      .prepare("INSERT INTO checkout_tenants (checkout_id, session_id, acquired_at) VALUES (?, ?, ?) ON CONFLICT(checkout_id, session_id) DO NOTHING")
+      .run(checkoutId, sessionId, new Date().toISOString());
+  }
+
+  isTenant(checkoutId: string, sessionId: string): boolean {
+    return this.db
+      .prepare("SELECT 1 AS hit FROM checkout_tenants WHERE checkout_id = ? AND session_id = ?")
+      .get(checkoutId, sessionId) !== undefined;
   }
 }

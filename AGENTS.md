@@ -57,11 +57,13 @@ bestehen, auch wenn andere Epics oder Vorgänger inzwischen grün sind.
 > Details: `docs/ci-runbook.md`.
 
 ```bash
-npm test                 # vitest (Unit/Integration)
+npm test                 # vitest Tier A: schneller Loop (parallel; ohne die langsamen Dateien)
+npm run test:slow        # vitest Tier B: langsam/seriell — Liste in scripts/test-tiers.ts
+npm run test:tiers       # anzeigen, was in Tier B läuft (gemessene Dauer im Kommentar)
 npm run test:e2e         # Playwright-E2E-Gate gegen einen echten Hub (docs/testing-e2e.md)
 npm run lint             # eslint
 npm run typecheck        # tsc --noEmit
-npm run gate             # typecheck + lint + test + test:e2e
+npm run gate             # typecheck + lint + test + test:slow + test:e2e
 npm run loadtest         # K8: 20 Sessions × 30 ev/s
 npm -w @ancientvoid/pwa run build
 ```
@@ -70,6 +72,14 @@ Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
 Bei Änderungen an PWA, Server-Routen, SessionManager oder Adaptern zusätzlich
 `npm run test:e2e`. Vor Bugfix-/Epic-PRs immer `npm run gate`. Neue
 UI-Funktion oder neuer Ablauf = neuer oder erweiterter Spec in `e2e/specs/`.
+
+**Test-Tiers:** `npm test` ist Tier A (18 s gemessen) und lässt alles weg, was lang
+ist, Ports bindet oder auf Wanduhr-Zeit prüft; dieser Teil läuft seriell in
+`npm run test:slow` (~25 min lokal, auf den Hosted-Runnern deutlich weniger, weil
+dort Adapter-Suiten sichtbar skippen). `gate` und `ci.yml` fahren **beide**
+Tieres — nichts fällt still weg. Wer eine Datei nach Tier B verschiebt, schreibt
+die gemessene Dauer in den Commit; neue langsame Tests bleiben Tier B, solange
+BUG-0170 offen ist.
 
 ## Testing
 

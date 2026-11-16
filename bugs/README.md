@@ -200,5 +200,12 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0168](bug-0168-fleet-steer-dedup-race-auf-langsamer-hardware.md) | Fleet-Steer-Dedup greift auf langsamer Hardware nicht (2 user-Events) | done | S3 | hub | [#12](https://github.com/SiLenTTz/AncientVoid/issues/12) |
 | [BUG-0176](bug-0176-starten-klick-von-arbeitsort-feld-ueberdeckt.md) | Starten-Klick im Neue-Session-Formular wird zeitweise vom Arbeitsort-Feld überdeckt (E2E-Flake) | open | S3 | e2e | [#28](https://github.com/SiLenTTz/AncientVoid/issues/28) |
 
-Die nächste freie Nummer ist **0177** (0169–0175 sind im offenen PR #17
-belegt — dort als BUG-0169–0175 dokumentiert).
+| [BUG-0169](bug-0169-e2e-global-setup-npm-auf-windows.md) | E2E-Global-Setup spawnnt `npm` ohne Shell — auf Windows läuft kein einziger E2E-Test | done | S3 | e2e | — |
+| [BUG-0170](bug-0170-testsuite-auf-windows-rot.md) | `npm test` ist auf Windows breit rot (CRLF, Symlinks, Spawn/Signale) — Gate und `^`-Commits blockiert | open | S2 | tests | — |
+| [BUG-0171](bug-0171-session-start-fehlt-bei-neuem-ordner.md) | Session-Start in noch nicht existierendem Ordner scheitert mit falscher Begründung | done | S2 | core | — |
+| [BUG-0172](bug-0172-ordner-ohne-git-nicht-waehlbar.md) | Ordner ohne `.git` erscheinen nie in der Projektauswahl | done | S3 | core | — |
+| [BUG-0173](bug-0173-neue-session-vergisst-letzten-pfad.md) | Gemerkter Pfad, Anlegen-Block und Wurzelhinweis hängen an der Zahl gefundener Git-Ordner | done | S3 | pwa | — |
+| [BUG-0174](bug-0174-zweite-session-im-gleichen-ordner.md) | Zweite Session im selben Ordner ist ohne Git eine Sackgasse | done | S2 | core | — |
+| [BUG-0175](bug-0175-projektfilter-vergleicht-slash-pfade.md) | `outsideRoots()` vergleicht mit `/` und filtert Windows-Sessions komplett weg | done | S2 | core | — |
+
+Die nächste freie Nummer ist **0177** (0169–0175 kamen mit diesem Branch, 0176 ist auf main dokumentiert).

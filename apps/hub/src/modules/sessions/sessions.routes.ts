@@ -1,6 +1,6 @@
 import { ActivityReport, AttachmentId, LOOP_ARG, LoopSpec, SaveDraftInput, WorkspaceMode, loopAdapterId, ToolPermissionRequest, type SteerInput } from "@ancientvoid/contracts";
 import type { FastifyInstance } from "fastify";
-import { DraftStore, isProjectPathAllowed, toStartSpec } from "@ancientvoid/core";
+import { DraftStore, isProjectPathAllowed, ensureProjectDir, toStartSpec } from "@ancientvoid/core";
 import { getSessionDiff, getSessionFileHunks } from "./diff.ts";
 import { ENV_VAR_NAME } from "@ancientvoid/contracts";
 import { z } from "zod";
@@ -32,6 +32,8 @@ const CreateSessionBody = z.object({
   /** ADR-0057: Arbeitsort; ohne Angabe eigener Worktree. `confirmDirty` bestätigt einen Start in ungesicherten Änderungen. */
   workspaceMode: WorkspaceMode.optional(),
   confirmDirty: z.boolean().optional(),
+  /** ADR-0081: bestätigt paralleles Schreiben in einem Nicht-Git-Ordner. */
+  confirmSharedFolder: z.boolean().optional(),
   /** EPIC-P19: Loop / Dark Factory. Ohne Angabe verhält sich der Start wie vorher. */
   loop: LoopSpec.optional(),
 });
@@ -103,6 +105,14 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     // Symlink escapes are resolved away, not just string-prefix-checked.
     if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    // BUG-0171: ein Ziel innerhalb einer erlaubten Wurzel darf noch fehlen. Vorher
+    // war die Antwort "outside the configured projectRoots" — nachweislich falsch.
+    // Jetzt: eine Ordner-Ebene anlegen, oder ehrlich sagen, was fehlt.
+    try {
+      await ensureProjectDir(parsed.data.project, projectRoots);
+    } catch (err) {
+      return reply.code(422).send({ error: err instanceof Error ? err.message : "Projektpfad nicht verwendbar" });
     }
     // AC-P19-8: `loops.start` ist in der Policy-Tabelle nur für Menschen erlaubt (der Hook hat den Rest schon mit 403 beendet).
     // Der Loop wird zur Session des internen Adapters `loop:<id>`; seine Auswahl steht in `args.loop`.
