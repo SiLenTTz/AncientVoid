@@ -1,8 +1,8 @@
 # Gate für PRs nach main (docs/ci-gate-inventar.md, EPIC-P28): schneller Kern —
 # lint, typecheck, die check:*-Guards, die schnellen Kern-Tests und der
 # PWA-Build. Alles Langsame (Vitest-Dateien über dem Schwellenwert aus
-# scripts/slow-tests.json, volle Suite, E2E, K8) läuft auf main und zweimal
-# täglich im Zeitplan — siehe nightly.yml. Skips und fehlende
+# scripts/slow-tests.json, volle Suite, E2E, K8) läuft auf ci/full-suite
+# zweimal täglich im Zeitplan — siehe nightly.yml. Skips und fehlende
 # Voraussetzungen sind dort nie grün (Skip-Bericht je Shard + Aggregation).
 name: ci
 
@@ -30,7 +30,7 @@ env:
 jobs:
   verify:
     # PR-Gate: schneller Kern. Die volle Suite (inkl. Slow-Tests >10 s)
-    # fährt nightly.yml auf main und im Zeitplan.
+    # fährt nightly.yml auf ci/full-suite im Zeitplan oder per Hand.
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
