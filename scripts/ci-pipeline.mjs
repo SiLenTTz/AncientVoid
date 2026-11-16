@@ -34,15 +34,17 @@ export async function syncPipeline(api) {
 }
 
 export async function reportFailures(api, run) {
-  if (run.name !== "nightly" || run.event === "pull_request" || run.conclusion !== "failure") return [];
+  const failed = (conclusion) => ["failure", "timed_out", "action_required", "startup_failure"].includes(conclusion);
+  if (run.name !== "nightly" || run.event === "pull_request" || !failed(run.conclusion)) return [];
   const jobs = [];
   for (let page = 1; ; page++) {
     const result = await api("GET", `actions/runs/${run.id}/jobs?filter=latest&per_page=100&page=${page}`);
     jobs.push(...result.jobs);
     if (result.jobs.length < 100) break;
   }
-  const failures = jobs.filter((job) => ["failure", "timed_out", "action_required", "startup_failure"].includes(job.conclusion));
-  if (failures.length === 0) throw new Error("Failed nightly run has no failed jobs; inspect run manually");
+  const failures = jobs.filter((job) => failed(job.conclusion));
+  // A workflow can fail before a runner/job starts; that must still create a bug.
+  if (failures.length === 0) failures.push({ name: "workflow startup", conclusion: run.conclusion, html_url: run.html_url });
   const issues = [];
   for (let page = 1; ; page++) {
     const result = await api("GET", `issues?state=open&labels=bug&per_page=100&page=${page}`);

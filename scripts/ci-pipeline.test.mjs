@@ -53,8 +53,15 @@ describe("nightly bugs", () => {
     expect(api.mock.calls[3][1]).toContain("page=2");
     expect(api.mock.calls[4][0]).toBe("PATCH");
   });
-  it("does not silently accept an unexplained failed run", async () => {
-    await expect(reportFailures(vi.fn().mockResolvedValue({ jobs: [] }), run)).rejects.toThrow("no failed jobs");
+  it("reports workflow startup failures even when no job could start", async () => {
+    const api = vi.fn().mockResolvedValueOnce({ jobs: [] }).mockResolvedValueOnce([]).mockResolvedValueOnce({ number: 18 });
+    expect(await reportFailures(api, { ...run, conclusion: "startup_failure" })).toEqual([18]);
+    expect(api.mock.calls[2][2].title).toContain("workflow startup");
+  });
+  it("reports timed-out workflows and jobs", async () => {
+    const api = vi.fn().mockResolvedValueOnce({ jobs: [{ ...job, conclusion: "timed_out" }] }).mockResolvedValueOnce([]).mockResolvedValueOnce({ number: 19 });
+    expect(await reportFailures(api, { ...run, conclusion: "timed_out" })).toEqual([19]);
+    expect(api.mock.calls[2][2].body).toContain("timed_out");
   });
   it("fails on API errors without exposing the token or response body", async () => {
     const request = vi.fn().mockResolvedValue({ ok: false, status: 403 });
