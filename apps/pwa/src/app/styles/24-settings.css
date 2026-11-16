@@ -457,3 +457,53 @@
   overflow-wrap: anywhere;
   user-select: all;
 }
+
+/* BUG-0186: installierter Stand als Tatsachen — vier Zeilen, auf schmalem und auf
+   gedrehtem Screen lesbar; lange Cache-Namen umbrechen statt abzuschneiden. */
+.setting-row:has(.install-status) {
+  /* Textblock als Steuerung: zwei Spalten pressten das Label zusammen, und Wörter
+     brissen mitten drin („Install ierter Stand“, „Aus richt ung“). */
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.setting-row:has(.install-status) .setting-control {
+  width: 100%;
+}
+
+.install-status {
+  display: grid;
+  gap: 3px;
+  justify-items: start;
+  max-width: 100%;
+  /* Die Steuerungsspalte der Einstellungen ist rechtsbündig; für mehrzeilige
+     Tatsachenzeilen wirkt das wie eingerückter Text. */
+  text-align: left;
+}
+
+.install-status__line {
+  font-size: 12.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.install-status .btn {
+  margin-top: 6px;
+}
+
+/* Die beiden Ausrichtungs-Knöpfe gehören in eine Zeile — auf 390 px sonst drei
+   Absätze untereinander. */
+.install-status .settings-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Die Antwort auf den Ausrichtungs-Knopf ist eine Rueckmeldung, keine weitere
+   Tatsachenzeile: etwas lauter und mit Kante, damit klar ist, was der Knopf tat. */
+.install-status [data-testid="install-orient-result"] {
+  margin-top: 4px;
+  padding-left: 9px;
+  border-left: 2px solid var(--accent);
+  color: var(--fg);
+}

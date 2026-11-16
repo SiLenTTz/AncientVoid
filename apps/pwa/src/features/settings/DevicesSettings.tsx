@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { applyPinchZoom, pinchZoomAllowed } from "../../app/zoom.ts";
+import { InstallStatus } from "./InstallStatus.tsx";
 import { PcInput } from "./PcInput.tsx";
 import { SettingRow, SettingsSection, Switch } from "./parts.tsx";
 
@@ -19,6 +20,7 @@ export function DevicesSettings() {
         />
       </SettingRow>
       <PcInput />
+      <InstallStatus />
     </SettingsSection>
   );
 }
