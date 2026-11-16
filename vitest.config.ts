@@ -1,20 +1,24 @@
+import { readFileSync } from "node:fs";
 import { defineConfig } from "vitest/config";
-import { tierB } from "./scripts/test-tiers.ts";
 
-/**
- * Tier A — der schnelle Loop (`npm test`, `npm run test:watch`).
- * Ausgeschlossen ist, was lang ist, echte Ports bindet oder auf Wanduhr-Zeit
- * prüft; dieser Teil läuft seriell in vitest.slow.config.ts (`npm run
- * test:slow`). Liste: scripts/test-tiers.ts. Beide Tiers zusammen fahren
- * `npm run gate` und die CI — nichts verschwindet still aus der Prüfung.
- */
+// Slow-Test-Split (Laufzeit 2026-11-16): Der PR-Gate läuft nur den schnellen
+// Kern (VITEST_SET=fast); Dateien über dem Schwellenwert stehen in
+// scripts/slow-tests.json und laufen auf main und im Schedule-Lauf (nightly).
+// Details: docs/ci-runbook.md.
+const slowFiles: string[] = (JSON.parse(readFileSync(new URL("./scripts/slow-tests.json", import.meta.url), "utf8")) as { files: { file: string }[] }).files.map((f) => f.file);
+const slowSet = process.env.VITEST_SET ?? "all";
+const allGlobs = ["packages/*/test/**/*.test.ts", "packages/adapters/*/test/**/*.test.ts", "packages/loops/*/test/**/*.test.ts", "apps/*/test/**/*.test.ts", "scripts/**/*.test.mjs"];
+
 export default defineConfig({
   test: {
     globalSetup: ["./scripts/vitest-global-setup.mjs"],
-    include: ["packages/*/test/**/*.test.ts", "packages/adapters/*/test/**/*.test.ts", "packages/loops/*/test/**/*.test.ts", "apps/*/test/**/*.test.ts", "scripts/**/*.test.mjs"],
-    exclude: ["**/node_modules/**", "**/dist/**", ...tierB],
+    include: slowSet === "slow" ? slowFiles : allGlobs,
+    ...(slowSet === "fast" ? { exclude: ["**/node_modules/**", "**/dist/**", ...slowFiles] } : {}),
     testTimeout: 15_000,
     hookTimeout: 15_000,
     pool: "forks",
+    // Ersatz für poolOptions.forks.singleFork (seit vitest 4 entfernt): die
+    // zeitbasierten Tests (BUG-0001/0002) laufen nacheinander, nicht parallel.
+    maxWorkers: 1,
   },
 });

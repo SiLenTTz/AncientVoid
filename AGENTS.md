@@ -43,10 +43,14 @@ bestehen, auch wenn andere Epics oder Vorgänger inzwischen grün sind.
 
 ## Kommandos
 
-> **CI-Geltung (Umzug auf GitHub, 16.11.2026):** Gehostete CI ist GitHub
-> Actions (`.github/workflows/ci.yml`, Jobs `verify`, `k8`, `e2e`) auf
-> GitHub-gehosteten Runnern — Required Check für jeden PR nach `main`.
-> Die lokalen Gates unten bleiben **zusätzlich** verbindlich. Rote CI blockiert;
+> **CI-Geltung (Umzug auf GitHub, 16.11.2026; Laufzeit-Split 16.11.2026):**
+> Gehostete CI ist GitHub Actions auf GitHub-gehosteten Runnern: PRs gate
+> den schnellen Kern (`.github/workflows/ci.yml`, Job `verify`: schnelle
+> Tests, Lint, Typecheck, Build) — Required Check; die volle Messlatte
+> (komplette Testsuite inkl. Slow-Liste, E2E, K8) fährt
+> `.github/workflows/nightly.yml` auf `main` und zweimal täglich. Die
+> lokalen Gates unten bleiben **zusätzlich** und unverändert voll
+> verbindlich. Rote CI blockiert;
 > ist die Ursache nachweislich nur die Umgebung (z. B. Runner-Flake), wird das
 > benannt und einmal neu gestartet — nie als Pass gemeldet. Keine self-hosted
 > Runner für das öffentliche Repo (Fork-PRs führen fremden Code aus).
@@ -128,7 +132,9 @@ ist zulässig (Solo-Projekt) — was **nicht** zulässig ist: den PR selbst zu
 der `pre-push`-Hook erzwingt Lint und Typecheck; Tests über die Kommandos oben, das Gate und die GitHub-Actions-CI).
 
 Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder `epics/`
-für Epics. Eingefrorene Analysen (Audits, Evaluierungen, Berichte) bekommen
+für Epics. Bewährte Ausnahmen: `docs/adr/` (ADRs), `docs/guide/` (EPIC-P62:
+englischer Guide + Inventar), `docs/videos/` (EPIC-P62: Video-Skripte).
+Eingefrorene Analysen (Audits, Evaluierungen, Berichte) bekommen
 das Datum in den Namen (`JJJJ-MM-TT_*` bzw. `*JJJJ-MM-TT`) — sie sind
 referenzfrei zulässig und altern bewusst. ADRs nach `docs/adr/NNNN-*.md`.
 Kein `*-STATUS.md`/`*-SUMMARY.md` auf Top-Level. Über Zeilen-Budgets, Links,

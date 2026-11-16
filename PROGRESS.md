@@ -34,8 +34,8 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
   Ohne diesen Fix läuft auf Windows kein einziger E2E-Test.
 - **Test-Tiers** (Messlauf: 959 s Testdauern, 84 % in sechs Dateien): Tier A
   `vitest.config.ts` (parallel) in **18,6 s** statt 1077 s; Tier B
-  `vitest.slow.config.ts` (seriell, **1535 s** lokal), Liste mit gemessenen Dauern
-  in `scripts/test-tiers.ts`, Anzeigen mit `npm run test:tiers`. `gate` und
+  `VITEST_SET=slow` (Nightly-Suite, Liste `scripts/slow-tests.json`, Generator
+  `scripts/gen-slow-tests.mjs`) — abgelöst durch die CI-Restrukturierung auf main.
   `ci.yml` fahren beide Tieres (eigene junit-Dateien). Fehllisten per
   json-Reporter verglichen: verlustfrei; ein Windows-Teardown-Flackern
   (`ENOTEMPTY`) behoben.

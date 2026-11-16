@@ -43,7 +43,7 @@ Dann nur die Spalten fahren, die betroffen sind.
 
 ```bash
 npm test                 # vitest Tier A: schneller Loop (parallel, ohne die langsamen Dateien)
-npm run test:slow         # vitest Tier B: langsam/seriell — Liste scripts/test-tiers.ts
+npm run test:slow         # langsamer Satz (VITEST_SET=slow) — Liste scripts/slow-tests.json
 npm run test:tiers        # zeigen, was in Tier B liegt (Dauern im Kommentar)
 npm run test:e2e          # Playwright-E2E-Gate (docs/testing-e2e.md)
 npm run gate              # typecheck + lint + test + test:slow + test:e2e

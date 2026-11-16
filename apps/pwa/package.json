@@ -14,7 +14,7 @@
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",
     "highlight.js": "^11.12.0",
-    "js-yaml": "5.4.3",
+    "js-yaml": "5.5.0",
     "jsqr": "^1.4.0",
     "mermaid": "12.3.0",
     "preact": "^11.0.1",
