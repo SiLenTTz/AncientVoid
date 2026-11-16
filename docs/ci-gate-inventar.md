@@ -34,6 +34,7 @@ die Workflow-Datei:
 | `npm run check:arch` (depcruise) | `verify` | Job-Log, Exit-Code |
 | `npm run check:adapter-matrix` | `verify` | Job-Log, Exit-Code |
 | `npm run check:names`, `check:context`, `check:secrets` | `verify` | Job-Log, Exit-Code |
+| `npm run check:media` (+ `--ocr` in CI; `pre-commit` staged) — Medien-Leak-Guard (EPIC-P62 T62.2, Regeln: [demo-media.md](demo-media.md)) | `verify` | Job-Log, Exit-Code |
 | `npm test` (vitest) | `verify` | JUnit-XML `test-results/vitest-junit.xml` (Artefakt `vitest-junit`) |
 | `npm -w @ancientvoid/pwa run build` | `verify` | Job-Log, Exit-Code |
 | `npm run loadtest` — K8: 20 Sessions × 30 ev/s × 10 s | `k8` (eigener Job seit 2026-11-12; nur bei Code-Änderung, `main` immer) | Job-Log (Events, Verluste, RSS) — volle Messlatte, nicht entschärft |

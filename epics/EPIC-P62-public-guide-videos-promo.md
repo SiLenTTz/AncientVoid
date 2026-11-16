@@ -188,7 +188,7 @@ User-Content.
       `docs/guide/inventory.md` (EN-Kurzbeschreibung + Spec-Verweis);
       Ablagekonzept Guide-Assets + `docs/check-context.md`-Regelerweiterung
       (Budgets für `docs/guide/`); Test: neue Ebene ohne Inventareintrag rot.
-- [ ] **T62.2 Leak-Guard** — `docs/demo-media.md` (Regeln + Checklisten);
+- [x] **T62.2 Leak-Guard** — `docs/demo-media.md` (Regeln + Checklisten);
       `scripts/check-media.mjs` (+ Tests, jede Regel rot-vor-Grün);
       `check:media --ocr` in verify; `.githooks/pre-commit` (staged Medien);
       Token-Präfix `avt_` in identity (Test: Präfix + Hash-Kompatibilität);

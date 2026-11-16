@@ -78,6 +78,10 @@ jobs:
       # AC-P1-6: Secret-Scan als wiederholtes Gate — auch für nachträglich
       # editierte Fixtures, nicht nur zum Capture-Zeitpunkt.
       - run: npm run check:secrets
+      # EPIC-P62 T62.2 (AC-P62-5): Medien-Leak-Guard — Struktur immer,
+      # OCR (tesseract) über neue/geänderte Guide-/Site-Screenshots.
+      - run: npm run check:media
+      - run: npm run check:media -- --ocr
       - run: npm -w @ancientvoid/pwa run build
       - name: Unit- und Integrationstests
         run: |

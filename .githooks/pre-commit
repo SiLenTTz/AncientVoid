@@ -1,0 +1,5 @@
+#!/bin/sh
+# EPIC-P62 T62.2: gestellte Medien gegen die Strukturregeln prüfen —
+# schnell und ohne OCR (der Inhalt läuft in der verify-CI mit tesseract).
+# exit 1 = Commit abgewiesen, Regel steht in der Meldung.
+node scripts/check-media.mjs --staged
