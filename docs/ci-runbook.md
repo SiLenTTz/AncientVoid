@@ -121,10 +121,12 @@ Einstellungen (*Settings → Actions → General*) und Workflow-Regeln:
   Ökosystem `github-actions`); Updates laufen als normale PRs durch dieselbe CI.
 - **Keine Secrets** in Workflows. Braucht ein Job je eines, nur über
   Environments mit Freigabe und nie in Jobs, die Fork-Code ausführen.
-- Branch-Protection auf `main`: Required Check ist `verify` (der schnelle
-  PR-Gate aus `ci.yml`); die vollen Läufe (`nightly.yml`) sind kein
-  PR-Gate, sondern Sicherheit auf `main` und im Zeitlauf;
-  kein Force-Push, kein direkter Push; Merge nur per PR.
+- Branch-Protection auf `main` (Ruleset `main-gate`, aktiv seit 16.11.2026):
+  Required Check ist `verify` (der schnelle PR-Gate aus `ci.yml`, ohne
+  Auto-Update-Regel — der Gate prüft ohnehin den Merge-Ref); kein
+  Force-Push (non-fast-forward), kein Löschen von `main`. Direkter Push auf
+  `main` ist erlaubt und löst den vollen Lauf aus; normale Arbeit geht per
+  PR. Die vollen Läufe (`nightly.yml`) sind kein PR-Gate.
 
 ## 5. Lokale-vs-CI-Regel
 
