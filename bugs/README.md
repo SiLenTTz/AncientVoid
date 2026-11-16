@@ -199,6 +199,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0167](bug-0167-fastify-update-macht-zughistorie-flaky.md) | fastify ≥ 5.12.6 macht „ohne Plan, mit Zughistorie“ flaky (Pin auf 5.12.5) | open | S3 | server | [#5](https://github.com/SiLenTTz/AncientVoid/issues/5) |
 | [BUG-0168](bug-0168-fleet-steer-dedup-race-auf-langsamer-hardware.md) | Fleet-Steer-Dedup greift auf langsamer Hardware nicht (2 user-Events) | done | S3 | hub | [#12](https://github.com/SiLenTTz/AncientVoid/issues/12) |
 | [BUG-0176](bug-0176-starten-klick-von-arbeitsort-feld-ueberdeckt.md) | Starten-Klick im Neue-Session-Formular wird zeitweise vom Arbeitsort-Feld überdeckt (E2E-Flake) | open | S3 | e2e | [#28](https://github.com/SiLenTTz/AncientVoid/issues/28) |
+| [BUG-0177](bug-0177-spracheingabe-bricht-ab-und-ist-nicht-stoppbar.md) | Spracheingabe endet nach 10 s/60 s, kein Wort-für-Wort, erneut tippen kann nicht stoppen, Text doppelt nach Chrome-Neustart | done | S1 | pwa | — |
 
-Die nächste freie Nummer ist **0177** (0169–0175 sind im offenen PR #17
+Die nächste freie Nummer ist **0178** (0169–0175 sind im offenen PR #17
 belegt — dort als BUG-0169–0175 dokumentiert).
