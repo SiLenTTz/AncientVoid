@@ -8,6 +8,15 @@
   background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
 
+.chat-live-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
 .chat-live-part {
   font-size: calc(15px * var(--font-scale, 1));
   line-height: 1.45;
@@ -25,9 +34,9 @@
 /* Der Cursor zeigt: hier läuft etwas, es ist aber nicht simuliert. */
 .chat-live-caret {
   display: inline-block;
-  width: 0.5em;
-  height: 1.05em;
-  margin-left: 2px;
+  width: 2px;
+  height: 1.1em;
+  margin-left: 3px;
   vertical-align: text-bottom;
   background: var(--accent);
   animation: chat-live-blink 1s steps(1, end) infinite;

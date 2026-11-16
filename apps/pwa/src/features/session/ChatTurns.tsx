@@ -105,8 +105,18 @@ export function ChatTurns({
       ))}
       {live && (live.assistant || live.thinking) ? (
         <div class="chat-live" data-testid="chat-live" aria-live="polite">
-          {live.thinking ? <div class="chat-live-part thinking" data-testid="chat-live-thinking">{live.thinking}</div> : null}
-          {live.assistant ? <div class="chat-live-part" data-testid="chat-live-assistant">{live.assistant}<span class="chat-live-caret" aria-hidden="true" /></div> : null}
+          {live.thinking ? (
+            <>
+              <span class="chat-live-label">denkt</span>
+              <div class="chat-live-part thinking" data-testid="chat-live-thinking">{live.thinking}</div>
+            </>
+          ) : null}
+          {live.assistant ? (
+            <>
+              <span class="chat-live-label">antwortet</span>
+              <div class="chat-live-part" data-testid="chat-live-assistant">{live.assistant}<span class="chat-live-caret" aria-hidden="true" /></div>
+            </>
+          ) : null}
         </div>
       ) : null}
     </>

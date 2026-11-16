@@ -40,6 +40,9 @@ const DummyConfig = z.object({
   /** ADR-0083: jeder assistant-Block geht als zwei Live-Frames raus (zweiter final),
    * bevor das Block-Ereignis kommt — determinische Quelle fuer Hub-/E2E-Tests. */
   liveFrames: z.boolean().default(false),
+  /** ADR-0083: verzögert das Block-Ereignis um N ms nach den Frames — damit ein
+   * E2E-Test die wachsende Live-Blase tatsaechlich beobachten kann. */
+  blockLeadMs: z.number().int().min(0).default(0),
   failStart: z.boolean().default(false),
   resumeOnRecover: z.boolean().default(true),
 });
@@ -183,6 +186,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         ctx.stream({ turnId: `dummy-${n}`, stream: "assistant", seq: 0, text: head, final: false });
         ctx.stream({ turnId: `dummy-${n}`, stream: "assistant", seq: 1, text: "live", final: true });
         payload.text = `${head}live`;
+        if (cfg.blockLeadMs > 0) {
+          // ADR-0083: Block spaeter als Frames — nur so ist die wachsende Blase beobachtbar.
+          const late = { ...payload };
+          setTimeout(() => ctx.emit({ type, summary: `dummy ${type} #${n}`, payload: late, tokensEst: 10 + (n % 40), tokensSource: "estimated" }), cfg.blockLeadMs);
+          return;
+        }
       }
       ctx.emit({
         type,
