@@ -19,10 +19,10 @@
 | Skill | Kurzbeschreibung | Auto-loads when | Abgrenzung |
 |---|---|---|---|
 | [`gates`](gates/SKILL.md) | Qualitäts-Gates (npm test/lint/typecheck) in der richtigen Reihenfolge | „ist das grün?", CI rot, vor Commit | Messung, kein fachliches Urteil |
-| [`git-workflow`](git-workflow/SKILL.md) | Commit-Notation, Branch, MR via glab, Post-Merge-Hygiene | commit, branch, MR, Branch-Aufräumen | ausführbare Form von `CONTRIBUTING.md` § Commit notation / Branches and merge requests |
+| [`git-workflow`](git-workflow/SKILL.md) | Commit-Notation, Branch, PR via gh, Post-Merge-Hygiene | commit, branch, PR, Branch-Aufräumen | ausführbare Form von `CONTRIBUTING.md` § Commit notation / Branches and pull requests |
 | [`bugfix`](bugfix/SKILL.md) | Reproduce → Fix → Re-verify → Finalize | Bug, Defekt, reproduzieren, Issue investigate | Handoff → `pr-review` |
 | [`bug-report`](bug-report/SKILL.md) | Defekt sehen, belegen, unter `bugs/` anlegen | „Bug anlegen", Dev-Fund, Issue erstellen, kein Patch | kein Fix; Handoff → `bugfix` |
-| [`pr-review`](pr-review/SKILL.md) | 6-Dimensionen-Gate-Review inkl. Future-Fragility | MR review, Merge-Freigabe, structured review | reines Lint bleibt `gates` |
+| [`pr-review`](pr-review/SKILL.md) | 6-Dimensionen-Gate-Review inkl. Future-Fragility | PR review, Merge-Freigabe, structured review | reines Lint bleibt `gates` |
 | [`ponytail-review`](ponytail-review/SKILL.md) | Diff-Advisory, Tags `delete/stdlib/native/yagni/shrink` | Diff vereinfachen, Komplexität, YAGNI | read-only, keine Edits |
 | [`architecture-best-practices`](architecture-best-practices/SKILL.md) | AncientVoid-Pipeline, Modultiefe, Testing-Standard | Architektur, Schichten, Anti-Pattern | Referenz, kein Workflow |
 | [`write-tests`](write-tests/SKILL.md) | Unit-/Integrations-/E2E-Rezept für dieses Repo | neuen Test, Coverage, Playwright, rot-dann-grün | Gates fahren bleibt `gates` |

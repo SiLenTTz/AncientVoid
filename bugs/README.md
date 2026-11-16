@@ -2,12 +2,13 @@
 
 Git/Markdown ist SSOT, analog zu `epics/`. Ein Bug ohne Repro ist eine
 Vermutung; die Datei hier ist die Zusage, dass jemand den Defekt **gesehen**
-hat. Die GitLab-Issue ist der Tracker für Zuweisung — nicht die zweite
-Wahrheit.
+hat. Das GitHub-Issue ist der Tracker für Zuweisung — nicht die zweite
+Wahrheit (`gh issue create --label bug --body-file bugs/bug-NNNN-slug.md`;
+Spalte „Forge“ = Issue- oder PR-URL auf `github.com/SiLenTTz/AncientVoid`).
 
 > **Hinweis zur öffentlichen Fassung:** Links auf `gitlab.com/SiLenT_Tz/…`
-> (Issues, MRs, Pipelines) verweisen auf das private Entwicklungs-Repo und
-> sind öffentlich nicht erreichbar. Maßgeblich ist der Inhalt der Bug-Dateien;
+> (Issues, MRs, Pipelines) verweisen auf das private Entwicklungs-Repo
+> (Archiv, Stand bis 16.11.2026) und sind öffentlich nicht erreichbar. Maßgeblich ist der Inhalt der Bug-Dateien;
 > neue Meldungen bitte über die GitHub-Issues (siehe `CONTRIBUTING.md`).
 
 Anlegen: Skill [`bug-report`](../.claude/skills/bug-report/SKILL.md).
@@ -21,7 +22,7 @@ Beheben: Skill [`bugfix`](../.claude/skills/bugfix/SKILL.md).
 | Vorlage | [`template.md`](template.md) |
 | Nächste ID | max(existierende `NNNN`) + 1; die erste Datei ist `bug-0001-…` |
 | Status | `open` · `in-progress` · `done` · `wont-fix` — im Frontmatter |
-| Geschlossen | Datei **bleibt** hier; `status` und MR-Link nachziehen. Kein Archiv. |
+| Geschlossen | Datei **bleibt** hier; `status` und PR-Link nachziehen. Kein Archiv. |
 
 Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 

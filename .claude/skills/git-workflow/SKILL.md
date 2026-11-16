@@ -1,6 +1,6 @@
 ---
 name: git-workflow
-description: Commit-Notation (Arlo, docs/commit-notation.md), Branch-Naming feat/fix/docs (ein Branch pro Aufgabe), GitLab-MR via glab, Co-Author-Trailer, Post-Merge Branch-Hygiene. Aktiv bei commit, branch, PR/MR anlegen, Branch-Aufräumen. Merge NUR über glab mr merge/GitLab-UI, nie lokal per git merge nach main. Never force-push, never commit auf main.
+description: Commit-Notation (Arlo, docs/commit-notation.md), Branch-Naming feat/fix/docs (ein Branch pro Aufgabe), GitHub-PR via gh, Co-Author-Trailer, Post-Merge Branch-Hygiene. Aktiv bei commit, branch, PR anlegen, Branch-Aufräumen. Merge NUR über gh pr merge/GitHub-UI, nie lokal per git merge nach main. Never force-push, never commit auf main.
 ---
 
 # Skill: git-workflow
@@ -10,12 +10,12 @@ Querschnitts-Regeln: [`CONTRIBUTING.md`](../../../CONTRIBUTING.md). Gates:
 
 ## Zweck
 
-Commit, Branch und MR sehen jedes Mal gleich aus. Dieser Skill ist die
+Commit, Branch und PR sehen jedes Mal gleich aus. Dieser Skill ist die
 ausführbare Form; `CONTRIBUTING.md` bleibt die Regelquelle.
 
 ## Wann benutzen (Trigger)
 
-- commit, branch anlegen, MR öffnen, Commit-Notation, Co-Author.
+- commit, branch anlegen, PR öffnen, Commit-Notation, Co-Author.
 
 **Nicht:** Epic-Struktur (`epic-creation`); Bugfix-Ablauf (`bugfix`).
 
@@ -25,11 +25,11 @@ ausführbare Form; `CONTRIBUTING.md` bleibt die Regelquelle.
   [`docs/commit-notation.md`](../../../docs/commit-notation.md). Risiko ehrlich
   nach Beleg: `^` nur mit grünem Gate **und** Tests, die das geänderte
   Verhalten abdecken; nur live belegt → `!`; Zwischenstand → `@` (nie als
-  MR-Titel). Eine Verhaltensänderung pro Commit.
+  PR-Titel). Eine Verhaltensänderung pro Commit.
 - ✅ Branch: `feat/<scope>-<slug>` · `fix/<problem>` · `docs/<scope>` — real
   Konvention aus diesem Repo, granular pro Aufgabe: `feat/p2-t2.5-webauthn`,
   `fix/k7-recovery-race-under-load`, `docs/epic-p0-retro`. Ein
-  Task/Bugfix/Doc-Abschluss = ein Branch = ein MR, kein Bündeln mehrerer
+  Task/Bugfix/Doc-Abschluss = ein Branch = ein PR, kein Bündeln mehrerer
   unabhängiger Aufgaben auf einen Branch, außer sie sind so eng gekoppelt
   wie `T1.5-4/T1.5-5` es waren.
 - ✅ Co-Author-Trailer bei KI-Commits.
@@ -41,50 +41,51 @@ ausführbare Form; `CONTRIBUTING.md` bleibt die Regelquelle.
   Branches für Arbeit, die niemand verlangt hat, nicht „für jede einzelne
   Aufgabe erst nachfragen".
 - ✅ **Der einzige Ort, an dem ein Feature-/Fix-/Docs-Branch mit `main`
-  zusammengeführt wird, ist die MR auf GitLab** (`glab mr merge` oder Klick
-  im UI) — niemals ein lokales `git merge`/`git merge --ff-only` von
-  `feat/*` nach `main`. Ein lokaler Merge ist kein Ersatz für Push+MR, egal
+  zusammengeführt wird, ist der Pull Request auf GitHub** (`gh pr merge`
+  oder Klick im UI) — niemals ein lokales `git merge`/`git merge --ff-only` von
+  `feat/*` nach `main`. Ein lokaler Merge ist kein Ersatz für Push+PR, egal
   wie sicher der Code ist, egal wie dringend die Arbeit „ankommen" soll.
   **Das war 2026-09-18 real der Fehler**, der zu dieser Regel geführt hat:
   mehrere Feature-Branches wurden lokal per `git merge --ff-only` nach
   `main` gezogen und sofort per `git branch -d` gelöscht — real getestet,
-  real committet, aber ohne jede MR/Branch-Spur, sobald der Branch weg war.
+  real committet, aber ohne jede MR-/Branch-Spur (damals GitLab), sobald
+  der Branch weg war.
   Sah aus wie direktes Arbeiten auf `main`, obwohl technisch kurz ein
   Branch existiert hatte.
-- ✅ **Remote nicht erreichbar (z. B. Gitaly-Ausfall) ist kein Grund, den
+- ✅ **Remote nicht erreichbar (z. B. Forge-Ausfall) ist kein Grund, den
   Merge lokal nachzubauen.** Branch bleibt offen, ungemerged, ungelöscht.
   Weiterarbeiten auf dem nächsten Branch ist erlaubt (er baut auf dem
-  vorigen auf, exakt wie bei einer normal laufenden MR-Kette) — aber
-  `main` bewegt sich nicht, bis die MR real gemerged werden kann. Push
+  vorigen auf, exakt wie bei einer normal laufenden PR-Kette) — aber
+  `main` bewegt sich nicht, bis der PR real gemerged werden kann. Push
   regelmäßig neu versuchen; sobald erreichbar: jeden Branch einzeln pushen,
-  MR öffnen, mergen (`glab mr merge`), `git pull`, nächster Branch.
+  PR öffnen, mergen (`gh pr merge`), `git pull`, nächster Branch.
 - ❌ Never force-push, never rewrite published history, never commit auf `main`.
 - ❌ **Never** `git merge`/`git rebase` von einem Feature-Branch auf `main`
-  als Ersatz für eine echte MR — auch nicht „nur lokal, wird ja eh
+  als Ersatz für einen echten PR — auch nicht „nur lokal, wird ja eh
   gepusht". Auch nicht bei Selbst-Merge (Solo-Projekt erlaubt Self-Merge
-  der MR, nicht das Überspringen der MR selbst).
+  des PRs, nicht das Überspringen des PRs selbst).
 - ❌ Never `--no-verify`.
 - ✅ Nach jedem Merge: Source-Branch lokal löschen, remote nachziehen,
   `git fetch --prune`. Gemergte Branches nicht als Archiv liegen lassen —
-  die MR ist der Log.
-- ✅ MR-Ziel ist `main`. Lange Integrations-Branches nur als kurze
+  der PR ist der Log.
+- ✅ PR-Ziel ist `main`. Lange Integrations-Branches nur als kurze
   Epic-Kette, die zeitnah nach `main` kommt (sonst driftet `main`).
 
-## Kadenz — wann commit, wann push, wann MR (deterministisch)
+## Kadenz — wann commit, wann push, wann PR (deterministisch)
 
 Diese Momente sind fest, keine Ermessenssache:
 
 | Ereignis | Aktion |
 |---|---|
 | Task/Aufgabe (`T<n>.<m>`) einer Epic abgeschlossen | commit (lokal, auf dem laufenden `feat/`-Branch) |
-| Bugfix abgeschlossen (`bugfix`-Skill, Finalize) | commit **+ push + MR** (`glab mr create`) |
-| Epic abgeschlossen (alle AC grün, `retro` gelaufen) | commit **+ push + MR** für den Epic-/Feature-Branch nach `main` |
+| Bugfix abgeschlossen (`bugfix`-Skill, Finalize) | commit **+ push + PR** (`gh pr create`) |
+| Epic abgeschlossen (alle AC grün, `retro` gelaufen) | commit **+ push + PR** für den Epic-/Feature-Branch nach `main` |
 
-Solo-Projekt, kein zweiter Reviewer: Self-Merge der eigenen MR ist zulässig.
+Solo-Projekt, kein zweiter Reviewer: Self-Merge des eigenen PRs ist zulässig.
 Der "Nicht self-merge"-Grundsatz aus [`pr-review`](../pr-review/SKILL.md)
-gilt der fachlichen Prüfung (MR-Beschreibung nennt Repro/Root-cause/
-Testplan, Gates sind grün) — nicht einem erzwungenen zweiten Menschen. Die
-MR bleibt trotzdem Pflicht: sie ist der Log-Eintrag der Historie, nicht die
+gilt der fachlichen Prüfung (PR-Beschreibung nennt Repro/Root-cause/
+Testplan, lokale Gates und GitHub-Actions-CI sind grün) — nicht einem
+erzwungenen zweiten Menschen. Der PR bleibt trotzdem Pflicht: sie ist der Log-Eintrag der Historie, nicht die
 Freigabe.
 
 **Ausnahme:** Die ersten Commits (Kaltstart, initiale Tooling-Übernahme aus
@@ -109,7 +110,8 @@ Anweisung gedeckt.
 Dieselben Gates wie [`gates`](../gates/SKILL.md): `npm test && npm run lint
 && npm run typecheck`. Einziger lokaler Hook ist `.githooks/commit-msg`
 (Commit-Notation, von `npm install` eingerichtet); `npm run gate` prüft
-zusätzlich alle Commits des Branches (`check:commits`).
+zusätzlich alle Commits des Branches (`check:commits`); der `pre-push`-Hook
+erzwingt Lint und Typecheck.
 
 ### 3. Commit
 
@@ -125,22 +127,28 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 
 Zusammenfassung ≤ 100 Zeichen, Bereich = Paket/Modul. Keine Secrets.
 
-### 4. MR (GitLab) — push, öffnen, mergen, in dieser Reihenfolge
+### 4. PR (GitHub) — push, öffnen, CI abwarten, mergen
 
 ```bash
 git push -u origin feat/adapter-local-llm
-glab mr create --title "^ F adapter-local-llm: Stream des llama.cpp-Servers lesen" --description "$(cat mr-desc.md)"
-glab mr merge <mr-number> --yes   # Self-Merge zulässig (Solo-Projekt, siehe Kadenz oben)
+gh pr create --base main --title "^ F adapter-local-llm: Stream des llama.cpp-Servers lesen" --body-file pr-desc.md
+gh pr checks --watch                       # CI (GitHub Actions) muss grün sein
+gh pr merge <nr> --merge --delete-branch \
+  --subject "$(gh pr view <nr> --json title -q .title)"   # Self-Merge zulässig (Solo-Projekt)
 ```
 
-**Real, live geprüft (2026-09-18):** `glab mr create` hat kein
-`--description-file` — der echte Flag ist `-d`/`--description` und nimmt
-den Text direkt (nicht einen Dateipfad); `$(cat mr-desc.md)` liefert den
-Inhalt einer vorbereiteten Beschreibungsdatei trotzdem sauber ein.
-`glab mr merge` ohne `--yes` fragt interaktiv nach.
+- **Merge-Commit, kein Squash/Rebase:** Die Branch-Commits behalten ihre
+  eigene Notation und Risikostufe (`check:commits`); der Merge-Commit trägt
+  den PR-Titel (`--subject`), siehe [`docs/commit-notation.md`](../../../docs/commit-notation.md).
+- `--body-file` nimmt eine vorbereitete Beschreibungsdatei (alternativ
+  `--body "$(cat …)"`); die Vorlage liegt in `.github/pull_request_template.md`.
+- Status: `gh pr view <nr>`, `gh pr checks <nr>`; roter Lauf →
+  [`docs/ci-runbook.md`](../../../docs/ci-runbook.md) (`gh run view --log-failed`).
+- Branch-Protection auf `main` verlangt die CI-Checks; `gh pr merge` scheitert,
+  solange sie rot oder ausstehend sind — nicht mit Admin-Override umgehen.
 
-Body: Warum, Testplan, Link Issue. Die MR bleibt trotzdem Pflicht als
-Log-Eintrag — der Merge-Klick/`glab mr merge` ist der **einzige** Weg, wie
+Body: Warum, Testplan, Link Issue (`Fixes #<nr>`). Der PR bleibt Pflicht als
+Log-Eintrag — der Merge-Klick/`gh pr merge` ist der **einzige** Weg, wie
 Inhalt von einem Branch nach `main` kommt (siehe Hard Rules).
 
 **Wenn `git push` fehlschlägt (Remote nicht erreichbar):** nicht auf einen
@@ -158,7 +166,7 @@ git checkout main
 git pull
 git branch -d feat/mein-feature
 
-# Remote (GitLab löscht oft schon via remove_source_branch_after_merge)
+# Remote (gh pr merge --delete-branch erledigt das meist schon)
 git push origin --delete feat/mein-feature 2>/dev/null || true
 git fetch --prune
 ```
@@ -168,18 +176,18 @@ das war der Hauptgrund für den Branch-Wildwuchs vor der Hygiene-Regel.
 
 ### 6. Branch-Hygiene (laufend)
 
-- **MR-Ziel = `main`**, außer bei einer bewusst kurzen Epic-Kette
-  (Stacked MRs). Eine Integrations-Branch wie `feat/p12-…` darf existieren,
+- **PR-Ziel = `main`**, außer bei einer bewusst kurzen Epic-Kette
+  (Stacked PRs). Eine Integrations-Branch wie `feat/p12-…` darf existieren,
   muss aber zeitnah nach `main` gemerged werden — sonst driftet `main` und
   die Historie wirkt „fertig“, obwohl nichts auf `main` liegt.
 - Nach Merge eines Side-Branches in die Kette: denselben Cleanup wie oben
   (Source-Branch weg).
-- Draft-MRs ohne Fortschritt schließen; Unique-Commits ohne MR entweder MR
+- Draft-PRs ohne Fortschritt schließen; Unique-Commits ohne PR entweder PR
   öffnen oder Branch löschen (kein „vielleicht später“-Friedhof).
 - `ancientvoid/*`-Worktrees gehören zum Hub-Session-Lifecycle, nicht zur
   Feature-Branch-Liste — nicht mit `git branch -D` wegräumen, solange die
   Session lebt.
-- Periodisch: `git branch -a`, alles ohne offene MR und ohne Commits vor
+- Periodisch: `git branch -a`, alles ohne offenen PR und ohne Commits vor
   `main` löschen. Regelquelle: `CONTRIBUTING.md` § Branches and pull requests.
 
 ## Output-Format
@@ -187,8 +195,8 @@ das war der Hauptgrund für den Branch-Wildwuchs vor der Hygiene-Regel.
 ```text
 Branch: <name oder „nicht angelegt, keine Anweisung">
 Commit: <subject>
-MR: <url oder Entwurf>
-Checks: npm test / lint / typecheck <ok|pending>
+PR: <url oder Entwurf>
+Checks: npm test / lint / typecheck <ok|pending> · CI (gh pr checks) <grün|rot: Ursache|pending>
 Cleanup: post-merge lokal+remote (+ fetch --prune) <done|pending|n/a>
 ```
 
@@ -197,10 +205,10 @@ Cleanup: post-merge lokal+remote (+ fetch --prune) <done|pending|n/a>
 - [ ] Branch-Schema `feat/*` · `fix/*` · `docs/*`, ein Branch pro Aufgabe.
 - [ ] Kein Branch für nicht angewiesene Arbeit.
 - [ ] Pre-Commit-Bezug konkret (`npm test/lint/typecheck`, nicht „irgendwelche Checks").
-- [ ] Merge ausschließlich über `glab mr merge` (oder GitLab-UI) — kein lokales `git merge` von `feat/*` nach `main`.
+- [ ] Merge ausschließlich über `gh pr merge --merge` (oder GitHub-UI) — kein lokales `git merge` von `feat/*` nach `main`.
 - [ ] Bei Remote-Ausfall: Branch offen und ungelöscht, kein Ersatz-Merge, Block klar benannt.
 - [ ] Nach Merge: Source-Branch lokal gelöscht, remote nachgezogen, `git fetch --prune`.
-- [ ] MR zielt auf `main` (oder dokumentierte kurze Epic-Kette, die bald auf `main` landet).
+- [ ] PR zielt auf `main` (oder dokumentierte kurze Epic-Kette, die bald auf `main` landet).
 
 ## Verweise
 

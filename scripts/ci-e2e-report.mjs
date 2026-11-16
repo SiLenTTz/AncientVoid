@@ -81,12 +81,15 @@ export function main(paths = {}) {
     process.exitCode = 1;
     return;
   }
-  const sha = process.env.CI_COMMIT_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf-8" }).trim();
+  // GitHub Actions (GITHUB_*); CI_COMMIT_SHA bleibt als Override (Tests, Altläufe).
+  const env = process.env;
+  const runUrl = env.GITHUB_RUN_ID ? `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}` : null;
+  const sha = env.CI_COMMIT_SHA ?? env.GITHUB_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf-8" }).trim();
   const meta = {
     sha,
-    runner: process.env.CI_RUNNER_DESCRIPTION ? `${process.env.CI_RUNNER_DESCRIPTION} (ID ${process.env.CI_RUNNER_ID})` : "lokal",
-    pipeline: process.env.CI_JOB_URL ? `[${process.env.CI_PIPELINE_ID}](${process.env.CI_JOB_URL})` : "lokaler Lauf",
-    image: process.env.CI_JOB_IMAGE ?? "lokal",
+    runner: env.RUNNER_NAME ? `${env.RUNNER_NAME} (${env.RUNNER_OS ?? "?"}/${env.RUNNER_ARCH ?? "?"})` : "lokal",
+    pipeline: runUrl ? `[${env.GITHUB_RUN_ID}](${runUrl})` : "lokaler Lauf",
+    image: env.ImageOS ? `GitHub-hosted ${env.ImageOS}` : "lokal",
     node: process.version,
     playwright: JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf-8")).devDependencies["playwright"] ?? "?",
   };

@@ -9,13 +9,13 @@ Eine Definition von „grün“ für die verbindlichen lokalen Gates. Die
 Ausführungsorte verwenden dieselben Kommandos; die CI-Pflicht richtet sich
 ausschließlich nach `AGENTS.md` und `docs/ci-runbook.md`:
 
-- `gitlab.com` (Free): CI ist **nicht anwendbar als Merge-/Epic-Gate**, auch
-  mit lokalem Runner. Kein Warten, Pollen, Retry oder CI-Reparaturauftrag allein
-  wegen eines roten/fehlenden Cloud-Laufs; kein routinemäßiger Restpunkt dazu.
-- Tatsächlich lokaler GitLab-Server als aktives Remote-/API-Ziel: Pipeline
-  zusätzlich verbindlich; Runner allein reicht als Nachweis nicht.
-- Lokale Gates bleiben in beiden Fällen verbindlich und blockierend.
-  „CI nicht anwendbar“ ist kein Pass und kein abgeschwächter lokaler Test.
+- GitHub Actions (`.github/workflows/ci.yml`, Jobs `verify`, `k8`, `e2e`)
+  läuft auf jedem PR und ist Pflicht-Check für den Merge nach `main`
+  (`gh pr checks <nr>`). Roter Lauf → `docs/ci-runbook.md`.
+- Lokale Gates bleiben zusätzlich verbindlich und blockierend — grüne CI
+  ersetzt sie nicht, sie ersetzen grüne CI nicht.
+- Rot allein wegen der Umgebung (Runner-Flake, Dienst-Ausfall) wird benannt
+  und neu gestartet, nie als Pass gemeldet.
 
 ## Umfang bestimmen — nicht alles fahren
 
@@ -35,7 +35,7 @@ Dann nur die Spalten fahren, die betroffen sind.
 | `apps/pwa/**` | `npm -w @ancientvoid/pwa run build` + `npm run typecheck` + `npm run test:e2e` |
 | `e2e/**` | `npm run test:e2e` (scheitert laut ohne Chromium: `npx playwright install chromium`) |
 | `apps/hub/src/modules/*`, `packages/core/src/modules/sessions/*`, `packages/adapters/*` | zusätzlich `npm run test:e2e` |
-| Epic- oder Bugfix-MR | `npm run gate` (alles, inkl. E2E) |
+| Epic- oder Bugfix-PR | `npm run gate` (alles, inkl. E2E) |
 | `apps/hub/**`, `packages/core/**`, `packages/workers/**` | `npm test` + `npm run loadtest` bei State-/EventStore-Änderungen (K5/K7/K8) |
 | `*.md` | kein Gate |
 

@@ -15,7 +15,7 @@ Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). Beheben:
 ## Zweck
 
 Ein Symptom wird **gesehen**, eingegrenzt und als Datei unter `bugs/`
-festgehalten. Die GitLab-Issue ist der Tracker, die Markdown-Datei die SSOT.
+festgehalten. Das GitHub-Issue ist der Tracker, die Markdown-Datei die SSOT.
 Ohne Repro keine Datei — dann die versuchten Schritte dokumentieren und
 `status: open` mit Häufigkeit „einmalig / nicht reproduziert".
 
@@ -80,13 +80,15 @@ Frontmatter vollständig. Indexzeile in [`bugs/README.md`](../../../bugs/README.
 Schwere wie das Produkt: `S1` Ausfall · `S2` Kernfunktion · `S3` Workaround ·
 `S4` kosmetisch.
 
-### 6. GitLab (Tracker, nicht SSOT)
+### 6. GitHub Issues (Tracker, nicht SSOT)
 
 ```bash
-glab issue create --title "BUG-NNNN: <Kurztitel>" --description-file bugs/bug-NNNN-slug.md --label bug
+gh issue create --title "BUG-NNNN: <Kurztitel>" --body-file bugs/bug-NNNN-slug.md --label bug
 ```
 
-Die URL nach `forge:` ins Frontmatter. Schlägt das fehl: Datei bleibt gültig.
+Die Issue-URL (`https://github.com/SiLenTTz/AncientVoid/issues/<nr>`) nach
+`forge:` ins Frontmatter und in die Indexzeile. Öffentliches Repo: vor dem
+Anlegen prüfen, dass der Body keine Secrets, Hostnamen oder Home-Pfade enthält. Schlägt das fehl: Datei bleibt gültig.
 
 ### 7. Handoff
 
@@ -99,7 +101,7 @@ Sonst Output unten, Branch unverändert.
 Bug: BUG-NNNN — <titel>
 Datei: bugs/bug-NNNN-slug.md
 Repro: gesehen (PWA|hubctl) | nicht bestätigt
-GitLab: <url oder „keine">
+Issue: <url oder „keine">
 Handoff: bugfix | offen
 ```
 

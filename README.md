@@ -1,5 +1,7 @@
 # AncientVoid
 
+[![ci](https://github.com/SiLenTTz/AncientVoid/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SiLenTTz/AncientVoid/actions/workflows/ci.yml)
+
 **AncientVoid** is a local-first, vendor-neutral command center for coding
 agents: supervise, steer and audit every agent session on all of your own
 machines from your phone — over Tailscale, without a public port, without a

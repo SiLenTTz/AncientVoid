@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Gate: every commit on this branch (since it left origin/main) follows the
- * commit notation (docs/commit-notation.md). Merge commits are GitLab's and
- * carry the MR title; they are checked by the MR title rule, not here.
+ * commit notation (docs/commit-notation.md). Merge commits are GitHub's and
+ * carry the PR title; they are checked by the PR title rule, not here.
  */
 import { execFileSync } from "node:child_process";
 import { checkSubject } from "./commit-notation.mjs";

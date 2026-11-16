@@ -2,22 +2,19 @@
 
 **Art:** how-to
 
-Stand: 2026-11-15 · Einführung: EPIC-P5 · Kommando: `npm run test:e2e`
+Stand: 2026-11-16 · Einführung: EPIC-P5 · Kommando: `npm run test:e2e`
 
 Das E2E-Gate prüft jede Oberfläche und jeden Arbeitsablauf der PWA gegen
 einen **echten Hub-Prozess**. Für den Epic-Abschluss muss `npm run gate`
 lokal grün sein; UI-Funktionen und Abläufe brauchen eigene Specs.
 
-**CI-Geltung (Nutzerentscheid 15.11.2026):** Nur ein tatsächlich lokal
-betriebener GitLab-Server als aktives Remote-/Projekt-API-Ziel macht den
-Pipeline-Job `e2e` zusätzlich verbindlich. Auf `gitlab.com` (Free) ist die
-Pipeline kein Merge-/Epic-Gate; ein eigener Runner ändert das nicht. Rote,
-fehlende oder ausstehende Cloud-Läufe erfordern keine Warn-/Warte-/Retry-
-Schleife und keinen zusätzlichen Abschlussrest. Bei Freigaben „CI nicht
-anwendbar (gitlab.com)“ nennen, nie als Pass zählen. Die frühere reine
-Kontingent-/Ausfall-Ausnahme ist damit für `gitlab.com` ersetzt.
-Lokale Fehler und erforderliche echte Geräte-/Provider-Abnahmen bleiben
-verbindlich. Details: [CI-Runbook §0](ci-runbook.md#0-geltung-seit-15112026).
+**CI-Geltung (Umzug auf GitHub, 16.11.2026):** Der GitHub-Actions-Job
+`e2e` (`.github/workflows/ci.yml`, GitHub-gehostete Runner) läuft auf jedem
+PR und ist Required Check für den Merge nach `main` — zusätzlich zu
+`npm run test:e2e` lokal. Rot allein wegen der Umgebung wird benannt und
+einmal neu gestartet, nie als Pass gezählt; Skips sind keine Pässe. Lokale
+Fehler und erforderliche echte Geräte-/Provider-Abnahmen bleiben
+verbindlich. Details: [CI-Runbook §0](ci-runbook.md#0-geltung-seit-16112026).
 
 ## Was echt ist und was nachgebaut
 
@@ -74,7 +71,7 @@ e2e/specs/*.spec.ts           Specs nach Bereich
 npx playwright install chromium     # einmalig
 npm run test:e2e                    # ganze Suite, alle Projekte
 npx playwright test e2e/specs/steer.spec.ts --project=mobile
-npx playwright test --repeat-each=3 # Flacker-Suche vor einem MR mit neuen Specs
+npx playwright test --repeat-each=3 # Flacker-Suche vor einem PR mit neuen Specs
 npx playwright show-report          # HTML-Bericht mit Trace, Screenshot, Video der Fehlschläge
 npm run gate                        # typecheck + lint + vitest + E2E
 ```

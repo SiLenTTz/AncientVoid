@@ -2,26 +2,28 @@
 
 **Art:** referenz
 
-Stand: 15.11.2026 · Epic: [EPIC-P28](../epics/EPIC-P28-reproduzierbare-ci.md) ·
-ADR: [ADR-0049](adr/0049-selbstverwalteter-ci-runner.md) · Betrieb:
-[CI-Runbook](ci-runbook.md)
+Stand: 16.11.2026 · Workflow: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) ·
+Betrieb: [CI-Runbook](ci-runbook.md) · Historie: [EPIC-P28](../epics/EPIC-P28-reproduzierbare-ci.md),
+[ADR-0049](adr/0049-selbstverwalteter-ci-runner.md)
 
-**Geltung:** Die nachstehenden CI-Abschlussregeln gelten seit dem
-Nutzerentscheid vom 15.11.2026 nur bei aktivem lokalem GitLab-Server. Auf
-`gitlab.com` (auch mit eigenem Runner) ist CI kein Merge-/Epic-Gate; die
-Zuordnung bleibt technische Referenz, die historischen Nachweise bleiben
-unverändert. Lokale Gates bleiben Pflicht. Details: [Runbook §0](ci-runbook.md#0-geltung-seit-15112026).
+**Geltung:** Seit dem Umzug auf GitHub (16.11.2026) läuft die CI als
+GitHub Actions auf GitHub-gehosteten Runnern; die Jobs `verify`, `k8` und
+`e2e` sind Required Checks für PRs nach `main`, zusätzlich zu den lokalen
+Gates. Details: [Runbook §0](ci-runbook.md#0-geltung-seit-16112026).
+Abschnitte 3–5 sind Historie aus der GitLab-Zeit (Pipeline-/Job-IDs und
+Links zeigen auf das private Archiv) und bleiben unverändert.
 
 Dieses Inventar ordnet jedem lokalen Gate-Teilkommando einen ausführbaren
 CI-Job zu (AC-P28-1). Ein Job gilt nur als erbracht, wenn er real lief:
-`ci_quota_exceeded` und nie gestartete Jobs sind kein Nachweis, Skips sind
-keine Pässe. Die Fehlerklassifikation trennt Infrastruktur- von
-Produktfehlern anhand konkreter Job-IDs und Commit-SHAs.
+nie gestartete, abgebrochene oder übersprungene Jobs sind kein Nachweis,
+Skips sind keine Pässe.
 
 ## 1. Gate-Inventar: lokal → CI
 
 Lokales Gate ist `npm run gate` (package.json) plus PWA-Build und K8-Lasttest
-(AGENTS.md). Die CI stellt jedes Teilkommando in genau einem Job ausführbar:
+(AGENTS.md). Die CI (`.github/workflows/ci.yml`) stellt jedes Teilkommando
+in genau einem Job ausführbar; maßgeblich für Schritte und Artefakt-Namen ist
+die Workflow-Datei:
 
 | Lokales Teilkommando | CI-Job | Nachweis/Report |
 |---|---|---|
@@ -31,34 +33,39 @@ Lokales Gate ist `npm run gate` (package.json) plus PWA-Build und K8-Lasttest
 | `npm run check:commits` | `verify` | Job-Log (Anzahl geprüfter Commits) |
 | `npm run check:arch` (depcruise) | `verify` | Job-Log, Exit-Code |
 | `npm run check:adapter-matrix` | `verify` | Job-Log, Exit-Code |
-| `npm test` (vitest) | `verify` | `test-results/vitest-junit.xml` (Artefakt, 14 Tage) |
+| `npm run check:names`, `check:context`, `check:secrets` | `verify` | Job-Log, Exit-Code |
+| `npm test` (vitest) | `verify` | JUnit-XML `test-results/vitest-junit.xml` (Artefakt `vitest-junit`) |
 | `npm -w @ancientvoid/pwa run build` | `verify` | Job-Log, Exit-Code |
-| `npm run loadtest` — K8: 20 Sessions × 30 ev/s × 10 s | `k8` (eigener Job seit 2026-11-12; nur bei Code-Änderungen, main immer) | Job-Log (Events, Verluste, RSS) — volle Messlatte, nicht entschärft |
-| `npm run test:e2e` (Playwright Chromium) | `e2e` | `test-results/e2e-junit.xml`, `playwright-report/`, Skip-Bericht `ci-artifacts/e2e-report.md` (Artefakte, 14 Tage) |
+| `npm run loadtest` — K8: 20 Sessions × 30 ev/s × 10 s | `k8` (eigener Job seit 2026-11-12; nur bei Code-Änderung, `main` immer) | Job-Log (Events, Verluste, RSS) — volle Messlatte, nicht entschärft |
+| `npm run test:e2e` (Playwright Chromium) | `e2e` (nur bei Code-Änderung, `main` immer) | Artefakt `e2e-report`: `test-results/e2e-junit.xml`, `playwright-report/`, Skip-Bericht `ci-artifacts/e2e-report.md` |
 
 Regeln:
 
-- **Kein grünes Dach über fehlendem Job:** Pipelines, in denen `verify` oder
-  `e2e` fehlt oder nie gestartet ist (`ci_quota_exceeded`), sind kein
-  Abschlussnachweis. Abgebrochene oder veraltete Pipelines zählen nicht.
+- **Kein grünes Dach über fehlendem Job:** Läufe, in denen `verify`, `k8`
+  oder `e2e` fehlt oder nie gestartet ist, sind kein Abschlussnachweis;
+  übersprungen dürfen `k8`/`e2e` nur per Job `changes` bei reinen Doku-PRs sein. Abgebrochene oder veraltete Läufe (älterer SHA)
+  zählen nicht.
 - **Skip-Sichtbarkeit:** Der E2E-Job erzeugt nach jedem Lauf einen Bericht
   (`scripts/ci-e2e-report.mjs` → `ci-artifacts/e2e-report.md`) mit SHA,
   Runner, Zählern und benannten Skips. Fehlt die JUnit-Datei oder enthält
   sie null Tests, schlägt der Bericht fehl — versehentlich fehlende Tests
   oder ein fehlender Browser blockieren die Aussage „grün“.
-- **Retries** nur für klassifizierte Infrastrukturfehler (siehe unten);
-  der erste Fehlversuch bleibt als Job in der Pipeline sichtbar.
+- **Re-runs** nur für klassifizierte Infrastrukturfehler
+  ([Runbook §3](ci-runbook.md#3-fehlerklasse-und-re-run)); GitHub behält den
+  ersten Versuch als „Attempt 1“ sichtbar, der PR nennt beide.
 
 ## 2. Runner- und Versionsstempel
 
 Jeder Nachweis nennt SHA, Runner-Image und Tool-Versionen
 (`node --version`, `npm --version`, Playwright-Version aus dem Lockfile).
-Jobs laufen auf dem Projekt-Runner `av-docker` (ADR-0049) im Image
-`node:26` mit kurzlebigen Build-Containern; `npm ci` bindet das
-`package-lock.json`. Der Runner hält keine produktiven Credentials und
-mountet weder `data/` noch Docker-Socket in die Jobs.
+Jobs laufen auf GitHub-gehosteten `ubuntu-latest`-Runnern mit Node 24
+(frische VM pro Job, kein self-hosted Runner, siehe [Runbook §4](ci-runbook.md#4-sicherheit-für-das-öffentliche-repo));
+`npm ci` bindet das `package-lock.json`. Workflows enthalten keine Secrets.
 
-## 3. Fehlerklassifikation (T28.1, erhoben am 05.11.2026)
+Historie: Bis 16.11.2026 liefen die Jobs auf dem GitLab-Projekt-Runner
+`av-docker` (ADR-0049) im Image `node:26` mit kurzlebigen Build-Containern.
+
+## 3. Fehlerklassifikation (Historie GitLab, T28.1, erhoben am 05.11.2026)
 
 Datenbasis: GitLab-API (Jobs/Pipelines des Projekts), Namespace-Quota,
 Job-Traces. Klassifiziert werden die fehlgeschlagenen Läufe, die P27 am
@@ -132,16 +139,17 @@ Die zwei dauerhaften Mobile-Handoff-Skips (Desktop-Gegenstücke laufen) sind
 im E2E-Bericht namentlich aufgeführt und werden nirgends als Pass gezählt
 (fortgesetzt aus P27, `docs/testing-e2e.md`).
 
-## 4. Entscheidung über die Ausführungsform
+## 4. Entscheidung über die Ausführungsform (Historie GitLab)
 
 ADR-0049 entscheidet: selbstverwalteter GitLab-Runner im Docker auf dem
 Arbeitsplatzhost (Betriebsentscheidung des Nutzers vom 05.11.2026), kein
 Public-Mirror, kein Minutenkauf. Vergleich der Optionen (Kosten, Wartung,
 Tailnet, Secrets, Ausfall) und die Betriebsverantwortung stehen im ADR;
 die externe Einrichtung folgt erst nach dieser Entscheidung (Reihenfolge
-eingehalten).
+eingehalten). Mit dem Umzug auf das öffentliche GitHub-Repo (16.11.2026)
+ist der eigene Runner abgelöst: kein self-hosted Runner für Fork-PRs.
 
-## 5. Nachweislauf-Register (drei aufeinanderfolgende grüne Läufe)
+## 5. Nachweislauf-Register (Historie GitLab, drei aufeinanderfolgende grüne Läufe)
 
 Am finalen Code-Stand `8895473` (06.11.2026), ohne manuelles Reparieren
 dazwischen; der Runner läuft bewusst ohne Cache — jeder Lauf ist ein

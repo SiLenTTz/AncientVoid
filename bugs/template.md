@@ -6,7 +6,7 @@ severity: S3
 area: server
 instance: dev
 commit: ""
-forge: ""
+forge: ""   # GitHub-Issue- oder PR-URL
 epic: ""
 created: YYYY-MM-DD
 reporter: ""
@@ -71,5 +71,5 @@ Package (`packages/<name>`), `file:line` wenn schon bekannt, sonst „offen".
 ## Handoff
 
 - [ ] Datei im Index [`README.md`](README.md)
-- [ ] GitLab-Issue angelegt (Link oben)
+- [ ] GitHub-Issue angelegt (`gh issue create`, URL in `forge:`)
 - [ ] `bugfix` oder offen lassen

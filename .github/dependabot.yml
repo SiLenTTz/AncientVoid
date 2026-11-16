@@ -1,0 +1,15 @@
+# Hält die per SHA gepinnten Actions und die npm-Abhängigkeiten aktuell.
+# fastify bleibt bis BUG-0167 gepinnt (package.json overrides).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: fastify

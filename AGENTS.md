@@ -43,17 +43,14 @@ bestehen, auch wenn andere Epics oder Vorgänger inzwischen grün sind.
 
 ## Kommandos
 
-> **CI-Geltung (Nutzerentscheid 15.11.2026):** Auf `gitlab.com` (Free)
-> ist die Pipeline kein Merge-/Epic-Gate. Verbindlich sind die lokalen Gates
-> unten. CI wird erst zusätzlich verbindlich, wenn das aktive Git-Remote und
-> die Projekt-API tatsächlich auf einen lokal betriebenen GitLab-Server zeigen.
-> Ein eigener Runner (`av-docker`) an `gitlab.com` ist kein lokaler GitLab-Server.
-> Cloud-CI mit `failed`/`pending`/`skipped` ist kein Abschlussmangel und verlangt
-> weder Warnschleifen noch Warten, Retry oder Nachziehen allein wegen des Status.
-> Bei Freigaben: „CI nicht anwendbar (gitlab.com)“, niemals als Pass ausgeben.
-> Echte lokale Testfehler bleiben blockierend. Diese Geltung hat Vorrang vor
-> älteren unbedingten Pipeline-Pflichten in Epics/Skills/Dokumenten.
-> Details und lokale GitLab-Betriebsregeln: `docs/ci-runbook.md`.
+> **CI-Geltung (Umzug auf GitHub, 16.11.2026):** Gehostete CI ist GitHub
+> Actions (`.github/workflows/ci.yml`, Jobs `verify`, `k8`, `e2e`) auf
+> GitHub-gehosteten Runnern — Required Check für jeden PR nach `main`.
+> Die lokalen Gates unten bleiben **zusätzlich** verbindlich. Rote CI blockiert;
+> ist die Ursache nachweislich nur die Umgebung (z. B. Runner-Flake), wird das
+> benannt und einmal neu gestartet — nie als Pass gemeldet. Keine self-hosted
+> Runner für das öffentliche Repo (Fork-PRs führen fremden Code aus).
+> Details: `docs/ci-runbook.md`.
 
 ```bash
 npm test                 # vitest (Unit/Integration)
@@ -67,7 +64,7 @@ npm -w @ancientvoid/pwa run build
 
 Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
 Bei Änderungen an PWA, Server-Routen, SessionManager oder Adaptern zusätzlich
-`npm run test:e2e`. Vor Bugfix-/Epic-MRs immer `npm run gate`. Neue
+`npm run test:e2e`. Vor Bugfix-/Epic-PRs immer `npm run gate`. Neue
 UI-Funktion oder neuer Ablauf = neuer oder erweiterter Spec in `e2e/specs/`.
 
 ## Testing
@@ -103,10 +100,10 @@ sie duplizieren nichts hier, sie wenden es an. Index: `.claude/skills/README.md`
 
 - Defekt: Skill `bugfix` (Reproduce → Fix → Re-verify → Finalize). Handoff an `pr-review`.
 - Neuer Bug ohne Fix: Skill `bug-report` → `bugs/bug-NNNN-slug.md`.
-- Vor jedem MR: Skill `gates` (= `npm test && npm run lint && npm run typecheck`, betroffene Packages; bei UI-/Ablauf-Änderungen plus `npm run test:e2e`, vor Epic-Abschluss `npm run gate`) und danach `pr-review` (6 Dimensionen inkl. Future-Fragility: Contract-Bruch, K5/K7-Verletzung, Adapter-Isolation).
+- Vor jedem PR: Skill `gates` (= `npm test && npm run lint && npm run typecheck`, betroffene Packages; bei UI-/Ablauf-Änderungen plus `npm run test:e2e`, vor Epic-Abschluss `npm run gate`) und danach `pr-review` (6 Dimensionen inkl. Future-Fragility: Contract-Bruch, K5/K7-Verletzung, Adapter-Isolation).
 - **Wohin neuer Code gehört** ([ADR-0020](docs/adr/0020-modular-monolith-structure.md)): Fachlogik in `packages/core/src/modules/<modul>/` (öffentlich nur über dessen `index.ts`), Verträge in `packages/contracts/src/<modul>/`, HTTP-Routen in `apps/hub/src/modules/<modul>/<modul>.routes.ts`, PWA-Ansichten in `apps/pwa/src/features/<feature>/`, Gemeinsames der PWA in `apps/pwa/src/shared/`, Adapter in `packages/adapters/<name>/`. `npm run check:arch` (im Gate) prüft die Grenzen.
-- Commit-Zusammenfassung und MR-Titel: **Commit-Notation** `<Risiko> <Absicht> <bereich>: <Satz>` (`^ F pwa: …`, `. d adr: …`, `! B core: …`) nach [`docs/commit-notation.md`](docs/commit-notation.md) — Risiko nach belegtem Gate/Testumfang, eine Verhaltensänderung pro Commit, MR-Titel nie `@`. Hook `.githooks/commit-msg` und `npm run check:commits` prüfen es.
-- Commit/Branch/MR: Skill `git-workflow` — inkl. **fester Kadenz**: Task-Abschluss → commit; Bugfix- oder Epic-Abschluss → commit + push + MR (Solo-Projekt: Self-Merge der eigenen MR zulässig, MR bleibt Pflicht-Log). Kein Force-Push, kein Commit auf `main` außerhalb der dokumentierten Bootstrap-Ausnahme. **Der Merge selbst passiert ausschließlich über `glab mr merge`/GitLab-UI — nie über ein lokales `git merge` von einem Feature-Branch nach `main`, auch nicht als Notlösung wenn der Remote gerade nicht erreichbar ist** (dann bleibt der Branch offen und ungelöscht, bis gepusht/gemerged werden kann — siehe `git-workflow`s Regel dazu, real nötig geworden am 2026-09-18). **Post-Merge:** Source-Branch lokal+remote löschen (`git fetch --prune`); MR-Ziel ist `main` (Epic-Ketten nur kurzlebig) — siehe `git-workflow` und `CONTRIBUTING.md` § Branches and pull requests.
+- Commit-Zusammenfassung und PR-Titel: **Commit-Notation** `<Risiko> <Absicht> <bereich>: <Satz>` (`^ F pwa: …`, `. d adr: …`, `! B core: …`) nach [`docs/commit-notation.md`](docs/commit-notation.md) — Risiko nach belegtem Gate/Testumfang, eine Verhaltensänderung pro Commit, PR-Titel nie `@`. Hook `.githooks/commit-msg` und `npm run check:commits` prüfen es.
+- Commit/Branch/PR: Skill `git-workflow` — inkl. **fester Kadenz**: Task-Abschluss → commit; Bugfix- oder Epic-Abschluss → commit + push + PR (`gh pr create --base main`). Solo-Projekt: Self-Merge des eigenen PRs zulässig, PR bleibt Pflicht-Log. Kein Force-Push, kein Push/Commit auf `main` außerhalb der dokumentierten Bootstrap-Ausnahme. **Der Merge selbst passiert ausschließlich über `gh pr merge --merge` (Merge-Commit mit PR-Titel, kein Squash)/GitHub-UI nach grüner CI — nie über ein lokales `git merge` von einem Feature-Branch nach `main`, auch nicht als Notlösung wenn der Remote gerade nicht erreichbar ist** (dann bleibt der Branch offen und ungelöscht — siehe `git-workflow`, real nötig geworden am 2026-09-18). **Post-Merge:** Source-Branch lokal+remote löschen (`--delete-branch`, `git fetch --prune`); PR-Ziel ist `main` (Epic-Ketten nur kurzlebig) — siehe `git-workflow` und `CONTRIBUTING.md` § Branches and pull requests.
 - Neue Phase: Skill `epic-creation` bzw. Agent `epic-planner` — Vorbild `epics/EPIC-P3-adapter-flotte-sprachsuche.md`, Premortem nie überspringen.
 - Tests schreiben: Skill `write-tests`.
 - Architekturfragen/Schichten: Skill `architecture-best-practices`.
@@ -114,11 +111,11 @@ sie duplizieren nichts hier, sie wenden es an. Index: `.claude/skills/README.md`
 
 Kein Branch für nicht angewiesene Arbeit (unter einer stehenden
 Autonomie-Anweisung für eine Aufgabe/ein Epic ist ein Branch **pro
-Aufgabe** davon gedeckt, siehe `git-workflow`). Self-Merge der eigenen MR
-ist zulässig (Solo-Projekt) — was **nicht** zulässig ist: die MR selbst zu
+Aufgabe** davon gedeckt, siehe `git-workflow`). Self-Merge des eigenen PRs
+ist zulässig (Solo-Projekt) — was **nicht** zulässig ist: den PR selbst zu
 überspringen und stattdessen lokal nach `main` zu mergen. Kein
 `--no-verify`-Äquivalent (der `commit-msg`-Hook prüft die Commit-Notation;
-der `pre-push`-Hook erzwingt Lint und Typecheck; Tests über die Kommandos oben bzw. das Gate).
+der `pre-push`-Hook erzwingt Lint und Typecheck; Tests über die Kommandos oben, das Gate und die GitHub-Actions-CI).
 
 Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder `epics/`
 für Epics. Eingefrorene Analysen (Audits, Evaluierungen, Berichte) bekommen
