@@ -1,114 +1,87 @@
-# PROGRESS — AncientVoid (Arbeitsstand dieser Session)
+# PROGRESS — Alte Branch `fix/neue-session-lokal-ohne-git`
 
 ## Ziel
 
-Lokales Arbeiten ohne Git sauber machen: „Neue Session“ darf nicht jedes Mal
-einen neuen Projektpfad erzwingen — mehrere Sessions in einem vorhandenen
-Ordner **und** ein Ordner, der noch nicht existiert, müssen beide gehen.
+Sessions lokal ohne Git/Worktree sauber starten: mehrere Sessions in einem
+vorhandenen Ordner, neuer Ordner darf beim Start entstehen, Projekt-Wurzeln auf
+Windows funktionieren. Repro, Bug-Dokumente, Fixes auf diesem Zweig.
 
 ## Erledigt (verifiziert)
 
-- **Branch** `fix/neue-session-lokal-ohne-git` auf `main` @ `3aef99e5`.
-- **Repro erzeugt** (Scratch-Hub in `%TEMP%` mit eigenem `data/` und
-  `projectRoots`, Adapter `dummy`, PWA per agent-browser; Kais Instanz
-  `127.0.0.1:7373` und `data/hub.db` nur **lesend**):
-  - nicht existierender Ordner in konfigurierter Wurzel →
-    `project path is outside the configured projectRoots`, keine Session,
-    kein Ordner (`GET /api/sessions` → `[]`)
-  - Projektauswahl zeigt nur `gitrepo (main)`, `plain-ordner` (ohne `.git`) fehlt
-  - bei `projectRoots: []`: Pfad-Feld leer trotz
-    `ancientvoid.newSession.last`, kein „+ Anlegen“, Hinweis
-    „keine Projekt-Wurzeln konfiguriert“
-  - zweite Session im selben Ordner → Karte + Formular melden
-    „… bereits eine andere AncientVoid-Session (55edb95c) …“, Worktree-Karte
-    deaktiviert („Nicht möglich: kein Git-Projekt“) → Sackgasse
-  - `data/hub.db`: genau eine Session pro Projekt, `checkout_leases` gehören
-    zu Sessions im Status `idle`
-- **Bugs angelegt** (`10620124`): BUG-0161 (fehlender Ordner), BUG-0162
-  (Ordner ohne `.git` nicht wählbar), BUG-0163 (Pfad/Anlegen/Hinweis hängen an
-  `projects.length`), BUG-0164 (mehrere Sessions pro Ordner), BUG-0165
-  (`outsideRoots()` mit `/`-Vergleich → Windows). Index `bugs/README.md`
-  nachgezogen, nächste freie Nummer 0166.
-
-- **BUG-0165 gefixt und verifiziert** (`195eec2a`): neu
-  `packages/core/src/platform/paths.ts` (`pathWithin(pathStyle)`,
-  `nearestExistingAncestor`), `outsideRoots()` nutzt es. Beleg: altes
-  Verhalten live nachgerechnet (`outside("E:\\Coding\\projekt",["E:\\Coding"])`
-  → `true`, falsch), neue Tests `packages/core/test/platform/paths.test.ts`
-  5 grün.
-- **BUG-0161 gefixt und API-seitig verifiziert** (`1fcf8a45`):
-  `isProjectPathAllowed` löst jetzt den nächsten existierenden Eltern auf,
-  `ensureProjectDir` legt genau eine Ebene an (und lehnt laufwerksrelative
-  Pfade wie `/coding` ab), `workplacePreview` meldet den fehlenden Ordner
-  ehrlich. Beleg im Browser-/API-Repro auf dem Scratch-Hub (Port 59020):
-  `POST /api/sessions` auf `<projRoot>\kinderglueck` (Ordner fehlte) →
-  **201**, Ordner `kinderglueck` danach auf der Festplatte; Preview für drei
-  fehlende Blätter → „Ordner existiert noch nicht … wird beim Start
-  angelegt“, für drei existierende → 200. Falsche Meldung
-  „outside the configured projectRoots“ ist damit weg.
-- Tests: `projects.test.ts` 14 (2 Symlink-Fälle auf Windows ohne
-  Entwicklermodus übersprungen — EPERM, war vorher schon so),
-  `paths.test.ts` 5; `npm run typecheck` und `npx eslint` (betroffene Dateien)
-  grün.
-- Nebenbefund behoben: `node_modules/@ancientvoid/*`-Junctions zeigten auf
-  `E:\coding\...`, vitest-Global-Setup erwartet `E:\Coding\...` → 25 Junctions
-  auf die kanonische Form gesetzt (`check:workspace-links` grün).
+- **BUG-0165** `195eec2a` — `pathWithin(pathStyle)` in
+  `packages/core/src/platform/paths.ts`; `outsideRoots()` vergleicht
+  Windows-/POSIX-Pfade richtig. `paths.test.ts` 5 grün; altes Verhalten war
+  nachgerechnet `true` für `E:\Coding\projekt` unter `E:\Coding`.
+- **BUG-0161** `1fcf8a45` + `e21ba1f3` — `ensureProjectDir` legt die fehlende
+  Blatt-Ebene an (eine Ebene, kein Baum; `/coding` wird abgewiesen, weil es auf
+  Windows laufwerksrelativ nach `E:\coding` ginge), `workplacePreview` meldet den
+  fehlenden Ordner ehrlich. Live: `POST /api/sessions` → 201, Ordner auf der
+  Festplatte; UI-Flow in `gitrepo\unterordner` → Session `ad23bb4c` + Ordner.
+- **BUG-0162** `525e9660` — Discovery listet Ordner ohne `.git` (`isGit`),
+  Git-Repos zuerst, Cap 200 mit Warnung. Live: Dropdown zeigte `plain-ordner`,
+  Session `19bf1be1` direkt darin.
+- **BUG-0163** `e21ba1f3` — `/api/projects` liefert `rootsConfigured`/`roots`;
+  gemerkter Pfad wird immer vorgelegt, „+ Anlegen“ hängt an den Wurzeln,
+  Hinweis trennt „Wurzeln fehlen“ von „Wurzeln ohne Repos“, Discovery-Warnungen
+  sichtbar. Live: gemerkter `<root>\gitrepo\unterordner` nach Reload vorgelegt,
+  obwohl nicht in der Discovery.
+- **BUG-0164** `61b0198e` + [ADR-0077](docs/adr/0077-paralleles-schreiben-in-ordnern-ohne-git.md) —
+  Git bleibt Allein-Schreiber; Ordner ohne `.git` bekommen nach
+  `confirmSharedFolder` eine Mit-Nutzerschaft (`checkout_tenants`, Migration 33),
+  `holders[]` in der Vorschau, Resume/`stop`/`archive` behandelt sie korrekt.
+  `workplace-mode.test.ts` 13 grün (3 neue Fälle). Live: zwei direkte Sessions
+  (5bb46b05, 6cb0b175) in `plain-ordner`, Warnung + Haken im Screenshot,
+  `checkout_tenants` genau eine Zeile. Nebenbefund behoben: deaktivierter
+  „Starten“-Knopf hatte keine Deaktiviert-Optik.
+- **BUG-0166** `c1d7552f` — `e2e/support/global-setup.ts` spawnnt `npm` auf
+  Windows mit `shell` (vorher `ENOENT`, mit `npm.cmd` `EINVAL`): das E2E-Gate war
+  auf Windows nicht ausführbar. Zusätzlich
+  `npx playwright install chromium` (118 MB) nachgeholt.
+  **E2E: `e2e/specs/session-workspace-mode.spec.ts` 5 passed (10,7 s)** inkl.
+  neuem Fall für Ordner ohne Git / Bestätigung / dritte Session.
+- Hausputz: `npm run docs:reference` → `check:context` OK (`88364357`);
+  `node_modules/@ancientvoid/*`-Junctions auf die kanonische Großschreibung
+  gesetzt (vorher liefen Vitest-Setups nicht).
 
 ## In Arbeit
 
-- **UI-Teil von BUG-0161**: Klick auf „Starten“ im Formular tut bei einem noch
-  fehlenden Ordner nichts (kein POST, keine Fehlermeldung im Formular) —
-  API-seitig geht es. Gehört in die PWA-Arbeit an `CreateSession.tsx` /
-  `WorkplaceChoice.tsx` (Vorschau-Fehlschlag darf den Start nicht schlucken).
-- BUG-0163 (Pfad-Vorbelegung, „+ Anlegen“, Wurzel-Hinweis), BUG-0162
-  (Nicht-Git-Ordner in der Auswahl), BUG-0164 (mehrere Sessions pro Ordner).
-- Rote Tests dafür: `outsideRoots`-Windows-Fall war vor dem Fix rot
-  (alt: `true`), `isProjectPathAllowed` mit fehlendem Blatt war vor dem Fix rot
-  (alter Test forderte sogar `false`, live bestärkt durch den 422 im Browser).
+Nichts angefangen, das nicht committet wäre. Offen: Push und MR (siehe unten).
 
 ## Bekannte Probleme
 
-- `npm run check:context` ist auf `main` **rot** (`reference-fresh`:
-  `docs/referenz-hubctl.md`, `docs/referenz-wizard.md`,
-  `docs/referenz-config.md` veraltet). `check:context` steckt in
-  `npm run gate` → vor `^`-Commits Referenzen neu generieren
-  (`npm run docs:reference`) als eigener `e`/`a`-Commit.
-- BUG-0164 ist eine **Verhaltensänderung mit Vertragsbezug**
-  (`checkout_leases`, Arbeitsort, ADR-0057) → ADR nötig; Default bleibt
-  Allein-Schreiber, Mehrfach-Schreiber explicit.
-- Verwandt, noch nicht als eigener Bug: ein auf Windows getipptes `/coding`
-  löste zu `E:\Coding` auf (laufwerksrelativ, ohne Fehlermeldung).
-
-## Werkzeug (Repro, nicht committet)
-
-- `$TEMP/av/scratch-hub.mjs <roots|noroots>`: Hub mit eigenem `data/`,
-  `projectRoots` (Modus `roots`) oder leeren Wurzeln (Modus `noroots`),
-  Dummy-Adapter, PWA aus `apps/pwa/dist`; schreibt `STATE*.json`
-  (Port, Token, Pfade, Wrapper-PID) nach `%TEMP%`.
-- `$TEMP/av/kill-scratch.ps1`: tötet nur Wrapper + deren Kind-Hubs. Nach jeder
-  Runde `curl http://127.0.0.1:7373/healthz` → 200 bestätigt, dass Kais
-  Produktiv-Hub unberührt ist (so geprüft).
+- **BUG-0167 (offen, S2, tests):** `npm test` ist auf diesem Windows-Rechner
+  breit rot — 212 failed / 1854 passed. Klassen: Git-CRLF (`'hello\r\n'`),
+  Symlink-EPERM ohne Entwicklermodus, Prozess-/Signal-/Port-Gruppe,
+  approval/budget im Hub-Server-Test („session not live“). Im angegriffenen
+  Teilbereich core workspace+sessions: main 22 failed → hier 21 failed
+  (keine neuen, einer weniger). Deshalb tragen die productcommits `!` statt `^`.
+- **Git-Fernzugriff kaputt:** `git fetch origin` →
+  `git@gitlab.com: Permission denied (publickey)`, `glab` ist nicht installiert.
+  Damit ist „neuesten Stand von `main` reinziehen“ nur gegen den letzten
+  bekannten Stand möglich: `origin/main` = `3aef99e5`, dieser Zweig ist 9 Commits
+  voraus und 0 zurück. Push/MR sind blockiert, bis der Schlüssel wieder bei
+  GitLab hinterlegt ist (oder `glab`/Token eingerichtet wird).
+- Der Produktiv-Hub auf `127.0.0.1:7373` läuft weiter im alten Code; die Fixes
+  wirken erst nach einem Neustart (unterbricht laufende Sessions). Danach kann
+  `projectRoots` in `hub.config.json` wieder befüllt werden (Workaround
+  „leer lassen“ ist dank BUG-0165 nicht mehr nötig), und `hub.db` braucht die
+  Migration 33 (beim Start automatisch).
 
 ## Nächste Schritte
 
-1. UI-Teil von BUG-0161: „Starten“ muss bei einem noch fehlenden Ordner
-   tatsächlich starten (API kann es schon)
-2. PWA: Pfad-Vorbelegung + „+ Anlegen“ + ehrlicher Hinweis (BUG-0163),
-   Nicht-Git-Ordner in der Auswahl (BUG-0162, ADR-Entscheidung offen).
-3. BUG-0164 mit ADR + ADR-Nummer aus `docs/adr/`, UI-Wortlaut der Karte
-   anpassen (doppelte Meldung entfernen).
-4. `npm test`, `npm run lint`, `npm run typecheck`; bei PWA-/Ablauf-Änderungen
-   zusätzlich `npm run test:e2e`. Vor `^`-Commits `npm run docs:reference`
-   (check:context-Hausputz) als eigener Commit.
-5. Dann `pr-review` und MR via `glab`; Scratch-Hubs stoppen und `%TEMP%`-Ordner
-   löschen.
+1. Git-Zugang klären (Schlüssel bei GitLab oder `glab` einrichten), dann
+   `git fetch` + `git rebase origin/main`, `git push -u`, MR via `glab`.
+2. Nach Merge: Hub neu starten, PWA bauen, `projectRoots` wieder setzen.
+3. BUG-0167 als eigene Suite-Hausputz-Aufgabe (`e`-Commit-Kette:
+   `.gitattributes` `eol=lf` für Fixtures, Symlink-Skips, Plattform-Baseline im
+   Gate).
 
-## Entscheidungen (mit Grund)
+## Entscheidungen
 
-- **Scratch-Hub statt Kais Instanz für kaputte Starts:** keine Fremdspur in
-  `data/hub.db`, identischer Codepfad, und die Umgebung ist zugleich die
-  Testbasis für die roten Tests.
-- **Ein Branch für alle fünf Bugs:** sie sitzen alle an derselben Stelle
-  (Session-Start ohne Git, `projects.ts`/`session-manager.ts`/
-  `CreateSession.tsx`); pro Bug folgt ein eigener Commit.
-- **Bug-Nummern aus den Dateien** (0161 war frei, Index sagt jetzt 0166).
+- ADR-0077: Allein-Schreiber bleibt für Git-Checkouts; Ordnern ohne `.git` wird
+  paralleles Schreiben nach ausdrücklicher Bestätigung erlaubt, Mit-Nutzerschaft
+  in SQLite (K7) statt im Speicher.
+- `ensureProjectDir` legt genau eine Ebene an und lehnt laufwerksrelative Pfade
+  ab — lieber eine ehrliche Fehlermeldung als ein still angelegter Ordnerbaum.
+- Discovery ohne `.git` ist erwünscht (lokales Arbeiten ohne Git ist kein
+  Umweg über `git init`), aber mit Cap und Warnung statt ungezogener Liste.
