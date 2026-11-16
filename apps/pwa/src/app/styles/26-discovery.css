@@ -292,4 +292,5 @@
 /* Gruppenkopf: Pfeil und Name links, Zähler rechts (die Kopfzeile verteilt sonst drei Teile gleichmäßig). */
 .discovery .project-tile-name {
   margin-right: auto;
+  overflow-wrap: anywhere;
 }
