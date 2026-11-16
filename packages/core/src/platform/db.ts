@@ -481,6 +481,22 @@ export const MIGRATIONS: Migration[] = [
     // EPIC-P43 T43.10 (ADR-0066): je Token vergebene Fähigkeiten, JSON-Array; NULL = keine.
     sql: `ALTER TABLE device_tokens ADD COLUMN capabilities TEXT;`,
   },
+  {
+    id: 33,
+    name: "checkout-tenants",
+    // ADR-0077: Mit-Nutzer eines Nicht-Git-Ordners. Die exklusive Lease bleibt
+    // unangetastet (Allein-Schreiber für Git-Checkouts); wer zusätzlich in einem
+    // Ordner schreibt, steht hier — damit Restart und UI es wissen (K7).
+    sql: `
+      CREATE TABLE IF NOT EXISTS checkout_tenants (
+        checkout_id TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        acquired_at TEXT NOT NULL,
+        PRIMARY KEY (checkout_id, session_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_checkout_tenants_session ON checkout_tenants (session_id);
+    `,
+  },
 ];
 
 export class HubDatabase {

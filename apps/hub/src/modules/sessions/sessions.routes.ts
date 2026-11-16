@@ -32,6 +32,8 @@ const CreateSessionBody = z.object({
   /** ADR-0057: Arbeitsort; ohne Angabe eigener Worktree. `confirmDirty` bestätigt einen Start in ungesicherten Änderungen. */
   workspaceMode: WorkspaceMode.optional(),
   confirmDirty: z.boolean().optional(),
+  /** ADR-0077: bestätigt paralleles Schreiben in einem Nicht-Git-Ordner. */
+  confirmSharedFolder: z.boolean().optional(),
   /** EPIC-P19: Loop / Dark Factory. Ohne Angabe verhält sich der Start wie vorher. */
   loop: LoopSpec.optional(),
 });

@@ -73,11 +73,18 @@ describe("EPIC-P38: Arbeitsort", () => {
   it("zweiter direkter Schreiber wird vor Spawn verweigert — auch über Symlink und Unterordner", async () => {
     const { repo, manager, seen } = await fixture();
     await manager.create({ adapter: "p38", project: repo, workspaceMode: "direct" });
-    const link = join(await mkdtemp(join(tmpdir(), "ancientvoid-p38-link-")), "lnk");
-    await symlink(repo, link);
     await mkdir(join(repo, "sub"));
-    await expect(manager.create({ adapter: "p38", project: link, workspaceMode: "direct" })).rejects.toThrow(/schreibt bereits/);
     await expect(manager.create({ adapter: "p38", project: join(repo, "sub"), workspaceMode: "direct" })).rejects.toThrow(/schreibt bereits/);
+    // Windows ohne Entwicklermodus erlaubt keine Symlinks (EPERM) — dann eben ohne
+    // diesen Teil prüfen, statt den Fall rot werden zu lassen (sichtbarer Verzicht).
+    const link = join(await mkdtemp(join(tmpdir(), "ancientvoid-p38-link-")), "lnk");
+    let symlinkOk = true;
+    try {
+      await symlink(repo, link);
+    } catch {
+      symlinkOk = false;
+    }
+    if (symlinkOk) await expect(manager.create({ adapter: "p38", project: link, workspaceMode: "direct" })).rejects.toThrow(/schreibt bereits/);
     expect(seen.workdirs).toHaveLength(1);
     // ein eigener Worktree desselben Projekts bleibt daneben möglich
     const wt = await manager.create({ adapter: "p38", project: repo });
@@ -125,6 +132,45 @@ describe("EPIC-P38: Arbeitsort", () => {
     await git("add", "-A");
     await git("commit", "-q", "-m", "weiter");
     expect((await manager.workplaceStatus(rec.id))?.drift).toMatchObject({ headMoved: true, branchChanged: true, branch: "andere" });
+  });
+
+  it("BUG-0164 (ADR-0077): zweiter Schreiber im Nicht-Git-Ordner braucht Bestätigung, sonst bleibt er allein", async () => {
+    const { out, manager, db } = await fixture();
+    const ordner = join(out, "ohne-git-ordner");
+    await mkdir(ordner);
+    const erste = await manager.create({ adapter: "p38", project: ordner, workspaceMode: "direct" });
+    await expect(manager.create({ adapter: "p38", project: ordner, workspaceMode: "direct" }))
+      .rejects.toThrow(/Mehrere Sessions in diesem Ordner/);
+    expect(manager.list().filter((s) => s.project === ordner)).toHaveLength(1);
+    const zweite = await manager.create({ adapter: "p38", project: ordner, workspaceMode: "direct", confirmSharedFolder: true });
+    expect(zweite.workspaceMode).toBe("direct");
+    expect(manager.list().filter((s) => s.project === ordner)).toHaveLength(2);
+    const { checkoutId } = await canonicalCheckout(ordner);
+    const tenants = db.prepare("SELECT session_id FROM checkout_tenants WHERE checkout_id = ?").all(checkoutId) as { session_id: string }[];
+    expect(tenants.map((r) => r.session_id)).toEqual([zweite.id]);
+    const vorschau = await manager.workplacePreview(ordner);
+    expect([...(vorschau.holders ?? [])].sort()).toEqual([erste.id, zweite.id].sort());
+  });
+
+  it("BUG-0164: Git-Projekte bleiben Allein-Schreiber — die Bestätigung greift dort nicht", async () => {
+    const { repo, manager } = await fixture();
+    await manager.create({ adapter: "p38", project: repo, workspaceMode: "direct" });
+    await expect(manager.create({ adapter: "p38", project: repo, workspaceMode: "direct", confirmSharedFolder: true }))
+      .rejects.toThrow(/eigenen Worktree/);
+  });
+
+  it("BUG-0164: Stop einer Mit-Nutzung endet mit ihr (Zeile weg, Vorschau frei)", async () => {
+    const { out, manager, db } = await fixture();
+    const ordner = join(out, "mitnutzer-ordner");
+    await mkdir(ordner);
+    await manager.create({ adapter: "p38", project: ordner, workspaceMode: "direct" });
+    const zweite = await manager.create({ adapter: "p38", project: ordner, workspaceMode: "direct", confirmSharedFolder: true });
+    const erste = manager.list().find((s) => s.id !== zweite.id)!;
+    await manager.stop(zweite.id);
+    const { checkoutId } = await canonicalCheckout(ordner);
+    expect(db.prepare("SELECT session_id FROM checkout_tenants WHERE checkout_id = ?").all(checkoutId)).toEqual([]);
+    // Die Primär-Lease der ersten Session bleibt, nur die Mit-Nutzung endet.
+    expect((await manager.workplacePreview(ordner)).holders).toEqual([erste.id]);
   });
 
   it("explizit „worktree“ auf Nicht-Git scheitert vor Spawn; direkt geht, der Standard fällt sichtbar zurück", async () => {

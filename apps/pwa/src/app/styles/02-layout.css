@@ -152,6 +152,18 @@ a {
   font-weight: 700;
 }
 
+/* Ein deaktivierter Knopf muss als deaktiviert aussehen: der „Starten“-Knopf war
+   bei blockiertem Arbeitsort nicht unterscheidbar — Anklicken ohne sichtbare Folge
+   (So gefunden beim Review von BUG-0164). */
+.btn:disabled:not(.busy) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:disabled:not(.busy):active {
+  transform: none;
+}
+
 .btn.danger {
   border-color: var(--err);
   color: var(--err);

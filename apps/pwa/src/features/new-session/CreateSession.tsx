@@ -136,7 +136,9 @@ export function CreateSession({
   const [workplace, setWorkplace] = useState<WorkplaceMode>("worktree");
   const [confirmDirty, setConfirmDirty] = useState(false);
   const [workplaceBlocked, setWorkplaceBlocked] = useState(false);
-  useEffect(() => setConfirmDirty(false), [project, workplace]);
+  // ADR-0077: parallels Schreiben im Nicht-Git-Ordner ist eine eigene, bewusste Entscheidung.
+  const [confirmShared, setConfirmShared] = useState(false);
+  useEffect(() => { setConfirmDirty(false); setConfirmShared(false); }, [project, workplace]);
   // ADR-0018: a model picker only where the harness takes one at start,
   // filled from its catalog when it has one, else free text.
   const features = adapters.find((a) => a.id === adapter)?.capabilities.features;
@@ -283,7 +285,7 @@ export function CreateSession({
             ...(skill || mode ? { args: { ...(skill ? { [skill.kind]: skill.name } : {}), ...(mode ? { permissionMode: mode } : {}) } } : {}),
             ...(attachments.length > 0 ? { attachmentIds: attachments.map((a) => a.id) } : {}),
             // Loops arbeiten immer im Projekt des Loop-Systems — dort gibt es keine Arbeitsort-Wahl.
-            ...(startLoop ? {} : { workspaceMode: workplace, ...(workplace === "direct" && confirmDirty ? { confirmDirty: true } : {}) }),
+            ...(startLoop ? {} : { workspaceMode: workplace, ...(workplace === "direct" && confirmDirty ? { confirmDirty: true } : {}), ...(workplace === "direct" && confirmShared ? { confirmSharedFolder: true } : {}) }),
           });
       localStorage.removeItem(PROMPT_KEY);
       localStorage.setItem(LAST_KEY, JSON.stringify({ host, adapter, project, loop: startLoop }));
@@ -471,7 +473,7 @@ export function CreateSession({
         />
       </label>
       {!loop && project && (
-        <WorkplaceChoice api={api} project={project} mode={workplace} onMode={setWorkplace} confirmDirty={confirmDirty} onConfirmDirty={setConfirmDirty} onBlockedChange={setWorkplaceBlocked} />
+        <WorkplaceChoice api={api} project={project} mode={workplace} onMode={setWorkplace} confirmDirty={confirmDirty} onConfirmDirty={setConfirmDirty} confirmShared={confirmShared} onConfirmShared={setConfirmShared} onBlockedChange={setWorkplaceBlocked} />
       )}
       {error && <div role="alert" style="color: var(--err)">{error}</div>}
       {!loop && <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />}

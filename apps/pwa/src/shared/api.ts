@@ -249,6 +249,8 @@ export interface WorkspacePreview {
   dirtyTruncated: boolean;
   /** Session-Id des aktuellen AV-Schreibers im direkten Checkout, sonst null. */
   heldBy: string | null;
+  /** ADR-0077: alle Sessions, die hier schon schreiben (Primär-Lease + Mit-Nutzer). */
+  holders?: string[];
 }
 
 export interface WorkplaceStatus {
@@ -1210,6 +1212,8 @@ function createHubApi(P: (path: string) => string) {
     /** ADR-0057: Arbeitsort; ohne Angabe eigener Worktree. */
     workspaceMode?: "worktree" | "direct";
     confirmDirty?: boolean;
+    /** ADR-0077: parallels Schreiben in einem Nicht-Git-Ordner ausdrücklich bestätigt. */
+    confirmSharedFolder?: boolean;
     /** Adoption (ADR-0011): continue an externally discovered session. */
     adoptNativeSessionId?: string;
     /** ADR-0040: continue as a copy (a run still open elsewhere is not shared) and keep its title. */

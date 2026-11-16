@@ -768,7 +768,19 @@ export class SessionManager {
       throw new Error(`Das Projekt hat ungesicherte Änderungen (${shown}${state.dirty.length > 5 ? ", …" : ""}). Direkt starten nur nach ausdrücklicher Bestätigung.`);
     }
     const lease = this.checkoutLeases.acquire(checkout.checkoutId, sessionId, (owner) => this.holdsCheckout(owner));
-    if (!lease.ok) throw new Error(`In diesem Projekt schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}). Erst beenden oder einen eigenen Worktree wählen.`);
+    if (!lease.ok) {
+      // ADR-0077: in einem Ordner ohne Git gibt es keine Branch-/Dirty-Metadaten,
+      // die ein Allein-Schreiber schützen könnte. Paralleles Schreiben ist dort
+      // erlaubt — aber nur nach ausdrücklicher Bestätigung und sichtbar als
+      // Mit-Nutzerschaft (checkout_tenants), nie still.
+      if (checkout.isGit) {
+        throw new Error(`In diesem Projekt schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}). Erst beenden oder einen eigenen Worktree wählen.`);
+      }
+      if (spec.confirmSharedFolder !== true) {
+        throw new Error(`In diesem Ordner schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}). Paralleles Schreiben braucht die ausdrückliche Bestätigung „Mehrere Sessions in diesem Ordner“.`);
+      }
+      this.checkoutLeases.addTenant(checkout.checkoutId, sessionId);
+    }
     return {
       mode: "direct",
       explicitDirect: true,
@@ -789,8 +801,17 @@ export class SessionManager {
   private claimDirectCheckout(session: LiveSession): string | null {
     const baseline = session.record.workspaceBaseline;
     if (session.record.workspaceMode !== "direct" || !baseline) return null;
+    // ADR-0077: Mit-Nutzer eines Nicht-Git-Ordners holen sich keine exklusive Lease,
+    // sondern ihre Mit-Nutzerschaft zurück (Tabelle überlebt Restart, K7).
+    if (this.checkoutLeases.isTenant(baseline.checkoutId, session.record.id)) {
+      this.checkoutLeases.addTenant(baseline.checkoutId, session.record.id);
+      return null;
+    }
     const lease = this.checkoutLeases.acquire(baseline.checkoutId, session.record.id, (owner) => owner !== session.record.id && this.holdsCheckout(owner));
-    return lease.ok ? null : `In diesem Projekt schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}).`;
+    if (lease.ok) return null;
+    return this.holdsCheckout(lease.ownerSessionId)
+      ? `In diesem Projekt schreibt bereits eine andere AncientVoid-Session (${lease.ownerSessionId.slice(0, 8)}).`
+      : null;
   }
 
   /** ADR-0057 / „Neue Session“: was würde „Projekt direkt“ hier bedeuten? Read-only, startet nichts. */
@@ -803,6 +824,8 @@ export class SessionManager {
     dirty: string[];
     dirtyTruncated: boolean;
     heldBy: string | null;
+    /** ADR-0077: alle Sessions, die hier schon schreiben (Primär-Lease + Mit-Nutzer). */
+    holders: string[];
   }> {
     // BUG-0161: der Zielordner darf erst beim Start entstehen. Die Vorschau ist
     // read-only und startet nichts — also sagt sie ehrlich, was passieren würde,
@@ -822,6 +845,7 @@ export class SessionManager {
       dirty: state.dirty,
       dirtyTruncated: state.dirtyTruncated,
       heldBy: lease && this.holdsCheckout(lease.sessionId) ? lease.sessionId : null,
+      holders: this.checkoutLeases.holders(checkout.checkoutId),
     };
   }
 
