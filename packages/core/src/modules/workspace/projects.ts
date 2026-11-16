@@ -1,4 +1,4 @@
-import { lstat, mkdir, readdir, readFile, realpath, stat } from "node:fs/promises";
+import { mkdir, readdir, readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { nearestExistingAncestor, pathStyle, pathWithin } from "../../platform/index.ts";
 
@@ -152,7 +152,10 @@ export async function ensureProjectDir(projectPath: string, roots: readonly stri
     throw new Error(`Projektpfad muss vollstaendig (absolut) angegeben werden: "${projectPath}" — auf Windows mit Laufwerksbuchstaben, z. B. "E:\\Coding\\projekt"`);
   }
   const target = resolve(projectPath);
-  const leaf = await lstat(target).catch(() => null);
+  // stat, nicht lstat: Symlink-/Junction-Ordner waren vor dieser Kette erlaubt
+  // (isProjectPathAllowed löst sie per realpath auf); lstat hätte sie als
+  // "kein Ordner" abgelehnt — Regression aus dem PR-Review.
+  const leaf = await stat(target).catch(() => null);
   if (leaf?.isDirectory()) return { created: false, path: target };
   if (leaf) throw new Error(`"${target}" existiert, ist aber kein Ordner.`);
   if (!(await isProjectPathAllowed(target, roots))) {

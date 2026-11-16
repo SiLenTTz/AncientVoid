@@ -188,6 +188,18 @@ describe("ensureProjectDir (BUG-0171)", () => {
     const ziel = join(root, "neu-der-ordner");
     expect((await ensureProjectDir(ziel, [root])).created).toBe(false);
   });
+  it("akzeptiert einen Symlink auf einen Ordner als vorhandenes Projekt (PR-Review-Regression)", async (ctx) => {
+    // Vor dem Fix sah lstat nur den Link, nicht das Ziel: Symlink-/Junction-
+    // Ordner wurden als "kein Ordner" abgelehnt — dabei waren sie vor dieser
+    // Kette erlaubt (isProjectPathAllowed prüft und löst sie vorher).
+    await mkdir(join(root, "echter-ordner"));
+    try {
+      await symlink(join(root, "echter-ordner"), join(root, "ordner-link"));
+    } catch {
+      return ctx.skip(); // Windows ohne Entwicklermodus: kein Symlink möglich
+    }
+    expect(await ensureProjectDir(join(root, "ordner-link"), [root])).toEqual({ created: false, path: join(root, "ordner-link") });
+  });
 
   it("lasst laufwerklose Pfade ohne Wurzeln unangetastet (Treiber-Praxis, BUG-0171)", async () => {
     // Ohne konfigurierte Wurzeln ist jeder Pfad bewusst erlaubt (BUG-0153);
