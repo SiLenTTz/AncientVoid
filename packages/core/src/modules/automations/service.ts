@@ -6,6 +6,7 @@ import {
   type AutomationDefinition,
   type AutomationInfo,
   type AutomationOutcome,
+  type AutomationTarget,
   TeamStart,
   AUTOMATION_LIMITS,
 } from "@ancientvoid/contracts";
@@ -73,7 +74,7 @@ export class AutomationService {
       log: this.log,
       ...(this.launcher.inspect ? { inspect: (claim: ClaimState) => this.launcher.inspect!(claim) } : {}),
       precheck: (definition, deadlineMs) => this.prechecker.run(definition.precheckActionId!, definition, deadlineMs, definition.target.kind === "team" ? this.blobText(definition.target.templateBlobSha256!)! : undefined),
-      dispatch: (definition, claimKey, occurrenceUtc, kind) => this.launcher.launch(definition, this.blobText(definition.target.kind === "session" ? definition.target.promptBlobSha256 : definition.target.templateBlobSha256!), claimKey, kind),
+      dispatch: (definition, claimKey, occurrenceUtc, kind) => this.launcher.launch(definition, this.targetBlobText(definition.target), claimKey, kind),
     });
   }
 
@@ -198,6 +199,8 @@ export class AutomationService {
   }
 
   private validatePrompt(definition: AutomationDefinition, promptText: string | undefined, isNew: boolean): void {
+    // ADR-0080: Skript-Ziele führen eine registrierte argv-Aktion aus — kein Blob-Abgleich nötig.
+    if (definition.target.kind === "script") return;
     if (definition.target.kind === "team") {
       if (!definition.target.templateBlobSha256 || this.blobText(definition.target.templateBlobSha256) === null) throw new Error("Run-Vorlage muss vor Anlage vorbereitet werden");
       return;
@@ -228,5 +231,11 @@ export class AutomationService {
     const text = readFileSync(path, "utf8");
     if (createHash("sha256").update(text).digest("hex") !== sha) throw new Error(`Prompt-Blob ${sha} ist verstümmelt — Fail loud, nicht raten.`);
     return text;
+  }
+  /** Prompt-/Vorlagentext des Ziels; Skripte haben keinen Blob (ADR-0080), fehlende Blobs failen laut. */
+  private targetBlobText(target: AutomationTarget): string | null {
+    if (target.kind === "script") return null;
+    if (target.kind === "session") return this.blobText(target.promptBlobSha256);
+    return this.blobText(target.templateBlobSha256!);
   }
 }

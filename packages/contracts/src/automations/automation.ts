@@ -126,7 +126,7 @@ export const AutomationGrant = z.object({
 });
 export type AutomationGrant = z.infer<typeof AutomationGrant>;
 
-/** Das Ziel: vorhandener Session-Start (P31/P35-Kataloge bleiben Wahrheit) oder vorhandene Team-Vorlage (P40, ehemals Run). */
+/** Das Ziel: vorhandener Session-Start (P31/P35-Kataloge bleiben Wahrheit), vorhandene Team-Vorlage (P40, ehemals Run) oder registrierte Miniskript-Aktion (ADR-0080). */
 const AutomationTargetBase = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("session"),
@@ -141,6 +141,12 @@ const AutomationTargetBase = z.discriminatedUnion("kind", [
     kind: z.literal("team"),
     templateId: z.string().min(1).max(64),
     templateBlobSha256: BlobRef.optional(),
+  }),
+  z.object({
+    // ADR-0080: ein Miniskript ist eine registrierte argv-Aktion des Codes-Moduls — kein Prompt-Blob, kein Harness.
+    kind: z.literal("script"),
+    project: z.string().min(1).max(500),
+    actionId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,40}$/),
   }),
 ]);
 /** ADR-0077: persistierte Ziele mit `kind: "run"` werden toleriert gelesen und auf `"team"` normalisiert. */

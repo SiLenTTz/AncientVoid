@@ -47,6 +47,13 @@ describe("buildAutomationDefinition", () => {
     expect(() => buildAutomationDefinition("{kein json", null)).toThrow(/ungültig/);
     expect(() => buildAutomationDefinition(JSON.stringify({ label: "x" }), null)).toThrow(/target/);
   });
+
+  it("lässt Skript-Ziele zu und erzwingt project + actionId (ADR-0080)", () => {
+    const built = buildAutomationDefinition(JSON.stringify({ ...SESSION_JSON, target: { kind: "script", project: "/tmp/repo", actionId: "npm-test" } }), null) as { target: { kind: string; project: string; actionId: string } };
+    expect(built.target).toEqual({ kind: "script", project: "/tmp/repo", actionId: "npm-test" });
+    expect(() => buildAutomationDefinition(JSON.stringify({ ...SESSION_JSON, target: { kind: "script", project: "/tmp/repo" } }), null)).toThrow(/actionId/);
+    expect(() => buildAutomationDefinition(JSON.stringify({ ...SESSION_JSON, target: { kind: "script", actionId: "npm-test" } }), null)).toThrow(/actionId/);
+  });
 });
 
 describe("formatAutomationLine", () => {

@@ -130,4 +130,42 @@ test.describe("Automationen (EPIC-P41)", () => {
     const runTarget = await hub.api("/api/automations", { body: { definition: { id: randomUUID(), label: "E2E-Run-Ziel", generation: 1, enabled: false, hostId, schedule: { kind: "preset", preset: "daily", localTime: "03:00", timezone: "UTC" }, target: { kind: "run", templateId: "es-gibt-keine" }, precheckDeadlineMs: 60_000, grant: { maxParallel: 1, missedGraceMs: 0 }, createdAtUtc: new Date().toISOString() } } });
     expect(runTarget.status).toBe(400);
   });
+
+  test("Skript-Start im Formular und temporäre Session-Karte (ADR-0080) @desktop", async ({ app, hub }) => {
+    await app.goto(`${hub.origin}/#/automationen`);
+    await expect(app.getByTestId("automations-pane")).toBeVisible();
+
+    // Drei Automationarten; Skript-Start schaltet das Formular auf Projekt + Aktion.
+    await app.getByRole("button", { name: "Neue Automation", exact: true }).click();
+    const form = app.getByTestId("automation-form");
+    const art = form.getByRole("combobox", { name: "Automationart", exact: true });
+    await expect(art.locator("option")).toHaveCount(3);
+    await art.selectOption("script");
+    const projekt = form.getByLabel("Projekt", { exact: true });
+    await expect(projekt).toBeVisible();
+    const aktion = form.getByRole("combobox", { name: "Aktion", exact: true });
+    await expect(aktion).toBeVisible();
+
+    // Aktionen kommen vom Hub: BUILTIN git-status taucht für das Alpha-Projekt auf.
+    await form.getByLabel("Label", { exact: true }).fill("E2E-Skript");
+    await projekt.fill(hub.alpha);
+    await expect(aktion.locator("option[value=git-status]")).toBeAttached({ timeout: 10_000 });
+    await aktion.selectOption("git-status");
+    await form.getByRole("button", { name: "Anlegen", exact: true }).click();
+    await expect(form).toHaveCount(0);
+
+    // Die Liste zeigt die Art als Pille; das Ziel heißt Skript git-status.
+    await expect(app.getByTestId("automation-kind").first()).toHaveText("Skript");
+    await app.getByText("E2E-Skript", { exact: true }).first().click();
+    await expect(app.getByTestId("automation-detail")).toContainText(`Skript git-status · ${hub.alpha}`);
+
+    // Temporäre Session starten — normale Session, kein Automations-Claim; Navigation in die Session.
+    const card = app.getByTestId("automation-tempsession");
+    await expect(card).toBeVisible();
+    await card.getByLabel("Harness", { exact: true }).fill("dummy");
+    await card.getByLabel("Projekt", { exact: true }).fill(hub.alpha);
+    await card.getByLabel("Prompt", { exact: true }).fill("Temporäre Runde: eine Zeile schreiben.");
+    await card.getByRole("button", { name: "Session starten", exact: true }).click();
+    await expect(app).toHaveURL(/#\/sessions\//, { timeout: 20_000 });
+  });
 });

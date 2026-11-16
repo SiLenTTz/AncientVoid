@@ -4,7 +4,7 @@ import {
   AutomationService, BUILTIN_ACTIONS, detectedActions, isProjectPathAllowed,
   type AutomationLauncher, type AutomationPrechecker, type PrecheckResult, type SessionManager,
 } from "@ancientvoid/core";
-import { actionArgv, TeamStart, AUTOMATION_LIMITS, type ActionDefinition } from "@ancientvoid/contracts";
+import { actionArgv, TeamStart, AUTOMATION_LIMITS, type ActionDefinition, type AutomationOutcome } from "@ancientvoid/contracts";
 import type { AutomationSkipReason } from "@ancientvoid/contracts";
 import type { HubTeam } from "../team/index.ts";
 
@@ -24,6 +24,17 @@ export function mapLaunchFailure(message: string): AutomationSkipReason {
 
 export function createHubAutomationService(deps: HubAutomationDeps): AutomationService {
   const signal = new AbortController();
+  // ADR-0080: Skript-Dispatches haben keine Referenz — das Ergebnis wird gespiegelt, bis der Abgleich es holt.
+  // Nach einem Neustart ist der Spiegel leer: ein dispatchter Skript-Claim gilt als unknown (K7), nie geraten.
+  const scriptOutcomes = new Map<string, AutomationOutcome>();
+  const rememberScriptOutcome = (claimKey: string, outcome: AutomationOutcome): void => {
+    scriptOutcomes.set(claimKey, outcome);
+    while (scriptOutcomes.size > 256) {
+      const oldest = scriptOutcomes.keys().next().value;
+      if (oldest === undefined) break;
+      scriptOutcomes.delete(oldest);
+    }
+  };
   const launcher: AutomationLauncher = {
     async template(id) {
       await deps.team?.ready;
@@ -43,7 +54,16 @@ export function createHubAutomationService(deps: HubAutomationDeps): AutomationS
           const team = await deps.team.coordinator.start(spec, `automation:${claimKey}`);
           return { ok: true, teamId: team.id };
         }
-        if (text === null) return { ok: false, reason: "precheck", detail: "Prompt-Blob fehlt" };
+        if (definition.target.kind === "script") {
+          const target = definition.target;
+          if (deps.projectRoots.length && !(await isProjectPathAllowed(target.project, deps.projectRoots))) return { ok: false, reason: "auth", detail: "Projekt außerhalb der freigegebenen Wurzeln" };
+          const action = await resolveAutomationAction(deps.actions, target.project, target.actionId);
+          if (!action) return { ok: false, reason: "precheck", detail: `Unbekannte Aktion ${target.actionId}` };
+          const code = await runArgv(actionArgv(action, {}), target.project, Math.min(action.timeoutMs, 600_000), signal.signal);
+          if (code === "spawn_error") return { ok: false, reason: "precheck", detail: `Skript-Aktion ${target.actionId} ließ sich nicht starten` };
+          rememberScriptOutcome(claimKey, code === "timeout" ? "timeout" : code === 0 ? "succeeded" : "failed");
+          return { ok: true };
+        }
         const target = definition.target;
         if (deps.projectRoots.length && !(await isProjectPathAllowed(target.project, deps.projectRoots))) return { ok: false, reason: "auth", detail: "Projekt außerhalb der freigegebenen Wurzeln" };
         const record = await deps.sessions.create({ adapter: target.harness, project: target.project, prompt: text,
@@ -57,6 +77,11 @@ export function createHubAutomationService(deps: HubAutomationDeps): AutomationS
       }
     },
     async inspect(claim) {
+      const mirrored = scriptOutcomes.get(claim.claimKey);
+      if (mirrored !== undefined) {
+        scriptOutcomes.delete(claim.claimKey);
+        return { state: "settled", outcome: mirrored };
+      }
       if (claim.teamId) {
         await deps.team?.ready;
         const team = deps.team?.store.get(claim.teamId);
@@ -66,7 +91,9 @@ export function createHubAutomationService(deps: HubAutomationDeps): AutomationS
         if (team.status === "cancelled") return { state: "settled", outcome: "cancelled" };
         return { state: "running" };
       }
-      const session = claim.sessionId ? deps.sessions.get(claim.sessionId) : undefined;
+      // ADR-0080: ein Skript-Claim ohne Spiegel hat keine Referenz — nach einem Neustart bleibt das Ergebnis unbekannt (K7).
+      if (!claim.sessionId) return { state: "unknown", detail: "Skript-Ergebnis nach Neustart unbekannt" };
+      const session = deps.sessions.get(claim.sessionId);
       if (!session) return { state: "unknown", detail: "Referenzierte Session nicht verfügbar" };
       const tail = await deps.sessions.tail(session.id, Math.max(0, session.lastSeq - 256), 256);
       const end = tail.findLast(e => e.type === "system" && e.payload.kind === "session.turn_end");
@@ -85,8 +112,9 @@ export function createHubAutomationService(deps: HubAutomationDeps): AutomationS
   const prechecker: AutomationPrechecker = {
     stop() { signal.abort(); },
     async run(actionId, definition, deadlineMs, templateText): Promise<PrecheckResult> {
-      const project = definition.target.kind === "session" ? definition.target.project
-        : templateText ? TeamStart.parse(JSON.parse(templateText)).project : null;
+      const project = definition.target.kind === "team"
+        ? templateText ? TeamStart.parse(JSON.parse(templateText)).project : null
+        : definition.target.project;
       if (!project) return "precheck";
       if (deps.projectRoots.length > 0 && !(await isProjectPathAllowed(project, deps.projectRoots))) return "auth";
       const actions = [...(deps.actions ?? []), ...BUILTIN_ACTIONS, ...(await detectedActions(project))];
@@ -103,6 +131,11 @@ export function createHubAutomationService(deps: HubAutomationDeps): AutomationS
     },
   };
   return new AutomationService({ root: pathResolve(deps.dataDir, "automations"), hostId: deps.hostId, launcher, prechecker, ...(deps.log ? { log: deps.log } : {}) });
+}
+
+/** ADR-0080: löst eine registrierte Aktion auf (konfiguriert, builtin, erkannt) — dieselbe Reihenfolge wie beim Prechecker. */
+export async function resolveAutomationAction(actions: ActionDefinition[] | undefined, project: string, actionId: string): Promise<ActionDefinition | undefined> {
+  return [...(actions ?? []), ...BUILTIN_ACTIONS, ...(await detectedActions(project))].find(a => a.id === actionId);
 }
 
 function runArgv(argv: string[], cwd: string, deadline: number, signal: AbortSignal): Promise<number | "timeout" | "spawn_error"> {
