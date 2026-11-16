@@ -64,3 +64,15 @@ offene Advisory GHSA-389g-gv7q-r4x8 (Header-Validierung über
 Header-Schema (`git grep -n "headers:" apps packages`, 15.11.2026). Den Pin
 entfernen, sobald die Ursache (vermutlich Antwort-/Event-Reihenfolge der
 Historie beim Reload) gefixt ist.
+
+## Repro-Versuch Linux (16.11.2026, Workstation `workstation`)
+
+Mit ungebundenem Stand (fastify 5.12.8, find-my-way 9.10.1,
+@fastify/static 10.1.11) auf dem Linux-Arbeitsplatz: **90/90 grün** —
+30× `--repeat-each=30` im Direktlauf und 60× `--repeat-each=60
+--workers=6` unter Last. Der Flake tritt auf dieser Maschine nicht auf;
+er ist offenbar an die macOS-Umgebung des Erstbefunds gebunden (dort
+~12 ms je fsync, Endpoint-Scanner). Ein Fix von dieser Maschine aus wäre
+Spekulation ohne Repro — root-caused werden muss mit Playwright-Trace
+(`--trace on`) auf dem macOS-Host (gpubox) im Repeat-Lauf. Pin bleibt
+bis dahin Notlösung; Issue bleibt offen.

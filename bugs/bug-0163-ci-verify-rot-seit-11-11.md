@@ -1,7 +1,7 @@
 ---
 id: BUG-0163
 slug: ci-verify-rot-seit-11-11
-status: in-progress
+status: done
 severity: S2
 area: ci
 instance: ci
@@ -120,3 +120,46 @@ Lauf 2: 707/709 grün, rot nur zwei streng getaktete Regressionstests
 
 Gemeinsamer Mechanismus: `hostedRunner` aus `e2e/support/fixtures.ts`,
 `test.skipIf(hostedRunner)`.
+
+**main-Lauf (16.11. 12:09, nach PR #13/#15):** verify rot durch genau ein
+Flake — `steer-wait-timeout.test.ts` „Occupant-Pinning: ein vorgemerkter
+Prompt wartet …", eines der Original-Quartetts vom GitLab-Runner (dort
+dauerhaft rot, auf GitHub in Läufen 1–2 noch grün — das Fenster schwankt
+mit der Runner-Last; 2201/2239 grün). Erhält denselben Hosted-Skip,
+bleibt lokal Pflicht. Damit stehen alle vier Environment-Tests des
+Original-Befunds unter dem gleichen, sichtbaren Mechanismus.
+
+**main-Lauf 2 (16.11. 12:19, nach PR #16):** verify/k8/changes grün; e2e
+rot durch **5** streng getaktete/lastabhängige Specs (702/709 grün):
+K2-Frame-Budget-Messlauf (beide Projekte), Voice-Esc, Accent-Overlay,
+Recovery-Bild plus die ohnehin lastabhängigen P8/P26/K1-Läufe. Einzeln-
+Skips konvergieren nicht — jede Suite wirft neue Fenster.
+Strukturentscheid (Nutzervotum „Github packt die Tests nicht → sauber
+regeln", 16.11.2026):
+
+1. **Messlatten sind lokal-only in der e2e:** K1-p95, K2-Frame-Budget,
+   P8-Lastlauf (20 Sessions × 3 Hosts), P26 (n=8) und der K7-Restore-
+   Messlauf skippen auf Hosted-Runnern sichtbar (`hostedRunner` aus
+   `e2e/support/fixtures.ts`) — eine Messlatte misst die Ziel-Hardware,
+   nicht einen gemieteten 2-vCPU-Runner; Messwerte gehören nach
+   `docs/messlauf/`.
+2. **`retries: process.env.CI ? 1 : 0`** (playwright.config.ts): genau
+   ein Neuversuch pro Test in CI — die von AGENTS.md erlaubte Strategie
+   („benannt und einmal neu gestartet"), automatisiert. Wiederholt rot
+   bleibt rot; lokal weiterhin 0 Retries.
+
+## Abschluss (16.11.2026)
+
+**done.** Beleg: [PR #19](https://github.com/SiLenTTz/AncientVoid/pull/19),
+Run 43877208337 — `changes`/`verify`/`k8`/`e2e` **alle grün**; die volle
+e2e-Suite (714 Tests) lief erstmals auf GitHub-gehosteten Runnern durch
+(52 m 56 s). Die main-Push-Läufe wurden währenddessen dreimal nicht durch
+Fehler, sondern durch neuere Pushes (Parallelsession) abgelöst — jeder
+davon mit grünem `verify`/`k8`; der PR-Lauf prüft denselben Baum.
+
+Wirksame Abschluss-Kriterien: Umgebungstests sichtbar geskippt und lokal
+bindend (Original-Quartett + BUG-0168-Zeuge + fünf Messlatten), echte
+Defekte gefixt (Git-Identität im E2E-Fixture, PR #13), ein CI-Retry pro
+Test als benannter Kompromiss. Folgearbeit, die bewusst NICHT in diesen
+Bug fällt: e2e-Dauer auf Hosted-Runnern (~1 h) und Sharding/Parallelität
+— eigenes Thema, wenn es schmerzt.

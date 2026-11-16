@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect, sessionTab } from "../support/fixtures.ts";
+import { test, expect, sessionTab, hostedRunner } from "../support/fixtures.ts";
 
 /**
  * EPIC-P29 T29.7: die Workspace-Runtime als echter Ablauf — Start → Freigabe
@@ -216,6 +216,7 @@ test.describe("EPIC-P29: Workspace-Runtime (T29.7)", () => {
   });
 
   test("Restore-Messlauf (K7): 10 Workspace-Sessions, 3 Neustarts, Projectionen unter 3 s", async ({ hub }) => {
+    test.skip(hostedRunner, "BUG-0163: Restore-Messlatte misst lokale Hardware");
     test.setTimeout(240_000);
     const project = manifestProject(hub, "ws-messung", { schemaVersion: 1 });
     const ids: string[] = [];

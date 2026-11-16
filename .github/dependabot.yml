@@ -6,10 +6,18 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: "^ a ci"
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Commit-Notation (docs/commit-notation.md): Dependabot-Commits sind
+    # automatisch erzeugt ("a"), Bereich "deps"/"ci" — sonst scheitert
+    # check:commits in der verify-CI an "build(deps-dev): …" (PR #7–#11).
+    commit-message:
+      prefix: "^ a deps"
+      prefix-development: "^ a deps"
     ignore:
       - dependency-name: fastify
