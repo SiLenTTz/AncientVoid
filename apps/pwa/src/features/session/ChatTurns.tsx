@@ -47,6 +47,7 @@ export function ChatTurns({
   firstNewSeq,
   onOpenVerlauf,
   after,
+  live,
 }: {
   sessionId: string;
   items: ChatItem[];
@@ -58,6 +59,8 @@ export function ChatTurns({
   onOpenVerlauf: () => void;
   /** Was unter einem Eintrag steht (z. B. die Token-Rechnung eines Zugs, ADR-0032). */
   after: (item: ChatItem, next: ChatItem | undefined) => ComponentChildren;
+  /** ADR-0083: bereits uebertragene Teiltexte, bevor der Block eintrifft. */
+  live?: { assistant: string; thinking: string };
 }) {
   const [choices, setChoices] = useState(() => loadChoices(sessionId));
   // EPIC-P58 T58.2: Queue für neuen Live-Zuwachs (nur Agententext und Reasoning, in Anzeigereihenfolge).
@@ -100,6 +103,12 @@ export function ChatTurns({
           {after(item, items[i + 1])}
         </Fragment>
       ))}
+      {live && (live.assistant || live.thinking) ? (
+        <div class="chat-live" data-testid="chat-live" aria-live="polite">
+          {live.thinking ? <div class="chat-live-part thinking" data-testid="chat-live-thinking">{live.thinking}</div> : null}
+          {live.assistant ? <div class="chat-live-part" data-testid="chat-live-assistant">{live.assistant}<span class="chat-live-caret" aria-hidden="true" /></div> : null}
+        </div>
+      ) : null}
     </>
   );
 }
