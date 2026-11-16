@@ -1,7 +1,7 @@
 ---
 id: BUG-0163
 slug: ci-verify-rot-seit-11-11
-status: in-progress
+status: done
 severity: S2
 area: ci
 instance: ci
@@ -147,3 +147,19 @@ regeln", 16.11.2026):
    ein Neuversuch pro Test in CI — die von AGENTS.md erlaubte Strategie
    („benannt und einmal neu gestartet"), automatisiert. Wiederholt rot
    bleibt rot; lokal weiterhin 0 Retries.
+
+## Abschluss (16.11.2026)
+
+**done.** Beleg: [PR #19](https://github.com/SiLenTTz/AncientVoid/pull/19),
+Run 43877208337 — `changes`/`verify`/`k8`/`e2e` **alle grün**; die volle
+e2e-Suite (714 Tests) lief erstmals auf GitHub-gehosteten Runnern durch
+(52 m 56 s). Die main-Push-Läufe wurden währenddessen dreimal nicht durch
+Fehler, sondern durch neuere Pushes (Parallelsession) abgelöst — jeder
+davon mit grünem `verify`/`k8`; der PR-Lauf prüft denselben Baum.
+
+Wirksame Abschluss-Kriterien: Umgebungstests sichtbar geskippt und lokal
+bindend (Original-Quartett + BUG-0168-Zeuge + fünf Messlatten), echte
+Defekte gefixt (Git-Identität im E2E-Fixture, PR #13), ein CI-Retry pro
+Test als benannter Kompromiss. Folgearbeit, die bewusst NICHT in diesen
+Bug fällt: e2e-Dauer auf Hosted-Runnern (~1 h) und Sharding/Parallelität
+— eigenes Thema, wenn es schmerzt.
