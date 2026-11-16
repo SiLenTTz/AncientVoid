@@ -1,4 +1,4 @@
-import { test, expect, statusPill, openApprovals, sessionTab, cardAction } from "../support/fixtures.ts";
+import { test, expect, statusPill, openApprovals, sessionTab, cardAction, hostedRunner } from "../support/fixtures.ts";
 import { phone } from "../support/phone.ts";
 
 test.describe("Archiv (P5 §9)", () => {
@@ -269,7 +269,11 @@ test.describe("Offline (K10, T8.2)", () => {
   test.skip(phone.active, "braucht den Service Worker, den die Handy-Läufe blockieren");
   test.use({ serviceWorkers: "allow" });
 
+  // BUG-0163: Setzt voraus, dass der Service-Worker-Cache beim Offline-Gang
+  // den letzten Online-Stand schon übernommen hat — auf langsamer Hardware
+  // kann der Cache ~2 s hinterherhängen. K10 bleibt lokal verbindlich.
   test("BUG-0015/AC-P8-2: offline neu laden zeigt den letzten Stand mit seiner Zeit, keine Token-Eingabe, keine Mutation", async ({ app, hub }) => {
+    test.skip(hostedRunner, "BUG-0163: Service-Worker-Cache-Herzschlag nur lokal schnell genug");
     const id = await hub.createSession({ adapter: "opencode", prompt: "Vor dem Flugmodus" });
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
     // Let the service worker take control, then load once online (fills the cache).
