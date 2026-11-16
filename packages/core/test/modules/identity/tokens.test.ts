@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { DISPLAY_ANSWER_CAPABILITY } from "@ancientvoid/contracts";
 import { HubDatabase, TokenService } from "../../../src/index.ts";
@@ -27,5 +28,35 @@ describe("token capabilities (ADR-0066)", () => {
     const t = tokens.issue("display:nyx", [DISPLAY_ANSWER_CAPABILITY]).token;
     db.prepare("UPDATE device_tokens SET capabilities = ?").run("{kaputt");
     expect(tokens.identify(t)?.capabilities).toEqual([]);
+  });
+});
+
+/** EPIC-P62 T62.2: Device-Tokens tragen das erkennbare Präfix `avt_` — ein
+ * Leak ist in Text und Screenshot-OCR deterministisch findbar (check:media).
+ * Gespeichert bleibt weiter nur der sha256; Alt-Tokens ohne Präfix gelten
+ * unverändert (verify/identify hashen den Plaintext wie zuvor). */
+describe("token prefix (EPIC-P62 T62.2)", () => {
+  it("issue() vergibt das avt_-Präfix; verify/identify laufen über den vollen Plaintext", () => {
+    const tokens = new TokenService(new HubDatabase(":memory:"));
+    const { token, label } = tokens.issue("pixel");
+    expect(token.startsWith("avt_")).toBe(true);
+    expect(token.length).toBeGreaterThan(30);
+    expect(tokens.verify(token)).toBe(true);
+    expect(tokens.identify(token)?.label).toBe(label);
+    // Präfix abgeschneiden = anderes Token: Der Hash kennt keine Normalize-Regel.
+    expect(tokens.verify(token.slice(4))).toBe(false);
+  });
+
+  it("Alt-Token ohne Präfix bleibt gültig (Hash-Kompatibilität)", () => {
+    const db = new HubDatabase(":memory:");
+    const tokens = new TokenService(db);
+    const legacy = "ohnepraefix-abc123";
+    db.prepare("INSERT INTO device_tokens (token_hash, label, created_at) VALUES (?, ?, ?)").run(
+      createHash("sha256").update(legacy).digest("hex"),
+      "altgeraet",
+      new Date().toISOString(),
+    );
+    expect(tokens.verify(legacy)).toBe(true);
+    expect(tokens.identify(legacy)?.label).toBe("altgeraet");
   });
 });

@@ -19,6 +19,8 @@ export function WorkplaceChoice({
   onMode,
   confirmDirty,
   onConfirmDirty,
+  confirmShared,
+  onConfirmShared,
   onBlockedChange,
 }: {
   api: Api;
@@ -27,6 +29,9 @@ export function WorkplaceChoice({
   onMode: (mode: WorkplaceMode) => void;
   confirmDirty: boolean;
   onConfirmDirty: (value: boolean) => void;
+  /** ADR-0081: ausdrücklich bestätigtes parallels Schreiben in einem Nicht-Git-Ordner. */
+  confirmShared: boolean;
+  onConfirmShared: (value: boolean) => void;
   /** Start ist blockiert (Checkout belegt, Dirty unbestätigt, Vorschau fehlt) — Grund steht in der Karte. */
   onBlockedChange: (blocked: boolean) => void;
 }) {
@@ -54,9 +59,14 @@ export function WorkplaceChoice({
 
   const direct = mode === "direct";
   const dirty = preview?.dirty ?? [];
+  // ADR-0081: „belegt“ heißt nicht mehr nur Allein-Schreiber — in Ordnern ohne Git
+  // sind Mit-Nutzer erlaubt, aber nur nach Bestätigung. Git bleibt gesperrt.
+  const isGitCheckout = preview ? preview.isGit : true;
+  const holders = direct ? preview?.holders ?? (preview?.heldBy ? [preview.heldBy] : []) : [];
   const held = direct && preview?.heldBy ? preview.heldBy : null;
+  const sharedAllowed = holders.length > 0 && !isGitCheckout && confirmShared;
   const dirtyBlock = direct && dirty.length > 0 && !confirmDirty;
-  const blocked = direct && (held !== null || dirtyBlock);
+  const blocked = direct && ((holders.length > 0 && !sharedAllowed) || dirtyBlock);
   useEffect(() => onBlockedChange(blocked), [blocked]);
 
   return (
@@ -80,7 +90,7 @@ export function WorkplaceChoice({
         <label class={mode === "direct" ? "workplace-card active" : "workplace-card"}>
           <input type="radio" name="workplace" value="direct" aria-label="Arbeitsort direkt im Ordner" checked={mode === "direct"} onChange={() => onMode("direct")} />
           <strong>Projekt direkt</strong>
-          <span class="dim">Der Agent arbeitet im Projektordner selbst. Pro Projekt schreibt höchstens eine AncientVoid-Session.</span>
+          <span class="dim">Der Agent arbeitet im Projektordner selbst. In Git-Projekten schreibt höchstens eine Session; Ordner ohne Git können mehrere Sessions teilen — nach ausdrücklicher Bestätigung.</span>
         </label>
       </div>
       <p class="dim workplace-note">
@@ -92,7 +102,21 @@ export function WorkplaceChoice({
           <div class="mono">{preview.checkoutId}</div>
           {preview.branch && <div class="dim">Branch {preview.branch}</div>}
           <div class="dim">Änderungen anderer Programme (Editor, Terminal) kann AncientVoid nicht sperren, nur erkennen.</div>
-          {held && <div class="workplace-warn" role="alert">Hier schreibt bereits eine andere AncientVoid-Session ({held.slice(0, 8)}). Erst beenden oder „Eigener Worktree“ wählen.</div>}
+          {held && isGitCheckout && <div class="workplace-warn" role="alert">Hier schreibt bereits eine andere AncientVoid-Session ({held.slice(0, 8)}). Erst beenden oder „Eigener Worktree“ wählen.</div>}
+          {holders.length > 0 && !isGitCheckout && (
+            <div class="workplace-warn" role="alert">
+              <div>
+                In diesem Ordner {holders.length === 1
+                  ? `schreibt bereits eine andere AncientVoid-Session (${holders.map((h) => h.slice(0, 8)).join(", ")})`
+                  : `schreiben bereits ${holders.length} andere AncientVoid-Sessions (${holders.map((h) => h.slice(0, 8)).join(", ")})`}
+                . Ohne Git gibt es keine Trennung — beide können sich gegenseitig überschreiben.
+              </div>
+              <label class="workplace-confirm">
+                <input type="checkbox" checked={confirmShared} onChange={(e) => onConfirmShared((e.target as HTMLInputElement).checked)} />
+                Mehrere Sessions in diesem Ordner — ich nehme das Überschreibrisiko in Kauf.
+              </label>
+            </div>
+          )}
           {dirty.length > 0 && (
             <div class="workplace-warn" role="alert">
               <div>Ungesicherte Änderungen im Projekt ({dirty.length}{preview.dirtyTruncated ? "+" : ""}):</div>

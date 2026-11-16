@@ -60,6 +60,25 @@ const assistant = (content) =>
 emit({ type: "system", subtype: "init", cwd: process.cwd(), session_id: sessionId, tools: ["Bash", "Read", "Edit"], model, permissionMode: flag("--permission-mode") ?? "default", claude_code_version: "2.1.280" });
 await sleep(50);
 
+// ADR-0083 (BUG-0178): keyword STREAM — like the real CLI with
+// --include-partial-messages, the deltas arrive inside stream_event envelopes,
+// and the complete assistant message only AFTER message_stop. The E2E proves the
+// adapter turns them into frames that reach the client before the block exists.
+if (prompt.includes("STREAM") && argv.includes("--include-partial-messages")) {
+  const parts = ["Live ", "streamt ", "Wort ", "für ", "Wort."];
+  emit({ type: "stream_event", event: { type: "content_block_start", index: 0, content_block: { type: "text" } }, session_id: sessionId });
+  for (const p of parts) {
+    await sleep(120);
+    emit({ type: "stream_event", event: { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: p } }, session_id: sessionId });
+  }
+  emit({ type: "stream_event", event: { type: "content_block_stop", index: 0 }, session_id: sessionId });
+  await sleep(900); // das fertige Block-Ereignis kommt spater als die Frames
+  const text = parts.join("");
+  assistant([{ type: "text", text }]);
+  emit({ type: "result", subtype: "success", is_error: false, result: text, session_id: sessionId, num_turns: 1, duration_ms: 900, total_cost_usd: 0, usage: { input_tokens: 0, output_tokens: 0 } });
+  process.exit(0);
+}
+
 // ADR-0042 (EPIC-P25): the real CLI executes slash prompts in -p mode; the
 // stand-in answers a /clear or /compact the same visible way instead of a
 // model turn — so the E2E proves the whole pipe down to the timeline.

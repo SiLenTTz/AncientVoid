@@ -24,6 +24,17 @@ export interface TailConnection {
   close(): void;
 }
 
+/** ADR-0083: transiente Live-Frames — kein Ereignis, nicht persistiert, kein seq des
+ * Event-Protokolls. Eine Lücke ist hier ausdrücklich kein Resync-Anlass: der dauerhafte
+ * Block holt alles ein. */
+export interface StreamFrameView {
+  turnId: string;
+  stream: "assistant" | "thinking";
+  seq: number;
+  text: string;
+  final: boolean;
+}
+
 export interface TailOptions {
   url: string;
   token: string;
@@ -31,6 +42,8 @@ export interface TailOptions {
   /** EPIC-P6: set for a session on another host of the fleet. */
   hostId?: string | null;
   onEvents: (events: NormalizedEvent[]) => void;
+  /** ADR-0083: echtes Streaming — Teiltexte, bevor der Block eintrifft. */
+  onFrames?: (frames: StreamFrameView[]) => void;
   onState: (state: "connecting" | "live" | "reconnecting" | "closed") => void;
 }
 
@@ -61,7 +74,8 @@ export function connectTail(opts: TailOptions): TailConnection {
           | { type: "events"; events: NormalizedEvent[]; highWater: number; dropped: boolean; baseline?: boolean }
           | { type: "welcome"; lastSeq: number }
           | { type: "error"; message: string }
-          | { type: "pong" };
+          | { type: "pong" }
+          | { type: "stream"; sessionId: string; frames: StreamFrameView[] };
         if (data.type === "events") {
           // BUG-0026: an opening view starts at the newest history page.
           if (data.baseline && lastSeq === 0 && data.events[0]) lastSeq = data.events[0].seq - 1;
@@ -92,6 +106,8 @@ export function connectTail(opts: TailOptions): TailConnection {
           }
         } else if (data.type === "welcome") {
           opts.onState("live");
+        } else if (data.type === "stream") {
+          opts.onFrames?.(data.frames);
         } else if (data.type === "error") {
           console.warn("[tail] server:", data.message);
         }

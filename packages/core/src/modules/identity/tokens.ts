@@ -45,7 +45,10 @@ export class TokenService {
     if (capabilities.includes(DISPLAY_ANSWER_CAPABILITY) && actorKind(label) !== "display") {
       throw new Error(`${DISPLAY_ANSWER_CAPABILITY} is only valid for display tokens`);
     }
-    const token = randomBytes(24).toString("base64url");
+    // EPIC-P62 T62.2: erkennbares Präfix — ein geleaktes Device-Token ist in
+    // Text und Screenshot-OCR deterministisch findbar (check:media). Präfix
+    // ist Teil des Plaintext; gespeichert bleibt wie bisher nur der sha256.
+    const token = `avt_${randomBytes(24).toString("base64url")}`;
     this.db
       .prepare("INSERT INTO device_tokens (token_hash, label, created_at, capabilities) VALUES (?, ?, ?, ?)")
       .run(hashToken(token), label, new Date().toISOString(), capabilities.length > 0 ? JSON.stringify([...new Set(capabilities)]) : null);

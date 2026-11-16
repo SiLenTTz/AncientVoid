@@ -175,6 +175,10 @@ export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
       // SDK-style streaming envelope. `claude -p stream-json` flattens these
       // today; we only report the envelope (fail loud, rule 6) and do not
       // unwrap the inner event.
+      // ADR-0083: `content_block_*` carries the provider's real deltas — they go to
+      // the live pump (index.ts), not the event store. Anything else in a stream
+      // envelope (message_start/…, usage) is still reported as before (fail loud).
+      if (claudeStreamDelta(line)) return [];
       return [
         {
           type: "system",
@@ -193,6 +197,43 @@ export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
         },
       ];
   }
+}
+
+/**
+ * ADR-0083: claude's stream-json carries the provider's deltas inside
+ * `stream_event` envelopes. Recognising them here (and returning `null` for
+ * everything else) keeps the fail-loud envelope report for unknown shapes while
+ * the adapter pumps the real text to `ctx.stream`.
+ */
+export type ClaudeStreamKind = "assistant" | "thinking";
+export interface ClaudeStreamPart {
+  inner: "start" | "delta" | "stop";
+  index: number;
+  stream: ClaudeStreamKind;
+  text: string;
+}
+
+export function claudeStreamDelta(line: Record<string, unknown>): ClaudeStreamPart | null {
+  if (line.type !== "stream_event") return null;
+  const ev = line.event as Record<string, unknown> | undefined;
+  if (!ev || typeof ev.type !== "string") return null;
+  const index = typeof ev.index === "number" ? ev.index : 0;
+  if (ev.type === "content_block_start") {
+    const block = ev.content_block as Record<string, unknown> | undefined;
+    const bt = typeof block?.type === "string" ? block.type : "";
+    if (bt !== "text" && bt !== "thinking") return null; // tool_use & co streamen hier nichts
+    return { inner: "start", index, stream: bt === "thinking" ? "thinking" : "assistant", text: "" };
+  }
+  if (ev.type === "content_block_delta") {
+    const d = ev.delta as Record<string, unknown> | undefined;
+    const dt = typeof d?.type === "string" ? d.type : "";
+    if (dt !== "text_delta" && dt !== "thinking_delta") return null; // input_json_delta: Werkzeug-Argumente
+    const raw = dt === "thinking_delta" ? d!.thinking : d!.text;
+    if (typeof raw !== "string" || raw === "") return null; // unbekannte Form: Hülle bleibt sichtbar
+    return { inner: "delta", index, stream: dt === "thinking_delta" ? "thinking" : "assistant", text: raw };
+  }
+  if (ev.type === "content_block_stop") return { inner: "stop", index, stream: "assistant", text: "" };
+  return null; // message_start / message_delta / message_stop: Usage, kein Text
 }
 
 function normalizeSystem(line: Record<string, unknown>): EmittedEvent {

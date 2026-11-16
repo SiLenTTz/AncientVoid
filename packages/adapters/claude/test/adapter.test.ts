@@ -494,3 +494,59 @@ describe("Fortsetzen: Wächter und Transkript-Import (Live-Fund 2026-09-28)", ()
     await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.transcript_missing"));
   });
 });
+
+/**
+ * ADR-0083 / BUG-0178: claude carries its deltas inside `stream_event` envelopes.
+ * The lines below are synthetic (same shape the stand-in in e2e/support/bin/claude
+ * speaks) — recorded claude transcripts never carry partial deltas.
+ */
+const PARTIAL_STREAM = [
+  { type: "system", subtype: "init", session_id: "s9", cwd: "/tmp", tools: ["Bash"], model: "claude-sonnet-5", permissionMode: "default", claude_code_version: "2.1.280" },
+  { type: "stream_event", event: { type: "content_block_start", index: 0, content_block: { type: "text" } }, session_id: "s9" },
+  { type: "stream_event", event: { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Live " } }, session_id: "s9" },
+  { type: "stream_event", event: { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "streamt " } }, session_id: "s9" },
+  { type: "stream_event", event: { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Wort für Wort." } }, session_id: "s9" },
+  { type: "stream_event", event: { type: "content_block_stop", index: 0 }, session_id: "s9" },
+  { type: "assistant", message: { id: "m9", role: "assistant", content: [{ type: "text", text: "Live streamt Wort für Wort." }] }, session_id: "s9" },
+  { type: "result", subtype: "success", is_error: false, result: "Live streamt Wort für Wort.", session_id: "s9", num_turns: 1, duration_ms: 5, total_cost_usd: 0, usage: { input_tokens: 3, output_tokens: 6 } },
+].map((l) => JSON.stringify(l)).join("\n") + "\n";
+
+describe("claude adapter — echte Deltas als Live-Frames (ADR-0083)", () => {
+  it("frames gehen raus, bevor der Block eintrifft, und der Block kommt genau einmal", async () => {
+    let spawned: string[] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawned = cmd;
+        return fakeClaudeProcess(PARTIAL_STREAM, 60);
+      },
+    });
+    await createAdapter().start({ adapter: "claude", project: "/tmp", prompt: "STREAM" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+
+    // ADR-0083: der Hub kann Frames — der Adapter verlangt dafuer Teil-Nachrichten.
+    expect(spawned).toContain("--include-partial-messages");
+
+    const text = ctx.frames.map((f) => f.text).join("");
+    expect(text).toBe("Live streamt Wort für Wort.");
+    expect(ctx.frames.every((f) => f.stream === "assistant" && f.turnId.length > 0)).toBe(true);
+    expect(ctx.frames.map((f) => f.seq)).toEqual(ctx.frames.map((_, i) => i));
+    expect(ctx.frames.at(-1)!.final).toBe(true);
+    expect(ctx.frames.slice(0, -1).every((f) => !f.final)).toBe(true);
+
+    // Kein Doppellauf: der Block bleibt das eine dauerhafte assistant-Ereignis,
+    // und die erkannten Deltas hinterlassen keine "stream envelope"-Rausch-Ereignisse.
+    expect(ctx.events.filter((e) => e.type === "assistant")).toHaveLength(1);
+    expect(ctx.events.some((e) => e.summary.includes("stream envelope"))).toBe(false);
+  });
+
+  it("ohne Stream-Kanal bleibt alles beim Alten: kein Frame, Block bleibt erhalten", async () => {
+    const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(PARTIAL_STREAM, 60) });
+    delete ctx.stream; // ADR-0083: ein Hub ohne Frame-Kanal
+    await createAdapter().start({ adapter: "claude", project: "/tmp", prompt: "STREAM" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+    expect(ctx.frames).toHaveLength(0);
+    expect(ctx.events.filter((e) => e.type === "assistant")).toHaveLength(1);
+    const joined = ctx.events.filter((e) => e.type === "assistant").map((e) => JSON.stringify(e.payload)).join("");
+    expect(joined).toContain("Live streamt Wort für Wort.");
+  });
+});
