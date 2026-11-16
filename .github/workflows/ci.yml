@@ -6,12 +6,11 @@
 # Laufzeit (22.11.2026): e2e läuft als 4-Shard-Matrix parallel zu verify;
 # pro Shard bleibt es bei 1 Playwright-Worker — die Entschärfung aus
 # BUG-0093/0094/0095 (kein Parallelitätsdruck pro Runner) bleibt erhalten,
-# die Parallelität kommt aus separaten Runner-Maschinen. Branch-Protection
-# muss dafür das Wildcard-Kontextmuster `e2e *` tragen (Matrix-Checks heißen
-# `e2e (1, 4)` …). Dependabot-PRs (nur Lockfile/Actions-Pins) laufen verify;
-# k8 und e2e werden übersprungen — die volle Messlatte fahren sie beim Merge
-# auf main.
-name: ci
+# die Parallelität kommt aus separaten Runner-Maschinen. Der Aggregations-
+# Job `e2e` hält den Required-Check-Namen stabil (Branch-Protection
+# unverändert); er wertet die Shard-Berichte nach denselben Regeln aus.
+# Dependabot-PRs (nur Lockfile/Actions-Pins) laufen verify; die volle
+# Messlatte fahren sie beim Merge auf main.
 name: ci
 
 on:
@@ -123,11 +122,10 @@ jobs:
       - run: npm run loadtest
 
   # Epic-Gate (docs/testing-e2e.md): jeder UI-Ablauf gegen einen echten Hub in
-  # Chromium. Blockierend; der Bericht macht Skips und „null Tests“ rot
-  # (EPIC-P28 T28.4 — ein fehlender Bericht ist nie grün) — je Shard, unverändert.
-  # Parallel zu verify und als 4-Shard-Matrix (Laufzeit, 22.11.2026); pro Shard
-  # weiterhin 1 Worker. Branch-Protection: Wildcard `e2e *` statt `e2e`.
-  e2e:
+  # Chromium, als 4-Shard-Matrix parallel zu verify; pro Shard 1 Worker
+  # (Runner-Entschärfung aus BUG-0093/0094/0095 bleibt). Der Skip-Bericht
+  # läuft je Shard unverändert — entscheidet der Aggregations-Job `e2e`.
+  e2e-shards:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     strategy:
@@ -170,3 +168,22 @@ jobs:
             ci-artifacts/
           retention-days: 14
           if-no-files-found: warn
+
+  # Aggregations-Gate (EPIC-P28 T28.4): fasst die Shard-Berichte nach denselben
+  # Regeln zusammen — fehlender Shard-Bericht, null Tests, Failures und
+  # benannte Skips — und hält dabei den Required-Check-Namen `e2e` stabil
+  # (Branch-Protection unverändert). Läuft auch bei rotem Shard (always),
+  # damit die Entscheidung im blockierenden Check sichtbar bleibt.
+  e2e:
+    needs: [changes, e2e-shards]
+    if: always() && needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: e2e-report-shard-*
+          path: shards
+          merge-multiple: false
+      - run: EXPECTED_SHARDS=4 node scripts/ci-e2e-aggregate.mjs shards

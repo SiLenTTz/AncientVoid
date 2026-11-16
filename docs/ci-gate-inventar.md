@@ -9,7 +9,7 @@ Betrieb: [CI-Runbook](ci-runbook.md) · Historie: [EPIC-P28](../epics/EPIC-P28-r
 **Geltung:** Seit dem Umzug auf GitHub (16.11.2026) läuft die CI als
 GitHub Actions auf GitHub-gehosteten Runnern; die Jobs `verify` und `e2e`
 sind Required Checks für PRs nach `main` (`e2e` seit 22.11.2026 als
-4-Shard-Matrix, darum mit Wildcard `e2e *` in der Branch-Protection),
+4-Shard-Matrix mit Aggregations-Job, Check-Name bleibt `e2e`),
 zusätzlich zu den lokalen Gates; `k8` läuft mit, ist aber nicht Required.
 Details: [Runbook §0](ci-runbook.md#0-geltung-seit-16112026).
 Abschnitte 3–5 sind Historie aus der GitLab-Zeit (Pipeline-/Job-IDs und
@@ -39,7 +39,7 @@ die Workflow-Datei:
 | `npm test` (vitest) | `verify` | JUnit-XML `test-results/vitest-junit.xml` (Artefakt `vitest-junit`) |
 | `npm -w @ancientvoid/pwa run build` | `verify` | Job-Log, Exit-Code |
 | `npm run loadtest` — K8: 20 Sessions × 30 ev/s × 10 s | `k8` (eigener Job seit 2026-11-12; nur bei Code-Änderung, `main` immer) | Job-Log (Events, Verluste, RSS) — volle Messlatte, nicht entschärft |
-| `npm run test:e2e` (Playwright Chromium) | `e2e` (nur bei Code-Änderung, `main` immer; 4 Shards parallel zu `verify`, pro Shard 1 Worker — Runner-Entschärfung nach BUG-0093/94/95 bleibt) | Artefakt `e2e-report-shard-<n>` je Shard: `test-results/e2e-junit.xml`, `playwright-report/`, Skip-Bericht `ci-artifacts/e2e-report.md` |
+| `npm run test:e2e` (Playwright Chromium) | `e2e-shards` (4 Shards, nur bei Code-Änderung, `main` immer; parallel zu `verify`, pro Shard 1 Worker — Runner-Entschärfung nach BUG-0093/94/95 bleibt), Gate-Entscheidung im Aggregations-Job `e2e` | Artefakt `e2e-report-shard-<n>` je Shard: `test-results/e2e-junit.xml`, `playwright-report/`, Skip-Bericht `ci-artifacts/e2e-report.md`; Aggregat: `scripts/ci-e2e-aggregate.mjs` |
 
 Regeln:
 

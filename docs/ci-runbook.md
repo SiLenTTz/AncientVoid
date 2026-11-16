@@ -14,7 +14,7 @@ CI ist **GitHub Actions** auf GitHub-gehosteten `ubuntu`-Runnern.
 | Nachweis | Pflicht für PRs nach `main` |
 |---|---|
 | Lokale Gates (`AGENTS.md`, Abschnitt Kommandos) | ja, vor jedem PR |
-| GitHub Actions (`verify`, `e2e`) | ja, Required Check per Branch-Protection; `e2e` seit 22.11.2026 als 4-Shard-Matrix, darum mit Wildcard `e2e *`; `k8` läuft mit, ist nicht Required |
+| GitHub Actions (`verify`, `e2e`) | ja, Required Check per Branch-Protection; `e2e` seit 22.11.2026 als 4-Shard-Matrix mit Aggregations-Job (Check-Name bleibt `e2e`); `k8` läuft mit, ist nicht Required |
 
 - Beide Nachweise gelten **zusätzlich**, keiner ersetzt den anderen.
 - Ein roter Lauf blockiert den Merge. Liegt die Ursache nachweislich nur in
@@ -42,7 +42,7 @@ Links auf `gitlab.com/SiLenT_Tz/…` zeigen auf das private Archiv.
 | `changes` | entscheidet, ob der PR Code berührt (`apps/`, `packages/`, `e2e/`, `scripts/`, Lock-/Config-Dateien, `.github/workflows/`); reine Dependabot-PRs gelten als nein | — |
 | `verify` | `npm ci`, Typecheck, Lint, Checks (`check:*`), Vitest, PWA-Build | `npm test && npm run lint && npm run typecheck` |
 | `k8` | Lasttest 20 Sessions × 30 ev/s (nur bei Code-Änderung) | `npm run loadtest` |
-| `e2e` | Playwright Chromium gegen einen echten Hub, danach Skip-Bericht (nur bei Code-Änderung; 4 Shards parallel zu `verify`, Browser-Cache) | `npm run test:e2e` |
+| `e2e-shards` + `e2e` | Playwright Chromium gegen einen echten Hub, danach Skip-Bericht (nur bei Code-Änderung; 4 Shards parallel zu `verify`, Browser-Cache); der Aggregations-Job `e2e` fasst die Shard-Berichte nach denselben Regeln zusammen (fehlender Bericht, null Tests, Failures — `scripts/ci-e2e-aggregate.mjs`) | `npm run test:e2e` |
 
 Reine Doku-PRs (`docs/`, `bugs/`, `epics/`, `*.md`) und reine Dependabot-PRs
 (Lockfile/Actions-Pins) laufen nur durch
@@ -121,8 +121,8 @@ Einstellungen (*Settings → Actions → General*) und Workflow-Regeln:
   Ökosystem `github-actions`); Updates laufen als normale PRs durch dieselbe CI.
 - **Keine Secrets** in Workflows. Braucht ein Job je eines, nur über
   Environments mit Freigabe und nie in Jobs, die Fork-Code ausführen.
-- Branch-Protection auf `main`: Required Checks `verify` und `e2e *`
-  (Wildcard für die 4-Shard-Matrix, seit 22.11.2026); `k8` läuft mit, ist
+- Branch-Protection auf `main`: Required Checks `verify` und `e2e`
+  (der Aggregations-Job, Check-Name bleibt stabil); `k8` läuft mit, ist
   nicht Required; kein Force-Push, kein direkter Push; Merge nur per PR.
 
 ## 5. Lokale-vs-CI-Regel
