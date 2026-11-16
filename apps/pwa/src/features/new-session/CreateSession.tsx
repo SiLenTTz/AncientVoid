@@ -326,9 +326,22 @@ export function CreateSession({
   return (
     <ApiContext.Provider value={api}>
     <div class="card form-grid">
-      {/* Projekt zuerst: jede weitere Angabe (Pfad, gemerkter Skill,
-          Workflow) hängt an ihm — der Pfad wird aus der Auswahl vorbelegt
-          und bleibt darunter überschreibbar. */}
+      {/* BUG-0188: Der Host führt das Formular an — Pfad, wählbares Repo,
+          Adapter und Skills hängen alle von ihm ab; erst danach folgen
+          Projekt und Pfad. */}
+      {hosts.length > 1 && (
+        <label>
+          Host
+          <select value={host ?? ""} onChange={(e) => setHost((e.target as HTMLSelectElement).value)}>
+            {hosts.map((h) => (
+              <option key={h.hostId} value={h.hostId} disabled={h.state !== "reachable"}>
+                {h.hostId}
+                {h.self ? " (dieser)" : h.state !== "reachable" ? ` (${h.state})` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label>
         Projekt
         {projects === null ? (
@@ -385,19 +398,6 @@ export function CreateSession({
           spellcheck={false}
         />
       </label>
-      {hosts.length > 1 && (
-        <label>
-          Host
-          <select value={host ?? ""} onChange={(e) => setHost((e.target as HTMLSelectElement).value)}>
-            {hosts.map((h) => (
-              <option key={h.hostId} value={h.hostId} disabled={h.state !== "reachable"}>
-                {h.hostId}
-                {h.self ? " (dieser)" : h.state !== "reachable" ? ` (${h.state})` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
       <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); setOnboard(emptyOnboard); }} onboard={onboard} onOnboard={setOnboard} reload={loopReload} initial={last.loop ?? null} project={project} />
       {(!loop || loop.id === "securesight-factory") && (
         <>

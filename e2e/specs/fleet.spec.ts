@@ -193,6 +193,25 @@ test.describe("Flotte (EPIC-P6)", () => {
     }
   });
 
+  test("BUG-0188: Host steht in der Neuanlage über Projekt und Pfad", async ({ app, hub }) => {
+    const peer = await TestHub.start({ hostId: "home-server", label: "home-server" });
+    try {
+      await pair(hub, peer);
+      await app.reload();
+      await app.getByRole("button", { name: "Neue Session" }).click();
+      await expect(app.getByLabel("Host")).toBeVisible();
+      // Pfad und wählbares Repo hängen vom Host ab — deshalb führt er das
+      // Formular an, nicht Projekt/Pfad.
+      const labels = await app.locator(".form-grid label").evaluateAll((els) => els.map((e) => (e.textContent ?? "").trim()));
+      const at = (prefix: string) => labels.findIndex((t) => t.startsWith(prefix));
+      expect(at("Host")).toBe(0);
+      expect(at("Projekt")).toBeGreaterThan(at("Host"));
+      expect(at("Pfad")).toBeGreaterThan(at("Host"));
+    } finally {
+      await peer.stop();
+    }
+  });
+
   test("T6.3/AC-P6-3: ein Host fällt aus — die anderen bleiben bedienbar, sein Stand bleibt sichtbar", async ({ app, hub }) => {
     const peer = await TestHub.start({ hostId: "home-server", label: "home-server" });
     try {
