@@ -43,21 +43,27 @@ bestehen, auch wenn andere Epics oder Vorgänger inzwischen grün sind.
 
 ## Kommandos
 
-> **CI-Geltung (Umzug auf GitHub, 16.11.2026):** Gehostete CI ist GitHub
-> Actions (`.github/workflows/ci.yml`, Jobs `verify`, `k8`, `e2e`) auf
-> GitHub-gehosteten Runnern — Required Check für jeden PR nach `main`.
-> Die lokalen Gates unten bleiben **zusätzlich** verbindlich. Rote CI blockiert;
+> **CI-Geltung (Umzug auf GitHub, 16.11.2026; Laufzeit-Split 16.11.2026):**
+> Gehostete CI ist GitHub Actions auf GitHub-gehosteten Runnern: PRs gate
+> den schnellen Kern (`.github/workflows/ci.yml`, Job `verify`: schnelle
+> Tests, Lint, Typecheck, Build) — Required Check; die volle Messlatte
+> (komplette Testsuite inkl. Slow-Liste, E2E, K8) fährt
+> `.github/workflows/nightly.yml` auf `main` und zweimal täglich. Die
+> lokalen Gates unten bleiben **zusätzlich** und unverändert voll
+> verbindlich. Rote CI blockiert;
 > ist die Ursache nachweislich nur die Umgebung (z. B. Runner-Flake), wird das
 > benannt und einmal neu gestartet — nie als Pass gemeldet. Keine self-hosted
 > Runner für das öffentliche Repo (Fork-PRs führen fremden Code aus).
 > Details: `docs/ci-runbook.md`.
 
 ```bash
-npm test                 # vitest (Unit/Integration)
+npm test                 # vitest Tier A: schneller Loop (parallel; ohne die langsamen Dateien)
+npm run test:slow        # vitest Tier B: langsam/seriell — Liste in scripts/test-tiers.ts
+npm run test:tiers       # anzeigen, was in Tier B läuft (gemessene Dauer im Kommentar)
 npm run test:e2e         # Playwright-E2E-Gate gegen einen echten Hub (docs/testing-e2e.md)
 npm run lint             # eslint
 npm run typecheck        # tsc --noEmit
-npm run gate             # typecheck + lint + test + test:e2e
+npm run gate             # typecheck + lint + test + test:slow + test:e2e
 npm run loadtest         # K8: 20 Sessions × 30 ev/s
 npm -w @ancientvoid/pwa run build
 ```
@@ -66,6 +72,14 @@ Diese drei sind Pflicht vor jedem Commit-Vorschlag: `test`, `lint`, `typecheck`.
 Bei Änderungen an PWA, Server-Routen, SessionManager oder Adaptern zusätzlich
 `npm run test:e2e`. Vor Bugfix-/Epic-PRs immer `npm run gate`. Neue
 UI-Funktion oder neuer Ablauf = neuer oder erweiterter Spec in `e2e/specs/`.
+
+**Test-Tiers:** `npm test` ist Tier A (18 s gemessen) und lässt alles weg, was lang
+ist, Ports bindet oder auf Wanduhr-Zeit prüft; dieser Teil läuft seriell in
+`npm run test:slow` (~25 min lokal, auf den Hosted-Runnern deutlich weniger, weil
+dort Adapter-Suiten sichtbar skippen). `gate` und `ci.yml` fahren **beide**
+Tieres — nichts fällt still weg. Wer eine Datei nach Tier B verschiebt, schreibt
+die gemessene Dauer in den Commit; neue langsame Tests bleiben Tier B, solange
+BUG-0170 offen ist.
 
 ## Testing
 
@@ -118,7 +132,9 @@ ist zulässig (Solo-Projekt) — was **nicht** zulässig ist: den PR selbst zu
 der `pre-push`-Hook erzwingt Lint und Typecheck; Tests über die Kommandos oben, das Gate und die GitHub-Actions-CI).
 
 Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder `epics/`
-für Epics. Eingefrorene Analysen (Audits, Evaluierungen, Berichte) bekommen
+für Epics. Bewährte Ausnahmen: `docs/adr/` (ADRs), `docs/guide/` (EPIC-P62:
+englischer Guide + Inventar), `docs/videos/` (EPIC-P62: Video-Skripte).
+Eingefrorene Analysen (Audits, Evaluierungen, Berichte) bekommen
 das Datum in den Namen (`JJJJ-MM-TT_*` bzw. `*JJJJ-MM-TT`) — sie sind
 referenzfrei zulässig und altern bewusst. ADRs nach `docs/adr/NNNN-*.md`.
 Kein `*-STATUS.md`/`*-SUMMARY.md` auf Top-Level. Über Zeilen-Budgets, Links,

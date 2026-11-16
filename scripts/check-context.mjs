@@ -22,6 +22,9 @@ export const LINE_BUDGETS = [
   { glob: ".claude/skills/README.md", limit: 120 },
   { glob: ".claude/skills/*/SKILL.md", limit: 250 },
   { glob: ".claude/agents/*.md", limit: 150 },
+  // EPIC-P62 T62.1: Guide- und Video-Doku sind on-demand, duerfen laenger sein.
+  { glob: "docs/guide/*.md", limit: 400 },
+  { glob: "docs/videos/*.md", limit: 250 },
 ];
 
 // Markdown-Links in diesen Dateien muessen auf existierende Pfade zeigen.
@@ -149,7 +152,14 @@ const DOC_KIND_LINE = /^\*\*Art:\*\*\s*(.+?)\s*$/;
 export const DOC_INDEX = "docs/uebersicht.md";
 
 function livingDocs(files) {
-  return files.filter((f) => /^docs\/[^/]+\.md$/.test(f) && !DATED_NAME.test(f.slice(5).replace(/\.md$/, "")));
+  // EPIC-P62 T62.1: docs/guide/ ist lebende Doku (Art + Index wie flache
+  // docs/*.md). docs/videos/ sind Clip-Skripte — nur Zeilen-Budget, kein
+  // Index (sonst bläht jede Episode die Übersicht auf).
+  return files.filter(
+    (f) =>
+      (/^docs\/[^/]+\.md$/.test(f) || /^docs\/guide\/[^/]+\.md$/.test(f)) &&
+      !DATED_NAME.test(f.slice(5).replace(/\.md$/, "")),
+  );
 }
 
 // Diátaxis: jede lebende Seite trägt genau eine Art (Kopfzeile `**Art:** …`,

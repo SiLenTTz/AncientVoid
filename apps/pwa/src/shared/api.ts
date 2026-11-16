@@ -252,6 +252,8 @@ export interface WorkspacePreview {
   dirtyTruncated: boolean;
   /** Session-Id des aktuellen AV-Schreibers im direkten Checkout, sonst null. */
   heldBy: string | null;
+  /** ADR-0081: alle Sessions, die hier schon schreiben (Primär-Lease + Mit-Nutzer). */
+  holders?: string[];
 }
 
 interface WorkplaceStatus {
@@ -530,12 +532,17 @@ export interface DiscoveredProject {
   path: string;
   name: string;
   branch: string | null;
+  /** BUG-0172: ohne Feld bzw. `isGit: false` ist es ein Ordner ohne `.git`. */
+  isGit?: boolean;
 }
 
 
 interface ProjectDiscoveryResult {
   projects: DiscoveredProject[];
   warnings: string[];
+  /** BUG-0173: trennt „Wurzeln fehlen“ von „Wurzeln vorhanden, aber keine Repos“. */
+  rootsConfigured?: boolean;
+  roots?: string[];
 }
 
 /** T1.5-10/ADR-0005 — a skill, agent, or workflow discovered in the target
@@ -1209,6 +1216,8 @@ function createHubApi(P: (path: string) => string) {
     /** ADR-0057: Arbeitsort; ohne Angabe eigener Worktree. */
     workspaceMode?: "worktree" | "direct";
     confirmDirty?: boolean;
+    /** ADR-0081: parallels Schreiben in einem Nicht-Git-Ordner ausdrücklich bestätigt. */
+    confirmSharedFolder?: boolean;
     /** Adoption (ADR-0011): continue an externally discovered session. */
     adoptNativeSessionId?: string;
     /** ADR-0040: continue as a copy (a run still open elsewhere is not shared) and keep its title. */
