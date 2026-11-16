@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, hostedRunner } from "../support/fixtures.ts";
 
 /**
  * EPIC-P26 T26.10: Messlauf gegen die `factory`-Attrappe — K9 (Störung sichtbar), AC-P26-2
@@ -16,6 +16,7 @@ const stats = (xs: number[]) => {
 };
 
 test.describe("Messlauf P26", () => {
+  test.skip(hostedRunner, "BUG-0163: Messlatte n=8 misst lokale Hardware");
   test("K9, AC-P26-2 und K7 mit n=8", async ({ app, hub }, info) => {
     test.setTimeout(180_000);
     const project = join(hub.projectsDir, "messlauf");

@@ -1,5 +1,5 @@
 import { writeFileSync, mkdirSync } from "node:fs";
-import { test, expect, sessionTab } from "../support/fixtures.ts";
+import { test, expect, sessionTab, hostedRunner } from "../support/fixtures.ts";
 import { TestHub } from "../support/hub.ts";
 
 /**
@@ -8,6 +8,7 @@ import { TestHub } from "../support/hub.ts";
  * test-results/messlauf-p8.json (docs/messlauf/…-p8-mobile.md).
  */
 test.describe("Messlauf P8: Kernaufgaben mit 20 Sessions auf drei Hosts", () => {
+  test.skip(hostedRunner, "BUG-0163: Lastmesslatte (20 Sessions × 3 Hosts) misst lokale Hardware");
   test.use({ hubOptions: { hostId: "workstation", label: "workstation" } });
 
   async function pair(home: TestHub, peer: TestHub): Promise<void> {

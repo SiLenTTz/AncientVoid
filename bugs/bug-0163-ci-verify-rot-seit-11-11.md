@@ -128,3 +128,22 @@ dauerhaft rot, auf GitHub in Läufen 1–2 noch grün — das Fenster schwankt
 mit der Runner-Last; 2201/2239 grün). Erhält denselben Hosted-Skip,
 bleibt lokal Pflicht. Damit stehen alle vier Environment-Tests des
 Original-Befunds unter dem gleichen, sichtbaren Mechanismus.
+
+**main-Lauf 2 (16.11. 12:19, nach PR #16):** verify/k8/changes grün; e2e
+rot durch **5** streng getaktete/lastabhängige Specs (702/709 grün):
+K2-Frame-Budget-Messlauf (beide Projekte), Voice-Esc, Accent-Overlay,
+Recovery-Bild plus die ohnehin lastabhängigen P8/P26/K1-Läufe. Einzeln-
+Skips konvergieren nicht — jede Suite wirft neue Fenster.
+Strukturentscheid (Nutzervotum „Github packt die Tests nicht → sauber
+regeln", 16.11.2026):
+
+1. **Messlatten sind lokal-only in der e2e:** K1-p95, K2-Frame-Budget,
+   P8-Lastlauf (20 Sessions × 3 Hosts), P26 (n=8) und der K7-Restore-
+   Messlauf skippen auf Hosted-Runnern sichtbar (`hostedRunner` aus
+   `e2e/support/fixtures.ts`) — eine Messlatte misst die Ziel-Hardware,
+   nicht einen gemieteten 2-vCPU-Runner; Messwerte gehören nach
+   `docs/messlauf/`.
+2. **`retries: process.env.CI ? 1 : 0`** (playwright.config.ts): genau
+   ein Neuversuch pro Test in CI — die von AGENTS.md erlaubte Strategie
+   („benannt und einmal neu gestartet"), automatisiert. Wiederholt rot
+   bleibt rot; lokal weiterhin 0 Retries.

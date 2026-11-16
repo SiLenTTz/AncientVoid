@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, hostedRunner } from "../support/fixtures.ts";
 import type { TestHub } from "../support/hub.ts";
 
 /**
@@ -26,6 +26,7 @@ async function tap(app: Page, button: Locator): Promise<number> {
 
 test.describe("K1: Freigabe mit einem Tipp (EPIC-P43 AC-P43-2)", () => {
   test("aus Start und aus dem Nyx-Blatt bleibt Tipp → Hub-Quittung unter 5 s (p95)", async ({ app, hub }, info) => {
+    test.skip(hostedRunner, "BUG-0163: K1-p95-Messlatte misst lokale Hardware");
     test.setTimeout(60_000 + RUNS * 2 * 10_000);
     const start: number[] = [];
     const nyx: number[] = [];
