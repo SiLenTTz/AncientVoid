@@ -799,7 +799,7 @@ export class SessionManager {
     }
     const lease = this.checkoutLeases.acquire(checkout.checkoutId, sessionId, (owner) => this.holdsCheckout(owner));
     if (!lease.ok) {
-      // ADR-0077: in einem Ordner ohne Git gibt es keine Branch-/Dirty-Metadaten,
+      // ADR-0081: in einem Ordner ohne Git gibt es keine Branch-/Dirty-Metadaten,
       // die ein Allein-Schreiber schützen könnte. Paralleles Schreiben ist dort
       // erlaubt — aber nur nach ausdrücklicher Bestätigung und sichtbar als
       // Mit-Nutzerschaft (checkout_tenants), nie still.
@@ -831,7 +831,7 @@ export class SessionManager {
   private claimDirectCheckout(session: LiveSession): string | null {
     const baseline = session.record.workspaceBaseline;
     if (session.record.workspaceMode !== "direct" || !baseline) return null;
-    // ADR-0077: Mit-Nutzer eines Nicht-Git-Ordners holen sich keine exklusive Lease,
+    // ADR-0081: Mit-Nutzer eines Nicht-Git-Ordners holen sich keine exklusive Lease,
     // sondern ihre Mit-Nutzerschaft zurück (Tabelle überlebt Restart, K7).
     if (this.checkoutLeases.isTenant(baseline.checkoutId, session.record.id)) {
       this.checkoutLeases.addTenant(baseline.checkoutId, session.record.id);
@@ -854,7 +854,7 @@ export class SessionManager {
     dirty: string[];
     dirtyTruncated: boolean;
     heldBy: string | null;
-    /** ADR-0077: alle Sessions, die hier schon schreiben (Primär-Lease + Mit-Nutzer). */
+    /** ADR-0081: alle Sessions, die hier schon schreiben (Primär-Lease + Mit-Nutzer). */
     holders: string[];
   }> {
     // BUG-0171: der Zielordner darf erst beim Start entstehen. Die Vorschau ist

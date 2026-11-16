@@ -29,7 +29,7 @@ nur die Abwesenheit von Metadaten, nicht den Inhalt.
   bleibt der Start sichtbar abgewiesen — nie still gedroppt (Fail-loud).
 - **Die exklusive Lease bleibt, wie sie ist.** Zusätzlich beschreibt die neue
   Tabelle `checkout_tenants (checkout_id, session_id, acquired_at)`
-  (Migration 33) die Mit-Nutzerschaft. Der Primär-Inhaber der Lease wird nicht
+  (Migration 34) die Mit-Nutzerschaft. Der Primär-Inhaber der Lease wird nicht
   abgelöst; Mit-Nutzer holen sich keine Lease.
 - `workplacePreview` meldet `holders: string[]` (Primär-Lease + Mit-Nutzer).
   `heldBy` bleibt aus Kompatibilitätsgründen stehen. Die PWA zeigt daraus eine

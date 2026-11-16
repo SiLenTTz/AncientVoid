@@ -5,7 +5,7 @@ import { tierB } from "./scripts/test-tiers.ts";
  * Tier A — der schnelle Loop (`npm test`, `npm run test:watch`).
  * Ausgeschlossen ist, was lang ist, echte Ports bindet oder auf Wanduhr-Zeit
  * prüft; dieser Teil läuft seriell in vitest.slow.config.ts (`npm run
- * test:slow`). Liste: scripts/test-tiers.mjs. Beide Tieres zusammen fahren
+ * test:slow`). Liste: scripts/test-tiers.ts. Beide Tiers zusammen fahren
  * `npm run gate` und die CI — nichts verschwindet still aus der Prüfung.
  */
 export default defineConfig({

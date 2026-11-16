@@ -80,7 +80,7 @@ export class CheckoutLeaseStore {
 
   /** Gibt nur die eigene Lease frei — eine inzwischen übernommene bleibt unberührt.
    * Die Zeile bleibt als Tombstone, damit die Generation monoton weiterzählt.
-   * ADR-0077: Mit-Nutzerschaft (Nicht-Git-Ordner) endet mit derselben Session. */
+   * ADR-0081: Mit-Nutzerschaft (Nicht-Git-Ordner) endet mit derselben Session. */
   release(sessionId: string): void {
     this.db.prepare("UPDATE checkout_leases SET session_id = '' WHERE session_id = ?").run(sessionId);
     this.db.prepare("DELETE FROM checkout_tenants WHERE session_id = ?").run(sessionId);
@@ -100,7 +100,7 @@ export class CheckoutLeaseStore {
     return out;
   }
 
-  /** ADR-0077: Mit-Nutzerschaft eines Nicht-Git-Ordners — ausdrückliche Bestätigung
+  /** ADR-0081: Mit-Nutzerschaft eines Nicht-Git-Ordners — ausdrückliche Bestätigung
    * muss der Aufrufer getragen haben; der Store prüft das nicht erneut. */
   addTenant(checkoutId: string, sessionId: string): void {
     this.db
