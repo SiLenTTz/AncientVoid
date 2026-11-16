@@ -46,7 +46,10 @@
 .nyx-fab-toast {
   position: fixed;
   z-index: 16;
-  max-width: min(280px, calc(100vw - 24px));
+  /* Feste Breite: ohne sie schrumpft die Blende am rechten Rand auf Silben-Breite
+   * und bricht Wörter mittendurch (Handy-Screenshot 2026-11-16). */
+  width: min(320px, calc(100vw - 16px));
+  max-width: min(320px, calc(100vw - 24px));
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   background: var(--bg-elev);
@@ -58,6 +61,58 @@
 
 .nyx-fab-toast .err {
   color: var(--err);
+}
+
+/*
+ * BUG-0177: während die Erkennung läuft, wird der Knopf sichtbar zum Stopp-Knopf
+ * (Quadrat über dem Sprite + roter Puls), und die gesprochenen Wörter wachsen live
+ * in einer eigenen, gut lesbaren Zeile — nicht als kleiner Einzeiler.
+ */
+.nyx-fab-stop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: calc(22px * var(--font-scale, 1));
+  color: #fff;
+  text-shadow: 0 1px 5px color-mix(in srgb, #000 75%, transparent);
+}
+
+.nyx-fab.recording,
+.nyx-fab.busy {
+  border-color: var(--err);
+  opacity: 1;
+  animation: nyx-live 1.6s ease-in-out infinite;
+}
+
+@keyframes nyx-live {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--err) 35%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--err) 10%, transparent);
+  }
+}
+
+.nyx-fab-toast.live {
+  max-width: min(340px, calc(100vw - 24px));
+  max-height: 42vh;
+  overflow-y: auto;
+}
+
+.nyx-fab-state {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.nyx-fab-words {
+  margin-top: 6px;
+  font-size: calc(15px * var(--font-scale, 1));
+  line-height: 1.4;
+  color: var(--fg);
+  overflow-wrap: break-word;
 }
 
 /* BUG-0145: Auf Handy und Tablet steht der FAB rechts unten über dem Dock. Ohne Platz am Ende
