@@ -1032,7 +1032,11 @@ export function SessionTail({
       </div>
 
       {factoryLink?.partner && <div class="loop-note">Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
-      {(status === "interrupted" || status === "error") && <InterruptedBanner failed={status === "error"} events={events} since={record.updatedAt} nativeResume={adapterResume?.hub === true} onStop={async () => {
+      {(status === "interrupted" || status === "error") && <InterruptedBanner failed={status === "error"} events={events} since={record.updatedAt} nativeResume={adapterResume?.hub === true} autoResumeOnLimit={record.autoResumeOnLimit === true} onAutoResumeLimit={async on => {
+        const updated = await api.setSessionMeta(session.id, { autoResumeOnLimit: on });
+        setStatus(updated.status);
+        setRecord(updated);
+      }} onStop={async () => {
         await stop();
       }} onHandover={() => setRecoveryHandover(true)} onResume={async () => {
         const ack = await api.resumeSession(session.id);

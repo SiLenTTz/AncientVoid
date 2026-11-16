@@ -27,7 +27,7 @@ import { buildHandoverPrompt, HANDOVER_PROMPT_MAX } from "../handover/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
 import { askTitleModel } from "./session-title.ts";
 import type { PlannerModelConfig } from "../commands/model.ts";
-import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS, foldActivities } from "./session-state.ts";
+import { WRITER_LEASE_MS, type SteerMeta, type LiveSession, TURN_END_SETTLE_MS, sessionTitle, activityOf, readSkillName, skillNameFromEvents, nativeIdFromEvents, nativeIdFromWorkerLog, VALID_TRANSITIONS, DEFAULT_HEARTBEAT_MS, DEFAULT_STEER_WAIT_MS, foldActivities, limitFailureInEvents, limitWindow } from "./session-state.ts";
 import { defaultOpencodeDataDir, readOpenCodeMirrorDelta } from "../discovery/index.ts";
 import { type SessionRow, persistRecord, rowToRecord } from "./session-row.ts";
 
@@ -190,6 +190,7 @@ export class SessionManager {
       declaration: (id) => this.registry.get(id)?.capabilities.resume,
       emit: (session, kind, payload) => this.emitSystem(session, kind, payload),
       resume: (session) => this.automaticResume(session),
+      autoResumeInterrupted: () => this.autoResumeInterrupted,
     });
     this.interruption = new SessionInterruption({
       replay: (id) => this.store.replay(id),
@@ -198,7 +199,9 @@ export class SessionManager {
       digest: (session) => this.dispatchDigest(session),
       stop: (session) => session.adapter.stop(session.handle!, this.makeContext(session)),
       autoResume: (session) => {
-        if (this.autoResumeInterrupted) this.recovery.schedule(session);
+        // ADR-0076 Nachtrag: die globale Konfiguration ODER die ausdrückliche
+        // Limit-Option dieser Session — attempt() grenzt die Gründe erneut ein.
+        if (this.autoResumeInterrupted || session.record.autoResumeOnLimit) this.recovery.schedule(session);
         return Promise.resolve({ ok: false });
       },
     });
@@ -271,7 +274,9 @@ export class SessionManager {
         if (["stopped", "stopping", "parked"].includes(session.record.status)) continue;
         await this.activityTracker.expire(session);
         if (session.record.status === "interrupted") {
-          if (this.autoResumeInterrupted) this.recovery.schedule(session);
+          // ADR-0076 Nachtrag: auch die Limit-Option einer Session hält die
+          // Wiederaufnahme-Prüfung am Laufen (Fenster läuft → still warten).
+          if (this.autoResumeInterrupted || session.record.autoResumeOnLimit) this.recovery.schedule(session);
           continue;
         }
         if (!session.handle) continue;
@@ -442,6 +447,32 @@ export class SessionManager {
     return record;
   }
 
+  /** ADR-0076 Nachtrag (Limit-Wiederaufnahme): ausdrückliche Nutzer-Option —
+   * diese Session nach einem Kontingent-/Rate-Limit-Fenster automatisch
+   * fortsetzen. Nur Menschen/Fleet (kein Agent hält sich so selbst am
+   * Laufen, ADR-0076: „Kein HTTP-Agent kann … automatisches Resume
+   * erzwingen"). Einschalten an einer fehlgeschlagenen Session überführt
+   * den Limit-Fehler in die sichtbare Wiederaufnahme-Wartestellung. */
+  async setAutoResumeOnLimit(sessionId: string, on: boolean, actor?: string): Promise<SessionRecord> {
+    if (actorKind(actor) !== "human" && actorKind(actor) !== "fleet") throw new Error("Nur Menschen dürfen die Limit-Wiederaufnahme schalten.");
+    const session = this.live.get(sessionId);
+    const record = session?.record ?? this.require(sessionId);
+    record.autoResumeOnLimit = on;
+    record.updatedAt = new Date().toISOString();
+    this.persist(record);
+    if (!on || !session || record.status !== "error") return record;
+    const events = await this.store.replay(sessionId);
+    if (!limitFailureInEvents(events)) return record;
+    await this.setStatus(session, "interrupted");
+    const blockedUntil = limitWindow(events).blockedUntil;
+    await this.emitSystem(session, "session.interrupted", {
+      kind: "session.interrupted", reason: "provider_limit", since: new Date().toISOString(),
+      lastTurnId: null, autoResumeEligible: true, limit: true, ...(blockedUntil !== undefined ? { resumesAt: blockedUntil } : {}),
+    });
+    this.recovery.schedule(session);
+    return this.live.get(sessionId)?.record ?? record;
+  }
+
   /**
    * EPIC-P14: archive a session and free its worktree when that loses nothing.
    * The flag is persisted first and never depends on the cleanup. The worktree
@@ -599,6 +630,7 @@ export class SessionManager {
       metrics: metricsState(emptyMetricCounters()),
       lastActivity: null,
       pinned: false,
+      autoResumeOnLimit: false,
       parkReason: null,
       controlMode: "managed",
       harness: "cli",
@@ -1097,6 +1129,7 @@ export class SessionManager {
       metrics: metricsState(emptyMetricCounters()),
       lastActivity: null,
       pinned: false,
+      autoResumeOnLimit: false,
       parkReason: null,
       controlMode: "mirror",
       harness: "cli",
@@ -2362,7 +2395,7 @@ export class SessionManager {
       }
       if (record.status === "interrupted") {
         await this.interruption.repair(session);
-        if (this.autoResumeInterrupted) this.recovery.schedule(session);
+        if (this.autoResumeInterrupted || record.autoResumeOnLimit) this.recovery.schedule(session);
         return "recovered";
       }
       if (record.status === "error" && registered) {
