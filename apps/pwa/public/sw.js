@@ -73,6 +73,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (url.origin === self.location.origin) {
+    // BUG-0185: das Manifest wird NIE eingelagert. Android steuert aus dem Manifest die
+    // Fenster-Ausrichtung einer installierten App; ein Exemplar im Cache sperrt das
+    // Fenster auf eine Ausrichtung, die das Netz laengst freigegeben hat — genau der
+    // Zustand, den dropCachedManifest beim activate geraeumt hatte, nur um ihn beim
+    // naechsten Laden wieder zu erzeugen (live auf dem Geraet so gemessen).
+    if (url.pathname.endsWith("/manifest.webmanifest")) {
+      event.respondWith(fetch(req));
+      return;
+    }
     // Real bug, found via a live report ("UI shows old colors/layout after
     // a rebuild"): this used to be cache-first (`caches.match(req).then(hit
     // => hit || fetch(...))`), so once the app shell (/, /index.html, the

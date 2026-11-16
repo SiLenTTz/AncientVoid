@@ -55,6 +55,16 @@ test.describe("Installierter Stand auf dem Gerät (BUG-0185)", () => {
       `Worker-Stufe muss mindestens v6 sein, fanden: ${levels.join(", ") || "keine"}`,
     ).toBe(true);
     expect(await manifestHolders(page), "Manifest in keinem Cache — sonst dreht die installierte App nicht mit").toEqual([]);
+
+    // Der eigentliche Haaken: die Oberflaeche holt das Manifest selbst. Danach darf es
+    // immer noch in keinem Cache liegen — sonst gewinnt nach dem ersten Settings-Besuch
+    // wieder das eingelagerte Exemplar (auf dem Geraet so gemessen).
+    await page.goto(`${hub.origin}/#/einstellungen`, { waitUntil: "load" });
+    const status = page.getByTestId("install-status");
+    await expect(status).toContainText(/Manifest-Ausrichtung: any/, { timeout: 15_000 });
+    await expect(status).toContainText("Manifest-Cache: keiner (Soll)");
+    await expect(status).toContainText(/Service-Worker-Cache: ancientvoid-v([6-9]|\d{2,})/);
+    expect(await manifestHolders(page), "auch nach dem Settings-Besuch kein Manifest im Cache").toEqual([]);
     await ctx.close();
   });
 });

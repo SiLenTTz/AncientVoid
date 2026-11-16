@@ -31,4 +31,11 @@ describe("Service Worker: Manifest bleibt draußen (BUG-0185)", () => {
     expect(sw).toMatch(/addEventListener\("message"/);
     expect(sw).toMatch(/"ancientvoid:sw-info"/);
   });
+
+  it("der Fetch-Handler lagert das Manifest nie ein (live auf dem Gerät gemessen)", () => {
+    // Ohne diese Sonderbehandlung schreibt networkFirstShell jede Antwort in den Cache —
+    // und das Manifest wäre nach dem ersten Laden wieder eingebaut, trotzactivate-Raeumung.
+    expect(sw).toMatch(/endsWith\("\/manifest\.webmanifest"\)/);
+    expect(sw).toMatch(/event\.respondWith\(fetch\(req\)\)/);
+  });
 });
