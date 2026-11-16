@@ -13,8 +13,9 @@ import type {
   WorkerProcess,
 } from "@ancientvoid/contracts";
 import { promptWithAttachments } from "@ancientvoid/contracts";
+import { createLivePump, type StreamKind } from "@ancientvoid/contracts"; // ADR-0083
 import { modelsFromCommand } from "@ancientvoid/models";
-import { normalizeClaudeLine } from "./normalize.ts";
+import { claudeStreamDelta, normalizeClaudeLine } from "./normalize.ts";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -146,8 +147,12 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     mode?: string,
     modelOnResume = false,
     fork = false,
+    partial = false,
   ): string[] {
     const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", ...extra];
+    // ADR-0083: der Hub kann Frames empfangen — dann verlangt claude die expliziten
+    // Teil-Nachrichten, sonst kommen die Deltas nie an (nur die fertigen Blöcke).
+    if (partial) args.push("--include-partial-messages");
     if (resumeSessionId) args.push("--resume", resumeSessionId);
     if (resumeSessionId && fork) args.push("--fork-session");
     if (agent && !resumeSessionId) args.push("--agent", agent);
@@ -182,6 +187,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     meta.healthy = true;
     procs.set(sessionId, proc);
     sessions.set(sessionId, meta);
+    // ADR-0083: claude sendet echte Deltas in `stream_event`-Hüllen. Mit Stream-Kanal
+    // gehen sie gebündelt als Frames raus; ohne Kanal bleibt die alte Hüllen-Meldung —
+    // nichts geht verloren, der fertige Block kommt in beiden Fällen.
+    const live = ctx.stream ? createLivePump((f) => ctx.stream?.(f)) : undefined;
+    const blockStream = new Map<number, StreamKind>();
 
     let buffer = "";
     proc.onStdout((chunk) => {
@@ -232,7 +242,18 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           if (task.subtype === "task_started") ctx.activity?.({ id: `task:${task.task_id}`, kind: "agent", state: "running", ...(typeof task.description === "string" ? { label: task.description.slice(0, 160) } : {}) });
           if (task.subtype === "task_notification") ctx.activity?.({ id: `task:${task.task_id}`, kind: "agent", state: task.status === "completed" ? "completed" : "failed" });
         }
-        for (const event of normalizeClaudeLine(parsed)) ctx.emit(event);
+        const part = live ? claudeStreamDelta(parsed as Record<string, unknown>) : null;
+        if (part) {
+          const kind = blockStream.get(part.index) ?? part.stream;
+          if (part.inner === "start") blockStream.set(part.index, part.stream);
+          else if (part.inner === "delta") live!.delta(kind, part.text);
+          else {
+            live!.end(kind);
+            blockStream.delete(part.index);
+          }
+        } else {
+          for (const event of normalizeClaudeLine(parsed)) ctx.emit(event);
+        }
       }
     });
 
@@ -241,6 +262,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     });
 
     proc.onExit((code) => {
+      live?.close(); // ADR-0083: offene Frame-Timer weg, ein unvollendeter Block hat keine Frames mehr
       // Drop the dead process reference (procs), but keep `meta` — it
       // carries resumeSessionId, which the *next* steer(prompt) needs.
       // claude -p is one-shot: every turn's process exits by design, not
@@ -353,7 +375,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       }
       meta.forkNext = false;
       const proc = await ctx.spawnWorker(
-        buildArgs(withSkill(att.prompt, skill), resumeSessionId, agentPersona, spec.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], permissionMode, true, forkNext),
+        buildArgs(withSkill(att.prompt, skill), resumeSessionId, agentPersona, spec.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], permissionMode, true, forkNext, Boolean(ctx.stream)),
         workerEnv(spec.env),
       );
       attach(ctx.sessionId, proc, ctx, meta);
@@ -376,7 +398,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
           const fork = meta?.forkNext === true;
           if (meta) meta.forkNext = false;
           const proc = await ctx.spawnWorker(
-            buildArgs(withSkill(att.prompt, meta?.skill), meta?.resumeSessionId, undefined, meta?.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], meta?.permissionMode, true, fork),
+            buildArgs(withSkill(att.prompt, meta?.skill), meta?.resumeSessionId, undefined, meta?.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], meta?.permissionMode, true, fork, Boolean(ctx.stream)),
             workerEnv(undefined),
           );
           attach(handle.sessionId, proc, ctx, meta ?? { healthy: true, degraded: false });
