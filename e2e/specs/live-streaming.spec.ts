@@ -50,3 +50,33 @@ test.describe("Ohne Frames keine Live-Blase (BUG-0178)", () => {
     await expect(app.getByTestId("chat-live")).toHaveCount(0);
   });
 });
+
+test.describe("Echtes Streaming durch den echten claude-Adapter (BUG-0178)", () => {
+  // BUG-0179: Windows kann die extensionslosen Stand-in-CLIs nicht spawnen. Auf
+  // diesem Rechner ist der Weg nicht pruefbar; der Adapter-Pfad selbst ist durch
+  // packages/adapters/claude/test/adapter.test.ts abgedeckt. Kein Bestehen, ein Skip.
+  test.skip(process.platform === "win32", "BUG-0179: Stand-in-CLI laeuft auf Windows nicht");
+  test("claude-Deltas kommen als Frames an, bevor sein Block existiert", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "claude" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await sessionTab(app, "Chat");
+    await app.getByPlaceholder("Antworten…").fill("Bitte STREAM");
+    await app.getByRole("button", { name: "Senden" }).click();
+
+    const live = app.getByTestId("chat-live-assistant");
+    await expect(live).toBeVisible({ timeout: 25_000 });
+    const partial = ((await live.textContent()) ?? "").trim();
+    expect(partial.length).toBeGreaterThan(0);
+
+    // Der Stand-in antwortet exakt mit den getreamten Teilen — es gibt aber noch
+    // kein assistant-Ereignis, solange nur Frames gelaufen sind.
+    const during = await hub.api<{ type: string }[]>(`/api/sessions/${id}/events?afterSeq=0&limit=300`);
+    expect(during.body.some((e) => e.type === "assistant")).toBe(false);
+
+    await expect(live).toBeHidden({ timeout: 25_000 });
+    const after = await hub.api<{ type: string; payload?: { text?: string } }[]>(`/api/sessions/${id}/events?afterSeq=0&limit=300`);
+    const blocks = after.body.filter((e) => e.type === "assistant");
+    expect(blocks.length).toBe(1);
+    expect(JSON.stringify(blocks[0]!.payload)).toContain("Live streamt Wort für Wort.");
+  });
+});

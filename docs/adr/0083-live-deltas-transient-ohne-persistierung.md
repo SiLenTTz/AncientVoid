@@ -1,7 +1,15 @@
 # ADR-0083: Live-Deltas als transiente Frames — Block-Ereignisse bleiben autoritativ
 
+Umsetzung (2026-11-16): die Buendelung liegt in
+`packages/contracts/src/sessions/stream-pump.ts` (umgebungsneutral, kein
+`node:crypto` — die PWA lädt denselben Code). pi speist sie aus
+`text_delta`/`thinking_delta`; claude braucht dafuer `--include-partial-messages`
+(der Adapter haengt es nur an, wenn der Hub Frames empfangen kann) und
+`codex`/`opencode`/`acp` liefern ihre Texte weiterhin blockweise — dort erscheint
+der Block sofort, ohne dass getippt wird.
+
 **Status:** angenommen (Implementierung im Zweig `feat/echtes-livestreaming`, PR folgt)
-**Datum:** 2026-11-16 · **Bezug:** BUG-0179, K2 (Last), K5 (≤ 4 KB), K7 (Recovery), K8 (20 × 30 ev/s)
+**Datum:** 2026-11-16 · **Bezug:** BUG-0178, K2 (Last), K5 (≤ 4 KB), K7 (Recovery), K8 (20 × 30 ev/s)
 
 Die Nummern 0081 und 0082 sind in den offenen PRs #17 bzw. #30 belegt.
 

@@ -200,6 +200,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0168](bug-0168-fleet-steer-dedup-race-auf-langsamer-hardware.md) | Fleet-Steer-Dedup greift auf langsamer Hardware nicht (2 user-Events) | done | S3 | hub | [#12](https://github.com/SiLenTTz/AncientVoid/issues/12) |
 | [BUG-0176](bug-0176-starten-klick-von-arbeitsort-feld-ueberdeckt.md) | Starten-Klick im Neue-Session-Formular wird zeitweise vom Arbeitsort-Feld überdeckt (E2E-Flake) | open | S3 | e2e | [#28](https://github.com/SiLenTTz/AncientVoid/issues/28) |
 | [BUG-0178](bug-0178-agent-ausgabe-nur-vorgetaeuscht-gestreamt.md) | Agent-Ausgabe wird nur vorgetäuscht gestreamt: Adapter verwerfen Deltas, PWA tippt fertige Blöcke ab | in Arbeit | S2 | pwa | — |
+| [BUG-0179](bug-0179-e2e-stand-ins-lassen-sich-auf-windows-nicht-spawnen.md) | E2E-Stand-in-CLIs (Shebang ohne Extension) spawnen auf Windows nicht — Adapter-E2E sind lokal nicht prüfbar | open | S2 | e2e | — |
 
 
 | [BUG-0169](bug-0169-e2e-global-setup-npm-auf-windows.md) | E2E-Global-Setup spawnnt `npm` ohne Shell — auf Windows läuft kein einziger E2E-Test | done | S3 | e2e | — |
@@ -213,6 +214,6 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 Die nächste freie Nummer ist **0177** (0169–0175 kamen mit diesem Branch, 0176 ist auf main dokumentiert).
 | [BUG-0178](bug-0178-agent-ausgabe-nur-vorgetaeuscht-gestreamt.md) | Agent-Ausgabe wird nur vorgetäuscht gestreamt: Adapter verwerfen Deltas, PWA tippt fertige Blöcke ab | done | S2 | pwa | — |
 
-Die nächste freie Nummer ist **0179** (0169–0175 kamen mit PR #17, 0176 ist auf main
+Die nächste freie Nummer ist **0180** (0169–0175 kamen mit PR #17, 0176 ist auf main
 dokumentiert, 0177 hat der offene PR #33 für das abreißende Sprachdiktat beansprucht,
 0178 ist dieses vorgetäuschte Streaming).
