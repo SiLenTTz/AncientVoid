@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P62)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P63)
 
 **On hold seit 15.11.2026 (Nutzerentscheid): P30 und P31.** Beide bleiben
 im Inventar, sind aber aus Empfehlungen für die nächste Arbeit ausgeschlossen.
@@ -297,6 +297,7 @@ ADR vor der ersten Contract-Änderung).
 | Epic | Ergebnis | Abhängigkeit | Agenten-Wochen |
 |---|---|---|---|
 | [P62 — Öffentliche Anleitung (EN), Feature-Videos und Promo-Seite void.securesight.ai](EPIC-P62-public-guide-videos-promo.md) | Feature-Inventar als Contract; englischer Guide mit per Playwright reproduzierbaren Demo-Seed-Screenshots; deterministischer Leak-Guard (`check:media` + OCR in CI, neuer `pre-commit`, `avt_`-Token-Präfix, Aufnahme-Regeln `docs/demo-media.md`); Video-Pipeline (Skript zuerst, ≤ 3 min, YouTube-Playlist, nie Rohmaterial im Repo); statische Promo-Seite `apps/site` (`content.json`, youtube-nocookie) mit Lighthouse-Gates; Deployment nach void.securesight.ai per ADR-0081 (GitHub Pages bevorzugt, github.io-Fallback); löst P33s Doku-Kern per GO ein — **Planungsentwurf** | keine fachliche offene (Quer-Epic wie P58–P61; P57 abgeschlossen, P60 umgesetzt); P61 unberührt; P30/P31 bleiben On hold | 3–4 |
+| [P63 — UI-Konsolidierung: Token-Treue, CSS-Hygiene, Fokus-System](EPIC-P63-ui-konsolidierung.md) | Geister-Tokens/Fremd-Fallbacks (BUG-0177), hartkodierte Farben → Tokens/`color-mix()`, Leitern für z-index/Breakpoints/Schrift, doppelte Selektoren, 77 Klassen ohne Regel, globaler Fokus-Ring, `SessionTail`-Zerlegung — alles über Ratchet-Tests erzwungen; Befund `docs/2026-11-16_ui-styling-audit.md` — **Planungsentwurf** | keine fachliche offene (Quer-Epic; P43 grün) | 2–3 |
 
 ## Reihenfolge & Gating
 
