@@ -76,7 +76,7 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
       })
       .catch((err: unknown) => setLoadError(err instanceof Error ? err.message : "Vault-Liste nicht erreichbar."));
   };
-  useEffect(reloadFiles, [state?.configured]);
+  useEffect(reloadFiles, [state?.configured, state?.root]);
 
   const openFile = (path: string, edit = false) => {
     if (saveTimer.current) {
@@ -180,6 +180,11 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
         onDone={(s) => {
           setState(s);
           setPicker(false);
+          // Neuer Root: alte Liste/Selektion sofort weg, bis die neue Liste steht.
+          setSelected(null);
+          setFilter("");
+          setFiles(null);
+          if (location.hash.startsWith("#/notizen/datei/")) location.hash = "#/notizen";
         }}
       />
     );

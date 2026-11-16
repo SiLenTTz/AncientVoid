@@ -135,4 +135,28 @@ test.describe("Vault-Root frei wählbar (EPIC-P51 T51.3, ADR-0063-Ergänzung)", 
     await expect(row).toContainText("Aktueller Ordner");
     await expect(row).not.toContainText("Startpunkt");
   });
+
+  test("Ordner wechseln: Liste, Selektion und Label folgen dem neuen Root @desktop", async ({ app, hub }) => {
+    const dirA = join(hub.projectsDir, "notizen-vault");
+    const dirB = join(hub.projectsDir, "zweiter-vault");
+    mkdirSync(dirA, { recursive: true });
+    mkdirSync(dirB, { recursive: true });
+    writeFileSync(join(dirA, "alte-notiz.md"), "# Alt\n");
+    writeFileSync(join(dirB, "neue-notiz.md"), "# Neu\n");
+    await pickVaultRoot(app, hub);
+    // Alte Datei öffnen (setzt auch den Deep-Link-Hash), dann den Root wechseln.
+    await app.locator(".vault-row").filter({ hasText: "alte-notiz.md" }).click();
+    await expect(app.locator(".vault-file-name")).toContainText("alte-notiz.md");
+    await app.getByRole("button", { name: "Ordner wechseln" }).click();
+    await expect(app.locator('[data-testid="vault-picker"]')).toBeVisible();
+    await app.getByRole("button", { name: "📁 projects" }).click();
+    await app.getByRole("button", { name: "📁 zweiter-vault" }).click();
+    await app.locator('[data-testid="vault-choose"]').click();
+    await expect(app.locator('[data-testid="vault-pane"]')).toBeVisible();
+    await expect(app.locator(".vault-row").filter({ hasText: "neue-notiz.md" })).toBeVisible();
+    await expect(app.locator(".vault-row").filter({ hasText: "alte-notiz.md" })).toHaveCount(0);
+    await expect(app.locator(".vault-row.active")).toHaveCount(0);
+    await expect(app.locator(".vault-title")).toContainText("zweiter-vault");
+    await expect(app).toHaveURL(/#\/notizen$/);
+  });
 });

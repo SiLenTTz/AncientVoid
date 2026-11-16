@@ -76,6 +76,9 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
       <button class="dock-item dock-extra" type="button" title={`Dateibaum (${comboLabel("files.toggle")})`} aria-keyshortcuts={ariaCombo("files.toggle")} data-shortcut="files.toggle" onClick={() => openLayer("files")}>
         <TabIcon name="baum" /><span class="lb">Dateibaum</span>
       </button>
+      <button class="dock-item dock-extra" type="button" title={`Git-Struktur (${comboLabel("git.toggle")})`} aria-keyshortcuts={ariaCombo("git.toggle")} data-shortcut="git.toggle" onClick={() => openLayer("git")}>
+        <TabIcon name="git" /><span class="lb">Git-Struktur</span>
+      </button>
       {more && (
         <div class="overlay-backdrop more-backdrop" onClick={() => setMore(false)}>
           <div class="overlay-sheet more-sheet" role="dialog" aria-label="Mehr" onClick={(e) => e.stopPropagation()}>
@@ -93,6 +96,10 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
             <button class="more-item" type="button" onClick={() => { setMore(false); openLayer("files"); }}>
               <TabIcon name="baum" />
               <span>Dateibaum</span>
+            </button>
+            <button class="more-item" type="button" onClick={() => { setMore(false); openLayer("git"); }}>
+              <TabIcon name="git" />
+              <span>Git-Struktur</span>
             </button>
           </div>
         </div>

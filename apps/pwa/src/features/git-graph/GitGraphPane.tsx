@@ -18,7 +18,8 @@ export function GitGraphPane({
 }: {
   target: string;
   hostId?: string | null;
-  sessionId: string;
+  /** Projekt-Target (globale Git-Struktur-Ebene): null — Dateiklicks haben dann keinen Session-Explorer. */
+  sessionId: string | null;
 }) {
   const api = useMemo(() => hostApi(hostId), [hostId]);
   const [report, setReport] = useState<GitGraphReport | null>(null);
@@ -50,6 +51,8 @@ export function GitGraphPane({
   }, [report]);
 
   const openInExplorer = (path: string) => {
+    // Projekt-Target: ohne Session gibt es keinen Worktree-Explorer-Sprung.
+    if (!sessionId) return;
     openLayer("files");
     window.dispatchEvent(
       new CustomEvent("ancientvoid:files-open-path", {

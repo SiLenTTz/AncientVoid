@@ -259,7 +259,7 @@ export function FilesSidebar({
         </div>
       )}
       {identity && (
-        <div class="files-identity dim" title={identity.root} data-testid="files-identity">
+        <div class="files-identity dim" title={identity.root} data-tip={identity.root} data-testid="files-identity">
           {identity.kind === "session" ? "Worktree der Session" : "Projektordner"} · {identity.root.split("/").slice(-2).join("/")}
           {identity.branch ? ` · ${identity.branch}` : ""}
         </div>

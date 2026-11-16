@@ -50,7 +50,7 @@ test("P41: Team-Vorlage in der PWA wählen und zum tatsächlichen Team springen"
   await app.getByRole("button", { name: "Neue Automation", exact: true }).click();
   const form = app.getByTestId("automation-form");
   await form.getByLabel("Label", { exact: true }).fill("Team-Automation");
-  await form.getByRole("combobox", { name: "Zielart", exact: true }).selectOption("team");
+  await form.getByRole("combobox", { name: "Automationart", exact: true }).selectOption("team");
   await form.getByRole("combobox", { name: "Team-Vorlage", exact: true }).selectOption(source.body.id);
   await form.getByRole("button", { name: "Anlegen", exact: true }).click();
   await expect(form).toHaveCount(0);

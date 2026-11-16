@@ -1,15 +1,15 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { createHash } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
 import { EventStore, SessionManager, AdapterRegistry, HubDatabase, TokenService, AutomationService, type AutomationLauncher, type AutomationPrechecker } from "@ancientvoid/core";
+import type { ActionDefinition } from "@ancientvoid/contracts";
 import { ProcessRunner } from "@ancientvoid/workers";
 import { createHubApp } from "../../../src/app.ts";
 import { operationOf } from "../../../src/platform/policy.ts";
-import { mapLaunchFailure } from "../../../src/modules/automations/automations-service.ts";
-
+import { createHubAutomationService, mapLaunchFailure } from "../../../src/modules/automations/automations-service.ts";
 /**
  * EPIC-P41 T41.4: Routen + Policy — Agenten dürfen die Liste sehen (read),
  * aber Verwaltung und Run-now gehören Mensch und Flotte (ADR-0064). Neue
@@ -145,5 +145,106 @@ describe("automations routes and policy (EPIC-P41 T41.4)", () => {
     expect(ok.json()).toMatchObject({ claimKey, state: "settled", outcome: "abandoned", detail: "manuell aufgegeben: Hub-Log geprüft, nichts gestartet" });
     expect((await history("aut-unsure"))[0]).toMatchObject({ state: "settled", outcome: "abandoned" });
     expect((await resolve("aut-unsure", { claimKey, note: "nochmal" })).statusCode).toBe(409);
+  });
+});
+
+describe("script targets (ADR-0080)", () => {
+  let dir: string;
+  let app: FastifyInstance;
+  let service: AutomationService;
+  let humanToken: string;
+  let project: string;
+
+  // Konfigurierte Aktionen wie in hub.config.json — echte Prozesse, kein Fake (K1).
+  const ACTIONS: ActionDefinition[] = [
+    { id: "ok-script", label: "OK", kind: "tool", argv: ["true"], params: {}, readOnly: true, timeoutMs: 5_000, longRunning: false },
+    { id: "fail-script", label: "Fail", kind: "tool", argv: ["false"], params: {}, readOnly: true, timeoutMs: 5_000, longRunning: false },
+    { id: "slow-script", label: "Slow", kind: "tool", argv: ["sleep", "5"], params: {}, readOnly: true, timeoutMs: 300, longRunning: false },
+  ];
+
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), "ancientvoid-automations-script-"));
+    project = join(dir, "proj");
+    await mkdir(project, { recursive: true });
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const sessions = new SessionManager(db, store, new AdapterRegistry(), new ProcessRunner());
+    const tokens = new TokenService(db);
+    humanToken = tokens.issue("test-device").token;
+    service = createHubAutomationService({ dataDir: dir, hostId: "host-test", sessions, projectRoots: [dir], actions: ACTIONS });
+    app = await createHubApp({ sessions, tokens, registry: new AdapterRegistry(), auth: { tokens, enforceTailnetIdentity: false }, store, dataDir: dir, projectRoots: [dir], actions: ACTIONS, automations: service });
+    await app.listen({ port: 0, host: "127.0.0.1" });
+  });
+
+  afterAll(async () => {
+    await app.close().catch(() => undefined);
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  const scriptDefinition = (id: string, actionId: string) => ({
+    id, label: `Skript ${id}`, generation: 1, enabled: false, hostId: "host-test",
+    schedule: { kind: "cron", cron: "0 3 * * *", timezone: "UTC" },
+    target: { kind: "script", project, actionId },
+    grant: { maxParallel: 1, missedGraceMs: 0 },
+    createdAtUtc: "2026-01-05T10:00:00.000Z",
+  });
+  const history = async (id: string) =>
+    (await app.inject({ method: "GET", url: `/api/automations/${id}/history`, headers: { authorization: `Bearer ${humanToken}` } }))
+      .json().history as { claimKey: string; state: string; outcome?: string; detail?: string }[];
+
+  it("rejects an unknown script action loudly at creation, never at run time only", async () => {
+    const res = await app.inject({ method: "POST", url: "/api/automations", headers: { authorization: `Bearer ${humanToken}` }, payload: { definition: scriptDefinition("aut-script-unknown", "gibt-es-nicht") } });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toContain("gibt-es-nicht");
+  });
+
+  it("lists the registered actions of a project and refuses paths outside projectRoots", async () => {
+    const ok = await app.inject({ method: "GET", url: `/api/automations/actions?project=${encodeURIComponent(project)}`, headers: { authorization: `Bearer ${humanToken}` } });
+    expect(ok.statusCode).toBe(200);
+    const ids = (ok.json().actions as { id: string }[]).map((a) => a.id);
+    expect(ids).toContain("ok-script");
+    expect(ids).toContain("git-status"); // BUILTIN-Aktionen gehören dazu
+    expect(new Set(ids).size).toBe(ids.length); // dedupliziert nach id
+    const outside = await app.inject({ method: "GET", url: `/api/automations/actions?project=${encodeURIComponent("/definitely/outside")}`, headers: { authorization: `Bearer ${humanToken}` } });
+    expect(outside.statusCode).toBe(422);
+  });
+
+  it("run-now dispatches the script and settles succeeded through the outcome mirror", async () => {
+    expect((await app.inject({ method: "POST", url: "/api/automations", headers: { authorization: `Bearer ${humanToken}` }, payload: { definition: scriptDefinition("aut-script-ok", "ok-script") } })).statusCode).toBe(201);
+    expect((await app.inject({ method: "POST", url: "/api/automations/aut-script-ok/run-now", headers: { authorization: `Bearer ${humanToken}` }, payload: { generation: 1 } })).statusCode).toBe(202);
+    await expect.poll(async () => (await history("aut-script-ok"))[0]?.state).toBe("dispatched");
+    await service.tick();
+    expect((await history("aut-script-ok"))[0]).toMatchObject({ state: "settled", outcome: "succeeded" });
+  });
+
+  it("a failing exit code settles failed, a timeout settles timeout — separate outcomes, one claim each", async () => {
+    expect((await app.inject({ method: "POST", url: "/api/automations", headers: { authorization: `Bearer ${humanToken}` }, payload: { definition: scriptDefinition("aut-script-fail", "fail-script") } })).statusCode).toBe(201);
+    expect((await app.inject({ method: "POST", url: "/api/automations/aut-script-fail/run-now", headers: { authorization: `Bearer ${humanToken}` }, payload: { generation: 1 } })).statusCode).toBe(202);
+    await expect.poll(async () => (await history("aut-script-fail"))[0]?.state).toBe("dispatched");
+    await service.tick();
+    expect((await history("aut-script-fail"))[0]).toMatchObject({ state: "settled", outcome: "failed" });
+
+    expect((await app.inject({ method: "POST", url: "/api/automations", headers: { authorization: `Bearer ${humanToken}` }, payload: { definition: scriptDefinition("aut-script-slow", "slow-script") } })).statusCode).toBe(201);
+    expect((await app.inject({ method: "POST", url: "/api/automations/aut-script-slow/run-now", headers: { authorization: `Bearer ${humanToken}` }, payload: { generation: 1 } })).statusCode).toBe(202);
+    await expect.poll(async () => (await history("aut-script-slow"))[0]?.state).toBe("dispatched");
+    await service.tick();
+    expect((await history("aut-script-slow"))[0]).toMatchObject({ state: "settled", outcome: "timeout" });
+  });
+
+  it("after a hub restart the mirror is empty: a dispatched script claim becomes unknown, never guessed (K7)", async () => {
+    expect((await app.inject({ method: "POST", url: "/api/automations", headers: { authorization: `Bearer ${humanToken}` }, payload: { definition: scriptDefinition("aut-script-restart", "ok-script") } })).statusCode).toBe(201);
+    expect((await app.inject({ method: "POST", url: "/api/automations/aut-script-restart/run-now", headers: { authorization: `Bearer ${humanToken}` }, payload: { generation: 1 } })).statusCode).toBe(202);
+    await expect.poll(async () => (await history("aut-script-restart"))[0]?.state).toBe("dispatched");
+    const claimKey = (await history("aut-script-restart"))[0]!.claimKey;
+
+    // „Neustart": neuer Service über dasselbe dataDir — der Ergebnis-Spiegel ist leer.
+    const db2 = new HubDatabase(":memory:");
+    const store2 = new EventStore(dir);
+    const sessions2 = new SessionManager(db2, store2, new AdapterRegistry(), new ProcessRunner());
+    const restarted = createHubAutomationService({ dataDir: dir, hostId: "host-test", sessions: sessions2, projectRoots: [dir], actions: ACTIONS });
+    await restarted.tick();
+    const claim = restarted.history("aut-script-restart").find((c) => c.claimKey === claimKey)!;
+    expect(claim.state).toBe("unknown");
+    expect(claim.detail).toContain("Neustart");
   });
 });

@@ -1396,6 +1396,8 @@ function createHubApi(P: (path: string) => string) {
   /** EPIC-P41 (ADR-0064): Automationen — Verwaltung, Run-now und Verlauf. */
   automationsScope: P("/api/automations"),
   automations: async (): Promise<AutomationInfo[]> => (await api<{ automations: AutomationInfo[] }>(P("/api/automations"))).automations,
+  /** ADR-0080: registrierte Aktionen eines Projekts — Quelle für Skript-Ziele im Automationen-Formular. */
+  automationActions: (project: string) => api<{ actions: ActionDefinition[] }>(P(`/api/automations/actions?project=${encodeURIComponent(project)}`)),
   automationCreate: (definition: AutomationDefinition, promptText?: string) =>
     api<AutomationDefinition>(P("/api/automations"), { method: "POST", body: JSON.stringify({ definition, ...(promptText === undefined ? {} : { promptText }) }) }),
   automationTemplate: (id: string) => api<TeamStart>(P(`/api/automations/${encodeURIComponent(id)}/template`)),

@@ -49,7 +49,7 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
     <h3>{definition.label}</h3>
     <p class="team-meta">Zeitplan {scheduleText(info)} · Maximal parallel: {definition.grant.maxParallel} · Nachholfenster: {definition.grant.missedGraceMs / 60_000} Minuten · Freigabeversion: {definition.generation}</p>
     <p class="team-meta">Vorprüfung: {definition.precheckActionId ?? "keine"} (Frist {definition.precheckDeadlineMs / 1000} s)</p>
-    <p class="team-meta">Ziel: {target.kind === "session" ? `${target.harness}${target.model ? ` · ${target.model}` : ""} · ${target.workdir} · ${target.project}` : `Team-Vorlage ${target.templateId}`}</p>
+    <p class="team-meta">Ziel: {target.kind === "session" ? `${target.harness}${target.model ? ` · ${target.model}` : ""} · ${target.workdir} · ${target.project}` : target.kind === "script" ? `Skript ${target.actionId} · ${target.project}` : `Team-Vorlage ${target.templateId}`}</p>
     {templateError && <p role="alert">{templateError}</p>}
     {template && <div><p>Eingefrorener Rahmen: {template.project} · Worker: {template.frame.adapters.join(", ")} · höchstens {template.frame.maxParallel} parallel</p>{template.plan?.tasks.map(task => <details key={task.id}><summary>{task.title} · {task.adapter}{task.model ? ` · ${task.model}` : ""}</summary><pre>{task.prompt}</pre></details>)}</div>}
     {offline && target.kind === "team" && <p>Der vollständige Team-Rahmen ist online über die eingefrorene Vorlage abrufbar.</p>}

@@ -31,9 +31,7 @@
 }
 
 .strip-name {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .strip-new {

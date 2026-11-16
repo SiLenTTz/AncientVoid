@@ -63,9 +63,7 @@
 .session-title {
   font-size: calc(13px * var(--font-scale, 1));
   margin: 2px 0 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .apply-btn {

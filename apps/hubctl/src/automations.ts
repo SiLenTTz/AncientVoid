@@ -26,12 +26,16 @@ export function buildAutomationDefinition(jsonText: string, promptText: string |
     throw new Error(`Definitions-JSON ist ungültig: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
   }
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Definitions-JSON muss ein Objekt sein.");
-  const target = raw.target as { kind?: string; promptBlobSha256?: string } | undefined;
-  if (!target || (target.kind !== "session" && target.kind !== "team" && target.kind !== "run")) {
-    throw new Error('Definitions-JSON braucht ein target mit kind "session" oder "team".');
+  const target = raw.target as { kind?: string; promptBlobSha256?: string; project?: unknown; actionId?: unknown } | undefined;
+  if (!target || (target.kind !== "session" && target.kind !== "team" && target.kind !== "run" && target.kind !== "script")) {
+    throw new Error('Definitions-JSON braucht ein target mit kind "session", "team" oder "script".');
   }
   // ADR-0077: CLI-Alias — altes kind "run" wird auf "team" normalisiert.
   if (target.kind === "run") target.kind = "team";
+  // ADR-0080: Skript-Ziele referenzieren eine registrierte argv-Aktion — project und actionId sind Pflicht.
+  if (target.kind === "script" && (typeof target.project !== "string" || target.project.trim() === "" || typeof target.actionId !== "string" || target.actionId.trim() === "")) {
+    throw new Error('Skript-Ziel braucht "project" und "actionId" einer registrierten Aktion.');
+  }
   if (target.kind === "session" && !target.promptBlobSha256) {
     if (promptText === null) throw new Error("Session-Ziel braucht einen Prompt-Text (zweite Datei), sonst fehlt der Blob-Verweis.");
     target.promptBlobSha256 = createHash("sha256").update(promptText).digest("hex");
