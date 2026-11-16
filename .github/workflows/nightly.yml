@@ -21,7 +21,12 @@ permissions:
 
 concurrency:
   group: nightly-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # false: Läufe auf main (und im Zeitplan) stapeln sich statt sich zu
+  # canceln — ein zweiter Push darf einen laufenden vollen Lauf nicht
+  # wegwerfen (real am 16.11.2026: ein zweiter main-Push cancelierte den
+  # laufenden vollen Lauf nach 9 Minuten). Schnelle PR-Gates in ci.yml
+  # dürfen sich weiterhin selbst canceln.
+  cancel-in-progress: false
 
 env:
   # Die Tests setzen tmux, ffmpeg, pdftotext, tesseract und ripgrep voraus;
