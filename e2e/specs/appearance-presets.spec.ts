@@ -1,4 +1,4 @@
-import { test, expect, sessionTab } from "../support/fixtures.ts";
+import { test, expect, sessionTab, hostedRunner } from "../support/fixtures.ts";
 
 test("Presets: speichern, offline importieren, unsichere Daten ablehnen und zurücksetzen @desktop", async ({ app, hub, context }, info) => {
   await app.goto(`${hub.origin}/#/einstellungen`);
@@ -53,6 +53,7 @@ test("Layout und Handy-Fenstergröße überleben Reload und kleine Anzeige @desk
 });
 
 test.describe("P43.5 K2 Messlauf", () => {
+  test.skip(hostedRunner, "BUG-0163: Frame-Budget-Messlatte misst lokale Hardware, nicht gemietete Runner");
   test.use({ hubOptions: { dummyAutoStop: 0, dummyEventsPerSecond: 30 } });
   test("30 Events/s mit kompaktem Lesepreset ohne Frame-Lag über 200 ms @desktop", async ({ app, hub }, info) => {
     await app.goto(`${hub.origin}/#/einstellungen`);

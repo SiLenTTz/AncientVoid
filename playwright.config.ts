@@ -47,11 +47,16 @@ export default defineConfig({
   globalSetup: "./e2e/support/global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: 0,
+  // Retries seit 16.11.2026 in CI erlaubt (BUG-0163, Nutzervotum
+  // „Github packt die Tests nicht → sauber regeln"): genau ein Neuversuch
+  // pro Test wie AGENTS.md („benannt und einmal neu gestartet") —
+  // wiederholt rot bleibt rot; Messlatten-Skips auf Hosted siehe
+  // e2e/support/fixtures.ts (hostedRunner). Lokal weiterhin 0.
+  retries: process.env.CI ? 1 : 0,
   // CI: 1 Worker statt 2 — der Projekt-Runner teilt sich 8 CPUs mit je zwei
   // echten Hubs und Chromium pro Test (ADR-0049); Parallellast erzeugte
-  // Timing-Fenster (BUG-0093/0094/0095). Keine Retries, keine gelockerten
-  // Assertions — nur der Parallelitätsgrad der geteilten Hardware angepasst.
+  // Timing-Fenster (BUG-0093/0094/0095). Assertions bleiben ungelockert —
+  // nur der Parallelitätsgrad der geteilten Hardware ist angepasst.
   // Lokal (BUG-0111): 2 statt 4 — die Maschine ist geteilter Dev-Desktop;
   // 4 Worker × (Hub + Chromium) auf einem 16-Core-Desktop schoben den
   // Nutzer-Browser in den Immediate-Crash (SIGTRAP, Crashpad-Dumps 09.09.–01.11.).
