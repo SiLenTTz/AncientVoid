@@ -96,6 +96,13 @@ if (quarter() === "1" || quarter() === "3") {
 // Chrome öffnen. Der Socket `chrome_devtools_remote` ohne Zahl gehört oft einem ANDEREN Browser
 // (Brave, Edge …) — gesteuert wird nur ein Socket, dessen `Android-Package` com.android.chrome ist.
 const PACKAGE = "com.android.chrome";
+// BUG-0121: Chrome-Altlasten (offene Tabs vorheriger Läufe) und Hintergrund-Apps
+// fressen RAM — bei ~0,5 GB frei brach die Suite in Timeouts zusammen und
+// Android warf Chrome-Tabs weg („page closed“). Belegt 16.11.2026 am A6013:
+// 14 Timeouts/Abbruch vor der Bereinigung, 107/107 grün danach. Frischer
+// Chrome + geleerte Hintergrundaktivitäten machen den Start deterministisch.
+adb("shell", "am", "force-stop", PACKAGE);
+adb("shell", "am", "kill-all");
 adb("shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", "about:blank", "-p", PACKAGE);
 
 async function findChromeSocket() {
