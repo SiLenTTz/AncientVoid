@@ -195,7 +195,7 @@ Dieser Abschnitt reicht, um ohne Gesprächsverlauf zu starten.
 
 1. **Lesen (in dieser Reihenfolge):** `AGENTS.md`, dieses Epic, das Audit
    `docs/2026-11-16_ui-styling-audit.md`, `docs/design-system.md`,
-   `bugs/bug-0177-*.md`. Skills: `gates`, `git-workflow`, `write-tests`,
+   `bugs/bug-0187-*.md`. Skills: `gates`, `git-workflow`, `write-tests`,
    `bugfix` (für T63.2), `messlauf` (T63.0/T63.11), `retro` (T63.12).
 2. **Stand prüfen:** `git fetch`, `gh pr list --search P63`, Checkliste in
    Abschnitt 4 — nächste unabgehakte Aufgabe nehmen. Nie zwei TSX-Aufgaben
