@@ -122,7 +122,9 @@ ist zulässig (Solo-Projekt) — was **nicht** zulässig ist: den PR selbst zu
 der `pre-push`-Hook erzwingt Lint und Typecheck; Tests über die Kommandos oben, das Gate und die GitHub-Actions-CI).
 
 Neue `.md`-Dateien: `docs/` (flach, kein Unterordner-Wildwuchs) oder `epics/`
-für Epics. Eingefrorene Analysen (Audits, Evaluierungen, Berichte) bekommen
+für Epics. Bewährte Ausnahmen: `docs/adr/` (ADRs), `docs/guide/` (EPIC-P62:
+englischer Guide + Inventar), `docs/videos/` (EPIC-P62: Video-Skripte).
+Eingefrorene Analysen (Audits, Evaluierungen, Berichte) bekommen
 das Datum in den Namen (`JJJJ-MM-TT_*` bzw. `*JJJJ-MM-TT`) — sie sind
 referenzfrei zulässig und altern bewusst. ADRs nach `docs/adr/NNNN-*.md`.
 Kein `*-STATUS.md`/`*-SUMMARY.md` auf Top-Level. Über Zeilen-Budgets, Links,

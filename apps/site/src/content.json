@@ -1,0 +1,20 @@
+{
+  "tagline": "Coding agents in your pocket — a local-first hub that watches, warns and lets you steer.",
+  "features": [
+    { "id": "overview", "title": "Live overview", "text": "One card per agent session: project, activity, status. Needs-you-first ordering.", "clip": null },
+    { "id": "steer", "title": "Steering", "text": "Prompts reach the running agent — answer, stop, resume; never a second process.", "clip": null },
+    { "id": "approvals", "title": "Approvals", "text": "Agent questions reach your phone; decisions are attributed and crash-safe.", "clip": null },
+    { "id": "teams", "title": "Agent teams", "text": "Plan work as a DAG, watch one card per worker, gate the risky steps.", "clip": null },
+    { "id": "discovery", "title": "Discovery", "text": "CLI sessions found on disk — preview, take over or copy, marked if running elsewhere.", "clip": null },
+    { "id": "pc", "title": "PC workspace", "text": "Up to four sessions as tiles, keyboard-first, layout per machine.", "clip": null },
+    { "id": "code", "title": "Code & files", "text": "Search, open with line anchors, language diagnostics — inside the hub.", "clip": null },
+    { "id": "fleet", "title": "Multi-host fleet", "text": "All your machines in one surface; steering crosses hosts safely.", "clip": null },
+    { "id": "privacy", "title": "Local-first", "text": "Runs on your hardware, event-sourced, reachable via your tailnet — no cloud account.", "clip": null }
+  ],
+  "videos": [],
+  "links": {
+    "repo": "https://github.com/SiLenTTz/AncientVoid",
+    "guide": "https://github.com/SiLenTTz/AncientVoid/blob/main/docs/guide/README.md",
+    "issues": "https://github.com/SiLenTTz/AncientVoid/issues"
+  }
+}
