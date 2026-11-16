@@ -28,7 +28,6 @@
 | Code | Bedeutung |
 |---|---|
 | 0 | ok |
-| 2 | Voraussetzung fehlt oder ungültige Eingabe (Option, Adapter, baseUrl/Modell) |
 | 3 | Config/Daten kaputt |
 | 4 | Token/Hub-Start fehlgeschlagen |
 | 5 | npm install fehlgeschlagen |
