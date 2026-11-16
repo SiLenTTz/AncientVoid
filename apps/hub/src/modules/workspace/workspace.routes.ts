@@ -12,7 +12,10 @@ export function registerWorkspaceRoutes(app: FastifyInstance, ctx: RouteContext)
     // Startup-time readability warnings are logged once in createHubApp();
     // this response carries them again so a client can surface them too.
     const { projects, warnings } = await discoverProjects(projectRoots);
-    return { projects, warnings };
+    // BUG-0163: „keine Projekte" ist zwei verschiedene Lagen — Wurzeln gar nicht
+    // gesetzt, oder Wurzeln gesetzt aber kein Git-Repo darin. Das Interface darf
+    // daraus keine Sackgasse bauen.
+    return { projects, warnings, rootsConfigured: projectRoots.length > 0, roots: projectRoots };
   });
 
   // EPIC-P29 T29.6: Workspace-Status/Logs/Retry — die K7-Projektion aus

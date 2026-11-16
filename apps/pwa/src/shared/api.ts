@@ -527,6 +527,8 @@ export interface DiscoveredProject {
   path: string;
   name: string;
   branch: string | null;
+  /** BUG-0162: ohne Feld bzw. `isGit: false` ist es ein Ordner ohne `.git`. */
+  isGit?: boolean;
 }
 
 export type { AutomationHistoryEntry } from "@ancientvoid/contracts";
@@ -534,6 +536,9 @@ export type { AutomationHistoryEntry } from "@ancientvoid/contracts";
 export interface ProjectDiscoveryResult {
   projects: DiscoveredProject[];
   warnings: string[];
+  /** BUG-0163: trennt „Wurzeln fehlen“ von „Wurzeln vorhanden, aber keine Repos“. */
+  rootsConfigured?: boolean;
+  roots?: string[];
 }
 
 /** T1.5-10/ADR-0005 — a skill, agent, or workflow discovered in the target
