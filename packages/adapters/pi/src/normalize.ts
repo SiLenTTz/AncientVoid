@@ -1,5 +1,5 @@
 import { providerErrorEvent, type EmittedEvent } from "@ancientvoid/contracts";
-import type { LivePump } from "./live.ts"; // ADR-0083
+import type { LivePump } from "@ancientvoid/contracts"; // ADR-0083
 
 /**
  * BUG-0065: maps `pi -p --mode json` (pi 1.4.0, docs/json.md) to events.

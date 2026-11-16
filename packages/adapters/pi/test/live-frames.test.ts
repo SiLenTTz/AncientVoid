@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { STREAM_FLUSH_INTERVAL_MS, STREAM_FLUSH_MIN_CHARS, type EmittedStreamFrame } from "@ancientvoid/contracts";
 import { createPiStream } from "../src/normalize.ts";
-import { createLivePump } from "../src/live.ts";
+import { createLivePump } from "@ancientvoid/contracts";
 
 /**
  * BUG-0178 / ADR-0083: echtes Streaming statt Nacherzählen.

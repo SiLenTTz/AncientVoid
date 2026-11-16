@@ -16,7 +16,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { contextWindowFor, modelsFromCommand, parseModelTable } from "@ancientvoid/models";
 import { createPiStream } from "./normalize.ts";
-import { createLivePump } from "./live.ts"; // ADR-0083
+import { createLivePump } from "@ancientvoid/contracts"; // ADR-0083
 import { findSessionFile, isSessionId, readTranscript } from "./transcript.ts";
 
 /**

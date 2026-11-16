@@ -1,13 +1,20 @@
-import { randomUUID } from "node:crypto";
+// Kein node:crypto: das Contract-Paket teilt Code auch mit der PWA (DOM-Lib).
+// Ein TurnId-Fallback für Umgebungen ohne secure crypto — Frames sind transient,
+// die TurnId ordnet nur Frames einer Serie einander zu.
+const newTurnId = (): string => {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  return c?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+};
 import {
   MAX_STREAM_FRAME_CHARS,
   STREAM_FLUSH_INTERVAL_MS,
   STREAM_FLUSH_MIN_CHARS,
   type EmittedStreamFrame,
-} from "@ancientvoid/contracts";
+} from "./stream.ts";
 
 /**
- * ADR-0083: Kohärenz-Stufe für Live-Frames im pi-Adapter.
+ * ADR-0083: Kohärenz-Stufe für Live-Frames — im Contract-Paket, damit jeder
+ * Adapter dieselbe Bündelung bekommt und keiner sie erfindet.
  *
  * pi schickt tokenweise `text_delta`/`thinking_delta` (echte Aufnahme:
  * `test/fixtures/tool-use.jsonl`, 12 text_delta + 11 thinking_delta in einem Zug).
@@ -48,7 +55,7 @@ export function createLivePump(send: (frame: EmittedStreamFrame) => void): LiveP
     if (!b) {
       // pi sendet `*_start` nicht immer (z. B. nach Reconnect/Recovery) — dann wird
       // die Serie beim ersten Delta angefangen, ohne etwas zu erfinden.
-      b = { turnId: randomUUID(), seq: 0, buf: "", timer: null };
+      b = { turnId: newTurnId(), seq: 0, buf: "", timer: null };
       blocks.set(kind, b);
     }
     return b;
@@ -75,7 +82,7 @@ export function createLivePump(send: (frame: EmittedStreamFrame) => void): LiveP
   return {
     begin(kind) {
       const b = open(kind);
-      if (b.seq === 0 && b.buf === "") b.turnId = randomUUID();
+      if (b.seq === 0 && b.buf === "") b.turnId = newTurnId();
     },
     delta(kind, text) {
       if (closed || !text) return;

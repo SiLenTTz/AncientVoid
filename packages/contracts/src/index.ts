@@ -7,6 +7,7 @@ export * from "./harness/adapter.ts";
 export * from "./sessions/worker.ts";
 export * from "./sessions/wire.ts";
 export * from "./sessions/stream.ts";
+export * from "./sessions/stream-pump.ts";
 export * from "./approvals/approval.ts";
 export * from "./approvals/operation.ts";
 export * from "./approvals/tool-permission.ts";
