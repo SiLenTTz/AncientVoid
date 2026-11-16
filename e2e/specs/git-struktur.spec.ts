@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "../support/fixtures.ts";
+import type { Page } from "@playwright/test";
+import { test, expect } from "../support/fixtures.ts";
 
 /** Globale Git-Struktur-Ebene: Einstieg ohne offene Session — PC-Rail-Knopf, am Handy über das
  * Mehr-Blatt (Rail-Extras sind dort ausgeblendet) — Auswahl-Kachel und Strg+Umschalt+G. */
