@@ -42,8 +42,11 @@ the first gate, or it resolves workspace packages from the main checkout.
 
 ## Required local gates
 
-There is no binding hosted CI; **the local gates are binding** — run them
-before every pull request and paste the summary into the PR.
+GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs
+on every pull request and **must be green before merge** (required check on
+`main`). The **local gates stay binding in addition** — run them before every
+pull request and paste the summary into the PR. Details:
+[`docs/ci-runbook.md`](docs/ci-runbook.md) (German).
 
 | Change | Run |
 |---|---|
@@ -153,7 +156,9 @@ typecheck. Never bypass hooks (`--no-verify`).
   `test/<scope>`, `ops/<scope>`. One branch = one task = one PR, target `main`.
 - One topic per PR; fill in the PR template (gates, tests, security impact).
 - **No force-push** to shared branches, no rewriting of published history.
-- Maintainers merge via GitHub only; source branches are deleted after merge.
+- Maintainers merge via GitHub only (merge commit titled with the PR title,
+  e.g. `gh pr merge --merge --delete-branch`); never merge locally into
+  `main`. Source branches are deleted after merge.
 - `ancientvoid/*` branches are session worktrees created by the hub — not
   feature branches.
 

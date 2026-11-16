@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: Structured Gate-Review mit 6 Dimensionen (Requirements blocking, Architektur, Edges, Qualität, Determinism, Future-Fragility Pflicht) und Gates npm test/lint/typecheck. Aktiv bei MR-Review, Merge-Freigabe, Handoff nach bugfix. Never self-merge.
+description: Structured Gate-Review mit 6 Dimensionen (Requirements blocking, Architektur, Edges, Qualität, Determinism, Future-Fragility Pflicht) und Gates npm test/lint/typecheck. Aktiv bei PR-Review, Merge-Freigabe, Handoff nach bugfix. Never self-merge.
 ---
 
 # Skill: pr-review
@@ -12,18 +12,18 @@ Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). Messung:
 
 ## Zweck
 
-Ein MR wird gegen Issue/Epic-Task-AC und deterministische Gates geprüft.
+Ein Pull Request wird gegen Issue/Epic-Task-AC und deterministische Gates geprüft.
 Grüne Tests heben ein fehlendes Acceptance-Criterion nicht auf.
 Future-Fragility ist Pflicht, kein Anhang.
 
-CI ist nur bei einem tatsächlich lokalen GitLab-Server zusätzliches Gate
-(`AGENTS.md`, `docs/ci-runbook.md`). Auf `gitlab.com` lautet die Freigabeachse
-„CI nicht anwendbar“, auch mit eigenem Runner; rote/fehlende Cloud-Jobs allein
-sind weder Review-Befund noch Warte-/Retry-Auftrag. Lokale Gates bleiben Pflicht.
+GitHub Actions (`.github/workflows/ci.yml`) ist Pflicht-Check für PRs nach
+`main` (`AGENTS.md`, `docs/ci-runbook.md`), zusätzlich zu den lokalen Gates.
+Rote CI ist Blocker; liegt die Ursache nachweislich nur in der Umgebung
+(Runner-Flake), wird das benannt und der Lauf wiederholt — nie als Pass gezählt.
 
 ## Wann benutzen (Trigger)
 
-- „MR reviewen", Merge-Freigabe, Handoff aus `bugfix`, structured review.
+- „PR reviewen", Merge-Freigabe, Handoff aus `bugfix`, structured review.
 
 **Nicht:** reines Lint (`gates`); Komplexitäts-Sweep (`ponytail-review`).
 
@@ -62,7 +62,8 @@ Handwerksachse läuft trotzdem.
 ### 1. Prepare
 
 ```bash
-glab mr view --json title,description,source_branch,target_branch
+gh pr view <nr> --json title,body,headRefName,baseRefName,statusCheckRollup
+gh pr checks <nr>
 git fetch origin
 git merge origin/main
 ```
@@ -81,7 +82,7 @@ Merge-Konflikt gegen `origin/main` ist Blocker.
 
 #### Gate E — Sekret- und Injektionsscan auf den **hinzugefügten** Zeilen
 
-Nur `^+`-Zeilen prüfen — der Bestand ist nicht Gegenstand dieses MRs:
+Nur `^+`-Zeilen prüfen — der Bestand ist nicht Gegenstand dieses PRs:
 
 ```bash
 D="git diff origin/main...HEAD"
@@ -127,7 +128,8 @@ Gates: 0/A/B/C/D/E je 🟢|🔴|n/a
 Evidence: <Kommandos>
 ```
 
-Danach nur auf Anweisung: `glab mr approve` bzw. `glab mr note --message`.
+Danach nur auf Anweisung: `gh pr review <nr> --approve` bzw. `gh pr comment <nr> --body …`
+(eigene PRs kann GitHub nicht approven — dann Kommentar).
 
 ## Determinismus-Checkliste
 

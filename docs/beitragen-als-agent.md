@@ -12,12 +12,14 @@ Agenten folgen [`AGENTS.md`](../AGENTS.md) und
 [`CONTRIBUTING.md`](../CONTRIBUTING.md):
 
 1. Branch pro Aufgabe (`feat/…`, `fix/…`, `docs/…`), niemals direkt auf `main`.
-2. Gates vor dem MR: `npm test`, `npm run lint`, `npm run typecheck`; bei
+2. Gates vor dem PR: `npm test`, `npm run lint`, `npm run typecheck`; bei
    UI-/Ablaufsänderungen `npm run test:e2e`; vor Epic-Abschluss `npm run gate`.
 3. Commit-Notation `<Risiko> <Absicht> <bereich>: <Satz>` —
    [`docs/commit-notation.md`](commit-notation.md) (Hook prüft).
-4. MR via `glab mr create` (Beschreibung: Warum/Änderung/Testplan), Merge nur
-   über `glab mr merge`/UI, danach Source-Branch lokal+remote löschen.
+4. PR via `gh pr create --base main` (Beschreibung: Warum/Änderung/Testplan),
+   GitHub-Actions-CI grün (`gh pr checks`), Merge nur über
+   `gh pr merge --merge --delete-branch`/UI, danach Source-Branch lokal löschen
+   und `git fetch --prune`.
 
 ## 2. Verifizieren und bekannte Stolpersteine
 

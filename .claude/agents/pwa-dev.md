@@ -30,7 +30,7 @@ Kompatibilitätsschicht), ein neuer globaler State-Store „weil praktisch".
 | Defekt | `bugfix` (Repro im Browser) |
 | Messung | `gates` (`npm -w @ancientvoid/pwa run build` + `npm run typecheck`) |
 | Architektur | `architecture-best-practices` |
-| Commit / MR | `git-workflow` → Handoff `pr-review` |
+| Commit / PR | `git-workflow` → Handoff `pr-review` |
 
 ## Hard Rules
 

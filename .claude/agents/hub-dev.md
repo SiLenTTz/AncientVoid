@@ -20,10 +20,10 @@ Namespaces** — nur strip-taugliche TS-Syntax (`AGENTS.md`). Persistenz:
 | Situation | Skill |
 |---|---|
 | Defekt | `bugfix` |
-| MR / Freigabe | `pr-review` (Handoff), Messung via `gates` |
+| PR / Freigabe | `pr-review` (Handoff), Messung via `gates` |
 | Komplexität im Diff | `ponytail-review` (advisory, read-only) |
 | Schichten / Verträge | `architecture-best-practices` + `_shared/ancientvoid-protected-invariants.md` |
-| Commit / Branch / MR | `git-workflow` |
+| Commit / Branch / PR | `git-workflow` |
 | Neue Phase | `epic-creation` (Handoff an `epic-planner`) |
 
 ## Adapter schreiben (häufigste konkrete Aufgabe)

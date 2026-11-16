@@ -5,14 +5,14 @@ description: Reproduce-Fix-Re-verify-Finalize-Playbook für Defekte im AncientVo
 
 # Skill: bugfix
 
-Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). Branch/Commit/MR:
+Querschnitts-Regeln: [`AGENTS.md`](../../../AGENTS.md). Branch/Commit/PR:
 [`git-workflow`](../git-workflow/SKILL.md). Gates: [`gates`](../gates/SKILL.md).
 AncientVoid-Verträge: [`.claude/skills/_shared/ancientvoid-protected-invariants.md`](../_shared/ancientvoid-protected-invariants.md).
 
 ## Zweck
 
 Ein beobachteter Defekt wird root-caused, mit dem kleinsten korrekten Patch
-behoben, gegen denselben Repro verifiziert und als MR übergeben. Eine
+behoben, gegen denselben Repro verifiziert und als PR übergeben. Eine
 Änderung, die den Bug nie live beseitigt hat, ist keine Lösung.
 
 ## Wann benutzen (Trigger)
@@ -67,7 +67,7 @@ Fehlt die Datei unter `bugs/`: zuerst [`bug-report`](../bug-report/SKILL.md).
 
 1. Branch nur auf Anweisung: `fix/<slug>` (`git-workflow`).
 2. Commit `^ B <bereich>: … (BUG-NNNN)` nach `docs/commit-notation.md` (`!` wenn nur live belegt).
-3. MR: `glab mr create --description-file <datei>` mit Repro, Root-cause, Test, Gates.
+3. PR: `gh pr create --base main --title "<Notation>" --body-file <datei>` mit Repro, Root-cause, Test, Gates, `Fixes #<issue>`.
 4. **Handoff an [`pr-review`](../pr-review/SKILL.md).** Nicht selbst mergen.
 
 ## Nichtdeterminismus
@@ -86,7 +86,7 @@ Repro: <was beobachtet, Kommando/Test>
 Root-cause: <file:line> — <warum>
 Fix: <was geändert, warum smallest correct>
 Verify: <Kommandos + Ergebnis>
-Handoff: pr-review / MR-URL
+Handoff: pr-review / PR-URL
 ```
 
 ## Determinismus-Checkliste
@@ -95,7 +95,7 @@ Handoff: pr-review / MR-URL
 - [ ] Test ist ohne Fix rot, mit Fix grün.
 - [ ] Gates der betroffenen Spalte grün.
 - [ ] Kein Self-Merge, kein Force-Push.
-- [ ] MR-Body nennt Repro und Root-cause.
+- [ ] PR-Body nennt Repro und Root-cause.
 
 ## Verweise
 
