@@ -1,5 +1,5 @@
 import type { Ack, NormalizedEvent, SessionInterruptionPayload, SessionInterruptionReason } from "@ancientvoid/contracts";
-import type { LiveSession } from "./session-state.ts";
+import { limitWindow, type LiveSession } from "./session-state.ts";
 
 interface Host {
   replay(id: string): Promise<NormalizedEvent[]>;
@@ -56,17 +56,30 @@ export class SessionInterruption {
     const lastEnd = events.findLastIndex(e => e.payload.kind === "session.turn_end");
     const boundary = events.findIndex((e, i) => i > lastEnd && (e.payload.kind === "session.prompt" || e.payload.kind === "session.resumed"));
     const failures = events.slice(Math.max(0, boundary)).filter(e => e.type === "error" || e.payload.kind === "provider.error" || e.payload.kind === "cursor.usage_limit" || (e.payload.kind === "session.activity" && e.payload.external === true && (e.payload.activity as { state?: string } | undefined)?.state === "failed"));
-    const failed = failures.some(e => e.payload.category !== "network" && e.payload.category !== "server");
+    // ADR-0076 Nachtrag (Limit-Wiederaufnahme): Starb der Zug ausschließlich
+    // am Kontingent/Rate-Limit UND hat der Mensch die Option ausdrücklich
+    // angeschaltet, ist das keine Endlage — interrupted mit Freigabezeit
+    // statt error. Alle anderen Fehlerlagen (auth, opaque, gemischt) bleiben
+    // ehrlich `error` und damit manuell.
+    const limitOnly = session.record.autoResumeOnLimit === true
+      && failures.length > 0
+      && failures.every(e => (e.payload.kind === "provider.error" && (e.payload.category === "quota" || e.payload.category === "rate_limit")) || e.payload.kind === "cursor.usage_limit");
+    const failed = !limitOnly && failures.some(e => e.payload.category !== "network" && e.payload.category !== "server");
     // A stop/park can have won while replay was in flight.
     if (!["working", "starting", "waiting_approval"].includes(session.record.status)) return;
     await this.host.setStatus(session, failed ? "error" : "interrupted");
     session.abort.abort();
     if (!failed) {
       const lastPrompt = events.findLast(e => e.payload.kind === "session.prompt");
+      const blockedUntil = limitOnly ? limitWindow(events).blockedUntil : undefined;
       const payload: SessionInterruptionPayload = {
-        kind: "session.interrupted", reason, since: new Date().toISOString(), lastTurnId: lastPrompt ? String(lastPrompt.seq) : null,
+        kind: "session.interrupted", reason: limitOnly ? "provider_limit" : reason, since: new Date().toISOString(), lastTurnId: lastPrompt ? String(lastPrompt.seq) : null,
       };
-      await this.host.emit(session, payload.kind, { ...payload, autoResumeEligible: true });
+      await this.host.emit(session, payload.kind, {
+        ...payload,
+        autoResumeEligible: true,
+        ...(limitOnly ? { limit: true, ...(blockedUntil !== undefined ? { resumesAt: blockedUntil } : {}) } : {}),
+      });
     }
     await this.host.emit(session, "session.turn_end", { code: null, reason: failed ? "error" : "interrupted" });
     this.host.digest(session);

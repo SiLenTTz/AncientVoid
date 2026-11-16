@@ -4,7 +4,7 @@ import type { PromptAttachment } from "../attachments/attachment.ts";
 import { CONTROL_MODES, DEFAULT_HOST_ID, HARNESS_TARGETS, RESUME_SCHEMA_VERSION } from "./identity.ts";
 
 /** ADR-0044: shared system-event vocabulary, additive to the session status. */
-export type SessionInterruptionReason = "worker_exit" | "hub_restart" | "adapter_down";
+export type SessionInterruptionReason = "worker_exit" | "hub_restart" | "adapter_down" | "provider_limit";
 
 export interface SessionInterruptionPayload {
   kind: "session.interrupted";
@@ -13,6 +13,13 @@ export interface SessionInterruptionPayload {
   lastTurnId: string | null;
   /** ADR-0076: absent on legacy interruptions; those remain manual. */
   autoResumeEligible?: boolean;
+  /** ADR-0076 Nachtrag (Limit-Wiederaufnahme): true, wenn der Zug am
+   * Kontingent/Rate-Limit des Providers starb — nur solche Unterbrechungen
+   * darf die ausdrückliche Nutzer-Option automatisch fortsetzen. */
+  limit?: boolean;
+  /** Frühster bekannter Freigabezeitpunkt der blockierten Fenster (ISO),
+   * sofern der Provider ihn strukturiert genannt hat (ADR-0004). */
+  resumesAt?: string;
 }
 
 export const SESSION_STATUSES = [
@@ -183,6 +190,11 @@ export const SessionRecord = z.object({
   lastActivity: z.object({ text: z.string().max(160), type: z.string(), at: z.string() }).nullable().default(null),
   /** T8.6: pinned to the top of the overview (on this hub, all devices). */
   pinned: z.boolean().default(false),
+  /** ADR-0076 Nachtrag (Limit-Wiederaufnahme): ausdrückliche Nutzer-Option —
+   * diese Session nach einem Kontingent-/Rate-Limit-Fenster automatisch
+   * fortsetzen, sobald der Provider wieder frei ist. Default aus (ADR-0076:
+   * Limits bleiben grundsätzlich sichtbar und manuell). */
+  autoResumeOnLimit: z.boolean().default(false),
 });
 export type SessionRecord = z.infer<typeof SessionRecord>;
 

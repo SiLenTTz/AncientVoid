@@ -43,4 +43,8 @@ describe("ADR-0044: SessionStatus interrupted", () => {
     expect(VALID_TRANSITIONS.stopped).toEqual(["working"]);
     expect(VALID_TRANSITIONS.error).toContain("working");
   });
+
+  it("error → interrupted ist der menschliche Beschluss zur Limit-Wiederaufnahme (ADR-0076 Nachtrag)", () => {
+    expect(VALID_TRANSITIONS.error).toEqual(["stopping", "stopped", "working", "parked", "interrupted"]);
+  });
 });

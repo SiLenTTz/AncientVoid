@@ -52,6 +52,9 @@ export interface SessionRecord {
   archived?: boolean;
   /** T8.6: pinned to the top of the overview. */
   pinned?: boolean;
+  /** ADR-0076 Nachtrag (Limit-Wiederaufnahme): Option dieser Session — nach
+   * einem Kontingent-/Rate-Limit-Fenster automatisch fortsetzen. */
+  autoResumeOnLimit?: boolean;
   /** P5: counts prompts; a plan made on an older value is refused (T9.3). */
   inputRevision?: number;
   /** T8.1: the last understandable action (absent on older hubs). */
@@ -1278,8 +1281,9 @@ function createHubApi(P: (path: string) => string) {
   workspaceProxyBase: (id: string, serviceId: string) => P(`/api/sessions/${id}/workspace/services/${encodeURIComponent(serviceId)}/proxy`),
   stopSession: (id: string) =>
     api<{ ok: boolean }>(P(`/api/sessions/${id}/stop`), { method: "POST", body: "{}" }),
-  /** T8.6: rename and pin. */
-  setSessionMeta: (id: string, meta: { title?: string | null; pinned?: boolean }) =>
+  /** T8.6: rename and pin. autoResumeOnLimit: ADR-0076 Nachtrag — Option
+   * „nach dem Limit-Fenster automatisch weitermachen" (Menschen, kein Agent). */
+  setSessionMeta: (id: string, meta: { title?: string | null; pinned?: boolean; autoResumeOnLimit?: boolean }) =>
     api<SessionRecord>(P(`/api/sessions/${id}/meta`), { method: "POST", body: JSON.stringify(meta) }),
   setArchived: (id: string, archived: boolean) =>
     api<SessionRecord>(P(`/api/sessions/${id}/archive`), {

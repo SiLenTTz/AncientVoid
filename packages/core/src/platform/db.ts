@@ -481,6 +481,13 @@ export const MIGRATIONS: Migration[] = [
     // EPIC-P43 T43.10 (ADR-0066): je Token vergebene Fähigkeiten, JSON-Array; NULL = keine.
     sql: `ALTER TABLE device_tokens ADD COLUMN capabilities TEXT;`,
   },
+  {
+    id: 33,
+    name: "session-auto-resume-on-limit",
+    // ADR-0076 Nachtrag (Limit-Wiederaufnahme): ausdrückliche Nutzer-Option
+    // je Session — nach einem Kontingent-/Rate-Limit automatisch fortsetzen.
+    sql: `ALTER TABLE sessions ADD COLUMN auto_resume_on_limit INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];
 
 export class HubDatabase {

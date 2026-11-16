@@ -13,6 +13,9 @@ export interface HubOptions {
   /** "process" (default) or "tmux" — the tmux runner gets a private tmux server. */
   runner?: "process" | "tmux";
   interruptedDummy?: { resume: boolean; auto?: boolean; failResume?: boolean };
+  /** ADR-0076 Nachtrag: der Dummy stirbt im ersten Zug am Kontingent —
+   * Suite für die Limit-Wiederaufnahme (e2e/specs/limit-auto-resume.spec.ts). */
+  limitDummy?: boolean;
   /** Factory-Tests: maki über den lokalen ACP-Prozess registrieren. */
   maki?: boolean;
   /** Park steer prompts behind the approval queue (T2.4). */
@@ -187,8 +190,8 @@ export class TestHub {
       adapters: [
         {
           id: "dummy",
-          module: this.options.interruptedDummy ? join(repoRoot, "e2e/support/interrupted-dummy.ts") : "@ancientvoid/adapter-dummy",
-          config: { hubResume: this.options.interruptedDummy?.resume ?? false, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: this.options.dummyEventsPerSecond ?? 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
+          module: this.options.interruptedDummy ? join(repoRoot, "e2e/support/interrupted-dummy.ts") : this.options.limitDummy ? join(repoRoot, "e2e/support/limit-dummy.ts") : "@ancientvoid/adapter-dummy",
+          config: { hubResume: this.options.interruptedDummy?.resume ?? this.options.limitDummy === true, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: this.options.dummyEventsPerSecond ?? 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14 },
         },
         {
           // BUG-0061: dsh via ACP (ADR-0018) under a free-form id, like a
