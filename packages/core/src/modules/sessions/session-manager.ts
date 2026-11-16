@@ -875,7 +875,7 @@ export class SessionManager {
       dirty: state.dirty,
       dirtyTruncated: state.dirtyTruncated,
       heldBy: lease && this.holdsCheckout(lease.sessionId) ? lease.sessionId : null,
-      holders: this.checkoutLeases.holders(checkout.checkoutId),
+      holders: this.checkoutLeases.holders(checkout.checkoutId, undefined, (id) => this.holdsCheckout(id)),
     };
   }
 

@@ -86,16 +86,17 @@ export class CheckoutLeaseStore {
     this.db.prepare("DELETE FROM checkout_tenants WHERE session_id = ?").run(sessionId);
   }
 
-  /** ADR-0077: wer schreibt hier noch mit? Primärer Lease-Inhaber + Mit-Nutzer,
-   * ohne die fragliche Session selbst. */
-  holders(checkoutId: string, exceptSessionId?: string): string[] {
+  /** ADR-0081: wer schreibt hier noch mit? Primärer Lease-Inhaber + Mit-Nutzer,
+   * ohne die fragliche Session selbst. `isActive` filtert tote Sessions —
+   * sonst erzwingt die Preview eine Überschreib-Bestätigung ohne Gegenüber. */
+  holders(checkoutId: string, exceptSessionId?: string, isActive: (sessionId: string) => boolean = () => true): string[] {
     const out: string[] = [];
     const primary = this.get(checkoutId);
-    if (primary && primary.sessionId !== exceptSessionId) out.push(primary.sessionId);
+    if (primary && primary.sessionId !== exceptSessionId && isActive(primary.sessionId)) out.push(primary.sessionId);
     const rows = this.db
       .prepare("SELECT session_id FROM checkout_tenants WHERE checkout_id = ? AND session_id <> ?")
       .all(checkoutId, exceptSessionId ?? "") as { session_id: string }[];
-    for (const r of rows) if (r.session_id !== primary?.sessionId) out.push(r.session_id);
+    for (const r of rows) if (r.session_id !== primary?.sessionId && isActive(r.session_id)) out.push(r.session_id);
     return out;
   }
 

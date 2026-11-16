@@ -11,7 +11,7 @@ import { SessionManager } from "../../../src/modules/sessions/session-manager.ts
 import { AdapterRegistry } from "../../../src/modules/harness/registry.ts";
 import { HubDatabase } from "../../../src/platform/db.ts";
 import { WorktreeManager } from "../../../src/modules/workspace/worktree.ts";
-import { canonicalCheckout } from "../../../src/modules/workspace/checkout.ts";
+import { canonicalCheckout, CheckoutLeaseStore } from "../../../src/modules/workspace/checkout.ts";
 import { ProcessRunner } from "@ancientvoid/workers";
 
 const execFileAsync = promisify(execFile);
@@ -219,5 +219,17 @@ describe("EPIC-P38: Arbeitsort", () => {
     const { rowToRecord } = await import("../../../src/modules/sessions/session-row.ts");
     const row = migrated.prepare("SELECT * FROM sessions WHERE id = 'ohne'").get() as unknown as Parameters<typeof rowToRecord>[0];
     expect(rowToRecord(row).workspaceMode).toBe("unknown");
+  });
+});
+
+describe("CheckoutLeaseStore: holders nennt nur lebendige Mit-Schreiber (PR-Review, ADR-0081)", () => {
+  it("filtert tote Sessions heraus — sonst erzwingt die Preview Überschreib-Bestätigung ohne Gegenüber", () => {
+    const db = new HubDatabase(":memory:");
+    const store = new CheckoutLeaseStore(db);
+    store.acquire("co-x", "ses-alt", () => false); // toter Vorbesitzer: Lease wird übernommen
+    store.addTenant("co-x", "ses-tot");
+    expect(store.holders("co-x")).toEqual(["ses-alt", "ses-tot"]); // ohne Filter: alle Zeilen
+    expect(store.holders("co-x", undefined, () => false)).toEqual([]); // alle tot → niemand schreibt mit
+    expect(store.holders("co-x", undefined, (id) => id === "ses-alt")).toEqual(["ses-alt"]); // nur der Lebendige zählt
   });
 });
