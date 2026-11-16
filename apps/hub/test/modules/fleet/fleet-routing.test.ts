@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import WebSocket from "ws";
@@ -22,7 +23,7 @@ interface Hub {
 // Runnern lief der Test länger als ein Tick, die Assertion zählte sie mit.
 // Der Dedup selbst funktioniert; gezählt wird jetzt das echte Prompt-Event.
 
-async function hub(hostId: string): Promise<Hub> {
+async function hub(hostId: string, projectRoots: string[] = []): Promise<Hub> {
   const dir = await mkdtemp(join(tmpdir(), `ancientvoid-${hostId}-`));
   const db = new HubDatabase(":memory:");
   const registry = new AdapterRegistry();
@@ -30,7 +31,7 @@ async function hub(hostId: string): Promise<Hub> {
   const sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
   const tokens = new TokenService(db);
   const token = tokens.issue("phone").token;
-  const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, hostId });
+  const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, hostId, projectRoots });
   await app.listen({ port: 0, host: "127.0.0.1" });
   return { app, url: `http://127.0.0.1:${(app.server.address() as { port: number }).port}`, token, sessions, dir };
 }
@@ -129,5 +130,44 @@ describe("fleet routing (T6.4, ADR-0017)", () => {
     expect(res.body).toMatchObject({ hostId: "gpubox" });
     expect(Date.now() - t0).toBeLessThan(11_000);
     await rm(other.dir, { recursive: true, force: true });
+  });
+});
+
+describe("Fleet-Projektanlage (BUG-0188)", () => {
+  let home: Hub;
+  let peer: Hub;
+  let homeProjects: string;
+  let peerProjects: string;
+
+  beforeAll(async () => {
+    homeProjects = await mkdtemp(join(tmpdir(), "ancientvoid-188-home-"));
+    peerProjects = await mkdtemp(join(tmpdir(), "ancientvoid-188-peer-"));
+    home = await hub("workstation", [homeProjects]);
+    peer = await hub("home-server", [peerProjects]);
+    const invite = await call<{ code: string }>(peer, "/api/fleet/invites", { body: {} });
+    const paired = await call(home, "/api/fleet/peers", { body: { url: peer.url, code: invite.body.code } });
+    expect(paired.status).toBe(201);
+  });
+
+  afterAll(async () => {
+    for (const h of [home, peer]) {
+      await h.sessions.shutdown().catch(() => undefined);
+      await h.app.close().catch(() => undefined);
+      await rm(h.dir, { recursive: true, force: true });
+    }
+    for (const d of [homeProjects, peerProjects]) await rm(d, { recursive: true, force: true });
+  });
+
+  it("legt ein Projekt über den Proxy auf dem adressierten Host an, nicht auf dem heimischen", async () => {
+    const res = await call<{ ok: boolean; created: boolean; project: { path: string } }>(home, "/api/hosts/home-server/projects", {
+      body: { name: "fern-projekt" },
+    });
+    // Vor dem Fix: Der Peer verneint das POST als fleet-Aktor (Policy-Lücke,
+    // „Nicht erlaubt für fleet:workstation") und der Proxy meldet 502.
+    expect(res.status).toBe(200);
+    expect(res.body.created).toBe(true);
+    expect(res.body.project.path).toContain(peerProjects);
+    expect(existsSync(join(peerProjects, "fern-projekt", ".git"))).toBe(true);
+    expect(existsSync(join(homeProjects, "fern-projekt"))).toBe(false);
   });
 });

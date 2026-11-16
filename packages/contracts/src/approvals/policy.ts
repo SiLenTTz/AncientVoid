@@ -60,6 +60,10 @@ export const POLICY_OPERATIONS = [
   "tokens.manage",
   "fleet.manage",
   "fleet.unpair",
+  /** BUG-0188 (T-PJ1): Projektordner mit git init in den projectRoots dieses
+   * Hosts anlegen — das Gerät des Menschen, auch über seinen Heim-Hub
+   * (ADR-0017 führt „Projekte" in der Positivliste); Agenten nie. */
+  "projects.create",
   "skills.write",
   "tools.ask",
   "attachments.upload",
@@ -120,6 +124,9 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "fleet.manage": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** A paired home hub removes its own pairing (ADR-0017). */
   "fleet.unpair": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
+  /** BUG-0188 (T-PJ1): git init in den projectRoots dieses Hosts — Mensch
+   * oder Fleet-Handy (ADR-0017 Positivliste „Projekte"); Agenten nie. */
+  "projects.create": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   "skills.write": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** T7.2: a provider asks before a tool runs — the bridge's only job. */
   "tools.ask": { human: "deny", fleet: "deny", agent: "deny", bridge: "allow", companion: "deny", display: "deny" },

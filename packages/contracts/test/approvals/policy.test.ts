@@ -88,3 +88,13 @@ describe("policy table — prompt cost loop (BUG-0110)", () => {
     expect(policyFor("prompt.enhance", "fleet:home")).toBe("allow");
   });
 });
+
+describe("policy table — Projektanlage über die Flotte (BUG-0188)", () => {
+  it("projects.create gehört dem Menschen und seinem Fleet-Handy — niemand sonst", () => {
+    expect(policyFor("projects.create", "pixel-9")).toBe("allow");
+    expect(policyFor("projects.create", "fleet:home")).toBe("allow");
+    for (const label of ["agent:mcp", "bridge:s1", "display:nyx", "companion:pc"]) {
+      expect(policyFor("projects.create", label)).toBe("deny");
+    }
+  });
+});
