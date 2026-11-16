@@ -21,9 +21,34 @@ describe("acp capabilities().commands — maki-Brücke (bridgeCommands)", () => 
     }
   });
 
-  it("andere Presets bleiben unberührt (copilot ja, opencode nein)", () => {
+  it("andere Presets bleiben unberührt (copilot ja, maki-ohne-Flag nein)", () => {
     expect(createAdapter({ preset: "copilot" }).capabilities().commands?.map((c) => c.name)).toEqual(["/compact", "/usage"]);
-    expect(createAdapter({ preset: "opencode" }).capabilities().commands).toBeUndefined();
     expect(createAdapter({ preset: "maki", bridgeCommands: false }).capabilities().commands).toBeUndefined();
+  });
+});
+
+/** BUG-0189: opencode führt advertised Commands im getriebenen ACP-Modus als
+ * Prompt-Text aus — live belegt 17.11.2026 gegen opencode 2.1.4: /compact
+ * lief als Command (compaction started→completed, reason "manual", kein
+ * Modellturn), /init und /review advertised über dieselbe Registry. */
+describe("acp capabilities().commands — preset opencode (BUG-0189)", () => {
+  it("deklariert genau die belegten Commands, wohlgeformt", () => {
+    const caps = createAdapter({ preset: "opencode" }).capabilities();
+    const names = (caps.commands ?? []).map((c) => c.name);
+    expect(names).toEqual(["/init", "/review", "/compact"]);
+    for (const c of caps.commands ?? []) {
+      expect(c.scope).toBe("both");
+      expect(c.description.length).toBeGreaterThan(3);
+      expect(c.name).toMatch(/^\/[a-z0-9-]+$/);
+    }
+  });
+
+  it("/new ist kein Agent-Command von opencode — wird nie deklariert", () => {
+    const names = createAdapter({ preset: "opencode" }).capabilities().commands?.map((c) => c.name) ?? [];
+    expect(names).not.toContain("/new");
+  });
+
+  it("custom command ohne Preset deklariert weiter nichts (unbekannter Harness)", () => {
+    expect(createAdapter({ command: ["opencode"], env: {} }).capabilities().commands).toBeUndefined();
   });
 });

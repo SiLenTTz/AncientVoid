@@ -237,7 +237,8 @@ wurde; Picker-Commands nie. Der Testkit prüft die Form. Aktueller Stand:
 | acp copilot | /compact, /usage (both) | documented (ACP-Server führt Built-ins als Prompt-Text) |
 | acp omp | /new, /compact (both) | documented (Internals: Dispatch auch im ACP-Modus) |
 | dummy | /compact (both) | Testdouble fürs Testkit/E2E |
-| opencode, codex, cursor, pi, hermes, acp dsh | — (nichts deklariert) | kein getriebener Beleg — Verifikation T25.6; PWA zeigt „keine /Commands" |
+| codex, cursor, pi, hermes, acp dsh | — (nichts deklariert) | kein getriebener Beleg — Verifikation T25.6; PWA zeigt „keine /Commands" (dsh: Probe am fehlenden Key gescheitert, BUG-0189) |
+| acp opencode | /init, /review, /compact (both) | **live geprüft 17.11.2026** ([BUG-0189](../bugs/bug-0189-slash-commands-nicht-bei-allen-anbietern.md)): opencode 2.1.4 advertised /init,/review,/compact per `available_commands_update`; „/compact" als Prompt-Text lief als Command (`_meta.opencode/compaction` started→completed, reason „manual", kein Modellturn); ACP-Spec definiert Command-Ausführung als Command-Text im normalen Prompt. „/new" ist opencodes Client-Command, kein Agent-Command → nie deklarierbar |
 | acp maki | nur mit `bridgeCommands: true` | **live geprüft 2026-10-29**: nativ hat maki 25 Built-ins, aber `-p`/`maki acp` senden "/…" als Chat-Text (Stub-Beweis, [Analyse-Nachtrag](slash-commands-analyse-2026-10-29.md)). Mit installierter init.lua-Brücke + `bridgeCommands: true` in der Registration: /compact, /new, /rename (beide Scopes); ein ausgeführter Command endet als `refusal` → Adapter-Event „über die Brücke ausgeführt". Ohne Flag: nichts deklariert (fail loud) |
 
 ## Skill-/Agent-Übergabe (`SessionSpec.args`, ADR-0005)

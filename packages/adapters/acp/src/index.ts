@@ -88,8 +88,16 @@ export const ACP_PRESETS = {
  * only where the harness documents it — copilot's ACP server executes
  * built-in slash commands from a text block (docs.github.com …/acp-server,
  * picker commands excluded), omp dispatches its built-in registry in ACP
- * mode too (slash-command-internals.md). opencode/dsh/maki: no driven-mode
- * evidence yet → nothing declared, the PWA says so (fail loud, T25.6). */
+ * mode too (slash-command-internals.md). opencode: live verified
+ * 17.11.2026 against 2.1.4 (BUG-0189) — "/compact" as prompt text ran as a
+ * command (session_info_update _meta.opencode/compaction "started"→
+ * "completed", reason "manual"; no model turn about the word), and the
+ * agent advertises /init, /review, /compact via available_commands_update;
+ * the ACP spec defines command invocation as command text inside a regular
+ * prompt (agentclientprotocol.com/protocol/v1/slash-commands). "/new" is
+ * opencode's own client-side command, no agent command — never declarable.
+ * dsh/maki: no driven-mode evidence yet → nothing declared, the PWA says
+ * so (fail loud, T25.6). */
 const ACP_PRESET_COMMANDS: Record<string, readonly SlashCommand[]> = {
   copilot: [
     { name: "/compact", description: "Verlauf komprimieren", scope: "both" },
@@ -98,6 +106,11 @@ const ACP_PRESET_COMMANDS: Record<string, readonly SlashCommand[]> = {
   omp: [
     { name: "/new", description: "Neue Session mit frischem Kontext", scope: "both" },
     { name: "/compact", description: "Kontext komprimieren, optional mit Anleitung", scope: "both" },
+  ],
+  opencode: [
+    { name: "/init", description: "Geführtes AGENTS.md-Setup starten", scope: "both" },
+    { name: "/review", description: "Änderungen reviewen (commit|branch|pr, sonst uncommitted)", scope: "both" },
+    { name: "/compact", description: "Session komprimieren", scope: "both" },
   ],
 };
 
