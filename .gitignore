@@ -44,3 +44,5 @@ test-results-phone/
 
 # Node --report-on-fatalerror Dumps
 report.*.json
+apps/pwa/dist-e2e/
+apps/pwa/dist-guide/
