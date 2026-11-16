@@ -152,11 +152,12 @@ const DOC_KIND_LINE = /^\*\*Art:\*\*\s*(.+?)\s*$/;
 export const DOC_INDEX = "docs/uebersicht.md";
 
 function livingDocs(files) {
-  // EPIC-P62 T62.1: docs/guide/ und docs/videos/ sind lebende Doku —
-  // dieselben Diátaxis-/Index-Pflichten wie die flachen docs/*.md.
+  // EPIC-P62 T62.1: docs/guide/ ist lebende Doku (Art + Index wie flache
+  // docs/*.md). docs/videos/ sind Clip-Skripte — nur Zeilen-Budget, kein
+  // Index (sonst bläht jede Episode die Übersicht auf).
   return files.filter(
     (f) =>
-      (/^docs\/[^/]+\.md$/.test(f) || /^docs\/(guide|videos)\/[^/]+\.md$/.test(f)) &&
+      (/^docs\/[^/]+\.md$/.test(f) || /^docs\/guide\/[^/]+\.md$/.test(f)) &&
       !DATED_NAME.test(f.slice(5).replace(/\.md$/, "")),
   );
 }

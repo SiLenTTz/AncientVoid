@@ -59,3 +59,20 @@ Der OCR-Pass matcht ausschließlich Token-Formen mit festen Präfixen
 (`ghp_`, `github_pat_`, `sk-`, `glpat-`, `avt_`, `AKIA…`, Private-Key-Blöcke)
 — dieselbe Philosophie wie `check-secrets.mjs`. Ein False-Positive-Regen
 erzeugt `--no-verify`-Reflexe; lieber wenige, harte Treffer.
+
+## Clip-Skripte (EPIC-P62 T62.5)
+
+Reihenfolge je Clip: Skript-Review → Seed-Szene → Aufnahme → Schnitt ≤ 180 s
+→ Publish-Checkliste. Schablone: [`_template.md`](videos/_template.md).
+
+1. [`01-pairing-and-first-session.md`](videos/01-pairing-and-first-session.md)
+2. [`02-monitor-from-the-phone.md`](videos/02-monitor-from-the-phone.md)
+3. [`03-steering-answer-stop-resume.md`](videos/03-steering-answer-stop-resume.md)
+4. [`04-approvals-answer-from-anywhere.md`](videos/04-approvals-answer-from-anywhere.md)
+5. [`05-agent-teams-plan-and-gates.md`](videos/05-agent-teams-plan-and-gates.md)
+6. [`06-pc-workspace-four-tiles.md`](videos/06-pc-workspace-four-tiles.md)
+7. [`07-discovery-take-over-stray-sessions.md`](videos/07-discovery-take-over-stray-sessions.md)
+8. [`08-code-and-files-search-anchors-diagnostics.md`](videos/08-code-and-files-search-anchors-diagnostics.md)
+
+Playlist „AncientVoid Features“ (YouTube) — Clips gelten erst mit öffentlichem
+Link als erledigt; der Link wird je Clip oben im Skript ergänzt.

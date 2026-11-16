@@ -91,17 +91,13 @@ describe("check-context — Doku-Arten (Diátaxis)", () => {
     ]);
   });
 
-  it("EPIC-P62 T62.1: docs/guide|videos/ sind lebende Doku — Art und Index pflicht", async () => {
-    await w("docs/uebersicht.md", "# Übersicht\n\n**Art:** referenz\n\nguide/gut.md guide/ohne.md videos/gut.md videos/ohne.md\n");
+  it("EPIC-P62 T62.1: docs/guide/ ist lebende Doku (Art/Index) — docs/videos/ nur Budget", async () => {
+    await w("docs/uebersicht.md", "# Übersicht\n\n**Art:** referenz\n\nguide/gut.md guide/ohne.md videos/egal.md\n");
     await w("docs/guide/gut.md", "# a\n\n**Art:** referenz\n");
     await w("docs/guide/ohne.md", "# b\n");
-    await w("docs/videos/gut.md", "# c\n\n**Art:** how-to\n");
-    await w("docs/videos/ohne.md", "# d\n");
+    await w("docs/videos/egal.md", "# c\n");
     const findings = checkDocKind(dir, walk(dir, ".", []));
-    expect(findings.map((f) => `${f.rule} ${f.file}`)).toEqual([
-      "doc-kind docs/guide/ohne.md",
-      "doc-kind docs/videos/ohne.md",
-    ]);
+    expect(findings.map((f) => `${f.rule} ${f.file}`)).toEqual(["doc-kind docs/guide/ohne.md"]);
   });
   it("ohne Übersichtsseite schlägt doc-index an", async () => {
     await w("docs/gut.md", "# a\n\n**Art:** how-to\n");
