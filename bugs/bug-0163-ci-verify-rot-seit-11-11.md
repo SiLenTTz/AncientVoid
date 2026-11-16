@@ -86,3 +86,21 @@ Auf einem macOS-Host mit Endpoint-Scanner (~12 ms je fsync) läuft der
 k8-Test in der main-Fassung weiterhin ins 120-s-Timeout (15.11.: 1 von 2239
 rot) — Umgebung, kein Produktfehler; eine fsync-abhängige Zeitbudget-Skalierung
 wäre der nächste Schritt.
+
+## Nachtrag 16.11.2026 (GitHub-gehostete Runner)
+
+Erster verify-Lauf auf GitHub (PR #2, Run 43833945447): tmux-, setup- und
+steer-wait-Tests aus dem ursprünglichen Quintett sind **grün** — die
+Fixes vom 15.11. haben gehalten. Rot bleiben:
+
+- `automations/k8.test.ts` „128 Pläne im Minutentakt …" — wieder
+  120-s-Timeout (BUG-0163-Kernbefund, Hardware-Budget).
+- `fleet/fleet-routing.test.ts` „starts, reads and steers …" — **kein**
+  Timeout, sondern ein Dedup-Race: 2 `user`-Events statt 1 → eigener Bug
+  [BUG-0168](bug-0168-fleet-steer-dedup-race-auf-langsamer-hardware.md).
+
+Nutzerentscheid 16.11.2026: Tests, die gehostete Runner nicht
+aussagekräftig fahren können, werden dort **sichtbar geskippt**
+(`AV_HOSTED_RUNNER=1` in `ci.yml`, `it.skipIf`) und bleiben lokal im Gate
+verbindlich. Status bleibt **in-progress**, bis eine grüne
+main-Pipeline den Umfang belegt.
