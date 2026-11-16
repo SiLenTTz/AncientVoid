@@ -20,7 +20,7 @@
   "dependencies": {
     "@fastify/static": "^10.1.4",
     "@fastify/websocket": "^11.0.1",
-    "@simplewebauthn/server": "^14.0.2",
+    "@simplewebauthn/server": "^14.1.0",
     "@ancientvoid/adapter-dummy": "0.1.0",
     "@ancientvoid/contracts": "0.1.0",
     "@ancientvoid/core": "0.1.0",
