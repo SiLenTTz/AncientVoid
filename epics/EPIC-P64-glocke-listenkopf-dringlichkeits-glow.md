@@ -6,14 +6,18 @@ Quelle: Nutzerauftrag vom 17.11.2026 — die Glocke liege am PC über diversen
 UI-Elementen; sie soll fest oben rechts in der Übersichtsliste sitzen,
 symmetrisch, größer als umliegende Icons/Texte, und pulsend glühen, solange
 Meldungen offen sind: rot für Fehler, gelb für offene Fragen/Aktionen, grün
-für beendete Läufe.
+für beendete Läufe. Zudem (Nachtrag, gleicher Auftrag): das
+Benachrichtigungs-Panel mit der Liste soll am PC sauber **über den
+Sessions** — an der Glocke verankert — liegen und nicht mitten im Bild.
 
 ## 1. Ziel
 
 Die Glocke ist auf dem PC kein schwebendes Overlay mehr, sondern ein
 verankerter Teil der Übersichtsliste. Sie sticht bewusst heraus (größer als
 die umliegenden Icons und Texte) und signalisiert ohne Blick in das Panel
-die höchste offene Dringlichkeit:
+die höchste offene Dringlichkeit. Das Panel mit der Meldungsliste liegt in
+**jedem** Layoutzustand sauber an der Glocke verankert über dem Inhalt —
+nie mittig im Bild:
 
 - **rot (`--err`):** mindestens eine ungelesene Fehlermeldung,
 - **gelb (`--warn`):** mindestens eine offene Frage/Freigabe, die auf den
@@ -50,6 +54,11 @@ reines CSS, offline unverändert).
 - Handy (schmale Layouts) und PC mit zugeklappter Liste: Glocke bleibt wie
   heute in der Fensterecke (EPIC-P51 T51.4-Entscheidung) — gleiche rechte
   obere Ecke, kein neues Muskelgedächtnis nötig.
+- **Panel-Anker = Glocken-Anker in jedem Layoutzustand** (Befund und Fix
+  siehe 3.5): Das Panel schwebt nie mittig im Bild, sondern hängt an der
+  Glocke — auch im 700–1279-px-Bereich (`tablet-split`), wo heute nur die
+  Glocke eine Ausnahme-Regel hat, das Panel aber nach der 680-px-Spalten-
+  Formel mitten über den Sessions landet.
 
 **Out:**
 
@@ -107,6 +116,19 @@ type Urgency = "error" | "action" | "done" | null;
 - Symmetrie-Nachweis per E2E: `boundingBox()` von Glocke und Kopfzeile —
   rechter Außenabstand Glocke = linker Außenabstand `.overview-switch`.
 
+### 3.5 Panel-Verankerung (Befund vom 17.11.2026)
+
+`14-notifications.css` positioniert `.notif-panel` fest mit der Formel
+`right: max(8px, calc((100vw / --ui-zoom - 680px)/2 + 8px))`; nur
+`.notif-panel.corner` (PC ab 1280 px) und die Glocke haben Eck-Ausnahmen —
+`41-tablet.css` korrigiert **nur die Glocke** für `tablet-split`
+(700–1279 px, darunter auch PC-Fenster): Dort hängt die Glocke am
+Fensterrand, das Panel rechnet aber weiter mit der 680-px-Formel und
+schwebt mitten über den Sessions. Fix: eine gemeinsame Anker-Größe (z. B.
+`--notif-anchor-right` auf `body`, von der Glocke gesetzt/vererbt), die
+Glocke und Panel in **jedem** Layoutzustand teilen — Panel rechtsbündig
+unter der Glocke (gleiche rechte Kante), Breite und `max-height` wie heute.
+
 ## 4. Aufgaben (Checkliste T64.m)
 
 - [ ] **T64.1** `urgencyOf()` als reine Funktion (Notification-Bestand,
@@ -121,7 +143,11 @@ type Urgency = "error" | "action" | "done" | null;
   Symmetrie, Entfall der überflüssigen Padding-Workarounds); Handy und
   zugeklappte Liste unverändert. E2E: Position/Symmetrie/Größe per
   `boundingBox()`. Messlatten: K2, AC-P43-4.
-- [ ] **T64.5** E2E `notifications-glow.spec.ts`: Zustände rot/gelb/grün/
+- [ ] **T64.5** Panel-Anker gemeinsame Quelle mit der Glocke (3.5): eine
+  Anker-Größe für alle Layoutzustände (schmal/wide/tablet-split), Panel
+  rechtsbündig unter der Glocke, nie mittig; `41-tablet.css`-Lücke
+  geschlossen. E2E in allen drei Zuständen. Messlatte: K2.
+- [ ] **T64.6** E2E `notifications-glow.spec.ts`: Zustände rot/gelb/grün/
   aus (auch reduced-motion emuliert), Glow verschwindet nach dem
   Panel-Öffnen; Screenshot-Vergleich Dark/Light; Eintrag
   `docs/funktionsinventar.md`.
@@ -141,6 +167,10 @@ type Urgency = "error" | "action" | "done" | null;
   (Glow-Animation verursacht keinen Frame-Lag im Session-Tail).
 - **AC-P64-6:** Handy und PC-mit-zugeklappter-Liste unverändert
   (bestehende Specs grün; keine Regression der P51-Entscheidung).
+- **AC-P64-7:** Das Panel liegt in allen drei Layoutzuständen (schmal/
+  700–1279 px/≥1280 px) rechtsbündig unterhalb der Glocke über dem
+  Inhalt — Horizontalposition der Panel-Kante = Glocken-Kante, nie
+  zentriert; Beleg: E2E-`boundingBox()` je Zustand.
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 

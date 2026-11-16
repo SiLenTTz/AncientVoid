@@ -10,9 +10,12 @@ nutzen, soll jede Statusänderung hörbar sein: ein Sound je Kategorie.
 AncientVoid ist ohne VoidWarden akustisch nutzbar: Wer die PWA im
 Hintergrund-Tab oder beiseitegelegt offen hat, hört, **dass** sich etwas
 getan hat — und **was**: Fehler, offene Frage/Freigabe, beendeter Lauf,
-Info. Sounds sind pro Gerät konfigurierbar (an/aus je Kategorie, Lautstärke)
-und funktionieren offline (K10). Sie sind bewusst Teil der PWA, nicht des
-Hubs: Der gleiche Mechanismus gilt für den eigenen Hub und Fleet-Peers.
+Info. Jeder Status hat einen **eigenen Sound**, der in den Einstellungen
+aus mehreren Varianten wählbar und je Kategorie an/aus schaltbar ist; ein
+Lautsprecher-Knopf im Benachrichtigungs-Panel schaltet Sounds schnell
+stumm/laut. Sounds funktionieren offline (K10). Sie sind bewusst Teil der
+PWA, nicht des Hubs: Der gleiche Mechanismus gilt für den eigenen Hub und
+Fleet-Peers.
 
 Messlatten: K10 (Sounds offline, kein Netz-Abruf), K2 (Audio-Auslösung
 verursacht keinen Frame-Lag im Session-Tail).
@@ -23,14 +26,21 @@ verursacht keinen Frame-Lag im Session-Tail).
 
 - `shared/audio.ts`: kleiner WebAudio-Spieler (AudioContext, Unlock nach
   erster Nutzer-Geste wegen Autoplay-Policy, Lautstärke, Master-Schalter).
-- Klangkatalog als **Synthese** (Oszillator/Hüllkurve, keine Assets):
-  `error` (tief, zweifach), `action` (offene Frage/Freigabe, mittig),
-  `done` (Lauf beendet, aufsteigend), `info` (kurz, default aus).
+- Klangkatalog als **Synthese** (Oszillator/Hüllkurve, keine Assets) mit
+  **mehreren Varianten je Kategorie** (je 3–4 Optionen, z. B. Chime,
+  Doppelton, Blip, Gong — pro Status unterschiedlich charaktervoll):
+  `error` (tief, drängend), `action` (offene Frage/Freigabe, mittig),
+  `done` (Lauf beendet, aufsteigend), `info` (kurz).
 - Anbindung an die Notification-Pipeline (`take()`): Sound bei **neu
   ankommenden** Meldungen — nie beim Laden, nie Replay alter Meldungen.
-- Einstellungen → neuer Abschnitt „Töne“: Master, je Kategorie, Lautstärke,
-  Test-Knopf (dient zugleich als Geste zum AudioContext-Unlock);
+- Einstellungen → neuer Abschnitt „Töne“: Master-Schalter; je Kategorie
+  an/aus, **Sound-Auswahl aus den Varianten** (mit Vorschau-Play-Knopf,
+  der zugleich als Geste zum AudioContext-Unlock dient) und Lautstärke;
   Persistenz pro Gerät (`localStorage` wie Presets).
+- **Lautsprecher-Knopf im Benachrichtigungs-Panel**: Öffnet jemand das
+  Panel, schaltet ein Tipp auf das Icon die Sounds stumm oder wieder laut
+  (Master), Zustand am Icon sichtbar (durchgestrichen wenn stumm) —
+  persistiert wie die Settings, verlinkt lang auf den Töne-Abschnitt.
 - Vibration am Handy (`navigator.vibrate`) für die Kategorien
   `error`/`action`, mit demselben Schalter abschaltbar — best effort,
   kein Fehler, wo die API fehlt.
@@ -62,7 +72,7 @@ den Einstellungen ist die bewusste Geste, wenn Nutzer Sounds zuerst nach
 einem frischen Laden konfigurieren. Fehlender/gruppierter Tab:
 `visibilitychange` drosselt nichts — Hintergrund-Tabs dürfen klingen.
 
-### 3.2 Kategorie-Mapping (gleiche Taxonomie wie P64-Glow)
+### 3.2 Kategorie-Mapping und Varianten (gleiche Taxonomie wie P64-Glow)
 
 | Kategorie | Quelle | Default |
 |---|---|---|
@@ -71,8 +81,11 @@ einem frischen Laden konfigurieren. Fehlender/gruppierter Tab:
 | `done` | neue Notification `kind === "session.turn_end"` | an |
 | `info` | übrige (`level info/success/warning` ohne Pending) | aus |
 
-`done` ist der Hauptnutz (`Lauf beendet` hören, während das Handy in der
-Tasche ist); dass T8.6 seinen Toast unterdrückt, berührt den Sound nicht.
+`SOUND_OPTIONS: Record<Category, { id, label }[]>` registriert je Kategorie
+3–4 synthetisierte Varianten; gewählte Variante + an/aus + Lautstärke je
+Kategorie persistiert (`ancientvoid.sounds`). `done` ist der Hauptnutz
+(`Lauf beendet` hören, während das Handy in der Tasche ist); dass T8.6
+seinen Toast unterdrückt, berührt den Sound nicht.
 
 ### 3.3 Rate-Limit & Fleet
 
@@ -81,38 +94,52 @@ Komponentenbaum); Meldungen während des Fensters verfallen still (sie
 stehen ohnehin in Glocke/Panel). Hub-„nicht erreichbar“-Warnungen bleiben
 ohne Sound (Out) — Ausfälle hört man nicht 30-mal.
 
-### 3.4 Einstellungen
+### 3.4 Einstellungen und Panel-Knopf
 
 `features/settings/SoundSettings.tsx` neben `PushSettings.tsx`: Master-
-Schalter, je Kategorie Schalter + Lautstärke-Slider + Play-Icon
-(Vorschau), Hinweis „VoidWarden aktiv? Sounds hier abschalten“. Persistenz
+Schalter; je Kategorie Zeile mit an/aus, Varianten-Auswahl (Segmented/
+Select über `SOUND_OPTIONS`), Vorschau-Play und Lautstärke-Slider;
+Hinweis „VoidWarden aktiv? Sounds hier abschalten“. Persistenz
 `ancientvoid.sounds` (localStorage, try/catch wie Presets).
+
+Im Benachrichtigungs-Panel (`.notif-panel-head`, neben ✕): Lautsprecher-
+Icon-Knopf — Tipp schaltet den Master stumm/laut, Icon durchgestrichen
+wenn stumm, `aria-pressed` für Screenreader; Longpress/Tooltip verweist
+auf die Töne-Einstellungen.
 
 ## 4. Aufgaben (Checkliste T65.m)
 
-- [ ] **T65.1** `shared/audio.ts` (Context, Unlock, Synthese-Katalog,
-  Lautstärke, Rate-Limit) + Unit-Tests mit gemocktem AudioContext:
-  Unlock-Reihenfolge, Rate-Limit, Master-Kategorie-Logik.
+- [ ] **T65.1** `shared/audio.ts` (Context, Unlock, Synthese-Katalog mit
+  `SOUND_OPTIONS` — je Kategorie 3–4 Varianten —, Lautstärke, Rate-Limit) +
+  Unit-Tests mit gemocktem AudioContext: Unlock-Reihenfolge, Rate-Limit,
+  Master-Kategorie-Logik, Varianten-Registry vollständig (je Kategorie ≥ 3).
 - [ ] **T65.2** Anbindung an `take()` in `Notifications.tsx` (Kategorie-
-  Mapping, kein Replay beim Laden, kein Sound bei Panel-offen-Vorbelegung);
+  Mapping, gewählte Variante, kein Replay beim Laden, kein Sound bei
+  Panel-offen-Vorbelegung);
   Unit-Tests gegen das Mapping. Messlatte: K2.
-- [ ] **T65.3** `SoundSettings.tsx` (Master/Kategorie/Lautstärke/Test) +
-  Persistenz + Verkabelung in `SettingsPage.tsx`.
-- [ ] **T65.4** Vibration (`error`/`action`, best effort) am Handy hinter
-  demselben Schalter. Messlatte: K10 (alles lokal, kein Netz).
-- [ ] **T65.5** E2E `sounds.spec.ts`: Settings-Interaktion, Spy auf
+- [ ] **T65.3** `SoundSettings.tsx` (Master; je Kategorie an/aus,
+  Varianten-Auswahl mit Vorschau, Lautstärke) + Persistenz + Verkabelung
+  in `SettingsPage.tsx`.
+- [ ] **T65.4** Lautsprecher-Knopf im Benachrichtigungs-Panel (Master
+  stumm/laut, Icon-Zustand, `aria-pressed`, Persistenz wie Settings) und
+  Vibration (`error`/`action`, best effort) hinter demselben Master.
+  Messlatte: K10 (alles lokal, kein Netz).
+- [ ] **T65.5** E2E `sounds.spec.ts`: Settings-Interaktion inkl.
+  Varianten-Wechsel, Panel-Knopf schaltet stumm/laut, Spy auf
   AudioContext (Playwright hört nicht — Assert der Aufrufe), Sound bleibt
   nach Reload aus, wenn ausgeschaltet; Eintrag `docs/funktionsinventar.md`.
 - [ ] **T65.6** Abnahme: PC-Hintergrund-Tab, Handy-Bildschirm-aus, offline
-  (Flugmodus im lokalen Netz); Klangbild-Nachweis beim Nutzer (Synthese-
+  (Flugmodus im lokalen Netz); Klangbild-Nachweis beim Nutzer über die
+  Varianten-Auswahl (Synthese-
   katalog gefällt oder Asset-Fallback-Task).
 
 ## 5. Acceptance Criteria (AC-P65-k)
 
 - **AC-P65-1:** Neue Meldungen lösen den Kategorie-Sound aus (Unit + E2E-
   Spy-Beleg); Laden/Reload und Hub-Restart replays nichts.
-- **AC-P65-2:** Einstellungen steuern Master/Kategorie/Lautstärke, überleben
-  Reload und Offline-Start (K10); Test-Knopf entsperrt den Context ohne
+- **AC-P65-2:** Einstellungen steuern Master/Kategorie/Varianten-Auswahl/
+  Lautstärke (je Kategorie ≥ 3 wählbare Varianten mit Vorschau), überleben
+  Reload und Offline-Start (K10); Vorschau-Knopf entsperrt den Context ohne
   vorherige andere Interaktion.
 - **AC-P65-3:** Rate-Limit nachweisbar (n Sounds bei n≥10 gleichzeitigen
   Meldungen einer Kategorie in 10 s → 1).
@@ -122,6 +149,9 @@ Schalter, je Kategorie Schalter + Lautstärke-Slider + Play-Icon
   abgeschaltet mit dem Sound; ohne Vibration-API kein Fehler.
 - **AC-P65-6:** Funktionsinventar-Eintrag; VoidWarden-Hinweis in den
   Einstellungen sichtbar.
+- **AC-P65-7:** Der Lautsprecher-Knopf im Benachrichtigungs-Panel schaltet
+  den Master stumm/laut (E2E), zeigt den Zustand am Icon (`aria-pressed`)
+  und persistiert ihn über Reload.
 
 ## 6. Premortem (Failure-Modi + Mitigation)
 
@@ -131,9 +161,10 @@ Schalter, je Kategorie Schalter + Lautstärke-Slider + Play-Icon
 2. **Ton-Flut bei Fleet/Parallelsessions** → Rate-Limit je Kategorie
    (3.3), Meldungen verfallen nicht (Glocke), Loadtest-Verhalten im
    Unit-Test.
-3. **Synthetische Töne klingen billig und werden abgelehnt** → T65.6
-   Abnahme vor Epic-Abschluss; Asset-Fallback als eigener Task mit selbst
-   erzeugten WAVs (kein Lizenzrisiko, kein CDN — K10 bleibt).
+3. **Synthetische Töne klingen billig und werden abgelehnt** → je Kategorie
+   3–4 Varianten auswählbar (Nutzer wählt, was gefällt); T65.6 Abnahme vor
+   Epic-Abschluss; Asset-Fallback als eigener Task mit selbst erzeugten
+   WAVs (kein Lizenzrisiko, kein CDN — K10 bleibt).
 4. **Hintergrund-Tab-Throttling verzögert Poll und damit den Sound** →
    Poll-Intervall existiert (4 s) und bleibt; Verhalten im
    Abnahme-Task T65.6 real am Handy gemessen, nicht angenommen.

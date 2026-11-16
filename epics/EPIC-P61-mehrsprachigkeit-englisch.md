@@ -6,9 +6,11 @@
 Quelle: Nutzerauftrag vom 15.11.2026 im Zuge der Veröffentlichung
 ([Audit](../docs/2026-11-15_public-release-audit.md), Abschnitt „Erster Eindruck"):
 „die ganze App auf Englisch oder mit Spracheinstellung".
-**Aktualisiert 17.11.2026** (Nutzerauftrag): Default ist fest **Englisch**;
-Deutsch über die Einstellungen; die Sprachliste ist modular, damit weitere
-Sprachen ohne Umbau folgen können.
+**Aktualisiert 17.11.2026** (Nutzerauftrag): Default ist die **Browsersprache**,
+wenn ein Katalog dazu passt (sonst Englisch); manuell in den Einstellungen
+wählbar und pro Gerät persistierbar; die Sprachliste ist modular, damit
+weitere Sprachen ohne Umbau folgen können — der Browsersprach-Match läuft
+dann automatisch mit.
 
 ## 1. Ziel
 
@@ -16,8 +18,10 @@ Wer AncientVoid öffentlich findet, kann es ohne Deutschkenntnisse bedienen.
 Jede für Menschen bestimmte Oberfläche — PWA, Hub-Meldungen (Notifications,
 Push, API-Fehlertexte), `hubctl`-Ausgabe, Sprachsteuerung — erscheint in der
 gewählten Sprache **Deutsch oder Englisch**. Die Sprache ist pro Gerät
-einstellbar; **neue Installationen starten auf Englisch** (Entscheidung
-17.11.2026, zuvor offen — Deutsch bleibt einen Einstellungsschritt entfernt).
+einstellbar und persistierbar; **neue Installationen starten in der
+Browsersprache, wenn ein Katalog dazu passt, sonst auf Englisch**
+(Entscheidung 17.11.2026, zuvor offen — der Match gegen die Sprachliste
+ist Daten und gilt automatisch für jede später hinzukommende Sprache).
 Neue hart codierte UI-Texte werden vom Gate
 abgelehnt, damit der Zustand nicht zurückdriftet.
 
@@ -35,8 +39,9 @@ diese Liste, kein Aufrufort hardcodet „de/en“.
   Kataloge, `t()`-Helfer, Interpolation, Plural über `Intl.PluralRules`,
   Datums-/Zahlformat über `Intl` mit der gewählten Locale.
 - Sprachwahl in den Einstellungen, pro Gerät persistiert; **Default
-  Englisch** (17.11.2026 entschieden), „Automatisch" liest
-  `navigator.language`; `<html lang>` folgt der Wahl.
+  „Automatisch (Browsersprache)"** (17.11.2026 entschieden): Match von
+  `navigator.language` gegen `availableLanguages` (Sprachpräfix, z. B.
+  `de-AT` → `de`), ohne Treffer Englisch; `<html lang>` folgt der Wahl.
 - Migration aller PWA-Texte (134 von 178 Dateien, §3.1) nach Feature-Bereich.
 - Hub-Texte, die über die Leitung gehen: Notifications (ADR-0015),
   Web-Push-Payloads, API-Fehler mit `code` → Text im Client.
@@ -102,22 +107,23 @@ Bei ~400 Strings pro Agenten-Tag inkl. Review → 4–6 Agenten-Wochen gesamt.
 
 ### 3.3 Spracheinstellung
 
-- Einstellungen → Darstellung → „Sprache": English (Default) · Deutsch ·
-  Automatisch (Browsersprache). Persistiert pro Gerät in `localStorage`
-  (wie Presets), mit try/catch-Fallback auf **Englisch**.
-- **Default Englisch (entschieden 17.11.2026, Nutzerauftrag — löst die
+- Einstellungen → Darstellung → „Sprache": Automatisch (Browsersprache,
+  Default) · Deutsch · English. Persistiert pro Gerät in `localStorage`
+  (wie Presets), mit try/catch-Fallback auf „Automatisch".
+- **Default „Automatisch" (entschieden 17.11.2026, Nutzerauftrag — löst die
   ursprünglich offene Frage „Browsersprache oder fest Englisch?“):** Neue
-  Installationen und Bestandsgeräte ohne gesetzte Sprache starten auf
-  Englisch; „Automatisch“ bleibt als bewusste Wahlmöglichkeit erhalten,
-  ist aber nicht mehr der Anfangszustand. Der Wechsel lädt die PWA neu (deterministisch; kein Live-Re-Render aller
+  Installationen folgen der Browsersprache, wenn ein Katalog passt, sonst
+  Englisch; der Match läuft gegen die modulare Sprachliste und gilt damit
+  ohne Anpassung auch für jede später hinzugefügte Sprache. Der Wechsel lädt die PWA neu (deterministisch; kein Live-Re-Render aller
   Bäume). Offener Entwurf (Composer, Vormerkung) bleibt durch bestehende
   Draft-Persistenz erhalten — in T61.2 nachweisen.
 - Der Hub erfährt die Sprache pro Gerät über `Accept-Language` und beim
   Push-Abo (Feld `locale` am Abo, s. §3.4).
-- **Entschieden (17.11.2026, Nutzerauftrag):** Default ist fest **Englisch**
-  — neue Installationen und Bestandsgeräte ohne gesetzte Wahl starten auf
-  Englisch; „Automatisch (Browsersprache)" bleibt als optionale Wahl in
-  den Einstellungen erhalten.
+- **Entschieden (17.11.2026, Nutzerauftrag):** Default ist **„Automatisch
+  (Browsersprache)"** — der Match gegen die modulare Sprachliste geht für
+  alle (auch künftige) Sprachen gleich einfach auf; ohne Treffer startet
+  die PWA auf Englisch. Manuelle Wahl (Deutsch/English/spätere Sprachen)
+  bleibt pro Gerät persistierbar.
 
 ### 3.4 Hub-Texte über die Leitung (Contract, ADR Pflicht)
 
