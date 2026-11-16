@@ -140,7 +140,15 @@ export interface CreateProjectResult {
  */
 export async function ensureProjectDir(projectPath: string, roots: readonly string[]): Promise<{ created: boolean; path: string }> {
   const driveOrUnc = /^[a-zA-Z]:[\\/]|^\\\\/;
-  if (pathStyle() === "win32" ? !driveOrUnc.test(projectPath) : !projectPath.startsWith("/")) {
+  const absolut = pathStyle() === "win32" ? driveOrUnc.test(projectPath) : projectPath.startsWith("/");
+  if (!absolut) {
+    // Ohne konfigurierte Wurzeln ist jeder Pfad bewusst erlaubt (BUG-0153), und
+    // Treiber-Tests arbeiten mit "/tmp" — dort legen wir nichts an und prüfen
+    // nichts, das war vor dieser Kette so und soll so bleiben.
+    if (roots.length === 0) return { created: false, path: resolve(projectPath) };
+    // Mit Wurzeln wird ein laufwerkloser Pfad ("/coding") zur laufwerksrelativen
+    // Falle: er landet je nach Laufwerk des Prozesses woanders — genau der Weg,
+    // den BUG-0175 auf Windows versteckt hatte.
     throw new Error(`Projektpfad muss vollstaendig (absolut) angegeben werden: "${projectPath}" — auf Windows mit Laufwerksbuchstaben, z. B. "E:\\Coding\\projekt"`);
   }
   const target = resolve(projectPath);

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { stat, mkdtemp, mkdir, writeFile, symlink, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { discoverProjects, ensureProjectDir, isProjectPathAllowed } from "../../../src/modules/workspace/projects.ts";
 import { pathStyle } from "../../../src/platform/paths.ts";
 
@@ -187,6 +187,20 @@ describe("ensureProjectDir (BUG-0171)", () => {
   it("is idempotent on an existing folder", async () => {
     const ziel = join(root, "neu-der-ordner");
     expect((await ensureProjectDir(ziel, [root])).created).toBe(false);
+  });
+
+  it("lasst laufwerklose Pfade ohne Wurzeln unangetastet (Treiber-Praxis, BUG-0171)", async () => {
+    // Ohne konfigurierte Wurzeln ist jeder Pfad bewusst erlaubt (BUG-0153);
+    // Treiber- und Hub-Tests arbeiten mit "/tmp" bzw. relativen Namen. Hier darf
+    // nichts angelegt und nichts abgelehnt werden — sonst brechen 17 Hub-Tests.
+    const res = await ensureProjectDir("ancientordner-fehlt-absolut", []);
+    expect(res.created).toBe(false);
+    expect(await stat(resolve("ancientordner-fehlt-absolut")).then(() => true, () => false)).toBe(false);
+  });
+
+  it("rejects a drive-less path when roots are configured (Windows-Falle, BUG-0175)", async () => {
+    if (process.platform !== "win32") return;
+    await expect(ensureProjectDir("/coding/neu", [root])).rejects.toThrow(/muss vollstaendig \(absolut\)/);
   });
 
   it("refuses to build a whole tree when a parent is missing (typo-Schutz)", async () => {
