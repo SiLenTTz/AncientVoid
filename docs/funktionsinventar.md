@@ -188,7 +188,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 
 | S74 | Composer maximieren/verkleinern als Icon-Button mit mindestens 40 px Ziel | Composer → ⤢/⤡ | P43.5 T43.5-6 | spec:quellenchips.spec.ts |
 | S75 | Eigene fachliche Arbeitsnotiz auf diesem Gerät, getrennt vom Laufzeitstatus und ohne Auto-Senden | Session → Weitere Aktionen → Arbeitsnotiz (oder Schnellsuche) | P43.5 T43.5-2 | spec:quellenchips.spec.ts |
-| S76 | Installierter Stand auf diesem Gerät: Anzeigemodus, Fenster-Ausrichtung, Manifest und Worker-Stufe | Einstellungen → Geräte | BUG-0185 | spec:installations-stand.spec.ts |
+| S76 | Installierter Stand: Modus, Fenster-Ausrichtung, Winkel, Manifest, Worker-Stufe; dreht das Gerät nicht, erzwingt die App Querformat oder nennt die Abweisung | Einstellungen → Geräte | BUG-0186 | spec:installations-stand.spec.ts |
 
 ## PC-Arbeitsfläche
 

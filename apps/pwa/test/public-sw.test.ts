@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Der Service Worker liegt als fertige Datei in `public/` und läuft ohne Build — deshalb
- * prüft diese Datei die zwei Zusagen, die BUG-0185 dauerhaft zubinden sind.
+ * prüft diese Datei die zwei Zusagen, die BUG-0186 dauerhaft zubinden sind.
  */
 const sw = readFileSync(new URL("../public/sw.js", import.meta.url), "utf8");
 
-describe("Service Worker: Manifest bleibt draußen (BUG-0185)", () => {
+describe("Service Worker: Manifest bleibt draußen (BUG-0186)", () => {
   it("das Vorlade-Set enthält kein Manifest", () => {
     const shell = sw.match(/const SHELL = \[([^\]]*)\]/);
     expect(shell, "SHELL-Eintrag in sw.js gefunden").not.toBeNull();

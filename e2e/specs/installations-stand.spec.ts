@@ -2,7 +2,7 @@ import { expect, test } from "../support/fixtures.ts";
 import { dockGo } from "../support/fixtures.ts";
 
 /**
- * BUG-0185 — die installierte App dreht nicht mit, obwohl das Manifest frei ist.
+ * BUG-0186 — die installierte App dreht nicht mit, obwohl das Manifest frei ist.
  *
  * Zwei Beweise: die Oberfläche macht den Stand auf dem Gerät lesbar (Anzeigemodus,
  * Fenster-Ausrichtung, Manifest, Worker-Stufe), und der Service Worker hält kein
@@ -21,7 +21,7 @@ const manifestHolders = async (page: { evaluate: (fn: () => Promise<string[]>) =
     return found;
   });
 
-test.describe("Installierter Stand auf dem Gerät (BUG-0185)", () => {
+test.describe("Installierter Stand auf dem Gerät (BUG-0186)", () => {
   test("die Standzeilen nennen Manifest und Ausrichtung — ehrlich ohne Worker", async ({ app, hub }) => {
     await app.goto(hub.origin);
     await dockGo(app, "Einstellungen");
@@ -30,6 +30,7 @@ test.describe("Installierter Stand auf dem Gerät (BUG-0185)", () => {
     await expect(status).toContainText(/Manifest-Ausrichtung: any/);
     await expect(status).toContainText(/Anzeigemodus: Browser-Tab/);
     await expect(status).toContainText(/Fenster-Ausrichtung: (hoch|quer) · Systemmeldung: /);
+    await expect(status, "der Winkel beweißt, ob das Fenster auf ein Drehen reagiert").toContainText(/Fenster-Winkel: \d+°/);
     // Der E2E-Harness blockiert Service Worker (playwright.config.ts) — die Zeile sagt
     // das, statt eine Stufe vorzutäuschen.
     await expect(status).toContainText("Service-Worker-Cache: kein Worker antwortet");
@@ -66,5 +67,25 @@ test.describe("Installierter Stand auf dem Gerät (BUG-0185)", () => {
     await expect(status).toContainText(/Service-Worker-Cache: ancientvoid-v([6-9]|\d{2,})/);
     expect(await manifestHolders(page), "auch nach dem Settings-Besuch kein Manifest im Cache").toEqual([]);
     await ctx.close();
+  });
+
+  test("dreht sich nichts, darf die App es erzwingen — und sagt die ehrliche Antwort", async ({ app, hub }) => {
+    await app.goto(hub.origin);
+    await dockGo(app, "Einstellungen");
+    const status = app.getByTestId("install-status");
+    await expect(status.getByTestId("install-orient-landscape")).toBeVisible();
+    await expect(status.getByTestId("install-orient-auto")).toBeVisible();
+
+    await status.getByTestId("install-orient-landscape").click();
+    const result = app.getByTestId("install-orient-result");
+    await expect(result).toBeVisible();
+    // Beides ist eine gültige Antwort: durchgedreht, oder abgewiesen mit Grund. Verboten
+    // ist ein Knopf, der Erfolg meldet, während das Fenster liegen bleibt.
+    await expect(result).toContainText(/Querformat erzwungen|hält die Ausrichtung fest|screen\.orientation\.lock/);
+    await expect(status).toContainText(/Manifest-Ausrichtung: any/);
+    await expect(status).toContainText(/Fenster-Winkel: \d+°/);
+
+    await status.getByTestId("install-orient-auto").click();
+    await expect(app.getByTestId("install-orient-result")).toContainText(/Sperre gelöst|abgelehnt|screen\.orientation\.lock/);
   });
 });

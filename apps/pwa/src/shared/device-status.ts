@@ -1,9 +1,9 @@
 /**
- * BUG-0185: „Was liegt auf diesem Gerät?“ — ablesbar statt gefühlt.
+ * BUG-0186: „Was liegt auf diesem Gerät?“ — ablesbar statt gefühlt.
  *
  * Ein installiertes PWA holt sich Fenster-Ausrichtung und Start aus dem Manifest, und
  * ein Service Worker kann dieses Manifest einbetonieren. Genau das war der Fall von
- * BUG-0181/BUG-0185: Das Manifest war im Netz freigegeben, der installierte Stand blieb
+ * BUG-0181/BUG-0186: Das Manifest war im Netz freigegeben, der installierte Stand blieb
  * aber beim alten. Diese Datei sammelt die vier Tatsachen, die das beantworten:
  * Anzeigemodus, Ausrichtung des Fensters, ausgeliefertes Manifest und ob es in einem
  * Cache liegt — dazu die Cache-Version des aktiven Service Workers.
@@ -13,11 +13,15 @@ export interface DeviceStatus {
   displayMode: "installiert (eigenes Fenster)" | "Browser-Tab" | "unbekannt";
   /** `screen.orientation.type`, so wie das Fenster es sieht — „unbekannt“ ohne API. */
   windowOrientation: string;
+  /** `screen.orientation.angle` in Grad — 0/90/180/270. null ohne API.
+   * Der Winkel ist der Beweis, ob das Fenster auf ein Drehen des Geräts überhaupt
+   * reagiert (BUG-0186). */
+  windowAngle: number | null;
   /** Querformat-Urteil der Medienabfrage (das, worauf die Oberflaeche reagiert). */
   landscape: boolean;
   /** `orientation` aus dem Manifest, wie es diese App erreicht; „nicht lesbar“ bei Fehlern. */
   manifestOrientation: string;
-  /** Caches, die ein Manifest-Exemplar halten — leer ist der Sollzustand (BUG-0185). */
+  /** Caches, die ein Manifest-Exemplar halten — leer ist der Sollzustand (BUG-0186). */
   manifestCaches: string[];
   /** Cache-Version des aktiven Service Workers, null wenn keiner antwortet. */
   swCache: string | null;
@@ -37,6 +41,7 @@ export interface DeviceStatusDeps {
   fetcher?: (input: string) => Promise<ManifestFetchResult>;
   caches?: CacheStoreLike;
   orientationType?: unknown;
+  orientationAngle?: unknown;
   askServiceWorker?: () => Promise<string | null>;
 }
 
@@ -94,6 +99,7 @@ export async function gatherDeviceStatus(deps: DeviceStatusDeps = {}): Promise<D
       : "unbekannt";
 
   const orientationType = deps.orientationType ?? (typeof screen !== "undefined" ? screen.orientation?.type : undefined);
+  const orientationAngle = deps.orientationAngle ?? (typeof screen !== "undefined" ? (screen.orientation as { angle?: unknown } | undefined)?.angle : undefined);
 
   let manifestOrientation = "nicht lesbar";
   try {
@@ -113,6 +119,7 @@ export async function gatherDeviceStatus(deps: DeviceStatusDeps = {}): Promise<D
   return {
     displayMode,
     windowOrientation: typeof orientationType === "string" && orientationType ? orientationType : "unbekannt",
+    windowAngle: typeof orientationAngle === "number" && Number.isFinite(orientationAngle) ? orientationAngle : null,
     landscape: mm?.("(orientation: landscape)")?.matches === true,
     manifestOrientation,
     manifestCaches: manifestCachedIn,
@@ -140,6 +147,7 @@ export function deviceStatusLines(status: DeviceStatus): string[] {
   return [
     `Anzeigemodus: ${status.displayMode}`,
     orientationLine(status),
+    `Fenster-Winkel: ${status.windowAngle === null ? "unbekannt" : `${status.windowAngle}°`}`,
     `Manifest-Ausrichtung: ${status.manifestOrientation}`,
     cacheLine,
     `Service-Worker-Cache: ${status.swCache ?? "kein Worker antwortet"}`,

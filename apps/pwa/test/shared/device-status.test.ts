@@ -20,7 +20,7 @@ const matchMedia = (opts: { landscape?: boolean; standalone?: boolean } = {}) =>
           : false,
 });
 
-describe("installierter Stand eines Geräts (BUG-0185)", () => {
+describe("installierter Stand eines Geräts (BUG-0186)", () => {
   it("liest Modus, Ausrichtung, Manifest und Worker-Cache aus den echten Quellen", async () => {
     const status = await gatherDeviceStatus({
       matchMedia: matchMedia({}),
@@ -96,5 +96,30 @@ describe("installierter Stand eines Geräts (BUG-0185)", () => {
       askServiceWorker: async () => null,
     });
     expect(deviceStatusLines(status)).toContain("Fenster-Ausrichtung: quer · Systemmeldung: portrait-primary (passt nicht)");
+  });
+
+  it("zeigt den Winkel, damit ein Drehen des Geräts beweisbar wird", async () => {
+    const status = await gatherDeviceStatus({
+      matchMedia: matchMedia({ landscape: true }),
+      fetcher: async () => ({ ok: true, json: async () => ({ orientation: "any" }) }),
+      caches: store({}),
+      orientationType: "portrait-primary",
+      orientationAngle: 90,
+      askServiceWorker: async () => null,
+    });
+    expect(status.windowAngle).toBe(90);
+    expect(status.landscape).toBe(true);
+    expect(deviceStatusLines(status)).toContain("Fenster-Winkel: 90°");
+  });
+
+  it("lässt den Winkel unbekannt, wo es ihn nicht gibt", async () => {
+    const status = await gatherDeviceStatus({
+      matchMedia: matchMedia({}),
+      fetcher: async () => ({ ok: true, json: async () => ({ orientation: "any" }) }),
+      caches: store({}),
+      askServiceWorker: async () => null,
+    });
+    expect(status.windowAngle).toBeNull();
+    expect(deviceStatusLines(status)).toContain("Fenster-Winkel: unbekannt");
   });
 });
