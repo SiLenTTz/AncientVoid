@@ -13,6 +13,12 @@ import { AutomationService, AutomationStore, CLAIM_HISTORY_KEEP } from "../../..
  * die Zeitgrenze ist großzügig und nur ein Stolperdraht.
  */
 
+// BUG-0163: Dieser Lastfall braucht lokale CPU — auf gemieteten Runnern
+// lief er wiederholt ins Timeout (GitLab-Runner ~426 s, GitHub-Runner über
+// 120 s hinaus; lokal ~60 s). Auf gehosteter CI sichtbar geskippt, im
+// lokalen Gate Pflicht.
+const HOSTED_RUNNER = process.env.AV_HOSTED_RUNNER === "1";
+
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map(r => rm(r, { recursive: true, force: true }))); });
 async function tempRoot(): Promise<string> {
@@ -77,7 +83,7 @@ describe("Automations-Store: begrenzter Verlauf und kompaktes Journal (K8)", () 
     expect(existsSync(join(root, "snapshot.json"))).toBe(true);
   });
 
-  it("128 Pläne im Minutentakt: Claims und Journal bleiben begrenzt, der Tick wächst nicht mit der Laufzeit", async () => {
+  it.skipIf(HOSTED_RUNNER)("128 Pläne im Minutentakt: Claims und Journal bleiben begrenzt, der Tick wächst nicht mit der Laufzeit", async () => {
     const root = await tempRoot();
     const clock = { now: Date.parse(minute(0)) };
     const service = new AutomationService({
