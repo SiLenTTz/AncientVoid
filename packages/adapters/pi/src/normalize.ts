@@ -1,4 +1,5 @@
 import { providerErrorEvent, type EmittedEvent } from "@ancientvoid/contracts";
+import type { LivePump } from "./live.ts"; // ADR-0083
 
 /**
  * BUG-0065: maps `pi -p --mode json` (pi 1.4.0, docs/json.md) to events.
@@ -33,10 +34,6 @@ const IGNORED = new Set([
 
 const IGNORED_UPDATES = new Set([
   "start",
-  "text_start",
-  "text_delta",
-  "thinking_start",
-  "thinking_delta",
   "toolcall_start",
   "toolcall_delta",
   "done",
@@ -71,15 +68,31 @@ function unknown(what: string): EmittedEvent {
   return { type: "system", summary: summarize(`pi: unbekannter Stream-Typ "${what}"`), payload: { kind: "pi.unknown", what: what.slice(0, 80) } };
 }
 
-function normalizeUpdate(update: Record_): EmittedEvent[] {
+function normalizeUpdate(update: Record_, live?: LivePump): EmittedEvent[] {
   const kind = String(update.type ?? "");
   if (IGNORED_UPDATES.has(kind)) return [];
   switch (kind) {
+    // ADR-0083: Deltas sind keine dauerhaften Ereignisse, aber sie speisen die
+    // Live-Frames. Der Block (`*_end`) bleibt das einzige persistierte Ereignis.
+    case "text_start":
+      live?.begin("assistant");
+      return [];
+    case "thinking_start":
+      live?.begin("thinking");
+      return [];
+    case "text_delta":
+      live?.delta("assistant", String(update.delta ?? ""));
+      return [];
+    case "thinking_delta":
+      live?.delta("thinking", String(update.delta ?? ""));
+      return [];
     case "text_end": {
       const text = String(update.content ?? "");
+      live?.end("assistant");
       return text.trim() ? [{ type: "assistant", summary: summarize(text), payload: { text } }] : [];
     }
     case "thinking_end": {
+      live?.end("thinking");
       const text = String(update.content ?? "");
       if (!text.trim()) return [{ type: "thinking", summary: "pi hat nachgedacht — der Anbieter liefert den Text nicht", payload: { text: "", redacted: true } }];
       return [{ type: "thinking", summary: summarize(text), payload: { text } }];
@@ -96,14 +109,14 @@ function normalizeUpdate(update: Record_): EmittedEvent[] {
   }
 }
 
-function normalize(rec: Record_): EmittedEvent[] {
+function normalize(rec: Record_, live?: LivePump): EmittedEvent[] {
   const type = String(rec.type ?? "");
   if (IGNORED.has(type)) return [];
   switch (type) {
     case "session":
       return [{ type: "system", summary: "pi: Session gestartet", payload: { kind: "pi.session", piSessionId: rec.id, ...(typeof rec.id === "string" && rec.id ? { nativeSessionId: rec.id } : {}) } }];
     case "message_update":
-      return normalizeUpdate((rec.assistantMessageEvent ?? {}) as Record_);
+      return normalizeUpdate((rec.assistantMessageEvent ?? {}) as Record_, live);
     case "message_end": {
       const msg = (rec.message ?? {}) as { role?: unknown; stopReason?: unknown; errorMessage?: unknown; usage?: unknown };
       if (msg.role !== "assistant") return [];
@@ -145,8 +158,11 @@ function pick(rec: Record_, keys: string[]): Record<string, unknown> {
 }
 
 /** Line-buffered parser. Splits on LF only — pi's docs warn that readline
- * also breaks on U+2028/U+2029, which are legal inside JSON strings. */
-export function createPiStream(): { push(chunk: string): EmittedEvent[]; end(): EmittedEvent[] } {
+ * also breaks on U+2028/U+2029, which are legal inside JSON strings.
+ * `live` (ADR-0083) nimmt Deltas als transiente Frames ab; ohne Pumpe bleibt
+ * alles bei den Block-Ereignissen — dann wird nichts gestreamt, aber auch nichts
+ * vorgetäuscht. */
+export function createPiStream(live?: LivePump): { push(chunk: string): EmittedEvent[]; end(): EmittedEvent[] } {
   let buf = "";
   const line = (raw: string): EmittedEvent[] => {
     const text = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
@@ -158,7 +174,7 @@ export function createPiStream(): { push(chunk: string): EmittedEvent[]; end(): 
       return [{ type: "system", summary: "pi: Zeile ist kein JSON", payload: { kind: "pi.unparsed", raw: text.slice(0, 500) } }];
     }
     if (!rec || typeof rec !== "object" || Array.isArray(rec)) return [unknown("(kein Objekt)")];
-    return normalize(rec as Record_);
+    return normalize(rec as Record_, live);
   };
   return {
     push(chunk) {
