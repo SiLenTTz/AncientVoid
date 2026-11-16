@@ -103,6 +103,9 @@ ANCIENTVOID_TOKEN=<token> node apps/hubctl/src/cli.ts sessions
 scripts/setup-tailscale-serve.sh     # phone access via tailnet — never a public port
 ```
 
+**User guide (English, with screenshots of every page):**
+[docs/guide/README.md](docs/guide/README.md) — every surface, one section
+each, pinned by the [surface inventory](docs/guide/inventory.md).
 Next steps (German): [first 15 minutes](docs/tutorial-erste-schritte.md) ·
 [onboarding & manual setup](docs/onboarding.md) ·
 [configuration](docs/configuration.md) ·

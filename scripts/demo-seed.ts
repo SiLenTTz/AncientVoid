@@ -6,7 +6,7 @@
  * Fake-Projekte aus der Allowlist, Sessions über adapter-dummy, Fake-Hosts,
  * eine wartende Freigabe, ein Medien- und ein Automation-Beispiel.
  *
- * `npm run demo:seed [-- --port 4173] [--data <dir>]` — Standard: Port 4173,
+ * `npm run demo:seed [-- --port 4567] [--data <dir>]` — Standard: Port 4567,
  * Daten unter data/demo-hub (gitignored). Strg+C beendet.
  *
  * Der Test (scripts/demo-seed.test.mjs) ist der Maßstab: der Seed erzeugt
@@ -111,7 +111,7 @@ export async function seedDemoHub(
 }
 
 async function main() {
-  const port = Number(process.argv.includes("--port") ? process.argv[process.argv.indexOf("--port") + 1] : 4173);
+  const port = Number(process.argv.includes("--port") ? process.argv[process.argv.indexOf("--port") + 1] : 4567);
   const dataArg = process.argv.includes("--data") ? process.argv[process.argv.indexOf("--data") + 1] : null;
   const root = resolve(dataArg ?? "data/demo-hub");
   rmSync(join(root, "events"), { recursive: true, force: true });
@@ -129,7 +129,7 @@ async function main() {
   const fleet = new FleetStore(db, tokens);
   const attachments = new AttachmentStore(db, join(root, "attachments"));
   const media = new MediaJobs(db, { dir: join(root, "media"), attachments, log: () => undefined });
-  const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, hostId: "demo-hub", fleet, media: { media, capabilities: { stt: false, summary: false, vision: false } } });
+  const app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, hostId: "demo-hub", fleet, media: { media, capabilities: { stt: false, summary: false, vision: false } }, pwaDir: resolve("apps/pwa/dist") });
 
   await seedDemoHub(app, token, fleet, sessions, workspace);
   await app.listen({ port, host: "127.0.0.1" });

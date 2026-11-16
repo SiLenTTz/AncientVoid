@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -83,5 +84,35 @@ describe("Guide-Inventar (EPIC-P62 T62.1, AC-P62-1)", () => {
       expect(spec, `letzte Zelle sollte ein Spec-Kürzel sein: "${row}"`).toMatch(/^[a-z0-9-]+$/);
       expect(existsSync(join(repoRoot, "e2e/specs", `${spec}.spec.ts`)), `e2e/specs/${spec}.spec.ts fehlt (genannt in: "${row}")`).toBe(true);
     }
+  });
+
+  it("AC-P62-1/2: jede Inventar-ID hat eine Guide-Sektion — und umgekehrt", () => {
+    const guide = readFileSync(join(repoRoot, "docs/guide/README.md"), "utf8");
+    const sections = new Set([...guide.matchAll(/^### (page|view|layer|feature):([a-z-]+)\b/gm)].map((m) => `${m[1]}:${m[2]}`));
+    for (const prefix of ["page", "view", "layer", "feature"]) {
+      for (const id of inventoryIds(prefix).keys()) {
+        expect(sections.has(`${prefix}:${id}`), `Guide-Sektion für "${prefix}:${id}" fehlt (docs/guide/README.md)`).toBe(true);
+      }
+      const known = new Set(inventoryIds(prefix).keys());
+      for (const s of sections) {
+        if (s.startsWith(`${prefix}:`)) expect(known.has(s.slice(prefix.length + 1)), `Guide-Sektion "${s}" ohne Inventar-Eintrag`).toBe(true);
+      }
+    }
+  });
+
+  it("AC-P62-2: Screenshot-Hashes stimmen, jedes Asset ist im Guide mit alt-Text", () => {
+    const hashesPath = join(repoRoot, "docs/guide/assets/hashes.json");
+    expect(existsSync(hashesPath), "docs/guide/assets/hashes.json fehlt — npm run guide:shots").toBe(true);
+    const hashes = JSON.parse(readFileSync(hashesPath, "utf8")) as Record<string, string>;
+    const guide = readFileSync(join(repoRoot, "docs/guide/README.md"), "utf8");
+    const onDisk = readdirSync(join(repoRoot, "docs/guide/assets")).filter((f) => f.endsWith(".png"));
+    expect(onDisk.length).toBeGreaterThanOrEqual(12);
+    for (const file of onDisk) {
+      expect(hashes[file], `${file} fehlt in hashes.json — neu erzeugen (npm run guide:shots)`).toBeDefined();
+      const actual = createHash("sha256").update(readFileSync(join(repoRoot, "docs/guide/assets", file))).digest("hex");
+      expect(actual, `${file} weicht von hashes.json ab — manuell geändert statt neu erzeugt?`).toBe(hashes[file]);
+      expect(guide.includes(`assets/${file}`), `${file} ist im Guide nicht eingebunden (alt-Text nötig)`).toBe(true);
+    }
+    for (const file of Object.keys(hashes)) expect(onDisk.includes(file), `hashes.json nennt ${file}, Datei fehlt`).toBe(true);
   });
 });

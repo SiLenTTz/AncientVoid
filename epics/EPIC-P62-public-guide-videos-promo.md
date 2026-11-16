@@ -195,7 +195,7 @@ User-Content.
       README der Checks (`docs/ci-gate-inventar.md`) nachziehen.
 - [x] **T62.3 Demo-Seed** — `scripts/demo-seed.ts` + Allowlist +
       `scripts/demo-seed.test.mjs`; nutzbar via `npm run demo:seed`.
-- [ ] **T62.4 Englische Anleitung + Screenshots** — Sektion je Inventareintrag
+- [x] **T62.4 Englische Anleitung + Screenshots** — Sektion je Inventareintrag
       (EN, alt-Texte, Querverweise zwischen Sektionen und Specs);
       `scripts/guide-shots.mjs` (Playwright → `docs/guide/assets/`,
       Metadata-strip, Hash-Datei); CI-Abgleich Inventar ↔ Sektionen ↔
