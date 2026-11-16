@@ -197,36 +197,10 @@
   word-break: break-all;
 }
 
-/* BUG-0053: im Querformat (niedriges Fenster) füllte das Dock fast den ganzen Bildschirm — vom Verlauf blieben
- * ~120 von 368 px. Hier nur das Nötigste: Modus/Modell, Eingabe, Senden, Tabs. Vorlagen, Filterchips und
- * Statuszeilen kommen im Hochformat zurück. */
-@media (max-height: 520px) {
-  .dock-stack .reply-templates,
-  .dock-stack .dock-filter-bar,
-  .dock-stack .draft-state,
-  .dock-stack .pc-open-notice {
-    display: none;
-  }
-  .dock-stack .composer-input {
-    min-height: 36px;
-    max-height: 56px;
-    padding: 6px 10px;
-  }
-  .dock-stack .session-configure {
-    padding: 2px 8px;
-  }
-  .dock-stack .session-configure select {
-    min-height: 28px;
-  }
-  .dock-stack .dock-item {
-    min-height: 34px;
-    padding: 4px 0;
-  }
-  /* Fortschritt und Kontingent stehen weiter im Bericht. */
-  .run-strip {
-    display: none;
-  }
-}
+/* BUG-0053 (Querformat-Kürzungen) und BUG-0181: die Regeln für niedrige Fenster
+ * (Höhe ≤ 520 px) liegen in 50-short-viewport.css — von hier aus entfernen zu
+ * wollen scheiterte an der Kaskade (gleich spezifische, später importierte Regeln
+ * gewannen), deshalb entscheidet jetzt die zuletzt importierte Datei. */
 
 .interrupted-banner {
   flex: 0 0 auto;

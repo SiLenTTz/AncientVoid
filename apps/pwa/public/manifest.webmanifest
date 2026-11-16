@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#0b0e14",
   "theme_color": "#0b0e14",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "share_target": {
     "action": "/",
     "method": "GET",
