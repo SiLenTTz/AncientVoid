@@ -9,9 +9,9 @@ const ev = (o: Partial<NormalizedEvent> & { payload?: Record<string, unknown> })
 const usage = (payload: Record<string, unknown>, tokensEst?: number): NormalizedEvent =>
   ev({ payload: { kind: "pi.usage", usage: payload }, ...(tokensEst === undefined ? {} : { tokensEst }) });
 
-describe("Token-Bilanz (ADR-0084, BUG-0182)", () => {
+describe("Token-Bilanz (ADR-0084, BUG-0184)", () => {
   it("verwechselt nie Kontext-Wiederholung mit erzeugten Tokens", () => {
-    // Drei Aufrufe mit demselben 150k-Kontext: das ist die Quadratur aus BUG-0182.
+    // Drei Aufrufe mit demselben 150k-Kontext: das ist die Quadratur aus BUG-0184.
     const calls = [usage({ input: 150_000, output: 100 }, 150_100), usage({ input: 150_000, output: 200 }, 150_200), usage({ input: 150_000, output: 300 }, 150_300)];
     const t = tokenTotalsOf(calls);
     expect(t.generated).toBe(600); // was der Agent wirklich schrieb

@@ -9,7 +9,7 @@ import type { NormalizedEvent } from "@ancientvoid/contracts";
  *  * `processed` — Tokens, die die Aufrufe **bekommen haben** (die pro Ereignis
  *    gemeldete Größe, ADR-0006). Jeder Aufruf schickt den ganzen Verlauf, diese
  *    Zahl wächst deshalb ~linear mit der Zahl der Aufrufe mal Kontext. Sie als
- *    „Σ Tokens“ zu zeigen war BUG-0182.
+ *    „Σ Tokens“ zu zeigen war BUG-0184.
  *
  * Es gibt dafür keine Spalte und keinen neuen Zustand: die Werte sind jederzeit
  * aus JSONL nachrechenbar (K7). Ein Zähler ist bewusst inkrementell gebaut, damit

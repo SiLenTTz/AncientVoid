@@ -617,7 +617,7 @@ export function SessionTail({
   const windowTokens = contextWindowFromEvents(shownEvents) ?? contextWindow;
   const context = contextText(tokenStats.lastContextTokens, windowTokens);
   const tokensKnown = (record.metrics?.tokens ?? "unknown") !== "unknown" || record.tokensEst > 0;
-  // BUG-0182 / ADR-0084: „erzeugt“ und „verarbeitet“ rechnet der Hub ueber den
+  // BUG-0184 / ADR-0084: „erzeugt“ und „verarbeitet“ rechnet der Hub ueber den
   // gesamten EventStore — der Client sieht nie alle Ereignisse, deshalb kommt die
   // Bilanz von dort und nicht aus dem hier geladenen Schwanz.
   const [tokenTotals, setTokenTotals] = useState<SessionTokenTotals | null>(null);

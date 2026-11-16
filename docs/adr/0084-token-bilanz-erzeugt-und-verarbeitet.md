@@ -1,6 +1,6 @@
 # ADR-0084: Token-Bilanz — „erzeugt“ und „verarbeitet“ sind zwei verschiedene Zahlen
 
-**Status:** angenommen (2026-11-16) · **Bezug:** BUG-0182, ADR-0006, ADR-0032
+**Status:** angenommen (2026-11-16) · **Bezug:** BUG-0184, ADR-0006, ADR-0032
 
 ## Kontext
 

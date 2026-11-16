@@ -868,7 +868,7 @@ export function isAuthError(err: unknown): boolean {
 
 /** All hub calls. `P` maps a path to its host (ADR-0017 routing). */
 /** ADR-0084: Was eine Session an Tokens **erzeugt** hat und was ihre Aufrufe
- * **verarbeitet** haben — zwei verschiedene Dinge (BUG-0182). null = niemand hat
+ * **verarbeitet** haben — zwei verschiedene Dinge (BUG-0184). null = niemand hat
  * es gemeldet, nicht „0“. */
 export interface SessionTokenTotals {
   generated: number | null;
@@ -1208,7 +1208,7 @@ function createHubApi(P: (path: string) => string) {
     api<{ seq: number; type: string; summary: string; ts: string; payload: unknown; blobRef: string | null }[]>(
       P(`/api/sessions/${id}/events?afterSeq=${afterSeq}&limit=${limit}`),
     ),
-  /** ADR-0084 (BUG-0182): die Token-Bilanz der Session — erzeugt vs. verarbeitet.
+  /** ADR-0084 (BUG-0184): die Token-Bilanz der Session — erzeugt vs. verarbeitet.
    * Abgeleitet aus dem EventStore; `lastSeq` ist nur der Cache-Schlüssel. */
   sessionTokens: (id: string) => api<SessionTokenTotals>(P(`/api/sessions/${id}/tokens`)),
   eventBlob: async (sessionId: string, blobRef: string): Promise<string> => {

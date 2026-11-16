@@ -9,11 +9,11 @@ import { ProcessRunner } from "@ancientvoid/workers";
 import { createHubApp } from "../../../src/app.ts";
 
 /**
- * BUG-0182 / ADR-0084: GET /api/sessions/:id/tokens. Der Adapter meldet drei
+ * BUG-0184 / ADR-0084: GET /api/sessions/:id/tokens. Der Adapter meldet drei
  * Aufrufe mit demselben 150k-Kontext und ein geschätztes Ereignis — die Route
  * muss „erzeugt“ (600) und „verarbeitet“ (der Kontext-Summen) getrennt ausweisen.
  */
-describe("hub route — Token-Bilanz (BUG-0182)", () => {
+describe("hub route — Token-Bilanz (BUG-0184)", () => {
   let dir: string;
   let app: FastifyInstance;
   let token: string;

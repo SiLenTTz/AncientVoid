@@ -11,7 +11,7 @@ const fmt = new Intl.NumberFormat("de-DE");
  * Unbekanntes schweigt hier und steht im Bericht). Tokens zählen auf ihren neuen Wert zu; der
  * Kontext steht als Balken mit den Schwellen 80/95 %, sobald Füllung und Fenster gemeldet sind.
  *
- * BUG-0182 / ADR-0084: die zwei Token-Zahlen stehen beschriftet nebeneinander — „erzeugt“, was
+ * BUG-0184 / ADR-0084: die zwei Token-Zahlen stehen beschriftet nebeneinander — „erzeugt“, was
  * das Modell geschrieben hat, und „verarbeitet“, was seine Aufrufe bekommen haben. Ein nacktes
  * „Σ Tokens“ war die Quadratur des Kontexts und ist verboten.
  */

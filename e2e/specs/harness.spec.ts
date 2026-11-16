@@ -473,7 +473,7 @@ test.describe("Tokens und Kontext je Session (ADR-0032)", () => {
     // Stand-in: zwei Antworten, 1.092 + 1.132 Tokens (verarbeitet), je 35 geschrieben;
     // Füllung 53 + 1.057 Cache. ADR-0084: beide Zahlen stehen beschriftet da.
     await expect(app.locator(".run-strip .run-tokens")).toHaveText("70 Tokens erzeugt · 2.224 Tokens verarbeitet · Kontext 1 % · frei 129.962 von 131.072");
-    // BUG-0182: die Zahl kommt vom Hub, der Client summt nicht selbst — und es ist
+    // BUG-0184: die Zahl kommt vom Hub, der Client summt nicht selbst — und es ist
     // nicht der quadratisch aufaddierte Kontext.
     const totals = (await hub.api<{ generated: number | null; processed: number | null; usageEvents: number }>(`/api/sessions/${id}/tokens`)).body;
     expect(totals.generated).toBe(70);

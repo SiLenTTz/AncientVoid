@@ -1,5 +1,5 @@
 ---
-id: BUG-0182
+id: BUG-0184
 slug: token-summe-ist-kontext-quadrat-statt-verbrauch
 status: in Arbeit
 severity: S1
@@ -12,7 +12,7 @@ created: 2026-11-16
 reporter: kai (Handy über Tailnet)
 ---
 
-# BUG-0182 — „Σ 244.707.213 Tokens“ ist der Kontext, quadratisch aufaddiert
+# BUG-0184 — „Σ 244.707.213 Tokens“ ist der Kontext, quadratisch aufaddiert
 
 ## Gesehen
 

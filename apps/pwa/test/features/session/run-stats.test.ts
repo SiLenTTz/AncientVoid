@@ -62,7 +62,7 @@ describe("contextWindowFromEvents / latestModelName — Modell-Ansagen", () => {
   });
 });
 
-describe("ehrliche Token-Beschriftung (BUG-0182, ADR-0084)", () => {
+describe("ehrliche Token-Beschriftung (BUG-0184, ADR-0084)", () => {
   it("nennt beide Zahlen beim Namen — und nie ein nacktes Σ", () => {
     const parts = tokenParts({ generated: 947_340, processed: 272_613_546, estimated: false });
     expect(parts).toEqual(["947.340 Tokens erzeugt", "272,6 Mio Tokens verarbeitet"]);
