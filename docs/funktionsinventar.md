@@ -87,7 +87,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G54 | Flotte: Sessions anderer Hosts | Start bzw. Hosts | — | spec:fleet.spec.ts |
 | G55 | Projekt im Dateibaum öffnen | Start → Projekte → Karte | — | spec:project-explorer.spec.ts |
 | G56 | Oberflächengröße (Strg +/−/0, Strg+Rad) | Tastatur bzw. Einstellungen | — | spec:oberflaeche.spec.ts |
-| G57 | Querformat am Handy | Gerät drehen | — | spec:querformat.spec.ts |
+| G57 | Querformat am Handy: Drehen baut um (Liste links, Laufleiste aus, Chat bleibt Leshöhe) | Gerät drehen | BUG-0053, BUG-0181 | spec:querformat.spec.ts |
 | G58 | Neue Session: Skill oder Agent wählen | Neue Session → „+ Skill/Agent“ | — | inventar |
 | G59 | Provider-Status über „Mehr“ (Handy, Tablet) | Dock „Mehr“ → „Provider-Status“ | — | inventar |
 | G60 | Suchen im Dock (öffnet das Befehlsfeld) | Dock „Suchen“ | T43.6 | inventar |
