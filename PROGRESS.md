@@ -74,12 +74,19 @@ Nichts angefangen, das nicht committet wäre. Offen: Push und MR (siehe unten).
   Aufräumen steht in BUG-0167; dauerhaft gehören die Aufräumpfade in die Tests.
   Nach dem Aufräumen: genau zwei `node`-Prozesse (Kais Hub 22668, Pi 23196),
   `/healthz` → 200.
-- **Git-Fernzugriff kaputt:** `git fetch origin` →
-  `git@gitlab.com: Permission denied (publickey)`, `glab` ist nicht installiert.
-  Damit ist „neuesten Stand von `main` reinziehen“ nur gegen den letzten
-  bekannten Stand möglich: `origin/main` = `3aef99e5`, dieser Zweig ist 9 Commits
-  voraus und 0 zurück. Push/MR sind blockiert, bis der Schlüssel wieder bei
-  GitLab hinterlegt ist (oder `glab`/Token eingerichtet wird).
+- **Git-Zugang geheilt, aber weit auseinander:** `origin` auf HTTPS umgestellt
+  (`https://gitlab.com/SiLenT_Tz/AncientVoid.git`), `glab` angemeldet als
+  `kaifelixbennett` (OS-Keyring). Fetch: **104 neue Commits auf `main`**
+  (`3aef99e5` → `95c1c1ea`), dieser Zweig 15 voraus, 104 zurück.
+- **Kollisionen durch Parallelarbeit auf `main`** (dieselben Nummern, anderer
+  Inhalt): `bugs/bug-0161…0165` (upstream: Tool-Aktivität, Exit-Regex, CI rot,
+  Offline-Diff, Restart-Working), `docs/adr/0077-run-nach-team-umbenennung.md`
+  (unsere 0077 = „paralelles Schreiben…“), `db.ts` mit `id: 33
+  session-auto-resume-on-limit` (unsere 33 = `checkout-tenants`).
+  Auflösung beim Merge: unsere 0161→0168, 0162→0169, 0163→0170, 0164→0171,
+  0165→0172 (unsere 0166/0167 sind frei und bleiben), ADR 0077→0081,
+  Migration 33→34. Gemerged wird `origin/main` **in den Feature-Zweig** —
+  kein lokales Merge nach `main`.
 - Der Produktiv-Hub auf `127.0.0.1:7373` läuft weiter im alten Code; die Fixes
   wirken erst nach einem Neustart (unterbricht laufende Sessions). Danach kann
   `projectRoots` in `hub.config.json` wieder befüllt werden (Workaround
@@ -88,8 +95,10 @@ Nichts angefangen, das nicht committet wäre. Offen: Push und MR (siehe unten).
 
 ## Nächste Schritte
 
-1. Git-Zugang klären (Schlüssel bei GitLab oder `glab` einrichten), dann
-   `git fetch` + `git rebase origin/main`, `git push -u`, MR via `glab`.
+1. Merge von `origin/main` in den Feature-Zweig + Nummern-Entschärfung
+   (Kollisionsliste oben), danach Gates neu fahren: `typecheck`, `lint`, Tier A,
+   `test:e2e`, Tier B. Dann `git push`, `glab mr create`, `glab mr merge`,
+   Source-Branch lokal und remote löschen.
 2. Nach Merge: Hub neu starten, PWA bauen, `projectRoots` wieder setzen.
 3. BUG-0167 als eigene Suite-Hausputz-Aufgabe: `.gitattributes` `eol=lf` für
    Fixtures, Symlink-Skips, Prozess-Teardowns, und **sichtbarer Skip statt
