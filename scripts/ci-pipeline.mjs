@@ -37,6 +37,27 @@ export async function pipelineSha(api) {
   return (await api("GET", "git/ref/heads/ci/full-suite")).object.sha;
 }
 
+const realSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Resolve für den Nightly-Start: liefert den Testbranch-SHA erst, wenn er dem
+ * main-HEAD entspricht. Ein manueller Start direkt nach einem Merge kann sonst
+ * den Vorgänger-Stand testen, während pipeline-sync noch läuft (gesehen
+ * 16.11.2026, BUG-0185-Nachlauf). Nach Ablauf der Frist laut scheitern statt
+ * still einen veralteten Stand zu prüfen — ein hängender Sync ist ein eigener
+ * Befund (nightly-bugs erfasst ihn dann).
+ */
+export async function resolvePipeline(api, { waitMs = 90_000, stepMs = 5_000, sleep = realSleep } = {}) {
+  const head = (await api("GET", "git/ref/heads/main")).object.sha;
+  const deadline = Date.now() + waitMs;
+  for (;;) {
+    const sha = await pipelineSha(api);
+    if (sha === head) return sha;
+    if (Date.now() >= deadline) throw new Error(`ci/full-suite (${sha.slice(0, 8)}) liegt hinter main (${head.slice(0, 8)}) — Pipeline-Sync nicht erfolgt`);
+    await sleep(stepMs);
+  }
+}
+
 export async function reportFailures(api, run) {
   const failed = (conclusion) => ["failure", "timed_out", "action_required", "startup_failure"].includes(conclusion);
   if (!["nightly", "pipeline-sync"].includes(run.name) || run.event === "pull_request" || !failed(run.conclusion)) return [];
@@ -83,7 +104,7 @@ export async function reportFailures(api, run) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const api = githubApi(process.env.GH_TOKEN, process.env.GITHUB_REPOSITORY);
   if (["sync", "resolve"].includes(process.argv[2])) {
-    const sha = process.argv[2] === "sync" ? await syncPipeline(api) : await pipelineSha(api);
+    const sha = process.argv[2] === "sync" ? await syncPipeline(api) : await resolvePipeline(api);
     appendFileSync(process.env.GITHUB_OUTPUT, `sha=${sha}\n`);
   } else if (process.argv[2] === "report") {
     const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));

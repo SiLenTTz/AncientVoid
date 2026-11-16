@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { load } from "js-yaml";
-import { githubApi, pipelineSha, reportFailures, syncPipeline } from "./ci-pipeline.mjs";
+import { githubApi, pipelineSha, reportFailures, resolvePipeline, syncPipeline } from "./ci-pipeline.mjs";
 
 const run = { id: 42, run_attempt: 1, name: "nightly", event: "schedule", conclusion: "failure", head_sha: "abc", head_branch: "main", html_url: "https://github.com/a/b/actions/runs/42" };
 const job = { name: "e2e-shards (2)", conclusion: "failure", html_url: `${run.html_url}/job/2` };
@@ -26,6 +26,26 @@ describe("pipeline branch", () => {
     const api = vi.fn().mockResolvedValueOnce({ object: { sha: "new" } }).mockResolvedValueOnce({}).mockRejectedValueOnce(new Error("diverged"));
     await expect(syncPipeline(api)).rejects.toThrow("diverged");
     expect(api).toHaveBeenLastCalledWith("PATCH", "git/refs/heads/ci/full-suite", { sha: "new", force: false });
+  });
+  it("resolve liefert sofort, wenn der Testbranch auf main steht", async () => {
+    const api = vi.fn()
+      .mockResolvedValueOnce({ object: { sha: "head" } }) // main
+      .mockResolvedValue({ object: { sha: "head" } }); // ci/full-suite
+    expect(await resolvePipeline(api, { sleep: vi.fn() })).toBe("head");
+  });
+  it("resolve wartet, bis ein laufender Sync den Testbranch nachgezogen hat", async () => {
+    const api = vi.fn()
+      .mockResolvedValueOnce({ object: { sha: "head" } }) // main
+      .mockResolvedValueOnce({ object: { sha: "alt" } }) // ci/full-suite: noch beim Vorgaenger
+      .mockResolvedValueOnce({ object: { sha: "head" } }); // nach dem Sync
+    expect(await resolvePipeline(api, { sleep: vi.fn() })).toBe("head");
+    expect(api).toHaveBeenCalledTimes(3);
+  });
+  it("resolve scheitert laut, wenn der Sync nach Fristablauf fehlt", async () => {
+    const api = vi.fn()
+      .mockResolvedValueOnce({ object: { sha: "head" } }) // main
+      .mockResolvedValue({ object: { sha: "alt" } }); // ci/full-suite bleibt alt
+    await expect(resolvePipeline(api, { waitMs: 0, sleep: vi.fn() })).rejects.toThrow("liegt hinter main");
   });
 });
 
