@@ -38,8 +38,11 @@ describe("discoverProjects (T1.5-4)", () => {
     await mkdir(join(repo2, ".git"), { recursive: true });
     await writeFile(join(repo2, ".git", "HEAD"), "abcdef1234567890\n");
 
-    // A non-repo directory at the same depth — must NOT be listed.
+    // Ein Ordner ohne `.git` — BUG-0162: er WIRD gelistet (isGit false), vorher
+    // war lokales Arbeiten ohne Git im Interface nicht auffindbar.
     await mkdir(join(root, "not-a-repo"), { recursive: true });
+    // Nicht-Git-Ordner, der alphabetisch vor den Repos liegt — prüft die Reihenfolge.
+    await mkdir(join(root, "a-plain-ordner"), { recursive: true });
 
     // A repo one level deeper — depth 1 only, must NOT be listed.
     const nested = join(root, "not-a-repo", "nested-repo", ".git");
@@ -57,11 +60,15 @@ describe("discoverProjects (T1.5-4)", () => {
     await rm(outsideDir, { recursive: true, force: true });
   });
 
-  it("lists only immediate subdirectories containing .git, not deeper ones or non-repos", async () => {
+  it("lists immediate subdirectories including folders without .git (BUG-0162), git repos first", async () => {
     const { projects, warnings } = await discoverProjects([root]);
     expect(warnings).toEqual([]);
-    const names = projects.map((p) => p.name).sort();
-    expect(names).toEqual(["AncientVoid", "custom-rag"]);
+    expect(projects.map((p) => p.name)).toEqual(["AncientVoid", "custom-rag", "a-plain-ordner", "not-a-repo"]);
+    expect(projects.map((p) => p.isGit)).toEqual([true, true, false, false]);
+    // Tiefer liegt nur nested-repo (Depth 2) — das bleibt draußen, ebenso Symlinks und Dateien.
+    expect(projects.some((p) => p.name === "nested-repo")).toBe(false);
+    expect(projects.some((p) => p.name === "escape-link")).toBe(false);
+    expect(projects.some((p) => p.name === "a-file.txt")).toBe(false);
   });
 
   it("reads the branch from a symbolic HEAD, null for a detached one", async () => {
@@ -76,6 +83,18 @@ describe("discoverProjects (T1.5-4)", () => {
     const { projects } = await discoverProjects([root]);
     const mobileHub = projects.find((p) => p.name === "AncientVoid");
     expect(mobileHub?.path).toBe(join(root, "AncientVoid"));
+  });
+
+  it("caps a flooded root and says so (K5-Disziplin statt stiller Liste)", async () => {
+    const wide = await mkdtemp(join(tmpdir(), "ancientvoid-projects-wide-"));
+    try {
+      for (let i = 0; i < 205; i++) await mkdir(join(wide, `ordner-${i}`), { recursive: true });
+      const { projects, warnings } = await discoverProjects([wide]);
+      expect(projects).toHaveLength(200);
+      expect(warnings.some((w) => /gekürzt/.test(w))).toBe(true);
+    } finally {
+      await rm(wide, { recursive: true, force: true });
+    }
   });
 
   it("warns (not crashes, not a silent empty result) on a non-existent root", async () => {

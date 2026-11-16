@@ -16,6 +16,9 @@ export interface DiscoveredProject {
   name: string;
   /** Best-effort from .git/HEAD; null for a detached HEAD or unreadable .git. */
   branch: string | null;
+  /** BUG-0162: false = Ordner ohne `.git`. Er wird trotzdem angeboten, weil
+   * lokales Arbeiten ohne Git kein Umweg über `git init` sein darf. */
+  isGit: boolean;
 }
 
 export interface ProjectDiscoveryResult {
@@ -49,15 +52,24 @@ export async function discoverProjects(roots: readonly string[]): Promise<Projec
       continue;
     }
     for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
+      if (entry.name.startsWith(".")) continue;
       const full = join(root, entry.name);
-      try {
-        await stat(join(full, ".git"));
-      } catch {
-        continue; // no .git -> not a project, depth 1 only, no recursion
-      }
-      projects.push({ path: full, name: entry.name, branch: await readBranch(full) });
+      // Absicht (BUG-0162): auch Ordner ohne `.git` werden angeboten. Vorher galten
+      // sie als „kein Projekt“ — lokal ohne Git zu arbeiten war damit nicht auffindbar.
+      // Symlinks bleiben draußen (Dirent folgt nicht): depth 1, keine Ausgange.
+      if (!entry.isDirectory()) continue;
+      const hasGit = await stat(join(full, ".git")).then(() => true, () => false);
+      projects.push({ path: full, name: entry.name, branch: hasGit ? await readBranch(full) : null, isGit: hasGit });
     }
+  }
+  // Git-Repos zuerst: sie haben eine Branch-Anzeige und sind die vertraute Auswahl.
+  projects.sort((a, b) => Number(b.isGit) - Number(a.isGit) || a.name.localeCompare(b.name));
+  // K5-atem: eine Wurzel wie das Home-Verzeichnis kann tausende Ordner haben. Die
+  // Liste wird gekürzt, aber der Hinweis macht es sichtbar — nie still schweigen.
+  const CAP = 200;
+  if (projects.length > CAP) {
+    warnings.push(`Projektliste auf die ersten ${CAP} Einträge gekürzt (${projects.length} Ordner gefunden) — engere projectRoots setzen`);
+    projects.length = CAP;
   }
   return { projects, warnings };
 }
@@ -168,7 +180,7 @@ export async function createProject(
   }
   const hasGit = await stat(join(projectPath, ".git")).then(() => true, () => false);
   if (hasGit) {
-    return { created: false, project: { path: projectPath, name, branch: await readBranch(projectPath) } };
+    return { created: false, project: { path: projectPath, name, branch: await readBranch(projectPath), isGit: true } };
   }
   const exists = await stat(projectPath).then(() => true, () => false);
   if (exists) {
@@ -179,5 +191,5 @@ export async function createProject(
   if (r.code !== 0) {
     throw new Error(`git init fehlgeschlagen: ${r.stderr.slice(0, 200)}`);
   }
-  return { created: true, project: { path: projectPath, name, branch: "main" } };
+  return { created: true, project: { path: projectPath, name, branch: "main", isGit: true } };
 }
