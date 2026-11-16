@@ -92,6 +92,9 @@ export const SessionSpec = z.object({
   workspaceMode: WorkspaceMode.optional(),
   /** ADR-0057: ausdrückliche Bestätigung, in einem Checkout mit ungesicherten Änderungen zu starten. */
   confirmDirty: z.boolean().optional(),
+  /** ADR-0081: ausdrückliche Bestätigung, in einem Nicht-Git-Ordner parallel zu einer
+   * anderen Session zu schreiben. Ohne `true` bleibt der Allein-Schreiber-Zwang. */
+  confirmSharedFolder: z.boolean().optional(),
   /** Additional env vars for the session worker. */
   env: z.record(z.string().regex(ENV_VAR_NAME), z.string()).optional(),
   /** Adapter-specific free-form arguments, validated by the adapter itself. */

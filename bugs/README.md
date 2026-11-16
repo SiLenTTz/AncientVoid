@@ -192,11 +192,28 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0160](bug-0160-galaxy-route-verliert-tab-bei-kacheloffnung.md) | Graph-Deep-Link verliert den Reiter beim Öffnen der Kachel | done | S3 | pwa | — |
 | [BUG-0161](bug-0161-tool-aktivitaet-beendet-hauptzug-vorzeitig.md) | Ein Tool-Aktivitätsende beendet den Hauptzug vorzeitig | done | S1 | core | — |
 | [BUG-0162](bug-0162-exit-regex-matcht-fremde-event-typen.md) | Exit-Regex matcht fremde Event-Typen | done | S2 | core | — |
-| [BUG-0163](bug-0163-ci-verify-rot-seit-11-11.md) | CI: `verify` seit dem 11.11. durchgehend rot (4 Umgebungstests), lokal grün | in-progress | S2 | ci | [#4](https://github.com/SiLenTTz/AncientVoid/issues/4) |
+| [BUG-0163](bug-0163-ci-verify-rot-seit-11-11.md) | CI: `verify` seit dem 11.11. durchgehend rot (4 Umgebungstests), lokal grün | done | S2 | ci | [#4](https://github.com/SiLenTTz/AncientVoid/issues/4) |
 | [BUG-0164](bug-0164-offline-diff-verliert-stand.md) | Offline-Nachladen verwirft den sichtbaren Diff | done | S3 | pwa | [#67](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/67) |
 | [BUG-0165](bug-0165-restart-session-working-ohne-worker.md) | Restart lässt Session dauerhaft `working` ohne Worker | done | S2 | core | [!481](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/481) |
 | [BUG-0166](bug-0166-automation-neuanlage-aktiv.md) | Automation-Neuanlage übernimmt Aktivierung | done | S2 | core | [#46](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/46) |
 | [BUG-0167](bug-0167-fastify-update-macht-zughistorie-flaky.md) | fastify ≥ 5.12.6 macht „ohne Plan, mit Zughistorie“ flaky (Pin auf 5.12.5) | open | S3 | server | [#5](https://github.com/SiLenTTz/AncientVoid/issues/5) |
-| [BUG-0168](bug-0168-fleet-steer-dedup-race-auf-langsamer-hardware.md) | Fleet-Steer-Dedup greift auf langsamer Hardware nicht (2 user-Events) | open | S3 | core | [#12](https://github.com/SiLenTTz/AncientVoid/issues/12) |
+| [BUG-0168](bug-0168-fleet-steer-dedup-race-auf-langsamer-hardware.md) | Fleet-Steer-Dedup greift auf langsamer Hardware nicht (2 user-Events) | done | S3 | hub | [#12](https://github.com/SiLenTTz/AncientVoid/issues/12) |
+| [BUG-0176](bug-0176-starten-klick-von-arbeitsort-feld-ueberdeckt.md) | Starten-Klick im Neue-Session-Formular wird zeitweise vom Arbeitsort-Feld überdeckt (E2E-Flake) | open | S3 | e2e | [#28](https://github.com/SiLenTTz/AncientVoid/issues/28) |
+| [BUG-0177](bug-0177-spracheingabe-bricht-ab-und-ist-nicht-stoppbar.md) | Spracheingabe endet nach 10 s/60 s, kein Wort-für-Wort, erneut tippen kann nicht stoppen, Text doppelt nach Chrome-Neustart | done | S1 | pwa | — |
+| [BUG-0179](bug-0179-e2e-stand-ins-lassen-sich-auf-windows-nicht-spawnen.md) | E2E-Stand-in-CLIs (Shebang ohne Extension) spawnen auf Windows nicht — Adapter-E2E sind lokal nicht prüfbar | open | S2 | e2e | — |
+| [BUG-0181](bug-0181-app-dreht-nicht-mit-und-querformat-ohne-leshoehe.md) | App dreht nicht mit (Manifest `portrait-primary`); gedreht fraß der Dock 278 von 412 px, der Chat behielt 48 px | done | S2 | pwa | — |
 
-Die nächste freie Nummer ist **0169**.
+
+| [BUG-0169](bug-0169-e2e-global-setup-npm-auf-windows.md) | E2E-Global-Setup spawnnt `npm` ohne Shell — auf Windows läuft kein einziger E2E-Test | done | S3 | e2e | — |
+| [BUG-0170](bug-0170-testsuite-auf-windows-rot.md) | `npm test` ist auf Windows breit rot (CRLF, Symlinks, Spawn/Signale) — Gate und `^`-Commits blockiert | open | S2 | tests | — |
+| [BUG-0171](bug-0171-session-start-fehlt-bei-neuem-ordner.md) | Session-Start in noch nicht existierendem Ordner scheitert mit falscher Begründung | done | S2 | core | — |
+| [BUG-0172](bug-0172-ordner-ohne-git-nicht-waehlbar.md) | Ordner ohne `.git` erscheinen nie in der Projektauswahl | done | S3 | core | — |
+| [BUG-0173](bug-0173-neue-session-vergisst-letzten-pfad.md) | Gemerkter Pfad, Anlegen-Block und Wurzelhinweis hängen an der Zahl gefundener Git-Ordner | done | S3 | pwa | — |
+| [BUG-0174](bug-0174-zweite-session-im-gleichen-ordner.md) | Zweite Session im selben Ordner ist ohne Git eine Sackgasse | done | S2 | core | — |
+| [BUG-0175](bug-0175-projektfilter-vergleicht-slash-pfade.md) | `outsideRoots()` vergleicht mit `/` und filtert Windows-Sessions komplett weg | done | S2 | core | — |
+
+| [BUG-0178](bug-0178-agent-ausgabe-nur-vorgetaeuscht-gestreamt.md) | Agent-Ausgabe wird nur vorgetäuscht gestreamt: Adapter verwerfen Deltas, PWA tippt fertige Blöcke ab | done | S2 | pwa | — |
+
+Die nächste freie Nummer ist **0182** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+gemerged, 0178/0179 mit PR #37 gemerged, 0180 im offenen PR #40 für den ausgeklappten Z Fold,
+0181 ist das fehlende Drehen).

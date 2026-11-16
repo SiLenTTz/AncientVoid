@@ -1,0 +1,88 @@
+/* BUG-0181: drehbares Handy — Querformat (Fensterhöhe ≤ 520 px).
+ * Die Kürzungen aus 08-session-events.css (BUG-0053) gewannen die Kaskade nicht mehr,
+ * weil später importierte Dateien (15-run-strip.css, 40-turns.css) bei gleicher
+ * Spezifität zurückgewannen: das Dock belegte 278 von 412 px und der Chat 80 px.
+ * Diese Datei wird zuletzt importiert und entscheidet damit die Kaskade. */
+@media (max-height: 520px) {
+  /* BUG-0053: im Querformat nur Modus/Modell, Eingabe, Senden, Tabs. Vorlagen,
+   * Filterchips und Statuszeilen kommen im Hochformat zurück — Fortschritt und
+   * Kontingent stehen weiter im Bericht. */
+  .dock-stack .reply-templates,
+  .dock-stack .dock-filter-bar,
+  .dock-stack .draft-state,
+  .dock-stack .pc-open-notice,
+  .run-strip {
+    display: none;
+  }
+  .dock-stack .composer-input {
+    min-height: 36px;
+    max-height: 56px;
+    padding: 6px 10px;
+  }
+  .dock-stack .session-configure {
+    padding: 2px 8px;
+  }
+  .dock-stack .session-configure select {
+    min-height: 28px;
+  }
+  .dock-stack .dock-item {
+    min-height: 34px;
+    padding: 4px 0;
+  }
+  /* Kopfzeile flacher — nur vertikal, das Rechts-Padding gehört der Glocke. */
+  .topbar {
+    padding-top: 6px;
+    padding-bottom: 8px;
+  }
+  /* Unter 520 px Höhe ist der Dock der größte Block (gemessen 229 von 412 px,
+   * der Chat bekam 48 px). Deshalb: Tabs flacher, Sprung-Chip kleiner, und
+   * Eingabe + Symbolknöpfe in einer Reihe statt untereinander. */
+  .subtabs-wrap button {
+    min-height: 34px;
+    padding: 6px 4px;
+  }
+  .chip.new-jump {
+    min-height: 24px;
+    padding: 2px 8px;
+  }
+  .composer.compact {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+  .composer.compact .composer-actions {
+    flex-wrap: nowrap;
+  }
+  /* Die Warteschlange zeigt Titel + genau eine Zeile (gemessen 18 + 40 px); mehr
+   * wäre verschwendet, weniger schneidet den Eintrag mittendurch ab. */
+  .queue-list {
+    max-height: 60px;
+  }
+  /* BUG-0145: der 80-px-Endplatz hält die letzte Zeile frei, solange der
+   * Sprach-Knopf (64 px) über dem Chat hängt. In niedrigen Fenstern ist der Chat
+   * so kurz, dass dieser Platz die halbe Höhe frisst — stattdessen läuft der Text
+   * rechts am Knopf vorbei (70 px) und unten genügen 20 px.
+   * Der Selektor spiegelt 43-nyx-fab.css (:has(.nyx-fab…)) und gewinnt nur über
+   * die Importreihenfolge dieser Datei — sonst verliert er an die 0,4,0-Regel. */
+  :root:has(.nyx-fab[data-bp]) .tail-scroll {
+    padding-bottom: 20px;
+    padding-right: 70px;
+  }
+}
+
+/* Sehr niedrige Fenster (Querformat-Handy abwärts, z. B. 740 × 360): eine Stufe
+ * härter, aber ohne Information zu löschen — der Sprung-Chip ist die einzige
+ * Regel, die ganz wegfällt, und er ist auch im Verlauf-Tab erreichbar. */
+@media (max-height: 430px) {
+  .chip.new-jump {
+    display: none;
+  }
+  .subtabs-wrap button {
+    min-height: 30px;
+  }
+  .dock-stack .composer-input {
+    min-height: 30px;
+  }
+  .dock-toggle {
+    min-height: 20px;
+  }
+}

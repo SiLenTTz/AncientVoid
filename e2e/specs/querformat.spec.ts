@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { test, expect } from "../support/fixtures.ts";
+import { test, expect, sessionTab } from "../support/fixtures.ts";
 
 /**
  * BUG-0053: im Querformat (niedriges Fenster) füllte das Dock fast den ganzen Bildschirm; vom Verlauf
@@ -52,5 +52,103 @@ test.describe("Dock im Querformat", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await expect(app.locator(".reply-templates")).toBeVisible();
     await expect(app.getByLabel("Modus")).toBeVisible();
+  });
+});
+
+/** Maschinenlesbarer Höhen- und Lageplan der Sitzungsansicht. */
+const layout = () => {
+  const el = (s: string) => document.querySelector(s);
+  const tail = el(".tail-scroll")!;
+  const dock = el(".dock-stack")!;
+  const tabRects = [...document.querySelectorAll(".subtabs-wrap button")].map((b) => b.getBoundingClientRect());
+  const tailBox = tail.getBoundingClientRect();
+  const dockBox = dock.getBoundingClientRect();
+  const strip = el(".session-strip");
+  const run = el(".run-strip");
+  const input = el(".composer-input");
+  return {
+    chatHöhe: Math.round(Math.min(dockBox.top, tailBox.bottom) - tailBox.top),
+    dockHöhe: Math.round(dockBox.height),
+    streifen: strip ? getComputedStyle(strip).flexDirection : "kein Streifen",
+    laufleiste: run ? getComputedStyle(run).display : "kein Element",
+    eingabe: input ? Math.round(input.getBoundingClientRect().height) : 0,
+    tabsImScreen: tabRects.length > 0 && tabRects.every((r) => r.height > 0 && r.bottom <= window.innerHeight + 1 && r.top >= -1),
+    horizontalesScrollen: document.documentElement.scrollWidth - window.innerWidth,
+  };
+};
+
+const QUER = { width: 915, height: 412 }; // Handy bzw. Fold-Außendisplay quer
+const HOCH = { width: 412, height: 915 };
+
+test.describe("Drehen und Querformat (BUG-0181)", () => {
+  test("das Manifest erzwingt keine Hochformat-Sperre", async ({ hub }) => {
+    const manifest = await hub.api<{ orientation?: string }>("/manifest.webmanifest");
+    // "any" (oder kein Feld) heißt: das Gerät entscheidet, nicht die App.
+    expect(manifest.body.orientation ?? "any").toBe("any");
+  });
+
+  test("Querformat: Chat behält Leshöhe, Bedienung bleibt im Screen", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Dreh-Test" });
+    await app.setViewportSize(QUER);
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await sessionTab(app, "Chat");
+
+    const q = await app.evaluate(layout);
+    // Vor dem Fix: Dock 278 von 412 px, Laufleiste 66 px, Chat 48 px.
+    expect(q.dockHöhe, "der Dock darf ein niedriges Fenster nicht dominieren").toBeLessThanOrEqual(200);
+    expect(q.chatHöhe, "der Chat muss im Querformat Zeilen behalten").toBeGreaterThanOrEqual(90);
+    expect(q.tabsImScreen, "keine abgeschnittene Tab-Leiste").toBe(true);
+    expect(q.horizontalesScrollen, "kein horizontales Scrollen").toBeLessThanOrEqual(0);
+    expect(q.laufleiste, "Laufleiste ist im Querformat ausgeblendet").toBe("none");
+    // Der Sitzungsstreifen steht als Spalte links statt quer obendrauf.
+    expect(q.streifen).toBe("column");
+
+    // BUG-0053: im niedrigen Fenster startet die Steuerung zugeklappt — ein Tipp
+    // (▴) holt Eingabe und Warteschlange zurück, ohne den Chat zu verdrängen.
+    await app.click(".dock-toggle");
+    await expect.poll(async () => (await app.evaluate(layout)).eingabe, "Eingabe nach einem Tipp sichtbar").toBeGreaterThan(0);
+    const offen = await app.evaluate(layout);
+    expect(offen.chatHöhe, "auch mit offener Steuerung bleibt Lesehöhe").toBeGreaterThanOrEqual(90);
+    expect(offen.tabsImScreen).toBe(true);
+  });
+
+  test("drehen ohne Neuladen baut um (hoch -> quer -> hoch)", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Dreh-Test 2" });
+    await app.setViewportSize(HOCH);
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await sessionTab(app, "Chat");
+
+    const hoch = await app.evaluate(layout);
+    expect(hoch.streifen, "im Handy-Hochformat gibt keinen Sitzungsstreifen").toBe("kein Streifen");
+    expect(hoch.laufleiste, "Hochformat zeigt die Laufleiste weiter").not.toBe("none");
+    expect(hoch.eingabe, "Hochformat zeigt die Eingabe").toBeGreaterThan(0);
+
+    // Drehen wie am echten Gerät: nur die Viewport-Maße ändern, kein Reload.
+    await app.setViewportSize(QUER);
+    await expect
+      .poll(async () => (await app.evaluate(layout)).laufleiste, "Laufleiste verschwindet im Querformat")
+      .toBe("none");
+    // Der Sitzungsstreifen kommt aus React (Media-Breakpoint), nicht aus CSS —
+    // er darf nach dem Drehen nicht fehlen, bis neu geladen wird.
+    await expect
+      .poll(async () => (await app.evaluate(layout)).streifen, "Sitzungsstreifen erscheint als Spalte")
+      .toBe("column");
+    const quer = await app.evaluate(layout);
+    expect(quer.streifen).toBe("column");
+    expect(quer.chatHöhe).toBeGreaterThanOrEqual(90);
+    expect(quer.dockHöhe).toBeLessThanOrEqual(200);
+    expect(quer.tabsImScreen).toBe(true);
+    expect(quer.horizontalesScrollen).toBeLessThanOrEqual(0);
+
+    // Zurück ins Hochformat: dieselbe Seite, Laufleiste und Liste wieder da.
+    await app.setViewportSize(HOCH);
+    await expect
+      .poll(async () => (await app.evaluate(layout)).laufleiste, "Laufleiste kommt zurück")
+      .not.toBe("none");
+    const zurueck = await app.evaluate(layout);
+    expect(zurueck.laufleiste, "Laufleiste kommt zurück").not.toBe("none");
+    // Der Streifen ist entweder weg oder wieder die Reihe obendrauf — beides ist
+    // Hochformat; Spalte (column) wäre das Querformat-Layout.
+    expect(["kein Streifen", "row"], `Streifen nach zurückdrehen: ${zurueck.streifen}`).toContain(zurueck.streifen);
   });
 });

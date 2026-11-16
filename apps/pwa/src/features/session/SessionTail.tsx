@@ -115,6 +115,9 @@ export function SessionTail({
   // EPIC-P6: every call of this view goes to the session's own host.
   const api = useMemo(() => hostApi(session.hostId), [session.hostId]);
   const [events, setEvents] = useState<NormalizedEvent[]>([]);
+  /** ADR-0083: Teiltexte des Adapters, bis der dauerhafte Block eintrifft. Kein
+   * Nacherzählen: was hier steht, ist wirklich schon uebertragen worden. */
+  const [liveText, setLiveText] = useState<{ assistant: string; thinking: string }>({ assistant: "", thinking: "" });
   // 2026-10-25: click-to-expand for the run strip's todo plan (transparency).
   const [todosOpen, setTodosOpen] = useState(false);
   const [recoveryHandover, setRecoveryHandover] = useState(false);
@@ -376,8 +379,22 @@ export function SessionTail({
             const merged = [...prev, ...batch];
             return tailWindow(merged, 500);
           });
+          // ADR-0083: der Block hat den Teiltext eingeholt — die Live-Blase verschwindet.
+          if (batch.some((e) => e.type === "assistant")) setLiveText((p) => (p.assistant ? { ...p, assistant: "" } : p));
+          if (batch.some((e) => e.type === "thinking")) setLiveText((p) => (p.thinking ? { ...p, thinking: "" } : p));
         };
         flushRef.current = activeRef.current ? requestAnimationFrame(flush) : -window.setTimeout(flush, BACKGROUND_FLUSH_MS);
+      },
+      // ADR-0083: echte Live-Frames — kohäriert am Adapter (≤ 150 ms), hier nur angesetzt.
+      onFrames: (frames) => {
+        setLiveText((prev) => {
+          let next = prev;
+          for (const f of frames) {
+            if (!f.text) continue;
+            next = f.stream === "assistant" ? { ...next, assistant: next.assistant + f.text } : { ...next, thinking: next.thinking + f.text };
+          }
+          return next;
+        });
       },
       onState: setConn,
     });
@@ -1234,6 +1251,7 @@ export function SessionTail({
               key={session.id}
               sessionId={session.id}
               items={chatItems}
+              live={liveText}
               expanded={expanded}
               onToggleExpand={toggleExpanded}
               onJump={jumpTo}

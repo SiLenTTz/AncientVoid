@@ -1,0 +1,148 @@
+# Volle Messlatte (docs/ci-gate-inventar.md): komplette Vitest-Suite inkl.
+# Slow-Tests über dem Schwellenwert (Liste: scripts/slow-tests.json,
+# Generator: scripts/gen-slow-tests.mjs), K8-Lasttest und E2E als
+# 4-Shard-Matrix (pro Shard 1 Worker — Runner-Entschärfung aus
+# BUG-0093/0094/0095 bleibt) mit Skip-Bericht je Shard und Aggregation
+# (EPIC-P28 T28.4: fehlender Bericht, null Tests, Failures — nie grün).
+# Läuft auf jedem Push nach main, zweimal täglich im Zeitplan (03:00 und
+# 15:00 UTC) und per Hand. PRs haben nur den schnellen Gate (ci.yml) —
+# beschlossener Laufzeit-Kompromiss, 16.11.2026.
+name: nightly
+
+on:
+  schedule:
+    - cron: "0 3,15 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # false: Läufe auf main (und im Zeitplan) stapeln sich statt sich zu
+  # canceln — ein zweiter Push darf einen laufenden vollen Lauf nicht
+  # wegwerfen (real am 16.11.2026: ein zweiter main-Push cancelierte den
+  # laufenden vollen Lauf nach 9 Minuten). Schnelle PR-Gates in ci.yml
+  # dürfen sich weiterhin selbst canceln.
+  cancel-in-progress: false
+
+env:
+  # Die Tests setzen tmux, ffmpeg, pdftotext, tesseract und ripgrep voraus;
+  # ohne sie wäre der Lauf rot statt aussagekräftig.
+  APT_TOOLS: tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep iproute2
+  # Runner-sensible Tests (BUG-0163: K8-Lastfall; BUG-0168: Fleet-Dedup-Race)
+  # sind auf gehosteter Hardware nicht aussagekräftig — sie skippen sichtbar
+  # (it.skipIf) und bleiben lokal im Gate verbindlich.
+  AV_HOSTED_RUNNER: "1"
+
+jobs:
+  vitest-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: System-Werkzeuge
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_TOOLS > /dev/null
+      - run: npm ci
+      - run: npm rebuild esbuild
+      - name: Volle Suite (Unit, Integration, Scripts)
+        run: |
+          mkdir -p test-results
+          npm test -- --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml
+      - name: Slow-Liste nachziehen (Drift-Vorschlag im Log, Commit bleibt Handarbeit)
+        run: |
+          node scripts/gen-slow-tests.mjs test-results/vitest-junit.xml
+          git diff scripts/slow-tests.json
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vitest-junit
+          path: test-results/vitest-junit.xml
+          retention-days: 14
+          if-no-files-found: warn
+
+  # K8 in voller Messlatte: 20 Sessions × 30 Events/s × 10 s (nicht entschärft).
+  k8:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: System-Werkzeuge
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_TOOLS > /dev/null
+      - run: npm ci
+      - run: npm rebuild esbuild
+      - run: npm run loadtest
+
+  e2e-shards:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: System-Werkzeuge
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_TOOLS > /dev/null
+      - run: npm ci
+      - run: npm rebuild esbuild
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+      - name: E2E und Bericht
+        run: |
+          e2e=0
+          rep=0
+          npm run test:e2e -- --shard=${{ matrix.shard }}/4 || e2e=$?
+          node scripts/ci-e2e-report.mjs || rep=$?
+          [ "$e2e" = "0" ] && [ "$rep" = "0" ]
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-report-shard-${{ matrix.shard }}
+          path: |
+            playwright-report/
+            test-results/
+            ci-artifacts/
+          retention-days: 14
+          if-no-files-found: warn
+
+  # Aggregations-Gate (EPIC-P28 T28.4): fasst die Shard-Berichte nach denselben
+  # Regeln zusammen — fehlender Shard-Bericht, null Tests, Failures und
+  # benannte Skips. Läuft auch bei rotem Shard (always), damit die
+  # Entscheidung sichtbar bleibt, wenn dieser Job blockierend referenziert ist.
+  e2e:
+    needs: e2e-shards
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: e2e-report-shard-*
+          path: shards
+          merge-multiple: false
+      - run: EXPECTED_SHARDS=4 node scripts/ci-e2e-aggregate.mjs shards

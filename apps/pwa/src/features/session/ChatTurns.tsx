@@ -2,7 +2,6 @@ import { Fragment, type ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
 import type { NormalizedEvent } from "../../shared/ws.ts";
 import { EventDetail, EventRow } from "./EventRow.tsx";
-import { typedText, typewriterTargets, useTypewriterQueue } from "./typewriter-queue.ts";
 import { currentStep, stepsOf, workSummary, type ChatItem, type Step, type Work } from "./turns.ts";
 
 /**
@@ -47,6 +46,7 @@ export function ChatTurns({
   firstNewSeq,
   onOpenVerlauf,
   after,
+  live,
 }: {
   sessionId: string;
   items: ChatItem[];
@@ -58,10 +58,10 @@ export function ChatTurns({
   onOpenVerlauf: () => void;
   /** Was unter einem Eintrag steht (z. B. die Token-Rechnung eines Zugs, ADR-0032). */
   after: (item: ChatItem, next: ChatItem | undefined) => ComponentChildren;
+  /** ADR-0083: bereits uebertragene Teiltexte, bevor der Block eintrifft. */
+  live?: { assistant: string; thinking: string };
 }) {
   const [choices, setChoices] = useState(() => loadChoices(sessionId));
-  // EPIC-P58 T58.2: Queue für neuen Live-Zuwachs (nur Agententext und Reasoning, in Anzeigereihenfolge).
-  const typed = useTypewriterQueue(typewriterTargets(items));
   const toggle = (key: string, open: boolean) => {
     setChoices((prev) => {
       const next = { ...prev, [key]: open };
@@ -84,7 +84,7 @@ export function ChatTurns({
             </div>
           )}
           {item.kind === "event" ? (
-            <EventRow event={item.event} expanded={expanded.has(item.event.seq)} onToggleExpand={() => onToggleExpand(item.event.seq)} toolResult={undefined} onJump={onJump} typeShown={typed(String(item.event.seq))} />
+            <EventRow event={item.event} expanded={expanded.has(item.event.seq)} onToggleExpand={() => onToggleExpand(item.event.seq)} toolResult={undefined} onJump={onJump} />
           ) : item.kind === "unknown" ? (
             <div class="turn-unknown" data-seq={item.firstSeq}>
               <span>
@@ -95,16 +95,32 @@ export function ChatTurns({
               </button>
             </div>
           ) : (
-            <WorkBlock work={item} open={choices[item.key] ?? item.running} onToggle={(open) => toggle(item.key, open)} typed={typed} />
+            <WorkBlock work={item} open={choices[item.key] ?? item.running} onToggle={(open) => toggle(item.key, open)} />
           )}
           {after(item, items[i + 1])}
         </Fragment>
       ))}
+      {live && (live.assistant || live.thinking) ? (
+        <div class="chat-live" data-testid="chat-live" aria-live="polite">
+          {live.thinking ? (
+            <>
+              <span class="chat-live-label">denkt</span>
+              <div class="chat-live-part thinking" data-testid="chat-live-thinking">{live.thinking}</div>
+            </>
+          ) : null}
+          {live.assistant ? (
+            <>
+              <span class="chat-live-label">antwortet</span>
+              <div class="chat-live-part" data-testid="chat-live-assistant">{live.assistant}<span class="chat-live-caret" aria-hidden="true" /></div>
+            </>
+          ) : null}
+        </div>
+      ) : null}
     </>
   );
 }
 
-function WorkBlock({ work, open, onToggle, typed }: { work: Work; open: boolean; onToggle: (open: boolean) => void; typed?: (key: string) => number | null }) {
+function WorkBlock({ work, open, onToggle }: { work: Work; open: boolean; onToggle: (open: boolean) => void }) {
   const steps = stepsOf(work);
   const running = currentStep(work);
   const failed = steps.some((s) => s.state === "error");
@@ -121,7 +137,7 @@ function WorkBlock({ work, open, onToggle, typed }: { work: Work; open: boolean;
           {work.entries.map((entry) =>
             entry.kind === "note" ? (
               <li key={`n${entry.event.seq}`} class={`turn-note ${entry.event.type}`}>
-                <WorkNote event={entry.event} typeShown={typed?.(String(entry.event.seq))} />
+                <WorkNote event={entry.event} />
               </li>
             ) : (
               <StepRow key={entry.step.key} step={entry.step} current={entry.step === running} />
@@ -133,10 +149,10 @@ function WorkBlock({ work, open, onToggle, typed }: { work: Work; open: boolean;
   );
 }
 
-function WorkNote({ event, typeShown }: { event: NormalizedEvent; typeShown?: number | null }) {
+function WorkNote({ event }: { event: NormalizedEvent }) {
   const [open, setOpen] = useState(false);
   return <>
-    <button type="button" class="turn-note-toggle" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span aria-hidden="true">{open ? "▾" : "▸"}</span> {typedText(event.summary, typeShown)}</button>
+    <button type="button" class="turn-note-toggle" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span aria-hidden="true">{open ? "▾" : "▸"}</span> {event.summary}</button>
     {open && <EventDetail event={event} />}
   </>;
 }

@@ -1,7 +1,7 @@
 import { realpath } from "node:fs/promises";
 import type { FastifyInstance } from "fastify";
 import { LOOP_ARG, loopAdapterId } from "@ancientvoid/contracts";
-import { isProjectPathAllowed, toStartSpec, resolveSkillChain } from "@ancientvoid/core";
+import { isProjectPathAllowed, ensureProjectDir, toStartSpec, resolveSkillChain } from "@ancientvoid/core";
 import type { RouteContext } from "../../route-context.ts";
 
 const FACTORY_LOOP = "securesight-factory";
@@ -37,6 +37,13 @@ export function registerFactoryRoutes(app: FastifyInstance, ctx: RouteContext): 
     if (goal !== undefined && typeof goal !== "string") return reply.code(400).send({ error: "goal muss Text sein" });
     if (!(await isProjectPathAllowed(project, projectRoots))) {
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    // BUG-0171: auch ein Factory-Start darf einen noch fehlenden Ordner innerhalb
+    // einer erlaubten Wurzel anlegen (eine Ebene), statt falsch "outside roots" zu melden.
+    try {
+      await ensureProjectDir(project, projectRoots);
+    } catch (err) {
+      return reply.code(422).send({ error: err instanceof Error ? err.message : "Projektpfad nicht verwendbar" });
     }
     const loopSpec = { id: FACTORY_LOOP, options: { anbindung: "bestehend" } };
     try {
