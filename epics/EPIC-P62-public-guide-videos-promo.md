@@ -164,7 +164,7 @@ eine statische Seite): Lighthouse Mobile Performance ≥ 90 und Accessibility
 
 ### 3.7 Deployment nach `void.securesight.ai` (T62.7, mit ADR)
 
-ADR-0081 entscheidet Ziel und Weg: bevorzugt **GitHub Pages** mit Custom
+ADR-0082 entscheidet Ziel und Weg: bevorzugt **GitHub Pages** mit Custom
 Domain `void.securesight.ai` (CNAME beim Domain-Inhaber — dokumentierte
 Nutzeraufgabe), Alternative Cloudflare Pages; Fallback bis zum DNS-Umzug ist
 die github.io-URL, damit die Seite unabhängig vom DNS-Fortschritt live und
@@ -208,7 +208,7 @@ User-Content.
       youtube-nocookie-Embeds, Rechtshinweis-Block); Lighthouse-Gates
       (Perf ≥ 90 / A11y ≥ 95) im Deploy-Job; Smoke-e2e-Spec
       (`e2e/specs/site.spec.ts`: baut Seite, prüft Hero, Links, Embeds).
-- [ ] **T62.7 Deployment** — ADR-0081 (Ziel, Domain, Fallback); CI-Deploy-Job
+- [ ] **T62.7 Deployment** — ADR-0082 (Ziel, Domain, Fallback); CI-Deploy-Job
       (main-only, SHA-gepinnt, Minimalrechte); DNS-Nutzeraufgabe dokumentiert;
       `https://void.securesight.ai` live.
 - [ ] **T62.8 Verdrahtung & Abschluss** — README/Guide/Videos/Site
@@ -246,7 +246,7 @@ deterministische Leak-Erkennung (AC-P62-5/6) und Lighthouse-Budgets (AC-P62-4).
    über dem Release-Stand grün. Beleg: Seed-Test + Check-Runs.
 7. **AC-P62-7 (Prozess):** `npm run gate` lokal grün; GitHub-Actions
    (`verify`, `k8`, `e2e`) auf dem Abschluss-PR grün; neuer statischer
-   Ablauf (Site) hat einen Spec (`e2e/specs/site.spec.ts`); ADR-0081 liegt;
+   Ablauf (Site) hat einen Spec (`e2e/specs/site.spec.ts`); ADR-0082 liegt;
    P33-Status ist fortgeschrieben. Beleg: PR + ADR.
 
 ## 6. Premortem (Failure-Modi + Mitigation)
@@ -267,7 +267,7 @@ deterministische Leak-Erkennung (AC-P62-5/6) und Lighthouse-Budgets (AC-P62-4).
 4. **„Die Promo-Seite wird ein zweites wartungsintensives Projekt."** —
    bewusst statisch und einspaltig einfach: eine Seite, `content.json` als
    einzige Inhaltsquelle, keine Server-Logik, keine geteilte Runtime mit der
-   PWA; Lighthouse-Budgets halten Komplexität sichtbar; ADR-0081 dokumentiert
+   PWA; Lighthouse-Budgets halten Komplexität sichtbar; ADR-0082 dokumentiert
    die Grenze (bewusst kein Framework-Overkill).
 5. **„Der Leak-Guard spuckt False-Positives und jemand umgeht ihn."** — nur
    Hoch-Präzisions-Muster mit festen Präfixen (Philosophie `check:secrets`),
@@ -284,7 +284,7 @@ deterministische Leak-Erkennung (AC-P62-5/6) und Lighthouse-Budgets (AC-P62-4).
 Alle AC-P62-1…7 mit Belegen (Links auf Runs/URLs/Dateien) erfüllt;
 `npm run gate` lokal grün; GitHub-Actions (`verify`, `k8`, `e2e`) auf dem
 Abschluss-PR grün — rote CI allein wegen Umgebung wird benannt, nie als Pass
-gezählt; ADR-0081 liegt; `docs/demo-media.md`, `check:media` und
+gezählt; ADR-0082 liegt; `docs/demo-media.md`, `check:media` und
 `pre-commit` sind im Gate-Inventar (`docs/ci-gate-inventar.md`) registriert;
 P33-Status fortgeschrieben; README, epics/README und der Guide kreuzverlinkt
 (erreichbar = fertig: was nicht verlinkt ist, existiert nicht); keine
