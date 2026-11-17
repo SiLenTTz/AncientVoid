@@ -26,6 +26,12 @@ export interface UrgencyItem {
   kind: string;
 }
 
+/** T64.3: gibt es überhaupt Freigabe-/Fragen-Kandidaten im Bestand? Nur dann
+ * lohnt der Hintergrund-Refresh der Pending-Menge (ein API-Ruf je 4 s). */
+export function hasApprovalCandidates(items: readonly { kind: string }[]): boolean {
+  return items.some((n) => APPROVAL_KINDS.has(n.kind));
+}
+
 const RANK: Record<Urgency, number> = { error: 0, action: 1, done: 2 };
 
 /** Höchste offene Dringlichkeit; null = kein Glow. */
