@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffLineClass, isOneSided, pairHunkLines } from "../../../src/features/session/diff-lines.ts";
+import { diffLineClass, isOneSided, pairHunkLines, oversizeNote } from "../../../src/features/session/diff-lines.ts";
 
 describe("pairHunkLines", () => {
   it("stellt Löschungen und Hinzufügungen eines Blocks Zeile für Zeile nebeneinander", () => {
@@ -45,5 +45,18 @@ describe("diffLineClass", () => {
     expect(diffLineClass("@@ -1 +1 @@")).toBe("diff-line-hunk");
     expect(diffLineClass("+++ b/x")).toBe("diff-line-file");
     expect(diffLineClass(" x")).toBe("diff-line-ctx");
+  });
+});
+
+describe("oversizeNote — Teilbefund fuer einen zu grossen Commit", () => {
+  it("nennt Zahlen, statt den View zu verlieren", () => {
+    expect(oversizeNote({ files: 1, changedLines: 6000 })).toContain("1 Datei, 6.000 geänderte Zeilen");
+    expect(oversizeNote({ files: 12, changedLines: 41 })).toContain("12 Dateien, 41 geänderte Zeilen");
+  });
+
+  it("erklaert den Fall ohne Zahlen ehrlich", () => {
+    expect(oversizeNote({ files: null, changedLines: null })).toContain("zum Aufzählen");
+    expect(oversizeNote({ files: null, changedLines: null })).toContain("git show");
+    expect(oversizeNote(undefined)).toBe("");
   });
 });

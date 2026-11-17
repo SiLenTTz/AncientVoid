@@ -71,10 +71,43 @@ test.describe("Wortweise Diff-Markierung", () => {
     expect(farben.markiert).not.toBe(farben.unmarkiert);
     expect(farben.spalte).toBe(farben.markiert);
 
-    // Beweisbild: zum Segment scrollen und ablichten — ohne Stabilitaetswait,
-    // der Diff rendert nach (Hub cache 5 s).
-    await app.evaluate(() => document.querySelector(".wd-add")?.scrollIntoView({ block: "center" }));
-    await app.waitForTimeout(400);
+    // Beweisbild: der Diff rendert nach (Hub cache 5 s), also mehrfach scrollen und
+    // pruefen, bis die Segmente wirklich im Bild sind.
+    for (let versuch = 0; versuch < 4; versuch += 1) {
+      await app.evaluate(() => document.querySelector(".diff-line-add .wd-add")?.scrollIntoView({ block: "center" }));
+      await app.waitForTimeout(600);
+      if (await app.locator(".diff-line-add .wd-add").first().isVisible()) break;
+    }
     await app.screenshot({ path: "data/tmp-debug/diff-marken.png" });
+  });
+
+  test("Commit ueber der Groessenkante zeigt Teilbefund, andere Commits bleiben lesbar", async ({ app, hub }) => {
+    const NL = String.fromCharCode(10);
+    const id = await hub.createSession({ adapter: "dummy" });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.payload.kind === "session.created"), "session.created");
+    const workdir = String((await hub.events(id)).find((e) => e.payload.kind === "session.created")?.payload.workdir);
+
+    await writeFile(join(workdir, "klein.txt"), "alpha beta gamma" + NL);
+    git(workdir, "add", "klein.txt");
+    git(workdir, "commit", "-q", "-m", "kleiner Schnitt");
+    const riesig = Array.from({ length: 4500 }, (_, i) => `zeile ${i}`).join(NL) + NL;
+    await writeFile(join(workdir, "riesig.txt"), riesig);
+    git(workdir, "add", "riesig.txt");
+    git(workdir, "commit", "-q", "-m", "riesiger Schnitt");
+
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await sessionTab(app, "Diff");
+    await expect(app.locator(".diff-commit-heading").filter({ hasText: "riesiger Schnitt" })).toBeVisible();
+
+    // Der ubergrosse Commit sagt Zahl + Befund, statt den View zu loeschen.
+    const hinweis = app
+      .locator(".diff-commit-heading")
+      .filter({ hasText: "riesiger Schnitt" })
+      .locator(".diff-oversize");
+    await expect(hinweis).toContainText("1 Datei, 4.500 geänderte Zeilen");
+
+    // ...und der kleine Commit daneben bleibt vollstaendig lesbar.
+    await expect(app.locator(".diff-line-add").filter({ hasText: "alpha beta gamma" }).first()).toBeVisible();
+    await app.screenshot({ path: "data/tmp-debug/diff-oversize.png" });
   });
 });

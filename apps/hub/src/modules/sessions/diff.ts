@@ -62,6 +62,12 @@ interface DiffCommit {
   date: string;
   subject: string;
   files: SessionDiffFile[];
+  /**
+   * BUG-0204: Commit-Diff ueber der Groessenkante. Die Dateiliste bleibt zaehlbar,
+   * die Patches werden bewusst nicht geladen — null heisst „selbst die Liste war zu
+   * gross“. Ohne dieses Feld kippte ein einzelner ubergrosser Commit den ganzen View.
+   */
+  oversize?: { files: number | null; changedLines: number | null };
 }
 
 export interface SessionDiffResult {
@@ -117,6 +123,10 @@ async function commitsSince(projectPath: string, baseRef: string): Promise<Commi
     });
 }
 
+/** Groessenkante pro Commit: darueber ist der Patch in einer Handy- wie PC-Ansicht nicht
+ * mehr lesbar — also lieber Zahl + Befund als ein Volltext, der alles kippt (BUG-0204). */
+const COMMIT_DIFF_MAX_LINES = 4000;
+
 /** Git's leerer Baum (Konstante): der Baum, gegen den ein Wurzel-Commit diffet. */
 const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 
@@ -137,18 +147,37 @@ async function parentOrEmptyTree(projectPath: string, sha: string): Promise<stri
 /** Per-Commit-Diff `sha^..sha` in derselben Struktur wie der Workdir-Teil.
  * Untracked-Handling ist hier bewusst unnötig: Committetes liegt per
  * Definition im Baum. */
-async function commitFiles(projectPath: string, sha: string): Promise<{ files: SessionDiffFile[]; patch: string }> {
+async function commitFiles(
+  projectPath: string,
+  sha: string,
+): Promise<{ files: SessionDiffFile[]; patch: string; oversize?: DiffCommit["oversize"] }> {
   const basis = await parentOrEmptyTree(projectPath, sha);
-  const { stdout: numstat } = await execFileAsync("git", ["-C", projectPath, "diff", "--numstat", basis, sha], {
-    timeout: 5000,
-    maxBuffer: 4 * 1024 * 1024,
-  });
+  let numstat: string;
+  try {
+    ({ stdout: numstat } = await execFileAsync("git", ["-C", projectPath, "diff", "--numstat", basis, sha], {
+      timeout: 5000,
+      maxBuffer: 4 * 1024 * 1024,
+    }));
+  } catch {
+    // Selbst die Dateiliste war zu gross (oder der Aufruf scheiterte): als Befund
+    // ausweisen, damit die uebrigen Commits erhalten bleiben.
+    return { files: [], patch: "", oversize: { files: null, changedLines: null } };
+  }
+  const stat = parseNumstat(numstat);
+  const geaenderteZeilen = stat.reduce((sum, f) => sum + f.additions + f.deletions, 0);
+  if (geaenderteZeilen > COMMIT_DIFF_MAX_LINES) {
+    return {
+      files: [],
+      patch: "",
+      oversize: { files: stat.length, changedLines: geaenderteZeilen },
+    };
+  }
   const { stdout: patch } = await execFileAsync("git", ["-C", projectPath, "diff", basis, sha], {
     timeout: 5000,
     maxBuffer: 8 * 1024 * 1024,
   });
   const blocks = splitByFileBlocks(patch);
-  const files = parseNumstat(numstat).map((f, i) => ({ ...f, hunks: parseHunks(blocks[i] ?? "") }));
+  const files = stat.map((f, i) => ({ ...f, hunks: parseHunks(blocks[i] ?? "") }));
   return { files, patch };
 }
 
@@ -325,9 +354,10 @@ export async function getSessionDiff(projectPath: string, worktreeBaseSha?: stri
     let commits: DiffCommit[] = [];
     const commitPatches: string[] = [];
     for (const meta of metas.slice(0, MAX_COMMITS)) {
-      const { files, patch } = await commitFiles(projectPath, meta.sha);
+      const { files, patch, oversize } = await commitFiles(projectPath, meta.sha);
       commitPatches.push(patch);
-      if (files.length > 0) commits.push({ ...meta, files });
+      // Ein Teilbefund (zu gross) zaehlt als Abschnitt — er ist die Nachricht, nicht der Ballast.
+      if (files.length > 0 || oversize) commits.push({ ...meta, files, ...(oversize ? { oversize } : {}) });
     }
     const statFiles = parseNumstat(workdir.numstat);
     if (statFiles.length === 0 && commits.length === 0) {
