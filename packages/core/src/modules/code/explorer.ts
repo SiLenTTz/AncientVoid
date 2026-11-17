@@ -97,8 +97,11 @@ export interface TreeOptions {
 
 /** Epic-Datei im Baum: Namenskonvention der Epic-Pakete (EPIC-P0…, EPIC-P43.5…). */
 const EPIC_FILE = /^EPIC-[A-Za-z]?[0-9.]+.*\.md$/i;
-/** Wie viel vom Dateianfang die Statuszeile enthält (steht in Zeile 2–5). */
+/** Wie viel vom Dateianfang die Statuszeile / das Frontmatter enthält. */
 const EPIC_HEAD_BYTES = 4096;
+const BUG_FILE = /^bug-\d+.*\.md$/i;
+
+type StatusDot = { epic: "done" | "code" | "wip" | "open"; text: string };
 
 /**
  * Nutzerauftrag 14.11.2026: Kategorie aus der Statuszeile einer EPIC-*.md.
@@ -106,7 +109,7 @@ const EPIC_HEAD_BYTES = 4096;
  * „Umsetzung: gesperrt“ enthält „Umsetzung“. Der Klartext (`text`) geht mit
  * an die Oberfläche; die Kategorie ist Heuristik, kein Semantic-Parser.
  */
-export function epicStatusOf(head: string): { epic: "done" | "code" | "wip" | "open"; text: string } | null {
+export function epicStatusOf(head: string): StatusDot | null {
   const line = head.split("\n").find((l) => l.includes("**Status:**"));
   if (!line) return null;
   const text = line.replace(/\*\*Status:\*\*/, "").replace(/\*\*/g, "").trim().slice(0, 220);
@@ -117,17 +120,38 @@ export function epicStatusOf(head: string): { epic: "done" | "code" | "wip" | "o
   return { epic: "open", text };
 }
 
-/** Epic-Status für die Dateien einer Baumseite anreichern (nur sichtbare Seite, nie rekursiv). */
+/**
+ * BUG-0189: Frontmatter `status:` einer bug-*.md → dieselben Punkt-Kategorien
+ * wie Epics (done/wip/open; `code` ungenutzt). Unbekannte Werte → open.
+ */
+export function bugStatusOf(head: string): StatusDot | null {
+  if (!head.startsWith("---")) return null;
+  const end = head.indexOf("\n---", 3);
+  if (end < 0) return null;
+  const line = head.slice(3, end).split("\n").find((l) => /^\s*status\s*:/i.test(l));
+  if (!line) return null;
+  const text = line.replace(/^\s*status\s*:\s*/i, "").replace(/^["']|["']$/g, "").trim().slice(0, 220);
+  if (!text) return null;
+  const v = text.toLowerCase();
+  if (v === "done") return { epic: "done", text };
+  if (v === "in-progress" || v === "in arbeit" || v.startsWith("in arbeit")) return { epic: "wip", text };
+  return { epic: "open", text };
+}
+
+/** Epic-/Bug-Status für die Dateien einer Baumseite anreichern (nur sichtbare Seite, nie rekursiv). */
 async function annotateEpics(root: string, entries: TreeEntry[]): Promise<void> {
   for (const e of entries) {
-    if (e.kind !== "file" || e.blocked !== null || !EPIC_FILE.test(e.name)) continue;
-    if (e.size !== null && e.size > 256 * 1024) continue; // Epic-Dateien sind klein; Riesen-MD sind keine
+    if (e.kind !== "file" || e.blocked !== null) continue;
+    const kind = EPIC_FILE.test(e.name) ? "epic" : BUG_FILE.test(e.name) ? "bug" : null;
+    if (!kind) continue;
+    if (e.size !== null && e.size > 256 * 1024) continue; // Status-MDs sind klein
     try {
       const handle = await open(resolve(root, e.path), "r");
       try {
         const buf = Buffer.alloc(EPIC_HEAD_BYTES);
         const { bytesRead } = await handle.read(buf, 0, buf.length, 0);
-        const hit = epicStatusOf(buf.subarray(0, bytesRead).toString("utf8"));
+        const head = buf.subarray(0, bytesRead).toString("utf8");
+        const hit = kind === "epic" ? epicStatusOf(head) : bugStatusOf(head);
         if (hit) {
           e.epic = hit.epic;
           e.epicStatus = hit.text;
@@ -136,7 +160,7 @@ async function annotateEpics(root: string, entries: TreeEntry[]): Promise<void> 
         await handle.close();
       }
     } catch {
-      // Nicht lesbar bleibt unsichtbar markiert (kein Epic-Status statt Fehler).
+      // Nicht lesbar bleibt unsichtbar markiert (kein Statuspunkt statt Fehler).
     }
   }
 }

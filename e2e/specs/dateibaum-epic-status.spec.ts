@@ -16,6 +16,11 @@ test.describe("Epic-Statuspunkte im Dateibaum (Nutzerauftrag 14.11.2026)", () =>
     writeFileSync(join(dir, "EPIC-P93-entwurf.md"), "# EPIC-P93\n\n**Status:** Planungsentwurf · **Umsetzung:** gesperrt\n");
     writeFileSync(join(dir, "EPIC-P94-rest.md"), "# EPIC-P94\n\n**Status:** umgesetzt 2026-11-12, Live-Abnahme offen\n");
     writeFileSync(join(dir, "NOTIZ.md"), "# Notiz\n\n**Status:** abgeschlossen (darf keinen Punkt bekommen)\n");
+    const bugsDir = join(hub.projectsDir, "alpha", "bugs");
+    mkdirSync(bugsDir, { recursive: true });
+    writeFileSync(join(bugsDir, "bug-0189-offen.md"), "---\nid: BUG-0189\nstatus: open\n---\n# BUG-0189\n");
+    writeFileSync(join(bugsDir, "bug-0190-laufend.md"), "---\nstatus: in-progress\n---\n# BUG-0190\n");
+    writeFileSync(join(bugsDir, "bug-0191-fertig.md"), "---\nstatus: done\n---\n# BUG-0191\n");
 
     const id = await hub.createSession({ adapter: "dummy", prompt: "Epics" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
@@ -31,5 +36,11 @@ test.describe("Epic-Statuspunkte im Dateibaum (Nutzerauftrag 14.11.2026)", () =>
     await expect(tree.locator(".files-row").filter({ hasText: "EPIC-P93-entwurf.md" }).locator(".epic-dot.epic-open")).toBeVisible();
     await expect(tree.locator(".files-row").filter({ hasText: "EPIC-P94-rest.md" }).locator(".epic-dot.epic-code")).toBeVisible();
     await expect(tree.locator(".files-row").filter({ hasText: "NOTIZ.md" }).locator(".epic-dot")).toHaveCount(0);
+
+    // BUG-0189: bug-*.md dieselben Punkt-Tokens wie Epics (Geschwisterordner der Epics)
+    await tree.locator('[data-path="bugs"]').click();
+    await expect(tree.locator(".files-row").filter({ hasText: "bug-0189-offen.md" }).locator(".epic-dot.epic-open")).toBeVisible();
+    await expect(tree.locator(".files-row").filter({ hasText: "bug-0190-laufend.md" }).locator(".epic-dot.epic-wip")).toBeVisible();
+    await expect(tree.locator(".files-row").filter({ hasText: "bug-0191-fertig.md" }).locator(".epic-dot.epic-done")).toBeVisible();
   });
 });

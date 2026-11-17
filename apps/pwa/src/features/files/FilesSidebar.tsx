@@ -71,7 +71,7 @@ function Folder({ hostId, target, path, depth, showIgnored, onOpenFile, activePa
                 <span
                   class={`epic-dot epic-${e.epic}`}
                   aria-hidden="true"
-                  title={`Epic: ${e.epic === "done" ? "abgeschlossen" : e.epic === "code" ? "Code steht, Abnahme/Exit offen" : e.epic === "wip" ? "in Umsetzung" : "offen/gesperrt"} — ${e.epicStatus ?? ""}`}
+                  title={`${/^bug-\d/i.test(e.name) ? "Bug" : "Epic"}: ${e.epic === "done" ? "abgeschlossen" : e.epic === "code" ? "Code steht, Abnahme/Exit offen" : e.epic === "wip" ? "in Umsetzung" : "offen/gesperrt"} — ${e.epicStatus ?? ""}`}
                 />
               )}
               <span class="files-name">{e.name}</span>
