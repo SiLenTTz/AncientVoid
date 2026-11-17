@@ -24,6 +24,8 @@ describe("Geräte-Selbstbericht (BUG-0186)", () => {
     expect(body.how).toBe("abgewiesen");
     expect(body.displayMode).toBe("standalone");
     expect(body.manifestOrientation).toBe("any");
+    // Der Build-Stempel kommt aus dem Buendel selbst — im Testlauf ohne Bauzeit-Ersetzung.
+    expect(body.build).toBe("unbekannt");
     const parsed = ClientReportBody.safeParse(body);
     expect(parsed.success).toBe(true);
   });

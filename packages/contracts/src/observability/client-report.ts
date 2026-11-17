@@ -27,6 +27,8 @@ export const ClientReportBody = z.discriminatedUnion("kind", [
     devicePixelRatio: z.number().positive().max(10).optional(),
     platform: z.string().max(120).optional(),
     userAgent: z.string().max(300).optional(),
+    /** Build-Stempel des Buendels auf dem Geraet (Kurzfassung des Commits). */
+    build: z.string().max(40).optional(),
   }),
 ]);
 

@@ -32,6 +32,7 @@ export function registerClientReportRoutes(app: FastifyInstance, ctx: RouteConte
         manifest: r.manifestOrientation ?? "unbekannt",
         fenster: r.width && r.height ? `${r.width}x${r.height}@${r.devicePixelRatio ?? "?"}` : "unbekannt",
         geraet: r.platform ?? "unbekannt",
+        stand: r.build ?? "unbekannt",
         detail: r.detail,
       },
       "Bericht vom Gerät",
