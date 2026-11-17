@@ -19,9 +19,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Die Tests setzen tmux, ffmpeg, pdftotext, tesseract und ripgrep voraus;
-  # ohne sie wäre verify rot statt aussagekräftig.
-  APT_TOOLS: tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng ripgrep iproute2
+  # Die Tests setzen tmux, ffmpeg, pdftotext und tesseract voraus; ohne sie wäre verify
+  # rot statt aussagekräftig. ripgrep und iproute2 sind auf ubuntu-latest vorinstalliert und
+  # wurden hier nur mitinstalliert — gemessen kostet das apt-Paket 0:49 im PR-Gate.
+  APT_TOOLS: tmux git ffmpeg poppler-utils tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng
   # Runner-sensible Tests (BUG-0163: K8-Lastfall; BUG-0168: Fleet-Dedup-Race)
   # sind auf gehosteter Hardware nicht aussagekräftig — sie skippen sichtbar
   # (it.skipIf) und bleiben lokal im Gate verbindlich.
@@ -43,30 +44,56 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - name: Node-Module aus dem Cache
+        id: nm
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Nur der exakte Lockfile-Treffer gilt als übernommen (cache-hit). Bei einem
+          # Teil-Treffer über restore-keys läuft unten trotzdem npm ci — nie ein halber Stand.
+          path: node_modules
+          key: nm-${{ runner.image }}-node24-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            nm-${{ runner.image }}-node24-
       - name: System-Werkzeuge
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_TOOLS > /dev/null
-      - run: npm ci
-      - run: npm rebuild esbuild
-      - run: npm run check:workspace-links
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run check:commits
-      - run: npm run check:arch
-      - run: npm run check:names
-      - run: npm run check:adapter-matrix
-      - run: npm run check:context
-      # AC-P1-6: Secret-Scan als wiederholtes Gate — auch für nachträglich
-      # editierte Fixtures, nicht nur zum Capture-Zeitpunkt.
-      - run: npm run check:secrets
-      # EPIC-P62 T62.2 (AC-P62-5): Medien-Leak-Guard — Struktur immer,
-      # OCR (tesseract) über neue/geänderte Guide-/Site-Screenshots.
-      - run: npm run check:media
-      - run: npm run check:media -- --ocr
-      - run: npm -w @ancientvoid/pwa run build
-      - name: "Schnelle Kern-Tests (Slow-Liste: scripts/slow-tests.json)"
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends $APT_TOOLS > /dev/null
+      - name: Abhängigkeiten
+        run: |
+          if [ "${{ steps.nm.outputs.cache-hit }}" = "true" ]; then
+            echo "node_modules aus dem Cache — Lockfile exakt, npm ci entfällt"
+          else
+            npm ci
+          fi
+          npm rebuild esbuild
+      - name: "Schneller Kern — Guards, Build und Tests parallel"
+        # Wanduhr statt Warteschlange (gemessen PR #129, Lauf 44175855458): apt 0:49 +
+        # npm ci 1:03 + Typecheck/Lint/check:* 1:02 + Build 0:03 + schnelle Kern-Tests 2:16
+        # liefen hintereinander. Die Kern-Tests starten jetzt im Hintergrund, während Guards
+        # und Build laufen. Der Gate-Inhalt ist unverändert — nur die Reihenfolge ist
+        # überlappt, und jeder Guard entscheidet weiterhin einzeln über OK oder Fail.
         run: |
           mkdir -p test-results
-          npm run test:fast -- --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml
+          npm run test:fast -- --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml > test-results/fast-tests.log 2>&1 &
+          tests=$!
+          fehler=0
+          for gate in check:workspace-links typecheck lint check:commits check:arch check:names check:adapter-matrix check:context check:secrets check:media; do
+            echo "::group::$gate"
+            npm run -s "$gate" || fehler=1
+            echo "::endgroup::"
+          done
+          echo "::group::pwa-build"
+          npm -w @ancientvoid/pwa run build || fehler=1
+          echo "::endgroup::"
+          # AC-P1-6: Secret-Scan bleibt als wiederholtes Gate enthalten (in der Liste oben),
+          # EPIC-P62 T62.2: Medien-Leak-Guard hier in Struktur und OCR über neue/geänderte
+          # Guide-/Site-Screenshots.
+          echo "::group::check:media --ocr"
+          npm run -s check:media -- --ocr || fehler=1
+          echo "::endgroup::"
+          wait "$tests" || fehler=1
+          echo "::group::schnelle Kern-Tests (Slow-Liste: scripts/slow-tests.json)"
+          cat test-results/fast-tests.log
+          echo "::endgroup::"
+          [ "$fehler" -eq 0 ]
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
