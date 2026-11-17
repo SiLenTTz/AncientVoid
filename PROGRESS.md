@@ -1,6 +1,6 @@
 # PROGRESS — AncientVoid
 
-Stand: 2026-11-17, nach dem Umzug auf GitHub (`SiLenTTz/AncientVoid`).
+Stand: 2026-11-17, nach dem Umzug auf GitHub (`securesight-ai/AncientVoid`).
 
 ## Ziel
 

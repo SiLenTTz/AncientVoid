@@ -8,7 +8,7 @@ Inventar: [CI-Gate-Inventar](ci-gate-inventar.md) · Historie: [EPIC-P28](../epi
 
 ## 0. Geltung seit 16.11.2026
 
-Das Projekt liegt öffentlich auf GitHub (`SiLenTTz/AncientVoid`). Die gehostete
+Das Projekt liegt öffentlich auf GitHub (`securesight-ai/AncientVoid`). Die gehostete
 CI ist **GitHub Actions** auf GitHub-gehosteten `ubuntu`-Runnern.
 
 | Nachweis | Pflicht für PRs nach `main` |

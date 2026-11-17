@@ -48,7 +48,7 @@ test.describe("Promo-Seite apps/site (EPIC-P62 T62.6)", () => {
     await expect(page.locator("h1")).toHaveText("AncientVoid");
     await expect(page.locator(".tagline")).toContainText("local-first hub");
     await expect(page.locator(".quickstart code")).toHaveText("./setup.sh");
-    await expect(page.locator('a[href*="github.com/SiLenTTz/AncientVoid"]').first()).toBeVisible();
+    await expect(page.locator('a[href*="github.com/securesight-ai/AncientVoid"]').first()).toBeVisible();
     await expect(page.locator('#guide a[href*="docs/guide/README.md"]')).toBeVisible();
   });
 
