@@ -9,6 +9,13 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
+- **Drehen der installierten App: erledigt (BUG-0186 done).** Die Web-Ebene war frei
+  (Manifest `any`, kein Manifest-Cache, Worker `ancientvoid-v6`), die Sperre saß in **Chromes
+  Installations-Metadaten** — die beim Anlegen übernommene Ausrichtung (`portrait-primary`)
+  wird durch eine spätere Manifest-Aenderung nicht ersetzt. Nachweis ueber den
+  Geraete-Selbstbericht im Hub-Protokoll: vorher 0° / 874x883 (standalone, `lock()` ->
+  SecurityError), nach Entfernen + Neuanlegen **270° / 970x796**. Dauerhaft: Selbstbericht-
+  Route `/api/diagnostics/client-report` (PR #111), Hinweiszeile im Stand-Panel (PR #113).
 - **Zustellung wählen und Vorgemerktes nachträglich ändern (ADR-0085, Zweig
   `feat/queue-liefern-und-editieren`)**: während ein Zug läuft, sitzt im Composer ein Chip
   `⏳ am Zugende` / `⚡ lenken` (bleibt über Neuladen gleich), der Hauptknopf heißt passend

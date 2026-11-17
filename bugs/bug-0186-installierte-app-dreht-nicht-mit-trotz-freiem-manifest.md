@@ -1,7 +1,7 @@
 ---
 id: BUG-0186
 slug: installierte-app-dreht-nicht-mit-trotz-freiem-manifest
-status: in Arbeit
+status: done
 severity: S2
 area: pwa
 instance: handy
@@ -179,6 +179,28 @@ Deshalb zwei weitere Maßnahmen:
 Bleibt die App nach Entfernen und Neuanlegen des Startsymbols im Hochformat und lehnt
 `lock()` mit `SecurityError` ab, ist die Sperre am Gerät zu suchen: Auto-Rotate und — bei
 One UI auf dem Z Fold — die Ausrichtungsfreigabe **je App**.
+## Erledigt — am Gerät nachgewiesen (17.11., 19:55)
+
+Nach Entfernen und Neuanlegen der App meldet **dieselbe installierte Anwendung** (Berichte im
+Hub-Protokoll, `von: handy`, `anzeige: standalone`):
+
+| Zeit | Winkel | Fenster | Manifest | Ausrichter |
+|---|---|---|---|---|
+| 19:05:14 (vorher) | **0°** | 874×883 @2.25 | `any` | entsperrt nach `SecurityError` |
+| 19:55:16 (nach Neuanlegen) | 0° | 874×883 @2.25 | `any` | nicht versucht (Hochformat) |
+| 19:55:26 (nach Drehen) | **270°** | **970×796** @2.25 | `any` | nicht versucht |
+
+Der Winkel wechselt also in der installierten App auf 270° und das Fenster wird quer
+(970×796 statt 874×883). Damit ist BUG-0186 abgeschlossen: die Web-Ebene war nie schuld, es
+waren die **Installations-Metadaten von Chrome** (beim Anlegen übernommen: `portrait-primary`).
+
+Dauerhaft gegen künftige Fälle: der Geräte-Selbstbericht an den Hub (Route
+`/api/diagnostics/client-report`, PR #111), die Hinweiszeile im Stand-Panel (PR #113), und der
+globale Skill `pwa-install-rotation-trap` (Trenn-Tab-Test, SecurityError-Spur,
+One-UI-App-Ausrichtung, quadratisches Z-Fold-Innendisplay, Install-Angebot nach
+Deinstallation unterdrückt). Token-Hygiene: `handy-neu` widerrufen (nie benutzt), `handy` bleibt
+in Gebrauch.
+
 ## Ursache gemessen (17.11., 18:58–19:05) — Selbstbericht des Handys
 
 Der Hub protokolliert neun Berichte aus der **installierten** App (`von: handy`,
