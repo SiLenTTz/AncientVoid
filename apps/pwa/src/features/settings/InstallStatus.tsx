@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { deviceStatusLines, gatherDeviceStatus } from "../../shared/device-status.ts";
+import { sendOrientationReport } from "../../shared/device-report.ts";
 import { lockOrientation, type OrientationTarget } from "../../shared/orientation-lock.ts";
 import { SettingRow } from "./parts.tsx";
 import { Button } from "../../shared/ui/index.ts";
@@ -21,7 +22,11 @@ export function InstallStatus() {
     setLockMsg(res.detail);
     await new Promise((r) => setTimeout(r, 300)); // die Ausrichtungs-Abfrage braucht einen Moment
     try {
-      setLines(deviceStatusLines(await gatherDeviceStatus()));
+      const status = await gatherDeviceStatus();
+      setLines(deviceStatusLines(status));
+      // BUG-0186: derselbe Stand geht an den Hub — die Ursache steht dort im Protokoll,
+      // statt dass sie auf dem Handy abgelesen werden muss. Warten tut darauf niemand.
+      void sendOrientationReport(res.how, res.detail, status);
     } catch {
       /* die vorigen Zeilen bleiben stehen */
     }
@@ -31,7 +36,13 @@ export function InstallStatus() {
     let alive = true;
     const run = () =>
       gatherDeviceStatus()
-        .then((status) => alive && setLines(deviceStatusLines(status)))
+        .then((status) => {
+          if (!alive) return;
+          setLines(deviceStatusLines(status));
+          // "Stand neu pruefen" ist damit auch der eine Knopf fuer die Ferndiagnose: der
+          // Winkelbericht geht mit, ohne dass jemand etwas ablesen oder eintippen muss.
+          void sendOrientationReport("nicht-versucht", "Stand neu geprueft", status);
+        })
         .catch(() => alive && setLines(["Stand nicht lesbar"]));
     run();
     // Nach einem Worker-Wechsel (BUG-0186: alte Stufe hatte das Manifest einbetoniert)

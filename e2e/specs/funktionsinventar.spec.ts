@@ -107,7 +107,7 @@ const GLOBAL: Entry[] = [
     },
   },
   { id: "G18", name: "PC-Eingabe (Am PC eintippen)", from: "start", reach: async (c) => { await nav(c, "Einstellungen"); await c.tap(c.page.locator("[data-testid=pc-input] summary")); await expect(c.page.locator("[data-testid=pc-input]").locator(".desktop-page, [data-testid=desktop-setup], .desktop-head").first()).toBeVisible(); } },
-  { id: "G19", name: "Freigaben-Seite (Deeplink)", from: "#/freigaben", reach: async (c) => { await expect(c.page.locator(".approval-queue, .approvals-pane, .empty").first()).toBeVisible(); await expect(c.page).toHaveURL(/#\/freigaben$/); } },
+  { id: "G19", name: "Freigaben-Seite (Deeplink)", from: "#/freigaben", reach: async (c) => { await expect(c.page.locator(".approval-queue, .approvals-pane, .empty, .ui-empty").first()).toBeVisible(); await expect(c.page).toHaveURL(/#\/freigaben$/); } },
   { id: "G20", name: "Provider-Status", from: "start", reach: async (c) => { await c.tap(c.page.locator(".topbar").getByRole("button", { name: "Status" })); await expect(c.page.locator(".status-page")).toBeVisible(); } },
   { id: "G59", name: "Provider-Status über „Mehr“", forms: TOUCH, from: "start", reach: async (c) => { await c.tap(dock(c, "Mehr")); await c.tap(dock(c, "Provider-Status")); await expect(c.page.locator(".status-page")).toBeVisible(); } },
   { id: "G60", name: "Suchen im Dock", from: "start", reach: async (c) => { await c.tap(dock(c, "Suchen")); await expect(c.page.getByRole("dialog", { name: "Auftrag in Worten" })).toBeVisible(); } },
@@ -170,7 +170,7 @@ const SESSION: Entry[] = [
       await expect.poll(async () => { const n = await changes.count(); const calm = n === last; last = n; return calm; }, { intervals: [600] }).toBe(true);
       if (last > 0) await c.tap(changes);
       else await more(c, "Änderungen");
-      await expect(c.s.locator("[data-testid=diff-review], .empty, .empty-state").first()).toBeVisible();
+      await expect(c.s.locator("[data-testid=diff-review], .empty, .empty-state, .ui-empty").first()).toBeVisible();
     },
   },
   { id: "S05", name: "Mehr: Graph", from: "session", reach: async (c) => { await more(c, "Graph"); await expect(c.s.locator(".graph-pane")).toBeVisible(); } },

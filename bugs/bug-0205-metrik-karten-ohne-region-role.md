@@ -1,5 +1,5 @@
 ---
-id: BUG-0200
+id: BUG-0205
 slug: metrik-karten-ohne-region-role
 status: done
 severity: S3
@@ -12,7 +12,7 @@ created: 2026-11-17
 reporter: Agent (EPIC-P56 T56.3)
 ---
 
-# BUG-0200 — Metrik-Seite: Karten haben nach der P63-Baustein-Migration keine region-Rolle mehr — E2E findet „Metrik-Quelle" nicht
+# BUG-0205 — Metrik-Seite: Karten haben nach der P63-Baustein-Migration keine region-Rolle mehr — E2E findet „Metrik-Quelle" nicht
 
 **Fix (17.11.2026, PR #119):** `Card` setzt `role="region"`, wenn ein
 `aria-label` vorliegt (explizites `role` gewinnt weiterhin) — produktiver

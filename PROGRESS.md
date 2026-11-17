@@ -9,6 +9,33 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
+- **BUG-0203 behoben (Zweig `fix/0202-wurzel-commit-laesst-den-ganzen-diff-fallen`).**
+  Ein Eltern-loser Commit im Bereich `baseRef..HEAD` liess den ganzen Aenderungsdiff
+  ausfallen: `apps/hub/src/modules/sessions/diff.ts` diffte blind `sha^..sha`, und fuer den
+  Wurzel-Commit gibt es keine Eltern-Revision (`fatal: ambiguous argument`). Live gemessen:
+  Aenderungs-Reiter der eigenen Session mit `dateien 0, hunks 0` und abgeschnittener
+  fatal-Meldung. Neu diffelt `parentOrEmptyTree` gegen Git's leeren Baum (Per-Commit-Diff
+  und Einzel-Datei-Hunks). Rot-dann-gruen im echten Git-Repo: 1 failed | 13 passed ->
+  **14 passed**. Server-Code, braucht Hub-Neustart fuer die Live-Wirkung.
+- **Wortweise +/- Markierung im Aenderungs-Diff (Zweig
+  `feat/0202-wortdiff-markierungen`).** Auf Kais Wunsch: wenn sich nur eine Zahl oder ein
+  Wort aendert, malt ein Zeilen-Diff zwei komplett rote/gruene Zeilen. Neu werden gepaarte
+  Entfernungs-/Hinzuefuegungszeilen segmentiert (`word-diff.ts`, LCS ueber
+  Woerter/Zahlen/Leerlauf): nur das geaenderte Segment bekommt ein `+`/`−`, Kasten,
+  Durchstreichung bzw. Unterlinie — Farbe ist nie das einzige Signal. Der Zeilen-hintergrund
+  tritt zurueck (14 % -> 6 %, gemessen), damit das Segment zaehlt. Wo Wort-Diff nichts
+  erklaert (Zeile ersetzt, nichts gemeinsam, zu viele Segmente, zu lang) bleibt die
+  Zeilendarstellung stehen. Legende ueber dem Diff. Gilt in Zeilen- UND Spaltenansicht.
+  Rote-dann-gruen: `apps/pwa/test/features/session/word-diff.test.ts` (5) und
+  `e2e/specs/diff-markierungen.spec.ts` (Zahlenfall mit Segmenten, Zeilenersatz ohne
+  Segmente, Spaltenansicht, Tint-Messung).
+- **Drehen der installierten App: erledigt (BUG-0186 done).** Die Web-Ebene war frei
+  (Manifest `any`, kein Manifest-Cache, Worker `ancientvoid-v6`), die Sperre saß in **Chromes
+  Installations-Metadaten** — die beim Anlegen übernommene Ausrichtung (`portrait-primary`)
+  wird durch eine spätere Manifest-Aenderung nicht ersetzt. Nachweis ueber den
+  Geraete-Selbstbericht im Hub-Protokoll: vorher 0° / 874x883 (standalone, `lock()` ->
+  SecurityError), nach Entfernen + Neuanlegen **270° / 970x796**. Dauerhaft: Selbstbericht-
+  Route `/api/diagnostics/client-report` (PR #111), Hinweiszeile im Stand-Panel (PR #113).
 - **Zustellung wählen und Vorgemerktes nachträglich ändern (ADR-0085, Zweig
   `feat/queue-liefern-und-editieren`)**: während ein Zug läuft, sitzt im Composer ein Chip
   `⏳ am Zugende` / `⚡ lenken` (bleibt über Neuladen gleich), der Hauptknopf heißt passend
@@ -77,6 +104,15 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
   eröffnet; Gates laufen gerade erneut auf GitHub-Basis.
 
 ## Bekannte Probleme
+
+- **BUG-0204 (offen, Befund): zu grosser Aenderungsdiff faellt komplett raus.** Nach dem
+  Fix von BUG-0203 zeigt der Reiter Aenderungen der Session `18830ec6` live
+  `git diff fehlgeschlagen: stdout maxBuffer length exceeded` (zaehler 0). Ursachenlage:
+  `diff.ts` diffelt pro Commit mit festen maxBuffer-Grenzen (4 MB/8 MB) und deutet jeden
+  Ueberlauf als Fehler des Gesamt-Diffs. Diese Session haengt zusaetzlich an einer
+  unbeteiligten Basis (`3aef99e5`, lokales main mit fremder Geschichte) — ihr Bereich ist
+  darum die ganze GitHub-Geschichte. Naechster Schritt: Grenze pro Commit plus echten
+  Befund-Text statt Gesamtausfall, Test mit uebergrossem Commit.
 
 - **BUG-0170 (offen):** die Suite ist auf Windows breit rot (CRLF, Symlink-`EPERM`
   ohne Entwicklermodus, Spawn/Signale, verwaiste Fake-Services — gemessen 66

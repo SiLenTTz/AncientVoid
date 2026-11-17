@@ -253,9 +253,22 @@ export const HubConfig = z.object({
       retentionSamples: z.number().int().min(60).max(50_000).default(5400),
       hostProbe: z.boolean().default(true),
       servers: z
-        .array(z.object({ url: z.string().url(), label: z.string().min(1).max(60).optional(), apiKeyFile: z.string().min(1).optional() }))
+        .array(
+          z.object({
+            url: z.string().url(),
+            label: z.string().min(1).max(60).optional(),
+            apiKeyFile: z.string().min(1).optional(),
+            /** Halogen-Serverlog für Prefill/Decode t/s (ADR-0078 Nachtrag). */
+            halogenLog: z.string().min(1).optional(),
+          }),
+        )
         .max(20)
         .default([]),
+      /**
+       * Peer-Hub-Reports in GET /api/aimetrics mergen (Fleet, ADR-0078 Nachtrag).
+       * Default an: jeder Hub misst lokal; Home-Hub zeigt auch Peer-Quellen.
+       */
+      mergePeers: z.boolean().default(true),
       /** Auch die dem Hub bekannten Modell-Server beproben (assistant.model, gatekeeper.models[], media.vision — ADR-0078). */
       probeKnown: z.boolean().default(true),
     })

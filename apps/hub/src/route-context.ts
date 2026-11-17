@@ -1,7 +1,7 @@
 import type { HubTeam } from "./modules/team/index.ts";
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, AiMetricsSampler } from "@ancientvoid/core";
+import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, AiMetricsSampler, FleetStore } from "@ancientvoid/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
 import type { StatisticsService } from "./modules/statistics/statistics.service.ts";
@@ -74,6 +74,10 @@ export interface RouteDeps {
   aimetrics?: AiMetricsSampler;
   /** EPIC-P56 T56.3: Statistik-Rollup für die Statistik-Seite; ohne Angabe ehrlich 501. */
   statistics?: StatisticsService;
+  /** EPIC-P59 Nachtrag: Peer-Liste für Merge in GET /api/aimetrics. */
+  fleet?: FleetStore;
+  /** Peer-Reports mergen (Default true, wenn aiMetrics gesetzt). */
+  aimetricsMergePeers?: boolean;
 }
 
 /**

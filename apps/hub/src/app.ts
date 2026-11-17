@@ -154,14 +154,14 @@ export async function createHubApp(deps: HubAppDeps): Promise<FastifyInstance> {
     const { warnings } = await discoverProjects(projectRoots);
     for (const w of warnings) app.log.warn(w);
   }
-  registerRoutes(app, { ...deps, projectRoots });
+  const fleet = deps.fleet ?? new FleetStore(deps.tokens.database, deps.tokens);
+  const hostId = deps.hostId ?? DEFAULT_HOST_ID;
+  registerRoutes(app, { ...deps, projectRoots, fleet });
   if (deps.attachments && deps.settings) registerAttachmentRoutes(app, { attachments: deps.attachments, settings: deps.settings });
   if (deps.push) registerPushRoutes(app, { push: deps.push, tokens: deps.tokens });
   if (deps.desktop) registerDesktopRoutes(app, { desktop: deps.desktop, tokens: deps.tokens });
   if (deps.media) registerMediaRoutes(app, { ...deps.media, settings: deps.settings });
   registerSttRoutes(app, deps.stt, async () => (await discoverProjects(projectRoots)).projects.map((p) => p.path));
-  const fleet = deps.fleet ?? new FleetStore(deps.tokens.database, deps.tokens);
-  const hostId = deps.hostId ?? DEFAULT_HOST_ID;
   registerFleetRoutes(app, { fleet, tokens: deps.tokens, hostId, ...(deps.hostLabel ? { hostLabel: deps.hostLabel } : {}) });
   registerFleetProxy(app, { fleet, hostId, sessions: deps.sessions, tokens: deps.tokens, ...(deps.metrics ? { metrics: deps.metrics } : {}) });
   registerWs(app, deps.sessions, deps.metrics, deps.tokens);

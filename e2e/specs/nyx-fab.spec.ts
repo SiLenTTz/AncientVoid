@@ -177,6 +177,65 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
       .toBe(true);
   });
 
+  test("BUG-0199: auf langen Seiten ohne Dock verdeckt der FAB kein Bedienelement", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 390, height: 844 });
+    await app.goto(`${hub.origin}/#/einstellungen`);
+    await expect(app.locator('[data-testid=nyx-fab]')).toBeVisible();
+
+    const punkte = await app.evaluate(() => {
+      const grenze = Math.min(document.documentElement.scrollHeight - window.innerHeight, 6000);
+      const pts: number[] = [];
+      for (let y = 0; y <= grenze; y += 300) pts.push(y);
+      return pts;
+    });
+    expect(punkte.length).toBeGreaterThan(6); // die Seite ist lang genug fuer den alten Fall
+
+    for (const y of punkte) {
+      await app.evaluate((petz) => window.scrollTo(0, petz), y);
+      await app.waitForTimeout(240); // der FAB misst nach dem Nachrollen (Entprellung 140 ms)
+      const verdeckt = await app.evaluate(() => {
+        const fab = document.querySelector("[data-nyx-fab]");
+        if (!fab) return ["FAB fehlt"];
+        const r = fab.getBoundingClientRect();
+        if (fab instanceof HTMLElement && (fab.hidden || r.width === 0)) return [];
+        const treffer: string[] = [];
+        for (const el of document.querySelectorAll<HTMLElement>(
+          'input, select, textarea, button, a[href], [role="switch"], [role="button"], [role="checkbox"], summary',
+        )) {
+          if (el.closest("[data-nyx-fab]")) continue;
+          const c = el.getBoundingClientRect();
+          if (c.width === 0 || c.height === 0) continue;
+          const cx = c.x + c.width / 2;
+          const cy = c.y + c.height / 2;
+          if (cx < r.x || cx > r.x + r.width || cy < r.y || cy > r.y + r.height) continue;
+          const hit = document.elementFromPoint(Math.round(cx), Math.round(cy));
+          if (!hit) continue;
+          if (hit === el || el.contains(hit) || hit.contains(el)) continue; // Tipp kaeme an
+          treffer.push(`${el.className || el.tagName} -> ${hit.className || hit.tagName}`);
+        }
+        return treffer;
+      });
+      expect(verdeckt, `Scrollpunkt ${y} px`).toEqual([]);
+    }
+  });
+
+  test("BUG-0201: am PC sitzt der FAB nicht ueber dem Chat-Verlauf", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 1280, height: 800 });
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.locator(".tail-scroll")).toBeVisible();
+    await expect
+      .poll(async () => {
+        const fab = await app.locator('[data-testid=nyx-fab]').boundingBox();
+        const tail = await app.locator(".tail-scroll").boundingBox();
+        if (!fab || !tail) return "kein Messwert";
+        const ueberschneidung =
+          fab.x < tail.x + tail.width && fab.x + fab.width > tail.x && fab.y < tail.y + tail.height && fab.y + fab.height > tail.y;
+        return ueberschneidung ? `FAB ${Math.round(fab.x)},${Math.round(fab.y)} uber dem Verlauf` : "frei";
+      })
+      .toBe("frei");
+  });
+
   test("lässt sich mit echter Maus ziehen (kein nativer Bild-Drag) und ist ≥ 64 px groß", async ({ app, hub }) => {
     await app.setViewportSize({ width: 1400, height: 900 });
     const id = await hub.createSession({ adapter: "dummy" });
@@ -188,11 +247,13 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     const cy = box.y + box.height / 2;
     await app.mouse.move(cx, cy);
     await app.mouse.down();
-    await app.mouse.move(cx - 200, cy + 120, { steps: 12 });
+    // Abwaerts/waerts ziehen: der PC-Default sitzt unten links, nach links und unten ist
+    // der Viewport-Rand (Klemme bei 0) — das haette nur die Klemme getestet, nicht das Ziehen.
+    await app.mouse.move(cx + 250, cy - 150, { steps: 12 });
     await app.mouse.up();
     const after = (await fab.boundingBox())!;
-    expect(after.x).toBeLessThan(box.x - 150);
-    expect(after.y).toBeGreaterThan(box.y + 80);
+    expect(after.x).toBeGreaterThan(box.x + 150);
+    expect(after.y).toBeLessThan(box.y - 80);
     // Ziehen ist kein Klick: es startet keine Aufnahme.
     await expect(app.locator('[data-testid=nyx-fab-toast]')).toHaveCount(0);
   });

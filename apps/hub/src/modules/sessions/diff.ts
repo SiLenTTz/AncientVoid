@@ -117,15 +117,33 @@ async function commitsSince(projectPath: string, baseRef: string): Promise<Commi
     });
 }
 
+/** Git's leerer Baum (Konstante): der Baum, gegen den ein Wurzel-Commit diffet. */
+const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+
+/**
+ * Basis für `sha^..sha` (BUG-0202): ein Wurzel-Commit hat keine Eltern-Revision, `sha^`
+ * ist dann ein Fatal — und ein einziger solcher Commit im Bereich ließ bisher den
+ * gesamten Änderungsdiff ausfallen. Für ihn wird gegen den leeren Baum gediffelt.
+ */
+async function parentOrEmptyTree(projectPath: string, sha: string): Promise<string> {
+  try {
+    await execFileAsync("git", ["-C", projectPath, "rev-parse", "--verify", "--quiet", `${sha}^`], { timeout: 5000 });
+    return `${sha}^`;
+  } catch {
+    return EMPTY_TREE;
+  }
+}
+
 /** Per-Commit-Diff `sha^..sha` in derselben Struktur wie der Workdir-Teil.
  * Untracked-Handling ist hier bewusst unnötig: Committetes liegt per
  * Definition im Baum. */
 async function commitFiles(projectPath: string, sha: string): Promise<{ files: SessionDiffFile[]; patch: string }> {
-  const { stdout: numstat } = await execFileAsync("git", ["-C", projectPath, "diff", "--numstat", `${sha}^`, sha], {
+  const basis = await parentOrEmptyTree(projectPath, sha);
+  const { stdout: numstat } = await execFileAsync("git", ["-C", projectPath, "diff", "--numstat", basis, sha], {
     timeout: 5000,
     maxBuffer: 4 * 1024 * 1024,
   });
-  const { stdout: patch } = await execFileAsync("git", ["-C", projectPath, "diff", `${sha}^`, sha], {
+  const { stdout: patch } = await execFileAsync("git", ["-C", projectPath, "diff", basis, sha], {
     timeout: 5000,
     maxBuffer: 8 * 1024 * 1024,
   });
@@ -377,9 +395,10 @@ export async function getSessionFileHunks(
   commitSha?: string,
 ): Promise<DiffHunk[]> {
   if (commitSha) {
+    const basis = await parentOrEmptyTree(projectPath, commitSha);
     const { stdout: patch } = await execFileAsync(
       "git",
-      ["-C", projectPath, "diff", `${commitSha}^`, commitSha, "--", filePath],
+      ["-C", projectPath, "diff", basis, commitSha, "--", filePath],
       { timeout: 5000, maxBuffer: 8 * 1024 * 1024 },
     );
     const [raw] = splitByFileBlocks(patch);

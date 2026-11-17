@@ -26,7 +26,11 @@ export function fabBreakpoint(width = typeof window !== "undefined" ? window.inn
 export function defaultFabPos(bp: FabBreakpoint, vw: number, vh: number, dockTop?: number): FabPos {
   const size = FAB_SIZE;
   if (bp === "pc") {
-    return { x: Math.round((vw - size) / 2), y: Math.round((vh - size) / 2) };
+    // Nicht mittig: mittig liegt der Knopf über der Lesestelle. Gemessen am produktiven Hub
+    // (1280x800, Sitzungansicht): FAB bei 608,368 — direkt auf der Ereigniszeile
+    // „session.queue…“. Unten links liegt er in der freien Flaeche der Sitzungsliste,
+    // rechts neben der Icon-Leiste und uber der Statuszeile.
+    return { x: 96, y: Math.max(8, vh - size - 32) };
   }
   const floor = dockTop !== undefined && dockTop > 0 && dockTop < vh ? dockTop : vh - 88;
   return {
@@ -35,7 +39,7 @@ export function defaultFabPos(bp: FabBreakpoint, vw: number, vh: number, dockTop
   };
 }
 
-function storedFabPos(bp: FabBreakpoint): FabPos | null {
+export function storedFabPos(bp: FabBreakpoint): FabPos | null {
   try {
     const stored = (JSON.parse(localStorage.getItem(KEY) ?? "{}") as Partial<Record<FabBreakpoint, FabPos>>)[bp];
     if (stored && Number.isFinite(stored.x) && Number.isFinite(stored.y)) return stored;
@@ -43,6 +47,11 @@ function storedFabPos(bp: FabBreakpoint): FabPos | null {
     // ignore
   }
   return null;
+}
+
+/** Hat der Nutzer fuer diesen Breakpoint selbst platziert? Dann darf ihm nichts weggeschoben werden. */
+export function hasStoredFabPos(bp: FabBreakpoint): boolean {
+  return storedFabPos(bp) !== null;
 }
 
 export function loadFabPos(bp: FabBreakpoint, vw: number, vh: number, dockTop?: number): FabPos {

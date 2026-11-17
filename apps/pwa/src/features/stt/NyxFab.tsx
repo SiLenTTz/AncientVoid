@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { NyxSprite } from "../nyx/Nyx.tsx";
-import { clampFabPos, fabBreakpoint, loadFabPos, saveFabPos, type FabPos } from "./fab-position.ts";
+import { clampFabPos, fabBreakpoint, hasStoredFabPos, loadFabPos, saveFabPos, type FabPos } from "./fab-position.ts";
+import { placeFabAvoiding, type FabRect } from "./fab-clearance.ts";
 import { installFocusTracker } from "./paste-target.ts";
 import { usePushToTalk } from "./use-push-to-talk.ts";
 
@@ -19,6 +20,13 @@ export function NyxFab() {
   const drag = useRef<{ sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
   const [dragging, setDragging] = useState(false);
   const suppressClick = useRef(false);
+  // BUG-0199: Ausweichplatz (wenn der FAB sonst ein Bedienelement zudecken wuerde) und ob
+  // er ueberhaupt nicht zeigen kann. Die Nutzerposition `pos` bleibt davon unberuehrt.
+  const [ausweg, setAusweg] = useState<FabPos | null>(null);
+  const [verdeckt, setVerdeckt] = useState(false);
+  // Wer selbst platziert hat (gemerkt oder gerade gezogen), dem wird nichts weggeschoben —
+  // ausgewichen wird nur der automatisch gewaehlten Platzierung (BUG-0199).
+  const userPlaced = useRef(false);
 
   useEffect(() => installFocusTracker(), []);
 
@@ -39,6 +47,7 @@ export function NyxFab() {
       // Nur ein Dock, der unten über die Breite liegt — die senkrechte Icon-Leiste am Desktop zählt nicht.
       const bottomDock = rect && rect.width >= window.innerWidth / 2 && rect.bottom >= window.innerHeight - 4;
       const target = loadFabPos(next, window.innerWidth, window.innerHeight, bottomDock ? rect.top : undefined);
+      userPlaced.current = hasStoredFabPos(next);
       setBp(next);
       setPos((prev) => (prev.x === target.x && prev.y === target.y ? prev : target));
     };
@@ -60,6 +69,81 @@ export function NyxFab() {
       window.removeEventListener("hashchange", placeSoon);
     };
   }, []);
+
+  useEffect(() => {
+    // Der FAB deckt nichts zu: trifft seine Flaeche ein interaktives Element, weicht er auf
+    // die naechste freie Stelle aus; ist alles belegt, verschwindet er (und kommt beim
+    // Weiterscrollen wieder). Getestet wird per Touch-Trefferprobe, nicht per Geometrie —
+    // nur die beweist, dass der Tipp wirklich beim Control ankaeme.
+    // Der FAB deckt nichts zu: trifft seine Flaeche den Mittelpunkt eines Bedienelements,
+    // weicht er auf die naechste freie Stelle aus; ist alles belegt, verschwindet er (und
+    // kommt beim Weiterscrollen wieder). Geprueft wird per Touch-Trefferprobe am Control —
+    // nur die beweist, dass der Tipp dort ankaeme (Bug: eigene Mitte zu testen fuehrt immer
+    // auf den FAB selbst und heisst „frei“).
+    let controls: HTMLElement[] = [];
+    const collect = () => {
+      controls = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          'input, select, textarea, button, a[href], [role="switch"], [role="button"], [role="checkbox"], [role="slider"], summary',
+        ),
+      );
+    };
+    // Belegt ist ein Kandidat, wenn der Mittelpunkt eines sichtbaren Bedienelements in
+    // seiner 64x64-Flaeche liegt — der FAB liegt als festes Element obenauf, also deckt er
+    // es zu. Reine Geometrie (kein Trefferertest im laufenden Stand): der Kandidat ist ja
+    // gerade noch nicht die wirkliche Position, sonst pruefte man gegen den FAB von vorher.
+    const blockedAt = (r: FabRect): boolean => {
+      for (const el of controls) {
+        if (el.closest("[data-nyx-fab]")) continue;
+        const c = el.getBoundingClientRect();
+        if (c.width === 0 || c.height === 0) continue;
+        const cx = c.x + c.width / 2;
+        const cy = c.y + c.height / 2;
+        if (cx < r.x || cx > r.x + r.w || cy < r.y || cy > r.y + r.h) continue;
+        return true;
+      }
+      return false;
+    };
+
+    let wartend = 0;
+    const pruefen = () => {
+      if (drag.current) return;
+      if (userPlaced.current) {
+        setAusweg(null);
+        setVerdeckt(false);
+        return;
+      }
+      collect(); // frisch: beim Scrollen kommen neue Controls ins Bild
+      const base = posRef.current;
+      const fund = placeFabAvoiding(base, blockedAt, window.innerWidth, window.innerHeight);
+      setAusweg((prev) => (prev?.x === fund.pos?.x && prev?.y === fund.pos?.y ? prev : fund.pos));
+      setVerdeckt(fund.pos === null);
+    };
+    const spaeter = () => {
+      if (wartend) clearTimeout(wartend);
+      // Nachrollen abwarten: eine Messung pro Scroll-Schub reicht, und sie muss den
+      // frischen Control-Stand sehen.
+      wartend = window.setTimeout(() => {
+        wartend = 0;
+        pruefen();
+      }, 140);
+    };
+
+    pruefen();
+    window.addEventListener("scroll", spaeter, { passive: true });
+    window.addEventListener("resize", spaeter);
+    window.addEventListener("hashchange", spaeter);
+    const timers = [200, 800, 2000].map((ms) => window.setTimeout(pruefen, ms));
+    return () => {
+      if (wartend) clearTimeout(wartend);
+      timers.forEach(clearTimeout);
+      window.removeEventListener("scroll", spaeter);
+      window.removeEventListener("resize", spaeter);
+      window.removeEventListener("hashchange", spaeter);
+    };
+  }, [pos]);
+
+  const shownPos = ausweg ?? pos;
 
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
@@ -88,7 +172,10 @@ export function NyxFab() {
       suppressClick.current = true;
       const next = clampFabPos(posRef.current, window.innerWidth, window.innerHeight);
       posRef.current = next;
+      userPlaced.current = true;
       setPos(next);
+      setAusweg(null);
+      setVerdeckt(false);
       saveFabPos(bp, next);
     }
   };
@@ -115,7 +202,8 @@ export function NyxFab() {
         data-testid="nyx-fab"
         data-bp={bp}
         class={`nyx-fab${dragging ? " dragging" : ""}${stt.recording ? " recording" : ""}${stt.listening ? " busy" : ""}`}
-        style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
+        style={{ left: `${shownPos.x}px`, top: `${shownPos.y}px` }}
+        hidden={verdeckt && !stt.active}
         aria-label={label}
         aria-busy={stt.active}
         title={stt.title}
@@ -136,7 +224,7 @@ export function NyxFab() {
           role="status"
           aria-live="polite"
           data-testid="nyx-fab-toast"
-          style={{ left: `${Math.max(8, Math.min(pos.x, window.innerWidth - Math.min(320, window.innerWidth - 16) - 8))}px`, bottom: `${window.innerHeight - pos.y + 12}px` }}
+          style={{ left: `${Math.max(8, Math.min(shownPos.x, window.innerWidth - Math.min(320, window.innerWidth - 16) - 8))}px`, bottom: `${window.innerHeight - shownPos.y + 12}px` }}
         >
           {stt.active && (
             <div class="nyx-fab-state" data-testid="nyx-fab-state">

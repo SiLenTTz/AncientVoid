@@ -148,7 +148,7 @@ updatedAt), Contract-Test StatisticsReport, Hub-Routen-Tests (401/501/200/
 400, echte Dummy-Session), E2E statistik.spec.ts (Dock-Weg, Zahlen mit n
 und Klein-n, Zeitraum-/Projektschnitt, API-Contract/Leer/400). Der
 Orchestrator-Schnitt ist nicht belegt (P54: Orchestrator lebt auf Team/Loop,
-nicht auf der Session) und bleibt offen. BUG-0200 (vorbestehend, P63-Folge):
+nicht auf der Session) und bleibt offen. BUG-0205 (vorbestehend, P63-Folge):
 Card-Baustein ohne region-Rolle — Statistik-Seite setzt role="region"
 explizit, Bug separat angelegt (#117). Offen: T56.4, T56.6 (Abnahme);
 T56.5 (P55/P31) bleibt gesperrt.

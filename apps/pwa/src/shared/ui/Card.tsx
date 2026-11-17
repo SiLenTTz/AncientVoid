@@ -4,7 +4,7 @@ import type { ComponentChildren, ComponentProps } from "preact";
 /**
  * EPIC-P63 T63.7: Karten-Baustein — die Standardfläche für Inhalte
  * (--bg-elev, Chip-Rand). `elevated` hebt sie mit --shadow-elev ab.
- * BUG-0200: ein `aria-label` ohne Role erzeugt keine benannte Region —
+ * BUG-0205: ein `aria-label` ohne Role erzeugt keine benannte Region —
  * Karten mit Label bekommen `role="region"` zurück (Screenreader und E2E
  * finden sie wieder); ein explizit übergebenes `role` gewinnt weiterhin.
  * Stile: styles/ui/card.css.
