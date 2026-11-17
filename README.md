@@ -12,7 +12,14 @@ Self-hosted · open source · no cloud: the only server is yours.
 [![Hub: Linux · Windows](https://img.shields.io/badge/hub-Linux%20%C2%B7%20Windows-4b5563)](#platform-support)
 [![Client: any browser (PWA)](https://img.shields.io/badge/client-any%20browser%20(PWA)-7c3aed)](docs/guide/README.md)
 
-<img src="apps/site/assets/social-preview-01.jpg" width="100%" alt="AncientVoid: every coding agent, every machine, in your pocket. A phone shows an agent asking for approval to run a shell command.">
+<picture>
+  <source media="(max-width: 700px)" srcset="apps/site/assets/demo-02.webp">
+  <img src="apps/site/assets/demo-01.webp" width="100%" alt="Animated demo: an agent asks to run a shell command, it is approved with one tap on the phone, and the desktop updates live while the agent continues">
+</picture>
+
+<sub>Real recording from a demo hub with a stand-in agent, no real data
+(<a href="scripts/readme-demo.mjs">reproducible</a>). The UI is German today;
+an English UI is <a href="epics/EPIC-P61-mehrsprachigkeit-englisch.md">in progress</a>.</sub>
 
 [Quick start](#quick-start) · [Why](#why-ancientvoid) · [Features](#what-you-can-do) · [Agents](#works-with-the-agents-you-already-use) · [Security](#security-model) · [FAQ](#faq) · [User guide](docs/guide/README.md)
 
@@ -27,7 +34,7 @@ approve or redirect, and the *running* agent continues.
 
 - **Your code stays home.** The hub runs on your machine, reachable only
   through your private network ([Tailscale](https://tailscale.com)). There is
-  no AncientVoid cloud, no account and no telemetry.
+  no AncientVoid cloud or account, and no telemetry.
 - **One app for every screen.** An installable PWA, so there is no app store,
   with layouts for phone, foldable, tablet and a four-tile desktop.
 - **Any agent, your subscriptions.** Claude Code, Codex, pi, opencode, Copilot
@@ -39,22 +46,6 @@ approve or redirect, and the *running* agent continues.
   fingerprint or face (passkey). No answer means no.
 - **Crash-proof.** Every session is an append-only event log, so after
   `kill -9` the hub is back in under 3 s.
-
-## See it
-
-<p align="center">
-  <img src="docs/assets/readme-start-412.webp" width="260" alt="The session queue on a phone, with the sessions that need you first">
-  <img src="docs/assets/readme-freigabe-412.webp" width="260" alt="Approving a shell command from the phone in the middle of a turn">
-</p>
-<p align="center">
-  <img src="docs/assets/readme-desktop-1280.webp" width="100%" alt="Desktop workspace: session list on the left, a session tile on the right">
-</p>
-
-The images show the queue on the phone, a shell command approved mid-turn and
-the desktop workspace. They come from a demo hub with synthetic sessions
-([reproducible](scripts/readme-screenshots.mjs)). **The UI is German today.**
-An English UI is in progress ([P61](epics/EPIC-P61-mehrsprachigkeit-englisch.md));
-the [user guide](docs/guide/README.md) is already in English.
 
 ## Quick start
 
@@ -185,16 +176,10 @@ guide: [`docs/adapters.md`](docs/adapters.md) · contract test kit:
 
 ## How it works
 
-```mermaid
-flowchart TB
-  P["Phone · tablet · desktop<br/>installable PWA"]
-  H["AncientVoid hub on your PC<br/>event log · approvals · worktrees"]
-  A["Claude Code · Codex · pi<br/>opencode · Copilot · …"]
-  H2["Hub on another machine"]
-  P <-->|"your tailnet only"| H
-  H -->|adapters| A
-  H <-.->|fleet| H2
-```
+<picture>
+  <source media="(max-width: 700px)" srcset="apps/site/assets/architecture-02.webp">
+  <img src="apps/site/assets/architecture-01.webp" width="100%" alt="Architecture: phones, tablets and desktop browsers reach the AncientVoid hub only through your tailnet. The hub keeps an event log, approvals, git worktrees and push, and drives your agent CLIs through adapters. More hubs join as a fleet. Everything stays inside your machines and network; only the agents' own API calls go out to their model providers.">
+</picture>
 
 - **One hub per machine** runs your agent CLIs as supervised workers (tmux or
   child processes). It records every session as an append-only event log in
