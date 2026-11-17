@@ -69,3 +69,13 @@ Schreiber nur nach Bestätigung (BUG-0172/0174, ADR-0081)“.
 Wer das Gate auf einer neuen Maschine fährt: einmal
 `npx playwright install chromium` ausführen; sonst scheitern alle Specs am
 fehlenden Browser.
+
+## Nachtrag 17.11.2026: dieselbe Wurzel im Site-Smoke
+
+`e2e/specs/site.spec.ts` baute `apps/site` mit `execFileSync("npm", …)` **ohne** `shell` —
+auf Windows `spawnSync npm ENOENT`, der Spec war auf Windows gar nicht ausführbar
+(1 failed, Bau fehlte schon im `beforeAll`). Nach dem Fix:
+`npx playwright test e2e/specs/site.spec.ts --workers=1` → **3 passed (3,0 s)**.
+
+Beide Aufrufe (Global-Setup und Site-Bau) teilen jetzt `e2e/support/win-shell.ts`
+(`winShell`), damit kein dritter Aufruf dieselbe Falle bekommt.

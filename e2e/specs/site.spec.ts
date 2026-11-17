@@ -3,6 +3,8 @@ import { createServer, type Server } from "node:http";
 import { createReadStream, readFileSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
+import { repoRoot } from "../support/hub.ts";
+import { winShell } from "../support/win-shell.ts";
 
 /**
  * EPIC-P62 T62.6 (AC-P62-7): Smoke-Spec der Promo-Seite — baut apps/site
@@ -34,7 +36,9 @@ test.describe("Promo-Seite apps/site (EPIC-P62 T62.6)", () => {
   let server: Server;
 
   test.beforeAll(async () => {
-    execFileSync("npm", ["-w", "@ancientvoid/site", "run", "build"], { stdio: "inherit" });
+    // Auf Windows spawnt Node `npm` (`.cmd`) nicht ohne Shell — derselbe Fall wie im
+    // E2E-Global-Setup (BUG-0169); ohne das fiel der Site-Bau mit `spawnSync npm ENOENT`.
+    execFileSync("npm", ["-w", "@ancientvoid/site", "run", "build"], { cwd: repoRoot, stdio: "inherit", shell: winShell });
     ({ server, port } = await serve());
   });
 
