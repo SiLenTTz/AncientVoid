@@ -41,10 +41,11 @@ jobs:
         id: seed
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          # Key identisch zu ci.yml (Image + Node + Lockfile-Hash): native Module wie esbuild
-          # sind image-abhängig, ein Image-Wechsel muss den Cache zwingend ungültig machen.
+          # Key identisch zu ci.yml (OS + Architektur + Node + Lockfile-Hash). Das Runner-Bild
+          # ist im Key-Ausdruck nicht greifbar (`ImageOS` lebt nur in der Shell); maßgeblich ist
+          # die Plattform von esbuild, die pro Lauf mit `npm rebuild esbuild` neu gesetzt wird.
           path: node_modules
-          key: nm-${{ runner.os }}-${{ env.ImageOS }}-node24-${{ hashFiles('package-lock.json') }}
+          key: nm-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('package-lock.json') }}
       - name: frische Installation aus dem Lockfile
         run: |
           if [ "${{ steps.seed.outputs.cache-hit }}" = "true" ]; then
