@@ -1,7 +1,7 @@
 ---
 id: BUG-0200
 slug: metrik-karten-ohne-region-role
-status: open
+status: done
 severity: S3
 area: pwa
 instance: dev
@@ -13,6 +13,12 @@ reporter: Agent (EPIC-P56 T56.3)
 ---
 
 # BUG-0200 — Metrik-Seite: Karten haben nach der P63-Baustein-Migration keine region-Rolle mehr — E2E findet „Metrik-Quelle" nicht
+
+**Fix (17.11.2026, PR #119):** `Card` setzt `role="region"`, wenn ein
+`aria-label` vorliegt (explizites `role` gewinnt weiterhin) — produktiver
+Weg per Nutzerentscheid, nicht Spec-Selektor-Migration. Belegt:
+ki-server-metriken.spec ohne Fix rot, mit Fix 8/8 grün; statistik.spec
+13/13 zusammen grün; PWA-Suite 533 grün.
 
 ## Gesehen
 
@@ -91,6 +97,6 @@ diesem Bug-Report.
 
 ## Handoff
 
-- [ ] Datei im Index [`README.md`](README.md)
-- [ ] GitHub-Issue angelegt (`gh issue create`, URL in `forge:`)
-- [ ] `bugfix` oder offen lassen
+- [x] Datei im Index [`README.md`](README.md)
+- [x] GitHub-Issue angelegt (`gh issue create`, URL in `forge:`) — schließt mit `Fixes #117` im PR #119
+- [x] `bugfix` erledigt (Fix im selben Branch wie die Akte, PR #119)

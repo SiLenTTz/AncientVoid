@@ -233,7 +233,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0197](bug-0197-inventar-g19-s04-nach-ui-konsolidierung-rot.md) | nach PR #94 sind zwei Inventar-Pfade rot: Freigaben-Leerzustand heisst `ui-empty` (Spec sucht `.empty`), „Aendern“ ist ohne Aenderungen weder Reiter noch unter „Mehr“ erreichbar | offen | S2 | pwa | — |
 | [BUG-0198](bug-0198-check-context-token-tabelle-falschalarm-auf-windows.md) | `check:context` meldet auf Windows (CRLF-Checkout) „Token-Tabelle veraltet“, obwohl nichts veraltet ist — Generator schreibt LF in ein CRLF-Dokument | done | S3 | repo | — |
 | [BUG-0199](bug-0199-sprach-fab-liegt-auf-einstellungen-ueber-einer-reihe.md) | der Sprach-FAB verdeckt auf langen Seiten (Einstellungen, y=3200) den Pinch-Zoom-Schalter — elementFromPoint trifft `nyx-fab`, der Schalter ist nicht erreichbar | offen | S2 | pwa | — |
-| [BUG-0200](bug-0200-metrik-karten-ohne-region-role.md) | die Karten der Metrik-Seite haben nach der P63-Baustein-Migration keine region-Rolle mehr — `getByRole("region", { name: "Metrik-Quelle …" })` (ki-server-metriken.spec) findet sie nicht | offen | S3 | pwa | [#117](https://github.com/securesight-ai/AncientVoid/issues/117) |
+| [BUG-0200](bug-0200-metrik-karten-ohne-region-role.md) | die Karten der Metrik-Seite haben nach der P63-Baustein-Migration keine region-Rolle mehr — `getByRole("region", { name: "Metrik-Quelle …" })` (ki-server-metriken.spec) findet sie nicht | done | S3 | pwa | [#117](https://github.com/securesight-ai/AncientVoid/issues/117) |
 
 Die nächste freie Nummer ist **0201** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
