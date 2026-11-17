@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { shellFor } from "@ancientvoid/contracts";
+import { spawnArgv } from "@ancientvoid/contracts";
 import type { HarnessCatalogEntry, HarnessInventoryEntry } from "@ancientvoid/contracts";
 
 const VERSION_RE = /\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?/;
@@ -144,7 +144,8 @@ export function spawnProbeRunner(timeoutMs = 3000): ProbeRunner {
           clearTimeout(timer);
           resolve(result);
         };
-        const child = spawn(command, [...args], { stdio: ["ignore", "pipe", "pipe"], ...shellFor(command) });
+        const start = spawnArgv(command, args);
+        const child = spawn(start.file, start.args, { stdio: ["ignore", "pipe", "pipe"], ...(start.shell ? { shell: true } : {}) });
         let output = "";
         const take = (chunk: Buffer) => {
           if (output.length < 512) output += chunk.toString("utf8");

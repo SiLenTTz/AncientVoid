@@ -19,7 +19,7 @@ import {
   type SteerInput,
   type WorkerProcess,
 } from "@ancientvoid/contracts";
-import { shellFor } from "@ancientvoid/contracts";
+import { spawnArgv } from "@ancientvoid/contracts";
 import { JsonRpcConnection as AcpConnection, RpcError } from "@ancientvoid/adapter-jsonrpc";
 import { resolveContextWindow } from "@ancientvoid/models";
 import { UpdateMapper, type SessionUpdate } from "./normalize.ts";
@@ -719,7 +719,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       if (!cfg.modelsCommand && (cfg.preset === "dsh" || cfg.preset === "maki" || cfg.preset === "omp") && command) return probeModelCatalog(command, env);
       const cmd = cfg.modelsCommand ?? (command?.at(-1) === "acp" ? [...command.slice(0, -1), "models"] : undefined);
       if (!cmd) return [];
-      const { stdout } = await run(cmd[0]!, cmd.slice(1), { timeout: 20_000, maxBuffer: 1024 * 1024, ...shellFor(cmd[0]!) });
+      const start = spawnArgv(cmd[0]!, cmd.slice(1));
+      const { stdout } = await run(start.file, start.args, { timeout: 20_000, maxBuffer: 1024 * 1024, ...(start.shell ? { shell: true } : {}) });
       return stdout
         .split("\n")
         .map((line) => line.trim())

@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { shellFor } from "@ancientvoid/contracts";
+import { spawnArgv } from "@ancientvoid/contracts";
 
 /**
  * EPIC-P15 T15.4: which Claude Code sessions are open at the PC right now.
@@ -21,7 +21,8 @@ export type AgentsRunner = (command: string) => Promise<string>;
 
 const defaultRun: AgentsRunner = (command) =>
   new Promise((resolve, reject) => {
-    execFile(command, ["agents", "--json"], { timeout: 5000, maxBuffer: 1024 * 1024, ...shellFor(command) }, (err, stdout) => (err ? reject(err) : resolve(stdout)));
+    const start = spawnArgv(command, ["agents", "--json"]);
+    execFile(start.file, start.args, { timeout: 5000, maxBuffer: 1024 * 1024, ...(start.shell ? { shell: true } : {}) }, (err, stdout) => (err ? reject(err) : resolve(stdout)));
   });
 
 export function parseClaudeAgents(json: string): ClaudeLiveSession[] {

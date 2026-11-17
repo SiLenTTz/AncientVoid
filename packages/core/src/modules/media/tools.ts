@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { shellFor } from "@ancientvoid/contracts";
+import { spawnArgv } from "@ancientvoid/contracts";
 import { isIP } from "node:net";
 
 /**
@@ -28,7 +28,8 @@ const MAX_CAPTURE = 64 * 1024 * 1024;
 export const runTool: ToolRunner = (cmd, args, opts = {}) =>
   new Promise((resolve, reject) => {
     if (opts.signal?.aborted) return reject(new Error("abgebrochen"));
-    const child = spawn(cmd, [...args], { stdio: ["ignore", "pipe", "pipe"], ...(opts.cwd ? { cwd: opts.cwd } : {}), ...shellFor(cmd) });
+    const start = spawnArgv(cmd, args);
+    const child = spawn(start.file, start.args, { stdio: ["ignore", "pipe", "pipe"], ...(opts.cwd ? { cwd: opts.cwd } : {}), ...(start.shell ? { shell: true } : {}) });
     const out: Buffer[] = [];
     let outLen = 0;
     let err = "";
