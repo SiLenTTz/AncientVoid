@@ -2,8 +2,8 @@
 
 **Art:** erklaerung
 
-Stand: 2026-11-12. Basis: PRD §4 und `epics/EPIC-P0-hub-kern.md` ff.; Epics
-bis P56 sind eingearbeitet, soweit sie Struktur verändern — fachliche
+Stand: 2026-11-17 (Frischhalte-Review). Basis: PRD §4 und `epics/EPIC-P0-hub-kern.md` ff.; Epics
+bis P65 sind eingearbeitet, soweit sie Struktur verändern — fachliche
 Details und Verlauf leben in `epics/` (Index: `epics/README.md`). Diese
 Doku beschreibt den umgesetzten Stand; Abweichungen = ADR-Pflicht. Der
 P0-Grundriss gilt weiterhin, die Abschnitte „Erweiterungen“ fassen zusammen,
@@ -34,15 +34,17 @@ apps/                            lauffähige Programme
   hubctl/         (@ancientvoid/hubctl)     CLI (auch `npm run hubctl`)
   gateway-mcp/    (@ancientvoid/gateway-mcp) MCP-Sidecar, nie vom Hub gestartet
   companion/      (@ancientvoid/companion)  Desktop-Companion (P11, ADR-0031): Diktat ins fokussierte Fenster
+  site/           Promo-Seite (GitHub Pages, ADR-0082)
 packages/                        Bibliotheken
   contracts/src/<modul>/         Verträge
-  core/src/modules/<modul>/      approvals, attachments, automations, browser, code,
+  core/src/modules/<modul>/      aimetrics, approvals, attachments, automations, browser, code,
                                  commands, connections, custom-models, desktop,
                                  devices, diagnostics, discovery, fleet, forge,
                                  gatekeeper, git-graph, graph, handover, harness,
                                  identity, loops, media, notifications,
-                                 observability, team, push, reporting,
-                                 reviews, runs, sessions, skills, vault, workspace
+                                 observability, push, reporting,
+                                 reviews, runs, sessions, skills, statistics,
+                                 team, vault, workspace
   core/src/platform/             db, eventstore, config, logger, metrics
   workers/                       WorkerRunner (tmux, process)
   adapters/<name>/               acp, aider, claude, claude-clip, codex, copilot,
@@ -177,6 +179,12 @@ Automations-Host (P41), Vault/Notizen (P49), Datei-Galaxie (P52, vorher Repo-Gra
 ADR-0062), Git-Commit-Graph (ADR-0071),
 Forge-Integration GitLab (P37), Browser-Testarbeitsplatz (P39,
 ADR-0059) und Desktop-Flächen (P18/P34, Companion P11/ADR-0031).
+Statistik-Seite mit nachführbarem Rollup und Anomalien (P56); einheitliche
+UI-Bausteine unter `shared/ui` als einzige Form der Button-/Form-Sprache
+(P63); Live-Deltas bleiben transient, Persistenz bleibt JSONL
+(ADR-0083); Terminal-Tab mit Allowlist-SSH über den Hub, keine nativen
+PTY-Module (ADR-0087); Status-Sounds rein clientseitig als WebAudio-
+Synthese, ohne Contract-Änderung und ohne Assets (P65).
 
 ### Adapter-Flotte (P1/P3)
 
@@ -267,5 +275,7 @@ gemessen: 306 Tokens.
 | [0006](adr/0006-session-tokens-est-aggregation.md) | `tokensEst` nach demselben Muster wie `costUsd` | dasselbe Summierungs-Bedürfnis, ein zweites Mal auftauchend |
 | [0007](adr/0007-approval-service-contract.md) | Approval-Signatur ist ein HMAC über den rohen Device-Token (write), nie eine Bool-Attrappe | ADR-0007 begründet, warum das kein Behelfs-Downgrade ist, bis T2.5s WebAuthn für `destructive` übernimmt |
 | [0008](adr/0008-session-park-reason.md) | `SessionRecord.parkReason` unterscheidet manuell/budget/Tages-Cap | ein Budget-Top-up darf nur eine wegen Budget geparkte Session automatisch fortsetzen |
+| [0083](adr/0083-live-deltas-transient-ohne-persistierung.md) | Live-Deltas bleiben transient | der EventStore bleibt die einzige Wahrheit; Deltas sind Projektion |
+| [0087](adr/0087-pwa-terminal-ssh.md) | Terminal im Browser führt Shells über Allowlist-Konfiguration, nie über freie Client-Hostnamen | kein natives PTY-Modul; Auth und Containment bleiben beim Hub |
 
 Neue Architekturentscheidungen: `docs/adr/` + PR.
