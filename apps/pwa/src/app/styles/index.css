@@ -75,3 +75,4 @@
 /* BUG-0181: bewusst zuletzt — Regeln für niedrige Fenster müssen die Kaskade
  * gegen später importierte Basalregeln (run-strip, turns) gewinnen. */
 @import "./50-short-viewport.css";
+@import "./52-terminal.css";

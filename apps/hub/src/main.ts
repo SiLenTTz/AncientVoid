@@ -439,6 +439,12 @@ async function main(): Promise<void> {
     automations,
     team,
     ...(aimetrics ? { aimetrics, aimetricsMergePeers: config.aiMetrics?.mergePeers !== false } : {}),
+    terminals: config.terminals.map((t) => ({
+      id: t.id,
+      label: t.label,
+      ...(t.ssh ? { ssh: t.ssh } : {}),
+      ...(t.local ? { local: true as const } : {}),
+    })),
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.ANCIENTVOID_EXPOSE === "1"

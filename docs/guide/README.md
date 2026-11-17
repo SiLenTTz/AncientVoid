@@ -132,6 +132,14 @@ prefill/decode, KV cache. The aggregation home is the statistics page.
 
 Spec: [ki-server-metriken.spec.ts](../../e2e/specs/ki-server-metriken.spec.ts)
 
+### page:terminal — Terminal
+
+`#/terminal`. Connect to allowlisted hosts (`terminals[]` in hub config):
+OpenSSH targets or a local shell on the hub. For operators who need a
+manual shell without leaving AncientVoid (ADR-0087).
+
+Spec: [terminal.spec.ts](../../e2e/specs/terminal.spec.ts)
+
 ## Views
 
 ### view:list — The list shell
@@ -325,6 +333,10 @@ Dictation: local speech-to-text fills the composer (Nyx FAB). Spec: [voice-local
 ### feature:team
 
 Teams — see [page:teams](#pageteams--agent-teams). Spec: [team.spec.ts](../../e2e/specs/team.spec.ts)
+
+### feature:terminal
+
+Allowlisted SSH/local shell — see [page:terminal](#pageterminal--terminal). Spec: [terminal.spec.ts](../../e2e/specs/terminal.spec.ts)
 
 ### feature:vault
 

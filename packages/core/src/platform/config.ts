@@ -273,6 +273,30 @@ export const HubConfig = z.object({
       probeKnown: z.boolean().default(true),
     })
     .optional(),
+  /**
+   * ADR-0087: Allowlist für den PWA-Terminal-Tab.
+   * Jedes Ziel: `ssh` (OpenSSH-Host/Alias) oder `local: true` (Hub-Host).
+   * Ohne Abschnitt: leere Liste, Tab erklärt die Config.
+   */
+  terminals: z
+    .array(
+      z
+        .object({
+          id: z.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9_-]{0,63}$/),
+          label: z.string().min(1).max(80),
+          ssh: z.string().min(1).max(200).optional(),
+          local: z.boolean().optional(),
+        })
+        .superRefine((v, ctx) => {
+          const hasSsh = Boolean(v.ssh);
+          const hasLocal = v.local === true;
+          if (hasSsh === hasLocal) {
+            ctx.addIssue({ code: "custom", message: "terminals[]: genau eines von ssh | local=true" });
+          }
+        }),
+    )
+    .max(20)
+    .default([]),
 });
 export type HubConfig = z.infer<typeof HubConfig>;
 
