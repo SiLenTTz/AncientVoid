@@ -26,7 +26,7 @@ test.describe("Esc schließt Overlays und gibt den Fokus zurück (EPIC-P51 T51.6
     await chip.click();
     await expect(app.locator(".ui-sheet")).toBeVisible();
     // Fokus-Rein-Behauptung wartet zugleich, bis der Registry-Effekt gespült ist (preact).
-    await expect(app.locator(".ui-sheet .btn").first()).toBeFocused();
+    await expect(app.locator(".ui-sheet .ui-button").first()).toBeFocused();
     await app.keyboard.press("Escape");
     await expect(app.locator(".ui-sheet")).toHaveCount(0);
     await expect(app.locator("button.skill-chip").first()).toBeFocused();
@@ -36,7 +36,7 @@ test.describe("Esc schließt Overlays und gibt den Fokus zurück (EPIC-P51 T51.6
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
     await expect(app.locator(".notif-panel")).toBeVisible();
-    await expect(app.locator(".notif-panel-head .btn")).toBeFocused();
+    await expect(app.locator(".notif-panel-head").getByRole("button", { name: "✕" })).toBeFocused();
     await app.keyboard.press("Escape");
     await expect(app.locator(".notif-panel")).toHaveCount(0);
     await expect(app.locator(".notif-bell")).toBeFocused();
