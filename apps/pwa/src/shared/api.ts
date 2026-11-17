@@ -439,7 +439,7 @@ export interface HarnessFeatures {
 export interface AdapterInfo {
   id: string;
   version: string;
-  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; usage: boolean; contextWindowTokens?: number | null; features: HarnessFeatures; /** ADR-0036: external continuation command; absent = none declared. */ resume?: { argv: string[]; ref: "native" | "token"; hub?: true; auto?: true }; /** ADR-0042: slash commands the harness provably executes when driven; absent/empty = none — show that honestly. */ commands?: readonly { name: string; description: string; scope: "start" | "steer" | "both" }[] };
+  capabilities: { reasoning: boolean; tools: boolean; cost: boolean; steer: boolean; /** ADR-0085: Zustellung mitten im laufenden Zug zugesagt (Pi). */ midTurnInput?: boolean; /** ADR-0076: "live" = Eingaben laufen mitten im Zug durch. */ promptDelivery?: "live" | "next-turn"; usage: boolean; contextWindowTokens?: number | null; features: HarnessFeatures; /** ADR-0036: external continuation command; absent = none declared. */ resume?: { argv: string[]; ref: "native" | "token"; hub?: true; auto?: true }; /** ADR-0042: slash commands the harness provably executes when driven; absent/empty = none — show that honestly. */ commands?: readonly { name: string; description: string; scope: "start" | "steer" | "both" }[] };
   /** BUG-0061: server-side truth whether "Verbessern" has a one-shot
    * enhancer for this registration. Absent = older hub → the composer's
    * legacy id-set fallback decides. */
@@ -691,6 +691,14 @@ export interface QueuedPrompt {
   createdAt: string;
   actor: string | null;
   attachments: number;
+  /** ADR-0085: Stelle in der Reihe (niedrig = geht zuerst raus). */
+  position: number;
+}
+
+/** ADR-0085: nachtraegliche Aenderung an einer vorgemerkten Meldung. */
+export interface QueuePatch {
+  text?: string;
+  move?: "front" | "back";
 }
 
 interface Ack {
@@ -1410,6 +1418,9 @@ function createHubApi(P: (path: string) => string) {
    * BUG-0115: Fastify weist einen POST mit JSON-Content-Type und leerem Body
    * mit 400 ab — deshalb ein explizit leerer JSON-Body statt gar keins. */
   sendQueuedNow: (id: string, queueId: string) => api<Ack>(P(`/api/sessions/${id}/queue/${queueId}/send`), { method: "POST", body: JSON.stringify({}) }),
+  /** ADR-0085: eine vorgemerkte Meldung nachtraeglich aendern — Text und/oder Stelle. */
+  editQueued: (id: string, queueId: string, patch: QueuePatch) =>
+    api<Ack>(P(`/api/sessions/${id}/queue/${queueId}`), { method: "PATCH", body: JSON.stringify(patch) }),
   /** EPIC-P40/EPIC-P60: Agenten-Teams (Run→Team, ADR-0077). */
   teamsScope: P("/api/teams"),
   teamList: () => api<Team[]>(P("/api/teams")),
@@ -1438,11 +1449,11 @@ function createHubApi(P: (path: string) => string) {
     api<AutomationHistoryEntry>(P(`/api/automations/${encodeURIComponent(id)}/resolve`), { method: "POST", body: JSON.stringify({ claimKey, note }) }),
   automationHistory: async (id: string): Promise<AutomationHistoryEntry[]> =>
     (await api<{ history: AutomationHistoryEntry[] }>(P(`/api/automations/${encodeURIComponent(id)}/history`))).history,
-  steer: async (id: string, input: SteerInput, inputId?: string, takeover = false, queue = false): Promise<Ack> => {
+  steer: async (id: string, input: SteerInput, inputId?: string, takeover = false, queue?: boolean): Promise<Ack> => {
     const res = await fetch(P(`/api/sessions/${id}/steer`), {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ ...input, clientId: clientId(), ...(inputId ? { inputId } : {}), ...(takeover ? { takeover } : {}), ...(queue ? { queue } : {}) }),
+      body: JSON.stringify({ ...input, clientId: clientId(), ...(inputId ? { inputId } : {}), ...(takeover ? { takeover } : {}), ...(queue !== undefined ? { queue } : {}) }),
     });
     const body = (await res.json().catch(() => ({}))) as { ok?: boolean; detail?: string; error?: string };
     // Two possible failure shapes from the server: a rejected Ack
