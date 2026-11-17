@@ -2,9 +2,9 @@
 
 # AncientVoid
 
-**Run Claude Code, Codex, pi and every other coding agent on your own machines,<br>and steer them from your phone, tablet or PC.**
+**Run Claude Code, Codex, pi and every other coding agent on your own machines, and steer them from your phone, tablet or PC.**
 
-Self-hosted · open source · no cloud: we don't even run a server.
+Self-hosted · open source · no cloud: the only server is yours.
 
 [![CI](https://github.com/SiLenTTz/AncientVoid/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SiLenTTz/AncientVoid/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-34d399)](LICENSE)
@@ -20,57 +20,52 @@ Self-hosted · open source · no cloud: we don't even run a server.
 
 ## Why AncientVoid
 
-Coding agents now work for half an hour on their own, then stop to ask one
-question, or for permission to run `rm -rf build/`. If you are not at your
-desk, the work stalls.
+Coding agents work on their own for half an hour, then stop for one question
+or one `rm -rf`. Away from your desk, the work stalls. AncientVoid puts every
+session from all your machines into **one queue on your phone**: you answer,
+approve or redirect, and the *running* agent continues.
 
-AncientVoid puts every agent session from all your machines into **one queue
-on your phone**. You answer, approve or redirect, and the *running* agent
-continues. It does not start a copy or a new chat.
-
-- **Your code stays home.** The hub runs on your machine and is reachable
-  only through your own private network ([Tailscale](https://tailscale.com)).
-  There is no AncientVoid cloud, relay or account, and no telemetry. Your
-  agents still talk to their model providers exactly as before.
-- **One app for every screen.** An installable PWA, so there is no app store.
-  You get a queue on the phone, layouts for foldables and tablets, and up to
-  four session tiles side by side on the desktop.
-- **Any agent, one interface.** Claude Code, Codex, pi, opencode, Copilot CLI,
-  Cursor, Hermes, aider, any [ACP](https://agentclientprotocol.com) agent and
-  local models. It drives the CLIs you already use, with your existing logins
-  and subscriptions. It adds a control plane, not another bill.
-- **Take over sessions you started elsewhere.** Started an agent in a terminal
-  an hour ago? *Discovery* finds it on disk (Claude Code, Codex, opencode, pi,
-  Copilot CLI, Cursor, Hermes). Preview it, take it over or fork a copy.
-- **Approve from anywhere, safely.** Tool calls are classed *read*, *write* or
-  *destructive*. Destructive ones need your fingerprint or face (passkey via
-  WebAuthn). No answer means no: requests fail closed, and every decision is
-  audited.
-- **Crash-proof.** Every session is an append-only event log. `kill -9` the
-  hub, and the full state is back in under 3 seconds.
+- **Your code stays home.** The hub runs on your machine, reachable only
+  through your private network ([Tailscale](https://tailscale.com)). There is
+  no AncientVoid cloud, no account and no telemetry.
+- **One app for every screen.** An installable PWA, so there is no app store,
+  with layouts for phone, foldable, tablet and a four-tile desktop.
+- **Any agent, your subscriptions.** Claude Code, Codex, pi, opencode, Copilot
+  CLI, Cursor, Hermes, aider, any [ACP](https://agentclientprotocol.com) agent
+  and local models. It is a control plane, not another bill.
+- **Take over terminal sessions.** *Discovery* finds agent sessions you
+  started in a terminal. Preview them, take them over or fork a copy.
+- **Approve safely from anywhere.** Destructive tool calls need your
+  fingerprint or face (passkey). No answer means no.
+- **Crash-proof.** Every session is an append-only event log, so after
+  `kill -9` the hub is back in under 3 s.
 
 ## See it
 
-| Overview (phone) | Approval in a turn | Desktop workspace |
-|---|---|---|
-| ![Session queue on a phone](docs/assets/readme-start-412.webp) | ![Approving a shell command from the phone](docs/assets/readme-freigabe-412.webp) | ![Desktop with session list and a session tile](docs/assets/readme-desktop-1280.webp) |
+<p align="center">
+  <img src="docs/assets/readme-start-412.webp" width="260" alt="The session queue on a phone, with the sessions that need you first">
+  <img src="docs/assets/readme-freigabe-412.webp" width="260" alt="Approving a shell command from the phone in the middle of a turn">
+</p>
+<p align="center">
+  <img src="docs/assets/readme-desktop-1280.webp" width="100%" alt="Desktop workspace: session list on the left, a session tile on the right">
+</p>
 
-The screenshots come from a demo hub with synthetic sessions, with no real
-data, and can be reproduced with
-[`scripts/readme-screenshots.mjs`](scripts/readme-screenshots.mjs).
-**The UI is German today.** An English UI with a language switch is in
-progress ([P61](epics/EPIC-P61-mehrsprachigkeit-englisch.md)); the
-[user guide](docs/guide/README.md) is already in English.
+The images show the queue on the phone, a shell command approved mid-turn and
+the desktop workspace. They come from a demo hub with synthetic sessions
+([reproducible](scripts/readme-screenshots.mjs)). **The UI is German today.**
+An English UI is in progress ([P61](epics/EPIC-P61-mehrsprachigkeit-englisch.md));
+the [user guide](docs/guide/README.md) is already in English.
 
 ## Quick start
 
-You need Node `^22.18.0 || ^24 || >=26`, git and bash (Git Bash on Windows).
+You need Node `^22.18.0 || ^24 || >=26`, git and bash (on Windows, Git Bash).
 tmux is optional (Linux), and you need [Tailscale](https://tailscale.com) for
 phone access.
 
 ```bash
-git clone https://github.com/SiLenTTz/AncientVoid.git && cd AncientVoid
-./setup.sh        # Windows: run in Git Bash
+git clone https://github.com/SiLenTTz/AncientVoid.git
+cd AncientVoid
+./setup.sh
 ```
 
 The wizard checks Node and detects your installed agents (`claude`, `codex`,
@@ -166,33 +161,39 @@ against each adapter's real `capabilities()`.
 
 </details>
 
-**Bring your own endpoint, no fork needed.** An adapter is a module that
-exports `createAdapter(config)`, either a local file or an npm package. Register
-it in `hub.config.json`:
+<details>
+<summary><b>Bring your own endpoint, no fork needed</b></summary>
+
+An adapter is a module that exports `createAdapter(config)`, either a local
+file or an npm package. Register it in `hub.config.json`:
 
 ```json
-{ "adapters": [
-  { "id": "local-llm", "module": "./examples/adapters/openai-compat/adapter.ts",
-    "config": { "baseUrl": "http://127.0.0.1:8080/v1", "model": "qwen2.5-coder" } }
-] }
+{
+  "adapters": [{
+    "id": "local-llm",
+    "module": "./examples/adapters/openai-compat/adapter.ts",
+    "config": { "baseUrl": "http://127.0.0.1:8080/v1", "model": "qwen2.5-coder" }
+  }]
+}
 ```
 
 Template: [`examples/adapters/openai-compat/`](examples/adapters/openai-compat/) ·
 guide: [`docs/adapters.md`](docs/adapters.md) · contract test kit:
 `@ancientvoid/adapter-testkit` (green means the adapter can be integrated into the hub).
 
+</details>
+
 ## How it works
 
 ```mermaid
-flowchart LR
-  subgraph M1["Your PC"]
-    A["Claude Code · Codex · pi · …"] -->|adapters| H["AncientVoid hub<br/>event log · approvals · worktrees"]
-  end
-  subgraph M2["Your server"]
-    H2["AncientVoid hub"]
-  end
-  H <-->|"tailnet only (WireGuard)"| P["PWA on phone · tablet · desktop"]
-  H2 <-.->|fleet| H
+flowchart TB
+  P["Phone · tablet · desktop<br/>installable PWA"]
+  H["AncientVoid hub on your PC<br/>event log · approvals · worktrees"]
+  A["Claude Code · Codex · pi<br/>opencode · Copilot · …"]
+  H2["Hub on another machine"]
+  P <-->|"your tailnet only"| H
+  H -->|adapters| A
+  H <-.->|fleet| H2
 ```
 
 - **One hub per machine** runs your agent CLIs as supervised workers (tmux or
