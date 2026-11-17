@@ -234,8 +234,9 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0198](bug-0198-check-context-token-tabelle-falschalarm-auf-windows.md) | `check:context` meldet auf Windows (CRLF-Checkout) „Token-Tabelle veraltet“, obwohl nichts veraltet ist — Generator schreibt LF in ein CRLF-Dokument | done | S3 | repo | — |
 | [BUG-0199](bug-0199-sprach-fab-liegt-auf-einstellungen-ueber-einer-reihe.md) | der Sprach-FAB verdeckt auf langen Seiten (Einstellungen, y=3200) den Pinch-Zoom-Schalter — elementFromPoint trifft `nyx-fab`, der Schalter ist nicht erreichbar | done | S2 | pwa | — |
 | [BUG-0200](bug-0200-mehr-menue-in-eigenen-fenstern-offnet-nicht.md) | Menüpunkte des „Mehr“-Menüs lagen im Kachelkopf hinter der Steuerung (Stapelkontext `--z-sticky` < `--z-dock`) — jetzt erbt der Kopf nur im geöffneten Zustand `--z-sheet`; Inventar 9 passed | done | S2 | pwa | — |
+| [BUG-0201](bug-0201-nyx-fab-am-pc-liegt-ueber-dem-verlauf.md) | am PC lag der Nyx-FAB in der Viewport-Mitte und deckte eine Verlaufszeile ab — PC-Default sitzt jetzt unten links in der freien Liste | done | S3 | pwa | — |
 
-Die nächste freie Nummer ist **0201** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+Die nächste freie Nummer ist **0202** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens
