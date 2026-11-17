@@ -25,10 +25,11 @@
   overflow-wrap: anywhere;
 }
 
-.chat-live-part.thinking {
-  margin-bottom: 6px;
-  color: var(--fg-dim);
-  font-style: italic;
+/* ADR-0083: das live uebertragene Denken bekommt keine eigene Typografie — es trägt die
+ * Klassen der Denk-Notiz (40-turns.css: `--text-sm`, `--fg-dim`, kursiv). Hier steht nur
+ * der Abstand, damit es zwischen Chat-Blöcken nicht klebt. */
+.chat-live-note {
+  margin: var(--space-1) 0;
 }
 
 /* Der Cursor zeigt: hier läuft etwas, es ist aber nicht simuliert. */
