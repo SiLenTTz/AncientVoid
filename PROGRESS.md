@@ -105,6 +105,15 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Bekannte Probleme
 
+- **BUG-0204 (offen, Befund): zu grosser Aenderungsdiff faellt komplett raus.** Nach dem
+  Fix von BUG-0203 zeigt der Reiter Aenderungen der Session `18830ec6` live
+  `git diff fehlgeschlagen: stdout maxBuffer length exceeded` (zaehler 0). Ursachenlage:
+  `diff.ts` diffelt pro Commit mit festen maxBuffer-Grenzen (4 MB/8 MB) und deutet jeden
+  Ueberlauf als Fehler des Gesamt-Diffs. Diese Session haengt zusaetzlich an einer
+  unbeteiligten Basis (`3aef99e5`, lokales main mit fremder Geschichte) — ihr Bereich ist
+  darum die ganze GitHub-Geschichte. Naechster Schritt: Grenze pro Commit plus echten
+  Befund-Text statt Gesamtausfall, Test mit uebergrossem Commit.
+
 - **BUG-0170 (offen):** die Suite ist auf Windows breit rot (CRLF, Symlink-`EPERM`
   ohne Entwicklermodus, Spawn/Signale, verwaiste Fake-Services — gemessen 66
   Prozesse nach einem Lauf, Rezept im Bug-Dokument). Deshalb tragen Commits hier
