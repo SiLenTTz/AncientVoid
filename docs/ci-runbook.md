@@ -61,6 +61,17 @@ steht ausschließlich in `ci.yml` und `nightly.yml`. **K8 bleibt
 diese Messlatte entschärfen. Fehlt in CI der Browser, muss `e2e` rot enden,
 nicht still skippen.
 
+### Parallelitaet der Test-Tiers
+
+Tier A (`test:fast`, PR-Gate) laeuft mit **8 Forks** parallel; Tier B (`test:slow`) bleibt
+seriell (`maxWorkers: 1`), weil dort die zeit- und portbasierten Dateien stehen
+(`scripts/slow-tests.json`). Stufe ohne Code-Aenderung verstellbar: `VITEST_WORKERS=4`.
+
+Gemessen auf einem Windows-Desk mit 20 Kernen (2026-11-17): Tier A **36 s parallel** gegen
+246 s seriell; Ausgangslage vor dem Attrappen-Fix (BUG-0179) waren 451 s. Drei zeitkritische
+Dateien (`handover`, `steer-wait-timeout`, `turn-state`) gelten als Flake-Kandidaten der
+Parallelstufe und sind als Issue gemeldet.
+
 ## 2. Einen Lauf lesen
 
 ```bash

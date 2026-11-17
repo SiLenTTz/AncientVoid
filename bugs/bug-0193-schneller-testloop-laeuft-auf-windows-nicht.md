@@ -49,3 +49,25 @@ Tier A **kein** Ergebnis.
   empfehlen ihn als Standard).
 - `nightly.yml` ruft `npm run test:slow` — auf Windows-Runnern wäre das ebenfalls
   fehlgeschlagen.
+
+## Nachtrag: Tier A ist 12× schneller (2026-11-17, gemessen)
+
+Zwei Stufen, beide auf Kais Windows-Desk (20 Kerne) gemessen:
+
+| Schritt | Dauer Tier A | Testzählung |
+|---|---|---|
+| Ausgangslage (seriell, Attrappen-Spawn kaputt) | **451,6 s** | 137 failed / 1974 passed |
+| Spawn ohne Shell-Layer (BUG-0179, Nachtrag 3) | **246,4 s** | 112 failed / 2006 passed |
+| Tier A parallel (8 Forks) | **36,3 s** | 112 failed / 2006 passed |
+
+Warum seriell überhaupt lief: `maxWorkers: 1` war der Ersatz für `singleFork` — Noetzlichkeit
+wegen der zeitbasierten Tests (BUG-0001/0002). Diese und die Port-Binder stehen aber längst in
+`scripts/slow-tests.json` und laufen als Tier B **weiter seriell**. Tier A enthält keine davon,
+also parallel. Die Stufe ist über `VITEST_WORKERS` ohne Code-Änderung verstellbar.
+
+Stabilität: drei Tier-A-Läufe parallel = 36,3 / 35,2 / 35,3 s, jeweils exakt
+112 failed / 2006 passed / 53 skipped. 120 rote Testidentitäten sind in allen Läufen identisch
+(BUG-0170), **drei** tauchten jeweils nur in einem Lauf auf und sind damit Flake-Kandidaten der
+Parallelstufe: `handover.test.ts`, `sessions/steer-wait-timeout.test.ts` (Occupant-Pinning,
+Verwandter von Issue #83), `sessions/turn-state.test.ts` (Herunterfahren mit laufenden Workern).
+Dafür ist ein Issue gemeldet; sie bleiben erst mal in Tier A, weil sie keine Ports binden.
