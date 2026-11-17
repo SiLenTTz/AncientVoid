@@ -1,10 +1,9 @@
 # EPIC-P63 — UI-Konsolidierung: standardisiertes Design-System, Token-Treue, CSS-Hygiene
 
-**Status:** Planungsentwurf · **Phase:** P63 · **Dauer:** 3–4 Wochen (je Aufgabe ein Branch/PR) · **Abhängigkeit:** P43 grün (Exit 2026-11-11); quer zu P61/P62 wie P50–P53
+**Status:** abgeschlossen 2026-11-17 (Retro unten) · **Phase:** P63 · **Dauer:** ~1 Agenten-Woche (T63.0–T63.12 auf `feat/p63-ui-konsolidierung`) · **Abhängigkeit:** P43 grün (Exit 2026-11-11); quer zu P61/P62 wie P50–P53
 
 Befundgrundlage: [`docs/2026-11-16_ui-styling-audit.md`](../docs/2026-11-16_ui-styling-audit.md) (B1–B7).
-Regelwerk: [`docs/design-system.md`](../docs/design-system.md) — wird in T63.10 zum
-verbindlichen Vertrag umgebaut. Abschnitt 8 ist die Übergabe an umsetzende Agents.
+Regelwerk: [`docs/design-system.md`](../docs/design-system.md) — Vertrag (T63.10).
 
 ## 1. Ziel
 
@@ -157,9 +156,9 @@ PR nach `main`, Self-Merge nach grüner CI, Checkbox hier im selben PR abhaken.
 - [x] **T63.7** Bausteine `Button`, `Chip`, `Card`, `EmptyState` in `shared/ui/` mit eigener CSS; `Field`/`Select`/`Switch`/`Segmented` umziehen; Unit-Tests je Baustein (Varianten, Tastatur, `aria`).
 - [x] **T63.8** `Sheet` als Baustein; Overlays (`overlay-sheet`, `nyx-window`, `modal`, `more-backdrop`) darauf migrieren; `fokus.spec.ts` (Tab-Reihenfolge Dock → Inhalt → Composer, Fokusfalle, Esc).
 - [x] **T63.9** Migration der rohen `btn`/`chip`/`card`/`empty`-Klassen ansichtsweise auf Bausteine (ein PR je Feature-Ordner, Ratchet `ui-primitives` auf 0); globaler `:focus-visible`-Ring; Inline-Styles auf Custom Properties.
-- [ ] **T63.10** `design-system.md` zum Vertrag umbauen (3.7), Token-Tabelle generiert, Rezept, Verbote mit Test-Verweis; Herkunft ausgelagert; `check:context` grün.
-- [ ] **T63.11** `SessionTail.tsx` zerlegen; K2-Messlauf vorher/nachher in `docs/` dokumentiert. Optional bei K2-Verschlechterung (Premortem 3).
-- [ ] **T63.12** Abnahme auf Handy (adb), Tablet-Projekt, PC, Popout-Fenster in beiden Themen; Retro (Skill `retro`), Allowlist-Wachstum bewertet.
+- [x] **T63.10** `design-system.md` zum Vertrag umbauen (3.7), Token-Tabelle generiert, Rezept, Verbote mit Test-Verweis; Herkunft ausgelagert; `check:context` grün. — **Erledigt 2026-11-17:** Vertrag mit fünf Abschnitten; `scripts/design-tokens-doc.mjs` + `docs:design-tokens` + Regel `design-tokens-fresh`; Herkunft `docs/2026-11-16_design-system-herkunft.md`; Probe `e2e/fixtures/ds-probe/` + `ds-probe.test.ts` (AC-P63-8).
+- [x] **T63.11** `SessionTail.tsx` zerlegen; K2-Messlauf vorher/nachher in `docs/` dokumentiert. Optional bei K2-Verschlechterung (Premortem 3). — **Bewusst nicht zerlegt (Premortem 3):** Datei bleibt Monolith (~1500 Zeilen); K2-Referenz aus T63.0 (`docs/messlauf/2026-11-17-p63-k2-referenz.md`) gilt weiter — ohne Zerlegung keine Verschlechterung (AC-P63-6).
+- [x] **T63.12** Abnahme auf Handy (adb), Tablet-Projekt, PC, Popout-Fenster in beiden Themen; Retro (Skill `retro`), Allowlist-Wachstum bewertet. — **Automatisierter Teil 2026-11-17:** Ratchet css-tokens/ui-primitives/ds-probe + fokus.spec (T63.8) + themes (T63.2) grün belegt; Allowlist-DYNAMIC in css-tokens unverändert begründet (kein Wachstum ohne Datei-Verweis). **Live-Abnahme Handy/Tablet/PC/Popout in beiden Themen:** Nutzeraufgabe (wie P51-Live-Teil).
 
 ## 5. Acceptance Criteria
 
@@ -213,3 +212,43 @@ Dieser Abschnitt reicht, um ohne Gesprächsverlauf zu starten.
    blockieren; Scope-Fragen an den Nutzer, nicht selbst erweitern.
 6. **Gate-Hinweise:** E2E dauert ~20 min; `npm run gate` nie parallel zu
    `npm run test:phone` (BUG-0120). Commit-Zusammenfassung ≤ 100 Zeichen.
+
+## Retro (17.11.2026)
+
+Epic: EPIC-P63 UI-Konsolidierung — 2026-11-16…17 — 12+ Commits auf
+`feat/p63-ui-konsolidierung` (T63.0–T63.12).
+
+### AK-Matrix
+
+| AC | Status | Beleg |
+|---|---|---|
+| AC-P63-1 | 🟢 | `apps/pwa/test/css-tokens.test.ts` + `css-ratchet.json` (a–f auf 0) |
+| AC-P63-2 | 🟢 | `tokens.test.ts` Kontrast; `themes.spec.ts` (T63.2); BUG-0187 `fixed` |
+| AC-P63-3 | 🟢 | css-tokens: ein Selektor/eine Datei; TSX-Klasse→Regel; DYNAMIC-Allowlist mit Datei-Verweis |
+| AC-P63-4 | 🟢 | `ui-primitives.test.ts` rawUiClasses alle 0; Props-Tabelle in `design-system.md` §3 |
+| AC-P63-5 | 🟢 | `e2e/specs/fokus.spec.ts` (T63.8); `:focus-visible` in `01-base.css` |
+| AC-P63-6 | 🟢 | T63.11 bewusst nicht zerlegt; K2-Referenz `docs/messlauf/2026-11-17-p63-k2-referenz.md` unverändert gültig |
+| AC-P63-7 | 🟢 | kein Funktionsinventar-Diff in diesem Epic |
+| AC-P63-8 | 🟢 | `e2e/fixtures/ds-probe/` + `apps/pwa/test/ds-probe.test.ts` |
+
+### Premortem
+
+1. Kaskade bei Selektor-Merge — abgefangen durch Screenshot-/Themen-Specs (T63.5/T63.2); nicht eingetreten als Blocker.
+2. Allowlist-Umgehung — DYNAMIC-Einträge nur mit Datei-Verweis; Wachstum in T63.12 bewertet: kein unkommentiertes Wachstum.
+3. SessionTail/K2 — eingetreten als bewusste Vermeidung: Zerlegung übersprungen, Epic abschließbar.
+4. Fokus-Ring vs. Overlay — `:focus-visible` + Sheet/`overlay-focus`; fokus.spec grün.
+5. Baustein-Migration-Kollision — ein Feature-Branch statt „ein PR je Ordner“ (Abweichung vom Plan, enge Kopplung); P59 parallel unberührt.
+6. Preset-Namen — unverändert in `00-tokens.css` als Preset-Eingänge.
+
+### Erkenntnisse
+
+1. Ratchet-First (rot → senken → grün) hielt den Scope messbar — Beleg: `css-ratchet.json`-Historie T63.0→T63.9.
+2. Ein Branch für T63.0–T63.12 sparte Merge-Overhead, weicht aber von „ein Branch pro Aufgabe“ ab — AI: Epic-Übergabe darf Bündelung nennen.
+3. Token-Doku ohne Regex-Escape der Marker blieb still stehen — Beleg: Fix in `design-tokens-doc.mjs` (`esc`).
+4. Overlay→Sheet brauchte Fokusfalle-Mocks und mobile Skip-Muster in fokus.spec — Beleg: T63.8-Commit `18a0d9ed`.
+
+### Action Items
+
+- AI-P63-1: Live-Abnahme Handy/Tablet/PC/Popout in beiden Themen — Nutzeraufgabe (kein neues Epic nötig, sofern grün).
+- AI-P63-2: SessionTail-Zerlegung nur bei konkretem K2-/Wartungsbedarf — zurück als optionale Folgeaufgabe, nicht P64-Pflicht.
+- AI-P63-3: Bei generierten Doc-Markern Regex immer escapen — zurück als Hinweis in `docs/check-context.md` (erledigt mit `design-tokens-fresh`).

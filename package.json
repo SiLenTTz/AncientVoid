@@ -58,6 +58,7 @@
     "check:names": "node scripts/check-names.mjs",
     "check:context": "node scripts/check-context.mjs",
     "docs:reference": "node scripts/gen-reference.mjs",
+    "docs:design-tokens": "node scripts/design-tokens-doc.mjs",
     "check:knip": "knip",
     "demo:seed": "node scripts/demo-seed.ts",
     "guide:shots": "node scripts/guide-shots.ts"

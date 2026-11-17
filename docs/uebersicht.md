@@ -26,6 +26,11 @@ Hand ändern — `check:context` (Regel `reference-fresh`) scheitert bei
 veraltetem Stand. Erklärtexte dazu bleiben in
 [`configuration.md`](configuration.md) und [`onboarding.md`](onboarding.md).
 
+Die Token-Tabelle in [`design-system.md`](design-system.md) entsteht aus
+`apps/pwa/src/app/styles/00-tokens.css` (`npm run docs:design-tokens`,
+`scripts/design-tokens-doc.mjs`). `check:context` (Regel `design-tokens-fresh`)
+scheitert bei Drift.
+
 ## Pflege
 
 - Neue lebende Seite: Kopfzeile `**Art:** …` setzen **und** hier eintragen —

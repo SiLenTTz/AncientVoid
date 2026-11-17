@@ -10,12 +10,12 @@ const slowSet = process.env.VITEST_SET ?? "all";
 const allGlobs = ["packages/*/test/**/*.test.ts", "packages/adapters/*/test/**/*.test.ts", "packages/loops/*/test/**/*.test.ts", "apps/*/test/**/*.test.{ts,tsx}", "scripts/**/*.test.mjs"];
 
 export default defineConfig({
+  // EPIC-P63 T63.7: Baustein-Tests (.tsx) — Vitest 5/Vite nutzt oxc; Preact-JSX.
+  oxc: { jsx: { runtime: "automatic", importSource: "preact" } },
   test: {
     globalSetup: ["./scripts/vitest-global-setup.mjs"],
     include: slowSet === "slow" ? slowFiles : allGlobs,
     ...(slowSet === "fast" ? { exclude: ["**/node_modules/**", "**/dist/**", ...slowFiles] } : {}),
-    // EPIC-P63 T63.7: Baustein-Tests sind TSX mit Preact-JSX.
-    esbuild: { jsx: "automatic", jsxImportSource: "preact" },
     testTimeout: 15_000,
     hookTimeout: 15_000,
     pool: "forks",
