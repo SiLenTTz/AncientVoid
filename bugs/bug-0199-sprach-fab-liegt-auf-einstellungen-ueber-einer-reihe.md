@@ -1,6 +1,6 @@
 # BUG-0199 — der Sprach-FAB liegt auf der Einstellungen-Seite über einer Reihe und nimmt der Reihe das Bedienelement weg
 
-- **Status:** offen
+- **Status:** done (Ausweichen der automatischen Platzierung; gezogene bleibt heil)
 - **Schicht:** pwa (Speech-to-Text-FAB, `apps/pwa/src/features/stt/NyxFab.tsx`, global gemountet in `app/main.tsx:528`)
 - **Schwere:** S2 — eine Einstellung ist an der Stelle **nicht erreichbar**; ein Tipp trifft
   den FAB statt den Schalter
@@ -41,6 +41,39 @@ Der FAB ist global und fix; er weicht nur **vertikal** dem Dock aus
 scrollenden Seiten ohne Dock (`#/einstellungen`, `#/freigaben`, Übersicht) gibt es keine
 Solids-Fläche, die er respektieren könnte — beim Scrollen wandert jede Reihe durch seine
 Fixbox. Horizontal ausweichen ist bei 390 px Breite nicht möglich (kein Randspalt).
+
+## Behoben (17.11., Regel + Messung)
+
+**Regel:** die *automatisch* gewählte Platzierung weicht einem Bedienelement aus — der FAB
+rückt eine Kantenlänge (64 px + 8 px Abstand) hoch oder runter, höchstens zwei Schritte;
+findet er nirgends freien Platz, verschwindet er und kommt beim Weiterrollen wieder.
+**Wer selbst gezogen hat, dem wird nichts weggeschoben** (`hasStoredFabPos`): gemerkte
+Positionen bleiben unangetastet, sonst verteidigt die App ihren Platz gegen den Nutzer.
+
+Neu: `apps/pwa/src/features/stt/fab-clearance.ts` (`placeFabAvoiding` — die Rechenregel ohne
+DOM) und `fab-position.ts` (`hasStoredFabPos`). Die Prüfregel im Baustein ist **Geometrie**
+(Mittelpunkt eines sichtbaren Controls innerhalb der FAB-Fläche), nicht der Trefferertest:
+der Trefferertest misst immer gegen den *gerade rendernden* FAB und erklärt einen Kandidaten
+für frei, der es nicht ist — zweiter Anlauf, gemessen bei Scroll 600 px als `SELECT ->
+nyx-fab`. Die **Auswirkung** wird weiterhin per `elementFromPoint` gemessen (im Test), nur
+die Kandidaten-Bewertung nicht.
+
+Invariante „kein Bedienelement unter dem FAB“, über die ganze Einstellungsseite gemessen
+(Scroll-Schritte zu 300 px, Trefferertest am Control-Mittelpunkt):
+
+| Scrollpunkt | vor dem Fix | nach dem Fix |
+|---|---|---|
+| 3200 px | Pinch-Zoom-Schalter verdeckt (`INPUT -> nyx-fab`) | FAB bei y 639, frei |
+| 600 px | — | FAB weicht, `SELECT` frei |
+| alle Schritte 0 … ~6000 px | ein Treffer | **keine Treffer** |
+
+Tests: `apps/pwa/test/features/stt/fab-clearance.test.ts` (5 Fälle: frei, hoch ausweichen,
+runter ausweichen, alles belegt → `null`, Viewport-Grenze) und in `e2e/specs/nyx-fab.spec.ts`
+der Fall „BUG-0199: auf langen Seiten ohne Dock verdeckt der FAB kein Bedienelement“.
+Reihenfolge der Messung: `npx playwright test e2e/specs/nyx-fab.spec.ts --workers=1` zuerst
+1 failed / 8 passed (Selektor bei 600 px, zudem der Drag-Fall, weil der FAB einem *gemerkten*
+Platz zu ausweichen begann), nach der Regel „gemerkte Plätze bleiben heil“ und der
+Geometrie-Prüfung **9 passed**.
 
 ## Zwei Ausgänge (bewusst offen — es ist eine Produktentscheidung)
 
