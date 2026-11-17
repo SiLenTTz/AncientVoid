@@ -523,6 +523,67 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS session_queue_order ON session_queue (session_id, position, created_at);
     `,
   },
+  {
+    id: 36,
+    name: "statistics-rollup-cache",
+    // EPIC-P56 T56.2: Cache für Statistik-Fakten. Die Quellen bleiben Journal
+    // (JSONL) und Team-Record (K7) — jede Zeile ist per rebuild() aus ihnen
+    // rekonstruierbar; basis_last_seq/basis_updated_at steuern die Nachführung.
+    sql: `
+      CREATE TABLE IF NOT EXISTS session_stat_facts (
+        session_id TEXT PRIMARY KEY,
+        adapter TEXT NOT NULL,
+        model TEXT,
+        wall_ms INTEGER,
+        active_ms INTEGER NOT NULL,
+        turns INTEGER NOT NULL,
+        open_turn INTEGER NOT NULL,
+        end_reason TEXT,
+        basis_last_seq INTEGER NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS session_stat_facts_group ON session_stat_facts (adapter, model);
+      CREATE TABLE IF NOT EXISTS gate_wait_facts (
+        session_id TEXT NOT NULL,
+        gate_id TEXT NOT NULL,
+        tool_name TEXT,
+        wait_ms INTEGER,
+        status TEXT NOT NULL,
+        PRIMARY KEY (session_id, gate_id)
+      );
+      CREATE TABLE IF NOT EXISTS tool_stat_facts (
+        session_id TEXT NOT NULL,
+        tool TEXT NOT NULL,
+        calls INTEGER NOT NULL,
+        failed INTEGER NOT NULL,
+        ok INTEGER NOT NULL,
+        error_status_unknown INTEGER NOT NULL,
+        unanswered INTEGER NOT NULL,
+        PRIMARY KEY (session_id, tool)
+      );
+      CREATE TABLE IF NOT EXISTS recovery_facts (
+        session_id TEXT NOT NULL,
+        interrupted_at TEXT NOT NULL,
+        recovered_at TEXT,
+        recovery_ms INTEGER,
+        PRIMARY KEY (session_id, interrupted_at)
+      );
+      CREATE TABLE IF NOT EXISTS team_stat_facts (
+        team_id TEXT PRIMARY KEY,
+        tasks INTEGER NOT NULL,
+        open_tasks INTEGER NOT NULL,
+        unknown_tasks INTEGER NOT NULL,
+        done_tasks INTEGER NOT NULL,
+        failed_tasks INTEGER NOT NULL,
+        tasks_with_dispatches INTEGER NOT NULL,
+        retry_tasks INTEGER NOT NULL,
+        dispatches INTEGER NOT NULL,
+        stale_dispatches INTEGER NOT NULL,
+        basis_updated_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export class HubDatabase {
@@ -594,6 +655,11 @@ export class HubDatabase {
 
   prepare(sql: string) {
     return this.db.prepare(sql);
+  }
+
+  /** Mehranweisungs-SQL (Migrationen, Cache-Räumung); Parameter sind nicht bindbar. */
+  exec(sql: string) {
+    this.db.exec(sql);
   }
 
   close(): void {

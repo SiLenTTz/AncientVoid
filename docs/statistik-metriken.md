@@ -113,7 +113,13 @@ und Unbelegtes als unbekannt führen. Die Normalisierung
 | Tool-Fehlerquote | belegte Fehler / korrelierte Ergebnisse | T56.1b `failureRate` über belegte `isError`; fehlende/uneindeutige Ergebnisse getrennt |
 | Tool-Timeouts/-Hangs | Anzahl/Quote expliziter Timeout-/Hang-Fakten | nicht aus langer Laufzeit oder Text erraten |
 
-T56.2–4 ergänzen Rollup, Schnitte nach Zeitraum/Projekt/Host/Harness/Orchestrator,
+T56.2 ergänzt den nachführbaren Rollup-Cache (`StatisticsRollup`,
+Migration 36): Fakten je Session/Team in SQLite, Nachführung über
+basis_last_seq/basis_updated_at, prune entfernt weggefallene Quellen,
+rebuild() rekonstruiert alles aus Journal und Team-Record (K7). Die
+Leseseite liefert nur Aggregate; Schnitte nach Zeitraum/Projekt/Host
+brauchen zusätzlich Cache-Dimensionen und entstehen mit der Page (T56.3).
+T56.3–4 ergänzen Schnitte nach Zeitraum/Projekt/Host/Harness/Orchestrator,
 Vergleiche, Anomalien und CSV. Jede Zahl braucht Einheit, Datenabdeckung und
 Quellennachweis. Bestehende Ereignisse nicht nachträglich mit erfundenen
 Provider-/Orchestrator- oder Tokenangaben auffüllen. Neue Event-Verträge erst

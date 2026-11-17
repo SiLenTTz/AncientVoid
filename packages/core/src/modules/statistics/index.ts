@@ -3,5 +3,6 @@ export { aggregateTurnStatistics } from "./turn-statistics.ts";
 export { deriveSessionFacts, deriveRecoveryIntervals, type SessionFacts, type RecoveryInterval } from "./session-facts.ts";
 export { aggregateSessionStatistics } from "./session-statistics.ts";
 export { deriveGateWaitIntervals, aggregateGateWaitStatistics, type GateWaitInterval } from "./gate-wait.ts";
-export { deriveToolCallFacts, aggregateToolStatistics, type ToolCallFact, type ToolCallResult } from "./tool-statistics.ts";
-export { aggregateTeamTaskStatistics } from "./team-statistics.ts";
+export { deriveToolCallFacts, aggregateToolStatistics, toolStatisticsOf, type ToolCallFact, type ToolCallResult, type ToolCallCounts } from "./tool-statistics.ts";
+export { aggregateTeamTaskStatistics, teamTaskCounts, sumTeamTaskCounts, type TeamTaskCounts } from "./team-statistics.ts";
+export { StatisticsRollup, type RollupSource, type RollupResult } from "./rollup.ts";

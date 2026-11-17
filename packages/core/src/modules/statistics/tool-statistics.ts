@@ -1,4 +1,4 @@
-import { type NormalizedEvent, type ToolStatistics } from "@ancientvoid/contracts";
+import { ToolStatistics, type NormalizedEvent } from "@ancientvoid/contracts";
 
 /** P56 T56.1b: Ergebnisstand eines Tool-Aufrufs. */
 export type ToolCallResult = "failed" | "ok" | "unknown" | null;
@@ -57,6 +57,30 @@ export function deriveToolCallFacts(events: readonly NormalizedEvent[], who: Ide
   return order.map(key => calls.get(key)!);
 }
 
+/** Additive Zähl-Fakten je Tool — Grundlage für Cache (T56.2) und Summierung. */
+export interface ToolCallCounts {
+  calls: number;
+  failed: number;
+  ok: number;
+  errorStatusUnknown: number;
+  unanswered: number;
+}
+
+/** Baut die Statistik aus additiven Zählwerten; results wird mitgeführt geprüft. */
+export function toolStatisticsOf(tool: string | null, counts: ToolCallCounts): ToolStatistics {
+  const results = counts.failed + counts.ok + counts.errorStatusUnknown;
+  return ToolStatistics.parse({
+    tool,
+    calls: counts.calls,
+    results,
+    failed: counts.failed,
+    ok: counts.ok,
+    errorStatusUnknown: counts.errorStatusUnknown,
+    unanswered: counts.unanswered,
+    failureRate: counts.failed + counts.ok === 0 ? null : counts.failed / (counts.failed + counts.ok),
+  });
+}
+
 /** Gruppe je belegtem Tool-Namen; null = Name im Payload nicht belegt. */
 export function aggregateToolStatistics(input: readonly ToolCallFact[]): ToolStatistics[] {
   const groups = new Map<string, ToolCallFact[]>();
@@ -66,19 +90,13 @@ export function aggregateToolStatistics(input: readonly ToolCallFact[]): ToolSta
     group.push(fact);
     groups.set(key, group);
   }
-  return [...groups.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([, calls]) => {
-    const failed = calls.filter(c => c.result === "failed").length;
-    const ok = calls.filter(c => c.result === "ok").length;
-    const results = calls.filter(c => c.result !== null).length;
-    return {
-      tool: calls[0]!.tool,
+  return [...groups.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([, calls]) =>
+    toolStatisticsOf(calls[0]!.tool, {
       calls: calls.length,
-      results,
-      failed,
-      ok,
+      failed: calls.filter(c => c.result === "failed").length,
+      ok: calls.filter(c => c.result === "ok").length,
       errorStatusUnknown: calls.filter(c => c.result === "unknown").length,
-      unanswered: calls.length - results,
-      failureRate: failed + ok === 0 ? null : failed / (failed + ok),
-    };
-  });
+      unanswered: calls.filter(c => c.result === null).length,
+    }),
+  );
 }

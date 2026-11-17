@@ -66,7 +66,7 @@ Alle Metriken werden je **Modell**, **Provider**, **Harness** und **Orchestrator
 - **T56.1** Metrik-Contract (Feldliste, Berechnungsregeln exakt nach §3) als testbare Spezifikation.
   - [x] **T56.1a** Datenquellen/Feldliste und ehrliche Verteilungen für vorhandene Zugmetriken; p50/p90/p95, n/missing, Klein-n, Token-Herkunft und Replay-Gegenprobe. **K5/K7**.
   - [x] **T56.1b** Übrige Session-/Gate-/Team-/Tool-Metriken nach den belegten Quellen präzisieren und testen; fehlende terminale/korrelierte Fakten ausdrücklich kennzeichnen. **K5/K7**. (abgeschlossen 17.11.2026: Verträge `SessionStatistics`/`GateWaitStatistics`/`ToolStatistics`/`TeamTaskStatistics`, Ableitungen `deriveSessionFacts`/`deriveRecoveryIntervals`/`deriveGateWaitIntervals`/`deriveToolCallFacts`, 28 neue Tests)
-- **T56.2** Rollup-Job inkl. Nachführbarkeit und Klein-n-Kennzeichnung.
+- [x] **T56.2** Rollup-Job inkl. Nachführbarkeit und Klein-n-Kennzeichnung. (abgeschlossen 17.11.2026: `StatisticsRollup` — Migration 36 mit Fakten-Caches, Nachführung über basis_last_seq/basis_updated_at, prune + deterministisches rebuild; Leseseite liefert nur Aggregate, Klein-n über `smallSample`. Zeitraum-/Projekt-/Host-Schnitte brauchen zusätzliche Cache-Dimensionen und folgen mit T56.3.)
 - **T56.3** Statistiken-Page: Sessions/Tokens/Erfolg/Tool-Sektionen, Filter, p50/p90/p95-Darstellung.
 - **T56.4** Vergleichsansichten (Orchestrator, A/B) + Anomalie-Flag + CSV-Export.
 - **T56.5** P55-Anbindung (Compression-Kennzahlen je Plugin/Modell) und P31-Namen.
@@ -116,8 +116,24 @@ letzten terminalen Marker; `stalled`/`context_exhausted` bewusst unbekannt.
 `workerEndRate` ist keine Gate-Erfolgsquote (P40-Regel). Recovery nur bis
 zum nächsten erfolgreich beendeten Zug, sonst unbekannt. 28 neue Tests in
 `packages/core/test/modules/statistics/` (rot-dann-grün; Statistik-Suite
-insgesamt 38 grün). Offen bleiben T56.2 Rollup, T56.3 Page, T56.4
-Vergleiche/CSV, T56.6 Abnahme; T56.5 (P55/P31) bleibt gesperrt.
+insgesamt 38 grün). Offen bleiben T56.3 Page, T56.4 Vergleiche/CSV, T56.6
+Abnahme; T56.5 (P55/P31) bleibt gesperrt.
+
+T56.2 (17.11.2026): `StatisticsRollup` (core/modules/statistics/rollup.ts)
+mit Migration 36 (session_stat_facts, gate_wait_facts, tool_stat_facts,
+recovery_facts, team_stat_facts — reine Caches, K7: Journal und Team-Record
+bleiben Quelle, alles per rebuild() rekonstruierbar). Nachführung über
+basis_last_seq (Session) bzw. basis_updated_at (Team); prune entfernt
+weggefallene Quellen; deterministischer Neuaufbau belegt (Test vergleicht
+Cache-Leseseite gegen direkte Ableitung, AC-P56-2). Leseseite:
+sessionStatistics/gateWaitStatistics/toolStatistics/recoveryDistribution/
+teamTaskStatistics — HTTP/PWA (T56.3) lesen nur diese Aggregate.
+`HubDatabase.exec` ergänzt (mehranweisungs-SQL). 4 neue Tests (Statistik-
+Suite inkl. db.test 45 grün), Tier A 2286 grün (ein Steer-Wait-Timing-Flake
+der BUG-0163-Familie im Parallellauf: isoliert 2× grün, Neustart sauber —
+benannt, nicht als Pass gezählt). Offen: T56.3 Page + Schnitte (brauchen
+zusätzlich Cache-Dimensionen Zeitraum/Projekt/Host), T56.4 Vergleiche/CSV,
+T56.6 Abnahme; T56.5 bleibt gesperrt.
 
 ## 9. Definition of Done
 
