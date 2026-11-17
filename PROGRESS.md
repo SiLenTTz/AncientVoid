@@ -9,6 +9,21 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
+- **PR-Gate beschleunigt (Zweige `perf/ci-pr-gate-schneller` = PR #131, `perf/cache-warm-und-keyfix`
+  = PR #134).** Ausgangslage gemessen (Lauf 44175855458, PR #129): **5:14** Wanduhr — apt 0:49,
+  `npm ci` 1:03, Typecheck 0:21, Lint + `check:*` 0:22, Build 0:03, schnelle Kern-Tests 2:16,
+  alles hintereinander. Neu: `node_modules`-Cache; apt ohne vorinstallierte Pakete und ohne
+  Recommends; ein kombinierter Schritt, in dem apt im Hintergrund laeuft, die neun
+  werkzeugfreien Guards sofort anlaufen und die schnellen Kern-Tests erst NACH apt starten
+  (sonst skippen tmux-/ffmpeg-/pdftotext-Tests still). Gate-INHALT unveraendert, jeder Guard
+  entscheidet weiterhin einzeln. Gemessen Lauf fuer Lauf: #131 **3:41**, #134 **3:19**.
+  Der Cache traf anfaenglich nie: `runner.image` ist keine gueltige Ausdrucksvariable (Key war
+  `nm--node24-…`), und Caches aus PR-Zweigen sieht ein anderer PR-Zweig nicht — PR #132 loggte
+  „Cache not found“, obwohl #131 106 MB gespeichert hatte. Deshalb `cache-warm.yml`: saet den
+  Cache auf main (Lockfile-Wechsel oder Handausloesung), dort laeuft echtes `npm ci` — der
+  Kaltlauf-Beweis (frische Installation) bleibt erhalten. Gesaet: Lauf 44180995622,
+  Key `nm-Linux--node24-06b19507…`. Entfernt ausserdem: ein von mir hinterlassener
+  Duplikat-Schritt, der Guards und Tests ein zweites Mal laufen liess.
 - **Build-Stempel im Buendel (Zweig `feat/app-stand-im-geraetebericht`).** Auf Kais Frage
   „sehe ich das am Handy schon?“ war von aussen nicht entscheidbar, WELCHES Buendel auf
   dem Geraet laeuft — der Server sagt nur, was er ausliefert, und ein Geraetecache kann
@@ -149,9 +164,11 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
   immer zuerst `bugs/README.md` auf dem aktuellen `main` prüfen.
 
 ## Nächste Schritte
-- **Cache-Treffer im PR-Gate nachpruefen** (erster Lauf nach PR #131): Schritt
-  `Abhaengigkeiten` muss melden „node_modules aus dem Cache“, und der Lauf sollte bei
-  ~2:50 landen. Bleibt er bei ~3:40, ist der Key kaputt (Runner-Image/Node-Wechsel).
+- **Cache-Treffer im PR-Gate nachpruefen** (Cache ist auf main gesaet, Lauf 44180995622): der
+  naechste PR-Lauf muss „node_modules aus dem Cache — Lockfile exakt, npm ci entfaellt“ melden
+  und sollte unter ~2:45 landen. Bleibt er bei ~3:20, trifft der Key nicht — der Bild-Teil fehlt
+  noch im Key, weil `ImageOS` im Key-Ausdruck nicht als `env`-Variable sichtbar ist (richtig
+  gemaechst durch einen Schritt, der `RUNNER_IMAGE_ID` nach `$GITHUB_ENV` schreibt).
 - **Auto-Merge einrichten lassen** (eine Ruleset-Einstellung, `allow_auto_merge`): GitHub
   merged in der Sekunde, in der `verify` gruen wird; ich warte dann nicht mehr auf den
   Manuell-Merge. Notwendig, weil `gh pr merge --auto` vom aktuellen Ruleset abgelehnt wird.
