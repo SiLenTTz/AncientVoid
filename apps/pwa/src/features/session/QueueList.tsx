@@ -8,6 +8,16 @@ import type { HubApi, QueuedPrompt } from "../../shared/api.ts";
  * in seinem Text ändern, solange er noch nicht unterwegs ist. Beides wirkt auf die Reihe,
  * wie sie der Hub hält; die Liste hier ist Ansicht, nicht Entscheidung.
  */
+/**
+ * ADR-0085: die gespeicherte Reihe bestimmt die Reihenfolge. Liefert ein aelterer Hub
+ * keine Positionen, bleibt die Reihenfolge erhalten, die der Hub gesendet hat —
+ * sonst rechnet `undefined - undefined` = NaN und die Liste wuerde willkuellr stehen.
+ */
+export function queueOrder(items: QueuedPrompt[]): QueuedPrompt[] {
+  if (!items.every((q) => typeof q.position === "number")) return [...items];
+  return [...items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+}
+
 export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; api: HubApi; refreshKey: number }) {
   const [items, setItems] = useState<QueuedPrompt[]>([]);
   const [error, setError] = useState("");
@@ -32,7 +42,10 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
     };
   }, [sessionId, api, refreshKey]);
   if (items.length === 0) return null;
-  const sorted = [...items].sort((a, b) => a.position - b.position);
+  const sorted = queueOrder(items);
+  /** Ein aelterer Hub (vor Migration 35) liefert keine Position — dann sind Text-
+   *  und Reihen-Aenderung nicht moeglich, und die Knopfe bleiben zu (fail loud, nicht kaputt). */
+  const speaksQueueOrder = items.length > 0 && items.every((q) => typeof q.position === "number");
   const replace = (list: QueuedPrompt[]) => setItems(list);
   const remove = (item: QueuedPrompt) => {
     setError("");
@@ -127,34 +140,34 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
               </button>
               {/* ADR-0085: der Nächste in der Reihe werden — oder zurückfallen. */}
               <button
-                disabled={i === 0 || item.delivery === "unknown"}
+                disabled={i === 0 || item.delivery === "unknown" || !speaksQueueOrder}
                 class="icon-action"
                 type="button"
                 data-testid="queue-move-front"
                 aria-label={`Vorgemerkte Nachricht ${i + 1} als nächstes senden`}
-                title="Als nächstes senden"
+                title={speaksQueueOrder ? "Als nächstes senden" : "Der Hub kann die Reihe noch nicht speichern — Hub aktualisieren"}
                 onClick={() => move(item, "front")}
               >
                 ↑
               </button>
               <button
-                disabled={i === sorted.length - 1 || item.delivery === "unknown"}
+                disabled={i === sorted.length - 1 || item.delivery === "unknown" || !speaksQueueOrder}
                 class="icon-action"
                 type="button"
                 data-testid="queue-move-back"
                 aria-label={`Vorgemerkte Nachricht ${i + 1} nach hinten setzen`}
-                title="Nach hinten"
+                title={speaksQueueOrder ? "Nach hinten" : "Der Hub kann die Reihe noch nicht speichern — Hub aktualisieren"}
                 onClick={() => move(item, "back")}
               >
                 ↓
               </button>
               <button
-                disabled={item.delivery === "unknown"}
+                disabled={item.delivery === "unknown" || !speaksQueueOrder}
                 class="icon-action"
                 type="button"
                 data-testid="queue-edit"
                 aria-label={`Vorgemerkte Nachricht ${i + 1} bearbeiten`}
-                title="Text bearbeiten"
+                title={speaksQueueOrder ? "Text bearbeiten" : "Der Hub kann Meldungen noch nicht nachträglich ändern — Hub aktualisieren"}
                 onClick={() => setEditing({ id: item.id, text: item.text })}
               >
                 ✎
