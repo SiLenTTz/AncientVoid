@@ -1,5 +1,6 @@
 /* EPIC-P56 T56.3: Statistik-Seite — Filterkarte und Verteilungs-Spalten.
- * Verteilungen zeigen p50/p90/p95 + n + Klein-n; die small-Zeile dimmt. */
+ * Verteilungen zeigen p50/p90/p95 + n + Klein-n; die small-Zeile dimmt.
+ * EPIC-P66 T66.1: Klapp-Köpfe, Balken und Notizen kommen dazu. */
 .stat-filters {
   display: grid;
   gap: 8px;
@@ -14,3 +15,50 @@
   color: var(--fg-dim);
   font-size: var(--text-xs);
 }
+
+.stat-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stat-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stat-section-note {
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
+
+.stat-chevron {
+  margin-left: auto;
+  color: var(--fg-dim);
+}
+
+.stat-note {
+  color: var(--fg-dim);
+  font-size: var(--text-sm);
+}
+
+.stat-metrics {
+  display: grid;
+  gap: 4px;
+}
+
+.stat-metrics-head {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+

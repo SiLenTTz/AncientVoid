@@ -89,7 +89,7 @@ Regeln:
 | feature:settings | Settings views and choices | settings-layout |
 | feature:shell | App shell: dock, layout, frame | layout |
 | feature:status | Status line language (measured vs unknown) | zustandssprache |
-| feature:statistics | Session/turn/gate/tool/team statistics page with slices | statistik |
+| feature:statistics | One metrics hub: system, AI server, sessions/turns/tools with slices, collapsible sections | statistik |
 | feature:stt | Speech-to-text dictation | voice-local |
 | feature:team | Team cards, DAG view, model choice | team |
 | feature:terminal | Allowlisted hub SSH/local terminal (xterm) | terminal |
