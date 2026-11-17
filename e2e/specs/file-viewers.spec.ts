@@ -55,7 +55,7 @@ test.describe("Datei-Ansichten (EPIC-P46)", () => {
     await expect(md.locator("h2")).toHaveText("Titel");
     await expect(md).toContainText("<script>window.__pwned = 1</script>");
     await expect(md.locator("a[href^='javascript']")).toHaveCount(0);
-    await expect(md.getByTestId("mermaid-block").locator("img.mermaid-img")).toBeVisible({ timeout: 30_000 });
+    await expect(md.getByTestId("mermaid-block").locator("img[data-testid=mermaid-img]")).toBeVisible({ timeout: 30_000 });
     expect(await app.evaluate(() => (window as unknown as { __pwned?: number }).__pwned)).toBeUndefined();
   });
 

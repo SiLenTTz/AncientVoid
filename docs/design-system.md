@@ -1,312 +1,213 @@
-# Design-System — „Futuristisch" (P1.6), fortgeschrieben mit EPIC-P43
+# Design-System — Vertrag (EPIC-P63)
 
 **Art:** referenz
 
-Diese Datei ist die Referenz, an der sich **jede künftige UI-Aufgabe**
-orientiert (P2 T2.3 Diff-UI, P3 T3.8 Sprachsuche-Frontend, P4) — neue
-Komponenten übernehmen diese Tokens, statt neue Hex-Werte oder Schriften
-einzuführen. Abweichungen brauchen einen genannten Grund, keine stille
-Werteliste im Komponenten-CSS.
+Lebender Vertrag für jede UI-Aufgabe. Herkunft (P1.6/P43/P34/P52):
+[`2026-11-16_design-system-herkunft.md`](2026-11-16_design-system-herkunft.md).
+Tokens stehen in `apps/pwa/src/app/styles/00-tokens.css`; Bausteine in
+`apps/pwa/src/shared/ui/`. Ratchet-Tests erzwingen die Verbote
+(`apps/pwa/test/css-tokens.test.ts`, `ui-primitives.test.ts`,
+`apps/pwa/test/app/tokens.test.ts`).
 
-## Herkunft
+## 1. Tokens
 
-Kein am Schreibtisch entschiedener Stil, sondern das Ergebnis eines mit dem
-Nutzer durchgespielten, zweistufigen Mockup-Vergleichs (beide Runden als
-Artifact veröffentlicht, siehe EPIC-P1.6-Vorbemerkung für die volle
-Historie):
+Drei Schichten: **Primitiv** (nur Hex/rgb, nur in `00-tokens.css`) →
+**Semantik** (Vokabular aller Regeln; Light überschreibt nur hier) →
+**Komponente** (nur in `styles/ui/<name>.css`, verweist auf Semantik).
 
-1. Drei Informationsarchitekturen (Leitstand/Feldnotiz/Signal) → Nutzerwahl:
-   **Leitstand** (dichte Log-Zeilen, Monospace-Metadaten).
-2. Drei visuelle Weiterentwicklungen von Leitstand (Modern/Futuristisch/
-   Künstlerisch), zusätzlich unter vom Nutzer genannten Ergonomie-Vorgaben
-   (Bedienung nur unten, linsenartige Scrollbars, Sprachsteuerung überall,
-   Status-Glow) → Nutzerwahl: **Futuristisch**.
+<!-- BEGIN:design-tokens (scripts/design-tokens-doc.mjs) -->
 
-## Farb-Tokens (`apps/pwa/src/app/styles/`)
+> Generiert aus `apps/pwa/src/app/styles/00-tokens.css` — nicht von Hand pflegen.
+> `npm run docs:design-tokens` bzw. `--check`. Light überschreibt nur Semantik (`[data-theme="light"]`).
 
-Dieselben Variablennamen wie seit P0 — nur die Werte sind neu, jede
-bestehende Komponente re-themt sich automatisch.
-
-| Token | Dunkel (Default) | Hell (`[data-theme="light"]`) | Rolle |
-|---|---|---|---|
-| `--bg` | `#08090b` | `#eef0f6` | App-Hintergrund |
-| `--bg-elev` | `#121316` | `#ffffff` | Karten-/Panel-Oberfläche |
-| `--bg-chip` | `#21252c` | `#d7dae5` | Chips, Trennlinien, sekundäre Fläche |
-| `--fg` | `#eef1f5` | `#0d1016` | Primärtext |
-| `--fg-dim` | `#8d95a3` | `#565d6e` | Sekundärtext |
-| `--fg-faint` | `#7b8391` | `#666d7d` | Tertiärtext (Platzhalter, Meta); seit P43 4,5:1 auf `--bg-elev` |
-| `--accent` | `#b58cff` (Void-Violett) | `#6a3cc9` | Primäraktion, aktiver Zustand, Links; frei wählbar (siehe „Akzentfarbe“) |
-| `--accent-ink` | `#12081f` | `#ffffff` | Text/Icon auf `--accent`-Fläche |
-| `--call` | `#ff9a3c` (Amber) | `#9c4d00` | **Ruf: „du bist dran“** (Freigabe, fertiger Zug). Fest, nie der Akzent, nicht wählbar |
-| `--call-ink` | `#1a0a00` | `#ffffff` | Text/Icon auf `--call`-Fläche |
-| `--info` | `#5cc8ff` | `#0b6aa6` | Frage des Agenten |
-| `--info-ink` | `#04131c` | `#ffffff` | Text/Icon auf `--info`-Fläche |
-| `--ok` | `#4fe0ab` | `#127a56` | Status „working"/Erfolg — **semantisch, nie der Akzent** |
-| `--warn` | `#ffcf5c` | `#9a6a06` | Warnung (Kontingent, Schwellen). „Du bist dran“ ist seit P43 `--call` |
-| `--err` | `#ff5c6a` | `#c72d3d` | Status „error" |
-
-`--ok`/`--warn`/`--err` sind bewusst von `--accent` getrennt (Regel aus der
-`artifact-design`-Praxis dieses Projekts: Statusfarbe ≠ Akzentfarbe) —
-Kontingent-Balken und Primär-Buttons nutzen `--accent`, Session-Status nutzt
-`--ok`/`--call`/`--info`/`--err`.
-
-**Ruf ≠ Akzent (EPIC-P43, E1).** Bis P43 trug Amber zugleich Akzent, Links und „bereit“. Seither
-ist Amber allein der Ruf. Wer als Akzent eine Farbe nahe am Ruf wählt, bekommt im Farbwähler einen
-Hinweis (`accentWarnings`, `STATUS` in `appearance.ts`); der Ruf bleibt dann an Form und Bewegung
-erkennbar.
-
-**Kontrast.** `apps/pwa/test/app/tokens.test.ts` liest die Tokens aus `01-base.css` und verlangt
-für Text (`--fg`, `--fg-dim`, `--fg-faint`, `--accent`, `--call`, `--info`, `--err`, `--ok`) 4,5:1 auf `--bg`
-und `--bg-elev`, in beiden Erscheinungsbildern. Zustand steht zusätzlich immer in der Form
-(`StatusDot`), nie allein in Textfarbe.
-
-## Typografie
-
-| Token | Wert | Einsatz |
+| Token | Schicht | Wert (Dunkel-Default) |
 |---|---|---|
-| `--font-display` | `"Orbitron", system-ui, sans-serif` | Marke, Seiten-/Session-Überschriften — HUD-Charakter, sparsam einsetzen |
-| `--font-ui` | `"Inter", system-ui, sans-serif` | Text und Bedienung (Standard seit EPIC-P43, E3) |
-| `--font-code` / `--font-mono` | `"JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace` | Code, Diff, Tool-Ausgabe, Pfade, Zahlen (`.num`, Laufleiste, Statusleiste: `tabular-nums`) |
-| `--tracking-label` | `0.1em` | Großbuchstaben-Labels (Status-Badges, Reiter) |
+| `--gray-950` | primitiv | `#08090b` |
+| `--gray-850` | primitiv | `#121316` |
+| `--gray-800` | primitiv | `#21252c` |
+| `--gray-025` | primitiv | `#eef0f6` |
+| `--paper` | primitiv | `#ffffff` |
+| `--gray-200` | primitiv | `#d7dae5` |
+| `--gray-050` | primitiv | `#eef1f5` |
+| `--gray-300` | primitiv | `#8d95a3` |
+| `--gray-400` | primitiv | `#7b8391` |
+| `--gray-900` | primitiv | `#0d1016` |
+| `--gray-600` | primitiv | `#565d6e` |
+| `--gray-500` | primitiv | `#666d7d` |
+| `--void-violet-500` | primitiv | `#b58cff` |
+| `--void-violet-600` | primitiv | `#7a4fd1` |
+| `--void-violet-700` | primitiv | `#6a3cc9` |
+| `--void-ink` | primitiv | `#12081f` |
+| `--amber-400` | primitiv | `#ff9a3c` |
+| `--amber-700` | primitiv | `#9c4d00` |
+| `--amber-ink` | primitiv | `#1a0a00` |
+| `--cyan-300` | primitiv | `#2ac3de` |
+| `--cyan-400` | primitiv | `#5cc8ff` |
+| `--cyan-700` | primitiv | `#0b6aa6` |
+| `--cyan-800` | primitiv | `#1072b0` |
+| `--cyan-ink` | primitiv | `#04131c` |
+| `--mint-400` | primitiv | `#4fe0ab` |
+| `--mint-500` | primitiv | `#9ece6a` |
+| `--mint-700` | primitiv | `#127a56` |
+| `--gold-400` | primitiv | `#ffcf5c` |
+| `--gold-700` | primitiv | `#9a6a06` |
+| `--rose-400` | primitiv | `#ff5c6a` |
+| `--rose-700` | primitiv | `#c72d3d` |
+| `--scrim-950` | primitiv | `rgba(0, 0, 0, 0.65)` |
+| `--scrim-800` | primitiv | `rgba(0, 0, 0, 0.55)` |
+| `--scrim-900` | primitiv | `rgba(0, 0, 0, 0.7)` |
+| `--scrim-700` | primitiv | `rgba(20, 20, 40, 0.2)` |
+| `--scrim-600` | primitiv | `rgba(20, 20, 40, 0.35)` |
+| `--hue-red` | primitiv | `#f00` |
+| `--hue-yellow` | primitiv | `#ff0` |
+| `--hue-lime` | primitiv | `#0f0` |
+| `--hue-cyan` | primitiv | `#0ff` |
+| `--hue-blue` | primitiv | `#00f` |
+| `--hue-magenta` | primitiv | `#f0f` |
+| `--violet-300` | primitiv | `#bb9af7` |
+| `--orange-400` | primitiv | `#ff9e64` |
+| `--orange-700` | primitiv | `#a04b0a` |
+| `--blue-400` | primitiv | `#7aa2f7` |
+| `--bg` | semantik | `var(--gray-950)` |
+| `--bg-elev` | semantik | `var(--gray-850)` |
+| `--bg-chip` | semantik | `var(--gray-800)` |
+| `--bg-hover` | semantik | `color-mix(in srgb, var(--fg) 6%, var(--bg-elev))` |
+| `--bg-active` | semantik | `color-mix(in srgb, var(--fg) 11%, var(--bg-elev))` |
+| `--border` | semantik | `color-mix(in srgb, var(--fg) 18%, var(--bg-elev))` |
+| `--border-strong` | semantik | `color-mix(in srgb, var(--fg) 34%, var(--bg-elev))` |
+| `--fg` | semantik | `var(--gray-050)` |
+| `--fg-dim` | semantik | `var(--gray-300)` |
+| `--fg-faint` | semantik | `var(--gray-400)` |
+| `--fg-on-accent` | semantik | `var(--accent-ink)` |
+| `--accent` | semantik | `var(--void-violet-500)` |
+| `--accent-ink` | semantik | `var(--void-ink)` |
+| `--call` | semantik | `var(--amber-400)` |
+| `--call-ink` | semantik | `var(--amber-ink)` |
+| `--info` | semantik | `var(--cyan-400)` |
+| `--info-ink` | semantik | `var(--cyan-ink)` |
+| `--ok` | semantik | `var(--mint-400)` |
+| `--warn` | semantik | `var(--gold-400)` |
+| `--err` | semantik | `var(--rose-400)` |
+| `--code-keyword` | semantik | `var(--violet-300)` |
+| `--code-string` | semantik | `var(--mint-500)` |
+| `--code-number` | semantik | `var(--orange-400)` |
+| `--code-title` | semantik | `var(--blue-400)` |
+| `--code-type` | semantik | `var(--cyan-300)` |
+| `--content-paper` | semantik | `var(--paper)` |
+| `--content-terminal` | semantik | `var(--gray-950)` |
+| `--graph-code` | semantik | `var(--cyan-400)` |
+| `--graph-config` | semantik | `var(--void-violet-500)` |
+| `--graph-other` | semantik | `var(--gray-300)` |
+| `--radius` | form | `7px` |
+| `--radius-sm` | form | `4px` |
+| `--radius-lg` | form | `14px` |
+| `--shadow-elev` | form | `0 0 0 1px var(--bg-chip), 0 10px 26px -14px var(--scrim-900)` |
+| `--shadow-sheet` | form | `0 18px 48px -20px var(--scrim-950)` |
+| `--backdrop` | form | `var(--scrim-800)` |
+| `--warn-ink` | form | `var(--amber-ink)` |
+| `--err-ink` | form | `var(--paper)` |
+| `--font-display` | typografie | `"Orbitron", system-ui, sans-serif` |
+| `--font-ui` | typografie | `"Inter", system-ui, sans-serif` |
+| `--font-code` | typografie | `"JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace` |
+| `--font-mono` | typografie | `var(--font-code)` |
+| `--tracking-label` | typografie | `0.1em` |
+| `--space-1` | skala | `4px` |
+| `--space-2` | skala | `8px` |
+| `--space-3` | skala | `12px` |
+| `--space-4` | skala | `16px` |
+| `--space-5` | skala | `24px` |
+| `--space-6` | skala | `32px` |
+| `--text-xs` | skala | `calc(11px * var(--font-scale))` |
+| `--text-sm` | skala | `calc(12px * var(--font-scale))` |
+| `--text-md` | skala | `calc(14px * var(--font-scale))` |
+| `--text-lg` | skala | `calc(16px * var(--font-scale))` |
+| `--text-xl` | skala | `calc(20px * var(--font-scale))` |
+| `--text-input` | skala | `max(16px, calc(16px * var(--font-scale)))` |
+| `--text-code` | skala | `calc(12px * var(--code-scale))` |
+| `--target` | ziel | `44px` |
+| `--icon-target` | ziel | `44px` |
+| `--icon-glyph` | ziel | `calc(20px * var(--font-scale))` |
+| `--icon-glyph-md` | ziel | `calc(var(--icon-glyph) + 2px)` |
+| `--icon-glyph-lg` | ziel | `calc(var(--icon-glyph) + 4px)` |
+| `--motion-fast` | bewegung | `120ms` |
+| `--motion-base` | bewegung | `220ms` |
+| `--motion-slow` | bewegung | `420ms` |
+| `--ease-out` | bewegung | `cubic-bezier(0.2, 0.8, 0.2, 1)` |
+| `--ease-spring` | bewegung | `cubic-bezier(0.2, 0.9, 0.25, 1.1)` |
+| `--z-base` | ebene | `1` |
+| `--z-sticky` | ebene | `10` |
+| `--z-dock` | ebene | `20` |
+| `--z-overlay` | ebene | `50` |
+| `--z-sheet` | ebene | `60` |
+| `--z-toast` | ebene | `200` |
+| `--z-popout` | ebene | `210` |
+| `--font-scale` | preset | `1` |
+| `--ui-zoom` | preset | `1` |
+| `--code-scale` | preset | `1` |
+| `--preset-border` | preset | `1px` |
+| `--device-background` | preset | `none` |
+| `--chat-max-width` | preset | `720px` |
 
-Alle Schriften werden seit EPIC-P34 T34.6 selbst ausgeliefert (`@fontsource/*`, nur
-`latin`, importiert in `styles/index.css`) — kein Fremd-Host, offline über den Service Worker.
-`--font-ui` (Text und Bedienung) und `--font-code` (Code, Diff, Tool-Ausgabe; `--font-mono` ist
-ein Alias darauf) sind getrennt und über Einstellungen → Schrift wählbar; `--font-scale`
-(0,85–1,3) skaliert jede Textgröße (`calc(Npx * var(--font-scale, 1))`). Wahlmöglichkeiten:
-Inter (Standard), Atkinson Hyperlegible, Systemschrift und die drei Festbreitenschriften für die
-Oberfläche; JetBrains Mono (Standard), IBM Plex Mono, Systemschrift für Code. Wer vor P43 eine
-Wahl gespeichert hatte, behält sie — auch JetBrains Mono als Oberflächenschrift. Orbitron bleibt fest für Marke und Überschriften.
+<!-- END:design-tokens -->
 
-## Form & Bewegung
+Kontrast ≥ 4,5:1 für semantische Text/Flächen-Paare in beiden Themen
+(`tokens.test.ts`). Statusfarbe ≠ Akzentfarbe (`--ok/--warn/--err/--call/--info`
+vs `--accent`).
 
-| Token | Wert | Hinweis |
+## 2. Leitern
+
+| Leiter | Tokens / Konstanten | Test |
 |---|---|---|
-| `--radius` | `7px` | Standard-Rundung (Karten, Buttons) |
-| `--radius-sm` | `4px` | Kompakte Elemente (Chips, kleine Buttons) — **neu**, ab T1.6-2/3 im Einsatz |
-| `--radius-lg` | `14px` | Sheets/Overlays — **neu** |
-| `--shadow-elev` | `0 0 0 1px var(--bg-chip), 0 10px 26px -14px rgba(0,0,0,.7)` (dunkel) / entsprechend abgeschwächt hell | Elevation — **neu**, ab T1.6-8 auf Karten |
+| z-index | `--z-base` 1 · `--z-sticky` 10 · `--z-dock` 20 · `--z-overlay` 50 · `--z-sheet` 60 · `--z-toast` 200 · `--z-popout` 210 | css-tokens (d) |
+| Breakpoints | phone ≤ 639 · tablet ≤ 1023 · desktop ≥ 1280 · short ≤ 520 Höhe (Galaxie 699/700/760) | css-tokens (f) |
+| Schrift | `--text-xs/sm/md/lg/xl` (+ `--text-input`, `--text-code`) | css-tokens (e) |
+| Abstand | `--space-1…6` (4/8/12/16/24/32 px) | Rezept |
+| Zielgröße | `--target` / `--icon-target` (Touch 44, Maus 30/36) | — |
+| Bewegung | `--motion-fast/base/slow`, `--ease-out/--ease-spring` | — |
 
-## Skalen (EPIC-P43 T43.1)
+Keine neuen Zahlen außerhalb dieser Leitern.
 
-| Token | Wert | Einsatz |
+## 3. Bausteine
+
+Export: `apps/pwa/src/shared/ui/index.ts`. CSS: `apps/pwa/src/app/styles/ui/<name>.css`,
+Klassenpräfix `ui-<name>`. Keine Props für freie Farben — nur Varianten.
+
+| Baustein | Props | Varianten / Hinweise |
 |---|---|---|
-| `--space-1` … `--space-5` | 4 / 8 / 12 / 16 / 24 px | Abstände; neue Regeln nehmen diese Stufen statt freier Pixelwerte |
-| `--text-xs` … `--text-xl` | 11 / 12 / 14 / 16 / 20 px × `--font-scale` | Textgrößen |
-| `--target` | 44 px bei Touch, 30 px mit Maus (`hover: hover` und `pointer: fine`) | Mindestgröße eines Bedienelements |
-| `--motion-fast` / `-base` / `-slow` | 120 / 220 / 420 ms | Dauer |
-| `--ease-out` / `--ease-spring` | `cubic-bezier(.2,.8,.2,1)` / `cubic-bezier(.2,.9,.25,1.1)` | Kurve |
+| `Button` | `variant`, `size`, `icon`, übliche button-Attrs | `primary` \| `subtle` \| `danger` \| `link`; `sm` \| `md`; `icon` → `--icon-target` |
+| `Chip` | `tone`, `active`, `onRemove`, `removeLabel` | `neutral` \| `ok` \| `warn` \| `err` \| `info`; `ChipStatic` für nicht-interaktiv |
+| `Card` | `padding`, `elevated` | `md` \| `none` (flush) |
+| `Sheet` | `open`, `onClose`, `label`, `variant`, `preferred`, `testid` | `sheet` (unten) \| `modal` (zentriert); Fokusfalle + Esc via `overlay-focus.ts` |
+| `EmptyState` | `icon`, `text`, `action` | Kleinkram-Regel 2: ein Satz + Aktion |
+| `Field` / `Select` / `Switch` / `Segmented` | siehe `forms.tsx` | Re-Export aus `shared/forms.tsx` bleibt eine Phase |
 
-## Bewegungssprache (`36-motion.css`, `shared/motion.ts`)
+Unit-Tests: `apps/pwa/test/ui/*.test.tsx`. Fokusfalle/Esc: `e2e/specs/fokus.spec.ts`.
 
-Sechs Bewegungen, jede mit genau einer Bedeutung. Wer eine davon für etwas anderes benutzt,
-macht die Sprache unlesbar.
+## 4. Rezept für eine neue Ansicht
 
-| Klasse / Funktion | Name | Bedeutung | Ablauf |
-|---|---|---|---|
-| `.mv-breathe` | Atmen | ein Agent arbeitet | Schleife |
-| `.mv-shimmer` | Schimmer | genau dieser Schritt läuft | Schleife |
-| `.mv-call` | Ruf | du bist dran | einmal bei Ankunft |
-| `.mv-snap` | Einrasten | Schritt oder Zug fertig | einmal |
-| `wander()`, `.mv-wander` | Wandern | Element wechselt Gruppe oder öffnet sich | einmal (View Transitions, sonst Einblenden) |
-| `countStep()` | Zählen | Zahl ist live | fortlaufend, ohne Sprünge |
+1. Feature-Datei unter `apps/pwa/src/features/<name>/` (ADR-0020).
+2. CSS-Datei mit eindeutigem Präfix, Import nur über `styles/index.css`.
+3. Nur semantische Tokens und Leitern — kein neuer Hex, kein freier `z-index`.
+4. Flächen aus Bausteinen (`Button`/`Chip`/`Card`/`Sheet`/`EmptyState`).
+5. Keine rohen `btn`/`chip`/`card`/`empty`/`overlay-sheet`-Klassen.
+6. Inline-`style={{…}}` nur für Laufzeitwerte (`--lane`, Position, Transform).
+7. Globales `:focus-visible` reicht; eigene Ringe nur mit Begründung (inset).
+8. Spec in `e2e/specs/` oder Unit-Test an der Naht.
+9. Probe ohne Allowlist: `e2e/fixtures/ds-probe/` (AC-P63-8).
+10. `npm run typecheck` + betroffene Tests grün.
 
-Nur zwei Schleifen. Nur `transform` und `opacity`. Mit `prefers-reduced-motion` oder dem Schalter
-in den Einstellungen (`data-ctx-motion="off"`) steht ein Standbild mit gleicher Aussage. Bei
-getrennter Verbindung (`data-conn="off"` am Wurzelelement) halten Atmen und Schimmer an (K10).
+## 5. Verbote (mit Test)
 
-## Zustandssprache (`shared/StatusDot.tsx`, `shared/display-state.ts`, `38-status.css`, EPIC-P43 T43.2)
+| Verbot | Test |
+|---|---|
+| Undefiniertes `var(--…)` | css-tokens / tokens |
+| `#hex` / `rgb(` / `hsl(` außerhalb `00-tokens.css` | css-tokens (b) |
+| `var(--x, fallback)` | css-tokens (c) |
+| `z-index` / Schriftgröße / Media außerhalb der Leitern | css-tokens (d)(e)(f) |
+| Rohe `btn`/`chip`/`card`/`empty`/`overlay-sheet` in `features/` | ui-primitives |
+| Klasse im TSX ohne CSS-Regel (außer Allowlist-Präfixe) | css-tokens |
+| Selektor in zwei Dateien (außerhalb `@media`) | css-tokens |
+| Kontrast < 4,5:1 für semantische Paare | tokens.test.ts |
 
-Ein Baustein sagt den Zustand einer Session — in Karte, Session-Kopf, Statusleiste und Vorschau.
-Farbe, Form und Bewegung sagen dasselbe; jede der drei reicht allein.
-
-| Anzeigezustand | Hub-Status | Wort | Farbe | Form | Bewegung |
-|---|---|---|---|---|---|
-| `working` | `starting`, `working`, `stopping` | startet / arbeitet | `--ok` | gefüllter Punkt | Atmen |
-| `approval` | `waiting_approval` | Freigabe nötig | `--call` | Punkt mit Hof | Ruf (einmal) |
-| `question` | `waiting_approval` mit `tool.questions` | Frage | `--info` | Punkt mit Hof | Ruf (einmal) |
-| `done` | `idle`, auf diesem Gerät ungesehen | fertig | `--call` | offener Ring | Einrasten (einmal) |
-| `error` | `error`, `interrupted`, Unbekanntes | Fehler / unterbrochen / Rohwert | `--err` | Quadrat | kurzes Rütteln (einmal) |
-| `quiet` | `idle` gesehen, `parked`, `stopped` | bereit / pausiert / beendet | `--fg-faint` | kleiner Punkt | keine |
-
-- Der Anzeigezustand ist **abgeleitet**, kein Contract: `data-status` trägt weiter den Hub-Status,
-  `data-display` den Anzeigezustand. Ein unbekannter Hub-Status ist nie „ruhig“ (fail loud).
-- Gesamtzustand über mehrere Sessions (`overallState`): Freigabe > Frage > Fehler > arbeitet >
-  fertig > ruhig — dieselbe Reihenfolge wie VoidWarden.
-- Es gibt keine umlaufende Randlinie mehr (früher Karte, Session-Ansicht, Pille, Knopf). Eine
-  Karte oder Session, die dich braucht, trägt eine ruhige Kante in `--call`; ein Knopf, dessen
-  Aufruf läuft, schimmert.
-- Der Schalter „Bewegung“ (Einstellungen → Darstellung, Attribut `data-ctx-motion`) und
-  „Bewegung reduzieren“ des Systems schalten jede Bewegung ab; ohne Verbindung (`data-conn="off"`)
-  halten Atmen und Schimmer an.
-- `.pill` bleibt für Mengen- und Dienstangaben (Projekte, Hosts, Workspace-Dienste), nicht für
-  Session-Zustand.
-
-## Session in Zügen (`features/session/turns.ts`, `ChatTurns.tsx`, `40-turns.css`, EPIC-P43 T43.4)
-
-- **Zug:** Auftrag → Arbeit → Antwort. `turnsOf(events, live)` ist eine reine Funktion über den
-  vollständigen Strom; Werkzeugaufruf und Ergebnis werden zu einem Schritt mit Verb („Liest“,
-  „Bearbeitet“, „Führt aus“, „Sucht“ …), Ziel und Kurzform. Systemereignisse stehen nicht im Chat,
-  unbekannte Typen als eine Zeile „n unbekannte Ereignisse · im Verlauf ansehen“. Der Verlauf bleibt
-  vollständig.
-- **Falten:** laufende Arbeit offen, der aktuelle Schritt schimmert (`mv-shimmer`), am Zugende rastet
-  das Zeichen ein (`mv-snap`) und die Arbeit faltet zu „4 Schritte · 2 gelesen · 1 bearbeitet · 8 s“.
-  Auf/zu ist Gerätezustand (`sessionStorage`), kein Session-Zustand.
-- **Statuszeile** (`StatusLine.tsx`): nur Gemessenes — Σ Tokens (zählt mit `useCounted`), Kontext mit
-  Balken ab bekanntem Fenster (Schwellen 80/95 %), Kontingent nur mit Meldung. Unbekanntes steht im
-  Bericht (Kleinkram-Regel 1).
-- **Reiter:** Chat · Änderungen (Diff, darunter der Bericht; Zahl der Dateien) · Dateien (Code) · Mehr
-  (Verlauf, Bericht, Datei, Graph, GitLab, Suche, Umgebung). Am Handy/Tablet ist „Mehr“ ein Blatt am
-  unteren Rand, in der PC-Kachel öffnet es neben der Leiste.
-- **Composer:** einzeilig (`.compact`), solange das Feld weder Fokus noch Text hat; „Verbessern“
-  erscheint erst dann. Fokus auf einem Knopf klappt nicht auf (der Klick ginge sonst ins Leere).
-
-## Repo-Galaxie (`features/graph/`, `32-repo-graph.css`, EPIC-P52)
-
-Der Repo-Graph ist eine Galaxie: Bereiche sind Sternsysteme, Dateien Sterne. Das Layout
-(`galaxy-layout.ts`) hängt nicht von der Fenstergröße ab; die Kamera (`galaxy-view.ts`) passt ein,
-fliegt und zoomt. Drei Stufen: von fern Systeme und gebündelte Filamente, näher die Sterne, nah die
-Namen. Namen überdecken sich nicht. Ab einem gleitenden Bild über 16 ms schaltet die Karte sichtbar
-auf „Vereinfacht“.
-
-Eine Auswahl dimmt den Rest auf 15 %. Eingehende Kanten tragen die Akzentfarbe und eine Pfeilspitze
-zur Auswahl, ausgehende die Code-Farbe und eine Pfeilspitze zum Nachbarn; der Lichtpuls läuft in
-Kantenrichtung. Die Listen „Wird verwendet von“ und „Verwendet“ zählen wie `in`/`out`. „2 Schritte“
-hängt den übernächsten Nachbarn an. Die Suche findet den Dateinamen vor dem Pfad, sonst „Kein Treffer“.
-Filter dimmen, sie entfernen keine Sterne. „Einpassen“ zeigt die ganze Galaxie.
-
-Am Handy (schmaler oder flacher als 700 px) startet der Graph im Vollbild: Kopfzeile, Reiter und Dock
-sind weg, Zurück ist mindestens 44 px. Escape schließt Blatt, dann Auswahl, dann System, dann Vollbild.
-Auf Tablet und PC liegt das Seitenfeld 320 px daneben, „Vollbild“ ist eine Taste. Kamera, Auswahl,
-System und Filter liegen je Ziel in `localStorage` (`ancientvoid.galaxy:…`). `/` sucht, Pfeile wandern
-zum Nachbarn, Enter öffnet die gewählte Datei. Legende, tote Dateien, Prüfen, Kappung und das eigene
-Fenster bleiben.
-
-## Tablet, PC-Kachelkopf, Schnellsuche (EPIC-P43 T43.6)
-
-- **Tablet (700–1279 px):** in einer Session stehen die Sessions als Streifen darüber (hoch) bzw. als
-  240-px-Spalte daneben (quer), Reihenfolge wie die Warteschlange (`SessionStrip.tsx`, `41-tablet.css`).
-  Das Dock bleibt unten; ohne Session gilt die Übersicht wie am Handy.
-- **Kachelkopf (PC):** Nummer, Griff `⠿`, Titel und Zustand, die vier Reiter als Symbole (Name als
-  Tooltip und für Screenreader), rechts Stop/⋯ und Herauslösen/Leeren. Wird die Kachel schmal, rücken
-  Reiter und Tasten in eine zweite Zeile, der Titel behält 160 px. „Mehr“ öffnet darunter, rechtsbündig.
-- **Schnellsuche:** dasselbe Feld wie „Auftrag in Worten“ (Strg+K, Dock „Suchen“). Treffer je Art
-  höchstens fünf, Wortanfang vor Teilstring; Pfeiltasten wählen, Enter springt nur mit Auswahl.
-
-## Nyx-Blatt (`features/nyx/`, `42-nyx.css`, EPIC-P43 T43.8)
-
-Die kleine Nyx (32 px) steht in der Kopfzeile und zeigt den Gesamtzustand nach VoidWarden `spec.md` §5.1:
-offline > Freigabe > Frage > Fehler > arbeitet > ruhig (`nyx-state.ts`, reine Funktion). Ihr Satz ist eine feste Vorlage je
-Zustand, nie Agenten-Text. Antippen öffnet das Blatt (ins `<body>` gerendert, damit es über dem Dock liegt): alle wartenden
-Freigaben und Fragen, was zuerst abläuft oben. Fragen nutzen `QuestionForm` mit `preselect` (eine als „(Recommended)“ bzw.
-„(Empfohlen)“ markierte Option ist vorgewählt, gesendet wird erst auf Tipp) und `oneTap` (eine einzelne Ja/Nein-Frage
-antwortet mit dem Tipp); Freigaben nutzen `CardDecision`. Begründungspflicht oder Passkey führen in die Session. Am PC
-lässt sich das Blatt herauslösen (Ziel `nyx`, ADR-0068). Animiert wird nur `transform` in `steps()`; ohne Bewegung oder
-offline steht das erste Bild.
-
-**Herkunft des Sprite-Atlas.** `apps/pwa/public/nyx/nyx-atlas.{png,json}` sind unveränderte Kopien aus VoidWarden
-`web/public/nyx/` (Commit `46430cf`, 2026-11-06, Werk des Projekteigners). Keine Laufzeitabhängigkeit zu VoidWarden;
-Änderungen am Original werden bewusst neu kopiert und hier mit neuen Prüfsummen vermerkt.
-
-- `nyx-atlas.png` — SHA-256 `f64ddb7c53a003eae0662042ef7c5f63fafc5df1c262fec6cb3cc7a66db8a4ae`
-- `nyx-atlas.json` — SHA-256 `eda84d81d45e181c09f8a41b58b3c6b911c3ec2857e32fbcca8c08ffb5333c0d`
-
-## Kleinkram-Regeln (EPIC-P43 T43.5, je Regel ein Test in `e2e/specs/kleinkram.spec.ts`)
-
-1. **Unbekanntes schweigt** in der Leiste und steht im Bericht („keine Meldung“).
-2. **Leere Reiter rücken unter „Mehr“** und sagen in einem Satz, was fehlt, mit einer Aktion
-   (`.empty-state`): „Diese Session hat noch nichts geändert.“ → „Zum Chat“; „Keine Datei geöffnet …“
-   → „Dateibaum öffnen“. Ein leerer Diff zählt erst als leer, wenn er geladen ist.
-3. **Zeilenaktionen** (`.row-action`) erscheinen mit Maus beim Überfahren/Fokus, auf Touch nach langem
-   Drücken; immer zusätzlich im Menü der Zeile („⋯“, `.row-menu`).
-4. **Eine Hauptaktion je Ansicht**, gefüllt, oben rechts im Kopf (`.view-head`) — in „Änderungen“
-   „Ins Projekt übernehmen“ neben „N Dateien · +A −D“; der Bericht darunter wiederholt sie nicht.
-5. **Tasten tragen Worte** oder ein Symbol mit `aria-label` und `title`.
-6. **Nichts liegt über dem Inhalt** — keine Randlaschen; Ebenen öffnen aus den Ansichten (`shared/layers.ts`).
-7. **Formularelemente sind App-Bausteine** (Schrift der App, `appearance: none`, kein weißes Feld im Dunkeln).
-8. **Kein horizontaler Scrollbalken im fließenden Inhalt** — wo Text oder Chips laufen, brechen sie um
-   (`flex-wrap`, `overflow-wrap`): Filterleiste, Vorlagenzeile, Befehlszeilen, Team-Meta, PC-Befehlszeile.
-   Ausgenommen bleiben der Git-Diff (nachrüstbar), CODE-Blöcke, Tabellen und die waagerechten
-   Zeilenleisten (Dock, Tabs, Streifen) — ein Tester findet alle Verletzer (`kleinkram.spec.ts`).
-
-## Formularelemente (`shared/forms.tsx`, `37-forms.css`)
-
-Formularelemente sind App-Bausteine, kein Browser-Standard: `Field`, `Select`, `Switch`,
-`Segmented`. Alle setzen auf den nativen Elementen auf, damit Tastatur, Screenreader und das
-Auswahlrad des Handys bleiben. `01-base.css` gibt zusätzlich jedem `input`, `select`, `textarea`
-und `button` Schrift, Farbe, Rahmen und (bei `select`) den Pfeil der App, mit Spezifität null —
-ältere Stellen sehen damit richtig aus, ohne umgebaut zu werden. Neue Formulare nehmen die Bausteine.
-
-**Bewegungsregel:** Glow/Scanline sind ausschließlich Statusanzeigen
-(arbeitend/wartet), nie reine Dekoration — wer eine neue Animation baut, muss
-sagen, welchen Zustand sie zeigt. Nur `box-shadow`/`opacity`/`transform`
-(compositor-freundlich, kein Layout-Reflow). Jede Animation muss unter
-`prefers-reduced-motion: reduce` vollständig verschwinden (K2-Schutz, siehe
-EPIC-P1.6 AC-P1.6-8/9).
-
-## Akzentfarbe (EPIC-P34 T34.5, Standard seit EPIC-P43 Void-Violett)
-
-`--accent` ist pro Theme (dunkel/hell) überschreibbar: Einstellungen → Darstellung → Farbwähler (Farbfeld, Reglerstreifen,
-Hex). `appearance.ts` hält die Wahl in `localStorage`, `accentInk()` wählt Schwarz oder Weiß als Schriftfarbe auf dem Akzent
-nach Kontrast, `accentWarnings()` warnt bei zu geringem Kontrast zum Hintergrund, statt die Wahl zu verbieten. Alle
-Akzentflächen leiten Töne per `color-mix()` aus `--accent` ab, kein fester Hex in neuen Regeln. Gespeichert wird nur die Abweichung vom Standard: wer nie gewählt hat, sieht seit P43 Violett; wer gewählt hat, behält seine Farbe.
-
-## Erkennung (`26-discovery.css`, EPIC-P34 T34.9)
-
-Kopf mit KPI-Kacheln (gefunden / aktiv / übernommen / Rauschen) und Anbieter-Chips, darunter Projektgruppen mit gleich hohen
-Karten (Raster 2/2/1/1 nach Breite). Zustand einer Zeile wird als Text **und** Farbe gezeigt (live, ruht, übernommen,
-nur lesbar), nie nur als Farbe. Temporäre Funde bündelt die Gruppe „Temporär“, Subagents hängen unter ihrer Eltern-Session.
-Kartenhöhen und Schriftgrößen sind fest, damit ein Hinweis die Reihe nicht verschiebt.
-
-## Eigene Fenster (`27-popout.css`, EPIC-P34 T34.10–T34.12)
-
-Die Popout-Hülle (`/?window=1#/…`) zeigt nur Kopfzeile mit Titel, „In die App zurück“ und die Kachel oder Werkzeugfläche,
-ohne Liste und ohne Dock; sie schreibt nie den Arbeitsbereich. Das Hauptfenster markiert ausgelagerte Kacheln mit dem
-Abzeichen „⧉ eigenes Fenster“. Die Leiste „Wiederherstellen“ (RestoreBar) erscheint, wenn ein Fenster fehlt oder nicht mehr
-antwortet (Heartbeat 3 s, Ablauf 10 s) und öffnet je Klick genau eines. Theme und Akzent folgen dem Hauptfenster über das
-`storage`-Ereignis. Blockierte Pop-ups erscheinen als sichtbare Meldung mit Knopf, nie still.
-
-**Herauslösen überall (EPIC-P43 T43.7, ADR-0068).** Jede Ansicht einer Session (Änderungen, Dateien, Bericht, GitLab,
-Suche, Umgebung) und die Warteschlange tragen rechts im Kopf die Taste `DetachButton` („⧉“, beim Überfahren/Fokus mit
-dem Wort „Herauslösen“) — nur am PC (≥ 1280 px) und nie im Fenster selbst. Die Ansicht im Hauptfenster wird zum Platzhalter
-„… läuft in einem eigenen Fenster.“ mit „Fenster zeigen“ und „Zurückholen“; die Statuszeile zählt offene Fenster
-(„⧉ n Fenster“).
-
-## Belege (Mockup-Screenshots)
-
-Die Werte oben sind aus der vom Nutzer gewählten „Futuristisch"-Mockup-
-Variante übernommen (Playwright-Screenshots dieser Session):
-`v2-futuristic-dashboard.png`, `v2-futuristic-session-chat.png`,
-`v2-futuristic-session-verlauf.png` — HUD-Glas-Look, heißes Amber,
-Scanline über arbeitenden Karten, Orbitron-Headings.
-
-## Für künftige Phasen
-
-- **P2 (T2.3, Diff-UI):** Hunk-Karten nutzen `--bg-elev`/`--bg-chip`/
-  `--radius`, Diff-Add/Del-Farben werden aus `--ok`/`--err` mit
-  `color-mix()` abgeleitet (Muster: `apps/pwa/src/app/styles/`, siehe
-  `11-report-and-diff.css`) — keine neuen Grün-/Rot-Werte.
-- **P3 (T3.8, Sprachsuche):** Ergebnisliste/Datei-Viewer übernehmen
-  `--font-mono` für Code-Snippets, `--accent` für Zeilen-Anker-Highlights.
-- Neue Komponenten, die eine Farbe brauchen, die hier fehlt: zuerst prüfen,
-  ob `color-mix(in srgb, var(--token) X%, ...)` das Problem löst, bevor ein
-  neuer Hex-Wert entsteht.
-
-## P43.5: lokale Darstellungs-Presets und P44-Grenze
-
-`features/settings/presets.ts` validiert Formatversion 1, migriert das alte
-Appearance-Format und exportiert nur die explizite Allowlist. Gerätewerte liegen
-unter `ancientvoid.presentation.v1` und `ancientvoid.named-presets.v1`.
-Bestehende Theme-/Font-Einstellungen bleiben zuständig. `--code-scale`,
-`--preset-border`, `--radius`, `--device-background`, `data-density` und
-`data-chat-width` sind die begrenzten Gestaltungspunkte. Semantische
-`--ok/--err/--warn/--call/--info` sind keine Importfelder.
-
-P44 kann die bestehenden SettingsSection-/SettingRow-Bausteine sowie die
-Quellenchip-Zeile im Composer als Slots verwenden. Keine freie CSS-/JS-Injektion
-und kein zweiter Plugin-Lifecycle. Benannte Layouts erfassen Kachelgeometrie und
-Fensterziele/-größen; Wiederherstellung behält die Sessionbelegung. Fenster
-werden einzeln mit Nutzeraktion geöffnet und an die Anzeige begrenzt. Der
-Compositor entscheidet letztlich über Bildschirmposition und Fenstergröße.
-Arbeitsnotizen und Quellen sind gerätelokale Entwürfe in localStorage, über
-storage-Events zwischen Fenstern synchronisiert; kein kanonischer Hub-State.
+Abweichung braucht genannten Grund und Allowlist-Eintrag mit Datei-Verweis —
+nicht Review-Disziplin allein.

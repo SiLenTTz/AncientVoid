@@ -97,7 +97,7 @@ export function GitGraphPane({
       )}
       {error && <div class="files-error">Git-Graph nicht ladbar: {error}</div>}
       {report?.error && <div class="files-error">{report.error}</div>}
-      {!report && !error && <div class="empty">Lade Git-Graph …</div>}
+      {!report && !error && <div class="ui-empty">Lade Git-Graph …</div>}
       {report && !report.error && (
         <ul class="git-graph-list" role="list">
           {rows.map((row) => {

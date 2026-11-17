@@ -1,0 +1,27 @@
+/* EPIC-P63 AC-P63-8 — Probe-CSS: nur Semantik-Tokens, kein Hex, kein freier z-index. */
+.ds-probe {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.ds-probe-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--fg);
+}
+
+.ds-probe-copy {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--fg-muted);
+}
+
+.ds-probe-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}

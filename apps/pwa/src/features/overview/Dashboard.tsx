@@ -1,3 +1,4 @@
+import { Sheet, Button, Chip, EmptyState, Card } from "../../shared/ui/index.ts";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
@@ -292,7 +293,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
       {/* EPIC-P47 T47.1: ein Umschalter statt der rein informativen Host-Chips. */}
       <div class="overview-switch" role="tablist" aria-label="Übersichtsansicht">
         {VIEWS.map((v) => (
-          <button key={v} type="button" role="tab" aria-selected={view === v} class={`chip overview-switch-btn${view === v ? " active" : ""}`} onClick={() => setOverviewView(v)}>
+          <button key={v} type="button" role="tab" aria-selected={view === v} class={`chip${view === v ? " active" : ""}`} data-testid="overview-switch-btn" onClick={() => setOverviewView(v)}>
             {VIEW_TITLE[v]}
           </button>
         ))}
@@ -317,26 +318,24 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
             <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => setShowArchived((on) => !on)}>
               {showArchived ? "Aktive" : `Archiv${archivedCount > 0 ? ` (${archivedCount})` : ""}`}
             </button>
-            <button class="chip" type="button" onClick={() => setOverviewView("discovery")}>
+            <Chip onClick={() => setOverviewView("discovery")}>
               Gefunden
-            </button>
+            </Chip>
           </div>
           {statusFilter !== "all" && statusFilter !== "recent" && (
-            <button
-              type="button"
-              class="chip active status-filter"
+            <Chip
               onClick={() => {
                 sessionStorage.removeItem("ancientvoid.overviewFilter");
                 setStatusFilter("all");
               }}
-            >
+             active class="status-filter">
               {statusFilter === "waiting" ? "nur wartende" : "nur aktive"} ✕
-            </button>
+            </Chip>
           )}
           {hostFilter && (
-            <button type="button" class="chip active status-filter" onClick={() => setHostFilter(null)}>
+            <Chip onClick={() => setHostFilter(null)} active class="status-filter">
               Host: {hostLabel(hosts, hostFilter)} ✕
-            </button>
+            </Chip>
           )}
           {sessions.length > 4 && (
             <input class="dashboard-search" type="search" placeholder="Sessions filtern…" aria-label="Sessions filtern" value={query} onInput={(e) => setQuery((e.target as HTMLInputElement).value)} />
@@ -345,7 +344,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
             showStartGuide({ total: withOverride.length, visible: sorted.length, query, hostFiltered: hostFilter !== null, showArchived, statusFilter }) ? (
               <StartGuide probeAvailable={probeAvailable} onOpen={onOpen} />
             ) : (
-              <div class="empty">{emptyText({ query, hostFiltered: Boolean(hostFilter), showArchived })}</div>
+              <div class="ui-empty">{emptyText({ query, hostFiltered: Boolean(hostFilter), showArchived })}</div>
             )
           ) : (
             SECTION_ORDER.filter((key) => sections[key].length > 0).map((key) => {
@@ -396,9 +395,9 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
                       />
                     ))}
                     {list.length < sections[key].length && (
-                      <button class="btn more-sessions" type="button" onClick={() => setAllRecent(true)}>
+                      <Button onClick={() => setAllRecent(true)} class="more-sessions">
                         Alle {sections[key].length} zeigen
-                      </button>
+                      </Button>
                     )}
                   </section>
                 );
@@ -425,8 +424,8 @@ function ProjectsView({ projects, warning, sessions }: { projects: DiscoveredPro
       </div>
     );
   }
-  if (projects === null) return <div class="empty">Projekte laden…</div>;
-  if (projects.length === 0) return <div class="empty">keine Projekte gefunden — lege eines an</div>;
+  if (projects === null) return <EmptyState text="Projekte laden…" />;
+  if (projects.length === 0) return <EmptyState text="keine Projekte gefunden — lege eines an" />;
   return (
     <section class="session-section" aria-label="Projekte">
       <h2 class="section-title">
@@ -435,7 +434,7 @@ function ProjectsView({ projects, warning, sessions }: { projects: DiscoveredPro
       {projects.map((p) => {
         const n = sessions.filter((s) => s.archived !== true && s.project === p.path).length;
         return (
-          <div key={p.path} class="card project-card">
+          <Card key={p.path} class="project-card">
             <button
               class="session-open"
               type="button"
@@ -453,7 +452,7 @@ function ProjectsView({ projects, warning, sessions }: { projects: DiscoveredPro
                 <span class="session-activity-text dim">Dateibaum öffnen</span>
               </div>
             </button>
-          </div>
+          </Card>
         );
       })}
     </section>
@@ -472,7 +471,7 @@ function HostsView({ hosts, sessions, onPick }: { hosts: FleetHost[]; sessions: 
       {list.map((h) => {
         const n = sessions.filter((s) => s.archived !== true && (s.hostId ?? "local") === h.hostId).length;
         return (
-          <div key={h.hostId} class="card host-card">
+          <Card key={h.hostId} class="host-card">
             <button class="session-open" type="button" onClick={() => onPick(h.hostId)}>
               <div class="row">
                 <strong class="session-title">{h.label ?? h.hostId.slice(0, 8)}</strong>
@@ -486,7 +485,7 @@ function HostsView({ hosts, sessions, onPick }: { hosts: FleetHost[]; sessions: 
                 <span class="session-activity-text dim">{n > 0 ? `${n} Session${n === 1 ? "" : "s"} zeigen` : "keine Sessions"}</span>
               </div>
             </button>
-          </div>
+          </Card>
         );
       })}
     </section>
@@ -592,7 +591,7 @@ function SessionRow({
           <StatusDot status={session.status} question={question} unseen={unseen} />
         </div>
         {inWindow && (
-          <div class="session-window">
+          <div >
             <span class="badge-window" title="Ein Klick holt das Fenster nach vorn">⧉ eigenes Fenster</span>
           </div>
         )}
@@ -601,7 +600,7 @@ function SessionRow({
            * label (fallback short id), model or the honest "Standardmodell"
            * (no guessed provider). */}
           {session.hostId ? `${hostLabel(hosts ?? [], session.hostId)} · ` : ""}
-          <span class="session-project">{project}</span> · {session.adapter} · {session.model ?? "Standardmodell"}
+          <span data-testid="session-project">{project}</span> · {session.adapter} · {session.model ?? "Standardmodell"}
           {session.costUsd > 0 ? ` · ${metricView(session, "cost", formatUsd, true).text}` : ""}
         </div>
         <div class="session-activity">
@@ -669,13 +668,12 @@ function SessionRow({
         </span>
       </div>
       {handoverOpen && (
-        <div class="overlay-backdrop" onClick={() => setHandoverOpen(false)}>
-          <div class="overlay-sheet" onClick={(e) => e.stopPropagation()}>
+        <Sheet open onClose={() => setHandoverOpen(false)} label="Session übergeben">
             <div class="row" style="justify-content: space-between; align-items: center">
               <strong>Session übergeben</strong>
-              <button class="btn" type="button" aria-label="Schließen" onClick={() => setHandoverOpen(false)}>
+              <Button aria-label="Schließen" onClick={() => setHandoverOpen(false)}>
                 ✕
-              </button>
+              </Button>
             </div>
             {/* Die Quelle parkt der Hub beim Übergeben (SessionManager.handover) —
              * hier wird nur das Ziel gewählt und der Übergabetext gesichtet. */}
@@ -688,8 +686,7 @@ function SessionRow({
                 onOpen(created);
               }}
             />
-          </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );

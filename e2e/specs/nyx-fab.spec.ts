@@ -65,7 +65,7 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
   test("FAB ist sichtbar; Composer hat keinen Voice-Button mehr", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await expect(app.locator('[data-testid="nyx-fab"]')).toBeVisible();
+    await expect(app.locator('[data-testid=nyx-fab]')).toBeVisible();
     await expect(app.locator(".composer-actions").getByRole("button", { name: "Voice" })).toHaveCount(0);
   });
 
@@ -75,9 +75,9 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     const field = app.getByPlaceholder("Antworten…");
     await field.click();
     await app.evaluate(() => ((globalThis as unknown as { __speechSessions?: unknown[] }).__speechSessions = [{ emits: [{ text: "bitte weitermachen", final: true }], gap: 120 }]));
-    await app.locator('[data-testid="nyx-fab"]').click();
+    await app.locator('[data-testid=nyx-fab]').click();
     await expect(field).toHaveValue("");
-    await app.locator('[data-testid="nyx-fab"]').click();
+    await app.locator('[data-testid=nyx-fab]').click();
     await expect(field).toHaveValue("bitte weitermachen");
   });
 
@@ -90,9 +90,9 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     await app.evaluate(() => ((globalThis as unknown as { __speechSessions?: unknown[] }).__speechSessions = [
       { emits: [{ text: "bitte", final: false }, { text: "bitte weiter", final: false }, { text: "bitte weitermachen", final: true }], gap: 700 },
     ]));
-    const fab = app.locator('[data-testid="nyx-fab"]');
+    const fab = app.locator('[data-testid=nyx-fab]');
     await fab.click();
-    const words = app.locator('[data-testid="nyx-fab-words"]');
+    const words = app.locator('[data-testid=nyx-fab-words]');
     // Wort-fuer-Wort: der Vorschautext waechst sichtbar, bevor etwas im Feld landet.
     const read = async () => (await words.textContent()) ?? "";
     await expect.poll(read, { timeout: 5_000 }).toBe("bitte");
@@ -103,12 +103,12 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     expect(spaeter).toContain("bitte weiter");
     // Solange gelauscht wird, steht nichts im Feld — und der Knopf ist eindeutig Stopp.
     await expect(field).toHaveValue("");
-    await expect(app.locator('[data-testid="nyx-fab-stop"]')).toBeVisible();
-    await expect(app.locator('[data-testid="nyx-fab-state"]')).toContainText(/läuft 0:0\d/);
+    await expect(app.locator('[data-testid=nyx-fab-stop]')).toBeVisible();
+    await expect(app.locator('[data-testid=nyx-fab-state]')).toContainText(/läuft 0:0\d/);
     await expect(fab).toHaveAttribute("aria-pressed", "true");
     await fab.click();
     await expect(field).toHaveValue("bitte weitermachen");
-    await expect(app.locator('[data-testid="nyx-fab-stop"]')).toHaveCount(0);
+    await expect(app.locator('[data-testid=nyx-fab-stop]')).toHaveCount(0);
   });
 
   test("BUG-0177: Chrome beendet die Erkennung nach Stille — das Diktat läuft trotzdem weiter", async ({ app, hub }) => {
@@ -120,10 +120,10 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
       { emits: [{ text: "zuerst", final: true }], gap: 120 },
       { emits: [{ text: "danach", final: true }], gap: 120 },
     ]));
-    const fab = app.locator('[data-testid="nyx-fab"]');
+    const fab = app.locator('[data-testid=nyx-fab]');
     await fab.click();
-    await expect(app.locator('[data-testid="nyx-fab-words"]')).toContainText("zuerst danach");
-    await expect(app.locator('[data-testid="nyx-fab-toast"]')).toContainText(/neu gestartet/);
+    await expect(app.locator('[data-testid=nyx-fab-words]')).toContainText("zuerst danach");
+    await expect(app.locator('[data-testid=nyx-fab-toast]')).toContainText(/neu gestartet/);
     await fab.click();
     await expect(field).toHaveValue("zuerst danach");
   });
@@ -132,7 +132,7 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     await app.setViewportSize({ width: 390, height: 800 });
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    const fab = app.locator('[data-testid="nyx-fab"]');
+    const fab = app.locator('[data-testid=nyx-fab]');
     await expect(fab).toHaveAttribute("data-bp", "phone");
     const box = await fab.boundingBox();
     expect(box).toBeTruthy();
@@ -142,8 +142,8 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     const after = await fab.boundingBox();
     expect(after!.y).toBeLessThan(box!.y - 40);
     await app.reload();
-    await expect(app.locator('[data-testid="nyx-fab"]')).toBeVisible();
-    const again = await app.locator('[data-testid="nyx-fab"]').boundingBox();
+    await expect(app.locator('[data-testid=nyx-fab]')).toBeVisible();
+    const again = await app.locator('[data-testid=nyx-fab]').boundingBox();
     expect(Math.abs((again?.y ?? 0) - (after?.y ?? 0))).toBeLessThan(8);
   });
 
@@ -154,7 +154,7 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     await expect(app.getByRole("button", { name: "Pause" })).toBeVisible();
     await expect
       .poll(async () => {
-        const [fab, dock] = await Promise.all([app.locator('[data-testid="nyx-fab"]').boundingBox(), app.locator(".dock-stack").boundingBox()]);
+        const [fab, dock] = await Promise.all([app.locator('[data-testid=nyx-fab]').boundingBox(), app.locator(".dock-stack").boundingBox()]);
         return fab!.y + fab!.height <= dock!.y;
       })
       .toBe(true);
@@ -169,7 +169,7 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     await expect
       .poll(async () => {
         await tail.evaluate((el) => el.scrollTo(0, el.scrollHeight));
-        const fab = (await app.locator('[data-testid="nyx-fab"]').boundingBox())!;
+        const fab = (await app.locator('[data-testid=nyx-fab]').boundingBox())!;
         // Unterkante des letzten Inhalts im Scrollbereich, nicht des (gepolsterten) Containers.
         const contentBottom = await tail.evaluate((el) => Math.max(...[...el.children].map((c) => c.getBoundingClientRect().bottom)));
         return contentBottom <= fab.y;
@@ -181,7 +181,7 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     await app.setViewportSize({ width: 1400, height: 900 });
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    const fab = app.locator('[data-testid="nyx-fab"]');
+    const fab = app.locator('[data-testid=nyx-fab]');
     const box = (await fab.boundingBox())!;
     expect(box.width).toBeGreaterThanOrEqual(64);
     const cx = box.x + box.width / 2;
@@ -194,6 +194,6 @@ test.describe("Nyx-FAB (Speech-to-Text)", () => {
     expect(after.x).toBeLessThan(box.x - 150);
     expect(after.y).toBeGreaterThan(box.y + 80);
     // Ziehen ist kein Klick: es startet keine Aufnahme.
-    await expect(app.locator('[data-testid="nyx-fab-toast"]')).toHaveCount(0);
+    await expect(app.locator('[data-testid=nyx-fab-toast]')).toHaveCount(0);
   });
 });

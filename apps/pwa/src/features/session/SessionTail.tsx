@@ -59,6 +59,7 @@ import { DiffReview } from "./DiffReview.tsx";
 import { ForgePanel } from "../forge/ForgePanel.tsx";
 import { ReportPane } from "./ReportPane.tsx";
 import { SessionApprovals } from "./SessionApprovals.tsx";
+import { Button, Chip } from "../../shared/ui/index.ts";
 
 /** BUG-0053: below this window height (landscape) the dock is compacted and the controls start folded. */
 const SHORT_VIEWPORT_PX = 520;
@@ -958,13 +959,13 @@ export function SessionTail({
      * as an active overview card — "this agent is working" must be visible
      * from any tab (chat/diff/code), not only from the small status pill. */}
     <div data-tab={activeTab} class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}${graphFull ? " graph-full" : ""}`}>{copyFlash && <div class="copy-flash" role="status">In Zwischenablage kopiert</div>}
-      <div class="session-main">
+      <div >
       {/* T8.5: back, what this is, Stop apart from Senden, the rest in ⋯ */}
       <div class={`topbar session-topbar${tile ? " tile-top" : ""}`}>
         {tile?.head?.start}
-        <button class="btn back-btn" type="button" aria-label="Zur Übersicht" title="Zur Übersicht" onClick={() => onNavigate("dashboard")}>
+        <Button aria-label="Zur Übersicht" title="Zur Übersicht" onClick={() => onNavigate("dashboard")} class="back-btn">
           ←
-        </button>
+        </Button>
         <div class="session-top-main">
           {renaming ? (
             <form
@@ -975,9 +976,9 @@ export function SessionTail({
               }}
             >
               <input aria-label="Neuer Titel" value={titleDraft} maxLength={80} onFocus={() => touchField("session_title")} onInput={(e) => setTitleDraft((e.target as HTMLInputElement).value)} />
-              <button class="btn primary" type="submit">
+              <Button type="submit" variant="primary">
                 OK
-              </button>
+              </Button>
             </form>
           ) : (
             <div class="session-top-title">{title ?? session.project.split("/").pop()}</div>
@@ -991,14 +992,14 @@ export function SessionTail({
         </div>
         {tile && !tile.only && <nav class="subtabs-wrap tile-tabs" aria-label="Ansichten">{tabButtons}</nav>}
         {!tile?.only && !observerOnly && features?.interrupt && (status === "working" || status === "starting" || status === "waiting_approval") && (
-          <button class="btn pause-btn" type="button" onClick={() => void pause()}>
+          <Button onClick={() => void pause()}>
             Pause
-          </button>
+          </Button>
         )}
         {!tile?.only && !observerOnly && status !== "stopped" && (
-          <button class="btn danger stop-btn" type="button" onClick={stop}>
+          <Button onClick={stop} variant="danger" class="stop-btn">
             Stop
-          </button>
+          </Button>
         )}
         {!tile?.only && (
         <details class="session-menu" ref={menuRef} onToggle={e => fitSessionMenu(e.currentTarget)}>
@@ -1043,9 +1044,9 @@ export function SessionTail({
         </div>
       )}
       {firstNew && (
-        <button type="button" class="chip new-jump" onClick={() => jumpTo("seit-letztem-besuch")}>
+        <Chip onClick={() => jumpTo("seit-letztem-besuch")} class="new-jump">
           ↓ {newCount} neu seit deinem letzten Besuch
-        </button>
+        </Chip>
       )}
       {!online && <div class="badge-stale offline-note">Offline — Senden ist gesperrt, dein Entwurf bleibt.</div>}
       <div class="run-strip">
@@ -1089,7 +1090,7 @@ export function SessionTail({
         <StatusLine totals={tokenTotals} processedFallback={tokensKnown ? record.tokensEst : null} fill={tokenStats.lastContextTokens} windowTokens={windowTokens} quota={quota} />
       </div>
 
-      {factoryLink?.partner && <div class="loop-note">Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
+      {factoryLink?.partner && <div >Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
       {(status === "interrupted" || status === "error") && <InterruptedBanner failed={status === "error"} events={events} since={record.updatedAt} nativeResume={adapterResume?.hub === true} autoResumeOnLimit={record.autoResumeOnLimit === true} onAutoResumeLimit={async on => {
         const updated = await api.setSessionMeta(session.id, { autoResumeOnLimit: on });
         setStatus(updated.status);
@@ -1154,15 +1155,15 @@ export function SessionTail({
         style={`overflow-y: auto; max-height: ${tailMaxHeight !== null ? `calc(${tailMaxHeight}px / var(--ui-zoom, 1))` : "60vh"}`}
       >
         {viewWindow && viewKind ? (
-          <div class="empty-state detached-placeholder">
+          <div class="ui-empty detached-placeholder">
             <p>{VIEW_LABEL[viewKind]} läuft in einem eigenen Fenster.</p>
             <div class="row">
-              <button class="btn" type="button" onClick={() => postWindowMessage({ type: "focus", id: viewWindow.id })}>
+              <Button onClick={() => postWindowMessage({ type: "focus", id: viewWindow.id })}>
                 Fenster zeigen
-              </button>
-              <button class="btn" type="button" onClick={() => postWindowMessage({ type: "recall", id: viewWindow.id })}>
+              </Button>
+              <Button onClick={() => postWindowMessage({ type: "recall", id: viewWindow.id })}>
                 Zurückholen
-              </button>
+              </Button>
             </div>
           </div>
         ) : activeTab === "bericht" ? (
@@ -1184,11 +1185,11 @@ export function SessionTail({
             <ChangesHead diff={diff} record={record} status={status} detach={detach} />
             {diffWarning}
             {noChanges ? (
-              <div class="empty-state">
+              <div class="ui-empty">
                 <p>Diese Session hat noch nichts geändert.</p>
-                <button class="btn" type="button" onClick={showChatTab}>
+                <Button onClick={showChatTab}>
                   Zum Chat
-                </button>
+                </Button>
               </div>
             ) : (
               <DiffReview diff={diff} session={session} />
@@ -1215,15 +1216,13 @@ export function SessionTail({
         ) : activeTab === "graph" ? (
           <>
             <div class="graph-pane-tools">
-              <button
-                type="button"
-                class="btn"
+              <Button
                 aria-label="Graph in eigenes Fenster"
                 title="In eigenes Fenster"
                 onClick={() => void openPopout({ kind: "graph", sessionId: session.id, ...(remoteHost(session.hostId) ? { hostId: remoteHost(session.hostId)! } : {}) })}
               >
                 ⧉ Eigenes Fenster
-              </button>
+              </Button>
             </div>
             <GraphPane
               target={`session=${encodeURIComponent(session.id)}`}
@@ -1247,15 +1246,13 @@ export function SessionTail({
           <>
             {openFile && (
               <div class="graph-pane-tools">
-                <button
-                  type="button"
-                  class="btn"
+                <Button
                   aria-label="Datei in eigenes Fenster"
                   title="In eigenes Fenster"
                   onClick={() => void openPopout({ kind: "file", sessionId: session.id, path: openFile, ...(remoteHost(session.hostId) ? { hostId: remoteHost(session.hostId)! } : {}) })}
                 >
                   ⧉ Eigenes Fenster
-                </button>
+                </Button>
               </div>
             )}
             {openFile ? (
@@ -1272,9 +1269,9 @@ export function SessionTail({
         ) : activeTab === "code" ? (
           <>
             <div class="view-head">
-              <button class="btn" type="button" aria-label="Dateibaum öffnen" title="Dateibaum (Strg+Umschalt+E)" onClick={() => openLayer("files")}>
+              <Button aria-label="Dateibaum öffnen" title="Dateibaum (Strg+Umschalt+E)" onClick={() => openLayer("files")}>
                 Dateibaum
-              </button>
+              </Button>
               {detach}
             </div>
             <CodePane sessionId={session.id} hostId={remoteHost(session.hostId) ?? null} {...(initialCode ? { initial: initialCode } : {})} onOpenDiff={showDiffTab} />
@@ -1286,7 +1283,7 @@ export function SessionTail({
           </>
         ) : activeTab === "chat" ? (
           chatItems.length === 0 ? (
-            <div class="empty">{live ? `lädt…${shownModel ? ` · ${shownModel}` : ""}` : "keine Nachrichten"}</div>
+            <div class="ui-empty">{live ? `lädt…${shownModel ? ` · ${shownModel}` : ""}` : "keine Nachrichten"}</div>
           ) : (
             <ChatTurns
               key={session.id}
@@ -1313,14 +1310,14 @@ export function SessionTail({
             />
           )
         ) : visible.length === 0 ? (
-          <div class="empty">
+          <div class="ui-empty">
             {status === "working" || status === "starting"
               ? `lädt…${shownModel ? ` · ${shownModel}` : ""}`
               : "keine Nachrichten"}
           </div>
         ) : (
           <>
-          {hiddenOlder > 0 && <div class="dim older-hidden">{hiddenOlder} ältere Einträge — Kachel anklicken zeigt alle</div>}
+          {hiddenOlder > 0 && <div class="dim" data-testid="older-hidden">{hiddenOlder} ältere Einträge — Kachel anklicken zeigt alle</div>}
           {visible.map((e, i) => {
             // ADR-0032: the token bill of a turn shows under its last
             // visible row — even where the filter hides session.turn_end.
@@ -1366,9 +1363,9 @@ export function SessionTail({
         {controlsFolded && observerOnly && status !== "stopped" && (
           <div class="composer-actions">
             <span class="observer-note">nur beobachten — der Harness läuft außerhalb des Hubs</span>
-            <button class="btn" type="button" onClick={() => void stop()}>
+            <Button onClick={() => void stop()}>
               Beobachtung beenden
-            </button>
+            </Button>
           </div>
         )}
         {providerFailure && (
@@ -1396,15 +1393,15 @@ export function SessionTail({
               <div class="reply-error">
                 {replyError}
                 {leaseHeld && (
-                  <button class="btn" type="button" onClick={() => void sendReply(true)} disabled={replyBusy}>
+                  <Button onClick={() => void sendReply(true)} disabled={replyBusy}>
                     Übernehmen
-                  </button>
+                  </Button>
                 )}
                 {/* T8.6: a failed send is one tap from the next try — same input id, no double turn. */}
                 {!leaseHeld && online && (reply.trim() || replyAttachments.length > 0) && (
-                  <button class="btn" type="button" onClick={() => void sendReply()} disabled={replyBusy}>
+                  <Button onClick={() => void sendReply()} disabled={replyBusy}>
                     Erneut versuchen
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
@@ -1414,12 +1411,12 @@ export function SessionTail({
                   {draft.conflict.device ?? "Ein anderes Gerät"} hat den Entwurf geändert: <em>„{draft.conflict.text.slice(0, 160) || "(leer)"}“</em>
                 </div>
                 <div class="row">
-                  <button class="btn" type="button" onClick={draft.takeTheirs}>
+                  <Button onClick={draft.takeTheirs}>
                     Deren übernehmen
-                  </button>
-                  <button class="btn primary" type="button" onClick={draft.keepMine}>
+                  </Button>
+                  <Button onClick={draft.keepMine} variant="primary">
                     Meinen behalten
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -1467,33 +1464,33 @@ export function SessionTail({
                             type="button"
                             data-testid="delivery-toggle"
                             aria-pressed={delivery === "now"}
-aria-label={delivery === "now" ? "Zustellung: lenken, jetzt" : "Zustellung: warten bis zum Zugende"}
+                            aria-label={delivery === "now" ? "Zustellung: lenken, jetzt" : "Zustellung: warten bis zum Zugende"}
                             title={delivery === "now" ? "Jetzt lenken — Klick stellt auf Warten bis zum Zugende" : "Warten bis der Zug endet — Klick stellt auf jetzt lenken"}
                             onClick={() => chooseDelivery(delivery === "now" ? "queue" : "now")}
                           >
                             {delivery === "now" ? "⚡ lenken" : "⏳ am Zugende"}
                           </button>
                         )}
-                        <button
-                          class={replyBusy ? "btn primary busy" : "btn primary"}
+                        <Button
                           aria-busy={replyBusy}
-                          type="button"
                           data-testid={delivery === "now" ? "send-now" : "send-queue"}
                           onClick={() => void sendReply(false, delivery === "queue")}
                           disabled={replyBusy || !online || (!reply.trim() && replyAttachments.length === 0)}
+                          variant="primary"
+                          class={replyBusy ? "busy" : undefined}
                         >
                           {replyBusy ? "lädt…" : delivery === "now" ? "Jetzt lenken" : "Vormerken"}
-                        </button>
+                        </Button>
                       </>
                     ) : (
-                      <button
-                        class={replyBusy ? "btn primary busy" : "btn primary"}
+                      <Button
+                        
                         aria-busy={replyBusy}
                         onClick={() => void sendReply()}
                         disabled={replyBusy || !online || (!reply.trim() && replyAttachments.length === 0)}
-                      >
+                       variant="primary" class={replyBusy ? "busy" : undefined}>
                         {replyBusy ? "lädt…" : status === "stopped" || status === "parked" ? "Weiter" : "Senden"}
-                      </button>
+                      </Button>
                     )}
                   </>
                 }
@@ -1504,9 +1501,9 @@ aria-label={delivery === "now" ? "Zustellung: lenken, jetzt" : "Zustellung: wart
                 {observerOnly ? (
                   <>
                     <span class="observer-note">nur beobachten — der Harness läuft außerhalb des Hubs</span>
-                    <button class="btn" onClick={stop}>
+                    <Button onClick={stop}>
                       Beobachtung beenden
-                    </button>
+                    </Button>
                   </>
                 ) : null}
               </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { APPEARANCE_EVENT, clampFontScale, FONT_SCALE_MAX, FONT_SCALE_MIN, FONT_SCALE_STEP, FONTS, getAppearance, setAppearance, type FontId } from "../../app/appearance.ts";
 import { SettingRow, SettingsSection } from "./parts.tsx";
+import { Button } from "../../shared/ui/index.ts";
 
 function useAppearance() {
   const [appearance, setState] = useState(getAppearance());
@@ -45,18 +46,18 @@ export function FontSettings() {
       </div>
       <SettingRow label="Schriftgröße" hint="nur Text — der Zoom skaliert die ganze Oberfläche">
         <span class="scale-control">
-          <button class="btn" aria-label="Schriftgröße verringern" title="Schriftgröße verringern" disabled={a.fontScale <= FONT_SCALE_MIN} onClick={() => setAppearance({ ...a, fontScale: clampFontScale(a.fontScale - FONT_SCALE_STEP) })}>
+          <Button aria-label="Schriftgröße verringern" title="Schriftgröße verringern" disabled={a.fontScale <= FONT_SCALE_MIN} onClick={() => setAppearance({ ...a, fontScale: clampFontScale(a.fontScale - FONT_SCALE_STEP) })}>
             −
-          </button>
+          </Button>
           <span class="font-scale-value mono" aria-live="polite">
             {pct} %
           </span>
-          <button class="btn" aria-label="Schriftgröße erhöhen" title="Schriftgröße erhöhen" disabled={a.fontScale >= FONT_SCALE_MAX} onClick={() => setAppearance({ ...a, fontScale: clampFontScale(a.fontScale + FONT_SCALE_STEP) })}>
+          <Button aria-label="Schriftgröße erhöhen" title="Schriftgröße erhöhen" disabled={a.fontScale >= FONT_SCALE_MAX} onClick={() => setAppearance({ ...a, fontScale: clampFontScale(a.fontScale + FONT_SCALE_STEP) })}>
             +
-          </button>
-          <button class="btn" aria-label="Schriftgröße zurücksetzen" disabled={a.fontScale === 1} onClick={() => setAppearance({ ...a, fontScale: 1 })}>
+          </Button>
+          <Button aria-label="Schriftgröße zurücksetzen" disabled={a.fontScale === 1} onClick={() => setAppearance({ ...a, fontScale: 1 })}>
             100 %
-          </button>
+          </Button>
         </span>
       </SettingRow>
     </SettingsSection>

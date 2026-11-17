@@ -16,6 +16,7 @@ import {
   type Hsv,
 } from "../../app/appearance.ts";
 import { SettingRow } from "./parts.tsx";
+import { Button } from "../../shared/ui/index.ts";
 
 /**
  * EPIC-P34 T34.5: Akzentfarbe wählen wie in GIMP — Fläche für Sättigung/Helligkeit, Leiste für den
@@ -201,16 +202,16 @@ function AccentDialog({ theme, original, onClose }: { theme: Theme; original: Ap
           </div>
         )}
         <div class="cp-actions">
-          <button type="button" class="btn" onClick={() => { setHexText(defaultHex); setHsv(hexToHsv(defaultHex)); setUseDefault(true); }}>
+          <Button onClick={() => { setHexText(defaultHex); setHsv(hexToHsv(defaultHex)); setUseDefault(true); }}>
             Standard
-          </button>
+          </Button>
           <span class="cp-spacer" />
-          <button type="button" class="btn" onClick={cancel}>
+          <Button onClick={cancel}>
             Abbrechen
-          </button>
-          <button type="button" class="btn primary" disabled={hex === null} onClick={apply}>
+          </Button>
+          <Button disabled={hex === null} onClick={apply} variant="primary">
             Übernehmen
-          </button>
+          </Button>
         </div>
       </div>
     </dialog>

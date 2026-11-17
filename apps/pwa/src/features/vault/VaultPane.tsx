@@ -5,6 +5,7 @@ import { FileViewer } from "../files/FileViewer.tsx";
 import { formatBytes } from "../files/files-model.ts";
 import { openPopout } from "../windows/windows.ts";
 import { vaultFileHash } from "../../app/route.ts";
+import { Button, EmptyState } from "../../shared/ui/index.ts";
 
 const AUTOSAVE_MS = 600;
 
@@ -172,7 +173,7 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
   }, [files, filter]);
 
   if (loadError && !state) return <div class="files-error" role="alert">{loadError}</div>;
-  if (!state) return <div class="empty">Vault lädt…</div>;
+  if (!state) return <EmptyState text="Vault lädt…" />;
   if (picker) {
     return (
       <VaultPicker
@@ -195,7 +196,7 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
     <div class="vault-pane" data-testid="vault-pane">
       <div class="vault-head">
         <span class="vault-title" title={state.root ?? undefined}>📂 {state.label}</span>
-        <button type="button" class="btn" onClick={() => setPicker(true)}>Ordner wechseln</button>
+        <Button onClick={() => setPicker(true)}>Ordner wechseln</Button>
       </div>
       <div class="vault-new">
         <input
@@ -206,7 +207,7 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
           onInput={(e) => setNewName((e.target as HTMLInputElement).value)}
           onKeyDown={(e) => e.key === "Enter" && create()}
         />
-        <button type="button" class="btn" onClick={create} disabled={creating || newName.trim() === ""}>Anlegen</button>
+        <Button onClick={create} disabled={creating || newName.trim() === ""}>Anlegen</Button>
       </div>
       <div class="vault-search">
         <input
@@ -248,7 +249,7 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
               </button>
             </li>
           ))}
-          {filtered !== null && filtered.length === 0 && <li class="empty">{filter.trim() ? "keine Treffer" : "noch keine Dateien — lege eine Notiz an"}</li>}
+          {filtered !== null && filtered.length === 0 && <EmptyState text={filter.trim() ? "keine Treffer" : "noch keine Dateien — lege eine Notiz an"} />}
         </ul>
         {selected && (
           <div class="vault-file">
@@ -257,13 +258,13 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
               {current?.editable && (
                 <>
                   {editMode ? (
-                    <button type="button" class="btn" onClick={() => { setEditMode(false); openFile(selected); }}>Ansehen</button>
+                    <Button onClick={() => { setEditMode(false); openFile(selected); }}>Ansehen</Button>
                   ) : (
-                    <button type="button" class="btn" onClick={() => void enterEdit(selected)}>Bearbeiten</button>
+                    <Button onClick={() => void enterEdit(selected)}>Bearbeiten</Button>
                   )}
                 </>
               )}
-              <button type="button" class="btn" aria-label="Datei in eigenes Fenster" onClick={() => void openPopout({ kind: "vault", path: selected })}>⧉ Eigenes Fenster</button>
+              <Button aria-label="Datei in eigenes Fenster" onClick={() => void openPopout({ kind: "vault", path: selected })}>⧉ Eigenes Fenster</Button>
             </div>
             {editMode ? (
               <div class="vault-editor">
@@ -348,7 +349,7 @@ function VaultPicker({ onDone, currentRoot = null }: { onDone: (state: VaultStat
       {browse && (
         <>
           <div class="vault-crumbs">
-            {browse.path === "" ? <span class="dim">Startpunkte</span> : <button type="button" class="btn" onClick={() => setPath(browse.parent)}>← übergeordneter Ordner</button>}
+            {browse.path === "" ? <span class="dim">Startpunkte</span> : <Button onClick={() => setPath(browse.parent)}>← übergeordneter Ordner</Button>}
             {browse.path !== "" && <code class="vault-path">{browse.path}</code>}
           </div>
           <ul class="vault-list">
@@ -369,9 +370,9 @@ function VaultPicker({ onDone, currentRoot = null }: { onDone: (state: VaultStat
             ))}
           </ul>
           {browse.path !== "" && (
-            <button type="button" class="btn vault-choose" onClick={choose} disabled={busy} data-testid="vault-choose">
+            <Button onClick={choose} disabled={busy} data-testid="vault-choose" class="vault-choose">
               {busy ? "Wähle …" : "Diesen Ordner verwenden"}
-            </button>
+            </Button>
           )}
         </>
       )}
@@ -390,11 +391,11 @@ function VaultPicker({ onDone, currentRoot = null }: { onDone: (state: VaultStat
             }
           }}
         />
-        <button type="button" class="btn" onClick={applyPath} disabled={applying || manualPath.trim() === ""} data-testid="vault-path-apply">
+        <Button onClick={applyPath} disabled={applying || manualPath.trim() === ""} data-testid="vault-path-apply">
           {applying ? "Wähle …" : "Pfad übernehmen"}
-        </button>
+        </Button>
       </div>
-      {!browse && !error && <div class="empty">Ordner laden …</div>}
+      {!browse && !error && <div class="ui-empty">Ordner laden …</div>}
     </div>
   );
 }

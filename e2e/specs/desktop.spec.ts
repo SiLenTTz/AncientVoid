@@ -93,13 +93,13 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
 
       // A password manager has the focus: the page says so, the buttons are off.
       desk.current = { id: "w3", app: "org.keepassxc.KeePassXC", title: "Datenbank entsperren", pid: 3 };
-      await expect(app.locator(".desktop-target")).toContainText("Passwort");
+      await expect(app.locator("[data-testid=desktop-target]")).toContainText("Passwort");
       await expect(app.getByRole("button", { name: "Eintippen" })).toBeDisabled();
 
       // Emergency stop at the PC.
       desk.current = { id: "w1", app: "foot", title: "~/projekt — bash", pid: 1 };
       companion.stop();
-      await expect(app.locator(".desktop-target")).toContainText("Not-Stopp am PC aktiv");
+      await expect(app.locator("[data-testid=desktop-target]")).toContainText("Not-Stopp am PC aktiv");
       await expect(app.getByRole("button", { name: "Eintippen" })).toBeDisabled();
       companion.resume();
       await expect(app.getByRole("button", { name: "Eintippen" })).toBeEnabled();
@@ -113,7 +113,7 @@ test.describe("Am PC eintippen (EPIC-P11)", () => {
 
   test("ohne Companion: die Seite erklärt die Einrichtung", async ({ app }) => {
     await openPcInput(app);
-    await expect(app.locator(".desktop-setup")).toContainText("Kein PC verbunden");
-    await expect(app.locator(".desktop-setup")).toContainText("ancientvoid-companion stop");
+    await expect(app.locator("[data-testid=desktop-setup]")).toContainText("Kein PC verbunden");
+    await expect(app.locator("[data-testid=desktop-setup]")).toContainText("ancientvoid-companion stop");
   });
 });

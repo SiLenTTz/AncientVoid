@@ -8,6 +8,7 @@ import { AutomationForm } from "./AutomationForm.tsx";
 import { AutomationDetail } from "./AutomationDetail.tsx";
 import { automationCacheKey, readAutomationSnapshot, writeAutomationSnapshot } from "./automation-cache.ts";
 import { outcomeLabel, REASON_LABEL, scheduleText, STATE_LABEL } from "./automation-labels.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 export function AutomationsPane() {
   const [host, setHost] = useState<string | null>(null);
@@ -97,9 +98,9 @@ function AutomationsHostPane({ host }: { host: string | null }) {
     finally { setBusy(false); }
   };
 
-  return <div class="teams-pane automations-pane" data-testid="automations-pane">
+  return <div class="teams-pane" data-testid="automations-pane">
     <div class="teams-list">
-      <div class="teams-list-head"><h3>Automationen</h3><button type="button" class="btn" disabled={offline || busy} onClick={() => { setShowNew(value => !value); setEditing(null); }}>{showNew ? "Abbrechen" : "Neue Automation"}</button></div>
+      <div class="teams-list-head"><h3>Automationen</h3><Button disabled={offline || busy} onClick={() => { setShowNew(value => !value); setEditing(null); }}>{showNew ? "Abbrechen" : "Neue Automation"}</Button></div>
       {at && <p>Daten vom <time data-testid="automations-asof" dateTime={at}>{new Date(at).toLocaleString("de-DE")}</time></p>}
       {offline && <p role="status" data-testid="automations-offline">Offline / Host nicht erreichbar — gespeicherter Stand, Änderungen gesperrt.</p>}
       {readError && <div class="files-error" role="alert">{readError}</div>}
@@ -108,8 +109,8 @@ function AutomationsHostPane({ host }: { host: string | null }) {
         onSaved={() => { setShowNew(false); setEditing(null); void refresh().catch(err => setError(String(err))); }} onCancel={() => { setShowNew(false); setEditing(null); }} />}
       {/* Nutzerfinding: spontaner Lauf ohne Plan — normale Session, kein Automations-Claim (ADR-0080). */}
       <TempSessionCard adapters={adapters} projects={projects} disabled={offline} />
-      {automations === null ? <div class="empty">{offline && readError ? "Keine gespeicherte Projektion vorhanden." : "lade…"}</div>
-        : automations.length === 0 ? <div class="empty">Noch keine Automationen.</div>
+      {automations === null ? <div class="ui-empty">{offline && readError ? "Keine gespeicherte Projektion vorhanden." : "lade…"}</div>
+        : automations.length === 0 ? <div class="ui-empty">Noch keine Automationen.</div>
         : <ul>{automations.map(info => <li key={info.definition.id}><div class={`team-row ${info.definition.id === selectedId ? "active" : ""}`}>
           <button type="button" class="automation-row-main" onClick={() => setSelectedId(info.definition.id)}>
             <span class="team-row-title">{info.definition.label}</span><span class="team-pill" data-testid="automation-kind">{info.definition.target.kind === "session" ? "Cron-Job" : info.definition.target.kind === "team" ? "Service" : "Skript"}</span><span class="team-pill" data-testid="automation-state">{info.definition.enabled ? "aktiv" : "aus"}</span>
@@ -118,9 +119,9 @@ function AutomationsHostPane({ host }: { host: string | null }) {
             {info.lastOccurrence && <span class="team-row-meta">zuletzt {STATE_LABEL[info.lastOccurrence.state]} {info.lastOccurrence.reason ? REASON_LABEL[info.lastOccurrence.reason] : ""} {info.lastOccurrence.outcome ? outcomeLabel(info.lastOccurrence.outcome) : ""}</span>}
           </button>
           <div class="automation-row-actions">
-            <button type="button" class="btn" disabled={busy || offline} onClick={() => void perform(info, "run")}>Jetzt starten</button>
-            <button type="button" class="btn" disabled={busy || offline} onClick={() => void perform(info, "enable")}>{info.definition.enabled ? "Deaktivieren" : "Aktivieren"}</button>
-            <button type="button" class="btn" disabled={busy || offline} onClick={() => { setEditing(info); setShowNew(false); }}>Bearbeiten</button>
+            <Button disabled={busy || offline} onClick={() => void perform(info, "run")}>Jetzt starten</Button>
+            <Button disabled={busy || offline} onClick={() => void perform(info, "enable")}>{info.definition.enabled ? "Deaktivieren" : "Aktivieren"}</Button>
+            <Button disabled={busy || offline} onClick={() => { setEditing(info); setShowNew(false); }}>Bearbeiten</Button>
           </div>
         </div></li>)}</ul>}
     </div>
@@ -170,7 +171,7 @@ function TempSessionCard({ adapters, projects, disabled }: { adapters: AdapterIn
       <textarea rows={3} value={prompt} onInput={(e) => setPrompt(e.currentTarget.value)} placeholder="Was die Session tun soll…" required />
     </label>
     <div class="automation-form-actions">
-      <button type="submit" class="btn" disabled={busy || disabled}>Session starten</button>
+      <Button type="submit" disabled={busy || disabled}>Session starten</Button>
     </div>
   </form>;
 }

@@ -24,7 +24,7 @@
 
 /* ADR-0018: how tools are released — a warning when they run unasked. */
 .tool-gate {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
 }
 .tool-gate.warn {
   color: var(--warn);
@@ -48,25 +48,27 @@
 
 .attach-cmd-row code {
   flex: 1;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
 /* T5.1 inventory table and T5.3 discovery rows */
 .table-scroll {
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 .inventory-table {
+  table-layout: fixed;
+  overflow-wrap: anywhere;
   width: 100%;
   border-collapse: collapse;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
 }
 .inventory-table th,
 .inventory-table td {
   text-align: left;
   padding: 4px 6px;
-  border-bottom: 1px solid var(--line, rgba(127, 127, 127, 0.2));
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .inventory-table .support.verified {
@@ -89,7 +91,7 @@
   border-top: 1px solid var(--bg-chip);
   color: var(--fg-dim);
   font: inherit;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   line-height: 1;
   padding: 4px 0;
   min-height: 24px;
@@ -122,7 +124,7 @@
 .push-device {
   padding: 6px 0;
   border-top: 1px solid var(--bg-chip);
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: var(--text-md);
 }
 
 /* ADR-0040: Entdeckung zeigt Titel und letzte Nachricht statt Rohdaten-IDs. */

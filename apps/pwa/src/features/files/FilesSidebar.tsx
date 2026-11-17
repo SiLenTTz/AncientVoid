@@ -7,6 +7,7 @@ import { openPopout } from "../windows/windows.ts";
 import { pointerOutside, type DropPoint } from "../windows/drag.ts";
 import { canDetach } from "../windows/DetachButton.tsx";
 import { rootKey, rootTarget, saveFilesState, type FilesRoot, type FilesState } from "./files-model.ts";
+import { Button, Chip, EmptyState } from "../../shared/ui/index.ts";
 
 export interface FocusedSession {
   id: string;
@@ -85,14 +86,14 @@ function Folder({ hostId, target, path, depth, showIgnored, onOpenFile, activePa
       })}
       {last?.nextOffset != null && (
         <li>
-          <button type="button" class="btn files-more" style={{ marginLeft: `${depth * 12 + 6}px` }} onClick={() => void load(last.nextOffset!, false)}>
+          <Button style={{ marginLeft: `${depth * 12 + 6}px` }} onClick={() => void load(last.nextOffset!, false)}>
             Weitere {last.total - entries.length} Einträge laden
-          </button>
+          </Button>
         </li>
       )}
-      {pages.length > 0 && entries.length === 0 && !error && <li class="dim files-empty" style={{ paddingLeft: `${depth * 12 + 6}px` }}>leer</li>}
+      {pages.length > 0 && entries.length === 0 && !error && <li class="dim" style={{ paddingLeft: `${depth * 12 + 6}px` }}>leer</li>}
       {depth === 0 && last && !last.filters.ignored && last.filters.ignoredHidden > 0 && (
-        <li class="dim files-empty">{last.filters.ignoredHidden} ignorierte Einträge ausgeblendet</li>
+        <li class="dim">{last.filters.ignoredHidden} ignorierte Einträge ausgeblendet</li>
       )}
     </ul>
   );
@@ -252,7 +253,7 @@ export function FilesSidebar({
             ⧉
           </button>
         )}
-        <button type="button" class="btn" aria-label="Dateien schließen" onClick={() => (windowed ? window.close() : update({ open: false }))}>✕</button>
+        <Button aria-label="Dateien schließen" onClick={() => (windowed ? window.close() : update({ open: false }))}>✕</Button>
       </header>
       {popoutBlocked && (
         <div class="files-error" role="alert">
@@ -265,26 +266,26 @@ export function FilesSidebar({
           {identity.branch ? ` · ${identity.branch}` : ""}
         </div>
       )}
-      {!root && <div class="empty">Wähle eine Session oder ein Projekt.</div>}
+      {!root && <EmptyState text="Wähle eine Session oder ein Projekt." />}
       {root && (
         <>
           <div class="files-tabs" role="tablist">
-            <button type="button" role="tab" aria-selected={!showFile} class={!showFile ? "chip active" : "chip"} onClick={() => setView("tree")}>Baum</button>
+            <Chip role="tab" aria-selected={!showFile}  onClick={() => setView("tree")} active={!showFile}>Baum</Chip>
             {tabs.map((t) => {
               const index = state.tabs.indexOf(t);
               return (
                 <span key={t.path} class="files-tab">
-                  <button
-                    type="button"
+                  <Chip
                     role="tab"
                     aria-selected={Boolean(showFile) && state.active === index}
-                    class={showFile && state.active === index ? "chip active" : "chip"}
                     title={t.sha ? `${t.path} @ ${t.sha.slice(0, 7)}` : t.path}
                     onClick={() => { update({ active: index }); setView("file"); }}
                     onPointerDown={startGrip}
+                    active={Boolean(showFile) && state.active === index}
                   >
-                    {t.path.split("/").pop()}{t.sha ? ` @${t.sha.slice(0, 7)}` : ""}
-                  </button>
+                    {t.path.split("/").pop()}
+                    {t.sha ? ` @${t.sha.slice(0, 7)}` : ""}
+                  </Chip>
                   {!windowed && canDetach() && (
                     <button
                       type="button"

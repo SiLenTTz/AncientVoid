@@ -87,14 +87,14 @@ test.describe("Übersichts-Ansichten (EPIC-P47)", () => {
   test("Toggle wechselt Sessions → Projekte → Hosts und behält die Wahl über Reload", async ({ app, hub }) => {
     await hub.createSession({ adapter: "dummy", prompt: "Für die Ansichten" });
     await app.goto(`${hub.origin}/#/`);
-    await expect(app.locator(".overview-switch-btn")).toHaveText(["Sessions", "Projekte", "Hosts", "Gefunden"]);
+    await expect(app.locator("[data-testid=overview-switch-btn]")).toHaveText(["Sessions", "Projekte", "Hosts", "Gefunden"]);
     await expect(app.locator(".session-card").first()).toBeVisible();
 
-    await app.locator(".overview-switch-btn", { hasText: "Projekte" }).click();
+    await app.locator("[data-testid=overview-switch-btn]", { hasText: "Projekte" }).click();
     await expect(app.locator(".project-card")).toHaveCount(2); // TestHub legt alpha und beta an
     await expect(app.locator(".session-card")).toHaveCount(0);
 
-    await app.locator(".overview-switch-btn", { hasText: "Hosts" }).click();
+    await app.locator("[data-testid=overview-switch-btn]", { hasText: "Hosts" }).click();
     await expect(app.locator(".host-card").first()).toBeVisible();
 
     await app.reload();
@@ -106,12 +106,12 @@ test.describe("Übersichts-Ansichten (EPIC-P47)", () => {
     await app.goto(`${hub.origin}/#/`);
     await app.locator(".dashboard-summary").getByRole("button", { name: "Gefunden" }).click();
     await expect(app.locator(".discovery")).toBeVisible();
-    await expect(app.locator(".overview-switch-btn", { hasText: "Gefunden" })).toHaveClass(/active/);
+    await expect(app.locator("[data-testid=overview-switch-btn]", { hasText: "Gefunden" })).toHaveClass(/active/);
     await app.reload();
     await expect(app.locator(".discovery")).toBeVisible(); // gerätelokal gemerkt
     // Der alte Hash bleibt als Deeplink erhalten und leitet auf denselben State —
     // deshalb vorher messbar zurückgeschaltet.
-    await app.locator(".overview-switch-btn", { hasText: "Sessions" }).click();
+    await app.locator("[data-testid=overview-switch-btn]", { hasText: "Sessions" }).click();
     await expect(app.locator(".session-card").first()).toBeVisible();
     await app.goto(`${hub.origin}/#/gefunden`);
     await expect(app.locator(".discovery")).toBeVisible();
@@ -120,7 +120,7 @@ test.describe("Übersichts-Ansichten (EPIC-P47)", () => {
   test("Host-Karte filtert die Session-Ansicht, Chip löst den Filter", async ({ app, hub }) => {
     await hub.createSession({ adapter: "dummy", prompt: "Hostfilter" });
     await app.goto(`${hub.origin}/#/`);
-    await app.locator(".overview-switch-btn", { hasText: "Hosts" }).click();
+    await app.locator("[data-testid=overview-switch-btn]", { hasText: "Hosts" }).click();
     await app.locator(".host-card .session-open").first().click();
     await expect(app.locator(".session-card").first()).toBeVisible();
     const chip = app.locator(".chip.status-filter", { hasText: "Host" });
@@ -133,9 +133,9 @@ test.describe("Übersichts-Ansichten (EPIC-P47)", () => {
   test("Projekt-Karte pins den Projekt-Root im Dateibaum", async ({ app, hub }) => {
     await app.setViewportSize({ width: 1440, height: 900 });
     await app.goto(`${hub.origin}/#/`);
-    await app.locator(".overview-switch-btn", { hasText: "Projekte" }).click();
+    await app.locator("[data-testid=overview-switch-btn]", { hasText: "Projekte" }).click();
     await app.locator(".project-card .session-open").first().click();
-    await expect(app.locator('[data-testid="files-sidebar"]')).toBeVisible();
+    await expect(app.locator('[data-testid=files-sidebar]')).toBeVisible();
     const root = await app.evaluate(() => {
       const raw = JSON.parse(localStorage.getItem("ancientvoid.files.v1") ?? "null") as { root: { kind: string; path?: string } } | null;
       return raw?.root ?? null;

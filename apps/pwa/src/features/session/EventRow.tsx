@@ -75,7 +75,7 @@ function EventRowView({
   if (isEmptyThinking(event)) {
     // BUG-0046: the provider withheld the text — one quiet line, nothing to expand or copy.
     return (
-      <div class="event thinking withheld" data-seq={event.seq}>
+      <div class="event thinking" data-testid="withheld" data-seq={event.seq}>
         <div class="meta">
           <span>#{event.seq} · thinking</span>
           <span>{time}</span>
@@ -213,7 +213,7 @@ function EventRowView({
       {prompt && Array.isArray((event.payload as { attachments?: unknown }).attachments) && (
         <AttachmentChips refs={(event.payload as { attachments: AttachmentRef[] }).attachments} />
       )}
-      {typeof errorDetail === "string" && <div class="dim provider-error-detail">{errorDetail}</div>}
+      {typeof errorDetail === "string" && <div class="dim">{errorDetail}</div>}
       {(event.type === "assistant" || prompt) && <CopyButton text={visibleEventText(event)} />}
       {expanded && <EventDetail event={rowEvent} />}
     </div>

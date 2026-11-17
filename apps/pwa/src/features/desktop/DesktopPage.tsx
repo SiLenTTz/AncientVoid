@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, type CompanionState, type DesktopAction } from "../../shared/api.ts";
+import { Button, Card, EmptyState } from "../../shared/ui/index.ts";
 
 /**
  * EPIC-P11 (ADR-0031): type on the PC from the phone. The page shows which
@@ -84,20 +85,20 @@ export function DesktopPage() {
     }
   };
 
-  if (companions === null) return <div class="empty">lade…</div>;
+  if (companions === null) return <EmptyState text="lade…" />;
   if (companions.length === 0)
     return (
-      <div class="card desktop-setup">
+      <Card data-testid="desktop-setup">
         <h2>Am PC eintippen</h2>
         <p>Kein PC verbunden. So richtest du den Companion ein (auf dem PC):</p>
         <pre class="desktop-cmd">{"node apps/hubctl/src/cli.ts token issue companion:mein-pc > ~/.config/ancientvoid/companion.token\nnode apps/companion/src/cli.ts run --hub http://127.0.0.1:7373"}</pre>
         <p class="dim">Not-Stopp am PC: „ancientvoid-companion stop“ (z. B. auf Super+Shift+Esc legen).</p>
-      </div>
+      </Card>
     );
 
   return (
     <div class="desktop-page">
-      <div class="card desktop-target">
+      <Card data-testid="desktop-target">
         {companions.length > 1 && (
           <select aria-label="PC" value={c?.name ?? ""} onChange={(e) => setChosen((e.target as HTMLSelectElement).value)}>
             {companions.map((x) => (
@@ -124,9 +125,9 @@ export function DesktopPage() {
         {c?.paused && <div class="reply-error">Not-Stopp am PC aktiv — dort mit „ancientvoid-companion resume“ freigeben.</div>}
         {c?.locked && <div class="reply-error">Bildschirm am PC gesperrt.</div>}
         {c?.blocked && <div class="reply-error">{c.blocked}</div>}
-      </div>
+      </Card>
 
-      <div class="card desktop-input">
+      <Card class="desktop-input">
         <textarea rows={4} value={text} placeholder="Text, der am PC ins fokussierte Feld getippt wird" aria-label="Text für den PC" maxLength={2000} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} />
         {c?.backend === "hyprland" && (
           <div class="dim" style="margin: 8px 0">
@@ -138,37 +139,37 @@ export function DesktopPage() {
           </div>
         )}
         <div class="row" style="gap: 8px; flex-wrap: wrap">
-          <button class="btn primary" type="button" disabled={!ready || busy || !text.trim() || textNeedsTargetedPaste} onClick={() => void send("insert")}>
+          <Button disabled={!ready || busy || !text.trim() || textNeedsTargetedPaste} onClick={() => void send("insert")} variant="primary">
             Eintippen
-          </button>
-          <button class="btn" type="button" disabled={!ready || busy || !text.trim() || textNeedsTargetedPaste} onClick={() => void send("replace")} title="Feldinhalt markieren (Strg+A) und ersetzen">
+          </Button>
+          <Button disabled={!ready || busy || !text.trim() || textNeedsTargetedPaste} onClick={() => void send("replace")} title="Feldinhalt markieren (Strg+A) und ersetzen">
             Ersetzen
-          </button>
+          </Button>
         </div>
-        <div class="row desktop-keys" style="gap: 6px; flex-wrap: wrap">
+        <div class="row" style="gap: 6px; flex-wrap: wrap">
           {KEYS.map((k) => (
-            <button key={k.key} class="btn subtle" type="button" disabled={!ready || busy} onClick={() => void send("key", k.key)}>
+            <Button key={k.key} disabled={!ready || busy} onClick={() => void send("key", k.key)} class="subtle">
               {k.label}
-            </button>
+            </Button>
           ))}
         </div>
         {error && <div class="reply-error">{error}</div>}
-      </div>
+      </Card>
 
       {actions.length > 0 && (
-        <div class="card desktop-actions">
+        <Card>
           {actions.slice(0, 6).map((a) => (
             <div key={a.id} class={`desktop-action ${a.status}`}>
-              <span class="chip">{STATUS[a.status]}</span> {a.kind === "key" ? `Taste ${a.key}` : `${a.textLength} Zeichen`} → {a.target.app}
+              <span  class="ui-chip">{STATUS[a.status]}</span> {a.kind === "key" ? `Taste ${a.key}` : `${a.textLength} Zeichen`} → {a.target.app}
               {a.detail && <div class="dim">{a.detail}</div>}
               {(a.status === "running" || a.status === "delivered" || a.status === "pending") && (
-                <button class="btn subtle" type="button" onClick={() => void hubApi.cancelDesktopAction(a.id)}>
+                <Button onClick={() => void hubApi.cancelDesktopAction(a.id)} class="subtle">
                   Abbrechen
-                </button>
+                </Button>
               )}
             </div>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );

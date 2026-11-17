@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type { AdapterInfo, HubApi, SessionRecord } from "../../shared/api.ts";
 import { HANDOVER_CATEGORIES, type ProviderFailure } from "./handover.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 /**
  * EPIC-P21 T21.2: a provider failure (login expired, rate limit, quota) is shown in words, and the work can
@@ -27,19 +28,19 @@ export function HandoverBar({ failure, session, api, onHandedOver, onRepaired }:
   };
   return (
     <div class="handover-bar" role="alert">
-      <div class="handover-reason">
+      <div >
         <strong>{failure.title}</strong>
         <span class="dim"> — {failure.detail}</span>
       </div>
       {failure.category === "session" && (
-        <button type="button" class={repairing ? "btn primary busy" : "btn primary"} disabled={repairing} onClick={() => void repair()}>
+        <Button  disabled={repairing} onClick={() => void repair()} variant="primary" class={repairing ? "busy" : undefined}>
           {repairing ? "repariert…" : "Hier weitermachen (Kontext neu aufbauen)"}
-        </button>
+        </Button>
       )}
       {!open && (
-        <button type="button" class="btn" onClick={() => setOpen(true)}>
+        <Button onClick={() => setOpen(true)}>
           An andere Session übergeben…
-        </button>
+        </Button>
       )}
       {open && <HandoverForm session={session} api={api} onCancel={() => setOpen(false)} onHandedOver={onHandedOver} />}
       {error && <div class="error">{error}</div>}
@@ -140,20 +141,20 @@ export function HandoverForm({ session, api, onCancel, onHandedOver }: { session
       </label>
       {error && <div class="error">{error}</div>}
       <div class="approval-actions">
-        <button type="button" class={tightening ? "btn busy" : "btn"} disabled={busy || tightening || !target || !prompt.trim()} onClick={() => void tighten()} title={target ? `Der Text geht dafür an ${target}` : "Zuerst ein Ziel wählen"}>
+        <Button  disabled={busy || tightening || !target || !prompt.trim()} onClick={() => void tighten()} title={target ? `Der Text geht dafür an ${target}` : "Zuerst ein Ziel wählen"} class={tightening ? "busy" : undefined}>
           {tightening ? "formuliert…" : "Mit Modell straffen"}
-        </button>
+        </Button>
         {beforeTighten !== null && (
-          <button type="button" class="btn" onClick={() => { setPrompt(beforeTighten); setBeforeTighten(null); }}>
+          <Button onClick={() => { setPrompt(beforeTighten); setBeforeTighten(null); }}>
             Rückgängig
-          </button>
+          </Button>
         )}
-        <button type="button" class={busy ? "btn primary busy" : "btn primary"} disabled={busy || !target || !prompt.trim()} onClick={() => void go()}>
+        <Button  disabled={busy || !target || !prompt.trim()} onClick={() => void go()} variant="primary" class={busy ? "busy" : undefined}>
           {busy ? "startet…" : "Übergeben"}
-        </button>
-        <button type="button" class="btn" disabled={busy} onClick={onCancel}>
+        </Button>
+        <Button disabled={busy} onClick={onCancel}>
           Abbrechen
-        </button>
+        </Button>
       </div>
     </div>
   );

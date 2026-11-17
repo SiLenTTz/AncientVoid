@@ -1,0 +1,19 @@
+/* EPIC-P63 T63.7: Karten-Baustein (shared/ui/Card.tsx). */
+.ui-card {
+  /* Globaler Schutz gegen Viewport-Sprengung (Langtokens in Grid/Flex). */
+  min-width: 0;
+  max-width: 100%;
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-chip);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 10px 0;
+}
+
+.ui-card--flush {
+  padding: 0;
+}
+
+.ui-card--elevated {
+  box-shadow: var(--shadow-elev);
+}

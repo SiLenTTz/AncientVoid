@@ -5,6 +5,7 @@ import { highlightLines } from "./highlight.ts";
 import { basket } from "./feedback-basket.ts";
 import { FEEDBACK_MAX_LINES, HIGHLIGHT_MAX_CHARS, HLJS_LANGUAGES } from "./render-model.ts";
 import { TEXT_PAGE_BYTES } from "./files-model.ts";
+import { Button, EmptyState } from "../../shared/ui/index.ts";
 
 export interface Jump {
   line: number;
@@ -132,7 +133,7 @@ export function SourceView({ api, target, meta, onStale, diagnostics, jump, onFe
   }, [diagnostics, meta.revision, meta.path]);
 
   if (error) return <div class="files-error" role="alert">{error}</div>;
-  if (!page) return <div class="empty">lädt …</div>;
+  if (!page) return <EmptyState text="lädt …" />;
   const first = page.startLine ?? 1;
   const selRange = sel ? { from: Math.min(sel.a, sel.b), to: Math.max(sel.a, sel.b) } : null;
 
@@ -183,24 +184,24 @@ export function SourceView({ api, target, meta, onStale, diagnostics, jump, onFe
       <div class="file-tools">
         <input class="file-pager-jump" inputMode="numeric" placeholder="Zeile" aria-label="Zu Zeile springen" value={goto} onInput={(e) => setGoto((e.target as HTMLInputElement).value)} onKeyDown={(e) => { if (e.key === "Enter" && /^\d+$/.test(goto) && Number(goto) > 0) void jumpTo(Number(goto)); }} />
         <input class="file-find" placeholder="Suchen (ganze Datei)" aria-label="In Datei suchen" value={query} onInput={(e) => { setQuery((e.target as HTMLInputElement).value); lastFind.current = null; }} onKeyDown={(e) => { if (e.key === "Enter") void find(lastFind.current ? "next" : "start"); }} />
-        <button type="button" class="btn" onClick={() => void find(lastFind.current ? "next" : "start")} disabled={!query}>{lastFind.current ? "Weiter" : "Suchen"}</button>
+        <Button onClick={() => void find(lastFind.current ? "next" : "start")} disabled={!query}>{lastFind.current ? "Weiter" : "Suchen"}</Button>
         <label class="dim"><input type="checkbox" checked={cs} onChange={(e) => { setCs((e.target as HTMLInputElement).checked); lastFind.current = null; }} /> Groß/klein</label>
         <label class="dim file-wrap"><input type="checkbox" checked={wrap} onChange={(e) => setWrap((e.target as HTMLInputElement).checked)} /> Umbruch</label>
         {selRange && (
           <>
-            <button type="button" class="btn" onClick={() => addFeedback(false)} data-testid="file-feedback-add">Zeile{selRange.from === selRange.to ? "" : "n"} {selRange.from === selRange.to ? selRange.from : `${selRange.from}–${selRange.to}`} zum Feedback</button>
+            <Button onClick={() => addFeedback(false)} data-testid="file-feedback-add">Zeile{selRange.from === selRange.to ? "" : "n"} {selRange.from === selRange.to ? selRange.from : `${selRange.from}–${selRange.to}`} zum Feedback</Button>
           </>
         )}
       </div>
       {colored === null && page.text.length > HIGHLIGHT_MAX_CHARS && HLJS_LANGUAGES[meta.language] && <div class="dim file-note" data-testid="file-nocolor">Syntaxfarben aus: Abschnitt größer als {HIGHLIGHT_MAX_CHARS.toLocaleString("de-DE")} Zeichen (Text unverändert).</div>}
       {findNote && <div class="dim file-find-note" role="status" data-testid="file-find-note">{findNote}</div>}
       <div class="file-pager">
-        <button type="button" class="btn" disabled={trail.length === 0} aria-label="Voriger Abschnitt" onClick={() => { const prev = trail[trail.length - 1]!; setTrail(trail.slice(0, -1)); setAt(prev); setFocus(null); }}>‹</button>
+        <Button disabled={trail.length === 0} aria-label="Voriger Abschnitt" onClick={() => { const prev = trail[trail.length - 1]!; setTrail(trail.slice(0, -1)); setAt(prev); setFocus(null); }}>‹</Button>
         <span class="dim" data-testid="file-pager-range">
           Zeile {first.toLocaleString("de-DE")}–{(first + Math.max(lines.length - 1, 0)).toLocaleString("de-DE")} · Bytes {page.offset.toLocaleString("de-DE")}–{(page.offset + page.length).toLocaleString("de-DE")} von {meta.bytes.toLocaleString("de-DE")}
           {page.nextOffset === null && " · Ende"}
         </span>
-        <button type="button" class="btn" disabled={page.nextOffset === null} aria-label="Nächster Abschnitt" onClick={() => { setTrail([...trail, at]); setAt(page.nextOffset!); setFocus(null); }}>›</button>
+        <Button disabled={page.nextOffset === null} aria-label="Nächster Abschnitt" onClick={() => { setTrail([...trail, at]); setAt(page.nextOffset!); setFocus(null); }}>›</Button>
         <input class="file-pager-jump" inputMode="numeric" placeholder="Byte-Offset" aria-label="Zu Byte-Offset springen" onKeyDown={(e) => { const v = (e.target as HTMLInputElement).value; if (e.key === "Enter" && /^\d+$/.test(v)) { setTrail([...trail, at]); setAt(Math.max(Math.min(Number(v), Math.max(meta.bytes - 1, 0)), meta.bomBytes)); setFocus(null); } }} />
       </div>
       <div ref={body} class={wrap ? "file-code wrap" : "file-code"} data-testid="file-text" tabIndex={0}>{rows}</div>

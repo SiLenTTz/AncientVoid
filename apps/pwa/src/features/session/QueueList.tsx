@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import type { HubApi, QueuedPrompt } from "../../shared/api.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 /**
  * EPIC-P15 T15.3: vorgemerkte Nachrichten — gehen der Reihe nach raus, sobald der Zug endet.
@@ -113,12 +114,12 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
                 onInput={(e) => setEditing({ id: item.id, text: (e.target as HTMLTextAreaElement).value })}
               />
               <div class="queue-edit-actions">
-                <button class="btn primary" type="button" data-testid="queue-edit-save" onClick={saveEdit}>
+                <Button variant="primary" data-testid="queue-edit-save" onClick={saveEdit}>
                   Speichern
-                </button>
-                <button class="btn" type="button" onClick={() => setEditing(null)}>
+                </Button>
+                <Button onClick={() => setEditing(null)}>
                   Abbrechen
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -133,48 +134,48 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
                   class="icon-action"
                   type="button"
                   aria-label={`Vorgemerkte Nachricht ${i + 1} jetzt senden`}
-                title="Jetzt in den laufenden Zug senden"
-                onClick={() => sendNow(item)}
-              >
-                ➤
-              </button>
-              {/* ADR-0085: der Nächste in der Reihe werden — oder zurückfallen. */}
-              <button
-                disabled={i === 0 || item.delivery === "unknown" || !speaksQueueOrder}
-                class="icon-action"
-                type="button"
-                data-testid="queue-move-front"
-                aria-label={`Vorgemerkte Nachricht ${i + 1} als nächstes senden`}
-                title={speaksQueueOrder ? "Als nächstes senden" : "Der Hub kann die Reihe noch nicht speichern — Hub aktualisieren"}
-                onClick={() => move(item, "front")}
-              >
-                ↑
-              </button>
-              <button
-                disabled={i === sorted.length - 1 || item.delivery === "unknown" || !speaksQueueOrder}
-                class="icon-action"
-                type="button"
-                data-testid="queue-move-back"
-                aria-label={`Vorgemerkte Nachricht ${i + 1} nach hinten setzen`}
-                title={speaksQueueOrder ? "Nach hinten" : "Der Hub kann die Reihe noch nicht speichern — Hub aktualisieren"}
-                onClick={() => move(item, "back")}
-              >
-                ↓
-              </button>
-              <button
-                disabled={item.delivery === "unknown" || !speaksQueueOrder}
-                class="icon-action"
-                type="button"
-                data-testid="queue-edit"
-                aria-label={`Vorgemerkte Nachricht ${i + 1} bearbeiten`}
-                title={speaksQueueOrder ? "Text bearbeiten" : "Der Hub kann Meldungen noch nicht nachträglich ändern — Hub aktualisieren"}
-                onClick={() => setEditing({ id: item.id, text: item.text })}
-              >
-                ✎
-              </button>
-              <button class="icon-action danger" type="button" aria-label={`Vorgemerkte Nachricht ${i + 1} streichen`} title="Streichen" onClick={() => remove(item)}>
-                ✕
-              </button>
+                  title="Jetzt in den laufenden Zug senden"
+                  onClick={() => sendNow(item)}
+                >
+                  ➤
+                </button>
+                {/* ADR-0085: der Nächste in der Reihe werden — oder zurückfallen. */}
+                <button
+                  disabled={i === 0 || item.delivery === "unknown" || !speaksQueueOrder}
+                  class="icon-action"
+                  type="button"
+                  data-testid="queue-move-front"
+                  aria-label={`Vorgemerkte Nachricht ${i + 1} als nächstes senden`}
+                  title={speaksQueueOrder ? "Als nächstes senden" : "Der Hub kann die Reihe noch nicht speichern — Hub aktualisieren"}
+                  onClick={() => move(item, "front")}
+                >
+                  ↑
+                </button>
+                <button
+                  disabled={i === sorted.length - 1 || item.delivery === "unknown" || !speaksQueueOrder}
+                  class="icon-action"
+                  type="button"
+                  data-testid="queue-move-back"
+                  aria-label={`Vorgemerkte Nachricht ${i + 1} nach hinten setzen`}
+                  title={speaksQueueOrder ? "Nach hinten" : "Der Hub kann die Reihe noch nicht speichern — Hub aktualisieren"}
+                  onClick={() => move(item, "back")}
+                >
+                  ↓
+                </button>
+                <button
+                  disabled={item.delivery === "unknown" || !speaksQueueOrder}
+                  class="icon-action"
+                  type="button"
+                  data-testid="queue-edit"
+                  aria-label={`Vorgemerkte Nachricht ${i + 1} bearbeiten`}
+                  title={speaksQueueOrder ? "Text bearbeiten" : "Der Hub kann Meldungen noch nicht nachträglich ändern — Hub aktualisieren"}
+                  onClick={() => setEditing({ id: item.id, text: item.text })}
+                >
+                  ✎
+                </button>
+                <button class="icon-action danger" type="button" aria-label={`Vorgemerkte Nachricht ${i + 1} streichen`} title="Streichen" onClick={() => remove(item)}>
+                  ✕
+                </button>
               </span>
             </>
           )}

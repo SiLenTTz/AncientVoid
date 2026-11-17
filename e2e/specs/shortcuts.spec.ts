@@ -24,11 +24,11 @@ test.describe("Esc schließt Overlays und gibt den Fokus zurück (EPIC-P51 T51.6
     const chip = app.locator("button.skill-chip").first();
     await expect(chip).toBeVisible();
     await chip.click();
-    await expect(app.locator(".overlay-sheet")).toBeVisible();
+    await expect(app.locator(".ui-sheet")).toBeVisible();
     // Fokus-Rein-Behauptung wartet zugleich, bis der Registry-Effekt gespült ist (preact).
-    await expect(app.locator(".overlay-sheet .btn").first()).toBeFocused();
+    await expect(app.locator(".ui-sheet .btn").first()).toBeFocused();
     await app.keyboard.press("Escape");
-    await expect(app.locator(".overlay-sheet")).toHaveCount(0);
+    await expect(app.locator(".ui-sheet")).toHaveCount(0);
     await expect(app.locator("button.skill-chip").first()).toBeFocused();
   });
 
@@ -48,7 +48,7 @@ test.describe("Sprachdiktat stoppen (EPIC-P51 T51.6, BUG-0177)", () => {
   test("Esc stoppt das Diktat und behält den gehörten Text", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    const fab = app.locator('[data-testid="nyx-fab"]');
+    const fab = app.locator('[data-testid=nyx-fab]');
     await expect(fab).toBeVisible();
     await app.getByPlaceholder("Antworten…").click();
     await fab.click();
@@ -103,7 +103,7 @@ test.describe("Shortcut-Hinweis-Pill und Setting (EPIC-P51 T51.8)", () => {
   test("Klick auf eine Aktion mit Kürzel zeigt die Pill kurz, dann verschwindet sie", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await app.locator(".dock .dock-item").nth(1).click(); // „Suchen“ → Strg+K
-    const pill = app.locator('[data-testid="shortcut-hint"]');
+    const pill = app.locator('[data-testid=shortcut-hint]');
     await expect(pill).toBeVisible();
     await expect(pill).toHaveText("Strg+K");
     await app.keyboard.press("Escape"); // CommandBar schließen
@@ -114,7 +114,7 @@ test.describe("Shortcut-Hinweis-Pill und Setting (EPIC-P51 T51.8)", () => {
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await app.locator(".dock .dock-item").first().click(); // „Start“ hat kein Kürzel
     await app.waitForTimeout(350);
-    await expect(app.locator('[data-testid="shortcut-hint"]')).toHaveCount(0);
+    await expect(app.locator('[data-testid=shortcut-hint]')).toHaveCount(0);
   });
 
   test("Setting aus: keine Pill, nichts blockiert", async ({ app, hub }) => {
@@ -123,7 +123,7 @@ test.describe("Shortcut-Hinweis-Pill und Setting (EPIC-P51 T51.8)", () => {
     await app.reload();
     await app.locator(".dock .dock-item").nth(1).click();
     await app.waitForTimeout(350);
-    await expect(app.locator('[data-testid="shortcut-hint"]')).toHaveCount(0);
+    await expect(app.locator('[data-testid=shortcut-hint]')).toHaveCount(0);
     await app.keyboard.press("Escape");
     await expect(app.locator(".command-sheet")).toHaveCount(0);
   });
@@ -147,7 +147,7 @@ test.describe("Shortcut-Hinweis-Pill und Setting (EPIC-P51 T51.8)", () => {
     // Ein einziger Roundtrip direkt nach dem Klick: die Pill steht nur ~2 s —
     // ein Assert-Retry unter Volllast verpasste im ersten Lauf das Zeitfenster.
     const pe = await app.evaluate(() => {
-      const el = document.querySelector('[data-testid="shortcut-hint"]');
+      const el = document.querySelector('[data-testid=shortcut-hint]');
       return el ? getComputedStyle(el).pointerEvents : "(Pill fehlt)";
     });
     expect(pe).toBe("none");
@@ -190,7 +190,7 @@ test.describe("Roving-Pfeil-Navigation (EPIC-P51 T51.6)", () => {
     await app.goto(`${hub.origin}/#/notizen`);
     await app.getByRole("button", { name: "📁 projects" }).click();
     await app.getByRole("button", { name: "📁 notizen-vault" }).click();
-    await app.locator('[data-testid="vault-choose"]').click();
+    await app.locator('[data-testid=vault-choose]').click();
     await app.getByLabel("Neue Notiz").fill("Alpha");
     await app.getByRole("button", { name: "Anlegen" }).click();
     await expect(app.locator(".vault-row").filter({ hasText: "Alpha.md" })).toBeVisible();

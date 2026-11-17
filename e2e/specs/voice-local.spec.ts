@@ -79,7 +79,7 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByPlaceholder("Antworten…").click();
-    const fab = app.locator('[data-testid="nyx-fab"]');
+    const fab = app.locator('[data-testid=nyx-fab]');
     await expect(fab).toHaveAttribute("data-tip", /Spracheingabe lokal/);
     await fab.click();
     await expect(app.getByText(/Aufnahme läuft \d+:\d+ — erneut tippen stoppt/)).toBeVisible();
@@ -97,14 +97,14 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByPlaceholder("Antworten…").click();
-    const fab = app.locator('[data-testid="nyx-fab"]');
+    const fab = app.locator('[data-testid=nyx-fab]');
     await expect(fab).toHaveAttribute("data-tip", /lokal \(whisper-e2e\)/);
     await fab.click();
     await expect(app.getByText(/Aufnahme läuft \d+:\d+ — erneut tippen stoppt/)).toBeVisible();
     await app.waitForTimeout(1200);
     await fab.click();
     await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Starte die Tests im Worktree");
-    await expect(app.locator('[data-testid="nyx-fab-toast"]').filter({ hasText: /lokal · whisper-e2e · \d+\.\d s/ })).toBeVisible();
+    await expect(app.locator('[data-testid=nyx-fab-toast]').filter({ hasText: /lokal · whisper-e2e · \d+\.\d s/ })).toBeVisible();
     expect(received.at(-1)).toMatchObject({ rate: 16_000, channels: 1, prompt: true, language: "de" });
     // Nothing was sent to the session — the text only sits in the field.
     expect((await hub.events(id)).filter((e) => e.type === "user")).toHaveLength(1);
@@ -115,7 +115,7 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     const before = received.length;
     await app.getByPlaceholder("Antworten…").click();
-    await app.locator('[data-testid="nyx-fab"]').click();
+    await app.locator('[data-testid=nyx-fab]').click();
     await expect(app.getByText(/Aufnahme läuft \d+:\d+ — erneut tippen stoppt/)).toBeVisible();
     await app.evaluate(() => {
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
@@ -140,12 +140,12 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByPlaceholder("Antworten…").click();
-    const fab = app.locator('[data-testid="nyx-fab"]');
+    const fab = app.locator('[data-testid=nyx-fab]');
     await fab.click();
     await expect(app.getByText(/Aufnahme läuft \d+:\d+ — erneut tippen stoppt/)).toBeVisible();
     await app.waitForTimeout(1200);
     await fab.click();
-    const toast = app.locator('[data-testid="nyx-fab-toast"]');
+    const toast = app.locator('[data-testid=nyx-fab-toast]');
     await expect(toast.filter({ hasText: /lokal · whisper-e2e · \d+\.\d s/ })).toBeVisible();
     // Der Fehlerfall bleibt sichtbar (AC-P10-5), aber nicht für alle Zeit: nach dem
     // Feedbackfenster muss die Blende weg sein, solange nichts aufgenommen wird.
@@ -162,7 +162,7 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
     });
     await app.getByPlaceholder("Antworten…").click();
-    await app.locator('[data-testid="nyx-fab"]').click();
+    await app.locator('[data-testid=nyx-fab]').click();
     await expect(app.getByTestId("nyx-fab")).toHaveClass(/recording/);
     expect(received.length).toBe(before);
     await app.evaluate(() => {

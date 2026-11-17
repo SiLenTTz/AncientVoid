@@ -22,7 +22,7 @@ async function closedPort(): Promise<number> {
 
 async function openSettings(app: Page): Promise<Locator> {
   await dockGo(app, "Einstellungen");
-  const section = app.locator(".connections-settings");
+  const section = app.locator("[data-testid=connections-settings]");
   await expect(section).toBeVisible();
   return section;
 }

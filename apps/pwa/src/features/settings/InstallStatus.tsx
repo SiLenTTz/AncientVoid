@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { deviceStatusLines, gatherDeviceStatus } from "../../shared/device-status.ts";
 import { lockOrientation, type OrientationTarget } from "../../shared/orientation-lock.ts";
 import { SettingRow } from "./parts.tsx";
+import { Button } from "../../shared/ui/index.ts";
 
 /**
  * BUG-0186: der installierte Stand ist auf dem Handy ablesbar. Wer dreht und es dreht
@@ -54,16 +55,16 @@ export function InstallStatus() {
             </div>
           ))
         )}
-        <button class="btn" data-testid="install-status-refresh" onClick={() => setCheck((n) => n + 1)}>
+        <Button data-testid="install-status-refresh" onClick={() => setCheck((n) => n + 1)}>
           Stand neu prüfen
-        </button>
+        </Button>
         <span class="settings-row-actions">
-          <button class="btn small secondary" data-testid="install-orient-landscape" onClick={() => void orient("landscape")}>
+          <Button data-testid="install-orient-landscape" onClick={() => void orient("landscape")} class="small">
             Querformat erzwingen
-          </button>
-          <button class="btn small secondary" data-testid="install-orient-auto" onClick={() => void orient("any")}>
+          </Button>
+          <Button data-testid="install-orient-auto" onClick={() => void orient("any")} class="small">
             Wieder automatisch
-          </button>
+          </Button>
         </span>
         {lockMsg !== null && (
           <div class="install-status__line" data-testid="install-orient-result">

@@ -239,9 +239,9 @@ test.describe("Zoom-robuste Flächen (EPIC-P50)", () => {
       const layoutW = window.innerWidth / zoom;
       const probes: { name: string; html: string; check: "h" | "w" | "both" }[] = [
         { name: "file-viewer", html: `<div class="file-viewer"></div>`, check: "h" },
-        { name: "overlay-sheet", html: `<div class="overlay-sheet"></div>`, check: "h" },
-        { name: "review-dialog", html: `<div class="review-send-dialog"><div class="modal-card"></div></div>`, check: "both" },
-        { name: "forge-trace", html: `<div class="fp-trace-dialog"><div class="modal-card"></div></div>`, check: "both" },
+        { name: "ui-sheet", html: `<div class="ui-sheet"></div>`, check: "h" },
+        { name: "review-dialog", html: `<div class="ui-sheet ui-sheet--modal review-send-dialog"></div>`, check: "both" },
+        { name: "forge-trace", html: `<div class="ui-sheet ui-sheet--modal fp-trace-dialog"></div>`, check: "both" },
         { name: "color-dialog", html: `<dialog class="color-dialog" open></dialog>`, check: "both" },
         { name: "composer-expanded", html: `<div class="composer expanded"><textarea class="composer-input"></textarea></div>`, check: "h" },
         { name: "fleet-qr", html: `<img class="fleet-qr" alt="" />`, check: "w" },
@@ -256,7 +256,7 @@ test.describe("Zoom-robuste Flächen (EPIC-P50)", () => {
         wrap.innerHTML = p.html;
         document.body.appendChild(wrap);
         const el = wrap.firstElementChild as HTMLElement;
-        const target = (el.querySelector(".modal-card, .composer-input") as HTMLElement | null) ?? el;
+        const target = (el.querySelector("[data-testid=modal] .modal-card, .composer-input") as HTMLElement | null) ?? el;
         const cs = getComputedStyle(target);
         const maxH = cs.maxHeight === "none" ? Number.parseFloat(cs.height) : Number.parseFloat(cs.maxHeight);
         const maxW = cs.maxWidth === "none" ? Number.parseFloat(cs.width) : Number.parseFloat(cs.maxWidth);

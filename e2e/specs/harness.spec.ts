@@ -174,7 +174,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
     await expect(card.locator(".question-progress")).toHaveText("0 von 4 beantwortet");
     await expect(card.getByRole("button", { name: "Antworten" })).toBeDisabled();
 
-    const pick = (question: string, label: RegExp) => card.locator(".question").filter({ hasText: question }).locator(".choice-label", { hasText: label }).click();
+    const pick = (question: string, label: RegExp) => card.locator(".question").filter({ hasText: question }).locator("[data-testid=choice-label]", { hasText: label }).click();
     await pick("Strategie", /^Gründlich$/);
     await pick("Teile", /^ui$/);
     await pick("Teile", /^doku$/);
@@ -228,7 +228,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
 
     await card.locator(".row-menu-btn").click();
     await card.locator(".row-menu").getByRole("menuitem", { name: "Übergeben…" }).click();
-    const sheet = app.locator(".overlay-sheet");
+    const sheet = app.locator(".ui-sheet");
     await expect(sheet).toBeVisible();
     // Ohne Ziel startet nichts; der Übergabetext steht schon bereit.
     await expect(sheet.getByRole("button", { name: "Übergeben", exact: true })).toBeDisabled();

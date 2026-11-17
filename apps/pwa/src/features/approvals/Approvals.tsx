@@ -3,6 +3,7 @@ import { hubApi, type ApprovalRequest, type HubApi, type ToolAssessment, type To
 import { startAuthentication } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
 import { isYesNo, recommendedOption } from "../nyx/nyx-state.ts";
+import { Button, EmptyState, Card } from "../../shared/ui/index.ts";
 
 /** T7.3: what happened after the decision, in words. */
 const OPERATION_LABEL: Partial<Record<NonNullable<ApprovalRequest["operation"]>["state"], string>> = {
@@ -128,7 +129,7 @@ export function QuestionForm({
                 >
                   <span class="choice-index">{i + 1}</span>
                   <span class="choice-body">
-                    <span class="choice-label">{o.label}</span>
+                    <span data-testid="choice-label">{o.label}</span>
                     {o.description && <span class="choice-desc">{o.description}</span>}
                   </span>
                 </button>
@@ -159,12 +160,12 @@ export function QuestionForm({
         </ul>
       )}
       <div class="approval-actions">
-        <button class={busy ? "btn primary busy" : "btn primary"} disabled={busy || !complete} onClick={send}>
+        <Button  disabled={busy || !complete} onClick={send} variant="primary" class={busy ? "busy" : undefined}>
           {busy ? "lädt…" : "Antworten"}
-        </button>
-        <button class="btn danger" disabled={busy} onClick={onReject}>
+        </Button>
+        <Button disabled={busy} onClick={onReject} variant="danger">
           Ablehnen
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -185,8 +186,8 @@ function AssessmentBadge({ a }: { a: ToolAssessment }) {
   return (
     <div class={`assessment gate-${a.securityGate}`} title={a.notes.join(" · ")}>
       <span class="assessment-gate">Laya: {GATE_TEXT[a.securityGate]}</span>
-      <span class="assessment-risk">{RISK_TEXT[a.toolRisk]}</span>
-      <span class="assessment-src dim">
+      <span >{RISK_TEXT[a.toolRisk]}</span>
+      <span class="dim">
         {SOURCE_TEXT[a.source]}
         {conf}
       </span>
@@ -229,12 +230,12 @@ export function CardDecision({ req, onDecided, api = hubApi }: { req: ApprovalRe
       {req.assessment && <AssessmentBadge a={req.assessment} />}
       {error && <div class="reply-error">{error}</div>}
       <div class="card-decision-actions">
-        <button class={busy ? "btn primary busy" : "btn primary"} type="button" aria-busy={busy} disabled={busy} onClick={() => void decide("approve")}>
+        <Button aria-busy={busy} disabled={busy} onClick={() => void decide("approve")} variant="primary" class={busy ? "busy" : undefined}>
           {req.tool ? "Erlauben" : "Freigeben"}
-        </button>
-        <button class="btn danger" type="button" disabled={busy} onClick={() => void decide("reject")}>
+        </Button>
+        <Button disabled={busy} onClick={() => void decide("reject")} variant="danger">
           Ablehnen
-        </button>
+        </Button>
         <span class="card-decision-left num dim">noch {secondsLeft(req.timeoutAt)} s</span>
       </div>
     </div>
@@ -279,7 +280,7 @@ export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRe
   };
 
   return (
-    <div class="card approval-card">
+    <Card class="approval-card">
       <div class="approval-card-head">
         {riskBadge(req.class)}
         {pending && <span class="approval-countdown mono">läuft ab in {secondsLeft(req.timeoutAt)}s</span>}
@@ -320,31 +321,31 @@ export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRe
           <div class="approval-actions">
             {destructive ? (
               <>
-                <button
-                  class={busy ? "btn primary busy" : "btn primary"}
+                <Button
+                  
                   aria-busy={busy}
                   disabled={busy || (req.reasonRequired && !reason.trim())}
                   onClick={() => decideBiometric("approve")}
-                >
+                 variant="primary" class={busy ? "busy" : undefined}>
                   {busy ? "lädt…" : "🔒 Mit Passkey freigeben"}
-                </button>
-                <button class={busy ? "btn danger busy" : "btn danger"} aria-busy={busy} disabled={busy} onClick={() => decideBiometric("reject")}>
+                </Button>
+                <Button  aria-busy={busy} disabled={busy} onClick={() => decideBiometric("reject")} variant="danger" class={busy ? "busy" : undefined}>
                   {busy ? "lädt…" : "Ablehnen"}
-                </button>
+                </Button>
               </>
             ) : (
               <>
-                <button
-                  class={busy ? "btn primary busy" : "btn primary"}
+                <Button
+                  
                   aria-busy={busy}
                   disabled={busy || (req.reasonRequired && !reason.trim())}
                   onClick={() => decide("approve")}
-                >
+                 variant="primary" class={busy ? "busy" : undefined}>
                   {busy ? "lädt…" : req.tool ? "Erlauben" : "Freigeben"}
-                </button>
-                <button class={busy ? "btn danger busy" : "btn danger"} aria-busy={busy} disabled={busy} onClick={() => decide("reject")}>
+                </Button>
+                <Button  aria-busy={busy} disabled={busy} onClick={() => decide("reject")} variant="danger" class={busy ? "busy" : undefined}>
                   {busy ? "lädt…" : "Ablehnen"}
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -363,7 +364,7 @@ export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRe
           {req.operation.state !== "done" && req.operation.outcome ? ` — ${req.operation.outcome}` : ""}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -390,9 +391,9 @@ export function ApprovalQueuePane() {
   }, []);
 
   if (unsupported) {
-    return <div class="empty">Freigabe-Warteschlange ist auf diesem Hub nicht konfiguriert.</div>;
+    return <EmptyState text="Freigabe-Warteschlange ist auf diesem Hub nicht konfiguriert." />;
   }
-  if (items === null) return <div class="empty">lädt …</div>;
+  if (items === null) return <EmptyState text="lädt …" />;
 
   const now = Date.now();
   const pending = items.filter((i) => i.status === "pending");
@@ -403,7 +404,7 @@ export function ApprovalQueuePane() {
     <div>
       <h2 class="approval-group-heading">Wartet auf dich ({pending.length})</h2>
       {pending.length === 0 ? (
-        <div class="empty">keine offenen Freigaben</div>
+        <div class="ui-empty">keine offenen Freigaben</div>
       ) : (
         pending.map((r) => <ApprovalCard key={r.id} req={r} onDecided={reload} />)
       )}

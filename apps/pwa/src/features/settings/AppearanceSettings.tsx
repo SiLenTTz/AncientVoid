@@ -4,6 +4,7 @@ import { applyCtxMotion, ctxMotionOn, getScale, setScale, SCALE_MAX, SCALE_MIN, 
 import { applyShortcutHints, shortcutHintsOn } from "../../shared/shortcut-hint.ts";
 import { AccentSetting } from "./AccentPicker.tsx";
 import { SettingRow, SettingsSection, Segmented, Switch } from "./parts.tsx";
+import { Button } from "../../shared/ui/index.ts";
 
 /** Gruppe „Darstellung“: Theme, Zoom, Bewegung. Akzent und Schrift kommen mit T34.5/T34.6 hierher. */
 export function AppearanceSettings() {
@@ -44,18 +45,18 @@ export function AppearanceSettings() {
       <AccentSetting />
       <SettingRow label="Zoom der Oberfläche" hint="Strg + Mausrad, Strg + / − , Strg + 0">
         <span class="scale-control">
-          <button class="btn" aria-label="Kleiner" title="Kleiner" disabled={scale <= SCALE_MIN} onClick={() => setScale(scale - SCALE_STEP)}>
+          <Button aria-label="Kleiner" title="Kleiner" disabled={scale <= SCALE_MIN} onClick={() => setScale(scale - SCALE_STEP)}>
             −
-          </button>
+          </Button>
           <span class="scale-value mono" aria-live="polite">
             {Math.round(scale * 100)} %
           </span>
-          <button class="btn" aria-label="Größer" title="Größer" disabled={scale >= SCALE_MAX} onClick={() => setScale(scale + SCALE_STEP)}>
+          <Button aria-label="Größer" title="Größer" disabled={scale >= SCALE_MAX} onClick={() => setScale(scale + SCALE_STEP)}>
             +
-          </button>
-          <button class="btn" disabled={scale === 1} onClick={() => setScale(1)}>
+          </Button>
+          <Button disabled={scale === 1} onClick={() => setScale(1)}>
             100 %
-          </button>
+          </Button>
         </span>
       </SettingRow>
       <SettingRow label="Bewegung" hint="Atmen, Schimmer, Ruf und Übergänge; „Bewegung reduzieren“ des Systems schaltet sie immer ab">

@@ -6,6 +6,7 @@ import { DiagnosticsPanel } from "./DiagnosticsPanel.tsx";
 import { FeedbackPanel } from "./FeedbackPanel.tsx";
 import { RenderedView, renderKindOf } from "./RenderedViews.tsx";
 import { SourceView, type Jump } from "./SourceView.tsx";
+import { Button, Chip, EmptyState } from "../../shared/ui/index.ts";
 
 type Mode = "preview" | "rendered" | "source" | "hex";
 
@@ -61,7 +62,7 @@ export function FileViewer({ target, path, hostId = null, sessionId = null, onCh
   };
 
   if (error) return <div class="files-error" role="alert">{error}</div>;
-  if (!meta) return <div class="empty">lädt …</div>;
+  if (!meta) return <EmptyState text="lädt …" />;
   const kind = renderKindOf(meta);
   const local = !hostId;
   const canPreview = meta.family === "image" || meta.family === "pdf" || meta.family === "audio" || meta.family === "video";
@@ -71,11 +72,11 @@ export function FileViewer({ target, path, hostId = null, sessionId = null, onCh
         <span class="mono file-viewer-path" title={meta.path}>{meta.path}</span>
         <span class="dim">{metaSummary(meta)}</span>
         <span class="file-viewer-modes" role="group" aria-label="Ansicht">
-          {kind && <button type="button" class={mode === "rendered" ? "chip active" : "chip"} onClick={() => setMode("rendered")}>Ansicht</button>}
-          {canPreview && <button type="button" class={mode === "preview" ? "chip active" : "chip"} onClick={() => setMode("preview")}>Vorschau</button>}
-          {meta.family === "text" && <button type="button" class={mode === "source" ? "chip active" : "chip"} onClick={() => setMode("source")}>Text</button>}
-          <button type="button" class={mode === "hex" ? "chip active" : "chip"} onClick={() => setMode("hex")}>Hex</button>
-          {meta.family === "text" && local && <button type="button" class={showDiag ? "chip active" : "chip"} aria-pressed={showDiag} onClick={() => setShowDiag(!showDiag)}>Diagnose</button>}
+          {kind && <Chip  onClick={() => setMode("rendered")} active={mode === "rendered"}>Ansicht</Chip>}
+          {canPreview && <Chip  onClick={() => setMode("preview")} active={mode === "preview"}>Vorschau</Chip>}
+          {meta.family === "text" && <Chip  onClick={() => setMode("source")} active={mode === "source"}>Text</Chip>}
+          <Chip  onClick={() => setMode("hex")} active={mode === "hex"}>Hex</Chip>
+          {meta.family === "text" && local && <Chip  aria-pressed={showDiag} onClick={() => setShowDiag(!showDiag)} active={showDiag}>Diagnose</Chip>}
           <DownloadButton api={api} target={target} meta={meta} />
         </span>
       </div>
@@ -86,7 +87,7 @@ export function FileViewer({ target, path, hostId = null, sessionId = null, onCh
       {stale && (
         <div class="files-stale" role="alert">
           Die Datei hat sich geändert (Agent oder Editor). Bisher gelesene Abschnitte passen nicht mehr zusammen.{" "}
-          <button type="button" class="btn" onClick={() => setReload((n) => n + 1)}>Neu laden</button>
+          <Button onClick={() => setReload((n) => n + 1)}>Neu laden</Button>
         </div>
       )}
       {showDiag && meta.family === "text" && local && (
@@ -113,12 +114,12 @@ function Pager({ offset, length, total, hasPrev, hasNext, onPrev, onNext, onJump
   const [jump, setJump] = useState("");
   return (
     <div class="file-pager">
-      <button type="button" class="btn" disabled={!hasPrev} onClick={onPrev} aria-label="Voriger Abschnitt">‹</button>
+      <Button disabled={!hasPrev} onClick={onPrev} aria-label="Voriger Abschnitt">‹</Button>
       <span class="dim" data-testid="file-pager-range">
         Bytes {offset.toLocaleString("de-DE")}–{(offset + length).toLocaleString("de-DE")} von {total.toLocaleString("de-DE")}
         {!hasNext && " · Ende"}
       </span>
-      <button type="button" class="btn" disabled={!hasNext} onClick={onNext} aria-label="Nächster Abschnitt">›</button>
+      <Button disabled={!hasNext} onClick={onNext} aria-label="Nächster Abschnitt">›</Button>
       <input
         class="file-pager-jump"
         inputMode="numeric"
@@ -156,8 +157,8 @@ function HexPages({ api, target, meta, onStale }: { api: HubApi; target: string;
     };
   }, [target, meta.path, meta.revision, at]);
   if (error) return <div class="files-error" role="alert">{error}</div>;
-  if (meta.bytes === 0) return <div class="empty">Leere Datei (0 Bytes).</div>;
-  if (!rows) return <div class="empty">lädt …</div>;
+  if (meta.bytes === 0) return <EmptyState text="Leere Datei (0 Bytes)." />;
+  if (!rows) return <EmptyState text="lädt …" />;
   return (
     <>
       <Pager
@@ -199,12 +200,12 @@ function MediaPreview({ api, target, meta, onUnplayable }: { api: HubApi; target
   }, [target, meta.path, meta.revision]);
   if (tooBig) return <div class="files-error" role="status">{formatBytes(meta.bytes)} ist zu groß für eine Vorschau (Grenze {formatBytes(BLOB_MAX_BYTES)}). Die Hex-Ansicht liest die Datei bis zum letzten Byte.</div>;
   if (error) return <div class="files-error" role="alert">{error} — Hex zeigt die Originalbytes.</div>;
-  if (!url) return <div class="empty">lädt …</div>;
+  if (!url) return <EmptyState text="lädt …" />;
   if (playError) {
     return (
       <div class="files-error" role="status">
         Dieser Browser kann die Datei nicht abspielen/anzeigen (Codec/Format). Download oder Hex zeigen die Originalbytes.{" "}
-        <button type="button" class="btn" onClick={onUnplayable}>Hex öffnen</button>
+        <Button onClick={onUnplayable}>Hex öffnen</Button>
       </div>
     );
   }
@@ -223,9 +224,7 @@ function DownloadButton({ api, target, meta }: { api: HubApi; target: string; me
   const [busy, setBusy] = useState(false);
   if (meta.bytes > BLOB_MAX_BYTES * 4) return <span class="dim" title="Zu groß für den Browser-Speicher — Hex liest bis zum letzten Byte">kein Download</span>;
   return (
-    <button
-      type="button"
-      class="chip"
+    <Chip
       disabled={busy}
       onClick={async () => {
         setBusy(true);
@@ -242,6 +241,6 @@ function DownloadButton({ api, target, meta }: { api: HubApi; target: string; me
       }}
     >
       Download
-    </button>
+    </Chip>
   );
 }

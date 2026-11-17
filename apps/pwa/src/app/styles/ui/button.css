@@ -1,0 +1,62 @@
+/* EPIC-P63 T63.7: Druckknopf-Baustein (shared/ui/Button.tsx).
+ * Komponenten-Tokens nur hier; Werte folgen der Semantik aus 00-tokens.css. */
+.ui-button {
+  --btn-pad: 9px 14px;
+  background: var(--bg-chip);
+  color: var(--fg);
+  border: 1px solid var(--fg-dim);
+  border-radius: var(--radius);
+  padding: var(--btn-pad);
+  font: inherit;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.ui-button:active {
+  transform: scale(0.98);
+}
+
+.ui-button--primary {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.ui-button--danger {
+  border-color: var(--err);
+  color: var(--err);
+}
+
+.ui-button--link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  text-decoration: underline;
+  min-height: var(--target);
+}
+
+.ui-button--sm {
+  --btn-pad: 4px 10px;
+  min-height: 30px;
+}
+
+.ui-button--icon {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--icon-target);
+  min-height: var(--icon-target);
+  padding: 0;
+  font-size: var(--icon-glyph);
+  line-height: 1;
+}
+
+/* Ein deaktivierter Knopf muss als deaktiviert aussehen (BUG-0164-Fund). */
+.ui-button:disabled:not(.busy) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ui-button:disabled:not(.busy):active {
+  transform: none;
+}

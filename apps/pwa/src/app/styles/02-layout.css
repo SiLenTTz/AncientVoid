@@ -2,21 +2,30 @@
  * real scroll surface in the app (main page scroll, the session tail,
  * bottom sheets, the diff view) instead of the platform default. */
 html,
-body,
-.tail-scroll,
-.dashboard,
-.overlay-sheet,
-.diff-code,
-.enhance-preview-text {
+body {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+}
+/* EPIC-P43/P50: Inhalte passen in ihre Fläche (früher 45-readable-content.css,
+ * T63.5 in die Fachdateien zusammengeführt). */
+.tail-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+}
+/* Zahlen, die sich ändern oder untereinander stehen, springen nicht in der Breite. */
+.num {
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
 }
 
 html::-webkit-scrollbar,
 body::-webkit-scrollbar,
 .tail-scroll::-webkit-scrollbar,
 .dashboard::-webkit-scrollbar,
-.overlay-sheet::-webkit-scrollbar,
+.ui-sheet::-webkit-scrollbar,
 .diff-code::-webkit-scrollbar,
 .enhance-preview-text::-webkit-scrollbar {
   width: 6px;
@@ -27,7 +36,7 @@ html::-webkit-scrollbar-track,
 body::-webkit-scrollbar-track,
 .tail-scroll::-webkit-scrollbar-track,
 .dashboard::-webkit-scrollbar-track,
-.overlay-sheet::-webkit-scrollbar-track,
+.ui-sheet::-webkit-scrollbar-track,
 .diff-code::-webkit-scrollbar-track,
 .enhance-preview-text::-webkit-scrollbar-track {
   background: transparent;
@@ -37,7 +46,7 @@ html::-webkit-scrollbar-thumb,
 body::-webkit-scrollbar-thumb,
 .tail-scroll::-webkit-scrollbar-thumb,
 .dashboard::-webkit-scrollbar-thumb,
-.overlay-sheet::-webkit-scrollbar-thumb,
+.ui-sheet::-webkit-scrollbar-thumb,
 .diff-code::-webkit-scrollbar-thumb,
 .enhance-preview-text::-webkit-scrollbar-thumb {
   background-color: color-mix(in srgb, var(--accent) 55%, transparent);
@@ -70,7 +79,7 @@ body::-webkit-scrollbar-thumb:hover,
 .app-page:has(> .dashboard) {
   display: flex;
   flex-direction: column;
-  height: calc(100dvh / var(--ui-zoom, 1) - env(safe-area-inset-top));
+  height: calc(100dvh / var(--ui-zoom) - env(safe-area-inset-top));
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
 
@@ -90,7 +99,7 @@ html:has(.app-page > .dashboard) body {
 html:has(#app > .session-live),
 html:has(#app > .session-live) body {
   /* P43.5: kurze Verläufe dürfen das Aktionsmenü nicht am body-Rand abschneiden. */
-  min-height: calc(100dvh / var(--ui-zoom, 1));
+  min-height: calc(100dvh / var(--ui-zoom));
   overflow: hidden;
 }
 
@@ -120,13 +129,15 @@ a {
   position: sticky;
   top: 0;
   background: var(--bg);
-  z-index: 10;
+  z-index: var(--z-sticky);
   border-bottom: 1px solid var(--bg-chip);
+  /* Platz für die Benachrichtigungsglocke (früher 14-notifications.css). */
+  padding-right: 44px;
 }
 
 .topbar h1 {
   font-family: var(--font-display);
-  font-size: calc(15px * var(--font-scale, 1));
+  font-size: var(--text-md);
   font-weight: 700;
   margin: 0;
   letter-spacing: var(--tracking-label);
@@ -172,6 +183,9 @@ a {
 }
 
 .card {
+  /* Globaler Schutz gegen Viewport-Sprengung (früher 01-base). */
+  min-width: 0;
+  max-width: 100%;
   background: var(--bg-elev);
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius);
@@ -183,6 +197,8 @@ a {
   display: block;
   width: 100%;
   text-align: left;
+  /* P43.5-Preset-Eingang --preset-border (früher 48-presets.css). */
+  border-width: var(--preset-border);
 }
 
 .session-open {
@@ -215,7 +231,7 @@ a {
    * together instead of scrolling the window (P50: html/body never scroll). */
   display: flex;
   flex-direction: column;
-  height: calc(100dvh / var(--ui-zoom, 1));
+  height: calc(100dvh / var(--ui-zoom));
   box-sizing: border-box;
 }
 
@@ -237,7 +253,7 @@ a {
   display: grid;
   grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
   gap: 20px;
-  height: calc(100dvh / var(--ui-zoom, 1));
+  height: calc(100dvh / var(--ui-zoom));
 }
 
 /* EPIC-P18 T18.1: the whole width — the list folds away on demand. */
@@ -257,7 +273,7 @@ a {
   padding: 4px 8px;
   cursor: pointer;
   font: inherit;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   margin-right: 6px;
 }
 
@@ -282,10 +298,6 @@ a {
 .split .dock-stack {
   position: sticky;
   max-width: none;
-}
-
-.split-placeholder {
-  margin-top: 30vh;
 }
 
 /* EPIC-P18: the session column holds up to four tiles. */
@@ -325,7 +337,7 @@ a {
 
 .tile-keys {
   margin-left: auto;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
 }
 
 .tile-glyph {
@@ -433,7 +445,7 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 4px 0 0;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   color: var(--fg-faint);
 }
 
@@ -449,7 +461,7 @@ a {
   border: none;
   border-radius: var(--radius-sm);
   color: var(--fg-dim);
-  font-size: calc(var(--icon-glyph) + 4px);
+  font-size: var(--icon-glyph-lg);
   line-height: 1;
   padding: 0;
   cursor: pointer;
@@ -484,12 +496,12 @@ a {
   bottom: 84px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 40;
+  z-index: var(--z-overlay);
   padding: 6px 14px;
   border-radius: 999px;
-  background: var(--accent, #2f81f7);
-  color: #fff;
-  font-size: calc(13px * var(--font-scale, 1));
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  font-size: var(--text-md);
   pointer-events: none;
 }
 

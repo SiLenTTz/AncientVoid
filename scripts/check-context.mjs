@@ -190,6 +190,19 @@ export function checkReferenceFresh(root, files, run = realReferenceRun) {
   return ok ? [] : [{ rule: "reference-fresh", file: "docs/referenz-*.md", detail: message || "generierte Referenz veraltet" }];
 }
 
+// EPIC-P63 T63.10: Token-Tabelle in design-system.md muss dem Stand von
+// 00-tokens.css entsprechen. Ohne Generator im Root (Fixtures) entfällt die Regel.
+export function realDesignTokensRun(root) {
+  const r = spawnSync("node", ["scripts/design-tokens-doc.mjs", "--check"], { cwd: root, encoding: "utf8" });
+  return { ok: r.status === 0, message: (r.stderr || r.stdout || "").trim() };
+}
+
+export function checkDesignTokensFresh(root, files, run = realDesignTokensRun) {
+  if (!files.includes("scripts/design-tokens-doc.mjs")) return [];
+  const { ok, message } = run(root);
+  return ok ? [] : [{ rule: "design-tokens-fresh", file: "docs/design-system.md", detail: message || "Token-Tabelle veraltet" }];
+}
+
 export function checkDrift(root, git, map = REFRESH_MAP) {
   const findings = [];
   for (const { doc, areas, maxDrift } of map) {
@@ -243,6 +256,7 @@ export function runAll(root, { git } = {}) {
     ...checkReferences(root, files),
     ...checkDocKind(root, files),
     ...checkReferenceFresh(root, files),
+    ...checkDesignTokensFresh(root, files),
     ...checkDrift(root, git ?? realGit(root)),
   ];
   return { ok: findings.length === 0, findings, checked: files.length };

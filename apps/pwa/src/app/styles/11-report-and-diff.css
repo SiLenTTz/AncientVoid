@@ -3,7 +3,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: calc(12.5px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   font-weight: 700;
   padding: 6px 12px;
   border-radius: 999px;
@@ -33,7 +33,7 @@
   gap: 10px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--bg-chip);
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: var(--text-md);
 }
 
 .kv-row:last-child {
@@ -74,7 +74,7 @@
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius-sm);
   background: var(--bg-elev);
-  font-size: calc(12.5px * var(--font-scale, 1));
+  font-size: var(--text-sm);
 }
 
 .diff-add-count {
@@ -88,7 +88,15 @@
 }
 
 .diff-code {
-  font-size: calc(12px * var(--font-scale, 1));
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  min-width: 0;
+  font-family: var(--font-mono);
+  /* Codegröße folgt dem P43.5-Preset-Eingang --code-scale. */
+  font-size: var(--text-code);
   line-height: 1.6;
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius);
@@ -143,7 +151,7 @@
 }
 
 .diff-file-heading {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   color: var(--fg-faint);
   margin: 10px 0 4px;
 }
@@ -164,7 +172,7 @@
 }
 
 .diff-commit-sha {
-  color: var(--accent, var(--fg-faint));
+  color: var(--accent);
 }
 
 .diff-commit-subject {
@@ -172,7 +180,7 @@
 }
 
 .diff-commit-meta {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
 }
 
 .diff-section-heading {
@@ -196,7 +204,7 @@
   gap: 10px;
   padding: 6px 10px;
   background: var(--bg-chip);
-  font-size: calc(11.5px * var(--font-scale, 1));
+  font-size: var(--text-xs);
 }
 
 .hunk-range {
@@ -219,7 +227,7 @@
   color: var(--fg-dim);
   border-radius: var(--radius-sm);
   padding: 2px 8px;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   flex-shrink: 0;
 }
 
@@ -232,28 +240,35 @@
 }
 
 .hunk-body-unified {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  min-width: 0;
+  font-size: var(--text-sm);
   line-height: 1.6;
-  white-space: pre;
-  overflow-x: auto;
 }
 
 /* Mobile-portrait default: unified. Landscape phones and up: side-by-side. */
 .hunk-body-split {
+  font-family: var(--font-mono);
   display: none;
 }
 
 .hunk-split-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .hunk-split-cell {
+  font-family: var(--font-mono);
   padding: 0 8px;
-  font-size: calc(12px * var(--font-scale, 1));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  min-width: 0;
+  font-size: var(--text-sm);
   line-height: 1.6;
-  white-space: pre;
-  overflow-x: auto;
   border-right: 1px solid var(--bg-chip);
 }
 
@@ -295,7 +310,7 @@
   .diff-pane > .diff-files {
     position: sticky;
     top: 0;
-    max-height: calc((100dvh / var(--ui-zoom, 1)) - 240px);
+    max-height: calc((100dvh / var(--ui-zoom)) - 240px);
     overflow-y: auto;
   }
   .diff-pane > .diff-files .diff-file-row {
@@ -309,12 +324,13 @@
   }
   .hunk-body-unified,
   .hunk-split-cell {
-    font-size: calc(13px * var(--font-scale, 1));
+    font-size: var(--text-md);
   }
 }
 
 /* EPIC-P20 T20.1: a hunk that exists on one side only (new/deleted file) uses the whole width, unified. */
 .hunk-card.one-sided .hunk-body-split {
+  font-family: var(--font-mono);
   display: none;
 }
 .hunk-card.one-sided .hunk-body-unified {
@@ -334,7 +350,7 @@
   margin: 8px 0;
 }
 .review-pick-btn {
-  border: 1px solid var(--border, #2a2f3a);
+  border: 1px solid var(--border);
   background: transparent;
   color: inherit;
   border-radius: 8px;
@@ -342,11 +358,11 @@
   cursor: pointer;
 }
 .review-pick-btn.active {
-  border-color: var(--accent, #6ea8fe);
-  color: var(--accent, #6ea8fe);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .review-picked-info {
-  font-size: 12px;
+  font-size: var(--text-sm);
   opacity: 0.85;
 }
 .review-note-entry {
@@ -359,9 +375,9 @@
   flex: 1;
 }
 .review-save-btn {
-  border: 1px solid var(--border, #2a2f3a);
-  background: var(--accent, #6ea8fe);
-  color: #0b0d12;
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: var(--fg-on-accent);
   border-radius: 8px;
   padding: 6px 12px;
   cursor: pointer;
@@ -376,8 +392,8 @@
   cursor: crosshair;
 }
 .review-picked {
-  background: color-mix(in srgb, var(--accent, #6ea8fe) 28%, transparent);
-  outline: 1px solid var(--accent, #6ea8fe);
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  outline: 1px solid var(--accent);
 }
 
 /* Notiz-Badge am Dateikopf */
@@ -385,27 +401,27 @@
   margin-left: 8px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--accent, #6ea8fe);
-  color: #0b0d12;
-  font-size: 11px;
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  font-size: var(--text-xs);
 }
 
 /* Panel mit Notizen */
 .review-panel {
   margin-top: 12px;
-  border-top: 1px solid var(--border, #2a2f3a);
+  border-top: 1px solid var(--border);
   padding-top: 8px;
 }
 .review-panel h3 {
   margin: 4px 0;
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 .review-note {
   display: flex;
   gap: 8px;
   align-items: flex-start;
   padding: 8px;
-  border: 1px solid var(--border, #2a2f3a);
+  border: 1px solid var(--border);
   border-radius: 10px;
   margin: 6px 0;
 }
@@ -415,14 +431,14 @@
 }
 .review-note.outboxed {
   align-items: center;
-  font-size: 13px;
+  font-size: var(--text-md);
 }
 .review-note-body {
   flex: 1;
   min-width: 0;
 }
 .review-note-ref {
-  font-size: 11px;
+  font-size: var(--text-xs);
   opacity: 0.8;
 }
 .review-note-text {
@@ -434,7 +450,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   align-items: center;
 }
 .review-note-actions {
@@ -443,10 +459,10 @@
   gap: 4px;
 }
 .review-note-actions button {
-  font-size: 11px;
+  font-size: var(--text-xs);
   padding: 3px 8px;
   border-radius: 6px;
-  border: 1px solid var(--border, #2a2f3a);
+  border: 1px solid var(--border);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -454,29 +470,29 @@
 .review-status {
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 11px;
-  border: 1px solid var(--border, #2a2f3a);
+  font-size: var(--text-xs);
+  border: 1px solid var(--border);
 }
-.review-status.draft { color: var(--warn, #e2b93b); }
-.review-status.sent { color: #7ad97a; }
-.review-status.open { color: var(--accent, #6ea8fe); }
-.review-status.done { color: #9aa3b2; }
+.review-status.draft { color: var(--warn); }
+.review-status.sent { color: var(--ok); }
+.review-status.open { color: var(--accent); }
+.review-status.done { color: var(--fg-dim); }
 .review-stale-badge {
-  color: var(--danger, #ff7a7a);
-  font-size: 11px;
+  color: var(--err);
+  font-size: var(--text-xs);
 }
 .review-unclear-badge {
-  color: var(--warn, #e2b93b);
-  font-size: 11px;
+  color: var(--warn);
+  font-size: var(--text-xs);
 }
 .review-warn {
-  color: var(--warn, #e2b93b);
-  font-size: 12px;
+  color: var(--warn);
+  font-size: var(--text-sm);
   margin: 4px 0;
 }
 .review-warn-inline {
-  color: var(--danger, #ff7a7a);
-  font-size: 11px;
+  color: var(--err);
+  font-size: var(--text-xs);
 }
 
 /* Sammelversand */
@@ -487,9 +503,9 @@
   align-items: center;
 }
 .review-send-btn {
-  border: 1px solid var(--accent, #6ea8fe);
-  background: var(--accent, #6ea8fe);
-  color: #0b0d12;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--fg-on-accent);
   border-radius: 10px;
   padding: 8px 14px;
   cursor: pointer;
@@ -498,22 +514,9 @@
   opacity: 0.5;
   cursor: default;
 }
+/* EPIC-P63 T63.8: Backdrop/Fokus/Esc über Sheet (variant=modal). */
 .review-send-dialog {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 60;
-}
-.review-send-dialog .modal-card {
-  background: var(--panel, #12151d);
-  border: 1px solid var(--border, #2a2f3a);
-  border-radius: 12px;
-  padding: 14px;
-  width: min(640px, calc(92vw / var(--ui-zoom, 1))); /* BUG-0122 */
-  max-height: calc(85vh / var(--ui-zoom, 1));
+  width: min(640px, calc(92vw / var(--ui-zoom))); /* BUG-0122 */
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -522,13 +525,13 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--text-md);
 }
 .review-prompt-preview {
-  border: 1px solid var(--border, #2a2f3a);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   white-space: pre-wrap;
   overflow: auto;
   max-height: 40vh;

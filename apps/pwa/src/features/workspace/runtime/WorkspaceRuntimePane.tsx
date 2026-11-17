@@ -3,6 +3,7 @@ import type { HubApi } from "../../../shared/api.ts";
 import { useApi } from "../../../shared/api-context.ts";
 import { ago } from "../../../shared/status.ts";
 import type { WorkspaceStatus } from "@ancientvoid/contracts";
+import { Button, Chip, EmptyState } from "../../../shared/ui/index.ts";
 
 /**
  * EPIC-P29 T29.6: Umgebung einer Session — Workspace-Phase, Services mit
@@ -145,16 +146,12 @@ export function WorkspaceRuntimePane({ sessionId, refreshSeq }: { sessionId: str
 
   if (noWorkspace) {
     return (
-      <div class="empty">
-        Diese Session hat keinen Workspace — ohne `ancientvoid.workspace.json` gilt der unveränderte alte Ablauf (ADR-0051 §7).
-      </div>
+      <EmptyState text="Diese Session hat keinen Workspace — ohne `ancientvoid.workspace.json` gilt der unveränderte alte Ablauf (ADR-0051 §7)." />
     );
   }
   if (!status) {
     return (
-      <div class="empty dim">
-        {offline ? "Umgebung nicht abrufbar — offline" : "lädt…"}
-      </div>
+      <EmptyState class="dim" text={offline ? "Umgebung nicht abrufbar — offline" : "lädt…"} />
     );
   }
 
@@ -191,13 +188,13 @@ export function WorkspaceRuntimePane({ sessionId, refreshSeq }: { sessionId: str
               <span class="pill">{SERVICE_LABEL[service.state] ?? service.state}</span>
               {service.port !== null && <span class="dim">Port {service.port}</span>}
               <span class="ws-actions">
-                <button type="button" class="chip" onClick={() => setLogsFor(logsFor === service.id ? null : service.id)} aria-expanded={logsFor === service.id}>
+                <Chip onClick={() => setLogsFor(logsFor === service.id ? null : service.id)} aria-expanded={logsFor === service.id}>
                   Logs
-                </button>
+                </Chip>
                 {service.state === "ready" && (
-                  <button type="button" class="chip" disabled={busy === `preview:${service.id}`} onClick={() => void openPreview(service.id)}>
+                  <Chip disabled={busy === `preview:${service.id}`} onClick={() => void openPreview(service.id)}>
                     {preview?.serviceId === service.id ? "Preview aktualisieren" : "Preview öffnen"}
-                  </button>
+                  </Chip>
                 )}
               </span>
             </div>
@@ -223,13 +220,13 @@ export function WorkspaceRuntimePane({ sessionId, refreshSeq }: { sessionId: str
       </ul>
 
       <div class="ws-footer">
-        <button type="button" class="chip" onClick={reload}>
+        <Chip onClick={reload}>
           Aktualisieren
-        </button>
+        </Chip>
         {canRetry && (
-          <button type="button" class="btn" disabled={busy === "retry"} onClick={() => void retry()}>
+          <Button disabled={busy === "retry"} onClick={() => void retry()}>
             {busy === "retry" ? "Retry läuft…" : "Setup wiederholen (menschlicher Retry)"}
-          </button>
+          </Button>
         )}
         {note && <span class="dim">{note}</span>}
       </div>

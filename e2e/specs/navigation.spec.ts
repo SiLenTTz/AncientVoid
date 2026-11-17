@@ -56,7 +56,7 @@ test.describe("Navigation, Status und Einstellungen (P1.6)", () => {
 
   test("AC-P34-1: die Direktlinks #/pc und #/medien funktionieren weiter", async ({ app, hub }) => {
     await app.goto(`${hub.origin}/#/pc`);
-    await expect(app.locator(".desktop-setup, .desktop-head").first()).toBeVisible();
+    await expect(app.locator("[data-testid=desktop-setup], .desktop-head").first()).toBeVisible();
     await app.goto(`${hub.origin}/#/medien`);
     await expect(app.locator(".media-caps")).toBeVisible();
   });

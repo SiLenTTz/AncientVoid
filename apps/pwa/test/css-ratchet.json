@@ -1,0 +1,18 @@
+{
+  "comment": "EPIC-P63 Ratchet nach T63.9 Baustein-Migration. Werte dürfen nur sinken.",
+  "unknownVarTokens": 0,
+  "colorLiteralsOutsideTokens": 0,
+  "varFallbacks": 0,
+  "zIndexOffLadder": 0,
+  "fontSizeOffScale": 0,
+  "mediaOffLadder": 0,
+  "rawUiClasses": {
+    "btn": 0,
+    "chip": 0,
+    "card": 0,
+    "empty": 0,
+    "empty-state": 0,
+    "overlay-sheet": 0
+  },
+  "inlineStyleObjects": 24
+}

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { checkBudgets, checkLinks, checkReferences, checkDocKind, checkReferenceFresh, checkDrift, runAll, walk } from "./check-context.mjs";
+import { checkBudgets, checkLinks, checkReferences, checkDocKind, checkReferenceFresh, checkDesignTokensFresh, checkDrift, runAll, walk } from "./check-context.mjs";
 
 // Kontext-Hygiene-Gate: Jede Regel findet ihr gepflanztes Fixture (verschwindet
 // eine Regel, schlägt ihr positiver Fall), bekannte zulässige Fälle (datierte
@@ -114,6 +114,19 @@ describe("check-context — generierte Referenz", () => {
     expect(checkReferenceFresh(dir, files, fresh)).toEqual([]);
     expect(checkReferenceFresh(dir, files, stale)).toEqual([
       { rule: "reference-fresh", file: "docs/referenz-*.md", detail: "veraltet: docs/referenz-hubctl.md" },
+    ]);
+  });
+});
+
+describe("check-context — Design-Token-Tabelle", () => {
+  it("veralteter Stand schlägt an, frischer nicht; ohne Generator entfällt die Regel", () => {
+    const stale = () => ({ ok: false, message: "Token-Tabelle veraltet" });
+    const fresh = () => ({ ok: true, message: "" });
+    expect(checkDesignTokensFresh(dir, ["docs/a.md"], stale)).toEqual([]);
+    const files = ["scripts/design-tokens-doc.mjs"];
+    expect(checkDesignTokensFresh(dir, files, fresh)).toEqual([]);
+    expect(checkDesignTokensFresh(dir, files, stale)).toEqual([
+      { rule: "design-tokens-fresh", file: "docs/design-system.md", detail: "Token-Tabelle veraltet" },
     ]);
   });
 });

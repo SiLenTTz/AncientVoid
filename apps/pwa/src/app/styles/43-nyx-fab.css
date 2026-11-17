@@ -2,13 +2,13 @@
 .nyx-fab {
   position: fixed;
   /* Über dem Dock (10), unter Overlay-Sheets/Viewern — sonst blockiert der FAB „Schließen“. */
-  z-index: 15;
+  z-index: var(--z-dock);
   width: 64px;
   height: 64px;
   border-radius: 50%;
   border: 2px solid color-mix(in srgb, var(--accent) 55%, var(--bg-chip));
   background: color-mix(in srgb, var(--bg-elev) 88%, var(--accent));
-  box-shadow: 0 4px 18px color-mix(in srgb, #000 35%, transparent);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--scrim-900) 50%, transparent);
   display: grid;
   place-items: center;
   padding: 0;
@@ -45,7 +45,7 @@
 
 .nyx-fab-toast {
   position: fixed;
-  z-index: 16;
+  z-index: var(--z-toast);
   /* Feste Breite: ohne sie schrumpft die Blende am rechten Rand auf Silben-Breite
    * und bricht Wörter mittendurch (Handy-Screenshot 2026-11-16). */
   width: min(320px, calc(100vw - 16px));
@@ -54,8 +54,8 @@
   border-radius: var(--radius-sm);
   background: var(--bg-elev);
   border: 1px solid var(--bg-chip);
-  font-size: calc(12px * var(--font-scale, 1));
-  box-shadow: 0 4px 14px color-mix(in srgb, #000 30%, transparent);
+  font-size: var(--text-sm);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--scrim-900) 43%, transparent);
   pointer-events: none;
 }
 
@@ -73,9 +73,9 @@
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: calc(22px * var(--font-scale, 1));
-  color: #fff;
-  text-shadow: 0 1px 5px color-mix(in srgb, #000 75%, transparent);
+  font-size: var(--text-xl);
+  color: var(--err-ink);
+  text-shadow: 0 1px 5px var(--scrim-950);
 }
 
 .nyx-fab.recording,
@@ -109,7 +109,7 @@
 
 .nyx-fab-words {
   margin-top: 6px;
-  font-size: calc(15px * var(--font-scale, 1));
+  font-size: var(--text-md);
   line-height: 1.4;
   color: var(--fg);
   overflow-wrap: break-word;

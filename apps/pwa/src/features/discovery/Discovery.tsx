@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { hubApi, type DiscoveredSession, type SessionRecord } from "../../shared/api.ts";
 import { adapterCounts, discoveryState, filterDiscovery, groupDiscovery, stateCounts, type DiscoveryState } from "./groups.ts";
+import { Button, Chip, EmptyState } from "../../shared/ui/index.ts";
 
 /** "vor 5 min" — how old the observation is (EPIC-P5 §3: explicit age). */
 export function observedAgo(observedAt: string, now = Date.now()): string {
@@ -114,7 +115,7 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
     }
   };
 
-  if (items === null) return <div class="empty">{error || "lade…"}</div>;
+  if (items === null) return <EmptyState text={error || "lade…"} />;
   const searching = query.trim() !== "";
   const unsupported = items.filter((i) => i.status === "unsupported-format").length;
   const counts = stateCounts(items);
@@ -139,9 +140,9 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
       </div>
       <div class="discovery-providers" role="group" aria-label="Nach Provider filtern">
         {adapterCounts(items).map(({ adapter, count }) => (
-          <button key={adapter} type="button" class={adapterFilter.has(adapter) ? "chip active" : "chip"} aria-pressed={adapterFilter.has(adapter)} onClick={() => toggleAdapter(adapter)}>
+          <Chip key={adapter}  aria-pressed={adapterFilter.has(adapter)} onClick={() => toggleAdapter(adapter)} active={adapterFilter.has(adapter)}>
             {adapter} <span class="dim">{count}</span>
-          </button>
+          </Chip>
         ))}
       </div>
       <div class="dashboard-summary dim">
@@ -149,8 +150,8 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
         {unsupported > 0 && <span class="badge risk-destructive">{unsupported} unbekanntes Format</span>}
       </div>
       {error && <div class="reply-error">{error}</div>}
-      {items.length === 0 && <div class="empty">{searching ? "keine Session passt zur Suche" : "keine Sessions gefunden"}</div>}
-      {items.length > 0 && shown.length === 0 && <div class="empty">keine Session passt zum Filter</div>}
+      {items.length === 0 && <div class="ui-empty">{searching ? "keine Session passt zur Suche" : "keine Sessions gefunden"}</div>}
+      {items.length > 0 && shown.length === 0 && <div class="ui-empty">keine Session passt zum Filter</div>}
       {groups.map((group, i) => (
         <details key={`${group.project}|${searching}`} class="project-tile" open={(i === 0 && !group.temporary) || searching}>
           <summary class="project-tile-header">
@@ -181,9 +182,9 @@ export function DiscoveryPane({ onOpen }: { onOpen: (session: SessionRecord) => 
         </details>
       ))}
       {cursor !== null && (
-        <button class={busy ? "btn busy" : "btn"} type="button" disabled={busy} onClick={() => void load(cursor)}>
+        <Button disabled={busy} onClick={() => void load(cursor)} class={busy ? "busy" : undefined}>
           {busy ? "lädt…" : "Mehr laden"}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -255,7 +256,7 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
       ? "Läuft gerade woanders — dieser Harness kann keine Kopie fortsetzen. Erst dort beenden, dann hier fortsetzen."
       : "";
   return (
-    <div class={`card discovery-card discovered-row state-${state}`}>
+    <div class={`card discovery-card state-${state}`} data-testid="discovered-row">
       {item.hubSessionId ? (
         <button class="session-open" type="button" onClick={() => onOpen(item.hubSessionId!)}>
           {body}
@@ -267,25 +268,23 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
         {!item.hubSessionId && canContinue && (
           <>
             {/* A transcript another process is writing right now is never shared: the copy has its own id. */}
-            <button
-              class="btn"
-              type="button"
+            <Button
               onClick={() => onAdopt!(item, Boolean(item.live) && copyCapable)}
               title={item.live ? "Läuft gerade woanders — der Hub setzt eine Kopie mit eigener ID fort, das Original bleibt unberührt" : "Session in den Hub übernehmen und fortsetzen"}
             >
               {item.live ? "Als Kopie fortsetzen" : "Fortsetzen"}
-            </button>
+            </Button>
             {!item.live && copyCapable && (
-              <button class="btn subtle" type="button" onClick={() => onAdopt!(item, true)} title="Eigene Kopie fortsetzen — das Original bleibt unverändert">
+              <Button onClick={() => onAdopt!(item, true)} title="Eigene Kopie fortsetzen — das Original bleibt unverändert" class="subtle">
                 Als Kopie
-              </button>
+              </Button>
             )}
           </>
         )}
         {!item.hubSessionId && onMirror && item.nativeSessionId && !unknown && (
-          <button class="btn" type="button" onClick={() => onMirror(item)} title="Verlauf lesbar im Hub spiegeln — ohne Übernahme, nur lesen">
+          <Button onClick={() => onMirror(item)} title="Verlauf lesbar im Hub spiegeln — ohne Übernahme, nur lesen">
             Spiegeln
-          </button>
+          </Button>
         )}
         {hint && !item.hubSessionId && (
           <span class="dim discovery-hint" title={hint}>
@@ -309,9 +308,9 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
                 <span>Fork</span>
               </div>
             )}
-            <button class="btn subtle" type="button" disabled={!id} onClick={copyId}>
+            <Button disabled={!id} onClick={copyId} class="subtle">
               {copied ? "Kopiert" : "ID kopieren"}
-            </button>
+            </Button>
           </div>
         </details>
       </div>

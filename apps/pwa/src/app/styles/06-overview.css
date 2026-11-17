@@ -6,7 +6,7 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 10px 2px 4px;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
 }
 
 /* Discovery groups found sessions by project — collapsible (BUG-0035
@@ -22,11 +22,11 @@
   gap: 8px;
   cursor: pointer;
   list-style: none;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 6px 2px;
-  border-bottom: 1px solid var(--bg-chip, rgba(128, 128, 128, 0.25));
+  border-bottom: 1px solid var(--bg-chip);
 }
 
 .project-tile-header::before {
@@ -50,7 +50,7 @@
 .section-title {
   margin: 0;
   padding: 0 2px 2px;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -179,13 +179,13 @@
 }
 
 .session-card .session-title {
-  font-size: calc(14px * var(--font-scale, 1));
+  font-size: var(--text-md);
   margin: 0;
   min-width: 0;
 }
 
 .session-where {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   margin-top: 2px;
   overflow-wrap: anywhere;
 }
@@ -195,7 +195,7 @@
   gap: 8px;
   justify-content: space-between;
   margin-top: 6px;
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: var(--text-md);
 }
 
 .session-activity-text {
@@ -208,7 +208,7 @@
 
 .session-ago {
   flex: 0 0 auto;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
 }
 
 .session-card-actions {
@@ -227,7 +227,7 @@
   display: inline-block;
   padding: 2px 9px;
   border-radius: 999px;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   font-weight: 700;
 }
 
@@ -316,7 +316,7 @@
   position: absolute;
   right: 0;
   bottom: calc(100% + 4px);
-  z-index: 12;
+  z-index: var(--z-overlay);
   display: grid;
   min-width: 180px;
   padding: var(--space-1);

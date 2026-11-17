@@ -13,7 +13,7 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     await expect(app).toHaveURL(new RegExp(`#/sessions/${id}/graph$`));
     await expect(app.locator(".session-live[data-tab='graph']")).toBeVisible();
     await expect(app.locator(".graph-canvas")).toBeVisible();
-    await expect(app.locator('[data-testid="graph-legend"]')).toBeVisible();
+    await expect(app.locator('[data-testid=graph-legend]')).toBeVisible();
     // Reload landet wieder im Graph-Tab (Hash-Routing).
     await app.reload();
     await expect(app.locator(".session-live[data-tab='graph']")).toBeVisible();
@@ -86,9 +86,9 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     await expect(app.locator(".graph-canvas")).toBeVisible();
     // Strg+Umschalt+E öffnet die rechte Sidebar; erst Nutzung schlägt die fokussierte Session als Quelle vor.
     await app.keyboard.press("Control+Shift+e");
-    await expect(app.locator('[data-testid="files-sidebar"]')).toBeVisible();
+    await expect(app.locator('[data-testid=files-sidebar]')).toBeVisible();
     await app.locator(".files-row").filter({ hasText: "README.md" }).click();
-    await expect(app.locator('[data-testid="files-sidebar"] .files-tab')).toHaveCount(1);
+    await expect(app.locator('[data-testid=files-sidebar] .files-tab')).toHaveCount(1);
     const popupP = context.waitForEvent("page");
     await app.locator(".files-tab-popout").click();
     const popup = await popupP;

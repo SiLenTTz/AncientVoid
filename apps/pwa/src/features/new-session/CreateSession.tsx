@@ -12,6 +12,7 @@ import type { AttachmentRecord } from "../../shared/api.ts";
 import { ApiContext } from "../../shared/api-context.ts";
 import { Composer } from "../composer/Composer.tsx";
 import { SkillPicker, loadSelectedWorkflow, rememberedSkill, type SelectedSkill } from "../composer/SkillOverlay.tsx";
+import { Button, Card } from "../../shared/ui/index.ts";
 
 const LAST_KEY = "ancientvoid.newSession.last";
 const PROMPT_KEY = "ancientvoid.newSession.prompt";
@@ -325,7 +326,7 @@ export function CreateSession({
 
   return (
     <ApiContext.Provider value={api}>
-    <div class="card form-grid">
+    <Card class="form-grid">
       {/* BUG-0188: Der Host führt das Formular an — Pfad, wählbares Repo,
           Adapter und Skills hängen alle von ihm ab; erst danach folgen
           Projekt und Pfad. */}
@@ -370,17 +371,17 @@ export function CreateSession({
         )}
       </label>
       {projectWarnings.length > 0 && (
-        <ul class="dim" style={{ margin: "2px 0", paddingLeft: 18, fontSize: "calc(11px * var(--font-scale, 1))" }}>
+        <ul class="dim form-warnings">
           {projectWarnings.map((w) => <li key={w}>{w}</li>)}
         </ul>
       )}
       {projects !== null && (rootsInfo?.configured ?? projects.length > 0) && (
-        <div style={{ display: "flex", gap: 6 }}>
+        <div class="form-inline-row">
           <input
+            class="form-inline-grow"
             value={newProject}
             onInput={(e) => setNewProject((e.target as HTMLInputElement).value)}
             placeholder="neues Projekt (Name)"
-            style={{ flex: 1 }}
           />
           <button type="button" disabled={!newProject.trim() || creating} onClick={createNewProject}>
             {creating ? "…" : "+ Anlegen"}
@@ -460,9 +461,9 @@ export function CreateSession({
         </label>
       )}
       {modelChoice && (
-        <button class="btn" type="button" onClick={() => setCustomOpen(true)} style="justify-self: start">
+        <Button onClick={() => setCustomOpen(true)} style="justify-self: start">
           ＋ Eigenes Modell / Endpunkt
-        </button>
+        </Button>
       )}
       {customOpen && (
         <CustomModelDialog
@@ -503,11 +504,11 @@ export function CreateSession({
       {error && <div role="alert" style="color: var(--err)">{error}</div>}
       {!loop && <SkillPicker project={project} supported={Boolean(features?.skills || features?.agents)} selection={skill} onChange={setSkill} />}
       {loopBlock && loop && <div class="loop-block warn" role="alert">{loopBlock}</div>}
-      {onboardNote && <div class="dim loop-note" role="status">{onboardNote}</div>}
-      <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy || !project || !!loopBlock || (!loop && workplaceBlocked)}>
+      {onboardNote && <div class="dim" role="status">{onboardNote}</div>}
+      <Button  aria-busy={busy} onClick={submit} disabled={busy || !project || !!loopBlock || (!loop && workplaceBlocked)} variant="primary" class={busy ? "busy" : undefined}>
         {busy ? "lädt…" : "Starten"}
-      </button>
-    </div>
+      </Button>
+    </Card>
     </ApiContext.Provider>
   );
 }

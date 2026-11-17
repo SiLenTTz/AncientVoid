@@ -1,8 +1,8 @@
+import { Sheet, Button } from "../../shared/ui/index.ts";
 import { useEffect, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type HarnessFeatures, type SkillOrAgent } from "../../shared/api.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
-import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 
 
 export interface SelectedSkill {
@@ -127,7 +127,6 @@ export function SkillPicker({
   };
 
   // EPIC-P51 T51.6: Esc schließt, Fokus rein/Tab-Falle/zurück auf den Auslöser.
-  const { ref: sheetRef } = useOverlayFocus<HTMLDivElement>(open);
   useEffect(() => {
     if (!open) return;
     return registerShortcut("skillpicker.close", (e) => {
@@ -146,18 +145,17 @@ export function SkillPicker({
 
   return (
     <div>
-      <button type="button" class="skill-chip btn" onClick={openOverlay}>
+      <Button onClick={openOverlay} class="skill-chip">
         {selection ? `${selection.kind === "agent" ? "Agent" : "Skill"}: ${selection.name}` : "+ Skill/Agent"}
-      </button>
+      </Button>
 
       {open && (
-        <div class="overlay-backdrop" onClick={() => setOpen(false)}>
-          <div class="overlay-sheet" ref={sheetRef} role="dialog" aria-modal="true" aria-label="Skill oder Agent wählen" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <Sheet open onClose={() => setOpen(false)} label="Skill oder Agent wählen">
             <div class="row" style="justify-content: space-between; align-items: center">
               <strong>Senden mit …</strong>
-              <button class="btn" type="button" onClick={() => setOpen(false)}>
+              <Button onClick={() => setOpen(false)}>
                 ✕
-              </button>
+              </Button>
             </div>
             {error && <div style="color: var(--err)">{error}</div>}
             {!project && items === null ? (
@@ -186,11 +184,10 @@ export function SkillPicker({
                 ))}
               </div>
             )}
-            <button type="button" class="btn" onClick={clear}>
+            <Button onClick={clear}>
               Ohne Skill/Agent senden
-            </button>
-          </div>
-        </div>
+            </Button>
+        </Sheet>
       )}
     </div>
   );

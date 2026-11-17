@@ -3,6 +3,7 @@ import type { AutomationInfo, AutomationSchedule, AutomationTarget, Team } from 
 import type { ActionDefinition } from "../../shared/api.ts";
 import { useApi } from "../../shared/api-context.ts";
 import { sha256Hex } from "./automation-labels.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 const TZ_SUGGESTIONS = ["Europe/Berlin", "Europe/London", "UTC", "America/New_York"];
 
@@ -213,8 +214,8 @@ export function AutomationForm({ adapters, projects, teams, editing, disabled, o
       </label>}
       <p class="team-meta">Neue und geänderte Automationen beginnen deaktiviert — die Aktivierung ist die Freigabe.</p>
       <div class="automation-form-actions">
-        <button type="submit" class="btn" disabled={busy || disabled}>{existing ? "Speichern" : "Anlegen"}</button>
-        <button type="button" class="btn" onClick={onCancel}>Abbrechen</button>
+        <Button type="submit" disabled={busy || disabled}>{existing ? "Speichern" : "Anlegen"}</Button>
+        <Button onClick={onCancel}>Abbrechen</Button>
       </div>
     </form>
   );
