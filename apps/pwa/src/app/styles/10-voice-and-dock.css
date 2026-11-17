@@ -27,7 +27,7 @@
    * Vorlagen, Eingabe) auf kleinem Screen lief der fixierte Dock über den
    * oberen Rand — die obersten Buttons waren abgeschnitten statt bedienbar.
    * Der Dock begrenzt seine Höhe auf den Screen und scrollt selbst. */
-  max-height: calc(100dvh / var(--ui-zoom, 1));
+  max-height: calc(100dvh / var(--ui-zoom));
   overflow-y: auto;
 }
 
@@ -49,7 +49,7 @@
   border: none;
   color: var(--fg-dim);
   font: inherit;
-  font-size: calc(10.5px * var(--font-scale, 1));
+  font-size: calc(10.5px * var(--font-scale));
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
@@ -62,7 +62,7 @@
 }
 
 .dock-item .ic {
-  font-size: calc(17px * var(--font-scale, 1));
+  font-size: calc(17px * var(--font-scale));
 }
 
 .dock-item.active {
@@ -139,7 +139,7 @@
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px solid var(--bg-chip);
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
 }
 
 .settings-row:last-of-type {
@@ -157,7 +157,7 @@
 .session-topbar .back-btn {
   flex: 0 0 auto;
   padding: 6px 10px;
-  font-size: calc(18px * var(--font-scale, 1));
+  font-size: calc(18px * var(--font-scale));
   line-height: 1;
 }
 
@@ -195,7 +195,7 @@
 }
 
 .session-top-meta {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -228,7 +228,7 @@
   min-height: 44px;
   display: grid;
   place-items: center;
-  font-size: calc(20px * var(--font-scale, 1));
+  font-size: calc(20px * var(--font-scale));
   border-radius: var(--radius);
 }
 

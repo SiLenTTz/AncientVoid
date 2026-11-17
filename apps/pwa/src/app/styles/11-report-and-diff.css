@@ -3,7 +3,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: calc(12.5px * var(--font-scale, 1));
+  font-size: calc(12.5px * var(--font-scale));
   font-weight: 700;
   padding: 6px 12px;
   border-radius: 999px;
@@ -33,7 +33,7 @@
   gap: 10px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--bg-chip);
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
 }
 
 .kv-row:last-child {
@@ -74,7 +74,7 @@
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius-sm);
   background: var(--bg-elev);
-  font-size: calc(12.5px * var(--font-scale, 1));
+  font-size: calc(12.5px * var(--font-scale));
 }
 
 .diff-add-count {
@@ -88,7 +88,7 @@
 }
 
 .diff-code {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   line-height: 1.6;
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius);
@@ -143,7 +143,7 @@
 }
 
 .diff-file-heading {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   color: var(--fg-faint);
   margin: 10px 0 4px;
 }
@@ -164,7 +164,7 @@
 }
 
 .diff-commit-sha {
-  color: var(--accent, var(--fg-faint));
+  color: var(--accent);
 }
 
 .diff-commit-subject {
@@ -172,7 +172,7 @@
 }
 
 .diff-commit-meta {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
 }
 
 .diff-section-heading {
@@ -196,7 +196,7 @@
   gap: 10px;
   padding: 6px 10px;
   background: var(--bg-chip);
-  font-size: calc(11.5px * var(--font-scale, 1));
+  font-size: calc(11.5px * var(--font-scale));
 }
 
 .hunk-range {
@@ -219,7 +219,7 @@
   color: var(--fg-dim);
   border-radius: var(--radius-sm);
   padding: 2px 8px;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
   flex-shrink: 0;
 }
 
@@ -232,7 +232,7 @@
 }
 
 .hunk-body-unified {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   line-height: 1.6;
   white-space: pre;
   overflow-x: auto;
@@ -250,7 +250,7 @@
 
 .hunk-split-cell {
   padding: 0 8px;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   line-height: 1.6;
   white-space: pre;
   overflow-x: auto;
@@ -295,7 +295,7 @@
   .diff-pane > .diff-files {
     position: sticky;
     top: 0;
-    max-height: calc((100dvh / var(--ui-zoom, 1)) - 240px);
+    max-height: calc((100dvh / var(--ui-zoom)) - 240px);
     overflow-y: auto;
   }
   .diff-pane > .diff-files .diff-file-row {
@@ -309,7 +309,7 @@
   }
   .hunk-body-unified,
   .hunk-split-cell {
-    font-size: calc(13px * var(--font-scale, 1));
+    font-size: calc(13px * var(--font-scale));
   }
 }
 
@@ -342,8 +342,8 @@
   cursor: pointer;
 }
 .review-pick-btn.active {
-  border-color: var(--accent, #6ea8fe);
-  color: var(--accent, #6ea8fe);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .review-picked-info {
   font-size: 12px;
@@ -360,7 +360,7 @@
 }
 .review-save-btn {
   border: 1px solid var(--border, #2a2f3a);
-  background: var(--accent, #6ea8fe);
+  background: var(--accent);
   color: #0b0d12;
   border-radius: 8px;
   padding: 6px 12px;
@@ -376,8 +376,8 @@
   cursor: crosshair;
 }
 .review-picked {
-  background: color-mix(in srgb, var(--accent, #6ea8fe) 28%, transparent);
-  outline: 1px solid var(--accent, #6ea8fe);
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  outline: 1px solid var(--accent);
 }
 
 /* Notiz-Badge am Dateikopf */
@@ -385,7 +385,7 @@
   margin-left: 8px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--accent, #6ea8fe);
+  background: var(--accent);
   color: #0b0d12;
   font-size: 11px;
 }
@@ -457,20 +457,20 @@
   font-size: 11px;
   border: 1px solid var(--border, #2a2f3a);
 }
-.review-status.draft { color: var(--warn, #e2b93b); }
+.review-status.draft { color: var(--warn); }
 .review-status.sent { color: #7ad97a; }
-.review-status.open { color: var(--accent, #6ea8fe); }
+.review-status.open { color: var(--accent); }
 .review-status.done { color: #9aa3b2; }
 .review-stale-badge {
   color: var(--danger, #ff7a7a);
   font-size: 11px;
 }
 .review-unclear-badge {
-  color: var(--warn, #e2b93b);
+  color: var(--warn);
   font-size: 11px;
 }
 .review-warn {
-  color: var(--warn, #e2b93b);
+  color: var(--warn);
   font-size: 12px;
   margin: 4px 0;
 }
@@ -487,8 +487,8 @@
   align-items: center;
 }
 .review-send-btn {
-  border: 1px solid var(--accent, #6ea8fe);
-  background: var(--accent, #6ea8fe);
+  border: 1px solid var(--accent);
+  background: var(--accent);
   color: #0b0d12;
   border-radius: 10px;
   padding: 8px 14px;
@@ -512,8 +512,8 @@
   border: 1px solid var(--border, #2a2f3a);
   border-radius: 12px;
   padding: 14px;
-  width: min(640px, calc(92vw / var(--ui-zoom, 1))); /* BUG-0122 */
-  max-height: calc(85vh / var(--ui-zoom, 1));
+  width: min(640px, calc(92vw / var(--ui-zoom))); /* BUG-0122 */
+  max-height: calc(85vh / var(--ui-zoom));
   display: flex;
   flex-direction: column;
   gap: 10px;

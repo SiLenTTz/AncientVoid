@@ -1,6 +1,6 @@
 /* T9.4: one text entry for the hub (✦, Ctrl/Cmd+K). A dialog on purpose. */
 .command-open {
-  font-size: calc(18px * var(--font-scale, 1));
+  font-size: calc(18px * var(--font-scale));
   min-width: 40px;
   min-height: 40px;
 }
@@ -11,8 +11,8 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(640px, calc(100vw / var(--ui-zoom, 1) - 16px));
-  max-height: calc((100dvh / var(--ui-zoom, 1)) - 32px);
+  width: min(640px, calc(100vw / var(--ui-zoom) - 16px));
+  max-height: calc((100dvh / var(--ui-zoom)) - 32px);
   overflow-y: auto;
   display: grid;
   gap: 10px;
@@ -41,7 +41,7 @@
 
 .command-field {
   flex-basis: 100%;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
 }
 
 .command-refusal {
@@ -73,7 +73,7 @@
 
 .command-risk {
   flex: 0 0 auto;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
   padding: 1px 6px;
   border-radius: var(--radius-sm);
   background: var(--bg-chip);
@@ -90,7 +90,7 @@
 }
 
 .command-planner {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
 }
 
 .command-result.ok {
@@ -110,7 +110,7 @@
 .command-before,
 .command-after {
   white-space: pre-wrap;
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
   padding: 6px 8px;
   border-radius: var(--radius);
   background: var(--bg);
@@ -136,7 +136,7 @@
   grid-template-columns: 76px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  min-height: var(--target, 44px);
+  min-height: var(--target);
   padding: 4px 8px;
   text-align: left;
   color: var(--fg);
@@ -154,7 +154,7 @@
 }
 
 .quick-kind {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--fg-dim);
@@ -167,5 +167,5 @@
 }
 
 .quick-detail {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
 }

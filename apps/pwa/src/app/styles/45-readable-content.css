@@ -87,7 +87,7 @@
 @media (orientation: portrait) {
   .session-strip {
     flex-wrap: wrap;
-    max-height: calc(3 * (var(--target, 44px) + 6px) + 12px);
+    max-height: calc(3 * (var(--target) + 6px) + 12px);
     overflow-x: hidden;
     overflow-y: auto;
   }

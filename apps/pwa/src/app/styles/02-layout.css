@@ -70,7 +70,7 @@ body::-webkit-scrollbar-thumb:hover,
 .app-page:has(> .dashboard) {
   display: flex;
   flex-direction: column;
-  height: calc(100dvh / var(--ui-zoom, 1) - env(safe-area-inset-top));
+  height: calc(100dvh / var(--ui-zoom) - env(safe-area-inset-top));
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
 
@@ -90,7 +90,7 @@ html:has(.app-page > .dashboard) body {
 html:has(#app > .session-live),
 html:has(#app > .session-live) body {
   /* P43.5: kurze Verläufe dürfen das Aktionsmenü nicht am body-Rand abschneiden. */
-  min-height: calc(100dvh / var(--ui-zoom, 1));
+  min-height: calc(100dvh / var(--ui-zoom));
   overflow: hidden;
 }
 
@@ -126,7 +126,7 @@ a {
 
 .topbar h1 {
   font-family: var(--font-display);
-  font-size: calc(15px * var(--font-scale, 1));
+  font-size: calc(15px * var(--font-scale));
   font-weight: 700;
   margin: 0;
   letter-spacing: var(--tracking-label);
@@ -215,7 +215,7 @@ a {
    * together instead of scrolling the window (P50: html/body never scroll). */
   display: flex;
   flex-direction: column;
-  height: calc(100dvh / var(--ui-zoom, 1));
+  height: calc(100dvh / var(--ui-zoom));
   box-sizing: border-box;
 }
 
@@ -237,7 +237,7 @@ a {
   display: grid;
   grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
   gap: 20px;
-  height: calc(100dvh / var(--ui-zoom, 1));
+  height: calc(100dvh / var(--ui-zoom));
 }
 
 /* EPIC-P18 T18.1: the whole width — the list folds away on demand. */
@@ -257,7 +257,7 @@ a {
   padding: 4px 8px;
   cursor: pointer;
   font: inherit;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   margin-right: 6px;
 }
 
@@ -325,7 +325,7 @@ a {
 
 .tile-keys {
   margin-left: auto;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
 }
 
 .tile-glyph {
@@ -433,7 +433,7 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 4px 0 0;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
   color: var(--fg-faint);
 }
 
@@ -487,9 +487,9 @@ a {
   z-index: 40;
   padding: 6px 14px;
   border-radius: 999px;
-  background: var(--accent, #2f81f7);
+  background: var(--accent);
   color: #fff;
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
   pointer-events: none;
 }
 

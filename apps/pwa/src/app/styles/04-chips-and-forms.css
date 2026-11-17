@@ -11,7 +11,7 @@
   border: 1px solid var(--bg-chip);
   background: var(--bg-elev);
   color: var(--fg-dim);
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   cursor: pointer;
 }
 
@@ -43,7 +43,7 @@
   border: 1px solid var(--bg-chip);
   background: var(--bg-elev);
   color: var(--fg);
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
@@ -80,7 +80,7 @@
 
 .choice-desc {
   display: block;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
   font-weight: 400;
   color: var(--fg-dim);
   overflow-wrap: anywhere;
@@ -105,7 +105,7 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font: inherit;
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
 }
 
 .event.thinking {
@@ -128,7 +128,7 @@
 }
 
 .event .meta {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
   color: var(--fg-dim);
   display: flex;
   justify-content: space-between;
@@ -268,7 +268,7 @@
   color: var(--warn);
   border-radius: 999px;
   padding: 3px 10px;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
 }
 
 /* K10: die Offline-Meldung ist ein Button — tippen lädt neu. */
@@ -309,7 +309,7 @@ button.badge-stale {
 .form-grid label {
   display: grid;
   gap: 4px;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   color: var(--fg-dim);
 }
 
@@ -342,5 +342,5 @@ button.badge-stale {
   text-align: center;
 }
 .settings-hint {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
 }

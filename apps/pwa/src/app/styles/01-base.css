@@ -1,99 +1,5 @@
-:root {
-  /* T1.6-1 — futuristic design-system tokens, see docs/design-system.md.
-   * Same token names as before (P0) so every existing component re-themes
-   * without edits; --radius-sm/-lg, --shadow-elev, --glow-*, --font-*,
-   * --fg-faint and --tracking-label are new, added for T1.6-2/3/8 to
-   * consume as the reskin reaches each component. */
-  --bg: #08090b;
-  --bg-elev: #121316;
-  --bg-chip: #21252c;
-  --fg: #eef1f5;
-  --fg-dim: #8d95a3;
-  /* EPIC-P43 T43.1: Tertiärtext erreicht 4,5:1 auf --bg-elev (vorher 2,9:1). */
-  --fg-faint: #7b8391;
-  /* EPIC-P43 T43.1 (E1/E2): der Akzent ist Void-Violett und frei wählbar; „du bist dran“ hat ein
-   * eigenes, festes Token (--call). appearance.ts überschreibt nur --accent/--accent-ink. */
-  --accent: #b58cff;
-  --accent-ink: #12081f;
-  --call: #ff9a3c;
-  --call-ink: #1a0a00;
-  --info: #5cc8ff;
-  --info-ink: #04131c;
-  --ok: #4fe0ab;
-  --warn: #ffcf5c;
-  --err: #ff5c6a;
-  --radius: 7px;
-  --radius-sm: 4px;
-  --radius-lg: 14px;
-  --shadow-elev: 0 0 0 1px var(--bg-chip), 0 10px 26px -14px rgba(0, 0, 0, 0.7);
-  --font-display: "Orbitron", system-ui, sans-serif;
-  /* EPIC-P34 T34.6: Oberflächen- und Codeschrift getrennt. `--font-mono` bleibt der Name für Code
-   * und folgt `--font-code`; appearance.ts überschreibt beide nur, wenn der Nutzer wählt. */
-  --font-ui: "Inter", system-ui, sans-serif;
-  --font-code: "JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace;
-  --font-mono: var(--font-code);
-  --tracking-label: 0.1em;
-  /* EPIC-P43 T43.1: Skalen. Abstände 4/8/12/16/24; Textgrößen folgen --font-scale. */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --text-xs: calc(11px * var(--font-scale, 1));
-  --text-sm: calc(12px * var(--font-scale, 1));
-  --text-md: calc(14px * var(--font-scale, 1));
-  --text-lg: calc(16px * var(--font-scale, 1));
-  --text-xl: calc(20px * var(--font-scale, 1));
-  /* Mindestziel eines Bedienelements: 44 px bei Touch, 30 px mit Maus (siehe @media unten). */
-  --target: 44px;
-  /* Reine Symbol-Tasten (⧉, ×, ➤): ohne Beschriftung muss Fläche und Glyphe selbst tragen —
-     auch mit Maus nie unter 36 px, Glyphe deutlich größer als der Fließtext. */
-  --icon-target: 44px;
-  --icon-glyph: calc(20px * var(--font-scale, 1));
-  /* Bewegung: Dauer und Kurve; die Bewegungen selbst stehen in 36-motion.css. */
-  --motion-fast: 120ms;
-  --motion-base: 220ms;
-  --motion-slow: 420ms;
-  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-spring: cubic-bezier(0.2, 0.9, 0.25, 1.1);
-  /* EPIC-P48 (ADR-0062): Graph-Gruppenfarben — doc läuft auf --accent. */
-  --graph-code: #5cc8ff;
-  --graph-config: #b58cff;
-  --graph-other: #8d95a3;
-  color-scheme: dark;
-}
-
-[data-theme="light"] {
-  --bg: #eef0f6;
-  --bg-elev: #ffffff;
-  --bg-chip: #d7dae5;
-  --fg: #0d1016;
-  --fg-dim: #565d6e;
-  --fg-faint: #666d7d;
-  --accent: #6a3cc9;
-  --accent-ink: #ffffff;
-  --call: #9c4d00;
-  --call-ink: #ffffff;
-  --info: #0b6aa6;
-  --info-ink: #ffffff;
-  /* EPIC-P43 AC-P43-4 / AI-P43-2: ≥ 4,5:1 auf --bg und --bg-elev (vorher #158c62 ≈ 4,2:1). */
-  --ok: #127a56;
-  --warn: #9a6a06;
-  --err: #c72d3d;
-  --graph-code: #1072b0;
-  --graph-config: #7a4fd1;
-  --graph-other: #565d6e;
-  --shadow-elev: 0 0 0 1px var(--bg-chip), 0 14px 28px -18px rgba(20, 20, 40, 0.2);
-  color-scheme: light;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  :root {
-    --target: 30px;
-    --icon-target: 36px;
-    --icon-glyph: calc(18px * var(--font-scale, 1));
-  }
-}
+/* EPIC-P63 T63.1: Farb-/Form-/Skalen-Tokens liegen in 00-tokens.css (drei
+ * Schichten, docs/design-system.md). Hier bleibt nur Reset und Elementregeln. */
 
 * {
   box-sizing: border-box;
@@ -106,7 +12,7 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-ui);
-  font-size: calc(14px * var(--font-scale, 1));
+  font-size: var(--text-md);
   line-height: 1.45;
   -webkit-tap-highlight-color: transparent;
 }
@@ -117,7 +23,7 @@ body {
 input,
 select,
 textarea {
-  font-size: max(16px, calc(16px * var(--font-scale, 1)));
+  font-size: var(--text-input);
 }
 
 html,

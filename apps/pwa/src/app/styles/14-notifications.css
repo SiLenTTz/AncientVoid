@@ -16,14 +16,14 @@
    * skaliert die gerenderte Größe, vw bleibt unskaliert — sonst wandert
    * alles Rechts-verankerte bei UI-Skalierung > 100 % aus dem Bildschirm
      (Nutzerfund 2026-10-30: Benachrichtigungs-Panel, ✕ außer Reichweite). */
-  right: max(8px, calc((100vw / var(--ui-zoom, 1) - 680px) / 2 + 8px));
+  right: max(8px, calc((100vw / var(--ui-zoom) - 680px) / 2 + 8px));
   z-index: 30;
   background: var(--bg-elev);
   border: 1px solid var(--bg-chip);
   border-radius: 999px;
   width: 36px;
   height: 36px;
-  font-size: calc(16px * var(--font-scale, 1));
+  font-size: calc(16px * var(--font-scale));
   cursor: pointer;
 }
 .notif-bell:hover {
@@ -36,7 +36,7 @@
   background: var(--err);
   color: #fff;
   border-radius: 999px;
-  font-size: calc(10px * var(--font-scale, 1));
+  font-size: calc(10px * var(--font-scale));
   min-width: 16px;
   padding: 1px 4px;
 }
@@ -77,13 +77,13 @@
   border: none;
   color: inherit;
   font: inherit;
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
   padding: 10px 12px;
   cursor: pointer;
 }
 .toast-body span {
   color: var(--fg-dim);
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
 }
 .toast-close {
   min-width: var(--icon-target);
@@ -99,10 +99,10 @@
 .notif-panel {
   position: fixed;
   top: calc(env(safe-area-inset-top) + 52px);
-  right: max(8px, calc((100vw / var(--ui-zoom, 1) - 680px) / 2 + 8px));
+  right: max(8px, calc((100vw / var(--ui-zoom) - 680px) / 2 + 8px));
   z-index: 35;
-  width: min(380px, calc(100vw / var(--ui-zoom, 1) - 16px));
-  max-height: min(70vh, calc(100dvh / var(--ui-zoom, 1) - env(safe-area-inset-top) - 68px));
+  width: min(380px, calc(100vw / var(--ui-zoom) - 16px));
+  max-height: min(70vh, calc(100dvh / var(--ui-zoom) - env(safe-area-inset-top) - 68px));
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--bg-elev);
@@ -154,7 +154,7 @@
   padding: 8px 10px;
   color: inherit;
   font: inherit;
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
   cursor: pointer;
 }
 .notif-item.error { border-left-color: var(--err); }
@@ -163,7 +163,7 @@
 .notif-item-detail,
 .notif-item-time {
   color: var(--fg-dim);
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
 }
 .event.system.provider-error {
   border-color: var(--err);
@@ -176,7 +176,7 @@
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius);
   padding: 4px 10px;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   pointer-events: auto;
 }
 
@@ -201,7 +201,7 @@
   position: fixed;
   z-index: 200;
   transform: translate(-50%, calc(-100% - 8px));
-  max-width: min(280px, calc(100vw / var(--ui-zoom, 1) - 16px));
+  max-width: min(280px, calc(100vw / var(--ui-zoom) - 16px));
   padding: 4px 8px;
   border-radius: 6px;
   background: var(--bg-elev);

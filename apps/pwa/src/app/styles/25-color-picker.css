@@ -11,7 +11,7 @@
   background: var(--bg);
   color: var(--fg);
   font: inherit;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   cursor: pointer;
 }
 
@@ -27,8 +27,8 @@
 }
 
 .color-dialog {
-  width: min(380px, calc(96vw / var(--ui-zoom, 1))); /* BUG-0122 */
-  max-height: calc(94dvh / var(--ui-zoom, 1));
+  width: min(380px, calc(96vw / var(--ui-zoom))); /* BUG-0122 */
+  max-height: calc(94dvh / var(--ui-zoom));
   padding: 0;
   border: 1px solid var(--fg-faint);
   border-radius: var(--radius-lg);
@@ -53,7 +53,7 @@
 .color-dialog h3 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
@@ -107,7 +107,7 @@
   place-items: center;
   border: 0;
   font: inherit;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: #fff;
@@ -128,7 +128,7 @@
 .cp-fields .cp-field {
   display: grid;
   gap: 2px;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
   color: var(--fg-dim);
 }
 
@@ -145,7 +145,7 @@
   background: var(--bg);
   color: var(--fg);
   font: inherit;
-  font-size: max(16px, calc(16px * var(--font-scale, 1)));
+  font-size: max(16px, calc(16px * var(--font-scale)));
 }
 
 .color-dialog .cp-field input[aria-invalid="true"] {
@@ -179,12 +179,12 @@
 }
 
 .cp-recent-label {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
 }
 
 .cp-warnings p {
   margin: 0;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   color: var(--warn);
 }
 

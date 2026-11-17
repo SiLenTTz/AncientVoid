@@ -93,7 +93,7 @@
 
 .tile-actions .chip {
   padding: 3px 10px;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   cursor: pointer;
 }
 
@@ -121,9 +121,9 @@
     height: 28px;
     padding: 0 12px;
     box-sizing: border-box;
-    background: var(--bg-elev, var(--bg));
+    background: var(--bg-elev);
     border-top: 1px solid var(--bg-chip);
-    font-size: calc(12px * var(--font-scale, 1));
+    font-size: calc(12px * var(--font-scale));
     color: var(--fg-dim);
     z-index: 5;
   }
@@ -133,7 +133,7 @@
   .status-spacer { flex: 1; }
   .status-focus { overflow: hidden; text-overflow: ellipsis; max-width: 45vw; }
   /* Platz für die Leiste: Inhalt und Icon-Leiste enden darüber. */
-  .split { height: calc(100dvh / var(--ui-zoom, 1) - 28px); }
+  .split { height: calc(100dvh / var(--ui-zoom) - 28px); }
   .split-list .dock-stack { bottom: 28px; }
 }
 
@@ -177,7 +177,7 @@
   position: absolute;
   top: 0;
   right: 0;
-  font-size: calc(10px * var(--font-scale, 1));
+  font-size: calc(10px * var(--font-scale));
 }
 
 .tile-tabs button:hover {

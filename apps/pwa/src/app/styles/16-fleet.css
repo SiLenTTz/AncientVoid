@@ -11,7 +11,7 @@
 }
 .fleet-qr {
   flex-basis: 100%;
-  width: min(220px, calc(70vw / var(--ui-zoom, 1))); /* BUG-0122 */
+  width: min(220px, calc(70vw / var(--ui-zoom))); /* BUG-0122 */
   height: auto;
   max-width: 100%;
   image-rendering: pixelated;
@@ -33,7 +33,7 @@
   object-fit: cover;
 }
 .fleet-invite code {
-  font-size: calc(18px * var(--font-scale, 1));
+  font-size: calc(18px * var(--font-scale));
   letter-spacing: 0.08em;
 }
 .fleet-message.ok {
@@ -42,7 +42,7 @@
 
 /* T7.3: outcome of an approved action */
 .approval-outcome {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   margin-top: 4px;
 }
 .approval-outcome.failed {

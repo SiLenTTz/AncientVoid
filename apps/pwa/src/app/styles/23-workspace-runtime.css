@@ -19,12 +19,12 @@
   font-size: 12px;
 }
 .workspace-head .stand.offline {
-  color: var(--warn, #b8860b);
+  color: var(--warn);
 }
 
 /* Phase-Pills: bereit grün, Fehler rot, unklar gelb — dezent. */
 .pill.ws-phase-ready {
-  background: color-mix(in oklab, var(--ok, #2e7d32) 18%, transparent);
+  background: color-mix(in oklab, var(--ok) 18%, transparent);
 }
 .pill.ws-phase-failed,
 .pill.ws-state-failed {
@@ -32,7 +32,7 @@
 }
 .pill.ws-phase-needs_attention,
 .pill.ws-phase-preparing {
-  background: color-mix(in oklab, var(--warn, #b8860b) 18%, transparent);
+  background: color-mix(in oklab, var(--warn) 18%, transparent);
 }
 
 .ws-failure {

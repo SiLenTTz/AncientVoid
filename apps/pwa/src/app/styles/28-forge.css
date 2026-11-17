@@ -57,7 +57,7 @@
 .fp-btn.small {
   padding: 4px 8px;
   min-height: 28px;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
 }
 .fp-btn:disabled {
   opacity: 0.5;
@@ -69,7 +69,7 @@
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid currentColor;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   white-space: nowrap;
 }
 .fp-ok {
@@ -94,10 +94,10 @@
 }
 
 .fp-meta {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
 }
 .fp-cached {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
 }
 .fp-mr-head {
   display: flex;
@@ -202,8 +202,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: min(760px, calc(94vw / var(--ui-zoom, 1))); /* BUG-0122 */
-  max-height: calc(85vh / var(--ui-zoom, 1));
+  width: min(760px, calc(94vw / var(--ui-zoom))); /* BUG-0122 */
+  max-height: calc(85vh / var(--ui-zoom));
   padding: 14px;
   border: 1px solid var(--border, #2a2f3a);
   border-radius: 12px;
@@ -214,7 +214,7 @@
   padding: 8px;
   border-radius: var(--radius-sm);
   background: var(--bg);
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   white-space: pre-wrap;
   overflow: auto;
   max-height: 60vh;

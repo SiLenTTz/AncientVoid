@@ -22,7 +22,7 @@
 }
 
 .search-status {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
 }
 
 .search-results {
@@ -51,7 +51,7 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
 }
 
 .search-result-file {
@@ -59,12 +59,12 @@
 }
 
 .search-result-title {
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
   font-weight: 600;
 }
 
 .search-result-snippet {
-  font-size: calc(11.5px * var(--font-scale, 1));
+  font-size: calc(11.5px * var(--font-scale));
   color: var(--fg-dim);
   white-space: pre-wrap;
   max-height: 96px;
@@ -80,7 +80,7 @@
 }
 
 .doc-overview-head {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
 }
 
 .doc-group {
@@ -89,7 +89,7 @@
 }
 
 .doc-group-dir {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
   padding-top: 4px;
 }
 
@@ -111,12 +111,12 @@
 }
 
 .doc-item-name {
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: calc(13px * var(--font-scale));
   font-weight: 600;
 }
 
 .doc-item-path {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: calc(11px * var(--font-scale));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -136,7 +136,7 @@
   border-top: 1px solid var(--bg-chip);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   width: 100%;
-  max-height: calc(85vh / var(--ui-zoom, 1)); /* BUG-0122 */
+  max-height: calc(85vh / var(--ui-zoom)); /* BUG-0122 */
   display: grid;
   grid-template-rows: auto 1fr;
 }
@@ -161,7 +161,7 @@
  * kein <pre>-Raster). */
 .doc-prose {
   padding: 4px 16px 24px;
-  font-size: calc(14px * var(--font-scale, 1));
+  font-size: calc(14px * var(--font-scale));
 }
 
 .doc-prose .markdown > * {

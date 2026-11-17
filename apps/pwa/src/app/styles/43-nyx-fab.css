@@ -54,7 +54,7 @@
   border-radius: var(--radius-sm);
   background: var(--bg-elev);
   border: 1px solid var(--bg-chip);
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: calc(12px * var(--font-scale));
   box-shadow: 0 4px 14px color-mix(in srgb, #000 30%, transparent);
   pointer-events: none;
 }
@@ -73,7 +73,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: calc(22px * var(--font-scale, 1));
+  font-size: calc(22px * var(--font-scale));
   color: #fff;
   text-shadow: 0 1px 5px color-mix(in srgb, #000 75%, transparent);
 }
@@ -109,7 +109,7 @@
 
 .nyx-fab-words {
   margin-top: 6px;
-  font-size: calc(15px * var(--font-scale, 1));
+  font-size: calc(15px * var(--font-scale));
   line-height: 1.4;
   color: var(--fg);
   overflow-wrap: break-word;

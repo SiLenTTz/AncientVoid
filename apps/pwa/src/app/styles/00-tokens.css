@@ -1,0 +1,207 @@
+/* EPIC-P63 T63.1 — Token-Architektur in drei Schichten (docs/design-system.md §Tokens).
+ * Schicht 1 (Primitiv): Nur hier stehen Hex-/rgb-Werte; css-tokens.test.ts (b)
+ * erzwingt das. Primitive sagen Farbe, nie Verwendung.
+ * Schicht 2 (Semantik): Das Vokabular aller Regeln. [data-theme="light"]
+ * überschreibt ausschließlich diese Schicht.
+ * Schicht 3 (Komponente): gehört zum Baustein, der sie parametrisiert
+ * (styles/ui/<name>.css), und verweist auf Semantik — nie auf Primitive.
+ *
+ * JS-Eingänge (Überschreiben zur Laufzeit, Default steht hier, damit Regeln
+ * ohne Fallback auskommen): appearance.ts setzt --accent/--accent-ink/
+ * --font-scale; ui-scale.ts setzt --ui-zoom; presets.ts setzt --code-scale/
+ * --radius/--preset-border/--bg-elev/--device-background (P43.5-Preset-Eingänge,
+ * Namen unverändert, Premortem 6). */
+
+:root {
+  /* ─── Schicht 1: Primitive ─── */
+  /* Flächen, dunkles Thema */
+  --gray-950: #08090b;
+  --gray-850: #121316;
+  --gray-800: #21252c;
+  /* Flächen, helles Thema */
+  --gray-025: #eef0f6;
+  --paper: #ffffff;
+  --gray-200: #d7dae5;
+  /* Text, dunkles Thema */
+  --gray-050: #eef1f5;
+  --gray-300: #8d95a3;
+  --gray-400: #7b8391;
+  /* Text, helles Thema */
+  --gray-900: #0d1016;
+  --gray-600: #565d6e;
+  --gray-500: #666d7d;
+  /* Akzent — Void-Violett, frei wählbar (appearance.ts überschreibt --accent/--accent-ink) */
+  --void-violet-500: #b58cff;
+  --void-violet-600: #7a4fd1;
+  --void-violet-700: #6a3cc9;
+  --void-ink: #12081f;
+  /* Ruf — „du bist dran“, fest, nie der Akzent */
+  --amber-400: #ff9a3c;
+  --amber-700: #9c4d00;
+  --amber-ink: #1a0a00;
+  /* Frage/Info */
+  --cyan-300: #2ac3de;
+  --cyan-400: #5cc8ff;
+  --cyan-700: #0b6aa6;
+  --cyan-800: #1072b0;
+  --cyan-ink: #04131c;
+  /* Erfolg */
+  --mint-400: #4fe0ab;
+  --mint-500: #9ece6a;
+  --mint-700: #127a56;
+  /* Warnung */
+  --gold-400: #ffcf5c;
+  --gold-700: #9a6a06;
+  /* Fehler */
+  --rose-400: #ff5c6a;
+  --rose-700: #c72d3d;
+  /* Schatten-Scrim (Farbe der Schattenwürfe als Primitive) */
+  --scrim-950: rgba(0, 0, 0, 0.65);
+  --scrim-900: rgba(0, 0, 0, 0.7);
+  --scrim-700: rgba(20, 20, 40, 0.2);
+  --scrim-600: rgba(20, 20, 40, 0.35);
+  /* Code-Syntax (aus der Dateiansicht, EPIC-P46 T46.7) */
+  --violet-300: #bb9af7;
+  --orange-400: #ff9e64;
+  --orange-700: #a04b0a;
+  --blue-400: #7aa2f7;
+
+  /* ─── Schicht 2: Semantik — Flächen, Text, Linien ─── */
+  --bg: var(--gray-950);
+  --bg-elev: var(--gray-850);
+  --bg-chip: var(--gray-800);
+  --bg-hover: color-mix(in srgb, var(--fg) 6%, var(--bg-elev));
+  --bg-active: color-mix(in srgb, var(--fg) 11%, var(--bg-elev));
+  --border: color-mix(in srgb, var(--fg) 18%, var(--bg-elev));
+  --border-strong: color-mix(in srgb, var(--fg) 34%, var(--bg-elev));
+  --fg: var(--gray-050);
+  --fg-dim: var(--gray-300);
+  --fg-faint: var(--gray-400);
+  --fg-on-accent: var(--accent-ink);
+  /* EPIC-P43 T43.1 (E1/E2): Akzent Void-Violett, „du bist dran“ fest --call. */
+  --accent: var(--void-violet-500);
+  --accent-ink: var(--void-ink);
+  --call: var(--amber-400);
+  --call-ink: var(--amber-ink);
+  --info: var(--cyan-400);
+  --info-ink: var(--cyan-ink);
+  --ok: var(--mint-400);
+  --warn: var(--gold-400);
+  --err: var(--rose-400);
+  /* Code-Syntax, semantisch (Light-Pendant unten; Kontrast prüft tokens.test.ts) */
+  --code-keyword: var(--violet-300);
+  --code-string: var(--mint-500);
+  --code-number: var(--orange-400);
+  --code-title: var(--blue-400);
+  --code-type: var(--cyan-300);
+  /* Dokumenteigene Fläche (PDF-/HTML-Vorschau) — bewusst kein Themen-Thema */
+  --content-paper: var(--paper);
+  /* EPIC-P48 (ADR-0062): Graph-Gruppenfarben — doc läuft auf --accent. */
+  --graph-code: var(--cyan-400);
+  --graph-config: var(--void-violet-500);
+  --graph-other: var(--gray-300);
+
+  /* ─── Form ─── */
+  --radius: 7px;
+  --radius-sm: 4px;
+  --radius-lg: 14px;
+  --shadow-elev: 0 0 0 1px var(--bg-chip), 0 10px 26px -14px var(--scrim-900);
+  --shadow-sheet: 0 18px 48px -20px var(--scrim-950);
+
+  /* ─── Typografie ─── */
+  --font-display: "Orbitron", system-ui, sans-serif;
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-code: "JetBrains Mono", ui-monospace, "Fira Code", system-ui, monospace;
+  --font-mono: var(--font-code);
+  --tracking-label: 0.1em;
+
+  /* ─── Skalen: Abstände (4/8/12/16/24/32) und Textgrößen (× --font-scale) ─── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --text-xs: calc(11px * var(--font-scale));
+  --text-sm: calc(12px * var(--font-scale));
+  --text-md: calc(14px * var(--font-scale));
+  --text-lg: calc(16px * var(--font-scale));
+  --text-xl: calc(20px * var(--font-scale));
+  /* Eingabefelder: Safari-Zoom unter 16px vermeiden (01-base.css setzt es ein). */
+  --text-input: max(16px, calc(16px * var(--font-scale)));
+
+  /* ─── Ziele ─── */
+  --target: 44px;
+  --icon-target: 44px;
+  --icon-glyph: calc(20px * var(--font-scale));
+
+  /* ─── Bewegung ─── */
+  --motion-fast: 120ms;
+  --motion-base: 220ms;
+  --motion-slow: 420ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.2, 0.9, 0.25, 1.1);
+
+  /* ─── Ebenen-Leiter (z-index nur über diese Tokens, css-tokens.test.ts (d)) ─── */
+  --z-base: 1;
+  --z-sticky: 10;
+  --z-dock: 20;
+  --z-overlay: 50;
+  --z-sheet: 60;
+  --z-toast: 200;
+  --z-popout: 210;
+
+  /* ─── JS-/Preset-Eingänge: Defaults hier, Überschreiben zur Laufzeit ─── */
+  --font-scale: 1;
+  --ui-zoom: 1;
+  --code-scale: 1;
+  --preset-border: 1px;
+  --device-background: none;
+
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  /* Überschreibt nur die Semantik-Schicht; Primitive und Leitern gelten weiter. */
+  --bg: var(--gray-025);
+  --bg-elev: var(--paper);
+  --bg-chip: var(--gray-200);
+  --fg: var(--gray-900);
+  --fg-dim: var(--gray-600);
+  /* EPIC-P43 T43.1: Tertiärtext erreicht 4,5:1 auf --bg-elev. */
+  --fg-faint: var(--gray-500);
+  --accent: var(--void-violet-700);
+  --accent-ink: var(--paper);
+  --call: var(--amber-700);
+  --call-ink: var(--paper);
+  --info: var(--cyan-700);
+  --info-ink: var(--paper);
+  /* EPIC-P43 AC-P43-4 / AI-P43-2: ≥ 4,5:1 auf --bg und --bg-elev. */
+  --ok: var(--mint-700);
+  --warn: var(--gold-700);
+  --err: var(--rose-700);
+  --code-keyword: var(--void-violet-700);
+  --code-string: var(--mint-700);
+  --code-number: var(--orange-700);
+  --code-title: var(--cyan-700);
+  --code-type: var(--cyan-700);
+  --graph-code: var(--cyan-800);
+  --graph-config: var(--void-violet-600);
+  --graph-other: var(--gray-600);
+  --shadow-elev: 0 0 0 1px var(--bg-chip), 0 14px 28px -18px var(--scrim-700);
+  --shadow-sheet: 0 18px 48px -22px var(--scrim-600);
+  color-scheme: light;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root {
+    --target: 30px;
+    --icon-target: 36px;
+    --icon-glyph: calc(18px * var(--font-scale));
+  }
+}
+
+/* Breakpoint-Leiter als dokumentierte Konstanten (media queries können keine
+ * Custom Properties auswerten — css-tokens.test.ts (f) prüft die Ausdrücke):
+ * phone ≤ 639 px · tablet ≤ 1023 px · desktop ≥ 1280 px · short ≤ 520 px Höhe
+ * · graph 699/700/760 px (EPIC-P52, Galaxie-Vollbild-Grenze, design-system.md). */

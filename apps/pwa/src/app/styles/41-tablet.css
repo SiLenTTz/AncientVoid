@@ -16,7 +16,7 @@
   gap: 6px;
   flex: 0 0 auto;
   max-width: 200px;
-  min-height: var(--target, 44px);
+  min-height: var(--target);
   padding: 0 12px;
   color: var(--fg);
   background: var(--bg-elev);
@@ -37,7 +37,7 @@
 
 .strip-new {
   justify-content: center;
-  min-width: var(--target, 44px);
+  min-width: var(--target);
   padding: 0;
 }
 
@@ -64,7 +64,7 @@
     flex-direction: column;
     flex-wrap: nowrap;
     padding-right: 0;
-    max-height: calc(100dvh / var(--ui-zoom, 1));
+    max-height: calc(100dvh / var(--ui-zoom));
     overflow-x: hidden;
     overflow-y: auto;
   }

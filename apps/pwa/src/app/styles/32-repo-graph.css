@@ -39,10 +39,10 @@
   height: 8px;
   border-radius: 50%;
 }
-.graph-dot-doc { background: var(--accent, #7aa2f7); }
-.graph-dot-code { background: var(--graph-code, #9ece6a); }
-.graph-dot-config { background: var(--graph-config, #e0af68); }
-.graph-dot-other { background: var(--graph-other, #a9b1d6); }
+.graph-dot-doc { background: var(--accent); }
+.graph-dot-code { background: var(--graph-code); }
+.graph-dot-config { background: var(--graph-config); }
+.graph-dot-other { background: var(--graph-other); }
 
 .graph-chip-dead {
   opacity: 0.7;
@@ -50,7 +50,7 @@
 }
 
 .graph-chip-simplified {
-  color: var(--warn, #e0af68);
+  color: var(--warn);
 }
 
 .graph-actions {
@@ -66,7 +66,7 @@
 .graph-banner {
   margin: 0 8px 6px;
   padding: 4px 8px;
-  border-left: 3px solid var(--warn, #e0af68);
+  border-left: 3px solid var(--warn);
   font-size: 0.9em;
 }
 
@@ -83,8 +83,8 @@
 
 .graph-diag-source-untrusted,
 .graph-diag-source-failed,
-.graph-diag-source-timeout { color: var(--err, #f7768e); }
-.graph-diag-source-errors { color: var(--err, #f7768e); font-weight: 600; }
+.graph-diag-source-timeout { color: var(--err); }
+.graph-diag-source-errors { color: var(--err); font-weight: 600; }
 .graph-diag-source-not_configured { opacity: 0.7; }
 
 .graph-wrap {
@@ -149,7 +149,7 @@
 
 .graph-node-hit:focus-visible {
   opacity: 1;
-  outline: 1px solid var(--accent, #7aa2f7);
+  outline: 1px solid var(--accent);
   border-radius: 50%;
 }
 
@@ -224,7 +224,7 @@
 }
 
 .graph-chip-btn[aria-pressed="true"] {
-  outline: 1px solid var(--accent, #7aa2f7);
+  outline: 1px solid var(--accent);
 }
 
 .graph-empty {
@@ -243,11 +243,11 @@
 }
 
 .graph-dir-in {
-  border-bottom: 2px solid var(--accent, #7aa2f7);
+  border-bottom: 2px solid var(--accent);
 }
 
 .graph-dir-out {
-  border-bottom: 2px dashed var(--graph-code, #9ece6a);
+  border-bottom: 2px dashed var(--graph-code);
 }
 
 .graph-crumb {
@@ -291,7 +291,7 @@
   inset: 0;
   z-index: 210;
   height: 100dvh;
-  background: var(--bg, #111);
+  background: var(--bg);
 }
 
 .session-live.graph-full .session-topbar,
