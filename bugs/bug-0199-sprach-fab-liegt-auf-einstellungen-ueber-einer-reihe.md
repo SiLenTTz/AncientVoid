@@ -80,10 +80,24 @@ Geometrie-Prüfung **9 passed**.
 
 Auf dem produktiven Hub gemessen (authentifiziert, 390x844, Einstellungsseite 6801 px,
 Scroll-Schritte zu 300 px = 20 Punkte, Trefferertest am Control-Mittelpunkt): **keine**
-Verdeckung an einem einzigen Punkt — aber bei 3200 px war der FAB *versteckt*, weil alle
-senkrechten Auswege belegt waren. Ein Sprachknopf, der auf einer Handyseite verschwindet,
-ist auch keine gute Loesung. Die Regel sucht deshalb zusaetzlich **seitwaerts und
-diagonal** (zwei Kantenlaengen senkrecht zuletzt), erst dann verschwindet er.
+Verdeckung an einem einzigen Punkt.
+
+**Klarstellung zu einem Messfehler in diesem Nachtrag:** der erste Lauf meldete „bei
+3200 px war der FAB versteckt“. Die Sonde zeichnete den Zustand aber nur am exakten Punkt
+3200 px auf — und der liegt gar nicht auf der 300er-Schiene (0, 300, …, 5700), also wurde
+dort nichts aufgezeichnet und `null` als „versteckt“ gelesen. Ein zweiter Lauf, der das
+Verstecken an *jedem* Punkt zaehlt, zeigt auf beiden Buendeln: 20 Punkte, 0 Verdeckungen,
+0 versteckte. An dem Befund „nichts verdeckt“ aendert das nichts; die Aussage ueber ein
+Verschwinden war falsch.
+
+Der seitwaerts-Schritt ist damit **kein behobener Produktfehler**, sondern Robustheit: die
+Regel muss nicht verschwinden, wenn senkrecht alles belegt ist. Belegt durch den Unit-Fall
+„weicht seitwaerts aus, wenn senkrecht nichts frei ist“ — ohne seitwaerts-Kandidaten waere
+das Ergebnis dort `null`, also der Knopf weg.
+
+Live-Endstand nach beiden Schritten: Buendel `assets/index-BlL7PDjR.js` byte-identisch zum
+gebauten Stand (sha256-Praefix `61d0ac862eae591c`, 718 691 Bytes), 20 Scrollpunkte,
+0 Verdeckungen, 0 versteckte Punkte.
 
 Messung nach dem zweiten Schritt: `apps/pwa/test/features/stt/fab-clearance.test.ts`
 **10 passed** (neu: „weicht seitwaerts aus, wenn senkrecht nichts frei ist“; der Fall
