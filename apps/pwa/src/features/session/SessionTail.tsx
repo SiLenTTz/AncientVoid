@@ -940,7 +940,7 @@ export function SessionTail({
      * as an active overview card — "this agent is working" must be visible
      * from any tab (chat/diff/code), not only from the small status pill. */}
     <div data-tab={activeTab} class={`session-live${status === "working" ? " st-working" : status === "waiting_approval" ? " st-waiting" : ""}${graphFull ? " graph-full" : ""}`}>{copyFlash && <div class="copy-flash" role="status">In Zwischenablage kopiert</div>}
-      <div class="session-main">
+      <div >
       {/* T8.5: back, what this is, Stop apart from Senden, the rest in ⋯ */}
       <div class={`topbar session-topbar${tile ? " tile-top" : ""}`}>
         {tile?.head?.start}
@@ -973,7 +973,7 @@ export function SessionTail({
         </div>
         {tile && !tile.only && <nav class="subtabs-wrap tile-tabs" aria-label="Ansichten">{tabButtons}</nav>}
         {!tile?.only && !observerOnly && features?.interrupt && (status === "working" || status === "starting" || status === "waiting_approval") && (
-          <button class="btn pause-btn" type="button" onClick={() => void pause()}>
+          <button class="btn" type="button" onClick={() => void pause()}>
             Pause
           </button>
         )}
@@ -1071,7 +1071,7 @@ export function SessionTail({
         <StatusLine totals={tokenTotals} processedFallback={tokensKnown ? record.tokensEst : null} fill={tokenStats.lastContextTokens} windowTokens={windowTokens} quota={quota} />
       </div>
 
-      {factoryLink?.partner && <div class="loop-note">Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
+      {factoryLink?.partner && <div >Factory · {factoryLink.role === "driver" ? "Treiber (Chat)" : "Beobachter (Fortschritt)"} · <a href={sessionHash(factoryLink.partner, remoteHost(session.hostId))}>{factoryLink.role === "driver" ? "Fortschritt öffnen" : "Treiber-Chat öffnen"}</a></div>}
       {(status === "interrupted" || status === "error") && <InterruptedBanner failed={status === "error"} events={events} since={record.updatedAt} nativeResume={adapterResume?.hub === true} autoResumeOnLimit={record.autoResumeOnLimit === true} onAutoResumeLimit={async on => {
         const updated = await api.setSessionMeta(session.id, { autoResumeOnLimit: on });
         setStatus(updated.status);
@@ -1302,7 +1302,7 @@ export function SessionTail({
           </div>
         ) : (
           <>
-          {hiddenOlder > 0 && <div class="dim older-hidden">{hiddenOlder} ältere Einträge — Kachel anklicken zeigt alle</div>}
+          {hiddenOlder > 0 && <div class="dim" data-testid="older-hidden">{hiddenOlder} ältere Einträge — Kachel anklicken zeigt alle</div>}
           {visible.map((e, i) => {
             // ADR-0032: the token bill of a turn shows under its last
             // visible row — even where the filter hides session.turn_end.

@@ -61,7 +61,7 @@ function InventoryCard() {
       .catch((err) => setError(err instanceof Error ? err.message : "Inventar nicht erreichbar"));
   }, []);
   return (
-    <div class="card inventory-card">
+    <div class="card">
       <div class="provider-card-head">
         <strong>Harness-Inventar</strong>
       </div>

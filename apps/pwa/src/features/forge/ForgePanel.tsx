@@ -457,7 +457,7 @@ export function ForgePanel({ session, onOpenSession }: { session: SessionRecord;
       )}
 
       {trace !== null && (
-        <div class="modal fp-trace-dialog" role="dialog" aria-label="Job-Trace">
+        <div class="fp-trace-dialog" data-testid="modal" role="dialog" aria-label="Job-Trace">
           <div class="modal-card">
             <h3>Trace Job {trace.jobId}{trace.truncated ? " (gekürzt)" : ""}</h3>
             <div class="dim">Abruf {time(trace.fetchedAt)} · {(trace.sizeBytes / 1024).toFixed(1)} KB · SHA {short(trace.sha)}</div>

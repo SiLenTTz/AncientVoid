@@ -128,7 +128,7 @@ export function QuestionForm({
                 >
                   <span class="choice-index">{i + 1}</span>
                   <span class="choice-body">
-                    <span class="choice-label">{o.label}</span>
+                    <span data-testid="choice-label">{o.label}</span>
                     {o.description && <span class="choice-desc">{o.description}</span>}
                   </span>
                 </button>
@@ -185,8 +185,8 @@ function AssessmentBadge({ a }: { a: ToolAssessment }) {
   return (
     <div class={`assessment gate-${a.securityGate}`} title={a.notes.join(" · ")}>
       <span class="assessment-gate">Laya: {GATE_TEXT[a.securityGate]}</span>
-      <span class="assessment-risk">{RISK_TEXT[a.toolRisk]}</span>
-      <span class="assessment-src dim">
+      <span >{RISK_TEXT[a.toolRisk]}</span>
+      <span class="dim">
         {SOURCE_TEXT[a.source]}
         {conf}
       </span>

@@ -160,7 +160,7 @@ export function App({
       </div>
 
       {error && (
-        <div class="card load-error" role="alert" style="color: var(--err)">
+        <div class="card" data-testid="load-error" role="alert" style="color: var(--err)">
           {error}{" "}
           <button class="btn" type="button" onClick={() => setRetry((n) => n + 1)}>
             Erneut versuchen

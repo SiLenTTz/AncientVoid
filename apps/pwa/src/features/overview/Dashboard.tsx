@@ -292,7 +292,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
       {/* EPIC-P47 T47.1: ein Umschalter statt der rein informativen Host-Chips. */}
       <div class="overview-switch" role="tablist" aria-label="Übersichtsansicht">
         {VIEWS.map((v) => (
-          <button key={v} type="button" role="tab" aria-selected={view === v} class={`chip overview-switch-btn${view === v ? " active" : ""}`} onClick={() => setOverviewView(v)}>
+          <button key={v} type="button" role="tab" aria-selected={view === v} class={`chip${view === v ? " active" : ""}`} data-testid="overview-switch-btn" onClick={() => setOverviewView(v)}>
             {VIEW_TITLE[v]}
           </button>
         ))}
@@ -592,7 +592,7 @@ function SessionRow({
           <StatusDot status={session.status} question={question} unseen={unseen} />
         </div>
         {inWindow && (
-          <div class="session-window">
+          <div >
             <span class="badge-window" title="Ein Klick holt das Fenster nach vorn">⧉ eigenes Fenster</span>
           </div>
         )}
@@ -601,7 +601,7 @@ function SessionRow({
            * label (fallback short id), model or the honest "Standardmodell"
            * (no guessed provider). */}
           {session.hostId ? `${hostLabel(hosts ?? [], session.hostId)} · ` : ""}
-          <span class="session-project">{project}</span> · {session.adapter} · {session.model ?? "Standardmodell"}
+          <span data-testid="session-project">{project}</span> · {session.adapter} · {session.model ?? "Standardmodell"}
           {session.costUsd > 0 ? ` · ${metricView(session, "cost", formatUsd, true).text}` : ""}
         </div>
         <div class="session-activity">

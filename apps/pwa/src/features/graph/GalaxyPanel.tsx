@@ -62,7 +62,7 @@ export function GalaxyPanel(props: {
         </ul>
       )}
       {selected && (
-        <section class="graph-selection" aria-label="Auswahl">
+        <section data-testid="graph-selection" aria-label="Auswahl">
           {props.narrow && props.sheet === "line" && (
             <div class="graph-sheet-line">
               <button type="button" class="graph-sheet-handle" aria-label="Liste aufklappen" onClick={() => props.onSheet("open")}>

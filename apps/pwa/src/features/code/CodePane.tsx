@@ -327,7 +327,7 @@ function ActionsPanel({ sessionId }: { sessionId: string }) {
                 {Object.entries(a.params).map(([name, p]) => (
                   <input
                     key={name}
-                    class="action-param"
+                    
                     placeholder={`${name}${p.optional ? " (optional)" : ""}${p.description ? ` — ${p.description}` : ""}`}
                     aria-label={`${a.label}: ${name}`}
                     value={params[a.id]?.[name] ?? ""}

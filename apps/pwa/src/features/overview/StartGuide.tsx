@@ -32,7 +32,7 @@ export function StartGuide({ probeAvailable, onOpen }: { probeAvailable: boolean
   };
 
   return (
-    <section class="card start-guide" aria-label="Erste Schritte">
+    <section class="card" aria-label="Erste Schritte">
       <h2 style="margin: 0">Noch keine Sessions</h2>
       <p style="margin: 0">
         {probeAvailable
@@ -66,7 +66,7 @@ export function FirstSuccessSignal() {
   }, []);
   if (!shown) return null;
   return (
-    <div class="card first-success" role="status">
+    <div class="card" role="status">
       <span>Freigabe entschieden — Agent läuft weiter.</span>{" "}
       <button
         type="button"

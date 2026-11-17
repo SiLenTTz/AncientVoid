@@ -326,7 +326,7 @@ function Tile({
         </div>
       ) : missing ? (
         // P18 premortem 4: a remembered session that is gone says so.
-        <div class="empty tile-empty tile-missing">
+        <div class="empty tile-empty" data-testid="tile-missing">
           Diese Session gibt es nicht mehr oder sie ist nicht erreichbar.
           <button type="button" class="btn" onClick={onClose}>
             Kachel leeren

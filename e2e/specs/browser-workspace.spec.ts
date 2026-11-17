@@ -74,9 +74,9 @@ test.describe("Browser-Arbeitsplatz (EPIC-P39)", () => {
       await app.getByTestId("browser-test-start").click();
     };
     await run([{ type: "goto", url: `${scratch.origin}/`, timeoutMs: 5000 }, { type: "click", selector: "#b", timeoutMs: 3000 }, { type: "expectText", selector: "#b", text: "Klicks: 1", timeoutMs: 3000 }], "Zähler zählt");
-    await expect(app.locator('[data-testid="browser-run"]').filter({ hasText: "Zähler zählt" })).toHaveAttribute("data-state", "passed", { timeout: 30_000 });
+    await expect(app.locator('[data-testid=browser-run]').filter({ hasText: "Zähler zählt" })).toHaveAttribute("data-state", "passed", { timeout: 30_000 });
     await run([{ type: "goto", url: `${scratch.origin}/`, timeoutMs: 5000 }, { type: "expectText", selector: "#b", text: "Klicks: 7", timeoutMs: 800 }], "Gegenprobe");
-    const failed = app.locator('[data-testid="browser-run"]').filter({ hasText: "Gegenprobe" });
+    const failed = app.locator('[data-testid=browser-run]').filter({ hasText: "Gegenprobe" });
     await expect(failed).toHaveAttribute("data-state", "failed", { timeout: 30_000 });
     await expect(failed).toContainText("Klicks: 7");
     await failed.getByRole("button", { name: "Screenshot" }).click();

@@ -43,11 +43,11 @@ export function QueueList({ sessionId, api, refreshKey }: { sessionId: string; a
   };
   return (
     <div class="queue-list" aria-label="Vorgemerkt">
-      <div class="queue-title dim">Vorgemerkt ({items.length}) — geht raus, sobald der Zug endet</div>
+      <div class="dim">Vorgemerkt ({items.length}) — geht raus, sobald der Zug endet</div>
       {error && <div class="reply-error" role="alert">{error}</div>}
       {items.map((item, i) => (
         <div key={item.id} class="queue-item">
-          <span class="queue-pos dim">{i + 1}.</span>
+          <span class="dim">{i + 1}.</span>
           <span class="queue-text">{item.text.length > 140 ? `${item.text.slice(0, 139)}…` : item.text}</span>
           {item.delivery === "unknown" && <span role="alert">Annahme unklar — Verlauf prüfen</span>}
           <button

@@ -40,7 +40,7 @@ export function GeminiSettings() {
   };
 
   return (
-    <SettingsSection title="Dienste" class="gemini-settings">
+    <SettingsSection title="Dienste" testid="gemini-settings">
       <SettingRow label="Gemini · Bilder und Scans lesen">
         <span class={state?.configured ? "gemini-state ok" : "gemini-state dim"}>{state === null ? "…" : state.configured ? "Schlüssel hinterlegt ✓" : "kein Schlüssel"}</span>
       </SettingRow>

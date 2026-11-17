@@ -396,13 +396,13 @@ function TeamsHostPane() {
         {teams === null ? (
           <div class="empty">{offline ? "Kein gespeicherter Stand vorhanden." : "lade…"}</div>
         ) : teams.length === 0 ? (
-          <section class="card start-guide" data-testid="teams-empty">
+          <section class="card" data-testid="teams-empty">
             <h3>Noch keine Teams</h3>
             <p class="dim">Ein Team ist ein großer Auftrag, den der Hub auf mehrere Agenten-Sessions verteilt.</p>
             <button type="button" class="btn primary" disabled={offline} onClick={() => setShowNew(true)}>Neues Team anlegen</button>
           </section>
         ) : (
-          <ul class="teams-rows">
+          <ul >
             {/* Stabile Keys je Team-ID: Poll-Aktualisierung ohne Flackern (K2). */}
             {teams.map((team) => {
               const done = team.tasks.filter((t) => t.status === "done").length;

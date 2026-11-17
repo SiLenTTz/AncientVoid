@@ -4,9 +4,9 @@ import type { ComponentChildren } from "preact";
  * EPIC-P34 T34.3: die drei Bausteine aller Einstellungen. Jede Gruppe ist eine Karte mit Titel,
  * jede Zeile hat links Beschriftung und Hinweis, rechts das Bedienelement am gemeinsamen Rand.
  */
-export function SettingsSection({ title, class: cls, children }: { title: string; class?: string; children: ComponentChildren }) {
+export function SettingsSection({ title, class: cls, testid, children }: { title: string; class?: string; testid?: string; children: ComponentChildren }) {
   return (
-    <section class={`card settings-section${cls ? ` ${cls}` : ""}`}>
+    <section class={`card settings-section${cls ? ` ${cls}` : ""}`} data-testid={testid}>
       <header>
         <h3>{title}</h3>
       </header>

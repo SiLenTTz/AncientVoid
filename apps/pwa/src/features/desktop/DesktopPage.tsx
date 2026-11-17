@@ -87,7 +87,7 @@ export function DesktopPage() {
   if (companions === null) return <div class="empty">lade…</div>;
   if (companions.length === 0)
     return (
-      <div class="card desktop-setup">
+      <div class="card" data-testid="desktop-setup">
         <h2>Am PC eintippen</h2>
         <p>Kein PC verbunden. So richtest du den Companion ein (auf dem PC):</p>
         <pre class="desktop-cmd">{"node apps/hubctl/src/cli.ts token issue companion:mein-pc > ~/.config/ancientvoid/companion.token\nnode apps/companion/src/cli.ts run --hub http://127.0.0.1:7373"}</pre>
@@ -97,7 +97,7 @@ export function DesktopPage() {
 
   return (
     <div class="desktop-page">
-      <div class="card desktop-target">
+      <div class="card" data-testid="desktop-target">
         {companions.length > 1 && (
           <select aria-label="PC" value={c?.name ?? ""} onChange={(e) => setChosen((e.target as HTMLSelectElement).value)}>
             {companions.map((x) => (
@@ -145,7 +145,7 @@ export function DesktopPage() {
             Ersetzen
           </button>
         </div>
-        <div class="row desktop-keys" style="gap: 6px; flex-wrap: wrap">
+        <div class="row" style="gap: 6px; flex-wrap: wrap">
           {KEYS.map((k) => (
             <button key={k.key} class="btn subtle" type="button" disabled={!ready || busy} onClick={() => void send("key", k.key)}>
               {k.label}
@@ -156,7 +156,7 @@ export function DesktopPage() {
       </div>
 
       {actions.length > 0 && (
-        <div class="card desktop-actions">
+        <div class="card">
           {actions.slice(0, 6).map((a) => (
             <div key={a.id} class={`desktop-action ${a.status}`}>
               <span class="chip">{STATUS[a.status]}</span> {a.kind === "key" ? `Taste ${a.key}` : `${a.textLength} Zeichen`} → {a.target.app}

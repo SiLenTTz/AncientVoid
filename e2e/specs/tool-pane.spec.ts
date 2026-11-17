@@ -25,7 +25,7 @@ test.describe("Werkzeugfläche am Desktop (EPIC-P34)", () => {
       await expect(app.locator(".split-list .session-card").filter({ hasText: "Aufgabe Eins" })).toBeVisible();
     }
     await app.goto(`${hub.origin}/#/pc`);
-    await expect(app.locator(".tool-pane .desktop-setup, .tool-pane .desktop-head").first()).toBeVisible();
+    await expect(app.locator(".tool-pane [data-testid=desktop-setup], .tool-pane .desktop-head").first()).toBeVisible();
     await app.goto(`${hub.origin}/#/status`);
     await expect(app.locator(".tool-pane .provider-card").first()).toBeVisible();
     // Neu und Freigaben bleiben in der Liste (K1-Weg unverändert).

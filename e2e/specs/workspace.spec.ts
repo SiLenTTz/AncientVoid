@@ -289,8 +289,8 @@ test.describe("Offline (K10, T8.2)", () => {
     // K10 (2026-11-12): der Badge ist klickbar — tippen lädt neu. Offline bleibt
     // die Meldung stehen und zeigt weiterhin denselben gespeicherten Stand.
     const firstShown = hhmmss![0];
-    await app.locator(".badge-refresh").click();
-    const again = app.locator(".badge-refresh");
+    await app.locator("[data-testid=badge-refresh]").click();
+    const again = app.locator("[data-testid=badge-refresh]");
     await expect(again).toContainText("offline");
     expect(/\d{2}:\d{2}:\d{2}/.exec((await again.textContent()) ?? "")![0]).toBe(firstShown);
 
@@ -306,7 +306,7 @@ test.describe("Offline (K10, T8.2)", () => {
     await expect(app.getByText("Offline — Senden ist gesperrt, dein Entwurf bleibt.")).toHaveCount(0);
     // K10-Fix (2026-11-12): frische Daten lassen die Meldung verschwinden —
     // früher blieb sie stehen, weil nur das „online”-Event sie löschte.
-    await expect(app.locator(".badge-refresh")).toHaveCount(0);
+    await expect(app.locator("[data-testid=badge-refresh]")).toHaveCount(0);
     // Nothing was sent while offline.
     expect((await hub.events(id)).filter((e) => e.type === "user")).toHaveLength(1);
   });

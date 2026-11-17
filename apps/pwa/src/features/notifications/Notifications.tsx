@@ -204,7 +204,7 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
 
   const row = (n: FleetNotification) => (
     <button key={n.key} class={`notif-item ${n.level}`} type="button" onClick={() => goTo(n.sessionId, n.hostId)}>
-      <span class="notif-item-title">{n.title}</span>
+      <span >{n.title}</span>
       {n.detail && <span class="notif-item-detail">{n.detail}</span>}
       <span class="notif-item-time">{timeAgo(n.createdAt)}</span>
     </button>

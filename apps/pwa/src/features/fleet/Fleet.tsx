@@ -80,15 +80,15 @@ export function FleetSettings() {
   };
 
   return (
-    <SettingsSection title="Flotte" class="fleet-settings">
+    <SettingsSection title="Flotte" >
       <SettingRow label="Dieser Hub" hint="Name in der Flotte">
-        <span class="mono dim fleet-self">{self ?? "…"}</span>
+        <span class="mono dim" data-testid="fleet-self">{self ?? "…"}</span>
       </SettingRow>
 
       {peers && peers.length > 0 && (
         <div class="fleet-peers">
           {peers.map((p) => (
-            <div key={p.hostId} class="fleet-peer setting-row">
+            <div key={p.hostId} class="setting-row" data-testid="fleet-peer">
               <span class="setting-label">
                 <strong>{p.hostId}</strong> <span class="mono dim">{p.url}</span>
               </span>

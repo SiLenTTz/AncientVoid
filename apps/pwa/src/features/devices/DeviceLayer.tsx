@@ -233,7 +233,7 @@ function DeviceView({ serial, generation, online, busy, onError }: { serial: str
 
   const keys = ["back", "home", "app-switch", "enter", "del", "volume-up", "volume-down"] as const;
   return (
-    <div class="browser-view device-view">
+    <div>
       {generation === null && <div class="dim">Nur Ansicht — für Eingaben die Steuerung (Lease) holen. Jeder Tap wird an das angezeigte Bild gebunden.</div>}
       <div class="browser-tools">
         <button type="button" class="chip" disabled={!online || generation === null} onClick={() => frame && act({ type: "swipe", x1: Math.round(frame.width / 2), y1: Math.round(frame.height * 0.7), x2: Math.round(frame.width / 2), y2: Math.round(frame.height * 0.3), durationMs: 300 }, frame.geometryVersion)} aria-label="Hochwischen">↑</button>
@@ -347,7 +347,7 @@ function Tests({ serial, online }: { serial: string; online: boolean }) {
     try { await hubApi.deviceRunTest(parsed.test); void load(); } catch (err) { setError(err instanceof Error ? err.message : "Start fehlgeschlagen"); }
   };
   return (
-    <div class="browser-tests" data-testid="device-tests">
+    <div  data-testid="device-tests">
       <div class="dim file-note">Registrierte Schritte (openUrl, tap, swipe, text, key, rotate, expectText, wait) — kein freier Code. Der Lauf hält selbst die Lease und hält Image/API/Auflösung fest. 10.0.2.2 ist der Host aus Emulatorsicht.</div>
       <textarea class="browser-test-editor mono" aria-label="Geräte-Testfall (JSON)" rows={10} spellcheck={false} value={text} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} />
       {error && <div class="files-error" role="alert">{error}</div>}

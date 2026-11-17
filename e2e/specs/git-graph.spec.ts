@@ -10,7 +10,7 @@ test.describe("Git-Graph", () => {
     const id = await hub.createSession({ adapter: "dummy", prompt: "Git Graph" });
     await app.goto(`${hub.origin}/#/sessions/${id}/git`);
     await expect(app.locator(".session-live[data-tab='git']")).toBeVisible();
-    await expect(app.locator('[data-testid="git-graph-pane"]')).toBeVisible();
+    await expect(app.locator('[data-testid=git-graph-pane]')).toBeVisible();
     await expect(app.locator(".git-graph-row").first()).toBeVisible({ timeout: 15_000 });
   });
 
@@ -25,9 +25,9 @@ test.describe("Git-Graph", () => {
     await expect(app.locator(".git-graph-row").first()).toBeVisible({ timeout: 15_000 });
     // Neuester Commit aufklappen
     await app.locator(".git-graph-commit").first().click();
-    await expect(app.locator('[data-testid="git-graph-files"]')).toBeVisible();
-    await app.locator('[data-testid="git-graph-files"] button').filter({ hasText: "gg-note.txt" }).click();
-    await expect(app.locator('[data-testid="files-sidebar"]')).toBeVisible({ timeout: 10_000 });
-    await expect(app.locator('[data-testid="files-sidebar"]')).toContainText("gg-note.txt");
+    await expect(app.locator('[data-testid=git-graph-files]')).toBeVisible();
+    await app.locator('[data-testid=git-graph-files] button').filter({ hasText: "gg-note.txt" }).click();
+    await expect(app.locator('[data-testid=files-sidebar]')).toBeVisible({ timeout: 10_000 });
+    await expect(app.locator('[data-testid=files-sidebar]')).toContainText("gg-note.txt");
   });
 });

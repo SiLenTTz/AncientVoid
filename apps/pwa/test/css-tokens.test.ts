@@ -156,6 +156,54 @@ describe("EPIC-P63 css-tokens-Ratchet (AC-P63-1)", () => {
     expect(dups.map(([c, fs]) => `${c}: ${fs.join(", ")}`)).toEqual([]);
   });
 
+  it("jede TSX-Klasse hat eine Regel oder einen dokumentierten dynamischen Präfix (AC-P63-3, T63.6)", () => {
+    const defined = new Set<string>();
+    for (const f of FILES) for (const m of stripComments(cssOf(f)).matchAll(/\.([A-Za-z0-9_-]+)/g)) defined.add(m[1]!);
+    /** Dynamische Präfixe: der Zusatz wird im TSX zur Laufzeit zusammengesetzt —
+     * je Präfix die erzeugende Stelle. Neue Einträge brauchen einen Datei-Verweis. */
+    const DYNAMIC = [
+      "hljs-", // files/highlight.ts (Syntax-Highlighting)
+      "layout-", // workspace/TileWorkspace.tsx (Kachel-Layouts)
+      "graph-dot-", "graph-diag-source-", // graph/GraphPane.tsx
+      "kind-", // composer/SourceChips.tsx
+      "git-", // files/FilesSidebar.tsx (Git-Status)
+      "gate-", // approvals/Approvals.tsx, loops/LoopPanel.tsx
+      "ui-", // shared/ui/ (Bausteine, T63.7)
+      "status-", // shared/StatusDot.tsx (Anzeigezustand)
+      "nyx-", // nyx/Nyx.tsx (Sprite-Zustände)
+      "md-", // shared/markdown.ts (gerendertes Markdown)
+      "json-", "nb-", // files/RenderedViews.tsx
+      "log-", "run-", // browser/BrowserLayer.tsx (Log-/Testzustände)
+      "epic-", // files/FilesSidebar.tsx (Epic-Statuspunkte)
+      "state-", // discovery/Discovery.tsx
+      "section-", // overview/Dashboard.tsx
+      "risk-", // commands/CommandBar.tsx
+      "metric-", // session/ReportPane.tsx
+      "todo-", "ws-phase-", "ws-state-", // session/SessionTail.tsx, workspace/WorkspaceRuntimePane.tsx
+      "st-", // team/TeamsPane.tsx
+      "session-status-", // Anzeigezustand abgeleitet (display-state.ts)
+    ];
+    const missing = new Set<string>();
+    const srcDir = join(PWA, "src");
+    for (const f of readdirSync(srcDir, { recursive: true })) {
+      if (!/\.tsx$/.test(String(f))) continue;
+      const src = readFileSync(join(srcDir, String(f)), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      const cls = new Set<string>();
+      for (const m of src.matchAll(/class="([^"]*)"/g)) for (const t of m[1]!.trim().split(/\s+/)) if (t) cls.add(t);
+      for (const m of src.matchAll(/class=\{`([^`]*)`\}/g)) {
+        const frag = m[1]!;
+        for (const part of frag.split(/\$\{[^}]*\}/)) for (const t of part.trim().split(/\s+/)) if (t && !t.endsWith("-")) cls.add(t);
+        const pre = frag.match(/^\s*([A-Za-z0-9_-]+)/);
+        if (pre && frag.includes("${")) cls.add(pre[1]!);
+      }
+      for (const c of cls) {
+        if (!c || c.endsWith("-")) continue;
+        if (!defined.has(c) && !DYNAMIC.some((d) => c.startsWith(d))) missing.add(`${c} (${f})`);
+      }
+    }
+    expect([...missing].sort()).toEqual([]);
+  });
+
   it("Datei-Präfixe sind eindeutig (T63.5: doppeltes 23- aufgelöst)", () => {
     const prefixes = FILES.filter((f) => f !== "index.css").map((f) => f.split("-")[0]);
     expect(new Set(prefixes).size, "Nummern-Präfixe doppelt").toBe(prefixes.length);

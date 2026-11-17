@@ -80,7 +80,7 @@ export function CustomModelDialog({ adapter, canEndpoint, api, onClose, onChange
   const exists = /schon/.test(error ?? "");
 
   return (
-    <div class="modal custom-model-dialog" role="dialog" aria-label="Eigenes Modell oder Endpunkt">
+    <div class="custom-model-dialog" data-testid="modal" role="dialog" aria-label="Eigenes Modell oder Endpunkt">
       <div class="modal-card">
         <h3>Eigenes Modell oder Endpunkt</h3>
         {canEndpoint && (

@@ -846,9 +846,9 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       )}
       {diag && (
         <div class="graph-diag">
-          <div class="graph-diag-sources">
+          <div>
             {diag.sources.map((s) => (
-              <div class={`graph-diag-source graph-diag-source-${s.state}`} key={s.name}>
+              <div class={`graph-diag-source-${s.state}`} key={s.name}>
                 {s.name}: {s.state}
                 {s.detail ? ` — ${s.detail}` : ""}
               </div>

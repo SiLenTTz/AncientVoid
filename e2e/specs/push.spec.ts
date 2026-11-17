@@ -7,7 +7,7 @@ test.describe("Benachrichtigungen (T8.3, AC-P8-3)", () => {
       Object.defineProperty(globalThis.Notification ?? {}, "permission", { get: () => "denied" });
     });
     await app.goto(`${hub.origin}/#/einstellungen`);
-    const card = app.locator(".push-settings");
+    const card = app.locator("[data-testid=push-settings]");
     await expect(card).toContainText("verlässt damit das Tailnet");
     const toggle = card.getByLabel("Push auf diesem Hub erlauben");
     await expect(toggle).not.toBeChecked();

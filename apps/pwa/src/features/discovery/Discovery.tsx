@@ -255,7 +255,7 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
       ? "Läuft gerade woanders — dieser Harness kann keine Kopie fortsetzen. Erst dort beenden, dann hier fortsetzen."
       : "";
   return (
-    <div class={`card discovery-card discovered-row state-${state}`}>
+    <div class={`card discovery-card state-${state}`} data-testid="discovered-row">
       {item.hubSessionId ? (
         <button class="session-open" type="button" onClick={() => onOpen(item.hubSessionId!)}>
           {body}

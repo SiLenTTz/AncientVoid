@@ -27,7 +27,7 @@ export function HandoverBar({ failure, session, api, onHandedOver, onRepaired }:
   };
   return (
     <div class="handover-bar" role="alert">
-      <div class="handover-reason">
+      <div >
         <strong>{failure.title}</strong>
         <span class="dim"> — {failure.detail}</span>
       </div>

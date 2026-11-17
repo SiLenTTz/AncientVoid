@@ -256,7 +256,7 @@ test.describe("Zoom-robuste Flächen (EPIC-P50)", () => {
         wrap.innerHTML = p.html;
         document.body.appendChild(wrap);
         const el = wrap.firstElementChild as HTMLElement;
-        const target = (el.querySelector(".modal-card, .composer-input") as HTMLElement | null) ?? el;
+        const target = (el.querySelector("[data-testid=modal] .modal-card, .composer-input") as HTMLElement | null) ?? el;
         const cs = getComputedStyle(target);
         const maxH = cs.maxHeight === "none" ? Number.parseFloat(cs.height) : Number.parseFloat(cs.maxHeight);
         const maxW = cs.maxWidth === "none" ? Number.parseFloat(cs.width) : Number.parseFloat(cs.maxWidth);

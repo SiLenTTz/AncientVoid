@@ -58,10 +58,10 @@ export function InstallStatus() {
           Stand neu prüfen
         </button>
         <span class="settings-row-actions">
-          <button class="btn small secondary" data-testid="install-orient-landscape" onClick={() => void orient("landscape")}>
+          <button class="btn small" data-testid="install-orient-landscape" onClick={() => void orient("landscape")}>
             Querformat erzwingen
           </button>
-          <button class="btn small secondary" data-testid="install-orient-auto" onClick={() => void orient("any")}>
+          <button class="btn small" data-testid="install-orient-auto" onClick={() => void orient("any")}>
             Wieder automatisch
           </button>
         </span>

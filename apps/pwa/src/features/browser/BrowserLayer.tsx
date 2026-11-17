@@ -120,7 +120,7 @@ export function BrowserPanel({ sessionId, label, hostId, onClose }: { sessionId:
         )}
       </div>
       {status && <div class="dim" data-testid="browser-mode">{status.headless ? "Modus: unsichtbar (headless) — du siehst das Bild hier." : "Modus: sichtbares Chromium-Fenster auf dem Host — das Bild hier ist dasselbe Fenster."}</div>}
-      {status && status.allowedOrigins.length > 0 && <div class="dim browser-origins" data-testid="browser-origins">Erreichbar: {status.allowedOrigins.join(", ")}</div>}
+      {status && status.allowedOrigins.length > 0 && <div class="dim" data-testid="browser-origins">Erreichbar: {status.allowedOrigins.join(", ")}</div>}
       {status && status.allowedOrigins.length === 0 && <div class="dim">Kein freigegebenes Ziel: der Workspace hat keinen laufenden Service (Manifest) und es sind keine browserOrigins konfiguriert.</div>}
       <div class="browser-tabs" role="tablist">
         {(["view", "tests", "log"] as const).map((t) => (
@@ -196,7 +196,7 @@ function Viewport({ sessionId, status, online, busy, onStatus, onError }: { sess
 
   if (!isOpen) return <div class="empty" data-testid="browser-closed">Der Browser ist geschlossen. Adresse eingeben und „Browser starten“.</div>;
   return (
-    <div class="browser-view">
+    <div >
       <div class="browser-tools">
         <label class="dim"><input type="radio" name="browser-mode" checked={mode === "operate"} onChange={() => setMode("operate")} /> Bedienen</label>
         <label class="dim"><input type="radio" name="browser-mode" checked={mode === "pick"} onChange={() => setMode("pick")} /> Element wählen</label>
@@ -284,7 +284,7 @@ function Tests({ sessionId, online }: { sessionId: string; online: boolean }) {
     try { await hubApi.browserRunTest(sessionId, parsed.test); void load(); } catch (err) { setError(err instanceof Error ? err.message : "Start fehlgeschlagen"); }
   };
   return (
-    <div class="browser-tests" data-testid="browser-tests">
+    <div  data-testid="browser-tests">
       <div class="dim file-note">Registrierte Schritte (goto, click, fill, expectText, expectVisible, expectUrl) — kein freier Code. Der Test läuft in einem eigenen Kontext, getrennt von deinem Browser. Ein „/pfad“ gilt relativ zum ersten freigegebenen Dienst.</div>
       <textarea class="browser-test-editor mono" aria-label="Testfall (JSON)" rows={10} spellcheck={false} value={text} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} />
       {error && <div class="files-error" role="alert">{error}</div>}

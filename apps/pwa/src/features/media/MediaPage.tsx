@@ -161,7 +161,7 @@ function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaRes
         </section>
       )}
       {result.notes.length > 0 && (
-        <section class="media-notes">
+        <section >
           {result.notes.map((n) => (
             <div key={n} class="dim">
               ⓘ {n}

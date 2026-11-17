@@ -126,7 +126,7 @@ function AttachmentViewer({ attachment, onClose }: { attachment: AttachmentRef; 
   }, [attachment.id]);
   return (
     <div class="overlay-backdrop" onClick={onClose}>
-      <div class="overlay-sheet attachment-viewer" onClick={(e) => e.stopPropagation()}>
+      <div class="overlay-sheet" data-testid="attachment-viewer" onClick={(e) => e.stopPropagation()}>
         <div class="row" style="justify-content: space-between; align-items: center">
           <strong>{attachment.name}</strong>
           <button class="btn" type="button" onClick={onClose}>

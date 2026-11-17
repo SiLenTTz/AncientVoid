@@ -84,14 +84,14 @@ function Folder({ hostId, target, path, depth, showIgnored, onOpenFile, activePa
       })}
       {last?.nextOffset != null && (
         <li>
-          <button type="button" class="btn files-more" style={{ marginLeft: `${depth * 12 + 6}px` }} onClick={() => void load(last.nextOffset!, false)}>
+          <button type="button" class="btn" style={{ marginLeft: `${depth * 12 + 6}px` }} onClick={() => void load(last.nextOffset!, false)}>
             Weitere {last.total - entries.length} Einträge laden
           </button>
         </li>
       )}
-      {pages.length > 0 && entries.length === 0 && !error && <li class="dim files-empty" style={{ paddingLeft: `${depth * 12 + 6}px` }}>leer</li>}
+      {pages.length > 0 && entries.length === 0 && !error && <li class="dim" style={{ paddingLeft: `${depth * 12 + 6}px` }}>leer</li>}
       {depth === 0 && last && !last.filters.ignored && last.filters.ignoredHidden > 0 && (
-        <li class="dim files-empty">{last.filters.ignoredHidden} ignorierte Einträge ausgeblendet</li>
+        <li class="dim">{last.filters.ignoredHidden} ignorierte Einträge ausgeblendet</li>
       )}
     </ul>
   );

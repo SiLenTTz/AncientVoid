@@ -51,7 +51,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await expect(tiles).toHaveCount(3);
     await expect(tiles.and(app.locator("[open]"))).toHaveCount(1);
     await expandAllGroups(app);
-    const rows = app.locator(".discovered-row");
+    const rows = app.locator("[data-testid=discovered-row]");
     await expect(rows.filter({ hasText: "ext-1" })).toHaveCount(1);
     await expect(rows.filter({ hasText: "agent-9" }).getByText("Subagent von ext-2")).toBeVisible();
     await expect(rows.filter({ hasText: "extern · nur beobachtet" })).toHaveCount(4);
@@ -82,7 +82,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     const project = tiles.first();
     await expect(project.locator("> summary")).toContainText(hub.alpha.split("/").pop()!);
     await expect(project.locator("> summary")).toContainText("3 Sessionen");
-    await expect(project.locator(".discovered-row").filter({ hasText: "Aufgabe wt-1" })).toContainText("Worktree feat-abc");
+    await expect(project.locator("[data-testid=discovered-row]").filter({ hasText: "Aufgabe wt-1" })).toContainText("Worktree feat-abc");
     // Der Subagent steht unter wt-1 statt als gleichrangige Karte.
     await expect(project.locator(".discovery-thread").filter({ hasText: "Aufgabe wt-1" }).locator(".discovery-subagents > summary")).toHaveText("1 Subagent");
     // Rauschen: eigene Gruppe am Ende, eingeklappt, Zähler sichtbar.
@@ -91,7 +91,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await expect(noise.locator("> summary")).toContainText("1 Session");
     await expect(noise).not.toHaveAttribute("open", "");
     await noise.locator("> summary").click();
-    await expect(noise.locator(".discovered-row")).toContainText("fab-1");
+    await expect(noise.locator("[data-testid=discovered-row]")).toContainText("fab-1");
   });
 
   test("EPIC-P34 T34.8: Codex- und Hermes-Sessions werden gefunden, Codex nur beobachtet @desktop", async ({ app, hub }) => {
@@ -113,7 +113,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
 
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expandAllGroups(app);
-    const rows = app.locator(".discovered-row");
+    const rows = app.locator("[data-testid=discovered-row]");
     const codex = rows.filter({ hasText: "Codex Aufgabe E2E" });
     await expect(codex).toContainText("codex");
     await expect(codex).toContainText("Nur beobachtet");
@@ -148,7 +148,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await expect(kpi("Nur beobachtet").locator(".discovery-kpi-count")).toHaveText("1");
     await expect(kpi("Im Hub").locator(".discovery-kpi-count")).toHaveText("1");
     await expandAllGroups(app);
-    const rows = app.locator(".discovered-row");
+    const rows = app.locator("[data-testid=discovered-row]");
     await expect(rows).toHaveCount(4);
     await expect(rows.filter({ hasText: "Gerade offen" }).locator(".discovery-state")).toHaveText("läuft gerade woanders");
 
@@ -188,7 +188,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await seedStates(hub);
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expandAllGroups(app);
-    const card = app.locator(".discovered-row").filter({ hasText: "Lange Aufgabe" });
+    const card = app.locator("[data-testid=discovered-row]").filter({ hasText: "Lange Aufgabe" });
     await expect(card.locator(".card-menu-body")).toBeHidden();
     await card.getByLabel("Weitere Angaben und Aktionen").click();
     await expect(card.locator(".card-menu-body")).toContainText("alt");
@@ -208,7 +208,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expect(app.getByText("20 gefunden")).toBeVisible({ timeout: 10_000 });
     await expandAllGroups(app);
-    await expect(app.locator(".discovered-row")).toHaveCount(20);
+    await expect(app.locator("[data-testid=discovered-row]")).toHaveCount(20);
     info.annotations.push({ type: "sichtbar nach ms", description: String(Date.now() - t0) });
     expect(Date.now() - t0).toBeLessThan(10_000);
     await expect(app.locator(".project-tile")).toHaveCount(7);
@@ -226,7 +226,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expandAllGroups(app);
     // der Subagent-Zeile: „Fortsetzen" übernimmt die Haupt-Session
-    const row = app.locator(".discovered-row").filter({ hasText: "agent-9" });
+    const row = app.locator("[data-testid=discovered-row]").filter({ hasText: "agent-9" });
     await row.getByRole("button", { name: "Fortsetzen" }).click();
     await expect(app.locator(".session-topbar")).toContainText("claude");
     const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
@@ -252,7 +252,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
 
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expandAllGroups(app);
-    const row = app.locator(".discovered-row").filter({ hasText: "E2E Spiegel" });
+    const row = app.locator("[data-testid=discovered-row]").filter({ hasText: "E2E Spiegel" });
     await expect(row).toContainText("ses_e2e_mirror");
     await row.getByRole("button", { name: "Spiegeln" }).click();
     await expect(app.locator(".session-topbar")).toContainText("opencode");
@@ -279,10 +279,10 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     utimesSync(join(dir, "11111111-aaaa-4aaa-8aaa-111111111111.jsonl"), new Date(Date.now() - 7200_000), new Date(Date.now() - 7200_000));
 
     await app.getByRole("button", { name: "Gefunden" }).click();
-    await expect(app.locator(".discovered-row")).toHaveCount(50);
+    await expect(app.locator("[data-testid=discovered-row]")).toHaveCount(50);
     await expect(app.getByText("Login-Umbau mit Tokenmaske")).toHaveCount(0);
     await app.getByLabel("Sessions durchsuchen").fill("tokenmaske");
-    const row = app.locator(".discovered-row");
+    const row = app.locator("[data-testid=discovered-row]");
     await expect(row).toHaveCount(1);
     await expect(row).toContainText("Login-Umbau mit Tokenmaske");
     await expect(row).toContainText("Kannst du die Maske nach der Prüfung öffnen?");
@@ -300,7 +300,7 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
 
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expandAllGroups(app);
-    const row = app.locator(".discovered-row").filter({ hasText: "Gerade offen im Terminal" });
+    const row = app.locator("[data-testid=discovered-row]").filter({ hasText: "Gerade offen im Terminal" });
     await expect(row.getByText("läuft gerade woanders")).toBeVisible();
     await expect(row.getByRole("button", { name: "Fortsetzen", exact: true })).toHaveCount(0);
     await row.getByRole("button", { name: "Als Kopie fortsetzen" }).click();
@@ -330,9 +330,9 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
 
     await app.getByRole("button", { name: "Gefunden" }).click();
     await expandAllGroups(app);
-    const pi = app.locator(".discovered-row").filter({ hasText: "Pi: Login prüfen" });
-    const omp = app.locator(".discovered-row").filter({ hasText: "Omp: Importer reparieren" });
-    const maki = app.locator(".discovered-row").filter({ hasText: "Maki: Doku schreiben" });
+    const pi = app.locator("[data-testid=discovered-row]").filter({ hasText: "Pi: Login prüfen" });
+    const omp = app.locator("[data-testid=discovered-row]").filter({ hasText: "Omp: Importer reparieren" });
+    const maki = app.locator("[data-testid=discovered-row]").filter({ hasText: "Maki: Doku schreiben" });
     await expect(pi).toContainText("pi");
     await expect(omp).toContainText("omp");
     await expect(maki).toContainText("maki");
@@ -341,15 +341,15 @@ test.describe("Gefundene Sessions (T5.3, AC-P5-1)", () => {
     await expect(omp.getByRole("button", { name: "Fortsetzen", exact: true })).toHaveCount(0);
     await expect(maki.getByRole("button", { name: "Fortsetzen", exact: true })).toHaveCount(0);
     await app.getByLabel("Sessions durchsuchen").fill("importer");
-    await expect(app.locator(".discovered-row")).toHaveCount(1);
+    await expect(app.locator("[data-testid=discovered-row]")).toHaveCount(1);
   });
 
   test("mehr als eine Seite wird mit „Mehr laden“ vollständig", async ({ app, hub }) => {
     externalClaude(hub, "-home-user-viele", Array.from({ length: 55 }, (_, i) => `viele-${i}`));
     await app.getByRole("button", { name: "Gefunden" }).click();
-    await expect(app.locator(".discovered-row")).toHaveCount(50);
+    await expect(app.locator("[data-testid=discovered-row]")).toHaveCount(50);
     await app.getByRole("button", { name: "Mehr laden" }).click();
-    await expect(app.locator(".discovered-row")).toHaveCount(55);
+    await expect(app.locator("[data-testid=discovered-row]")).toHaveCount(55);
     await expect(app.getByRole("button", { name: "Mehr laden" })).toHaveCount(0);
   });
 

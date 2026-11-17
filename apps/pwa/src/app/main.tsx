@@ -163,7 +163,7 @@ function TabletSplit({ on, currentId, children }: { on: boolean; currentId: stri
   return (
     <div class="tablet-split">
       <SessionStrip currentId={currentId} />
-      <div class="tablet-detail">{children}</div>
+      <div data-testid="tablet-detail">{children}</div>
     </div>
   );
 }
@@ -402,7 +402,7 @@ function Main() {
       {staleAt && (
         <div class="topbar">
           {/* K10: tippen lädt neu — der Service Worker holt dann wieder Netz-zuerst. */}
-          <button type="button" class="badge-stale badge-refresh" onClick={() => location.reload()}>
+          <button type="button" class="badge-stale" data-testid="badge-refresh" onClick={() => location.reload()}>
             Daten vom {staleAt.toLocaleString("de-DE")} (offline) — tippen für Neu laden
           </button>
         </div>

@@ -12,11 +12,11 @@ async function pickVaultRoot(app: Page, hub: TestHub): Promise<string> {
   const vaultDir = join(hub.projectsDir, "notizen-vault");
   mkdirSync(vaultDir, { recursive: true });
   await app.goto(`${hub.origin}/#/notizen`);
-  await expect(app.locator('[data-testid="vault-picker"]')).toBeVisible();
+  await expect(app.locator('[data-testid=vault-picker]')).toBeVisible();
   await app.getByRole("button", { name: "📁 projects" }).click();
   await app.getByRole("button", { name: "📁 notizen-vault" }).click();
-  await app.locator('[data-testid="vault-choose"]').click();
-  await expect(app.locator('[data-testid="vault-pane"]')).toBeVisible();
+  await app.locator('[data-testid=vault-choose]').click();
+  await expect(app.locator('[data-testid=vault-pane]')).toBeVisible();
   return vaultDir;
 }
 
@@ -24,7 +24,7 @@ test.describe("Knowledge Vault (EPIC-P49)", () => {
   test("Erstöffnen ohne Ordner: Picker, Wahl bleibt über Reload (SettingsStore)", async ({ app, hub }) => {
     await pickVaultRoot(app, hub);
     await app.reload();
-    await expect(app.locator('[data-testid="vault-pane"]')).toBeVisible();
+    await expect(app.locator('[data-testid=vault-pane]')).toBeVisible();
     await expect(app.locator(".vault-title")).toContainText("notizen-vault");
   });
 
@@ -35,11 +35,11 @@ test.describe("Knowledge Vault (EPIC-P49)", () => {
     await expect(app.locator(".vault-row").filter({ hasText: "Wichtige Erkenntnis.md" })).toBeVisible();
     await expect(app.locator(".vault-textarea")).toBeVisible();
     await app.locator(".vault-textarea").fill("# Besser\n\nZwei Gedanken.\n");
-    await expect(app.locator('[data-testid="vault-save-status"]')).toHaveText("gespeichert", { timeout: 5_000 });
+    await expect(app.locator('[data-testid=vault-save-status]')).toHaveText("gespeichert", { timeout: 5_000 });
     await expect(app.getByRole("button", { name: "Speichern", exact: true })).toHaveCount(0);
     await app.getByLabel("Neue Notiz").fill("Andere Notiz");
     await app.getByRole("button", { name: "Anlegen" }).click();
-    await app.locator('[data-testid="vault-search"]').fill("Wichtig");
+    await app.locator('[data-testid=vault-search]').fill("Wichtig");
     await expect(app.locator(".vault-row").filter({ hasText: "Wichtige Erkenntnis.md" })).toBeVisible();
     await expect(app.locator(".vault-row").filter({ hasText: "Andere Notiz.md" })).toHaveCount(0);
     await app.reload();
@@ -65,7 +65,7 @@ test.describe("Knowledge Vault (EPIC-P49)", () => {
     writeFileSync(join(dir, "liste.csv"), "a;b\n1;2\n");
     await app.reload();
     await app.locator(".vault-row").filter({ hasText: "liste.csv" }).click();
-    await expect(app.locator('[data-testid="file-viewer"]')).toBeVisible();
+    await expect(app.locator('[data-testid=file-viewer]')).toBeVisible();
     await expect(app.getByRole("button", { name: "Bearbeiten" })).toHaveCount(0);
   });
 
@@ -89,24 +89,24 @@ test.describe("Vault-Root frei wählbar (EPIC-P51 T51.3, ADR-0063-Ergänzung)", 
     const outside = mkdtempSync(join(tmpdir(), "av-vault-aussen-"));
     expect(outside.startsWith(hub.projectsDir)).toBe(false);
     await app.goto(`${hub.origin}/#/notizen`);
-    await expect(app.locator('[data-testid="vault-picker"]')).toBeVisible();
-    await app.locator('[data-testid="vault-path-input"]').fill(outside);
-    await app.locator('[data-testid="vault-path-apply"]').click();
-    await expect(app.locator('[data-testid="vault-pane"]')).toBeVisible();
+    await expect(app.locator('[data-testid=vault-picker]')).toBeVisible();
+    await app.locator('[data-testid=vault-path-input]').fill(outside);
+    await app.locator('[data-testid=vault-path-apply]').click();
+    await expect(app.locator('[data-testid=vault-pane]')).toBeVisible();
     await expect(app.locator(".vault-title")).toContainText("av-vault-aussen-");
   });
 
   test("Ablehnung mit Klartext-Grund statt stiller 422 (unbekannter Pfad, Hub-Datenverzeichnis)", async ({ app, hub }) => {
     await app.goto(`${hub.origin}/#/notizen`);
-    await expect(app.locator('[data-testid="vault-picker"]')).toBeVisible();
-    await app.locator('[data-testid="vault-path-input"]').fill("/gibt/es/nicht");
-    await app.locator('[data-testid="vault-path-apply"]').click();
+    await expect(app.locator('[data-testid=vault-picker]')).toBeVisible();
+    await app.locator('[data-testid=vault-path-input]').fill("/gibt/es/nicht");
+    await app.locator('[data-testid=vault-path-apply]').click();
     await expect(app.locator(".vault-picker .files-error")).toContainText("Ordner nicht gefunden");
-    await expect(app.locator('[data-testid="vault-pane"]')).toHaveCount(0);
-    await app.locator('[data-testid="vault-path-input"]').fill(hub.dataDir);
-    await app.locator('[data-testid="vault-path-apply"]').click();
+    await expect(app.locator('[data-testid=vault-pane]')).toHaveCount(0);
+    await app.locator('[data-testid=vault-path-input]').fill(hub.dataDir);
+    await app.locator('[data-testid=vault-path-apply]').click();
     await expect(app.locator(".vault-picker .files-error")).toContainText("Datenverzeichnis des Hubs");
-    await expect(app.locator('[data-testid="vault-pane"]')).toHaveCount(0);
+    await expect(app.locator('[data-testid=vault-pane]')).toHaveCount(0);
   });
 
   test("Ordner-Symlink erscheint im Picker und führt zum Ziel", async ({ app, hub }) => {
@@ -117,20 +117,20 @@ test.describe("Vault-Root frei wählbar (EPIC-P51 T51.3, ADR-0063-Ergänzung)", 
     mkdirSync(vaultDir, { recursive: true });
     symlinkSync(ziel, join(vaultDir, "link-ziel"));
     await app.goto(`${hub.origin}/#/notizen`);
-    await expect(app.locator('[data-testid="vault-picker"]')).toBeVisible();
+    await expect(app.locator('[data-testid=vault-picker]')).toBeVisible();
     await app.getByRole("button", { name: "📁 projects" }).click();
     await app.getByRole("button", { name: "📁 notizen-vault" }).click();
     await expect(app.getByRole("button", { name: "📁 link-ziel" })).toBeVisible();
     await app.getByRole("button", { name: "📁 link-ziel" }).click();
-    await app.locator('[data-testid="vault-choose"]').click();
-    await expect(app.locator('[data-testid="vault-pane"]')).toBeVisible();
+    await app.locator('[data-testid=vault-choose]').click();
+    await expect(app.locator('[data-testid=vault-pane]')).toBeVisible();
     await expect(app.locator(".vault-row").filter({ hasText: "via-link.md" })).toBeVisible();
   });
 
   test("Aktueller Vault-Root ist in den Startpunkten als solcher markiert", async ({ app, hub }) => {
     await pickVaultRoot(app, hub);
     await app.getByRole("button", { name: "Ordner wechseln" }).click();
-    await expect(app.locator('[data-testid="vault-picker"]')).toBeVisible();
+    await expect(app.locator('[data-testid=vault-picker]')).toBeVisible();
     const row = app.locator(".vault-row").filter({ hasText: "notizen-vault" });
     await expect(row).toContainText("Aktueller Ordner");
     await expect(row).not.toContainText("Startpunkt");
@@ -148,11 +148,11 @@ test.describe("Vault-Root frei wählbar (EPIC-P51 T51.3, ADR-0063-Ergänzung)", 
     await app.locator(".vault-row").filter({ hasText: "alte-notiz.md" }).click();
     await expect(app.locator(".vault-file-name")).toContainText("alte-notiz.md");
     await app.getByRole("button", { name: "Ordner wechseln" }).click();
-    await expect(app.locator('[data-testid="vault-picker"]')).toBeVisible();
+    await expect(app.locator('[data-testid=vault-picker]')).toBeVisible();
     await app.getByRole("button", { name: "📁 projects" }).click();
     await app.getByRole("button", { name: "📁 zweiter-vault" }).click();
-    await app.locator('[data-testid="vault-choose"]').click();
-    await expect(app.locator('[data-testid="vault-pane"]')).toBeVisible();
+    await app.locator('[data-testid=vault-choose]').click();
+    await expect(app.locator('[data-testid=vault-pane]')).toBeVisible();
     await expect(app.locator(".vault-row").filter({ hasText: "neue-notiz.md" })).toBeVisible();
     await expect(app.locator(".vault-row").filter({ hasText: "alte-notiz.md" })).toHaveCount(0);
     await expect(app.locator(".vault-row.active")).toHaveCount(0);

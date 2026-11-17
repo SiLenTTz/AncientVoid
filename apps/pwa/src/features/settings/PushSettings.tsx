@@ -49,7 +49,7 @@ export function PushSettings() {
   };
 
   return (
-    <SettingsSection title="Benachrichtigungen" class="push-settings">
+    <SettingsSection title="Benachrichtigungen" testid="push-settings">
       <p class="dim settings-intro">
         Push geht über den Dienst des Browser-Herstellers (Google, Apple, Mozilla, Microsoft) und verlässt damit das Tailnet. Übertragen wird nur eine Kennung — kein Prompt, kein Befehl, nichts auf dem Sperrbildschirm außer „Freigabe nötig“, „Fehler“ oder „Zug fertig“. Die Glocke bleibt die vollständige Liste.
       </p>

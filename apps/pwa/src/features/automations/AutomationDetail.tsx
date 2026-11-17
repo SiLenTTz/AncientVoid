@@ -73,7 +73,7 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
       </div>
       {/* ADR-0072: ohne Referenz gibt es keinen Abgleich — nur ein Mensch kann den Plan wieder freigeben. */}
       {entry.state === "unknown" && !entry.sessionId && !entry.teamId && (resolving === entry.claimKey
-        ? <form class="automation-resolve" onSubmit={e => { e.preventDefault(); void resolve(entry.claimKey); }}>
+        ? <form  onSubmit={e => { e.preventDefault(); void resolve(entry.claimKey); }}>
           <label>Notiz (warum aufgeben?)<input value={note} maxLength={300} required onInput={e => setNote(e.currentTarget.value)} /></label>
           <button type="submit" class="btn" disabled={offline || !note.trim()}>Als aufgegeben abschließen</button>
           <button type="button" class="btn" onClick={() => { setResolving(null); setNote(""); setResolveError(""); }}>Abbrechen</button>

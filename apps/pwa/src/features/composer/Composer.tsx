@@ -292,7 +292,7 @@ export function Composer({
         title={onSubmit ? "⌘/Ctrl+Enter senden" : undefined}
       />
       {suggestions.length > 0 && (
-        <div class="composer-notice slash-list" role="listbox" aria-label="Commands">
+        <div class="composer-notice" role="listbox" aria-label="Commands">
           {suggestions.map((c, i) => (
             <button
               key={c.name}
@@ -314,11 +314,11 @@ export function Composer({
 
       {preview && (
         <div class="enhance-preview">
-          <div class="enhance-preview-col">
+          <div >
             <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">Original</div>
             <div class="enhance-preview-text">{preview.original}</div>
           </div>
-          <div class="enhance-preview-col">
+          <div >
             <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
               Verbessert
               {preview.costUsd !== undefined ? ` · $${preview.costUsd.toFixed(4)}` : ""} ·{" "}

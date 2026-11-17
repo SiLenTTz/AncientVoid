@@ -195,12 +195,12 @@ export function LoopPanel({
         </div>
       )}
       {view.gate && (
-        <div class="loop-gate">
+        <div data-testid="loop-gate">
           Gate <strong>{view.gate.name}</strong>: <span class={`gate-${view.gate.state === "pass" ? "passed" : view.gate.state === "fail" ? "failed" : view.gate.state}`}>{GATE_STATE[view.gate.state] ?? view.gate.state}</span>
         </div>
       )}
       {view.orchestrator && Object.keys(view.orchestrator.userGates).length > 0 && (
-        <div class="loop-gate">
+        <div data-testid="loop-gate">
           Freigaben des Orchestrators:{" "}
           {Object.entries(view.orchestrator.userGates).map(([k, ok]) => `${k} ${ok ? "ja" : "nein"}`).join(" · ")}
           {view.orchestrator.note && <div class="dim">{view.orchestrator.note}</div>}

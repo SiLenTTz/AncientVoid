@@ -221,7 +221,7 @@ export function DiffReview({ diff, session }: { diff: SessionDiffResult | null; 
   const targetLabel = sessions?.find((s) => s.id === targetSessionId);
 
   return (
-    <div class="diff-review">
+    <div data-testid="diff-review">
       <div class="diff-review-toolbar">
         <button class={pickEnabled ? "review-pick-btn active" : "review-pick-btn"} onClick={() => { setPickEnabled(!pickEnabled); setPicked(null); }}>
           {pickEnabled ? "Anker wählen (Zeile antippen)" : "Notiz an Zeilen"}
@@ -267,7 +267,7 @@ export function DiffReview({ diff, session }: { diff: SessionDiffResult | null; 
 
         {notes.map((note) => (
           <div key={note.id} class={`review-note ${note.anchorState === "stale" ? "stale" : ""}`}>
-            <label class="review-note-select">
+            <label >
               <input
                 type="checkbox"
                 disabled={!sendable.some((s) => s.id === note.id)}
@@ -345,7 +345,7 @@ export function DiffReview({ diff, session }: { diff: SessionDiffResult | null; 
       </section>
 
       {sendOpen && (
-        <div class="modal review-send-dialog" role="dialog" aria-label="Sammelversand">
+        <div class="review-send-dialog" data-testid="modal" role="dialog" aria-label="Sammelversand">
           <div class="modal-card">
             <h3>Sammelversand ({selectedNotes.length} Befunde)</h3>
             <label class="review-recipient">

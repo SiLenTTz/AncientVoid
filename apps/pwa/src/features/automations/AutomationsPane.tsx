@@ -97,7 +97,7 @@ function AutomationsHostPane({ host }: { host: string | null }) {
     finally { setBusy(false); }
   };
 
-  return <div class="teams-pane automations-pane" data-testid="automations-pane">
+  return <div class="teams-pane" data-testid="automations-pane">
     <div class="teams-list">
       <div class="teams-list-head"><h3>Automationen</h3><button type="button" class="btn" disabled={offline || busy} onClick={() => { setShowNew(value => !value); setEditing(null); }}>{showNew ? "Abbrechen" : "Neue Automation"}</button></div>
       {at && <p>Daten vom <time data-testid="automations-asof" dateTime={at}>{new Date(at).toLocaleString("de-DE")}</time></p>}

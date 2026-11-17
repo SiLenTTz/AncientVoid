@@ -140,7 +140,7 @@ export function ConnectionsSettings() {
     });
 
   return (
-    <SettingsSection title="Verbindungen" class="connections-settings">
+    <SettingsSection title="Verbindungen" testid="connections-settings">
       <div class="dim settings-intro">VoidWarden-Instanzen (Handy-Kiosk, ESP32-Board) und Modell-/Tool-Endpoints mit eigenem Schlüssel — alles bleibt über Neuladen hinweg gespeichert.</div>
 
       <div class="connection-group" role="group" aria-label="VoidWarden-Instanzen">

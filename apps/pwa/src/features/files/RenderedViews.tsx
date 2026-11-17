@@ -269,10 +269,10 @@ function MermaidBlock({ source }: { source: string }) {
     };
   }, [source]);
   return (
-    <figure class="md-code mermaid-block" data-testid="mermaid-block">
+    <figure class="md-code" data-testid="mermaid-block">
       {state && "error" in state && <div class="dim" role="status">Mermaid nicht gerendert: {state.error} — Quelltext:</div>}
       {!state && <figcaption class="dim">Diagramm wird gerendert …</figcaption>}
-      {state && "url" in state && !showSource && <img class="file-media mermaid-img" src={state.url} alt="Mermaid-Diagramm" />}
+      {state && "url" in state && !showSource && <img class="file-media" data-testid="mermaid-img" src={state.url} alt="Mermaid-Diagramm" />}
       {(showSource || !state || "error" in state) && <pre><code>{source}</code></pre>}
       {state && "url" in state && <button type="button" class="chip" onClick={() => setShowSource(!showSource)}>{showSource ? "Diagramm" : "Quelltext"}</button>}
     </figure>

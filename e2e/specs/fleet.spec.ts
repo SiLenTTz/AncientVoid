@@ -23,23 +23,23 @@ test.describe("Flotte (EPIC-P6)", () => {
     const peer = await TestHub.start({ hostId: "home-server", label: "home-server" });
     try {
       await dockGo(app, "Einstellungen");
-      await expect(app.locator(".fleet-self")).toHaveText("workstation");
+      await expect(app.locator("[data-testid=fleet-self]")).toHaveText("workstation");
       const invite = await peer.api<{ code: string }>("/api/fleet/invites", { body: {} });
       await app.getByLabel("Host hinzufügen — Adresse").fill(peer.origin);
       await app.getByLabel("Einladungscode vom anderen Hub").fill(invite.body.code.toLowerCase());
       await app.getByRole("button", { name: "Host verbinden" }).click();
       await expect(app.locator(".fleet-message.ok")).toHaveText("Verbunden mit home-server.");
-      await expect(app.locator(".fleet-peer")).toContainText("home-server");
-      await expect(app.locator(".fleet-peer")).toContainText(peer.origin);
+      await expect(app.locator("[data-testid=fleet-peer]")).toContainText("home-server");
+      await expect(app.locator("[data-testid=fleet-peer]")).toContainText(peer.origin);
 
       await app.getByLabel("Einladungscode vom anderen Hub").fill(invite.body.code);
       await app.getByLabel("Host hinzufügen — Adresse").fill(peer.origin);
       await app.getByRole("button", { name: "Host verbinden" }).click();
       await expect(app.locator(".fleet-message.reply-error")).toContainText("code already used");
 
-      await app.locator(".fleet-peer").getByRole("button", { name: "Entfernen" }).click();
+      await app.locator("[data-testid=fleet-peer]").getByRole("button", { name: "Entfernen" }).click();
       await app.getByRole("button", { name: "Wirklich entfernen" }).click();
-      await expect(app.locator(".fleet-peer")).toHaveCount(0);
+      await expect(app.locator("[data-testid=fleet-peer]")).toHaveCount(0);
     } finally {
       await peer.stop();
     }
@@ -124,10 +124,10 @@ test.describe("Flotte (EPIC-P6)", () => {
 
       await app.reload();
       // EPIC-P47: Host-Zustände stehen in der Hosts-Ansicht statt der alten Chips.
-      await app.locator(".overview-switch-btn", { hasText: "Hosts" }).click();
+      await app.locator("[data-testid=overview-switch-btn]", { hasText: "Hosts" }).click();
       await expect(app.locator(".host-card").filter({ hasText: "e2e-home-label" })).toContainText("verbunden");
       await expect(app.locator(".host-card").filter({ hasText: "home-server" })).toContainText("verbunden");
-      await app.locator(".overview-switch-btn", { hasText: "Sessions" }).click();
+      await app.locator("[data-testid=overview-switch-btn]", { hasText: "Sessions" }).click();
       await expect(app.locator(".session-where").filter({ hasText: "home-server · alpha" })).toBeVisible();
       // The configured display label is independent of the host id and OS hostname.
       const overview = await hub.api<{ hosts: { self: boolean; label?: string }[] }>("/api/fleet");
@@ -177,12 +177,12 @@ test.describe("Flotte (EPIC-P6)", () => {
       await peer.createSession({ adapter: "dummy" });
       const local = await hub.createSession({ adapter: "opencode", prompt: "Lokal" });
       await app.reload();
-      await app.locator(".overview-switch-btn", { hasText: "Hosts" }).click();
+      await app.locator("[data-testid=overview-switch-btn]", { hasText: "Hosts" }).click();
       await expect(app.locator(".host-card").filter({ hasText: "home-server" })).toContainText("verbunden");
       await peer.kill("SIGKILL");
       await expect(app.locator(".host-card").filter({ hasText: "home-server" })).toContainText(/veraltet/, { timeout: 15_000 });
       await expect(app.locator(".host-card").filter({ hasText: "home-server" })).toContainText(/Stand \d\d:\d\d/);
-      await app.locator(".overview-switch-btn", { hasText: "Sessions" }).click();
+      await app.locator("[data-testid=overview-switch-btn]", { hasText: "Sessions" }).click();
       await expect(app.locator(".session-where").filter({ hasText: "home-server · alpha" })).toBeVisible();
 
       await app.locator(".session-card").filter({ hasText: "e2e-home-label · alpha" }).locator(".session-open").click();
@@ -202,7 +202,7 @@ test.describe("Flotte (EPIC-P6)", () => {
     try {
       await pair(hub, peer);
       await app.reload();
-      await app.locator(".overview-switch-btn", { hasText: "Hosts" }).click();
+      await app.locator("[data-testid=overview-switch-btn]", { hasText: "Hosts" }).click();
       await expect(app.locator(".host-card").filter({ hasText: "home-server" })).toContainText("verbunden");
       execFileSync(process.execPath, ["apps/hubctl/src/cli.ts", "token", "revoke", "fleet:workstation", "--db", `${peer.dataDir}/hub.db`]);
       await expect(app.locator(".host-card").filter({ hasText: "home-server" })).toContainText("Zugriff entzogen", { timeout: 15_000 });
@@ -232,9 +232,9 @@ test.describe("Flotte (EPIC-P6)", () => {
       await expect(app).toHaveURL(new RegExp(`#/hosts/home-server/sessions/${remote}`));
 
       await sessionTab(app, "Bericht");
-      await expect(app.locator(".continue-open")).toHaveText(/^ssh -t home-server 'cd .* && opencode --session ses_e2e_\w+'$/);
-      await expect(app.locator(".worktree-card")).toContainText("auf home-server");
-      await expect(app.locator(".worktree-open")).toHaveText(/^code --remote ssh-remote\+home-server /);
+      await expect(app.locator("[data-testid=continue-open]")).toHaveText(/^ssh -t home-server 'cd .* && opencode --session ses_e2e_\w+'$/);
+      await expect(app.locator("[data-testid=worktree-card]")).toContainText("auf home-server");
+      await expect(app.locator("[data-testid=worktree-open]")).toHaveText(/^code --remote ssh-remote\+home-server /);
 
       await app.getByRole("button", { name: "Ins Projekt übernehmen" }).click();
       await app.getByRole("button", { name: "Jetzt übernehmen" }).click();

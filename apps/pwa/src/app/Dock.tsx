@@ -80,7 +80,7 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
         <TabIcon name="git" /><span class="lb">Git-Struktur</span>
       </button>
       {more && (
-        <div class="overlay-backdrop more-backdrop" onClick={() => setMore(false)}>
+        <div class="overlay-backdrop" onClick={() => setMore(false)}>
           <div class="overlay-sheet more-sheet" role="dialog" aria-label="Mehr" onClick={(e) => e.stopPropagation()}>
             {MORE.map((m) => (
               <button key={m.page} class={`more-item ${active === m.page ? "active" : ""}`} type="button" onClick={() => go(m.page)}>

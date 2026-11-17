@@ -51,14 +51,14 @@ export function DiagnosticsPanel({ api, target, meta, result, onResult, onJump, 
       <div class="diag-head">
         <button type="button" class="btn" onClick={run} disabled={busy} data-testid="diag-run">{busy ? "prüft …" : "Prüfen"}</button>
         {trust && (
-          <label class="dim diag-trust" title="tsc kommt aus dem Projekt (node_modules) — Projektcode darf nur mit Freigabe laufen.">
+          <label class="dim" title="tsc kommt aus dem Projekt (node_modules) — Projektcode darf nur mit Freigabe laufen.">
             <input type="checkbox" checked={trust.trusted} onChange={(e) => void setTrusted((e.target as HTMLInputElement).checked)} data-testid="diag-trust" /> Projekt für Prüfer freigeben
           </label>
         )}
       </div>
       {error && <div class="files-error" role="alert">{error}</div>}
       {result && (
-        <div class="diag-result" data-testid="diag-result" data-state={result.state}>
+        <div data-testid="diag-result" data-state={result.state}>
           <div role="status">
             <strong>{STATE_LABEL[result.state]}</strong>
             {result.provider && <span class="dim"> · {result.provider}{result.scope === "syntax" ? " (nur Syntax)" : result.scope === "types" ? " (Typen)" : ""}</span>}

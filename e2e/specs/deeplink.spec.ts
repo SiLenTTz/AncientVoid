@@ -17,7 +17,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
 
   test("#/gefunden ist kein eigener Page-Slug mehr, sondern der Alias auf den Discovery-Zustand der Übersicht (EPIC-P47 §3.4)", async ({ app, hub }) => {
     await app.goto(`${hub.origin}/#/gefunden`);
-    await expect(app.locator(".overview-switch-btn", { hasText: "Gefunden" })).toHaveClass(/active/);
+    await expect(app.locator("[data-testid=overview-switch-btn]", { hasText: "Gefunden" })).toHaveClass(/active/);
     await expect(app.locator(".discovery")).toBeVisible();
   });
 
@@ -26,7 +26,7 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await sessionTab(app, "Bericht");
     await expect(app.locator(".kv-list")).toBeVisible();
-    await expect(app.locator(".attach-cmd-card")).toHaveCount(0);
+    await expect(app.locator("[data-testid=attach-cmd-card]")).toHaveCount(0);
   });
 
   test.describe("mit tmux-Worker", () => {
@@ -37,10 +37,10 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
       await hub.until(async () => (await hub.events(id)).some((e) => e.type === "tool_use"), "worker running");
       await app.goto(`${hub.origin}/#/sessions/${id}`);
       await sessionTab(app, "Bericht");
-      await expect(app.locator(".attach-cmd-card code")).toHaveText(`tmux attach -t ancientvoid-${id}`);
+      await expect(app.locator("[data-testid=attach-cmd-card] code")).toHaveText(`tmux attach -t ancientvoid-${id}`);
       await app.getByRole("button", { name: "Stop" }).click();
       await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "stopped");
-      await expect(app.locator(".attach-cmd-card")).toHaveCount(0);
+      await expect(app.locator("[data-testid=attach-cmd-card]")).toHaveCount(0);
     });
   });
 
@@ -53,10 +53,10 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
 
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await sessionTab(app, "Bericht");
-    await expect(app.locator(".continue-open")).toHaveText(`cd ${workdir} && opencode --session ${native}`);
-    await expect(app.locator(".continue-link")).toHaveText(`${hub.origin}/#/sessions/${id}`);
-    await app.locator(".continue-card .attach-cmd-row").last().getByRole("button", { name: "Kopieren" }).click();
-    await expect(app.locator(".continue-card").getByRole("button", { name: "Kopiert" })).toBeVisible();
+    await expect(app.locator("[data-testid=continue-open]")).toHaveText(`cd ${workdir} && opencode --session ${native}`);
+    await expect(app.locator("[data-testid=continue-link]")).toHaveText(`${hub.origin}/#/sessions/${id}`);
+    await app.locator("[data-testid=continue-card] .attach-cmd-row").last().getByRole("button", { name: "Kopieren" }).click();
+    await expect(app.locator("[data-testid=continue-card]").getByRole("button", { name: "Kopiert" })).toBeVisible();
     expect(await app.evaluate(() => (globalThis as unknown as { navigator: { clipboard: { readText(): Promise<string> } } }).navigator.clipboard.readText())).toBe(
       `cd ${workdir} && opencode --session ${native}`,
     );
@@ -67,9 +67,9 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     await hub.until(async () => (await hub.events(id)).some((e) => e.type === "tool_use"), "turn running");
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await sessionTab(app, "Bericht");
-    await expect(app.locator(".continue-none")).toBeVisible();
-    await expect(app.locator(".continue-open")).toHaveCount(0);
-    await expect(app.locator(".continue-link")).toContainText(`#/sessions/${id}`);
+    await expect(app.locator("[data-testid=continue-none]")).toBeVisible();
+    await expect(app.locator("[data-testid=continue-open]")).toHaveCount(0);
+    await expect(app.locator("[data-testid=continue-link]")).toContainText(`#/sessions/${id}`);
   });
 
   test("der Bericht sagt, wo die Änderungen liegen (Worktree statt Projektordner)", async ({ app, hub }) => {
@@ -79,10 +79,10 @@ test.describe("Deep-Link und Attach (AC-P5-5)", () => {
     expect(workdir).not.toBe(hub.alpha);
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await sessionTab(app, "Bericht");
-    await expect(app.locator(".worktree-card")).toContainText(`ancientvoid/${id}`);
-    await expect(app.locator(".worktree-card")).toContainText("nicht in alpha");
-    await expect(app.locator(".worktree-path")).toHaveText(workdir);
-    await expect(app.locator(".worktree-open")).toHaveText(`code ${workdir}`);
+    await expect(app.locator("[data-testid=worktree-card]")).toContainText(`ancientvoid/${id}`);
+    await expect(app.locator("[data-testid=worktree-card]")).toContainText("nicht in alpha");
+    await expect(app.locator("[data-testid=worktree-path]")).toHaveText(workdir);
+    await expect(app.locator("[data-testid=worktree-open]")).toHaveText(`code ${workdir}`);
 
     await app.getByRole("button", { name: "Stop" }).click();
     await expect(app.locator(".topbar .status")).toHaveAttribute("data-status", "stopped");
