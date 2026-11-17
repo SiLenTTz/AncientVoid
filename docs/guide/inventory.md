@@ -37,6 +37,7 @@ Regeln:
 | page:teams | Agent teams: plan, dispatch, gates, deliveries | `#/teams` | team |
 | page:automationen | Automations: schedules and run history | `#/automationen` | automations |
 | page:aimetrics | Local AI server metrics (CPU/GPU, tokens/s) | `#/metriken` | ki-server-metriken |
+| page:terminal | Allowlisted SSH/local shell in the PWA | `#/terminal` | terminal |
 
 ## Views (Hauptansichten)
 
@@ -89,6 +90,7 @@ Regeln:
 | feature:status | Status line language (measured vs unknown) | zustandssprache |
 | feature:stt | Speech-to-text dictation | voice-local |
 | feature:team | Team cards, DAG view, model choice | team |
+| feature:terminal | Allowlisted hub SSH/local terminal (xterm) | terminal |
 | feature:vault | Vault notes: editor, folders, popout | vault |
 | feature:windows | Popout windows and window targets | windows |
 | feature:workspace | Archive, approvals flow, budget, composer flows | workspace |

@@ -9,6 +9,14 @@
     "enforceTailnetIdentity": false,
     "pwaDir": "./apps/pwa/dist"
   },
+  "terminals": [
+    {
+      "$comment": "ADR-0087: PWA-Tab Terminal. ssh = OpenSSH-Host/Alias aus ~/.ssh/config des Hub-Hosts; oder local:true für eine Shell auf dem Hub selbst.",
+      "id": "hub",
+      "label": "Hub-Host",
+      "local": true
+    }
+  ],
   "adapters": [
     {
       "id": "dummy",

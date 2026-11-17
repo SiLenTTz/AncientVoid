@@ -60,6 +60,8 @@ export interface HubOptions {
   forgeCommand?: string;
   /** EPIC-P59 (ADR-0078): aiMetrics-Abschnitt für die Hub-Config (Test-Server, Intervall). */
   aiMetrics?: Record<string, unknown>;
+  /** ADR-0087: Allowlist für den PWA-Terminal-Tab. */
+  terminals?: Array<{ id: string; label: string; ssh?: string; local?: boolean }>;
 }
 
 export interface ApiResult<T> {
@@ -191,6 +193,7 @@ export class TestHub {
       } } : {}),
       ...(this.options.assistantUrl ? { assistant: { model: { url: this.options.assistantUrl, model: "e2e-model" } } } : {}),
       ...(this.options.aiMetrics ? { aiMetrics: this.options.aiMetrics } : {}),
+      ...(this.options.terminals ? { terminals: this.options.terminals } : {}),
       media: { ytDlp: standIn("yt-dlp") },
       forge: { gitlab: { command: this.options.forgeCommand ?? standIn("glab") } },
       server: { host: "127.0.0.1", port: this.port, pwaDir: E2E_PWA_DIST },
