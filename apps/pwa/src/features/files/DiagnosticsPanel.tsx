@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import type { DiagnosticsResult, FileMeta, ProjectTrust } from "@ancientvoid/contracts";
 import type { HubApi } from "../../shared/api.ts";
 import { basket } from "./feedback-basket.ts";
+import { Button, Chip } from "../../shared/ui/index.ts";
 
 const STATE_LABEL: Record<DiagnosticsResult["state"], string> = {
   ok: "Keine Fehler gefunden",
@@ -49,16 +50,16 @@ export function DiagnosticsPanel({ api, target, meta, result, onResult, onJump, 
   return (
     <div class="diag-panel" data-testid="diag-panel">
       <div class="diag-head">
-        <button type="button" class="btn" onClick={run} disabled={busy} data-testid="diag-run">{busy ? "prüft …" : "Prüfen"}</button>
+        <Button onClick={run} disabled={busy} data-testid="diag-run">{busy ? "prüft …" : "Prüfen"}</Button>
         {trust && (
-          <label class="dim diag-trust" title="tsc kommt aus dem Projekt (node_modules) — Projektcode darf nur mit Freigabe laufen.">
+          <label class="dim" title="tsc kommt aus dem Projekt (node_modules) — Projektcode darf nur mit Freigabe laufen.">
             <input type="checkbox" checked={trust.trusted} onChange={(e) => void setTrusted((e.target as HTMLInputElement).checked)} data-testid="diag-trust" /> Projekt für Prüfer freigeben
           </label>
         )}
       </div>
       {error && <div class="files-error" role="alert">{error}</div>}
       {result && (
-        <div class="diag-result" data-testid="diag-result" data-state={result.state}>
+        <div data-testid="diag-result" data-state={result.state}>
           <div role="status">
             <strong>{STATE_LABEL[result.state]}</strong>
             {result.provider && <span class="dim"> · {result.provider}{result.scope === "syntax" ? " (nur Syntax)" : result.scope === "types" ? " (Typen)" : ""}</span>}
@@ -74,9 +75,7 @@ export function DiagnosticsPanel({ api, target, meta, result, onResult, onJump, 
                   {d.line}:{d.column}
                 </button>
                 <span> {d.severity === "error" ? "Fehler" : d.severity === "warning" ? "Warnung" : "Hinweis"}{d.code ? ` ${d.code}` : ""}: {d.message.split("\n")[0]}</span>
-                <button
-                  type="button"
-                  class="chip"
+                <Chip
                   disabled={stale}
                   onClick={() => {
                     basket.add({ path: meta.path, revision: meta.revision, startLine: d.line, endLine: d.endLine ?? d.line, note: "", diagnostic: { code: d.code, message: d.message, source: d.source } });
@@ -84,7 +83,7 @@ export function DiagnosticsPanel({ api, target, meta, result, onResult, onJump, 
                   }}
                 >
                   zum Feedback
-                </button>
+                </Chip>
               </li>
             ))}
           </ul>

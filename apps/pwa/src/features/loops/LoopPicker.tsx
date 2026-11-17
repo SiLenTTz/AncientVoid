@@ -105,7 +105,7 @@ export function LoopPicker({
       </label>
       {caps && value && (
         <>
-          <div class="dim loop-note">{value.id === "securesight-factory" ? "Ein Lauf besteht aus Treiber (Chat) und Beobachter (Fortschritt). Adapter und Modell unten wählen den Treiber; die Factory-Worker nutzen das Routing im Projekt." : "Adapter, Modell und Modus bestimmt der Loop selbst."}</div>
+          <div class="dim">{value.id === "securesight-factory" ? "Ein Lauf besteht aus Treiber (Chat) und Beobachter (Fortschritt). Adapter und Modell unten wählen den Treiber; die Factory-Worker nutzen das Routing im Projekt." : "Adapter, Modell und Modus bestimmt der Loop selbst."}</div>
           {caps.modes.length > 0 && (
             <label>
               Betriebsart
@@ -191,7 +191,7 @@ export function LoopPicker({
             </fieldset>
           )}
           {risky && (
-            <label class="loop-confirm">
+            <label >
               <input type="checkbox" aria-label="Außenwirkung bestätigen" checked={confirmed} onChange={(e) => onConfirmed((e.target as HTMLInputElement).checked)} />
               In „{value.mode}“ ändert der Loop Fremdsysteme (z. B. Merges). Ich weiß das und will starten.
             </label>

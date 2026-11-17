@@ -3,6 +3,7 @@ import { startRegistration } from "@simplewebauthn/browser";
 import type { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/browser";
 import { hubApi, getToken } from "../../shared/api.ts";
 import { SettingRow, SettingsSection } from "./parts.tsx";
+import { Button } from "../../shared/ui/index.ts";
 
 /** Gruppe „Sicherheit & Verbindung“: Passkey, Geräte-Token, Adresse, Projekte. */
 export function SecuritySettings({ onSwitchToken }: { onSwitchToken: () => void }) {
@@ -56,17 +57,17 @@ export function SecuritySettings({ onSwitchToken }: { onSwitchToken: () => void 
         ) : passkey === true ? (
           <span class="dim">✓ registriert</span>
         ) : (
-          <button class={passkeyBusy ? "btn busy" : "btn"} aria-busy={passkeyBusy} onClick={registerPasskey} disabled={passkeyBusy}>
+          <Button  aria-busy={passkeyBusy} onClick={registerPasskey} disabled={passkeyBusy} class={passkeyBusy ? "busy" : undefined}>
             {passkeyBusy ? "lädt…" : "Passkey registrieren"}
-          </button>
+          </Button>
         )}
       </SettingRow>
       {passkeyError && <div class="reply-error">{passkeyError}</div>}
       <SettingRow label="Geräte-Token">
         <span class="dim">{getToken() ? "•••• aktiv" : "kein Token"}</span>
-        <button class="btn" onClick={onSwitchToken}>
+        <Button onClick={onSwitchToken}>
           Geräte-Token wechseln
-        </button>
+        </Button>
       </SettingRow>
       <SettingRow label="Erreichbar über">
         <span class="mono dim">{location.host}</span>

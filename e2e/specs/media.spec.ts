@@ -93,7 +93,7 @@ test.describe("Medien: Videos analysieren (EPIC-P10.5)", () => {
     // Klick auf ein Schlüsselbild öffnet das Vollbild; Esc schließt nur das
     // Vollbild — die Medien-Seite selbst bleibt offen (tool.close sieht das preventDefault).
     await result.locator(".media-frame").nth(1).getByRole("button", { name: /Vollbild öffnen/ }).click();
-    const lightbox = app.locator('[data-testid="media-lightbox"]');
+    const lightbox = app.locator('[data-testid=media-lightbox]');
     await expect(lightbox).toBeVisible();
     await expect(lightbox.locator("img")).toBeVisible();
     await expect(lightbox).toContainText("Bild bei");

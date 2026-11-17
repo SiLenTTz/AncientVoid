@@ -16,6 +16,7 @@ import { App } from "../../app/App.tsx";
 import { HEARTBEAT_MS, SESSION_VIEW_KINDS, VIEW_LABEL, VIEW_TAB, type SessionViewKind, type WindowTarget } from "./protocol.ts";
 import { rememberWindowGeometry, onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "./windows.ts";
 import { projectName } from "../../shared/project-name.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 type ViewTarget = Extract<WindowTarget, { kind: SessionViewKind }>;
 function isViewTarget(target: WindowTarget): target is ViewTarget {
@@ -142,29 +143,29 @@ export function PopoutShell() {
     window.close();
   };
 
-  if (!target) return <div class="popout-shell"><div class="empty">Dieses Fenster hat kein Ziel.</div></div>;
-  if (!getToken()) return <div class="popout-shell"><div class="empty">Nicht angemeldet — bitte im Hauptfenster anmelden und dieses Fenster neu laden.</div></div>;
+  if (!target) return <div class="popout-shell"><div class="ui-empty">Dieses Fenster hat kein Ziel.</div></div>;
+  if (!getToken()) return <div class="popout-shell"><div class="ui-empty">Nicht angemeldet — bitte im Hauptfenster anmelden und dieses Fenster neu laden.</div></div>;
   return (
     <div class="popout-shell">
       <header class="popout-bar">
         <span class="popout-title">
           ⧉ {isViewTarget(target) ? `${VIEW_LABEL[target.kind]} · ${sessionLabel}` : target.kind === "queue" ? "Warteschlange" : target.kind === "nyx" ? "Nyx" : target.kind === "tool" ? "Werkzeug" : target.kind === "filetree" ? "Dateibaum" : target.kind === "vault" ? `Notizen${target.path ? ` · ${target.path.split("/").pop()}` : ""}` : target.kind === "browser" ? `Browser · ${sessionLabel}` : target.kind === "device" ? "Android-Geräte" : target.kind === "graph" ? `Repo-Graph · ${sessionLabel}` : target.kind === "file" ? `Datei · ${target.path.split("/").pop()}` : sessionLabel}
         </span>
-        <button type="button" class="btn" onClick={giveBack}>
+        <Button onClick={giveBack}>
           In die App zurück
-        </button>
+        </Button>
       </header>
       {!online && <div class="popout-offline" role="status">Offline — dieses Fenster zeigt den letzten Stand und verbindet sich neu, sobald das Netz wieder da ist.</div>}
       {isViewTarget(target) ? (
         // ADR-0068: genau diese Ansicht — keine Reiter, kein Antwortfeld, kein Session-Menü.
         error ? (
-          <div class="empty">{error}</div>
+          <div class="ui-empty">{error}</div>
         ) : session ? (
           <section class="tile popout-tile" data-tile="1" aria-label={VIEW_LABEL[target.kind]}>
             <SessionTail key={session.id} session={session} onNavigate={() => undefined} tile={{ active: true, compact: false, only: VIEW_TAB[target.kind] }} />
           </section>
         ) : (
-          <div class="empty dim">lädt…</div>
+          <div class="ui-empty dim">lädt…</div>
         )
       ) : target.kind === "nyx" ? (
         <div class="popout-tool">
@@ -187,17 +188,17 @@ export function PopoutShell() {
         </div>
       ) : target.kind === "session" ? (
         error ? (
-          <div class="empty">{error}</div>
+          <div class="ui-empty">{error}</div>
         ) : session ? (
           <section class="tile popout-tile" data-tile="1" aria-label="Session">
             <SessionTail key={session.id} session={session} onNavigate={() => undefined} tile={{ active: true, compact: false }} />
           </section>
         ) : (
-          <div class="empty dim">lädt…</div>
+          <div class="ui-empty dim">lädt…</div>
         )
       ) : target.kind === "graph" ? (
         error ? (
-          <div class="empty">{error}</div>
+          <div class="ui-empty">{error}</div>
         ) : (
           // EPIC-P48: Der Graph des eigenen Fensters öffnet Dateien als weitere eigene Fenster.
           <div class="popout-graph">
@@ -210,7 +211,7 @@ export function PopoutShell() {
         )
       ) : target.kind === "file" ? (
         error ? (
-          <div class="empty">{error}</div>
+          <div class="ui-empty">{error}</div>
         ) : (
           <div class="popout-file">
             <FileViewer target={`session=${encodeURIComponent(target.sessionId)}`} path={target.path} hostId={target.hostId ?? null} />
@@ -224,7 +225,7 @@ export function PopoutShell() {
       ) : target.kind === "browser" ? (
         // EPIC-P39 T39.3-Rest: Browser-Panel als eigenes Fenster; lädt Status/Bild selbst per HTTP.
         error ? (
-          <div class="empty">{error}</div>
+          <div class="ui-empty">{error}</div>
         ) : (
           <div class="popout-browser">
             <BrowserPanel

@@ -22,7 +22,7 @@
 }
 
 .search-status {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
 }
 
 .search-results {
@@ -51,7 +51,7 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
 }
 
 .search-result-file {
@@ -59,12 +59,13 @@
 }
 
 .search-result-title {
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
 .search-result-snippet {
-  font-size: calc(11.5px * var(--font-scale, 1));
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   color: var(--fg-dim);
   white-space: pre-wrap;
   max-height: 96px;
@@ -80,7 +81,7 @@
 }
 
 .doc-overview-head {
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
 }
 
 .doc-group {
@@ -89,7 +90,7 @@
 }
 
 .doc-group-dir {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   padding-top: 4px;
 }
 
@@ -111,12 +112,12 @@
 }
 
 .doc-item-name {
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
 .doc-item-path {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -125,10 +126,10 @@
 .file-viewer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--backdrop);
   display: flex;
   align-items: flex-end;
-  z-index: 50;
+  z-index: var(--z-overlay);
 }
 
 .file-viewer {
@@ -136,18 +137,9 @@
   border-top: 1px solid var(--bg-chip);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   width: 100%;
-  max-height: calc(85vh / var(--ui-zoom, 1)); /* BUG-0122 */
+  max-height: calc(85vh / var(--ui-zoom)); /* BUG-0122 */
   display: grid;
   grid-template-rows: auto 1fr;
-}
-
-.file-viewer-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--bg-chip);
 }
 
 .file-viewer-body {
@@ -161,7 +153,7 @@
  * kein <pre>-Raster). */
 .doc-prose {
   padding: 4px 16px 24px;
-  font-size: calc(14px * var(--font-scale, 1));
+  font-size: var(--text-md);
 }
 
 .doc-prose .markdown > * {

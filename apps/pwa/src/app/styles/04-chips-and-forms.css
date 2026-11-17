@@ -11,7 +11,7 @@
   border: 1px solid var(--bg-chip);
   background: var(--bg-elev);
   color: var(--fg-dim);
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 
@@ -43,7 +43,7 @@
   border: 1px solid var(--bg-chip);
   background: var(--bg-elev);
   color: var(--fg);
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: var(--text-md);
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
@@ -80,7 +80,7 @@
 
 .choice-desc {
   display: block;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   font-weight: 400;
   color: var(--fg-dim);
   overflow-wrap: anywhere;
@@ -92,6 +92,8 @@
 }
 
 .event {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 7px 10px;
   border-left: 3px solid var(--fg-dim);
   margin: 6px 0;
@@ -101,11 +103,12 @@
 }
 
 .event-detail {
+  font-family: var(--font-mono);
   margin: 6px 0 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font: inherit;
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: var(--text-md);
 }
 
 .event.thinking {
@@ -128,7 +131,7 @@
 }
 
 .event .meta {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   color: var(--fg-dim);
   display: flex;
   justify-content: space-between;
@@ -145,6 +148,19 @@
 }
 
 /* BUG-0067: agent Markdown in chat rows. */
+.markdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.markdown .md-code {
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  min-width: 0;
+}
+
 .event .summary.markdown {
   white-space: normal;
   overflow-wrap: anywhere;
@@ -176,13 +192,13 @@
 }
 
 .markdown h3 {
-  font-size: 1.08em;
+  font-size: var(--text-md);
 }
 
 .markdown h4,
 .markdown h5,
 .markdown h6 {
-  font-size: 1em;
+  font-size: var(--text-md);
 }
 
 .markdown ul,
@@ -196,7 +212,7 @@
 
 .markdown code {
   font-family: var(--font-mono);
-  font-size: 0.88em;
+  font-size: var(--text-sm);
   background: var(--bg-chip);
   border-radius: var(--radius-sm);
   padding: 0.05em 0.3em;
@@ -214,7 +230,7 @@
 .markdown .md-code code {
   background: none;
   padding: 0;
-  font-size: 0.85em;
+  font-size: var(--text-sm);
 }
 
 .markdown blockquote {
@@ -239,7 +255,7 @@
 
 .markdown table {
   border-collapse: collapse;
-  font-size: 0.92em;
+  font-size: var(--text-sm);
 }
 
 .markdown th,
@@ -256,7 +272,7 @@
 
 /* BUG-0068: a long answer still loading, or shortened for good. */
 .event .full-text-note {
-  font-size: 0.8em;
+  font-size: var(--text-xs);
 }
 
 .event .full-text-note.failed {
@@ -268,7 +284,7 @@
   color: var(--warn);
   border-radius: 999px;
   padding: 3px 10px;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
 }
 
 /* K10: die Offline-Meldung ist ein Button — tippen lädt neu. */
@@ -309,7 +325,7 @@ button.badge-stale {
 .form-grid label {
   display: grid;
   gap: 4px;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   color: var(--fg-dim);
 }
 
@@ -324,6 +340,22 @@ button.badge-stale {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+}
+
+/* EPIC-P63 T63.9: statische CreateSession-Styles statt style={{…}} */
+.form-warnings {
+  margin: 2px 0;
+  padding-left: 18px;
+  font-size: var(--text-xs);
+}
+
+.form-inline-row {
+  display: flex;
+  gap: 6px;
+}
+
+.form-inline-grow {
+  flex: 1;
 }
 
 .offline-note {
@@ -341,6 +373,11 @@ button.badge-stale {
   min-width: 4ch;
   text-align: center;
 }
-.settings-hint {
-  font-size: calc(11px * var(--font-scale, 1));
+/* EPIC-P43: Tabellen im Chat füllen die Fläche, brechen um (früher 45-readable-content.css). */
+.markdown table {
+  width: 100%;
+  table-layout: fixed;
+}
+.markdown .md-table {
+  overflow-x: hidden;
 }

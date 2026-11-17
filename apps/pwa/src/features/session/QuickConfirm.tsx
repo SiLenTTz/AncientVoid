@@ -1,5 +1,6 @@
 import type { NormalizedEvent } from "../../shared/ws.ts";
 import { visibleEventText } from "./event-text.ts";
+import { Chip } from "../../shared/ui/index.ts";
 
 /**
  * Ja/Nein-Rückfragen ohne Tippen: endet die letzte Assistant-Nachricht auf
@@ -23,12 +24,12 @@ export function QuickConfirm({ disabled, onAnswer }: { disabled: boolean; onAnsw
   return (
     <div class="quick-confirm" role="group" aria-label="Ja/Nein antworten">
       <span class="dim">Agent fragt:</span>
-      <button type="button" class="chip" disabled={disabled} onClick={() => onAnswer("Ja")}>
+      <Chip disabled={disabled} onClick={() => onAnswer("Ja")}>
         Ja
-      </button>
-      <button type="button" class="chip" disabled={disabled} onClick={() => onAnswer("Nein")}>
+      </Chip>
+      <Chip disabled={disabled} onClick={() => onAnswer("Nein")}>
         Nein
-      </button>
+      </Chip>
     </div>
   );
 }

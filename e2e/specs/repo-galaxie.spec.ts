@@ -16,7 +16,7 @@ test.describe("Repo-Galaxie (EPIC-P52)", () => {
     const id = await hub.createSession({ adapter: "dummy", prompt: "Galaxie Suche", workspaceMode: "direct", confirmDirty: true });
     await app.goto(`${hub.origin}/#/sessions/${id}/graph`);
     await expect(app.locator(".graph-canvas")).toBeVisible();
-    await expect(app.locator('[data-testid="graph-legend"]')).toBeVisible();
+    await expect(app.locator('[data-testid=graph-legend]')).toBeVisible();
     await expect(app.getByRole("button", { name: "Ganze Galaxie zeigen" })).toBeVisible();
 
     const search = app.getByRole("searchbox", { name: "Dateien suchen" });
@@ -89,9 +89,9 @@ test.describe("Repo-Galaxie (EPIC-P52)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}/graph`);
     await expect(app.locator(".graph-pane")).toHaveAttribute("data-motion", "off");
     await app.getByRole("button", { name: "Datei README.md auswählen" }).click();
-    await expect(app.locator(".graph-selection")).toContainText("README.md");
+    await expect(app.locator("[data-testid=graph-selection]")).toContainText("README.md");
     await expect.poll(() => app.evaluate((key) => localStorage.getItem(key), `ancientvoid.galaxy:session=${encodeURIComponent(id)}`)).toContain("README.md");
     await app.reload();
-    await expect(app.locator(".graph-selection")).toContainText("README.md");
+    await expect(app.locator("[data-testid=graph-selection]")).toContainText("README.md");
   });
 });

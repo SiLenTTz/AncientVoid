@@ -3,6 +3,7 @@ import { remoteHost } from "../../shared/api.ts";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { addSource } from "../../shared/sources.ts";
+import { Sheet } from "../../shared/ui/index.ts";
 import {
   newInputId,
   type DraftMrPlan,
@@ -457,16 +458,14 @@ export function ForgePanel({ session, onOpenSession }: { session: SessionRecord;
       )}
 
       {trace !== null && (
-        <div class="modal fp-trace-dialog" role="dialog" aria-label="Job-Trace">
-          <div class="modal-card">
-            <h3>Trace Job {trace.jobId}{trace.truncated ? " (gekürzt)" : ""}</h3>
-            <div class="dim">Abruf {time(trace.fetchedAt)} · {(trace.sizeBytes / 1024).toFixed(1)} KB · SHA {short(trace.sha)}</div>
-            <pre class="mono fp-trace">{trace.preview}</pre>
-            <div class="fp-row right">
-              <button class="fp-btn" onClick={() => setTrace(null)}>schließen</button>
-            </div>
+        <Sheet open onClose={() => setTrace(null)} label="Job-Trace" variant="modal" testid="modal" class="fp-trace-dialog">
+          <h3>Trace Job {trace.jobId}{trace.truncated ? " (gekürzt)" : ""}</h3>
+          <div class="dim">Abruf {time(trace.fetchedAt)} · {(trace.sizeBytes / 1024).toFixed(1)} KB · SHA {short(trace.sha)}</div>
+          <pre class="mono fp-trace">{trace.preview}</pre>
+          <div class="fp-row right">
+            <button class="fp-btn" onClick={() => setTrace(null)}>schließen</button>
           </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );

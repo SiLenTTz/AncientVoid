@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import type { CustomModel, PiProviderBody } from "../../shared/api.ts";
+import { Sheet, Button } from "../../shared/ui/index.ts";
 
 type Api = {
   customModels: () => Promise<{ items: CustomModel[] }>;
@@ -80,17 +81,16 @@ export function CustomModelDialog({ adapter, canEndpoint, api, onClose, onChange
   const exists = /schon/.test(error ?? "");
 
   return (
-    <div class="modal custom-model-dialog" role="dialog" aria-label="Eigenes Modell oder Endpunkt">
-      <div class="modal-card">
+    <Sheet open onClose={onClose} label="Eigenes Modell oder Endpunkt" variant="modal" testid="modal" class="custom-model-dialog">
         <h3>Eigenes Modell oder Endpunkt</h3>
         {canEndpoint && (
           <div class="row" role="tablist">
-            <button class={tab === "model" ? "btn primary" : "btn"} type="button" role="tab" aria-selected={tab === "model"} onClick={() => setTab("model")}>
+            <Button role="tab" aria-selected={tab === "model"} onClick={() => setTab("model")} variant="primary" class={tab === "model" ? undefined : undefined}>
               Modell
-            </button>
-            <button class={tab === "endpoint" ? "btn primary" : "btn"} type="button" role="tab" aria-selected={tab === "endpoint"} onClick={() => setTab("endpoint")}>
+            </Button>
+            <Button role="tab" aria-selected={tab === "endpoint"} onClick={() => setTab("endpoint")} variant="primary" class={tab === "endpoint" ? undefined : undefined}>
               Endpunkt (pi)
-            </button>
+            </Button>
           </div>
         )}
         {tab === "model" || !canEndpoint ? (
@@ -111,9 +111,9 @@ export function CustomModelDialog({ adapter, canEndpoint, api, onClose, onChange
               Der Hub reicht die Id unverändert weiter. Kennt der Harness sie nicht oder fehlt die Anmeldung beim Anbieter, scheitert der Zug sichtbar — es läuft nie ein anderes Modell.
             </div>
             <div class="modal-actions">
-              <button class="btn primary" type="button" disabled={busy || !id.trim()} onClick={() => void saveModel()}>
+              <Button disabled={busy || !id.trim()} onClick={() => void saveModel()} variant="primary">
                 {busy ? "lädt…" : "Speichern"}
-              </button>
+              </Button>
             </div>
           </>
         ) : (
@@ -160,9 +160,9 @@ export function CustomModelDialog({ adapter, canEndpoint, api, onClose, onChange
               Schreibt in pi's models.json (mit Sicherung davor). Andere Provider dort bleiben unberührt; pi lädt die Datei beim Öffnen der Modellwahl neu.
             </div>
             <div class="modal-actions">
-              <button class="btn primary" type="button" disabled={busy || !name.trim() || !baseUrl.trim() || !modelId.trim()} onClick={() => void saveEndpoint()}>
+              <Button disabled={busy || !name.trim() || !baseUrl.trim() || !modelId.trim()} onClick={() => void saveEndpoint()} variant="primary">
                 {busy ? "lädt…" : "Eintragen"}
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -178,19 +178,18 @@ export function CustomModelDialog({ adapter, canEndpoint, api, onClose, onChange
                   {m.id}
                   <span class="dim"> {m.adapters.length === 0 ? "(alle)" : `(${m.adapters.join(", ")})`}</span>
                 </span>
-                <button class="btn" type="button" aria-label={`${m.id} entfernen`} disabled={busy} onClick={() => void run(async () => (await api.removeCustomModel(m.id), onChanged(), reload()))}>
+                <Button aria-label={`${m.id} entfernen`} disabled={busy} onClick={() => void run(async () => (await api.removeCustomModel(m.id), onChanged(), reload()))}>
                   ✕
-                </button>
+                </Button>
               </div>
             ))}
           </div>
         )}
         <div class="modal-actions">
-          <button class="btn" type="button" onClick={onClose}>
+          <Button onClick={onClose}>
             Schließen
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+    </Sheet>
   );
 }

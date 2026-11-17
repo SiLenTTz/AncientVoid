@@ -101,7 +101,7 @@ test.describe("Desktop-Workspace (EPIC-P18)", () => {
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${gone}`)).body.status === "stopped", "stopped");
     expect((await hub.api(`/api/sessions/${gone}`, { method: "DELETE", body: {} })).status).toBeLessThan(300);
     await app.reload();
-    await expect(tile(app, 2).locator(".tile-missing")).toContainText("gibt es nicht mehr");
+    await expect(tile(app, 2).locator("[data-testid=tile-missing]")).toContainText("gibt es nicht mehr");
     await tile(app, 2).getByRole("button", { name: "Kachel leeren" }).last().click();
     await expect(tile(app, 2).locator(".tile-empty")).toContainText("frei");
   });
@@ -147,10 +147,10 @@ test.describe("Desktop-Workspace: Kacheln ohne Fokus (EPIC-P18 T18.6)", () => {
     await app.locator(".split-list .session-card").filter({ hasNotText: "Aufgabe Nachbar" }).locator(".session-open").click();
     await cardOf("Aufgabe Nachbar").click({ modifiers: ["Control"] });
     const first = app.locator('.tile[data-tile="1"]');
-    await expect(first.locator(".older-hidden")).toContainText("ältere Einträge");
+    await expect(first.locator("[data-testid=older-hidden]")).toContainText("ältere Einträge");
     await expect(first.locator(".event")).toHaveCount(150);
     await first.locator(".session-top-title").click();
-    await expect(first.locator(".older-hidden")).toHaveCount(0);
+    await expect(first.locator("[data-testid=older-hidden]")).toHaveCount(0);
     expect(await first.locator(".event").count()).toBeGreaterThan(150);
   });
 });

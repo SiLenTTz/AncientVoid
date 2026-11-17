@@ -6,7 +6,7 @@
 
 .device-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 2px 0; }
 
-.device-frame { max-height: 56dvh; width: auto; max-width: 100%; align-self: center; cursor: crosshair; user-select: none; background: #000; border-radius: 8px; }
+.device-frame { max-height: 56dvh; width: auto; max-width: 100%; align-self: center; cursor: crosshair; user-select: none; background: var(--content-terminal); border-radius: 8px; }
 
 .device-install { border: 1px solid var(--bg-chip); border-radius: 8px; padding: 4px 8px; }
 .device-install summary { cursor: pointer; }

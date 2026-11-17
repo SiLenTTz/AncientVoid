@@ -8,6 +8,7 @@ import { EXAMPLE_TEST, TEST_STATE_LABEL, parseTestCase, toViewportPoint } from "
 import { addSource } from "../../shared/sources.ts";
 import { browserHash } from "../../app/route.ts";
 import { projectName } from "../../shared/project-name.ts";
+import { Button, Chip, EmptyState } from "../../shared/ui/index.ts";
 
 type Tab = "view" | "tests" | "log";
 
@@ -78,20 +79,18 @@ export function BrowserPanel({ sessionId, label, hostId, onClose }: { sessionId:
         {sessionId ? `Session „${label ?? sessionId.slice(0, 8)}“ · ${remote ? "andere Maschine" : "dieser Host"}` : "keine Session fokussiert"}
       </span>
       {sessionId && !remote && (
-        <button
-          type="button"
-          class="chip"
+        <Chip
           aria-label="Browser in eigenes Fenster"
           title="In eigenes Fenster"
           onClick={() => void openPopout({ kind: "browser", sessionId, ...(remoteHost(hostId) ? { hostId: remoteHost(hostId)! } : {}) })}
         >
           ⧉
-        </button>
+        </Chip>
       )}
-      <button type="button" class="chip" onClick={onClose} aria-label="Browser schließen">×</button>
+      <Chip onClick={onClose} aria-label="Browser schließen">×</Chip>
     </div>
   );
-  if (!sessionId) return <aside class="browser-panel" data-testid="browser-panel">{head}<div class="empty">Zuerst eine Session fokussieren — der Browser gehört zu ihrem Workspace.</div></aside>;
+  if (!sessionId) return <aside class="browser-panel" data-testid="browser-panel">{head}<EmptyState text="Zuerst eine Session fokussieren — der Browser gehört zu ihrem Workspace." /></aside>;
   if (remote) return <aside class="browser-panel" data-testid="browser-panel">{head}<div class="files-error" role="status">Der Browser läuft auf dem Host der Session. Für Sessions anderer Maschinen ist er in dieser Version nicht erreichbar.</div></aside>;
 
   const isOpen = status?.state === "open";
@@ -105,9 +104,9 @@ export function BrowserPanel({ sessionId, label, hostId, onClose }: { sessionId:
         <UrlBar status={status} disabled={busy || !online} onOpen={(url) => run(() => hubApi.browserOpen(sessionId, url || undefined))} onNavigate={(url) => run(() => (isOpen ? hubApi.browserAction(sessionId, { type: "navigate", url }) : hubApi.browserOpen(sessionId, url)))} />
         {isOpen && (
           <>
-            <button type="button" class="chip" disabled={busy || !online || !status.canBack} aria-label="Zurück" onClick={() => run(() => hubApi.browserAction(sessionId, { type: "back" }))}>‹</button>
-            <button type="button" class="chip" disabled={busy || !online || !status.canForward} aria-label="Vor" onClick={() => run(() => hubApi.browserAction(sessionId, { type: "forward" }))}>›</button>
-            <button type="button" class="chip" disabled={busy || !online} aria-label="Neu laden" onClick={() => run(() => hubApi.browserAction(sessionId, { type: "reload" }))}>↻</button>
+            <Chip disabled={busy || !online || !status.canBack} aria-label="Zurück" onClick={() => run(() => hubApi.browserAction(sessionId, { type: "back" }))}>‹</Chip>
+            <Chip disabled={busy || !online || !status.canForward} aria-label="Vor" onClick={() => run(() => hubApi.browserAction(sessionId, { type: "forward" }))}>›</Chip>
+            <Chip disabled={busy || !online} aria-label="Neu laden" onClick={() => run(() => hubApi.browserAction(sessionId, { type: "reload" }))}>↻</Chip>
             <label class="dim" title="Fenstergröße des Host-Browsers — kein Gerätesimulator">
               Fenster{" "}
               <select aria-label="Fenstergröße" value={status.viewport} disabled={busy || !online} onChange={(e) => run(() => hubApi.browserAction(sessionId, { type: "viewport", preset: (e.target as HTMLSelectElement).value as BrowserViewportName }))}>
@@ -116,18 +115,18 @@ export function BrowserPanel({ sessionId, label, hostId, onClose }: { sessionId:
                 <option value="phone">Schmal 390×844</option>
               </select>
             </label>
-            <button type="button" class="chip" onClick={() => run(() => hubApi.browserClose(sessionId))}>Schließen</button>
+            <Chip onClick={() => run(() => hubApi.browserClose(sessionId))}>Schließen</Chip>
           </>
         )}
       </div>
       {status && <div class="dim" data-testid="browser-mode">{status.headless ? "Modus: unsichtbar (headless) — du siehst das Bild hier." : "Modus: sichtbares Chromium-Fenster auf dem Host — das Bild hier ist dasselbe Fenster."}</div>}
-      {status && status.allowedOrigins.length > 0 && <div class="dim browser-origins" data-testid="browser-origins">Erreichbar: {status.allowedOrigins.join(", ")}</div>}
+      {status && status.allowedOrigins.length > 0 && <div class="dim" data-testid="browser-origins">Erreichbar: {status.allowedOrigins.join(", ")}</div>}
       {status && status.allowedOrigins.length === 0 && <div class="dim">Kein freigegebenes Ziel: der Workspace hat keinen laufenden Service (Manifest) und es sind keine browserOrigins konfiguriert.</div>}
       <div class="browser-tabs" role="tablist">
         {(["view", "tests", "log"] as const).map((t) => (
-          <button key={t} type="button" role="tab" aria-selected={tab === t} class={tab === t ? "chip active" : "chip"} onClick={() => setTab(t)}>
+          <Chip key={t} role="tab" aria-selected={tab === t}  onClick={() => setTab(t)} active={tab === t}>
             {t === "view" ? "Ansicht" : t === "tests" ? "Tests" : `Konsole${status?.log.length ? ` (${status.log.length})` : ""}`}
-          </button>
+          </Chip>
         ))}
       </div>
       {tab === "view" && <Viewport sessionId={sessionId} status={status} online={online} busy={busy} onStatus={setStatus} onError={setError} />}
@@ -148,7 +147,7 @@ function UrlBar({ status, disabled, onOpen, onNavigate }: { status: BrowserStatu
   return (
     <form class="browser-url" onSubmit={(e) => { e.preventDefault(); if (text.trim()) onNavigate(text.trim()); else onOpen(""); }}>
       <input aria-label="Adresse" placeholder="/pfad oder http://127.0.0.1:PORT/" value={text} disabled={disabled} onInput={(e) => setText((e.target as HTMLInputElement).value)} />
-      <button type="submit" class="btn" disabled={disabled}>{status?.state === "open" ? "Gehe zu" : "Browser starten"}</button>
+      <Button type="submit" disabled={disabled}>{status?.state === "open" ? "Gehe zu" : "Browser starten"}</Button>
     </form>
   );
 }
@@ -195,24 +194,24 @@ function Viewport({ sessionId, status, online, busy, onStatus, onError }: { sess
     } else await act({ type: "click", x: point.x, y: point.y });
   };
 
-  if (!isOpen) return <div class="empty" data-testid="browser-closed">Der Browser ist geschlossen. Adresse eingeben und „Browser starten“.</div>;
+  if (!isOpen) return <EmptyState data-testid="browser-closed" text="Der Browser ist geschlossen. Adresse eingeben und „Browser starten“." />;
   return (
-    <div class="browser-view">
+    <div >
       <div class="browser-tools">
         <label class="dim"><input type="radio" name="browser-mode" checked={mode === "operate"} onChange={() => setMode("operate")} /> Bedienen</label>
         <label class="dim"><input type="radio" name="browser-mode" checked={mode === "pick"} onChange={() => setMode("pick")} /> Element wählen</label>
-        <button type="button" class="chip" disabled={!online} onClick={() => act({ type: "scroll", dy: -400 })} aria-label="Hochscrollen">↑</button>
-        <button type="button" class="chip" disabled={!online} onClick={() => act({ type: "scroll", dy: 400 })} aria-label="Runterscrollen">↓</button>
-        {(["Enter", "Tab", "Escape", "Backspace"] as const).map((k) => <button key={k} type="button" class="chip" disabled={!online} onClick={() => act({ type: "press", key: k })}>{k}</button>)}
-        <button type="button" class="chip" disabled={!frame} onClick={async () => { const u = await hubApi.browserBlobUrl(`/api/sessions/${sessionId}/browser/screenshot`); const a = document.createElement("a"); a.href = u; a.download = "browser.png"; a.click(); setTimeout(() => URL.revokeObjectURL(u), 10_000); }}>Screenshot</button>
+        <Chip disabled={!online} onClick={() => act({ type: "scroll", dy: -400 })} aria-label="Hochscrollen">↑</Chip>
+        <Chip disabled={!online} onClick={() => act({ type: "scroll", dy: 400 })} aria-label="Runterscrollen">↓</Chip>
+        {(["Enter", "Tab", "Escape", "Backspace"] as const).map((k) => <Chip key={k} disabled={!online} onClick={() => act({ type: "press", key: k })}>{k}</Chip>)}
+        <Chip disabled={!frame} onClick={async () => { const u = await hubApi.browserBlobUrl(`/api/sessions/${sessionId}/browser/screenshot`); const a = document.createElement("a"); a.href = u; a.download = "browser.png"; a.click(); setTimeout(() => URL.revokeObjectURL(u), 10_000); }}>Screenshot</Chip>
       </div>
       <form class="browser-type" onSubmit={(e) => { e.preventDefault(); if (typed) { void act({ type: "type", text: typed }); setTyped(""); } }}>
         <input aria-label="Text eintippen" placeholder="Text in das fokussierte Feld tippen" value={typed} disabled={!online || busy} maxLength={500} onInput={(e) => setTyped((e.target as HTMLInputElement).value)} />
-        <button type="submit" class="btn" disabled={!online || !typed}>Tippen</button>
+        <Button type="submit" disabled={!online || !typed}>Tippen</Button>
       </form>
       {frame ? (
         <img ref={img} class={mode === "pick" ? "browser-frame picking" : "browser-frame"} data-testid="browser-frame" src={frame.url} alt={`Browser: ${status?.title ?? status?.url ?? ""}`} onClick={onImageClick} draggable={false} />
-      ) : <div class="empty">Bild wird geladen …</div>}
+      ) : <div class="ui-empty">Bild wird geladen …</div>}
       {frame && <div class="dim" data-testid="browser-frame-time">Stand {frame.at.toLocaleTimeString("de-DE")}{!online ? " (offline)" : ""}</div>}
       {pick && <PickCard sessionId={sessionId} pick={pick} onDone={() => setPick(null)} />}
     </div>
@@ -236,10 +235,8 @@ function PickCard({ sessionId, pick, onDone }: { sessionId: string; pick: Browse
       <input aria-label="Anmerkung zum Element" placeholder="Was soll geändert werden?" maxLength={2000} value={note} onInput={(e) => { setNote((e.target as HTMLInputElement).value); setPreview(null); }} />
       <label class="dim"><input type="checkbox" checked={shot} onChange={(e) => { setShot((e.target as HTMLInputElement).checked); setPreview(null); }} /> Screenshot des Elements anhängen</label>
       <div class="file-tools">
-        <button type="button" class="btn" data-testid="browser-feedback-preview" onClick={() => hubApi.browserFeedbackPreview(sessionId, input).then((r) => setPreview(r.prompt)).catch((e) => setMsg(e instanceof Error ? e.message : "Vorschau fehlgeschlagen"))}>Vorschau</button>
-        <button
-          type="button"
-          class="btn"
+        <Button data-testid="browser-feedback-preview" onClick={() => hubApi.browserFeedbackPreview(sessionId, input).then((r) => setPreview(r.prompt)).catch((e) => setMsg(e instanceof Error ? e.message : "Vorschau fehlgeschlagen"))}>Vorschau</Button>
+        <Button
           data-testid="browser-pick-to-composer"
           onClick={() => {
             // EPIC-P43.5 T43.5-1: Befund als Quellenchip — Vorschau im Composer, bewusstes Senden.
@@ -255,9 +252,9 @@ function PickCard({ sessionId, pick, onDone }: { sessionId: string; pick: Browse
           }}
         >
           In den Composer
-        </button>
-        <button type="button" class="btn" data-testid="browser-feedback-send" disabled={!preview} onClick={() => hubApi.browserFeedbackSend(sessionId, { ...input, operationId: crypto.randomUUID() }).then(() => { setMsg("Gesendet."); onDone(); }).catch((e) => setMsg(e instanceof Error ? e.message : "Senden fehlgeschlagen"))}>An Session senden</button>
-        <button type="button" class="chip" onClick={onDone}>Verwerfen</button>
+        </Button>
+        <Button data-testid="browser-feedback-send" disabled={!preview} onClick={() => hubApi.browserFeedbackSend(sessionId, { ...input, operationId: crypto.randomUUID() }).then(() => { setMsg("Gesendet."); onDone(); }).catch((e) => setMsg(e instanceof Error ? e.message : "Senden fehlgeschlagen"))}>An Session senden</Button>
+        <Chip onClick={onDone}>Verwerfen</Chip>
       </div>
       {preview && <pre class="file-text" data-testid="browser-feedback-prompt">{preview}</pre>}
       {msg && <div class="dim" role="status">{msg}</div>}
@@ -285,19 +282,19 @@ function Tests({ sessionId, online }: { sessionId: string; online: boolean }) {
     try { await hubApi.browserRunTest(sessionId, parsed.test); void load(); } catch (err) { setError(err instanceof Error ? err.message : "Start fehlgeschlagen"); }
   };
   return (
-    <div class="browser-tests" data-testid="browser-tests">
+    <div  data-testid="browser-tests">
       <div class="dim file-note">Registrierte Schritte (goto, click, fill, expectText, expectVisible, expectUrl) — kein freier Code. Der Test läuft in einem eigenen Kontext, getrennt von deinem Browser. Ein „/pfad“ gilt relativ zum ersten freigegebenen Dienst.</div>
       <textarea class="browser-test-editor mono" aria-label="Testfall (JSON)" rows={10} spellcheck={false} value={text} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} />
       {error && <div class="files-error" role="alert">{error}</div>}
-      <button type="button" class="btn" disabled={!online} data-testid="browser-test-start" onClick={start}>Test starten</button>
+      <Button disabled={!online} data-testid="browser-test-start" onClick={start}>Test starten</Button>
       <ul class="browser-runs">
         {runs.map((r) => (
           <li key={r.id} data-testid="browser-run" data-state={r.state}>
             <strong>{r.name}</strong> · <span class={`run-${r.state}`}>{TEST_STATE_LABEL[r.state]}</span> <span class="dim">({r.viewport})</span>
-            {r.state === "running" && <button type="button" class="chip" onClick={() => hubApi.browserAbortTest(sessionId, r.id).then(load)}>Abbrechen</button>}
+            {r.state === "running" && <Chip onClick={() => hubApi.browserAbortTest(sessionId, r.id).then(load)}>Abbrechen</Chip>}
             {r.note && <div class="dim">{r.note}</div>}
             <ol class="dim">{r.steps.map((s) => <li key={s.index}>{s.ok ? "✓" : "✗"} {s.type}{s.detail ? ` — ${s.detail}` : ""}</li>)}</ol>
-            {r.artifact && <button type="button" class="chip" onClick={async () => setArtifact({ runId: r.id, url: await hubApi.browserBlobUrl(`/api/sessions/${sessionId}/browser/tests/${r.id}/artifact`) })}>Screenshot</button>}
+            {r.artifact && <Chip onClick={async () => setArtifact({ runId: r.id, url: await hubApi.browserBlobUrl(`/api/sessions/${sessionId}/browser/tests/${r.id}/artifact`) })}>Screenshot</Chip>}
             {artifact?.runId === r.id && <img class="file-media" src={artifact.url} alt={`Screenshot von ${r.name}`} />}
           </li>
         ))}

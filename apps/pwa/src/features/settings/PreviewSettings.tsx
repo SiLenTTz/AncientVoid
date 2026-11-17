@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { APPEARANCE_EVENT, DEFAULT_APPEARANCE, getAppearance, isDefaultAppearance, setAppearance } from "../../app/appearance.ts";
 import { StatusDot } from "../../shared/StatusDot.tsx";
 import { SettingsSection } from "./parts.tsx";
+import { Button } from "../../shared/ui/index.ts";
 
 /**
  * Gruppe „Vorschau“: ein kleiner Chat mit den echten Klassen der Oberfläche — Akzent, Oberflächen- und
@@ -31,7 +32,7 @@ export function PreviewSettings() {
           <StatusDot status="idle" unseen />
           <StatusDot status="error" />
           <StatusDot status="idle" />
-          <span class="btn primary preview-button">Senden</span>
+          <span class="ui-button ui-button--primary preview-button">Senden</span>
           <span class="preview-link">Link</span>
         </div>
       </div>
@@ -41,9 +42,9 @@ export function PreviewSettings() {
           <span class="dim setting-hint">Akzentfarbe, Schriftarten und Schriftgröße; Theme und Zoom bleiben</span>
         </div>
         <div class="setting-control">
-          <button class="btn" type="button" disabled={!custom} onClick={() => setAppearance(DEFAULT_APPEARANCE)}>
+          <Button disabled={!custom} onClick={() => setAppearance(DEFAULT_APPEARANCE)}>
             Zurücksetzen
-          </button>
+          </Button>
         </div>
       </div>
     </SettingsSection>

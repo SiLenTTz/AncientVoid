@@ -68,7 +68,7 @@ test.describe("Loop / Dark Factory im Start-Formular", () => {
     await startLoop(app);
     await expect(app.locator(".session-top-meta .loop-badge")).toHaveText("Loop · fake-loop · ruhig");
     await expect(app.locator(".loop-panel")).toContainText("1 von 3 Aufgaben · bauen");
-    await expect(app.locator(".loop-gate")).toContainText("policy: bestanden");
+    await expect(app.locator("[data-testid=loop-gate]")).toContainText("policy: bestanden");
     await expect(app.locator(".loop-bar")).toHaveAttribute("aria-valuenow", "33");
 
     await app.getByRole("button", { name: "Pausieren" }).click();

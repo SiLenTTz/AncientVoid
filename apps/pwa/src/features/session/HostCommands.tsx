@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { projectName } from "../../shared/project-name.ts";
+import { Button, Card } from "../../shared/ui/index.ts";
 
 /**
  * Real user request (2026-09-19): "same session on the phone and my
@@ -35,9 +36,9 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setState("idle"), 1500);
   };
   return (
-    <button class="btn" type="button" onClick={() => void copy()}>
+    <Button onClick={() => void copy()}>
       {state === "copied" ? "Kopiert" : state === "failed" ? "Bitte markieren" : "Kopieren"}
-    </button>
+    </Button>
   );
 }
 
@@ -71,21 +72,21 @@ export function WorktreeCard({
 }) {
   const openInEditor = host ? `code --remote ssh-remote+${host} ${shellQuote(worktree.path)}` : `code ${shellQuote(worktree.path)}`;
   return (
-    <div class="card worktree-card">
+    <Card data-testid="worktree-card">
       <div class="dim" style="font-size: calc(12px * var(--font-scale, 1)); margin-bottom: 6px">
         Die Änderungen dieser Session liegen in einem eigenen Git-Worktree{host ? ` auf ${host}` : ""}, nicht in {projectName(project)}.
         Branch <span class="mono">{worktree.branch}</span>.
       </div>
       <div class="attach-cmd-row">
-        <code class="mono worktree-path">{worktree.path}</code>
+        <code class="mono" data-testid="worktree-path">{worktree.path}</code>
         <CopyButton text={worktree.path} />
       </div>
       <div class="attach-cmd-row" style="margin-top: 6px">
-        <code class="mono worktree-open">{openInEditor}</code>
+        <code class="mono" data-testid="worktree-open">{openInEditor}</code>
         <CopyButton text={openInEditor} />
       </div>
       {apply && <ApplyToProject sessionId={sessionId} status={status} worktree={worktree} project={project} />}
-    </div>
+    </Card>
   );
 }
 
@@ -133,27 +134,25 @@ export function ApplyToProject({
             Committet alle Änderungen auf {worktree.branch} und merged sie in den ausgecheckten Branch von {projectLabel}.
           </div>
           <div class="row" style="gap: 8px">
-            <button class={busy ? "btn primary busy" : "btn primary"} type="button" disabled={busy} onClick={() => void apply()}>
+            <Button disabled={busy} onClick={() => void apply()} variant="primary" class={busy ? "busy" : undefined}>
               {busy ? "lädt…" : "Jetzt übernehmen"}
-            </button>
-            <button class="btn" type="button" disabled={busy} onClick={() => setConfirming(false)}>
+            </Button>
+            <Button disabled={busy} onClick={() => setConfirming(false)}>
               Abbrechen
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
-        <button
-          class={primary ? "btn primary apply-btn" : "btn apply-btn"}
-          type="button"
+        <Button
           disabled={running}
           title={running ? "Erst nach dem laufenden Zug" : undefined}
           onClick={() => {
             setResult(null);
             setConfirming(true);
           }}
-        >
+         variant="primary" class={primary ? "apply-btn" : "apply-btn"}>
           Ins Projekt übernehmen
-        </button>
+        </Button>
       )}
       {result && <div class={result.ok ? "apply-result ok" : "apply-result reply-error"}>{result.text}</div>}
     </div>
@@ -169,10 +168,10 @@ export function ApplyToProject({
 export function ContinueCard({ openCmd, host = null }: { openCmd?: string | undefined; host?: string | null }) {
   const link = typeof location === "undefined" ? "" : location.href;
   return (
-    <div class="card continue-card">
+    <Card data-testid="continue-card">
       <div class="dim" style="font-size: calc(12px * var(--font-scale, 1)); margin-bottom: 6px">Weiterarbeiten auf einem anderen Gerät</div>
       <div class="attach-cmd-row">
-        <code class="mono continue-link">{link}</code>
+        <code class="mono" data-testid="continue-link">{link}</code>
         <CopyButton text={link} />
       </div>
       {openCmd ? (
@@ -181,16 +180,16 @@ export function ContinueCard({ openCmd, host = null }: { openCmd?: string | unde
             {host ? `Im Terminal, per SSH auf ${host}` : "Im Terminal am PC"}, dieselbe Provider-Session. Solange sie dort läuft, hier nichts senden.
           </div>
           <div class="attach-cmd-row">
-            <code class="mono continue-open">{openCmd}</code>
+            <code class="mono" data-testid="continue-open">{openCmd}</code>
             <CopyButton text={openCmd} />
           </div>
         </>
       ) : (
-        <div class="dim continue-none" style="font-size: calc(11px * var(--font-scale, 1)); margin-top: 6px">
+        <div class="dim" data-testid="continue-none" style="font-size: calc(11px * var(--font-scale, 1)); margin-top: 6px">
           Terminal-Befehl erscheint zwischen zwei Zügen, sobald die Provider-Session bekannt ist.
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -207,7 +206,7 @@ export function AttachCmdRow({ cmd }: { cmd: string }) {
     }
   };
   return (
-    <div class="card attach-cmd-card">
+    <Card data-testid="attach-cmd-card">
       <div class="dim" style="font-size: calc(12px * var(--font-scale, 1)); margin-bottom: 6px">
         Am Desktop weiterarbeiten — dieselbe Session, nicht eine Kopie. Funktioniert
         sicher, während der Agent gerade aktiv einen Zug ausführt; dazwischen evtl.
@@ -215,10 +214,10 @@ export function AttachCmdRow({ cmd }: { cmd: string }) {
       </div>
       <div class="attach-cmd-row">
         <code class="mono">{cmd}</code>
-        <button class="btn" onClick={copy}>
+        <Button onClick={copy}>
           {copied ? "Kopiert" : "Kopieren"}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }

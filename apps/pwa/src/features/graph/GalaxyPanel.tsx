@@ -1,6 +1,7 @@
 import type { GraphGroup, GraphNode } from "@ancientvoid/contracts";
 import type { GalaxyNeighbor } from "./galaxy-query.ts";
 import { systemLabel, type GalaxySystem } from "./galaxy-layout.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 const GROUP_LABEL: Record<GraphGroup, string> = { doc: "Doc", code: "Code", config: "Config", other: "Sonstiges" };
 const KIND_LABEL = { import: "Import", link: "Verweis", asset: "Asset", pyimport: "Python" } as const;
@@ -62,15 +63,15 @@ export function GalaxyPanel(props: {
         </ul>
       )}
       {selected && (
-        <section class="graph-selection" aria-label="Auswahl">
+        <section data-testid="graph-selection" aria-label="Auswahl">
           {props.narrow && props.sheet === "line" && (
             <div class="graph-sheet-line">
               <button type="button" class="graph-sheet-handle" aria-label="Liste aufklappen" onClick={() => props.onSheet("open")}>
                 {selected.path}
               </button>
-              <button type="button" class="btn" aria-label="Datei öffnen" onClick={() => props.onOpen(selected.path)}>
+              <Button aria-label="Datei öffnen" onClick={() => props.onOpen(selected.path)}>
                 Öffnen
-              </button>
+              </Button>
             </div>
           )}
           {showLists && (
@@ -80,12 +81,12 @@ export function GalaxyPanel(props: {
                 {GROUP_LABEL[selected.group]}
                 {selected.in === 0 && !selected.entry ? " · tot" : ""}
               </p>
-              <button type="button" class="btn" aria-label="Datei öffnen" onClick={() => props.onOpen(selected.path)}>
+              <Button aria-label="Datei öffnen" onClick={() => props.onOpen(selected.path)}>
                 Öffnen
-              </button>
-              <button type="button" class="btn" aria-pressed={props.twoHop} onClick={() => props.onTwoHop(!props.twoHop)}>
+              </Button>
+              <Button aria-pressed={props.twoHop} onClick={() => props.onTwoHop(!props.twoHop)}>
                 2 Schritte
-              </button>
+              </Button>
               <p class="graph-direction">
                 <span class="graph-dir-in">eingehend, Pfeil zur Auswahl</span>
                 {" · "}

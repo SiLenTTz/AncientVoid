@@ -1,3 +1,4 @@
+import { Sheet, Button } from "../../shared/ui/index.ts";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import type { AttachmentRecord } from "../../shared/api.ts";
@@ -59,9 +60,9 @@ export function AttachmentPicker({ attachments, onChange, disabled }: { attachme
   return (
     <>
       <input ref={input} type="file" multiple hidden aria-label="Dateien anhängen" onChange={(e) => void pick((e.target as HTMLInputElement).files)} />
-      <button class="btn attach-btn" type="button" disabled={disabled} onClick={() => input.current?.click()} title="Dateien oder Bilder anhängen" aria-label="Anhang hinzufügen">
+      <Button disabled={disabled} onClick={() => input.current?.click()} title="Dateien oder Bilder anhängen" aria-label="Anhang hinzufügen" class="attach-btn">
         📎
-      </button>
+      </Button>
       {(attachments.length > 0 || uploading.length > 0) && (
         <div class="attachment-chips">
           {attachments.map((a) => (
@@ -125,13 +126,12 @@ function AttachmentViewer({ attachment, onClose }: { attachment: AttachmentRef; 
     };
   }, [attachment.id]);
   return (
-    <div class="overlay-backdrop" onClick={onClose}>
-      <div class="overlay-sheet attachment-viewer" onClick={(e) => e.stopPropagation()}>
+    <Sheet open onClose={onClose} label={attachment.name} testid="attachment-viewer">
         <div class="row" style="justify-content: space-between; align-items: center">
           <strong>{attachment.name}</strong>
-          <button class="btn" type="button" onClick={onClose}>
+          <Button onClick={onClose}>
             ✕
-          </button>
+          </Button>
         </div>
         {url && <img class="attachment-preview" src={url} alt={attachment.name} />}
         {text === null ? (
@@ -144,7 +144,6 @@ function AttachmentViewer({ attachment, onClose }: { attachment: AttachmentRef; 
         ) : (
           <div class="dim">{text.extraction.error ?? "Kein Text ausgelesen."}</div>
         )}
-      </div>
-    </div>
+    </Sheet>
   );
 }

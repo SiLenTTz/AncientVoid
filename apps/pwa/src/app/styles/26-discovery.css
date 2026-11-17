@@ -59,12 +59,12 @@
 
 .discovery-kpi-count {
   font-family: var(--font-display);
-  font-size: calc(22px * var(--font-scale, 1));
+  font-size: var(--text-xl);
   line-height: 1.1;
 }
 
 .discovery-kpi-label {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   color: var(--fg-dim);
@@ -164,7 +164,7 @@
   overflow: hidden;
   overflow-wrap: anywhere;
   /* Größe fest benannt: `.dim` setzt eine eigene, und die Höhe hängt an `em`. */
-  font-size: calc(14px * var(--font-scale, 1));
+  font-size: var(--text-md);
   line-height: 1.35;
   height: calc(2 * 1.35em);
 }
@@ -174,7 +174,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   line-height: 1.3;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   color: var(--state-observed);
@@ -191,7 +191,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   line-height: 1.4;
   height: calc(2 * 1.4em);
 }
@@ -201,7 +201,7 @@
   gap: 4px 10px;
   overflow: hidden;
   white-space: nowrap;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
 }
 
 .discovery-meta > span {
@@ -225,7 +225,7 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
 }
 
 .card-menu {
@@ -258,11 +258,11 @@
   position: absolute;
   right: 0;
   bottom: calc(100% + 6px);
-  z-index: 5;
+  z-index: var(--z-overlay);
   display: grid;
   gap: 8px;
   min-width: 220px;
-  max-width: min(calc(80vw / var(--ui-zoom, 1)), 320px); /* BUG-0122 */
+  max-width: min(calc(80vw / var(--ui-zoom)), 320px); /* BUG-0122 */
   padding: 10px;
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius);
@@ -279,7 +279,7 @@
 .discovery-id {
   overflow-wrap: anywhere;
   text-align: right;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
 }
 
 

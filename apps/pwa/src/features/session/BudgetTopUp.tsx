@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
+import { Button, Card } from "../../shared/ui/index.ts";
 
 /**
  * T1.6-4 — every row here has a named, real source (EPIC-P1.6 §3.3); "Tests"
@@ -41,7 +42,7 @@ export function BudgetTopUp({ sessionId, currentBudgetUsd }: { sessionId: string
   };
 
   return (
-    <div class="card" style="margin: 10px 0; display: grid; gap: 8px">
+    <Card style="margin: 10px 0; display: grid; gap: 8px">
       <div>Session wegen Budget pausiert.</div>
       <div style="display: flex; gap: 8px; align-items: center">
         <input
@@ -54,10 +55,10 @@ export function BudgetTopUp({ sessionId, currentBudgetUsd }: { sessionId: string
         />
         <span>$ neues Budget</span>
       </div>
-      <button class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} onClick={submit} disabled={busy}>
+      <Button  aria-busy={busy} onClick={submit} disabled={busy} variant="primary" class={busy ? "busy" : undefined}>
         {busy ? "lädt…" : "Budget erhöhen"}
-      </button>
+      </Button>
       {message && <div class="dim" style="font-size: calc(12px * var(--font-scale, 1))">{message}</div>}
-    </div>
+    </Card>
   );
 }

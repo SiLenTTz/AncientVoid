@@ -86,9 +86,9 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     await hub.createSession({ adapter: "opencode", prompt: "Workflow: release\n\nBaue die Punkteanzeige" });
     await hub.createSession({ adapter: "opencode", project: hub.beta, prompt: "Ziel: Menü aufräumen\nScope: nur beta" });
     const alpha = app.locator(".session-card").filter({ hasText: "Baue die Punkteanzeige" });
-    await expect(alpha.locator(".session-project")).toHaveText("alpha");
+    await expect(alpha.locator("[data-testid=session-project]")).toHaveText("alpha");
     const beta = app.locator(".session-card").filter({ hasText: "Menü aufräumen" });
-    await expect(beta.locator(".session-project")).toHaveText("beta");
+    await expect(beta.locator("[data-testid=session-project]")).toHaveText("beta");
     await expect(beta).toContainText("opencode");
     // card shows the model (registration default) and the readable host too
     await expect(beta).toContainText("e2e/fake-model");
@@ -113,7 +113,7 @@ test.describe("Session anlegen und verfolgen (P1, P1.6)", () => {
     // „Ruhig“ ist zu, solange oben etwas steht.
     await expect(app.locator(".section-zuletzt .session-card")).toHaveCount(0);
     await openQuiet(app);
-    await expect(app.locator(".section-zuletzt .session-card .session-project")).toHaveText(["alpha", "beta"]);
+    await expect(app.locator(".section-zuletzt .session-card [data-testid=session-project]")).toHaveText(["alpha", "beta"]);
     await app.locator(".section-zuletzt .session-card").filter({ hasText: "alpha" }).locator(".session-open").click();
     await expect(app.locator(".session-topbar")).toContainText("alpha");
     await expect(app.locator(".session-topbar")).toContainText("dummy");

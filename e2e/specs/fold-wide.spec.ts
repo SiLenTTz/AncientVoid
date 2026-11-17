@@ -40,7 +40,7 @@ test.describe("Z Fold ausgeklappt (BUG-0180)", () => {
 
     const box = await app.evaluate(() => {
       const strip = document.querySelector(".session-strip")!.getBoundingClientRect();
-      const detail = document.querySelector(".tablet-detail")!.getBoundingClientRect();
+      const detail = document.querySelector("[data-testid=tablet-detail]")!.getBoundingClientRect();
       const appEl = document.getElementById("app")!.getBoundingClientRect();
       return {
         stripRight: strip.right,

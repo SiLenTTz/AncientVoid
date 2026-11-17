@@ -11,7 +11,7 @@
   background: var(--bg);
   color: var(--fg);
   font: inherit;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 
@@ -27,21 +27,21 @@
 }
 
 .color-dialog {
-  width: min(380px, calc(96vw / var(--ui-zoom, 1))); /* BUG-0122 */
-  max-height: calc(94dvh / var(--ui-zoom, 1));
+  width: min(380px, calc(96vw / var(--ui-zoom))); /* BUG-0122 */
+  max-height: calc(94dvh / var(--ui-zoom));
   padding: 0;
   border: 1px solid var(--fg-faint);
   border-radius: var(--radius-lg);
   background: var(--bg-elev);
   color: var(--fg);
-  box-shadow: var(--shadow-elev), 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+  box-shadow: var(--shadow-elev), 0 24px 60px -20px var(--scrim-950);
   overflow: auto;
   /* Die Zeile der Einstellungen (DOM-Eltern) richtet rechts aus — der Dialog nicht. */
   text-align: left;
 }
 
 .color-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--backdrop);
 }
 
 .color-dialog-body {
@@ -53,7 +53,7 @@
 .color-dialog h3 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: calc(13px * var(--font-scale, 1));
+  font-size: var(--text-md);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
@@ -72,7 +72,7 @@
 
 .cp-hue {
   height: 20px;
-  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  background: linear-gradient(to right, var(--hue-red), var(--hue-yellow), var(--hue-lime), var(--hue-cyan), var(--hue-blue), var(--hue-magenta), var(--hue-red));
 }
 
 .cp-plane:focus-visible,
@@ -86,9 +86,9 @@
   width: 14px;
   height: 14px;
   margin: -7px 0 0 -7px;
-  border: 2px solid #fff;
+  border: 2px solid var(--content-paper);
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 1px var(--scrim-900);
   pointer-events: none;
 }
 
@@ -107,16 +107,16 @@
   place-items: center;
   border: 0;
   font: inherit;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
-  color: #fff;
+  color: var(--content-paper);
   mix-blend-mode: normal;
 }
 
 .cp-old {
   cursor: pointer;
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 0 3px var(--scrim-950);
 }
 
 .cp-fields {
@@ -128,7 +128,7 @@
 .cp-fields .cp-field {
   display: grid;
   gap: 2px;
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   color: var(--fg-dim);
 }
 
@@ -145,7 +145,7 @@
   background: var(--bg);
   color: var(--fg);
   font: inherit;
-  font-size: max(16px, calc(16px * var(--font-scale, 1)));
+  font-size: var(--text-input);
 }
 
 .color-dialog .cp-field input[aria-invalid="true"] {
@@ -179,12 +179,12 @@
 }
 
 .cp-recent-label {
-  font-size: calc(11px * var(--font-scale, 1));
+  font-size: var(--text-xs);
 }
 
 .cp-warnings p {
   margin: 0;
-  font-size: calc(12px * var(--font-scale, 1));
+  font-size: var(--text-sm);
   color: var(--warn);
 }
 
@@ -199,7 +199,7 @@
 }
 
 /* Handy: der Wähler füllt den Bildschirm (Sheet statt Fenster). */
-@media (max-width: 520px) {
+@media (max-width: 639px) {
   .color-dialog {
     width: 100%;
     max-width: 100%;

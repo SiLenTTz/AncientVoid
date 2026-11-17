@@ -58,10 +58,13 @@
     "check:names": "node scripts/check-names.mjs",
     "check:context": "node scripts/check-context.mjs",
     "docs:reference": "node scripts/gen-reference.mjs",
+    "docs:design-tokens": "node scripts/design-tokens-doc.mjs",
     "check:knip": "knip",
     "demo:seed": "node scripts/demo-seed.ts",
     "guide:shots": "node scripts/guide-shots.ts",
-    "readme:hero": "node scripts/readme-hero.mjs"
+    "readme:hero": "node scripts/readme-hero.mjs",
+    "readme:demo": "node scripts/readme-demo.mjs",
+    "readme:diagram": "node scripts/readme-diagram.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

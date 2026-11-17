@@ -106,7 +106,7 @@ const GLOBAL: Entry[] = [
      
     },
   },
-  { id: "G18", name: "PC-Eingabe (Am PC eintippen)", from: "start", reach: async (c) => { await nav(c, "Einstellungen"); await c.tap(c.page.locator(".pc-input summary")); await expect(c.page.locator(".pc-input").locator(".desktop-page, .desktop-setup, .desktop-head").first()).toBeVisible(); } },
+  { id: "G18", name: "PC-Eingabe (Am PC eintippen)", from: "start", reach: async (c) => { await nav(c, "Einstellungen"); await c.tap(c.page.locator("[data-testid=pc-input] summary")); await expect(c.page.locator("[data-testid=pc-input]").locator(".desktop-page, [data-testid=desktop-setup], .desktop-head").first()).toBeVisible(); } },
   { id: "G19", name: "Freigaben-Seite (Deeplink)", from: "#/freigaben", reach: async (c) => { await expect(c.page.locator(".approval-queue, .approvals-pane, .empty").first()).toBeVisible(); await expect(c.page).toHaveURL(/#\/freigaben$/); } },
   { id: "G20", name: "Provider-Status", from: "start", reach: async (c) => { await c.tap(c.page.locator(".topbar").getByRole("button", { name: "Status" })); await expect(c.page.locator(".status-page")).toBeVisible(); } },
   { id: "G59", name: "Provider-Status über „Mehr“", forms: TOUCH, from: "start", reach: async (c) => { await c.tap(dock(c, "Mehr")); await c.tap(dock(c, "Provider-Status")); await expect(c.page.locator(".status-page")).toBeVisible(); } },
@@ -170,7 +170,7 @@ const SESSION: Entry[] = [
       await expect.poll(async () => { const n = await changes.count(); const calm = n === last; last = n; return calm; }, { intervals: [600] }).toBe(true);
       if (last > 0) await c.tap(changes);
       else await more(c, "Änderungen");
-      await expect(c.s.locator(".diff-review, .empty, .empty-state").first()).toBeVisible();
+      await expect(c.s.locator("[data-testid=diff-review], .empty, .empty-state").first()).toBeVisible();
     },
   },
   { id: "S05", name: "Mehr: Graph", from: "session", reach: async (c) => { await more(c, "Graph"); await expect(c.s.locator(".graph-pane")).toBeVisible(); } },
@@ -191,7 +191,7 @@ const SESSION: Entry[] = [
   { id: "S21", name: "Composer: Antworten und Senden", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await controls(c); await c.s.getByPlaceholder("Antworten…").fill("Inventar-Entwurf"); await expect(c.s.getByRole("button", { name: "Senden" })).toBeEnabled(); await c.s.getByPlaceholder("Antworten…").fill(""); } },
   { id: "S22", name: "Composer: Anhang", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await controls(c); await expect(c.s.locator(".attach-btn")).toBeVisible(); await expect(c.s.getByLabel("Dateien anhängen")).toBeAttached(); } },
   { id: "S23", name: "Composer: Eingabe maximieren", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await controls(c); await c.tap(c.s.getByRole("button", { name: "Eingabe maximieren" })); await expect(c.s.getByRole("button", { name: "Eingabe verkleinern" })).toBeVisible(); } },
-  { id: "S24", name: "Nyx-FAB: Spracheingabe", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await expect(c.page.locator('[data-testid="nyx-fab"]')).toBeVisible(); } },
+  { id: "S24", name: "Nyx-FAB: Spracheingabe", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await expect(c.page.locator('[data-testid=nyx-fab]')).toBeVisible(); } },
   { id: "S25", name: "Composer: Verbessern", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await controls(c); await c.tap(c.s.getByPlaceholder("Antworten…")); await expect(c.s.getByRole("button", { name: "Verbessern" })).toBeVisible(); } },
   { id: "S26", name: "Composer: Slash-Commands", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await controls(c); await c.s.getByPlaceholder("Antworten…").fill("/"); await expect(c.s.getByRole("listbox", { name: "Commands" })).toBeVisible(); await c.s.getByPlaceholder("Antworten…").fill(""); } },
   { id: "S27", name: "Composer: Antwortvorlagen", from: "session", reach: async (c) => { await c.tap(tab(c, "Chat")); await controls(c); await expect(c.s.locator(".reply-templates").first()).toBeVisible(); } },

@@ -27,9 +27,9 @@ test.describe("Kurze Abruffehler lassen die Oberfläche in Ruhe", () => {
   test("BUG-0045: jeder zweite Abruf schlägt fehl — keine Fehlerkarte erscheint", async ({ app }) => {
     let calls = 0;
     await app.route("**/api/adapters", (route) => (calls++ % 2 === 0 ? route.abort() : route.continue()));
-    await app.evaluate(watch(".load-error"));
+    await app.evaluate(watch("[data-testid=load-error]"));
     await app.reload();
-    await app.evaluate(watch(".load-error"));
+    await app.evaluate(watch("[data-testid=load-error]"));
     await expect.poll(() => calls, { timeout: 30_000 }).toBeGreaterThanOrEqual(6);
     expect((await seen(app)).appeared).toBe(0);
   });

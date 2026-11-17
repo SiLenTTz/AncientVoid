@@ -3,6 +3,7 @@ import { hubApi, hostApi, type HubNotification } from "../../shared/api.ts";
 import { sessionHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { useOverlayFocus } from "../../shared/overlay-focus.ts";
+import { Button } from "../../shared/ui/index.ts";
 import { hasApprovalCandidates, urgencyOf } from "./urgency.ts";
 
 const READ_KEY = "ancientvoid.notifications.readUpTo";
@@ -222,7 +223,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
 
   const row = (n: FleetNotification) => (
     <button key={n.key} class={`notif-item ${n.level}`} type="button" onClick={() => goTo(n.sessionId, n.hostId)}>
-      <span class="notif-item-title">{n.title}</span>
+      <span >{n.title}</span>
       {n.detail && <span class="notif-item-detail">{n.detail}</span>}
       <span class="notif-item-time">{timeAgo(n.createdAt)}</span>
     </button>
@@ -305,12 +306,12 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
         >
           <div class="notif-panel-head">
             <strong>Benachrichtigungen</strong>
-            <button class="btn" type="button" ref={closeBtn} onClick={closePanel}>
+            <Button ref={closeBtn} onClick={closePanel}>
               ✕
-            </button>
+            </Button>
           </div>
           {items.length === 0 ? (
-            <div class="empty">noch keine Meldungen</div>
+            <div class="ui-empty">noch keine Meldungen</div>
           ) : (
             <>
               {errors.length > 0 && (

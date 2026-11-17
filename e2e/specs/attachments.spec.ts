@@ -20,7 +20,7 @@ test.describe("Anhänge (T7.10)", () => {
     const own = app.locator(".event.own").first();
     await expect(own.locator(".attachment-chip")).toHaveCount(2);
     await own.getByRole("button", { name: /bild-mit-text\.png/ }).click();
-    const viewer = app.locator(".attachment-viewer");
+    const viewer = app.locator("[data-testid=attachment-viewer]");
     await expect(viewer.locator("img.attachment-preview")).toBeVisible();
     await expect(viewer.locator(".attachment-text")).toContainText("4711");
     const id = decodeURIComponent(app.url().split("#/sessions/")[1]!);
@@ -45,7 +45,7 @@ test.describe("Anhänge (T7.10)", () => {
 
   test("Gemini-Schlüssel: nur setzbar, nie auslesbar; entfernbar", async ({ app, hub }) => {
     await dockGo(app, "Einstellungen");
-    const card = app.locator(".gemini-settings");
+    const card = app.getByTestId("gemini-settings");
     await expect(card).toContainText("kein Schlüssel");
     await card.getByLabel("API-Schlüssel").fill("AIzaTEST-geheim-1234567890");
     await card.getByRole("button", { name: "Speichern" }).click();

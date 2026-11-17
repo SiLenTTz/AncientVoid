@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type ProjectDoc, type ProjectFile, type SearchResult } from "../../shared/api.ts";
 import { Markdown } from "../../shared/Markdown.tsx";
+import { Button } from "../../shared/ui/index.ts";
 
 // T3.8 (EPIC-P3 §3 "Sprachsuche"): real qmd-backed project MARKDOWN search
 // (the underlying qmd CLI only ever indexes `**/*.md` files — see
@@ -128,9 +129,9 @@ export function SearchPane({ project }: { project: string }) {
             value={query}
             onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
           />
-          <button class={searching ? "btn primary busy" : "btn primary"} type="submit" aria-busy={searching} disabled={!query.trim() || searching}>
+          <Button  type="submit" aria-busy={searching} disabled={!query.trim() || searching} variant="primary" class={searching ? "busy" : undefined}>
             {searching ? "lädt…" : "Suchen"}
-          </button>
+          </Button>
         </form>
       )}
 
@@ -139,7 +140,7 @@ export function SearchPane({ project }: { project: string }) {
       )}
       {status === "searching" && <div class="dim search-status">Suche läuft…</div>}
       {status === "error" && <div class="reply-error">{errorMsg}</div>}
-      {status === "ready" && results.length === 0 && <div class="empty">keine Treffer</div>}
+      {status === "ready" && results.length === 0 && <div class="ui-empty">keine Treffer</div>}
 
       {status === "ready" && results.length > 0 && (
         <div class="search-results">
@@ -162,7 +163,7 @@ export function SearchPane({ project }: { project: string }) {
 
       <div class="doc-overview">
         <div class="doc-overview-head dim">Dokumente · {docs === null ? "lädt…" : `${docs.length}`}</div>
-        {docs !== null && docs.length === 0 && <div class="empty">keine Markdown-Dokumente im Projekt</div>}
+        {docs !== null && docs.length === 0 && <div class="ui-empty">keine Markdown-Dokumente im Projekt</div>}
         {docs !== null &&
           groupDocs(docs).map((group) => (
             <div key={group.dir} class="doc-group">
@@ -231,13 +232,13 @@ function DocViewer({ project, path, snippet, onClose }: { project: string; path:
       <div class="file-viewer" onClick={(e) => e.stopPropagation()}>
         <div class="file-viewer-head">
           <span class="mono">{path}</span>
-          <button class="btn" onClick={onClose}>
+          <Button onClick={onClose}>
             Schließen
-          </button>
+          </Button>
         </div>
         <div class="file-viewer-body" ref={bodyRef}>
-          {error && <div class="empty">{error}</div>}
-          {!error && !file && <div class="empty">lädt …</div>}
+          {error && <div class="ui-empty">{error}</div>}
+          {!error && !file && <div class="ui-empty">lädt …</div>}
           {file && (
             <div class="doc-prose">
               <Markdown text={file.content} />

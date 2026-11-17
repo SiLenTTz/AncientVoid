@@ -68,7 +68,7 @@ export function ToolPane({
     <section class="tool-pane" aria-label={title}>
       <header class="tool-pane-head">
         <h2>{title}</h2>
-        <span class="tool-pane-actions">
+        <span >
           {onPopout && (
             <button type="button" class="tool-pane-popout" aria-label="In eigenem Fenster öffnen" title="In eigenem Fenster öffnen" onClick={onPopout}>
               ⧉

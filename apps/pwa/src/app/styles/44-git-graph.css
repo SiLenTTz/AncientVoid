@@ -3,23 +3,23 @@
  * BUG-0113: fensterbezogene dvh/vw durch --ui-zoom teilen). */
 .git-layer {
   position: fixed;
-  z-index: 60;
+  z-index: var(--z-sheet);
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(460px, calc(100vw / var(--ui-zoom, 1)));
+  width: min(460px, calc(100vw / var(--ui-zoom)));
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   border-left: 1px solid var(--bg-chip);
-  background: var(--bg-card, #151515);
+  background: var(--bg-elev);
   overflow: hidden;
 }
 .git-layer.drawer {
   inset: auto 0 0 0;
   width: auto;
-  height: calc(85dvh / var(--ui-zoom, 1));
+  height: calc(85dvh / var(--ui-zoom));
   border: 1px solid var(--bg-chip);
   border-left: 0;
   border-radius: 12px 12px 0 0;
@@ -43,13 +43,14 @@
 .git-picker-tile:hover { background: var(--bg-chip); }
 .git-picker .empty { grid-column: 1 / -1; }
 .git-graph-pane { display: flex; flex-direction: column; gap: 8px; min-height: 0; height: 100%; }
-.git-graph-legend { margin: 0; font-size: 0.85em; line-height: 1.35; }
+.git-graph-legend { margin: 0; font-size: var(--text-sm); line-height: 1.35; }
 .git-graph-branches { display: flex; flex-wrap: wrap; gap: 6px; }
-.git-graph-branch {  font-size: calc(11px * var(--font-scale, 1));
+.git-graph-branch {
+  font-size: var(--text-xs);
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--lane, var(--accent)) 55%, var(--bg-chip));
-  color: var(--lane, var(--accent));
+  border: 1px solid color-mix(in srgb, var(--lane) 55%, var(--bg-chip));
+  color: var(--lane);
 }
 .git-graph-list { list-style: none; margin: 0; padding: 0; overflow: auto; flex: 1; min-height: 0; }
 /* BUG-0190: keine Lücke zwischen Zeilen — Spurlinien stoßen Kante an Kante. */
@@ -61,18 +62,18 @@
   width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 2px 4px;
 }
 .git-graph-commit:hover { background: var(--bg-chip); border-radius: var(--radius-sm); }
-.git-graph-sha { font-family: var(--font-code); color: var(--accent); font-size: 0.9em; }
+.git-graph-sha { font-family: var(--font-code); color: var(--accent); font-size: var(--text-sm); }
 .git-graph-subject { font-weight: 600; }
 .git-graph-refs { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .git-graph-ref {
-  font-size: calc(10px * var(--font-scale, 1));
+  font-size: var(--text-xs);
   padding: 1px 6px;
   border-radius: 4px;
   background: var(--bg-chip);
   color: var(--fg-dim);
 }
-.git-graph-meta { font-size: 0.85em; width: 100%; }
+.git-graph-meta { font-size: var(--text-sm); width: 100%; }
 .git-graph-files { list-style: none; margin: 4px 0 0; padding: 0 0 0 4px; }
 .git-graph-files li { margin: 2px 0; }
 .git-graph-status { font-family: var(--font-code); color: var(--fg-dim); margin-right: 4px; }
-.git-graph-row.merge .git-graph-subject::after { content: " · Merge"; color: var(--fg-dim); font-weight: 500; font-size: 0.85em; }
+.git-graph-row.merge .git-graph-subject::after { content: " · Merge"; color: var(--fg-dim); font-weight: 500; font-size: var(--text-sm); }

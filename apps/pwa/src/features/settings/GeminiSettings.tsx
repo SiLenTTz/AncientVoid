@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { SettingRow, SettingsSection } from "./parts.tsx";
 import { hubApi } from "../../shared/api.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 /**
  * T7.10: the Gemini key for reading images and scans the local OCR can't.
@@ -40,7 +41,7 @@ export function GeminiSettings() {
   };
 
   return (
-    <SettingsSection title="Dienste" class="gemini-settings">
+    <SettingsSection title="Dienste" testid="gemini-settings">
       <SettingRow label="Gemini · Bilder und Scans lesen">
         <span class={state?.configured ? "gemini-state ok" : "gemini-state dim"}>{state === null ? "…" : state.configured ? "Schlüssel hinterlegt ✓" : "kein Schlüssel"}</span>
       </SettingRow>
@@ -56,13 +57,13 @@ export function GeminiSettings() {
         <input value={model} onInput={(e) => setModel((e.target as HTMLInputElement).value)} autocapitalize="off" autocorrect="off" spellcheck={false} />
       </label>
       <div class="row" style="gap: 8px">
-        <button class={busy ? "btn primary busy" : "btn primary"} type="button" disabled={busy || (!key.trim() && model === state?.model)} onClick={() => void save({ ...(key.trim() ? { apiKey: key.trim() } : {}), ...(model.trim() && model !== state?.model ? { model: model.trim() } : {}) })}>
+        <Button disabled={busy || (!key.trim() && model === state?.model)} onClick={() => void save({ ...(key.trim() ? { apiKey: key.trim() } : {}), ...(model.trim() && model !== state?.model ? { model: model.trim() } : {}) })} variant="primary" class={busy ? "busy" : undefined}>
           Speichern
-        </button>
+        </Button>
         {state?.configured && (
-          <button class="btn danger" type="button" disabled={busy} onClick={() => void save({ apiKey: null })}>
+          <Button disabled={busy} onClick={() => void save({ apiKey: null })} variant="danger">
             Schlüssel entfernen
-          </button>
+          </Button>
         )}
       </div>
       {message && <div class={message.ok ? "fleet-message ok" : "fleet-message reply-error"}>{message.text}</div>}

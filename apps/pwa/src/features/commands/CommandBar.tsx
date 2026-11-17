@@ -8,6 +8,7 @@ import { preselectProject } from "../new-session/CreateSession.tsx";
 import { COMMANDS as EXAMPLES, QUICK_KIND_LABEL, quickMatches, type QuickSources, type QuickTarget } from "./quick.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { useOverlayFocus } from "../../shared/overlay-focus.ts";
+import { Button, Chip } from "../../shared/ui/index.ts";
 
 const RISK_TEXT = { read: "liest", write: "ändert", destructive: "zerstörerisch" } as const;
 const TRANSFORM_TEXT: Record<string, string> = { correct: "korrigiert", shorten: "gekürzt", translate_en: "übersetzt (Englisch)", translate_de: "übersetzt (Deutsch)", improve: "verbessert" };
@@ -225,12 +226,12 @@ export function CommandBar() {
             setSelected((i) => (e.key === "ArrowDown" ? Math.min(i + 1, jumps.length - 1) : Math.max(i - 1, -1)));
           }}
         />
-        <button class="btn primary" type="submit" disabled={busy || !text.trim()}>
+        <Button type="submit" disabled={busy || !text.trim()} variant="primary">
           {busy ? "…" : "Planen"}
-        </button>
-        <button class="btn" type="button" aria-label="Schließen" onClick={() => setOpen(false)}>
+        </Button>
+        <Button aria-label="Schließen" onClick={() => setOpen(false)}>
           ✕
-        </button>
+        </Button>
       </form>
       {jumps.length > 0 && (
         <div class="quick-jumps" id="quick-jumps" role="listbox" aria-label="Springen zu">
@@ -254,9 +255,9 @@ export function CommandBar() {
       {!plan && !message && !text.trim() && (
         <div class="command-examples dim">
           {EXAMPLES.map((ex) => (
-            <button key={ex} type="button" class="chip subtle" onClick={() => setText(ex.replace(/…/g, "").replace(/: $/, ": "))}>
+            <Chip key={ex} onClick={() => setText(ex.replace(/…/g, "").replace(/: $/, ": "))}>
               {ex}
-            </button>
+            </Chip>
           ))}
           <div class="command-field">Feld für Textbearbeitung: {currentField() ?? "keins offen"}</div>
         </div>
@@ -268,10 +269,8 @@ export function CommandBar() {
           <div>{plan.question.question}</div>
           <div class="command-options">
             {plan.question.options.map((o) => (
-              <button
+              <Chip
                 key={o.value}
-                type="button"
-                class="chip"
                 onClick={() => {
                   const next = { ...answers, [plan.question!.param]: o.value };
                   setAnswers(next);
@@ -279,7 +278,7 @@ export function CommandBar() {
                 }}
               >
                 {o.label}
-              </button>
+              </Chip>
             ))}
           </div>
         </div>
@@ -294,9 +293,9 @@ export function CommandBar() {
           ))}
           <div class="dim command-planner">{plan.planner === "model" ? "verstanden vom lokalen Modell" : "verstanden per Regel"} · Ziel vor dem Ausführen geprüft</div>
           {writes || plan.steps[0]?.op.startsWith("field.") ? (
-            <button class="btn primary" type="button" disabled={busy} onClick={() => void execute(plan)}>
+            <Button disabled={busy} onClick={() => void execute(plan)} variant="primary">
               {busy ? "…" : "Ausführen"}
-            </button>
+            </Button>
           ) : null}
         </div>
       )}
@@ -325,17 +324,17 @@ export function CommandBar() {
           <div class="row" style="gap: 8px">
             {!edit.applied ? (
               <>
-                <button class="btn primary" type="button" onClick={() => { field(edit.field)?.set(edit.after); setEdit({ ...edit, applied: true }); }}>
+                <Button onClick={() => { field(edit.field)?.set(edit.after); setEdit({ ...edit, applied: true }); }} variant="primary">
                   Übernehmen
-                </button>
-                <button class="btn" type="button" onClick={() => setEdit(null)}>
+                </Button>
+                <Button onClick={() => setEdit(null)}>
                   Verwerfen
-                </button>
+                </Button>
               </>
             ) : (
-              <button class="btn" type="button" onClick={() => { field(edit.field)?.set(edit.before); setEdit({ ...edit, applied: false }); }}>
+              <Button onClick={() => { field(edit.field)?.set(edit.before); setEdit({ ...edit, applied: false }); }}>
                 Rückgängig
-              </button>
+              </Button>
             )}
           </div>
         </div>

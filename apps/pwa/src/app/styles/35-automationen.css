@@ -5,12 +5,12 @@
 
 .automation-form { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--bg-chip); border-radius: var(--radius-sm); }
 .automation-form h4 { margin: 0; }
-.automation-form label { display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; }
+.automation-form label { display: flex; flex-direction: column; gap: 3px; font-size: var(--text-sm); }
 .automation-form fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
-.automation-form legend { font-size: 0.85em; padding: 0; }
+.automation-form legend { font-size: var(--text-sm); padding: 0; }
 .automation-form-actions { display: flex; gap: 6px; }
 
-.automation-occurrences { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.9em; }
+.automation-occurrences { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: var(--text-sm); }
 
 /* ADR-0080: spontaner Lauf ohne Plan — eigene Karte über der Liste, gleiche Form-Sprache. */
 .automation-tempsession { background: var(--bg-chip); }

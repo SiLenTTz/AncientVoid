@@ -4,6 +4,7 @@ import { hubApi, remoteHost, type MediaInfo, type MediaJob, type MediaResult, ty
 import { formatTimestamp, handOver, MEDIA_STEP_LABELS, MEDIA_STEPS, timestampLink } from "../../shared/media.ts";
 import { pageHash, sessionHash } from "../../app/route.ts";
 import { projectName } from "../../shared/project-name.ts";
+import { Button, Card } from "../../shared/ui/index.ts";
 
 /**
  * EPIC-P10.5 (ADR-0030): a video becomes material for a session. Link or
@@ -98,7 +99,7 @@ function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaRes
   const focusFrame = focusFrameIndex !== null ? (result.frames[focusFrameIndex] ?? null) : null;
   return (
     <div class="media-result">
-      <div class="media-use card">
+      <Card class="media-use">
         <label class="dim" for="media-target">
           Als Anhang verwenden in
         </label>
@@ -111,11 +112,11 @@ function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaRes
               </option>
             ))}
           </select>
-          <button class="btn primary" type="button" disabled={!job.resultAttachmentId} onClick={() => void use()}>
+          <Button disabled={!job.resultAttachmentId} onClick={() => void use()} variant="primary">
             In Session verwenden
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
       {result.summary && (
         <section>
           <h3>Zusammenfassung</h3>
@@ -162,7 +163,7 @@ function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaRes
         </section>
       )}
       {result.notes.length > 0 && (
-        <section class="media-notes">
+        <section >
           {result.notes.map((n) => (
             <div key={n} class="dim">
               ⓘ {n}
@@ -188,9 +189,9 @@ function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaRes
           <figure onClick={(e) => e.stopPropagation()}>
             <Frame jobId={job.id} file={focusFrame.file} alt={`Bild bei ${formatTimestamp(focusFrame.atMs)}`} />
             <figcaption>Bild bei {formatTimestamp(focusFrame.atMs)}</figcaption>
-            <button class="btn" type="button" onClick={() => setFocusFrameIndex(null)}>
+            <Button onClick={() => setFocusFrameIndex(null)}>
               Schließen
-            </button>
+            </Button>
           </figure>
         </div>,
         document.body,
@@ -288,17 +289,17 @@ export function MediaPage({ sessions }: { sessions: SessionRecord[] }) {
   const can = (ok: boolean, text: string) => <span class={`chip ${ok ? "ok" : "subtle"}`}>{ok ? "✓" : "✗"} {text}</span>;
   return (
     <div class="media-page">
-      <form class="card media-form" onSubmit={(e) => void submitUrl(e)}>
+      <form class="ui-card media-form" onSubmit={(e) => void submitUrl(e)}>
         <h2>Video analysieren</h2>
         <div class="row" style="gap: 8px; flex-wrap: wrap">
           <input class="media-url" type="url" inputMode="url" placeholder="YouTube- oder Video-Link" aria-label="Video-Link" value={url} onInput={(e) => setUrl((e.target as HTMLInputElement).value)} />
-          <button class="btn primary" type="submit" disabled={busy || !url.trim() || info?.tools.ytDlp === false}>
+          <Button type="submit" disabled={busy || !url.trim() || info?.tools.ytDlp === false} variant="primary">
             {busy ? "…" : "Analysieren"}
-          </button>
+          </Button>
           <input ref={fileInput} type="file" accept="video/*,audio/*" hidden aria-label="Videodatei" onChange={(e) => void pickFile((e.target as HTMLInputElement).files)} />
-          <button class="btn" type="button" disabled={busy} onClick={() => fileInput.current?.click()}>
+          <Button disabled={busy} onClick={() => fileInput.current?.click()}>
             Datei wählen
-          </button>
+          </Button>
         </div>
         <div class="row" style="gap: 12px; flex-wrap: wrap; align-items: center">
           <label>
@@ -341,23 +342,21 @@ export function MediaPage({ sessions }: { sessions: SessionRecord[] }) {
                   </div>
                   <div class="row" style="gap: 8px">
                     {(j.status === "running" || j.status === "queued") && (
-                      <button class="btn" type="button" onClick={() => void hubApi.cancelMediaJob(j.id).then((x) => setJobs((all) => all.map((y) => (y.id === x.id ? x : y))))}>
+                      <Button onClick={() => void hubApi.cancelMediaJob(j.id).then((x) => setJobs((all) => all.map((y) => (y.id === x.id ? x : y))))}>
                         Abbrechen
-                      </button>
+                      </Button>
                     )}
                     {j.status !== "running" && j.status !== "queued" && (
-                      <button
-                        class="btn subtle"
-                        type="button"
+                      <Button
                         onClick={() =>
                           void hubApi.deleteMediaJob(j.id).then(() => {
                             setJobs((all) => all.filter((y) => y.id !== j.id));
                             setSelected(null);
                           })
                         }
-                      >
+                       class="subtle">
                         Löschen
-                      </button>
+                      </Button>
                     )}
                   </div>
                   {j.status === "done" && result?.jobId !== j.id && resultError && (

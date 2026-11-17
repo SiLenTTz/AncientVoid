@@ -3,6 +3,7 @@ import { useApi } from "../../shared/api-context.ts";
 import type { ActionDefinition, ActionRun, CodeFile, CodeSearchResult, WorkspaceIdentity } from "../../shared/api.ts";
 import { codeHash, sessionHash, type CodeTarget } from "../../app/route.ts";
 import { registerField, touchField } from "../../shared/command-context.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 /** Lines shown at once — a 1 MB file stays usable on a phone. */
 const WINDOW = 1500;
@@ -114,9 +115,9 @@ export function CodePane({ sessionId, hostId, initial, onOpenDiff }: { sessionId
           onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
           onFocus={() => touchField("code_query")}
         />
-        <button class="btn primary" type="submit" disabled={busy || !query.trim()}>
+        <Button type="submit" disabled={busy || !query.trim()} variant="primary">
           {busy ? "sucht…" : "Suchen"}
-        </button>
+        </Button>
       </form>
       <div class="filter-bar">
         <button type="button" class={`chip ${mode === "symbol" ? "active" : ""}`} onClick={() => setMode("symbol")}>
@@ -131,7 +132,7 @@ export function CodePane({ sessionId, hostId, initial, onOpenDiff }: { sessionId
         <div class="code-results">
           <IdentityLine identity={result.identity} />
           {result.matches.length === 0 ? (
-            <div class="empty">Keine Treffer.</div>
+            <div class="ui-empty">Keine Treffer.</div>
           ) : (
             result.matches.map((m) => (
               <button key={`${m.path}:${m.line}:${m.column}`} type="button" class={`code-hit ${m.kind}`} onClick={() => void openFile(m.path, m.line)}>
@@ -167,9 +168,9 @@ function FileView({ file, line, onLine, onBack, onOpenDiff }: { file: CodeFile; 
   return (
     <div class="code-file">
       <div class="code-file-head">
-        <button type="button" class="btn" onClick={onBack}>
+        <Button onClick={onBack}>
           ← Suche
-        </button>
+        </Button>
         <div class="code-file-title">
           <strong>{file.path}</strong>
           <span class="dim">
@@ -184,13 +185,13 @@ function FileView({ file, line, onLine, onBack, onOpenDiff }: { file: CodeFile; 
         </button>
       )}
       {file.binary ? (
-        <div class="empty">Binärdatei — wird nicht angezeigt.</div>
+        <div class="ui-empty">Binärdatei — wird nicht angezeigt.</div>
       ) : (
         <>
           {start > 1 && (
-            <button type="button" class="btn code-more" onClick={() => setStart(Math.max(1, start - WINDOW))}>
+            <Button onClick={() => setStart(Math.max(1, start - WINDOW))} class="code-more">
               Zeilen davor
-            </button>
+            </Button>
           )}
           <ol class="code-lines" start={start}>
             {lines.slice(start - 1, end).map((text, i) => {
@@ -206,9 +207,9 @@ function FileView({ file, line, onLine, onBack, onOpenDiff }: { file: CodeFile; 
             })}
           </ol>
           {end < total && (
-            <button type="button" class="btn code-more" onClick={() => setStart(start + WINDOW)}>
+            <Button onClick={() => setStart(start + WINDOW)} class="code-more">
               Zeilen danach
-            </button>
+            </Button>
           )}
           {file.truncated && <div class="dim">Datei größer als 1 MB — nur der Anfang ist geladen.</div>}
         </>
@@ -296,7 +297,7 @@ function ActionsPanel({ sessionId }: { sessionId: string }) {
       <h3>Befehle</h3>
       <input type="search" class="action-filter" placeholder="Befehle filtern …" aria-label="Befehle filtern" value={filter} onInput={(e) => setFilter((e.target as HTMLInputElement).value)} />
       {error && <div class="reply-error">{error}</div>}
-      {groups.length === 0 && <div class="empty">Keine passenden Befehle.</div>}
+      {groups.length === 0 && <div class="ui-empty">Keine passenden Befehle.</div>}
       {groups.map(([source, list]) => (
         <section key={source} class="action-group" aria-label={source}>
           <h4 class="action-source dim">{source}</h4>
@@ -310,24 +311,24 @@ function ActionsPanel({ sessionId }: { sessionId: string }) {
                     {a.label}
                   </span>
                   {last && (
-                    <button type="button" class={`action-status-btn ${last.status}`} onClick={() => setOpen(open === a.id ? null : a.id)} aria-expanded={open === a.id}>
+                    <Button  onClick={() => setOpen(open === a.id ? null : a.id)} aria-expanded={open === a.id} class={`action-status-btn ${last.status}`}>
                       {STATUS_TEXT[last.status]}{last.exitCode !== null && last.status !== "succeeded" ? ` · Code ${last.exitCode}` : ""}
-                    </button>
+                    </Button>
                   )}
                   {runningRun(a.id) ? (
-                    <button type="button" class="btn danger" aria-label={`${a.label} stoppen`} onClick={() => void stop(runningRun(a.id)!)}>
+                    <Button aria-label={`${a.label} stoppen`} onClick={() => void stop(runningRun(a.id)!)} variant="danger">
                       Stoppen
-                    </button>
+                    </Button>
                   ) : (
-                    <button type="button" class="btn" disabled={runs.filter((r) => r.status === "running").length >= 4} aria-label={`${a.label} ausführen`} title={a.longRunning ? "Startet ohne Zeitlimit bis „Stoppen“; Fenster öffnen sich auf dem Rechner des Hubs" : undefined} onClick={() => void run(a)}>
+                    <Button disabled={runs.filter((r) => r.status === "running").length >= 4} aria-label={`${a.label} ausführen`} title={a.longRunning ? "Startet ohne Zeitlimit bis „Stoppen“; Fenster öffnen sich auf dem Rechner des Hubs" : undefined} onClick={() => void run(a)}>
                       Ausführen
-                    </button>
+                    </Button>
                   )}
                 </div>
                 {Object.entries(a.params).map(([name, p]) => (
                   <input
                     key={name}
-                    class="action-param"
+                    
                     placeholder={`${name}${p.optional ? " (optional)" : ""}${p.description ? ` — ${p.description}` : ""}`}
                     aria-label={`${a.label}: ${name}`}
                     value={params[a.id]?.[name] ?? ""}

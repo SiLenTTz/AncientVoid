@@ -6,9 +6,10 @@
  * als Quelle, keine Netzwerkzugriffe. Schriften kommen aus @fontsource,
  * damit das Bild auf jedem Rechner gleich aussieht.
  *
- * Ausgabe: apps/site/assets/social-preview-01.jpg. Dasselbe Bild steht oben
- * in der README und wird in GitHub unter Settings → Social preview
- * hochgeladen (dafür gibt es keine API).
+ * Ausgabe: apps/site/assets/social-preview-01.jpg, die Link-Vorschau des Repos
+ * (Upload in GitHub unter Settings → Social preview, dafür gibt es keine API).
+ * Oben in der README steht stattdessen die Demo-Animation aus
+ * `scripts/readme-demo.mjs`.
  */
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

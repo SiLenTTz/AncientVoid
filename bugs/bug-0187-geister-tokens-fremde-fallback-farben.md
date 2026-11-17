@@ -1,12 +1,12 @@
 ---
 id: BUG-0187
 slug: geister-tokens-fremde-fallback-farben
-status: open
+status: fixed
 severity: S3
 area: pwa
 instance: dev
 commit: "08c492a0"
-forge: ""
+forge: "https://github.com/SiLenTTz/AncientVoid/issues/84"
 created: 2026-11-16
 reporter: "UI-Styling-Audit 2026-11-16"
 ---
@@ -61,10 +61,11 @@ Tokens --border --bad --bg-card --panel --bg-panel --danger --mono sind nirgends
 
 | Ring | Befehl / Datei | Stand vor dem Fix |
 |---|---|---|
-| Unit | `apps/pwa/test/tokens.test.ts` — Erweiterung: jedes `var(--x` in `app/styles/*.css` muss in `01-base.css` oder `appearance.ts`/`ui-scale.ts` definiert sein | nicht vorhanden |
+| Unit | `apps/pwa/test/app/tokens.test.ts` — Erweiterung: jedes `var(--x` in `app/styles/*.css` muss in `00-tokens.css`/`01-base.css` oder `appearance.ts`/`ui-scale.ts`/Inline-Styles definiert sein | grün (0 unbekannte Tokens, Ratchet `unknownVarTokens: 0`) |
 | Contract (`adapter-testkit`) | — | — |
+| E2E | `e2e/specs/themes.spec.ts` — Diff-Review, Dateien-Schublade, Arbeitsort in beiden Themes gegen aufgelöste Tokens geprüft | grün |
 
-Der erweiterte Token-Test müsste ohne Fix mit 7 unbekannten Tokens rot sein.
+Der erweiterte Token-Test war ohne Fix rot (18 Geister-Verwendungen: `--danger`, `--panel`, `--line`, `--bad`, `--bg-card`, `--bg-panel`, `--mono`); nach dem Mapping grün.
 
 ## Eingrenzung
 
@@ -75,5 +76,5 @@ Prototyp mit anderer Palette übernommen.
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [ ] GitHub-Issue angelegt (`gh issue create`, URL in `forge:`)
-- [ ] `bugfix` — eingeplant als T63.1 in [EPIC-P63](../epics/EPIC-P63-ui-konsolidierung.md)
+- [x] GitHub-Issue angelegt (`gh issue create`, URL in `forge:`)
+- [x] `bugfix` — eingeplant als T63.2 in [EPIC-P63](../epics/EPIC-P63-ui-konsolidierung.md), Fix gemergt: Geister-Tokens auf Semantik gemappt (`--bg-card`/`--panel`/`--bg-panel` → `--bg-elev`, `--bad`/`--danger` → `--err`, `--line` → `--border`, `--mono` → `--font-mono`); `--border` ist seit T63.1 ein echtes Token. Schließt Issue #84.

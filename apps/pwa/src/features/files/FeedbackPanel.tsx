@@ -3,6 +3,7 @@ import type { HubApi } from "../../shared/api.ts";
 import { basket, useBasket } from "./feedback-basket.ts";
 import { addSource } from "../../shared/sources.ts";
 import { codeHash } from "../../app/route.ts";
+import { Button, Chip } from "../../shared/ui/index.ts";
 
 /**
  * EPIC-P46 T46.8 (ADR-0058 §11): gesammelte Datei-/Diagnose-Befunde → Folgeauftrag an die Session. Vorschau zeigt
@@ -69,14 +70,14 @@ export function FeedbackPanel({ api, sessionId }: { api: HubApi; sessionId: stri
           <li key={`${it.path}:${it.startLine}:${it.endLine}`}>
             <span class="mono">{it.path}:{it.startLine}{it.endLine !== it.startLine ? `–${it.endLine}` : ""}</span>
             <input class="file-find" placeholder="Anmerkung" aria-label={`Anmerkung zu ${it.path} Zeile ${it.startLine}`} maxLength={2000} value={it.note} onInput={(e) => { it.note = (e.target as HTMLInputElement).value; setPreview(null); }} />
-            <button type="button" class="chip" aria-label="Befund entfernen" onClick={() => { basket.remove(k); setPreview(null); }}>×</button>
+            <Chip aria-label="Befund entfernen" onClick={() => { basket.remove(k); setPreview(null); }}>×</Chip>
           </li>
         ))}
       </ul>
       <div class="file-tools">
-        <button type="button" class="btn" disabled={busy} onClick={doPreview} data-testid="feedback-preview">Vorschau</button>
-        <button type="button" class="btn" disabled={busy} onClick={toComposer} data-testid="feedback-to-composer">In den Composer</button>
-        <button type="button" class="btn" disabled={busy || !preview || preview.stale.length > 0} onClick={send} data-testid="feedback-send">An Session senden</button>
+        <Button disabled={busy} onClick={doPreview} data-testid="feedback-preview">Vorschau</Button>
+        <Button disabled={busy} onClick={toComposer} data-testid="feedback-to-composer">In den Composer</Button>
+        <Button disabled={busy || !preview || preview.stale.length > 0} onClick={send} data-testid="feedback-send">An Session senden</Button>
       </div>
       {preview && preview.stale.length > 0 && <div class="files-stale" role="alert">Veraltet: {preview.stale.map((s) => `${s.path} (${s.reason})`).join("; ")} — Befund entfernen und neu auswählen.</div>}
       {preview && <pre class="file-text" data-testid="feedback-prompt">{preview.prompt}</pre>}

@@ -1,15 +1,15 @@
 /* EPIC-P43.5 T43.5-1: Quellenchips im Composer (SourceChips.tsx). */
 .source-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0; }
-.source-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; background: var(--bg-chip); border: 1px solid var(--bg-chip); border-radius: 999px; padding: 3px 8px; font-size: calc(12px * var(--font-scale, 1)); }
-.source-chip .source-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46vw; font-family: var(--font-mono, monospace); }
+.source-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; background: var(--bg-chip); border: var(--preset-border) solid var(--bg-chip); border-radius: 999px; padding: 3px 8px; font-size: var(--text-sm); }
+.source-chip .source-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46vw; font-family: var(--font-mono); }
 .source-chip.kind-code { border-left: 3px solid var(--accent); }
-.source-chip.kind-review { border-left: 3px solid var(--info, var(--accent)); }
-.source-chip.kind-test, .source-chip.kind-forge { border-left: 3px solid var(--warn, #e0af68); }
-.source-jump, .source-remove { background: none; border: 0; color: var(--fg-dim); padding: 0 2px; cursor: pointer; font-size: calc(13px * var(--font-scale, 1)); line-height: 1; }
+.source-chip.kind-review { border-left: 3px solid var(--info); }
+.source-chip.kind-test, .source-chip.kind-forge { border-left: 3px solid var(--warn); }
+.source-jump, .source-remove { background: none; border: 0; color: var(--fg-dim); padding: 0 2px; cursor: pointer; font-size: var(--text-md); line-height: 1; }
 .source-remove:hover { color: var(--err); }
 .source-preview { margin: 4px 0 0; }
-.source-preview-head { font-size: calc(11px * var(--font-scale, 1)); }
-.source-preview-block { margin: 2px 0 0; padding: 8px 10px; background: var(--bg); border: 1px solid var(--bg-chip); border-radius: var(--radius-sm); font-size: calc(11px * var(--font-scale, 1)); max-height: 120px; overflow: auto; white-space: pre-wrap; }
+.source-preview-head { font-size: var(--text-xs); }
+.source-preview-block { margin: 2px 0 0; padding: 8px 10px; background: var(--bg); border: var(--preset-border) solid var(--bg-chip); border-radius: var(--radius-sm); font-size: var(--text-xs); max-height: 120px; overflow: auto; white-space: pre-wrap; }
 .composer-expand { min-width: max(40px, var(--icon-target)); min-height: max(40px, var(--icon-target)); flex: 0 0 auto; }
 .source-jump, .source-remove { min-width: 40px; min-height: 40px; }
 .session-status-note { padding: 4px 8px; color: var(--fg-dim); }

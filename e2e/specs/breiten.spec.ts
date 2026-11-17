@@ -43,6 +43,39 @@ function problems(page: Page, min: number): Promise<{ overflow: number; cut: str
   );
 }
 
+test.describe("Schriftskala 0,85/1/1,3 (EPIC-P63 T63.4)", () => {
+  test("Einstellungen und Session bleiben ohne Überlauf in allen drei Skalen @desktop", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Nur lesen" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "Zug fertig");
+    const found: string[] = [];
+    for (const scale of [0.85, 1, 1.3]) {
+      await app.setViewportSize({ width: 1280, height: 800 });
+      await app.goto(hub.origin);
+      await dockGo(app, "Einstellungen");
+      const less = app.getByLabel("Schriftgröße verringern");
+      const more = app.getByLabel("Schriftgröße erhöhen");
+      // Auf Zielskala fahren (Schritt 0,05; zurücksetzen verkürzt den Weg — bei Skala 1 ist der Knopf aus).
+      const reset = app.getByLabel("Schriftgröße zurücksetzen");
+      if (await reset.isEnabled()) await reset.click();
+      if (scale < 1) for (let i = 0; i < Math.round((1 - scale) / 0.05); i++) await less.click();
+      if (scale > 1) for (let i = 0; i < Math.round((scale - 1) / 0.05); i++) await more.click();
+      const settings = await problems(app, 30);
+      await app.goto(`${hub.origin}/#/sessions/${id}`);
+      await expect(app.locator(".session-top-title").first()).toBeVisible();
+      const session = await problems(app, 30);
+      for (const [view, p] of [["Einstellungen", settings], ["Session", session]] as const) {
+        if (p.overflow > 0) found.push(`Skala ${scale} ${view}: ${p.overflow}px horizontal`);
+        for (const c of p.cut) found.push(`Skala ${scale} ${view}: abgeschnitten ${c}`);
+      }
+    }
+    await app.goto(hub.origin);
+    await dockGo(app, "Einstellungen");
+    const resetEnd = app.getByLabel("Schriftgröße zurücksetzen");
+    if (await resetEnd.isEnabled()) await resetEnd.click();
+    expect(found).toEqual([]);
+  });
+});
+
 test.describe("Vier Breiten (EPIC-P43 AC-P43-6 / EPIC-P50 T50.6)", () => {
   test("Start, Session und Nyx-Blatt: nichts ragt heraus, Ziele groß genug @tablet @desktop", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "claude", prompt: "Bitte WERKZEUG ausführen" });

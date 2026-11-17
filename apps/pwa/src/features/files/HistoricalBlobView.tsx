@@ -39,7 +39,7 @@ export function HistoricalBlobView({
   }, [api, target, path, sha]);
 
   if (error) return <div class="files-error" role="alert" data-testid="historical-blob-error">{error}</div>;
-  if (!file) return <div class="empty">lädt Historie …</div>;
+  if (!file) return <div class="ui-empty">lädt Historie …</div>;
 
   return (
     <div class="file-viewer historical-blob" data-testid="historical-blob-view">
@@ -53,7 +53,7 @@ export function HistoricalBlobView({
         {file.binary ? " · Binärdatei (kein Text)" : ""}
       </div>
       {file.binary ? (
-        <div class="empty">Binärinhalt — kein Textvorschau für diesen Blob.</div>
+        <div class="ui-empty">Binärinhalt — kein Textvorschau für diesen Blob.</div>
       ) : (
         <pre class="historical-blob-source mono" data-testid="historical-blob-source">{file.content}</pre>
       )}
