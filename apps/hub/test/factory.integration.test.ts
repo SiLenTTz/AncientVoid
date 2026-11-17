@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { EventStore, HubDatabase, LoopRegistry, SessionManager, AdapterRegistry, TokenService, loopAsAdapter, WorktreeManager } from "@ancientvoid/core";

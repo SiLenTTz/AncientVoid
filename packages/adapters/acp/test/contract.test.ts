@@ -1,6 +1,5 @@
 import { describe, it } from "vitest";
 import { chmodSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { runContractTests, assertContractGreen } from "@ancientvoid/adapter-testkit";
 import { ProcessRunner } from "@ancientvoid/workers";
 import { createAdapter } from "../src/index.ts";

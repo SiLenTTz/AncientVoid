@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { chmodSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { catalogFromConfigOptions, probeModelCatalog } from "../src/catalog.ts";
 import { standIn } from "../../../../e2e/support/stand-in.ts";
 

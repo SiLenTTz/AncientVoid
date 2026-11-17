@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { chmodSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import type { AdapterContext, EmittedEvent } from "@ancientvoid/contracts";
 import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
 import { ProcessRunner } from "@ancientvoid/workers";
