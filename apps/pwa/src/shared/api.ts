@@ -240,6 +240,8 @@ export interface DiffCommit {
   date: string;
   subject: string;
   files: SessionDiffFile[];
+  /** Teilbefund: Commit-Diff ueber der Groessenkante des Hubs (BUG-0204). */
+  oversize?: { files: number | null; changedLines: number | null };
 }
 
 export interface WorkspacePreview {

@@ -9,6 +9,18 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
+- **BUG-0204 behoben (Zweig `fix/0204-grosser-diff-teilausweis`).** Ein Commit-Diff ueber
+  der Groessenkante loeschte bisher den gesamten Aenderungsdiff (live gemessen:
+  `git diff fehlgeschlagen: stdout maxBuffer length exceeded`, Browser-Zaehler 0). Neu:
+  `commitFiles` zaehlt die geaenderten Zeilen aus dem Numstat und laedt den Patch erst ab
+  unterhalb von `COMMIT_DIFF_MAX_LINES` (4 000); darueber meldet der Commit
+  `oversize { files, changedLines }` als Teilbefund, die uebrigen Commits bleiben
+  vollstaendig lesbar. Die Oberflaeche zeigt den Befund in Warnton unter dem Commit-Kopf.
+  Rot-dann-gruen: Hub 1 failed | 14 passed -> **15 passed**; E2E neuer Fall mit
+  4 500-Zeilen-Commit -> **2 passed**; `vitest apps/pwa/test/features/session` **79 passed**.
+  Dazu der Schliff der wortweisen Markierung: Chips mit Inset-Ring (kein Spaltenversatz),
+  Mint/Rose als Segmentfarbe, 1px-Durchstreichung, Vorzeichen-Spalte mitfaerbigt, Legende
+  als Erklaerungs-Chips `+ neu` / `− entfernt`.
 - **BUG-0203 behoben (Zweig `fix/0202-wurzel-commit-laesst-den-ganzen-diff-fallen`).**
   Ein Eltern-loser Commit im Bereich `baseRef..HEAD` liess den ganzen Aenderungsdiff
   ausfallen: `apps/hub/src/modules/sessions/diff.ts` diffte blind `sha^..sha`, und fuer den
@@ -105,14 +117,6 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Bekannte Probleme
 
-- **BUG-0204 (offen, Befund): zu grosser Aenderungsdiff faellt komplett raus.** Nach dem
-  Fix von BUG-0203 zeigt der Reiter Aenderungen der Session `18830ec6` live
-  `git diff fehlgeschlagen: stdout maxBuffer length exceeded` (zaehler 0). Ursachenlage:
-  `diff.ts` diffelt pro Commit mit festen maxBuffer-Grenzen (4 MB/8 MB) und deutet jeden
-  Ueberlauf als Fehler des Gesamt-Diffs. Diese Session haengt zusaetzlich an einer
-  unbeteiligten Basis (`3aef99e5`, lokales main mit fremder Geschichte) — ihr Bereich ist
-  darum die ganze GitHub-Geschichte. Naechster Schritt: Grenze pro Commit plus echten
-  Befund-Text statt Gesamtausfall, Test mit uebergrossem Commit.
 
 - **BUG-0170 (offen):** die Suite ist auf Windows breit rot (CRLF, Symlink-`EPERM`
   ohne Entwicklermodus, Spawn/Signale, verwaiste Fake-Services — gemessen 66
