@@ -17,6 +17,7 @@ export * from "./approvals/gatekeeper.ts";
 export * from "./attachments/attachment.ts";
 export * from "./reporting/reporting.ts";
 export * from "./observability/observability.ts";
+export * from "./observability/client-report.ts";
 export * from "./sessions/identity.ts";
 export * from "./harness/inventory.ts";
 export * from "./harness/provider-error.ts";
@@ -28,6 +29,7 @@ export * from "./code/explorer.ts";
 export * from "./code/diagnostics.ts";
 export * from "./browser/browser.ts";
 export * from "./devices/devices.ts";
+
 export * from "./push/push.ts";
 export * from "./models/custom-model.ts";
 export * from "./connections/connections.ts";
