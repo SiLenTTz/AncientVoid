@@ -21,7 +21,7 @@ Self-hosted · open source · no cloud: the only server is yours.
 ## Why AncientVoid
 
 Coding agents work on their own for half an hour, then stop for one question
-or one `rm -rf`. Away from your desk, the work stalls. AncientVoid puts every
+or one risky command. Away from your desk, the work stalls. AncientVoid puts every
 session from all your machines into **one queue on your phone**: you answer,
 approve or redirect, and the *running* agent continues.
 

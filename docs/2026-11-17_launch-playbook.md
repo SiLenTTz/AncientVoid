@@ -160,6 +160,21 @@ and approve your AI coding agents from your phone (Tailscale, PWA, AGPL)`
 - [ ] Ab ~1k Stars: Star-History-Grafik und Stars-Badge in die README
       (vorher wirkt eine kleine Zahl gegen den Besucher)
 
+## 6a. Nachtrag: Review der echten GitHub-Darstellung (17.11.2026)
+
+Die README wurde per Playwright auf github.com fotografiert (Desktop
+1280×800, iPhone-13-Viewport). Befunde und Folgen:
+
+| Befund | Folge |
+|---|---|
+| Auf dem Handy zeigt die Repo-Startseite **zuerst die About-Box**. Die README beginnt erst nach rund 1,5 Bildschirmen, auf dem Desktop nach ~1.840 px Dateiliste | Die Beschreibung (§6) ist der wichtigste einzelne Satz des Repos, deshalb **P0 für den Owner** |
+| Screenshot-Tabelle auf dem Handy nur briefmarkengroß, Quickstart-Block abgeschnitten, Mermaid-LR unlesbar, „Why“ füllte zwei Bildschirme | in der README behoben (feste Bildbreiten, drei kurze Befehlszeilen, Diagramm top-to-bottom, Bullets gekürzt) |
+| Die Dateiliste zeigt je Ordner die letzte Commit-Zeile, auf Deutsch und in Commit-Notation (`! B loops: …`) | Wirkt nach internem Projekt. Option: ab dem Launch englische Commit-Sätze, die Notation bleibt. **Entscheidung des Nutzers** |
+| 32 Einträge im Wurzelverzeichnis, darunter `PROGRESS.md` | Geringer Hebel, weil GitHub die Liste immer zeigt. Aufräumen nur bei Gelegenheit |
+| Kein Bewegtbild: Der Kernablauf (Agent fragt → Handy → Freigabe → Agent läuft weiter) ist nur beschrieben | Nach P61: animiertes WebP ≤ 512 KiB aus dem Demo-Seed (check:media-konform) oder MP4 als user-attachment (G3) |
+| README-Übersetzungen (zh-CN, ja, ko) bei Paseo, Orca und CloudCLI üblich | Nach P61 erwägen. Eine Wirkung auf Stars ist nicht belegt, nur verbreitete Praxis |
+| `llms.txt` für KI-Suche | Kein belegter Nutzen bei ChatGPT/Claude-Empfehlungen, deshalb vorerst nicht |
+
 ## 7. Messen
 
 Wöchentlich unter Insights → Traffic: Besucher, Referrer und Clones. Daneben
