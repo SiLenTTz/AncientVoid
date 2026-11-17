@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { delimiter, join, resolve } from "node:path";
-import { standIn, standInDir } from "./stand-in.ts";
+import { standIn } from "./stand-in.ts";
 
 export const repoRoot = resolve(import.meta.dirname, "../..");
 /**
@@ -329,9 +329,9 @@ export class TestHub {
       ...process.env,
       ANCIENTVOID_CONFIG: this.configPath,
       ANCIENTVOID_LOG: "warn",
-      // Attrappen über den PATH: auf Windows zusammen mit dem Wrapper-Verzeichnis, sonst
-      // findet ein namesuchender Aufruf wieder nur die Endung-lose Datei.
-      PATH: [standInDir, binDir, process.env.PATH ?? ""].join(delimiter),
+      // Die Attrappen über den PATH: der Ordner liegt im PATH, gestartet wird über
+      // spawnArgv (Windows: Node vor den Skriptpfad, keine Shell-Schicht).
+      PATH: [binDir, process.env.PATH ?? ""].join(delimiter),
       TMUX_TMPDIR: this.tmuxDir,
       QMD_E2E_STATE: join(this.root, "qmd-state.json"),
       // ADR-0060: „Endpunkt anlegen“ schreibt in pi's models.json — nie in die echte des Nutzers.
