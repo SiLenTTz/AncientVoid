@@ -78,4 +78,26 @@ Begrenzt nachsehende Räumung (fünf Versuche, nur EPERM/EBUSY/ENOTEMPTY) statt 
 * typecheck und lint auf 0.
 
 Damit ist die Aussage „Adapter-E2E sind lokal nicht prüfbar" von Windows aus Geschichte;
-was bleibt, sind echte Assertions — genau das, was Tests leisten sollen.
+was bleibt, sind echte Assertions — genau das, was Tests leisten sollen.
+
+## Nachtrag: dieselbe Wurzel in der Unit-Suite (2026-11-17, gemessen)
+
+Neben den E2E-Specs holten sich auch Unit-/Integrationstests die Attrappe direkt — und
+Windows konnte sie nicht starten. Sechs Dateien auf den gemeinsamen Helfer
+`e2e/support/stand-in.ts` umgestellt:
+
+* `apps/hub/test/factory.integration.test.ts`, `packages/adapters/{cursor,codex}/test/*`,
+  `packages/adapters/acp/test/{adapter,catalog,contract}.test.ts`
+
+Dazu die Spawn-Stellen, die konfigurierte Kommandos selbst starten und denen die Regel
+fehlte: `packages/adapters/acp/src/catalog.ts`, `packages/adapters/codex/src/app-server.ts`,
+`packages/core/src/modules/forge/gitlab-client.ts`,
+`packages/core/src/modules/code/actions.ts`,
+`packages/core/src/modules/workspace/workspace-services.ts`. Bewusst **nicht** angefasst:
+`devices/device-service.ts` (adb/emulator sind `.exe`, da ist kein `.cmd`-Fall).
+
+Messwert derselben sechs Dateien vor/nach dem Schritt: **5 failed | 78 passed → 1 failed |
+82 passed.** Der eine Rest ist kein Spawn mehr, sondern eine echte Windows-Aussage:
+`factory.integration` bricht mit „Projektpfad fehlt oder ist nicht absolut“ (422 statt 200) —
+gehört in die BUG-0170-Familie (Windows-Pfade), nicht hierher. Das ist der eigentliche
+Gewinn: was vorher Environment-Rauschen war, ist jetzt eine nachprüfbare Behauptung.

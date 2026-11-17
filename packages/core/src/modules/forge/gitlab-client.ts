@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { shellFor } from "@ancientvoid/contracts";
 import { promisify } from "node:util";
 
 /**
@@ -38,6 +39,7 @@ export function createGlabRunner(command: string, env: () => Record<string, stri
         timeout: opts?.timeoutMs ?? 15_000,
         maxBuffer: 4 * 1024 * 1024,
         env: { ...process.env, ...env() },
+        ...shellFor(command),
       });
       return { stdout, stderr };
     } catch (err) {

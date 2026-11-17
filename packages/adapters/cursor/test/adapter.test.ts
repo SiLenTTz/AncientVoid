@@ -5,8 +5,9 @@ import type { AdapterContext, EmittedEvent } from "@ancientvoid/contracts";
 import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
 import { ProcessRunner } from "@ancientvoid/workers";
 import { createAdapter } from "../src/index.ts";
+import { standIn } from "../../../../e2e/support/stand-in.ts";
 
-const agent = fileURLToPath(new URL("../../../../e2e/support/bin/cursor-agent", import.meta.url));
+const agent = standIn("cursor-agent");
 chmodSync(agent, 0o755);
 
 function context(turns?: string[]) {

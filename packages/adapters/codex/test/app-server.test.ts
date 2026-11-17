@@ -7,8 +7,9 @@ import { ProcessRunner } from "@ancientvoid/workers";
 import { createAdapter } from "../src/index.ts";
 import { listModels } from "../src/app-server.ts";
 import { quotaOf, itemCompleted } from "../src/app-server-events.ts";
+import { standIn } from "../../../../e2e/support/stand-in.ts";
 
-const fakeCodex = fileURLToPath(new URL("../../../../e2e/support/bin/codex", import.meta.url));
+const fakeCodex = standIn("codex");
 chmodSync(fakeCodex, 0o755);
 
 function context(answer?: (req: ToolPermissionRequest) => Promise<{ behavior: "allow"; updatedInput: Record<string, unknown> } | { behavior: "deny"; message: string }>) {

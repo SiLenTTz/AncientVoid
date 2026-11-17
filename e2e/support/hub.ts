@@ -4,7 +4,8 @@ import { createWriteStream, mkdirSync, mkdtempSync, rmSync, writeFileSync } from
 import { DatabaseSync } from "node:sqlite";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { delimiter, join, resolve } from "node:path";
+import { standIn, standInDir } from "./stand-in.ts";
 
 export const repoRoot = resolve(import.meta.dirname, "../..");
 /**
@@ -15,27 +16,6 @@ export const repoRoot = resolve(import.meta.dirname, "../..");
  */
 export const E2E_PWA_DIST = resolve(repoRoot, "apps/pwa/dist-e2e");
 const binDir = resolve(import.meta.dirname, "bin");
-
-/**
- * BUG-0179: die Attrappen sind Shebang-Skripte ohne Endung. Unter Windows kann CreateProcess
- * damit nichts anfangen (`spawn ENOENT`), und die Suite zahlt es später mit `read
- * ECONNRESET` — tagelang für jeden gezielten E2E-Lauf. Also: auf Windows einen .cmd-Wrapper
- * in ein ignoriertes Temp-Verzeichnis schreiben und den benutzen; auf Unix bleibt alles beim
- * Alten. `shellFor` (Core/Workers) sorgt dafür, dass die .cmd auch mit Shell gestartet wird.
- */
-const standInCache = new Map<string, string>();
-export function standIn(name: string): string {
-  const original = join(binDir, name);
-  if (process.platform !== "win32") return original;
-  const seen = standInCache.get(name);
-  if (seen) return seen;
-  const dir = join(repoRoot, "data", "tmp-e2e", "bin");
-  mkdirSync(dir, { recursive: true });
-  const wrapper = join(dir, `${name}.cmd`);
-  writeFileSync(wrapper, `@echo off\r\nnode "${original}" %*\r\n`);
-  standInCache.set(name, wrapper);
-  return wrapper;
-}
 
 export interface HubOptions {
   /** "process" (default) or "tmux" — the tmux runner gets a private tmux server. */
@@ -349,7 +329,9 @@ export class TestHub {
       ...process.env,
       ANCIENTVOID_CONFIG: this.configPath,
       ANCIENTVOID_LOG: "warn",
-      PATH: `${binDir}:${process.env.PATH ?? ""}`,
+      // Attrappen über den PATH: auf Windows zusammen mit dem Wrapper-Verzeichnis, sonst
+      // findet ein namesuchender Aufruf wieder nur die Endung-lose Datei.
+      PATH: [standInDir, binDir, process.env.PATH ?? ""].join(delimiter),
       TMUX_TMPDIR: this.tmuxDir,
       QMD_E2E_STATE: join(this.root, "qmd-state.json"),
       // ADR-0060: „Endpunkt anlegen“ schreibt in pi's models.json — nie in die echte des Nutzers.
