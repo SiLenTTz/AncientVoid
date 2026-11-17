@@ -75,6 +75,20 @@ Reihenfolge der Messung: `npx playwright test e2e/specs/nyx-fab.spec.ts --worker
 Platz zu ausweichen begann), nach der Regel „gemerkte Plätze bleiben heil“ und der
 Geometrie-Prüfung **9 passed**.
 
+
+## Nachtrag (17.11., zweiter Schritt): seitwaerts vor verschwinden
+
+Auf dem produktiven Hub gemessen (authentifiziert, 390x844, Einstellungsseite 6801 px,
+Scroll-Schritte zu 300 px = 20 Punkte, Trefferertest am Control-Mittelpunkt): **keine**
+Verdeckung an einem einzigen Punkt — aber bei 3200 px war der FAB *versteckt*, weil alle
+senkrechten Auswege belegt waren. Ein Sprachknopf, der auf einer Handyseite verschwindet,
+ist auch keine gute Loesung. Die Regel sucht deshalb zusaetzlich **seitwaerts und
+diagonal** (zwei Kantenlaengen senkrecht zuletzt), erst dann verschwindet er.
+
+Messung nach dem zweiten Schritt: `apps/pwa/test/features/stt/fab-clearance.test.ts`
+**10 passed** (neu: „weicht seitwaerts aus, wenn senkrecht nichts frei ist“; der Fall
+„alles belegt“ braucht zwei Control-Spalten, sonst ist seitwaerts frei — das ist genau der
+Unterschied), `e2e/specs/nyx-fab.spec.ts` **9 passed**, Typecheck Exit 0.
 ## Zwei Ausgänge (bewusst offen — es ist eine Produktentscheidung)
 
 1. **Routenbereich:** der FAB erscheint nur dort, wo ein Diktat-Ziel existiert
