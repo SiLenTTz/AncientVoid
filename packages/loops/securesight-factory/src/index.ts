@@ -2,7 +2,7 @@ import { execFile, execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, watch, writeFileSync, type FSWatcher } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { LOOP_NEW } from "@ancientvoid/contracts";
+import { LOOP_NEW, spawnArgv } from "@ancientvoid/contracts";
 import type { Ack, AdapterContext, HealthReport, LoopCapabilities, LoopConnector, LoopControlInput, LoopIo, LoopOnboardResult, LoopStartSpec, SessionHandle } from "@ancientvoid/contracts";
 import { listFiles, readJson, tailLines, under } from "./files.ts";
 
@@ -134,7 +134,8 @@ function runSupervisor(python: string, root: string): Promise<Supervisor> {
 /** Vertrag v1 (docs/factory-schnittstelle.md): stdout ist genau eine JSON-Zeile; stderr ist Menschencheckliste. */
 function runFactory(bin: string, root: string, args: string[]): Promise<Supervisor> {
   return new Promise((resolve) => {
-    execFile(bin, args, { cwd: root, timeout: 15_000, maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
+    const start = spawnArgv(bin, args);
+    execFile(start.file, start.args, { cwd: root, timeout: 15_000, maxBuffer: 1024 * 1024, ...(start.shell ? { shell: true } : {}) }, (err, stdout, stderr) => {
       const exit = err ? (typeof (err as { code?: unknown }).code === "number" ? ((err as { code: number }).code) : -1) : 0;
       let json: Record<string, unknown> | null = null;
       try {
@@ -557,7 +558,8 @@ export function createLoopConnector(config: Readonly<Record<string, unknown>> = 
         return { ok: true };
       };
       return await new Promise((resolve) => {
-        execFile(factoryBin, ["init", "--root", root, ...(input.options.reconfigure === "1" ? ["--reconfigure"] : []), "--modus", modus, "--provider", provider, ...(prd ? ["--from-prd", prd] : [])], { timeout: 120_000, maxBuffer: 1024 * 1024, signal }, (err, stdout, stderr) => {
+        const factoryStart = spawnArgv(factoryBin, ["init", "--root", root, ...(input.options.reconfigure === "1" ? ["--reconfigure"] : []), "--modus", modus, "--provider", provider, ...(prd ? ["--from-prd", prd] : [])]);
+        execFile(factoryStart.file, factoryStart.args, { timeout: 120_000, maxBuffer: 1024 * 1024, signal, ...(factoryStart.shell ? { shell: true } : {}) }, (err, stdout, stderr) => {
           if (signal.aborted) return resolve({ ok: false, detail: "abgebrochen" });
           const exit = err ? (typeof (err as { code?: unknown }).code === "number" ? (err as { code: number }).code : -1) : 0;
           if (exit !== 0) return resolve({ ok: false, detail: (stderr || (err instanceof Error ? err.message : "") || stdout || `Exit ${exit}`).trim().slice(0, 300) });

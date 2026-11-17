@@ -93,7 +93,13 @@ Dazu die Spawn-Stellen, die konfigurierte Kommandos selbst starten und denen die
 fehlte: `packages/adapters/acp/src/catalog.ts`, `packages/adapters/codex/src/app-server.ts`,
 `packages/core/src/modules/forge/gitlab-client.ts`,
 `packages/core/src/modules/code/actions.ts`,
-`packages/core/src/modules/workspace/workspace-services.ts`. Bewusst **nicht** angefasst:
+`packages/core/src/modules/workspace/workspace-services.ts` und
+`packages/loops/securesight-factory/src/index.ts` — dort crashte `execFile(factoryBin, …)`
+mit `spawn EFTYPE` (errno -4028) und brachte HTTP 500 in der Loop-Route; nach der Umstellung
+ist kein EFTYPE mehr im Log (gemessen: dieselbe Testdatei einmal mit, einmal ohne diese
+Stelle — 1x gegen 0x EFTYPE, identische Zaehlung). Die bleibende 422-Aussage ist
+Windows-Pfad/Validierung und bleibt bei BUG-0170; vorher war sie vom Crash verdeckt.
+Bewusst **nicht** angefasst:
 `devices/device-service.ts` (adb/emulator sind `.exe`, da ist kein `.cmd`-Fall).
 
 Messwert derselben sechs Dateien vor/nach dem Schritt: **5 failed | 78 passed → 1 failed |
