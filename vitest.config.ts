@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { cpus } from "node:os";
 import { defineConfig } from "vitest/config";
 
 // Slow-Test-Split (Laufzeit 2026-11-16): Der PR-Gate läuft nur den schnellen
@@ -20,9 +21,12 @@ export default defineConfig({
     // Seriell war eine Noetzlichkeit (BUG-0001/0002: zeitbasierte Tests) — aber die
     // Wanduhr- und Port-Dateien stehen laengst in scripts/slow-tests.json und laufen als
     // Tier B weiterhin seriell (maxWorkers 1). Tier A, der PR-Gate, enthaelt keine davon:
-    // der laeuft parallel. Gemessen 2026-11-17, 20 Kerne: Tier A seriell 451 s (mit dem
-    // Attrappen-Fehler 246 s grau), parallel bei 8 Forks siehe PROGRESS/Akte BUG-0193.
+    // der laeuft parallel, aber nur so weit die Kerne hergeben. Gemessen 2026-11-17 auf 20
+    // Kernen: 22,6 s (16 Forks) gegen 36,3 s (8 Forks), 246 s (seriell) und 451 s (Ausgangs-
+    // lage mit kaputtem Attrappen-Spawn). Ein Hosted-Runner mit 4 Kernen faehrt damit 2 statt
+    // 8 Forks — weniger Conflict, und vor allem nicht gegen den Arbeitsspeicher des Runners.
     // VITEST_WORKERS verstellt die Stufe ohne Code-Aenderung.
-    maxWorkers: slowSet === "slow" ? 1 : Number(process.env.VITEST_WORKERS ?? 8),
+    maxWorkers:
+      slowSet === "slow" ? 1 : Number(process.env.VITEST_WORKERS ?? Math.min(16, Math.max(2, (cpus()?.length ?? 4) - 2))),
   },
 });
