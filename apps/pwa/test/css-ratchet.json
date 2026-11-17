@@ -3,9 +3,9 @@
   "unknownVarTokens": 0,
   "colorLiteralsOutsideTokens": 0,
   "varFallbacks": 0,
-  "zIndexOffLadder": 38,
-  "fontSizeOffScale": 264,
-  "mediaOffLadder": 2,
+  "zIndexOffLadder": 0,
+  "fontSizeOffScale": 0,
+  "mediaOffLadder": 0,
   "rawUiClasses": {
     "btn": 241,
     "chip": 67,

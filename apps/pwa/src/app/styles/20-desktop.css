@@ -11,7 +11,7 @@
 }
 .desktop-head .chip {
   padding: 2px 8px;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 .desktop-head .chip.ok {
   color: var(--ok);
@@ -35,7 +35,7 @@
 }
 .desktop-action .chip {
   padding: 1px 6px;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 .desktop-action.done .chip {
   color: var(--ok);
@@ -47,7 +47,7 @@
 }
 .desktop-cmd {
   font-family: var(--font-mono);
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
   background: var(--bg-chip);
   padding: 8px;

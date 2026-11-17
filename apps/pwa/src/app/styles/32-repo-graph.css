@@ -30,7 +30,7 @@
   gap: 5px;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 0.85em;
+  font-size: var(--text-sm);
   background: var(--bg-chip);
 }
 
@@ -67,13 +67,13 @@
   margin: 0 8px 6px;
   padding: 4px 8px;
   border-left: 3px solid var(--warn);
-  font-size: 0.9em;
+  font-size: var(--text-sm);
 }
 
 .graph-diag {
   margin: 0 8px 6px;
   padding: 6px 8px;
-  font-size: 0.9em;
+  font-size: var(--text-sm);
   border: 1px solid var(--bg-chip);
   border-radius: 4px;
   display: flex;
@@ -114,13 +114,13 @@
 
 .graph-tooltip {
   position: absolute;
-  z-index: 1;
+  z-index: var(--z-base);
   max-width: 60%;
   padding: 4px 8px;
   border-radius: 4px;
   background: var(--bg-elev);
   border: 1px solid var(--bg-chip);
-  font-size: 0.85em;
+  font-size: var(--text-sm);
   pointer-events: none;
 }
 
@@ -233,7 +233,7 @@
 
 .graph-neighbor-title {
   margin: 8px 0 4px;
-  font-size: 0.9em;
+  font-size: var(--text-sm);
 }
 
 .graph-selection-path,
@@ -282,14 +282,14 @@
   position: absolute;
   top: 8px;
   left: 8px;
-  z-index: 4;
+  z-index: var(--z-sticky);
   min-width: 44px;
 }
 
 .graph-pane[data-fullscreen="1"] {
   position: fixed;
   inset: 0;
-  z-index: 210;
+  z-index: var(--z-popout);
   height: 100dvh;
   background: var(--bg);
 }
@@ -315,7 +315,7 @@ body:has(.session-live.graph-full) .nyx-fab {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: var(--z-base);
     max-height: 55%;
     border-left: 0;
     border-top: 1px solid var(--bg-chip);

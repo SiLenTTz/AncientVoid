@@ -11,7 +11,7 @@
   background: var(--bg);
   color: var(--fg);
   font: inherit;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 
@@ -53,7 +53,7 @@
 .color-dialog h3 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: calc(13px * var(--font-scale));
+  font-size: var(--text-md);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
@@ -107,7 +107,7 @@
   place-items: center;
   border: 0;
   font: inherit;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--content-paper);
@@ -128,7 +128,7 @@
 .cp-fields .cp-field {
   display: grid;
   gap: 2px;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   color: var(--fg-dim);
 }
 
@@ -145,7 +145,7 @@
   background: var(--bg);
   color: var(--fg);
   font: inherit;
-  font-size: max(16px, calc(16px * var(--font-scale)));
+  font-size: var(--text-input);
 }
 
 .color-dialog .cp-field input[aria-invalid="true"] {
@@ -179,12 +179,12 @@
 }
 
 .cp-recent-label {
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
 }
 
 .cp-warnings p {
   margin: 0;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   color: var(--warn);
 }
 
@@ -199,7 +199,7 @@
 }
 
 /* Handy: der Wähler füllt den Bildschirm (Sheet statt Fenster). */
-@media (max-width: 520px) {
+@media (max-width: 639px) {
   .color-dialog {
     width: 100%;
     max-width: 100%;

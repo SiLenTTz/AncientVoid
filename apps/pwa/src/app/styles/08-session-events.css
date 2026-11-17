@@ -4,7 +4,7 @@
   border: none;
   color: var(--fg-dim);
   font: inherit;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   padding: 2px 0;
   cursor: pointer;
 }
@@ -14,7 +14,7 @@
   display: inline-block;
   padding: 2px 9px;
   border-radius: 999px;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   font-weight: 700;
 }
 
@@ -38,7 +38,7 @@
   border: none;
   color: var(--accent);
   font: inherit;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   padding: 0;
   cursor: pointer;
 }
@@ -78,7 +78,7 @@
   background: none;
   border: none;
   font: inherit;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
@@ -98,14 +98,14 @@
 .event .copy-btn {
   display: block;
   margin-left: auto;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 
 /* T8.6: new since the last visit on this device. */
 .new-divider {
   margin: 10px 0;
   text-align: center;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--accent);
@@ -124,7 +124,7 @@
   gap: 8px 12px;
   align-items: center;
   padding: 4px 8px;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 .session-configure label {
   display: flex;
@@ -140,7 +140,7 @@
 /* EPIC-P15 T15.3: vorgemerkte Nachrichten über der Eingabe. */
 .queue-list {
   padding: 4px 8px;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   /* Große Symbol-Tasten machen Zeilen hoch — eine lange Warteschlange scrollt selbst statt den Dock zu sprengen (BUG-0098). */
   max-height: min(30vh, 240px);
   overflow-y: auto;
@@ -190,7 +190,7 @@
 /* EPIC-P15 T15.4: Hinweis, dass die Session am PC offen ist. */
 .pc-open-notice {
   padding: 4px 8px;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   line-height: 1.4;
 }
 .pc-open-notice code {

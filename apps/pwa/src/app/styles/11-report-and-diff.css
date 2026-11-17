@@ -3,7 +3,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: calc(12.5px * var(--font-scale));
+  font-size: var(--text-sm);
   font-weight: 700;
   padding: 6px 12px;
   border-radius: 999px;
@@ -33,7 +33,7 @@
   gap: 10px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--bg-chip);
-  font-size: calc(13px * var(--font-scale));
+  font-size: var(--text-md);
 }
 
 .kv-row:last-child {
@@ -74,7 +74,7 @@
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius-sm);
   background: var(--bg-elev);
-  font-size: calc(12.5px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 
 .diff-add-count {
@@ -88,7 +88,7 @@
 }
 
 .diff-code {
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   line-height: 1.6;
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius);
@@ -143,7 +143,7 @@
 }
 
 .diff-file-heading {
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   color: var(--fg-faint);
   margin: 10px 0 4px;
 }
@@ -172,7 +172,7 @@
 }
 
 .diff-commit-meta {
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 
 .diff-section-heading {
@@ -196,7 +196,7 @@
   gap: 10px;
   padding: 6px 10px;
   background: var(--bg-chip);
-  font-size: calc(11.5px * var(--font-scale));
+  font-size: var(--text-xs);
 }
 
 .hunk-range {
@@ -219,7 +219,7 @@
   color: var(--fg-dim);
   border-radius: var(--radius-sm);
   padding: 2px 8px;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   flex-shrink: 0;
 }
 
@@ -232,7 +232,7 @@
 }
 
 .hunk-body-unified {
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   line-height: 1.6;
   white-space: pre;
   overflow-x: auto;
@@ -250,7 +250,7 @@
 
 .hunk-split-cell {
   padding: 0 8px;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   line-height: 1.6;
   white-space: pre;
   overflow-x: auto;
@@ -309,7 +309,7 @@
   }
   .hunk-body-unified,
   .hunk-split-cell {
-    font-size: calc(13px * var(--font-scale));
+    font-size: var(--text-md);
   }
 }
 
@@ -346,7 +346,7 @@
   color: var(--accent);
 }
 .review-picked-info {
-  font-size: 12px;
+  font-size: var(--text-sm);
   opacity: 0.85;
 }
 .review-note-entry {
@@ -387,7 +387,7 @@
   border-radius: 999px;
   background: var(--accent);
   color: var(--fg-on-accent);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 /* Panel mit Notizen */
@@ -398,7 +398,7 @@
 }
 .review-panel h3 {
   margin: 4px 0;
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 .review-note {
   display: flex;
@@ -415,14 +415,14 @@
 }
 .review-note.outboxed {
   align-items: center;
-  font-size: 13px;
+  font-size: var(--text-md);
 }
 .review-note-body {
   flex: 1;
   min-width: 0;
 }
 .review-note-ref {
-  font-size: 11px;
+  font-size: var(--text-xs);
   opacity: 0.8;
 }
 .review-note-text {
@@ -434,7 +434,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   align-items: center;
 }
 .review-note-actions {
@@ -443,7 +443,7 @@
   gap: 4px;
 }
 .review-note-actions button {
-  font-size: 11px;
+  font-size: var(--text-xs);
   padding: 3px 8px;
   border-radius: 6px;
   border: 1px solid var(--border);
@@ -454,7 +454,7 @@
 .review-status {
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   border: 1px solid var(--border);
 }
 .review-status.draft { color: var(--warn); }
@@ -463,20 +463,20 @@
 .review-status.done { color: var(--fg-dim); }
 .review-stale-badge {
   color: var(--err);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 .review-unclear-badge {
   color: var(--warn);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 .review-warn {
   color: var(--warn);
-  font-size: 12px;
+  font-size: var(--text-sm);
   margin: 4px 0;
 }
 .review-warn-inline {
   color: var(--err);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 /* Sammelversand */
@@ -505,7 +505,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 60;
+  z-index: var(--z-sheet);
 }
 .review-send-dialog .modal-card {
   background: var(--bg-elev);
@@ -522,13 +522,13 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--text-md);
 }
 .review-prompt-preview {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   white-space: pre-wrap;
   overflow: auto;
   max-height: 40vh;

@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 60;
+  z-index: var(--z-sheet);
   padding: 8px;
 }
 .custom-model-dialog .modal-card {

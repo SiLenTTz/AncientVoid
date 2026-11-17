@@ -22,7 +22,7 @@
   max-width: 680px;
   margin: 0 auto;
   background: var(--bg-elev);
-  z-index: 10;
+  z-index: var(--z-dock);
   /* BUG-0098: Mit voller Steuerung (Konfiguration, Warteschlange,
    * Vorlagen, Eingabe) auf kleinem Screen lief der fixierte Dock über den
    * oberen Rand — die obersten Buttons waren abgeschnitten statt bedienbar.
@@ -49,7 +49,7 @@
   border: none;
   color: var(--fg-dim);
   font: inherit;
-  font-size: calc(10.5px * var(--font-scale));
+  font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
@@ -62,7 +62,7 @@
 }
 
 .dock-item .ic {
-  font-size: calc(17px * var(--font-scale));
+  font-size: var(--text-lg);
 }
 
 .dock-item.active {
@@ -139,7 +139,7 @@
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px solid var(--bg-chip);
-  font-size: calc(13px * var(--font-scale));
+  font-size: var(--text-md);
 }
 
 .settings-row:last-of-type {
@@ -151,13 +151,13 @@
   gap: 8px;
   /* BUG-0118: das „⋯“-Menü hängt am Kopf. Kopf und Steuerung (.dock-stack) hatten beide z-index 10,
    * die Steuerung steht später im DOM — in einer niedrigen Kachel lag sie über den unteren Menüpunkten. */
-  z-index: 11;
+  z-index: var(--z-sticky);
 }
 
 .session-topbar .back-btn {
   flex: 0 0 auto;
   padding: 6px 10px;
-  font-size: calc(18px * var(--font-scale));
+  font-size: var(--text-lg);
   line-height: 1;
 }
 
@@ -195,7 +195,7 @@
 }
 
 .session-top-meta {
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -228,7 +228,7 @@
   min-height: 44px;
   display: grid;
   place-items: center;
-  font-size: calc(20px * var(--font-scale));
+  font-size: var(--text-xl);
   border-radius: var(--radius);
 }
 
@@ -241,7 +241,7 @@
   position: absolute;
   right: 0;
   top: 100%;
-  z-index: 30;
+  z-index: var(--z-overlay);
   display: grid;
   min-width: 180px;
   background: var(--bg-elev);

@@ -11,7 +11,7 @@
   border: 1px solid var(--bg-chip);
   background: var(--bg-elev);
   color: var(--fg-dim);
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 
@@ -43,7 +43,7 @@
   border: 1px solid var(--bg-chip);
   background: var(--bg-elev);
   color: var(--fg);
-  font-size: calc(13px * var(--font-scale));
+  font-size: var(--text-md);
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
@@ -80,7 +80,7 @@
 
 .choice-desc {
   display: block;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   font-weight: 400;
   color: var(--fg-dim);
   overflow-wrap: anywhere;
@@ -105,7 +105,7 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font: inherit;
-  font-size: calc(13px * var(--font-scale));
+  font-size: var(--text-md);
 }
 
 .event.thinking {
@@ -128,7 +128,7 @@
 }
 
 .event .meta {
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   color: var(--fg-dim);
   display: flex;
   justify-content: space-between;
@@ -176,13 +176,13 @@
 }
 
 .markdown h3 {
-  font-size: 1.08em;
+  font-size: var(--text-md);
 }
 
 .markdown h4,
 .markdown h5,
 .markdown h6 {
-  font-size: 1em;
+  font-size: var(--text-md);
 }
 
 .markdown ul,
@@ -196,7 +196,7 @@
 
 .markdown code {
   font-family: var(--font-mono);
-  font-size: 0.88em;
+  font-size: var(--text-sm);
   background: var(--bg-chip);
   border-radius: var(--radius-sm);
   padding: 0.05em 0.3em;
@@ -214,7 +214,7 @@
 .markdown .md-code code {
   background: none;
   padding: 0;
-  font-size: 0.85em;
+  font-size: var(--text-sm);
 }
 
 .markdown blockquote {
@@ -239,7 +239,7 @@
 
 .markdown table {
   border-collapse: collapse;
-  font-size: 0.92em;
+  font-size: var(--text-sm);
 }
 
 .markdown th,
@@ -256,7 +256,7 @@
 
 /* BUG-0068: a long answer still loading, or shortened for good. */
 .event .full-text-note {
-  font-size: 0.8em;
+  font-size: var(--text-xs);
 }
 
 .event .full-text-note.failed {
@@ -268,7 +268,7 @@
   color: var(--warn);
   border-radius: 999px;
   padding: 3px 10px;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
 }
 
 /* K10: die Offline-Meldung ist ein Button — tippen lädt neu. */
@@ -309,7 +309,7 @@ button.badge-stale {
 .form-grid label {
   display: grid;
   gap: 4px;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   color: var(--fg-dim);
 }
 
@@ -342,5 +342,5 @@ button.badge-stale {
   text-align: center;
 }
 .settings-hint {
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
 }

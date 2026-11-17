@@ -120,13 +120,13 @@ a {
   position: sticky;
   top: 0;
   background: var(--bg);
-  z-index: 10;
+  z-index: var(--z-sticky);
   border-bottom: 1px solid var(--bg-chip);
 }
 
 .topbar h1 {
   font-family: var(--font-display);
-  font-size: calc(15px * var(--font-scale));
+  font-size: var(--text-md);
   font-weight: 700;
   margin: 0;
   letter-spacing: var(--tracking-label);
@@ -257,7 +257,7 @@ a {
   padding: 4px 8px;
   cursor: pointer;
   font: inherit;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   margin-right: 6px;
 }
 
@@ -325,7 +325,7 @@ a {
 
 .tile-keys {
   margin-left: auto;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
 }
 
 .tile-glyph {
@@ -433,7 +433,7 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 4px 0 0;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   color: var(--fg-faint);
 }
 
@@ -449,7 +449,7 @@ a {
   border: none;
   border-radius: var(--radius-sm);
   color: var(--fg-dim);
-  font-size: calc(var(--icon-glyph) + 4px);
+  font-size: var(--icon-glyph-lg);
   line-height: 1;
   padding: 0;
   cursor: pointer;
@@ -484,12 +484,12 @@ a {
   bottom: 84px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 40;
+  z-index: var(--z-overlay);
   padding: 6px 14px;
   border-radius: 999px;
   background: var(--accent);
   color: var(--fg-on-accent);
-  font-size: calc(13px * var(--font-scale));
+  font-size: var(--text-md);
   pointer-events: none;
 }
 

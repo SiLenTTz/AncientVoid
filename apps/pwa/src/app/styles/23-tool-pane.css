@@ -7,7 +7,7 @@
 .tool-pane {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: var(--z-base);
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 16px 24px;
@@ -17,7 +17,7 @@
 .tool-pane-head {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: var(--z-base);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -30,7 +30,7 @@
 .tool-pane-head h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: calc(15px * var(--font-scale));
+  font-size: var(--text-md);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
@@ -43,7 +43,7 @@
   min-width: var(--icon-target);
   height: var(--icon-target);
   font: inherit;
-  font-size: calc(var(--icon-glyph) + 2px);
+  font-size: var(--icon-glyph-md);
   line-height: 1;
   cursor: pointer;
 }

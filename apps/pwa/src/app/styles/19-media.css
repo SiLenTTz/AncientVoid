@@ -9,7 +9,7 @@
 }
 .media-form h2 {
   margin: 0;
-  font-size: calc(16px * var(--font-scale));
+  font-size: var(--text-lg);
 }
 .media-url {
   flex: 1 1 240px;
@@ -19,7 +19,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 .media-caps .chip {
   padding: 3px 8px;
@@ -59,7 +59,7 @@
 }
 .media-job .chip {
   padding: 2px 8px;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 .chip.status-done {
   color: var(--ok);
@@ -80,7 +80,7 @@
   list-style: none;
   display: grid;
   gap: 3px;
-  font-size: calc(13px * var(--font-scale));
+  font-size: var(--text-md);
 }
 .media-step-icon {
   display: inline-block;
@@ -100,7 +100,7 @@
   overflow-wrap: anywhere;
 }
 .media-egress {
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
 }
 .media-result {
@@ -109,7 +109,7 @@
 }
 .media-result h3 {
   margin: 4px 0;
-  font-size: calc(14px * var(--font-scale));
+  font-size: var(--text-md);
 }
 .media-result p {
   margin: 4px 0;
@@ -124,7 +124,7 @@
 }
 .media-stamp {
   font-family: var(--font-mono);
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
   background: var(--bg-chip);
   color: var(--fg);
   border: 0;
@@ -147,7 +147,7 @@
   margin: 0;
   display: grid;
   gap: 4px;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 .media-frame-img {
   width: 100%;
@@ -173,7 +173,7 @@
   overflow-y: auto;
   display: grid;
   gap: 4px;
-  font-size: calc(13px * var(--font-scale));
+  font-size: var(--text-md);
 }
 .media-line.focus {
   background: color-mix(in srgb, var(--accent) 18%, transparent);
@@ -196,7 +196,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: var(--z-overlay);
 }
 .media-lightbox figure {
   margin: 0;
@@ -218,5 +218,5 @@
 }
 .media-lightbox figcaption {
   color: var(--fg-dim);
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }

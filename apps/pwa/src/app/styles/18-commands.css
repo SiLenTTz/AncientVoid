@@ -1,13 +1,13 @@
 /* T9.4: one text entry for the hub (✦, Ctrl/Cmd+K). A dialog on purpose. */
 .command-open {
-  font-size: calc(18px * var(--font-scale));
+  font-size: var(--text-lg);
   min-width: 40px;
   min-height: 40px;
 }
 
 .command-sheet {
   position: fixed;
-  z-index: 60;
+  z-index: var(--z-sheet);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -41,7 +41,7 @@
 
 .command-field {
   flex-basis: 100%;
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 
 .command-refusal {
@@ -73,7 +73,7 @@
 
 .command-risk {
   flex: 0 0 auto;
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   padding: 1px 6px;
   border-radius: var(--radius-sm);
   background: var(--bg-chip);
@@ -90,7 +90,7 @@
 }
 
 .command-planner {
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
 }
 
 .command-result.ok {
@@ -110,7 +110,7 @@
 .command-before,
 .command-after {
   white-space: pre-wrap;
-  font-size: calc(13px * var(--font-scale));
+  font-size: var(--text-md);
   padding: 6px 8px;
   border-radius: var(--radius);
   background: var(--bg);
@@ -154,7 +154,7 @@
 }
 
 .quick-kind {
-  font-size: calc(11px * var(--font-scale));
+  font-size: var(--text-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--fg-dim);
@@ -167,5 +167,5 @@
 }
 
 .quick-detail {
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }

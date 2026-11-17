@@ -6,14 +6,14 @@
 .loop-reasons {
   margin: 0;
   padding-left: 18px;
-  font-size: 0.85em;
+  font-size: var(--text-sm);
 }
 
 /* Warum der Start noch nicht geht: laut am Knopf, kein graues Flüstern —
  * „es passiert nichts“ war der Nutzerfund 2026-10-30. */
 .loop-block.warn {
   color: var(--warn);
-  font-size: calc(12px * var(--font-scale));
+  font-size: var(--text-sm);
 }
 
 /* EPIC-P19 T19.6: Kopf-Abzeichen und Loop-Panel in der Session */
@@ -21,7 +21,7 @@
   display: inline-block;
   padding: 1px 8px;
   border-radius: 999px;
-  font-size: 0.8em;
+  font-size: var(--text-xs);
   border: 1px solid currentColor;
 }
 .loop-badge.ok { color: var(--ok); }
@@ -59,7 +59,7 @@
 .loop-bar > div { height: 100%; background: var(--ok); }
 .gate-passed { color: var(--ok); }
 .gate-failed { color: var(--err); }
-.loop-notices { margin: 0; padding-left: 18px; font-size: 0.85em; }
+.loop-notices { margin: 0; padding-left: 18px; font-size: var(--text-sm); }
 .loop-report pre { white-space: pre-wrap; max-height: 40vh; overflow: auto; }
 .loop-onboard {
   display: grid;
