@@ -167,10 +167,13 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
   immer zuerst `bugs/README.md` auf dem aktuellen `main` prüfen.
 
 ## Nächste Schritte
-- **Gate-Tempo: das Warten laeuft, waehrend ich arbeite.** Der `verify`-Lauf kostet ~2:10–2:40;
-  geblockt wird nur mit `gh pr checks --watch` (kehrt in der Sekunde der Gruenheit zurueck) —
-  sleep-Schleifen sind verboten, sie haben pro PR 25–90 s gekostet. Rezept steht im Skill
-  `git-workflow` (Abschnitt 4).
+- **PR-Pipeline ist Standard (Skill `git-workflow`, Abschnitt 4.1).** Der Gate kostet
+  2:12–2:40; ich warte ihn nicht blockierend ab, sondern arbeite an der naechsten Aufgabe
+  weiter, bis der Merge faellig ist (nicht-blockierend fragen, blockierend nur mit
+  `gh pr checks --watch`, sleep-Schleifen verboten). Merges, Live-Zweig-Merge, Frontend-Bau
+  und Hub-Neustart laufen en bloc pro Stapel. „Code fertig, CI laeuft“ bleibt ein
+  Zwischenstand, keine Fertigmeldung; gemerged wird nur nach gruenem Gate — das Ruleset
+  `main-gate` erzwingt das derzeit nicht (leere Targets).
 - **Auto-Merge bleibt aus, bis Kai ihn im GitHub-UI einschaltet.** Repo-seitig ist
   `allow_auto_merge` bereits `true`, aber `gh pr merge --auto --merge` lehnt das Ruleset
   `main-gate` ab („Protected branch rules not configured for this branch“); der Hebel sitzt in
