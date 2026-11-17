@@ -35,6 +35,10 @@
 | [`context-audit`](context-audit/SKILL.md) | Monatlicher semantischer Kontext-Audit (Veraltung/Widersprüche), nur Diff-Vorschläge | „Kontext-Audit", „docs aufräumen", „AGENTS.md prüfen" | Struktur-Gate bleibt `npm run check:context`; nie auto-mergen |
 
 Vorlage für neue Skills: [`skill-template.md`](_shared/skill-template.md). AncientVoid-Verträge,
+**Ein neuer Skill muss sich eintragen:** `packages/core/test/modules/skills/skills.test.ts`
+zählt das echte Inventar exakt (Ratchet). Neuer Ordner unter `.claude/skills/` ohne
+Aktualisierung dieser Liste macht das PR-Gate rot.
+
 die `ponytail-review` nicht wegoptimieren darf:
 [`_shared/ancientvoid-protected-invariants.md`](_shared/ancientvoid-protected-invariants.md).
 
