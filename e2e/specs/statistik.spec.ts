@@ -42,7 +42,7 @@ test.describe("Statistik-Seite (EPIC-P56)", () => {
     const card = app.getByRole("region", { name: "Statistik Sessions" });
     await expect(card).toBeVisible();
 
-    await app.getByRole("group", { name: "Zeitraum" }).getByRole("button", { name: "Woche" }).click();
+    await app.getByRole("group", { name: "Zeitraum", exact: true }).getByRole("button", { name: "Woche" }).click();
     await expect(card).toContainText("opencode");
 
     // Projektschnitt über die Auswahl: das Projekt der Session bleibt sichtbar.
@@ -69,5 +69,35 @@ test.describe("Statistik-Seite (EPIC-P56)", () => {
 
     const invalid = await hub.api("/api/statistics?since=gestern");
     expect(invalid.status).toBe(400);
+  });
+
+  test("T56.4: Klein-n meldet keine Anomalien — die Karte bleibt ehrlich weg", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Statistik-Anomalie" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
+    const report = await hub.api<StatisticsReport>("/api/statistics");
+    expect(report.body.anomalies).toEqual([]);
+
+    await openStatistics(app);
+    await expect(app.getByRole("region", { name: "Statistik Anomalien" })).toHaveCount(0);
+  });
+
+  test("T56.4: Zeitraum-Vergleich lädt Seite B, CSV-Export liefert die angezeigten Daten", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Statistik-Vergleich" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
+
+    await openStatistics(app);
+    const compare = app.getByRole("region", { name: "Statistik Vergleich" });
+    await expect(compare).toBeVisible();
+    await expect(compare.locator("tbody tr").first()).toContainText("opencode");
+
+    // AC-P56-5: CSV enthält exakt die angezeigte Session-Zeile — Download ohne Netz.
+    const downloadPromise = app.waitForEvent("download");
+    await app.getByRole("button", { name: "CSV herunterladen" }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^statistik-export-\d{4}-\d{2}-\d{2}\.csv$/);
+    const path = await download.path();
+    const csv = await (await import("node:fs/promises")).readFile(path!, "utf8");
+    expect(csv).toContain("# EPIC-P56 Statistik-Export");
+    expect(csv).toContain("opencode,e2e/fake-model");
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { StatisticsDistribution, StatisticsReport, TurnStatistics } from "@ancientvoid/contracts";
+import { StatisticsDistribution, StatisticsReport, TurnStatistics, SessionAnomaly } from "@ancientvoid/contracts";
 
 const distribution = { n: 2, missing: 1, p50: 10, p90: 18, p95: 19, smallSample: true };
 
@@ -50,10 +50,21 @@ describe("P56 Statistik-Vertrag", () => {
       tools: [],
       recovery: { n: 0, missing: 0, p50: null, p90: null, p95: null, smallSample: true },
       team: null,
+      anomalies: [],
     });
     expect(report.sessions).toHaveLength(1);
     // Ungültige Aggregate und Scheiben-Drift werden abgewiesen, nicht gerundet.
     expect(StatisticsReport.safeParse({ ...report, sessions: [{ ...session, sessions: 0 }] }).success).toBe(false);
     expect(StatisticsReport.safeParse({ ...report, slices: { projects: ["/repo"], hosts: [], harnesses: [] }, extra: true }).success).toBe(false);
+  });
+
+  it("T56.4: SessionAnomaly verlangt ein belegtes Kriterium über dem Gruppen-p95", () => {
+    const base = { sessionId: "s1", adapter: "codex", model: null, project: "/repo", createdAt: "2026-11-17T09:00:00.000Z" };
+    expect(SessionAnomaly.parse({ ...base, wallMs: 900_000, wallP95: 478_500, turns: 4, turnsP95: 3.5 })).toBeTruthy();
+    expect(SessionAnomaly.parse({ ...base, wallMs: null, wallP95: 478_500, turns: 4, turnsP95: 3.5 })).toBeTruthy();
+    // Unter dem p95 in beiden Kriterien: keine Anomalie.
+    expect(SessionAnomaly.safeParse({ ...base, wallMs: 100, wallP95: 478_500, turns: 1, turnsP95: 3.5 }).success).toBe(false);
+    // Wall-Kriterium ohne Gruppen-p95 ist unbelegt — Züge unter p95 können es nicht ersetzen.
+    expect(SessionAnomaly.safeParse({ ...base, wallMs: 900_000, wallP95: null, turns: 1, turnsP95: 3.5 }).success).toBe(false);
   });
 });

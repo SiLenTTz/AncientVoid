@@ -68,7 +68,7 @@ Alle Metriken werden je **Modell**, **Provider**, **Harness** und **Orchestrator
   - [x] **T56.1b** Übrige Session-/Gate-/Team-/Tool-Metriken nach den belegten Quellen präzisieren und testen; fehlende terminale/korrelierte Fakten ausdrücklich kennzeichnen. **K5/K7**. (abgeschlossen 17.11.2026: Verträge `SessionStatistics`/`GateWaitStatistics`/`ToolStatistics`/`TeamTaskStatistics`, Ableitungen `deriveSessionFacts`/`deriveRecoveryIntervals`/`deriveGateWaitIntervals`/`deriveToolCallFacts`, 28 neue Tests)
 - [x] **T56.2** Rollup-Job inkl. Nachführbarkeit und Klein-n-Kennzeichnung. (abgeschlossen 17.11.2026: `StatisticsRollup` — Migration 36 mit Fakten-Caches, Nachführung über basis_last_seq/basis_updated_at, prune + deterministisches rebuild; Leseseite liefert nur Aggregate, Klein-n über `smallSample`. Zeitraum-/Projekt-/Host-Schnitte brauchen zusätzliche Cache-Dimensionen und folgen mit T56.3.)
 - **T56.3** Statistiken-Page: Sessions/Tokens/Erfolg/Tool-Sektionen, Filter, p50/p90/p95-Darstellung. *(17.11.2026 erledigt — `#/statistik`, `GET /api/statistics`, Migration 37; Details §8.)*
-- **T56.4** Vergleichsansichten (Orchestrator, A/B) + Anomalie-Flag + CSV-Export.
+- **T56.4** Vergleichsansichten (Orchestrator, A/B) + Anomalie-Flag + CSV-Export. *(17.11.2026 erledigt — A/B-Zeitraumvergleich, Anomalien über Gruppen-p95, CSV-Download; Orchestrator-Vergleich mangels belegter Fakten offen.)*
 - **T56.5** P55-Anbindung (Compression-Kennzahlen je Plugin/Modell) und P31-Namen.
 - **T56.6** Abnahme mit Nutzer an echten Daten.
 
@@ -152,6 +152,22 @@ nicht auf der Session) und bleibt offen. BUG-0200 (vorbestehend, P63-Folge):
 Card-Baustein ohne region-Rolle — Statistik-Seite setzt role="region"
 explizit, Bug separat angelegt (#117). Offen: T56.4, T56.6 (Abnahme);
 T56.5 (P55/P31) bleibt gesperrt.
+
+T56.4 (17.11.2026): Anomalie-Flag (Contract `SessionAnomaly`, Rollup-
+Leseseite `sessionAnomalies`: Session über dem p95 ihrer Adapter-/Modell-
+Gruppe in Wallzeit oder Zugzahl; Klein-n-Gruppen melden keine, Gruppen-p95
+schließt die Session selbst ein — deterministisch; Tokens/Fehler je Session
+als Kriterien nicht belegt, bleibt offen) im Report sichtbar und CSV-
+exportierbar. A/B-Zeitraumvergleich clientseitig über die bestehende API
+(gleicher Projekt-/Host-/Harness-Schnitt, zweiter Bericht als B).
+CSV-Export clientseitig aus dem geladenen Report als Download — exakt die
+angezeigten Daten, kein Netz (AC-P56-5). Orchestrator-Vergleich (§3.5)
+bleibt offen: kein belegter Faktenbestand (Orchestrator lebt auf Team/Loop),
+nicht erfunden. Belegt: Rollup-Anomalie-Tests (p95-Gruppenlage, Klein-n,
+Zeitraum-Schnitt), Contract-Tests SessionAnomaly, E2E statistik.spec.ts
+(Klein-n-Karte ehrlich weg, Vergleich lädt B, CSV-Download mit Inhalt).
+Offen bleibt T56.6 (Abnahme mit Nutzer an echten Daten); T56.5 (P55/P31)
+bleibt gesperrt.
 `HubDatabase.exec` ergänzt (mehranweisungs-SQL). 4 neue Tests (Statistik-
 Suite inkl. db.test 45 grün), Tier A 2286 grün (ein Steer-Wait-Timing-Flake
 der BUG-0163-Familie im Parallellauf: isoliert 2× grün, Neustart sauber —

@@ -139,6 +139,29 @@ export const TeamTaskStatistics = z.object({
 export type TeamTaskStatistics = z.infer<typeof TeamTaskStatistics>;
 
 /**
+ * P56 T56.4: eine Session, die in Wallzeit oder Zugzahl über dem p95 ihrer
+ * Adapter-/Modell-Gruppe liegt — Kandidat für Runaway-Analyse, kein Urteil.
+ * Klein-n-Gruppen (n < STATISTICS_MIN_SAMPLE) melden keine Anomalien; das
+ * Gruppen-p95 schließt die Session selbst ein (deterministisch, dokumentiert).
+ * Tokens/Fehler je Session sind nicht belegt und bleiben Kriterien offen.
+ */
+export const SessionAnomaly = z.object({
+  sessionId: z.string().min(1),
+  adapter: z.string().min(1),
+  model: z.string().nullable(),
+  project: z.string().min(1),
+  createdAt: z.string().min(1),
+  wallMs: quantile,
+  wallP95: quantile,
+  turns: count,
+  /** Züge sind immer belegt — das p95 dazu ebenfalls. */
+  turnsP95: z.number().nonnegative(),
+}).strict().refine(a =>
+  (a.wallMs !== null && a.wallP95 !== null && a.wallMs > a.wallP95) || a.turns > a.turnsP95,
+"Anomalie ohne über dem Gruppen-p95 liegendes belegtes Kriterium.");
+export type SessionAnomaly = z.infer<typeof SessionAnomaly>;
+
+/**
  * P56 T56.3: Lesevertrag der Statistik-Seite. Alle Aggregate stammen aus dem
  * Rollup-Cache (nie direkt aus Journals); `filter` ist der wirksame Schnitt,
  * `slices` die belegten Werte der Schnitt-Dimensionen. `updatedAt` ist das
@@ -164,5 +187,7 @@ export const StatisticsReport = z.object({
   tools: z.array(ToolStatistics),
   recovery: StatisticsDistribution,
   team: TeamTaskStatistics.nullable(),
+  /** T56.4: über dem Gruppen-p95 liegende Sessions (Klein-n-Gruppen melden keine). */
+  anomalies: z.array(SessionAnomaly),
 }).strict();
 export type StatisticsReport = z.infer<typeof StatisticsReport>;

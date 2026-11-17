@@ -128,8 +128,15 @@ Team, geschnitten nach Zeitraum/Projekt/Host/Harness; Team-Zahlen folgen
 nur dem Projekt-/Zeitraum-Schnitt (keine Host-/Harness-Dimension). Der
 Orchestrator-Schnitt (P54 self/hermes) ist auf Session-Ebene nicht
 belegt und bleibt offen, bis ein belegter Faktenbestand existiert.
-T56.4 ergänzt Vergleiche, Anomalien und CSV. Jede Zahl braucht Einheit,
-Datenabdeckung und Quellennachweis. Bestehende Ereignisse nicht
-nachträglich mit erfundenen Provider-/Orchestrator- oder Tokenangaben
-auffüllen. Neue Event-Verträge erst nach eigenem ADR und belegter
-Notwendigkeit; T56.1a/T56.1b ergänzen keine Events.
+T56.4 ergänzt Anomalien (Contract `SessionAnomaly`: Session über dem p95
+ihrer Adapter-/Modell-Gruppe in Wallzeit oder Zugzahl; Klein-n-Gruppen
+melden keine, das Gruppen-p95 schließt die Session selbst ein; Tokens/
+Fehler je Session sind als Kriterien nicht belegt und bleiben offen),
+den clientseitigen A/B-Zeitraumvergleich (gleicher Projekt-/Host-/
+Harness-Schnitt, zweiter Bericht) und den CSV-Export (clientseitig aus
+dem geladenen Report als Download — exakt die angezeigten Daten, AC-P56-5,
+kein Netz). Der Orchestrator-Vergleich bleibt bis auf belegte Fakten
+offen. Jede Zahl braucht Einheit, Datenabdeckung und
+Quellennachweis. Bestehende Ereignisse nicht nachträglich mit erfundenen
+Provider-/Orchestrator- oder Tokenangaben auffüllen. Neue Event-Verträge erst
+nach eigenem ADR und belegter Notwendigkeit; T56.1a/T56.1b ergänzen keine Events.

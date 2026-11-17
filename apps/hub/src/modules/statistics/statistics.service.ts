@@ -82,6 +82,7 @@ export class StatisticsService {
       tools: this.rollup.toolStatistics(filter),
       recovery: this.rollup.recoveryDistribution(filter),
       team: this.rollup.teamTaskStatistics(filter),
+      anomalies: this.rollup.sessionAnomalies(filter),
     };
   }
 }

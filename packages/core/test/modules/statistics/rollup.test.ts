@@ -245,4 +245,42 @@ describe("P56 T56.2 Statistik-Rollup", () => {
     expect(rollup.updatedAt()).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     db.close();
   });
+
+  it("T56.4: markiert Sessions über dem Gruppen-p95, Klein-n-Gruppen keine", async () => {
+    const db = openDb();
+    // 10 kurze Sessions (je 2 Züge) + 1 Ausreißer (12 Züge, lange Wall) —
+    // Gruppe ist mit 11 Sessions groß genug für eine Anomalie-Aussage.
+    const short = journal("short");
+    const long = [...journal("s-long"), event(11, 900_000, { sessionId: "s-long", type: "user" }), event(12, 950_000, { sessionId: "s-long", payload: { kind: "session.turn_end", code: 0 } })];
+    const records = Array.from({ length: 10 }, (_, i) => ref(`short-${i}`, short.length, { model: null }));
+    records.push(ref("s-long", long.length, { model: null }));
+    const journals = new Map(records.map((r, i) => [r.id, i === 10 ? long : short] as const));
+    const rollup = new StatisticsRollup(db, {
+      records: () => records,
+      events: async id => journals.get(id)!,
+      teams: () => [],
+    });
+    await rollup.run();
+
+    const anomalies = rollup.sessionAnomalies();
+    expect(anomalies).toHaveLength(1);
+    // shorts: 3 Züge (inkl. Unterbrechungs-Zug), Ausreißer: 4 — p95 (n=11,
+    // interpoliert) liegt bei 3,5 Zügen; Wall-p95 bei ~478 s.
+    expect(anomalies[0]).toMatchObject({ sessionId: "s-long", turns: 4, turnsP95: 3.5 });
+    expect(anomalies[0]!.wallMs).toBeGreaterThan(anomalies[0]!.wallP95!);
+
+    // Zeitraum-Schnitt nimmt die Ausreißer-Session heraus: keine Anomalie.
+    expect(rollup.sessionAnomalies({ since: "2030-01-01T00:00:00.000Z" })).toEqual([]);
+
+    // Klein-n: 3 Sessions der Gruppe reichen für keine Anomalie-Aussage.
+    const three = records.slice(0, 3);
+    const rollup2 = new StatisticsRollup(db, {
+      records: () => three,
+      events: async id => journals.get(id as string)!,
+      teams: () => [],
+    });
+    await rollup2.run();
+    expect(rollup2.sessionAnomalies()).toEqual([]);
+    db.close();
+  });
 });

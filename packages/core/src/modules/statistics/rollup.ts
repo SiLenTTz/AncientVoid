@@ -1,8 +1,10 @@
 import {
   type GateWaitStatistics,
   type NormalizedEvent,
+  type SessionAnomaly,
   type SessionEndReason,
   type SessionStatistics,
+  STATISTICS_MIN_SAMPLE,
   type StatisticsDistribution,
   type Team,
   type TeamTaskStatistics,
@@ -233,11 +235,62 @@ export class StatisticsRollup {
   }
 
   /**
+   * T56.4: Sessions über dem p95 ihrer Adapter-/Modell-Gruppe (Wallzeit oder
+   * Zugzahl) — Klein-n-Gruppen melden keine Anomalien; das Gruppen-p95
+   * schließt die Session selbst ein. Kandidaten für Runaway-Analyse, kein Urteil.
+   */
+  sessionAnomalies(filter: StatisticsFilter = {}): SessionAnomaly[] {
+    const rows = this.db.prepare(
+      `SELECT session_id, adapter, model, project, created_at, wall_ms, turns FROM session_stat_facts ${this.sessionWhere(filter)}`,
+    ).all(...this.sessionParams(filter)) as unknown as {
+      session_id: string; adapter: string; model: string | null; project: string; created_at: string; wall_ms: number | null; turns: number;
+    }[];
+    interface GroupP95 {
+      p95Wall: number | null;
+      p95Turns: number;
+      small: boolean;
+    }
+    const groups = new Map<string, { adapter: string; model: string | null; rows: typeof rows }>();
+    for (const r of rows) {
+      const key = `${r.adapter}\u0000${r.model ?? ""}`;
+      const group = groups.get(key) ?? { adapter: r.adapter, model: r.model, rows: [] as typeof rows };
+      group.rows.push(r);
+      groups.set(key, group);
+    }
+    const p95s = new Map<string, GroupP95>();
+    for (const [key, group] of groups) {
+      const wall = statisticsDistribution(group.rows.map(r => r.wall_ms));
+      const turns = statisticsDistribution(group.rows.map(r => r.turns));
+      p95s.set(key, { p95Wall: wall.p95, p95Turns: turns.p95 ?? 0, small: wall.n + wall.missing < STATISTICS_MIN_SAMPLE });
+    }
+    const anomalies: SessionAnomaly[] = [];
+    for (const [key, group] of groups) {
+      const p95 = p95s.get(key)!;
+      if (p95.small) continue;
+      for (const r of group.rows) {
+        if ((r.wall_ms !== null && p95.p95Wall !== null && r.wall_ms > p95.p95Wall) || r.turns > p95.p95Turns) {
+          anomalies.push({
+            sessionId: r.session_id,
+            adapter: r.adapter,
+            model: r.model,
+            project: r.project,
+            createdAt: r.created_at,
+            wallMs: r.wall_ms,
+            wallP95: p95.p95Wall,
+            turns: r.turns,
+            turnsP95: p95.p95Turns,
+          });
+        }
+      }
+    }
+    return anomalies.sort((a, b) => (b.wallMs ?? 0) - (a.wallMs ?? 0));
+  }
+
+  /**
    * Team-Zahlen folgen dem Projekt-/Zeitraum-Schnitt. Host und Harness sind
    * keine Team-Dimensionen (ein Team gehört zum Hub, nicht zu einem Harness) —
    * solche Filter wirken hier bewusst nicht.
-   */
-  teamTaskStatistics(filter: StatisticsFilter = {}): TeamTaskStatistics | null {
+   */  teamTaskStatistics(filter: StatisticsFilter = {}): TeamTaskStatistics | null {
     const conditions: string[] = [];
     const params: string[] = [];
     if (filter.project !== undefined) {

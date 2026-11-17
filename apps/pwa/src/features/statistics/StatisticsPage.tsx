@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
-import type { StatisticsDistribution, StatisticsReport, TurnStatistics, SessionStatistics } from "@ancientvoid/contracts";
+import type { StatisticsDistribution, StatisticsReport, TurnStatistics, SessionStatistics, SessionAnomaly } from "@ancientvoid/contracts";
 import { hubApi } from "../../shared/api.ts";
-import { Card, EmptyState, Segmented, Select } from "../../shared/ui/index.ts";
+import { Button, Card, EmptyState, Segmented, Select } from "../../shared/ui/index.ts";
 
 /**
  * EPIC-P56 T56.3: Statistik-Seite — konsolidierte Kennzahlen aus dem
@@ -56,6 +56,12 @@ const PERIOD_OPTIONS: readonly { value: Period; label: string }[] = [
   { value: "30d", label: "Monat" },
 ];
 
+function sinceOf(period: Period): string | undefined {
+  if (period === "all") return undefined;
+  const days = period === "7d" ? 7 : 30;
+  return new Date(Date.now() - days * 86_400_000).toISOString();
+}
+
 export function StatisticsPage() {
   const [period, setPeriod] = useState<Period>("all");
   const [project, setProject] = useState("");
@@ -64,11 +70,7 @@ export function StatisticsPage() {
   const [report, setReport] = useState<StatisticsReport | null>(null);
   const [error, setError] = useState("");
 
-  const since = useMemo(() => {
-    if (period === "all") return undefined;
-    const days = period === "7d" ? 7 : 30;
-    return new Date(Date.now() - days * 86_400_000).toISOString();
-  }, [period]);
+  const since = useMemo(() => sinceOf(period), [period]);
 
   useEffect(() => {
     let alive = true;
@@ -128,6 +130,9 @@ export function StatisticsPage() {
         <p>
           Rollup-Stand: {report.updatedAt === null ? "noch kein Lauf" : new Date(report.updatedAt).toLocaleString("de-DE")} · Zahlen beschreiben, sie empfehlen kein Modell.
         </p>
+        <Button variant="subtle" onClick={() => exportCsv(report)}>
+          CSV herunterladen
+        </Button>
       </Card>
 
       {report.sessions.length === 0 && report.team === null ? (
@@ -139,9 +144,171 @@ export function StatisticsPage() {
           <GateSection report={report} />
           <ToolSection report={report} />
           <TeamSection report={report} filtered={filtered} />
+          <AnomalySection anomalies={report.anomalies} />
+          <CompareSection report={report} project={project} host={host} harness={harness} periodA={period} />
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * T56.4 (AC-P56-5): CSV-Export exakt der angezeigten Daten — clientseitig
+ * aus dem geladenen Report, als Download (kein Netzwerk, keine Cloud).
+ */
+function exportCsv(report: StatisticsReport): void {
+  const line = (cells: (string | number | null)[]) => cells.map(c => (typeof c === "string" && /[",\n]/.test(c) ? `"${c.replaceAll("\"", "\"\"")}"` : String(c ?? ""))).join(",");
+  const rows: string[] = [];
+  rows.push(`# EPIC-P56 Statistik-Export · Schnitt: projekt=${report.filter.project ?? "-"} host=${report.filter.hostId ?? "-"} harness=${report.filter.harness ?? "-"} seit=${report.filter.since ?? "-"} bis=${report.filter.until ?? "-"}`);
+  rows.push(`# Rollup-Stand: ${report.updatedAt ?? "noch kein Lauf"}`);
+  rows.push("# Sessions je Adapter/Modell");
+  rows.push(line(["adapter", "modell", "sessions", "offen", "fertig", "fehler", "unterbrochen", "gestoppt", "wall_p50_ms", "wall_p90_ms", "wall_p95_ms", "wall_n", "wall_fehlend", "aktiv_p50_ms", "aktiv_p95_ms", "zuge_p50", "zuge_p95"]));
+  for (const s of report.sessions) {
+    rows.push(line([s.adapter, s.model, s.sessions, s.openSessions, s.endReasons.completed, s.endReasons.error, s.endReasons.interrupted, s.endReasons.stopped, s.wallMs.p50, s.wallMs.p90, s.wallMs.p95, s.wallMs.n, s.wallMs.missing, s.activeMs.p50, s.activeMs.p95, s.turnsPerSession.p50, s.turnsPerSession.p95]));
+  }
+  rows.push("# Züge und Tokens je Adapter/Modell");
+  rows.push(line(["adapter", "modell", "zuge", "fehlgeschlagen", "dauer_p50_ms", "dauer_p95_ms", "tokens_p50", "tokens_p95", "tokens_n", "tokens_fehlend", "geschaetzte_token_zuge"]));
+  for (const t of report.turns) {
+    rows.push(line([t.adapter, t.model, t.turns, t.failedTurns, t.durationMs.p50, t.durationMs.p95, t.tokens.p50, t.tokens.p95, t.tokens.n, t.tokens.missing, t.estimatedTokenTurns]));
+  }
+  rows.push("# Gates");
+  if (report.gateWait) {
+    const g = report.gateWait;
+    rows.push(line(["gates", "beantwortet", "abgelaufen", "offen", "sofort_erlaubt", "warte_p50_ms", "warte_p95_ms", "warte_n", "warte_fehlend"]));
+    rows.push(line([g.gates, g.answered, g.timedOut, g.open, g.autoApproved, g.waitMs.p50, g.waitMs.p95, g.waitMs.n, g.waitMs.missing]));
+  }
+  rows.push("# Tools");
+  rows.push(line(["tool", "calls", "fehler", "ok", "iserror_unbelegt", "ohne_ergebnis", "fehlerquote"]));
+  for (const t of report.tools) {
+    rows.push(line([t.tool, t.calls, t.failed, t.ok, t.errorStatusUnknown, t.unanswered, t.failureRate]));
+  }
+  rows.push("# Recovery");
+  rows.push(line(["p50_ms", "p90_ms", "p95_ms", "n", "fehlend"]));
+  rows.push(line([report.recovery.p50, report.recovery.p90, report.recovery.p95, report.recovery.n, report.recovery.missing]));
+  if (report.team) {
+    const t = report.team;
+    rows.push("# Teams (nur Projekt-/Zeitraum-Schnitt)");
+    rows.push(line(["teams", "aufgaben", "offen", "unbekannt", "done", "failed", "worker_ende_quote", "retry_rate"]));
+    rows.push(line([t.teams, t.tasks, t.open, t.unknown, t.done, t.failed, t.workerEndRate, t.retryRate]));
+  }
+  rows.push("# Anomalien (über Gruppen-p95; Klein-n-Gruppen melden keine)");
+  rows.push(line(["session", "adapter", "modell", "projekt", "wall_ms", "wall_p95", "zuge", "zuge_p95"]));
+  for (const a of report.anomalies) {
+    rows.push(line([a.sessionId, a.adapter, a.model, a.project, a.wallMs, a.wallP95, a.turns, a.turnsP95]));
+  }
+  const blob = new Blob([rows.join("\n") + "\n"], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `statistik-export-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function AnomalySection({ anomalies }: { anomalies: SessionAnomaly[] }) {
+  if (anomalies.length === 0) return null;
+  return (
+    <Card aria-label="Statistik Anomalien" role="region">
+      <strong>Anomalien — Kandidaten für Runaway-Analyse</strong>
+      <table>
+        <thead>
+          <tr>
+            <th>Session</th>
+            <th>Adapter · Modell</th>
+            <th>Wall vs p95</th>
+            <th>Züge vs p95</th>
+          </tr>
+        </thead>
+        <tbody>
+          {anomalies.map(a => (
+            <tr key={a.sessionId}>
+              <td><code>{a.sessionId.slice(0, 12)}…</code></td>
+              <td>
+                {a.adapter}
+                {a.model !== null ? ` · ${a.model}` : ""}
+              </td>
+              <td>{a.wallMs === null || a.wallP95 === null ? "—" : `${formatMs(a.wallMs)} > ${formatMs(a.wallP95)}`}</td>
+              <td>{formatCount(a.turns)} &gt; {formatCount(a.turnsP95)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p>Markiert ist, was über dem p95 der eigenen Adapter-/Modell-Gruppe liegt (Klein-n-Gruppen melden keine). Ein Hinweis, kein Urteil.</p>
+    </Card>
+  );
+}
+
+/**
+ * T56.4 A/B: derselbe Schnitt (Projekt/Host/Harness) in zwei Zeiträumen
+ * nebeneinander — für Plugin-An/aus- oder Modellwechsel-Betrachtung (P55).
+ */
+function CompareSection({ report, project, host, harness, periodA }: { report: StatisticsReport; project: string; host: string; harness: string; periodA: Period }) {
+  const [periodB, setPeriodB] = useState<Period>(periodA === "all" ? "7d" : "all");
+  const [other, setOther] = useState<StatisticsReport | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setOther(null);
+    hubApi
+      .statistics({
+        ...(project ? { project } : {}),
+        ...(host ? { host } : {}),
+        ...(harness ? { harness } : {}),
+        ...(sinceOf(periodB) ? { since: sinceOf(periodB) } : {}),
+      })
+      .then(r => {
+        if (alive) setOther(r);
+      })
+      .catch(() => {
+        if (alive) setOther(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [project, host, harness, periodB]);
+
+  const byKey = (rs: SessionStatistics[]) => new Map(rs.map(s => [`${s.adapter}\u0000${s.model ?? ""}`, s]));
+  const a = byKey(report.sessions);
+  const b = other ? byKey(other.sessions) : new Map<string, SessionStatistics>();
+  const keys = [...new Set([...a.keys(), ...b.keys()])].sort();
+
+  return (
+    <Card aria-label="Statistik Vergleich" role="region">
+      <strong>Zeitraum-Vergleich (A/B)</strong>
+      <Segmented label="Vergleichszeitraum B" value={periodB} options={PERIOD_OPTIONS} onChange={setPeriodB} />
+      <table>
+        <thead>
+          <tr>
+            <th>Adapter · Modell</th>
+            <th>Sessions A/B</th>
+            <th>Wall p50 A/B</th>
+            <th>Züge/Session p50 A/B</th>
+          </tr>
+        </thead>
+        <tbody>
+          {keys.map(key => {
+            const sa = a.get(key);
+            const sb = b.get(key);
+            return (
+              <tr key={key}>
+                <td>
+                  {sa?.adapter ?? sb?.adapter}
+                  {(sa?.model ?? sb?.model) !== null ? ` · ${sa?.model ?? sb?.model}` : " · Modell unbelegt"}
+                </td>
+                <td>{formatCount(sa?.sessions ?? 0)} / {other ? formatCount(sb?.sessions ?? 0) : "…"}</td>
+                <td>
+                  {sa ? formatMs(sa.wallMs.p50) : "—"} / {sb ? formatMs(sb.wallMs.p50) : other ? "—" : "…"}
+                </td>
+                <td>
+                  {sa && sa.turnsPerSession.p50 !== null ? Math.round(sa.turnsPerSession.p50).toLocaleString("de-DE") : "—"} /{" "}
+                  {sb && sb.turnsPerSession.p50 !== null ? Math.round(sb.turnsPerSession.p50).toLocaleString("de-DE") : other ? "—" : "…"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p>A ist der obige Zeitraum, B dieser Vergleichszeitraum — gleiche Projekt-/Host-/Harness-Wahl. Beschreibender Vergleich, kein Rang.</p>
+    </Card>
   );
 }
 
