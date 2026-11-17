@@ -144,6 +144,13 @@ export function deviceStatusLines(status: DeviceStatus): string[] {
     status.manifestCaches.length === 0
       ? "Manifest-Cache: keiner (Soll)"
       : `Manifest-Cache: liegt in ${status.manifestCaches.join(", ")} — die App dreht sonst nicht mit`;
+  const folge =
+    status.displayMode === "installiert (eigenes Fenster)" &&
+    status.manifestCaches.length === 0 &&
+    String(status.manifestOrientation) === "any" &&
+    status.windowAngle === 0
+      ? "Manifest ist frei und nichts ist einbetoniert, aber das Fenster bleibt bei 0° — die installierte App trägt die Ausrichtung aus ihrer Installation. Entfernen und über dieselbe Adresse neu hinzufügen heilt das."
+      : null;
   return [
     `Anzeigemodus: ${status.displayMode}`,
     orientationLine(status),
@@ -151,5 +158,6 @@ export function deviceStatusLines(status: DeviceStatus): string[] {
     `Manifest-Ausrichtung: ${status.manifestOrientation}`,
     cacheLine,
     `Service-Worker-Cache: ${status.swCache ?? "kein Worker antwortet"}`,
+    ...(folge ? [folge] : []),
   ];
 }

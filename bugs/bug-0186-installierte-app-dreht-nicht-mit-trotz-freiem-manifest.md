@@ -179,6 +179,33 @@ Deshalb zwei weitere Maßnahmen:
 Bleibt die App nach Entfernen und Neuanlegen des Startsymbols im Hochformat und lehnt
 `lock()` mit `SecurityError` ab, ist die Sperre am Gerät zu suchen: Auto-Rotate und — bei
 One UI auf dem Z Fold — die Ausrichtungsfreigabe **je App**.
+## Ursache gemessen (17.11., 18:58–19:05) — Selbstbericht des Handys
+
+Der Hub protokolliert neun Berichte aus der **installierten** App (`von: handy`,
+`anzeige: standalone`) und einen Vergleichslauf im Browser:
+
+| Quelle | Winkel | Anzeigemodus | Manifest | Fenster | Ausrichter |
+|---|---|---|---|---|---|
+| handy (Außendisplay) | 0° | standalone | `any` | 480×1026 @2.25 | abgewiesen: `SecurityError (Gerät sperrt)` |
+| handy (Innendisplay, aufgeklappt) | 0° | standalone | `any` | 874×883 @2.25 | abgewiesen / entsperrt im Wechsel |
+| PC im Browser | 90° | browser | `any` | 1280×800 @2.625 | nicht versucht |
+
+Kai meldet unabhängig davon: **im Chrome-Tab dreht es sofort**. Der Tab-Bericht zeigt 90°,
+die installierte App bleibt bei 0° — auf Außen- **und** Innendisplay. `manifest: any` und
+„Manifest-Cache: keiner“ schließen Web-Ebene und Worker-Cache aus. `screen.orientation.lock()`
+antwortet `SecurityError`, was zu einer Activity passt, deren Ausrichtung festgenagelt ist.
+
+**Ursache:** die Installations-Metadaten von Chrome übernahmen die Ausrichtung beim Anlegen des
+Startsymbols (damals `portrait-primary`). Die Änderung des ausgelieferten Manifests auf `any`
+wirkt auf eine **bereits installierte** App nicht nachträglich.
+
+**Heilung am Gerät:** App entfernen (Startsymbol-Icon lang drücken → App-Info → Deinstallieren)
+und über https://kaisgamingdesk.taila03493.ts.net neu hinzufügen.
+
+**Die Oberfläche sagt das jetzt selbst:** im „Installierten Stand“ erscheint eine Hinweiszeile,
+wenn das Manifest frei ist, nichts gecacht ist und der Winkel trotzdem bei 0° bleibt
+(`device-status.ts`, zwei neue Fälle in `device-status.test.ts` — 10 passed).
+
 ## Ferndiagnose eingebaut (17.11., `POST /api/diagnostics/client-report`)
 
 Kai meldet vom Gerät: **„Fenster-Winkel ändert sich nicht, egal was ich mache“** — weder
