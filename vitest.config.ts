@@ -17,8 +17,12 @@ export default defineConfig({
     testTimeout: 15_000,
     hookTimeout: 15_000,
     pool: "forks",
-    // Ersatz für poolOptions.forks.singleFork (seit vitest 4 entfernt): die
-    // zeitbasierten Tests (BUG-0001/0002) laufen nacheinander, nicht parallel.
-    maxWorkers: 1,
+    // Seriell war eine Noetzlichkeit (BUG-0001/0002: zeitbasierte Tests) — aber die
+    // Wanduhr- und Port-Dateien stehen laengst in scripts/slow-tests.json und laufen als
+    // Tier B weiterhin seriell (maxWorkers 1). Tier A, der PR-Gate, enthaelt keine davon:
+    // der laeuft parallel. Gemessen 2026-11-17, 20 Kerne: Tier A seriell 451 s (mit dem
+    // Attrappen-Fehler 246 s grau), parallel bei 8 Forks siehe PROGRESS/Akte BUG-0193.
+    // VITEST_WORKERS verstellt die Stufe ohne Code-Aenderung.
+    maxWorkers: slowSet === "slow" ? 1 : Number(process.env.VITEST_WORKERS ?? 8),
   },
 });
