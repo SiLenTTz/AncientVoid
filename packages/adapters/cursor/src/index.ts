@@ -12,7 +12,7 @@ import type {
   SteerInput,
   WorkerProcess,
 } from "@ancientvoid/contracts";
-import { basicFeatures, promptWithAttachments, providerErrorEvent, shellFor } from "@ancientvoid/contracts";
+import { basicFeatures, promptWithAttachments, providerErrorEvent, spawnArgv } from "@ancientvoid/contracts";
 import { contextWindowFor } from "@ancientvoid/models";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -147,7 +147,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     /** `cursor-agent --list-models` prints `id - Label` lines (live:
      * `auto - Auto (default)` first). */
     async models(): Promise<ModelOption[]> {
-      const { stdout } = await run(cfg.command, ["--list-models"], { timeout: 20_000, maxBuffer: 1024 * 1024, ...shellFor(cfg.command) });
+      const start = spawnArgv(cfg.command, ["--list-models"]);
+      const { stdout } = await run(start.file, start.args, { timeout: 20_000, maxBuffer: 1024 * 1024, ...(start.shell ? { shell: true } : {}) });
       return stdout
         .split("\n")
         .map((line) => line.trim())

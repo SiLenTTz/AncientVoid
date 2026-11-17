@@ -12,7 +12,7 @@ import type {
   SteerInput,
   WorkerProcess,
 } from "@ancientvoid/contracts";
-import { promptWithAttachments, shellFor } from "@ancientvoid/contracts";
+import { promptWithAttachments, spawnArgv } from "@ancientvoid/contracts";
 import { modelsFromCommand, resolveContextWindow } from "@ancientvoid/models";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -190,7 +190,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
      * (Labels/bare Ids erlaubt), der native Pfad bleibt bei parseModelList. */
     async models(): Promise<ModelOption[]> {
       if (cfg.modelsCommand) return modelsFromCommand(cfg.modelsCommand);
-      const { stdout } = await run(cfg.command, ["models"], { timeout: 20_000, maxBuffer: 1024 * 1024, ...shellFor(cfg.command) });
+      const start = spawnArgv(cfg.command, ["models"]);
+      const { stdout } = await run(start.file, start.args, { timeout: 20_000, maxBuffer: 1024 * 1024, ...(start.shell ? { shell: true } : {}) });
       return parseModelList(stdout);
     },
 
