@@ -3,6 +3,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { hubApi, type TerminalTarget } from "../../shared/api.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 type ConnState = "idle" | "connecting" | "open" | "closed" | "error";
 
@@ -147,11 +148,11 @@ export function TerminalPage() {
           </select>
         </label>
         {state === "open" || state === "connecting" ? (
-          <button type="button" class="btn" onClick={disconnect} disabled={state === "connecting"}>Trennen</button>
+          <Button variant="subtle" onClick={disconnect} disabled={state === "connecting"}>Trennen</Button>
         ) : (
-          <button type="button" class="btn primary" onClick={() => void connect()} disabled={!selected || empty}>
+          <Button variant="primary" onClick={() => void connect()} disabled={!selected || empty}>
             Verbinden
-          </button>
+          </Button>
         )}
         <span class="terminal-state dim" aria-live="polite">
           {state === "idle" && "bereit"}

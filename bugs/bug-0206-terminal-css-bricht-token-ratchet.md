@@ -71,11 +71,15 @@ Fix braucht keine neue Testdatei.
 ## Eingrenzung
 
 `apps/pwa/src/app/styles/52-terminal.css`: drei Farbliterale/Fallbacks und
-der nie definierte Token `--danger`. Gefixt im P56-Branch (PR #123), weil
+der nie definierte Token `--danger`. Zudem nutzt
+`apps/pwa/src/features/terminal/TerminalPage.tsx` die rohen Klassen
+`btn`/`btn primary` statt des Button-Bausteins (ui-primitives-Ratchet,
+AC-P63-4, ebenfalls 2 > 0). Gefixt im P56-Branch (PR #123), weil
 dessen verify sonst am rot-gewordenen main hängt: `var(--border)` ohne
 Fallback, `background: var(--gray-950)` statt `#0d1117`, `color: var(--err)`
-statt des Phantom-Tokens. Visuell gleichwertig (gleiche dunkle Fläche,
-Fehlerrot bleibt rot — `--err` bzw. dunkle Theme-Variante).
+statt des Phantom-Tokens; Buttons auf den `Button`-Baustein (subtle/primary).
+Visuell gleichwertig (gleiche dunkle Fläche, Fehlerrot bleibt rot — `--err`
+bzw. dunkle Theme-Variante).
 
 ## Handoff
 
