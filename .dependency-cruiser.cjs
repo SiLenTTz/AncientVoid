@@ -66,7 +66,7 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
-    exclude: { path: "(node_modules|/dist/|\\.test\\.ts$|/test/)" },
+    exclude: { path: "(node_modules|/dist/|/dist-e2e/|\\.test\\.ts$|\\.test\\.tsx$|/test/)" },
     tsPreCompilationDeps: false,
     tsConfig: { fileName: "tsconfig.json" },
     enhancedResolveOptions: { exportsFields: ["exports"], conditionNames: ["import", "require", "node", "default"] },
