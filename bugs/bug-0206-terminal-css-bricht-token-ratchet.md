@@ -85,4 +85,7 @@ bzw. dunkle Theme-Variante).
 
 - [x] Datei im Index [`README.md`](README.md)
 - [x] GitHub-Issue angelegt ([#126](https://github.com/securesight-ai/AncientVoid/issues/126))
-- [x] `bugfix` erledigt (Fix im PR #123)
+- [x] `bugfix` erledigt — doppelt: eigener Fix im P56-Branch **und** parallel
+  PR #127 auf main (gleiche Ursache, gleiche Lösung; der P56-Merge übernimmt
+  mains Stand, `--radius-sm`/`--bg` inklusive). Issue schließt mit dem
+  P56-PR (`Fixes #126`).

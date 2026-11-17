@@ -3,7 +3,12 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { hubApi, type TerminalTarget } from "../../shared/api.ts";
-import { Button } from "../../shared/ui/index.ts";
+import { Button, EmptyState } from "../../shared/ui/index.ts";
+
+function cssColor(name: string, fallback: string): string {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
 
 type ConnState = "idle" | "connecting" | "open" | "closed" | "error";
 
@@ -45,9 +50,13 @@ export function TerminalPage() {
     if (!el) return;
     const term = new Terminal({
       cursorBlink: true,
-      fontFamily: "var(--font-mono, ui-monospace, monospace)",
+      fontFamily: cssColor("--font-mono", "ui-monospace, monospace"),
       fontSize: 13,
-      theme: { background: "#0d1117", foreground: "#e6edf3", cursor: "#e6edf3" },
+      theme: {
+        background: cssColor("--bg", "#0d1117"),
+        foreground: cssColor("--fg", "#e6edf3"),
+        cursor: cssColor("--fg", "#e6edf3"),
+      },
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
@@ -148,7 +157,7 @@ export function TerminalPage() {
           </select>
         </label>
         {state === "open" || state === "connecting" ? (
-          <Button variant="subtle" onClick={disconnect} disabled={state === "connecting"}>Trennen</Button>
+          <Button onClick={disconnect} disabled={state === "connecting"}>Trennen</Button>
         ) : (
           <Button variant="primary" onClick={() => void connect()} disabled={!selected || empty}>
             Verbinden
@@ -163,10 +172,9 @@ export function TerminalPage() {
         </span>
       </header>
       {empty && (
-        <p class="ui-empty" data-testid="terminal-empty">
-          Keine Terminal-Ziele. In <code>hub.config.json</code> unter <code>terminals</code> z. B.
-          {" "}<code>{`{ "id": "evo", "label": "evox2", "ssh": "evo" }`}</code> eintragen (ADR-0087).
-        </p>
+        <div data-testid="terminal-empty">
+          <EmptyState text='Keine Terminal-Ziele. In hub.config.json unter terminals z. B. { "id": "evo", "label": "evox2", "ssh": "evo" } eintragen (ADR-0087).' />
+        </div>
       )}
       {error && <p class="ui-error" role="alert">{error}</p>}
       <div class="terminal-host" ref={hostRef} data-testid="terminal-xterm" />
