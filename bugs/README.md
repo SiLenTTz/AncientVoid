@@ -201,7 +201,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0176](bug-0176-starten-klick-von-arbeitsort-feld-ueberdeckt.md) | Starten-Klick im Neue-Session-Formular wird zeitweise vom Arbeitsort-Feld überdeckt (E2E-Flake) | open | S3 | e2e | [#28](https://github.com/SiLenTTz/AncientVoid/issues/28) |
 | [BUG-0177](bug-0177-spracheingabe-bricht-ab-und-ist-nicht-stoppbar.md) | Spracheingabe endet nach 10 s/60 s, kein Wort-für-Wort, erneut tippen kann nicht stoppen, Text doppelt nach Chrome-Neustart | done | S1 | pwa | — |
 | [BUG-0178](bug-0178-agent-ausgabe-nur-vorgetaeuscht-gestreamt.md) | Agent-Ausgabe wird nur vorgetäuscht gestreamt: Adapter verwerfen Deltas, PWA tippt fertige Blöcke ab | done | S2 | pwa | — |
-| [BUG-0179](bug-0179-e2e-stand-ins-lassen-sich-auf-windows-nicht-spawnen.md) | E2E-Stand-in-CLIs (Shebang ohne Extension) spawnen auf Windows nicht — Adapter-E2E sind lokal nicht prüfbar | open | S2 | e2e | — |
+| [BUG-0179](bug-0179-e2e-stand-ins-lassen-sich-auf-windows-nicht-spawnen.md) | E2E-Stand-in-CLIs (Shebang ohne Extension) spawnen auf Windows nicht — Adapter-E2E sind lokal nicht prüfbar | done | S2 | e2e | — |
 | [BUG-0180](bug-0180-z-fold-ausgeklappt-verschenkt-die-breite.md) | Ausgeklappter Z Fold (832 px, hoch): 680-px-Spalte mittig, Sitzungsliste quer scrollbar | done | S2 | pwa | [#40](https://github.com/SiLenTTz/AncientVoid/pull/40) |
 | [BUG-0181](bug-0181-app-dreht-nicht-mit-und-querformat-ohne-leshoehe.md) | App dreht nicht mit (Manifest `portrait-primary`); gedreht fraß der Dock 278 von 412 px, der Chat behielt 48 px | done | S2 | pwa | — |
 | [BUG-0183](bug-0183-test-laeufe-ueberschreiben-das-live-buendel-des-hubs.md) | Playwright- und Guide-Läufe bauten in `apps/pwa/dist` — derselbe Ordner, den der laufende Hub am Handy servt: Fixes waren weg, ohne dass jemand deployt hätte | done | S1 | tests | [#50](https://github.com/SiLenTTz/AncientVoid/pull/50) |
@@ -226,8 +226,9 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 
 
 | [BUG-0182](bug-0182-web-push-4-esm-import.md) | web-push 4 verhindert den Hub-Import (ESM) | done | S1 | core | [#26](https://github.com/SiLenTTz/AncientVoid/pull/26) |
+| [BUG-0193](bug-0193-schneller-testloop-laeuft-auf-windows-nicht.md) | `test:fast`/`test:slow` setzen die Tier-Umgebung inline — auf Windows (cmd.exe) gibt es dafür kein Ergebnis, der schnelle Loop war dort unbenutzbar | done | S2 | repo | — |
 
-Die nächste freie Nummer ist **0193** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+Die nächste freie Nummer ist **0194** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens

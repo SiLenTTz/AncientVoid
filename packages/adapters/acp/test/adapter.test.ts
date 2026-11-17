@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { chmodSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import type { AdapterContext, EmittedEvent, ToolPermissionRequest, WorkerProcess } from "@ancientvoid/contracts";
 import { makeRecordingContext, waitFor } from "@ancientvoid/adapter-testkit";
 import { ProcessRunner } from "@ancientvoid/workers";
 import { ACP_PRESETS, createAdapter, pickModel } from "../src/index.ts";
 import { JsonRpcConnection as AcpConnection } from "@ancientvoid/adapter-jsonrpc";
 import { UpdateMapper } from "../src/normalize.ts";
+import { standIn } from "../../../../e2e/support/stand-in.ts";
 
-const agent = fileURLToPath(new URL("../../../../e2e/support/bin/acp-agent", import.meta.url));
+const agent = standIn("acp-agent");
 chmodSync(agent, 0o755);
 
 /** A context with a real child process worker and the given hub answers. */

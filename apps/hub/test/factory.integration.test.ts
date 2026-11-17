@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { EventStore, HubDatabase, LoopRegistry, SessionManager, AdapterRegistry, TokenService, loopAsAdapter, WorktreeManager } from "@ancientvoid/core";
@@ -10,6 +10,7 @@ import { ProcessRunner } from "@ancientvoid/workers";
 import { createAdapter as createDummy } from "@ancientvoid/adapter-dummy";
 import { createLoopConnector } from "@ancientvoid/loop-securesight-factory";
 import { createHubApp } from "../src/app.ts";
+import { standIn } from "../../../e2e/support/stand-in.ts";
 
 /**
  * EPIC-P26 T26.5 / ADR-0043: `POST /api/factory/start` legt Treiber (Claude,
@@ -17,7 +18,7 @@ import { createHubApp } from "../src/app.ts";
  * Die Treiber sind Dummys unter den produktiven Namen claude/maki;
  * Auswahl, Skill-Auflösung, Workdir und HTTP-Vertrag bleiben echt.
  */
-const STAND_IN = resolve(import.meta.dirname, "../../../e2e/support/bin/factory");
+const STAND_IN = standIn("factory");
 
 describe("Factory-Start (T26.5, ADR-0043)", () => {
   let dir: string;

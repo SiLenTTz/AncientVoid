@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { shellFor } from "@ancientvoid/contracts";
 import {
   basicFeatures,
   promptWithAttachments,
@@ -363,7 +364,7 @@ function activityOf(item: CodexItem, ctx: AdapterContext, started: boolean): voi
 /** `model/list` from a short-lived `codex app-server`, 20 s at most. */
 export function listModels(commandName: string): Promise<ModelOption[]> {
   return new Promise((resolve, reject) => {
-    const child = spawn(commandName, ["app-server"], { stdio: ["pipe", "pipe", "ignore"] });
+    const child = spawn(commandName, ["app-server"], { stdio: ["pipe", "pipe", "ignore"], ...shellFor(commandName) });
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
       reject(new Error("codex model/list: keine Antwort"));

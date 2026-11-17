@@ -26,8 +26,8 @@
   "scripts": {
     "build": "tsc -p . --noEmit",
     "test": "vitest run",
-    "test:fast": "VITEST_SET=fast vitest run",
-    "test:slow": "VITEST_SET=slow vitest run",
+    "test:fast": "node scripts/vitest-set.mjs fast",
+    "test:slow": "node scripts/vitest-set.mjs slow",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

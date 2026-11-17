@@ -4,7 +4,7 @@ import { readFile, mkdir } from "node:fs/promises";
 import { createServer, type Server } from "node:net";
 import { join } from "node:path";
 import type { WorkspaceFailure, WorkspaceManifest, WorkspaceService, WorkspaceServiceState } from "@ancientvoid/contracts";
-import { WORKSPACE_LOGS_TAIL_CHARS, WORKSPACE_OWNERSHIP_ENV, WORKSPACE_SERVICE_PORT_ENV } from "@ancientvoid/contracts";
+import { WORKSPACE_LOGS_TAIL_CHARS, WORKSPACE_OWNERSHIP_ENV, WORKSPACE_SERVICE_PORT_ENV, shellFor } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/db.ts";
 import type { EventStore } from "../../platform/eventstore.ts";
 import type { WorkspaceEmit } from "./workspace-runtime.ts";
@@ -182,6 +182,7 @@ export class ServiceSupervisor {
       env: { ...process.env, [WORKSPACE_OWNERSHIP_ENV]: ctx.sessionId, [WORKSPACE_SERVICE_PORT_ENV]: String(port) },
       detached: true, // überlebt einen Hub-Crash (K7-Adoption über den Marker)
       stdio,
+      ...shellFor(argv[0]!),
     });
     child.unref();
     await logFd?.close().catch(() => undefined);

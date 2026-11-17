@@ -4,7 +4,8 @@ import { createWriteStream, mkdirSync, mkdtempSync, rmSync, writeFileSync } from
 import { DatabaseSync } from "node:sqlite";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { delimiter, join, resolve } from "node:path";
+import { standIn, standInDir } from "./stand-in.ts";
 
 export const repoRoot = resolve(import.meta.dirname, "../..");
 /**
@@ -188,14 +189,14 @@ export class TestHub {
       } } : {}),
       ...(this.options.assistantUrl ? { assistant: { model: { url: this.options.assistantUrl, model: "e2e-model" } } } : {}),
       ...(this.options.aiMetrics ? { aiMetrics: this.options.aiMetrics } : {}),
-      media: { ytDlp: join(binDir, "yt-dlp") },
-      forge: { gitlab: { command: this.options.forgeCommand ?? join(binDir, "glab") } },
+      media: { ytDlp: standIn("yt-dlp") },
+      forge: { gitlab: { command: this.options.forgeCommand ?? standIn("glab") } },
       server: { host: "127.0.0.1", port: this.port, pwaDir: E2E_PWA_DIST },
-      discovery: { claudeDir: join(this.root, "claude"), claudeCommand: join(binDir, "claude"), cursorUserDir: join(this.root, "cursor"), opencodeDataDir: this.root, piDir: join(this.root, "pi-sessions"), ompDir: join(this.root, "omp-sessions"), makiDir: join(this.root, "maki-sessions"), codexDir: join(this.root, "codex-sessions"), hermesDir: join(this.root, "hermes-home") },
+      discovery: { claudeDir: join(this.root, "claude"), claudeCommand: standIn("claude"), cursorUserDir: join(this.root, "cursor"), opencodeDataDir: this.root, piDir: join(this.root, "pi-sessions"), ompDir: join(this.root, "omp-sessions"), makiDir: join(this.root, "maki-sessions"), codexDir: join(this.root, "codex-sessions"), hermesDir: join(this.root, "hermes-home") },
       // EPIC-P19: ein deterministischer Loop ohne Fremdsystem (Fake aus dem Testkit).
       loops: [
         { id: "fake-loop", module: "@ancientvoid/adapter-testkit/fake-loop" },
-        { id: "securesight-factory", module: "@ancientvoid/loop-securesight-factory", config: { pollMs: 500, factory: join(binDir, "factory") } },
+        { id: "securesight-factory", module: "@ancientvoid/loop-securesight-factory", config: { pollMs: 500, factory: standIn("factory") } },
       ],
       adapters: [
         {
@@ -215,19 +216,19 @@ export class TestHub {
         {
           id: "opencode",
           module: "@ancientvoid/adapter-opencode",
-          config: { command: join(binDir, "opencode"), model: "e2e/fake-model" },
+          config: { command: standIn("opencode"), model: "e2e/fake-model" },
         },
         {
           // T7.8: a stand-in claude CLI with the real stream-json shapes.
           id: "claude",
           module: "@ancientvoid/adapter-claude",
-          config: { command: join(binDir, "claude"), claudeDir: join(this.root, "claude") },
+          config: { command: standIn("claude"), claudeDir: join(this.root, "claude") },
         },
         {
           // T7.2: codex in app-server mode (stand-in, real v2 protocol).
           id: "codex",
           module: "@ancientvoid/adapter-codex",
-          config: { command: join(binDir, "codex") },
+          config: { command: standIn("codex") },
         },
         {
           // T7.5: an observer — reads Claude transcripts, cannot steer.
@@ -240,20 +241,20 @@ export class TestHub {
           // --list-models (adapter-cursor).
           id: "cursor",
           module: "@ancientvoid/adapter-cursor",
-          config: { command: join(binDir, "cursor-agent"), model: "auto" },
+          config: { command: standIn("cursor-agent"), model: "auto" },
         },
         {
           // BUG-0065/0066: pi coding agent stand-in (`pi -p --mode json`).
           id: "pi",
           module: "@ancientvoid/adapter-pi",
-          config: { command: join(binDir, "pi"), model: "evo/qwen-e2e", contextWindowTokens: 131072 },
+          config: { command: standIn("pi"), model: "evo/qwen-e2e", contextWindowTokens: 131072 },
         },
         ...(this.options.maki ? [{
           id: "maki",
           module: "@ancientvoid/adapter-acp",
           config: {
             preset: "maki",
-            command: [join(binDir, "acp-agent")],
+            command: [standIn("acp-agent")],
             model: "lokal/klein",
             modelsCommand: [process.execPath, "-e", "process.stdout.write('lokal/klein\\nlokal/glm-5.3\\n')"],
           },
@@ -265,7 +266,7 @@ export class TestHub {
           id: "acp",
           module: "@ancientvoid/adapter-acp",
           config: {
-            command: [join(binDir, "acp-agent")],
+            command: [standIn("acp-agent")],
             label: "ACP-Agent",
             contextWindowTokens: 200,
             model: "lokal/klein",
@@ -328,7 +329,9 @@ export class TestHub {
       ...process.env,
       ANCIENTVOID_CONFIG: this.configPath,
       ANCIENTVOID_LOG: "warn",
-      PATH: `${binDir}:${process.env.PATH ?? ""}`,
+      // Attrappen über den PATH: auf Windows zusammen mit dem Wrapper-Verzeichnis, sonst
+      // findet ein namesuchender Aufruf wieder nur die Endung-lose Datei.
+      PATH: [standInDir, binDir, process.env.PATH ?? ""].join(delimiter),
       TMUX_TMPDIR: this.tmuxDir,
       QMD_E2E_STATE: join(this.root, "qmd-state.json"),
       // ADR-0060: „Endpunkt anlegen“ schreibt in pi's models.json — nie in die echte des Nutzers.
@@ -402,7 +405,20 @@ export class TestHub {
     } catch {
       // no tmux server was started
     }
-    rmSync(this.root, { recursive: true, force: true });
+    // BUG-0179: seit die Windows-Attrappen wirklich starten, halten ihre Kind-Prozesse
+    // (cmd.exe + node) das Temp-Root manchmal noch einen Moment — rmSync gibt dann EPERM.
+    // Begrenzt nachsehen statt den Test an der Raumuestzung scheitern zu lassen: hier steht
+    // ein Test-Hub, keine Produktsemantik.
+    for (let versuch = 1; versuch <= 5; versuch++) {
+      try {
+        rmSync(this.root, { recursive: true, force: true });
+        return;
+      } catch (err) {
+        const code = (err as { code?: string }).code;
+        if (versuch === 5 || (code !== "EPERM" && code !== "EBUSY" && code !== "ENOTEMPTY")) throw err;
+        await new Promise((r) => setTimeout(r, 400 * versuch));
+      }
+    }
   }
 
   /** node:http without keep-alive: Node 26's fetch (undici 8.9) stalls for

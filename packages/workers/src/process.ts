@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { shellFor } from "@ancientvoid/contracts";
 import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@ancientvoid/contracts";
 
 /**
@@ -18,6 +19,8 @@ export class ProcessRunner implements WorkerRunner {
       cwd: spec.cwd,
       env: { ...process.env, ...spec.env },
       stdio: ["pipe", "pipe", "pipe"],
+      // BUG-0179: Windows-Attrappen kommen als .cmd — die braucht Shell.
+      ...shellFor(spec.cmd[0]!),
     });
     const stdoutCbs = new Set<(chunk: string) => void>();
     const stderrCbs = new Set<(chunk: string) => void>();
