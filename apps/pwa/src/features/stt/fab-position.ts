@@ -35,7 +35,7 @@ export function defaultFabPos(bp: FabBreakpoint, vw: number, vh: number, dockTop
   };
 }
 
-function storedFabPos(bp: FabBreakpoint): FabPos | null {
+export function storedFabPos(bp: FabBreakpoint): FabPos | null {
   try {
     const stored = (JSON.parse(localStorage.getItem(KEY) ?? "{}") as Partial<Record<FabBreakpoint, FabPos>>)[bp];
     if (stored && Number.isFinite(stored.x) && Number.isFinite(stored.y)) return stored;
@@ -43,6 +43,11 @@ function storedFabPos(bp: FabBreakpoint): FabPos | null {
     // ignore
   }
   return null;
+}
+
+/** Hat der Nutzer fuer diesen Breakpoint selbst platziert? Dann darf ihm nichts weggeschoben werden. */
+export function hasStoredFabPos(bp: FabBreakpoint): boolean {
+  return storedFabPos(bp) !== null;
 }
 
 export function loadFabPos(bp: FabBreakpoint, vw: number, vh: number, dockTop?: number): FabPos {
