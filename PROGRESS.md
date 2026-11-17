@@ -149,6 +149,12 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
   immer zuerst `bugs/README.md` auf dem aktuellen `main` prüfen.
 
 ## Nächste Schritte
+- **Cache-Treffer im PR-Gate nachpruefen** (erster Lauf nach PR #131): Schritt
+  `Abhaengigkeiten` muss melden „node_modules aus dem Cache“, und der Lauf sollte bei
+  ~2:50 landen. Bleibt er bei ~3:40, ist der Key kaputt (Runner-Image/Node-Wechsel).
+- **Auto-Merge einrichten lassen** (eine Ruleset-Einstellung, `allow_auto_merge`): GitHub
+  merged in der Sekunde, in der `verify` gruen wird; ich warte dann nicht mehr auf den
+  Manuell-Merge. Notwendig, weil `gh pr merge --auto` vom aktuellen Ruleset abgelehnt wird.
 
 1. Gates auf GitHub-Basis fertig fahren (`typecheck`, `lint`, `check:context`,
    Tier A, `test:e2e` für Workspace-Specs), dann PR mit `gh pr create`.
