@@ -208,9 +208,29 @@ Das Kontextfenster (131072) kommt aus der kuratierten Tabelle (`@ancientvoid/mod
 **Live belegt 2026-11-10** (Adapter-Lauf, gpubox erreichbar): maki und omp wählen das Modell beim Start und antworten
 auf „Antworte nur mit ANKUNFT“ mit „ANKUNFT“. Der Schlüssel ist dabei nie in Config, Log oder Commit gelandet.
 
-**Metrik-Endpunkt (EPIC-P59/ADR-0078, Stand 2026-11-17):** der laufende
-Halogen-Server meldet in `/health` zwar `/metrics`, antwortet dort aber mit
-404 — die Metrik muss beim Start auf evox2 (`halogen-starten.sh`) aktiviert
-werden. Der zugehörige Dienstneustart würde laufende Agentensitzungen über
-dieses Modell trennen und bleibt deshalb Nutzersache. Bis dahin steht die
-Quelle im Hub-Sampler als sichtbarer Fehlerzustand, nie als 0 (ADR-0023).
+**Metriken (EPIC-P59/ADR-0078 Nachtrag 2026-11-17):** Halogen ist kein
+llama.cpp — `/metrics` bleibt 404. Der Hub-Sampler nutzt deshalb `/health`
+(Queue, busy, Slots, Kontext) und optional `aiMetrics.servers[].halogenLog`
+(Pfad zum Serverlog, Format wie Kais `halogen-livelog.py`) für Prefill-/
+Decode-tokens/s. Systemmetriken kommen vom Hub auf dem KI-Host
+(`hostProbe`); der Home-Hub merged Peer-Reports (`mergePeers`, Default an).
+
+Bewusst manuell auf dem Peer (User `securesight` / laufender Hub-Prozess):
+
+```json
+"aiMetrics": {
+  "hostProbe": true,
+  "mergePeers": true,
+  "probeKnown": true,
+  "servers": [{
+    "url": "http://100.65.133.28:8100/v1",
+    "label": "halogen",
+    "apiKeyFile": "~/.config/ancientvoid/evox2.key",
+    "halogenLog": "~/.local/state/llama-server/halogen.log"
+  }]
+}
+```
+
+Der Hub-Prozess braucht Leserecht auf `halogen.log`; sonst bleiben Tokens/s
+„nicht gemeldet“, Queue aus `/health` trotzdem sichtbar. Kein Halogen-
+Dienstneustart nötig.

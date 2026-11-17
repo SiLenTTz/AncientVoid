@@ -92,3 +92,22 @@ eigenen Sample-Fenster, nicht aus Histogram-Buckets.
   Probe-Ausfall, Offline-Zustand; Funktionsinventar-Eintrag G67.
 - Der Sampler pollt nur konfigurierte Quellen; ein Hub ohne Modell-Server
   zeigt nur die Host-Karte.
+
+## Nachtrag 2026-11-17 — Halogen und Peer-Merge
+
+Halogen (peonist flash-server auf evox2) ist **kein** llama.cpp: `/metrics`
+antwortet mit 404, obwohl `/health` den Pfad nennt. Entscheidung:
+
+1. **Fallback `/health`:** schlägt Prometheus fehl und liefert `/health` ein
+   erkanntes Halogen-JSON, werden Queue/`busy`/Slots/Kontext als
+   `halogen:*`-Felder gemeldet (ADR-0023: fehlende bleiben „nicht gemeldet“).
+2. **Optional `aiMetrics.servers[].halogenLog`:** Dateipfad zum Serverlog
+   (Format wie Kais `halogen-livelog.py` / `serve_api`-Zeilen). Daraus Prefill-
+   und Decode-tokens/s — nur Zahlen, keine Prompt-Inhalte. Leserecht muss der
+   Hub-Prozess haben; sonst bleiben die Raten „nicht gemeldet“.
+3. **Peer-Merge:** `aiMetrics.mergePeers` (Default true). `GET /api/aimetrics`
+   hängt Quellen der Fleet-Peers an (Timeout fail-loud als Fehlerquelle).
+   Jeder Hub misst weiterhin nur lokal (`hostProbe` + eigene Server); kein
+   SSH-Scraping vom Home-Hub.
+4. **`probeKnown`:** Cloud-URLs (nicht Tailnet/RFC1918/localhost) werden nicht
+   mehr als Modell-Server angezapft — vermeidet z.ai-404-Rauschen.

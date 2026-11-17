@@ -1,4 +1,6 @@
 import type { AiMetricsField, AiMetricsReport, AiMetricsSample, AiMetricsSourceReport } from "@ancientvoid/contracts";
+import { parseHalogenHealth } from "./halogen-health.ts";
+import { parseHalogenLogChunk } from "./halogen-log.ts";
 import { parsePrometheus } from "./prometheus.ts";
 
 /**
@@ -30,6 +32,11 @@ export interface AiMetricsSamplerServer {
   label?: string;
   /** Dateipfad mit dem API-Key (erste Zeile) — nur als Datei, nie als Wert (ADR-0011). */
   apiKeyFile?: string;
+  /**
+   * Optional: Halogen-Serverlog (Kai-livelog-Format) für Prefill/Decode t/s.
+   * Nur Dateipfad; Inhalt wird nicht in Events geschrieben (ADR-0078 Nachtrag).
+   */
+  halogenLog?: string;
 }
 
 export interface AiMetricsSamplerOptions {
@@ -86,6 +93,16 @@ const MODEL_FIELDS: FieldDef[] = [
   { key: "llamacpp:spec_decode_num_accepted_tokens_total", label: "Spec-Decoding: accepted tokens", unit: "count", source: "gemeldet", family: "llamacpp:spec_decode_num_accepted_tokens_total" },
   { key: "llamacpp:spec_decode_num_drafts_total", label: "Spec-Decoding: drafts", unit: "count", source: "gemeldet", family: "llamacpp:spec_decode_num_drafts_total" },
   { key: "llamacpp:spec_decode_num_accepted_tokens_per_pos_total", label: "Spec-Decoding: accepted je Position (Summe)", unit: "count", source: "gemeldet", family: "llamacpp:spec_decode_num_accepted_tokens_per_pos_total" },
+  // Halogen (peonist) — /health und optional Log (ADR-0078 Nachtrag).
+  { key: "halogen:queued", label: "Halogen: Warteschlange", unit: "count", source: "gemeldet", family: "halogen:queued" },
+  { key: "halogen:in_flight", label: "Halogen: in Bearbeitung", unit: "count", source: "gemeldet", family: "halogen:in_flight" },
+  { key: "halogen:busy", label: "Halogen: busy", unit: "bool", source: "gemeldet", family: "halogen:busy" },
+  { key: "halogen:busy_for_s", label: "Halogen: busy seit", unit: "s", source: "gemeldet", family: "halogen:busy_for_s" },
+  { key: "halogen:slots", label: "Halogen: Slots", unit: "count", source: "gemeldet", family: "halogen:slots" },
+  { key: "halogen:context", label: "Halogen: Kontext", unit: "tokens", source: "gemeldet", family: "halogen:context" },
+  { key: "halogen:kv_pool_positions", label: "Halogen: KV-Pool", unit: "tokens", source: "gemeldet", family: "halogen:kv_pool_positions" },
+  { key: "halogen:decode_tokens_per_s", label: "Halogen: Decode tokens/s", unit: "tokens/s", source: "gemeldet", family: "halogen:decode_tokens_per_s" },
+  { key: "halogen:prefill_tokens_per_s", label: "Halogen: Prefill tokens/s", unit: "tokens/s", source: "gemeldet", family: "halogen:prefill_tokens_per_s" },
 ];
 
 const HOST_FIELDS: FieldDef[] = [
@@ -128,6 +145,9 @@ interface SourceState {
   lastRaw: Record<string, number>;
   lastCpu?: { busy: number; total: number };
   lastRawAt: number;
+  /** Byte-Offset im Halogen-Log (Tail). */
+  halogenLogOffset?: number;
+  halogenLogRates?: { decodeTokensPerS: number | null; prefillTokensPerS: number | null };
 }
 
 export function createAiMetricsSampler(options: AiMetricsSamplerOptions): AiMetricsSampler {
@@ -185,28 +205,76 @@ export function createAiMetricsSampler(options: AiMetricsSamplerOptions): AiMetr
     }
   }
 
+  function healthUrl(url: string): string {
+    try {
+      return `${new URL(url).origin}/health`;
+    } catch {
+      return url;
+    }
+  }
+
+  async function appendHalogenLogRates(source: SourceState, server: AiMetricsSamplerServer, raw: Record<string, number>): Promise<void> {
+    if (!server.halogenLog) return;
+    const full = await deps.readFile(server.halogenLog);
+    if (full === null) return;
+    const offset = source.halogenLogOffset ?? 0;
+    const chunk = full.length >= offset ? full.slice(offset) : full;
+    source.halogenLogOffset = full.length;
+    const rates = parseHalogenLogChunk(chunk, source.halogenLogRates ?? { decodeTokensPerS: null, prefillTokensPerS: null });
+    source.halogenLogRates = { decodeTokensPerS: rates.decodeTokensPerS, prefillTokensPerS: rates.prefillTokensPerS };
+    if (rates.decodeTokensPerS !== null) {
+      raw["halogen:decode_tokens_per_s"] = rates.decodeTokensPerS;
+      raw["derived:tokens_per_s_decode"] = rates.decodeTokensPerS;
+    }
+    if (rates.prefillTokensPerS !== null) {
+      raw["halogen:prefill_tokens_per_s"] = rates.prefillTokensPerS;
+      raw["derived:tokens_per_s_prefill"] = rates.prefillTokensPerS;
+    }
+  }
+
   async function tickModelServer(source: SourceState, server: AiMetricsSamplerServer, ts: string): Promise<void> {
     const headers: Record<string, string> = {};
     const key = await apiKeyFor(server);
     if (key) headers.authorization = `Bearer ${key}`;
-    let families: Map<string, number[]>;
+    const init = Object.keys(headers).length ? { headers } : undefined;
+    const raw: Record<string, number> = {};
+    let probeError: string | undefined;
+
     try {
-      const res = await deps.fetch(metricsUrl(server.url), Object.keys(headers).length ? { headers } : undefined);
+      const res = await deps.fetch(metricsUrl(server.url), init);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      families = parsePrometheus(await res.text());
+      const families = parsePrometheus(await res.text());
+      for (const [family, values] of families) raw[family] = values.reduce((sum, v) => sum + v, 0);
     } catch (err) {
+      probeError = err instanceof Error ? err.message : String(err);
+      // Halogen: /metrics fehlt oft — Fallback /health (ADR-0078 Nachtrag).
+      try {
+        const health = await deps.fetch(healthUrl(server.url), init);
+        if (!health.ok) throw new Error(`health HTTP ${health.status}`, { cause: err });
+        const parsed = parseHalogenHealth(await health.text());
+        if (!parsed.recognized) throw new Error(probeError, { cause: err });
+        Object.assign(raw, parsed.raw);
+        probeError = undefined;
+      } catch (healthErr) {
+        probeError = healthErr instanceof Error ? healthErr.message : String(healthErr);
+      }
+    }
+
+    if (probeError) {
       // K9: Ausfall ist ein Zustand — und zwar ab dem nächsten Report.
-      source.report.status = { ok: false, error: err instanceof Error ? err.message : String(err) };
+      source.report.status = { ok: false, error: probeError };
       return;
     }
+
+    await appendHalogenLogRates(source, server, raw);
+
     source.report.status = { ok: true };
     source.report.lastSampleAt = ts;
-    const raw: Record<string, number> = {};
-    for (const [family, values] of families) raw[family] = values.reduce((sum, v) => sum + v, 0);
     const dtSec = source.lastRawAt ? (Date.parse(ts) - source.lastRawAt) / 1000 : 0;
     for (const def of MODEL_FIELDS) {
       let value: number | null;
       if (def.family) value = raw[def.family] ?? null;
+      else if (def.key.startsWith("derived:") && raw[def.key] !== undefined) value = raw[def.key]!;
       else value = def.derive ? def.derive(source.lastRaw, raw, dtSec) : null;
       // ADR-0023: ein Feld, das die Quelle nicht meldet, bleibt „nicht gemeldet“.
       if (value !== null) pushSample(source.report.id, def.key, ts, value);

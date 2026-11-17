@@ -84,4 +84,6 @@ Felder von `hub.config.json`; Erklärung und Beispiele: [`configuration.md`](con
 | `aiMetrics.retentionSamples` | integer | 5400 |
 | `aiMetrics.hostProbe` | boolean | true |
 | `aiMetrics.servers` | array<object> | [] |
+| `aiMetrics.servers[].halogenLog` | string | — |
 | `aiMetrics.probeKnown` | boolean | true |
+| `aiMetrics.mergePeers` | boolean | true |
