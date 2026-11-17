@@ -4,7 +4,7 @@
   "private": true,
   "description": "EPIC-P11 (ADR-0031): desktop companion — types a person's dictation into the focused window of this PC, after they saw it as the target.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "bin": {
     "ancientvoid-companion": "./src/cli.ts"
   },

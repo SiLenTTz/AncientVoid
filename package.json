@@ -4,7 +4,7 @@
   "private": true,
   "description": "AncientVoid. Local-first, vendor-neutral hub to supervise and steer coding agents from mobile.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "author": "SiLenT_Tz (Jan Pfrommer)",
   "homepage": "https://github.com/SiLenTTz/AncientVoid",
   "repository": {

@@ -4,7 +4,7 @@
   "private": true,
   "description": "AncientVoid hub daemon: REST/WS API with device-token auth, WS delta protocol (seq/gap/resync/drop-on-slow), static PWA serving.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

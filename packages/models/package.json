@@ -4,7 +4,7 @@
   "private": true,
   "description": "Model metadata for adapters: context window sizes per model id (ADR-0032), matched by substring — curated from models.dev, overridable per adapter config.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

@@ -4,7 +4,7 @@
   "private": true,
   "description": "Reference CLI client for the AncientVoid hub (list/show/tail/tokens) — also the debugging tool of choice.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "bin": {
     "hubctl": "./src/cli.ts"
   },

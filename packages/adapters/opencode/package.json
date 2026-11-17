@@ -4,7 +4,7 @@
   "private": true,
   "description": "opencode adapter (P3, T3.12): spawns `opencode run --format json`, maps its real event stream to NormalizedEvent.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

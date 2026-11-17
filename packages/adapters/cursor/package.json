@@ -4,7 +4,7 @@
   "private": true,
   "description": "cursor adapter: the cursor-agent CLI as a one-shot-per-turn worker (stream-json), native --resume, model catalog via --list-models.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

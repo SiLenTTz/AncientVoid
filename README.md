@@ -229,13 +229,15 @@ Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) and the
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](LICENSE) — source-available, **free for
-private and other noncommercial use** (personal projects, research, education,
-hobby, noncommercial organizations). It is not an OSI open-source license.
+AncientVoid is open source under the [GNU AGPL-3.0-only](LICENSE): use,
+self-host, modify and share it freely, at work too. If you run a **modified**
+version as a network service for others, you must publish your changes under
+the same license.
 
-**Commercial use requires a separate license** with the author's written
-permission. To ask, contact the maintainer at
-[jan.pfrommer@securesight.ai](mailto:jan.pfrommer@securesight.ai) and describe
-your intended use.
+**Commercial license:** if the AGPL does not fit your use (for example closed
+modifications or embedding in a proprietary product), the copyright holder
+offers a separate commercial license. Contact
+[jan.pfrommer@securesight.ai](mailto:jan.pfrommer@securesight.ai)
+([ADR-0086](docs/adr/0086-lizenz-agpl-mit-kauflizenz.md)).
 
-Required Notice: Copyright 2026 SiLenT_Tz (Jan Pfrommer)
+Copyright © 2026 SiLenT_Tz (Jan Pfrommer) and contributors.

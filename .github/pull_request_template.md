@@ -30,8 +30,8 @@ npm run gate       # before merge
 - [ ] **Commit notation**: every commit and this PR title follow
   `<risk> <intent> <area>: <sentence>` (`docs/commit-notation.md`); the PR
   title is never `@`.
-- [ ] Contributions are licensed under the project license
-  (PolyForm Noncommercial 1.0.0, see `CONTRIBUTING.md`).
+- [ ] Contributions are licensed under AGPL-3.0-only plus the
+  relicensing grant in `CONTRIBUTING.md` (dual licensing, ADR-0086).
 
 ## Security impact
 
