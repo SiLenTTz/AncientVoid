@@ -329,11 +329,31 @@ async function main(): Promise<void> {
   const keyFile = (file: string | undefined) => (file ? resolve(file.replace(/^~(?=\/)/, homedir())) : undefined);
   let aimetrics: ReturnType<typeof createAiMetricsSampler> | undefined;
   if (config.aiMetrics) {
-    const servers: AiMetricsSamplerServer[] = config.aiMetrics.servers.map((s) => ({ url: s.url, ...(s.label ? { label: s.label } : {}), ...(s.apiKeyFile ? { apiKeyFile: keyFile(s.apiKeyFile)! } : {}) }));
+    const servers: AiMetricsSamplerServer[] = config.aiMetrics.servers.map((s) => ({
+      url: s.url,
+      ...(s.label ? { label: s.label } : {}),
+      ...(s.apiKeyFile ? { apiKeyFile: keyFile(s.apiKeyFile)! } : {}),
+      ...(s.halogenLog ? { halogenLog: keyFile(s.halogenLog)! } : {}),
+    }));
     if (config.aiMetrics.probeKnown) {
       const seen = new Set(servers.map((s) => s.url));
+      const isLocalProbe = (url: string): boolean => {
+        try {
+          const host = new URL(url).hostname;
+          return (
+            host === "localhost" ||
+            host === "127.0.0.1" ||
+            host.endsWith(".ts.net") ||
+            host.startsWith("100.") ||
+            host.startsWith("10.") ||
+            host.startsWith("192.168.")
+          );
+        } catch {
+          return false;
+        }
+      };
       for (const m of [config.assistant.model, config.media.vision, config.gatekeeper.model]) {
-        if (!m || seen.has(m.url)) continue;
+        if (!m || seen.has(m.url) || !isLocalProbe(m.url)) continue;
         seen.add(m.url);
         servers.push({ url: m.url, ...(m.apiKeyFile ? { apiKeyFile: keyFile(m.apiKeyFile)! } : {}) });
       }
@@ -418,7 +438,7 @@ async function main(): Promise<void> {
     hostLabel: config.hostLabel ?? hostname(),
     automations,
     team,
-    ...(aimetrics ? { aimetrics } : {}),
+    ...(aimetrics ? { aimetrics, aimetricsMergePeers: config.aiMetrics?.mergePeers !== false } : {}),
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.ANCIENTVOID_EXPOSE === "1"
