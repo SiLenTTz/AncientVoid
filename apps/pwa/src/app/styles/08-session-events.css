@@ -221,7 +221,7 @@
   border: 1px solid var(--bg-chip);
   border-radius: 12px;
 }
-.recovery-handover::backdrop { background: #0009; }
+.recovery-handover::backdrop { background: var(--backdrop); }
 
 /* EPIC-P48: Herauslösen-Werkzeugzeile im Graph-/Datei-Tab der Session. */
 .graph-pane-tools { display: flex; justify-content: flex-end; gap: 6px; padding: 2px 6px; }

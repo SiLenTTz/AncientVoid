@@ -488,7 +488,7 @@ a {
   padding: 6px 14px;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff;
+  color: var(--fg-on-accent);
   font-size: calc(13px * var(--font-scale));
   pointer-events: none;
 }

@@ -361,7 +361,7 @@
 .review-save-btn {
   border: 1px solid var(--border);
   background: var(--accent);
-  color: #0b0d12;
+  color: var(--fg-on-accent);
   border-radius: 8px;
   padding: 6px 12px;
   cursor: pointer;
@@ -386,7 +386,7 @@
   padding: 0 6px;
   border-radius: 999px;
   background: var(--accent);
-  color: #0b0d12;
+  color: var(--fg-on-accent);
   font-size: 11px;
 }
 
@@ -458,9 +458,9 @@
   border: 1px solid var(--border);
 }
 .review-status.draft { color: var(--warn); }
-.review-status.sent { color: #7ad97a; }
+.review-status.sent { color: var(--ok); }
 .review-status.open { color: var(--accent); }
-.review-status.done { color: #9aa3b2; }
+.review-status.done { color: var(--fg-dim); }
 .review-stale-badge {
   color: var(--err);
   font-size: 11px;
@@ -489,7 +489,7 @@
 .review-send-btn {
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: #0b0d12;
+  color: var(--fg-on-accent);
   border-radius: 10px;
   padding: 8px 14px;
   cursor: pointer;
@@ -501,7 +501,7 @@
 .review-send-dialog {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--backdrop);
   display: flex;
   align-items: center;
   justify-content: center;

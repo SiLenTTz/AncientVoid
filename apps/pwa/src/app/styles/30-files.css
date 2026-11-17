@@ -56,7 +56,7 @@
 .file-text, .file-hex { margin: 0; padding: 6px; font-size: 0.82em; line-height: 1.4; overflow: auto; white-space: pre; tab-size: 4; }
 .file-text.wrap { white-space: pre-wrap; word-break: break-word; }
 .file-media { max-width: 100%; max-height: 70vh; display: block; margin: 6px auto; }
-.file-pdf { width: 100%; height: 70vh; border: 0; background: #fff; }
+.file-pdf { width: 100%; height: 70vh; border: 0; background: var(--content-paper); }
 
 /* EPIC-P46 T46.6/T46.7 (ADR-0058 §7–§11): Zeilennummern, Syntaxfarben, strukturierte Ansichten, Diagnose, Feedback */
 .file-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 2px 6px; }
@@ -69,13 +69,13 @@
 .file-lt { flex: 1 1 auto; padding-right: 8px; }
 .file-line.sel, .file-line.focus { background: var(--bg-chip); }
 .file-line.has-diag .file-ln { color: var(--err); font-weight: 600; }
-.file-col-mark { background: var(--warn); color: #000; }
+.file-col-mark { background: var(--warn); color: var(--warn-ink); }
 .file-code .hljs-comment, .file-code .hljs-quote { color: var(--fg-dim); font-style: italic; }
-.file-code .hljs-keyword, .file-code .hljs-selector-tag, .file-code .hljs-built_in { color: #bb9af7; }
-.file-code .hljs-string, .file-code .hljs-regexp, .file-code .hljs-addition { color: #9ece6a; }
-.file-code .hljs-number, .file-code .hljs-literal, .file-code .hljs-attr { color: #ff9e64; }
-.file-code .hljs-title, .file-code .hljs-function, .file-code .hljs-name { color: #7aa2f7; }
-.file-code .hljs-type, .file-code .hljs-class { color: #2ac3de; }
+.file-code .hljs-keyword, .file-code .hljs-selector-tag, .file-code .hljs-built_in { color: var(--code-keyword); }
+.file-code .hljs-string, .file-code .hljs-regexp, .file-code .hljs-addition { color: var(--code-string); }
+.file-code .hljs-number, .file-code .hljs-literal, .file-code .hljs-attr { color: var(--code-number); }
+.file-code .hljs-title, .file-code .hljs-function, .file-code .hljs-name { color: var(--code-title); }
+.file-code .hljs-type, .file-code .hljs-class { color: var(--code-type); }
 .file-code .hljs-deletion { color: var(--err); }
 .diag-panel, .feedback-panel { margin: 4px 6px; padding: 6px 8px; border: 1px solid var(--bg-chip); border-radius: var(--radius-sm); }
 .diag-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -92,11 +92,11 @@
 .file-table th, .file-table td { border: 1px solid var(--bg-chip); padding: 2px 6px; text-align: left; vertical-align: top; }
 .json-branch .json-children { margin-left: 14px; }
 .json-toggle { background: none; border: 0; color: var(--fg); cursor: pointer; font: inherit; padding: 0; }
-.json-key { color: #7aa2f7; }
-.json-string { color: #9ece6a; } .json-number { color: #ff9e64; } .json-boolean, .json-null { color: #bb9af7; }
+.json-key { color: var(--code-title); }
+.json-string { color: var(--code-string); } .json-number { color: var(--code-number); } .json-boolean, .json-null { color: var(--code-keyword); }
 .nb-cell { margin: 8px 0; border-left: 3px solid var(--bg-chip); padding-left: 8px; }
 .nb-img, .file-media { max-width: 100%; height: auto; }
-.file-html { width: 100%; height: 60vh; border: 1px solid var(--bg-chip); background: #fff; }
+.file-html { width: 100%; height: 60vh; border: 1px solid var(--bg-chip); background: var(--content-paper); }
 
 /* EPIC-P39 (ADR-0059): Browser-Arbeitsplatz */
 .browser-panel { position: fixed; z-index: 61; right: 0; bottom: 0; top: calc(4dvh / var(--ui-zoom)); width: min(760px, calc(100vw / var(--ui-zoom))); display: flex; flex-direction: column; gap: 6px; padding: 8px; overflow: auto; border: 1px solid var(--bg-chip); border-radius: 12px 0 0 0; background: var(--bg-elev); }
@@ -105,7 +105,7 @@
 .browser-url { display: flex; gap: 6px; flex: 1 1 260px; }
 .browser-url input, .browser-type input { flex: 1 1 auto; min-width: 0; }
 .browser-type { display: flex; gap: 6px; }
-.browser-frame { width: 100%; height: auto; border: 1px solid var(--bg-chip); cursor: pointer; background: #fff; }
+.browser-frame { width: 100%; height: auto; border: 1px solid var(--bg-chip); cursor: pointer; background: var(--content-paper); }
 .browser-frame.picking { cursor: crosshair; outline: 2px solid var(--accent); }
 .browser-pick { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--bg-chip); border-radius: var(--radius-sm); }
 .browser-log, .browser-runs { list-style: none; margin: 0; padding: 0; }

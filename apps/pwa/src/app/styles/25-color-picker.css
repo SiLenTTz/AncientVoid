@@ -34,14 +34,14 @@
   border-radius: var(--radius-lg);
   background: var(--bg-elev);
   color: var(--fg);
-  box-shadow: var(--shadow-elev), 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+  box-shadow: var(--shadow-elev), 0 24px 60px -20px var(--scrim-950);
   overflow: auto;
   /* Die Zeile der Einstellungen (DOM-Eltern) richtet rechts aus — der Dialog nicht. */
   text-align: left;
 }
 
 .color-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--backdrop);
 }
 
 .color-dialog-body {
@@ -72,7 +72,7 @@
 
 .cp-hue {
   height: 20px;
-  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  background: linear-gradient(to right, var(--hue-red), var(--hue-yellow), var(--hue-lime), var(--hue-cyan), var(--hue-blue), var(--hue-magenta), var(--hue-red));
 }
 
 .cp-plane:focus-visible,
@@ -86,9 +86,9 @@
   width: 14px;
   height: 14px;
   margin: -7px 0 0 -7px;
-  border: 2px solid #fff;
+  border: 2px solid var(--content-paper);
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 1px var(--scrim-900);
   pointer-events: none;
 }
 
@@ -110,13 +110,13 @@
   font-size: calc(11px * var(--font-scale));
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
-  color: #fff;
+  color: var(--content-paper);
   mix-blend-mode: normal;
 }
 
 .cp-old {
   cursor: pointer;
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 0 3px var(--scrim-950);
 }
 
 .cp-fields {

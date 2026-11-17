@@ -57,9 +57,17 @@
   --rose-700: #c72d3d;
   /* Schatten-Scrim (Farbe der Schattenwürfe als Primitive) */
   --scrim-950: rgba(0, 0, 0, 0.65);
+  --scrim-800: rgba(0, 0, 0, 0.55);
   --scrim-900: rgba(0, 0, 0, 0.7);
   --scrim-700: rgba(20, 20, 40, 0.2);
   --scrim-600: rgba(20, 20, 40, 0.35);
+  /* Picker-Spektrum (Inhalt des Farbwählers, kein Themenbezug) */
+  --hue-red: #f00;
+  --hue-yellow: #ff0;
+  --hue-lime: #0f0;
+  --hue-cyan: #0ff;
+  --hue-blue: #00f;
+  --hue-magenta: #f0f;
   /* Code-Syntax (aus der Dateiansicht, EPIC-P46 T46.7) */
   --violet-300: #bb9af7;
   --orange-400: #ff9e64;
@@ -94,8 +102,9 @@
   --code-number: var(--orange-400);
   --code-title: var(--blue-400);
   --code-type: var(--cyan-300);
-  /* Dokumenteigene Fläche (PDF-/HTML-Vorschau) — bewusst kein Themen-Thema */
+  /* Dokumenteigene Flächen (PDF-/HTML-Vorschau, Video/Terminal) — kein Themen-Thema */
   --content-paper: var(--paper);
+  --content-terminal: var(--gray-950);
   /* EPIC-P48 (ADR-0062): Graph-Gruppenfarben — doc läuft auf --accent. */
   --graph-code: var(--cyan-400);
   --graph-config: var(--void-violet-500);
@@ -107,6 +116,11 @@
   --radius-lg: 14px;
   --shadow-elev: 0 0 0 1px var(--bg-chip), 0 10px 26px -14px var(--scrim-900);
   --shadow-sheet: 0 18px 48px -20px var(--scrim-950);
+  /* Abdunkelung hinter Dialogen/Sheets */
+  --backdrop: var(--scrim-800);
+  /* Schrift auf Zustandsflächen (Statusfarbe ≠ Akzent, vgl. --call-ink) */
+  --warn-ink: var(--amber-ink);
+  --err-ink: var(--paper);
 
   /* ─── Typografie ─── */
   --font-display: "Orbitron", system-ui, sans-serif;
@@ -190,6 +204,8 @@
   --graph-other: var(--gray-600);
   --shadow-elev: 0 0 0 1px var(--bg-chip), 0 14px 28px -18px var(--scrim-700);
   --shadow-sheet: 0 18px 48px -22px var(--scrim-600);
+  --backdrop: var(--scrim-600);
+  --warn-ink: var(--paper);
   color-scheme: light;
 }
 

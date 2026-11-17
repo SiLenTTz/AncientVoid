@@ -92,7 +92,7 @@
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-all;
-  background: rgba(128, 128, 128, 0.12);
+  background: var(--bg-active);
   border-radius: 6px;
   padding: 8px;
 }
@@ -108,7 +108,7 @@
   height: 340px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--content-paper);
 }
 
 .ws-footer {

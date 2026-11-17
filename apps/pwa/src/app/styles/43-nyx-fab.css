@@ -8,7 +8,7 @@
   border-radius: 50%;
   border: 2px solid color-mix(in srgb, var(--accent) 55%, var(--bg-chip));
   background: color-mix(in srgb, var(--bg-elev) 88%, var(--accent));
-  box-shadow: 0 4px 18px color-mix(in srgb, #000 35%, transparent);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--scrim-900) 50%, transparent);
   display: grid;
   place-items: center;
   padding: 0;
@@ -55,7 +55,7 @@
   background: var(--bg-elev);
   border: 1px solid var(--bg-chip);
   font-size: calc(12px * var(--font-scale));
-  box-shadow: 0 4px 14px color-mix(in srgb, #000 30%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--scrim-900) 43%, transparent);
   pointer-events: none;
 }
 
@@ -74,8 +74,8 @@
   display: grid;
   place-items: center;
   font-size: calc(22px * var(--font-scale));
-  color: #fff;
-  text-shadow: 0 1px 5px color-mix(in srgb, #000 75%, transparent);
+  color: var(--err-ink);
+  text-shadow: 0 1px 5px var(--scrim-950);
 }
 
 .nyx-fab.recording,
