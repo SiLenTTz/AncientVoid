@@ -211,7 +211,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0187](bug-0187-geister-tokens-fremde-fallback-farben.md) | Geister-Tokens mit fremder Fallback-Palette im Diff-, Dateien- und Arbeitsort-Styling | open | S3 | pwa | — |
 | [BUG-0188](bug-0188-projekt-anlegen-ignoriert-host.md) | „+ Anlegen“ in der Neuanlage legt Projekte immer auf dem heimischen Hub an — gewählter Fleet-Host wird ignoriert, Liste und Pfad springen auf lokal | in Arbeit | S2 | pwa | [#62](https://github.com/SiLenTTz/AncientVoid/issues/62) |
 | [BUG-0189](bug-0189-bugs-ohne-statusfarben-im-dateibaum.md) | `bug-*.md` im Dateibaum ohne Statusfarben — Epics haben Punkte (grün/gelb/blau/grau) | done | S4 | pwa | [#72](https://github.com/SiLenTTz/AncientVoid/issues/72) |
-| [BUG-0190](bug-0190-git-historie-graph-unleserlich.md) | Git-Historie: Lane-Linien, Farben ohne Legende, Worktree-Refs nur als UUID | open | S3 | pwa | [#73](https://github.com/SiLenTTz/AncientVoid/issues/73) |
+| [BUG-0190](bug-0190-git-historie-graph-unleserlich.md) | Git-Historie: Lane-Linien, Farben ohne Legende, Worktree-Refs nur als UUID | done | S3 | pwa | [#73](https://github.com/SiLenTTz/AncientVoid/issues/73) |
 | [BUG-0191](bug-0191-git-historie-datei-oeffnet-nur-workdir.md) | Datei aus Git-Historie öffnet nur Worktree-Stand — gelöschte/alte Pfade → 404 | open | S2 | pwa | [#74](https://github.com/SiLenTTz/AncientVoid/issues/74) |
 | [BUG-0192](bug-0192-slash-commands-nicht-bei-allen-anbietern.md) | Slash-Commands fehlen bei den meisten Anbietern — opencode/ACP-Dispatch live belegt, Deklaration fehlte | done | S3 | adapters | — |
 

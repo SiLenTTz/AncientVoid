@@ -12,6 +12,8 @@ test.describe("Git-Graph", () => {
     await expect(app.locator(".session-live[data-tab='git']")).toBeVisible();
     await expect(app.locator('[data-testid="git-graph-pane"]')).toBeVisible();
     await expect(app.locator(".git-graph-row").first()).toBeVisible({ timeout: 15_000 });
+    // BUG-0190: Legende erklärt Spurfarben
+    await expect(app.locator('[data-testid="git-graph-legend"]')).toContainText(/Spurlinien/);
   });
 
   test("Datei im Commit öffnet den Projekt-Explorer", async ({ app, hub }) => {

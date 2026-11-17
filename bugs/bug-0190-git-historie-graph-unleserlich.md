@@ -1,7 +1,7 @@
 ---
 id: BUG-0190
 slug: git-historie-graph-unleserlich
-status: open
+status: done
 severity: S3
 area: pwa
 instance: dev

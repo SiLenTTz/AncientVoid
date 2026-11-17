@@ -43,18 +43,19 @@
 .git-picker-tile:hover { background: var(--bg-chip); }
 .git-picker .empty { grid-column: 1 / -1; }
 .git-graph-pane { display: flex; flex-direction: column; gap: 8px; min-height: 0; height: 100%; }
+.git-graph-legend { margin: 0; font-size: 0.85em; line-height: 1.35; }
 .git-graph-branches { display: flex; flex-wrap: wrap; gap: 6px; }
-.git-graph-branch {
-  font-size: calc(11px * var(--font-scale, 1));
+.git-graph-branch {  font-size: calc(11px * var(--font-scale, 1));
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--lane, var(--accent)) 55%, var(--bg-chip));
   color: var(--lane, var(--accent));
 }
 .git-graph-list { list-style: none; margin: 0; padding: 0; overflow: auto; flex: 1; min-height: 0; }
-.git-graph-row { display: flex; gap: 4px; align-items: stretch; min-height: 44px; }
-.git-graph-rails { flex: 0 0 auto; display: block; }
-.git-graph-body { flex: 1; min-width: 0; border-bottom: 1px solid var(--bg-chip); padding: 4px 0 8px; }
+/* BUG-0190: keine Lücke zwischen Zeilen — Spurlinien stoßen Kante an Kante. */
+.git-graph-row { display: flex; gap: 4px; align-items: flex-start; margin: 0; padding: 0; }
+.git-graph-rails { flex: 0 0 auto; display: block; margin: 0; }
+.git-graph-body { flex: 1; min-width: 0; border-bottom: 1px solid var(--bg-chip); padding: 4px 0 8px; min-height: 44px; box-sizing: border-box; }
 .git-graph-commit {
   display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline;
   width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 2px 4px;
