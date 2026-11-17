@@ -25,9 +25,25 @@ Latenz nicht. Vergleichsbasis: der P1.6-Abschlusslauf
 node scripts/k2-frame-lag.mjs 600
 ```
 
-## Rohzahlen (1 Lauf, 600 s @ 30 ev/s)
+## Rohzahlen (A/B, gleicher Tag, gleiche Maschine — je 1 Lauf, 600 s @ 30 ev/s)
 
-<!-- NUMMERN -->
+| Stand | Commit | Seqs (gematcht) | min | median | p95 | max | über 200 ms |
+|---|---|---|---|---|---|---|---|
+| main (Basis) | `11662872` | 18154 (18134) | 1 ms | **12 ms** | **20 ms** | 29 ms | 0 |
+| feat/p64-glocke-glow | `5a1d166f` | 18158 (18135) | 1 ms | **12 ms** | **20 ms** | 27 ms | 0 |
+
+```text
+main:    [k2] lag ms: min=1 median=12 p95=20 max=29 — over 200ms budget: 0 of 18134
+p64:     [k2] lag ms: min=1 median=12 p95=20 max=27 — over 200ms budget: 0 of 18135
+```
+
+**Ergebnis (AC-P64-5):** median und p95 sind identisch, max liegt im
+Rausch — der P64-Umbau (Fluss-Glocke, Urgency-Ableitung je Render,
+Hintergrund-Pending-Refresh) verursacht **keine messbare K2-Veränderung**.
+Zur Einordnung: die historische Referenz vom 2026-09-18 (median 4/p95 5)
+misst einen zwei Monate alten main-Stand auf einer unbelasteteren
+Maschine; das gleichtägige A/B ist die aussagekräftigere Basis und
+isoliert den P64-Effekt sauber.
 
 ## Was das nicht sagt
 
