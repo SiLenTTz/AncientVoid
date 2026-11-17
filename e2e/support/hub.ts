@@ -35,6 +35,8 @@ export interface HubOptions {
   /** ADR-0083: echtes Streaming im Fixture-Hub (Frames + spaeter Block). */
   dummyLiveFrames?: boolean;
   dummyBlockLeadMs?: number;
+  /** ADR-0083: Frames auch fuer thinking — fuer Tests an der Live-Darstellung des Denkens. */
+  dummyLiveThinkingFrames?: boolean;
   /** EPIC-P6: this hub's host id in the fleet. */
   hostId?: string;
   /** 2026-10-26: readable fleet label (config hostLabel) — two hubs on one
@@ -202,7 +204,7 @@ export class TestHub {
         {
           id: "dummy",
           module: this.options.interruptedDummy ? join(repoRoot, "e2e/support/interrupted-dummy.ts") : this.options.limitDummy ? join(repoRoot, "e2e/support/limit-dummy.ts") : "@ancientvoid/adapter-dummy",
-          config: { hubResume: this.options.interruptedDummy?.resume ?? this.options.limitDummy === true, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: this.options.dummyEventsPerSecond ?? 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14, liveFrames: this.options.dummyLiveFrames ?? false, blockLeadMs: this.options.dummyBlockLeadMs ?? 0 },
+          config: { hubResume: this.options.interruptedDummy?.resume ?? this.options.limitDummy === true, failResume: this.options.interruptedDummy?.failResume ?? false, eventsPerSecond: this.options.dummyEventsPerSecond ?? 20, autoStopAfterEvents: this.options.dummyAutoStop ?? 14, liveFrames: this.options.dummyLiveFrames ?? false, blockLeadMs: this.options.dummyBlockLeadMs ?? 0, liveThinkingFrames: this.options.dummyLiveThinkingFrames ?? false },
         },
         {
           // BUG-0061: dsh via ACP (ADR-0018) under a free-form id, like a

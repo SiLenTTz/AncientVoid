@@ -101,18 +101,22 @@ export function ChatTurns({
         </Fragment>
       ))}
       {live && (live.assistant || live.thinking) ? (
-        <div class="chat-live" data-testid="chat-live" aria-live="polite">
+        <div data-testid="chat-live" aria-live="polite">
           {live.thinking ? (
-            <>
-              <span class="chat-live-label">denkt</span>
-              <div class="chat-live-part thinking" data-testid="chat-live-thinking">{live.thinking}</div>
-            </>
+            /* Das live uebertragene Denken ist eine Denk-Notiz wie jede andere in dieser
+             * Ansicht: dieselbe Klasse, also auch dieselbe Groesse und derselbe Grund.
+             * Ein eigener Kasten und 15 px machten es groesser als das Denken sonst
+             * (Nutzerfund 17.11.2026). */
+            <div class="turn-note thinking chat-live-note" data-testid="chat-live-thinking">
+              {live.thinking}
+              <span class="chat-live-caret" aria-hidden="true" />
+            </div>
           ) : null}
           {live.assistant ? (
-            <>
+            <div class="chat-live">
               <span class="chat-live-label">antwortet</span>
               <div class="chat-live-part" data-testid="chat-live-assistant">{live.assistant}<span class="chat-live-caret" aria-hidden="true" /></div>
-            </>
+            </div>
           ) : null}
         </div>
       ) : null}
