@@ -6,7 +6,7 @@
 
 Self-hosted · open source · no cloud: the only server is yours.
 
-[![CI](https://github.com/SiLenTTz/AncientVoid/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SiLenTTz/AncientVoid/actions/workflows/ci.yml)
+[![CI](https://github.com/securesight-ai/AncientVoid/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/securesight-ai/AncientVoid/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-34d399)](LICENSE)
 [![Node 22.18+](https://img.shields.io/badge/node-22.18%2B-339933?logo=node.js&logoColor=white)](package.json)
 [![Hub: Linux · Windows](https://img.shields.io/badge/hub-Linux%20%C2%B7%20Windows-4b5563)](#platform-support)
@@ -54,7 +54,7 @@ tmux is optional (Linux), and you need [Tailscale](https://tailscale.com) for
 phone access.
 
 ```bash
-git clone https://github.com/SiLenTTz/AncientVoid.git
+git clone https://github.com/securesight-ai/AncientVoid.git
 cd AncientVoid
 ./setup.sh
 ```
@@ -255,7 +255,7 @@ Expect rough edges, and an English UI soon.
 
 Contributions are welcome. The easiest first one is an adapter for your
 favourite agent ([guide](docs/adapters.md)), or a look at the
-[good first issues](https://github.com/SiLenTTz/AncientVoid/labels/good%20first%20issue).
+[good first issues](https://github.com/securesight-ai/AncientVoid/labels/good%20first%20issue).
 Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) and the
 [Code of Conduct](CODE_OF_CONDUCT.md). Coding agents working in this repo
 follow [`AGENTS.md`](AGENTS.md) and the skills in `.claude/skills/`.

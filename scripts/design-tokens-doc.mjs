@@ -68,7 +68,14 @@ export function applyToDoc(doc, table) {
     throw new Error("docs/design-system.md: Marker BEGIN/END:design-tokens fehlen");
   }
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return doc.replace(new RegExp(`${esc(BEGIN)}[\\s\\S]*?${esc(END)}`), table.trimEnd());
+  // Zeilenende des Dokuments respektieren (BUG-0198): ein Windows-Checkout (autocrlf) liegt
+  // in CRLF vor, der Vergleich in `--check` ist byte-genau — eine LF-Tabelle in einem
+  // CRLF-Dokument wäre für den Check per Definition veraltet und die Korrektur mischte
+  // LF-Zeilen ins Dokument. Die Ersetzung als Funktion (nicht als String) hält außerdem
+  // `$&`-artige Tokenwerte von der Ersetzungssprache fern.
+  const eol = doc.includes("\r\n") ? "\r\n" : "\n";
+  const block = table.trimEnd().split("\n").join(eol);
+  return doc.replace(new RegExp(`${esc(BEGIN)}[\\s\\S]*?${esc(END)}`), () => block);
 }
 
 function main() {

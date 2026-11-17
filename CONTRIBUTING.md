@@ -11,7 +11,7 @@ issues and pull requests are welcome.
 ## Who can contribute, and how
 
 - Anyone. External contributions come as **fork + pull request** on
-  [GitHub](https://github.com/SiLenTTz/AncientVoid). The maintainer reviews
+  [GitHub](https://github.com/securesight-ai/AncientVoid). The maintainer reviews
   and merges; there is no direct push access.
 - For anything bigger than a bug fix, open an issue first (templates in
   `.github/ISSUE_TEMPLATE/`) so scope can be agreed before you invest time.

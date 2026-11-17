@@ -3,6 +3,8 @@ import { createServer, type Server } from "node:http";
 import { createReadStream, readFileSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
+import { repoRoot } from "../support/hub.ts";
+import { winShell } from "../support/win-shell.ts";
 
 /**
  * EPIC-P62 T62.6 (AC-P62-7): Smoke-Spec der Promo-Seite — baut apps/site
@@ -34,7 +36,9 @@ test.describe("Promo-Seite apps/site (EPIC-P62 T62.6)", () => {
   let server: Server;
 
   test.beforeAll(async () => {
-    execFileSync("npm", ["-w", "@ancientvoid/site", "run", "build"], { stdio: "inherit" });
+    // Auf Windows spawnt Node `npm` (`.cmd`) nicht ohne Shell — derselbe Fall wie im
+    // E2E-Global-Setup (BUG-0169); ohne das fiel der Site-Bau mit `spawnSync npm ENOENT`.
+    execFileSync("npm", ["-w", "@ancientvoid/site", "run", "build"], { cwd: repoRoot, stdio: "inherit", shell: winShell });
     ({ server, port } = await serve());
   });
 
@@ -48,7 +52,7 @@ test.describe("Promo-Seite apps/site (EPIC-P62 T62.6)", () => {
     await expect(page.locator("h1")).toHaveText("AncientVoid");
     await expect(page.locator(".tagline")).toContainText("local-first hub");
     await expect(page.locator(".quickstart code")).toHaveText("./setup.sh");
-    await expect(page.locator('a[href*="github.com/SiLenTTz/AncientVoid"]').first()).toBeVisible();
+    await expect(page.locator('a[href*="github.com/securesight-ai/AncientVoid"]').first()).toBeVisible();
     await expect(page.locator('#guide a[href*="docs/guide/README.md"]')).toBeVisible();
   });
 
