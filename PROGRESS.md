@@ -16,13 +16,15 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
   Recommends; ein kombinierter Schritt, in dem apt im Hintergrund laeuft, die neun
   werkzeugfreien Guards sofort anlaufen und die schnellen Kern-Tests erst NACH apt starten
   (sonst skippen tmux-/ffmpeg-/pdftotext-Tests still). Gate-INHALT unveraendert, jeder Guard
-  entscheidet weiterhin einzeln. Gemessen Lauf fuer Lauf: #131 **3:41**, #134 **3:19**.
+  entscheidet weiterhin einzeln. Gemessen Lauf fuer Lauf: #131 **3:41**, #134 **3:19**, #135
+  **2:34** (Cache erstmals getroffen: 2 s Restore, `npm ci` entfiel), #136 **2:17**.
   Der Cache traf anfaenglich nie: `runner.image` ist keine gueltige Ausdrucksvariable (Key war
   `nm--node24-…`), und Caches aus PR-Zweigen sieht ein anderer PR-Zweig nicht — PR #132 loggte
   „Cache not found“, obwohl #131 106 MB gespeichert hatte. Deshalb `cache-warm.yml`: saet den
   Cache auf main (Lockfile-Wechsel oder Handausloesung), dort laeuft echtes `npm ci` — der
-  Kaltlauf-Beweis (frische Installation) bleibt erhalten. Gesaet: Lauf 44180995622,
-  Key `nm-Linux--node24-06b19507…`. Entfernt ausserdem: ein von mir hinterlassener
+  Kaltlauf-Beweis (frische Installation) bleibt erhalten. Gesaet: Lauf 44180995622 mit
+  Key `nm-Linux--node24-…`; nach dem Key-Fix auf `runner.arch` neu gesaet in Lauf 44183836239
+  (35 s), Key `nm-Linux-X64-node24-06b19507…`. Entfernt ausserdem: ein von mir hinterlassener
   Duplikat-Schritt, der Guards und Tests ein zweites Mal laufen liess.
 - **Build-Stempel im Buendel (Zweig `feat/app-stand-im-geraetebericht`).** Auf Kais Frage
   „sehe ich das am Handy schon?“ war von aussen nicht entscheidbar, WELCHES Buendel auf
