@@ -9,7 +9,7 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
-- **BUG-0202 behoben (Zweig `fix/0202-wurzel-commit-laesst-den-ganzen-diff-fallen`).**
+- **BUG-0203 behoben (Zweig `fix/0202-wurzel-commit-laesst-den-ganzen-diff-fallen`).**
   Ein Eltern-loser Commit im Bereich `baseRef..HEAD` liess den ganzen Aenderungsdiff
   ausfallen: `apps/hub/src/modules/sessions/diff.ts` diffte blind `sha^..sha`, und fuer den
   Wurzel-Commit gibt es keine Eltern-Revision (`fatal: ambiguous argument`). Live gemessen:

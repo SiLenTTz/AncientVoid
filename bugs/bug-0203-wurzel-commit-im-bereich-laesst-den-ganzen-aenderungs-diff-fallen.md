@@ -1,5 +1,5 @@
 ---
-id: BUG-0202
+id: BUG-0203
 slug: wurzel-commit-im-bereich-laesst-den-ganzen-aenderungs-diff-fallen
 status: done
 severity: S2
@@ -67,4 +67,6 @@ Browser auf dieser Session — `hunks > 0`, `commitzweige > 0`.
 
 ## Nummer
 
-Vorherige: BUG-0201 (Nyx-FAB am PC). Nächste freie Nummer: **0203**.
+Vorherige: BUG-0202 (`cursor.unhandled`-Frage im Chat — schon auf main; die Nummerkollision
+entstand durch parallele Arbeit, deshalb trägt dieser Fall hier die 0203). Nächste freie
+Nummer: **0204**.
