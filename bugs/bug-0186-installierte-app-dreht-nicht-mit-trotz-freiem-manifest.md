@@ -179,3 +179,39 @@ Deshalb zwei weitere Maßnahmen:
 Bleibt die App nach Entfernen und Neuanlegen des Startsymbols im Hochformat und lehnt
 `lock()` mit `SecurityError` ab, ist die Sperre am Gerät zu suchen: Auto-Rotate und — bei
 One UI auf dem Z Fold — die Ausrichtungsfreigabe **je App**.
+## Ferndiagnose eingebaut (17.11., `POST /api/diagnostics/client-report`)
+
+Kai meldet vom Gerät: **„Fenster-Winkel ändert sich nicht, egal was ich mache“** — weder
+Gerät drehen noch „Querformat erzwingen“ noch App-Neustart bewegen `screen.orientation.angle`
+(bleibt 0). Damit ist die Frage nicht mehr, *ob* die Web-Ebene sauber ist (sie ist es:
+Manifest `any`, Worker `ancientvoid-v6`, kein Manifest im Cache), sondern was das Gerät und
+die Installations-Metadaten von Chrome damit machen.
+
+Ab jetzt muss das niemand mehr auf dem Handy ablesen: „Stand neu prüfen“ (und jeder Versuch
+„Querformat erzwingen“) sendet den Selbstbericht an den Hub, der ihn **protokolliert** —
+eine Zeile mit Winkel, Anzeigemodus, Manifest-Ausrichtung, Fenstergröße und Gerät.
+
+- Vertrag: `packages/contracts/src/observability/client-report.ts` (begrenzte Einzelwerte, K5)
+- Route: `apps/hub/src/modules/diagnostics/client-report.routes.ts` → 202 `{logged:true}`,
+  nur Protokoll, **kein** neuer Dauerzustand (K7: nichts zu erholen)
+- PWA: `apps/pwa/src/shared/device-report.ts`, best-effort — ohne Token oder offline bleibt
+  die Anzeige unverändert und die App funktioniert weiter.
+
+Messung: `apps/hub/test/modules/diagnostics/client-report.routes.test.ts` **4 passed**
+(annommen, unbekannter Typ 400, Feld über Grenze 400, ohne Token 401),
+`apps/pwa/test/shared/device-report.test.ts` **4 passed** (Abbildung auf Vertrag,
+Browser-Tab, Text-Kurzung, fehlende Winkel-API lügt nicht). Typecheck Exit 0,
+`check:arch` ohne Verletzungen (543 Module).
+
+## Zwei Ursachen, ein Trenn-Test
+
+1. **Die Installations-Metadaten von Chrome halten die alte Ausrichtung fest.** Beim Anlegen
+   des Startsymbols wurde das Manifest (`portrait-primary`) in die App-Metadaten übernommen;
+   das ausgelieferte Manifest ist längst `any`, aber die installierte App fragt nicht erneut
+   nach der *Ausrichtung*. Trennen: dieselbe URL in einem **normalen Chrome-Tab** öffnen und
+   drehen. Dreht der Tab, die App aber nicht -> Metadaten. Heilen: App entfernen
+   (Startsymbol-Icon lang drücken -> App-Info -> Deinstallieren) und neu hinzufügen.
+2. **Das Gerät sperrt pro App.** One UI kennt eine Ausrichtung je App (Einstellungen ->
+   Erweiterte Funktionen -> App-Ausrichtung / Auto-rotate-Apps) und global Auto-Rotate in den
+   Schnelleinstellungen. Dreht auch ein normaler Tab nicht, liegt es hier.
+
